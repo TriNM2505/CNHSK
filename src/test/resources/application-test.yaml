@@ -1,0 +1,24 @@
+# Cau hinh cho test: dung H2 trong bo nho, khong can Docker.
+# Test nao dung SQL dac thu PostgreSQL thi chay DB that qua Docker.
+spring:
+  datasource:
+    url: jdbc:h2:mem:cnhsk;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;INIT=CREATE SCHEMA IF NOT EXISTS auth\;CREATE SCHEMA IF NOT EXISTS learning\;CREATE SCHEMA IF NOT EXISTS community
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  # Flyway tat khi test - migration viet cho PostgreSQL
+  flyway:
+    enabled: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6379

@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: cnhsk-api
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/cnhsk_db}
+    username: ${DB_USER:svc_app}
+    # CANH BAO: dev_app_pwd chi dung cho may cuc bo.
+    # Khi deploy that, dat bien moi truong DB_PASSWORD - KHONG sua file nay.
+    password: ${DB_PASSWORD:dev_app_pwd}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # KHONG BAO GIO doi thanh update - Flyway quan schema, Hibernate chi kiem tra
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    # Ba schema deu do Flyway quan ly. Bang lich su dat o learning.
+    schemas: learning,auth,community
+    default-schema: learning
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+server:
+  port: 8080
+
+# Mui gio cho moi tac vu dinh ky. Server chay UTC nen bat buoc ghi ro.
+app:
+  timezone: Asia/Ho_Chi_Minh
