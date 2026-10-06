@@ -11,7 +11,7 @@
 ## Bảng tra nhanh
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | UC-015 | Luyện viết chữ Hán theo nét | `USER` | P1 | MVP | 1.1 |
 | UC-016 | Luyện viết chế độ "nhớ rồi viết" | `USER` | P2 | MVP | 1.1 |
 | UC-017 | Luyện viết chế độ thử thách | `USER` | P2 | MVP | 1.1 |
@@ -36,7 +36,7 @@
 # UC-015 · Luyện viết chữ Hán theo nét
 
 | | |
-|---|---|
+| --- | --- |
 | **UC-ID** | UC-015 |
 | **Actor chính** | `USER` |
 | **Actor phụ** | — |
@@ -57,14 +57,14 @@ Người học nhìn chữ mẫu, tô theo thứ tự nét chuẩn do `hanzi-wri
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái hệ thống |
-|---|---|
+| --- | --- |
 | Thành công | `user_knowledge_state` của điểm kiến thức tương ứng được cập nhật mastery; `study_sessions` ghi thêm một dòng |
 | Thất bại | Không ghi gì — không được ghi mastery một phần |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Chọn chữ cần luyện từ danh sách hoặc từ chủ đề |
 | 2 | System | `GET /api/characters/{id}` — trả chữ, pinyin, nghĩa, `stroke_data` |
 | 3 | Client | `hanzi-writer` render khung chữ và bắt đầu chế độ `quiz` với `showHintAfterMisses: 1` |
@@ -95,7 +95,7 @@ thông báo "chữ này chưa có dữ liệu nét". Không phải lỗi — là
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `CHARACTER_NOT_FOUND` | 404 | `character_id` không tồn tại | Hiện "không tìm thấy chữ", về danh sách |
 | `INVALID_ACCURACY` | 400 | `accuracy` ngoài khoảng `[0,1]` | **Chặn ở server.** Client đã bị sửa hoặc có bug |
 | `IMPOSSIBLE_DURATION` | 400 | `duration_ms < total_strokes × 200` | Không ai viết nổi 1 nét dưới 0,2 giây → nghi gian lận. Ghi log, **không** cộng mastery |
@@ -112,12 +112,15 @@ thông báo "chữ này chưa có dữ liệu nét". Không phải lỗi — là
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-015-1 | Chấm nét ở client — server **không** nhận toạ độ, chỉ nhận kết quả tổng hợp |
-| BR-015-2 | Chế độ này có hệ số mastery **0.5** (dễ nhất trong 5 chế độ) |
-| BR-015-3 | Dùng animation gợi ý → hệ số nhân thêm 0.5 (tổng 0.25) |
-| BR-015-4 | Luyện lại cùng một chữ trong 10 phút → chỉ lần đầu tính mastery |
-| BR-015-5 | Không cập nhật mastery nếu `completed: false` |
+| --- | --- |
+| BR-015-1 | Chế độ luyện viết theo nét là chế độ cơ bản nhất của luyện viết chữ Hán. Người học được nhìn chữ mẫu và được hệ thống hướng dẫn thứ tự nét. |
+| BR-015-2 | Việc chấm nét được thực hiện ở client bằng thư viện viết chữ. Server không nhận tọa độ từng nét, không chấm lại hình học, chỉ nhận kết quả tổng hợp như `accuracy`, `duration_ms`, số lần sai và trạng thái hoàn thành. |
+| BR-015-3 | Vì kết quả chấm đến từ client nên server phải kiểm tra tính hợp lý trước khi cập nhật tiến độ, bao gồm giới hạn `accuracy`, thời gian viết tối thiểu và số lần gửi bất thường. |
+| BR-015-4 | Chế độ theo nét có hệ số mastery thấp hơn các chế độ khó hơn. Hệ số mặc định là 0.5 vì người học có hướng dẫn trực tiếp. |
+| BR-015-5 | Nếu người học dùng animation hoặc gợi ý bổ sung trong lúc luyện, hệ số mastery của lượt đó tiếp tục bị giảm để phản ánh mức hỗ trợ cao hơn. |
+| BR-015-6 | Nếu người học thoát giữa chừng hoặc lượt luyện chưa hoàn thành, hệ thống có thể ghi nhận buổi học nhưng không được cộng mastery cho chữ đó. |
+| BR-015-7 | Luyện lặp lại cùng một chữ trong khoảng thời gian ngắn không được cộng mastery nhiều lần. Trong MVP, chỉ lượt hợp lệ đầu tiên trong vòng 10 phút được tính mastery. |
+| BR-015-8 | Nếu chữ chưa có dữ liệu nét, hệ thống không mở chế độ luyện viết theo nét cho chữ đó; người học chỉ được xem thông tin chữ hoặc chuyển sang hoạt động học khác. |
 
 ## API
 
@@ -129,7 +132,7 @@ POST /api/practice/writing
 ## Bảng DB liên quan
 
 | Bảng | Vai trò |
-|---|---|
+| --- | --- |
 | `characters` | Đọc — chữ, pinyin, `stroke_data` |
 | `knowledge_points` | Đọc — tìm điểm kiến thức của chữ |
 | `user_knowledge_state` | **Ghi** — mastery, `next_review_at` |
@@ -138,7 +141,7 @@ POST /api/practice/writing
 ## Test case
 
 | # | Đầu vào | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Viết đúng hết nét, 30s | 200, mastery tăng theo hệ số 0.5 |
 | T2 | `accuracy = 1.5` | 400 `INVALID_ACCURACY` |
 | T3 | Chữ 12 nét, `duration_ms = 500` | 400 `IMPOSSIBLE_DURATION`, mastery **không đổi** |
@@ -172,7 +175,7 @@ Thành công → mastery tăng với hệ số **1.0**; `study_sessions` ghi `mo
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Chọn chế độ "Nhớ rồi viết" |
 | 2 | System | Kiểm đã luyện chế độ theo nét chưa |
 | 3 | System | Trả chữ + `stroke_data` + `preview_seconds` (mặc định 5) |
@@ -194,7 +197,7 @@ Có nút "chưa nhớ, xem lại từ đầu" → về UC-015 cho cùng chữ đ
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `MODE_LOCKED` | 403 | Chưa luyện chế độ theo nét | Hiện "luyện chế độ cơ bản trước", chuyển sang UC-015 |
 | `PREVIEW_TOO_LONG` | 400 | `preview_used_ms > 5000 + 3000×2` | Client đã bị sửa để xem chữ mãi |
 | `HINT_USED_IN_RECALL` | 400 | Client báo `used_animation: true` ở chế độ này | **Sai logic** — chế độ này không có hint. Ghi log, coi là gian lận |
@@ -209,23 +212,27 @@ Có nút "chưa nhớ, xem lại từ đầu" → về UC-015 cho cùng chữ đ
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-016-1 | Phải hoàn thành UC-015 cho chữ đó ≥ 1 lần mới mở |
-| BR-016-2 | Hệ số mastery 1.0 |
-| BR-016-3 | Xem lại mẫu tối đa 2 lần, mỗi lần −0.25 hệ số |
-| BR-016-4 | `preview_seconds` cấu hình được, mặc định 5 |
+| --- | --- |
+| BR-016-1 | Người học chỉ được mở chế độ “nhớ rồi viết” cho một chữ sau khi đã luyện chữ đó ở chế độ theo nét ít nhất một lần. Điều kiện này phải được kiểm tra ở server, không chỉ ẩn nút trên giao diện. |
+| BR-016-2 | Chế độ “nhớ rồi viết” không hiển thị gợi ý nét trong lúc người học viết. Nếu request báo có dùng animation hoặc hint thì lượt đó không hợp lệ. |
+| BR-016-3 | Thời gian xem chữ mẫu trước khi viết phải có giới hạn. Mặc định là 5 giây và có thể cấu hình trong hệ thống. |
+| BR-016-4 | Người học được xem lại chữ mẫu tối đa 2 lần. Mỗi lần xem lại làm giảm hệ số mastery của lượt luyện. |
+| BR-016-5 | Hệ số mastery mặc định của chế độ này là 1.0 vì người học phải tự nhớ chữ, khó hơn chế độ theo nét. |
+| BR-016-6 | Nếu người học chưa sẵn sàng và chọn quay lại chế độ cơ bản, hệ thống không tính lượt “nhớ rồi viết” và không cộng mastery theo chế độ này. |
+| BR-016-7 | Server phải kiểm tra tổng thời gian xem mẫu. Nếu client gửi thời gian xem vượt giới hạn cho phép, hệ thống không được cộng mastery cho lượt đó. |
 
 ## API · DB
 
 ```
 POST /api/practice/writing   (mode = RECALL)
 ```
+
 `characters` (đọc) · `user_knowledge_state` (đọc để kiểm điều kiện + ghi) · `study_sessions` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Chưa từng luyện theo nét | 403 `MODE_LOCKED` |
 | T2 | Đã luyện, viết đúng | 200, mastery hệ số 1.0 |
 | T3 | Xem lại mẫu 2 lần | mastery hệ số 0.5 |
@@ -253,14 +260,14 @@ có tính game nhất của tính năng 1.1.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Hoàn thành | Mastery cập nhật cho **từng chữ** trong dãy, hệ số 1.2; ghi `study_sessions` |
 | Thua giữa dãy | Chỉ cập nhật mastery cho các chữ **đã viết xong**, chữ đang viết dở không tính |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Thử thách" |
 | 2 | System | `POST /api/practice/challenge/start` — chọn 10 chữ từ `user_knowledge_state` ưu tiên chữ gần hạn ôn |
 | 3 | System | Sinh `challenge_id`, ghi `served_at`, trả danh sách chữ + `time_limit_seconds` + `max_mistakes` |
@@ -287,7 +294,7 @@ nếu quá hạn thì trả `CHALLENGE_EXPIRED` và **không** tính điểm.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NOT_ENOUGH_CHARACTERS` | 422 | Chưa học đủ 10 chữ | Hiện "học thêm chữ trước khi thử thách" |
 | `CHALLENGE_NOT_FOUND` | 404 | `challenge_id` sai | Bắt tạo thử thách mới |
 | `CHALLENGE_ALREADY_SUBMITTED` | 409 | Nộp hai lần cùng `challenge_id` | **Chặn** — nếu không, gửi lại 100 lần là farm mastery |
@@ -303,12 +310,15 @@ nếu quá hạn thì trả `CHALLENGE_EXPIRED` và **không** tính điểm.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-017-1 | `time_limit_seconds` = 20 × số chữ; `max_mistakes` = 3 |
-| BR-017-2 | Hệ số mastery 1.2 — cao nhất trong các chế độ viết |
-| BR-017-3 | Dãy chữ do **server** chọn, client không được tự chọn |
-| BR-017-4 | Ưu tiên chữ có `next_review_at` gần nhất |
-| BR-017-5 | Một `challenge_id` chỉ nộp được **một lần** |
+| --- | --- |
+| BR-017-1 | Chế độ thử thách chỉ mở khi người học có đủ số chữ đang học hoặc đã thuộc để tạo một lượt chơi hợp lệ. Trong MVP, một lượt thử thách cần tối thiểu 10 chữ. |
+| BR-017-2 | Danh sách chữ trong lượt thử thách phải do server chọn. Client không được tự chọn chữ để tránh việc người học chọn toàn chữ dễ nhằm farm mastery. |
+| BR-017-3 | Hệ thống ưu tiên chọn các chữ gần đến hạn ôn hoặc đang yếu để lượt thử thách có giá trị học tập. |
+| BR-017-4 | Mỗi lượt thử thách phải có giới hạn thời gian và giới hạn số lỗi. Trong MVP, thời gian mặc định là 20 giây cho mỗi chữ và tối đa 3 lỗi. |
+| BR-017-5 | Mỗi `challenge_id` chỉ được nộp một lần. Nếu nộp lại cùng `challenge_id`, hệ thống phải từ chối để tránh cộng mastery nhiều lần. |
+| BR-017-6 | Server phải lưu thông tin lượt thử thách gồm `challenge_id`, danh sách chữ đã phát, thời điểm bắt đầu và trạng thái đã nộp. Nếu chưa có nơi lưu các thông tin này thì chưa được triển khai chế độ thử thách dạng server-side. |
+| BR-017-7 | Kết quả chỉ được tính cho các chữ đã hoàn thành hợp lệ. Chữ đang viết dở khi hết giờ hoặc khi thua không được cộng mastery. |
+| BR-017-8 | Hệ số mastery của chế độ thử thách cao hơn các chế độ luyện viết thông thường. Hệ số mặc định là 1.2 vì người học bị giới hạn thời gian và ít hỗ trợ hơn. |
 
 ## API · DB
 
@@ -316,6 +326,7 @@ nếu quá hạn thì trả `CHALLENGE_EXPIRED` và **không** tính điểm.
 POST /api/practice/challenge/start
 POST /api/practice/challenge/{id}/submit
 ```
+
 `characters` · `user_knowledge_state` (đọc + ghi) · `study_sessions` (ghi)
 
 > ⚠️ **Thiếu bảng:** `challenge_id` với `served_at` và trạng thái `submitted` **chưa có bảng
@@ -324,7 +335,7 @@ POST /api/practice/challenge/{id}/submit
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | 10 chữ đúng hết trong hạn | 200, mastery 10 chữ tăng hệ số 1.2 |
 | T2 | Chỉ có 5 chữ đã học | 422 `NOT_ENOUGH_CHARACTERS` |
 | T3 | Nộp lần 2 cùng id | 409 `CHALLENGE_ALREADY_SUBMITTED` |
@@ -358,7 +369,7 @@ Mastery cập nhật hệ số **1.2** cho **hai** loại kỹ năng: viết và
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Chọn chế độ "Nghe chép" |
 | 2 | System | Trả `audio_url` + `stroke_data` (client cần để chấm) nhưng **không render chữ** |
 | 3 | Client | Phát audio tự động |
@@ -382,7 +393,7 @@ Có nút "không nghe được" → hiện chữ, chuyển về UC-015, **không
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `AUDIO_NOT_AVAILABLE` | 422 | `audio_url IS NULL` | Không mở chế độ này; ẩn nút ở UI và chặn ở server |
 | `AUDIO_LOAD_FAILED` | — (client) | CDN lỗi, mạng chậm | Client thử lại 2 lần rồi hiện "không tải được audio, chuyển chế độ khác" |
 | `TOO_MANY_REPLAYS` | 400 | `replay_count > 3` | Client bị sửa |
@@ -398,23 +409,27 @@ Có nút "không nghe được" → hiện chữ, chuyển về UC-015, **không
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-018-1 | Chỉ mở khi chữ có cả `audio_url` và `stroke_data` |
-| BR-018-2 | Hệ số mastery 1.2, tính cho **cả** kỹ năng nghe và viết |
-| BR-018-3 | Phát lại tối đa 3 lần, từ lần 2 mỗi lần −0.2 |
-| BR-018-4 | `duration_ms` phải ≥ độ dài audio |
+| --- | --- |
+| BR-018-1 | Chế độ nghe chép chỉ mở cho chữ có cả dữ liệu nét và audio hợp lệ. Nếu thiếu một trong hai dữ liệu này, hệ thống không được mở chế độ nghe chép. |
+| BR-018-2 | Trong lúc làm bài nghe chép, người học chỉ được nghe âm thanh, không được nhìn chữ mẫu. |
+| BR-018-3 | Người học được phát lại audio tối đa 3 lần. Từ lần phát lại thứ hai, hệ số mastery của lượt luyện bị giảm. |
+| BR-018-4 | Hệ thống phải phân biệt lỗi audio với lỗi của người học. Nếu audio không tải được do mạng hoặc nguồn âm thanh lỗi, lượt đó không được tính là trả lời sai. |
+| BR-018-5 | Thời gian làm bài phải lớn hơn hoặc bằng độ dài audio ở mức tối thiểu hợp lý. Nếu gửi kết quả trước khi có thể nghe xong audio, lượt đó bị coi là không hợp lệ. |
+| BR-018-6 | Chế độ nghe chép cập nhật cả kỹ năng nghe và kỹ năng viết, nhưng hệ số mastery phải được kiểm soát vì server không thể kiểm chứng hoàn toàn việc người học có nhìn dữ liệu chữ trong response hay không. |
+| BR-018-7 | Nếu người học chọn “không nghe được”, hệ thống chuyển sang chế độ học khác và không tính lượt nghe chép. |
 
 ## API · DB
 
 ```
 POST /api/practice/writing   (mode = DICTATION)
 ```
+
 `characters` (đọc `audio_url`, `stroke_data`) · `user_knowledge_state` (ghi) · `study_sessions` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Nghe 1 lần, viết đúng | 200, hệ số 1.2 |
 | T2 | Chữ không có audio | 422 `AUDIO_NOT_AVAILABLE` |
 | T3 | `replay_count = 5` | 400 `TOO_MANY_REPLAYS` |
@@ -443,14 +458,14 @@ là chữ gần giống để bài có giá trị phân biệt.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Trả lời đúng | Mastery tăng; `attempt_answers` ghi `is_correct = true` |
 | Trả lời sai | Mastery **giảm**; ghi đáp án đã chọn để phân tích lỗi sai (dùng cho UC-040) |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Vào phần "Nhận diện chữ" |
 | 2 | System | `GET /api/practice/recognition?type=CHAR_TO_MEANING&count=10` |
 | 3 | System | Chọn câu ưu tiên điểm kiến thức gần hạn ôn; **không trả `is_correct`** trong response |
@@ -477,7 +492,7 @@ Bước 2 trả ít hơn `count`. Client hiện "đã luyện hết câu ở m�
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `QUESTION_NOT_FOUND` | 404 | `question_id` không tồn tại | Bỏ câu, sang câu tiếp |
 | `OPTION_NOT_IN_QUESTION` | 400 | `option_id` không thuộc câu đó | **Gian lận** — ghi log, không tính |
 | `ANSWER_ALREADY_SUBMITTED` | 409 | Trả lời cùng câu 2 lần trong một lượt | Chặn farm mastery bằng cách gửi lại |
@@ -493,13 +508,15 @@ Bước 2 trả ít hơn `count`. Client hiện "đã luyện hết câu ở m�
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-019-1 | Chấm **bắt buộc ở server** — response bước 3 không chứa `is_correct` |
-| BR-019-2 | Đáp án nhiễu phải khác đáp án đúng và là chữ gần giống (đồng âm hoặc đồng bộ thủ) |
-| BR-019-3 | Thứ tự đáp án trộn mỗi lần gọi |
-| BR-019-4 | Trả lời sai → mastery giảm, không giữ nguyên |
-| BR-019-5 | `duration_ms < 800` → hệ số ×0.5 |
-| BR-019-6 | Một câu trong một lượt chỉ trả lời một lần |
+| --- | --- |
+| BR-019-1 | Bài nhận diện chữ phải được chấm ở server. Response gửi cho client không được chứa đáp án đúng hoặc trường `is_correct`. |
+| BR-019-2 | Mỗi câu hỏi trắc nghiệm phải có đúng một đáp án đúng. Câu có không có đáp án đúng hoặc có nhiều hơn một đáp án đúng không được đưa cho người học. |
+| BR-019-3 | Các đáp án nhiễu phải khác đáp án đúng và không được trùng nghĩa với đáp án đúng. |
+| BR-019-4 | Với dạng nhìn chữ chọn nghĩa, đáp án nhiễu nên lấy từ các chữ dễ nhầm, ví dụ chữ gần hình dạng, cùng bộ thủ hoặc dễ nhầm trong cùng cấp học, để bài có giá trị phân biệt. |
+| BR-019-5 | Thứ tự đáp án phải được trộn lại mỗi lần sinh câu hỏi. |
+| BR-019-6 | Trả lời đúng làm tăng mastery của điểm kiến thức liên quan; trả lời sai làm giảm hoặc điều chỉnh mastery theo thuật toán tiến độ. |
+| BR-019-7 | Nếu thời gian trả lời quá ngắn bất thường, hệ thống vẫn có thể ghi nhận đáp án nhưng phải giảm hệ số mastery hoặc đánh dấu lượt đó là đáng ngờ. |
+| BR-019-8 | Một câu hỏi trong cùng một lượt luyện chỉ được trả lời một lần. Việc gửi lại cùng câu để dò đáp án không được cộng thêm tiến độ. |
 
 ## API · DB
 
@@ -507,12 +524,13 @@ Bước 2 trả ít hơn `count`. Client hiện "đã luyện hết câu ở m�
 GET  /api/practice/recognition
 POST /api/practice/recognition/answer
 ```
+
 `questions` · `question_options` · `question_knowledge_points` (đọc) · `attempt_answers` · `user_knowledge_state` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Chọn đáp án đúng | 200 `correct: true`, mastery tăng |
 | T2 | Chọn sai | 200 `correct: false`, mastery giảm, có `explanation` |
 | T3 | `option_id` của câu khác | 400 `OPTION_NOT_IN_QUESTION` |
@@ -548,7 +566,7 @@ Mastery kỹ năng **nghe** cập nhật; `attempt_answers` ghi lượt trả l�
 Giống UC-019, khác ở bước 5: client phát audio thay vì hiện chữ; 4 đáp án là chữ Hán.
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Vào phần "Nghe chọn chữ" |
 | 2 | System | `GET /api/practice/recognition?type=AUDIO_TO_CHAR&count=10` |
 | 3 | Client | Phát audio, hiện 4 chữ |
@@ -564,7 +582,7 @@ Giống UC-019, khác ở bước 5: client phát audio thay vì hiện chữ; 4
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `AUDIO_NOT_AVAILABLE` | 422 | Câu thiếu `audio_url` | Loại câu khỏi kho, báo `CONTENT_ADMIN` |
 | `AUDIO_LOAD_FAILED` | — | CDN/mạng | Bỏ qua câu, **không** ghi là sai |
 | `TOO_MANY_REPLAYS` | 400 | `replay_count > 3` | Client bị sửa |
@@ -578,11 +596,14 @@ Giống UC-019, khác ở bước 5: client phát audio thay vì hiện chữ; 4
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-020-1 | Chấm ở server |
-| BR-020-2 | 4 đáp án phải là chữ có **pinyin khác nhau** — nếu trùng pinyin thì câu vô nghĩa |
-| BR-020-3 | Audio lỗi không tính là trả lời sai |
-| BR-020-4 | Mastery ghi vào kỹ năng `LISTENING` |
+| --- | --- |
+| BR-020-1 | Dạng nghe âm chọn chữ phải được chấm ở server. Client không được biết đáp án đúng trước khi nộp câu trả lời. |
+| BR-020-2 | Mỗi câu hỏi phải có audio hợp lệ. Câu thiếu audio không được đưa vào lượt luyện. |
+| BR-020-3 | Bốn đáp án phải là chữ Hán. Các đáp án nhiễu không được trùng pinyin kèm thanh điệu với đáp án đúng, vì khi nghe sẽ không thể phân biệt công bằng. |
+| BR-020-4 | Nếu audio bị lỗi tải do mạng hoặc nguồn âm thanh, lượt đó không được tính là trả lời sai và không được làm giảm mastery của người học. |
+| BR-020-5 | Số lần phát lại audio phải có giới hạn. Trong MVP, cho phép tối đa 3 lần phát. |
+| BR-020-6 | Mastery của dạng bài này được ghi vào kỹ năng nghe hoặc liên kết âm - chữ, không ghi như một lượt nhận diện chữ thuần túy. |
+| BR-020-7 | Một câu hỏi trong cùng một lượt luyện chỉ được trả lời một lần. |
 
 ## API · DB
 
@@ -590,12 +611,13 @@ Giống UC-019, khác ở bước 5: client phát audio thay vì hiện chữ; 4
 GET  /api/practice/recognition?type=AUDIO_TO_CHAR
 POST /api/practice/recognition/answer
 ```
+
 `questions` · `question_options` · `characters` (đọc) · `attempt_answers` · `user_knowledge_state` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Nghe, chọn đúng | 200, mastery `LISTENING` tăng |
 | T2 | Audio 404 → bỏ qua | `attempt_answers` **không** ghi `is_correct = false` |
 | T3 | 4 đáp án trùng pinyin | Kiểm khi nhập đề, loại câu |
@@ -623,14 +645,14 @@ nghe-và-chọn. **Không chấm phát âm qua micro** — giới hạn đã ch�
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Làm xong tầng | `user_pronunciation_progress` cập nhật `accuracy`, `completed_at` |
 | Đạt ngưỡng | Kích hoạt UC-022 mở tầng tiếp |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở trang "Luyện phát âm" |
 | 2 | System | `GET /api/pronunciation/stages` — trả 8 tầng kèm trạng thái khoá/mở và `accuracy` đã đạt |
 | 3 | `USER` | Chọn một tầng đang mở |
@@ -659,7 +681,7 @@ Server trả `STAGE_LOCKED`. Không dựa vào ẩn nút ở UI.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `STAGE_LOCKED` | 403 | Chưa hoàn thành tầng trước | Hiện "hoàn thành tầng N−1 trước". **Kiểm ở server** |
 | `STAGE_NOT_FOUND` | 404 | `stage_id` ngoài 1–8 | Về danh sách tầng |
 | `STAGE_HAS_NO_UNITS` | 500 | Tầng chưa nhập dữ liệu | Báo `CONTENT_ADMIN`, ẩn tầng khỏi danh sách |
@@ -675,13 +697,15 @@ Server trả `STAGE_LOCKED`. Không dựa vào ẩn nút ở UI.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-021-1 | Tầng 1 mở sẵn cho mọi `USER` mới |
-| BR-021-2 | Ngưỡng qua tầng: `accuracy ≥ 80%` |
-| BR-021-3 | Đã mở thì **không bao giờ đóng lại** |
-| BR-021-4 | Làm lại chỉ ghi điểm khi cao hơn |
-| BR-021-5 | Unit thiếu audio bị loại khỏi mẫu số khi tính `accuracy` |
-| BR-021-6 | Không chấm micro — ngoài scope |
+| --- | --- |
+| BR-021-1 | Lộ trình phát âm gồm 8 tầng, đi từ nội dung cơ bản đến nội dung khó hơn như thanh mẫu, vận mẫu, thanh điệu và biến điệu. |
+| BR-021-2 | Tầng 1 được mở sẵn cho mọi người học đã đăng nhập. Các tầng sau chỉ mở khi người học đạt điều kiện hoàn thành tầng trước. |
+| BR-021-3 | Ngưỡng hoàn thành một tầng trong MVP là `accuracy >= 80%`. |
+| BR-021-4 | Khi một tầng đã được mở, hệ thống không được khóa lại tầng đó nếu người học làm lại và đạt điểm thấp hơn. |
+| BR-021-5 | Người học được làm lại tầng đã hoàn thành. Hệ thống chỉ cập nhật kết quả nếu điểm mới cao hơn điểm đã lưu. |
+| BR-021-6 | Unit thiếu audio phải được loại khỏi mẫu số khi tính accuracy, vì người học không được bị phạt do dữ liệu thiếu. |
+| BR-021-7 | MVP không chấm phát âm qua micro. Phần luyện phát âm hiện tại chỉ là nghe và chọn, không đánh giá giọng nói thật của người học. |
+| BR-021-8 | Việc khóa/mở tầng phải được kiểm tra ở server. Không được chỉ dựa vào việc ẩn nút trên giao diện. |
 
 ## API · DB
 
@@ -690,6 +714,7 @@ GET  /api/pronunciation/stages
 GET  /api/pronunciation/stages/{id}/units
 POST /api/pronunciation/answer
 ```
+
 `pronunciation_units` (đọc) · `user_pronunciation_progress` (đọc + ghi)
 
 > ⚠️ **Lệch tài liệu:** feature tree 1.3 ghi 3 bảng gồm `pronunciation_stages`, nhưng danh
@@ -699,7 +724,7 @@ POST /api/pronunciation/answer
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `USER` mới mở tầng 1 | 200, danh sách unit |
 | T2 | Gọi tầng 5 khi mới xong tầng 1 | 403 `STAGE_LOCKED` |
 | T3 | Làm tầng 1 đúng 85% | `accuracy = 85`, tầng 2 mở |
@@ -733,7 +758,7 @@ lệnh ghi kết quả tầng N.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | System | Nhận kết quả hoàn thành tầng N từ UC-021 |
 | 2 | System | Tính `accuracy` |
 | 3 | System | So với ngưỡng 80% |
@@ -756,7 +781,7 @@ Không có tầng 9. Trả `{completed_all_stages: true}`, hiện chúc mừng h
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NEXT_STAGE_NOT_FOUND` | — | Đã ở tầng 8 | Không phải lỗi (A3) |
 | `STAGE_ALREADY_UNLOCKED` | — | Chạy lại | **Idempotent** — bỏ qua im lặng |
 | `UNIQUE_VIOLATION` | 500 | Hai request song song cùng mở | Cần unique constraint `(user_id, stage)`; bắt lỗi và coi như đã mở |
@@ -769,12 +794,14 @@ Không có tầng 9. Trả `{completed_all_stages: true}`, hiện chúc mừng h
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-022-1 | Ngưỡng 80% — cấu hình được, không hardcode |
-| BR-022-2 | Mở tầng và ghi kết quả tầng trước phải **cùng một transaction** |
-| BR-022-3 | Idempotent — chạy nhiều lần cho cùng kết quả |
-| BR-022-4 | Unique constraint `(user_id, stage_number)` |
-| BR-022-5 | Chỉ mở **một** tầng mỗi lần, không nhảy tầng |
+| --- | --- |
+| BR-022-1 | Hệ thống tự động mở tầng phát âm tiếp theo khi người học hoàn thành tầng hiện tại và đạt ngưỡng accuracy yêu cầu. |
+| BR-022-2 | Ngưỡng mở tầng mặc định là 80% và phải được cấu hình tập trung, không hardcode rải rác trong nhiều nơi. |
+| BR-022-3 | Việc ghi kết quả tầng hiện tại và mở tầng tiếp theo phải nằm trong cùng một thao tác nhất quán dữ liệu. Không được để xảy ra trường hợp mất kết quả tầng hiện tại nhưng tầng sau vẫn mở, hoặc ngược lại. |
+| BR-022-4 | Mở tầng là thao tác idempotent. Nếu cùng một tầng đã được mở trước đó, hệ thống không tạo dòng trùng và không báo lỗi cho người học. |
+| BR-022-5 | Mỗi người học chỉ có một bản ghi tiến độ cho mỗi tầng phát âm. Hệ thống cần ràng buộc duy nhất theo cặp người học và số tầng. |
+| BR-022-6 | Mỗi lần hoàn thành chỉ được mở tối đa một tầng kế tiếp. Hệ thống không được nhảy qua nhiều tầng dù điểm rất cao. |
+| BR-022-7 | Nếu người học hoàn thành tầng cuối cùng, hệ thống đánh dấu hoàn thành lộ trình phát âm thay vì cố mở tầng không tồn tại. |
 
 ## API · DB
 
@@ -785,7 +812,7 @@ Không có endpoint riêng — chạy trong `POST /api/pronunciation/answer` khi
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Xong tầng 1, 85% | Tầng 2 mở, có `unlocked_at` |
 | T2 | Xong tầng 1, 72% | Không mở, trả `needed: 80, actual: 72` |
 | T3 | Gọi lại khi tầng 2 đã mở | Không tạo dòng thứ hai |
@@ -815,14 +842,14 @@ bài tập ngắn. Lần học đầu tạo lịch ôn FSRS.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Học xong | `user_knowledge_state` tạo dòng mới với `stability`, `difficulty`, `next_review_at` theo FSRS |
 | Làm bài tập | Kết quả đúng/sai ảnh hưởng tham số FSRS ban đầu |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Chọn cấp HSK rồi chọn điểm ngữ pháp |
 | 2 | System | `GET /api/grammar/{id}` — cấu trúc, giải thích, ví dụ |
 | 3 | Client | Hiện nội dung học |
@@ -849,7 +876,7 @@ không được `Easy`.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `GRAMMAR_POINT_NOT_FOUND` | 404 | ID sai | Về danh sách |
 | `NO_KNOWLEDGE_POINT_LINKED` | 500 | `grammar_points` chưa nối `knowledge_points` | **Không tạo được lịch ôn.** Ghi log, báo `CONTENT_ADMIN`, vẫn cho học nhưng không ghi FSRS |
 | `NO_EXERCISES` | 200 | Điểm chưa có bài tập | Không phải lỗi — bỏ bước 5–6, `rating = Hard` |
@@ -865,13 +892,15 @@ không được `Easy`.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-023-1 | 593 điểm: HSK1 70 · HSK2 78 · HSK3 96 · HSK4 95 · HSK5 70 · HSK6 50 · HSK7-9 134 |
-| BR-023-2 | Dùng **FSRS**, không phải Leitner |
-| BR-023-3 | Lần học đầu bắt buộc tạo `user_knowledge_state` |
-| BR-023-4 | Bỏ bài tập → `rating = Hard` |
-| BR-023-5 | Mọi điểm ngữ pháp **phải** có `knowledge_point_id` — kiểm khi nhập dữ liệu |
-| BR-023-6 | Chấm bài tập ở server |
+| --- | --- |
+| BR-023-1 | Hệ thống quản lý các điểm ngữ pháp theo cấp HSK. Bộ dữ liệu hiện tại gồm 593 điểm: HSK1 có 70, HSK2 có 78, HSK3 có 96, HSK4 có 95, HSK5 có 70, HSK6 có 50 và HSK7-9 có 134 điểm. |
+| BR-023-2 | Mỗi điểm ngữ pháp phải liên kết với một điểm kiến thức để hệ thống có thể theo dõi tiến độ, lập lịch ôn và đưa vào lộ trình thông minh. |
+| BR-023-3 | Lần học đầu của một điểm ngữ pháp phải tạo trạng thái học tập cá nhân cho người học. Không được chỉ hiển thị nội dung rồi bỏ qua tiến độ. |
+| BR-023-4 | Lịch ôn ngữ pháp sử dụng FSRS hoặc thuật toán ôn lặp đã chốt của hệ thống, không dùng hộp Leitner đơn giản cho phần này. |
+| BR-023-5 | Nếu người học bỏ bài tập sau khi đọc lý thuyết, hệ thống vẫn cho hoàn thành lượt học nhưng phải xếp mức ghi nhớ thấp, ví dụ `Hard`, vì chưa có bằng chứng người học đã hiểu chắc. |
+| BR-023-6 | Bài tập ngữ pháp có đáp án đúng/sai phải được chấm ở server. Client không được tự quyết định kết quả cuối cùng. |
+| BR-023-7 | Điểm ngữ pháp thiếu liên kết điểm kiến thức là lỗi dữ liệu nghiêm trọng và không được nhập vào kho học chính thức. |
+| BR-023-8 | Nếu việc tính lịch ôn thất bại, hệ thống không được ghi trạng thái “đã học” mà thiếu lịch ôn tương ứng. |
 
 ## API · DB
 
@@ -880,12 +909,13 @@ GET  /api/grammar/{id}
 GET  /api/grammar/{id}/exercises
 POST /api/grammar/{id}/complete
 ```
+
 `grammar_points` · `knowledge_points` · `questions` (đọc) · `user_knowledge_state` (ghi) · `study_sessions` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Học điểm mới, bài tập đúng hết | Tạo `user_knowledge_state`, `rating = Easy` |
 | T2 | Bỏ bài tập | `rating = Hard`, `next_review_at` gần hơn T1 |
 | T3 | Điểm không nối `knowledge_points` | 500 ghi log, **không** tạo dòng FSRS |
@@ -914,14 +944,14 @@ bài ôn, kết quả tính lại khoảng cách ôn lần sau.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Đúng | `stability` tăng, `next_review_at` giãn xa |
 | Sai | `stability` giảm, `next_review_at` gần lại (thường trong ngày) |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Vào "Ôn hôm nay" |
 | 2 | System | `GET /api/review/due?type=GRAMMAR` — sắp theo `next_review_at` cũ nhất trước |
 | 3 | Client | Hiện số lượng cần ôn |
@@ -952,7 +982,7 @@ chặn nhưng cũng không thưởng.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NOTHING_DUE` | 200 (rỗng) | Không có gì đến hạn | Không phải lỗi (A1) |
 | `KNOWLEDGE_STATE_NOT_FOUND` | 404 | Ôn điểm chưa từng học | **Chặn** — phải học (UC-023) trước khi ôn |
 | `NOT_DUE_YET` | 200 | Ôn sớm | Cho phép, FSRS xử lý (A4) |
@@ -969,13 +999,16 @@ chặn nhưng cũng không thưởng.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-024-1 | Sắp theo `next_review_at` cũ nhất trước |
-| BR-024-2 | Tối đa 50 điểm mỗi buổi |
-| BR-024-3 | Cập nhật FSRS ngay sau **từng** câu, không đợi hết buổi |
-| BR-024-4 | Bài có đáp án → server tự tính `rating`; chỉ bài tự đánh giá mới nhận `rating` từ client |
-| BR-024-5 | Ôn sớm được phép nhưng giãn ít hơn |
-| BR-024-6 | Không ôn điểm chưa học |
+| --- | --- |
+| BR-024-1 | Danh sách ôn hôm nay phải lấy các điểm kiến thức đã đến hạn, tức là có `next_review_at` nhỏ hơn hoặc bằng thời điểm hiện tại. |
+| BR-024-2 | Các mục ôn phải được sắp xếp theo thời điểm đến hạn cũ nhất trước để ưu tiên phần đã quá hạn lâu hơn. |
+| BR-024-3 | Mỗi buổi ôn chỉ nên trả về một số lượng giới hạn để tránh quá tải cho người học. Trong MVP, tối đa 50 điểm mỗi buổi. |
+| BR-024-4 | Kết quả ôn phải được cập nhật ngay sau từng câu hoặc từng điểm kiến thức, không chờ đến hết buổi ôn. |
+| BR-024-5 | Với bài ôn có đáp án đúng/sai, server phải tự tính rating FSRS từ kết quả làm bài. Client không được tự gửi `Easy`, `Good`, `Hard` cho loại bài này. |
+| BR-024-6 | Chỉ các bài tự đánh giá như flashcard mới được nhận rating trực tiếp từ người học. |
+| BR-024-7 | Người học được phép ôn sớm trước hạn, nhưng kết quả ôn sớm không được thưởng như một lần ôn đúng hạn; khoảng cách ôn sau phải giãn ít hơn. |
+| BR-024-8 | Người học không được ôn một điểm kiến thức chưa từng học. Muốn ôn phải có trạng thái học tập trước đó. |
+| BR-024-9 | Nếu cùng một điểm được ôn ở hai tab, hệ thống phải tránh cập nhật hai lần lên cùng một trạng thái cũ. |
 
 ## API · DB
 
@@ -983,12 +1016,13 @@ chặn nhưng cũng không thưởng.
 GET  /api/review/due?type=GRAMMAR
 POST /api/review/answer
 ```
+
 `user_knowledge_state` (đọc + ghi) · `grammar_points` · `questions` (đọc) · `study_sessions` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | 10 điểm đến hạn, đúng hết | `next_review_at` cả 10 giãn xa hơn |
 | T2 | Trả lời sai | `next_review_at` trong vòng 1 ngày |
 | T3 | Không có gì đến hạn | 200 mảng rỗng |
@@ -1024,7 +1058,7 @@ Không đổi dữ liệu — use case chỉ đọc. Nhưng phải trả % **tí
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở trang "Học từ vựng" |
 | 2 | System | `GET /api/topics` |
 | 3 | System | Với mỗi chủ đề: đọc `user_topic_progress` lấy % hoàn thành |
@@ -1047,7 +1081,7 @@ còn lại `LOCKED`.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_TOPICS` | 200 (rỗng) | Chưa nhập chủ đề | Hiện "nội dung đang được cập nhật" |
 | `PROGRESS_PERCENT_MISMATCH` | — | `user_topic_progress.completion_percent` lệch so với đếm thật từ `user_knowledge_state` | 🔴 **Vấn đề nghiêm trọng** — xem ghi chú dưới |
 | `INVALID_HSK_LEVEL` | 400 | `hsk_level` ngoài 1–9 | Chặn |
@@ -1065,13 +1099,13 @@ còn lại `LOCKED`.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-025-1 | `completion_percent` = số từ `MASTERED` / tổng `topic_words` × 100 |
-| BR-025-2 | `COMPLETED` khi ≥ 90% (ngưỡng cổng đã chốt) |
-| BR-025-3 | Chủ đề gốc mở sẵn; còn lại theo tiên quyết |
-| BR-025-4 | `user_topic_progress` và `user_knowledge_state` cập nhật cùng transaction |
-| BR-025-5 | Chủ đề rỗng không hiện |
-| BR-025-6 | Cần đăng nhập — không có chế độ `GUEST` |
+| --- | --- |
+| BR-025-1 | Game Box gồm các game học tập nhỏ phục vụ ghi nhớ chữ Hán, pinyin, bộ thủ và nghĩa từ. |
+| BR-025-2 | Danh sách game phải hiển thị các game đang khả dụng, trạng thái mở/khóa nếu có, mô tả ngắn và kỹ năng được luyện. |
+| BR-025-3 | Người học phải đăng nhập nếu muốn lưu điểm, cập nhật mastery hoặc tham gia bảng xếp hạng. |
+| BR-025-4 | Nếu người dùng chưa đăng nhập, hệ thống có thể cho chơi thử nhưng không lưu điểm, không cập nhật mastery và không ghi bảng xếp hạng. |
+| BR-025-5 | Game không có đủ dữ liệu đầu vào hợp lệ thì không được hiển thị là có thể chơi. |
+| BR-025-6 | Game Box không phải engine tiến độ riêng. Kết quả game nếu có giá trị học tập phải ghi về hệ thống tiến độ chung của người học. |
 
 ## API · DB
 
@@ -1079,12 +1113,13 @@ còn lại `LOCKED`.
 GET /api/topics
 GET /api/topics?hsk_level={n}
 ```
+
 `topics` · `topic_words` · `user_topic_progress` · `user_knowledge_state` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `USER` mới | Chủ đề gốc `AVAILABLE`, còn lại `LOCKED`, % = 0 |
 | T2 | Học 9/10 từ chủ đề A | % = 90, `status = COMPLETED`, chủ đề B mở |
 | T3 | `hsk_level = 12` | 400 `INVALID_HSK_LEVEL` |
@@ -1114,14 +1149,14 @@ câu ví dụ · audio · từ liên quan. Mỗi từ chuyển từ "Chưa học
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Học một từ | `user_knowledge_state` tạo dòng, trạng thái `LEARNING`, có `next_review_at` |
 | Học hết từ mới | `user_topic_progress` cập nhật; chuyển sang UC-027 |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Chọn chủ đề, bấm "Học từ mới" |
 | 2 | System | Kiểm chủ đề không `LOCKED` |
 | 3 | System | `GET /api/topics/{id}/words?status=NEW&limit=10` |
@@ -1151,7 +1186,7 @@ Bước 2 trả `TOPIC_LOCKED`.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `TOPIC_LOCKED` | 403 | Chưa đạt 90% chủ đề tiên quyết | Hiện "hoàn thành chủ đề trước". **Kiểm ở server** |
 | `TOPIC_NOT_FOUND` | 404 | ID sai | Về danh sách |
 | `WORD_NOT_IN_TOPIC` | 400 | `word_id` không thuộc chủ đề | Gian lận — người dùng học nhờ từ chủ đề khoá |
@@ -1171,13 +1206,14 @@ Bước 2 trả `TOPIC_LOCKED`.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-026-1 | Mỗi lượt tối đa 10 từ mới — quá nhiều thì không nhớ |
-| BR-026-2 | Từ mới vào trạng thái `LEARNING`, không phải `MASTERED` |
-| BR-026-3 | `user_knowledge_state` + `user_topic_progress` cùng transaction (BR-025-4) |
-| BR-026-4 | "Tôi đã biết" đặt cờ `self_declared`, UC-029 kiểm lại |
-| BR-026-5 | `word_id` phải thuộc `topic_words` của chủ đề đang học |
-| BR-026-6 | Kiểm khoá ở server |
+| --- | --- |
+| BR-026-1 | Game Mưa chữ yêu cầu người học chọn hoặc gõ đáp án đúng khi chữ rơi xuống, nhằm luyện nhận diện chữ và nghĩa. |
+| BR-026-2 | Bộ chữ/từ dùng trong game phải được lấy từ dữ liệu học tập hợp lệ của hệ thống, ưu tiên nội dung người học đang học hoặc cần ôn. |
+| BR-026-3 | Điểm game được tính theo số câu đúng, số câu sai, thời gian phản hồi và độ khó của nội dung. |
+| BR-026-4 | Server không được tin tuyệt đối điểm do client gửi. Server phải kiểm tra giới hạn điểm, thời lượng ván chơi và danh sách câu hỏi đã phát. |
+| BR-026-5 | Chỉ các câu hỏi thật sự được server phát cho ván chơi đó mới được dùng để cập nhật điểm hoặc mastery. |
+| BR-026-6 | Nếu người học thoát giữa ván, hệ thống không ghi điểm xếp hạng; chỉ có thể ghi lịch sử chơi ở trạng thái chưa hoàn thành nếu cần thống kê. |
+| BR-026-7 | Kết quả game có thể ảnh hưởng mastery nhưng hệ số phải thấp hơn bài kiểm tra chính thức vì game chạy chủ yếu trên client. |
 
 ## API · DB
 
@@ -1185,12 +1221,13 @@ Bước 2 trả `TOPIC_LOCKED`.
 GET  /api/topics/{id}/words?status=NEW
 POST /api/topics/{id}/progress
 ```
+
 `topics` · `topic_words` · `words` · `characters` (đọc) · `user_knowledge_state` · `user_topic_progress` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Học 10 từ mới | 10 dòng `LEARNING`, % chủ đề tăng |
 | T2 | Chủ đề `LOCKED` | 403 `TOPIC_LOCKED` |
 | T3 | `word_id` của chủ đề khác | 400 `WORD_NOT_IN_TOPIC` |
@@ -1224,7 +1261,7 @@ Mastery từng từ cập nhật; từ đúng liên tục 3 lần chuyển `LEAR
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Luyện nhận diện" trong chủ đề |
 | 2 | System | Lấy từ đang học trong chủ đề, sinh câu hỏi với nhiễu **cùng chủ đề** |
 | 3 | System | Ghi `served_at`, trả câu hỏi **không kèm** `is_correct` |
@@ -1245,7 +1282,7 @@ Trả rỗng, hiện "đã thuộc hết từ chủ đề này", gợi ý UC-029
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NOT_ENOUGH_WORDS` | 422 | < 4 từ khả dụng và không lấy được nhiễu | Hiện "học thêm từ trước" |
 | `TOPIC_LOCKED` | 403 | Chủ đề khoá | Chặn ở server |
 | `NO_WORDS_LEARNING` | 200 (rỗng) | Chưa học từ nào | Chuyển UC-026 |
@@ -1261,12 +1298,13 @@ Trả rỗng, hiện "đã thuộc hết từ chủ đề này", gợi ý UC-029
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-027-1 | Nhiễu ưu tiên cùng chủ đề; không đủ thì cùng cấp HSK |
-| BR-027-2 | Nhiễu **không được trùng nghĩa** với đáp án đúng |
-| BR-027-3 | Đúng 3 lần liên tiếp → `MASTERED` |
-| BR-027-4 | Chấm ở server |
-| BR-027-5 | `MASTERED` cập nhật `user_topic_progress` cùng transaction |
+| --- | --- |
+| BR-027-1 | Game Ghép Pinyin dùng để luyện liên kết chữ Hán với pinyin đúng, bao gồm âm đầu, vận mẫu và thanh điệu. |
+| BR-027-2 | Đáp án nhiễu không được trùng pinyin đầy đủ với đáp án đúng, bao gồm cả dấu thanh. |
+| BR-027-3 | Nếu một chữ có nhiều cách đọc hợp lệ, hệ thống phải xác định rõ cách đọc đang được hỏi theo ngữ cảnh hoặc không đưa chữ đó vào game. |
+| BR-027-4 | Chấm đúng/sai phải dựa trên dữ liệu pinyin chuẩn trong kho nội dung, không dựa vào text hiển thị do client tự gửi. |
+| BR-027-5 | Kết quả đúng liên tiếp có thể tăng mastery cho kỹ năng đọc âm/pinyin; trả lời sai làm giảm hoặc giữ nguyên tùy thuật toán tiến độ. |
+| BR-027-6 | Các lượt trả lời quá nhanh bất thường hoặc gửi lại nhiều lần phải bị đánh dấu đáng ngờ và không được dùng để farm điểm. |
 
 ## API · DB
 
@@ -1274,12 +1312,13 @@ Trả rỗng, hiện "đã thuộc hết từ chủ đề này", gợi ý UC-029
 GET  /api/topics/{id}/practice?mode=RECOGNITION
 POST /api/topics/{id}/practice/answer
 ```
+
 `topic_words` · `words` (đọc) · `user_knowledge_state` · `user_topic_progress` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | 10 từ đang học, đúng hết | Mastery cả 10 tăng |
 | T2 | Chủ đề 3 từ | Nhiễu lấy ngoài, cờ `mixed_distractors` |
 | T3 | Đúng từ X lần thứ 3 | X chuyển `MASTERED`, % chủ đề tăng |
@@ -1319,7 +1358,7 @@ Giống UC-027, khác: bước 3 phát audio thay vì hiện chữ; đáp án l�
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_AUDIO_WORDS` | 422 | Không từ nào có audio | Ẩn bước này khỏi luồng chủ đề |
 | `AUDIO_LOAD_FAILED` | — | Mạng/CDN | Bỏ câu, **không tính sai** |
 | `TOO_MANY_REPLAYS` | 400 | > 3 lần | Chặn |
@@ -1335,12 +1374,13 @@ Giống UC-027, khác: bước 3 phát audio thay vì hiện chữ; đáp án l�
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-028-1 | Chỉ dùng từ có `audio_url` |
-| BR-028-2 | Nhiễu **không trùng pinyin** (cả dấu thanh) với đáp án đúng |
-| BR-028-3 | Audio lỗi không tính sai |
-| BR-028-4 | Phát lại tối đa 3 lần |
-| BR-028-5 | Mastery ghi vào `LISTENING` |
+| --- | --- |
+| BR-028-1 | Game Ghép Bộ thủ dùng để luyện nhận biết cấu tạo chữ Hán thông qua bộ thủ hoặc thành phần cấu tạo. |
+| BR-028-2 | Chỉ các chữ có dữ liệu cấu tạo hoặc bộ thủ hợp lệ mới được đưa vào game. |
+| BR-028-3 | Đáp án nhiễu phải là bộ thủ hoặc thành phần có khả năng gây nhầm lẫn, nhưng không được trùng với đáp án đúng. |
+| BR-028-4 | Nếu dữ liệu cấu tạo của chữ còn thiếu hoặc mâu thuẫn, hệ thống không được sinh câu hỏi cho chữ đó. |
+| BR-028-5 | Kết quả game cập nhật mastery cho kỹ năng nhận diện cấu tạo chữ, không thay thế hoàn toàn cho luyện viết hoặc bài kiểm tra cuối chủ đề. |
+| BR-028-6 | Server phải kiểm tra rằng câu hỏi và đáp án thuộc đúng ván chơi đã phát trước khi ghi điểm. |
 
 ## API · DB
 
@@ -1348,12 +1388,13 @@ Giống UC-027, khác: bước 3 phát audio thay vì hiện chữ; đáp án l�
 GET  /api/topics/{id}/practice?mode=LISTENING
 POST /api/topics/{id}/practice/answer
 ```
+
 `topic_words` · `words` (đọc `audio_url`) · `user_knowledge_state` · `user_topic_progress` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Nghe, chọn đúng | Mastery `LISTENING` tăng |
 | T2 | Chủ đề không từ nào có audio | 422 `NO_AUDIO_WORDS`, ẩn bước |
 | T3 | Chủ đề có 是 và 事 | Không sinh câu có cặp đó |
@@ -1381,7 +1422,7 @@ Bước ⑥ — bước **quyết định**. Bài kiểm tra tổng hợp cả c
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Đạt ≥ 90% | `user_topic_progress.status = COMPLETED`; kích hoạt UC-046 |
 | Dưới 90% | Ghi kết quả, hiện các từ sai, gợi ý luyện lại; chủ đề sau **vẫn khoá** |
 | Từ `self_declared` sai | **Hạ** từ `MASTERED` về `LEARNING` |
@@ -1389,7 +1430,7 @@ Bước ⑥ — bước **quyết định**. Bài kiểm tra tổng hợp cả c
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Kiểm tra cuối chủ đề" |
 | 2 | System | Kiểm đã học ≥ 80% từ |
 | 3 | System | `POST /api/topics/{id}/final-test/start` — sinh bộ đề trộn 4 dạng (nhìn chữ, nghe, viết, điền) |
@@ -1420,7 +1461,7 @@ Lần thi mới tạo `attempts` mới. `completion_percent` lấy kết quả *
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NOT_ENOUGH_LEARNED` | 422 | Học < 80% từ | Hiện "học thêm trước khi kiểm tra" |
 | `TOPIC_LOCKED` | 403 | Chủ đề khoá | Chặn ở server |
 | `ATTEMPT_ALREADY_SUBMITTED` | 409 | Nộp 2 lần cùng `attempt_id` | 🔴 **Bắt buộc** — nếu không, nộp lại nhiều lần để dò đáp án |
@@ -1445,17 +1486,13 @@ Lần thi mới tạo `attempts` mới. `completion_percent` lấy kết quả *
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-029-1 | Chấm **bắt buộc ở server** — bước 4 không trả đáp án |
-| BR-029-2 | Cần học ≥ 80% từ mới được thi |
-| BR-029-3 | Ngưỡng đạt: **90%** (ngưỡng cổng đã chốt) |
-| BR-029-4 | Một `attempt_id` nộp **một lần** |
-| BR-029-5 | Kiểm sở hữu `attempt` trước khi nộp |
-| BR-029-6 | Điểm + mastery + mở khoá trong **một transaction** |
-| BR-029-7 | `completion_percent` lấy điểm **cao nhất** các lần thi |
-| BR-029-8 | Từ `self_declared` sai → hạ về `LEARNING` |
-| BR-029-9 | Thi lại cách nhau ≥ 10 phút |
-| BR-029-10 | Câu không trả lời tính là sai |
+| --- | --- |
+| BR-029-1 | Game Bắt Chữ dùng để luyện phản xạ nhận diện chữ, nghĩa hoặc âm đọc trong thời gian ngắn. |
+| BR-029-2 | Mỗi ván chơi phải có danh sách câu hỏi do server phát hoặc xác nhận trước, client không được tự tạo câu hỏi rồi gửi điểm. |
+| BR-029-3 | Một ván chơi chỉ được nộp kết quả một lần. Gửi lại cùng ván chơi không được cộng điểm hoặc mastery lần hai. |
+| BR-029-4 | Điểm tối đa của ván chơi phải có giới hạn theo số câu, thời lượng và độ khó. Điểm vượt trần bị từ chối. |
+| BR-029-5 | Nếu thời gian hoàn thành ngắn bất thường so với số câu, hệ thống phải đánh dấu nghi vấn và không cập nhật xếp hạng. |
+| BR-029-6 | Kết quả game có thể được dùng để gợi ý nội dung ôn tập, nhưng không được xem là bằng chứng thành thạo mạnh hơn bài kiểm tra chấm ở server. |
 
 ## API · DB
 
@@ -1463,12 +1500,13 @@ Lần thi mới tạo `attempts` mới. `completion_percent` lấy kết quả *
 POST /api/topics/{id}/final-test/start
 POST /api/topics/{id}/final-test/{attempt_id}/submit
 ```
+
 `topic_words` · `words` · `questions` · `question_options` (đọc) · `attempts` · `attempt_answers` · `user_knowledge_state` · `user_topic_progress` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Đúng 95% | `COMPLETED`, chủ đề sau mở |
 | T2 | Đúng 85% | Không đạt, chủ đề sau **vẫn khoá**, hiện từ sai |
 | T3 | Học 50% từ rồi thi | 422 `NOT_ENOUGH_LEARNED` |
@@ -1505,14 +1543,14 @@ tốc, lặp câu, ẩn/hiện từng lớp phụ đề.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Xem xong | ⚠️ **Chưa có bảng để ghi tiến độ** — xem exception dưới |
 | Lưu từ | UC-032 xử lý |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Chọn video theo cấp HSK/chủ đề |
 | 2 | System | `GET /api/videos` — danh sách kèm cấp, độ dài, ảnh bìa |
 | 3 | `USER` | Chọn video |
@@ -1533,7 +1571,7 @@ tốc, lặp câu, ẩn/hiện từng lớp phụ đề.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_PROGRESS_TABLE` | 500 | 🔴 `POST /api/videos/{id}/progress` **không có bảng nào lưu** | **Chặn tính năng.** Phải quyết trước khi làm — xem mục cuối file |
 | `VIDEO_NOT_FOUND` | 404 | ID sai | Về danh sách |
 | `VIDEO_UNAVAILABLE` | 410 | Nguồn đã xoá | Ẩn khỏi danh sách, báo `CONTENT_ADMIN` (A4) |
@@ -1554,12 +1592,14 @@ tốc, lặp câu, ẩn/hiện từng lớp phụ đề.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-030-1 | **Không** tải video người khác về máy chủ (bản quyền) |
-| BR-030-2 | Video không phụ đề thì không mở |
-| BR-030-3 | Phụ đề phải có `start_ms < end_ms`, không chồng lấn |
-| BR-030-4 | Video nguồn lỗi → `UNAVAILABLE`, ẩn khỏi danh sách |
-| BR-030-5 | ⚠️ **Chặn**: cần bảng ghi tiến độ trước khi làm |
+| --- | --- |
+| BR-030-1 | Game gõ pinyin yêu cầu người học nhập đúng pinyin kèm thanh điệu để tấn công hoặc chọn mục tiêu trong game. |
+| BR-030-2 | Hệ thống phải chấp nhận một chuẩn nhập pinyin thống nhất, ví dụ pinyin có số thanh điệu hoặc pinyin có dấu, và hiển thị hướng dẫn rõ cho người học. |
+| BR-030-3 | Đáp án đúng phải được so với pinyin chuẩn của chữ/từ trong kho dữ liệu, không dựa vào đáp án do client tự khai báo. |
+| BR-030-4 | Nếu chữ hoặc từ có nhiều cách đọc hợp lệ, câu hỏi phải chỉ rõ ngữ cảnh hoặc chấp nhận tất cả cách đọc hợp lệ đã được định nghĩa. |
+| BR-030-5 | Game phải luyện kỹ năng gõ bàn phím tiếng Trung/pinyin, khác với các game chọn đáp án bằng chuột hoặc chạm. |
+| BR-030-6 | Kết quả game có thể lấy nguồn từ sổ tay cá nhân, từ vừa tra hoặc cấp HSK, nhưng server phải xác nhận nguồn câu hỏi trước khi ghi điểm. |
+| BR-030-7 | Điểm và mastery chỉ được ghi khi ván chơi hoàn thành hợp lệ và vượt qua kiểm tra chống gian lận cơ bản. |
 
 ## API · DB
 
@@ -1568,12 +1608,13 @@ GET  /api/videos
 GET  /api/videos/{id}/subtitles
 POST /api/videos/{id}/progress   ⚠️ chưa có bảng
 ```
+
 `videos` · `video_subtitles` (đọc) · **thiếu bảng tiến độ** (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Mở video có phụ đề | Player chạy, phụ đề đồng bộ |
 | T2 | Video không phụ đề | 422 `NO_SUBTITLES` |
 | T3 | Phụ đề `start_ms = end_ms` | Kiểm chặn khi nhập |
@@ -1606,7 +1647,7 @@ Không đổi dữ liệu học. Chỉ ghi `feature_usage` nếu dùng lượt t
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm một từ trong phụ đề |
 | 2 | Client | Tạm dừng video |
 | 3 | Client | Tra `video_subtitles.vocabulary` JSONB — dữ liệu đã kèm sẵn |
@@ -1625,7 +1666,7 @@ Không đổi dữ liệu học. Chỉ ghi `feature_usage` nếu dùng lượt t
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `WORD_NOT_SEGMENTED` | 500 | 🔴 Phụ đề chưa tách từ | **Bấm cả câu thay vì một từ** — tính năng vô dụng. Phải tách khi nhập phụ đề |
 | `WORD_NOT_IN_DICTIONARY` | 404 | Từ không có trong `words` | Hiện "chưa có", cho báo lỗi (A2) |
 | `AMBIGUOUS_SEGMENTATION` | — | Tách từ sai ranh giới | Xem ghi chú dưới |
@@ -1641,18 +1682,20 @@ Không đổi dữ liệu học. Chỉ ghi `feature_usage` nếu dùng lượt t
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-031-1 | Bấm từ → video **tự tạm dừng** |
-| BR-031-2 | Phụ đề phải tách từ khi nhập, không tách lúc chạy |
-| BR-031-3 | Ưu tiên `vocabulary` JSONB, chỉ gọi API khi thiếu |
-| BR-031-4 | Từ thiếu trong từ điển cho người học báo lỗi |
-| BR-031-5 | Cho chọn nhiều ký tự để bù lỗi tách từ |
+| --- | --- |
+| BR-031-1 | Mỗi ván game hoàn thành hợp lệ phải ghi lại điểm, thời gian chơi, số câu đúng, số câu sai và loại kỹ năng được luyện. |
+| BR-031-2 | Điểm game và cập nhật mastery phải nằm trong cùng một thao tác nhất quán dữ liệu. Không được ghi điểm thành công nhưng không cập nhật tiến độ, hoặc ngược lại. |
+| BR-031-3 | Mastery cộng từ game phải có hệ số thấp hơn bài kiểm tra chính thức vì game có nhiều phần chạy trên client và dễ bị thao tác hơn. |
+| BR-031-4 | Server phải kiểm tra danh sách câu hỏi đã phát, thời gian chơi tối thiểu và điểm tối đa trước khi ghi điểm. |
+| BR-031-5 | Nếu kết quả bị đánh dấu đáng ngờ, hệ thống vẫn có thể ghi log nhưng không đưa vào bảng xếp hạng và không cộng mastery. |
+| BR-031-6 | Các điểm yếu phát hiện qua game phải được gửi về hệ thống lộ trình thông minh để gợi ý luyện lại. |
 
 ## API · DB
 
 ```
 GET /api/dictionary/lookup?word={x}
 ```
+
 `video_subtitles.vocabulary` (JSONB, đọc) · `words` · `characters` (đọc)
 
 > Theo AC-09 trong constitution: `vocabulary` JSONB **chỉ đọc**, không ghi.
@@ -1660,7 +1703,7 @@ GET /api/dictionary/lookup?word={x}
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Bấm từ có trong JSONB | Popup hiện ngay, không gọi API |
 | T2 | Bấm từ thiếu trong JSONB | Gọi `/api/dictionary/lookup` |
 | T3 | Bấm dấu phẩy | Không mở popup |
@@ -1690,14 +1733,14 @@ ví dụ lấy từ chính phụ đề video.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Lưu sổ tay | `notes` thêm dòng: từ, nghĩa, câu ví dụ từ phụ đề, nguồn video |
 | Lưu flashcard | `flashcards` thêm dòng vào deck đã chọn, có `next_review_at` |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Lưu vào sổ tay" hoặc "Thêm flashcard" |
 | 2 | Client | Nếu flashcard: hiện chọn deck hoặc tạo deck mới |
 | 3 | `USER` | Chọn deck |
@@ -1717,7 +1760,7 @@ ví dụ lấy từ chính phụ đề video.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `DECK_NOT_OWNED` | 403 | 🔴 Deck của người khác | **IDOR** — `flashcard_decks.user_id` phải bằng người đang đăng nhập |
 | `DECK_NOT_FOUND` | 404 | ID sai | Hiện chọn deck khác |
 | `CARD_ALREADY_IN_DECK` | 409 | Từ đã có | Không tạo trùng (A1) |
@@ -1734,13 +1777,13 @@ ví dụ lấy từ chính phụ đề video.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-032-1 | Kiểm sở hữu deck ở server |
-| BR-032-2 | Không thêm thẻ trùng trong cùng deck |
-| BR-032-3 | Lưu kèm `source_video_id` để truy nguồn |
-| BR-032-4 | Câu ví dụ lấy từ phụ đề tại thời điểm bấm |
-| BR-032-5 | Deck tối đa 500 thẻ; sổ tay tối đa 1000 ghi chú |
-| BR-032-6 | Lưu được cả sổ tay và flashcard |
+| --- | --- |
+| BR-032-1 | Bảng xếp hạng chỉ ghi nhận kết quả từ các ván game hợp lệ của người dùng đã đăng nhập. |
+| BR-032-2 | Mỗi game có bảng xếp hạng riêng. Không trộn điểm giữa các game có cách tính điểm khác nhau. |
+| BR-032-3 | Bảng xếp hạng có thể lọc theo tuần, tháng hoặc toàn thời gian. |
+| BR-032-4 | Nếu hai người có cùng điểm, hệ thống ưu tiên người có thời gian hoàn thành ngắn hơn hoặc thời điểm đạt điểm sớm hơn, tùy quy tắc đã chốt. |
+| BR-032-5 | Điểm bị đánh dấu gian lận hoặc bất thường không được xuất hiện trên bảng xếp hạng công khai. |
+| BR-032-6 | Bảng xếp hạng phải dùng dữ liệu đã được server xác nhận, không dùng điểm chỉ lưu ở client. |
 
 ## API · DB
 
@@ -1749,12 +1792,13 @@ POST /api/notes
 POST /api/flashcard-decks/{id}/cards
 POST /api/flashcard-decks          (tạo deck mới — A2)
 ```
+
 `words` · `video_subtitles` (đọc) · `notes` · `flashcard_decks` · `flashcards` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Lưu vào sổ tay | `notes` thêm dòng có `source_video_id` |
 | T2 | Thêm vào deck của mình | `flashcards` thêm dòng, có `next_review_at` |
 | T3 | Deck của người khác | 403 `DECK_NOT_OWNED` |
@@ -1769,7 +1813,7 @@ POST /api/flashcard-decks          (tạo deck mới — A2)
 ## Mười exception quan trọng nhất
 
 | # | UC | Exception | Vì sao |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | UC-029 | `UNLOCK_FAILED` | Đạt 90% mà không mở khoá → người học **kẹt vĩnh viễn** (A4 lấy điểm cao nhất nên thi lại không cứu được) |
 | 2 | UC-025 · UC-026 | `PROGRESS_PERCENT_MISMATCH` | % tính sẵn lệch dữ liệu thật → mở khoá sai hoặc không mở |
 | 3 | UC-029 | `ATTEMPT_NOT_OWNED` | IDOR — ghi điểm vào bài của người khác |
@@ -1784,7 +1828,7 @@ POST /api/flashcard-decks          (tạo deck mới — A2)
 ## Ba nhóm exception lặp lại khắp nhóm 1
 
 | Nhóm | Xuất hiện ở | Bài học |
-|---|---|---|
+| --- | --- | --- |
 | **Chấm ở client không đáng tin** | UC-015 → UC-018 (luyện viết) | `hanzi-writer` chấm ở client, `stroke_data` nằm trong response. **Không thể** chấm lại ở server. Giảm rủi ro bằng hệ số mastery thấp + kiểm thời gian hợp lý, và để UC-029 (chấm server) làm thước đo thật |
 | **Nhiễu trùng đáp án** | UC-019 · UC-020 · UC-027 · UC-028 | Trùng `word_id` · trùng **nghĩa** · trùng **pinyin có dấu**. Cả ba đều làm câu hỏi vô nghĩa. Phải kiểm khi **sinh** câu, không phải khi chấm |
 | **Hai bảng phải cùng transaction** | UC-022 · UC-026 · UC-027 · UC-029 | `user_knowledge_state` + `user_topic_progress`, hoặc điểm + mở khoá. Tách ra là sinh dữ liệu lệch mà không ai phát hiện tới lúc người học phàn nàn |
@@ -1794,7 +1838,7 @@ POST /api/flashcard-decks          (tạo deck mới — A2)
 # Khoảng trống thiết kế phát hiện ở nhóm 1
 
 | # | Thiếu | UC bị ảnh hưởng | Mức |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | **Không có bảng ghi tiến độ video** — `user_video_progress` bị bỏ ở bản 3, không có bảng thay | UC-030 | 🔴 Chặn tính năng 1.6 |
 | 2 | **Không có bảng lưu `challenge_id`** với `served_at` + trạng thái đã nộp | UC-017 | 🔴 Không chống được nộp lại |
 | 3 | **Lệch tài liệu:** feature tree 1.3 ghi `pronunciation_stages`, danh sách 40 bảng không có | UC-021 · UC-022 | ⚠️ Cần chốt: thêm bảng hay suy từ cột |

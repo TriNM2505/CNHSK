@@ -17,7 +17,7 @@
 ## Bảng tra nhanh
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | UC-069 | Đăng bài lên blog cộng đồng | `USER` | P2 | V2 | 5.1 |
 | UC-070 | Xem danh sách bài đã duyệt | `GUEST` `USER` | P2 | V2 | 5.1 |
 | UC-071 | Bình luận vào bài viết | `USER` | P2 | V2 | 5.1 |
@@ -70,14 +70,14 @@ Người học viết bài chia sẻ kinh nghiệm, hỏi bài, tìm bạn học
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Thành công | `posts` thêm dòng `status = PENDING`; chỉ tác giả thấy |
 | Chờ duyệt | Vào hàng đợi UC-076 |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Viết bài" |
 | 2 | `USER` | Nhập tiêu đề, nội dung, chọn phân loại |
 | 3 | Client | `POST /api/community/posts` |
@@ -105,7 +105,7 @@ Cho phép (mục B quyết định v2: "tác giả sửa khi còn `PENDING`"). S
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `EMAIL_NOT_VERIFIED` | 422 | Chưa xác thực | Chặn — tài khoản rác không đăng được (A4) |
 | `POST_LIMIT_EXCEEDED` | 429 | > 5 bài/ngày | Chống spam |
 | `EMPTY_TITLE` hoặc `EMPTY_CONTENT` | 400 | Rỗng | Chặn |
@@ -136,14 +136,16 @@ Cho phép (mục B quyết định v2: "tác giả sửa khi còn `PENDING`"). S
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-069-1 | Bài mới **luôn** `status = PENDING` (hoặc `DRAFT`) |
-| BR-069-2 | Cần email đã xác thực |
-| BR-069-3 | Tối đa 5 bài/ngày |
-| BR-069-4 | Whitelist trường ghi được: `title`, `content`, `category` |
-| BR-069-5 | Sanitize/escape nội dung; cookie phải `HttpOnly` |
-| BR-069-6 | Sửa bài đã duyệt → về `PENDING` |
-| BR-069-7 | Bài `PENDING` chỉ tác giả và `MANAGER` thấy |
+| --- | --- |
+| BR-069-1 | UC này thuộc V2. Không gen code cho MVP nếu nhóm đang ưu tiên AI Assistant và Game Box. |
+| BR-069-2 | Người dùng muốn đăng bài cộng đồng phải đăng nhập và đã xác thực email. |
+| BR-069-3 | Bài viết mới chỉ được lưu ở trạng thái `DRAFT` hoặc `PENDING`. Client không được tự đặt trạng thái `APPROVED`. |
+| BR-069-4 | Bài `PENDING` chỉ tác giả và `MANAGER` được xem. Người dùng khác không được thấy bài chưa duyệt. |
+| BR-069-5 | Bài chỉ công khai sau khi được `MANAGER` duyệt. |
+| BR-069-6 | Nếu bài đã duyệt được chỉnh sửa, bài phải quay lại trạng thái `PENDING` và tạm ẩn khỏi danh sách công khai cho đến khi được duyệt lại. |
+| BR-069-7 | Mỗi người dùng bị giới hạn số bài đăng mỗi ngày để tránh spam. MVP/V2 đề xuất tối đa 5 bài/ngày. |
+| BR-069-8 | Nội dung bài viết phải được escape hoặc sanitize trước khi hiển thị để tránh XSS. |
+| BR-069-9 | `author_id` luôn lấy từ phiên đăng nhập hiện tại, không lấy từ request body. |
 
 ## API · DB
 
@@ -152,12 +154,13 @@ POST /api/community/posts
 PUT  /api/community/posts/{id}
 GET  /api/community/posts/mine
 ```
+
 `posts` (ghi) · `users` (đọc `email_verified_at` — **qua lớp `api` của `auth`**)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Đăng bài hợp lệ | 201, `status = PENDING` |
 | T2 | Gửi `status = APPROVED` | Bị bỏ qua, vẫn `PENDING` |
 | T3 | Gửi `author_id` khác | Bị bỏ qua |
@@ -190,7 +193,7 @@ Chỉ đọc. Tăng `view_count` (tuỳ chọn).
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Người dùng | Mở trang cộng đồng |
 | 2 | Client | `GET /api/public/community/posts?category={c}&page={p}` |
 | 3 | System | **Lọc `status = APPROVED`** |
@@ -207,7 +210,7 @@ Chỉ đọc. Tăng `view_count` (tuỳ chọn).
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `PENDING_POST_LEAKED` | — | 🔴 Bài chưa duyệt lọt vào danh sách | Xem ghi chú |
 | `INVALID_CATEGORY` | 400 | Phân loại lạ | Chặn |
 | `PAGE_OUT_OF_RANGE` | 200 (rỗng) | Trang quá lớn | Trả rỗng |
@@ -234,13 +237,14 @@ Chỉ đọc. Tăng `view_count` (tuỳ chọn).
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-070-1 | Chỉ trả bài `APPROVED` — lọc ở repository |
-| BR-070-2 | Response chỉ có `display_name`, `avatar_url` — **không** email |
-| BR-070-3 | Lấy thông tin tác giả qua lớp `api` của `auth`, theo lô |
-| BR-070-4 | Phân trang bắt buộc |
-| BR-070-5 | Tác giả xem bài `PENDING` của mình qua endpoint riêng |
-| BR-070-6 | Tác giả bị xoá → giữ bài, hiện "Người dùng đã rời" |
+| --- | --- |
+| BR-070-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-070-2 | Danh sách cộng đồng công khai chỉ hiển thị bài có trạng thái `APPROVED`. |
+| BR-070-3 | Bài `PENDING`, `DRAFT`, `REJECTED` hoặc bài đã ẩn không được xuất hiện trong danh sách công khai. |
+| BR-070-4 | `GUEST` được xem danh sách bài công khai nhưng không được bình luận, thích hoặc theo dõi. |
+| BR-070-5 | Thông tin tác giả hiển thị công khai chỉ gồm tên hiển thị và ảnh đại diện. Không trả email hoặc thông tin bảo mật. |
+| BR-070-6 | Danh sách bài phải phân trang để tránh trả quá nhiều dữ liệu một lần. |
+| BR-070-7 | Tác giả xem bài chưa duyệt của mình qua màn hoặc endpoint riêng, không dùng chung danh sách công khai. |
 
 ## API · DB
 
@@ -248,12 +252,13 @@ Chỉ đọc. Tăng `view_count` (tuỳ chọn).
 GET /api/public/community/posts
 GET /api/community/posts/mine
 ```
+
 `posts` · `comments` · `likes` (đọc) · `auth.users` **qua lớp api**
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Danh sách công khai | Chỉ bài `APPROVED` |
 | T2 | Có 10 bài `PENDING` | **Không** xuất hiện |
 | T3 | Tác giả gọi `/mine` | Thấy bài `PENDING` của mình |
@@ -288,7 +293,7 @@ báo cáo sau.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Nhập bình luận, bấm gửi |
 | 2 | Client | `POST /api/community/posts/{id}/comments` |
 | 3 | System | Kiểm bài `APPROVED` |
@@ -306,7 +311,7 @@ báo cáo sau.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `POST_NOT_APPROVED` | 403 | Bài chưa duyệt | Chặn (A1) |
 | `POST_NOT_FOUND` | 404 | ID sai | Chặn |
 | `COMMENTS_LOCKED` | 403 | `MANAGER` khoá bình luận bài đó | Hiện "bài này đã đóng bình luận" |
@@ -331,14 +336,16 @@ báo cáo sau.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-071-1 | Chỉ bình luận vào bài `APPROVED` |
-| BR-071-2 | Bình luận **không** qua kiểm duyệt trước |
-| BR-071-3 | Tối đa 30 bình luận/giờ |
-| BR-071-4 | Sửa được trong 15 phút |
-| BR-071-5 | Kiểm sở hữu khi sửa/xoá |
-| BR-071-6 | Escape khi render |
-| BR-071-7 | Xoá bình luận có trả lời → hiện "[đã xoá]" |
+| --- | --- |
+| BR-071-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-071-2 | Chỉ `USER` đã đăng nhập và xác thực email mới được bình luận. |
+| BR-071-3 | Người dùng chỉ được bình luận vào bài đã `APPROVED` và chưa bị khóa bình luận. |
+| BR-071-4 | Bình luận không qua kiểm duyệt trước; hệ thống xử lý vi phạm bằng báo cáo và quản lý sau khi đăng. |
+| BR-071-5 | Nội dung bình luận phải có giới hạn độ dài, không được rỗng và phải được escape khi hiển thị. |
+| BR-071-6 | Người dùng chỉ được sửa hoặc xóa bình luận của chính mình. |
+| BR-071-7 | Người dùng chỉ được sửa bình luận trong một khoảng thời gian ngắn sau khi đăng. Đề xuất 15 phút. |
+| BR-071-8 | Nếu xóa bình luận đã có trả lời, hệ thống giữ vị trí bình luận và hiển thị dạng “[đã xóa]” để không làm đứt mạch hội thoại. |
+| BR-071-9 | Cần giới hạn tần suất bình luận để tránh spam. Đề xuất tối đa 30 bình luận/giờ. |
 
 ## API · DB
 
@@ -347,12 +354,13 @@ POST   /api/community/posts/{id}/comments
 PUT    /api/community/comments/{id}
 DELETE /api/community/comments/{id}
 ```
+
 `comments` · `posts` (đọc + ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Bình luận bài đã duyệt | 201, hiện ngay |
 | T2 | Bình luận bài `PENDING` | 403 |
 | T3 | Bình luận thứ 31 trong giờ | 429 |
@@ -385,7 +393,7 @@ Trả lời một bình luận, tạo cây lồng nhau. `comments.parent_id` tr�
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Trả lời" ở một bình luận |
 | 2 | Client | `POST /api/community/comments/{parentId}/replies` |
 | 3 | System | Kiểm bình luận cha tồn tại, **cùng bài** |
@@ -402,7 +410,7 @@ Trả lời một bình luận, tạo cây lồng nhau. `comments.parent_id` tr�
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `PARENT_COMMENT_NOT_FOUND` | 404 | ID cha sai | Chặn |
 | `PARENT_IN_DIFFERENT_POST` | 400 | 🔴 Cha thuộc bài khác | Xem ghi chú |
 | `MAX_DEPTH_EXCEEDED` | 200 | Quá sâu | Gắn vào cấp 3 (A1) |
@@ -426,13 +434,14 @@ Trả lời một bình luận, tạo cây lồng nhau. `comments.parent_id` tr�
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-072-1 | Bình luận cha phải **cùng bài**, bài `APPROVED` |
-| BR-072-2 | Độ sâu tối đa 3 |
-| BR-072-3 | `parent_id` **không sửa được** sau khi tạo |
-| BR-072-4 | Xoá bình luận là **soft delete** |
-| BR-072-5 | Tải cây bằng **một** truy vấn phẳng |
-| BR-072-6 | Các luật của UC-071 áp dụng đầy đủ |
+| --- | --- |
+| BR-072-1 | UC này thuộc V2/P3, không gen code cho MVP. |
+| BR-072-2 | Trả lời bình luận áp dụng đầy đủ các rule của UC-071. |
+| BR-072-3 | Bình luận cha phải thuộc cùng bài viết và bài viết đó phải đang công khai. |
+| BR-072-4 | Độ sâu trả lời lồng nhau phải có giới hạn để giao diện dễ đọc. Đề xuất tối đa 3 cấp. |
+| BR-072-5 | `parent_id` không được sửa sau khi bình luận đã tạo. |
+| BR-072-6 | Khi xóa bình luận cha, hệ thống dùng soft delete và giữ các bình luận con. |
+| BR-072-7 | Nếu vượt quá độ sâu tối đa, hệ thống gắn trả lời vào cấp cuối cùng thay vì tạo thêm cấp mới. |
 
 ## API · DB
 
@@ -440,12 +449,13 @@ Trả lời một bình luận, tạo cây lồng nhau. `comments.parent_id` tr�
 POST /api/community/comments/{parentId}/replies
 GET  /api/community/posts/{id}/comments
 ```
+
 `comments` (đọc + ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Trả lời bình luận cùng bài | 201, hiện lồng |
 | T2 | `parentId` của bài khác | 400 |
 | T3 | `parentId` bài `PENDING` | 400 — **không lộ nội dung** |
@@ -476,7 +486,7 @@ Thích/bỏ thích bài. Một người thích một bài **đúng một lần**
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm tim |
 | 2 | Client | `POST /api/community/posts/{id}/like` |
 | 3 | System | Kiểm bài `APPROVED` |
@@ -493,7 +503,7 @@ Thích/bỏ thích bài. Một người thích một bài **đúng một lần**
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `ALREADY_LIKED` | 409 hoặc 200 | Đã thích | **Idempotent** — trả 200 với trạng thái hiện tại, đơn giản hơn cho client |
 | `NOT_LIKED` | 200 | Bỏ thích khi chưa thích | Idempotent |
 | `POST_NOT_APPROVED` | 403 | Bài chưa duyệt | Chặn |
@@ -505,7 +515,7 @@ Thích/bỏ thích bài. Một người thích một bài **đúng một lần**
 > 🔴 **`LIKE_COUNT_DRIFT` — chọn giữa hai cách, mỗi cách một rủi ro:**
 >
 > | Cách | Được | Mất |
-> |---|---|---|
+> | --- | --- | --- |
 > | `COUNT(*)` từ `likes` mỗi lần đọc | **Luôn đúng** | Chậm khi bài có nhiều nghìn thích |
 > | Cột `like_count` trên `posts`, `+1`/`−1` | Nhanh | **Lệch** nếu một lệnh thất bại |
 >
@@ -516,13 +526,14 @@ Thích/bỏ thích bài. Một người thích một bài **đúng một lần**
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-073-1 | Unique `(user_id, post_id)` |
-| BR-073-2 | Idempotent — thích 2 lần không lỗi |
-| BR-073-3 | Chỉ bài `APPROVED` |
-| BR-073-4 | Số thích đếm từ `likes` (không cột đếm sẵn ở MVP) |
-| BR-073-5 | `user_id` từ token |
-| BR-073-6 | Thích bài của mình được |
+| --- | --- |
+| BR-073-1 | UC này thuộc V2/P3, không gen code cho MVP. |
+| BR-073-2 | Chỉ `USER` đã đăng nhập mới được thích hoặc bỏ thích bài viết. |
+| BR-073-3 | Người dùng chỉ được thích bài đã `APPROVED`. |
+| BR-073-4 | Mỗi người dùng chỉ được thích một bài viết một lần. |
+| BR-073-5 | Thao tác thích/bỏ thích nên idempotent: bấm thích nhiều lần không tạo nhiều lượt thích. |
+| BR-073-6 | Người dùng được phép thích bài của chính mình nếu nhóm không có yêu cầu cấm. |
+| BR-073-7 | Trong MVP/V2 đơn giản, số thích có thể tính trực tiếp từ bảng `likes`, chưa cần cột đếm riêng để tránh lệch dữ liệu. |
 
 ## API · DB
 
@@ -530,12 +541,13 @@ Thích/bỏ thích bài. Một người thích một bài **đúng một lần**
 POST   /api/community/posts/{id}/like
 DELETE /api/community/posts/{id}/like
 ```
+
 `likes` · `posts` (đọc + ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Thích bài | 200, số +1 |
 | T2 | Thích lần 2 | 200, số **không** đổi |
 | T3 | Bỏ thích | 200, số −1 |
@@ -567,7 +579,7 @@ Theo dõi người khác để thấy bài của họ trong dòng riêng. `follo
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Theo dõi" ở trang người khác |
 | 2 | Client | `POST /api/community/users/{id}/follow` |
 | 3 | System | Kiểm không phải chính mình |
@@ -584,7 +596,7 @@ Theo dõi người khác để thấy bài của họ trong dòng riêng. `follo
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `SELF_FOLLOW` | 400 | Theo dõi chính mình | Chặn |
 | `USER_NOT_FOUND` | 404 | Không tồn tại | Chặn |
 | `USER_BANNED` | 422 | Người đó bị ban | Không cho theo dõi |
@@ -608,13 +620,14 @@ Theo dõi người khác để thấy bài của họ trong dòng riêng. `follo
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-074-1 | Không tự theo dõi mình |
-| BR-074-2 | Unique `(follower_id, followee_id)`, idempotent |
-| BR-074-3 | Tối đa 1.000 người |
-| BR-074-4 | Kiểm tồn tại qua lớp `api` của `auth` |
-| BR-074-5 | Không theo dõi người bị ban |
-| BR-074-6 | Xoá user phải dọn `follows` (hoặc không hard delete) |
+| --- | --- |
+| BR-074-1 | UC này thuộc V2/P3, không gen code cho MVP. |
+| BR-074-2 | Người dùng không được theo dõi chính mình. |
+| BR-074-3 | Mỗi cặp người theo dõi và người được theo dõi chỉ có một quan hệ theo dõi. |
+| BR-074-4 | Thao tác theo dõi/bỏ theo dõi nên idempotent để tránh lỗi khi người dùng bấm nhiều lần. |
+| BR-074-5 | Không cho theo dõi tài khoản đã bị khóa hoặc bị ban. |
+| BR-074-6 | Danh sách theo dõi và người theo dõi phải phân trang. |
+| BR-074-7 | Nếu MVP chưa làm social graph, có thể cắt UC này vì không ảnh hưởng AI Assistant và Game Box. |
 
 ## API · DB
 
@@ -624,12 +637,13 @@ DELETE /api/community/users/{id}/follow
 GET    /api/community/me/following
 GET    /api/community/me/followers
 ```
+
 `follows` (đọc + ghi) · `auth.users` **qua lớp api**
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Theo dõi người khác | 201 |
 | T2 | Theo dõi chính mình | 400 |
 | T3 | Theo dõi 2 lần | 200, một dòng |
@@ -662,7 +676,7 @@ Báo cáo bài hoặc bình luận vi phạm. Ghi `moderation_reports`, vào hà
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Báo cáo", chọn lý do, ghi chi tiết |
 | 2 | Client | `POST /api/community/reports` — `{target_type, target_id, reason, detail}` |
 | 3 | System | Kiểm nội dung tồn tại |
@@ -685,7 +699,7 @@ Cho phép nhưng vô nghĩa; hoặc chặn. Đề xuất: chặn.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `TARGET_NOT_FOUND` | 404 | Nội dung không tồn tại | Chặn |
 | `DUPLICATE_REPORT` | 409 | Đã báo cáo rồi | Chặn — một người một lần |
 | `SELF_REPORT` | 400 | Báo cáo bài của mình | Chặn (A2) |
@@ -712,25 +726,28 @@ Cho phép nhưng vô nghĩa; hoặc chặn. Đề xuất: chặn.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-075-1 | Một người báo cáo một nội dung **một lần** |
-| BR-075-2 | Không báo cáo nội dung của mình |
-| BR-075-3 | Tối đa 20 báo cáo/ngày |
-| BR-075-4 | Chỉ tính báo cáo từ tài khoản xác thực, tuổi ≥ 7 ngày |
-| BR-075-5 | Đạt ngưỡng → tự ẩn tạm (⚠️ chốt ngưỡng) |
-| BR-075-6 | Danh tính người báo cáo **chỉ** `MANAGER` thấy |
+| --- | --- |
+| BR-075-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-075-2 | Chỉ `USER` đã đăng nhập mới được báo cáo nội dung vi phạm. |
+| BR-075-3 | Một người dùng chỉ được báo cáo cùng một nội dung một lần. |
+| BR-075-4 | Người dùng không được báo cáo nội dung của chính mình. |
+| BR-075-5 | Báo cáo phải có lý do nằm trong danh sách lý do hệ thống hỗ trợ. |
+| BR-075-6 | Danh tính người báo cáo chỉ `MANAGER` được xem, không hiển thị cho tác giả nội dung bị báo cáo. |
+| BR-075-7 | MVP/V2 đơn giản chỉ đưa báo cáo vào hàng đợi xử lý, chưa tự động ẩn nội dung nếu chưa chốt ngưỡng tự ẩn. |
+| BR-075-8 | Hệ thống giới hạn số báo cáo mỗi ngày để tránh lạm dụng chức năng báo cáo. |
 
 ## API · DB
 
 ```
 POST /api/community/reports
 ```
+
 `moderation_reports` (ghi) · `posts` · `comments` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Báo cáo bài vi phạm | 201, `status = PENDING` |
 | T2 | Báo cáo lần 2 cùng bài | 409 |
 | T3 | Báo cáo bài của mình | 400 |
@@ -762,14 +779,14 @@ xong bài hiện ngay**".
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Duyệt | `status = APPROVED`, `reviewed_by`, `reviewed_at`, `published_at`; bài hiện công khai **ngay** |
 | Từ chối | UC-077 |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `MANAGER` | Mở trang kiểm duyệt |
 | 2 | System | Kiểm role `MANAGER` |
 | 3 | System | `GET /api/community/moderation/posts?status=PENDING` — sắp cũ nhất trước |
@@ -791,7 +808,7 @@ xong bài hiện ngay**".
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | 🔴 **Kiểm ở server** — ẩn menu không đủ |
 | `POST_NOT_PENDING` | 409 | Đã duyệt/từ chối | Refresh (A2) |
 | `SELF_APPROVAL` | 403 | 🔴 `MANAGER` duyệt bài của mình | Xem ghi chú |
@@ -823,14 +840,14 @@ xong bài hiện ngay**".
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-076-1 | Chỉ `MANAGER` (kiểm ở **server**) |
-| BR-076-2 | `MANAGER` **không** duyệt bài của chính mình |
-| BR-076-3 | `UPDATE ... WHERE status='PENDING'` chống duyệt đồng thời |
-| BR-076-4 | Bắt buộc ghi `reviewed_by`, `reviewed_at` |
-| BR-076-5 | Duyệt xong bài hiện công khai **ngay** |
-| BR-076-6 | Hàng đợi sắp cũ nhất trước |
-| BR-076-7 | Duyệt lô: mỗi bài một transaction |
+| --- | --- |
+| BR-076-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-076-2 | Chỉ người có vai trò `MANAGER` mới được duyệt bài. Việc kiểm tra quyền phải thực hiện ở server. |
+| BR-076-3 | `MANAGER` không được duyệt bài do chính mình viết. |
+| BR-076-4 | Chỉ bài đang ở trạng thái `PENDING` mới được duyệt. |
+| BR-076-5 | Khi duyệt thành công, bài chuyển sang `APPROVED` và xuất hiện công khai ngay. |
+| BR-076-6 | Khi duyệt, hệ thống phải ghi người duyệt và thời điểm duyệt. |
+| BR-076-7 | Nếu hai `MANAGER` xử lý cùng một bài, chỉ request đầu tiên thành công; request sau phải nhận trạng thái bài đã được xử lý. |
 
 ## API · DB
 
@@ -838,12 +855,13 @@ xong bài hiện ngay**".
 GET   /api/community/moderation/posts?status=PENDING
 PATCH /api/community/moderation/posts/{id}/approve
 ```
+
 `posts` (đọc + ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `MANAGER` duyệt bài | `APPROVED`, hiện công khai ngay |
 | T2 | `USER` gọi endpoint | 403 |
 | T3 | `MANAGER` duyệt bài của mình | 403 `SELF_APPROVAL` |
@@ -877,7 +895,7 @@ Từ chối bài kèm **lý do bắt buộc**. Tác giả nhận được lý do
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `MANAGER` | Bấm "Từ chối" |
 | 2 | Client | Mở form lý do (chọn mẫu hoặc tự viết) |
 | 3 | `MANAGER` | Nhập lý do |
@@ -896,7 +914,7 @@ Từ chối bài kèm **lý do bắt buộc**. Tác giả nhận được lý do
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | Chặn ở server |
 | `EMPTY_REASON` | 400 | 🔴 Lý do rỗng | **Bắt buộc** — xem ghi chú |
 | `REASON_TOO_LONG` | 400 | > 1.000 ký tự | Chặn |
@@ -921,25 +939,28 @@ Từ chối bài kèm **lý do bắt buộc**. Tác giả nhận được lý do
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-077-1 | Lý do **bắt buộc**, không rỗng |
-| BR-077-2 | Chỉ `MANAGER`, không tự từ chối bài mình |
-| BR-077-3 | Ghi `reviewed_by`, `reviewed_at`, `review_reason` |
-| BR-077-4 | Thông báo tác giả kèm lý do |
-| BR-077-5 | Gửi thông báo lỗi không rollback |
-| BR-077-6 | ⚠️ Giới hạn: chỉ lưu **một** lý do gần nhất |
+| --- | --- |
+| BR-077-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-077-2 | Chỉ `MANAGER` được từ chối bài đăng. |
+| BR-077-3 | `MANAGER` không được từ chối bài do chính mình viết. |
+| BR-077-4 | Chỉ bài đang ở trạng thái `PENDING` mới được từ chối. |
+| BR-077-5 | Khi từ chối bài, lý do là bắt buộc và không được rỗng. |
+| BR-077-6 | Khi từ chối thành công, bài chuyển sang `REJECTED`, lưu lý do, người duyệt và thời điểm duyệt. |
+| BR-077-7 | Tác giả phải xem được lý do bị từ chối để sửa bài. |
+| BR-077-8 | MVP/V2 đơn giản chỉ lưu lý do từ chối gần nhất, chưa cần bảng lịch sử duyệt riêng. |
 
 ## API · DB
 
 ```
 PATCH /api/community/moderation/posts/{id}/reject
 ```
+
 `posts` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Từ chối kèm lý do | `REJECTED`, tác giả thấy lý do |
 | T2 | Lý do rỗng | 400 `EMPTY_REASON` |
 | T3 | `USER` gọi | 403 |
@@ -967,14 +988,14 @@ Role `MANAGER`; có báo cáo `status = PENDING`.
 ## Hậu điều kiện
 
 | Quyết định | Trạng thái |
-|---|---|
+| --- | --- |
 | Chấp nhận báo cáo | Nội dung ẩn/xoá; `moderation_reports.status = ACTIONED` |
 | Từ chối báo cáo | Nội dung hiện lại (nếu đã tự ẩn); `status = REJECTED` |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `MANAGER` | Mở hàng đợi báo cáo |
 | 2 | System | `GET /api/community/moderation/reports?status=PENDING` — nhóm theo nội dung bị báo cáo |
 | 3 | `MANAGER` | Xem nội dung + các lý do báo cáo + ai báo cáo |
@@ -994,7 +1015,7 @@ Role `MANAGER`; có báo cáo `status = PENDING`.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | Chặn |
 | `REPORT_NOT_FOUND` | 404 | ID sai | Chặn |
 | `REPORT_ALREADY_HANDLED` | 409 | Đã xử lý | Chặn |
@@ -1024,13 +1045,15 @@ Role `MANAGER`; có báo cáo `status = PENDING`.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-078-1 | Chỉ `MANAGER` |
-| BR-078-2 | Nhóm báo cáo theo nội dung, đóng tất cả cùng lúc |
-| BR-078-3 | Từ chối báo cáo → **hiện lại** nội dung, cùng transaction |
-| BR-078-4 | `MANAGER` **không** ban tài khoản — chỉ treo (cần cột) |
-| BR-078-5 | Bắt buộc ghi ai quyết định và khi nào |
-| BR-078-6 | Xử lý nội dung + đóng báo cáo cùng transaction |
+| --- | --- |
+| BR-078-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-078-2 | Chỉ `MANAGER` được xử lý báo cáo vi phạm. |
+| BR-078-3 | Báo cáo cùng trỏ đến một nội dung nên được nhóm lại để `MANAGER` xử lý một lần. |
+| BR-078-4 | Khi chấp nhận báo cáo, hệ thống ẩn hoặc xóa mềm nội dung vi phạm và đóng các báo cáo liên quan. |
+| BR-078-5 | Khi từ chối báo cáo, nội dung phải được giữ nguyên hoặc hiện lại nếu trước đó từng bị ẩn tạm. |
+| BR-078-6 | Việc xử lý nội dung và cập nhật trạng thái báo cáo phải nhất quán; không để báo cáo đã xử lý nhưng nội dung vẫn sai trạng thái. |
+| BR-078-7 | `MANAGER` không có quyền ban tài khoản trong UC này. Nếu cần ban tài khoản, chuyển sang quyền quản trị cao hơn. |
+| BR-078-8 | Hệ thống phải ghi người xử lý và thời điểm xử lý báo cáo. |
 
 ## API · DB
 
@@ -1038,12 +1061,13 @@ Role `MANAGER`; có báo cáo `status = PENDING`.
 GET   /api/community/moderation/reports?status=PENDING
 PATCH /api/community/moderation/reports/{id}
 ```
+
 `moderation_reports` · `posts` · `comments` (đọc + ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | 5 báo cáo cùng bài, xử lý 1 lần | **Cả 5** đóng |
 | T2 | Từ chối báo cáo, bài đang tự ẩn | Bài **hiện lại** |
 | T3 | `USER` gọi | 403 |
@@ -1075,7 +1099,7 @@ Bình luận `status = HIDDEN` hoặc `DELETED`; cây trả lời được giữ
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `MANAGER` | Chọn bình luận, bấm "Ẩn" hoặc "Xoá" |
 | 2 | Client | `PATCH /api/community/moderation/comments/{id}` — `{action, reason}` |
 | 3 | System | Kiểm role |
@@ -1092,7 +1116,7 @@ Bình luận `status = HIDDEN` hoặc `DELETED`; cây trả lời được giữ
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | Chặn |
 | `COMMENT_NOT_FOUND` | 404 | ID sai | Chặn |
 | `HARD_DELETE_BREAKS_TREE` | — | 🔴 Xoá cứng làm mất trả lời | Xem ghi chú |
@@ -1120,26 +1144,28 @@ Bình luận `status = HIDDEN` hoặc `DELETED`; cây trả lời được giữ
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-079-1 | Chỉ `MANAGER` |
-| BR-079-2 | **Soft delete** — không xoá dòng |
-| BR-079-3 | Lọc `status` ở repository cho mọi endpoint đọc bình luận |
-| BR-079-4 | Lý do bắt buộc |
-| BR-079-5 | Ẩn cả cây phải là tham số tường minh |
-| BR-079-6 | Ghi `moderated_by`; `SUPER_ADMIN` xem được nhật ký |
-| BR-079-7 | Idempotent |
+| --- | --- |
+| BR-079-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-079-2 | Chỉ `MANAGER` được ẩn hoặc xóa bình luận vi phạm. |
+| BR-079-3 | Khi xóa bình luận, hệ thống dùng soft delete, không xóa cứng khỏi database. |
+| BR-079-4 | Bình luận bị ẩn hoặc bị xóa không được hiển thị như bình luận bình thường ở các endpoint đọc bình luận. |
+| BR-079-5 | Nếu bình luận có trả lời, hệ thống giữ cây trả lời và hiển thị vị trí bình luận cha bằng nội dung thay thế như “[đã xóa]” hoặc “[đã bị ẩn]”. |
+| BR-079-6 | Khi `MANAGER` ẩn hoặc xóa bình luận, lý do là bắt buộc. |
+| BR-079-7 | Ẩn cả nhánh bình luận chỉ thực hiện khi người quản lý chọn rõ hành động đó, không làm mặc định. |
+| BR-079-8 | Hệ thống ghi người xử lý và thời điểm xử lý để `SUPER_ADMIN` có thể kiểm tra nếu cần. |
 
 ## API · DB
 
 ```
 PATCH /api/community/moderation/comments/{id}
 ```
+
 `comments` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Ẩn bình luận | Không hiện ở UC-071 nữa |
 | T2 | Ẩn bình luận có 5 trả lời | 5 trả lời **vẫn còn** |
 | T3 | Xoá bình luận | Dòng **vẫn trong DB**, hiện "[đã xoá]" |
@@ -1173,7 +1199,7 @@ Quiz riêng cho mỗi chủ đề, chơi bất cứ lúc nào. Nguồn câu hỏ
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Lần đầu | `quiz_attempts` ghi, **vào bảng xếp hạng** |
 | Lần 2+ | `quiz_attempts` ghi nhưng **không đổi thứ hạng** |
 | Mastery | **Không đổi** |
@@ -1181,7 +1207,7 @@ Quiz riêng cho mỗi chủ đề, chơi bất cứ lúc nào. Nguồn câu hỏ
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Chọn quiz theo chủ đề |
 | 2 | System | `POST /api/community/quiz-sets/{id}/attempts` |
 | 3 | System | Kiểm đã làm lần nào chưa (quyết định có tính hạng) |
@@ -1204,7 +1230,7 @@ Quiz riêng cho mỗi chủ đề, chơi bất cứ lúc nào. Nguồn câu hỏ
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `QUIZ_SET_NOT_FOUND` | 404 | ID sai | Chặn |
 | `NO_APPROVED_QUESTIONS` | 422 | Không câu nào duyệt | Ẩn quiz khỏi danh sách |
 | `UNAPPROVED_QUESTION_IN_QUIZ` | — | 🔴 Câu `PENDING_REVIEW` vào quiz | Xem ghi chú |
@@ -1238,14 +1264,16 @@ Quiz riêng cho mỗi chủ đề, chơi bất cứ lúc nào. Nguồn câu hỏ
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-080-1 | Quiz **không** cập nhật mastery — và nói rõ trên UI |
-| BR-080-2 | Chỉ **lần đầu** tính thứ hạng |
-| BR-080-3 | Unique `(user_id, quiz_set_id)` trên `ranking_entries` |
-| BR-080-4 | Chỉ câu `APPROVED` |
-| BR-080-5 | Lấy câu hỏi qua `ContentLookup`, không đọc bảng chéo |
-| BR-080-6 | Chấm ở server; response không kèm đáp án |
-| BR-080-7 | Điểm bằng nhau → xét thời gian |
+| --- | --- |
+| BR-080-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-080-2 | Quiz theo chủ đề là chức năng thi đua, không cập nhật mastery học tập. |
+| BR-080-3 | Giao diện phải nói rõ quiz không làm thay đổi mastery hoặc tiến độ học chính. |
+| BR-080-4 | Quiz chỉ sử dụng câu hỏi đã được duyệt. Câu hỏi chưa duyệt không được xuất hiện. |
+| BR-080-5 | Khi phát câu hỏi cho người chơi, response không được chứa đáp án đúng hoặc trường làm lộ đáp án. |
+| BR-080-6 | Bài quiz phải được chấm ở server. Client chỉ gửi câu trả lời. |
+| BR-080-7 | Chỉ lần làm đầu tiên của mỗi người trên mỗi bộ quiz được tính vào bảng xếp hạng. |
+| BR-080-8 | Người học được làm lại quiz để luyện tập, nhưng các lần làm lại không thay đổi thứ hạng. |
+| BR-080-9 | Nếu điểm bằng nhau, người hoàn thành nhanh hơn được xếp cao hơn. |
 
 ## API · DB
 
@@ -1254,12 +1282,13 @@ GET  /api/community/quiz-sets?topic_id={t}
 POST /api/community/quiz-sets/{id}/attempts
 POST /api/community/quiz-sets/{id}/attempts/{aid}/submit
 ```
+
 `quiz_sets` · `quiz_questions` · `quiz_attempts` · `quiz_answers` · `ranking_entries` (ghi) · `learning.questions` **qua `ContentLookup`**
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Chơi lần đầu, 8/10 | Vào bảng xếp hạng |
 | T2 | Chơi lần 2, 10/10 | Thứ hạng **không** đổi |
 | T3 | Sau khi chơi quiz | `user_knowledge_state` **không** đổi |
@@ -1291,7 +1320,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Nộp quiz xong |
 | 2 | System | `GET /api/community/quiz-attempts/{id}/result` |
 | 3 | System | Kiểm sở hữu + `SUBMITTED` |
@@ -1309,7 +1338,7 @@ Chỉ đọc.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `ATTEMPT_NOT_OWNED` | 403 | Lượt người khác | IDOR |
 | `ATTEMPT_NOT_SUBMITTED` | 422 | Chưa nộp | Chặn lộ đáp án (như UC-038) |
 | `REDIS_UNAVAILABLE` | — | Redis chết | 🔴 Xem ghi chú |
@@ -1330,13 +1359,14 @@ Chỉ đọc.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-081-1 | Chỉ xem lượt `SUBMITTED` của mình |
-| BR-081-2 | `ranking_entries` là **nguồn tin duy nhất**; Redis là cache |
-| BR-081-3 | Redis miss/chết → tính từ DB, nạp lại |
-| BR-081-4 | `ZADD` lỗi không rollback ghi DB |
-| BR-081-5 | Top 10 chỉ có tên + điểm + thời gian |
-| BR-081-6 | Điểm bằng → ai nhanh hơn đứng trên |
+| --- | --- |
+| BR-081-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-081-2 | Người học chỉ được xem kết quả quiz của chính mình. |
+| BR-081-3 | Chỉ lượt quiz đã nộp mới được xem kết quả chi tiết. |
+| BR-081-4 | Kết quả gồm điểm, số câu đúng/sai, thời gian làm bài và thứ hạng nếu lượt làm đó đủ điều kiện xếp hạng. |
+| BR-081-5 | Lần làm lại không tạo hạng mới; nếu hiển thị hạng thì phải ghi rõ đó là hạng từ lần làm đầu tiên. |
+| BR-081-6 | Bảng top chỉ hiển thị tên hiển thị, điểm và thời gian; không hiển thị câu trả lời của người khác. |
+| BR-081-7 | Dữ liệu bảng xếp hạng gốc phải nằm trong database. Redis nếu có chỉ là cache để đọc nhanh. |
 
 ## API · DB
 
@@ -1344,12 +1374,13 @@ Chỉ đọc.
 GET /api/community/quiz-attempts/{id}/result
 GET /api/community/quiz-sets/{id}/leaderboard
 ```
+
 `quiz_attempts` · `quiz_answers` · `ranking_entries` (đọc) · Redis `rank:quiz:*`
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Xem kết quả của mình | Điểm + hạng |
 | T2 | Lượt người khác | 403 |
 | T3 | Redis tắt | **Vẫn** có hạng (từ DB) |
@@ -1384,7 +1415,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Người dùng | Mở bảng xếp hạng chủ đề |
 | 2 | Client | `GET /api/public/community/leaderboard/topics/{id}?period=week` |
 | 3 | System | `ZREVRANGE rank:topic:{id}:week 0 49 WITHSCORES` |
@@ -1402,7 +1433,7 @@ Chỉ đọc.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `REDIS_UNAVAILABLE` | — | Redis chết | Dựng từ DB (A1) |
 | `INVALID_PERIOD` | 400 | Ngoài `{week, month, all}` | Chặn |
 | `SCORE_ENCODING_OVERFLOW` | — | 🔴 Điểm × 1.000.000 vượt giới hạn | Xem ghi chú |
@@ -1431,26 +1462,27 @@ Chỉ đọc.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-082-1 | `ranking_entries` là bản gốc; Redis dựng lại được |
-| BR-082-2 | `score = điểm × 1.000.000 − giây`, giây kẹp ≤ 999.999 |
-| BR-082-3 | Điểm dùng `BIGINT`, **không** `FLOAT` (AC-07) |
-| BR-082-4 | Key kỳ hạn phải có mốc thời gian + TTL |
-| BR-082-5 | Reset kỳ hạn theo **giờ Việt Nam** |
-| BR-082-6 | Chỉ trả `display_name` |
-| BR-082-7 | `GUEST` xem top được, không có hạng cá nhân |
+| --- | --- |
+| BR-082-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-082-2 | `GUEST` và `USER` đều được xem bảng xếp hạng công khai. |
+| BR-082-3 | `GUEST` chỉ xem top, không có phần “hạng của tôi”. |
+| BR-082-4 | Bảng xếp hạng sắp xếp theo điểm cao hơn trước; nếu bằng điểm thì người hoàn thành nhanh hơn đứng trên. |
+| BR-082-5 | Response bảng xếp hạng chỉ hiển thị tên hiển thị, ảnh đại diện nếu có, điểm và thời gian. Không trả email hoặc thông tin riêng tư. |
+| BR-082-6 | Database là nguồn dữ liệu gốc của bảng xếp hạng. Redis chỉ là cache và phải có thể dựng lại từ database. |
+| BR-082-7 | Người dùng bị ban hoặc bị khóa không nên xuất hiện như người dùng bình thường trên bảng xếp hạng công khai. |
 
 ## API · DB
 
 ```
 GET /api/public/community/leaderboard/topics/{id}?period={week|month|all}
 ```
+
 `ranking_entries` (đọc) · Redis `rank:topic:*` · `auth.users` **qua lớp api**
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Xem top tuần | Top 50, sắp đúng |
 | T2 | Redis tắt | **Vẫn** trả bảng (từ DB) |
 | T3 | Hai người cùng điểm | Người nhanh hơn trên |
@@ -1493,7 +1525,7 @@ Giống UC-082, khác: nguồn là `game_scores`, khoá là `game_code`.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `INVALID_GAME_CODE` | 400 | Ngoài enum 5 game | Chặn |
 | `GAME_CODE_ENUM_DRIFT` | — | 🔴 Enum code khác dữ liệu DB | Xem ghi chú |
 | `CHEATED_SCORE_IN_RANKING` | — | 🔴 Điểm gian lận lên bảng | Xem ghi chú |
@@ -1519,23 +1551,26 @@ Giống UC-082, khác: nguồn là `game_scores`, khoá là `game_code`.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-083-1 | `game_code` có `CHECK` constraint ở DB |
-| BR-083-2 | Điểm `suspicious` **không** vào bảng xếp hạng |
-| BR-083-3 | Các luật BR-082-1 → BR-082-7 áp dụng đầy đủ |
-| BR-083-4 | Xoá được điểm gian lận khỏi bảng |
+| --- | --- |
+| BR-083-1 | UC này thuộc V2 nếu là bảng xếp hạng đầy đủ; MVP Game Box chỉ cần lưu điểm và có thể hiển thị điểm cá nhân. |
+| BR-083-2 | Bảng xếp hạng theo game chỉ nhận các `game_code` hợp lệ mà hệ thống hỗ trợ. |
+| BR-083-3 | Mỗi game có bảng xếp hạng riêng, không trộn điểm giữa các game khác cách tính. |
+| BR-083-4 | Điểm bị đánh dấu đáng ngờ hoặc gian lận không được đưa lên bảng xếp hạng công khai. |
+| BR-083-5 | Quy tắc sắp xếp giống bảng xếp hạng chủ đề: điểm cao hơn trước, bằng điểm thì thời gian tốt hơn đứng trên. |
+| BR-083-6 | Database là nguồn dữ liệu gốc; cache nếu có phải dựng lại được. |
 
 ## API · DB
 
 ```
 GET /api/public/community/leaderboard/games/{code}?period={p}
 ```
+
 `game_scores` (đọc) · Redis `rank:game:*`
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Top game Mưa chữ | Sắp đúng |
 | T2 | `game_code` lạ | 400 |
 | T3 | Insert `game_code` typo | **DB chặn** (CHECK) |
@@ -1565,7 +1600,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Chọn "Tháng này" |
 | 2 | Client | Gọi lại UC-082/083 với `period=month` |
 | 3 | System | Đọc key `rank:*:month` (có mốc thời gian) |
@@ -1579,7 +1614,7 @@ Chỉ đọc.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `INVALID_PERIOD` | 400 | Ngoài 3 giá trị | Chặn |
 | `PERIOD_BOUNDARY_AMBIGUOUS` | — | 🔴 Tuần bắt đầu thứ Hai hay Chủ nhật | Xem ghi chú |
 | `PERIOD_RESET_TIMEZONE` | — | 🔴 Reset theo UTC | Xem ghi chú |
@@ -1599,12 +1634,13 @@ Chỉ đọc.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-084-1 | Đúng 3 kỳ hạn: `week`, `month`, `all` |
-| BR-084-2 | Tuần theo **ISO-8601** (bắt đầu thứ Hai) |
-| BR-084-3 | Ranh giới kỳ hạn tính theo **giờ Việt Nam** |
-| BR-084-4 | Không hỗ trợ xem kỳ hạn đã qua |
-| BR-084-5 | Key all-time giới hạn top N trong Redis |
+| --- | --- |
+| BR-084-1 | UC này thuộc V2/P3, không gen code cho MVP. |
+| BR-084-2 | Bảng xếp hạng chỉ hỗ trợ ba kỳ hạn: tuần, tháng và toàn thời gian. |
+| BR-084-3 | Tuần được tính theo chuẩn ISO, bắt đầu từ thứ Hai. |
+| BR-084-4 | Ranh giới tuần và tháng tính theo giờ Việt Nam. |
+| BR-084-5 | Hệ thống không cần hỗ trợ xem lại bảng xếp hạng của các kỳ đã qua trong V2 đơn giản. |
+| BR-084-6 | Nếu kỳ hạn chưa có dữ liệu, hệ thống trả danh sách rỗng và hiển thị thông báo phù hợp. |
 
 ## API · DB
 
@@ -1613,7 +1649,7 @@ Cùng endpoint UC-082/083 với tham số `period`.
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `period=week` | Chỉ điểm tuần này |
 | T2 | `period=invalid` | 400 |
 | T3 | Chơi 06:00 thứ Hai giờ VN | Tính vào **tuần này** |
@@ -1649,7 +1685,7 @@ giải thích điểm ngữ pháp · gợi ý cách nhớ chữ
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Thành công | `ai_chat_messages` ghi câu hỏi + câu trả lời; trừ lượt |
 | Hết hạn mức | 402, **không gọi API, không trừ gì** |
 | API lỗi | **Hoàn lượt** |
@@ -1657,7 +1693,7 @@ giải thích điểm ngữ pháp · gợi ý cách nhớ chữ
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm nút tròn góc phải dưới, nhập câu hỏi |
 | 2 | Client | `POST /api/assistant/ask` — `{session_id?, question, page_context}` |
 | 3 | System | Kiểm độ dài câu hỏi |
@@ -1679,7 +1715,7 @@ giải thích điểm ngữ pháp · gợi ý cách nhớ chữ
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `QUOTA_EXCEEDED` | 402 | Hết hạn mức | Báo rõ số lượt, gợi ý nạp. **Không gọi API** |
 | `QUOTA_DEDUCTED_BUT_API_FAILED` | 500 | 🔴 Trừ xong API lỗi | **Hoàn lượt** — cùng UC-060/048 |
 | `QUESTION_TOO_LONG` | 400 | > 2.000 ký tự | Chặn **trước** khi trừ |
@@ -1718,17 +1754,17 @@ giải thích điểm ngữ pháp · gợi ý cách nhớ chữ
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-085-1 | `GUEST` **không** dùng được |
-| BR-085-2 | Trừ lượt + ghi `feature_usage` cùng transaction |
-| BR-085-3 | API lỗi/timeout → **hoàn lượt** |
-| BR-085-4 | Timeout 5 giây (nghiệm thu) |
-| BR-085-5 | Kiểm sở hữu `session_id` |
-| BR-085-6 | Prompt **không** chứa PII |
-| BR-085-7 | Hết hạn mức báo rõ số lượt còn lại |
-| BR-085-8 | Chỉ gửi N tin nhắn gần nhất làm ngữ cảnh |
-| BR-085-9 | Không gọi API bên trong transaction DB |
-| BR-085-10 | ⚠️ Chốt: có chặn hỏi AI khi đang làm bài không |
+| --- | --- |
+| BR-085-1 | Chỉ `USER` đã đăng nhập mới được dùng trợ lý AI. `GUEST` không được dùng vì mỗi lượt hỏi gọi API ngoài. |
+| BR-085-2 | Trong MVP, trợ lý AI dùng quota/hạn mức lượt hỏi. Chưa triển khai ví tiền hoặc thanh toán nếu payment scope chưa chốt. |
+| BR-085-3 | Chỉ hành động gọi API AI mới tiêu tốn quota. Mở hộp chat, xem lịch sử hoặc đọc lại câu trả lời cũ không tiêu tốn quota. |
+| BR-085-4 | Nếu người dùng hết quota, hệ thống phải báo rõ hết lượt và không gọi API AI. |
+| BR-085-5 | Nếu API AI lỗi hoặc timeout, hệ thống không được trừ quota; nếu đã trừ thì phải hoàn lại quota. |
+| BR-085-6 | Câu hỏi gửi lên phải có giới hạn độ dài và không được rỗng. MVP đề xuất tối đa 2.000 ký tự. |
+| BR-085-7 | Trợ lý có thể nhận ngữ cảnh trang hiện tại, nhưng ngữ cảnh không được chứa email, tên thật, token, ID nội bộ hoặc dữ liệu nhạy cảm của người học. |
+| BR-085-8 | Khi tiếp tục một phiên chat cũ, hệ thống phải kiểm tra phiên đó thuộc về người học đang đăng nhập. |
+| BR-085-9 | Khi dựng prompt, hệ thống chỉ gửi một số tin nhắn gần nhất để tránh vượt giới hạn ngữ cảnh. |
+| BR-085-10 | Trợ lý AI không hiển thị trong chế độ thi thật nếu sau này hệ thống có thi thật. Với luyện thi HSK dạng practice hiện tại, chưa cần chặn để tránh làm phức tạp MVP. |
 
 ## API · DB
 
@@ -1736,12 +1772,13 @@ giải thích điểm ngữ pháp · gợi ý cách nhớ chữ
 POST /api/assistant/ask
 GET  /api/assistant/history
 ```
+
 `ai_chat_sessions` · `ai_chat_messages` · `feature_usage` · `user_credits` · `credit_transactions` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Hỏi nghĩa từ | Trả lời **< 5 giây**, lượt −1 |
 | T2 | Hết hạn mức | 402 kèm số lượt, **không gọi API** |
 | T3 | API timeout | Lượt **được hoàn** |
@@ -1774,7 +1811,7 @@ Chỉ đọc. **Không tính lượt** — xem lại không gọi API.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở "Lịch sử hỏi đáp" |
 | 2 | Client | `GET /api/assistant/history` |
 | 3 | System | Lấy `ai_chat_sessions` **của người đang đăng nhập**, sắp mới nhất |
@@ -1792,7 +1829,7 @@ Chỉ đọc. **Không tính lượt** — xem lại không gọi API.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `SESSION_NOT_OWNED` | 403 | Phiên người khác | 🔴 IDOR — lộ hội thoại riêng tư |
 | `SESSION_NOT_FOUND` | 404 | ID sai | Chặn |
 | `NO_SESSIONS` | 200 (rỗng) | Chưa hỏi gì | Không phải lỗi (A3) |
@@ -1813,12 +1850,14 @@ Chỉ đọc. **Không tính lượt** — xem lại không gọi API.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-086-1 | Chỉ phiên của mình |
-| BR-086-2 | Xem lại **không** tính lượt |
-| BR-086-3 | `QuotaService` tính theo lượt **gọi API ngoài** |
-| BR-086-4 | Xoá phiên xoá cả tin nhắn |
-| BR-086-5 | ⚠️ Chốt thời hạn lưu lịch sử |
+| --- | --- |
+| BR-086-1 | Người học chỉ được xem các phiên hội thoại AI của chính mình. |
+| BR-086-2 | Xem lại lịch sử hội thoại không tiêu tốn quota vì không gọi API AI. |
+| BR-086-3 | Khi xem tin nhắn trong một phiên, hệ thống phải kiểm tra phiên đó thuộc về người học đang đăng nhập. |
+| BR-086-4 | Người học được xóa phiên hội thoại của mình. Khi xóa phiên, các tin nhắn thuộc phiên đó cũng bị xóa hoặc ẩn theo cùng chính sách. |
+| BR-086-5 | Nếu chưa có lịch sử, hệ thống trả danh sách rỗng và hiển thị hướng dẫn bắt đầu hỏi AI. |
+| BR-086-6 | Lịch sử AI có thể chứa nội dung riêng tư do người học nhập, nên phải có thời hạn lưu rõ ràng. MVP đề xuất lưu tối đa 30 ngày. |
+| BR-086-7 | Không người dùng nào, kể cả người dùng thường khác, được xem lịch sử hội thoại của người khác. |
 
 ## API · DB
 
@@ -1827,12 +1866,13 @@ GET    /api/assistant/history
 GET    /api/assistant/sessions/{id}/messages
 DELETE /api/assistant/sessions/{id}
 ```
+
 `ai_chat_sessions` · `ai_chat_messages` (đọc + ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Xem lịch sử của mình | Danh sách phiên |
 | T2 | Phiên người khác | 403 |
 | T3 | Mở lịch sử 10 lần | **Lượt không giảm** |
@@ -1863,14 +1903,14 @@ Nguồn từ vựng: **đọc thẳng** `learning.words` · `learning.characters
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Bắt đầu ván | Server sinh bộ nội dung, ghi `served_at` |
 | Kết thúc | UC-088 lưu điểm + cộng mastery |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở `game.cnhsk.com`, chọn game |
 | 2 | Client | Gửi cookie chung (web) hoặc header (WebView) |
 | 3 | System | Xác thực; kiểm giới hạn ván/giờ |
@@ -1892,7 +1932,7 @@ Nguồn từ vựng: **đọc thẳng** `learning.words` · `learning.characters
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `COOKIE_NOT_SHARED` | 401 | 🔴 Cookie không dùng được ở `game.cnhsk.com` | Xem ghi chú |
 | `CORS_BLOCKED` | — | 🔴 CORS chặn `game.cnhsk.com` | Xem ghi chú |
 | `INVALID_GAME_CODE` | 400 | Ngoài enum | Chặn |
@@ -1922,15 +1962,17 @@ Nguồn từ vựng: **đọc thẳng** `learning.words` · `learning.characters
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-087-1 | Cookie phải đủ 5 thuộc tính, `domain=cnhsk.com` (HR-03) |
-| BR-087-2 | CORS khai tường minh `game.cnhsk.com`, **không** dùng `*` |
-| BR-087-3 | Bộ nội dung ván do **server** sinh |
-| BR-087-4 | Response ván **không** kèm đáp án |
-| BR-087-5 | Tối đa 30 ván/giờ |
-| BR-087-6 | Lấy từ vựng qua `ContentLookup` |
-| BR-087-7 | Kiểm sở hữu `round_id` |
-| BR-087-8 | Mobile dùng **cùng** trang game trong WebView |
+| --- | --- |
+| BR-087-1 | MVP Game Box gồm đúng 4 game: Mưa chữ, Ghép Pinyin, Ghép Bộ thủ và Bắt Chữ. Không thêm game mới trong MVP. |
+| BR-087-2 | Người học phải đăng nhập mới được chơi game có lưu điểm, cập nhật mastery hoặc tham gia xếp hạng. |
+| BR-087-3 | Web và mobile dùng cùng một trang game. Mobile mở trang game trong WebView, không làm một game engine riêng. |
+| BR-087-4 | Mỗi ván chơi phải do server tạo nội dung và cấp `round_id`. Client không được tự tạo ván rồi gửi điểm. |
+| BR-087-5 | Response bắt đầu ván không được chứa đáp án đúng hoặc dữ liệu làm lộ đáp án. |
+| BR-087-6 | Server phải lưu đủ thông tin ván đã phát để kiểm tra lúc nộp kết quả, gồm người chơi, game, nội dung đã phát, thời điểm phát và trạng thái đã nộp. Nếu chưa có nơi lưu ván, chưa được cộng điểm/mastery. |
+| BR-087-7 | Mỗi `round_id` chỉ thuộc về một người học và chỉ người đó được nộp kết quả. |
+| BR-087-8 | Người học bị giới hạn số ván trong một khoảng thời gian để tránh farm điểm và mastery. MVP đề xuất tối đa 30 ván/giờ. |
+| BR-087-9 | Nếu người học chưa có dữ liệu học cá nhân, game có thể dùng bộ từ HSK1 mặc định. |
+| BR-087-10 | Nội dung game phải lấy từ kho học hợp lệ của hệ thống; không dùng dữ liệu chưa duyệt hoặc thiếu thông tin cần thiết. |
 
 ## API · DB
 
@@ -1938,6 +1980,7 @@ Nguồn từ vựng: **đọc thẳng** `learning.words` · `learning.characters
 POST /api/community/games/{code}/rounds
 POST /api/community/games/{code}/rounds/{id}/submit
 ```
+
 `game_scores` (ghi) · `learning.words` · `learning.characters` **qua `ContentLookup`**
 
 > ⚠️ **Thiếu bảng:** `round_id` với `served_at` và trạng thái đã nộp **chưa có bảng lưu** —
@@ -1946,7 +1989,7 @@ POST /api/community/games/{code}/rounds/{id}/submit
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Đăng nhập web, mở trang game | **Nhận diện đã đăng nhập** |
 | T2 | Cookie `domain=www.cnhsk.com` | Test phát hiện — game không nhận |
 | T3 | CORS `*` với credentials | Trình duyệt chặn; test phát hiện |
@@ -1981,14 +2024,14 @@ Nghiệm thu: "điểm lưu lại, vào bảng xếp hạng ngay, **mastery đ�
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Hợp lệ | `game_scores` ghi · `user_knowledge_state` đổi · `ranking_entries` + Redis · **cùng transaction** (trừ Redis) |
 | Gian lận | **Từ chối**, không ghi gì, ghi log |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Client | `POST .../rounds/{id}/submit` |
 | 2 | System | Kiểm sở hữu `round_id` + chưa nộp |
 | 3 | System | **Lớp 1:** tính điểm **ở server** từ kết quả từng item — không tin điểm client gửi |
@@ -2013,7 +2056,7 @@ Nghiệm thu: "điểm lưu lại, vào bảng xếp hạng ngay, **mastery đ�
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `SCORE_CEILING_EXCEEDED` | 400 | 🔴 Vượt trần | **Từ chối** (nghiệm thu) |
 | `CLIENT_SENT_SCORE` | 400 | 🔴 Client gửi điểm thay vì kết quả item | Xem ghi chú |
 | `IMPOSSIBLE_DURATION` | 400 | Nhanh bất thường | Cờ `suspicious` (A2) |
@@ -2046,28 +2089,30 @@ Nghiệm thu: "điểm lưu lại, vào bảng xếp hạng ngay, **mastery đ�
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-088-1 | Điểm tính **ở server** từ kết quả item — không nhận điểm từ client (HR-06) |
-| BR-088-2 | Ba lớp: trần điểm · thời gian hợp lý · giới hạn ván/giờ |
-| BR-088-3 | Vượt trần → **từ chối**, không ghi gì |
-| BR-088-4 | Thời gian bất thường → `suspicious`, không vào bảng xếp hạng |
-| BR-088-5 | Điểm + mastery + xếp hạng **cùng transaction** (AC-10) |
-| BR-088-6 | Redis `ZADD` **ngoài** transaction; lỗi không rollback |
-| BR-088-7 | Một `round_id` nộp **một lần** |
-| BR-088-8 | Gọi mastery qua lớp `api` của `learning` |
-| BR-088-9 | Mastery đổi **ngay** — không chờ job |
+| --- | --- |
+| BR-088-1 | Server phải tự tính điểm từ kết quả từng item trong ván chơi. Client không được gửi điểm cuối cùng để server tin trực tiếp. |
+| BR-088-2 | Mỗi `round_id` chỉ được nộp kết quả một lần. Nộp lại cùng một ván phải bị từ chối. |
+| BR-088-3 | Kết quả nộp phải khớp với nội dung ván mà server đã phát. Item không thuộc ván đó bị xem là không hợp lệ. |
+| BR-088-4 | Điểm vượt trần lý thuyết của game phải bị từ chối và không được ghi điểm, không cập nhật mastery. |
+| BR-088-5 | Nếu thời gian hoàn thành bất thường, kết quả có thể bị đánh dấu đáng ngờ. Kết quả đáng ngờ không được đưa lên bảng xếp hạng. |
+| BR-088-6 | Kết quả game hợp lệ có thể cập nhật mastery với trọng số thấp hơn bài luyện hoặc bài thi, vì game có yếu tố phản xạ và chạy nhiều ở client. |
+| BR-088-7 | Ghi điểm game và cập nhật mastery phải nhất quán. Không được để điểm đã lưu nhưng mastery không cập nhật, hoặc mastery cập nhật nhưng điểm không lưu. |
+| BR-088-8 | Mastery từ game phải được cập nhật ngay sau khi ván hợp lệ được lưu, không chờ job chạy nền. |
+| BR-088-9 | Nếu game không map được nội dung sang điểm kiến thức cụ thể, hệ thống chỉ lưu điểm game, không cập nhật mastery. |
+| BR-088-10 | Lỗi cache/xếp hạng phụ không được làm mất kết quả game đã lưu hợp lệ. Database là nguồn dữ liệu chính. |
 
 ## API · DB
 
 ```
 POST /api/community/games/{code}/rounds/{id}/submit
 ```
+
 `game_scores` · `ranking_entries` (ghi) · `user_knowledge_state` **qua `learningApi`** · Redis
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Ván hợp lệ | Điểm lưu, mastery đổi **ngay**, có hạng |
 | T2 | Gửi `{score: 999999}` | 400 — server tự tính |
 | T3 | Điểm vượt trần | **400, không ghi gì** |
@@ -2118,7 +2163,7 @@ pinyin chuẩn.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `TONE_INPUT_AMBIGUOUS` | — | 🔴 `hao3` vs `hǎo` vs `hao` | Xem ghi chú |
 | `NO_PINYIN_DATA` | 422 | Từ thiếu pinyin | Loại từ khỏi game |
 | `PINYIN_MISSING_TONE_MARKS` | — | 🔴 Dữ liệu pinyin không có dấu thanh | Game **không chơi được** đúng nghĩa |
@@ -2143,13 +2188,14 @@ pinyin chuẩn.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-089-1 | Chấp nhận cả dạng dấu thật và dạng số thanh |
-| BR-089-2 | **Từ chối** pinyin không thanh |
-| BR-089-3 | Chỉ dùng từ có pinyin đủ dấu thanh |
-| BR-089-4 | Dùng chung `game_scores`, khác `game_code` |
-| BR-089-5 | Mobile cảnh báo nhưng không chặn |
-| BR-089-6 | Mọi luật chống gian lận UC-088 áp dụng |
+| --- | --- |
+| BR-089-1 | UC này thuộc V2/P3. Không gen code cho MVP. |
+| BR-089-2 | Chỉ triển khai game gõ pinyin khi dữ liệu pinyin có thanh điệu đủ tin cậy. Nếu dữ liệu thiếu nhiều, nên cắt UC này thay vì làm nửa vời. |
+| BR-089-3 | Game gõ pinyin yêu cầu người học nhập pinyin có thanh điệu. |
+| BR-089-4 | Hệ thống chấp nhận hai dạng nhập hợp lệ: pinyin có dấu thật, ví dụ `hǎo`, và pinyin kèm số thanh, ví dụ `hao3`. |
+| BR-089-5 | Pinyin không có thanh điệu, ví dụ `hao`, không được tính đúng vì làm mất mục tiêu luyện thanh điệu. |
+| BR-089-6 | Mobile có thể cảnh báo cần bàn phím phù hợp, nhưng không cần làm tối ưu mobile trong V2 đầu tiên. |
+| BR-089-7 | Các rule chống gian lận và lưu điểm của UC-088 áp dụng cho game này nếu triển khai. |
 
 ## API · DB
 
@@ -2160,7 +2206,7 @@ Cùng endpoint UC-087/088 với `game_code = TYPE_PINYIN`.
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Gõ `hǎo` | Đúng |
 | T2 | Gõ `hao3` | Đúng |
 | T3 | Gõ `hao` | **Sai** |
@@ -2194,7 +2240,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Người dùng | Mở trang cuộc thi |
 | 2 | Client | `GET /api/public/contests` |
 | 3 | System | Lấy `contests` đã công bố |
@@ -2213,7 +2259,7 @@ Chỉ đọc.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_CONTESTS` | 200 (rỗng) | Chưa có | Hiện "chưa có cuộc thi" |
 | `CONTEST_TIMEZONE_ERROR` | — | 🔴 Tính trạng thái bằng UTC | Xem ghi chú |
 | `PRIZES_JSONB_WRITTEN` | — | 🔴 Ghi vào `prizes` JSONB | Vi phạm AC-09 — chỉ đọc |
@@ -2232,12 +2278,14 @@ Chỉ đọc.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-090-1 | Chỉ hiện cuộc thi đã công bố |
-| BR-090-2 | Khung giờ theo **giờ Việt Nam**, lưu `TIMESTAMPTZ` |
-| BR-090-3 | `prizes` JSONB **chỉ đọc** (AC-09) |
-| BR-090-4 | `GUEST` xem giới thiệu được |
-| BR-090-5 | Trạng thái tính từ giờ hiện tại, không lưu sẵn |
+| --- | --- |
+| BR-090-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-090-2 | `GUEST` và `USER` được xem danh sách cuộc thi đã công bố. |
+| BR-090-3 | Cuộc thi ở trạng thái nháp hoặc chưa công bố không được hiển thị công khai. |
+| BR-090-4 | Trạng thái cuộc thi được tính từ thời gian hiện tại so với thời gian bắt đầu và kết thúc, không cần lưu cứng trạng thái nếu có thể tính được. |
+| BR-090-5 | Khung giờ cuộc thi hiển thị theo giờ Việt Nam. |
+| BR-090-6 | `GUEST` chỉ xem thông tin giới thiệu; muốn đăng ký hoặc thi phải đăng nhập. |
+| BR-090-7 | Nếu chưa có cuộc thi nào, hệ thống trả danh sách rỗng và hiển thị thông báo phù hợp. |
 
 ## API · DB
 
@@ -2245,12 +2293,13 @@ Chỉ đọc.
 GET /api/public/contests
 GET /api/public/contests/{id}
 ```
+
 `contests` · `contest_participants` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Có 3 cuộc thi | Nhóm đúng theo trạng thái |
 | T2 | Cuộc thi 20h–21h giờ VN, xem lúc 20h30 | Trạng thái "đang diễn ra" |
 | T3 | Cuộc thi nháp | Không hiện |
@@ -2283,7 +2332,7 @@ GET /api/public/contests/{id}
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Đăng ký" |
 | 2 | Client | `POST /api/contests/{id}/join` |
 | 3 | System | Kiểm cuộc thi chưa kết thúc |
@@ -2302,7 +2351,7 @@ GET /api/public/contests/{id}
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `CONTEST_ENDED` | 422 | Đã kết thúc | Chặn |
 | `ALREADY_JOINED` | 409 | Đã đăng ký | Idempotent hoặc 409 |
 | `CONTEST_FULL` | 422 | Hết chỗ | Chặn (A4) |
@@ -2330,13 +2379,15 @@ GET /api/public/contests/{id}
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-091-1 | Unique `(contest_id, user_id)` |
-| BR-091-2 | Tài khoản mới **được** tham gia free |
-| BR-091-3 | Cần email đã xác thực (chống nhiều tài khoản) |
-| BR-091-4 | Huỷ đăng ký được trước khi bắt đầu |
-| BR-091-5 | ⚠️ Chốt cách ghi `cheat_events` (JSONB vs bảng riêng) |
-| BR-091-6 | `GUEST` không đăng ký được |
+| --- | --- |
+| BR-091-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-091-2 | Chỉ `USER` đã đăng nhập mới được đăng ký cuộc thi. |
+| BR-091-3 | Tài khoản mới được tham gia miễn phí nếu đã đăng nhập và đáp ứng điều kiện của cuộc thi. |
+| BR-091-4 | Nếu cuộc thi có phần thưởng hoặc xếp hạng công khai, người tham gia nên có email đã xác thực để giảm rủi ro nhiều tài khoản ảo. |
+| BR-091-5 | Mỗi người dùng chỉ được đăng ký một lần cho mỗi cuộc thi. |
+| BR-091-6 | Người dùng được hủy đăng ký trước khi cuộc thi bắt đầu. |
+| BR-091-7 | Không cho đăng ký cuộc thi đã kết thúc hoặc cuộc thi chưa công bố. |
+| BR-091-8 | Nếu cuộc thi giới hạn số người tham gia, hệ thống phải kiểm tra còn chỗ trước khi ghi đăng ký. |
 
 ## API · DB
 
@@ -2344,12 +2395,13 @@ GET /api/public/contests/{id}
 POST   /api/contests/{id}/join
 DELETE /api/contests/{id}/join
 ```
+
 `contests` · `contest_participants` (đọc + ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Đăng ký cuộc thi sắp diễn ra | 201 |
 | T2 | Đăng ký lần 2 | 409 hoặc idempotent |
 | T3 | Cuộc thi đã kết thúc | 422 |
@@ -2386,14 +2438,14 @@ Tính điểm như game: điểm + thời gian. Xếp hạng riêng cho mỗi cu
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Nộp trong giờ | `contest_submissions` ghi, chấm ở server, vào xếp hạng cuộc thi |
 | Ngoài giờ | **Từ chối** |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Vào thi" |
 | 2 | System | Kiểm đã đăng ký |
 | 3 | System | **Kiểm đang trong khung giờ** |
@@ -2417,7 +2469,7 @@ Tính điểm như game: điểm + thời gian. Xếp hạng riêng cho mỗi cu
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NOT_REGISTERED` | 403 | Chưa đăng ký | Chặn |
 | `CONTEST_NOT_STARTED` | 422 | Chưa tới giờ | 🔴 **Kiểm ở server** — xem ghi chú |
 | `CONTEST_ENDED` | 422 | Đã hết giờ | Từ chối (nghiệm thu) |
@@ -2456,16 +2508,18 @@ Tính điểm như game: điểm + thời gian. Xếp hạng riêng cho mỗi cu
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-092-1 | Kiểm khung giờ ở **server**, cả lúc vào và lúc nộp |
-| BR-092-2 | Chấm **hoàn toàn ở server**; response không kèm đáp án |
-| BR-092-3 | Một người nộp **một lần** |
-| BR-092-4 | Xếp hạng công bố **sau khi** cuộc thi đóng |
-| BR-092-5 | Chuyển tab → ghi nhật ký, **không** tự loại |
-| BR-092-6 | Điểm do server tính |
-| BR-092-7 | Khung giờ theo **giờ Việt Nam** |
-| BR-092-8 | Grace nhỏ khi nộp (≤ 5 giây) cho mạng trễ |
-| BR-092-9 | ⚠️ Chốt: có chặn vào thi khi còn ít thời gian |
+| --- | --- |
+| BR-092-1 | UC này thuộc V2, không gen code cho MVP. |
+| BR-092-2 | Người dùng chỉ được vào thi nếu đã đăng ký cuộc thi. |
+| BR-092-3 | Hệ thống phải kiểm tra khung giờ ở server khi người dùng vào thi và khi người dùng nộp bài. Kiểm tra ở client là không đủ. |
+| BR-092-4 | Ngoài khung giờ cuộc thi, hệ thống không cho vào thi hoặc nộp bài. |
+| BR-092-5 | Đề thi gửi cho client không được chứa đáp án đúng hoặc dữ liệu làm lộ đáp án. |
+| BR-092-6 | Bài thi phải được chấm hoàn toàn ở server. Client không được gửi điểm cuối cùng để server tin trực tiếp. |
+| BR-092-7 | Mỗi người dùng chỉ được nộp một lần cho mỗi cuộc thi. |
+| BR-092-8 | Bảng xếp hạng cuộc thi chỉ công bố sau khi cuộc thi kết thúc. |
+| BR-092-9 | Nếu phát hiện chuyển tab hoặc hành vi đáng ngờ, hệ thống chỉ ghi nhận để quản trị xem xét, không tự động loại thí sinh. |
+| BR-092-10 | Có thể cho phép grace nhỏ khi nộp bài do trễ mạng. Đề xuất tối đa 5 giây. |
+| BR-092-11 | Khung giờ cuộc thi tính theo giờ Việt Nam. |
 
 ## API · DB
 
@@ -2474,12 +2528,13 @@ POST /api/contests/{id}/enter
 POST /api/contests/{id}/submit
 GET  /api/contests/{id}/leaderboard      (chỉ sau khi đóng)
 ```
+
 `contests` · `contest_participants` · `contest_submissions` (đọc + ghi) · `learning.questions` **qua `ContentLookup`**
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Thi trong khung giờ | Vào được, nộp được |
 | T2 | Gọi API lúc 19h59 (thi 20h) | **422** dù client ẩn nút |
 | T3 | Nộp lúc 21h05 | 422 `SUBMITTED_AFTER_DEADLINE` |
@@ -2498,7 +2553,7 @@ GET  /api/contests/{id}/leaderboard      (chỉ sau khi đóng)
 ## Mười hai exception quan trọng nhất
 
 | # | UC | Exception | Vì sao |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | UC-092 | `ANSWER_KEY_IN_RESPONSE` | Phần thưởng **thật** — lọt đáp án là mọi biện pháp chống gian lận khác vô nghĩa |
 | 2 | UC-088 | `CLIENT_SENT_SCORE` | Tin điểm client là bỏ toàn bộ HR-06; ba lớp chống gian lận thành hình thức |
 | 3 | UC-087 | `COOKIE_NOT_SHARED` | Cookie thiếu `domain=cnhsk.com` → **chặn toàn bộ** nhóm game (P1/MVP) |
@@ -2515,7 +2570,7 @@ GET  /api/contests/{id}/leaderboard      (chỉ sau khi đóng)
 ## Năm nhóm exception lặp lại khắp nhóm 5
 
 | Nhóm | Xuất hiện ở | Bài học |
-|---|---|---|
+| --- | --- | --- |
 | **Lộ đáp án** | UC-080 · UC-087 · UC-092 (+ UC-034 nhóm 2) | **Bốn** chỗ cùng cần DTO riêng + test assert response không chứa `is_correct`. Ở cuộc thi có thưởng thật thì đây là rủi ro tranh chấp |
 | **Múi giờ** | UC-082 · UC-084 · UC-090 · UC-092 (+ 5 UC nhóm 3) | **Chín** UC liên quan múi giờ. Reset kỳ hạn xếp hạng, khung giờ cuộc thi — tất cả theo **giờ Việt Nam**; chỉ FSRS dùng UTC |
 | **Ranh giới module** | UC-070 · UC-074 · UC-080 · UC-087 · UC-088 | `community` cần đọc `auth.users` và `learning.words`/`questions`. **Luôn** qua lớp `api` / `ContentLookup`. Ba cột trỏ xuyên schema không có khoá ngoại → DB không canh giúp |
@@ -2527,7 +2582,7 @@ GET  /api/contests/{id}/leaderboard      (chỉ sau khi đóng)
 # Khoảng trống thiết kế phát hiện ở nhóm 5
 
 | # | Thiếu | UC bị ảnh hưởng | Mức |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | **Không có bảng lưu lượt chơi game** (`round_id` + `served_at` + đã nộp) | UC-087 · UC-088 | 🔴 Không chống được nộp lại; **cùng khoảng trống** `challenge_id` (UC-017) |
 | 2 | **Mâu thuẫn AC-09 vs `cheat_events` JSONB** — nhật ký gian lận bản chất là ghi | UC-091 · UC-092 | 🔴 Hai quyết định đã chốt xung đột nhau |
 | 3 | Chưa có DTO riêng + test assert không lộ đáp án (4 chỗ) | UC-080 · UC-087 · UC-092 | 🔴 Lộ đáp án ở cuộc thi có thưởng thật |

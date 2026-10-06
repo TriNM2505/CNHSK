@@ -13,7 +13,7 @@
 ## Bảng tra nhanh
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | UC-042 | Cập nhật mastery sau khi trả lời đúng/sai | `SYSTEM` | P0 | MVP | 3.1 |
 | UC-043 | Cập nhật mastery ngay sau khi chơi game | `SYSTEM` | P0 | MVP | 3.1 |
 | UC-044 | Tính lại hạn ôn theo FSRS | `SYSTEM` | P0 | MVP | 3.1 |
@@ -54,7 +54,7 @@ Không có endpoint riêng — là service được gọi trong transaction củ
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Trả lời đúng | `mastery` tăng, `stability` tăng, `next_review_at` giãn xa |
 | Trả lời sai | `mastery` giảm, `stability` giảm, `next_review_at` gần lại |
 | Lần đầu gặp điểm kiến thức | `INSERT` dòng `user_knowledge_state` mới |
@@ -62,7 +62,7 @@ Không có endpoint riêng — là service được gọi trong transaction củ
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Caller | Gọi `MasteryService.record(userId, questionId, isCorrect, sourceType, durationMs)` |
 | 2 | System | Tra `question_knowledge_points` lấy danh sách điểm kiến thức của câu |
 | 3 | System | Lấy trọng số theo `sourceType` (bài thi 1.0 · luyện 0.8 · game 0.6 · viết 0.5) |
@@ -93,7 +93,7 @@ FSRS — `stability` giữ mức khởi tạo.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_KNOWLEDGE_POINTS` | — | Câu chưa gắn nhãn | **Không cập nhật được gì.** Ghi log WARN. Caller vẫn ghi điểm bình thường |
 | `NOT_IN_TRANSACTION` | 500 | Gọi ngoài transaction | 🔴 **Chặn ở code** — xem ghi chú |
 | `KNOWLEDGE_POINT_NOT_FOUND` | 500 | `question_knowledge_points` trỏ tới điểm đã xoá | Bỏ điểm đó, ghi log. Khoá ngoại phải chặn từ đầu |
@@ -118,22 +118,22 @@ FSRS — `stability` giữ mức khởi tạo.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-042-1 | Luôn chạy **trong** transaction của caller — không tự mở |
-| BR-042-2 | Trọng số theo nguồn: thi 1.0 · luyện 0.8 · game 0.6 · viết 0.5 |
-| BR-042-3 | Khoá dòng theo `ORDER BY knowledge_point_id` để tránh deadlock |
-| BR-042-4 | Cập nhật **mọi** điểm kiến thức của câu |
-| BR-042-5 | `mastery` kẹp trong `[0, 1]` |
-| BR-042-6 | Trả lời sai **phải** làm giảm mastery, không giữ nguyên |
-| BR-042-7 | `user_knowledge_state` + `user_topic_progress` cùng transaction |
-| BR-042-8 | Câu thiếu nhãn không chặn luồng chính, chỉ ghi log |
+| --- | --- |
+| BR-042-1 | Mọi kết quả học tập có đáp án đúng/sai hợp lệ phải cập nhật vào `user_knowledge_state` để hệ thống biết người học mạnh/yếu ở điểm kiến thức nào. |
+| BR-042-2 | Chỉ kết quả đã được chấm ở server mới được dùng để cập nhật mastery. Kết quả chỉ tính ở client không được coi là bằng chứng mạnh. |
+| BR-042-3 | Nếu người học trả lời đúng, mastery của các điểm kiến thức liên quan tăng. Nếu trả lời sai, mastery phải giảm hoặc được điều chỉnh xuống, không được giữ nguyên. |
+| BR-042-4 | Nếu một câu hỏi gắn với nhiều điểm kiến thức, hệ thống cập nhật tất cả các điểm kiến thức đó. |
+| BR-042-5 | Mức ảnh hưởng đến mastery phụ thuộc vào nguồn học: bài thi có trọng số cao nhất, bài luyện thấp hơn, game và luyện viết có trọng số thấp hơn vì độ tin cậy thấp hơn. |
+| BR-042-6 | Mastery luôn nằm trong khoảng từ 0 đến 1. Nếu kết quả tính toán vượt ngoài khoảng này, hệ thống phải đưa về giới hạn hợp lệ. |
+| BR-042-7 | Nếu câu hỏi chưa được gắn nhãn kiến thức, hệ thống vẫn cho luồng học chính tiếp tục nhưng không cập nhật được mastery cho câu đó và phải ghi nhận lỗi dữ liệu. |
+| BR-042-8 | Cập nhật mastery và cập nhật tiến độ chủ đề liên quan phải nhất quán với nhau. Không được để mastery đã đổi nhưng phần trăm hoàn thành chủ đề vẫn giữ giá trị cũ. |
 
 ## API · DB
 
 Không có endpoint — service nội bộ module `learning`.
 
 | Bảng | Vai trò |
-|---|---|
+| --- | --- |
 | `question_knowledge_points` | Đọc — map câu → điểm kiến thức |
 | `knowledge_points` | Đọc |
 | `user_knowledge_state` | **Ghi** (`SELECT FOR UPDATE` rồi `UPDATE`) |
@@ -144,7 +144,7 @@ Không có endpoint — service nội bộ module `learning`.
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Đúng, nguồn thi | `mastery` tăng, `next_review_at` giãn |
 | T2 | Sai | `mastery` **giảm**, `next_review_at` gần lại |
 | T3 | Điểm kiến thức lần đầu | `INSERT` dòng mới |
@@ -180,14 +180,14 @@ với lúc lưu điểm.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Thành công | `game_scores` (community) **và** `user_knowledge_state` (learning) cùng commit |
 | Thất bại | **Cả hai rollback** — không có điểm game mà mastery không đổi, hoặc ngược lại |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Module `community` | Xác thực điểm game xong (UC-088) |
 | 2 | `community` | Gọi **qua lớp `api`**: `learningApi.applyGameResult(userId, gameType, itemResults)` |
 | 3 | `learning` | Map từng item của game sang `knowledge_point_id` |
@@ -211,7 +211,7 @@ Không khác — token đã tiêm, luồng giống web.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `MODULE_BOUNDARY_VIOLATION` | — | `community` đọc thẳng bảng `learning` | 🔴 Xem ghi chú |
 | `SCORE_NOT_VERIFIED` | 400 | Điểm chưa xác thực ở server | **Chặn** — điểm client gửi không được đổi mastery (HR-06) |
 | `NO_ITEM_MAPPING` | — | Game không map được | Không phải lỗi (A1) |
@@ -236,21 +236,21 @@ Không khác — token đã tiêm, luồng giống web.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-043-1 | Điểm game + mastery **cùng một transaction** (AC-10) |
-| BR-043-2 | Gọi qua lớp `api` của module, không đọc bảng chéo |
-| BR-043-3 | Lời gọi là hàm trực tiếp, không HTTP nội bộ |
-| BR-043-4 | Chỉ điểm **đã xác thực ở server** mới đổi mastery |
-| BR-043-5 | Trọng số game 0.6 — thấp hơn thi và luyện |
-| BR-043-6 | Game không map được thì vẫn ghi điểm, không đổi mastery |
-| BR-043-7 | Mastery đổi **ngay**, không chờ job đêm |
+| --- | --- |
+| BR-043-1 | Kết quả game chỉ được cập nhật mastery khi hệ thống xác nhận được ván chơi hợp lệ ở server. Điểm do client tự gửi không được tin tuyệt đối. |
+| BR-043-2 | Game chỉ cập nhật mastery khi nội dung trong game có thể liên kết được với điểm kiến thức cụ thể, ví dụ chữ, từ, pinyin hoặc bộ thủ. |
+| BR-043-3 | Nếu một game chỉ mang tính giải trí hoặc phản xạ và không đo điểm kiến thức cụ thể, hệ thống vẫn có thể lưu điểm game nhưng không cập nhật mastery. |
+| BR-043-4 | Mastery từ game có trọng số thấp hơn bài thi và bài luyện chính thức vì game dễ bị ảnh hưởng bởi tốc độ, thao tác và logic chạy trên client. |
+| BR-043-5 | Khi lưu điểm game và cập nhật mastery, hai dữ liệu này phải nhất quán. Không được để có điểm game hợp lệ nhưng mastery không đổi, hoặc mastery đổi nhưng điểm game không được lưu. |
+| BR-043-6 | Nếu một số item trong ván game không map được sang điểm kiến thức, hệ thống bỏ qua các item đó và chỉ cập nhật mastery cho phần map được. |
+| BR-043-7 | Kết quả game bất thường, ví dụ điểm vượt mức tối đa có thể đạt được, không được dùng để cập nhật điểm hoặc mastery. |
 
 ## API · DB
 
 Lời gọi nội bộ: `community` → `learning.api.LearningApi.applyGameResult(...)`
 
 | Bảng | Module | Vai trò |
-|---|---|---|
+| --- | --- | --- |
 | `game_scores` | `community` | **Ghi** |
 | `user_knowledge_state` | `learning` | **Ghi** (qua UC-042) |
 | `user_topic_progress` | `learning` | **Ghi** |
@@ -258,7 +258,7 @@ Lời gọi nội bộ: `community` → `learning.api.LearningApi.applyGameResul
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Chơi game ghép chữ, đúng 8/10 | `game_scores` ghi, mastery đổi **ngay** |
 | T2 | Đọc mastery ngay sau khi lưu điểm | Đã thấy giá trị mới (không chờ 2h sáng) |
 | T3 | UC-042 ném lỗi | `game_scores` **không** có dòng nào |
@@ -293,7 +293,7 @@ Thay thế Leitner của bản cũ.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | UC-042 | Gọi `FsrsService.schedule(state, rating, now)` |
 | 2 | System | Tính `elapsed_days = now − last_reviewed_at` |
 | 3 | System | Tính `retrievability` từ `stability` và `elapsed_days` |
@@ -321,7 +321,7 @@ FSRS tự xử lý: `retrievability` còn cao → `stability` tăng **ít**. Kh�
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `INVALID_RATING` | 500 | `rating` ngoài 4 giá trị | Chặn |
 | `NEGATIVE_ELAPSED_DAYS` | 500 | `last_reviewed_at` ở **tương lai** | 🔴 Xem ghi chú |
 | `STABILITY_OVERFLOW` | 500 | `stability` tăng vô hạn sau nhiều lần `Easy` | Kẹp `interval` tối đa 365 ngày (bước 8) |
@@ -344,15 +344,14 @@ FSRS tự xử lý: `retrievability` còn cao → `stability` tăng **ít**. Kh�
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-044-1 | FSRS, **không** phải Leitner |
-| BR-044-2 | `rating` do **server** tính cho bài có đáp án |
-| BR-044-3 | Mọi mốc thời gian là `TIMESTAMPTZ`, tính bằng UTC |
-| BR-044-4 | `interval_days` kẹp `[1, 365]` |
-| BR-044-5 | `stability` tối thiểu 0.1 |
-| BR-044-6 | `elapsed_days` không âm |
-| BR-044-7 | Thiếu weight → chặn khởi động, không dùng giá trị mặc định im lặng |
-| BR-044-8 | Đúng 3 lần liên tiếp → giãn ngày ôn (nghiệm thu 1.4) |
+| --- | --- |
+| BR-044-1 | Hệ thống dùng FSRS hoặc thuật toán ôn lặp đã chốt để tính ngày ôn tiếp theo, không dùng hộp Leitner đơn giản cho phần lộ trình thông minh. |
+| BR-044-2 | Với bài có đáp án đúng/sai, mức đánh giá ôn tập phải do server tính từ kết quả làm bài. Client không được tự gửi mức `Easy`, `Good`, `Hard` để quyết định lịch ôn. |
+| BR-044-3 | Trả lời đúng làm lịch ôn giãn xa hơn. Trả lời sai làm lịch ôn gần lại để người học được ôn sớm hơn. |
+| BR-044-4 | Lần đầu học một điểm kiến thức phải tạo lịch ôn ban đầu, không được chỉ đánh dấu đã học mà thiếu ngày ôn tiếp theo. |
+| BR-044-5 | Hệ thống phải giới hạn khoảng cách ôn trong mức hợp lý. Trong MVP, khoảng cách ôn tối thiểu là 1 ngày và tối đa là 365 ngày. |
+| BR-044-6 | Thời gian dùng cho thuật toán ôn tập phải tính thống nhất theo UTC để tránh lệch lịch do múi giờ hoặc máy chủ. |
+| BR-044-7 | Nếu thiếu cấu hình thuật toán FSRS, hệ thống không được âm thầm dùng giá trị mặc định không rõ nguồn gốc. Lỗi này phải được phát hiện trước khi vận hành. |
 
 ## API · DB
 
@@ -361,7 +360,7 @@ Service nội bộ, không endpoint. `user_knowledge_state` (đọc + ghi qua UC
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `rating = Good`, `stability = 5` | `interval` tăng so với lần trước |
 | T2 | `rating = Again`, `stability = 50` | `interval = 1` ngày |
 | T3 | Lần đầu, `Easy` | `interval = 7` |
@@ -397,7 +396,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở trang "Lộ trình" |
 | 2 | System | `GET /api/learning-path/tree` |
 | 3 | System | Lấy toàn bộ `topics` + quan hệ tiên quyết |
@@ -420,7 +419,7 @@ Chỉ node gốc `AVAILABLE`, còn lại `LOCKED`, mọi `completion_percent = 0
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `CIRCULAR_PREREQUISITE` | 500 | A cần B, B cần A | 🔴 Xem ghi chú |
 | `ORPHAN_TOPIC` | — | Chủ đề không tiên quyết và không phải gốc | Coi là `AVAILABLE`. Ghi log để `CONTENT_ADMIN` kiểm |
 | `NO_ROOT_TOPIC` | 500 | Mọi chủ đề đều có tiên quyết | **Không mở được gì cả** — người học nhìn cây toàn ổ khoá. Phải validate khi nhập |
@@ -442,13 +441,15 @@ Chỉ node gốc `AVAILABLE`, còn lại `LOCKED`, mọi `completion_percent = 0
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-045-1 | `AVAILABLE` chỉ khi **mọi** tiên quyết `COMPLETED` |
-| BR-045-2 | Ngưỡng `COMPLETED`: **90%** |
-| BR-045-3 | Quan hệ tiên quyết **không được có chu trình** — validate khi lưu |
-| BR-045-4 | Phải có ≥ 1 chủ đề gốc |
-| BR-045-5 | Chủ đề rỗng nhãn kiến thức không đưa vào cây |
-| BR-045-6 | Đã mở thì không đóng lại (giống BR-021-3) |
+| --- | --- |
+| BR-045-1 | Cây chủ đề hiển thị quan hệ tiên quyết giữa các chủ đề, giúp người học biết chủ đề nào đang mở, đã hoàn thành, đang học hoặc còn khóa. |
+| BR-045-2 | Một chủ đề không có tiên quyết được xem là chủ đề gốc và được mở sẵn cho người học. |
+| BR-045-3 | Một chủ đề có tiên quyết chỉ được mở khi tất cả chủ đề tiên quyết đã hoàn thành. |
+| BR-045-4 | Chủ đề được xem là hoàn thành khi phần trăm hoàn thành đạt từ 90% trở lên. |
+| BR-045-5 | Khi một chủ đề đã được mở cho người học, hệ thống không khóa lại chủ đề đó chỉ vì phần trăm hoàn thành sau này giảm xuống. |
+| BR-045-6 | Quan hệ tiên quyết giữa các chủ đề không được tạo thành vòng lặp. Dữ liệu có vòng lặp phải bị chặn khi nhập hoặc chỉnh sửa nội dung. |
+| BR-045-7 | Chủ đề không có điểm kiến thức hoặc không thể tính tiến độ thì không nên xuất hiện trong cây học tập chính cho đến khi dữ liệu được bổ sung. |
+| BR-045-8 | Cây chủ đề chỉ hiển thị dữ liệu tiến độ của người học đang đăng nhập, không được dùng hoặc lộ tiến độ của người khác. |
 
 ## API · DB
 
@@ -456,12 +457,13 @@ Chỉ node gốc `AVAILABLE`, còn lại `LOCKED`, mọi `completion_percent = 0
 GET /api/learning-path/tree
 GET /api/learning-path/tree?hsk_level={n}
 ```
+
 `topics` · `topic_knowledge_points` · `user_topic_progress` · `user_knowledge_state` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `USER` mới | Node gốc `AVAILABLE`, còn lại `LOCKED` |
 | T2 | Xong chủ đề A (90%) | B (cần A) chuyển `AVAILABLE` |
 | T3 | B cần A và C, chỉ xong A | B vẫn `LOCKED`, hiện thiếu C |
@@ -492,14 +494,14 @@ không ai bấm.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Mở được | `user_topic_progress` cho chủ đề mới: `status = AVAILABLE`, `unlocked_at` |
 | Chưa đủ 90% | Không làm gì |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Caller | Sau khi cập nhật `user_topic_progress`, gọi `TopicGateService.evaluate(userId, topicId)` |
 | 2 | System | Đọc `completion_percent` **vừa ghi** (cùng transaction) |
 | 3 | System | So với ngưỡng 90 |
@@ -526,7 +528,7 @@ Ví dụ UC-029 hạ từ `self_declared`. Chủ đề đã mở **vẫn mở** 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `UNIQUE_VIOLATION` | 500 | Hai request song song cùng mở | Cần unique `(user_id, topic_id)`; bắt lỗi, coi như đã mở |
 | `NOT_IN_TRANSACTION` | 500 | Gọi ngoài transaction | 🔴 Chặn — xem UC-029 `UNLOCK_FAILED` |
 | `STALE_PERCENT_READ` | — | Đọc `completion_percent` **trước** khi caller ghi | 🔴 Xem ghi chú |
@@ -546,14 +548,14 @@ Ví dụ UC-029 hạ từ `self_declared`. Chủ đề đã mở **vẫn mở** 
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-046-1 | Ngưỡng **90%** — cấu hình được, không hardcode |
-| BR-046-2 | Chạy trong transaction của caller |
-| BR-046-3 | Idempotent |
-| BR-046-4 | Unique `(user_id, topic_id)` |
-| BR-046-5 | Mở khi **mọi** tiên quyết `COMPLETED` |
-| BR-046-6 | Đã mở **không bao giờ đóng** |
-| BR-046-7 | Nhận `newPercent` qua tham số, không đọc lại DB |
+| --- | --- |
+| BR-046-1 | Khi người học hoàn thành một chủ đề với tỷ lệ từ 90% trở lên, hệ thống tự động kiểm tra và mở các chủ đề tiếp theo đủ điều kiện. |
+| BR-046-2 | Ngưỡng mở khóa mặc định là 90% và phải được cấu hình tập trung để dễ điều chỉnh nếu dự án thay đổi chính sách. |
+| BR-046-3 | Một chủ đề chỉ được mở khi tất cả chủ đề tiên quyết của nó đã hoàn thành, không chỉ dựa vào một tiên quyết vừa đạt. |
+| BR-046-4 | Mở khóa chủ đề là thao tác tự động, người học không cần bấm nút mở khóa thủ công. |
+| BR-046-5 | Mở khóa phải là thao tác an toàn khi chạy lại nhiều lần. Nếu chủ đề đã mở trước đó, hệ thống không tạo bản ghi trùng và không báo lỗi cho người học. |
+| BR-046-6 | Khi chủ đề đã mở, hệ thống giữ trạng thái mở. Chủ đề không bị khóa lại nếu sau này mastery hoặc phần trăm hoàn thành giảm. |
+| BR-046-7 | Việc cập nhật điểm, cập nhật phần trăm hoàn thành và mở khóa chủ đề tiếp theo phải nhất quán. Không được để người học đạt ngưỡng nhưng chủ đề sau vẫn bị khóa do lỗi xử lý. |
 
 ## API · DB
 
@@ -564,7 +566,7 @@ Không có endpoint — chạy trong UC-029, UC-042.
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Đạt 92% | Chủ đề sau `AVAILABLE`, có `unlocked_at` |
 | T2 | Đạt 88% | Không mở, trả `needed: 90` |
 | T3 | Là tiên quyết của 3 chủ đề | Mở cả 3 |
@@ -601,7 +603,7 @@ Trả bộ bài luyện nhắm đúng phần yếu. Không tạo dữ liệu m�
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Luyện phần còn yếu" trong chủ đề |
 | 2 | System | `GET /api/topics/{id}/weak-practice` |
 | 3 | System | Lấy `topic_knowledge_points` của chủ đề |
@@ -627,7 +629,7 @@ Vẫn cho luyện nếu muốn. Trả điểm yếu nhất còn lại, kèm cờ
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `TOPIC_LOCKED` | 403 | Chủ đề khoá | Chặn ở server |
 | `TOPIC_NOT_STARTED` | 422 | Chưa học từ nào | Chuyển UC-026 — không có gì để gọi là "yếu" |
 | `NO_WEAK_POINTS` | 200 | Mọi điểm ≥ 0.9 | Chuyển học từ mới (A1) |
@@ -647,26 +649,28 @@ Vẫn cho luyện nếu muốn. Trả điểm yếu nhất còn lại, kèm cờ
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-047-1 | Chỉ nhắm điểm kiến thức **trong chủ đề đó** |
-| BR-047-2 | Ngưỡng "yếu": `mastery < 0.9` |
-| BR-047-3 | Ưu tiên điểm yếu nhất trước |
-| BR-047-4 | Không bắt học lại phần đã đạt |
-| BR-047-5 | Chỉ câu `APPROVED` |
-| BR-047-6 | Mọi điểm đạt mà % chưa đủ → chuyển học từ mới |
-| BR-047-7 | Mâu thuẫn dữ liệu → ghi log ERROR, không im lặng |
+| --- | --- |
+| BR-047-1 | Chức năng “luyện phần yếu” chỉ lấy các điểm kiến thức thuộc chủ đề mà người học đang luyện. |
+| BR-047-2 | Điểm kiến thức được xem là yếu khi mastery thấp hơn ngưỡng hoàn thành của chủ đề. Trong MVP, ngưỡng này là 0.9. |
+| BR-047-3 | Hệ thống ưu tiên tạo bài luyện cho các điểm kiến thức có mastery thấp nhất trước. |
+| BR-047-4 | Người học không phải học lại toàn bộ chủ đề nếu chỉ yếu một vài điểm kiến thức. |
+| BR-047-5 | Bài luyện trả về chỉ được dùng câu hỏi đã được duyệt và đang hợp lệ. Câu hỏi chưa duyệt không được đưa cho người học. |
+| BR-047-6 | Nếu chủ đề chưa có dữ liệu học tập nào, hệ thống không gọi đó là “phần yếu”; người học cần bắt đầu học nội dung mới trước. |
+| BR-047-7 | Nếu mọi điểm đã học đều đạt nhưng phần trăm chủ đề vẫn chưa đủ, hệ thống hướng người học học phần nội dung chưa học thay vì luyện lại phần đã đạt. |
+| BR-047-8 | Nếu không có câu hỏi phù hợp cho điểm yếu, hệ thống báo rõ là kho câu hỏi chưa đủ. Việc yêu cầu AI sinh thêm bài là một hành động riêng, không tự động chạy ngầm. |
 
 ## API · DB
 
 ```
 GET /api/topics/{id}/weak-practice
 ```
+
 `topic_knowledge_points` · `user_knowledge_state` · `user_topic_progress` · `questions` · `question_knowledge_points` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Chủ đề 70%, 5 điểm yếu | Bài luyện nhắm 5 điểm đó |
 | T2 | Chủ đề 100% | Vẫn luyện được, cờ `already_completed` |
 | T3 | Chủ đề khoá | 403 |
@@ -698,14 +702,14 @@ người học chờ. **Tốn lượt** (một trong 4 tính năng tốn phí).
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Thành công | `ai_generation_jobs` tạo dòng `status = QUEUED`; trừ lượt; trả `job_id` |
 | Hết lượt | Không tạo job, **không trừ gì**, trả 402 |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Nhờ AI tạo bài luyện" |
 | 2 | System | `POST /api/ai/generate-practice` — `{knowledge_point_ids?, count}` |
 | 3 | System | Không truyền điểm → tự lấy 3–5 điểm yếu nhất (UC-040 A3) |
@@ -734,7 +738,7 @@ Từ UC-041 khi kho rỗng. Kiểm điểm đó tồn tại.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `QUOTA_EXCEEDED` | 402 | Hết lượt và điểm | Gợi ý nạp. **Không tạo job, không trừ gì** |
 | `QUOTA_DEDUCTED_BUT_JOB_FAILED` | 500 | Trừ lượt xong, tạo job lỗi | 🔴 Xem ghi chú |
 | `JOB_ALREADY_RUNNING` | 409 | Đã có job `QUEUED`/`RUNNING` | Trả job cũ (A3) |
@@ -758,15 +762,15 @@ Từ UC-041 khi kho rỗng. Kiểm điểm đó tồn tại.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-048-1 | Trừ lượt + tạo job **cùng transaction** |
-| BR-048-2 | Chạy nền — không bắt người học chờ |
-| BR-048-3 | Một `USER` chỉ một job đang chạy |
-| BR-048-4 | Tối đa 10 job/ngày |
-| BR-048-5 | Mọi thay đổi điểm ghi `credit_transactions` kèm `balance_before`/`balance_after` |
-| BR-048-6 | AI lỗi sau khi retry hết → hoàn lượt (UC-097) |
-| BR-048-7 | Không chỉ định điểm → lấy 3–5 điểm yếu nhất |
-| BR-048-8 | ⚠️ Chặn tới khi chốt `TODO(PAYMENT_SCOPE)` |
+| --- | --- |
+| BR-048-1 | Người học chỉ được yêu cầu AI sinh bài khi hệ thống xác định được điểm kiến thức yếu hoặc khi người học bấm từ một điểm kiến thức cụ thể cần luyện. |
+| BR-048-2 | AI sinh bài là tác vụ chạy nền. Người học không phải chờ hệ thống sinh xong ngay trên màn hình hiện tại. |
+| BR-048-3 | Mỗi người học chỉ được có một yêu cầu sinh bài đang chờ hoặc đang chạy tại một thời điểm. Nếu đã có yêu cầu đang chạy, hệ thống trả về yêu cầu hiện tại thay vì tạo yêu cầu mới. |
+| BR-048-4 | Hệ thống phải giới hạn số lần yêu cầu AI sinh bài của mỗi người học trong ngày để kiểm soát chi phí. Trong MVP, dùng quota theo ngày, chưa gắn với thanh toán nếu dự án chưa chốt payment. |
+| BR-048-5 | Nếu không chỉ định điểm kiến thức, hệ thống lấy 3–5 điểm yếu nhất của người học để tạo yêu cầu sinh bài. |
+| BR-048-6 | Nếu không xác định được điểm yếu, hệ thống không tạo yêu cầu AI và hướng người học học hoặc làm bài trước để có dữ liệu. |
+| BR-048-7 | Yêu cầu AI chỉ tạo job sinh câu hỏi; câu hỏi sinh ra chưa được đưa ngay cho người học. Câu hỏi phải qua hàng đợi duyệt trước khi sử dụng. |
+| BR-048-8 | Nếu tạo job thất bại, hệ thống không được trừ quota của người học. |
 
 ## API · DB
 
@@ -774,6 +778,7 @@ Từ UC-041 khi kho rỗng. Kiểm điểm đó tồn tại.
 POST /api/ai/generate-practice
 GET  /api/ai/jobs/{id}
 ```
+
 `user_knowledge_state` · `knowledge_points` (đọc) · `ai_generation_jobs` · `feature_usage` · `user_credits` · `credit_transactions` (ghi)
 
 > ⚠️ **Lệch tài liệu:** feature tree 3.3 ghi bảng `ai_usage_quota`, nhưng danh sách 40 bảng
@@ -782,7 +787,7 @@ GET  /api/ai/jobs/{id}
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Còn lượt, có điểm yếu | 202 `job_id`, lượt giảm 1 |
 | T2 | Hết lượt và điểm | 402, **lượt không đổi**, không có job |
 | T3 | Đã có job `QUEUED` | 409, trả job cũ, không trừ thêm |
@@ -813,7 +818,7 @@ Worker nền: gọi API AI, nhận câu hỏi, validate, ghi vào `questions` v�
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Thành công | `questions` thêm N dòng `PENDING_REVIEW`; job `COMPLETED` |
 | AI lỗi | Job `FAILED` sau khi retry hết; kích hoạt hoàn lượt (UC-097) |
 | Câu không hợp lệ | Loại câu đó, giữ các câu còn lại |
@@ -821,7 +826,7 @@ Worker nền: gọi API AI, nhận câu hỏi, validate, ghi vào `questions` v�
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Worker | Lấy job `QUEUED`, đổi `RUNNING` (`SELECT FOR UPDATE SKIP LOCKED`) |
 | 2 | Worker | Dựng prompt từ điểm kiến thức + cấp HSK + dạng câu hỏi |
 | 3 | Worker | Gọi API AI (timeout 30s) |
@@ -849,7 +854,7 @@ Job kẹt `RUNNING`. Scheduler quét job `RUNNING` quá 10 phút → về `QUEUE
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `AI_API_TIMEOUT` | — | Quá 30s | Retry 3 lần (A3) |
 | `AI_API_RATE_LIMITED` | — | Nhà cung cấp chặn | Backoff dài hơn, giữ `QUEUED` |
 | `AI_RESPONSE_MALFORMED` | — | JSON sai | Loại câu (A1) |
@@ -882,16 +887,16 @@ Job kẹt `RUNNING`. Scheduler quét job `RUNNING` quá 10 phút → về `QUEUE
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-049-1 | Câu AI **luôn** `status = PENDING_REVIEW` — ràng buộc ở DB |
-| BR-049-2 | Validate đủ: 4 đáp án · đúng 1 `is_correct` · có `explanation` · không trùng |
-| BR-049-3 | Retry 3 lần với backoff |
-| BR-049-4 | Hết retry → job `FAILED` + hoàn lượt |
-| BR-049-5 | API key trong biến môi trường |
-| BR-049-6 | `SELECT FOR UPDATE SKIP LOCKED` để nhiều worker không tranh job |
-| BR-049-7 | Job `RUNNING` quá 10 phút → reset `QUEUED` |
-| BR-049-8 | Ghi `source = AI` và `generated_by_job_id` để truy nguồn |
-| BR-049-9 | **Không** ghi prompt hay response AI vào log nếu chứa dữ liệu người học |
+| --- | --- |
+| BR-049-1 | Mọi câu hỏi do AI sinh ra phải được lưu ở trạng thái `PENDING_REVIEW`. Không câu hỏi AI nào được đưa trực tiếp cho người học khi chưa được duyệt. |
+| BR-049-2 | Câu hỏi AI chỉ được lưu nếu vượt qua kiểm tra định dạng tối thiểu, bao gồm có nội dung câu hỏi, đủ đáp án theo loại câu, đúng một đáp án đúng nếu là trắc nghiệm, có lời giải và có nhãn điểm kiến thức. |
+| BR-049-3 | Câu hỏi trùng với câu đã có trong kho không được tạo thêm bản trùng. |
+| BR-049-4 | Câu hỏi AI phải lưu được nguồn gốc sinh ra, bao gồm job sinh bài và trạng thái là câu do AI tạo, để phục vụ kiểm duyệt và truy vết. |
+| BR-049-5 | Nếu AI trả về một phần câu hợp lệ và một phần câu lỗi, hệ thống chỉ giữ các câu hợp lệ và loại bỏ các câu lỗi. |
+| BR-049-6 | Nếu không có câu nào hợp lệ sau khi validate, job sinh bài được xem là thất bại. |
+| BR-049-7 | Job AI thất bại do lỗi nhà cung cấp phải được retry theo chính sách giới hạn. Sau khi hết retry vẫn lỗi, job chuyển sang thất bại và quota của người học phải được xử lý lại theo chính sách đã chốt. |
+| BR-049-8 | API key hoặc thông tin bí mật dùng để gọi AI không được lưu trong code hoặc ghi ra log. |
+| BR-049-9 | Log của job AI không được chứa thông tin nhận dạng cá nhân hoặc dữ liệu nhạy cảm của người học. |
 
 ## API · DB
 
@@ -902,7 +907,7 @@ Không endpoint — worker nền.
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | AI trả 10 câu hợp lệ | 10 dòng `PENDING_REVIEW`, job `COMPLETED` |
 | T2 | Câu ghi `status = APPROVED` | **DB constraint chặn** |
 | T3 | AI trả câu 2 đáp án đúng | Câu bị loại |
@@ -938,7 +943,7 @@ Không tạo dữ liệu mới — chỉ là cách **truy vấn** ở UC-037, UC
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Người B | Yêu cầu bài luyện (UC-037/041/047) |
 | 2 | System | Truy vấn `questions` theo `knowledge_point_id`, `status = APPROVED` |
 | 3 | System | **Không** lọc theo `generated_for_user_id` — lấy cả câu sinh cho người khác |
@@ -961,7 +966,7 @@ UC-048 vẫn cho gọi nhưng client hiện "kho đã có N câu, bạn muốn l
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `PERSONAL_CONTEXT_LEAKED` | — | 🔴 Câu chứa thông tin người A | Xem ghi chú |
 | `NOT_REUSABLE` | — | Câu có `reusable = false` | Loại khỏi kho chung (A2) |
 | `NO_REUSABLE_QUESTIONS` | 200 (rỗng) | Kho rỗng cho điểm đó | Gợi ý UC-048 |
@@ -983,13 +988,14 @@ UC-048 vẫn cho gọi nhưng client hiện "kho đã có N câu, bạn muốn l
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-050-1 | Chỉ câu `APPROVED` vào kho chung |
-| BR-050-2 | Không lọc theo người sinh ra câu |
-| BR-050-3 | Loại câu người học đã làm trong 7 ngày |
-| BR-050-4 | Prompt **không** chứa dữ liệu nhận dạng người học |
-| BR-050-5 | Câu có ngữ cảnh riêng đánh `reusable = false` |
-| BR-050-6 | Kho đủ câu thì gợi ý làm luôn thay vì sinh mới |
+| --- | --- |
+| BR-050-1 | Câu hỏi do AI sinh chỉ được đưa vào kho dùng chung sau khi đã được duyệt. |
+| BR-050-2 | Câu hỏi đã duyệt có thể được tái sử dụng cho nhiều người học nếu cùng điểm kiến thức và cùng nhu cầu luyện tập. |
+| BR-050-3 | Hệ thống không sinh câu hỏi mới bằng AI nếu kho đã có đủ câu hỏi đã duyệt phù hợp với điểm yếu của người học. |
+| BR-050-4 | Khi chọn câu luyện, hệ thống nên ưu tiên câu người học chưa làm gần đây để tránh lặp lại quá nhanh. Trong MVP, có thể loại các câu đã làm trong 7 ngày gần nhất nếu kho còn đủ câu. |
+| BR-050-5 | Prompt dùng để sinh câu hỏi không được chứa tên, email hoặc thông tin nhận dạng cá nhân của người học. |
+| BR-050-6 | Nếu câu hỏi được sinh theo ngữ cảnh riêng của một người học, câu đó không được đưa vào kho dùng chung trừ khi đã được xác nhận là không chứa thông tin riêng tư. |
+| BR-050-7 | Câu hỏi chưa duyệt hoặc bị từ chối không bao giờ được xuất hiện trong kho dùng chung cho người học. |
 
 ## API · DB
 
@@ -1000,7 +1006,7 @@ Không endpoint riêng — là điều kiện truy vấn ở UC-037/041/047.
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Câu AI sinh cho A, đã duyệt | Người B **lấy được** |
 | T2 | Câu `PENDING_REVIEW` | Người B **không** lấy được |
 | T3 | B đã làm câu X hôm qua | X không trong bộ đầu |
@@ -1036,7 +1042,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở trang "Tiến độ của tôi" |
 | 2 | System | `GET /api/me/progress` |
 | 3 | System | Đếm `study_sessions` theo ngày → tính `current_streak`, `longest_streak` |
@@ -1061,7 +1067,7 @@ Hai ngày khác nhau → `streak` +2. Đúng định nghĩa "ngày liên tiếp"
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_DATA` | 200 | Chưa học gì | Không phải lỗi — màn trống có hướng dẫn (A1) |
 | `STREAK_TIMEZONE_ERROR` | — | Tính `streak` bằng UTC thay vì giờ Việt Nam | 🔴 Xem ghi chú |
 | `STATS_MISMATCH_REAL_ACTIVITY` | — | Số liệu không khớp hoạt động thật | 🔴 Vi phạm nghiệm thu 3.4 — xem ghi chú |
@@ -1084,20 +1090,21 @@ Hai ngày khác nhau → `streak` +2. Đúng định nghĩa "ngày liên tiếp"
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-051-1 | `streak` tính theo ngày **giờ Việt Nam** |
-| BR-051-2 | Học nhiều thiết bị cùng ngày = 1 ngày |
-| BR-051-3 | "Đã thuộc" = `mastery ≥ 0.9` |
-| BR-051-4 | Mọi truy vấn lọc `user_id` của người đang đăng nhập |
-| BR-051-5 | Chưa có dữ liệu → màn hướng dẫn, không bảng số 0 |
-| BR-051-6 | Đọc được trên màn hình điện thoại |
-| BR-051-7 | Số liệu **phải** khớp hoạt động thật |
+| --- | --- |
+| BR-051-1 | Dashboard tiến độ chỉ hiển thị dữ liệu của người học đang đăng nhập. Không được tổng hợp hoặc lộ dữ liệu của người học khác. |
+| BR-051-2 | Ngày học liên tiếp được tính theo ngày giờ Việt Nam trong MVP. Một ngày có học trên nhiều thiết bị vẫn chỉ tính là một ngày học. |
+| BR-051-3 | Một điểm kiến thức được xem là “đã thuộc” khi mastery đạt từ 0.9 trở lên. |
+| BR-051-4 | Dashboard phải thể hiện các chỉ số chính của người học, gồm ngày học liên tiếp, số điểm kiến thức đã thuộc, điểm thi/luyện qua các lần và tiến độ chủ đề. |
+| BR-051-5 | Nếu người học chưa có dữ liệu, hệ thống hiển thị màn hướng dẫn bắt đầu học, không hiển thị một dashboard toàn số 0 gây khó hiểu. |
+| BR-051-6 | Số liệu trên dashboard phải khớp với hoạt động học thực tế đã ghi nhận trong hệ thống. |
+| BR-051-7 | Màn hình thống kê phải đọc được trên thiết bị di động, vì người học có thể dùng cả web và mobile. |
 
 ## API · DB
 
 ```
 GET /api/me/progress
 ```
+
 `study_sessions` · `attempts` · `user_knowledge_state` · `user_topic_progress` (đọc)
 
 > **Index cần:** `study_sessions(user_id, created_at)`, `attempts(user_id, submitted_at)`.
@@ -1105,7 +1112,7 @@ GET /api/me/progress
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Học 5 ngày liên tiếp | `current_streak = 5` |
 | T2 | Học 06h00 giờ VN | Tính vào **đúng ngày đó**, streak không đứt |
 | T3 | Học web + mobile cùng ngày | `streak` +1, không +2 |
@@ -1139,7 +1146,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Chọn khoảng 7/30/90 ngày |
 | 2 | System | `GET /api/me/progress/chart?days=30` |
 | 3 | System | Nhóm `study_sessions` theo ngày (giờ Việt Nam) |
@@ -1162,7 +1169,7 @@ Chỉ nhận 3 giá trị này. Khác → 400.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `INVALID_DAYS` | 400 | `days` ngoài `{7, 30, 90}` | Chặn — tránh `days=10000` quét cả bảng |
 | `MISSING_DAYS_NOT_FILLED` | — | Ngày không học bị bỏ khỏi mảng | 🔴 Xem ghi chú |
 | `TIMEZONE_GROUPING_ERROR` | — | Nhóm theo UTC | Cùng lỗi UC-051 |
@@ -1179,25 +1186,26 @@ Chỉ nhận 3 giá trị này. Khác → 400.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-052-1 | Chỉ nhận `days ∈ {7, 30, 90}` |
-| BR-052-2 | Mảng trả về đúng `days` phần tử — **điền 0** ngày trống |
-| BR-052-3 | Nhóm theo ngày giờ Việt Nam |
-| BR-052-4 | Không có ngày tương lai |
-| BR-052-5 | Lọc `user_id` |
-| BR-052-6 | `days = 90` client gộp theo tuần trên mobile |
+| --- | --- |
+| BR-052-1 | Biểu đồ tiến bộ chỉ hỗ trợ ba khoảng thời gian trong MVP: 7 ngày, 30 ngày và 90 ngày. |
+| BR-052-2 | Dữ liệu trả về cho biểu đồ phải có đủ số ngày tương ứng với khoảng đã chọn. Ngày không học phải được trả về với giá trị 0. |
+| BR-052-3 | Dữ liệu biểu đồ phải được nhóm theo ngày giờ Việt Nam để thống nhất với cách tính ngày học liên tiếp. |
+| BR-052-4 | Biểu đồ không được chứa ngày trong tương lai. |
+| BR-052-5 | Biểu đồ chỉ lấy dữ liệu của người học đang đăng nhập. |
+| BR-052-6 | Khi hiển thị 90 ngày trên màn hình nhỏ, client có thể gộp dữ liệu theo tuần để dễ đọc, nhưng dữ liệu gốc vẫn phải đúng theo ngày. |
 
 ## API · DB
 
 ```
 GET /api/me/progress/chart?days={7|30|90}
 ```
+
 `study_sessions` · `attempt_answers` · `user_knowledge_state` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `days=30`, học 10 ngày | Mảng **30** phần tử, 20 phần tử = 0 |
 | T2 | `days=365` | 400 |
 | T3 | Học ngày 1 và ngày 30 | 28 phần tử giữa = 0 |
@@ -1231,7 +1239,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở tab "Bản đồ kỹ năng" |
 | 2 | System | `GET /api/me/skill-map` |
 | 3 | System | Join `user_knowledge_state` với `knowledge_points` |
@@ -1255,7 +1263,7 @@ V2 — cần dữ liệu tổng hợp toàn hệ thống.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_SKILL_CLASSIFICATION` | 500 | 🔴 `knowledge_points` chưa phân loại kỹ năng | Xem ghi chú |
 | `SKILL_WITH_NO_DATA` | 200 | Kỹ năng chưa học | `null`, không phải 0 (A1) |
 | `ZERO_VS_NULL_CONFUSION` | — | Hiện 0 cho kỹ năng chưa học | 🔴 Xem ghi chú |
@@ -1277,25 +1285,27 @@ V2 — cần dữ liệu tổng hợp toàn hệ thống.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-053-1 | `knowledge_points` phải có `skill_type` |
-| BR-053-2 | Kỹ năng chưa học trả `null`, **không** trả 0 |
-| BR-053-3 | Trả kèm `point_count` và `learned_count` |
-| BR-053-4 | Kỹ năng lạ gộp "Khác", ghi log |
-| BR-053-5 | Lọc `user_id` |
-| BR-053-6 | Chốt danh sách kỹ năng **trước** khi nhập dữ liệu |
+| --- | --- |
+| BR-053-1 | Mỗi điểm kiến thức cần có phân loại kỹ năng để hệ thống tổng hợp bản đồ mạnh-yếu, ví dụ nghe, đọc, viết, từ vựng, ngữ pháp hoặc chữ Hán. |
+| BR-053-2 | Danh sách kỹ năng phải được chốt trước khi nhập dữ liệu điểm kiến thức chính thức. |
+| BR-053-3 | Bản đồ kỹ năng chỉ tính trên dữ liệu của người học đang đăng nhập. |
+| BR-053-4 | Kỹ năng chưa có dữ liệu học tập phải trả giá trị `null`, không trả 0. `null` nghĩa là chưa có dữ liệu; 0 nghĩa là đã học nhưng rất yếu. |
+| BR-053-5 | Hệ thống phải trả kèm số lượng điểm kiến thức đã học trong từng kỹ năng để người học biết số liệu có đáng tin hay chưa. |
+| BR-053-6 | Nếu kỹ năng có quá ít dữ liệu, giao diện phải thể hiện đây là dữ liệu còn ít, không kết luận người học mạnh/yếu quá sớm. |
+| BR-053-7 | Giá trị kỹ năng không xác định phải được ghi log để quản trị nội dung sửa dữ liệu. |
 
 ## API · DB
 
 ```
 GET /api/me/skill-map
 ```
+
 `user_knowledge_state` · `knowledge_points` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Học đủ 6 kỹ năng | 6 giá trị `avg_mastery` |
 | T2 | Chưa học viết | Viết = `null`, không phải 0 |
 | T3 | Kỹ năng có 1 điểm | Trả kèm `point_count = 1` |
@@ -1327,7 +1337,7 @@ nhắc lúc 20h **giờ Việt Nam**".
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở "Cài đặt nhắc học" |
 | 2 | System | `GET /api/me/notification-settings` — trả cài đặt hoặc mặc định |
 | 3 | `USER` | Chọn giờ (ví dụ 20:00), bật email, tắt web |
@@ -1355,7 +1365,7 @@ Lưu cài đặt nhưng cảnh báo "cần mở app trên điện thoại một 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `INVALID_TIME_FORMAT` | 400 | Không phải `HH:mm` | Chặn |
 | `EMAIL_NOT_VERIFIED` | 422 | Bật email khi chưa xác thực | Chặn kênh đó, gợi ý xác thực (A2) |
 | `NO_DEVICE_REGISTERED` | 200 | Bật đẩy chưa có thiết bị | Lưu + cảnh báo (A4) |
@@ -1380,13 +1390,14 @@ Lưu cài đặt nhưng cảnh báo "cần mở app trên điện thoại một 
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-054-1 | Giờ hiểu theo **giờ Việt Nam** (MVP) |
-| BR-054-2 | Mặc định 20:00, web bật, email tắt |
-| BR-054-3 | Bật email cần `email_verified_at` |
-| BR-054-4 | Cho phép tắt hết kênh |
-| BR-054-5 | Endpoint `/me` — không nhận `user_id` từ client |
-| BR-054-6 | Đẩy mobile là V2, cần bảng `user_devices` |
+| --- | --- |
+| BR-054-1 | Trong MVP, giờ nhắc học được hiểu theo giờ Việt Nam. Hệ thống chưa hỗ trợ múi giờ cá nhân cho từng người học. |
+| BR-054-2 | Cài đặt mặc định là nhắc lúc 20:00, bật kênh web và tắt kênh email nếu người học chưa từng cấu hình. |
+| BR-054-3 | Người học được phép tắt toàn bộ kênh nhắc học. Đây được hiểu là người học không muốn nhận nhắc. |
+| BR-054-4 | Nếu bật nhắc qua email, tài khoản phải có email đã xác thực. |
+| BR-054-5 | Endpoint cài đặt nhắc học phải lấy người dùng từ phiên đăng nhập hiện tại, không nhận `user_id` từ client. |
+| BR-054-6 | MVP chỉ hỗ trợ nhắc qua web và email. Nhắc đẩy mobile là V2 và chỉ triển khai khi đã có nơi lưu thiết bị/token hợp lệ. |
+| BR-054-7 | Cài đặt mới có hiệu lực từ lần chạy nhắc học tiếp theo. |
 
 ## API · DB
 
@@ -1394,12 +1405,13 @@ Lưu cài đặt nhưng cảnh báo "cần mở app trên điện thoại một 
 GET /api/me/notification-settings
 PUT /api/me/notification-settings
 ```
+
 `user_notification_settings` (đọc + ghi) · `users` (đọc `email_verified_at`) · ⚠️ `user_devices` (**chưa có**)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Đặt 20:00, bật email (đã xác thực) | 200, lưu đúng |
 | T2 | Bật email chưa xác thực | 422 |
 | T3 | Giờ `25:00` | 400 |
@@ -1429,14 +1441,14 @@ nhắc qua kênh đã bật.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Gửi được | Nhắc đến kênh; ghi log đã gửi để không gửi trùng |
 | Không có gì ôn | **Không gửi** — nhắc rỗng làm người học tắt thông báo |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Scheduler | Chạy đầu mỗi giờ, `zone = "Asia/Ho_Chi_Minh"` |
 | 2 | System | Lấy người có `reminder_time` giờ hiện tại, còn kênh bật |
 | 3 | System | Với mỗi người: đếm `user_knowledge_state` `next_review_at ≤ now()` |
@@ -1460,7 +1472,7 @@ Cả hai chạy scheduler → gửi trùng. Cần khoá phân tán hoặc chỉ 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `WRONG_TIMEZONE` | — | Scheduler không ghi `zone` | 🔴 Nhắc sai 7 tiếng — xem ghi chú |
 | `DUPLICATE_SEND` | — | Nhiều instance cùng chạy | 🔴 Xem ghi chú |
 | `EMPTY_REMINDER` | — | Gửi khi không có gì ôn | Bỏ qua (bước 4) — nhắc rỗng làm người học tắt thông báo |
@@ -1489,14 +1501,14 @@ Cả hai chạy scheduler → gửi trùng. Cần khoá phân tán hoặc chỉ 
 
 | # | Rule |
 |---|---|
-| BR-055-1 | Scheduler **bắt buộc** ghi `zone = "Asia/Ho_Chi_Minh"` |
-| BR-055-2 | Không có gì ôn → **không gửi** |
-| BR-055-3 | Tối đa 1 nhắc/người/ngày mỗi kênh |
-| BR-055-4 | Unique `(user_id, sent_date, channel)` chống gửi trùng |
-| BR-055-5 | Lỗi một người/một kênh không chặn phần còn lại |
-| BR-055-6 | Log chỉ ghi `user_id`, **không** ghi email |
-| BR-055-7 | Chia lô khi nhiều người cùng giờ |
-| BR-055-8 | MVP: web + email. V2: đẩy mobile |
+| BR-055-1 | Tác vụ nhắc học trong MVP chạy theo giờ Việt Nam để khớp với cài đặt giờ nhắc của người học. |
+| BR-055-2 | Hệ thống chỉ gửi nhắc học khi người học còn nội dung đến hạn cần ôn. Nếu không có gì cần ôn, hệ thống không gửi nhắc rỗng. |
+| BR-055-3 | Mỗi người học chỉ nhận tối đa một nhắc học mỗi ngày trên mỗi kênh. |
+| BR-055-4 | Hệ thống phải ghi nhận lịch sử đã gửi nhắc để tránh gửi trùng. Nếu chưa có bảng hoặc nơi lưu lịch sử gửi, chưa nên triển khai gửi nhắc tự động. |
+| BR-055-5 | Lỗi gửi ở một kênh hoặc một người học không được làm dừng toàn bộ lượt gửi nhắc cho những người khác. |
+| BR-055-6 | Log gửi nhắc không được ghi email hoặc nội dung nhạy cảm; chỉ nên ghi định danh cần thiết như `user_id`, kênh và trạng thái gửi. |
+| BR-055-7 | Khi nhiều người cùng đặt một giờ nhắc, hệ thống phải gửi theo lô để tránh quá tải email hoặc notification service. |
+| BR-055-8 | MVP gửi nhắc qua web và email. Nhắc đẩy mobile chuyển sang V2. |
 
 ## API · DB
 
@@ -1509,7 +1521,7 @@ Không endpoint — tác vụ định kỳ.
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Đặt 20:00, có 5 điểm đến hạn | Nhận nhắc lúc 20:00 **giờ VN** |
 | T2 | Đặt 20:00, không có gì ôn | **Không** nhận nhắc |
 | T3 | Hai instance cùng chạy | Chỉ **một** nhắc được gửi |
@@ -1525,7 +1537,7 @@ Không endpoint — tác vụ định kỳ.
 ## Mười exception quan trọng nhất
 
 | # | UC | Exception | Vì sao |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | UC-046 | `STALE_PERCENT_READ` | Đạt 90% mà không mở khoá và **không có sự kiện nào gọi lại** → người học kẹt vĩnh viễn |
 | 2 | UC-049 | `STATUS_NOT_PENDING_REVIEW` | Câu AI chưa duyệt đến người học — vi phạm ràng buộc lõi của 3.3, hội đồng sẽ hỏi |
 | 3 | UC-042 | `NOT_IN_TRANSACTION` | Gọi ngoài transaction → nửa bài thi cập nhật mastery, không rollback được |
@@ -1540,7 +1552,7 @@ Không endpoint — tác vụ định kỳ.
 ## Bốn nhóm exception lặp lại khắp nhóm 3
 
 | Nhóm | Xuất hiện ở | Bài học |
-|---|---|---|
+| --- | --- | --- |
 | **Múi giờ** | UC-044 · UC-051 · UC-052 · UC-054 · UC-055 | Hai luật **trái nhau** trong cùng hệ thống: FSRS tính bằng **UTC**, nhắc học và streak tính bằng **giờ Việt Nam**. Nhầm chỗ nào cũng sai âm thầm. Phải ghi rõ chỗ nào dùng gì |
 | **Phải nằm trong transaction của caller** | UC-042 · UC-043 · UC-046 | Ba service `SYSTEM` đều được gọi từ trong transaction khác. Gọi sai chỗ là mất nguyên tử mà test thường không bắt. Kiểm `isActualTransactionActive()` ở đầu method |
 | **Dữ liệu tính sẵn lệch dữ liệu gốc** | UC-045 · UC-047 · UC-051 | `user_topic_progress.completion_percent` là gốc của cả ba. Lệch một chỗ thì cây chủ đề sai, luyện phần yếu mâu thuẫn, dashboard nói dối. Cần job đối chiếu |
@@ -1551,7 +1563,7 @@ Không endpoint — tác vụ định kỳ.
 # Khoảng trống thiết kế phát hiện ở nhóm 3
 
 | # | Thiếu | UC bị ảnh hưởng | Mức |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | **`knowledge_points` chưa có cột `skill_type`** phân loại kỹ năng | UC-053 · UC-038 | 🔴 Chặn 2 màn hình; sửa sau phải nhập lại dữ liệu |
 | 2 | **Chưa chốt danh sách kỹ năng** (nghe/đọc/viết/từ vựng/ngữ pháp/chữ?) | UC-053 | 🔴 Phải chốt trước khi nhập `knowledge_points` |
 | 3 | Chưa có kiểm chu trình khi lưu quan hệ tiên quyết chủ đề | UC-045 · UC-046 | 🔴 Treo thuật toán |

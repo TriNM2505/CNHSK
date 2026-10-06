@@ -13,7 +13,7 @@
 ## Bảng tra nhanh
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | UC-056 | Tra từ điển bằng chữ Hán | `GUEST` `USER` | P0 | MVP | 4.1 |
 | UC-057 | Tra từ điển bằng pinyin | `GUEST` `USER` | P1 | MVP | 4.1 |
 | UC-058 | Tra từ điển bằng nghĩa Việt | `GUEST` `USER` | P1 | MVP | 4.1 |
@@ -33,7 +33,7 @@
 # UC-056 · Tra từ điển bằng chữ Hán
 
 | | |
-|---|---|
+| --- | --- |
 | **UC-ID** | UC-056 · **Actor** `GUEST` `USER` · **Pri** P0 · **Scope** MVP · **FT** 4.1 |
 | **Client** | Web · Mobile · Shared |
 
@@ -50,14 +50,14 @@ từ ghép chứa chữ. `GUEST` tra được **có giới hạn**.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | `USER` tra | Ghi `feature_usage` nếu tính lượt; cache Redis `learn:dict:*` |
 | `GUEST` tra | Tăng bộ đếm theo IP; **không** ghi vào tài khoản |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Người dùng | Nhập chữ 好 vào ô tra |
 | 2 | Client | `GET /api/public/dictionary/lookup?q=好` (hoặc `/api/dictionary/...` nếu đã đăng nhập) |
 | 3 | System | Kiểm cache Redis `learn:dict:好` |
@@ -84,7 +84,7 @@ Tự nhận loại đầu vào, chuyển sang UC-057 hoặc UC-058.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `EMPTY_QUERY` | 400 | `q` rỗng | Chặn |
 | `QUERY_TOO_LONG` | 400 | > 50 ký tự | Đây là tra từ, không phải dịch đoạn (UC-060) |
 | `CHARACTER_NOT_FOUND` | 404 | Không có trong từ điển | Gợi ý chữ gần giống (A2) |
@@ -110,14 +110,15 @@ Tự nhận loại đầu vào, chuyển sang UC-057 hoặc UC-058.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-056-1 | `GUEST` tra được nhưng **giới hạn lượt** theo IP |
-| BR-056-2 | `GUEST` không thấy nút lưu sổ tay/flashcard |
-| BR-056-3 | Cache Redis TTL 24h, key `learn:dict:*` |
-| BR-056-4 | Redis chết không chặn tra cứu |
-| BR-056-5 | Tối đa 50 ký tự — dài hơn là dịch (UC-060) |
-| BR-056-6 | Prepared statement, không nối chuỗi SQL |
-| BR-056-7 | Endpoint public phải theo quy ước (⚠️ chờ chốt) |
+| --- | --- |
+| BR-056-1 | Cả `GUEST` và `USER` đều được tra từ điển bằng chữ Hán. |
+| BR-056-2 | `GUEST` được tra cứu có giới hạn theo IP để tránh lạm dụng. Giới hạn phải đủ rộng để tránh chặn oan người dùng chung mạng. |
+| BR-056-3 | `GUEST` chỉ được xem kết quả tra cứu, không được lưu vào sổ tay hoặc flashcard. |
+| BR-056-4 | `USER` đã đăng nhập được dùng đầy đủ kết quả tra cứu và các nút lưu vào sổ tay hoặc flashcard. |
+| BR-056-5 | Nếu người dùng nhập một chữ Hán, hệ thống tra theo chữ. Nếu nhập nhiều chữ, hệ thống ưu tiên tra như một từ trước, sau đó mới tách từng chữ nếu không tìm thấy từ. |
+| BR-056-6 | Truy vấn tra từ điển chỉ dùng cho từ hoặc cụm ngắn. Nếu nội dung quá dài, hệ thống yêu cầu người dùng chuyển sang chức năng dịch. |
+| BR-056-7 | Nếu chữ có dữ liệu nét thì hiển thị animation viết chữ. Nếu thiếu dữ liệu nét, hệ thống vẫn hiển thị nghĩa, pinyin và thông tin còn lại. |
+| BR-056-8 | Tra từ điển là chức năng đọc dữ liệu nội bộ, không tính lượt dịch hoặc quota gọi API ngoài. |
 
 ## API · DB
 
@@ -125,12 +126,13 @@ Tự nhận loại đầu vào, chuyển sang UC-057 hoặc UC-058.
 GET /api/public/dictionary/lookup?q={x}     (GUEST)
 GET /api/dictionary/lookup?q={x}            (USER)
 ```
+
 `characters` · `words` · `word_characters` (đọc) · Redis `learn:dict:*`
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `q=好` | Pinyin, nghĩa, Hán-Việt, từ ghép |
 | T2 | Tra lần 2 cùng chữ | Lấy từ cache, nhanh hơn |
 | T3 | Redis tắt | Vẫn trả kết quả từ DB |
@@ -163,7 +165,7 @@ Chỉ đọc + cache.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Người dùng | Nhập `hao` hoặc `hǎo` |
 | 2 | System | Chuẩn hoá: bỏ dấu, chữ thường, bỏ khoảng trắng |
 | 3 | System | Tìm theo `pinyin_normalized` |
@@ -185,7 +187,7 @@ Không có tổ hợp đó trong tiếng Trung. Trả rỗng kèm gợi ý.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `INVALID_PINYIN` | 200 (rỗng) | Tổ hợp không tồn tại | Gợi ý pinyin gần giống |
 | `TOO_MANY_RESULTS` | 200 | `shi` có hàng chục chữ | Phân trang, sắp theo tần suất. **Không** trả hết một lần |
 | `PINYIN_NOT_NORMALIZED` | 500 | 🔴 DB chưa có cột không dấu | Xem ghi chú |
@@ -205,25 +207,27 @@ Không có tổ hợp đó trong tiếng Trung. Trả rỗng kèm gợi ý.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-057-1 | Tìm theo `pinyin_normalized` — cần cột riêng + index |
-| BR-057-2 | Chấp nhận có và không dấu thanh |
-| BR-057-3 | Có dấu → ưu tiên khớp chính xác |
-| BR-057-4 | Sắp theo tần suất dùng |
-| BR-057-5 | Phân trang khi nhiều kết quả |
-| BR-057-6 | Tách âm tiết mơ hồ → trả cả hai cách |
+| --- | --- |
+| BR-057-1 | Người dùng có thể tra bằng pinyin có dấu thanh hoặc không có dấu thanh. |
+| BR-057-2 | Khi người dùng nhập pinyin có dấu thanh, hệ thống ưu tiên kết quả khớp đúng thanh điệu trước. |
+| BR-057-3 | Khi người dùng nhập pinyin không dấu, hệ thống trả các chữ hoặc từ có cùng âm đọc, bao gồm các thanh điệu khác nhau. |
+| BR-057-4 | Kết quả phải hiển thị pinyin có dấu thanh để người học phân biệt các chữ đồng âm khác thanh. |
+| BR-057-5 | Kết quả tra pinyin được sắp xếp theo mức độ phổ biến hoặc tần suất dùng, để chữ/từ thường gặp hiện trước. |
+| BR-057-6 | Nếu có quá nhiều kết quả, hệ thống phải phân trang hoặc giới hạn số kết quả trả về mỗi lần. |
+| BR-057-7 | Nếu pinyin có thể tách âm tiết theo nhiều cách hợp lệ, hệ thống trả các cách hiểu hợp lệ để người dùng chọn. |
 
 ## API · DB
 
 ```
 GET /api/public/dictionary/search?type=pinyin&q={x}
 ```
+
 `characters` · `words` (đọc) · Redis
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `hao` | Mọi chữ đọc hao, mọi thanh |
 | T2 | `hǎo` | Ưu tiên thanh 3 |
 | T3 | `HAO` | Cùng kết quả T1 (chữ thường hoá) |
@@ -254,7 +258,7 @@ Chỉ đọc + cache.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Người dùng | Nhập "xin chào" |
 | 2 | System | Chuẩn hoá: chữ thường, bỏ dấu tuỳ chọn |
 | 3 | System | Tìm trong `words.meaning_vi` — khớp cả cụm trước, rồi khớp một phần |
@@ -275,7 +279,7 @@ Quá dài cho tra từ → gợi ý chuyển sang dịch (UC-060).
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_FULLTEXT_INDEX` | — | 🔴 `meaning_vi` không có index | Xem ghi chú |
 | `MEANING_NOT_FOUND` | 200 (rỗng) | Không có từ khớp | Gợi ý dùng dịch (UC-060) |
 | `QUERY_TOO_LONG` | 400 | > 50 ký tự | Chuyển sang dịch (A3) |
@@ -296,25 +300,27 @@ Quá dài cho tra từ → gợi ý chuyển sang dịch (UC-060).
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-058-1 | `meaning_vi` **phải** có GIN/trgm index |
-| BR-058-2 | Chấp nhận có và không dấu tiếng Việt |
-| BR-058-3 | Sắp theo độ khớp: chính xác → đầu chuỗi → giữa |
-| BR-058-4 | Nhiều từ cùng nghĩa → trả hết |
-| BR-058-5 | Quá 50 ký tự → gợi ý dịch |
-| BR-058-6 | Phân trang |
+| --- | --- |
+| BR-058-1 | Người dùng có thể tra từ tiếng Trung bằng nghĩa tiếng Việt. |
+| BR-058-2 | Hệ thống phải hỗ trợ tìm kiếm tiếng Việt có dấu và không dấu. Ví dụ “chào” và “chao” phải có khả năng trả cùng nhóm kết quả phù hợp. |
+| BR-058-3 | Kết quả được ưu tiên theo độ khớp: khớp chính xác trước, sau đó đến khớp đầu cụm, rồi mới đến khớp một phần. |
+| BR-058-4 | Nếu nhiều từ tiếng Trung cùng có nghĩa gần giống nhau, hệ thống trả nhiều kết quả và hiển thị đủ pinyin, nghĩa và sắc thái nếu dữ liệu có. |
+| BR-058-5 | Nếu truy vấn là một câu hoặc đoạn dài, hệ thống không xử lý như tra từ điển mà gợi ý chuyển sang chức năng dịch. |
+| BR-058-6 | Nếu có quá nhiều kết quả, hệ thống phải phân trang hoặc giới hạn số kết quả trả về mỗi lần. |
+| BR-058-7 | Tra nghĩa Việt là tra dữ liệu từ điển nội bộ, không tính lượt dịch. |
 
 ## API · DB
 
 ```
 GET /api/public/dictionary/search?type=meaning&q={x}
 ```
+
 `words` (đọc) · Redis
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | "xin chào" | 你好 và các từ liên quan |
 | T2 | "xin chao" | Cùng kết quả T1 |
 | T3 | "bố" | 爸爸, 父亲, 爹 |
@@ -346,7 +352,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Người dùng | Mở "Tra theo bộ thủ" |
 | 2 | System | `GET /api/public/dictionary/radicals` — danh sách bộ thủ kèm số chữ mỗi bộ |
 | 3 | Người dùng | Chọn bộ 氵 (nước) |
@@ -369,7 +375,7 @@ Gợi ý nới điều kiện (±1 nét).
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `RADICAL_NOT_FOUND` | 404 | Bộ thủ không có trong danh sách | Chặn |
 | `INVALID_STROKE_COUNT` | 400 | Số nét ngoài 1–36 | Chặn |
 | `RADICAL_DATA_INCOMPLETE` | — | 🔴 Nhiều chữ thiếu cột bộ thủ | Xem ghi chú |
@@ -390,13 +396,13 @@ Gợi ý nới điều kiện (±1 nét).
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-059-1 | Chỉ mở khi dữ liệu bộ thủ đủ ≥ 95% |
-| BR-059-2 | Cho tra chỉ bộ, chỉ số nét, hoặc cả hai |
-| BR-059-3 | Số nét hợp lệ 1–36 |
-| BR-059-4 | Kiểm đối chiếu số nét với `stroke_data` khi nhập |
-| BR-059-5 | Không khớp → gợi ý ±1 nét |
-| BR-059-6 | P2 — cắt được nếu dữ liệu không đủ |
+| --- | --- |
+| BR-059-1 | Chức năng tra theo bộ thủ và số nét chỉ nên mở khi dữ liệu bộ thủ và số nét của chữ Hán đủ tin cậy. |
+| BR-059-2 | Trong MVP, nếu dữ liệu bộ thủ còn thiếu nhiều, chức năng này được phép cắt hoặc để sau vì mức ưu tiên thấp hơn tra chữ, tra pinyin và tra nghĩa. |
+| BR-059-3 | Người dùng có thể tra theo bộ thủ, theo số nét hoặc kết hợp cả hai điều kiện. |
+| BR-059-4 | Số nét nhập vào phải nằm trong khoảng hợp lệ của dữ liệu chữ Hán mà hệ thống hỗ trợ. |
+| BR-059-5 | Nếu không có chữ nào khớp chính xác, hệ thống có thể gợi ý nới điều kiện, ví dụ tìm chênh lệch một nét. |
+| BR-059-6 | Khi người dùng chọn một chữ trong kết quả, hệ thống mở màn hình chi tiết chữ giống luồng tra chữ Hán. |
 
 ## API · DB
 
@@ -404,12 +410,13 @@ Gợi ý nới điều kiện (±1 nét).
 GET /api/public/dictionary/radicals
 GET /api/public/dictionary/by-radical?radical={r}&strokes={n}
 ```
+
 `characters` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Bộ 氵, 7 nét | Chữ khớp cả hai |
 | T2 | Chỉ bộ 氵 | Hết chữ bộ đó, nhóm theo nét |
 | T3 | Số nét 50 | 400 |
@@ -439,7 +446,7 @@ Dịch câu/đoạn hai chiều, kết quả **kèm pinyin và tách từ** đ�
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Thành công | `translation_history` ghi dòng; trừ lượt; cache Redis `learn:translate:*` |
 | Cache hit | **Không trừ lượt** — không gọi API thì không tốn tiền |
 | Hết lượt | 402, không gọi API, **không trừ gì** |
@@ -447,7 +454,7 @@ Dịch câu/đoạn hai chiều, kết quả **kèm pinyin và tách từ** đ�
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Dán đoạn văn, chọn hướng dịch |
 | 2 | Client | `POST /api/translate` — `{text, from, to}` |
 | 3 | System | Kiểm độ dài ≤ 2.000 |
@@ -477,7 +484,7 @@ Text toàn ký tự Hán → Trung→Việt; toàn Latin → Việt→Trung.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `TEXT_TOO_LONG` | 400 | > 2.000 ký tự | Chặn **trước** khi trừ lượt |
 | `EMPTY_TEXT` | 400 | Rỗng | Chặn |
 | `QUOTA_EXCEEDED` | 402 | Hết lượt và điểm | Gợi ý nạp. **Không gọi API** |
@@ -512,17 +519,17 @@ Text toàn ký tự Hán → Trung→Việt; toàn Latin → Việt→Trung.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-060-1 | `GUEST` **không** dịch được |
-| BR-060-2 | Tối đa 2.000 ký tự |
-| BR-060-3 | Cache hit **không trừ lượt** |
-| BR-060-4 | API lỗi → **hoàn lượt**, ghi `credit_transactions` loại `REFUND` |
-| BR-060-5 | Không gọi API bên trong transaction DB |
-| BR-060-6 | Kết quả kèm pinyin và `segments` để bấm từ |
-| BR-060-7 | Cache TTL 7 ngày, key `learn:translate:*` |
-| BR-060-8 | **Không** ghi nội dung dịch vào log |
-| BR-060-9 | `translation_history` chỉ chủ tài khoản xem được |
-| BR-060-10 | ⚠️ Chặn tới khi chốt `TODO(PAYMENT_SCOPE)` |
+| --- | --- |
+| BR-060-1 | Chỉ `USER` đã đăng nhập mới được dùng chức năng dịch. `GUEST` không được dùng vì dịch gọi API ngoài và có chi phí vận hành. |
+| BR-060-2 | Nội dung dịch phải có giới hạn độ dài. Trong MVP, mỗi lần dịch tối đa 2.000 ký tự. |
+| BR-060-3 | Dịch là chức năng có giới hạn lượt sử dụng theo chính sách quota của hệ thống. Nếu payment chưa chốt, MVP chỉ dùng quota miễn phí hoặc giới hạn theo ngày. |
+| BR-060-4 | Nếu người dùng đã hết quota, hệ thống không gọi API dịch và không tạo lịch sử dịch mới. |
+| BR-060-5 | Nếu bản dịch lấy được từ cache, hệ thống không tính thêm quota vì không gọi API ngoài. |
+| BR-060-6 | Nếu API dịch lỗi hoặc timeout, hệ thống phải không trừ quota của người dùng, hoặc phải hoàn quota nếu đã trừ trước đó. |
+| BR-060-7 | Kết quả dịch nên kèm pinyin và danh sách từ/cụm đã tách để người học có thể bấm từng từ xem nghĩa. |
+| BR-060-8 | Nếu tách từ thất bại, hệ thống vẫn trả bản dịch nếu có. Khi đó chức năng bấm từng từ có thể bị ẩn. |
+| BR-060-9 | Lịch sử dịch chỉ người tạo mới được xem. Không được cho người dùng xem lịch sử dịch của người khác. |
+| BR-060-10 | Nội dung người dùng gửi để dịch không được ghi vào log hệ thống. Nếu lưu lịch sử dịch, hệ thống phải có thời hạn lưu rõ ràng. MVP đề xuất lưu tối đa 30 ngày. |
 
 ## API · DB
 
@@ -530,12 +537,13 @@ Text toàn ký tự Hán → Trung→Việt; toàn Latin → Việt→Trung.
 POST /api/translate
 GET  /api/me/translation-history
 ```
+
 `translation_history` · `feature_usage` · `user_credits` · `credit_transactions` (ghi) · Redis `learn:translate:*`
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Câu 20 từ | 200 kèm pinyin + segments, **< 3 giây** |
 | T2 | Dịch lại cùng câu | Cache hit, **lượt không giảm** |
 | T3 | 3.000 ký tự | 400, lượt **không** giảm |
@@ -570,7 +578,7 @@ Không đổi dữ liệu. **Không tính lượt** — tra từ điển nội b
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm một từ trong kết quả dịch |
 | 2 | Client | Lấy từ `segments[i]` |
 | 3 | Client | `GET /api/dictionary/lookup?q={word}` (UC-056) |
@@ -587,7 +595,7 @@ Hiện "chưa có trong từ điển", cho báo lỗi để `CONTENT_ADMIN` bổ
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_SEGMENTS` | — | `segments` rỗng | Ẩn tính năng (A2) |
 | `WORD_NOT_IN_DICTIONARY` | 404 | Từ lạ | Cho báo lỗi (A1) |
 | `AMBIGUOUS_SEGMENTATION` | — | Tách sai ranh giới | 🔴 **Cùng vấn đề UC-031** — hiện nghĩa sai |
@@ -604,24 +612,26 @@ Hiện "chưa có trong từ điển", cho báo lỗi để `CONTENT_ADMIN` bổ
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-061-1 | Tra từ điển **không** tính lượt |
-| BR-061-2 | Chỉ dịch (gọi API ngoài) tính lượt |
-| BR-061-3 | `segments` rỗng → ẩn tính năng |
-| BR-061-4 | Cho kéo chọn nhiều ký tự |
-| BR-061-5 | Từ thiếu → cho báo lỗi |
+| --- | --- |
+| BR-061-1 | Người dùng có thể bấm vào từ hoặc cụm từ trong kết quả dịch để xem nghĩa từ điển. |
+| BR-061-2 | Việc bấm từ trong kết quả dịch chỉ tra dữ liệu từ điển nội bộ, không gọi API dịch và không tính quota dịch. |
+| BR-061-3 | Chức năng bấm từ chỉ hiển thị khi kết quả dịch có dữ liệu tách từ. Nếu không có dữ liệu tách từ, hệ thống ẩn chức năng này. |
+| BR-061-4 | Nếu từ được bấm không có trong từ điển, hệ thống hiển thị thông báo chưa có dữ liệu và có thể cho người học báo thiếu dữ liệu. |
+| BR-061-5 | Người dùng được phép chọn thủ công một cụm chữ để tra nếu hệ thống tách từ chưa đúng. |
+| BR-061-6 | Kết quả popup tra từ có thể cho `USER` lưu vào sổ tay hoặc flashcard. |
 
 ## API · DB
 
 ```
 GET /api/dictionary/lookup?q={word}
 ```
+
 `words` · `characters` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Bấm một từ | Popup nghĩa |
 | T2 | Bấm 10 từ liên tiếp | **Lượt không giảm** |
 | T3 | Từ không trong từ điển | 404 + nút báo lỗi |
@@ -652,7 +662,7 @@ từ điển, không phải phụ đề video.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Lưu vào sổ tay" |
 | 2 | Client | Mở form: tiêu đề mặc định là chữ, nội dung mặc định là nghĩa + pinyin |
 | 3 | `USER` | Sửa nếu muốn, thêm thẻ |
@@ -671,7 +681,7 @@ Không chặn — sổ tay là "viết gì cũng được", trùng là bình th�
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NOTE_LIMIT_EXCEEDED` | 422 | > 1.000 ghi chú | Chặn spam |
 | `CONTENT_TOO_LONG` | 400 | > 10.000 ký tự | Chặn |
 | `EMPTY_CONTENT` | 400 | Nội dung rỗng | Chặn — ghi chú rỗng vô nghĩa |
@@ -692,25 +702,27 @@ Không chặn — sổ tay là "viết gì cũng được", trùng là bình th�
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-062-1 | `user_id` **luôn** lấy từ token |
-| BR-062-2 | Tối đa 1.000 ghi chú/người |
-| BR-062-3 | Nội dung tối đa 10.000 ký tự, tối đa 10 thẻ |
-| BR-062-4 | Escape nội dung khi render |
-| BR-062-5 | Cho trùng từ — sổ tay tự do |
-| BR-062-6 | `GUEST` không lưu được |
+| --- | --- |
+| BR-062-1 | Chỉ `USER` đã đăng nhập mới được lưu từ vào sổ tay. `GUEST` không lưu được. |
+| BR-062-2 | Khi tạo ghi chú từ kết quả tra, `user_id` luôn lấy từ phiên đăng nhập hiện tại. Client không được quyết định ghi chú thuộc về ai. |
+| BR-062-3 | Ghi chú được tạo từ kết quả tra có thể dùng sẵn chữ/từ, pinyin, nghĩa và ngữ cảnh làm nội dung mặc định. Người học được sửa lại trước khi lưu. |
+| BR-062-4 | Sổ tay cho phép ghi chú trùng từ vì đây là nơi ghi chép tự do của người học. Hệ thống có thể cảnh báo nhẹ nhưng không chặn. |
+| BR-062-5 | Mỗi người học có giới hạn số ghi chú để tránh spam dữ liệu. MVP đề xuất tối đa 1.000 ghi chú mỗi người. |
+| BR-062-6 | Nội dung ghi chú phải có giới hạn độ dài và không được để trống. MVP đề xuất tối đa 10.000 ký tự và tối đa 10 thẻ. |
+| BR-062-7 | Nội dung ghi chú là nội dung người dùng nhập, vì vậy khi hiển thị lại phải được escape hoặc sanitize để tránh XSS. |
 
 ## API · DB
 
 ```
 POST /api/notes
 ```
+
 `notes` (ghi) · `words` · `characters` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Lưu từ 好 | `notes` thêm dòng, `user_id` đúng |
 | T2 | Gửi kèm `user_id` khác | Bị bỏ qua |
 | T3 | Nội dung rỗng | 400 |
@@ -742,7 +754,7 @@ Từ popup tra cứu, thêm thẻ vào một bộ flashcard. Mặt trước ch�
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Thêm flashcard" |
 | 2 | Client | Hiện danh sách bộ của mình + nút tạo mới |
 | 3 | `USER` | Chọn bộ |
@@ -762,7 +774,7 @@ Từ popup tra cứu, thêm thẻ vào một bộ flashcard. Mặt trước ch�
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `DECK_NOT_OWNED` | 403 | 🔴 Bộ của người khác | **IDOR** — cùng lỗ hổng UC-032 |
 | `DECK_NOT_FOUND` | 404 | ID sai | Chọn bộ khác |
 | `CARD_ALREADY_IN_DECK` | 409 | Thẻ trùng | Không tạo trùng (A2) |
@@ -786,13 +798,14 @@ Từ popup tra cứu, thêm thẻ vào một bộ flashcard. Mặt trước ch�
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-063-1 | Kiểm sở hữu bộ ở **server** |
-| BR-063-2 | Không thẻ trùng trong cùng bộ |
-| BR-063-3 | Bộ tối đa 500 thẻ; tối đa 50 bộ/người |
-| BR-063-4 | `next_review_at` khởi tạo `now()` — ôn ngay |
-| BR-063-5 | Một từ thêm được vào nhiều bộ |
-| BR-063-6 | Bản sao chép là **độc lập**, không đồng bộ với bộ gốc |
+| --- | --- |
+| BR-063-1 | Chỉ `USER` đã đăng nhập mới được thêm từ vào flashcard. |
+| BR-063-2 | Người học chỉ được thêm thẻ vào bộ flashcard thuộc sở hữu của chính mình. Việc kiểm tra sở hữu phải thực hiện ở server. |
+| BR-063-3 | Một bộ flashcard không được có hai thẻ trùng cùng một từ hoặc cùng một nội dung mặt trước. |
+| BR-063-4 | Một từ có thể được thêm vào nhiều bộ flashcard khác nhau của cùng người học. |
+| BR-063-5 | Khi thêm thẻ mới, hệ thống khởi tạo lịch ôn để thẻ có thể xuất hiện ngay trong lần ôn đầu tiên. |
+| BR-063-6 | Mỗi người học có tối đa 50 bộ flashcard; mỗi bộ có tối đa 500 thẻ trong MVP. |
+| BR-063-7 | Bản sao của một bộ flashcard là bản độc lập. Sau khi sao chép, thay đổi ở bộ gốc không tự động cập nhật sang bản sao. |
 
 ## API · DB
 
@@ -800,12 +813,13 @@ Từ popup tra cứu, thêm thẻ vào một bộ flashcard. Mặt trước ch�
 POST /api/flashcard-decks/{id}/cards
 GET  /api/flashcard-decks              (bộ của mình)
 ```
+
 `flashcard_decks` · `flashcards` (đọc + ghi) · `words` · `characters` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Thêm vào bộ của mình | 201, `next_review_at = now()` |
 | T2 | Bộ của người khác | 403 `DECK_NOT_OWNED` |
 | T3 | Thẻ đã có | 409 |
@@ -836,7 +850,7 @@ Tổ chức bằng tiêu đề và thẻ.
 ## Hậu điều kiện
 
 | Thao tác | Trạng thái |
-|---|---|
+| --- | --- |
 | Tạo | `notes` thêm dòng |
 | Sửa | Cập nhật `updated_at` |
 | Xoá | Xoá dòng (hoặc soft delete — cần chốt) |
@@ -844,7 +858,7 @@ Tổ chức bằng tiêu đề và thẻ.
 ## Luồng chính — Tạo
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Ghi chú mới" |
 | 2 | `USER` | Nhập tiêu đề, nội dung, thẻ |
 | 3 | Client | `POST /api/notes` |
@@ -854,7 +868,7 @@ Tổ chức bằng tiêu đề và thẻ.
 ## Luồng chính — Sửa
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở ghi chú, sửa |
 | 2 | Client | `PUT /api/notes/{id}` |
 | 3 | System | **Kiểm sở hữu** |
@@ -863,7 +877,7 @@ Tổ chức bằng tiêu đề và thẻ.
 ## Luồng chính — Xoá
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm xoá, xác nhận |
 | 2 | Client | `DELETE /api/notes/{id}` |
 | 3 | System | **Kiểm sở hữu** |
@@ -883,7 +897,7 @@ Không hoàn tác được nếu hard delete. Đề xuất soft delete + thùng 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NOTE_NOT_OWNED` | 403 | 🔴 Ghi chú người khác | **IDOR** — chính ví dụ mục B đã ghi: `GET /api/notes/123` |
 | `NOTE_NOT_FOUND` | 404 | ID sai | Về danh sách |
 | `NOTE_LIMIT_EXCEEDED` | 422 | > 1.000 | Chặn |
@@ -908,14 +922,15 @@ Không hoàn tác được nếu hard delete. Đề xuất soft delete + thùng 
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-064-1 | Kiểm sở hữu cho **mọi** thao tác đọc/sửa/xoá |
-| BR-064-2 | `user_id` từ token |
-| BR-064-3 | Tối đa 1.000 ghi chú, 10.000 ký tự, 10 thẻ |
-| BR-064-4 | **Không** liên kết vào lịch ôn (bỏ `note_links`) |
-| BR-064-5 | Escape khi render |
-| BR-064-6 | ⚠️ Chốt: soft delete hay hard delete |
-| BR-064-7 | ⚠️ Chốt: ghi đè hay báo xung đột khi sửa đồng thời |
+| --- | --- |
+| BR-064-1 | Ghi chú là dữ liệu cá nhân. Người học chỉ được đọc, sửa và xóa ghi chú của chính mình. |
+| BR-064-2 | `user_id` của ghi chú luôn lấy từ phiên đăng nhập hiện tại, không lấy từ request body hoặc query parameter. |
+| BR-064-3 | Sổ tay là nơi ghi chú tự do. Người học có thể viết mẹo nhớ chữ, câu mẫu, lỗi hay sai hoặc tóm tắt bài học. |
+| BR-064-4 | Ghi chú không tự động tạo flashcard, không tự động đưa từ vào lịch ôn và không cần bảng liên kết vào hệ thống học. |
+| BR-064-5 | Nội dung ghi chú không được rỗng, phải có giới hạn độ dài và phải được escape hoặc sanitize khi hiển thị. |
+| BR-064-6 | MVP dùng soft delete cho ghi chú để tránh mất dữ liệu khi người học xóa nhầm. Ghi chú đã xóa không hiện trong danh sách mặc định. |
+| BR-064-7 | Khi sửa đồng thời cùng một ghi chú từ nhiều thiết bị, MVP dùng quy tắc bản lưu sau cùng ghi đè bản trước. Hệ thống cập nhật `updated_at` để người học biết lần sửa cuối. |
+| BR-064-8 | Nếu cần xử lý xung đột sửa nâng cao, đưa sang V2; không làm phức tạp MVP. |
 
 ## API · DB
 
@@ -926,12 +941,13 @@ POST   /api/notes
 PUT    /api/notes/{id}
 DELETE /api/notes/{id}
 ```
+
 `notes` (đọc + ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Tạo ghi chú | 201 |
 | T2 | `GET /api/notes/{id người khác}` | **403** |
 | T3 | `PUT` ghi chú người khác | 403 |
@@ -963,7 +979,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Nhập từ khoá |
 | 2 | Client | `GET /api/notes/search?q={x}` |
 | 3 | System | **Chỉ tìm trong ghi chú của người đang đăng nhập** |
@@ -980,7 +996,7 @@ Chỉ đọc.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `SEARCHED_OTHER_USERS_NOTES` | — | 🔴 Truy vấn thiếu `user_id` | Xem ghi chú |
 | `EMPTY_QUERY` | 400 | Rỗng | Chặn — trả hết thì dùng `GET /api/notes` |
 | `NO_RESULTS` | 200 (rỗng) | Không khớp | Không phải lỗi (A2) |
@@ -1002,13 +1018,14 @@ Chỉ đọc.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-065-1 | **Luôn** lọc `user_id` của người đang đăng nhập |
-| BR-065-2 | Từ khoá ≥ 2 ký tự |
-| BR-065-3 | Tìm trong `title` và `content` |
-| BR-065-4 | Đoạn trích phải escape trước khi đánh dấu |
-| BR-065-5 | Sắp theo độ khớp rồi `updated_at` |
-| BR-065-6 | Tìm theo thẻ là khớp chính xác |
+| --- | --- |
+| BR-065-1 | Tìm kiếm ghi chú chỉ được thực hiện trong ghi chú của người học đang đăng nhập. |
+| BR-065-2 | Từ khóa tìm kiếm phải có ít nhất 2 ký tự để tránh trả quá nhiều kết quả không có giá trị. |
+| BR-065-3 | Hệ thống tìm trong tiêu đề và nội dung ghi chú. |
+| BR-065-4 | Tìm theo thẻ dùng quy tắc khớp chính xác tên thẻ. |
+| BR-065-5 | Kết quả tìm kiếm được sắp xếp theo độ khớp trước, sau đó theo thời gian cập nhật gần nhất. |
+| BR-065-6 | Đoạn trích kết quả phải được escape trước khi đánh dấu từ khóa để tránh XSS. |
+| BR-065-7 | Nếu không có kết quả, hệ thống trả danh sách rỗng và hiển thị thông báo không tìm thấy, không coi là lỗi. |
 
 ## API · DB
 
@@ -1016,12 +1033,13 @@ Chỉ đọc.
 GET /api/notes/search?q={x}
 GET /api/notes?tag={t}
 ```
+
 `notes` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Tìm "ngữ pháp" | Chỉ ghi chú **của mình** |
 | T2 | Hai user có ghi chú chứa "học" | Mỗi người chỉ thấy của mình |
 | T3 | Từ khoá 1 ký tự | 400 |
@@ -1053,14 +1071,14 @@ Thẻ đến hạn hiện lên, mặt trước chữ, lật ra nghĩa + pinyin, 
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Nhớ | `next_review_at` giãn xa |
 | Quên | `next_review_at` gần lại (nghiệm thu: "thẻ quên xuất hiện lại **sớm hơn**") |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Vào "Ôn flashcard" |
 | 2 | System | `GET /api/flashcards/due` — thẻ đến hạn **trong bộ của mình** |
 | 3 | Client | Hiện mặt trước (chữ) |
@@ -1083,7 +1101,7 @@ Thẻ đến hạn hiện lên, mặt trước chữ, lật ra nghĩa + pinyin, 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `CARD_NOT_OWNED` | 403 | Thẻ trong bộ người khác | IDOR |
 | `DECK_NOT_OWNED` | 403 | Bộ của người khác (A2) | IDOR |
 | `CARD_NOT_FOUND` | 404 | ID sai | Bỏ thẻ |
@@ -1106,13 +1124,14 @@ Thẻ đến hạn hiện lên, mặt trước chữ, lật ra nghĩa + pinyin, 
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-066-1 | Chỉ thẻ trong bộ **của mình** |
-| BR-066-2 | Flashcard **được** nhận `rating` từ client (tự đánh giá) |
-| BR-066-3 | "Quên" → `next_review_at` gần lại (nghiệm thu 4.3) |
-| BR-066-4 | Tối đa 100 thẻ/buổi |
-| BR-066-5 | Ôn trước hạn được, giãn ít hơn |
-| BR-066-6 | ⚠️ Chốt: trọng số mastery của flashcard (đề xuất 0 hoặc rất thấp) |
+| --- | --- |
+| BR-066-1 | Người học chỉ được ôn flashcard thuộc các bộ của chính mình. |
+| BR-066-2 | Flashcard dùng cơ chế tự đánh giá. Người học được gửi rating như “Nhớ”, “Khó” hoặc “Quên” vì hệ thống không có đáp án để tự chấm. |
+| BR-066-3 | Nếu người học chọn “Quên”, thẻ phải được xếp lịch ôn lại sớm hơn. |
+| BR-066-4 | Nếu người học chọn “Nhớ”, thẻ được giãn lịch ôn xa hơn theo thuật toán ôn lặp. |
+| BR-066-5 | Người học được phép ôn thẻ trước hạn, nhưng lịch ôn sau đó không được giãn mạnh như khi ôn đúng hạn. |
+| BR-066-6 | Mỗi buổi ôn chỉ trả một số lượng thẻ giới hạn để tránh quá tải. MVP đề xuất tối đa 100 thẻ mỗi buổi. |
+| BR-066-7 | Trong MVP, rating flashcard chỉ ảnh hưởng lịch ôn của flashcard, không cập nhật mastery chung trong `user_knowledge_state`. |
 
 ## API · DB
 
@@ -1121,6 +1140,7 @@ GET  /api/flashcards/due
 GET  /api/flashcards/due?deck_id={d}
 POST /api/flashcards/{id}/review
 ```
+
 `flashcards` · `flashcard_decks` (đọc + ghi)
 
 > **Index cần:** `flashcards(deck_id, next_review_at)`.
@@ -1128,7 +1148,7 @@ POST /api/flashcards/{id}/review
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | 10 thẻ đến hạn, chọn "Nhớ" | `next_review_at` giãn |
 | T2 | Chọn "Quên" | Xuất hiện lại **sớm hơn** |
 | T3 | Ôn thẻ người khác | 403 |
@@ -1160,7 +1180,7 @@ Tạo bộ thẻ mới. Nguồn thẻ: tự tạo · bộ dựng sẵn theo cấ
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Tạo bộ mới" |
 | 2 | `USER` | Nhập tên, mô tả; chọn nguồn (trống / HSK dựng sẵn / sao chép) |
 | 3 | Client | `POST /api/flashcard-decks` |
@@ -1179,7 +1199,7 @@ Tạo bộ thẻ mới. Nguồn thẻ: tự tạo · bộ dựng sẵn theo cấ
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `TOO_MANY_DECKS` | 422 | > 50 bộ | Chặn |
 | `EMPTY_DECK_NAME` | 400 | Tên rỗng | Chặn |
 | `NAME_TOO_LONG` | 400 | > 100 ký tự | Chặn |
@@ -1203,13 +1223,15 @@ Tạo bộ thẻ mới. Nguồn thẻ: tự tạo · bộ dựng sẵn theo cấ
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-067-1 | Tối đa 50 bộ/người, 500 thẻ/bộ |
-| BR-067-2 | Bộ mới luôn `is_public = false` |
-| BR-067-3 | `is_public` chỉ đổi qua UC-068 |
-| BR-067-4 | Sao chép chỉ khi bộ nguồn `is_public = true` |
-| BR-067-5 | Sao chép **reset** lịch ôn, không copy `next_review_at` |
-| BR-067-6 | Bản sao là **độc lập** (BR-063-6) |
+| --- | --- |
+| BR-067-1 | Người học đã đăng nhập được tạo bộ flashcard cá nhân. |
+| BR-067-2 | Mỗi người học có tối đa 50 bộ flashcard trong MVP. |
+| BR-067-3 | Mỗi bộ flashcard có tối đa 500 thẻ trong MVP. |
+| BR-067-4 | Bộ flashcard mới luôn ở trạng thái riêng tư. Client không được tự tạo bộ công khai. |
+| BR-067-5 | Trạng thái công khai của bộ chỉ được thay đổi qua chức năng chia sẻ bộ flashcard. |
+| BR-067-6 | Nếu tạo bộ từ mẫu HSK dựng sẵn, hệ thống sao chép nội dung thẻ từ mẫu và khởi tạo lịch ôn như thẻ mới. |
+| BR-067-7 | Nếu sao chép bộ công khai của người khác, hệ thống chỉ sao chép nội dung thẻ, không sao chép lịch ôn, độ ổn định, độ khó hoặc tiến độ của người tạo gốc. |
+| BR-067-8 | Bản sao của bộ flashcard là độc lập với bộ gốc. |
 
 ## API · DB
 
@@ -1217,12 +1239,13 @@ Tạo bộ thẻ mới. Nguồn thẻ: tự tạo · bộ dựng sẵn theo cấ
 POST /api/flashcard-decks
 POST /api/flashcard-decks/{id}/copy      (V2)
 ```
+
 `flashcard_decks` · `flashcards` (đọc + ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Tạo bộ trống | 201, `is_public = false` |
 | T2 | Gửi `is_public = true` | Bị bỏ qua, vẫn `false` |
 | T3 | Bộ dựng sẵn HSK1 | Thẻ copy, `next_review_at = now()` |
@@ -1262,7 +1285,7 @@ POST /api/flashcard-decks/{id}/copy      (V2)
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở bộ, bấm "Chia sẻ lên cộng đồng" |
 | 2 | System | **Kiểm sở hữu** |
 | 3 | System | Kiểm ≥ 5 thẻ |
@@ -1287,7 +1310,7 @@ Cho phép. Người sao chép **sau** thấy bản mới; người sao chép **t
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `DECK_NOT_OWNED` | 403 | Chia sẻ bộ người khác | IDOR |
 | `TOO_FEW_CARDS` | 422 | < 5 thẻ | Chặn |
 | `NO_MODERATION_FOR_DECKS` | — | 🔴 Chưa có luồng kiểm duyệt bộ thẻ | Xem ghi chú |
@@ -1319,15 +1342,16 @@ Cho phép. Người sao chép **sau** thấy bản mới; người sao chép **t
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-068-1 | Chỉ chủ bộ chia sẻ được |
-| BR-068-2 | Cần ≥ 5 thẻ |
-| BR-068-3 | `is_public` đọc thẳng trên `flashcard_decks` |
-| BR-068-4 | Thu hồi không ảnh hưởng bản đã sao chép |
-| BR-068-5 | `community` truy cập qua lớp `api` của `learning` |
-| BR-068-6 | Escape nội dung thẻ khi hiện cho người khác |
-| BR-068-7 | Phải có nút báo cáo vi phạm |
-| BR-068-8 | ⚠️ Chốt: có kiểm duyệt trước hay báo cáo sau |
+| --- | --- |
+| BR-068-1 | UC này thuộc V2/P3. Không gen code cho MVP nếu nhóm cần cắt scope. |
+| BR-068-2 | Chỉ chủ sở hữu bộ flashcard mới được chia sẻ hoặc thu hồi chia sẻ bộ đó. |
+| BR-068-3 | Một bộ cần có ít nhất 5 thẻ mới được chia sẻ để tránh nội dung công khai quá rỗng. |
+| BR-068-4 | Khi chia sẻ, bộ được đánh dấu công khai và có thể xuất hiện trong danh sách bộ flashcard cộng đồng. |
+| BR-068-5 | Khi thu hồi chia sẻ, bộ không còn xuất hiện trong danh sách công khai, nhưng các bản sao mà người khác đã tạo trước đó vẫn được giữ lại. |
+| BR-068-6 | Người sao chép bộ công khai nhận một bản sao độc lập. Bản sao không tự đồng bộ với bộ gốc. |
+| BR-068-7 | Nội dung thẻ công khai phải được escape hoặc sanitize khi hiển thị cho người khác. |
+| BR-068-8 | MVP/V2 đơn giản có thể dùng cơ chế công khai trước, báo cáo vi phạm sau. Vì vậy bộ công khai phải có nút báo cáo vi phạm. |
+| BR-068-9 | Bộ chứa nội dung vi phạm, thông tin cá nhân hoặc dữ liệu đề thi/bài học không được phép công khai nếu bị phát hiện hoặc bị báo cáo hợp lệ. |
 
 ## API · DB
 
@@ -1337,12 +1361,13 @@ PATCH /api/flashcard-decks/{id}/unshare
 GET   /api/community/flashcard-decks
 POST  /api/flashcard-decks/{id}/copy
 ```
+
 `flashcard_decks` · `flashcards` (đọc + ghi) · `moderation_reports` (community, ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Chia sẻ bộ 10 thẻ của mình | 200, `is_public = true` |
 | T2 | Chia sẻ bộ người khác | 403 |
 | T3 | Bộ 3 thẻ | 422 |
@@ -1358,7 +1383,7 @@ POST  /api/flashcard-decks/{id}/copy
 ## Chín exception quan trọng nhất
 
 | # | UC | Exception | Vì sao |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | UC-065 | `SEARCHED_OTHER_USERS_NOTES` | IDOR **không cần biết ID** — chỉ thiếu một `WHERE` là lộ ghi chú toàn hệ thống |
 | 2 | UC-060 | `QUOTA_DEDUCTED_BUT_API_FAILED` | Mất tiền người học, tần suất cao hơn UC-048 nhiều |
 | 3 | UC-064 | `NOTE_NOT_OWNED` | Đúng ví dụ IDOR mục B đã ghi; ghi chú là dữ liệu riêng tư nhất |
@@ -1372,7 +1397,7 @@ POST  /api/flashcard-decks/{id}/copy
 ## Bốn nhóm exception lặp lại khắp nhóm 4
 
 | Nhóm | Xuất hiện ở | Bài học |
-|---|---|---|
+| --- | --- | --- |
 | **IDOR** | UC-060 · UC-062 → UC-068 (**7 UC**) | Nhóm này có nhiều IDOR nhất vì toàn dữ liệu riêng tư. Cộng UC-029 nhóm 2 thành **9 UC** cùng mẫu lỗi. `OwnershipService` không còn là "nên có" mà là **bắt buộc** |
 | **Chuẩn hoá để tìm kiếm** | UC-057 (pinyin) · UC-058 (nghĩa Việt) | Cùng một vấn đề: dữ liệu có dấu, người dùng gõ không dấu. Cùng một giải pháp: cột chuẩn hoá + index. Làm lúc nhập, không lúc truy vấn |
 | **Trừ tiền rồi thất bại** | UC-060 · (UC-048 nhóm 3) | Gọi API ngoài **không** được nằm trong transaction DB. Trừ → gọi → lỗi thì hoàn, ghi `credit_transactions` loại `REFUND` |
@@ -1383,7 +1408,7 @@ POST  /api/flashcard-decks/{id}/copy
 # Khoảng trống thiết kế phát hiện ở nhóm 4
 
 | # | Thiếu | UC bị ảnh hưởng | Mức |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | **Chưa có `OwnershipService`** — 7 UC nhóm này + 2 UC nhóm 2 cùng cần | UC-060 → UC-068 | 🔴 Mục B quyết định v2 vẫn treo |
 | 2 | **Chưa có GIN/trgm index** trên `words.meaning_vi` | UC-058 | 🔴 Quét toàn bảng |
 | 3 | **Chưa có cột `pinyin_normalized`** (không dấu) | UC-057 | 🔴 Tra pinyin không dấu không chạy |

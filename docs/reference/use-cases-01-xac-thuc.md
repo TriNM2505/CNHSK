@@ -10,7 +10,7 @@
 ## Quy ước đặc tả
 
 | Phần | Nghĩa |
-|---|---|
+| --- | --- |
 | **Tiền điều kiện** | Phải đúng trước khi UC bắt đầu |
 | **Hậu điều kiện** | Trạng thái hệ thống sau khi UC thành công |
 | **Luồng chính** | Đường đi khi mọi thứ suôn sẻ |
@@ -25,7 +25,7 @@ Mã lỗi theo định dạng `{error_code, message, request_id}` — HR-09.
 # UC-001 · Đăng ký tài khoản bằng email
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-001 |
 | **Actor chính** | `GUEST` |
 | **Priority** | P0 |
@@ -77,7 +77,7 @@ với trạng thái `PENDING_VERIFY`. Các tính năng bị hạn chế: đăng 
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `EMAIL_ALREADY_EXISTS` | Email đã có tài khoản | **409** | Báo "Email này đã được dùng", gợi ý đăng nhập hoặc quên mật khẩu |
 | `INVALID_EMAIL_FORMAT` | Email sai định dạng | **422** | Chỉ rõ field `email` |
 | `WEAK_PASSWORD` | Mật khẩu không đủ mạnh | **422** | Nêu rõ yêu cầu: tối thiểu N ký tự, có chữ và số |
@@ -94,13 +94,17 @@ với trạng thái `PENDING_VERIFY`. Các tính năng bị hạn chế: đăng 
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | Mật khẩu hash bcrypt cost ≥12 hoặc argon2id — **HR-01** |
-| BR-02 | Không bao giờ trả hash mật khẩu ra response |
-| BR-03 | Token xác thực lưu **hash**, không lưu token thô |
-| BR-04 | Email so sánh không phân biệt chữ hoa thường, lưu dạng chữ thường |
-| BR-05 | Mọi tài khoản mới mặc định role `USER` và gói `FREE` |
-| BR-06 | Tạo user + role + ví + gói trong **cùng transaction** |
+| --- | --- |
+| BR-01 | Mỗi email chỉ được dùng cho một tài khoản trong hệ thống. Khi kiểm tra trùng email, hệ thống phải so sánh không phân biệt chữ hoa/thường. |
+| BR-02 | Email phải được chuẩn hóa về chữ thường trước khi lưu để tránh tạo nhiều tài khoản bằng cùng một email viết khác kiểu hoa/thường. |
+| BR-03 | Mật khẩu người dùng không được lưu ở dạng văn bản gốc. Hệ thống chỉ được lưu giá trị mật khẩu đã được mã hóa một chiều theo chuẩn bảo mật đã chọn. |
+| BR-04 | Mật khẩu khi đăng ký phải đáp ứng chính sách độ mạnh tối thiểu của hệ thống. Chính sách này phải được áp dụng thống nhất cho đăng ký, đổi mật khẩu và đặt lại mật khẩu. |
+| BR-05 | Mỗi tài khoản mới được gán vai trò mặc định là `USER`. Người dùng không được tự chọn hoặc tự gán vai trò khi đăng ký. |
+| BR-06 | Tài khoản mới sau khi đăng ký ở trạng thái chưa xác thực email cho đến khi người dùng xác thực bằng link hợp lệ. |
+| BR-07 | Người dùng chưa xác thực email vẫn được đăng nhập để sử dụng các chức năng học tập cơ bản, nhưng bị hạn chế các chức năng cần danh tính tin cậy như đăng bài cộng đồng, tham gia thi đua hoặc thao tác công khai. |
+| BR-08 | Khi tạo tài khoản mới, hệ thống phải khởi tạo các dữ liệu mặc định cần thiết cho người học, bao gồm hồ sơ học tập ban đầu và cấu hình học tập mặc định. |
+| BR-09 | Token xác thực email phải được lưu ở dạng đã băm, không lưu token thô. |
+| BR-10 | Nếu gửi email xác thực thất bại sau khi tài khoản đã được tạo thành công, hệ thống vẫn giữ tài khoản và cho phép người dùng yêu cầu gửi lại email xác thực. |
 
 ## API
 
@@ -120,7 +124,7 @@ Body: { fullName, email, password, confirmPassword, acceptTerms }
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Dữ liệu hợp lệ | 201, có dòng trong `users`, email gửi đi |
 | 2 | Email đã tồn tại | 409, không tạo dòng mới |
 | 3 | Email viết HOA đã tồn tại chữ thường | 409 — kiểm không phân biệt hoa thường |
@@ -136,7 +140,7 @@ Body: { fullName, email, password, confirmPassword, acceptTerms }
 # UC-002 · Xác thực email qua link
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-002 |
 | **Actor chính** | `GUEST` |
 | **Priority** | P0 |
@@ -181,7 +185,7 @@ thu hồi token cũ, sinh token mới, gửi email mới.
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `TOKEN_INVALID` | Token không tồn tại hoặc sai | **400** | "Link không hợp lệ", cho nhập email để gửi lại |
 | `TOKEN_EXPIRED` | Token quá 24 giờ | **410** | "Link đã hết hạn", hiện nút "Gửi lại email" |
 | `TOKEN_ALREADY_USED` | Token đã thu hồi | **409** | "Email đã được xác thực rồi", chuyển tới đăng nhập |
@@ -194,12 +198,15 @@ thu hồi token cũ, sinh token mới, gửi email mới.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | Token so sánh bằng **hash**, không so token thô |
-| BR-02 | Token dùng một lần — xác thực xong thu hồi ngay |
-| BR-03 | Token hết hạn sau **24 giờ** |
-| BR-04 | Set `email_verified_at` và thu hồi token trong cùng transaction |
-| BR-05 | Không tiết lộ email nào gắn với token (chống dò) |
+| --- | --- |
+| BR-01 | Token xác thực email chỉ được dùng cho mục đích xác thực email, không được dùng cho đăng nhập, đặt lại mật khẩu hoặc mục đích khác. |
+| BR-02 | Token xác thực email chỉ được sử dụng một lần. Sau khi xác thực thành công, token phải bị vô hiệu hóa. |
+| BR-03 | Token xác thực email hết hạn sau 24 giờ kể từ thời điểm phát hành. |
+| BR-04 | Hệ thống không được lưu token xác thực email ở dạng thô; chỉ lưu giá trị đã băm để đối chiếu. |
+| BR-05 | Khi xác thực email thành công, hệ thống phải cập nhật trạng thái xác thực email của tài khoản và vô hiệu hóa token trong cùng một thao tác nhất quán dữ liệu. |
+| BR-06 | Nếu người dùng bấm lại link xác thực của tài khoản đã được xác thực, hệ thống phải hiển thị kết quả thân thiện, coi như tài khoản đã xác thực, không báo lỗi gây nhầm lẫn. |
+| BR-07 | Chức năng gửi lại email xác thực không được tiết lộ email có tồn tại trong hệ thống hay không. |
+| BR-08 | Một tài khoản đã xác thực email thì không được quay lại trạng thái chưa xác thực, trừ khi sau này có quy trình đổi email riêng được thiết kế và phê duyệt. |
 
 ## API
 
@@ -223,7 +230,7 @@ Body: { email }
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Token hợp lệ | 200, `email_verified_at` được set |
 | 2 | Token sai | 400 |
 | 3 | Token quá 24h | 410 |
@@ -237,7 +244,7 @@ Body: { email }
 # UC-003 · Đăng nhập trên web (cookie)
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-003 |
 | **Actor chính** | `GUEST` |
 | **Priority** | P0 |
@@ -291,7 +298,7 @@ Trả toàn bộ danh sách role. Frontend cho chọn "vào với vai nào" ho�
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `INVALID_CREDENTIALS` | Email không tồn tại **HOẶC** mật khẩu sai | **401** | **Cùng một thông báo cho cả hai** — chống dò email |
 | `ACCOUNT_LOCKED` | `locked_until` còn hiệu lực | **423** | Báo còn bao nhiêu phút. **Đúng mật khẩu vẫn trả 423** |
 | `ACCOUNT_BANNED` | `banned_at` có giá trị | **403** | "Tài khoản đã bị vô hiệu hóa", kèm cách liên hệ |
@@ -309,14 +316,16 @@ Trả toàn bộ danh sách role. Frontend cho chọn "vào với vai nào" ho�
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | Cookie đủ 5 thuộc tính: `domain=cnhsk.com` · `httpOnly` · `secure` · `sameSite=Lax` · `maxAge` — **HR-03** |
-| BR-02 | Bỏ `domain` thì `game.cnhsk.com` không nhận được cookie → luồng đăng nhập chung hỏng |
-| BR-03 | So mật khẩu theo **thời gian hằng định** — chống timing attack |
-| BR-04 | Thông báo lỗi giống nhau cho email sai và mật khẩu sai |
-| BR-05 | Refresh token lưu **hash**, không lưu thô |
-| BR-06 | Rate limit theo **IP**, không chỉ theo tài khoản |
-| BR-07 | Không log mật khẩu dù ở bất kỳ mức log nào |
+| --- | --- |
+| BR-01 | Khi đăng nhập thất bại do email không tồn tại hoặc mật khẩu sai, hệ thống phải trả cùng một thông báo lỗi chung để tránh dò tài khoản. |
+| BR-02 | Web chính sử dụng cookie bảo mật để duy trì phiên đăng nhập. Access token và refresh token của web không được trả về trong body response. |
+| BR-03 | Cookie đăng nhập của web phải được cấu hình để dùng chung cho `cnhsk.com`, `game.cnhsk.com` và `api.cnhsk.com`, giúp người dùng không phải đăng nhập lại khi chuyển sang trang game. |
+| BR-04 | Cookie chứa token phải bật `HttpOnly`, `Secure`, `SameSite` phù hợp và có thời hạn rõ ràng. JavaScript phía web không được đọc trực tiếp token trong cookie. |
+| BR-05 | Khi đăng nhập thành công, hệ thống phải cập nhật thời điểm đăng nhập gần nhất của người dùng. |
+| BR-06 | Khi đăng nhập thành công, hệ thống phải reset bộ đếm đăng nhập sai liên quan đến người dùng theo chính sách chống dò mật khẩu. |
+| BR-07 | Nếu tài khoản đang bị khóa tạm thời, bị treo hoặc bị vô hiệu hóa, hệ thống không cho đăng nhập dù mật khẩu nhập đúng. |
+| BR-08 | Hệ thống không được ghi log mật khẩu, token thô hoặc thông tin nhạy cảm có thể dùng để chiếm quyền tài khoản. |
+| BR-09 | Người dùng chưa xác thực email vẫn được đăng nhập, nhưng response phải trả rõ trạng thái `emailVerified = false` để frontend hiển thị nhắc xác thực và giới hạn chức năng phù hợp. |
 
 ## API
 
@@ -337,7 +346,7 @@ Body: { email, password }
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Email + mật khẩu đúng | 200, hai cookie được set đủ 5 thuộc tính |
 | 2 | Email không tồn tại | 401 `INVALID_CREDENTIALS` |
 | 3 | Mật khẩu sai | 401 **cùng thông báo như case 2** |
@@ -353,7 +362,7 @@ Body: { email, password }
 # UC-004 · Đăng nhập trên mobile (header)
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-004 |
 | **Actor chính** | `GUEST` |
 | **Priority** | P0 |
@@ -402,11 +411,14 @@ Giống UC-003, thêm:
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | `JwtFilter` đọc **cookie trước, không có thì đọc header** — thiếu một trong hai là một loại client không đăng nhập được |
-| BR-02 | Token trong body chỉ trả cho client mobile hoặc khi không xác định được loại |
-| BR-03 | App **không** lưu token vào `AsyncStorage` thường — phải dùng secure storage |
-| BR-04 | Các rule còn lại giống UC-003 |
+| --- | --- |
+| BR-01 | Ứng dụng mobile sử dụng cơ chế Bearer token trong header `Authorization`, không phụ thuộc vào cookie của trình duyệt web. |
+| BR-02 | Mobile client nhận access token và refresh token trong body response sau khi đăng nhập thành công. |
+| BR-03 | Token của mobile phải được lưu trong vùng lưu trữ an toàn của thiết bị, không lưu trong `AsyncStorage` thường hoặc nơi dễ bị ứng dụng khác đọc được. |
+| BR-04 | Hệ thống phải phân biệt rõ request đăng nhập từ web và mobile. Web không được nhận token trong body response nếu cơ chế đăng nhập web đã dùng cookie HttpOnly. |
+| BR-05 | Nếu client không khai báo được loại client một cách hợp lệ, hệ thống không được mặc định trả cả cookie và token trong body. Trường hợp này phải bị từ chối hoặc yêu cầu client gửi lại request đúng định dạng. |
+| BR-06 | Các quy tắc kiểm tra tài khoản, kiểm tra mật khẩu, chống dò tài khoản và cập nhật lần đăng nhập cuối phải giống với đăng nhập trên web. |
+| BR-07 | Mọi request sau đăng nhập từ mobile phải gửi access token qua header `Authorization: Bearer {accessToken}`. |
 
 ## API
 
@@ -425,7 +437,7 @@ Giống UC-003.
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Login với `X-Client-Type: mobile` | 200, có token trong body, **không** có `Set-Cookie` |
 | 2 | Login không có header | 200, có **cả** cookie và token trong body |
 | 3 | Gọi API khác với header `Authorization` | Được chấp nhận |
@@ -436,7 +448,7 @@ Giống UC-003.
 # UC-005 · Đăng nhập vào trang game bằng cookie chung
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-005 |
 | **Actor chính** | `USER` |
 | **Priority** | P0 |
@@ -481,7 +493,7 @@ Hoặc chuyển thẳng tới trang đăng nhập — tùy quyết định UX.
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_TOKEN` | Không có cookie | **401** | Chuyển về `cnhsk.com/login?returnUrl=game` |
 | `TOKEN_EXPIRED` | Cookie hết hạn | **401** | Thử refresh (UC-006), thất bại thì về login |
 | `CORS_BLOCKED` | `game.cnhsk.com` không có trong danh sách CORS | — | 🔴 **Lỗi cấu hình.** Phải khai báo cả hai tên miền — HR-04 |
@@ -494,12 +506,14 @@ Hoặc chuyển thẳng tới trang đăng nhập — tùy quyết định UX.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | Cookie phải có `Domain=cnhsk.com` — thiếu là hỏng toàn bộ UC này |
-| BR-02 | CORS khai báo **rõ cả hai** tên miền `cnhsk.com` và `game.cnhsk.com`, không dùng `*` — HR-04 |
-| BR-03 | `withCredentials: true` phía client khi gọi cross-subdomain |
-| BR-04 | Trang game **không** tự sinh token — chỉ dùng token đã có |
-| BR-05 | ⚠️ `SameSite=Lax` **không** chặn CSRF giữa các tên miền phụ cùng site — cần CSRF token cho thao tác ghi |
+| --- | --- |
+| BR-01 | Trang game web không có cơ chế đăng nhập riêng. Trang game phải sử dụng phiên đăng nhập hiện có của người dùng từ hệ thống chính. |
+| BR-02 | Người dùng đã đăng nhập ở `cnhsk.com` khi mở `game.cnhsk.com` không phải đăng nhập lại. |
+| BR-03 | Khi vừa tải xong, trang game phải gọi API kiểm tra phiên đăng nhập để biết người dùng hiện tại là ai, thay vì cố đọc token từ JavaScript. |
+| BR-04 | Nếu người dùng chưa đăng nhập hoặc phiên đăng nhập đã hết hạn, trang game phải chuyển người dùng về trang đăng nhập của web chính. |
+| BR-05 | Trang game không được tự sinh token, tự lưu token riêng hoặc tạo hệ thống tài khoản riêng. |
+| BR-06 | Các request từ trang game tới API phải gửi kèm thông tin xác thực hiện có theo cơ chế cookie bảo mật của web. |
+| BR-07 | Các thao tác ghi dữ liệu từ trang game, ví dụ lưu điểm, phải tuân thủ quy tắc chống CSRF và kiểm tra xác thực giống các thao tác ghi khác của hệ thống. |
 
 ## API
 
@@ -517,7 +531,7 @@ Cookie: access_token=...    (trình duyệt tự gửi)
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Đăng nhập ở `cnhsk.com`, mở `game.cnhsk.com` | 200, biết người dùng, **không** phải đăng nhập lại |
 | 2 | Kiểm cookie gửi kèm | Request tới `game.cnhsk.com` có cookie |
 | 3 | Cookie set không có `Domain` | Trang game **không** nhận được cookie → 401 |
@@ -529,7 +543,7 @@ Cookie: access_token=...    (trình duyệt tự gửi)
 # UC-006 · Làm mới access token bằng refresh token
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-006 |
 | **Actor chính** | `SYSTEM` (kích hoạt bởi client) |
 | **Priority** | P0 |
@@ -573,7 +587,7 @@ Client có thể refresh khi access token còn 1–2 phút, tránh request thấ
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `REFRESH_TOKEN_INVALID` | Token không tồn tại | **401** | Buộc đăng nhập lại |
 | `REFRESH_TOKEN_EXPIRED` | Token hết hạn | **401** | Buộc đăng nhập lại |
 | `REFRESH_TOKEN_REUSED` | Token đã thu hồi mà vẫn dùng | **401** | 🔴 **Thu hồi TOÀN BỘ token của user** — dấu hiệu token bị đánh cắp |
@@ -597,12 +611,15 @@ Client có thể refresh khi access token còn 1–2 phút, tránh request thấ
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | Refresh token **dùng một lần** — rotation bắt buộc |
-| BR-02 | Phát hiện dùng lại token đã thu hồi → thu hồi **toàn bộ** token của user |
-| BR-03 | Refresh token lưu hash |
-| BR-04 | Phải kiểm lại trạng thái tài khoản mỗi lần refresh — không tin token cũ |
-| BR-05 | Có khoảng ân hạn cho refresh đồng thời |
+| --- | --- |
+| BR-01 | Access token có thời hạn ngắn. Khi access token hết hạn, client phải dùng refresh token hợp lệ để xin access token mới. |
+| BR-02 | Refresh token phải được lưu ở dạng đã băm, không lưu token thô. |
+| BR-03 | Refresh token áp dụng cơ chế rotation: mỗi lần refresh thành công, refresh token cũ bị vô hiệu hóa và refresh token mới được cấp. |
+| BR-04 | Refresh token chỉ được sử dụng khi còn hạn, chưa bị thu hồi và thuộc về tài khoản đang ở trạng thái hợp lệ. |
+| BR-05 | Mỗi lần refresh token, hệ thống phải kiểm tra lại trạng thái tài khoản. Nếu tài khoản đã bị khóa, treo hoặc vô hiệu hóa thì không cấp token mới. |
+| BR-06 | Nếu một refresh token đã bị vô hiệu hóa vẫn được sử dụng lại ngoài khoảng xử lý hợp lệ, hệ thống coi đây là dấu hiệu token bị lộ và thu hồi toàn bộ refresh token của người dùng. |
+| BR-07 | Hệ thống phải có cơ chế tránh đăng xuất oan khi nhiều request refresh xảy ra gần như đồng thời. Trong MVP, client phải dùng mutex để chỉ cho một request refresh chạy tại một thời điểm; server có thể áp dụng khoảng ân hạn ngắn để tránh coi nhầm là token bị đánh cắp. |
+| BR-08 | Sau khi refresh thành công, client phải thay thế token cũ bằng token mới và dùng token mới cho các request tiếp theo. |
 
 ## API
 
@@ -621,7 +638,7 @@ Cookie hoặc Body: { refreshToken }
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Refresh token hợp lệ | 200, token cũ bị thu hồi, token mới được cấp |
 | 2 | Dùng lại token cũ sau khi refresh | 401 `REFRESH_TOKEN_REUSED` + **toàn bộ token của user bị thu hồi** |
 | 3 | Token hết hạn | 401 |
@@ -633,7 +650,7 @@ Cookie hoặc Body: { refreshToken }
 # UC-007 · Đăng xuất
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-007 |
 | **Actor chính** | `USER` |
 | **Priority** | P0 |
@@ -671,7 +688,7 @@ Người dùng đăng xuất. Token bị thu hồi phía server, cookie bị xó
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_TOKEN` | Gọi logout khi chưa đăng nhập | **200** | **Không báo lỗi** — logout là idempotent |
 | `TOKEN_ALREADY_REVOKED` | Token đã thu hồi | **200** | Không báo lỗi |
 | `INTERNAL_ERROR` | Không thu hồi được token | **200** + log | **Vẫn xóa cookie phía client.** Không để người dùng kẹt ở trạng thái không đăng xuất được |
@@ -687,11 +704,15 @@ Người dùng đăng xuất. Token bị thu hồi phía server, cookie bị xó
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | Logout là **idempotent** — gọi nhiều lần không lỗi |
-| BR-02 | Luôn xóa cookie dù server có lỗi |
-| BR-03 | Thu hồi refresh token, không chỉ xóa cookie |
-| BR-04 | Access token không thu hồi được → phải hết hạn ngắn |
+| --- | --- |
+| BR-01 | Đăng xuất là thao tác idempotent. Người dùng gọi đăng xuất một lần hay nhiều lần đều không gây lỗi nghiệp vụ. |
+| BR-02 | Khi người dùng đăng xuất khỏi thiết bị hiện tại, hệ thống phải thu hồi refresh token của phiên hiện tại nếu xác định được phiên đó. |
+| BR-03 | Client phải xóa thông tin đăng nhập cục bộ sau khi người dùng chọn đăng xuất, kể cả khi server không thể hoàn tất việc thu hồi token tại thời điểm đó. |
+| BR-04 | Khi đăng xuất trên web, hệ thống phải gửi lệnh xóa cookie đăng nhập bằng cách set cookie hết hạn. |
+| BR-05 | Khi đăng xuất trên mobile, ứng dụng phải xóa access token và refresh token khỏi vùng lưu trữ an toàn của thiết bị. |
+| BR-06 | Đăng xuất khỏi mọi thiết bị phải thu hồi toàn bộ refresh token còn hiệu lực của người dùng. |
+| BR-07 | Nếu hệ thống sử dụng access token dạng JWT không có blacklist, access token cũ có thể còn hiệu lực đến khi hết hạn. Vì vậy access token phải có thời hạn ngắn để giảm rủi ro sau đăng xuất. |
+| BR-08 | Nếu server không thu hồi được refresh token do lỗi hệ thống, lỗi phải được ghi log để xử lý, nhưng client vẫn phải hoàn tất đăng xuất cục bộ cho người dùng. |
 
 ## API
 
@@ -712,7 +733,7 @@ POST /api/auth/logout-all
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Logout khi đã đăng nhập | 200, refresh token bị thu hồi, cookie bị xóa |
 | 2 | Logout hai lần | Lần hai vẫn 200 |
 | 3 | Logout khi chưa đăng nhập | 200 |
@@ -725,7 +746,7 @@ POST /api/auth/logout-all
 # UC-008 · Quên mật khẩu — yêu cầu đặt lại
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-008 |
 | **Actor chính** | `GUEST` |
 | **Priority** | P1 |
@@ -758,7 +779,7 @@ Không đăng nhập.
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `EMAIL_NOT_FOUND` | Email không có trong hệ thống | **200** | 🔴 **KHÔNG báo lỗi.** Trả 200 giống hệt trường hợp thành công |
 | `RATE_LIMIT_EXCEEDED` | Yêu cầu quá nhiều | **429** | Giới hạn theo email và theo IP |
 | `EMAIL_SEND_FAILED` | SMTP lỗi | **200** + log | Trả 200, ghi log để admin biết. Không tiết lộ cho client |
@@ -774,12 +795,15 @@ Không đăng nhập.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | Response **giống hệt** dù email có tồn tại hay không |
-| BR-02 | Thời gian phản hồi nên gần giống nhau — chống timing attack |
-| BR-03 | Token reset hết hạn ngắn hơn token xác thực email (ví dụ 1 giờ) |
-| BR-04 | Sinh token mới thì thu hồi token reset cũ |
-| BR-05 | Rate limit theo **cả** email và IP |
+| --- | --- |
+| BR-01 | Khi người dùng yêu cầu quên mật khẩu, hệ thống phải trả cùng một thông báo bất kể email có tồn tại trong hệ thống hay không. |
+| BR-02 | Response của trường hợp email tồn tại và email không tồn tại phải giống nhau về nội dung chính để tránh dò tài khoản. |
+| BR-03 | Yêu cầu quên mật khẩu phải bị giới hạn tần suất theo cả email và IP để tránh spam email hoặc dò tài khoản hàng loạt. |
+| BR-04 | Nếu email tồn tại và tài khoản hợp lệ, hệ thống tạo token đặt lại mật khẩu và gửi email hướng dẫn đặt lại mật khẩu. |
+| BR-05 | Mỗi lần phát hành token đặt lại mật khẩu mới, các token đặt lại mật khẩu cũ còn hiệu lực của cùng tài khoản phải bị vô hiệu hóa. |
+| BR-06 | Token đặt lại mật khẩu phải được lưu ở dạng đã băm, không lưu token thô. |
+| BR-07 | Token đặt lại mật khẩu phải có thời hạn ngắn hơn token xác thực email. |
+| BR-08 | Nếu tài khoản bị vô hiệu hóa vĩnh viễn, hệ thống không gửi email đặt lại mật khẩu, nhưng response cho client vẫn không được tiết lộ trạng thái tài khoản. |
 
 ## API
 
@@ -797,7 +821,7 @@ Body: { email }
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Email tồn tại | 200, email gửi đi, token tạo ra |
 | 2 | Email không tồn tại | **200** với cùng thông báo, không gửi email |
 | 3 | So sánh response case 1 và 2 | **Giống hệt nhau** |
@@ -810,7 +834,7 @@ Body: { email }
 # UC-009 · Đặt lại mật khẩu bằng token
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-009 |
 | **Actor chính** | `GUEST` |
 | **Priority** | P1 |
@@ -847,7 +871,7 @@ Token `RESET_PASSWORD` còn hạn, chưa dùng.
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `TOKEN_INVALID` | Token sai | **400** | "Link không hợp lệ", cho yêu cầu lại |
 | `TOKEN_EXPIRED` | Token quá hạn | **410** | "Link đã hết hạn", nút yêu cầu lại |
 | `TOKEN_ALREADY_USED` | Token đã dùng | **409** | "Link đã được dùng", cho yêu cầu lại |
@@ -863,13 +887,15 @@ Token `RESET_PASSWORD` còn hạn, chưa dùng.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | Thu hồi **toàn bộ** refresh token của user sau khi đổi mật khẩu |
-| BR-02 | Reset `failed_login_count` và `locked_until` |
-| BR-03 | Token reset dùng một lần |
-| BR-04 | Mật khẩu mới phải khác mật khẩu cũ |
-| BR-05 | Mọi thao tác trong cùng transaction |
-| BR-06 | Gửi email thông báo "mật khẩu của bạn vừa được đổi" — để người dùng biết nếu không phải mình làm |
+| --- | --- |
+| BR-01 | Token đặt lại mật khẩu chỉ được sử dụng một lần. Sau khi đặt lại mật khẩu thành công, token phải bị vô hiệu hóa. |
+| BR-02 | Mật khẩu mới phải đáp ứng chính sách độ mạnh tối thiểu của hệ thống. |
+| BR-03 | Mật khẩu mới không được trùng với mật khẩu hiện tại của người dùng. |
+| BR-04 | Khi đặt lại mật khẩu thành công, hệ thống phải cập nhật mật khẩu, vô hiệu hóa token đặt lại mật khẩu và thu hồi toàn bộ refresh token của người dùng trong cùng một thao tác nhất quán dữ liệu. |
+| BR-05 | Sau khi đặt lại mật khẩu thành công, toàn bộ phiên đăng nhập cũ của người dùng phải bị vô hiệu hóa để ngăn người đang giữ token cũ tiếp tục truy cập. |
+| BR-06 | Nếu tài khoản đang bị khóa tạm thời do đăng nhập sai, đặt lại mật khẩu thành công sẽ mở khóa trạng thái đó. |
+| BR-07 | Sau khi đặt lại mật khẩu thành công, hệ thống phải gửi thông báo cho người dùng biết mật khẩu vừa được thay đổi. |
+| BR-08 | Tài khoản bị vô hiệu hóa vĩnh viễn không được đặt lại mật khẩu để đăng nhập lại. |
 
 ## API
 
@@ -888,7 +914,7 @@ Body: { token, newPassword, confirmPassword }
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Token hợp lệ, mật khẩu mạnh | 200, đăng nhập được bằng mật khẩu mới |
 | 2 | Đăng nhập bằng mật khẩu cũ | 401 |
 | 3 | Refresh token cũ sau khi reset | **401** — đã bị thu hồi |
@@ -901,7 +927,7 @@ Body: { token, newPassword, confirmPassword }
 # UC-010 · Đổi mật khẩu khi đã đăng nhập
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-010 |
 | **Actor chính** | `USER` |
 | **Priority** | P1 |
@@ -936,7 +962,7 @@ Người dùng đang đăng nhập, đổi mật khẩu. **Phải nhập mật k
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `INVALID_OLD_PASSWORD` | Mật khẩu cũ sai | **401** | Báo rõ "mật khẩu hiện tại không đúng" |
 | `WEAK_PASSWORD` | Mật khẩu mới yếu | **422** | |
 | `SAME_AS_OLD_PASSWORD` | Mới giống cũ | **422** | |
@@ -954,12 +980,15 @@ Người dùng đang đăng nhập, đổi mật khẩu. **Phải nhập mật k
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | **Bắt buộc** nhập mật khẩu cũ |
-| BR-02 | Thu hồi refresh token của các thiết bị khác, giữ phiên hiện tại |
-| BR-03 | Mật khẩu mới khác mật khẩu cũ |
-| BR-04 | Gửi email thông báo |
-| BR-05 | Rate limit số lần thử mật khẩu cũ |
+| --- | --- |
+| BR-01 | Người dùng đang đăng nhập muốn đổi mật khẩu phải nhập đúng mật khẩu hiện tại. |
+| BR-02 | Mật khẩu mới phải đáp ứng chính sách độ mạnh tối thiểu của hệ thống. |
+| BR-03 | Mật khẩu mới không được trùng với mật khẩu hiện tại. |
+| BR-04 | Khi đổi mật khẩu thành công, hệ thống phải cập nhật mật khẩu và thu hồi refresh token của các thiết bị khác. |
+| BR-05 | Phiên hiện tại của người dùng được giữ lại sau khi đổi mật khẩu thành công để tránh làm gián đoạn trải nghiệm, trừ khi người dùng chọn đăng xuất khỏi mọi thiết bị. |
+| BR-06 | Hệ thống phải giới hạn tần suất thử mật khẩu hiện tại để tránh việc kẻ xấu lợi dụng phiên đăng nhập mở sẵn nhằm dò mật khẩu. |
+| BR-07 | Sau khi đổi mật khẩu thành công, hệ thống phải gửi thông báo cho người dùng biết mật khẩu vừa được thay đổi. |
+| BR-08 | Lỗi nhập sai mật khẩu hiện tại không được xử lý như lỗi hết phiên đăng nhập. Client phải hiển thị đây là lỗi xác nhận mật khẩu, không tự động refresh token hoặc đăng xuất người dùng. |
 
 ## API
 
@@ -978,7 +1007,7 @@ Body: { oldPassword, newPassword, confirmPassword }
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Mật khẩu cũ đúng, mới mạnh | 200 |
 | 2 | Mật khẩu cũ sai | 401 |
 | 3 | Phiên hiện tại sau khi đổi | **Vẫn đăng nhập được** |
@@ -990,7 +1019,7 @@ Body: { oldPassword, newPassword, confirmPassword }
 # UC-011 · Xem và sửa thông tin cá nhân
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-011 |
 | **Actor chính** | `USER` |
 | **Priority** | P1 |
@@ -1030,7 +1059,7 @@ Upload file → kiểm loại và kích thước → lưu → cập nhật URL.
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `VALIDATION_ERROR` | Field sai định dạng | **422** | Chỉ rõ field |
 | `FORBIDDEN_FIELD` | Cố sửa field không được phép (`id`, `email`, `roles`, `password_hash`) | **403** | 🔴 Chặn ở server, **không** tin frontend |
 | `FILE_TOO_LARGE` | Ảnh quá lớn | **413** | Nêu giới hạn |
@@ -1044,11 +1073,15 @@ Upload file → kiểm loại và kích thước → lưu → cập nhật URL.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | **Whitelist** field được sửa: `fullName`, `avatarUrl`, `preferredLanguage`, `targetHskLevel` |
-| BR-02 | **Không** cho sửa: `id`, `email`, `passwordHash`, `roles`, `emailVerifiedAt`, `createdAt` |
-| BR-03 | Không trả `passwordHash` trong bất kỳ response nào |
-| BR-04 | Đổi email là UC riêng, cần xác thực lại |
+| --- | --- |
+| BR-01 | Người dùng chỉ được xem và sửa hồ sơ của chính mình. |
+| BR-02 | Người dùng được phép sửa các thông tin hồ sơ thông thường như họ tên hiển thị, ảnh đại diện, ngôn ngữ giao diện, trình độ HSK hiện tại và mục tiêu học tập. |
+| BR-03 | Người dùng không được tự sửa các trường hệ thống như `id`, `roles`, `passwordHash`, `emailVerifiedAt`, trạng thái khóa/ban, ngày tạo tài khoản hoặc các thông tin bảo mật nội bộ. |
+| BR-04 | Người dùng không được đổi trực tiếp email đăng nhập trong chức năng sửa hồ sơ nếu chưa có quy trình xác thực email mới. |
+| BR-05 | Server phải kiểm tra whitelist field được phép sửa, không dựa vào frontend để ẩn field cấm. |
+| BR-06 | Mọi response hồ sơ người dùng không được chứa password hash, token hoặc thông tin bảo mật nội bộ. |
+| BR-07 | Ảnh đại diện phải được kiểm tra loại file và dung lượng trước khi lưu. |
+| BR-08 | Hồ sơ học tập của người dùng phải phục vụ các chức năng học tiếng Trung như lộ trình học, nhắc lịch, thống kê tiến độ và cá nhân hóa nội dung luyện tập. |
 
 ## API
 
@@ -1069,7 +1102,7 @@ Body: { fullName?, avatarUrl?, preferredLanguage?, targetHskLevel? }
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Sửa `fullName` | 200, cập nhật đúng |
 | 2 | Gửi kèm `roles: ["SUPER_ADMIN"]` | **403** hoặc bỏ qua field — **role KHÔNG đổi** |
 | 3 | Gửi kèm `email` | 403 hoặc bỏ qua |
@@ -1082,7 +1115,7 @@ Body: { fullName?, avatarUrl?, preferredLanguage?, targetHskLevel? }
 # UC-012 · Khóa tài khoản tạm sau N lần sai mật khẩu
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-012 |
 | **Actor chính** | `SYSTEM` |
 | **Priority** | P1 |
@@ -1125,13 +1158,14 @@ Thuộc UC-114.
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `ACCOUNT_LOCKED` | Đang trong thời gian khóa | **423** | Trả kèm `unlockAt` để frontend đếm ngược |
 | — | Mật khẩu **đúng** khi đang khóa | **423** | 🔴 Vẫn từ chối — nếu không thì cơ chế khóa vô nghĩa |
 | — | Kẻ tấn công dùng cơ chế này để khóa tài khoản người khác | — | ⚠️ Xem ghi chú |
 
 > ⚠️ **Rủi ro bị lợi dụng làm DoS.** Kẻ xấu biết email của bạn, cố tình nhập sai N lần
 > để khóa tài khoản bạn. Cách giảm:
+>
 > - Khóa theo **cặp (tài khoản, IP)** thay vì chỉ theo tài khoản
 > - Hoặc dùng CAPTCHA sau vài lần sai thay vì khóa hẳn
 > - Hoặc khóa thời gian tăng dần: 1 phút → 5 phút → 15 phút
@@ -1144,12 +1178,15 @@ Thuộc UC-114.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | Ngưỡng và thời gian khóa: **chưa chốt** — tham khảo `Move_home`: 5 lần sai → khóa 15 phút |
-| BR-02 | Đang khóa thì từ chối kể cả mật khẩu đúng |
-| BR-03 | Đăng nhập thành công reset `failed_login_count` |
-| BR-04 | Đặt lại mật khẩu mở khóa ngay |
-| BR-05 | Ghi log mọi lần đăng nhập thất bại kèm IP và thời điểm |
+| --- | --- |
+| BR-01 | Hệ thống phải ghi nhận các lần đăng nhập thất bại để phát hiện hành vi dò mật khẩu. |
+| BR-02 | Trong MVP, hệ thống không khóa toàn bộ tài khoản chỉ vì một nguồn đăng nhập sai nhiều lần, nhằm tránh việc kẻ xấu cố tình khóa tài khoản của người khác. |
+| BR-03 | Sau 5 lần đăng nhập sai trong vòng 15 phút đối với cùng một cặp email-IP, hệ thống tạm chặn đăng nhập từ cặp email-IP đó trong 15 phút. |
+| BR-04 | Trong thời gian bị chặn tạm thời, mọi lần đăng nhập từ cặp email-IP đó đều bị từ chối, kể cả khi mật khẩu đúng. |
+| BR-05 | Đăng nhập thành công sẽ reset bộ đếm đăng nhập thất bại liên quan đến cặp email-IP đó. |
+| BR-06 | Đặt lại mật khẩu thành công sẽ xóa trạng thái chặn tạm thời liên quan đến tài khoản đó. |
+| BR-07 | Hệ thống phải ghi log các lần đăng nhập thất bại với thông tin cần thiết như thời điểm, IP và định danh tài khoản đã nhập, nhưng không ghi mật khẩu. |
+| BR-08 | Các tham số như số lần sai, khoảng thời gian theo dõi và thời gian chặn phải được cấu hình tập trung để có thể điều chỉnh mà không phải sửa luồng nghiệp vụ. |
 
 ## API
 
@@ -1168,7 +1205,7 @@ POST /api/auth/login   (cùng endpoint UC-003)
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Sai mật khẩu 1 lần | 401, `failed_login_count = 1` |
 | 2 | Sai đủ ngưỡng | 423, `locked_until` được set |
 | 3 | Mật khẩu **đúng** khi đang khóa | **423** |
@@ -1181,7 +1218,7 @@ POST /api/auth/login   (cùng endpoint UC-003)
 # UC-013 · Chơi game trong WebView mobile
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-013 |
 | **Actor chính** | `USER` |
 | **Priority** | P1 |
@@ -1222,7 +1259,7 @@ mới vào WebView.
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_TOKEN` | App không tiêm được token | **401** | Trang game hiện "Vui lòng đăng nhập lại", app xử lý |
 | `TOKEN_EXPIRED` | Token hết hạn trong WebView | **401** | Yêu cầu app refresh qua `postMessage` |
 | — | Trang game load trước khi token được tiêm | — | 🔴 **Race condition thật.** Xem ghi chú |
@@ -1238,12 +1275,15 @@ mới vào WebView.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | Trang game đọc token: `window.__CNHSK_TOKEN__` → nếu không có thì cookie |
-| BR-02 | **Một đoạn code chạy được cả hai nơi** — trên web không có biến nên dùng cookie, trong WebView có biến nên dùng header. Không viết hai nhánh logic |
-| BR-03 | Trang game chờ token trước khi gọi API |
-| BR-04 | WebView **không** cần thêm origin vào CORS — nó tải chính `game.cnhsk.com` |
-| BR-05 | App không tiêm token vào URL (lộ trong history) |
+| --- | --- |
+| BR-01 | Mobile khi mở trang game trong WebView phải sử dụng phiên đăng nhập của app mobile, không yêu cầu người dùng đăng nhập lại trong WebView. |
+| BR-02 | Token của app mobile không được truyền qua URL, query string hoặc fragment của trang game. |
+| BR-03 | App mobile phải truyền token cho trang game bằng cơ chế an toàn trước khi trang game thực hiện request cần xác thực. |
+| BR-04 | Trang game phải ưu tiên token do app mobile cung cấp khi chạy trong WebView; khi chạy trên web thường thì sử dụng cookie đăng nhập của web. |
+| BR-05 | Trước khi mở WebView game, app mobile phải tránh để cookie web cũ làm sai phiên đăng nhập của người dùng. |
+| BR-06 | Nếu token mobile hết hạn trong lúc chơi, trang game phải yêu cầu app mobile làm mới token thay vì tự chuyển người dùng sang trang đăng nhập web. |
+| BR-07 | Trang game trong WebView chỉ được lưu điểm, cập nhật tiến độ hoặc gửi dữ liệu học tập khi xác thực được đúng tài khoản người dùng. |
+| BR-08 | Một đoạn code trang game phải chạy được cả trên web thường và trong WebView mobile; khác biệt chỉ nằm ở cách lấy thông tin xác thực. |
 
 ## API
 
@@ -1265,7 +1305,7 @@ const headers = token ? { Authorization: `Bearer ${token}` } : {};
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Mở WebView với token đã tiêm | Trang game biết người dùng |
 | 2 | Mở trang game trên web thường | Dùng cookie, vẫn chạy |
 | 3 | Token chưa tiêm khi trang load | Trang game **chờ**, không gọi API lỗi |
@@ -1277,7 +1317,7 @@ const headers = token ? { Authorization: `Bearer ${token}` } : {};
 # UC-014 · Xem lịch sử đăng nhập
 
 | | |
-|---|---|
+| --- | --- |
 | **ID** | UC-014 |
 | **Actor chính** | `USER` |
 | **Priority** | P3 |
@@ -1311,18 +1351,20 @@ Không đổi trạng thái — chỉ đọc.
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_DATA` | Chưa có lịch sử | **200** | Trả danh sách rỗng + empty state |
 | `TOKEN_EXPIRED` | Session hết hạn | **401** | Refresh |
 
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-01 | Chỉ xem được lịch sử **của chính mình** — kiểm quyền sở hữu |
-| BR-02 | IP hiển thị dạng mask một phần |
-| BR-03 | Giữ lịch sử N ngày rồi xóa |
-| BR-04 | ⚠️ **Chưa có bảng** để lưu — cần thêm `login_events` nếu làm UC này |
+| --- | --- |
+| BR-01 | Người dùng chỉ được xem lịch sử đăng nhập của chính mình. |
+| BR-02 | Lịch sử đăng nhập phải hiển thị theo thứ tự mới nhất trước. |
+| BR-03 | Thông tin IP hiển thị cho người dùng phải được che một phần để giảm rủi ro lộ thông tin nhạy cảm. |
+| BR-04 | Hệ thống chỉ lưu lịch sử đăng nhập trong một khoảng thời gian giới hạn theo chính sách lưu trữ dữ liệu. |
+| BR-05 | Nếu chưa có lịch sử đăng nhập, hệ thống trả danh sách rỗng và frontend hiển thị trạng thái chưa có dữ liệu, không coi đây là lỗi. |
+| BR-06 | UC này thuộc phạm vi V2. Nếu MVP chưa có bảng lưu lịch sử đăng nhập, không gen code cho UC này trong giai đoạn MVP. |
 
 ## API
 
@@ -1338,10 +1380,23 @@ GET /api/me/login-history?page=0&size=20
 ## Test case
 
 | # | Input | Kết quả mong đợi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Có lịch sử | 200, danh sách đúng thứ tự mới nhất trước |
 | 2 | Chưa có lịch sử | 200, danh sách rỗng |
 | 3 | Gọi với ID người khác | **403** — chỉ xem được của mình |
+
+---
+
+# Business rule bổ sung · Đồng bộ tiến độ học tập khi có tài khoản
+
+| # | Rule |
+|---|---|
+| BR-01 | Khi người dùng đăng nhập lần đầu trên một thiết bị đang có dữ liệu học tập cục bộ, hệ thống phải cho phép nhập dữ liệu đó lên tài khoản để tránh mất tiến độ. |
+| BR-02 | Dữ liệu học tập cục bộ chỉ được nhập vào tài khoản sau khi người dùng xác nhận. Hệ thống không được tự động ghi đè dữ liệu tài khoản nếu chưa có quy tắc hợp nhất rõ ràng. |
+| BR-03 | Khi dữ liệu cục bộ và dữ liệu trên server cùng tồn tại, hệ thống phải áp dụng quy tắc hợp nhất rõ ràng, ưu tiên bảo toàn tiến độ học cao hơn thay vì xóa dữ liệu cũ. |
+| BR-04 | Các dữ liệu cần đồng bộ tối thiểu gồm tiến độ chữ Hán, từ vựng, ngữ pháp, trạng thái thành thạo, lịch ôn tập, kết quả luyện tập, kết quả game học tập và cấu hình học tập cá nhân. |
+| BR-05 | Sau khi dữ liệu cục bộ được nhập thành công, thiết bị phải chuyển sang sử dụng dữ liệu tài khoản làm nguồn dữ liệu chính. |
+| BR-06 | Nếu quá trình nhập dữ liệu thất bại, hệ thống phải giữ nguyên dữ liệu cục bộ và thông báo rõ cho người dùng, không được làm mất tiến độ học hiện có. |
 
 ---
 
@@ -1350,7 +1405,7 @@ GET /api/me/login-history?page=0&size=20
 ## Exception đáng chú ý nhất
 
 | # | Exception | UC | Vì sao quan trọng |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | `INVALID_CREDENTIALS` giống nhau cho email sai và mật khẩu sai | UC-003 | Chống *user enumeration* |
 | 2 | `EMAIL_NOT_FOUND` trả **200** | UC-008 | Chống dò email |
 | 3 | `REFRESH_TOKEN_REUSED` → thu hồi hết token | UC-006 | Phát hiện token bị đánh cắp |
@@ -1364,7 +1419,7 @@ GET /api/me/login-history?page=0&size=20
 ## Việc còn thiếu trong thiết kế hiện tại
 
 | # | Thiếu | Ảnh hưởng UC |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Cột `failed_login_count`, `locked_until` trong `users` | UC-012 |
 | 2 | Cột `suspended_at`, `banned_at` trong `users` | UC-003 |
 | 3 | Bảng `login_events` | UC-014 |

@@ -13,7 +13,7 @@
 ## Bảng tra nhanh
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | UC-108 | Duyệt câu hỏi AI sinh | `TEACHER` | P1 | MVP | 6.6 |
 | UC-109 | Sửa nội dung câu hỏi | `TEACHER` `CONTENT_ADMIN` | P1 | MVP | 6.6 |
 | UC-110 | Nhập dữ liệu đề thi từ file | `CONTENT_ADMIN` | **P0** | MVP | 6.4 |
@@ -52,14 +52,14 @@
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Duyệt | `status = APPROVED`, `reviewed_by`, `reviewed_at`; câu vào kho chung (UC-050) |
 | Từ chối | `status = REJECTED` kèm lý do; **không** đến người học |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `TEACHER` | Mở hàng đợi duyệt câu hỏi |
 | 2 | System | Kiểm role `TEACHER` |
 | 3 | System | `GET /api/teacher/questions?status=PENDING_REVIEW` — sắp cũ nhất trước |
@@ -86,7 +86,7 @@ Câu gần đúng, chỉ sai một từ. Gọi UC-109 sửa trước, rồi duy�
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `TEACHER` | 🔴 **Kiểm ở server** |
 | `QUESTION_NOT_PENDING` | 409 | Đã duyệt/từ chối | `WHERE status='PENDING_REVIEW'` |
 | `CONCURRENT_REVIEW` | 409 | Hai `TEACHER` cùng duyệt | Cùng mẫu UC-076 · UC-105 · UC-107 |
@@ -126,16 +126,19 @@ Câu gần đúng, chỉ sai một từ. Gọi UC-109 sửa trước, rồi duy�
 
 ## Business rule
 
+## Business rule
+
 | # | Rule |
-|---|---|
-| BR-108-1 | Chỉ `TEACHER` (kiểm ở **server**) |
-| BR-108-2 | `UPDATE ... WHERE status='PENDING_REVIEW'` |
-| BR-108-3 | Lý do từ chối **bắt buộc** |
-| BR-108-4 | Bắt buộc ghi `review_actions` |
-| BR-108-5 | Duyệt lô: mỗi câu một transaction |
-| BR-108-6 | Chỉ cho duyệt lô những câu đã mở xem |
-| BR-108-7 | Câu `REJECTED`/`PENDING_REVIEW` **không bao giờ** đến người học |
-| BR-108-8 | Partial unique index: đúng 1 `is_correct` mỗi câu |
+| --- | --- |
+| BR-108-1 | Chỉ `TEACHER` được duyệt hoặc từ chối câu hỏi do AI sinh. Việc kiểm tra quyền phải thực hiện ở server. |
+| BR-108-2 | Chỉ câu hỏi có `status = PENDING_REVIEW` và `source = AI` mới được đưa vào hàng đợi duyệt. |
+| BR-108-3 | Câu hỏi `PENDING_REVIEW` hoặc `REJECTED` không được xuất hiện trong bất kỳ bài học, bài luyện, quiz hoặc đề thi nào của người học. |
+| BR-108-4 | Khi duyệt, hệ thống chuyển câu hỏi sang `APPROVED`, ghi người duyệt và thời điểm duyệt. |
+| BR-108-5 | Khi từ chối, lý do từ chối là bắt buộc để phục vụ cải thiện prompt hoặc sửa nội dung sau này. |
+| BR-108-6 | Nếu hai giáo viên duyệt cùng một câu, chỉ thao tác đầu tiên được ghi nhận. Thao tác sau phải bị từ chối vì câu không còn ở trạng thái chờ duyệt. |
+| BR-108-7 | Duyệt hàng loạt chỉ được áp dụng cho các câu mà giáo viên đã mở xem. Không cho phép “chọn tất cả rồi duyệt” khi chưa xem nội dung. |
+| BR-108-8 | Hệ thống phải kiểm tra cấu trúc câu hỏi trước khi cho duyệt: có nội dung, có lời giải, có nhãn kiến thức, và nếu là trắc nghiệm thì có đúng một đáp án đúng. |
+| BR-108-9 | Mỗi hành động duyệt, sửa rồi duyệt, hoặc từ chối phải được ghi vào lịch sử review để truy vết trách nhiệm. |
 
 ## API · DB
 
@@ -144,12 +147,13 @@ GET   /api/teacher/questions?status=PENDING_REVIEW
 PATCH /api/teacher/questions/{id}/review
 PATCH /api/teacher/questions/bulk-review
 ```
+
 `questions` · `question_options` · `question_knowledge_points` (đọc + ghi) · `review_actions` (ghi) · `ai_generation_jobs` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `TEACHER` duyệt câu | `APPROVED`, vào kho chung |
 | T2 | `USER` gọi | 403 |
 | T3 | `CONTENT_ADMIN` gọi | 403 (theo quyết định) |
@@ -184,7 +188,7 @@ Sửa đề bài, đáp án, lời giải, hoặc nhãn kiến thức của câu
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Actor | Mở câu hỏi cần sửa |
 | 2 | Actor | Sửa nội dung |
 | 3 | Client | `PUT /api/admin/questions/{id}` |
@@ -209,7 +213,7 @@ Không xoá — đặt `status = ARCHIVED`. Xem exception.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `TEACHER`/`CONTENT_ADMIN` | Chặn |
 | `QUESTION_CHANGED_AFTER_ATTEMPTS` | — | 🔴 Sửa đáp án của câu đã có người làm | Xem ghi chú |
 | `MALFORMED_AFTER_EDIT` | 400 | Sửa thành 2 đáp án đúng | Validate + DB constraint |
@@ -246,16 +250,16 @@ Không xoá — đặt `status = ARCHIVED`. Xem exception.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-109-1 | `TEACHER` hoặc `CONTENT_ADMIN` |
-| BR-109-2 | Mỗi câu **luôn** có ≥ 1 nhãn kiến thức |
-| BR-109-3 | Đúng 4 đáp án, đúng 1 `is_correct` — validate + DB constraint |
-| BR-109-4 | **Không xoá** câu có `attempt_answers` — dùng `ARCHIVED` |
-| BR-109-5 | Ghi `review_actions` kèm **nội dung cũ** |
-| BR-109-6 | Cảnh báo khi sửa câu đã có người làm |
-| BR-109-7 | Chặn sửa câu thuộc cuộc thi đang diễn ra |
-| BR-109-8 | Xoá cache sau khi sửa |
-| BR-109-9 | ⚠️ Chốt: có chặn sửa đáp án của câu đã dùng không |
+| --- | --- |
+| BR-109-1 | Chỉ `TEACHER` hoặc `CONTENT_ADMIN` được sửa câu hỏi. |
+| BR-109-2 | Mỗi câu hỏi phải luôn có ít nhất một nhãn kiến thức. Không được lưu câu hỏi không gắn với điểm kiến thức nào. |
+| BR-109-3 | Câu hỏi trắc nghiệm phải có đúng một đáp án đúng. Không được lưu câu có nhiều đáp án đúng hoặc không có đáp án đúng. |
+| BR-109-4 | Câu hỏi đã có người làm không được sửa đáp án đúng hoặc nội dung làm thay đổi cách chấm. Nếu cần sửa, tạo câu hỏi mới và lưu trữ câu cũ. |
+| BR-109-5 | Với câu hỏi đã có người làm, chỉ cho sửa lỗi chính tả, lời giải, diễn đạt hoặc nhãn kiến thức nếu không làm sai kết quả cũ. |
+| BR-109-6 | Không xóa cứng câu hỏi đã từng được dùng trong bài làm. Nếu không dùng nữa, chuyển trạng thái sang `ARCHIVED`. |
+| BR-109-7 | Câu hỏi thuộc cuộc thi đang diễn ra không được sửa. |
+| BR-109-8 | Mọi lần sửa phải ghi lịch sử thay đổi, gồm người sửa, thời điểm sửa và nội dung cũ cần thiết để đối chiếu. |
+| BR-109-9 | Sau khi sửa câu hỏi, các cache hoặc dữ liệu hiển thị liên quan phải được làm mới để người học không thấy nội dung cũ. |
 
 ## API · DB
 
@@ -263,12 +267,13 @@ Không xoá — đặt `status = ARCHIVED`. Xem exception.
 PUT   /api/admin/questions/{id}
 PATCH /api/admin/questions/{id}/archive
 ```
+
 `questions` · `question_options` · `question_knowledge_points` (ghi) · `attempt_answers` · `contests` (đọc để kiểm) · `review_actions` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Sửa lời giải | 200, `review_actions` có nội dung cũ |
 | T2 | `USER` gọi | 403 |
 | T3 | Sửa thành 2 đáp án đúng | 400 + DB chặn |
@@ -303,7 +308,7 @@ Yêu cầu: nhập **có kiểm tra định dạng** · **báo cáo dòng lỗi*
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Thành công | `exams`/`questions`/`words`/`grammar_points` thêm dòng; `import_runs` ghi kết quả |
 | Có dòng lỗi | Dòng đúng được nhập, dòng lỗi báo lại; **không ghi dữ liệu hỏng** |
 | Chạy lại | **Không** tạo bản trùng (idempotent) |
@@ -311,7 +316,7 @@ Yêu cầu: nhập **có kiểm tra định dạng** · **báo cáo dòng lỗi*
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `CONTENT_ADMIN` | Chọn file, chọn loại dữ liệu |
 | 2 | Client | `POST /api/admin/imports` (multipart) + CSRF |
 | 3 | System | Kiểm role, kiểm kích thước và loại file |
@@ -344,7 +349,7 @@ File > N dòng → trả `import_run_id` ngay, chạy nền, cập nhật tiến
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `CONTENT_ADMIN` | 🔴 Chặn — `FINANCE_ADMIN` không nhập đề |
 | `UNKNOWN_FILE_FORMAT` | 400 | 🔴 Định dạng file của thầy chưa biết | Xem ghi chú |
 | `MISSING_KNOWLEDGE_POINT` | — | 🔴 Dòng không có nhãn kiến thức | Xem ghi chú |
@@ -397,18 +402,19 @@ File > N dòng → trả `import_run_id` ngay, chạy nền, cập nhật tiến
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-110-1 | Chỉ `CONTENT_ADMIN` |
-| BR-110-2 | Dòng **không có nhãn kiến thức** → từ chối dòng |
-| BR-110-3 | Dòng lỗi **không** rollback dòng đúng |
-| BR-110-4 | **Không ghi dữ liệu hỏng** |
-| BR-110-5 | Chạy lại **không** tạo bản trùng — upsert theo khoá tự nhiên |
-| BR-110-6 | Ghi `file_hash` để nhận ra file đã nhập |
-| BR-110-7 | Buộc đọc file bằng encoding đúng; validate có ký tự Hán hợp lệ |
-| BR-110-8 | **Không** commit dữ liệu thật của thầy vào git |
-| BR-110-9 | `import_runs` bắt buộc `created_by` |
-| BR-110-10 | Một lần nhập `RUNNING` mỗi lúc |
-| BR-110-11 | ⚠️ **Chặn:** cần định dạng file thật + khoá tự nhiên trước khi viết parser |
+| --- | --- |
+| BR-110-1 | UC này là P0 nhưng bị chặn cho đến khi nhóm có ít nhất một file mẫu thật từ thầy và thống nhất định dạng import. |
+| BR-110-2 | Chỉ `CONTENT_ADMIN` được nhập dữ liệu đề thi, từ vựng, ngữ pháp hoặc câu hỏi từ file. |
+| BR-110-3 | File import phải đúng định dạng đã chốt. File sai định dạng hoàn toàn thì không nhập dòng nào. |
+| BR-110-4 | Mỗi dòng dữ liệu phải được kiểm tra trước khi ghi vào kho chính. Dòng lỗi không được ghi vào database. |
+| BR-110-5 | Dòng hợp lệ vẫn được nhập dù cùng file có dòng lỗi. Một dòng lỗi không được làm rollback toàn bộ file. |
+| BR-110-6 | Câu hỏi import bắt buộc phải có nhãn kiến thức. Dòng thiếu nhãn kiến thức bị từ chối. |
+| BR-110-7 | Câu hỏi trắc nghiệm import phải có đúng một đáp án đúng. Dòng sai cấu trúc bị từ chối. |
+| BR-110-8 | Import phải chạy lại an toàn. Chạy lại cùng file hoặc cùng dữ liệu không được tạo bản trùng. |
+| BR-110-9 | Trước khi làm import, nhóm phải chốt khóa tự nhiên cho từng loại dữ liệu, ví dụ câu hỏi, từ vựng, ngữ pháp, để upsert đúng. |
+| BR-110-10 | Hệ thống phải phát hiện lỗi encoding làm chữ Hán bị hỏng. Không được ghi dữ liệu dạng `???` hoặc ký tự rác vào kho chính. |
+| BR-110-11 | Mỗi lần import phải ghi lịch sử import, gồm người import, thời điểm, loại dữ liệu, file hash, số dòng thành công và số dòng lỗi. |
+| BR-110-12 | Không đưa file dữ liệu thật của thầy vào git hoặc test resource của dự án. Dữ liệu test phải là dữ liệu tự tạo. |
 
 ## API · DB
 
@@ -416,6 +422,7 @@ File > N dòng → trả `import_run_id` ngay, chạy nền, cập nhật tiến
 POST /api/admin/imports
 GET  /api/admin/imports/{id}
 ```
+
 `import_runs` (ghi) · `exams` · `exam_sections` · `questions` · `question_options` · `question_knowledge_points` · `words` · `grammar_points` (ghi) · `knowledge_points` (đọc)
 
 > ⚠️ **Lệch tài liệu:** feature tree 6.4 ghi bảng `import_batches`, DB v5 có **`import_runs`**
@@ -424,7 +431,7 @@ GET  /api/admin/imports/{id}
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | File 100 dòng hợp lệ | 100 dòng vào DB, `import_runs COMPLETED` |
 | T2 | File 100 dòng, 10 lỗi | **90 vào DB**, 10 báo lại |
 | T3 | Chạy lại cùng file | **Không** tạo bản trùng |
@@ -459,7 +466,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `CONTENT_ADMIN` | Mở kết quả lần nhập |
 | 2 | Client | `GET /api/admin/imports/{id}` |
 | 3 | System | Kiểm role |
@@ -476,7 +483,7 @@ Chỉ đọc.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `CONTENT_ADMIN` | Chặn |
 | `IMPORT_RUN_NOT_FOUND` | 404 | ID sai | Chặn |
 | `NO_LINE_NUMBERS` | — | 🔴 Lỗi không có số dòng | Xem ghi chú |
@@ -506,14 +513,15 @@ Chỉ đọc.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-111-1 | Chỉ `CONTENT_ADMIN` |
-| BR-111-2 | Mỗi lỗi có **số dòng** + cột + giá trị + mã lỗi |
-| BR-111-3 | Thông báo lỗi tiếng Việt, cụ thể |
-| BR-111-4 | Lỗi **lưu vào DB**, không chỉ trong response |
-| BR-111-5 | Phân trang khi nhiều lỗi |
-| BR-111-6 | **Không** trả stack trace |
-| BR-111-7 | Không xuất bảng lỗi ra ngoài hệ thống |
+| --- | --- |
+| BR-111-1 | Chỉ `CONTENT_ADMIN` được xem báo cáo lỗi import. |
+| BR-111-2 | Báo cáo lỗi phải gắn với một lần import cụ thể. |
+| BR-111-3 | Mỗi lỗi phải có số dòng, tên cột hoặc vùng dữ liệu, giá trị gây lỗi nếu cần, mã lỗi và thông báo tiếng Việt dễ hiểu. |
+| BR-111-4 | Danh sách lỗi phải được lưu lại để `CONTENT_ADMIN` có thể mở lại sau khi đóng tab. Không chỉ trả lỗi một lần trong response import. |
+| BR-111-5 | Nếu có nhiều lỗi, danh sách lỗi phải phân trang. |
+| BR-111-6 | Response lỗi không được trả stack trace hoặc lỗi kỹ thuật nội bộ. |
+| BR-111-7 | Dữ liệu lỗi import không được xuất công khai ra ngoài hệ thống. Nếu có chức năng export lỗi, chỉ `CONTENT_ADMIN` được tải và chỉ phục vụ sửa file import. |
+| BR-111-8 | Nếu import không có lỗi, hệ thống hiển thị trạng thái nhập thành công và số dòng đã nhập. |
 
 ## API · DB
 
@@ -523,12 +531,13 @@ GET /api/admin/imports/{id}
 GET /api/admin/imports/{id}/errors
 GET /api/admin/imports/{id}/errors/export
 ```
+
 `import_runs` (đọc) · ⚠️ **bảng chi tiết lỗi — chưa có**
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Lần nhập có 10 lỗi | 10 dòng, mỗi dòng có `line_number` |
 | T2 | Đóng tab, mở lại | Danh sách lỗi **vẫn còn** |
 | T3 | `FINANCE_ADMIN` gọi | 403 |
@@ -560,7 +569,7 @@ Role `CONTENT_ADMIN`; CSRF.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `CONTENT_ADMIN` | Mở quản lý đề thi |
 | 2 | System | Kiểm role |
 | 3 | `CONTENT_ADMIN` | Tạo đề, thêm phần, gán câu hỏi |
@@ -585,7 +594,7 @@ Copy cấu trúc, `status = DRAFT`.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `CONTENT_ADMIN` | Chặn |
 | `PUBLISH_EMPTY_EXAM` | 400 | 🔴 Công bố đề 0 câu | Chặn — UC-033 `EXAM_HAS_NO_QUESTIONS` |
 | `PUBLISH_WITHOUT_AUDIO` | 400 | Phần Nghe thiếu audio | Chặn — UC-034 `AUDIO_NOT_AVAILABLE` |
@@ -613,15 +622,18 @@ Copy cấu trúc, `status = DRAFT`.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-112-1 | Chỉ `CONTENT_ADMIN` |
-| BR-112-2 | Công bố cần: ≥ 1 phần · mỗi phần ≥ 1 câu · **mọi câu có nhãn** · phần Nghe có audio |
-| BR-112-3 | Kiểm **chu trình** tiên quyết trước khi lưu |
-| BR-112-4 | Luôn còn ≥ 1 chủ đề gốc |
-| BR-112-5 | Rút đề = `ARCHIVED`, **không** xoá |
-| BR-112-6 | Đề `DRAFT` **không** đến người học |
-| BR-112-7 | `attempts` cũ giữ nguyên khi rút đề |
-| BR-112-8 | Audit log mọi thay đổi |
+| --- | --- |
+| BR-112-1 | Chỉ `CONTENT_ADMIN` được tạo, sửa, công bố hoặc lưu trữ đề thi. |
+| BR-112-2 | Đề ở trạng thái `DRAFT` không được hiển thị cho người học. |
+| BR-112-3 | Chỉ đề `PUBLISHED` mới xuất hiện trong danh sách luyện thi của người học. |
+| BR-112-4 | Trước khi công bố, đề phải có ít nhất một phần, mỗi phần có ít nhất một câu hỏi, và mọi câu hỏi phải hợp lệ. |
+| BR-112-5 | Nếu đề có phần nghe, các câu cần audio bắt buộc phải có audio trước khi công bố. |
+| BR-112-6 | Mọi câu hỏi trong đề công bố phải có ít nhất một nhãn kiến thức. Đây là chốt cuối để tránh phân tích điểm yếu bị rỗng. |
+| BR-112-7 | Rút đề đã công bố thì chuyển sang `ARCHIVED`, không xóa cứng. |
+| BR-112-8 | Bài làm cũ của người học phải được giữ lại khi đề bị lưu trữ. |
+| BR-112-9 | Quan hệ tiên quyết giữa các chủ đề không được tạo vòng lặp. |
+| BR-112-10 | Cây chủ đề phải có ít nhất một chủ đề gốc, tức là chủ đề không có tiên quyết. |
+| BR-112-11 | Mọi thay đổi quan trọng với đề, câu hỏi hoặc chủ đề phải có audit log. |
 
 ## API · DB
 
@@ -633,12 +645,13 @@ PATCH /api/admin/exams/{id}/publish
 PATCH /api/admin/exams/{id}/archive
 PUT   /api/admin/topics/{id}/prerequisites
 ```
+
 `exams` · `exam_sections` · `questions` · `question_knowledge_points` · `topics` (đọc + ghi) · audit log
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Tạo đề, gán câu, công bố | `PUBLISHED`, hiện ở UC-033 |
 | T2 | Công bố đề 0 câu | 400 |
 | T3 | Công bố đề có câu thiếu nhãn | **400** |
@@ -672,7 +685,7 @@ Role `CONTENT_ADMIN`; CSRF.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `CONTENT_ADMIN` | Tạo cuộc thi |
 | 2 | `CONTENT_ADMIN` | Đặt tên, khung giờ (**giờ Việt Nam**), đề, phần thưởng |
 | 3 | Client | `POST /api/admin/contests` + CSRF |
@@ -693,7 +706,7 @@ Role `CONTENT_ADMIN`; CSRF.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `CONTENT_ADMIN` | Chặn |
 | `INVALID_TIME_RANGE` | 400 | `starts_at ≥ ends_at` | Chặn |
 | `START_IN_PAST` | 400 | Bắt đầu trong quá khứ | Chặn |
@@ -730,15 +743,16 @@ Role `CONTENT_ADMIN`; CSRF.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-113-1 | Chỉ `CONTENT_ADMIN` tạo/quản lý cuộc thi |
-| BR-113-2 | Khung giờ gửi kèm offset, lưu `TIMESTAMPTZ`, hiện "giờ Việt Nam" |
-| BR-113-3 | Đang diễn ra → **chặn** sửa khung giờ, đề, `prizes` |
-| BR-113-4 | Xếp hạng công bố **sau khi** đóng |
-| BR-113-5 | Trao thưởng bằng điểm **phải** qua `FINANCE_ADMIN` + ghi sổ cái |
-| BR-113-6 | Công bố cần có đề |
-| BR-113-7 | Huỷ = `CANCELLED`, thông báo người đăng ký |
-| BR-113-8 | ⚠️ Chốt cách ghi `cheat_events` (mâu thuẫn AC-09) |
+| --- | --- |
+| BR-113-1 | UC này thuộc V2. Không gen code cho MVP. |
+| BR-113-2 | Chỉ `CONTENT_ADMIN` được tạo, sửa, công bố hoặc hủy cuộc thi. |
+| BR-113-3 | Cuộc thi phải có khung giờ hợp lệ: thời gian bắt đầu nhỏ hơn thời gian kết thúc. |
+| BR-113-4 | Khung giờ cuộc thi phải được nhập và hiển thị rõ theo giờ Việt Nam. |
+| BR-113-5 | Sau khi cuộc thi đang diễn ra, không được sửa khung giờ, đề thi hoặc phần thưởng. |
+| BR-113-6 | Cuộc thi công bố phải có đề thi hợp lệ. |
+| BR-113-7 | Xếp hạng cuộc thi chỉ được công bố sau khi cuộc thi kết thúc. |
+| BR-113-8 | Nếu phần thưởng là điểm hoặc giá trị tài chính, việc cộng thưởng phải do `FINANCE_ADMIN` xử lý qua luồng tài chính riêng, không do `CONTENT_ADMIN` tự cộng. |
+| BR-113-9 | Hủy cuộc thi thì chuyển trạng thái sang `CANCELLED` và thông báo cho người đã đăng ký. |
 
 ## API · DB
 
@@ -750,12 +764,13 @@ PATCH /api/admin/contests/{id}/cancel
 POST  /api/admin/contests/{id}/publish-ranking
 GET   /api/admin/contests/{id}/cheat-events
 ```
+
 `contests` · `contest_participants` · `contest_submissions` (đọc + ghi) · audit log
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Tạo cuộc thi 20h–21h giờ VN | Lưu đúng `TIMESTAMPTZ` |
 | T2 | Nhập "20:00", xem lại | Hiện **20:00 giờ VN**, không phải 03:00 |
 | T3 | Sửa khung giờ khi đang diễn ra | 403 |
@@ -786,7 +801,7 @@ người dùng (khóa, mở, xem thông tin)".
 ## Hậu điều kiện
 
 | Thao tác | Trạng thái |
-|---|---|
+| --- | --- |
 | Khoá | `users.banned_at` (hoặc `suspended_at`); token bị thu hồi |
 | Mở | Xoá dấu khoá |
 | Xem | Chỉ đọc + audit log |
@@ -794,7 +809,7 @@ người dùng (khóa, mở, xem thông tin)".
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `SUPER_ADMIN` | Tìm theo email/tên |
 | 2 | Client | `GET /api/admin/users?q={x}` |
 | 3 | System | Kiểm role `SUPER_ADMIN` |
@@ -816,7 +831,7 @@ người dùng (khóa, mở, xem thông tin)".
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `SUPER_ADMIN` | Chặn |
 | `STATUS_COLUMNS_MISSING` | 500 | 🔴 Chưa có `banned_at`/`suspended_at` | Xem ghi chú |
 | `TOKENS_NOT_REVOKED` | — | 🔴 Khoá mà không thu hồi token | Xem ghi chú |
@@ -858,16 +873,19 @@ người dùng (khóa, mở, xem thông tin)".
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-114-1 | Chỉ `SUPER_ADMIN` |
-| BR-114-2 | **Không hard delete** user — chỉ `banned_at` |
-| BR-114-3 | Khoá → thu hồi **toàn bộ** refresh token |
-| BR-114-4 | `JwtFilter` kiểm `banned_at` mỗi request |
-| BR-114-5 | Chặn tự khoá; chặn khoá `SUPER_ADMIN` cuối cùng |
-| BR-114-6 | Email **che** ở danh sách; đầy đủ ở chi tiết + audit log |
-| BR-114-7 | **Không bao giờ** trả `password_hash` |
-| BR-114-8 | Lý do khoá bắt buộc; ghi `banned_by` |
-| BR-114-9 | ⚠️ **Chặn** tới khi chốt cột trạng thái (mục A) |
+| --- | --- |
+| BR-114-1 | UC này bị chặn cho đến khi nhóm chốt các trường trạng thái tài khoản như `banned_at`, `suspended_at` hoặc `locked_until`. |
+| BR-114-2 | Chỉ `SUPER_ADMIN` được tìm, xem chi tiết, khóa hoặc mở khóa tài khoản người dùng. |
+| BR-114-3 | Danh sách người dùng chỉ hiển thị thông tin cần thiết. Email nên được che một phần ở danh sách. |
+| BR-114-4 | Khi xem chi tiết người dùng, hệ thống phải ghi audit log người quản trị nào đã xem tài khoản nào. |
+| BR-114-5 | Không bao giờ trả `password_hash`, token hoặc thông tin bảo mật nội bộ trong response quản lý người dùng. |
+| BR-114-6 | Không hard delete tài khoản người dùng. Nếu cần chặn người dùng, dùng trạng thái khóa hoặc ban. |
+| BR-114-7 | Khi khóa tài khoản, lý do khóa là bắt buộc và hệ thống phải ghi người khóa, thời điểm khóa. |
+| BR-114-8 | Khi khóa tài khoản, hệ thống phải thu hồi toàn bộ refresh token của tài khoản đó. |
+| BR-114-9 | Người bị khóa không được tiếp tục dùng API bằng token cũ. |
+| BR-114-10 | `SUPER_ADMIN` không được tự khóa chính mình. |
+| BR-114-11 | Không được khóa hoặc thu hồi quyền của `SUPER_ADMIN` cuối cùng đang hoạt động. |
+| BR-114-12 | Mở khóa tài khoản không tự khôi phục phiên cũ. Người dùng phải đăng nhập lại. |
 
 ## API · DB
 
@@ -877,12 +895,13 @@ GET   /api/admin/users/{id}
 PATCH /api/admin/users/{id}/ban
 PATCH /api/admin/users/{id}/unban
 ```
+
 `users` · `auth_tokens` (ghi) · audit log
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Khoá tài khoản | `banned_at` ghi, token **bị thu hồi** |
 | T2 | Người bị khoá gọi API bằng token cũ | **401** |
 | T3 | `MANAGER` gọi | 403 |
@@ -922,7 +941,7 @@ Gán/thu hồi role. `user_roles` là N-N, có `granted_by` để truy vết ai 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `SUPER_ADMIN` | Mở người dùng, chọn role |
 | 2 | Client | `POST /api/admin/users/{id}/roles` — `{role_code}` + CSRF |
 | 3 | System | Kiểm role `SUPER_ADMIN` |
@@ -941,7 +960,7 @@ Gán/thu hồi role. `user_roles` là N-N, có `granted_by` để truy vết ai 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `SUPER_ADMIN` | 🔴 Xem ghi chú |
 | `INVALID_ROLE_CODE` | 400 | Ngoài 6 role | Chặn |
 | `GUEST_ROLE_ASSIGNED` | 400 | 🔴 Gán `GUEST` | `GUEST` là **trạng thái**, không phải role (A3) |
@@ -984,16 +1003,18 @@ Gán/thu hồi role. `user_roles` là N-N, có `granted_by` để truy vết ai 
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-115-1 | **Chỉ** `SUPER_ADMIN` — test cả 5 role khác đều 403 |
-| BR-115-2 | Chỉ `RoleService` được ghi `user_roles`; không endpoint nào khác |
-| BR-115-3 | Chặn tự cấp role cho mình |
-| BR-115-4 | Không thu hồi `SUPER_ADMIN` cuối cùng |
-| BR-115-5 | `GUEST` **không** gán được |
-| BR-115-6 | Bắt buộc `granted_by` + `granted_at` + audit log |
-| BR-115-7 | Đổi role → **thu hồi token** của người đó |
-| BR-115-8 | Một người nhiều role được |
-| BR-115-9 | Không cấp role cho người bị khoá |
+| --- | --- |
+| BR-115-1 | Chỉ `SUPER_ADMIN` được cấp hoặc thu hồi role. |
+| BR-115-2 | `GUEST` không phải role lưu trong database, nên không được cấp hoặc thu hồi như role. |
+| BR-115-3 | Hệ thống chỉ cho phép các role đã định nghĩa chính thức: `USER`, `TEACHER`, `MANAGER`, `CONTENT_ADMIN`, `FINANCE_ADMIN`, `SUPER_ADMIN`. |
+| BR-115-4 | Một người dùng có thể có nhiều role nếu được cấp hợp lệ. |
+| BR-115-5 | `SUPER_ADMIN` không được tự cấp thêm role cho chính mình. |
+| BR-115-6 | Không được thu hồi role `SUPER_ADMIN` cuối cùng đang hoạt động. |
+| BR-115-7 | Không cấp role mới cho tài khoản đang bị khóa hoặc bị ban. |
+| BR-115-8 | Mỗi lần cấp role phải ghi người cấp, thời điểm cấp và audit log. |
+| BR-115-9 | Mỗi lần thu hồi role phải ghi người thu hồi, thời điểm thu hồi và audit log. |
+| BR-115-10 | Khi role của người dùng thay đổi, hệ thống phải thu hồi phiên/token cũ để quyền cũ không còn hiệu lực. |
+| BR-115-11 | UC-115 là luồng hợp pháp duy nhất để thay đổi role. Các endpoint khác, ví dụ cập nhật hồ sơ cá nhân, không được ghi vào dữ liệu role. |
 
 ## API · DB
 
@@ -1002,12 +1023,13 @@ GET    /api/admin/users/{id}/roles
 POST   /api/admin/users/{id}/roles
 DELETE /api/admin/users/{id}/roles/{code}
 ```
+
 `user_roles` · `roles` · `users` · `auth_tokens` (ghi) · audit log
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `SUPER_ADMIN` cấp `TEACHER` | 201, `granted_by` ghi |
 | T2 | `CONTENT_ADMIN` gọi | 403 |
 | T3 | `FINANCE_ADMIN` gọi | 403 |
@@ -1045,7 +1067,7 @@ Cấu hình cập nhật; audit log; cache cấu hình xoá.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `SUPER_ADMIN` | Mở trang cấu hình |
 | 2 | System | Kiểm role; trả danh sách tham số + giá trị hiện tại |
 | 3 | `SUPER_ADMIN` | Đổi một giá trị |
@@ -1059,8 +1081,8 @@ Cấu hình cập nhật; audit log; cache cấu hình xoá.
 
 Các ngưỡng đã xuất hiện trong 118 UC khác mà **không nên hardcode**:
 
-| Nhó| Tham số | Nguồn |
-|---|---|---|
+| Nhó | Tham số | Nguồn |
+| --- | --- | --- |
 | Học | Ngưỡng cổng chủ đề (90%) | UC-046 BR-046-1 |
 | Học | Ngưỡng qua tầng phát âm (80%) | UC-021 BR-021-2 |
 | Học | Hệ số mastery theo chế độ (0.5/1.0/1.2) | UC-015 → UC-018 |
@@ -1083,7 +1105,7 @@ Các ngưỡng đã xuất hiện trong 118 UC khác mà **không nên hardcode*
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `SUPER_ADMIN` | Chặn |
 | `UNKNOWN_SETTING_KEY` | 404 | Key lạ | Chặn — chỉ key đã khai |
 | `VALUE_OUT_OF_RANGE` | 400 | Ngoài khoảng | Chặn |
@@ -1120,15 +1142,16 @@ Các ngưỡng đã xuất hiện trong 118 UC khác mà **không nên hardcode*
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-116-1 | Chỉ `SUPER_ADMIN` |
-| BR-116-2 | Chỉ key đã khai trước; validate khoảng |
-| BR-116-3 | **Không** lưu secret trong cấu hình — dùng biến môi trường |
-| BR-116-4 | Audit log kèm giá trị **cũ** và mới |
-| BR-116-5 | Xoá cache sau khi đổi |
-| BR-116-6 | Đổi ngưỡng học phải kèm job quét lại, hoặc không cho đổi |
-| BR-116-7 | Chặn đổi khi cuộc thi đang diễn ra |
-| BR-116-8 | ⚠️ Chốt: bảng cấu hình hay hằng số (khuyến nghị hằng số, cắt UC này) |
+| --- | --- |
+| BR-116-1 | UC này nên cắt khỏi MVP nếu nhóm chưa chốt rõ danh sách cấu hình và chưa có nơi lưu cấu hình. |
+| BR-116-2 | Nếu triển khai, chỉ `SUPER_ADMIN` được xem và sửa cấu hình hệ thống. |
+| BR-116-3 | Chỉ các key cấu hình đã được khai báo trước mới được sửa. Không cho tạo key tùy ý từ giao diện. |
+| BR-116-4 | Mỗi cấu hình phải có kiểu dữ liệu, khoảng giá trị hợp lệ và mô tả rõ ràng. |
+| BR-116-5 | Không lưu secret, API key, mật khẩu hoặc token trong bảng cấu hình. Secret phải dùng biến môi trường hoặc cơ chế bảo mật riêng. |
+| BR-116-6 | Mọi lần đổi cấu hình phải ghi audit log, gồm giá trị cũ, giá trị mới, người đổi và thời điểm đổi. |
+| BR-116-7 | Nếu đổi cấu hình ảnh hưởng tiến độ người học, hệ thống phải có quy trình tính lại hoặc phải cấm đổi sau khi đã có dữ liệu thật. |
+| BR-116-8 | Không được đổi cấu hình ảnh hưởng cuộc thi đang diễn ra. |
+| BR-116-9 | Sau khi đổi cấu hình, hệ thống phải làm mới cache cấu hình nếu có. |
 
 ## API · DB
 
@@ -1136,12 +1159,13 @@ Các ngưỡng đã xuất hiện trong 118 UC khác mà **không nên hardcode*
 GET /api/admin/settings
 PUT /api/admin/settings/{key}
 ```
+
 ⚠️ **bảng `system_settings` — chưa có** · audit log
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Đổi ngưỡng cổng 90 → 85 | Lưu, audit log có giá trị cũ |
 | T2 | `CONTENT_ADMIN` gọi | 403 |
 | T3 | Key lạ | 404 |
@@ -1172,7 +1196,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Người dùng | Mở trang "Tài nguyên" |
 | 2 | Client | `GET /api/public/resources?type=YOUTUBE` |
 | 3 | System | Lấy `learning_resources` đã công bố |
@@ -1188,7 +1212,7 @@ Chỉ đọc.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_RESOURCES` | 200 (rỗng) | Chưa có | Hiện "đang cập nhật" |
 | `DEAD_LINK` | — | Kênh đã xoá | Cho báo lỗi (A2); không tự kiểm |
 | `UNSAFE_EXTERNAL_LINK` | — | 🔴 Link tới trang độc hại | Xem ghi chú |
@@ -1215,25 +1239,27 @@ Chỉ đọc.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-117-1 | Chỉ **link ra ngoài**, không nhúng nội dung |
-| BR-117-2 | Whitelist domain — validate lúc nhập (UC-119) |
-| BR-117-3 | Link ngoài dùng `rel="noopener noreferrer"` |
-| BR-117-4 | Chỉ hiện dòng đã công bố |
-| BR-117-5 | `GUEST` xem được |
-| BR-117-6 | Cho người dùng báo link chết |
+| --- | --- |
+| BR-117-1 | UC này thuộc V2/P3. Không gen code cho MVP. |
+| BR-117-2 | `GUEST` và `USER` đều được xem danh sách tài nguyên đã công bố. |
+| BR-117-3 | Chỉ hiển thị tài nguyên có trạng thái đã công bố. Tài nguyên nháp hoặc đã ẩn không được hiển thị công khai. |
+| BR-117-4 | Tính năng này chỉ hiển thị link ra ngoài, không tải, lưu, sao chép hoặc nhúng nội dung của bên thứ ba. |
+| BR-117-5 | Link ngoài phải mở an toàn, dùng `rel="noopener noreferrer"` nếu mở tab mới. |
+| BR-117-6 | Người dùng có thể báo link chết hoặc link sai để `CONTENT_ADMIN` xử lý sau. |
+| BR-117-7 | Link tài nguyên phải được kiểm tra domain hợp lệ ở luồng quản lý tài nguyên, không đợi đến lúc hiển thị mới kiểm. |
 
 ## API · DB
 
 ```
 GET /api/public/resources?type={YOUTUBE|PODCAST}
 ```
+
 `learning_resources` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Xem danh sách kênh | Tên + mô tả + link |
 | T2 | `GUEST` | Xem được |
 | T3 | Kiểm HTML link ngoài | Có `rel="noopener noreferrer"` |
@@ -1271,7 +1297,7 @@ Giống UC-117, khác `type = BOOK` và các trường (tác giả, nhà xuất 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_RESOURCES` | 200 (rỗng) | Chưa có | "Đang cập nhật" |
 | `BOOK_CONTENT_HOSTED` | — | 🔴 Lưu file PDF sách | Xem ghi chú |
 | `UNSAFE_EXTERNAL_LINK` | — | Link mua không an toàn | Whitelist (UC-119) |
@@ -1294,25 +1320,28 @@ Giống UC-117, khác `type = BOOK` và các trường (tác giả, nhà xuất 
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-118-1 | **Chỉ** danh mục + link mua — **không** lưu nội dung sách |
-| BR-118-2 | Không lưu ảnh bìa; hoặc chỉ dẫn link |
-| BR-118-3 | Whitelist domain link mua |
-| BR-118-4 | `rel="noopener noreferrer"` |
-| BR-118-5 | `GUEST` xem được |
-| BR-118-6 | Khai báo nếu dùng link affiliate |
+| --- | --- |
+| BR-118-1 | UC này thuộc V2/P3. Không gen code cho MVP. |
+| BR-118-2 | `GUEST` và `USER` đều được xem danh mục sách đã công bố. |
+| BR-118-3 | Danh mục sách chỉ hiển thị thông tin giới thiệu và link mua hoặc link tham khảo. |
+| BR-118-4 | Hệ thống không lưu, không cho tải và không phân phối PDF hoặc nội dung sách có bản quyền. |
+| BR-118-5 | Không lưu ảnh bìa sách nếu chưa chắc quyền sử dụng. Nếu cần ảnh, chỉ lưu link ảnh hoặc bỏ ảnh bìa. |
+| BR-118-6 | Link mua hoặc link tham khảo phải thuộc domain được phép. |
+| BR-118-7 | Nếu dùng link affiliate, giao diện phải ghi rõ đây là link tiếp thị liên kết. |
+| BR-118-8 | Link ngoài phải mở an toàn, dùng `rel="noopener noreferrer"` nếu mở tab mới. |
 
 ## API · DB
 
 ```
 GET /api/public/resources?type=BOOK
 ```
+
 `learning_resources` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Xem danh mục sách | Tên, tác giả, cấp, link mua |
 | T2 | Tìm file PDF trong hệ thống | **Không có** |
 | T3 | `GUEST` | Xem được |
@@ -1341,7 +1370,7 @@ Role `CONTENT_ADMIN`; CSRF.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `CONTENT_ADMIN` | Mở quản lý tài nguyên |
 | 2 | `CONTENT_ADMIN` | Thêm mục: loại, tên, mô tả, cấp HSK, link |
 | 3 | Client | `POST /api/admin/resources` + CSRF |
@@ -1361,7 +1390,7 @@ Role `CONTENT_ADMIN`; CSRF.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `CONTENT_ADMIN` | Chặn |
 | `DOMAIN_NOT_WHITELISTED` | 400 | 🔴 Link ngoài whitelist | Chặn — UC-117/118 |
 | `NON_HTTPS_LINK` | 400 | Link `http://` | Chặn |
@@ -1386,14 +1415,15 @@ Role `CONTENT_ADMIN`; CSRF.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-119-1 | Chỉ `CONTENT_ADMIN` |
-| BR-119-2 | Link phải thuộc **whitelist domain** |
-| BR-119-3 | Chỉ scheme `https` — chặn `javascript:`, `data:` |
-| BR-119-4 | Mặc định `published = false` |
-| BR-119-5 | Escape mô tả khi render |
-| BR-119-6 | Ẩn thay vì xoá |
-| BR-119-7 | Audit log ai thêm/sửa link |
+| --- | --- |
+| BR-119-1 | UC này thuộc V2/P3. Không gen code cho MVP. |
+| BR-119-2 | Chỉ `CONTENT_ADMIN` được thêm, sửa, ẩn hoặc công bố tài nguyên tham khảo. |
+| BR-119-3 | Tài nguyên mới tạo mặc định ở trạng thái chưa công bố. |
+| BR-119-4 | Link tài nguyên phải dùng `https`. Không chấp nhận `http`, `javascript:`, `data:` hoặc URL sai định dạng. |
+| BR-119-5 | Link tài nguyên phải thuộc danh sách domain được phép. |
+| BR-119-6 | Mô tả tài nguyên phải được escape khi hiển thị vì đây là nội dung public cho cả `GUEST`. |
+| BR-119-7 | Khi không muốn hiển thị tài nguyên nữa, hệ thống ẩn tài nguyên thay vì xóa cứng. |
+| BR-119-8 | Mọi lần thêm, sửa, công bố hoặc ẩn tài nguyên phải có audit log. |
 
 ## API · DB
 
@@ -1404,12 +1434,13 @@ PUT    /api/admin/resources/{id}
 PATCH  /api/admin/resources/{id}/publish
 PATCH  /api/admin/resources/{id}/unpublish
 ```
+
 `learning_resources` (đọc + ghi) · audit log
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Thêm kênh YouTube | 201, `published = false` |
 | T2 | Link `http://` | 400 |
 | T3 | Link `javascript:alert(1)` | **400** |
@@ -1425,7 +1456,7 @@ PATCH  /api/admin/resources/{id}/unpublish
 ## Mười exception quan trọng nhất
 
 | # | UC | Exception | Vì sao |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | UC-115 | `FORBIDDEN_ROLE` | Endpoint quan trọng nhất về bảo mật — ai gọi được thì **tự cấp mọi quyền** |
 | 2 | UC-110 | `UNKNOWN_FILE_FORMAT` | **P0** và "chưa ai thấy file thật của thầy" — rủi ro **tiến độ**, không phải kỹ thuật |
 | 3 | UC-110 | `MISSING_KNOWLEDGE_POINT` | Nhập thiếu nhãn → 4 UC lộ trình mù, và "không sửa được nếu không nhập lại" |
@@ -1440,7 +1471,7 @@ PATCH  /api/admin/resources/{id}/unpublish
 ## Bốn nhóm exception lặp lại
 
 | Nhóm | Xuất hiện ở | Bài học |
-|---|---|---|
+| --- | --- | --- |
 | **Phân quyền sai role** | UC-108 → UC-119 (**cả 12 UC**) | Nghiệm thu 6.6: "mỗi role **chỉ thấy phần mình quản**". 12 UC, 4 role khác nhau. Cần test **ma trận**: mỗi endpoint × mỗi role → đúng 403 hoặc 200 |
 | **Validate lúc nhập, không lúc chạy** | UC-110 · UC-112 · UC-119 | Nhãn kiến thức, chu trình tiên quyết, whitelist domain — chặn ở cửa vào rẻ hơn xử lý hậu quả ở 4 UC khác |
 | **Không xoá, chỉ ẩn** | UC-109 · UC-112 · UC-114 · UC-119 | `ARCHIVED` / `banned_at` / `published = false`. Xoá cứng làm mồ côi dữ liệu ở bảng khác (cột trỏ xuyên schema không có FK) |
@@ -1451,7 +1482,7 @@ PATCH  /api/admin/resources/{id}/unpublish
 # Khoảng trống thiết kế phát hiện ở nhóm 6c + 6d + 7
 
 | # | Thiếu | UC bị ảnh hưởng | Mức |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | **Chưa biết định dạng file thật của thầy** — 8 câu chưa hỏi | UC-110 · UC-111 | 🔴 Chặn UC **P0** |
 | 2 | **Chưa chốt khoá tự nhiên** để upsert khi nhập lại | UC-110 | 🔴 Chạy lại tạo bản trùng |
 | 3 | **Chưa có cột trạng thái tài khoản** (`banned_at`, `suspended_at`, `locked_until`) — mục A quyết định v2 | UC-114 (+ UC-012, UC-077, UC-078) | 🔴 **Bốn UC** cùng chờ |

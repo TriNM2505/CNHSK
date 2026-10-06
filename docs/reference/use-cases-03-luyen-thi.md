@@ -14,7 +14,7 @@
 ## Bảng tra nhanh
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | UC-033 | Xem danh sách đề thi theo cấp HSK | `USER` | P0 | MVP | 2.1 |
 | UC-034 | Làm đề thi thử | `USER` | P0 | MVP | 2.1 |
 | UC-035 | Nộp bài và nhận điểm | `USER` | P0 | MVP | 2.1 |
@@ -30,7 +30,7 @@
 # UC-033 · Xem danh sách đề thi theo cấp HSK
 
 | | |
-|---|---|
+| --- | --- |
 | **UC-ID** | UC-033 · **Actor** `USER` · **Pri** P0 · **Scope** MVP · **FT** 2.1 |
 | **Client** | Web · Mobile · Shared |
 
@@ -52,7 +52,7 @@ Chỉ đọc — không đổi dữ liệu.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở trang "Luyện thi" |
 | 2 | System | `GET /api/exams?hsk_level={n}` |
 | 3 | System | Lọc `status = PUBLISHED`, đếm số câu mỗi đề |
@@ -75,7 +75,7 @@ Hiện "HSK 5–6 đang được cập nhật". Hiện tại chỉ có HSK 1–4
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_EXAMS` | 200 (rỗng) | Cấp đó chưa có đề | Không phải lỗi — hiện "đang cập nhật" (A2) |
 | `INVALID_HSK_LEVEL` | 400 | `hsk_level` ngoài 1–6 | Chặn |
 | `EXAM_HAS_NO_QUESTIONS` | — | Đề `PUBLISHED` nhưng 0 câu hỏi | 🔴 **Ẩn khỏi danh sách**, báo `CONTENT_ADMIN`. Vào rồi mới thấy trống là trải nghiệm tệ nhất |
@@ -91,12 +91,14 @@ Hiện "HSK 5–6 đang được cập nhật". Hiện tại chỉ có HSK 1–4
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-033-1 | Chỉ hiện đề `status = PUBLISHED` |
-| BR-033-2 | Đề 0 câu hỏi không hiện |
-| BR-033-3 | `my_attempts` và `my_best_score` chỉ của người đang đăng nhập |
-| BR-033-4 | Phạm vi đề: đủ HSK 1–6 (hiện có 1–4) |
-| BR-033-5 | Cần đăng nhập |
+| --- | --- |
+| BR-033-1 | Chỉ các đề ở trạng thái `PUBLISHED` mới được hiển thị cho người học. Đề `DRAFT` hoặc `ARCHIVED` không được xuất hiện trong danh sách luyện thi. |
+| BR-033-2 | Đề đã xuất bản nhưng không có câu hỏi hợp lệ thì không được hiển thị cho người học. Hệ thống phải ghi nhận lỗi dữ liệu để người quản trị nội dung xử lý. |
+| BR-033-3 | Thông tin lịch sử làm bài như số lần làm và điểm cao nhất chỉ được tính từ bài làm của chính người học đang đăng nhập. Không được lộ điểm hoặc lịch sử làm bài của người khác. |
+| BR-033-4 | Người học phải đăng nhập mới xem được danh sách đề thi và lịch sử làm bài cá nhân. |
+| BR-033-5 | Nếu cấp HSK chưa có đề, hệ thống trả danh sách rỗng và hiển thị thông báo nội dung đang được cập nhật, không coi đây là lỗi hệ thống. |
+| BR-033-6 | Trong MVP, hệ thống ưu tiên các đề HSK đã có dữ liệu thật. HSK 5 và HSK 6 chỉ hiển thị khi đã có đề do thầy hoặc quản trị nội dung cung cấp và xuất bản. |
+| BR-033-7 | Số câu và số phần của đề phải được tính từ dữ liệu thật đang liên kết với đề, không chỉ tin vào số tổng đã lưu sẵn nếu có dấu hiệu lệch. |
 
 ## API · DB
 
@@ -104,12 +106,13 @@ Hiện "HSK 5–6 đang được cập nhật". Hiện tại chỉ có HSK 1–4
 GET /api/exams
 GET /api/exams?hsk_level={n}
 ```
+
 `exams` · `exam_sections` · `questions` · `attempts` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | HSK 1 | 17 bộ đề, kèm lịch sử của mình |
 | T2 | HSK 9 | 400 `INVALID_HSK_LEVEL` |
 | T3 | HSK 5 | 200 rỗng, hiện "đang cập nhật" |
@@ -139,14 +142,14 @@ viết), người học trả lời. **Chưa nộp** — nộp là UC-035.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Bắt đầu | `attempts` tạo dòng mới `status = IN_PROGRESS`, có `started_at`, `served_at` |
 | Trả lời từng câu | Lưu tạm (UC-036), **chưa** chấm, **chưa** đổi mastery |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Bắt đầu làm đề" |
 | 2 | System | Kiểm đề khả dụng, kiểm chưa có bài dở |
 | 3 | System | `POST /api/exams/{id}/attempts` — tạo `attempts`, ghi `started_at` |
@@ -172,7 +175,7 @@ Không mất — UC-036 đã lưu tạm. Lần sau vào thấy nút "Tiếp tụ
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `EXAM_NOT_FOUND` | 404 | ID sai | Về danh sách |
 | `EXAM_NOT_PUBLISHED` | 403 | Đề `DRAFT` hoặc `ARCHIVED` | 🔴 **Chặn** — đề nháp của `CONTENT_ADMIN` lộ ra là mất giá trị đề |
 | `EXAM_HAS_NO_QUESTIONS` | 422 | Đề trống | Không cho bắt đầu |
@@ -195,14 +198,15 @@ Không mất — UC-036 đã lưu tạm. Lần sau vào thấy nút "Tiếp tụ
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-034-1 | Response lúc làm bài **không** chứa `is_correct` và `explanation` |
-| BR-034-2 | Chỉ đề `PUBLISHED` mới làm được |
-| BR-034-3 | Một đề chỉ có **một** `attempts` `IN_PROGRESS` mỗi người |
-| BR-034-4 | Tối đa 20 lượt bắt đầu mỗi ngày |
-| BR-034-5 | Audio phần Nghe giới hạn số lần phát (mặc định 2) |
-| BR-034-6 | Được nhảy phần tự do — không mô phỏng thi thật |
-| BR-034-7 | Trả lời chưa chấm, chưa đổi mastery cho tới khi nộp |
+| --- | --- |
+| BR-034-1 | Người học chỉ được bắt đầu làm các đề ở trạng thái `PUBLISHED`. Đề nháp hoặc đề đã lưu trữ không được mở cho người học. |
+| BR-034-2 | Response khi bắt đầu hoặc tải bài đang làm không được chứa đáp án đúng, trường `is_correct`, lời giải chi tiết hoặc bất kỳ dữ liệu nào làm lộ đáp án. |
+| BR-034-3 | Mỗi người học chỉ có một bài làm `IN_PROGRESS` cho cùng một đề tại một thời điểm. Nếu đã có bài đang làm, hệ thống phải cho tiếp tục bài cũ hoặc bỏ bài cũ để tạo bài mới. |
+| BR-034-4 | Làm đề trong hệ thống là luyện tập, không phải mô phỏng kỳ thi thật. Người học được chuyển qua lại giữa các phần, trừ các giới hạn cần thiết để bảo toàn ý nghĩa học tập. |
+| BR-034-5 | Với phần nghe, số lần phát audio phải có giới hạn để bài nghe còn giá trị luyện tập. Mặc định MVP là tối đa 2 lần phát cho mỗi audio, trừ khi đề hoặc dạng bài quy định khác. |
+| BR-034-6 | Câu trả lời trong khi đang làm bài chỉ được lưu như dữ liệu đang làm, chưa chấm điểm và chưa cập nhật mastery cho đến khi người học nộp bài. |
+| BR-034-7 | Đề thiếu audio bắt buộc ở phần nghe không được cho bắt đầu, vì người học không thể làm đúng mục tiêu của phần nghe. |
+| BR-034-8 | Hệ thống có thể giới hạn số lượt bắt đầu làm đề trong ngày để tránh spam dữ liệu tiến độ, nhưng giới hạn này phải là cấu hình hệ thống, không hardcode trong nghiệp vụ. |
 
 ## API · DB
 
@@ -210,12 +214,13 @@ Không mất — UC-036 đã lưu tạm. Lần sau vào thấy nút "Tiếp tụ
 POST /api/exams/{id}/attempts
 GET  /api/attempts/{id}
 ```
+
 `exams` · `exam_sections` · `questions` · `question_options` (đọc — **lọc bỏ `is_correct`**) · `attempts` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Bắt đầu đề HSK1 | 201, `attempt_id`, `status = IN_PROGRESS` |
 | T2 | Response bước 4 | **Không** chứa `is_correct`, **không** chứa `explanation` |
 | T3 | Đề `DRAFT` | 403 `EXAM_NOT_PUBLISHED` |
@@ -246,14 +251,14 @@ toàn ở server.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Thành công | `attempts` → `SUBMITTED` có `submitted_at`, `score`; `attempt_answers` ghi từng câu; `user_knowledge_state` cập nhật mastery cho mọi điểm kiến thức liên quan |
 | Thất bại | **Rollback toàn bộ** — `attempts` giữ `IN_PROGRESS` để nộp lại |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Nộp bài" |
 | 2 | Client | `POST /api/attempts/{id}/submit` — gửi mảng `{question_id, answer}` |
 | 3 | System | Kiểm sở hữu: `attempts.user_id = currentUser` |
@@ -287,7 +292,7 @@ Xem exception `QUESTION_CHANGED_MID_ATTEMPT`.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `ATTEMPT_NOT_OWNED` | 403 | `attempt` của người khác | 🔴 **IDOR** — ghi điểm vào bài người khác |
 | `ATTEMPT_ALREADY_SUBMITTED` | 409 | Nộp 2 lần | 🔴 **Bắt buộc** — xem ghi chú |
 | `ATTEMPT_NOT_FOUND` | 404 | ID sai | Về danh sách |
@@ -323,17 +328,17 @@ Xem exception `QUESTION_CHANGED_MID_ATTEMPT`.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-035-1 | Chấm **hoàn toàn ở server** — HR-06 trong constitution |
-| BR-035-2 | Một `attempt_id` nộp **một lần**; kiểm trong transaction |
-| BR-035-3 | Kiểm sở hữu `attempt` trước mọi thao tác |
-| BR-035-4 | Điểm + `attempt_answers` + mastery trong **một transaction** (AC-10) |
-| BR-035-5 | Câu `ESSAY` ghi `is_correct = NULL`, loại khỏi mẫu số |
-| BR-035-6 | Câu thiếu trả lời tính là sai |
-| BR-035-7 | Câu lỗi dữ liệu (xoá, malformed) loại khỏi mẫu số — **không phạt người học** |
-| BR-035-8 | Bài quá 24h không chấm |
-| BR-035-9 | Mastery từ bài thi có trọng số **cao nhất** (chấm ở server, đáng tin nhất) |
-| BR-035-10 | `attempt_answers` **không bao giờ xoá dòng** — gốc của mọi phân tích lỗi sai |
+| --- | --- |
+| BR-035-1 | Bài thi thử phải được chấm ở server. Client chỉ gửi câu trả lời của người học, không tự tính điểm cuối cùng. |
+| BR-035-2 | Mỗi `attempt_id` chỉ được nộp một lần. Hệ thống phải kiểm tra trạng thái bài làm trong cùng thao tác ghi điểm để tránh hai request nộp song song cùng thành công. |
+| BR-035-3 | Người học chỉ được nộp bài làm thuộc sở hữu của chính mình. Mọi thao tác nộp bài phải kiểm tra `attempt.user_id` với người dùng đang đăng nhập. |
+| BR-035-4 | Khi nộp bài thành công, việc ghi điểm, ghi câu trả lời, cập nhật mastery và đổi trạng thái bài làm sang `SUBMITTED` phải được thực hiện nhất quán trong cùng một transaction. |
+| BR-035-5 | Câu không trả lời được tính là sai, nhưng vẫn phải được ghi nhận để phân tích lỗi sai và thống kê sau bài làm. |
+| BR-035-6 | Câu hỏi bị lỗi dữ liệu trong lúc chấm, ví dụ bị xóa hoặc có đáp án đúng không hợp lệ, không được tính sai cho người học. Câu đó phải bị loại khỏi mẫu số tính điểm và được ghi log cho quản trị nội dung. |
+| BR-035-7 | Bài làm quá hạn xử lý cho phép thì không được chấm điểm và không được cập nhật mastery. Trạng thái bài làm chuyển sang `ABANDONED` nếu hệ thống có hỗ trợ trạng thái này. |
+| BR-035-8 | Kết quả từ bài thi thử có trọng số mastery cao hơn các bài luyện lẻ, vì bài thi được chấm hoàn toàn ở server và bao phủ nhiều điểm kiến thức hơn. |
+| BR-035-9 | Dữ liệu `attempt_answers` sau khi đã ghi không được xóa tùy tiện, vì đây là nguồn cho kết quả chi tiết, phân tích lỗi sai và xác định điểm yếu. |
+| BR-035-10 | Nếu câu hỏi chưa được gắn nhãn kiến thức, hệ thống vẫn có thể tính điểm bài làm, nhưng không được dùng câu đó để cập nhật mastery hoặc phân tích điểm yếu. Lỗi thiếu nhãn phải được ghi nhận để bổ sung dữ liệu. |
 
 ## API · DB
 
@@ -342,7 +347,7 @@ POST /api/attempts/{id}/submit
 ```
 
 | Bảng | Vai trò |
-|---|---|
+| --- | --- |
 | `attempts` | Đọc (kiểm sở hữu + trạng thái) · **Ghi** (`status`, `score`, `submitted_at`) |
 | `questions` · `question_options` | Đọc — **đây là nơi duy nhất đọc `is_correct`** |
 | `question_knowledge_points` | Đọc — map câu → điểm kiến thức |
@@ -353,7 +358,7 @@ POST /api/attempts/{id}/submit
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Nộp đủ, đúng 80% | 200 `score = 80`, `attempt_answers` đủ dòng, mastery đổi |
 | T2 | Nộp lần 2 | 409 `ATTEMPT_ALREADY_SUBMITTED`, điểm **không đổi** |
 | T3 | Hai request nộp **song song** | Chỉ một thành công, cái kia 409 |
@@ -393,7 +398,7 @@ Câu trả lời tạm được lưu, **chưa chấm**, `attempts` vẫn `IN_PRO
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Client | Tự động mỗi 30 giây hoặc khi đổi phần |
 | 2 | Client | `PATCH /api/attempts/{id}/draft` — mảng `{question_id, answer}` đã trả lời |
 | 3 | System | Kiểm sở hữu + `status = IN_PROGRESS` |
@@ -415,7 +420,7 @@ UC-035 dùng mảng câu trả lời **client gửi kèm lúc nộp**, không ph
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_DRAFT_STORAGE` | 500 | 🔴 **Chưa chốt lưu bản nháp ở đâu** | Xem ghi chú |
 | `ATTEMPT_NOT_OWNED` | 403 | Bài người khác | IDOR |
 | `ATTEMPT_ALREADY_SUBMITTED` | 409 | Lưu nháp sau khi nộp | Chặn — nếu không thì sửa được bài đã nộp |
@@ -426,7 +431,7 @@ UC-035 dùng mảng câu trả lời **client gửi kèm lúc nộp**, không ph
 > 🔴 **`NO_DRAFT_STORAGE` — khoảng trống thiết kế.** Có 3 phương án, cần chốt:
 >
 > | Phương án | Được | Mất |
-> |---|---|---|
+> | --- | --- | --- |
 > | Ghi `attempt_answers` với `is_correct = NULL`, cập nhật lại khi nộp | Không thêm bảng | `attempt_answers` là "5 bảng không được đụng", lẫn nháp vào dữ liệu phân tích |
 > | Cột `draft_answers JSONB` trên `attempts` | Đơn giản nhất, 1 cột | AC-09 nói JSONB **chỉ đọc** — ghi liên tục là vi phạm |
 > | Redis key `attempt:draft:{id}` TTL 24h | Đúng bản chất dữ liệu tạm | Phụ thuộc `TODO(REDIS_PLACEMENT)` |
@@ -440,13 +445,14 @@ UC-035 dùng mảng câu trả lời **client gửi kèm lúc nộp**, không ph
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-036-1 | Lưu tạm **không** chấm, **không** đổi mastery |
-| BR-036-2 | Tự lưu mỗi 30 giây hoặc khi đổi phần |
-| BR-036-3 | Lỗi lưu nháp **không** chặn người học làm tiếp |
-| BR-036-4 | Bản nháp hết hạn cùng lúc `attempts` (24h) |
-| BR-036-5 | Nộp bài dùng dữ liệu client gửi lúc nộp, không dùng bản nháp |
-| BR-036-6 | ⚠️ **Chặn:** cần chốt nơi lưu trước khi làm |
+| --- | --- |
+| BR-036-1 | UC này là chức năng tùy chọn, không phải nghiệp vụ bắt buộc của MVP. Nếu chưa chốt nơi lưu bản nháp, không gen code cho UC này. |
+| BR-036-2 | Dữ liệu lưu tạm chỉ phục vụ khôi phục bài đang làm, không được chấm điểm và không được cập nhật mastery. |
+| BR-036-3 | Chỉ người sở hữu bài làm mới được lưu hoặc đọc lại bản nháp của bài đó. |
+| BR-036-4 | Không được lưu nháp cho bài đã `SUBMITTED` hoặc `ABANDONED`. Sau khi bài đã kết thúc, mọi thay đổi câu trả lời phải bị từ chối. |
+| BR-036-5 | Nếu lưu nháp thất bại, người học vẫn được tiếp tục làm bài. Giao diện chỉ thông báo chưa lưu được và có thể giữ tạm dữ liệu ở client. |
+| BR-036-6 | Nếu có nhiều bản nháp từ nhiều tab, hệ thống phải dùng bản mới hơn và không để bản cũ ghi đè bản mới. |
+| BR-036-7 | Thời hạn tồn tại của bản nháp không được dài hơn thời hạn hợp lệ của bài làm đang làm. |
 
 ## API · DB
 
@@ -454,12 +460,13 @@ UC-035 dùng mảng câu trả lời **client gửi kèm lúc nộp**, không ph
 PATCH /api/attempts/{id}/draft
 GET   /api/attempts/{id}          (trả kèm bản nháp)
 ```
+
 `attempts` (đọc) · **nơi lưu nháp chưa chốt** (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Lưu 20 câu, đóng tab, mở lại | 20 câu hiện lại đúng |
 | T2 | Lưu nháp cho bài người khác | 403 |
 | T3 | Lưu nháp sau khi nộp | 409 |
@@ -497,7 +504,7 @@ bài) và UC-041 ("luyện ngay") đẩy bài vào.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Chọn dạng bài + cấp HSK + số câu |
 | 2 | System | `GET /api/practice/questions?type={t}&hsk_level={n}&count=10` |
 | 3 | System | Lọc `status = APPROVED`, ưu tiên điểm kiến thức mastery thấp |
@@ -528,7 +535,7 @@ Tham số thêm `knowledge_point_id`, lọc câu theo đúng điểm kiến th�
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `INVALID_QUESTION_TYPE` | 400 | Dạng ngoài 7 dạng | Chặn |
 | `NO_QUESTIONS_FOR_TYPE` | 200 (rỗng) | Kho hết câu dạng đó | Gợi ý AI sinh bài (A2) |
 | `UNAPPROVED_QUESTION_SERVED` | — | Lọt câu `status = PENDING_REVIEW` | 🔴 Xem ghi chú |
@@ -554,14 +561,15 @@ Tham số thêm `knowledge_point_id`, lọc câu theo đúng điểm kiến th�
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-037-1 | Chỉ phát câu `status = APPROVED` |
-| BR-037-2 | Chấm ở server |
-| BR-037-3 | Hiện lời giải **ngay sau mỗi câu** (khác UC-035 đợi nộp hết) |
-| BR-037-4 | `ESSAY` không cập nhật mastery |
-| BR-037-5 | Ưu tiên câu thuộc điểm kiến thức mastery thấp |
-| BR-037-6 | Mastery từ luyện dạng có trọng số **thấp hơn** bài thi đầy đủ (UC-035) |
-| BR-037-7 | Validate format đáp án theo dạng câu hỏi |
+| --- | --- |
+| BR-037-1 | Chỉ câu hỏi ở trạng thái `APPROVED` mới được đưa vào bài luyện của người học. Câu hỏi do AI sinh hoặc nội dung mới nhập nhưng chưa duyệt không được xuất hiện. |
+| BR-037-2 | Bài luyện riêng theo dạng câu hỏi phải được chấm ở server. Client không được tự quyết định đúng/sai cuối cùng. |
+| BR-037-3 | Response phát câu hỏi cho người học không được chứa đáp án đúng, lời giải hoặc dữ liệu nội bộ làm lộ đáp án. |
+| BR-037-4 | Sau mỗi câu trả lời trong chế độ luyện riêng, hệ thống có thể trả kết quả đúng/sai và lời giải ngay để người học học từ lỗi sai. |
+| BR-037-5 | Hệ thống phải validate định dạng câu trả lời theo từng loại câu hỏi. Ví dụ câu chọn đáp án dùng `option_id`, câu điền chỗ trống dùng text, câu sắp xếp câu dùng danh sách thứ tự. |
+| BR-037-6 | Câu hỏi được chọn nên ưu tiên các điểm kiến thức người học còn yếu hoặc vừa làm sai, nếu có dữ liệu mastery tương ứng. |
+| BR-037-7 | Mastery từ luyện riêng một dạng có trọng số thấp hơn bài thi thử đầy đủ, vì phạm vi hẹp hơn và người học được xem phản hồi ngay sau từng câu. |
+| BR-037-8 | Nếu kho không có câu hỏi phù hợp, hệ thống trả danh sách rỗng và thông báo chưa có bài luyện phù hợp. Việc sinh thêm câu bằng AI thuộc use case riêng, không tự động thực hiện trong UC này. |
 
 ## API · DB
 
@@ -570,12 +578,13 @@ GET  /api/practice/questions?type={t}&hsk_level={n}&count={c}
 GET  /api/practice/questions?knowledge_point_id={k}   (từ UC-041)
 POST /api/practice/answer
 ```
+
 `questions` · `question_options` · `question_knowledge_points` (đọc) · `attempts` · `attempt_answers` · `user_knowledge_state` (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `type=MULTIPLE_CHOICE`, HSK2, 10 câu | 10 câu `APPROVED`, không kèm đáp án |
 | T2 | Kho có câu `PENDING_REVIEW` | **Không** xuất hiện trong response |
 | T3 | `type=INVALID` | 400 |
@@ -611,7 +620,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Nộp bài (UC-035) hoặc vào từ lịch sử |
 | 2 | System | `GET /api/attempts/{id}/result` |
 | 3 | System | Kiểm sở hữu |
@@ -634,7 +643,7 @@ Cùng endpoint. Dữ liệu `attempt_answers` **không bao giờ xoá** nên lu�
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `ATTEMPT_NOT_OWNED` | 403 | Xem kết quả người khác | 🔴 **IDOR** — `GET /api/attempts/999/result` phải kiểm `user_id` |
 | `ATTEMPT_NOT_SUBMITTED` | 422 | Bài còn `IN_PROGRESS` | 🔴 **Chặn** — xem kết quả bài chưa nộp là thấy đáp án trước khi nộp |
 | `ATTEMPT_NOT_FOUND` | 404 | ID sai | Về lịch sử |
@@ -655,13 +664,14 @@ Cùng endpoint. Dữ liệu `attempt_answers` **không bao giờ xoá** nên lu�
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-038-1 | Chỉ xem kết quả bài `SUBMITTED` |
-| BR-038-2 | Chỉ xem bài **của mình** |
-| BR-038-3 | So sánh chỉ với lần làm trước **của mình**, cùng đề |
-| BR-038-4 | Câu `ESSAY` chưa chấm không gộp vào `score` |
-| BR-038-5 | `attempt_answers` không xoá — luôn xem lại được bài cũ |
-| BR-038-6 | Thiếu nhãn kỹ năng thì trả điểm tổng, không chặn màn hình |
+| --- | --- |
+| BR-038-1 | Người học chỉ được xem kết quả của bài làm đã `SUBMITTED`. Không được xem kết quả của bài còn `IN_PROGRESS` để tránh lộ đáp án trước khi nộp. |
+| BR-038-2 | Người học chỉ được xem kết quả bài làm của chính mình. Mọi request xem kết quả phải kiểm tra quyền sở hữu bài làm. |
+| BR-038-3 | Kết quả chi tiết gồm điểm tổng, số câu đúng/sai, điểm theo phần hoặc kỹ năng nếu dữ liệu đề có nhãn tương ứng. |
+| BR-038-4 | Phần so sánh với lần làm trước chỉ được so với lần làm trước của chính người học đó trên cùng đề. |
+| BR-038-5 | Nếu đây là lần đầu người học làm đề, hệ thống không hiển thị phần so sánh điểm. |
+| BR-038-6 | Nếu một số câu thiếu nhãn kỹ năng hoặc nhãn kiến thức, hệ thống vẫn hiển thị điểm tổng và ghi nhận thiếu dữ liệu để quản trị nội dung bổ sung. |
+| BR-038-7 | Dữ liệu câu trả lời sau khi nộp phải được giữ lại để người học có thể xem lại kết quả bài cũ. |
 
 ## API · DB
 
@@ -669,12 +679,13 @@ Cùng endpoint. Dữ liệu `attempt_answers` **không bao giờ xoá** nên lu�
 GET /api/attempts/{id}/result
 GET /api/attempts?exam_id={e}      (lịch sử làm đề)
 ```
+
 `attempts` · `attempt_answers` · `questions` · `question_knowledge_points` · `exam_sections` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Bài đã nộp của mình | 200, đủ `by_section`, `by_skill` |
 | T2 | Bài `IN_PROGRESS` | 422 `ATTEMPT_NOT_SUBMITTED` |
 | T3 | Bài người khác | 403 `ATTEMPT_NOT_OWNED` |
@@ -709,7 +720,7 @@ Chỉ đọc. Nhưng là **điểm đầu vào** của UC-041.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Xem câu sai" từ UC-038 |
 | 2 | System | `GET /api/attempts/{id}/wrong-answers` |
 | 3 | System | Kiểm sở hữu + `status = SUBMITTED` |
@@ -735,7 +746,7 @@ Hiện đáp án đúng, phần lời giải ghi "chưa có lời giải". Cho n
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `ATTEMPT_NOT_OWNED` | 403 | Bài người khác | IDOR |
 | `ATTEMPT_NOT_SUBMITTED` | 422 | Chưa nộp | 🔴 **Đây là endpoint lộ đáp án trực tiếp nhất** — chặn tuyệt đối |
 | `NO_WRONG_ANSWERS` | 200 (rỗng) | Đúng hết | Không phải lỗi (A1) |
@@ -757,13 +768,14 @@ Hiện đáp án đúng, phần lời giải ghi "chưa có lời giải". Cho n
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-039-1 | Chỉ xem bài `SUBMITTED` của mình |
-| BR-039-2 | Mỗi câu sai hiện: đáp án mình · đáp án đúng · lời giải · nhãn kiến thức |
-| BR-039-3 | Thiếu nhãn kiến thức → ẩn nút "luyện ngay" |
-| BR-039-4 | Câu bỏ trống hiện khác câu chọn sai |
-| BR-039-5 | Không xoá `questions` đang được `attempt_answers` tham chiếu |
-| BR-039-6 | Thiếu lời giải không chặn màn hình |
+| --- | --- |
+| BR-039-1 | Người học chỉ được xem lời giải của bài làm đã `SUBMITTED` và thuộc sở hữu của chính mình. |
+| BR-039-2 | Với mỗi câu sai, hệ thống hiển thị đề bài, đáp án người học đã chọn, đáp án đúng, lời giải nếu có và nhãn kiến thức liên quan nếu có. |
+| BR-039-3 | Câu bỏ trống phải được hiển thị khác với câu chọn sai, để người học biết mình không trả lời chứ không phải chọn nhầm. |
+| BR-039-4 | Nếu câu sai thiếu lời giải, hệ thống vẫn hiển thị đáp án đúng và thông báo lời giải đang được cập nhật; không chặn toàn bộ màn hình. |
+| BR-039-5 | Nếu câu sai chưa có nhãn kiến thức, hệ thống không hiển thị nút “luyện ngay” cho câu đó vì không biết cần luyện điểm kiến thức nào. |
+| BR-039-6 | Câu hỏi đã được dùng trong lịch sử làm bài không được xóa cứng nếu còn được `attempt_answers` tham chiếu. Hệ thống phải dùng soft delete hoặc chặn xóa để giữ lịch sử học tập. |
+| BR-039-7 | Endpoint xem câu sai không được hoạt động với bài đang làm dở, vì đây là endpoint lộ đáp án trực tiếp. |
 
 ## API · DB
 
@@ -771,12 +783,13 @@ Hiện đáp án đúng, phần lời giải ghi "chưa có lời giải". Cho n
 GET /api/attempts/{id}/wrong-answers
 GET /api/attempts/{id}/wrong-answers?include_correct=true
 ```
+
 `attempts` · `attempt_answers` · `questions` · `question_options` · `question_knowledge_points` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Bài sai 5 câu | 5 câu kèm đáp án đúng + lời giải |
 | T2 | Bài `IN_PROGRESS` | 422 — **không lộ đáp án** |
 | T3 | Bài người khác | 403 |
@@ -815,7 +828,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Điểm yếu của tôi" từ màn kết quả |
 | 2 | System | `GET /api/attempts/{id}/weak-points` |
 | 3 | System | Kiểm sở hữu + `SUBMITTED` |
@@ -841,7 +854,7 @@ Dùng cho UC-047 và UC-048.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_KNOWLEDGE_POINTS_IN_EXAM` | 422 | 🔴 Đề **chưa gắn nhãn** câu nào | Xem ghi chú |
 | `ATTEMPT_NOT_OWNED` | 403 | Bài người khác | IDOR |
 | `ATTEMPT_NOT_SUBMITTED` | 422 | Chưa nộp | Chặn |
@@ -867,13 +880,14 @@ Dùng cho UC-047 và UC-048.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-040-1 | Nguồn là `user_knowledge_state.mastery`, **không** đếm câu sai |
-| BR-040-2 | Trả 3–5 điểm, sắp `mastery` tăng dần |
-| BR-040-3 | Chỉ lấy điểm kiến thức **có trong đề vừa làm** |
-| BR-040-4 | Chưa có `user_knowledge_state` → coi `mastery = 0` |
-| BR-040-5 | Số câu sai chỉ để hiện ngữ cảnh, không phải tiêu chí sắp |
-| BR-040-6 | Mỗi điểm yếu phải có nút "luyện ngay" khả dụng |
+| --- | --- |
+| BR-040-1 | Điểm yếu sau bài thi phải được xác định từ các điểm kiến thức xuất hiện trong đề vừa làm và trạng thái mastery hiện tại của người học. |
+| BR-040-2 | Hệ thống trả từ 3 đến 5 điểm yếu nhất, sắp xếp theo mastery từ thấp đến cao. Nếu đề có ít hơn 3 điểm kiến thức thì trả đúng số lượng hiện có. |
+| BR-040-3 | Số câu sai trong bài chỉ dùng để giải thích ngữ cảnh cho người học, không phải tiêu chí chính để xếp hạng điểm yếu. |
+| BR-040-4 | Nếu một điểm kiến thức chưa có trạng thái học tập của người học, hệ thống coi mastery của điểm đó là 0 trong ngữ cảnh phân tích điểm yếu. |
+| BR-040-5 | Chỉ các câu đã được gắn nhãn kiến thức mới có thể đóng góp vào phân tích điểm yếu. Nếu đề không có nhãn kiến thức, hệ thống không thể tạo danh sách điểm yếu đáng tin cậy. |
+| BR-040-6 | Mỗi điểm yếu hiển thị phải có định danh điểm kiến thức để người học có thể bấm “luyện ngay”. |
+| BR-040-7 | Nếu tất cả điểm kiến thức trong bài đều có mastery cao, hệ thống vẫn có thể trả các điểm thấp nhất tương đối và hiển thị thông báo rằng người học đang nắm khá đều. |
 
 ## API · DB
 
@@ -881,6 +895,7 @@ Dùng cho UC-047 và UC-048.
 GET /api/attempts/{id}/weak-points
 GET /api/me/weak-points              (toàn cục — A3)
 ```
+
 `attempt_answers` · `question_knowledge_points` · `knowledge_points` · `user_knowledge_state` (đọc)
 
 > **Index bắt buộc** (theo feature tree 3.1): `(user_id, mastery)` — thiếu index này thì truy
@@ -889,7 +904,7 @@ GET /api/me/weak-points              (toàn cục — A3)
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Đề gắn nhãn đủ, sai 8 câu | 5 điểm yếu sắp theo mastery tăng |
 | T2 | Đề chưa gắn nhãn câu nào | 422 `NO_KNOWLEDGE_POINTS_IN_EXAM` |
 | T3 | Đề chỉ có 2 điểm kiến thức | Trả 2, không bù thêm |
@@ -924,7 +939,7 @@ Chuyển vào UC-037 với bộ lọc đã đặt. Không tạo dữ liệu mớ
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Bấm "Luyện ngay" tại một câu sai |
 | 2 | Client | Lấy `knowledge_point_id` + `question_type` của câu sai đó |
 | 3 | Client | `GET /api/practice/questions?knowledge_point_id={k}&type={t}&count=10` |
@@ -953,7 +968,7 @@ chặn lại là vô lý.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NO_KNOWLEDGE_POINT` | 422 | Câu sai chưa gắn nhãn | 🔴 Nút "luyện ngay" **không nên hiện** (BR-039-3). Nếu vẫn gọi → 422 |
 | `KNOWLEDGE_POINT_NOT_FOUND` | 404 | `knowledge_point_id` sai | Chặn |
 | `NO_PRACTICE_QUESTIONS` | 200 (rỗng) | Kho hết câu cho điểm đó | Nới lọc (A1), rồi gợi ý AI sinh bài |
@@ -976,20 +991,22 @@ chặn lại là vô lý.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-041-1 | Ưu tiên câu cùng `knowledge_point_id` **và** cùng `question_type` |
-| BR-041-2 | Không đủ → bỏ lọc `type`, giữ `knowledge_point_id` |
-| BR-041-3 | Vẫn rỗng → gợi ý AI sinh bài (UC-048) |
-| BR-041-4 | Loại câu vừa làm sai khỏi bộ đầu nếu còn câu khác |
-| BR-041-5 | Chỉ câu `APPROVED` |
-| BR-041-6 | **Không** áp luật khoá chủ đề ở UC này |
-| BR-041-7 | Không có nhãn kiến thức → không hiện nút |
+| --- | --- |
+| BR-041-1 | Nút “luyện ngay” chỉ hiển thị khi câu sai hoặc điểm yếu có `knowledge_point_id` hợp lệ. |
+| BR-041-2 | Khi người học bấm “luyện ngay” từ một câu sai, hệ thống ưu tiên lấy câu hỏi cùng điểm kiến thức và cùng dạng câu hỏi với câu vừa sai. |
+| BR-041-3 | Nếu không có đủ câu cùng dạng, hệ thống được bỏ điều kiện dạng câu hỏi nhưng vẫn phải giữ điều kiện cùng điểm kiến thức. |
+| BR-041-4 | Nếu có câu khác phù hợp, hệ thống nên loại câu người học vừa làm sai khỏi bộ luyện đầu tiên để tránh lặp lại ngay cùng một câu. |
+| BR-041-5 | Nếu chỉ còn đúng câu người học vừa làm sai, hệ thống vẫn có thể cho luyện lại câu đó nhưng phải đánh dấu rõ đây là câu vừa sai. |
+| BR-041-6 | Chỉ câu hỏi `APPROVED` mới được dùng cho “luyện ngay”. Câu chưa duyệt không được đưa đến người học. |
+| BR-041-7 | Nếu không có câu hỏi phù hợp, hệ thống trả danh sách rỗng và thông báo chưa có bài luyện cho điểm kiến thức này. Việc sinh câu hỏi mới bằng AI thuộc use case riêng, không tự động chạy trong UC này. |
+| BR-041-8 | Không áp dụng luật khóa chủ đề cho “luyện ngay” từ câu sai. Người học đã gặp điểm kiến thức đó trong đề thi, nên phải được luyện lại điểm yếu tương ứng. |
 
 ## API · DB
 
 ```
 GET /api/practice/questions?knowledge_point_id={k}&type={t}
 ```
+
 `questions` · `question_knowledge_points` · `knowledge_points` (đọc)
 
 > **Index bắt buộc:** `question_knowledge_points(knowledge_point_id)` — truy vấn ngược từ điểm
@@ -998,7 +1015,7 @@ GET /api/practice/questions?knowledge_point_id={k}&type={t}
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Câu sai có nhãn, kho có câu cùng dạng | 10 câu cùng điểm + cùng dạng |
 | T2 | Kho chỉ có dạng khác | Trả câu dạng khác, ghi log lệch |
 | T3 | Kho rỗng cho điểm đó | 200 rỗng, gợi ý AI sinh |
@@ -1014,7 +1031,7 @@ GET /api/practice/questions?knowledge_point_id={k}&type={t}
 ## Tám exception quan trọng nhất
 
 | # | UC | Exception | Vì sao |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | UC-034 | `ANSWER_KEY_IN_RESPONSE` | Trả entity thẳng ra JSON là **toàn bộ đáp án nằm trong response**. Cần DTO riêng + test tự động |
 | 2 | UC-035 | `ATTEMPT_ALREADY_SUBMITTED` | Nộp lại sau khi xem kết quả = farm mastery vô hạn. Phải kiểm **trong** transaction |
 | 3 | UC-039 | `ATTEMPT_NOT_SUBMITTED` | Endpoint lộ đáp án trực tiếp nhất — gọi được khi chưa nộp là đọc thẳng đáp án |
@@ -1027,7 +1044,7 @@ GET /api/practice/questions?knowledge_point_id={k}&type={t}
 ## Bốn nhóm exception lặp lại khắp nhóm 2
 
 | Nhóm | Xuất hiện ở | Bài học |
-|---|---|---|
+| --- | --- | --- |
 | **Lộ đáp án** | UC-034 · UC-038 · UC-039 | Ba đường lộ khác nhau: DTO trả thừa trường · xem kết quả bài chưa nộp · xem câu sai bài chưa nộp. Cần **một** `AttemptAccessGuard` + test assert response không chứa `is_correct` |
 | **IDOR trên `attempts`** | UC-035 · UC-036 · UC-038 · UC-039 · UC-040 | **Năm** UC cùng kiểm `attempts.user_id = currentUser`. Copy điều kiện 5 lần là chắc chắn quên 1 chỗ → dùng `OwnershipService` như đã nêu ở nhóm 1 |
 | **JOIN thiếu `user_id`** | UC-033 · UC-038 | Lấy "điểm cao nhất của tôi" và "lần làm trước" mà thiếu điều kiện `user_id` → trả dữ liệu người khác. Cần test **hai user cùng làm một đề** |
@@ -1038,7 +1055,7 @@ GET /api/practice/questions?knowledge_point_id={k}&type={t}
 # Khoảng trống thiết kế phát hiện ở nhóm 2
 
 | # | Thiếu | UC bị ảnh hưởng | Mức |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | **Chưa chốt nơi lưu bản nháp bài thi** — 3 phương án đều vướng ràng buộc (`attempt_answers` không đụng / JSONB chỉ đọc / Redis chưa chốt vị trí) | UC-036 | 🔴 Chặn |
 | 2 | **Chưa quyết chấm theo đáp án lúc `served_at` hay lúc nộp** — không có snapshot đề | UC-035 | 🔴 Chấm sai người học |
 | 3 | Chưa có validate "mọi câu phải có ≥ 1 nhãn kiến thức" khi nhập đề | UC-040 · UC-041 | 🔴 Làm mù cả tính năng 2.3 |

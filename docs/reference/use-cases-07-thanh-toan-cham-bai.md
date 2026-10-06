@@ -15,7 +15,7 @@
 ## Bảng tra nhanh
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | UC-093 | Xem gói dịch vụ và số điểm còn lại | `USER` | P1 | MVP | 6.1 |
 | UC-094 | Nhập mã thẻ nạp để cộng điểm | `USER` | P1 | MVP | 6.1 |
 | UC-095 | Nhập mã thẻ để kích hoạt gói tháng | `USER` | P1 | MVP | 6.1 |
@@ -39,7 +39,7 @@
 Mọi UC dưới đây tuân theo sáu quy tắc đã chốt cho bảng dính tiền:
 
 | # | Quy tắc | UC thực thi |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Mã thẻ sinh bằng `SecureRandom`, ≥ 16 ký tự | UC-099 |
 | 2 | **Chỉ lưu `code_hash`**, không bao giờ lưu mã thô | UC-099 · UC-094 |
 | 3 | Nhập mã phải `SELECT ... FOR UPDATE` rồi đổi trạng thái **cùng transaction** | UC-094 · UC-095 |
@@ -77,7 +77,7 @@ Chỉ đọc. **Không** tạo dòng `user_credits` nếu chưa có — trả 0.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở trang "Tài khoản của tôi" |
 | 2 | Client | `GET /api/me/subscription` và `GET /api/me/credits` |
 | 3 | System | Đọc `user_subscriptions` — kiểm `expires_at > now()` |
@@ -103,7 +103,7 @@ xoá dòng `user_subscriptions` — giữ lịch sử.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `CREDITS_NOT_OWNED` | 403 | 🔴 Xem điểm người khác | **IDOR** — endpoint `/me`, không nhận `user_id` |
 | `NO_CREDIT_RECORD` | 200 | Chưa nạp lần nào | `balance = 0`, không tạo dòng (A1) |
 | `EXPIRED_SUBSCRIPTION_SHOWN_ACTIVE` | — | 🔴 Không kiểm `expires_at` | Xem ghi chú |
@@ -118,7 +118,7 @@ xoá dòng `user_subscriptions` — giữ lịch sử.
 > bao lâu**:
 >
 > | Cách hiểu | Hệ quả |
-> |---|---|
+> | --- | --- |
 > | 10 lượt **vĩnh viễn** cho mỗi tài khoản | Dùng hết là phải nạp — mô hình dùng thử |
 > | 10 lượt **mỗi tháng**, reset đầu tháng | Người dùng free vẫn dùng được lâu dài |
 > | 10 lượt **mỗi ngày** | Rất thoáng, chi phí API cao |
@@ -138,13 +138,15 @@ xoá dòng `user_subscriptions` — giữ lịch sử.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-093-1 | Endpoint `/me` — **không** nhận `user_id` từ client |
-| BR-093-2 | `balance` dùng `BIGINT`, **không** `FLOAT` (AC-07) |
-| BR-093-3 | `CHECK (balance >= 0)` ở DB |
-| BR-093-4 | Gói hết hạn → coi là `FREE`, giữ dòng lịch sử |
-| BR-093-5 | Chưa nạp → `balance = 0`, không tạo dòng |
-| BR-093-6 | ⚠️ Chốt kỳ hạn "10 lượt free" trước khi làm UC-096 |
+| --- | --- |
+| BR-093-1 | UC này bị chặn bởi `TODO(PAYMENT_SCOPE)`. Không gen code MVP cho đến khi nhóm chốt có dùng hệ thống điểm/nạp thẻ hay không. |
+| BR-093-2 | Người dùng chỉ được xem gói, điểm và quota của chính mình. Endpoint dạng `/me`, không nhận `user_id` từ client. |
+| BR-093-3 | Trong MVP không có payment, hệ thống chỉ cần hiển thị quota miễn phí còn lại cho các tính năng gọi API ngoài. |
+| BR-093-4 | Tra từ điển, xem lịch sử AI, xem lịch sử giao dịch hoặc các thao tác đọc dữ liệu nội bộ không được tính vào quota tốn phí. |
+| BR-093-5 | Gói hết hạn được coi là gói miễn phí. Hệ thống giữ lịch sử gói cũ, không xóa dữ liệu gói đã dùng. |
+| BR-093-6 | Số dư điểm không được âm. Nếu còn dùng bảng điểm, database phải chặn `balance < 0`. |
+| BR-093-7 | Không dùng kiểu số thực cho điểm hoặc tiền. Điểm dùng số nguyên; giá tiền nếu có dùng kiểu số chính xác. |
+| BR-093-8 | Kỳ hạn quota miễn phí phải được chốt trước khi triển khai. Khuyến nghị đơn giản: quota miễn phí theo ngày hoặc theo tháng, không dùng nhiều cách hiểu song song. |
 
 ## API · DB
 
@@ -152,12 +154,13 @@ xoá dòng `user_subscriptions` — giữ lịch sử.
 GET /api/me/subscription
 GET /api/me/credits
 ```
+
 `user_subscriptions` · `user_credits` · `plans` · `feature_usage` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `USER` gói Thường, chưa nạp | `plan = FREE`, `balance = 0` |
 | T2 | Gửi kèm `user_id` người khác | Bị bỏ qua |
 | T3 | Premium hết hạn hôm qua | `plan = FREE`, có ghi chú |
@@ -190,14 +193,14 @@ nơi tiền thật vào.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái (cùng **một** transaction) |
-|---|---|
+| --- | --- |
 | Thành công | `credit_cards.status = USED` + `used_by` + `used_at`; `user_credits.balance` tăng; `credit_transactions` thêm dòng có `balance_before`/`balance_after` |
 | Mã sai | **Không đổi gì**; tăng bộ đếm nhập sai |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Nhập mã thẻ, bấm "Nạp" |
 | 2 | Client | `POST /api/credits/redeem` + **CSRF token** |
 | 3 | System | Kiểm CSRF |
@@ -232,7 +235,7 @@ Bước 7 `FOR UPDATE` khoá dòng → request thứ hai chờ, thấy `USED`, t
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `INVALID_CARD_CODE` | 400 | Mã sai **hoặc** đã dùng **hoặc** hết hạn | 🔴 **Một thông báo duy nhất** — xem ghi chú |
 | `TOO_MANY_FAILED_ATTEMPTS` | 429 | > 5 lần sai/giờ | Khoá 1 giờ (quy tắc 3) |
 | `CSRF_TOKEN_MISSING` | 403 | 🔴 Thiếu CSRF | Xem ghi chú |
@@ -290,16 +293,17 @@ Bước 7 `FOR UPDATE` khoá dòng → request thứ hai chờ, thấy `USED`, t
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-094-1 | Chỉ lưu `code_hash`, **không bao giờ** lưu mã thô (quy tắc 2) |
-| BR-094-2 | `SELECT FOR UPDATE` rồi đổi trạng thái **cùng transaction** (quy tắc 3) |
-| BR-094-3 | 5 lần nhập sai/giờ, đếm theo `user_id` (quy tắc 4) |
-| BR-094-4 | **Không** ghi mã vào log, kể cả log lỗi (quy tắc 5) |
-| BR-094-5 | Mọi đổi điểm ghi `credit_transactions` kèm `balance_before`/`balance_after` (quy tắc 6) |
-| BR-094-6 | **Một** thông báo cho mã sai / đã dùng / hết hạn |
-| BR-094-7 | Bắt buộc CSRF token |
-| BR-094-8 | Chỉ `CreditService` được `UPDATE user_credits` |
-| BR-094-9 | Ghi `created_by` và `used_by` để truy vết |
+| --- | --- |
+| BR-094-1 | UC này bị chặn bởi `TODO(PAYMENT_SCOPE)`. Không gen code MVP nếu dự án chưa chốt dùng mã nạp thật hoặc điểm giả lập. |
+| BR-094-2 | Mã thẻ chỉ được dùng một lần. Sau khi dùng thành công, mã phải chuyển sang trạng thái đã dùng trong cùng thao tác cộng điểm. |
+| BR-094-3 | Hệ thống không bao giờ lưu mã thẻ dạng thô. Chỉ lưu giá trị đã băm của mã. |
+| BR-094-4 | Hệ thống không được ghi mã thẻ vào log, kể cả log lỗi, log request body hoặc exception message. |
+| BR-094-5 | Khi người dùng nhập mã sai, mã đã dùng hoặc mã hết hạn, hệ thống trả một thông báo chung để tránh dò mã. |
+| BR-094-6 | Mỗi tài khoản bị giới hạn số lần nhập sai trong một khoảng thời gian. Đề xuất 5 lần/giờ theo `user_id`. |
+| BR-094-7 | Việc đổi trạng thái mã, cộng điểm và ghi giao dịch phải xảy ra nhất quán. Không được cộng điểm mà mã vẫn còn dùng được, hoặc mã đã dùng nhưng điểm chưa cộng. |
+| BR-094-8 | Mọi thay đổi điểm phải ghi một dòng giao dịch có số dư trước và số dư sau. |
+| BR-094-9 | Endpoint nạp mã là thao tác thay đổi giá trị tài chính/điểm, nên bắt buộc có CSRF token với web dùng cookie. |
+| BR-094-10 | Chỉ một service trung tâm được phép thay đổi số dư điểm. Không để nhiều module tự cập nhật trực tiếp số dư. |
 
 ## API · DB
 
@@ -308,7 +312,7 @@ POST /api/credits/redeem
 ```
 
 | Bảng | Vai trò |
-|---|---|
+| --- | --- |
 | `credit_cards` | Đọc (`FOR UPDATE`) · **Ghi** (`status`, `used_by`, `used_at`) |
 | `user_credits` | Đọc (`FOR UPDATE`) · **Ghi** (`balance`) |
 | `credit_transactions` | **Ghi** — không bao giờ xoá |
@@ -316,7 +320,7 @@ POST /api/credits/redeem
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Mã hợp lệ 100 điểm | `balance` +100, sổ cái có dòng đủ `balance_before`/`after` |
 | T2 | Mã đã dùng | 400, **cùng** thông báo T3 |
 | T3 | Mã không tồn tại | 400, **cùng** thông báo T2 |
@@ -355,7 +359,7 @@ Như UC-094, thêm: mã có `card_type = SUBSCRIPTION` và trỏ tới một `pl
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Nhập mã gói |
 | 2 | Client | `POST /api/credits/redeem` + CSRF |
 | 3 | System | Bước 3–8 như UC-094 |
@@ -383,7 +387,7 @@ Cùng endpoint xử lý cả hai; phân nhánh theo `card_type`.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Mọi exception UC-094 | | | Áp dụng đầy đủ |
 | `SUBSCRIPTION_OVERWRITTEN` | — | 🔴 Ghi đè `expires_at` thay vì cộng dồn | Xem ghi chú |
 | `PLAN_NOT_FOUND` | 500 | Mã trỏ tới `plan` đã xoá | Rollback; không xoá `plans` đang có mã chưa dùng |
@@ -407,13 +411,15 @@ Cùng endpoint xử lý cả hai; phân nhánh theo `card_type`.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-095-1 | Mọi luật BR-094-1 → BR-094-9 áp dụng |
-| BR-095-2 | Còn hạn → **cộng dồn**, không ghi đè |
-| BR-095-3 | `expires_at` dùng `TIMESTAMPTZ`, tính bằng `INTERVAL` của DB |
-| BR-095-4 | Kích hoạt gói **cũng** ghi `credit_transactions` |
-| BR-095-5 | `FOR UPDATE` cả `credit_cards` và `user_subscriptions` |
-| BR-095-6 | Không xoá `plans` khi còn mã chưa dùng trỏ tới |
+| --- | --- |
+| BR-095-1 | UC này bị chặn bởi `TODO(PAYMENT_SCOPE)`. Không gen code MVP nếu chưa chốt có bán gói tháng hay không. |
+| BR-095-2 | Mã kích hoạt gói tháng áp dụng đầy đủ các rule bảo vệ mã thẻ của UC-094. |
+| BR-095-3 | Khi kích hoạt gói thành công, mã phải chuyển sang trạng thái đã dùng và gói người dùng được cập nhật trong cùng một thao tác nhất quán. |
+| BR-095-4 | Nếu người dùng đang còn hạn gói, thời hạn mới phải được cộng tiếp vào hạn cũ, không ghi đè từ ngày hiện tại làm mất phần đã mua. |
+| BR-095-5 | Nếu gói cũ đã hết hạn, thời hạn mới được tính từ thời điểm kích hoạt. |
+| BR-095-6 | Kích hoạt gói cũng phải ghi giao dịch hoặc lịch sử để người dùng và quản trị có thể đối soát. |
+| BR-095-7 | Không xóa gói dịch vụ nếu còn mã chưa dùng hoặc người dùng đang sử dụng gói đó. |
+| BR-095-8 | Thời điểm hết hạn gói phải được lưu nhất quán và hiển thị cho người dùng theo giờ Việt Nam. |
 
 ## API · DB
 
@@ -421,12 +427,13 @@ Cùng endpoint xử lý cả hai; phân nhánh theo `card_type`.
 POST /api/credits/redeem      (cùng endpoint, phân nhánh theo card_type)
 GET  /api/me/subscription
 ```
+
 `credit_cards` · `user_subscriptions` · `plans` · `credit_transactions`
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Chưa có gói, nạp mã tháng | `expires_at = now() + 1 tháng` |
 | T2 | Còn 20 ngày, nạp thêm | `expires_at` **cộng dồn** = cũ + 1 tháng |
 | T3 | Gói hết hạn 5 ngày trước | `expires_at = now() + 1 tháng` |
@@ -458,7 +465,7 @@ GET  /api/me/subscription
 ## Hậu điều kiện
 
 | Trường hợp | Trạng thái |
-|---|---|
+| --- | --- |
 | Premium còn hạn | **Không trừ gì**, cho qua |
 | Còn lượt free | `feature_usage` +1; **không** trừ điểm; **không** ghi sổ cái |
 | Hết free, còn điểm | `user_credits.balance` −1; `credit_transactions` ghi dòng `DEDUCT` |
@@ -467,7 +474,7 @@ GET  /api/me/subscription
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Caller | `quotaService.consume(userId, featureCode)` |
 | 2 | System | Kiểm đang trong transaction |
 | 3 | System | Đọc `user_subscriptions` — Premium còn hạn → **trả ngay, không trừ** |
@@ -490,7 +497,7 @@ GET  /api/me/subscription
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `QUOTA_EXCEEDED` | 402 | Hết free và hết điểm | Ném lỗi, **rollback**, không đổi gì |
 | `NOT_IN_TRANSACTION` | 500 | 🔴 Gọi ngoài transaction | Xem ghi chú |
 | `NEGATIVE_BALANCE` | 500 | Trừ khi `balance = 0` | `CHECK (balance >= 0)` chặn; nhưng phải kiểm ở bước 7 trước |
@@ -531,16 +538,16 @@ GET  /api/me/subscription
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-096-1 | Chạy **trong** transaction của caller |
-| BR-096-2 | Thứ tự: Premium → lượt free → điểm → chặn |
-| BR-096-3 | Dùng lượt free thì **không** trừ điểm (có `return`) |
-| BR-096-4 | Trừ điểm **luôn** ghi `credit_transactions` |
-| BR-096-5 | Tính phí theo **lượt gọi API ngoài**, không theo tính năng |
-| BR-096-6 | `FOR UPDATE` trên `user_credits` và `feature_usage` |
-| BR-096-7 | Caller truyền `idempotency_key` chống trừ hai lần |
-| BR-096-8 | Hết quota → ném lỗi, **rollback**, không đổi gì |
-| BR-096-9 | Phải có UC-097 làm đối trọng |
+| --- | --- |
+| BR-096-1 | UC này bị chặn bởi `TODO(PAYMENT_SCOPE)`. Trong MVP chưa chốt payment, chỉ dùng quota miễn phí đơn giản thay vì trừ điểm. |
+| BR-096-2 | Chỉ các hành động gọi API ngoài hoặc tiêu tốn chi phí vận hành thật mới được tính quota hoặc trừ điểm. |
+| BR-096-3 | Tra từ điển nội bộ, xem lịch sử, xem kết quả cũ, bấm từ trong kết quả dịch hoặc đọc dữ liệu đã lưu không được trừ điểm. |
+| BR-096-4 | Thứ tự xử lý khi có payment là: gói còn hạn → quota miễn phí → điểm trả phí → chặn. |
+| BR-096-5 | Dùng quota miễn phí thì không được trừ thêm điểm. |
+| BR-096-6 | Trừ điểm phải ghi giao dịch có số dư trước và số dư sau. |
+| BR-096-7 | Mỗi hành động tốn phí phải có khóa idempotency để tránh retry làm trừ hai lần. |
+| BR-096-8 | Khi hết quota và hết điểm, hệ thống phải từ chối trước khi gọi API ngoài. Không được gọi API rồi mới báo hết điểm. |
+| BR-096-9 | Không được để số dư âm. |
 
 ## API · DB
 
@@ -551,7 +558,7 @@ Service nội bộ — không endpoint.
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Premium còn hạn | **Không** trừ gì, cho qua |
 | T2 | Còn 5 lượt free | `feature_usage` +1, `balance` **không** đổi |
 | T3 | Hết free, `balance = 10` | `balance = 9`, sổ cái có dòng `DEDUCT` |
@@ -586,14 +593,14 @@ teacher không nhận bài (UC-107).
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái (cùng transaction) |
-|---|---|
+| --- | --- |
 | Hoàn | `user_credits.balance` tăng lại; `credit_transactions` thêm dòng **mới** loại `REFUND` |
 | Đã hoàn rồi | Không làm gì (idempotent) |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Caller | `quotaService.refund(userId, originalTransactionId, reason)` |
 | 2 | System | **Mở transaction** |
 | 3 | System | Đọc dòng `DEDUCT` gốc — kiểm tồn tại và thuộc `userId` |
@@ -619,7 +626,7 @@ Không hoàn — hành động cuối cùng đã xảy ra.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `ORIGINAL_TRANSACTION_NOT_FOUND` | 500 | 🔴 Không tìm được dòng `DEDUCT` | Xem ghi chú |
 | `ALREADY_REFUNDED` | — | Đã hoàn | **Idempotent** — bỏ qua im lặng |
 | `DOUBLE_REFUND` | — | 🔴 Hoàn hai lần | Xem ghi chú |
@@ -657,16 +664,15 @@ Không hoàn — hành động cuối cùng đã xảy ra.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-097-1 | Hoàn = thêm dòng `REFUND`, **không** xoá/sửa dòng `DEDUCT` |
-| BR-097-2 | `amount` lấy từ dòng gốc — **không** có tham số `amount` |
-| BR-097-3 | Một dòng `DEDUCT` hoàn **một lần** — unique trên `ref_transaction_id` |
-| BR-097-4 | Idempotent |
-| BR-097-5 | Hoàn đúng loại đã trừ (lượt free vs điểm) |
-| BR-097-6 | Kiểm hành động thật đã `FAILED` trước khi hoàn |
-| BR-097-7 | Chạy trong transaction |
-| BR-097-8 | Phải có báo cáo đối chiếu `DEDUCT` chưa được hoàn |
-| BR-097-9 | ⚠️ Chốt chính sách retry trước khi hoàn |
+| --- | --- |
+| BR-097-1 | UC này chỉ áp dụng khi hệ thống đã chốt cơ chế trừ điểm hoặc quota. |
+| BR-097-2 | Nếu một hành động đã bị trừ điểm nhưng sau đó thất bại do lỗi hệ thống hoặc API ngoài, người dùng phải được hoàn lại đúng phần đã bị trừ. |
+| BR-097-3 | Hoàn điểm không được sửa hoặc xóa giao dịch trừ điểm cũ. Hệ thống phải tạo một giao dịch hoàn mới để giữ lịch sử đầy đủ. |
+| BR-097-4 | Số điểm hoàn phải lấy từ giao dịch trừ điểm gốc, không lấy từ tham số client gửi lên. |
+| BR-097-5 | Một giao dịch trừ điểm chỉ được hoàn một lần. Gọi hoàn nhiều lần phải cho kết quả idempotent. |
+| BR-097-6 | Nếu hành động dùng quota miễn phí thay vì điểm, hệ thống hoàn quota tương ứng thay vì cộng điểm. |
+| BR-097-7 | Hệ thống chỉ hoàn khi xác định hành động thật sự thất bại. Không hoàn cho hành động đã xử lý thành công. |
+| BR-097-8 | Cần có báo cáo hoặc kiểm tra định kỳ để phát hiện hành động đã trừ điểm nhưng thất bại mà chưa được hoàn. |
 
 ## API · DB
 
@@ -678,7 +684,7 @@ Service nội bộ. `credit_transactions` · `user_credits` · `feature_usage`
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | API lỗi sau khi trừ 1 điểm | `balance` +1, có dòng `REFUND` |
 | T2 | Gọi hoàn 2 lần | Hoàn **một** lần |
 | T3 | Hoàn khi chưa từng trừ | 500, **không** cộng điểm |
@@ -711,7 +717,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Mở "Lịch sử giao dịch" |
 | 2 | Client | `GET /api/me/credit-transactions?page={p}` |
 | 3 | System | Lấy `credit_transactions WHERE user_id = :currentUser` |
@@ -728,7 +734,7 @@ Chỉ đọc.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `TRANSACTIONS_NOT_OWNED` | 403 | 🔴 Xem giao dịch người khác | **IDOR** — endpoint `/me` |
 | `CARD_CODE_IN_RESPONSE` | — | 🔴 Trả mã thẻ trong lịch sử | Xem ghi chú |
 | `OTHER_USER_TRANSACTIONS_LEAKED` | — | 🔴 Thiếu `WHERE user_id` | **Lộ sổ cái toàn hệ thống** cho người dùng thường |
@@ -755,19 +761,21 @@ Chỉ đọc.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-098-1 | Endpoint `/me`, **luôn** lọc `user_id` |
-| BR-098-2 | Response **không** chứa tham chiếu mã thẻ |
-| BR-098-3 | Luôn hiện `balance_before` và `balance_after` |
-| BR-098-4 | Phân trang bắt buộc |
-| BR-098-5 | `reason` dùng mã lý do, không dán message lỗi nội bộ |
-| BR-098-6 | Chuỗi số dư phải liên tục |
+| --- | --- |
+| BR-098-1 | UC này chỉ triển khai khi hệ thống có cơ chế điểm/giao dịch. Không gen code nếu MVP chỉ dùng quota đơn giản. |
+| BR-098-2 | Người dùng chỉ được xem lịch sử giao dịch của chính mình. Endpoint dạng `/me`, không nhận `user_id` từ client. |
+| BR-098-3 | Lịch sử phải hiển thị loại giao dịch, số điểm thay đổi, số dư trước, số dư sau, lý do và thời điểm. |
+| BR-098-4 | Response lịch sử giao dịch không được chứa mã thẻ, mã hash của thẻ hoặc thông tin nội bộ không cần thiết. |
+| BR-098-5 | Danh sách giao dịch phải phân trang. Không trả toàn bộ lịch sử trong một request. |
+| BR-098-6 | Nếu người dùng chưa có giao dịch, hệ thống trả danh sách rỗng và hiển thị thông báo phù hợp. |
+| BR-098-7 | Chuỗi số dư trong lịch sử phải liên tục; dòng sau phải khớp với số dư sau của dòng trước theo cùng người dùng. |
 
 ## API · DB
 
 ```
 GET /api/me/credit-transactions
 ```
+
 `credit_transactions` (đọc)
 
 > **Index cần:** `credit_transactions(user_id, created_at DESC)`.
@@ -775,7 +783,7 @@ GET /api/me/credit-transactions
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Xem lịch sử của mình | Đủ dòng, có `balance_before`/`after` |
 | T2 | **Hai user có giao dịch** | Mỗi người chỉ thấy **của mình** |
 | T3 | Gửi `user_id` khác | Bị bỏ qua |
@@ -805,14 +813,14 @@ sinh bằng `SecureRandom`, ≥16 ký tự, lưu hash không lưu mã thô. Mọ
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Thành công | N dòng `credit_cards` `status = UNUSED`, chỉ có `code_hash`; audit log ghi ai sinh, bao nhiêu, giá trị nào |
 | Mã thô | **Hiện một lần duy nhất** cho `FINANCE_ADMIN` tải về; không lưu ở đâu |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `FINANCE_ADMIN` | Mở trang sinh mã, nhập số lượng + loại + giá trị |
 | 2 | Client | `POST /api/admin/credit-cards/batch` + CSRF |
 | 3 | System | Kiểm role `FINANCE_ADMIN` **ở server** |
@@ -838,7 +846,7 @@ Unique trên `code_hash` → `INSERT` lỗi → sinh lại mã đó. Không bỏ
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | 🔴 Không phải `FINANCE_ADMIN` | Xem ghi chú |
 | `WEAK_RANDOM_USED` | — | 🔴 Dùng `Random` thay `SecureRandom` | Xem ghi chú |
 | `CODE_TOO_SHORT` | — | 🔴 < 16 ký tự | Chặn — quy tắc 1 |
@@ -875,17 +883,17 @@ Unique trên `code_hash` → `INSERT` lỗi → sinh lại mã đó. Không bỏ
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-099-1 | Chỉ `FINANCE_ADMIN` — **không** phải `ADMIN` chung |
-| BR-099-2 | `SUPER_ADMIN` không tự động có quyền này |
-| BR-099-3 | `SecureRandom`, ≥ 16 ký tự, **không** tuần tự |
-| BR-099-4 | Chỉ lưu `code_hash`; unique trên hash |
-| BR-099-5 | Mã thô trả **một lần duy nhất**, không có đường lấy lại |
-| BR-099-6 | **Không** ghi mã thô vào log |
-| BR-099-7 | Bắt buộc audit log: ai · khi nào · bao nhiêu · tổng giá trị |
-| BR-099-8 | Tối đa 1.000 mã/lô |
-| BR-099-9 | Vô hiệu bằng `status = VOIDED`, **không** xoá dòng |
-| BR-099-10 | Bắt buộc CSRF |
+| --- | --- |
+| BR-099-1 | UC này bị chặn bởi `TODO(PAYMENT_SCOPE)`. Không gen code MVP nếu chưa chốt bán mã nạp. |
+| BR-099-2 | Chỉ `FINANCE_ADMIN` được sinh mã thẻ. Không dùng role `ADMIN` chung cho chức năng này. |
+| BR-099-3 | Mã thẻ phải được sinh ngẫu nhiên bằng nguồn ngẫu nhiên an toàn, không dùng mã tuần tự hoặc mã dễ đoán. |
+| BR-099-4 | Mã thẻ phải đủ dài để không thể dò thực tế. Đề xuất tối thiểu 16 ký tự. |
+| BR-099-5 | Hệ thống chỉ lưu hash của mã thẻ, không lưu mã thô. |
+| BR-099-6 | Mã thô chỉ được trả một lần ngay sau khi sinh để quản trị tải xuống. Sau đó không có chức năng xem lại mã thô. |
+| BR-099-7 | Không ghi mã thô vào log trong mọi trường hợp. |
+| BR-099-8 | Mỗi lần sinh mã phải ghi audit log gồm người sinh, thời điểm, số lượng mã, loại mã và tổng giá trị. |
+| BR-099-9 | Mã hoặc lô mã không dùng nữa phải được vô hiệu hóa bằng trạng thái, không xóa dòng dữ liệu. |
+| BR-099-10 | Giới hạn số lượng mã sinh trong một lô để tránh rủi ro vận hành. Đề xuất tối đa 1.000 mã/lô. |
 
 ## API · DB
 
@@ -894,12 +902,13 @@ POST  /api/admin/credit-cards/batch
 GET   /api/admin/credit-cards?batch_id={b}     (chỉ trạng thái, KHÔNG mã)
 PATCH /api/admin/credit-cards/batch/{b}/void
 ```
+
 `credit_cards` (ghi) · audit log
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `FINANCE_ADMIN` sinh 100 mã | 100 dòng `UNUSED`, CSV trả về |
 | T2 | `CONTENT_ADMIN` gọi | **403** |
 | T3 | `USER` gọi | 403 |
@@ -935,7 +944,7 @@ Chỉ đọc — **nhưng** ghi audit log việc truy cập (xem exception).
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `FINANCE_ADMIN` | Mở sổ cái |
 | 2 | Client | `GET /api/admin/credit-transactions?from={d}&to={d}&user_id={u}&type={t}` |
 | 3 | System | Kiểm role `FINANCE_ADMIN` |
@@ -954,7 +963,7 @@ Chỉ đọc — **nhưng** ghi audit log việc truy cập (xem exception).
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `FINANCE_ADMIN` | Chặn ở server |
 | `PII_EXPOSED_IN_LEDGER` | — | 🔴 Hiện email/tên thật mọi người | Xem ghi chú |
 | `NO_ACCESS_AUDIT` | — | 🔴 Không ghi ai xem sổ cái | Xem ghi chú |
@@ -984,14 +993,15 @@ Chỉ đọc — **nhưng** ghi audit log việc truy cập (xem exception).
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-100-1 | Chỉ `FINANCE_ADMIN` |
-| BR-100-2 | Bắt buộc khoảng thời gian |
-| BR-100-3 | Email **che** ở danh sách; đầy đủ chỉ ở chi tiết + audit log |
-| BR-100-4 | Ghi audit log mọi lần **đọc** sổ cái và xuất file |
-| BR-100-5 | Hiện đối chiếu `Σ balance` vs `Σ` sổ cái |
-| BR-100-6 | Phân trang; giới hạn kỳ xuất |
-| BR-100-7 | `credit_transactions` **chỉ đọc** ở UC này — không sửa, không xoá |
+| --- | --- |
+| BR-100-1 | UC này chỉ triển khai khi hệ thống có điểm/giao dịch thật. Không gen code nếu MVP chỉ dùng quota đơn giản. |
+| BR-100-2 | Chỉ `FINANCE_ADMIN` được xem sổ cái toàn hệ thống. |
+| BR-100-3 | Mọi lần xem hoặc xuất sổ cái phải ghi audit log. |
+| BR-100-4 | Danh sách sổ cái phải có bộ lọc thời gian bắt buộc và phân trang. |
+| BR-100-5 | Khi hiển thị danh sách, thông tin người dùng phải được hạn chế. Email nên được che một phần; thông tin đầy đủ chỉ xem ở trang chi tiết khi thật sự cần. |
+| BR-100-6 | Dữ liệu sổ cái trong UC này chỉ được đọc, không được sửa hoặc xóa. |
+| BR-100-7 | Hệ thống phải có đối chiếu giữa tổng số dư người dùng và tổng giao dịch để phát hiện lệch. |
+| BR-100-8 | Xuất file sổ cái phải giới hạn theo khoảng thời gian, không cho xuất toàn bộ dữ liệu không giới hạn. |
 
 ## API · DB
 
@@ -1000,12 +1010,13 @@ GET /api/admin/credit-transactions
 GET /api/admin/credit-transactions/export
 GET /api/admin/credit-transactions/reconciliation
 ```
+
 `credit_transactions` · `user_credits` (đọc) · audit log (ghi)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `FINANCE_ADMIN` xem kỳ tháng | Danh sách + tổng hợp |
 | T2 | `CONTENT_ADMIN` gọi | 403 |
 | T3 | Không có khoảng thời gian | 400 |
@@ -1037,7 +1048,7 @@ Role `FINANCE_ADMIN`; CSRF.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `FINANCE_ADMIN` | Mở quản lý gói |
 | 2 | Client | `GET /api/admin/plans` |
 | 3 | `FINANCE_ADMIN` | Tạo gói mới hoặc sửa giá |
@@ -1056,7 +1067,7 @@ Role `FINANCE_ADMIN`; CSRF.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `FINANCE_ADMIN` | Chặn |
 | `NEGATIVE_PRICE` | 400 | Giá < 0 | Chặn |
 | `PRICE_TYPE_FLOAT` | — | 🔴 Giá dùng `FLOAT` | Vi phạm AC-07 — phải `NUMERIC(12,2)` |
@@ -1084,14 +1095,15 @@ Role `FINANCE_ADMIN`; CSRF.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-101-1 | Chỉ `FINANCE_ADMIN` |
-| BR-101-2 | Giá dùng `NUMERIC(12,2)`, **không** `FLOAT` (AC-07) |
-| BR-101-3 | `credit_transactions` ghi **giá tại thời điểm** giao dịch |
-| BR-101-4 | Không xoá `plans` — dùng `is_active = false` |
-| BR-101-5 | Không xoá gói còn `user_subscriptions` hoặc mã chưa dùng |
-| BR-101-6 | Giá mới **không** áp hồi tố |
-| BR-101-7 | Audit log mọi lần đổi giá |
+| --- | --- |
+| BR-101-1 | UC này bị chặn bởi `TODO(PAYMENT_SCOPE)`. Không gen code MVP nếu chưa chốt bán gói dịch vụ. |
+| BR-101-2 | Chỉ `FINANCE_ADMIN` được tạo, sửa hoặc ngưng bán gói dịch vụ. |
+| BR-101-3 | Giá gói không được âm và không dùng kiểu số thực. |
+| BR-101-4 | Gói đã có người dùng hoặc mã chưa dùng trỏ tới không được xóa cứng. Chỉ được ngưng bán bằng trạng thái không hoạt động. |
+| BR-101-5 | Đổi giá gói chỉ áp dụng cho giao dịch mới, không áp hồi tố cho người đã mua trước đó. |
+| BR-101-6 | Giao dịch liên quan đến gói phải lưu giá tại thời điểm giao dịch, không chỉ lưu `plan_id`. |
+| BR-101-7 | Mọi lần đổi giá, đổi quyền lợi hoặc ngưng bán gói phải ghi audit log. |
+| BR-101-8 | Người đang có gói còn hạn vẫn được dùng đến hết hạn theo quyền lợi đã mua, trừ khi chính sách sản phẩm chốt khác bằng văn bản. |
 
 ## API · DB
 
@@ -1101,12 +1113,13 @@ POST  /api/admin/plans
 PUT   /api/admin/plans/{id}
 PATCH /api/admin/plans/{id}/deactivate
 ```
+
 `plans` (đọc + ghi) · `user_subscriptions` · `credit_cards` (đọc để kiểm) · audit log
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Tạo gói mới | 201 |
 | T2 | `CONTENT_ADMIN` gọi | 403 |
 | T3 | Giá âm | 400 |
@@ -1140,14 +1153,14 @@ cái, xác minh, và điều chỉnh nếu cần.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
-|---|---|
+| --- | --- |
 | Điều chỉnh | Thêm dòng `credit_transactions` loại `ADJUSTMENT` kèm lý do + ai duyệt; `balance` đổi |
 | Không điều chỉnh | Chỉ ghi kết luận; **không** đổi `balance` |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `FINANCE_ADMIN` | Nhận khiếu nại, mở sổ cái của người đó (UC-100 A1) |
 | 2 | System | Trả mọi giao dịch + chuỗi `balance_before`/`after` |
 | 3 | `FINANCE_ADMIN` | Đối chiếu: chuỗi liên tục? có `DEDUCT` thiếu `REFUND`? |
@@ -1174,7 +1187,7 @@ Không hoàn. Giải thích kèm dòng sổ cái làm chứng.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `FINANCE_ADMIN` | Chặn |
 | `ADJUSTMENT_WITHOUT_REASON` | 400 | 🔴 Không có lý do | Xem ghi chú |
 | `LEDGER_ROW_MODIFIED` | — | 🔴 Sửa/xoá dòng cũ để "sửa lỗi" | Xem ghi chú |
@@ -1212,16 +1225,16 @@ Không hoàn. Giải thích kèm dòng sổ cái làm chứng.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-102-1 | Chỉ `FINANCE_ADMIN` |
-| BR-102-2 | Điều chỉnh = **thêm** dòng `ADJUSTMENT`, không sửa dòng cũ |
-| BR-102-3 | `credit_transactions` là **append-only** — không có endpoint sửa/xoá |
-| BR-102-4 | Lý do **bắt buộc** |
-| BR-102-5 | Bắt buộc audit log + `performed_by` |
-| BR-102-6 | Chặn tự điều chỉnh cho chính mình |
-| BR-102-7 | Unique trên `dispute_ref` chống xử lý hai lần |
-| BR-102-8 | Lỗi hệ thống → dùng UC-097 (`REFUND`), không `ADJUSTMENT` |
-| BR-102-9 | ⚠️ Ngưỡng điều chỉnh lớn cần duyệt hai người |
+| --- | --- |
+| BR-102-1 | UC này chỉ triển khai khi hệ thống có điểm/giao dịch thật. Không gen code nếu MVP chỉ dùng quota đơn giản. |
+| BR-102-2 | Chỉ `FINANCE_ADMIN` được xử lý tranh chấp về điểm. |
+| BR-102-3 | Không được sửa hoặc xóa giao dịch cũ để xử lý tranh chấp. Mọi điều chỉnh phải tạo giao dịch điều chỉnh mới. |
+| BR-102-4 | Giao dịch điều chỉnh phải có lý do rõ ràng và mã tham chiếu khiếu nại hoặc nguồn xác minh. |
+| BR-102-5 | Người xử lý điều chỉnh phải được ghi lại trong giao dịch hoặc audit log. |
+| BR-102-6 | `FINANCE_ADMIN` không được tự điều chỉnh điểm cho chính tài khoản của mình. |
+| BR-102-7 | Một tranh chấp chỉ được xử lý một lần để tránh cộng/trừ lặp. |
+| BR-102-8 | Nếu lỗi là do hệ thống đã trừ điểm nhưng thao tác thất bại, phải xử lý bằng luồng hoàn điểm, không dùng điều chỉnh thủ công. |
+| BR-102-9 | Điều chỉnh không được làm số dư người dùng âm. |
 
 ## API · DB
 
@@ -1229,12 +1242,13 @@ Không hoàn. Giải thích kèm dòng sổ cái làm chứng.
 GET  /api/admin/users/{id}/credit-transactions
 POST /api/admin/credit-adjustments
 ```
+
 `credit_transactions` (append) · `user_credits` (ghi) · `credit_cards` (đọc) · audit log
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Điều chỉnh +50 kèm lý do | Dòng `ADJUSTMENT`, `balance` +50 |
 | T2 | Không có lý do | 400 |
 | T3 | `CONTENT_ADMIN` gọi | 403 |
@@ -1267,14 +1281,14 @@ Nghiệm thu 6.2: *"Trừ điểm **đúng lúc gửi yêu cầu**; teacher khô
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái (cùng transaction) |
-|---|---|
+| --- | --- |
 | Thành công | `grading_requests` `status = PENDING`; điểm bị trừ; `credit_transactions` ghi `DEDUCT` |
 | Hết quota | 402, **không** tạo yêu cầu, **không** trừ |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Viết bài, bấm "Nhờ giáo viên chấm" |
 | 2 | Client | `POST /api/grading-requests` + CSRF |
 | 3 | System | Kiểm độ dài bài viết |
@@ -1295,7 +1309,7 @@ Nghiệm thu 6.2: *"Trừ điểm **đúng lúc gửi yêu cầu**; teacher khô
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `QUOTA_EXCEEDED` | 402 | Hết lượt và điểm | Không tạo yêu cầu, không trừ |
 | `QUOTA_DEDUCTED_BUT_REQUEST_FAILED` | 500 | 🔴 Trừ xong tạo yêu cầu lỗi | **Cùng transaction** — rollback cả hai |
 | `ESSAY_TOO_SHORT` | 400 | < 50 từ | Chặn (A3) |
@@ -1325,15 +1339,17 @@ Nghiệm thu 6.2: *"Trừ điểm **đúng lúc gửi yêu cầu**; teacher khô
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-103-1 | Trừ điểm **đúng lúc gửi yêu cầu** (nghiệm thu) |
-| BR-103-2 | Trừ điểm + tạo yêu cầu **cùng transaction** |
-| BR-103-3 | Một bài chỉ một yêu cầu `PENDING` |
-| BR-103-4 | Bài 50–2.000 từ |
-| BR-103-5 | Huỷ trước khi teacher nhận → hoàn điểm |
-| BR-103-6 | Bắt buộc CSRF |
-| BR-103-7 | Escape nội dung bài |
-| BR-103-8 | ⚠️ Chặn tới khi chốt `teacher_payout` và hạn chấm |
+| --- | --- |
+| BR-103-1 | UC này bị chặn cho đến khi nhóm chốt `teacher_payout`, hạn teacher nhận bài và hạn teacher chấm xong. |
+| BR-103-2 | Không gen code MVP cho chấm bài thuê nếu dự án chưa chốt thanh toán/điểm. |
+| BR-103-3 | Người dùng chỉ gửi yêu cầu chấm khi đã đăng nhập và còn quota hoặc điểm theo chính sách đã chốt. |
+| BR-103-4 | Điểm hoặc quota bị trừ tại thời điểm gửi yêu cầu, đúng theo nghiệm thu của file. |
+| BR-103-5 | Trừ điểm/quota và tạo yêu cầu chấm phải nhất quán. Không được trừ thành công nhưng không tạo yêu cầu. |
+| BR-103-6 | Một bài viết chỉ được có một yêu cầu chấm đang chờ hoặc đang được xử lý. |
+| BR-103-7 | Bài gửi chấm phải có độ dài hợp lý. Đề xuất 50–2.000 từ để tránh bài quá ngắn hoặc quá dài. |
+| BR-103-8 | Người dùng được hủy yêu cầu khi yêu cầu còn ở trạng thái chờ teacher nhận. Khi hủy hợp lệ, hệ thống hoàn lại phần đã trừ. |
+| BR-103-9 | Nội dung bài viết phải được escape khi teacher xem để tránh XSS. |
+| BR-103-10 | Người dùng cần được thông báo rõ điều kiện hoàn điểm trước khi xác nhận gửi chấm. |
 
 ## API · DB
 
@@ -1342,12 +1358,13 @@ POST   /api/grading-requests
 DELETE /api/grading-requests/{id}        (huỷ khi còn PENDING)
 GET    /api/me/grading-requests
 ```
+
 `grading_requests` (ghi) · `feature_usage` · `user_credits` · `credit_transactions`
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Gửi bài 200 từ, còn quota | 201, điểm **bị trừ ngay** |
 | T2 | Hết quota | 402, **không** tạo yêu cầu |
 | T3 | Tạo yêu cầu lỗi sau khi trừ | **Rollback** — điểm không mất |
@@ -1380,7 +1397,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `TEACHER` | Mở hàng đợi chấm bài |
 | 2 | System | Kiểm role `TEACHER` |
 | 3 | System | `GET /api/teacher/grading-requests?status=PENDING` |
@@ -1398,7 +1415,7 @@ Chỉ đọc.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `TEACHER` | Chặn ở server |
 | `STUDENT_IDENTITY_EXPOSED` | — | 🔴 Hiện tên/email người học | Xem ghi chú |
 | `ESSAY_CONTENT_IN_LIST` | — | 🔴 Trả nguyên nội dung bài trong danh sách | Xem ghi chú |
@@ -1421,26 +1438,28 @@ Chỉ đọc.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-104-1 | Chỉ `TEACHER` |
-| BR-104-2 | Hàng đợi **ẩn danh** người học |
-| BR-104-3 | Danh sách **không** chứa nội dung bài |
-| BR-104-4 | Sắp theo hạn gần nhất |
-| BR-104-5 | Hiện tiền `TEACHER` nhận được |
-| BR-104-6 | Chỉ bài `PENDING` chưa quá hạn |
-| BR-104-7 | Phân trang |
+| --- | --- |
+| BR-104-1 | UC này bị chặn cho đến khi nhóm chốt `teacher_payout` và deadline. |
+| BR-104-2 | Chỉ `TEACHER` được xem hàng đợi bài chờ chấm. |
+| BR-104-3 | Hàng đợi chỉ hiển thị các yêu cầu ở trạng thái `PENDING` và chưa quá hạn. |
+| BR-104-4 | Danh sách hàng đợi không hiển thị danh tính người học để giảm thiên vị khi chọn bài. |
+| BR-104-5 | Danh sách hàng đợi không trả toàn bộ nội dung bài viết. Chỉ trả metadata như độ dài, thời gian gửi, hạn xử lý và mức payout. |
+| BR-104-6 | Hàng đợi phải phân trang. |
+| BR-104-7 | Danh sách nên sắp xếp theo hạn xử lý gần nhất trước. |
+| BR-104-8 | Bài đã có teacher nhận không được tiếp tục xuất hiện trong hàng đợi chung. |
 
 ## API · DB
 
 ```
 GET /api/teacher/grading-requests?status=PENDING
 ```
+
 `grading_requests` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | `TEACHER` xem hàng đợi | Danh sách sắp theo hạn |
 | T2 | `USER` gọi | 403 |
 | T3 | `CONTENT_ADMIN` gọi | 403 |
@@ -1472,14 +1491,14 @@ Kết quả chấm gộp vào cùng bảng `grading_requests`: `score` · `feedb
 ## Hậu điều kiện
 
 | Bước | Trạng thái |
-|---|---|
+| --- | --- |
 | Nhận bài | `status = ASSIGNED`, `teacher_id`, `assigned_at`, `grading_deadline` |
 | Chấm xong | `status = COMPLETED`, `score`, `feedback`, `corrections`, `teacher_payout`; `credit_transactions` ghi tiền trả teacher |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `TEACHER` | Bấm "Nhận chấm" |
 | 2 | Client | `PATCH /api/teacher/grading-requests/{id}/claim` + CSRF |
 | 3 | System | `UPDATE ... SET status='ASSIGNED', teacher_id=? WHERE id=? AND status='PENDING'` |
@@ -1502,7 +1521,7 @@ Kết quả chấm gộp vào cùng bảng `grading_requests`: `score` · `feedb
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `FORBIDDEN_ROLE` | 403 | Không phải `TEACHER` | Chặn |
 | `ALREADY_CLAIMED` | 409 | Người khác nhận trước | `WHERE status='PENDING'` (A1) |
 | `NOT_ASSIGNED_TO_ME` | 403 | 🔴 Chấm bài người khác nhận | Xem ghi chú |
@@ -1536,16 +1555,20 @@ Kết quả chấm gộp vào cùng bảng `grading_requests`: `score` · `feedb
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-105-1 | Chỉ `TEACHER`; chỉ chấm bài **mình đã nhận** |
-| BR-105-2 | `UPDATE ... WHERE teacher_id=? AND status='ASSIGNED'` chống cả hai lỗ hổng |
-| BR-105-3 | `teacher_payout` ghi `credit_transactions` loại `TEACHER_PAYOUT` |
-| BR-105-4 | `teacher_payout ≤ student_paid` — `CHECK` ở DB |
-| BR-105-5 | Nhận xét **bắt buộc**, không rỗng |
-| BR-105-6 | Không tự chấm bài mình |
-| BR-105-7 | Escape nhận xét |
-| BR-105-8 | Quá hạn chấm → về `PENDING`, không nhận tiền |
-| BR-105-9 | ⚠️ Chặn tới khi chốt tỉ lệ payout |
+| --- | --- |
+| BR-105-1 | UC này bị chặn cho đến khi nhóm chốt tỉ lệ hoặc số điểm `teacher_payout`. |
+| BR-105-2 | Chỉ `TEACHER` được nhận và chấm bài. |
+| BR-105-3 | Một yêu cầu chấm chỉ được một teacher nhận tại một thời điểm. |
+| BR-105-4 | Teacher chỉ được chấm bài mà chính mình đã nhận. |
+| BR-105-5 | Teacher không được tự chấm bài của chính mình. |
+| BR-105-6 | Khi teacher nhận bài, yêu cầu chuyển từ `PENDING` sang `ASSIGNED` và ghi `teacher_id`, `assigned_at`, hạn chấm. |
+| BR-105-7 | Khi teacher nộp kết quả, hệ thống chỉ chấp nhận nếu yêu cầu còn ở trạng thái `ASSIGNED` và thuộc teacher hiện tại. |
+| BR-105-8 | Mỗi yêu cầu chỉ được hoàn tất một lần. Nộp kết quả nhiều lần không được trả payout nhiều lần. |
+| BR-105-9 | Kết quả chấm phải có điểm hợp lệ và nhận xét không rỗng. |
+| BR-105-10 | Payout cho teacher không được lớn hơn phần người học đã trả cho yêu cầu đó. |
+| BR-105-11 | Payout cho teacher phải được ghi nhận bằng giao dịch hoặc lịch sử riêng để đối soát. |
+| BR-105-12 | Nếu quá hạn chấm, teacher không được nhận payout cho yêu cầu đó. |
+| BR-105-13 | Nhận xét và phần sửa lỗi phải được escape khi hiển thị cho người học. |
 
 ## API · DB
 
@@ -1554,12 +1577,13 @@ PATCH /api/teacher/grading-requests/{id}/claim
 PATCH /api/teacher/grading-requests/{id}/submit-grade
 PATCH /api/teacher/grading-requests/{id}/release
 ```
+
 `grading_requests` (đọc + ghi) · `credit_transactions` (ghi) · `user_credits` (ghi teacher)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Nhận + chấm bài | `COMPLETED`, teacher nhận tiền, sổ cái có dòng |
 | T2 | Hai `TEACHER` cùng nhận | Một 200, một 409 |
 | T3 | Chấm bài người khác nhận | 403 |
@@ -1593,7 +1617,7 @@ Chỉ đọc.
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `USER` | Nhận thông báo, mở kết quả |
 | 2 | Client | `GET /api/me/grading-requests/{id}` |
 | 3 | System | **Kiểm sở hữu** |
@@ -1610,7 +1634,7 @@ Chỉ đọc.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `REQUEST_NOT_OWNED` | 403 | 🔴 Xem bài người khác | **IDOR** |
 | `NOT_COMPLETED` | 200 | Chưa chấm xong | Trả trạng thái, **không** trả `score` (A1) |
 | `TEACHER_IDENTITY_EXPOSED` | — | ⚠️ Hiện danh tính teacher | Xem ghi chú |
@@ -1637,14 +1661,15 @@ Chỉ đọc.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-106-1 | Chỉ xem yêu cầu **của mình** |
-| BR-106-2 | Chưa `COMPLETED` → không trả `score` |
-| BR-106-3 | Response **không** chứa `teacher_payout` |
-| BR-106-4 | Escape `feedback` và `corrections` |
-| BR-106-5 | Hiện tên teacher |
-| BR-106-6 | Giữ kết quả vĩnh viễn |
-| BR-106-7 | ⚠️ Chốt có luồng khiếu nại hay không |
+| --- | --- |
+| BR-106-1 | Người học chỉ được xem kết quả chấm của yêu cầu do chính mình tạo. |
+| BR-106-2 | Chỉ yêu cầu ở trạng thái `COMPLETED` mới trả điểm, nhận xét và phần sửa lỗi. |
+| BR-106-3 | Yêu cầu chưa chấm xong chỉ trả trạng thái xử lý, không trả điểm rỗng hoặc kết quả tạm. |
+| BR-106-4 | Response cho người học không được chứa `teacher_payout` hoặc thông tin tài chính nội bộ. |
+| BR-106-5 | Feedback và corrections phải được escape khi hiển thị. |
+| BR-106-6 | Có thể hiển thị tên teacher cho người học nếu nhóm chốt rằng kết quả chấm không ẩn danh. |
+| BR-106-7 | Kết quả chấm nên được giữ lại để người học xem lại sau này. |
+| BR-106-8 | Trước khi triển khai trả phí, nhóm phải chốt rõ có hay không có luồng khiếu nại kết quả chấm. |
 
 ## API · DB
 
@@ -1652,12 +1677,13 @@ Chỉ đọc.
 GET /api/me/grading-requests
 GET /api/me/grading-requests/{id}
 ```
+
 `grading_requests` (đọc)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Xem kết quả của mình | Điểm + nhận xét + sửa lỗi |
 | T2 | Yêu cầu người khác | 403 |
 | T3 | Còn `PENDING` | Trạng thái, **không** có `score` |
@@ -1687,14 +1713,14 @@ Nghiệm thu 6.2: *"teacher không nhận thì **hoàn điểm**"*.
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái (cùng transaction) |
-|---|---|
+| --- | --- |
 | Hoàn | `status = EXPIRED`; điểm hoàn qua UC-097; `credit_transactions` có dòng `REFUND` |
 | Đã hoàn | Idempotent |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
-|---|---|---|
+| --- | --- | --- |
 | 1 | Scheduler | Chạy mỗi 15 phút |
 | 2 | System | `SELECT ... WHERE status='PENDING' AND deadline_at < now() FOR UPDATE SKIP LOCKED` |
 | 3 | System | Với **mỗi** yêu cầu, một transaction riêng |
@@ -1713,7 +1739,7 @@ Nghiệm thu 6.2: *"teacher không nhận thì **hoàn điểm**"*.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `DEADLINE_UNDEFINED` | 500 | 🔴 Chưa chốt hạn | **Chặn** — không có mốc thì job không chạy được |
 | `REFUND_RACE_WITH_CLAIM` | — | 🔴 Hoàn cùng lúc teacher nhận | Xem ghi chú |
 | `DOUBLE_REFUND` | — | Hoàn hai lần | UC-097 idempotent + unique `ref_transaction_id` |
@@ -1742,16 +1768,16 @@ Nghiệm thu 6.2: *"teacher không nhận thì **hoàn điểm**"*.
 ## Business rule
 
 | # | Rule |
-|---|---|
-| BR-107-1 | Scheduler ghi `zone = "Asia/Ho_Chi_Minh"` |
-| BR-107-2 | `UPDATE ... WHERE status='PENDING'` chống race với UC-105 |
-| BR-107-3 | Đổi `status` **trước** khi hoàn, cùng transaction |
-| BR-107-4 | Mỗi yêu cầu một transaction riêng |
-| BR-107-5 | Hoàn qua UC-097 (dòng `REFUND`), không `ADJUSTMENT` |
-| BR-107-6 | Idempotent |
-| BR-107-7 | `SKIP LOCKED` cho nhiều instance |
-| BR-107-8 | Báo cáo "PENDING quá hạn" phải = 0 |
-| BR-107-9 | ⚠️ Chặn tới khi chốt `deadline_at` |
+| --- | --- |
+| BR-107-1 | UC này bị chặn cho đến khi nhóm chốt hạn teacher phải nhận bài. Không có deadline thì không thể chạy hoàn tự động. |
+| BR-107-2 | Hệ thống chỉ hoàn điểm cho yêu cầu còn ở trạng thái `PENDING` và đã quá hạn nhận bài. |
+| BR-107-3 | Trước khi hoàn, hệ thống phải chuyển yêu cầu sang trạng thái hết hạn để teacher không thể nhận bài sau khi người học đã được hoàn. |
+| BR-107-4 | Việc đổi trạng thái và hoàn điểm phải nhất quán. Không được hoàn điểm nhưng yêu cầu vẫn còn trong hàng đợi. |
+| BR-107-5 | Hoàn điểm phải dùng luồng hoàn điểm chuẩn, không dùng điều chỉnh thủ công. |
+| BR-107-6 | Mỗi yêu cầu chỉ được hoàn một lần. Job chạy lại không được hoàn trùng. |
+| BR-107-7 | Nếu teacher nhận bài đúng lúc job hoàn điểm chạy, chỉ một trong hai thao tác được thành công. |
+| BR-107-8 | Scheduler hoàn điểm phải có health check hoặc báo cáo số yêu cầu quá hạn chưa xử lý. |
+| BR-107-9 | Giờ xử lý deadline thống nhất theo giờ Việt Nam hoặc timestamp chuẩn đã chốt, không để mỗi nơi hiểu một kiểu. |
 
 ## API · DB
 
@@ -1762,7 +1788,7 @@ Không endpoint — tác vụ định kỳ.
 ## Test case
 
 | # | Đầu vào | Kết quả |
-|---|---|---|
+| --- | --- | --- |
 | T1 | Yêu cầu quá hạn 1 giờ | `EXPIRED`, điểm **được hoàn** |
 | T2 | Teacher nhận đúng lúc job chạy | **Một** trong hai thắng, không mất tiền hai đầu |
 | T3 | Job chạy 2 lần | Hoàn **một** lần |
@@ -1778,7 +1804,7 @@ Không endpoint — tác vụ định kỳ.
 ## Mười hai exception quan trọng nhất
 
 | # | UC | Exception | Vì sao |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | UC-094 | `BALANCE_UPDATED_WITHOUT_LEDGER` | Phá vỡ **toàn bộ** khả năng xử lý tranh chấp; sổ cái không tái dựng được |
 | 2 | UC-097 | `REFUND_NOT_TRIGGERED` | Đường lỗi ít được test → nhiều người mất điểm mà **không ai biết** |
 | 3 | UC-099 | `WEAK_RANDOM_USED` / `SEQUENTIAL_CODES` | Rủi ro #1 bảng bảo mật 6.1 — đoán được mã là mất tiền thật |
@@ -1795,7 +1821,7 @@ Không endpoint — tác vụ định kỳ.
 ## Năm nhóm exception lặp lại
 
 | Nhóm | Xuất hiện ở | Bài học |
-|---|---|---|
+| --- | --- | --- |
 | **Đổi tiền không ghi sổ cái** | UC-094 · UC-095 · UC-096 · UC-102 · UC-105 | **Năm** chỗ đổi `balance`. Cần **một** `CreditService` duy nhất có quyền `UPDATE user_credits`, ArchUnit chặn mọi nơi khác. Hoặc trigger DB |
 | **`UPDATE ... WHERE status=?`** | UC-105 · UC-107 (+ UC-035, UC-076) | **Bốn** chỗ cùng cần mẫu này: kiểm trạng thái **trong** câu UPDATE, không kiểm trước rồi ghi sau. Một dòng SQL thay cho khoá phân tán |
 | **Separation of duties** | UC-094 · UC-099 · UC-100 · UC-101 · UC-102 · UC-105 | `FINANCE_ADMIN` sinh mã rồi tự nạp; tự điều chỉnh cho mình; `TEACHER` tự chấm bài mình. Không chặn hết được bằng code → **audit log là lớp phòng vệ cuối** |
@@ -1807,7 +1833,7 @@ Không endpoint — tác vụ định kỳ.
 # Khoảng trống thiết kế phát hiện ở nhóm 6a + 6b
 
 | # | Thiếu | UC bị ảnh hưởng | Mức |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | **Chưa chốt kỳ hạn "10 lượt free"** (vĩnh viễn / tháng / ngày) | UC-093 · UC-096 | 🔴 Chặn UC-096; ảnh hưởng mô hình kinh doanh |
 | 2 | **Chưa chốt `teacher_payout`** — teacher nhận bao nhiêu phần | UC-103 · UC-105 | 🔴 Feature tree tự đặt câu hỏi này |
 | 3 | **Chưa chốt hạn phải chấm / hạn nhận bài** | UC-103 · UC-105 · UC-107 | 🔴 UC-107 **không có mốc** để chạy |
