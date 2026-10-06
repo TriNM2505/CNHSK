@@ -23,7 +23,7 @@
 
 | Loại | Số lượng | Chi tiết |
 |---|---|---|
-| Tính năng mới | **8** | Học từ theo chủ đề · Học qua video · Translate đầy đủ · Chia sẻ flashcard · Kiểm duyệt bài · Cuộc thi có thưởng · Gói Free/Premium · Hệ thống 4 role |
+| Tính năng mới | **8** | Học từ theo chủ đề · Học qua video · Translate đầy đủ · Chia sẻ flashcard · Kiểm duyệt bài · Cuộc thi có thưởng · Gói Free/Premium · Hệ thống 6 role |
 | Chuyển nhóm | 2 | Game Box và Game gõ pinyin → Community |
 | Cắt bớt | 2 | Gia sư (dùng bên thứ ba) · Sổ tay bỏ liên kết học |
 | Làm rõ | 3 | Ngưỡng cổng 90% · Trợ lý ảo xuyên suốt · Đề đủ HSK 1–6 |
@@ -404,10 +404,10 @@
 | **Client** | Web chính · Mobile |
 | **Phạm vi** | **V2** |
 | **Trạng thái** | Làm mới |
-| **Cách tổ chức** | Admin tạo cuộc thi → đặt khung giờ (ví dụ 20h–21h) → đăng bài quảng bá → người dùng đăng ký → đúng giờ mở → hết giờ đóng → công bố xếp hạng → trao thưởng |
+| **Cách tổ chức** | `CONTENT_ADMIN` tạo cuộc thi → đặt khung giờ (ví dụ 20h–21h) → đăng bài quảng bá → người dùng đăng ký → đúng giờ mở → hết giờ đóng → công bố xếp hạng; nếu thưởng bằng điểm tài chính, `FINANCE_ADMIN` thực hiện cộng điểm và ghi sổ cái |
 | **Ai tham gia** | **Tài khoản mới cũng tham gia free** — dùng để thu hút người dùng |
 | **Tính điểm** | Như game: điểm + thời gian. Xếp hạng riêng cho mỗi cuộc thi |
-| **Phần thưởng** | Hiện trên trang cuộc thi. Trao thủ công hoặc cộng điểm tài chính |
+| **Phần thưởng** | Hiện trên trang cuộc thi. Thưởng hiện vật do bên tổ chức trao; thưởng bằng điểm tài chính do `FINANCE_ADMIN` xử lý và ghi sổ cái |
 | **Bảng DB** | `contests` `contest_participants` `contest_submissions` (C) — giải thưởng gộp vào `contests.prizes` JSONB, nhật ký gian lận gộp vào `contest_participants.cheat_events` JSONB |
 | **API** | `GET /api/contests` · `POST /api/contests/{id}/join` · `POST /api/contests/{id}/submit` |
 | **Nghiệm thu** | Ngoài khung giờ không vào thi được; xếp hạng công bố đúng sau khi đóng |
@@ -493,21 +493,23 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 > `JwtFilter` đọc **cookie trước, không có thì đọc header** — thiếu một trong hai là một loại client
 > không đăng nhập được. Chi tiết: `docs/kien-truc.md` mục 2.
 
-## 6.2 · Hệ thống phân quyền 4 role — Làm mới ⭐
+## 6.2 · Hệ thống phân quyền 6 role — Làm mới ⭐
 
 | | |
 |---|---|
-| **Mô tả** | Bốn vai trò với quyền khác nhau |
-| **Client** | Admin (web) · Shared |
+| **Mô tả** | Sáu role trong cơ sở dữ liệu với quyền tách biệt; `GUEST` và `SYSTEM` là actor, không phải role |
+| **Client** | Trang quản trị (web) · Shared |
 | **Phạm vi** | **MVP** |
-| **Trạng thái** | Làm mới — mở rộng từ 3 role cũ |
+| **Trạng thái** | Làm mới — thống nhất với Hiến pháp và 119 use case |
 
 | Role | Quyền | Phạm vi |
 |---|---|---|
-| **ADMIN** | Quản trị toàn hệ thống: người dùng, gói dịch vụ, thẻ nạp, cuộc thi, cấu hình | Toàn bộ |
-| **MANAGER** | Duyệt bài đăng, xử lý báo cáo vi phạm, quản lý cộng đồng | Community |
-| **TEACHER** | Kiểm duyệt kiến thức: duyệt câu hỏi AI sinh, sửa nội dung học, **chấm bài thuê** | Học tập |
 | **USER** | Học, thi, chơi game, đăng bài (chờ duyệt) | Người dùng cuối |
+| **TEACHER** | Duyệt câu hỏi AI, sửa nội dung học, nhận và chấm bài viết | Học tập |
+| **MANAGER** | Duyệt bài đăng, xử lý báo cáo và kiểm duyệt bình luận | Cộng đồng |
+| **CONTENT_ADMIN** | Quản lý đề thi, kho câu hỏi, nhập dữ liệu và cuộc thi | Nội dung |
+| **FINANCE_ADMIN** | Quản lý gói dịch vụ, mã thẻ nạp, sổ cái điểm và tranh chấp | Tài chính |
+| **SUPER_ADMIN** | Quản lý người dùng, cấp/thu hồi role và cấu hình hệ thống | Hệ thống |
 
 ### Teacher chấm bài thuê
 
@@ -518,7 +520,7 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 | **Cần quyết** | Teacher nhận bao nhiêu phần trong số điểm người học trả? Có hạn thời gian phải chấm xong không? |
 | **Nghiệm thu** | Trừ điểm đúng lúc gửi yêu cầu; teacher không nhận thì hoàn điểm |
 
-> **Một người có nhiều role được** — bảng nối `user_roles` đã thiết kế cho việc này.
+> **Một người có nhiều role được** — bảng nối `user_roles` đã thiết kế cho việc này. `SUPER_ADMIN` không tự động có quyền của `CONTENT_ADMIN` hoặc `FINANCE_ADMIN`. `GUEST` và `SYSTEM` không được thêm vào `user_roles`.
 
 ## 6.3 · Kho câu hỏi và nhãn kiến thức — Làm mới
 
@@ -559,10 +561,10 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 
 | | |
 |---|---|
-| **Mô tả** | Nơi 3 role quản lý hệ thống |
+| **Mô tả** | Nơi `TEACHER`, `MANAGER`, `CONTENT_ADMIN`, `FINANCE_ADMIN` và `SUPER_ADMIN` thực hiện chức năng quản trị theo đúng quyền riêng |
 | **Client** | Admin |
 | **Phạm vi** | MVP |
-| **Gồm** | Quản lý đề thi và câu hỏi · **hàng đợi duyệt câu hỏi AI** · **hàng đợi duyệt bài đăng** · quản lý gói và thẻ nạp · quản lý cuộc thi · **xem log nhập dữ liệu** |
+| **Gồm** | `TEACHER`: hàng đợi câu hỏi AI, sửa nội dung học · `MANAGER`: duyệt bài đăng và xử lý báo cáo · `CONTENT_ADMIN`: đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi · `FINANCE_ADMIN`: gói dịch vụ, thẻ nạp, sổ cái và tranh chấp · `SUPER_ADMIN`: người dùng, role và cấu hình |
 | **Bảng DB** | `review_actions` `question_reports` `moderation_reports` `import_runs` · duyệt bài đọc cột `posts.reviewed_*` |
 | **Nghiệm thu** | Mỗi role chỉ thấy phần mình quản; duyệt hàng loạt 20 mục dưới 2 phút |
 
@@ -605,7 +607,7 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 | Tính năng | Ước tính |
 |---|---|
 | 6.1 Gói dịch vụ + thanh toán thẻ | 3–4 tuần |
-| 6.2 Bốn role + teacher chấm thuê | 2–3 tuần |
+| 6.2 Sáu role + teacher chấm thuê | 2–3 tuần |
 | 5.5 Trợ lý ảo xuyên suốt | 2 tuần |
 | 1.5 Học từ theo chủ đề | 2 tuần |
 
@@ -615,7 +617,7 @@ Cộng lại đã **9–11 tuần cho một người**, chưa tính 17 tính nă
 
 | # | Cắt gì | Vì sao an toàn |
 |---|---|---|
-| 1 | **Teacher chấm bài thuê** (trong 6.2) | Giữ 4 role nhưng bỏ phần chấm thuê. Tiết kiệm 1–2 tuần |
+| 1 | **Teacher chấm bài thuê** (trong 6.2) | Giữ 6 role nhưng bỏ phần chấm thuê. Tiết kiệm 1–2 tuần |
 | 2 | **Gói tháng** (giữ điểm tài chính) | Một cơ chế tính phí thay vì hai. Tiết kiệm 1 tuần |
 | 3 | **1.3 Luyện phát âm** | Đã có ở app cũ, chưa chấm micro nên giá trị thấp |
 | 4 | **5.6 Game Box** | Vui nhưng không phải lõi học tập |
