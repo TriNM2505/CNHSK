@@ -69,7 +69,7 @@ Phân công và ước lượng thời gian **không ghi ở đây** — xem `wb
 | T-14 | `POST /api/auth/login` — cookie đủ **5 thuộc tính** cho web | `AuthService` | FR-014…FR-021 · `HR-03` | ⬜ |
 | T-15 | Nhánh mobile — token trong **body**, không đặt cookie | `AuthService` | FR-022…FR-025 | ⬜ |
 | T-16 | `GET /api/auth/me` — cho trang game biết mình là ai | `AuthController` | **FR-027** | ⬜ |
-| T-17 | Lockout 5 lần sai/15 phút, đếm **theo tài khoản** | `AuthService` | FR-046…FR-050 | ⬜ |
+| T-17 | Redis chặn theo cặp email–IP sau 5 lần sai/15 phút, TTL 15 phút; reset khi đăng nhập hoặc đặt lại mật khẩu thành công | `AuthService` | FR-046…FR-050 | ⬜ |
 
 > **T-16 dễ bị bỏ sót.** Cookie `HttpOnly` nên JavaScript trang game **không đọc được**
 > token — không có endpoint này thì trang game không biết đã đăng nhập hay chưa.
@@ -91,12 +91,15 @@ Phân công và ước lượng thời gian **không ghi ở đây** — xem `wb
 | ID | Task | File | Spec ref | TT |
 |---|---|---|---|---|
 | T-21 | `RoleService` — gán/thu hồi role, chặn tự cấp, ghi `audit_logs` | `auth/service/RoleService.java` | FR-058…FR-066 | ⬜ |
-| T-22 | `ProfileController` — xem/sửa cá nhân, **kiểm quyền sở hữu** | `auth/controller/` | FR-051…FR-057 · `BUS-01` | ⬜ |
+| T-22 | `ProfileController` — xem/sửa cá nhân, **kiểm quyền sở hữu** | `auth/controller/` | FR-051…FR-055 · `BUS-01` | ⬜ |
 | T-23 | `PlanService` + job reset lượt tháng (giờ Việt Nam) | `learning/payment/` | FR-067…FR-075 · `BUS-08` | ⬜ |
 | T-24 | `AuthApi` + `PlanLookup` — lớp `api` cho module khác | `auth/api/`, `learning/api/` | `AC-03` | ⬜ |
 
 > **T-24 làm cuối nhưng quan trọng nhất cho các spec sau.** Xong T-24 thì bỏ
 > `allowEmptyShould(true)` trong `ModuleBoundaryTest` để rule hoạt động thật.
+
+> **V2 — UC-014:** Chức năng `SUPER_ADMIN` xem lịch sử đăng nhập thành công
+> (FR-056…FR-057) được triển khai sau MVP, không thuộc T-22.
 
 ---
 

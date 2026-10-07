@@ -22,8 +22,8 @@ Nền tảng xác thực cho **ba client dùng chung một backend**. Điểm kh
 `JwtFilter` đọc **cookie trước, không có thì đọc header** (FR-023). Thiếu một nhánh thì một
 loại client không đăng nhập được, và lỗi chỉ hiện trên thiết bị thật.
 
-Chống brute force: đếm `failed_login_count` **theo tài khoản**, không theo IP (FR-048) —
-tránh người dùng chung NAT làm khoá lẫn nhau. Khoá tạm 15 phút sau 5 lần sai.
+Chống brute force: Redis đếm theo **cặp email chuẩn hóa–IP** bằng thao tác nguyên tử và TTL (FR-048).
+Sau 5 lần sai trong 15 phút, chặn cặp đó 15 phút; không khóa toàn bộ tài khoản hoặc người dùng chung IP.
 
 Refresh token **rotation + reuse detection**: dùng lại token đã thu hồi → thu hồi **toàn bộ**
 token của user (FR-032). Token chỉ lưu dạng hash (FR-033).
@@ -45,7 +45,8 @@ Thư mục `src/main/java/com/cnhsk/auth/` đã có sẵn khung `api` · `contro
 | Thành phần | Trách nhiệm | File | FR |
 |---|---|---|---|
 | `AuthController` | register · verify · login · refresh · logout · forgot · reset | `auth/controller/AuthController.java` | FR-001…FR-045 |
-| `ProfileController` | xem/sửa thông tin cá nhân, lịch sử đăng nhập | `auth/controller/ProfileController.java` | FR-051…FR-057 |
+| `ProfileController` | xem/sửa thông tin cá nhân | `auth/controller/ProfileController.java` | FR-051…FR-055 |
+| `AdminUserHistoryController` (V2) | chỉ `SUPER_ADMIN` xem các lần đăng nhập thành công của tài khoản được chọn; ghi audit việc xem | `auth/controller/AdminUserHistoryController.java` | FR-056…FR-057 · UC-014 |
 | `RoleController` | gán/thu hồi role (chỉ `ADMIN`) | `auth/controller/RoleController.java` | FR-058…FR-066 |
 | `AuthService` | đăng ký, đăng nhập, lockout, rotation | `auth/service/AuthService.java` | FR-001…FR-050 |
 | `TokenService` | sinh/verify/thu hồi `auth_tokens` (3 loại) | `auth/service/TokenService.java` | FR-016, FR-031…FR-037 |
@@ -158,7 +159,7 @@ Phân bố: `auth` 3 · `learning` 22 · `community` 5 · `shared` 1.
 | Cookie thiếu `Domain=cnhsk.com` → game không đăng nhập được | **Cao** | Test tích hợp mở `game.cnhsk.com` sau khi login ở `cnhsk.com` (SC-002) |
 | `JwtFilter` chỉ đọc cookie → mobile hỏng | **Cao** | Test cả 3 client trong một suite (SC-001) |
 | Refresh token bị trộm | Cao | Rotation + reuse detection thu hồi toàn bộ (FR-032) |
-| Brute force tài khoản `ADMIN` | Cao | Lockout 5 lần/15 phút theo tài khoản (FR-046…FR-049) |
+| Brute force tài khoản `ADMIN` | Cao | Chặn cặp email–IP sau 5 lần sai/15 phút; theo dõi log để phát hiện tấn công phân tán (FR-046…FR-049) |
 | User enumeration qua thông báo lỗi | TB | Cùng một message cho email sai và mật khẩu sai (FR-018) |
 | Lộ id qua status code | TB | 403 cho cả id không tồn tại (FR-054) |
 | `ModuleBoundaryTest` còn `allowEmptyShould(true)` | TB | Bỏ flag ngay khi `auth` có class đầu tiên |

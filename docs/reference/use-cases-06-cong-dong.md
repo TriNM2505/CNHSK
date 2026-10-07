@@ -1502,7 +1502,7 @@ Người xem chọn một game để xem bảng xếp hạng riêng của game �
 
 ## Tiền điều kiện
 
-Có `game_scores`; `game_code` hợp lệ trong enum (khai **trong code**, không có bảng
+Có `learning.attempts` với `kind='GAME'`; `game_code` hợp lệ trong enum (khai **trong code**, không có bảng
 `game_catalog`).
 
 ## Hậu điều kiện
@@ -1511,11 +1511,11 @@ Chỉ đọc.
 
 ## Luồng chính
 
-Giống UC-082, khác: nguồn là `game_scores`, khoá là `game_code`.
+Giống UC-082, khác: nguồn là `learning.attempts` với `kind='GAME'`, khoá là `game_code`.
 
 ## Luồng thay thế
 
-**A1 — Redis miss** — dựng từ `game_scores`.
+**A1 — Redis miss** — dựng từ các ván game đã nộp trong `learning.attempts`.
 **A2 — `game_code` không tồn tại** — 400.
 **A3 — Xem hạng của mình ở cả 5 game** — endpoint tổng hợp.
 
@@ -1533,7 +1533,7 @@ Giống UC-082, khác: nguồn là `game_scores`, khoá là `game_code`.
 
 > 🔴 **`GAME_CODE_ENUM_DRIFT` — hệ quả của quyết định "khai enum trong code, không có bảng
 > `game_catalog`".** Đây là quyết định đúng (5 giá trị cố định, thêm bảng là phức tạp vô ích),
-> nhưng có mặt trái: `game_scores.game_code` là `VARCHAR`, DB **không** biết giá trị nào hợp lệ.
+> nhưng có mặt trái: `learning.attempts.game_code` là `VARCHAR`, DB **không** biết giá trị nào hợp lệ.
 > Một lần deploy với typo `"MUA_CHU"` vs `"MUACHU"` là có hai dòng khác nhau trong bảng xếp
 > hạng cho cùng một game.
 > **Giảm bằng:** `CHECK (game_code IN (...))` ở DB — vẫn không cần bảng, nhưng DB canh giúp.
@@ -1549,12 +1549,13 @@ Giống UC-082, khác: nguồn là `game_scores`, khoá là `game_code`.
 
 | # | Rule |
 | --- | --- |
-| BR-083-1 | UC này thuộc V2 nếu là bảng xếp hạng đầy đủ; MVP Game Box chỉ cần lưu điểm và có thể hiển thị điểm cá nhân. |
+| BR-083-1 | Bảng xếp hạng game công khai thuộc V2. Trong MVP, Game Box chỉ lưu và hiển thị điểm cá nhân, không tính hoặc trả hạng công khai. |
 | BR-083-2 | Bảng xếp hạng theo game chỉ nhận các `game_code` hợp lệ mà hệ thống hỗ trợ. |
 | BR-083-3 | Mỗi game có bảng xếp hạng riêng, không trộn điểm giữa các game khác cách tính. |
 | BR-083-4 | Điểm bị đánh dấu đáng ngờ hoặc gian lận không được đưa lên bảng xếp hạng công khai. |
 | BR-083-5 | Quy tắc sắp xếp giống bảng xếp hạng chủ đề: điểm cao hơn trước, bằng điểm thì thời gian tốt hơn đứng trên. |
 | BR-083-6 | Database là nguồn dữ liệu gốc; cache nếu có phải dựng lại được. |
+| BR-083-7 | Bảng xếp hạng game ở V2 hỗ trợ kỳ tuần, tháng và toàn thời gian theo UC-084; kết quả phải do server xác nhận trước khi được xếp hạng. |
 
 ## API · DB
 
@@ -1562,7 +1563,7 @@ Giống UC-082, khác: nguồn là `game_scores`, khoá là `game_code`.
 GET /api/public/community/leaderboard/games/{code}?period={p}
 ```
 
-`game_scores` (đọc) · Redis `rank:game:*`
+`learning.attempts` với `kind='GAME'` và `status='SUBMITTED'` (đọc) · Redis `rank:game:*`
 
 ## Test case
 
@@ -1670,7 +1671,7 @@ Người học đã đăng nhập có thể mở trợ lý trên các trang củ
 ## Tiền điều kiện
 
 1. `USER` đã đăng nhập — `GUEST` **không** dùng được (tốn tiền)
-2. Còn hạn mức — ⚠️ chờ `TODO(PAYMENT_SCOPE)`
+2. Còn lượt hỏi trong quota MVP; không dùng ví điểm cho UC này
 3. Câu hỏi ≤ giới hạn độ dài
 4. API AI khả dụng
 
@@ -1678,7 +1679,7 @@ Người học đã đăng nhập có thể mở trợ lý trên các trang củ
 
 | Kết quả | Trạng thái |
 | --- | --- |
-| Thành công | `ai_chat_messages` ghi câu hỏi + câu trả lời; trừ lượt |
+| Thành công | `ai_chats.messages` thêm câu hỏi + câu trả lời; trừ một lượt |
 | Hết hạn mức | 402, **không gọi API, không trừ gì** |
 | API lỗi | **Hoàn lượt** |
 
@@ -1691,24 +1692,24 @@ Người học đã đăng nhập có thể mở trợ lý trên các trang củ
 | 3 | System | Kiểm độ dài câu hỏi |
 | 4 | System | **Kiểm hạn mức** |
 | 5 | System | **Transaction:** trừ lượt + ghi `feature_usage` |
-| 6 | System | Lấy session hoặc tạo mới (`ai_chat_sessions`) |
+| 6 | System | Lấy bản ghi `ai_chats` theo `session_key` của người học hoặc tạo phiên mới |
 | 7 | System | Dựng prompt: câu hỏi + ngữ cảnh trang + N tin nhắn trước |
 | 8 | System | Gọi API AI (timeout 5s theo nghiệm thu) |
-| 9 | System | Ghi `ai_chat_messages` (cả câu hỏi và trả lời) |
+| 9 | System | Thêm câu hỏi và câu trả lời vào `ai_chats.messages`, cập nhật `updated_at` |
 | 10 | System | Trả câu trả lời |
 
 ## Luồng thay thế
 
 **A1 — Hỏi tiếp trong cùng phiên** — truyền `session_id`, kèm lịch sử để AI hiểu ngữ cảnh.
 **A2 — Ngữ cảnh trang** — đang học chủ đề "Gia đình" thì `page_context` nói vậy, AI gợi ý theo.
-**A3 — Hết hạn mức** — 402 kèm số lượt còn lại và gợi ý nạp (nghiệm thu: "hết hạn mức **báo rõ**").
+**A3 — Hết hạn mức** — 402 kèm số lượt còn lại và thời điểm được cấp lượt tiếp theo; không gọi API AI.
 **A4 — Ở màn thi** — client **không hiện** nút.
 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
-| `QUOTA_EXCEEDED` | 402 | Hết hạn mức | Báo rõ số lượt, gợi ý nạp. **Không gọi API** |
+| `QUOTA_EXCEEDED` | 402 | Hết hạn mức | Báo rõ số lượt và thời điểm cấp lại. **Không gọi API** |
 | `QUOTA_DEDUCTED_BUT_API_FAILED` | 500 | 🔴 Trừ xong API lỗi | **Hoàn lượt** — cùng UC-060/048 |
 | `QUESTION_TOO_LONG` | 400 | > 2.000 ký tự | Chặn **trước** khi trừ |
 | `EMPTY_QUESTION` | 400 | Rỗng | Chặn |
@@ -1765,7 +1766,7 @@ POST /api/assistant/ask
 GET  /api/assistant/history
 ```
 
-`ai_chat_sessions` · `ai_chat_messages` · `feature_usage` · `user_credits` · `credit_transactions` (ghi)
+`learning.ai_chats` · `feature_usage` (ghi quota); không ghi ví điểm hay `credit_transactions` cho lượt hỏi MVP
 
 ## Test case
 
@@ -1794,7 +1795,7 @@ Người học xem lại các cuộc trò chuyện trước và mở từng phi�
 
 ## Tiền điều kiện
 
-`USER` đã đăng nhập; có `ai_chat_sessions`.
+`USER` đã đăng nhập. Chưa có phiên hội thoại vẫn xem được danh sách rỗng.
 
 ## Hậu điều kiện
 
@@ -1806,7 +1807,7 @@ Chỉ đọc. **Không tính lượt** — xem lại không gọi API.
 | --- | --- | --- |
 | 1 | `USER` | Mở "Lịch sử hỏi đáp" |
 | 2 | Client | `GET /api/assistant/history` |
-| 3 | System | Lấy `ai_chat_sessions` **của người đang đăng nhập**, sắp mới nhất |
+| 3 | System | Lấy `ai_chats` **của người đang đăng nhập**, chưa hết hạn, sắp theo `updated_at` mới nhất |
 | 4 | `USER` | Chọn một phiên |
 | 5 | Client | `GET /api/assistant/sessions/{id}/messages` |
 | 6 | System | **Kiểm sở hữu** |
@@ -1815,7 +1816,7 @@ Chỉ đọc. **Không tính lượt** — xem lại không gọi API.
 ## Luồng thay thế
 
 **A1 — Tiếp tục phiên cũ** — truyền `session_id` vào UC-085.
-**A2 — Xoá phiên** — cho phép; xoá cả tin nhắn.
+**A2 — Xoá phiên** — xóa bản ghi `ai_chats` của người học, gồm toàn bộ tin nhắn trong phiên.
 **A3 — Chưa có phiên nào** — rỗng, hiện hướng dẫn.
 
 ## Bảng exception
@@ -1823,12 +1824,11 @@ Chỉ đọc. **Không tính lượt** — xem lại không gọi API.
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
 | `SESSION_NOT_OWNED` | 403 | Phiên người khác | 🔴 IDOR — lộ hội thoại riêng tư |
-| `SESSION_NOT_FOUND` | 404 | ID sai | Chặn |
+| `SESSION_NOT_FOUND` | 403 | Phiên không tồn tại hoặc không thuộc người học | Không tiết lộ phiên nào tồn tại (`BUS-01`) |
 | `NO_SESSIONS` | 200 (rỗng) | Chưa hỏi gì | Không phải lỗi (A3) |
 | `QUOTA_CHARGED_FOR_HISTORY` | — | 🔴 Tính lượt khi xem lại | Xem ghi chú |
-| `HISTORY_RETENTION_UNDEFINED` | — | ⚠️ Chưa chốt lưu bao lâu | Xem ghi chú |
-| `PII_IN_HISTORY` | — | Người học hỏi kèm thông tin riêng | Như `translation_history` — cần chốt thời hạn |
-| `DELETE_NOT_CASCADED` | — | Xoá phiên còn tin nhắn mồ côi | Xoá cả `ai_chat_messages` |
+| `EXPIRED_SESSION` | 403 | Phiên đã quá hạn lưu 90 ngày | Không trả nội dung phiên (`BUS-01`) |
+| `PII_IN_HISTORY` | — | Người học hỏi kèm thông tin riêng | Chỉ chủ phiên được đọc; xóa theo hạn 90 ngày |
 
 > 🔴 **`QUOTA_CHARGED_FOR_HISTORY` — cùng mẫu lỗi `QUOTA_CHARGED_WRONGLY` (UC-061).** Chỉ **gọi
 > API AI** mới tốn tiền. Xem lại là đọc DB. Nếu `QuotaService` tính theo "tính năng 5.5" thay vì
@@ -1836,8 +1836,9 @@ Chỉ đọc. **Không tính lượt** — xem lại không gọi API.
 > Đây là lần thứ ba ranh giới tính phí gây vấn đề (UC-061, UC-031, UC-086) → **`QuotaService`
 > phải tính theo hành động gọi API ngoài, không theo tính năng.**
 
-> ⚠️ **`HISTORY_RETENTION_UNDEFINED`:** `ai_chat_messages` lưu mọi câu người học hỏi. Cùng vấn
-> đề riêng tư với `translation_history` (UC-060). Cần chốt thời hạn lưu và ai xem được.
+> Thời hạn đã chốt trong `docs/reference/database.md`: mỗi phiên `ai_chats` có
+> `expires_at` sau 90 ngày. Truy vấn lịch sử phải lọc phiên hết hạn; dữ liệu hết hạn
+> cần được xóa theo chính sách lưu trữ, kể cả khi người học không tự xóa.
 
 ## Business rule
 
@@ -1846,9 +1847,9 @@ Chỉ đọc. **Không tính lượt** — xem lại không gọi API.
 | BR-086-1 | Người học chỉ được xem các phiên hội thoại AI của chính mình. |
 | BR-086-2 | Xem lại lịch sử hội thoại không tiêu tốn quota vì không gọi API AI. |
 | BR-086-3 | Khi xem tin nhắn trong một phiên, hệ thống phải kiểm tra phiên đó thuộc về người học đang đăng nhập. |
-| BR-086-4 | Người học được xóa phiên hội thoại của mình. Khi xóa phiên, các tin nhắn thuộc phiên đó cũng bị xóa hoặc ẩn theo cùng chính sách. |
+| BR-086-4 | Người học được xóa phiên hội thoại của mình. Xóa bản ghi `ai_chats` phải xóa cùng toàn bộ tin nhắn trong `messages` của phiên đó. |
 | BR-086-5 | Nếu chưa có lịch sử, hệ thống trả danh sách rỗng và hiển thị hướng dẫn bắt đầu hỏi AI. |
-| BR-086-6 | Lịch sử AI có thể chứa nội dung riêng tư do người học nhập, nên phải có thời hạn lưu rõ ràng. MVP đề xuất lưu tối đa 30 ngày. |
+| BR-086-6 | Lịch sử AI có thể chứa nội dung riêng tư do người học nhập. Phiên hội thoại chỉ được lưu tối đa 90 ngày theo `ai_chats.expires_at`; phiên hết hạn không được trả về cho client. |
 | BR-086-7 | Không người dùng nào, kể cả người dùng thường khác, được xem lịch sử hội thoại của người khác. |
 
 ## API · DB
@@ -1859,7 +1860,7 @@ GET    /api/assistant/sessions/{id}/messages
 DELETE /api/assistant/sessions/{id}
 ```
 
-`ai_chat_sessions` · `ai_chat_messages` (đọc + ghi)
+`learning.ai_chats` (`session_key`, `messages` JSONB, `expires_at`; đọc + ghi)
 
 ## Test case
 
@@ -1870,6 +1871,7 @@ DELETE /api/assistant/sessions/{id}
 | T3 | Mở lịch sử 10 lần | **Lượt không giảm** |
 | T4 | Xoá phiên | Tin nhắn cũng xoá |
 | T5 | Chưa hỏi gì | 200 rỗng |
+| T6 | Phiên đã quá `expires_at` 90 ngày | Không xuất hiện trong lịch sử; gọi trực tiếp phiên trả 403 |
 
 ---
 
@@ -1905,7 +1907,7 @@ Game Box có bốn trò chơi: Mưa chữ, Ghép Pinyin, Ghép Bộ thủ và B�
 | 3 | System | Xác thực; kiểm giới hạn ván/giờ |
 | 4 | System | `POST /api/community/games/{code}/rounds` |
 | 5 | System | Lấy từ vựng qua `ContentLookup` — ưu tiên từ người học đang học |
-| 6 | System | Sinh bộ nội dung, ghi `round_id` + `served_at` |
+| 6 | System | Tạo `learning.attempts` với `kind='GAME'`, ghi `served_at` và snapshot `served_items`; `round_id` là ID của dòng này |
 | 7 | System | Trả nội dung ván (**không** kèm đáp án nếu game có đáp án) |
 | 8 | `USER` | Chơi |
 | 9 | Client | `POST .../rounds/{id}/submit` — kết quả từng item |
@@ -1929,7 +1931,7 @@ Game Box có bốn trò chơi: Mưa chữ, Ghép Pinyin, Ghép Bộ thủ và B�
 | `NO_VOCABULARY` | 422 | Không có từ | Dùng HSK1 mặc định (A4) |
 | `ANSWER_IN_ROUND_RESPONSE` | — | 🔴 Bước 7 trả đáp án | Xem ghi chú |
 | `TOKEN_NOT_INJECTED` | 401 | WebView chưa tiêm token | Race condition UC-013 |
-| `CROSS_MODULE_DIRECT_READ` | — | Đọc thẳng `learning.words` | Qua `ContentLookup` |
+| `CROSS_MODULE_DIRECT_READ` | — | Đọc thẳng `learning.lexemes` | Qua `ContentLookup` |
 | `ROUND_NOT_OWNED` | 403 | `round_id` người khác | IDOR |
 
 > 🔴 **`COOKIE_NOT_SHARED` — đây là lý do HR-03 bắt cookie có đủ 5 thuộc tính, gồm
@@ -1943,7 +1945,7 @@ Game Box có bốn trò chơi: Mưa chữ, Ghép Pinyin, Ghép Bộ thủ và B�
 > Hai luật khớp nhau, nhưng phải khai origin tường minh.
 
 > 🔴 **`ANSWER_IN_ROUND_RESPONSE`:** game Ghép Pinyin có đáp án đúng. Nếu bước 7 trả kèm thì mở
-> DevTools là thắng mọi ván → điểm cao nhất bảng xếp hạng, và mastery tăng sai (UC-088 cộng
+> DevTools là thắng mọi ván → điểm bị ghi sai, và mastery tăng sai (UC-088 cộng
 > mastery).
 > **Cùng mẫu lỗi** `ANSWER_KEY_IN_RESPONSE` (UC-034) — lần thứ ba xuất hiện. Cần DTO riêng +
 > test assert.
@@ -1953,15 +1955,20 @@ Game Box có bốn trò chơi: Mưa chữ, Ghép Pinyin, Ghép Bộ thủ và B�
 | # | Rule |
 | --- | --- |
 | BR-087-1 | MVP Game Box gồm đúng 4 game: Mưa chữ, Ghép Pinyin, Ghép Bộ thủ và Bắt Chữ. Không thêm game mới trong MVP. |
-| BR-087-2 | Người học phải đăng nhập mới được chơi game có lưu điểm, cập nhật mastery hoặc tham gia xếp hạng. |
+| BR-087-2 | Người học phải đăng nhập mới được chơi game có lưu điểm và cập nhật mastery. Bảng xếp hạng game công khai chỉ triển khai ở V2 theo UC-083. |
 | BR-087-3 | Web và mobile dùng cùng một trang game. Mobile mở trang game trong WebView, không làm một game engine riêng. |
 | BR-087-4 | Mỗi ván chơi phải do server tạo nội dung và cấp `round_id`. Client không được tự tạo ván rồi gửi điểm. |
 | BR-087-5 | Response bắt đầu ván không được chứa đáp án đúng hoặc dữ liệu làm lộ đáp án. |
-| BR-087-6 | Server phải lưu đủ thông tin ván đã phát để kiểm tra lúc nộp kết quả, gồm người chơi, game, nội dung đã phát, thời điểm phát và trạng thái đã nộp. Nếu chưa có nơi lưu ván, chưa được cộng điểm/mastery. |
+| BR-087-6 | Server lưu người chơi, game, thời điểm phát, snapshot nội dung đã phát và trạng thái ván trong `learning.attempts` (`kind='GAME'`, `served_items`). Nếu thiếu snapshot để kiểm tra lúc nộp thì không được cộng điểm/mastery. |
 | BR-087-7 | Mỗi `round_id` chỉ thuộc về một người học và chỉ người đó được nộp kết quả. |
 | BR-087-8 | Người học bị giới hạn số ván trong một khoảng thời gian để tránh farm điểm và mastery. MVP đề xuất tối đa 30 ván/giờ. |
 | BR-087-9 | Nếu người học chưa có dữ liệu học cá nhân, game có thể dùng bộ từ HSK1 mặc định. |
 | BR-087-10 | Nội dung game phải lấy từ kho học hợp lệ của hệ thống; không dùng dữ liệu chưa duyệt hoặc thiếu thông tin cần thiết. |
+| BR-087-11 | Màn Game Box hiển thị bốn game MVP đang khả dụng, mô tả ngắn, kỹ năng luyện và trạng thái có thể chơi; game thiếu dữ liệu đầu vào không hiện là chơi được. |
+| BR-087-12 | Khách chưa đăng nhập có thể chơi thử nếu có chế độ demo, nhưng lượt demo không lưu điểm, không cập nhật mastery và không tham gia bảng xếp hạng. |
+| BR-087-13 | Mưa chữ luyện nhận diện chữ và nghĩa; Ghép Pinyin dùng đáp án nhiễu khác pinyin đầy đủ kể cả thanh điệu, và chữ nhiều cách đọc phải có ngữ cảnh rõ. |
+| BR-087-14 | Ghép Bộ thủ chỉ dùng chữ có dữ liệu cấu tạo hợp lệ và đáp án nhiễu không trùng đáp án đúng. Bắt Chữ luyện phản xạ chữ, nghĩa hoặc âm đọc trong thời gian ngắn. |
+| BR-087-15 | Với cả bốn game, nội dung được phát phải đủ để server kiểm tra câu trả lời và giới hạn điểm ở UC-088; ván chưa hoàn thành không được ghi điểm cá nhân. |
 
 ## API · DB
 
@@ -1970,7 +1977,7 @@ POST /api/community/games/{code}/rounds
 POST /api/community/games/{code}/rounds/{id}/submit
 ```
 
-`game_scores` (ghi) · `learning.words` · `learning.characters` **qua `ContentLookup`**
+`learning.attempts` với `kind='GAME'` (`served_items` ghi một lần khi tạo ván) · `learning.lexemes` **qua `ContentLookup`**
 
 > ⚠️ **Thiếu bảng:** `round_id` với `served_at` và trạng thái đã nộp **chưa có bảng lưu** —
 > cùng khoảng trống với `challenge_id` (UC-017).
@@ -1997,7 +2004,7 @@ POST /api/community/games/{code}/rounds/{id}/submit
 
 ## Mô tả
 
-Khi kết thúc ván, người học gửi kết quả từng câu hoặc từng thao tác để server kiểm tra và tự tính điểm. Mỗi ván chỉ được nộp một lần; điểm vượt mức có thể đạt hoặc kết quả không khớp với ván đã phát sẽ bị từ chối. Điểm hợp lệ được lưu, đưa lên bảng xếp hạng và cập nhật tiến độ học ngay; kết quả đáng ngờ không được đưa lên bảng xếp hạng.
+Khi kết thúc ván, người học gửi kết quả từng câu hoặc từng thao tác để server kiểm tra và tự tính điểm. Mỗi ván chỉ được nộp một lần; điểm vượt mức có thể đạt hoặc kết quả không khớp với ván đã phát sẽ bị từ chối. Kết quả hợp lệ được lưu cho người chơi xem. Nội dung gắn được với điểm kiến thức sẽ cập nhật mastery ngay; phần không gắn được chỉ lưu điểm. Bảng xếp hạng game công khai thuộc UC-083 ở V2, không hiển thị trong MVP.
 
 ## Tiền điều kiện
 
@@ -2008,7 +2015,8 @@ Khi kết thúc ván, người học gửi kết quả từng câu hoặc từng
 
 | Kết quả | Trạng thái |
 | --- | --- |
-| Hợp lệ | `game_scores` ghi · `user_knowledge_state` đổi · `ranking_entries` + Redis · **cùng transaction** (trừ Redis) |
+| Hợp lệ, có nội dung map được | Chuyển `learning.attempts` sang `SUBMITTED`, ghi `attempt_items` và cập nhật `learning.user_progress` trong cùng transaction; trả điểm cá nhân |
+| Hợp lệ, không có nội dung map được | Chỉ lưu điểm tại `learning.attempts` và kết quả item tại `attempt_items`; mastery không đổi; trả điểm cá nhân |
 | Gian lận | **Từ chối**, không ghi gì, ghi log |
 
 ## Luồng chính
@@ -2022,19 +2030,16 @@ Khi kết thúc ván, người học gửi kết quả từng câu hoặc từng
 | 5 | System | **Lớp 3:** kiểm `submitted_at − served_at` hợp lý |
 | 6 | System | Kiểm mọi item thuộc bộ đã phát |
 | 7 | System | **Mở transaction** |
-| 8 | System | Ghi `game_scores` |
+| 8 | System | Cập nhật ván `learning.attempts` thành `SUBMITTED`, lưu điểm và các `attempt_items` |
 | 9 | System | Gọi `learningApi.applyGameResult(...)` — UC-043 |
-| 10 | System | Ghi `ranking_entries` |
-| 11 | System | **Commit** |
-| 12 | System | `ZADD` Redis (**ngoài** transaction) |
-| 13 | System | Trả điểm + mastery đã đổi + hạng mới |
+| 10 | System | **Commit** điểm và mastery (nếu có) cùng lúc |
+| 11 | System | Trả điểm cá nhân và mastery đã đổi (nếu có); không trả hạng trong MVP |
 
 ## Luồng thay thế
 
 **A1 — Điểm vượt trần** — từ chối, ghi log, **không** ghi gì.
-**A2 — Thời gian bất thường** — đánh cờ `suspicious`: ghi điểm nhưng **không** vào bảng xếp hạng (BR-083-2), mastery ×0.5.
-**A3 — `ZADD` lỗi** — đã commit DB; Redis dựng lại sau. **Không** rollback.
-**A4 — Game không map mastery** — ghi điểm, không đổi mastery (UC-043 A1).
+**A2 — Thời gian bất thường** — đánh cờ `suspicious`: ghi điểm cá nhân, cập nhật mastery với một nửa trọng số game thông thường nếu nội dung map được; khi có bảng công khai ở V2, không đưa kết quả này lên bảng.
+**A3 — Game không map mastery** — ghi điểm, không đổi mastery (UC-043 A1).
 
 ## Bảng exception
 
@@ -2042,16 +2047,14 @@ Khi kết thúc ván, người học gửi kết quả từng câu hoặc từng
 | --- | --- | --- | --- |
 | `SCORE_CEILING_EXCEEDED` | 400 | 🔴 Vượt trần | **Từ chối** (nghiệm thu) |
 | `CLIENT_SENT_SCORE` | 400 | 🔴 Client gửi điểm thay vì kết quả item | Xem ghi chú |
-| `IMPOSSIBLE_DURATION` | 400 | Nhanh bất thường | Cờ `suspicious` (A2) |
+| `IMPOSSIBLE_DURATION` | 200 | Nhanh bất thường | Lưu cờ `suspicious` cùng điểm cá nhân (A2) |
 | `ROUND_ALREADY_SUBMITTED` | 409 | 🔴 Nộp 2 lần | Xem ghi chú |
 | `ROUND_NOT_OWNED` | 403 | Ván người khác | IDOR |
 | `ITEM_NOT_IN_ROUND` | 400 | Item lạ | Gian lận |
 | `ROUND_EXPIRED` | 422 | Nộp quá muộn | Không tính |
-| `MASTERY_UPDATE_FAILED` | 500 | UC-043 lỗi | **Rollback cả `game_scores`** (AC-10) |
-| `RANKING_WRITE_FAILED` | 500 | Ghi `ranking_entries` lỗi | Rollback cả điểm — nghiệm thu nói "vào bảng xếp hạng ngay" |
-| `ZADD_FAILED` | — | Redis lỗi | **Không** rollback (A3) |
+| `MASTERY_UPDATE_FAILED` | 500 | UC-043 lỗi | **Rollback việc nộp ván và điểm** (AC-10) |
 | `MODULE_BOUNDARY_VIOLATION` | — | Ghi thẳng bảng `learning` | ArchUnit chặn |
-| `NO_ROUND_TABLE` | 500 | ⚠️ Chưa có bảng lưu ván | Không kiểm được nộp lại |
+| `ROUND_STATE_MISSING` | 500 | Không tìm thấy trạng thái ván đã phát trong `learning.attempts` | Không ghi điểm |
 
 > 🔴 **`CLIENT_SENT_SCORE` là lỗ hổng gốc mà HR-06 nhắm vào.** Nếu endpoint nhận
 > `{score: 999999}` và tin, thì mọi lớp chống gian lận khác **vô nghĩa** — trần điểm chỉ chặn
@@ -2059,11 +2062,10 @@ Khi kết thúc ván, người học gửi kết quả từng câu hoặc từng
 > **Đúng:** client gửi **kết quả từng item** (item nào đúng, sai, thời gian), server **tự tính**
 > điểm. Đây là "không tin điểm số client gửi lên — server luôn kiểm lại" (AGENTS.md §5).
 
-> 🔴 **`ROUND_ALREADY_SUBMITTED` — và đây là lý do thiếu bảng lưu ván là 🔴.** Không có chỗ lưu
-> trạng thái ván thì **không kiểm được** đã nộp chưa. Nộp lại 100 lần cùng `round_id` là 100 lần
-> cộng điểm và mastery.
-> **Cùng khoảng trống** với `challenge_id` (UC-017). Hai chỗ cần cùng một thứ: bảng lưu lượt
-> chơi/thử thách đã phát.
+> `round_id` là `learning.attempts.id` của ván `kind='GAME'`; `served_items` giữ snapshot để
+> đối chiếu kết quả. Khi nộp, khóa dòng và chỉ chuyển
+> `IN_PROGRESS` sang `SUBMITTED` một lần trong transaction. Yêu cầu nộp lại nhận 409 và không
+> cộng điểm hoặc mastery lần nữa. Bộ item đã phát phải được lưu đủ để server đối chiếu kết quả.
 
 > 🔴 **`SCORE_CEILING_EXCEEDED` là nghiệm thu tường minh:** "gửi điểm vượt trần **bị từ chối**".
 > Trần phải tính được: game Mưa chữ 60 giây, tối đa N chữ/giây → trần rõ ràng. Mỗi game một trần,
@@ -2077,12 +2079,13 @@ Khi kết thúc ván, người học gửi kết quả từng câu hoặc từng
 | BR-088-2 | Mỗi `round_id` chỉ được nộp kết quả một lần. Nộp lại cùng một ván phải bị từ chối. |
 | BR-088-3 | Kết quả nộp phải khớp với nội dung ván mà server đã phát. Item không thuộc ván đó bị xem là không hợp lệ. |
 | BR-088-4 | Điểm vượt trần lý thuyết của game phải bị từ chối và không được ghi điểm, không cập nhật mastery. |
-| BR-088-5 | Nếu thời gian hoàn thành bất thường, kết quả có thể bị đánh dấu đáng ngờ. Kết quả đáng ngờ không được đưa lên bảng xếp hạng. |
+| BR-088-5 | Nếu thời gian hoàn thành bất thường, kết quả có thể bị đánh dấu đáng ngờ. Khi có bảng xếp hạng công khai ở V2, kết quả đáng ngờ không được đưa lên bảng. |
 | BR-088-6 | Kết quả game hợp lệ có thể cập nhật mastery với trọng số thấp hơn bài luyện hoặc bài thi, vì game có yếu tố phản xạ và chạy nhiều ở client. |
-| BR-088-7 | Ghi điểm game và cập nhật mastery phải nhất quán. Không được để điểm đã lưu nhưng mastery không cập nhật, hoặc mastery cập nhật nhưng điểm không lưu. |
+| BR-088-7 | Khi có nội dung map được sang điểm kiến thức, ghi điểm và cập nhật mastery phải cùng commit hoặc cùng rollback. Trường hợp không map được thì chỉ lưu điểm theo BR-088-9. |
 | BR-088-8 | Mastery từ game phải được cập nhật ngay sau khi ván hợp lệ được lưu, không chờ job chạy nền. |
 | BR-088-9 | Nếu game không map được nội dung sang điểm kiến thức cụ thể, hệ thống chỉ lưu điểm game, không cập nhật mastery. |
-| BR-088-10 | Lỗi cache/xếp hạng phụ không được làm mất kết quả game đã lưu hợp lệ. Database là nguồn dữ liệu chính. |
+| BR-088-10 | `learning.attempts` là nguồn dữ liệu chính của điểm game. Khi bổ sung cache hoặc bảng xếp hạng ở V2, lỗi của các thành phần phụ đó không được làm mất kết quả game đã lưu hợp lệ. |
+| BR-088-11 | Kết quả ván hoàn thành hợp lệ cần lưu điểm, thời gian chơi, số câu đúng/sai và loại kỹ năng được luyện để người học xem lại điểm cá nhân. |
 
 ## API · DB
 
@@ -2090,21 +2093,21 @@ Khi kết thúc ván, người học gửi kết quả từng câu hoặc từng
 POST /api/community/games/{code}/rounds/{id}/submit
 ```
 
-`game_scores` · `ranking_entries` (ghi) · `user_knowledge_state` **qua `learningApi`** · Redis
+MVP: `learning.attempts` (`kind='GAME'`, điểm và trạng thái ván), `learning.attempt_items` (kết quả từng item) và `learning.user_progress` (`target_type='KNOWLEDGE_POINT'`) khi map được. Việc đổi trạng thái ván, lưu điểm và cập nhật mastery dùng cùng transaction. Không ghi `ranking_entries` hoặc Redis cho bảng xếp hạng công khai trong UC này.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Ván hợp lệ | Điểm lưu, mastery đổi **ngay**, có hạng |
+| T1 | Ván hợp lệ có nội dung map được | Điểm lưu, mastery đổi **ngay**, không trả hạng trong MVP |
 | T2 | Gửi `{score: 999999}` | 400 — server tự tính |
 | T3 | Điểm vượt trần | **400, không ghi gì** |
 | T4 | Nộp lại cùng `round_id` | 409 |
 | T5 | Ván người khác | 403 |
-| T6 | `learningApi` ném lỗi | `game_scores` **không** có dòng |
-| T7 | Redis tắt | Điểm **vẫn** lưu, mastery **vẫn** đổi |
-| T8 | Thời gian 0,5 giây cho 60 giây game | Cờ `suspicious`, không lên bảng |
-| T9 | Đọc mastery ngay sau nộp | Đã thấy giá trị mới |
+| T6 | Cập nhật mastery lỗi | Ván vẫn `IN_PROGRESS`, không có điểm đã nộp; không có cập nhật mastery một phần |
+| T7 | Ván hợp lệ không map được điểm kiến thức | Chỉ lưu điểm cá nhân, mastery giữ nguyên |
+| T8 | Thời gian 0,5 giây cho 60 giây game | Cờ `suspicious`; không dùng để xếp hạng công khai ở V2 |
+| T9 | Đọc mastery ngay sau nộp ván có nội dung map được | Đã thấy giá trị mới |
 
 ---
 
@@ -2180,7 +2183,7 @@ pinyin chuẩn.
 
 Cùng endpoint UC-087/088 với `game_code = TYPE_PINYIN`.
 
-`game_scores` (ghi) · `characters.pinyin` **qua `ContentLookup`**
+`learning.attempts` (`kind='GAME'`, ghi điểm) · `learning.lexemes.pinyin` **qua `ContentLookup`**
 
 ## Test case
 
@@ -2531,7 +2534,7 @@ GET  /api/contests/{id}/leaderboard      (chỉ sau khi đóng)
 | 3 | UC-087 | `COOKIE_NOT_SHARED` | Cookie thiếu `domain=cnhsk.com` → **chặn toàn bộ** nhóm game (P1/MVP) |
 | 4 | UC-069 · UC-071 | `XSS_IN_CONTENT` / `XSS_IN_COMMENT` | Bình luận **không qua duyệt** — script đánh cắp cookie `MANAGER` là leo quyền |
 | 5 | UC-080 | `MASTERY_UPDATED_BY_QUIZ` | Quiz chơi nhiều lần được → cho đổi mastery là farm vô hạn, mastery mất ý nghĩa |
-| 6 | UC-088 | `ROUND_ALREADY_SUBMITTED` | **Không có bảng lưu ván** → không kiểm được nộp lại → cộng điểm vô hạn |
+| 6 | UC-088 | `ROUND_ALREADY_SUBMITTED` | Phải khóa `learning.attempts` khi nộp để không cộng điểm/mastery hai lần |
 | 7 | UC-076 | `SELF_APPROVAL` | `MANAGER` tự duyệt bài mình = bỏ kiểm duyệt; vi phạm separation of duties |
 | 8 | UC-091 | `CHEAT_EVENTS_JSONB_WRITTEN` | **Mâu thuẫn thật** giữa DB v5 (gộp JSONB) và AC-09 (JSONB chỉ đọc) |
 | 9 | UC-092 | `RANKING_PUBLISHED_EARLY` | Công bố sớm → người thi sau biết ngưỡng thắng, không công bằng |
@@ -2547,7 +2550,7 @@ GET  /api/contests/{id}/leaderboard      (chỉ sau khi đóng)
 | **Múi giờ** | UC-082 · UC-084 · UC-090 · UC-092 (+ 5 UC nhóm 3) | **Chín** UC liên quan múi giờ. Reset kỳ hạn xếp hạng, khung giờ cuộc thi — tất cả theo **giờ Việt Nam**; chỉ FSRS dùng UTC |
 | **Ranh giới module** | UC-070 · UC-074 · UC-080 · UC-087 · UC-088 | `community` cần đọc `auth.users` và `learning.words`/`questions`. **Luôn** qua lớp `api` / `ContentLookup`. Ba cột trỏ xuyên schema không có khoá ngoại → DB không canh giúp |
 | **Lọc trạng thái ở repository** | UC-070 (`PENDING`) · UC-079 (`HIDDEN`) · UC-080 (`APPROVED`) | Lọc ở service hay controller là chắc chắn quên một chỗ. Một method `findPublished()` dùng chung |
-| **Redis là cache, DB là gốc** | UC-081 · UC-082 · UC-083 · UC-088 | `ranking_entries` dựng lại Redis được (nghiệm thu 5.3). `ZADD` lỗi **không** rollback ghi DB — người chơi không mất kết quả vì cache |
+| **Redis là cache, DB là gốc** | UC-081 · UC-082 · UC-083 (V2) | `ranking_entries` dựng lại Redis được. Lỗi cache không làm mất điểm cá nhân đã lưu từ UC-088 (MVP). |
 
 ---
 
@@ -2555,7 +2558,7 @@ GET  /api/contests/{id}/leaderboard      (chỉ sau khi đóng)
 
 | # | Thiếu | UC bị ảnh hưởng | Mức |
 | --- | --- | --- | --- |
-| 1 | **Không có bảng lưu lượt chơi game** (`round_id` + `served_at` + đã nộp) | UC-087 · UC-088 | 🔴 Không chống được nộp lại; **cùng khoảng trống** `challenge_id` (UC-017) |
+| 1 | Thiết kế DB dùng `learning.attempts` (`kind='GAME'`, `served_items`) để lưu ván; phải khóa dòng khi nộp | UC-087 · UC-088 | ⚠️ Cần triển khai nhất quán |
 | 2 | **Mâu thuẫn AC-09 vs `cheat_events` JSONB** — nhật ký gian lận bản chất là ghi | UC-091 · UC-092 | 🔴 Hai quyết định đã chốt xung đột nhau |
 | 3 | Chưa có DTO riêng + test assert không lộ đáp án (4 chỗ) | UC-080 · UC-087 · UC-092 | 🔴 Lộ đáp án ở cuộc thi có thưởng thật |
 | 4 | Chưa có `CHECK (game_code IN ...)` ở DB | UC-083 | 🔴 Enum trong code, DB không canh |
@@ -2571,7 +2574,7 @@ GET  /api/contests/{id}/leaderboard      (chỉ sau khi đóng)
 | 14 | `posts` chỉ có **một** cột `review_reason` — mất lịch sử từ chối | UC-077 | ⚠️ Đánh đổi đã chấp nhận khi gộp bảng |
 | 15 | Chưa có luật **dọn `follows`/`likes` khi xoá user** (cột trỏ xuyên schema không FK) | UC-074 | ⚠️ Hoặc chốt không hard delete user |
 | 16 | **Không có tính năng chặn người khác** (chỉ có theo dõi) | UC-074 | ⚠️ An toàn người dùng |
-| 17 | Chưa chốt thời hạn lưu `ai_chat_messages` | UC-086 | ⚠️ Như `translation_history` |
+| 17 | `ai_chats` đã chốt hạn lưu 90 ngày; cần lọc và dọn phiên quá hạn khi triển khai | UC-086 | Không giữ hội thoại riêng tư vô hạn |
 | 18 | Chưa chốt `QuotaService` tính theo **lượt gọi API** (không theo tính năng) | UC-085 · UC-086 | ⚠️ Lần thứ ba vấn đề này xuất hiện |
 | 19 | Chưa chốt **có chặn vào thi khi còn ít thời gian** | UC-092 | ⚠️ Công bằng |
 | 20 | Chưa chốt chống **nhiều tài khoản** trong cuộc thi có thưởng | UC-091 | ⚠️ Gian lận có động cơ kinh tế |

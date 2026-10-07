@@ -1,130 +1,148 @@
 # CNHSK — Đặc tả Use Case · Nhóm 6c + 6d + 7 · Quản trị nội dung, hệ thống & tham khảo
 
-> **UC-108 → UC-119** · 12 use case · Tính năng 6.4 · 6.6 · 5.8 · 6.2 · 7.1 · 7.2
-> **Bản final** · cập nhật 2026-10-01
-> **Tám file đặc tả:** `use-cases-01-xac-thuc` → `use-cases-08-quan-tri-he-thong`
-> (file catalog riêng đã bỏ — mỗi file tự liệt UC của nhóm mình)
->
-> Nhóm này chứa **UC-110 — nhập dữ liệu của thầy** — nơi quyết định chất lượng của mọi tính năng
-> thông minh. Feature tree cảnh báo: *"**Chưa ai thấy file thật của thầy**"*.
+> **UC-108 → UC-119** · 12 Use Case  
+> **Bản reviewed** · cập nhật 2026-10-08  
+> Mục tiêu của bản này: làm nguồn chuẩn để viết Use Case Description và hỗ trợ code generation.  
+> Không thêm Use Case mới, không bỏ Use Case hiện có; chỉ sửa logic, phạm vi, cách diễn đạt và cấu trúc để tránh mơ hồ.
 
 ---
 
 ## Bảng tra nhanh
 
-| UC-ID | Use case | Actor | Pri | Scope | FT |
-| --- | --- | --- | --- | --- | --- |
-| UC-108 | Duyệt câu hỏi AI sinh | `TEACHER` | P1 | MVP | 6.6 |
-| UC-109 | Sửa nội dung câu hỏi | `TEACHER` `CONTENT_ADMIN` | P1 | MVP | 6.6 |
-| UC-110 | Nhập dữ liệu đề thi từ file | `CONTENT_ADMIN` | **P0** | MVP | 6.4 |
-| UC-111 | Xem báo cáo lỗi sau khi nhập | `CONTENT_ADMIN` | **P0** | MVP | 6.4 |
-| UC-112 | Quản lý đề thi và kho câu hỏi | `CONTENT_ADMIN` | P1 | MVP | 6.6 |
-| UC-113 | Tạo và quản lý cuộc thi | `CONTENT_ADMIN` | P2 | V2 | 5.8 |
-| UC-114 | Quản lý người dùng (tìm, xem, khóa) | `SUPER_ADMIN` | P1 | MVP | 6.2 |
-| UC-115 | Cấp và thu hồi role | `SUPER_ADMIN` | P1 | MVP | 6.2 |
-| UC-116 | Cấu hình hệ thống | `SUPER_ADMIN` | P2 | MVP | 6.6 |
-| UC-117 | Xem danh sách kênh YouTube và podcast | `GUEST` `USER` | P3 | V2 | 7.1 |
-| UC-118 | Xem danh mục sách học tiếng Trung | `GUEST` `USER` | P3 | V2 | 7.2 |
-| UC-119 | Quản lý danh mục tham khảo | `CONTENT_ADMIN` | P3 | V2 | 7.1 · 7.2 |
+| UC-ID | Use Case | Actor chính | Pri | Scope | FT | Trạng thái triển khai |
+| --- | --- | --- | --- | --- | --- | --- |
+| UC-108 | Duyệt câu hỏi AI sinh | `TEACHER` | P1 | MVP | 6.6 | READY |
+| UC-109 | Sửa nội dung câu hỏi | `TEACHER`, `CONTENT_ADMIN` | P1 | MVP | 6.5 · 6.6 | READY |
+| UC-110 | Nhập dữ liệu đề thi/từ vựng/ngữ pháp từ file | `CONTENT_ADMIN` | **P0** | MVP | 6.2 | **BLOCKED** — cần file mẫu thật, định dạng và khóa tự nhiên |
+| UC-111 | Xem báo cáo lỗi sau khi nhập | `CONTENT_ADMIN` | **P0** | MVP | 6.2 | **PARTIALLY BLOCKED** — cần nơi lưu chi tiết lỗi import |
+| UC-112 | Quản lý đề thi và kho câu hỏi | `CONTENT_ADMIN` | P1 | MVP | 6.3 · 6.5 | READY |
+| UC-113 | Tạo và quản lý cuộc thi | `CONTENT_ADMIN` | P2 | V2 | 5.8 | V2 — không gen MVP |
+| UC-114 | Quản lý người dùng | `SUPER_ADMIN` | P1 | MVP | 6.1 | **BLOCKED** — cần chốt trường trạng thái tài khoản |
+| UC-115 | Cấp và thu hồi role | `SUPER_ADMIN` | P1 | MVP | 6.1 | READY |
+| UC-116 | Cấu hình hệ thống | `SUPER_ADMIN` | P2 | Deferred | 6.6 | **DEFERRED** — phạm vi cấu hình và nơi lưu chưa chốt |
+| UC-117 | Xem danh sách kênh YouTube và podcast | `GUEST`, `USER` | P3 | V2 | 7.1 | V2 — không gen MVP |
+| UC-118 | Xem danh mục sách học tiếng Trung | `GUEST`, `USER` | P3 | V2 | 7.2 | V2 — không gen MVP |
+| UC-119 | Quản lý danh mục tham khảo | `CONTENT_ADMIN` | P3 | V2 | 7.1 · 7.2 | V2 — không gen MVP |
 
-> **Nghiệm thu 6.6:** *"Mỗi role **chỉ thấy phần mình quản**; duyệt hàng loạt 20 mục dưới 2 phút"*.
+> **Nguyên tắc phân quyền của nhóm này:** mỗi role chỉ được truy cập đúng phần quản trị được giao.  
+> `SUPER_ADMIN` không tự động có quyền nghiệp vụ của `TEACHER`, `CONTENT_ADMIN` hoặc `FINANCE_ADMIN`.
 
 ---
 
 # UC-108 · Duyệt câu hỏi AI sinh
 
 | | |
-|---|---|
-| **UC-ID** | UC-108 · **Actor** `TEACHER` · **Pri** P1 · **Scope** MVP · **FT** 6.6 |
+| --- | --- |
+| **UC-ID** | UC-108 |
+| **Actor chính** | `TEACHER` |
+| **Loại** | User Goal |
+| **Pri** | P1 |
+| **Scope** | MVP |
+| **FT** | 6.6 |
+| **Trạng thái triển khai** | READY |
 
 ## Mô tả
 
-`TEACHER` xem hàng đợi câu hỏi AI sinh (`PENDING_REVIEW` từ UC-049), duyệt hoặc từ chối.
-**Đây là lớp bảo vệ duy nhất** chống nội dung AI sai — không có cách tự động nào phát hiện
-`AI_HALLUCINATED_CONTENT`.
+`TEACHER` xem các câu hỏi do AI sinh đang chờ kiểm duyệt, đọc đầy đủ nội dung câu hỏi, đáp án, lời giải, cấp HSK và nhãn kiến thức, sau đó quyết định **duyệt**, **sửa rồi duyệt**, **từ chối**, hoặc **chưa xử lý**.
+
+Mục tiêu của Use Case là bảo đảm câu hỏi AI chỉ được đưa vào kho dùng chung sau khi có người đủ chuyên môn kiểm tra. Câu hỏi chưa duyệt hoặc bị từ chối không được xuất hiện ở bất kỳ luồng học nào của người học.
+
+## Kích hoạt
+
+`TEACHER` mở màn hình “Hàng đợi duyệt câu hỏi AI” hoặc chọn một câu `PENDING_REVIEW` để kiểm tra.
 
 ## Tiền điều kiện
 
-1. Role `TEACHER`
-2. Có câu `status = PENDING_REVIEW`, `source = AI`
-3. `TEACHER` đọc được tiếng Trung đủ để đánh giá
+1. Người dùng đã đăng nhập và có role `TEACHER`.
+2. Câu hỏi cần xử lý tồn tại, có `source = AI` và đang ở trạng thái `PENDING_REVIEW`.
+3. Hệ thống có đủ dữ liệu cần thiết để đánh giá câu hỏi: nội dung, đáp án, lời giải, cấp HSK và nhãn kiến thức.
 
 ## Hậu điều kiện
 
-| Kết quả | Trạng thái |
-| --- | --- |
-| Duyệt | `status = APPROVED`, `reviewed_by`, `reviewed_at`; câu vào kho chung (UC-050) |
-| Từ chối | `status = REJECTED` kèm lý do; **không** đến người học |
+### Khi duyệt thành công
+
+- Câu hỏi chuyển sang `APPROVED`.
+- Hệ thống lưu người duyệt và thời điểm duyệt.
+- Hành động duyệt được ghi vào lịch sử review.
+- Câu hỏi đủ điều kiện được dùng trong kho câu hỏi chung.
+
+### Khi từ chối thành công
+
+- Câu hỏi chuyển sang `REJECTED`.
+- Lý do từ chối được lưu.
+- Người xử lý và thời điểm xử lý được ghi lại.
+- Câu hỏi không được đưa đến người học.
+
+### Khi chưa đưa ra quyết định
+
+- Câu hỏi giữ nguyên `PENDING_REVIEW`.
+- Không có thay đổi ảnh hưởng đến kho câu hỏi cho người học.
+
+### Khi xử lý thất bại
+
+- Không để câu hỏi đổi trạng thái nhưng thiếu lịch sử review.
+- Không ghi đè quyết định của một giáo viên khác đã xử lý trước đó.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `TEACHER` | Mở hàng đợi duyệt câu hỏi |
-| 2 | System | Kiểm role `TEACHER` |
-| 3 | System | `GET /api/teacher/questions?status=PENDING_REVIEW` — sắp cũ nhất trước |
-| 4 | System | Trả câu + đáp án + lời giải + nhãn kiến thức + `job_id` nguồn |
-| 5 | `TEACHER` | Đọc, kiểm ngữ pháp và tính đúng đắn |
-| 6 | `TEACHER` | Duyệt hoặc từ chối |
-| 7 | Client | `PATCH /api/teacher/questions/{id}/review` — `{decision, reason?}` |
-| 8 | System | `UPDATE ... WHERE id=? AND status='PENDING_REVIEW'` |
-| 9 | System | Ghi `review_actions` — ai, quyết định gì, khi nào |
-| 10 | Client | Bỏ câu khỏi hàng đợi |
+| 1 | `TEACHER` | Mở hàng đợi câu hỏi AI đang chờ duyệt. |
+| 2 | System | Kiểm tra người dùng có role `TEACHER`. |
+| 3 | System | Lấy các câu `PENDING_REVIEW`, ưu tiên câu chờ lâu hơn trước và phân trang. |
+| 4 | `TEACHER` | Mở một câu hỏi cần kiểm tra. |
+| 5 | System | Hiển thị nội dung câu hỏi, các đáp án, đáp án đúng, lời giải, cấp HSK, nhãn kiến thức và thông tin nguồn AI cần thiết. |
+| 6 | `TEACHER` | Kiểm tra tính đúng đắn, ngữ pháp, mức độ phù hợp HSK và khả năng chỉ có một đáp án đúng. |
+| 7 | `TEACHER` | Chọn **Duyệt**. |
+| 8 | System | Kiểm tra lại câu vẫn đang `PENDING_REVIEW` và cấu trúc câu hỏi còn hợp lệ. |
+| 9 | System | Chuyển câu sang `APPROVED`, ghi người duyệt, thời điểm duyệt và lịch sử review. |
+| 10 | Client | Loại câu đã xử lý khỏi hàng đợi và hiển thị kết quả duyệt. |
 
 ## Luồng thay thế
 
-**A1 — Duyệt hàng loạt**
-Nghiệm thu 6.6: "duyệt hàng loạt **20 mục dưới 2 phút**". Nhận mảng id; **mỗi câu một
-transaction** để một lỗi không chặn cả lô.
+**A1 — Từ chối câu hỏi**
+
+1. Tại bước 7, `TEACHER` chọn **Từ chối**.
+2. Hệ thống yêu cầu nhập lý do.
+3. Hệ thống kiểm tra lý do không rỗng và câu vẫn đang `PENDING_REVIEW`.
+4. Câu chuyển sang `REJECTED`; lịch sử review được ghi.
+5. Câu bị loại khỏi hàng đợi đang xử lý và không được phục vụ cho người học.
 
 **A2 — Sửa rồi duyệt**
-Câu gần đúng, chỉ sai một từ. Gọi UC-109 sửa trước, rồi duyệt. Ghi cả hai hành động.
 
-**A3 — Không chắc**
-Để lại hàng đợi, không quyết. Hoặc đánh dấu "cần ý kiến khác".
+1. `TEACHER` nhận thấy câu có thể sửa được.
+2. Hệ thống chuyển sang UC-109 với đúng câu đang review.
+3. Sau khi sửa hợp lệ, `TEACHER` quay lại UC-108.
+4. Giáo viên đọc lại câu sau sửa và thực hiện quyết định duyệt hoặc từ chối.
+
+**A3 — Chưa chắc chắn**
+
+- `TEACHER` không đưa ra quyết định.
+- Câu giữ nguyên `PENDING_REVIEW`.
+- Không tạo trạng thái trung gian mới nếu dự án chưa định nghĩa.
+
+**A4 — Duyệt hàng loạt**
+
+- Chỉ những câu giáo viên đã mở xem mới được chọn để duyệt hàng loạt.
+- Hệ thống xử lý từng câu theo cùng điều kiện của luồng duyệt đơn.
+- Nếu một câu đã được người khác xử lý, câu đó bị báo xung đột; các câu hợp lệ khác vẫn được xử lý.
+- Yêu cầu “20 mục dưới 2 phút” được hiểu là thao tác giao diện và xử lý hệ thống phải nhanh, không phải ép giáo viên đọc mỗi câu trong vài giây.
+
+**A5 — Câu đã được giáo viên khác xử lý**
+
+- Hệ thống không ghi đè quyết định cũ.
+- Client tải lại trạng thái mới và loại câu khỏi hàng đợi nếu không còn `PENDING_REVIEW`.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `TEACHER` | 🔴 **Kiểm ở server** |
-| `QUESTION_NOT_PENDING` | 409 | Đã duyệt/từ chối | `WHERE status='PENDING_REVIEW'` |
-| `CONCURRENT_REVIEW` | 409 | Hai `TEACHER` cùng duyệt | Cùng mẫu UC-076 · UC-105 · UC-107 |
-| `EMPTY_REJECTION_REASON` | 400 | Từ chối không lý do | Bắt buộc — để cải thiện prompt AI |
-| `APPROVED_WITHOUT_REVIEW` | — | 🔴 Duyệt mà không đọc | Xem ghi chú |
-| `MALFORMED_QUESTION_APPROVED` | — | 🔴 Duyệt câu 2 đáp án đúng | Xem ghi chú |
-| `BULK_APPROVE_ALL_BLINDLY` | — | 🔴 Chọn hết rồi duyệt | Xem ghi chú |
-| `NO_REVIEW_AUDIT` | — | Không ghi `review_actions` | Bắt buộc — truy vết trách nhiệm |
-| `REJECTED_QUESTION_SERVED` | — | 🔴 Câu `REJECTED` vẫn đến người học | Lọc `APPROVED` ở repository |
-| `CONTENT_ADMIN_ATTEMPTED` | 403 | ⚠️ `CONTENT_ADMIN` duyệt câu AI | Xem ghi chú |
-
-> 🔴 **`APPROVED_WITHOUT_REVIEW` + `BULK_APPROVE_ALL_BLINDLY` — rủi ro lớn nhất của UC này, và
-> **không phải lỗi kỹ thuật**.** Nghiệm thu khuyến khích duyệt nhanh ("20 mục dưới 2 phút" = 6
-> giây/câu). Nhưng UC-049 đã xác định: `AI_HALLUCINATED_CONTENT` **chỉ** người đọc phát hiện được.
-> Sáu giây không đủ đọc một câu tiếng Trung và kiểm ngữ pháp.
->
-> **Hai yêu cầu xung đột:** duyệt nhanh (nghiệm thu) vs duyệt kỹ (chất lượng).
-> **Đề xuất giải quyết:**
-> — "20 mục dưới 2 phút" nên hiểu là **thao tác UI không chậm**, không phải "đọc xong trong 6 giây"
-> — Duyệt hàng loạt chỉ cho phép sau khi đã mở xem từng câu (client theo dõi), hoặc
-> — Bỏ nút "chọn tất cả", chỉ cho chọn từng câu đã xem
->
-> Đây là thiết kế chống lỗi con người, và là điểm **nên nói khi bảo vệ** — cho thấy nhóm hiểu
-> giới hạn của kiểm duyệt.
-
-> 🔴 **`MALFORMED_QUESTION_APPROVED`:** UC-049 đã validate (đúng 4 đáp án, đúng 1 `is_correct`).
-> Nhưng nếu validate đó lỏng, câu lỗi vào hàng đợi và `TEACHER` duyệt → `MALFORMED_QUESTION`
-> (UC-019) làm người học bị chấm sai oan.
-> **Cần:** partial unique index đảm bảo đúng 1 `is_correct` mỗi câu — chặn ở DB, không dựa vào
-> người duyệt để ý.
-
-> ⚠️ **`CONTENT_ADMIN_ATTEMPTED`:** quyết định v2 cho `CONTENT_ADMIN` quyền "quản lý đề thi và
-> câu hỏi" (6.6) nhưng **duyệt câu AI** thuộc `TEACHER`.
-> Lý do hợp lý: duyệt câu AI cần **kiến thức tiếng Trung**, không phải quyền quản trị. Nhưng đây
-> là ranh giới mờ — **cần chốt** `CONTENT_ADMIN` có duyệt được câu AI không.
-> **Khuyến nghị:** không — giữ đúng phân công quyết định v2, và đó chính là separation of duties.
-
-## Business rule
+| `UNAUTHENTICATED` | 401 | Phiên đăng nhập không hợp lệ | Không trả dữ liệu review. |
+| `FORBIDDEN_ROLE` | 403 | Người dùng không có role `TEACHER` | Chặn tại server. |
+| `QUESTION_NOT_FOUND` | 404 | Câu hỏi không tồn tại | Không thay đổi dữ liệu. |
+| `QUESTION_NOT_PENDING` | 409 | Câu đã được duyệt/từ chối trước đó | Trả trạng thái hiện tại, không ghi đè. |
+| `EMPTY_REJECTION_REASON` | 422 | Từ chối nhưng không có lý do | Yêu cầu nhập lý do. |
+| `MALFORMED_QUESTION` | 422 | Câu không đạt cấu trúc tối thiểu | Không cho duyệt; chuyển sang sửa hoặc từ chối. |
 
 ## Business rule
 
@@ -142,110 +160,127 @@ Câu gần đúng, chỉ sai một từ. Gọi UC-109 sửa trước, rồi duy�
 
 ## API · DB
 
-```
+```text
 GET   /api/teacher/questions?status=PENDING_REVIEW
 PATCH /api/teacher/questions/{id}/review
 PATCH /api/teacher/questions/bulk-review
 ```
 
-`questions` · `question_options` · `question_knowledge_points` (đọc + ghi) · `review_actions` (ghi) · `ai_generation_jobs` (đọc)
+Dữ liệu liên quan: `questions`, `question_options`, `question_knowledge_points`, `review_actions`, `ai_generation_jobs`.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | `TEACHER` duyệt câu | `APPROVED`, vào kho chung |
-| T2 | `USER` gọi | 403 |
-| T3 | `CONTENT_ADMIN` gọi | 403 (theo quyết định) |
-| T4 | Từ chối không lý do | 400 |
-| T5 | Hai `TEACHER` cùng duyệt | Một 200, một 409 |
-| T6 | Duyệt lô 20 câu, câu thứ 5 lỗi | 19 câu thành công |
-| T7 | Câu `REJECTED` | **Không** xuất hiện ở UC-037 |
-| T8 | Sau khi duyệt | `review_actions` có dòng |
+| T1 | `TEACHER` duyệt câu hợp lệ | `APPROVED`, có `reviewed_by`, `reviewed_at` và lịch sử review. |
+| T2 | `USER` hoặc `CONTENT_ADMIN` gọi endpoint review | 403. |
+| T3 | Từ chối không nhập lý do | 422, câu vẫn `PENDING_REVIEW`. |
+| T4 | Hai giáo viên duyệt đồng thời | Một thành công, một 409. |
+| T5 | Câu có hai đáp án đúng | Không cho duyệt. |
+| T6 | Duyệt hàng loạt gồm một câu đã được xử lý | Câu xung đột bị báo riêng; các câu còn hợp lệ vẫn xử lý. |
+| T7 | Câu `REJECTED` | Không xuất hiện trong luồng luyện của người học. |
+| T8 | Duyệt thành công | Có bản ghi `review_actions`. |
 
 ---
 
 # UC-109 · Sửa nội dung câu hỏi
 
 | | |
-|---|---|
-| **UC-ID** | UC-109 · **Actor** `TEACHER` `CONTENT_ADMIN` · **Pri** P1 · **Scope** MVP · **FT** 6.6 |
+| --- | --- |
+| **UC-ID** | UC-109 |
+| **Actor chính** | `TEACHER`, `CONTENT_ADMIN` |
+| **Loại** | User Goal |
+| **Pri** | P1 |
+| **Scope** | MVP |
+| **FT** | 6.5 · 6.6 |
+| **Trạng thái triển khai** | READY |
 
 ## Mô tả
 
-Sửa đề bài, đáp án, lời giải, hoặc nhãn kiến thức của câu hỏi. Dùng khi phát hiện câu sai
-(từ `question_reports` hoặc khi duyệt).
+`TEACHER` hoặc `CONTENT_ADMIN` sửa nội dung câu hỏi khi phát hiện lỗi trong quá trình review, quản lý kho câu hỏi hoặc xử lý phản hồi.
+
+Use Case cho phép sửa đề bài, đáp án, lời giải và nhãn kiến thức trong phạm vi không làm sai nghĩa của lịch sử bài làm đã tồn tại. Nếu một câu đã được người học trả lời, hệ thống không cho sửa đáp án đúng hoặc thay đổi nội dung theo cách làm thay đổi kết quả chấm cũ.
+
+## Kích hoạt
+
+Actor mở một câu hỏi trong màn quản trị hoặc chọn **Sửa** từ hàng đợi review AI.
 
 ## Tiền điều kiện
 
-1. Role `TEACHER` **hoặc** `CONTENT_ADMIN`
-2. Câu hỏi tồn tại
+1. Người dùng đã đăng nhập và có role `TEACHER` hoặc `CONTENT_ADMIN`.
+2. Câu hỏi cần sửa tồn tại.
+3. Câu hỏi không thuộc một cuộc thi đang diễn ra.
 
 ## Hậu điều kiện
 
-`questions`/`question_options` cập nhật; `review_actions` ghi thay đổi.
+### Sửa thành công
+
+- Nội dung được phép sửa được cập nhật.
+- Câu hỏi vẫn có ít nhất một nhãn kiến thức.
+- Câu trắc nghiệm vẫn có đúng một đáp án đúng.
+- Hệ thống ghi người sửa, thời điểm sửa và dữ liệu cũ cần thiết để đối chiếu.
+- Cache liên quan được làm mới nếu có.
+
+### Sửa bị từ chối
+
+- Nội dung cũ được giữ nguyên.
+- Lịch sử các bài làm cũ không bị thay đổi nghĩa.
+
+### Lưu trữ câu hỏi
+
+- Câu chuyển sang `ARCHIVED`.
+- Không xóa cứng dữ liệu câu hỏi hoặc lịch sử bài làm.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Actor | Mở câu hỏi cần sửa |
-| 2 | Actor | Sửa nội dung |
-| 3 | Client | `PUT /api/admin/questions/{id}` |
-| 4 | System | Kiểm role |
-| 5 | System | Validate: đúng 4 đáp án, đúng 1 `is_correct`, có lời giải |
-| 6 | System | **Kiểm có `attempt_answers` tham chiếu** (xem exception) |
-| 7 | System | Cập nhật; ghi `review_actions` kèm nội dung cũ |
-| 8 | System | Xoá cache liên quan |
+| 1 | Actor | Mở câu hỏi cần sửa. |
+| 2 | System | Kiểm tra quyền và tải nội dung hiện tại của câu hỏi. |
+| 3 | Actor | Thay đổi đề bài, đáp án, lời giải hoặc nhãn kiến thức. |
+| 4 | Actor | Bấm lưu. |
+| 5 | System | Kiểm tra cấu trúc câu hỏi, đáp án đúng và nhãn kiến thức. |
+| 6 | System | Kiểm tra câu đã từng được sử dụng trong bài làm hay chưa. |
+| 7 | System | Nếu câu đã được sử dụng, xác định thay đổi có làm thay đổi cách chấm hay không. |
+| 8 | System | Nếu thay đổi được phép, lưu nội dung mới và ghi lịch sử thay đổi. |
+| 9 | System | Làm mới cache liên quan nếu có. |
+| 10 | Client | Hiển thị nội dung sau khi cập nhật. |
 
 ## Luồng thay thế
 
 **A1 — Câu đã có người làm**
-🔴 Xem exception `QUESTION_CHANGED_AFTER_ATTEMPTS`.
+
+- Chỉ cho phép các sửa đổi không làm thay đổi kết quả cũ, ví dụ sửa chính tả, diễn đạt, lời giải hoặc nhãn kiến thức nếu việc đổi nhãn không làm sai dữ liệu lịch sử.
+- Nếu actor thay đáp án đúng hoặc sửa nội dung làm thay đổi cách chấm, hệ thống từ chối.
+- Khi cần một câu có đáp án/nội dung mới, actor tạo câu hỏi mới và lưu trữ câu cũ.
 
 **A2 — Sửa nhãn kiến thức**
-Ảnh hưởng UC-040, UC-041, UC-047. Ghi log rõ vì `question_knowledge_points` là bảng "không được
-đụng".
 
-**A3 — Xoá câu hỏi**
-Không xoá — đặt `status = ARCHIVED`. Xem exception.
+- Hệ thống yêu cầu sau khi sửa câu vẫn còn ít nhất một nhãn.
+- Thay đổi được ghi vào lịch sử vì ảnh hưởng đến phân tích điểm yếu và lộ trình học.
+
+**A3 — Lưu trữ câu hỏi**
+
+- Actor chọn lưu trữ thay vì xóa.
+- Hệ thống chuyển câu sang `ARCHIVED`.
+- Câu không được dùng cho lượt học mới nhưng lịch sử bài làm cũ vẫn giữ nguyên.
+
+**A4 — Sửa từ UC-108**
+
+- Sau khi lưu thành công, hệ thống quay lại ngữ cảnh review.
+- Câu vẫn cần một quyết định duyệt/từ chối; thao tác sửa không tự đồng nghĩa với duyệt.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `TEACHER`/`CONTENT_ADMIN` | Chặn |
-| `QUESTION_CHANGED_AFTER_ATTEMPTS` | — | 🔴 Sửa đáp án của câu đã có người làm | Xem ghi chú |
-| `MALFORMED_AFTER_EDIT` | 400 | Sửa thành 2 đáp án đúng | Validate + DB constraint |
-| `QUESTION_DELETED_WITH_ATTEMPTS` | 409 | 🔴 Xoá câu có `attempt_answers` | `ON DELETE RESTRICT` — xem UC-039 |
-| `KNOWLEDGE_POINT_REMOVED` | 400 | 🔴 Xoá hết nhãn kiến thức | Xem ghi chú |
-| `NO_EDIT_AUDIT` | — | Không ghi nội dung cũ | Bắt buộc — cần để đối chiếu |
-| `CACHE_NOT_INVALIDATED` | — | Cache còn nội dung cũ | Xoá cache sau khi sửa |
-| `EDIT_DURING_ACTIVE_ATTEMPT` | — | 🔴 Sửa khi có người đang làm bài | Xem ghi chú |
-| `CONTEST_QUESTION_EDITED` | — | 🔴 Sửa câu đang dùng trong cuộc thi | Xem ghi chú |
-
-> 🔴 **`QUESTION_CHANGED_AFTER_ATTEMPTS` + `EDIT_DURING_ACTIVE_ATTEMPT` — đây là mặt khác của
-> `QUESTION_CHANGED_MID_ATTEMPT` (UC-035).** Ở UC-035 tôi đã nêu: chưa có snapshot đề, nên chấm
-> theo đáp án hiện tại.
-> Từ phía admin, hệ quả cụ thể:
-> — `CONTENT_ADMIN` sửa đáp án lúc 10:00. Người học bắt đầu 9:50, nộp 10:05 → chấm sai
-> — `attempt_answers` cũ ghi `is_correct = true` theo đáp án **cũ**; giờ tra lại UC-039 thì đáp
-> án đúng đã khác → người học thấy "bạn chọn A, đáp án đúng là B" dù lúc làm A **là** đúng
->
-> **Cần chốt một trong ba:**
-> — Cảnh báo khi sửa câu có `attempt_answers` (rẻ nhất, không chặn)
-> — Tạo **phiên bản mới** của câu, giữ bản cũ cho `attempt_answers` cũ (đúng nhất, tốn công)
-> — Chặn sửa đáp án, chỉ cho sửa lời giải và chính tả (thoả hiệp hợp lý)
-> **Khuyến nghị cho 11 tuần:** phương án 3 + cảnh báo. Ghi rõ giới hạn.
-
-> 🔴 **`KNOWLEDGE_POINT_REMOVED`:** xoá hết nhãn của một câu thì UC-040/041/047 mù chỗ đó
-> (`NO_KNOWLEDGE_POINTS`). `question_knowledge_points` nằm trong "5 bảng tuyệt đối không đụng"
-> với lý do "**không sửa được nếu không nhập lại dữ liệu**".
-> **Cần:** `CHECK` hoặc validate: mỗi câu **luôn** có ≥ 1 nhãn.
-
-> 🔴 **`CONTEST_QUESTION_EDITED`:** sửa câu đang dùng trong cuộc thi **đang diễn ra** (UC-092) là
-> thay đổi luật giữa cuộc — với phần thưởng thật thì đây là tranh chấp.
-> **Cần:** chặn sửa câu thuộc cuộc thi đang trong khung giờ.
+| `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không trả hoặc sửa dữ liệu. |
+| `FORBIDDEN_ROLE` | 403 | Không có role phù hợp | Chặn. |
+| `QUESTION_NOT_FOUND` | 404 | Câu không tồn tại | Không thay đổi dữ liệu. |
+| `MALFORMED_QUESTION` | 422 | Cấu trúc câu hỏi/đáp án không hợp lệ | Không lưu. |
+| `KNOWLEDGE_POINT_REQUIRED` | 422 | Sau khi sửa không còn nhãn kiến thức | Không lưu. |
+| `GRADING_CHANGE_NOT_ALLOWED` | 409 | Câu đã có người làm và sửa đổi làm thay đổi cách chấm | Giữ câu cũ; yêu cầu tạo câu mới. |
+| `EDIT_DURING_ACTIVE_CONTEST` | 409 | Câu đang thuộc cuộc thi đang diễn ra | Không cho sửa. |
 
 ## Business rule
 
@@ -263,141 +298,147 @@ Không xoá — đặt `status = ARCHIVED`. Xem exception.
 
 ## API · DB
 
-```
+```text
 PUT   /api/admin/questions/{id}
 PATCH /api/admin/questions/{id}/archive
 ```
 
-`questions` · `question_options` · `question_knowledge_points` (ghi) · `attempt_answers` · `contests` (đọc để kiểm) · `review_actions` (ghi)
+Dữ liệu liên quan: `questions`, `question_options`, `question_knowledge_points`, `attempt_answers`, `review_actions`; dữ liệu cuộc thi chỉ đọc khi cần kiểm tra câu đang được sử dụng.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Sửa lời giải | 200, `review_actions` có nội dung cũ |
-| T2 | `USER` gọi | 403 |
-| T3 | Sửa thành 2 đáp án đúng | 400 + DB chặn |
-| T4 | Xoá hết nhãn kiến thức | 400 |
-| T5 | Xoá câu có `attempt_answers` | 409 |
-| T6 | Sửa câu đã có 50 người làm | Cảnh báo rõ |
-| T7 | Sửa câu trong cuộc thi đang diễn ra | Chặn |
+| T1 | Sửa lời giải của câu chưa có người làm | 200, nội dung mới và audit được lưu. |
+| T2 | `USER` gọi endpoint sửa | 403. |
+| T3 | Sửa thành hai đáp án đúng | 422, không lưu. |
+| T4 | Xóa toàn bộ nhãn kiến thức | 422, không lưu. |
+| T5 | Sửa đáp án đúng của câu đã có người làm | 409, câu cũ giữ nguyên. |
+| T6 | Sửa lỗi chính tả của câu đã có người làm | Cho phép nếu không làm thay đổi cách chấm. |
+| T7 | Lưu trữ câu đã có lịch sử làm bài | Câu chuyển `ARCHIVED`; lịch sử còn nguyên. |
+| T8 | Sửa câu đang dùng trong cuộc thi đang diễn ra | 409. |
 
 ---
 
-# UC-110 · Nhập dữ liệu đề thi từ file
+# UC-110 · Nhập dữ liệu đề thi, từ vựng và ngữ pháp từ file
 
 | | |
-|---|---|
-| **UC-ID** | UC-110 · **Actor** `CONTENT_ADMIN` · **Pri** **P0** · **Scope** MVP · **FT** 6.4 |
+| --- | --- |
+| **UC-ID** | UC-110 |
+| **Actor chính** | `CONTENT_ADMIN` |
+| **Loại** | User Goal |
+| **Pri** | **P0** |
+| **Scope** | MVP |
+| **FT** | 6.2 |
+| **Trạng thái triển khai** | **BLOCKED — cần file mẫu thật, định dạng import và khóa tự nhiên cho từng loại dữ liệu** |
 
 ## Mô tả
 
-Nhập đề thi, từ vựng, ngữ pháp của thầy vào hệ thống. **P0 — không có thì hệ thống không chạy.**
+`CONTENT_ADMIN` nhập dữ liệu do giáo viên cung cấp vào hệ thống, gồm đề thi/câu hỏi, từ vựng và ngữ pháp.
 
-Yêu cầu: nhập **có kiểm tra định dạng** · **báo cáo dòng lỗi** · **chạy lại không tạo bản trùng**.
+Use Case phải bảo đảm ba yêu cầu cốt lõi:
 
-> 🔴 **Rủi ro đã biết:** *"**Chưa ai thấy file thật của thầy**"* — 8 câu cần hỏi ở tài liệu
-> database mục 11.
+1. Dữ liệu được kiểm tra trước khi ghi vào kho chính.
+2. Dòng lỗi được báo rõ nhưng không làm mất các dòng hợp lệ khác.
+3. Chạy lại cùng dữ liệu không tạo bản trùng.
+
+Đây là Use Case P0 vì dữ liệu nhập là nguồn cho luyện thi, kho câu hỏi, từ vựng, ngữ pháp và các tính năng phân tích điểm yếu. Tuy nhiên không được triển khai parser chính thức trước khi có ít nhất một file mẫu thật và thống nhất định dạng.
+
+## Kích hoạt
+
+`CONTENT_ADMIN` mở chức năng nhập dữ liệu, chọn loại dữ liệu và chọn file cần nhập.
 
 ## Tiền điều kiện
 
-1. Role `CONTENT_ADMIN`; CSRF
-2. File đúng định dạng đã thống nhất
-3. `knowledge_points` đã có để gắn nhãn
+1. Người dùng đã đăng nhập và có role `CONTENT_ADMIN`.
+2. Với thao tác upload từ web dùng cookie, request có CSRF token hợp lệ.
+3. Nhóm đã phê duyệt định dạng import cho loại dữ liệu đang nhập.
+4. Nhóm đã xác định khóa tự nhiên dùng để nhận diện bản ghi trùng của loại dữ liệu đó.
+5. Các `knowledge_points` cần dùng để gắn nhãn đã tồn tại nếu loại dữ liệu yêu cầu nhãn kiến thức.
+
+> File “đúng định dạng” không phải tiền điều kiện do người dùng tự bảo đảm; hệ thống phải kiểm tra trong luồng.
 
 ## Hậu điều kiện
 
-| Kết quả | Trạng thái |
-| --- | --- |
-| Thành công | `exams`/`questions`/`words`/`grammar_points` thêm dòng; `import_runs` ghi kết quả |
-| Có dòng lỗi | Dòng đúng được nhập, dòng lỗi báo lại; **không ghi dữ liệu hỏng** |
-| Chạy lại | **Không** tạo bản trùng (idempotent) |
+### File hợp lệ và toàn bộ dòng hợp lệ
+
+- Tất cả dòng được import hoặc cập nhật theo khóa đã chốt.
+- Không tạo bản trùng.
+- Lần import được ghi nhận với người import, file hash, thời điểm và số dòng thành công.
+
+### File có cả dòng hợp lệ và dòng lỗi
+
+- Dòng hợp lệ được nhập.
+- Dòng lỗi không được ghi vào kho chính.
+- Mỗi lỗi được lưu để UC-111 hiển thị.
+- Lần import ghi đúng số dòng thành công và số dòng lỗi.
+
+### File sai cấu trúc hoàn toàn
+
+- Không có dữ liệu học nào từ file được ghi vào kho chính.
+- Lần import ghi nhận thất bại và lý do.
+
+### Lỗi hệ thống trước khi hoàn tất một dòng
+
+- Không để lại bản ghi nội dung của dòng đó ở trạng thái dở dang.
+- Kết quả import phải phản ánh đúng số dòng đã xử lý thành công.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_ADMIN` | Chọn file, chọn loại dữ liệu |
-| 2 | Client | `POST /api/admin/imports` (multipart) + CSRF |
-| 3 | System | Kiểm role, kiểm kích thước và loại file |
-| 4 | System | Tạo `import_runs` `status = RUNNING`, ghi `file_hash` |
-| 5 | System | **Kiểm `file_hash` đã nhập chưa** — idempotent |
-| 6 | System | Parse từng dòng |
-| 7 | System | **Validate từng dòng**: định dạng · bắt buộc có nhãn kiến thức · đúng 1 đáp án đúng |
-| 8 | System | Dòng lỗi → ghi vào danh sách lỗi, **không** ghi DB |
-| 9 | System | Dòng đúng → `INSERT` (upsert theo khoá tự nhiên) |
-| 10 | System | `import_runs` `status = COMPLETED`, ghi số dòng đúng/lỗi |
-| 11 | System | Trả `import_run_id` |
-| 12 | `CONTENT_ADMIN` | Xem báo cáo lỗi (UC-111) |
+| 1 | `CONTENT_ADMIN` | Chọn loại dữ liệu cần nhập và chọn file. |
+| 2 | Client | Upload file và thông tin loại dữ liệu. |
+| 3 | System | Kiểm tra quyền, CSRF, kích thước file và loại file được phép. |
+| 4 | System | Tạo bản ghi lần import, lưu file hash và người thực hiện. |
+| 5 | System | Kiểm tra file có phải lần import lặp lại của dữ liệu đã xử lý trước đó hay không. |
+| 6 | System | Kiểm tra encoding và cấu trúc tổng thể của file. |
+| 7 | System | Đọc từng dòng theo đúng template đã phê duyệt. |
+| 8 | System | Với từng dòng, kiểm tra trường bắt buộc, kiểu dữ liệu, nhãn kiến thức và cấu trúc đáp án nếu là câu hỏi. |
+| 9 | System | Dòng không hợp lệ được ghi vào danh sách lỗi và không được ghi vào kho chính. |
+| 10 | System | Với dòng hợp lệ, xác định bản ghi theo khóa tự nhiên và thực hiện tạo mới hoặc cập nhật theo quy tắc import đã chốt. |
+| 11 | System | Sau khi xử lý hết file, cập nhật tổng số dòng thành công, lỗi và trạng thái lần import. |
+| 12 | System | Trả `import_run_id` cùng thống kê tổng quát. |
+| 13 | `CONTENT_ADMIN` | Mở UC-111 để xem chi tiết dòng lỗi nếu có. |
 
 ## Luồng thay thế
 
 **A1 — Chạy lại cùng file**
-Bước 5 nhận ra `file_hash` đã nhập → hỏi "đã nhập rồi, chạy lại?". Nếu chạy, upsert theo khoá
-tự nhiên → **không** tạo bản trùng.
 
-**A2 — File có 1.000 dòng, 50 lỗi**
-950 dòng vào DB, 50 dòng báo lại. **Không** rollback cả file — nếu không thì một dòng lỗi chặn
-toàn bộ.
+- Hệ thống nhận biết file hash đã từng được import.
+- `CONTENT_ADMIN` được thông báo đây là file đã xử lý trước đó.
+- Nếu tiếp tục import, hệ thống dùng khóa tự nhiên để cập nhật/giữ dữ liệu đúng quy tắc, không tạo bản sao trùng.
 
-**A3 — File sai định dạng hoàn toàn**
-Bước 6 parse lỗi → `import_runs` `FAILED`, **không** ghi dòng nào.
+**A2 — File có một phần dữ liệu lỗi**
 
-**A4 — Chạy nền cho file lớn**
-File > N dòng → trả `import_run_id` ngay, chạy nền, cập nhật tiến độ.
+- Hệ thống không rollback toàn bộ file chỉ vì một dòng sai.
+- Dòng hợp lệ vẫn được lưu.
+- Dòng lỗi được giữ trong báo cáo lỗi của lần import.
+
+**A3 — File sai template hoặc encoding không đọc được**
+
+- Hệ thống kết thúc lần import ở trạng thái thất bại.
+- Không ghi các dòng nội dung vào kho chính.
+- Trả thông báo đủ rõ để người quản trị biết cần sửa file gì.
+
+**A4 — Dòng thiếu nhãn kiến thức**
+
+- Chỉ dòng đó bị từ chối.
+- Báo cáo lỗi chỉ rõ vị trí và nhãn không tìm thấy.
+- Không nhập câu rồi chờ gắn nhãn sau.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `CONTENT_ADMIN` | 🔴 Chặn — `FINANCE_ADMIN` không nhập đề |
-| `UNKNOWN_FILE_FORMAT` | 400 | 🔴 Định dạng file của thầy chưa biết | Xem ghi chú |
-| `MISSING_KNOWLEDGE_POINT` | — | 🔴 Dòng không có nhãn kiến thức | Xem ghi chú |
-| `PARTIAL_IMPORT_ROLLED_BACK` | — | 🔴 Một dòng lỗi rollback cả file | Vi phạm nghiệm thu (A2) |
-| `DUPLICATE_ON_RERUN` | — | 🔴 Chạy lại tạo bản trùng | Vi phạm nghiệm thu — cần khoá tự nhiên |
-| `NO_NATURAL_KEY` | 500 | 🔴 Không có khoá để upsert | Xem ghi chú |
-| `CORRUPT_DATA_WRITTEN` | — | 🔴 Ghi dữ liệu hỏng | Vi phạm nghiệm thu: "**không ghi dữ liệu hỏng**" |
-| `MULTIPLE_CORRECT_ANSWERS` | — | Dòng có 2 đáp án đúng | Từ chối dòng; DB constraint chặn |
-| `ENCODING_ERROR` | 400 | 🔴 File không UTF-8, chữ Hán thành `???` | Xem ghi chú |
-| `COPYRIGHT_DATA_COMMITTED` | — | 🔴 Dữ liệu đề thi vào git | Xem ghi chú |
-| `FILE_TOO_LARGE` | 413 | Quá giới hạn | Chia file |
-| `IMPORT_TIMEOUT` | — | File lớn quá lâu | Chạy nền (A4) |
-| `CONCURRENT_IMPORT` | 409 | Hai lần nhập cùng lúc | Một `import_runs RUNNING` mỗi lúc |
-| `NO_IMPORT_AUDIT` | — | Không ghi ai nhập | `import_runs` bắt buộc có `created_by` |
-
-> 🔴 **`UNKNOWN_FILE_FORMAT` là rủi ro số một của UC này, và là rủi ro **tiến độ**, không phải
-> kỹ thuật.** Feature tree ghi rõ "chưa ai thấy file thật của thầy" với 8 câu cần hỏi.
-> Hệ quả: viết parser trước khi biết định dạng là **viết lại từ đầu** khi file thật đến.
-> Đây là UC **P0** — không có nó thì không có dữ liệu, không có dữ liệu thì 5 nhóm UC trước
-> không demo được.
-> **Khuyến nghị:** lấy file thật (dù chỉ 1 file mẫu) **trước** khi viết parser. Đây là việc phải
-> làm ngay, không phải việc kỹ thuật.
-
-> 🔴 **`MISSING_KNOWLEDGE_POINT` — validate quan trọng nhất của UC này.** UC-040 đã nêu:
-> *"nhập 17 bộ đề HSK1 mà quên gắn nhãn → UC-040 trả rỗng, UC-041 không có gì để luyện, UC-047
-> và UC-048 cũng mù. Tính năng 'bán được nhất' biến thành màn hình trống."*
-> Và `question_knowledge_points` "**không sửa được nếu không nhập lại dữ liệu**".
-> **Bắt buộc:** dòng không có nhãn kiến thức → **từ chối dòng đó**, báo ở UC-111. Không nhập rồi
-> gắn nhãn sau — sẽ không ai làm.
-
-> 🔴 **`NO_NATURAL_KEY` chặn yêu cầu "chạy lại không tạo bản trùng".** Upsert cần một khoá tự
-> nhiên:
-> — Câu hỏi: `(exam_id, section, question_number)`? hay hash nội dung?
-> — Từ vựng: `(word, pinyin)`?
-> — Ngữ pháp: `(hsk_level, grammar_code)`?
-> **Chưa chốt** khoá nào. Không có khoá thì chạy lại là nhân đôi dữ liệu.
-> **Cần chốt cùng lúc với định dạng file.**
-
-> 🔴 **`ENCODING_ERROR` — lỗi cụ thể của dữ liệu tiếng Trung.** File Excel/CSV từ Windows tiếng
-> Việt thường là `windows-1258` hoặc `windows-936`. Đọc bằng UTF-8 là chữ Hán thành `???` — và
-> **ghi vào DB thành công** (không lỗi), chỉ là nội dung rác.
-> Đây là loại lỗi tệ nhất: **không báo lỗi** mà dữ liệu sai. Phải phát hiện ở bước validate:
-> kiểm dòng có ký tự Hán hợp lệ.
-
-> 🔴 **`COPYRIGHT_DATA_COMMITTED`:** constitution cấm "commit dữ liệu đề thi HSK của giảng viên
-> (bản quyền)". Nhưng khi test parser, rất tự nhiên để đặt file mẫu vào `src/test/resources/`.
-> **Cần:** file test dùng dữ liệu **tự tạo**, không phải đề thật. Và `.gitignore` chặn thư mục
-> chứa file thầy gửi.
+| `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không nhận file. |
+| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_ADMIN` | Không nhận file. |
+| `CSRF_TOKEN_MISSING` | 403 | Request upload qua cookie thiếu CSRF | Không nhận file. |
+| `UNSUPPORTED_FILE_FORMAT` | 422 | File không đúng template/định dạng đã duyệt | Không ghi dữ liệu học. |
+| `ENCODING_ERROR` | 422 | Nội dung chữ Hán bị hỏng hoặc encoding không hỗ trợ | Không ghi dữ liệu hỏng. |
+| `FILE_TOO_LARGE` | 413 | Vượt giới hạn file | Từ chối file. |
+| `CONCURRENT_IMPORT` | 409 | Cùng loại/file đang được xử lý theo chính sách chống trùng | Không tạo lần import cạnh tranh. |
+| `NATURAL_KEY_NOT_CONFIGURED` | Không phải runtime production | Chưa chốt khóa nhận diện trùng | **Không triển khai import loại dữ liệu đó** cho đến khi chốt. |
 
 ## Business rule
 
@@ -418,97 +459,117 @@ File > N dòng → trả `import_run_id` ngay, chạy nền, cập nhật tiến
 
 ## API · DB
 
-```
+```text
 POST /api/admin/imports
 GET  /api/admin/imports/{id}
 ```
 
-`import_runs` (ghi) · `exams` · `exam_sections` · `questions` · `question_options` · `question_knowledge_points` · `words` · `grammar_points` (ghi) · `knowledge_points` (đọc)
+Dữ liệu liên quan: `import_runs`, `exams`, `exam_sections`, `questions`, `question_options`, `question_knowledge_points`, `words`, `grammar_points`, `knowledge_points`.
 
-> ⚠️ **Lệch tài liệu:** feature tree 6.4 ghi bảng `import_batches`, DB v5 có **`import_runs`**
-> (đổi tên từ `sync_runs`). Cần thống nhất tên.
+> **Blocker thiết kế:** chưa chốt nơi lưu chi tiết lỗi import cho UC-111. Không tự đặt tên bảng trong code trước khi thiết kế DB được duyệt.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | File 100 dòng hợp lệ | 100 dòng vào DB, `import_runs COMPLETED` |
-| T2 | File 100 dòng, 10 lỗi | **90 vào DB**, 10 báo lại |
-| T3 | Chạy lại cùng file | **Không** tạo bản trùng |
-| T4 | Dòng thiếu nhãn kiến thức | Dòng bị từ chối, báo rõ |
-| T5 | File encoding `windows-936` | Phát hiện, báo lỗi — **không** ghi `???` |
-| T6 | `FINANCE_ADMIN` gọi | 403 |
-| T7 | File sai định dạng hoàn toàn | `FAILED`, **0 dòng** vào DB |
-| T8 | Hai lần nhập song song | Một 409 |
-| T9 | `git grep` trong repo | **Không** có dữ liệu đề thật |
+| T1 | File 100 dòng hợp lệ | 100 dòng được import; thống kê đúng. |
+| T2 | File 100 dòng có 10 dòng sai | 90 dòng hợp lệ được lưu, 10 lỗi được báo; không rollback toàn file. |
+| T3 | Chạy lại cùng file | Không tạo bản trùng. |
+| T4 | Câu hỏi thiếu nhãn kiến thức | Dòng bị từ chối, báo rõ dòng/cột. |
+| T5 | File làm chữ Hán thành `???` | Từ chối trước khi ghi dữ liệu rác. |
+| T6 | `FINANCE_ADMIN` gọi import | 403. |
+| T7 | File sai template hoàn toàn | 0 dòng nội dung được ghi. |
+| T8 | Câu trắc nghiệm có hai đáp án đúng | Dòng bị từ chối. |
+| T9 | Kiểm repository | Không có file dữ liệu thật của giáo viên trong git/test resource. |
 
 ---
 
 # UC-111 · Xem báo cáo lỗi sau khi nhập
 
 | | |
-|---|---|
-| **UC-ID** | UC-111 · **Actor** `CONTENT_ADMIN` · **Pri** **P0** · **Scope** MVP · **FT** 6.4 |
+| --- | --- |
+| **UC-ID** | UC-111 |
+| **Actor chính** | `CONTENT_ADMIN` |
+| **Loại** | User Goal |
+| **Pri** | **P0** |
+| **Scope** | MVP |
+| **FT** | 6.2 |
+| **Trạng thái triển khai** | **PARTIALLY BLOCKED — cần cơ chế lưu bền vững chi tiết lỗi import** |
 
 ## Mô tả
 
-Xem chi tiết dòng nào lỗi và lỗi gì. Nghiệm thu 6.4: *"File lỗi báo rõ **dòng nào sai**, không
-ghi dữ liệu hỏng"*.
+`CONTENT_ADMIN` xem kết quả của một lần import và xác định chính xác dòng nào bị lỗi, lỗi ở trường nào và cần sửa như thế nào.
+
+Mục tiêu của Use Case là giúp người quản trị có thể sửa file và nhập lại mà không phải dò thủ công toàn bộ dữ liệu. Vì vậy lỗi phải được lưu lại sau lần import, không chỉ tồn tại trong response của UC-110.
+
+## Kích hoạt
+
+`CONTENT_ADMIN` mở kết quả của một `import_run` sau khi UC-110 hoàn tất hoặc mở lại lịch sử import trước đó.
 
 ## Tiền điều kiện
 
-Role `CONTENT_ADMIN`; `import_runs` tồn tại.
+1. Người dùng đã đăng nhập và có role `CONTENT_ADMIN`.
+2. Lần import cần xem tồn tại.
+3. Hệ thống đã lưu kết quả tổng hợp của lần import.
+4. Để xem lại chi tiết lỗi sau khi đóng tab, hệ thống phải có nơi lưu bền vững từng lỗi import.
 
 ## Hậu điều kiện
 
-Chỉ đọc.
+### Thành công
+
+- Người quản trị xem được thống kê tổng số dòng, số dòng thành công và số dòng lỗi.
+- Với mỗi lỗi, hiển thị vị trí dòng, trường/cột liên quan, mã lỗi và thông báo dễ hiểu.
+- Không thay đổi dữ liệu đã import.
+
+### Không thành công
+
+- Không sửa hoặc xóa kết quả import.
+- Không trả stack trace hoặc thông tin kỹ thuật nội bộ cho client.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_ADMIN` | Mở kết quả lần nhập |
-| 2 | Client | `GET /api/admin/imports/{id}` |
-| 3 | System | Kiểm role |
-| 4 | System | Trả tổng hợp: tổng dòng · thành công · lỗi · thời gian |
-| 5 | System | Trả danh sách lỗi: **số dòng** · cột · giá trị · mã lỗi · thông báo |
-| 6 | `CONTENT_ADMIN` | Sửa file, nhập lại (UC-110) |
+| 1 | `CONTENT_ADMIN` | Mở chi tiết một lần import. |
+| 2 | System | Kiểm tra quyền và tìm `import_run` tương ứng. |
+| 3 | System | Trả thông tin tổng hợp: loại dữ liệu, thời điểm, tổng dòng, số thành công, số lỗi và trạng thái. |
+| 4 | System | Lấy danh sách lỗi của lần import theo phân trang. |
+| 5 | System | Với mỗi lỗi, trả số dòng, tên cột/trường, giá trị gây lỗi ở mức cần thiết, mã lỗi và thông báo tiếng Việt rõ ràng. |
+| 6 | Client | Hiển thị danh sách lỗi để người quản trị đối chiếu với file nguồn. |
+| 7 | `CONTENT_ADMIN` | Sửa file và quay lại UC-110 khi cần nhập lại. |
 
 ## Luồng thay thế
 
-**A1 — Xuất danh sách lỗi ra file** — để sửa trong Excel.
-**A2 — Xem lịch sử các lần nhập** — `GET /api/admin/imports`.
-**A3 — Không có lỗi** — hiện "nhập thành công 100%".
+**A1 — Import không có lỗi**
+
+- Hiển thị “Nhập thành công” cùng số dòng thành công.
+- Danh sách lỗi rỗng.
+
+**A2 — Có rất nhiều lỗi**
+
+- Hệ thống phân trang.
+- Tổng số lỗi vẫn phải hiển thị đầy đủ.
+
+**A3 — Xuất danh sách lỗi**
+
+- Chỉ `CONTENT_ADMIN` được xuất.
+- File xuất chỉ phục vụ sửa dữ liệu import.
+- Không đưa stack trace hoặc dữ liệu nội bộ không cần thiết vào file.
+
+**A4 — Xem lịch sử import**
+
+- Hiển thị danh sách các lần import trước đó theo người thực hiện/thời gian ở mức hệ thống đã hỗ trợ.
+- Mở một lần import sẽ quay về luồng chính của UC này.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `CONTENT_ADMIN` | Chặn |
-| `IMPORT_RUN_NOT_FOUND` | 404 | ID sai | Chặn |
-| `NO_LINE_NUMBERS` | — | 🔴 Lỗi không có số dòng | Xem ghi chú |
-| `ERROR_MESSAGE_UNCLEAR` | — | 🔴 "Validation failed" không nói gì | Xem ghi chú |
-| `ERRORS_NOT_PERSISTED` | — | 🔴 Lỗi chỉ trong response, không lưu | Xem ghi chú |
-| `TOO_MANY_ERRORS_TRUNCATED` | 200 | 5.000 dòng lỗi | Phân trang; hiện tổng số |
-| `COPYRIGHT_DATA_IN_ERROR_LOG` | — | 🔴 Nội dung đề trong bảng lỗi | ⚠️ Xem ghi chú |
-| `STACK_TRACE_EXPOSED` | — | Trả stack trace | Vi phạm "không lộ stack trace" — dùng `{error_code, message}` |
-
-> 🔴 **`NO_LINE_NUMBERS` + `ERROR_MESSAGE_UNCLEAR` — vi phạm nghiệm thu trực tiếp.** Nghiệm thu
-> nói "báo rõ **dòng nào sai**". Thông báo "có 50 dòng lỗi" mà không nói dòng nào thì
-> `CONTENT_ADMIN` phải dò tay 1.000 dòng.
-> **Cần:** mỗi lỗi có `line_number`, `column_name`, `actual_value`, `error_code`, và thông báo
-> tiếng Việt cụ thể — ví dụ *"Dòng 47, cột 'knowledge_point': không tìm thấy điểm kiến thức
-> 'GP-HSK3-205'"*.
-
-> 🔴 **`ERRORS_NOT_PERSISTED`:** nếu danh sách lỗi chỉ nằm trong response của UC-110 thì đóng
-> tab là mất. Với file 1.000 dòng và 50 lỗi thì đó là mất 50 lần dò.
-> **Cần:** bảng lưu chi tiết lỗi theo `import_run_id`. Hiện `import_runs` chỉ ghi tổng hợp —
-> **thiếu bảng chi tiết lỗi**.
-
-> ⚠️ **`COPYRIGHT_DATA_IN_ERROR_LOG`:** bảng lỗi hiện `actual_value` để `CONTENT_ADMIN` biết sai
-> gì — nghĩa là **nội dung đề thi** nằm trong DB bảng lỗi.
-> Đây không phải vi phạm (dữ liệu vẫn trong hệ thống của nhóm, không lên git), nhưng cần: không
-> xuất bảng lỗi ra ngoài, và dọn sau khi sửa xong.
+| `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không trả dữ liệu import. |
+| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_ADMIN` | Chặn. |
+| `IMPORT_RUN_NOT_FOUND` | 404 | Không tồn tại lần import | Không trả dữ liệu. |
+| `INVALID_PAGINATION` | 422 | Tham số phân trang không hợp lệ | Trả lỗi validation. |
+| `IMPORT_ERROR_STORAGE_NOT_READY` | Không phải runtime production | Chưa có nơi lưu chi tiết lỗi | **Không coi UC-111 là code-ready** cho đến khi thiết kế được chốt. |
 
 ## Business rule
 
@@ -525,99 +586,140 @@ Chỉ đọc.
 
 ## API · DB
 
-```
+```text
 GET /api/admin/imports
 GET /api/admin/imports/{id}
 GET /api/admin/imports/{id}/errors
 GET /api/admin/imports/{id}/errors/export
 ```
 
-`import_runs` (đọc) · ⚠️ **bảng chi tiết lỗi — chưa có**
+Dữ liệu liên quan: `import_runs` và **nơi lưu chi tiết lỗi import chưa được chốt tên/thiết kế**.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Lần nhập có 10 lỗi | 10 dòng, mỗi dòng có `line_number` |
-| T2 | Đóng tab, mở lại | Danh sách lỗi **vẫn còn** |
-| T3 | `FINANCE_ADMIN` gọi | 403 |
-| T4 | Lỗi thiếu nhãn kiến thức | Thông báo nói rõ mã nhãn không tìm thấy |
-| T5 | 5.000 lỗi | Phân trang, hiện tổng |
-| T6 | Kiểm response | **Không** có stack trace |
+| T1 | Lần import có 10 lỗi | Hiển thị đủ 10 lỗi; mỗi lỗi có `line_number`. |
+| T2 | Đóng tab rồi mở lại | Danh sách lỗi vẫn còn. |
+| T3 | `FINANCE_ADMIN` gọi | 403. |
+| T4 | Lỗi thiếu nhãn kiến thức | Thông báo nêu rõ dòng và nhãn không tìm thấy. |
+| T5 | Có 5.000 lỗi | Danh sách phân trang và hiển thị đúng tổng số lỗi. |
+| T6 | Kiểm response lỗi | Không có stack trace. |
+| T7 | Import không lỗi | Hiển thị trạng thái thành công và danh sách lỗi rỗng. |
 
 ---
 
 # UC-112 · Quản lý đề thi và kho câu hỏi
 
 | | |
-|---|---|
-| **UC-ID** | UC-112 · **Actor** `CONTENT_ADMIN` · **Pri** P1 · **Scope** MVP · **FT** 6.6 |
+| --- | --- |
+| **UC-ID** | UC-112 |
+| **Actor chính** | `CONTENT_ADMIN` |
+| **Loại** | User Goal |
+| **Pri** | P1 |
+| **Scope** | MVP |
+| **FT** | 6.3 · 6.5 |
+| **Trạng thái triển khai** | READY |
 
 ## Mô tả
 
-Tạo/sửa đề thi, gán câu hỏi vào đề, công bố đề (`DRAFT` → `PUBLISHED`), quản lý quan hệ tiên
-quyết chủ đề.
+`CONTENT_ADMIN` tạo và quản lý đề thi, tổ chức các phần của đề, gán câu hỏi từ kho câu hỏi và công bố đề cho người học.
+
+Use Case này không thay thế UC-109: khi cần sửa nội dung một câu hỏi, actor sử dụng UC-109. UC-112 tập trung vào **cấu trúc đề và trạng thái công bố**.
+
+Quan hệ tiên quyết của chủ đề được quản lý như một thao tác quản trị nội dung liên quan đến lộ trình, không phải bước bắt buộc của việc tạo đề. Phần này được mô tả ở luồng thay thế để tránh trộn hai mục tiêu trong luồng chính.
+
+## Kích hoạt
+
+`CONTENT_ADMIN` mở màn hình quản lý đề thi và chọn tạo mới hoặc chỉnh sửa một đề.
 
 ## Tiền điều kiện
 
-Role `CONTENT_ADMIN`; CSRF.
+1. Người dùng đã đăng nhập và có role `CONTENT_ADMIN`.
+2. Request ghi từ web dùng cookie có CSRF token hợp lệ.
+3. Các câu hỏi được gán vào đề đã tồn tại trong kho câu hỏi.
 
 ## Hậu điều kiện
 
-`exams`/`exam_sections`/`topics` cập nhật.
+### Lưu nháp thành công
+
+- Đề và cấu trúc phần được lưu ở trạng thái `DRAFT`.
+- Đề không hiển thị cho người học.
+
+### Công bố thành công
+
+- Đề chuyển sang `PUBLISHED`.
+- Cấu trúc đề hợp lệ.
+- Mọi câu trong đề hợp lệ, đã được duyệt và có ít nhất một nhãn kiến thức.
+- Audio bắt buộc của phần nghe đã sẵn sàng.
+- Đề xuất hiện trong danh sách luyện thi.
+
+### Lưu trữ đề
+
+- Đề chuyển sang `ARCHIVED`.
+- Người học không thể bắt đầu lượt mới.
+- Lịch sử và bài đang làm đã được tạo trước đó không bị xóa.
+
+### Thao tác thất bại
+
+- Giữ trạng thái trước đó của đề.
+- Không để đề chuyển `PUBLISHED` khi còn lỗi bắt buộc.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_ADMIN` | Mở quản lý đề thi |
-| 2 | System | Kiểm role |
-| 3 | `CONTENT_ADMIN` | Tạo đề, thêm phần, gán câu hỏi |
-| 4 | Client | `POST`/`PUT /api/admin/exams/{id}` + CSRF |
-| 5 | System | Validate: có ≥ 1 phần, mỗi phần có ≥ 1 câu |
-| 6 | System | Ghi `exams`/`exam_sections` `status = DRAFT` |
-| 7 | `CONTENT_ADMIN` | Bấm "Công bố" |
-| 8 | System | Validate đầy đủ trước khi `PUBLISHED` |
-| 9 | System | `status = PUBLISHED`; đề hiện ở UC-033 |
+| 1 | `CONTENT_ADMIN` | Tạo đề mới hoặc mở một đề `DRAFT`. |
+| 2 | System | Kiểm tra quyền và tải dữ liệu đề hiện tại. |
+| 3 | `CONTENT_ADMIN` | Nhập/sửa thông tin đề, tạo các phần và xác định thứ tự phần. |
+| 4 | `CONTENT_ADMIN` | Gán các câu hỏi phù hợp từ kho vào từng phần. |
+| 5 | System | Kiểm tra dữ liệu cơ bản và lưu đề ở trạng thái `DRAFT`. |
+| 6 | `CONTENT_ADMIN` | Kiểm tra đề và chọn **Công bố**. |
+| 7 | System | Kiểm tra đề có ít nhất một phần và mỗi phần có ít nhất một câu. |
+| 8 | System | Kiểm tra mọi câu đều được phép sử dụng, có nhãn kiến thức và có cấu trúc hợp lệ. |
+| 9 | System | Kiểm tra audio bắt buộc của phần nghe. |
+| 10 | System | Nếu tất cả điều kiện đạt, chuyển đề sang `PUBLISHED` và ghi audit. |
+| 11 | Client | Hiển thị trạng thái đã công bố. |
 
 ## Luồng thay thế
 
-**A1 — Sửa quan hệ tiên quyết chủ đề**
-🔴 **Phải kiểm chu trình** — xem exception.
+**A1 — Lưu nháp**
 
-**A2 — Rút đề đã công bố**
-`status = ARCHIVED`. Đề ẩn khỏi UC-033, nhưng `attempts` cũ **giữ nguyên**.
+- Actor lưu khi chưa muốn công bố.
+- Hệ thống giữ `DRAFT`.
+- Các kiểm tra bắt buộc để công bố chưa cần phải đạt toàn bộ, nhưng dữ liệu lưu không được sai kiểu/cấu trúc cơ bản.
 
-**A3 — Sao chép đề làm bản mới**
-Copy cấu trúc, `status = DRAFT`.
+**A2 — Lưu trữ đề đã công bố**
+
+- `CONTENT_ADMIN` chọn lưu trữ.
+- Đề chuyển sang `ARCHIVED`.
+- Không cho bắt đầu attempt mới.
+- Attempt đã tạo trước đó được giữ để bảo toàn lịch sử; attempt đang làm tiếp tục theo chính sách luyện thi đã chốt.
+
+**A3 — Sao chép đề**
+
+- Hệ thống tạo một đề mới ở trạng thái `DRAFT` với cấu trúc được sao chép.
+- Bản sao không tự động `PUBLISHED`.
+
+**A4 — Quản lý quan hệ tiên quyết chủ đề**
+
+- Actor chỉnh quan hệ tiên quyết trong phần quản trị nội dung.
+- Trước khi lưu, hệ thống kiểm tra không tạo chu trình và toàn bộ cây vẫn còn ít nhất một chủ đề gốc.
+- Thao tác này không làm thay đổi trạng thái của một đề thi.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `CONTENT_ADMIN` | Chặn |
-| `PUBLISH_EMPTY_EXAM` | 400 | 🔴 Công bố đề 0 câu | Chặn — UC-033 `EXAM_HAS_NO_QUESTIONS` |
-| `PUBLISH_WITHOUT_AUDIO` | 400 | Phần Nghe thiếu audio | Chặn — UC-034 `AUDIO_NOT_AVAILABLE` |
-| `PUBLISH_UNLABELED_QUESTIONS` | 400 | 🔴 Câu chưa gắn nhãn kiến thức | Xem ghi chú |
-| `CIRCULAR_PREREQUISITE` | 400 | 🔴 Chu trình tiên quyết chủ đề | Xem ghi chú |
-| `NO_ROOT_TOPIC` | 400 | 🔴 Mọi chủ đề có tiên quyết | Chặn — UC-045 cây toàn ổ khoá |
-| `ARCHIVE_WITH_ACTIVE_ATTEMPTS` | 409 | Rút đề khi có người đang làm | ⚠️ Cảnh báo; `attempts` `IN_PROGRESS` vẫn nộp được |
-| `UNPUBLISHED_EXAM_LEAKED` | — | 🔴 Đề `DRAFT` lộ ra | UC-034 `EXAM_NOT_PUBLISHED` |
-| `SECTION_ORDER_MISSING` | 400 | Thiếu `order_index` | Chặn — UC-034 |
-| `QUESTION_IN_MULTIPLE_EXAMS` | — | Câu dùng ở 2 đề | ⚠️ Cho phép (kho chung), nhưng cảnh báo |
-| `NO_AUDIT_LOG` | — | Không ghi ai sửa | Bắt buộc |
-
-> 🔴 **`PUBLISH_UNLABELED_QUESTIONS` là chốt cuối chặn `NO_KNOWLEDGE_POINTS_IN_EXAM` (UC-040).**
-> UC-110 đã từ chối dòng thiếu nhãn khi nhập. Nhưng câu có thể được tạo tay ở UC-109, hoặc nhãn
-> bị xoá sau đó.
-> **Cần:** validate **lúc công bố** — mọi câu trong đề phải có ≥ 1 nhãn. Đây là kiểm cuối cùng
-> trước khi đề đến người học; sau đó thì "không sửa được nếu không nhập lại".
-
-> 🔴 **`CIRCULAR_PREREQUISITE` + `NO_ROOT_TOPIC` — đây là nơi UC-045 nói phải chặn.**
-> UC-045 nêu: chu trình làm duyệt đồ thị **lặp vô hạn**, và không có chủ đề gốc thì người học
-> thấy cây toàn ổ khoá.
-> **Cần:** kiểm chu trình bằng DFS **trước khi commit** quan hệ tiên quyết, và đảm bảo còn ≥ 1
-> chủ đề không có tiên quyết. Kiểm ở đây rẻ; phát hiện lúc người học mở trang là muộn.
+| `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không cho quản lý đề. |
+| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_ADMIN` | Chặn. |
+| `PUBLISH_EMPTY_EXAM` | 422 | Đề/phần không có câu hỏi | Giữ `DRAFT`. |
+| `PUBLISH_WITHOUT_AUDIO` | 422 | Phần nghe thiếu audio bắt buộc | Giữ `DRAFT`. |
+| `PUBLISH_UNAPPROVED_QUESTION` | 422 | Có câu chưa được duyệt | Giữ `DRAFT`. |
+| `PUBLISH_UNLABELED_QUESTION` | 422 | Có câu không có nhãn kiến thức | Giữ `DRAFT`. |
+| `SECTION_ORDER_MISSING` | 422 | Thiếu thứ tự phần | Không công bố. |
+| `CIRCULAR_PREREQUISITE` | 422 | Quan hệ tiên quyết tạo vòng lặp | Không lưu quan hệ. |
+| `NO_ROOT_TOPIC` | 422 | Không còn chủ đề gốc | Không lưu quan hệ. |
 
 ## Business rule
 
@@ -637,7 +739,7 @@ Copy cấu trúc, `status = DRAFT`.
 
 ## API · DB
 
-```
+```text
 GET   /api/admin/exams
 POST  /api/admin/exams
 PUT   /api/admin/exams/{id}
@@ -646,99 +748,122 @@ PATCH /api/admin/exams/{id}/archive
 PUT   /api/admin/topics/{id}/prerequisites
 ```
 
-`exams` · `exam_sections` · `questions` · `question_knowledge_points` · `topics` (đọc + ghi) · audit log
+Dữ liệu liên quan: `exams`, `exam_sections`, `questions`, `question_knowledge_points`, `topics`, audit log.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Tạo đề, gán câu, công bố | `PUBLISHED`, hiện ở UC-033 |
-| T2 | Công bố đề 0 câu | 400 |
-| T3 | Công bố đề có câu thiếu nhãn | **400** |
-| T4 | Đặt A cần B, B cần A | **400** `CIRCULAR_PREREQUISITE` |
-| T5 | Xoá tiên quyết cuối của mọi chủ đề gốc | 400 `NO_ROOT_TOPIC` |
-| T6 | `FINANCE_ADMIN` gọi | 403 |
-| T7 | Rút đề có `attempts` | Cảnh báo; `attempts` giữ |
-| T8 | Đề `DRAFT` | Không xuất hiện ở UC-033 |
+| T1 | Tạo đề, gán câu hợp lệ, công bố | `PUBLISHED`, xuất hiện cho người học. |
+| T2 | Công bố đề không có câu | 422, vẫn `DRAFT`. |
+| T3 | Công bố đề có câu thiếu nhãn | 422. |
+| T4 | Công bố đề có câu chưa `APPROVED` | 422. |
+| T5 | Phần nghe thiếu audio bắt buộc | 422. |
+| T6 | Tạo quan hệ A cần B, B cần A | 422 `CIRCULAR_PREREQUISITE`. |
+| T7 | Lưu cấu trúc làm cây không còn chủ đề gốc | 422. |
+| T8 | Lưu trữ đề có lịch sử attempt | Đề `ARCHIVED`; lịch sử vẫn còn. |
+| T9 | `FINANCE_ADMIN` gọi | 403. |
 
 ---
 
 # UC-113 · Tạo và quản lý cuộc thi
 
 | | |
-|---|---|
-| **UC-ID** | UC-113 · **Actor** `CONTENT_ADMIN` · **Pri** P2 · **Scope** V2 · **FT** 5.8 |
+| --- | --- |
+| **UC-ID** | UC-113 |
+| **Actor chính** | `CONTENT_ADMIN` |
+| **Loại** | User Goal |
+| **Pri** | P2 |
+| **Scope** | V2 |
+| **FT** | 5.8 |
+| **Trạng thái triển khai** | V2 — không gen MVP |
 
 ## Mô tả
 
-Tạo cuộc thi: đặt khung giờ, chọn đề, khai phần thưởng (`contests.prizes` JSONB), công bố.
-Sau khi đóng: công bố xếp hạng.
+`CONTENT_ADMIN` tạo và quản lý cuộc thi học tập trong phạm vi V2: cấu hình tên, thời gian, đề thi, thông tin phần thưởng, công bố cuộc thi, hủy cuộc thi và công bố bảng xếp hạng sau khi cuộc thi kết thúc.
+
+Use Case này chỉ quản lý nội dung và trạng thái cuộc thi. Nếu phần thưởng là điểm có giá trị tài chính, việc cộng điểm không được thực hiện trực tiếp bởi `CONTENT_ADMIN`.
+
+## Kích hoạt
+
+`CONTENT_ADMIN` mở màn hình quản lý cuộc thi và chọn tạo mới hoặc chỉnh sửa một cuộc thi.
 
 ## Tiền điều kiện
 
-Role `CONTENT_ADMIN`; CSRF.
+1. Người dùng đã đăng nhập và có role `CONTENT_ADMIN`.
+2. Request ghi từ web có CSRF hợp lệ.
+3. Đề được chọn cho cuộc thi tồn tại và đủ điều kiện sử dụng.
+4. Chính sách phần thưởng của cuộc thi đã được xác định.
 
 ## Hậu điều kiện
 
-`contests` thêm/cập nhật dòng.
+### Tạo/lưu nháp
+
+- Cuộc thi được lưu ở `DRAFT`.
+- Chưa hiển thị cho người học.
+
+### Công bố
+
+- Cuộc thi được hiển thị cho người học theo phạm vi V2.
+- Thời gian, đề và phần thưởng công bố trở thành dữ liệu cam kết cho cuộc thi.
+
+### Hủy
+
+- Cuộc thi chuyển sang `CANCELLED`.
+- Người đã đăng ký được thông báo theo cơ chế V2.
+
+### Công bố xếp hạng
+
+- Chỉ thực hiện sau khi cuộc thi kết thúc.
+- Không tự động phát sinh giao dịch thưởng tài chính từ UC này.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_ADMIN` | Tạo cuộc thi |
-| 2 | `CONTENT_ADMIN` | Đặt tên, khung giờ (**giờ Việt Nam**), đề, phần thưởng |
-| 3 | Client | `POST /api/admin/contests` + CSRF |
-| 4 | System | Kiểm role |
-| 5 | System | Validate `starts_at < ends_at`, `starts_at > now()` |
-| 6 | System | Validate `prizes` đúng cấu trúc |
-| 7 | System | Ghi `contests` `status = DRAFT` |
-| 8 | `CONTENT_ADMIN` | Công bố → UC-090 hiện |
-| 9 | Sau khi đóng | `CONTENT_ADMIN` công bố xếp hạng |
+| 1 | `CONTENT_ADMIN` | Tạo cuộc thi mới. |
+| 2 | `CONTENT_ADMIN` | Nhập tên, thời gian bắt đầu/kết thúc, chọn đề và nhập thông tin phần thưởng. |
+| 3 | System | Kiểm tra quyền, định dạng thời gian và cấu trúc dữ liệu. |
+| 4 | System | Kiểm tra thời gian bắt đầu nhỏ hơn thời gian kết thúc và đề hợp lệ. |
+| 5 | System | Lưu cuộc thi ở `DRAFT`. |
+| 6 | `CONTENT_ADMIN` | Kiểm tra lại và chọn **Công bố**. |
+| 7 | System | Kiểm tra lại các điều kiện bắt buộc và chuyển cuộc thi sang trạng thái công khai. |
+| 8 | System | Ghi audit cho thao tác công bố. |
+| 9 | Client | Hiển thị trạng thái cuộc thi đã công bố. |
 
 ## Luồng thay thế
 
-**A1 — Sửa khung giờ trước khi bắt đầu** — cho phép; thông báo người đã đăng ký.
-**A2 — Sửa khung giờ khi đang diễn ra** — 🔴 chặn. Xem exception.
-**A3 — Huỷ cuộc thi** — `status = CANCELLED`, thông báo người đăng ký.
-**A4 — Xem nhật ký gian lận** — đọc `contest_participants.cheat_events`, quyết định loại ai.
+**A1 — Sửa trước khi cuộc thi bắt đầu**
+
+- Cho phép sửa các thông tin được phép.
+- Nếu cuộc thi đã công bố và thay đổi thông tin quan trọng, người đã đăng ký phải được thông báo.
+
+**A2 — Hủy cuộc thi**
+
+- Chuyển sang `CANCELLED`.
+- Không xóa cứng dữ liệu cuộc thi hoặc dữ liệu người đã đăng ký.
+
+**A3 — Công bố bảng xếp hạng**
+
+- Chỉ thực hiện sau thời điểm kết thúc.
+- Kết quả được lấy từ dữ liệu hợp lệ đã chấm ở server.
+
+**A4 — Phần thưởng là điểm**
+
+- `CONTENT_ADMIN` chỉ xác định/công bố người thắng theo chức năng cuộc thi.
+- Việc thay đổi số dư điểm phải đi qua luồng tài chính được phân quyền cho `FINANCE_ADMIN`.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `CONTENT_ADMIN` | Chặn |
-| `INVALID_TIME_RANGE` | 400 | `starts_at ≥ ends_at` | Chặn |
-| `START_IN_PAST` | 400 | Bắt đầu trong quá khứ | Chặn |
-| `EDIT_DURING_CONTEST` | 403 | 🔴 Sửa khung giờ/đề khi đang diễn ra | Xem ghi chú |
-| `TIMEZONE_MISINTERPRETED` | — | 🔴 "20:00" hiểu là UTC | Xem ghi chú |
-| `PRIZES_MALFORMED` | 400 | JSONB sai cấu trúc | Validate schema |
-| `PRIZES_JSONB_UPDATED_LIVE` | — | 🔴 Sửa `prizes` khi đang diễn ra | Chặn — người thi đã thấy thưởng cũ |
-| `RANKING_PUBLISHED_EARLY` | 403 | Công bố trước khi đóng | Chặn — UC-092 |
-| `PRIZE_AS_CREDIT_WITHOUT_LEDGER` | — | 🔴 Trao thưởng bằng điểm không ghi sổ cái | Xem ghi chú |
-| `FINANCE_ROLE_NEEDED_FOR_PRIZE` | — | ⚠️ `CONTENT_ADMIN` trao thưởng tiền | Xem ghi chú |
-| `CONTEST_WITHOUT_QUESTIONS` | 400 | Công bố cuộc thi không có đề | Chặn |
-| `CHEAT_EVENTS_JSONB_WRITE` | — | 🔴 Ghi JSONB vi phạm AC-09 | Mâu thuẫn đã nêu UC-091 |
-
-> 🔴 **`EDIT_DURING_CONTEST` + `PRIZES_JSONB_UPDATED_LIVE`:** đổi luật giữa cuộc thi có **phần
-> thưởng thật** là cơ sở khiếu nại. Người đăng ký dựa trên khung giờ và phần thưởng đã công bố.
-> **Cần:** sau khi `starts_at` đã qua, chặn sửa `starts_at`, `ends_at`, đề, và `prizes`. Chỉ cho
-> sửa mô tả.
-
-> 🔴 **`TIMEZONE_MISINTERPRETED` — lần thứ năm vấn đề múi giờ.** `CONTENT_ADMIN` nhập "20:00"
-> trên form. Nếu client gửi chuỗi `"20:00"` không kèm offset và server parse theo giờ máy chủ
-> (UTC) thì cuộc thi mở lúc **03:00 sáng** giờ Việt Nam.
-> **Cần:** client gửi ISO-8601 **có offset** (`2026-10-15T20:00:00+07:00`), server lưu
-> `TIMESTAMPTZ`. Và form hiện rõ "giờ Việt Nam".
-
-> 🔴 **`PRIZE_AS_CREDIT_WITHOUT_LEDGER` + `FINANCE_ROLE_NEEDED_FOR_PRIZE` — xung đột phân quyền
-> cần chốt.** Feature tree 5.8: phần thưởng "trao thủ công hoặc **cộng điểm tài chính**".
-> Nhưng cộng điểm tài chính là quyền `FINANCE_ADMIN` (UC-102), không phải `CONTENT_ADMIN`.
-> Nếu `CONTENT_ADMIN` cộng điểm được thì việc tách 3 role mất ý nghĩa — họ tự tạo cuộc thi, tự
-> thắng, tự trao thưởng bằng điểm.
-> **Cần chốt:** `CONTENT_ADMIN` công bố người thắng; `FINANCE_ADMIN` thực hiện cộng điểm (qua
-> UC-102 với `reason = CONTEST_PRIZE`). Hai người, hai bước — đúng separation of duties và là
-> **điểm cộng khi bảo vệ**.
+| `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không cho quản lý cuộc thi. |
+| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_ADMIN` | Chặn. |
+| `INVALID_TIME_RANGE` | 422 | Thời gian bắt đầu không trước thời gian kết thúc | Không lưu/công bố. |
+| `START_IN_PAST` | 422 | Tạo cuộc thi mới nhưng thời gian bắt đầu đã qua | Không công bố. |
+| `EDIT_DURING_CONTEST` | 409 | Cố sửa thời gian/đề/phần thưởng khi đang diễn ra | Chặn. |
+| `CONTEST_WITHOUT_VALID_EXAM` | 422 | Không có đề hợp lệ | Không công bố. |
+| `RANKING_PUBLISHED_EARLY` | 409 | Công bố xếp hạng trước khi kết thúc | Chặn. |
 
 ## Business rule
 
@@ -756,119 +881,132 @@ Role `CONTENT_ADMIN`; CSRF.
 
 ## API · DB
 
-```
+```text
 POST  /api/admin/contests
 PUT   /api/admin/contests/{id}
 PATCH /api/admin/contests/{id}/publish
 PATCH /api/admin/contests/{id}/cancel
 POST  /api/admin/contests/{id}/publish-ranking
-GET   /api/admin/contests/{id}/cheat-events
 ```
 
-`contests` · `contest_participants` · `contest_submissions` (đọc + ghi) · audit log
+Dữ liệu liên quan: `contests`, `contest_participants`, `contest_submissions`, audit log.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Tạo cuộc thi 20h–21h giờ VN | Lưu đúng `TIMESTAMPTZ` |
-| T2 | Nhập "20:00", xem lại | Hiện **20:00 giờ VN**, không phải 03:00 |
-| T3 | Sửa khung giờ khi đang diễn ra | 403 |
-| T4 | Sửa `prizes` khi đang diễn ra | 403 |
-| T5 | Công bố xếp hạng lúc 20h30 | 403 |
-| T6 | `CONTENT_ADMIN` cộng điểm thưởng | 403 — cần `FINANCE_ADMIN` |
-| T7 | `starts_at > ends_at` | 400 |
-| T8 | Công bố cuộc thi không đề | 400 |
+| T1 | Tạo cuộc thi có thời gian hợp lệ | Lưu `DRAFT`. |
+| T2 | `starts_at >= ends_at` | 422. |
+| T3 | Công bố cuộc thi không có đề hợp lệ | 422. |
+| T4 | Sửa đề hoặc phần thưởng khi cuộc thi đang diễn ra | 409. |
+| T5 | Công bố xếp hạng trước khi kết thúc | 409. |
+| T6 | `CONTENT_ADMIN` cố cộng điểm thưởng trực tiếp | Không được phép qua UC này. |
+| T7 | Hủy cuộc thi trước khi kết thúc | `CANCELLED`, dữ liệu lịch sử được giữ. |
 
 ---
 
-# UC-114 · Quản lý người dùng (tìm, xem, khóa)
+# UC-114 · Quản lý người dùng
 
 | | |
-|---|---|
-| **UC-ID** | UC-114 · **Actor** `SUPER_ADMIN` · **Pri** P1 · **Scope** MVP · **FT** 6.2 |
+| --- | --- |
+| **UC-ID** | UC-114 |
+| **Actor chính** | `SUPER_ADMIN` |
+| **Loại** | User Goal |
+| **Pri** | P1 |
+| **Scope** | MVP |
+| **FT** | 6.1 |
+| **Trạng thái triển khai** | **BLOCKED — cần chốt trường trạng thái khóa/ban của tài khoản trước khi code** |
 
 ## Mô tả
 
-Tìm người dùng, xem thông tin, khóa/mở tài khoản. Quyết định v2: `SUPER_ADMIN` có "Quản lý
-người dùng (khóa, mở, xem thông tin)".
+`SUPER_ADMIN` tìm tài khoản người dùng, xem thông tin quản trị cần thiết, khóa tài khoản khi có lý do hợp lệ và mở khóa tài khoản đã bị khóa.
+
+Use Case không hỗ trợ xóa cứng người dùng. Khóa tài khoản phải làm mất hiệu lực truy cập của tài khoản, nhưng không xóa lịch sử học, bài làm, bài viết, giao dịch hoặc dữ liệu liên quan.
+
+Use Case này không bao gồm xử lý treo tài khoản do moderation của `MANAGER`; phần đó thuộc luồng moderation tương ứng.
+
+## Kích hoạt
+
+`SUPER_ADMIN` mở màn hình quản lý người dùng hoặc tìm một tài khoản cần kiểm tra.
 
 ## Tiền điều kiện
 
-1. Role `SUPER_ADMIN`; CSRF
-2. ⚠️ Cột trạng thái tài khoản (mục A quyết định v2 — **chưa chốt**)
+1. Người thao tác đã đăng nhập và có role `SUPER_ADMIN`.
+2. Với thao tác khóa/mở khóa từ web, request có CSRF token hợp lệ.
+3. Trước khi triển khai chức năng khóa, dự án đã chốt cách lưu trạng thái khóa/ban trên tài khoản.
 
 ## Hậu điều kiện
 
-| Thao tác | Trạng thái |
-| --- | --- |
-| Khoá | `users.banned_at` (hoặc `suspended_at`); token bị thu hồi |
-| Mở | Xoá dấu khoá |
-| Xem | Chỉ đọc + audit log |
+### Chỉ xem thông tin
+
+- Không thay đổi dữ liệu tài khoản.
+- Việc xem chi tiết tài khoản được ghi audit.
+
+### Khóa thành công
+
+- Tài khoản chuyển sang trạng thái bị khóa/ban theo thiết kế đã chốt.
+- Lưu lý do, người thực hiện và thời điểm khóa.
+- Tất cả refresh token hiện tại của tài khoản bị thu hồi.
+- Tài khoản không tiếp tục sử dụng quyền truy cập cũ.
+
+### Mở khóa thành công
+
+- Trạng thái khóa được gỡ bỏ.
+- Phiên/token cũ không được tự khôi phục.
+- Người dùng phải đăng nhập lại.
+
+### Thất bại
+
+- Không để trạng thái khóa thay đổi nhưng token vẫn giữ theo cách mâu thuẫn với kết quả trả cho quản trị.
+- Không xóa dữ liệu người dùng.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `SUPER_ADMIN` | Tìm theo email/tên |
-| 2 | Client | `GET /api/admin/users?q={x}` |
-| 3 | System | Kiểm role `SUPER_ADMIN` |
-| 4 | System | Trả danh sách, **email đã che** |
-| 5 | `SUPER_ADMIN` | Mở chi tiết một người |
-| 6 | System | Trả đầy đủ + **ghi audit log** |
-| 7 | `SUPER_ADMIN` | Bấm "Khoá tài khoản", nhập lý do |
-| 8 | Client | `PATCH /api/admin/users/{id}/ban` + CSRF |
-| 9 | System | Ghi `banned_at`, `banned_by`, `ban_reason` |
-| 10 | System | **Thu hồi toàn bộ refresh token** của người đó |
-| 11 | System | Audit log |
+| 1 | `SUPER_ADMIN` | Nhập email hoặc tên để tìm người dùng. |
+| 2 | System | Kiểm tra quyền và tìm các tài khoản phù hợp. |
+| 3 | System | Trả danh sách tối thiểu cần thiết; email được che một phần ở danh sách. |
+| 4 | `SUPER_ADMIN` | Mở chi tiết một tài khoản. |
+| 5 | System | Kiểm tra quyền, trả dữ liệu quản trị được phép xem và ghi audit truy cập. |
+| 6 | `SUPER_ADMIN` | Chọn **Khóa tài khoản** và nhập lý do. |
+| 7 | System | Kiểm tra không phải tài khoản của chính người thao tác và không phải `SUPER_ADMIN` cuối cùng đang hoạt động. |
+| 8 | System | Cập nhật trạng thái khóa, người khóa, lý do và thời điểm. |
+| 9 | System | Thu hồi toàn bộ refresh token của tài khoản. |
+| 10 | System | Ghi audit cho thao tác khóa. |
+| 11 | Client | Hiển thị trạng thái tài khoản đã bị khóa. |
 
 ## Luồng thay thế
 
-**A1 — Mở khoá** — xoá `banned_at`; **không** tự khôi phục token (người dùng đăng nhập lại).
-**A2 — Khoá tạm (treo)** — `suspended_at` + `suspended_until`. `MANAGER` cũng làm được (UC-078).
-**A3 — Xoá tài khoản** — 🔴 xem exception.
+**A1 — Mở khóa**
+
+1. `SUPER_ADMIN` mở tài khoản đang bị khóa.
+2. Chọn **Mở khóa**.
+3. Hệ thống gỡ trạng thái khóa và ghi audit.
+4. Không tạo lại các phiên đăng nhập cũ.
+5. Người dùng đăng nhập lại nếu muốn tiếp tục sử dụng hệ thống.
+
+**A2 — Tìm kiếm không có kết quả**
+
+- Trả danh sách rỗng.
+- Không coi đây là lỗi hệ thống.
+
+**A3 — Xem thông tin nhưng không khóa**
+
+- Kết thúc sau bước 5.
+- Chỉ audit việc xem chi tiết; không thay đổi trạng thái tài khoản.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `SUPER_ADMIN` | Chặn |
-| `STATUS_COLUMNS_MISSING` | 500 | 🔴 Chưa có `banned_at`/`suspended_at` | Xem ghi chú |
-| `TOKENS_NOT_REVOKED` | — | 🔴 Khoá mà không thu hồi token | Xem ghi chú |
-| `SELF_BAN` | 400 | 🔴 `SUPER_ADMIN` tự khoá mình | Xem ghi chú |
-| `BAN_LAST_SUPER_ADMIN` | 400 | 🔴 Khoá `SUPER_ADMIN` cuối cùng | **Mất quyền quản trị hệ thống** |
-| `HARD_DELETE_USER` | 403 | 🔴 Xoá cứng tài khoản | Xem ghi chú |
-| `PII_EXPOSED_IN_LIST` | — | 🔴 Hiện email đầy đủ mọi người | Che ở danh sách (như UC-100) |
-| `NO_ACCESS_AUDIT` | — | 🔴 Không ghi ai xem thông tin ai | Bắt buộc |
-| `EMPTY_BAN_REASON` | 400 | Không lý do | Bắt buộc |
-| `PASSWORD_HASH_IN_RESPONSE` | — | 🔴 Trả `password_hash` | **Không bao giờ** — `@JsonIgnore` + DTO |
-| `BANNED_USER_STILL_ACTIVE` | — | 🔴 Bị khoá vẫn dùng được | Kiểm `banned_at` ở `JwtFilter` |
-
-> 🔴 **`STATUS_COLUMNS_MISSING` — mục A quyết định v2 vẫn chưa chốt, và nó chặn UC này.**
-> Quyết định v2 liệt kê 4 cột đề xuất (`email_verified_at`, `locked_until`, `suspended_at`,
-> `banned_at`) nhưng ghi rõ *"Tài liệu hiện **chưa có** các cột này trong `users`"*.
-> Không có cột thì UC-114 không làm được, và UC-012 (khoá sau N lần sai mật khẩu),
-> UC-077/078 (treo tài khoản) cũng không.
-> **Bốn UC cùng chờ một quyết định** — nên chốt sớm.
-
-> 🔴 **`TOKENS_NOT_REVOKED` + `BANNED_USER_STILL_ACTIVE`:** đặt `banned_at` nhưng access token
-> còn hiệu lực 15 phút, và refresh token còn 7 ngày → người bị khoá **vẫn dùng được** cho tới
-> khi token hết hạn.
-> **Cần cả hai:**
-> — Thu hồi mọi refresh token ngay khi khoá (bước 10)
-> — `JwtFilter` kiểm `banned_at` cho **mọi** request, không chỉ lúc đăng nhập
-> Cách thứ hai tốn một truy vấn mỗi request — dùng cache ngắn nếu cần.
-
-> 🔴 **`SELF_BAN` + `BAN_LAST_SUPER_ADMIN` — tự khoá mình ra khỏi hệ thống.** Nếu chỉ có một
-> `SUPER_ADMIN` và người đó bị khoá (tự khoá hoặc bị người khác khoá) thì **không ai** cấp lại
-> role được (UC-115 cần `SUPER_ADMIN`) → phải sửa trực tiếp trong DB.
-> **Cần:** chặn tự khoá, và chặn khoá `SUPER_ADMIN` cuối cùng đang hoạt động.
-
-> 🔴 **`HARD_DELETE_USER`:** `posts.author_id`, `follows.followee_id`, `game_scores.user_id` là
-> các cột trỏ xuyên schema **không có khoá ngoại** (DB v5 §0.4). Xoá cứng user để lại dữ liệu
-> mồ côi ở `community`, và `credit_transactions` (không bao giờ xoá) trỏ vào user không tồn tại.
-> **Chốt:** **không hard delete user**. Chỉ `banned_at`. Đây là câu trả lời cho khoảng trống #15
-> nhóm 5 (dọn `follows` khi xoá user) — không xoá thì không cần dọn.
+| `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không trả dữ liệu quản trị. |
+| `FORBIDDEN_ROLE` | 403 | Không có `SUPER_ADMIN` | Chặn. |
+| `USER_NOT_FOUND` | 404 | Mở chi tiết ID không tồn tại | Không trả dữ liệu. |
+| `SELF_BAN` | 409 | `SUPER_ADMIN` cố khóa chính mình | Chặn. |
+| `BAN_LAST_SUPER_ADMIN` | 409 | Cố khóa `SUPER_ADMIN` cuối cùng đang hoạt động | Chặn. |
+| `EMPTY_BAN_REASON` | 422 | Không nhập lý do | Không khóa. |
+| `ACCOUNT_STATUS_NOT_DESIGNED` | Không phải runtime production | Chưa chốt trường trạng thái tài khoản | **Không triển khai chức năng khóa** cho đến khi chốt. |
 
 ## Business rule
 
@@ -889,116 +1027,131 @@ người dùng (khóa, mở, xem thông tin)".
 
 ## API · DB
 
-```
+```text
 GET   /api/admin/users?q={x}
 GET   /api/admin/users/{id}
 PATCH /api/admin/users/{id}/ban
 PATCH /api/admin/users/{id}/unban
 ```
 
-`users` · `auth_tokens` (ghi) · audit log
+Dữ liệu liên quan: `users`, `auth_tokens`, audit log.
+
+> **Blocker:** tên/cấu trúc trường trạng thái tài khoản phải được chốt ở thiết kế DB trước khi gen code. UC này không tự thêm `banned_at`, `suspended_at` hoặc `locked_until`.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Khoá tài khoản | `banned_at` ghi, token **bị thu hồi** |
-| T2 | Người bị khoá gọi API bằng token cũ | **401** |
-| T3 | `MANAGER` gọi | 403 |
-| T4 | `FINANCE_ADMIN` gọi | 403 |
-| T5 | Tự khoá mình | 400 |
-| T6 | Khoá `SUPER_ADMIN` cuối | 400 |
-| T7 | Kiểm response | **Không** có `password_hash` |
-| T8 | Danh sách | Email **đã che** |
-| T9 | Xem chi tiết một người | Audit log có dòng |
-| T10 | Cố `DELETE /api/admin/users/{id}` | **Không có** endpoint |
+| T1 | `SUPER_ADMIN` tìm theo email/tên | Danh sách đúng quyền; email được che. |
+| T2 | Mở chi tiết một user | Trả dữ liệu cho phép; có audit. |
+| T3 | Khóa user hợp lệ | Trạng thái khóa được ghi, refresh token bị thu hồi. |
+| T4 | User bị khóa gọi API bằng phiên cũ | Bị từ chối theo cơ chế xác thực. |
+| T5 | `MANAGER` hoặc `FINANCE_ADMIN` gọi UC-114 | 403. |
+| T6 | `SUPER_ADMIN` tự khóa mình | 409. |
+| T7 | Khóa `SUPER_ADMIN` cuối cùng | 409. |
+| T8 | Mở khóa | Token cũ không tự hoạt động lại. |
+| T9 | Kiểm response | Không có password hash/token nội bộ. |
 
 ---
 
 # UC-115 · Cấp và thu hồi role
 
 | | |
-|---|---|
-| **UC-ID** | UC-115 · **Actor** `SUPER_ADMIN` · **Pri** P1 · **Scope** MVP · **FT** 6.2 |
+| --- | --- |
+| **UC-ID** | UC-115 |
+| **Actor chính** | `SUPER_ADMIN` |
+| **Loại** | User Goal |
+| **Pri** | P1 |
+| **Scope** | MVP |
+| **FT** | 6.1 |
+| **Trạng thái triển khai** | READY |
 
 ## Mô tả
 
-Gán/thu hồi role. `user_roles` là N-N, có `granted_by` để truy vết ai cấp quyền.
+`SUPER_ADMIN` cấp hoặc thu hồi role của một tài khoản.
 
-**Sáu role trong DB:** `USER` · `TEACHER` · `MANAGER` · `CONTENT_ADMIN` · `FINANCE_ADMIN` ·
-`SUPER_ADMIN`. `GUEST` **không** phải dòng trong `roles`.
+Hệ thống hỗ trợ sáu role được lưu trong hệ thống: `USER`, `TEACHER`, `MANAGER`, `CONTENT_ADMIN`, `FINANCE_ADMIN`, `SUPER_ADMIN`. `GUEST` là trạng thái truy cập chưa đăng nhập, không phải role được gán cho tài khoản.
+
+Một tài khoản có thể có nhiều role. `SUPER_ADMIN` không tự động có quyền của các role nghiệp vụ khác; chỉ những role được cấp rõ ràng mới có hiệu lực.
+
+## Kích hoạt
+
+`SUPER_ADMIN` mở chi tiết quyền của một tài khoản và chọn cấp hoặc thu hồi role.
 
 ## Tiền điều kiện
 
-1. Role `SUPER_ADMIN`; CSRF
-2. Người nhận tồn tại, không bị khoá
-3. Role tồn tại trong `roles`
+1. Người thao tác đã đăng nhập và có role `SUPER_ADMIN`.
+2. Tài khoản mục tiêu tồn tại.
+3. Role cần thao tác tồn tại trong danh sách role chính thức.
+4. Với thao tác ghi từ web, request có CSRF token hợp lệ.
 
 ## Hậu điều kiện
 
-`user_roles` thêm/xoá dòng kèm `granted_by`, `granted_at`; audit log.
+### Cấp role thành công
+
+- Quan hệ user-role được tạo đúng một lần.
+- Lưu người cấp và thời điểm cấp.
+- Audit log được ghi.
+- Phiên/token cũ của tài khoản mục tiêu bị thu hồi để quyền mới chỉ có hiệu lực sau lần xác thực tiếp theo theo cơ chế hệ thống.
+
+### Thu hồi role thành công
+
+- Quan hệ user-role tương ứng bị loại bỏ.
+- Audit log ghi người thu hồi và thời điểm.
+- Phiên/token cũ bị thu hồi để quyền bị gỡ không tiếp tục sử dụng.
+
+### Không có thay đổi
+
+- Nếu cấp role đã có hoặc thu hồi role không còn tồn tại, hệ thống trả trạng thái idempotent và không tạo thay đổi lặp.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `SUPER_ADMIN` | Mở người dùng, chọn role |
-| 2 | Client | `POST /api/admin/users/{id}/roles` — `{role_code}` + CSRF |
-| 3 | System | Kiểm role `SUPER_ADMIN` |
-| 4 | System | Kiểm `role_code` thuộc 6 role |
-| 5 | System | Kiểm chưa có role đó |
-| 6 | System | `INSERT user_roles` — `granted_by`, `granted_at` |
-| 7 | System | **Audit log** riêng cho thao tác quyền |
-| 8 | System | Thông báo người nhận |
+| 1 | `SUPER_ADMIN` | Mở danh sách role của tài khoản mục tiêu. |
+| 2 | System | Kiểm tra quyền và trả các role hiện có. |
+| 3 | `SUPER_ADMIN` | Chọn một role cần cấp. |
+| 4 | System | Kiểm tra role hợp lệ và tài khoản mục tiêu không bị khóa/ban. |
+| 5 | System | Kiểm tra actor không tự cấp thêm role cho chính mình. |
+| 6 | System | Nếu target chưa có role, tạo quan hệ user-role và ghi người cấp/thời điểm. |
+| 7 | System | Ghi audit cho thao tác cấp quyền. |
+| 8 | System | Thu hồi các phiên/token cũ của tài khoản mục tiêu theo cơ chế xác thực. |
+| 9 | Client | Hiển thị danh sách role sau cập nhật. |
 
 ## Luồng thay thế
 
-**A1 — Thu hồi role** — `DELETE`; ghi audit log kèm ai thu hồi.
-**A2 — Gán nhiều role** — cho phép (quyết định v2: leader có `SUPER_ADMIN` + `CONTENT_ADMIN` + `FINANCE_ADMIN`).
-**A3 — Gán `GUEST`** — 400. `GUEST` không phải dòng trong `roles`.
+**A1 — Thu hồi role**
+
+1. `SUPER_ADMIN` chọn một role đang có.
+2. Hệ thống kiểm tra thao tác không làm mất `SUPER_ADMIN` cuối cùng đang hoạt động.
+3. Hệ thống xóa quan hệ user-role.
+4. Ghi audit.
+5. Thu hồi phiên/token cũ của tài khoản mục tiêu.
+
+**A2 — Cấp nhiều role**
+
+- Thực hiện từng role theo luồng chính.
+- Không có role nào được ngầm kế thừa chỉ vì tài khoản có `SUPER_ADMIN`.
+
+**A3 — Cấp `GUEST`**
+
+- Hệ thống từ chối vì `GUEST` không phải role lưu trong database.
+
+**A4 — Cấp role đã có**
+
+- Trả trạng thái hiện tại, không tạo thêm dòng trùng và không cấp lại lần hai.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `SUPER_ADMIN` | 🔴 Xem ghi chú |
-| `INVALID_ROLE_CODE` | 400 | Ngoài 6 role | Chặn |
-| `GUEST_ROLE_ASSIGNED` | 400 | 🔴 Gán `GUEST` | `GUEST` là **trạng thái**, không phải role (A3) |
-| `SELF_ROLE_GRANT` | 403 | 🔴 Tự cấp role cho mình | Xem ghi chú |
-| `PRIVILEGE_ESCALATION_VIA_PROFILE` | — | 🔴 Cấp role qua `PUT /api/me` | Xem ghi chú |
-| `ALREADY_HAS_ROLE` | 409 | Đã có | Idempotent hoặc 409 |
-| `REVOKE_LAST_SUPER_ADMIN` | 400 | 🔴 Thu hồi `SUPER_ADMIN` cuối | **Mất quyền quản trị** |
-| `ROLE_GRANTED_TO_BANNED_USER` | 422 | Người bị khoá | Chặn |
-| `NO_GRANT_AUDIT` | — | 🔴 Không ghi `granted_by` | Quyết định v2 bắt buộc |
-| `TOKEN_STILL_HAS_OLD_ROLES` | — | 🔴 Thu hồi role nhưng token còn quyền cũ | Xem ghi chú |
-| `FINANCE_ROLE_GRANTED_CARELESSLY` | — | ⚠️ Cấp `FINANCE_ADMIN` dễ dãi | Role nguy hiểm nhất — nên cần xác nhận hai bước |
-
-> 🔴 **`FORBIDDEN_ROLE` ở UC này là endpoint quan trọng nhất về bảo mật trong cả hệ thống.**
-> Ai gọi được UC-115 thì **tự cấp mọi quyền** — kể cả `FINANCE_ADMIN` (sinh mã thẻ, điều chỉnh
-> điểm). Một lỗi phân quyền ở đây là mất toàn bộ hệ thống.
-> **Cần:** `@PreAuthorize("hasRole('SUPER_ADMIN')")` + test cho **cả 5 role khác** đều bị 403.
-
-> 🔴 **`PRIVILEGE_ESCALATION_VIA_PROFILE` — cùng lỗ hổng `FORBIDDEN_FIELD` (UC-011).**
-> UC-011 đã nêu: gửi `{"roles":["SUPER_ADMIN"]}` vào `PUT /api/me` là leo quyền nếu không
-> whitelist trường.
-> UC-115 là **đường hợp pháp duy nhất** để đổi role. Mọi endpoint khác phải **không** ghi được
-> `user_roles`.
-> **Cần:** ArchUnit hoặc kiểm code — chỉ `RoleService` được ghi `user_roles`, và chỉ được gọi
-> từ UC-115. Cùng mẫu với `CreditService` (UC-094).
-
-> 🔴 **`SELF_ROLE_GRANT`:** `SUPER_ADMIN` tự cấp `FINANCE_ADMIN` cho mình rồi sinh mã thẻ.
-> Quyết định v2 ghi rõ *"`SUPER_ADMIN` **không tự động** có quyền của `CONTENT_ADMIN` hay
-> `FINANCE_ADMIN`"* — nghĩa là phải gán thêm. Nhưng nếu tự gán được thì luật đó vô nghĩa.
-> **Cần:** chặn `granted_by = user_id`. Phải có `SUPER_ADMIN` khác cấp — đúng separation of duties,
-> và với nhóm 6 người demo thì có ít nhất 2 tài khoản `SUPER_ADMIN`.
-
-> 🔴 **`TOKEN_STILL_HAS_OLD_ROLES`:** nếu JWT chứa danh sách role trong claim, thu hồi role mà
-> token còn hiệu lực 15 phút → người đó **vẫn dùng quyền cũ** 15 phút. Với `FINANCE_ADMIN` thì
-> 15 phút đủ sinh 1.000 mã thẻ.
-> **Hai cách:**
-> — Đọc role từ DB mỗi request (tốn truy vấn, chính xác ngay)
-> — Giữ role trong token + thu hồi token khi đổi role (như UC-114 bước 10)
-> **Khuyến nghị:** cách thứ hai — thu hồi token khi đổi role. Nhất quán với UC-114.
+| `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có `SUPER_ADMIN` | Chặn. |
+| `USER_NOT_FOUND` | 404 | Tài khoản mục tiêu không tồn tại | Không thay đổi role. |
+| `INVALID_ROLE_CODE` | 422 | Role ngoài danh sách chính thức hoặc là `GUEST` | Không thay đổi role. |
+| `SELF_ROLE_GRANT` | 403 | `SUPER_ADMIN` tự cấp thêm role cho mình | Chặn. |
+| `ROLE_GRANTED_TO_BANNED_USER` | 409 | Tài khoản mục tiêu đang bị khóa/ban | Không cấp role. |
+| `REVOKE_LAST_SUPER_ADMIN` | 409 | Thu hồi `SUPER_ADMIN` cuối cùng đang hoạt động | Chặn. |
 
 ## Business rule
 
@@ -1018,126 +1171,118 @@ Gán/thu hồi role. `user_roles` là N-N, có `granted_by` để truy vết ai 
 
 ## API · DB
 
-```
+```text
 GET    /api/admin/users/{id}/roles
 POST   /api/admin/users/{id}/roles
 DELETE /api/admin/users/{id}/roles/{code}
 ```
 
-`user_roles` · `roles` · `users` · `auth_tokens` (ghi) · audit log
+Dữ liệu liên quan: `user_roles`, `roles`, `users`, `auth_tokens`, audit log.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | `SUPER_ADMIN` cấp `TEACHER` | 201, `granted_by` ghi |
-| T2 | `CONTENT_ADMIN` gọi | 403 |
-| T3 | `FINANCE_ADMIN` gọi | 403 |
-| T4 | `MANAGER` gọi | 403 |
-| T5 | `TEACHER` gọi | 403 |
-| T6 | `USER` gọi | 403 |
-| T7 | Tự cấp `FINANCE_ADMIN` | 403 |
-| T8 | `PUT /api/me` với `{"roles":[...]}` | Bị **bỏ qua** |
-| T9 | Thu hồi `SUPER_ADMIN` cuối | 400 |
-| T10 | Gán `GUEST` | 400 |
-| T11 | Sau khi thu hồi role | Token cũ **không** dùng được quyền đó |
+| T1 | `SUPER_ADMIN` cấp `TEACHER` cho user hợp lệ | Role được tạo, có `granted_by`, audit và token cũ bị thu hồi. |
+| T2 | `CONTENT_ADMIN`, `FINANCE_ADMIN`, `MANAGER`, `TEACHER` hoặc `USER` gọi | 403. |
+| T3 | Tự cấp `FINANCE_ADMIN` | 403. |
+| T4 | Cấp `GUEST` | 422. |
+| T5 | Cấp role đã có | Không tạo dòng trùng. |
+| T6 | Thu hồi `SUPER_ADMIN` cuối cùng | 409. |
+| T7 | Cấp role cho tài khoản bị khóa | 409. |
+| T8 | Gửi `roles` qua API cập nhật profile | Không thay đổi `user_roles`. |
+| T9 | Sau khi thu hồi role | Phiên/token cũ không tiếp tục dùng quyền đã bị gỡ. |
 
 ---
 
 # UC-116 · Cấu hình hệ thống
 
 | | |
-|---|---|
-| **UC-ID** | UC-116 · **Actor** `SUPER_ADMIN` · **Pri** P2 · **Scope** MVP · **FT** 6.6 |
+| --- | --- |
+| **UC-ID** | UC-116 |
+| **Actor chính** | `SUPER_ADMIN` |
+| **Loại** | User Goal |
+| **Pri** | P2 |
+| **Scope** | Deferred |
+| **FT** | 6.6 |
+| **Trạng thái triển khai** | **DEFERRED — chưa chốt danh sách cấu hình và chưa có nơi lưu cấu hình** |
 
 ## Mô tả
 
-Đổi các tham số hệ thống mà không cần deploy lại.
+`SUPER_ADMIN` thay đổi các **tham số nghiệp vụ đã được phê duyệt** mà hệ thống cho phép cấu hình mà không cần sửa code.
 
-> ⚠️ Catalog đã đánh dấu: *"Tính năng 6.6 nói chung, **chưa rõ cấu hình gì**"*.
+Use Case này không cho phép tạo key tùy ý và không dùng để quản lý secret, API key, mật khẩu hoặc token.
+
+Trong trạng thái hiện tại, dự án chưa chốt danh sách tham số nào bắt buộc phải chỉnh từ giao diện và chưa có nơi lưu cấu hình. Vì vậy UC-116 được giữ để bảo toàn traceability nhưng **không gen code trong MVP**.
+
+## Kích hoạt
+
+Sau khi UC được đưa trở lại scope, `SUPER_ADMIN` mở trang cấu hình hệ thống và chọn một tham số đã được khai báo để chỉnh sửa.
 
 ## Tiền điều kiện
 
-Role `SUPER_ADMIN`; CSRF.
+1. Người thao tác đã đăng nhập và có role `SUPER_ADMIN`.
+2. Danh sách key cấu hình được phép chỉnh đã được phê duyệt.
+3. Mỗi key có kiểu dữ liệu, giá trị mặc định và khoảng hợp lệ.
+4. Thiết kế nơi lưu cấu hình đã được duyệt.
+5. Request ghi từ web có CSRF token hợp lệ.
 
 ## Hậu điều kiện
 
-Cấu hình cập nhật; audit log; cache cấu hình xoá.
+### Cập nhật thành công
+
+- Chỉ key được phép mới thay đổi.
+- Giá trị mới hợp lệ theo kiểu và khoảng cho phép.
+- Ghi người thay đổi, thời điểm, giá trị cũ và giá trị mới vào audit.
+- Cache cấu hình được làm mới nếu có.
+
+### Cập nhật thất bại
+
+- Giá trị cũ được giữ nguyên.
+- Không ghi secret vào kho cấu hình.
+- Không để một phần hệ thống dùng giá trị mới trong khi phần khác vẫn dùng giá trị cũ.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `SUPER_ADMIN` | Mở trang cấu hình |
-| 2 | System | Kiểm role; trả danh sách tham số + giá trị hiện tại |
-| 3 | `SUPER_ADMIN` | Đổi một giá trị |
-| 4 | Client | `PUT /api/admin/settings/{key}` + CSRF |
-| 5 | System | Validate theo loại và khoảng cho phép |
-| 6 | System | Ghi giá trị mới + `updated_by` |
-| 7 | System | Xoá cache cấu hình |
-| 8 | System | Audit log kèm giá trị cũ và mới |
-
-## Danh sách tham số đề xuất
-
-Các ngưỡng đã xuất hiện trong 118 UC khác mà **không nên hardcode**:
-
-| Nhó | Tham số | Nguồn |
-| --- | --- | --- |
-| Học | Ngưỡng cổng chủ đề (90%) | UC-046 BR-046-1 |
-| Học | Ngưỡng qua tầng phát âm (80%) | UC-021 BR-021-2 |
-| Học | Hệ số mastery theo chế độ (0.5/1.0/1.2) | UC-015 → UC-018 |
-| Thi | Hạn nộp bài dở (24h) | UC-035 |
-| Thi | Số lượt làm đề/ngày (20) | UC-034 |
-| Quota | Số lượt free mỗi tính năng (10) | UC-093 ⚠️ |
-| Chấm bài | Tỉ lệ `teacher_payout` | UC-103 ⚠️ |
-| Chấm bài | Hạn nhận / hạn chấm | UC-103 ⚠️ |
-| Cộng đồng | Ngưỡng tự ẩn theo báo cáo | UC-075 ⚠️ |
-| Cộng đồng | Số bài/ngày (5) | UC-069 |
-| Game | Số ván/giờ (30) | UC-087 |
-| Nhắc học | Giờ nhắc mặc định (20:00) | UC-054 |
+| 1 | `SUPER_ADMIN` | Mở trang cấu hình hệ thống. |
+| 2 | System | Kiểm tra quyền và trả danh sách các tham số được phép chỉnh. |
+| 3 | `SUPER_ADMIN` | Chọn một tham số và nhập giá trị mới. |
+| 4 | System | Kiểm tra key có trong danh sách cho phép. |
+| 5 | System | Kiểm tra kiểu dữ liệu và phạm vi giá trị. |
+| 6 | System | Kiểm tra thay đổi không vi phạm các giới hạn đang được áp dụng cho một hoạt động không được phép thay đổi giữa chừng. |
+| 7 | System | Lưu giá trị mới và ghi audit. |
+| 8 | System | Làm mới cache cấu hình nếu có. |
+| 9 | Client | Hiển thị giá trị hiện tại sau cập nhật. |
 
 ## Luồng thay thế
 
-**A1 — Đặt lại giá trị mặc định** — nút riêng.
-**A2 — Xem lịch sử thay đổi** — audit log của từng tham số.
-**A3 — Đổi tham số ảnh hưởng người đang dùng** — cảnh báo rõ (xem exception).
+**A1 — Chỉ xem cấu hình**
+
+- `SUPER_ADMIN` mở trang và không chỉnh sửa.
+- Không có thay đổi hoặc audit dạng “change”.
+
+**A2 — Thay đổi có thể làm sai tiến độ đã có**
+
+- Nếu chưa có quy tắc tính lại dữ liệu, hệ thống từ chối thay đổi.
+- UC này không tự sinh thêm job migrate/tính lại nếu chưa được đặc tả.
+
+**A3 — Cấu hình ảnh hưởng cuộc thi đang diễn ra**
+
+- Từ chối thay đổi trong thời gian cuộc thi bị ảnh hưởng còn đang diễn ra.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `SUPER_ADMIN` | Chặn |
-| `UNKNOWN_SETTING_KEY` | 404 | Key lạ | Chặn — chỉ key đã khai |
-| `VALUE_OUT_OF_RANGE` | 400 | Ngoài khoảng | Chặn |
-| `THRESHOLD_CHANGE_BREAKS_PROGRESS` | — | 🔴 Đổi ngưỡng 90% → 95% | Xem ghi chú |
-| `SECRET_IN_SETTINGS` | 403 | 🔴 Lưu API key / mật khẩu DB | Xem ghi chú |
-| `CACHE_NOT_INVALIDATED` | — | Giá trị cũ còn trong cache | Xoá cache (bước 7) |
-| `NO_CONFIG_AUDIT` | — | 🔴 Không ghi ai đổi gì | Bắt buộc, kèm giá trị cũ |
-| `SETTING_TABLE_MISSING` | 500 | 🔴 Chưa có bảng lưu cấu hình | Xem ghi chú |
-| `SCOPE_UNDEFINED` | — | ⚠️ Chưa rõ cấu hình gì | Catalog đã nêu |
-| `CHANGE_DURING_CONTEST` | 403 | Đổi ngưỡng khi cuộc thi đang diễn ra | Chặn — như UC-113 |
-
-> 🔴 **`THRESHOLD_CHANGE_BREAKS_PROGRESS` — đổi ngưỡng có hậu quả ngược.** Ngưỡng cổng 90% →
-> 95%: người đã đạt 92% và **đã được mở** chủ đề sau giờ ở trạng thái "chưa đạt" nhưng chủ đề
-> vẫn mở (BR-046-6: đã mở không đóng lại). Ngược lại 90% → 85% thì nhiều người đủ điều kiện mở
-> nhưng **không có sự kiện nào** gọi UC-046 để mở — cùng vấn đề `STALE_PERCENT_READ`.
-> **Cần:** đổi ngưỡng phải kèm job quét lại toàn bộ `user_topic_progress` và mở khoá bổ sung.
-> Hoặc chốt: **không đổi ngưỡng sau khi có người dùng**.
-
-> 🔴 **`SECRET_IN_SETTINGS`:** rất tự nhiên để đặt API key AI vào bảng cấu hình cho "dễ đổi".
-> Nhưng constitution cấm "secret, API key, mật khẩu trong code, config hay log — dùng **biến môi
-> trường**".
-> Bảng cấu hình trong DB là **config**. Và `SUPER_ADMIN` đọc được bảng đó → ai có role đó thấy
-> API key.
-> **Chốt:** bảng cấu hình **chỉ** chứa tham số nghiệp vụ (ngưỡng, giới hạn), **không** chứa secret.
-
-> 🔴 **`SETTING_TABLE_MISSING`:** 59 bảng hiện tại **không có** bảng cấu hình. Các ngưỡng đang là
-> hằng số trong code.
-> **Cần chốt:** thêm bảng `system_settings` hay giữ hằng số trong code?
-> — Bảng: đổi được không cần deploy, nhưng thêm bảng + cache + màn quản trị
-> — Hằng số: đơn giản, nhưng đổi ngưỡng phải deploy
-> **Khuyến nghị cho 11 tuần:** hằng số trong một file cấu hình duy nhất (`application.yaml`),
-> và UC-116 **cắt khỏi MVP** (P2, dễ cắt). Ghi rõ trong tài liệu để không bị hỏi.
+| `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có `SUPER_ADMIN` | Chặn. |
+| `UNKNOWN_SETTING_KEY` | 404 | Key không nằm trong danh sách cho phép | Không tạo key mới. |
+| `VALUE_OUT_OF_RANGE` | 422 | Giá trị sai kiểu hoặc ngoài khoảng | Giữ giá trị cũ. |
+| `SECRET_SETTING_NOT_ALLOWED` | 422 | Cố lưu secret/API key/mật khẩu/token | Chặn. |
+| `SETTING_CHANGE_NOT_SAFE` | 409 | Thay đổi làm sai tiến độ hoặc hoạt động đang diễn ra | Không cập nhật. |
+| `SETTING_STORAGE_NOT_READY` | Không phải runtime production | Chưa có thiết kế lưu cấu hình | **Không triển khai UC trong MVP**. |
 
 ## Business rule
 
@@ -1155,86 +1300,97 @@ Các ngưỡng đã xuất hiện trong 118 UC khác mà **không nên hardcode*
 
 ## API · DB
 
-```
+```text
 GET /api/admin/settings
 PUT /api/admin/settings/{key}
 ```
 
-⚠️ **bảng `system_settings` — chưa có** · audit log
+> **Chưa code-ready:** nơi lưu `system_settings` chưa được duyệt. Không tự tạo bảng/migration từ UC này.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Đổi ngưỡng cổng 90 → 85 | Lưu, audit log có giá trị cũ |
-| T2 | `CONTENT_ADMIN` gọi | 403 |
-| T3 | Key lạ | 404 |
-| T4 | Ngưỡng 150% | 400 |
-| T5 | Lưu API key vào cấu hình | **Chặn** |
-| T6 | Sau khi đổi | Cache đã xoá, giá trị mới có hiệu lực |
+| T1 | `CONTENT_ADMIN` gọi | 403. |
+| T2 | Key không được khai báo | 404. |
+| T3 | Giá trị ngoài khoảng | 422. |
+| T4 | Cố lưu API key | 422. |
+| T5 | Thay đổi ảnh hưởng dữ liệu đã có nhưng chưa có quy tắc tính lại | 409. |
+| T6 | Cấu hình ảnh hưởng cuộc thi đang diễn ra | 409. |
+| T7 | Chưa có nơi lưu cấu hình | UC không được bật trong MVP. |
 
 ---
 
 # UC-117 · Xem danh sách kênh YouTube và podcast
 
 | | |
-|---|---|
-| **UC-ID** | UC-117 · **Actor** `GUEST` `USER` · **Pri** P3 · **Scope** V2 · **FT** 7.1 |
+| --- | --- |
+| **UC-ID** | UC-117 |
+| **Actor chính** | `GUEST`, `USER` |
+| **Loại** | User Goal |
+| **Pri** | P3 |
+| **Scope** | V2 |
+| **FT** | 7.1 |
+| **Trạng thái triển khai** | V2 — không gen MVP |
 
 ## Mô tả
 
-Danh mục kênh YouTube và podcast học tiếng Trung — **chỉ link ra ngoài**, không nhúng nội dung.
+Người dùng xem danh sách các kênh YouTube và podcast được CNHSK giới thiệu để tự học tiếng Trung.
+
+CNHSK chỉ hiển thị thông tin giới thiệu và liên kết ra trang bên ngoài. Hệ thống không tải về, sao chép, lưu trữ hoặc phát lại nội dung của bên thứ ba trong Use Case này.
+
+## Kích hoạt
+
+`GUEST` hoặc `USER` mở trang tài nguyên và chọn nhóm YouTube hoặc podcast.
 
 ## Tiền điều kiện
 
-`learning_resources` có dòng `type = YOUTUBE`/`PODCAST`, đã công bố.
+Không yêu cầu đăng nhập.
+
+Để một tài nguyên xuất hiện trong danh sách, tài nguyên đó phải tồn tại trong danh mục và đang ở trạng thái được công bố.
 
 ## Hậu điều kiện
 
-Chỉ đọc.
+- Chỉ đọc dữ liệu.
+- Không tạo tiến độ học, quota, lịch sử cá nhân hoặc dữ liệu sở hữu.
+- Chỉ tài nguyên đã công bố được trả về.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Người dùng | Mở trang "Tài nguyên" |
-| 2 | Client | `GET /api/public/resources?type=YOUTUBE` |
-| 3 | System | Lấy `learning_resources` đã công bố |
-| 4 | System | Trả tên, mô tả, cấp HSK phù hợp, **link ngoài** |
-| 5 | Client | Hiện danh sách; bấm mở tab mới |
+| 1 | `GUEST` / `USER` | Mở trang “Tài nguyên”. |
+| 2 | Actor | Chọn loại YouTube hoặc podcast. |
+| 3 | System | Lấy các tài nguyên đã công bố đúng loại. |
+| 4 | System | Áp dụng bộ lọc HSK nếu người dùng chọn. |
+| 5 | System | Trả tên, mô tả, cấp HSK phù hợp và URL bên ngoài. |
+| 6 | Client | Hiển thị danh sách tài nguyên. |
+| 7 | Actor | Chọn một tài nguyên. |
+| 8 | Client | Mở liên kết bên ngoài trong tab mới với thuộc tính an toàn. |
 
 ## Luồng thay thế
 
-**A1 — Lọc theo cấp HSK** — `?hsk_level=3`.
-**A2 — Kênh không còn tồn tại** — người dùng báo lỗi; `CONTENT_ADMIN` xử lý (UC-119).
-**A3 — `GUEST` xem** — được (theo bảng quyền role).
+**A1 — Lọc theo cấp HSK**
+
+- Chỉ trả các tài nguyên có cấp HSK phù hợp với bộ lọc.
+
+**A2 — Không có tài nguyên**
+
+- Trả danh sách rỗng.
+- Client hiển thị trạng thái “Đang cập nhật”.
+
+**A3 — Phát hiện link chết**
+
+- UC này không tạo thêm hệ thống báo cáo riêng.
+- Người dùng có thể thông báo qua kênh hỗ trợ hiện có; `CONTENT_ADMIN` sửa hoặc ẩn tài nguyên bằng UC-119.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `NO_RESOURCES` | 200 (rỗng) | Chưa có | Hiện "đang cập nhật" |
-| `DEAD_LINK` | — | Kênh đã xoá | Cho báo lỗi (A2); không tự kiểm |
-| `UNSAFE_EXTERNAL_LINK` | — | 🔴 Link tới trang độc hại | Xem ghi chú |
-| `MISSING_NOOPENER` | — | 🔴 Thiếu `rel="noopener"` | Xem ghi chú |
-| `EMBEDDED_CONTENT` | — | 🔴 Nhúng video thay vì link | Xem ghi chú |
-| `INVALID_HSK_LEVEL` | 400 | Ngoài 1–9 | Chặn |
-| `UNPUBLISHED_RESOURCE_LEAKED` | — | Dòng nháp lộ ra | Lọc trạng thái |
-
-> 🔴 **`UNSAFE_EXTERNAL_LINK` — rủi ro riêng của tính năng chỉ chứa link.** `CONTENT_ADMIN` nhập
-> link; nếu tài khoản đó bị chiếm hoặc nhập nhầm thì hệ thống dẫn người học tới trang lừa đảo,
-> và **uy tín thuộc về CNHSK** vì link nằm trên trang của nhóm.
-> **Cần:** whitelist domain (`youtube.com`, `youtu.be`, các nền tảng podcast đã duyệt) — validate
-> ở UC-119 khi nhập, không phải khi hiện.
-
-> 🔴 **`MISSING_NOOPENER`:** `target="_blank"` không có `rel="noopener noreferrer"` cho trang đích
-> truy cập `window.opener` → **tabnabbing**: trang đích đổi tab gốc thành trang đăng nhập giả.
-> Một thuộc tính HTML, chặn được một lớp tấn công.
-
-> 🔴 **`EMBEDDED_CONTENT`:** feature tree 1.6 đã cảnh báo về bản quyền: *"Không tải video của
-> người khác về máy chủ. Nếu nhúng YouTube thì chỉ nhúng, không lưu"*.
-> Nhóm 7 là **danh mục tham khảo** — chỉ nên **link ra ngoài**, không nhúng. Đơn giản hơn và
-> tránh hoàn toàn vấn đề bản quyền.
+| `INVALID_HSK_LEVEL` | 422 | Cấp HSK ngoài phạm vi hỗ trợ | Trả validation. |
+| `RESOURCE_READ_ERROR` | 500 | Không tải được danh mục | Báo lỗi tải, không giả thành danh sách rỗng. |
+| `UNPUBLISHED_RESOURCE_EXPOSED` | Không phải HTTP riêng | Lỗi lọc dữ liệu | Phải được ngăn ở truy vấn/DTO trước khi trả client. |
 
 ## Business rule
 
@@ -1250,72 +1406,99 @@ Chỉ đọc.
 
 ## API · DB
 
-```
+```text
 GET /api/public/resources?type={YOUTUBE|PODCAST}
 ```
 
-`learning_resources` (đọc)
+Dữ liệu liên quan: `learning_resources`.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Xem danh sách kênh | Tên + mô tả + link |
-| T2 | `GUEST` | Xem được |
-| T3 | Kiểm HTML link ngoài | Có `rel="noopener noreferrer"` |
-| T4 | Dòng chưa công bố | Không hiện |
-| T5 | `hsk_level = 12` | 400 |
+| T1 | `GUEST` xem danh sách YouTube | Xem được tài nguyên đã công bố. |
+| T2 | `USER` xem podcast | Xem được tài nguyên đã công bố. |
+| T3 | Tài nguyên chưa công bố | Không xuất hiện. |
+| T4 | `hsk_level` ngoài phạm vi | 422. |
+| T5 | Không có dữ liệu | 200 với danh sách rỗng. |
+| T6 | Link mở tab mới | Có `rel="noopener noreferrer"`. |
 
 ---
 
 # UC-118 · Xem danh mục sách học tiếng Trung
 
 | | |
-|---|---|
-| **UC-ID** | UC-118 · **Actor** `GUEST` `USER` · **Pri** P3 · **Scope** V2 · **FT** 7.2 |
+| --- | --- |
+| **UC-ID** | UC-118 |
+| **Actor chính** | `GUEST`, `USER` |
+| **Loại** | User Goal |
+| **Pri** | P3 |
+| **Scope** | V2 |
+| **FT** | 7.2 |
+| **Trạng thái triển khai** | V2 — không gen MVP |
 
 ## Mô tả
 
-Danh mục sách: tên, tác giả, cấp HSK, mô tả, và **link nơi mua** — không có nội dung sách.
+Người dùng xem danh mục sách học tiếng Trung do CNHSK giới thiệu, gồm các thông tin như tên sách, tác giả, cấp độ phù hợp, mô tả và liên kết mua/tham khảo nếu có.
+
+Use Case chỉ là danh mục tham khảo. CNHSK không lưu trữ, phân phối hoặc cho tải file PDF/nội dung sách có bản quyền.
+
+## Kích hoạt
+
+`GUEST` hoặc `USER` mở trang tài nguyên và chọn danh mục sách.
 
 ## Tiền điều kiện
 
-`learning_resources` có dòng `type = BOOK`, đã công bố.
+Không yêu cầu đăng nhập.
+
+Để một sách xuất hiện, mục tài nguyên tương ứng phải ở trạng thái đã công bố.
 
 ## Hậu điều kiện
 
-Chỉ đọc.
+- Chỉ đọc dữ liệu.
+- Không lưu lịch sử cá nhân hoặc tiến độ học.
+- Không trả file sách hoặc nội dung sách.
+- Chỉ tài nguyên đã công bố được hiển thị.
 
 ## Luồng chính
 
-Giống UC-117, khác `type = BOOK` và các trường (tác giả, nhà xuất bản, năm).
+| # | Actor | Hành động |
+| --- | --- | --- |
+| 1 | `GUEST` / `USER` | Mở danh mục sách. |
+| 2 | System | Lấy các tài nguyên loại `BOOK` đang được công bố. |
+| 3 | System | Áp dụng bộ lọc HSK nếu có. |
+| 4 | System | Trả tên sách, tác giả, thông tin xuất bản có sẵn, cấp độ phù hợp, mô tả và link mua/tham khảo nếu có. |
+| 5 | Client | Hiển thị danh sách. |
+| 6 | Actor | Chọn một sách để xem thông tin chi tiết. |
+| 7 | Client | Hiển thị metadata; nếu có link ngoài thì cho phép mở link an toàn. |
 
 ## Luồng thay thế
 
-**A1 — Lọc theo cấp HSK** · **A2 — Không có link mua** (chỉ giới thiệu) · **A3 — `GUEST` xem**.
+**A1 — Lọc theo cấp HSK**
+
+- Chỉ hiển thị sách phù hợp với cấp đã chọn.
+
+**A2 — Sách không có link mua**
+
+- Vẫn hiển thị thông tin giới thiệu.
+- Không hiển thị nút mua.
+
+**A3 — Không có sách**
+
+- Trả danh sách rỗng và hiển thị “Đang cập nhật”.
+
+**A4 — Link mua là affiliate**
+
+- Nếu dự án sử dụng affiliate, giao diện phải hiển thị thông tin theo đúng business rule.
+- Không tự thêm cơ chế affiliate nếu dự án không sử dụng.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `NO_RESOURCES` | 200 (rỗng) | Chưa có | "Đang cập nhật" |
-| `BOOK_CONTENT_HOSTED` | — | 🔴 Lưu file PDF sách | Xem ghi chú |
-| `UNSAFE_EXTERNAL_LINK` | — | Link mua không an toàn | Whitelist (UC-119) |
-| `MISSING_NOOPENER` | — | Thiếu thuộc tính | Như UC-117 |
-| `AFFILIATE_LINK_UNDISCLOSED` | — | ⚠️ Link tiếp thị liên kết không khai báo | Xem ghi chú |
-| `COVER_IMAGE_COPYRIGHT` | — | ⚠️ Ảnh bìa sách | Xem ghi chú |
-
-> 🔴 **`BOOK_CONTENT_HOSTED` là rủi ro pháp lý nghiêm trọng nhất của nhóm 7.** Rất dễ nghĩ
-> "danh mục sách" thành "tải sách về đọc". Lưu PDF sách có bản quyền lên máy chủ là **phân phối
-> tác phẩm không phép** — nặng hơn nhiều so với nhúng video.
-> Constitution cấm commit dữ liệu đề thi của thầy vì bản quyền; sách thương mại thì rủi ro cao hơn.
-> **Chốt:** UC này **chỉ** là danh mục có link mua. Không lưu, không cho tải.
-
-> ⚠️ **`AFFILIATE_LINK_UNDISCLOSED`:** nếu link mua là link tiếp thị liên kết (nhóm nhận hoa
-> hồng) thì nên khai báo. Với đồ án chưa phải vấn đề, nhưng nếu dùng link affiliate thì ghi rõ.
-
-> ⚠️ **`COVER_IMAGE_COPYRIGHT`:** ảnh bìa sách cũng có bản quyền. An toàn nhất là **không** lưu
-> ảnh bìa, hoặc chỉ hotlink từ trang bán (và chấp nhận ảnh có thể mất).
+| `INVALID_HSK_LEVEL` | 422 | Cấp HSK ngoài phạm vi | Trả validation. |
+| `RESOURCE_READ_ERROR` | 500 | Không tải được danh mục | Báo lỗi tải. |
+| `BOOK_CONTENT_EXPOSED` | Không phải HTTP riêng | Dữ liệu trả ra chứa file/nội dung sách không được phép | Phải bị loại khỏi DTO/public API. |
 
 ## Business rule
 
@@ -1332,85 +1515,126 @@ Giống UC-117, khác `type = BOOK` và các trường (tác giả, nhà xuất 
 
 ## API · DB
 
-```
+```text
 GET /api/public/resources?type=BOOK
 ```
 
-`learning_resources` (đọc)
+Dữ liệu liên quan: `learning_resources`.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Xem danh mục sách | Tên, tác giả, cấp, link mua |
-| T2 | Tìm file PDF trong hệ thống | **Không có** |
-| T3 | `GUEST` | Xem được |
-| T4 | Link mua | Có `rel="noopener"` |
+| T1 | `GUEST` mở danh mục sách | Xem được sách đã công bố. |
+| T2 | Sách không có link mua | Vẫn hiển thị metadata; không có nút mua. |
+| T3 | Mục chưa công bố | Không xuất hiện. |
+| T4 | Kiểm response/API | Không có file PDF hoặc nội dung sách. |
+| T5 | Link mua mở tab mới | Có thuộc tính mở link an toàn. |
+| T6 | Không có sách | 200 với danh sách rỗng. |
 
 ---
 
 # UC-119 · Quản lý danh mục tham khảo
 
 | | |
-|---|---|
-| **UC-ID** | UC-119 · **Actor** `CONTENT_ADMIN` · **Pri** P3 · **Scope** V2 · **FT** 7.1 · 7.2 |
+| --- | --- |
+| **UC-ID** | UC-119 |
+| **Actor chính** | `CONTENT_ADMIN` |
+| **Loại** | User Goal |
+| **Pri** | P3 |
+| **Scope** | V2 |
+| **FT** | 7.1 · 7.2 |
+| **Trạng thái triển khai** | V2 — không gen MVP |
 
 ## Mô tả
 
-Thêm/sửa/xoá mục trong `learning_resources` (kênh, podcast, sách), công bố hoặc ẩn.
+`CONTENT_ADMIN` thêm, sửa, công bố hoặc ẩn các tài nguyên tham khảo dùng cho UC-117 và UC-118, gồm kênh YouTube, podcast và sách.
+
+Tài nguyên mới luôn ở trạng thái chưa công bố để người quản trị kiểm tra trước. Hệ thống chỉ lưu metadata và liên kết; không lưu nội dung của bên thứ ba.
+
+## Kích hoạt
+
+`CONTENT_ADMIN` mở màn hình quản lý tài nguyên và chọn tạo mới hoặc chỉnh sửa một mục.
 
 ## Tiền điều kiện
 
-Role `CONTENT_ADMIN`; CSRF.
+1. Người dùng đã đăng nhập và có role `CONTENT_ADMIN`.
+2. Request ghi từ web có CSRF token hợp lệ.
+3. Loại tài nguyên nằm trong danh sách hệ thống hỗ trợ.
+4. Danh sách domain được phép cho từng loại tài nguyên đã được cấu hình.
 
 ## Hậu điều kiện
 
-`learning_resources` cập nhật; audit log.
+### Tạo mới thành công
+
+- Tài nguyên được lưu ở trạng thái chưa công bố.
+- URL đã qua kiểm tra scheme và domain.
+- Audit ghi người tạo và thời điểm.
+
+### Sửa thành công
+
+- Dữ liệu mới được lưu.
+- Nếu URL thay đổi, URL mới phải được kiểm tra lại.
+- Audit ghi thay đổi.
+
+### Công bố
+
+- Tài nguyên đủ điều kiện trở thành dữ liệu công khai cho UC-117/118.
+
+### Ẩn
+
+- Tài nguyên không còn xuất hiện công khai.
+- Bản ghi vẫn được giữ, không xóa cứng.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_ADMIN` | Mở quản lý tài nguyên |
-| 2 | `CONTENT_ADMIN` | Thêm mục: loại, tên, mô tả, cấp HSK, link |
-| 3 | Client | `POST /api/admin/resources` + CSRF |
-| 4 | System | Kiểm role |
-| 5 | System | **Validate link theo whitelist domain** |
-| 6 | System | Validate URL đúng định dạng, dùng `https` |
-| 7 | System | Ghi `learning_resources` `published = false` |
-| 8 | `CONTENT_ADMIN` | Kiểm lại rồi công bố |
-| 9 | System | Audit log |
+| 1 | `CONTENT_ADMIN` | Chọn **Thêm tài nguyên**. |
+| 2 | `CONTENT_ADMIN` | Nhập loại, tên, mô tả, cấp HSK nếu có và URL. |
+| 3 | System | Kiểm tra quyền và CSRF. |
+| 4 | System | Kiểm tra loại tài nguyên hợp lệ. |
+| 5 | System | Kiểm tra URL đúng định dạng và chỉ dùng `https`. |
+| 6 | System | Kiểm tra domain thuộc danh sách được phép cho loại tài nguyên đó. |
+| 7 | System | Lưu tài nguyên ở trạng thái chưa công bố và ghi audit. |
+| 8 | `CONTENT_ADMIN` | Kiểm tra lại nội dung và chọn **Công bố**. |
+| 9 | System | Kiểm tra lại dữ liệu bắt buộc và chuyển sang trạng thái công bố. |
+| 10 | Client | Hiển thị trạng thái mới. |
 
 ## Luồng thay thế
 
-**A1 — Ẩn mục** — `published = false`; không xoá.
-**A2 — Xử lý báo link chết** — kiểm, sửa link hoặc ẩn mục.
-**A3 — Nhập nhiều mục từ file** — dùng luồng UC-110 nếu cần.
+**A1 — Sửa tài nguyên**
+
+- Actor mở tài nguyên hiện có.
+- Hệ thống áp dụng lại toàn bộ validation cho trường được thay đổi.
+- Nếu URL thay đổi, phải kiểm tra lại scheme và whitelist domain.
+- Ghi audit thay đổi.
+
+**A2 — Ẩn tài nguyên**
+
+- Actor chọn **Ẩn**.
+- Hệ thống chuyển trạng thái về không công bố.
+- Tài nguyên biến mất khỏi UC-117/118 nhưng vẫn còn trong quản trị.
+
+**A3 — Xử lý link chết**
+
+- `CONTENT_ADMIN` kiểm tra link.
+- Nếu có URL thay thế hợp lệ thì cập nhật.
+- Nếu chưa có URL thay thế, ẩn tài nguyên.
+- Không tạo thêm một hệ thống quản lý report riêng trong UC này.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `CONTENT_ADMIN` | Chặn |
-| `DOMAIN_NOT_WHITELISTED` | 400 | 🔴 Link ngoài whitelist | Chặn — UC-117/118 |
-| `NON_HTTPS_LINK` | 400 | Link `http://` | Chặn |
-| `MALFORMED_URL` | 400 | URL sai định dạng | Chặn |
-| `JAVASCRIPT_URL` | 400 | 🔴 `javascript:` trong link | Xem ghi chú |
-| `XSS_IN_DESCRIPTION` | — | 🔴 Script trong mô tả | Escape — `GUEST` cũng đọc |
-| `PUBLISHED_WITHOUT_REVIEW` | — | ⚠️ Công bố ngay không kiểm | Mặc định `published = false` |
-| `HARD_DELETE_RESOURCE` | — | Xoá cứng | Dùng `published = false` |
-| `NO_AUDIT_LOG` | — | Không ghi ai thêm link | Bắt buộc — truy vết nếu link xấu |
-| `FINANCE_ADMIN_ATTEMPTED` | 403 | Sai role | Chặn |
-
-> 🔴 **`JAVASCRIPT_URL` — lỗ hổng XSS qua link.** Nhập `javascript:alert(document.cookie)` vào
-> trường link. Nếu render thành `<a href="javascript:...">` thì bấm vào là chạy script — và
-> `GUEST`/`USER` đều bấm được.
-> **Cần:** validate scheme chỉ `https`. Whitelist domain (bước 5) đã chặn phần lớn, nhưng kiểm
-> scheme là lớp riêng vì `javascript:` không có domain.
-
-> 🔴 **`XSS_IN_DESCRIPTION`:** mô tả là văn bản tự do do `CONTENT_ADMIN` nhập, hiện cho **cả
-> `GUEST`** (UC-117/118 là endpoint public). Cùng rủi ro UC-069 nhưng phạm vi rộng hơn — không
-> cần đăng nhập để bị tấn công.
+| `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_ADMIN` | Chặn. |
+| `INVALID_RESOURCE_TYPE` | 422 | Loại tài nguyên không được hỗ trợ | Không lưu. |
+| `NON_HTTPS_LINK` | 422 | URL không dùng `https` | Không lưu. |
+| `MALFORMED_URL` | 422 | URL sai định dạng | Không lưu. |
+| `DOMAIN_NOT_ALLOWED` | 422 | Domain ngoài danh sách được phép | Không lưu. |
+| `UNSAFE_URL_SCHEME` | 422 | `javascript:`, `data:` hoặc scheme nguy hiểm | Không lưu. |
+| `PUBLISH_INVALID_RESOURCE` | 422 | Thiếu dữ liệu bắt buộc khi công bố | Giữ trạng thái chưa công bố. |
 
 ## Business rule
 
@@ -1427,7 +1651,7 @@ Role `CONTENT_ADMIN`; CSRF.
 
 ## API · DB
 
-```
+```text
 GET    /api/admin/resources
 POST   /api/admin/resources
 PUT    /api/admin/resources/{id}
@@ -1435,77 +1659,42 @@ PATCH  /api/admin/resources/{id}/publish
 PATCH  /api/admin/resources/{id}/unpublish
 ```
 
-`learning_resources` (đọc + ghi) · audit log
+Dữ liệu liên quan: `learning_resources`, audit log.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Thêm kênh YouTube | 201, `published = false` |
-| T2 | Link `http://` | 400 |
-| T3 | Link `javascript:alert(1)` | **400** |
-| T4 | Domain ngoài whitelist | 400 |
-| T5 | Mô tả có `<script>` | Render ra text ở endpoint public |
-| T6 | `FINANCE_ADMIN` gọi | 403 |
-| T7 | Sau khi thêm | Audit log có `created_by` |
+| T1 | Thêm kênh YouTube hợp lệ | Tạo ở trạng thái chưa công bố, có audit. |
+| T2 | URL dùng `http://` | 422. |
+| T3 | URL `javascript:alert(1)` | 422. |
+| T4 | Domain ngoài whitelist | 422. |
+| T5 | Công bố tài nguyên thiếu trường bắt buộc | 422, vẫn chưa công bố. |
+| T6 | `FINANCE_ADMIN` gọi | 403. |
+| T7 | Ẩn tài nguyên đã công bố | Không còn xuất hiện ở public API, bản ghi vẫn còn. |
+| T8 | Sửa URL sang domain khác | URL mới được validate lại trước khi lưu. |
 
 ---
 
-# Tổng hợp exception nhóm 6c + 6d + 7
+# Tổng hợp trạng thái triển khai
 
-## Mười exception quan trọng nhất
-
-| # | UC | Exception | Vì sao |
-| --- | --- | --- | --- |
-| 1 | UC-115 | `FORBIDDEN_ROLE` | Endpoint quan trọng nhất về bảo mật — ai gọi được thì **tự cấp mọi quyền** |
-| 2 | UC-110 | `UNKNOWN_FILE_FORMAT` | **P0** và "chưa ai thấy file thật của thầy" — rủi ro **tiến độ**, không phải kỹ thuật |
-| 3 | UC-110 | `MISSING_KNOWLEDGE_POINT` | Nhập thiếu nhãn → 4 UC lộ trình mù, và "không sửa được nếu không nhập lại" |
-| 4 | UC-114 | `TOKENS_NOT_REVOKED` | Khoá tài khoản mà token còn hiệu lực → người bị khoá vẫn dùng được |
-| 5 | UC-115 | `PRIVILEGE_ESCALATION_VIA_PROFILE` | Đổi role qua `PUT /api/me` — cùng lỗ hổng UC-011 |
-| 6 | UC-108 | `BULK_APPROVE_ALL_BLINDLY` | Nghiệm thu khuyến khích duyệt nhanh, nhưng AI hallucination **chỉ người đọc** phát hiện được |
-| 7 | UC-110 | `ENCODING_ERROR` | Chữ Hán thành `???` mà **không báo lỗi** — ghi dữ liệu rác thành công |
-| 8 | UC-109 | `QUESTION_CHANGED_AFTER_ATTEMPTS` | Sửa đáp án làm `attempt_answers` cũ sai nghĩa |
-| 9 | UC-113 | `PRIZE_AS_CREDIT_WITHOUT_LEDGER` | `CONTENT_ADMIN` cộng điểm thưởng = phá separation of duties |
-| 10 | UC-118 | `BOOK_CONTENT_HOSTED` | Lưu PDF sách có bản quyền — rủi ro pháp lý nặng nhất |
-
-## Bốn nhóm exception lặp lại
-
-| Nhóm | Xuất hiện ở | Bài học |
+| Nhóm | UC | Kết luận |
 | --- | --- | --- |
-| **Phân quyền sai role** | UC-108 → UC-119 (**cả 12 UC**) | Nghiệm thu 6.6: "mỗi role **chỉ thấy phần mình quản**". 12 UC, 4 role khác nhau. Cần test **ma trận**: mỗi endpoint × mỗi role → đúng 403 hoặc 200 |
-| **Validate lúc nhập, không lúc chạy** | UC-110 · UC-112 · UC-119 | Nhãn kiến thức, chu trình tiên quyết, whitelist domain — chặn ở cửa vào rẻ hơn xử lý hậu quả ở 4 UC khác |
-| **Không xoá, chỉ ẩn** | UC-109 · UC-112 · UC-114 · UC-119 | `ARCHIVED` / `banned_at` / `published = false`. Xoá cứng làm mồ côi dữ liệu ở bảng khác (cột trỏ xuyên schema không có FK) |
-| **Audit log là lớp phòng vệ cuối** | UC-108 → UC-116 | Separation of duties không chặn hết được bằng code. `granted_by`, `created_by`, `reviewed_by`, `banned_by` — và `SUPER_ADMIN` xem được |
+| AI review | UC-108 | MVP, READY. |
+| Question management | UC-109 | MVP, READY; không sửa grading semantics của câu đã có lịch sử làm bài. |
+| Teacher data import | UC-110 | P0 nhưng BLOCKED cho đến khi có file mẫu thật, template và natural key. |
+| Import error report | UC-111 | P0, cần nơi lưu chi tiết lỗi trước khi code hoàn chỉnh. |
+| Exam/question bank management | UC-112 | MVP, READY. |
+| Contest | UC-113 | V2, không gen MVP. |
+| User administration | UC-114 | MVP nhưng BLOCKED cho đến khi chốt dữ liệu trạng thái tài khoản. |
+| Role management | UC-115 | MVP, READY. |
+| System settings | UC-116 | DEFERRED, không gen MVP khi scope và storage chưa chốt. |
+| Reference resources | UC-117 → UC-119 | V2, không gen MVP. |
 
----
+## Các blocker phải được giải quyết trước khi dùng AI/codegen cho UC tương ứng
 
-# Khoảng trống thiết kế phát hiện ở nhóm 6c + 6d + 7
-
-| # | Thiếu | UC bị ảnh hưởng | Mức |
-| --- | --- | --- | --- |
-| 1 | **Chưa biết định dạng file thật của thầy** — 8 câu chưa hỏi | UC-110 · UC-111 | 🔴 Chặn UC **P0** |
-| 2 | **Chưa chốt khoá tự nhiên** để upsert khi nhập lại | UC-110 | 🔴 Chạy lại tạo bản trùng |
-| 3 | **Chưa có cột trạng thái tài khoản** (`banned_at`, `suspended_at`, `locked_until`) — mục A quyết định v2 | UC-114 (+ UC-012, UC-077, UC-078) | 🔴 **Bốn UC** cùng chờ |
-| 4 | **Chưa có bảng chi tiết lỗi nhập** — `import_runs` chỉ có tổng hợp | UC-111 | 🔴 Vi phạm nghiệm thu "báo rõ dòng nào sai" |
-| 5 | Chưa có kiểm chu trình tiên quyết khi lưu | UC-112 (+ UC-045, UC-046) | 🔴 Treo thuật toán |
-| 6 | Chưa có validate "mọi câu có nhãn" **lúc công bố đề** | UC-112 (+ UC-040) | 🔴 Chốt cuối chặn tính năng 2.3 mù |
-| 7 | Chưa chốt **`CONTENT_ADMIN` có duyệt câu AI không** | UC-108 | 🔴 Ranh giới role mờ |
-| 8 | Chưa chốt **có chặn sửa đáp án câu đã dùng không** | UC-109 (+ UC-035) | 🔴 Chấm sai người học |
-| 9 | Chưa có luật **thu hồi token khi đổi role / khoá tài khoản** | UC-114 · UC-115 | 🔴 Quyền cũ còn hiệu lực 15 phút |
-| 10 | Chưa có `RoleService` độc quyền ghi `user_roles` + ArchUnit | UC-115 | 🔴 Leo quyền qua endpoint khác |
-| 11 | Chưa chặn **tự cấp role** và **thu hồi `SUPER_ADMIN` cuối** | UC-115 | 🔴 Tự in quyền / mất quyền quản trị |
-| 12 | Chưa chốt **`CONTENT_ADMIN` vs `FINANCE_ADMIN`** khi trao thưởng cuộc thi | UC-113 | 🔴 Phá separation of duties |
-| 13 | **Chưa có bảng `system_settings`** — các ngưỡng là hằng số | UC-116 | 🔴 Hoặc chốt cắt UC-116 |
-| 14 | Chưa có **whitelist domain** cho link ngoài | UC-117 → UC-119 | 🔴 Dẫn người học tới trang xấu |
-| 15 | **Lệch tên bảng:** feature tree ghi `import_batches`, DB v5 có `import_runs` | UC-110 | ⚠️ Thống nhất tên |
-| 16 | Chưa có `.gitignore` chặn thư mục dữ liệu thầy gửi | UC-110 | ⚠️ Bản quyền |
-| 17 | Chưa có **test ma trận role × endpoint** | UC-108 → UC-119 | ⚠️ Nghiệm thu 6.6 |
-| 18 | Chưa chốt xử lý **đổi ngưỡng sau khi có người dùng** | UC-116 | ⚠️ Mở khoá bổ sung hay không đổi |
-| 19 | Chưa chốt **phạm vi cấu hình hệ thống** (catalog đã nêu) | UC-116 | ⚠️ "Chưa rõ cấu hình gì" |
-
-> **Mười bốn mục 🔴.** Nổi bật:
-> — **#1 và #2 là rủi ro tiến độ, không phải kỹ thuật.** UC-110 là P0; không có định dạng file
-> thật thì parser viết xong phải viết lại. Việc cần làm **ngay** là lấy file mẫu từ thầy.
-> — **#3 là quyết định bị bốn UC cùng chờ** — chốt một lần mở được cả bốn.
-> — **#9, #10, #11 cùng thuộc một chủ đề:** kiểm soát quyền hạn. UC-115 là endpoint duy nhất
-> đổi role, nên ba mục này phải làm cùng nhau.
+1. **UC-110:** lấy ít nhất một file mẫu thật của giáo viên; chốt template và khóa tự nhiên cho từng loại dữ liệu.
+2. **UC-111:** chốt nơi lưu chi tiết lỗi import để đóng tab rồi vẫn xem lại được.
+3. **UC-114:** chốt cấu trúc trạng thái tài khoản dùng để khóa/ban.
+4. **UC-116:** chỉ đưa lại vào scope khi có danh sách setting cụ thể và nơi lưu được duyệt.
+5. **UC-113, UC-117, UC-118, UC-119:** giữ nguyên V2; không gen vào MVP.

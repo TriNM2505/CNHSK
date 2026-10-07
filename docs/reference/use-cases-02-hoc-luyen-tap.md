@@ -31,6 +31,14 @@
 | UC-031 | Bấm từ trong phụ đề xem nghĩa | `USER` | P2 | V2 | 1.6 |
 | UC-032 | Lưu từ từ phụ đề vào sổ tay | `USER` | P2 | V2 | 1.6 |
 
+> **Ánh xạ tên bảng khi triển khai:** một số luồng bên dưới còn dùng tên từ thiết kế cũ.
+> Theo `docs/reference/database.md`, `topic_words` là `learning.topic_items`;
+> `user_knowledge_state` và `user_topic_progress` là các dòng `learning.user_progress`
+> với `target_type` tương ứng `KNOWLEDGE_POINT` và `TOPIC`. Không tạo lại các bảng cũ
+> chỉ vì tên xuất hiện trong luồng UC.
+> `attempt_answers` là `learning.attempt_items`; `question_options` nằm trong
+> `learning.questions.options` (JSONB). Các tên cũ chỉ mô tả vai trò dữ liệu.
+
 ---
 
 # UC-015 · Luyện viết chữ Hán theo nét
@@ -1090,12 +1098,12 @@ còn lại `LOCKED`.
 
 | # | Rule |
 | --- | --- |
-| BR-025-1 | Game Box gồm các game học tập nhỏ phục vụ ghi nhớ chữ Hán, pinyin, bộ thủ và nghĩa từ. |
-| BR-025-2 | Danh sách game phải hiển thị các game đang khả dụng, trạng thái mở/khóa nếu có, mô tả ngắn và kỹ năng được luyện. |
-| BR-025-3 | Người học phải đăng nhập nếu muốn lưu điểm, cập nhật mastery hoặc tham gia bảng xếp hạng. |
-| BR-025-4 | Nếu người dùng chưa đăng nhập, hệ thống có thể cho chơi thử nhưng không lưu điểm, không cập nhật mastery và không ghi bảng xếp hạng. |
-| BR-025-5 | Game không có đủ dữ liệu đầu vào hợp lệ thì không được hiển thị là có thể chơi. |
-| BR-025-6 | Game Box không phải engine tiến độ riêng. Kết quả game nếu có giá trị học tập phải ghi về hệ thống tiến độ chung của người học. |
+| BR-025-1 | Chỉ người học đã đăng nhập được xem tiến độ cá nhân và trạng thái mở/khóa của các chủ đề. |
+| BR-025-2 | Chủ đề không có từ hợp lệ không hiển thị trong danh sách học chính. |
+| BR-025-3 | Chủ đề không có điều kiện tiên quyết được mở sẵn; chủ đề có tiên quyết chỉ mở khi các chủ đề trước đã hoàn thành. |
+| BR-025-4 | Phần trăm hoàn thành, số từ đã học và trạng thái phải tính từ tiến độ của chính người học, không dùng dữ liệu của người khác. |
+| BR-025-5 | Người học mới chưa có tiến độ được trả 0% cho từng chủ đề; lọc theo cấp HSK không làm thay đổi trạng thái mở/khóa. |
+| BR-025-6 | Phần trăm hoàn thành hiển thị phải nhất quán với dữ liệu từ đã học vì UC-046 dùng tiến độ này để mở chủ đề tiếp theo. |
 
 ## API · DB
 
@@ -1127,7 +1135,7 @@ GET /api/topics?hsk_level={n}
 
 ## Mô tả
 
-Trong một chủ đề, người học xem từng từ mới cùng chữ Hán, pinyin, âm Hán Việt, nghĩa, ví dụ, audio và từ liên quan. Từ đã xem được ghi nhận là đang học.
+Trong một chủ đề, người học xem và nghe từng từ mới cùng chữ Hán, pinyin, âm Hán Việt, nghĩa, ví dụ và từ liên quan. Khi học xong một từ và bấm “Tiếp”, hệ thống ghi nhận từ đó là đang học và tạo lịch ôn ban đầu.
 
 ## Tiền điều kiện
 
@@ -1196,13 +1204,13 @@ Bước 2 trả `TOPIC_LOCKED`.
 
 | # | Rule |
 | --- | --- |
-| BR-026-1 | Game Mưa chữ yêu cầu người học chọn hoặc gõ đáp án đúng khi chữ rơi xuống, nhằm luyện nhận diện chữ và nghĩa. |
-| BR-026-2 | Bộ chữ/từ dùng trong game phải được lấy từ dữ liệu học tập hợp lệ của hệ thống, ưu tiên nội dung người học đang học hoặc cần ôn. |
-| BR-026-3 | Điểm game được tính theo số câu đúng, số câu sai, thời gian phản hồi và độ khó của nội dung. |
-| BR-026-4 | Server không được tin tuyệt đối điểm do client gửi. Server phải kiểm tra giới hạn điểm, thời lượng ván chơi và danh sách câu hỏi đã phát. |
-| BR-026-5 | Chỉ các câu hỏi thật sự được server phát cho ván chơi đó mới được dùng để cập nhật điểm hoặc mastery. |
-| BR-026-6 | Nếu người học thoát giữa ván, hệ thống không ghi điểm xếp hạng; chỉ có thể ghi lịch sử chơi ở trạng thái chưa hoàn thành nếu cần thống kê. |
-| BR-026-7 | Kết quả game có thể ảnh hưởng mastery nhưng hệ số phải thấp hơn bài kiểm tra chính thức vì game chạy chủ yếu trên client. |
+| BR-026-1 | Chỉ cho học từ trong chủ đề đã mở; server phải kiểm tra từ được ghi tiến độ thuộc đúng chủ đề đó. |
+| BR-026-2 | Xem thẻ từ chưa đủ để ghi nhận đã học. Chỉ khi người học bấm “Tiếp” hoặc xác nhận đã học, hệ thống mới ghi tiến độ của từ. |
+| BR-026-3 | Khi ghi một từ là `LEARNING`, hệ thống đồng thời tạo trạng thái kiến thức và lịch ôn ban đầu. |
+| BR-026-4 | Cập nhật trạng thái từ và tiến độ chủ đề phải nhất quán trong cùng transaction. |
+| BR-026-5 | Nếu người học dừng giữa danh sách, các từ đã xác nhận vẫn giữ tiến độ; lần sau chỉ lấy từ chưa học. |
+| BR-026-6 | Nếu người học tự khai đã biết một từ, lưu cờ `self_declared`; bài kiểm tra cuối chủ đề phải kiểm tra lại và hạ mức nếu trả lời sai. |
+| BR-026-7 | Học hết từ mới thì gợi ý luyện nhận diện hoặc kiểm tra cuối chủ đề; không tạo thêm từ mới giả. |
 
 ## API · DB
 
@@ -1287,12 +1295,13 @@ Trả rỗng, hiện "đã thuộc hết từ chủ đề này", gợi ý UC-029
 
 | # | Rule |
 | --- | --- |
-| BR-027-1 | Game Ghép Pinyin dùng để luyện liên kết chữ Hán với pinyin đúng, bao gồm âm đầu, vận mẫu và thanh điệu. |
-| BR-027-2 | Đáp án nhiễu không được trùng pinyin đầy đủ với đáp án đúng, bao gồm cả dấu thanh. |
-| BR-027-3 | Nếu một chữ có nhiều cách đọc hợp lệ, hệ thống phải xác định rõ cách đọc đang được hỏi theo ngữ cảnh hoặc không đưa chữ đó vào game. |
-| BR-027-4 | Chấm đúng/sai phải dựa trên dữ liệu pinyin chuẩn trong kho nội dung, không dựa vào text hiển thị do client tự gửi. |
-| BR-027-5 | Kết quả đúng liên tiếp có thể tăng mastery cho kỹ năng đọc âm/pinyin; trả lời sai làm giảm hoặc giữ nguyên tùy thuật toán tiến độ. |
-| BR-027-6 | Các lượt trả lời quá nhanh bất thường hoặc gửi lại nhiều lần phải bị đánh dấu đáng ngờ và không được dùng để farm điểm. |
+| BR-027-1 | Chỉ luyện các từ hợp lệ thuộc chủ đề đã mở; câu hỏi phải có một đáp án đúng và ba đáp án nhiễu không trùng nghĩa. |
+| BR-027-2 | Ưu tiên đáp án nhiễu cùng chủ đề. Nếu không đủ, lấy từ cùng cấp HSK và đánh dấu bộ câu hỏi dùng nhiễu ngoài chủ đề. |
+| BR-027-3 | Response phát câu hỏi không được chứa đáp án đúng hoặc `is_correct`. |
+| BR-027-4 | Server chấm đáp án và cập nhật mastery; client không tự quyết định kết quả. |
+| BR-027-5 | Ba lần trả lời đúng liên tiếp cho một từ chuyển từ đó từ `LEARNING` sang `MASTERED` và cập nhật tiến độ chủ đề cùng lúc. |
+| BR-027-6 | Một câu trong cùng lượt luyện chỉ được chấm một lần; nộp lặp không được cộng mastery lần nữa. |
+| BR-027-7 | Nếu không còn từ phù hợp, trả danh sách rỗng và gợi ý bài kiểm tra cuối chủ đề. |
 
 ## API · DB
 
@@ -1363,12 +1372,12 @@ Giống UC-027, khác: bước 3 phát audio thay vì hiện chữ; đáp án l�
 
 | # | Rule |
 | --- | --- |
-| BR-028-1 | Game Ghép Bộ thủ dùng để luyện nhận biết cấu tạo chữ Hán thông qua bộ thủ hoặc thành phần cấu tạo. |
-| BR-028-2 | Chỉ các chữ có dữ liệu cấu tạo hoặc bộ thủ hợp lệ mới được đưa vào game. |
-| BR-028-3 | Đáp án nhiễu phải là bộ thủ hoặc thành phần có khả năng gây nhầm lẫn, nhưng không được trùng với đáp án đúng. |
-| BR-028-4 | Nếu dữ liệu cấu tạo của chữ còn thiếu hoặc mâu thuẫn, hệ thống không được sinh câu hỏi cho chữ đó. |
-| BR-028-5 | Kết quả game cập nhật mastery cho kỹ năng nhận diện cấu tạo chữ, không thay thế hoàn toàn cho luyện viết hoặc bài kiểm tra cuối chủ đề. |
-| BR-028-6 | Server phải kiểm tra rằng câu hỏi và đáp án thuộc đúng ván chơi đã phát trước khi ghi điểm. |
+| BR-028-1 | Chỉ đưa vào bài luyện nghe những từ thuộc chủ đề đã mở và có audio hợp lệ. |
+| BR-028-2 | Câu hỏi phát audio và yêu cầu chọn chữ Hán hoặc nghĩa tương ứng; response không được làm lộ đáp án. |
+| BR-028-3 | Đáp án nhiễu phải đủ khác biệt để câu hỏi có đúng một đáp án, tránh trường hợp đồng âm hoặc trùng nghĩa không thể phân biệt. |
+| BR-028-4 | Server chấm kết quả và cập nhật mastery kỹ năng `LISTENING`; không ghi như một lượt nhận diện chữ thuần túy. |
+| BR-028-5 | Từ thiếu audio được bỏ khỏi bộ câu hỏi, không tính là câu sai của người học. |
+| BR-028-6 | Nếu cả chủ đề không có audio dùng được, ẩn lựa chọn luyện nghe và trả trạng thái hết dữ liệu phù hợp. |
 
 ## API · DB
 
@@ -1436,7 +1445,7 @@ Sau các bước học và luyện tập, người học làm bài kiểm tra t�
 Hiện danh sách từ sai kèm nút chuyển sang UC-027 cho đúng các từ đó. Cho thi lại **sau 10 phút**.
 
 **A2 — Từ `self_declared: true` trả lời sai**
-Hạ về `LEARNING`, `completion_percent` **giảm**. Đây là cơ chế kiểm lại của BR-026-4.
+Hạ về `LEARNING`, `completion_percent` **giảm**. Đây là cơ chế kiểm lại của BR-026-6.
 
 **A3 — Bỏ giữa bài**
 `attempts` giữ trạng thái `IN_PROGRESS`. Cho nộp tiếp trong 24h; quá hạn → `ABANDONED`,
@@ -1474,12 +1483,13 @@ Lần thi mới tạo `attempts` mới. `completion_percent` lấy kết quả *
 
 | # | Rule |
 | --- | --- |
-| BR-029-1 | Game Bắt Chữ dùng để luyện phản xạ nhận diện chữ, nghĩa hoặc âm đọc trong thời gian ngắn. |
-| BR-029-2 | Mỗi ván chơi phải có danh sách câu hỏi do server phát hoặc xác nhận trước, client không được tự tạo câu hỏi rồi gửi điểm. |
-| BR-029-3 | Một ván chơi chỉ được nộp kết quả một lần. Gửi lại cùng ván chơi không được cộng điểm hoặc mastery lần hai. |
-| BR-029-4 | Điểm tối đa của ván chơi phải có giới hạn theo số câu, thời lượng và độ khó. Điểm vượt trần bị từ chối. |
-| BR-029-5 | Nếu thời gian hoàn thành ngắn bất thường so với số câu, hệ thống phải đánh dấu nghi vấn và không cập nhật xếp hạng. |
-| BR-029-6 | Kết quả game có thể được dùng để gợi ý nội dung ôn tập, nhưng không được xem là bằng chứng thành thạo mạnh hơn bài kiểm tra chấm ở server. |
+| BR-029-1 | Chỉ người học đã học ít nhất 80% số từ của chủ đề mới được bắt đầu bài kiểm tra cuối chủ đề. |
+| BR-029-2 | Server tạo bộ câu hỏi cho chủ đề, không gửi đáp án đúng trong response bắt đầu bài. |
+| BR-029-3 | Mỗi `attempt_id` chỉ được nộp một lần; server chấm từng câu và không tin điểm client tự tính. |
+| BR-029-4 | Ghi câu trả lời, điểm, mastery, phần trăm hoàn thành và trạng thái chủ đề trong cùng transaction. |
+| BR-029-5 | Đạt ít nhất 90% thì hoàn thành chủ đề và mở chủ đề kế tiếp theo UC-046; dưới ngưỡng thì gợi ý luyện lại những từ sai. |
+| BR-029-6 | Từ người học tự khai đã biết nhưng trả lời sai phải được hạ về `LEARNING`. |
+| BR-029-7 | Bài bỏ dở quá hạn không được chấm. Thi lại tạo lượt mới; phần trăm hoàn thành lấy kết quả cao nhất hợp lệ. |
 
 ## API · DB
 
@@ -1523,14 +1533,14 @@ Người học xem video tiếng Trung kèm phụ đề song ngữ và pinyin. H
 ## Tiền điều kiện
 
 1. `USER` đã đăng nhập
-2. `videos` có video, `video_subtitles` có phụ đề đã gắn timestamp
-3. Nguồn video khả dụng (nhúng YouTube hoặc CDN có giấy phép)
+2. `learning.videos` có video `PUBLISHED`, cột `subtitles` có phụ đề đã gắn timestamp
+3. Video YouTube còn khả dụng và cho phép nhúng
 
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
 | --- | --- |
-| Xem xong | ⚠️ **Chưa có bảng để ghi tiến độ** — xem exception dưới |
+| Xem video | Vị trí xem và phần trăm hợp lệ của chính người học được lưu trong `user_progress` với `target_type = 'VIDEO'` |
 | Lưu từ | UC-032 xử lý |
 
 ## Luồng chính
@@ -1545,7 +1555,7 @@ Người học xem video tiếng Trung kèm phụ đề song ngữ và pinyin. H
 | 6 | `USER` | Xem; dùng nút tua lại câu / giảm tốc / lặp câu |
 | 7 | Client | Highlight câu phụ đề đang phát |
 | 8 | `USER` | Bấm từ trong phụ đề → UC-031 |
-| 9 | Client | `POST /api/videos/{id}/progress` ⚠️ **không có bảng nhận** |
+| 9 | Client | `POST /api/videos/{id}/progress` — gửi vị trí xem để server cập nhật `user_progress.position_ms` cho video này |
 
 ## Luồng thay thế
 
@@ -1558,7 +1568,6 @@ Người học xem video tiếng Trung kèm phụ đề song ngữ và pinyin. H
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
-| `NO_PROGRESS_TABLE` | 500 | 🔴 `POST /api/videos/{id}/progress` **không có bảng nào lưu** | **Chặn tính năng.** Phải quyết trước khi làm — xem mục cuối file |
 | `VIDEO_NOT_FOUND` | 404 | ID sai | Về danh sách |
 | `VIDEO_UNAVAILABLE` | 410 | Nguồn đã xoá | Ẩn khỏi danh sách, báo `CONTENT_ADMIN` (A4) |
 | `NO_SUBTITLES` | 422 | Video chưa có phụ đề | Không mở — video không phụ đề mất hết giá trị học |
@@ -1566,10 +1575,9 @@ Người học xem video tiếng Trung kèm phụ đề song ngữ và pinyin. H
 | `SUBTITLE_OUT_OF_RANGE` | 500 | `end_ms > video_duration_ms` | Phụ đề dài hơn video — dữ liệu sai |
 | `VIDEO_SOURCE_BLOCKED` | — | YouTube chặn nhúng ở domain | Hiện hướng dẫn mở trên YouTube |
 
-> 🔴 **`NO_PROGRESS_TABLE` là khoảng trống thiết kế đã được chính tài liệu DB v5 cảnh báo.**
-> `user_video_progress` bị bỏ khi gộp bảng ở bản 3 và **không có bảng nào thay**. Hệ quả:
-> người học xem 20 phút video, thoát ra, quay lại phải xem từ đầu. Không phải bug — là thiếu
-> thiết kế. Phải chốt trước khi bắt đầu tính năng 1.6.
+> Nơi lưu tiến độ đã có trong `docs/reference/database.md`: `learning.user_progress`
+> với `target_type = 'VIDEO'`, `target_id = video.id` và `position_ms`. Không tạo bảng
+> `user_video_progress` riêng.
 
 > ⚠️ **`VIDEO_SOURCE_BLOCKED` và bản quyền.** Constitution cấm tải video người khác về máy
 > chủ. Nếu nhúng YouTube thì phụ thuộc hoàn toàn vào nguồn: video bị xoá, bị chặn nhúng, hoặc
@@ -1579,23 +1587,23 @@ Người học xem video tiếng Trung kèm phụ đề song ngữ và pinyin. H
 
 | # | Rule |
 | --- | --- |
-| BR-030-1 | Game gõ pinyin yêu cầu người học nhập đúng pinyin kèm thanh điệu để tấn công hoặc chọn mục tiêu trong game. |
-| BR-030-2 | Hệ thống phải chấp nhận một chuẩn nhập pinyin thống nhất, ví dụ pinyin có số thanh điệu hoặc pinyin có dấu, và hiển thị hướng dẫn rõ cho người học. |
-| BR-030-3 | Đáp án đúng phải được so với pinyin chuẩn của chữ/từ trong kho dữ liệu, không dựa vào đáp án do client tự khai báo. |
-| BR-030-4 | Nếu chữ hoặc từ có nhiều cách đọc hợp lệ, câu hỏi phải chỉ rõ ngữ cảnh hoặc chấp nhận tất cả cách đọc hợp lệ đã được định nghĩa. |
-| BR-030-5 | Game phải luyện kỹ năng gõ bàn phím tiếng Trung/pinyin, khác với các game chọn đáp án bằng chuột hoặc chạm. |
-| BR-030-6 | Kết quả game có thể lấy nguồn từ sổ tay cá nhân, từ vừa tra hoặc cấp HSK, nhưng server phải xác nhận nguồn câu hỏi trước khi ghi điểm. |
-| BR-030-7 | Điểm và mastery chỉ được ghi khi ván chơi hoàn thành hợp lệ và vượt qua kiểm tra chống gian lận cơ bản. |
+| BR-030-1 | UC này thuộc V2. Nguồn phát là video YouTube được phép nhúng; chỉ hiển thị video đã xuất bản, còn cho phép nhúng và có phụ đề gắn thời điểm. Không tải lại hoặc lưu bản sao video từ YouTube trên server. |
+| BR-030-2 | Phụ đề phải đồng bộ với thời gian phát; mỗi đoạn có mốc bắt đầu, kết thúc và nội dung hiển thị đúng thứ tự. |
+| BR-030-3 | Tua lại câu, lặp câu, thay đổi tốc độ và ẩn lớp phụ đề là thao tác xem trên client, không tự cộng mastery. |
+| BR-030-4 | Bấm từ trong phụ đề chuyển sang UC-031; lưu từ chuyển sang UC-032. |
+| BR-030-5 | Nếu video nguồn không còn phát được, báo rõ cho người học và đánh dấu nội dung để quản trị xử lý. |
+| BR-030-6 | Tiến độ xem lưu trong `user_progress` theo người học và video; chỉ ghi vị trí/phần trăm hợp lệ của chính người học, không coi chỉ mở video là đã hoàn thành. |
+| BR-030-7 | Khi nhập video, quản trị viên lưu YouTube video ID hoặc URL hợp lệ và kiểm tra khả năng nhúng. Video bị xóa hoặc chặn nhúng được chuyển `UNAVAILABLE` và không còn trong danh sách học. |
 
 ## API · DB
 
 ```
 GET  /api/videos
 GET  /api/videos/{id}/subtitles
-POST /api/videos/{id}/progress   ⚠️ chưa có bảng
+POST /api/videos/{id}/progress
 ```
 
-`videos` · `video_subtitles` (đọc) · **thiếu bảng tiến độ** (ghi)
+`learning.videos` (`subtitles` JSONB, đọc) · `learning.user_progress` (`VIDEO`, ghi)
 
 ## Test case
 
@@ -1604,8 +1612,9 @@ POST /api/videos/{id}/progress   ⚠️ chưa có bảng
 | T1 | Mở video có phụ đề | Player chạy, phụ đề đồng bộ |
 | T2 | Video không phụ đề | 422 `NO_SUBTITLES` |
 | T3 | Phụ đề `start_ms = end_ms` | Kiểm chặn khi nhập |
-| T4 | Xem 5 phút, thoát, mở lại | ⚠️ **Hiện không lưu được** |
+| T4 | Xem 5 phút, thoát, mở lại | Tiếp tục từ `position_ms` đã lưu cho chính người học |
 | T5 | YouTube ID đã xoá | 410, `status = UNAVAILABLE` |
+| T6 | YouTube chặn nhúng | Báo không thể phát và hướng dẫn mở trên YouTube; không tính tiến độ khi không xem được |
 
 ---
 
@@ -1623,7 +1632,7 @@ Khi bấm vào một từ trên phụ đề, video tạm dừng và hiện chữ
 
 1. Đang xem video (UC-030)
 2. Phụ đề đã **tách từ** (word segmentation) — không phải cả câu liền
-3. Từ có dòng trong `words` hoặc `characters`
+3. Từ có dữ liệu trong kho từ hoặc chữ Hán hợp lệ; phụ đề đã được tách từ cho chức năng bấm từ
 
 ## Hậu điều kiện
 
@@ -1635,15 +1644,15 @@ Không đổi dữ liệu học. Chỉ ghi `feature_usage` nếu dùng lượt t
 | --- | --- | --- |
 | 1 | `USER` | Bấm một từ trong phụ đề |
 | 2 | Client | Tạm dừng video |
-| 3 | Client | Tra `video_subtitles.vocabulary` JSONB — dữ liệu đã kèm sẵn |
-| 4 | Client | Nếu không có, gọi `GET /api/dictionary/lookup?word=X` |
+| 3 | Client | Dùng dữ liệu từ vựng đã được server gắn vào response phụ đề, nếu có |
+| 4 | Client | Nếu chưa có dữ liệu từ vựng, gọi `GET /api/dictionary/lookup?word=X` |
 | 5 | Client | Hiện popup: chữ, pinyin, âm Hán-Việt, nghĩa, audio, nút lưu |
 | 6 | `USER` | Đọc; có thể bấm lưu (UC-032) hoặc đóng |
 | 7 | Client | Đóng popup, phát tiếp video |
 
 ## Luồng thay thế
 
-**A1 — Từ đã có trong `vocabulary` JSONB** — không gọi API, hiện ngay (đường nhanh).
+**A1 — Response phụ đề đã kèm thông tin từ** — không gọi API từ điển, hiện ngay.
 **A2 — Từ không có trong từ điển** — hiện "chưa có trong từ điển", cho báo lỗi để `CONTENT_ADMIN` bổ sung.
 **A3 — Bấm vào dấu câu hoặc khoảng trắng** — bỏ qua, không mở popup.
 **A4 — Bấm nhiều từ liên tiếp** — popup cũ đóng, popup mới mở; video vẫn dừng.
@@ -1653,7 +1662,7 @@ Không đổi dữ liệu học. Chỉ ghi `feature_usage` nếu dùng lượt t
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
 | `WORD_NOT_SEGMENTED` | 500 | 🔴 Phụ đề chưa tách từ | **Bấm cả câu thay vì một từ** — tính năng vô dụng. Phải tách khi nhập phụ đề |
-| `WORD_NOT_IN_DICTIONARY` | 404 | Từ không có trong `words` | Hiện "chưa có", cho báo lỗi (A2) |
+| `WORD_NOT_IN_DICTIONARY` | 404 | Từ không có trong kho từ hoặc chữ Hán | Hiện "chưa có", cho báo lỗi (A2) |
 | `AMBIGUOUS_SEGMENTATION` | — | Tách từ sai ranh giới | Xem ghi chú dưới |
 | `QUOTA_EXCEEDED` | 402 | Hết lượt tra (nếu tính vào 4.1) | ⚠️ Chờ `TODO(PAYMENT_SCOPE)` |
 | `DICTIONARY_LOOKUP_FAILED` | 500 | Lỗi server | Hiện "không tra được, thử lại" |
@@ -1668,12 +1677,12 @@ Không đổi dữ liệu học. Chỉ ghi `feature_usage` nếu dùng lượt t
 
 | # | Rule |
 | --- | --- |
-| BR-031-1 | Mỗi ván game hoàn thành hợp lệ phải ghi lại điểm, thời gian chơi, số câu đúng, số câu sai và loại kỹ năng được luyện. |
-| BR-031-2 | Điểm game và cập nhật mastery phải nằm trong cùng một thao tác nhất quán dữ liệu. Không được ghi điểm thành công nhưng không cập nhật tiến độ, hoặc ngược lại. |
-| BR-031-3 | Mastery cộng từ game phải có hệ số thấp hơn bài kiểm tra chính thức vì game có nhiều phần chạy trên client và dễ bị thao tác hơn. |
-| BR-031-4 | Server phải kiểm tra danh sách câu hỏi đã phát, thời gian chơi tối thiểu và điểm tối đa trước khi ghi điểm. |
-| BR-031-5 | Nếu kết quả bị đánh dấu đáng ngờ, hệ thống vẫn có thể ghi log nhưng không đưa vào bảng xếp hạng và không cộng mastery. |
-| BR-031-6 | Các điểm yếu phát hiện qua game phải được gửi về hệ thống lộ trình thông minh để gợi ý luyện lại. |
+| BR-031-1 | UC này thuộc V2; chỉ mở popup cho từ đã được tách đúng trong phụ đề. Bấm dấu câu hoặc khoảng trắng không mở popup. |
+| BR-031-2 | Khi người học bấm từ, video tạm dừng và popup hiển thị chữ, pinyin, nghĩa và audio nếu có. |
+| BR-031-3 | Ưu tiên dữ liệu từ vựng đã được server gắn vào response phụ đề; chỉ gọi API từ điển khi response chưa có dữ liệu đó. Không giả định có cột `video_subtitles.vocabulary`. |
+| BR-031-4 | Nếu từ không có trong kho dữ liệu, báo chưa có nghĩa và cho người học báo lỗi nội dung; không tự bịa nghĩa. |
+| BR-031-5 | Mở popup và đọc dữ liệu đã tải sẵn không tiêu tốn lượt tra từ; nếu gọi API từ điển có quota, chỉ tính theo quy tắc quota của API đó. |
+| BR-031-6 | Từ nhiều nghĩa hoặc tách từ mơ hồ phải hiển thị nghĩa gắn với ngữ cảnh phụ đề khi dữ liệu cho phép. |
 
 ## API · DB
 
@@ -1681,16 +1690,14 @@ Không đổi dữ liệu học. Chỉ ghi `feature_usage` nếu dùng lượt t
 GET /api/dictionary/lookup?word={x}
 ```
 
-`video_subtitles.vocabulary` (JSONB, đọc) · `words` · `characters` (đọc)
-
-> Theo AC-09 trong constitution: `vocabulary` JSONB **chỉ đọc**, không ghi.
+`learning.videos.subtitles` (JSONB, đọc) · kho `learning.lexemes`/`characters` (tra từ qua API từ điển). Metadata từ vựng kèm response, nếu có, là dữ liệu server suy ra chứ không phải cột `video_subtitles.vocabulary`.
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Bấm từ có trong JSONB | Popup hiện ngay, không gọi API |
-| T2 | Bấm từ thiếu trong JSONB | Gọi `/api/dictionary/lookup` |
+| T1 | Bấm từ đã có metadata trong response phụ đề | Popup hiện ngay, không gọi API từ điển |
+| T2 | Bấm từ chưa có metadata trong response | Gọi `/api/dictionary/lookup` |
 | T3 | Bấm dấu phẩy | Không mở popup |
 | T4 | Từ không trong từ điển | 404, hiện nút báo lỗi |
 | T5 | Mở popup | Video dừng |
@@ -1712,14 +1719,14 @@ Người học lưu một từ trong phụ đề vào sổ tay hoặc bộ flash
 
 1. Popup UC-031 đang mở
 2. `USER` đã đăng nhập
-3. Có bộ flashcard đích (hoặc tạo mới)
+3. Có sổ tay hoặc bộ flashcard đích thuộc người học, hoặc người học tạo mới
 
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
 | --- | --- |
-| Lưu sổ tay | `notes` thêm dòng: từ, nghĩa, câu ví dụ từ phụ đề, nguồn video |
-| Lưu flashcard | `flashcards` thêm dòng vào deck đã chọn, có `next_review_at` |
+| Lưu sổ tay | Thêm `collection_items` vào `collections.kind = 'NOTEBOOK'`, kèm nguồn video và câu ví dụ nếu hợp lệ |
+| Lưu flashcard | Thêm `collection_items` vào `collections.kind = 'FLASHCARD_DECK'`; tạo lịch ôn ban đầu trong `user_progress` |
 
 ## Luồng chính
 
@@ -1729,23 +1736,23 @@ Người học lưu một từ trong phụ đề vào sổ tay hoặc bộ flash
 | 2 | Client | Nếu flashcard: hiện chọn deck hoặc tạo deck mới |
 | 3 | `USER` | Chọn deck |
 | 4 | Client | `POST /api/notes` hoặc `POST /api/flashcard-decks/{id}/cards` |
-| 5 | System | Kiểm sở hữu deck |
+| 5 | System | Kiểm `collections.user_id` của sổ tay hoặc bộ thẻ bằng người đang đăng nhập |
 | 6 | System | Kiểm trùng — từ này đã trong deck chưa |
-| 7 | System | Ghi kèm `source_video_id`, `subtitle_id`, câu ví dụ |
-| 8 | System | Nếu flashcard: tính `next_review_at` ban đầu |
+| 7 | System | Ghi `collection_items` kèm `source_type = VIDEO`, `source_ref` trỏ đến video/đoạn phụ đề và câu ví dụ trong `content` nếu nguồn hợp lệ |
+| 8 | System | Nếu là flashcard: tạo `user_progress` với `target_type = FLASHCARD` và `next_review_at` ban đầu trong cùng transaction |
 | 9 | Client | Hiện "đã lưu", đóng popup, phát tiếp video |
 
 ## Luồng thay thế
 
 **A1 — Từ đã có trong deck** — không tạo dòng trùng, hiện "đã có trong bộ này", cho chuyển deck khác.
-**A2 — Chưa có deck nào** — hiện tạo deck mới rồi thêm thẻ trong **một** thao tác.
+**A2 — Chưa có bộ đích** — tạo `collections` đúng loại rồi thêm `collection_items` trong **một** thao tác.
 **A3 — Lưu cả hai nơi** — cho phép; hai bản ghi độc lập.
 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
-| `DECK_NOT_OWNED` | 403 | 🔴 Deck của người khác | **IDOR** — `flashcard_decks.user_id` phải bằng người đang đăng nhập |
+| `DECK_NOT_OWNED` | 403 | 🔴 Bộ của người khác | **IDOR** — `collections.user_id` phải bằng người đang đăng nhập |
 | `DECK_NOT_FOUND` | 404 | ID sai | Hiện chọn deck khác |
 | `CARD_ALREADY_IN_DECK` | 409 | Từ đã có | Không tạo trùng (A1) |
 | `DECK_LIMIT_EXCEEDED` | 422 | Deck > 500 thẻ | Hiện "bộ đã đầy, tạo bộ mới" |
@@ -1754,7 +1761,7 @@ Người học lưu một từ trong phụ đề vào sổ tay hoặc bộ flash
 | `UNAUTHORIZED` | 401 | Token hết hạn giữa lúc xem | Refresh rồi gửi lại — không mất thao tác lưu |
 
 > 🔴 **`DECK_NOT_OWNED` là IDOR đúng loại mục B đã ghi.** `POST /api/flashcard-decks/999/cards`
-> với deck 999 của người khác: nếu chỉ kiểm "đã đăng nhập" thì ta vừa cho ghi vào dữ liệu của
+> với bộ 999 của người khác: nếu chỉ kiểm "đã đăng nhập" thì ta vừa cho ghi vào dữ liệu của
 > người lạ. Cả UC-029 (`ATTEMPT_NOT_OWNED`) và UC này đều là cùng một lỗ hổng ở hai chỗ khác
 > nhau — nên có **một** `OwnershipService` dùng chung, không kiểm rời rạc từng endpoint.
 
@@ -1762,12 +1769,12 @@ Người học lưu một từ trong phụ đề vào sổ tay hoặc bộ flash
 
 | # | Rule |
 | --- | --- |
-| BR-032-1 | Bảng xếp hạng chỉ ghi nhận kết quả từ các ván game hợp lệ của người dùng đã đăng nhập. |
-| BR-032-2 | Mỗi game có bảng xếp hạng riêng. Không trộn điểm giữa các game có cách tính điểm khác nhau. |
-| BR-032-3 | Bảng xếp hạng có thể lọc theo tuần, tháng hoặc toàn thời gian. |
-| BR-032-4 | Nếu hai người có cùng điểm, hệ thống ưu tiên người có thời gian hoàn thành ngắn hơn hoặc thời điểm đạt điểm sớm hơn, tùy quy tắc đã chốt. |
-| BR-032-5 | Điểm bị đánh dấu gian lận hoặc bất thường không được xuất hiện trên bảng xếp hạng công khai. |
-| BR-032-6 | Bảng xếp hạng phải dùng dữ liệu đã được server xác nhận, không dùng điểm chỉ lưu ở client. |
+| BR-032-1 | UC này thuộc V2; chỉ người học đã đăng nhập được lưu từ từ phụ đề vào sổ tay hoặc bộ flashcard của mình. |
+| BR-032-2 | Khi lưu, giữ định danh video, đoạn phụ đề và câu chứa từ làm ví dụ nếu nguồn còn hợp lệ. |
+| BR-032-3 | Nếu lưu vào flashcard, server phải kiểm tra bộ thẻ thuộc người học trước khi ghi. |
+| BR-032-4 | Cùng một từ không được tạo hai thẻ trùng trong cùng bộ; từ đã có thì báo rõ và cho chọn bộ khác. |
+| BR-032-5 | Nếu tạo bộ mới rồi thêm thẻ, hai bước phải hoàn tất cùng nhau; không để bộ rỗng do thêm thẻ thất bại. |
+| BR-032-6 | Thẻ mới phải có lịch ôn ban đầu. Nếu không còn đoạn phụ đề hợp lệ, có thể lưu từ nhưng không gắn ví dụ sai nguồn. |
 
 ## API · DB
 
@@ -1777,14 +1784,14 @@ POST /api/flashcard-decks/{id}/cards
 POST /api/flashcard-decks          (tạo deck mới — A2)
 ```
 
-`words` · `video_subtitles` (đọc) · `notes` · `flashcard_decks` · `flashcards` (ghi)
+`learning.lexemes` · `learning.videos.subtitles` (đọc) · `learning.collections` · `learning.collection_items` (ghi) · `learning.user_progress` (lịch ôn flashcard)
 
 ## Test case
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | Lưu vào sổ tay | `notes` thêm dòng có `source_video_id` |
-| T2 | Thêm vào deck của mình | `flashcards` thêm dòng, có `next_review_at` |
+| T1 | Lưu vào sổ tay | `collection_items` trong `NOTEBOOK` có `source_type = VIDEO` và `source_ref` hợp lệ |
+| T2 | Thêm vào bộ thẻ của mình | `collection_items` trong `FLASHCARD_DECK` có dòng `user_progress` với `next_review_at` |
 | T3 | Deck của người khác | 403 `DECK_NOT_OWNED` |
 | T4 | Thêm từ đã có | 409 `CARD_ALREADY_IN_DECK` |
 | T5 | Deck đã 500 thẻ | 422 `DECK_LIMIT_EXCEEDED` |
@@ -1815,7 +1822,7 @@ POST /api/flashcard-decks          (tạo deck mới — A2)
 | --- | --- | --- |
 | **Chấm ở client không đáng tin** | UC-015 → UC-018 (luyện viết) | `hanzi-writer` chấm ở client, `stroke_data` nằm trong response. **Không thể** chấm lại ở server. Giảm rủi ro bằng hệ số mastery thấp + kiểm thời gian hợp lý, và để UC-029 (chấm server) làm thước đo thật |
 | **Nhiễu trùng đáp án** | UC-019 · UC-020 · UC-027 · UC-028 | Trùng `word_id` · trùng **nghĩa** · trùng **pinyin có dấu**. Cả ba đều làm câu hỏi vô nghĩa. Phải kiểm khi **sinh** câu, không phải khi chấm |
-| **Hai bảng phải cùng transaction** | UC-022 · UC-026 · UC-027 · UC-029 | `user_knowledge_state` + `user_topic_progress`, hoặc điểm + mở khoá. Tách ra là sinh dữ liệu lệch mà không ai phát hiện tới lúc người học phàn nàn |
+| **Ghi tiến độ phải nhất quán** | UC-022 · UC-026 · UC-027 · UC-029 | Các dòng `user_progress` theo `target_type`, hoặc điểm + mở khoá, phải được cập nhật cùng transaction; không để trạng thái chủ đề lệch tiến độ kiến thức |
 
 ---
 
@@ -1823,17 +1830,17 @@ POST /api/flashcard-decks          (tạo deck mới — A2)
 
 | # | Thiếu | UC bị ảnh hưởng | Mức |
 | --- | --- | --- | --- |
-| 1 | **Không có bảng ghi tiến độ video** — `user_video_progress` bị bỏ ở bản 3, không có bảng thay | UC-030 | 🔴 Chặn tính năng 1.6 |
-| 2 | **Không có bảng lưu `challenge_id`** với `served_at` + trạng thái đã nộp | UC-017 | 🔴 Không chống được nộp lại |
-| 3 | **Lệch tài liệu:** feature tree 1.3 ghi `pronunciation_stages`, danh sách 40 bảng không có | UC-021 · UC-022 | ⚠️ Cần chốt: thêm bảng hay suy từ cột |
-| 4 | Chưa có cột `self_declared` trong `user_knowledge_state` | UC-026 · UC-029 | ⚠️ Cần cho BR-026-4 |
+| 1 | Tiến độ video đã có chỗ lưu: `user_progress` với `target_type = 'VIDEO'` và `position_ms` | UC-030 | Đã giải quyết trong `database.md` |
+| 2 | Lượt thử thách viết dùng `attempts.kind = 'WRITING_CHALLENGE'`; cần kiểm `served_at` và trạng thái nộp khi triển khai | UC-017 | Thiết kế DB đã có hướng lưu |
+| 3 | Tầng phát âm dùng `pron_stages` trong thiết kế DB hiện tại | UC-021 · UC-022 | Đã giải quyết trong `database.md` |
+| 4 | Cờ `self_declared` đã có trong `user_progress` | UC-026 · UC-029 | Đã giải quyết trong `database.md` |
 | 5 | Chưa có bảng/cột lưu **hệ số mastery theo chế độ luyện** (0.5 / 1.0 / 1.2) | UC-015 → UC-018 | ⚠️ Hiện là con số trong code |
 | 6 | Chưa có `OwnershipService` dùng chung chống IDOR | UC-029 · UC-032 | 🔴 Mục B trong quyết định v2 vẫn chưa chốt |
-| 7 | Chưa chốt **nguồn video** (tự quay / có giấy phép / nhúng YouTube) | UC-030 | ⚠️ Ảnh hưởng bản quyền |
+| 7 | Nguồn video đã chốt là YouTube cho phép nhúng; cần kiểm quyền nhúng và trạng thái nguồn khi nhập video | UC-030 | Đã chốt phạm vi nguồn |
 | 8 | Chưa có unique constraint `(user_id, stage_number)` trên `user_pronunciation_progress` | UC-022 | 🔴 Race condition |
 | 9 | Chưa có partial unique index đảm bảo **đúng 1** `is_correct` mỗi câu hỏi | UC-019 · UC-020 | 🔴 Chấm sai oan người học |
-| 10 | Chưa có job đối chiếu `user_topic_progress` với `user_knowledge_state` | UC-025 | ⚠️ Phát hiện lệch sớm |
+| 10 | Cần phép kiểm đối chiếu tiến độ chủ đề với các điểm kiến thức liên quan trong `user_progress` | UC-025 | ⚠️ Phát hiện lệch sớm |
 | 11 | Chưa chốt từ phụ đề có tính vào **quota tra từ** (4.1) hay không | UC-031 | ⚠️ Chờ `TODO(PAYMENT_SCOPE)` |
 
-> **Bốn mục 🔴 ở trên (1, 2, 6, 8, 9) là ràng buộc DB hoặc bảng còn thiếu.** Đây chính là loại
-> phát hiện cần có **trước** khi chốt schema — gom vào bản requirement v2.
+> Bảng này giữ cả những khoảng trống đã được giải quyết trong `database.md` để tránh
+> lặp lại cảnh báo cũ khi triển khai. Các mục còn ghi ⚠️/🔴 vẫn cần kiểm tra riêng.

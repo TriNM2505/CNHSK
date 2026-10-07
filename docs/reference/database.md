@@ -221,11 +221,8 @@ CREATE TABLE users (
   avatar_url        TEXT,
   hsk_level         SMALLINT CHECK (hsk_level BETWEEN 1 AND 9),
 
-  -- Trang thai tai khoan — GIAI QUYET muc A quyet dinh v2.
-  -- Bon UC cung cho bon cot nay: UC-012, UC-077, UC-078, UC-114.
+  -- Trang thai tai khoan; UC-012 dem sai va chan theo email-IP trong Redis.
   email_verified_at TIMESTAMPTZ,
-  failed_login_count SMALLINT NOT NULL DEFAULT 0,
-  locked_until      TIMESTAMPTZ,          -- UC-012: khoa tam sau 5 lan sai
   suspended_at      TIMESTAMPTZ,          -- UC-078: MANAGER treo
   suspended_until   TIMESTAMPTZ,
   banned_at         TIMESTAMPTZ,          -- UC-114: SUPER_ADMIN ban
@@ -415,6 +412,9 @@ CREATE TABLE attempts (
   max_score      BIGINT,
   duration_ms    INTEGER,
   suspicious     BOOLEAN NOT NULL DEFAULT false,
+  -- Snapshot nội dung đã phát cho GAME/EXAM; ghi một lần khi bắt đầu ván/bài.
+  -- Server dùng để đối chiếu khi nộp, không trả đáp án trong response bắt đầu.
+  served_items   JSONB,
   -- Ban nhap bai thi — GIAI QUYET khoang trong #1 nhom 2.
   -- Chon cot JSONB thay Redis: khong phu thuoc TODO(REDIS_PLACEMENT),
   -- va ghi nhap chi xay ra moi 30 giay nen khong vi pham tinh than AC-09.
@@ -847,14 +847,14 @@ CREATE TABLE learning.pron_stages (
 CREATE TABLE learning.videos (
   id          BIGSERIAL PRIMARY KEY,
   title       VARCHAR(300) NOT NULL,
-  url         TEXT         NOT NULL,
+  url         TEXT         NOT NULL,      -- URL/ID YouTube hop le, video cho phep nhung
   duration_ms INTEGER      NOT NULL CHECK (duration_ms > 0),
   hsk_level   SMALLINT     CHECK (hsk_level BETWEEN 1 AND 9),
   topic_id    BIGINT       REFERENCES learning.topics(id),
   -- Mang {start_ms, end_ms, text_cn, text_vi}. Chi doc -> hop AC-09.
   subtitles   JSONB        NOT NULL DEFAULT '[]',
   status      VARCHAR(20)  NOT NULL DEFAULT 'DRAFT'
-              CHECK (status IN ('DRAFT','PUBLISHED','ARCHIVED')),
+              CHECK (status IN ('DRAFT','PUBLISHED','ARCHIVED','UNAVAILABLE')),
   created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
@@ -1210,7 +1210,7 @@ public class AuditLog { ... }
 | 1 | Mã sinh bằng `SecureRandom`, ≥16 ký tự | Code + ArchUnit chặn `java.util.Random` |
 | 2 | **Chỉ lưu `code_hash`** | Schema không có cột mã thô |
 | 3 | `SELECT FOR UPDATE` rồi đổi trạng thái cùng transaction | Code |
-| 4 | 5 lần nhập sai/giờ mỗi tài khoản | `users.failed_login_count` + rate limit |
+| 4 | 5 lần nhập sai mã/giờ mỗi tài khoản | Bộ đếm riêng cho thao tác nhập mã thẻ trong Redis; không dùng bộ đếm đăng nhập của UC-012 |
 | 5 | Không ghi mã vào log | Code + test đọc log |
 | 6 | Mọi đổi điểm ghi `balance_before`/`balance_after` | **`CHECK` ở DB** |
 
@@ -1239,7 +1239,7 @@ public class AuditLog { ... }
 | 1 | Không có bảng ghi tiến độ video | `user_progress.target_type = 'VIDEO'` + `position_ms` |
 | 2 | Không có bảng lưu `challenge_id` | `attempts.kind = 'WRITING_CHALLENGE'` |
 | 3 | Không có bảng lưu lượt chơi game | `attempts.kind = 'GAME'` |
-| 4 | Thiếu cột trạng thái tài khoản | `users.locked_until`, `suspended_at`, `banned_at` |
+| 4 | Thiếu trạng thái treo/ban tài khoản | `users.suspended_at`, `suspended_until`, `banned_at`; chặn đăng nhập sai của UC-012 nằm trong Redis |
 | 5 | Thiếu `EMAIL_VERIFY` token type | `auth_tokens.token_type` CHECK có |
 | 6 | `knowledge_points` thiếu `skill_type` | Có, CHECK 6 kỹ năng |
 | 7 | Không có bảng log gửi nhắc | `study_events.event_type = 'REMINDER_SENT'` + unique |
@@ -1352,4 +1352,3 @@ Nới `AC-03` bị hiểu thành "cho phép mọi thứ" | trung | Ghi rõ **đ�
 `specs/001-auth-rbac/plan.md` | §4.2 đã cập nhật |
 
 ---
-

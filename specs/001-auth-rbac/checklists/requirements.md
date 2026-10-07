@@ -47,7 +47,7 @@
 - [x] FR-015: để trống `Domain` thì game không nhận cookie → UC-005 hỏng
 - [x] FR-023: thiếu một nhánh đọc token thì một loại client không đăng nhập được
 - [x] FR-027: cookie `HttpOnly` nên JS trang game không đọc được token
-- [x] FR-048: đếm sai mật khẩu theo tài khoản, không theo IP
+- [x] FR-048: đếm sai mật khẩu theo cặp email–IP, không khóa toàn tài khoản hoặc cả IP
 - [x] FR-054: trả 403 cho id không tồn tại, không trả 404
 - [x] NFR-P01: bcrypt cố tình chậm, không hạ cost để đạt mốc
 
@@ -71,7 +71,7 @@
 |---|---|---|
 | 1 | HS256 vs RS256 | FR-016, FR-061 |
 | 2 | Thời gian sống access/refresh token | FR-031 |
-| 3 | Bảng cho lịch sử đăng nhập | FR-056 |
+| 3 | Dữ liệu `LOGIN` thành công trong `shared.audit_logs` cần đủ trường cho UC-014 (V2) | FR-056 |
 
 ### Đã chốt 2026-10-05
 

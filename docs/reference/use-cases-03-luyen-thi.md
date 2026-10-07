@@ -25,6 +25,11 @@
 | UC-040 | Xem 3–5 điểm yếu nhất sau bài thi | `USER` | P1 | MVP | 2.3 |
 | UC-041 | Bấm "luyện ngay" từ câu sai | `USER` | P1 | MVP | 2.3 |
 
+> **Ánh xạ DB khi sinh code:** `attempt_answers` trong các luồng là
+> `learning.attempt_items`; `user_knowledge_state` là `learning.user_progress`
+> với `target_type='KNOWLEDGE_POINT'`; `question_options` là mảng JSONB
+> `learning.questions.options`. Dùng tên và cấu trúc trong `database.md`, không tạo bảng cũ.
+
 ---
 
 # UC-033 · Xem danh sách đề thi theo cấp HSK
@@ -205,6 +210,7 @@ Không mất — UC-036 đã lưu tạm. Lần sau vào thấy nút "Tiếp tụ
 | BR-034-6 | Câu trả lời trong khi đang làm bài chỉ được lưu như dữ liệu đang làm, chưa chấm điểm và chưa cập nhật mastery cho đến khi người học nộp bài. |
 | BR-034-7 | Đề thiếu audio bắt buộc ở phần nghe không được cho bắt đầu, vì người học không thể làm đúng mục tiêu của phần nghe. |
 | BR-034-8 | Hệ thống có thể giới hạn số lượt bắt đầu làm đề trong ngày để tránh spam dữ liệu tiến độ, nhưng giới hạn này phải là cấu hình hệ thống, không hardcode trong nghiệp vụ. |
+| BR-034-9 | Khi bắt đầu bài, server ghi snapshot câu hỏi, các lựa chọn và đáp án đúng vào `attempts.served_items`. Response chỉ trả phần người học cần làm, không chứa đáp án hoặc lời giải. |
 
 ## API · DB
 
@@ -261,7 +267,7 @@ Khi người học nộp bài, câu trả lời được chấm trên server. H�
 | 4 | System | Kiểm `status = IN_PROGRESS` |
 | 5 | System | Kiểm mọi `question_id` thuộc đề của `attempt` này |
 | 6 | System | **Mở transaction** |
-| 7 | System | Chấm từng câu: so với `question_options.is_correct` hoặc đáp án chuẩn |
+| 7 | System | Chấm từng câu theo đáp án trong `attempts.served_items` đã lưu khi bắt đầu bài |
 | 8 | System | Ghi `attempt_answers` — `question_id`, `selected_option_id`, `is_correct`, `answered_at` |
 | 9 | System | Tính điểm theo phần và tổng: `score`, `score_by_section` |
 | 10 | System | Với mỗi câu, tra `question_knowledge_points` → cập nhật `user_knowledge_state` (FSRS) |
@@ -282,8 +288,8 @@ Không chặn. Câu thiếu ghi `selected_option_id = NULL`, `is_correct = false
 **A3 — Nộp khi hết hạn 24h**
 `attempts` → `ABANDONED`. **Không chấm, không đổi mastery.** Hiện "bài đã quá hạn".
 
-**A4 — Câu hỏi bị `CONTENT_ADMIN` sửa/xoá giữa lúc làm bài**
-Xem exception `QUESTION_CHANGED_MID_ATTEMPT`.
+**A4 — Câu hỏi bị `CONTENT_ADMIN` sửa giữa lúc làm bài**
+Vẫn chấm theo snapshot của bài đã phát, không đổi đáp án của người học giữa chừng.
 
 ## Bảng exception
 
@@ -296,7 +302,7 @@ Xem exception `QUESTION_CHANGED_MID_ATTEMPT`.
 | `ANSWER_FOR_UNKNOWN_QUESTION` | 400 | `question_id` không thuộc đề | Gian lận — ghi log |
 | `DUPLICATE_ANSWER` | 400 | Hai đáp án cho cùng `question_id` | Chặn, không biết lấy cái nào |
 | `OPTION_NOT_IN_QUESTION` | 400 | `option_id` lạ | Gian lận |
-| `QUESTION_CHANGED_MID_ATTEMPT` | — | Đáp án đúng bị sửa sau `served_at` | 🔴 Xem ghi chú |
+| `QUESTION_CHANGED_MID_ATTEMPT` | — | Đáp án đúng bị sửa sau `served_at` | Chấm theo snapshot, ghi nhận phiên bản đã phát |
 | `QUESTION_DELETED_MID_ATTEMPT` | — | Câu bị xoá | **Loại câu khỏi mẫu số**, không tính sai cho người học |
 | `MALFORMED_QUESTION` | — | 0 hoặc >1 đáp án đúng | Loại khỏi mẫu số, ghi `question_reports` |
 | `NO_KNOWLEDGE_POINTS` | — | Câu chưa gắn nhãn kiến thức | Vẫn chấm điểm, **nhưng không cập nhật được mastery**. Ghi log — tính năng 2.3 sẽ mù chỗ này |
@@ -313,9 +319,8 @@ Xem exception `QUESTION_CHANGED_MID_ATTEMPT`.
 > 🔴 **`QUESTION_CHANGED_MID_ATTEMPT` là tình huống thật với 6 người làm song song.**
 > `CONTENT_ADMIN` sửa đáp án đúng của câu X (UC-109) lúc 10:00. Người học bắt đầu bài lúc 9:50,
 > nộp lúc 10:05. Chấm theo đáp án nào?
-> **Quyết định cần chốt:** chấm theo đáp án **tại thời điểm `served_at`** (cần lưu snapshot) hay
-> theo đáp án **hiện tại** (đơn giản nhưng có thể chấm sai người học). Hiện thiết kế **chưa có
-> snapshot** → mặc định là đáp án hiện tại. Rủi ro thấp trong 11 tuần nhưng phải ghi vào tài liệu.
+> **Quy tắc:** chấm theo đáp án trong `attempts.served_items` tại thời điểm `served_at`.
+> Việc sửa câu hỏi sau đó chỉ áp dụng cho bài bắt đầu mới, không đổi bài đã phát.
 
 > ⚠️ **`NO_KNOWLEDGE_POINTS` nối trực tiếp với phụ thuộc đã ghi ở tính năng 2.3:** "6.3 Nhãn
 > kiến thức — không có nhãn thì không chạy". Câu không gắn nhãn thì UC-040 (điểm yếu nhất)
@@ -335,6 +340,7 @@ Xem exception `QUESTION_CHANGED_MID_ATTEMPT`.
 | BR-035-8 | Kết quả từ bài thi thử có trọng số mastery cao hơn các bài luyện lẻ, vì bài thi được chấm hoàn toàn ở server và bao phủ nhiều điểm kiến thức hơn. |
 | BR-035-9 | Dữ liệu `attempt_answers` sau khi đã ghi không được xóa tùy tiện, vì đây là nguồn cho kết quả chi tiết, phân tích lỗi sai và xác định điểm yếu. |
 | BR-035-10 | Nếu câu hỏi chưa được gắn nhãn kiến thức, hệ thống vẫn có thể tính điểm bài làm, nhưng không được dùng câu đó để cập nhật mastery hoặc phân tích điểm yếu. Lỗi thiếu nhãn phải được ghi nhận để bổ sung dữ liệu. |
+| BR-035-11 | Đáp án chấm điểm phải lấy từ snapshot `attempts.served_items` tại lúc bài bắt đầu. Thay đổi câu hỏi sau `served_at` không được làm đổi kết quả của bài đang làm. |
 
 ## API · DB
 
@@ -379,7 +385,7 @@ POST /api/attempts/{id}/submit
 
 ## Mô tả
 
-Người học có thể lưu câu trả lời trong lúc làm bài mà chưa cần nộp. Nếu mất kết nối hoặc đóng trang, họ quay lại và tiếp tục từ phần đã lưu.
+Nếu chức năng lưu nháp được triển khai, người học có thể lưu câu trả lời khi đang làm bài để quay lại tiếp tục sau khi mất kết nối hoặc đóng trang. Bản nháp chưa được chấm và không làm thay đổi mastery.
 
 ## Tiền điều kiện
 
@@ -397,7 +403,7 @@ Câu trả lời tạm được lưu, **chưa chấm**, `attempts` vẫn `IN_PRO
 | 1 | Client | Tự động mỗi 30 giây hoặc khi đổi phần |
 | 2 | Client | `PATCH /api/attempts/{id}/draft` — mảng `{question_id, answer}` đã trả lời |
 | 3 | System | Kiểm sở hữu + `status = IN_PROGRESS` |
-| 4 | System | Ghi vào nơi lưu tạm (⚠️ **chưa chốt chỗ nào** — xem exception) |
+| 4 | System | Ghi bản nháp vào `attempts.draft_answers`, cập nhật `draft_saved_at` |
 | 5 | System | Trả `{saved_at, answered_count}` |
 | 6 | Client | Hiện "đã lưu lúc HH:mm" |
 
@@ -416,23 +422,14 @@ UC-035 dùng mảng câu trả lời **client gửi kèm lúc nộp**, không ph
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
-| `NO_DRAFT_STORAGE` | 500 | 🔴 **Chưa chốt lưu bản nháp ở đâu** | Xem ghi chú |
 | `ATTEMPT_NOT_OWNED` | 403 | Bài người khác | IDOR |
 | `ATTEMPT_ALREADY_SUBMITTED` | 409 | Lưu nháp sau khi nộp | Chặn — nếu không thì sửa được bài đã nộp |
 | `DRAFT_TOO_LARGE` | 413 | > 200 câu trả lời | Chặn payload lớn bất thường |
 | `STALE_DRAFT` | 409 | Bản nháp gửi cũ hơn bản đã lưu | Bỏ qua bản cũ — hai tab cùng lưu sẽ ghi đè lẫn nhau |
 | `DRAFT_SAVE_FAILED` | 500 | Lỗi ghi | **Không chặn người học làm tiếp** — chỉ hiện "chưa lưu được", giữ trong `sessionStorage` |
 
-> 🔴 **`NO_DRAFT_STORAGE` — khoảng trống thiết kế.** Có 3 phương án, cần chốt:
->
-> | Phương án | Được | Mất |
-> | --- | --- | --- |
-> | Ghi `attempt_answers` với `is_correct = NULL`, cập nhật lại khi nộp | Không thêm bảng | `attempt_answers` là "5 bảng không được đụng", lẫn nháp vào dữ liệu phân tích |
-> | Cột `draft_answers JSONB` trên `attempts` | Đơn giản nhất, 1 cột | AC-09 nói JSONB **chỉ đọc** — ghi liên tục là vi phạm |
-> | Redis key `attempt:draft:{id}` TTL 24h | Đúng bản chất dữ liệu tạm | Phụ thuộc `TODO(REDIS_PLACEMENT)` |
->
-> **Khuyến nghị:** Redis — bản nháp là dữ liệu tạm, mất không sao, và khớp TTL 24h của
-> `ATTEMPT_EXPIRED`. Nhưng phải chốt `TODO(REDIS_PLACEMENT)` trước.
+> Nơi lưu đã chốt trong `docs/reference/database.md`: `attempts.draft_answers JSONB`
+> và `draft_saved_at`. Lưu nháp mỗi 30 giây, không ghi vào `attempt_answers` trước khi nộp.
 
 > ⚠️ **`STALE_DRAFT`:** người học mở hai tab cùng làm một đề. Tab A lưu 20 câu, tab B lưu 5
 > câu sau đó → bản 5 câu ghi đè bản 20 câu. Cần `version` hoặc `saved_at` để bỏ bản cũ.
@@ -441,7 +438,7 @@ UC-035 dùng mảng câu trả lời **client gửi kèm lúc nộp**, không ph
 
 | # | Rule |
 | --- | --- |
-| BR-036-1 | UC này là chức năng tùy chọn, không phải nghiệp vụ bắt buộc của MVP. Nếu chưa chốt nơi lưu bản nháp, không gen code cho UC này. |
+| BR-036-1 | UC này là chức năng tùy chọn, không phải nghiệp vụ bắt buộc của MVP. Nơi lưu đã chốt là `attempts.draft_answers`; chỉ gen code khi nhóm đưa chức năng tùy chọn này vào phạm vi triển khai. |
 | BR-036-2 | Dữ liệu lưu tạm chỉ phục vụ khôi phục bài đang làm, không được chấm điểm và không được cập nhật mastery. |
 | BR-036-3 | Chỉ người sở hữu bài làm mới được lưu hoặc đọc lại bản nháp của bài đó. |
 | BR-036-4 | Không được lưu nháp cho bài đã `SUBMITTED` hoặc `ABANDONED`. Sau khi bài đã kết thúc, mọi thay đổi câu trả lời phải bị từ chối. |
@@ -456,7 +453,7 @@ PATCH /api/attempts/{id}/draft
 GET   /api/attempts/{id}          (trả kèm bản nháp)
 ```
 
-`attempts` (đọc) · **nơi lưu nháp chưa chốt** (ghi)
+`attempts.draft_answers` và `draft_saved_at` (đọc/ghi)
 
 ## Test case
 
@@ -798,7 +795,7 @@ GET /api/attempts/{id}/wrong-answers?include_correct=true
 
 ## Mô tả
 
-Sau bài thi, người học được xem ba đến năm điểm kiến thức còn yếu nhất. Danh sách dựa trên mức độ nắm vững kiến thức đã ghi nhận, giúp họ biết nên ôn phần nào trước.
+Sau bài thi, người học xem những điểm kiến thức yếu nhất trong chính đề vừa làm, xếp theo mức độ nắm vững từ thấp đến cao. Hệ thống trả tối đa năm điểm; nếu đề có ít hơn ba điểm kiến thức hợp lệ thì hiển thị số lượng hiện có.
 
 > **Nguồn dữ liệu:** `user_knowledge_state.mastery`, **không phải** đếm câu sai trong
 > `attempt_answers`. Đã xác nhận khi phân tích phương án DB.
@@ -911,7 +908,7 @@ GET /api/me/weak-points              (toàn cục — A3)
 
 ## Mô tả
 
-Người học bấm “Luyện ngay” ở một câu sai hoặc điểm yếu. Bài luyện mở ra đúng phần kiến thức và dạng câu hỏi liên quan để họ sửa ngay chỗ vừa làm chưa tốt.
+Người học bấm “Luyện ngay” ở một câu sai hoặc điểm yếu để luyện đúng điểm kiến thức liên quan. Hệ thống ưu tiên câu hỏi cùng dạng với câu vừa sai; nếu không đủ câu, có thể dùng dạng khác của cùng điểm kiến thức.
 
 ## Tiền điều kiện
 
@@ -1025,8 +1022,8 @@ GET /api/practice/questions?knowledge_point_id={k}&type={t}
 | 4 | UC-040 | `NO_KNOWLEDGE_POINTS_IN_EXAM` | Quên gắn nhãn khi nhập đề → tính năng "bán được nhất" thành màn hình trống |
 | 5 | UC-035 | `MASTERY_UPDATE_FAILED` | Có điểm mà mastery không đổi → UC-040 chỉ điểm yếu **sai** |
 | 6 | UC-037 · UC-041 | `UNAPPROVED_QUESTION_SERVED` | Câu AI chưa duyệt đến người học — vi phạm luật kiểm duyệt của 3.3 |
-| 7 | UC-036 | `NO_DRAFT_STORAGE` | Chưa chốt lưu nháp ở đâu; cả 3 phương án đều vướng một ràng buộc |
-| 8 | UC-035 | `QUESTION_CHANGED_MID_ATTEMPT` | Admin sửa đáp án giữa lúc người học làm bài — chưa có snapshot |
+| 7 | UC-036 | `DRAFT_SAVE_FAILED` | Lưu nháp thất bại thì người học vẫn tiếp tục làm bài và được báo trạng thái chưa lưu |
+| 8 | UC-035 | `QUESTION_CHANGED_MID_ATTEMPT` | Chấm theo `attempts.served_items` để thay đổi của admin không ảnh hưởng bài đã phát |
 
 ## Bốn nhóm exception lặp lại khắp nhóm 2
 
@@ -1043,11 +1040,11 @@ GET /api/practice/questions?knowledge_point_id={k}&type={t}
 
 | # | Thiếu | UC bị ảnh hưởng | Mức |
 | --- | --- | --- | --- |
-| 1 | **Chưa chốt nơi lưu bản nháp bài thi** — 3 phương án đều vướng ràng buộc (`attempt_answers` không đụng / JSONB chỉ đọc / Redis chưa chốt vị trí) | UC-036 | 🔴 Chặn |
-| 2 | **Chưa quyết chấm theo đáp án lúc `served_at` hay lúc nộp** — không có snapshot đề | UC-035 | 🔴 Chấm sai người học |
+| 1 | Nơi lưu nháp đã chốt là `attempts.draft_answers` và `draft_saved_at`; cần triển khai ghi mỗi 30 giây nếu đưa chức năng tùy chọn UC-036 vào phạm vi | UC-036 | ⚠️ Tùy chọn |
+| 2 | Đã chốt chấm theo snapshot `attempts.served_items` tại `served_at`; cần bảo đảm snapshot được ghi một lần khi bắt đầu bài | UC-035 | Đã chốt quy tắc |
 | 3 | Chưa có validate "mọi câu phải có ≥ 1 nhãn kiến thức" khi nhập đề | UC-040 · UC-041 | 🔴 Làm mù cả tính năng 2.3 |
 | 4 | Chưa có DTO riêng cho câu hỏi lúc làm bài + test assert không lộ `is_correct` | UC-034 | 🔴 Lộ đáp án |
-| 5 | Khoá ngoại `attempt_answers → questions` chưa chốt `ON DELETE RESTRICT` | UC-039 | 🔴 Xoá câu hỏi là mất lịch sử làm bài |
+| 5 | Khoá ngoại `attempt_items → questions` chưa chốt `ON DELETE RESTRICT` | UC-039 | 🔴 Xoá câu hỏi là mất lịch sử làm bài |
 | 6 | Chưa có `AttemptAccessGuard` dùng chung (sở hữu + trạng thái) | UC-035 → UC-040 | 🔴 5 chỗ kiểm rời rạc |
 | 7 | Chưa có index `(user_id, mastery)` và `question_knowledge_points(knowledge_point_id)` | UC-040 · UC-041 | ⚠️ Quét toàn bảng |
 | 8 | Chưa chốt giới hạn số lượt làm đề mỗi ngày | UC-034 | ⚠️ Farm mastery |
