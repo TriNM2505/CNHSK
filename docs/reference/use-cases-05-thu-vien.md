@@ -39,20 +39,27 @@
 
 ## Mô tả
 
-Nhập chữ Hán, nhận: pinyin · nghĩa · âm Hán-Việt · cấu tạo · câu chuyện chữ · animation nét ·
-từ ghép chứa chữ. `GUEST` tra được **có giới hạn**.
+Người dùng nhập **một hoặc nhiều chữ Hán** để tra cứu thông tin từ điển.
+
+Hệ thống trả về các thông tin tương ứng nếu có, bao gồm: **pinyin · nghĩa · âm Hán-Việt · cấu tạo chữ · câu chuyện chữ · animation thứ tự nét · từ ghép chứa chữ**.
+
+`GUEST` và `USER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống .
 
 ## Tiền điều kiện
 
-1. `characters` hoặc `words` có dữ liệu
-2. Nếu `GUEST`: chưa vượt giới hạn tra theo IP
+1. Người dùng đang truy cập chức năng tra từ điển.
+2. Dữ liệu từ điển của hệ thống đang khả dụng.
+3. Nếu là `USER`, phiên đăng nhập còn hợp lệ để sử dụng các chức năng dành riêng cho tài khoản.
 
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
 | --- | --- |
-| `USER` tra | Ghi `feature_usage` nếu tính lượt; cache Redis `learn:dict:*` |
-| `GUEST` tra | Tăng bộ đếm theo IP; **không** ghi vào tài khoản |
+| Tra cứu thành công | Hệ thống hiển thị thông tin từ điển tương ứng với nội dung người dùng nhập |
+| `USER` tra cứu | Tăng bộ đếm theo IP; **không** ghi vào tài khoản |
+| `GUEST` tra cứu | Được xem kết quả nhưng không được lưu vào sổ tay hoặc flashcard; lượt tra cứu Guest được cập nhật |
+
+
 
 ## Luồng chính
 
@@ -142,6 +149,8 @@ GET /api/dictionary/lookup?q={x}            (USER)
 | T7 | `GUEST` xem response | **Không** có nút lưu |
 | T8 | `q='; DROP TABLE--` | Không lỗi SQL, trả 404 |
 
+
+
 ---
 
 # UC-057 · Tra từ điển bằng pinyin
@@ -152,11 +161,20 @@ GET /api/dictionary/lookup?q={x}            (USER)
 
 ## Mô tả
 
-Nhập pinyin (có hoặc không dấu thanh) → danh sách chữ/từ có pinyin đó.
+Người dùng nhập **pinyin có dấu thanh hoặc không có dấu thanh** để tìm các chữ Hán hoặc từ có cách đọc tương ứng.
+
+Hệ thống chuẩn hóa đầu vào nhưng vẫn bảo toàn thông tin thanh điệu và ranh giới âm tiết nếu người dùng đã cung cấp. Kết quả được sắp xếp theo mức độ phổ biến, hiển thị pinyin có dấu thanh và cho phép người dùng chọn một mục để xem chi tiết.
+
+`GUEST` và `USER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống.
+
+
 
 ## Tiền điều kiện
 
-`characters.pinyin` và `words.pinyin` đã chuẩn hoá (có bản không dấu để tìm).
+1. Người dùng đang truy cập chức năng tra từ điển.
+2. Dữ liệu từ điển của hệ thống đang khả dụng.
+3. Nếu là `USER`, phiên đăng nhập còn hợp lệ để sử dụng các chức năng dành riêng cho tài khoản.
+
 
 ## Hậu điều kiện
 
@@ -176,13 +194,14 @@ Chỉ đọc + cache.
 ## Luồng thay thế
 
 **A1 — Nhập có dấu thanh**
-Tìm chính xác trước (`hǎo` → chỉ thanh 3), không có thì nới ra mọi thanh.
+
+Hệ thống bảo toàn thông tin thanh điệu, ưu tiên kết quả khớp đúng thanh. Nếu không có kết quả phù hợp, hệ thống có thể mở rộng sang các kết quả cùng âm nhưng khác thanh.
 
 **A2 — Nhập nhiều âm tiết (`nihao`)**
-Tách âm tiết theo quy tắc pinyin, tra như một từ.
+Hệ thống xác định các âm tiết hợp lệ, ưu tiên tra toàn bộ chuỗi như một từ hoặc cụm từ. Nếu không tìm thấy, hệ thống xử lý theo từng cách phân tách âm tiết hợp lệ.
 
 **A3 — Pinyin không hợp lệ (`xyz`)**
-Không có tổ hợp đó trong tiếng Trung. Trả rỗng kèm gợi ý.
+Hệ thống trả danh sách rỗng và có thể gợi ý các pinyin gần giống nếu dữ liệu cho phép.
 
 ## Bảng exception
 
@@ -245,7 +264,11 @@ GET /api/public/dictionary/search?type=pinyin&q={x}
 
 ## Mô tả
 
-Nhập tiếng Việt ("xin chào") → từ tiếng Trung tương ứng. Hướng tra **ngược** so với UC-056.
+Người dùng nhập **nghĩa tiếng Việt** để tìm các chữ Hán hoặc từ tiếng Trung có nghĩa tương ứng.
+
+Hệ thống hỗ trợ tìm kiếm tiếng Việt có dấu và không dấu, ưu tiên kết quả khớp chính xác trước rồi mới đến khớp đầu cụm và khớp một phần. Kết quả trả về gồm từ tiếng Trung, pinyin, nghĩa và sắc thái/ngữ vực nếu dữ liệu có.
+
+`GUEST` và `USER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống.
 
 ## Tiền điều kiện
 
@@ -259,11 +282,11 @@ Chỉ đọc + cache.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Người dùng | Nhập "xin chào" |
-| 2 | System | Chuẩn hoá: chữ thường, bỏ dấu tuỳ chọn |
-| 3 | System | Tìm trong `words.meaning_vi` — khớp cả cụm trước, rồi khớp một phần |
-| 4 | System | Sắp: khớp chính xác → khớp đầu chuỗi → khớp giữa |
-| 5 | System | Trả danh sách từ Trung kèm pinyin và nghĩa đầy đủ |
+| 1 | Người dùng | Nhập nghĩa tiếng Việt cần tra, ví dụ `xin chào` |
+| 2 | System | Kiểm tra và chuẩn hóa đầu vào: loại bỏ khoảng trắng thừa, chuyển về chữ thường và tạo dạng chuẩn hóa không dấu phục vụ tìm kiếm |
+| 3 | System | Tìm trong `words.meaning_vi` — Ưu tiên kết quả theo thứ tự: khớp chính xác → khớp đầu cụm → khớp một phần|
+| 4 | System | Sắp xếp các kết quả cùng mức độ khớp theo chỉ số phổ biến hoặc tần suất được cấu hình |
+| 5 | System | Trả danh sách từ/chữ tiếng Trung kèm pinyin, nghĩa đầy đủ và sắc thái/ngữ vực nếu có |
 
 ## Luồng thay thế
 
@@ -338,8 +361,12 @@ GET /api/public/dictionary/search?type=meaning&q={x}
 
 ## Mô tả
 
-Không biết đọc, không biết nghĩa — chỉ thấy chữ. Chọn bộ thủ + số nét để tìm. Cách tra truyền
-thống của từ điển Hán.
+Người dùng không biết cách đọc hoặc nghĩa của chữ Hán nhưng nhận diện được hình dạng chữ, từ đó tra cứu bằng **bộ thủ**, **tổng số nét** hoặc kết hợp cả hai điều kiện.
+
+Hệ thống trả danh sách các chữ Hán phù hợp, cho phép người dùng chọn một chữ để xem chi tiết.
+
+`GUEST` và `USER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống.
+
 
 ## Tiền điều kiện
 
@@ -354,23 +381,23 @@ Chỉ đọc.
 | # | Actor | Hành động |
 | --- | --- | --- |
 | 1 | Người dùng | Mở "Tra theo bộ thủ" |
-| 2 | System | `GET /api/public/dictionary/radicals` — danh sách bộ thủ kèm số chữ mỗi bộ |
-| 3 | Người dùng | Chọn bộ 氵 (nước) |
-| 4 | Người dùng | Chọn tổng số nét 7 (tuỳ chọn) |
+| 2 | System | `GET /api/public/dictionary/radicals` — Hiển thị danh sách bộ thủ khả dụng và số lượng chữ tương ứng nếu có dữ liệu |
+| 3 | Người dùng | Chọn một bộ thủ ví dụ :Chọn bộ 氵 (nước) |
+| 4 | Người dùng | Chọn tổng số nét của chữ nếu muốn thu hẹp kết quả ví dụ :Chọn tổng số nét 7 (tuỳ chọn) |
 | 5 | System | `GET /api/public/dictionary/by-radical?radical=氵&strokes=7` |
-| 6 | System | Trả chữ khớp, sắp theo số nét rồi tần suất |
+| 6 | System | Tìm các chữ Hán phù hợp với điều kiện. Sắp xếp kết quả theo tổng số nét, sau đó theo mức độ phổ biến hoặc tần suất được cấu hình |
 | 7 | Người dùng | Bấm một chữ → UC-056 |
 
 ## Luồng thay thế
 
 **A1 — Chỉ chọn bộ, không chọn số nét**
-Trả hết chữ thuộc bộ, nhóm theo số nét.
+Hệ thống trả các chữ thuộc bộ thủ đã chọn, sắp xếp hoặc nhóm theo tổng số nét và áp dụng phân trang nếu số lượng kết quả lớn.
 
 **A2 — Chỉ chọn số nét**
-Trả hết chữ có số nét đó, nhóm theo bộ.
+Hệ thống trả các chữ có tổng số nét tương ứng, nhóm hoặc sắp xếp theo bộ thủ và áp dụng phân trang nếu cần.
 
 **A3 — Không có chữ nào khớp**
-Gợi ý nới điều kiện (±1 nét).
+Hệ thống thông báo không tìm thấy kết quả và có thể gợi ý nới điều kiện số nét theo khoảng ±1. Hệ thống chỉ thực hiện tìm kiếm mở rộng khi người dùng lựa chọn.
 
 ## Bảng exception
 
@@ -433,7 +460,9 @@ GET /api/public/dictionary/by-radical?radical={r}&strokes={n}
 
 ## Mô tả
 
-Dịch câu/đoạn hai chiều, kết quả **kèm pinyin và tách từ** để bấm từng từ (UC-061).
+`USER` đã đăng nhập có thể dịch câu hoặc đoạn văn hai chiều **Trung ↔ Việt**.
+
+Kết quả dịch kèm **pinyin** và **danh sách từ/cụm đã tách** đối với phần nội dung tiếng Trung để người học có thể chọn từng từ và tiếp tục tra cứu ở UC-061.
 **Tốn tiền mỗi lượt** — gọi API ngoài. Nghiệm thu: câu 20 từ dưới 3 giây.
 
 ## Tiền điều kiện
@@ -455,9 +484,9 @@ Dịch câu/đoạn hai chiều, kết quả **kèm pinyin và tách từ** đ�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Dán đoạn văn, chọn hướng dịch |
+| 1 | `USER` | Nhập hoặc dán câu/đoạn văn và chọn hướng dịch Trung → Việt, Việt → Trung |
 | 2 | Client | `POST /api/translate` — `{text, from, to}` |
-| 3 | System | Kiểm độ dài ≤ 2.000 |
+| 3 | System |  Kiểm tra nội dung đầu vào và giới hạn tối đa 2.000 ký tự |
 | 4 | System | Tính hash của `text` → kiểm cache `learn:translate:{hash}` |
 | 5 | System | **Cache hit** → trả ngay, **không trừ lượt** |
 | 6 | System | Cache miss → **kiểm quota** |
@@ -473,13 +502,13 @@ Dịch câu/đoạn hai chiều, kết quả **kèm pinyin và tách từ** đ�
 Trả ngay, không trừ lượt. Nhiều người dịch cùng câu phổ biến thì chỉ lần đầu tốn tiền.
 
 **A2 — API dịch lỗi sau khi đã trừ lượt**
-🔴 **Hoàn lượt ngay** (UC-097). Xem exception.
+🔴 **Hoàn lượt ngay** (UC-097). Hệ thống không làm mất quota của người dùng. Nếu quota đã được giữ hoặc đã trừ trước đó, hệ thống phải release hoặc hoàn lại theo cơ chế quota hiện hành.
 
 **A3 — Đoạn quá dài**
-400 kèm số ký tự thực tế, gợi ý chia nhỏ.
+Hệ thống trả `TEXT_TOO_LONG`, không tiêu quota và yêu cầu người dùng rút ngắn hoặc chia nhỏ nội dung.
 
 **A4 — Tự nhận hướng dịch**
-Text toàn ký tự Hán → Trung→Việt; toàn Latin → Việt→Trung.
+Nếu người dùng chọn `AUTO`, hệ thống tự nhận diện hướng Trung → Việt hoặc Việt → Trung. Nếu không xác định được với độ tin cậy phù hợp, hệ thống yêu cầu người dùng chọn hướng dịch thủ công.
 
 ## Bảng exception
 
@@ -563,8 +592,8 @@ GET  /api/me/translation-history
 
 ## Mô tả
 
-Kết quả dịch đã tách từ — bấm từ nào hiện popup nghĩa từ đó. Giống UC-031 (phụ đề video) nhưng
-nguồn là kết quả dịch.
+
+Kết quả dịch đã tách từ — bấm từ nào hiện popup nghĩa từ đó. Giống UC-031 (phụ đề video) nhưng nguồn là kết quả dịch.
 
 ## Tiền điều kiện
 
@@ -648,35 +677,44 @@ GET /api/dictionary/lookup?q={word}
 
 ## Mô tả
 
-Từ popup tra cứu, lưu từ vào `notes` kèm nghĩa và ngữ cảnh. Giống UC-032 nhưng nguồn là tra
-từ điển, không phải phụ đề video.
+`USER` có thể lưu một chữ hoặc từ từ kết quả tra cứu vào **sổ tay cá nhân**.
 
+Hệ thống điền sẵn tiêu đề và nội dung từ dữ liệu tra cứu, bao gồm chữ/từ, pinyin, nghĩa và ngữ cảnh nếu có. Người dùng có thể chỉnh sửa nội dung, thêm thẻ trước khi lưu hoặc sử dụng chế độ lưu nhanh.
+
+Ghi chú được tạo luôn thuộc về tài khoản hiện tại và không cho phép client tự chỉ định `user_id`.
 ## Tiền điều kiện
 
 `USER` đã đăng nhập; đang xem kết quả tra.
 
 ## Hậu điều kiện
 
-`notes` thêm dòng có `title`, `content`, `tags`, nguồn.
+| Kết quả | Trạng thái |
+| --- | --- |
+| Lưu thành công | Một ghi chú mới được thêm vào sổ tay của người dùng hiện tại |
+| Người dùng chỉnh sửa | Ghi chú được lưu theo nội dung cuối cùng mà người dùng xác nhận |
+| Ghi chú trùng từ | Vẫn được phép tạo ghi chú mới |
+| Vượt giới hạn | Không tạo ghi chú mới |
+| Lưu thất bại | Không tạo ghi chú không hoàn chỉnh hoặc sai ownership |
+| Chọn lưu flashcard | Chuyển sang UC-063 như một thao tác độc lập |
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Lưu vào sổ tay" |
+| 1 | `USER` | Chọn **Lưu vào sổ tay** từ kết quả tra cứu |
 | 2 | Client | Mở form: tiêu đề mặc định là chữ, nội dung mặc định là nghĩa + pinyin |
-| 3 | `USER` | Sửa nếu muốn, thêm thẻ |
+| 3 | `USER` | Chỉnh sửa tiêu đề, nội dung hoặc thêm thẻ nếu cần |
 | 4 | Client | `POST /api/notes` |
-| 5 | System | Kiểm giới hạn số ghi chú |
+| 5 | System |  Kiểm tra dữ liệu đầu vào và giới hạn sổ tay |
 | 6 | System | Ghi `notes` với `user_id` từ token |
-| 7 | Client | Hiện "đã lưu" |
+| 7 | Client | Hiển thị thông báo lưu thành công |
 
 ## Luồng thay thế
 
 **A1 — Đã có ghi chú cho từ này**
-Không chặn — sổ tay là "viết gì cũng được", trùng là bình thường. Nhưng cảnh báo nhẹ.
-**A2 — Lưu nhanh không mở form** — dùng mặc định hết.
-**A3 — Lưu cả vào flashcard** — gọi thêm UC-063.
+Hệ thống vẫn cho phép tạo ghi chú mới. Có thể hiển thị cảnh báo nhẹ rằng từ này đã từng được lưu nhưng không chặn người dùng.
+**A2 — Lưu nhanh không mở form** — Hệ thống tạo ghi chú bằng dữ liệu mặc định từ kết quả tra cứu mà không mở form chỉnh sửa.
+**A3 — Lưu cả vào flashcard** — Sau khi xử lý lưu sổ tay, người dùng có thể tiếp tục UC-063 để tạo flashcard. Việc tạo flashcard là thao tác độc lập với kết quả lưu ghi chú.
 
 ## Bảng exception
 
@@ -740,7 +778,9 @@ POST /api/notes
 
 ## Mô tả
 
-Từ popup tra cứu, thêm thẻ vào một bộ flashcard. Mặt trước chữ, mặt sau nghĩa + pinyin.
+`USER` có thể thêm một chữ hoặc từ từ kết quả tra cứu vào một bộ flashcard thuộc sở hữu của mình.
+
+Mặt trước của thẻ mặc định là chữ hoặc từ tiếng Trung. Mặt sau mặc định gồm nghĩa và pinyin. Nội dung thẻ được sao chép tại thời điểm tạo để bảo đảm thay đổi dữ liệu từ điển sau này không tự động làm thay đổi flashcard đã lưu.
 
 ## Tiền điều kiện
 
@@ -755,22 +795,21 @@ Từ popup tra cứu, thêm thẻ vào một bộ flashcard. Mặt trước ch�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Thêm flashcard" |
-| 2 | Client | Hiện danh sách bộ của mình + nút tạo mới |
+| 1 | `USER` | Chọn **Thêm vào flashcard** từ kết quả tra cứu |
+| 2 | Client | Hiển thị danh sách các bộ flashcard thuộc sở hữu của người dùng và tùy chọn tạo bộ mới |
 | 3 | `USER` | Chọn bộ |
 | 4 | Client | `POST /api/flashcard-decks/{id}/cards` |
 | 5 | System | **Kiểm sở hữu bộ** |
-| 6 | System | Kiểm trùng thẻ trong bộ |
-| 7 | System | Kiểm giới hạn số thẻ |
+| 6 | System | Kiểm tra flashcard đã tồn tại trong bộ hay chưa |
+| 7 | System | Kiểm tra giới hạn số thẻ của bộ flashcard |
 | 8 | System | Ghi `flashcards`, `next_review_at = now()` (ôn ngay lần đầu) |
 | 9 | Client | Hiện "đã thêm vào bộ X" |
 
 ## Luồng thay thế
 
-**A1 — Chưa có bộ nào** — tạo bộ + thêm thẻ trong một thao tác (gọi UC-067 rồi UC-063).
-**A2 — Thẻ đã có trong bộ** — 409, cho chọn bộ khác.
-**A3 — Thêm vào nhiều bộ** — cho phép; mỗi bộ một dòng `flashcards` riêng.
-
+**A1 — Chưa có bộ nào** — Người dùng có thể chuyển sang UC-067 để tạo bộ mới. Sau khi tạo thành công, người dùng quay lại UC-063 và thêm thẻ vào bộ vừa tạo.
+**A2 — Thẻ đã có trong bộ** — 409, Hệ thống không tạo flashcard trùng và thông báo để người dùng chọn bộ khác hoặc kết thúc thao tác.
+**A3 — Thêm vào nhiều bộ** — Hệ thống không tạo flashcard trùng và thông báo để người dùng chọn bộ khác hoặc kết thúc thao tác.
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
@@ -837,8 +876,9 @@ GET  /api/flashcard-decks              (bộ của mình)
 
 ## Mô tả
 
-Sổ tay **thuần ghi chú** — viết gì cũng được: mẹo nhớ chữ, câu mẫu, lỗi hay sai, tóm tắt bài.
-Tổ chức bằng tiêu đề và thẻ.
+`USER` có thể tạo, sửa và xóa ghi chú cá nhân trong sổ tay.
+
+Sổ tay **thuần ghi chú** — Sổ tay là nơi ghi chú tự do, cho phép người học lưu mẹo nhớ chữ, câu mẫu, lỗi thường gặp hoặc tóm tắt bài học. Ghi chú được tổ chức bằng tiêu đề và thẻ.
 
 > **Thay đổi so với bản 1:** **bỏ liên kết vào học** — không còn bảng `note_links`, từ trong
 > ghi chú **không** tự vào lịch ôn. Đơn giản hơn.
@@ -851,9 +891,9 @@ Tổ chức bằng tiêu đề và thẻ.
 
 | Thao tác | Trạng thái |
 | --- | --- |
-| Tạo | `notes` thêm dòng |
-| Sửa | Cập nhật `updated_at` |
-| Xoá | Xoá dòng (hoặc soft delete — cần chốt) |
+| Tạo | `notes` Một ghi chú mới thuộc tài khoản hiện tại được tạo |
+| Sửa | Nội dung ghi chú được cập nhật và ghi nhận thời gian sửa cuối `updated_at` |
+| Xoá | Ghi chú được soft delete và không xuất hiện trong danh sách mặc định (hoặc soft delete — cần chốt) |
 
 ## Luồng chính — Tạo
 
@@ -869,9 +909,9 @@ Tổ chức bằng tiêu đề và thẻ.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở ghi chú, sửa |
+| 1 | `USER` | Mở một ghi chú của mình, Chỉnh sửa tiêu đề, nội dung hoặc thẻ |
 | 2 | Client | `PUT /api/notes/{id}` |
-| 3 | System | **Kiểm sở hữu** |
+| 3 | System | Kiểm tra ghi chú tồn tại, chưa bị xóa và thuộc sở hữu của người dùng hiện tại |
 | 4 | System | Cập nhật, ghi `updated_at` |
 
 ## Luồng chính — Xoá
@@ -880,7 +920,7 @@ Tổ chức bằng tiêu đề và thẻ.
 | --- | --- | --- |
 | 1 | `USER` | Bấm xoá, xác nhận |
 | 2 | Client | `DELETE /api/notes/{id}` |
-| 3 | System | **Kiểm sở hữu** |
+| 3 | System | Kiểm tra ghi chú tồn tại, chưa bị xóa và thuộc sở hữu của người dùng hiện tại |
 | 4 | System | Xoá |
 
 ## Luồng thay thế
@@ -971,6 +1011,7 @@ Tìm theo nội dung ghi chú, tiêu đề, hoặc thẻ. Nghiệm thu 4.2: "vi�
 ## Tiền điều kiện
 
 `USER` đã đăng nhập, có ≥ 1 ghi chú.
+`USER` có thể tìm kiếm ghi chú cá nhân theo **tiêu đề hoặc nội dung**, đồng thời có thể lọc ghi chú theo **thẻ**.
 
 ## Hậu điều kiện
 
@@ -980,7 +1021,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Nhập từ khoá |
+| 1 | `USER` | Nhập từ khóa tìm kiếm |
 | 2 | Client | `GET /api/notes/search?q={x}` |
 | 3 | System | **Chỉ tìm trong ghi chú của người đang đăng nhập** |
 | 4 | System | Tìm trong `title` và `content` |
@@ -989,8 +1030,8 @@ Chỉ đọc.
 
 ## Luồng thay thế
 
-**A1 — Tìm theo thẻ** — `?tag=x`, khớp chính xác thẻ.
-**A2 — Không có kết quả** — hiện "không tìm thấy", gợi ý xem hết.
+**A1 — Tìm theo thẻ** — `?tag=x`, khớp chính xác thẻ.Hệ thống chỉ trả các ghi chú chưa bị xóa của người dùng hiện tại có thẻ phù hợp theo giá trị thẻ đã chuẩn hóa.
+**A2 — Không có kết quả** — Hệ thống trả danh sách rỗng và hiển thị thông báo "không tìm thấy", gợi ý xem hết.
 **A3 — Từ khoá tiếng Trung** — tìm được vì `content` lưu Unicode.
 
 ## Bảng exception
@@ -1081,8 +1122,8 @@ Thẻ đến hạn hiện lên, mặt trước chữ, lật ra nghĩa + pinyin, 
 | --- | --- | --- |
 | 1 | `USER` | Vào "Ôn flashcard" |
 | 2 | System | `GET /api/flashcards/due` — thẻ đến hạn **trong bộ của mình** |
-| 3 | Client | Hiện mặt trước (chữ) |
-| 4 | `USER` | Tự nhớ, bấm "Lật thẻ" |
+| 3 | Client | Hiển thị mặt trước của flashcard |
+| 4 | `USER` | Tự nhớ nội dung và chọn **Lật thẻ** |
 | 5 | Client | Hiện mặt sau: nghĩa + pinyin + audio |
 | 6 | `USER` | Chọn "Nhớ" / "Khó" / "Quên" |
 | 7 | Client | `POST /api/flashcards/{id}/review` — `{rating}` |
@@ -1093,10 +1134,10 @@ Thẻ đến hạn hiện lên, mặt trước chữ, lật ra nghĩa + pinyin, 
 
 ## Luồng thay thế
 
-**A1 — Không có thẻ đến hạn** — hiện "hôm nay không có thẻ nào cần ôn".
-**A2 — Ôn một bộ cụ thể** — `?deck_id=x`, kiểm sở hữu bộ.
+**A1 — Không có thẻ đến hạn** — Hệ thống hiển thị thông báo "hôm nay không có thẻ nào cần ôn".
+**A2 — Ôn một bộ cụ thể** — `?deck_id=x`, Người dùng chọn một bộ flashcard thuộc sở hữu của mình; hệ thống chỉ lấy các thẻ đủ điều kiện trong bộ đó..
 **A3 — Quá nhiều thẻ đến hạn** — giới hạn 100 thẻ/buổi.
-**A4 — Ôn trước hạn** — cho phép, FSRS giãn ít hơn.
+**A4 — Ôn trước hạn** — Người dùng có thể chủ động review một flashcard chưa đến hạn thuộc bộ của mình, FSRS giãn ít hơn.
 
 ## Bảng exception
 
@@ -1167,7 +1208,15 @@ POST /api/flashcards/{id}/review
 
 ## Mô tả
 
-Tạo bộ thẻ mới. Nguồn thẻ: tự tạo · bộ dựng sẵn theo cấp HSK · bộ người khác chia sẻ (V2).
+tạo từ một preset HSK do hệ thống cung cấp.
+
+Bộ flashcard mới luôn thuộc tài khoản hiện tại và mặc định ở trạng thái riêng tư.
+
+Trong MVP, UC-067 hỗ trợ:
+- Tạo bộ trống.
+- Tạo bộ từ preset HSK khả dụng.
+
+Chức năng sao chép bộ flashcard công khai của người dùng khác thuộc phạm vi V2 và không nằm trong luồng chính của UC-067 MVP.
 
 ## Tiền điều kiện
 
@@ -1184,17 +1233,17 @@ Tạo bộ thẻ mới. Nguồn thẻ: tự tạo · bộ dựng sẵn theo cấ
 | 1 | `USER` | Bấm "Tạo bộ mới" |
 | 2 | `USER` | Nhập tên, mô tả; chọn nguồn (trống / HSK dựng sẵn / sao chép) |
 | 3 | Client | `POST /api/flashcard-decks` |
-| 4 | System | Kiểm giới hạn số bộ, kiểm tên không trùng trong bộ của mình |
-| 5 | System | Ghi `flashcard_decks` với `is_public = false` |
-| 6 | System | Nguồn = HSK dựng sẵn → copy thẻ từ mẫu |
-| 7 | System | Nguồn = sao chép → gọi luồng UC-068 A |
-| 8 | Client | Mở bộ vừa tạo |
+| 4 | System | Kiểm tra dữ liệu đầu vào và giới hạn số bộ flashcard của người dùng |
+| 5 | System | Tạo bộ flashcard mới thuộc tài khoản hiện tại và mặc định ở trạng thái riêng tư |
+| 6 | System | Nếu người dùng chọn preset HSK, sao chép nội dung thẻ từ preset vào bộ mới |
+| 7 | System | Khởi tạo scheduling state của các thẻ được sao chép như flashcard mới |
+| 8 | Client | Mở bộ flashcard vừa được tạo |
 
 ## Luồng thay thế
 
 **A1 — Bộ dựng sẵn HSK1** — copy toàn bộ từ HSK1 vào bộ mới, mỗi thẻ `next_review_at = now()`.
 **A2 — Sao chép bộ người khác đã chia sẻ** (V2) — copy thẻ, **reset lịch ôn** về `now()`.
-**A3 — Tên trùng** — cho phép nhưng cảnh báo, hoặc tự thêm "(2)".
+**A3 — Tên trùng** — Hệ thống vẫn cho phép tạo bộ flashcard mới. Có thể hiển thị cảnh báo nhẹ, hoặc tự thêm "(2)".
 
 ## Bảng exception
 
@@ -1264,7 +1313,10 @@ POST /api/flashcard-decks/{id}/copy      (V2)
 
 ## Mô tả
 
-Đánh dấu bộ là công khai → hiện trên cộng đồng → người khác sao chép về dùng.
+`USER` là chủ sở hữu của một bộ flashcard có thể chia sẻ bộ đó lên cộng đồng hoặc thu hồi trạng thái chia sẻ.
+
+Khi được chia sẻ, bộ flashcard có thể xuất hiện trong danh sách công khai để người khác xem và sử dụng các chức năng cộng đồng liên quan.
+
 `is_public` đọc thẳng trên `flashcard_decks`, **không còn bảng `shared_decks`**.
 
 > ⚠️ **P3 + V2 — đứng gần đầu danh sách cắt** nếu chậm tiến độ.
@@ -1279,30 +1331,29 @@ POST /api/flashcard-decks/{id}/copy      (V2)
 
 | Kết quả | Trạng thái |
 |---|---|
-| Chia sẻ | `flashcard_decks.is_public = true`, `shared_at` |
-| Thu hồi | `is_public = false`; **bản đã sao chép vẫn giữ** |
+| Chia sẻ | Bộ flashcard được chuyển sang trạng thái công khai và có thể xuất hiện trong danh sách cộng đồng |
+| Thu hồi |  Bộ flashcard trở về trạng thái riêng tư và không còn truy cập được qua phạm vi public|
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở bộ, bấm "Chia sẻ lên cộng đồng" |
-| 2 | System | **Kiểm sở hữu** |
-| 3 | System | Kiểm ≥ 5 thẻ |
-| 4 | System | ⚠️ Kiểm nội dung (kiểm duyệt — xem exception) |
+| 1 | `USER` | Mở một bộ flashcard của mình và chọn **Chia sẻ lên cộng đồng** |
+| 2 | System |  Kiểm tra bộ flashcard tồn tại và thuộc sở hữu của người dùng hiện tại |
+| 3 | System |  Kiểm tra điều kiện chia sẻ như số lượng thẻ tối thiểu và các validation hiện có |
+| 4 | System | Thực hiện các kiểm tra tự động có sẵn theo chính sách hệ thống (kiểm duyệt — xem exception) |
 | 5 | Client | `PATCH /api/flashcard-decks/{id}/share` |
-| 6 | System | `is_public = true`, ghi `shared_at` |
+| 6 | System |  Chuyển bộ flashcard sang trạng thái công khai và ghi nhận thời điểm chia sẻ `is_public = true`, ghi `shared_at` |
 | 7 | System | Bộ hiện ở danh sách công khai |
 | 8 | Client | Hiện link chia sẻ |
 
 ## Luồng thay thế
 
 **A1 — Thu hồi chia sẻ**
-`is_public = false`. Bộ ẩn khỏi danh sách công khai. **Bản người khác đã sao chép vẫn còn** —
-đó là bản độc lập (BR-063-6).
+`is_public = false`.Hệ thống chuyển bộ về trạng thái riêng tư và loại bộ khỏi danh sách hoặc link truy cập công khai. Các bản sao đã được người khác tạo trước đó vẫn tồn tại độc lập.
 
 **A2 — Sửa bộ sau khi chia sẻ**
-Cho phép. Người sao chép **sau** thấy bản mới; người sao chép **trước** giữ bản cũ.
+Chủ sở hữu vẫn được phép sửa bộ công khai. Người sao chép sau đó nhận snapshot mới nhất tại thời điểm copy; các bản sao đã tạo trước đó không tự động đồng bộ.
 
 **A3 — Xem danh sách bộ công khai**
 `GET /api/community/flashcard-decks` — `GUEST` xem được danh sách, cần đăng nhập để sao chép.

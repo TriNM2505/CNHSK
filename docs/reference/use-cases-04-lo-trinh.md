@@ -474,8 +474,12 @@ GET /api/learning-path/tree?hsk_level={n}
 
 ## Mô tả
 
-Khi `completion_percent` một chủ đề đạt **90%**, mở các chủ đề có nó là tiên quyết. Tự động,
-không ai bấm.
+Khi tiến độ của một chủ đề đạt ngưỡng hoàn thành, hệ thống tự động đánh dấu chủ đề đó là hoàn thành và kiểm tra các chủ đề phụ thuộc để mở khóa nếu toàn bộ điều kiện tiên quyết đã được đáp ứng.
+
+Ngưỡng hoàn thành mặc định trong MVP là **90%**.
+
+Đây là chức năng tự động của hệ thống, người học không cần thực hiện thao tác mở khóa thủ công.
+
 
 ## Tiền điều kiện
 
@@ -497,8 +501,8 @@ không ai bấm.
 | --- | --- | --- |
 | 1 | Caller | Sau khi cập nhật `user_topic_progress`, gọi `TopicGateService.evaluate(userId, topicId)` |
 | 2 | System | Đọc `completion_percent` **vừa ghi** (cùng transaction) |
-| 3 | System | So với ngưỡng 90 |
-| 4 | System | Đánh dấu chủ đề `COMPLETED` |
+| 3 | System | So sánh tiến độ với ngưỡng hoàn thành 90 |
+| 4 | System | Nếu đạt ngưỡng, đánh dấu chủ đề hiện tại là `COMPLETED` |
 | 5 | System | Tìm chủ đề có `topicId` là tiên quyết |
 | 6 | System | Với mỗi ứng viên: kiểm **mọi** tiên quyết khác đã `COMPLETED` chưa |
 | 7 | System | Đủ điều kiện → `INSERT` hoặc `UPDATE` thành `AVAILABLE`, ghi `unlocked_at` |
@@ -507,16 +511,16 @@ không ai bấm.
 ## Luồng thay thế
 
 **A1 — Chưa đủ 90%**
-Trả `{unlocked: [], needed: 90, actual: 82}`.
+Nếu tiến độ chưa đạt ngưỡng hoàn thành, hệ thống không đánh dấu chủ đề là `COMPLETED` và không mở các chủ đề phụ thuộc.
 
 **A2 — Mở nhiều chủ đề một lúc**
-Một chủ đề là tiên quyết của 3 chủ đề khác → mở cả 3 trong cùng transaction.
+Nếu một chủ đề là prerequisite của nhiều chủ đề khác và nhiều chủ đề cùng đủ điều kiện, hệ thống mở tất cả các chủ đề đủ điều kiện.
 
 **A3 — Chủ đề đã mở trước đó**
-Bỏ qua, không ghi trùng (idempotent).
+Nếu chủ đề ứng viên đã ở trạng thái `AVAILABLE` hoặc cao hơn, hệ thống giữ nguyên trạng thái hiện tại và không tạo bản ghi trùng hoặc ghi đè `unlocked_at`.
 
 **A4 — `completion_percent` giảm dưới 90 sau đó**
-Ví dụ UC-029 hạ từ `self_declared`. Chủ đề đã mở **vẫn mở** (BR-045-6).
+Nếu chủ đề ứng viên đã ở trạng thái `AVAILABLE` hoặc cao hơn, hệ thống giữ nguyên trạng thái hiện tại và không tạo bản ghi trùng hoặc ghi đè `unlocked_at`. Ví dụ UC-029 hạ từ `self_declared`. Chủ đề đã mở **vẫn mở** (BR-045-6).
 
 ## Bảng exception
 
@@ -597,8 +601,8 @@ Trả bộ bài luyện nhắm đúng phần yếu. Không tạo dữ liệu m�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Luyện phần còn yếu" trong chủ đề |
-| 2 | System | `GET /api/topics/{id}/weak-practice` |
+| 1 | `USER` | Chọn **Luyện phần còn yếu** trong một chủ đề |
+| 2 | System | Kiểm tra quyền truy cập và trạng thái của chủ đề`GET /api/topics/{id}/weak-practice` |
 | 3 | System | Lấy `topic_knowledge_points` của chủ đề |
 | 4 | System | Join `user_knowledge_state`, sắp `mastery` tăng dần |
 | 5 | System | Lấy các điểm `mastery < 0.9` (chưa đạt ngưỡng) |
@@ -610,11 +614,10 @@ Trả bộ bài luyện nhắm đúng phần yếu. Không tạo dữ liệu m�
 ## Luồng thay thế
 
 **A1 — Mọi điểm đều ≥ 0.9 nhưng % vẫn < 90**
-Nghĩa là còn từ **chưa học** (chưa có `user_knowledge_state`). Chuyển sang UC-026 (học từ mới)
-thay vì luyện.
+Nghĩa là còn từ **chưa học** (chưa có `user_knowledge_state`). Hệ thống không tạo bài luyện phần yếu và hướng người học tiếp tục học phần nội dung chưa được học theo use case phù hợp.
 
 **A2 — Kho không có câu cho điểm yếu**
-Gợi ý UC-048 (AI sinh bài theo điểm yếu).
+Hệ thống thông báo kho câu hỏi hiện chưa đủ cho các điểm yếu và cho phép người dùng chủ động chuyển sang chức năng tạo bài bằng AI nếu muốn. Gợi ý UC-048 (AI sinh bài theo điểm yếu).
 
 **A3 — Chủ đề đã đạt 90%**
 Vẫn cho luyện nếu muốn. Trả điểm yếu nhất còn lại, kèm cờ `already_completed: true`.
@@ -682,8 +685,7 @@ GET /api/topics/{id}/weak-practice
 
 ## Mô tả
 
-Người học bấm yêu cầu AI sinh câu hỏi mới bám điểm yếu của mình. Chạy **nền** — không bắt
-người học chờ. **Tốn lượt** (một trong 4 tính năng tốn phí).
+Người học bấm yêu cầu AI sinh câu hỏi mới bám điểm yếu của mình. Chạy **nền** — không bắtngười học chờ. **Tốn lượt** (một trong 4 tính năng tốn phí).
 
 ## Tiền điều kiện
 
@@ -703,7 +705,7 @@ người học chờ. **Tốn lượt** (một trong 4 tính năng tốn phí).
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Nhờ AI tạo bài luyện" |
+| 1 | `USER` | Chọn **Nhờ AI tạo bài luyện** |
 | 2 | System | `POST /api/ai/generate-practice` — `{knowledge_point_ids?, count}` |
 | 3 | System | Không truyền điểm → tự lấy 3–5 điểm yếu nhất (UC-040 A3) |
 | 4 | System | **Kiểm quota** qua `QuotaService` |
@@ -920,8 +922,7 @@ Không endpoint — worker nền.
 
 ## Mô tả
 
-Câu AI sinh cho người A, sau khi `TEACHER` duyệt, vào **kho chung** — người B cùng điểm yếu
-dùng lại, không cần sinh mới. Tiết kiệm chi phí API và làm kho giàu dần.
+Câu AI sinh cho người A, sau khi `TEACHER` duyệt, vào **kho chung** — người B cùng điểm yếu dùng lại, không cần sinh mới. Tiết kiệm chi phí API và làm kho giàu dần.
 
 ## Tiền điều kiện
 
@@ -938,11 +939,11 @@ Không tạo dữ liệu mới — chỉ là cách **truy vấn** ở UC-037, UC
 | # | Actor | Hành động |
 | --- | --- | --- |
 | 1 | Người B | Yêu cầu bài luyện (UC-037/041/047) |
-| 2 | System | Truy vấn `questions` theo `knowledge_point_id`, `status = APPROVED` |
+| 2 | System | Tìm các câu hỏi `APPROVED` và đang khả dụng được gắn với các knowledge point đó. Truy vấn `questions` theo `knowledge_point_id`, `status = APPROVED` |
 | 3 | System | **Không** lọc theo `generated_for_user_id` — lấy cả câu sinh cho người khác |
 | 4 | System | Loại câu người B **đã làm** trong 7 ngày qua |
-| 5 | System | Trả bộ câu |
-| 6 | System | Nếu kho đã đủ → **không** gợi ý sinh mới (tiết kiệm) |
+| 5 | System | Trả bộ câu hỏi phù hợp cho luồng luyện tập |
+| 6 | System | Nếu kho đã đủ câu, không chủ động đề xuất tạo thêm AI question |
 
 ## Luồng thay thế
 
@@ -1017,8 +1018,14 @@ Không endpoint riêng — là điều kiện truy vấn ở UC-037/041/047.
 
 ## Mô tả
 
-Dashboard: ngày học liên tiếp · tổng từ/chữ đã thuộc · điểm thi qua các lần · % hoàn thành
-từng chủ đề. Nghiệm thu: "số liệu khớp hoạt động thật; đọc được trên màn hình điện thoại".
+`USER` có thể mở dashboard tiến độ cá nhân để xem các chỉ số học tập chính, gồm:
+
+- chuỗi ngày học liên tiếp;
+- chuỗi ngày học dài nhất;
+- số điểm kiến thức đã đạt ngưỡng mastery;
+- lịch sử điểm thi/luyện đã hoàn tất;
+- phần trăm hoàn thành của từng chủ đề.
+Dashboard phải hiển thị được rõ ràng trên cả web và thiết bị di động.
 
 > **Lưu ý tài liệu:** mục "Analytics" của app cũ là dashboard GA4 đo lưu lượng web —
 > **khác hoàn toàn** UC này.
@@ -1036,24 +1043,21 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở trang "Tiến độ của tôi" |
-| 2 | System | `GET /api/me/progress` |
+| 1 | `USER` | Mở trang **Tiến độ của tôi** |
+| 2 | System | Xác định tài khoản hiện tại từ authentication context `GET /api/me/progress` |
 | 3 | System | Đếm `study_sessions` theo ngày → tính `current_streak`, `longest_streak` |
 | 4 | System | Đếm `user_knowledge_state` `mastery ≥ 0.9` theo loại (từ/chữ/ngữ pháp) |
 | 5 | System | Lấy `attempts` đã `SUBMITTED`, sắp theo thời gian → chuỗi điểm thi |
-| 6 | System | Lấy `user_topic_progress` → % từng chủ đề |
+| 6 | System | Lấy tiến độ của các chủ đề từ dữ liệu progression hiện hành. Lấy `user_topic_progress` → % từng chủ đề |
 | 7 | System | Trả gói dữ liệu tổng hợp |
-| 8 | Client | Hiện dashboard responsive |
+| 8 | Client | Hiển thị dashboard phù hợp với kích thước màn hình |
 
 ## Luồng thay thế
 
 **A1 — `USER` mới, chưa học gì**
-Mọi số 0, `streak = 0`. Hiện hướng dẫn bắt đầu thay vì bảng số 0.
-
+Hệ thống trả các metric rỗng hoặc bằng 0 theo định nghĩa và client hiển thị hướng dẫn bắt đầu học thay vì một dashboard toàn số 0.
 **A2 — Học nhiều thiết bị cùng ngày**
-`streak` tính theo **ngày** (giờ Việt Nam), không theo thiết bị. Học trên web và mobile cùng
-ngày vẫn là 1 ngày.
-
+Mọi hoạt động học hợp lệ trong cùng một local calendar date chỉ đóng góp một ngày vào `streak`, không phụ thuộc thiết bị.
 **A3 — Học lúc 23h50 và 00h10**
 Hai ngày khác nhau → `streak` +2. Đúng định nghĩa "ngày liên tiếp".
 
@@ -1140,8 +1144,8 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn khoảng 7/30/90 ngày |
-| 2 | System | `GET /api/me/progress/chart?days=30` |
+| 1 | `USER` | Chọn khoảng **7 ngày**, **30 ngày** hoặc **90 ngày** |
+| 2 | System | Kiểm tra giá trị khoảng thời gian yêu cầu `GET /api/me/progress/chart?days=30` |
 | 3 | System | Nhóm `study_sessions` theo ngày (giờ Việt Nam) |
 | 4 | System | Với mỗi ngày: đếm phút học, số câu đúng/sai, số điểm kiến thức mới thuộc |
 | 5 | System | **Điền 0 cho ngày không học** — biểu đồ phải liên tục |
@@ -1216,8 +1220,7 @@ GET /api/me/progress/chart?days={7|30|90}
 
 ## Mô tả
 
-Biểu đồ radar: mastery trung bình theo **kỹ năng** (nghe · đọc · viết · từ vựng · ngữ pháp ·
-chữ Hán). Nhìn một cái thấy ngay mình lệch chỗ nào.
+Biểu đồ radar: mastery trung bình theo **kỹ năng** (nghe · đọc · viết · từ vựng · ngữ pháp ·chữ Hán). Nhìn một cái thấy ngay mình lệch chỗ nào.
 
 ## Tiền điều kiện
 
@@ -1233,7 +1236,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở tab "Bản đồ kỹ năng" |
+| 1 | `USER` | Mở tab **Bản đồ kỹ năng** |
 | 2 | System | `GET /api/me/skill-map` |
 | 3 | System | Join `user_knowledge_state` với `knowledge_points` |
 | 4 | System | Nhóm theo loại kỹ năng, tính `AVG(mastery)` |
@@ -1244,14 +1247,13 @@ Chỉ đọc.
 ## Luồng thay thế
 
 **A1 — Kỹ năng chưa học điểm nào**
-`avg_mastery = null`, `learned_count = 0`. Client hiện vùng trống, **không** hiện 0 — chưa học
-khác với học mà yếu.
+Hệ thống trả `avgMastery = null` và `learnedCount = 0`. Client thể hiện trạng thái chưa có dữ liệu thay vì vẽ giá trị 0.
 
 **A2 — Kỹ năng chỉ có 1 điểm đã học**
 Vẫn trả nhưng `point_count = 1`. Client hiện chú thích "dữ liệu còn ít".
 
 **A3 — So sánh với mức trung bình người học cùng cấp**
-V2 — cần dữ liệu tổng hợp toàn hệ thống.
+Đây là phạm vi V2 vì cần cohort definition, dữ liệu tổng hợp toàn hệ thống và quy tắc privacy riêng.
 
 ## Bảng exception
 
@@ -1331,12 +1333,12 @@ nhắc lúc 20h **giờ Việt Nam**".
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở "Cài đặt nhắc học" |
+| 1 | `USER` | Mở màn hình **Cài đặt nhắc học** |
 | 2 | System | `GET /api/me/notification-settings` — trả cài đặt hoặc mặc định |
 | 3 | `USER` | Chọn giờ (ví dụ 20:00), bật email, tắt web |
 | 4 | Client | `PUT /api/me/notification-settings` |
-| 5 | System | Validate giờ `00:00`–`23:59` |
-| 6 | System | Nếu bật email: kiểm `email_verified_at IS NOT NULL` |
+| 5 | System | Kiểm tra giờ nhắc hợp lệ theo định dạng `HH:mm` và phạm vi `00:00–23:59` |
+| 6 | System | Nếu bật `EMAIL`, kiểm tra email hiện tại đã được xác thực `email_verified_at IS NOT NULL` |
 | 7 | System | Nếu bật đẩy mobile: kiểm có `user_devices` |
 | 8 | System | Ghi (upsert) |
 | 9 | Client | Hiện "đã lưu, bạn sẽ nhận nhắc lúc 20:00" |
@@ -1347,7 +1349,7 @@ nhắc lúc 20h **giờ Việt Nam**".
 Trả mặc định: 20:00, web bật, email tắt, đẩy tắt. Chưa ghi DB tới khi người học lưu.
 
 **A2 — Bật email mà chưa xác thực**
-Trả `EMAIL_NOT_VERIFIED`, gợi ý gửi lại link (UC-002).
+Hệ thống từ chối toàn bộ request với `EMAIL_NOT_VERIFIED`. Không field nào trong cài đặt hiện tại bị thay đổi.
 
 **A3 — Tắt hết kênh**
 Cho phép — đó là "không muốn bị nhắc". Không ép bật ít nhất một.
@@ -1422,8 +1424,7 @@ PUT /api/me/notification-settings
 
 ## Mô tả
 
-Tác vụ định kỳ: mỗi giờ quét người học đến giờ nhắc **và** có điểm kiến thức đến hạn ôn, gửi
-nhắc qua kênh đã bật.
+Tác vụ định kỳ: mỗi giờ quét người học đến giờ nhắc **và** có điểm kiến thức đến hạn ôn, gửi nhắc qua kênh đã bật.
 
 ## Tiền điều kiện
 
@@ -1443,10 +1444,10 @@ nhắc qua kênh đã bật.
 | # | Actor | Hành động |
 | --- | --- | --- |
 | 1 | Scheduler | Chạy đầu mỗi giờ, `zone = "Asia/Ho_Chi_Minh"` |
-| 2 | System | Lấy người có `reminder_time` giờ hiện tại, còn kênh bật |
+| 2 | System |  Tìm người dùng có reminder đến hạn và còn ít nhất một kênh MVP đang bật.Lấy người có `reminder_time` giờ hiện tại, còn kênh bật |
 | 3 | System | Với mỗi người: đếm `user_knowledge_state` `next_review_at ≤ now()` |
-| 4 | System | Đếm = 0 → **bỏ qua** |
-| 5 | System | Kiểm đã gửi trong 20h qua chưa (chống trùng) |
+| 4 | System | Nếu `dueCount = 0`, bỏ qua người dùng đó |
+| 5 | System | Kiểm tra đã gửi trong 20h qua chưa (chống trùng) |
 | 6 | System | Dựng nội dung: "Bạn có N điểm cần ôn hôm nay" |
 | 7 | System | Gửi theo từng kênh đã bật |
 | 8 | System | Ghi log đã gửi |
