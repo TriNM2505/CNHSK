@@ -1709,7 +1709,7 @@ Dữ liệu bảng xếp hạng gốc nằm ở database. Cache xếp hạng n�
 
 ## Mô tả
 
-Sau khi nộp quiz: điểm, câu đúng/sai, thời gian, **thứ hạng trong bảng của quiz đó**.
+Sau khi nộp quiz, người học xem điểm, số câu đúng sai và thời gian làm bài của mình. Nếu lượt làm đủ điều kiện xếp hạng, trang kết quả cũng cho biết vị trí của họ và bảng top của quiz. Làm lại vẫn có kết quả để xem, nhưng không tạo thêm một thứ hạng mới.
 
 ## Tiền điều kiện
 
@@ -1800,10 +1800,7 @@ GET /api/community/quiz-sets/{id}/leaderboard
 
 ## Mô tả
 
-Bảng xếp hạng công khai theo chủ đề. Redis `rank:topic:{id}:{period}` — `ZADD` ghi,
-`ZREVRANK` tra hạng (O(log N), dưới 1ms).
-
-**Mẹo hai tiêu chí:** `score = điểm × 1.000.000 − giây_hoàn_thành`
+Khách và người dùng đã đăng nhập đều xem được bảng xếp hạng của từng chủ đề; người đã đăng nhập còn thấy vị trí của mình. Điểm cao hơn đứng trước, bằng điểm thì người hoàn thành nhanh hơn xếp trên. Bảng công khai chỉ hiển thị thông tin cần cho việc xếp hạng, không đưa thông tin riêng tư hay câu trả lời của người khác.
 
 ## Tiền điều kiện
 
@@ -1903,7 +1900,7 @@ GET /api/public/community/leaderboard/topics/{id}?period={week|month|all}
 
 ## Mô tả
 
-Giống UC-082 nhưng theo `game_code` (5 game). Key Redis `rank:game:{code}:{period}`.
+Người xem chọn một game để xem bảng xếp hạng riêng của game đó. Điểm của các game khác nhau không được gộp chung; kết quả bị đánh dấu gian lận cũng không xuất hiện trên bảng công khai. Người có điểm cao hơn đứng trước, bằng điểm thì xét thời gian hoàn thành.
 
 ## Tiền điều kiện
 
@@ -1989,7 +1986,7 @@ GET /api/public/community/leaderboard/games/{code}?period={p}
 
 ## Mô tả
 
-Chuyển giữa 3 kỳ hạn. Mỗi kỳ hạn là một key Redis riêng.
+Người xem chuyển giữa bảng xếp hạng tuần này, tháng này và toàn thời gian. Tuần bắt đầu từ thứ Hai; mốc tuần và tháng được tính theo giờ Việt Nam. Nếu kỳ đang xem chưa có kết quả, trang hiển thị bảng trống cùng thông báo phù hợp.
 
 ## Tiền điều kiện
 
@@ -2068,14 +2065,9 @@ Cùng endpoint UC-082/083 với tham số `period`.
 
 ## Mô tả
 
-Hộp chat AI **xuất hiện xuyên suốt mọi trang**. Biết ngữ cảnh trang hiện tại.
-**Tốn tiền mỗi lượt hỏi.** Nghiệm thu: mở được ở mọi trang; hết hạn mức báo rõ; **trả lời dưới
-5 giây**.
+Người học đã đăng nhập có thể mở trợ lý trên các trang của ứng dụng để hỏi về từ vựng, chữ Hán, cấu trúc câu hoặc ngữ pháp đang xem. Trợ lý dùng ngữ cảnh trang hiện tại khi cần, nhưng không gửi thông tin riêng tư của người học cho dịch vụ AI. Chỉ một câu hỏi thực sự được gửi đi mới dùng lượt hỏi; mở chat và xem lại câu trả lời cũ không tốn lượt. Nếu hết lượt hoặc dịch vụ AI gặp lỗi, người học được báo rõ và không bị trừ lượt oan.
 
-**Trả lời được:** giải thích nghĩa từ · phân tích cấu trúc câu · so sánh hai từ gần nghĩa ·
-giải thích điểm ngữ pháp · gợi ý cách nhớ chữ
-
-> **KHÔNG hiện ở** màn hình thi mô phỏng thật (nếu sau này làm) — tránh gian lận.
+> Trợ lý không hiển thị trong chế độ thi thật nếu hệ thống bổ sung chế độ này về sau.
 
 ## Tiền điều kiện
 
@@ -2200,7 +2192,7 @@ GET  /api/assistant/history
 
 ## Mô tả
 
-Xem lại các phiên hội thoại trước. Feature tree: "lưu lịch sử để người dùng xem lại".
+Người học xem lại các cuộc trò chuyện trước và mở từng phiên để đọc câu hỏi, câu trả lời. Họ chỉ được truy cập lịch sử của chính mình; xem lại không tốn lượt hỏi AI. Người học cũng có thể xóa một phiên hội thoại khi không muốn giữ nữa.
 
 ## Tiền điều kiện
 
@@ -2291,10 +2283,7 @@ DELETE /api/assistant/sessions/{id}
 
 ## Mô tả
 
-4 game: **Mưa chữ · Ghép Pinyin · Ghép Bộ thủ · Bắt Chữ**. Chạy ở trang riêng
-`game.cnhsk.com`; mobile mở **cùng trang đó** trong WebView.
-
-Nguồn từ vựng: **đọc thẳng** `learning.words` · `learning.characters` qua `ContentLookup`.
+Game Box có bốn trò chơi: Mưa chữ, Ghép Pinyin, Ghép Bộ thủ và Bắt Chữ. Người học chơi trên trang game riêng; ứng dụng di động mở cùng trang đó trong WebView. Muốn lưu điểm và tiến độ học, người chơi phải đăng nhập và bắt đầu một ván do server cấp, thay vì tự tạo ván hoặc tự gửi điểm.
 
 ## Tiền điều kiện
 
@@ -2410,13 +2399,7 @@ POST /api/community/games/{code}/rounds/{id}/submit
 
 ## Mô tả
 
-Xác thực điểm, lưu `game_scores`, cộng mastery **ngay, cùng transaction** (UC-043), đưa vào
-bảng xếp hạng.
-
-**Chống gian lận 3 lớp:** trần điểm · `submitted_at − served_at` hợp lý · giới hạn ván/giờ.
-
-Nghiệm thu: "điểm lưu lại, vào bảng xếp hạng ngay, **mastery đổi ngay**; gửi điểm vượt trần
-**bị từ chối**".
+Khi kết thúc ván, người học gửi kết quả từng câu hoặc từng thao tác để server kiểm tra và tự tính điểm. Mỗi ván chỉ được nộp một lần; điểm vượt mức có thể đạt hoặc kết quả không khớp với ván đã phát sẽ bị từ chối. Điểm hợp lệ được lưu, đưa lên bảng xếp hạng và cập nhật tiến độ học ngay; kết quả đáng ngờ không được đưa lên bảng xếp hạng.
 
 ## Tiền điều kiện
 
@@ -2535,11 +2518,7 @@ POST /api/community/games/{code}/rounds/{id}/submit
 
 ## Mô tả
 
-Chữ rơi xuống, gõ đúng pinyin **kèm thanh điệu** để bắn trúng. Khác 4 game kia: luyện **gõ bàn
-phím tiếng Trung**, không dùng chuột/chạm.
-
-**2 chế độ:** 60 giây · qua màn. Dùng chung `game_scores`, phân biệt bằng `game_code`.
-**Mobile hạn chế** vì cần bàn phím.
+Trong game gõ pinyin, chữ Hán rơi trên màn hình và người học gõ cách đọc kèm thanh điệu để chọn đúng chữ. Có thể nhập dấu thanh trực tiếp như `hǎo` hoặc dùng số như `hao3`; `hao` không được tính đúng. Trò chơi có chế độ 60 giây và chế độ qua màn, ưu tiên trải nghiệm bằng bàn phím trên web.
 
 ## Tiền điều kiện
 
@@ -2626,10 +2605,7 @@ Cùng endpoint UC-087/088 với `game_code = TYPE_PINYIN`.
 
 ## Mô tả
 
-Danh sách cuộc thi: sắp diễn ra · đang diễn ra · đã kết thúc. Kèm khung giờ và **phần thưởng**
-(`contests.prizes` JSONB).
-
-`GUEST` xem được trang giới thiệu (theo bảng quyền role).
+Khách và người dùng đã đăng nhập xem được các cuộc thi đã công bố, gồm cuộc thi sắp diễn ra, đang diễn ra và đã kết thúc. Danh sách cho biết khung giờ theo giờ Việt Nam và phần thưởng nếu có. Khách có thể xem thông tin giới thiệu, nhưng cần đăng nhập nếu muốn đăng ký hoặc thi.
 
 ## Tiền điều kiện
 
@@ -2718,7 +2694,7 @@ GET /api/public/contests/{id}
 
 ## Mô tả
 
-Đăng ký trước khi cuộc thi mở. **Tài khoản mới cũng tham gia free** — dùng để thu hút người dùng.
+Người dùng đã đăng nhập đăng ký một cuộc thi đã công bố trước khi cuộc thi bắt đầu. Mỗi người chỉ được đăng ký một lần cho mỗi cuộc thi và có thể hủy đăng ký trước giờ mở thi. Tài khoản mới cũng được tham gia miễn phí nếu đáp ứng điều kiện của cuộc thi; với cuộc thi giới hạn số người, phải còn chỗ trống.
 
 ## Tiền điều kiện
 
@@ -2822,13 +2798,9 @@ DELETE /api/contests/{id}/join
 
 ## Mô tả
 
-Thi trong khung giờ đã định. Nghiệm thu: "**ngoài khung giờ không vào thi được**; xếp hạng công
-bố đúng sau khi đóng".
+Người đã đăng ký chỉ được vào thi và nộp bài trong khung giờ cuộc thi, do server kiểm tra theo giờ Việt Nam. Mỗi người được nộp một lần; bài làm được chấm trên server, không nhận điểm do client tự tính. Bảng xếp hạng riêng của cuộc thi chỉ được công bố sau khi cuộc thi kết thúc.
 
-Tính điểm như game: điểm + thời gian. Xếp hạng riêng cho mỗi cuộc thi.
-
-> **Chống gian lận (5.8.1):** biện pháp #1 và quan trọng nhất là **chấm ở server** — "client
-> không bao giờ biết đáp án đúng". Phát hiện chuyển tab là biện pháp phụ, dễ vượt qua.
+> Chuyển tab chỉ là dấu hiệu để quản trị xem xét, không tự động loại thí sinh; việc chấm trên server và không gửi đáp án cho client mới là biện pháp chống gian lận chính.
 
 ## Tiền điều kiện
 

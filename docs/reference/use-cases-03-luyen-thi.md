@@ -36,8 +36,7 @@
 
 ## Mô tả
 
-Hiện danh sách đề HSK 1–6 kèm số câu, số phần, và lịch sử làm bài của chính người học (đã
-làm bao nhiêu lần, điểm cao nhất).
+Người học chọn cấp HSK để xem các đề thi hiện có, số câu, các phần thi và kết quả những lần đã làm. Lịch sử chỉ hiển thị bài làm của chính họ.
 
 ## Tiền điều kiện
 
@@ -130,8 +129,7 @@ GET /api/exams?hsk_level={n}
 
 ## Mô tả
 
-Bắt đầu một lượt làm đề: hệ thống tạo `attempts`, phát câu hỏi theo từng phần (nghe, đọc,
-viết), người học trả lời. **Chưa nộp** — nộp là UC-035.
+Người học chọn đề và bắt đầu làm lần lượt các phần nghe, đọc, viết. Các câu trả lời thuộc về một lượt thi đang làm; việc nộp và chấm bài diễn ra khi họ chọn nộp.
 
 ## Tiền điều kiện
 
@@ -238,9 +236,7 @@ GET  /api/attempts/{id}
 
 ## Mô tả
 
-Use case **trung tâm** của nhóm 2. Nộp toàn bộ câu trả lời, server chấm, ghi `attempt_answers`,
-đổ kết quả về mastery. Đây là nguồn mastery **đáng tin nhất** trong hệ thống vì chấm hoàn
-toàn ở server.
+Khi người học nộp bài, câu trả lời được chấm trên server. Họ nhận được điểm thi; kết quả từng câu cũng được lưu để xem lại và cập nhật tiến độ học.
 
 ## Tiền điều kiện
 
@@ -383,8 +379,7 @@ POST /api/attempts/{id}/submit
 
 ## Mô tả
 
-Lưu câu trả lời tạm thời khi chưa nộp, để mất mạng hoặc đóng tab không mất bài. Đề HSK 1 có
-~40 câu, HSK 6 hơn 100 câu — làm lại từ đầu là mất 40 phút.
+Người học có thể lưu câu trả lời trong lúc làm bài mà chưa cần nộp. Nếu mất kết nối hoặc đóng trang, họ quay lại và tiếp tục từ phần đã lưu.
 
 ## Tiền điều kiện
 
@@ -484,11 +479,7 @@ GET   /api/attempts/{id}          (trả kèm bản nháp)
 
 ## Mô tả
 
-Luyện tập trung một trong 7 dạng bài HSK, không làm cả đề. Cũng là nơi tính năng 3.3 (AI sinh
-bài) và UC-041 ("luyện ngay") đẩy bài vào.
-
-**7 dạng:** `MULTIPLE_CHOICE` · `TRUE_FALSE` · `IMAGE_MATCH` · `SENTENCE_MATCH` ·
-`FILL_BLANK` · `SENTENCE_ORDER` · `ESSAY`
+Người học chọn một dạng câu hỏi HSK để luyện riêng, chẳng hạn điền từ hoặc sắp xếp câu. Họ làm và nhận kết quả theo dạng bài đó mà không cần làm cả đề thi.
 
 ## Tiền điều kiện
 
@@ -604,8 +595,7 @@ POST /api/practice/answer
 
 ## Mô tả
 
-Màn hình kết quả: số câu đúng/sai · kết quả **từng kỹ năng** · thời gian làm · **so sánh lần
-trước**. Đây là màn hình người học xem nhiều nhất sau khi thi.
+Sau khi thi, người học xem điểm tổng, kết quả từng kỹ năng, số câu đúng sai và thời gian làm bài. Nếu đã thi trước đó, họ cũng thấy kết quả lần này thay đổi ra sao.
 
 ## Tiền điều kiện
 
@@ -704,8 +694,7 @@ GET /api/attempts?exam_id={e}      (lịch sử làm đề)
 
 ## Mô tả
 
-Với mỗi câu sai: đáp án mình chọn · đáp án đúng · **lời giải** · điểm kiến thức liên quan ·
-nút "luyện ngay" (UC-041).
+Người học mở một câu làm sai để xem mình đã chọn gì, đáp án đúng là gì và vì sao. Từ lời giải, họ có thể chuyển ngay sang bài luyện liên quan.
 
 ## Tiền điều kiện
 
@@ -809,8 +798,7 @@ GET /api/attempts/{id}/wrong-answers?include_correct=true
 
 ## Mô tả
 
-Tổng kết 3–5 điểm kiến thức yếu nhất, **xếp theo mức độ**. Đây là tính năng "bán được" nhất
-khi demo — chỉ ra đúng chỗ cần học.
+Sau bài thi, người học được xem ba đến năm điểm kiến thức còn yếu nhất. Danh sách dựa trên mức độ nắm vững kiến thức đã ghi nhận, giúp họ biết nên ôn phần nào trước.
 
 > **Nguồn dữ liệu:** `user_knowledge_state.mastery`, **không phải** đếm câu sai trong
 > `attempt_answers`. Đã xác nhận khi phân tích phương án DB.
@@ -923,8 +911,7 @@ GET /api/me/weak-points              (toàn cục — A3)
 
 ## Mô tả
 
-Từ câu sai (UC-039) hoặc điểm yếu (UC-040), chuyển thẳng sang bài luyện **đúng điểm kiến thức
-và đúng dạng** đó. Nghiệm thu feature tree: "bấm luyện ngay mở **đúng dạng**".
+Người học bấm “Luyện ngay” ở một câu sai hoặc điểm yếu. Bài luyện mở ra đúng phần kiến thức và dạng câu hỏi liên quan để họ sửa ngay chỗ vừa làm chưa tốt.
 
 ## Tiền điều kiện
 

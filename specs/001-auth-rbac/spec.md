@@ -272,6 +272,25 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 | **FR-080** | THE system SHALL cung cấp báo cáo tỉ lệ đổi mã theo `campaign`: `COUNT(status='USED') / COUNT(*)` nhóm theo `channel, campaign` |
 | **FR-081** | WHEN người dùng đổi mã `ECOSYSTEM_GIFT` thành công, THE system SHALL ghi `issued_to` của mã vào `audit_logs` để đối soát với bên thứ ba |
 | **FR-082** | THE system SHALL cho `FINANCE_ADMIN` đặt `expires_at` **tuỳ chọn** cho mỗi lô. Mã không có hạn thì sống vĩnh viễn — rủi ro đã chấp nhận, xem §11 |
+| **FR-082b** | THE system SHALL giới hạn **tối đa 100 mã mỗi lô**. Vượt → **422** `BATCH_SIZE_EXCEEDED`. Kiểm ở **server**, không chỉ ở form — một lần bấm nhầm hoặc gọi API trực tiếp không được sinh ra hàng nghìn mã |
+
+### Nhóm 13 — Hạn mức khách và màn chờ xác thực (FR-083…FR-088)
+
+Hai thứ này đi cùng nhau vì cả hai thuộc trạng thái **chưa có tài khoản dùng
+được**: khách chưa đăng ký, và người vừa đăng ký nhưng chưa xác thực email.
+
+| Mã | Yêu cầu |
+|---|---|
+| **FR-083** | THE system SHALL cấp `GUEST` **3 lượt tra cứu mỗi ngày** trên `/api/learning/dictionary`, đặt lại 00:00 giờ Việt Nam (`BUS-08`) |
+| **FR-084** | THE system SHALL đếm lượt khách bằng **cookie** `guest_quota` (HttpOnly, SameSite=Lax, 24 giờ) và Redis đối chiếu theo khoá cookie — KHÔNG đếm theo IP, vì `FR-048` đã bác cách đó do NAT chung |
+| **FR-085** | WHEN khách hết 3 lượt, THE system SHALL trả **429** `GUEST_QUOTA_EXCEEDED` kèm `reset_at`; frontend chuyển `/login?redirect=` |
+| **FR-086** | THE system SHALL KHÔNG áp hạn mức khách lên màn nào khác — mọi màn học, luyện, thi đều yêu cầu đăng nhập trước |
+| **FR-087** | WHEN đăng ký thành công, THE system SHALL để frontend chuyển sang `/verify-email`, màn này hiện email đã gửi tới và cho **gửi lại** theo giới hạn `FR-012` (3 lần/giờ) |
+| **FR-088** | WHERE người dùng mở `/verify-email?token=`, THE system SHALL xác thực token qua `FR-009`. Màn này **không chặn** việc dùng hệ thống — theo `FR-010`, chưa xác thực vẫn đăng nhập và học được, chỉ chặn thao tác đổi điểm |
+
+> **`FR-084` là ma sát, không phải bảo mật.** Xoá cookie hoặc mở tab ẩn danh là
+> đặt lại lượt. Đã chấp nhận — xem `design.md` §5.5. Đừng thêm fingerprint để
+> bịt lỗ này.
 
 ### Key Entities
 
@@ -346,7 +365,7 @@ CREATE INDEX ix_ur_role ON user_roles(role_code, user_id);
 ```
 
 > **Bảng `roles` sẽ bị bỏ** (chờ `database.md` duyệt). Nó chỉ có 1 lệnh `INSERT` với 4 giá trị tĩnh và
-> không có màn CRUD role nào trong 31 màn thiết kế (xem `design.md` §5). `AC-06` nói enum lưu `VARCHAR + CHECK`.
+> không có màn CRUD role nào trong 32 màn thiết kế (xem `design.md` §5). `AC-06` nói enum lưu `VARCHAR + CHECK`.
 > Bỏ nó giảm một JOIN ở mọi truy vấn quyền.
 > Đã chứng minh `DROP TABLE roles CASCADE` **không** làm mất dữ liệu `user_roles`.
 
@@ -446,6 +465,8 @@ ORDER BY channel, campaign;
 | `FORBIDDEN` | 403 | Không đủ role, hoặc truy cập dữ liệu người khác | FR-054, FR-060 | 🔴 KHÔNG trả 404 |
 | `SELF_ROLE_GRANT` | 403 | Tự cấp role cho mình | FR-063 | DB `CHECK` chặn |
 | `INSUFFICIENT_CREDITS` | 402 | Hết lượt free và hết điểm | FR-072 | Gợi ý nâng gói |
+| `GUEST_QUOTA_EXCEEDED` | 429 | Khách hết 3 lượt tra cứu trong ngày | FR-085 | Kèm `reset_at` |
+| `BATCH_SIZE_EXCEEDED` | 422 | Tạo lô quá 100 mã | FR-082b | Kiểm ở server |
 | `CSRF_TOKEN_MISSING` | 403 | Web thiếu CSRF ở thao tác đổi tiền | `HR-05` | — |
 | `TOO_MANY_REQUESTS` | 429 | Vượt giới hạn gửi lại email / quên mật khẩu | FR-012, FR-041 | — |
 

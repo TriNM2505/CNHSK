@@ -31,7 +31,8 @@ Nền tảng học tiếng Trung và luyện thi HSK cho người Việt, có l�
 | File | Nội dung |
 |---|---|
 `use-cases-01..08.md` | **119 use case · 714 business rule**, 8 nhóm |
-`design.md` | Design token · component inventory · 31 màn |
+`design.md` | Design token · component inventory · 32 màn · **screen flow 7 sơ đồ** |
+`screen-fields.md` | **Field từng màn** — kiểu, validate, API, mã lỗi (RP3 §3) |
 `wbs-estimate.md` | 66 đầu việc, ước lượng PERT 3 điểm |
 
 > Mỗi tài liệu là **một bản final** — không có số version trong tên file.

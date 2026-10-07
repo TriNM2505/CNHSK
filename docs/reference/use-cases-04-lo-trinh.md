@@ -39,11 +39,7 @@
 
 ## Mô tả
 
-Use case **nền tảng nhất của cả hệ thống**. Mọi lượt trả lời từ mọi nguồn (bài thi UC-035,
-luyện dạng UC-037, chủ đề UC-027, ngữ pháp UC-024, nhận diện UC-019) đều đi qua đây để đổi
-`user_knowledge_state`.
-
-Không có endpoint riêng — là service được gọi trong transaction của UC gọi nó.
+Mỗi câu trả lời đã được chấm góp phần cập nhật mức độ nắm vững kiến thức của người học. Việc này áp dụng cho bài thi, bài luyện, bài trong chủ đề và những hoạt động học khác có kết quả hợp lệ.
 
 ## Tiền điều kiện
 
@@ -164,8 +160,7 @@ Không có endpoint — service nội bộ module `learning`.
 
 ## Mô tả
 
-Điểm game (module `community`) đổ về mastery (module `learning`) **tức thì**, cùng transaction
-với lúc lưu điểm.
+Kết quả chơi game được dùng để cập nhật mức độ nắm vững kiến thức ngay sau lượt chơi. Vì vậy, tiến độ học phản ánh cả phần luyện tập qua game vừa hoàn thành.
 
 > **Đây là cải thiện lớn nhất của kiến trúc bản 5.** Bản trước: điểm game đẩy từ Community sang
 > Learning lúc **2h sáng** → mastery trễ tới một ngày. Giờ hai module cùng tiến trình,
@@ -277,8 +272,7 @@ Lời gọi nội bộ: `community` → `learning.api.LearningApi.applyGameResul
 
 ## Mô tả
 
-Thuật toán FSRS: từ `stability`, `difficulty`, `elapsed_days`, `rating` tính ra `next_review_at`.
-Thay thế Leitner của bản cũ.
+Sau một lượt học hoặc ôn, lịch ôn của điểm kiến thức được tính lại theo FSRS dựa trên kết quả vừa nhận. Người học sẽ gặp lại nội dung đó vào thời điểm phù hợp với mức độ ghi nhớ hiện tại.
 
 ## Tiền điều kiện
 
@@ -380,8 +374,7 @@ Service nội bộ, không endpoint. `user_knowledge_state` (đọc + ghi qua UC
 
 ## Mô tả
 
-Cây tri thức dạng đồ thị: chủ đề nào đã mở, đang học, đã xong, còn khoá; và mở được cái nào
-tiếp theo. Khác UC-025 (danh sách phẳng) ở chỗ hiện **quan hệ tiên quyết**.
+Cây chủ đề cho người học thấy chủ đề nào đã xong, đang học, đã mở hoặc vẫn còn khóa. Các nhánh nối cho biết cần hoàn thành chủ đề nào trước khi học tiếp.
 
 ## Tiền điều kiện
 

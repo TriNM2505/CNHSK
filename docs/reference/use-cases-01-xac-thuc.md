@@ -34,8 +34,7 @@ Mã lỗi theo định dạng `{error_code, message, request_id}` — HR-09.
 
 ## Mô tả
 
-Khách chưa có tài khoản tạo tài khoản mới bằng email và mật khẩu. Sau khi tạo, hệ thống
-gửi email xác thực. Tài khoản chưa xác thực vẫn đăng nhập được nhưng bị hạn chế.
+Khách nhập email, mật khẩu và các thông tin cần thiết để tạo tài khoản. Sau khi đăng ký, họ nhận được email xác thực. Trong lúc chưa xác thực, tài khoản vẫn đăng nhập được nhưng một số chức năng sẽ bị giới hạn.
 
 ## Tiền điều kiện
 
@@ -149,8 +148,7 @@ Body: { fullName, email, password, confirmPassword, acceptTerms }
 
 ## Mô tả
 
-Người dùng bấm link trong email để xác thực địa chỉ email. Sau khi xác thực, tài khoản
-được mở đầy đủ tính năng.
+Người dùng mở đường dẫn trong email đăng ký để xác nhận địa chỉ email thuộc về mình. Khi đường dẫn còn hiệu lực, tài khoản được đánh dấu đã xác thực và các chức năng bị giới hạn trước đó được mở.
 
 ## Tiền điều kiện
 
@@ -253,8 +251,7 @@ Body: { email }
 
 ## Mô tả
 
-Người dùng đăng nhập từ web chính `cnhsk.com`. Token được đặt trong cookie ở tên miền cha
-`.cnhsk.com` để trang game `game.cnhsk.com` dùng chung.
+Người dùng đăng nhập trên website chính bằng email và mật khẩu. Phiên đăng nhập được lưu bằng cookie để họ có thể chuyển sang trang game mà không phải nhập lại thông tin.
 
 ## Tiền điều kiện
 
@@ -371,8 +368,7 @@ Body: { email, password }
 
 ## Mô tả
 
-Ứng dụng React Native đăng nhập và nhận token trong **body response**, không dùng cookie.
-App tự lưu token vào secure storage và gửi qua header `Authorization` ở các request sau.
+Người dùng đăng nhập từ ứng dụng di động bằng email và mật khẩu. Ứng dụng nhận token, lưu ở nơi an toàn trên thiết bị và dùng token đó cho những lần gọi API sau.
 
 ## Tiền điều kiện
 
@@ -457,8 +453,7 @@ Giống UC-003.
 
 ## Mô tả
 
-Người dùng đã đăng nhập ở `cnhsk.com` mở `game.cnhsk.com` và **không phải đăng nhập lại**
-— cookie ở tên miền cha tự động được gửi kèm.
+Người dùng đã đăng nhập ở website chính có thể mở trang game và chơi ngay. Trang game nhận diện họ qua cookie dùng chung giữa hai tên miền.
 
 ## Tiền điều kiện
 
@@ -552,8 +547,7 @@ Cookie: access_token=...    (trình duyệt tự gửi)
 
 ## Mô tả
 
-Access token hết hạn. Client dùng refresh token để lấy access token mới mà không bắt
-người dùng đăng nhập lại.
+Khi access token hết hạn, ứng dụng dùng refresh token còn hiệu lực để xin token mới. Người dùng có thể tiếp tục phiên làm việc mà không bị yêu cầu đăng nhập lại.
 
 ## Tiền điều kiện
 
@@ -659,7 +653,7 @@ Cookie hoặc Body: { refreshToken }
 
 ## Mô tả
 
-Người dùng đăng xuất. Token bị thu hồi phía server, cookie bị xóa phía client.
+Người dùng chọn đăng xuất để kết thúc phiên hiện tại. Sau đó, phiên này không còn dùng được để truy cập các chức năng cần đăng nhập.
 
 ## Tiền điều kiện
 
@@ -755,7 +749,7 @@ POST /api/auth/logout-all
 
 ## Mô tả
 
-Người dùng quên mật khẩu, nhập email để nhận link đặt lại.
+Người dùng nhập email đã đăng ký khi quên mật khẩu. Nếu tài khoản hợp lệ, email đó sẽ nhận được đường dẫn đặt lại mật khẩu có thời hạn.
 
 ## Tiền điều kiện
 
@@ -843,7 +837,7 @@ Body: { email }
 
 ## Mô tả
 
-Người dùng bấm link trong email, nhập mật khẩu mới.
+Người dùng mở đường dẫn đặt lại mật khẩu trong email và nhập mật khẩu mới. Mật khẩu chỉ được cập nhật khi đường dẫn còn hiệu lực và mật khẩu mới đáp ứng yêu cầu của hệ thống.
 
 ## Tiền điều kiện
 
@@ -936,7 +930,7 @@ Body: { token, newPassword, confirmPassword }
 
 ## Mô tả
 
-Người dùng đang đăng nhập, đổi mật khẩu. **Phải nhập mật khẩu cũ** để xác nhận.
+Người dùng đang đăng nhập có thể đổi mật khẩu trong phần tài khoản. Họ cần nhập đúng mật khẩu hiện tại trước khi đặt mật khẩu mới.
 
 ## Tiền điều kiện
 
@@ -1028,7 +1022,7 @@ Body: { oldPassword, newPassword, confirmPassword }
 
 ## Mô tả
 
-Người dùng xem và cập nhật hồ sơ: họ tên, ảnh đại diện, ngôn ngữ, mục tiêu HSK.
+Người dùng xem và chỉnh sửa hồ sơ cá nhân, gồm họ tên, ảnh đại diện, ngôn ngữ và mục tiêu HSK. Các thay đổi hợp lệ được lưu để dùng trong những lần truy cập sau.
 
 ## Tiền điều kiện
 
@@ -1124,8 +1118,7 @@ Body: { fullName?, avatarUrl?, preferredLanguage?, targetHskLevel? }
 
 ## Mô tả
 
-Hệ thống tự khóa tài khoản tạm thời khi có quá nhiều lần đăng nhập sai liên tiếp —
-chống dò mật khẩu.
+Nếu một tài khoản liên tiếp đăng nhập sai quá số lần cho phép, tài khoản đó sẽ bị khóa đăng nhập tạm thời. Hết thời gian khóa, người dùng có thể thử lại.
 
 ## Tiền điều kiện
 
@@ -1227,8 +1220,7 @@ POST /api/auth/login   (cùng endpoint UC-003)
 
 ## Mô tả
 
-App mobile mở trang game `game.cnhsk.com` trong WebView. Vì React Native không có cookie
-như trình duyệt, **app phải tiêm token vào header trước khi trang game chạy**.
+Người dùng mở trang game ngay trong ứng dụng di động. Ứng dụng chuyển thông tin đăng nhập cần thiết cho WebView để họ vào game bằng tài khoản hiện tại.
 
 ## Tiền điều kiện
 
@@ -1326,8 +1318,7 @@ const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
 ## Mô tả
 
-Người dùng xem các lần đăng nhập gần đây (thời điểm, IP, thiết bị) để phát hiện truy cập
-lạ.
+Người dùng xem các lần đăng nhập gần đây của tài khoản, cùng thời gian, địa chỉ IP và thiết bị. Danh sách này giúp họ nhận ra những lần truy cập không phải do mình thực hiện.
 
 > ⚠️ **UC này tôi đề xuất thêm, không có trong `feature-tree.md`.**
 > Lý do đề xuất: cần thiết cho bảo mật, và là nơi người dùng phát hiện tài khoản bị xâm

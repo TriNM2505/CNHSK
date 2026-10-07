@@ -1,0 +1,33 @@
+flowchart TD
+    Landing["Landing · /"]
+    Dict0["Tra từ điển · /dictionary<br/>(khách: chỉ tra, không lưu)"]
+    Login["Đăng nhập · /login"]
+    Register["Đăng ký · /register"]
+    VerifyScr["Chờ xác thực email · /verify-email<br/>gửi lại mail · nhận ?token="]
+    Guard{{"Có role quản trị?"}}
+    Dash["Tổng quan · /dashboard"]
+    AdminHub["Quản trị · /admin/*"]
+    GameHub["Game hub · game.cnhsk.com/games"]
+    Locked["Khoá tạm · thông báo thời điểm mở"]
+    Reset["Đặt lại mật khẩu"]
+
+    Landing --> Login
+    Landing --> Register
+    Landing --> Dict0
+    Dict0 -.->|"lưu từ, dịch, học tiếp"| Login
+
+    Register --> VerifyScr
+    VerifyScr -->|"bấm link trong mail · ?token="| Login
+    VerifyScr -->|"chưa nhận mail — gửi lại, tối đa 3 lần mỗi giờ"| VerifyScr
+    VerifyScr -->|"bỏ qua — FR-010 cho học khi chưa xác thực"| Login
+    Login --> Guard
+    Guard -->|"không"| Dash
+    Guard -->|"có"| AdminHub
+    AdminHub --> Dash
+
+    Dash --> GameHub
+
+    Login -.->|"sai mật khẩu 5 lần mỗi giờ"| Locked
+    Locked -.-> Login
+    Login --> Reset
+    Reset -.->|"thu hồi toàn bộ refresh token"| Login
