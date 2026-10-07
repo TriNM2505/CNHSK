@@ -4,7 +4,7 @@
 **Feature tree:** 6.1 (Tài khoản, gói dịch vụ) · 6.2 (Phân quyền — 6 role trong DB)
 **Module:** `auth` (+ `plans` thuộc `learning`)
 **Use case:** UC-001 → UC-014 (14 UC)
-**Scope:** MVP · **Priority:** P0 — mọi feature khác phụ thuộc feature này
+**Scope:** MVP, riêng UC-014 thuộc V2 · **Priority:** P0 — mọi feature khác phụ thuộc feature này
 **Version:** 1.0 · **Ngày:** 2026-10-05
 
 ---
@@ -155,9 +155,9 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 | **FR-014** | WHEN đăng nhập đúng từ web, THE system SHALL đặt cookie `access_token` với **đủ năm thuộc tính**: `Domain=cnhsk.com`, `HttpOnly=true`, `Secure=true`, `SameSite=Lax`, `Max-Age` (`HR-03`) |
 | **FR-015** | THE system SHALL đặt `Domain=cnhsk.com` (tên miền cha), KHÔNG để trống. Để trống thì `game.cnhsk.com` **không nhận được cookie** và UC-005 hỏng |
 | **FR-016** | WHEN đăng nhập đúng, THE system SHALL sinh refresh token, lưu **dạng hash** vào `auth_tokens`, KHÔNG lưu token thô |
-| **FR-017** | WHEN mật khẩu sai, THE system SHALL tăng `users.failed_login_count` và trả **401** `INVALID_CREDENTIALS` |
+| **FR-017** | WHEN mật khẩu sai hoặc email không tồn tại, THE system SHALL tăng bộ đếm Redis của cặp email chuẩn hóa–IP và trả **401** `INVALID_CREDENTIALS` nếu chưa đạt ngưỡng chặn |
 | **FR-018** | THE system SHALL trả **cùng một thông báo** cho email không tồn tại và mật khẩu sai, để không tiết lộ email nào đã đăng ký |
-| **FR-019** | WHEN đăng nhập thành công, THE system SHALL đặt lại `failed_login_count = 0` |
+| **FR-019** | WHEN đăng nhập thành công, THE system SHALL xóa bộ đếm Redis của cặp email–IP đó |
 | **FR-020** | WHILE `banned_at IS NOT NULL`, THE system SHALL từ chối đăng nhập với **403** `ACCOUNT_BANNED` kèm `ban_reason` |
 | **FR-021** | WHILE `suspended_until > now()`, THE system SHALL từ chối đăng nhập với **403** `ACCOUNT_SUSPENDED` kèm thời điểm hết hạn |
 
@@ -205,15 +205,15 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 | **FR-044** | WHEN đổi mật khẩu thành công, THE system SHALL thu hồi mọi refresh token **trừ session hiện tại** (E7) |
 | **FR-045** | THE system SHALL từ chối mật khẩu mới trùng mật khẩu cũ với **422** `PASSWORD_UNCHANGED` |
 
-### Nhóm 8 — Khoá tài khoản tạm (FR-046…FR-050) · UC-012
+### Nhóm 8 — Tạm chặn nguồn đăng nhập (FR-046…FR-050) · UC-012
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-046** | WHEN `failed_login_count` đạt **5**, THE system SHALL đặt `locked_until = now() + 15 phút` |
-| **FR-047** | WHILE `locked_until > now()`, THE system SHALL từ chối đăng nhập với **429** `ACCOUNT_LOCKED` kèm số giây còn lại, KỂ CẢ khi mật khẩu đúng |
-| **FR-048** | THE system SHALL đếm số lần sai **theo tài khoản**, không theo IP — tránh một người dùng NAT chung làm khoá người khác |
-| **FR-049** | WHEN `locked_until` đã qua, THE system SHALL cho đăng nhập lại và đặt lại bộ đếm |
-| **FR-050** | THE system SHALL KHÔNG khoá vĩnh viễn do sai mật khẩu. Ban vĩnh viễn chỉ do `SUPER_ADMIN` thực hiện |
+| **FR-046** | WHEN cùng cặp email chuẩn hóa–IP sai **5 lần trong 15 phút**, THE system SHALL chặn cặp đó trong 15 phút bằng Redis TTL và thao tác đếm nguyên tử |
+| **FR-047** | WHILE cặp email–IP đang bị chặn, THE system SHALL từ chối đăng nhập với **423** `LOGIN_SOURCE_BLOCKED` kèm `blockedUntil`, kể cả khi mật khẩu đúng |
+| **FR-048** | THE system SHALL đếm theo **cặp email–IP**, không khóa toàn bộ tài khoản hoặc mọi người dùng chung IP; cùng tài khoản từ IP khác vẫn được thử đăng nhập |
+| **FR-049** | WHEN thời gian chặn đã hết, THE system SHALL cho cặp email–IP thử lại; đăng nhập thành công xóa bộ đếm của cặp đó |
+| **FR-050** | THE system SHALL KHÔNG khoá vĩnh viễn do sai mật khẩu. Đặt lại mật khẩu thành công xóa trạng thái chặn liên quan đến tài khoản; ban vĩnh viễn chỉ do `SUPER_ADMIN` thực hiện |
 
 ### Nhóm 9 — Thông tin cá nhân và lịch sử (FR-051…FR-057) · UC-011, UC-014
 
@@ -224,8 +224,8 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 | **FR-053** | THE system SHALL kiểm quyền sở hữu trước khi trả hoặc sửa thông tin cá nhân — đối chiếu `user_id` trong JWT, KHÔNG tin tham số client gửi (`BUS-01`) |
 | **FR-054** | WHEN người dùng A yêu cầu dữ liệu của B, THE system SHALL trả **403**, kể cả khi id không tồn tại (không trả 404 để không tiết lộ id nào có thật) |
 | **FR-055** | THE system SHALL lưu `reminder_time` theo **giờ Việt Nam**; job nhắc chạy với `zone = "Asia/Ho_Chi_Minh"` (`BUS-08`, `AC-08`) |
-| **FR-056** | THE system SHALL cho xem lịch sử đăng nhập: thời điểm, loại client, IP đã mask |
-| **FR-057** | THE system SHALL mask IP và email trong lịch sử theo `BUS-06` (`NFR-S07`) |
+| **FR-056** | Ở V2, THE system SHALL chỉ cho `SUPER_ADMIN` xem lịch sử đăng nhập **thành công** trong **90 ngày** gần nhất của tài khoản được chọn: thời điểm, loại client hoặc thiết bị, IP đã mask; người dùng thường và các role quản trị khác không có quyền xem. Bản ghi `LOGIN` quá 90 ngày phải được dọn và không được trả qua API |
+| **FR-057** | THE system SHALL mask IP trong phản hồi lịch sử; email nếu xuất hiện trong danh sách hoặc log phải được mask theo `BUS-06` (`NFR-S07`) |
 
 ### Nhóm 10 — Phân quyền RBAC (FR-058…FR-066) · feature 6.2
 
@@ -282,7 +282,7 @@ Hai thứ này đi cùng nhau vì cả hai thuộc trạng thái **chưa có tà
 | Mã | Yêu cầu |
 |---|---|
 | **FR-083** | THE system SHALL cấp `GUEST` **3 lượt tra cứu mỗi ngày** trên `/api/learning/dictionary`, đặt lại 00:00 giờ Việt Nam (`BUS-08`) |
-| **FR-084** | THE system SHALL đếm lượt khách bằng **cookie** `guest_quota` (HttpOnly, SameSite=Lax, 24 giờ) và Redis đối chiếu theo khoá cookie — KHÔNG đếm theo IP, vì `FR-048` đã bác cách đó do NAT chung |
+| **FR-084** | THE system SHALL đếm lượt khách bằng **cookie** `guest_quota` (HttpOnly, SameSite=Lax, 24 giờ) và Redis đối chiếu theo khoá cookie; không đếm lượt khách theo IP vì nhiều người có thể chung mạng |
 | **FR-085** | WHEN khách hết 3 lượt, THE system SHALL trả **429** `GUEST_QUOTA_EXCEEDED` kèm `reset_at`; frontend chuyển `/login?redirect=` |
 | **FR-086** | THE system SHALL KHÔNG áp hạn mức khách lên màn nào khác — mọi màn học, luyện, thi đều yêu cầu đăng nhập trước |
 | **FR-087** | WHEN đăng ký thành công, THE system SHALL để frontend chuyển sang `/verify-email`, màn này hiện email đã gửi tới và cho **gửi lại** theo giới hạn `FR-012` (3 lần/giờ) |
@@ -319,8 +319,7 @@ hsk_level          SMALLINT CHECK (hsk_level BETWEEN 1 AND 9)
 
 -- Trạng thái tài khoản
 email_verified_at  TIMESTAMPTZ          -- NULL = chưa xác thực
-failed_login_count SMALLINT NOT NULL DEFAULT 0
-locked_until       TIMESTAMPTZ          -- khoá tạm do sai mật khẩu
+-- Bộ đếm đăng nhập sai và thời điểm hết chặn của UC-012 nằm trong Redis theo cặp email–IP.
 suspended_at       TIMESTAMPTZ
 suspended_until    TIMESTAMPTZ
 banned_at          TIMESTAMPTZ
@@ -454,7 +453,7 @@ ORDER BY channel, campaign;
 | `EMAIL_ALREADY_EXISTS` | 409 | Email đã đăng ký | FR-004 | `UNIQUE` trên `users.email` chặn |
 | `VALIDATION_FAILED` | 422 | Email sai định dạng, mật khẩu ngắn, không khớp | FR-005 | Trả danh sách field |
 | `INVALID_CREDENTIALS` | 401 | Sai mật khẩu **hoặc** email không tồn tại | FR-017, FR-018 | 🔴 **Một thông báo duy nhất** |
-| `ACCOUNT_LOCKED` | 429 | Sai > 5 lần/giờ | FR-047 | Khoá 15 phút, trả số giây còn lại |
+| `LOGIN_SOURCE_BLOCKED` | 423 | Cặp email–IP sai 5 lần trong 15 phút hoặc còn trong thời gian chặn | FR-047 | Chặn cặp 15 phút, trả `blockedUntil` |
 | `ACCOUNT_BANNED` | 403 | `banned_at IS NOT NULL` | FR-020 | Kèm `ban_reason` |
 | `ACCOUNT_SUSPENDED` | 403 | `suspended_until > now()` | FR-021 | Kèm thời điểm hết |
 | `ACCOUNT_UNVERIFIED` | 403 | Chưa xác thực, thao tác đổi điểm | FR-010 | Cho học, chặn đổi điểm |
