@@ -34,7 +34,7 @@ Mã lỗi theo định dạng `{error_code, message, request_id}` — HR-09.
 
 ## Mô tả
 
-Khách nhập email, mật khẩu và các thông tin cần thiết để tạo tài khoản. Sau khi đăng ký, họ nhận được email xác thực. Trong lúc chưa xác thực, tài khoản vẫn đăng nhập được nhưng một số chức năng sẽ bị giới hạn.
+Khách tạo tài khoản bằng email và mật khẩu. Hệ thống tạo tài khoản chưa xác thực rồi gửi email xác thực. Nếu email chưa gửi được, tài khoản vẫn tồn tại và người dùng có thể yêu cầu gửi lại. Trước khi xác thực, họ vẫn đăng nhập được nhưng một số chức năng bị giới hạn.
 
 ## Tiền điều kiện
 
@@ -46,7 +46,7 @@ Khách nhập email, mật khẩu và các thông tin cần thiết để tạo 
 - Một dòng mới trong `auth.users` với `email_verified_at = NULL`
 - Role `USER` được gán trong `auth.user_roles`
 - Một token loại `EMAIL_VERIFY` trong `auth.auth_tokens`, hết hạn sau 24 giờ
-- Email xác thực đã gửi
+- Email xác thực được gửi nếu dịch vụ email hoạt động; gửi thất bại không hủy tài khoản đã tạo (BR-10)
 - Ví điểm khởi tạo trong `learning.user_credits` với số dư 0
 - Gói `FREE` được gán trong `learning.user_subscriptions`
 
@@ -256,7 +256,7 @@ Người dùng đăng nhập trên website chính bằng email và mật khẩu.
 ## Tiền điều kiện
 
 - Tài khoản tồn tại
-- Tài khoản không bị khóa (`locked_until` là NULL hoặc đã qua)
+- Cặp email–IP đang đăng nhập không bị chặn tạm thời theo UC-012
 - Tài khoản không bị ban
 
 ## Hậu điều kiện
@@ -264,7 +264,7 @@ Người dùng đăng nhập trên website chính bằng email và mật khẩu.
 - Cookie `access_token` được set với đủ 5 thuộc tính (HR-03)
 - Cookie `refresh_token` được set, `HttpOnly`
 - Một dòng token `REFRESH` trong `auth.auth_tokens` (lưu hash)
-- `users.failed_login_count` reset về 0
+- Bộ đếm lần sai của cặp email–IP này được xóa theo UC-012
 - `users.last_login_at` cập nhật
 
 ## Luồng chính
@@ -274,11 +274,11 @@ Người dùng đăng nhập trên website chính bằng email và mật khẩu.
 3. Bấm "Đăng nhập"
 4. Gửi `POST /api/auth/login`
 5. Server tìm user theo email (chữ thường)
-6. Server kiểm trạng thái tài khoản — chưa bị khóa, chưa bị ban
+6. Server kiểm trạng thái tài khoản và cặp email–IP hiện tại theo UC-012; cặp đang bị chặn thì từ chối trước khi so mật khẩu
 7. Server so mật khẩu bằng bcrypt **theo thời gian hằng định**
 8. Server sinh access token (JWT) và refresh token
 9. Server lưu hash refresh token vào `auth_tokens`
-10. Server reset `failed_login_count`, cập nhật `last_login_at`
+10. Server xóa bộ đếm lần sai của cặp email–IP này, cập nhật `last_login_at`
 11. Server set hai cookie với `domain=cnhsk.com` · `HttpOnly` · `Secure` · `SameSite=Lax` · `maxAge`
 12. Server trả **200** kèm thông tin người dùng và danh sách role
 13. Frontend chuyển hướng theo role: `USER` → trang học · các role quản trị → trang quản trị
@@ -297,7 +297,7 @@ Trả toàn bộ danh sách role. Frontend cho chọn "vào với vai nào" ho�
 | Mã | Tình huống | HTTP | Xử lý |
 | --- | --- | --- | --- |
 | `INVALID_CREDENTIALS` | Email không tồn tại **HOẶC** mật khẩu sai | **401** | **Cùng một thông báo cho cả hai** — chống dò email |
-| `ACCOUNT_LOCKED` | `locked_until` còn hiệu lực | **423** | Báo còn bao nhiêu phút. **Đúng mật khẩu vẫn trả 423** |
+| `LOGIN_SOURCE_BLOCKED` | Cặp email–IP còn trong thời gian chặn của UC-012 | **423** | Báo thời điểm hết chặn. **Đúng mật khẩu vẫn trả 423 từ cặp này** |
 | `ACCOUNT_BANNED` | `banned_at` có giá trị | **403** | "Tài khoản đã bị vô hiệu hóa", kèm cách liên hệ |
 | `ACCOUNT_SUSPENDED` | `suspended_at` có giá trị | **403** | Báo lý do treo và thời hạn |
 | `RATE_LIMIT_EXCEEDED` | Quá N lần thử/IP/khoảng thời gian | **429** | Giới hạn theo IP, không chỉ theo tài khoản |
@@ -307,8 +307,8 @@ Trả toàn bộ danh sách role. Frontend cho chọn "vào với vai nào" ho�
 > Nếu trả "Email không tồn tại" và "Mật khẩu sai" khác nhau thì kẻ tấn công dò được
 > email nào có trong hệ thống — lỗ hổng *user enumeration*.
 
-> ⚠️ **`ACCOUNT_LOCKED` phải trả 423 kể cả khi mật khẩu đúng.** Nếu mật khẩu đúng thì cho
-> vào thì cơ chế khóa vô nghĩa.
+> Cặp email–IP đang bị chặn phải bị từ chối kể cả khi mật khẩu đúng. Tài khoản vẫn có
+> thể đăng nhập từ nguồn khác nếu không bị ban hoặc treo.
 
 ## Business rule
 
@@ -333,7 +333,7 @@ Body: { email, password }
       Set-Cookie: refresh_token=...; Domain=cnhsk.com; HttpOnly; Secure; SameSite=Lax; Max-Age=...
       Body: { id, fullName, email, emailVerified, roles: ["USER"] }
 401:  { error_code: "INVALID_CREDENTIALS", message: "Email hoặc mật khẩu không đúng", ... }
-423:  { error_code: "ACCOUNT_LOCKED", message, details: { unlockAt }, ... }
+423:  { error_code: "LOGIN_SOURCE_BLOCKED", message, details: { blockedUntil }, ... }
 ```
 
 ## Bảng DB liên quan
@@ -347,7 +347,7 @@ Body: { email, password }
 | 1 | Email + mật khẩu đúng | 200, hai cookie được set đủ 5 thuộc tính |
 | 2 | Email không tồn tại | 401 `INVALID_CREDENTIALS` |
 | 3 | Mật khẩu sai | 401 **cùng thông báo như case 2** |
-| 4 | Tài khoản đang khóa, mật khẩu **đúng** | **423** — không cho vào |
+| 4 | Mật khẩu đúng từ cặp email–IP đang bị chặn | **423** — không cấp phiên; cùng email từ IP khác vẫn có thể đăng nhập |
 | 5 | Tài khoản bị ban | 403 |
 | 6 | Chưa xác thực email | 200 + `emailVerified: false` |
 | 7 | Kiểm cookie | Có `Domain=cnhsk.com`, `HttpOnly`, `Secure`, `SameSite=Lax` |
@@ -653,7 +653,7 @@ Cookie hoặc Body: { refreshToken }
 
 ## Mô tả
 
-Người dùng chọn đăng xuất để kết thúc phiên hiện tại. Sau đó, phiên này không còn dùng được để truy cập các chức năng cần đăng nhập.
+Người dùng chọn đăng xuất để kết thúc phiên trên thiết bị hiện tại. Ứng dụng xóa thông tin đăng nhập đã lưu, còn server thu hồi refresh token của phiên nếu xác định được. Access token đã cấp có thể còn hiệu lực đến khi hết hạn.
 
 ## Tiền điều kiện
 
@@ -848,7 +848,7 @@ Token `RESET_PASSWORD` còn hạn, chưa dùng.
 - `users.password_hash` cập nhật
 - Token reset bị thu hồi
 - 🔴 **Toàn bộ refresh token của user bị thu hồi** — buộc đăng nhập lại mọi thiết bị
-- `failed_login_count` reset, `locked_until` xóa
+- Xóa trạng thái chặn đăng nhập theo email–IP của tài khoản
 
 ## Luồng chính
 
@@ -858,7 +858,7 @@ Token `RESET_PASSWORD` còn hạn, chưa dùng.
 4. Server hash token, tìm trong `auth_tokens`, kiểm hợp lệ
 5. Server validate mật khẩu mới
 6. Server hash mật khẩu mới
-7. Server cập nhật `password_hash`, thu hồi token reset, **thu hồi toàn bộ refresh token**, reset trạng thái khóa — **cùng transaction**
+7. Server cập nhật `password_hash`, thu hồi token reset và **toàn bộ refresh token**; xóa trạng thái chặn theo email–IP của tài khoản sau khi đổi mật khẩu thành công
 8. Server trả **200**
 9. Frontend chuyển tới trang đăng nhập
 
@@ -914,7 +914,7 @@ Body: { token, newPassword, confirmPassword }
 | 3 | Refresh token cũ sau khi reset | **401** — đã bị thu hồi |
 | 4 | Token đã dùng | 409 |
 | 5 | Mật khẩu mới giống cũ | 422 |
-| 6 | Tài khoản đang bị khóa | Reset xong thì mở khóa |
+| 6 | Email–IP đang bị chặn theo UC-012 | Reset xong thì xóa trạng thái chặn liên quan đến tài khoản |
 
 ---
 
@@ -1106,7 +1106,7 @@ Body: { fullName?, avatarUrl?, preferredLanguage?, targetHskLevel? }
 
 ---
 
-# UC-012 · Khóa tài khoản tạm sau N lần sai mật khẩu
+# UC-012 · Tạm chặn đăng nhập theo email–IP sau nhiều lần sai mật khẩu
 
 | | |
 | --- | --- |
@@ -1118,55 +1118,40 @@ Body: { fullName?, avatarUrl?, preferredLanguage?, targetHskLevel? }
 
 ## Mô tả
 
-Nếu một tài khoản liên tiếp đăng nhập sai quá số lần cho phép, tài khoản đó sẽ bị khóa đăng nhập tạm thời. Hết thời gian khóa, người dùng có thể thử lại.
+Sau 5 lần đăng nhập sai trong 15 phút từ cùng một cặp email–IP, hệ thống chặn cặp đó trong 15 phút. Việc chặn không khóa toàn bộ tài khoản: người dùng vẫn có thể đăng nhập từ nguồn khác nếu tài khoản không bị treo hoặc ban.
 
 ## Tiền điều kiện
 
-Tài khoản tồn tại, đang ở trạng thái bình thường.
+Có yêu cầu đăng nhập bằng email và mật khẩu từ một địa chỉ IP. Hệ thống ghi nhận lần sai mà không tiết lộ email có tồn tại hay không.
 
 ## Hậu điều kiện
 
-- `failed_login_count` tăng mỗi lần sai
-- Đạt ngưỡng → `locked_until` được set
-- Đăng nhập thành công → reset `failed_login_count` về 0
+- Mỗi lần sai được tính cho đúng cặp email–IP trong cửa sổ 15 phút và được ghi log bảo mật, không ghi mật khẩu
+- Đạt 5 lần sai → cặp email–IP bị chặn 15 phút; trạng thái tài khoản không đổi
+- Đăng nhập thành công → xóa bộ đếm lần sai của cặp email–IP đó
 
 ## Luồng chính
 
-1. `GUEST` nhập mật khẩu sai
-2. Server tăng `failed_login_count`
-3. Server kiểm đã đạt ngưỡng chưa
-4. Chưa đạt → trả **401** `INVALID_CREDENTIALS`
-5. Đạt ngưỡng → set `locked_until = now + khoảng khóa`, trả **423** `ACCOUNT_LOCKED`
-6. Trong thời gian khóa, mọi lần đăng nhập trả **423** kể cả mật khẩu đúng
-7. Hết thời gian khóa → cho thử lại
+1. `GUEST` gửi email và mật khẩu từ một IP; server xác định cặp email–IP mà không tiết lộ tài khoản có tồn tại.
+2. Nếu cặp này đang bị chặn, server trả **423** `LOGIN_SOURCE_BLOCKED` trước khi kiểm mật khẩu.
+3. Nếu mật khẩu sai hoặc email không tồn tại, server ghi lần thất bại cho cặp email–IP. Khi chưa đạt ngưỡng, trả **401** `INVALID_CREDENTIALS` với cùng một thông báo.
+4. Nếu lần sai vừa ghi là lần thứ 5 trong 15 phút, server đặt thời điểm hết chặn sau 15 phút và trả **423** `LOGIN_SOURCE_BLOCKED`. Các yêu cầu tiếp theo từ cùng cặp cũng bị từ chối trong thời gian chặn.
+5. Khi hết thời gian chặn, cặp email–IP được thử lại. Đăng nhập thành công sẽ xóa bộ đếm lần sai của cặp đó.
 
 ## Luồng thay thế
 
-**A1 · Người dùng đặt lại mật khẩu để mở khóa**
-UC-009 reset `locked_until` → mở khóa ngay.
+**A1 · Đặt lại mật khẩu thành công**
+UC-009 xóa các trạng thái chặn theo email–IP liên quan đến tài khoản.
 
-**A2 · `SUPER_ADMIN` mở khóa thủ công**
-Thuộc UC-114.
+**A2 · Đăng nhập từ IP khác**
+Cặp email–IP khác không bị chặn bởi các lần sai ở IP cũ; vẫn phải qua mọi kiểm tra trạng thái tài khoản và bảo mật khác.
 
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
 | --- | --- | --- | --- |
-| `ACCOUNT_LOCKED` | Đang trong thời gian khóa | **423** | Trả kèm `unlockAt` để frontend đếm ngược |
-| — | Mật khẩu **đúng** khi đang khóa | **423** | 🔴 Vẫn từ chối — nếu không thì cơ chế khóa vô nghĩa |
-| — | Kẻ tấn công dùng cơ chế này để khóa tài khoản người khác | — | ⚠️ Xem ghi chú |
-
-> ⚠️ **Rủi ro bị lợi dụng làm DoS.** Kẻ xấu biết email của bạn, cố tình nhập sai N lần
-> để khóa tài khoản bạn. Cách giảm:
->
-> - Khóa theo **cặp (tài khoản, IP)** thay vì chỉ theo tài khoản
-> - Hoặc dùng CAPTCHA sau vài lần sai thay vì khóa hẳn
-> - Hoặc khóa thời gian tăng dần: 1 phút → 5 phút → 15 phút
->
-> **Cần chốt cách nào.** Tài liệu hiện chưa nói.
-
-> 🔴 **Cột `locked_until` và `failed_login_count` CHƯA CÓ trong 59 bảng.** Đây là thiếu
-> sót thật của thiết kế DB hiện tại. Xem `CONTEXT.md` §3 và Hiến pháp mục A.
+| `LOGIN_SOURCE_BLOCKED` | Cặp email–IP đang bị chặn, kể cả khi mật khẩu đúng | **423** | Trả `blockedUntil`; không khóa tài khoản ở IP khác |
+| `INVALID_CREDENTIALS` | Email không tồn tại hoặc mật khẩu sai, chưa đạt ngưỡng chặn | **401** | Dùng cùng một thông báo để tránh dò tài khoản |
 
 ## Business rule
 
@@ -1180,31 +1165,33 @@ Thuộc UC-114.
 | BR-06 | Đặt lại mật khẩu thành công sẽ xóa trạng thái chặn tạm thời liên quan đến tài khoản đó. |
 | BR-07 | Hệ thống phải ghi log các lần đăng nhập thất bại với thông tin cần thiết như thời điểm, IP và định danh tài khoản đã nhập, nhưng không ghi mật khẩu. |
 | BR-08 | Các tham số như số lần sai, khoảng thời gian theo dõi và thời gian chặn phải được cấu hình tập trung để có thể điều chỉnh mà không phải sửa luồng nghiệp vụ. |
+| BR-09 | Redis lưu bộ đếm thất bại và trạng thái chặn theo khóa gồm email đã chuẩn hóa và IP. Thao tác kiểm tra, tăng bộ đếm và đặt chặn phải nguyên tử; khóa tự hết hạn theo cửa sổ 15 phút hoặc thời gian chặn 15 phút. Không đặt email hoặc IP dạng rõ trong tên khóa nếu có thể truy xuất log Redis. |
 
 ## API
 
 ```
 POST /api/auth/login   (cùng endpoint UC-003)
-423:  { error_code: "ACCOUNT_LOCKED",
-        message: "Tài khoản tạm khóa do đăng nhập sai nhiều lần",
-        details: { unlockAt: "2026-10-01T03:15:00Z", remainingMinutes: 12 },
+423:  { error_code: "LOGIN_SOURCE_BLOCKED",
+        message: "Nguồn đăng nhập này tạm bị chặn do thử sai nhiều lần",
+        details: { blockedUntil: "2026-10-01T03:15:00Z" },
         request_id }
 ```
 
 ## Bảng DB liên quan
 
-`auth.users` — ⚠️ **cần thêm cột** `failed_login_count`, `locked_until`
+Redis lưu bộ đếm và thời điểm hết chặn theo cặp email chuẩn hóa–IP, với TTL cho cửa sổ 15 phút và thời gian chặn 15 phút. Kiểm tra và cập nhật bằng thao tác nguyên tử để hai yêu cầu đồng thời không vượt ngưỡng; khi đăng nhập thành công hoặc đặt lại mật khẩu, xóa các khóa liên quan theo đúng BR-05/BR-06. Không dùng `auth.users.failed_login_count` hoặc `locked_until` để chặn toàn bộ tài khoản. Nhật ký lần đăng nhập thất bại phải có thời điểm, IP và định danh email đã nhập ở dạng bảo vệ thông tin cá nhân, không chứa mật khẩu.
 
 ## Test case
 
 | # | Input | Kết quả mong đợi |
 | --- | --- | --- |
-| 1 | Sai mật khẩu 1 lần | 401, `failed_login_count = 1` |
-| 2 | Sai đủ ngưỡng | 423, `locked_until` được set |
-| 3 | Mật khẩu **đúng** khi đang khóa | **423** |
-| 4 | Hết thời gian khóa, mật khẩu đúng | 200 |
-| 5 | Đăng nhập thành công | `failed_login_count` về 0 |
-| 6 | Đặt lại mật khẩu khi đang khóa | Mở khóa |
+| 1 | Sai mật khẩu 1 lần từ một email–IP | 401, bộ đếm của cặp này tăng một |
+| 2 | Sai lần thứ 5 trong 15 phút | 423, cặp này bị chặn 15 phút |
+| 3 | Mật khẩu đúng từ cặp đang bị chặn | 423, không cấp phiên |
+| 4 | Cùng email từ IP khác, mật khẩu đúng | Đăng nhập được nếu tài khoản không bị treo hoặc ban |
+| 5 | Hết 15 phút chặn, mật khẩu đúng | 200, bộ đếm cặp được xóa |
+| 6 | Đặt lại mật khẩu thành công | Xóa trạng thái chặn của các cặp liên quan tới tài khoản |
+| 7 | Email không tồn tại và mật khẩu sai | Cùng thông báo 401 như sai mật khẩu của email có thật |
 
 ---
 
@@ -1292,7 +1279,7 @@ const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
 ## Bảng DB liên quan
 
-`auth.users` · `community.game_scores`
+`auth.users` · `learning.attempts` (`kind='GAME'`, chỉ ghi điểm sau khi xác thực đúng người chơi)
 
 ## Test case
 
@@ -1306,27 +1293,25 @@ const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
 ---
 
-# UC-014 · Xem lịch sử đăng nhập
+# UC-014 · Quản trị viên xem lịch sử đăng nhập
 
 | | |
 | --- | --- |
 | **ID** | UC-014 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `SUPER_ADMIN` |
 | **Priority** | P3 |
 | **Scope** | V2 |
 | **Tính năng gốc** | — ⚠️ **Không có trong feature tree** |
 
 ## Mô tả
 
-Người dùng xem các lần đăng nhập gần đây của tài khoản, cùng thời gian, địa chỉ IP và thiết bị. Danh sách này giúp họ nhận ra những lần truy cập không phải do mình thực hiện.
+Quản trị viên mở hồ sơ một tài khoản để xem các lần đăng nhập thành công của tài khoản đó. Danh sách cho biết thời điểm, loại client hoặc thiết bị và địa chỉ IP đã che bớt, giúp quản trị viên kiểm tra khi có phản ánh về truy cập bất thường. Người dùng thường không có màn hình hoặc API tự xem lịch sử này.
 
-> ⚠️ **UC này tôi đề xuất thêm, không có trong `feature-tree.md`.**
-> Lý do đề xuất: cần thiết cho bảo mật, và là nơi người dùng phát hiện tài khoản bị xâm
-> nhập. **Cần bạn chốt có làm không.**
+> UC này đã được chốt cho quản trị viên, vẫn thuộc V2 và chưa có mục riêng trong `feature-tree.md`.
 
 ## Tiền điều kiện
 
-Đã đăng nhập.
+Đã đăng nhập với quyền `SUPER_ADMIN`. Tài khoản cần xem tồn tại.
 
 ## Hậu điều kiện
 
@@ -1334,47 +1319,57 @@ Không đổi trạng thái — chỉ đọc.
 
 ## Luồng chính
 
-1. `USER` vào trang bảo mật
-2. Client gọi `GET /api/me/login-history`
-3. Server trả danh sách N lần đăng nhập gần nhất
-4. Hiển thị: thời điểm, IP (đã mask), thiết bị, trạng thái thành công/thất bại
+1. `SUPER_ADMIN` mở hồ sơ người dùng trong trang quản trị và chọn "Lịch sử đăng nhập".
+2. Client gọi `GET /api/admin/users/{userId}/login-history` kèm tham số phân trang.
+3. Server kiểm tra quyền `SUPER_ADMIN` và sự tồn tại của tài khoản, ghi nhận việc quản trị viên xem dữ liệu theo BR-114-4, rồi trả các bản ghi theo thứ tự mới nhất trước.
+4. Trang hiển thị thời điểm, loại client hoặc thiết bị và IP đã che bớt của từng lần đăng nhập thành công.
 
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
 | --- | --- | --- | --- |
 | `NO_DATA` | Chưa có lịch sử | **200** | Trả danh sách rỗng + empty state |
-| `TOKEN_EXPIRED` | Session hết hạn | **401** | Refresh |
+| `UNAUTHORIZED` | Chưa đăng nhập hoặc phiên hết hạn | **401** | Yêu cầu đăng nhập lại hoặc làm mới phiên hợp lệ |
+| `FORBIDDEN` | Tài khoản không có quyền `SUPER_ADMIN` | **403** | Không trả dữ liệu lịch sử |
+| `USER_NOT_FOUND` | Tài khoản cần xem không tồn tại | **404** | Báo không tìm thấy tài khoản |
 
 ## Business rule
 
 | # | Rule |
 | --- | --- |
-| BR-01 | Người dùng chỉ được xem lịch sử đăng nhập của chính mình. |
+| BR-01 | Chỉ `SUPER_ADMIN` được xem lịch sử đăng nhập của tài khoản được chọn; không mở endpoint tự xem cho `USER` hoặc các role quản trị khác. Kiểm quyền ở server trước khi đọc dữ liệu. |
 | BR-02 | Lịch sử đăng nhập phải hiển thị theo thứ tự mới nhất trước. |
-| BR-03 | Thông tin IP hiển thị cho người dùng phải được che một phần để giảm rủi ro lộ thông tin nhạy cảm. |
-| BR-04 | Hệ thống chỉ lưu lịch sử đăng nhập trong một khoảng thời gian giới hạn theo chính sách lưu trữ dữ liệu. |
-| BR-05 | Nếu chưa có lịch sử đăng nhập, hệ thống trả danh sách rỗng và frontend hiển thị trạng thái chưa có dữ liệu, không coi đây là lỗi. |
-| BR-06 | UC này thuộc phạm vi V2. Nếu MVP chưa có bảng lưu lịch sử đăng nhập, không gen code cho UC này trong giai đoạn MVP. |
+| BR-02a | Chỉ trả các lần đăng nhập thành công. Đăng nhập sai mật khẩu hoặc bị từ chối không xuất hiện trong UC này. |
+| BR-03 | IP trong phản hồi phải được che một phần theo `FR-057`; email nếu xuất hiện trong danh sách hoặc log phải được che theo `BUS-06`. Không trả IP đầy đủ cho client. |
+| BR-04 | Chỉ giữ bản ghi đăng nhập thành công trong 90 ngày kể từ thời điểm đăng nhập. Tác vụ dọn dữ liệu phải xóa bản ghi quá hạn; API không trả bản ghi quá 90 ngày kể cả khi tác vụ dọn chưa chạy. |
+| BR-05 | Nếu chưa có lịch sử đăng nhập, hệ thống trả danh sách rỗng và giao diện hiển thị trạng thái chưa có dữ liệu, không coi đây là lỗi. |
+| BR-06 | UC này thuộc phạm vi V2. Không xây màn hình hoặc endpoint lịch sử đăng nhập trong giai đoạn MVP. |
 
 ## API
 
 ```
-GET /api/me/login-history?page=0&size=20
-200:  { content: [{ at, ip, device, success }], totalElements, ... }
+GET /api/admin/users/{userId}/login-history?page=0&size=20
+200: { content: [{ at, clientType, device, maskedIp }], totalElements, ... }
+401: { error_code, message, request_id }
+403: { error_code, message, request_id }
+404: { error_code, message, request_id }
 ```
 
 ## Bảng DB liên quan
 
-⚠️ **Chưa có bảng.** Cần thêm `auth.login_events` nếu chốt làm.
+Dùng `shared.audit_logs` với `action='LOGIN'` cho lần đăng nhập thành công theo `docs/reference/database.md` §10 và `specs/001-auth-rbac/plan.md`; không thêm bảng `auth.login_events` trong UC này. Bản ghi cần chứa định danh tài khoản, thời điểm, loại client hoặc thiết bị và IP để tạo phản hồi đã che thông tin nhạy cảm. Truy vấn chỉ lấy bản ghi trong 90 ngày gần nhất và cần tác vụ dọn bản ghi quá hạn. Việc `SUPER_ADMIN` xem lịch sử cũng phải được ghi audit theo BR-114-4.
 
 ## Test case
 
 | # | Input | Kết quả mong đợi |
 | --- | --- | --- |
-| 1 | Có lịch sử | 200, danh sách đúng thứ tự mới nhất trước |
-| 2 | Chưa có lịch sử | 200, danh sách rỗng |
-| 3 | Gọi với ID người khác | **403** — chỉ xem được của mình |
+| 1 | `SUPER_ADMIN` xem tài khoản có lịch sử | 200, đúng tài khoản, mới nhất trước, IP đã che |
+| 2 | `SUPER_ADMIN` xem tài khoản chưa có lịch sử | 200, danh sách rỗng |
+| 3 | `USER` hoặc role quản trị khác gọi API | 403, không trả dữ liệu |
+| 4 | Chưa đăng nhập gọi API | 401 |
+| 5 | `SUPER_ADMIN` xem `userId` không tồn tại | 404 |
+| 6 | Tài khoản có một lần đăng nhập thành công và một lần sai mật khẩu | 200, chỉ có lần đăng nhập thành công |
+| 7 | Có bản ghi đăng nhập thành công đã quá 90 ngày | 200, không trả bản ghi quá hạn; tác vụ dọn xóa bản ghi đó |
 
 ---
 
@@ -1402,7 +1397,7 @@ GET /api/me/login-history?page=0&size=20
 | 3 | `REFRESH_TOKEN_REUSED` → thu hồi hết token | UC-006 | Phát hiện token bị đánh cắp |
 | 4 | Reset mật khẩu → thu hồi **toàn bộ** refresh token | UC-009 | Không thu hồi thì reset vô nghĩa |
 | 5 | `FORBIDDEN_FIELD` chặn sửa `roles` | UC-011 | Chống leo thang đặc quyền |
-| 6 | `ACCOUNT_LOCKED` trả 423 kể cả mật khẩu đúng | UC-012 | Không thì cơ chế khóa vô nghĩa |
+| 6 | `LOGIN_SOURCE_BLOCKED` trả 423 cho cặp email–IP đang bị chặn kể cả khi mật khẩu đúng | UC-012 | Không bỏ qua cơ chế chặn bằng mật khẩu đúng |
 | 7 | Race condition tiêm token vào WebView | UC-013 | Request đầu tiên thất bại |
 | 8 | `EMAIL_SEND_FAILED` vẫn trả 201 | UC-001 | SMTP lỗi không nên chặn đăng ký |
 | 9 | Refresh đồng thời bị coi là *reuse* | UC-006 | Người dùng bị đăng xuất oan |
@@ -1411,10 +1406,10 @@ GET /api/me/login-history?page=0&size=20
 
 | # | Thiếu | Ảnh hưởng UC |
 | --- | --- | --- |
-| 1 | Cột `failed_login_count`, `locked_until` trong `users` | UC-012 |
+| 1 | Triển khai Redis cho bộ đếm và thời điểm hết chặn theo cặp email–IP; không dùng cột trạng thái của `users` để khóa cả tài khoản | UC-012 |
 | 2 | Cột `suspended_at`, `banned_at` trong `users` | UC-003 |
-| 3 | Bảng `login_events` | UC-014 |
+| 3 | Dữ liệu `LOGIN` trong `shared.audit_logs` cần đủ loại client hoặc thiết bị và IP cho UC-014 (V2); không thêm bảng `login_events` | UC-014 |
 | 4 | Token loại `EMAIL_VERIFY` — hiện `auth_tokens.token_type` chỉ ghi `REFRESH` và `RESET_PASSWORD` | UC-001 · UC-002 |
-| 5 | Ngưỡng khóa tài khoản và thời gian khóa | UC-012 |
-| 6 | Quyết định chống DoS bằng khóa tài khoản | UC-012 |
+| 5 | Cấu hình tập trung ngưỡng 5 lần sai/15 phút và thời gian chặn 15 phút | UC-012 |
+| 6 | Cần thiết kế khóa Redis để UC-009 có thể xóa mọi trạng thái chặn liên quan đến một tài khoản khi đặt lại mật khẩu | UC-012 |
 | 7 | UC đổi email — chưa có | UC-011 A2 |
