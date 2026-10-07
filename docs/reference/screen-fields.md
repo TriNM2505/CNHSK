@@ -774,7 +774,7 @@ có dialog xác nhận**, cần CSRF
 | Vùng | Nội dung |
 |---|---|
 | Danh sách user | `DataTable`: email (mask) · tên · role · trạng thái · lần đăng nhập cuối |
-| Chi tiết user | Thông tin + lịch sử đăng nhập (IP **đã mask** — `FR-057`, `BUS-06`) |
+| Chi tiết user | Thông tin tài khoản (MVP); lịch sử **đăng nhập thành công** chỉ dành cho `SUPER_ADMIN` ở V2 (UC-014, IP đã mask theo `FR-057`) |
 | Lịch sử phân quyền | Ai gán gì cho ai, khi nào (`audit_logs`, `FR-064`) |
 
 > **Chỉ 6 role gán được.** `GUEST` và `SYSTEM` là actor, **không phải role** —
@@ -825,8 +825,8 @@ có dialog xác nhận**, cần CSRF
 **Màn V2 đặc tả nông hơn màn MVP.** 11 màn V2 chưa có spec feature, nên field
 có thể đổi khi viết spec thật. Đủ cho RP3, chưa đủ để code.
 
-**`UC-014` không thuộc feature nào** trong `feature-tree.md` — phát hiện khi
-dựng index UC. Cần xác minh là UC thừa hay feature tree thiếu.
+**`UC-014` chưa có mục riêng** trong `feature-tree.md`. Đã chốt đây là chức năng
+V2 cho `SUPER_ADMIN` xem lịch sử đăng nhập thành công; không đưa vào màn MVP.
 
 **Số business rule thật là 784, không phải 714.** Con số 714 trong các tài liệu
 khác thiếu 70 BR của `use-cases-01-xac-thuc.md`, vì file đó dùng mã `BR-01`
