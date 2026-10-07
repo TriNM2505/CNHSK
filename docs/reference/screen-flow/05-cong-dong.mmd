@@ -1,0 +1,15 @@
+flowchart TD
+    Dash["Tổng quan · /dashboard"]
+    Comm["Cộng đồng · /community"]
+    Blog["Blog · V2"]
+    Quiz["Quiz cộng đồng · V2"]
+    Board["Bảng xếp hạng chủ đề"]
+    MQueue["Kiểm duyệt · MANAGER"]
+
+    Dash --> Comm
+    Comm --> Blog
+    Comm --> Quiz
+    Comm --> Board
+    Blog -.->|"báo cáo nội dung"| MQueue
+    Quiz -.->|"báo cáo nội dung"| MQueue
+    MQueue -.->|"ẩn hoặc giữ"| Comm

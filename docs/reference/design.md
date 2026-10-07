@@ -78,7 +78,7 @@ THE system SHALL dùng component semantic như `Button`, `Card`, `Progress`,
 
 | Actor | Quyền | Thiết bị chính | Nhóm màn hình được dùng |
 | --- | --- | --- | --- |
-| Khách | Xem giới thiệu, tra cứu giới hạn, đăng ký/đăng nhập | Web, mobile | Public, auth, tra cứu giới hạn |
+| Khách | Xem giới thiệu và trang công khai, tra từ điển, đăng ký/đăng nhập — không dùng thử tính năng (mục 5.5) | Web, mobile | Public, auth |
 | USER | Học, luyện, thi, chơi, dùng thư viện và cộng đồng | Web, mobile | Toàn bộ màn học viên |
 | TEACHER | USER + duyệt nội dung, chấm bài thuê | Desktop web | Học viên, hàng đợi duyệt/chấm |
 | MANAGER | USER + kiểm duyệt cộng đồng | Desktop web | Học viên, quản trị cộng đồng |
@@ -131,12 +131,13 @@ Chấp nhận/từ chối kèm lý do → Chuyển mục tiếp theo.
 Màn hình chia theo **hai ứng dụng web riêng** (kiến trúc bản 5) — không gộp chung
 một bảng, vì web game là codebase độc lập và chỉ dùng chung backend + cookie.
 
-### 5.1. Web chính — `cnhsk.com` (19 màn nội dung + 1 màn router)
+### 5.1. Web chính — `cnhsk.com` (20 màn nội dung + 1 màn router)
 
 | Màn hình | Route | Actor | Mục đích (1 câu) |
 | --- | --- | --- | --- |
 | Landing | `/` | Mọi người | Giới thiệu giá trị và đưa người dùng vào học |
 | Đăng nhập / đăng ký | `/login`, `/register` | Khách | Xác thực tài khoản |
+| Chờ xác thực email | `/verify-email` | Khách vừa đăng ký | Hướng dẫn mở mail, gửi lại mail, và nhận `?token=` từ link trong mail |
 | Tổng quan học tập | `/dashboard` | USER+ | Việc cần học hôm nay, tiến độ và lối tắt |
 | Chủ đề | `/learn/topics` | USER+ | Hiển thị cây chủ đề và trạng thái khóa |
 | Phiên học chủ đề | `/learn/topics/:id` | USER+ | Học và kiểm tra từ trong một chủ đề |
@@ -146,13 +147,13 @@ một bảng, vì web game là codebase độc lập và chỉ dùng chung backe
 | Đề thi | `/exams` | USER+ | Chọn đề HSK hoặc dạng câu hỏi |
 | Làm bài | `/exams/:id/attempt` | USER+ | Làm và nộp bài |
 | Kết quả | `/attempts/:id/result` | USER+ | Xem điểm, lỗi sai và điểm yếu |
-| Tra cứu | `/dictionary` | Mọi người | Tra chữ, từ, ngữ pháp và dịch |
+| Tra cứu | `/dictionary` | Mọi người | Tra chữ, từ, ngữ pháp và dịch. Khách chỉ tra từ điển, không dịch, không lưu (mục 5.5) |
 | Sổ tay | `/notes` | USER+ | Quản lý ghi chú cá nhân |
 | Flashcard | `/flashcards` | USER+ | Quản lý và ôn bộ thẻ |
 | Tiến độ | `/progress` | USER+ | Xem thống kê 7/30/90 ngày và mastery |
 | AI Assistant | panel toàn cục | USER+ | Hỏi theo ngữ cảnh màn hình hiện tại |
 | Gói và điểm | `/account/billing` | USER+ | Xem gói, số dư và nhập thẻ |
-| Cộng đồng | `/community` | USER+ | Blog, quiz và bảng xếp hạng chủ đề |
+| Cộng đồng | `/community` | Mọi người | Blog, quiz và bảng xếp hạng chủ đề. Khách chỉ xem bài, bảng xếp hạng, cuộc thi (mục 5.5) |
 | Nhờ chấm bài | `/grading` | USER+ | Gửi bài viết và xem kết quả chấm |
 | Quản trị | `/admin/*` | 4 role quản trị (TEACHER · CONTENT_ADMIN · FINANCE_ADMIN · SUPER_ADMIN) | Xem mục 5.3 |
 
@@ -165,7 +166,7 @@ tên miền `cnhsk.com`. Mobile mở **chính các màn này** trong WebView.
 | --- | --- | --- | --- |
 | Game hub | `/games` | USER+ | Chọn game và xem thành tích cá nhân |
 | Game session | `/games/:code/play` | USER+ | Chơi một ván game |
-| Bảng hạng game | `/games/:code/rank` | USER+ | Xếp hạng riêng cho một game |
+| Bảng hạng game | `/games/:code/rank` | Mọi người | Xếp hạng riêng cho một game. Khách xem top, không có hạng cá nhân (UC-083) |
 
 > Web game **không có** blog, quiz, học tập, thanh toán hay quản trị — xem ranh
 > giới nền tảng ở mục 3. Trang game luôn bắt đầu bằng `GET /api/auth/me`.
@@ -193,12 +194,280 @@ không theo role, vì một người có thể giữ nhiều role.
 Tên route là chuẩn điều hướng frontend; endpoint API vẫn giữ tiền tố
 `/api/auth`, `/api/learning`, `/api/community`.
 
-**Tổng: 31 màn** — 19 màn web nội dung + `/admin/*` (1 màn router) + 3 màn web game
+**Tổng: 32 màn** — 20 màn web nội dung + `/admin/*` (1 màn router) + 3 màn web game
 + 8 màn con của `/admin/*`.
 
 > **Cách đếm:** `/admin/*` ở mục 5.1 là **màn router**, không có file mockup riêng.
-> 8 màn con của nó liệt ở mục 5.3. Nên thư mục mockup có **30 file HTML**
-> (19 + 3 + 8), còn tài liệu đếm **31 màn** vì tính cả màn router.
+> 8 màn con của nó liệt ở mục 5.3. Nên thư mục mockup có **31 file HTML**
+> (20 + 3 + 8), còn tài liệu đếm **32 màn** vì tính cả màn router.
+
+### 5.4. Screen flow — toàn dự án
+
+Sơ đồ dưới sinh từ mục 4 (user flow) và bảng màn hình 5.1–5.3, phủ đủ **31/31
+màn**. Khi hai nơi khác nhau, mục 5.1–5.3 là nguồn đúng về route và actor; mục
+này là nguồn đúng về **thứ tự điều hướng**.
+
+Quy ước: nét liền `-->` là điều hướng do người dùng bấm · nét đứt `-.->` là
+chuyển hướng do hệ thống (guard, redirect, hết hạn) · nhãn `V2` là màn ngoài
+phạm vi MVP.
+
+> **Xem bằng ảnh:** [`screen-flow/`](screen-flow/) có 7 file PNG render từ chính
+> các sơ đồ dưới đây, dùng được cho report và review không cần editor hỗ trợ
+> Mermaid. Sửa sơ đồ thì sửa ở đây rồi render lại — xem `screen-flow/README.md`.
+
+#### 5.4.1. Toàn cảnh — vào hệ thống và phân nhánh theo actor
+
+> **Xác thực email không phải cửa chặn.** Theo `FR-010`, người chưa xác thực
+> **vẫn đăng nhập và học được**; chỉ thao tác đổi điểm bị chặn bằng **403**
+> `ACCOUNT_UNVERIFIED`. Nên `/verify-email` là màn hướng dẫn, không phải guard.
+
+```mermaid
+flowchart TD
+    Landing["Landing · /"]
+    Dict0["Tra từ điển · /dictionary<br/>(khách: chỉ tra, không lưu)"]
+    Login["Đăng nhập · /login"]
+    Register["Đăng ký · /register"]
+    VerifyScr["Chờ xác thực email · /verify-email<br/>gửi lại mail · nhận ?token="]
+    Guard{{"Có role quản trị?"}}
+    Dash["Tổng quan · /dashboard"]
+    AdminHub["Quản trị · /admin/*"]
+    GameHub["Game hub · game.cnhsk.com/games"]
+    Locked["Khoá tạm · thông báo thời điểm mở"]
+    Reset["Đặt lại mật khẩu"]
+
+    Landing --> Login
+    Landing --> Register
+    Landing --> Dict0
+    Dict0 -.->|"lưu từ, dịch, học tiếp"| Login
+
+    Register --> VerifyScr
+    VerifyScr -->|"bấm link trong mail · ?token="| Login
+    VerifyScr -->|"chưa nhận mail — gửi lại, tối đa 3 lần mỗi giờ"| VerifyScr
+    VerifyScr -->|"bỏ qua — FR-010 cho học khi chưa xác thực"| Login
+    Login --> Guard
+    Guard -->|"không"| Dash
+    Guard -->|"có"| AdminHub
+    AdminHub --> Dash
+
+    Dash --> GameHub
+
+    Login -.->|"sai mật khẩu 5 lần mỗi giờ"| Locked
+    Locked -.-> Login
+    Login --> Reset
+    Reset -.->|"thu hồi toàn bộ refresh token"| Login
+```
+
+#### 5.4.2. Học viên — học, ôn, luyện
+
+```mermaid
+flowchart TD
+    Dash["Tổng quan · /dashboard"]
+    Topics["Chủ đề · /learn/topics"]
+    Session["Phiên học · /learn/topics/:id"]
+    Gate{{"Chủ đề đã mở?"}}
+    Review["Ôn tập · /review"]
+    Writing["Luyện viết · /practice/writing"]
+    Pron["Phát âm · /practice/pronunciation"]
+    Progress["Tiến độ · /progress"]
+    Dict["Tra cứu · /dictionary"]
+    Notes["Sổ tay · /notes"]
+    Cards["Flashcard · /flashcards"]
+    Quota{{"Còn lượt free<br/>hoặc còn điểm?"}}
+    Billing["Gói và điểm · /account/billing"]
+
+    Dash --> Topics
+    Topics --> Gate
+    Gate -->|"chưa — hiện điều kiện 90%"| Topics
+    Gate -->|"rồi"| Session
+    Session --> Quota
+    Quota -->|"hết"| Billing
+    Quota -->|"còn"| Session
+    Session -->|"học xong"| Progress
+    Progress --> Topics
+
+    Dash --> Review
+    Review -->|"trả lời · tự đánh giá"| Progress
+
+    Dash --> Writing
+    Dash --> Pron
+    Session --> Dict
+    Dict --> Cards
+    Dict --> Notes
+    Cards --> Review
+```
+
+#### 5.4.3. Luyện thi và sửa điểm yếu
+
+```mermaid
+flowchart TD
+    Dash["Tổng quan · /dashboard"]
+    Exams["Đề thi · /exams"]
+    Attempt["Làm bài · /exams/:id/attempt"]
+    Confirm{{"Xác nhận nộp?"}}
+    Leave{{"Rời trang khi chưa nộp?"}}
+    Grade["Server chấm — không tin điểm client"]
+    Result["Kết quả · /attempts/:id/result"]
+    Weak["Luyện phần yếu<br/>theo điểm kiến thức"]
+    Session["Phiên học · /learn/topics/:id"]
+    Grading["Nhờ chấm bài · /grading"]
+    TQueue["Chấm bài thuê · /admin/grading<br/>(TEACHER)"]
+
+    Dash --> Exams
+    Exams --> Attempt
+    Attempt --> Leave
+    Leave -->|"có — cảnh báo mất đáp án"| Exams
+    Leave -->|"không"| Attempt
+    Attempt --> Confirm
+    Confirm -->|"chưa"| Attempt
+    Confirm -->|"rồi"| Grade
+    Grade --> Result
+    Result --> Weak
+    Weak --> Session
+
+    Result --> Grading
+    Grading -.->|"vào hàng đợi"| TQueue
+    TQueue -.->|"trả kết quả"| Grading
+```
+
+#### 5.4.4. Game — web và mobile
+
+```mermaid
+flowchart TD
+    Dash["Tổng quan · cnhsk.com/dashboard"]
+    Me{{"GET /api/auth/me<br/>cookie dùng chung"}}
+    Hub["Game hub · /games"]
+    Play["Game session · /games/:code/play"]
+    Check{{"Server xác minh điểm"}}
+    Rank["Bảng hạng · /games/:code/rank"]
+    Login["Đăng nhập · cnhsk.com/login"]
+    Mobile["Mobile React Native"]
+    Refresh["Làm mới token"]
+    WebView["WebView tiêm token"]
+
+    Dash -->|"điều hướng sang game.cnhsk.com"| Me
+    Me -->|"401"| Login
+    Me -->|"200"| Hub
+    Hub --> Play
+    Play --> Check
+    Check -->|"hợp lệ"| Rank
+    Check -.->|"bất thường — ghi log, loại điểm"| Hub
+    Rank --> Dash
+
+    Mobile --> Refresh
+    Refresh --> WebView
+    WebView --> Hub
+    Rank -.->|"báo hoàn tất"| Mobile
+```
+
+#### 5.4.5. Cộng đồng — V2
+
+```mermaid
+flowchart TD
+    Dash["Tổng quan · /dashboard"]
+    Comm["Cộng đồng · /community"]
+    Blog["Blog · V2"]
+    Quiz["Quiz cộng đồng · V2"]
+    Board["Bảng xếp hạng chủ đề"]
+    MQueue["Kiểm duyệt · MANAGER"]
+
+    Dash --> Comm
+    Comm --> Blog
+    Comm --> Quiz
+    Comm --> Board
+    Blog -.->|"báo cáo nội dung"| MQueue
+    Quiz -.->|"báo cáo nội dung"| MQueue
+    MQueue -.->|"ẩn hoặc giữ"| Comm
+```
+
+#### 5.4.6. Quản trị — tách quyền theo role
+
+Mỗi role chỉ thấy phần mình quản (nghiệm thu 6.6). `/admin/*` là màn router,
+không có nội dung riêng.
+
+```mermaid
+flowchart LR
+    Admin["/admin/* · router"]
+
+    QReview["Duyệt câu hỏi AI<br/>/admin/questions/review"]
+    TGrading["Chấm bài thuê<br/>/admin/grading"]
+    Imports["Nhập dữ liệu<br/>/admin/imports"]
+    ExamsM["Quản lý đề thi<br/>/admin/exams"]
+    Contests["Quản lý cuộc thi<br/>/admin/contests · V2"]
+    Ledger["Sổ cái và tranh chấp<br/>/admin/ledger"]
+    BillingM["Mã thẻ và gói<br/>/admin/billing"]
+    Users["Người dùng và phân quyền<br/>/admin/users"]
+
+    Admin --> QReview
+    Admin --> TGrading
+    Admin --> Imports
+    Admin --> ExamsM
+    Admin --> Contests
+    Admin --> Ledger
+    Admin --> BillingM
+    Admin --> Users
+
+    QReview -.- T["TEACHER"]
+    TGrading -.- T
+    Imports -.- C["CONTENT_ADMIN"]
+    ExamsM -.- C
+    Contests -.- C
+    Ledger -.- F["FINANCE_ADMIN"]
+    BillingM -.- F
+    Users -.- S["SUPER_ADMIN"]
+```
+
+`CONTENT_ADMIN` **không** vào được `/admin/ledger` và `/admin/billing`;
+`FINANCE_ADMIN` **không** vào được `/admin/imports` và `/admin/exams`. Đây là
+*separation of duties* — lý do tách `ADMIN` cũ thành ba role.
+
+#### 5.4.7. Chuyển hướng do hệ thống — áp cho mọi màn
+
+Những luật này không vẽ lại ở từng sơ đồ trên vì áp cho **toàn bộ** màn
+authenticated. Chi tiết trạng thái ở mục 9.
+
+```mermaid
+flowchart TD
+    Any["Bất kỳ màn authenticated"]
+    Tok{{"Access token còn hạn?"}}
+    Ref{{"Refresh một lần — thành công?"}}
+    Role{{"Đủ role cho màn này?"}}
+    Login["/login · giữ redirect"]
+    F403["403 · nêu role cần thiết<br/>và đường quay lại"]
+    Quota{{"Còn hạn mức?"}}
+    Billing["/account/billing<br/>nêu hạn mức và thời điểm reset"]
+    OK["Hiển thị màn"]
+
+    Any --> Tok
+    Tok -->|"không"| Ref
+    Ref -->|"không"| Login
+    Ref -->|"có"| Role
+    Tok -->|"có"| Role
+    Role -->|"không"| F403
+    Role -->|"có"| Quota
+    Quota -->|"hết"| Billing
+    Quota -->|"còn"| OK
+```
+
+### 5.5. Quyền của khách — không có lượt dùng thử
+
+Khách chỉ **xem** landing và các trang công khai. Muốn dùng bất kỳ tính năng
+học, luyện, thi, game, AI hay lưu trữ nào thì phải đăng ký hoặc đăng nhập —
+**không có** lượt dùng thử cho khách.
+
+Đúng 16 UC có actor `GUEST` (`CONTEXT.md` §3.5):
+
+| Nhóm | UC | Ghi chú |
+| --- | --- | --- |
+| Xác thực | UC-001, 002, 003, 004, 008, 009 | Đăng ký, xác thực email, đăng nhập web/mobile, quên/đặt lại mật khẩu |
+| Tra từ điển | UC-056 → UC-059 | Kết quả rút gọn, không có nút lưu; giới hạn chống lạm dụng theo BR-056-1 |
+| Xem cộng đồng · V2 | UC-070, 082, 083, 090 | Chỉ xem — bình luận, thích, đăng ký cuộc thi cần đăng nhập |
+| Danh mục tham khảo · V2 | UC-117, 118 | Kênh/podcast, sách |
+
+Endpoint cho khách đi qua tiền tố `/api/public/*` (`use-cases-05` BR-056-7).
+
+> Giới hạn tra từ điển của khách là **rate limit chống lạm dụng**, không phải
+> hạn mức dùng thử. Ngưỡng và cách đếm (IP hay cookie) còn treo — xem
+> `use-cases-05` mục câu hỏi mở #15.
 
 ---
 
@@ -345,7 +614,8 @@ domain nằm trong feature tương ứng; component dùng từ hai feature trở
 | Đang gửi | Disable đúng action đang gửi, giữ label kèm trạng thái, chống gửi lặp |
 | Offline | Giữ dữ liệu đã cache ở chế độ chỉ đọc; đánh dấu rõ thao tác chưa đồng bộ |
 | Chủ đề bị khóa | Hiển thị điều kiện 90% và tiến độ hiện tại; không chỉ phủ lớp mờ |
-| Hết hạn mức | Hiển thị hạn mức, thời điểm reset và lựa chọn gói/điểm phù hợp |
+| Hết hạn mức | **Chuyển sang `/account/billing`** — không chặn tại chỗ. Màn đích nêu hạn mức, thời điểm reset và lựa chọn gói/điểm phù hợp |
+| Khách dùng tính năng cần tài khoản | Chuyển `/login` kèm `redirect` về đúng tính năng — không có lượt dùng thử (mục 5.5) |
 | Bài thi chưa nộp | Khi rời trang phải xác nhận; không mất đáp án im lặng |
 | Đáp án đã nộp | Khóa chỉnh sửa và chỉ hiện kết quả do server trả về |
 | Token hết hạn | Thử refresh một lần; thất bại mới yêu cầu đăng nhập lại và giữ redirect |

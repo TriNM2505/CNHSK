@@ -1,0 +1,28 @@
+flowchart TD
+    Dash["Tổng quan · /dashboard"]
+    Exams["Đề thi · /exams"]
+    Attempt["Làm bài · /exams/:id/attempt"]
+    Confirm{{"Xác nhận nộp?"}}
+    Leave{{"Rời trang khi chưa nộp?"}}
+    Grade["Server chấm — không tin điểm client"]
+    Result["Kết quả · /attempts/:id/result"]
+    Weak["Luyện phần yếu<br/>theo điểm kiến thức"]
+    Session["Phiên học · /learn/topics/:id"]
+    Grading["Nhờ chấm bài · /grading"]
+    TQueue["Chấm bài thuê · /admin/grading<br/>(TEACHER)"]
+
+    Dash --> Exams
+    Exams --> Attempt
+    Attempt --> Leave
+    Leave -->|"có — cảnh báo mất đáp án"| Exams
+    Leave -->|"không"| Attempt
+    Attempt --> Confirm
+    Confirm -->|"chưa"| Attempt
+    Confirm -->|"rồi"| Grade
+    Grade --> Result
+    Result --> Weak
+    Weak --> Session
+
+    Result --> Grading
+    Grading -.->|"vào hàng đợi"| TQueue
+    TQueue -.->|"trả kết quả"| Grading

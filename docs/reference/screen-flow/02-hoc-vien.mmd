@@ -1,0 +1,34 @@
+flowchart TD
+    Dash["Tổng quan · /dashboard"]
+    Topics["Chủ đề · /learn/topics"]
+    Session["Phiên học · /learn/topics/:id"]
+    Gate{{"Chủ đề đã mở?"}}
+    Review["Ôn tập · /review"]
+    Writing["Luyện viết · /practice/writing"]
+    Pron["Phát âm · /practice/pronunciation"]
+    Progress["Tiến độ · /progress"]
+    Dict["Tra cứu · /dictionary"]
+    Notes["Sổ tay · /notes"]
+    Cards["Flashcard · /flashcards"]
+    Quota{{"Còn lượt free<br/>hoặc còn điểm?"}}
+    Billing["Gói và điểm · /account/billing"]
+
+    Dash --> Topics
+    Topics --> Gate
+    Gate -->|"chưa — hiện điều kiện 90%"| Topics
+    Gate -->|"rồi"| Session
+    Session --> Quota
+    Quota -->|"hết"| Billing
+    Quota -->|"còn"| Session
+    Session -->|"học xong"| Progress
+    Progress --> Topics
+
+    Dash --> Review
+    Review -->|"trả lời · tự đánh giá"| Progress
+
+    Dash --> Writing
+    Dash --> Pron
+    Session --> Dict
+    Dict --> Cards
+    Dict --> Notes
+    Cards --> Review
