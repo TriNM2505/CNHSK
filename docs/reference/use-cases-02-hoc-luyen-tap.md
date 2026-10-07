@@ -45,8 +45,7 @@
 
 ## Mô tả
 
-Người học nhìn chữ mẫu, tô theo thứ tự nét chuẩn do `hanzi-writer` vẽ hướng dẫn. Đây là chế
-độ dễ nhất trong 5 chế độ — có gợi ý nét, không giới hạn thời gian.
+Người học tập viết một chữ Hán theo mẫu và thứ tự nét được hướng dẫn trên màn hình. Đây là chế độ có gợi ý, phù hợp khi mới làm quen với cách viết chữ.
 
 ## Tiền điều kiện
 
@@ -159,8 +158,7 @@ POST /api/practice/writing
 
 ## Mô tả
 
-Hệ thống cho xem chữ mẫu trong N giây, **ẩn chữ**, người học viết lại từ nhớ. Không có gợi
-ý nét. Khó hơn UC-015 nên hệ số mastery cao hơn.
+Người học nhìn chữ mẫu trong vài giây, sau đó tự viết lại khi mẫu đã biến mất. Chế độ này không gợi ý nét, qua đó kiểm tra xem họ đã nhớ cách viết hay chưa.
 
 ## Tiền điều kiện
 
@@ -249,8 +247,7 @@ POST /api/practice/writing   (mode = RECALL)
 
 ## Mô tả
 
-Viết liên tiếp một dãy chữ trong thời gian giới hạn. Sai quá N lần thì kết thúc. Là chế độ
-có tính game nhất của tính năng 1.1.
+Người học viết một dãy chữ liên tiếp trước khi hết giờ. Lượt chơi kết thúc khi viết xong, hết thời gian hoặc sai quá số lần cho phép.
 
 ## Tiền điều kiện
 
@@ -353,8 +350,7 @@ POST /api/practice/challenge/{id}/submit
 
 ## Mô tả
 
-Hệ thống phát audio đọc chữ, người học **chỉ nghe** (không thấy chữ) rồi viết lại. Kết hợp
-kỹ năng nghe và viết.
+Người học nghe cách đọc rồi viết lại chữ Hán tương ứng, không nhìn thấy chữ mẫu. Bài tập này kết hợp nhận biết âm đọc với nhớ mặt chữ và cách viết.
 
 ## Tiền điều kiện
 
@@ -446,8 +442,7 @@ POST /api/practice/writing   (mode = DICTATION)
 
 ## Mô tả
 
-Trắc nghiệm 4 đáp án: hiện chữ Hán, người học chọn nghĩa tiếng Việt đúng. Đáp án nhiễu phải
-là chữ gần giống để bài có giá trị phân biệt.
+Màn hình đưa ra một chữ Hán và bốn nghĩa tiếng Việt. Người học chọn nghĩa đúng để luyện nhận biết mặt chữ.
 
 ## Tiền điều kiện
 
@@ -549,7 +544,7 @@ POST /api/practice/recognition/answer
 
 ## Mô tả
 
-Phát audio, người học chọn chữ Hán đúng trong 4 lựa chọn. Rèn liên kết âm ↔ chữ.
+Người học nghe một âm đọc và chọn chữ Hán tương ứng trong bốn đáp án. Bài tập giúp họ nối âm nghe được với mặt chữ.
 
 ## Tiền điều kiện
 
@@ -633,8 +628,7 @@ POST /api/practice/recognition/answer
 
 ## Mô tả
 
-Luyện 8 tầng: 23 thanh mẫu · 39 vận mẫu · 4 thanh điệu · biến điệu. Mỗi tầng là tập bài
-nghe-và-chọn. **Không chấm phát âm qua micro** — giới hạn đã chốt.
+Người học luyện nghe và phân biệt thanh mẫu, vận mẫu, thanh điệu, biến điệu qua tám tầng bài tập. Kết quả ở từng tầng cho biết họ đã sẵn sàng học tầng tiếp theo hay chưa.
 
 ## Tiền điều kiện
 
@@ -741,8 +735,7 @@ POST /api/pronunciation/answer
 
 ## Mô tả
 
-Use case **tự động**, không có người bấm. Khi `accuracy` một tầng đạt ngưỡng, hệ thống mở
-tầng kế tiếp.
+Khi người học đạt mức chính xác yêu cầu ở một tầng phát âm, tầng kế tiếp sẽ tự mở. Họ không cần thao tác mở khóa riêng.
 
 ## Tiền điều kiện
 
@@ -830,8 +823,7 @@ Không có endpoint riêng — chạy trong `POST /api/pronunciation/answer` khi
 
 ## Mô tả
 
-Học 593 điểm ngữ pháp phân bổ HSK1–9. Mỗi điểm gồm cấu trúc, giải thích tiếng Việt, ví dụ,
-bài tập ngắn. Lần học đầu tạo lịch ôn FSRS.
+Người học chọn một điểm ngữ pháp HSK để xem cấu trúc, giải thích bằng tiếng Việt, ví dụ và làm bài tập ngắn. Sau lần học đầu, điểm ngữ pháp đó được đưa vào lịch ôn.
 
 ## Tiền điều kiện
 
@@ -933,8 +925,7 @@ POST /api/grammar/{id}/complete
 
 ## Mô tả
 
-Hệ thống đưa ra các điểm ngữ pháp **đến hạn ôn** (`next_review_at ≤ now()`), người học làm
-bài ôn, kết quả tính lại khoảng cách ôn lần sau.
+Người học làm bài ôn cho những điểm ngữ pháp đã đến hạn. Dựa trên kết quả lần ôn này, lịch ôn tiếp theo được điều chỉnh theo FSRS.
 
 ## Tiền điều kiện
 
@@ -1041,8 +1032,7 @@ POST /api/review/answer
 
 ## Mô tả
 
-Hiện danh sách chủ đề (Gia đình, Số đếm, Thời gian…) kèm % hoàn thành và trạng thái khoá/mở.
-Đây là **cửa vào** của tính năng 1.5 và là nền của cây chủ đề 3.2.
+Người học xem các chủ đề từ vựng, tiến độ hoàn thành và trạng thái khóa hoặc mở của từng chủ đề. Từ đây họ chọn chủ đề muốn học tiếp.
 
 ## Tiền điều kiện
 
@@ -1137,8 +1127,7 @@ GET /api/topics?hsk_level={n}
 
 ## Mô tả
 
-Bước ② trong luồng 6 bước của chủ đề. Học từng từ: chữ Hán · pinyin · âm Hán-Việt · nghĩa ·
-câu ví dụ · audio · từ liên quan. Mỗi từ chuyển từ "Chưa học" → "Đang học".
+Trong một chủ đề, người học xem từng từ mới cùng chữ Hán, pinyin, âm Hán Việt, nghĩa, ví dụ, audio và từ liên quan. Từ đã xem được ghi nhận là đang học.
 
 ## Tiền điều kiện
 
@@ -1246,8 +1235,7 @@ POST /api/topics/{id}/progress
 
 ## Mô tả
 
-Bước ③ của luồng chủ đề. Trắc nghiệm nhận diện từ **trong phạm vi chủ đề** — đáp án nhiễu
-lấy từ cùng chủ đề để bài có độ khó phù hợp.
+Người học làm câu hỏi trắc nghiệm để nhận diện các từ vừa học trong chủ đề. Các đáp án được lấy trong cùng chủ đề để bài luyện bám sát nội dung đang học.
 
 ## Tiền điều kiện
 
@@ -1335,7 +1323,7 @@ POST /api/topics/{id}/practice/answer
 
 ## Mô tả
 
-Bước ④ của luồng chủ đề. Phát audio từ, chọn chữ hoặc nghĩa đúng.
+Người học nghe cách đọc của một từ trong chủ đề rồi chọn chữ Hán hoặc nghĩa đúng. Kết quả được tính vào tiến độ luyện nghe của chủ đề.
 
 ## Tiền điều kiện
 
@@ -1410,8 +1398,7 @@ POST /api/topics/{id}/practice/answer
 
 ## Mô tả
 
-Bước ⑥ — bước **quyết định**. Bài kiểm tra tổng hợp cả chủ đề, chấm ở server. Kết quả quyết
-định `completion_percent` có đạt 90% để mở chủ đề tiếp (UC-046) hay không.
+Sau các bước học và luyện tập, người học làm bài kiểm tra tổng hợp của chủ đề. Điểm bài kiểm tra quyết định mức hoàn thành và việc mở chủ đề tiếp theo.
 
 ## Tiền điều kiện
 
@@ -1528,8 +1515,7 @@ POST /api/topics/{id}/final-test/{attempt_id}/submit
 
 ## Mô tả
 
-Xem video học tiếng Trung với phụ đề song ngữ + pinyin. Điều khiển học: tua lại câu, giảm
-tốc, lặp câu, ẩn/hiện từng lớp phụ đề.
+Người học xem video tiếng Trung kèm phụ đề song ngữ và pinyin. Họ có thể nghe lại từng câu, xem chậm, lặp câu hoặc ẩn bớt phụ đề để tự kiểm tra khả năng nghe hiểu.
 
 > ⚠️ **Scope V2.** Feature tree ghi khối lượng **2–4 tuần**, phần khó nhất là đồng bộ phụ đề
 > theo thời gian video. Nguồn video **chưa chốt**.
@@ -1631,8 +1617,7 @@ POST /api/videos/{id}/progress   ⚠️ chưa có bảng
 
 ## Mô tả
 
-Bấm một từ trong phụ đề → popup hiện chữ, pinyin, nghĩa, audio, nút lưu vào sổ tay/flashcard.
-Video **tự tạm dừng** khi mở popup.
+Khi bấm vào một từ trên phụ đề, video tạm dừng và hiện chữ Hán, pinyin, nghĩa cùng âm đọc của từ đó. Người học có thể lưu từ ngay tại đây.
 
 ## Tiền điều kiện
 
@@ -1721,8 +1706,7 @@ GET /api/dictionary/lookup?word={x}
 
 ## Mô tả
 
-Từ popup UC-031, lưu từ vào `notes` (sổ tay) hoặc `flashcard_decks` (bộ flashcard), kèm câu
-ví dụ lấy từ chính phụ đề video.
+Người học lưu một từ trong phụ đề vào sổ tay hoặc bộ flashcard. Câu chứa từ đó trong video được lưu kèm làm ví dụ để sau này ôn lại trong đúng ngữ cảnh.
 
 ## Tiền điều kiện
 
