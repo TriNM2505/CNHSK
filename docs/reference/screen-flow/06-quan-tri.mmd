@@ -1,0 +1,29 @@
+flowchart LR
+    Admin["/admin/* · router"]
+
+    QReview["Duyệt câu hỏi AI<br/>/admin/questions/review"]
+    TGrading["Chấm bài thuê<br/>/admin/grading"]
+    Imports["Nhập dữ liệu<br/>/admin/imports"]
+    ExamsM["Quản lý đề thi<br/>/admin/exams"]
+    Contests["Quản lý cuộc thi<br/>/admin/contests · V2"]
+    Ledger["Sổ cái và tranh chấp<br/>/admin/ledger"]
+    BillingM["Mã thẻ và gói<br/>/admin/billing"]
+    Users["Người dùng và phân quyền<br/>/admin/users"]
+
+    Admin --> QReview
+    Admin --> TGrading
+    Admin --> Imports
+    Admin --> ExamsM
+    Admin --> Contests
+    Admin --> Ledger
+    Admin --> BillingM
+    Admin --> Users
+
+    QReview -.- T["TEACHER"]
+    TGrading -.- T
+    Imports -.- C["CONTENT_ADMIN"]
+    ExamsM -.- C
+    Contests -.- C
+    Ledger -.- F["FINANCE_ADMIN"]
+    BillingM -.- F
+    Users -.- S["SUPER_ADMIN"]

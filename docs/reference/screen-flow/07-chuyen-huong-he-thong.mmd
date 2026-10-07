@@ -1,0 +1,20 @@
+flowchart TD
+    Any["Bất kỳ màn authenticated"]
+    Tok{{"Access token còn hạn?"}}
+    Ref{{"Refresh một lần — thành công?"}}
+    Role{{"Đủ role cho màn này?"}}
+    Login["/login · giữ redirect"]
+    F403["403 · nêu role cần thiết<br/>và đường quay lại"]
+    Quota{{"Còn hạn mức?"}}
+    Billing["/account/billing<br/>nêu hạn mức và thời điểm reset"]
+    OK["Hiển thị màn"]
+
+    Any --> Tok
+    Tok -->|"không"| Ref
+    Ref -->|"không"| Login
+    Ref -->|"có"| Role
+    Tok -->|"có"| Role
+    Role -->|"không"| F403
+    Role -->|"có"| Quota
+    Quota -->|"hết"| Billing
+    Quota -->|"còn"| OK

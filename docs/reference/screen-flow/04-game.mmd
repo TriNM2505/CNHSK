@@ -1,0 +1,25 @@
+flowchart TD
+    Dash["Tổng quan · cnhsk.com/dashboard"]
+    Me{{"GET /api/auth/me<br/>cookie dùng chung"}}
+    Hub["Game hub · /games"]
+    Play["Game session · /games/:code/play"]
+    Check{{"Server xác minh điểm"}}
+    Rank["Bảng hạng · /games/:code/rank"]
+    Login["Đăng nhập · cnhsk.com/login"]
+    Mobile["Mobile React Native"]
+    Refresh["Làm mới token"]
+    WebView["WebView tiêm token"]
+
+    Dash -->|"điều hướng sang game.cnhsk.com"| Me
+    Me -->|"401"| Login
+    Me -->|"200"| Hub
+    Hub --> Play
+    Play --> Check
+    Check -->|"hợp lệ"| Rank
+    Check -.->|"bất thường — ghi log, loại điểm"| Hub
+    Rank --> Dash
+
+    Mobile --> Refresh
+    Refresh --> WebView
+    WebView --> Hub
+    Rank -.->|"báo hoàn tất"| Mobile

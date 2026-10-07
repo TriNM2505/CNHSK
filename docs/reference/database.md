@@ -106,7 +106,7 @@ CREATE SCHEMA IF NOT EXISTS shared;
 | 3 | `auth_tokens` | Gộp 3 loại: refresh · reset password · verify email | UC-002, 006, 009 |
 
 > **Bảng `roles` đã bỏ.** Nó chỉ có 1 lệnh `INSERT` với **6 giá trị tĩnh**, không có
-> màn CRUD role nào trong 30 màn thiết kế. `AC-06` nói enum lưu `VARCHAR + CHECK`.
+> màn CRUD role nào trong 32 màn thiết kế. `AC-06` nói enum lưu `VARCHAR + CHECK`.
 > Bỏ nó giảm **một JOIN ở mọi truy vấn quyền**.
 >
 > Đã chứng minh trên pg-mem: `DROP TABLE roles CASCADE` **không** làm mất dữ liệu
