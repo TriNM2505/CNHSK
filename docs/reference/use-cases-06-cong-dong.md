@@ -22,9 +22,9 @@
 | UC-070 | Xem danh sách bài đã duyệt | `GUEST` `USER` | P2 | V2 | 5.1 |
 | UC-071 | Bình luận vào bài viết | `USER` | P2 | V2 | 5.1 |
 | UC-072 | Trả lời bình luận (lồng nhau) | `USER` | P3 | V2 | 5.1 |
-| UC-073 | Thích bài viết | `USER` | P3 | V2 | 5.1 |
-| UC-074 | Theo dõi người dùng khác | `USER` | P3 | V2 | 5.1 |
-| UC-075 | Báo cáo bài viết vi phạm | `USER` | P2 | V2 | 5.1 |
+| UC-073 | Thích hoặc bỏ thích bài viết | `USER` | P3 | V2 | 5.1 |
+| UC-074 | Theo dõi hoặc bỏ theo dõi người dùng khác | `USER` | P3 | V2 | 5.1 |
+| UC-075 | Báo cáo bài viết hoặc bình luận vi phạm | `USER` | P2 | V2 | 5.1 |
 | UC-076 | Duyệt bài đăng chờ kiểm duyệt | `MANAGER` | P2 | V2 | 5.1 |
 | UC-077 | Từ chối bài đăng kèm lý do | `MANAGER` | P2 | V2 | 5.1 |
 | UC-078 | Xử lý báo cáo vi phạm | `MANAGER` | P2 | V2 | 5.1 |
@@ -51,87 +51,121 @@
 # UC-069 · Đăng bài lên blog cộng đồng
 
 | | |
-|---|---|
-| **UC-ID** | UC-069 · **Actor** `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| --- | --- |
+| **UC-ID** | UC-069 |
+| **Actor chính** | `USER` |
+| **Loại** | User Goal |
+| **Pri** | P2 |
+| **Scope** | V2 |
+| **FT** | 5.1 |
+| **Trạng thái triển khai** | V2 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-Người học viết bài chia sẻ kinh nghiệm, hỏi bài, tìm bạn học. Bài vào trạng thái **`PENDING`**,
-`MANAGER` duyệt rồi mới công khai.
+Người học tạo bài viết để chia sẻ kinh nghiệm học tiếng Trung, hỏi đáp, tìm bạn học, tìm gia sư, trao đổi về văn hóa hoặc chia sẻ thông tin việc làm.
 
-**5 phân loại:** chia sẻ kinh nghiệm · hỏi bài · tìm bạn học · văn hóa · việc làm
+Bài gửi để công khai không xuất hiện ngay trên cộng đồng. Hệ thống lưu bài ở trạng thái `PENDING` để `MANAGER` kiểm duyệt. Chỉ sau khi được duyệt ở UC-076, bài mới chuyển sang `APPROVED` và xuất hiện công khai.
+
+Người học cũng có thể lưu bản nháp. Bản nháp chỉ thuộc về người tạo và không đi vào hàng đợi kiểm duyệt.
+
+Các phân loại được hỗ trợ trong phạm vi hiện tại:
+
+1. Chia sẻ kinh nghiệm.
+2. Hỏi đáp.
+3. Tìm bạn học.
+4. Tìm gia sư.
+5. Văn hóa.
+6. Việc làm.
+
+## Kích hoạt
+
+Người học chọn chức năng **Viết bài** trên trang cộng đồng.
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
-2. Email đã xác thực (chống spam từ tài khoản rác)
-3. Chưa vượt giới hạn bài/ngày
+1. Người học đã đăng nhập bằng tài khoản `USER` hợp lệ.
+2. Email của tài khoản đã được xác thực.
+3. Tài khoản không bị khóa hoặc bị cấm sử dụng chức năng cộng đồng.
+4. Người học có quyền truy cập trang cộng đồng.
+
+Giới hạn số bài trong ngày, nội dung rỗng, phân loại không hợp lệ và độ dài bài là các điều kiện được hệ thống kiểm tra trong luồng xử lý, không phải điều kiện người dùng phải tự bảo đảm trước.
 
 ## Hậu điều kiện
 
-| Kết quả | Trạng thái |
-| --- | --- |
-| Thành công | `posts` thêm dòng `status = PENDING`; chỉ tác giả thấy |
-| Chờ duyệt | Vào hàng đợi UC-076 |
+### Thành công khi gửi duyệt
+
+- Một bài viết mới được tạo với đúng người dùng hiện tại là tác giả.
+- Bài có trạng thái `PENDING`.
+- Bài chưa xuất hiện trong danh sách công khai.
+- Bài xuất hiện trong danh sách bài của tác giả và hàng đợi kiểm duyệt của `MANAGER`.
+- Nội dung lưu trong hệ thống là nội dung đã qua kiểm tra đầu vào cần thiết.
+
+### Thành công khi lưu nháp
+
+- Bài được lưu với trạng thái `DRAFT`.
+- Chỉ tác giả được xem và chỉnh sửa bản nháp.
+- Bản nháp không đi vào hàng đợi kiểm duyệt và không được tính là bài công khai.
+
+### Không thành công
+
+- Không tạo bài ở trạng thái công khai.
+- Không tạo bài `PENDING` nếu dữ liệu đầu vào không hợp lệ hoặc người dùng đã vượt giới hạn gửi bài.
+- Client không thể tự gán `author_id`, `status`, `reviewed_by` hoặc các trường quản trị khác.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Viết bài" |
-| 2 | `USER` | Nhập tiêu đề, nội dung, chọn phân loại |
-| 3 | Client | `POST /api/community/posts` |
-| 4 | System | Kiểm email đã xác thực |
-| 5 | System | Kiểm giới hạn bài/ngày |
-| 6 | System | **Sanitize nội dung** (chống XSS) |
-| 7 | System | ⚠️ Kiểm nội dung bằng AI (`PENDING_REVIEW` — xem business.md) |
-| 8 | System | Ghi `posts` với `status = PENDING`, `author_id` từ token |
-| 9 | Client | Hiện "bài đã gửi, chờ duyệt" |
+| 1 | `USER` | Mở màn hình viết bài. |
+| 2 | System | Hiển thị các trường tiêu đề, nội dung và danh sách 6 phân loại hợp lệ. |
+| 3 | `USER` | Nhập tiêu đề, nội dung, chọn phân loại và bấm **Gửi duyệt**. |
+| 4 | System | Xác định tác giả từ phiên đăng nhập hiện tại. |
+| 5 | System | Kiểm tra email đã xác thực và trạng thái tài khoản. |
+| 6 | System | Kiểm tra số bài người dùng đã gửi trong ngày theo giới hạn hiện hành. |
+| 7 | System | Kiểm tra tiêu đề, nội dung, độ dài và phân loại. |
+| 8 | System | Chuẩn hóa/escape hoặc sanitize nội dung theo quy tắc hiển thị an toàn. |
+| 9 | System | Tạo bài với `status = PENDING`. Client không được quyết định trạng thái này. |
+| 10 | System | Ghi thời điểm tạo và tác giả của bài. |
+| 11 | Client | Hiển thị thông báo “Bài đã được gửi và đang chờ duyệt”. |
+| 12 | System | Bài trở thành dữ liệu đầu vào của UC-076. |
 
 ## Luồng thay thế
 
 **A1 — Lưu nháp**
-`status = DRAFT`. Không vào hàng đợi duyệt. Chỉ tác giả thấy.
 
-**A2 — Sửa bài đang `PENDING`**
-Cho phép (mục B quyết định v2: "tác giả sửa khi còn `PENDING`"). Sửa xong vẫn `PENDING`.
+Tại bước 3, người học chọn **Lưu nháp** thay vì **Gửi duyệt**. Hệ thống lưu bài với `status = DRAFT`. Không kiểm giới hạn số bài gửi duyệt trong ngày và không đưa bài vào hàng đợi `MANAGER`.
 
-**A3 — Sửa bài đã duyệt**
-🔴 **Không cho** — xem exception. Đã duyệt thì sửa là lách kiểm duyệt.
+**A2 — Gửi một bản nháp để duyệt**
 
-**A4 — Chưa xác thực email**
-422, gợi ý xác thực (UC-002).
+Người học mở bản nháp của chính mình, chỉnh sửa nếu cần rồi chọn **Gửi duyệt**. Hệ thống thực hiện lại các kiểm tra từ bước 5 đến bước 8 và chuyển bài sang `PENDING`.
+
+**A3 — Sửa bài đang `PENDING`**
+
+Tác giả được sửa bài của mình khi bài chưa được xử lý. Sau khi lưu, bài vẫn ở trạng thái `PENDING` và `MANAGER` phải duyệt nội dung mới nhất.
+
+**A4 — Sửa bài đã `APPROVED`**
+
+Tác giả được sửa bài đã công khai, nhưng sau khi lưu bài phải chuyển lại `PENDING` và tạm biến mất khỏi danh sách công khai cho đến khi được duyệt lại. Không cho phép sửa nội dung công khai mà giữ nguyên trạng thái `APPROVED`.
+
+**A5 — Bài đã `REJECTED`**
+
+Tác giả được xem lý do từ chối, sửa nội dung và gửi lại. Khi gửi lại, bài chuyển sang `PENDING`. Lý do từ chối gần nhất được giữ để tác giả tham khảo cho đến khi có quyết định kiểm duyệt mới.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `EMAIL_NOT_VERIFIED` | 422 | Chưa xác thực | Chặn — tài khoản rác không đăng được (A4) |
-| `POST_LIMIT_EXCEEDED` | 429 | > 5 bài/ngày | Chống spam |
-| `EMPTY_TITLE` hoặc `EMPTY_CONTENT` | 400 | Rỗng | Chặn |
-| `CONTENT_TOO_LONG` | 400 | > 50.000 ký tự | Chặn |
-| `INVALID_CATEGORY` | 400 | Ngoài 5 phân loại | Chặn |
-| `XSS_IN_CONTENT` | — | 🔴 `<script>` trong bài | Xem ghi chú |
-| `EDIT_APPROVED_POST` | 403 | 🔴 Sửa bài đã duyệt | Xem ghi chú |
-| `AUTHOR_ID_FROM_CLIENT` | 400 | Client gửi `author_id` | Bỏ qua, lấy từ token |
-| `STATUS_FROM_CLIENT` | 400 | 🔴 Client gửi `status = APPROVED` | **Vi phạm kiểm duyệt** — bỏ qua tuyệt đối |
-| `AI_MODERATION_UNAVAILABLE` | — | Dịch vụ kiểm nội dung lỗi | Vẫn ghi `PENDING` — `MANAGER` duyệt tay |
-| `COPYRIGHT_CONTENT` | 422 | Bài chép đề thi của thầy | Không phát hiện tự động được; cần báo cáo |
-
-> 🔴 **`XSS_IN_CONTENT` ở đây nguy hiểm hơn UC-064 (ghi chú).** Ghi chú chỉ mình xem — tự-XSS.
-> Bài blog **mọi người xem**, kể cả `MANAGER` và `SUPER_ADMIN` khi duyệt. Một bài chứa script
-> đánh cắp cookie của `MANAGER` là **leo thang đặc quyền**.
-> Web dùng **cookie** để xác thực (không phải header), nên cookie phải có `HttpOnly` — HR-03
-> đã bắt đủ 5 thuộc tính. `HttpOnly` là thứ chặn script đọc cookie. Đây là lý do cụ thể của luật đó.
-
-> 🔴 **`EDIT_APPROVED_POST` — nếu cho sửa thì kiểm duyệt vô nghĩa.** Viết bài sạch → được duyệt
-> → sửa thành nội dung vi phạm → nội dung xấu đã công khai với nhãn "đã duyệt".
-> **Đúng:** sửa bài đã duyệt thì đưa **về `PENDING`** và ẩn khỏi công khai tới khi duyệt lại.
-> Hoặc đơn giản hơn: không cho sửa, chỉ cho xoá và viết bài mới.
-
-> 🔴 **`STATUS_FROM_CLIENT` là cùng mẫu lỗi với `FORBIDDEN_FIELD` ở UC-011** (gửi
-> `{"roles":["SUPER_ADMIN"]}`). Nhận nguyên body rồi map vào entity là cho client đặt bất kỳ
-> trường nào. **Phải whitelist** trường được ghi: `title`, `content`, `category`. Hết.
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `UNAUTHENTICATED` | 401 | Chưa đăng nhập | Không cho tạo bài. |
+| `EMAIL_NOT_VERIFIED` | 422 | Email chưa xác thực | Yêu cầu xác thực email trước khi đăng bài. |
+| `ACCOUNT_NOT_ALLOWED` | 403 | Tài khoản bị khóa/cấm chức năng cộng đồng | Không cho gửi bài. |
+| `POST_LIMIT_EXCEEDED` | 429 | Vượt giới hạn 5 bài gửi duyệt trong ngày | Không tạo thêm bài `PENDING`; bản nháp hiện có vẫn được giữ. |
+| `EMPTY_TITLE` | 400 | Tiêu đề rỗng sau khi trim | Không lưu bài gửi duyệt. |
+| `EMPTY_CONTENT` | 400 | Nội dung rỗng sau khi trim | Không lưu bài gửi duyệt. |
+| `CONTENT_TOO_LONG` | 400 | Nội dung vượt 50.000 ký tự | Yêu cầu rút gọn nội dung. |
+| `INVALID_CATEGORY` | 400 | Phân loại không thuộc danh sách hỗ trợ | Không lưu bài gửi duyệt. |
+| `POST_NOT_OWNED` | 403 | Cố sửa bản nháp/bài của người khác | Chặn. |
+| `POST_NOT_EDITABLE` | 409 | Bài đang ở trạng thái không cho phép sửa | Không thay đổi dữ liệu. |
+| `FORBIDDEN_MANAGED_FIELD` | 400 | Client gửi `author_id`, `status`, `reviewed_by` hoặc trường quản trị | Bỏ qua hoặc từ chối trường không được phép; không dùng giá trị client gửi. |
 
 ## Business rule
 
@@ -149,90 +183,116 @@ Cho phép (mục B quyết định v2: "tác giả sửa khi còn `PENDING`"). S
 
 ## API · DB
 
-```
+```http
 POST /api/community/posts
 PUT  /api/community/posts/{id}
 GET  /api/community/posts/mine
 ```
 
-`posts` (ghi) · `users` (đọc `email_verified_at` — **qua lớp `api` của `auth`**)
+**Đọc/ghi chính:** `posts`.
+
+`author_id` phải lấy từ phiên đăng nhập. Trạng thái hợp lệ trong UC này chỉ do server quyết định: `DRAFT` hoặc `PENDING`; việc chuyển sang `APPROVED` thuộc UC-076 và `REJECTED` thuộc UC-077.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | Đăng bài hợp lệ | 201, `status = PENDING` |
-| T2 | Gửi `status = APPROVED` | Bị bỏ qua, vẫn `PENDING` |
-| T3 | Gửi `author_id` khác | Bị bỏ qua |
-| T4 | Chưa xác thực email | 422 |
-| T5 | Bài thứ 6 trong ngày | 429 |
-| T6 | Nội dung có `<script>` | Render ra text ở mọi nơi |
-| T7 | Sửa bài đã `APPROVED` | Về `PENDING`, ẩn khỏi công khai |
+| T1 | Người dùng hợp lệ gửi bài đúng dữ liệu | 201; bài `PENDING`; chưa xuất hiện công khai. |
+| T2 | Lưu nháp | Bài `DRAFT`; chỉ tác giả thấy; không vào hàng đợi duyệt. |
+| T3 | Chưa xác thực email | 422; không tạo bài `PENDING`. |
+| T4 | Gửi bài thứ 6 trong ngày | 429; không tạo thêm bài gửi duyệt. |
+| T5 | Client gửi `status = APPROVED` | Không thể tạo bài công khai; trạng thái do server quyết định. |
+| T6 | Client gửi `author_id` của người khác | Tác giả vẫn là người đang đăng nhập. |
+| T7 | Sửa bài `APPROVED` | Bài chuyển `PENDING` và tạm ẩn khỏi danh sách công khai. |
+| T8 | Sửa bài `PENDING` của người khác | 403. |
+| T9 | Chọn phân loại ngoài 6 loại hỗ trợ | 400. |
+| T10 | Nội dung chứa HTML/script | Khi hiển thị không thực thi script. |
 
 ---
 
 # UC-070 · Xem danh sách bài đã duyệt
 
 | | |
-|---|---|
-| **UC-ID** | UC-070 · **Actor** `GUEST` `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| --- | --- |
+| **UC-ID** | UC-070 |
+| **Actor chính** | `GUEST`, `USER` |
+| **Loại** | User Goal |
+| **Pri** | P2 |
+| **Scope** | V2 |
+| **FT** | 5.1 |
+| **Trạng thái triển khai** | V2 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-Danh sách bài công khai, lọc theo phân loại, phân trang. Nghiệm thu 5.1: "**bài chưa duyệt
-không ai thấy trừ tác giả**".
+Người dùng xem danh sách bài viết cộng đồng đã được kiểm duyệt và công khai.
+
+Danh sách chỉ được lấy từ các bài có trạng thái `APPROVED`. Bài `DRAFT`, `PENDING`, `REJECTED` hoặc bài đã bị ẩn không được xuất hiện trên endpoint công khai.
+
+`GUEST` và `USER` đều có thể xem danh sách. Khác biệt là `GUEST` không được thực hiện các hành động cần tài khoản như bình luận, thích, theo dõi hoặc báo cáo.
+
+## Kích hoạt
+
+Người dùng mở trang **Cộng đồng** hoặc chọn một phân loại bài viết.
 
 ## Tiền điều kiện
 
-Có bài `status = APPROVED`.
+1. Không yêu cầu đăng nhập để xem danh sách công khai.
+2. Hệ thống đã có danh sách phân loại bài viết được hỗ trợ.
+3. Endpoint công khai chỉ truy cập dữ liệu đã được phép công khai.
+
+Không yêu cầu phải có ít nhất một bài `APPROVED`; danh sách rỗng là một kết quả hợp lệ.
 
 ## Hậu điều kiện
 
-Chỉ đọc. Tăng `view_count` (tuỳ chọn).
+### Thành công
+
+- Chỉ các bài đang được công khai được trả về.
+- Mỗi bài chỉ trả thông tin tác giả được phép hiển thị công khai như tên hiển thị và ảnh đại diện.
+- Danh sách được phân trang.
+- Kết quả được sắp xếp theo thời điểm công bố mới nhất trước, trừ khi có bộ lọc/sắp xếp được định nghĩa khác.
+
+### Không thành công
+
+- Không làm thay đổi bài viết hoặc dữ liệu người dùng.
+- Không được trả bài chưa duyệt, bài bị từ chối hoặc dữ liệu cá nhân nhạy cảm của tác giả.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Người dùng | Mở trang cộng đồng |
-| 2 | Client | `GET /api/public/community/posts?category={c}&page={p}` |
-| 3 | System | **Lọc `status = APPROVED`** |
-| 4 | System | Sắp theo `published_at` mới nhất |
-| 5 | System | Trả kèm tác giả (tên hiển thị), số bình luận, số thích |
-| 6 | Client | Hiện danh sách |
+| 1 | `GUEST` / `USER` | Mở trang cộng đồng. |
+| 2 | Client | Gửi yêu cầu lấy danh sách bài công khai, kèm trang và phân loại nếu người dùng chọn. |
+| 3 | System | Kiểm tra tham số phân trang và phân loại. |
+| 4 | System | Lấy các bài có trạng thái `APPROVED` và đang được phép hiển thị công khai. |
+| 5 | System | Sắp xếp theo `published_at` mới nhất trước. |
+| 6 | System | Lấy thông tin công khai của tác giả theo lô, không trả entity tài khoản đầy đủ. |
+| 7 | System | Tổng hợp số bình luận và số lượt thích cần hiển thị. |
+| 8 | System | Trả danh sách phân trang. |
+| 9 | Client | Hiển thị tiêu đề, phần mô tả ngắn, phân loại, tác giả, thời điểm công bố, số bình luận và số lượt thích. |
 
 ## Luồng thay thế
 
-**A1 — Tác giả xem bài `PENDING` của mình** — `GET /api/community/posts/mine` (endpoint riêng).
-**A2 — `GUEST` xem** — xem được, nhưng không thấy nút bình luận/thích.
-**A3 — Lọc theo người theo dõi** — `?following=true`, cần đăng nhập.
+**A1 — Không có bài phù hợp**
+
+Hệ thống trả danh sách rỗng với trạng thái thành công. Client hiển thị thông báo “Chưa có bài viết phù hợp”.
+
+**A2 — Lọc theo phân loại**
+
+Hệ thống chỉ trả các bài `APPROVED` thuộc đúng phân loại được chọn.
+
+**A3 — Tác giả muốn xem bài chưa duyệt của mình**
+
+Không dùng endpoint công khai. `USER` chuyển sang danh sách bài cá nhân của UC-069 (`/posts/mine`), nơi chỉ trả bài thuộc chính người dùng đó.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `PENDING_POST_LEAKED` | — | 🔴 Bài chưa duyệt lọt vào danh sách | Xem ghi chú |
-| `INVALID_CATEGORY` | 400 | Phân loại lạ | Chặn |
-| `PAGE_OUT_OF_RANGE` | 200 (rỗng) | Trang quá lớn | Trả rỗng |
-| `AUTHOR_PII_LEAKED` | — | 🔴 Trả email tác giả | Xem ghi chú |
-| `DELETED_AUTHOR` | — | Tác giả bị xoá/ban | Hiện "Người dùng đã rời", giữ bài |
-| `N_PLUS_ONE_QUERY` | — | Đếm bình luận từng bài riêng | ⚠️ 20 bài = 41 truy vấn. Cần join hoặc cột đếm sẵn |
-| `CROSS_MODULE_USER_READ` | — | `community` đọc thẳng `auth.users` | 🔴 Vi phạm ranh giới module |
-
-> 🔴 **`PENDING_POST_LEAKED` là vi phạm nghiệm thu trực tiếp.** Lọc `status` phải ở **tầng
-> repository**, không phải lọc ở service hay để client tự bỏ. Cách an toàn nhất: một method
-> `findPublished(...)` duy nhất cho mọi endpoint công khai, và **không** có method nào trả hết
-> bài không điều kiện ngoài endpoint của `MANAGER`.
-
-> 🔴 **`AUTHOR_PII_LEAKED`:** entity `User` có `email`, `password_hash`. Trả entity thẳng ra
-> JSON là lộ email của mọi tác giả — và `password_hash` nếu quên `@JsonIgnore`.
-> Constitution có luật PII masking. Ở đây cụ thể: DTO chỉ chứa `display_name` và `avatar_url`.
-> **Cùng mẫu lỗi với `ANSWER_KEY_IN_RESPONSE` (UC-034)** — trả entity thay vì DTO.
-
-> ⚠️ **`CROSS_MODULE_USER_READ`:** `posts.author_id` trỏ sang `auth.users` — đây là một trong
-> **ba cột trỏ xuyên schema không có khoá ngoại** (DB v5 §0.4). Lấy tên tác giả **phải** qua
-> `authApi.getDisplayNames(ids)`, không `JOIN` chéo schema. Và phải lấy theo **lô** để tránh
-> N+1.
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `INVALID_CATEGORY` | 400 | Phân loại không hợp lệ | Không thực hiện truy vấn danh sách. |
+| `INVALID_PAGE` | 400 | Page/size không hợp lệ | Trả lỗi validation. |
+| `PAGE_OUT_OF_RANGE` | 200 | Trang hợp lệ nhưng không còn dữ liệu | Trả danh sách rỗng. |
+| `PUBLIC_POST_FILTER_ERROR` | 500 | Không bảo đảm được điều kiện chỉ lấy bài công khai | Không trả dữ liệu thay vì trả tất cả bài. |
+| `AUTHOR_DATA_ERROR` | 500 | Không lấy được thông tin công khai của tác giả | Không được thay bằng entity tài khoản đầy đủ hoặc làm lộ email. |
 
 ## Business rule
 
@@ -248,90 +308,135 @@ Chỉ đọc. Tăng `view_count` (tuỳ chọn).
 
 ## API · DB
 
-```
+```http
 GET /api/public/community/posts
 GET /api/community/posts/mine
 ```
 
-`posts` · `comments` · `likes` (đọc) · `auth.users` **qua lớp api**
+**Đọc chính:** `posts`, `comments`, `likes`.
+
+Thông tin tác giả chỉ lấy ở mức dữ liệu công khai cần thiết. Không trả `email`, `password_hash`, role hoặc dữ liệu bảo mật khác.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | Danh sách công khai | Chỉ bài `APPROVED` |
-| T2 | Có 10 bài `PENDING` | **Không** xuất hiện |
-| T3 | Tác giả gọi `/mine` | Thấy bài `PENDING` của mình |
-| T4 | Tác giả A gọi `/mine` | **Không** thấy bài `PENDING` của B |
-| T5 | Kiểm response | **Không** chứa `email`, `password_hash` |
-| T6 | 20 bài | Số truy vấn **không** tăng theo số bài |
-| T7 | ArchUnit | `community` không import `auth.repository` |
+| T1 | Có bài `APPROVED`, `PENDING`, `REJECTED` | Danh sách công khai chỉ có `APPROVED`. |
+| T2 | Không có bài `APPROVED` | 200 với danh sách rỗng. |
+| T3 | `GUEST` mở trang | Xem được danh sách. |
+| T4 | Tác giả A gọi `/mine` | Chỉ thấy bài của A, không thấy bài riêng của B. |
+| T5 | Response danh sách | Không có email, password hash hoặc trường nội bộ của tác giả. |
+| T6 | Lọc theo phân loại hợp lệ | Chỉ trả bài đúng phân loại. |
+| T7 | Lọc theo phân loại không hợp lệ | 400. |
+| T8 | Trang vượt dữ liệu | 200 rỗng. |
 
 ---
 
 # UC-071 · Bình luận vào bài viết
 
 | | |
-|---|---|
-| **UC-ID** | UC-071 · **Actor** `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| --- | --- |
+| **UC-ID** | UC-071 |
+| **Actor chính** | `USER` |
+| **Loại** | User Goal |
+| **Pri** | P2 |
+| **Scope** | V2 |
+| **FT** | 5.1 |
+| **Trạng thái triển khai** | V2 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-Bình luận vào bài đã duyệt. Bình luận **không** qua kiểm duyệt trước (khác bài viết) — dựa vào
-báo cáo sau.
+Người học đăng bình luận trực tiếp dưới một bài viết cộng đồng đã được duyệt.
+
+Khác với bài viết, bình luận không đi qua bước duyệt trước khi công khai. Vì vậy hệ thống phải kiểm soát quyền sở hữu, giới hạn tần suất, độ dài và hiển thị nội dung an toàn. Bình luận vi phạm được xử lý sau thông qua chức năng báo cáo và kiểm duyệt.
+
+UC này cũng bao gồm việc tác giả sửa bình luận của mình trong khoảng thời gian cho phép và xóa bình luận của chính mình.
+
+## Kích hoạt
+
+Người học mở một bài viết công khai, nhập nội dung bình luận và chọn **Gửi**.
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập, email đã xác thực
-2. Bài `status = APPROVED`
-3. Bài không bị khoá bình luận
+1. Người học đã đăng nhập bằng tài khoản `USER` hợp lệ.
+2. Email của tài khoản đã được xác thực.
+3. Tài khoản không bị khóa hoặc bị cấm sử dụng chức năng cộng đồng.
+4. Bài viết mà người dùng đang xem tồn tại và đang ở trạng thái `APPROVED`.
+5. Bài viết chưa bị khóa chức năng bình luận.
+
+Việc nội dung bình luận có rỗng, quá dài hoặc người dùng đã vượt giới hạn tần suất được kiểm tra trong luồng chính.
 
 ## Hậu điều kiện
 
-`comments` thêm dòng; số bình luận của bài tăng.
+### Thành công khi tạo bình luận
+
+- Một bình luận mới được tạo dưới đúng bài viết.
+- `author_id` được lấy từ người dùng đang đăng nhập.
+- Bình luận xuất hiện ngay vì không có bước tiền kiểm duyệt.
+- Không thay đổi trạng thái duyệt của bài viết.
+
+### Thành công khi sửa
+
+- Chỉ nội dung bình luận của chính tác giả được thay đổi.
+- Việc sửa chỉ được chấp nhận trong 15 phút kể từ thời điểm tạo.
+- Thời điểm cập nhật được ghi lại.
+
+### Thành công khi xóa
+
+- Bình luận của tác giả được đánh dấu đã xóa theo cơ chế soft delete.
+- Nếu bình luận có trả lời, vị trí của bình luận vẫn được giữ để không làm đứt cây hội thoại.
+
+### Không thành công
+
+- Không tạo/sửa/xóa dữ liệu nếu người dùng không đủ quyền hoặc dữ liệu không hợp lệ.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Nhập bình luận, bấm gửi |
-| 2 | Client | `POST /api/community/posts/{id}/comments` |
-| 3 | System | Kiểm bài `APPROVED` |
-| 4 | System | Kiểm giới hạn tần suất |
-| 5 | System | Sanitize nội dung |
-| 6 | System | Ghi `comments` với `parent_id = NULL` |
-| 7 | Client | Hiện bình luận ngay |
+| 1 | `USER` | Nhập nội dung bình luận dưới một bài viết công khai. |
+| 2 | `USER` | Bấm **Gửi bình luận**. |
+| 3 | System | Xác định người dùng từ phiên đăng nhập và kiểm tra email đã xác thực. |
+| 4 | System | Kiểm tra bài viết tồn tại, đang `APPROVED` và chưa khóa bình luận. |
+| 5 | System | Kiểm tra giới hạn 30 bình luận trong một giờ của người dùng. |
+| 6 | System | Kiểm tra nội dung sau khi trim: không rỗng và không vượt 5.000 ký tự. |
+| 7 | System | Escape/sanitize nội dung theo quy tắc hiển thị an toàn. |
+| 8 | System | Tạo bình luận cấp gốc với `parent_id = NULL` và `author_id` là người dùng hiện tại. |
+| 9 | Client | Hiển thị bình luận vừa tạo trong bài viết. |
 
 ## Luồng thay thế
 
-**A1 — Bình luận vào bài `PENDING`** — 403. Bài chưa công khai thì chưa có gì để bình luận.
-**A2 — Sửa bình luận của mình** — cho phép trong 15 phút, sau đó không.
-**A3 — Xoá bình luận của mình** — cho phép; nếu có trả lời thì hiện "[đã xoá]" giữ cây.
+**A1 — Sửa bình luận của mình**
+
+Người dùng chọn **Sửa** trong vòng 15 phút kể từ lúc đăng. Hệ thống kiểm tra quyền sở hữu và thời gian sửa trước khi cập nhật. `parent_id`, `post_id` và tác giả không được thay đổi.
+
+**A2 — Sửa sau 15 phút**
+
+Hệ thống từ chối việc sửa. Bình luận hiện tại được giữ nguyên.
+
+**A3 — Xóa bình luận của mình**
+
+Hệ thống soft delete bình luận. Nếu bình luận chưa có trả lời, giao diện có thể ẩn khỏi luồng hiển thị theo thiết kế UI. Nếu đã có trả lời, vị trí bình luận được giữ với nội dung thay thế “[đã xóa]”.
+
+**A4 — Bài bị khóa bình luận sau khi người dùng đã mở trang**
+
+Server kiểm tra lại trạng thái tại thời điểm gửi. Nếu bài đã bị khóa, bình luận không được tạo dù giao diện cũ vẫn đang mở.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `POST_NOT_APPROVED` | 403 | Bài chưa duyệt | Chặn (A1) |
-| `POST_NOT_FOUND` | 404 | ID sai | Chặn |
-| `COMMENTS_LOCKED` | 403 | `MANAGER` khoá bình luận bài đó | Hiện "bài này đã đóng bình luận" |
-| `EMPTY_COMMENT` | 400 | Rỗng | Chặn |
-| `COMMENT_TOO_LONG` | 400 | > 5.000 ký tự | Chặn |
-| `RATE_LIMIT_EXCEEDED` | 429 | > 30 bình luận/giờ | Chống spam |
-| `EMAIL_NOT_VERIFIED` | 422 | Chưa xác thực | Chặn |
-| `XSS_IN_COMMENT` | — | 🔴 Script trong bình luận | Cùng rủi ro UC-069 — **và dễ hơn** vì bình luận không qua duyệt |
-| `COMMENT_NOT_OWNED` | 403 | Sửa/xoá bình luận người khác | IDOR |
-| `EDIT_WINDOW_EXPIRED` | 403 | Sửa sau 15 phút | Chặn — tránh sửa sau khi có người trả lời |
-| `DELETED_POST` | 404 | Bài bị xoá | Chặn |
-
-> 🔴 **`XSS_IN_COMMENT` là đường tấn công dễ nhất trong cả hệ thống.** Bài viết phải qua
-> `MANAGER` duyệt — có người đọc. Bình luận **đăng ngay, không ai duyệt**. Kẻ tấn công bình
-> luận một script vào bài phổ biến, ai đọc cũng bị.
-> **Bắt buộc:** escape khi render (React mặc định làm), `HttpOnly` cookie, và Content-Security-Policy.
-
-> ⚠️ **`EDIT_WINDOW_EXPIRED` là quyết định nghiệp vụ.** Cho sửa vô hạn thì người ta sửa bình
-> luận sau khi có 10 người trả lời → cuộc hội thoại thành vô nghĩa. 15 phút là đủ để sửa lỗi
-> chính tả.
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `UNAUTHENTICATED` | 401 | Chưa đăng nhập | Không cho bình luận. |
+| `EMAIL_NOT_VERIFIED` | 422 | Email chưa xác thực | Yêu cầu xác thực email. |
+| `POST_NOT_FOUND` | 404 | Bài không tồn tại | Không tạo bình luận. |
+| `POST_NOT_APPROVED` | 403 | Bài chưa công khai | Không cho bình luận. |
+| `COMMENTS_LOCKED` | 403 | Bài đã khóa bình luận | Không tạo bình luận. |
+| `EMPTY_COMMENT` | 400 | Nội dung rỗng | Không lưu. |
+| `COMMENT_TOO_LONG` | 400 | Nội dung vượt 5.000 ký tự | Không lưu. |
+| `RATE_LIMIT_EXCEEDED` | 429 | Vượt 30 bình luận/giờ | Tạm từ chối bình luận mới. |
+| `COMMENT_NOT_OWNED` | 403 | Sửa/xóa bình luận người khác | Chặn. |
+| `EDIT_WINDOW_EXPIRED` | 403 | Sửa sau 15 phút | Giữ nội dung cũ. |
+| `COMMENT_NOT_EDITABLE` | 409 | Bình luận đã bị xóa/ẩn hoặc không còn ở trạng thái cho phép sửa | Không thay đổi dữ liệu. |
 
 ## Business rule
 
@@ -349,87 +454,121 @@ báo cáo sau.
 
 ## API · DB
 
-```
+```http
 POST   /api/community/posts/{id}/comments
 PUT    /api/community/comments/{id}
 DELETE /api/community/comments/{id}
 ```
 
-`comments` · `posts` (đọc + ghi)
+**Đọc/ghi chính:** `comments`, `posts`.
+
+Việc xóa của người dùng phải dùng soft delete để không phá quan hệ trả lời của UC-072.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | Bình luận bài đã duyệt | 201, hiện ngay |
-| T2 | Bình luận bài `PENDING` | 403 |
-| T3 | Bình luận thứ 31 trong giờ | 429 |
-| T4 | Sửa bình luận người khác | 403 |
-| T5 | Sửa sau 20 phút | 403 |
-| T6 | `<script>` trong bình luận | Render ra text |
-| T7 | Xoá bình luận có 3 trả lời | Hiện "[đã xoá]", 3 trả lời còn |
+| T1 | Bình luận hợp lệ vào bài `APPROVED` | 201; bình luận xuất hiện ngay. |
+| T2 | Bình luận bài `PENDING` | 403. |
+| T3 | Bình luận khi bài đã khóa comment | 403. |
+| T4 | Bình luận thứ 31 trong một giờ | 429. |
+| T5 | Sửa bình luận của chính mình sau 10 phút | Thành công. |
+| T6 | Sửa sau 20 phút | 403; nội dung cũ giữ nguyên. |
+| T7 | Sửa/xóa bình luận người khác | 403. |
+| T8 | Xóa bình luận có trả lời | Bình luận gốc thành “[đã xóa]”, trả lời vẫn còn. |
+| T9 | Nội dung chứa script | Không thực thi khi hiển thị. |
 
 ---
 
 # UC-072 · Trả lời bình luận (lồng nhau)
 
 | | |
-|---|---|
-| **UC-ID** | UC-072 · **Actor** `USER` · **Pri** P3 · **Scope** V2 · **FT** 5.1 |
+| --- | --- |
+| **UC-ID** | UC-072 |
+| **Actor chính** | `USER` |
+| **Loại** | User Goal |
+| **Pri** | P3 |
+| **Scope** | V2 |
+| **FT** | 5.1 |
+| **Trạng thái triển khai** | V2/P3 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-Trả lời một bình luận, tạo cây lồng nhau. `comments.parent_id` trỏ tới bình luận cha.
+Người học trả lời một bình luận cụ thể để tạo hội thoại theo nhánh.
+
+Mỗi câu trả lời vẫn là một bản ghi `comments`, nhưng có `parent_id` trỏ tới bình luận cha. Để giao diện và truy vấn không quá phức tạp, hệ thống giới hạn độ sâu hiển thị ở 3 cấp. `parent_id` được xác định khi tạo và không được sửa sau đó.
+
+UC này kế thừa các quy tắc xác thực, email, giới hạn nội dung, chống spam và an toàn hiển thị của UC-071.
+
+## Kích hoạt
+
+Người học chọn **Trả lời** tại một bình luận trong bài viết công khai.
 
 ## Tiền điều kiện
 
-1. Bình luận cha tồn tại, cùng bài
-2. Chưa vượt độ sâu lồng tối đa
+1. Người học đáp ứng các điều kiện tài khoản của UC-071.
+2. Bài viết chứa bình luận đang ở trạng thái `APPROVED` và chưa khóa bình luận.
+3. Bình luận được chọn làm cha thuộc đúng bài viết đang xem.
+4. Bình luận cha chưa ở trạng thái bị ẩn vì kiểm duyệt.
+
+Độ sâu của nhánh được server tính trong quá trình xử lý.
 
 ## Hậu điều kiện
 
-`comments` thêm dòng có `parent_id`.
+### Thành công
+
+- Một bình luận mới được tạo trong đúng bài viết.
+- `parent_id` trỏ tới bình luận cha hợp lệ hoặc tới bình luận ở cấp tối đa theo quy tắc giới hạn độ sâu.
+- Cây hội thoại vẫn nhất quán và không xuất hiện quan hệ cha-con giữa hai bài khác nhau.
+- `parent_id` của trả lời không thể bị sửa sau khi tạo.
+
+### Không thành công
+
+- Không tạo bình luận mới nếu bình luận cha không hợp lệ, bài không còn công khai hoặc người dùng không đủ quyền.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Trả lời" ở một bình luận |
-| 2 | Client | `POST /api/community/comments/{parentId}/replies` |
-| 3 | System | Kiểm bình luận cha tồn tại, **cùng bài** |
-| 4 | System | Kiểm độ sâu ≤ 3 |
-| 5 | System | Ghi `comments` với `parent_id` |
-| 6 | Client | Hiện trả lời thụt vào |
+| 1 | `USER` | Bấm **Trả lời** trên một bình luận. |
+| 2 | `USER` | Nhập nội dung và bấm **Gửi**. |
+| 3 | System | Kiểm tra tài khoản, email và giới hạn bình luận theo UC-071. |
+| 4 | System | Lấy bình luận cha và xác định bài viết chứa bình luận đó. |
+| 5 | System | Kiểm tra bài viết đang `APPROVED` và chưa khóa bình luận. |
+| 6 | System | Kiểm tra bình luận cha thuộc đúng bài đang hiển thị. |
+| 7 | System | Xác định độ sâu hiện tại của nhánh. |
+| 8 | System | Xác định `parent_id` cuối cùng theo giới hạn tối đa 3 cấp. |
+| 9 | System | Validate và xử lý an toàn nội dung như UC-071. |
+| 10 | System | Tạo bình luận trả lời với `post_id` và `parent_id` do server xác định. |
+| 11 | Client | Hiển thị trả lời đúng vị trí trong cây hội thoại. |
 
 ## Luồng thay thế
 
-**A1 — Vượt độ sâu** — gắn vào cấp 3 thay vì tạo cấp 4 (Reddit làm vậy).
-**A2 — Bình luận cha bị xoá** — vẫn trả lời được, cha hiện "[đã xoá]".
-**A3 — Nhắc tên người** — `@username`; cần gửi thông báo (V2).
+**A1 — Người dùng trả lời một bình luận đã ở cấp sâu nhất**
+
+Hệ thống không tạo cấp thứ 4. Trả lời mới được gắn vào cấp cuối cùng được hỗ trợ theo BR-072-7 để cây hiển thị không sâu thêm.
+
+**A2 — Bình luận cha đã bị soft delete nhưng nhánh hội thoại vẫn tồn tại**
+
+Các trả lời cũ vẫn được hiển thị dưới placeholder “[đã xóa]”. Việc tạo trả lời mới vào một bình luận đã xóa không được thực hiện; người dùng phải trả lời vào một bình luận còn hoạt động trong nhánh.
+
+**A3 — Bình luận cha bị xóa/ẩn sau khi người dùng mở form trả lời**
+
+Server kiểm tra lại trạng thái khi gửi. Nếu bình luận cha không còn đủ điều kiện nhận trả lời, request bị từ chối.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `PARENT_COMMENT_NOT_FOUND` | 404 | ID cha sai | Chặn |
-| `PARENT_IN_DIFFERENT_POST` | 400 | 🔴 Cha thuộc bài khác | Xem ghi chú |
-| `MAX_DEPTH_EXCEEDED` | 200 | Quá sâu | Gắn vào cấp 3 (A1) |
-| `CIRCULAR_REPLY` | 400 | 🔴 `parent_id` tạo chu trình | Xem ghi chú |
-| `SELF_PARENT` | 400 | `parent_id = id` chính nó | Chặn |
-| `N_PLUS_ONE_TREE_LOAD` | — | Tải cây bằng đệ quy từng cấp | ⚠️ Cần một truy vấn phẳng rồi dựng cây ở code |
-| `ORPHAN_REPLY` | — | Cha bị hard delete | Trả lời mất cha → không hiện. Cần soft delete (A2) |
-
-> 🔴 **`PARENT_IN_DIFFERENT_POST` — lỗ hổng làm lộ nội dung.** Endpoint nhận `parentId` mà không
-> kiểm bình luận cha có thuộc bài đang xem: trả lời một bình luận ở bài **riêng tư/PENDING** rồi
-> đọc `parent.content` trong response → đọc được nội dung chưa công khai.
-> **Đúng:** kiểm `parent.post_id` khớp bài, và bài đó `APPROVED`.
-
-> 🔴 **`CIRCULAR_REPLY`:** nếu có endpoint sửa `parent_id`, đặt A→B và B→A thì tải cây **lặp vô
-> hạn**. Cùng loại với `CIRCULAR_PREREQUISITE` (UC-045). **Cách chặn đơn giản nhất:** `parent_id`
-> **không bao giờ sửa được** sau khi tạo.
-
-> ⚠️ **`ORPHAN_REPLY` là lý do bình luận nên soft delete.** Hard delete bình luận cha thì mọi
-> trả lời mất chỗ neo. Soft delete + "[đã xoá]" giữ được cuộc hội thoại.
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `PARENT_COMMENT_NOT_FOUND` | 404 | Không tìm thấy bình luận cha | Không tạo trả lời. |
+| `PARENT_IN_DIFFERENT_POST` | 400 | Bình luận cha không thuộc bài hiện tại | Chặn để không tạo quan hệ sai hoặc làm lộ nội dung bài khác. |
+| `POST_NOT_APPROVED` | 403 | Bài chứa bình luận không còn công khai | Không tạo trả lời. |
+| `COMMENTS_LOCKED` | 403 | Bài đã khóa bình luận | Không tạo trả lời. |
+| `PARENT_NOT_REPLYABLE` | 409 | Bình luận cha đã bị ẩn/xóa hoặc không còn nhận trả lời | Yêu cầu chọn bình luận khác. |
+| `EMPTY_COMMENT` | 400 | Nội dung rỗng | Không lưu. |
+| `COMMENT_TOO_LONG` | 400 | Nội dung vượt giới hạn | Không lưu. |
+| `RATE_LIMIT_EXCEEDED` | 429 | Vượt giới hạn bình luận của UC-071 | Tạm từ chối. |
+| `PARENT_ID_IMMUTABLE` | 400 | Client cố sửa `parent_id` sau khi tạo | Từ chối thay đổi. |
 
 ## Business rule
 
@@ -445,83 +584,114 @@ Trả lời một bình luận, tạo cây lồng nhau. `comments.parent_id` tr�
 
 ## API · DB
 
-```
+```http
 POST /api/community/comments/{parentId}/replies
 GET  /api/community/posts/{id}/comments
 ```
 
-`comments` (đọc + ghi)
+**Đọc/ghi chính:** `comments`, `posts`.
+
+Server phải xác định `post_id` từ bình luận cha, không tin `post_id` do client gửi.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | Trả lời bình luận cùng bài | 201, hiện lồng |
-| T2 | `parentId` của bài khác | 400 |
-| T3 | `parentId` bài `PENDING` | 400 — **không lộ nội dung** |
-| T4 | Trả lời ở cấp 3 | Gắn vào cấp 3 |
-| T5 | `parent_id = id` chính nó | 400 |
-| T6 | Tải bài 50 bình luận | Số truy vấn không đổi theo độ sâu |
+| T1 | Trả lời bình luận cùng bài | 201; trả lời nằm đúng nhánh. |
+| T2 | `parentId` thuộc bài khác | 400; không tạo dữ liệu. |
+| T3 | Bình luận cha thuộc bài `PENDING` | 403; không lộ nội dung. |
+| T4 | Trả lời tại cấp sâu nhất | Không tạo cấp thứ 4. |
+| T5 | Bình luận cha bị soft delete | Các trả lời cũ còn; không tạo trả lời mới trực tiếp vào cha đã xóa. |
+| T6 | Client cố đổi `parent_id` của bình luận đã tạo | Bị từ chối. |
+| T7 | Tải cây nhiều cấp | Kết quả đúng thứ tự và không phát sinh truy vấn theo từng node. |
 
 ---
 
-# UC-073 · Thích bài viết
+# UC-073 · Thích hoặc bỏ thích bài viết
 
 | | |
-|---|---|
-| **UC-ID** | UC-073 · **Actor** `USER` · **Pri** P3 · **Scope** V2 · **FT** 5.1 |
+| --- | --- |
+| **UC-ID** | UC-073 |
+| **Actor chính** | `USER` |
+| **Loại** | User Goal |
+| **Pri** | P3 |
+| **Scope** | V2 |
+| **FT** | 5.1 |
+| **Trạng thái triển khai** | V2/P3 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-Thích/bỏ thích bài. Một người thích một bài **đúng một lần**.
+Người học thể hiện phản hồi với một bài viết công khai bằng thao tác **Thích** hoặc **Bỏ thích**.
+
+Mỗi người dùng chỉ có tối đa một lượt thích trên một bài. Hai thao tác phải có tính idempotent: bấm thích nhiều lần không tạo nhiều bản ghi, và bỏ thích khi chưa thích không làm hệ thống lỗi.
+
+## Kích hoạt
+
+Người học bấm biểu tượng **Thích** hoặc **Bỏ thích** trên một bài viết công khai.
 
 ## Tiền điều kiện
 
-`USER` đã đăng nhập; bài `APPROVED`.
+1. Người học đã đăng nhập bằng tài khoản `USER` hợp lệ.
+2. Bài viết tồn tại và đang ở trạng thái `APPROVED`.
+3. Tài khoản không bị khóa hoặc bị cấm sử dụng chức năng cộng đồng.
 
 ## Hậu điều kiện
 
-`likes` thêm/xoá dòng; số thích của bài đổi.
+### Sau khi thích thành công
+
+- Quan hệ thích giữa người dùng và bài viết tồn tại đúng một lần.
+- Số lượt thích hiển thị phản ánh đúng dữ liệu thực tế.
+- Thao tác lặp lại không làm tăng thêm lượt thích.
+
+### Sau khi bỏ thích thành công
+
+- Quan hệ thích giữa người dùng và bài viết không còn.
+- Thao tác lặp lại khi đã bỏ thích vẫn trả trạng thái ổn định, không làm số lượt thích âm.
+
+### Không thành công
+
+- Không thay đổi dữ liệu nếu bài không còn công khai hoặc người dùng không đủ quyền.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm tim |
-| 2 | Client | `POST /api/community/posts/{id}/like` |
-| 3 | System | Kiểm bài `APPROVED` |
-| 4 | System | `INSERT likes (user_id, post_id)` — unique constraint |
-| 5 | System | Trả số thích mới |
-| 6 | Client | Đổi icon, cập nhật số |
+| 1 | `USER` | Bấm **Thích** trên một bài viết. |
+| 2 | System | Xác định người dùng từ phiên đăng nhập. |
+| 3 | System | Kiểm tra bài viết tồn tại và đang `APPROVED`. |
+| 4 | System | Kiểm tra quan hệ thích hiện tại giữa người dùng và bài. |
+| 5 | System | Nếu chưa thích, tạo một bản ghi `likes`. |
+| 6 | System | Tính/trả trạng thái `liked = true` và số lượt thích hiện tại. |
+| 7 | Client | Cập nhật biểu tượng và số lượt thích. |
 
 ## Luồng thay thế
 
-**A1 — Bỏ thích** — `DELETE .../like`, xoá dòng.
-**A2 — Bấm nhanh nhiều lần** — client debounce; server idempotent.
-**A3 — Thích bài của mình** — cho phép.
+**A1 — Bỏ thích**
+
+Người dùng bấm **Bỏ thích**. Hệ thống kiểm tra bài viết và xóa quan hệ thích nếu tồn tại, sau đó trả `liked = false` và số lượt hiện tại.
+
+**A2 — Bấm thích nhiều lần hoặc gửi request lặp**
+
+Nếu quan hệ đã tồn tại, hệ thống không tạo thêm bản ghi. Response vẫn trả trạng thái đã thích.
+
+**A3 — Bỏ thích khi chưa từng thích**
+
+Không coi là lỗi nghiệp vụ. Hệ thống trả trạng thái chưa thích và không thay đổi dữ liệu.
+
+**A4 — Thích bài của chính mình**
+
+Được phép theo Business Rule hiện tại; hệ thống xử lý giống bài của người khác.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `ALREADY_LIKED` | 409 hoặc 200 | Đã thích | **Idempotent** — trả 200 với trạng thái hiện tại, đơn giản hơn cho client |
-| `NOT_LIKED` | 200 | Bỏ thích khi chưa thích | Idempotent |
-| `POST_NOT_APPROVED` | 403 | Bài chưa duyệt | Chặn |
-| `UNIQUE_VIOLATION` | — | 🔴 Hai request song song | Cần unique `(user_id, post_id)`; bắt lỗi coi như đã thích |
-| `LIKE_COUNT_DRIFT` | — | 🔴 Số thích lệch số dòng `likes` | Xem ghi chú |
-| `RATE_LIMIT_EXCEEDED` | 429 | > 200 lượt/giờ | Chống bot |
-| `USER_ID_FROM_CLIENT` | 400 | Gửi `user_id` | Bỏ qua |
-
-> 🔴 **`LIKE_COUNT_DRIFT` — chọn giữa hai cách, mỗi cách một rủi ro:**
->
-> | Cách | Được | Mất |
-> | --- | --- | --- |
-> | `COUNT(*)` từ `likes` mỗi lần đọc | **Luôn đúng** | Chậm khi bài có nhiều nghìn thích |
-> | Cột `like_count` trên `posts`, `+1`/`−1` | Nhanh | **Lệch** nếu một lệnh thất bại |
->
-> Với quy mô đồ án (không phải hàng triệu lượt), `COUNT(*)` + index trên `likes(post_id)` là
-> đúng và đơn giản. Đừng tối ưu sớm. Nếu dùng cột đếm thì phải cùng transaction với `INSERT`,
-> và có job đối chiếu — **cùng vấn đề** `PROGRESS_PERCENT_MISMATCH` (UC-025).
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `UNAUTHENTICATED` | 401 | Chưa đăng nhập | Không thay đổi lượt thích. |
+| `POST_NOT_FOUND` | 404 | Bài không tồn tại | Không thay đổi dữ liệu. |
+| `POST_NOT_APPROVED` | 403 | Bài chưa/không còn công khai | Không cho thích. |
+| `ALREADY_LIKED` | 200 | Gửi lại thao tác thích | Trả trạng thái hiện tại; không tạo bản ghi mới. |
+| `NOT_LIKED` | 200 | Bỏ thích khi chưa thích | Trả trạng thái chưa thích. |
+| `LIKE_WRITE_CONFLICT` | 200/409 | Hai request thích cùng lúc | Unique `(user_id, post_id)` bảo đảm chỉ có một quan hệ; trả trạng thái cuối cùng nhất quán. |
 
 ## Business rule
 
@@ -537,85 +707,121 @@ Thích/bỏ thích bài. Một người thích một bài **đúng một lần**
 
 ## API · DB
 
-```
+```http
 POST   /api/community/posts/{id}/like
 DELETE /api/community/posts/{id}/like
 ```
 
-`likes` · `posts` (đọc + ghi)
+**Đọc/ghi chính:** `likes`, `posts`.
+
+Mỗi cặp `(user_id, post_id)` phải là duy nhất. Với quy mô dự án, số lượt thích có thể tính từ `likes` thay vì duy trì thêm bộ đếm dễ lệch dữ liệu.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | Thích bài | 200, số +1 |
-| T2 | Thích lần 2 | 200, số **không** đổi |
-| T3 | Bỏ thích | 200, số −1 |
-| T4 | Hai request song song | Chỉ **một** dòng `likes` |
-| T5 | Bài `PENDING` | 403 |
+| T1 | Thích bài `APPROVED` | Có đúng một quan hệ thích; số lượt tăng 1. |
+| T2 | Thích lại cùng bài | Không tạo dòng mới; số lượt không tăng. |
+| T3 | Hai request thích song song | Chỉ có một dòng `likes`. |
+| T4 | Bỏ thích | Quan hệ bị xóa; số lượt giảm đúng 1. |
+| T5 | Bỏ thích lần hai | Không lỗi; số lượt không âm. |
+| T6 | Thích bài `PENDING` | 403. |
+| T7 | Thích bài của chính mình | Được phép và chỉ tính một lượt. |
 
 ---
 
-# UC-074 · Theo dõi người dùng khác
+# UC-074 · Theo dõi hoặc bỏ theo dõi người dùng khác
 
 | | |
-|---|---|
-| **UC-ID** | UC-074 · **Actor** `USER` · **Pri** P3 · **Scope** V2 · **FT** 5.1 |
+| --- | --- |
+| **UC-ID** | UC-074 |
+| **Actor chính** | `USER` |
+| **Loại** | User Goal |
+| **Pri** | P3 |
+| **Scope** | V2 |
+| **FT** | 5.1 |
+| **Trạng thái triển khai** | V2/P3 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-Theo dõi người khác để thấy bài của họ trong dòng riêng. `follows` lưu quan hệ.
+Người học theo dõi một người dùng khác để duy trì quan hệ theo dõi trong cộng đồng. Hệ thống cũng cho phép bỏ theo dõi và xem danh sách đang theo dõi/người theo dõi.
+
+Mỗi cặp người theo dõi và người được theo dõi chỉ có một quan hệ. Không cho phép tự theo dõi chính mình. Tính năng **chặn người dùng** không thuộc phạm vi UC này.
+
+## Kích hoạt
+
+Người học bấm **Theo dõi** hoặc **Bỏ theo dõi** trên trang hồ sơ cộng đồng của một người dùng khác.
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
-2. Người được theo dõi tồn tại, không bị ban
-3. Không phải chính mình
+1. Người học đã đăng nhập bằng tài khoản `USER` hợp lệ.
+2. Tài khoản hiện tại không bị khóa hoặc bị cấm sử dụng chức năng cộng đồng.
+
+Sự tồn tại và trạng thái của người được theo dõi được server kiểm tra trong luồng xử lý.
 
 ## Hậu điều kiện
 
-`follows` thêm/xoá dòng.
+### Sau khi theo dõi thành công
+
+- Tồn tại đúng một quan hệ `(follower, followee)`.
+- Trạng thái hiển thị cho người dùng chuyển thành “Đang theo dõi”.
+
+### Sau khi bỏ theo dõi thành công
+
+- Quan hệ theo dõi không còn.
+- Các dữ liệu khác của hai tài khoản không bị thay đổi.
+
+### Không thành công
+
+- Không tạo quan hệ nếu mục tiêu không tồn tại, là chính người dùng hoặc đang bị khóa/ban.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Theo dõi" ở trang người khác |
-| 2 | Client | `POST /api/community/users/{id}/follow` |
-| 3 | System | Kiểm không phải chính mình |
-| 4 | System | Kiểm người đó tồn tại (qua `authApi`) |
-| 5 | System | `INSERT follows (follower_id, followee_id)` |
-| 6 | Client | Đổi nút thành "Đang theo dõi" |
+| 1 | `USER` | Mở hồ sơ cộng đồng của một người khác và bấm **Theo dõi**. |
+| 2 | System | Xác định `follower_id` từ phiên đăng nhập. |
+| 3 | System | Kiểm tra `followee_id` khác người dùng hiện tại. |
+| 4 | System | Kiểm tra người được theo dõi tồn tại và không ở trạng thái bị khóa/ban. |
+| 5 | System | Kiểm tra quan hệ theo dõi hiện tại. |
+| 6 | System | Nếu chưa tồn tại, tạo quan hệ `follows`. |
+| 7 | System | Trả trạng thái `following = true`. |
+| 8 | Client | Hiển thị nút “Đang theo dõi”. |
 
 ## Luồng thay thế
 
-**A1 — Bỏ theo dõi** — `DELETE`.
-**A2 — Xem danh sách đang theo dõi / người theo dõi mình** — endpoint riêng, phân trang.
-**A3 — Chặn người khác** — **không có trong scope**. Chỉ có theo dõi, không có chặn.
+**A1 — Bỏ theo dõi**
+
+Người dùng chọn **Bỏ theo dõi**. Hệ thống xóa quan hệ nếu có và trả `following = false`.
+
+**A2 — Theo dõi lại người đã theo dõi**
+
+Hệ thống không tạo dòng trùng. Thao tác trả trạng thái hiện tại.
+
+**A3 — Xem danh sách đang theo dõi**
+
+Hệ thống trả danh sách phân trang các tài khoản người dùng hiện tại đang theo dõi.
+
+**A4 — Xem danh sách người theo dõi mình**
+
+Hệ thống trả danh sách phân trang các tài khoản đang theo dõi người dùng hiện tại.
+
+**A5 — Người được theo dõi bị ban sau khi quan hệ đã tồn tại**
+
+Không tạo thêm thay đổi từ UC này. Khi đọc dữ liệu cộng đồng, tài khoản không còn đủ điều kiện hiển thị công khai phải được xử lý theo chính sách trạng thái tài khoản; không hard delete quan hệ chỉ vì tài khoản bị ban.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `SELF_FOLLOW` | 400 | Theo dõi chính mình | Chặn |
-| `USER_NOT_FOUND` | 404 | Không tồn tại | Chặn |
-| `USER_BANNED` | 422 | Người đó bị ban | Không cho theo dõi |
-| `ALREADY_FOLLOWING` | 200 | Đã theo dõi | Idempotent |
-| `UNIQUE_VIOLATION` | — | Song song | Unique `(follower_id, followee_id)` |
-| `FOLLOW_LIMIT_EXCEEDED` | 429 | > 1.000 người | Chống bot theo dõi hàng loạt |
-| `FOLLOWEE_DELETED` | — | 🔴 Người được theo dõi bị xoá | Xem ghi chú |
-| `CROSS_MODULE_USER_CHECK` | — | Đọc thẳng `auth.users` | Qua `authApi` |
-| `NO_BLOCK_FEATURE` | — | ⚠️ Không có chặn | Xem ghi chú |
-
-> 🔴 **`FOLLOWEE_DELETED` — `follows.followee_id` trỏ sang `auth.users` không có khoá ngoại**
-> (DB v5 §0.4: ba cột trỏ xuyên schema). DB **không** tự dọn khi user bị xoá → `follows` còn
-> dòng trỏ vào hư không.
-> **Cần:** khi `SUPER_ADMIN` xoá user (UC-114), phải gọi dọn dữ liệu `community` qua lớp `api`.
-> Hoặc chốt **không bao giờ hard delete user**, chỉ `banned_at` — đơn giản và an toàn hơn.
-
-> ⚠️ **`NO_BLOCK_FEATURE` là khoảng trống về an toàn người dùng.** Có theo dõi mà không có chặn:
-> người bị quấy rối không có cách tự bảo vệ, chỉ báo cáo bài (UC-075) và chờ `MANAGER`.
-> Với đồ án thì chấp nhận được (P3/V2), nhưng nên ghi nhận — hội đồng có thể hỏi.
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `UNAUTHENTICATED` | 401 | Chưa đăng nhập | Không tạo/xóa quan hệ. |
+| `SELF_FOLLOW` | 400 | Theo dõi chính mình | Chặn. |
+| `USER_NOT_FOUND` | 404 | Người được theo dõi không tồn tại | Chặn. |
+| `USER_NOT_FOLLOWABLE` | 422 | Người được theo dõi đang bị khóa/ban | Không tạo quan hệ. |
+| `ALREADY_FOLLOWING` | 200 | Quan hệ đã tồn tại | Trả trạng thái hiện tại, không tạo trùng. |
+| `NOT_FOLLOWING` | 200 | Bỏ theo dõi khi chưa có quan hệ | Trả trạng thái chưa theo dõi. |
+| `FOLLOW_WRITE_CONFLICT` | 200/409 | Hai request theo dõi cùng lúc | Unique `(follower_id, followee_id)` bảo đảm một quan hệ duy nhất. |
+| `INVALID_PAGE` | 400 | Tham số phân trang không hợp lệ | Không trả danh sách. |
 
 ## Business rule
 
@@ -631,97 +837,120 @@ Theo dõi người khác để thấy bài của họ trong dòng riêng. `follo
 
 ## API · DB
 
-```
+```http
 POST   /api/community/users/{id}/follow
 DELETE /api/community/users/{id}/follow
 GET    /api/community/me/following
 GET    /api/community/me/followers
 ```
 
-`follows` (đọc + ghi) · `auth.users` **qua lớp api**
+**Đọc/ghi chính:** `follows`.
+
+Thông tin trạng thái tài khoản mục tiêu được lấy qua ranh giới module xác thực; UC này không hard delete tài khoản và không triển khai chức năng block.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | Theo dõi người khác | 201 |
-| T2 | Theo dõi chính mình | 400 |
-| T3 | Theo dõi 2 lần | 200, một dòng |
-| T4 | Người bị ban | 422 |
-| T5 | Xoá user đang được theo dõi | `follows` được dọn |
+| T1 | Theo dõi người khác hợp lệ | Tạo một quan hệ; `following = true`. |
+| T2 | Theo dõi chính mình | 400. |
+| T3 | Theo dõi cùng người hai lần | Không tạo dòng trùng. |
+| T4 | Bỏ theo dõi | Quan hệ bị xóa. |
+| T5 | Bỏ theo dõi lần hai | 200; trạng thái vẫn chưa theo dõi. |
+| T6 | Theo dõi tài khoản bị ban | 422. |
+| T7 | Xem danh sách following/followers | Phân trang và chỉ trả thông tin công khai cần thiết. |
 
 ---
 
-# UC-075 · Báo cáo bài viết vi phạm
+# UC-075 · Báo cáo bài viết hoặc bình luận vi phạm
 
 | | |
-|---|---|
-| **UC-ID** | UC-075 · **Actor** `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| --- | --- |
+| **UC-ID** | UC-075 |
+| **Actor chính** | `USER` |
+| **Loại** | User Goal |
+| **Pri** | P2 |
+| **Scope** | V2 |
+| **FT** | 5.1 |
+| **Trạng thái triển khai** | V2 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-Báo cáo bài hoặc bình luận vi phạm. Ghi `moderation_reports`, vào hàng đợi `MANAGER` (UC-078).
-Đây là lớp phòng vệ **sau** khi nội dung đã công khai.
+Người học báo cáo một bài viết hoặc bình luận công khai mà họ cho rằng vi phạm quy định cộng đồng.
+
+Báo cáo không tự kết luận nội dung có vi phạm. Mỗi báo cáo được lưu ở trạng thái `PENDING` và đưa vào hàng đợi để `MANAGER` xem xét tại UC-078.
+
+Trong phiên bản V2 đơn giản hiện tại, **không tự động ẩn nội dung chỉ vì đạt một số lượng báo cáo nhất định**. Quyết định ẩn/xóa thuộc về `MANAGER`. Cách này tránh việc nhiều tài khoản lợi dụng cơ chế báo cáo để làm biến mất nội dung hợp lệ.
+
+## Kích hoạt
+
+Người học chọn **Báo cáo** trên một bài viết hoặc bình luận đang công khai.
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
-2. Nội dung bị báo cáo tồn tại và đang công khai
-3. Chưa báo cáo cùng nội dung đó
+1. Người học đã đăng nhập bằng tài khoản `USER` hợp lệ.
+2. Tài khoản không bị khóa hoặc bị cấm sử dụng chức năng cộng đồng.
+3. Đối tượng được báo cáo là loại nội dung hệ thống hỗ trợ (`POST` hoặc `COMMENT`).
+
+Việc nội dung có tồn tại, có đang công khai, có thuộc chính người báo cáo hoặc đã được báo cáo trước đó được kiểm tra trong luồng.
 
 ## Hậu điều kiện
 
-`moderation_reports` thêm dòng `status = PENDING`.
+### Thành công
+
+- Tạo một `moderation_report` ở trạng thái `PENDING`.
+- Báo cáo gắn đúng người báo cáo, loại nội dung và nội dung bị báo cáo.
+- Nội dung bị báo cáo vẫn giữ trạng thái hiện tại cho đến khi `MANAGER` xử lý, trừ khi nó đã bị ẩn bởi một quyết định kiểm duyệt khác.
+- Báo cáo xuất hiện trong hàng đợi UC-078.
+- Danh tính người báo cáo không được hiển thị cho tác giả nội dung.
+
+### Không thành công
+
+- Không tạo báo cáo trùng cho cùng một người và cùng một nội dung.
+- Không tự động ẩn/xóa nội dung khi request báo cáo thất bại hoặc khi chỉ mới ghi nhận báo cáo.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Báo cáo", chọn lý do, ghi chi tiết |
-| 2 | Client | `POST /api/community/reports` — `{target_type, target_id, reason, detail}` |
-| 3 | System | Kiểm nội dung tồn tại |
-| 4 | System | Kiểm chưa báo cáo trùng |
-| 5 | System | Ghi `moderation_reports` `status = PENDING` |
-| 6 | System | Nếu ≥ N báo cáo cho cùng nội dung → **tự ẩn tạm** chờ duyệt |
-| 7 | Client | Hiện "đã gửi báo cáo" |
+| 1 | `USER` | Bấm **Báo cáo** trên bài viết hoặc bình luận. |
+| 2 | System | Hiển thị danh sách lý do được hỗ trợ và trường mô tả bổ sung nếu cần. |
+| 3 | `USER` | Chọn lý do, nhập mô tả tùy chọn và xác nhận gửi. |
+| 4 | System | Xác định người báo cáo từ phiên đăng nhập. |
+| 5 | System | Kiểm tra loại đối tượng và đối tượng thực tế tồn tại, đang công khai. |
+| 6 | System | Kiểm tra người dùng không báo cáo nội dung của chính mình. |
+| 7 | System | Kiểm tra cùng người dùng chưa báo cáo cùng đối tượng trước đó. |
+| 8 | System | Kiểm tra giới hạn số báo cáo trong ngày. |
+| 9 | System | Kiểm tra lý do thuộc danh sách hợp lệ. |
+| 10 | System | Tạo `moderation_report` với `status = PENDING`. |
+| 11 | Client | Hiển thị thông báo “Báo cáo đã được gửi để xem xét”. |
 
 ## Luồng thay thế
 
-**A1 — Nhiều người báo cáo cùng bài**
-Mỗi người một dòng. Đạt ngưỡng (ví dụ 5) thì tự ẩn tạm — không chờ `MANAGER` rảnh.
+**A1 — Nhiều người cùng báo cáo một nội dung**
 
-**A2 — Báo cáo bài của chính mình**
-Cho phép nhưng vô nghĩa; hoặc chặn. Đề xuất: chặn.
+Mỗi người dùng hợp lệ được tạo một báo cáo riêng. Hệ thống không tự động ẩn nội dung chỉ vì số báo cáo tăng; UC-078 sẽ nhóm các báo cáo theo cùng đối tượng để `MANAGER` xử lý một lần.
 
-**A3 — Báo cáo sai/lạm dụng**
-`MANAGER` đánh dấu `REJECTED`. Người báo cáo sai nhiều lần thì giới hạn.
+**A2 — Nội dung đã bị ẩn/xóa bởi `MANAGER` trước khi người dùng gửi**
+
+Server kiểm tra trạng thái tại thời điểm gửi. Nếu nội dung không còn công khai, không tạo báo cáo mới vì đối tượng đã không còn hiển thị cho cộng đồng.
+
+**A3 — Người dùng đã báo cáo cùng nội dung trước đó**
+
+Không tạo dòng mới. Hệ thống thông báo báo cáo đã được ghi nhận trước đó.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `TARGET_NOT_FOUND` | 404 | Nội dung không tồn tại | Chặn |
-| `DUPLICATE_REPORT` | 409 | Đã báo cáo rồi | Chặn — một người một lần |
-| `SELF_REPORT` | 400 | Báo cáo bài của mình | Chặn (A2) |
-| `INVALID_REASON` | 400 | Lý do ngoài danh sách | Chặn |
-| `REPORT_ABUSE` | 429 | > 20 báo cáo/ngày | 🔴 Xem ghi chú |
-| `AUTO_HIDE_THRESHOLD_UNDEFINED` | — | ⚠️ Chưa chốt ngưỡng tự ẩn | Xem ghi chú |
-| `TARGET_ALREADY_HIDDEN` | 200 | Đã bị ẩn | Vẫn ghi báo cáo (làm bằng chứng) |
-| `REPORTER_PII_LEAKED` | — | 🔴 Lộ ai báo cáo | Xem ghi chú |
-
-> 🔴 **`REPORT_ABUSE` — báo cáo hàng loạt là một dạng tấn công.** Kẻ xấu tạo 10 tài khoản, báo
-> cáo bài của người mình không thích → đạt ngưỡng tự ẩn → bài bị ẩn dù không vi phạm.
-> **Giảm bằng:** chỉ tính báo cáo từ tài khoản đã xác thực email và có tuổi ≥ 7 ngày; và
-> `MANAGER` xem được ai báo cáo để nhận ra mẫu lạm dụng.
-
-> 🔴 **`REPORTER_PII_LEAKED`:** người báo cáo **không được** lộ cho tác giả bài. Nếu response
-> UC-070 hoặc trang bài có danh sách người báo cáo thì người bị báo cáo biết ai tố mình → trả
-> thù. Chỉ `MANAGER` thấy danh tính người báo cáo.
-
-> ⚠️ **`AUTO_HIDE_THRESHOLD_UNDEFINED` liên quan trực tiếp tới vấn đề feature tree 5.1 đã
-> cảnh báo:** *"Kiểm duyệt thủ công **không mở rộng được** — 100 bài/ngày là Manager không duyệt
-> xuể."* Tự ẩn theo ngưỡng báo cáo là cách giảm tải, nhưng ngưỡng bao nhiêu thì **chưa chốt**.
-> Thấp quá → lạm dụng dễ; cao quá → nội dung xấu tồn tại lâu.
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `UNAUTHENTICATED` | 401 | Chưa đăng nhập | Không tạo báo cáo. |
+| `INVALID_TARGET_TYPE` | 400 | Loại đối tượng không phải `POST`/`COMMENT` | Chặn. |
+| `TARGET_NOT_FOUND` | 404 | Không tìm thấy nội dung | Không tạo báo cáo. |
+| `TARGET_NOT_PUBLIC` | 409 | Nội dung không còn công khai | Không tạo báo cáo mới. |
+| `SELF_REPORT` | 400 | Báo cáo nội dung của chính mình | Chặn. |
+| `DUPLICATE_REPORT` | 409 | Đã báo cáo cùng đối tượng | Không tạo dòng trùng. |
+| `INVALID_REASON` | 400 | Lý do không thuộc danh sách hợp lệ | Không lưu. |
+| `REPORT_LIMIT_EXCEEDED` | 429 | Vượt giới hạn báo cáo trong ngày | Tạm từ chối báo cáo mới. |
 
 ## Business rule
 
@@ -738,104 +967,123 @@ Cho phép nhưng vô nghĩa; hoặc chặn. Đề xuất: chặn.
 
 ## API · DB
 
-```
+```http
 POST /api/community/reports
 ```
 
-`moderation_reports` (ghi) · `posts` · `comments` (đọc)
+**Đọc/ghi chính:** `moderation_reports`; đọc trạng thái `posts` hoặc `comments`.
+
+Cần unique logic để một người chỉ có một báo cáo hoạt động cho cùng `(target_type, target_id)`. Không có thao tác auto-hide trong UC này.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | Báo cáo bài vi phạm | 201, `status = PENDING` |
-| T2 | Báo cáo lần 2 cùng bài | 409 |
-| T3 | Báo cáo bài của mình | 400 |
-| T4 | 21 báo cáo trong ngày | 429 |
-| T5 | 5 người báo cáo cùng bài | Bài **tự ẩn** |
-| T6 | Tác giả xem bài mình | **Không** thấy ai báo cáo |
+| T1 | Báo cáo bài công khai hợp lệ | 201; report `PENDING`; bài vẫn công khai. |
+| T2 | Báo cáo bình luận công khai hợp lệ | 201; report `PENDING`. |
+| T3 | Cùng người báo cáo cùng bài lần hai | 409; không có dòng trùng. |
+| T4 | Báo cáo nội dung của chính mình | 400. |
+| T5 | Báo cáo nội dung không còn công khai | Không tạo report mới. |
+| T6 | Nhiều người cùng báo cáo | Có nhiều report nhưng nội dung không tự ẩn. |
+| T7 | Tác giả xem nội dung của mình | Không nhận được danh tính người đã báo cáo. |
 
 ---
 
 # UC-076 · Duyệt bài đăng chờ kiểm duyệt
 
 | | |
-|---|---|
-| **UC-ID** | UC-076 · **Actor** `MANAGER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| --- | --- |
+| **UC-ID** | UC-076 |
+| **Actor chính** | `MANAGER` |
+| **Loại** | User Goal |
+| **Pri** | P2 |
+| **Scope** | V2 |
+| **FT** | 5.1 |
+| **Trạng thái triển khai** | V2 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-`MANAGER` xem hàng đợi bài `PENDING`, duyệt cho công khai. Nghiệm thu 5.1: "**Manager duyệt
-xong bài hiện ngay**".
+`MANAGER` xem hàng đợi các bài đang chờ kiểm duyệt và quyết định duyệt những bài đủ điều kiện để công khai.
 
-> Nhật ký duyệt gộp vào `posts.reviewed_by` · `reviewed_at` · `review_reason` — **không có
-> bảng riêng**.
+UC này chỉ xử lý nhánh **duyệt**. Nhánh từ chối được thực hiện ở UC-077.
+
+Mục tiêu của UC là bảo đảm một bài chỉ được công khai sau khi một `MANAGER` hợp lệ đã thực sự xem và duyệt. `MANAGER` không được tự duyệt bài do chính mình viết.
+
+## Kích hoạt
+
+`MANAGER` mở trang kiểm duyệt bài viết hoặc chọn một bài `PENDING` để xem xét.
 
 ## Tiền điều kiện
 
-1. Người dùng có role `MANAGER`
-2. Có bài `status = PENDING`
+1. Người dùng đã đăng nhập và có role `MANAGER`.
+2. Tài khoản quản trị đang hoạt động và được phép dùng chức năng kiểm duyệt.
+3. Hệ thống có thể truy cập hàng đợi bài `PENDING`.
+
+Không yêu cầu hàng đợi phải có bài; danh sách rỗng là trạng thái hợp lệ.
 
 ## Hậu điều kiện
 
-| Kết quả | Trạng thái |
-| --- | --- |
-| Duyệt | `status = APPROVED`, `reviewed_by`, `reviewed_at`, `published_at`; bài hiện công khai **ngay** |
-| Từ chối | UC-077 |
+### Khi duyệt thành công
+
+- Bài chuyển từ `PENDING` sang `APPROVED`.
+- Hệ thống ghi `reviewed_by`, `reviewed_at` và `published_at`.
+- Bài xuất hiện ngay trong danh sách công khai của UC-070.
+- Bài bị loại khỏi hàng đợi kiểm duyệt.
+- Quyết định kiểm duyệt có thể truy vết được tới đúng `MANAGER`.
+
+### Khi không duyệt thành công
+
+- Bài giữ nguyên trạng thái trước đó.
+- Không được công khai bài nếu request duyệt không hoàn tất.
+- Không để hai quyết định đồng thời ghi đè lẫn nhau.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `MANAGER` | Mở trang kiểm duyệt |
-| 2 | System | Kiểm role `MANAGER` |
-| 3 | System | `GET /api/community/moderation/posts?status=PENDING` — sắp cũ nhất trước |
-| 4 | `MANAGER` | Đọc bài |
-| 5 | `MANAGER` | Bấm "Duyệt" |
-| 6 | Client | `PATCH /api/community/moderation/posts/{id}/approve` |
-| 7 | System | Kiểm role lần nữa **ở server** |
-| 8 | System | Kiểm bài còn `PENDING` |
-| 9 | System | `status = APPROVED`, ghi `reviewed_by = manager_id`, `reviewed_at`, `published_at` |
-| 10 | System | Thông báo tác giả |
-| 11 | Client | Bỏ bài khỏi hàng đợi |
+| 1 | `MANAGER` | Mở hàng đợi kiểm duyệt. |
+| 2 | System | Kiểm tra role `MANAGER`. |
+| 3 | System | Trả danh sách bài `PENDING`, sắp xếp bài chờ lâu hơn trước và phân trang. |
+| 4 | `MANAGER` | Mở một bài để đọc đầy đủ nội dung, phân loại và thông tin công khai của tác giả. |
+| 5 | System | Ghi nhận bài đã được mở xem để phục vụ điều kiện duyệt hàng loạt nếu có. |
+| 6 | `MANAGER` | Chọn **Duyệt**. |
+| 7 | System | Kiểm tra lại quyền của `MANAGER`. |
+| 8 | System | Kiểm tra bài vẫn còn `PENDING` tại thời điểm xử lý. |
+| 9 | System | Kiểm tra người duyệt không phải tác giả bài. |
+| 10 | System | Chuyển bài sang `APPROVED`, ghi người duyệt và các mốc thời gian. |
+| 11 | System | Bài trở thành công khai ngay sau khi cập nhật thành công. |
+| 12 | System | Gửi thông báo cho tác giả; lỗi gửi thông báo không làm đảo ngược quyết định duyệt. |
+| 13 | Client | Loại bài khỏi hàng đợi và hiển thị trạng thái đã duyệt. |
 
 ## Luồng thay thế
 
-**A1 — Duyệt nhiều bài một lúc** — nhận mảng id; mỗi bài một transaction để một lỗi không chặn cả lô.
-**A2 — Bài đã được `MANAGER` khác duyệt** — 409, refresh hàng đợi.
-**A3 — Duyệt bài của chính mình** — 🔴 xem exception.
+**A1 — Duyệt hàng loạt**
+
+`MANAGER` có thể chọn nhiều bài **đã mở xem** và gửi quyết định duyệt một lần. Mỗi bài được kiểm tra độc lập về trạng thái và quyền tự duyệt. Một bài lỗi không được làm các bài hợp lệ khác mất kết quả.
+
+**A2 — Bài đã được `MANAGER` khác xử lý**
+
+Khi lưu quyết định, nếu bài không còn `PENDING`, request hiện tại không được ghi đè quyết định đã có. Client tải lại trạng thái mới.
+
+**A3 — Hàng đợi rỗng**
+
+Hệ thống trả danh sách rỗng; không coi là lỗi.
+
+**A4 — `MANAGER` mở bài do chính mình viết**
+
+Có thể xem bài trong hàng đợi nhưng không được duyệt. Bài phải chờ một `MANAGER` khác xử lý.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | 🔴 **Kiểm ở server** — ẩn menu không đủ |
-| `POST_NOT_PENDING` | 409 | Đã duyệt/từ chối | Refresh (A2) |
-| `SELF_APPROVAL` | 403 | 🔴 `MANAGER` duyệt bài của mình | Xem ghi chú |
-| `POST_NOT_FOUND` | 404 | ID sai | Chặn |
-| `CONCURRENT_REVIEW` | 409 | Hai `MANAGER` cùng duyệt | 🔴 Xem ghi chú |
-| `AUTHOR_DELETED` | — | Tác giả đã xoá | Vẫn duyệt được; không gửi thông báo |
-| `MODERATION_QUEUE_TOO_LARGE` | — | 🔴 Hàng đợi hàng trăm bài | Xem ghi chú |
-| `NO_AUDIT_LOG` | — | Không ghi ai duyệt | `reviewed_by` **bắt buộc** — không có thì không truy được trách nhiệm |
-
-> 🔴 **`SELF_APPROVAL` là vi phạm separation of duties** — đúng nguyên tắc đã dùng để tách
-> `ADMIN` thành 3 role. `MANAGER` viết bài rồi tự duyệt là bỏ qua kiểm duyệt hoàn toàn.
-> **Đúng:** `MANAGER` viết bài thì `MANAGER` khác duyệt. Nếu chỉ có một `MANAGER` thì
-> `SUPER_ADMIN` duyệt. Với nhóm 6 người demo thì có ít nhất 2 tài khoản `MANAGER`.
-
-> 🔴 **`CONCURRENT_REVIEW`:** hai `MANAGER` mở cùng bài, một duyệt một từ chối. Ai ghi sau thắng
-> → `reviewed_by` là người này mà `status` theo người kia.
-> **Cách chặn:** `UPDATE posts SET status='APPROVED' WHERE id=? AND status='PENDING'`. Trả về 0
-> dòng thì báo 409. Một câu SQL, không cần khoá.
-
-> 🔴 **`MODERATION_QUEUE_TOO_LARGE` là vấn đề feature tree đã tự cảnh báo:** *"100 bài/ngày là
-> Manager không duyệt xuể. Cân nhắc: chỉ duyệt bài của tài khoản mới, hoặc duyệt sau khi có
-> người báo cáo."*
-> **Cần chốt một trong ba:**
-> — Duyệt hết (hiện tại) — an toàn, không mở rộng được
-> — Chỉ duyệt bài của tài khoản < 30 ngày — cân bằng
-> — Công khai ngay, xử lý theo báo cáo — mở rộng được, rủi ro cao
-> Với đồ án, lượng bài thấp nên phương án 1 chạy được, nhưng **phải trả lời được** khi hội đồng hỏi.
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `FORBIDDEN_ROLE` | 403 | Người gọi không có role `MANAGER` | Không trả hoặc thay đổi dữ liệu kiểm duyệt. |
+| `POST_NOT_FOUND` | 404 | Bài không tồn tại | Không xử lý. |
+| `POST_NOT_PENDING` | 409 | Bài đã được duyệt/từ chối hoặc đổi trạng thái | Không ghi đè; yêu cầu tải lại. |
+| `SELF_APPROVAL` | 403 | `MANAGER` là tác giả bài | Không cho duyệt. |
+| `CONCURRENT_REVIEW` | 409 | Quyết định khác đã thắng trước | Giữ quyết định đã được ghi trước. |
+| `BULK_ITEM_NOT_REVIEWED` | 422 | Duyệt lô chứa bài chưa được mở xem | Bỏ/từ chối bài đó theo chính sách API; không duyệt mù. |
+| `APPROVAL_WRITE_ERROR` | 500 | Không thể cập nhật trạng thái và thông tin người duyệt nhất quán | Bài không được công khai. |
 
 ## Business rule
 
@@ -851,90 +1099,119 @@ xong bài hiện ngay**".
 
 ## API · DB
 
-```
+```http
 GET   /api/community/moderation/posts?status=PENDING
 PATCH /api/community/moderation/posts/{id}/approve
+PATCH /api/community/moderation/posts/bulk-approve
 ```
 
-`posts` (đọc + ghi)
+**Đọc/ghi chính:** `posts`.
+
+Điều kiện cập nhật phải bảo đảm chỉ bài đang `PENDING` mới chuyển sang `APPROVED`. Không dùng dữ liệu `reviewed_by` do client truyền lên.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | `MANAGER` duyệt bài | `APPROVED`, hiện công khai ngay |
-| T2 | `USER` gọi endpoint | 403 |
-| T3 | `MANAGER` duyệt bài của mình | 403 `SELF_APPROVAL` |
-| T4 | Hai `MANAGER` cùng duyệt | Một 200, một 409 |
-| T5 | Duyệt bài đã `REJECTED` | 409 |
-| T6 | Sau khi duyệt | `reviewed_by` = đúng `MANAGER` |
+| T1 | `MANAGER` duyệt bài `PENDING` hợp lệ | Bài `APPROVED`, xuất hiện công khai ngay. |
+| T2 | `USER` gọi endpoint duyệt | 403. |
+| T3 | `MANAGER` duyệt bài của chính mình | 403. |
+| T4 | Hai `MANAGER` xử lý cùng lúc | Chỉ một quyết định thành công; request còn lại 409. |
+| T5 | Duyệt bài đã `REJECTED` | 409. |
+| T6 | Duyệt lô gồm bài chưa mở xem | Bài đó không được duyệt mù. |
+| T7 | Duyệt thành công nhưng gửi thông báo lỗi | Bài vẫn `APPROVED`; lỗi thông báo được ghi nhận riêng. |
+| T8 | Sau khi duyệt | `reviewed_by`, `reviewed_at`, `published_at` đúng. |
 
 ---
 
 # UC-077 · Từ chối bài đăng kèm lý do
 
 | | |
-|---|---|
-| **UC-ID** | UC-077 · **Actor** `MANAGER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| --- | --- |
+| **UC-ID** | UC-077 |
+| **Actor chính** | `MANAGER` |
+| **Loại** | User Goal |
+| **Pri** | P2 |
+| **Scope** | V2 |
+| **FT** | 5.1 |
+| **Trạng thái triển khai** | V2 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-Từ chối bài kèm **lý do bắt buộc**. Tác giả nhận được lý do để sửa. Luồng đăng bài đã chốt:
-"REJECT thì **báo lý do**".
+`MANAGER` từ chối một bài đang chờ kiểm duyệt khi bài chưa đáp ứng quy định cộng đồng.
+
+Từ chối bắt buộc phải có lý do rõ ràng để tác giả biết cần sửa gì. UC này chỉ xử lý quyết định đối với **bài viết**; việc khóa/ban tài khoản không thuộc UC này.
+
+## Kích hoạt
+
+`MANAGER` đang xem một bài `PENDING` và chọn **Từ chối**.
 
 ## Tiền điều kiện
 
-1. Role `MANAGER`
-2. Bài `status = PENDING`
-3. Có lý do (không rỗng)
+1. Người dùng đã đăng nhập và có role `MANAGER`.
+2. Tài khoản quản trị đang hoạt động.
+3. Bài cần xử lý đang tồn tại trong hàng đợi `PENDING`.
+
+Lý do từ chối là dữ liệu nhập của use case và được kiểm tra trong luồng, không phải tiền điều kiện.
 
 ## Hậu điều kiện
 
-`status = REJECTED`, `review_reason` có nội dung, tác giả được thông báo.
+### Thành công
+
+- Bài chuyển từ `PENDING` sang `REJECTED`.
+- Hệ thống lưu lý do từ chối gần nhất.
+- Hệ thống ghi `reviewed_by` và `reviewed_at`.
+- Bài không xuất hiện công khai.
+- Tác giả có thể xem lý do từ chối trong danh sách bài của mình.
+- Tác giả có thể sửa và gửi lại bài theo UC-069.
+
+### Không thành công
+
+- Bài giữ nguyên trạng thái.
+- Không được lưu quyết định từ chối nếu thiếu lý do hoặc bài đã được người khác xử lý.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `MANAGER` | Bấm "Từ chối" |
-| 2 | Client | Mở form lý do (chọn mẫu hoặc tự viết) |
-| 3 | `MANAGER` | Nhập lý do |
-| 4 | Client | `PATCH /api/community/moderation/posts/{id}/reject` — `{reason}` |
-| 5 | System | Kiểm role + bài `PENDING` |
-| 6 | System | **Kiểm lý do không rỗng** |
-| 7 | System | `status = REJECTED`, ghi `review_reason`, `reviewed_by`, `reviewed_at` |
-| 8 | System | Thông báo tác giả kèm lý do |
+| 1 | `MANAGER` | Mở một bài `PENDING` trong hàng đợi. |
+| 2 | `MANAGER` | Chọn **Từ chối**. |
+| 3 | Client | Hiển thị trường nhập lý do. |
+| 4 | `MANAGER` | Nhập lý do và xác nhận. |
+| 5 | System | Kiểm tra lại role của người xử lý. |
+| 6 | System | Kiểm tra bài vẫn đang `PENDING`. |
+| 7 | System | Kiểm tra người xử lý không phải tác giả bài. |
+| 8 | System | Kiểm tra lý do sau khi trim không rỗng và không vượt giới hạn. |
+| 9 | System | Chuyển bài sang `REJECTED`, lưu lý do, người duyệt và thời điểm duyệt. |
+| 10 | System | Gửi thông báo cho tác giả; lỗi thông báo không rollback việc từ chối. |
+| 11 | Client | Loại bài khỏi hàng đợi và hiển thị trạng thái đã từ chối. |
 
 ## Luồng thay thế
 
-**A1 — Tác giả sửa rồi gửi lại** — bài về `PENDING`, giữ lịch sử lý do cũ (hoặc ghi đè — cần chốt).
-**A2 — Từ chối kèm cảnh báo tài khoản** — vi phạm nặng thì `MANAGER` treo tài khoản (cần cột `suspended_at` — mục A chưa chốt).
-**A3 — Tác giả khiếu nại** — không có luồng khiếu nại trong scope.
+**A1 — Tác giả sửa và gửi lại**
+
+Tác giả mở bài `REJECTED`, xem lý do gần nhất, sửa nội dung và gửi lại theo UC-069. Bài chuyển lại `PENDING`. Vì thiết kế hiện tại chỉ giữ lý do gần nhất, hệ thống không tạo lịch sử nhiều vòng từ chối riêng.
+
+**A2 — Bài đã được người khác xử lý trong lúc form từ chối đang mở**
+
+Khi xác nhận, hệ thống phát hiện bài không còn `PENDING` và từ chối request hiện tại. Quyết định đã được ghi trước được giữ nguyên.
+
+**A3 — Gửi thông báo thất bại**
+
+Bài vẫn ở `REJECTED`. Tác giả vẫn xem được lý do khi mở bài của mình.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | Chặn ở server |
-| `EMPTY_REASON` | 400 | 🔴 Lý do rỗng | **Bắt buộc** — xem ghi chú |
-| `REASON_TOO_LONG` | 400 | > 1.000 ký tự | Chặn |
-| `POST_NOT_PENDING` | 409 | Đã xử lý | Chặn |
-| `SELF_REJECTION` | 403 | Từ chối bài của mình | Như `SELF_APPROVAL` |
-| `CONCURRENT_REVIEW` | 409 | Hai `MANAGER` | `UPDATE ... WHERE status='PENDING'` |
-| `REASON_HISTORY_LOST` | — | ⚠️ Gửi lại ghi đè lý do cũ | Xem ghi chú |
-| `NOTIFICATION_FAILED` | — | Gửi thông báo lỗi | **Không** rollback việc từ chối; tác giả thấy lý do khi vào xem bài |
-| `SUSPEND_COLUMN_MISSING` | 500 | ⚠️ Chưa có cột `suspended_at` | A2 không làm được |
-
-> 🔴 **`EMPTY_REASON` — lý do rỗng làm tính năng vô nghĩa.** Tác giả nhận "bài bị từ chối" mà
-> không biết vì sao → sửa mò → gửi lại → bị từ chối lại. Vòng lặp này làm mất người dùng và
-> tăng việc cho `MANAGER`.
-> Luồng đã chốt trong feature tree ghi rõ "REJECT thì **báo lý do**" — đây là yêu cầu, không
-> phải tuỳ chọn. Validate ở server, không chỉ `required` ở form.
-
-> ⚠️ **`REASON_HISTORY_LOST`:** `posts` chỉ có **một** cột `review_reason`. Bài bị từ chối 3
-> lần thì chỉ còn lý do cuối. `MANAGER` không thấy được người này đã bị từ chối vì gì trước đó
-> → không nhận ra mẫu vi phạm lặp lại.
-> **Đánh đổi đã chấp nhận** khi gộp nhật ký duyệt vào `posts` (bỏ bảng riêng). Ghi nhận giới hạn này.
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `FORBIDDEN_ROLE` | 403 | Người gọi không có role `MANAGER` | Chặn. |
+| `POST_NOT_FOUND` | 404 | Bài không tồn tại | Không xử lý. |
+| `POST_NOT_PENDING` | 409 | Bài đã được xử lý | Không ghi đè quyết định cũ. |
+| `SELF_REJECTION` | 403 | `MANAGER` là tác giả bài | Không cho tự xử lý bài của mình. |
+| `EMPTY_REASON` | 400 | Lý do rỗng sau khi trim | Không từ chối bài. |
+| `REASON_TOO_LONG` | 400 | Lý do vượt 1.000 ký tự | Yêu cầu rút gọn. |
+| `CONCURRENT_REVIEW` | 409 | Một `MANAGER` khác đã xử lý trước | Giữ quyết định đầu tiên. |
+| `REJECTION_WRITE_ERROR` | 500 | Không thể lưu trạng thái và thông tin review nhất quán | Bài giữ trạng thái trước đó. |
 
 ## Business rule
 
@@ -951,96 +1228,134 @@ Từ chối bài kèm **lý do bắt buộc**. Tác giả nhận được lý do
 
 ## API · DB
 
-```
+```http
 PATCH /api/community/moderation/posts/{id}/reject
 ```
 
-`posts` (ghi)
+**Đọc/ghi chính:** `posts`.
+
+Thiết kế hiện tại chỉ lưu `review_reason` gần nhất trên bài; không bổ sung bảng lịch sử review mới để tránh mở rộng phạm vi.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | Từ chối kèm lý do | `REJECTED`, tác giả thấy lý do |
-| T2 | Lý do rỗng | 400 `EMPTY_REASON` |
-| T3 | `USER` gọi | 403 |
-| T4 | Bài đã `APPROVED` | 409 |
-| T5 | Gửi thông báo lỗi | Bài **vẫn** `REJECTED` |
-| T6 | Từ chối lần 2 | Lý do cũ **bị ghi đè** (giới hạn đã biết) |
+| T1 | Từ chối bài với lý do hợp lệ | Bài `REJECTED`; tác giả xem được lý do. |
+| T2 | Lý do rỗng | 400; bài vẫn `PENDING`. |
+| T3 | `USER` gọi endpoint | 403. |
+| T4 | `MANAGER` từ chối bài của mình | 403. |
+| T5 | Bài đã `APPROVED` | 409. |
+| T6 | Hai `MANAGER` xử lý đồng thời | Chỉ quyết định đầu tiên thành công. |
+| T7 | Gửi thông báo lỗi | Bài vẫn `REJECTED`. |
+| T8 | Tác giả sửa và gửi lại | Bài quay về `PENDING`. |
 
 ---
 
 # UC-078 · Xử lý báo cáo vi phạm
 
 | | |
-|---|---|
-| **UC-ID** | UC-078 · **Actor** `MANAGER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| --- | --- |
+| **UC-ID** | UC-078 |
+| **Actor chính** | `MANAGER` |
+| **Loại** | User Goal |
+| **Pri** | P2 |
+| **Scope** | V2 |
+| **FT** | 5.1 |
+| **Trạng thái triển khai** | V2 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-Xem hàng đợi `moderation_reports`, quyết định: giữ nội dung (báo cáo sai) hoặc xoá/ẩn nội dung
-và xử lý tác giả.
+`MANAGER` xem các báo cáo vi phạm do người dùng gửi và quyết định nội dung bị báo cáo có thực sự vi phạm hay không.
+
+Các báo cáo cùng trỏ tới một bài viết hoặc bình luận được nhóm lại để xử lý một lần. `MANAGER` có thể:
+
+- **Chấp nhận báo cáo:** ẩn hoặc xóa mềm nội dung vi phạm và đóng các báo cáo liên quan.
+- **Từ chối báo cáo:** giữ nguyên nội dung và đóng các báo cáo liên quan.
+
+UC này xử lý **nội dung**, không cấp quyền cho `MANAGER` khóa hoặc ban tài khoản. Quản lý trạng thái tài khoản thuộc chức năng quản trị người dùng riêng.
+
+## Kích hoạt
+
+`MANAGER` mở hàng đợi báo cáo hoặc chọn một nhóm báo cáo đang `PENDING`.
 
 ## Tiền điều kiện
 
-Role `MANAGER`; có báo cáo `status = PENDING`.
+1. Người dùng đã đăng nhập và có role `MANAGER`.
+2. Tài khoản quản trị đang hoạt động.
+3. Hệ thống có quyền truy cập báo cáo và nội dung mục tiêu trong module cộng đồng.
+
+Không yêu cầu phải có báo cáo đang chờ; hàng đợi rỗng là kết quả hợp lệ.
 
 ## Hậu điều kiện
 
-| Quyết định | Trạng thái |
-| --- | --- |
-| Chấp nhận báo cáo | Nội dung ẩn/xoá; `moderation_reports.status = ACTIONED` |
-| Từ chối báo cáo | Nội dung hiện lại (nếu đã tự ẩn); `status = REJECTED` |
+### Khi chấp nhận báo cáo
+
+- Nội dung mục tiêu bị ẩn hoặc soft delete theo loại nội dung.
+- Tất cả báo cáo `PENDING` cùng `(target_type, target_id)` được đóng với trạng thái xử lý phù hợp.
+- Hệ thống ghi người xử lý, thời điểm xử lý và ghi chú nếu có.
+- Nội dung không còn xuất hiện như nội dung công khai bình thường.
+
+### Khi từ chối báo cáo
+
+- Nội dung hợp lệ được giữ nguyên.
+- Tất cả báo cáo `PENDING` cùng đối tượng được chuyển sang `REJECTED`.
+- Nếu nội dung từng bị tạm ẩn **bởi chính luồng báo cáo**, hệ thống phải khôi phục trạng thái hiển thị trước đó. Không tự mở lại nội dung đang bị ẩn vì một quyết định kiểm duyệt khác.
+
+### Không thành công
+
+- Không để trạng thái nội dung và trạng thái nhóm báo cáo lệch nhau.
+- Không thay đổi trạng thái tài khoản của tác giả.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `MANAGER` | Mở hàng đợi báo cáo |
-| 2 | System | `GET /api/community/moderation/reports?status=PENDING` — nhóm theo nội dung bị báo cáo |
-| 3 | `MANAGER` | Xem nội dung + các lý do báo cáo + ai báo cáo |
-| 4 | `MANAGER` | Quyết định |
-| 5 | Client | `PATCH /api/community/moderation/reports/{id}` — `{decision, note}` |
-| 6 | System | Kiểm role |
-| 7 | System | **Transaction:** cập nhật báo cáo + xử lý nội dung |
-| 8 | System | Nếu nhiều báo cáo cùng nội dung → đóng **tất cả** cùng lúc |
-| 9 | System | Thông báo người báo cáo và tác giả |
+| 1 | `MANAGER` | Mở hàng đợi báo cáo. |
+| 2 | System | Kiểm tra role `MANAGER`. |
+| 3 | System | Nhóm các báo cáo `PENDING` theo `(target_type, target_id)` và trả danh sách phân trang. |
+| 4 | `MANAGER` | Mở một nhóm báo cáo. |
+| 5 | System | Trả nội dung mục tiêu, các lý do báo cáo và thông tin người báo cáo chỉ ở mức cần cho kiểm duyệt. |
+| 6 | `MANAGER` | Chọn **Chấp nhận** hoặc **Từ chối** và nhập ghi chú nếu cần. |
+| 7 | System | Kiểm tra lại nhóm báo cáo vẫn còn báo cáo `PENDING`. |
+| 8 | System | Nếu chấp nhận, áp dụng hành động kiểm duyệt lên nội dung; với bình luận, dùng cùng quy tắc trạng thái của UC-079. |
+| 9 | System | Cập nhật toàn bộ báo cáo `PENDING` của cùng đối tượng trong cùng lần xử lý. |
+| 10 | System | Ghi người xử lý và thời điểm xử lý. |
+| 11 | System | Gửi thông báo kết quả phù hợp cho các bên; lỗi thông báo không rollback quyết định. |
+| 12 | Client | Loại nhóm đã xử lý khỏi hàng đợi. |
 
 ## Luồng thay thế
 
-**A1 — Nhiều báo cáo cùng một bài** — xử lý một lần, đóng hết. Không bắt `MANAGER` bấm 5 lần.
-**A2 — Báo cáo sai** — `REJECTED`, nội dung hiện lại nếu đã tự ẩn.
-**A3 — Vi phạm nặng** — xoá nội dung + treo tài khoản (cần cột `suspended_at`).
+**A1 — Nhiều báo cáo cùng một nội dung**
+
+`MANAGER` chỉ xử lý một lần. Tất cả báo cáo đang `PENDING` của cùng đối tượng được đóng cùng nhau.
+
+**A2 — Nội dung đã bị ẩn/xóa bởi một quyết định khác**
+
+Hệ thống vẫn đóng các báo cáo còn `PENDING` với ghi nhận rằng nội dung đã không còn công khai; không cố xóa lại hoặc tạo trạng thái mâu thuẫn.
+
+**A3 — `MANAGER` kết luận báo cáo sai**
+
+Nội dung được giữ nguyên. Báo cáo chuyển `REJECTED`. Danh tính người báo cáo không được gửi cho tác giả.
+
+**A4 — Báo cáo nhắm tới bình luận**
+
+Hành động ẩn/xóa bình luận phải tuân theo UC-079 để giữ cây trả lời và soft delete đúng cách.
+
+**A5 — Vi phạm được đánh giá nghiêm trọng**
+
+UC này vẫn chỉ xử lý nội dung. Nếu cần xử lý tài khoản, `MANAGER` không tự ban tài khoản trong request xử lý báo cáo.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | Chặn |
-| `REPORT_NOT_FOUND` | 404 | ID sai | Chặn |
-| `REPORT_ALREADY_HANDLED` | 409 | Đã xử lý | Chặn |
-| `TARGET_ALREADY_DELETED` | 200 | Nội dung đã bị xoá | Đóng báo cáo, không lỗi |
-| `PARTIAL_REPORT_CLOSURE` | — | 🔴 Xử lý 1 trong 5 báo cáo | Xem ghi chú |
-| `AUTO_HIDDEN_NOT_RESTORED` | — | 🔴 Từ chối báo cáo mà quên hiện lại nội dung | Xem ghi chú |
-| `SUSPEND_COLUMN_MISSING` | 500 | ⚠️ Chưa có `suspended_at` | A3 không làm được |
-| `MANAGER_ROLE_ESCALATION` | 403 | `MANAGER` cố ban tài khoản | 🔴 **Ban là quyền `SUPER_ADMIN`** — `MANAGER` chỉ treo |
-| `NO_DECISION_AUDIT` | — | Không ghi ai quyết định | Bắt buộc ghi |
-
-> 🔴 **`PARTIAL_REPORT_CLOSURE`:** 5 người báo cáo cùng bài = 5 dòng `moderation_reports`.
-> `MANAGER` xử lý theo từng dòng thì xoá bài ở dòng 1, còn 4 dòng vẫn `PENDING` trỏ vào bài đã
-> xoá → hàng đợi đầy rác, và `MANAGER` bấm tiếp thì lỗi `TARGET_ALREADY_DELETED`.
-> **Đúng:** nhóm theo `(target_type, target_id)` ở bước 2, và đóng **tất cả** ở bước 8 trong
-> cùng transaction.
-
-> 🔴 **`AUTO_HIDDEN_NOT_RESTORED` — hệ quả của tự ẩn theo ngưỡng (UC-075 bước 6).** Nếu bài bị
-> tự ẩn vì 5 báo cáo, rồi `MANAGER` kết luận báo cáo sai, mà **quên** đặt lại trạng thái hiện
-> → bài bị ẩn vĩnh viễn dù không vi phạm. Tác giả không hiểu vì sao bài mất.
-> **Bắt buộc:** quyết định `REJECTED` phải **luôn** kèm hành động hiện lại nội dung, trong cùng
-> transaction.
-
-> 🔴 **`MANAGER_ROLE_ESCALATION` — phân quyền theo quyết định v2:** `MANAGER` có "duyệt bài · xử
-> lý báo cáo · ẩn hoặc xoá comment". **Không có** quyền ban tài khoản — đó là `SUPER_ADMIN`
-> (UC-114). Nếu endpoint xử lý báo cáo cho phép kèm `action: BAN_USER` thì `MANAGER` leo quyền.
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `FORBIDDEN_ROLE` | 403 | Không có role `MANAGER` | Không trả hoặc xử lý báo cáo. |
+| `REPORT_GROUP_NOT_FOUND` | 404 | Không tìm thấy nhóm báo cáo/đối tượng | Không xử lý. |
+| `REPORT_ALREADY_HANDLED` | 409 | Không còn report `PENDING` cho nhóm | Yêu cầu tải lại hàng đợi. |
+| `TARGET_NOT_FOUND` | 404/200 | Nội dung mục tiêu không còn tồn tại theo trạng thái đọc | Đóng báo cáo theo trạng thái thực tế; không tạo lỗi dữ liệu mới. |
+| `INVALID_DECISION` | 400 | Quyết định ngoài tập được hỗ trợ | Không thay đổi dữ liệu. |
+| `MANAGER_ROLE_ESCALATION` | 403 | Request cố kèm hành động khóa/ban tài khoản | Bỏ/chặn hành động vượt quyền; không đổi trạng thái tài khoản. |
+| `MODERATION_WRITE_ERROR` | 500 | Không thể cập nhật nội dung và các report liên quan nhất quán | Không ghi một phần kết quả. |
 
 ## Business rule
 
@@ -1057,89 +1372,135 @@ Role `MANAGER`; có báo cáo `status = PENDING`.
 
 ## API · DB
 
-```
+```http
 GET   /api/community/moderation/reports?status=PENDING
 PATCH /api/community/moderation/reports/{id}
 ```
 
-`moderation_reports` · `posts` · `comments` (đọc + ghi)
+**Đọc/ghi chính:** `moderation_reports`, `posts`, `comments`.
+
+Các report cùng mục tiêu phải được xử lý theo nhóm. UC này không ghi trạng thái khóa/ban của `users`.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | 5 báo cáo cùng bài, xử lý 1 lần | **Cả 5** đóng |
-| T2 | Từ chối báo cáo, bài đang tự ẩn | Bài **hiện lại** |
-| T3 | `USER` gọi | 403 |
-| T4 | `MANAGER` gửi `action: BAN_USER` | 403 |
-| T5 | Xử lý báo cáo đã xử lý | 409 |
-| T6 | Sau khi xử lý | Có ghi `MANAGER` nào quyết định |
+| T1 | 5 report cùng một bài, chấp nhận | Bài bị ẩn/soft delete; cả 5 report được đóng. |
+| T2 | 5 report cùng một bài, từ chối | Bài giữ nguyên; cả 5 report `REJECTED`. |
+| T3 | Report một bình luận, chấp nhận | Bình luận được xử lý theo UC-079; các reply không bị mất ngoài ý muốn. |
+| T4 | `USER` gọi endpoint | 403. |
+| T5 | `MANAGER` gửi yêu cầu `BAN_USER` kèm quyết định | 403/không thực hiện hành động ban. |
+| T6 | Nhóm report đã được xử lý | 409. |
+| T7 | Gửi thông báo lỗi sau khi xử lý | Quyết định đã lưu vẫn giữ nguyên. |
+| T8 | Tác giả xem nội dung sau khi report bị từ chối | Không thấy danh tính người báo cáo. |
 
 ---
 
 # UC-079 · Ẩn hoặc xóa bình luận vi phạm
 
 | | |
-|---|---|
-| **UC-ID** | UC-079 · **Actor** `MANAGER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| --- | --- |
+| **UC-ID** | UC-079 |
+| **Actor chính** | `MANAGER` |
+| **Loại** | User Goal |
+| **Pri** | P2 |
+| **Scope** | V2 |
+| **FT** | 5.1 |
+| **Trạng thái triển khai** | V2 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-Ẩn hoặc xoá bình luận vi phạm. Vì bình luận **không qua kiểm duyệt trước** (UC-071), đây là
-lớp phòng vệ duy nhất.
+`MANAGER` kiểm duyệt một bình luận đã được công khai bằng cách **Ẩn**, **Hiện lại** hoặc **Xóa mềm** bình luận đó.
+
+- **Ẩn (`HIDDEN`)**: bình luận tạm thời không hiển thị như nội dung bình thường và có thể được khôi phục.
+- **Xóa (`DELETED`)**: bình luận được soft delete; dữ liệu vẫn tồn tại để giữ cây trả lời và phục vụ truy vết.
+- Khi bình luận có các câu trả lời con, hệ thống không được hard delete làm mất toàn bộ nhánh.
+
+UC này có thể được `MANAGER` thực hiện trực tiếp hoặc được dùng khi xử lý report ở UC-078.
+
+## Kích hoạt
+
+`MANAGER` chọn hành động kiểm duyệt trên một bình luận hoặc UC-078 yêu cầu xử lý một bình luận đã bị báo cáo.
 
 ## Tiền điều kiện
 
-Role `MANAGER`; bình luận tồn tại.
+1. Người dùng đã đăng nhập và có role `MANAGER`.
+2. Tài khoản quản trị đang hoạt động.
+3. Bình luận mục tiêu tồn tại trong hệ thống.
+
+Lý do kiểm duyệt và hành động được kiểm tra trong luồng xử lý.
 
 ## Hậu điều kiện
 
-Bình luận `status = HIDDEN` hoặc `DELETED`; cây trả lời được giữ.
+### Khi ẩn thành công
+
+- Bình luận chuyển sang trạng thái `HIDDEN`.
+- Bình luận không hiển thị nội dung gốc cho người dùng thông thường.
+- Quan hệ với các trả lời con vẫn được giữ.
+- Hệ thống ghi người xử lý, thời điểm và lý do.
+
+### Khi xóa thành công
+
+- Bình luận chuyển sang trạng thái `DELETED` bằng soft delete.
+- Dòng dữ liệu vẫn tồn tại.
+- Nếu có trả lời con, vị trí cha được giữ bằng placeholder “[đã xóa]”.
+
+### Khi hiện lại thành công
+
+- Chỉ bình luận đang `HIDDEN` được khôi phục về trạng thái hiển thị hợp lệ.
+- Bình luận `DELETED` không tự động được khôi phục bởi thao tác hiện lại.
+
+### Không thành công
+
+- Không hard delete bình luận.
+- Không làm mất các bình luận con.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `MANAGER` | Chọn bình luận, bấm "Ẩn" hoặc "Xoá" |
-| 2 | Client | `PATCH /api/community/moderation/comments/{id}` — `{action, reason}` |
-| 3 | System | Kiểm role |
-| 4 | System | Đặt `status = HIDDEN`/`DELETED`, ghi `moderated_by`, `reason` |
-| 5 | System | **Giữ** các trả lời — cha hiện "[đã bị ẩn]" |
-| 6 | System | Thông báo tác giả bình luận |
+| 1 | `MANAGER` | Mở bình luận cần kiểm duyệt. |
+| 2 | `MANAGER` | Chọn **Ẩn** hoặc **Xóa** và nhập lý do. |
+| 3 | System | Kiểm tra role `MANAGER`. |
+| 4 | System | Kiểm tra bình luận tồn tại và lấy trạng thái hiện tại. |
+| 5 | System | Kiểm tra hành động được phép với trạng thái hiện tại. |
+| 6 | System | Kiểm tra lý do không rỗng. |
+| 7 | System | Cập nhật trạng thái `HIDDEN` hoặc `DELETED` bằng soft delete, không xóa dòng. |
+| 8 | System | Ghi người xử lý, thời điểm và lý do. |
+| 9 | System | Giữ nguyên quan hệ của các bình luận con. |
+| 10 | System | Gửi thông báo cho tác giả nếu cần; lỗi thông báo không rollback quyết định kiểm duyệt. |
+| 11 | Client | Hiển thị placeholder phù hợp thay vì nội dung gốc. |
 
 ## Luồng thay thế
 
-**A1 — Ẩn cả cây** — vi phạm nặng ở gốc thì ẩn cả nhánh. Cần tham số riêng, không phải mặc định.
-**A2 — Hiện lại bình luận đã ẩn** — cho phép (sửa quyết định sai).
-**A3 — Xoá bình luận của `MANAGER` khác** — cho phép; ghi nhật ký.
+**A1 — Hiện lại bình luận đã ẩn**
+
+`MANAGER` chọn **Hiện lại**. Hệ thống chỉ cho phép với bình luận `HIDDEN`; ghi lại hành động và người thực hiện.
+
+**A2 — Ẩn cả nhánh**
+
+Chỉ thực hiện khi `MANAGER` chọn rõ hành động ẩn cả nhánh. Đây không phải hành vi mặc định của nút ẩn một bình luận.
+
+**A3 — Bình luận đã ở đúng trạng thái**
+
+Ẩn một bình luận đã `HIDDEN` trả trạng thái hiện tại; không tạo thay đổi lặp. Xóa một bình luận đã `DELETED` cũng không hard delete dòng.
+
+**A4 — Bình luận có nhiều trả lời**
+
+Ẩn/xóa cha không xóa các reply. Client hiển thị placeholder tại node cha và giữ các node con.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | Chặn |
-| `COMMENT_NOT_FOUND` | 404 | ID sai | Chặn |
-| `HARD_DELETE_BREAKS_TREE` | — | 🔴 Xoá cứng làm mất trả lời | Xem ghi chú |
-| `HIDDEN_COMMENT_STILL_VISIBLE` | — | 🔴 Ẩn nhưng API vẫn trả | Xem ghi chú |
-| `NO_MODERATION_REASON` | 400 | Không có lý do | Bắt buộc như UC-077 |
-| `CASCADE_HIDE_UNINTENDED` | — | Ẩn cha ẩn luôn cả con ngoài ý muốn | Ẩn cây phải là **tham số tường minh** |
-| `ALREADY_HIDDEN` | 200 | Đã ẩn | Idempotent |
-| `MANAGER_HIDES_OWN_CRITICISM` | — | ⚠️ `MANAGER` ẩn bình luận phê bình mình | Xem ghi chú |
-
-> 🔴 **`HARD_DELETE_BREAKS_TREE` — cùng vấn đề `ORPHAN_REPLY` (UC-072).** Xoá cứng bình luận có
-> 5 trả lời thì 5 trả lời mất `parent_id` hợp lệ. Nếu khoá ngoại là `CASCADE` thì mất luôn cả 5
-> — **xoá một bình luận vi phạm làm mất 5 bình luận không vi phạm**.
-> **Đúng:** soft delete (`status = DELETED`), giữ dòng, hiện "[đã xoá]".
-
-> 🔴 **`HIDDEN_COMMENT_STILL_VISIBLE`:** đặt `status = HIDDEN` mà endpoint lấy bình luận
-> (UC-071/072) không lọc `status` thì bình luận vẫn hiện — hành động kiểm duyệt **không có tác
-> dụng**, và `MANAGER` tưởng đã xử lý.
-> **Cùng mẫu lỗi với `PENDING_POST_LEAKED` (UC-070).** Lọc trạng thái phải ở repository, một
-> method dùng chung.
-
-> ⚠️ **`MANAGER_HIDES_OWN_CRITICISM` là rủi ro lạm quyền.** `MANAGER` ẩn được bình luận phê bình
-> mình mà không ai biết. Giảm bằng: **bắt buộc ghi nhật ký** (`moderated_by` + `reason`) và
-> `SUPER_ADMIN` xem được nhật ký đó. Không chặn được bằng code, chỉ làm cho có dấu vết.
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `FORBIDDEN_ROLE` | 403 | Không có role `MANAGER` | Không xử lý bình luận. |
+| `COMMENT_NOT_FOUND` | 404 | Không tìm thấy bình luận | Không xử lý. |
+| `NO_MODERATION_REASON` | 400 | Không nhập lý do cho thao tác ẩn/xóa | Không thay đổi trạng thái. |
+| `INVALID_MODERATION_ACTION` | 400 | Hành động ngoài tập được hỗ trợ | Không thay đổi dữ liệu. |
+| `COMMENT_ALREADY_HIDDEN` | 200 | Yêu cầu ẩn lại bình luận `HIDDEN` | Trả trạng thái hiện tại. |
+| `COMMENT_ALREADY_DELETED` | 200 | Yêu cầu xóa lại bình luận `DELETED` | Trả trạng thái hiện tại; không hard delete. |
+| `RESTORE_DELETED_COMMENT` | 409 | Cố dùng thao tác hiện lại cho bình luận `DELETED` | Không khôi phục bằng UC này. |
+| `MODERATION_WRITE_ERROR` | 500 | Không lưu được trạng thái và metadata kiểm duyệt nhất quán | Giữ trạng thái cũ. |
 
 ## Business rule
 
@@ -1156,110 +1517,144 @@ Bình luận `status = HIDDEN` hoặc `DELETED`; cây trả lời được giữ
 
 ## API · DB
 
-```
+```http
 PATCH /api/community/moderation/comments/{id}
 ```
 
-`comments` (ghi)
+**Đọc/ghi chính:** `comments`.
+
+Endpoint đọc cây bình luận phải diễn giải `ACTIVE`, `HIDDEN`, `DELETED` đúng cách; không được trả nội dung gốc của bình luận bị ẩn/xóa cho người dùng thông thường.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | Ẩn bình luận | Không hiện ở UC-071 nữa |
-| T2 | Ẩn bình luận có 5 trả lời | 5 trả lời **vẫn còn** |
-| T3 | Xoá bình luận | Dòng **vẫn trong DB**, hiện "[đã xoá]" |
-| T4 | `USER` gọi | 403 |
-| T5 | Không có lý do | 400 |
-| T6 | Ẩn 2 lần | 200, không lỗi |
-| T7 | Sau khi ẩn | `moderated_by` có giá trị |
+| T1 | Ẩn bình luận hợp lệ | Nội dung gốc không còn hiển thị; trạng thái `HIDDEN`. |
+| T2 | Ẩn bình luận có 5 reply | 5 reply vẫn tồn tại. |
+| T3 | Xóa bình luận có reply | Dòng vẫn trong DB; node hiển thị “[đã xóa]”. |
+| T4 | Hiện lại bình luận `HIDDEN` | Bình luận hiển thị lại. |
+| T5 | Cố hiện lại bình luận `DELETED` | 409. |
+| T6 | Không nhập lý do | 400. |
+| T7 | `USER` gọi endpoint | 403. |
+| T8 | Ẩn cùng bình luận hai lần | Không tạo tác dụng phụ lặp. |
 
 ---
 
 # UC-080 · Chơi quiz theo chủ đề
 
 | | |
-|---|---|
-| **UC-ID** | UC-080 · **Actor** `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.2 |
+| --- | --- |
+| **UC-ID** | UC-080 |
+| **Actor chính** | `USER` |
+| **Loại** | User Goal |
+| **Pri** | P2 |
+| **Scope** | V2 |
+| **FT** | 5.2 |
+| **Trạng thái triển khai** | V2 — giữ đặc tả, không gen trong MVP |
 
 ## Mô tả
 
-Quiz riêng cho mỗi chủ đề, chơi bất cứ lúc nào. Nguồn câu hỏi: **đọc thẳng**
-`learning.questions` (`status = APPROVED`) qua `ContentLookup`.
+Người học làm một bộ quiz cố định theo chủ đề để thi đua và kiểm tra nhanh kiến thức.
 
-> ⚠️ **Quan trọng:** chơi quiz **không cập nhật mastery** — cần nói rõ trên giao diện.
-> Chống gian lận: chỉ tính **lần làm đầu tiên** cho mỗi bộ đề.
+Mỗi chủ đề sử dụng một `quiz_set` đã được cấu hình sẵn. `quiz_set` chỉ **tham chiếu** các câu hỏi trong kho câu hỏi dùng chung; hệ thống không tạo một kho câu hỏi riêng cho quiz.
+
+Mọi người chơi cùng một `quiz_set` được làm cùng tập câu hỏi của bộ đó. Chỉ câu hỏi đang `APPROVED` mới hợp lệ để quiz sử dụng. Quiz được chấm ở server, tính điểm theo số câu đúng; nếu hai người bằng điểm, thời gian hoàn thành ngắn hơn xếp trên.
+
+Quiz **không cập nhật mastery**. Chỉ lượt bắt đầu đầu tiên của người dùng đối với một `quiz_set` có quyền tham gia bảng xếp hạng. Các lượt sau vẫn được chơi để luyện nhưng không thay đổi thứ hạng.
+
+## Kích hoạt
+
+Người học chọn một quiz theo chủ đề và bấm **Bắt đầu**.
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
-2. `quiz_sets` có bộ cho chủ đề đó
-3. Có câu hỏi `APPROVED` trong `learning.questions`
+1. Người học đã đăng nhập bằng tài khoản `USER` hợp lệ.
+2. `quiz_set` tồn tại và đang khả dụng.
+3. `quiz_set` có danh sách câu hỏi được cấu hình.
+4. Tất cả câu hỏi được dùng cho lượt hiện tại phải tồn tại trong kho dùng chung và có trạng thái `APPROVED`.
+
+Việc đây có phải lượt đầu của người dùng hay không được hệ thống xác định khi tạo attempt.
 
 ## Hậu điều kiện
 
-| Kết quả | Trạng thái |
-| --- | --- |
-| Lần đầu | `quiz_attempts` ghi, **vào bảng xếp hạng** |
-| Lần 2+ | `quiz_attempts` ghi nhưng **không đổi thứ hạng** |
-| Mastery | **Không đổi** |
+### Khi bắt đầu quiz
+
+- Tạo một `quiz_attempt` thuộc đúng người dùng và `quiz_set`.
+- Hệ thống xác định và lưu cờ `ranking_eligible` cho attempt.
+- Attempt đầu tiên của người dùng trên bộ quiz là attempt duy nhất có thể được tính hạng.
+- Tập câu hỏi của attempt được xác định từ `quiz_set` và không lộ đáp án đúng.
+
+### Khi nộp thành công
+
+- Server chấm toàn bộ câu trả lời.
+- Lưu câu trả lời, số câu đúng, điểm và thời gian làm bài.
+- Nếu `ranking_eligible = true` và attempt hợp lệ, tạo/cập nhật đúng một `ranking_entry` cho lượt đầu đó.
+- Nếu `ranking_eligible = false`, kết quả vẫn được lưu nhưng không thay đổi thứ hạng.
+- `user_knowledge_state` và mastery không thay đổi.
+
+### Khi không thành công
+
+- Không chấm bằng dữ liệu điểm do client tự tính.
+- Không tạo hạng cho attempt không hợp lệ hoặc attempt không đủ điều kiện xếp hạng.
+- Không cập nhật mastery trong mọi trường hợp của UC này.
 
 ## Luồng chính
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn quiz theo chủ đề |
-| 2 | System | `POST /api/community/quiz-sets/{id}/attempts` |
-| 3 | System | Kiểm đã làm lần nào chưa (quyết định có tính hạng) |
-| 4 | System | Lấy câu hỏi qua `ContentLookup` — **lọc `APPROVED`** |
-| 5 | System | Tạo `quiz_attempts`, ghi `served_at` |
-| 6 | System | Trả câu hỏi **không kèm đáp án** |
-| 7 | `USER` | Trả lời hết |
-| 8 | Client | `POST .../attempts/{id}/submit` |
-| 9 | System | **Chấm ở server**, ghi `quiz_answers` |
-| 10 | System | Tính điểm + thời gian |
-| 11 | System | Lần đầu → ghi `ranking_entries` + Redis `ZADD` |
-| 12 | Client | Hiện kết quả (UC-081) |
+| 1 | `USER` | Chọn quiz của một chủ đề và bấm **Bắt đầu**. |
+| 2 | System | Xác định người dùng và kiểm tra `quiz_set` đang khả dụng. |
+| 3 | System | Lấy danh sách question ID đã cấu hình cho `quiz_set`. |
+| 4 | System | Lấy nội dung các câu hỏi tương ứng từ kho câu hỏi dùng chung và kiểm tra tất cả đều `APPROVED`. |
+| 5 | System | Kiểm tra người dùng đã từng bắt đầu quiz này trước đó hay chưa. |
+| 6 | System | Tạo `quiz_attempt`, ghi `started_at` và `ranking_eligible`. |
+| 7 | System | Trả đúng tập câu hỏi của `quiz_set` mà không trả đáp án đúng, `is_correct` hoặc lời giải. |
+| 8 | `USER` | Làm quiz và chọn đáp án. |
+| 9 | `USER` | Bấm **Nộp bài**. |
+| 10 | System | Kiểm tra attempt thuộc người dùng hiện tại và chưa nộp. |
+| 11 | System | Chấm từng câu ở server dựa trên đáp án hiện tại của bộ câu hỏi đã phát. |
+| 12 | System | Tính `correct_count` và thời gian từ mốc server của attempt. |
+| 13 | System | Lưu câu trả lời và kết quả attempt. |
+| 14 | System | Nếu attempt đủ điều kiện xếp hạng, ghi `ranking_entry` dựa trên điểm và thời gian. |
+| 15 | System | Không gọi luồng cập nhật mastery. |
+| 16 | Client | Chuyển sang UC-081 để hiển thị kết quả. |
 
 ## Luồng thay thế
 
-**A1 — Làm lần 2** — chơi được, hiện điểm, **không** đổi thứ hạng (nghiệm thu 5.2).
-**A2 — Bỏ giữa** — `quiz_attempts` `ABANDONED`, không tính hạng, cho làm lại.
-**A3 — Thầy vừa duyệt câu mới** — bước 4 thấy ngay (đọc thẳng bảng gốc, không còn đồng bộ 2h sáng).
+**A1 — Làm quiz lần thứ hai trở đi**
+
+Attempt mới vẫn được tạo và chấm bình thường nhưng `ranking_eligible = false`. Kết quả phục vụ luyện tập; bảng xếp hạng giữ nguyên kết quả của lượt đầu đủ điều kiện.
+
+**A2 — Người dùng bỏ lượt đầu giữa chừng**
+
+Attempt đầu được đánh dấu `ABANDONED` khi đủ điều kiện xác định bỏ bài. Vì đây vẫn là lượt bắt đầu đầu tiên, các lượt sau chỉ là practice và không được dùng để thay thế lượt đầu trên bảng xếp hạng. Quy tắc này ngăn việc mở quiz để xem câu rồi thoát và làm lại nhằm lấy lợi thế.
+
+**A3 — Có câu hỏi trong `quiz_set` không còn `APPROVED`**
+
+Không bắt đầu lượt mới với một bộ câu hỏi thiếu hợp lệ. Hệ thống báo quiz tạm thời chưa khả dụng để tránh mỗi người nhận một tập câu khác nhau.
+
+**A4 — Hai người bằng điểm**
+
+Người có thời gian hoàn thành ngắn hơn được xếp cao hơn.
+
+**A5 — Thời gian làm bài bất hợp lý**
+
+Kết quả attempt có thể được lưu để người dùng xem, nhưng attempt không được ghi vào bảng xếp hạng nếu vi phạm kiểm tra thời gian hợp lệ.
 
 ## Bảng exception
 
-| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
-| --- | --- | --- | --- |
-| `QUIZ_SET_NOT_FOUND` | 404 | ID sai | Chặn |
-| `NO_APPROVED_QUESTIONS` | 422 | Không câu nào duyệt | Ẩn quiz khỏi danh sách |
-| `UNAPPROVED_QUESTION_IN_QUIZ` | — | 🔴 Câu `PENDING_REVIEW` vào quiz | Xem ghi chú |
-| `ATTEMPT_ALREADY_SUBMITTED` | 409 | Nộp 2 lần | Chặn |
-| `ATTEMPT_NOT_OWNED` | 403 | Lượt của người khác | IDOR |
-| `MASTERY_UPDATED_BY_QUIZ` | — | 🔴 Quiz đổi mastery | Xem ghi chú |
-| `SECOND_ATTEMPT_CHANGED_RANK` | — | 🔴 Lần 2 đổi thứ hạng | Vi phạm nghiệm thu — xem ghi chú |
-| `ANSWER_KEY_IN_RESPONSE` | — | 🔴 Bước 6 trả đáp án | Cùng lỗi UC-034 |
-| `CROSS_MODULE_DIRECT_READ` | — | `community` đọc thẳng `learning.questions` | Phải qua `ContentLookup` |
-| `IMPOSSIBLE_DURATION` | 400 | Quá nhanh | Không tính hạng |
-
-> 🔴 **`MASTERY_UPDATED_BY_QUIZ` — đây là quyết định đã chốt, dễ làm sai.** Quiz dùng **cùng
-> câu hỏi** với phần luyện tập (`learning.questions`), nên rất tự nhiên để gọi
-> `MasteryService.record()` sau khi chấm. Nhưng feature tree ghi rõ: *"Chơi quiz **không cập
-> nhật mastery** — cần nói rõ trên giao diện."*
-> **Lý do:** quiz là thi đua, chơi nhiều lần được. Cho đổi mastery thì chơi quiz 20 lần là farm
-> mastery — và mastery mất ý nghĩa đo lường.
-> **Khác UC-088 (game):** game **có** đổi mastery, nhưng game giới hạn số ván/giờ và chống gian
-> lận nhiều lớp.
-
-> 🔴 **`SECOND_ATTEMPT_CHANGED_RANK`:** nghiệm thu 5.2 nói "làm lại lần 2 vẫn chơi được nhưng
-> **không đổi thứ hạng**". Nếu bước 11 không kiểm "đã làm lần nào chưa" thì người chơi làm 10
-> lần, lấy điểm cao nhất → bảng xếp hạng thành cuộc đua ai kiên nhẫn hơn.
-> **Cách chặn:** unique `(user_id, quiz_set_id)` trên `ranking_entries`, hoặc `INSERT ... ON
-> CONFLICT DO NOTHING`.
-
-> 🔴 **`UNAPPROVED_QUESTION_IN_QUIZ`:** nghiệm thu nói "thầy duyệt câu hỏi xong là quiz dùng
-> được **ngay**" — đọc thẳng bảng gốc. Mặt trái: nếu quên lọc `status = APPROVED` thì câu
-> `PENDING_REVIEW` cũng vào quiz ngay. Đây là **cùng rủi ro** UC-037 nhưng qua đường khác.
+| Mã lỗi | HTTP | Khi xảy ra | Xử lý |
+| --- | ---: | --- | --- |
+| `UNAUTHENTICATED` | 401 | Chưa đăng nhập | Không tạo attempt. |
+| `QUIZ_SET_NOT_FOUND` | 404 | Không tìm thấy bộ quiz | Không tạo attempt. |
+| `QUIZ_SET_NOT_AVAILABLE` | 422 | Bộ quiz không có đủ câu hợp lệ | Không bắt đầu quiz. |
+| `UNAPPROVED_QUESTION_IN_SET` | 422 | Có question được cấu hình nhưng không còn `APPROVED` | Không phát tập câu hỏi không đồng nhất. |
+| `ATTEMPT_NOT_OWNED` | 403 | Cố nộp attempt của người khác | Chặn. |
+| `ATTEMPT_ALREADY_SUBMITTED` | 409 | Attempt đã nộp | Không chấm/lưu lại. |
+| `INVALID_ANSWER` | 400 | Câu trả lời không thuộc question/option đã phát | Không chấm request không hợp lệ. |
+| `IMPOSSIBLE_DURATION` | 422 | Thời gian hoàn thành dưới ngưỡng hợp lý | Không đưa attempt vào ranking. |
+| `RANKING_ALREADY_FIXED` | 200 | Người dùng đã có lượt đầu trước đó | Lượt hiện tại vẫn được chấm nhưng không đổi hạng. |
+| `ANSWER_KEY_EXPOSED` | 500 | DTO trước khi nộp chứa đáp án đúng/lời giải | Không trả payload lỗi; phải dùng DTO không lộ đáp án. |
 
 ## Business rule
 
@@ -1277,25 +1672,32 @@ Quiz riêng cho mỗi chủ đề, chơi bất cứ lúc nào. Nguồn câu hỏ
 
 ## API · DB
 
-```
-GET  /api/community/quiz-sets?topic_id={t}
+```http
+GET  /api/community/quiz-sets?topic_id={topicId}
 POST /api/community/quiz-sets/{id}/attempts
-POST /api/community/quiz-sets/{id}/attempts/{aid}/submit
+POST /api/community/quiz-sets/{id}/attempts/{attemptId}/submit
 ```
 
-`quiz_sets` · `quiz_questions` · `quiz_attempts` · `quiz_answers` · `ranking_entries` (ghi) · `learning.questions` **qua `ContentLookup`**
+**Đọc/ghi chính:** `quiz_sets`, `quiz_questions`, `quiz_attempts`, `quiz_answers`, `ranking_entries`.
+
+`quiz_questions` chỉ lưu quan hệ giữa bộ quiz và question ID của kho dùng chung. Nội dung câu hỏi được lấy qua `ContentLookup`; không sao chép thành một kho câu hỏi thứ hai cho module community.
+
+Dữ liệu bảng xếp hạng gốc nằm ở database. Cache xếp hạng nếu có chỉ là lớp tăng tốc và không quyết định tính hợp lệ của lượt chơi.
 
 ## Test case
 
-| # | Đầu vào | Kết quả |
+| # | Tình huống | Kết quả mong đợi |
 | --- | --- | --- |
-| T1 | Chơi lần đầu, 8/10 | Vào bảng xếp hạng |
-| T2 | Chơi lần 2, 10/10 | Thứ hạng **không** đổi |
-| T3 | Sau khi chơi quiz | `user_knowledge_state` **không** đổi |
-| T4 | Câu `PENDING_REVIEW` trong kho | Không vào quiz |
-| T5 | Thầy vừa duyệt câu mới | Quiz thấy **ngay** |
-| T6 | Response bước 6 | Không kèm đáp án |
-| T7 | ArchUnit | `community` không import `learning.repository` |
+| T1 | Lượt đầu, trả lời 8/10 | Kết quả 8 đúng; attempt đủ điều kiện ranking nếu thời gian hợp lệ. |
+| T2 | Lượt thứ hai đạt 10/10 | Kết quả được lưu nhưng hạng từ lượt đầu không đổi. |
+| T3 | Bỏ lượt đầu rồi làm lại | Lượt sau là practice, không thay thế lượt đầu để xếp hạng. |
+| T4 | Hai người cùng 8/10 | Người có thời gian hợp lệ ngắn hơn xếp trên. |
+| T5 | Một question trong set chuyển `PENDING_REVIEW`/không còn approved | Không cho bắt đầu bộ quiz cho tới khi set hợp lệ. |
+| T6 | Response khi bắt đầu quiz | Không chứa đáp án đúng, `is_correct` hoặc lời giải. |
+| T7 | Submit attempt của người khác | 403. |
+| T8 | Submit cùng attempt hai lần | Lần hai 409; không tạo điểm/hạng trùng. |
+| T9 | Sau khi chơi quiz | Mastery và `user_knowledge_state` không thay đổi. |
+| T10 | Thời gian bất hợp lý | Attempt không vào ranking. |
 
 ---
 
