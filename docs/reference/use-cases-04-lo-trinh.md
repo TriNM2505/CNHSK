@@ -29,6 +29,11 @@
 | UC-054 | Cài đặt giờ nhắc học và kênh nhận | `USER` | P2 | MVP | 3.5 |
 | UC-055 | Gửi nhắc học tự động đúng giờ | `SYSTEM` | P2 | MVP | 3.5 |
 
+> **Ánh xạ DB cho UC-042–045:** `user_knowledge_state` và `user_topic_progress`
+> trong luồng tương ứng các dòng `learning.user_progress` có `target_type`
+> `KNOWLEDGE_POINT` và `TOPIC`. `topic_words` là `learning.topic_items`.
+> Dùng cấu trúc trong `database.md` khi sinh code, không tạo bảng cũ.
+
 ---
 
 # UC-042 · Cập nhật mastery sau khi trả lời đúng/sai
@@ -160,7 +165,7 @@ Không có endpoint — service nội bộ module `learning`.
 
 ## Mô tả
 
-Kết quả chơi game được dùng để cập nhật mức độ nắm vững kiến thức ngay sau lượt chơi. Vì vậy, tiến độ học phản ánh cả phần luyện tập qua game vừa hoàn thành.
+Sau một ván game hợp lệ, hệ thống cập nhật mastery ngay cho những nội dung gắn được với điểm kiến thức cụ thể. Game chỉ mang tính giải trí hoặc phần nội dung không gắn được với điểm kiến thức vẫn có thể lưu điểm, nhưng không làm thay đổi mastery.
 
 > **Đây là cải thiện lớn nhất của kiến trúc bản 5.** Bản trước: điểm game đẩy từ Community sang
 > Learning lúc **2h sáng** → mastery trễ tới một ngày. Giờ hai module cùng tiến trình,
@@ -169,7 +174,7 @@ Kết quả chơi game được dùng để cập nhật mức độ nắm vữn
 ## Tiền điều kiện
 
 1. Một lượt game đã hoàn thành, điểm đã **xác thực ở server** (HR-06)
-2. Game có map từ nội dung sang điểm kiến thức (ví dụ game ghép chữ → chữ nào)
+2. Nội dung game đã được kiểm tra khả năng map sang điểm kiến thức; nếu không map được thì đi theo A1
 3. Đang trong transaction của UC-088 (lưu điểm game)
 
 ## Hậu điều kiện
@@ -177,7 +182,8 @@ Kết quả chơi game được dùng để cập nhật mức độ nắm vữn
 | Kết quả | Trạng thái |
 | --- | --- |
 | Thành công | `game_scores` (community) **và** `user_knowledge_state` (learning) cùng commit |
-| Thất bại | **Cả hai rollback** — không có điểm game mà mastery không đổi, hoặc ngược lại |
+| Không có điểm kiến thức để cập nhật | Chỉ `game_scores` được lưu; mastery giữ nguyên theo A1 |
+| Cập nhật mastery thất bại khi có nội dung map được | **Cả hai rollback** — không lưu điểm mà bỏ dở mastery |
 
 ## Luồng chính
 
@@ -236,7 +242,7 @@ Không khác — token đã tiêm, luồng giống web.
 | BR-043-2 | Game chỉ cập nhật mastery khi nội dung trong game có thể liên kết được với điểm kiến thức cụ thể, ví dụ chữ, từ, pinyin hoặc bộ thủ. |
 | BR-043-3 | Nếu một game chỉ mang tính giải trí hoặc phản xạ và không đo điểm kiến thức cụ thể, hệ thống vẫn có thể lưu điểm game nhưng không cập nhật mastery. |
 | BR-043-4 | Mastery từ game có trọng số thấp hơn bài thi và bài luyện chính thức vì game dễ bị ảnh hưởng bởi tốc độ, thao tác và logic chạy trên client. |
-| BR-043-5 | Khi lưu điểm game và cập nhật mastery, hai dữ liệu này phải nhất quán. Không được để có điểm game hợp lệ nhưng mastery không đổi, hoặc mastery đổi nhưng điểm game không được lưu. |
+| BR-043-5 | Với nội dung map được sang điểm kiến thức, lưu điểm và cập nhật mastery phải cùng commit hoặc cùng rollback. Trường hợp không có nội dung map được thì chỉ lưu điểm theo BR-043-3. |
 | BR-043-6 | Nếu một số item trong ván game không map được sang điểm kiến thức, hệ thống bỏ qua các item đó và chỉ cập nhật mastery cho phần map được. |
 | BR-043-7 | Kết quả game bất thường, ví dụ điểm vượt mức tối đa có thể đạt được, không được dùng để cập nhật điểm hoặc mastery. |
 
