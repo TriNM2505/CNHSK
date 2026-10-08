@@ -31,7 +31,7 @@
 | Role | Quyền | Phạm vi |
 |---|---|---|
 | `USER` | Học, thi, chơi game, đăng bài (chờ duyệt) | người dùng cuối |
-| `TEACHER` | Duyệt câu hỏi AI sinh, sửa nội dung học, **chấm bài thuê** | Học tập |
+| `TEACHER` | Duyệt câu hỏi AI sinh (cùng `CONTENT_ADMIN`), sửa nội dung học, **chấm bài thuê** | Học tập |
 | `MANAGER` | Duyệt bài đăng, xử lý báo cáo vi phạm | Community |
 | `CONTENT_ADMIN` | Quản lý đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi | nội dung |
 | `FINANCE_ADMIN` | 🔴 Sinh lô mã thẻ, xem sổ cái, xử lý tranh chấp | **tiền thật** |

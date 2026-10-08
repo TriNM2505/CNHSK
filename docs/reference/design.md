@@ -80,9 +80,18 @@ THE system SHALL dùng component semantic như `Button`, `Card`, `Progress`,
 | --- | --- | --- | --- |
 | Khách | Xem giới thiệu và trang công khai, tra từ điển, đăng ký/đăng nhập — không dùng thử tính năng (mục 5.5) | Web, mobile | Public, auth |
 | USER | Học, luyện, thi, chơi, dùng thư viện và cộng đồng | Web, mobile | Toàn bộ màn học viên |
-| TEACHER | USER + duyệt nội dung, chấm bài thuê | Desktop web | Học viên, hàng đợi duyệt/chấm |
+| TEACHER | USER + duyệt câu hỏi AI, chấm bài thuê | Desktop web | Học viên, hàng đợi duyệt và chấm |
 | MANAGER | USER + kiểm duyệt cộng đồng | Desktop web | Học viên, quản trị cộng đồng |
-| ADMIN | Quản trị toàn hệ thống | Desktop web | Học viên và admin |
+| CONTENT_ADMIN | USER + duyệt câu hỏi AI, nhập dữ liệu, quản lý đề thi | Desktop web | Học viên, quản trị nội dung |
+| FINANCE_ADMIN | USER + sổ cái, mã thẻ, gói dịch vụ | Desktop web | Học viên, quản trị tài chính |
+| SUPER_ADMIN | USER + người dùng và phân quyền | Desktop web | Học viên, quản trị hệ thống |
+| SYSTEM | Tác vụ tự động, không phải người dùng | — | Không có màn hình |
+
+> **Tám actor**, khớp Hiến pháp mục *Tám actor*. `ADMIN` gộp ở bản trước đã tách
+> thành ba role theo nguyên tắc phân tách nhiệm vụ — xem mục 5.3.
+>
+> `TEACHER` và `CONTENT_ADMIN` **cùng** duyệt được câu hỏi AI, theo `BUS-07`.
+> Cả hai dùng chung màn `/admin/questions/review`.
 
 **Ranh giới giữa các nền tảng:**
 
@@ -178,7 +187,7 @@ không theo role, vì một người có thể giữ nhiều role.
 
 | Màn hình | Route | Actor | UC phục vụ |
 | --- | --- | --- | --- |
-| Duyệt câu hỏi AI | `/admin/questions/review` | TEACHER | UC-108, UC-109 |
+| Duyệt câu hỏi AI | `/admin/questions/review` | TEACHER · CONTENT_ADMIN | UC-108, UC-109 |
 | Chấm bài thuê | `/admin/grading` | TEACHER | UC-104, UC-105 |
 | Nhập dữ liệu | `/admin/imports` | CONTENT_ADMIN | UC-110, UC-111 |
 | Quản lý đề thi và kho câu | `/admin/exams` | CONTENT_ADMIN | UC-109, UC-112 |

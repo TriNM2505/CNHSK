@@ -11,7 +11,7 @@
 
 | UC-ID | Use Case | Actor chính | Pri | Scope | FT | Trạng thái triển khai |
 | --- | --- | --- | --- | --- | --- | --- |
-| UC-108 | Duyệt câu hỏi AI sinh | `TEACHER` | P1 | MVP | 6.6 | READY |
+| UC-108 | Duyệt câu hỏi AI sinh | `TEACHER`, `CONTENT_ADMIN` | P1 | MVP | 6.6 | READY |
 | UC-109 | Sửa nội dung câu hỏi | `TEACHER`, `CONTENT_ADMIN` | P1 | MVP | 6.5 · 6.6 | READY |
 | UC-110 | Nhập dữ liệu đề thi/từ vựng/ngữ pháp từ file | `CONTENT_ADMIN` | **P0** | MVP | 6.2 | **BLOCKED** — cần file mẫu thật, định dạng và khóa tự nhiên |
 | UC-111 | Xem báo cáo lỗi sau khi nhập | `CONTENT_ADMIN` | **P0** | MVP | 6.2 | **PARTIALLY BLOCKED** — cần nơi lưu chi tiết lỗi import |
@@ -34,7 +34,7 @@
 | | |
 | --- | --- |
 | **UC-ID** | UC-108 |
-| **Actor chính** | `TEACHER` |
+| **Actor chính** | `TEACHER`, `CONTENT_ADMIN` |
 | **Loại** | User Goal |
 | **Pri** | P1 |
 | **Scope** | MVP |
@@ -43,17 +43,20 @@
 
 ## Mô tả
 
-`TEACHER` xem các câu hỏi do AI sinh đang chờ kiểm duyệt, đọc đầy đủ nội dung câu hỏi, đáp án, lời giải, cấp HSK và nhãn kiến thức, sau đó quyết định **duyệt**, **sửa rồi duyệt**, **từ chối**, hoặc **chưa xử lý**.
+Người duyệt xem các câu hỏi do AI sinh đang chờ kiểm duyệt, đọc đầy đủ nội dung câu hỏi, đáp án, lời giải, cấp HSK và nhãn kiến thức, sau đó quyết định **duyệt**, **sửa rồi duyệt**, **từ chối**, hoặc **chưa xử lý**.
 
 Mục tiêu của Use Case là bảo đảm câu hỏi AI chỉ được đưa vào kho dùng chung sau khi có người đủ chuyên môn kiểm tra. Câu hỏi chưa duyệt hoặc bị từ chối không được xuất hiện ở bất kỳ luồng học nào của người học.
 
+> Cả `TEACHER` và `CONTENT_ADMIN` đều duyệt được, theo `BUS-07`. Hai role cùng
+> chịu trách nhiệm đánh giá nội dung tiếng Trung, không chia theo loại câu hỏi.
+
 ## Kích hoạt
 
-`TEACHER` mở màn hình “Hàng đợi duyệt câu hỏi AI” hoặc chọn một câu `PENDING_REVIEW` để kiểm tra.
+Người duyệt mở màn hình “Hàng đợi duyệt câu hỏi AI” hoặc chọn một câu `PENDING_REVIEW` để kiểm tra.
 
 ## Tiền điều kiện
 
-1. Người dùng đã đăng nhập và có role `TEACHER`.
+1. Người dùng đã đăng nhập và có role `TEACHER` hoặc `CONTENT_ADMIN`.
 2. Câu hỏi cần xử lý tồn tại, có `source = AI` và đang ở trạng thái `PENDING_REVIEW`.
 3. Hệ thống có đủ dữ liệu cần thiết để đánh giá câu hỏi: nội dung, đáp án, lời giải, cấp HSK và nhãn kiến thức.
 
@@ -87,13 +90,13 @@ Mục tiêu của Use Case là bảo đảm câu hỏi AI chỉ được đưa v
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `TEACHER` | Mở hàng đợi câu hỏi AI đang chờ duyệt. |
+| 1 | Người duyệt | Mở hàng đợi câu hỏi AI đang chờ duyệt. |
 | 2 | System | Kiểm tra người dùng có role `TEACHER`. |
 | 3 | System | Lấy các câu `PENDING_REVIEW`, ưu tiên câu chờ lâu hơn trước và phân trang. |
 | 4 | `TEACHER` | Mở một câu hỏi cần kiểm tra. |
 | 5 | System | Hiển thị nội dung câu hỏi, các đáp án, đáp án đúng, lời giải, cấp HSK, nhãn kiến thức và thông tin nguồn AI cần thiết. |
 | 6 | `TEACHER` | Kiểm tra tính đúng đắn, ngữ pháp, mức độ phù hợp HSK và khả năng chỉ có một đáp án đúng. |
-| 7 | `TEACHER` | Chọn **Duyệt**. |
+| 7 | Người duyệt | Chọn **Duyệt**. |
 | 8 | System | Kiểm tra lại câu vẫn đang `PENDING_REVIEW` và cấu trúc câu hỏi còn hợp lệ. |
 | 9 | System | Chuyển câu sang `APPROVED`, ghi người duyệt, thời điểm duyệt và lịch sử review. |
 | 10 | Client | Loại câu đã xử lý khỏi hàng đợi và hiển thị kết quả duyệt. |
@@ -112,7 +115,7 @@ Mục tiêu của Use Case là bảo đảm câu hỏi AI chỉ được đưa v
 
 1. `TEACHER` nhận thấy câu có thể sửa được.
 2. Hệ thống chuyển sang UC-109 với đúng câu đang review.
-3. Sau khi sửa hợp lệ, `TEACHER` quay lại UC-108.
+3. Sau khi sửa hợp lệ, người duyệt quay lại UC-108.
 4. Giáo viên đọc lại câu sau sửa và thực hiện quyết định duyệt hoặc từ chối.
 
 **A3 — Chưa chắc chắn**
@@ -148,7 +151,7 @@ Mục tiêu của Use Case là bảo đảm câu hỏi AI chỉ được đưa v
 
 | # | Rule |
 | --- | --- |
-| BR-108-1 | Chỉ `TEACHER` được duyệt hoặc từ chối câu hỏi do AI sinh. Việc kiểm tra quyền phải thực hiện ở server. |
+| BR-108-1 | Chỉ `TEACHER` hoặc `CONTENT_ADMIN` được duyệt hoặc từ chối câu hỏi do AI sinh. `FINANCE_ADMIN` và `SUPER_ADMIN` không có quyền này. Việc kiểm tra quyền phải thực hiện ở server. |
 | BR-108-2 | Chỉ câu hỏi có `status = PENDING_REVIEW` và `source = AI` mới được đưa vào hàng đợi duyệt. |
 | BR-108-3 | Câu hỏi `PENDING_REVIEW` hoặc `REJECTED` không được xuất hiện trong bất kỳ bài học, bài luyện, quiz hoặc đề thi nào của người học. |
 | BR-108-4 | Khi duyệt, hệ thống chuyển câu hỏi sang `APPROVED`, ghi người duyệt và thời điểm duyệt. |
@@ -172,7 +175,7 @@ Dữ liệu liên quan: `questions`, `question_options`, `question_knowledge_poi
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | `TEACHER` duyệt câu hợp lệ | `APPROVED`, có `reviewed_by`, `reviewed_at` và lịch sử review. |
+| T1 | Người duyệt duyệt câu hợp lệ | `APPROVED`, có `reviewed_by`, `reviewed_at` và lịch sử review. |
 | T2 | `USER` hoặc `CONTENT_ADMIN` gọi endpoint review | 403. |
 | T3 | Từ chối không nhập lý do | 422, câu vẫn `PENDING_REVIEW`. |
 | T4 | Hai giáo viên duyệt đồng thời | Một thành công, một 409. |
@@ -1705,6 +1708,7 @@ Dữ liệu liên quan: `learning_resources`, audit log.
 | --- | --- |
 | **ID** | UC-137 |
 | **Actor chính** | `CONTENT_ADMIN` |
+| **Actor phụ** | `TEACHER` — cùng duyệt câu hỏi AI ở UC-108 và UC-109 |
 | **Priority** | P1 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 6.4 |

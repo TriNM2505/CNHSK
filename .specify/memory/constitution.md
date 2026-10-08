@@ -141,7 +141,7 @@ cần thiết vào DB, hoặc chặn mất role thật sự cần.
 | `CONTENT_ADMIN` | 6 | ✅ | Đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi |
 | `MANAGER` | 4 | ✅ | Duyệt bài đăng, xử lý báo cáo — Community |
 | `FINANCE_ADMIN` | 4 | ✅ | 🔴 Sinh mã thẻ, sổ cái, tranh chấp — **tiền thật** |
-| `TEACHER` | 4 | ✅ | Duyệt câu hỏi AI, sửa nội dung, chấm bài thuê |
+| `TEACHER` | 4 | ✅ | Duyệt câu hỏi AI (cùng `CONTENT_ADMIN`), sửa nội dung, chấm bài thuê |
 | `SUPER_ADMIN` | 3 | ✅ | Người dùng, gán role, cấu hình |
 
 **8 actor = 6 role trong DB + 2 actor không phải role.**

@@ -528,7 +528,7 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 | Role | Quyền | Phạm vi |
 |---|---|---|
 | **USER** | Học, thi, chơi game, đăng bài (chờ duyệt) | Người dùng cuối |
-| **TEACHER** | Duyệt câu hỏi AI, sửa nội dung học, nhận và chấm bài viết | Học tập |
+| **TEACHER** | Duyệt câu hỏi AI (cùng CONTENT_ADMIN), sửa nội dung học, nhận và chấm bài viết | Học tập |
 | **MANAGER** | Duyệt bài đăng, xử lý báo cáo và kiểm duyệt bình luận | Cộng đồng |
 | **CONTENT_ADMIN** | Quản lý đề thi, kho câu hỏi, nhập dữ liệu và cuộc thi | Nội dung |
 | **FINANCE_ADMIN** | Quản lý gói dịch vụ, mã thẻ nạp, sổ cái điểm và tranh chấp | Tài chính |

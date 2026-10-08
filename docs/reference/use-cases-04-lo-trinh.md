@@ -808,7 +808,7 @@ GET  /api/ai/jobs/{id}
 ## Mô tả
 
 Worker nền: gọi API AI, nhận câu hỏi, validate, ghi vào `questions` với
-`status = PENDING_REVIEW`. **Không** đến người học tới khi `TEACHER` duyệt (UC-108).
+`status = PENDING_REVIEW`. **Không** đến người học tới khi được duyệt (UC-108).
 
 ## Tiền điều kiện
 
@@ -836,7 +836,7 @@ Worker nền: gọi API AI, nhận câu hỏi, validate, ghi vào `questions` v�
 | 6 | System | `INSERT questions` với `status = PENDING_REVIEW`, `source = AI`, `generated_by_job_id` |
 | 7 | System | Gắn `question_knowledge_points` |
 | 8 | System | Job `COMPLETED`, ghi số câu sinh được |
-| 9 | System | Thông báo `TEACHER` có câu chờ duyệt |
+| 9 | System | Thông báo người duyệt có câu chờ duyệt |
 
 ## Luồng thay thế
 
@@ -878,7 +878,7 @@ Job kẹt `RUNNING`. Scheduler quét job `RUNNING` quá 10 phút → về `QUEUE
 > 🔴 **`AI_HALLUCINATED_CONTENT` là rủi ro không thể validate bằng code.** AI trả câu đúng
 > format hoàn hảo: 4 đáp án, 1 đúng, có lời giải — nhưng câu tiếng Trung **sai ngữ pháp** hoặc
 > lời giải **sai kiến thức**. Không có cách tự động phát hiện.
-> Đây chính là lý do có UC-108 (`TEACHER` duyệt). **Người duyệt là lớp bảo vệ duy nhất** —
+> Đây chính là lý do có UC-108 (`TEACHER` hoặc `CONTENT_ADMIN` duyệt). **Người duyệt là lớp bảo vệ duy nhất** —
 > nên không được có đường nào bỏ qua nó.
 
 > ⚠️ **`AI_QUESTION_INVALID` nối với `MALFORMED_QUESTION` ở UC-019.** Nếu validate bước 5 lỏng,
@@ -928,7 +928,7 @@ Không endpoint — worker nền.
 
 ## Mô tả
 
-Câu AI sinh cho người A, sau khi `TEACHER` duyệt, vào **kho chung** — người B cùng điểm yếu dùng lại, không cần sinh mới. Tiết kiệm chi phí API và làm kho giàu dần.
+Câu AI sinh cho người A, sau khi được duyệt, vào **kho chung** — người B cùng điểm yếu dùng lại, không cần sinh mới. Tiết kiệm chi phí API và làm kho giàu dần.
 
 ## Tiền điều kiện
 

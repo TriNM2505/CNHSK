@@ -585,7 +585,7 @@ dấu nổi bật**.
 
 ## 25 · Duyệt câu hỏi AI — `/admin/questions/review`
 
-**Actor:** `TEACHER` · **UC-108**, **UC-109** · **Scope:** MVP
+**Actor:** `TEACHER` · `CONTENT_ADMIN` · **UC-108**, **UC-109** · **Scope:** MVP
 
 | Field | Kiểu | Bắt buộc | Validate | Lỗi hiện ở đâu |
 |---|---|---|---|---|
