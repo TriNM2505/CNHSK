@@ -1429,6 +1429,217 @@ POST  /api/flashcard-decks/{id}/copy
 
 ---
 
+# UC-132 · Tra cứu từ điển
+
+| | |
+| --- | --- |
+| **ID** | UC-132 |
+| **Actor chính** | `USER` |
+| **Priority** | P1 |
+| **Scope** | MVP |
+| **Tính năng gốc** | 4.1 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người học tra một chữ hoặc một từ tiếng Trung theo cách thuận tiện nhất với mình, có thể nhập chữ Hán, pinyin, nghĩa tiếng Việt hoặc tìm theo bộ thủ. Kết quả cho biết cách đọc, nghĩa, cấu tạo và ví dụ.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-056 Tra từ điển bằng chữ Hán | Người học biết mặt chữ |
+| `«extend»` | UC-057 Tra từ điển bằng pinyin | Người học biết cách đọc |
+| `«extend»` | UC-058 Tra từ điển bằng nghĩa Việt | Người học biết nghĩa, cần tìm chữ |
+| `«extend»` | UC-059 Tra chữ theo bộ thủ và số nét | Người học không biết đọc và không gõ được chữ |
+
+## Tiền điều kiện
+
+- Kho từ điển có dữ liệu cho từ khóa đang tra
+- Khách chưa đăng nhập còn lượt tra trong ngày
+
+## Hậu điều kiện
+
+- Kết quả tra được hiển thị
+- Nếu là khách chưa đăng nhập, số lượt tra trong ngày giảm đi một
+- Lịch sử tra của người đã đăng nhập được ghi nhận
+
+## Luồng chính
+
+1. Người dùng mở màn tra cứu
+2. Chọn cách tra phù hợp với thông tin mình đang có
+3. Nhập từ khóa
+4. Hệ thống tìm trong kho từ điển theo cách tra đã chọn
+5. Hệ thống trả kết quả gồm cách đọc, nghĩa, cấu tạo chữ và ví dụ
+6. Người dùng xem chi tiết hoặc lưu từ vào sổ tay và bộ thẻ
+
+## Luồng thay thế
+
+**A1 · Tra bằng chữ Hán**
+Nhập trực tiếp chữ cần tra. Chi tiết ở UC-056.
+
+**A2 · Tra bằng pinyin**
+Nhập cách đọc có dấu hoặc không dấu. Chi tiết ở UC-057.
+
+**A3 · Tra bằng nghĩa tiếng Việt**
+Nhập nghĩa để tìm chữ tương ứng. Chi tiết ở UC-058.
+
+**A4 · Tra theo bộ thủ**
+Chọn bộ thủ và số nét để lọc dần. Chi tiết ở UC-059.
+
+**A5 · Khách hết lượt tra trong ngày**
+Hệ thống đưa người dùng tới màn đăng nhập và cho biết khi nào lượt được đặt lại.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `QUERY_EMPTY` | Từ khóa rỗng | **422** | Báo lỗi ngay dưới ô nhập |
+| `NO_RESULT` | Không tìm thấy kết quả | **200** | Trả danh sách rỗng kèm gợi ý từ gần giống |
+| `GUEST_QUOTA_EXCEEDED` | Khách hết lượt tra trong ngày | **429** | Đưa tới đăng nhập, cho biết thời điểm đặt lại |
+
+> Không tìm thấy kết quả **không phải lỗi**. Hệ thống trả danh sách rỗng kèm gợi
+> ý, vì người học gõ sai một nét hay sai dấu thanh là chuyện bình thường.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-132-1 | Tra cứu dùng dữ liệu trong hệ thống nên không tính vào hạn mức của các tính năng gọi dịch vụ ngoài. |
+| BR-132-2 | Khách chưa đăng nhập có số lượt tra giới hạn trong ngày, đếm riêng với người đã đăng nhập. |
+| BR-132-3 | Khách chưa đăng nhập không lưu được từ vào sổ tay hoặc bộ thẻ. |
+| BR-132-4 | Dấu thanh trong pinyin là phần của nghĩa, nên tra có dấu và không dấu cho kết quả khác nhau về thứ tự ưu tiên. |
+
+## API · DB
+
+```
+GET /api/learning/dictionary
+```
+
+`lexemes` · `radicals` (đọc)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Tra bằng chữ Hán có trong kho | Trả đủ cách đọc, nghĩa, cấu tạo, ví dụ |
+| T2 | Tra bằng pinyin có dấu | Ưu tiên kết quả khớp đúng dấu thanh |
+| T3 | Tra bằng nghĩa tiếng Việt | Trả các chữ có nghĩa tương ứng |
+| T4 | Tra theo bộ thủ và số nét | Lọc được danh sách chữ phù hợp |
+| T5 | Từ khóa không có trong kho | Danh sách rỗng kèm gợi ý |
+| T6 | Khách tra quá số lượt trong ngày | 429, đưa tới đăng nhập |
+| T7 | Khách bấm lưu từ | Yêu cầu đăng nhập |
+
+---
+
+---
+
+# UC-133 · Quản lý nội dung học cá nhân
+
+| | |
+| --- | --- |
+| **ID** | UC-133 |
+| **Actor chính** | `USER` |
+| **Priority** | P1 |
+| **Scope** | MVP |
+| **Tính năng gốc** | 4.2 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người học tự xây kho nội dung riêng gồm ghi chú và bộ thẻ ghi nhớ, lấy từ những gì mình gặp trong lúc học. Kho này thuộc về riêng họ và được dùng để ôn lại theo lịch.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-062 Thêm từ vào sổ tay | Người học gặp từ muốn ghi lại |
+| `«extend»` | UC-063 Thêm từ vào bộ thẻ | Người học muốn ôn từ đó theo lịch |
+| `«extend»` | UC-064 Tạo, sửa, xóa ghi chú | Người học tự viết nội dung của mình |
+| `«extend»` | UC-065 Tìm kiếm trong ghi chú | Người học cần tìm lại nội dung cũ |
+| `«extend»` | UC-066 Ôn bộ thẻ theo lịch | Người học ôn các thẻ đã đến hạn |
+| `«extend»` | UC-067 Tạo bộ thẻ mới | Người học muốn nhóm thẻ theo chủ đề riêng |
+
+## Tiền điều kiện
+
+- `USER` đã đăng nhập
+- Nội dung thao tác thuộc về chính người học đó
+
+## Hậu điều kiện
+
+- Nội dung cá nhân được lưu và chỉ người tạo xem được
+- Thẻ mới được đưa vào lịch ôn
+- Nội dung xóa đi vào thùng rác, không mất hẳn
+
+## Luồng chính
+
+1. `USER` mở phần nội dung cá nhân của mình
+2. Chọn làm việc với ghi chú hoặc với bộ thẻ
+3. Tạo nội dung mới, hoặc thêm từ đang xem ở nơi khác vào đây
+4. Hệ thống kiểm quyền sở hữu và lưu nội dung
+5. Với thẻ mới, hệ thống đưa vào lịch ôn
+6. `USER` xem lại, sửa, tìm kiếm hoặc ôn tập nội dung của mình
+
+## Luồng thay thế
+
+**A1 · Thêm từ trong lúc tra cứu**
+Người học đang tra từ điển và lưu thẳng từ đó vào sổ tay hoặc bộ thẻ. Chi tiết ở UC-062 và UC-063.
+
+**A2 · Thêm từ từ phụ đề video**
+Câu chứa từ trong video được lưu kèm làm ví dụ. Chi tiết ở UC-032.
+
+**A3 · Ôn thẻ đến hạn**
+Người học tự đánh giá mức nhớ, lịch ôn tiếp theo được tính lại. Chi tiết ở UC-066.
+
+**A4 · Xóa nội dung**
+Nội dung vào thùng rác và khôi phục được, không mất ngay.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `NOTE_NOT_OWNED` | Ghi chú của người khác | **403** | Từ chối thao tác |
+| `DECK_NOT_OWNED` | Bộ thẻ của người khác | **403** | Từ chối thao tác |
+| `CARD_ALREADY_IN_DECK` | Thẻ đã có trong bộ | **409** | Báo đã tồn tại, không thêm trùng |
+| `DECK_LIMIT_EXCEEDED` | Bộ thẻ vượt số thẻ cho phép | **422** | Gợi ý tách thành bộ mới |
+| `VALIDATION_ERROR` | Thiếu tiêu đề hoặc nội dung | **422** | Chỉ rõ field thiếu |
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-133-1 | Nội dung cá nhân chỉ người tạo xem và sửa được. Hệ thống kiểm quyền sở hữu ở phía máy chủ, không dựa vào việc màn hình không hiện nút. |
+| BR-133-2 | Xóa nội dung cá nhân là đánh dấu đã xóa, không xóa hẳn khỏi dữ liệu. |
+| BR-133-3 | Ghi chú là nội dung tự do, không tự tạo thẻ ôn tập trừ khi người học chủ động chuyển. |
+| BR-133-4 | Tự đánh giá khi ôn thẻ chỉ ảnh hưởng lịch ôn của thẻ đó, không ảnh hưởng mức độ nắm vững chung. |
+
+## API · DB
+
+```
+GET    /api/learning/notes
+POST   /api/learning/notes
+GET    /api/learning/flashcards
+POST   /api/learning/flashcards
+POST   /api/learning/flashcards/{id}/review
+```
+
+`notes` · `flashcards` · `flashcard_decks` (đọc, ghi) · `user_progress` (ghi với loại mục tiêu là thẻ)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Tạo ghi chú mới | Lưu thành công, chỉ người tạo xem được |
+| T2 | Mở ghi chú của người khác | 403 |
+| T3 | Thêm từ đã có vào bộ thẻ | 409, không thêm trùng |
+| T4 | Xóa ghi chú rồi tìm lại | Nằm trong thùng rác, khôi phục được |
+| T5 | Tự đánh giá khi ôn thẻ | Lịch ôn thẻ đổi, mức độ nắm vững chung không đổi |
+| T6 | Bộ thẻ vượt giới hạn | 422, gợi ý tách bộ |
+
+---
+
+---
+
 # Tổng hợp exception nhóm 4
 
 ## Chín exception quan trọng nhất

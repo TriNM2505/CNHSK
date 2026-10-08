@@ -1799,6 +1799,881 @@ POST /api/flashcard-decks          (tạo deck mới — A2)
 
 ---
 
+# UC-120 · Luyện Dictation từ video
+
+| | |
+| --- | --- |
+| **UC-ID** | UC-120 · **Actor** `USER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
+| **Quan hệ** | `«extend»` **UC-030** — chỉ làm được khi đang xem video |
+
+## Mô tả
+
+Nghe một câu phụ đề, gõ lại chữ Hán, server chấm và chỉ ra **sai chữ** hay **sai thanh điệu**.
+
+Đây là cơ chế học chủ động chính của schinese.net. Khác với xem phụ đề thụ động: người học
+phải tự tái tạo chữ từ âm thanh, nên phát hiện đúng chỗ mình nghe chưa ra.
+
+> **Điểm khác biệt so với schinese.net:** CNHSK trả **hai điểm riêng** — `char_score` và
+> `tone_score`. schinese.net chỉ trả một điểm chung. Thanh điệu là lỗi phổ biến nhất của
+> người Việt học tiếng Trung, nên tách riêng mới chỉ ra được chỗ cần sửa.
+
+## Tiền điều kiện
+
+1. `USER` đã đăng nhập
+2. Video có `subtitles` JSONB với ít nhất một câu hợp lệ
+3. Câu được chọn có `start_ms < end_ms` và nằm trong `duration_ms`
+
+## Hậu điều kiện
+
+| Kết quả | Trạng thái |
+| --- | --- |
+| Gõ đúng hoàn toàn | `dictation_attempts` thêm dòng, `char_score = 100`, `tone_score = 100` |
+| Gõ sai | Thêm dòng kèm `diff` JSONB chỉ rõ từng vị trí sai |
+| Bỏ giữa | Không ghi gì — chỉ ghi khi người học bấm nộp |
+
+## Luồng chính
+
+| # | Actor | Hành động |
+| --- | --- | --- |
+| 1 | `USER` | Đang xem video, bấm "Luyện chép" ở một câu phụ đề |
+| 2 | Client | `seek` về `start_ms`, phát tới `end_ms`, **ẩn phụ đề chữ Hán** |
+| 3 | `USER` | Nghe, gõ lại chữ Hán vào ô nhập |
+| 4 | `USER` | Bấm "Kiểm tra" |
+| 5 | Client | `POST /api/videos/{id}/dictation` với `subtitle_index` + `submitted_text` |
+| 6 | System | Lấy `expected_text` từ `videos.subtitles[subtitle_index].text_cn` |
+| 7 | System | Chuyển cả hai chuỗi sang pinyin, tách mỗi âm tiết thành **phụ âm đầu · phần vận · thanh điệu** |
+| 8 | System | So từng cặp, tính `char_score` (đúng chữ) và `tone_score` (đúng thanh) riêng |
+| 9 | System | Ghi `dictation_attempts` kèm `expected_text` (chụp lại) và `diff` JSONB |
+| 10 | System | Trả **200** với hai điểm + danh sách lỗi |
+| 11 | Client | Hiện phụ đề đúng, tô màu từng chữ theo loại lỗi |
+
+## Luồng thay thế
+
+**A1 — Nghe lại trước khi nộp** — client lặp `[start_ms, end_ms]`, không gọi API.
+**A2 — Xem đáp án mà không gõ** — hiện phụ đề, **không ghi** `dictation_attempts`. Bỏ qua không tính là làm sai.
+**A3 — Gõ pinyin thay vì chữ Hán** — server nhận cả hai; nếu nhận pinyin thì `char_score` không tính, chỉ tính `tone_score`.
+**A4 — Câu quá ngắn** — câu dưới 1 giây không mở Dictation (nghe không kịp).
+
+## Bảng exception
+
+| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| --- | --- | --- | --- |
+| `SUBTITLE_INDEX_INVALID` | 404 | `subtitle_index` vượt mảng `subtitles` | Về trình phát |
+| `DICTATION_TEXT_EMPTY` | 422 | Ô nhập rỗng | Lỗi dưới field, không gọi API |
+| `DICTATION_TEXT_TOO_LONG` | 422 | Dài hơn `expected_text` ×3 | Chặn spam |
+| `PINYIN_CONVERT_FAILED` | 500 | Không chuyển được chữ sang pinyin (chữ lạ, ký tự rác) | Vẫn chấm `char_score`, `tone_score = NULL` kèm cảnh báo |
+| `SUBTITLE_TOO_SHORT` | 422 | Câu dưới 1 giây | Không mở Dictation cho câu này (A4) |
+
+> ⚠️ **`PINYIN_CONVERT_FAILED` không được chặn cả tính năng.** Nếu một chữ trong phụ đề
+> không có pinyin trong kho dữ liệu, vẫn chấm được phần chữ. Trả `tone_score = NULL` và
+> hiện "chưa chấm được thanh điệu câu này" — tốt hơn là báo lỗi 500 rồi không chấm gì.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-120-1 | Chấm Dictation PHẢI ở server (`BUS-09`). Client chỉ gửi văn bản người học gõ, không gửi điểm. |
+| BR-120-2 | `expected_text` PHẢI được chụp lại vào `dictation_attempts` lúc chấm. Nếu `CONTENT_ADMIN` sửa phụ đề sau đó, lịch sử vẫn giải thích được vì sao người học sai. |
+| BR-120-3 | `char_score` và `tone_score` là **hai điểm riêng**, không gộp thành một điểm trung bình. |
+| BR-120-4 | So sánh PHẢI bỏ qua dấu câu và khoảng trắng. Người học gõ 我是学生 hay 我是学生。đều đúng. |
+| BR-120-5 | Chữ phồn thể gõ vào câu giản thể tính là **sai chữ**, không tự quy đổi. HSK dùng giản thể. |
+| BR-120-6 | Dictation KHÔNG tính vào hạn mức lượt — chấm hoàn toàn ở server, không gọi API ngoài. |
+| BR-120-7 | `diff` JSONB PHẢI ghi đủ `{pos, expected, got, kind}` với `kind` thuộc `CHAR_WRONG` · `TONE_WRONG` · `MISSING` · `EXTRA`. |
+| BR-120-8 | Bỏ qua (A2) KHÔNG ghi `dictation_attempts`. Xem đáp án không phải là làm sai. |
+
+## API · DB
+
+```
+POST /api/videos/{id}/dictation
+     body: { subtitle_index, submitted_text }
+     200:  { char_score, tone_score, expected_text, diff[] }
+```
+
+`videos` (đọc `subtitles`) · `dictation_attempts` (ghi)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Gõ đúng hoàn toàn | `char_score = 100`, `tone_score = 100` |
+| T2 | 学西 thay vì 学习 | `char_score` giảm, `tone_score` giảm — `kind = TONE_WRONG` |
+| T3 | 学期 thay vì 学习 | `char_score` giảm, `kind = CHAR_WRONG` |
+| T4 | Thiếu một chữ cuối | `kind = MISSING` tại vị trí cuối |
+| T5 | Thêm chữ lạ giữa câu | `kind = EXTRA` |
+| T6 | Gõ có dấu câu 我是学生。 | Đúng — BR-120-4 bỏ qua dấu câu |
+| T7 | Gõ phồn thể 學習 | `CHAR_WRONG` — BR-120-5 không quy đổi |
+| T8 | Ô nhập rỗng | 422, lỗi dưới field |
+| T9 | `subtitle_index` = 999 | 404 `SUBTITLE_INDEX_INVALID` |
+| T10 | Phụ đề có chữ không có pinyin | `tone_score = NULL`, vẫn trả `char_score` |
+| T11 | Bấm "xem đáp án" rồi thoát | `dictation_attempts` KHÔNG có dòng mới |
+
+---
+
+# UC-121 · Xem kết quả Dictation và lỗi từng chữ
+
+| | |
+| --- | --- |
+| **UC-ID** | UC-121 · **Actor** `USER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
+| **Quan hệ** | `«extend»` **UC-120** — chỉ xem được sau khi đã nộp |
+
+## Mô tả
+
+Xem kết quả một lượt Dictation: điểm chữ, điểm thanh điệu, và từng chữ sai sai thế nào.
+
+## Tiền điều kiện
+
+1. `USER` đã nộp ít nhất một lượt Dictation cho câu đó
+2. Dòng `dictation_attempts` thuộc chính `USER` này (`BUS-01`)
+
+## Hậu điều kiện
+
+Không đổi dữ liệu — màn chỉ đọc.
+
+## Luồng chính
+
+| # | Actor | Hành động |
+| --- | --- | --- |
+| 1 | `USER` | Sau khi nộp, màn tự hiện kết quả |
+| 2 | Client | Hiện `expected_text` với từng chữ tô màu theo `diff[].kind` |
+| 3 | Client | Hiện hai thanh điểm riêng: chữ và thanh điệu |
+| 4 | `USER` | Bấm một chữ sai → hiện pinyin đúng vs pinyin đã gõ |
+| 5 | `USER` | Chọn "Làm lại câu này" → về UC-120, hoặc "Luyện nói câu này" → UC-122 |
+
+## Luồng thay thế
+
+**A1 — Xem lịch sử các lượt trước của cùng câu** — `GET /api/videos/{id}/dictation/history?subtitle_index=`. Hiện tiến bộ qua từng lượt.
+**A2 — Thêm chữ sai vào flashcard** — gọi UC-063, giúp ôn lại chữ vừa sai.
+
+## Bảng exception
+
+| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| --- | --- | --- | --- |
+| `ATTEMPT_NOT_FOUND` | 404 | ID lượt không tồn tại | Về trình phát |
+| `ATTEMPT_NOT_OWNED` | 403 | Lượt của người khác (`BUS-01`) | 403, KHÔNG trả 404 — xem `HR-07` |
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-121-1 | Chỉ xem được lượt Dictation của **chính mình** (`BUS-01`). Server kiểm quyền sở hữu, không dựa vào việc màn không hiện nút. |
+| BR-121-2 | Lỗi thanh điệu PHẢI hiện rõ *thanh nào thành thanh nào*, ví dụ "xí (thanh 2) → xī (thanh 1)". Chỉ nói "sai thanh" thì người học không sửa được. |
+| BR-121-3 | Màn kết quả KHÔNG hiện điểm trung bình gộp của hai loại điểm. Gộp lại là mất thông tin hành động được. |
+
+## API · DB
+
+```
+GET /api/videos/{id}/dictation/{attemptId}
+GET /api/videos/{id}/dictation/history?subtitle_index=
+```
+
+`dictation_attempts` (đọc)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Xem lượt vừa nộp | Hiện đủ hai điểm + diff |
+| T2 | Bấm chữ sai thanh | Hiện "xí (thanh 2) → xī (thanh 1)" |
+| T3 | Xem lượt của user khác | 403 `ATTEMPT_NOT_OWNED` |
+| T4 | Xem lịch sử 5 lượt cùng câu | Hiện tiến bộ theo thời gian |
+
+---
+
+# UC-122 · Luyện Shadowing từ video
+
+| | |
+| --- | --- |
+| **UC-ID** | UC-122 · **Actor** `USER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
+| **Quan hệ** | `«extend»` **UC-030** · `«include»` **UC-096** (trừ điểm khi dùng tính năng tốn phí) |
+
+## Mô tả
+
+Đọc theo một câu phụ đề, ghi âm, nhận phản hồi phát âm theo từng âm tiết.
+
+> ⚠️ **Tính năng này gọi dịch vụ bên ngoài**, nên tính vào hạn mức lượt (`BUS-03`) và
+> phải tuân mục *chấm bằng dịch vụ bên ngoài* của `BUS-09`: audio đi **client → server ta
+> → dịch vụ ngoài**. Client KHÔNG gọi trực tiếp và KHÔNG BAO GIỜ gửi điểm lên.
+
+## Tiền điều kiện
+
+1. `USER` đã đăng nhập và **đã xác thực email** (`FR-010` — thao tác tốn phí cần xác thực)
+2. Còn lượt free hoặc còn điểm
+3. Trình duyệt đã cho quyền microphone
+4. Câu phụ đề có `start_ms < end_ms`
+
+## Hậu điều kiện
+
+| Kết quả | Trạng thái |
+| --- | --- |
+| Chấm thành công | `shadowing_attempts` thêm dòng · lượt bị trừ · **file audio bị bỏ** |
+| Dịch vụ ngoài lỗi | **Hoàn lượt** (`BUS-03`) · không ghi dòng nào |
+| Người học không cho quyền mic | Không gọi API · không trừ lượt |
+
+## Luồng chính
+
+| # | Actor | Hành động |
+| --- | --- | --- |
+| 1 | `USER` | Đang xem video, bấm "Luyện nói" ở một câu |
+| 2 | Client | Phát câu mẫu `[start_ms, end_ms]` |
+| 3 | `USER` | Bấm ghi âm, đọc theo, bấm dừng |
+| 4 | Client | Gửi audio + `subtitle_index` tới **server ta** qua `POST /api/videos/{id}/shadowing` |
+| 5 | System | Kiểm hạn mức — **UC-096** trừ lượt |
+| 6 | System | Gửi audio + `expected_text` tới dịch vụ đánh giá phát âm |
+| 7 | System | Nhận điểm theo âm tiết, **kiểm tính hợp lệ** (điểm trong 0–100, số âm tiết khớp) |
+| 8 | System | Ghi `shadowing_attempts` kèm `provider` và `credit_cost` · **bỏ file audio** |
+| 9 | System | Trả **200** với các điểm + mảng âm tiết |
+| 10 | Client | Hiện câu với từng âm tiết tô màu theo điểm |
+
+## Luồng thay thế
+
+**A1 — Nghe lại mẫu trước khi ghi** — thuần client, không trừ lượt.
+**A2 — Nghe lại bản ghi của mình trước khi gửi** — client giữ audio trong bộ nhớ, chưa gửi, chưa trừ lượt.
+**A3 — Ghi lại** — xoá bản cũ trong bộ nhớ client, chưa trừ lượt lần nào.
+**A4 — Dịch vụ ngoài timeout** — hoàn lượt theo `BUS-03`, hiện "chưa chấm được, thử lại sau". KHÔNG ghi dòng.
+**A5 — Trình duyệt không hỗ trợ ghi âm** — ẩn nút "Luyện nói", hiện lý do.
+
+## Bảng exception
+
+| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| --- | --- | --- | --- |
+| `MIC_PERMISSION_DENIED` | — | Người học chặn quyền microphone | Hướng dẫn mở lại quyền. Không gọi API |
+| `AUDIO_TOO_SHORT` | 422 | Bản ghi dưới 0,5 giây | Chặn ở client, không trừ lượt |
+| `AUDIO_TOO_LONG` | 422 | Bản ghi dài hơn câu mẫu ×3 | Chặn — tránh gửi audio rác tốn phí |
+| `AUDIO_FORMAT_UNSUPPORTED` | 415 | Định dạng dịch vụ ngoài không nhận | Client chuyển sang định dạng được hỗ trợ |
+| `INSUFFICIENT_CREDITS` | 402 | Hết lượt free và hết điểm | Chuyển `/account/billing` (`FR-072`) |
+| `ACCOUNT_UNVERIFIED` | 403 | Chưa xác thực email | Chuyển `/verify-email` (`FR-010`) |
+| `PRONUNCIATION_SERVICE_ERROR` | 502 | Dịch vụ ngoài lỗi hoặc timeout | **Hoàn lượt** (`BUS-03`), không ghi dòng (A4) |
+| `SCORE_OUT_OF_RANGE` | 500 | Dịch vụ ngoài trả điểm ngoài 0–100 | Hoàn lượt, ghi log. KHÔNG ghi điểm sai vào DB |
+
+> 🔴 **`SCORE_OUT_OF_RANGE` là lý do bước 7 tồn tại.** Dịch vụ ngoài vẫn là nguồn không
+> kiểm soát được. Nhận điểm rồi ghi thẳng vào DB là tin bên thứ ba vô điều kiện — mục
+> *chấm bằng dịch vụ bên ngoài* của `BUS-09` yêu cầu server kiểm trước khi ghi.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-122-1 | Audio PHẢI đi **client → server ta → dịch vụ ngoài**. Client KHÔNG được gọi trực tiếp dịch vụ ngoài (`BUS-09` mục chấm ngoài, điều kiện 1). |
+| BR-122-2 | Client KHÔNG BAO GIỜ gửi điểm lên. Server nhận điểm từ dịch vụ ngoài, kiểm hợp lệ, rồi mới ghi (`BUS-09`, điều kiện 2). |
+| BR-122-3 | `shadowing_attempts.provider` PHẢI ghi tên dịch vụ đã chấm. Đổi nhà cung cấp vẫn đọc lại được điểm cũ thuộc nhà nào (`BUS-09`, điều kiện 3). |
+| BR-122-4 | **KHÔNG lưu file audio.** Chấm xong là bỏ. Giọng nói là dữ liệu sinh trắc — giữ lại tạo nghĩa vụ bảo vệ dữ liệu không cần thiết. |
+| BR-122-5 | Dịch vụ ngoài lỗi → PHẢI hoàn lượt đã trừ (`BUS-03`). Người học không trả tiền cho lần thất bại. |
+| BR-122-6 | Server PHẢI kiểm điểm nhận về nằm trong 0–100 và số âm tiết khớp `expected_text` trước khi ghi DB. |
+| BR-122-7 | Nghe lại mẫu, nghe lại bản ghi của mình, ghi lại — KHÔNG trừ lượt. Chỉ trừ khi thật sự gửi đi chấm. |
+| BR-122-8 | `expected_text` chụp lại như `BR-120-2`. |
+| BR-122-9 | Màn kết quả PHẢI ghi rõ **chưa chấm riêng thanh điệu** — xem giới hạn đã biết ở dưới. |
+
+## Giới hạn đã biết
+
+> ⚠️ **Dịch vụ đánh giá phát âm không chấm thanh điệu riêng cho tiếng Trung.**
+> Azure Pronunciation Assessment hỗ trợ `zh-CN` với điểm theo âm tiết, nhưng *Prosody*
+> chỉ có ở `en-US` và không tài liệu hoá điểm thanh điệu. Hệ quả: Shadowing nói được
+> *"âm tiết này chưa đúng"* nhưng **không chỉ ra "bạn đọc thanh 2 thành thanh 3"** — đúng
+> cái người Việt sai nhiều nhất.
+>
+> **Cách bù:** UC-120 Dictation có `tone_score` riêng. Hai tính năng dùng cùng nhau thì
+> người học biết cả "nghe ra chưa" và "đọc đúng chưa".
+>
+> **[CHỜ CHỐT]** Có tự thêm chấm thanh điệu ở server không (lấy pitch contour so với mẫu)
+> — chủ dự án quyết **cuối dự án**.
+
+> **[CHỜ CHỐT]** Hạn mức Shadowing: 1 lần = 1 lượt, hay hạn mức riêng cao hơn — chủ dự án
+> quyết **cuối dự án**. Luyện nói cần lặp nhiều lần một câu, nên 10 lượt/tháng có thể quá ít.
+
+## API · DB
+
+```
+POST /api/videos/{id}/shadowing
+     body: multipart audio + subtitle_index
+     200:  { accuracy_score, fluency_score, completeness, syllables[], credit_cost }
+```
+
+`videos` (đọc) · `shadowing_attempts` (ghi) · `credit_transactions` qua UC-096
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Đọc đúng câu ngắn | Điểm cao, mảng `syllables` đủ số âm tiết |
+| T2 | Đọc sai một âm tiết | Âm tiết đó điểm thấp, các âm khác cao |
+| T3 | Im lặng không đọc | Điểm `completeness` thấp |
+| T4 | Bản ghi 0,2 giây | 422 `AUDIO_TOO_SHORT`, **không trừ lượt** |
+| T5 | Dịch vụ ngoài timeout | 502, **lượt được hoàn**, `shadowing_attempts` không có dòng mới |
+| T6 | Dịch vụ trả điểm 150 | 500 `SCORE_OUT_OF_RANGE`, hoàn lượt, không ghi DB |
+| T7 | Hết lượt và hết điểm | 402, chuyển `/account/billing` |
+| T8 | Chưa xác thực email | 403 `ACCOUNT_UNVERIFIED` |
+| T9 | Chặn quyền microphone | Nút ẩn, không gọi API |
+| T10 | Nghe lại mẫu 5 lần | Lượt KHÔNG bị trừ |
+| T11 | Ghi lại 3 lần rồi gửi 1 lần | Trừ **đúng 1 lượt** |
+| T12 | Kiểm DB sau khi chấm | KHÔNG có file audio nào được lưu |
+
+---
+
+# UC-123 · Xem phản hồi phát âm theo âm tiết
+
+| | |
+| --- | --- |
+| **UC-ID** | UC-123 · **Actor** `USER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
+| **Quan hệ** | `«extend»` **UC-122** — chỉ xem được sau khi đã chấm |
+
+## Mô tả
+
+Xem điểm phát âm chi tiết: điểm tổng, điểm trôi chảy, độ đầy đủ, và điểm từng âm tiết.
+
+## Tiền điều kiện
+
+1. Có ít nhất một dòng `shadowing_attempts` cho câu đó
+2. Dòng thuộc chính `USER` này (`BUS-01`)
+
+## Hậu điều kiện
+
+Không đổi dữ liệu — màn chỉ đọc.
+
+## Luồng chính
+
+| # | Actor | Hành động |
+| --- | --- | --- |
+| 1 | Client | Hiện ba điểm: chính xác · trôi chảy · đầy đủ |
+| 2 | Client | Hiện câu phụ đề, từng âm tiết tô màu theo điểm riêng |
+| 3 | Client | Hiện ghi chú *"chưa chấm riêng thanh điệu"* (BR-122-9) |
+| 4 | `USER` | Bấm một âm tiết điểm thấp → hiện pinyin và gợi ý cách đặt lưỡi |
+| 5 | `USER` | Chọn "Đọc lại" → về UC-122, hoặc "Chép câu này" → UC-120 |
+
+## Luồng thay thế
+
+**A1 — So sánh với lượt trước** — hiện biểu đồ điểm qua các lượt của cùng câu.
+**A2 — Nghe lại câu mẫu** — thuần client, không trừ lượt.
+
+## Bảng exception
+
+| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| --- | --- | --- | --- |
+| `ATTEMPT_NOT_FOUND` | 404 | ID lượt không tồn tại | Về trình phát |
+| `ATTEMPT_NOT_OWNED` | 403 | Lượt của người khác (`BUS-01`) | 403, KHÔNG trả 404 |
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-123-1 | Chỉ xem được lượt của **chính mình** (`BUS-01`). |
+| BR-123-2 | Màn PHẢI ghi rõ **chưa chấm riêng thanh điệu** (BR-122-9). Không ghi là để người học hiểu sai rằng điểm cao nghĩa là thanh điệu đúng. |
+| BR-123-3 | KHÔNG phát lại bản ghi của người học — audio đã bị bỏ theo `BR-122-4`. Màn phải nói rõ điều này nếu người học tìm nút phát lại. |
+| BR-123-4 | Màu theo điểm âm tiết PHẢI kèm số điểm dạng chữ. Không dùng màu làm tín hiệu duy nhất (`design.md` §10). |
+
+## API · DB
+
+```
+GET /api/videos/{id}/shadowing/{attemptId}
+GET /api/videos/{id}/shadowing/history?subtitle_index=
+```
+
+`shadowing_attempts` (đọc)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Xem lượt vừa chấm | Ba điểm + mảng âm tiết |
+| T2 | Bấm âm tiết điểm thấp | Hiện pinyin + gợi ý phát âm |
+| T3 | Xem lượt của user khác | 403 `ATTEMPT_NOT_OWNED` |
+| T4 | Tìm nút phát lại bản ghi | Không có — màn giải thích audio không lưu |
+| T5 | Kiểm ghi chú thanh điệu | Hiện rõ trên màn |
+
+---
+
+# UC-124 · Lặp một câu phụ đề
+
+| | |
+| --- | --- |
+| **UC-ID** | UC-124 · **Actor** `USER` · **Pri** P3 · **Scope** **V2** · **FT** 1.6 |
+| **Quan hệ** | `«extend»` **UC-030** |
+
+## Mô tả
+
+Lặp lại một câu phụ đề liên tục để nghe kỹ, cho tới khi người học tắt.
+
+Tách thành UC riêng vì YouTube iframe **không có** chức năng lặp đoạn — phải tự làm, và
+có giới hạn kỹ thuật đáng ghi lại.
+
+## Tiền điều kiện
+
+1. Video đang phát
+2. Câu được chọn dài **≥ 3 giây** (xem giới hạn dưới)
+
+## Hậu điều kiện
+
+Không đổi dữ liệu — thuần client. Trạng thái bật/tắt lặp lưu `localStorage`.
+
+## Luồng chính
+
+| # | Actor | Hành động |
+| --- | --- | --- |
+| 1 | `USER` | Bấm biểu tượng lặp ở một câu phụ đề |
+| 2 | Client | `seekTo(start_ms)`, bật cờ lặp cho câu đó |
+| 3 | Client | Mỗi ~100ms đọc `getCurrentTime()` |
+| 4 | Client | Nếu `currentTime ≥ end_ms` → `seekTo(start_ms)` |
+| 5 | `USER` | Bấm lại biểu tượng để tắt |
+
+## Luồng thay thế
+
+**A1 — Đổi sang câu khác khi đang lặp** — tắt lặp câu cũ, bật cho câu mới.
+**A2 — Lặp kèm giảm tốc** — hai chức năng độc lập, dùng cùng được.
+**A3 — Người học tua tay ra ngoài đoạn lặp** — tắt lặp, tôn trọng hành động của người dùng.
+
+## Bảng exception
+
+| Mã lỗi | HTTP | Nguyên nhân | Xử lý |
+| --- | --- | --- | --- |
+| `SUBTITLE_TOO_SHORT_TO_LOOP` | — | Câu dưới 3 giây | Ẩn nút lặp cho câu đó, kèm lý do khi hover |
+| `PLAYER_NOT_READY` | — | YouTube iframe chưa `onReady` | Nút lặp disable tới khi player sẵn sàng |
+
+## Giới hạn đã biết
+
+> ⚠️ **YouTube iframe không lặp được đoạn.** Tham số `loop=1` chỉ hoạt động cùng
+> `playlist=` và không áp dụng cho lặp một khoảng trong video. Phải tự làm bằng cách đọc
+> `getCurrentTime()` theo chu kỳ rồi `seekTo()`.
+>
+> Độ chính xác `getCurrentTime()` của YouTube khoảng **±250ms**. Với câu 2 giây, sai số
+> này chiếm hơn 12% độ dài câu — nghe thấy rõ là lặp bị cắt đầu hoặc đuôi. **Vì vậy chỉ
+> bật lặp cho câu ≥ 3 giây**, và `SUBTITLE_TOO_SHORT_TO_LOOP` ẩn nút cho câu ngắn hơn.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-124-1 | Lặp là chức năng **thuần client**. KHÔNG gọi API, KHÔNG trừ lượt. |
+| BR-124-2 | Chỉ mở lặp cho câu dài **≥ 3 giây** — dưới mức đó sai số YouTube làm trải nghiệm tệ hơn là không có. |
+| BR-124-3 | Người học tua tay ra ngoài đoạn lặp → PHẢI tắt lặp. Kéo họ về là chống lại hành động họ vừa làm. |
+| BR-124-4 | Vòng lặp kiểm tra PHẢI dừng khi rời màn hoặc video tạm dừng. Để chạy là rò rỉ bộ hẹn giờ. |
+
+## API · DB
+
+Không có — thuần client.
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Lặp câu 5 giây | Lặp đúng khoảng, không lệch rõ |
+| T2 | Câu 2 giây | Nút lặp bị ẩn |
+| T3 | Đang lặp, bấm câu khác | Chuyển lặp sang câu mới |
+| T4 | Đang lặp, tua tay ra ngoài | Lặp tự tắt |
+| T5 | Đang lặp, rời màn | Bộ hẹn giờ dừng, không rò rỉ |
+| T6 | Lặp + giảm tốc 0,5× | Cả hai chạy cùng lúc |
+
+---
+
+# UC-126 · Luyện viết chữ Hán
+
+| | |
+| --- | --- |
+| **ID** | UC-126 |
+| **Actor chính** | `USER` |
+| **Priority** | P1 |
+| **Scope** | MVP |
+| **Tính năng gốc** | 1.1 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người học luyện viết chữ Hán theo nhiều chế độ khác nhau, từ có gợi ý nét tới viết lại hoàn toàn từ trí nhớ. Mỗi chế độ phù hợp với một mức độ thành thạo, nên người học chọn chế độ theo khả năng hiện tại của mình.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-015 Luyện viết theo nét | Người học mới làm quen với chữ, cần gợi ý |
+| `«extend»` | UC-016 Luyện viết chế độ nhớ rồi viết | Người học đã xem mẫu và muốn tự kiểm tra trí nhớ |
+| `«extend»` | UC-017 Luyện viết chế độ thử thách | Người học muốn luyện có giới hạn thời gian |
+| `«extend»` | UC-018 Luyện viết chế độ nghe chép | Người học muốn kết hợp nghe với viết |
+
+## Tiền điều kiện
+
+- `USER` đã đăng nhập
+- Chữ cần luyện có dữ liệu thứ tự nét trong kho dữ liệu
+- Người học còn lượt dùng nếu chế độ đó có giới hạn
+
+## Hậu điều kiện
+
+- Kết quả lượt luyện được ghi nhận
+- Mức độ nắm vững của chữ vừa luyện được cập nhật theo trọng số của chế độ
+- Lịch ôn của chữ đó được tính lại
+
+## Luồng chính
+
+1. `USER` mở phần luyện viết
+2. Chọn chữ muốn luyện hoặc để hệ thống chọn theo lịch ôn
+3. Chọn chế độ luyện phù hợp với mình
+4. Hệ thống hiển thị khung viết theo chế độ đã chọn
+5. `USER` viết chữ trên khung
+6. Hệ thống đối chiếu nét vừa viết với thứ tự nét chuẩn
+7. Hệ thống cho biết kết quả và chỉ ra nét nào chưa đúng
+8. Kết quả được dùng để cập nhật mức độ nắm vững và lịch ôn
+9. `USER` chuyển sang chữ tiếp theo hoặc kết thúc lượt luyện
+
+## Luồng thay thế
+
+**A1 · Luyện có gợi ý nét**
+Khung viết hiện sẵn nét mẫu để người học tô theo. Chi tiết ở UC-015.
+
+**A2 · Luyện bằng trí nhớ**
+Chữ mẫu hiện trong vài giây rồi biến mất, người học viết lại. Chi tiết ở UC-016.
+
+**A3 · Luyện có giới hạn thời gian**
+Người học viết một dãy chữ liên tiếp trước khi hết giờ. Chi tiết ở UC-017.
+
+**A4 · Luyện kết hợp nghe**
+Người học nghe cách đọc rồi viết chữ tương ứng, không nhìn mẫu. Chi tiết ở UC-018.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `CHARACTER_NOT_FOUND` | Chữ không có trong kho dữ liệu | **404** | Về danh sách chữ |
+| `STROKE_DATA_MISSING` | Chữ chưa có dữ liệu thứ tự nét | **422** | Không mở luyện viết cho chữ này |
+| `INSUFFICIENT_CREDITS` | Hết lượt dùng và hết điểm | **402** | Đưa tới màn gói và điểm |
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-126-1 | Mỗi chế độ luyện có trọng số riêng khi cập nhật mức độ nắm vững, chế độ khó hơn thì trọng số cao hơn. |
+| BR-126-2 | Chữ chưa có dữ liệu thứ tự nét không được mở cho luyện viết. |
+| BR-126-3 | Kết quả luyện viết được chấm ở phía người dùng, nên trọng số của nó thấp hơn các hoạt động chấm ở máy chủ. |
+| BR-126-4 | Thời gian hoàn thành một lượt viết phải nằm trong khoảng hợp lý, quá nhanh thì không tính kết quả. |
+
+## API · DB
+
+```
+GET  /api/learning/characters/{id}/strokes
+POST /api/learning/writing-attempts
+```
+
+`lexemes` (đọc) · `user_progress` (ghi) · `feature_usage` (ghi khi chế độ có tính lượt)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Viết đúng thứ tự nét | Kết quả đạt, mức độ nắm vững tăng |
+| T2 | Viết sai thứ tự nét | Chỉ ra nét sai, mức độ nắm vững giảm |
+| T3 | Chữ chưa có dữ liệu nét | 422, không mở luyện |
+| T4 | Hoàn thành trong thời gian bất thường | Không tính kết quả |
+| T5 | Cùng một chữ ở hai chế độ khác nhau | Trọng số cập nhật khác nhau |
+
+---
+
+---
+
+# UC-127 · Nhận diện chữ Hán
+
+| | |
+| --- | --- |
+| **ID** | UC-127 |
+| **Actor chính** | `USER` |
+| **Priority** | P1 |
+| **Scope** | MVP |
+| **Tính năng gốc** | 1.2 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người học làm bài tập trắc nghiệm để nhận biết chữ Hán, có thể là nhìn chữ chọn nghĩa hoặc nghe âm chọn chữ. Hai hướng này bổ sung cho nhau, giúp người học nối được mặt chữ với cả nghĩa và cách đọc.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-019 Nhìn chữ chọn nghĩa | Người học luyện nhận biết mặt chữ |
+| `«extend»` | UC-020 Nghe âm chọn chữ | Người học luyện nối âm đọc với mặt chữ |
+
+## Tiền điều kiện
+
+- `USER` đã đăng nhập
+- Có đủ chữ trong kho để tạo câu hỏi và các đáp án nhiễu
+- Câu hỏi đã được gắn điểm kiến thức
+
+## Hậu điều kiện
+
+- Kết quả trả lời được ghi nhận
+- Mức độ nắm vững của điểm kiến thức liên quan được cập nhật
+- Lịch ôn được tính lại theo kết quả vừa nhận
+
+## Luồng chính
+
+1. `USER` mở phần luyện nhận diện chữ
+2. Hệ thống chọn chữ cần luyện theo lịch ôn hoặc theo chủ đề đang học
+3. Hệ thống tạo câu hỏi kèm các đáp án nhiễu
+4. `USER` chọn đáp án
+5. Hệ thống chấm và cho biết đúng hay sai
+6. Nếu sai, hệ thống hiện đáp án đúng kèm giải thích
+7. Kết quả được dùng để cập nhật mức độ nắm vững
+8. `USER` chuyển sang câu tiếp theo hoặc kết thúc
+
+## Luồng thay thế
+
+**A1 · Nhìn chữ chọn nghĩa**
+Màn hình đưa ra một chữ Hán và bốn nghĩa tiếng Việt. Chi tiết ở UC-019.
+
+**A2 · Nghe âm chọn chữ**
+Người học nghe một âm đọc rồi chọn chữ tương ứng. Chi tiết ở UC-020.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `NOT_ENOUGH_DISTRACTORS` | Không đủ chữ để tạo đáp án nhiễu | **422** | Bỏ qua chữ này, chọn chữ khác |
+| `MALFORMED_QUESTION` | Câu hỏi có nhiều hơn một đáp án đúng | **500** | Loại câu hỏi, ghi log để kiểm duyệt |
+| `AUDIO_MISSING` | Chữ chưa có audio khi luyện nghe | **422** | Không dùng chữ này cho chế độ nghe |
+
+> Đáp án nhiễu phải khác nhau cả về nghĩa và cách đọc. Nếu hai lựa chọn trùng
+> nghĩa hoặc trùng pinyin thì câu hỏi không còn một đáp án đúng duy nhất.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-127-1 | Mỗi câu hỏi phải có đúng một đáp án đúng. |
+| BR-127-2 | Đáp án nhiễu không được trùng nghĩa hoặc trùng cách đọc với đáp án đúng. |
+| BR-127-3 | Câu hỏi phải được gắn ít nhất một điểm kiến thức để kết quả cập nhật được mức độ nắm vững. |
+| BR-127-4 | Chữ chưa có audio không được dùng cho chế độ nghe âm chọn chữ. |
+
+## API · DB
+
+```
+GET  /api/learning/recognition/questions
+POST /api/learning/recognition/answers
+```
+
+`lexemes` · `questions` (đọc) · `user_progress` (ghi)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Chọn đáp án đúng | Báo đúng, mức độ nắm vững tăng |
+| T2 | Chọn đáp án sai | Hiện đáp án đúng kèm giải thích |
+| T3 | Kho chữ quá ít để tạo nhiễu | 422, chọn chữ khác |
+| T4 | Hai đáp án cùng nghĩa | Câu hỏi bị loại khi tạo |
+| T5 | Chữ không có audio, chế độ nghe | Không dùng chữ này |
+
+---
+
+---
+
+# UC-128 · Học một chủ đề từ vựng
+
+| | |
+| --- | --- |
+| **ID** | UC-128 |
+| **Actor chính** | `USER` |
+| **Priority** | P0 |
+| **Scope** | MVP |
+| **Tính năng gốc** | 1.4 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người học đi qua một chủ đề từ vựng theo trình tự từ học từ mới tới làm bài kiểm tra cuối chủ đề. Khi đạt mức hoàn thành yêu cầu, chủ đề tiếp theo trong lộ trình sẽ được mở.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-026 Học từ mới trong chủ đề | Bước đầu của chủ đề |
+| `«extend»` | UC-027 Luyện nhận diện từ trong chủ đề | Sau khi đã xem từ mới |
+| `«extend»` | UC-028 Luyện nghe từ trong chủ đề | Sau khi đã xem từ mới |
+| `«extend»` | UC-029 Làm bài kiểm tra cuối chủ đề | Người học đã luyện đủ các bước trước |
+
+## Tiền điều kiện
+
+- `USER` đã đăng nhập
+- Chủ đề đang ở trạng thái đã mở
+- Chủ đề có đủ từ vựng và câu hỏi để học
+
+## Hậu điều kiện
+
+- Tiến độ của chủ đề được cập nhật theo các bước đã hoàn thành
+- Nếu đạt mức hoàn thành yêu cầu, chủ đề kế tiếp được mở
+- Các từ trong chủ đề được đưa vào lịch ôn
+
+## Luồng chính
+
+1. `USER` chọn một chủ đề đã mở
+2. Hệ thống hiển thị danh sách từ và tiến độ hiện tại của chủ đề
+3. `USER` xem lần lượt các từ mới
+4. `USER` làm bài luyện nhận diện và luyện nghe cho các từ vừa xem
+5. Hệ thống cập nhật tiến độ sau mỗi bước
+6. Khi đã luyện đủ, `USER` làm bài kiểm tra cuối chủ đề
+7. Hệ thống chấm bài và tính mức hoàn thành của chủ đề
+8. Nếu đạt ngưỡng, hệ thống mở chủ đề kế tiếp
+9. `USER` xem kết quả và chọn học tiếp hoặc chuyển chủ đề
+
+## Luồng thay thế
+
+**A1 · Người học tự khai đã biết từ**
+Hệ thống vẫn đưa từ đó vào bài kiểm tra cuối chủ đề để xác nhận. Chi tiết ở UC-026.
+
+**A2 · Chưa đạt ngưỡng hoàn thành**
+Chủ đề kế tiếp chưa mở, hệ thống chỉ ra những từ còn yếu để luyện thêm.
+
+**A3 · Làm lại bài kiểm tra**
+Lấy điểm cao nhất trong các lần làm để tính mức hoàn thành.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `TOPIC_LOCKED` | Chủ đề chưa được mở | **403** | Hiện điều kiện cần để mở |
+| `TOPIC_EMPTY` | Chủ đề chưa có từ vựng | **422** | Không mở chủ đề cho người học |
+| `UNLOCK_FAILED` | Đạt ngưỡng nhưng chủ đề kế tiếp không mở | **500** | Ghi log, cho phép mở lại thủ công |
+| `PROGRESS_PERCENT_MISMATCH` | Tiến độ lưu sẵn lệch với dữ liệu thật | **500** | Tính lại từ dữ liệu gốc |
+
+> 🔴 **`UNLOCK_FAILED` là lỗi nghiêm trọng nhất của chủ đề.** Người học đạt
+> ngưỡng mà chủ đề kế tiếp không mở thì họ mắc kẹt, và làm lại bài kiểm tra cũng
+> không cứu được vì hệ thống lấy điểm cao nhất.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-128-1 | Chủ đề chỉ mở khi các chủ đề tiên quyết đã đạt mức hoàn thành yêu cầu. |
+| BR-128-2 | Mức hoàn thành của chủ đề tính từ dữ liệu học thật, không dựa vào số liệu lưu sẵn. |
+| BR-128-3 | Việc cập nhật tiến độ và việc mở chủ đề kế tiếp phải nằm trong cùng một giao dịch. |
+| BR-128-4 | Chủ đề đã mở thì không bị khóa lại, kể cả khi mức độ nắm vững sau đó giảm. |
+| BR-128-5 | Người học tự khai đã biết một từ thì vẫn phải làm bài kiểm tra cuối chủ đề cho từ đó. |
+
+## API · DB
+
+```
+GET  /api/learning/topics/{id}
+POST /api/learning/topics/{id}/complete
+```
+
+`topics` · `topic_items` (đọc) · `user_progress` (đọc, ghi)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Hoàn thành đủ các bước, đạt ngưỡng | Chủ đề kế tiếp được mở |
+| T2 | Đạt ngưỡng nhưng mở khóa lỗi | 500, ghi log, không để người học mắc kẹt |
+| T3 | Mở chủ đề chưa đủ điều kiện | 403, hiện điều kiện cần |
+| T4 | Làm lại bài kiểm tra điểm thấp hơn | Giữ điểm cao nhất |
+| T5 | Mức độ nắm vững giảm sau khi mở | Chủ đề vẫn mở |
+
+---
+
+---
+
+# UC-129 · Học qua video
+
+| | |
+| --- | --- |
+| **ID** | UC-129 |
+| **Actor chính** | `USER` |
+| **Priority** | P2 |
+| **Scope** | **V2** |
+| **Tính năng gốc** | 1.6 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người học chọn một video tiếng Trung có phụ đề và học theo nhiều cách khác nhau trên cùng video đó. Họ có thể xem kèm phụ đề, tra từ ngay trong phụ đề, nghe rồi chép lại, hoặc đọc theo để luyện phát âm.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-030 Xem video có phụ đề tương tác | Người học xem và nghe hiểu |
+| `«extend»` | UC-031 Bấm từ trong phụ đề xem nghĩa | Người học gặp từ chưa biết |
+| `«extend»` | UC-032 Lưu từ từ phụ đề vào sổ tay | Người học muốn ôn lại từ sau |
+| `«extend»` | UC-120 Luyện Dictation từ video | Người học muốn kiểm tra khả năng nghe |
+| `«extend»` | UC-122 Luyện Shadowing từ video | Người học muốn luyện phát âm |
+| `«extend»` | UC-124 Lặp một câu phụ đề | Người học cần nghe lại một câu nhiều lần |
+
+## Tiền điều kiện
+
+- `USER` đã đăng nhập
+- Video đã được công bố và còn truy cập được ở nguồn
+- Video có phụ đề đã gắn mốc thời gian
+
+## Hậu điều kiện
+
+- Vị trí xem gần nhất được lưu để lần sau tiếp tục
+- Kết quả của các bài tập trên video được ghi nhận riêng theo từng loại
+- Từ được lưu từ phụ đề nằm trong sổ tay hoặc bộ thẻ của người học
+
+## Luồng chính
+
+1. `USER` mở danh sách video và chọn theo cấp hoặc chủ đề
+2. Hệ thống tải video cùng phụ đề đã gắn mốc thời gian
+3. `USER` xem video, phụ đề chạy đồng bộ theo lời thoại
+4. `USER` chọn cách học muốn dùng cho câu đang nghe
+5. Hệ thống mở bài tập tương ứng với cách học đã chọn
+6. `USER` làm bài và nhận kết quả
+7. Hệ thống lưu kết quả và vị trí xem hiện tại
+8. `USER` tiếp tục với câu khác hoặc kết thúc buổi học
+
+## Luồng thay thế
+
+**A1 · Chỉ xem và nghe hiểu**
+Người học xem hết video với phụ đề, không làm bài tập nào. Chi tiết ở UC-030.
+
+**A2 · Tra từ trong lúc xem**
+Bấm vào một từ trên phụ đề để xem nghĩa, video tạm dừng. Chi tiết ở UC-031.
+
+**A3 · Nghe rồi chép lại**
+Người học gõ lại câu vừa nghe, hệ thống so với phụ đề gốc. Chi tiết ở UC-120.
+
+**A4 · Đọc theo để luyện phát âm**
+Người học ghi âm giọng mình đọc theo câu mẫu. Chi tiết ở UC-122.
+
+**A5 · Video không còn ở nguồn**
+Hệ thống đánh dấu video không khả dụng và báo cho người quản trị nội dung.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `VIDEO_NOT_FOUND` | Video không tồn tại | **404** | Về danh sách video |
+| `VIDEO_UNAVAILABLE` | Nguồn đã xóa video | **410** | Ẩn khỏi danh sách, báo người quản trị nội dung |
+| `NO_SUBTITLES` | Video chưa có phụ đề | **422** | Không mở video, vì không phụ đề thì mất giá trị học |
+| `SUBTITLE_TIMING_INVALID` | Mốc thời gian phụ đề sai | **500** | Phụ đề không khớp lời thoại, kiểm lại khi nhập |
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-129-1 | Video không có phụ đề thì không mở cho người học, vì toàn bộ cách học trên video đều dựa vào phụ đề. |
+| BR-129-2 | Hệ thống không lưu video của bên khác về máy chủ, chỉ nhúng từ nguồn gốc. |
+| BR-129-3 | Vị trí xem được lưu riêng cho từng người học và từng video. |
+| BR-129-4 | Kết quả của mỗi cách học trên video được lưu riêng, không gộp thành một điểm chung. |
+
+## API · DB
+
+```
+GET  /api/videos
+GET  /api/videos/{id}/subtitles
+POST /api/videos/{id}/progress
+```
+
+`videos` (đọc) · `user_progress` với loại mục tiêu là video (ghi) · `dictation_attempts` · `shadowing_attempts` (ghi qua các use case mở rộng)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Mở video có phụ đề | Phụ đề chạy đồng bộ với lời thoại |
+| T2 | Video chưa có phụ đề | 422, không mở |
+| T3 | Xem 5 phút rồi thoát, mở lại | Tiếp tục từ vị trí đã lưu |
+| T4 | Nguồn đã xóa video | 410, video bị ẩn khỏi danh sách |
+| T5 | Làm cả chép chính tả và luyện nói trên cùng một câu | Hai kết quả lưu riêng |
+
+---
+
+---
+
 # Tổng hợp exception nhóm 1
 
 ## Mười exception quan trọng nhất
@@ -1837,6 +2712,8 @@ POST /api/flashcard-decks          (tạo deck mới — A2)
 | 5 | Chưa có bảng/cột lưu **hệ số mastery theo chế độ luyện** (0.5 / 1.0 / 1.2) | UC-015 → UC-018 | ⚠️ Hiện là con số trong code |
 | 6 | Chưa có `OwnershipService` dùng chung chống IDOR | UC-029 · UC-032 | 🔴 Mục B trong quyết định v2 vẫn chưa chốt |
 | 7 | Nguồn video đã chốt là YouTube cho phép nhúng; cần kiểm quyền nhúng và trạng thái nguồn khi nhập video | UC-030 | Đã chốt phạm vi nguồn |
+| 12 | Chưa có bảng `dictation_attempts` và `shadowing_attempts` | UC-120 → UC-123 | 🔴 Chặn Dictation và Shadowing — chờ duyệt RFC `database.md` §18 |
+| 13 | Chưa chốt nhà cung cấp đánh giá phát âm và hạn mức Shadowing | UC-122 | ⚠️ Chủ dự án quyết cuối dự án |
 | 8 | Chưa có unique constraint `(user_id, stage_number)` trên `user_pronunciation_progress` | UC-022 | 🔴 Race condition |
 | 9 | Chưa có partial unique index đảm bảo **đúng 1** `is_correct` mỗi câu hỏi | UC-019 · UC-020 | 🔴 Chấm sai oan người học |
 | 10 | Cần phép kiểm đối chiếu tiến độ chủ đề với các điểm kiến thức liên quan trong `user_progress` | UC-025 | ⚠️ Phát hiện lệch sớm |

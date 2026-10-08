@@ -1,6 +1,6 @@
 # CNHSK — Thiết kế Database
 
-> **Bản final.** Cập nhật 2026-10-06 · **4 schema · 31 bảng** (26 MVP + 5 V2)
+> **Bản final.** Cập nhật 2026-10-08 · **4 schema · 33 bảng** (26 MVP + 7 V2)
 >
 > 🔴 **File này kiêm luôn RFC** sửa `AC-03` và `AC-04` của Hiến pháp — xem §9.
 > Chưa duyệt thì **chưa gen SQL**.
@@ -95,7 +95,7 @@ CREATE SCHEMA IF NOT EXISTS shared;
 
 ---
 
-## 3 · Danh sách 31 bảng
+## 3 · Danh sách 33 bảng
 
 ### `auth` — 3 bảng
 
@@ -187,7 +187,15 @@ CREATE SCHEMA IF NOT EXISTS shared;
 | 30 | `moderation_cases` | Xử lý báo cáo vi phạm | UC-078, 079 |
 | 31 | `contests` | Cuộc thi + `prizes JSONB` | UC-090→092, 113 |
 
-**Tổng: 26 MVP + 5 V2 = 31 bảng.**
+**Thêm 2026-10-08** sau khi khảo sát schinese.net — hai cơ chế học chủ động của feature 1.6.
+Thuộc schema `learning`, xếp cuối để không phải đánh lại số 11→31:
+
+| # | Bảng | Vai trò | UC |
+| --- | --- | --- | --- |
+| 32 | **`dictation_attempts`** 🆕 | **Nghe rồi gõ lại** — `char_score` + `tone_score` riêng | UC-120, 121 |
+| 33 | **`shadowing_attempts`** 🆕 | **Nói nhái** — điểm phát âm từng âm tiết. Không lưu audio | UC-122, 123 |
+
+**Tổng: 26 MVP + 7 V2 = 33 bảng.**
 
 ---
 
@@ -865,6 +873,86 @@ CREATE INDEX ix_video_topic ON learning.videos(topic_id)          WHERE status =
 
 `user_progress(target_type='VIDEO', target_id)` trỏ vào đây, `position_ms` lưu vị trí xem.
 
+**Hai cột thêm cho nguồn video** — chốt 2026-10-08 sau khi khảo sát schinese.net:
+
+```sql
+ALTER TABLE learning.videos
+  ADD COLUMN source_type  VARCHAR(20) NOT NULL DEFAULT 'YOUTUBE'
+             CHECK (source_type IN ('YOUTUBE','SELF_HOSTED')),
+  ADD COLUMN external_id  VARCHAR(50);   -- YouTube video ID khi source_type = 'YOUTUBE'
+```
+
+> `external_id` để riêng thay vì parse từ `url`, vì URL YouTube có nhiều dạng
+> (`watch?v=`, `youtu.be/`, `embed/`) và parse ở nhiều chỗ sẽ lệch nhau.
+
+### 4.2a · `learning.dictation_attempts` — feature 1.6, UC-120
+
+Nghe một câu phụ đề, gõ lại chữ Hán, server chấm.
+
+```sql
+CREATE TABLE learning.dictation_attempts (
+  id             BIGSERIAL PRIMARY KEY,
+  user_id        BIGINT NOT NULL REFERENCES auth.users(id),
+  video_id       BIGINT NOT NULL REFERENCES learning.videos(id),
+  subtitle_index INTEGER NOT NULL CHECK (subtitle_index >= 0),
+  submitted_text TEXT   NOT NULL,
+  -- Chup lai noi dung phu de luc cham. CONTENT_ADMIN sua phu de sau do
+  -- khong lam sai lich su cham diem.
+  expected_text  TEXT   NOT NULL,
+  char_score     NUMERIC(5,2) NOT NULL CHECK (char_score BETWEEN 0 AND 100),
+  -- NULL khi khong chuyen duoc chu sang pinyin (PINYIN_CONVERT_FAILED).
+  -- Van cham duoc char_score nen khong chan ca tinh nang.
+  tone_score     NUMERIC(5,2)          CHECK (tone_score BETWEEN 0 AND 100),
+  -- [{pos, expected, got, kind}] voi kind: CHAR_WRONG | TONE_WRONG | MISSING | EXTRA
+  diff           JSONB  NOT NULL DEFAULT '[]',
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ix_dict_user_video ON learning.dictation_attempts(user_id, video_id, subtitle_index);
+```
+
+> **`char_score` và `tone_score` là hai cột riêng, không gộp** (`BR-120-3`). Gộp thành
+> một điểm trung bình là mất thông tin hành động được: người học cần biết mình nghe sai
+> chữ hay đọc sai thanh. Đây là điểm schinese.net **không** có.
+
+### 4.2b · `learning.shadowing_attempts` — feature 1.6, UC-122
+
+Đọc theo một câu, ghi âm, dịch vụ ngoài chấm phát âm.
+
+```sql
+CREATE TABLE learning.shadowing_attempts (
+  id             BIGSERIAL PRIMARY KEY,
+  user_id        BIGINT NOT NULL REFERENCES auth.users(id),
+  video_id       BIGINT NOT NULL REFERENCES learning.videos(id),
+  subtitle_index INTEGER NOT NULL CHECK (subtitle_index >= 0),
+  expected_text  TEXT   NOT NULL,   -- chup lai, cung ly do nhu dictation_attempts
+  accuracy_score NUMERIC(5,2) CHECK (accuracy_score BETWEEN 0 AND 100),
+  fluency_score  NUMERIC(5,2) CHECK (fluency_score  BETWEEN 0 AND 100),
+  completeness   NUMERIC(5,2) CHECK (completeness   BETWEEN 0 AND 100),
+  -- Diem tung am tiet tu dich vu ngoai: [{syllable, score}]
+  syllables      JSONB  NOT NULL DEFAULT '[]',
+  -- BUS-09 dieu kien 3: doi nha cung cap van doc lai duoc diem cu thuoc nha nao
+  provider       VARCHAR(20) NOT NULL,
+  credit_cost    INTEGER NOT NULL CHECK (credit_cost >= 0),
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ix_shadow_user_video ON learning.shadowing_attempts(user_id, video_id, subtitle_index);
+```
+
+> 🔴 **KHÔNG có cột lưu file audio — đây là chủ ý.** Giọng nói là **dữ liệu sinh trắc**.
+> Giữ lại tạo nghĩa vụ bảo vệ dữ liệu mà dự án không cần gánh, và tốn dung lượng lớn.
+> Luồng: client gửi audio → server ta → dịch vụ ngoài → nhận điểm → ghi bảng này →
+> **bỏ audio** (`BR-122-4`).
+
+> **`provider` là `NOT NULL` không có `DEFAULT`.** Bắt buộc code phải ghi rõ dịch vụ nào
+> đã chấm. Đặt mặc định là mở đường cho việc quên ghi, rồi sau không biết điểm cũ của nhà
+> nào — đúng điều `BUS-09` điều kiện 3 muốn tránh.
+
+> **Không có `CHECK` ràng `syllables` khớp `expected_text`.** Kiểm số âm tiết là việc của
+> server trước khi `INSERT` (`BR-122-6`), không phải của DB — vì tách âm tiết tiếng Trung
+> cần từ điển pinyin mà PostgreSQL không có.
+
 ### 4.3 · `learning.plans` — feature 6.1
 
 ```sql
@@ -1192,7 +1280,8 @@ public class AuditLog { ... }
 |---|---|
 `V1__core_schema.sql` | **sửa**: thêm `CREATE SCHEMA` ×4 + prefix cho 24 bảng |
 `V2__community.sql` | **sửa**: prefix `community.` cho 5 bảng |
-`V3__content_and_plans.sql` | **mới**: `pron_stages` · `videos` · `plans` + 4 cột gói trên `users` |
+`V3__content_and_plans.sql` | **mới**: `pron_stages` · `videos` (kèm `source_type` + `external_id`) · `plans` + 4 cột gói trên `users` |
+`V5__video_practice.sql` | **mới** (2026-10-08): `dictation_attempts` · `shadowing_attempts` — feature 1.6 V2. Tách file riêng vì thuộc V2, không chặn MVP |
 `V4__funnel_and_ledger.sql` | **mới**: 4 cột phễu · cột `seq` + `UNIQUE` · bỏ `roles` + index |
 
 > ⚠️ `AC-05`: *"File migration đã chạy thì KHÔNG được sửa."* `V1`/`V2` **chưa chạy ở đâu**
@@ -1323,7 +1412,7 @@ Và `AC-04` đang ghi con số của DB v5 đã bị thay thế hai lần.
 | | Nội dung |
 |---|---|
 **Hiện tại** | *"Một database `cnhsk_db`, ba schema (`auth` 4 bảng, `learning` 40 bảng, `community` 15 bảng), một tài khoản `svc_app`, một `DataSource` trong Spring."* |
-**Đề xuất** | *"Một database `cnhsk_db`, **bốn** schema khớp bốn module: `auth` (3 bảng) · `learning` (22) · `community` (5) · `shared` (1) = **31 bảng**. Một tài khoản `svc_app` được `GRANT` trên cả bốn schema. Một `DataSource` trong Spring."* |
+**Đề xuất** | *"Một database `cnhsk_db`, **bốn** schema khớp bốn module: `auth` (3 bảng) · `learning` (24) · `community` (5) · `shared` (1) = **33 bảng**. Một tài khoản `svc_app` được `GRANT` trên cả bốn schema. Một `DataSource` trong Spring."* |
 
 ### 9.3 · `AC-03` — nới
 

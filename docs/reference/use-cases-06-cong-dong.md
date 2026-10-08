@@ -2523,6 +2523,215 @@ GET  /api/contests/{id}/leaderboard      (chỉ sau khi đóng)
 
 ---
 
+# UC-134 · Tham gia cộng đồng
+
+| | |
+| --- | --- |
+| **ID** | UC-134 |
+| **Actor chính** | `USER` |
+| **Priority** | P3 |
+| **Scope** | **V2** |
+| **Tính năng gốc** | 5.1 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người học chia sẻ kinh nghiệm và trao đổi với người học khác qua bài viết và bình luận. Nội dung công khai phải qua kiểm duyệt trước khi mọi người nhìn thấy.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-069 Đăng bài lên blog cộng đồng | Người học muốn chia sẻ nội dung của mình |
+| `«extend»` | UC-070 Xem danh sách bài đã duyệt | Người học muốn đọc bài của người khác |
+| `«extend»` | UC-071 Bình luận vào bài viết | Người học muốn trao đổi về một bài |
+| `«extend»` | UC-072 Trả lời bình luận | Người học muốn đáp lại một bình luận cụ thể |
+| `«extend»` | UC-073 Thích bài viết | Người học muốn đánh dấu bài hữu ích |
+| `«extend»` | UC-074 Theo dõi người dùng khác | Người học muốn nhận bài mới của người đó |
+| `«extend»` | UC-075 Báo cáo bài viết vi phạm | Người học thấy nội dung không phù hợp |
+
+## Tiền điều kiện
+
+- `USER` đã đăng nhập và đã xác thực email
+- Tài khoản không bị hạn chế đăng nội dung
+
+## Hậu điều kiện
+
+- Bài viết mới ở trạng thái chờ duyệt, chưa hiện công khai
+- Bình luận và lượt thích được ghi nhận ngay
+- Báo cáo vi phạm được đưa vào hàng đợi xử lý
+
+## Luồng chính
+
+1. `USER` mở khu vực cộng đồng
+2. Xem danh sách bài viết đã được duyệt
+3. Chọn đọc một bài hoặc viết bài mới của mình
+4. Khi viết bài mới, hệ thống lưu ở trạng thái chờ duyệt
+5. `USER` bình luận hoặc thích những bài đang đọc
+6. Hệ thống ghi nhận và hiển thị ngay các tương tác này
+7. Khi bài của mình được duyệt, `USER` nhận thông báo
+
+## Luồng thay thế
+
+**A1 · Bài bị từ chối**
+Người viết nhận được lý do từ chối và có thể sửa rồi gửi lại. Chi tiết ở UC-077.
+
+**A2 · Báo cáo nội dung vi phạm**
+Báo cáo vào hàng đợi của người kiểm duyệt, không ẩn bài ngay. Chi tiết ở UC-075.
+
+**A3 · Tài khoản chưa xác thực email**
+Đọc được bài nhưng chưa đăng bài hoặc bình luận được.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `ACCOUNT_UNVERIFIED` | Chưa xác thực email | **403** | Đưa tới màn xác thực |
+| `POST_NOT_APPROVED` | Mở bài chưa được duyệt | **403** | Chỉ người viết xem được bài của mình |
+| `CONTENT_EMPTY` | Bài hoặc bình luận rỗng | **422** | Báo lỗi dưới ô nhập |
+| `ALREADY_REPORTED` | Đã báo cáo bài này rồi | **409** | Không tạo báo cáo trùng |
+| `USER_RESTRICTED` | Tài khoản bị hạn chế đăng nội dung | **403** | Báo lý do và thời hạn |
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-134-1 | Bài viết công khai phải được duyệt trước khi mọi người nhìn thấy. |
+| BR-134-2 | Người viết luôn xem được bài của mình, kể cả khi bài chưa được duyệt. |
+| BR-134-3 | Một người chỉ báo cáo một bài viết một lần. |
+| BR-134-4 | Tài khoản chưa xác thực email đọc được nội dung nhưng không đăng bài hoặc bình luận được. |
+| BR-134-5 | Xóa bài hoặc bình luận là đánh dấu đã xóa, giữ lại để xử lý khiếu nại. |
+
+## API · DB
+
+```
+GET  /api/community/posts
+POST /api/community/posts
+POST /api/community/posts/{id}/comments
+POST /api/community/posts/{id}/reports
+```
+
+`posts` · `comments` · `reactions` (đọc, ghi) · `moderation_cases` (ghi)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Đăng bài mới | Bài ở trạng thái chờ duyệt, chưa hiện công khai |
+| T2 | Người khác mở bài chưa duyệt | 403 |
+| T3 | Chính người viết mở bài chưa duyệt | Xem được |
+| T4 | Báo cáo cùng một bài hai lần | 409 |
+| T5 | Tài khoản chưa xác thực email đăng bài | 403 |
+| T6 | Bình luận vào bài đã duyệt | Hiện ngay, không cần duyệt |
+
+---
+
+---
+
+# UC-135 · Kiểm duyệt nội dung cộng đồng
+
+| | |
+| --- | --- |
+| **ID** | UC-135 |
+| **Actor chính** | `MANAGER` |
+| **Priority** | P3 |
+| **Scope** | **V2** |
+| **Tính năng gốc** | 5.2 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người kiểm duyệt xem xét nội dung chờ duyệt và các báo cáo vi phạm từ người học. Họ quyết định cho hiển thị, từ chối kèm lý do, hoặc ẩn nội dung không phù hợp.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-076 Duyệt bài đăng chờ kiểm duyệt | Có bài mới trong hàng đợi |
+| `«extend»` | UC-077 Từ chối bài đăng kèm lý do | Bài không đạt yêu cầu |
+| `«extend»` | UC-078 Xử lý báo cáo vi phạm | Có báo cáo từ người học |
+| `«extend»` | UC-079 Ẩn hoặc xóa bình luận vi phạm | Bình luận không phù hợp |
+
+## Tiền điều kiện
+
+- Người dùng có vai trò kiểm duyệt cộng đồng
+- Có nội dung trong hàng đợi chờ xử lý
+
+## Hậu điều kiện
+
+- Nội dung được duyệt thì hiện công khai
+- Nội dung bị từ chối giữ lại kèm lý do, người viết xem được
+- Mọi quyết định kiểm duyệt được ghi lại kèm người thực hiện
+
+## Luồng chính
+
+1. `MANAGER` mở hàng đợi kiểm duyệt
+2. Xem danh sách bài chờ duyệt và báo cáo vi phạm
+3. Mở một mục để xem nội dung đầy đủ
+4. Quyết định cho hiển thị, từ chối, hoặc ẩn nội dung
+5. Khi từ chối, nhập lý do để người viết hiểu
+6. Hệ thống ghi lại quyết định kèm người thực hiện và thời điểm
+7. Hệ thống thông báo cho người viết về kết quả
+8. `MANAGER` chuyển sang mục tiếp theo
+
+## Luồng thay thế
+
+**A1 · Nội dung vi phạm nghiêm trọng**
+Ẩn nội dung ngay và đánh dấu tài khoản để xem xét hạn chế.
+
+**A2 · Báo cáo không chính đáng**
+Đóng báo cáo mà không đụng tới nội dung, ghi lại lý do đóng.
+
+**A3 · Nhiều người cùng báo cáo một nội dung**
+Các báo cáo gộp thành một mục trong hàng đợi, xử lý một lần.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `FORBIDDEN` | Không có vai trò kiểm duyệt | **403** | Từ chối truy cập hàng đợi |
+| `REASON_REQUIRED` | Từ chối mà không nhập lý do | **422** | Bắt buộc nhập lý do trước khi lưu |
+| `ALREADY_MODERATED` | Mục đã có người xử lý | **409** | Hiện kết quả đã có, không xử lý lại |
+| `CONTENT_DELETED` | Nội dung đã bị người viết xóa | **410** | Đóng mục trong hàng đợi |
+
+> Từ chối bắt buộc có lý do. Người viết không biết sai ở đâu thì sẽ gửi lại
+> đúng nội dung đó, và hàng đợi lặp lại vô ích.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-135-1 | Từ chối nội dung bắt buộc phải kèm lý do. |
+| BR-135-2 | Mọi quyết định kiểm duyệt được ghi lại kèm người thực hiện và thời điểm. |
+| BR-135-3 | Một mục trong hàng đợi chỉ được xử lý một lần, người thứ hai thấy kết quả đã có. |
+| BR-135-4 | Nhiều báo cáo cho cùng một nội dung gộp thành một mục để xử lý. |
+| BR-135-5 | Người kiểm duyệt chỉ truy cập được khu vực cộng đồng, không truy cập được khu vực quản trị khác. |
+
+## API · DB
+
+```
+GET  /api/community/moderation/queue
+POST /api/community/moderation/{id}/approve
+POST /api/community/moderation/{id}/reject
+```
+
+`posts` · `comments` · `moderation_cases` (đọc, ghi) · `audit_logs` (ghi)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Duyệt một bài chờ | Bài hiện công khai |
+| T2 | Từ chối không nhập lý do | 422, không lưu |
+| T3 | Hai người cùng xử lý một mục | Người thứ hai nhận 409 |
+| T4 | Người không có vai trò mở hàng đợi | 403 |
+| T5 | Ba người báo cáo cùng một bài | Một mục trong hàng đợi |
+| T6 | Kiểm tra sau khi xử lý | Có bản ghi người thực hiện và thời điểm |
+
+---
+
+---
+
 # Tổng hợp exception nhóm 5
 
 ## Mười hai exception quan trọng nhất

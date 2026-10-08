@@ -1010,6 +1010,218 @@ GET /api/practice/questions?knowledge_point_id={k}&type={t}
 
 ---
 
+# UC-130 · Làm đề thi HSK
+
+| | |
+| --- | --- |
+| **ID** | UC-130 |
+| **Actor chính** | `USER` |
+| **Priority** | P0 |
+| **Scope** | MVP |
+| **Tính năng gốc** | 2.1 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người học chọn một đề thi HSK và làm lần lượt các phần nghe, đọc, viết. Bài có thể lưu tạm để làm tiếp sau, và chỉ được chấm khi người học chủ động nộp.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-033 Xem danh sách đề thi | Người học chọn đề trước khi làm |
+| `«extend»` | UC-034 Làm đề thi thử | Người học bắt đầu một lượt thi |
+| `«extend»` | UC-035 Nộp bài và nhận điểm | Người học hoàn thành và nộp |
+| `«extend»` | UC-036 Tạm lưu bài thi đang làm | Người học muốn dừng giữa chừng |
+
+## Tiền điều kiện
+
+- `USER` đã đăng nhập
+- Đề thi đã được công bố và có đủ câu hỏi hợp lệ
+- Người học còn lượt dùng hoặc còn điểm nếu đề đó có tính phí
+
+## Hậu điều kiện
+
+- Một lượt thi được ghi nhận với trạng thái tương ứng
+- Nếu đã nộp, điểm và kết quả từng câu được lưu
+- Mức độ nắm vững của các điểm kiến thức liên quan được cập nhật
+
+## Luồng chính
+
+1. `USER` chọn cấp HSK và xem các đề thi hiện có
+2. Chọn một đề và bắt đầu làm bài
+3. Hệ thống tạo một lượt thi mới và tải câu hỏi
+4. `USER` trả lời lần lượt các câu trong từng phần
+5. Hệ thống lưu câu trả lời vào lượt thi đang làm
+6. `USER` chọn nộp bài
+7. Hệ thống yêu cầu xác nhận và cho biết số câu chưa trả lời
+8. Hệ thống chấm bài ở máy chủ và tính điểm
+9. Hệ thống lưu kết quả từng câu và cập nhật mức độ nắm vững
+10. `USER` được đưa tới màn kết quả
+
+## Luồng thay thế
+
+**A1 · Lưu tạm và làm tiếp sau**
+Câu trả lời đã nhập được giữ lại, người học quay lại tiếp tục từ chỗ đang dở. Chi tiết ở UC-036.
+
+**A2 · Hết thời gian làm bài**
+Hệ thống tự nộp bài với các câu đã trả lời, báo rõ lý do nộp.
+
+**A3 · Rời trang khi chưa nộp**
+Hệ thống hỏi xác nhận trước khi rời, tránh mất câu trả lời.
+
+**A4 · Mất kết nối giữa chừng**
+Câu trả lời được giữ ở phía người dùng và đánh dấu chưa đồng bộ, gửi lại khi có mạng.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `EXAM_NOT_PUBLISHED` | Đề chưa công bố | **403** | Không cho vào làm |
+| `EXAM_INCOMPLETE` | Đề thiếu câu hỏi hoặc câu hỏi không hợp lệ | **422** | Không mở đề, báo người quản trị nội dung |
+| `ATTEMPT_ALREADY_SUBMITTED` | Nộp lại lượt thi đã nộp | **409** | Chỉ hiện kết quả, không chấm lại |
+| `INSUFFICIENT_CREDITS` | Hết lượt dùng và hết điểm | **402** | Đưa tới màn gói và điểm |
+
+> Mỗi lượt thi chỉ được nộp một lần. Nộp lại cùng một lượt phải trả về kết quả
+> đã có, không tạo thêm bản ghi điểm mới.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-130-1 | Bài thi được chấm ở máy chủ. Điểm do phía người dùng gửi lên không được tin. |
+| BR-130-2 | Mỗi lượt thi chỉ được nộp một lần. |
+| BR-130-3 | Câu trả lời trả về cho người học không được chứa đáp án đúng trước khi nộp. |
+| BR-130-4 | Đề chưa công bố hoặc thiếu câu hỏi hợp lệ thì không mở cho người học. |
+| BR-130-5 | Câu hỏi trong đề phải được gắn điểm kiến thức để kết quả cập nhật được mức độ nắm vững. |
+
+## API · DB
+
+```
+GET  /api/learning/exams
+POST /api/learning/exams/{id}/attempts
+POST /api/learning/attempts/{id}/submit
+```
+
+`exams` · `questions` (đọc) · `attempts` · `attempt_items` (ghi) · `user_progress` (ghi)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Làm và nộp đầy đủ | Có điểm, kết quả từng câu được lưu |
+| T2 | Nộp khi còn câu chưa trả lời | Hỏi xác nhận, câu trống tính 0 điểm |
+| T3 | Nộp lại lượt đã nộp | 409, trả kết quả cũ |
+| T4 | Xem phản hồi trước khi nộp | Không chứa đáp án đúng |
+| T5 | Đề thiếu câu hỏi | 422, không mở |
+| T6 | Lưu tạm rồi quay lại | Tiếp tục từ chỗ đang dở |
+
+---
+
+---
+
+# UC-131 · Xem và phân tích kết quả thi
+
+| | |
+| --- | --- |
+| **ID** | UC-131 |
+| **Actor chính** | `USER` |
+| **Priority** | P0 |
+| **Scope** | MVP |
+| **Tính năng gốc** | 3.2 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Sau khi thi, người học xem điểm và tìm hiểu mình sai ở đâu. Hệ thống chỉ ra những điểm kiến thức còn yếu và đưa thẳng tới bài luyện cho đúng phần đó.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-038 Xem kết quả chi tiết sau khi thi | Người học muốn xem điểm và thống kê |
+| `«extend»` | UC-039 Xem lời giải từng câu sai | Người học muốn hiểu vì sao sai |
+| `«extend»` | UC-040 Xem điểm yếu nhất sau bài thi | Người học muốn biết nên ôn gì trước |
+| `«extend»` | UC-041 Luyện ngay từ câu sai | Người học muốn sửa ngay chỗ vừa làm chưa tốt |
+
+## Tiền điều kiện
+
+- `USER` đã nộp ít nhất một lượt thi
+- Lượt thi thuộc về chính người học đang xem
+- Câu hỏi trong bài đã được gắn điểm kiến thức
+
+## Hậu điều kiện
+
+- Không thay đổi dữ liệu bài thi, đây là màn chỉ đọc
+- Nếu người học chọn luyện ngay, một lượt luyện mới được tạo
+
+## Luồng chính
+
+1. `USER` mở kết quả của một lượt thi đã nộp
+2. Hệ thống hiển thị điểm tổng và điểm theo từng kỹ năng
+3. Hệ thống liệt kê các câu đã làm sai
+4. `USER` mở một câu sai để xem đáp án đúng và lời giải
+5. Hệ thống hiển thị những điểm kiến thức còn yếu, xếp theo mức độ
+6. `USER` chọn luyện ngay một điểm yếu
+7. Hệ thống mở bài luyện đúng phần kiến thức đó
+
+## Luồng thay thế
+
+**A1 · So sánh với lần thi trước**
+Nếu đã thi đề này trước đó, hệ thống cho thấy điểm lần này thay đổi ra sao. Chi tiết ở UC-038.
+
+**A2 · Không có câu nào sai**
+Hệ thống báo đã làm đúng toàn bộ và gợi ý đề khó hơn.
+
+**A3 · Bài có phần viết cần người chấm**
+Phần viết được gửi sang hàng đợi chấm, điểm phần đó cập nhật sau.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `ATTEMPT_NOT_FOUND` | Lượt thi không tồn tại | **404** | Về danh sách lượt thi |
+| `ATTEMPT_NOT_OWNED` | Lượt thi của người khác | **403** | Từ chối, không trả 404 |
+| `ATTEMPT_NOT_SUBMITTED` | Lượt thi chưa nộp | **409** | Đưa về màn làm bài |
+| `NO_KNOWLEDGE_POINT_LINKED` | Câu sai chưa gắn điểm kiến thức | **422** | Ẩn nút luyện ngay cho câu đó |
+
+> `ATTEMPT_NOT_OWNED` trả **403** chứ không phải 404. Đây là quyết định có chủ ý:
+> người học chỉ xem được kết quả của chính mình, và việc che giấu sự tồn tại của
+> lượt thi không mang lại lợi ích bảo mật đáng kể ở đây.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-131-1 | Người học chỉ xem được kết quả của chính mình. Hệ thống kiểm quyền sở hữu ở phía máy chủ. |
+| BR-131-2 | Điểm yếu được xếp theo mức độ nắm vững đã ghi nhận, không phải theo số câu sai trong một bài. |
+| BR-131-3 | Câu sai chưa gắn điểm kiến thức thì không mở được bài luyện tương ứng. |
+| BR-131-4 | Kết quả chỉ hiện sau khi lượt thi đã nộp. |
+
+## API · DB
+
+```
+GET /api/learning/attempts/{id}/result
+GET /api/learning/attempts/{id}/weak-points
+```
+
+`attempts` · `attempt_items` · `questions` · `user_progress` (đọc)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Xem kết quả bài vừa nộp | Hiện điểm tổng và điểm từng kỹ năng |
+| T2 | Mở một câu sai | Hiện đáp án đúng và lời giải |
+| T3 | Xem kết quả của người khác | 403 |
+| T4 | Xem lượt chưa nộp | 409, đưa về màn làm bài |
+| T5 | Bấm luyện ngay ở một điểm yếu | Mở bài luyện đúng phần đó |
+| T6 | Thi lại cùng đề | Hiện so sánh với lần trước |
+
+---
+
+---
+
 # Tổng hợp exception nhóm 2
 
 ## Tám exception quan trọng nhất

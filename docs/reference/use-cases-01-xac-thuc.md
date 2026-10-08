@@ -1413,3 +1413,114 @@ Dùng `shared.audit_logs` với `action='LOGIN'` cho lần đăng nhập thành 
 | 5 | Cấu hình tập trung ngưỡng 5 lần sai/15 phút và thời gian chặn 15 phút | UC-012 |
 | 6 | Cần thiết kế khóa Redis để UC-009 có thể xóa mọi trạng thái chặn liên quan đến một tài khoản khi đặt lại mật khẩu | UC-012 |
 | 7 | UC đổi email — chưa có | UC-011 A2 |
+
+# UC-125 · Đăng nhập vào hệ thống
+
+| | |
+| --- | --- |
+| **ID** | UC-125 |
+| **Actor chính** | `GUEST` |
+| **Priority** | P0 |
+| **Scope** | MVP |
+| **Tính năng gốc** | 6.1 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người dùng đăng nhập bằng email và mật khẩu để dùng các chức năng cần tài khoản. Tuỳ theo họ vào từ website, ứng dụng di động hay trang game, phiên đăng nhập được giữ theo cách phù hợp với từng nơi.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-003 Đăng nhập trên web | Người dùng vào từ website chính |
+| `«extend»` | UC-004 Đăng nhập trên mobile | Người dùng vào từ ứng dụng di động |
+| `«extend»` | UC-005 Đăng nhập vào trang game | Người dùng đã đăng nhập ở website chính và mở trang game |
+
+## Tiền điều kiện
+
+- Tài khoản tồn tại trong hệ thống
+- Tài khoản không bị ban và không bị treo
+- Nguồn đăng nhập hiện tại không bị chặn tạm thời theo UC-012
+
+## Hậu điều kiện
+
+- Người dùng có phiên đăng nhập hợp lệ, giữ theo cách phù hợp với nơi họ vào
+- Bộ đếm lần đăng nhập sai của nguồn này được xóa
+- Thời điểm đăng nhập gần nhất được cập nhật
+
+## Luồng chính
+
+1. `GUEST` mở màn hình đăng nhập ở nơi mình đang dùng
+2. Nhập email và mật khẩu
+3. Gửi yêu cầu đăng nhập lên hệ thống
+4. Hệ thống tìm tài khoản theo email và kiểm trạng thái tài khoản
+5. Hệ thống kiểm nguồn đăng nhập có đang bị chặn tạm thời không, trước khi so mật khẩu
+6. Hệ thống so mật khẩu
+7. Hệ thống cấp phiên đăng nhập theo cách phù hợp với nơi người dùng vào
+8. Hệ thống xóa bộ đếm lần sai và cập nhật thời điểm đăng nhập gần nhất
+9. Người dùng được đưa vào khu vực tương ứng với vai trò của mình
+
+## Luồng thay thế
+
+**A1 · Đăng nhập từ website chính**
+Phiên được giữ bằng cookie ở tên miền cha, nên người dùng mở trang game không phải đăng nhập lại. Chi tiết ở UC-003.
+
+**A2 · Đăng nhập từ ứng dụng di động**
+Ứng dụng nhận token và tự lưu ở nơi an toàn trên thiết bị. Chi tiết ở UC-004.
+
+**A3 · Mở trang game khi đã đăng nhập ở website chính**
+Không cần nhập lại thông tin, trang game nhận diện người dùng qua phiên dùng chung. Chi tiết ở UC-005.
+
+**A4 · Tài khoản chưa xác thực email**
+Vẫn cho đăng nhập nhưng một số chức năng bị giới hạn, và màn hình nhắc người dùng xác thực.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `INVALID_CREDENTIALS` | Email không tồn tại **HOẶC** mật khẩu sai | **401** | Cùng một thông báo cho cả hai trường hợp, chống dò email |
+| `LOGIN_SOURCE_BLOCKED` | Nguồn đăng nhập còn trong thời gian chặn của UC-012 | **423** | Báo thời điểm hết chặn |
+| `ACCOUNT_BANNED` | Tài khoản đã bị vô hiệu hóa | **403** | Báo cách liên hệ |
+| `ACCOUNT_SUSPENDED` | Tài khoản đang bị treo | **403** | Báo lý do và thời hạn |
+| `VALIDATION_ERROR` | Thiếu email hoặc mật khẩu | **422** | Chỉ rõ field thiếu |
+
+> Use case này mô tả phần chung của ba cách đăng nhập. Cách cấp và giữ phiên khác
+> nhau ở từng nơi, chi tiết nằm trong UC-003, UC-004 và UC-005.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-125-1 | Thông báo khi đăng nhập thất bại phải giống nhau cho trường hợp sai email và sai mật khẩu. |
+| BR-125-2 | Hệ thống kiểm nguồn đăng nhập có bị chặn hay không trước khi so mật khẩu. Nguồn đang bị chặn thì từ chối kể cả khi mật khẩu đúng. |
+| BR-125-3 | Mật khẩu phải được so theo cách không để lộ thông tin qua thời gian xử lý. |
+| BR-125-4 | Tài khoản chưa xác thực email vẫn đăng nhập được, nhưng bị giới hạn ở các chức năng đã quy định. |
+| BR-125-5 | Tài khoản bị ban hoặc bị treo không đăng nhập được, và phiên cũ của tài khoản đó cũng không còn dùng được. |
+
+## API · DB
+
+```
+POST /api/auth/login
+```
+
+`auth.users` (đọc, cập nhật `last_login_at`) · `auth.auth_tokens` (ghi) · `auth.user_roles` (đọc)
+
+Cách trả phiên đăng nhập khác nhau theo từng nơi, xem UC-003, UC-004, UC-005.
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Email và mật khẩu đúng, vào từ website | Đăng nhập thành công, phiên giữ bằng cookie |
+| T2 | Email và mật khẩu đúng, vào từ ứng dụng di động | Đăng nhập thành công, ứng dụng nhận token |
+| T3 | Email không tồn tại | 401, thông báo chung |
+| T4 | Mật khẩu sai | 401, **cùng thông báo với T3** |
+| T5 | Nguồn đăng nhập đang bị chặn, mật khẩu đúng | 423, vẫn bị từ chối |
+| T6 | Tài khoản bị ban | 403 |
+| T7 | Tài khoản chưa xác thực email | Đăng nhập được, có cảnh báo xác thực |
+| T8 | Thiếu mật khẩu | 422, chỉ rõ field |
+
+---
+
+---

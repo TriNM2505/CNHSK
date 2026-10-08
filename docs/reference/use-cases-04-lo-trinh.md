@@ -64,7 +64,7 @@ Mỗi câu trả lời đã được chấm góp phần cập nhật mức độ
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Caller | Gọi `MasteryService.record(userId, questionId, isCorrect, sourceType, durationMs)` |
+| 1 | System | Gọi `MasteryService.record(userId, questionId, isCorrect, sourceType, durationMs)` |
 | 2 | System | Tra `question_knowledge_points` lấy danh sách điểm kiến thức của câu |
 | 3 | System | Lấy trọng số theo `sourceType` (bài thi 1.0 · luyện 0.8 · game 0.6 · viết 0.5) |
 | 4 | System | Với **mỗi** điểm kiến thức: `SELECT ... FOR UPDATE` dòng `user_knowledge_state` |
@@ -189,12 +189,12 @@ Sau một ván game hợp lệ, hệ thống cập nhật mastery ngay cho nhữ
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Module `community` | Xác thực điểm game xong (UC-088) |
-| 2 | `community` | Gọi **qua lớp `api`**: `learningApi.applyGameResult(userId, gameType, itemResults)` |
-| 3 | `learning` | Map từng item của game sang `knowledge_point_id` |
-| 4 | `learning` | Gọi UC-042 với `sourceType = GAME` (trọng số 0.6) |
-| 5 | `learning` | Trả kết quả mastery đã đổi |
-| 6 | `community` | Ghi `game_scores` |
+| 1 | System | Module `community` xác thực điểm game xong (UC-088) |
+| 2 | System | Module `community` gọi **qua lớp `api`**: `learningApi.applyGameResult(userId, gameType, itemResults)` |
+| 3 | System | Module `learning` map từng item của game sang `knowledge_point_id` |
+| 4 | System | Gọi UC-042 với `sourceType = GAME` (trọng số 0.6) |
+| 5 | System | Trả kết quả mastery đã đổi |
+| 6 | System | Ghi `game_scores` |
 | 7 | System | **Commit cùng lúc** |
 
 ## Luồng thay thế
@@ -294,7 +294,7 @@ Sau một lượt học hoặc ôn, lịch ôn của điểm kiến thức đư�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | UC-042 | Gọi `FsrsService.schedule(state, rating, now)` |
+| 1 | System | Gọi `FsrsService.schedule(state, rating, now)` |
 | 2 | System | Tính `elapsed_days = now − last_reviewed_at` |
 | 3 | System | Tính `retrievability` từ `stability` và `elapsed_days` |
 | 4 | System | Tính `difficulty` mới theo `rating` |
@@ -505,7 +505,7 @@ Ngưỡng hoàn thành mặc định trong MVP là **90%**.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Caller | Sau khi cập nhật `user_topic_progress`, gọi `TopicGateService.evaluate(userId, topicId)` |
+| 1 | System | Sau khi cập nhật `user_topic_progress`, gọi `TopicGateService.evaluate(userId, topicId)` |
 | 2 | System | Đọc `completion_percent` **vừa ghi** (cùng transaction) |
 | 3 | System | So sánh tiến độ với ngưỡng hoàn thành 90 |
 | 4 | System | Nếu đạt ngưỡng, đánh dấu chủ đề hiện tại là `COMPLETED` |
@@ -828,15 +828,15 @@ Worker nền: gọi API AI, nhận câu hỏi, validate, ghi vào `questions` v�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Worker | Lấy job `QUEUED`, đổi `RUNNING` (`SELECT FOR UPDATE SKIP LOCKED`) |
-| 2 | Worker | Dựng prompt từ điểm kiến thức + cấp HSK + dạng câu hỏi |
-| 3 | Worker | Gọi API AI (timeout 30s) |
-| 4 | Worker | Parse JSON trả về |
-| 5 | Worker | **Validate từng câu**: đúng 4 đáp án, đúng 1 `is_correct`, có `explanation`, không trùng câu đã có |
-| 6 | Worker | `INSERT questions` với `status = PENDING_REVIEW`, `source = AI`, `generated_by_job_id` |
-| 7 | Worker | Gắn `question_knowledge_points` |
-| 8 | Worker | Job `COMPLETED`, ghi số câu sinh được |
-| 9 | Worker | Thông báo `TEACHER` có câu chờ duyệt |
+| 1 | System | Tiến trình nền lấy job `QUEUED`, đổi `RUNNING` (`SELECT FOR UPDATE SKIP LOCKED`) |
+| 2 | System | Dựng prompt từ điểm kiến thức + cấp HSK + dạng câu hỏi |
+| 3 | System | Gọi API AI (timeout 30s) |
+| 4 | System | Parse JSON trả về |
+| 5 | System | **Validate từng câu**: đúng 4 đáp án, đúng 1 `is_correct`, có `explanation`, không trùng câu đã có |
+| 6 | System | `INSERT questions` với `status = PENDING_REVIEW`, `source = AI`, `generated_by_job_id` |
+| 7 | System | Gắn `question_knowledge_points` |
+| 8 | System | Job `COMPLETED`, ghi số câu sinh được |
+| 9 | System | Thông báo `TEACHER` có câu chờ duyệt |
 
 ## Luồng thay thế
 
@@ -944,7 +944,7 @@ Không tạo dữ liệu mới — chỉ là cách **truy vấn** ở UC-037, UC
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Người B | Yêu cầu bài luyện (UC-037/041/047) |
+| 1 | `USER` | Yêu cầu bài luyện (UC-037/041/047) |
 | 2 | System | Tìm các câu hỏi `APPROVED` và đang khả dụng được gắn với các knowledge point đó. Truy vấn `questions` theo `knowledge_point_id`, `status = APPROVED` |
 | 3 | System | **Không** lọc theo `generated_for_user_id` — lấy cả câu sinh cho người khác |
 | 4 | System | Loại câu người B **đã làm** trong 7 ngày qua |
@@ -1449,7 +1449,7 @@ Tác vụ định kỳ: mỗi giờ quét người học đến giờ nhắc **v
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Scheduler | Chạy đầu mỗi giờ, `zone = "Asia/Ho_Chi_Minh"` |
+| 1 | System | Chạy đầu mỗi giờ, `zone = "Asia/Ho_Chi_Minh"` |
 | 2 | System |  Tìm người dùng có reminder đến hạn và còn ít nhất một kênh MVP đang bật.Lấy người có `reminder_time` giờ hiện tại, còn kênh bật |
 | 3 | System | Với mỗi người: đếm `user_knowledge_state` `next_review_at ≤ now()` |
 | 4 | System | Nếu `dueCount = 0`, bỏ qua người dùng đó |

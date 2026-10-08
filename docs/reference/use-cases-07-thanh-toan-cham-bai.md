@@ -475,7 +475,7 @@ Hệ thống xác định người dùng còn lượt theo gói/quota hay phải
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Use Case gọi | Yêu cầu kiểm tra và tiêu thụ quyền sử dụng cho một hành động cụ thể. |
+| 1 | System | Use case gọi yêu cầu kiểm tra và tiêu thụ quyền sử dụng cho một hành động cụ thể. |
 | 2 | System | Kiểm tra định danh hành động; nếu đã xử lý thì trả kết quả trước đó. |
 | 3 | System | Xác định gói đang có hiệu lực và kỳ quota hiện tại của người dùng. |
 | 4 | System | Lấy hạn mức và số lượt đã dùng của đúng tính năng. |
@@ -598,7 +598,7 @@ Nếu hành động đã dùng điểm, hệ thống tạo một giao dịch ho�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Use Case gọi | Yêu cầu hoàn quyền sử dụng cho một hành động đã thất bại hoặc kết thúc theo điều kiện được hoàn. |
+| 1 | System | Use case gọi yêu cầu hoàn quyền sử dụng cho một hành động đã thất bại hoặc kết thúc theo điều kiện được hoàn. |
 | 2 | System | Tìm bằng chứng tiêu thụ và kiểm người dùng, tính năng, trạng thái hành động. |
 | 3 | System | Kiểm tra hành động đã được hoàn trước đó chưa. |
 | 4 | System | Nếu nguồn là điểm, lấy `DEDUCT` gốc và xác định số hoàn từ giao dịch đó. |
@@ -1773,7 +1773,7 @@ UC này không trực tiếp xử lý yêu cầu đang `ASSIGNED`. Trường h�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Scheduler | Kích hoạt vòng kiểm tra theo lịch. |
+| 1 | System | Tác vụ định kỳ kích hoạt vòng kiểm tra theo lịch. |
 | 2 | System | Tìm các yêu cầu `GRADING/PENDING` đã đến hạn nhận theo lô giới hạn. |
 | 3 | System | Với từng yêu cầu, kiểm tra lại trạng thái và deadline tại thời điểm xử lý. |
 | 4 | System | Nếu yêu cầu vẫn đủ điều kiện, chuyển yêu cầu sang trạng thái hết hạn theo mô hình trạng thái đã được duyệt. |
@@ -1843,6 +1843,117 @@ vào một transaction hoặc commit hoàn riêng trước khi trạng thái đ�
 | T9 | Sau khi hoàn và khi thông báo lỗi | Không trở lại hàng đợi; không hoàn lại chỉ để gửi thông báo. |
 | T10 | Job hoạt động lại sau downtime | Xử lý được tập tồn đọng hợp lệ; báo số còn lỗi và tuổi tồn đọng. |
 | T11 | Kiểm lịch và biên thời gian | Zone khai báo đúng, các luồng đọc/claim/expire dùng cùng quy ước hạn. |
+
+---
+
+# UC-136 · Quản lý điểm và gói dịch vụ
+
+| | |
+| --- | --- |
+| **ID** | UC-136 |
+| **Actor chính** | `USER` |
+| **Priority** | P0 |
+| **Scope** | MVP |
+| **Tính năng gốc** | 6.1 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người học theo dõi số lượt còn lại và số điểm của mình, nhập mã thẻ để nạp thêm hoặc kích hoạt gói. Mọi thay đổi số dư đều được ghi lại để tra cứu khi cần.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-093 Xem gói dịch vụ và số điểm còn lại | Người học muốn kiểm tra hạn mức của mình |
+| `«extend»` | UC-094 Nhập mã thẻ để cộng điểm | Người học có mã thẻ nạp điểm |
+| `«extend»` | UC-095 Nhập mã thẻ để kích hoạt gói | Người học có mã thẻ gói dịch vụ |
+| `«extend»` | UC-098 Xem lịch sử giao dịch điểm | Người học muốn tra lại các thay đổi số dư |
+| `«include»` | UC-096 Trừ điểm khi dùng tính năng tốn phí | Luôn gọi trước mỗi hành động có chi phí |
+| `«include»` | UC-097 Hoàn điểm khi tính năng lỗi | Luôn gọi khi hành động tốn phí thất bại |
+
+## Tiền điều kiện
+
+- `USER` đã đăng nhập
+- Với thao tác nhập mã, tài khoản đã xác thực email
+
+## Hậu điều kiện
+
+- Số dư và trạng thái gói phản ánh đúng các giao dịch đã ghi
+- Mỗi thay đổi số dư có một dòng trong sổ giao dịch
+- Mã thẻ đã dùng không dùng lại được
+
+## Luồng chính
+
+1. `USER` mở màn gói dịch vụ và điểm
+2. Hệ thống hiển thị gói hiện tại, số điểm còn lại và số lượt miễn phí theo từng tính năng
+3. `USER` nhập mã thẻ nếu muốn nạp thêm hoặc đổi gói
+4. Hệ thống kiểm mã thẻ còn hiệu lực và chưa được dùng
+5. Hệ thống cộng điểm hoặc kích hoạt gói tương ứng
+6. Hệ thống ghi một dòng vào sổ giao dịch
+7. `USER` xem lại số dư mới và lịch sử giao dịch
+
+## Luồng thay thế
+
+**A1 · Nhập mã thẻ nạp điểm**
+Số điểm tăng theo giá trị của mã. Chi tiết ở UC-094.
+
+**A2 · Nhập mã thẻ kích hoạt gói**
+Gói và thời hạn được cập nhật theo loại thẻ. Chi tiết ở UC-095.
+
+**A3 · Dùng tính năng tốn phí**
+Hệ thống trừ lượt hoặc điểm trước khi thực hiện, chỉ tiêu thụ một nguồn. Chi tiết ở UC-096.
+
+**A4 · Tính năng tốn phí thất bại**
+Phần đã trừ được hoàn lại cho người học. Chi tiết ở UC-097.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `CARD_NOT_FOUND` | Mã thẻ không tồn tại | **404** | Thông báo chung, không nói mã của ai |
+| `CARD_ALREADY_USED` | Mã đã được dùng | **409** | Báo mã không còn hiệu lực |
+| `CARD_EXPIRED` | Mã đã hết hạn | **410** | Cho biết thời điểm hết hạn |
+| `ACCOUNT_UNVERIFIED` | Chưa xác thực email | **403** | Đưa tới màn xác thực |
+| `TOO_MANY_ATTEMPTS` | Nhập sai mã quá nhiều lần | **429** | Chặn tạm thời, chống dò mã |
+
+> Thông báo khi mã không hợp lệ phải chung chung. Nói rõ "mã này đã được người
+> khác dùng" là để lộ thông tin cho người đang dò mã.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-136-1 | Sổ giao dịch chỉ ghi thêm, không sửa và không xóa. Sai thì ghi một dòng bù ngược lại. |
+| BR-136-2 | Số dư hiện tại là số dư sau của dòng giao dịch mới nhất, không lưu riêng ở chỗ khác. |
+| BR-136-3 | Một hành động tốn phí chỉ tiêu thụ một nguồn, còn lượt thì dùng lượt, hết lượt mới dùng điểm. |
+| BR-136-4 | Mã thẻ chỉ dùng được một lần, và hệ thống chỉ lưu dạng đã băm của mã. |
+| BR-136-5 | Hành động tốn phí thất bại thì phần đã trừ phải được hoàn lại. |
+| BR-136-6 | Hệ thống không tích hợp cổng thanh toán, mã thẻ là đường duy nhất để điểm vào hệ thống. |
+
+## API · DB
+
+```
+GET  /api/learning/billing/summary
+POST /api/learning/cards/redeem
+GET  /api/learning/credit-transactions
+```
+
+`users` (đọc gói và lượt) · `credit_cards` (đọc, cập nhật trạng thái) · `credit_transactions` (ghi) · `plans` (đọc)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Nhập mã thẻ hợp lệ | Điểm tăng, có dòng mới trong sổ giao dịch |
+| T2 | Nhập lại mã đã dùng | 409 |
+| T3 | Nhập mã không tồn tại | 404, thông báo chung giống T2 |
+| T4 | Dùng tính năng tốn phí khi còn lượt | Trừ lượt, không trừ điểm |
+| T5 | Dùng tính năng tốn phí khi hết lượt | Trừ điểm |
+| T6 | Tính năng tốn phí lỗi | Phần đã trừ được hoàn lại |
+| T7 | Tìm nút sửa dòng giao dịch | Không có nút nào như vậy |
+
+---
 
 ---
 

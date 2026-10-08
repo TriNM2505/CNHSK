@@ -235,10 +235,10 @@ Actor mở một câu hỏi trong màn quản trị hoặc chọn **Sửa** từ
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | Actor | Mở câu hỏi cần sửa. |
+| 1 | `CONTENT_ADMIN` | Mở câu hỏi cần sửa. |
 | 2 | System | Kiểm tra quyền và tải nội dung hiện tại của câu hỏi. |
-| 3 | Actor | Thay đổi đề bài, đáp án, lời giải hoặc nhãn kiến thức. |
-| 4 | Actor | Bấm lưu. |
+| 3 | `CONTENT_ADMIN` | Thay đổi đề bài, đáp án, lời giải hoặc nhãn kiến thức. |
+| 4 | `CONTENT_ADMIN` | Bấm lưu. |
 | 5 | System | Kiểm tra cấu trúc câu hỏi, đáp án đúng và nhãn kiến thức. |
 | 6 | System | Kiểm tra câu đã từng được sử dụng trong bài làm hay chưa. |
 | 7 | System | Nếu câu đã được sử dụng, xác định thay đổi có làm thay đổi cách chấm hay không. |
@@ -1360,12 +1360,12 @@ Không yêu cầu đăng nhập.
 | # | Actor | Hành động |
 | --- | --- | --- |
 | 1 | `GUEST` / `USER` | Mở trang “Tài nguyên”. |
-| 2 | Actor | Chọn loại YouTube hoặc podcast. |
+| 2 | `GUEST` / `USER` | Chọn loại YouTube hoặc podcast. |
 | 3 | System | Lấy các tài nguyên đã công bố đúng loại. |
 | 4 | System | Áp dụng bộ lọc HSK nếu người dùng chọn. |
 | 5 | System | Trả tên, mô tả, cấp HSK phù hợp và URL bên ngoài. |
 | 6 | Client | Hiển thị danh sách tài nguyên. |
-| 7 | Actor | Chọn một tài nguyên. |
+| 7 | `GUEST` / `USER` | Chọn một tài nguyên. |
 | 8 | Client | Mở liên kết bên ngoài trong tab mới với thuộc tính an toàn. |
 
 ## Luồng thay thế
@@ -1469,7 +1469,7 @@ Không yêu cầu đăng nhập.
 | 3 | System | Áp dụng bộ lọc HSK nếu có. |
 | 4 | System | Trả tên sách, tác giả, thông tin xuất bản có sẵn, cấp độ phù hợp, mô tả và link mua/tham khảo nếu có. |
 | 5 | Client | Hiển thị danh sách. |
-| 6 | Actor | Chọn một sách để xem thông tin chi tiết. |
+| 6 | `GUEST` / `USER` | Chọn một sách để xem thông tin chi tiết. |
 | 7 | Client | Hiển thị metadata; nếu có link ngoài thì cho phép mở link an toàn. |
 
 ## Luồng thay thế
@@ -1698,3 +1698,114 @@ Dữ liệu liên quan: `learning_resources`, audit log.
 3. **UC-114:** chốt cấu trúc trạng thái tài khoản dùng để khóa/ban.
 4. **UC-116:** chỉ đưa lại vào scope khi có danh sách setting cụ thể và nơi lưu được duyệt.
 5. **UC-113, UC-117, UC-118, UC-119:** giữ nguyên V2; không gen vào MVP.
+
+# UC-137 · Quản trị kho nội dung học
+
+| | |
+| --- | --- |
+| **ID** | UC-137 |
+| **Actor chính** | `CONTENT_ADMIN` |
+| **Priority** | P1 |
+| **Scope** | MVP |
+| **Tính năng gốc** | 6.4 |
+| **Loại** | Use case tổng quát |
+
+## Mô tả
+
+Người quản trị nội dung đưa dữ liệu học vào hệ thống và giữ cho kho câu hỏi, đề thi luôn đúng. Mọi nội dung tới người học đều đi qua khâu kiểm duyệt của họ hoặc của giảng viên.
+
+## Quan hệ use case
+
+| Quan hệ | Use case | Điều kiện áp dụng |
+| --- | --- | --- |
+| `«extend»` | UC-108 Duyệt câu hỏi do trí tuệ nhân tạo sinh | Có câu hỏi trong hàng đợi duyệt |
+| `«extend»` | UC-109 Sửa nội dung câu hỏi | Câu hỏi cần chỉnh trước khi dùng |
+| `«extend»` | UC-110 Nhập dữ liệu từ file | Có dữ liệu mới cần đưa vào hệ thống |
+| `«extend»` | UC-111 Xem báo cáo lỗi sau khi nhập | Lần nhập trước có dòng lỗi |
+| `«extend»` | UC-112 Quản lý đề thi và kho câu hỏi | Cần tạo hoặc sửa đề thi |
+
+## Tiền điều kiện
+
+- Người dùng có vai trò quản trị nội dung
+- Với việc nhập dữ liệu, file đúng định dạng đã quy định
+
+## Hậu điều kiện
+
+- Nội dung mới nằm trong kho ở trạng thái phù hợp
+- Câu hỏi do trí tuệ nhân tạo sinh chỉ tới người học sau khi được duyệt
+- Mỗi lần nhập dữ liệu có bản ghi kèm số dòng thành công và số dòng lỗi
+
+## Luồng chính
+
+1. `CONTENT_ADMIN` mở khu vực quản trị nội dung
+2. Chọn việc cần làm là nhập dữ liệu, duyệt câu hỏi hay quản lý đề thi
+3. Với nhập dữ liệu, tải file lên và xem trước kết quả kiểm tra
+4. Hệ thống báo số dòng hợp lệ và liệt kê dòng lỗi kèm lý do
+5. `CONTENT_ADMIN` xác nhận nhập các dòng hợp lệ
+6. Với câu hỏi chờ duyệt, xem nội dung và quyết định nhận hay từ chối
+7. Hệ thống ghi lại thao tác kèm người thực hiện
+8. Nội dung đã duyệt trở nên khả dụng cho người học
+
+## Luồng thay thế
+
+**A1 · File nhập có cả dòng đúng và dòng sai**
+Hệ thống lưu các dòng đúng và báo riêng các dòng sai, không bỏ cả file. Chi tiết ở UC-110.
+
+**A2 · Sửa câu hỏi trước khi duyệt**
+Người quản trị chỉnh nội dung rồi mới cho duyệt. Chi tiết ở UC-109.
+
+**A3 · Câu hỏi đã có người học làm**
+Không cho đổi đáp án đúng, vì sẽ làm sai lịch sử kết quả đã có.
+
+## Exception
+
+| Mã | Tình huống | HTTP | Xử lý |
+| --- | --- | --- | --- |
+| `FORBIDDEN` | Không có vai trò quản trị nội dung | **403** | Từ chối truy cập |
+| `FILE_FORMAT_INVALID` | File sai định dạng | **422** | Báo định dạng được chấp nhận |
+| `IMPORT_ENCODING_ERROR` | File lỗi mã hóa chữ Hán | **422** | Chặn trước khi ghi, tránh dữ liệu hỏng |
+| `QUESTION_IN_USE` | Đổi đáp án câu đã có người làm | **409** | Yêu cầu tạo phiên bản câu hỏi mới |
+| `NO_KNOWLEDGE_POINT` | Câu hỏi chưa gắn điểm kiến thức | **422** | Không cho xuất bản câu hỏi |
+
+> 🔴 **Câu hỏi chưa gắn điểm kiến thức không được xuất bản.** Người học trả lời
+> câu đó sẽ không cập nhật được mức độ nắm vững, và lỗi này không báo gì cả nên
+> rất khó phát hiện về sau.
+
+## Business rule
+
+| # | Rule |
+| --- | --- |
+| BR-137-1 | Câu hỏi do trí tuệ nhân tạo sinh luôn vào hàng đợi duyệt, không tới thẳng người học. |
+| BR-137-2 | Mọi câu hỏi phải gắn ít nhất một điểm kiến thức trước khi xuất bản. |
+| BR-137-3 | Nhập dữ liệu luôn có bước xem trước, không ghi thẳng vào kho. |
+| BR-137-4 | File nhập có dòng sai thì vẫn lưu các dòng đúng, và báo riêng dòng sai kèm lý do. |
+| BR-137-5 | Câu hỏi đã có người học làm thì không đổi được đáp án đúng, phải tạo phiên bản mới. |
+| BR-137-6 | Xóa nội dung đã được dùng là đánh dấu lưu trữ, không xóa hẳn. |
+| BR-137-7 | Dữ liệu đề thi do giảng viên cung cấp đưa vào qua màn nhập dữ liệu, không đặt trong mã nguồn. |
+
+## API · DB
+
+```
+POST /api/admin/imports
+GET  /api/admin/imports/{id}/errors
+GET  /api/admin/questions/review
+POST /api/admin/questions/{id}/approve
+```
+
+`questions` · `question_options` · `question_knowledge_points` · `exams` (đọc, ghi) · `audit_logs` (ghi)
+
+## Test case
+
+| # | Đầu vào | Kết quả |
+| --- | --- | --- |
+| T1 | Nhập file đúng định dạng | Xem trước rồi mới ghi vào kho |
+| T2 | File có 10 dòng, 2 dòng sai | Lưu 8 dòng, báo riêng 2 dòng lỗi |
+| T3 | File lỗi mã hóa chữ Hán | 422, chặn trước khi ghi |
+| T4 | Xuất bản câu chưa gắn điểm kiến thức | 422 |
+| T5 | Đổi đáp án câu đã có người làm | 409, yêu cầu tạo phiên bản mới |
+| T6 | Người không có vai trò mở màn này | 403 |
+| T7 | Kiểm tra sau khi duyệt câu hỏi | Có bản ghi người thực hiện |
+
+---
+
+---
