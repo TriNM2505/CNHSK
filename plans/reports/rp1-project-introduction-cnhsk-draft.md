@@ -525,11 +525,21 @@ Hệ thống được chia thành các module, mỗi module giải quyết một
 
 ### 5.2 Limitations & Exclusions
 
-**LI-1:** Hệ thống **không chấm phát âm bằng máy**. Người học nghe mẫu và tự so
-sánh; hệ thống không đánh giá độ chính xác của giọng đọc. Chấm phát âm cần model
-nhận dạng giọng huấn luyện riêng cho tiếng Trung và phản hồi theo thanh điệu —
-vượt ngoài 11–12 tuần của dự án. Phần luyện phát âm vì vậy tập trung vào nghe
-mẫu, mô tả cách đặt lưỡi và phần chữ tương đương.
+**LI-1:** Hệ thống **không tự xây model nhận dạng giọng**. Tính năng Shadowing
+(đọc theo video, feature 1.6) dùng **dịch vụ đánh giá phát âm bên thứ ba**, tính
+vào hạn mức lượt của người học.
+
+**Giới hạn đã biết và đã chấp nhận:** dịch vụ này chấm được độ chính xác theo
+từng **âm tiết**, nhưng **không có điểm thanh điệu riêng** cho tiếng Trung — chỉ
+số *Prosody* của nhà cung cấp hiện chỉ hỗ trợ tiếng Anh. Hệ quả: người học thấy
+*"âm tiết này chưa đúng"* nhưng không biết cụ thể mình đọc sai thanh nào. Đây
+đúng là lỗi phổ biến nhất của người Việt học tiếng Trung.
+
+**Cách bù:** tính năng Dictation (nghe rồi gõ lại, cùng feature 1.6) chấm hoàn
+toàn ở server và trả **hai điểm riêng** — điểm chữ và **điểm thanh điệu**. Hai
+tính năng dùng cùng nhau thì người học biết cả *"nghe ra chưa"* và *"đọc đúng
+chưa"*. Phần luyện phát âm theo tám chặng (feature 1.3) vẫn tập trung vào nghe
+mẫu, mô tả cách đặt lưỡi và phần chữ tương đương, không chấm giọng.
 
 **LI-2:** Hệ thống **không mô phỏng kỳ thi HSK thật**. Không có đếm ngược theo
 đúng quy chế, không có cơ chế chống gian lận khi thi, không có phần thi nói

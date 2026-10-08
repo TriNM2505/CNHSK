@@ -108,7 +108,7 @@ Ghi rõ để tránh phình scope:
 
 | Không làm | Vì sao |
 |---|---|
-| Chấm phát âm qua micro | Cần model nhận dạng giọng, ngoài 11 tuần |
+| ~~Chấm phát âm qua micro~~ | **Sửa 2026-10-08:** không **tự xây model** — vẫn đúng. Nhưng tính năng Shadowing (feature 1.6, V2) **được gọi dịch vụ đánh giá phát âm bên thứ ba**, tính vào hạn mức lượt. Xem Hiến pháp mục *`BUS-09` — chấm bằng dịch vụ bên ngoài* |
 | Mô phỏng kỳ thi HSK thật | Đếm ngược chuẩn, chống gian lận khi thi — không đủ thời gian |
 | Gia sư trong hệ thống | Không phải thế mạnh sản phẩm; dùng bên thứ ba |
 | Mạng xã hội đầy đủ | Blog có kiểm duyệt là đủ; không làm chat, không làm chặn người |

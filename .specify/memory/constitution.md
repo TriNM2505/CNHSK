@@ -1,8 +1,9 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.0.0 → 1.1.0
-Bump rationale: MINOR — thêm lớp Business Rules (BUS-01…BUS-15), rút từ 714 dòng BR-* trong tám file đặc tả use case. Không bỏ hay định nghĩa lại nguyên tắc nào.
+Version change: 1.2.0 → 1.3.0
+Bump rationale: MINOR — mở rộng BUS-09 cho trường hợp chấm điểm bằng dịch vụ bên thứ ba (tính năng Shadowing, feature 1.6). Câu rule gốc không đổi; thêm ba điều kiện bắt buộc. Không bỏ hay định nghĩa lại nguyên tắc nào.
+Lịch sử đầy đủ: CONSTITUTION_CHANGELOG.md
 
 Nguyên tắc được định nghĩa (5):
   I.   Bảo mật là điều kiện tiên quyết (9 Hard Rules)
@@ -225,7 +226,7 @@ Vi phạm `BUS-*`: xử lý như `AC-*` — báo cáo và xin duyệt, cần RFC
 | **BUS-06** | Không lộ PII: email và số điện thoại PHẢI mask ở danh sách và log | 28 | `business.md` §8 |
 | **BUS-07** | Nội dung AI sinh LUÔN vào `PENDING_REVIEW`, chỉ `TEACHER`/`CONTENT_ADMIN` duyệt | 27 | `business.md` §6 |
 | **BUS-08** | Ngày học, streak, nhắc lịch, reset bảng xếp hạng tính theo **giờ Việt Nam**. Riêng FSRS tính bằng **UTC** | 25 | `business.md` §3 · `AC-08` |
-| **BUS-09** | Chấm điểm PHẢI ở server. Kết quả client gửi lên là dữ liệu chưa đáng tin | 19 | `HR-06` · Nguyên tắc V |
+| **BUS-09** | Chấm điểm PHẢI ở server. Kết quả client gửi lên là dữ liệu chưa đáng tin. Chấm bằng dịch vụ ngoài: xem mục chi tiết dưới | 19 | `HR-06` · Nguyên tắc V |
 | **BUS-10** | Xoá nội dung do người dùng tạo là **soft delete**. Truy vấn đọc PHẢI lọc bản ghi đã xoá | 14 | mới — xem dưới |
 | **BUS-11** | Ngưỡng qua tầng luyện phát âm: **80%** | 11 | mới — xem dưới |
 | **BUS-12** | Mã thẻ nạp CHỈ lưu dạng hash. TUYỆT ĐỐI KHÔNG lưu mã thô ở DB hay log | 7 | mới — xem dưới |
@@ -251,6 +252,26 @@ Vi phạm `BUS-*`: xử lý như `AC-*` — báo cáo và xin duyệt, cần RFC
 - **BUS-14** — Số dư = `balance_after` của dòng mới nhất, KHÔNG có bảng `user_credits`.
   DB đã ràng buộc `CHECK (balance_after = balance_before + amount)`.
 - **BUS-15** — Cùng lý do `BUS-14`: sổ cái sửa được thì không còn là bằng chứng.
+
+### `BUS-09` — chấm bằng dịch vụ bên ngoài
+
+Bổ sung 2026-10-08 cho tính năng Shadowing (luyện nói, feature 1.6).
+
+`BUS-09` nói *"chấm điểm PHẢI ở server"*. Khi điểm do **dịch vụ bên thứ ba**
+chấm (ví dụ đánh giá phát âm), luật vẫn giữ nguyên tinh thần — **không tin
+client** — với ba điều kiện bắt buộc:
+
+| # | Điều kiện |
+|---|---|
+| 1 | Dữ liệu thô (audio, ảnh, văn bản) đi **client → server ta → dịch vụ ngoài**. KHÔNG cho client gọi trực tiếp dịch vụ ngoài |
+| 2 | Server ta nhận kết quả, kiểm tính hợp lệ, rồi mới ghi DB. Client **KHÔNG BAO GIỜ** gửi điểm lên |
+| 3 | Ghi rõ `provider` trong bảng kết quả. Đổi nhà cung cấp phải đọc lại được điểm cũ thuộc nhà nào |
+
+*Lý do:* nếu client gọi trực tiếp rồi gửi điểm về, người dùng sửa được điểm bằng
+cách gọi API của mình. Server đứng giữa là điểm kiểm duy nhất.
+
+*Hệ quả cho `LI-1`:* dự án **không tự xây model nhận dạng giọng** — vẫn đúng.
+Nhưng được **gọi dịch vụ ngoài** cho việc đó, tính vào hạn mức lượt theo `BUS-03`.
 
 > ⚠️ **BUS-16 còn trống** — chưa có quy tắc nào về **trọng số mastery theo nguồn**.
 > `hanzi-writer` chấm nét ở client, server không kiểm lại được, nên mastery từ luyện viết
@@ -391,4 +412,4 @@ Những mục dưới đây nhóm chưa chốt. Ghi rõ ở đây thay vì giả
   🔴 **Đây là TODO duy nhất còn treo.** Chưa phê chuẩn thì các `HR-*` về hình thức chưa có
   hiệu lực ràng buộc.
 
-**Version**: 1.2.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-06
+**Version**: 1.3.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-08

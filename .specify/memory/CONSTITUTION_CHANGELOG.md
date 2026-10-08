@@ -23,6 +23,66 @@ Mỗi lần sửa hiến pháp PHẢI thêm một mục vào đầu file này, g
 
 ---
 
+## v1.3.0 — 2026-10-08
+
+**Loại bump:** MINOR — mở rộng `BUS-09` cho trường hợp chấm bằng dịch vụ bên ngoài.
+Không bỏ hay định nghĩa lại rule nào; câu gốc của `BUS-09` giữ nguyên.
+
+**Nguồn:** khảo sát schinese.net — trang tham khảo của feature 1.6 "Học qua video" —
+cho thấy trang này dựa trên **Dictation + Shadowing**, không phải phụ đề tương tác như
+`feature-tree.md` §1.6 mô tả. Chính §1.6 tự thừa nhận *"chưa khảo sát được
+schinese.net"*. Chủ dự án quyết làm cả hai. Shadowing cần đánh giá phát âm — việc mà
+`CONTEXT.md` §2.4 đã cắt vì *"cần model nhận dạng giọng, ngoài 11 tuần"*. Giả định đó
+đúng cho **tự train model**, nhưng sai cho **gọi dịch vụ ngoài** (Azure Speech
+Pronunciation Assessment hỗ trợ `zh-CN`, ~$1.32/giờ audio).
+
+### SỬA `BUS-09` — thêm mục chi tiết *chấm bằng dịch vụ bên ngoài*
+
+Câu rule gốc **không đổi**: *"Chấm điểm PHẢI ở server. Kết quả client gửi lên là dữ
+liệu chưa đáng tin"*. Thêm ba điều kiện bắt buộc khi điểm do bên thứ ba chấm:
+
+| # | Điều kiện |
+|---|---|
+| 1 | Dữ liệu thô đi **client → server ta → dịch vụ ngoài**. Client KHÔNG gọi trực tiếp |
+| 2 | Server nhận kết quả, kiểm hợp lệ, rồi mới ghi DB. Client KHÔNG BAO GIỜ gửi điểm |
+| 3 | Ghi `provider` trong bảng kết quả, để đọc lại được điểm cũ thuộc nhà cung cấp nào |
+
+**Lý do:** nếu client gọi trực tiếp rồi gửi điểm về, người dùng sửa được điểm bằng cách
+tự gọi API. Server đứng giữa là điểm kiểm duy nhất.
+
+**Vì sao MINOR không phải MAJOR:** rule cũ vẫn đúng với mọi code hiện có. Mục mới chỉ
+trả lời một câu hỏi rule cũ chưa trả lời — *"chấm ngoài thì tính sao"* — chứ không cho
+phép điều gì rule cũ cấm. Client vẫn không được gửi điểm.
+
+### Hệ quả ngoài Hiến pháp
+
+| Tài liệu | Phải sửa |
+|---|---|
+| `LI-1` trong RP1 nháp | *"không chấm phát âm bằng máy"* → *"không tự xây model nhận dạng giọng; dùng dịch vụ ngoài, tính vào hạn mức lượt"* |
+| `CONTEXT.md` §2.4 | Mục *"Chấm phát âm qua micro"* không còn nằm ngoài mục tiêu hoàn toàn |
+| `feature-tree.md` §1.6 | Mô tả lại đúng schinese.net; thêm Dictation + Shadowing |
+
+### Giới hạn đã biết, phải ghi vào đặc tả
+
+Azure Pronunciation Assessment hỗ trợ `zh-CN` với điểm theo **âm tiết**, nhưng
+**Prosody chỉ có ở `en-US`** và **không tài liệu hoá điểm thanh điệu riêng**. Hệ quả:
+Shadowing nói được *"âm tiết này chưa đúng"* nhưng **không chỉ ra "bạn đọc thanh 2
+thành thanh 3"* — đúng cái người Việt học tiếng Trung sai nhiều nhất.
+
+Cách trả điểm và hạn mức Shadowing: chủ dự án quyết **cuối dự án** (2026-10-08).
+
+### Số rule trước và sau
+
+| Lớp | Trước | Sau |
+|---|---|---|
+| `HR-*` | 9 | 9 |
+| `AC-*` | 10 | 10 |
+| `BUS-*` | 15 | 15 — không thêm mã mới, chỉ mở rộng `BUS-09` |
+| `ES-*` | 8 | 8 |
+| **Tổng** | **42** | **42** |
+
+---
+
 ## v1.2.0 — 2026-10-05
 
 **Loại bump:** MINOR — thêm mục *Mô hình kinh doanh*, chốt một TODO. Không bỏ hay định

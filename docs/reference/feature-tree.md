@@ -100,22 +100,45 @@
 
 | | |
 |---|---|
-| **Mô tả** | Học tiếng Trung qua video có phụ đề tương tác, mô hình như schinese.net |
+| **Mô tả** | Học tiếng Trung qua video YouTube với **ba cơ chế học chủ động**: phụ đề tương tác · Dictation (nghe rồi gõ lại) · Shadowing (nói nhái, có phản hồi phát âm) |
 | **Client** | Web chính · Mobile |
 | **Phạm vi** | **V2** |
 | **Trạng thái** | Làm mới |
-| **Luồng dự kiến** | ① Chọn video theo cấp HSK/chủ đề → ② Xem với phụ đề song ngữ → ③ Bấm vào từ trong phụ đề để xem nghĩa → ④ Lưu từ vào sổ tay → ⑤ Làm bài tập sau video |
+| **Luồng dự kiến** | ① Chọn video theo cấp HSK/chủ đề → ② Xem với phụ đề song ngữ → ③ Bấm từ trong phụ đề xem nghĩa → ④ Lưu từ vào sổ tay → ⑤ **Dictation**: nghe một câu, gõ lại, server chấm → ⑥ **Shadowing**: đọc theo câu đó, nhận phản hồi phát âm |
 | **Phụ đề tương tác** | Phụ đề Trung + pinyin + nghĩa Việt. Bấm từ nào hiện popup nghĩa từ đó |
 | **Điều khiển học** | Tua lại câu đang nghe · giảm tốc độ · lặp một câu · ẩn/hiện từng lớp phụ đề |
-| **Bảng DB** | `videos` `video_subtitles` (L) — `video_vocabulary` gộp vào `video_subtitles.vocabulary` JSONB |
-| ⚠️ **Thiếu bảng** | API `POST /api/videos/{id}/progress` dưới đây **chưa có bảng để ghi**. `user_video_progress` bị bỏ khi gộp bảng ở bản 3 mà không có chỗ thay. Cần quyết trước khi làm — Phụ lục C mục 11 |
-| **API** | `GET /api/videos` · `GET /api/videos/{id}/subtitles` · `POST /api/videos/{id}/progress` |
-| **Nguồn video** | ⚠️ **Chưa chốt** — tự quay, dùng video có giấy phép, hay nhúng YouTube |
-| **Cảnh báo bản quyền** | Không tải video của người khác về máy chủ. Nếu nhúng YouTube thì chỉ nhúng, không lưu |
-| **Khối lượng** | **Lớn** — 2–4 tuần. Phần khó nhất: đồng bộ phụ đề theo thời gian video |
-| **Nghiệm thu** | Bấm từ trong phụ đề hiện đúng nghĩa; lưu từ vào sổ tay được; tua lại câu chạy đúng |
+| **Dictation** 🆕 | Nghe một câu phụ đề → gõ lại chữ Hán → server so chuỗi, trả **hai điểm riêng**: `char_score` (đúng chữ) và `tone_score` (đúng thanh điệu). Chấm bằng cách tách pinyin thành phụ âm đầu · phần vận · thanh điệu rồi so từng cặp |
+| **Shadowing** 🆕 | Đọc theo câu → ghi âm → **server** gửi tới dịch vụ đánh giá phát âm → trả điểm theo **âm tiết**. Tính vào hạn mức lượt (`BUS-03`). Không lưu file audio |
+| **Bảng DB** | `videos` + `subtitles` JSONB (L) · **`dictation_attempts`** 🆕 · **`shadowing_attempts`** 🆕. Tiến độ xem: `user_progress(target_type='VIDEO', position_ms)` |
+| **API** | `GET /api/videos` · `GET /api/videos/{id}/subtitles` · `POST /api/videos/{id}/progress` · `POST /api/videos/{id}/dictation` 🆕 · `POST /api/videos/{id}/shadowing` 🆕 |
+| **Nguồn video** | **Nhúng YouTube** — chốt 2026-10-08. `videos.source_type = 'YOUTUBE'`, `external_id` lưu YouTube video ID |
+| **Cảnh báo bản quyền** | Không tải video của người khác về máy chủ. Chỉ nhúng, không lưu. Phụ đề do nhóm tự làm và gắn timestamp |
+| **Khối lượng** | **Lớn** — 3–5 tuần. Phụ đề + Dictation ~1 tuần · Shadowing ~1 tuần · phần khó nhất vẫn là đồng bộ phụ đề theo thời gian video |
+| **Nghiệm thu** | Bấm từ hiện đúng nghĩa · lưu từ vào sổ tay được · lặp câu chạy đúng · **Dictation phân biệt được sai chữ với sai thanh** · Shadowing trả điểm từng âm tiết |
 
-> ⚠️ **Mục này cần bạn xác nhận.** Tôi chưa khảo sát được schinese.net (trang dùng JavaScript, fetch không đọc được). Mô tả trên dựa theo mô hình chung của dạng học qua video. Nếu schinese.net làm khác, báo tôi sửa.
+> ✅ **Đã khảo sát schinese.net** — 2026-10-08, xác nhận chéo hai nguồn độc lập.
+> Trang này dựa trên **Dictation + Shadowing** chứ không phải chỉ phụ đề tương tác, và
+> nhấn mạnh *"học chủ động thay vì xem thụ động"*. Mô tả cũ của mục này chỉ có phần
+> **vỏ** (player + phụ đề) mà thiếu phần **ruột**. Đã sửa.
+> Nguồn: `schinese.net/zh` · `thucnguyen.substack.com/p/cung-ai-hoc-tieng-trung-va-ngoai-ngu`
+
+> ⚠️ **Hai giới hạn kỹ thuật đã xác minh — biết trước khi code:**
+>
+> **1 · Dịch vụ đánh giá phát âm không chấm thanh điệu riêng cho tiếng Trung.**
+> Azure Pronunciation Assessment hỗ trợ `zh-CN` với điểm theo âm tiết, nhưng *Prosody*
+> chỉ có ở `en-US` và không tài liệu hoá điểm thanh điệu. Shadowing nói được *"âm tiết
+> này chưa đúng"* nhưng **không chỉ ra "bạn đọc thanh 2 thành thanh 3"** — đúng cái
+> người Việt sai nhiều nhất. **Dictation bù được chỗ này** nhờ có `tone_score` riêng.
+>
+> **2 · YouTube iframe không lặp được đoạn.** `loop=1` chỉ dùng với `playlist=`. Phải
+> tự đọc `getCurrentTime()` mỗi ~100ms rồi `seekTo()`. Độ chính xác YouTube ≈ **±250ms**,
+> nên chỉ bật lặp cho câu ≥ 3 giây.
+
+> **[CHỜ CHỐT]** Cách trả điểm Shadowing và hạn mức lượt — chủ dự án quyết **cuối dự án**.
+
+> ✅ **`NO_PROGRESS_TABLE` đã giải quyết.** Cảnh báo "thiếu bảng tiến độ" ở bản trước
+> không còn đúng: `user_progress` có `target_type='VIDEO'` và `position_ms`
+> (`database.md` §4.9). `UC-030` cần bỏ mã lỗi này.
 
 ---
 
