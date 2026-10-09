@@ -14,6 +14,11 @@
 | **Trạng thái** | Đã có · Mở rộng · Làm mới |
 | **Schema** | `L` = `learning` · `C` = `community` · `A` = `auth` — ba schema trong **một database** |
 
+> **Tham chiếu UI — đồng bộ 2026-10-09:** số tính năng ở tài liệu này không phải số
+> màn hình. Bộ UI đã duyệt có **79 màn**, giữ nguyên ID và tên. Chi tiết trường chỉ
+> duy trì tại [screen-fields.md](screen-fields.md); bố cục và flow tại
+> [design.md](design.md). Các tham chiếu màn dưới đây không thay đổi phạm vi nghiệp vụ.
+
 > **Cập nhật 2026-09-25 theo kiến trúc bản 5.** Ký hiệu `L`/`C` trước đây chỉ *hai service riêng*;
 > giờ chỉ **schema trong cùng một ứng dụng** (`cnhsk-api`, cổng 8080). Không còn cổng 8081,
 > không còn đồng bộ 2h sáng — module gọi nhau bằng lời gọi hàm.
@@ -376,11 +381,11 @@
 
 | | |
 |---|---|
-| **Mô tả** | Hộp chat AI **xuất hiện xuyên suốt mọi trang**, hỏi bất cứ lúc nào |
+| **Mô tả** | Hộp chat AI là panel có ngữ cảnh bên trong màn cho USER được gán tường minh; không phải màn riêng. Điều kiện hiện ở màn làm bài theo UC-085 và Open Issues trong screen-fields.md |
 | **Client** | Web · Mobile · Shared |
 | **Phạm vi** | **MVP** (đổi từ V3+ vì yêu cầu xuyên suốt) |
 | **Trạng thái** | Làm mới |
-| **Giao diện** | Nút tròn góc phải dưới, mở ra ô chat. Theo người dùng qua mọi trang |
+| **Giao diện** | Nút mở panel trong các màn được phép, không che nội dung học hoặc CTA. Không tự đưa panel vào khu quản trị hoặc public chỉ vì dùng chung layout |
 | **Biết ngữ cảnh** | Đang ở trang nào thì gợi ý theo trang đó. Ví dụ đang học chủ đề "Gia đình" thì AI biết |
 | **Trả lời được** | Giải thích nghĩa từ · phân tích cấu trúc câu · so sánh hai từ gần nghĩa · giải thích điểm ngữ pháp · gợi ý cách nhớ chữ |
 | **KHÔNG hiện ở** | Màn hình thi mô phỏng thật (nếu sau này làm) — để tránh gian lận |
@@ -388,7 +393,7 @@
 | **API** | `POST /api/assistant/ask` · `GET /api/assistant/history` |
 | **Chi phí** | **Tốn tiền mỗi lượt hỏi** → bắt buộc có hạn mức theo gói (xem 6.1) |
 | **Giới hạn kỹ thuật** | Chặn câu hỏi quá dài · giới hạn số lượt/ngày · lưu lịch sử để người dùng xem lại |
-| **Nghiệm thu** | Mở được ở mọi trang; hết hạn mức báo rõ; trả lời dưới 5 giây |
+| **Nghiệm thu** | Mở được ở ngữ cảnh được phép; hết hạn mức báo rõ; trả lời dưới 5 giây |
 
 ## 5.6 · Game Box — Mở rộng
 
@@ -404,7 +409,8 @@
 | **Mastery** | **Cộng ngay, cùng transaction** với lúc lưu điểm |
 | **Chống gian lận** | Server kiểm trần điểm · `submitted_at − served_at` hợp lý · giới hạn số ván/giờ |
 | **Chạy ở đâu** | Trang web riêng `game.cnhsk.com`; mobile mở **cùng trang đó** trong WebView |
-| **Nghiệm thu** | Điểm lưu lại, vào bảng xếp hạng ngay, **mastery đổi ngay**; gửi điểm vượt trần bị từ chối |
+| **Màn hình** | SCR-036 Game Session hiển thị kết quả cá nhân của ván chơi; SCR-047 Game Leaderboard là màn V2 riêng |
+| **Nghiệm thu** | Điểm lưu lại, kết quả cá nhân hiển thị trong SCR-036 sau xác nhận, **mastery đổi ngay**; gửi điểm vượt trần bị từ chối. Bảng xếp hạng công khai SCR-047 thuộc V2 theo UC-083 |
 
 ## 5.7 · Game gõ pinyin — Làm mới
 
@@ -545,6 +551,10 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 
 > **Một người có nhiều role được** — bảng nối `user_roles` đã thiết kế cho việc này. `SUPER_ADMIN` không tự động có quyền của `CONTENT_ADMIN` hoặc `FINANCE_ADMIN`. `GUEST` và `SYSTEM` không được thêm vào `user_roles`.
 
+> Cấp/thu hồi role nằm tại **SCR-077 User Detail**, do `SUPER_ADMIN` thực hiện.
+> Bộ 79 màn không có màn CRUD danh mục role riêng. **SCR-078 System Settings** đã
+> có trong inventory; triển khai Deferred theo UC-116 đến khi chốt danh sách cấu hình và nơi lưu.
+
 ## 6.3 · Kho câu hỏi và nhãn kiến thức — Làm mới
 
 | | |
@@ -600,6 +610,7 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 | | |
 |---|---|
 | **Mô tả** | Danh sách kênh YouTube, podcast học tiếng Trung tuyển chọn |
+| **Màn hình** | SCR-053 YouTube & Podcasts |
 | **Phạm vi** | V2 |
 | **Bảng DB** | `media_channels` (L) |
 | **Lưu ý** | **Chỉ liên kết ra ngoài**, không nhúng hay tải về |
@@ -609,6 +620,7 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 | | |
 |---|---|
 | **Mô tả** | Danh mục sách học tiếng Trung, kèm giới thiệu và nơi mua |
+| **Màn hình** | SCR-054 Book Catalogue → SCR-055 Book Detail |
 | **Phạm vi** | V2 |
 | **Bảng DB** | `books` (L) |
 | **Lưu ý** | **Chỉ giới thiệu và dẫn link mua** — không lưu trữ nội dung sách |
@@ -684,7 +696,7 @@ Cộng lại đã **9–11 tuần cho một người**, chưa tính 17 tính nă
 | 3 | **Teacher nhận bao nhiêu phần khi chấm thuê** | Nhóm | Logic chia tiền |
 | 4 | **Kiểm duyệt bài: duyệt hết hay chỉ tài khoản mới** | Nhóm | Luồng 5.1 |
 | 5 | **Cấu trúc file dữ liệu của thầy** | Thầy | Bảng đề thi |
-| 6 | **Ai duyệt câu hỏi AI** | Thầy | Màn hình 6.6 |
+| 6 | **Ai duyệt câu hỏi AI** | Thầy | Feature 6.6; UI dùng SCR-058 AI Review Queue và SCR-059 Question Edit chung theo BUS-07 |
 | 7 | **Nền tảng deploy** | Nhóm | Nơi chạy backend + 2 trang web |
 | 8 | **schinese.net làm học video thế nào** | Cần khảo sát | Đặc tả 1.6 |
 | 9 | **Tên miền thật** | Nhóm — **gấp** | Cookie `Domain=` và CORS, xem 6.1 |

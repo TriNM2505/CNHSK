@@ -306,7 +306,7 @@ Bảy mục dưới đây đã được chốt tạm trong DB v6 nhưng **cần 
 | 4 | Danh sách kỹ năng | 6 kỹ năng | **Đổi sau phải nhập lại dữ liệu** |
 | 5 | Nơi lưu bản nháp bài thi | Cột JSONB | Đổi sang Redis thì cần chốt `TODO(REDIS_PLACEMENT)` |
 | 6 | Thời hạn lưu hội thoại AI | 90 ngày | Chỉ đổi hằng số |
-| 7 | Có bảng cấu hình hệ thống không | Không — hằng số trong `application.yaml` | Thêm bảng + màn quản trị nếu đổi |
+| 7 | Có bảng cấu hình hệ thống không | Không — hằng số trong `application.yaml` | SCR-078 — System Settings đã thuộc inventory FINAL 79 màn; nội dung/triển khai Deferred theo UC-116, nơi lưu và catalogue cấu hình vẫn cần duyệt |
 
 > Mục 4 là mục **gấp nhất** — `question_knowledge_points` nằm trong "5 bảng không được đụng"
 > với lý do *"không sửa được nếu không nhập lại dữ liệu"*.

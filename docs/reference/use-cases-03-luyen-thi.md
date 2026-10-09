@@ -57,7 +57,7 @@ Chỉ đọc — không đổi dữ liệu.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở trang "Luyện thi" |
+| 1 | `USER` | Mở SCR-020 — Exam List (danh sách đề luyện thi) |
 | 2 | System | `GET /api/exams?hsk_level={n}` |
 | 3 | System | Lọc `status = PUBLISHED`, đếm số câu mỗi đề |
 | 4 | System | `LEFT JOIN attempts` của người đang đăng nhập để lấy số lần làm + điểm cao nhất |

@@ -66,9 +66,11 @@ Thêm thư viện khác **phải hỏi trước**.
 **Được đọc và ghi:** `src/` · `docs/` · `specs/`
 > Frontend chưa tồn tại — bản nháp `cnhsk-web/` đã xoá. Khi dựng lại, tên thư mục **bắt buộc** là `cnhsk-web` theo `ES-04`.
 >
-> **Mockup 32 màn nằm NGOÀI repo:** `C:\CLHSK\cnhsk-mockup\` — project riêng, HTML tĩnh,
-> không thuộc dự án này. Dùng để review giao diện và chụp ảnh vào report. **Không phải
-> code dùng được** — khi dựng `cnhsk-web` thật thì viết lại bằng React.
+> **Inventory UI FINAL: 79 màn, SCR-001–SCR-079.** `docs/generated/cnhsk-screen-list.docx` và
+> `docs/generated/cnhsk-screen-flow.png` là artifact đã duyệt; không đổi ID, tên hoặc cấu trúc màn.
+> Chi tiết field/action/role/readiness nằm trong `docs/reference/screen-fields.md`.
+> **Mockup lịch sử nằm ngoài repo:** `C:\CLHSK\cnhsk-mockup\`, HTML tĩnh từ mô hình UI trước đây.
+> Chỉ dùng tham khảo sau khi đối chiếu inventory 79 màn; không phải code React dùng được.
 **Được chạy:** `./mvnw test` · `./mvnw compile` · lint · `git add` · `git commit`
 
 **PHẢI hỏi người trước khi:**
@@ -164,8 +166,8 @@ có vi phạm.
 | `database.md` | **4 schema · 31 bảng.** Kiêm RFC sửa `AC-03`/`AC-04` (§18) |
 | `feature-tree.md` | **33 tính năng** (32 phải làm — 5.4 Gia sư đã cắt) |
 | `kien-truc.md` | 3 client, cookie, CORS, chống gian lận. ⚠️ Mục schema/số bảng đã lỗi thời — xem cảnh báo đầu file |
-| `design.md` | Design token, component inventory, **32 màn** (cách đếm ở §5), **screen flow §5.4** (7 sơ đồ, ảnh ở `screen-flow/`), hạn mức khách §5.5 |
-| `screen-fields.md` | **Field từng màn** — kiểu, bắt buộc, validate, API, mã lỗi. Là RP3 §3 của report. **8 ô `[CHỜ CHỐT]`** chờ chủ dự án |
+| `design.md` | Design token, component inventory, **79 màn FINAL**, IA/role/public-private và canonical Screen Flow §5.4 |
+| `screen-fields.md` | Đặc tả **SCR-001–SCR-079**, 23 mục/màn: field, validation, action, state, permission, Open Issues và Mockup Readiness; RP3 §3 |
 | `use-cases-01..08.md` | **119 UC · 714 business rule** |
 | `wbs-estimate.md` | **66 đầu việc**, ước lượng PERT |
 | `CONTEXT.md` | Pha 0 — đã nêu ở bảng thứ tự đọc trên |

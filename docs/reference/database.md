@@ -106,7 +106,8 @@ CREATE SCHEMA IF NOT EXISTS shared;
 | 3 | `auth_tokens` | Gộp 3 loại: refresh · reset password · verify email | UC-002, 006, 009 |
 
 > **Bảng `roles` đã bỏ.** Nó chỉ có 1 lệnh `INSERT` với **6 giá trị tĩnh**, không có
-> màn CRUD role nào trong 32 màn thiết kế. `AC-06` nói enum lưu `VARCHAR + CHECK`.
+> màn CRUD danh mục role riêng trong bộ **79 màn đã duyệt**; cấp/thu hồi role nằm tại
+> **SCR-077 User Detail** (xem [screen-fields.md](screen-fields.md)). `AC-06` nói enum lưu `VARCHAR + CHECK`.
 > Bỏ nó giảm **một JOIN ở mọi truy vấn quyền**.
 >
 > Đã chứng minh trên pg-mem: `DROP TABLE roles CASCADE` **không** làm mất dữ liệu
@@ -1362,7 +1363,7 @@ Bạn chọn "tôi chốt giúp, ghi rõ lý do". Đây là bảy mục, **đổ
 | 4 | 6 kỹ năng là gì | `LISTENING` `READING` `WRITING` `VOCAB` `GRAMMAR` `CHARACTER` | Phủ 4 kỹ năng HSK + 2 trục nội dung. Sửa sau phải nhập lại dữ liệu |
 | 5 | Nơi lưu bản nháp bài thi | **`attempts.draft_answers JSONB`** | Không phụ thuộc `TODO(REDIS_PLACEMENT)`. Ghi 30 giây/lần, không phải "ghi liên tục" theo nghĩa AC-09 cấm |
 | 6 | Thời hạn lưu hội thoại AI | **90 ngày** | Đủ để người học xem lại, không tích trữ PII vô hạn |
-| 7 | Cấu hình hệ thống | **Không có bảng** — hằng số trong `application.yaml` | UC-116 là P2, dễ cắt. Thêm bảng + cache + màn quản trị cho 12 tham số là không đáng trong 11 tuần |
+| 7 | Cấu hình hệ thống | **Không có bảng** — hằng số trong `application.yaml` | **SCR-078 System Settings đã có trong bộ 79 màn**, triển khai Deferred theo UC-116. Danh sách tham số và nơi lưu vẫn chưa chốt; đề xuất thêm bảng/cache không đồng nghĩa với thêm một màn mới |
 
 ---
 
@@ -1389,7 +1390,7 @@ Gộp bảng không miễn phí. Bốn điều phải chấp nhận:
 | 1 | `seq` bắt đầu từ 0 hay 1 | **1** | chỉ đổi hằng số |
 | 2 | Danh sách 6 kỹ năng (`skill_type`) | 6 kỹ năng | 🔴 **đổi sau phải nhập lại `question_knowledge_points`** |
 | 3 | Thời hạn lưu hội thoại AI | 90 ngày | chỉ đổi hằng số |
-| 4 | Bảng cấu hình hệ thống | không — hằng số trong `application.yaml` | thêm bảng + màn quản trị |
+| 4 | Bảng cấu hình hệ thống | không — hằng số trong `application.yaml` | cần duyệt nơi lưu và danh sách tham số; SCR-078 System Settings đã có trong bộ 79 màn, triển khai Deferred theo UC-116 |
 | 5 | Lịch sử đăng nhập | `audit_logs` với `action='LOGIN'` | nếu thêm bảng riêng thì 32 bảng |
 
 Mục 2 **gấp nhất** — `question_knowledge_points` nằm trong danh sách "không được đụng".

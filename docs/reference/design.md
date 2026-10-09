@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Trạng thái** | Bản final |
+| **Trạng thái** | Quy tắc thiết kế đang rà soát; inventory 79 màn đã FINAL |
 | **Status** | DRAFT |
 | **Owner** | Nhóm CNHSK |
 | **Approved by** | Chưa duyệt |
@@ -23,8 +23,10 @@ Tài liệu tham khảo:
   Trung Hoa, màu nhấn vàng, độ tương phản và cảm giác giáo dục chuyên nghiệp.
 - [Hanzi Cozy Diary](https://CNHSK.today/): nguồn tham khảo cho cách nhóm
   công cụ theo kỹ năng, card tính năng, lộ trình học và phân cấp nội dung.
-- `docs/feature-tree.md`: nguồn sự thật về tính năng và phạm vi.
-- `docs/kien-truc.md`: nguồn sự thật về ba client và xác thực.
+- [feature-tree.md](feature-tree.md): nguồn sự thật về tính năng và phạm vi.
+- [kien-truc.md](kien-truc.md): nguồn sự thật về ba client và xác thực.
+- Screen List (`docs/generated/cnhsk-screen-list.docx`) và Screen Flow (`docs/generated/cnhsk-screen-flow.png`): cấu trúc UI FINAL, 79 màn; tình trạng file nguồn xem §5.
+- [screen-fields.md](screen-fields.md): đặc tả UI chi tiết duy nhất cho SCR-001–SCR-079.
 
 Chỉ học nguyên tắc thiết kế; không sao chép logo, ảnh, minh họa, nội dung, font
 độc quyền hoặc bố cục nguyên bản của website tham khảo.
@@ -57,14 +59,14 @@ mobile.
 
 | Hạng mục | Giá trị |
 | --- | --- |
-| Web chính | React 18.3.x + TypeScript 5.x + Vite 5.x |
-| Web game | React 18.3.x + TypeScript 5.x + Vite 5.x; Phaser 3 hoặc Canvas chỉ nằm trong vùng game |
+| Web chính | React 18.3.x + TypeScript 5.7 + Vite 5.x |
+| Web game | React 18.3.x + TypeScript 5.7 + Vite 5.x; Phaser 3 hoặc Canvas chỉ nằm trong vùng game |
 | Mobile | React Native + Expo + TypeScript; phiên bản chốt khi bắt đầu giai đoạn mobile |
 | Runtime web | Node.js 22 LTS hoặc Node.js 24 theo môi trường đã chốt |
-| Design system web | shadcn/ui + Tailwind CSS; component được sở hữu trong source của dự án |
-| Design system mobile | React Native core + NativeWind; ánh xạ cùng semantic tokens với web |
+| Design system web | Tailwind CSS 3.4 + component sở hữu trong source; chỉ dùng package đã duyệt ở ES-02 |
+| Design system mobile | React Native core; ánh xạ semantic tokens với web; package thêm cần duyệt |
 | Icon | Lucide React / Lucide React Native; nét 1.75–2 px |
-| Biểu đồ | Recharts trên web; thư viện mobile sẽ chốt khi làm màn thống kê |
+| Biểu đồ | Dùng biểu đồ theo yêu cầu SCR-019; thư viện web/mobile chưa được ES-02 duyệt thì phải xin duyệt |
 | Thư viện bị cấm | Không trộn thêm Material UI, Ant Design, Bootstrap hoặc UI kit toàn cục khác |
 | Nền tảng phải hỗ trợ | Desktop web, mobile web, Android và iOS qua React Native |
 | Trình duyệt / OS tối thiểu | Xem Open Questions #1 |
@@ -78,20 +80,20 @@ THE system SHALL dùng component semantic như `Button`, `Card`, `Progress`,
 
 | Actor | Quyền | Thiết bị chính | Nhóm màn hình được dùng |
 | --- | --- | --- | --- |
-| Khách | Xem giới thiệu và trang công khai, tra từ điển, đăng ký/đăng nhập — không dùng thử tính năng (mục 5.5) | Web, mobile | Public, auth |
+| Khách | Xem giới thiệu và trang công khai, tra từ điển, đăng ký/đăng nhập — không dùng thử tính năng (mục 5.2) | Web, mobile | Public, auth |
 | USER | Học, luyện, thi, chơi, dùng thư viện và cộng đồng | Web, mobile | Toàn bộ màn học viên |
-| TEACHER | USER + duyệt câu hỏi AI, chấm bài thuê | Desktop web | Học viên, hàng đợi duyệt và chấm |
-| MANAGER | USER + kiểm duyệt cộng đồng | Desktop web | Học viên, quản trị cộng đồng |
-| CONTENT_ADMIN | USER + duyệt câu hỏi AI, nhập dữ liệu, quản lý đề thi | Desktop web | Học viên, quản trị nội dung |
-| FINANCE_ADMIN | USER + sổ cái, mã thẻ, gói dịch vụ | Desktop web | Học viên, quản trị tài chính |
-| SUPER_ADMIN | USER + người dùng và phân quyền | Desktop web | Học viên, quản trị hệ thống |
+| TEACHER | Duyệt câu hỏi AI, chấm bài thuê | Desktop web | SCR-056–SCR-059; học viên chỉ khi có USER |
+| MANAGER | Kiểm duyệt cộng đồng | Desktop web | SCR-060–SCR-063; học viên chỉ khi có USER |
+| CONTENT_ADMIN | Duyệt câu hỏi AI, quản lý nội dung | Desktop web | SCR-058/SCR-059, SCR-064–SCR-072; học viên chỉ khi có USER |
+| FINANCE_ADMIN | Sổ cái, mã thẻ, gói dịch vụ | Desktop web | SCR-073–SCR-075; học viên chỉ khi có USER |
+| SUPER_ADMIN | Người dùng, phân quyền, cấu hình được phép | Desktop web | SCR-076–SCR-078; học viên chỉ khi có USER |
 | SYSTEM | Tác vụ tự động, không phải người dùng | — | Không có màn hình |
 
 > **Tám actor**, khớp Hiến pháp mục *Tám actor*. `ADMIN` gộp ở bản trước đã tách
 > thành ba role theo nguyên tắc phân tách nhiệm vụ — xem mục 5.3.
 >
 > `TEACHER` và `CONTENT_ADMIN` **cùng** duyệt được câu hỏi AI, theo `BUS-07`.
-> Cả hai dùng chung màn `/admin/questions/review`.
+> Cả hai dùng chung AI Review Queue SCR-058 và Question Edit SCR-059 theo quyền được gán; không kế thừa USER.
 
 **Ranh giới giữa các nền tảng:**
 
@@ -108,8 +110,9 @@ THE system SHALL dùng component semantic như `Button`, `Card`, `Progress`,
 ## 4. User flow
 
 ★ **Xác thực và vào hệ thống:** Landing → Đăng ký (nhận email xác thực) hoặc
-Đăng nhập → Chọn cách gửi token theo client (web cookie · mobile header ·
-WebView tiêm token) → Trang chủ học tập. Sai mật khẩu 5 lần/giờ → khóa tạm.
+Đăng nhập → xác thực theo client (web cookie · mobile header ·
+WebView tiêm token, xử lý nội bộ không có control cho người dùng chọn) → khu được phép theo role được gán (USER vào SCR-010).
+Cơ chế chặn đăng nhập theo nguồn và lỗi tương ứng xem SCR-002; không suy ra quyền kế thừa từ việc đăng nhập.
 Đặt lại mật khẩu → thu hồi **toàn bộ** refresh token.
 
 ★ **Học theo chủ đề:** Đăng nhập → Trang chủ học tập → Chọn chủ đề đã mở →
@@ -121,11 +124,12 @@ Server chấm → Xem lỗi theo điểm kiến thức → Luyện ngay phần y
 ★ **Ôn tập đến hạn:** Trang chủ → Danh sách đến hạn → Trả lời → Tự đánh giá
 nếu là flashcard → Nhận lịch ôn mới → Xem tiến độ.
 
-**Tra cứu để học:** Tìm chữ/từ/câu → Xem nghĩa, pinyin và cấu tạo → Thêm vào
-flashcard hoặc sổ tay → Tiếp tục ngữ cảnh trước đó.
+**Tra cứu để học:** SCR-024 → SCR-025; dịch đoạn là SCR-026 riêng.
+USER có thể lưu vào SCR-027/SCR-029 theo quyền; khách chỉ đọc public projection.
 
-**Chơi game trên web:** Web chính → Web game → `/api/auth/me` → Chọn game →
-Chơi → Server xác minh điểm → Xem thứ hạng → Quay lại trang chính.
+**Chơi game trên web:** Web chính → Web game → `/api/auth/me` → Game Hub
+SCR-035 → Game Session SCR-036 → kết quả cá nhân được server xác nhận ngay trong
+SCR-036 → về hub/trang chính. Game Leaderboard SCR-047 là màn xếp hạng V2 riêng.
 
 **Chơi game trên mobile:** Mobile làm mới token → Mở WebView → Tiêm token →
 Chơi → Gửi điểm → WebView báo hoàn tất → Mobile cập nhật tiến độ.
@@ -135,348 +139,80 @@ Chấp nhận/từ chối kèm lý do → Chuyển mục tiếp theo.
 
 ---
 
-## 5. Sơ đồ màn hình
+## 5. Canonical UI structure — 79 screens
 
-Màn hình chia theo **hai ứng dụng web riêng** (kiến trúc bản 5) — không gộp chung
-một bảng, vì web game là codebase độc lập và chỉ dùng chung backend + cookie.
+**Canonical Screen Inventory: 79 screens · Status: FINAL.**
 
-### 5.1. Web chính — `cnhsk.com` (20 màn nội dung + 1 màn router)
+Nguồn chuẩn tắc cho ID, Screen Name, Feature và Description là Screen List đã duyệt (`docs/generated/cnhsk-screen-list.docx`). Screen Flow đã duyệt (`docs/generated/cnhsk-screen-flow.png`) quyết định public/private, role entry, grouping, shared screens và điều hướng chính. Chi tiết field, action, validation, trạng thái và mockup readiness của từng màn nằm duy nhất trong [screen-fields.md](screen-fields.md).
 
-| Màn hình | Route | Actor | Mục đích (1 câu) |
-| --- | --- | --- | --- |
-| Landing | `/` | Mọi người | Giới thiệu giá trị và đưa người dùng vào học |
-| Đăng nhập / đăng ký | `/login`, `/register` | Khách | Xác thực tài khoản |
-| Chờ xác thực email | `/verify-email` | Khách vừa đăng ký | Hướng dẫn mở mail, gửi lại mail, và nhận `?token=` từ link trong mail |
-| Tổng quan học tập | `/dashboard` | USER+ | Việc cần học hôm nay, tiến độ và lối tắt |
-| Chủ đề | `/learn/topics` | USER+ | Hiển thị cây chủ đề và trạng thái khóa |
-| Phiên học chủ đề | `/learn/topics/:id` | USER+ | Học và kiểm tra từ trong một chủ đề |
-| Ôn tập | `/review` | USER+ | Ôn các điểm kiến thức đến hạn |
-| Luyện viết | `/practice/writing` | USER+ | Luyện thứ tự nét và nhớ chữ |
-| Phát âm | `/practice/pronunciation` | USER+ | Học phát âm theo tám chặng |
-| Đề thi | `/exams` | USER+ | Chọn đề HSK hoặc dạng câu hỏi |
-| Làm bài | `/exams/:id/attempt` | USER+ | Làm và nộp bài |
-| Kết quả | `/attempts/:id/result` | USER+ | Xem điểm, lỗi sai và điểm yếu |
-| Tra cứu | `/dictionary` | Mọi người | Tra chữ, từ, ngữ pháp và dịch. Khách chỉ tra từ điển, không dịch, không lưu (mục 5.5) |
-| Sổ tay | `/notes` | USER+ | Quản lý ghi chú cá nhân |
-| Flashcard | `/flashcards` | USER+ | Quản lý và ôn bộ thẻ |
-| Tiến độ | `/progress` | USER+ | Xem thống kê 7/30/90 ngày và mastery |
-| AI Assistant | panel toàn cục | USER+ | Hỏi theo ngữ cảnh màn hình hiện tại |
-| Gói và điểm | `/account/billing` | USER+ | Xem gói, số dư và nhập thẻ |
-| Cộng đồng | `/community` | Mọi người | Blog, quiz và bảng xếp hạng chủ đề. Khách chỉ xem bài, bảng xếp hạng, cuộc thi (mục 5.5) |
-| Nhờ chấm bài | `/grading` | USER+ | Gửi bài viết và xem kết quả chấm |
-| Quản trị | `/admin/*` | 4 role quản trị (TEACHER · CONTENT_ADMIN · FINANCE_ADMIN · SUPER_ADMIN) | Xem mục 5.3 |
+**Tình trạng nguồn ngày 2026-10-09:** hai artifact đã được đọc trước khi cập nhật; hiện không còn ở các đường dẫn trên và chưa xác nhận vị trí mới. Nội dung dưới đây giữ nguyên inventory đã đọc và 79 ID/tên do chủ dự án xác nhận; kiểm tra lại artifact khi có đường dẫn. Không tái tạo hoặc thay thế nguồn đã duyệt.
 
-### 5.2. Web game — `game.cnhsk.com` (3 màn)
+Inventory giữ nguyên SCR-001 đến SCR-079. Một UC có thể dùng nhiều màn hoặc không có màn; một màn có thể phục vụ nhiều UC. Scope MVP/V2/Deferred của nội dung không thay đổi inventory. Không tính router, sidebar, nhóm menu, AI Assistant, dialog hoặc trạng thái lỗi thành màn bổ sung.
 
-Ứng dụng **riêng biệt**: React + Phaser, codebase độc lập, dùng **cookie chung**
-tên miền `cnhsk.com`. Mobile mở **chính các màn này** trong WebView.
+### 5.1. Information architecture và page ownership
 
-| Màn hình | Route | Actor | Mục đích (1 câu) |
-| --- | --- | --- | --- |
-| Game hub | `/games` | USER+ | Chọn game và xem thành tích cá nhân |
-| Game session | `/games/:code/play` | USER+ | Chơi một ván game |
-| Bảng hạng game | `/games/:code/rank` | Mọi người | Xếp hạng riêng cho một game. Khách xem top, không có hạng cá nhân (UC-083) |
+| Nhóm điều hướng | Màn chuẩn | Entry / liên kết chính |
+|---|---|---|
+| Public entry và auth | SCR-001–SCR-006 | Landing → Sign In hoặc Register → Verify Email; Sign In → Forgot Password → Reset Password → Sign In |
+| Account | SCR-007–SCR-009 | User Profile, Change Password và Study Reminder Settings là ba màn riêng |
+| Learner home | SCR-010 | Learning Dashboard dẫn vào học, ôn, luyện và Learning Progress |
+| Vocabulary / review / character / grammar / progress | SCR-011–SCR-019 | Topic List → Topic Study; Due Review; Character Writing; Character Recognition; Pronunciation Practice; Grammar List → Grammar Lesson; Learning Progress |
+| HSK exams / practice | SCR-020–SCR-023 | Exam List → Exam Attempt → Exam Result → Targeted Practice |
+| Dictionary / learning tools / private library | SCR-024–SCR-029 | Dictionary Search → Dictionary Detail; Translation; Personal Notes; Flashcard Deck List → Flashcard Deck Detail |
+| Entitlements / teacher grading | SCR-030–SCR-034 | Plan & Credits → Transaction History; Grading Request Submission → My Grading Requests → Grading Request Detail |
+| Games / videos | SCR-035–SCR-038 | Game Hub → Game Session; Video List → Video Study |
+| Community / quizzes / rankings / contests | SCR-039–SCR-051 | Post List → Post Detail; Create / Edit Post; Community User Profile; Quiz List → Attempt → Result; Topic/Game Leaderboard; Contest List → Detail → Attempt → Results |
+| Public resources | SCR-052–SCR-055 | Public Flashcard Deck List; YouTube & Podcasts; Book Catalogue → Book Detail |
+| Teacher / shared content review | SCR-056–SCR-059 | Teacher Grading Queue → Teacher Grading Workspace; AI Review Queue → shared Question Edit |
+| Community moderation | SCR-060–SCR-063 | Post Moderation Queue → Detail; Violation Report Queue → Detail |
+| Content administration | SCR-064–SCR-072 | Question Bank; Admin Exam List → Create / Edit Exam; Topic Prerequisites; Learning Data Import → Import Report; Admin Contest List → Create / Edit Contest; Reference Management |
+| Finance administration | SCR-073–SCR-075 | Card Batch Management; Plan Management; Credit Ledger |
+| System administration / shared refusal | SCR-076–SCR-079 | User List → User Detail; System Settings; Access Denied |
 
-> Web game **không có** blog, quiz, học tập, thanh toán hay quản trị — xem ranh
-> giới nền tảng ở mục 3. Trang game luôn bắt đầu bằng `GET /api/auth/me`.
+### 5.2. Public và authenticated navigation
 
-### 5.3. Màn quản trị — `/admin/*` (8 màn)
+Khách được vào SCR-001–SCR-006 và các tài nguyên công khai được Screen Flow chỉ rõ: Dictionary Search/Detail SCR-024/SCR-025, Community Post List/Detail SCR-039/SCR-040, Topic/Game Leaderboard SCR-046/SCR-047, Contest List/Detail SCR-048/SCR-049, Public Flashcard Deck List SCR-052, YouTube & Podcasts SCR-053, Book Catalogue/Detail SCR-054/SCR-055. Nội dung V2 chỉ hiện khi feature tương ứng được triển khai. Public read không cấp quyền lưu dữ liệu hoặc tham gia.
 
-Mỗi role **chỉ thấy phần mình quản** (nghiệm thu 6.6). Tách theo nhóm việc chứ
-không theo role, vì một người có thể giữ nhiều role.
+Learner workspace và USER services yêu cầu role USER được gán tường minh. Translation tách khỏi Dictionary Search/Detail; Personal Notes và bộ flashcard cá nhân không xuất hiện như chức năng dùng thử cho khách. SCR-029 chỉ có public projection khi khả năng chia sẻ V2 được bật; owner edit vẫn kiểm quyền sở hữu. SCR-042 theo nhánh Community Actions của flow, cần USER; không tự biến thành route khách chỉ vì tên có chữ Profile. Contest Results SCR-051 thuộc nhánh USER đã xác thực của flow, đồng thời kiểm publication/ownership ở screen-fields.md. Link kết quả từ thông tin cuộc thi công khai phải qua ranh giới đăng nhập; không tự cấp guest access hoặc mở đáp án riêng của người khác.
 
-| Màn hình | Route | Actor | UC phục vụ |
-| --- | --- | --- | --- |
-| Duyệt câu hỏi AI | `/admin/questions/review` | TEACHER · CONTENT_ADMIN | UC-108, UC-109 |
-| Chấm bài thuê | `/admin/grading` | TEACHER | UC-104, UC-105 |
-| Nhập dữ liệu | `/admin/imports` | CONTENT_ADMIN | UC-110, UC-111 |
-| Quản lý đề thi và kho câu | `/admin/exams` | CONTENT_ADMIN | UC-109, UC-112 |
-| Quản lý cuộc thi | `/admin/contests` | CONTENT_ADMIN | UC-113 · V2 |
-| Sổ cái và tranh chấp | `/admin/ledger` | FINANCE_ADMIN | UC-100, UC-102 |
-| Mã thẻ và gói dịch vụ | `/admin/billing` | FINANCE_ADMIN | UC-099, UC-101 |
-| Người dùng và phân quyền | `/admin/users` | SUPER_ADMIN | UC-114, UC-115, UC-116 |
+Từ tài nguyên công khai, action cần USER dẫn tới SCR-002 với đích trở lại đã kiểm tra. Đăng ký thành công tới SCR-004; xác thực email là hướng dẫn, không phải cửa chặn việc học. Hạn mức khách cho tra cứu là chống lạm dụng, không cấp dùng thử học/AI/game. Ngưỡng/cách đếm còn khác nhau giữa auth spec và UC thư viện, phải dùng Open Issues của SCR-024/SCR-025 để chốt contract trước khi triển khai.
 
-> `CONTENT_ADMIN` **không** vào được `/admin/ledger` và `/admin/billing`;
-> `FINANCE_ADMIN` **không** vào được `/admin/imports` và `/admin/exams`.
-> Đây là *separation of duties* — lý do tách `ADMIN` cũ thành ba role.
+### 5.3. Role navigation và shared pages
 
-Tên route là chuẩn điều hướng frontend; endpoint API vẫn giữ tiền tố
-`/api/auth`, `/api/learning`, `/api/community`.
+| Role gán tường minh | Menu/entry được phép |
+|---|---|
+| USER | SCR-010 và learner/USER service screens theo §5.1; Account SCR-007/SCR-008 và nhắc học SCR-009 theo actor của từng màn |
+| TEACHER | SCR-056/SCR-057; SCR-058/SCR-059 với quyền review nội dung |
+| MANAGER | SCR-060–SCR-063 |
+| CONTENT_ADMIN | SCR-058/SCR-059; SCR-064–SCR-072 |
+| FINANCE_ADMIN | SCR-073–SCR-075 |
+| SUPER_ADMIN | SCR-076–SCR-078 |
 
-**Tổng: 32 màn** — 20 màn web nội dung + `/admin/*` (1 màn router) + 3 màn web game
-+ 8 màn con của `/admin/*`.
+Không kế thừa role: TEACHER không mặc nhiên có USER; SUPER_ADMIN không mặc nhiên có quyền tài chính, nội dung hoặc kiểm duyệt. Một người có nhiều role nhìn thấy hợp các menu được gán. Role Navigation trong ảnh là điểm điều phối, không phải một trang dashboard mới. Với nhiều role, dùng đích được phép người dùng chọn hoặc đích an toàn đã kiểm quyền; chưa có quyết định xếp thứ tự ưu tiên role.
 
-> **Cách đếm:** `/admin/*` ở mục 5.1 là **màn router**, không có file mockup riêng.
-> 8 màn con của nó liệt ở mục 5.3. Nên thư mục mockup có **31 file HTML**
-> (20 + 3 + 8), còn tài liệu đếm **32 màn** vì tính cả màn router.
+Question Edit SCR-059 là một màn chung cho TEACHER/CONTENT_ADMIN và nguồn vào từ AI Review Queue SCR-058 hoặc Question Bank SCR-064 theo quyền tương ứng. Quyền review không tự cấp toàn bộ quản lý Question Bank. Không tạo editor riêng theo role. Teacher queue SCR-056 chỉ có metadata được phép; bài viết/hồ sơ nhận việc trong SCR-057 tuân điều kiện claim và sở hữu, không đưa thông tin nhạy cảm vào queue.
 
-### 5.4. Screen flow — toàn dự án
+### 5.4. Screen Flow và UI patterns
 
-Sơ đồ dưới sinh từ mục 4 (user flow) và bảng màn hình 5.1–5.3, phủ đủ **31/31
-màn**. Khi hai nơi khác nhau, mục 5.1–5.3 là nguồn đúng về route và actor; mục
-này là nguồn đúng về **thứ tự điều hướng**.
+Ảnh flow chuẩn tắc: `docs/generated/cnhsk-screen-flow.png`. Chưa thể hiển thị lại ảnh do tình trạng nguồn ghi ở đầu §5; các flow lịch sử không thay thế ảnh đã duyệt.
 
-Quy ước: nét liền `-->` là điều hướng do người dùng bấm · nét đứt `-.->` là
-chuyển hướng do hệ thống (guard, redirect, hết hạn) · nhãn `V2` là màn ngoài
-phạm vi MVP.
+Ảnh và Screen List đã đọc từ docs/generated là artifact FINAL; đợt đồng bộ này không sửa hoặc tái tạo chúng. Hiện chưa thể kiểm tra lại file/hash do tình trạng nguồn nêu trên. Các sơ đồ cũ tại [screen-flow/](screen-flow/README.md) là lịch sử mô hình UI trước đây, không dùng để xác định inventory, actor hoặc điều hướng hiện hành.
 
-> **Xem bằng ảnh:** [`screen-flow/`](screen-flow/) có 7 file PNG render từ chính
-> các sơ đồ dưới đây, dùng được cho report và review không cần editor hỗ trợ
-> Mermaid. Sửa sơ đồ thì sửa ở đây rồi render lại — xem `screen-flow/README.md`.
+**List/detail:** list giữ tìm kiếm/bộ lọc khi quay lại; mở detail của đúng item bằng ID thật. Detail không tự mở nội dung private chưa qua ownership. Các cặp list/detail của community, teacher grading, moderation, import và users giữ màn riêng theo inventory.
 
-#### 5.4.1. Toàn cảnh — vào hệ thống và phân nhánh theo actor
+**Create/edit:** SCR-041, SCR-066 và SCR-071 chứa hai chế độ trong cùng một màn; tạo/sửa không sinh ID mới. Modal tạo bộ flashcard ở SCR-028, card editor ở SCR-029, quản lý reference ở SCR-072, batch actions ở SCR-073, điều chỉnh ledger ở SCR-075 và role assignment ở SCR-077 là nội tuyến/dialog, không phải màn bổ sung.
 
-> **Xác thực email không phải cửa chặn.** Theo `FR-010`, người chưa xác thực
-> **vẫn đăng nhập và học được**; chỉ thao tác đổi điểm bị chặn bằng **403**
-> `ACCOUNT_UNVERIFIED`. Nên `/verify-email` là màn hướng dẫn, không phải guard.
+**Sessions/results:** SCR-021/SCR-022, SCR-044/SCR-045 và SCR-050/SCR-051 giữ attempt và result riêng; kết quả game thuộc SCR-036, Dictation/Shadowing thuộc SCR-038. Không đổi leaderboard thành trang kết quả cá nhân. Chỉ kết quả server xác nhận mới được trình bày là đã lưu.
 
-```mermaid
-flowchart TD
-    Landing["Landing · /"]
-    Dict0["Tra từ điển · /dictionary<br/>(khách: chỉ tra, không lưu)"]
-    Login["Đăng nhập · /login"]
-    Register["Đăng ký · /register"]
-    VerifyScr["Chờ xác thực email · /verify-email<br/>gửi lại mail · nhận ?token="]
-    Guard{{"Có role quản trị?"}}
-    Dash["Tổng quan · /dashboard"]
-    AdminHub["Quản trị · /admin/*"]
-    GameHub["Game hub · game.cnhsk.com/games"]
-    Locked["Khoá tạm · thông báo thời điểm mở"]
-    Reset["Đặt lại mật khẩu"]
+**Shared utilities:** SCR-079 giải thích thiếu quyền và cho về khu được phép. Thiếu phiên đưa SCR-002; thiếu entitlement đưa SCR-030; không tạo thêm trang lỗi hoặc billing redirect screen. AI Assistant là panel có ngữ cảnh, không là màn riêng; điều kiện hiện trong exam/contest phải theo source và Open Issues, không tự cung cấp lời giải khi đang làm bài.
 
-    Landing --> Login
-    Landing --> Register
-    Landing --> Dict0
-    Dict0 -.->|"lưu từ, dịch, học tiếp"| Login
+**Frontend evidence:** chưa có cnhsk-web, route, sidebar/menu config, page component hoặc role guard trong repository. Các pathname ghi trong tài liệu cũ là bằng chứng đề xuất, không phải Existing Route đã xác nhận. Khi dựng cnhsk-web, map từng canonical screen vào page/component và lazy-load theo nhóm; route implementation cần review trước, không được dùng pathname cũ để gộp màn đã tách.
 
-    Register --> VerifyScr
-    VerifyScr -->|"bấm link trong mail · ?token="| Login
-    VerifyScr -->|"chưa nhận mail — gửi lại, tối đa 3 lần mỗi giờ"| VerifyScr
-    VerifyScr -->|"bỏ qua — FR-010 cho học khi chưa xác thực"| Login
-    Login --> Guard
-    Guard -->|"không"| Dash
-    Guard -->|"có"| AdminHub
-    AdminHub --> Dash
+### 5.5. Mockup requirements và scope
 
-    Dash --> GameHub
+Mỗi mockup dùng đúng SCR ID và Screen Name; designer lấy field/control/list column/action/validation/empty/error/role difference từ 23 mục của màn trong screen-fields.md. Mỗi màn có đúng một readiness: READY FOR MOCKUP, READY WITH PLACEHOLDERS hoặc BLOCKED FOR FINAL MOCKUP. Placeholder chỉ thể hiện vấn đề thật chưa chốt; không dựng giá trị business, số liệu hoặc quyền giả. Modal không thay thế một detail screen đã được inventory duyệt.
 
-    Login -.->|"sai mật khẩu 5 lần mỗi giờ"| Locked
-    Locked -.-> Login
-    Login --> Reset
-    Reset -.->|"thu hồi toàn bộ refresh token"| Login
-```
-
-#### 5.4.2. Học viên — học, ôn, luyện
-
-```mermaid
-flowchart TD
-    Dash["Tổng quan · /dashboard"]
-    Topics["Chủ đề · /learn/topics"]
-    Session["Phiên học · /learn/topics/:id"]
-    Gate{{"Chủ đề đã mở?"}}
-    Review["Ôn tập · /review"]
-    Writing["Luyện viết · /practice/writing"]
-    Pron["Phát âm · /practice/pronunciation"]
-    Progress["Tiến độ · /progress"]
-    Dict["Tra cứu · /dictionary"]
-    Notes["Sổ tay · /notes"]
-    Cards["Flashcard · /flashcards"]
-    Quota{{"Còn lượt free<br/>hoặc còn điểm?"}}
-    Billing["Gói và điểm · /account/billing"]
-
-    Dash --> Topics
-    Topics --> Gate
-    Gate -->|"chưa — hiện điều kiện 90%"| Topics
-    Gate -->|"rồi"| Session
-    Session --> Quota
-    Quota -->|"hết"| Billing
-    Quota -->|"còn"| Session
-    Session -->|"học xong"| Progress
-    Progress --> Topics
-
-    Dash --> Review
-    Review -->|"trả lời · tự đánh giá"| Progress
-
-    Dash --> Writing
-    Dash --> Pron
-    Session --> Dict
-    Dict --> Cards
-    Dict --> Notes
-    Cards --> Review
-```
-
-#### 5.4.3. Luyện thi và sửa điểm yếu
-
-```mermaid
-flowchart TD
-    Dash["Tổng quan · /dashboard"]
-    Exams["Đề thi · /exams"]
-    Attempt["Làm bài · /exams/:id/attempt"]
-    Confirm{{"Xác nhận nộp?"}}
-    Leave{{"Rời trang khi chưa nộp?"}}
-    Grade["Server chấm — không tin điểm client"]
-    Result["Kết quả · /attempts/:id/result"]
-    Weak["Luyện phần yếu<br/>theo điểm kiến thức"]
-    Session["Phiên học · /learn/topics/:id"]
-    Grading["Nhờ chấm bài · /grading"]
-    TQueue["Chấm bài thuê · /admin/grading<br/>(TEACHER)"]
-
-    Dash --> Exams
-    Exams --> Attempt
-    Attempt --> Leave
-    Leave -->|"có — cảnh báo mất đáp án"| Exams
-    Leave -->|"không"| Attempt
-    Attempt --> Confirm
-    Confirm -->|"chưa"| Attempt
-    Confirm -->|"rồi"| Grade
-    Grade --> Result
-    Result --> Weak
-    Weak --> Session
-
-    Result --> Grading
-    Grading -.->|"vào hàng đợi"| TQueue
-    TQueue -.->|"trả kết quả"| Grading
-```
-
-#### 5.4.4. Game — web và mobile
-
-```mermaid
-flowchart TD
-    Dash["Tổng quan · cnhsk.com/dashboard"]
-    Me{{"GET /api/auth/me<br/>cookie dùng chung"}}
-    Hub["Game hub · /games"]
-    Play["Game session · /games/:code/play"]
-    Check{{"Server xác minh điểm"}}
-    Rank["Bảng hạng · /games/:code/rank"]
-    Login["Đăng nhập · cnhsk.com/login"]
-    Mobile["Mobile React Native"]
-    Refresh["Làm mới token"]
-    WebView["WebView tiêm token"]
-
-    Dash -->|"điều hướng sang game.cnhsk.com"| Me
-    Me -->|"401"| Login
-    Me -->|"200"| Hub
-    Hub --> Play
-    Play --> Check
-    Check -->|"hợp lệ"| Rank
-    Check -.->|"bất thường — ghi log, loại điểm"| Hub
-    Rank --> Dash
-
-    Mobile --> Refresh
-    Refresh --> WebView
-    WebView --> Hub
-    Rank -.->|"báo hoàn tất"| Mobile
-```
-
-#### 5.4.5. Cộng đồng — V2
-
-```mermaid
-flowchart TD
-    Dash["Tổng quan · /dashboard"]
-    Comm["Cộng đồng · /community"]
-    Blog["Blog · V2"]
-    Quiz["Quiz cộng đồng · V2"]
-    Board["Bảng xếp hạng chủ đề"]
-    MQueue["Kiểm duyệt · MANAGER"]
-
-    Dash --> Comm
-    Comm --> Blog
-    Comm --> Quiz
-    Comm --> Board
-    Blog -.->|"báo cáo nội dung"| MQueue
-    Quiz -.->|"báo cáo nội dung"| MQueue
-    MQueue -.->|"ẩn hoặc giữ"| Comm
-```
-
-#### 5.4.6. Quản trị — tách quyền theo role
-
-Mỗi role chỉ thấy phần mình quản (nghiệm thu 6.6). `/admin/*` là màn router,
-không có nội dung riêng.
-
-```mermaid
-flowchart LR
-    Admin["/admin/* · router"]
-
-    QReview["Duyệt câu hỏi AI<br/>/admin/questions/review"]
-    TGrading["Chấm bài thuê<br/>/admin/grading"]
-    Imports["Nhập dữ liệu<br/>/admin/imports"]
-    ExamsM["Quản lý đề thi<br/>/admin/exams"]
-    Contests["Quản lý cuộc thi<br/>/admin/contests · V2"]
-    Ledger["Sổ cái và tranh chấp<br/>/admin/ledger"]
-    BillingM["Mã thẻ và gói<br/>/admin/billing"]
-    Users["Người dùng và phân quyền<br/>/admin/users"]
-
-    Admin --> QReview
-    Admin --> TGrading
-    Admin --> Imports
-    Admin --> ExamsM
-    Admin --> Contests
-    Admin --> Ledger
-    Admin --> BillingM
-    Admin --> Users
-
-    QReview -.- T["TEACHER"]
-    TGrading -.- T
-    Imports -.- C["CONTENT_ADMIN"]
-    ExamsM -.- C
-    Contests -.- C
-    Ledger -.- F["FINANCE_ADMIN"]
-    BillingM -.- F
-    Users -.- S["SUPER_ADMIN"]
-```
-
-`CONTENT_ADMIN` **không** vào được `/admin/ledger` và `/admin/billing`;
-`FINANCE_ADMIN` **không** vào được `/admin/imports` và `/admin/exams`. Đây là
-*separation of duties* — lý do tách `ADMIN` cũ thành ba role.
-
-#### 5.4.7. Chuyển hướng do hệ thống — áp cho mọi màn
-
-Những luật này không vẽ lại ở từng sơ đồ trên vì áp cho **toàn bộ** màn
-authenticated. Chi tiết trạng thái ở mục 9.
-
-```mermaid
-flowchart TD
-    Any["Bất kỳ màn authenticated"]
-    Tok{{"Access token còn hạn?"}}
-    Ref{{"Refresh một lần — thành công?"}}
-    Role{{"Đủ role cho màn này?"}}
-    Login["/login · giữ redirect"]
-    F403["403 · nêu role cần thiết<br/>và đường quay lại"]
-    Quota{{"Còn hạn mức?"}}
-    Billing["/account/billing<br/>nêu hạn mức và thời điểm reset"]
-    OK["Hiển thị màn"]
-
-    Any --> Tok
-    Tok -->|"không"| Ref
-    Ref -->|"không"| Login
-    Ref -->|"có"| Role
-    Tok -->|"có"| Role
-    Role -->|"không"| F403
-    Role -->|"có"| Quota
-    Quota -->|"hết"| Billing
-    Quota -->|"còn"| OK
-```
-
-### 5.5. Quyền của khách — không có lượt dùng thử
-
-Khách chỉ **xem** landing và các trang công khai. Muốn dùng bất kỳ tính năng
-học, luyện, thi, game, AI hay lưu trữ nào thì phải đăng ký hoặc đăng nhập —
-**không có** lượt dùng thử cho khách.
-
-Đúng 16 UC có actor `GUEST` (`CONTEXT.md` §3.5):
-
-| Nhóm | UC | Ghi chú |
-| --- | --- | --- |
-| Xác thực | UC-001, 002, 003, 004, 008, 009 | Đăng ký, xác thực email, đăng nhập web/mobile, quên/đặt lại mật khẩu |
-| Tra từ điển | UC-056 → UC-059 | Kết quả rút gọn, không có nút lưu; giới hạn chống lạm dụng theo BR-056-1 |
-| Xem cộng đồng · V2 | UC-070, 082, 083, 090 | Chỉ xem — bình luận, thích, đăng ký cuộc thi cần đăng nhập |
-| Danh mục tham khảo · V2 | UC-117, 118 | Kênh/podcast, sách |
-
-Endpoint cho khách đi qua tiền tố `/api/public/*` (`use-cases-05` BR-056-7).
-
-> Giới hạn tra từ điển của khách là **rate limit chống lạm dụng**, không phải
-> hạn mức dùng thử. Ngưỡng và cách đếm (IP hay cookie) còn treo — xem
-> `use-cases-05` mục câu hỏi mở #15.
+Không thêm checkout tiền thật, schema import chưa duyệt, grading policy chưa duyệt, setting catalogue chưa duyệt, role inheritance hoặc màn hiển thị secret. Scope tính năng theo feature-tree.md; Feature không đồng nhất Screen. Mockup HTML nằm ngoài repo chỉ là tham khảo lịch sử, phải đối chiếu 79 màn trước khi dùng và phải viết lại bằng React khi triển khai.
 
 ---
 
@@ -577,7 +313,7 @@ Không dùng font Gilroy của Học Bá vì quyền sử dụng chưa được 
 | `EmptyState` | first-use, no-result, completed | List/dashboard | Có hành động tiếp theo nếu tồn tại |
 | `ErrorState` | inline, section, page | Toàn hệ thống | Có retry khi an toàn |
 | `Skeleton` | text, card, table | Toàn hệ thống | Khớp gần đúng layout thật |
-| `AIChatPanel` | collapsed, expanded, full-screen mobile | Toàn web/mobile | Không che CTA hoặc nội dung câu hỏi |
+| `AIChatPanel` | collapsed, expanded, full-screen mobile | Ngữ cảnh USER được phép theo screen-fields.md | Panel nội tuyến; không che CTA/câu hỏi, không là screen riêng |
 
 **Quy ước đặt tên:** component dùng `PascalCase`; token và prop dùng semantic
 English; route label và nội dung người dùng dùng tiếng Việt. Component theo
@@ -618,13 +354,13 @@ domain nằm trong feature tương ứng; component dùng từ hai feature trở
 | Loading | Sau 300ms hiển thị skeleton đúng cấu trúc; không dùng spinner toàn trang nếu nội dung cũ còn dùng được |
 | Empty | Nêu vì sao rỗng và hành động tiếp theo; không hiển thị khung trắng |
 | Error | Nêu việc không hoàn thành, giữ dữ liệu người dùng đã nhập và có retry khi an toàn |
-| Không có quyền | Hiển thị 403, giải thích role cần thiết và đường quay lại an toàn |
+| Không có quyền | SCR-079 Access Denied: giải thích quyền cần thiết khi được phép và đường quay lại an toàn; không lộ nội dung private |
 | Chưa đăng nhập | Chuyển tới đăng nhập và giữ `redirect`; game gọi `/api/auth/me` trước |
 | Đang gửi | Disable đúng action đang gửi, giữ label kèm trạng thái, chống gửi lặp |
 | Offline | Giữ dữ liệu đã cache ở chế độ chỉ đọc; đánh dấu rõ thao tác chưa đồng bộ |
 | Chủ đề bị khóa | Hiển thị điều kiện 90% và tiến độ hiện tại; không chỉ phủ lớp mờ |
-| Hết hạn mức | **Chuyển sang `/account/billing`** — không chặn tại chỗ. Màn đích nêu hạn mức, thời điểm reset và lựa chọn gói/điểm phù hợp |
-| Khách dùng tính năng cần tài khoản | Chuyển `/login` kèm `redirect` về đúng tính năng — không có lượt dùng thử (mục 5.5) |
+| Hết hạn mức | Chuyển tới SCR-030 Plan & Credits; nêu hạn mức, reset và quyền dùng tương ứng; không có checkout tiền thật |
+| Khách dùng tính năng cần tài khoản | Chuyển SCR-002 Sign In, giữ đích đã kiểm tra; quyền public/private theo §5.2 |
 | Bài thi chưa nộp | Khi rời trang phải xác nhận; không mất đáp án im lặng |
 | Đáp án đã nộp | Khóa chỉnh sửa và chỉ hiện kết quả do server trả về |
 | Token hết hạn | Thử refresh một lần; thất bại mới yêu cầu đăng nhập lại và giữ redirect |
@@ -725,7 +461,7 @@ domain nằm trong feature tương ứng; component dùng từ hai feature trở
 - WHERE một action liên quan điểm tài chính chưa được server xác nhận, THE system
   SHALL không cập nhật số dư như đã hoàn tất.
 - WHERE hạn mức AI/dịch đã hết, THE system SHALL không mở loading vô hạn và SHALL
-  hiển thị thời điểm reset hoặc cách mua thêm lượt.
+  hiển thị thời điểm reset hoặc cách dùng mã thẻ/quyền gói tại SCR-030.
 - WHERE danh sách không có kết quả, THE system SHALL phân biệt “chưa có dữ liệu”
   với “bộ lọc không khớp”.
 - WHERE ảnh hoặc audio tải lỗi, THE system SHALL giữ nội dung chữ thay thế và

@@ -363,8 +363,10 @@ CONSTRAINT ck_ur_role_code CHECK (role_code IN
 CREATE INDEX ix_ur_role ON user_roles(role_code, user_id);
 ```
 
-> **Bảng `roles` sẽ bị bỏ** (chờ `database.md` duyệt). Nó chỉ có 1 lệnh `INSERT` với 4 giá trị tĩnh và
-> không có màn CRUD role nào trong 32 màn thiết kế (xem `design.md` §5). `AC-06` nói enum lưu `VARCHAR + CHECK`.
+> **Bảng `roles` sẽ bị bỏ** (chờ `database.md` duyệt). Nó chỉ lưu các mã role cố định và
+> không có màn CRUD danh mục role riêng trong bộ **79 màn đã duyệt**. Cấp/thu hồi role
+> nằm tại **SCR-077 User Detail** (xem [screen-fields.md](../../docs/reference/screen-fields.md)).
+> `AC-06` nói enum lưu `VARCHAR + CHECK`.
 > Bỏ nó giảm một JOIN ở mọi truy vấn quyền.
 > Đã chứng minh `DROP TABLE roles CASCADE` **không** làm mất dữ liệu `user_roles`.
 
@@ -572,15 +574,39 @@ KHÔNG lộ stack trace.
 
 ## 10 · Frontend Implementation Note
 
-| Màn hình | File mockup gốc | Ghi chú |
-|---|---|---|
-| Đăng nhập / Đăng ký | `02-login.html` | Một trang, hai tab |
-| Thông tin cá nhân | nằm trong `03-dashboard.html` | FR-051, FR-052 |
-| Nâng gói | `17-billing.html` | FR-073, cần CSRF |
-| Quản lý người dùng | `30-admin-users.html` | FR-062, FR-066 — chỉ `SUPER_ADMIN` |
+Danh tính màn hình theo bộ **79 màn đã duyệt**, giữ nguyên ID và tên dưới đây.
+Nguồn inventory là `docs/generated/cnhsk-screen-list.docx`; nguồn flow là
+`docs/generated/cnhsk-screen-flow.png`. Hai artifact đã duyệt không được sửa trong
+lần đồng bộ này. Chi tiết trường và trạng thái chỉ duy trì tại
+[screen-fields.md](../../docs/reference/screen-fields.md); bố cục, token và flow tham khảo
+[design.md](../../docs/reference/design.md).
 
-> Mockup đã chuyển vào bản backup (`D:\CLHSK\learning-service\docs\mockup\`).
-> Design token ở `docs/reference/design.md` §6.
+Tình trạng file nguồn ngày 2026-10-09: đã đọc khi bắt đầu đồng bộ nhưng hiện không
+còn ở đường dẫn ban đầu; xem ghi chú tại design.md §5. Không dùng mockup lịch sử
+thay inventory hoặc tự tái tạo artifact đã duyệt.
+
+| Screen ID | Tên canonical | Yêu cầu liên quan |
+|---|---|---|
+| SCR-002 | Sign In | FR-014–FR-030; màn đăng nhập riêng |
+| SCR-003 | Register | FR-001–FR-008; màn đăng ký riêng |
+| SCR-004 | Verify Email | FR-009–FR-013, FR-087–FR-088 |
+| SCR-005 | Forgot Password | FR-038–FR-041 |
+| SCR-006 | Reset Password | FR-039–FR-042 |
+| SCR-007 | User Profile | FR-051–FR-054; thông tin cá nhân có màn riêng |
+| SCR-008 | Change Password | FR-043–FR-045 |
+| SCR-009 | Study Reminder Settings | FR-051, FR-055; cấu hình nhắc học có màn riêng |
+| SCR-030 | Plan & Credits | FR-067–FR-075; xem gói, quota, số dư và nhập mã CREDIT/SUBSCRIPTION; thao tác ghi cần CSRF |
+| SCR-031 | Transaction History | UC-098; lịch sử giao dịch của chính người dùng |
+| SCR-073 | Card Batch Management | FR-076–FR-082b; chỉ `FINANCE_ADMIN`, mã thô chỉ trả một lần |
+| SCR-074 | Plan Management | Định nghĩa gói được phép; chỉ `FINANCE_ADMIN`, bảo toàn quyền đã cấp |
+| SCR-075 | Credit Ledger | UC-100, UC-102; chỉ `FINANCE_ADMIN`, đối soát và tranh chấp tham chiếu xử lý trong màn này |
+| SCR-076 | User List | Danh sách tài khoản cho `SUPER_ADMIN`, thông tin cá nhân được mask |
+| SCR-077 | User Detail | FR-062–FR-066; cấp/thu hồi role trong chi tiết tài khoản; lịch sử đăng nhập FR-056–FR-057 là phần mở rộng V2 trong màn này |
+| SCR-078 | System Settings | UC-116; màn đã có trong inventory, triển khai Deferred đến khi chốt danh sách cấu hình và nơi lưu |
+| SCR-079 | Access Denied | FR-060; giải thích quyền truy cập bị từ chối và quay về khu vực được phép |
+
+Frontend `cnhsk-web` chưa tồn tại; chưa xác nhận route triển khai hoặc tên file mockup
+cho các ID này. Các URL minh họa trong FR không phải bằng chứng route frontend đã có.
 
 **Ba trạng thái bắt buộc** mỗi màn có dữ liệu động: Empty · Loading · Error,
 text tiếng Việt có dấu.

@@ -1344,7 +1344,7 @@ CNHSK chỉ hiển thị thông tin giới thiệu và liên kết ra trang bên
 
 ## Kích hoạt
 
-`GUEST` hoặc `USER` mở trang tài nguyên và chọn nhóm YouTube hoặc podcast.
+`GUEST` hoặc `USER` mở SCR-053 YouTube & Podcasts và chọn nhóm YouTube hoặc podcast.
 
 ## Tiền điều kiện
 
@@ -1362,7 +1362,7 @@ Không yêu cầu đăng nhập.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `GUEST` / `USER` | Mở trang “Tài nguyên”. |
+| 1 | `GUEST` / `USER` | Mở SCR-053 YouTube & Podcasts. |
 | 2 | `GUEST` / `USER` | Chọn loại YouTube hoặc podcast. |
 | 3 | System | Lấy các tài nguyên đã công bố đúng loại. |
 | 4 | System | Áp dụng bộ lọc HSK nếu người dùng chọn. |
@@ -1448,7 +1448,7 @@ Use Case chỉ là danh mục tham khảo. CNHSK không lưu trữ, phân phối
 
 ## Kích hoạt
 
-`GUEST` hoặc `USER` mở trang tài nguyên và chọn danh mục sách.
+`GUEST` hoặc `USER` mở SCR-054 Book Catalogue; chọn một sách để xem SCR-055 Book Detail.
 
 ## Tiền điều kiện
 
@@ -1467,13 +1467,13 @@ Không yêu cầu đăng nhập.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `GUEST` / `USER` | Mở danh mục sách. |
+| 1 | `GUEST` / `USER` | Mở SCR-054 Book Catalogue. |
 | 2 | System | Lấy các tài nguyên loại `BOOK` đang được công bố. |
 | 3 | System | Áp dụng bộ lọc HSK nếu có. |
 | 4 | System | Trả tên sách, tác giả, thông tin xuất bản có sẵn, cấp độ phù hợp, mô tả và link mua/tham khảo nếu có. |
 | 5 | Client | Hiển thị danh sách. |
-| 6 | `GUEST` / `USER` | Chọn một sách để xem thông tin chi tiết. |
-| 7 | Client | Hiển thị metadata; nếu có link ngoài thì cho phép mở link an toàn. |
+| 6 | `GUEST` / `USER` | Chọn một sách để mở SCR-055 Book Detail. |
+| 7 | Client | Hiển thị metadata tại SCR-055 Book Detail; nếu có link ngoài thì cho phép mở link an toàn. |
 
 ## Luồng thay thế
 

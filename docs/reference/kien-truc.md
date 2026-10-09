@@ -14,8 +14,30 @@
 Sơ đồ ở mục 1 và ba bảng đối chiếu bên dưới **vẫn vẽ 3 schema** — chưa sửa vì việc đổi
 `AC-04` của Hiến pháp cần RFC được cả nhóm duyệt (xem `database.md` §18).
 
-**Mọi thứ khác trong file này còn đúng:** ba client, cookie `Domain=cnhsk.com`, CORS hai
-tên miền, chống gian lận game, Redis sau ứng dụng.
+**Các quyết định kiến trúc client/backend vẫn giữ:** ba client, cookie `Domain=cnhsk.com`, CORS hai
+tên miền và Redis sau ứng dụng. Ví dụ cũ về route, thời lượng token và kết quả game không
+được dùng để tự chốt UI/contract; UI hiện hành theo inventory FINAL và Open Issues bên dưới.
+
+## Frontend / navigation hiện hành — 79 màn FINAL
+
+Screen List (`docs/generated/cnhsk-screen-list.docx`) giữ đúng SCR-001–SCR-079, tên, Feature và mô tả; Screen Flow (`docs/generated/cnhsk-screen-flow.png`) giữ public/private, role entry, grouping và điều hướng chính. [design.md §5](design.md#5-canonical-ui-structure--79-screens) định nghĩa IA và ghi tình trạng artifact nguồn đã đọc nhưng hiện chưa có tại đường dẫn ban đầu; [screen-fields.md](screen-fields.md) chứa đặc tả từng màn. Đây là thay đổi cấu trúc tài liệu UI, không thay kiến trúc backend/schema.
+
+| Client / khu | UI ownership |
+|---|---|
+| Web chính | Public/auth SCR-001–SCR-006; account/learner SCR-007–SCR-023; dictionary và USER services; community/public resources; teacher/manager/content/finance/system areas theo role |
+| Web game | Game Hub SCR-035, Game Session SCR-036; Game Leaderboard SCR-047 dùng cùng identity và public projection khi V2 được triển khai; không nhân đôi screen ID theo hostname |
+| React Native | Luồng public/learner/USER services đã duyệt theo scope; chơi cùng web game qua WebView; màn quản trị ưu tiên desktop, không tự thêm admin mobile trong MVP |
+| Shared utilities | Access Denied SCR-079; AI Assistant là panel; router/menu/dialog không phải màn riêng |
+
+Không có cnhsk-web, frontend/, backend/, route definition, navigation config, sidebar, page component hoặc frontend role guard trong repository hiện tại. Backend ở gốc với src/. Pathname trong ví dụ kiến trúc là đề xuất/documentation evidence, không chứng minh Existing Route. Tên frontend khi dựng vẫn là cnhsk-web theo ES-04. Page và route mới phải map về màn chuẩn; list/detail và attempt/result đã tách phải giữ tách.
+
+Public entry đi từ Landing vào tài nguyên công khai hoặc Sign In/Register. Đăng nhập đi vào khu của role được gán; USER tới Learning Dashboard SCR-010, TEACHER tới SCR-056/SCR-058, MANAGER tới SCR-060/SCR-062, CONTENT_ADMIN tới SCR-058/SCR-064–SCR-072, FINANCE_ADMIN tới SCR-073–SCR-075, SUPER_ADMIN tới SCR-076–SCR-078. Role Navigation trong flow là điểm điều phối, không là dashboard mới. Không mặc nhiên cho role quản trị quyền USER hoặc quyền quản trị khác; tài khoản nhiều role có các menu tương ứng.
+
+AI Review Queue SCR-058 và Question Edit SCR-059 được TEACHER/CONTENT_ADMIN dùng chung theo quyền tương ứng. Question Bank SCR-064 không thành bản sao editor. Account tách User Profile SCR-007, Change Password SCR-008 và Study Reminder Settings SCR-009. Dictionary Search/Detail SCR-024/SCR-025 tách Translation SCR-026. Plan & Credits SCR-030 tách Transaction History SCR-031; teacher grading tách submission/list/detail SCR-032–SCR-034 và queue/workspace SCR-056/SCR-057. Import tách upload/preview/confirm SCR-068 và Import Report SCR-069; không tự duyệt parser/schema khi vẽ UI.
+
+Public resources theo canonical flow có dictionary, public decks, reference catalogue, community reading, rankings và contest information. USER actions cần đăng nhập và đúng role; guest mở Game Leaderboard public không bị guard chơi game áp nhầm. Game Hub/Session vẫn gọi /api/auth/me và kiểm quyền trước khi chơi. Thiếu phiên tới SCR-002, thiếu quyền tới SCR-079; thiếu entitlement tới SCR-030. Không checkout, không hiển thị secret; kết quả game được xác nhận và hiển thị trong SCR-036, SCR-047 dành cho bảng hạng khi feature V2 khả dụng.
+
+Các ví dụ code backend, cookie, CSRF, Redis và chống gian lận dưới đây giữ phạm vi kiến trúc. Khi khác với UC mới về response, timeout, mastery, điểm hoặc permission, dùng Open Issues của màn liên quan để chốt contract; không coi ví dụ cũ là sự phê duyệt hành vi. Artifact screen-flow cũ ở reference/screen-flow/ chỉ còn giá trị lịch sử.
 
 ## Thay đổi duy nhất
 

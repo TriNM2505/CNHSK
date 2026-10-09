@@ -1,32 +1,19 @@
-# Screen flow — CNHSK
+# Screen flow lịch sử — CNHSK
 
-Ảnh render từ `design.md` §5.4. **Nguồn sự thật là `design.md`**, không phải thư
-mục này — sửa sơ đồ thì sửa ở `design.md` rồi render lại.
+**Trạng thái: HISTORICAL / OBSOLETE UI MODEL.** Các file .mmd và PNG trong thư mục này lưu mô hình màn trước đây, không phải inventory hoặc navigation hiện hành. Không dùng chúng để dựng mockup, đếm màn, gán role hoặc khôi phục page gộp.
 
-Phủ đủ **32/32 màn** của bảng `design.md` §5.1–5.3.
+**Canonical Screen Inventory: 79 screens · FINAL.** Dùng Screen List đã duyệt (`docs/generated/cnhsk-screen-list.docx`) cho ID/tên/Feature/Description và Screen Flow đã duyệt (`docs/generated/cnhsk-screen-flow.png`) cho public/private, role entry, grouping và điều hướng. Chi tiết nằm duy nhất tại [screen-fields.md](../screen-fields.md); IA, design patterns và tình trạng artifact nguồn ở [design.md §5](../design.md#5-canonical-ui-structure--79-screens).
 
-| # | Sơ đồ | Nội dung |
-|---|---|---|
-| 1 | [01-toan-canh.png](01-toan-canh.png) | Vào hệ thống, phân nhánh theo actor |
-| 2 | [02-hoc-vien.png](02-hoc-vien.png) | Học, ôn, luyện |
-| 3 | [03-luyen-thi.png](03-luyen-thi.png) | Làm bài → chấm → sửa điểm yếu |
-| 4 | [04-game.png](04-game.png) | Web game và mobile WebView |
-| 5 | [05-cong-dong.png](05-cong-dong.png) | Cộng đồng · V2 |
-| 6 | [06-quan-tri.png](06-quan-tri.png) | 8 màn admin tách theo 4 role |
-| 7 | [07-chuyen-huong-he-thong.png](07-chuyen-huong-he-thong.png) | Token, role, hạn mức — áp cho mọi màn |
+## Tài liệu lịch sử được giữ lại
 
-Quy ước trong sơ đồ: nét liền là điều hướng do người dùng bấm · nét đứt là
-chuyển hướng do hệ thống (guard, redirect, hết hạn) · nhãn `V2` là màn ngoài
-phạm vi MVP.
+| Sơ đồ cũ | Nội dung lịch sử |
+|---|---|
+| [01-toan-canh.png](01-toan-canh.png) | Entry và phân nhánh actor của mô hình trước đây |
+| [02-hoc-vien.png](02-hoc-vien.png) | Luồng học/ôn/luyện trước khi tách các màn mới |
+| [03-luyen-thi.png](03-luyen-thi.png) | Flow luyện thi và nhờ chấm trước đây |
+| [04-game.png](04-game.png) | Ví dụ web game / mobile WebView cũ |
+| [05-cong-dong.png](05-cong-dong.png) | Nhóm cộng đồng cũ |
+| [06-quan-tri.png](06-quan-tri.png) | Các trang quản trị gộp của mô hình trước đây |
+| [07-chuyen-huong-he-thong.png](07-chuyen-huong-he-thong.png) | Guard/redirect/hạn mức minh họa cũ |
 
-Sơ đồ 7 áp cho **toàn bộ** màn authenticated, nên đọc kèm với 6 sơ đồ còn lại.
-
-## Render lại
-
-```bash
-npm install @mermaid-js/mermaid-cli
-npx mmdc -i 01-toan-canh.mmd -o 01-toan-canh.png -b white -s 2
-```
-
-File `.mmd` trong thư mục này là bản tách ra từ `design.md` để render. Khi
-`design.md` §5.4 đổi, tách lại rồi render lại — đừng sửa trực tiếp `.mmd`.
+Các file .mmd là source của ảnh lịch sử cùng tên. Giữ nguyên để tham chiếu quá trình thiết kế; không render lại rồi trình bày như flow FINAL. Đợt đồng bộ tài liệu không chỉnh Screen List/Screen Flow đã duyệt trong docs/generated và không tạo bộ đặc tả màn song song.

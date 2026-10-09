@@ -113,6 +113,12 @@ thông báo mobile → chấm thuê. **Không cắt lõi:** học tập, thi, ma
 
 Đã kiểm tài liệu chính thức. Phải dùng cách dán nhiều dòng hoặc script gọi API.
 
+## UI structure hiện hành
+
+**79 màn FINAL**, SCR-001–SCR-079. Nguồn ID/tên/Feature/Description: `docs/generated/cnhsk-screen-list.docx`; nguồn grouping/public-private/role navigation: `docs/generated/cnhsk-screen-flow.png`. Chi tiết UI duy nhất: `docs/reference/screen-fields.md`; design system/IA: `docs/reference/design.md`. Không tính router hoặc AI Assistant panel thành màn, không gộp các màn đã tách, không suy ra quyền USER từ role quản trị.
+
+Frontend chưa tồn tại; route/page/menu/guard chưa xác nhận. Mockup cũ và `docs/reference/screen-flow/` chỉ là lịch sử. Khi dựng frontend `cnhsk-web`, map về inventory 79 màn và giữ Question Edit SCR-059 là một màn chung.
+
 ## Cấu trúc thư mục
 
 ```

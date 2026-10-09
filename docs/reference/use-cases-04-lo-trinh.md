@@ -396,7 +396,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở trang "Lộ trình" |
+| 1 | `USER` | Mở cây lộ trình trong SCR-011 — Topic List; đây là vùng trong màn, không phải trang riêng |
 | 2 | System | `GET /api/learning-path/tree` |
 | 3 | System | Lấy toàn bộ `topics` + quan hệ tiên quyết |
 | 4 | System | Lấy `user_topic_progress` của người đang đăng nhập |
@@ -1049,14 +1049,14 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở trang **Tiến độ của tôi** |
+| 1 | `USER` | Mở SCR-019 — Learning Progress (tiến độ cá nhân) |
 | 2 | System | Xác định tài khoản hiện tại từ authentication context `GET /api/me/progress` |
 | 3 | System | Đếm `study_sessions` theo ngày → tính `current_streak`, `longest_streak` |
 | 4 | System | Đếm `user_knowledge_state` `mastery ≥ 0.9` theo loại (từ/chữ/ngữ pháp) |
 | 5 | System | Lấy `attempts` đã `SUBMITTED`, sắp theo thời gian → chuỗi điểm thi |
 | 6 | System | Lấy tiến độ của các chủ đề từ dữ liệu progression hiện hành. Lấy `user_topic_progress` → % từng chủ đề |
 | 7 | System | Trả gói dữ liệu tổng hợp |
-| 8 | Client | Hiển thị dashboard phù hợp với kích thước màn hình |
+| 8 | Client | Hiển thị các vùng thống kê của SCR-019 — Learning Progress phù hợp với kích thước màn hình |
 
 ## Luồng thay thế
 

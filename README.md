@@ -31,10 +31,14 @@ Nền tảng học tiếng Trung và luyện thi HSK cho người Việt, có l�
 | File | Nội dung |
 |---|---|
 `use-cases-01..08.md` | **119 use case · 714 business rule**, 8 nhóm |
-`design.md` | Design token · component inventory · 32 màn · **screen flow 7 sơ đồ** |
-`screen-fields.md` | **Field từng màn** — kiểu, validate, API, mã lỗi (RP3 §3) |
+[`design.md`](docs/reference/design.md) | Design token · component inventory · cấu trúc UI FINAL **79 màn** · phân nhóm/điều hướng theo flow đã duyệt |
+[`screen-fields.md`](docs/reference/screen-fields.md) | Đặc tả UI chi tiết **SCR-001–SCR-079**: field, action, validation, role và mockup readiness (RP3 §3) |
 `wbs-estimate.md` | 66 đầu việc, ước lượng PERT 3 điểm |
 
+> **Inventory UI hiện hành: 79 màn, FINAL.** Nguồn chuẩn tắc: Screen List tại `docs/generated/cnhsk-screen-list.docx` và Screen Flow tại `docs/generated/cnhsk-screen-flow.png`; giữ nguyên artifact đã duyệt. Các sơ đồ ở `docs/reference/screen-flow/` là lịch sử, không dùng làm cấu trúc UI hiện hành.
+>
+> **Tình trạng nguồn ngày 2026-10-09:** hai artifact đã được đọc khi bắt đầu đồng bộ nhưng hiện không còn tại đường dẫn trên; chưa xác nhận vị trí mới. Đặc tả giữ nguyên inventory đã đọc và danh sách 79 màn được chủ dự án xác nhận. Cần đối chiếu lại file nguồn khi có đường dẫn; không tái tạo hoặc thay thế artifact.
+>
 > Mỗi tài liệu là **một bản final** — không có số version trong tên file.
 
 ---

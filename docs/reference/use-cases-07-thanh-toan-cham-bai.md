@@ -108,7 +108,7 @@ Số lượt trong gói/quota và số dư điểm là hai nguồn sử dụng k
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở phần thông tin gói dịch vụ và số dư trong trang tài khoản. |
+| 1 | `USER` | Mở SCR-030 Plan & Credits để xem thông tin gói dịch vụ và số dư. |
 | 2 | Client | Gửi yêu cầu lấy thông tin gói/quota và số dư bằng phiên hiện tại. |
 | 3 | System | Xác định người dùng từ phiên đăng nhập; không dùng `user_id` do client tự chọn. |
 | 4 | System | Xác định gói đang có hiệu lực tại thời điểm kiểm tra. Nếu gói trả phí đã hết hạn, áp dụng quyền FREE. |
@@ -705,7 +705,7 @@ Người dùng xem lịch sử các giao dịch điểm thuộc tài khoản c�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở trang “Lịch sử giao dịch”. |
+| 1 | `USER` | Mở SCR-031 Transaction History — “Lịch sử giao dịch”. |
 | 2 | Client | Gửi yêu cầu danh sách với tham số phân trang và bộ lọc loại giao dịch nếu có. |
 | 3 | System | Xác định người dùng từ phiên đăng nhập và kiểm tra tham số. |
 | 4 | System | Lấy các giao dịch chỉ thuộc tài khoản đó. |

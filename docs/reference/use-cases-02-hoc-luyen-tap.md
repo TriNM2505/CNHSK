@@ -1057,7 +1057,7 @@ Không đổi dữ liệu — use case chỉ đọc. Nhưng phải trả % **tí
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở trang "Học từ vựng" |
+| 1 | `USER` | Mở SCR-011 — Topic List (danh sách chủ đề từ vựng) |
 | 2 | System | `GET /api/topics` |
 | 3 | System | Với mỗi chủ đề: đọc `user_topic_progress` lấy % hoàn thành |
 | 4 | System | Xác định trạng thái: `LOCKED` · `AVAILABLE` · `IN_PROGRESS` · `COMPLETED` |
