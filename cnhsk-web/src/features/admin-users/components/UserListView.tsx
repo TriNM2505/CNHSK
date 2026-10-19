@@ -16,12 +16,9 @@ import {
 } from '@/shared/ui'
 
 import { ROLE_LABELS, ROLE_OPTIONS, USER_STATUS_LABELS } from '../labels'
+import { formatAdminUserDate } from '../formatters'
 import type { AdminUserListQuery } from '../userListQuery'
-import {
-  ADMIN_USER_PAGE_SIZE,
-  formatAdminUserCreatedAt,
-  hasAdminUserFilters,
-} from '../userListQuery'
+import { ADMIN_USER_PAGE_SIZE, hasAdminUserFilters } from '../userListQuery'
 import type { AdminUserPage, AdminUserSummary, UserStatus } from '../types'
 
 export type UserListViewState = 'loading' | 'empty' | 'error' | 'ready'
@@ -89,9 +86,7 @@ const columns: readonly DataTableColumn<AdminUserSummary>[] = [
   {
     header: 'Ngày tạo',
     id: 'createdAt',
-    render: (user) => (
-      <time dateTime={user.createdAt}>{formatAdminUserCreatedAt(user.createdAt)}</time>
-    ),
+    render: (user) => <time dateTime={user.createdAt}>{formatAdminUserDate(user.createdAt)}</time>,
   },
 ]
 

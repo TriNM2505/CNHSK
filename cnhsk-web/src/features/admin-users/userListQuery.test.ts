@@ -1,10 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  formatAdminUserCreatedAt,
-  parseAdminUserSearchParams,
-  toAdminUserSearchParams,
-} from './userListQuery'
+import { parseAdminUserSearchParams, toAdminUserSearchParams } from './userListQuery'
 
 describe('admin user list URL query', () => {
   it.each([
@@ -37,9 +33,5 @@ describe('admin user list URL query', () => {
     )
 
     expect(params.toString()).toBe('source=menu&q=minh&role=ADMIN&status=BANNED&page=1')
-  })
-
-  it('định dạng ngày theo múi giờ Asia/Ho_Chi_Minh, không phụ thuộc múi giờ máy chạy test', () => {
-    expect(formatAdminUserCreatedAt('2026-10-19T17:30:00Z')).toBe('20/10/26')
   })
 })

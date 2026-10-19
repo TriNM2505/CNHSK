@@ -25,3 +25,29 @@ export interface AdminUserListParams {
   size: number
   status?: UserStatus
 }
+
+export interface AdminUserRoleDetail {
+  code: RoleCode
+  grantedBy: number | null
+  grantedAt: string
+}
+
+export interface AdminUserDetail {
+  id: number
+  email: string
+  displayName: string
+  roles: AdminUserRoleDetail[]
+  status: UserStatus
+  bannedAt?: string | null
+  banReason?: string | null
+  emailVerifiedAt?: string | null
+  createdAt: string
+}
+
+export interface GrantRoleRequest {
+  roleCode: RoleCode
+}
+
+export interface BanRequest {
+  reason: string
+}

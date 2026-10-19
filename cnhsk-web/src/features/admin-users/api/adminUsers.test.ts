@@ -2,7 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiRequest } from '@/shared/api'
 
-import { getAdminUsers } from './adminUsers'
+import {
+  banAdminUser,
+  getAdminUserDetail,
+  getAdminUsers,
+  grantAdminUserRole,
+  revokeAdminUserRole,
+  unbanAdminUser,
+} from './adminUsers'
 
 vi.mock('@/shared/api', () => ({ apiRequest: vi.fn() }))
 
@@ -51,6 +58,48 @@ describe('admin users API', () => {
 
     expect(apiRequestMock).toHaveBeenCalledWith('/api/admin/users?page=0&size=20', {
       signal: undefined,
+    })
+  })
+
+  it('gọi GET chi tiết với signal và không đưa dữ liệu nhạy cảm vào nơi khác', async () => {
+    const response = {
+      createdAt: '2026-10-19T17:30:00Z',
+      displayName: 'Minh Anh',
+      email: 'minh.anh@example.com',
+      id: 12,
+      roles: [],
+      status: 'ACTIVE' as const,
+    }
+    const controller = new AbortController()
+    apiRequestMock.mockResolvedValue(response)
+
+    await expect(getAdminUserDetail(12, controller.signal)).resolves.toBe(response)
+    expect(apiRequestMock).toHaveBeenCalledWith('/api/admin/users/12', {
+      signal: controller.signal,
+    })
+  })
+
+  it('gọi đúng các endpoint thay đổi trả 204 của OpenAPI', async () => {
+    apiRequestMock.mockResolvedValue(undefined)
+
+    await grantAdminUserRole(12, { roleCode: 'TEACHER' })
+    await revokeAdminUserRole(12, 'CONTENT_EDITOR')
+    await banAdminUser(12, { reason: 'Vi phạm điều khoản' })
+    await unbanAdminUser(12)
+
+    expect(apiRequestMock).toHaveBeenNthCalledWith(1, '/api/admin/users/12/roles', {
+      body: { roleCode: 'TEACHER' },
+      method: 'POST',
+    })
+    expect(apiRequestMock).toHaveBeenNthCalledWith(2, '/api/admin/users/12/roles/CONTENT_EDITOR', {
+      method: 'DELETE',
+    })
+    expect(apiRequestMock).toHaveBeenNthCalledWith(3, '/api/admin/users/12/ban', {
+      body: { reason: 'Vi phạm điều khoản' },
+      method: 'POST',
+    })
+    expect(apiRequestMock).toHaveBeenNthCalledWith(4, '/api/admin/users/12/ban', {
+      method: 'DELETE',
     })
   })
 })

@@ -94,6 +94,14 @@ describe('application routes', () => {
     expect(await screen.findByRole('heading', { name: 'Quản lý tài khoản' })).toBeVisible()
   })
 
+  it('allows an administrator to open the real user detail screen', async () => {
+    getCurrentUserMock.mockResolvedValue(admin)
+    renderRoute('/admin/users/12')
+
+    expect(await screen.findByRole('heading', { name: 'Chi tiết tài khoản' })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Màn SCR-077 đang dựng' })).not.toBeInTheDocument()
+  })
+
   it('does not infer LEARNER access from the ADMIN role', async () => {
     getCurrentUserMock.mockResolvedValue(admin)
     renderRoute('/me/profile')

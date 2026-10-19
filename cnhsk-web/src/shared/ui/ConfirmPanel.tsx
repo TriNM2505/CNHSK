@@ -11,6 +11,7 @@ export interface ConfirmPanelProps {
   onCancel: () => void
   onConfirm: () => void
   open: boolean
+  pending?: boolean
   title: ReactNode
 }
 
@@ -31,13 +32,16 @@ export function ConfirmPanel({
   onCancel,
   onConfirm,
   open,
+  pending = false,
   title,
 }: ConfirmPanelProps) {
   const titleId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
   const cancelHandlerRef = useRef(onCancel)
+  const pendingRef = useRef(pending)
 
   cancelHandlerRef.current = onCancel
+  pendingRef.current = pending
 
   useEffect(() => {
     if (!open) {
@@ -52,7 +56,7 @@ export function ConfirmPanel({
     const handleKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        cancelHandlerRef.current()
+        if (!pendingRef.current) cancelHandlerRef.current()
         return
       }
 
@@ -110,11 +114,11 @@ export function ConfirmPanel({
         </h2>
         <div className="mt-2 text-body text-ink-secondary">{message}</div>
         <div className="mt-6 flex flex-wrap justify-end gap-2">
-          <Button onClick={onCancel} variant="outline">
+          <Button disabled={pending} onClick={onCancel} variant="outline">
             {cancelLabel}
           </Button>
-          <Button onClick={onConfirm} variant={danger ? 'danger' : 'primary'}>
-            {confirmLabel}
+          <Button loading={pending} onClick={onConfirm} variant={danger ? 'danger' : 'primary'}>
+            {pending ? 'Đang xử lý' : confirmLabel}
           </Button>
         </div>
       </div>

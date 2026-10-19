@@ -76,12 +76,3 @@ export function parseAdminUserSearchParams(searchParams: URLSearchParams): {
 export function hasAdminUserFilters(query: AdminUserListQuery): boolean {
   return Boolean(query.q || query.role || query.status)
 }
-
-const createdAtFormatter = new Intl.DateTimeFormat('vi-VN', {
-  dateStyle: 'short',
-  timeZone: 'Asia/Ho_Chi_Minh',
-})
-
-export function formatAdminUserCreatedAt(value: string): string {
-  return createdAtFormatter.format(new Date(value))
-}
