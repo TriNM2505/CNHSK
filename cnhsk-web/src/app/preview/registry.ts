@@ -31,6 +31,14 @@ import {
   LearnerLayoutGallery,
   PublicLayoutGallery,
 } from '@/app/preview/layoutGalleries'
+import {
+  AudioButtonGallery,
+  ChoiceQuestionGallery,
+  PinyinInputGallery,
+  SessionProgressGallery,
+  SessionSummaryGallery,
+  StudyCardGallery,
+} from '@/app/preview/practiceGalleries'
 
 export type PreviewState = 'loading' | 'empty' | 'error' | 'ready'
 
@@ -209,6 +217,42 @@ export const previewRegistry: readonly PreviewEntry[] = [
     id: 'layout-admin',
     render: () => createElement(AdminLayoutGallery),
     title: 'AdminLayout',
+  },
+  {
+    group: 'component',
+    id: 'practice-choice-question',
+    render: () => createElement(ChoiceQuestionGallery),
+    title: 'ChoiceQuestion',
+  },
+  {
+    group: 'component',
+    id: 'practice-pinyin-input',
+    render: () => createElement(PinyinInputGallery),
+    title: 'PinyinInput',
+  },
+  {
+    group: 'component',
+    id: 'practice-audio-button',
+    render: () => createElement(AudioButtonGallery),
+    title: 'AudioButton',
+  },
+  {
+    group: 'component',
+    id: 'practice-study-card',
+    render: () => createElement(StudyCardGallery),
+    title: 'StudyCard',
+  },
+  {
+    group: 'component',
+    id: 'practice-session-progress',
+    render: () => createElement(SessionProgressGallery),
+    title: 'SessionProgress',
+  },
+  {
+    group: 'component',
+    id: 'practice-session-summary',
+    render: () => createElement(SessionSummaryGallery),
+    title: 'SessionSummary',
   },
 ]
 
