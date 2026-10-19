@@ -58,4 +58,22 @@ describe('AudioButton', () => {
       'Không tải được âm thanh. Bạn có thể bấm “Không nghe được” để tiếp tục.',
     )
   })
+
+  it('starts from initialReplayCount and only allows the remaining plays', async () => {
+    const user = userEvent.setup()
+    playMock.mockResolvedValue(undefined)
+    render(
+      <AudioButton
+        audioUrl="/audio/ni-hao.mp3"
+        initialReplayCount={2}
+        maxReplays={3}
+        onAudioFailed={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('Đã nghe 2/3 lần')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Nghe từ' }))
+
+    expect(await screen.findByRole('button', { name: 'Đã hết lượt nghe' })).toBeDisabled()
+  })
 })

@@ -8,6 +8,8 @@ import { previewLearner } from '@/shared/layout/Layout.preview'
 import { TopicListView } from './components/TopicListView'
 import { TopicPracticeStepView } from './components/TopicPracticeStepView'
 import { topicPracticePreviews } from './components/TopicPracticeStepView.preview'
+import { TopicTestStepView } from './components/TopicTestStepView'
+import { topicTestPreviews } from './components/TopicTestStepView.preview'
 import { topicListPreviews } from './components/TopicListView.preview'
 import { StudyStepView, TopicStudyView } from './components/TopicStudyView'
 import { studyStepPreviews, topicStudyPreviews } from './components/TopicStudyView.preview'
@@ -121,4 +123,44 @@ const topicPracticeEntries = practiceEntries.map(([id, title, props]) => ({
   title,
 })) satisfies readonly PreviewEntry[]
 
-export const previews = [...topicListEntries, ...topicStudyEntries, ...topicPracticeEntries]
+const testEntries = [
+  ['scr-012-test-intro', 'Học chủ đề — Bắt đầu kiểm tra', topicTestPreviews.intro],
+  ['scr-012-test-choice', 'Học chủ đề — Câu chọn nghĩa', topicTestPreviews.ready],
+  ['scr-012-test-pinyin', 'Học chủ đề — Câu gõ pinyin', topicTestPreviews.pinyin],
+  ['scr-012-test-cloze', 'Học chủ đề — Câu điền chữ', topicTestPreviews.cloze],
+  ['scr-012-test-confirm', 'Học chủ đề — Xác nhận nộp bài', topicTestPreviews.confirm],
+  ['scr-012-test-not-enough', 'Học chủ đề — Chưa đủ từ để thi', topicTestPreviews.notEnough],
+  ['scr-012-test-retry', 'Học chủ đề — Chờ thi lại', topicTestPreviews.retryLater],
+  ['scr-012-test-expired', 'Học chủ đề — Bài kiểm tra hết hạn', topicTestPreviews.expired],
+  ['scr-012-test-failed', 'Học chủ đề — Kết quả chưa đạt', topicTestPreviews.finished],
+  ['scr-012-test-passed', 'Học chủ đề — Kết quả đạt', topicTestPreviews.passed],
+] as const
+
+const topicTestEntries = testEntries.map(([id, title, props]) => ({
+  fullFrame: true,
+  group: 'screen' as const,
+  id,
+  render: () =>
+    createElement(
+      AuthContext.Provider,
+      { value: learnerAuth },
+      createElement(
+        LearnerLayout,
+        null,
+        createElement(TopicStudyView, {
+          ...topicStudyPreviews.ready,
+          activeStep: 'test',
+          stepPanel: createElement(TopicTestStepView, props),
+        }),
+      ),
+    ),
+  scr: 'SCR-012',
+  title,
+})) satisfies readonly PreviewEntry[]
+
+export const previews = [
+  ...topicListEntries,
+  ...topicStudyEntries,
+  ...topicPracticeEntries,
+  ...topicTestEntries,
+]

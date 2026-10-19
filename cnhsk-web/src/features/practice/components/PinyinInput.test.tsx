@@ -16,4 +16,15 @@ describe('PinyinInput', () => {
 
     expect(onSubmit).toHaveBeenCalledWith('ni3 hao3')
   })
+
+  it('reports every change through onChange', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<PinyinInput onChange={onChange} onSubmit={vi.fn()} prompt="你好" />)
+
+    await user.type(screen.getByRole('textbox', { name: 'Pinyin' }), 'ni3')
+
+    expect(onChange).toHaveBeenLastCalledWith('ni3')
+    expect(onChange).toHaveBeenCalledTimes(3)
+  })
 })

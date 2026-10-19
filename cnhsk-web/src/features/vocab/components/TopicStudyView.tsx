@@ -272,17 +272,14 @@ export function TopicStudyView({
             <h2 className="mb-4 text-h2 text-ink" id="topic-step-title">
               {STEP_LABELS[activeStep]}
             </h2>
-            {getTopicStepBlockedReason(topic, activeStep) ? (
-              <EmptyState
-                description={getTopicStepBlockedReason(topic, activeStep)}
-                icon={<LockKeyhole aria-hidden="true" className="size-5" />}
-                title="Bước này đang bị khoá"
-              />
-            ) : activeStep === 'study' ? (
-              studyPanel
-            ) : (
-              stepPanel
-            )}
+            {(activeStep === 'study' ? studyPanel : stepPanel) ??
+              (getTopicStepBlockedReason(topic, activeStep) ? (
+                <EmptyState
+                  description={getTopicStepBlockedReason(topic, activeStep)}
+                  icon={<LockKeyhole aria-hidden="true" className="size-5" />}
+                  title="Bước này đang bị khoá"
+                />
+              ) : null)}
           </section>
         </div>
       ) : null}

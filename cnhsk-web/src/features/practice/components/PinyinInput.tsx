@@ -8,6 +8,8 @@ export interface PinyinInputProps {
   initialValue?: string | null
   disabled?: boolean
   pending?: boolean
+  /** Gọi mỗi lần nội dung ô thay đổi (vd lưu nháp có debounce). */
+  onChange?: (value: string) => void
   onSubmit: (answer: string) => Promise<unknown> | unknown
 }
 
@@ -17,6 +19,7 @@ export function PinyinInput({
   initialValue,
   disabled = false,
   pending = false,
+  onChange,
   onSubmit,
 }: PinyinInputProps) {
   const [answer, setAnswer] = useState(initialValue ?? '')
@@ -43,7 +46,10 @@ export function PinyinInput({
           autoComplete="off"
           disabled={disabled || pending}
           id="practice-pinyin-answer"
-          onChange={(event) => setAnswer(event.target.value)}
+          onChange={(event) => {
+            setAnswer(event.target.value)
+            onChange?.(event.target.value)
+          }}
           placeholder="ni3 hao3"
           value={answer}
         />

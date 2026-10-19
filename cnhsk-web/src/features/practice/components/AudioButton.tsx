@@ -12,6 +12,8 @@ export interface AudioButtonProps {
   audioUrl: string
   maxReplays: number
   disabled?: boolean
+  /** Số lần đã nghe trước đó của câu này (vd quay lại câu trong bài kiểm tra). */
+  initialReplayCount?: number
   onAudioFailed: (payload: AudioFailurePayload) => Promise<unknown> | unknown
   onReplayCountChange?: (replayCount: number) => void
 }
@@ -20,14 +22,16 @@ export function AudioButton({
   audioUrl,
   maxReplays,
   disabled = false,
+  initialReplayCount = 0,
   onAudioFailed,
   onReplayCountChange,
 }: AudioButtonProps) {
   const audioRef = useRef<HTMLAudioElement>(null)
   const onReplayCountChangeRef = useRef(onReplayCountChange)
-  const replayCountRef = useRef(0)
+  const startCount = Math.min(Math.max(0, initialReplayCount), Math.max(0, maxReplays))
+  const replayCountRef = useRef(startCount)
   const playingRef = useRef(false)
-  const [replayCount, setReplayCount] = useState(0)
+  const [replayCount, setReplayCount] = useState(startCount)
   const [playing, setPlaying] = useState(false)
   const [loadError, setLoadError] = useState(false)
   const safeMaximum = Math.max(0, maxReplays)
@@ -36,13 +40,13 @@ export function AudioButton({
   onReplayCountChangeRef.current = onReplayCountChange
 
   useEffect(() => {
-    replayCountRef.current = 0
+    replayCountRef.current = startCount
     playingRef.current = false
-    setReplayCount(0)
+    setReplayCount(startCount)
     setPlaying(false)
     setLoadError(false)
-    onReplayCountChangeRef.current?.(0)
-  }, [audioUrl, maxReplays])
+    onReplayCountChangeRef.current?.(startCount)
+  }, [audioUrl, maxReplays, startCount])
 
   const play = async () => {
     if (

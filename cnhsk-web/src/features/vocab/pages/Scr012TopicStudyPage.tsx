@@ -12,6 +12,7 @@ import { useApiQuery } from '@/shared/api'
 import { getTopic, startTopicStudySession } from '../api/topics'
 import { StudyStepView, TopicStudyView } from '../components/TopicStudyView'
 import {
+  getTopicStepBlockedReason,
   isTopicNotFound,
   parseTopicStep,
   practiceErrorMessage,
@@ -21,6 +22,7 @@ import {
 import type { TopicDetail } from '../types'
 import type { StartTopicStudyResult } from '../types'
 import { TopicPracticeController } from './TopicPracticeController'
+import { TopicTestController } from './TopicTestController'
 
 const DUPLICATE_ERROR_CODES = new Set(['ANSWER_ALREADY_SUBMITTED', 'SESSION_ALREADY_SUBMITTED'])
 const RESTART_ERROR_CODES = new Set(['SESSION_EXPIRED', 'SESSION_NOT_FOUND', 'ATTEMPT_NOT_OWNED'])
@@ -240,6 +242,15 @@ function TopicStudyPageContent({
 }) {
   const topicQuery = useApiQuery((signal) => getTopic(topicId, signal), [topicId])
   const topic = topicQuery.data
+  const stepAllowed = Boolean(topic && !getTopicStepBlockedReason(topic, activeStep))
+  // Học/nộp xong thì chủ đề được tải lại và bước có thể bị khoá (hết từ mới, chờ thi lại).
+  // Giữ panel của bước đang mở để người học vẫn thấy kết quả cho tới khi rời bước.
+  const [stickyStep, setStickyStep] = useState<TopicStep>()
+  useEffect(() => {
+    if (stepAllowed) setStickyStep(activeStep)
+    else setStickyStep((current) => (current === activeStep ? current : undefined))
+  }, [activeStep, stepAllowed])
+  const showPanel = stepAllowed || stickyStep === activeStep
   const state = topic
     ? 'ready'
     : isTopicNotFound(topicQuery.error)
@@ -255,14 +266,16 @@ function TopicStudyPageContent({
       onRetry={topicQuery.reload}
       state={state}
       stepPanel={
-        topic && activeStep === 'recognition' && topic.actions.canPracticeRecognition ? (
+        topic && showPanel && activeStep === 'recognition' ? (
           <TopicPracticeController mode="RECOGNITION" topic={topic} />
-        ) : topic && activeStep === 'listening' && topic.actions.canPracticeListening ? (
+        ) : topic && showPanel && activeStep === 'listening' ? (
           <TopicPracticeController mode="LISTENING" topic={topic} />
+        ) : topic && showPanel && activeStep === 'test' ? (
+          <TopicTestController onTopicFinished={topicQuery.reload} topic={topic} />
         ) : undefined
       }
       studyPanel={
-        topic && activeStep === 'study' && topic.actions.canStudy ? (
+        topic && showPanel && activeStep === 'study' ? (
           <TopicStudyController onTopicFinished={topicQuery.reload} topic={topic} />
         ) : undefined
       }

@@ -31,3 +31,10 @@ export function startTopicPracticeSession(topicId: number, request: StartTopicPr
     { body: request, method: 'POST' },
   )
 }
+
+/** FR-031…FR-033: bắt đầu bài kiểm tra, hoặc nhận lại lượt đang làm. */
+export function startTopicTest(topicId: number) {
+  return apiRequest<SessionView>(`/api/topics/${encodeURIComponent(String(topicId))}/tests`, {
+    method: 'POST',
+  })
+}

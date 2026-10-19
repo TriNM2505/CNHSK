@@ -56,3 +56,19 @@ export type StartTopicPracticeRequest = {
   mode: TopicPracticeMode
   focusLexemeIds?: number[]
 }
+
+export type TopicWrongWord = {
+  lexemeId: number
+  meaning: string
+  pinyin?: string | null
+  text: string
+}
+
+/** Khớp schema TopicTestExtra — phần `extra` của kết quả nộp bài kiểm tra (FR-039). */
+export type TopicTestExtra = {
+  bestPercent?: number
+  firstCompletion?: boolean
+  passed?: boolean
+  topicCompleted?: boolean
+  wrongWords?: TopicWrongWord[]
+}
