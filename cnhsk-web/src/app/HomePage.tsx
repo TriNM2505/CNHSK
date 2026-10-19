@@ -1,4 +1,4 @@
-function App() {
+export function HomePage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas p-4 font-sans">
       <div className="text-center">
@@ -10,5 +10,3 @@ function App() {
     </main>
   )
 }
-
-export default App
