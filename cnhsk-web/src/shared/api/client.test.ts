@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { ApiError } from './errors'
+import { type ApiError, INVALID_RESPONSE_MESSAGE } from './errors'
 
 const API_ORIGIN = 'http://api.test'
 
@@ -265,12 +265,89 @@ describe('apiRequest', () => {
     window.removeEventListener(AUTH_EXPIRED_EVENT, listener)
   })
 
-  it('trả undefined cho phản hồi 204', async () => {
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 204 }))
+  it.each([200, 202, 204])(
+    'trả undefined cho phản hồi thành công %s có body rỗng',
+    async (status) => {
+      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status }))
+      vi.stubGlobal('fetch', fetchMock)
+      const { apiRequest } = await loadClient()
+
+      await expect(apiRequest('/api/ping')).resolves.toBeUndefined()
+    },
+  )
+
+  it('trả undefined khi phản hồi blob thành công có body rỗng', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
     const { apiRequest } = await loadClient()
 
-    await expect(apiRequest('/api/ping')).resolves.toBeUndefined()
+    await expect(apiRequest('/api/empty.csv', { responseType: 'blob' })).resolves.toBeUndefined()
+  })
+
+  it('trả nguyên nội dung khi request yêu cầu text', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response('Nội dung thuần', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { apiRequest } = await loadClient()
+
+    await expect(apiRequest('/api/plain-text', { responseType: 'text' })).resolves.toBe(
+      'Nội dung thuần',
+    )
+  })
+
+  it('giữ HTTP status và thông báo an toàn khi phản hồi lỗi có body rỗng', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 400 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const { apiRequest } = await loadClient()
+
+    await expect(apiRequest('/api/profile')).rejects.toMatchObject({
+      status: 400,
+      errorCode: 'INVALID_RESPONSE',
+      message: INVALID_RESPONSE_MESSAGE,
+    })
+  })
+
+  it('trả blob cùng tên file tiếng Việt từ Content-Disposition', async () => {
+    const csv = '\uFEFFline,column,message\n1,name,Lỗi dữ liệu'
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(csv, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/csv; charset=UTF-8',
+          'Content-Disposition':
+            "attachment; filename=errors.csv; filename*=UTF-8''danh-s%C3%A1ch-l%E1%BB%97i.csv",
+        },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { apiRequest } = await loadClient()
+
+    const result = await apiRequest('/api/admin/imports/123/errors.csv', {
+      responseType: 'blob',
+    })
+
+    if (!result) throw new Error('Thiếu nội dung file tải xuống trong test')
+    expect(result.fileName).toBe('danh-sách-lỗi.csv')
+    expect(result.blob).toBeInstanceOf(Blob)
+    expect(result.blob.size).toBeGreaterThan(0)
+    expect(fetchMock.mock.calls[0]?.[1]).not.toHaveProperty('responseType')
+  })
+
+  it('đọc lỗi JSON thành ApiError dù request yêu cầu blob', async () => {
+    const fetchMock = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(apiErrorResponse(404, 'IMPORT_RUN_NOT_FOUND'))
+    vi.stubGlobal('fetch', fetchMock)
+    const { apiRequest } = await loadClient()
+
+    await expect(
+      apiRequest('/api/admin/imports/missing/errors.csv', { responseType: 'blob' }),
+    ).rejects.toMatchObject({
+      status: 404,
+      errorCode: 'IMPORT_RUN_NOT_FOUND',
+      requestId: 'req-IMPORT_RUN_NOT_FOUND',
+    })
   })
 
   it('chuyển lỗi mạng thành thông báo tiếng Việt an toàn', async () => {

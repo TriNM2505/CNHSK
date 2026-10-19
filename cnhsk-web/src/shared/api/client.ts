@@ -13,8 +13,16 @@ export type AuthExpiredDetail = {
   banReason?: unknown
 }
 
+export type ApiResponseType = 'json' | 'blob' | 'text'
+
+export type BlobApiResponse = {
+  blob: Blob
+  fileName?: string
+}
+
 export type ApiRequestInit = Omit<RequestInit, 'body'> & {
   body?: BodyInit | object | null
+  responseType?: ApiResponseType
 }
 
 type RetryState = {
@@ -82,27 +90,77 @@ function prepareBody(body: ApiRequestInit['body'], headers: Headers): BodyInit |
   return JSON.stringify(body)
 }
 
-async function parseResponse<T>(response: Response): Promise<T> {
-  if (response.status === 204) return undefined as T
+function parseFileName(contentDisposition: string | null): string | undefined {
+  if (!contentDisposition) return undefined
 
-  let body: unknown
-  try {
-    body = await response.json()
-  } catch {
-    throw invalidResponseError(response.status)
-  }
+  const extendedMatch = /(?:^|;)\s*filename\*\s*=\s*(?:"([^"]*)"|([^;]*))/i.exec(contentDisposition)
+  const extendedValue = (extendedMatch?.[1] ?? extendedMatch?.[2])?.trim()
+  const encodedName = /^UTF-8''(.+)$/i.exec(extendedValue ?? '')?.[1]
 
-  if (!response.ok) {
-    const error = parseApiError(response.status, body)
-    if (error.status === 403 && error.errorCode === 'ACCOUNT_BANNED') {
-      dispatchAuthExpired({ reason: 'ACCOUNT_BANNED', banReason: error.extra.banReason })
+  if (encodedName) {
+    try {
+      return decodeURIComponent(encodedName)
+    } catch {
+      // Thử tên dự phòng `filename` nếu giá trị mở rộng không hợp lệ.
     }
-    throw error
   }
-  return body as T
+
+  const fallbackMatch = /(?:^|;)\s*filename\s*=\s*(?:"((?:\\.|[^"])*)"|([^;]*))/i.exec(
+    contentDisposition,
+  )
+  const fallbackName = (fallbackMatch?.[1] ?? fallbackMatch?.[2])?.trim()
+  return fallbackName?.replace(/\\"/g, '"') || undefined
 }
 
-async function fetchResponse<T>(url: string, init: RequestInit): Promise<T> {
+function parseJson(status: number, text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw invalidResponseError(status)
+  }
+}
+
+function throwApiError(response: Response, text: string): never {
+  const error =
+    text === ''
+      ? invalidResponseError(response.status)
+      : parseApiError(response.status, parseJson(response.status, text))
+  if (error.status === 403 && error.errorCode === 'ACCOUNT_BANNED') {
+    dispatchAuthExpired({ reason: 'ACCOUNT_BANNED', banReason: error.extra.banReason })
+  }
+  throw error
+}
+
+async function parseResponse<T>(response: Response, responseType: ApiResponseType): Promise<T> {
+  if (!response.ok) {
+    const text = await response.text()
+    return throwApiError(response, text)
+  }
+
+  if (response.status === 204) return undefined as T
+
+  if (responseType === 'blob') {
+    const blob = await response.blob()
+    if (blob.size === 0) return undefined as T
+
+    return {
+      blob,
+      fileName: parseFileName(response.headers.get('Content-Disposition')),
+    } as T
+  }
+
+  const text = await response.text()
+  if (text === '') return undefined as T
+  if (responseType === 'text') return text as T
+
+  return parseJson(response.status, text) as T
+}
+
+async function fetchResponse<T>(
+  url: string,
+  init: RequestInit,
+  responseType: ApiResponseType = 'json',
+): Promise<T> {
   let response: Response
   try {
     response = await fetch(url, init)
@@ -110,7 +168,7 @@ async function fetchResponse<T>(url: string, init: RequestInit): Promise<T> {
     if (error instanceof DOMException && error.name === 'AbortError') throw error
     throw networkError()
   }
-  return parseResponse<T>(response)
+  return parseResponse<T>(response, responseType)
 }
 
 async function fetchCsrfToken(force: boolean): Promise<void> {
@@ -171,6 +229,7 @@ async function requestInternal<T>(
 ): Promise<T> {
   const method = (init.method ?? 'GET').toUpperCase()
   const changesState = STATE_CHANGING_METHODS.has(method)
+  const { responseType = 'json', ...fetchInit } = init
 
   if (changesState && !readCookie(CSRF_COOKIE_NAME)) await fetchCsrfToken(false)
 
@@ -186,13 +245,17 @@ async function requestInternal<T>(
   const csrfGenerationAtSend = csrfGeneration
 
   try {
-    return await fetchResponse<T>(buildUrl(path), {
-      ...init,
-      method,
-      body,
-      headers,
-      credentials: 'include',
-    })
+    return await fetchResponse<T>(
+      buildUrl(path),
+      {
+        ...fetchInit,
+        method,
+        body,
+        headers,
+        credentials: 'include',
+      },
+      responseType,
+    )
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
 
@@ -215,6 +278,18 @@ async function requestInternal<T>(
   }
 }
 
+export function apiRequest(
+  path: string,
+  init: ApiRequestInit & { responseType: 'blob' },
+): Promise<BlobApiResponse | undefined>
+export function apiRequest(
+  path: string,
+  init: ApiRequestInit & { responseType: 'text' },
+): Promise<string | undefined>
+export function apiRequest<T>(
+  path: string,
+  init?: ApiRequestInit & { responseType?: 'json' },
+): Promise<T>
 export function apiRequest<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
   return requestInternal<T>(path, init, { auth: false, csrf: false })
 }
