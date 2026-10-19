@@ -54,10 +54,12 @@ beforeEach(() => {
 })
 
 describe('application routes', () => {
-  it('renders the shared temporary page at the root route', async () => {
+  it('renders the landing page at the root route', async () => {
     renderRoute('/')
 
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-001 đang dựng' })).toBeVisible()
+    expect(
+      await screen.findByRole('heading', { name: 'Học tiếng Trung rõ ràng, từng bước một' }),
+    ).toBeVisible()
   })
 
   it('renders the not-found page for an unknown route', () => {
@@ -81,7 +83,7 @@ describe('application routes', () => {
     getCurrentUserMock.mockResolvedValue(learner)
     const { router } = renderRoute('/admin/users')
 
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-079 đang dựng' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Không có quyền truy cập' })).toBeVisible()
     expect(router.state.location.pathname).toBe('/403')
   })
 
@@ -96,7 +98,7 @@ describe('application routes', () => {
     getCurrentUserMock.mockResolvedValue(admin)
     renderRoute('/me/profile')
 
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-079 đang dựng' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Không có quyền truy cập' })).toBeVisible()
   })
 
   it('allows any authenticated account to open the password screen', async () => {
@@ -189,7 +191,7 @@ describe('application routes', () => {
   it('always moves a banned account to login with a safe notice', async () => {
     getCurrentUserMock.mockResolvedValue(learner)
     const { router } = renderRoute('/')
-    await screen.findByRole('heading', { name: 'Màn SCR-001 đang dựng' })
+    await screen.findByRole('heading', { name: 'Học tiếng Trung rõ ràng, từng bước một' })
 
     act(() =>
       window.dispatchEvent(

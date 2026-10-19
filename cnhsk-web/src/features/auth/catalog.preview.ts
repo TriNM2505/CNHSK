@@ -1,11 +1,17 @@
 import { createElement } from 'react'
 
 import type { PreviewEntry } from '@/app/preview/types'
+import type { CurrentUser } from '@/features/auth/types'
 import { AuthContext, type AuthContextValue } from '@/shared/auth'
 import { PublicLayout } from '@/shared/layout'
+import { previewLearner, previewMultiAreaUser } from '@/shared/layout/Layout.preview'
 
+import { AccessDeniedView } from './components/AccessDeniedView'
+import { accessDeniedPreviews } from './components/AccessDeniedView.preview'
 import { SignInView } from './components/SignInView'
 import { signInPreviews } from './components/SignInView.preview'
+import { LandingView } from './components/LandingView'
+import { landingPreviews } from './components/LandingView.preview'
 import { RegisterView } from './components/RegisterView'
 import { registerPreviews } from './components/RegisterView.preview'
 import { ForgotPasswordView } from './components/ForgotPasswordView'
@@ -119,7 +125,92 @@ const guestAuth: AuthContextValue = {
   user: null,
 }
 
+function authenticatedAuth(user: CurrentUser): AuthContextValue {
+  return {
+    ...guestAuth,
+    status: 'authenticated',
+    user,
+  }
+}
+
+const previewTeacher: CurrentUser = {
+  ...previewLearner,
+  displayName: 'Giáo viên mẫu',
+  roles: ['TEACHER'],
+}
+
+const landingEntries = [
+  ['scr-001-guest', 'Landing — Khách', landingPreviews.guest, guestAuth],
+  ['scr-001-loading', 'Landing — Đang kiểm tra phiên', landingPreviews.loading, guestAuth],
+  ['scr-001-error', 'Landing — Lỗi kiểm tra phiên', landingPreviews.error, guestAuth],
+  [
+    'scr-001-learner',
+    'Landing — Một khu vực',
+    landingPreviews.learner,
+    authenticatedAuth(previewLearner),
+  ],
+  [
+    'scr-001-multi-area',
+    'Landing — Nhiều khu vực',
+    landingPreviews.multiArea,
+    authenticatedAuth(previewMultiAreaUser),
+  ],
+  [
+    'scr-001-no-area',
+    'Landing — Chưa có khu vực',
+    landingPreviews.noArea,
+    authenticatedAuth({ ...previewLearner, roles: [] }),
+  ],
+] as const
+
+const accessDeniedEntries = [
+  ['scr-079-guest', 'Từ chối truy cập — Khách', accessDeniedPreviews.guest, guestAuth],
+  [
+    'scr-079-loading',
+    'Từ chối truy cập — Đang kiểm tra phiên',
+    accessDeniedPreviews.loading,
+    guestAuth,
+  ],
+  [
+    'scr-079-session-error',
+    'Từ chối truy cập — Lỗi kiểm tra phiên',
+    accessDeniedPreviews.sessionError,
+    guestAuth,
+  ],
+  [
+    'scr-079-forbidden',
+    'Từ chối truy cập — Thiếu quyền',
+    accessDeniedPreviews.forbidden,
+    authenticatedAuth(previewLearner),
+  ],
+  [
+    'scr-079-under-construction',
+    'Từ chối truy cập — Khu vực đang xây dựng',
+    accessDeniedPreviews.underConstruction,
+    authenticatedAuth(previewTeacher),
+  ],
+  [
+    'scr-079-no-area',
+    'Từ chối truy cập — Chưa có khu vực',
+    accessDeniedPreviews.noArea,
+    authenticatedAuth({ ...previewLearner, roles: [] }),
+  ],
+] as const
+
 export const previews = [
+  ...landingEntries.map(([id, title, props, auth]) => ({
+    fullFrame: true,
+    group: 'screen' as const,
+    id,
+    render: () =>
+      createElement(
+        AuthContext.Provider,
+        { value: auth },
+        createElement(PublicLayout, null, createElement(LandingView, props)),
+      ),
+    scr: 'SCR-001',
+    title,
+  })),
   ...signInEntries.map(([id, title, props]) => ({
     fullFrame: true,
     group: 'screen' as const,
@@ -183,6 +274,19 @@ export const previews = [
         createElement(PublicLayout, null, createElement(ResetPasswordView, props)),
       ),
     scr: 'SCR-006',
+    title,
+  })),
+  ...accessDeniedEntries.map(([id, title, props, auth]) => ({
+    fullFrame: true,
+    group: 'screen' as const,
+    id,
+    render: () =>
+      createElement(
+        AuthContext.Provider,
+        { value: auth },
+        createElement(PublicLayout, null, createElement(AccessDeniedView, props)),
+      ),
+    scr: 'SCR-079',
     title,
   })),
 ] satisfies readonly PreviewEntry[]

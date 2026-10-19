@@ -3,9 +3,11 @@ import { lazy } from 'react'
 import type { ScreenCatalog } from '@/app/screenRegistry'
 
 export const screens = {
+  'SCR-001': lazy(() => import('./pages/Scr001LandingPage')),
   'SCR-002': lazy(() => import('./pages/Scr002SignInPage')),
   'SCR-003': lazy(() => import('./pages/Scr003RegisterPage')),
   'SCR-004': lazy(() => import('./pages/Scr004VerifyEmailPage')),
   'SCR-005': lazy(() => import('./pages/Scr005ForgotPasswordPage')),
   'SCR-006': lazy(() => import('./pages/Scr006ResetPasswordPage')),
+  'SCR-079': lazy(() => import('./pages/Scr079AccessDeniedPage')),
 } satisfies ScreenCatalog
