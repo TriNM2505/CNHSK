@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { appRoutes } from '@/app/routes'
 import { getCurrentUser } from '@/features/auth/api/getCurrentUser'
 import type { CurrentUser } from '@/features/auth/types'
+import { getGrammarPoints } from '@/features/grammar/api/grammar'
 import { getTopic, getTopics } from '@/features/vocab/api/topics'
 import type { TopicDetail } from '@/features/vocab/types'
 import { ApiError, AUTH_EXPIRED_EVENT } from '@/shared/api'
@@ -23,9 +24,16 @@ vi.mock('@/features/vocab/api/topics', () => ({
   startTopicStudySession: vi.fn(),
 }))
 
+vi.mock('@/features/grammar/api/grammar', () => ({
+  getGrammarLesson: vi.fn(),
+  getGrammarPoints: vi.fn(),
+  startGrammarLesson: vi.fn(),
+}))
+
 const getCurrentUserMock = vi.mocked(getCurrentUser)
 const getTopicMock = vi.mocked(getTopic)
 const getTopicsMock = vi.mocked(getTopics)
+const getGrammarPointsMock = vi.mocked(getGrammarPoints)
 
 const learner: CurrentUser = {
   id: 1,
@@ -92,6 +100,7 @@ beforeEach(() => {
   getCurrentUserMock.mockRejectedValue(unauthenticatedError())
   getTopicMock.mockReset().mockResolvedValue(routeTopic)
   getTopicsMock.mockReset().mockResolvedValue([])
+  getGrammarPointsMock.mockReset().mockResolvedValue([])
 })
 
 describe('application routes', () => {
@@ -239,7 +248,8 @@ describe('application routes', () => {
   it('moves an expired protected session to login', async () => {
     getCurrentUserMock.mockResolvedValue(learner)
     const { router } = renderRoute('/learn/grammar?level=2#lesson-list')
-    await screen.findByRole('heading', { name: 'Màn SCR-017 đang dựng' })
+    await screen.findByRole('heading', { name: 'Ngữ pháp HSK' })
+    expect(screen.queryByRole('heading', { name: 'Màn SCR-017 đang dựng' })).not.toBeInTheDocument()
 
     act(() => window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT)))
 
