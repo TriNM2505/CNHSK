@@ -70,7 +70,7 @@ describe('application routes', () => {
   it('sends a guest from a learner route to login with the full redirect', async () => {
     const { router } = renderRoute('/learn/topics?level=2#dang-hoc')
 
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-002 đang dựng' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Đăng nhập' })).toBeVisible()
     expect(router.state.location.pathname).toBe('/login')
     expect(new URLSearchParams(router.state.location.search).get('redirect')).toBe(
       '/learn/topics?level=2#dang-hoc',
@@ -167,7 +167,7 @@ describe('application routes', () => {
 
     act(() => window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT)))
 
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-002 đang dựng' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Đăng nhập' })).toBeVisible()
     expect(new URLSearchParams(router.state.location.search).get('redirect')).toBe(
       '/learn/grammar?level=2#lesson-list',
     )

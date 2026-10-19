@@ -1,3 +1,7 @@
+import { lazy } from 'react'
+
 import type { ScreenCatalog } from '@/app/screenRegistry'
 
-export const screens = {} satisfies ScreenCatalog
+export const screens = {
+  'SCR-002': lazy(() => import('./pages/Scr002SignInPage')),
+} satisfies ScreenCatalog

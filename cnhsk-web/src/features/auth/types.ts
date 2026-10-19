@@ -10,3 +10,15 @@ export interface CurrentUser {
   hskLevel?: number | null
   avatarUrl?: string | null
 }
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface LoginResponse {
+  user: CurrentUser
+  accessToken?: string
+  refreshToken?: string
+  accessTokenExpiresIn?: number
+}
