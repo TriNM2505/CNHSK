@@ -70,28 +70,31 @@ CREATE SCHEMA IF NOT EXISTS community;
 CREATE SCHEMA IF NOT EXISTS shared;
 ```
 
-### 2.1 · Tám actor — sáu trong DB, hai không
+### 2.1 · Bảy actor — sáu trong DB, một không
 
-| Actor | Số UC | Có trong `user_roles`? |
-|---|---|---|
-`USER` | 79 | ✅ |
-`GUEST` | 16 | ❌ **không có tài khoản** |
-`SYSTEM` | 14 | ❌ **không phải người** |
-`CONTENT_ADMIN` | 6 | ✅ |
-`MANAGER` | 4 | ✅ |
-`FINANCE_ADMIN` | 4 | ✅ |
-`TEACHER` | 4 | ✅ |
-`SUPER_ADMIN` | 3 | ✅ |
+| Actor | Tên | Số UC | Có trong `user_roles`? |
+|---|---|---|---|
+| `LEARNER` | Người học | 79 | ✅ |
+| `GUEST` | Khách | 16 | ❌ **không có tài khoản** |
+| `CONTENT_EDITOR` | Biên tập viên nội dung | 6 | ✅ |
+| `MODERATOR` | Kiểm duyệt viên | 4 | ✅ |
+| `ACCOUNTANT` | Kế toán | 4 | ✅ |
+| `TEACHER` | Giáo viên | 4 | ✅ |
+| `ADMIN` | Quản trị viên | 3 | ✅ |
 
-**8 actor = 6 role trong DB + 2 actor không phải role.**
+**7 actor = 6 role trong DB + `GUEST`.**
 
 - `GUEST` — khách chưa đăng nhập, **không có dòng** trong `auth.users`. Kiểm bằng *"không có
   JWT"*, không bằng `role_code`.
-- `SYSTEM` — job định kỳ `@Scheduled` (hạ gói hết hạn, nhắc học, hoàn lượt quá hạn). Chạy
-  bằng quyền hệ thống, **không qua `JwtFilter`**.
+- Job định kỳ `@Scheduled` (hạ gói hết hạn, nhắc học, hoàn lượt quá hạn) **không phải actor**.
+  Chạy bằng quyền hệ thống, **không qua `JwtFilter`**, không có `role_code`.
 
-> ⚠️ **Đừng thêm `GUEST` hay `SYSTEM` vào `user_roles`.** Đây là lỗi dễ mắc: thấy chúng
-> trong danh sách actor rồi tưởng phải có `role_code` tương ứng.
+> ⚠️ **Đừng thêm `GUEST` vào `user_roles`.** Đây là lỗi dễ mắc: thấy nó trong danh sách actor
+> rồi tưởng phải có `role_code` tương ứng.
+>
+> **Đổi tên 18/10/2026:** `USER→LEARNER`, `MANAGER→MODERATOR`, `CONTENT_ADMIN→CONTENT_EDITOR`,
+> `FINANCE_ADMIN→ACCOUNTANT`, `SUPER_ADMIN→ADMIN`. `reactions.target_type = 'USER'` **không đổi** —
+> đó là loại đối tượng được theo dõi, không phải role.
 
 ---
 
@@ -232,9 +235,9 @@ CREATE TABLE users (
 
   -- Trang thai tai khoan; UC-012 dem sai va chan theo email-IP trong Redis.
   email_verified_at TIMESTAMPTZ,
-  suspended_at      TIMESTAMPTZ,          -- UC-078: MANAGER treo
+  suspended_at      TIMESTAMPTZ,          -- UC-078: MODERATOR treo
   suspended_until   TIMESTAMPTZ,
-  banned_at         TIMESTAMPTZ,          -- UC-114: SUPER_ADMIN ban
+  banned_at         TIMESTAMPTZ,          -- UC-114: ADMIN ban
   banned_by         BIGINT REFERENCES users(id),
   ban_reason        TEXT,
 
@@ -728,7 +731,7 @@ CREATE INDEX ix_audit_action ON audit_logs(action, created_at DESC);
 
 > **Bảng này thay `review_actions` của v5** và mở rộng cho mọi thao tác nhạy cảm:
 > sinh mã thẻ, cấp role, **đọc sổ cái**, khoá tài khoản, duyệt câu hỏi.
-> Quyết định v2 bắt `FINANCE_ADMIN` ghi audit cho cả thao tác **đọc**.
+> Quyết định v2 bắt `ACCOUNTANT` ghi audit cho cả thao tác **đọc**.
 
 ### 4.16 · Năm bảng V2
 
@@ -897,7 +900,7 @@ CREATE TABLE learning.dictation_attempts (
   video_id       BIGINT NOT NULL REFERENCES learning.videos(id),
   subtitle_index INTEGER NOT NULL CHECK (subtitle_index >= 0),
   submitted_text TEXT   NOT NULL,
-  -- Chup lai noi dung phu de luc cham. CONTENT_ADMIN sua phu de sau do
+  -- Chup lai noi dung phu de luc cham. CONTENT_EDITOR sua phu de sau do
   -- khong lam sai lich su cham diem.
   expected_text  TEXT   NOT NULL,
   char_score     NUMERIC(5,2) NOT NULL CHECK (char_score BETWEEN 0 AND 100),
@@ -1129,8 +1132,8 @@ Giữ ưu điểm (DB chặn hộ, không phụ thuộc người code nhớ gọ
 ```sql
 ALTER TABLE auth.user_roles
   ADD CONSTRAINT ck_ur_role_code CHECK (
-    role_code IN ('USER','TEACHER','MANAGER',
-                  'CONTENT_ADMIN','FINANCE_ADMIN','SUPER_ADMIN'));
+    role_code IN ('LEARNER','TEACHER','MODERATOR',
+                  'CONTENT_EDITOR','ACCOUNTANT','ADMIN'));
 
 DROP TABLE auth.roles CASCADE;   -- CASCADE chi go FK, KHONG xoa du lieu user_roles
 

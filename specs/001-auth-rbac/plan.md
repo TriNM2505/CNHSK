@@ -1,9 +1,8 @@
-# Implementation Plan: Xác thực, RBAC và gói dịch vụ — Spec #001
+# Implementation Plan: Xác thực, tài khoản và phân quyền — Spec #001
 
-> Nguồn: [`spec.md`](spec.md) v1.0 (82 FR) · [`checklists/requirements.md`](checklists/requirements.md)
+> Nguồn: [`spec.md`](spec.md) v1.1.0 · [`checklists/requirements.md`](checklists/requirements.md)
 > **Migration:** `V1__core_schema` (`V2__community` khong lien quan spec nay)
-> ⚠️ Bang `plans` + 4 cot goi tren `users` **chua co trong SQL** — cho `database.md` duyet xong moi gen
-> **Module:** `auth` (+ `plans` thuộc `learning`) · **Trạng thái:** chưa code
+> **Module:** `auth` + nền `shared` · **Trạng thái:** chưa code
 
 ---
 
@@ -39,41 +38,34 @@ vào đường nóng nhất.
 
 ## 2 · Components
 
-Thư mục `src/main/java/com/cnhsk/auth/` đã có sẵn khung `api` · `controller` · `dto` ·
-`entity` · `repository` · `service`.
+Tên class và file khớp `tasks.md`. `…/` = `src/main/java/com/cnhsk/`.
 
-| Thành phần | Trách nhiệm | File | FR |
+| Thành phần | Trách nhiệm | FR | Task |
 |---|---|---|---|
-| `AuthController` | register · verify · login · refresh · logout · forgot · reset | `auth/controller/AuthController.java` | FR-001…FR-045 |
-| `ProfileController` | xem/sửa thông tin cá nhân | `auth/controller/ProfileController.java` | FR-051…FR-055 |
-| `AdminUserHistoryController` (V2) | chỉ `SUPER_ADMIN` xem các lần đăng nhập thành công của tài khoản được chọn; ghi audit việc xem | `auth/controller/AdminUserHistoryController.java` | FR-056…FR-057 · UC-014 |
-| `RoleController` | gán/thu hồi role (chỉ `ADMIN`) | `auth/controller/RoleController.java` | FR-058…FR-066 |
-| `AuthService` | đăng ký, đăng nhập, lockout, rotation | `auth/service/AuthService.java` | FR-001…FR-050 |
-| `TokenService` | sinh/verify/thu hồi `auth_tokens` (3 loại) | `auth/service/TokenService.java` | FR-016, FR-031…FR-037 |
-| `RoleService` | gán role + ghi `audit_logs` | `auth/service/RoleService.java` | FR-062…FR-066 |
-| `PlanService` | gói hiện tại, hạn mức, reset lượt tháng | `learning/payment/PlanService.java` | FR-067…FR-075 |
-| `AuthApi` | **lớp `api`** cho module khác gọi — trả `UserId`, `Set<Role>` | `auth/api/AuthApi.java` | `AC-03` |
-| `PlanLookup` | **lớp `api`** của `learning` cho `auth` đọc gói | `learning/api/PlanLookup.java` | `AC-03` |
-| `JwtTokenProvider` | sinh/verify JWT HS256 | `shared/security/JwtTokenProvider.java` | FR-061 |
-| `JwtFilter` | đọc cookie **rồi** header | `shared/security/JwtFilter.java` | FR-023 |
-| `SecurityConfig` | filter chain · default deny · CORS tường minh | `shared/config/SecurityConfig.java` | FR-028, FR-029, FR-060 |
-| `CsrfConfig` | CSRF cho thao tác đổi tiền, bỏ qua client dùng header | `shared/config/CsrfConfig.java` | FR-024, `HR-05` |
-| `User` · `UserRole` · `AuthToken` · `Plan` | entity, enum-as-String | `auth/entity/*`, `learning/payment/entity/Plan.java` | `AC-06` |
-| `GlobalExceptionHandler` | `{error_code, message, request_id}` | `shared/exception/GlobalExceptionHandler.java` | `HR-09` |
+| `shared.exception.*`, `RequestIdFilter` | Định dạng lỗi, `request_id` | §0.2 | T-03 |
+| `shared.config.CnhskProperties`, `SecurityConfig` | Cấu hình, filter chain, CORS, CSRF double-submit | FR-024, FR-028→029, FR-060 | T-04, T-10 |
+| `shared.audit.AuditService` | Ghi `shared.audit_logs` | FR-064, FR-096, FR-097 | T-05 |
+| `shared.security.JwtService`, `JwtAuthenticationFilter` | JWT HS256; đọc cookie **rồi** header; kiểm mốc vô hiệu phiên | FR-016, FR-023, FR-061, FR-092 | T-08, T-09 |
+| `auth.entity.*`, `auth.repository.*` | `User`, `UserRole`, `AuthToken` | §4 | T-07 |
+| `RegistrationService`, `EmailVerificationService`, `MailService` | Đăng ký, xác thực email | FR-001→013, FR-094 | T-13→T-15 |
+| `LoginService`, `LoginAttemptService`, `CookieFactory` | Đăng nhập 3 client, chặn email–IP | FR-014→025, FR-046→050, FR-089 | T-11, T-16, T-17 |
+| `RefreshTokenService`, `SessionInvalidationService` | Rotation, tái dùng, đăng xuất | FR-031→036, FR-092 | T-19, T-20 |
+| `PasswordResetService`, `ProfileService` | Quên/đặt lại/đổi mật khẩu, hồ sơ | FR-038→045, FR-051→053 | T-21, T-22 |
+| `AdminUserQueryService`, `RoleService`, `BanService` | Quản trị tài khoản, role, cấm | FR-054, FR-057→066, FR-096, FR-097 | T-23→T-25 |
+| `auth.api.AuthApi` | Lớp `api` cho module khác | FR-010, `AC-03` | T-27 |
 
-> **`AuthApi` phải làm trước các module khác.** `ModuleBoundaryTest` đang bật
-> `allowEmptyShould(true)` vì chưa có code; khi `auth` có class đầu tiên, rule sẽ hoạt động
-> thật và mọi vi phạm ranh giới bị chặn ngay.
+Gói dịch vụ, lượt free, mã thẻ (`PlanService`, `PlanLookup`) **đã chuyển** sang spec gói dịch vụ (credits-plans).
+
+> **`AuthApi` phải làm trước các module khác.** Xong T-27 thì bỏ `allowEmptyShould(true)` trong `ModuleBoundaryTest`.
 
 ---
-
 ## 3 · Dependencies
 
 ### 3.1 · Migration
 
-`V1__core_schema.sql` (`users` · `user_roles` · `auth_tokens` · `audit_logs`) và
-**Chưa có trong SQL** — chờ `database.md` duyệt xong: bảng `plans`, 4 cột gói trên
-`users` (`plan_code` · `plan_expires_at` · `free_usage` · `usage_reset_at`), bỏ bảng `roles`.
+T-01 viết lại `V1__core_schema.sql` + `V2__community.sql` khớp `database.md`: 4 schema, bảng `plans`,
+4 cột gói trên `users` (`plan_code` · `plan_expires_at` · `free_usage` · `usage_reset_at`), bỏ bảng `roles`,
+`CHECK` cho `role_code`. Repo chưa deploy nên viết lại V1 được (`AC-05` chỉ cấm sửa migration **đã chạy**).
 
 Đã verify trên pg-mem: 100/104 lệnh chạy, 4 lỗi còn lại là giới hạn pg-mem
 (`gen_random_uuid`, `OVER`) — PostgreSQL 18 có cả hai.
@@ -83,7 +75,8 @@ Thư mục `src/main/java/com/cnhsk/auth/` đã có sẵn khung `api` · `contro
 Đã có trong `pom.xml`: `spring-boot-starter-web` · `data-jpa` · `security` · `validation` ·
 `flyway` · `postgresql` · `jjwt 0.12.6` · `archunit 1.5.0`.
 
-**Cần thêm:** `jacoco-maven-plugin` (coverage 80% theo `ES-05`).
+**Cần thêm (T-02):** `jacoco-maven-plugin` (80%, `ES-05`) · `spring-boot-starter-data-redis` ·
+`spring-boot-starter-mail` · `springdoc-openapi-starter-webmvc-ui` · `testcontainers` (postgresql, junit-jupiter).
 
 ### 3.3 · Feature phụ thuộc spec này
 
@@ -172,11 +165,11 @@ Phân bố: `auth` 3 · `learning` 22 · `community` 5 · `shared` 1.
 
 | # | Câu hỏi | Chặn | Đề xuất |
 |---|---|---|---|
-| 1 | JWT HS256 hay RS256? | FR-016, FR-061 | **HS256** — một backend duy nhất, không cần khoá công khai |
-| 2 | Access/refresh sống bao lâu? | FR-031 | **15 phút / 30 ngày** |
-| 3 | Lịch sử đăng nhập lưu ở đâu? | FR-056 | `audit_logs` với `action='LOGIN'`, **không** thêm bảng |
-| 4 | Sửa `AC-04` (bỏ 3 schema) — cần RFC | §4.2 | Đồng ý thì tôi viết RFC |
-| 5 | `TODO(REDIS_PLACEMENT)` | chưa chặn spec này | Spec 001 không dùng Redis |
+| 1 | JWT HS256 hay RS256? | — | **Chốt:** HS256 |
+| 2 | Access/refresh sống bao lâu? | — | **Chốt:** 15 phút / 30 ngày, xoay vòng |
+| 3 | Lịch sử đăng nhập lưu ở đâu? | — | **Chốt:** `audit_logs` `action='LOGIN_SUCCESS'` |
+| 4 | RFC `AC-03`/`AC-04` (4 schema, FK cross-schema) | T-01 | Cả nhóm duyệt cùng spec; sau duyệt sửa `constitution.md` |
+| 5 | Redis đặt ở đâu | — | **Chốt:** Redis 7 trong `docker-compose.yml`; spec 001 dùng cho đếm sai, giới hạn gửi, mốc vô hiệu phiên |
 
 ---
 
@@ -188,18 +181,18 @@ Phân bố: `auth` 3 · `learning` 22 · `community` 5 · `shared` 1.
 | `HR-02` không secret trong code | JWT secret từ biến môi trường | sẽ PASS |
 | `HR-03` cookie đủ 5 thuộc tính | FR-014, FR-015 | sẽ PASS |
 | `HR-04` CORS không `*` | FR-028 | sẽ PASS |
-| `HR-05` CSRF thao tác tiền | FR-073 | sẽ PASS |
+| `HR-05` CSRF | double-submit cho request dùng cookie (spec §6) | sẽ PASS |
 | `HR-09` không lộ stack trace | `GlobalExceptionHandler` | sẽ PASS |
 | `AC-01` API First | OpenAPI **trước** khi code | chờ |
-| `AC-03` module qua lớp `api` | `AuthApi`, `PlanLookup` | sẽ PASS |
-| **`AC-04` ba schema** | **§4.2 — xung đột, cần RFC** | 🔴 **FAIL** |
+| `AC-03` module qua lớp `api` | `AuthApi` | sẽ PASS |
+| **`AC-04` ba schema** | §4.2 — 4 schema theo RFC `database.md` | ⏳ chờ duyệt RFC |
 | `AC-05` `ddl-auto: validate` | đã đúng trong `application.yaml` | PASS |
 | `AC-06` enum VARCHAR+CHECK | `role_code`, `token_type`, `plan_code` | PASS |
 | `BUS-01` kiểm quyền sở hữu | FR-053, FR-054 | sẽ PASS |
 | `BUS-02` cùng transaction | FR-002 | sẽ PASS |
 | `BUS-06` mask PII | FR-057 | sẽ PASS |
-| `BUS-08` giờ Việt Nam | FR-055, FR-071, FR-074 | sẽ PASS |
+| `BUS-08` giờ Việt Nam | không áp dụng (gói/nhắc học đã chuyển spec khác) | — |
 | `BUS-13` `SecureRandom` | FR-040 | sẽ PASS |
 | `ES-05` coverage 80% | cần thêm `jacoco` | chờ |
 
-> 🔴 **Một FAIL: `AC-04`.** Phải giải quyết bằng RFC trước Pha 4, không được code rồi sửa sau.
+> ⏳ **`AC-04` chờ duyệt RFC** cùng buổi duyệt spec. Không bắt đầu T-01 trước khi RFC được duyệt.

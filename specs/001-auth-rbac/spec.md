@@ -1,11 +1,67 @@
-# Feature Specification: Xác thực, phân quyền RBAC và gói dịch vụ
+# Feature Specification: Xác thực, tài khoản và phân quyền
 
 **Feature:** `001-auth-rbac`
-**Feature tree:** 6.1 (Tài khoản, gói dịch vụ) · 6.2 (Phân quyền — 6 role trong DB)
-**Module:** `auth` (+ `plans` thuộc `learning`)
-**Use case:** UC-001 → UC-014 (14 UC)
+**Feature tree:** 6.1 (phần tài khoản) · 6.2 (Phân quyền — 6 role trong DB)
+**Module:** `auth` · dùng chung `shared`
+**Use case:** UC-001 → UC-005, UC-007 → UC-011, UC-012 («extend» UC-003/004), UC-014 (V2), UC-114, UC-115 · UC-006 đã chuyển thành FR (Nhóm 6)
+**Màn hình:** SCR-001 (phần đăng nhập/đăng ký), SCR-002 → SCR-008, SCR-076, SCR-077, SCR-079
 **Scope:** MVP, riêng UC-014 thuộc V2 · **Priority:** P0 — mọi feature khác phụ thuộc feature này
-**Version:** 1.0 · **Ngày:** 2026-10-05
+
+| Trường | Giá trị |
+|---|---|
+| **Version** | 1.1.0 |
+| **Status** | DRAFT — chờ cả nhóm duyệt rồi mới `APPROVED` |
+| **Approved by** | — |
+| **Locked on** | — |
+| **Thay đổi so với 1.0** | Đổi tên actor (18/10) · tách gói, lượt free, mã thẻ sang spec gói dịch vụ (credits-plans) · tách hạn mức khách sang spec từ điển · chốt 4 câu hỏi mở · chốt 8 mâu thuẫn tài liệu (Nhóm 14) · thêm §0 nền tảng và §12–§15 |
+
+> **Codex đọc theo thứ tự:** `AGENTS.md` → file này → `contracts/openapi-auth.yaml` → `tasks.md`.
+> Field chi tiết của từng màn nằm ở `docs/reference/screen-fields.md` theo số dòng ghi ở §12.
+> Chỗ nào spec không nói: **dừng, ghi câu hỏi vào `questions.md`**, không tự giả định.
+
+---
+
+## 0 · Phạm vi và nền tảng đi kèm
+
+Spec này là tính năng **đầu tiên** được code, nên nó mang theo phần nền tảng mà mọi tính năng sau dùng lại.
+Các mục dưới là **bắt buộc**, có task riêng ở `tasks.md` đợt 0–1.
+
+### 0.1 · Trong / ngoài phạm vi
+
+| Trong phạm vi | Ngoài phạm vi (spec khác) |
+|---|---|
+| Đăng ký, xác thực email, đăng nhập web/mobile/trang game, làm mới token, đăng xuất | Gói dịch vụ, lượt free, đổi mã thẻ, sổ cái (FR-067→075 cũ ngoài FR-068, FR-076→082b) → spec gói dịch vụ (credits-plans) |
+| Quên/đặt lại/đổi mật khẩu, tạm chặn nguồn đăng nhập | Hạn mức tra từ của khách (FR-083→086 cũ) → spec từ điển |
+| Hồ sơ cá nhân (SCR-007), đổi mật khẩu (SCR-008) | Cài đặt giờ nhắc học (SCR-009) → spec nhắc học |
+| Quản trị tài khoản: tìm, xem, cấm/gỡ cấm, cấp/thu hồi role (SCR-076, SCR-077) | Tạm khoá do kiểm duyệt cộng đồng (`MODERATOR`, V2) — cột `suspended_*` vẫn được **đọc** khi đăng nhập |
+| Nền tảng §0.2 | Lịch sử đăng nhập (UC-014, V2) — chỉ đặc tả FR-056/057, chưa làm |
+
+### 0.2 · Nền tảng đi kèm
+
+| Hạng mục | Yêu cầu |
+|---|---|
+| **Migration** | Chuyển `db/migration/*.sql` vào `src/main/resources/db/migration/`. Viết lại `V1__core_schema.sql`, `V2__community.sql` **khớp đúng `docs/reference/database.md`**: 4 schema `auth` · `learning` · `community` · `shared` (theo RFC trong `database.md` sửa `AC-03`/`AC-04` — duyệt cùng spec này, rồi sửa `constitution.md` `AC-04` thành 4 schema), bỏ bảng `roles`, `role_code` dùng `CHECK` (§4.2). **Đóng băng** `learning.knowledge_points` và `learning.question_knowledge_points`: tạo đúng như `database.md` nhưng không code nào dùng (chờ cây tri thức). Không seed dữ liệu học |
+| **Tài khoản quản trị đầu tiên** | Khi khởi động, nếu chưa có `ADMIN` nào và có biến môi trường `CNHSK_BOOTSTRAP_ADMIN_EMAIL` + `CNHSK_BOOTSTRAP_ADMIN_PASSWORD`, tạo một tài khoản `ADMIN` + `LEARNER`, `email_verified_at = now()`, ghi `audit_logs` `action='BOOTSTRAP_ADMIN'`. Đã có `ADMIN` thì bỏ qua. Không bao giờ log mật khẩu |
+| **Định dạng lỗi** | Mọi lỗi: `{ "error_code": "...", "message": "...", "request_id": "...", "details": [...]? }`. `request_id` = header `X-Request-Id` nếu client gửi (≤ 64 ký tự, `[A-Za-z0-9-]`), không thì UUID v4; đặt vào MDC và header response. `details` chỉ có ở `VALIDATION_FAILED`: `[{ "field", "message" }]`. Không bao giờ trả stack trace (`HR-09`) |
+| **Lớp lỗi** | `shared.exception.ApiException(ErrorCode code, HttpStatus status, String message, Map<String,Object> extra)`; `ErrorCode` là enum tập trung; `@RestControllerAdvice` duy nhất ở `shared.exception.GlobalExceptionHandler` |
+| **Cấu hình** | CORS origin đọc từ `cnhsk.cors.allowed-origins` (danh sách, **không** `*`): dev `http://localhost:5173` (web), `http://localhost:5174` (game); prod `https://cnhsk.com`, `https://game.cnhsk.com`. `allowCredentials=true`. Jackson ghi thời gian ISO-8601 UTC. Bean `Clock` dùng mọi nơi cần "bây giờ" (để test) |
+| **OpenAPI** | `springdoc-openapi-starter-webmvc-ui` phục vụ `/v3/api-docs` ở profile `dev`. Hợp đồng nguồn là `contracts/openapi-auth.yaml`; test hợp đồng so khớp |
+| **Hạ tầng dev** | `docker-compose.yml`: PostgreSQL 18 (`cnhsk_db`), Redis 7, Mailpit (SMTP giả, UI cổng 8025). `.env.example` liệt kê mọi biến (§0.3). README: chạy được trong 5 lệnh |
+| **Test nền** | `AbstractIntegrationTest` dùng Testcontainers PostgreSQL 18 + Redis 7; JaCoCo ngưỡng 80% (`ES-05`) |
+| **Frontend khung** | `cnhsk-web` (React 18.3, Vite 5, TS 5.7, Tailwind 3.4, react-router 6.28, `lucide-react`, `clsx`, `tailwind-merge`). Cấu trúc theo `AGENTS.md`. Token màu từ `docs/reference/design.md` §6. `shared/api/client.ts`, `shared/auth/AuthProvider.tsx`, `shared/auth/RequireRole.tsx` (§12.2) |
+
+### 0.3 · Biến môi trường
+
+| Biến | Bắt buộc | Ví dụ dev | Ghi chú |
+|---|---|---|---|
+| `DB_URL`, `DB_USER`, `DB_PASSWORD` | Có | `jdbc:postgresql://localhost:5432/cnhsk_db` | |
+| `REDIS_HOST`, `REDIS_PORT` | Có | `localhost`, `6379` | |
+| `JWT_SECRET` | Có | 64 ký tự ngẫu nhiên | HS256, ≥ 256 bit; thiếu hoặc ngắn hơn 32 byte → app **không khởi động** |
+| `COOKIE_DOMAIN` | Có | `localhost` (dev) · `cnhsk.com` (prod) | |
+| `COOKIE_SECURE` | Có | `false` (dev) · `true` (prod) | |
+| `APP_WEB_BASE_URL` | Có | `http://localhost:5173` | Dùng dựng link trong email |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Có | Mailpit `localhost:1025` | |
+| `CNHSK_BOOTSTRAP_ADMIN_EMAIL`, `CNHSK_BOOTSTRAP_ADMIN_PASSWORD` | Không | | §0.2 |
 
 ---
 
@@ -19,7 +75,7 @@ Theo `docs/reference/CONTEXT.md` §2:
 |---|---|---|
 | **BG-05** | Demo được trọn luồng học → thi → phân tích → luyện lại | Không đăng nhập được thì không demo được gì. Đây là cửa vào |
 | **BG-06** | Giải thích được 6 điểm bảo mật thanh toán khi bảo vệ | 3/6 điểm nằm ở feature này: mật khẩu, CSRF, phân quyền |
-| **BG-04** | Nội dung qua kiểm duyệt trước khi tới người học | Role `TEACHER`/`MANAGER` là cơ chế thực thi |
+| **BG-04** | Nội dung qua kiểm duyệt trước khi tới người học | Role `TEACHER`/`MODERATOR` là cơ chế thực thi |
 
 ### 1.2 · Vấn đề nghiệp vụ
 
@@ -40,18 +96,20 @@ Hệ thống có **ba client dùng chung một backend**: web `cnhsk.com`, web g
 |---|---|---|
 | **SC-001** | Cả 3 client đăng nhập thành công bằng cùng một tài khoản | 3/3 |
 | **SC-002** | Người dùng mở `game.cnhsk.com` sau khi đã đăng nhập ở `cnhsk.com` | không phải đăng nhập lại |
-| **SC-003** | Tài khoản chưa xác thực email vẫn học được, nhưng không đổi được điểm | đúng cả hai |
-| **SC-004** | Sai mật khẩu 5 lần → khoá tạm; lần 6 trả 429 | 100% |
+| **SC-003** | Tài khoản chưa xác thực email vẫn học được, nhưng không làm được thao tác đổi điểm | đúng cả hai |
+| **SC-004** | Cùng cặp email–IP sai mật khẩu 5 lần trong 15 phút → lần tiếp theo trả **423** `LOGIN_SOURCE_BLOCKED` trong 15 phút | 100% |
 | **SC-005** | Người dùng A không đọc được dữ liệu của B qua đổi id trong URL | 403 ở mọi endpoint |
+| **SC-006** | Bị cấm hoặc bị thu hồi role → request kế tiếp bị từ chối, không chờ token hết hạn | 100% |
 
 ### 1.4 · Tech context
 
 | Thành phần | Chốt |
 |---|---|
 | Backend | Spring Boot 3.5.14 · Java 17 · module `auth` |
-| Token | jjwt 0.12.6 · access ngắn hạn + refresh dài hạn |
-| Mật khẩu | bcrypt cost ≥ 12 hoặc argon2id (`HR-01`) |
-| DB | `users` · `user_roles` · `auth_tokens` · `plans` |
+| Token | jjwt 0.12.6 · **HS256** · access **15 phút**, refresh **30 ngày**, xoay vòng mỗi lần làm mới |
+| Mật khẩu | bcrypt cost **12** (`HR-01`) |
+| DB | `auth.users` · `auth.user_roles` · `auth.auth_tokens` · `shared.audit_logs` |
+| Redis | Bộ đếm đăng nhập sai, giới hạn gửi email, mốc vô hiệu phiên (FR-092) |
 | Frontend | React 18.3 · Vite 5 · TypeScript 5.7 |
 
 ---
@@ -65,7 +123,7 @@ Hệ thống có **ba client dùng chung một backend**: web `cnhsk.com`, web g
 
 **Given** email chưa tồn tại trong hệ thống
 **When** tôi nhập họ tên, email, mật khẩu hợp lệ và đồng ý điều khoản
-**Then** tài khoản được tạo với role `USER`, gói `FREE`, và tôi nhận email xác thực
+**Then** tài khoản được tạo với role `LEARNER`, gói `FREE`, và tôi nhận email xác thực
 **And** tôi đăng nhập được ngay, không cần chờ xác thực email
 
 ### US-2 · Người học đăng nhập trên ba client (P1)
@@ -90,389 +148,311 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 
 ### US-4 · Quản trị viên cấp quyền (P2)
 
-**Là** `SUPER_ADMIN`, **tôi muốn** gán role cho người dùng,
-**để** giao việc duyệt nội dung cho `TEACHER` và `MANAGER`.
+**Là** `ADMIN`, **tôi muốn** gán role cho người dùng,
+**để** giao việc duyệt nội dung cho `TEACHER` và `MODERATOR`.
 
-**Given** tôi là `SUPER_ADMIN`
+**Given** tôi là `ADMIN`
 **When** tôi gán role `TEACHER` cho một người dùng
 **Then** role được ghi với `granted_by = id của tôi`
 **And** tôi **không** gán được role cho chính mình
 
-### US-5 · Người học mua gói Premium (P2)
+### US-5 · Quản trị viên cấm tài khoản vi phạm (P2)
 
-**Given** tôi đang ở gói `FREE` và đã dùng hết 10 lượt dịch
-**When** tôi nhập mã thẻ gói Premium
-**Then** `plan_code` của tôi thành `PREMIUM`, `plan_expires_at` = hôm nay + 30 ngày
-**And** hạn mức lượt của tôi theo `plans.benefits` của gói `PREMIUM`
+**Given** tôi là `ADMIN` và một tài khoản đang có phiên đăng nhập
+**When** tôi cấm tài khoản đó kèm lý do
+**Then** request kế tiếp của tài khoản đó trả **403** `ACCOUNT_BANNED`
+**And** tôi gỡ cấm được, sau đó tài khoản đăng nhập lại bình thường
 
 ### Edge cases
 
 | # | Tình huống | Hành vi mong đợi |
 |---|---|---|
 | E1 | Hai request đăng ký cùng email đồng thời | Một thành công, một nhận `EMAIL_ALREADY_EXISTS`. `UNIQUE` trên `users.email` chặn |
-| E2 | SMTP lỗi khi gửi email xác thực | Đăng ký **vẫn trả 201**. Ghi log. Người dùng xin gửi lại sau (`NFR-A02`) |
+| E2 | SMTP lỗi khi gửi email xác thực | Đăng ký **vẫn trả 201**. Ghi log. Người dùng xin gửi lại sau (`NFR-A01`) |
 | E3 | Refresh token bị dùng lại sau khi đã rotate | Thu hồi **toàn bộ** token của user đó, buộc đăng nhập lại |
-| E4 | Token hết hạn giữa lúc đang làm bài thi | Bản nháp đã lưu ở `attempts.draft_answers`, không mất bài |
-| E5 | Người dùng bị `SUPER_ADMIN` ban khi đang có session | Request tiếp theo trả 403, không chờ token hết hạn |
+| E4 | Token hết hạn giữa lúc đang làm bài | Client tự làm mới token (FR-031) rồi gửi lại request một lần; bài đang làm không mất |
+| E5 | Người dùng bị `ADMIN` cấm khi đang có phiên | Request tiếp theo trả 403, không chờ token hết hạn |
 | E6 | Mobile mở WebView game nhưng chưa tiêm token | Trang game hiện trạng thái chưa đăng nhập, không crash |
-| E7 | Đổi mật khẩu thành công | Thu hồi mọi refresh token **trừ** session hiện tại |
-| E8 | Gói Premium hết hạn lúc 00:00 giờ Việt Nam | Job hạ về `FREE`; lượt đang dùng giữa phiên không bị cắt giữa chừng |
+| E7 | Đổi mật khẩu thành công | Thu hồi mọi refresh token **trừ** phiên hiện tại |
+| E8 | Hai `ADMIN` cùng gán một role cho một người cùng lúc | Một thành công, một nhận **409** `ROLE_ALREADY_GRANTED` (PK `user_id, role_code`) |
+| E9 | `ADMIN` thu hồi role `ADMIN` của `ADMIN` cuối cùng còn hoạt động | **409** `REVOKE_LAST_ADMIN` |
+| E10 | Mở link xác thực email đã dùng, tài khoản đã xác thực | **200**, trả trạng thái đã xác thực (idempotent), không báo lỗi |
 
 ---
 
 ## 3 · Functional Requirements
 
 > Ký hiệu EARS: **WHEN** (sự kiện) / **WHILE** (trạng thái) / **WHERE** (ngữ cảnh)
-> + THE system SHALL. Mỗi FR map ít nhất một test.
+> + THE system SHALL. Mỗi FR có ít nhất một acceptance test ở §14.
 
 ### Nhóm 1 — Đăng ký (FR-001…FR-008) · UC-001
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-001** | WHEN khách gửi `POST /api/auth/register` với email chưa tồn tại và mật khẩu hợp lệ, THE system SHALL tạo một dòng `users` với `email_verified_at = NULL`, gán role `USER` vào `user_roles`, đặt `plan_code = 'FREE'`, và trả **201** |
-| **FR-002** | THE system SHALL thực hiện tạo user + gán role + đặt gói trong **cùng một transaction** (`BUS-02`) |
-| **FR-003** | THE system SHALL hash mật khẩu bằng bcrypt cost ≥ 12 hoặc argon2id trước khi ghi (`HR-01`, `NFR-S01`) |
-| **FR-004** | WHEN email đã tồn tại, THE system SHALL trả **409** `EMAIL_ALREADY_EXISTS` |
-| **FR-005** | THE system SHALL validate: email đúng định dạng, mật khẩu ≥ 8 ký tự, hai lần nhập khớp nhau. Vi phạm → **422** kèm danh sách field |
-| **FR-006** | WHEN tạo user thành công, THE system SHALL sinh token `EMAIL_VERIFY` trong `auth_tokens` hết hạn sau **24 giờ** và gửi email |
-| **FR-007** | WHERE SMTP lỗi, THE system SHALL **vẫn trả 201** và ghi log lỗi, KHÔNG rollback việc tạo tài khoản (`NFR-A02`) |
-| **FR-008** | THE system SHALL KHÔNG bao giờ ghi mật khẩu thô vào log (`NFR-S07`) |
+| **FR-001** | WHEN khách gửi `POST /api/auth/register` với email chưa tồn tại và dữ liệu hợp lệ, THE system SHALL tạo một dòng `users` với `email_verified_at = NULL`, gán role `LEARNER` vào `user_roles`, đặt `plan_code = 'FREE'`, và trả **201** |
+| **FR-002** | THE system SHALL thực hiện tạo user + gán role trong **cùng một transaction** (`BUS-02`) |
+| **FR-003** | THE system SHALL hash mật khẩu bằng bcrypt cost 12 trước khi ghi (`HR-01`, `NFR-S01`) |
+| **FR-004** | WHEN email (đã chuẩn hoá, FR-095) đã tồn tại, THE system SHALL trả **409** `EMAIL_ALREADY_EXISTS` |
+| **FR-005** | THE system SHALL validate theo FR-091 (mật khẩu), FR-095 (email), `displayName` 2–100 ký tự sau khi bỏ khoảng trắng hai đầu, `acceptTerms = true`, hai lần nhập mật khẩu khớp. Vi phạm → **422** `VALIDATION_FAILED` kèm `details` từng field |
+| **FR-006** | WHEN tạo user thành công, THE system SHALL sinh token `EMAIL_VERIFY` trong `auth_tokens` hết hạn sau **24 giờ** và gửi email chứa link `{APP_WEB_BASE_URL}/verify-email?token=...` **sau khi transaction commit** |
+| **FR-007** | WHERE SMTP lỗi, THE system SHALL **vẫn trả 201** và ghi log lỗi (không ghi email), KHÔNG rollback việc tạo tài khoản (`NFR-A01`) |
+| **FR-008** | THE system SHALL KHÔNG bao giờ ghi mật khẩu thô hoặc token thô vào log (`NFR-S07`) |
 
 ### Nhóm 2 — Xác thực email (FR-009…FR-013) · UC-002
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-009** | WHEN người dùng mở link xác thực với token hợp lệ chưa hết hạn, THE system SHALL đặt `email_verified_at = now()` và thu hồi token đó |
-| **FR-010** | WHILE `email_verified_at IS NULL`, THE system SHALL cho đăng nhập và cho học, NHƯNG từ chối mọi thao tác đổi điểm với **403** `ACCOUNT_UNVERIFIED` |
-| **FR-011** | WHEN token đã dùng hoặc hết hạn, THE system SHALL trả **400** `INVALID_VERIFY_TOKEN` |
-| **FR-012** | THE system SHALL cho phép xin gửi lại email xác thực, tối đa **3 lần/giờ** mỗi tài khoản |
+| **FR-009** | WHEN người dùng gửi `POST /api/auth/verify-email` với token hợp lệ chưa hết hạn, THE system SHALL đặt `email_verified_at = now()` và thu hồi token đó |
+| **FR-010** | WHILE `email_verified_at IS NULL`, THE system SHALL cho đăng nhập và cho học, NHƯNG từ chối mọi thao tác đổi điểm với **403** `ACCOUNT_UNVERIFIED`. Spec này cung cấp `AuthApi.requireVerifiedEmail(userId)` để spec khác gọi |
+| **FR-011** | WHEN token không tồn tại, đã thu hồi hoặc hết hạn, THE system SHALL trả **400** `INVALID_VERIFY_TOKEN` — trừ trường hợp E10 (FR-094) |
+| **FR-012** | THE system SHALL cho phép xin gửi lại email xác thực qua `POST /api/auth/verify-email/resend` (đã đăng nhập), tối đa **3 lần/giờ** mỗi tài khoản; vượt → **429** `TOO_MANY_REQUESTS` kèm `retryAfterSeconds` |
 | **FR-013** | WHEN gửi lại, THE system SHALL thu hồi token `EMAIL_VERIFY` cũ trước khi sinh token mới |
 
 ### Nhóm 3 — Đăng nhập web bằng cookie (FR-014…FR-021) · UC-003
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-014** | WHEN đăng nhập đúng từ web, THE system SHALL đặt cookie `access_token` với **đủ năm thuộc tính**: `Domain=cnhsk.com`, `HttpOnly=true`, `Secure=true`, `SameSite=Lax`, `Max-Age` (`HR-03`) |
-| **FR-015** | THE system SHALL đặt `Domain=cnhsk.com` (tên miền cha), KHÔNG để trống. Để trống thì `game.cnhsk.com` **không nhận được cookie** và UC-005 hỏng |
-| **FR-016** | WHEN đăng nhập đúng, THE system SHALL sinh refresh token, lưu **dạng hash** vào `auth_tokens`, KHÔNG lưu token thô |
-| **FR-017** | WHEN mật khẩu sai hoặc email không tồn tại, THE system SHALL tăng bộ đếm Redis của cặp email chuẩn hóa–IP và trả **401** `INVALID_CREDENTIALS` nếu chưa đạt ngưỡng chặn |
-| **FR-018** | THE system SHALL trả **cùng một thông báo** cho email không tồn tại và mật khẩu sai, để không tiết lộ email nào đã đăng ký |
-| **FR-019** | WHEN đăng nhập thành công, THE system SHALL xóa bộ đếm Redis của cặp email–IP đó |
-| **FR-020** | WHILE `banned_at IS NOT NULL`, THE system SHALL từ chối đăng nhập với **403** `ACCOUNT_BANNED` kèm `ban_reason` |
-| **FR-021** | WHILE `suspended_until > now()`, THE system SHALL từ chối đăng nhập với **403** `ACCOUNT_SUSPENDED` kèm thời điểm hết hạn |
+| **FR-014** | WHEN đăng nhập đúng từ web, THE system SHALL đặt cookie `access_token` với **đủ năm thuộc tính**: `Domain={COOKIE_DOMAIN}`, `HttpOnly`, `Secure={COOKIE_SECURE}`, `SameSite=Lax`, `Max-Age=900`, `Path=/` (`HR-03`) |
+| **FR-014b** | WHEN đăng nhập đúng từ web, THE system SHALL đặt cookie `refresh_token` với `Domain={COOKIE_DOMAIN}`, `HttpOnly`, `Secure`, `SameSite=Lax`, `Max-Age=2592000`, **`Path=/api/auth`** — chỉ gửi kèm các endpoint xác thực |
+| **FR-015** | THE system SHALL đặt `Domain` là tên miền cha, KHÔNG để trống. Để trống thì `game.cnhsk.com` **không nhận được cookie** và UC-005 hỏng |
+| **FR-016** | WHEN đăng nhập đúng, THE system SHALL sinh refresh token ngẫu nhiên 32 byte (`SecureRandom`, Base64URL), lưu **SHA-256 hash** vào `auth_tokens`, KHÔNG lưu token thô. Access token là JWT HS256 với claim: `sub` (user id), `roles` (mảng), `ev` (email đã xác thực: bool), `iat`, `exp`, `jti` |
+| **FR-017** | WHEN mật khẩu sai hoặc email không tồn tại, THE system SHALL tăng bộ đếm Redis của cặp email chuẩn hoá–IP và trả **401** `INVALID_CREDENTIALS` nếu chưa đạt ngưỡng chặn |
+| **FR-018** | THE system SHALL trả **cùng một thông báo** "Email hoặc mật khẩu không đúng" cho email không tồn tại và mật khẩu sai; thời gian xử lý hai nhánh tương đương (vẫn chạy bcrypt với hash giả khi email không tồn tại) |
+| **FR-019** | WHEN đăng nhập thành công, THE system SHALL xoá bộ đếm Redis của cặp email–IP đó |
+| **FR-020** | WHILE `banned_at IS NOT NULL`, THE system SHALL từ chối đăng nhập với **403** `ACCOUNT_BANNED` kèm `banReason` |
+| **FR-021** | WHILE `suspended_until > now()`, THE system SHALL từ chối đăng nhập với **403** `ACCOUNT_SUSPENDED` kèm `suspendedUntil` |
 
 ### Nhóm 4 — Đăng nhập mobile bằng header (FR-022…FR-025) · UC-004
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-022** | WHERE request đến từ mobile (không có cookie), THE system SHALL trả access token và refresh token **trong body response**, KHÔNG đặt cookie |
-| **FR-023** | THE system SHALL đọc token theo thứ tự: **cookie trước, không có thì đọc header** `Authorization: Bearer`. Thiếu một trong hai nhánh thì một loại client không đăng nhập được |
-| **FR-024** | WHERE client dùng header, THE system SHALL KHÔNG yêu cầu CSRF token (không có cookie thì không có nguy cơ CSRF) |
-| **FR-025** | THE system SHALL dùng **cùng một** endpoint `/api/auth/login` cho cả ba client, phân biệt bằng header `X-Client-Type` |
+| **FR-022** | WHERE header `X-Client-Type: MOBILE`, THE system SHALL trả `accessToken`, `refreshToken`, `accessTokenExpiresIn` (giây) **trong body response**, KHÔNG đặt cookie |
+| **FR-023** | THE system SHALL đọc access token theo thứ tự: **cookie `access_token` trước, không có thì header** `Authorization: Bearer`. Thiếu một trong hai nhánh thì một loại client không đăng nhập được |
+| **FR-024** | WHERE request xác thực bằng header (không có cookie `access_token`), THE system SHALL KHÔNG yêu cầu CSRF token |
+| **FR-025** | THE system SHALL dùng **cùng một** endpoint `/api/auth/login` cho cả ba client, phân biệt bằng header `X-Client-Type` ∈ `WEB` · `MOBILE` (FR-089) |
 
-### Nhóm 5 — Đăng nhập trang game bằng cookie chung (FR-026…FR-030) · UC-005, UC-013
-
-| Mã | Yêu cầu |
-|---|---|
-| **FR-026** | WHERE người dùng đã đăng nhập ở `cnhsk.com` và mở `game.cnhsk.com`, THE system SHALL nhận cookie tự động (nhờ `Domain=cnhsk.com`) và coi là đã đăng nhập |
-| **FR-027** | THE system SHALL cung cấp `GET /api/auth/me` để trang game biết mình là ai — vì cookie `HttpOnly` nên JavaScript trang game **không đọc được** token |
-| **FR-028** | THE system SHALL khai báo CORS cho `game.cnhsk.com` **tường minh**, CẤM dùng `*` (`HR-04`, `NFR-S05`) |
-| **FR-029** | THE system SHALL đặt `Access-Control-Allow-Credentials: true` cho origin trang game, nếu không cookie không được gửi kèm |
-| **FR-030** | WHERE mobile mở game trong WebView, THE app SHALL tiêm `Authorization` header **trước khi** trang chạy; THE system SHALL chấp nhận token từ header ở mọi endpoint game |
-
-### Nhóm 6 — Làm mới và đăng xuất (FR-031…FR-037) · UC-006, UC-007
+### Nhóm 5 — Đăng nhập trang game bằng cookie chung (FR-026…FR-030) · UC-005
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-031** | WHEN nhận refresh token hợp lệ, THE system SHALL cấp access token mới VÀ refresh token mới, rồi thu hồi refresh token cũ (rotation) |
-| **FR-032** | WHEN một refresh token đã thu hồi được dùng lại, THE system SHALL thu hồi **toàn bộ** token của user đó và trả **401** `TOKEN_REUSE_DETECTED` |
-| **FR-033** | THE system SHALL so sánh refresh token bằng cách hash token người dùng gửi rồi đối chiếu `auth_tokens`, KHÔNG so sánh token thô |
-| **FR-034** | WHEN đăng xuất từ web, THE system SHALL xoá cookie (đặt `Max-Age=0`) và thu hồi refresh token của session đó |
+| **FR-026** | WHERE người dùng đã đăng nhập ở `cnhsk.com` và mở `game.cnhsk.com`, THE system SHALL nhận cookie tự động (nhờ `Domain` tên miền cha) và coi là đã đăng nhập |
+| **FR-027** | THE system SHALL cung cấp `GET /api/auth/me` để trang game và web biết mình là ai — vì cookie `HttpOnly` nên JavaScript **không đọc được** token. Chưa đăng nhập → **401** `UNAUTHENTICATED` |
+| **FR-028** | THE system SHALL khai báo CORS cho origin trang game **tường minh**, CẤM dùng `*` (`HR-04`, `NFR-S05`) |
+| **FR-029** | THE system SHALL đặt `Access-Control-Allow-Credentials: true` cho origin web và trang game |
+| **FR-030** | WHERE mobile mở game trong WebView, THE app SHALL tiêm `Authorization` header **trước khi** trang chạy; THE system SHALL chấp nhận token từ header ở mọi endpoint game (theo FR-023) |
+
+### Nhóm 6 — Làm mới và đăng xuất (FR-031…FR-037) · (UC-006 cũ), UC-007
+
+| Mã | Yêu cầu |
+|---|---|
+| **FR-031** | WHEN nhận refresh token hợp lệ tại `POST /api/auth/refresh` (cookie `refresh_token` ở web, body `{refreshToken}` ở mobile), THE system SHALL cấp access token mới VÀ refresh token mới, rồi thu hồi refresh token cũ (rotation), trong một transaction |
+| **FR-032** | WHEN một refresh token đã thu hồi được dùng lại, THE system SHALL thu hồi **toàn bộ** refresh token của user đó, ghi `audit_logs` `action='TOKEN_REUSE'`, và trả **401** `TOKEN_REUSE_DETECTED` |
+| **FR-033** | THE system SHALL so sánh refresh token bằng cách hash SHA-256 token người dùng gửi rồi đối chiếu `auth_tokens.token_hash`, KHÔNG so sánh token thô |
+| **FR-034** | WHEN đăng xuất từ web (`POST /api/auth/logout`), THE system SHALL xoá hai cookie (`Max-Age=0`, cùng `Domain`/`Path`) và thu hồi refresh token của phiên đó |
 | **FR-035** | WHEN đăng xuất từ mobile, THE system SHALL thu hồi refresh token nhận trong body |
-| **FR-036** | THE system SHALL cho phép đăng xuất **mọi thiết bị** — thu hồi tất cả refresh token của user |
-| **FR-037** | WHERE token hết hạn giữa lúc làm bài thi, THE system SHALL giữ nguyên `attempts.draft_answers` để không mất bài (E4) |
+| **FR-036** | THE system SHALL cho phép đăng xuất **mọi thiết bị** (`POST /api/auth/logout-all`) — thu hồi tất cả refresh token của user và đặt mốc vô hiệu phiên (FR-092) |
+| **FR-037** | WHERE access token hết hạn giữa lúc dùng, THE client SHALL gọi FR-031 rồi gửi lại request **một lần**; làm mới thất bại → chuyển SCR-002 kèm `redirect` |
 
 ### Nhóm 7 — Quên và đổi mật khẩu (FR-038…FR-045) · UC-008, UC-009, UC-010
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-038** | WHEN nhận yêu cầu quên mật khẩu, THE system SHALL trả **cùng một thông báo** dù email có tồn tại hay không, để không tiết lộ email đã đăng ký |
-| **FR-039** | WHERE email tồn tại, THE system SHALL sinh token `RESET_PASSWORD` hết hạn **1 giờ**, lưu dạng hash, và gửi email |
-| **FR-040** | THE system SHALL sinh token đặt lại bằng `SecureRandom`, độ dài ≥ 16 ký tự, KHÔNG tuần tự (`BUS-13`) |
-| **FR-041** | THE system SHALL giới hạn **3 yêu cầu/giờ** mỗi email |
-| **FR-042** | WHEN đặt lại mật khẩu thành công, THE system SHALL thu hồi token đó VÀ **toàn bộ** refresh token của user |
-| **FR-043** | WHEN đổi mật khẩu khi đã đăng nhập, THE system SHALL yêu cầu mật khẩu cũ đúng trước khi đổi |
-| **FR-044** | WHEN đổi mật khẩu thành công, THE system SHALL thu hồi mọi refresh token **trừ session hiện tại** (E7) |
-| **FR-045** | THE system SHALL từ chối mật khẩu mới trùng mật khẩu cũ với **422** `PASSWORD_UNCHANGED` |
+| **FR-038** | WHEN nhận `POST /api/auth/forgot-password`, THE system SHALL trả **202** với **cùng một thông báo** dù email có tồn tại hay không |
+| **FR-039** | WHERE email tồn tại và tài khoản không bị cấm, THE system SHALL sinh token `RESET_PASSWORD` hết hạn **1 giờ**, lưu dạng hash, thu hồi token `RESET_PASSWORD` cũ chưa dùng, và gửi email link `{APP_WEB_BASE_URL}/reset-password?token=...` |
+| **FR-040** | THE system SHALL sinh token đặt lại bằng `SecureRandom` 32 byte Base64URL, KHÔNG tuần tự (`BUS-13`) |
+| **FR-041** | THE system SHALL giới hạn **3 yêu cầu/giờ mỗi email** và **10 yêu cầu/giờ mỗi IP** (FR-093); vượt → vẫn trả **202** cùng thông báo nhưng không gửi email (không tiết lộ) |
+| **FR-042** | WHEN đặt lại mật khẩu thành công (`POST /api/auth/reset-password`), THE system SHALL thu hồi token đó VÀ **toàn bộ** refresh token của user, xoá bộ đếm đăng nhập sai liên quan, đặt mốc vô hiệu phiên (FR-092), trả **204** |
+| **FR-043** | WHEN đổi mật khẩu khi đã đăng nhập (`POST /api/me/password`), THE system SHALL yêu cầu mật khẩu hiện tại đúng; sai → **422** `CURRENT_PASSWORD_INCORRECT` |
+| **FR-044** | WHEN đổi mật khẩu thành công, THE system SHALL thu hồi mọi refresh token **trừ phiên hiện tại** (E7) |
+| **FR-045** | THE system SHALL từ chối mật khẩu mới trùng mật khẩu hiện tại với **422** `PASSWORD_UNCHANGED` (cả FR-042 và FR-043) |
 
-### Nhóm 8 — Tạm chặn nguồn đăng nhập (FR-046…FR-050) · UC-012
+### Nhóm 8 — Tạm chặn nguồn đăng nhập (FR-046…FR-050) · UC-012 («extend» UC-003, UC-004)
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-046** | WHEN cùng cặp email chuẩn hóa–IP sai **5 lần trong 15 phút**, THE system SHALL chặn cặp đó trong 15 phút bằng Redis TTL và thao tác đếm nguyên tử |
-| **FR-047** | WHILE cặp email–IP đang bị chặn, THE system SHALL từ chối đăng nhập với **423** `LOGIN_SOURCE_BLOCKED` kèm `blockedUntil`, kể cả khi mật khẩu đúng |
-| **FR-048** | THE system SHALL đếm theo **cặp email–IP**, không khóa toàn bộ tài khoản hoặc mọi người dùng chung IP; cùng tài khoản từ IP khác vẫn được thử đăng nhập |
-| **FR-049** | WHEN thời gian chặn đã hết, THE system SHALL cho cặp email–IP thử lại; đăng nhập thành công xóa bộ đếm của cặp đó |
-| **FR-050** | THE system SHALL KHÔNG khoá vĩnh viễn do sai mật khẩu. Đặt lại mật khẩu thành công xóa trạng thái chặn liên quan đến tài khoản; ban vĩnh viễn chỉ do `SUPER_ADMIN` thực hiện |
+| **FR-046** | WHEN cùng cặp email chuẩn hoá–IP sai **5 lần trong 15 phút**, THE system SHALL chặn cặp đó trong 15 phút. Khoá Redis: `auth:login-fail:{sha256(email)}:{ip}` (đếm, TTL 15 phút từ lần sai đầu), `auth:login-block:{sha256(email)}:{ip}` (TTL 15 phút). Tăng đếm bằng `INCR` nguyên tử |
+| **FR-047** | WHILE cặp email–IP đang bị chặn, THE system SHALL từ chối đăng nhập với **423** `LOGIN_SOURCE_BLOCKED` kèm `blockedUntil`, kể cả khi mật khẩu đúng, **không** chạy bcrypt |
+| **FR-048** | THE system SHALL đếm theo **cặp email–IP**, không khoá toàn bộ tài khoản hoặc mọi người dùng chung IP |
+| **FR-049** | WHEN hết thời gian chặn, THE system SHALL cho cặp email–IP thử lại; đăng nhập thành công xoá bộ đếm |
+| **FR-050** | THE system SHALL KHÔNG khoá vĩnh viễn do sai mật khẩu. Ban vĩnh viễn chỉ do `ADMIN` (FR-096). IP lấy từ `request.getRemoteAddr()`; chỉ đọc `X-Forwarded-For` khi bật `server.forward-headers-strategy=framework` sau proxy tin cậy |
 
 ### Nhóm 9 — Thông tin cá nhân và lịch sử (FR-051…FR-057) · UC-011, UC-014
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-051** | THE system SHALL cho người dùng xem và sửa: `display_name`, `avatar_url`, `hsk_level`, `reminder_time`, `reminder_channels` |
-| **FR-052** | THE system SHALL KHÔNG cho người dùng tự sửa: `email`, `plan_code`, `plan_expires_at`, role, trạng thái tài khoản |
-| **FR-053** | THE system SHALL kiểm quyền sở hữu trước khi trả hoặc sửa thông tin cá nhân — đối chiếu `user_id` trong JWT, KHÔNG tin tham số client gửi (`BUS-01`) |
-| **FR-054** | WHEN người dùng A yêu cầu dữ liệu của B, THE system SHALL trả **403**, kể cả khi id không tồn tại (không trả 404 để không tiết lộ id nào có thật) |
-| **FR-055** | THE system SHALL lưu `reminder_time` theo **giờ Việt Nam**; job nhắc chạy với `zone = "Asia/Ho_Chi_Minh"` (`BUS-08`, `AC-08`) |
-| **FR-056** | Ở V2, THE system SHALL chỉ cho `SUPER_ADMIN` xem lịch sử đăng nhập **thành công** trong **90 ngày** gần nhất của tài khoản được chọn: thời điểm, loại client hoặc thiết bị, IP đã mask; người dùng thường và các role quản trị khác không có quyền xem. Bản ghi `LOGIN` quá 90 ngày phải được dọn và không được trả qua API |
-| **FR-057** | THE system SHALL mask IP trong phản hồi lịch sử; email nếu xuất hiện trong danh sách hoặc log phải được mask theo `BUS-06` (`NFR-S07`) |
+| **FR-051** | THE system SHALL cho người dùng xem (`GET /api/me/profile`) và sửa (`PATCH /api/me/profile`) đúng 3 trường: `displayName`, `avatarUrl`, `hskLevel` (FR-095). Giờ nhắc học thuộc spec nhắc học |
+| **FR-052** | THE system SHALL KHÔNG cho người dùng tự sửa: `email`, `plan_code`, `plan_expires_at`, role, trạng thái tài khoản. Body chứa trường không được phép → **422** `VALIDATION_FAILED` |
+| **FR-053** | THE system SHALL lấy `user_id` từ JWT cho mọi endpoint `/api/me/*`, KHÔNG nhận id từ client (`BUS-01`) |
+| **FR-054** | WHEN người dùng không phải `ADMIN` gọi endpoint có id người khác, THE system SHALL trả **403** `FORBIDDEN`, kể cả khi id không tồn tại |
+| **FR-055** | (chuyển sang spec nhắc học) |
+| **FR-056** | Ở V2, THE system SHALL chỉ cho `ADMIN` xem lịch sử đăng nhập **thành công** trong **90 ngày** gần nhất của tài khoản được chọn, lấy từ `shared.audit_logs` `action='LOGIN_SUCCESS'` (ghi từ MVP); bản ghi quá 90 ngày được job dọn |
+| **FR-057** | THE system SHALL mask IP (`203.113.x.x`) và email (`ba•••@gmail.com`: giữ 2 ký tự đầu phần tên và tên miền) khi hiển thị cho quản trị (`BUS-06`, `NFR-S07`) |
 
-### Nhóm 10 — Phân quyền RBAC (FR-058…FR-066) · feature 6.2
-
-| Mã | Yêu cầu |
-|---|---|
-| **FR-058** | THE system SHALL hỗ trợ **sáu** role: `USER` · `TEACHER` · `MANAGER` · `CONTENT_ADMIN` · `FINANCE_ADMIN` · `SUPER_ADMIN`, lưu ở `user_roles.role_code` với `CHECK` constraint (`AC-06`) |
-| **FR-058b** | WHERE request không có JWT, THE system SHALL coi là actor `GUEST` — KHÔNG tạo dòng `user_roles`, KHÔNG có `role_code` cho `GUEST` |
-| **FR-058c** | WHERE tác vụ do job định kỳ chạy (actor `SYSTEM`), THE system SHALL bỏ qua `JwtFilter` và dùng quyền hệ thống. `SYSTEM` KHÔNG phải role trong DB |
-| **FR-059** | THE system SHALL cho một người dùng có **nhiều role** đồng thời (bảng nối `user_roles`) |
-| **FR-060** | WHEN người dùng gọi endpoint không đủ quyền, THE system SHALL trả **403**, KHÔNG trả 401 hay 404 |
-| **FR-061** | THE system SHALL đọc role từ JWT, KHÔNG query DB mỗi request — trừ khi token đã bị thu hồi |
-| **FR-062** | WHEN `SUPER_ADMIN` gán role, THE system SHALL ghi `granted_by` và `granted_at` vào `user_roles` |
-| **FR-063** | THE system SHALL chặn tự cấp role cho chính mình — `CHECK (granted_by IS NULL OR granted_by <> user_id)` |
-| **FR-064** | THE system SHALL ghi `audit_logs` cho mọi lần gán hoặc thu hồi role |
-| **FR-065** | WHEN `SUPER_ADMIN` ban một user đang có session, THE system SHALL làm request tiếp theo của user đó trả **403**, không chờ token hết hạn (E5) |
-| **FR-066** | THE system SHALL chỉ cho `SUPER_ADMIN` gán role. Năm role còn lại — kể cả `CONTENT_ADMIN` và `FINANCE_ADMIN` — KHÔNG gán được role |
-
-### Nhóm 11 — Gói dịch vụ và lượt free (FR-067…FR-075) · feature 6.1
+### Nhóm 10 — Phân quyền RBAC (FR-058…FR-066) · feature 6.2, UC-115
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-067** | THE system SHALL lưu gói hiện tại ở `users.plan_code` tham chiếu `plans(code)`, với ba gói: `FREE`, `PREMIUM`, `PREMIUM_PLUS` |
-| **FR-068** | THE system SHALL đặt `plan_code = 'FREE'` và `plan_expires_at = NULL` khi tạo tài khoản mới |
-| **FR-069** | THE system SHALL ràng buộc: gói `FREE` có `plan_expires_at IS NULL`; gói khác **bắt buộc** có `plan_expires_at` |
-| **FR-070** | THE system SHALL cấp **10 lượt mỗi tính năng mỗi tháng** cho gói `FREE`, theo `plans.benefits` |
-| **FR-071** | THE system SHALL đếm lượt đã dùng ở `users.free_usage` (JSONB theo `feature_code`) và đặt lại về rỗng vào **00:00 ngày 1 mỗi tháng giờ Việt Nam**, cập nhật `usage_reset_at` |
-| **FR-072** | WHEN người dùng hết lượt free và không còn điểm, THE system SHALL trả **402** `INSUFFICIENT_CREDITS` kèm gợi ý nâng gói |
-| **FR-073** | WHEN nhập mã thẻ loại `SUBSCRIPTION`, THE system SHALL đặt `plan_code` theo thẻ và `plan_expires_at = now() + plan_days` |
-| **FR-074** | WHEN gói hết hạn, THE job SHALL hạ `plan_code` về `FREE` và đặt `plan_expires_at = NULL`, chạy theo giờ Việt Nam |
-| **FR-075** | WHERE gói hết hạn giữa lúc người dùng đang dùng một lượt, THE system SHALL để lượt đó hoàn tất, không cắt giữa chừng (E8) |
+| **FR-058** | THE system SHALL hỗ trợ **sáu** role: `LEARNER` · `TEACHER` · `MODERATOR` · `CONTENT_EDITOR` · `ACCOUNTANT` · `ADMIN`, lưu ở `user_roles.role_code` với `CHECK` (`AC-06`) |
+| **FR-058b** | WHERE request không có token hợp lệ, THE system SHALL coi là `GUEST` — KHÔNG có dòng `user_roles`, KHÔNG có `role_code` |
+| **FR-058c** | WHERE tác vụ do job định kỳ (`@Scheduled`) chạy, THE system SHALL bỏ qua `JwtFilter` và dùng quyền hệ thống. Job định kỳ KHÔNG phải actor và KHÔNG có `role_code` |
+| **FR-059** | THE system SHALL cho một người dùng có **nhiều role** đồng thời; **không** role nào tự kế thừa quyền role khác |
+| **FR-060** | WHEN người dùng đã đăng nhập gọi endpoint không đủ quyền, THE system SHALL trả **403** `FORBIDDEN`; chưa đăng nhập → **401** `UNAUTHENTICATED` |
+| **FR-061** | THE system SHALL đọc role từ claim `roles` của JWT, KHÔNG query DB mỗi request; kiểm mốc vô hiệu phiên ở Redis (FR-092) |
+| **FR-062** | WHEN `ADMIN` gán role (`POST /api/admin/users/{id}/roles`), THE system SHALL ghi `granted_by`, `granted_at` |
+| **FR-063** | THE system SHALL chặn tự cấp role cho chính mình — service trả **403** `SELF_ROLE_GRANT`, DB có `CHECK (granted_by IS NULL OR granted_by <> user_id)` |
+| **FR-064** | THE system SHALL ghi `audit_logs` cho mọi lần gán hoặc thu hồi role (`action='ROLE_GRANT'`/`'ROLE_REVOKE'`, `before`/`after` là danh sách role) |
+| **FR-065** | WHEN `ADMIN` cấm hoặc thu hồi role của một user đang có phiên, THE system SHALL làm request tiếp theo của user đó bị từ chối, không chờ token hết hạn (FR-092) |
+| **FR-066** | THE system SHALL chỉ cho `ADMIN` gán/thu hồi role. Năm role còn lại KHÔNG gán được role. Không gỡ được `ADMIN` của `ADMIN` cuối cùng còn hoạt động (**409** `REVOKE_LAST_ADMIN`); không tự thu hồi `ADMIN` của chính mình (**403** `SELF_ROLE_REVOKE`) |
 
-### Nhóm 12 — Mô hình phễu: nhận mã từ hệ sinh thái (FR-076…FR-082)
-
-> CNHSK là **sản phẩm phễu** cho một hệ sinh thái khác. Tiền là tiền thật nhưng
-> **CNHSK không thu tiền** — chủ hệ sinh thái thu, CNHSK chỉ nhận mã đã có giá trị.
-> Xem Hiến pháp mục *Mô hình kinh doanh*.
+### Nhóm 11 — Gói mặc định (FR-068)
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-076** | THE system SHALL phân loại mọi mã thẻ theo `credit_cards.channel` thuộc một trong ba giá trị: `ECOSYSTEM_GIFT`, `PARTNER_BATCH`, `DIRECT` |
-| **FR-077** | WHERE `channel = 'PARTNER_BATCH'`, THE system SHALL **bắt buộc** có `partner_code` — không biết giao lô cho ai thì không đối soát được |
-| **FR-078** | WHERE `channel = 'ECOSYSTEM_GIFT'`, THE system SHALL **bắt buộc** có `issued_to` (email hoặc định danh người nhận) |
-| **FR-079** | THE system SHALL KHÔNG tích hợp cổng thanh toán, KHÔNG xử lý webhook thanh toán. Mã thẻ là **đường duy nhất** điểm vào hệ thống |
-| **FR-080** | THE system SHALL cung cấp báo cáo tỉ lệ đổi mã theo `campaign`: `COUNT(status='USED') / COUNT(*)` nhóm theo `channel, campaign` |
-| **FR-081** | WHEN người dùng đổi mã `ECOSYSTEM_GIFT` thành công, THE system SHALL ghi `issued_to` của mã vào `audit_logs` để đối soát với bên thứ ba |
-| **FR-082** | THE system SHALL cho `FINANCE_ADMIN` đặt `expires_at` **tuỳ chọn** cho mỗi lô. Mã không có hạn thì sống vĩnh viễn — rủi ro đã chấp nhận, xem §11 |
-| **FR-082b** | THE system SHALL giới hạn **tối đa 100 mã mỗi lô**. Vượt → **422** `BATCH_SIZE_EXCEEDED`. Kiểm ở **server**, không chỉ ở form — một lần bấm nhầm hoặc gọi API trực tiếp không được sinh ra hàng nghìn mã |
+| **FR-068** | THE system SHALL đặt `plan_code = 'FREE'` và `plan_expires_at = NULL` khi tạo tài khoản mới. Mọi logic gói, lượt, mã thẻ thuộc spec gói dịch vụ (credits-plans) |
 
-### Nhóm 13 — Hạn mức khách và màn chờ xác thực (FR-083…FR-088)
+> FR-067, FR-069→FR-075, FR-076→FR-082b đã **chuyển** sang spec gói dịch vụ (credits-plans); FR-083→FR-086 sang spec từ điển. Giữ số FR cũ để không đánh lại số.
 
-Hai thứ này đi cùng nhau vì cả hai thuộc trạng thái **chưa có tài khoản dùng
-được**: khách chưa đăng ký, và người vừa đăng ký nhưng chưa xác thực email.
+### Nhóm 13 — Màn chờ xác thực (FR-087…FR-088)
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-083** | THE system SHALL cấp `GUEST` **3 lượt tra cứu mỗi ngày** trên `/api/learning/dictionary`, đặt lại 00:00 giờ Việt Nam (`BUS-08`) |
-| **FR-084** | THE system SHALL đếm lượt khách bằng **cookie** `guest_quota` (HttpOnly, SameSite=Lax, 24 giờ) và Redis đối chiếu theo khoá cookie; không đếm lượt khách theo IP vì nhiều người có thể chung mạng |
-| **FR-085** | WHEN khách hết 3 lượt, THE system SHALL trả **429** `GUEST_QUOTA_EXCEEDED` kèm `reset_at`; frontend chuyển `/login?redirect=` |
-| **FR-086** | THE system SHALL KHÔNG áp hạn mức khách lên màn nào khác — mọi màn học, luyện, thi đều yêu cầu đăng nhập trước |
-| **FR-087** | WHEN đăng ký thành công, THE system SHALL để frontend chuyển sang `/verify-email`, màn này hiện email đã gửi tới và cho **gửi lại** theo giới hạn `FR-012` (3 lần/giờ) |
-| **FR-088** | WHERE người dùng mở `/verify-email?token=`, THE system SHALL xác thực token qua `FR-009`. Màn này **không chặn** việc dùng hệ thống — theo `FR-010`, chưa xác thực vẫn đăng nhập và học được, chỉ chặn thao tác đổi điểm |
+| **FR-087** | WHEN đăng ký thành công, THE frontend SHALL chuyển sang SCR-004 hiện email đã gửi tới và cho **gửi lại** theo FR-012 |
+| **FR-088** | WHERE người dùng mở `/verify-email?token=`, THE frontend SHALL gọi FR-009 tự động một lần. Màn này **không chặn** việc dùng hệ thống (FR-010) |
 
-> **`FR-084` là ma sát, không phải bảo mật.** Xoá cookie hoặc mở tab ẩn danh là
-> đặt lại lượt. Đã chấp nhận — xem `design.md` §5.5. Đừng thêm fingerprint để
-> bịt lỗ này.
+### Nhóm 14 — Chốt mâu thuẫn tài liệu (FR-089…FR-097)
+
+Các điểm `screen-fields.md` ghi "open issue". Spec chốt như sau; tài liệu nguồn cập nhật theo ở bước khoá.
+
+| Mã | Yêu cầu | Mâu thuẫn đã chốt |
+|---|---|---|
+| **FR-089** | WHERE `/api/auth/login` hoặc `/api/auth/refresh` thiếu `X-Client-Type` hoặc giá trị không thuộc `WEB`/`MOBILE`, THE system SHALL xử lý như `WEB` (chỉ đặt cookie, **không** trả token trong body) | UC-004 trả cả cookie và body — sai với BR04/05 |
+| **FR-090** | WHEN đăng nhập web thành công, THE frontend SHALL chuyển tới: (1) `redirect` nếu là đường dẫn nội bộ người dùng có quyền, **hoặc** URL tuyệt đối có origin đúng bằng `VITE_GAME_ORIGIN` (trang game, spec 007) — mọi URL tuyệt đối khác bị bỏ qua để chống open redirect; (2) nếu chỉ có **một** khu vực được phép → khu vực đó (bảng §12.3); (3) nếu nhiều khu vực → SCR-001 ở trạng thái đã đăng nhập, hiện danh sách "Khu vực của bạn" để người dùng tự chọn. **Không** tự xếp hạng role | Đa role chưa định nghĩa đích đến |
+| **FR-091** | THE system SHALL yêu cầu mật khẩu mới: 8–72 ký tự (giới hạn bcrypt), có ít nhất một chữ cái và một chữ số, không chứa khoảng trắng hai đầu, khác email. Thông báo: "Mật khẩu cần 8–72 ký tự, gồm chữ và số." | Độ mạnh mật khẩu chưa có |
+| **FR-092** | WHEN cấm tài khoản, thu hồi role, đặt lại mật khẩu hoặc đăng xuất mọi thiết bị, THE system SHALL ghi Redis `auth:invalid-before:{userId} = epochSeconds` (TTL 15 phút = vòng đời access token). `JwtFilter` từ chối access token có `iat <` mốc đó: tài khoản bị cấm → **403** `ACCOUNT_BANNED`, trường hợp khác → **401** `SESSION_REVOKED`; client làm mới token (refresh vẫn hợp lệ ở trường hợp thu hồi role) để nhận role mới | Thu hồi role không có cơ chế vô hiệu token cũ |
+| **FR-093** | THE system SHALL giới hạn quên mật khẩu 10 yêu cầu/giờ mỗi IP (khoá `auth:forgot:ip:{ip}`) và 3/giờ mỗi email (`auth:forgot:email:{sha256}`) | Giới hạn IP chưa có số |
+| **FR-094** | WHEN token xác thực đã dùng và tài khoản **đã** xác thực, THE system SHALL trả **200** `{ "emailVerified": true }` (idempotent). Mọi trường hợp lỗi khác dùng một mã `INVALID_VERIFY_TOKEN` (400) | UC-002 400/410/409 vs FR-011 |
+| **FR-095** | THE system SHALL chuẩn hoá email: bỏ khoảng trắng hai đầu, chữ thường, độ dài ≤ 255, đúng định dạng RFC 5322 đơn giản. Hồ sơ: `displayName` 2–100 ký tự; `avatarUrl` URL `https://` ≤ 500 ký tự hoặc `null` (không có upload ở MVP); `hskLevel` 1–9 hoặc `null` (cấp mục tiêu) | Tên field hồ sơ lệch UC/FR; avatar upload chưa có |
+| **FR-096** | THE system SHALL cho `ADMIN` cấm (`POST /api/admin/users/{id}/ban`, `reason` 5–500 ký tự bắt buộc) và gỡ cấm (`DELETE /api/admin/users/{id}/ban`); cấm ghi `banned_at`, `banned_by`, `ban_reason`, thu hồi toàn bộ refresh token, FR-092; gỡ cấm xoá ba trường; cả hai ghi `audit_logs`. Không cấm chính mình (**403** `SELF_BAN`); không cấm `ADMIN` cuối cùng còn hoạt động (**409** `BAN_LAST_ADMIN`). Tạm khoá có thời hạn **không** có ở MVP | Hành động hạn chế tài khoản chưa chốt |
+| **FR-097** | THE system SHALL cho `ADMIN` tìm tài khoản (`GET /api/admin/users`) theo `q` (khớp một phần email hoặc tên, không phân biệt hoa thường, ≥ 2 ký tự), lọc `role`, `status` ∈ `ACTIVE`·`UNVERIFIED`·`BANNED`; phân trang `page` (từ 0), `size` 1–50 (mặc định 20), sắp `createdAt` giảm dần; email trả về **đã mask** (FR-057). Xem chi tiết `GET /api/admin/users/{id}` trả email **đầy đủ** và ghi `audit_logs` `action='VIEW_USER_PII'` | Field danh sách người dùng chưa là hợp đồng |
 
 ### Key Entities
 
 | Bảng | Vai trò trong feature này |
 |---|---|
-| `users` | Tài khoản + trạng thái + gói. 18 cột hiện có + 4 cột gói chờ v7 |
-| `user_roles` | Bảng nối user ↔ role. `role_code` dùng `CHECK`, không còn FK tới `roles` |
-| `auth_tokens` | Gộp 3 loại token: `REFRESH`, `RESET_PASSWORD`, `EMAIL_VERIFY` |
-| `plans` | Danh mục 3 gói + `benefits` JSONB (hạn mức theo `feature_code`) |
-| `credit_cards` | Mã thẻ + `channel`/`partner_code`/`campaign`/`issued_to` (mô hình phễu) |
-| `audit_logs` | Ghi mọi lần gán/thu hồi role (`FR-064`) và đổi mã quà tặng (`FR-081`) |
+| `auth.users` | Tài khoản + trạng thái. Cột gói tạo đủ ở V1 nhưng logic thuộc spec gói dịch vụ |
+| `auth.user_roles` | Bảng nối user ↔ role, `role_code` dùng `CHECK` |
+| `auth.auth_tokens` | Gộp 3 loại token: `REFRESH`, `RESET_PASSWORD`, `EMAIL_VERIFY` |
+| `shared.audit_logs` | Ghi gán/thu hồi role, cấm/gỡ cấm, đăng nhập thành công, tái dùng token, xem PII |
 
 ---
 
 ## 4 · Data Model
 
-### 4.1 · `users` — cột liên quan feature này
+> DDL đầy đủ nằm ở `docs/reference/database.md` và được viết lại vào `V1__core_schema.sql` (§0.2).
+> Mục này chỉ ghi cột và ràng buộc feature này **dùng trực tiếp**.
+
+### 4.1 · `auth.users`
 
 ```sql
 id                 BIGSERIAL PRIMARY KEY
-email              VARCHAR(255) NOT NULL UNIQUE
+email              VARCHAR(255) NOT NULL UNIQUE      -- luôn lưu dạng đã chuẩn hoá (FR-095)
 password_hash      VARCHAR(255) NOT NULL
 display_name       VARCHAR(100) NOT NULL
 avatar_url         TEXT
 hsk_level          SMALLINT CHECK (hsk_level BETWEEN 1 AND 9)
-
--- Trạng thái tài khoản
 email_verified_at  TIMESTAMPTZ          -- NULL = chưa xác thực
--- Bộ đếm đăng nhập sai và thời điểm hết chặn của UC-012 nằm trong Redis theo cặp email–IP.
-suspended_at       TIMESTAMPTZ
+suspended_at       TIMESTAMPTZ          -- chỉ đọc ở spec này
 suspended_until    TIMESTAMPTZ
 banned_at          TIMESTAMPTZ
-banned_by          BIGINT REFERENCES users(id)
+banned_by          BIGINT REFERENCES auth.users(id)
 ban_reason         TEXT
-
--- Nhắc học: giờ Việt Nam, NULL = tắt
-reminder_time      TIME
+reminder_time      TIME                 -- spec nhắc học
 reminder_channels  VARCHAR(50) NOT NULL DEFAULT 'WEB'
-
--- Gói dịch vụ (thêm ở V3)
-plan_code          VARCHAR(20) NOT NULL DEFAULT 'FREE' REFERENCES plans(code)
+plan_code          VARCHAR(20) NOT NULL DEFAULT 'FREE' REFERENCES learning.plans(code)
 plan_expires_at    TIMESTAMPTZ
 free_usage         JSONB NOT NULL DEFAULT '{}'
 usage_reset_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
+updated_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 
 CONSTRAINT ck_users_ban_reason  CHECK (banned_at IS NULL OR ban_reason IS NOT NULL)
 CONSTRAINT ck_users_plan_expiry CHECK (
   (plan_code = 'FREE' AND plan_expires_at IS NULL)
-  OR (plan_code <> 'FREE' AND plan_expires_at IS NOT NULL)
-)
+  OR (plan_code <> 'FREE' AND plan_expires_at IS NOT NULL))
 ```
 
-> **Vì sao gói nằm trên `users` chứ không phải bảng `user_subscriptions` riêng:**
-> gói được đọc **cùng lúc** với mọi lần kiểm quyền. Tách ra là thêm một JOIN vào
-> đường nóng nhất của hệ thống.
+**Trạng thái suy ra** (không lưu cột riêng): `BANNED` nếu `banned_at IS NOT NULL`; `UNVERIFIED` nếu `email_verified_at IS NULL`; còn lại `ACTIVE`. `ADMIN` "còn hoạt động" = có role `ADMIN` và `banned_at IS NULL`.
 
-### 4.2 · `user_roles`
+### 4.2 · `auth.user_roles`
 
 ```sql
-user_id    BIGINT      NOT NULL REFERENCES users(id)
+user_id    BIGINT      NOT NULL REFERENCES auth.users(id)
 role_code  VARCHAR(20) NOT NULL
-granted_by BIGINT      REFERENCES users(id)
+granted_by BIGINT      REFERENCES auth.users(id)
 granted_at TIMESTAMPTZ NOT NULL DEFAULT now()
 PRIMARY KEY (user_id, role_code)
-
 CONSTRAINT ck_ur_self      CHECK (granted_by IS NULL OR granted_by <> user_id)
 CONSTRAINT ck_ur_role_code CHECK (role_code IN
-  ('USER','TEACHER','MANAGER','CONTENT_ADMIN','FINANCE_ADMIN','SUPER_ADMIN'))
-
-CREATE INDEX ix_ur_role ON user_roles(role_code, user_id);
+  ('LEARNER','TEACHER','MODERATOR','CONTENT_EDITOR','ACCOUNTANT','ADMIN'))
+CREATE INDEX ix_ur_role ON auth.user_roles(role_code, user_id);
 ```
 
-> **Bảng `roles` sẽ bị bỏ** (chờ `database.md` duyệt). Nó chỉ lưu các mã role cố định và
-> không có màn CRUD danh mục role riêng trong bộ **79 màn đã duyệt**. Cấp/thu hồi role
-> nằm tại **SCR-077 User Detail** (xem [screen-fields.md](../../docs/reference/screen-fields.md)).
-> `AC-06` nói enum lưu `VARCHAR + CHECK`.
-> Bỏ nó giảm một JOIN ở mọi truy vấn quyền.
-> Đã chứng minh `DROP TABLE roles CASCADE` **không** làm mất dữ liệu `user_roles`.
-
-### 4.3 · `auth_tokens`
+### 4.3 · `auth.auth_tokens`
 
 ```sql
 id         BIGSERIAL PRIMARY KEY
-user_id    BIGINT      NOT NULL REFERENCES users(id)
-token_hash VARCHAR(255) NOT NULL        -- chỉ lưu hash, không lưu token thô
-token_type VARCHAR(20)  NOT NULL
-           CHECK (token_type IN ('REFRESH','RESET_PASSWORD','EMAIL_VERIFY'))
-expires_at TIMESTAMPTZ NOT NULL
+user_id    BIGINT       NOT NULL REFERENCES auth.users(id)
+token_type VARCHAR(20)  NOT NULL CHECK (token_type IN ('REFRESH','RESET_PASSWORD','EMAIL_VERIFY'))
+token_hash VARCHAR(255) NOT NULL UNIQUE      -- SHA-256 hex, không lưu token thô
+expires_at TIMESTAMPTZ  NOT NULL
 revoked_at TIMESTAMPTZ
-created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-
-CREATE INDEX ix_tokens_user ON auth_tokens(user_id) WHERE revoked_at IS NULL;
+created_at TIMESTAMPTZ  NOT NULL DEFAULT now()
+CREATE INDEX ix_tokens_user ON auth.auth_tokens(user_id) WHERE revoked_at IS NULL;
 ```
 
-> Gộp 3 bảng v5 (`refresh_tokens` + 2 bảng token khác) thành 1. Ba loại token có
-> **cùng** vòng đời: sinh → hết hạn hoặc thu hồi.
+### 4.4 · `shared.audit_logs` — giá trị `action` feature này ghi
 
-### 4.4 · `plans`
-
-```sql
-code          VARCHAR(20)  PRIMARY KEY CHECK (code IN ('FREE','PREMIUM','PREMIUM_PLUS'))
-name          VARCHAR(100) NOT NULL
-duration_days SMALLINT     CHECK (duration_days IS NULL OR duration_days > 0)
-benefits      JSONB        NOT NULL DEFAULT '{}'
-price         NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (price >= 0)
-is_active     BOOLEAN      NOT NULL DEFAULT true
-
-CONSTRAINT ck_plan_free CHECK (code <> 'FREE' OR (price = 0 AND duration_days IS NULL))
-```
-
-Dữ liệu khởi tạo:
-
-| `code` | `price` | `duration_days` | `benefits` (mỗi tháng) |
-|---|---|---|---|
-| `FREE` | 0 | `NULL` (vĩnh viễn) | 10 lượt mỗi tính năng |
-| `PREMIUM` | 99.000 | 30 | 50 AI · 200 dịch · 5 chấm bài · 300 chat |
-| `PREMIUM_PLUS` | 199.000 | 30 | 200 · 1000 · 20 · 1000 |
-
-> **`duration_days` khác `benefits`:** `duration_days` là hạn của **gói**,
-> `benefits` là hạn mức mỗi **chu kỳ tháng**. Gói `FREE` vĩnh viễn nhưng lượt vẫn
-> reset mỗi tháng theo `users.usage_reset_at`.
-
-### 4.5 · `credit_cards` — cột mô hình phễu (chờ v7)
-
-```sql
-channel      VARCHAR(20) NOT NULL DEFAULT 'DIRECT'
-             CHECK (channel IN ('ECOSYSTEM_GIFT','PARTNER_BATCH','DIRECT'))
-partner_code VARCHAR(50)    -- bên thứ ba nhận lô; NULL với DIRECT
-campaign     VARCHAR(50)    -- đợt phát, để đo tỉ lệ đổi
-issued_to    VARCHAR(255)   -- email/định danh người nhận; chỉ ECOSYSTEM_GIFT
-
-CONSTRAINT ck_card_partner CHECK (channel <> 'PARTNER_BATCH' OR partner_code IS NOT NULL)
-CONSTRAINT ck_card_gift    CHECK (channel <> 'ECOSYSTEM_GIFT' OR issued_to IS NOT NULL)
-
-CREATE INDEX ix_card_funnel  ON credit_cards(channel, campaign, status);
-CREATE INDEX ix_card_partner ON credit_cards(partner_code, status)
-  WHERE partner_code IS NOT NULL;
-```
-
-> **Không có bảng `partners`.** Hiện chỉ có **một** bên thứ ba (chủ hệ sinh thái).
-> Một bảng cho một dòng dữ liệu là ngược YAGNI. Khi có bên thứ hai thì tách,
-> lúc đó `partner_code` thành FK.
-
-Truy vấn đo phễu — chỉ số sống của mô hình:
-
-```sql
-SELECT channel, campaign,
-       COUNT(*) FILTER (WHERE status = 'USED') AS da_doi,
-       COUNT(*)                                AS tong,
-       ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'USED') / COUNT(*), 1) AS ti_le
-FROM credit_cards
-GROUP BY channel, campaign
-ORDER BY channel, campaign;
-```
+| `action` | `entity` | `before` / `after` |
+|---|---|---|
+| `BOOTSTRAP_ADMIN` | `user:{id}` | — / `{roles}` |
+| `LOGIN_SUCCESS` | `user:{id}` | — / `{clientType, ipMasked}` |
+| `TOKEN_REUSE` | `user:{id}` | — / `{ipMasked}` |
+| `ROLE_GRANT` · `ROLE_REVOKE` | `user:{id}` | `{roles}` / `{roles}` |
+| `USER_BAN` · `USER_UNBAN` | `user:{id}` | `{bannedAt, reason}` / `{bannedAt, reason}` |
+| `VIEW_USER_PII` | `user:{id}` | — / — |
 
 ---
 
 ## 5 · Error Matrix
 
-| Mã lỗi | HTTP | Nguyên nhân | FR | Xử lý |
-|---|---|---|---|---|
-| `EMAIL_ALREADY_EXISTS` | 409 | Email đã đăng ký | FR-004 | `UNIQUE` trên `users.email` chặn |
-| `VALIDATION_FAILED` | 422 | Email sai định dạng, mật khẩu ngắn, không khớp | FR-005 | Trả danh sách field |
-| `INVALID_CREDENTIALS` | 401 | Sai mật khẩu **hoặc** email không tồn tại | FR-017, FR-018 | 🔴 **Một thông báo duy nhất** |
-| `LOGIN_SOURCE_BLOCKED` | 423 | Cặp email–IP sai 5 lần trong 15 phút hoặc còn trong thời gian chặn | FR-047 | Chặn cặp 15 phút, trả `blockedUntil` |
-| `ACCOUNT_BANNED` | 403 | `banned_at IS NOT NULL` | FR-020 | Kèm `ban_reason` |
-| `ACCOUNT_SUSPENDED` | 403 | `suspended_until > now()` | FR-021 | Kèm thời điểm hết |
-| `ACCOUNT_UNVERIFIED` | 403 | Chưa xác thực, thao tác đổi điểm | FR-010 | Cho học, chặn đổi điểm |
-| `INVALID_VERIFY_TOKEN` | 400 | Token xác thực sai/hết hạn/đã dùng | FR-011 | Gợi ý xin gửi lại |
-| `TOKEN_REUSE_DETECTED` | 401 | Refresh token đã thu hồi bị dùng lại | FR-032 | 🔴 Thu hồi **toàn bộ** token |
-| `TOKEN_EXPIRED` | 401 | Access token hết hạn | FR-031 | Client tự gọi refresh |
-| `PASSWORD_UNCHANGED` | 422 | Mật khẩu mới trùng mật khẩu cũ | FR-045 | — |
-| `FORBIDDEN` | 403 | Không đủ role, hoặc truy cập dữ liệu người khác | FR-054, FR-060 | 🔴 KHÔNG trả 404 |
-| `SELF_ROLE_GRANT` | 403 | Tự cấp role cho mình | FR-063 | DB `CHECK` chặn |
-| `INSUFFICIENT_CREDITS` | 402 | Hết lượt free và hết điểm | FR-072 | Gợi ý nâng gói |
-| `GUEST_QUOTA_EXCEEDED` | 429 | Khách hết 3 lượt tra cứu trong ngày | FR-085 | Kèm `reset_at` |
-| `BATCH_SIZE_EXCEEDED` | 422 | Tạo lô quá 100 mã | FR-082b | Kiểm ở server |
-| `CSRF_TOKEN_MISSING` | 403 | Web thiếu CSRF ở thao tác đổi tiền | `HR-05` | — |
-| `TOO_MANY_REQUESTS` | 429 | Vượt giới hạn gửi lại email / quên mật khẩu | FR-012, FR-041 | — |
-
-Mọi lỗi theo định dạng `{error_code, message, request_id}` — `HR-09`.
-KHÔNG lộ stack trace.
+| Mã lỗi | HTTP | Nguyên nhân | FR |
+|---|---|---|---|
+| `VALIDATION_FAILED` | 422 | Dữ liệu sai định dạng, kèm `details` | FR-005, FR-052, FR-091, FR-095 |
+| `EMAIL_ALREADY_EXISTS` | 409 | Email đã đăng ký | FR-004 |
+| `INVALID_CREDENTIALS` | 401 | Sai mật khẩu **hoặc** email không tồn tại — một thông báo | FR-017, FR-018 |
+| `LOGIN_SOURCE_BLOCKED` | 423 | Cặp email–IP đang bị chặn; kèm `blockedUntil` | FR-047 |
+| `ACCOUNT_BANNED` | 403 | Tài khoản bị cấm; kèm `banReason` | FR-020, FR-092 |
+| `ACCOUNT_SUSPENDED` | 403 | `suspended_until > now()`; kèm `suspendedUntil` | FR-021 |
+| `ACCOUNT_UNVERIFIED` | 403 | Chưa xác thực, thao tác đổi điểm | FR-010 |
+| `INVALID_VERIFY_TOKEN` | 400 | Token xác thực sai/hết hạn/đã thu hồi | FR-011 |
+| `EMAIL_ALREADY_VERIFIED` | 409 | Xin gửi lại email xác thực khi đã xác thực | FR-012 |
+| `INVALID_RESET_TOKEN` | 400 | Token đặt lại sai/hết hạn/đã dùng | FR-042 |
+| `UNAUTHENTICATED` | 401 | Không có token hợp lệ | FR-027, FR-060 |
+| `TOKEN_EXPIRED` | 401 | Access token hết hạn — client gọi refresh | FR-037 |
+| `SESSION_REVOKED` | 401 | Token phát trước mốc vô hiệu phiên | FR-092 |
+| `INVALID_REFRESH_TOKEN` | 401 | Refresh token không tồn tại/hết hạn | FR-031 |
+| `TOKEN_REUSE_DETECTED` | 401 | Refresh token đã thu hồi bị dùng lại | FR-032 |
+| `CURRENT_PASSWORD_INCORRECT` | 422 | Mật khẩu hiện tại sai khi đổi | FR-043 |
+| `PASSWORD_UNCHANGED` | 422 | Mật khẩu mới trùng mật khẩu hiện tại | FR-045 |
+| `FORBIDDEN` | 403 | Không đủ role, hoặc truy cập dữ liệu người khác | FR-054, FR-060 |
+| `SELF_ROLE_GRANT` · `SELF_ROLE_REVOKE` · `SELF_BAN` | 403 | Thao tác lên chính mình | FR-063, FR-066, FR-096 |
+| `ROLE_ALREADY_GRANTED` | 409 | Role đã có | E8 |
+| `ROLE_NOT_GRANTED` | 404 | Thu hồi role người đó không có | FR-066 |
+| `REVOKE_LAST_ADMIN` · `BAN_LAST_ADMIN` | 409 | Đụng `ADMIN` cuối cùng còn hoạt động | FR-066, FR-096 |
+| `USER_NOT_FOUND` | 404 | Chỉ ở endpoint `/api/admin/users/{id}` (người gọi là `ADMIN`) | FR-097 |
+| `CSRF_TOKEN_INVALID` | 403 | Request đổi trạng thái bằng cookie thiếu/sai CSRF | §6, `HR-05` |
+| `TOO_MANY_REQUESTS` | 429 | Vượt giới hạn gửi lại email; kèm `retryAfterSeconds` | FR-012 |
+| `INTERNAL_ERROR` | 500 | Lỗi không lường trước — chỉ trả `request_id`, không chi tiết | `HR-09` |
 
 ---
 
@@ -480,64 +460,41 @@ KHÔNG lộ stack trace.
 
 | Ràng buộc | Feature này tuân thủ thế nào |
 |---|---|
-| **HR-01** Mật khẩu bcrypt ≥12 / argon2id | FR-003 |
-| **HR-02** Không secret trong code | JWT secret đọc từ biến môi trường |
-| **HR-03** Cookie đủ 5 thuộc tính | FR-014, FR-015 |
+| **HR-01** Mật khẩu bcrypt | FR-003 |
+| **HR-02** Không secret trong code | `JWT_SECRET`, SMTP đọc từ biến môi trường (§0.3) |
+| **HR-03** Cookie đủ 5 thuộc tính | FR-014, FR-014b, FR-015 |
 | **HR-04** CORS không dùng `*` | FR-028 |
-| **HR-05** CSRF cho thao tác tiền | FR-073 (nhập mã thẻ gói) |
-| **HR-07** Validate mọi input | FR-005 |
-| **HR-09** Không lộ stack trace | §5 Error Matrix |
-| **AC-01** API First | OpenAPI cho 14 endpoint viết **trước** khi code |
-| **AC-02** Một app, 4 module | Thuộc module `auth`; `plans` thuộc `learning` |
-| **AC-03** Module gọi nhau qua lớp `api` | `auth` đọc `plans` qua `PlanLookup`, KHÔNG query thẳng |
-| **AC-06** Enum = VARCHAR + CHECK | `role_code`, `token_type`, `plan_code` |
-| **AC-08** `TIMESTAMPTZ`, job ghi zone | FR-055, FR-074 |
+| **HR-05** CSRF | Double-submit: cookie `XSRF-TOKEN` (không `HttpOnly`, cùng `Domain`) + header `X-XSRF-TOKEN` bắt buộc cho mọi `POST/PUT/PATCH/DELETE` **xác thực bằng cookie**; miễn cho `/api/auth/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/refresh` và request dùng header (FR-024). `GET /api/auth/csrf` cấp cookie |
+| **HR-07** Validate mọi input | FR-005, FR-091, FR-095 (Bean Validation trên DTO `record`) |
+| **HR-09** Không lộ stack trace | §0.2 định dạng lỗi |
+| **AC-01** API First | `contracts/openapi-auth.yaml` có trước khi code; test so khớp |
+| **AC-03** Module gọi nhau qua `api` | Spec khác dùng `auth.api.AuthApi`: `currentUser()`, `requireVerifiedEmail(userId)`, `hasRole(userId, role)` |
+| **AC-04** Schema | 4 schema theo `database.md` (RFC, xem §9 câu 6) |
+| **AC-06** Enum = VARCHAR + CHECK | `role_code`, `token_type` |
 | **BUS-01** Kiểm quyền sở hữu | FR-053, FR-054 |
-| **BUS-02** Cùng transaction | FR-002 |
-| **BUS-06** Mask PII | FR-057 |
-| **BUS-08** Giờ Việt Nam | FR-055, FR-074 |
-| **BUS-13** `SecureRandom` ≥16 ký tự | FR-040 |
+| **BUS-02** Cùng transaction | FR-002, FR-031 |
+| **BUS-06** Mask PII | FR-057, FR-097 |
+| **BUS-13** `SecureRandom` | FR-016, FR-040 |
 
 ---
 
 ## 7 · Non-Functional Requirements
 
-### 7.1 · Performance
-
 | Mã | Yêu cầu | Mốc |
 |---|---|---|
-| `NFR-P01` | Đăng nhập (gồm bcrypt verify) | < 500ms (p95) |
-| `NFR-P02` | Kiểm token mỗi request | < 10ms (p95) — đọc từ JWT, không query DB |
-| `NFR-P03` | `GET /api/auth/me` | < 100ms (p95) |
-
-> bcrypt cost 12 **cố tình chậm** (~200–300ms). Đây là tính năng bảo mật,
-> không phải lỗi hiệu năng. Không hạ cost để đạt mốc nhanh hơn.
-
-### 7.2 · Security
-
-| Mã | Yêu cầu |
-|---|---|
-| `NFR-S01` | Mật khẩu bcrypt cost ≥ 12 hoặc argon2id |
-| `NFR-S02` | Token đặt lại mật khẩu: `SecureRandom` ≥ 16 ký tự, chỉ lưu hash |
-| `NFR-S03` | ≤ 5 lần sai mật khẩu/giờ · ≤ 3 lần xin gửi lại email/giờ |
-| `NFR-S04` | Thao tác nâng gói **bắt buộc** CSRF token (web dùng cookie) |
-| `NFR-S05` | CORS khai origin tường minh cho `cnhsk.com` và `game.cnhsk.com` |
-| `NFR-S06` | Lỗi trả `{error_code, message, request_id}` |
-| `NFR-S07` | Log KHÔNG chứa mật khẩu, token, email người dùng |
-
-### 7.3 · Scalability
-
-| Mã | Yêu cầu | Mốc |
-|---|---|---|
-| `NFR-C01` | Người dùng đồng thời (môi trường demo) | 50 |
-| `NFR-C02` | Số role mỗi user | ≤ 4 |
-
-### 7.4 · Availability
-
-| Mã | Yêu cầu |
-|---|---|
-| `NFR-A01` | SMTP lỗi → đăng ký **vẫn thành công** (FR-007) |
-| `NFR-A02` | Token hết hạn giữa bài thi → không mất bản nháp (FR-037) |
+| `NFR-P01` | Đăng nhập (gồm bcrypt) | < 500 ms p95 |
+| `NFR-P02` | Kiểm token mỗi request (JWT + 1 lần đọc Redis FR-092) | < 10 ms p95 |
+| `NFR-P03` | `GET /api/auth/me` | < 100 ms p95 |
+| `NFR-S01` | bcrypt cost 12 — không hạ để đạt mốc nhanh hơn | |
+| `NFR-S02` | Token đặt lại/xác thực/refresh: `SecureRandom` 32 byte, chỉ lưu hash | |
+| `NFR-S03` | Đăng nhập sai: 5 lần/15 phút mỗi cặp email–IP (FR-046) · gửi lại email: 3/giờ · quên mật khẩu: 3/giờ/email, 10/giờ/IP | |
+| `NFR-S04` | CSRF cho mọi request đổi trạng thái bằng cookie (§6 HR-05) | |
+| `NFR-S05` | CORS khai origin tường minh cho web và trang game | |
+| `NFR-S06` | Lỗi trả `{error_code, message, request_id}` | |
+| `NFR-S07` | Log KHÔNG chứa mật khẩu, token, email người dùng (log id) | |
+| `NFR-C01` | 50 người dùng đồng thời (demo) | |
+| `NFR-A01` | SMTP lỗi → đăng ký vẫn thành công (FR-007) | |
+| `NFR-A02` | Redis không phản hồi → đăng nhập vẫn chạy (bỏ qua đếm sai, ghi log cảnh báo); FR-092 coi như không có mốc | |
 
 ---
 
@@ -545,105 +502,214 @@ KHÔNG lộ stack trace.
 
 | Kiểm tra | Kết quả |
 |---|---|
-| Có vi phạm `HR-*` nào? | Không |
-| Có vi phạm `AC-*` nào? | Không |
-| Có vi phạm `BUS-*` nào? | Không |
-| Có `TODO` nào trong spec? | Không — các điểm mở ghi ở §9 |
-| Mọi FR có map được test? | Có — 75 FR, mỗi FR một test case |
-| `BUS-16` (trọng số mastery) ảnh hưởng feature này? | Không — thuộc `002-learning-core` |
-| `TODO(PAYMENT_SCOPE)` ảnh hưởng? | **Có** — xem §9 câu 2 |
+| Vi phạm `HR-*` / `AC-*` / `BUS-*`? | Không |
+| `TODO` trong spec? | Không — điểm mở ở §9 |
+| Mọi FR map được test? | Có — §14 |
+| Có logic mastery / cây tri thức? | Không |
+| Có logic gói, lượt, mã thẻ? | Không — chỉ FR-068 đặt mặc định `FREE` |
 
 ---
 
 ## 9 · Open Questions
 
-| # | Câu hỏi | Chặn gì | Đề xuất |
-|---|---|---|---|
-| 1 | JWT dùng HS256 hay RS256? | FR-016, FR-061 | HS256 — một backend duy nhất, không cần khoá công khai |
-| 3 | Access token sống bao lâu? | FR-031 | 15 phút access · 30 ngày refresh |
-| 4 | Lịch sử đăng nhập lưu ở đâu? | FR-056 | Chưa có bảng. Dùng `audit_logs` với `action='LOGIN'` thay vì thêm bảng mới |
-
-### Đã chốt 2026-10-05
-
-| # | Câu hỏi | Đáp án |
+| # | Câu hỏi | Trạng thái |
 |---|---|---|
-| ~~2~~ | `TODO(PAYMENT_SCOPE)` | **Tiền thật, thu ngoài hệ thống.** Giữ `HR-05`, `BUS-12`, `BUS-13`, `BUS-14`, `BUS-15`. KHÔNG tích hợp cổng thanh toán (FR-079) |
-| ~~5~~ | 10 lượt free vĩnh viễn hay mỗi tháng | **Mỗi tháng**, reset 00:00 ngày 1 giờ Việt Nam (FR-070, FR-071) |
+| 1 | HS256 hay RS256 | **Chốt:** HS256 (ADR-001) |
+| 3 | Vòng đời token | **Chốt:** access 15 phút · refresh 30 ngày · xoay vòng (ADR-002) |
+| 4 | Lịch sử đăng nhập lưu đâu | **Chốt:** `shared.audit_logs` `action='LOGIN_SUCCESS'` |
+| 6 | Schema: `public` hay tách | **Chốt (chủ dự án 2026-10-06):** 4 schema + FK cross-schema được phép (RFC `AC-03`/`AC-04` trong `database.md`) — **cả nhóm duyệt RFC cùng spec; sau duyệt sửa `constitution.md`** |
+| 7 | Đích đến khi có nhiều role (FR-090) | **Đề xuất:** màn chọn khu vực, không xếp hạng role — **cần cả nhóm xác nhận** |
+
+Không còn câu hỏi chặn code.
 
 ---
 
 ## 10 · Frontend Implementation Note
 
-Danh tính màn hình theo bộ **79 màn đã duyệt**, giữ nguyên ID và tên dưới đây.
-Nguồn inventory là `docs/generated/cnhsk-screen-list.docx`; nguồn flow là
-`docs/generated/cnhsk-screen-flow.png`. Hai artifact đã duyệt không được sửa trong
-lần đồng bộ này. Chi tiết trường và trạng thái chỉ duy trì tại
-[screen-fields.md](../../docs/reference/screen-fields.md); bố cục, token và flow tham khảo
-[design.md](../../docs/reference/design.md).
-
-Tình trạng file nguồn ngày 2026-10-09: đã đọc khi bắt đầu đồng bộ nhưng hiện không
-còn ở đường dẫn ban đầu; xem ghi chú tại design.md §5. Không dùng mockup lịch sử
-thay inventory hoặc tự tái tạo artifact đã duyệt.
-
-| Screen ID | Tên canonical | Yêu cầu liên quan |
-|---|---|---|
-| SCR-002 | Sign In | FR-014–FR-030; màn đăng nhập riêng |
-| SCR-003 | Register | FR-001–FR-008; màn đăng ký riêng |
-| SCR-004 | Verify Email | FR-009–FR-013, FR-087–FR-088 |
-| SCR-005 | Forgot Password | FR-038–FR-041 |
-| SCR-006 | Reset Password | FR-039–FR-042 |
-| SCR-007 | User Profile | FR-051–FR-054; thông tin cá nhân có màn riêng |
-| SCR-008 | Change Password | FR-043–FR-045 |
-| SCR-009 | Study Reminder Settings | FR-051, FR-055; cấu hình nhắc học có màn riêng |
-| SCR-030 | Plan & Credits | FR-067–FR-075; xem gói, quota, số dư và nhập mã CREDIT/SUBSCRIPTION; thao tác ghi cần CSRF |
-| SCR-031 | Transaction History | UC-098; lịch sử giao dịch của chính người dùng |
-| SCR-073 | Card Batch Management | FR-076–FR-082b; chỉ `FINANCE_ADMIN`, mã thô chỉ trả một lần |
-| SCR-074 | Plan Management | Định nghĩa gói được phép; chỉ `FINANCE_ADMIN`, bảo toàn quyền đã cấp |
-| SCR-075 | Credit Ledger | UC-100, UC-102; chỉ `FINANCE_ADMIN`, đối soát và tranh chấp tham chiếu xử lý trong màn này |
-| SCR-076 | User List | Danh sách tài khoản cho `SUPER_ADMIN`, thông tin cá nhân được mask |
-| SCR-077 | User Detail | FR-062–FR-066; cấp/thu hồi role trong chi tiết tài khoản; lịch sử đăng nhập FR-056–FR-057 là phần mở rộng V2 trong màn này |
-| SCR-078 | System Settings | UC-116; màn đã có trong inventory, triển khai Deferred đến khi chốt danh sách cấu hình và nơi lưu |
-| SCR-079 | Access Denied | FR-060; giải thích quyền truy cập bị từ chối và quay về khu vực được phép |
-
-Frontend `cnhsk-web` chưa tồn tại; chưa xác nhận route triển khai hoặc tên file mockup
-cho các ID này. Các URL minh họa trong FR không phải bằng chứng route frontend đã có.
-
-**Ba trạng thái bắt buộc** mỗi màn có dữ liệu động: Empty · Loading · Error,
-text tiếng Việt có dấu.
+Chi tiết màn ở §12. **Ba trạng thái bắt buộc** cho mọi màn có dữ liệu động: Loading · Empty · Error, tiếng Việt có dấu.
+Mockup tham khảo giao diện: `C:\CLHSK\cnhsk-mockup-79\screens\scr-0xx-*.html` (ngoài repo, chỉ để nhìn bố cục).
 
 ---
 
-## 11 · Rủi ro nghiệp vụ đã chấp nhận
+## 11 · Rủi ro đã chấp nhận
 
-### 11.1 · Lô mã rò rỉ không phát hiện được
-
-CNHSK **không có webhook thanh toán** (FR-079) nên không biết mã nào bên thứ ba đã bán.
-Nếu file CSV chứa mã thô bị rò rỉ — qua email, máy cá nhân, chia sẻ nhầm — thì:
-
-- Không có cách phát hiện **tự động**
-- Người lạ đổi được mã, và sổ cái ghi nhận hợp lệ (vì mã đúng là mã thật)
-- Không phân biệt được "khách hợp lệ" với "người lấy mã rò rỉ"
-
-**Chủ dự án đã quyết không bắt buộc `expires_at`** (FR-082), nên lớp giảm thiểu duy nhất là
-**theo dõi tỉ lệ đổi bất thường theo `batch_id`** qua index `ix_card_funnel`.
-
-Dấu hiệu cần cảnh báo:
-
-| Dấu hiệu | Ngưỡng đề xuất |
+| Rủi ro | Vì sao chấp nhận |
 |---|---|
-| Một lô đổi quá nhanh | > 50% lô trong 1 giờ |
-| Đổi tập trung từ ít IP | > 10 mã cùng lô từ một IP |
-| Lô cũ bỗng đổi ồ ạt | lô > 90 ngày mà đổi > 20% trong 1 ngày |
+| Access token còn sống tối đa 15 phút nếu Redis mất mốc vô hiệu phiên | Redis lỗi là sự cố hiếm; NFR-A02 ưu tiên đăng nhập vẫn chạy |
+| Đếm sai theo cặp email–IP: kẻ tấn công đổi IP để thử tiếp | Chặn khoá toàn tài khoản thì người dùng thật bị khoá oan (UC-012). Giám sát `audit_logs` |
+| `COOKIE_DOMAIN=localhost` ở dev không chia sẻ cookie giữa hai cổng | Dev dùng `localhost` cho cả `5173` và `5174`: trình duyệt gửi cookie theo host, không theo cổng — đủ cho dev |
 
-> Đây là **việc giám sát**, không phải ràng buộc DB. Nếu sau này muốn chặn cứng thì thêm
-> `CHECK (channel <> 'PARTNER_BATCH' OR expires_at IS NOT NULL)` — một dòng, không phá
-> dữ liệu đã có.
+---
 
-### 11.2 · Mã thô chỉ hiện một lần
+## 12 · Màn hình
 
-UC-099 bước 9: file CSV mã thô trả về **một lần duy nhất**, không lưu ở đâu. Nếu
-`FINANCE_ADMIN` mất file thì **cả lô không dùng được** — không có đường lấy lại, vì DB chỉ
-có `code_hash` (`BUS-12`).
+### 12.1 · Danh sách
 
-Đây là đánh đổi **có chủ đích**: lưu được mã thô để lấy lại thì mất luôn lớp bảo vệ của
-việc chỉ lưu hash.
+| SCR | Tên | Route | Guard | API | Field chi tiết |
+|---|---|---|---|---|---|
+| SCR-001 | Landing (phần tài khoản) | `/` | Không | `GET /api/auth/me` (biết đã đăng nhập) | `screen-fields.md` dòng 118 |
+| SCR-002 | Sign In | `/login?redirect=` | Chỉ khách; đã đăng nhập → FR-090 | `POST /api/auth/login` | dòng 475 |
+| SCR-003 | Register | `/register` | Chỉ khách | `POST /api/auth/register` | dòng 944 |
+| SCR-004 | Verify Email | `/verify-email?token=` | Không | `POST /api/auth/verify-email`, `POST /api/auth/verify-email/resend` | dòng 1450 |
+| SCR-005 | Forgot Password | `/forgot-password` | Chỉ khách | `POST /api/auth/forgot-password` | dòng 1843 |
+| SCR-006 | Reset Password | `/reset-password?token=` | Không | `POST /api/auth/reset-password` | dòng 2164 |
+| SCR-007 | User Profile | `/me/profile` | `LEARNER` | `GET/PATCH /api/me/profile` | dòng 2567 |
+| SCR-008 | Change Password | `/me/password` | Đã đăng nhập | `POST /api/me/password` | dòng 3113 |
+| SCR-076 | User List | `/admin/users` | `ADMIN` | `GET /api/admin/users` | dòng 38044 |
+| SCR-077 | User Detail | `/admin/users/:id` | `ADMIN` | `GET /api/admin/users/{id}`, `POST/DELETE .../roles`, `POST/DELETE .../ban` | dòng 38501 |
+| SCR-079 | Access Denied | `/403` | Không | — | dòng 39615 |
+
+Field, nhãn, validate, thông báo lấy **đúng** từ `screen-fields.md`. Chỗ `screen-fields.md` ghi "open issue" → dùng quyết định ở Nhóm 14.
+SCR-007 chỉ có 3 field của FR-051/FR-095; nút "Cài đặt nhắc học" dẫn tới SCR-009 (ngoài phạm vi — ẩn ở đợt này).
+
+### 12.2 · Hành vi chung frontend
+
+| Thành phần | Hành vi |
+|---|---|
+| `shared/api/client.ts` | `fetch` với `credentials: 'include'`, header `X-Client-Type: WEB`, `X-XSRF-TOKEN` lấy từ cookie `XSRF-TOKEN` cho request đổi trạng thái. Nhận 401 `TOKEN_EXPIRED`/`SESSION_REVOKED` → gọi `POST /api/auth/refresh` **một lần** (gộp các request song song chờ chung một lần refresh) rồi gửi lại; refresh lỗi → xoá trạng thái, chuyển `/login?redirect=` |
+| `AuthProvider` | Khởi động gọi `GET /api/auth/me`; giữ `user {id, email, displayName, emailVerified, roles}` trong context; không lưu token ở `localStorage` |
+| `RequireRole roles={[...]}` | Chưa đăng nhập → `/login?redirect=`; thiếu role → SCR-079 |
+| Banner chưa xác thực | Mọi trang khu vực người học hiện banner "Xác minh email để dùng đầy đủ" khi `emailVerified=false`, có nút sang SCR-004 |
+| Lỗi | Hiện `message` từ API; 500 → "Có lỗi xảy ra, mã: {request_id}" |
+
+### 12.3 · Khu vực theo role (FR-090)
+
+| Role | Khu vực | Màn mặc định |
+|---|---|---|
+| `LEARNER` | Học tập | SCR-010 (chưa có ở đợt này → tạm SCR-007) |
+| `TEACHER` | Giáo viên | SCR-056 (chưa có → SCR-079 với thông báo "đang xây dựng") |
+| `MODERATOR` | Kiểm duyệt | SCR-060 (V2) |
+| `CONTENT_EDITOR` | Nội dung | SCR-068 (spec nhập dữ liệu) |
+| `ACCOUNTANT` | Kế toán | SCR-073 (spec gói dịch vụ) |
+| `ADMIN` | Quản trị | SCR-076 |
+
+Màn đích chưa tồn tại thì dùng màn tạm như bảng; cập nhật khi spec tương ứng xong.
+
+---
+
+## 13 · API Contract
+
+Hợp đồng đầy đủ: [`contracts/openapi-auth.yaml`](contracts/openapi-auth.yaml) (OpenAPI 3.1). Tóm tắt:
+
+| Method · Path | Auth | Request | Response thành công | Lỗi chính |
+|---|---|---|---|---|
+| `GET /api/auth/csrf` | Không | — | 204 + cookie `XSRF-TOKEN` | — |
+| `POST /api/auth/register` | Không | `{email, password, confirmPassword, displayName, acceptTerms}` | 201 `{userId, email, emailVerified:false}` | 409, 422 |
+| `POST /api/auth/verify-email` | Không | `{token}` | 200 `{emailVerified:true}` | 400 |
+| `POST /api/auth/verify-email/resend` | Có | — | 202 | 409 `EMAIL_ALREADY_VERIFIED`, 429 |
+| `POST /api/auth/login` | Không | `{email, password}` + `X-Client-Type` | 200 `{user}` (+ cookie ở WEB) · `{user, accessToken, refreshToken, accessTokenExpiresIn}` ở MOBILE | 401, 403, 422, 423 |
+| `POST /api/auth/refresh` | Refresh | WEB: cookie · MOBILE: `{refreshToken}` | 200 như login | 401 |
+| `POST /api/auth/logout` | Có | MOBILE: `{refreshToken}` | 204 | 401 |
+| `POST /api/auth/logout-all` | Có | — | 204 | 401 |
+| `POST /api/auth/forgot-password` | Không | `{email}` | 202 | 422 |
+| `POST /api/auth/reset-password` | Không | `{token, newPassword, confirmPassword}` | 204 | 400, 422 |
+| `GET /api/auth/me` | Có | — | 200 `{id, email, displayName, emailVerified, roles[], hskLevel, avatarUrl}` | 401 |
+| `GET /api/me/profile` | Có | — | 200 `{displayName, avatarUrl, hskLevel, email, emailVerified}` | 401 |
+| `PATCH /api/me/profile` | Có | `{displayName?, avatarUrl?, hskLevel?}` | 200 profile | 422 |
+| `POST /api/me/password` | Có | `{currentPassword, newPassword, confirmPassword}` | 204 | 422 |
+| `GET /api/admin/users` | `ADMIN` | `q, role, status, page, size` | 200 `{items[{id, emailMasked, displayName, roles, status, createdAt}], page, size, totalElements}` | 403, 422 |
+| `GET /api/admin/users/{id}` | `ADMIN` | — | 200 `{id, email, displayName, roles[{code, grantedBy, grantedAt}], status, bannedAt, banReason, emailVerifiedAt, createdAt}` | 403, 404 |
+| `POST /api/admin/users/{id}/roles` | `ADMIN` | `{roleCode}` | 204 | 403, 404, 409 |
+| `DELETE /api/admin/users/{id}/roles/{roleCode}` | `ADMIN` | — | 204 | 403, 404, 409 |
+| `POST /api/admin/users/{id}/ban` | `ADMIN` | `{reason}` | 204 | 403, 404, 409, 422 |
+| `DELETE /api/admin/users/{id}/ban` | `ADMIN` | — | 204 | 403, 404 |
+
+`user` trong login = shape của `GET /api/auth/me`.
+
+---
+
+## 14 · Acceptance Tests
+
+Tên test chứa mã FR (vd `FR014_webLogin_setsAccessCookieWithFiveAttributes`). Integration test dùng Testcontainers (§0.2).
+**G** = Given · **W** = When · **T** = Then.
+Không có AT: FR-055 (đã chuyển), FR-056 (V2), FR-058c (spec này không có job định kỳ — kiểm ở spec đầu tiên có `@Scheduled`).
+
+| # | FR | G / W / T |
+|---|---|---|
+| AT-01 | FR-001, FR-002, FR-068 | G email mới · W register hợp lệ · T 201; có 1 dòng `users` (`plan_code=FREE`, `email_verified_at` null) + 1 dòng `user_roles` `LEARNER` |
+| AT-02 | FR-002 | G lỗi ghi `user_roles` (giả lập) · W register · T không còn dòng `users` nào (rollback) |
+| AT-03 | FR-003 | W register · T `password_hash` bắt đầu `$2a$12$` |
+| AT-04 | FR-004, E1 | G email đã có (khác hoa thường, có khoảng trắng) · W register · T 409 `EMAIL_ALREADY_EXISTS` |
+| AT-05 | E1 | W 2 request register cùng email song song · T đúng 1 thành công, 1 nhận 409 |
+| AT-06 | FR-005, FR-091 | W register mật khẩu `abcdefgh` · T 422, `details[0].field = password` |
+| AT-07 | FR-005 | W register `acceptTerms=false`, mật khẩu không khớp, displayName 1 ký tự · T 422 có đủ 3 field trong `details` |
+| AT-08 | FR-006 | W register · T có 1 token `EMAIL_VERIFY` hết hạn sau 24h ± 1 phút; Mailpit nhận 1 email chứa `/verify-email?token=` |
+| AT-09 | FR-007, NFR-A01 | G SMTP không kết nối được · W register · T 201, tài khoản tồn tại |
+| AT-10 | FR-008 | W register + login + đặt lại mật khẩu · T log không chứa mật khẩu, token thô, email |
+| AT-11 | FR-009 | G token xác thực hợp lệ · W verify · T 200, `email_verified_at` có giá trị, token bị thu hồi |
+| AT-12 | FR-010 | G chưa xác thực · W gọi `AuthApi.requireVerifiedEmail` · T ném `ACCOUNT_UNVERIFIED` 403; W login · T 200 |
+| AT-13 | FR-011 | G token hết hạn / không tồn tại · W verify · T 400 `INVALID_VERIFY_TOKEN` |
+| AT-14 | FR-094, E10 | G đã xác thực bằng token X · W verify lại token X · T 200 `{emailVerified:true}` |
+| AT-15 | FR-012 | W resend 4 lần trong 1 giờ · T lần 4 trả 429 có `retryAfterSeconds` |
+| AT-15b | FR-012 | G đã xác thực · W resend · T 409 `EMAIL_ALREADY_VERIFIED` |
+| AT-16 | FR-013 | W resend · T token cũ có `revoked_at`, token mới hợp lệ |
+| AT-17 | FR-014, FR-015 | W login WEB · T `Set-Cookie access_token` có `Domain`, `HttpOnly`, `Secure` (theo cấu hình), `SameSite=Lax`, `Max-Age=900` |
+| AT-18 | FR-014b | W login WEB · T cookie `refresh_token` có `Path=/api/auth`, `Max-Age=2592000` |
+| AT-19 | FR-016 | W login · T `auth_tokens.token_hash` = SHA-256 của token trong cookie; JWT có `sub`, `roles`, `ev`, `jti`, ký HS256 |
+| AT-20 | FR-017, FR-018 | W login sai mật khẩu; W login email không tồn tại · T cả hai 401 `INVALID_CREDENTIALS`, cùng `message` |
+| AT-21 | FR-019 | G 3 lần sai · W login đúng · T khoá đếm Redis bị xoá |
+| AT-22 | FR-020 | G bị cấm · W login đúng · T 403 `ACCOUNT_BANNED` kèm `banReason` |
+| AT-23 | FR-021 | G `suspended_until` ngày mai · W login · T 403 `ACCOUNT_SUSPENDED` kèm `suspendedUntil` |
+| AT-24 | FR-022 | W login `X-Client-Type: MOBILE` · T body có `accessToken`, `refreshToken`; **không** có `Set-Cookie` |
+| AT-25 | FR-023 | G token hợp lệ · W gọi `/api/auth/me` bằng cookie; bằng header · T cả hai 200 |
+| AT-26 | FR-024 | W `PATCH /api/me/profile` bằng header, không CSRF · T 200 |
+| AT-27 | §6 HR-05 | W `PATCH /api/me/profile` bằng cookie, không CSRF · T 403 `CSRF_TOKEN_INVALID`; có CSRF · T 200 |
+| AT-28 | FR-025, FR-089 | W login không có `X-Client-Type` · T như WEB: có cookie, body không có token |
+| AT-29 | FR-026, FR-027 | G cookie từ login · W `GET /api/auth/me` với `Origin: game` · T 200 đúng user |
+| AT-30 | FR-027 | W `GET /api/auth/me` không token · T 401 `UNAUTHENTICATED` |
+| AT-31 | FR-028, FR-029 | W preflight từ origin game · T `Access-Control-Allow-Origin` = origin đó, `Allow-Credentials: true`; từ origin lạ · T không có header CORS |
+| AT-32 | FR-030 | W gọi endpoint bằng header `Authorization` không cookie · T 200 |
+| AT-33 | FR-031 | W refresh WEB · T cookie mới, token cũ `revoked_at` có giá trị |
+| AT-34 | FR-031 | W refresh MOBILE với body · T body có token mới |
+| AT-35 | FR-032, E3 | G refresh token đã rotate · W dùng lại · T 401 `TOKEN_REUSE_DETECTED`, mọi refresh token của user bị thu hồi, có `audit_logs TOKEN_REUSE` |
+| AT-36 | FR-033 | T DB không có cột nào chứa token thô (kiểm giá trị cookie ≠ mọi `token_hash`) |
+| AT-37 | FR-034 | W logout WEB · T 2 cookie `Max-Age=0`, refresh token phiên bị thu hồi |
+| AT-38 | FR-035 | W logout MOBILE với `refreshToken` · T token đó bị thu hồi |
+| AT-39 | FR-036 | G 2 phiên · W logout-all · T mọi refresh token bị thu hồi; access token cũ → 401 `SESSION_REVOKED` |
+| AT-40 | FR-037 (FE) | G access hết hạn · W gọi API · T client gọi refresh 1 lần rồi gửi lại thành công; 3 request song song → chỉ 1 lần refresh |
+| AT-41 | FR-038 | W forgot-password email có và không có · T cả hai 202 cùng `message` |
+| AT-42 | FR-039 | G email có · W forgot · T token `RESET_PASSWORD` hết hạn 1h, token cũ chưa dùng bị thu hồi, Mailpit nhận email |
+| AT-43 | FR-039 | G tài khoản bị cấm · W forgot · T 202, không gửi email |
+| AT-44 | FR-040 | T token đặt lại dài ≥ 43 ký tự Base64URL, hai lần sinh khác nhau |
+| AT-45 | FR-041, FR-093 | W forgot 4 lần cùng email trong 1h · T lần 4 vẫn 202 nhưng không gửi email; 11 lần cùng IP · T lần 11 không gửi |
+| AT-46 | FR-042 | W reset hợp lệ · T 204, mọi refresh token bị thu hồi, token reset bị thu hồi, đăng nhập được bằng mật khẩu mới |
+| AT-47 | FR-042 | W reset với token đã dùng · T 400 `INVALID_RESET_TOKEN` |
+| AT-48 | FR-043 | W đổi mật khẩu với `currentPassword` sai · T 422 `CURRENT_PASSWORD_INCORRECT` |
+| AT-49 | FR-044, E7 | G 2 phiên · W đổi mật khẩu từ phiên A · T refresh của phiên B bị thu hồi, phiên A vẫn refresh được |
+| AT-50 | FR-045 | W đổi/đặt lại mật khẩu trùng mật khẩu hiện tại · T 422 `PASSWORD_UNCHANGED` |
+| AT-51 | FR-046, FR-047 | W 5 lần sai cùng email+IP · T lần 6 (kể cả đúng mật khẩu) 423 `LOGIN_SOURCE_BLOCKED` có `blockedUntil` |
+| AT-52 | FR-048 | G cặp email–IP1 bị chặn · W login cùng email từ IP2 · T được xử lý bình thường |
+| AT-53 | FR-049 | G bị chặn · W đợi TTL (đồng hồ giả) · T login đúng → 200, đếm bị xoá |
+| AT-54 | FR-050 | W 50 lần sai · T không có cột nào trong `users` bị đổi |
+| AT-55 | FR-051, FR-095 | W PATCH `{displayName:"Minh", hskLevel:3}` · T 200, DB đổi đúng 2 trường |
+| AT-56 | FR-052 | W PATCH có `email` hoặc `roles` · T 422 |
+| AT-57 | FR-053 | W PATCH kèm `userId` của người khác trong body · T 422 (trường không cho phép), dữ liệu người khác không đổi |
+| AT-58 | FR-054 | G `LEARNER` · W `GET /api/admin/users/{id bất kỳ}` (có hoặc không tồn tại) · T 403 |
+| AT-59 | FR-057 | W `GET /api/admin/users` · T email dạng `ba•••@gmail.com` |
+| AT-60 | FR-058 | W insert `role_code='HACKER'` trực tiếp · T DB từ chối (CHECK) |
+| AT-61 | FR-058b | W gọi endpoint công khai không token · T không truy vấn `user_roles` |
+| AT-62 | FR-059 | G user có `LEARNER`+`TEACHER` · W login · T JWT `roles` có cả hai; endpoint `ADMIN` → 403 |
+| AT-63 | FR-060 | G `LEARNER` · W gọi `/api/admin/users` · T 403 `FORBIDDEN`; không token → 401 |
+| AT-64 | FR-061 | W gọi 100 request có token · T không có truy vấn SQL `user_roles` (đếm bằng log SQL) |
+| AT-65 | FR-062, FR-064 | G `ADMIN` · W gán `TEACHER` · T `granted_by` = id admin; có `audit_logs ROLE_GRANT` |
+| AT-66 | FR-063 | W admin gán role cho chính mình · T 403 `SELF_ROLE_GRANT` |
+| AT-67 | E8 | W gán role đã có · T 409 `ROLE_ALREADY_GRANTED` |
+| AT-68 | FR-065, FR-092 | G user B đang có access token chứa `TEACHER` · W admin thu hồi `TEACHER` · T request kế tiếp của B → 401 `SESSION_REVOKED`; B refresh → JWT mới không có `TEACHER` |
+| AT-69 | FR-066 | G chỉ còn 1 `ADMIN` hoạt động · W thu hồi `ADMIN` của người đó (bởi admin khác bị cấm/không có) · T 409 `REVOKE_LAST_ADMIN`; tự thu hồi → 403 `SELF_ROLE_REVOKE` |
+| AT-70 | FR-066 | G `CONTENT_EDITOR` · W gọi gán role · T 403 |
+| AT-71 | FR-087, FR-088 (FE) | W đăng ký trên SCR-003 · T chuyển SCR-004 hiện email; mở `/verify-email?token=` → gọi verify đúng 1 lần |
+| AT-72 | FR-090 (FE) | G user chỉ `ADMIN` → SCR-076; user `LEARNER`+`TEACHER` → SCR-001 có "Khu vực của bạn"; có `redirect=/admin/users` nhưng không phải `ADMIN` → bỏ qua redirect; `redirect=http://localhost:5174/play` (origin game) → chuyển đúng URL đó; `redirect=https://evil.com` → bỏ qua |
+| AT-73 | FR-096, E5 | G B có phiên · W admin cấm B lý do "spam" · T request kế tiếp của B 403 `ACCOUNT_BANNED`; refresh của B bị thu hồi; có `audit_logs USER_BAN`; gỡ cấm → B đăng nhập được |
+| AT-74 | FR-096 | W admin tự cấm mình · T 403 `SELF_BAN`; cấm `ADMIN` cuối cùng → 409 `BAN_LAST_ADMIN`; `reason` 3 ký tự → 422 |
+| AT-75 | FR-097 | G 30 tài khoản · W `?q=minh&size=10&page=1` · T đúng trang 2, sắp `createdAt` giảm dần, `totalElements` đúng; `q` 1 ký tự → 422 |
+| AT-76 | FR-097 | W admin xem chi tiết · T email đầy đủ; có `audit_logs VIEW_USER_PII` |
+| AT-77 | §0.2 | G không có `ADMIN`, có 2 biến bootstrap · W khởi động · T có 1 `ADMIN`; khởi động lần 2 · T không tạo thêm |
+| AT-78 | §0.2 | W request lỗi bất kỳ · T body có đủ `error_code`, `message`, `request_id`; header `X-Request-Id` khớp; không có `trace` |
+| AT-79 | §0.3 | G `JWT_SECRET` 10 ký tự · W khởi động · T app dừng với thông báo rõ |
+| AT-80 | NFR-A02 | G Redis dừng · W login đúng · T 200, log cảnh báo |
+
+---
+
+## 15 · Gói việc cho Codex
+
+Chi tiết task, file, lệnh kiểm: [`tasks.md`](tasks.md). Thứ tự: đợt 0 nền tảng → hợp đồng OpenAPI → entity → đăng ký/xác thực → đăng nhập 3 client → vòng đời token → hồ sơ/mật khẩu → quản trị người dùng/role → frontend → kiểm thử tổng.

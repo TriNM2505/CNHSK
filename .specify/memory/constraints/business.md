@@ -22,40 +22,41 @@
   `sameSite=Lax` · `maxAge`. Bỏ `domain` thì `game.cnhsk.com` không nhận được cookie
 - **Header cho mobile:** React Native không có cookie như trình duyệt → dùng
   `Authorization: Bearer`. WebView chơi game: app tiêm token vào header
-- **RBAC 6 role trong DB:** `USER` · `TEACHER` · `MANAGER` · `CONTENT_ADMIN` ·
-  `FINANCE_ADMIN` · `SUPER_ADMIN`.
+- **RBAC 6 role trong DB:** `LEARNER` · `TEACHER` · `MODERATOR` · `CONTENT_EDITOR` ·
+  `ACCOUNTANT` · `ADMIN`.
   Kiểm role từ JWT; trái quyền → **403** (không trả 401/404 để giấu endpoint)
 - **Một người có nhiều role được** — bảng nối `user_roles` đã thiết kế cho việc này
-- **Cộng 2 actor KHÔNG phải role trong DB:** `GUEST` và `SYSTEM` — xem §1.1
+- **Cộng 1 actor KHÔNG phải role trong DB:** `GUEST` — xem §1.1
 
-| Role | Quyền | Phạm vi |
-|---|---|---|
-| `USER` | Học, thi, chơi game, đăng bài (chờ duyệt) | người dùng cuối |
-| `TEACHER` | Duyệt câu hỏi AI sinh (cùng `CONTENT_ADMIN`), sửa nội dung học, **chấm bài thuê** | Học tập |
-| `MANAGER` | Duyệt bài đăng, xử lý báo cáo vi phạm | Community |
-| `CONTENT_ADMIN` | Quản lý đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi | nội dung |
-| `FINANCE_ADMIN` | 🔴 Sinh lô mã thẻ, xem sổ cái, xử lý tranh chấp | **tiền thật** |
-| `SUPER_ADMIN` | Quản lý người dùng, gán role, cấu hình hệ thống | quản trị |
+| Role | Tên | Quyền | Phạm vi |
+|---|---|---|---|
+| `LEARNER` | Người học | Học, thi, chơi game, đăng bài (chờ duyệt) | người dùng cuối |
+| `TEACHER` | Giáo viên | **Duy nhất** duyệt câu hỏi AI sinh và sửa nội dung câu hỏi; **chấm bài thuê** | chất lượng học thuật |
+| `MODERATOR` | Kiểm duyệt viên | Duyệt bài đăng, xử lý báo cáo vi phạm | Community |
+| `CONTENT_EDITOR` | Biên tập viên nội dung | Nhập dữ liệu, quản lý đề thi và kho câu hỏi (trạng thái, xếp vào đề — **không** sửa nội dung câu), cuộc thi, tài liệu tham khảo | vận hành nội dung |
+| `ACCOUNTANT` | Kế toán | 🔴 Sinh lô mã thẻ, quản lý gói, xem và đối soát sổ cái, xử lý tranh chấp | **tiền thật** |
+| `ADMIN` | Quản trị viên | Quản lý người dùng, gán role, cấu hình hệ thống, xem lịch sử đăng nhập | quản trị tổng |
 
-> 🔴 **Vì sao `ADMIN` tách thành ba.** Một `ADMIN` làm được cả ba việc là vi phạm nguyên tắc
-> **đặc quyền tối thiểu**. `FINANCE_ADMIN` chạm tiền thật nên phải là role hẹp nhất —
-> `NFR-S08` yêu cầu ghi audit cả thao tác **đọc** sổ cái, không phân biệt được nếu chỉ có
-> một `ADMIN`. Và `CONTENT_ADMIN` duyệt nội dung thì không cần quyền sinh mã thẻ.
+> 🔴 **Vì sao tách quyền quản trị thành ba role.** Một role làm được cả ba việc là vi phạm nguyên tắc
+> **đặc quyền tối thiểu**. `ACCOUNTANT` chạm tiền thật nên phải là role hẹp nhất —
+> `NFR-S08` yêu cầu ghi audit cả thao tác **đọc** sổ cái, không phân biệt được nếu một role
+> làm mọi việc. `CONTENT_EDITOR` vận hành nội dung thì không cần quyền sinh mã thẻ.
 >
-> Trong 119 UC **không UC nào** dùng `ADMIN` đơn thuần — mọi UC quản trị đều chỉ rõ một
-> trong ba role đã tách.
+> `ADMIN` là quản trị tổng về **tài khoản và hệ thống**, không phải role có mọi quyền:
+> không đụng sổ cái, không duyệt hay sửa nội dung câu hỏi. Chỉ actor này mang chữ "Admin".
 
-### 1.1 · Hai actor không phải role
+### 1.1 · Actor không phải role
 
 | Actor | Số UC | Là gì | Kiểm quyền bằng |
 |---|---|---|---|
 | `GUEST` | 16 | Khách chưa đăng nhập, **không có dòng** trong `users` | **Không có JWT** — không phải `role_code` |
-| `SYSTEM` | 14 | Job định kỳ `@Scheduled`: hạ gói hết hạn, nhắc học, hoàn lượt quá hạn | Chạy bằng quyền hệ thống, **không qua `JwtFilter`** |
 
-**Tổng: 8 actor = 6 role trong DB + 2 actor không phải role.**
+**Tổng: 7 actor = 6 role trong DB + `GUEST`.**
 
-> ⚠️ Đừng thêm `GUEST` hay `SYSTEM` vào bảng `user_roles`. `GUEST` không có tài khoản;
-> `SYSTEM` không phải người.
+> ⚠️ Đừng thêm `GUEST` vào bảng `user_roles` — `GUEST` không có tài khoản.
+>
+> **Job định kỳ không phải actor.** Các job `@Scheduled` (hạ gói hết hạn, nhắc học, hoàn lượt
+> quá hạn) nằm ở danh mục Background Job, chạy bằng quyền hệ thống, **không qua `JwtFilter`**.
 
 > 📎 Canonical: constitution **HR-01**, **HR-03**, **HR-09**.
 
@@ -127,8 +128,9 @@ Server PHẢI kiểm **ba điều kiện** trước khi lưu điểm:
 
 - Câu hỏi AI sinh vào DB với trạng thái **`PENDING_REVIEW`**
 - **KHÔNG BAO GIỜ** hiện câu `PENDING_REVIEW` cho người học
-- Chỉ `TEACHER` hoặc `CONTENT_ADMIN` được duyệt. `FINANCE_ADMIN` và `SUPER_ADMIN` **không**
-  duyệt nội dung — họ không có chuyên môn kiến thức, và đó là lý do `ADMIN` bị tách
+- **Chỉ `TEACHER`** được duyệt và sửa nội dung câu hỏi. `CONTENT_EDITOR`, `ACCOUNTANT` và `ADMIN`
+  **không** duyệt nội dung — duyệt cần chuyên môn kiến thức, và một người chịu trách nhiệm
+  thì khi câu sai mới rõ ai sửa
 - AI lỗi hoặc timeout → dùng ngân hàng câu hỏi có sẵn và ghi log, **không** để người học thấy lỗi
 
 > Đây là điều nhóm đã chốt rõ: *"AI TỰ SINH, CÓ KIỂM DUYỆT"*.

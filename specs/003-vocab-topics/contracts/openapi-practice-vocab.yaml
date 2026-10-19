@@ -1,0 +1,444 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Practice Engine + Vocabulary Topics API
+  version: 1.0.0
+  description: >
+    Hợp đồng spec 003. Phần "practice" là bộ máy lượt luyện dùng chung cho spec 004–008
+    (các spec đó $ref tới components/schemas ở file này). Chỉ LEARNER.
+    Câu gửi client KHÔNG BAO GIỜ có answer/accept trước khi chấm.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: practice
+  - name: topics
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    SessionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    TopicId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+        retryAfterSeconds: { type: integer }
+        learnedWords: { type: integer }
+        requiredWords: { type: integer }
+    PracticeSource:
+      type: string
+      description: Spec sau thêm giá trị (004 GRAMMAR_LESSON, 005 PRON_STAGE, 006 CHAR_RECOGNITION/CHAR_WRITING/WRITING_CHALLENGE, 007 GAME_ROUND)
+      enum: [TOPIC_STUDY, TOPIC_PRACTICE, TOPIC_TEST, GRAMMAR_LESSON, PRON_STAGE, CHAR_RECOGNITION, CHAR_WRITING, WRITING_CHALLENGE, GAME_ROUND]
+    FeedbackMode:
+      type: string
+      enum: [IMMEDIATE, DEFERRED, RECORD]
+    SessionStatus:
+      type: string
+      enum: [IN_PROGRESS, SUBMITTED, ABANDONED, EXPIRED]
+    Skill:
+      type: string
+      enum: [VOCAB, LISTENING, READING, CHARACTER, WRITING, GRAMMAR, PRONUNCIATION]
+    Option:
+      type: object
+      required: [key, text]
+      properties:
+        key: { type: string, pattern: '^[A-F]$' }
+        text: { type: string }
+    ServedItemView:
+      type: object
+      description: Câu đã phát, KHÔNG có answer/accept
+      required: [no, type, skill, prompt, rules]
+      properties:
+        no: { type: integer, minimum: 1 }
+        type: { type: string, example: MEANING_CHOICE }
+        skill: { $ref: '#/components/schemas/Skill' }
+        lexemeId: { type: [integer, 'null'], format: int64 }
+        prompt:
+          type: object
+          properties:
+            text: { type: [string, 'null'] }
+            pinyin: { type: [string, 'null'] }
+            sinoViet: { type: [string, 'null'] }
+            meaning: { type: [string, 'null'] }
+            audioUrl: { type: [string, 'null'] }
+            sentence: { type: [string, 'null'] }
+            hint: { type: [string, 'null'] }
+            examples:
+              type: array
+              items:
+                type: object
+                properties:
+                  cn: { type: string }
+                  pinyin: { type: [string, 'null'] }
+                  vi: { type: string }
+          additionalProperties: true
+        options: { type: array, items: { $ref: '#/components/schemas/Option' } }
+        rules:
+          type: object
+          properties:
+            minDurationMs: { type: integer }
+            maxReplays: { type: integer }
+            hasAudio: { type: boolean }
+          additionalProperties: true
+    ItemState:
+      type: object
+      required: [no]
+      properties:
+        no: { type: integer }
+        answer: { type: [string, 'null'] }
+        correct: { type: [boolean, 'null'] }
+        correctAnswer: { type: [string, 'null'] }
+        counted: { type: boolean }
+    SessionView:
+      type: object
+      required: [sessionId, source, feedback, status, servedAt, expiresAt, items, answered]
+      properties:
+        sessionId: { type: integer, format: int64 }
+        source: { $ref: '#/components/schemas/PracticeSource' }
+        refId: { type: [integer, 'null'], format: int64 }
+        feedback: { $ref: '#/components/schemas/FeedbackMode' }
+        status: { $ref: '#/components/schemas/SessionStatus' }
+        servedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        items: { type: array, items: { $ref: '#/components/schemas/ServedItemView' } }
+        answered:
+          type: array
+          description: IMMEDIATE/RECORD = kết quả đã chấm; DEFERRED = nháp (correct luôn null)
+          items: { $ref: '#/components/schemas/ItemState' }
+        meta:
+          type: object
+          additionalProperties: true
+    AnswerRequest:
+      type: object
+      required: [no, durationMs]
+      properties:
+        no: { type: integer, minimum: 1 }
+        answer: { type: [string, 'null'], maxLength: 100 }
+        durationMs: { type: integer, minimum: 0, maximum: 3600000 }
+        replayCount: { type: integer, minimum: 0, default: 0 }
+        skipped: { type: boolean, default: false }
+        audioFailed: { type: boolean, default: false }
+        clientMeta:
+          type: object
+          description: Chỉ nguồn RECORD dùng (vd kết quả viết chữ spec 006); server kiểm theo luật nguồn
+          additionalProperties: true
+    AnswerResult:
+      type: object
+      required: [no]
+      properties:
+        no: { type: integer }
+        correct: { type: [boolean, 'null'] }
+        correctAnswer: { type: [string, 'null'] }
+        accept: { type: [array, 'null'], items: { type: string } }
+        explanation: { type: [string, 'null'] }
+        counted: { type: boolean }
+        accepted: { type: boolean, description: DEFERRED }
+        recorded: { type: boolean, description: RECORD }
+        extra: { type: object, additionalProperties: true }
+    FinishRequest:
+      type: object
+      properties:
+        answers:
+          type: array
+          description: Chỉ DEFERRED
+          items: { $ref: '#/components/schemas/AnswerRequest' }
+    FinishResult:
+      type: object
+      required: [sessionId, status, suspicious, items]
+      properties:
+        sessionId: { type: integer, format: int64 }
+        status: { $ref: '#/components/schemas/SessionStatus' }
+        score: { type: [integer, 'null'], format: int64 }
+        maxScore: { type: [integer, 'null'], format: int64 }
+        percent: { type: [integer, 'null'] }
+        suspicious: { type: boolean }
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              no: { type: integer }
+              correct: { type: [boolean, 'null'] }
+              correctAnswer: { type: [string, 'null'] }
+              yourAnswer: { type: [string, 'null'] }
+        extra:
+          type: object
+          description: Dữ liệu riêng của nguồn (vd TopicTestExtra, PronStageExtra)
+          additionalProperties: true
+    TopicStatus:
+      type: string
+      enum: [NOT_STARTED, IN_PROGRESS, COMPLETED]
+    TopicSummary:
+      type: object
+      required: [id, code, name, hskLevel, totalWords, learnedWords, percent, status]
+      properties:
+        id: { type: integer, format: int64 }
+        code: { type: string }
+        name: { type: string }
+        hskLevel: { type: integer, minimum: 1, maximum: 9 }
+        totalWords: { type: integer }
+        learnedWords: { type: integer }
+        percent: { type: integer, minimum: 0, maximum: 100 }
+        status: { $ref: '#/components/schemas/TopicStatus' }
+        bestTestPercent: { type: [integer, 'null'] }
+    TopicDetail:
+      allOf:
+        - $ref: '#/components/schemas/TopicSummary'
+        - type: object
+          required: [words, actions]
+          properties:
+            words:
+              type: array
+              items:
+                type: object
+                required: [lexemeId, text, meaning, learned]
+                properties:
+                  lexemeId: { type: integer, format: int64 }
+                  text: { type: string }
+                  pinyin: { type: [string, 'null'] }
+                  sinoViet: { type: [string, 'null'] }
+                  meaning: { type: string }
+                  hskLevel: { type: [integer, 'null'] }
+                  audioUrl: { type: [string, 'null'] }
+                  learned: { type: boolean }
+            actions:
+              type: object
+              required: [canStudy, canPracticeRecognition, canPracticeListening, canTakeTest]
+              properties:
+                canStudy: { type: boolean }
+                canPracticeRecognition: { type: boolean }
+                canPracticeListening: { type: boolean }
+                canTakeTest: { type: boolean }
+                testBlockedReason: { type: [string, 'null'], enum: [NOT_ENOUGH_LEARNED, TOO_FEW_WORDS, RETRY_TOO_SOON, null] }
+                requiredWords: { type: integer }
+                retryAvailableAt: { type: [string, 'null'], format: date-time }
+    TopicTestExtra:
+      type: object
+      properties:
+        passed: { type: boolean }
+        bestPercent: { type: integer }
+        topicCompleted: { type: boolean }
+        firstCompletion: { type: boolean }
+        wrongWords:
+          type: array
+          items:
+            type: object
+            properties:
+              lexemeId: { type: integer, format: int64 }
+              text: { type: string }
+              pinyin: { type: [string, 'null'] }
+              meaning: { type: string }
+  responses:
+    Error:
+      description: Lỗi theo spec 003 §5
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Session:
+      description: Lượt luyện
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/SessionView' }
+
+paths:
+  /api/practice/sessions/active:
+    get:
+      tags: [practice]
+      operationId: findActiveSession
+      summary: Lượt đang làm của nguồn (§0.11)
+      parameters:
+        - { name: source, in: query, required: true, schema: { $ref: '#/components/schemas/PracticeSource' } }
+        - { name: refId, in: query, schema: { type: integer, format: int64 } }
+      responses:
+        '200': { $ref: '#/components/responses/Session' }
+        '204': { description: Không có lượt đang làm }
+        '401': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/practice/sessions/{id}:
+    get:
+      tags: [practice]
+      operationId: getSession
+      summary: Xem lại lượt, không có đáp án (FR-010)
+      parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Session' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/practice/sessions/{id}/answers:
+    post:
+      tags: [practice]
+      operationId: answerItem
+      summary: Trả lời một câu (§0.6)
+      parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AnswerRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnswerResult' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /api/practice/sessions/{id}/finish:
+    post:
+      tags: [practice]
+      operationId: finishSession
+      summary: Kết thúc lượt (§0.8)
+      parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FinishRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FinishResult' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/practice/sessions/{id}/abandon:
+    post:
+      tags: [practice]
+      operationId: abandonSession
+      summary: Bỏ lượt, không tính điểm (§0.11)
+      parameters: [ { $ref: '#/components/parameters/SessionId' } ]
+      responses:
+        '204': { description: Đã bỏ }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/topics:
+    get:
+      tags: [topics]
+      operationId: listTopics
+      summary: Danh sách chủ đề (FR-013…FR-017)
+      parameters:
+        - { name: hskLevel, in: query, schema: { type: integer, minimum: 1, maximum: 9 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/TopicSummary' } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/topics/{id}:
+    get:
+      tags: [topics]
+      operationId: getTopic
+      summary: Chi tiết chủ đề (FR-018)
+      parameters: [ { $ref: '#/components/parameters/TopicId' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TopicDetail' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/topics/{id}/study-sessions:
+    post:
+      tags: [topics]
+      operationId: startTopicStudy
+      summary: Bắt đầu học từ mới (FR-019…FR-022)
+      parameters: [ { $ref: '#/components/parameters/TopicId' } ]
+      responses:
+        '200':
+          description: Lượt đang làm (tiếp tục) hoặc {session:null, reason:NO_NEW_WORDS}
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SessionView'
+                  - type: object
+                    required: [session, reason]
+                    properties:
+                      session: { type: 'null' }
+                      reason: { type: string, const: NO_NEW_WORDS }
+        '201': { $ref: '#/components/responses/Session' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /api/topics/{id}/practice-sessions:
+    post:
+      tags: [topics]
+      operationId: startTopicPractice
+      summary: Bắt đầu luyện nhận diện/nghe (FR-025…FR-030)
+      parameters: [ { $ref: '#/components/parameters/TopicId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode]
+              properties:
+                mode: { type: string, enum: [RECOGNITION, LISTENING] }
+                focusLexemeIds:
+                  type: array
+                  maxItems: 20
+                  items: { type: integer, format: int64 }
+      responses:
+        '201': { $ref: '#/components/responses/Session' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /api/topics/{id}/tests:
+    post:
+      tags: [topics]
+      operationId: startTopicTest
+      summary: Bắt đầu hoặc tiếp tục kiểm tra (FR-031…FR-040)
+      parameters: [ { $ref: '#/components/parameters/TopicId' } ]
+      responses:
+        '200': { $ref: '#/components/responses/Session' }
+        '201': { $ref: '#/components/responses/Session' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }

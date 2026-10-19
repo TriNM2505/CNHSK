@@ -1,0 +1,333 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Learning Data Import API
+  version: 1.0.0
+  description: >
+    Hợp đồng spec 002-learning-data-import. Chỉ CONTENT_EDITOR. Lỗi dùng ErrorResponse của spec 001.
+    Request đổi trạng thái qua cookie cần X-XSRF-TOKEN.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: imports
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    RunId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+  schemas:
+    DataType:
+      type: string
+      enum: [LEXEME, TOPIC, TOPIC_ITEM, GRAMMAR, GRAMMAR_EXERCISE, PRON_STAGE, PRON_UNIT]
+    RunStatus:
+      type: string
+      enum: [PENDING, RUNNING, COMPLETED, FAILED, EXPIRED]
+    RowAction:
+      type: string
+      enum: [CREATE, UPDATE, UNCHANGED]
+    ErrorResponse:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+        runId: { type: integer, format: int64 }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+    Template:
+      type: object
+      required: [dataType, label, naturalKey, dependsOn, columns]
+      properties:
+        dataType: { $ref: '#/components/schemas/DataType' }
+        label: { type: string, example: Chữ và từ vựng }
+        naturalKey: { type: array, items: { type: string } }
+        dependsOn: { type: array, items: { $ref: '#/components/schemas/DataType' } }
+        columns:
+          type: array
+          items:
+            type: object
+            required: [name, required]
+            properties:
+              name: { type: string }
+              required: { type: boolean }
+              maxLength: { type: [integer, 'null'] }
+              description: { type: string }
+              example: { type: string }
+    Totals:
+      type: object
+      required: [total, valid, invalid, create, update, unchanged]
+      properties:
+        total: { type: integer }
+        valid: { type: integer }
+        invalid: { type: integer }
+        create: { type: integer }
+        update: { type: integer }
+        unchanged: { type: integer }
+    Result:
+      type: object
+      required: [total, valid, invalid, created, updated, unchanged, failed]
+      properties:
+        total: { type: integer }
+        valid: { type: integer }
+        invalid: { type: integer }
+        created: { type: integer }
+        updated: { type: integer }
+        unchanged: { type: integer }
+        failed: { type: integer }
+    RowError:
+      type: object
+      required: [line, code, message]
+      properties:
+        line: { type: integer, description: 'Dòng vật lý, header = 1' }
+        column: { type: [string, 'null'] }
+        value: { type: [string, 'null'], maxLength: 100 }
+        code:
+          type: string
+          enum: [REQUIRED_MISSING, TOO_LONG, INVALID_VALUE, INVALID_HSK_LEVEL, NOT_CJK, BROKEN_TEXT,
+                 INVALID_PINYIN, INVALID_URL, INVALID_ANSWER, DUPLICATE_IN_FILE, REFERENCE_NOT_FOUND,
+                 ROW_WRITE_FAILED]
+        message: { type: string }
+    PreviewRow:
+      type: object
+      required: [line, action, values]
+      properties:
+        line: { type: integer }
+        action: { $ref: '#/components/schemas/RowAction' }
+        values:
+          type: object
+          additionalProperties: { type: [string, 'null'] }
+          description: Giá trị đã chuẩn hoá theo tên cột của mẫu
+    ImportPreview:
+      type: object
+      required: [runId, dataType, fileName, status, totals, alreadyImported, expiresAt, preview, errors, errorCount]
+      properties:
+        runId: { type: integer, format: int64 }
+        dataType: { $ref: '#/components/schemas/DataType' }
+        fileName: { type: string }
+        status: { type: string, const: PENDING }
+        totals: { $ref: '#/components/schemas/Totals' }
+        alreadyImported: { type: boolean }
+        expiresAt: { type: string, format: date-time }
+        preview: { type: array, maxItems: 20, items: { $ref: '#/components/schemas/PreviewRow' } }
+        errors: { type: array, maxItems: 50, items: { $ref: '#/components/schemas/RowError' } }
+        errorCount: { type: integer }
+    ImportRun:
+      type: object
+      required: [runId, dataType, fileName, status, createdAt, createdBy, errorCount]
+      properties:
+        runId: { type: integer, format: int64 }
+        dataType: { $ref: '#/components/schemas/DataType' }
+        fileName: { type: string }
+        status: { $ref: '#/components/schemas/RunStatus' }
+        createdAt: { type: string, format: date-time }
+        completedAt: { type: [string, 'null'], format: date-time }
+        createdBy:
+          type: object
+          required: [id, displayName]
+          properties:
+            id: { type: integer, format: int64 }
+            displayName: { type: string }
+        totals: { oneOf: [{ $ref: '#/components/schemas/Totals' }, { type: 'null' }] }
+        result: { oneOf: [{ $ref: '#/components/schemas/Result' }, { type: 'null' }] }
+        errorCount: { type: integer }
+        failureReason: { type: [string, 'null'], example: ENCODING_ERROR }
+    ImportRunPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ImportRun' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    ImportErrorPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/RowError' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+  responses:
+    Error:
+      description: Lỗi theo spec 002 §5
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+paths:
+  /api/admin/imports/templates:
+    get:
+      tags: [imports]
+      operationId: listImportTemplates
+      summary: Danh sách 7 mẫu nhập (FR-034)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Template' } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/admin/imports/templates/{dataType}.csv:
+    get:
+      tags: [imports]
+      operationId: downloadImportTemplate
+      summary: File mẫu CSV (FR-035)
+      parameters:
+        - name: dataType
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/DataType' }
+      responses:
+        '200':
+          description: CSV UTF-8 có BOM
+          content:
+            text/csv:
+              schema: { type: string }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/imports:
+    get:
+      tags: [imports]
+      operationId: listImportRuns
+      summary: Lịch sử nhập (FR-029)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 10 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportRunPage' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [imports]
+      operationId: uploadImportFile
+      summary: Tải lên và kiểm tra — không ghi kho (FR-002…FR-014)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [dataType, file]
+              properties:
+                dataType: { $ref: '#/components/schemas/DataType' }
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Lần nhập PENDING kèm xem trước
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportPreview' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '413': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/imports/{id}:
+    get:
+      tags: [imports]
+      operationId: getImportRun
+      summary: Chi tiết lần nhập (FR-026)
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportRun' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/admin/imports/{id}/confirm:
+    post:
+      tags: [imports]
+      operationId: confirmImportRun
+      summary: Xác nhận ghi các dòng hợp lệ (FR-015…FR-023)
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                acknowledgeRerun: { type: boolean, default: false }
+      responses:
+        '200':
+          description: COMPLETED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportRun' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '410': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/imports/{id}/errors:
+    get:
+      tags: [imports]
+      operationId: listImportErrors
+      summary: Lỗi theo dòng, phân trang (FR-027)
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+        - $ref: '#/components/parameters/Page'
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportErrorPage' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/imports/{id}/errors.csv:
+    get:
+      tags: [imports]
+      operationId: exportImportErrors
+      summary: Xuất toàn bộ lỗi CSV (FR-028)
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: CSV UTF-8 có BOM
+          content:
+            text/csv:
+              schema: { type: string }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }

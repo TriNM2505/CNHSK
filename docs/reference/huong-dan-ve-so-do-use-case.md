@@ -1,106 +1,87 @@
 # Hướng dẫn vẽ sơ đồ use case
 
-> Dành cho người vẽ sơ đồ use case đưa vào báo cáo. Bản này theo **137 use case**,
-> cập nhật 2026-10-08. Các sơ đồ vẽ theo bản 119 use case cũ cần vẽ lại.
+> Dành cho người vẽ sơ đồ use case đưa vào báo cáo. Bản này theo **133 use case**,
+> cập nhật 2026-10-19 (đổi tên actor, bỏ `SYSTEM`). Sơ đồ vẽ theo bản cũ cần vẽ lại.
 
-## Ba quyết định đã chốt
+## Bốn quyết định đã chốt
 
 | # | Vấn đề | Chốt |
 |---|---|---|
-| 1 | Ai duyệt câu hỏi AI ở UC-108 | **Cả `TEACHER` và `CONTENT_ADMIN`** |
-| 2 | Có vẽ `SYSTEM` thành actor không | **Có** — giữ đúng tám actor đã công bố |
-| 3 | Sơ đồ theo bản 119 use case | **Vẽ lại** theo bản 137 |
+| 1 | Tên actor | `GUEST` · `LEARNER` · `TEACHER` · `MODERATOR` · `CONTENT_EDITOR` · `ACCOUNTANT` · `ADMIN`. Chỉ actor quản trị tổng mang chữ "Admin" |
+| 2 | Ai duyệt câu hỏi AI ở UC-108, sửa câu hỏi ở UC-109 | **Chỉ `TEACHER`** |
+| 3 | Có vẽ `SYSTEM` thành actor không | **Không.** 14 UC trước đây gán `SYSTEM` được xếp lại — mục 2 |
+| 4 | Số use case | **133** (137 − 4 UC rời danh sách ở mục 2) |
 
 ---
 
-## 1 · UC-108 có hai actor
+## 1 · Bảy actor và phần việc riêng
 
-Trước đây tài liệu ghi `UC-108 Duyệt câu hỏi AI sinh` chỉ thuộc `TEACHER`. Đã sửa
-thành **hai actor** cho khớp `BUS-07` trong Hiến pháp: *"Nội dung AI sinh luôn vào
-trạng thái chờ duyệt, chỉ `TEACHER` hoặc `CONTENT_ADMIN` duyệt"*.
-
-Cách vẽ: **hai actor cùng trỏ vào một use case**.
-
-```
-TEACHER ────────┐
-                ├──→ (UC-108 Duyệt câu hỏi AI sinh)
-CONTENT_ADMIN ──┘
-```
-
-Điều này cũng áp cho `UC-109 Sửa nội dung câu hỏi` — đã ghi hai actor từ trước.
-
-### Việc phân chia role không đổi ở chỗ khác
-
-| Role | Chỉ role này làm được |
-|---|---|
-| `TEACHER` | Chấm bài viết thuê — UC-104, UC-105 |
-| `CONTENT_ADMIN` | Nhập dữ liệu, quản lý đề thi, cuộc thi — UC-110 → UC-113 |
-| `FINANCE_ADMIN` | Sổ cái, mã thẻ, gói dịch vụ — UC-099 → UC-102 |
-| `SUPER_ADMIN` | Người dùng và phân quyền — UC-114 → UC-116 |
-
-Nguyên tắc *phân tách nhiệm vụ* vẫn giữ: `CONTENT_ADMIN` không vào sổ cái,
-`FINANCE_ADMIN` không nhập dữ liệu học.
-
----
-
-## 2 · Vẽ `SYSTEM` thành actor
-
-Dự án đã công bố **tám actor** trong Hiến pháp, gồm `SYSTEM`. Sơ đồ giữ đúng con
-số đó.
-
-```
-            ┌─────────────────────────┐
-  SYSTEM ──→│  (UC-042 Cập nhật       │
-            │   mức độ nắm vững)      │
-            └─────────────────────────┘
-```
-
-**Lưu ý khi bảo vệ:** theo chuẩn UML, actor là thực thể **bên ngoài** hệ thống,
-nên `SYSTEM` không phải actor đúng nghĩa. Nếu hội đồng hỏi, trả lời rằng dự án
-coi `SYSTEM` là actor nghiệp vụ để thể hiện rõ **13 use case không do người kích
-hoạt** — chúng chạy theo lịch hoặc được gọi từ use case khác.
-
-### Mười ba use case của `SYSTEM`
-
-| UC | Tên | Kiểu kích hoạt |
+| Actor | Tên | Chỉ actor này làm được |
 |---|---|---|
-| UC-012 | Khóa tài khoản tạm sau nhiều lần sai mật khẩu | Khi có sự kiện |
-| UC-022 | Mở tầng phát âm tiếp theo | Khi có sự kiện |
-| UC-042 | Cập nhật mức độ nắm vững | Được use case khác gọi |
-| UC-043 | Cập nhật mức độ nắm vững sau khi chơi game | Được use case khác gọi |
-| UC-044 | Tính lại hạn ôn | Được use case khác gọi |
-| UC-046 | Mở khóa chủ đề khi đạt ngưỡng | Khi có sự kiện |
-| UC-049 | Sinh câu hỏi vào hàng đợi duyệt | Tiến trình nền |
-| UC-050 | Tái sử dụng câu hỏi đã duyệt | Được use case khác gọi |
-| UC-055 | Gửi nhắc học tự động | Tác vụ định kỳ |
-| UC-096 | Trừ điểm khi dùng tính năng tốn phí | Được use case khác gọi |
-| UC-097 | Hoàn điểm khi tính năng lỗi | Được use case khác gọi |
-| UC-107 | Hoàn điểm khi không ai nhận chấm bài trong hạn | Tác vụ định kỳ |
+| `GUEST` | Khách | Đăng ký, đăng nhập, tra từ giới hạn, xem nội dung công khai |
+| `LEARNER` | Người học | Học, luyện, thi, ôn, thư viện, game, cộng đồng, đổi mã thẻ |
+| `TEACHER` | Giáo viên | Duyệt câu hỏi AI, sửa nội dung câu hỏi — UC-108, UC-109 · chấm bài viết thuê — UC-104, UC-105 |
+| `MODERATOR` | Kiểm duyệt viên | Duyệt bài đăng, xử lý báo cáo vi phạm |
+| `CONTENT_EDITOR` | Biên tập viên nội dung | Nhập dữ liệu, quản lý đề thi, cuộc thi — UC-110 → UC-113 |
+| `ACCOUNTANT` | Kế toán | Sổ cái, mã thẻ, gói dịch vụ — UC-099 → UC-102 |
+| `ADMIN` | Quản trị viên | Người dùng và phân quyền — UC-114 → UC-116 |
 
-> `UC-042`, `UC-044` và `UC-096` là use case **được gọi lại nhiều nơi**, nên trong
-> sơ đồ chúng xuất hiện ở đầu nhận của nhiều mũi tên `«include»`.
+Nguyên tắc *phân tách nhiệm vụ* vẫn giữ: `CONTENT_EDITOR` không vào sổ cái, không sửa nội
+dung câu hỏi; `ACCOUNTANT` không nhập dữ liệu học; `ADMIN` không đụng sổ cái.
+
+---
+
+## 2 · Không vẽ `SYSTEM` thành actor
+
+Theo UML, actor là thực thể **bên ngoài** hệ thống. Phần mềm tự chạy không phải actor,
+nên dự án **không** vẽ `SYSTEM`. 14 use case trước đây gán `SYSTEM` được xếp lại theo
+cách chúng thực sự được kích hoạt (chốt 19/10/2026):
+
+| UC | Tên | Xếp loại | Vẽ ở đâu |
+|---|---|---|---|
+| UC-006 | Làm mới access token | **Không phải UC** → yêu cầu chức năng phiên đăng nhập (spec 001) | Không vẽ |
+| UC-012 | Tạm chặn đăng nhập sau nhiều lần sai | **«extend»** UC-003, UC-004 | Sơ đồ `GUEST` |
+| UC-022 | Mở tầng phát âm tiếp theo | **«include»** của UC-021 | Sơ đồ `LEARNER` |
+| UC-042 | Cập nhật mức độ nắm vững | **«include»** của UC-029, UC-035, UC-047, UC-088 | Sơ đồ `LEARNER` |
+| UC-043 | Cập nhật mastery sau khi chơi game | **Gộp vào UC-042** | Không vẽ |
+| UC-044 | Tính lại hạn ôn | **«include»** của UC-042, UC-024, UC-066 | Sơ đồ `LEARNER` |
+| UC-046 | Mở khóa chủ đề khi đạt ngưỡng | **«include»** của UC-029 | Sơ đồ `LEARNER` |
+| UC-049 | Sinh câu hỏi vào hàng đợi duyệt | **«include»** của UC-048 | Sơ đồ `LEARNER` |
+| UC-050 | Tái sử dụng câu hỏi đã duyệt | **«include»** của UC-047 | Sơ đồ `LEARNER` |
+| UC-055 | Gửi nhắc học tự động | **Background Job** (cài giờ ở UC-054) | Không vẽ |
+| UC-088 | Lưu điểm game và cộng mastery | **«include»** của UC-087 | Sơ đồ `LEARNER` |
+| UC-096 | Trừ quyền sử dụng tính năng tốn phí | **«include»** của UC-048, UC-060, UC-085, UC-103, UC-122 | Sơ đồ `LEARNER` |
+| UC-097 | Hoàn quyền khi hành động thất bại | **«extend»** của UC-096 | Sơ đồ `LEARNER` |
+| UC-107 | Hoàn quyền khi không ai nhận chấm bài | **Background Job** | Không vẽ |
+
+4 UC rời danh sách (UC-006, UC-043, UC-055, UC-107) → **133 use case**. Hai Background Job
+mới vào danh mục Background Job của SRS.
+
+**Khi hội đồng hỏi "ai kích hoạt UC-042?"**: người học, qua use case họ đang làm
+(nộp bài, làm test chủ đề, chơi game, luyện phần yếu). UC-042 là bước «include» bắt buộc
+của các use case đó.
 
 ---
 
 ## 3 · Bảy sơ đồ nên vẽ
 
-Một sơ đồ cho mỗi actor, trừ `USER` phải chia nhỏ vì có 69 use case.
+Một sơ đồ cho mỗi actor, trừ `LEARNER` phải chia nhỏ vì có 69 use case.
 
 | # | Sơ đồ | Actor | Số UC | Ghi chú |
 |---|---|---|---|---|
 | 1 | Khách chưa đăng nhập | `GUEST` | 16 | |
-| 2 | Người học — học và luyện | `USER` | ~25 | Gồm UC-126 → UC-129 |
-| 3 | Người học — thi và tiến độ | `USER` | ~20 | Gồm UC-130, UC-131 |
-| 4 | Người học — thư viện, cộng đồng, điểm | `USER` | ~24 | Gồm UC-132 → UC-134, UC-136 |
-| 5 | Kiểm duyệt nội dung | `TEACHER` · `CONTENT_ADMIN` · `MANAGER` | ~20 | Gồm UC-135, UC-137 |
-| 6 | Quản trị tài chính | `FINANCE_ADMIN` | 4 | |
-| 7 | Quản trị hệ thống | `SUPER_ADMIN` | 3 | |
+| 2 | Người học — học và luyện | `LEARNER` | ~25 | Gồm UC-126 → UC-129 |
+| 3 | Người học — thi và tiến độ | `LEARNER` | ~20 | Gồm UC-130, UC-131 |
+| 4 | Người học — thư viện, cộng đồng, điểm | `LEARNER` | ~24 | Gồm UC-132 → UC-134, UC-136 |
+| 5 | Kiểm duyệt nội dung | `TEACHER` · `CONTENT_EDITOR` · `MODERATOR` | ~20 | Gồm UC-135, UC-137 |
+| 6 | Quản trị tài chính | `ACCOUNTANT` | 4 | |
+| 7 | Quản trị hệ thống | `ADMIN` | 3 | |
 
 **Giới hạn 30 use case mỗi sơ đồ.** Vượt mức đó thì sơ đồ không đọc được khi in
 vào báo cáo, phải chia nhỏ tiếp.
 
-`SYSTEM` không có sơ đồ riêng. Mười ba use case của nó xuất hiện trong các sơ đồ
-trên, ở đầu nhận của mũi tên `«include»`.
+Các use case «include»/«extend» ở mục 2 xuất hiện trong sơ đồ của actor sở hữu use case gốc,
+ở đầu nhận của mũi tên.
 
 ---
 
@@ -111,12 +92,18 @@ trên, ở đầu nhận của mũi tên `«include»`.
 | `«include»` | Use case gốc **luôn** gọi use case này | Bỏ nó đi, use case gốc **không chạy được** |
 | `«extend»` | Use case này mở rộng use case gốc khi có điều kiện | Bỏ nó đi, use case gốc **vẫn chạy** |
 
-### Ba quan hệ `«include»` trong dự án
+### Các quan hệ `«include»` trong dự án
 
 ```
 (UC-035 Nộp bài và nhận điểm) ─────«include»───→ (UC-042 Cập nhật mức độ nắm vững)
 (UC-029 Làm bài kiểm tra chủ đề) ──«include»───→ (UC-042)
 (UC-088 Lưu điểm game) ────────────«include»───→ (UC-042)
+(UC-047 Nhận bài luyện phần yếu) ──«include»───→ (UC-042)
+(UC-087 Chơi game) ────────────────«include»───→ (UC-088 Lưu điểm game)
+(UC-021 Luyện phát âm) ────────────«include»───→ (UC-022 Mở tầng tiếp theo)
+(UC-029 Làm bài kiểm tra chủ đề) ──«include»───→ (UC-046 Mở khóa chủ đề)
+(UC-048 Yêu cầu sinh bài luyện) ───«include»───→ (UC-049 Sinh câu vào hàng đợi duyệt)
+(UC-047 Nhận bài luyện phần yếu) ──«include»───→ (UC-050 Tái sử dụng câu đã duyệt)
 
 (UC-024 Ôn lại ngữ pháp) ──────────«include»───→ (UC-044 Tính lại hạn ôn)
 (UC-042) ──────────────────────────«include»───→ (UC-044)
@@ -187,12 +174,13 @@ dùng lại.
 
 | Lỗi | Đúng là |
 |---|---|
-| Vẽ `Worker`, `Scheduler`, `Caller` thành actor | Đều là `SYSTEM`. Tên đó chỉ cơ chế hiện thực, không phải actor |
+| Vẽ `SYSTEM`, `Worker`, `Scheduler`, `Caller` thành actor | Không phải actor. Bước tự động là «include»/«extend» của UC người dùng; việc chạy theo giờ là Background Job |
 | Vẽ tên module Java thành actor | `community` và `learning` là package, không phải actor |
-| Vẽ `ADMIN` gộp | Đã tách thành `CONTENT_ADMIN`, `FINANCE_ADMIN`, `SUPER_ADMIN` |
-| Để `GUEST` trong danh sách gán role | `GUEST` và `SYSTEM` là actor nhưng **không phải role**, không gán cho tài khoản được |
+| Vẽ `ADMIN` gộp | Đã tách thành `CONTENT_EDITOR`, `ACCOUNTANT`, `ADMIN` |
+| Để `GUEST` trong danh sách gán role | `GUEST` là actor nhưng **không phải role**, không gán cho tài khoản được |
+| Ghi "Super Admin", "Content Admin", "Finance Admin", "Manager", "User" | Dùng `ADMIN`, `CONTENT_EDITOR`, `ACCOUNTANT`, `MODERATOR`, `LEARNER` |
 | Vẽ mũi tên `«extend»` sai hướng | Trỏ từ use case chi tiết tới use case tổng quát |
-| Gộp 69 use case của `USER` vào một sơ đồ | Chia ba sơ đồ theo nhóm chức năng |
+| Gộp 69 use case của `LEARNER` vào một sơ đồ | Chia ba sơ đồ theo nhóm chức năng |
 
 ---
 
@@ -200,10 +188,10 @@ dùng lại.
 
 | Cần gì | Xem ở đâu |
 |---|---|
-| Danh sách tám actor và quyền | Hiến pháp, mục *Tám actor* |
+| Danh sách bảy actor và quyền | Hiến pháp, mục *Bảy actor* |
 | Use case nào thuộc actor nào | Bảng tra nhanh đầu mỗi file `use-cases-*.md` |
 | Quan hệ của một use case tổng quát | Mục *Quan hệ use case* trong chính use case đó |
 | Màn hình nào cho actor nào | `design.md` mục 3 và mục 5.3 |
 
-**Tổng: 137 use case.** Nếu số đếm được khác con số này thì có file chưa được
+**Tổng: 133 use case.** Nếu số đếm được khác con số này thì có file chưa được
 cập nhật — kiểm lại trước khi vẽ.

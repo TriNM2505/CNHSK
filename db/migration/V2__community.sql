@@ -23,7 +23,7 @@ CREATE TABLE posts (
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
 
   CONSTRAINT ck_post_reject CHECK (status <> 'REJECTED' OR review_reason IS NOT NULL),
-  -- MANAGER khong tu duyet bai cua chinh minh (UC-076 SELF_APPROVAL)
+  -- MODERATOR khong tu duyet bai cua chinh minh (UC-076 SELF_APPROVAL)
   CONSTRAINT ck_post_self   CHECK (reviewed_by IS NULL OR reviewed_by <> author_id),
   CONSTRAINT ck_post_pub    CHECK (status <> 'APPROVED' OR published_at IS NOT NULL)
 );

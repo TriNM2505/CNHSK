@@ -14,19 +14,19 @@
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
 | --- | --- | --- | --- | --- | --- |
-| UC-056 | Tra từ điển bằng chữ Hán | `GUEST` `USER` | P0 | MVP | 4.1 |
-| UC-057 | Tra từ điển bằng pinyin | `GUEST` `USER` | P1 | MVP | 4.1 |
-| UC-058 | Tra từ điển bằng nghĩa Việt | `GUEST` `USER` | P1 | MVP | 4.1 |
-| UC-059 | Tra chữ theo bộ thủ và số nét | `GUEST` `USER` | P2 | MVP | 4.1 |
-| UC-060 | Dịch câu hoặc đoạn văn Trung ↔ Việt | `USER` | P1 | MVP | 4.1 |
-| UC-061 | Bấm từ trong kết quả dịch xem nghĩa | `USER` | P2 | MVP | 4.1 |
-| UC-062 | Thêm từ từ kết quả tra vào sổ tay | `USER` | P2 | MVP | 4.1 |
-| UC-063 | Thêm từ từ kết quả tra vào flashcard | `USER` | P2 | MVP | 4.1 |
-| UC-064 | Tạo, sửa, xóa ghi chú cá nhân | `USER` | P1 | MVP | 4.2 |
-| UC-065 | Tìm kiếm trong ghi chú | `USER` | P2 | MVP | 4.2 |
-| UC-066 | Ôn flashcard theo lịch | `USER` | P1 | MVP | 4.3 |
-| UC-067 | Tạo bộ flashcard mới | `USER` | P1 | MVP | 4.3 |
-| UC-068 | Chia sẻ bộ flashcard lên cộng đồng | `USER` | P3 | V2 | 4.3 |
+| UC-056 | Tra từ điển bằng chữ Hán | `GUEST` `LEARNER` | P0 | MVP | 4.1 |
+| UC-057 | Tra từ điển bằng pinyin | `GUEST` `LEARNER` | P1 | MVP | 4.1 |
+| UC-058 | Tra từ điển bằng nghĩa Việt | `GUEST` `LEARNER` | P1 | MVP | 4.1 |
+| UC-059 | Tra chữ theo bộ thủ và số nét | `GUEST` `LEARNER` | P2 | MVP | 4.1 |
+| UC-060 | Dịch câu hoặc đoạn văn Trung ↔ Việt | `LEARNER` | P1 | MVP | 4.1 |
+| UC-061 | Bấm từ trong kết quả dịch xem nghĩa | `LEARNER` | P2 | MVP | 4.1 |
+| UC-062 | Thêm từ từ kết quả tra vào sổ tay | `LEARNER` | P2 | MVP | 4.1 |
+| UC-063 | Thêm từ từ kết quả tra vào flashcard | `LEARNER` | P2 | MVP | 4.1 |
+| UC-064 | Tạo, sửa, xóa ghi chú cá nhân | `LEARNER` | P1 | MVP | 4.2 |
+| UC-065 | Tìm kiếm trong ghi chú | `LEARNER` | P2 | MVP | 4.2 |
+| UC-066 | Ôn flashcard theo lịch | `LEARNER` | P1 | MVP | 4.3 |
+| UC-067 | Tạo bộ flashcard mới | `LEARNER` | P1 | MVP | 4.3 |
+| UC-068 | Chia sẻ bộ flashcard lên cộng đồng | `LEARNER` | P3 | V2 | 4.3 |
 
 ---
 
@@ -34,7 +34,7 @@
 
 | | |
 | --- | --- |
-| **UC-ID** | UC-056 · **Actor** `GUEST` `USER` · **Pri** P0 · **Scope** MVP · **FT** 4.1 |
+| **UC-ID** | UC-056 · **Actor** `GUEST` `LEARNER` · **Pri** P0 · **Scope** MVP · **FT** 4.1 |
 | **Client** | Web · Mobile · Shared |
 
 ## Mô tả
@@ -43,20 +43,20 @@ Người dùng nhập **một hoặc nhiều chữ Hán** để tra cứu thông
 
 Hệ thống trả về các thông tin tương ứng nếu có, bao gồm: **pinyin · nghĩa · âm Hán-Việt · cấu tạo chữ · câu chuyện chữ · animation thứ tự nét · từ ghép chứa chữ**.
 
-`GUEST` và `USER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống .
+`GUEST` và `LEARNER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống .
 
 ## Tiền điều kiện
 
 1. Người dùng đang truy cập chức năng tra từ điển.
 2. Dữ liệu từ điển của hệ thống đang khả dụng.
-3. Nếu là `USER`, phiên đăng nhập còn hợp lệ để sử dụng các chức năng dành riêng cho tài khoản.
+3. Nếu là `LEARNER`, phiên đăng nhập còn hợp lệ để sử dụng các chức năng dành riêng cho tài khoản.
 
 ## Hậu điều kiện
 
 | Kết quả | Trạng thái |
 | --- | --- |
 | Tra cứu thành công | Hệ thống hiển thị thông tin từ điển tương ứng với nội dung người dùng nhập |
-| `USER` tra cứu | Tăng bộ đếm theo IP; **không** ghi vào tài khoản |
+| `LEARNER` tra cứu | Tăng bộ đếm theo IP; **không** ghi vào tài khoản |
 | `GUEST` tra cứu | Được xem kết quả nhưng không được lưu vào sổ tay hoặc flashcard; lượt tra cứu Guest được cập nhật |
 
 
@@ -72,7 +72,7 @@ Hệ thống trả về các thông tin tương ứng nếu có, bao gồm: **pi
 | 5 | System | Lấy thêm `word_characters` → từ ghép chứa chữ |
 | 6 | System | Ghi cache TTL 24h |
 | 7 | System | Trả kết quả; nếu `GUEST` thì **rút gọn** (xem BR) |
-| 8 | Client | Hiện chi tiết chữ, nút animation nét, nút lưu (chỉ `USER`) |
+| 8 | Client | Hiện chi tiết chữ, nút animation nét, nút lưu (chỉ `LEARNER`) |
 
 ## Luồng thay thế
 
@@ -118,10 +118,10 @@ Tự nhận loại đầu vào, chuyển sang UC-057 hoặc UC-058.
 
 | # | Rule |
 | --- | --- |
-| BR-056-1 | Cả `GUEST` và `USER` đều được tra từ điển bằng chữ Hán. |
+| BR-056-1 | Cả `GUEST` và `LEARNER` đều được tra từ điển bằng chữ Hán. |
 | BR-056-2 | `GUEST` được tra cứu có giới hạn theo IP để tránh lạm dụng. Giới hạn phải đủ rộng để tránh chặn oan người dùng chung mạng. |
 | BR-056-3 | `GUEST` chỉ được xem kết quả tra cứu, không được lưu vào sổ tay hoặc flashcard. |
-| BR-056-4 | `USER` đã đăng nhập được dùng đầy đủ kết quả tra cứu và các nút lưu vào sổ tay hoặc flashcard. |
+| BR-056-4 | `LEARNER` đã đăng nhập được dùng đầy đủ kết quả tra cứu và các nút lưu vào sổ tay hoặc flashcard. |
 | BR-056-5 | Nếu người dùng nhập một chữ Hán, hệ thống tra theo chữ. Nếu nhập nhiều chữ, hệ thống ưu tiên tra như một từ trước, sau đó mới tách từng chữ nếu không tìm thấy từ. |
 | BR-056-6 | Truy vấn tra từ điển chỉ dùng cho từ hoặc cụm ngắn. Nếu nội dung quá dài, hệ thống yêu cầu người dùng chuyển sang chức năng dịch. |
 | BR-056-7 | Nếu chữ có dữ liệu nét thì hiển thị animation viết chữ. Nếu thiếu dữ liệu nét, hệ thống vẫn hiển thị nghĩa, pinyin và thông tin còn lại. |
@@ -131,7 +131,7 @@ Tự nhận loại đầu vào, chuyển sang UC-057 hoặc UC-058.
 
 ```
 GET /api/public/dictionary/lookup?q={x}     (GUEST)
-GET /api/dictionary/lookup?q={x}            (USER)
+GET /api/dictionary/lookup?q={x}            (LEARNER)
 ```
 
 `characters` · `words` · `word_characters` (đọc) · Redis `learn:dict:*`
@@ -157,7 +157,7 @@ GET /api/dictionary/lookup?q={x}            (USER)
 
 | | |
 |---|---|
-| **UC-ID** | UC-057 · **Actor** `GUEST` `USER` · **Pri** P1 · **Scope** MVP · **FT** 4.1 |
+| **UC-ID** | UC-057 · **Actor** `GUEST` `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 4.1 |
 
 ## Mô tả
 
@@ -165,7 +165,7 @@ Người dùng nhập **pinyin có dấu thanh hoặc không có dấu thanh** �
 
 Hệ thống chuẩn hóa đầu vào nhưng vẫn bảo toàn thông tin thanh điệu và ranh giới âm tiết nếu người dùng đã cung cấp. Kết quả được sắp xếp theo mức độ phổ biến, hiển thị pinyin có dấu thanh và cho phép người dùng chọn một mục để xem chi tiết.
 
-`GUEST` và `USER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống.
+`GUEST` và `LEARNER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống.
 
 
 
@@ -173,7 +173,7 @@ Hệ thống chuẩn hóa đầu vào nhưng vẫn bảo toàn thông tin thanh 
 
 1. Người dùng đang truy cập chức năng tra từ điển.
 2. Dữ liệu từ điển của hệ thống đang khả dụng.
-3. Nếu là `USER`, phiên đăng nhập còn hợp lệ để sử dụng các chức năng dành riêng cho tài khoản.
+3. Nếu là `LEARNER`, phiên đăng nhập còn hợp lệ để sử dụng các chức năng dành riêng cho tài khoản.
 
 
 ## Hậu điều kiện
@@ -260,7 +260,7 @@ GET /api/public/dictionary/search?type=pinyin&q={x}
 
 | | |
 |---|---|
-| **UC-ID** | UC-058 · **Actor** `GUEST` `USER` · **Pri** P1 · **Scope** MVP · **FT** 4.1 |
+| **UC-ID** | UC-058 · **Actor** `GUEST` `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 4.1 |
 
 ## Mô tả
 
@@ -268,7 +268,7 @@ Người dùng nhập **nghĩa tiếng Việt** để tìm các chữ Hán hoặ
 
 Hệ thống hỗ trợ tìm kiếm tiếng Việt có dấu và không dấu, ưu tiên kết quả khớp chính xác trước rồi mới đến khớp đầu cụm và khớp một phần. Kết quả trả về gồm từ tiếng Trung, pinyin, nghĩa và sắc thái/ngữ vực nếu dữ liệu có.
 
-`GUEST` và `USER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống.
+`GUEST` và `LEARNER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống.
 
 ## Tiền điều kiện
 
@@ -357,7 +357,7 @@ GET /api/public/dictionary/search?type=meaning&q={x}
 
 | | |
 |---|---|
-| **UC-ID** | UC-059 · **Actor** `GUEST` `USER` · **Pri** P2 · **Scope** MVP · **FT** 4.1 |
+| **UC-ID** | UC-059 · **Actor** `GUEST` `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 4.1 |
 
 ## Mô tả
 
@@ -365,7 +365,7 @@ Người dùng không biết cách đọc hoặc nghĩa của chữ Hán nhưng 
 
 Hệ thống trả danh sách các chữ Hán phù hợp, cho phép người dùng chọn một chữ để xem chi tiết.
 
-`GUEST` và `USER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống.
+`GUEST` và `LEARNER` đều có thể sử dụng chức năng tra cứu. `GUEST` bị giới hạn số lượt tra cứu theo chính sách của hệ thống.
 
 
 ## Tiền điều kiện
@@ -456,18 +456,18 @@ GET /api/public/dictionary/by-radical?radical={r}&strokes={n}
 
 | | |
 |---|---|
-| **UC-ID** | UC-060 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 4.1 |
+| **UC-ID** | UC-060 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 4.1 |
 
 ## Mô tả
 
-`USER` đã đăng nhập có thể dịch câu hoặc đoạn văn hai chiều **Trung ↔ Việt**.
+`LEARNER` đã đăng nhập có thể dịch câu hoặc đoạn văn hai chiều **Trung ↔ Việt**.
 
 Kết quả dịch kèm **pinyin** và **danh sách từ/cụm đã tách** đối với phần nội dung tiếng Trung để người học có thể chọn từng từ và tiếp tục tra cứu ở UC-061.
 **Tốn tiền mỗi lượt** — gọi API ngoài. Nghiệm thu: câu 20 từ dưới 3 giây.
 
 ## Tiền điều kiện
 
-1. `USER` **đã đăng nhập** — `GUEST` không dịch được (tốn tiền)
+1. `LEARNER` **đã đăng nhập** — `GUEST` không dịch được (tốn tiền)
 2. Còn lượt hoặc còn điểm — ⚠️ chờ `TODO(PAYMENT_SCOPE)`
 3. Đoạn ≤ 2.000 ký tự
 4. API dịch khả dụng
@@ -484,7 +484,7 @@ Kết quả dịch kèm **pinyin** và **danh sách từ/cụm đã tách** đ�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Nhập hoặc dán câu/đoạn văn và chọn hướng dịch Trung → Việt, Việt → Trung |
+| 1 | `LEARNER` | Nhập hoặc dán câu/đoạn văn và chọn hướng dịch Trung → Việt, Việt → Trung |
 | 2 | Client | `POST /api/translate` — `{text, from, to}` |
 | 3 | System |  Kiểm tra nội dung đầu vào và giới hạn tối đa 2.000 ký tự |
 | 4 | System | Tính hash của `text` → kiểm cache `learn:translate:{hash}` |
@@ -549,7 +549,7 @@ Nếu người dùng chọn `AUTO`, hệ thống tự nhận diện hướng Tru
 
 | # | Rule |
 | --- | --- |
-| BR-060-1 | Chỉ `USER` đã đăng nhập mới được dùng chức năng dịch. `GUEST` không được dùng vì dịch gọi API ngoài và có chi phí vận hành. |
+| BR-060-1 | Chỉ `LEARNER` đã đăng nhập mới được dùng chức năng dịch. `GUEST` không được dùng vì dịch gọi API ngoài và có chi phí vận hành. |
 | BR-060-2 | Nội dung dịch phải có giới hạn độ dài. Trong MVP, mỗi lần dịch tối đa 2.000 ký tự. |
 | BR-060-3 | Dịch là chức năng có giới hạn lượt sử dụng theo chính sách quota của hệ thống. Nếu payment chưa chốt, MVP chỉ dùng quota miễn phí hoặc giới hạn theo ngày. |
 | BR-060-4 | Nếu người dùng đã hết quota, hệ thống không gọi API dịch và không tạo lịch sử dịch mới. |
@@ -588,7 +588,7 @@ GET  /api/me/translation-history
 
 | | |
 |---|---|
-| **UC-ID** | UC-061 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 4.1 |
+| **UC-ID** | UC-061 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 4.1 |
 
 ## Mô tả
 
@@ -608,16 +608,16 @@ Không đổi dữ liệu. **Không tính lượt** — tra từ điển nội b
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm một từ trong kết quả dịch |
+| 1 | `LEARNER` | Bấm một từ trong kết quả dịch |
 | 2 | Client | Lấy từ `segments[i]` |
 | 3 | Client | `GET /api/dictionary/lookup?q={word}` (UC-056) |
 | 4 | Client | Hiện popup: chữ, pinyin, nghĩa, nút lưu (UC-062/063) |
-| 5 | `USER` | Đọc hoặc lưu, đóng popup |
+| 5 | `LEARNER` | Đọc hoặc lưu, đóng popup |
 
 ## Luồng thay thế
 
 **A1 — Từ không có trong từ điển**
-Hiện "chưa có trong từ điển", cho báo lỗi để `CONTENT_ADMIN` bổ sung.
+Hiện "chưa có trong từ điển", cho báo lỗi để `CONTENT_EDITOR` bổ sung.
 **A2 — Tách từ rỗng** (`SEGMENTATION_FAILED` ở UC-060) — không bấm được, ẩn tính năng.
 **A3 — Chọn nhiều ký tự bằng kéo chuột** — bù cho lỗi tách từ, tra cụm đã chọn.
 
@@ -647,7 +647,7 @@ Hiện "chưa có trong từ điển", cho báo lỗi để `CONTENT_ADMIN` bổ
 | BR-061-3 | Chức năng bấm từ chỉ hiển thị khi kết quả dịch có dữ liệu tách từ. Nếu không có dữ liệu tách từ, hệ thống ẩn chức năng này. |
 | BR-061-4 | Nếu từ được bấm không có trong từ điển, hệ thống hiển thị thông báo chưa có dữ liệu và có thể cho người học báo thiếu dữ liệu. |
 | BR-061-5 | Người dùng được phép chọn thủ công một cụm chữ để tra nếu hệ thống tách từ chưa đúng. |
-| BR-061-6 | Kết quả popup tra từ có thể cho `USER` lưu vào sổ tay hoặc flashcard. |
+| BR-061-6 | Kết quả popup tra từ có thể cho `LEARNER` lưu vào sổ tay hoặc flashcard. |
 
 ## API · DB
 
@@ -673,18 +673,18 @@ GET /api/dictionary/lookup?q={word}
 
 | | |
 |---|---|
-| **UC-ID** | UC-062 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 4.1 |
+| **UC-ID** | UC-062 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 4.1 |
 
 ## Mô tả
 
-`USER` có thể lưu một chữ hoặc từ từ kết quả tra cứu vào **sổ tay cá nhân**.
+`LEARNER` có thể lưu một chữ hoặc từ từ kết quả tra cứu vào **sổ tay cá nhân**.
 
 Hệ thống điền sẵn tiêu đề và nội dung từ dữ liệu tra cứu, bao gồm chữ/từ, pinyin, nghĩa và ngữ cảnh nếu có. Người dùng có thể chỉnh sửa nội dung, thêm thẻ trước khi lưu hoặc sử dụng chế độ lưu nhanh.
 
 Ghi chú được tạo luôn thuộc về tài khoản hiện tại và không cho phép client tự chỉ định `user_id`.
 ## Tiền điều kiện
 
-`USER` đã đăng nhập; đang xem kết quả tra.
+`LEARNER` đã đăng nhập; đang xem kết quả tra.
 
 ## Hậu điều kiện
 
@@ -701,9 +701,9 @@ Ghi chú được tạo luôn thuộc về tài khoản hiện tại và không 
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn **Lưu vào sổ tay** từ kết quả tra cứu |
+| 1 | `LEARNER` | Chọn **Lưu vào sổ tay** từ kết quả tra cứu |
 | 2 | Client | Mở form: tiêu đề mặc định là chữ, nội dung mặc định là nghĩa + pinyin |
-| 3 | `USER` | Chỉnh sửa tiêu đề, nội dung hoặc thêm thẻ nếu cần |
+| 3 | `LEARNER` | Chỉnh sửa tiêu đề, nội dung hoặc thêm thẻ nếu cần |
 | 4 | Client | `POST /api/notes` |
 | 5 | System |  Kiểm tra dữ liệu đầu vào và giới hạn sổ tay |
 | 6 | System | Ghi `notes` với `user_id` từ token |
@@ -741,7 +741,7 @@ Hệ thống vẫn cho phép tạo ghi chú mới. Có thể hiển thị cảnh
 
 | # | Rule |
 | --- | --- |
-| BR-062-1 | Chỉ `USER` đã đăng nhập mới được lưu từ vào sổ tay. `GUEST` không lưu được. |
+| BR-062-1 | Chỉ `LEARNER` đã đăng nhập mới được lưu từ vào sổ tay. `GUEST` không lưu được. |
 | BR-062-2 | Khi tạo ghi chú từ kết quả tra, `user_id` luôn lấy từ phiên đăng nhập hiện tại. Client không được quyết định ghi chú thuộc về ai. |
 | BR-062-3 | Ghi chú được tạo từ kết quả tra có thể dùng sẵn chữ/từ, pinyin, nghĩa và ngữ cảnh làm nội dung mặc định. Người học được sửa lại trước khi lưu. |
 | BR-062-4 | Sổ tay cho phép ghi chú trùng từ vì đây là nơi ghi chép tự do của người học. Hệ thống có thể cảnh báo nhẹ nhưng không chặn. |
@@ -774,17 +774,17 @@ POST /api/notes
 
 | | |
 |---|---|
-| **UC-ID** | UC-063 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 4.1 |
+| **UC-ID** | UC-063 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 4.1 |
 
 ## Mô tả
 
-`USER` có thể thêm một chữ hoặc từ từ kết quả tra cứu vào một bộ flashcard thuộc sở hữu của mình.
+`LEARNER` có thể thêm một chữ hoặc từ từ kết quả tra cứu vào một bộ flashcard thuộc sở hữu của mình.
 
 Mặt trước của thẻ mặc định là chữ hoặc từ tiếng Trung. Mặt sau mặc định gồm nghĩa và pinyin. Nội dung thẻ được sao chép tại thời điểm tạo để bảo đảm thay đổi dữ liệu từ điển sau này không tự động làm thay đổi flashcard đã lưu.
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Có bộ flashcard đích (hoặc tạo mới — UC-067)
 
 ## Hậu điều kiện
@@ -795,9 +795,9 @@ Mặt trước của thẻ mặc định là chữ hoặc từ tiếng Trung. M�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn **Thêm vào flashcard** từ kết quả tra cứu |
+| 1 | `LEARNER` | Chọn **Thêm vào flashcard** từ kết quả tra cứu |
 | 2 | Client | Hiển thị danh sách các bộ flashcard thuộc sở hữu của người dùng và tùy chọn tạo bộ mới |
-| 3 | `USER` | Chọn bộ |
+| 3 | `LEARNER` | Chọn bộ |
 | 4 | Client | `POST /api/flashcard-decks/{id}/cards` |
 | 5 | System | **Kiểm sở hữu bộ** |
 | 6 | System | Kiểm tra flashcard đã tồn tại trong bộ hay chưa |
@@ -838,7 +838,7 @@ Mặt trước của thẻ mặc định là chữ hoặc từ tiếng Trung. M�
 
 | # | Rule |
 | --- | --- |
-| BR-063-1 | Chỉ `USER` đã đăng nhập mới được thêm từ vào flashcard. |
+| BR-063-1 | Chỉ `LEARNER` đã đăng nhập mới được thêm từ vào flashcard. |
 | BR-063-2 | Người học chỉ được thêm thẻ vào bộ flashcard thuộc sở hữu của chính mình. Việc kiểm tra sở hữu phải thực hiện ở server. |
 | BR-063-3 | Một bộ flashcard không được có hai thẻ trùng cùng một từ hoặc cùng một nội dung mặt trước. |
 | BR-063-4 | Một từ có thể được thêm vào nhiều bộ flashcard khác nhau của cùng người học. |
@@ -872,11 +872,11 @@ GET  /api/flashcard-decks              (bộ của mình)
 
 | | |
 |---|---|
-| **UC-ID** | UC-064 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 4.2 |
+| **UC-ID** | UC-064 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 4.2 |
 
 ## Mô tả
 
-`USER` có thể tạo, sửa và xóa ghi chú cá nhân trong sổ tay.
+`LEARNER` có thể tạo, sửa và xóa ghi chú cá nhân trong sổ tay.
 
 Sổ tay **thuần ghi chú** — Sổ tay là nơi ghi chú tự do, cho phép người học lưu mẹo nhớ chữ, câu mẫu, lỗi thường gặp hoặc tóm tắt bài học. Ghi chú được tổ chức bằng tiêu đề và thẻ.
 
@@ -885,7 +885,7 @@ Sổ tay **thuần ghi chú** — Sổ tay là nơi ghi chú tự do, cho phép 
 
 ## Tiền điều kiện
 
-`USER` đã đăng nhập.
+`LEARNER` đã đăng nhập.
 
 ## Hậu điều kiện
 
@@ -899,8 +899,8 @@ Sổ tay **thuần ghi chú** — Sổ tay là nơi ghi chú tự do, cho phép 
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Ghi chú mới" |
-| 2 | `USER` | Nhập tiêu đề, nội dung, thẻ |
+| 1 | `LEARNER` | Bấm "Ghi chú mới" |
+| 2 | `LEARNER` | Nhập tiêu đề, nội dung, thẻ |
 | 3 | Client | `POST /api/notes` |
 | 4 | System | Validate + kiểm giới hạn |
 | 5 | System | Ghi với `user_id` từ token |
@@ -909,7 +909,7 @@ Sổ tay **thuần ghi chú** — Sổ tay là nơi ghi chú tự do, cho phép 
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở một ghi chú của mình, Chỉnh sửa tiêu đề, nội dung hoặc thẻ |
+| 1 | `LEARNER` | Mở một ghi chú của mình, Chỉnh sửa tiêu đề, nội dung hoặc thẻ |
 | 2 | Client | `PUT /api/notes/{id}` |
 | 3 | System | Kiểm tra ghi chú tồn tại, chưa bị xóa và thuộc sở hữu của người dùng hiện tại |
 | 4 | System | Cập nhật, ghi `updated_at` |
@@ -918,7 +918,7 @@ Sổ tay **thuần ghi chú** — Sổ tay là nơi ghi chú tự do, cho phép 
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm xoá, xác nhận |
+| 1 | `LEARNER` | Bấm xoá, xác nhận |
 | 2 | Client | `DELETE /api/notes/{id}` |
 | 3 | System | Kiểm tra ghi chú tồn tại, chưa bị xóa và thuộc sở hữu của người dùng hiện tại |
 | 4 | System | Xoá |
@@ -1002,7 +1002,7 @@ DELETE /api/notes/{id}
 
 | | |
 |---|---|
-| **UC-ID** | UC-065 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 4.2 |
+| **UC-ID** | UC-065 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 4.2 |
 
 ## Mô tả
 
@@ -1010,8 +1010,8 @@ Tìm theo nội dung ghi chú, tiêu đề, hoặc thẻ. Nghiệm thu 4.2: "vi�
 
 ## Tiền điều kiện
 
-`USER` đã đăng nhập, có ≥ 1 ghi chú.
-`USER` có thể tìm kiếm ghi chú cá nhân theo **tiêu đề hoặc nội dung**, đồng thời có thể lọc ghi chú theo **thẻ**.
+`LEARNER` đã đăng nhập, có ≥ 1 ghi chú.
+`LEARNER` có thể tìm kiếm ghi chú cá nhân theo **tiêu đề hoặc nội dung**, đồng thời có thể lọc ghi chú theo **thẻ**.
 
 ## Hậu điều kiện
 
@@ -1021,7 +1021,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Nhập từ khóa tìm kiếm |
+| 1 | `LEARNER` | Nhập từ khóa tìm kiếm |
 | 2 | Client | `GET /api/notes/search?q={x}` |
 | 3 | System | **Chỉ tìm trong ghi chú của người đang đăng nhập** |
 | 4 | System | Tìm trong `title` và `content` |
@@ -1094,7 +1094,7 @@ GET /api/notes?tag={t}
 
 | | |
 |---|---|
-| **UC-ID** | UC-066 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 4.3 |
+| **UC-ID** | UC-066 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 4.3 |
 
 ## Mô tả
 
@@ -1106,7 +1106,7 @@ Thẻ đến hạn hiện lên, mặt trước chữ, lật ra nghĩa + pinyin, 
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Có `flashcards` với `next_review_at ≤ now()` trong bộ của mình
 
 ## Hậu điều kiện
@@ -1120,12 +1120,12 @@ Thẻ đến hạn hiện lên, mặt trước chữ, lật ra nghĩa + pinyin, 
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Vào "Ôn flashcard" |
+| 1 | `LEARNER` | Vào "Ôn flashcard" |
 | 2 | System | `GET /api/flashcards/due` — thẻ đến hạn **trong bộ của mình** |
 | 3 | Client | Hiển thị mặt trước của flashcard |
-| 4 | `USER` | Tự nhớ nội dung và chọn **Lật thẻ** |
+| 4 | `LEARNER` | Tự nhớ nội dung và chọn **Lật thẻ** |
 | 5 | Client | Hiện mặt sau: nghĩa + pinyin + audio |
-| 6 | `USER` | Chọn "Nhớ" / "Khó" / "Quên" |
+| 6 | `LEARNER` | Chọn "Nhớ" / "Khó" / "Quên" |
 | 7 | Client | `POST /api/flashcards/{id}/review` — `{rating}` |
 | 8 | System | **Kiểm sở hữu thẻ** |
 | 9 | System | Tính `next_review_at` bằng FSRS (UC-044) |
@@ -1204,7 +1204,7 @@ POST /api/flashcards/{id}/review
 
 | | |
 |---|---|
-| **UC-ID** | UC-067 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 4.3 |
+| **UC-ID** | UC-067 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 4.3 |
 
 ## Mô tả
 
@@ -1220,7 +1220,7 @@ Chức năng sao chép bộ flashcard công khai của người dùng khác thu�
 
 ## Tiền điều kiện
 
-`USER` đã đăng nhập; chưa vượt 50 bộ.
+`LEARNER` đã đăng nhập; chưa vượt 50 bộ.
 
 ## Hậu điều kiện
 
@@ -1230,8 +1230,8 @@ Chức năng sao chép bộ flashcard công khai của người dùng khác thu�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Tạo bộ mới" |
-| 2 | `USER` | Nhập tên, mô tả; chọn nguồn (trống / HSK dựng sẵn / sao chép) |
+| 1 | `LEARNER` | Bấm "Tạo bộ mới" |
+| 2 | `LEARNER` | Nhập tên, mô tả; chọn nguồn (trống / HSK dựng sẵn / sao chép) |
 | 3 | Client | `POST /api/flashcard-decks` |
 | 4 | System | Kiểm tra dữ liệu đầu vào và giới hạn số bộ flashcard của người dùng |
 | 5 | System | Tạo bộ flashcard mới thuộc tài khoản hiện tại và mặc định ở trạng thái riêng tư |
@@ -1309,11 +1309,11 @@ POST /api/flashcard-decks/{id}/copy      (V2)
 
 | | |
 |---|---|
-| **UC-ID** | UC-068 · **Actor** `USER` · **Pri** P3 · **Scope** **V2** · **FT** 4.3 |
+| **UC-ID** | UC-068 · **Actor** `LEARNER` · **Pri** P3 · **Scope** **V2** · **FT** 4.3 |
 
 ## Mô tả
 
-`USER` là chủ sở hữu của một bộ flashcard có thể chia sẻ bộ đó lên cộng đồng hoặc thu hồi trạng thái chia sẻ.
+`LEARNER` là chủ sở hữu của một bộ flashcard có thể chia sẻ bộ đó lên cộng đồng hoặc thu hồi trạng thái chia sẻ.
 
 Khi được chia sẻ, bộ flashcard có thể xuất hiện trong danh sách công khai để người khác xem và sử dụng các chức năng cộng đồng liên quan.
 
@@ -1323,7 +1323,7 @@ Khi được chia sẻ, bộ flashcard có thể xuất hiện trong danh sách 
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập, là **chủ** bộ
+1. `LEARNER` đã đăng nhập, là **chủ** bộ
 2. Bộ có ≥ 5 thẻ (bộ 1 thẻ chia sẻ vô nghĩa)
 3. Bộ không chứa nội dung vi phạm
 
@@ -1338,7 +1338,7 @@ Khi được chia sẻ, bộ flashcard có thể xuất hiện trong danh sách 
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở một bộ flashcard của mình và chọn **Chia sẻ lên cộng đồng** |
+| 1 | `LEARNER` | Mở một bộ flashcard của mình và chọn **Chia sẻ lên cộng đồng** |
 | 2 | System |  Kiểm tra bộ flashcard tồn tại và thuộc sở hữu của người dùng hiện tại |
 | 3 | System |  Kiểm tra điều kiện chia sẻ như số lượng thẻ tối thiểu và các validation hiện có |
 | 4 | System | Thực hiện các kiểm tra tự động có sẵn theo chính sách hệ thống (kiểm duyệt — xem exception) |
@@ -1373,17 +1373,17 @@ Chủ sở hữu vẫn được phép sửa bộ công khai. Người sao chép 
 | `CROSS_MODULE_READ` | — | `community` đọc thẳng `learning.flashcard_decks` | 🔴 Xem ghi chú |
 
 > 🔴 **`NO_MODERATION_FOR_DECKS` — khoảng trống rõ ràng.** Tính năng 5.1 (blog) có luồng kiểm
-> duyệt đầy đủ: `PENDING_REVIEW` → `MANAGER` duyệt (UC-076). Bộ flashcard chia sẻ **không có
+> duyệt đầy đủ: `PENDING_REVIEW` → `MODERATOR` duyệt (UC-076). Bộ flashcard chia sẻ **không có
 > gì tương đương** — `is_public = true` là công khai ngay.
 > **Cần chốt một trong hai:**
-> — Bộ thẻ cũng vào hàng đợi `MANAGER` duyệt (nhất quán, nhưng thêm việc)
+> — Bộ thẻ cũng vào hàng đợi `MODERATOR` duyệt (nhất quán, nhưng thêm việc)
 > — Công khai ngay, dựa vào báo cáo vi phạm sau (đơn giản, rủi ro có nội dung xấu)
 > Vì UC này là P3/V2 và dễ cắt, phương án thứ hai hợp lý hơn — nhưng phải có nút báo cáo.
 
 > 🔴 **`COPYRIGHT_CONTENT` là rủi ro pháp lý cụ thể.** Constitution cấm commit dữ liệu đề thi
 > HSK của giảng viên (bản quyền). Người học có thể tạo bộ flashcard **chép từ đề thi** rồi chia
 > sẻ công khai → dữ liệu bản quyền của thầy lên mạng qua chính hệ thống của nhóm.
-> Không thể phát hiện tự động. Cần: điều khoản rõ khi chia sẻ + nút báo cáo + `MANAGER` xoá được.
+> Không thể phát hiện tự động. Cần: điều khoản rõ khi chia sẻ + nút báo cáo + `MODERATOR` xoá được.
 
 > 🔴 **`CROSS_MODULE_READ`:** `flashcard_decks` ở schema **`learning`**, nhưng danh sách bộ công
 > khai là tính năng **cộng đồng**. Module `community` **không được** đọc thẳng bảng của
@@ -1434,7 +1434,7 @@ POST  /api/flashcard-decks/{id}/copy
 | | |
 | --- | --- |
 | **ID** | UC-132 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P1 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 4.1 |
@@ -1539,7 +1539,7 @@ GET /api/learning/dictionary
 | | |
 | --- | --- |
 | **ID** | UC-133 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P1 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 4.2 |
@@ -1562,7 +1562,7 @@ Người học tự xây kho nội dung riêng gồm ghi chú và bộ thẻ ghi
 
 ## Tiền điều kiện
 
-- `USER` đã đăng nhập
+- `LEARNER` đã đăng nhập
 - Nội dung thao tác thuộc về chính người học đó
 
 ## Hậu điều kiện
@@ -1573,12 +1573,12 @@ Người học tự xây kho nội dung riêng gồm ghi chú và bộ thẻ ghi
 
 ## Luồng chính
 
-1. `USER` mở phần nội dung cá nhân của mình
+1. `LEARNER` mở phần nội dung cá nhân của mình
 2. Chọn làm việc với ghi chú hoặc với bộ thẻ
 3. Tạo nội dung mới, hoặc thêm từ đang xem ở nơi khác vào đây
 4. Hệ thống kiểm quyền sở hữu và lưu nội dung
 5. Với thẻ mới, hệ thống đưa vào lịch ôn
-6. `USER` xem lại, sửa, tìm kiếm hoặc ôn tập nội dung của mình
+6. `LEARNER` xem lại, sửa, tìm kiếm hoặc ôn tập nội dung của mình
 
 ## Luồng thay thế
 

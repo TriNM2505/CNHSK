@@ -15,15 +15,15 @@
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
 | --- | --- | --- | --- | --- | --- |
-| UC-033 | Xem danh sách đề thi theo cấp HSK | `USER` | P0 | MVP | 2.1 |
-| UC-034 | Làm đề thi thử | `USER` | P0 | MVP | 2.1 |
-| UC-035 | Nộp bài và nhận điểm | `USER` | P0 | MVP | 2.1 |
-| UC-036 | Tạm lưu bài thi đang làm | `USER` | P2 | MVP | 2.1 |
-| UC-037 | Luyện riêng một dạng câu hỏi | `USER` | P1 | MVP | 2.2 |
-| UC-038 | Xem kết quả chi tiết sau khi thi | `USER` | P1 | MVP | 2.3 |
-| UC-039 | Xem lời giải từng câu sai | `USER` | P1 | MVP | 2.3 |
-| UC-040 | Xem 3–5 điểm yếu nhất sau bài thi | `USER` | P1 | MVP | 2.3 |
-| UC-041 | Bấm "luyện ngay" từ câu sai | `USER` | P1 | MVP | 2.3 |
+| UC-033 | Xem danh sách đề thi theo cấp HSK | `LEARNER` | P0 | MVP | 2.1 |
+| UC-034 | Làm đề thi thử | `LEARNER` | P0 | MVP | 2.1 |
+| UC-035 | Nộp bài và nhận điểm | `LEARNER` | P0 | MVP | 2.1 |
+| UC-036 | Tạm lưu bài thi đang làm | `LEARNER` | P2 | MVP | 2.1 |
+| UC-037 | Luyện riêng một dạng câu hỏi | `LEARNER` | P1 | MVP | 2.2 |
+| UC-038 | Xem kết quả chi tiết sau khi thi | `LEARNER` | P1 | MVP | 2.3 |
+| UC-039 | Xem lời giải từng câu sai | `LEARNER` | P1 | MVP | 2.3 |
+| UC-040 | Xem 3–5 điểm yếu nhất sau bài thi | `LEARNER` | P1 | MVP | 2.3 |
+| UC-041 | Bấm "luyện ngay" từ câu sai | `LEARNER` | P1 | MVP | 2.3 |
 
 > **Ánh xạ DB khi sinh code:** `attempt_answers` trong các luồng là
 > `learning.attempt_items`; `user_knowledge_state` là `learning.user_progress`
@@ -36,7 +36,7 @@
 
 | | |
 | --- | --- |
-| **UC-ID** | UC-033 · **Actor** `USER` · **Pri** P0 · **Scope** MVP · **FT** 2.1 |
+| **UC-ID** | UC-033 · **Actor** `LEARNER` · **Pri** P0 · **Scope** MVP · **FT** 2.1 |
 | **Client** | Web · Mobile · Shared |
 
 ## Mô tả
@@ -45,7 +45,7 @@ Người học chọn cấp HSK để xem các đề thi hiện có, số câu, 
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. `exams` có đề đã ở trạng thái `PUBLISHED`
 3. Mỗi đề có ≥ 1 dòng `exam_sections` và các `questions` liên kết
 
@@ -57,7 +57,7 @@ Chỉ đọc — không đổi dữ liệu.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở SCR-020 — Exam List (danh sách đề luyện thi) |
+| 1 | `LEARNER` | Mở SCR-020 — Exam List (danh sách đề luyện thi) |
 | 2 | System | `GET /api/exams?hsk_level={n}` |
 | 3 | System | Lọc `status = PUBLISHED`, đếm số câu mỗi đề |
 | 4 | System | `LEFT JOIN attempts` của người đang đăng nhập để lấy số lần làm + điểm cao nhất |
@@ -82,7 +82,7 @@ Hiện "HSK 5–6 đang được cập nhật". Hiện tại chỉ có HSK 1–4
 | --- | --- | --- | --- |
 | `NO_EXAMS` | 200 (rỗng) | Cấp đó chưa có đề | Không phải lỗi — hiện "đang cập nhật" (A2) |
 | `INVALID_HSK_LEVEL` | 400 | `hsk_level` ngoài 1–6 | Chặn |
-| `EXAM_HAS_NO_QUESTIONS` | — | Đề `PUBLISHED` nhưng 0 câu hỏi | 🔴 **Ẩn khỏi danh sách**, báo `CONTENT_ADMIN`. Vào rồi mới thấy trống là trải nghiệm tệ nhất |
+| `EXAM_HAS_NO_QUESTIONS` | — | Đề `PUBLISHED` nhưng 0 câu hỏi | 🔴 **Ẩn khỏi danh sách**, báo `CONTENT_EDITOR`. Vào rồi mới thấy trống là trải nghiệm tệ nhất |
 | `EXAM_QUESTION_COUNT_MISMATCH` | — | `exams.total_questions` lệch so với đếm thật | Dùng số đếm thật, ghi log lệch |
 | `UNAUTHORIZED` | 401 | Chưa đăng nhập | `GUEST` **không** xem được danh sách đề |
 | `OTHER_USER_ATTEMPTS_LEAKED` | — | Bước 4 join sai, lộ `attempts` người khác | 🔴 Xem ghi chú |
@@ -97,11 +97,11 @@ Hiện "HSK 5–6 đang được cập nhật". Hiện tại chỉ có HSK 1–4
 | # | Rule |
 | --- | --- |
 | BR-033-1 | Chỉ các đề ở trạng thái `PUBLISHED` mới được hiển thị cho người học. Đề `DRAFT` hoặc `ARCHIVED` không được xuất hiện trong danh sách luyện thi. |
-| BR-033-2 | Đề đã xuất bản nhưng không có câu hỏi hợp lệ thì không được hiển thị cho người học. Hệ thống phải ghi nhận lỗi dữ liệu để người quản trị nội dung xử lý. |
+| BR-033-2 | Đề đã xuất bản nhưng không có câu hỏi hợp lệ thì không được hiển thị cho người học. Hệ thống phải ghi nhận lỗi dữ liệu để biên tập viên nội dung xử lý. |
 | BR-033-3 | Thông tin lịch sử làm bài như số lần làm và điểm cao nhất chỉ được tính từ bài làm của chính người học đang đăng nhập. Không được lộ điểm hoặc lịch sử làm bài của người khác. |
 | BR-033-4 | Người học phải đăng nhập mới xem được danh sách đề thi và lịch sử làm bài cá nhân. |
 | BR-033-5 | Nếu cấp HSK chưa có đề, hệ thống trả danh sách rỗng và hiển thị thông báo nội dung đang được cập nhật, không coi đây là lỗi hệ thống. |
-| BR-033-6 | Trong MVP, hệ thống ưu tiên các đề HSK đã có dữ liệu thật. HSK 5 và HSK 6 chỉ hiển thị khi đã có đề do thầy hoặc quản trị nội dung cung cấp và xuất bản. |
+| BR-033-6 | Trong MVP, hệ thống ưu tiên các đề HSK đã có dữ liệu thật. HSK 5 và HSK 6 chỉ hiển thị khi đã có đề do giáo viên hoặc biên tập viên nội dung cung cấp và xuất bản. |
 | BR-033-7 | Số câu và số phần của đề phải được tính từ dữ liệu thật đang liên kết với đề, không chỉ tin vào số tổng đã lưu sẵn nếu có dấu hiệu lệch. |
 
 ## API · DB
@@ -130,7 +130,7 @@ GET /api/exams?hsk_level={n}
 
 | | |
 |---|---|
-| **UC-ID** | UC-034 · **Actor** `USER` · **Pri** P0 · **Scope** MVP · **FT** 2.1 |
+| **UC-ID** | UC-034 · **Actor** `LEARNER` · **Pri** P0 · **Scope** MVP · **FT** 2.1 |
 
 ## Mô tả
 
@@ -138,7 +138,7 @@ Người học chọn đề và bắt đầu làm lần lượt các phần nghe
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Đề tồn tại, `status = PUBLISHED`, có câu hỏi
 3. Không có `attempts` nào `IN_PROGRESS` cho đề này (hoặc chọn tiếp tục bài cũ — UC-036)
 
@@ -153,14 +153,14 @@ Người học chọn đề và bắt đầu làm lần lượt các phần nghe
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Bắt đầu làm đề" |
+| 1 | `LEARNER` | Bấm "Bắt đầu làm đề" |
 | 2 | System | Kiểm đề khả dụng, kiểm chưa có bài dở |
 | 3 | System | `POST /api/exams/{id}/attempts` — tạo `attempts`, ghi `started_at` |
 | 4 | System | Trả `attempt_id` + danh sách phần + câu hỏi, **KHÔNG kèm `is_correct` và `explanation`** |
 | 5 | Client | Hiện phần 1 (thường là Nghe), phát audio |
-| 6 | `USER` | Trả lời từng câu, chuyển phần |
+| 6 | `LEARNER` | Trả lời từng câu, chuyển phần |
 | 7 | Client | Lưu tạm định kỳ (UC-036) |
-| 8 | `USER` | Hoàn thành hết phần, bấm "Nộp bài" → UC-035 |
+| 8 | `LEARNER` | Hoàn thành hết phần, bấm "Nộp bài" → UC-035 |
 
 ## Luồng thay thế
 
@@ -180,7 +180,7 @@ Không mất — UC-036 đã lưu tạm. Lần sau vào thấy nút "Tiếp tụ
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
 | `EXAM_NOT_FOUND` | 404 | ID sai | Về danh sách |
-| `EXAM_NOT_PUBLISHED` | 403 | Đề `DRAFT` hoặc `ARCHIVED` | 🔴 **Chặn** — đề nháp của `CONTENT_ADMIN` lộ ra là mất giá trị đề |
+| `EXAM_NOT_PUBLISHED` | 403 | Đề `DRAFT` hoặc `ARCHIVED` | 🔴 **Chặn** — đề nháp của `CONTENT_EDITOR` lộ ra là mất giá trị đề |
 | `EXAM_HAS_NO_QUESTIONS` | 422 | Đề trống | Không cho bắt đầu |
 | `ATTEMPT_IN_PROGRESS_EXISTS` | 409 | Đã có bài dở | Trả `attempt_id` cũ, cho chọn (A1) |
 | `TOO_MANY_ATTEMPTS` | 429 | > 20 lượt/ngày | Chặn farm mastery bằng cách làm đề liên tục |
@@ -238,7 +238,7 @@ GET  /api/attempts/{id}
 
 | | |
 |---|---|
-| **UC-ID** | UC-035 · **Actor** `USER` · **Pri** P0 · **Scope** MVP · **FT** 2.1 |
+| **UC-ID** | UC-035 · **Actor** `LEARNER` · **Pri** P0 · **Scope** MVP · **FT** 2.1 |
 
 ## Mô tả
 
@@ -246,7 +246,7 @@ Khi người học nộp bài, câu trả lời được chấm trên server. H�
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. `attempts` tồn tại, `status = IN_PROGRESS`, **thuộc người đang đăng nhập**
 3. `attempts` chưa quá hạn (24h)
 
@@ -261,7 +261,7 @@ Khi người học nộp bài, câu trả lời được chấm trên server. H�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Nộp bài" |
+| 1 | `LEARNER` | Bấm "Nộp bài" |
 | 2 | Client | `POST /api/attempts/{id}/submit` — gửi mảng `{question_id, answer}` |
 | 3 | System | Kiểm sở hữu: `attempts.user_id = currentUser` |
 | 4 | System | Kiểm `status = IN_PROGRESS` |
@@ -288,7 +288,7 @@ Không chặn. Câu thiếu ghi `selected_option_id = NULL`, `is_correct = false
 **A3 — Nộp khi hết hạn 24h**
 `attempts` → `ABANDONED`. **Không chấm, không đổi mastery.** Hiện "bài đã quá hạn".
 
-**A4 — Câu hỏi bị `CONTENT_ADMIN` sửa giữa lúc làm bài**
+**A4 — Câu hỏi bị `CONTENT_EDITOR` sửa giữa lúc làm bài**
 Vẫn chấm theo snapshot của bài đã phát, không đổi đáp án của người học giữa chừng.
 
 ## Bảng exception
@@ -317,7 +317,7 @@ Vẫn chấm theo snapshot của bài đã phát, không đổi đáp án của 
 > ghi (không kiểm trước rồi ghi sau — hai request song song sẽ lọt).
 
 > 🔴 **`QUESTION_CHANGED_MID_ATTEMPT` là tình huống thật với 6 người làm song song.**
-> `CONTENT_ADMIN` sửa đáp án đúng của câu X (UC-109) lúc 10:00. Người học bắt đầu bài lúc 9:50,
+> `CONTENT_EDITOR` sửa đáp án đúng của câu X (UC-109) lúc 10:00. Người học bắt đầu bài lúc 9:50,
 > nộp lúc 10:05. Chấm theo đáp án nào?
 > **Quy tắc:** chấm theo đáp án trong `attempts.served_items` tại thời điểm `served_at`.
 > Việc sửa câu hỏi sau đó chỉ áp dụng cho bài bắt đầu mới, không đổi bài đã phát.
@@ -335,7 +335,7 @@ Vẫn chấm theo snapshot của bài đã phát, không đổi đáp án của 
 | BR-035-3 | Người học chỉ được nộp bài làm thuộc sở hữu của chính mình. Mọi thao tác nộp bài phải kiểm tra `attempt.user_id` với người dùng đang đăng nhập. |
 | BR-035-4 | Khi nộp bài thành công, việc ghi điểm, ghi câu trả lời, cập nhật mastery và đổi trạng thái bài làm sang `SUBMITTED` phải được thực hiện nhất quán trong cùng một transaction. |
 | BR-035-5 | Câu không trả lời được tính là sai, nhưng vẫn phải được ghi nhận để phân tích lỗi sai và thống kê sau bài làm. |
-| BR-035-6 | Câu hỏi bị lỗi dữ liệu trong lúc chấm, ví dụ bị xóa hoặc có đáp án đúng không hợp lệ, không được tính sai cho người học. Câu đó phải bị loại khỏi mẫu số tính điểm và được ghi log cho quản trị nội dung. |
+| BR-035-6 | Câu hỏi bị lỗi dữ liệu trong lúc chấm, ví dụ bị xóa hoặc có đáp án đúng không hợp lệ, không được tính sai cho người học. Câu đó phải bị loại khỏi mẫu số tính điểm và được ghi log cho biên tập viên nội dung. |
 | BR-035-7 | Bài làm quá hạn xử lý cho phép thì không được chấm điểm và không được cập nhật mastery. Trạng thái bài làm chuyển sang `ABANDONED` nếu hệ thống có hỗ trợ trạng thái này. |
 | BR-035-8 | Kết quả từ bài thi thử có trọng số mastery cao hơn các bài luyện lẻ, vì bài thi được chấm hoàn toàn ở server và bao phủ nhiều điểm kiến thức hơn. |
 | BR-035-9 | Dữ liệu `attempt_answers` sau khi đã ghi không được xóa tùy tiện, vì đây là nguồn cho kết quả chi tiết, phân tích lỗi sai và xác định điểm yếu. |
@@ -378,7 +378,7 @@ POST /api/attempts/{id}/submit
 
 | | |
 |---|---|
-| **UC-ID** | UC-036 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 2.1 |
+| **UC-ID** | UC-036 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 2.1 |
 
 > ⚠️ **UC này không có trong feature tree 2.1.** Catalog đã đánh dấu "cần chốt có làm không".
 > Đặc tả dưới đây là **đề xuất**, chưa phải quyết định.
@@ -389,7 +389,7 @@ Nếu chức năng lưu nháp được triển khai, người học có thể l�
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. `attempts` `IN_PROGRESS` thuộc người đang đăng nhập
 
 ## Hậu điều kiện
@@ -472,7 +472,7 @@ GET   /api/attempts/{id}          (trả kèm bản nháp)
 
 | | |
 |---|---|
-| **UC-ID** | UC-037 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 2.2 |
+| **UC-ID** | UC-037 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 2.2 |
 
 ## Mô tả
 
@@ -480,7 +480,7 @@ Người học chọn một dạng câu hỏi HSK để luyện riêng, chẳng 
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Kho `questions` có câu đúng dạng + đúng cấp HSK, `status = APPROVED`
 
 ## Hậu điều kiện
@@ -493,12 +493,12 @@ Người học chọn một dạng câu hỏi HSK để luyện riêng, chẳng 
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn dạng bài + cấp HSK + số câu |
+| 1 | `LEARNER` | Chọn dạng bài + cấp HSK + số câu |
 | 2 | System | `GET /api/practice/questions?type={t}&hsk_level={n}&count=10` |
 | 3 | System | Lọc `status = APPROVED`, ưu tiên điểm kiến thức mastery thấp |
 | 4 | System | Tạo `attempts` loại `PRACTICE`, ghi `served_at` |
 | 5 | System | Trả câu hỏi **không kèm đáp án** |
-| 6 | `USER` | Trả lời từng câu |
+| 6 | `LEARNER` | Trả lời từng câu |
 | 7 | Client | `POST /api/practice/answer` sau **mỗi** câu (khác UC-035 nộp cả bài) |
 | 8 | System | Chấm ở server, ghi `attempt_answers`, cập nhật mastery |
 | 9 | System | Trả `{correct, correct_answer, explanation}` — hiện ngay |
@@ -531,7 +531,7 @@ Tham số thêm `knowledge_point_id`, lọc câu theo đúng điểm kiến th�
 | `ANSWER_FORMAT_MISMATCH` | 400 | Gửi `option_id` cho `FILL_BLANK` | Chặn — mỗi dạng có format đáp án riêng |
 | `ANSWER_ALREADY_SUBMITTED` | 409 | Trả lời 2 lần cùng câu trong một lượt | Chặn farm |
 | `OPTION_NOT_IN_QUESTION` | 400 | Đáp án lạ | Gian lận |
-| `IMAGE_NOT_AVAILABLE` | 422 | Dạng `IMAGE_MATCH` thiếu ảnh | Loại câu khỏi bộ, báo `CONTENT_ADMIN` |
+| `IMAGE_NOT_AVAILABLE` | 422 | Dạng `IMAGE_MATCH` thiếu ảnh | Loại câu khỏi bộ, báo `CONTENT_EDITOR` |
 | `MALFORMED_QUESTION` | 500 | Sai số đáp án đúng | Ẩn câu, ghi `question_reports` |
 | `RATE_LIMIT_EXCEEDED` | 429 | > 600 câu/giờ | Chặn bot |
 
@@ -588,7 +588,7 @@ POST /api/practice/answer
 
 | | |
 |---|---|
-| **UC-ID** | UC-038 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 2.3 |
+| **UC-ID** | UC-038 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 2.3 |
 
 ## Mô tả
 
@@ -596,7 +596,7 @@ Sau khi thi, người học xem điểm tổng, kết quả từng kỹ năng, s
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. `attempts` `status = SUBMITTED`, **thuộc người đang đăng nhập**
 3. `attempt_answers` đã ghi đủ
 
@@ -608,7 +608,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Nộp bài (UC-035) hoặc vào từ lịch sử |
+| 1 | `LEARNER` | Nộp bài (UC-035) hoặc vào từ lịch sử |
 | 2 | System | `GET /api/attempts/{id}/result` |
 | 3 | System | Kiểm sở hữu |
 | 4 | System | Tổng hợp từ `attempt_answers`: đúng/sai, theo phần, theo kỹ năng |
@@ -657,7 +657,7 @@ Cùng endpoint. Dữ liệu `attempt_answers` **không bao giờ xoá** nên lu�
 | BR-038-3 | Kết quả chi tiết gồm điểm tổng, số câu đúng/sai, điểm theo phần hoặc kỹ năng nếu dữ liệu đề có nhãn tương ứng. |
 | BR-038-4 | Phần so sánh với lần làm trước chỉ được so với lần làm trước của chính người học đó trên cùng đề. |
 | BR-038-5 | Nếu đây là lần đầu người học làm đề, hệ thống không hiển thị phần so sánh điểm. |
-| BR-038-6 | Nếu một số câu thiếu nhãn kỹ năng hoặc nhãn kiến thức, hệ thống vẫn hiển thị điểm tổng và ghi nhận thiếu dữ liệu để quản trị nội dung bổ sung. |
+| BR-038-6 | Nếu một số câu thiếu nhãn kỹ năng hoặc nhãn kiến thức, hệ thống vẫn hiển thị điểm tổng và ghi nhận thiếu dữ liệu để biên tập viên nội dung bổ sung. |
 | BR-038-7 | Dữ liệu câu trả lời sau khi nộp phải được giữ lại để người học có thể xem lại kết quả bài cũ. |
 
 ## API · DB
@@ -687,7 +687,7 @@ GET /api/attempts?exam_id={e}      (lịch sử làm đề)
 
 | | |
 |---|---|
-| **UC-ID** | UC-039 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 2.3 |
+| **UC-ID** | UC-039 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 2.3 |
 
 ## Mô tả
 
@@ -707,7 +707,7 @@ Chỉ đọc. Nhưng là **điểm đầu vào** của UC-041.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Xem câu sai" từ UC-038 |
+| 1 | `LEARNER` | Bấm "Xem câu sai" từ UC-038 |
 | 2 | System | `GET /api/attempts/{id}/wrong-answers` |
 | 3 | System | Kiểm sở hữu + `status = SUBMITTED` |
 | 4 | System | Lấy `attempt_answers WHERE is_correct = false` |
@@ -736,7 +736,7 @@ Hiện đáp án đúng, phần lời giải ghi "chưa có lời giải". Cho n
 | `ATTEMPT_NOT_OWNED` | 403 | Bài người khác | IDOR |
 | `ATTEMPT_NOT_SUBMITTED` | 422 | Chưa nộp | 🔴 **Đây là endpoint lộ đáp án trực tiếp nhất** — chặn tuyệt đối |
 | `NO_WRONG_ANSWERS` | 200 (rỗng) | Đúng hết | Không phải lỗi (A1) |
-| `EXPLANATION_MISSING` | 200 | `explanation` rỗng | Hiện đáp án đúng, ghi log để `CONTENT_ADMIN` bổ sung (A2) |
+| `EXPLANATION_MISSING` | 200 | `explanation` rỗng | Hiện đáp án đúng, ghi log để `CONTENT_EDITOR` bổ sung (A2) |
 | `NO_KNOWLEDGE_POINT` | 200 | Câu chưa gắn nhãn | **Ẩn nút "luyện ngay"** — không biết luyện gì. Ghi log |
 | `QUESTION_DELETED` | 200 | Câu bị xoá sau khi làm | Hiện "câu hỏi đã bị xoá", vẫn hiện đáp án mình đã chọn từ `attempt_answers` |
 | `OPTION_DELETED` | 500 | `question_options` bị xoá | Không biết đáp án đúng là gì. Chỉ hiện đề + lời giải |
@@ -748,7 +748,7 @@ Hiện đáp án đúng, phần lời giải ghi "chưa có lời giải". Cho n
 
 > ⚠️ **`QUESTION_DELETED` — vì sao `attempt_answers` không được xoá.** DB v5 ghi
 > `attempt_answers` là "5 bảng không được đụng, gốc của mọi phân tích lỗi sai". Nếu
-> `CONTENT_ADMIN` xoá câu hỏi và cascade xoá `attempt_answers` thì lịch sử làm bài của người
+> `CONTENT_EDITOR` xoá câu hỏi và cascade xoá `attempt_answers` thì lịch sử làm bài của người
 > học biến mất. **Khoá ngoại tới `questions` phải là `ON DELETE RESTRICT` hoặc dùng soft delete.**
 
 ## Business rule
@@ -791,7 +791,7 @@ GET /api/attempts/{id}/wrong-answers?include_correct=true
 
 | | |
 |---|---|
-| **UC-ID** | UC-040 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 2.3 |
+| **UC-ID** | UC-040 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 2.3 |
 
 ## Mô tả
 
@@ -802,7 +802,7 @@ Sau bài thi, người học xem những điểm kiến thức yếu nhất tron
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Bài thi vừa nộp đã cập nhật `user_knowledge_state` (UC-035 bước 10)
 3. Câu hỏi trong đề **đã gắn nhãn** `question_knowledge_points`
 
@@ -814,7 +814,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Điểm yếu của tôi" từ màn kết quả |
+| 1 | `LEARNER` | Bấm "Điểm yếu của tôi" từ màn kết quả |
 | 2 | System | `GET /api/attempts/{id}/weak-points` |
 | 3 | System | Kiểm sở hữu + `SUBMITTED` |
 | 4 | System | Lấy tập điểm kiến thức **xuất hiện trong đề này** |
@@ -904,7 +904,7 @@ GET /api/me/weak-points              (toàn cục — A3)
 
 | | |
 |---|---|
-| **UC-ID** | UC-041 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 2.3 |
+| **UC-ID** | UC-041 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 2.3 |
 
 ## Mô tả
 
@@ -912,7 +912,7 @@ Người học bấm “Luyện ngay” ở một câu sai hoặc điểm yếu 
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Câu sai / điểm yếu có `knowledge_point_id`
 3. Kho có câu `APPROVED` cho điểm kiến thức đó
 
@@ -924,13 +924,13 @@ Chuyển vào UC-037 với bộ lọc đã đặt. Không tạo dữ liệu mớ
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Luyện ngay" tại một câu sai |
+| 1 | `LEARNER` | Bấm "Luyện ngay" tại một câu sai |
 | 2 | Client | Lấy `knowledge_point_id` + `question_type` của câu sai đó |
 | 3 | Client | `GET /api/practice/questions?knowledge_point_id={k}&type={t}&count=10` |
 | 4 | System | Lọc `status = APPROVED`, cùng điểm kiến thức, **loại câu vừa làm sai** khỏi bộ đầu |
 | 5 | System | Trả bộ câu luyện |
 | 6 | Client | Vào luồng UC-037 |
-| 7 | `USER` | Luyện; mastery cập nhật qua UC-037 |
+| 7 | `LEARNER` | Luyện; mastery cập nhật qua UC-037 |
 
 ## Luồng thay thế
 
@@ -965,7 +965,7 @@ chặn lại là vô lý.
 > `FILL_BLANK` về điểm ngữ pháp "把 structure". Bấm "luyện ngay" → kho chỉ có câu
 > `MULTIPLE_CHOICE` cho điểm đó. Nghiệm thu nói "mở **đúng dạng**" nhưng dữ liệu không cho.
 > **Không nên trả rỗng** — luyện đúng điểm kiến thức sai dạng vẫn tốt hơn không luyện gì.
-> Nhưng phải ghi log để `CONTENT_ADMIN` biết kho thiếu dạng nào.
+> Nhưng phải ghi log để `CONTENT_EDITOR` biết kho thiếu dạng nào.
 
 > ⚠️ **A4 là một quyết định nghiệp vụ dễ bỏ sót.** Chủ đề khoá (UC-026 `TOPIC_LOCKED`) và điểm
 > kiến thức yếu là **hai trục khác nhau**. Đề thi HSK3 chứa điểm kiến thức của chủ đề người học
@@ -1015,7 +1015,7 @@ GET /api/practice/questions?knowledge_point_id={k}&type={t}
 | | |
 | --- | --- |
 | **ID** | UC-130 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P0 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 2.1 |
@@ -1036,7 +1036,7 @@ Người học chọn một đề thi HSK và làm lần lượt các phần ngh
 
 ## Tiền điều kiện
 
-- `USER` đã đăng nhập
+- `LEARNER` đã đăng nhập
 - Đề thi đã được công bố và có đủ câu hỏi hợp lệ
 - Người học còn lượt dùng hoặc còn điểm nếu đề đó có tính phí
 
@@ -1048,16 +1048,16 @@ Người học chọn một đề thi HSK và làm lần lượt các phần ngh
 
 ## Luồng chính
 
-1. `USER` chọn cấp HSK và xem các đề thi hiện có
+1. `LEARNER` chọn cấp HSK và xem các đề thi hiện có
 2. Chọn một đề và bắt đầu làm bài
 3. Hệ thống tạo một lượt thi mới và tải câu hỏi
-4. `USER` trả lời lần lượt các câu trong từng phần
+4. `LEARNER` trả lời lần lượt các câu trong từng phần
 5. Hệ thống lưu câu trả lời vào lượt thi đang làm
-6. `USER` chọn nộp bài
+6. `LEARNER` chọn nộp bài
 7. Hệ thống yêu cầu xác nhận và cho biết số câu chưa trả lời
 8. Hệ thống chấm bài ở máy chủ và tính điểm
 9. Hệ thống lưu kết quả từng câu và cập nhật mức độ nắm vững
-10. `USER` được đưa tới màn kết quả
+10. `LEARNER` được đưa tới màn kết quả
 
 ## Luồng thay thế
 
@@ -1078,7 +1078,7 @@ Câu trả lời được giữ ở phía người dùng và đánh dấu chưa 
 | Mã | Tình huống | HTTP | Xử lý |
 | --- | --- | --- | --- |
 | `EXAM_NOT_PUBLISHED` | Đề chưa công bố | **403** | Không cho vào làm |
-| `EXAM_INCOMPLETE` | Đề thiếu câu hỏi hoặc câu hỏi không hợp lệ | **422** | Không mở đề, báo người quản trị nội dung |
+| `EXAM_INCOMPLETE` | Đề thiếu câu hỏi hoặc câu hỏi không hợp lệ | **422** | Không mở đề, báo biên tập viên nội dung |
 | `ATTEMPT_ALREADY_SUBMITTED` | Nộp lại lượt thi đã nộp | **409** | Chỉ hiện kết quả, không chấm lại |
 | `INSUFFICIENT_CREDITS` | Hết lượt dùng và hết điểm | **402** | Đưa tới màn gói và điểm |
 
@@ -1125,7 +1125,7 @@ POST /api/learning/attempts/{id}/submit
 | | |
 | --- | --- |
 | **ID** | UC-131 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P0 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 3.2 |
@@ -1146,7 +1146,7 @@ Sau khi thi, người học xem điểm và tìm hiểu mình sai ở đâu. H�
 
 ## Tiền điều kiện
 
-- `USER` đã nộp ít nhất một lượt thi
+- `LEARNER` đã nộp ít nhất một lượt thi
 - Lượt thi thuộc về chính người học đang xem
 - Câu hỏi trong bài đã được gắn điểm kiến thức
 
@@ -1157,12 +1157,12 @@ Sau khi thi, người học xem điểm và tìm hiểu mình sai ở đâu. H�
 
 ## Luồng chính
 
-1. `USER` mở kết quả của một lượt thi đã nộp
+1. `LEARNER` mở kết quả của một lượt thi đã nộp
 2. Hệ thống hiển thị điểm tổng và điểm theo từng kỹ năng
 3. Hệ thống liệt kê các câu đã làm sai
-4. `USER` mở một câu sai để xem đáp án đúng và lời giải
+4. `LEARNER` mở một câu sai để xem đáp án đúng và lời giải
 5. Hệ thống hiển thị những điểm kiến thức còn yếu, xếp theo mức độ
-6. `USER` chọn luyện ngay một điểm yếu
+6. `LEARNER` chọn luyện ngay một điểm yếu
 7. Hệ thống mở bài luyện đúng phần kiến thức đó
 
 ## Luồng thay thế

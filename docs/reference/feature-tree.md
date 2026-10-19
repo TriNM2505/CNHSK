@@ -329,12 +329,12 @@
 | **Phạm vi** | V2 |
 | **Trạng thái** | Làm mới |
 | **Hiện trạng app cũ** | Blog có **đúng 1 bài**, chỉ admin đăng |
-| **Luồng đăng bài** | Người dùng viết → **trạng thái PENDING** → role Manager duyệt → ACCEPT thì hiện công khai, REJECT thì báo lý do |
+| **Luồng đăng bài** | Người dùng viết → **trạng thái PENDING** → role Moderator duyệt → ACCEPT thì hiện công khai, REJECT thì báo lý do |
 | **Tương tác** | Bình luận (lồng nhau) · thích · theo dõi người khác |
 | **Phân loại** | Chia sẻ kinh nghiệm · hỏi bài · tìm bạn học · văn hóa · việc làm |
 | **Bảng DB** | `posts` `comments` `likes` `follows` `moderation_reports` (C) — nhật ký duyệt gộp vào `posts.reviewed_by` · `reviewed_at` · `review_reason` |
-| **Vấn đề cần lường** | Kiểm duyệt thủ công **không mở rộng được** — 100 bài/ngày là Manager không duyệt xuể. Cân nhắc: chỉ duyệt bài của tài khoản mới, hoặc duyệt sau khi có người báo cáo |
-| **Nghiệm thu** | Bài chưa duyệt không ai thấy trừ tác giả; Manager duyệt xong bài hiện ngay |
+| **Vấn đề cần lường** | Kiểm duyệt thủ công **không mở rộng được** — 100 bài/ngày là Moderator không duyệt xuể. Cân nhắc: chỉ duyệt bài của tài khoản mới, hoặc duyệt sau khi có người báo cáo |
+| **Nghiệm thu** | Bài chưa duyệt không ai thấy trừ tác giả; Moderator duyệt xong bài hiện ngay |
 
 ## 5.2 · Quiz theo chủ đề — Làm mới
 
@@ -381,7 +381,7 @@
 
 | | |
 |---|---|
-| **Mô tả** | Hộp chat AI là panel có ngữ cảnh bên trong màn cho USER được gán tường minh; không phải màn riêng. Điều kiện hiện ở màn làm bài theo UC-085 và Open Issues trong screen-fields.md |
+| **Mô tả** | Hộp chat AI là panel có ngữ cảnh bên trong màn cho LEARNER được gán tường minh; không phải màn riêng. Điều kiện hiện ở màn làm bài theo UC-085 và Open Issues trong screen-fields.md |
 | **Client** | Web · Mobile · Shared |
 | **Phạm vi** | **MVP** (đổi từ V3+ vì yêu cầu xuyên suốt) |
 | **Trạng thái** | Làm mới |
@@ -433,10 +433,10 @@
 | **Client** | Web chính · Mobile |
 | **Phạm vi** | **V2** |
 | **Trạng thái** | Làm mới |
-| **Cách tổ chức** | `CONTENT_ADMIN` tạo cuộc thi → đặt khung giờ (ví dụ 20h–21h) → đăng bài quảng bá → người dùng đăng ký → đúng giờ mở → hết giờ đóng → công bố xếp hạng; nếu thưởng bằng điểm tài chính, `FINANCE_ADMIN` thực hiện cộng điểm và ghi sổ cái |
+| **Cách tổ chức** | `CONTENT_EDITOR` tạo cuộc thi → đặt khung giờ (ví dụ 20h–21h) → đăng bài quảng bá → người dùng đăng ký → đúng giờ mở → hết giờ đóng → công bố xếp hạng; nếu thưởng bằng điểm tài chính, `ACCOUNTANT` thực hiện cộng điểm và ghi sổ cái |
 | **Ai tham gia** | **Tài khoản mới cũng tham gia free** — dùng để thu hút người dùng |
 | **Tính điểm** | Như game: điểm + thời gian. Xếp hạng riêng cho mỗi cuộc thi |
-| **Phần thưởng** | Hiện trên trang cuộc thi. Thưởng hiện vật do bên tổ chức trao; thưởng bằng điểm tài chính do `FINANCE_ADMIN` xử lý và ghi sổ cái |
+| **Phần thưởng** | Hiện trên trang cuộc thi. Thưởng hiện vật do bên tổ chức trao; thưởng bằng điểm tài chính do `ACCOUNTANT` xử lý và ghi sổ cái |
 | **Bảng DB** | `contests` `contest_participants` `contest_submissions` (C) — giải thưởng gộp vào `contests.prizes` JSONB, nhật ký gian lận gộp vào `contest_participants.cheat_events` JSONB |
 | **API** | `GET /api/contests` · `POST /api/contests/{id}/join` · `POST /api/contests/{id}/submit` |
 | **Nghiệm thu** | Ngoài khung giờ không vào thi được; xếp hạng công bố đúng sau khi đóng |
@@ -526,19 +526,19 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 
 | | |
 |---|---|
-| **Mô tả** | Sáu role trong cơ sở dữ liệu với quyền tách biệt; `GUEST` và `SYSTEM` là actor, không phải role |
+| **Mô tả** | Sáu role trong cơ sở dữ liệu với quyền tách biệt; `GUEST` là actor, không phải role; job định kỳ không phải actor |
 | **Client** | Trang quản trị (web) · Shared |
 | **Phạm vi** | **MVP** |
 | **Trạng thái** | Làm mới — thống nhất với Hiến pháp và 119 use case |
 
 | Role | Quyền | Phạm vi |
 |---|---|---|
-| **USER** | Học, thi, chơi game, đăng bài (chờ duyệt) | Người dùng cuối |
-| **TEACHER** | Duyệt câu hỏi AI (cùng CONTENT_ADMIN), sửa nội dung học, nhận và chấm bài viết | Học tập |
-| **MANAGER** | Duyệt bài đăng, xử lý báo cáo và kiểm duyệt bình luận | Cộng đồng |
-| **CONTENT_ADMIN** | Quản lý đề thi, kho câu hỏi, nhập dữ liệu và cuộc thi | Nội dung |
-| **FINANCE_ADMIN** | Quản lý gói dịch vụ, mã thẻ nạp, sổ cái điểm và tranh chấp | Tài chính |
-| **SUPER_ADMIN** | Quản lý người dùng, cấp/thu hồi role và cấu hình hệ thống | Hệ thống |
+| **LEARNER** | Học, thi, chơi game, đăng bài (chờ duyệt) | Người dùng cuối |
+| **TEACHER** | Duyệt câu hỏi AI (cùng CONTENT_EDITOR), sửa nội dung học, nhận và chấm bài viết | Học tập |
+| **MODERATOR** | Duyệt bài đăng, xử lý báo cáo và kiểm duyệt bình luận | Cộng đồng |
+| **CONTENT_EDITOR** | Quản lý đề thi, kho câu hỏi, nhập dữ liệu và cuộc thi | Nội dung |
+| **ACCOUNTANT** | Quản lý gói dịch vụ, mã thẻ nạp, sổ cái điểm và tranh chấp | Tài chính |
+| **ADMIN** | Quản lý người dùng, cấp/thu hồi role và cấu hình hệ thống | Hệ thống |
 
 ### Teacher chấm bài thuê
 
@@ -549,9 +549,9 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 | **Cần quyết** | Teacher nhận bao nhiêu phần trong số điểm người học trả? Có hạn thời gian phải chấm xong không? |
 | **Nghiệm thu** | Trừ điểm đúng lúc gửi yêu cầu; teacher không nhận thì hoàn điểm |
 
-> **Một người có nhiều role được** — bảng nối `user_roles` đã thiết kế cho việc này. `SUPER_ADMIN` không tự động có quyền của `CONTENT_ADMIN` hoặc `FINANCE_ADMIN`. `GUEST` và `SYSTEM` không được thêm vào `user_roles`.
+> **Một người có nhiều role được** — bảng nối `user_roles` đã thiết kế cho việc này. `ADMIN` không tự động có quyền của `CONTENT_EDITOR` hoặc `ACCOUNTANT`. `GUEST` không được thêm vào `user_roles`.
 
-> Cấp/thu hồi role nằm tại **SCR-077 User Detail**, do `SUPER_ADMIN` thực hiện.
+> Cấp/thu hồi role nằm tại **SCR-077 User Detail**, do `ADMIN` thực hiện.
 > Bộ 79 màn không có màn CRUD danh mục role riêng. **SCR-078 System Settings** đã
 > có trong inventory; triển khai Deferred theo UC-116 đến khi chốt danh sách cấu hình và nơi lưu.
 
@@ -594,10 +594,10 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 
 | | |
 |---|---|
-| **Mô tả** | Nơi `TEACHER`, `MANAGER`, `CONTENT_ADMIN`, `FINANCE_ADMIN` và `SUPER_ADMIN` thực hiện chức năng quản trị theo đúng quyền riêng |
+| **Mô tả** | Nơi `TEACHER`, `MODERATOR`, `CONTENT_EDITOR`, `ACCOUNTANT` và `ADMIN` thực hiện chức năng quản trị theo đúng quyền riêng |
 | **Client** | Admin |
 | **Phạm vi** | MVP |
-| **Gồm** | `TEACHER`: hàng đợi câu hỏi AI, sửa nội dung học · `MANAGER`: duyệt bài đăng và xử lý báo cáo · `CONTENT_ADMIN`: đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi · `FINANCE_ADMIN`: gói dịch vụ, thẻ nạp, sổ cái và tranh chấp · `SUPER_ADMIN`: người dùng, role và cấu hình |
+| **Gồm** | `TEACHER`: hàng đợi câu hỏi AI, sửa nội dung học · `MODERATOR`: duyệt bài đăng và xử lý báo cáo · `CONTENT_EDITOR`: đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi · `ACCOUNTANT`: gói dịch vụ, thẻ nạp, sổ cái và tranh chấp · `ADMIN`: người dùng, role và cấu hình |
 | **Bảng DB** | `review_actions` `question_reports` `moderation_reports` `import_runs` · duyệt bài đọc cột `posts.reviewed_*` |
 | **Nghiệm thu** | Mỗi role chỉ thấy phần mình quản; duyệt hàng loạt 20 mục dưới 2 phút |
 

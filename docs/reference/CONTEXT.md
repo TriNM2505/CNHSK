@@ -166,19 +166,18 @@ Ghi rõ để tránh phình scope:
 | **DK-14** | Mã thẻ nạp **bán qua Zalo**, không qua cổng thanh toán | Không có webhook xác nhận — phải tự chống dùng lại mã |
 | **DK-15** | Nhóm 6 người **làm song song**, nhiều người sửa cùng lúc | Leader giữ quyền đánh số migration; API-First để FE/BE chạy song song |
 | **DK-16** | Người duyệt câu AI là **lớp bảo vệ duy nhất** | AI viết câu đúng format nhưng sai kiến thức — không validate được bằng code |
-| **DK-17** | `GUEST` và `SYSTEM` là **actor nhưng không phải role** | Thấy chúng trong danh sách actor rồi thêm vào `user_roles` là sai. `GUEST` không có tài khoản; `SYSTEM` là job `@Scheduled` |
-| **DK-18** | Quyền quản trị chia **ba**, không phải một `ADMIN` | `FINANCE_ADMIN` chạm tiền thật nên phải hẹp nhất. Gộp lại là vi phạm đặc quyền tối thiểu, và `NFR-S08` không audit riêng được |
+| **DK-17** | `GUEST` là **actor nhưng không phải role**; job định kỳ **không phải actor** | Thêm `GUEST` vào `user_roles` là sai vì `GUEST` không có tài khoản. Job `@Scheduled` nằm ở danh mục Background Job |
+| **DK-18** | Quyền quản trị chia **ba** role (`CONTENT_EDITOR`, `ACCOUNTANT`, `ADMIN`), không gộp một role làm mọi việc | `ACCOUNTANT` chạm tiền thật nên phải hẹp nhất. Gộp lại là vi phạm đặc quyền tối thiểu, và `NFR-S08` không audit riêng được |
 
-### 3.5 · Tám actor
+### 3.5 · Bảy actor
 
 | Actor | Số UC | Trong `user_roles`? |
 |---|---|---|
-`USER` | 79 | ✅ |
+`LEARNER` | 79 | ✅ |
 `GUEST` | 16 | ❌ chưa đăng nhập |
-`SYSTEM` | 14 | ❌ job định kỳ |
-`CONTENT_ADMIN` · `MANAGER` · `FINANCE_ADMIN` · `TEACHER` · `SUPER_ADMIN` | 6 · 4 · 4 · 4 · 3 | ✅ |
+`CONTENT_EDITOR` · `MODERATOR` · `ACCOUNTANT` · `TEACHER` · `ADMIN` | 6 · 4 · 4 · 4 · 3 | ✅ |
 
-**8 actor = 6 role trong DB + 2 actor không phải role.** Chi tiết quyền: Hiến pháp §Tám actor.
+**7 actor = 6 role trong DB + `GUEST`.** Chi tiết quyền: Hiến pháp §Bảy actor.
 
 ---
 
@@ -343,7 +342,7 @@ Bảy mục dưới đây đã được chốt tạm trong DB v6 nhưng **cần 
 | `NFR-S05` | CORS | Khai origin tường minh, **không** dùng `*` |
 | `NFR-S06` | Lỗi trả về client | `{error_code, message, request_id}` — không lộ stack trace |
 | `NFR-S07` | Log | Không chứa mã thẻ, mật khẩu, email người dùng |
-| `NFR-S08` | Thao tác của `FINANCE_ADMIN` | Ghi audit log cả thao tác **đọc** sổ cái |
+| `NFR-S08` | Thao tác của `ACCOUNTANT` | Ghi audit log cả thao tác **đọc** sổ cái |
 
 ### 6.3 · Scalability
 

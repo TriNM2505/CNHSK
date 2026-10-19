@@ -11,21 +11,21 @@
 
 | UC-ID | Use Case | Actor chính | Pri | Scope | FT | Trạng thái triển khai |
 | --- | --- | --- | --- | --- | --- | --- |
-| UC-108 | Duyệt câu hỏi AI sinh | `TEACHER`, `CONTENT_ADMIN` | P1 | MVP | 6.6 | READY |
-| UC-109 | Sửa nội dung câu hỏi | `TEACHER`, `CONTENT_ADMIN` | P1 | MVP | 6.5 · 6.6 | READY |
-| UC-110 | Nhập dữ liệu đề thi/từ vựng/ngữ pháp từ file | `CONTENT_ADMIN` | **P0** | MVP | 6.2 | **BLOCKED** — cần file mẫu thật, định dạng và khóa tự nhiên |
-| UC-111 | Xem báo cáo lỗi sau khi nhập | `CONTENT_ADMIN` | **P0** | MVP | 6.2 | **PARTIALLY BLOCKED** — cần nơi lưu chi tiết lỗi import |
-| UC-112 | Quản lý đề thi và kho câu hỏi | `CONTENT_ADMIN` | P1 | MVP | 6.3 · 6.5 | READY |
-| UC-113 | Tạo và quản lý cuộc thi | `CONTENT_ADMIN` | P2 | V2 | 5.8 | V2 — không gen MVP |
-| UC-114 | Quản lý người dùng | `SUPER_ADMIN` | P1 | MVP | 6.1 | **BLOCKED** — cần chốt trường trạng thái tài khoản |
-| UC-115 | Cấp và thu hồi role | `SUPER_ADMIN` | P1 | MVP | 6.1 | READY |
-| UC-116 | Cấu hình hệ thống | `SUPER_ADMIN` | P2 | Deferred | 6.6 | **DEFERRED** — phạm vi cấu hình và nơi lưu chưa chốt |
-| UC-117 | Xem danh sách kênh YouTube và podcast | `GUEST`, `USER` | P3 | V2 | 7.1 | V2 — không gen MVP |
-| UC-118 | Xem danh mục sách học tiếng Trung | `GUEST`, `USER` | P3 | V2 | 7.2 | V2 — không gen MVP |
-| UC-119 | Quản lý danh mục tham khảo | `CONTENT_ADMIN` | P3 | V2 | 7.1 · 7.2 | V2 — không gen MVP |
+| UC-108 | Duyệt câu hỏi AI sinh | `TEACHER`, `CONTENT_EDITOR` | P1 | MVP | 6.6 | READY |
+| UC-109 | Sửa nội dung câu hỏi | `TEACHER`, `CONTENT_EDITOR` | P1 | MVP | 6.5 · 6.6 | READY |
+| UC-110 | Nhập dữ liệu đề thi/từ vựng/ngữ pháp từ file | `CONTENT_EDITOR` | **P0** | MVP | 6.2 | **BLOCKED** — cần file mẫu thật, định dạng và khóa tự nhiên |
+| UC-111 | Xem báo cáo lỗi sau khi nhập | `CONTENT_EDITOR` | **P0** | MVP | 6.2 | **PARTIALLY BLOCKED** — cần nơi lưu chi tiết lỗi import |
+| UC-112 | Quản lý đề thi và kho câu hỏi | `CONTENT_EDITOR` | P1 | MVP | 6.3 · 6.5 | READY |
+| UC-113 | Tạo và quản lý cuộc thi | `CONTENT_EDITOR` | P2 | V2 | 5.8 | V2 — không gen MVP |
+| UC-114 | Quản lý người dùng | `ADMIN` | P1 | MVP | 6.1 | **BLOCKED** — cần chốt trường trạng thái tài khoản |
+| UC-115 | Cấp và thu hồi role | `ADMIN` | P1 | MVP | 6.1 | READY |
+| UC-116 | Cấu hình hệ thống | `ADMIN` | P2 | Deferred | 6.6 | **DEFERRED** — phạm vi cấu hình và nơi lưu chưa chốt |
+| UC-117 | Xem danh sách kênh YouTube và podcast | `GUEST`, `LEARNER` | P3 | V2 | 7.1 | V2 — không gen MVP |
+| UC-118 | Xem danh mục sách học tiếng Trung | `GUEST`, `LEARNER` | P3 | V2 | 7.2 | V2 — không gen MVP |
+| UC-119 | Quản lý danh mục tham khảo | `CONTENT_EDITOR` | P3 | V2 | 7.1 · 7.2 | V2 — không gen MVP |
 
 > **Nguyên tắc phân quyền của nhóm này:** mỗi role chỉ được truy cập đúng phần quản trị được giao.  
-> `SUPER_ADMIN` không tự động có quyền nghiệp vụ của `TEACHER`, `CONTENT_ADMIN` hoặc `FINANCE_ADMIN`.
+> `ADMIN` không tự động có quyền nghiệp vụ của `TEACHER`, `CONTENT_EDITOR` hoặc `ACCOUNTANT`.
 
 ---
 
@@ -34,7 +34,7 @@
 | | |
 | --- | --- |
 | **UC-ID** | UC-108 |
-| **Actor chính** | `TEACHER`, `CONTENT_ADMIN` |
+| **Actor chính** | `TEACHER`, `CONTENT_EDITOR` |
 | **Loại** | User Goal |
 | **Pri** | P1 |
 | **Scope** | MVP |
@@ -47,7 +47,7 @@ Người duyệt xem các câu hỏi do AI sinh đang chờ kiểm duyệt, đ�
 
 Mục tiêu của Use Case là bảo đảm câu hỏi AI chỉ được đưa vào kho dùng chung sau khi có người đủ chuyên môn kiểm tra. Câu hỏi chưa duyệt hoặc bị từ chối không được xuất hiện ở bất kỳ luồng học nào của người học.
 
-> Cả `TEACHER` và `CONTENT_ADMIN` đều duyệt được, theo `BUS-07`. Hai role cùng
+> Cả `TEACHER` và `CONTENT_EDITOR` đều duyệt được, theo `BUS-07`. Hai role cùng
 > chịu trách nhiệm đánh giá nội dung tiếng Trung, không chia theo loại câu hỏi.
 
 ## Kích hoạt
@@ -56,7 +56,7 @@ Người duyệt mở màn hình “Hàng đợi duyệt câu hỏi AI” hoặc
 
 ## Tiền điều kiện
 
-1. Người dùng đã đăng nhập và có role `TEACHER` hoặc `CONTENT_ADMIN`.
+1. Người dùng đã đăng nhập và có role `TEACHER` hoặc `CONTENT_EDITOR`.
 2. Câu hỏi cần xử lý tồn tại, có `source = AI` và đang ở trạng thái `PENDING_REVIEW`.
 3. Hệ thống có đủ dữ liệu cần thiết để đánh giá câu hỏi: nội dung, đáp án, lời giải, cấp HSK và nhãn kiến thức.
 
@@ -151,7 +151,7 @@ Người duyệt mở màn hình “Hàng đợi duyệt câu hỏi AI” hoặc
 
 | # | Rule |
 | --- | --- |
-| BR-108-1 | Chỉ `TEACHER` hoặc `CONTENT_ADMIN` được duyệt hoặc từ chối câu hỏi do AI sinh. `FINANCE_ADMIN` và `SUPER_ADMIN` không có quyền này. Việc kiểm tra quyền phải thực hiện ở server. |
+| BR-108-1 | Chỉ `TEACHER` hoặc `CONTENT_EDITOR` được duyệt hoặc từ chối câu hỏi do AI sinh. `ACCOUNTANT` và `ADMIN` không có quyền này. Việc kiểm tra quyền phải thực hiện ở server. |
 | BR-108-2 | Chỉ câu hỏi có `status = PENDING_REVIEW` và `source = AI` mới được đưa vào hàng đợi duyệt. |
 | BR-108-3 | Câu hỏi `PENDING_REVIEW` hoặc `REJECTED` không được xuất hiện trong bất kỳ bài học, bài luyện, quiz hoặc đề thi nào của người học. |
 | BR-108-4 | Khi duyệt, hệ thống chuyển câu hỏi sang `APPROVED`, ghi người duyệt và thời điểm duyệt. |
@@ -176,7 +176,7 @@ Dữ liệu liên quan: `questions`, `question_options`, `question_knowledge_poi
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
 | T1 | Người duyệt duyệt câu hợp lệ | `APPROVED`, có `reviewed_by`, `reviewed_at` và lịch sử review. |
-| T2 | `USER` hoặc `CONTENT_ADMIN` gọi endpoint review | 403. |
+| T2 | `LEARNER` hoặc `CONTENT_EDITOR` gọi endpoint review | 403. |
 | T3 | Từ chối không nhập lý do | 422, câu vẫn `PENDING_REVIEW`. |
 | T4 | Hai giáo viên duyệt đồng thời | Một thành công, một 409. |
 | T5 | Câu có hai đáp án đúng | Không cho duyệt. |
@@ -191,7 +191,7 @@ Dữ liệu liên quan: `questions`, `question_options`, `question_knowledge_poi
 | | |
 | --- | --- |
 | **UC-ID** | UC-109 |
-| **Actor chính** | `TEACHER`, `CONTENT_ADMIN` |
+| **Actor chính** | `TEACHER`, `CONTENT_EDITOR` |
 | **Loại** | User Goal |
 | **Pri** | P1 |
 | **Scope** | MVP |
@@ -200,7 +200,7 @@ Dữ liệu liên quan: `questions`, `question_options`, `question_knowledge_poi
 
 ## Mô tả
 
-`TEACHER` hoặc `CONTENT_ADMIN` sửa nội dung câu hỏi khi phát hiện lỗi trong quá trình review, quản lý kho câu hỏi hoặc xử lý phản hồi.
+`TEACHER` hoặc `CONTENT_EDITOR` sửa nội dung câu hỏi khi phát hiện lỗi trong quá trình review, quản lý kho câu hỏi hoặc xử lý phản hồi.
 
 Use Case cho phép sửa đề bài, đáp án, lời giải và nhãn kiến thức trong phạm vi không làm sai nghĩa của lịch sử bài làm đã tồn tại. Nếu một câu đã được người học trả lời, hệ thống không cho sửa đáp án đúng hoặc thay đổi nội dung theo cách làm thay đổi kết quả chấm cũ.
 
@@ -210,7 +210,7 @@ Actor mở một câu hỏi trong màn quản trị hoặc chọn **Sửa** từ
 
 ## Tiền điều kiện
 
-1. Người dùng đã đăng nhập và có role `TEACHER` hoặc `CONTENT_ADMIN`.
+1. Người dùng đã đăng nhập và có role `TEACHER` hoặc `CONTENT_EDITOR`.
 2. Câu hỏi cần sửa tồn tại.
 3. Câu hỏi không thuộc một cuộc thi đang diễn ra.
 
@@ -238,10 +238,10 @@ Actor mở một câu hỏi trong màn quản trị hoặc chọn **Sửa** từ
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_ADMIN` | Mở câu hỏi cần sửa. |
+| 1 | `CONTENT_EDITOR` | Mở câu hỏi cần sửa. |
 | 2 | System | Kiểm tra quyền và tải nội dung hiện tại của câu hỏi. |
-| 3 | `CONTENT_ADMIN` | Thay đổi đề bài, đáp án, lời giải hoặc nhãn kiến thức. |
-| 4 | `CONTENT_ADMIN` | Bấm lưu. |
+| 3 | `CONTENT_EDITOR` | Thay đổi đề bài, đáp án, lời giải hoặc nhãn kiến thức. |
+| 4 | `CONTENT_EDITOR` | Bấm lưu. |
 | 5 | System | Kiểm tra cấu trúc câu hỏi, đáp án đúng và nhãn kiến thức. |
 | 6 | System | Kiểm tra câu đã từng được sử dụng trong bài làm hay chưa. |
 | 7 | System | Nếu câu đã được sử dụng, xác định thay đổi có làm thay đổi cách chấm hay không. |
@@ -289,7 +289,7 @@ Actor mở một câu hỏi trong màn quản trị hoặc chọn **Sửa** từ
 
 | # | Rule |
 | --- | --- |
-| BR-109-1 | Chỉ `TEACHER` hoặc `CONTENT_ADMIN` được sửa câu hỏi. |
+| BR-109-1 | Chỉ `TEACHER` hoặc `CONTENT_EDITOR` được sửa câu hỏi. |
 | BR-109-2 | Mỗi câu hỏi phải luôn có ít nhất một nhãn kiến thức. Không được lưu câu hỏi không gắn với điểm kiến thức nào. |
 | BR-109-3 | Câu hỏi trắc nghiệm phải có đúng một đáp án đúng. Không được lưu câu có nhiều đáp án đúng hoặc không có đáp án đúng. |
 | BR-109-4 | Câu hỏi đã có người làm không được sửa đáp án đúng hoặc nội dung làm thay đổi cách chấm. Nếu cần sửa, tạo câu hỏi mới và lưu trữ câu cũ. |
@@ -313,7 +313,7 @@ Dữ liệu liên quan: `questions`, `question_options`, `question_knowledge_poi
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
 | T1 | Sửa lời giải của câu chưa có người làm | 200, nội dung mới và audit được lưu. |
-| T2 | `USER` gọi endpoint sửa | 403. |
+| T2 | `LEARNER` gọi endpoint sửa | 403. |
 | T3 | Sửa thành hai đáp án đúng | 422, không lưu. |
 | T4 | Xóa toàn bộ nhãn kiến thức | 422, không lưu. |
 | T5 | Sửa đáp án đúng của câu đã có người làm | 409, câu cũ giữ nguyên. |
@@ -328,7 +328,7 @@ Dữ liệu liên quan: `questions`, `question_options`, `question_knowledge_poi
 | | |
 | --- | --- |
 | **UC-ID** | UC-110 |
-| **Actor chính** | `CONTENT_ADMIN` |
+| **Actor chính** | `CONTENT_EDITOR` |
 | **Loại** | User Goal |
 | **Pri** | **P0** |
 | **Scope** | MVP |
@@ -337,7 +337,7 @@ Dữ liệu liên quan: `questions`, `question_options`, `question_knowledge_poi
 
 ## Mô tả
 
-`CONTENT_ADMIN` nhập dữ liệu do giáo viên cung cấp vào hệ thống, gồm đề thi/câu hỏi, từ vựng và ngữ pháp.
+`CONTENT_EDITOR` nhập dữ liệu do giáo viên cung cấp vào hệ thống, gồm đề thi/câu hỏi, từ vựng và ngữ pháp.
 
 Use Case phải bảo đảm ba yêu cầu cốt lõi:
 
@@ -349,11 +349,11 @@ Use Case phải bảo đảm ba yêu cầu cốt lõi:
 
 ## Kích hoạt
 
-`CONTENT_ADMIN` mở chức năng nhập dữ liệu, chọn loại dữ liệu và chọn file cần nhập.
+`CONTENT_EDITOR` mở chức năng nhập dữ liệu, chọn loại dữ liệu và chọn file cần nhập.
 
 ## Tiền điều kiện
 
-1. Người dùng đã đăng nhập và có role `CONTENT_ADMIN`.
+1. Người dùng đã đăng nhập và có role `CONTENT_EDITOR`.
 2. Với thao tác upload từ web dùng cookie, request có CSRF token hợp lệ.
 3. Nhóm đã phê duyệt định dạng import cho loại dữ liệu đang nhập.
 4. Nhóm đã xác định khóa tự nhiên dùng để nhận diện bản ghi trùng của loại dữ liệu đó.
@@ -390,7 +390,7 @@ Use Case phải bảo đảm ba yêu cầu cốt lõi:
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_ADMIN` | Chọn loại dữ liệu cần nhập và chọn file. |
+| 1 | `CONTENT_EDITOR` | Chọn loại dữ liệu cần nhập và chọn file. |
 | 2 | Client | Upload file và thông tin loại dữ liệu. |
 | 3 | System | Kiểm tra quyền, CSRF, kích thước file và loại file được phép. |
 | 4 | System | Tạo bản ghi lần import, lưu file hash và người thực hiện. |
@@ -402,14 +402,14 @@ Use Case phải bảo đảm ba yêu cầu cốt lõi:
 | 10 | System | Với dòng hợp lệ, xác định bản ghi theo khóa tự nhiên và thực hiện tạo mới hoặc cập nhật theo quy tắc import đã chốt. |
 | 11 | System | Sau khi xử lý hết file, cập nhật tổng số dòng thành công, lỗi và trạng thái lần import. |
 | 12 | System | Trả `import_run_id` cùng thống kê tổng quát. |
-| 13 | `CONTENT_ADMIN` | Mở UC-111 để xem chi tiết dòng lỗi nếu có. |
+| 13 | `CONTENT_EDITOR` | Mở UC-111 để xem chi tiết dòng lỗi nếu có. |
 
 ## Luồng thay thế
 
 **A1 — Chạy lại cùng file**
 
 - Hệ thống nhận biết file hash đã từng được import.
-- `CONTENT_ADMIN` được thông báo đây là file đã xử lý trước đó.
+- `CONTENT_EDITOR` được thông báo đây là file đã xử lý trước đó.
 - Nếu tiếp tục import, hệ thống dùng khóa tự nhiên để cập nhật/giữ dữ liệu đúng quy tắc, không tạo bản sao trùng.
 
 **A2 — File có một phần dữ liệu lỗi**
@@ -435,7 +435,7 @@ Use Case phải bảo đảm ba yêu cầu cốt lõi:
 | Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không nhận file. |
-| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_ADMIN` | Không nhận file. |
+| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_EDITOR` | Không nhận file. |
 | `CSRF_TOKEN_MISSING` | 403 | Request upload qua cookie thiếu CSRF | Không nhận file. |
 | `UNSUPPORTED_FILE_FORMAT` | 422 | File không đúng template/định dạng đã duyệt | Không ghi dữ liệu học. |
 | `ENCODING_ERROR` | 422 | Nội dung chữ Hán bị hỏng hoặc encoding không hỗ trợ | Không ghi dữ liệu hỏng. |
@@ -448,7 +448,7 @@ Use Case phải bảo đảm ba yêu cầu cốt lõi:
 | # | Rule |
 | --- | --- |
 | BR-110-1 | UC này là P0 nhưng bị chặn cho đến khi nhóm có ít nhất một file mẫu thật từ thầy và thống nhất định dạng import. |
-| BR-110-2 | Chỉ `CONTENT_ADMIN` được nhập dữ liệu đề thi, từ vựng, ngữ pháp hoặc câu hỏi từ file. |
+| BR-110-2 | Chỉ `CONTENT_EDITOR` được nhập dữ liệu đề thi, từ vựng, ngữ pháp hoặc câu hỏi từ file. |
 | BR-110-3 | File import phải đúng định dạng đã chốt. File sai định dạng hoàn toàn thì không nhập dòng nào. |
 | BR-110-4 | Mỗi dòng dữ liệu phải được kiểm tra trước khi ghi vào kho chính. Dòng lỗi không được ghi vào database. |
 | BR-110-5 | Dòng hợp lệ vẫn được nhập dù cùng file có dòng lỗi. Một dòng lỗi không được làm rollback toàn bộ file. |
@@ -480,7 +480,7 @@ Dữ liệu liên quan: `import_runs`, `exams`, `exam_sections`, `questions`, `q
 | T3 | Chạy lại cùng file | Không tạo bản trùng. |
 | T4 | Câu hỏi thiếu nhãn kiến thức | Dòng bị từ chối, báo rõ dòng/cột. |
 | T5 | File làm chữ Hán thành `???` | Từ chối trước khi ghi dữ liệu rác. |
-| T6 | `FINANCE_ADMIN` gọi import | 403. |
+| T6 | `ACCOUNTANT` gọi import | 403. |
 | T7 | File sai template hoàn toàn | 0 dòng nội dung được ghi. |
 | T8 | Câu trắc nghiệm có hai đáp án đúng | Dòng bị từ chối. |
 | T9 | Kiểm repository | Không có file dữ liệu thật của giáo viên trong git/test resource. |
@@ -492,7 +492,7 @@ Dữ liệu liên quan: `import_runs`, `exams`, `exam_sections`, `questions`, `q
 | | |
 | --- | --- |
 | **UC-ID** | UC-111 |
-| **Actor chính** | `CONTENT_ADMIN` |
+| **Actor chính** | `CONTENT_EDITOR` |
 | **Loại** | User Goal |
 | **Pri** | **P0** |
 | **Scope** | MVP |
@@ -501,17 +501,17 @@ Dữ liệu liên quan: `import_runs`, `exams`, `exam_sections`, `questions`, `q
 
 ## Mô tả
 
-`CONTENT_ADMIN` xem kết quả của một lần import và xác định chính xác dòng nào bị lỗi, lỗi ở trường nào và cần sửa như thế nào.
+`CONTENT_EDITOR` xem kết quả của một lần import và xác định chính xác dòng nào bị lỗi, lỗi ở trường nào và cần sửa như thế nào.
 
 Mục tiêu của Use Case là giúp người quản trị có thể sửa file và nhập lại mà không phải dò thủ công toàn bộ dữ liệu. Vì vậy lỗi phải được lưu lại sau lần import, không chỉ tồn tại trong response của UC-110.
 
 ## Kích hoạt
 
-`CONTENT_ADMIN` mở kết quả của một `import_run` sau khi UC-110 hoàn tất hoặc mở lại lịch sử import trước đó.
+`CONTENT_EDITOR` mở kết quả của một `import_run` sau khi UC-110 hoàn tất hoặc mở lại lịch sử import trước đó.
 
 ## Tiền điều kiện
 
-1. Người dùng đã đăng nhập và có role `CONTENT_ADMIN`.
+1. Người dùng đã đăng nhập và có role `CONTENT_EDITOR`.
 2. Lần import cần xem tồn tại.
 3. Hệ thống đã lưu kết quả tổng hợp của lần import.
 4. Để xem lại chi tiết lỗi sau khi đóng tab, hệ thống phải có nơi lưu bền vững từng lỗi import.
@@ -533,13 +533,13 @@ Mục tiêu của Use Case là giúp người quản trị có thể sửa file 
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_ADMIN` | Mở chi tiết một lần import. |
+| 1 | `CONTENT_EDITOR` | Mở chi tiết một lần import. |
 | 2 | System | Kiểm tra quyền và tìm `import_run` tương ứng. |
 | 3 | System | Trả thông tin tổng hợp: loại dữ liệu, thời điểm, tổng dòng, số thành công, số lỗi và trạng thái. |
 | 4 | System | Lấy danh sách lỗi của lần import theo phân trang. |
 | 5 | System | Với mỗi lỗi, trả số dòng, tên cột/trường, giá trị gây lỗi ở mức cần thiết, mã lỗi và thông báo tiếng Việt rõ ràng. |
 | 6 | Client | Hiển thị danh sách lỗi để người quản trị đối chiếu với file nguồn. |
-| 7 | `CONTENT_ADMIN` | Sửa file và quay lại UC-110 khi cần nhập lại. |
+| 7 | `CONTENT_EDITOR` | Sửa file và quay lại UC-110 khi cần nhập lại. |
 
 ## Luồng thay thế
 
@@ -555,7 +555,7 @@ Mục tiêu của Use Case là giúp người quản trị có thể sửa file 
 
 **A3 — Xuất danh sách lỗi**
 
-- Chỉ `CONTENT_ADMIN` được xuất.
+- Chỉ `CONTENT_EDITOR` được xuất.
 - File xuất chỉ phục vụ sửa dữ liệu import.
 - Không đưa stack trace hoặc dữ liệu nội bộ không cần thiết vào file.
 
@@ -569,7 +569,7 @@ Mục tiêu của Use Case là giúp người quản trị có thể sửa file 
 | Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không trả dữ liệu import. |
-| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_ADMIN` | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_EDITOR` | Chặn. |
 | `IMPORT_RUN_NOT_FOUND` | 404 | Không tồn tại lần import | Không trả dữ liệu. |
 | `INVALID_PAGINATION` | 422 | Tham số phân trang không hợp lệ | Trả lỗi validation. |
 | `IMPORT_ERROR_STORAGE_NOT_READY` | Không phải runtime production | Chưa có nơi lưu chi tiết lỗi | **Không coi UC-111 là code-ready** cho đến khi thiết kế được chốt. |
@@ -578,13 +578,13 @@ Mục tiêu của Use Case là giúp người quản trị có thể sửa file 
 
 | # | Rule |
 | --- | --- |
-| BR-111-1 | Chỉ `CONTENT_ADMIN` được xem báo cáo lỗi import. |
+| BR-111-1 | Chỉ `CONTENT_EDITOR` được xem báo cáo lỗi import. |
 | BR-111-2 | Báo cáo lỗi phải gắn với một lần import cụ thể. |
 | BR-111-3 | Mỗi lỗi phải có số dòng, tên cột hoặc vùng dữ liệu, giá trị gây lỗi nếu cần, mã lỗi và thông báo tiếng Việt dễ hiểu. |
-| BR-111-4 | Danh sách lỗi phải được lưu lại để `CONTENT_ADMIN` có thể mở lại sau khi đóng tab. Không chỉ trả lỗi một lần trong response import. |
+| BR-111-4 | Danh sách lỗi phải được lưu lại để `CONTENT_EDITOR` có thể mở lại sau khi đóng tab. Không chỉ trả lỗi một lần trong response import. |
 | BR-111-5 | Nếu có nhiều lỗi, danh sách lỗi phải phân trang. |
 | BR-111-6 | Response lỗi không được trả stack trace hoặc lỗi kỹ thuật nội bộ. |
-| BR-111-7 | Dữ liệu lỗi import không được xuất công khai ra ngoài hệ thống. Nếu có chức năng export lỗi, chỉ `CONTENT_ADMIN` được tải và chỉ phục vụ sửa file import. |
+| BR-111-7 | Dữ liệu lỗi import không được xuất công khai ra ngoài hệ thống. Nếu có chức năng export lỗi, chỉ `CONTENT_EDITOR` được tải và chỉ phục vụ sửa file import. |
 | BR-111-8 | Nếu import không có lỗi, hệ thống hiển thị trạng thái nhập thành công và số dòng đã nhập. |
 
 ## API · DB
@@ -604,7 +604,7 @@ Dữ liệu liên quan: `import_runs` và **nơi lưu chi tiết lỗi import ch
 | --- | --- | --- |
 | T1 | Lần import có 10 lỗi | Hiển thị đủ 10 lỗi; mỗi lỗi có `line_number`. |
 | T2 | Đóng tab rồi mở lại | Danh sách lỗi vẫn còn. |
-| T3 | `FINANCE_ADMIN` gọi | 403. |
+| T3 | `ACCOUNTANT` gọi | 403. |
 | T4 | Lỗi thiếu nhãn kiến thức | Thông báo nêu rõ dòng và nhãn không tìm thấy. |
 | T5 | Có 5.000 lỗi | Danh sách phân trang và hiển thị đúng tổng số lỗi. |
 | T6 | Kiểm response lỗi | Không có stack trace. |
@@ -617,7 +617,7 @@ Dữ liệu liên quan: `import_runs` và **nơi lưu chi tiết lỗi import ch
 | | |
 | --- | --- |
 | **UC-ID** | UC-112 |
-| **Actor chính** | `CONTENT_ADMIN` |
+| **Actor chính** | `CONTENT_EDITOR` |
 | **Loại** | User Goal |
 | **Pri** | P1 |
 | **Scope** | MVP |
@@ -626,7 +626,7 @@ Dữ liệu liên quan: `import_runs` và **nơi lưu chi tiết lỗi import ch
 
 ## Mô tả
 
-`CONTENT_ADMIN` tạo và quản lý đề thi, tổ chức các phần của đề, gán câu hỏi từ kho câu hỏi và công bố đề cho người học.
+`CONTENT_EDITOR` tạo và quản lý đề thi, tổ chức các phần của đề, gán câu hỏi từ kho câu hỏi và công bố đề cho người học.
 
 Use Case này không thay thế UC-109: khi cần sửa nội dung một câu hỏi, actor sử dụng UC-109. UC-112 tập trung vào **cấu trúc đề và trạng thái công bố**.
 
@@ -634,11 +634,11 @@ Quan hệ tiên quyết của chủ đề được quản lý như một thao t�
 
 ## Kích hoạt
 
-`CONTENT_ADMIN` mở màn hình quản lý đề thi và chọn tạo mới hoặc chỉnh sửa một đề.
+`CONTENT_EDITOR` mở màn hình quản lý đề thi và chọn tạo mới hoặc chỉnh sửa một đề.
 
 ## Tiền điều kiện
 
-1. Người dùng đã đăng nhập và có role `CONTENT_ADMIN`.
+1. Người dùng đã đăng nhập và có role `CONTENT_EDITOR`.
 2. Request ghi từ web dùng cookie có CSRF token hợp lệ.
 3. Các câu hỏi được gán vào đề đã tồn tại trong kho câu hỏi.
 
@@ -672,12 +672,12 @@ Quan hệ tiên quyết của chủ đề được quản lý như một thao t�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_ADMIN` | Tạo đề mới hoặc mở một đề `DRAFT`. |
+| 1 | `CONTENT_EDITOR` | Tạo đề mới hoặc mở một đề `DRAFT`. |
 | 2 | System | Kiểm tra quyền và tải dữ liệu đề hiện tại. |
-| 3 | `CONTENT_ADMIN` | Nhập/sửa thông tin đề, tạo các phần và xác định thứ tự phần. |
-| 4 | `CONTENT_ADMIN` | Gán các câu hỏi phù hợp từ kho vào từng phần. |
+| 3 | `CONTENT_EDITOR` | Nhập/sửa thông tin đề, tạo các phần và xác định thứ tự phần. |
+| 4 | `CONTENT_EDITOR` | Gán các câu hỏi phù hợp từ kho vào từng phần. |
 | 5 | System | Kiểm tra dữ liệu cơ bản và lưu đề ở trạng thái `DRAFT`. |
-| 6 | `CONTENT_ADMIN` | Kiểm tra đề và chọn **Công bố**. |
+| 6 | `CONTENT_EDITOR` | Kiểm tra đề và chọn **Công bố**. |
 | 7 | System | Kiểm tra đề có ít nhất một phần và mỗi phần có ít nhất một câu. |
 | 8 | System | Kiểm tra mọi câu đều được phép sử dụng, có nhãn kiến thức và có cấu trúc hợp lệ. |
 | 9 | System | Kiểm tra audio bắt buộc của phần nghe. |
@@ -694,7 +694,7 @@ Quan hệ tiên quyết của chủ đề được quản lý như một thao t�
 
 **A2 — Lưu trữ đề đã công bố**
 
-- `CONTENT_ADMIN` chọn lưu trữ.
+- `CONTENT_EDITOR` chọn lưu trữ.
 - Đề chuyển sang `ARCHIVED`.
 - Không cho bắt đầu attempt mới.
 - Attempt đã tạo trước đó được giữ để bảo toàn lịch sử; attempt đang làm tiếp tục theo chính sách luyện thi đã chốt.
@@ -715,7 +715,7 @@ Quan hệ tiên quyết của chủ đề được quản lý như một thao t�
 | Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không cho quản lý đề. |
-| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_ADMIN` | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_EDITOR` | Chặn. |
 | `PUBLISH_EMPTY_EXAM` | 422 | Đề/phần không có câu hỏi | Giữ `DRAFT`. |
 | `PUBLISH_WITHOUT_AUDIO` | 422 | Phần nghe thiếu audio bắt buộc | Giữ `DRAFT`. |
 | `PUBLISH_UNAPPROVED_QUESTION` | 422 | Có câu chưa được duyệt | Giữ `DRAFT`. |
@@ -728,7 +728,7 @@ Quan hệ tiên quyết của chủ đề được quản lý như một thao t�
 
 | # | Rule |
 | --- | --- |
-| BR-112-1 | Chỉ `CONTENT_ADMIN` được tạo, sửa, công bố hoặc lưu trữ đề thi. |
+| BR-112-1 | Chỉ `CONTENT_EDITOR` được tạo, sửa, công bố hoặc lưu trữ đề thi. |
 | BR-112-2 | Đề ở trạng thái `DRAFT` không được hiển thị cho người học. |
 | BR-112-3 | Chỉ đề `PUBLISHED` mới xuất hiện trong danh sách luyện thi của người học. |
 | BR-112-4 | Trước khi công bố, đề phải có ít nhất một phần, mỗi phần có ít nhất một câu hỏi, và mọi câu hỏi phải hợp lệ. |
@@ -765,7 +765,7 @@ Dữ liệu liên quan: `exams`, `exam_sections`, `questions`, `question_knowled
 | T6 | Tạo quan hệ A cần B, B cần A | 422 `CIRCULAR_PREREQUISITE`. |
 | T7 | Lưu cấu trúc làm cây không còn chủ đề gốc | 422. |
 | T8 | Lưu trữ đề có lịch sử attempt | Đề `ARCHIVED`; lịch sử vẫn còn. |
-| T9 | `FINANCE_ADMIN` gọi | 403. |
+| T9 | `ACCOUNTANT` gọi | 403. |
 
 ---
 
@@ -774,7 +774,7 @@ Dữ liệu liên quan: `exams`, `exam_sections`, `questions`, `question_knowled
 | | |
 | --- | --- |
 | **UC-ID** | UC-113 |
-| **Actor chính** | `CONTENT_ADMIN` |
+| **Actor chính** | `CONTENT_EDITOR` |
 | **Loại** | User Goal |
 | **Pri** | P2 |
 | **Scope** | V2 |
@@ -783,17 +783,17 @@ Dữ liệu liên quan: `exams`, `exam_sections`, `questions`, `question_knowled
 
 ## Mô tả
 
-`CONTENT_ADMIN` tạo và quản lý cuộc thi học tập trong phạm vi V2: cấu hình tên, thời gian, đề thi, thông tin phần thưởng, công bố cuộc thi, hủy cuộc thi và công bố bảng xếp hạng sau khi cuộc thi kết thúc.
+`CONTENT_EDITOR` tạo và quản lý cuộc thi học tập trong phạm vi V2: cấu hình tên, thời gian, đề thi, thông tin phần thưởng, công bố cuộc thi, hủy cuộc thi và công bố bảng xếp hạng sau khi cuộc thi kết thúc.
 
-Use Case này chỉ quản lý nội dung và trạng thái cuộc thi. Nếu phần thưởng là điểm có giá trị tài chính, việc cộng điểm không được thực hiện trực tiếp bởi `CONTENT_ADMIN`.
+Use Case này chỉ quản lý nội dung và trạng thái cuộc thi. Nếu phần thưởng là điểm có giá trị tài chính, việc cộng điểm không được thực hiện trực tiếp bởi `CONTENT_EDITOR`.
 
 ## Kích hoạt
 
-`CONTENT_ADMIN` mở màn hình quản lý cuộc thi và chọn tạo mới hoặc chỉnh sửa một cuộc thi.
+`CONTENT_EDITOR` mở màn hình quản lý cuộc thi và chọn tạo mới hoặc chỉnh sửa một cuộc thi.
 
 ## Tiền điều kiện
 
-1. Người dùng đã đăng nhập và có role `CONTENT_ADMIN`.
+1. Người dùng đã đăng nhập và có role `CONTENT_EDITOR`.
 2. Request ghi từ web có CSRF hợp lệ.
 3. Đề được chọn cho cuộc thi tồn tại và đủ điều kiện sử dụng.
 4. Chính sách phần thưởng của cuộc thi đã được xác định.
@@ -824,12 +824,12 @@ Use Case này chỉ quản lý nội dung và trạng thái cuộc thi. Nếu ph
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_ADMIN` | Tạo cuộc thi mới. |
-| 2 | `CONTENT_ADMIN` | Nhập tên, thời gian bắt đầu/kết thúc, chọn đề và nhập thông tin phần thưởng. |
+| 1 | `CONTENT_EDITOR` | Tạo cuộc thi mới. |
+| 2 | `CONTENT_EDITOR` | Nhập tên, thời gian bắt đầu/kết thúc, chọn đề và nhập thông tin phần thưởng. |
 | 3 | System | Kiểm tra quyền, định dạng thời gian và cấu trúc dữ liệu. |
 | 4 | System | Kiểm tra thời gian bắt đầu nhỏ hơn thời gian kết thúc và đề hợp lệ. |
 | 5 | System | Lưu cuộc thi ở `DRAFT`. |
-| 6 | `CONTENT_ADMIN` | Kiểm tra lại và chọn **Công bố**. |
+| 6 | `CONTENT_EDITOR` | Kiểm tra lại và chọn **Công bố**. |
 | 7 | System | Kiểm tra lại các điều kiện bắt buộc và chuyển cuộc thi sang trạng thái công khai. |
 | 8 | System | Ghi audit cho thao tác công bố. |
 | 9 | Client | Hiển thị trạng thái cuộc thi đã công bố. |
@@ -853,15 +853,15 @@ Use Case này chỉ quản lý nội dung và trạng thái cuộc thi. Nếu ph
 
 **A4 — Phần thưởng là điểm**
 
-- `CONTENT_ADMIN` chỉ xác định/công bố người thắng theo chức năng cuộc thi.
-- Việc thay đổi số dư điểm phải đi qua luồng tài chính được phân quyền cho `FINANCE_ADMIN`.
+- `CONTENT_EDITOR` chỉ xác định/công bố người thắng theo chức năng cuộc thi.
+- Việc thay đổi số dư điểm phải đi qua luồng tài chính được phân quyền cho `ACCOUNTANT`.
 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không cho quản lý cuộc thi. |
-| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_ADMIN` | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_EDITOR` | Chặn. |
 | `INVALID_TIME_RANGE` | 422 | Thời gian bắt đầu không trước thời gian kết thúc | Không lưu/công bố. |
 | `START_IN_PAST` | 422 | Tạo cuộc thi mới nhưng thời gian bắt đầu đã qua | Không công bố. |
 | `EDIT_DURING_CONTEST` | 409 | Cố sửa thời gian/đề/phần thưởng khi đang diễn ra | Chặn. |
@@ -873,13 +873,13 @@ Use Case này chỉ quản lý nội dung và trạng thái cuộc thi. Nếu ph
 | # | Rule |
 | --- | --- |
 | BR-113-1 | UC này thuộc V2. Không gen code cho MVP. |
-| BR-113-2 | Chỉ `CONTENT_ADMIN` được tạo, sửa, công bố hoặc hủy cuộc thi. |
+| BR-113-2 | Chỉ `CONTENT_EDITOR` được tạo, sửa, công bố hoặc hủy cuộc thi. |
 | BR-113-3 | Cuộc thi phải có khung giờ hợp lệ: thời gian bắt đầu nhỏ hơn thời gian kết thúc. |
 | BR-113-4 | Khung giờ cuộc thi phải được nhập và hiển thị rõ theo giờ Việt Nam. |
 | BR-113-5 | Sau khi cuộc thi đang diễn ra, không được sửa khung giờ, đề thi hoặc phần thưởng. |
 | BR-113-6 | Cuộc thi công bố phải có đề thi hợp lệ. |
 | BR-113-7 | Xếp hạng cuộc thi chỉ được công bố sau khi cuộc thi kết thúc. |
-| BR-113-8 | Nếu phần thưởng là điểm hoặc giá trị tài chính, việc cộng thưởng phải do `FINANCE_ADMIN` xử lý qua luồng tài chính riêng, không do `CONTENT_ADMIN` tự cộng. |
+| BR-113-8 | Nếu phần thưởng là điểm hoặc giá trị tài chính, việc cộng thưởng phải do `ACCOUNTANT` xử lý qua luồng tài chính riêng, không do `CONTENT_EDITOR` tự cộng. |
 | BR-113-9 | Hủy cuộc thi thì chuyển trạng thái sang `CANCELLED` và thông báo cho người đã đăng ký. |
 
 ## API · DB
@@ -903,7 +903,7 @@ Dữ liệu liên quan: `contests`, `contest_participants`, `contest_submissions
 | T3 | Công bố cuộc thi không có đề hợp lệ | 422. |
 | T4 | Sửa đề hoặc phần thưởng khi cuộc thi đang diễn ra | 409. |
 | T5 | Công bố xếp hạng trước khi kết thúc | 409. |
-| T6 | `CONTENT_ADMIN` cố cộng điểm thưởng trực tiếp | Không được phép qua UC này. |
+| T6 | `CONTENT_EDITOR` cố cộng điểm thưởng trực tiếp | Không được phép qua UC này. |
 | T7 | Hủy cuộc thi trước khi kết thúc | `CANCELLED`, dữ liệu lịch sử được giữ. |
 
 ---
@@ -913,7 +913,7 @@ Dữ liệu liên quan: `contests`, `contest_participants`, `contest_submissions
 | | |
 | --- | --- |
 | **UC-ID** | UC-114 |
-| **Actor chính** | `SUPER_ADMIN` |
+| **Actor chính** | `ADMIN` |
 | **Loại** | User Goal |
 | **Pri** | P1 |
 | **Scope** | MVP |
@@ -922,19 +922,19 @@ Dữ liệu liên quan: `contests`, `contest_participants`, `contest_submissions
 
 ## Mô tả
 
-`SUPER_ADMIN` tìm tài khoản người dùng, xem thông tin quản trị cần thiết, khóa tài khoản khi có lý do hợp lệ và mở khóa tài khoản đã bị khóa.
+`ADMIN` tìm tài khoản người dùng, xem thông tin quản trị cần thiết, khóa tài khoản khi có lý do hợp lệ và mở khóa tài khoản đã bị khóa.
 
 Use Case không hỗ trợ xóa cứng người dùng. Khóa tài khoản phải làm mất hiệu lực truy cập của tài khoản, nhưng không xóa lịch sử học, bài làm, bài viết, giao dịch hoặc dữ liệu liên quan.
 
-Use Case này không bao gồm xử lý treo tài khoản do moderation của `MANAGER`; phần đó thuộc luồng moderation tương ứng.
+Use Case này không bao gồm xử lý treo tài khoản do moderation của `MODERATOR`; phần đó thuộc luồng moderation tương ứng.
 
 ## Kích hoạt
 
-`SUPER_ADMIN` mở màn hình quản lý người dùng hoặc tìm một tài khoản cần kiểm tra.
+`ADMIN` mở màn hình quản lý người dùng hoặc tìm một tài khoản cần kiểm tra.
 
 ## Tiền điều kiện
 
-1. Người thao tác đã đăng nhập và có role `SUPER_ADMIN`.
+1. Người thao tác đã đăng nhập và có role `ADMIN`.
 2. Với thao tác khóa/mở khóa từ web, request có CSRF token hợp lệ.
 3. Trước khi triển khai chức năng khóa, dự án đã chốt cách lưu trạng thái khóa/ban trên tài khoản.
 
@@ -967,13 +967,13 @@ Use Case này không bao gồm xử lý treo tài khoản do moderation của `M
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `SUPER_ADMIN` | Nhập email hoặc tên để tìm người dùng. |
+| 1 | `ADMIN` | Nhập email hoặc tên để tìm người dùng. |
 | 2 | System | Kiểm tra quyền và tìm các tài khoản phù hợp. |
 | 3 | System | Trả danh sách tối thiểu cần thiết; email được che một phần ở danh sách. |
-| 4 | `SUPER_ADMIN` | Mở chi tiết một tài khoản. |
+| 4 | `ADMIN` | Mở chi tiết một tài khoản. |
 | 5 | System | Kiểm tra quyền, trả dữ liệu quản trị được phép xem và ghi audit truy cập. |
-| 6 | `SUPER_ADMIN` | Chọn **Khóa tài khoản** và nhập lý do. |
-| 7 | System | Kiểm tra không phải tài khoản của chính người thao tác và không phải `SUPER_ADMIN` cuối cùng đang hoạt động. |
+| 6 | `ADMIN` | Chọn **Khóa tài khoản** và nhập lý do. |
+| 7 | System | Kiểm tra không phải tài khoản của chính người thao tác và không phải `ADMIN` cuối cùng đang hoạt động. |
 | 8 | System | Cập nhật trạng thái khóa, người khóa, lý do và thời điểm. |
 | 9 | System | Thu hồi toàn bộ refresh token của tài khoản. |
 | 10 | System | Ghi audit cho thao tác khóa. |
@@ -983,7 +983,7 @@ Use Case này không bao gồm xử lý treo tài khoản do moderation của `M
 
 **A1 — Mở khóa**
 
-1. `SUPER_ADMIN` mở tài khoản đang bị khóa.
+1. `ADMIN` mở tài khoản đang bị khóa.
 2. Chọn **Mở khóa**.
 3. Hệ thống gỡ trạng thái khóa và ghi audit.
 4. Không tạo lại các phiên đăng nhập cũ.
@@ -1004,10 +1004,10 @@ Use Case này không bao gồm xử lý treo tài khoản do moderation của `M
 | Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không trả dữ liệu quản trị. |
-| `FORBIDDEN_ROLE` | 403 | Không có `SUPER_ADMIN` | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có `ADMIN` | Chặn. |
 | `USER_NOT_FOUND` | 404 | Mở chi tiết ID không tồn tại | Không trả dữ liệu. |
-| `SELF_BAN` | 409 | `SUPER_ADMIN` cố khóa chính mình | Chặn. |
-| `BAN_LAST_SUPER_ADMIN` | 409 | Cố khóa `SUPER_ADMIN` cuối cùng đang hoạt động | Chặn. |
+| `SELF_BAN` | 409 | `ADMIN` cố khóa chính mình | Chặn. |
+| `BAN_LAST_ADMIN` | 409 | Cố khóa `ADMIN` cuối cùng đang hoạt động | Chặn. |
 | `EMPTY_BAN_REASON` | 422 | Không nhập lý do | Không khóa. |
 | `ACCOUNT_STATUS_NOT_DESIGNED` | Không phải runtime production | Chưa chốt trường trạng thái tài khoản | **Không triển khai chức năng khóa** cho đến khi chốt. |
 
@@ -1016,7 +1016,7 @@ Use Case này không bao gồm xử lý treo tài khoản do moderation của `M
 | # | Rule |
 | --- | --- |
 | BR-114-1 | UC này bị chặn cho đến khi nhóm chốt các trường trạng thái tài khoản như `banned_at`, `suspended_at` hoặc `locked_until`. |
-| BR-114-2 | Chỉ `SUPER_ADMIN` được tìm, xem chi tiết, khóa hoặc mở khóa tài khoản người dùng. |
+| BR-114-2 | Chỉ `ADMIN` được tìm, xem chi tiết, khóa hoặc mở khóa tài khoản người dùng. |
 | BR-114-3 | Danh sách người dùng chỉ hiển thị thông tin cần thiết. Email nên được che một phần ở danh sách. |
 | BR-114-4 | Khi xem chi tiết người dùng, hệ thống phải ghi audit log người quản trị nào đã xem tài khoản nào. |
 | BR-114-5 | Không bao giờ trả `password_hash`, token hoặc thông tin bảo mật nội bộ trong response quản lý người dùng. |
@@ -1024,8 +1024,8 @@ Use Case này không bao gồm xử lý treo tài khoản do moderation của `M
 | BR-114-7 | Khi khóa tài khoản, lý do khóa là bắt buộc và hệ thống phải ghi người khóa, thời điểm khóa. |
 | BR-114-8 | Khi khóa tài khoản, hệ thống phải thu hồi toàn bộ refresh token của tài khoản đó. |
 | BR-114-9 | Người bị khóa không được tiếp tục dùng API bằng token cũ. |
-| BR-114-10 | `SUPER_ADMIN` không được tự khóa chính mình. |
-| BR-114-11 | Không được khóa hoặc thu hồi quyền của `SUPER_ADMIN` cuối cùng đang hoạt động. |
+| BR-114-10 | `ADMIN` không được tự khóa chính mình. |
+| BR-114-11 | Không được khóa hoặc thu hồi quyền của `ADMIN` cuối cùng đang hoạt động. |
 | BR-114-12 | Mở khóa tài khoản không tự khôi phục phiên cũ. Người dùng phải đăng nhập lại. |
 
 ## API · DB
@@ -1045,13 +1045,13 @@ Dữ liệu liên quan: `users`, `auth_tokens`, audit log.
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | `SUPER_ADMIN` tìm theo email/tên | Danh sách đúng quyền; email được che. |
+| T1 | `ADMIN` tìm theo email/tên | Danh sách đúng quyền; email được che. |
 | T2 | Mở chi tiết một user | Trả dữ liệu cho phép; có audit. |
 | T3 | Khóa user hợp lệ | Trạng thái khóa được ghi, refresh token bị thu hồi. |
 | T4 | User bị khóa gọi API bằng phiên cũ | Bị từ chối theo cơ chế xác thực. |
-| T5 | `MANAGER` hoặc `FINANCE_ADMIN` gọi UC-114 | 403. |
-| T6 | `SUPER_ADMIN` tự khóa mình | 409. |
-| T7 | Khóa `SUPER_ADMIN` cuối cùng | 409. |
+| T5 | `MODERATOR` hoặc `ACCOUNTANT` gọi UC-114 | 403. |
+| T6 | `ADMIN` tự khóa mình | 409. |
+| T7 | Khóa `ADMIN` cuối cùng | 409. |
 | T8 | Mở khóa | Token cũ không tự hoạt động lại. |
 | T9 | Kiểm response | Không có password hash/token nội bộ. |
 
@@ -1062,7 +1062,7 @@ Dữ liệu liên quan: `users`, `auth_tokens`, audit log.
 | | |
 | --- | --- |
 | **UC-ID** | UC-115 |
-| **Actor chính** | `SUPER_ADMIN` |
+| **Actor chính** | `ADMIN` |
 | **Loại** | User Goal |
 | **Pri** | P1 |
 | **Scope** | MVP |
@@ -1071,19 +1071,19 @@ Dữ liệu liên quan: `users`, `auth_tokens`, audit log.
 
 ## Mô tả
 
-`SUPER_ADMIN` cấp hoặc thu hồi role của một tài khoản.
+`ADMIN` cấp hoặc thu hồi role của một tài khoản.
 
-Hệ thống hỗ trợ sáu role được lưu trong hệ thống: `USER`, `TEACHER`, `MANAGER`, `CONTENT_ADMIN`, `FINANCE_ADMIN`, `SUPER_ADMIN`. `GUEST` là trạng thái truy cập chưa đăng nhập, không phải role được gán cho tài khoản.
+Hệ thống hỗ trợ sáu role được lưu trong hệ thống: `LEARNER`, `TEACHER`, `MODERATOR`, `CONTENT_EDITOR`, `ACCOUNTANT`, `ADMIN`. `GUEST` là trạng thái truy cập chưa đăng nhập, không phải role được gán cho tài khoản.
 
-Một tài khoản có thể có nhiều role. `SUPER_ADMIN` không tự động có quyền của các role nghiệp vụ khác; chỉ những role được cấp rõ ràng mới có hiệu lực.
+Một tài khoản có thể có nhiều role. `ADMIN` không tự động có quyền của các role nghiệp vụ khác; chỉ những role được cấp rõ ràng mới có hiệu lực.
 
 ## Kích hoạt
 
-`SUPER_ADMIN` mở chi tiết quyền của một tài khoản và chọn cấp hoặc thu hồi role.
+`ADMIN` mở chi tiết quyền của một tài khoản và chọn cấp hoặc thu hồi role.
 
 ## Tiền điều kiện
 
-1. Người thao tác đã đăng nhập và có role `SUPER_ADMIN`.
+1. Người thao tác đã đăng nhập và có role `ADMIN`.
 2. Tài khoản mục tiêu tồn tại.
 3. Role cần thao tác tồn tại trong danh sách role chính thức.
 4. Với thao tác ghi từ web, request có CSRF token hợp lệ.
@@ -1111,9 +1111,9 @@ Một tài khoản có thể có nhiều role. `SUPER_ADMIN` không tự động
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `SUPER_ADMIN` | Mở danh sách role của tài khoản mục tiêu. |
+| 1 | `ADMIN` | Mở danh sách role của tài khoản mục tiêu. |
 | 2 | System | Kiểm tra quyền và trả các role hiện có. |
-| 3 | `SUPER_ADMIN` | Chọn một role cần cấp. |
+| 3 | `ADMIN` | Chọn một role cần cấp. |
 | 4 | System | Kiểm tra role hợp lệ và tài khoản mục tiêu không bị khóa/ban. |
 | 5 | System | Kiểm tra actor không tự cấp thêm role cho chính mình. |
 | 6 | System | Nếu target chưa có role, tạo quan hệ user-role và ghi người cấp/thời điểm. |
@@ -1125,8 +1125,8 @@ Một tài khoản có thể có nhiều role. `SUPER_ADMIN` không tự động
 
 **A1 — Thu hồi role**
 
-1. `SUPER_ADMIN` chọn một role đang có.
-2. Hệ thống kiểm tra thao tác không làm mất `SUPER_ADMIN` cuối cùng đang hoạt động.
+1. `ADMIN` chọn một role đang có.
+2. Hệ thống kiểm tra thao tác không làm mất `ADMIN` cuối cùng đang hoạt động.
 3. Hệ thống xóa quan hệ user-role.
 4. Ghi audit.
 5. Thu hồi phiên/token cũ của tài khoản mục tiêu.
@@ -1134,7 +1134,7 @@ Một tài khoản có thể có nhiều role. `SUPER_ADMIN` không tự động
 **A2 — Cấp nhiều role**
 
 - Thực hiện từng role theo luồng chính.
-- Không có role nào được ngầm kế thừa chỉ vì tài khoản có `SUPER_ADMIN`.
+- Không có role nào được ngầm kế thừa chỉ vì tài khoản có `ADMIN`.
 
 **A3 — Cấp `GUEST`**
 
@@ -1149,23 +1149,23 @@ Một tài khoản có thể có nhiều role. `SUPER_ADMIN` không tự động
 | Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Chặn. |
-| `FORBIDDEN_ROLE` | 403 | Không có `SUPER_ADMIN` | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có `ADMIN` | Chặn. |
 | `USER_NOT_FOUND` | 404 | Tài khoản mục tiêu không tồn tại | Không thay đổi role. |
 | `INVALID_ROLE_CODE` | 422 | Role ngoài danh sách chính thức hoặc là `GUEST` | Không thay đổi role. |
-| `SELF_ROLE_GRANT` | 403 | `SUPER_ADMIN` tự cấp thêm role cho mình | Chặn. |
+| `SELF_ROLE_GRANT` | 403 | `ADMIN` tự cấp thêm role cho mình | Chặn. |
 | `ROLE_GRANTED_TO_BANNED_USER` | 409 | Tài khoản mục tiêu đang bị khóa/ban | Không cấp role. |
-| `REVOKE_LAST_SUPER_ADMIN` | 409 | Thu hồi `SUPER_ADMIN` cuối cùng đang hoạt động | Chặn. |
+| `REVOKE_LAST_ADMIN` | 409 | Thu hồi `ADMIN` cuối cùng đang hoạt động | Chặn. |
 
 ## Business rule
 
 | # | Rule |
 | --- | --- |
-| BR-115-1 | Chỉ `SUPER_ADMIN` được cấp hoặc thu hồi role. |
+| BR-115-1 | Chỉ `ADMIN` được cấp hoặc thu hồi role. |
 | BR-115-2 | `GUEST` không phải role lưu trong database, nên không được cấp hoặc thu hồi như role. |
-| BR-115-3 | Hệ thống chỉ cho phép các role đã định nghĩa chính thức: `USER`, `TEACHER`, `MANAGER`, `CONTENT_ADMIN`, `FINANCE_ADMIN`, `SUPER_ADMIN`. |
+| BR-115-3 | Hệ thống chỉ cho phép các role đã định nghĩa chính thức: `LEARNER`, `TEACHER`, `MODERATOR`, `CONTENT_EDITOR`, `ACCOUNTANT`, `ADMIN`. |
 | BR-115-4 | Một người dùng có thể có nhiều role nếu được cấp hợp lệ. |
-| BR-115-5 | `SUPER_ADMIN` không được tự cấp thêm role cho chính mình. |
-| BR-115-6 | Không được thu hồi role `SUPER_ADMIN` cuối cùng đang hoạt động. |
+| BR-115-5 | `ADMIN` không được tự cấp thêm role cho chính mình. |
+| BR-115-6 | Không được thu hồi role `ADMIN` cuối cùng đang hoạt động. |
 | BR-115-7 | Không cấp role mới cho tài khoản đang bị khóa hoặc bị ban. |
 | BR-115-8 | Mỗi lần cấp role phải ghi người cấp, thời điểm cấp và audit log. |
 | BR-115-9 | Mỗi lần thu hồi role phải ghi người thu hồi, thời điểm thu hồi và audit log. |
@@ -1186,12 +1186,12 @@ Dữ liệu liên quan: `user_roles`, `roles`, `users`, `auth_tokens`, audit log
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | `SUPER_ADMIN` cấp `TEACHER` cho user hợp lệ | Role được tạo, có `granted_by`, audit và token cũ bị thu hồi. |
-| T2 | `CONTENT_ADMIN`, `FINANCE_ADMIN`, `MANAGER`, `TEACHER` hoặc `USER` gọi | 403. |
-| T3 | Tự cấp `FINANCE_ADMIN` | 403. |
+| T1 | `ADMIN` cấp `TEACHER` cho user hợp lệ | Role được tạo, có `granted_by`, audit và token cũ bị thu hồi. |
+| T2 | `CONTENT_EDITOR`, `ACCOUNTANT`, `MODERATOR`, `TEACHER` hoặc `LEARNER` gọi | 403. |
+| T3 | Tự cấp `ACCOUNTANT` | 403. |
 | T4 | Cấp `GUEST` | 422. |
 | T5 | Cấp role đã có | Không tạo dòng trùng. |
-| T6 | Thu hồi `SUPER_ADMIN` cuối cùng | 409. |
+| T6 | Thu hồi `ADMIN` cuối cùng | 409. |
 | T7 | Cấp role cho tài khoản bị khóa | 409. |
 | T8 | Gửi `roles` qua API cập nhật profile | Không thay đổi `user_roles`. |
 | T9 | Sau khi thu hồi role | Phiên/token cũ không tiếp tục dùng quyền đã bị gỡ. |
@@ -1203,7 +1203,7 @@ Dữ liệu liên quan: `user_roles`, `roles`, `users`, `auth_tokens`, audit log
 | | |
 | --- | --- |
 | **UC-ID** | UC-116 |
-| **Actor chính** | `SUPER_ADMIN` |
+| **Actor chính** | `ADMIN` |
 | **Loại** | User Goal |
 | **Pri** | P2 |
 | **Scope** | Deferred |
@@ -1212,7 +1212,7 @@ Dữ liệu liên quan: `user_roles`, `roles`, `users`, `auth_tokens`, audit log
 
 ## Mô tả
 
-`SUPER_ADMIN` thay đổi các **tham số nghiệp vụ đã được phê duyệt** mà hệ thống cho phép cấu hình mà không cần sửa code.
+`ADMIN` thay đổi các **tham số nghiệp vụ đã được phê duyệt** mà hệ thống cho phép cấu hình mà không cần sửa code.
 
 Use Case này không cho phép tạo key tùy ý và không dùng để quản lý secret, API key, mật khẩu hoặc token.
 
@@ -1220,11 +1220,11 @@ Trong trạng thái hiện tại, dự án chưa chốt danh sách tham số nà
 
 ## Kích hoạt
 
-Sau khi UC được đưa trở lại scope, `SUPER_ADMIN` mở trang cấu hình hệ thống và chọn một tham số đã được khai báo để chỉnh sửa.
+Sau khi UC được đưa trở lại scope, `ADMIN` mở trang cấu hình hệ thống và chọn một tham số đã được khai báo để chỉnh sửa.
 
 ## Tiền điều kiện
 
-1. Người thao tác đã đăng nhập và có role `SUPER_ADMIN`.
+1. Người thao tác đã đăng nhập và có role `ADMIN`.
 2. Danh sách key cấu hình được phép chỉnh đã được phê duyệt.
 3. Mỗi key có kiểu dữ liệu, giá trị mặc định và khoảng hợp lệ.
 4. Thiết kế nơi lưu cấu hình đã được duyệt.
@@ -1249,9 +1249,9 @@ Sau khi UC được đưa trở lại scope, `SUPER_ADMIN` mở trang cấu hìn
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `SUPER_ADMIN` | Mở trang cấu hình hệ thống. |
+| 1 | `ADMIN` | Mở trang cấu hình hệ thống. |
 | 2 | System | Kiểm tra quyền và trả danh sách các tham số được phép chỉnh. |
-| 3 | `SUPER_ADMIN` | Chọn một tham số và nhập giá trị mới. |
+| 3 | `ADMIN` | Chọn một tham số và nhập giá trị mới. |
 | 4 | System | Kiểm tra key có trong danh sách cho phép. |
 | 5 | System | Kiểm tra kiểu dữ liệu và phạm vi giá trị. |
 | 6 | System | Kiểm tra thay đổi không vi phạm các giới hạn đang được áp dụng cho một hoạt động không được phép thay đổi giữa chừng. |
@@ -1263,7 +1263,7 @@ Sau khi UC được đưa trở lại scope, `SUPER_ADMIN` mở trang cấu hìn
 
 **A1 — Chỉ xem cấu hình**
 
-- `SUPER_ADMIN` mở trang và không chỉnh sửa.
+- `ADMIN` mở trang và không chỉnh sửa.
 - Không có thay đổi hoặc audit dạng “change”.
 
 **A2 — Thay đổi có thể làm sai tiến độ đã có**
@@ -1280,7 +1280,7 @@ Sau khi UC được đưa trở lại scope, `SUPER_ADMIN` mở trang cấu hìn
 | Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Chặn. |
-| `FORBIDDEN_ROLE` | 403 | Không có `SUPER_ADMIN` | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có `ADMIN` | Chặn. |
 | `UNKNOWN_SETTING_KEY` | 404 | Key không nằm trong danh sách cho phép | Không tạo key mới. |
 | `VALUE_OUT_OF_RANGE` | 422 | Giá trị sai kiểu hoặc ngoài khoảng | Giữ giá trị cũ. |
 | `SECRET_SETTING_NOT_ALLOWED` | 422 | Cố lưu secret/API key/mật khẩu/token | Chặn. |
@@ -1292,7 +1292,7 @@ Sau khi UC được đưa trở lại scope, `SUPER_ADMIN` mở trang cấu hìn
 | # | Rule |
 | --- | --- |
 | BR-116-1 | UC này nên cắt khỏi MVP nếu nhóm chưa chốt rõ danh sách cấu hình và chưa có nơi lưu cấu hình. |
-| BR-116-2 | Nếu triển khai, chỉ `SUPER_ADMIN` được xem và sửa cấu hình hệ thống. |
+| BR-116-2 | Nếu triển khai, chỉ `ADMIN` được xem và sửa cấu hình hệ thống. |
 | BR-116-3 | Chỉ các key cấu hình đã được khai báo trước mới được sửa. Không cho tạo key tùy ý từ giao diện. |
 | BR-116-4 | Mỗi cấu hình phải có kiểu dữ liệu, khoảng giá trị hợp lệ và mô tả rõ ràng. |
 | BR-116-5 | Không lưu secret, API key, mật khẩu hoặc token trong bảng cấu hình. Secret phải dùng biến môi trường hoặc cơ chế bảo mật riêng. |
@@ -1314,7 +1314,7 @@ PUT /api/admin/settings/{key}
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | `CONTENT_ADMIN` gọi | 403. |
+| T1 | `CONTENT_EDITOR` gọi | 403. |
 | T2 | Key không được khai báo | 404. |
 | T3 | Giá trị ngoài khoảng | 422. |
 | T4 | Cố lưu API key | 422. |
@@ -1329,7 +1329,7 @@ PUT /api/admin/settings/{key}
 | | |
 | --- | --- |
 | **UC-ID** | UC-117 |
-| **Actor chính** | `GUEST`, `USER` |
+| **Actor chính** | `GUEST`, `LEARNER` |
 | **Loại** | User Goal |
 | **Pri** | P3 |
 | **Scope** | V2 |
@@ -1344,7 +1344,7 @@ CNHSK chỉ hiển thị thông tin giới thiệu và liên kết ra trang bên
 
 ## Kích hoạt
 
-`GUEST` hoặc `USER` mở SCR-053 YouTube & Podcasts và chọn nhóm YouTube hoặc podcast.
+`GUEST` hoặc `LEARNER` mở SCR-053 YouTube & Podcasts và chọn nhóm YouTube hoặc podcast.
 
 ## Tiền điều kiện
 
@@ -1362,13 +1362,13 @@ Không yêu cầu đăng nhập.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `GUEST` / `USER` | Mở SCR-053 YouTube & Podcasts. |
-| 2 | `GUEST` / `USER` | Chọn loại YouTube hoặc podcast. |
+| 1 | `GUEST` / `LEARNER` | Mở SCR-053 YouTube & Podcasts. |
+| 2 | `GUEST` / `LEARNER` | Chọn loại YouTube hoặc podcast. |
 | 3 | System | Lấy các tài nguyên đã công bố đúng loại. |
 | 4 | System | Áp dụng bộ lọc HSK nếu người dùng chọn. |
 | 5 | System | Trả tên, mô tả, cấp HSK phù hợp và URL bên ngoài. |
 | 6 | Client | Hiển thị danh sách tài nguyên. |
-| 7 | `GUEST` / `USER` | Chọn một tài nguyên. |
+| 7 | `GUEST` / `LEARNER` | Chọn một tài nguyên. |
 | 8 | Client | Mở liên kết bên ngoài trong tab mới với thuộc tính an toàn. |
 
 ## Luồng thay thế
@@ -1385,7 +1385,7 @@ Không yêu cầu đăng nhập.
 **A3 — Phát hiện link chết**
 
 - UC này không tạo thêm hệ thống báo cáo riêng.
-- Người dùng có thể thông báo qua kênh hỗ trợ hiện có; `CONTENT_ADMIN` sửa hoặc ẩn tài nguyên bằng UC-119.
+- Người dùng có thể thông báo qua kênh hỗ trợ hiện có; `CONTENT_EDITOR` sửa hoặc ẩn tài nguyên bằng UC-119.
 
 ## Bảng exception
 
@@ -1400,11 +1400,11 @@ Không yêu cầu đăng nhập.
 | # | Rule |
 | --- | --- |
 | BR-117-1 | UC này thuộc V2/P3. Không gen code cho MVP. |
-| BR-117-2 | `GUEST` và `USER` đều được xem danh sách tài nguyên đã công bố. |
+| BR-117-2 | `GUEST` và `LEARNER` đều được xem danh sách tài nguyên đã công bố. |
 | BR-117-3 | Chỉ hiển thị tài nguyên có trạng thái đã công bố. Tài nguyên nháp hoặc đã ẩn không được hiển thị công khai. |
 | BR-117-4 | Tính năng này chỉ hiển thị link ra ngoài, không tải, lưu, sao chép hoặc nhúng nội dung của bên thứ ba. |
 | BR-117-5 | Link ngoài phải mở an toàn, dùng `rel="noopener noreferrer"` nếu mở tab mới. |
-| BR-117-6 | Người dùng có thể báo link chết hoặc link sai để `CONTENT_ADMIN` xử lý sau. |
+| BR-117-6 | Người dùng có thể báo link chết hoặc link sai để `CONTENT_EDITOR` xử lý sau. |
 | BR-117-7 | Link tài nguyên phải được kiểm tra domain hợp lệ ở luồng quản lý tài nguyên, không đợi đến lúc hiển thị mới kiểm. |
 
 ## API · DB
@@ -1420,7 +1420,7 @@ Dữ liệu liên quan: `learning_resources`.
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
 | T1 | `GUEST` xem danh sách YouTube | Xem được tài nguyên đã công bố. |
-| T2 | `USER` xem podcast | Xem được tài nguyên đã công bố. |
+| T2 | `LEARNER` xem podcast | Xem được tài nguyên đã công bố. |
 | T3 | Tài nguyên chưa công bố | Không xuất hiện. |
 | T4 | `hsk_level` ngoài phạm vi | 422. |
 | T5 | Không có dữ liệu | 200 với danh sách rỗng. |
@@ -1433,7 +1433,7 @@ Dữ liệu liên quan: `learning_resources`.
 | | |
 | --- | --- |
 | **UC-ID** | UC-118 |
-| **Actor chính** | `GUEST`, `USER` |
+| **Actor chính** | `GUEST`, `LEARNER` |
 | **Loại** | User Goal |
 | **Pri** | P3 |
 | **Scope** | V2 |
@@ -1448,7 +1448,7 @@ Use Case chỉ là danh mục tham khảo. CNHSK không lưu trữ, phân phối
 
 ## Kích hoạt
 
-`GUEST` hoặc `USER` mở SCR-054 Book Catalogue; chọn một sách để xem SCR-055 Book Detail.
+`GUEST` hoặc `LEARNER` mở SCR-054 Book Catalogue; chọn một sách để xem SCR-055 Book Detail.
 
 ## Tiền điều kiện
 
@@ -1467,12 +1467,12 @@ Không yêu cầu đăng nhập.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `GUEST` / `USER` | Mở SCR-054 Book Catalogue. |
+| 1 | `GUEST` / `LEARNER` | Mở SCR-054 Book Catalogue. |
 | 2 | System | Lấy các tài nguyên loại `BOOK` đang được công bố. |
 | 3 | System | Áp dụng bộ lọc HSK nếu có. |
 | 4 | System | Trả tên sách, tác giả, thông tin xuất bản có sẵn, cấp độ phù hợp, mô tả và link mua/tham khảo nếu có. |
 | 5 | Client | Hiển thị danh sách. |
-| 6 | `GUEST` / `USER` | Chọn một sách để mở SCR-055 Book Detail. |
+| 6 | `GUEST` / `LEARNER` | Chọn một sách để mở SCR-055 Book Detail. |
 | 7 | Client | Hiển thị metadata tại SCR-055 Book Detail; nếu có link ngoài thì cho phép mở link an toàn. |
 
 ## Luồng thay thế
@@ -1508,7 +1508,7 @@ Không yêu cầu đăng nhập.
 | # | Rule |
 | --- | --- |
 | BR-118-1 | UC này thuộc V2/P3. Không gen code cho MVP. |
-| BR-118-2 | `GUEST` và `USER` đều được xem danh mục sách đã công bố. |
+| BR-118-2 | `GUEST` và `LEARNER` đều được xem danh mục sách đã công bố. |
 | BR-118-3 | Danh mục sách chỉ hiển thị thông tin giới thiệu và link mua hoặc link tham khảo. |
 | BR-118-4 | Hệ thống không lưu, không cho tải và không phân phối PDF hoặc nội dung sách có bản quyền. |
 | BR-118-5 | Không lưu ảnh bìa sách nếu chưa chắc quyền sử dụng. Nếu cần ảnh, chỉ lưu link ảnh hoặc bỏ ảnh bìa. |
@@ -1542,7 +1542,7 @@ Dữ liệu liên quan: `learning_resources`.
 | | |
 | --- | --- |
 | **UC-ID** | UC-119 |
-| **Actor chính** | `CONTENT_ADMIN` |
+| **Actor chính** | `CONTENT_EDITOR` |
 | **Loại** | User Goal |
 | **Pri** | P3 |
 | **Scope** | V2 |
@@ -1551,17 +1551,17 @@ Dữ liệu liên quan: `learning_resources`.
 
 ## Mô tả
 
-`CONTENT_ADMIN` thêm, sửa, công bố hoặc ẩn các tài nguyên tham khảo dùng cho UC-117 và UC-118, gồm kênh YouTube, podcast và sách.
+`CONTENT_EDITOR` thêm, sửa, công bố hoặc ẩn các tài nguyên tham khảo dùng cho UC-117 và UC-118, gồm kênh YouTube, podcast và sách.
 
 Tài nguyên mới luôn ở trạng thái chưa công bố để người quản trị kiểm tra trước. Hệ thống chỉ lưu metadata và liên kết; không lưu nội dung của bên thứ ba.
 
 ## Kích hoạt
 
-`CONTENT_ADMIN` mở màn hình quản lý tài nguyên và chọn tạo mới hoặc chỉnh sửa một mục.
+`CONTENT_EDITOR` mở màn hình quản lý tài nguyên và chọn tạo mới hoặc chỉnh sửa một mục.
 
 ## Tiền điều kiện
 
-1. Người dùng đã đăng nhập và có role `CONTENT_ADMIN`.
+1. Người dùng đã đăng nhập và có role `CONTENT_EDITOR`.
 2. Request ghi từ web có CSRF token hợp lệ.
 3. Loại tài nguyên nằm trong danh sách hệ thống hỗ trợ.
 4. Danh sách domain được phép cho từng loại tài nguyên đã được cấu hình.
@@ -1593,14 +1593,14 @@ Tài nguyên mới luôn ở trạng thái chưa công bố để người quả
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_ADMIN` | Chọn **Thêm tài nguyên**. |
-| 2 | `CONTENT_ADMIN` | Nhập loại, tên, mô tả, cấp HSK nếu có và URL. |
+| 1 | `CONTENT_EDITOR` | Chọn **Thêm tài nguyên**. |
+| 2 | `CONTENT_EDITOR` | Nhập loại, tên, mô tả, cấp HSK nếu có và URL. |
 | 3 | System | Kiểm tra quyền và CSRF. |
 | 4 | System | Kiểm tra loại tài nguyên hợp lệ. |
 | 5 | System | Kiểm tra URL đúng định dạng và chỉ dùng `https`. |
 | 6 | System | Kiểm tra domain thuộc danh sách được phép cho loại tài nguyên đó. |
 | 7 | System | Lưu tài nguyên ở trạng thái chưa công bố và ghi audit. |
-| 8 | `CONTENT_ADMIN` | Kiểm tra lại nội dung và chọn **Công bố**. |
+| 8 | `CONTENT_EDITOR` | Kiểm tra lại nội dung và chọn **Công bố**. |
 | 9 | System | Kiểm tra lại dữ liệu bắt buộc và chuyển sang trạng thái công bố. |
 | 10 | Client | Hiển thị trạng thái mới. |
 
@@ -1621,7 +1621,7 @@ Tài nguyên mới luôn ở trạng thái chưa công bố để người quả
 
 **A3 — Xử lý link chết**
 
-- `CONTENT_ADMIN` kiểm tra link.
+- `CONTENT_EDITOR` kiểm tra link.
 - Nếu có URL thay thế hợp lệ thì cập nhật.
 - Nếu chưa có URL thay thế, ẩn tài nguyên.
 - Không tạo thêm một hệ thống quản lý report riêng trong UC này.
@@ -1631,7 +1631,7 @@ Tài nguyên mới luôn ở trạng thái chưa công bố để người quả
 | Mã lỗi | HTTP | Khi xảy ra | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Chặn. |
-| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_ADMIN` | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có `CONTENT_EDITOR` | Chặn. |
 | `INVALID_RESOURCE_TYPE` | 422 | Loại tài nguyên không được hỗ trợ | Không lưu. |
 | `NON_HTTPS_LINK` | 422 | URL không dùng `https` | Không lưu. |
 | `MALFORMED_URL` | 422 | URL sai định dạng | Không lưu. |
@@ -1644,7 +1644,7 @@ Tài nguyên mới luôn ở trạng thái chưa công bố để người quả
 | # | Rule |
 | --- | --- |
 | BR-119-1 | UC này thuộc V2/P3. Không gen code cho MVP. |
-| BR-119-2 | Chỉ `CONTENT_ADMIN` được thêm, sửa, ẩn hoặc công bố tài nguyên tham khảo. |
+| BR-119-2 | Chỉ `CONTENT_EDITOR` được thêm, sửa, ẩn hoặc công bố tài nguyên tham khảo. |
 | BR-119-3 | Tài nguyên mới tạo mặc định ở trạng thái chưa công bố. |
 | BR-119-4 | Link tài nguyên phải dùng `https`. Không chấp nhận `http`, `javascript:`, `data:` hoặc URL sai định dạng. |
 | BR-119-5 | Link tài nguyên phải thuộc danh sách domain được phép. |
@@ -1673,7 +1673,7 @@ Dữ liệu liên quan: `learning_resources`, audit log.
 | T3 | URL `javascript:alert(1)` | 422. |
 | T4 | Domain ngoài whitelist | 422. |
 | T5 | Công bố tài nguyên thiếu trường bắt buộc | 422, vẫn chưa công bố. |
-| T6 | `FINANCE_ADMIN` gọi | 403. |
+| T6 | `ACCOUNTANT` gọi | 403. |
 | T7 | Ẩn tài nguyên đã công bố | Không còn xuất hiện ở public API, bản ghi vẫn còn. |
 | T8 | Sửa URL sang domain khác | URL mới được validate lại trước khi lưu. |
 
@@ -1707,7 +1707,7 @@ Dữ liệu liên quan: `learning_resources`, audit log.
 | | |
 | --- | --- |
 | **ID** | UC-137 |
-| **Actor chính** | `CONTENT_ADMIN` |
+| **Actor chính** | `CONTENT_EDITOR` |
 | **Actor phụ** | `TEACHER` — cùng duyệt câu hỏi AI ở UC-108 và UC-109 |
 | **Priority** | P1 |
 | **Scope** | MVP |
@@ -1716,7 +1716,7 @@ Dữ liệu liên quan: `learning_resources`, audit log.
 
 ## Mô tả
 
-Người quản trị nội dung đưa dữ liệu học vào hệ thống và giữ cho kho câu hỏi, đề thi luôn đúng. Mọi nội dung tới người học đều đi qua khâu kiểm duyệt của họ hoặc của giảng viên.
+Biên tập viên nội dung đưa dữ liệu học vào hệ thống và giữ cho kho câu hỏi, đề thi luôn đúng. Mọi nội dung tới người học đều đi qua khâu kiểm duyệt của họ hoặc của giảng viên.
 
 ## Quan hệ use case
 
@@ -1730,7 +1730,7 @@ Người quản trị nội dung đưa dữ liệu học vào hệ thống và g
 
 ## Tiền điều kiện
 
-- Người dùng có vai trò quản trị nội dung
+- Người dùng có vai trò biên tập viên nội dung (`CONTENT_EDITOR`)
 - Với việc nhập dữ liệu, file đúng định dạng đã quy định
 
 ## Hậu điều kiện
@@ -1741,11 +1741,11 @@ Người quản trị nội dung đưa dữ liệu học vào hệ thống và g
 
 ## Luồng chính
 
-1. `CONTENT_ADMIN` mở khu vực quản trị nội dung
+1. `CONTENT_EDITOR` mở khu vực quản trị nội dung
 2. Chọn việc cần làm là nhập dữ liệu, duyệt câu hỏi hay quản lý đề thi
 3. Với nhập dữ liệu, tải file lên và xem trước kết quả kiểm tra
 4. Hệ thống báo số dòng hợp lệ và liệt kê dòng lỗi kèm lý do
-5. `CONTENT_ADMIN` xác nhận nhập các dòng hợp lệ
+5. `CONTENT_EDITOR` xác nhận nhập các dòng hợp lệ
 6. Với câu hỏi chờ duyệt, xem nội dung và quyết định nhận hay từ chối
 7. Hệ thống ghi lại thao tác kèm người thực hiện
 8. Nội dung đã duyệt trở nên khả dụng cho người học
@@ -1765,7 +1765,7 @@ Không cho đổi đáp án đúng, vì sẽ làm sai lịch sử kết quả đ
 
 | Mã | Tình huống | HTTP | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN` | Không có vai trò quản trị nội dung | **403** | Từ chối truy cập |
+| `FORBIDDEN` | Không có vai trò biên tập viên nội dung | **403** | Từ chối truy cập |
 | `FILE_FORMAT_INVALID` | File sai định dạng | **422** | Báo định dạng được chấp nhận |
 | `IMPORT_ENCODING_ERROR` | File lỗi mã hóa chữ Hán | **422** | Chặn trước khi ghi, tránh dữ liệu hỏng |
 | `QUESTION_IN_USE` | Đổi đáp án câu đã có người làm | **409** | Yêu cầu tạo phiên bản câu hỏi mới |

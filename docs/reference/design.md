@@ -81,19 +81,19 @@ THE system SHALL dùng component semantic như `Button`, `Card`, `Progress`,
 | Actor | Quyền | Thiết bị chính | Nhóm màn hình được dùng |
 | --- | --- | --- | --- |
 | Khách | Xem giới thiệu và trang công khai, tra từ điển, đăng ký/đăng nhập — không dùng thử tính năng (mục 5.2) | Web, mobile | Public, auth |
-| USER | Học, luyện, thi, chơi, dùng thư viện và cộng đồng | Web, mobile | Toàn bộ màn học viên |
-| TEACHER | Duyệt câu hỏi AI, chấm bài thuê | Desktop web | SCR-056–SCR-059; học viên chỉ khi có USER |
-| MANAGER | Kiểm duyệt cộng đồng | Desktop web | SCR-060–SCR-063; học viên chỉ khi có USER |
-| CONTENT_ADMIN | Duyệt câu hỏi AI, quản lý nội dung | Desktop web | SCR-058/SCR-059, SCR-064–SCR-072; học viên chỉ khi có USER |
-| FINANCE_ADMIN | Sổ cái, mã thẻ, gói dịch vụ | Desktop web | SCR-073–SCR-075; học viên chỉ khi có USER |
-| SUPER_ADMIN | Người dùng, phân quyền, cấu hình được phép | Desktop web | SCR-076–SCR-078; học viên chỉ khi có USER |
-| SYSTEM | Tác vụ tự động, không phải người dùng | — | Không có màn hình |
+| LEARNER | Học, luyện, thi, chơi, dùng thư viện và cộng đồng | Web, mobile | Toàn bộ màn học viên |
+| TEACHER | Duyệt câu hỏi AI, chấm bài thuê | Desktop web | SCR-056–SCR-059; học viên chỉ khi có LEARNER |
+| MODERATOR | Kiểm duyệt cộng đồng | Desktop web | SCR-060–SCR-063; học viên chỉ khi có LEARNER |
+| CONTENT_EDITOR | Nhập dữ liệu, quản lý đề, kho câu hỏi, cuộc thi, tài liệu | Desktop web | SCR-064–SCR-072; học viên chỉ khi có LEARNER |
+| ACCOUNTANT | Sổ cái, mã thẻ, gói dịch vụ | Desktop web | SCR-073–SCR-075; học viên chỉ khi có LEARNER |
+| ADMIN | Người dùng, phân quyền, cấu hình được phép | Desktop web | SCR-076–SCR-078; học viên chỉ khi có LEARNER |
 
-> **Tám actor**, khớp Hiến pháp mục *Tám actor*. `ADMIN` gộp ở bản trước đã tách
-> thành ba role theo nguyên tắc phân tách nhiệm vụ — xem mục 5.3.
+> **Bảy actor**, khớp Hiến pháp mục *Bảy actor*. Job định kỳ không phải actor. Quyền quản trị
+> tách thành ba role (`CONTENT_EDITOR`, `ACCOUNTANT`, `ADMIN`) theo nguyên tắc phân tách nhiệm vụ — xem mục 5.3.
+> Chỉ `ADMIN` mang chữ "Admin".
 >
-> `TEACHER` và `CONTENT_ADMIN` **cùng** duyệt được câu hỏi AI, theo `BUS-07`.
-> Cả hai dùng chung AI Review Queue SCR-058 và Question Edit SCR-059 theo quyền được gán; không kế thừa USER.
+> **Chỉ `TEACHER`** duyệt câu hỏi AI và sửa nội dung câu hỏi (SCR-058/SCR-059), theo `BUS-07`.
+> Cả hai dùng chung AI Review Queue SCR-058 và Question Edit SCR-059 theo quyền được gán; không kế thừa LEARNER.
 
 **Ranh giới giữa các nền tảng:**
 
@@ -111,7 +111,7 @@ THE system SHALL dùng component semantic như `Button`, `Card`, `Progress`,
 
 ★ **Xác thực và vào hệ thống:** Landing → Đăng ký (nhận email xác thực) hoặc
 Đăng nhập → xác thực theo client (web cookie · mobile header ·
-WebView tiêm token, xử lý nội bộ không có control cho người dùng chọn) → khu được phép theo role được gán (USER vào SCR-010).
+WebView tiêm token, xử lý nội bộ không có control cho người dùng chọn) → khu được phép theo role được gán (LEARNER vào SCR-010).
 Cơ chế chặn đăng nhập theo nguồn và lỗi tương ứng xem SCR-002; không suy ra quyền kế thừa từ việc đăng nhập.
 Đặt lại mật khẩu → thu hồi **toàn bộ** refresh token.
 
@@ -125,7 +125,7 @@ Server chấm → Xem lỗi theo điểm kiến thức → Luyện ngay phần y
 nếu là flashcard → Nhận lịch ôn mới → Xem tiến độ.
 
 **Tra cứu để học:** SCR-024 → SCR-025; dịch đoạn là SCR-026 riêng.
-USER có thể lưu vào SCR-027/SCR-029 theo quyền; khách chỉ đọc public projection.
+LEARNER có thể lưu vào SCR-027/SCR-029 theo quyền; khách chỉ đọc public projection.
 
 **Chơi game trên web:** Web chính → Web game → `/api/auth/me` → Game Hub
 SCR-035 → Game Session SCR-036 → kết quả cá nhân được server xác nhận ngay trong
@@ -173,24 +173,24 @@ Inventory giữ nguyên SCR-001 đến SCR-079. Một UC có thể dùng nhiều
 
 Khách được vào SCR-001–SCR-006 và các tài nguyên công khai được Screen Flow chỉ rõ: Dictionary Search/Detail SCR-024/SCR-025, Community Post List/Detail SCR-039/SCR-040, Topic/Game Leaderboard SCR-046/SCR-047, Contest List/Detail SCR-048/SCR-049, Public Flashcard Deck List SCR-052, YouTube & Podcasts SCR-053, Book Catalogue/Detail SCR-054/SCR-055. Nội dung V2 chỉ hiện khi feature tương ứng được triển khai. Public read không cấp quyền lưu dữ liệu hoặc tham gia.
 
-Learner workspace và USER services yêu cầu role USER được gán tường minh. Translation tách khỏi Dictionary Search/Detail; Personal Notes và bộ flashcard cá nhân không xuất hiện như chức năng dùng thử cho khách. SCR-029 chỉ có public projection khi khả năng chia sẻ V2 được bật; owner edit vẫn kiểm quyền sở hữu. SCR-042 theo nhánh Community Actions của flow, cần USER; không tự biến thành route khách chỉ vì tên có chữ Profile. Contest Results SCR-051 thuộc nhánh USER đã xác thực của flow, đồng thời kiểm publication/ownership ở screen-fields.md. Link kết quả từ thông tin cuộc thi công khai phải qua ranh giới đăng nhập; không tự cấp guest access hoặc mở đáp án riêng của người khác.
+Learner workspace và LEARNER services yêu cầu role LEARNER được gán tường minh. Translation tách khỏi Dictionary Search/Detail; Personal Notes và bộ flashcard cá nhân không xuất hiện như chức năng dùng thử cho khách. SCR-029 chỉ có public projection khi khả năng chia sẻ V2 được bật; owner edit vẫn kiểm quyền sở hữu. SCR-042 theo nhánh Community Actions của flow, cần LEARNER; không tự biến thành route khách chỉ vì tên có chữ Profile. Contest Results SCR-051 thuộc nhánh LEARNER đã xác thực của flow, đồng thời kiểm publication/ownership ở screen-fields.md. Link kết quả từ thông tin cuộc thi công khai phải qua ranh giới đăng nhập; không tự cấp guest access hoặc mở đáp án riêng của người khác.
 
-Từ tài nguyên công khai, action cần USER dẫn tới SCR-002 với đích trở lại đã kiểm tra. Đăng ký thành công tới SCR-004; xác thực email là hướng dẫn, không phải cửa chặn việc học. Hạn mức khách cho tra cứu là chống lạm dụng, không cấp dùng thử học/AI/game. Ngưỡng/cách đếm còn khác nhau giữa auth spec và UC thư viện, phải dùng Open Issues của SCR-024/SCR-025 để chốt contract trước khi triển khai.
+Từ tài nguyên công khai, action cần LEARNER dẫn tới SCR-002 với đích trở lại đã kiểm tra. Đăng ký thành công tới SCR-004; xác thực email là hướng dẫn, không phải cửa chặn việc học. Hạn mức khách cho tra cứu là chống lạm dụng, không cấp dùng thử học/AI/game. Ngưỡng/cách đếm còn khác nhau giữa auth spec và UC thư viện, phải dùng Open Issues của SCR-024/SCR-025 để chốt contract trước khi triển khai.
 
 ### 5.3. Role navigation và shared pages
 
 | Role gán tường minh | Menu/entry được phép |
 |---|---|
-| USER | SCR-010 và learner/USER service screens theo §5.1; Account SCR-007/SCR-008 và nhắc học SCR-009 theo actor của từng màn |
+| LEARNER | SCR-010 và learner/LEARNER service screens theo §5.1; Account SCR-007/SCR-008 và nhắc học SCR-009 theo actor của từng màn |
 | TEACHER | SCR-056/SCR-057; SCR-058/SCR-059 với quyền review nội dung |
-| MANAGER | SCR-060–SCR-063 |
-| CONTENT_ADMIN | SCR-058/SCR-059; SCR-064–SCR-072 |
-| FINANCE_ADMIN | SCR-073–SCR-075 |
-| SUPER_ADMIN | SCR-076–SCR-078 |
+| MODERATOR | SCR-060–SCR-063 |
+| CONTENT_EDITOR | SCR-058/SCR-059; SCR-064–SCR-072 |
+| ACCOUNTANT | SCR-073–SCR-075 |
+| ADMIN | SCR-076–SCR-078 |
 
-Không kế thừa role: TEACHER không mặc nhiên có USER; SUPER_ADMIN không mặc nhiên có quyền tài chính, nội dung hoặc kiểm duyệt. Một người có nhiều role nhìn thấy hợp các menu được gán. Role Navigation trong ảnh là điểm điều phối, không phải một trang dashboard mới. Với nhiều role, dùng đích được phép người dùng chọn hoặc đích an toàn đã kiểm quyền; chưa có quyết định xếp thứ tự ưu tiên role.
+Không kế thừa role: TEACHER không mặc nhiên có LEARNER; ADMIN không mặc nhiên có quyền tài chính, nội dung hoặc kiểm duyệt. Một người có nhiều role nhìn thấy hợp các menu được gán. Role Navigation trong ảnh là điểm điều phối, không phải một trang dashboard mới. Với nhiều role, dùng đích được phép người dùng chọn hoặc đích an toàn đã kiểm quyền; chưa có quyết định xếp thứ tự ưu tiên role.
 
-Question Edit SCR-059 là một màn chung cho TEACHER/CONTENT_ADMIN và nguồn vào từ AI Review Queue SCR-058 hoặc Question Bank SCR-064 theo quyền tương ứng. Quyền review không tự cấp toàn bộ quản lý Question Bank. Không tạo editor riêng theo role. Teacher queue SCR-056 chỉ có metadata được phép; bài viết/hồ sơ nhận việc trong SCR-057 tuân điều kiện claim và sở hữu, không đưa thông tin nhạy cảm vào queue.
+Question Edit SCR-059 là một màn chung cho TEACHER/CONTENT_EDITOR và nguồn vào từ AI Review Queue SCR-058 hoặc Question Bank SCR-064 theo quyền tương ứng. Quyền review không tự cấp toàn bộ quản lý Question Bank. Không tạo editor riêng theo role. Teacher queue SCR-056 chỉ có metadata được phép; bài viết/hồ sơ nhận việc trong SCR-057 tuân điều kiện claim và sở hữu, không đưa thông tin nhạy cảm vào queue.
 
 ### 5.4. Screen Flow và UI patterns
 
@@ -313,7 +313,7 @@ Không dùng font Gilroy của Học Bá vì quyền sử dụng chưa được 
 | `EmptyState` | first-use, no-result, completed | List/dashboard | Có hành động tiếp theo nếu tồn tại |
 | `ErrorState` | inline, section, page | Toàn hệ thống | Có retry khi an toàn |
 | `Skeleton` | text, card, table | Toàn hệ thống | Khớp gần đúng layout thật |
-| `AIChatPanel` | collapsed, expanded, full-screen mobile | Ngữ cảnh USER được phép theo screen-fields.md | Panel nội tuyến; không che CTA/câu hỏi, không là screen riêng |
+| `AIChatPanel` | collapsed, expanded, full-screen mobile | Ngữ cảnh LEARNER được phép theo screen-fields.md | Panel nội tuyến; không che CTA/câu hỏi, không là screen riêng |
 
 **Quy ước đặt tên:** component dùng `PascalCase`; token và prop dùng semantic
 English; route label và nội dung người dùng dùng tiếng Việt. Component theo
@@ -487,7 +487,7 @@ Tỷ lệ Unwanted: 12/27 luật = 44,4%.
   lẫn hình ảnh.
 - [ ] Màn thi cảnh báo khi rời bài chưa nộp và không cho sửa sau khi nộp thành công.
 - [ ] Trang game xác minh `/api/auth/me`; WebView không nhận token qua URL.
-- [ ] Role USER không nhìn thấy chớp nội dung admin trước khi kiểm quyền hoàn tất.
+- [ ] Role LEARNER không nhìn thấy chớp nội dung admin trước khi kiểm quyền hoàn tất.
 - [ ] Lighthouse và Web Vitals đạt các ngưỡng ở mục 11 trên build production.
 - [ ] Không có horizontal overflow tại năm viewport kiểm thử đã quy định.
 

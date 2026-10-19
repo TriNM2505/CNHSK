@@ -44,7 +44,7 @@ Khách tạo tài khoản bằng email và mật khẩu. Hệ thống tạo tài
 ## Hậu điều kiện
 
 - Một dòng mới trong `auth.users` với `email_verified_at = NULL`
-- Role `USER` được gán trong `auth.user_roles`
+- Role `LEARNER` được gán trong `auth.user_roles`
 - Một token loại `EMAIL_VERIFY` trong `auth.auth_tokens`, hết hạn sau 24 giờ
 - Email xác thực được gửi nếu dịch vụ email hoạt động; gửi thất bại không hủy tài khoản đã tạo (BR-10)
 - Ví điểm khởi tạo trong `learning.user_credits` với số dư 0
@@ -61,7 +61,7 @@ Khách tạo tài khoản bằng email và mật khẩu. Hệ thống tạo tài
 7. Server validate lại toàn bộ
 8. Server kiểm email chưa tồn tại
 9. Server hash mật khẩu bằng bcrypt cost ≥12
-10. Server tạo `users` + gán role `USER` + tạo `user_credits` + gán gói `FREE` — **cùng một transaction**
+10. Server tạo `users` + gán role `LEARNER` + tạo `user_credits` + gán gói `FREE` — **cùng một transaction**
 11. Server sinh token `EMAIL_VERIFY`, lưu **hash** của token
 12. Server gửi email chứa link xác thực
 13. Server trả **201** kèm thông tin người dùng (**không** kèm hash mật khẩu)
@@ -98,7 +98,7 @@ với trạng thái `PENDING_VERIFY`. Các tính năng bị hạn chế: đăng 
 | BR-02 | Email phải được chuẩn hóa về chữ thường trước khi lưu để tránh tạo nhiều tài khoản bằng cùng một email viết khác kiểu hoa/thường. |
 | BR-03 | Mật khẩu người dùng không được lưu ở dạng văn bản gốc. Hệ thống chỉ được lưu giá trị mật khẩu đã được mã hóa một chiều theo chuẩn bảo mật đã chọn. |
 | BR-04 | Mật khẩu khi đăng ký phải đáp ứng chính sách độ mạnh tối thiểu của hệ thống. Chính sách này phải được áp dụng thống nhất cho đăng ký, đổi mật khẩu và đặt lại mật khẩu. |
-| BR-05 | Mỗi tài khoản mới được gán vai trò mặc định là `USER`. Người dùng không được tự chọn hoặc tự gán vai trò khi đăng ký. |
+| BR-05 | Mỗi tài khoản mới được gán vai trò mặc định là `LEARNER`. Người dùng không được tự chọn hoặc tự gán vai trò khi đăng ký. |
 | BR-06 | Tài khoản mới sau khi đăng ký ở trạng thái chưa xác thực email cho đến khi người dùng xác thực bằng link hợp lệ. |
 | BR-07 | Người dùng chưa xác thực email vẫn được đăng nhập để sử dụng các chức năng học tập cơ bản, nhưng bị hạn chế các chức năng cần danh tính tin cậy như đăng bài cộng đồng, tham gia thi đua hoặc thao tác công khai. |
 | BR-08 | Khi tạo tài khoản mới, hệ thống phải khởi tạo các dữ liệu mặc định cần thiết cho người học, bao gồm hồ sơ học tập ban đầu và cấu hình học tập mặc định. |
@@ -281,7 +281,7 @@ Người dùng đăng nhập trên website chính bằng email và mật khẩu.
 10. Server xóa bộ đếm lần sai của cặp email–IP này, cập nhật `last_login_at`
 11. Server set hai cookie với `domain=cnhsk.com` · `HttpOnly` · `Secure` · `SameSite=Lax` · `maxAge`
 12. Server trả **200** kèm thông tin người dùng và danh sách role
-13. Frontend chuyển hướng theo role: `USER` → trang học · các role quản trị → trang quản trị
+13. Frontend chuyển hướng theo role: `LEARNER` → trang học · các role quản trị → trang quản trị
 
 ## Luồng thay thế
 
@@ -331,7 +331,7 @@ POST /api/auth/login
 Body: { email, password }
 200:  Set-Cookie: access_token=...; Domain=cnhsk.com; HttpOnly; Secure; SameSite=Lax; Max-Age=...
       Set-Cookie: refresh_token=...; Domain=cnhsk.com; HttpOnly; Secure; SameSite=Lax; Max-Age=...
-      Body: { id, fullName, email, emailVerified, roles: ["USER"] }
+      Body: { id, fullName, email, emailVerified, roles: ["LEARNER"] }
 401:  { error_code: "INVALID_CREDENTIALS", message: "Email hoặc mật khẩu không đúng", ... }
 423:  { error_code: "LOGIN_SOURCE_BLOCKED", message, details: { blockedUntil }, ... }
 ```
@@ -446,7 +446,7 @@ Giống UC-003.
 | | |
 | --- | --- |
 | **ID** | UC-005 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P0 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 6.1 |
@@ -467,7 +467,7 @@ Người dùng đã đăng nhập ở website chính có thể mở trang game v
 
 ## Luồng chính
 
-1. `USER` đang ở `cnhsk.com`, bấm nút "Chơi game"
+1. `LEARNER` đang ở `cnhsk.com`, bấm nút "Chơi game"
 2. Trình duyệt mở `game.cnhsk.com`
 3. Trang game load, gọi `GET /api/auth/me`
 4. Trình duyệt **tự động** gửi cookie vì `Domain=cnhsk.com` phủ cả tên miền phụ
@@ -540,7 +540,7 @@ Cookie: access_token=...    (trình duyệt tự gửi)
 | | |
 | --- | --- |
 | **ID** | UC-006 |
-| **Actor chính** | `SYSTEM` (kích hoạt bởi client) |
+| **Actor chính** | — · **Không còn là UC**: chuyển thành yêu cầu chức năng về phiên đăng nhập (spec 001-auth-rbac) |
 | **Priority** | P0 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 6.1 |
@@ -646,7 +646,7 @@ Cookie hoặc Body: { refreshToken }
 | | |
 | --- | --- |
 | **ID** | UC-007 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P0 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 6.1 |
@@ -667,7 +667,7 @@ Người dùng chọn đăng xuất để kết thúc phiên trên thiết bị 
 
 ## Luồng chính
 
-1. `USER` bấm "Đăng xuất"
+1. `LEARNER` bấm "Đăng xuất"
 2. Client gọi `POST /api/auth/logout`
 3. Server thu hồi refresh token hiện tại
 4. Server trả **200** kèm lệnh xóa cookie
@@ -923,7 +923,7 @@ Body: { token, newPassword, confirmPassword }
 | | |
 | --- | --- |
 | **ID** | UC-010 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P1 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 6.1 |
@@ -943,7 +943,7 @@ Người dùng đang đăng nhập có thể đổi mật khẩu trong phần t�
 
 ## Luồng chính
 
-1. `USER` vào trang đổi mật khẩu
+1. `LEARNER` vào trang đổi mật khẩu
 2. Nhập mật khẩu cũ, mật khẩu mới, xác nhận
 3. Gửi `POST /api/auth/change-password`
 4. Server xác thực JWT, lấy user
@@ -1015,7 +1015,7 @@ Body: { oldPassword, newPassword, confirmPassword }
 | | |
 | --- | --- |
 | **ID** | UC-011 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P1 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 6.1 |
@@ -1034,10 +1034,10 @@ Người dùng xem và chỉnh sửa hồ sơ cá nhân, gồm họ tên, ảnh 
 
 ## Luồng chính
 
-1. `USER` vào trang thông tin cá nhân
+1. `LEARNER` vào trang thông tin cá nhân
 2. Client gọi `GET /api/me`
 3. Server trả hồ sơ (**không** kèm hash mật khẩu)
-4. `USER` sửa các field, bấm "Lưu"
+4. `LEARNER` sửa các field, bấm "Lưu"
 5. Client gọi `PATCH /api/me`
 6. Server validate, cập nhật
 7. Server trả **200** kèm hồ sơ mới
@@ -1061,7 +1061,7 @@ Upload file → kiểm loại và kích thước → lưu → cập nhật URL.
 | `TOKEN_EXPIRED` | Session hết hạn | **401** | Refresh |
 
 > 🔴 **`FORBIDDEN_FIELD` là lỗ hổng thật nếu quên.** Nếu server nhận cả body rồi
-> `save()` thì kẻ tấn công gửi `{"roles": ["SUPER_ADMIN"]}` là leo thang đặc quyền.
+> `save()` thì kẻ tấn công gửi `{"roles": ["ADMIN"]}` là leo thang đặc quyền.
 > Phải **whitelist** field được sửa, không blacklist.
 
 ## Business rule
@@ -1098,7 +1098,7 @@ Body: { fullName?, avatarUrl?, preferredLanguage?, targetHskLevel? }
 | # | Input | Kết quả mong đợi |
 | --- | --- | --- |
 | 1 | Sửa `fullName` | 200, cập nhật đúng |
-| 2 | Gửi kèm `roles: ["SUPER_ADMIN"]` | **403** hoặc bỏ qua field — **role KHÔNG đổi** |
+| 2 | Gửi kèm `roles: ["ADMIN"]` | **403** hoặc bỏ qua field — **role KHÔNG đổi** |
 | 3 | Gửi kèm `email` | 403 hoặc bỏ qua |
 | 4 | Kiểm response `GET /api/me` | **Không** có `passwordHash` |
 | 5 | Upload file 20MB | 413 |
@@ -1111,7 +1111,7 @@ Body: { fullName?, avatarUrl?, preferredLanguage?, targetHskLevel? }
 | | |
 | --- | --- |
 | **ID** | UC-012 |
-| **Actor chính** | `SYSTEM` |
+| **Actor chính** | `GUEST` qua «extend» của UC-003 Đăng nhập trên web và UC-004 Đăng nhập trên mobile — chỉ chạy khi sai mật khẩu quá số lần cho phép |
 | **Priority** | P1 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 6.1 |
@@ -1200,7 +1200,7 @@ Redis lưu bộ đếm và thời điểm hết chặn theo cặp email chuẩn 
 | | |
 | --- | --- |
 | **ID** | UC-013 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P1 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 6.1 |
@@ -1220,7 +1220,7 @@ Trang game trong WebView biết người dùng, lưu điểm được.
 
 ## Luồng chính
 
-1. `USER` bấm "Chơi game" trong app
+1. `LEARNER` bấm "Chơi game" trong app
 2. App đọc access token từ secure storage
 3. App mở WebView tới `game.cnhsk.com`, tiêm token — hai cách:
    - Tiêm biến `window.__CNHSK_TOKEN__` trước khi trang load
@@ -1298,7 +1298,7 @@ const headers = token ? { Authorization: `Bearer ${token}` } : {};
 | | |
 | --- | --- |
 | **ID** | UC-014 |
-| **Actor chính** | `SUPER_ADMIN` |
+| **Actor chính** | `ADMIN` |
 | **Priority** | P3 |
 | **Scope** | V2 |
 | **Tính năng gốc** | — ⚠️ **Không có trong feature tree** |
@@ -1311,7 +1311,7 @@ Quản trị viên mở hồ sơ một tài khoản để xem các lần đăng 
 
 ## Tiền điều kiện
 
-Đã đăng nhập với quyền `SUPER_ADMIN`. Tài khoản cần xem tồn tại.
+Đã đăng nhập với quyền `ADMIN`. Tài khoản cần xem tồn tại.
 
 ## Hậu điều kiện
 
@@ -1319,9 +1319,9 @@ Không đổi trạng thái — chỉ đọc.
 
 ## Luồng chính
 
-1. `SUPER_ADMIN` mở hồ sơ người dùng trong trang quản trị và chọn "Lịch sử đăng nhập".
+1. `ADMIN` mở hồ sơ người dùng trong trang quản trị và chọn "Lịch sử đăng nhập".
 2. Client gọi `GET /api/admin/users/{userId}/login-history` kèm tham số phân trang.
-3. Server kiểm tra quyền `SUPER_ADMIN` và sự tồn tại của tài khoản, ghi nhận việc quản trị viên xem dữ liệu theo BR-114-4, rồi trả các bản ghi theo thứ tự mới nhất trước.
+3. Server kiểm tra quyền `ADMIN` và sự tồn tại của tài khoản, ghi nhận việc quản trị viên xem dữ liệu theo BR-114-4, rồi trả các bản ghi theo thứ tự mới nhất trước.
 4. Trang hiển thị thời điểm, loại client hoặc thiết bị và IP đã che bớt của từng lần đăng nhập thành công.
 
 ## Exception
@@ -1330,14 +1330,14 @@ Không đổi trạng thái — chỉ đọc.
 | --- | --- | --- | --- |
 | `NO_DATA` | Chưa có lịch sử | **200** | Trả danh sách rỗng + empty state |
 | `UNAUTHORIZED` | Chưa đăng nhập hoặc phiên hết hạn | **401** | Yêu cầu đăng nhập lại hoặc làm mới phiên hợp lệ |
-| `FORBIDDEN` | Tài khoản không có quyền `SUPER_ADMIN` | **403** | Không trả dữ liệu lịch sử |
+| `FORBIDDEN` | Tài khoản không có quyền `ADMIN` | **403** | Không trả dữ liệu lịch sử |
 | `USER_NOT_FOUND` | Tài khoản cần xem không tồn tại | **404** | Báo không tìm thấy tài khoản |
 
 ## Business rule
 
 | # | Rule |
 | --- | --- |
-| BR-01 | Chỉ `SUPER_ADMIN` được xem lịch sử đăng nhập của tài khoản được chọn; không mở endpoint tự xem cho `USER` hoặc các role quản trị khác. Kiểm quyền ở server trước khi đọc dữ liệu. |
+| BR-01 | Chỉ `ADMIN` được xem lịch sử đăng nhập của tài khoản được chọn; không mở endpoint tự xem cho `LEARNER` hoặc các role quản trị khác. Kiểm quyền ở server trước khi đọc dữ liệu. |
 | BR-02 | Lịch sử đăng nhập phải hiển thị theo thứ tự mới nhất trước. |
 | BR-02a | Chỉ trả các lần đăng nhập thành công. Đăng nhập sai mật khẩu hoặc bị từ chối không xuất hiện trong UC này. |
 | BR-03 | IP trong phản hồi phải được che một phần theo `FR-057`; email nếu xuất hiện trong danh sách hoặc log phải được che theo `BUS-06`. Không trả IP đầy đủ cho client. |
@@ -1357,17 +1357,17 @@ GET /api/admin/users/{userId}/login-history?page=0&size=20
 
 ## Bảng DB liên quan
 
-Dùng `shared.audit_logs` với `action='LOGIN'` cho lần đăng nhập thành công theo `docs/reference/database.md` §10 và `specs/001-auth-rbac/plan.md`; không thêm bảng `auth.login_events` trong UC này. Bản ghi cần chứa định danh tài khoản, thời điểm, loại client hoặc thiết bị và IP để tạo phản hồi đã che thông tin nhạy cảm. Truy vấn chỉ lấy bản ghi trong 90 ngày gần nhất và cần tác vụ dọn bản ghi quá hạn. Việc `SUPER_ADMIN` xem lịch sử cũng phải được ghi audit theo BR-114-4.
+Dùng `shared.audit_logs` với `action='LOGIN'` cho lần đăng nhập thành công theo `docs/reference/database.md` §10 và `specs/001-auth-rbac/plan.md`; không thêm bảng `auth.login_events` trong UC này. Bản ghi cần chứa định danh tài khoản, thời điểm, loại client hoặc thiết bị và IP để tạo phản hồi đã che thông tin nhạy cảm. Truy vấn chỉ lấy bản ghi trong 90 ngày gần nhất và cần tác vụ dọn bản ghi quá hạn. Việc `ADMIN` xem lịch sử cũng phải được ghi audit theo BR-114-4.
 
 ## Test case
 
 | # | Input | Kết quả mong đợi |
 | --- | --- | --- |
-| 1 | `SUPER_ADMIN` xem tài khoản có lịch sử | 200, đúng tài khoản, mới nhất trước, IP đã che |
-| 2 | `SUPER_ADMIN` xem tài khoản chưa có lịch sử | 200, danh sách rỗng |
-| 3 | `USER` hoặc role quản trị khác gọi API | 403, không trả dữ liệu |
+| 1 | `ADMIN` xem tài khoản có lịch sử | 200, đúng tài khoản, mới nhất trước, IP đã che |
+| 2 | `ADMIN` xem tài khoản chưa có lịch sử | 200, danh sách rỗng |
+| 3 | `LEARNER` hoặc role quản trị khác gọi API | 403, không trả dữ liệu |
 | 4 | Chưa đăng nhập gọi API | 401 |
-| 5 | `SUPER_ADMIN` xem `userId` không tồn tại | 404 |
+| 5 | `ADMIN` xem `userId` không tồn tại | 404 |
 | 6 | Tài khoản có một lần đăng nhập thành công và một lần sai mật khẩu | 200, chỉ có lần đăng nhập thành công |
 | 7 | Có bản ghi đăng nhập thành công đã quá 90 ngày | 200, không trả bản ghi quá hạn; tác vụ dọn xóa bản ghi đó |
 

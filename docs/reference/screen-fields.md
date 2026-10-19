@@ -11,85 +11,85 @@ Detailed screen requirements for UI/UX mockup and frontend implementation.
 
 | ID | Screen Name | Feature | Actor(s) | Scope |
 | --- | --- | --- | --- | --- |
-| SCR-001 | Landing | Public Entry | GUEST, USER, TEACHER, MANAGER, CONTENT_ADMIN, FINANCE_ADMIN, SUPER_ADMIN | MVP |
+| SCR-001 | Landing | Public Entry | GUEST, LEARNER, TEACHER, MODERATOR, CONTENT_EDITOR, ACCOUNTANT, ADMIN | MVP |
 | SCR-002 | Sign In | Authentication & Authorization | GUEST | MVP |
 | SCR-003 | Register | Authentication & Authorization | GUEST | MVP |
-| SCR-004 | Verify Email | Authentication & Authorization | GUEST, USER | MVP |
+| SCR-004 | Verify Email | Authentication & Authorization | GUEST, LEARNER | MVP |
 | SCR-005 | Forgot Password | Authentication & Authorization | GUEST | MVP |
 | SCR-006 | Reset Password | Authentication & Authorization | GUEST | MVP |
-| SCR-007 | User Profile | Account Management | USER | MVP |
-| SCR-008 | Change Password | Account Management | USER | MVP |
-| SCR-009 | Study Reminder Settings | Personalized Learning Pathways | USER | MVP |
-| SCR-010 | Learning Dashboard | Personalized Learning Pathways | USER | MVP |
-| SCR-011 | Topic List | Vocabulary Learning | USER | MVP |
-| SCR-012 | Topic Study | Vocabulary Learning | USER | MVP |
-| SCR-013 | Due Review | Spaced Repetition | USER | MVP |
-| SCR-014 | Character Writing | Chinese Character Learning | USER | MVP |
-| SCR-015 | Character Recognition | Chinese Character Learning | USER | MVP |
-| SCR-016 | Pronunciation Practice | Pronunciation Learning | USER | MVP |
-| SCR-017 | Grammar List | Grammar Learning | USER | MVP |
-| SCR-018 | Grammar Lesson | Grammar Learning | USER | MVP |
-| SCR-019 | Learning Progress | Personalized Learning Pathways | USER | MVP |
-| SCR-020 | Exam List | HSK Exam & Practice | USER | MVP |
-| SCR-021 | Exam Attempt | HSK Exam & Practice | USER | MVP |
-| SCR-022 | Exam Result | HSK Exam & Practice | USER | MVP |
-| SCR-023 | Targeted Practice | HSK Exam & Practice | USER | MVP |
-| SCR-024 | Dictionary Search | Dictionary & Translation | GUEST, USER | MVP |
-| SCR-025 | Dictionary Detail | Dictionary & Translation | GUEST, USER | MVP |
-| SCR-026 | Translation | Dictionary & Translation | USER | MVP |
-| SCR-027 | Personal Notes | Personal Learning Library | USER | MVP |
-| SCR-028 | Flashcard Deck List | Personal Learning Library | USER | MVP |
-| SCR-029 | Flashcard Deck Detail | Personal Learning Library | GUEST, USER | MVP |
-| SCR-030 | Plan & Credits | Plans & Credits | USER | MVP |
-| SCR-031 | Transaction History | Plans & Credits | USER | MVP |
-| SCR-032 | Grading Request Submission | Teacher Grading | USER | MVP |
-| SCR-033 | My Grading Requests | Teacher Grading | USER | MVP |
-| SCR-034 | Grading Request Detail | Teacher Grading | USER | MVP |
-| SCR-035 | Game Hub | Learning Games | USER | MVP |
-| SCR-036 | Game Session | Learning Games | USER | MVP |
-| SCR-037 | Video List | Video Learning | USER | V2 |
-| SCR-038 | Video Study | Video Learning | USER | V2 |
-| SCR-039 | Community Post List | Community | GUEST, USER | V2 |
-| SCR-040 | Community Post Detail | Community | GUEST, USER | V2 |
-| SCR-041 | Create / Edit Post | Community | USER | V2 |
-| SCR-042 | Community User Profile | Community | USER | V2 |
-| SCR-043 | Community Quiz List | Community Quiz | USER | V2 |
-| SCR-044 | Community Quiz Attempt | Community Quiz | USER | V2 |
-| SCR-045 | Community Quiz Result | Community Quiz | USER | V2 |
-| SCR-046 | Topic Leaderboard | Leaderboards | GUEST, USER | V2 |
-| SCR-047 | Game Leaderboard | Leaderboards | GUEST, USER | V2 |
-| SCR-048 | Contest List | Contests | GUEST, USER | V2 |
-| SCR-049 | Contest Detail | Contests | GUEST, USER | V2 |
-| SCR-050 | Contest Attempt | Contests | USER | V2 |
-| SCR-051 | Contest Results | Contests | USER | V2 |
-| SCR-052 | Public Flashcard Deck List | Personal Learning Library | GUEST, USER | V2 |
-| SCR-053 | YouTube & Podcasts | Reference Resources | GUEST, USER | V2 |
-| SCR-054 | Book Catalogue | Reference Resources | GUEST, USER | V2 |
-| SCR-055 | Book Detail | Reference Resources | GUEST, USER | V2 |
+| SCR-007 | User Profile | Account Management | LEARNER | MVP |
+| SCR-008 | Change Password | Account Management | LEARNER | MVP |
+| SCR-009 | Study Reminder Settings | Personalized Learning Pathways | LEARNER | MVP |
+| SCR-010 | Learning Dashboard | Personalized Learning Pathways | LEARNER | MVP |
+| SCR-011 | Topic List | Vocabulary Learning | LEARNER | MVP |
+| SCR-012 | Topic Study | Vocabulary Learning | LEARNER | MVP |
+| SCR-013 | Due Review | Spaced Repetition | LEARNER | MVP |
+| SCR-014 | Character Writing | Chinese Character Learning | LEARNER | MVP |
+| SCR-015 | Character Recognition | Chinese Character Learning | LEARNER | MVP |
+| SCR-016 | Pronunciation Practice | Pronunciation Learning | LEARNER | MVP |
+| SCR-017 | Grammar List | Grammar Learning | LEARNER | MVP |
+| SCR-018 | Grammar Lesson | Grammar Learning | LEARNER | MVP |
+| SCR-019 | Learning Progress | Personalized Learning Pathways | LEARNER | MVP |
+| SCR-020 | Exam List | HSK Exam & Practice | LEARNER | MVP |
+| SCR-021 | Exam Attempt | HSK Exam & Practice | LEARNER | MVP |
+| SCR-022 | Exam Result | HSK Exam & Practice | LEARNER | MVP |
+| SCR-023 | Targeted Practice | HSK Exam & Practice | LEARNER | MVP |
+| SCR-024 | Dictionary Search | Dictionary & Translation | GUEST, LEARNER | MVP |
+| SCR-025 | Dictionary Detail | Dictionary & Translation | GUEST, LEARNER | MVP |
+| SCR-026 | Translation | Dictionary & Translation | LEARNER | MVP |
+| SCR-027 | Personal Notes | Personal Learning Library | LEARNER | MVP |
+| SCR-028 | Flashcard Deck List | Personal Learning Library | LEARNER | MVP |
+| SCR-029 | Flashcard Deck Detail | Personal Learning Library | GUEST, LEARNER | MVP |
+| SCR-030 | Plan & Credits | Plans & Credits | LEARNER | MVP |
+| SCR-031 | Transaction History | Plans & Credits | LEARNER | MVP |
+| SCR-032 | Grading Request Submission | Teacher Grading | LEARNER | MVP |
+| SCR-033 | My Grading Requests | Teacher Grading | LEARNER | MVP |
+| SCR-034 | Grading Request Detail | Teacher Grading | LEARNER | MVP |
+| SCR-035 | Game Hub | Learning Games | LEARNER | MVP |
+| SCR-036 | Game Session | Learning Games | LEARNER | MVP |
+| SCR-037 | Video List | Video Learning | LEARNER | V2 |
+| SCR-038 | Video Study | Video Learning | LEARNER | V2 |
+| SCR-039 | Community Post List | Community | GUEST, LEARNER | V2 |
+| SCR-040 | Community Post Detail | Community | GUEST, LEARNER | V2 |
+| SCR-041 | Create / Edit Post | Community | LEARNER | V2 |
+| SCR-042 | Community User Profile | Community | LEARNER | V2 |
+| SCR-043 | Community Quiz List | Community Quiz | LEARNER | V2 |
+| SCR-044 | Community Quiz Attempt | Community Quiz | LEARNER | V2 |
+| SCR-045 | Community Quiz Result | Community Quiz | LEARNER | V2 |
+| SCR-046 | Topic Leaderboard | Leaderboards | GUEST, LEARNER | V2 |
+| SCR-047 | Game Leaderboard | Leaderboards | GUEST, LEARNER | V2 |
+| SCR-048 | Contest List | Contests | GUEST, LEARNER | V2 |
+| SCR-049 | Contest Detail | Contests | GUEST, LEARNER | V2 |
+| SCR-050 | Contest Attempt | Contests | LEARNER | V2 |
+| SCR-051 | Contest Results | Contests | LEARNER | V2 |
+| SCR-052 | Public Flashcard Deck List | Personal Learning Library | GUEST, LEARNER | V2 |
+| SCR-053 | YouTube & Podcasts | Reference Resources | GUEST, LEARNER | V2 |
+| SCR-054 | Book Catalogue | Reference Resources | GUEST, LEARNER | V2 |
+| SCR-055 | Book Detail | Reference Resources | GUEST, LEARNER | V2 |
 | SCR-056 | Teacher Grading Queue | Teacher Grading | TEACHER | MVP |
 | SCR-057 | Teacher Grading Workspace | Teacher Grading | TEACHER | MVP |
-| SCR-058 | AI Review Queue | Content Management | TEACHER, CONTENT_ADMIN | MVP |
-| SCR-059 | Question Edit | Content Management | TEACHER, CONTENT_ADMIN | MVP |
-| SCR-060 | Post Moderation Queue | Community Moderation | MANAGER | V2 |
-| SCR-061 | Post Moderation Detail | Community Moderation | MANAGER | V2 |
-| SCR-062 | Violation Report Queue | Community Moderation | MANAGER | V2 |
-| SCR-063 | Violation Report Detail | Community Moderation | MANAGER | V2 |
-| SCR-064 | Question Bank | Content Management | CONTENT_ADMIN | MVP |
-| SCR-065 | Admin Exam List | Content Management | CONTENT_ADMIN | MVP |
-| SCR-066 | Create / Edit Exam | Content Management | CONTENT_ADMIN | MVP |
-| SCR-067 | Topic Prerequisites | Content Management | CONTENT_ADMIN | MVP |
-| SCR-068 | Learning Data Import | Content Management | CONTENT_ADMIN | MVP |
-| SCR-069 | Import Report | Content Management | CONTENT_ADMIN | MVP |
-| SCR-070 | Admin Contest List | Content Management | CONTENT_ADMIN | V2 |
-| SCR-071 | Create / Edit Contest | Content Management | CONTENT_ADMIN | V2 |
-| SCR-072 | Reference Management | Reference Resources | CONTENT_ADMIN | V2 |
-| SCR-073 | Card Batch Management | Finance Management | FINANCE_ADMIN | MVP |
-| SCR-074 | Plan Management | Finance Management | FINANCE_ADMIN | MVP |
-| SCR-075 | Credit Ledger | Finance Management | FINANCE_ADMIN | MVP |
-| SCR-076 | User List | System Administration | SUPER_ADMIN | MVP |
-| SCR-077 | User Detail | System Administration | SUPER_ADMIN | MVP |
-| SCR-078 | System Settings | System Administration | SUPER_ADMIN | Deferred |
-| SCR-079 | Access Denied | Shared Utilities | GUEST, USER, TEACHER, MANAGER, CONTENT_ADMIN, FINANCE_ADMIN, SUPER_ADMIN | MVP |
+| SCR-058 | AI Review Queue | Content Management | TEACHER, CONTENT_EDITOR | MVP |
+| SCR-059 | Question Edit | Content Management | TEACHER, CONTENT_EDITOR | MVP |
+| SCR-060 | Post Moderation Queue | Community Moderation | MODERATOR | V2 |
+| SCR-061 | Post Moderation Detail | Community Moderation | MODERATOR | V2 |
+| SCR-062 | Violation Report Queue | Community Moderation | MODERATOR | V2 |
+| SCR-063 | Violation Report Detail | Community Moderation | MODERATOR | V2 |
+| SCR-064 | Question Bank | Content Management | CONTENT_EDITOR | MVP |
+| SCR-065 | Admin Exam List | Content Management | CONTENT_EDITOR | MVP |
+| SCR-066 | Create / Edit Exam | Content Management | CONTENT_EDITOR | MVP |
+| SCR-067 | Topic Prerequisites | Content Management | CONTENT_EDITOR | MVP |
+| SCR-068 | Learning Data Import | Content Management | CONTENT_EDITOR | MVP |
+| SCR-069 | Import Report | Content Management | CONTENT_EDITOR | MVP |
+| SCR-070 | Admin Contest List | Content Management | CONTENT_EDITOR | V2 |
+| SCR-071 | Create / Edit Contest | Content Management | CONTENT_EDITOR | V2 |
+| SCR-072 | Reference Management | Reference Resources | CONTENT_EDITOR | V2 |
+| SCR-073 | Card Batch Management | Finance Management | ACCOUNTANT | MVP |
+| SCR-074 | Plan Management | Finance Management | ACCOUNTANT | MVP |
+| SCR-075 | Credit Ledger | Finance Management | ACCOUNTANT | MVP |
+| SCR-076 | User List | System Administration | ADMIN | MVP |
+| SCR-077 | User Detail | System Administration | ADMIN | MVP |
+| SCR-078 | System Settings | System Administration | ADMIN | Deferred |
+| SCR-079 | Access Denied | Shared Utilities | GUEST, LEARNER, TEACHER, MODERATOR, CONTENT_EDITOR, ACCOUNTANT, ADMIN | MVP |
 
 ## Shared Specification Rules
 
@@ -103,7 +103,7 @@ Thứ tự nguồn nghiệp vụ: [Hiến pháp](../../.specify/memory/constitut
 
 **Evidence về triển khai:** repository hiện chỉ có khung Spring Boot; không có `frontend/`, `backend/`, `cnhsk-web/`, page component, route definition, menu/sidebar hoặc role guard frontend. Backend nằm ở gốc với `src/`. Vì vậy tất cả Existing Route là Not confirmed. Nếu có Route Evidence, đó là route ghi trong tài liệu trước đây, chưa chứng minh route chạy được; không phát sinh page ngoài inventory. Tên thư mục frontend tương lai vẫn là `cnhsk-web` theo ES-04.
 
-**Quyền:** USER, TEACHER, MANAGER, CONTENT_ADMIN, FINANCE_ADMIN, SUPER_ADMIN là sáu role gán tường minh. Một tài khoản có thể có nhiều role, nhưng không role nào tự kế thừa USER hoặc role quản trị khác. GUEST và SYSTEM không phải role. Bảng quyền từng màn ghi actor được phép; các role khác không có quyền ghi/duyệt trừ khi tài khoản được gán thêm đúng role. Nội dung công khai đọc qua public projection; luôn mask PII theo BUS-06. Tài nguyên cá nhân không tồn tại hoặc không thuộc chủ sở hữu trả 403 theo BUS-01; không dùng 404 để tiết lộ tồn tại.
+**Quyền:** LEARNER, TEACHER, MODERATOR, CONTENT_EDITOR, ACCOUNTANT, ADMIN là sáu role gán tường minh. Một tài khoản có thể có nhiều role, nhưng không role nào tự kế thừa LEARNER hoặc role quản trị khác. GUEST không phải role; job định kỳ không phải actor. Bảng quyền từng màn ghi actor được phép; các role khác không có quyền ghi/duyệt trừ khi tài khoản được gán thêm đúng role. Nội dung công khai đọc qua public projection; luôn mask PII theo BUS-06. Tài nguyên cá nhân không tồn tại hoặc không thuộc chủ sở hữu trả 403 theo BUS-01; không dùng 404 để tiết lộ tồn tại.
 
 **Lỗi và dữ liệu:** lỗi server theo `{error_code, message, request_id}`, không lộ stack trace, secret, token hoặc nội dung nhạy cảm. 422 gắn lỗi đúng field, giữ input và focus lỗi đầu; 401 của phiên đang dùng thử refresh tối đa một lần, thất bại tới SCR-002 và giữ đích an toàn; thiếu role tới SCR-079. 401 sai thông tin đăng nhập là lỗi form của SCR-002, không lặp refresh. 402 thiếu entitlement tới SCR-030, giữ bản nháp nếu nguồn cho phép; 429 nêu thời gian retry server cung cấp, không tự bịa đếm ngược. Mạng/5xx giữ input, báo chưa hoàn tất; thao tác ghi không retry mù hoặc báo thành công trước khi server xác nhận. Khi không biết kết quả của một lần ghi, đọc lại trạng thái trước khi cho gửi lại. Không cache mật khẩu, mã thẻ thô, token hoặc dữ liệu bị cấm để giữ form.
 
@@ -111,7 +111,7 @@ Thứ tự nguồn nghiệp vụ: [Hiến pháp](../../.specify/memory/constitut
 
 **Tiền, điểm, thời gian:** CREDIT và SUBSCRIPTION card có giá trị được phân phối ngoài hệ thống; không có checkout, cổng thanh toán hay webhook. Điểm là số nguyên, sổ cái append-only, sai thì thêm bù trừ; không sửa/xóa dòng. Mã thô chỉ xuất hiện một lần lúc phát hành. Ngày học, streak, lịch nhắc và thời điểm reset hiển thị Asia/Ho_Chi_Minh; FSRS tính UTC. FREE có 10 lượt mỗi tính năng mỗi tháng, reset 00:00 ngày 1 giờ Việt Nam theo quyết định đã chốt; lượt còn lại/giá trị gói lấy server. Chấm điểm/mastery do server xác nhận, không nhận điểm tự công bố từ client.
 
-**AI Assistant là panel dùng chung (UC-085/UC-086 trong [use-cases-06](use-cases-06-cong-dong.md)):** nội dung câu hỏi, kết quả, trạng thái đang trả lời, hết lượt và lỗi nằm nội tuyến ở màn sở hữu ngữ cảnh, chỉ dành cho USER được gán tường minh. Field câu hỏi không rỗng; UI cũ ghi 1.000 ký tự, UC-085 ghi lỗi trên 2.000 ký tự nhưng BR-085-6 gọi ngưỡng là đề xuất: giữ đây là vấn đề contract cần chốt, không biến ngưỡng đề xuất thành policy. Nút gửi, thu gọn/mở rộng và xóa hội thoại của chính mình thuộc panel. Mở panel/đọc lịch sử không trừ lượt; gửi câu hỏi hiện entitlement, thiếu quyền dùng tới SCR-030. UC-086 mô tả lịch sử ai_chats trong 90 ngày, không liệt kê session quá hạn; session không thuộc người dùng trả 403. Xóa session và bắt đầu hội thoại mới là action nội tuyến, không là màn history riêng. Không truyền PII, secret hoặc token vào page_context. Không che câu hỏi/CTA; không trợ giúp làm bài cuộc thi. UC-085 cho phép đề luyện tập HSK và cấm ở thi mô phỏng thật; đoạn khác nói ẩn mọi màn thi, nên điều kiện SCR-021 còn cần chốt. Quota-only ở UC-085 lệch quota-first/credit fallback trong UC-096 mới; ghi rõ vấn đề này khi chốt panel contract.
+**AI Assistant là panel dùng chung (UC-085/UC-086 trong [use-cases-06](use-cases-06-cong-dong.md)):** nội dung câu hỏi, kết quả, trạng thái đang trả lời, hết lượt và lỗi nằm nội tuyến ở màn sở hữu ngữ cảnh, chỉ dành cho LEARNER được gán tường minh. Field câu hỏi không rỗng; UI cũ ghi 1.000 ký tự, UC-085 ghi lỗi trên 2.000 ký tự nhưng BR-085-6 gọi ngưỡng là đề xuất: giữ đây là vấn đề contract cần chốt, không biến ngưỡng đề xuất thành policy. Nút gửi, thu gọn/mở rộng và xóa hội thoại của chính mình thuộc panel. Mở panel/đọc lịch sử không trừ lượt; gửi câu hỏi hiện entitlement, thiếu quyền dùng tới SCR-030. UC-086 mô tả lịch sử ai_chats trong 90 ngày, không liệt kê session quá hạn; session không thuộc người dùng trả 403. Xóa session và bắt đầu hội thoại mới là action nội tuyến, không là màn history riêng. Không truyền PII, secret hoặc token vào page_context. Không che câu hỏi/CTA; không trợ giúp làm bài cuộc thi. UC-085 cho phép đề luyện tập HSK và cấm ở thi mô phỏng thật; đoạn khác nói ẩn mọi màn thi, nên điều kiện SCR-021 còn cần chốt. Quota-only ở UC-085 lệch quota-first/credit fallback trong UC-096 mới; ghi rõ vấn đề này khi chốt panel contract.
 
 **Responsive và accessibility chung:** desktop từ 1024px, tablet 640–1023px, mobile dưới 640px; content tối đa 1280px, nội dung đọc 720px. Sidebar desktop, mobile navigation tối đa năm mục; role menu chỉ hiện mục được gán. Admin table đổi thành card trên mobile. Touch target tối thiểu 44×44px; label/accessible name, keyboard và focus ring; tương phản AA (4.5:1 chữ thường, 3:1 chữ lớn/UI), dùng được zoom 200%, không chỉ dùng màu; nội dung chữ Hán/pinyin hỗ trợ đầy đủ Unicode. Dialog trap focus, Escape/hủy nếu phù hợp, trả focus về trigger; thông báo trạng thái qua live region không giành focus tùy tiện. Audio có nội dung chữ tương đương; tôn trọng reduced motion.
 
@@ -127,7 +127,7 @@ Feature: Public Entry
 
 Scope: MVP
 
-Actors: GUEST, USER, TEACHER, MANAGER, CONTENT_ADMIN, FINANCE_ADMIN, SUPER_ADMIN
+Actors: GUEST, LEARNER, TEACHER, MODERATOR, CONTENT_EDITOR, ACCOUNTANT, ADMIN
 
 Authentication: Not Required
 
@@ -152,7 +152,7 @@ Next Screens:
 - SCR-003: start
 - SCR-002: sign in or private link without session
 - SCR-024: quick lookup
-- SCR-011: topics after explicit USER authentication
+- SCR-011: topics after explicit LEARNER authentication
 
 Back Behavior: Browser/referrer.
 
@@ -336,11 +336,11 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Mở chức năng học
 
-Actor: Explicit USER
+Actor: Explicit LEARNER
 
 Visible When: Permitted actor in the relevant state
 
-Enabled When: Explicit USER; otherwise authenticate
+Enabled When: Explicit LEARNER; otherwise authenticate
 
 Confirmation: None specified
 
@@ -387,15 +387,15 @@ Data State: Giữ ngữ cảnh đang nhập; không giữ bí mật sau thao tá
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| GUEST | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa USER cho vai trò quản trị. |
-| USER | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa USER cho vai trò quản trị. |
-| TEACHER | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa USER cho vai trò quản trị. |
-| MANAGER | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa USER cho vai trò quản trị. |
-| CONTENT_ADMIN | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa USER cho vai trò quản trị. |
-| FINANCE_ADMIN | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa USER cho vai trò quản trị. |
-| SUPER_ADMIN | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa USER cho vai trò quản trị. |
+| GUEST | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa LEARNER cho vai trò quản trị. |
+| LEARNER | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa LEARNER cho vai trò quản trị. |
+| TEACHER | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa LEARNER cho vai trò quản trị. |
+| MODERATOR | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa LEARNER cho vai trò quản trị. |
+| CONTENT_EDITOR | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa LEARNER cho vai trò quản trị. |
+| ACCOUNTANT | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa LEARNER cho vai trò quản trị. |
+| ADMIN | Nội dung giới thiệu công khai và lối tắt tra cứu. | Chỉ nhập truy vấn tra cứu nhanh. | Không có dữ liệu học cá nhân được tạo trên trang giới thiệu. | Không có. | Không có. | Chức năng học riêng tư cần xác thực và vai trò được gán rõ; không kế thừa LEARNER cho vai trò quản trị. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -507,12 +507,12 @@ Entry From:
 
 Next Screens:
 
-- SCR-010: explicit USER
+- SCR-010: explicit LEARNER
 - SCR-056 / SCR-058: explicit TEACHER
-- SCR-060 / SCR-062: explicit MANAGER
-- SCR-064 / SCR-065 / SCR-067 / SCR-068 / SCR-070 / SCR-072: explicit CONTENT_ADMIN
-- SCR-073 / SCR-074 / SCR-075: explicit FINANCE_ADMIN
-- SCR-076 / SCR-078: explicit SUPER_ADMIN
+- SCR-060 / SCR-062: explicit MODERATOR
+- SCR-064 / SCR-065 / SCR-067 / SCR-068 / SCR-070 / SCR-072: explicit CONTENT_EDITOR
+- SCR-073 / SCR-074 / SCR-075: explicit ACCOUNTANT
+- SCR-076 / SCR-078: explicit ADMIN
 - SCR-003: Register
 - SCR-005: Forgot Password
 - SCR-004: verification reminder
@@ -775,7 +775,7 @@ Navigation After Cancel: No mutation before activation
 | Validation Error | Required/format field error. |
 | Business Error | Generic credentials or account-restriction banner. |
 | Blocked | Current normalized email–IP pair blocked, even correct password. |
-| Success | Explicit-role navigation; unverified USER may study. |
+| Success | Explicit-role navigation; unverified LEARNER may study. |
 | Partial Data | Independent permitted areas may finish separately; show real loaded data plus per-area unavailable/retry. Never expose protected data or enable a dependent action before all its required checks succeed. |
 | Disabled | Only controls whose documented Enabled When condition is false, whose request is pending or whose required business contract is unapproved are disabled; explain the actual reason. |
 
@@ -863,7 +863,7 @@ Data preserved: Existing data unchanged
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Own permitted data | Credentials | Validated session | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -896,7 +896,7 @@ Load real permitted data without losing screen context.
 ### 17. Mockup Must NOT Show
 
 - Email-exists disclosure
-- Assumed administrator USER inheritance
+- Assumed administrator LEARNER inheritance
 - Invented highest-role default
 - ACCOUNT_LOCKED treated as consistent with revised source policy
 
@@ -1205,7 +1205,7 @@ Enabled When: Required fields valid; consent; idle
 
 Confirmation: None specified
 
-Business Effect: Create USER/FREE/unverified atomically, send verification outside transaction
+Business Effect: Create LEARNER/FREE/unverified atomically, send verification outside transaction
 
 Success Feedback: 201 to Verify Email
 
@@ -1370,9 +1370,9 @@ Data preserved: Existing data unchanged
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| GUEST | Own permitted data | Registration fields | USER account only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| GUEST | Own permitted data | Registration fields | LEARNER account only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -1459,7 +1459,7 @@ Feature: Authentication & Authorization
 
 Scope: MVP
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Conditional
 
@@ -1484,7 +1484,7 @@ Entry From:
 Next Screens:
 
 - SCR-002: skip/sign-in
-- SCR-010: valid explicit USER session after verification
+- SCR-010: valid explicit LEARNER session after verification
 - SCR-009 / SCR-030: permitted initiating operation
 
 Back Behavior: SCR-002 or permitted authenticated initiator.
@@ -1577,7 +1577,7 @@ Control Type: Email
 
 Required: Required only if no known destination in recovery mode
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -1627,7 +1627,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Gửi lại email
 
-Actor: GUEST / USER
+Actor: GUEST / LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -1647,7 +1647,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Bỏ qua, vào học
 
-Actor: GUEST / USER
+Actor: GUEST / LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -1661,13 +1661,13 @@ Success Feedback: Unverified learning remains allowed
 
 Failure Feedback: Retain screen and explain source-defined failure
 
-Navigation After Success: SCR-002 / SCR-010 if valid USER
+Navigation After Success: SCR-002 / SCR-010 if valid LEARNER
 
 Navigation After Cancel: No mutation before activation
 
 Action Name: Tiếp tục
 
-Actor: GUEST / USER
+Actor: GUEST / LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -1763,9 +1763,9 @@ Data preserved: Existing data unchanged
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Own permitted data | Resend email | Valid-token verification | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
-| USER | Own permitted data | Own resend | Valid-token verification | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Own resend | Valid-token verification | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -2087,7 +2087,7 @@ Data preserved: Existing data unchanged
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Own permitted data | Email | Conditional reset token | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -2490,7 +2490,7 @@ Data preserved: Existing data unchanged
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Own permitted data | New/confirm fields | Valid-token password replacement | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -2576,7 +2576,7 @@ Feature: Account Management
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -2756,7 +2756,7 @@ Control Type: Text
 
 Required: Required when updating name
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -2782,7 +2782,7 @@ Control Type: File picker / URL
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -2808,7 +2808,7 @@ Control Type: Select
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -2834,7 +2834,7 @@ Control Type: Select
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -2858,7 +2858,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Lưu hồ sơ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -2878,7 +2878,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Đổi mật khẩu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -2898,7 +2898,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Cài đặt nhắc học
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -2918,7 +2918,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Xác minh email
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -3032,9 +3032,9 @@ Data preserved: Old avatar retained
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -3122,7 +3122,7 @@ Feature: Account Management
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -3236,7 +3236,7 @@ Control Type: Password
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -3262,7 +3262,7 @@ Control Type: Password with visibility
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -3288,7 +3288,7 @@ Control Type: Password
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -3312,7 +3312,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Đổi mật khẩu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -3332,7 +3332,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Hủy
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -3446,9 +3446,9 @@ Data preserved: Existing data unchanged
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -3533,7 +3533,7 @@ Feature: Personalized Learning Pathways
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -3552,7 +3552,7 @@ Sources: [docs/reference/use-cases-04-lo-trinh.md](use-cases-04-lo-trinh.md) §U
 Entry From:
 
 - SCR-007: liên kết từ User Profile đến Study Reminder Settings.
-- SCR-010: lối tắt tài khoản của USER.
+- SCR-010: lối tắt tài khoản của LEARNER.
 
 Next Screens:
 
@@ -3673,7 +3673,7 @@ Control Type: Time
 
 Required: Required for enabled reminder
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: 20: 00 if unconfigured
 
@@ -3699,7 +3699,7 @@ Control Type: Switch
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: On if unconfigured
 
@@ -3725,7 +3725,7 @@ Control Type: Switch
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Off if unconfigured
 
@@ -3751,7 +3751,7 @@ Control Type: Switch
 
 Required: V2 only
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Off
 
@@ -3775,7 +3775,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Lưu cài đặt
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -3795,7 +3795,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Xác minh email
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -3815,7 +3815,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Hủy
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -3929,9 +3929,9 @@ Data preserved: Preference retained
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -4021,7 +4021,7 @@ Feature: Personalized Learning Pathways
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -4039,8 +4039,8 @@ Sources: Nội dung trước đồng bộ của screen-fields.md §5 (nguồn b�
 
 Entry From:
 
-- SCR-002: successful explicit USER login
-- SCR-001 / SCR-004: permitted authenticated USER entry
+- SCR-002: successful explicit LEARNER login
+- SCR-001 / SCR-004: permitted authenticated LEARNER entry
 
 Next Screens:
 
@@ -4238,7 +4238,7 @@ Selection behavior: One topic ->SCR-012
 
 Action Name: Ôn ngay
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -4258,7 +4258,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Chọn hoặc tiếp tục chủ đề
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -4278,11 +4278,11 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Xem tiến độ học
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
-Enabled When: Permitted USER
+Enabled When: Permitted LEARNER
 
 Confirmation: None specified
 
@@ -4298,7 +4298,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Mở chức năng đã chọn
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -4318,11 +4318,11 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Tài khoản
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
-Enabled When: Own USER account
+Enabled When: Own LEARNER account
 
 Confirmation: None specified
 
@@ -4338,7 +4338,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Gói học và điểm
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -4381,9 +4381,9 @@ Không có validation nhập business riêng; kiểm điều kiện action/role 
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | No input | No operation until selected learning action | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | No input | No operation until selected learning action | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -4475,7 +4475,7 @@ Feature: Vocabulary Learning
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -4495,7 +4495,7 @@ Entry From:
 
 - SCR-010 topic shortcut
 - SCR-012 topic return
-- SCR-001 HSK overview after USER auth
+- SCR-001 HSK overview after LEARNER auth
 
 Next Screens:
 
@@ -4637,7 +4637,7 @@ Control Type: Select
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -4663,7 +4663,7 @@ Control Type: Search
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -4689,7 +4689,7 @@ Control Type: Chips
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -4731,7 +4731,7 @@ Selection behavior: Available topic ->SCR-012; locked never bypassed
 
 Action Name: Mở hoặc tiếp tục chủ đề
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -4751,7 +4751,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Xem điều kiện mở khóa
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -4865,9 +4865,9 @@ Data preserved: Existing data unchanged
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -4955,7 +4955,7 @@ Feature: Vocabulary Learning
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -5161,7 +5161,7 @@ Control Type: Radio
 
 Required: Required to answer
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -5187,7 +5187,7 @@ Control Type: Text
 
 Required: Required when answering that item
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -5213,7 +5213,7 @@ Control Type: Action toggle
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -5239,7 +5239,7 @@ Control Type: Question-type controls
 
 Required: Optional per item; submit confirmation
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -5321,7 +5321,7 @@ Selection behavior: Wrong-point context ->SCR-023
 
 Action Name: Tiếp theo
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -5341,7 +5341,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Tôi đã biết từ này
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -5361,7 +5361,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Trả lời
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -5381,7 +5381,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Nghe âm thanh
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -5401,7 +5401,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Bắt đầu kiểm tra chủ đề
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -5421,7 +5421,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Nộp bài kiểm tra
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -5441,7 +5441,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Làm lại hoặc luyện điểm yếu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -5461,7 +5461,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Kết thúc buổi học
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -5481,7 +5481,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Bỏ qua
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Only in a source-supported study-question mode; legacy control, not final-test auto-submit
 
@@ -5647,9 +5647,9 @@ Data preserved: Confirmed earlier word progress retained; failed transaction unc
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -5741,7 +5741,7 @@ Feature: Spaced Repetition
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -5923,7 +5923,7 @@ Control Type: Question renderer
 
 Required: Required when answering
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -5949,7 +5949,7 @@ Control Type: Four buttons
 
 Required: Required only for flashcard self-assessment
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -5991,7 +5991,7 @@ Selection behavior: Current item; each answer persists immediately
 
 Action Name: Bắt đầu ôn
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6011,7 +6011,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Trả lời
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6031,7 +6031,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Đánh giá mức nhớ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6051,7 +6051,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Tạm dừng
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6071,7 +6071,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Ôn trước
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6091,7 +6091,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Xem tiến độ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6206,9 +6206,9 @@ Data preserved: Existing data unchanged
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -6295,7 +6295,7 @@ Feature: Chinese Character Learning
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -6501,7 +6501,7 @@ Control Type: Search/select
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -6527,7 +6527,7 @@ Control Type: Mode selector
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -6553,7 +6553,7 @@ Control Type: Canvas
 
 Required: Required for completion
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -6579,7 +6579,7 @@ Control Type: Button count
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -6605,7 +6605,7 @@ Control Type: Audio button count
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -6631,7 +6631,7 @@ Control Type: Generated result summary
 
 Required: Required for challenge submit
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -6693,7 +6693,7 @@ Selection behavior: Client cannot replace issued sequence
 
 Action Name: Bắt đầu viết theo nét
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6713,7 +6713,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Bắt đầu nhớ và viết
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6733,7 +6733,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Xem mẫu thêm
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6753,7 +6753,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Xem lại nét
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6773,7 +6773,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Bắt đầu thử thách
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6793,7 +6793,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Nghe và viết
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6813,7 +6813,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Kiểm tra
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6833,7 +6833,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Chữ tiếp theo
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -6853,7 +6853,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Chuyển về chế độ cơ bản
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -7059,9 +7059,9 @@ Data preserved: Existing data unchanged
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -7152,7 +7152,7 @@ Feature: Chinese Character Learning
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -7333,7 +7333,7 @@ Control Type: Selector
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -7359,7 +7359,7 @@ Control Type: Radio
 
 Required: Required to answer
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -7385,7 +7385,7 @@ Control Type: Play button count
 
 Required: Optional audio mode
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -7427,7 +7427,7 @@ Selection behavior: One option; skip NULL leaves mastery unchanged
 
 Action Name: Trả lời
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -7447,7 +7447,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Bỏ qua
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -7467,7 +7467,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Nghe lại
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -7487,7 +7487,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Câu tiếp theo
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -7507,7 +7507,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Kết thúc luyện tập
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -7652,9 +7652,9 @@ Data preserved: Existing data unchanged
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -7741,7 +7741,7 @@ Feature: Pronunciation Learning
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -7920,7 +7920,7 @@ Control Type: Tabs
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -7946,7 +7946,7 @@ Control Type: Radio
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -8008,7 +8008,7 @@ Selection behavior: One answer
 
 Action Name: Chọn chặng
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8028,7 +8028,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Nghe mẫu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8048,7 +8048,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Trả lời
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8068,7 +8068,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Luyện lại chặng
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8088,7 +8088,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Tiếp tục chặng kế
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8108,7 +8108,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Quay lại
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8233,9 +8233,9 @@ Data preserved: Progress retained
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -8324,7 +8324,7 @@ Feature: Grammar Learning
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -8440,7 +8440,7 @@ Control Type: Select/tabs
 
 Required: Required for level browse
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -8482,7 +8482,7 @@ Selection behavior: One point ->SCR-018
 
 Action Name: Chọn mức HSK
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8502,7 +8502,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Mở bài ngữ pháp
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8556,9 +8556,9 @@ Data State: Giữ ngữ cảnh đang nhập; không giữ bí mật sau thao tá
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Browse filter only | No learning progress until lesson action | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Browse filter only | No learning progress until lesson action | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -8644,7 +8644,7 @@ Feature: Grammar Learning
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -8825,7 +8825,7 @@ Control Type: Question-type control
 
 Required: Required when answering; exercises maybe skipped
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -8851,7 +8851,7 @@ Control Type: Action
 
 Required: Optional completion choice
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -8875,7 +8875,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Đã hiểu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8895,7 +8895,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Trả lời và hoàn tất
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8915,7 +8915,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Bỏ qua bài tập
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8935,7 +8935,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Ôn điểm đã học
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -8955,7 +8955,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Quay lại danh sách
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -9080,9 +9080,9 @@ Data preserved: No learned-without-schedule
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -9169,7 +9169,7 @@ Feature: Personalized Learning Pathways
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -9375,7 +9375,7 @@ Control Type: Tabs
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Source does not specify initial selection
 
@@ -9401,7 +9401,7 @@ Control Type: Select
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -9427,7 +9427,7 @@ Control Type: Tab
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -9509,7 +9509,7 @@ Selection behavior: SCR-022 for a submitted own exam
 
 Action Name: Chọn khoảng thời gian
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -9529,7 +9529,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Đổi biểu đồ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -9549,7 +9549,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Luyện ngay
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -9569,11 +9569,11 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Chọn chủ đề hoặc đề thi
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
-Enabled When: Explicit USER
+Enabled When: Explicit LEARNER
 
 Confirmation: None specified
 
@@ -9684,9 +9684,9 @@ Data preserved: Other skill data preserved
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | View/filter only | No mutation from viewing statistics | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | View/filter only | No mutation from viewing statistics | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -9776,7 +9776,7 @@ Feature: HSK Exam & Practice
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -9959,7 +9959,7 @@ Control Type: Tabs
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -9985,7 +9985,7 @@ Control Type: Search
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -10011,7 +10011,7 @@ Control Type: Select
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -10073,7 +10073,7 @@ Selection behavior: Inline row action; no new history page
 
 Action Name: Bắt đầu làm bài
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -10093,7 +10093,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Tiếp tục
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -10113,7 +10113,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Xem lịch sử
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -10133,7 +10133,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Luyện theo dạng câu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -10247,9 +10247,9 @@ Data preserved: Existing data unchanged
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Browse filters | Own exam start only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Browse filters | Own exam start only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -10338,7 +10338,7 @@ Feature: HSK Exam & Practice
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -10543,7 +10543,7 @@ Control Type: Radio
 
 Required: Optional per item
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -10569,7 +10569,7 @@ Control Type: Choice
 
 Required: Optional per item
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -10595,7 +10595,7 @@ Control Type: Image-choice
 
 Required: Optional per item
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -10621,7 +10621,7 @@ Control Type: Choice
 
 Required: Optional per item
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -10647,7 +10647,7 @@ Control Type: Text
 
 Required: Optional per item
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -10673,7 +10673,7 @@ Control Type: Ordering controls
 
 Required: Optional per item
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -10699,7 +10699,7 @@ Control Type: Text area
 
 Required: Optional per item
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -10725,7 +10725,7 @@ Control Type: Checkbox
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -10751,7 +10751,7 @@ Control Type: Play count
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -10793,7 +10793,7 @@ Selection behavior: Current question without revealing grading
 
 Action Name: Chuyển câu hoặc phần
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -10813,7 +10813,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Nghe âm thanh
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -10833,7 +10833,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Lưu bản nháp
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -10853,7 +10853,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Nộp bài
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -10873,7 +10873,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Tiếp tục hoặc bắt đầu lại
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -10893,7 +10893,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Rời bài làm
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -11119,9 +11119,9 @@ Data preserved: Existing data unchanged
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -11215,7 +11215,7 @@ Feature: HSK Exam & Practice
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -11441,7 +11441,7 @@ Control Type: Checkbox/filter
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -11503,7 +11503,7 @@ Selection behavior: Point ->SCR-023
 
 Action Name: Xem lời giải
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -11523,7 +11523,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Hiện cả câu đúng
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -11543,7 +11543,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Luyện ngay
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -11563,11 +11563,11 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Chọn đề khác hoặc làm lại
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
-Enabled When: Permitted USER
+Enabled When: Permitted LEARNER
 
 Confirmation: None specified
 
@@ -11583,7 +11583,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Nhờ chấm bài
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -11603,7 +11603,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Báo thiếu lời giải
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -11739,9 +11739,9 @@ Data preserved: Existing data unchanged
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -11834,7 +11834,7 @@ Feature: HSK Exam & Practice
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -11865,7 +11865,7 @@ Next Screens:
 - SCR-004: verification if a paid operation requires it
 - SCR-032: ESSAY grading request
 
-Back Behavior: Permitted referring result/progress/topic; USER fallback SCR-010.
+Back Behavior: Permitted referring result/progress/topic; LEARNER fallback SCR-010.
 
 Cancel Behavior: No dedicated source cancel action.
 
@@ -12039,7 +12039,7 @@ Control Type: Select
 
 Required: Required for by type entry; optional fallback point entry
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -12065,7 +12065,7 @@ Control Type: Select
 
 Required: Required as context needs
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -12091,7 +12091,7 @@ Control Type: Number/select
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -12117,7 +12117,7 @@ Control Type: Context selection/hidden
 
 Required: Required for remediation entry
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -12143,7 +12143,7 @@ Control Type: Question renderer
 
 Required: Required when answering
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -12169,7 +12169,7 @@ Control Type: Existing target context/number
 
 Required: Required for request context; point ids optional if server selects weakest
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Not specified
 
@@ -12231,7 +12231,7 @@ Selection behavior: No separate job page
 
 Action Name: Bắt đầu luyện
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -12251,7 +12251,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Trả lời
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -12271,7 +12271,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Câu tiếp theo
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -12291,7 +12291,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Lưu bài viết hoặc nhờ chấm
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -12311,7 +12311,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Nhờ AI tạo bài luyện
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -12331,7 +12331,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Dùng câu hỏi đã duyệt
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -12351,7 +12351,7 @@ Navigation After Cancel: No mutation before activation
 
 Action Name: Quay lại
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Permitted actor in the relevant state
 
@@ -12567,9 +12567,9 @@ Data preserved: Completed answers preserved; failed job not charged
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
+| LEARNER | Own permitted data | Documented own fields only | Documented own operations only | No deletion action | No approval action | No inherited roles; server enforces ownership and explicit role |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -12662,7 +12662,7 @@ Feature: Dictionary & Translation
 
 Scope: MVP
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Not Required
 
@@ -12686,7 +12686,7 @@ Entry From:
 Next Screens:
 
 - SCR-025 selected character or word
-- SCR-026 long text requires USER authentication
+- SCR-026 long text requires LEARNER authentication
 
 Back Behavior: Return to the prior canonical screen without changing saved data.
 
@@ -12822,7 +12822,7 @@ Control Type: Search input
 
 Required: Required for textual lookup
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -12848,7 +12848,7 @@ Control Type: Tabs or select
 
 Required: Required
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -12874,7 +12874,7 @@ Control Type: Radical picker
 
 Required: Optional for radical/stroke lookup
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -12900,7 +12900,7 @@ Control Type: Number/select
 
 Required: Optional for radical/stroke lookup
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -12926,7 +12926,7 @@ Control Type: Select
 
 Required: Optional; legacy UI evidence only
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -12968,7 +12968,7 @@ Selection behavior: One entry opens its detail
 
 Action Name: Tra cứu
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Textual mode
 
@@ -12988,7 +12988,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Xem chi tiết
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: A result exists
 
@@ -13008,7 +13008,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Mở rộng điều kiện số nét
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: No radical/stroke match
 
@@ -13028,11 +13028,11 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Dịch đoạn văn
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Query is too long or no meaning found
 
-Enabled When: Authenticated USER
+Enabled When: Authenticated LEARNER
 
 Confirmation: None
 
@@ -13105,10 +13105,10 @@ Data preserved: Other filters
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| GUEST | Public lookup and available result | No | No note/card | No | No | Guest policy applies; translation and saves require USER. |
-| USER | Full dictionary results | No dictionary content | Notes/cards via SCR-025 | No dictionary content | No | Internal lookup does not consume paid-feature allowance. |
+| GUEST | Public lookup and available result | No | No note/card | No | No | Guest policy applies; translation and saves require LEARNER. |
+| LEARNER | Full dictionary results | No dictionary content | Notes/cards via SCR-025 | No dictionary content | No | Internal lookup does not consume paid-feature allowance. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -13142,7 +13142,7 @@ Initial load: preserve screen title/navigation, show skeleton only in the loadin
 - Treat dictionary lookup as a paid translation
 - Guest save-to-note/card actions
 - Invent a guest numeric daily/hourly limit
-- Promise unlimited guest or USER access without resolving policy
+- Promise unlimited guest or LEARNER access without resolving policy
 
 ### 18. UX Recommendations
 
@@ -13200,7 +13200,7 @@ Feature: Dictionary & Translation
 
 Scope: MVP
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Conditional
 
@@ -13243,7 +13243,7 @@ Requirement: Structure, character story, strokes and compound words when supplie
 
 **Save destinations**
 
-Requirement: USER-only note/card forms remain inline.
+Requirement: LEARNER-only note/card forms remain inline.
 
 ### 4. Display Fields
 
@@ -13419,7 +13419,7 @@ Control Type: Text input
 
 Required: Required when saving a note
 
-Editable By: Explicit USER under the field-specific ownership/account conditions
+Editable By: Explicit LEARNER under the field-specific ownership/account conditions
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -13445,7 +13445,7 @@ Control Type: Textarea
 
 Required: Required when saving a note
 
-Editable By: Explicit USER under the field-specific ownership/account conditions
+Editable By: Explicit LEARNER under the field-specific ownership/account conditions
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -13471,7 +13471,7 @@ Control Type: Chip input
 
 Required: Optional
 
-Editable By: Explicit USER under the field-specific ownership/account conditions
+Editable By: Explicit LEARNER under the field-specific ownership/account conditions
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -13497,7 +13497,7 @@ Control Type: Select
 
 Required: Required when adding a card
 
-Editable By: Explicit USER under the field-specific ownership/account conditions
+Editable By: Explicit LEARNER under the field-specific ownership/account conditions
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -13505,7 +13505,7 @@ Placeholder: Không bắt buộc; không thay thế label.
 
 Allowed Values: Owned decks only
 
-Validation: Must belong to current USER; capacity maximum 500; maximum 50 owned decks
+Validation: Must belong to current LEARNER; capacity maximum 500; maximum 50 owned decks
 
 Validation Message: Chọn bộ thẻ của bạn.
 
@@ -13521,7 +13521,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Nghe phát âm
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Audio supplied
 
@@ -13541,7 +13541,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Xem thứ tự nét
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Stroke data supplied
 
@@ -13561,9 +13561,9 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Lưu ghi chú
 
-Actor: USER
+Actor: LEARNER
 
-Visible When: Explicit USER role
+Visible When: Explicit LEARNER role
 
 Enabled When: Valid title/content and below note limit
 
@@ -13581,9 +13581,9 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Lưu nhanh ghi chú
 
-Actor: USER
+Actor: LEARNER
 
-Visible When: Explicit USER role; source default exists
+Visible When: Explicit LEARNER role; source default exists
 
 Enabled When: Below note limit
 
@@ -13601,9 +13601,9 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Thêm thẻ
 
-Actor: USER
+Actor: LEARNER
 
-Visible When: Explicit USER role
+Visible When: Explicit LEARNER role
 
 Enabled When: Owned deck and nonduplicate card below capacity
 
@@ -13621,7 +13621,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Tạo bộ thẻ đích
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: No suitable owned deck
 
@@ -13708,10 +13708,10 @@ Data preserved: Entry and draft
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| GUEST | Permitted public dictionary fields | No | No | No | No | Saving requires USER. |
-| USER | Dictionary detail | Only own save-form text | Own note/card | No dictionary entry | No | Saving owner inferred from session, not client user_id. |
+| GUEST | Permitted public dictionary fields | No | No | No | No | Saving requires LEARNER. |
+| LEARNER | Dictionary detail | Only own save-form text | Own note/card | No dictionary entry | No | Saving owner inferred from session, not client user_id. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -13788,7 +13788,7 @@ Related Data: Read lexemes/lexeme_links; save through collections/collection_ite
 
 READY WITH PLACEHOLDERS
 
-Reason: Full USER detail is ready; guest reduced fields require policy.
+Reason: Full LEARNER detail is ready; guest reduced fields require policy.
 
 ## SCR-026 — Translation
 
@@ -13802,7 +13802,7 @@ Feature: Dictionary & Translation
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -13819,7 +13819,7 @@ Sources: [docs/reference/use-cases-05-thu-vien.md](use-cases-05-thu-vien.md) §U
 Entry From:
 
 - SCR-024 authenticated long-query action
-- SCR-001 USER services navigation
+- SCR-001 LEARNER services navigation
 
 Next Screens:
 
@@ -13962,7 +13962,7 @@ Control Type: Textarea
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -13988,7 +13988,7 @@ Control Type: Select/toggle
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -14030,9 +14030,9 @@ Selection behavior: Inline result replaces detail area
 
 Action Name: Dịch
 
-Actor: USER
+Actor: LEARNER
 
-Visible When: Explicit USER role
+Visible When: Explicit LEARNER role
 
 Enabled When: Valid text, no pending submit; available entitlement on cache miss
 
@@ -14050,7 +14050,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Tra từ được chọn
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Nonempty segment list
 
@@ -14070,7 +14070,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Chọn cụm từ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Output visible
 
@@ -14090,11 +14090,11 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Xem bản dịch đã lưu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Owned saved history exists
 
-Enabled When: Entry belongs to current USER
+Enabled When: Entry belongs to current LEARNER
 
 Confirmation: None
 
@@ -14177,9 +14177,9 @@ Data preserved: Valid translated result
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own permitted translation output/history and internal word detail | Unsaved source passage and translation direction only | Own validated translation request; one approved usage source on cache miss | No history/result deletion contract defined | None | Explicit USER; server ownership for stored results; cache hit and internal lookup do not consume paid allowance; account/email and quota-credit controls follow accepted contracts; no public translation/history access. |
+| LEARNER | Own permitted translation output/history and internal word detail | Unsaved source passage and translation direction only | Own validated translation request; one approved usage source on cache miss | No history/result deletion contract defined | None | Explicit LEARNER; server ownership for stored results; cache hit and internal lookup do not consume paid allowance; account/email and quota-credit controls follow accepted contracts; no public translation/history access. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -14273,7 +14273,7 @@ Feature: Personal Learning Library
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -14293,7 +14293,7 @@ Entry From:
 
 - SCR-025 save-note action
 - SCR-026 or SCR-038 contextual note save
-- SCR-001 USER library navigation
+- SCR-001 LEARNER library navigation
 
 Next Screens:
 
@@ -14433,7 +14433,7 @@ Control Type: Text input
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -14459,7 +14459,7 @@ Control Type: Textarea
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -14485,7 +14485,7 @@ Control Type: Chip input
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -14511,7 +14511,7 @@ Control Type: Search input
 
 Required: Required only when searching
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -14537,7 +14537,7 @@ Control Type: Select/chips
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -14561,7 +14561,7 @@ Required columns/items: Title, escaped snippet, updated time
 
 Optional columns/items: Tags/source reference
 
-Search: Title and content of current USER only; minimum 2 characters
+Search: Title and content of current LEARNER only; minimum 2 characters
 
 Filters: Exact tag; active/trash view only if recoverable mapping provided
 
@@ -14579,9 +14579,9 @@ Selection behavior: One note opens inline editor
 
 Action Name: Tạo ghi chú
 
-Actor: USER
+Actor: LEARNER
 
-Visible When: Explicit USER
+Visible When: Explicit LEARNER
 
 Enabled When: Below1,000notes
 
@@ -14599,7 +14599,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Lưu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own editor open
 
@@ -14619,7 +14619,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Xoá
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own saved active note
 
@@ -14639,7 +14639,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Tra cứu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Search input
 
@@ -14659,7 +14659,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Khôi phục
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Deleted own note visible under supported trash view
 
@@ -14706,9 +14706,9 @@ Không có validation nhập business riêng; kiểm điều kiện action/role 
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own active/deleted notes only | Own note | Own note | Soft-delete own note | No | Missing or foreign private note403; ownership from session. |
+| LEARNER | Own active/deleted notes only | Own note | Own note | Soft-delete own note | No | Missing or foreign private note403; ownership from session. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -14798,7 +14798,7 @@ Feature: Personal Learning Library
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -14814,7 +14814,7 @@ Sources: [docs/reference/use-cases-05-thu-vien.md](use-cases-05-thu-vien.md) §U
 
 Entry From:
 
-- SCR-001 USER library navigation
+- SCR-001 LEARNER library navigation
 - SCR-025 no destination deck
 - SCR-029 return to decks
 
@@ -14973,7 +14973,7 @@ Control Type: Text input
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -14999,7 +14999,7 @@ Control Type: Textarea
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -15025,7 +15025,7 @@ Control Type: Radio/select
 
 Required: Required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -15051,7 +15051,7 @@ Control Type: Select
 
 Required: Required when preset source chosen
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -15093,9 +15093,9 @@ Selection behavior: One deck opens detail
 
 Action Name: Tạo bộ thẻ
 
-Actor: USER
+Actor: LEARNER
 
-Visible When: Explicit USER
+Visible When: Explicit LEARNER
 
 Enabled When: Below50decks and validname/source
 
@@ -15113,7 +15113,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Mở bộ thẻ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own list item
 
@@ -15133,11 +15133,11 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Khám phá bộ thẻ công khai
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: V2 sharing extension enabled
 
-Enabled When: USER or public access for discovery
+Enabled When: LEARNER or public access for discovery
 
 Confirmation: None
 
@@ -15200,9 +15200,9 @@ Data preserved: Draft
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own decks | Own creation form | Own private deck | Only permitted own soft-delete within detail | No | Client cannot create is_public=true; explicit sharingV2. |
+| LEARNER | Own decks | Own creation form | Own private deck | Only permitted own soft-delete within detail | No | Client cannot create is_public=true; explicit sharingV2. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -15289,7 +15289,7 @@ Feature: Personal Learning Library
 
 Scope: MVP
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Conditional
 
@@ -15333,7 +15333,7 @@ Requirement: Safe card fronts/backs and owned edit controls.
 
 **Public extensions**
 
-Requirement: V2 owner share/unshare; USER copy/report; GUEST read-only.
+Requirement: V2 owner share/unshare; LEARNER copy/report; GUEST read-only.
 
 ### 4. Display Fields
 
@@ -15489,7 +15489,7 @@ Control Type: Text input
 
 Required: Required when creating/editing
 
-Editable By: USER who owns the selected deck only
+Editable By: LEARNER who owns the selected deck only
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -15515,7 +15515,7 @@ Control Type: Textarea
 
 Required: Required when creating/editing
 
-Editable By: USER who owns the selected deck only
+Editable By: LEARNER who owns the selected deck only
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -15541,7 +15541,7 @@ Control Type: Select
 
 Required: Required when reporting in V2
 
-Editable By: Explicit USER under the field-specific ownership/account conditions
+Editable By: Explicit LEARNER under the field-specific ownership/account conditions
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -15573,7 +15573,7 @@ Sort: Saved card order
 
 Pagination: Common list policy, maximum 500 cards
 
-Actions: Owner add/edit; choose own review; USER copy/report for public deck
+Actions: Owner add/edit; choose own review; LEARNER copy/report for public deck
 
 Empty state: Bộ chưa có thẻ—owner adds from lookup or manually
 
@@ -15583,7 +15583,7 @@ Selection behavior: One card can open inline safe detail
 
 Action Name: Thêm thẻ
 
-Actor: USER owner
+Actor: LEARNER owner
 
 Visible When: Owned deck
 
@@ -15603,7 +15603,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Sửa thẻ
 
-Actor: USER owner
+Actor: LEARNER owner
 
 Visible When: Owned deck
 
@@ -15623,7 +15623,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Ôn bộ thẻ
 
-Actor: USER owner
+Actor: LEARNER owner
 
 Visible When: Owned deck
 
@@ -15643,7 +15643,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Chia sẻ
 
-Actor: USER owner
+Actor: LEARNER owner
 
 Visible When: V2 extension and owned private deck
 
@@ -15663,7 +15663,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Dừng chia sẻ
 
-Actor: USER owner
+Actor: LEARNER owner
 
 Visible When: Owned public deck in V2
 
@@ -15683,7 +15683,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Sao chép bộ thẻ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Public deck in V2
 
@@ -15703,7 +15703,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Báo cáo bộ thẻ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Public deck in V2
 
@@ -15723,7 +15723,7 @@ Navigation After Cancel: Remain on this screen unless explicitly navigating.
 
 Action Name: Nhập từ tra cứu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Owned deck detail only
 
@@ -15801,9 +15801,9 @@ Data preserved: Owned deck
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Public deck in V2 only | No | No copy | No | No | Private detail requires ownerUSER. |
-| USER | Own deck or public deck in V2 | Own only | Own card/copy | Own content soft-delete only if supported | No | Owner share/unshare>=5cards; another public deck remains read-only. |
+| LEARNER | Own deck or public deck in V2 | Own only | Own card/copy | Own content soft-delete only if supported | No | Owner share/unshare>=5cards; another public deck remains read-only. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -15894,7 +15894,7 @@ Feature: Plans & Credits
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -15912,7 +15912,7 @@ Sources: [docs/reference/use-cases-07-thanh-toan-cham-bai.md](use-cases-07-thanh
 
 Entry From:
 
-- SCR-001 account navigation for USER
+- SCR-001 account navigation for LEARNER
 - SCR-026, SCR-032 or SCR-038 when entitlement is insufficient
 
 Next Screens:
@@ -16054,7 +16054,7 @@ Control Type: Text input
 
 Required: Required when redeeming
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -16078,9 +16078,9 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Nạp mã thẻ
 
-Actor: USER
+Actor: LEARNER
 
-Visible When: Explicit USER; verified-email condition according to final auth contract
+Visible When: Explicit LEARNER; verified-email condition according to final auth contract
 
 Enabled When: Valid code; not submitting or temporarily blocked; CSRF validated
 
@@ -16098,9 +16098,9 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Lịch sử giao dịch
 
-Actor: USER
+Actor: LEARNER
 
-Visible When: Authenticated USER
+Visible When: Authenticated LEARNER
 
 Enabled When: Own history access
 
@@ -16118,7 +16118,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Tải lại phần bị lỗi
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: A balance, plan or quota section failed
 
@@ -16206,9 +16206,9 @@ Data preserved: Other loaded sections.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own plan, quota and balance | Card-code input only | Redeem legitimate code | No ledger deletion | No | Explicit USER. Verified email for point-changing actions depends on accepted auth contract. |
+| LEARNER | Own plan, quota and balance | Card-code input only | Redeem legitimate code | No ledger deletion | No | Explicit LEARNER. Verified email for point-changing actions depends on accepted auth contract. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -16302,7 +16302,7 @@ Feature: Plans & Credits
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -16494,7 +16494,7 @@ Control Type: Select
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -16536,7 +16536,7 @@ Selection behavior: No additional transaction-detail screen
 
 Action Name: Áp dụng bộ lọc
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own history loaded
 
@@ -16556,7 +16556,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Trang trước hoặc sau
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Page exists
 
@@ -16576,11 +16576,11 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Quay lại gói và điểm
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Always
 
-Enabled When: Explicit USER
+Enabled When: Explicit LEARNER
 
 Confirmation: None
 
@@ -16642,9 +16642,9 @@ Data preserved: Filter and page.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Only owned transactions | No | No | No | No | Do not accept client user_id. Linked refund references must also be owned. |
+| LEARNER | Only owned transactions | No | No | No | No | Do not accept client user_id. Linked refund references must also be owned. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -16731,7 +16731,7 @@ Feature: Teacher Grading
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -16748,7 +16748,7 @@ Sources: [docs/reference/use-cases-07-thanh-toan-cham-bai.md](use-cases-07-thanh
 Entry From:
 
 - SCR-022 own ESSAY result
-- SCR-001 USER services navigation
+- SCR-001 LEARNER services navigation
 
 Next Screens:
 
@@ -16890,7 +16890,7 @@ Control Type: Textarea
 
 Required: Required for direct submission
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -16916,13 +16916,13 @@ Control Type: Select
 
 Required: Required when using an existing ESSAY
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
 Placeholder: Không bắt buộc; không thay thế label.
 
-Allowed Values: Current USER's eligible ESSAY
+Allowed Values: Current LEARNER's eligible ESSAY
 
 Validation: Server checks ownership; snapshot fixed; no active PENDING/ASSIGNED request for same essay.
 
@@ -16942,7 +16942,7 @@ Control Type: Text/select
 
 Required: Conditional; legacy says required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -16968,7 +16968,7 @@ Control Type: Select
 
 Required: Conditional; legacy says required
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -16992,9 +16992,9 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Gửi bài chấm
 
-Actor: USER
+Actor: LEARNER
 
-Visible When: Explicit USER when policy is ready
+Visible When: Explicit LEARNER when policy is ready
 
 Enabled When: Valid writing/owned source; no active duplicate; entitlement and CSRF valid
 
@@ -17012,9 +17012,9 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Yêu cầu của tôi
 
-Actor: USER
+Actor: LEARNER
 
-Visible When: Explicit USER
+Visible When: Explicit LEARNER
 
 Enabled When: Own access
 
@@ -17032,7 +17032,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Huỷ bản nháp
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Unsaved draft
 
@@ -17120,9 +17120,9 @@ Data preserved: Draft.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own essay and submission form | Unsaved draft only | Owned grading request | No hard deletion of saved request | No | Owner check; one active request per essay; CSRF for credit-changing writes. |
+| LEARNER | Own essay and submission form | Unsaved draft only | Owned grading request | No hard deletion of saved request | No | Owner check; one active request per essay; CSRF for credit-changing writes. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -17214,7 +17214,7 @@ Feature: Teacher Grading
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -17231,7 +17231,7 @@ Sources: [docs/reference/use-cases-07-thanh-toan-cham-bai.md](use-cases-07-thanh
 Entry From:
 
 - SCR-032 after submission
-- SCR-001 SCR-001 USER services navigation
+- SCR-001 SCR-001 LEARNER services navigation
 
 Next Screens:
 
@@ -17408,7 +17408,7 @@ Control Type: Select
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -17450,7 +17450,7 @@ Selection behavior: Selected own request opens SCR-034
 
 Action Name: Xem yêu cầu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Owned request row
 
@@ -17470,11 +17470,11 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Gửi bài mới
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own list
 
-Enabled When: Explicit USER
+Enabled When: Explicit LEARNER
 
 Confirmation: None
 
@@ -17490,7 +17490,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Lọc trạng thái
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Status filter
 
@@ -17536,9 +17536,9 @@ Không có validation nhập business riêng; kiểm điều kiện action/role 
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Owned requests only | No result editing | Through SCR-032 | No | No | Reading is free; teacher identity/payout not shown by default. |
+| LEARNER | Owned requests only | No result editing | Through SCR-032 | No | No | Reading is free; teacher identity/payout not shown by default. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -17626,7 +17626,7 @@ Feature: Teacher Grading
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -17844,7 +17844,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Huỷ yêu cầu đang chờ
 
-Actor: USER owner
+Actor: LEARNER owner
 
 Visible When: PENDING only
 
@@ -17864,7 +17864,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Tải lại trạng thái
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own request
 
@@ -17884,11 +17884,11 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Quay lại yêu cầu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Always
 
-Enabled When: Explicit USER
+Enabled When: Explicit LEARNER
 
 Confirmation: None
 
@@ -17959,9 +17959,9 @@ Data preserved: Own request.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own request and final result | No saved-result editing | No | Cancel PENDING through business action only | No | Reading changes no quota, credits or mastery. Teacher identity is hidden by default until policy is approved. |
+| LEARNER | Own request and final result | No saved-result editing | No | Cancel PENDING through business action only | No | Reading changes no quota, credits or mastery. Teacher identity is hidden by default until policy is approved. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -18051,7 +18051,7 @@ Feature: Learning Games
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -18069,7 +18069,7 @@ Sources: [docs/reference/use-cases-06-cong-dong.md](use-cases-06-cong-dong.md) �
 
 Entry From:
 
-- SCR-001 USER learning navigation
+- SCR-001 LEARNER learning navigation
 - SCR-036 completed or exited round
 
 Next Screens:
@@ -18229,7 +18229,7 @@ Display Type: Integer
 
 Required to Display: When server supplies a confirmed own game total
 
-Visibility Condition: Authenticated USER; own achievement data loaded
+Visibility Condition: Authenticated LEARNER; own achievement data loaded
 
 Format: Integer with local thousands separator
 
@@ -18269,11 +18269,11 @@ Selection behavior: Selected game creates a server-issued round
 
 Action Name: Chơi
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Supported game with valid data
 
-Enabled When: Explicit USER; source round-rate restriction satisfied
+Enabled When: Explicit LEARNER; source round-rate restriction satisfied
 
 Confirmation: None
 
@@ -18289,7 +18289,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Bảng xếp hạng trò chơi
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: V2 ranking extension
 
@@ -18365,15 +18365,15 @@ Data preserved: Catalogue.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Games and own achievements | No | Server-issued round | No saved-result deletion | No | Explicit USER; shared game-host cookie/header rules; no implicit role inheritance. |
+| LEARNER | Games and own achievements | No | Server-issued round | No saved-result deletion | No | Explicit LEARNER; shared game-host cookie/header rules; no implicit role inheritance. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
 No added business statuses.
 
-Approved flow requires USER. UC-087 guest demo is possible only if explicitly implemented and is not the approved saved-round flow. Four GameBox games are MVP; TYPE_PINYIN is V2. Billing/admin/community modules do not belong on the game host.
+Approved flow requires LEARNER. UC-087 guest demo is possible only if explicitly implemented and is not the approved saved-round flow. Four GameBox games are MVP; TYPE_PINYIN is V2. Billing/admin/community modules do not belong on the game host.
 
 ### 13. Confirmation / Modal Requirements
 
@@ -18455,7 +18455,7 @@ Feature: Learning Games
 
 Scope: MVP
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -18694,7 +18694,7 @@ Control Type: Game-specific mouse/touch/keyboard
 
 Required: Required per served item
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -18720,7 +18720,7 @@ Control Type: Keyboard text
 
 Required: Required only for TYPE_PINYIN in V2
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -18744,7 +18744,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Bắt đầu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Round not started
 
@@ -18764,7 +18764,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Tạm dừng
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Only game mode permitting local pause
 
@@ -18784,7 +18784,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Gửi kết quả
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Round complete
 
@@ -18804,7 +18804,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Thoát
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Always
 
@@ -18824,7 +18824,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Bảng xếp hạng
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: V2 ranking and server-confirmed result
 
@@ -18932,9 +18932,9 @@ Data preserved: Raw answers.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own round and result | Game answers while active | Server round | No saved-result deletion | No | Served items only; one commit; server score ceiling, duration and frequency checks. |
+| LEARNER | Own round and result | Game answers while active | Server round | No saved-result deletion | No | Served items only; one commit; server score ceiling, duration and frequency checks. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -19023,7 +19023,7 @@ Feature: Video Learning
 
 Scope: V2
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -19039,7 +19039,7 @@ Sources: [docs/reference/use-cases-02-hoc-luyen-tap.md](use-cases-02-hoc-luyen-t
 
 Entry From:
 
-- USER learning navigation
+- LEARNER learning navigation
 
 Next Screens:
 
@@ -19195,7 +19195,7 @@ Control Type: Select
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -19221,7 +19221,7 @@ Control Type: Select
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -19263,7 +19263,7 @@ Selection behavior: Only PUBLISHED and embeddable videos with valid timestamped 
 
 Action Name: Học với video
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Eligible published video
 
@@ -19283,7 +19283,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Xoá bộ lọc
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: A filter is active
 
@@ -19361,9 +19361,9 @@ Data preserved: Filters
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Published eligible video list and own resume data | No | No video content | No | No | Explicit USER under approved flow; viewing itself does not consume quota. |
+| LEARNER | Published eligible video list and own resume data | No | No video content | No | No | Explicit LEARNER under approved flow; viewing itself does not consume quota. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -19427,7 +19427,7 @@ Related Screens:
 
 Related Feature: Video Learning
 
-Related Data: Read learning.videos and current USER's user_progress(VIDEO); existing design tables may await migration.
+Related Data: Read learning.videos and current LEARNER's user_progress(VIDEO); existing design tables may await migration.
 
 ### 22. Open Issues
 
@@ -19451,7 +19451,7 @@ Feature: Video Learning
 
 Scope: V2
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -19720,7 +19720,7 @@ Control Type: Selectable transcript list
 
 Required: Required for Dictation/Shadowing/repetition
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -19746,7 +19746,7 @@ Control Type: Select/control
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -19772,7 +19772,7 @@ Control Type: Independent toggles
 
 Required: Optional
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -19798,7 +19798,7 @@ Control Type: Textarea/text input
 
 Required: Required when grading Dictation
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -19824,7 +19824,7 @@ Control Type: Record/audio preview control
 
 Required: Required only when sending assessment
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -19850,13 +19850,13 @@ Control Type: Owned-deck select
 
 Required: Required when saving a card
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
 Placeholder: Không bắt buộc; không thay thế label.
 
-Allowed Values: Current USER's decks; create private deck option
+Allowed Values: Current LEARNER's decks; create private deck option
 
 Validation: Owner only; duplicate409; max500 cards/deck and50 decks; source example must be valid
 
@@ -19912,7 +19912,7 @@ Selection behavior: Open inline feedback
 
 Action Name: Nghe lại câu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Player ready
 
@@ -19932,7 +19932,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Lặp câu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Sentence >=3 seconds and player ready
 
@@ -19952,7 +19952,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Tra từ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Word segment exists
 
@@ -19972,7 +19972,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Lưu từ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Valid word popup
 
@@ -19992,7 +19992,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Kiểm tra câu nghe viết
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Dictation sentence selected
 
@@ -20012,7 +20012,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Xem đáp án / Bỏ qua
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Dictation active
 
@@ -20032,7 +20032,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Ghi âm / Nghe lại / Ghi lại
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Recording supported
 
@@ -20052,7 +20052,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Gửi bản ghi để đánh giá
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Supported recording and verified email
 
@@ -20072,7 +20072,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Thử đánh giá lại
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Result visible
 
@@ -20190,9 +20190,9 @@ Data preserved: Transcript and existing valid history
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Published player and own progress/attempts | Own raw Dictation answer and local recording | Own assessment and note/card | No public content/result deletion contract | No | Shadowing verified email; own results only; BUS-01 for private missing/foreign attempts. |
+| LEARNER | Published player and own progress/attempts | Own raw Dictation answer and local recording | Own assessment and note/card | No public content/result deletion contract | No | Shadowing verified email; own results only; BUS-01 for private missing/foreign attempts. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -20290,11 +20290,11 @@ Feature: Community
 
 Scope: V2
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Conditional
 
-Requirement Status: Public approved posts are defined. Own posts and following feeds require USER; moderation-policy gaps remain explicit.
+Requirement Status: Public approved posts are defined. Own posts and following feeds require LEARNER; moderation-policy gaps remain explicit.
 
 Existing Route: Not confirmed
 
@@ -20315,9 +20315,9 @@ Entry From:
 Next Screens:
 
 - SCR-040 selected public or own post
-- SCR-041 create/edit own post after USER authentication
-- SCR-042 selected author's profile, USER only
-- SCR-002 when a GUEST selects a USER action
+- SCR-041 create/edit own post after LEARNER authentication
+- SCR-042 selected author's profile, LEARNER only
+- SCR-002 when a GUEST selects a LEARNER action
 
 Back Behavior: Return to previous canonical screen.
 
@@ -20333,11 +20333,11 @@ Requirement: Approved public posts with category, author, publication date and e
 
 **Category and list mode**
 
-Requirement: Category filter; public feed and USER-owned post view. Following feed only where the source provides it.
+Requirement: Category filter; public feed and LEARNER-owned post view. Following feed only where the source provides it.
 
 **Create action**
 
-Requirement: USER action subject to verified email and account restrictions.
+Requirement: LEARNER action subject to verified email and account restrictions.
 
 ### 4. Display Fields
 
@@ -20493,7 +20493,7 @@ Control Type: Select
 
 Required: No
 
-Editable By: GUEST and USER for the public category filter
+Editable By: GUEST and LEARNER for the public category filter
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -20519,7 +20519,7 @@ Control Type: Tabs
 
 Required: Yes
 
-Editable By: GUEST for public feed only; USER for own/following modes
+Editable By: GUEST for public feed only; LEARNER for own/following modes
 
 Default: Public
 
@@ -20527,7 +20527,7 @@ Placeholder: Không bắt buộc; không thay thế label.
 
 Allowed Values: Public; my posts; following when supported
 
-Validation: My posts and following require explicit USER.
+Validation: My posts and following require explicit LEARNER.
 
 Validation Message: Đăng nhập để xem bài viết của bạn.
 
@@ -20545,13 +20545,13 @@ Optional columns/items: Source-provided preview; own post status and latest reje
 
 Search: Keyword search is not approved by UC-070; do not invent a search contract.
 
-Filters: Category; own posts for USER; following feed if supplied
+Filters: Category; own posts for LEARNER; following feed if supplied
 
 Sort: Public published_at descending
 
 Pagination: Paginated, page size not specified
 
-Actions: Open post; open author profile for USER; edit own eligible post
+Actions: Open post; open author profile for LEARNER; edit own eligible post
 
 Empty state: No approved posts in this category; or no own posts, with create action.
 
@@ -20561,7 +20561,7 @@ Selection behavior: Single post opens SCR-040
 
 Action Name: Xem bài viết
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Visible listed post
 
@@ -20581,7 +20581,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Viết bài
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Create action may be shown to GUEST as sign-in entry
 
@@ -20601,9 +20601,9 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Bài viết của tôi
 
-Actor: USER
+Actor: LEARNER
 
-Visible When: Signed-in explicit USER
+Visible When: Signed-in explicit LEARNER
 
 Enabled When: Own account
 
@@ -20621,11 +20621,11 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Xem người viết
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Author link
 
-Enabled When: Explicit USER
+Enabled When: Explicit LEARNER
 
 Confirmation: None
 
@@ -20670,9 +20670,9 @@ Không có validation nhập business riêng; kiểm điều kiện action/role 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | APPROVED public posts | No | No | No | No | Sign in for community actions and profile navigation. |
-| USER | Public approved posts and own nonpublic posts | Own eligible posts via SCR-041 | Verified email required | Own post soft deletion where defined | No | No implicit staff-role inheritance; hidden or foreign nonpublic posts are inaccessible. |
+| LEARNER | Public approved posts and own nonpublic posts | Own eligible posts via SCR-041 | Verified email required | Own post soft deletion where defined | No | No implicit staff-role inheritance; hidden or foreign nonpublic posts are inaccessible. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -20762,7 +20762,7 @@ Feature: Community
 
 Scope: V2
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Conditional
 
@@ -20784,7 +20784,7 @@ Entry From:
 Next Screens:
 
 - SCR-041 edit owned post
-- SCR-042 author or commenter profile, USER only
+- SCR-042 author or commenter profile, LEARNER only
 - SCR-039 after own soft deletion
 - SCR-002 sign in for actions
 
@@ -20804,7 +20804,7 @@ Requirement: Title, author, category, published time, sanitized content and actu
 
 Requirement: Public comment tree with maximum display nesting of three levels; deleted-parent placeholders retain replies.
 
-**USER actions**
+**LEARNER actions**
 
 Requirement: Like, comment, reply, report and own edit/delete subject to restrictions.
 
@@ -21042,7 +21042,7 @@ Control Type: Textarea
 
 Required: Yes when commenting/replying
 
-Editable By: Explicit USER under the field-specific ownership/account conditions
+Editable By: Explicit LEARNER under the field-specific ownership/account conditions
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -21050,7 +21050,7 @@ Placeholder: Không bắt buộc; không thay thế label.
 
 Allowed Values: Nonempty text, maximum 5,000 characters
 
-Validation: Verified USER; approved post; comments unlocked; source rate restriction.
+Validation: Verified LEARNER; approved post; comments unlocked; source rate restriction.
 
 Validation Message: Nhập bình luận tối đa 5.000 ký tự.
 
@@ -21068,7 +21068,7 @@ Control Type: Select
 
 Required: Yes when reporting
 
-Editable By: Explicit USER under the field-specific ownership/account conditions
+Editable By: Explicit LEARNER under the field-specific ownership/account conditions
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -21094,7 +21094,7 @@ Control Type: Textarea
 
 Required: No
 
-Editable By: Explicit USER under the field-specific ownership/account conditions
+Editable By: Explicit LEARNER under the field-specific ownership/account conditions
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -21120,7 +21120,7 @@ Control Type: Textarea
 
 Required: Yes when editing own comment
 
-Editable By: Explicit USER under the field-specific ownership/account conditions
+Editable By: Explicit LEARNER under the field-specific ownership/account conditions
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -21152,9 +21152,9 @@ Sort: Comment order not specified; preserve supplied order.
 
 Pagination: Paginated or incremental loading; size not specified
 
-Actions: Reply; own edit/delete; report; USER profile link
+Actions: Reply; own edit/delete; report; LEARNER profile link
 
-Empty state: Chưa có bình luận. USER can start a discussion.
+Empty state: Chưa có bình luận. LEARNER can start a discussion.
 
 Selection behavior: Reply targets a comment inline; depth beyond three attaches at last supported level.
 
@@ -21162,11 +21162,11 @@ Selection behavior: Reply targets a comment inline; depth beyond three attaches 
 
 Action Name: Thích hoặc bỏ thích
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Approved post
 
-Enabled When: Unrestricted USER; idempotent one like per user
+Enabled When: Unrestricted LEARNER; idempotent one like per user
 
 Confirmation: None
 
@@ -21182,7 +21182,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Gửi bình luận
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Approved and unlocked post
 
@@ -21202,7 +21202,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Trả lời
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Visible comment including deleted parent placeholder
 
@@ -21222,7 +21222,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Sửa bình luận
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own comment
 
@@ -21242,7 +21242,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Xoá bình luận
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own comment
 
@@ -21262,7 +21262,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Báo cáo
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Existing public post/comment
 
@@ -21282,7 +21282,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Sửa bài viết
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own post
 
@@ -21302,7 +21302,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Xoá bài viết
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own post
 
@@ -21322,11 +21322,11 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Xem hồ sơ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Author/commenter name
 
-Enabled When: Explicit USER
+Enabled When: Explicit LEARNER
 
 Confirmation: None
 
@@ -21429,9 +21429,9 @@ Data preserved: No private data.
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Approved public post and visible comments | No | No | No | No | Reading only. |
-| USER | Approved public post; own permitted nonpublic post | Own post and own comment within policy | Verified email for comment/reply | Own content soft deletion | No | No commenting on nonapproved or locked post; no self-report; profile requires USER. |
+| LEARNER | Approved public post; own permitted nonpublic post | Own post and own comment within policy | Verified email for comment/reply | Own content soft deletion | No | No commenting on nonapproved or locked post; no self-report; profile requires LEARNER. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -21447,11 +21447,11 @@ Dialog/sheet là action bên trong màn, không phát sinh screen ID; giữ focu
 
 ### 14. Empty / No-Data State
 
-Comment/reply: Chưa có bình luận. USER can start a discussion. Filtered empty states offer clearing available filters; failed reads remain errors. Do not fabricate rows or substitute missing values with0. No visible comments: “Chưa có bình luận”; offer comment only to eligible USER or sign-in to GUEST. Deleted/hidden parent comments use source placeholder while descendants remain. Inaccessible post is not an empty successful detail.
+Comment/reply: Chưa có bình luận. LEARNER can start a discussion. Filtered empty states offer clearing available filters; failed reads remain errors. Do not fabricate rows or substitute missing values with0. No visible comments: “Chưa có bình luận”; offer comment only to eligible LEARNER or sign-in to GUEST. Deleted/hidden parent comments use source placeholder while descendants remain. Inaccessible post is not an empty successful detail.
 
 ### 15. Loading / Partial Data
 
-Initial load: preserve screen title/navigation, show skeleton only in the loading areas. Independent areas (Post, Comments, USER actions) may show real loaded data while another area shows retry/unavailable. Disable only the submitting action. Keep valid draft/input and announced request state; do not show success,0, fabricated content or stale entitlement as a confirmed result.
+Initial load: preserve screen title/navigation, show skeleton only in the loading areas. Independent areas (Post, Comments, LEARNER actions) may show real loaded data while another area shows retry/unavailable. Disable only the submitting action. Keep valid draft/input and announced request state; do not show success,0, fabricated content or stale entitlement as a confirmed result.
 
 ### 16. Mockup Must Show
 
@@ -21525,7 +21525,7 @@ Feature: Community
 
 Scope: V2
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -21664,7 +21664,7 @@ Control Type: Text input
 
 Required: Yes
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -21690,7 +21690,7 @@ Control Type: Select
 
 Required: Yes
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -21716,7 +21716,7 @@ Control Type: Rich text editor or textarea
 
 Required: Yes
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -21740,7 +21740,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Lưu nháp
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Create/own editable draft
 
@@ -21760,7 +21760,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Gửi duyệt
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Create or own editable draft/rejected post
 
@@ -21780,7 +21780,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Gửi lại để duyệt
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own approved post
 
@@ -21800,7 +21800,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Huỷ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Editor
 
@@ -21895,9 +21895,9 @@ Data preserved: No foreign content.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own editor and moderation reason | Own posts only | Verified email and unrestricted account | Via own detail action | No | Cannot set author, approved status, moderator or review reason. |
+| LEARNER | Own editor and moderation reason | Own posts only | Verified email and unrestricted account | Via own detail action | No | Cannot set author, approved status, moderator or review reason. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -21987,7 +21987,7 @@ Feature: Community
 
 Scope: V2
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -22003,7 +22003,7 @@ Sources: [docs/reference/use-cases-06-cong-dong.md](use-cases-06-cong-dong.md) �
 
 Entry From:
 
-- SCR-039 or SCR-040 author/profile link after USER authentication
+- SCR-039 or SCR-040 author/profile link after LEARNER authentication
 
 Next Screens:
 
@@ -22024,7 +22024,7 @@ Requirement: Display name and avatar only; no invented biography or private prof
 
 **Follow relationship**
 
-Requirement: USER follow/unfollow and real follower/following information.
+Requirement: LEARNER follow/unfollow and real follower/following information.
 
 **Approved posts**
 
@@ -22076,7 +22076,7 @@ Field / Item: follow_state
 
 Label: Trạng thái theo dõi
 
-Purpose: Show current USER relationship
+Purpose: Show current LEARNER relationship
 
 Display Type: Read-only text
 
@@ -22172,7 +22172,7 @@ Sort: Not specified; preserve response order.
 
 Pagination: Paginated; no approved page size
 
-Actions: View another USER profile; follow/unfollow if permitted
+Actions: View another LEARNER profile; follow/unfollow if permitted
 
 Empty state: No followers or followed users.
 
@@ -22182,7 +22182,7 @@ Selection behavior: Profile navigation within SCR-042 for selected user
 
 Action Name: Theo dõi
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Other eligible user
 
@@ -22202,7 +22202,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Bỏ theo dõi
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Currently following another user
 
@@ -22222,7 +22222,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Xem người theo dõi hoặc đang theo dõi
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Count or tab
 
@@ -22242,7 +22242,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Xem bài viết
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Approved post row
 
@@ -22309,9 +22309,9 @@ Data preserved: Loaded public profile.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Public-safe identity and approved posts | Own follow relation only | Follow relation | Own follow relation | No | Approved flow requires USER; do not infer GUEST permission from public data. |
+| LEARNER | Public-safe identity and approved posts | Own follow relation only | Follow relation | Own follow relation | No | Approved flow requires LEARNER; do not infer GUEST permission from public data. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -22400,7 +22400,7 @@ Feature: Community Quiz
 
 Scope: V2
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -22574,7 +22574,7 @@ Control Type: Select or topic tabs
 
 Required: No
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -22616,11 +22616,11 @@ Selection behavior: One quiz opens SCR-044
 
 Action Name: Bắt đầu quiz
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Quiz with approved questions
 
-Enabled When: Explicit USER; approved question set exists
+Enabled When: Explicit LEARNER; approved question set exists
 
 Confirmation: None
 
@@ -22636,7 +22636,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Xem kết quả của bạn
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Owned submitted attempt link
 
@@ -22704,9 +22704,9 @@ Data preserved: Topic.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Available quiz sets and own attempt context | No question-bank editing | Owned attempt | No question-bank deletion | No | Only approved questions are usable; no quiz creation UI for learner. |
+| LEARNER | Available quiz sets and own attempt context | No question-bank editing | Owned attempt | No question-bank deletion | No | Only approved questions are usable; no quiz creation UI for learner. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -22796,7 +22796,7 @@ Feature: Community Quiz
 
 Scope: V2
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -23014,7 +23014,7 @@ Control Type: Question-specific controls
 
 Required: According to supplied question
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -23038,7 +23038,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Câu trước hoặc tiếp theo
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Question navigation
 
@@ -23058,7 +23058,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Nộp quiz
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Active owned attempt
 
@@ -23078,7 +23078,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Thoát quiz
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Active quiz
 
@@ -23164,9 +23164,9 @@ Data preserved: No private data.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own active questions without answer keys | Own raw answers before final submission | Own quiz attempt | No source-defined deletion | No | Server scores; only first completed attempt ranks. |
+| LEARNER | Own active questions without answer keys | Own raw answers before final submission | Own quiz attempt | No source-defined deletion | No | Server scores; only first completed attempt ranks. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -23256,7 +23256,7 @@ Feature: Community Quiz
 
 Scope: V2
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -23533,7 +23533,7 @@ Selection behavior: No foreign answer navigation
 
 Action Name: Làm lại quiz
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Submitted owned result
 
@@ -23553,7 +23553,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Chọn quiz khác
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Result screen
 
@@ -23573,7 +23573,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Bảng xếp hạng chủ đề
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Related rank link
 
@@ -23647,9 +23647,9 @@ Data preserved: No private data.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own submitted result plus public ranking names/scores/time | No | Retry via SCR-044 | No | No | Never expose other users' raw answers or private identities. |
+| LEARNER | Own submitted result plus public ranking names/scores/time | No | Retry via SCR-044 | No | No | Never expose other users' raw answers or private identities. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -23739,7 +23739,7 @@ Feature: Leaderboards
 
 Scope: V2
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Not Required
 
@@ -23760,8 +23760,8 @@ Entry From:
 
 Next Screens:
 
-- SCR-043 choose topic quiz, USER only
-- SCR-042 USER-only profile link when provided
+- SCR-043 choose topic quiz, LEARNER only
+- SCR-042 LEARNER-only profile link when provided
 
 Back Behavior: Return to previous canonical screen.
 
@@ -23781,7 +23781,7 @@ Requirement: Public ranks with name/avatar, points and duration tie-break.
 
 **Own rank**
 
-Requirement: USER highlight and own position only when supplied.
+Requirement: LEARNER highlight and own position only when supplied.
 
 ### 4. Display Fields
 
@@ -23929,7 +23929,7 @@ Field / Item: own_rank
 
 Label: Thứ hạng của bạn
 
-Purpose: Owned USER rank; absent for GUEST
+Purpose: Owned LEARNER rank; absent for GUEST
 
 Display Type: Read-only text
 
@@ -23957,7 +23957,7 @@ Control Type: Select
 
 Required: Yes
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -23983,7 +23983,7 @@ Control Type: Segmented control or select
 
 Required: Yes
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Current week
 
@@ -24015,7 +24015,7 @@ Sort: Points descending; lower duration wins ties
 
 Pagination: Top fifty; no historical period paging
 
-Actions: Select topic/period; USER own highlight
+Actions: Select topic/period; LEARNER own highlight
 
 Empty state: Chưa có kết quả cho chủ đề và kỳ này.
 
@@ -24025,7 +24025,7 @@ Selection behavior: No foreign attempt or answer detail
 
 Action Name: Đổi chủ đề hoặc kỳ
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Ranking controls
 
@@ -24045,11 +24045,11 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Luyện quiz
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Related quiz action
 
-Enabled When: Explicit USER
+Enabled When: Explicit LEARNER
 
 Confirmation: None
 
@@ -24092,9 +24092,9 @@ Không có validation nhập business riêng; kiểm điều kiện action/role 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Public topic top fifty | No | No | No | No | No own-rank or private attempt view. |
-| USER | Public ranks and own rank if supplied | No | Quiz attempt via SCR-043 | No | No | Only first completed quiz attempt contributes. |
+| LEARNER | Public ranks and own rank if supplied | No | Quiz attempt via SCR-043 | No | No | Only first completed quiz attempt contributes. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -24121,7 +24121,7 @@ Initial load: preserve screen title/navigation, show skeleton only in the loadin
 - Topic
 - Period and timezone context
 - Rank/name/points/duration
-- Own highlight for USER
+- Own highlight for LEARNER
 - Distinct empty and unavailable
 
 ### 17. Mockup Must NOT Show
@@ -24130,7 +24130,7 @@ Initial load: preserve screen title/navigation, show skeleton only in the loadin
 - Private answers
 - Client-invented ranking
 - Email
-- Admin-role implicit USER rank
+- Admin-role implicit LEARNER rank
 
 ### 18. UX Recommendations
 
@@ -24184,7 +24184,7 @@ Feature: Leaderboards
 
 Scope: V2
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Not Required
 
@@ -24205,8 +24205,8 @@ Entry From:
 
 Next Screens:
 
-- SCR-035 choose game, USER only
-- SCR-042 USER-only profile link when provided
+- SCR-035 choose game, LEARNER only
+- SCR-042 LEARNER-only profile link when provided
 
 Back Behavior: Return to previous canonical screen.
 
@@ -24226,7 +24226,7 @@ Requirement: Public game-specific server-validated scores and duration tie-break
 
 **Own rank**
 
-Requirement: USER own position/highlight when provided.
+Requirement: LEARNER own position/highlight when provided.
 
 ### 4. Display Fields
 
@@ -24374,7 +24374,7 @@ Field / Item: own_rank
 
 Label: Thứ hạng của bạn
 
-Purpose: USER-only own rank
+Purpose: LEARNER-only own rank
 
 Display Type: Read-only text
 
@@ -24402,7 +24402,7 @@ Control Type: Select
 
 Required: Yes
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -24428,7 +24428,7 @@ Control Type: Segmented control
 
 Required: Yes
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Current week
 
@@ -24460,7 +24460,7 @@ Sort: Score descending, duration ascending for tie
 
 Pagination: Top fifty; no historical paging
 
-Actions: Change game/period; choose game for USER
+Actions: Change game/period; choose game for LEARNER
 
 Empty state: Chưa có kết quả xếp hạng cho trò chơi này.
 
@@ -24470,7 +24470,7 @@ Selection behavior: No player answer/history detail
 
 Action Name: Đổi trò chơi hoặc kỳ
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Ranking controls
 
@@ -24490,11 +24490,11 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Chơi
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Related play action
 
-Enabled When: Explicit USER
+Enabled When: Explicit LEARNER
 
 Confirmation: None
 
@@ -24559,9 +24559,9 @@ Data preserved: Current filters.
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Public top fifty per game | No | No | No | No | No own-rank or private game history. |
-| USER | Public ranks and own rank when supplied | No | Own game session through SCR-035 | No | No | Scores must be server validated; game ranks are separate, never compare an invented total across games. |
+| LEARNER | Public ranks and own rank when supplied | No | Own game session through SCR-035 | No | No | Scores must be server validated; game ranks are separate, never compare an invented total across games. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -24589,7 +24589,7 @@ Initial load: preserve screen title/navigation, show skeleton only in the loadin
 - Current period
 - Score and duration
 - Top fifty
-- Owned highlight only for USER
+- Owned highlight only for LEARNER
 
 ### 17. Mockup Must NOT Show
 
@@ -24652,7 +24652,7 @@ Feature: Contests
 
 Scope: V2
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Not Required
 
@@ -24690,7 +24690,7 @@ Requirement: Published contests grouped as upcoming, ongoing and ended using sch
 
 **Contest cards**
 
-Requirement: Name, schedule and available prize metadata; registration context for USER only.
+Requirement: Name, schedule and available prize metadata; registration context for LEARNER only.
 
 ### 4. Display Fields
 
@@ -24798,13 +24798,13 @@ Field / Item: registration_context
 
 Label: Đăng ký của bạn
 
-Purpose: Own USER registration only
+Purpose: Own LEARNER registration only
 
 Display Type: Read-only text
 
 Required to Display: When source data exists
 
-Visibility Condition: USER only
+Visibility Condition: LEARNER only
 
 Format: Theo giá trị thật từ nguồn; text tiếng Việt có dấu.
 
@@ -24826,7 +24826,7 @@ Control Type: Tabs
 
 Required: No
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -24848,7 +24848,7 @@ Item type: Published contest
 
 Required columns/items: Name, start/end schedule, computed schedule group
 
-Optional columns/items: Prize summary; USER own registration context
+Optional columns/items: Prize summary; LEARNER own registration context
 
 Search: No keyword search defined
 
@@ -24868,7 +24868,7 @@ Selection behavior: Single contest opens SCR-049
 
 Action Name: Xem cuộc thi
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Published contest row
 
@@ -24914,10 +24914,10 @@ Không có validation nhập business riêng; kiểm điều kiện action/role 
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| GUEST | Published contest information | No | No | No | No | Registration and participation require USER. |
-| USER | Published information and own registration context | Own registration through detail | Own registration through detail | Cancel registration only before start where permitted | No | No private draft contest or participant answers. |
+| GUEST | Published contest information | No | No | No | No | Registration and participation require LEARNER. |
+| LEARNER | Published information and own registration context | Own registration through detail | Own registration through detail | Cancel registration only before start where permitted | No | No private draft contest or participant answers. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -24945,7 +24945,7 @@ Initial load: preserve screen title/navigation, show skeleton only in the loadin
 - Start and end time in Vietnam
 - Computed schedule group
 - Available prize information
-- Own registration only for USER
+- Own registration only for LEARNER
 
 ### 17. Mockup Must NOT Show
 
@@ -24981,7 +24981,7 @@ Related Screens:
 
 Related Feature: Contests
 
-Related Data: Published contests metadata; own registration context only after USER authentication.
+Related Data: Published contests metadata; own registration context only after LEARNER authentication.
 
 ### 22. Open Issues
 
@@ -25005,7 +25005,7 @@ Feature: Contests
 
 Scope: V2
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Conditional
 
@@ -25025,8 +25025,8 @@ Entry From:
 
 Next Screens:
 
-- SCR-050 registered USER enters active contest
-- SCR-051 after explicit USER authentication and results publication
+- SCR-050 registered LEARNER enters active contest
+- SCR-051 after explicit LEARNER authentication and results publication
 - SCR-002 GUEST chooses registration/participation
 
 Back Behavior: SCR-048 preserving schedule group.
@@ -25043,7 +25043,7 @@ Requirement: Name, description, Vietnam schedule and prize information.
 
 **Participation status**
 
-Requirement: USER own registration, available capacity and schedule eligibility.
+Requirement: LEARNER own registration, available capacity and schedule eligibility.
 
 **Action by schedule**
 
@@ -25195,7 +25195,7 @@ Field / Item: own_registration
 
 Label: Đăng ký của bạn
 
-Purpose: Authenticated USER own relation
+Purpose: Authenticated LEARNER own relation
 
 Display Type: Read-only text
 
@@ -25243,11 +25243,11 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Đăng ký tham gia
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Published contest not ended
 
-Enabled When: Explicit USER; not already joined; capacity if configured; late-join and verification policy confirmed
+Enabled When: Explicit LEARNER; not already joined; capacity if configured; late-join and verification policy confirmed
 
 Confirmation: None
 
@@ -25263,7 +25263,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Huỷ đăng ký
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own registration before start
 
@@ -25283,7 +25283,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Vào làm bài
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Own registered active contest
 
@@ -25303,11 +25303,11 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Xem kết quả
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Contest result link; guest activation first authenticates through SCR-002
 
-Enabled When: Explicit USER and publication conditions satisfied
+Enabled When: Explicit LEARNER and publication conditions satisfied
 
 Confirmation: None
 
@@ -25317,7 +25317,7 @@ Success Feedback: Open results; do not expose private attempt data.
 
 Failure Feedback: Show source restriction and preserve valid input.
 
-Navigation After Success: SCR-051 after USER authentication; SCR-002 when no session
+Navigation After Success: SCR-051 after LEARNER authentication; SCR-002 when no session
 
 Navigation After Cancel: Remain on this screen.
 
@@ -25375,7 +25375,7 @@ Condition: GUEST registration request
 
 User-facing behavior: Sign-in entry without losing contest identity.
 
-Retry: After USER authentication.
+Retry: After LEARNER authentication.
 
 Navigation: SCR-002
 
@@ -25388,15 +25388,15 @@ Data preserved: Selected contest.
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Published contest information | No | No | No | No | Public contest information only; result link first authenticates through SCR-002 before SCR-051. |
-| USER | Published information and own participation | Own registration only | Free own registration | Cancel before start if permitted | No | No role inheritance, no fee, capacity only if configured. |
+| LEARNER | Published information and own participation | Own registration only | Free own registration | Cancel before start if permitted | No | No role inheritance, no fee, capacity only if configured. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
 Stored DRAFT/PUBLISHED/CLOSED/CANCELLED; computed upcoming/ongoing/ended; registered state is own relationship, not an invented enum.
 
-Joining once is free. Capacity cannot be assumed if absent. Physical prize fulfillment occurs outside the system; credit prizes require FINANCE_ADMIN issuance.
+Joining once is free. Capacity cannot be assumed if absent. Physical prize fulfillment occurs outside the system; credit prizes require ACCOUNTANT issuance.
 
 ### 13. Confirmation / Modal Requirements
 
@@ -25483,7 +25483,7 @@ Feature: Contests
 
 Scope: V2
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
@@ -25700,7 +25700,7 @@ Control Type: Question-type-specific controls
 
 Required: According to assigned exam contract
 
-Editable By: USER
+Editable By: LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -25724,7 +25724,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Chuyển câu
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Within active attempt
 
@@ -25744,7 +25744,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Nộp bài
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Owned active attempt
 
@@ -25764,7 +25764,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Tự động nộp khi hết giờ
 
-Actor: SYSTEM behavior
+Actor: hệ thống tự động (bước «include» của UC nộp bài)
 
 Visible When: Countdown reaches zero
 
@@ -25784,7 +25784,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Thoát
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Active attempt
 
@@ -25870,9 +25870,9 @@ Data preserved: Raw answers.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own assigned questions while eligible | Own raw answers before final submission | Own registered contest attempt | No source-defined deletion | No | Server scoring, one submission, no early answer keys or foreign attempt data. |
+| LEARNER | Own assigned questions while eligible | Own raw answers before final submission | Own registered contest attempt | No source-defined deletion | No | Server scoring, one submission, no early answer keys or foreign attempt data. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -25964,11 +25964,11 @@ Feature: Contests
 
 Scope: V2
 
-Actors: USER
+Actors: LEARNER
 
 Authentication: Required
 
-Requirement Status: Screen identity and authenticated USER branch FINAL according to approved flow; publication/own-result payload require a consistent business contract.
+Requirement Status: Screen identity and authenticated LEARNER branch FINAL according to approved flow; publication/own-result payload require a consistent business contract.
 
 Existing Route: Not confirmed
 
@@ -26002,7 +26002,7 @@ Requirement: Explain when final results are available and whether current actor 
 
 **Own result**
 
-Requirement: Own server-confirmed result only when contract supplies it to USER.
+Requirement: Own server-confirmed result only when contract supplies it to LEARNER.
 
 **Final leaderboard**
 
@@ -26038,7 +26038,7 @@ Field / Item: publication_context
 
 Label: Tình trạng công bố kết quả
 
-Purpose: Explain availability to the authenticated USER; do not infer guest access
+Purpose: Explain availability to the authenticated LEARNER; do not infer guest access
 
 Display Type: Read-only text
 
@@ -26084,7 +26084,7 @@ Display Type: Read-only text
 
 Required to Display: When source data exists
 
-Visibility Condition: Owned USER result supplied
+Visibility Condition: Owned LEARNER result supplied
 
 Format: Theo giá trị thật từ nguồn; text tiếng Việt có dấu.
 
@@ -26104,7 +26104,7 @@ Display Type: Read-only text
 
 Required to Display: When source data exists
 
-Visibility Condition: Owned USER result supplied
+Visibility Condition: Owned LEARNER result supplied
 
 Format: Theo giá trị thật từ nguồn; text tiếng Việt có dấu.
 
@@ -26124,7 +26124,7 @@ Display Type: Read-only text
 
 Required to Display: When source data exists
 
-Visibility Condition: Owned USER and published ranking
+Visibility Condition: Owned LEARNER and published ranking
 
 Format: Theo giá trị thật từ nguồn; text tiếng Việt có dấu.
 
@@ -26264,7 +26264,7 @@ Selection behavior: No foreign answer or private attempt navigation
 
 Action Name: Tải lại kết quả
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Unpublished/loading ranking state
 
@@ -26284,7 +26284,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Thông tin cuộc thi
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Result context
 
@@ -26304,7 +26304,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Cuộc thi khác
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Result context
 
@@ -26379,15 +26379,15 @@ Data preserved: Allowed own score.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| USER | Own authorized result and published ranking under final policy | No | No | No | No | Authenticated flow is default; result publication and owner rules apply. |
+| LEARNER | Own authorized result and published ranking under final policy | No | No | No | No | Authenticated flow is default; result publication and owner rules apply. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
-Contest CLOSED or ended schedule does not alone make results available. Availability requires the source-defined publication check; this screen remains authenticated USER. No new publication enum or prize-paid state.
+Contest CLOSED or ended schedule does not alone make results available. Availability requires the source-defined publication check; this screen remains authenticated LEARNER. No new publication enum or prize-paid state.
 
-Approved flow requires explicit authenticated USER. Publication controls which server-confirmed result/ranking projection is available; own detail remains private. Public information link authenticates before entry.
+Approved flow requires explicit authenticated LEARNER. Publication controls which server-confirmed result/ranking projection is available; own detail remains private. Public information link authenticates before entry.
 
 ### 13. Confirmation / Modal Requirements
 
@@ -26397,7 +26397,7 @@ Dialog/sheet là action bên trong màn, không phát sinh screen ID; giữ focu
 
 ### 14. Empty / No-Data State
 
-Published final contest rank: Do not use empty to disguise unpublished/forbidden ranking; explain publication state. Filtered empty states offer clearing available filters; failed reads remain errors. Do not fabricate rows or substitute missing values with0. Unpublished results: “Kết quả chưa được công bố”, distinct from a published empty ranking. Published zero-participant ranking uses a no-results message. No own participation/result: omit own-score/rank section or explain no owned result; never use rank0. USER authentication remains required.
+Published final contest rank: Do not use empty to disguise unpublished/forbidden ranking; explain publication state. Filtered empty states offer clearing available filters; failed reads remain errors. Do not fabricate rows or substitute missing values with0. Unpublished results: “Kết quả chưa được công bố”, distinct from a published empty ranking. Published zero-participant ranking uses a no-results message. No own participation/result: omit own-score/rank section or explain no owned result; never use rank0. LEARNER authentication remains required.
 
 ### 15. Loading / Partial Data
 
@@ -26453,14 +26453,14 @@ Related Data: Server-validated contest final ranking; own result payload only wh
 
 ### 22. Open Issues
 
-- UC-090 public-info result link conflicts with the approved authenticated USER branch of SCR-051. Current access follows the frozen flow; clarify link/login and publication payload before implementation, without opening guest access.
+- UC-090 public-info result link conflicts with the approved authenticated LEARNER branch of SCR-051. Current access follows the frozen flow; clarify link/login and publication payload before implementation, without opening guest access.
 - Own result/answer-review payload, pagination and exact prize fulfillment display are not fully defined.
 
 ### 23. Mockup Readiness
 
 READY WITH PLACEHOLDERS
 
-Reason: Authenticated USER flow is fixed; result publication and own/leaderboard payload details remain open.
+Reason: Authenticated LEARNER flow is fixed; result publication and own/leaderboard payload details remain open.
 
 ## SCR-052 — Public Flashcard Deck List
 
@@ -26474,7 +26474,7 @@ Feature: Personal Learning Library
 
 Scope: V2
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Not Required
 
@@ -26496,7 +26496,7 @@ Entry From:
 Next Screens:
 
 - SCR-029 public viewing in V2
-- SCR-029 owned copied deck after USER copy
+- SCR-029 owned copied deck after LEARNER copy
 - SCR-002 GUEST chooses copy action
 
 Back Behavior: Return to previous canonical screen.
@@ -26517,7 +26517,7 @@ UX Recommendation: Use only fields supplied by final public-deck contract.
 
 **Copy action**
 
-Requirement: USER copies into own private deck with fresh review state.
+Requirement: LEARNER copies into own private deck with fresh review state.
 
 ### 4. Display Fields
 
@@ -26641,7 +26641,7 @@ Sort: Not specified
 
 Pagination: Not specified
 
-Actions: View deck; USER copy; USER report where contract supports report
+Actions: View deck; LEARNER copy; LEARNER report where contract supports report
 
 Empty state: Chưa có bộ thẻ công khai.
 
@@ -26651,7 +26651,7 @@ Selection behavior: Selected deck opens public mode of SCR-029
 
 Action Name: Xem bộ thẻ
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Public shared deck
 
@@ -26671,11 +26671,11 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Sao chép bộ thẻ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Copy action; GUEST sees sign-in entry
 
-Enabled When: Explicit USER; own 50-deck and 500-card bounds are satisfied
+Enabled When: Explicit LEARNER; own 50-deck and 500-card bounds are satisfied
 
 Confirmation: None
 
@@ -26691,7 +26691,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Báo cáo bộ thẻ
 
-Actor: USER
+Actor: LEARNER
 
 Visible When: Public deck report where source contract supplies it
 
@@ -26757,10 +26757,10 @@ Data preserved: Source deck selection.
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| GUEST | Public shared decks and public SCR-029 detail in V2 | No | No | No | No | Copy requires USER. |
-| USER | Public shared decks | No original-deck editing | Own independent private copy | No original deletion | No | Copy resets review state and respects own collection limits. |
+| GUEST | Public shared decks and public SCR-029 detail in V2 | No | No | No | No | Copy requires LEARNER. |
+| LEARNER | Public shared decks | No original-deck editing | Own independent private copy | No original deletion | No | Copy resets review state and respects own collection limits. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -26849,7 +26849,7 @@ Feature: Reference Resources
 
 Scope: V2
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Not Required
 
@@ -27001,7 +27001,7 @@ Control Type: Select or tabs
 
 Required: Yes
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Source-defined default; no arbitrary default type.
 
@@ -27027,7 +27027,7 @@ Control Type: Select
 
 Required: No
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -27069,7 +27069,7 @@ Selection behavior: External link only; no internal media-study/session screen
 
 Action Name: Mở tài nguyên
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Published reference with valid approved HTTPS link
 
@@ -27144,9 +27144,9 @@ Data preserved: List context.
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Published reference metadata | No | No | No | No | External link-out only. |
-| USER | Published reference metadata | No | No | No | No | No progress/quota/history for link-out. |
+| LEARNER | Published reference metadata | No | No | No | No | No progress/quota/history for link-out. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -27236,7 +27236,7 @@ Feature: Reference Resources
 
 Scope: V2
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Not Required
 
@@ -27409,7 +27409,7 @@ Control Type: Select
 
 Required: No
 
-Editable By: GUEST, USER
+Editable By: GUEST, LEARNER
 
 Default: Không đặt giá trị business mặc định mới; bản edit dùng dữ liệu hiện có.
 
@@ -27451,7 +27451,7 @@ Selection behavior: Single book opens SCR-055
 
 Action Name: Xem thông tin sách
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Published book row
 
@@ -27498,9 +27498,9 @@ Không có validation nhập business riêng; kiểm điều kiện action/role 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Published book metadata | No | No | No | No | No PDF/content access. |
-| USER | Published book metadata | No | No | No | No | No saved progress, quota or reading history defined. |
+| LEARNER | Published book metadata | No | No | No | No | No saved progress, quota or reading history defined. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -27590,7 +27590,7 @@ Feature: Reference Resources
 
 Scope: V2
 
-Actors: GUEST, USER
+Actors: GUEST, LEARNER
 
 Authentication: Not Required
 
@@ -27802,7 +27802,7 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Mở liên kết mua hoặc tham khảo
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Only when approved valid URL exists
 
@@ -27822,7 +27822,7 @@ Navigation After Cancel: Remain on this screen.
 
 Action Name: Danh mục sách
 
-Actor: GUEST or USER
+Actor: GUEST or LEARNER
 
 Visible When: Back action
 
@@ -27886,9 +27886,9 @@ Data preserved: Book metadata.
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Published book metadata | No | No | No | No | External reference only; no PDF or stored content. |
-| USER | Published book metadata | No | No | No | No | No internal checkout, quota charge or progress. |
+| LEARNER | Published book metadata | No | No | No | No | No internal checkout, quota charge or progress. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -28287,7 +28287,7 @@ Data preserved: View/page
 | --- | --- | --- | --- | --- | --- | --- |
 | TEACHER | Eligible GRADING/PENDING metadata and current teacher own ASSIGNED metadata only | Queue-state selector only | No request creation on queue | None | None; claim occurs in SCR-057 | Exclude self-owned writing, expired claim windows and other teachers assignments; essay content/learner PII stay outside queue Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -28805,7 +28805,7 @@ Data preserved: Entered result; no duplicate payout
 | --- | --- | --- | --- | --- | --- | --- |
 | TEACHER | Snapshot only after successful claim or own eligible assignment | Own unsubmitted score, feedback and approved correction structure | Claim an eligible existing request; no learner request creation | Release only under approved policy; no hard deletion | Submit grade only for current own assignment | Assignment identity and deadline rechecked on claim/reopen/submit; never grade own writing or renew deadlines by reopening Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -28899,7 +28899,7 @@ Feature: Content Management
 
 Scope: MVP
 
-Actors: TEACHER, CONTENT_ADMIN
+Actors: TEACHER, CONTENT_EDITOR
 
 Authentication: Required
 
@@ -28909,7 +28909,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical docs only; frontend absent, no confirmed route
 
-Purpose: Lists AI-generated questions awaiting review for TEACHER or CONTENT_ADMIN and opens the shared question editor.
+Purpose: Lists AI-generated questions awaiting review for TEACHER or CONTENT_EDITOR and opens the shared question editor.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §58; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-08-quan-tri-he-thong.md](use-cases-08-quan-tri-he-thong.md) §UC-108 / BR-108-1–9; [.specify/memory/constitution.md](../../.specify/memory/constitution.md) §BUS-07; [db/migration/V1__core_schema.sql](../../db/migration/V1__core_schema.sql) §questions; Nội dung trước đồng bộ của screen-fields.md §25 (nguồn bảo toàn field, đã phân bổ vào màn này)
 
@@ -28917,7 +28917,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit TEACHER or CONTENT_ADMIN navigation
+- Explicit TEACHER or CONTENT_EDITOR navigation
 
 Next Screens:
 
@@ -29135,11 +29135,11 @@ Selection behavior: Bulk selection only after each item opened; no unopened sele
 
 Action Name: Mở câu hỏi
 
-Actor: TEACHER, CONTENT_ADMIN
+Actor: TEACHER, CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: TEACHER or CONTENT_ADMIN; AI/PENDING_REVIEW
+Enabled When: TEACHER or CONTENT_EDITOR; AI/PENDING_REVIEW
 
 Confirmation: None
 
@@ -29155,7 +29155,7 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Duyệt các câu đã xem và chọn
 
-Actor: TEACHER, CONTENT_ADMIN
+Actor: TEACHER, CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
@@ -29175,7 +29175,7 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Tải lại hàng đợi
 
-Actor: TEACHER, CONTENT_ADMIN
+Actor: TEACHER, CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
@@ -29254,15 +29254,15 @@ Data preserved: Valid committed decisions
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | TEACHER | AI/PENDING_REVIEW summaries | Selection of items already opened by this reviewer | None | None | Approve individually checked selected pending AI items | Both explicit reviewer roles; selection cannot bypass opening/review; no general question-bank administration inherited Explicit roles only; server revalidates each request. |
-| CONTENT_ADMIN | AI/PENDING_REVIEW summaries | Selection of items already opened by this reviewer | None | None | Approve individually checked selected pending AI items | Both explicit reviewer roles; selection cannot bypass opening/review; no general question-bank administration inherited Explicit roles only; server revalidates each request. |
+| CONTENT_EDITOR | AI/PENDING_REVIEW summaries | Selection of items already opened by this reviewer | None | None | Approve individually checked selected pending AI items | Both explicit reviewer roles; selection cannot bypass opening/review; no general question-bank administration inherited Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
 AI/PENDING_REVIEW queue; APPROVED/REJECTED leave. No new intermediate state.
 
-Preserve business, ownership, audit and transaction rules. Legacy approved/rejected status filter is no longer a way to bypass the pending-only queue. CONTENT_ADMIN bank status browsing belongs to SCR-064; TEACHER does not inherit that bank scope.
+Preserve business, ownership, audit and transaction rules. Legacy approved/rejected status filter is no longer a way to bypass the pending-only queue. CONTENT_EDITOR bank status browsing belongs to SCR-064; TEACHER does not inherit that bank scope.
 
 ### 13. Confirmation / Modal Requirements
 
@@ -29288,7 +29288,7 @@ Load Review queue, Bulk review with protected-data checks before rendering. Keep
 ### 17. Mockup Must NOT Show
 
 - TEACHER-only gate
-- SUPER_ADMIN implicit reviewer
+- ADMIN implicit reviewer
 - Blind approve-all
 - Unreviewed learner-serving
 
@@ -29345,7 +29345,7 @@ Feature: Content Management
 
 Scope: MVP
 
-Actors: TEACHER, CONTENT_ADMIN
+Actors: TEACHER, CONTENT_EDITOR
 
 Authentication: Required
 
@@ -29509,7 +29509,7 @@ Control Type: Textarea
 
 Required: Required
 
-Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_ADMIN in authorised review/bank context; field locks apply
+Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_EDITOR in authorised review/bank context; field locks apply
 
 Default: No implicit value
 
@@ -29535,7 +29535,7 @@ Control Type: Select
 
 Required: Required
 
-Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_ADMIN in authorised review/bank context; field locks apply
+Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_EDITOR in authorised review/bank context; field locks apply
 
 Default: No implicit value
 
@@ -29561,7 +29561,7 @@ Control Type: Select
 
 Required: Required
 
-Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_ADMIN in authorised review/bank context; field locks apply
+Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_EDITOR in authorised review/bank context; field locks apply
 
 Default: No implicit value
 
@@ -29587,7 +29587,7 @@ Control Type: Repeated option fields
 
 Required: Conditional on type
 
-Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_ADMIN in authorised review/bank context; field locks apply
+Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_EDITOR in authorised review/bank context; field locks apply
 
 Default: No implicit value
 
@@ -29613,7 +29613,7 @@ Control Type: Type-specific input
 
 Required: Conditional on type
 
-Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_ADMIN in authorised review/bank context; field locks apply
+Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_EDITOR in authorised review/bank context; field locks apply
 
 Default: No implicit value
 
@@ -29639,7 +29639,7 @@ Control Type: Textarea
 
 Required: Required before approval
 
-Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_ADMIN in authorised review/bank context; field locks apply
+Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_EDITOR in authorised review/bank context; field locks apply
 
 Default: No implicit value
 
@@ -29665,7 +29665,7 @@ Control Type: Multi-select
 
 Required: Required
 
-Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_ADMIN in authorised review/bank context; field locks apply
+Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_EDITOR in authorised review/bank context; field locks apply
 
 Default: No implicit value
 
@@ -29691,7 +29691,7 @@ Control Type: Textarea
 
 Required: Required on reject
 
-Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_ADMIN in authorised review/bank context; field locks apply
+Editable By: TEACHER in AI/PENDING_REVIEW context or CONTENT_EDITOR in authorised review/bank context; field locks apply
 
 Default: No implicit value
 
@@ -29715,9 +29715,9 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Lưu thay đổi
 
-Actor: TEACHER or CONTENT_ADMIN
+Actor: TEACHER or CONTENT_EDITOR
 
-Visible When: TEACHER only in AI/PENDING_REVIEW context; CONTENT_ADMIN in authorised review/bank context
+Visible When: TEACHER only in AI/PENDING_REVIEW context; CONTENT_EDITOR in authorised review/bank context
 
 Enabled When: Valid permitted fields; no active contest; no change to historical grading semantics
 
@@ -29735,7 +29735,7 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Duyệt câu hỏi
 
-Actor: TEACHER or CONTENT_ADMIN
+Actor: TEACHER or CONTENT_EDITOR
 
 Visible When: AI source and PENDING_REVIEW; explicit reviewer role
 
@@ -29755,7 +29755,7 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Từ chối câu hỏi
 
-Actor: TEACHER or CONTENT_ADMIN
+Actor: TEACHER or CONTENT_EDITOR
 
 Visible When: AI source and PENDING_REVIEW; explicit reviewer role
 
@@ -29775,7 +29775,7 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Để lại chờ duyệt
 
-Actor: TEACHER or CONTENT_ADMIN
+Actor: TEACHER or CONTENT_EDITOR
 
 Visible When: AI source and PENDING_REVIEW; explicit reviewer role
 
@@ -29795,11 +29795,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Lưu trữ câu hỏi
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
-Visible When: Explicit CONTENT_ADMIN in authorised question-bank context
+Visible When: Explicit CONTENT_EDITOR in authorised question-bank context
 
-Enabled When: CONTENT_ADMIN; permitted lifecycle; no corruption of historical attempts
+Enabled When: CONTENT_EDITOR; permitted lifecycle; no corruption of historical attempts
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -29815,7 +29815,7 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Câu tiếp
 
-Actor: TEACHER or CONTENT_ADMIN
+Actor: TEACHER or CONTENT_EDITOR
 
 Visible When: Source-supported review sequence only; original SCR-058 context
 
@@ -29932,10 +29932,10 @@ Data preserved: No write
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| TEACHER | AI pending-review question in authorised review context | Allowed pending AI question/labels only; used semantics and active contest locks apply | No bank authoring right inherited | No question-bank archive/delete right inherited | Approve/reject AI pending-review item only | No inherited SUPER_ADMIN/generic ADMIN privileges; server checks role and scope |
-| CONTENT_ADMIN | Authorised AI review and question-bank context | Source-authorised fields; historical grading and active contest locks apply | Only explicitly listed creation action | Archive only when authorised; no hard delete of used question | Only explicitly named review/publication actions | No inherited SUPER_ADMIN/generic ADMIN privileges; server checks role and scope |
+| TEACHER | AI pending-review question in authorised review context | Allowed pending AI question/labels only; used semantics and active contest locks apply | No bank authoring right inherited | No question-bank archive/delete right inherited | Approve/reject AI pending-review item only | No inherited ADMIN/generic ADMIN privileges; server checks role and scope |
+| CONTENT_EDITOR | Authorised AI review and question-bank context | Source-authorised fields; historical grading and active contest locks apply | Only explicitly listed creation action | Archive only when authorised; no hard delete of used question | Only explicitly named review/publication actions | No inherited ADMIN/generic ADMIN privileges; server checks role and scope |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -29945,7 +29945,7 @@ Preserve business, ownership, audit and transaction rules.
 
 ### 13. Confirmation / Modal Requirements
 
-Rejection requires its nonempty reason control; save remains separate from approve/reject. UX Recommendation: confirm approval/rejection or CONTENT_ADMIN archive with current question/state and consequences. Cancel retains unsaved edit without a decision. Active-contest/history locks cannot be overridden by a dialog.
+Rejection requires its nonempty reason control; save remains separate from approve/reject. UX Recommendation: confirm approval/rejection or CONTENT_EDITOR archive with current question/state and consequences. Cancel retains unsaved edit without a decision. Active-contest/history locks cannot be overridden by a dialog.
 
 Dialog/sheet là action bên trong màn, không phát sinh screen ID; giữ focus và trả về đúng trigger khi hủy.
 
@@ -29972,7 +29972,7 @@ Load Question metadata, Content and answers, Knowledge labels, Review decision w
 - Auto-approve on save
 - Hard-delete used question
 - TEACHER implicit exam/import rights
-- TEACHER archive or general bank administration without explicit CONTENT_ADMIN
+- TEACHER archive or general bank administration without explicit CONTENT_EDITOR
 
 ### 18. UX Recommendations
 
@@ -30028,7 +30028,7 @@ Feature: Community Moderation
 
 Scope: V2
 
-Actors: MANAGER
+Actors: MODERATOR
 
 Authentication: Required
 
@@ -30038,7 +30038,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical docs only; frontend absent, no confirmed route
 
-Purpose: Lists community posts awaiting MANAGER review in the required processing order.
+Purpose: Lists community posts awaiting MODERATOR review in the required processing order.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §60; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-06-cong-dong.md](use-cases-06-cong-dong.md) §UC-076 / BR-076-2; [db/migration/V2__community.sql](../../db/migration/V2__community.sql) §posts
 
@@ -30046,7 +30046,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit MANAGER navigation
+- Explicit MODERATOR navigation
 
 Next Screens:
 
@@ -30196,11 +30196,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Mở bài chờ duyệt
 
-Actor: MANAGER
+Actor: MODERATOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: Explicit MANAGER; current PENDING
+Enabled When: Explicit MODERATOR; current PENDING
 
 Confirmation: None
 
@@ -30216,11 +30216,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Tải lại hàng đợi
 
-Actor: MANAGER
+Actor: MODERATOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: MANAGER
+Enabled When: MODERATOR
 
 Confirmation: None
 
@@ -30264,7 +30264,7 @@ Navigation: SCR-060
 
 Data preserved: Committed review
 
-Condition: SUPER_ADMIN without MANAGER or other wrong role
+Condition: ADMIN without MODERATOR or other wrong role
 
 User-facing behavior: Deny
 
@@ -30280,15 +30280,15 @@ Data preserved: No protected queue
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| MANAGER | Pending post summaries with safe author projection | None on queue | None | None on queue | None on queue; decisions in SCR-061 | Explicit MANAGER; no USER/staff inheritance or self-review Explicit roles only; server revalidates each request. |
+| MODERATOR | Pending post summaries with safe author projection | None on queue | None | None on queue | None on queue; decisions in SCR-061 | Explicit MODERATOR; no LEARNER/staff inheritance or self-review Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
 PENDING queue; APPROVED/REJECTED decisions at SCR-061.
 
-Preserve business, ownership, audit and transaction rules. Source reconciliation notes: UC-076 sole-MANAGER SUPER_ADMIN fallback conflicts explicit MANAGER rule/no inherited privileges. V2 screen does not imply MVP implementation.
+Preserve business, ownership, audit and transaction rules. Source reconciliation notes: UC-076 sole-MODERATOR ADMIN fallback conflicts explicit MODERATOR rule/no inherited privileges. V2 screen does not imply MVP implementation.
 
 ### 13. Confirmation / Modal Requirements
 
@@ -30312,7 +30312,7 @@ Load Moderation queue with protected-data checks before rendering. Keep title, p
 
 ### 17. Mockup Must NOT Show
 
-- Implicit SUPER_ADMIN moderation
+- Implicit ADMIN moderation
 - Self-approval
 - Author PII
 - Blind bulk approval
@@ -30369,7 +30369,7 @@ Feature: Community Moderation
 
 Scope: V2
 
-Actors: MANAGER
+Actors: MODERATOR
 
 Authentication: Required
 
@@ -30379,7 +30379,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical docs only; frontend absent, no confirmed route
 
-Purpose: Shows a pending post's full content and allows MANAGER to approve it or reject it with a reason.
+Purpose: Shows a pending post's full content and allows MODERATOR to approve it or reject it with a reason.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §61; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-06-cong-dong.md](use-cases-06-cong-dong.md) §UC-076 / UC-077 / UC-069 / UC-135; [db/migration/V2__community.sql](../../db/migration/V2__community.sql) §posts
 
@@ -30571,11 +30571,11 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Duyệt bài viết
 
-Actor: MANAGER
+Actor: MODERATOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: MANAGER; still PENDING; not own post
+Enabled When: MODERATOR; still PENDING; not own post
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -30591,11 +30591,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Từ chối bài viết
 
-Actor: MANAGER
+Actor: MODERATOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: MANAGER; still PENDING; not own post; valid reason
+Enabled When: MODERATOR; still PENDING; not own post; valid reason
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -30646,7 +30646,7 @@ Condition: SELF_APPROVAL (403) / wrong role
 
 User-facing behavior: Deny decision
 
-Retry: Another explicit MANAGER
+Retry: Another explicit MODERATOR
 
 Navigation: SCR-060/079
 
@@ -30678,9 +30678,9 @@ Data preserved: Form/post
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| MANAGER | Selected pending post and source-supported review context | Rejection reason only; no author text editing | Moderation decision record | No deletion action here | Approve/reject still-pending post | Explicit MANAGER, cannot review own post; concurrent decision causes reload rather than overwrite Explicit roles only; server revalidates each request. |
+| MODERATOR | Selected pending post and source-supported review context | Rejection reason only; no author text editing | Moderation decision record | No deletion action here | Approve/reject still-pending post | Explicit MODERATOR, cannot review own post; concurrent decision causes reload rather than overwrite Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -30713,7 +30713,7 @@ Load Full post, Review context, Decision with protected-data checks before rende
 
 - Edit author content as reviewer
 - Self-approval
-- Unassigned SUPER_ADMIN override
+- Unassigned ADMIN override
 - Overwrite earlier decision
 
 ### 18. UX Recommendations
@@ -30769,7 +30769,7 @@ Feature: Community Moderation
 
 Scope: V2
 
-Actors: MANAGER
+Actors: MODERATOR
 
 Authentication: Required
 
@@ -30779,7 +30779,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical docs only; frontend absent, no confirmed route
 
-Purpose: Groups pending violation reports by the reported content for MANAGER investigation.
+Purpose: Groups pending violation reports by the reported content for MODERATOR investigation.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §62; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-06-cong-dong.md](use-cases-06-cong-dong.md) §UC-075 / UC-078; [db/migration/V2__community.sql](../../db/migration/V2__community.sql) §moderation_cases
 
@@ -30787,7 +30787,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit MANAGER navigation
+- Explicit MODERATOR navigation
 
 Next Screens:
 
@@ -30899,7 +30899,7 @@ Required to Display: Source-dependent; no fabricated values
 
 Visibility Condition: Authorised data available
 
-Format: MANAGER only; never author/public
+Format: MODERATOR only; never author/public
 
 Possible Values: Giá trị do nguồn trả về; không có danh sách enum mới.
 
@@ -30977,11 +30977,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Mở hồ sơ báo cáo
 
-Actor: MANAGER
+Actor: MODERATOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: Explicit MANAGER, authorised current grouped target
+Enabled When: Explicit MODERATOR, authorised current grouped target
 
 Confirmation: None
 
@@ -30997,11 +30997,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Tải lại báo cáo
 
-Actor: MANAGER
+Actor: MODERATOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: MANAGER
+Enabled When: MODERATOR
 
 Confirmation: None
 
@@ -31042,9 +31042,9 @@ Không có validation nhập business riêng; kiểm điều kiện action/role 
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| MANAGER | Pending grouped report cases and permitted evidence summaries | None on queue | None | None on queue | None on queue; decisions in SCR-063 | Reporter data is manager-only; public safe preview rather than private account/grading data Explicit roles only; server revalidates each request. |
+| MODERATOR | Pending grouped report cases and permitted evidence summaries | None on queue | None | None on queue | None on queue; decisions in SCR-063 | Reporter data is manager-only; public safe preview rather than private account/grading data Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -31131,7 +31131,7 @@ Feature: Community Moderation
 
 Scope: V2
 
-Actors: MANAGER
+Actors: MODERATOR
 
 Authentication: Required
 
@@ -31249,7 +31249,7 @@ Required to Display: Source-dependent; no fabricated values
 
 Visibility Condition: Authorised data available
 
-Format: MANAGER only
+Format: MODERATOR only
 
 Possible Values: Giá trị do nguồn trả về; không có danh sách enum mới.
 
@@ -31379,11 +31379,11 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Giữ nội dung / Bác báo cáo
 
-Actor: MANAGER
+Actor: MODERATOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: MANAGER; pending case; required note
+Enabled When: MODERATOR; pending case; required note
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -31399,11 +31399,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Ẩn hoặc xoá nội dung vi phạm
 
-Actor: MANAGER
+Actor: MODERATOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: MANAGER; current case; nonempty reason; permitted target/scope
+Enabled When: MODERATOR; current case; nonempty reason; permitted target/scope
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -31419,11 +31419,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Khôi phục bình luận
 
-Actor: MANAGER
+Actor: MODERATOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: MANAGER and permitted restoration state
+Enabled When: MODERATOR and permitted restoration state
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -31439,11 +31439,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Đình chỉ tài khoản theo chính sách được duyệt
 
-Actor: MANAGER
+Actor: MODERATOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: Only if approved existing moderation policy permits MANAGER
+Enabled When: Only if approved existing moderation policy permits MODERATOR
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -31502,7 +31502,7 @@ Data preserved: Existing decision/thread
 
 Condition: Wrong role/permanent-ban attempt
 
-User-facing behavior: Deny; permanent ban SUPER_ADMIN policy
+User-facing behavior: Deny; permanent ban ADMIN policy
 
 Retry: No implicit escalation
 
@@ -31526,9 +31526,9 @@ Data preserved: Case/content/form
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| MANAGER | Reported target, grouped reasons and manager-permitted reporter evidence | Decision note and source-supported target/scope choice | Case resolution/audit | Source-authorised soft hide/delete or restore only | Action or reject grouped report case | No permanent-ban authority inherited; suspension only under approved MANAGER policy; retain reply descendants Explicit roles only; server revalidates each request. |
+| MODERATOR | Reported target, grouped reasons and manager-permitted reporter evidence | Decision note and source-supported target/scope choice | Case resolution/audit | Source-authorised soft hide/delete or restore only | Action or reject grouped report case | No permanent-ban authority inherited; suspension only under approved MODERATOR policy; retain reply descendants Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -31562,7 +31562,7 @@ Load Reported content, Evidence, Decision with protected-data checks before rend
 
 - Reporter identities to public/author
 - Hard-delete thread
-- MANAGER permanent ban
+- MODERATOR permanent ban
 - Invented auto-hide threshold/suspension durations/catalogue
 
 ### 18. UX Recommendations
@@ -31618,7 +31618,7 @@ Feature: Content Management
 
 Scope: MVP
 
-Actors: CONTENT_ADMIN
+Actors: CONTENT_EDITOR
 
 Authentication: Required
 
@@ -31628,7 +31628,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical docs only; frontend absent, no confirmed route
 
-Purpose: Allows CONTENT_ADMIN to browse and select questions for permitted editing or exam composition.
+Purpose: Allows CONTENT_EDITOR to browse and select questions for permitted editing or exam composition.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §64; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-08-quan-tri-he-thong.md](use-cases-08-quan-tri-he-thong.md) §UC-112 / UC-109; [db/migration/V1__core_schema.sql](../../db/migration/V1__core_schema.sql) §questions / question_knowledge_points; Nội dung trước đồng bộ của screen-fields.md §28 (nguồn bảo toàn field, đã phân bổ vào màn này)
 
@@ -31636,7 +31636,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit CONTENT_ADMIN navigation
+- Explicit CONTENT_EDITOR navigation
 - SCR-066 question-selection context
 
 Next Screens:
@@ -31832,11 +31832,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Sửa câu hỏi
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; authorised question
+Enabled When: CONTENT_EDITOR; authorised question
 
 Confirmation: None
 
@@ -31852,11 +31852,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Chọn câu hỏi cho đề
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; active exam-composition context; question valid/APPROVED and labelled
+Enabled When: CONTENT_EDITOR; active exam-composition context; question valid/APPROVED and labelled
 
 Confirmation: None
 
@@ -31899,9 +31899,9 @@ Không có validation nhập business riêng; kiểm điều kiện action/role 
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| CONTENT_ADMIN | Authorised question metadata; approved serving candidates for exam selection | None directly; editor is SCR-059 | No dedicated creation contract confirmed | No direct hard deletion | None here; AI review is SCR-058/SCR-059 | Question selection rechecks approval, validity, labels and required media; no TEACHER bank permission implied Explicit roles only; server revalidates each request. |
+| CONTENT_EDITOR | Authorised question metadata; approved serving candidates for exam selection | None directly; editor is SCR-059 | No dedicated creation contract confirmed | No direct hard deletion | None here; AI review is SCR-058/SCR-059 | Question selection rechecks approval, validity, labels and required media; no TEACHER bank permission implied Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -31989,7 +31989,7 @@ Feature: Content Management
 
 Scope: MVP
 
-Actors: CONTENT_ADMIN
+Actors: CONTENT_EDITOR
 
 Authentication: Required
 
@@ -32007,7 +32007,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit CONTENT_ADMIN navigation
+- Explicit CONTENT_EDITOR navigation
 
 Next Screens:
 
@@ -32157,11 +32157,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Tạo đề luyện tập
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN
+Enabled When: CONTENT_EDITOR
 
 Confirmation: None
 
@@ -32177,11 +32177,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Sửa đề luyện tập
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; edits allowed for chosen lifecycle/context
+Enabled When: CONTENT_EDITOR; edits allowed for chosen lifecycle/context
 
 Confirmation: None
 
@@ -32197,11 +32197,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Sao chép đề
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; supported selected exam
+Enabled When: CONTENT_EDITOR; supported selected exam
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -32217,11 +32217,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Lưu trữ đề
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; valid target; CSRF
+Enabled When: CONTENT_EDITOR; valid target; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -32273,9 +32273,9 @@ Data preserved: Existing exam/attempts
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| CONTENT_ADMIN | Managed exam lifecycle metadata | None directly; editor is SCR-066 | New DRAFT/copy through SCR-066 | Archive only, preserving attempts/history | Publication through SCR-066 | Published structural edit policy unresolved; no learner visibility for drafts Explicit roles only; server revalidates each request. |
+| CONTENT_EDITOR | Managed exam lifecycle metadata | None directly; editor is SCR-066 | New DRAFT/copy through SCR-066 | Archive only, preserving attempts/history | Publication through SCR-066 | Published structural edit policy unresolved; no learner visibility for drafts Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -32307,7 +32307,7 @@ Load Managed exams with protected-data checks before rendering. Keep title, pare
 
 - Delete historical exam
 - Copy automatically published
-- Implicit TEACHER/SUPER_ADMIN content rights
+- Implicit TEACHER/ADMIN content rights
 
 ### 18. UX Recommendations
 
@@ -32361,7 +32361,7 @@ Feature: Content Management
 
 Scope: MVP
 
-Actors: CONTENT_ADMIN
+Actors: CONTENT_EDITOR
 
 Authentication: Required
 
@@ -32371,7 +32371,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical docs only; frontend absent, no confirmed route
 
-Purpose: Allows CONTENT_ADMIN to organise exam sections, assign valid questions and publish or archive an exam after validation.
+Purpose: Allows CONTENT_EDITOR to organise exam sections, assign valid questions and publish or archive an exam after validation.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §66; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-08-quan-tri-he-thong.md](use-cases-08-quan-tri-he-thong.md) §UC-112 / BR-112-1–11; [db/migration/V1__core_schema.sql](../../db/migration/V1__core_schema.sql) §exams / exam_questions; Nội dung trước đồng bộ của screen-fields.md §28 (nguồn bảo toàn field, đã phân bổ vào màn này)
 
@@ -32723,11 +32723,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Lưu nháp
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; valid basic types/structure; CSRF
+Enabled When: CONTENT_EDITOR; valid basic types/structure; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -32743,11 +32743,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Công bố đề
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; >=1 section, every section>=1 valid, APPROVED, labelled question; listening audio ready; section order valid; CSRF
+Enabled When: CONTENT_EDITOR; >=1 section, every section>=1 valid, APPROVED, labelled question; listening audio ready; section order valid; CSRF
 
 Confirmation: Required: show selected exam/sections/questions and validate publication checks before final confirmation; cancel keeps draft
 
@@ -32763,11 +32763,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Lưu trữ đề
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; valid lifecycle; CSRF
+Enabled When: CONTENT_EDITOR; valid lifecycle; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -32783,11 +32783,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Mở ngân hàng câu hỏi
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; exam composition
+Enabled When: CONTENT_EDITOR; exam composition
 
 Confirmation: None
 
@@ -32890,9 +32890,9 @@ Data preserved: No inconsistent published state
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| CONTENT_ADMIN | Authorised exam, sections and selected question metadata | Source-authorised draft/composition fields | DRAFT exam | Archive only; no hard deletion of used exam | Publish only after full source-defined checks | At least one section/question per section, APPROVED labels/media; protect existing attempt history Explicit roles only; server revalidates each request. |
+| CONTENT_EDITOR | Authorised exam, sections and selected question metadata | Source-authorised draft/composition fields | DRAFT exam | Archive only; no hard deletion of used exam | Publish only after full source-defined checks | At least one section/question per section, APPROVED labels/media; protect existing attempt history Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -32983,7 +32983,7 @@ Feature: Content Management
 
 Scope: MVP
 
-Actors: CONTENT_ADMIN
+Actors: CONTENT_EDITOR
 
 Authentication: Required
 
@@ -32993,7 +32993,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical docs only; frontend absent, no confirmed route
 
-Purpose: Allows CONTENT_ADMIN to manage topic prerequisite relationships while preventing invalid or cyclic learning paths.
+Purpose: Allows CONTENT_EDITOR to manage topic prerequisite relationships while preventing invalid or cyclic learning paths.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §67; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-08-quan-tri-he-thong.md](use-cases-08-quan-tri-he-thong.md) §UC-112 A4 / BR-112-9–11; [db/migration/V1__core_schema.sql](../../db/migration/V1__core_schema.sql) §topics; [docs/reference/database.md](database.md) §topics/topic_items
 
@@ -33001,7 +33001,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit CONTENT_ADMIN content navigation
+- Explicit CONTENT_EDITOR content navigation
 
 Next Screens:
 
@@ -33209,11 +33209,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Lưu điều kiện tiên quyết
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; existing topics; acyclic graph;>=1 root; CSRF
+Enabled When: CONTENT_EDITOR; existing topics; acyclic graph;>=1 root; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -33286,9 +33286,9 @@ Data preserved: Previous graph and local proposed edits
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| CONTENT_ADMIN | Existing topic/prerequisite relationships | Selected topic prerequisite IDs | No topic creation contract on this screen | Remove relationship only as a valid prerequisite edit; no topic deletion | None | No cycles, at least one graph root; do not change learner gate threshold or exam publication Explicit roles only; server revalidates each request. |
+| CONTENT_EDITOR | Existing topic/prerequisite relationships | Selected topic prerequisite IDs | No topic creation contract on this screen | Remove relationship only as a valid prerequisite edit; no topic deletion | None | No cycles, at least one graph root; do not change learner gate threshold or exam publication Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -33375,7 +33375,7 @@ Feature: Content Management
 
 Scope: MVP
 
-Actors: CONTENT_ADMIN
+Actors: CONTENT_EDITOR
 
 Authentication: Required
 
@@ -33385,7 +33385,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical /admin/imports combined upload/report; split canonical routes unconfirmed
 
-Purpose: Allows CONTENT_ADMIN to upload approved learning-data files, validate and preview records, confirm import and review import history.
+Purpose: Allows CONTENT_EDITOR to upload approved learning-data files, validate and preview records, confirm import and review import history.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §68; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-08-quan-tri-he-thong.md](use-cases-08-quan-tri-he-thong.md) §UC-110 / UC-137 BR-137-3; [db/migration/V1__core_schema.sql](../../db/migration/V1__core_schema.sql) §service_requests; [docs/reference/database.md](database.md) §service_requests; Nội dung trước đồng bộ của screen-fields.md §27 (nguồn bảo toàn field, đã phân bổ vào màn này)
 
@@ -33393,7 +33393,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit CONTENT_ADMIN navigation
+- Explicit CONTENT_EDITOR navigation
 
 Next Screens:
 
@@ -33671,11 +33671,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Tải lên và kiểm tra
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; approved template/parser/keys; valid allowed file; CSRF
+Enabled When: CONTENT_EDITOR; approved template/parser/keys; valid allowed file; CSRF
 
 Confirmation: None
 
@@ -33691,7 +33691,7 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Xác nhận nhập dữ liệu
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
@@ -33711,11 +33711,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Xem báo cáo lần nhập
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; run exists
+Enabled When: CONTENT_EDITOR; run exists
 
 Confirmation: None
 
@@ -33731,7 +33731,7 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Kiểm tra lại file đã sửa
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
@@ -33848,9 +33848,9 @@ Data preserved: Previously committed valid rows and persistent errors
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| CONTENT_ADMIN | Own authorised import file/validation preview/run summaries | Approved type/file and explicit import confirmation | Validated run/import only after approved staged contract | No destructive replace action without source approval | Confirm validated import, not content-review approval | Approved teacher template/parser/natural keys required; no write during preview; invalid rows remain explainable Explicit roles only; server revalidates each request. |
+| CONTENT_EDITOR | Own authorised import file/validation preview/run summaries | Approved type/file and explicit import confirmation | Validated run/import only after approved staged contract | No destructive replace action without source approval | Confirm validated import, not content-review approval | Approved teacher template/parser/natural keys required; no write during preview; invalid rows remain explainable Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -33944,7 +33944,7 @@ Feature: Content Management
 
 Scope: MVP
 
-Actors: CONTENT_ADMIN
+Actors: CONTENT_EDITOR
 
 Authentication: Required
 
@@ -34161,11 +34161,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Tải danh sách lỗi
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; run exists; authorised source-error data
+Enabled When: CONTENT_EDITOR; run exists; authorised source-error data
 
 Confirmation: None
 
@@ -34181,11 +34181,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Sửa file và nhập lại
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN
+Enabled When: CONTENT_EDITOR
 
 Confirmation: None
 
@@ -34201,11 +34201,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Tải lại báo cáo
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN
+Enabled When: CONTENT_EDITOR
 
 Confirmation: None
 
@@ -34278,9 +34278,9 @@ Data preserved: Loaded summary/committed run
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| CONTENT_ADMIN | Authorised persistent import run totals/errors | None | Error export only; reimport through SCR-068 | None | None | No stack trace/internal paths in row errors; source values only when safe; imported data is not changed from report Explicit roles only; server revalidates each request. |
+| CONTENT_EDITOR | Authorised persistent import run totals/errors | None | Error export only; reimport through SCR-068 | None | None | No stack trace/internal paths in row errors; source values only when safe; imported data is not changed from report Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -34369,7 +34369,7 @@ Feature: Content Management
 
 Scope: V2
 
-Actors: CONTENT_ADMIN
+Actors: CONTENT_EDITOR
 
 Authentication: Required
 
@@ -34387,7 +34387,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit CONTENT_ADMIN navigation
+- Explicit CONTENT_EDITOR navigation
 
 Next Screens:
 
@@ -34557,11 +34557,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Tạo cuộc thi
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN and V2 enabled
+Enabled When: CONTENT_EDITOR and V2 enabled
 
 Confirmation: None
 
@@ -34577,11 +34577,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Sửa cuộc thi
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; edits allowed by current time/state
+Enabled When: CONTENT_EDITOR; edits allowed by current time/state
 
 Confirmation: None
 
@@ -34597,11 +34597,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Huỷ cuộc thi
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; permitted lifecycle; CSRF
+Enabled When: CONTENT_EDITOR; permitted lifecycle; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -34617,15 +34617,15 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Công bố kết quả
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; contest ended; results server-valid
+Enabled When: CONTENT_EDITOR; contest ended; results server-valid
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
-Business Effect: Publish valid results; no financial payout by CONTENT_ADMIN
+Business Effect: Publish valid results; no financial payout by CONTENT_EDITOR
 
 Success Feedback: Refresh authoritative state; announce result
 
@@ -34683,9 +34683,9 @@ Data preserved: Committed contest
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| CONTENT_ADMIN | Managed contest lifecycle/schedule/result-publication context | None directly; editor SCR-071 | DRAFT contest through SCR-071 | Cancel only as permitted, preserving history | Publish ranking after contest ends and server validation | CONTENT_ADMIN does not award financial credits; active schedule/exam/prizes cannot be changed Explicit roles only; server revalidates each request. |
+| CONTENT_EDITOR | Managed contest lifecycle/schedule/result-publication context | None directly; editor SCR-071 | DRAFT contest through SCR-071 | Cancel only as permitted, preserving history | Publish ranking after contest ends and server validation | CONTENT_EDITOR does not award financial credits; active schedule/exam/prizes cannot be changed Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -34715,7 +34715,7 @@ Load Managed contests with protected-data checks before rendering. Keep title, p
 
 ### 17. Mockup Must NOT Show
 
-- CONTENT_ADMIN directly credits prizes
+- CONTENT_EDITOR directly credits prizes
 - Delete participant/history
 - Publish ranking early
 - Implicit new contest participant schema
@@ -34753,7 +34753,7 @@ Related Data: contests; participation via attempts kind CONTEST/ref_id, not lega
 ### 22. Open Issues
 
 - V2 only; exact list GET/filter contract not specified.
-- Financial prize fulfillment remains separate FINANCE_ADMIN workflow without a new page.
+- Financial prize fulfillment remains separate ACCOUNTANT workflow without a new page.
 
 ### 23. Mockup Readiness
 
@@ -34773,7 +34773,7 @@ Feature: Content Management
 
 Scope: V2
 
-Actors: CONTENT_ADMIN
+Actors: CONTENT_EDITOR
 
 Authentication: Required
 
@@ -34783,7 +34783,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical docs only; frontend absent, no confirmed route
 
-Purpose: Allows CONTENT_ADMIN to configure the contest schedule, exam and prize information and perform permitted publication or cancellation actions.
+Purpose: Allows CONTENT_EDITOR to configure the contest schedule, exam and prize information and perform permitted publication or cancellation actions.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §71; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-08-quan-tri-he-thong.md](use-cases-08-quan-tri-he-thong.md) §UC-113 / BR-113-1–9; [db/migration/V2__community.sql](../../db/migration/V2__community.sql) §contests; Nội dung trước đồng bộ của screen-fields.md §29 (nguồn bảo toàn field, đã phân bổ vào màn này)
 
@@ -35043,7 +35043,7 @@ Placeholder: Không bắt buộc; không thay thế label.
 
 Allowed Values: Approved nonfinancial/financial description; catalogue not specified
 
-Validation: Active prize immutable; finance crediting cannot be CONTENT_ADMIN action
+Validation: Active prize immutable; finance crediting cannot be CONTENT_EDITOR action
 
 Validation Message: Giải thưởng phải theo chính sách được duyệt.
 
@@ -35059,11 +35059,11 @@ Không có danh sách business độc lập; các vùng/control lặp được m
 
 Action Name: Lưu nháp
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; valid basic data; CSRF
+Enabled When: CONTENT_EDITOR; valid basic data; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -35079,11 +35079,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Công bố cuộc thi
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; valid time/exam/prize policy; future start; CSRF
+Enabled When: CONTENT_EDITOR; valid time/exam/prize policy; future start; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -35099,11 +35099,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Huỷ cuộc thi
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; eligible state; CSRF
+Enabled When: CONTENT_EDITOR; eligible state; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -35119,11 +35119,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Công bố kết quả
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; ended; valid server results
+Enabled When: CONTENT_EDITOR; ended; valid server results
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -35210,7 +35210,7 @@ Navigation: Stay
 
 Data preserved: Private results
 
-Condition: Financial reward request by CONTENT_ADMIN
+Condition: Financial reward request by CONTENT_EDITOR
 
 User-facing behavior: No direct credit action; approved finance process only
 
@@ -35226,9 +35226,9 @@ Data preserved: Ledger unchanged
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| CONTENT_ADMIN | Authorised contest and selected exam/prize context | Source-authorised inactive draft fields | DRAFT contest | Cancel only under source lifecycle; no hard deletion | Publish valid contest/ranking under source conditions | No active schedule/exam/prize edits; no financial crediting by CONTENT_ADMIN Explicit roles only; server revalidates each request. |
+| CONTENT_EDITOR | Authorised contest and selected exam/prize context | Source-authorised inactive draft fields | DRAFT contest | Cancel only under source lifecycle; no hard deletion | Publish valid contest/ranking under source conditions | No active schedule/exam/prize edits; no financial crediting by CONTENT_EDITOR Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -35259,7 +35259,7 @@ Load Contest metadata, Lifecycle controls, Active lock with protected-data check
 
 ### 17. Mockup Must NOT Show
 
-- Financial prize credit action for CONTENT_ADMIN
+- Financial prize credit action for CONTENT_EDITOR
 - Early ranking
 - Active schedule/exam/prize changes
 - Hard delete
@@ -35318,7 +35318,7 @@ Feature: Reference Resources
 
 Scope: V2
 
-Actors: CONTENT_ADMIN
+Actors: CONTENT_EDITOR
 
 Authentication: Required
 
@@ -35328,7 +35328,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical docs only; frontend absent, no confirmed route
 
-Purpose: Allows CONTENT_ADMIN to add, edit, publish or hide approved YouTube, podcast and book metadata and external links.
+Purpose: Allows CONTENT_EDITOR to add, edit, publish or hide approved YouTube, podcast and book metadata and external links.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §72; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-08-quan-tri-he-thong.md](use-cases-08-quan-tri-he-thong.md) §UC-119 / UC-117 / UC-118; Nội dung trước đồng bộ của screen-fields.md §V2 notes (nguồn bảo toàn field, đã phân bổ vào màn này)
 
@@ -35336,7 +35336,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit CONTENT_ADMIN navigation
+- Explicit CONTENT_EDITOR navigation
 
 Next Screens:
 
@@ -35720,11 +35720,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Thêm tài nguyên
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; valid type/metadata/HTTPS/allowlist; CSRF
+Enabled When: CONTENT_EDITOR; valid type/metadata/HTTPS/allowlist; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -35740,11 +35740,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Sửa tài nguyên
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; valid changes; URL rechecked; CSRF
+Enabled When: CONTENT_EDITOR; valid changes; URL rechecked; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -35760,11 +35760,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Công bố tài nguyên
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; mandatory fields valid; URL approved; CSRF
+Enabled When: CONTENT_EDITOR; mandatory fields valid; URL approved; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -35780,11 +35780,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Ẩn tài nguyên
 
-Actor: CONTENT_ADMIN
+Actor: CONTENT_EDITOR
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: CONTENT_ADMIN; authorised record; CSRF
+Enabled When: CONTENT_EDITOR; authorised record; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -35857,9 +35857,9 @@ Data State: Remain unpublished
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| CONTENT_ADMIN | YouTube/podcast/book metadata and visibility | Source-approved metadata and HTTPS external links | Unpublished resource record | Hide only; retain record/audit | Publish valid source-approved metadata | Approved allowlists/catalogue/storage still pending; never upload copyrighted book or audio/video content Explicit roles only; server revalidates each request. |
+| CONTENT_EDITOR | YouTube/podcast/book metadata and visibility | Source-approved metadata and HTTPS external links | Unpublished resource record | Hide only; retain record/audit | Publish valid source-approved metadata | Approved allowlists/catalogue/storage still pending; never upload copyrighted book or audio/video content Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -35951,7 +35951,7 @@ Feature: Finance Management
 
 Scope: MVP
 
-Actors: FINANCE_ADMIN
+Actors: ACCOUNTANT
 
 Authentication: Required
 
@@ -35961,7 +35961,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical /admin/billing combines card and plan management; canonical route unconfirmed
 
-Purpose: Allows FINANCE_ADMIN to issue and monitor CREDIT or SUBSCRIPTION batches, manage distribution metadata and download newly generated codes once.
+Purpose: Allows ACCOUNTANT to issue and monitor CREDIT or SUBSCRIPTION batches, manage distribution metadata and download newly generated codes once.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §73; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-07-thanh-toan-cham-bai.md](use-cases-07-thanh-toan-cham-bai.md) §UC-099 / BR-099-1–10; [specs/001-auth-rbac/spec.md](../../specs/001-auth-rbac/spec.md) §FR-076–082b; Nội dung trước đồng bộ của screen-fields.md §31 / Đã chốt2026-10-07 (nguồn bảo toàn field, đã phân bổ vào màn này); [docs/reference/database.md](database.md) §credit_cards / cột phễu; [db/migration/V1__core_schema.sql](../../db/migration/V1__core_schema.sql) §credit_cards
 
@@ -35969,7 +35969,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit FINANCE_ADMIN role navigation
+- Explicit ACCOUNTANT role navigation
 
 Next Screens:
 
@@ -36449,11 +36449,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Phát hành lô mã
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: FINANCE_ADMIN; valid kind/quantity/value/plan/channel fields; CSRF
+Enabled When: ACCOUNTANT; valid kind/quantity/value/plan/channel fields; CSRF
 
 Confirmation: Required: confirm actual kind, quantity, value/plan and distribution fields; warn that successful raw-code output appears once
 
@@ -36469,7 +36469,7 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Tải mã vừa phát hành
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
@@ -36489,11 +36489,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Vô hiệu mã chưa dùng
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: FINANCE_ADMIN; authorised batch; CSRF
+Enabled When: ACCOUNTANT; authorised batch; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -36509,11 +36509,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Xem trạng thái lô
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: FINANCE_ADMIN
+Enabled When: ACCOUNTANT
 
 Confirmation: None
 
@@ -36616,9 +36616,9 @@ Data preserved: One valid lifecycle result
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| FINANCE_ADMIN | Batch counts, channel/campaign and permitted card-state metadata | New issuance fields only; issued card rights not retroactively edited | Approved CREDIT/SUBSCRIPTION batch | Void UNUSED only; do not delete cards or alter USED | None | Raw codes only once after successful creation; no hashes/retrieval; max100; CSRF and audited writes Explicit roles only; server revalidates each request. |
+| ACCOUNTANT | Batch counts, channel/campaign and permitted card-state metadata | New issuance fields only; issued card rights not retroactively edited | Approved CREDIT/SUBSCRIPTION batch | Void UNUSED only; do not delete cards or alter USED | None | Raw codes only once after successful creation; no hashes/retrieval; max100; CSRF and audited writes Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -36712,7 +36712,7 @@ Feature: Finance Management
 
 Scope: MVP
 
-Actors: FINANCE_ADMIN
+Actors: ACCOUNTANT
 
 Authentication: Required
 
@@ -36722,7 +36722,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical docs only; frontend absent, no confirmed route
 
-Purpose: Allows FINANCE_ADMIN to maintain permitted plan definitions and stop offering a plan while preserving previously granted rights.
+Purpose: Allows ACCOUNTANT to maintain permitted plan definitions and stop offering a plan while preserving previously granted rights.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §74; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-07-thanh-toan-cham-bai.md](use-cases-07-thanh-toan-cham-bai.md) §UC-101 / BR-101-1–8; [docs/reference/database.md](database.md) §learning.plans; Nội dung trước đồng bộ của screen-fields.md §31 (nguồn bảo toàn field, đã phân bổ vào màn này)
 
@@ -36730,7 +36730,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit FINANCE_ADMIN navigation
+- Explicit ACCOUNTANT navigation
 
 Next Screens:
 
@@ -37062,11 +37062,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Tạo gói được phép
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: FINANCE_ADMIN; missing one of three codes; valid fields; CSRF
+Enabled When: ACCOUNTANT; missing one of three codes; valid fields; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -37082,11 +37082,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Lưu thay đổi được duyệt
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: FINANCE_ADMIN; valid data; all old user/card rights preserved; CSRF
+Enabled When: ACCOUNTANT; valid data; all old user/card rights preserved; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -37102,11 +37102,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Dừng cung cấp gói
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: FINANCE_ADMIN; valid target; CSRF
+Enabled When: ACCOUNTANT; valid target; CSRF
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -37189,9 +37189,9 @@ Data preserved: Old definition/history
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| FINANCE_ADMIN | Three permitted plan definitions and offering status | Approved plan fields only when prior rights are protected | Only missing permitted definition; no fourth plan code | Stop offering, no hard delete or cancellation of old rights | None | Previously granted user/card rights must be preserved; unapproved paid values have no fabricated defaults Explicit roles only; server revalidates each request. |
+| ACCOUNTANT | Three permitted plan definitions and offering status | Approved plan fields only when prior rights are protected | Only missing permitted definition; no fourth plan code | Stop offering, no hard delete or cancellation of old rights | None | Previously granted user/card rights must be preserved; unapproved paid values have no fabricated defaults Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -37283,7 +37283,7 @@ Feature: Finance Management
 
 Scope: MVP
 
-Actors: FINANCE_ADMIN
+Actors: ACCOUNTANT
 
 Authentication: Required
 
@@ -37293,7 +37293,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical /admin/ledger; no implemented frontend route
 
-Purpose: Allows FINANCE_ADMIN to filter and reconcile credit transactions, investigate referenced disputes and append authorised adjustments.
+Purpose: Allows ACCOUNTANT to filter and reconcile credit transactions, investigate referenced disputes and append authorised adjustments.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §75; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-07-thanh-toan-cham-bai.md](use-cases-07-thanh-toan-cham-bai.md) §UC-100 / UC-102 / BR-100-1–8 / BR-102-1–9; [db/migration/V1__core_schema.sql](../../db/migration/V1__core_schema.sql) §credit_transactions; Nội dung trước đồng bộ của screen-fields.md §30 (nguồn bảo toàn field, đã phân bổ vào màn này); [.specify/memory/constitution.md](../../.specify/memory/constitution.md) §BUS-14 / BUS-15
 
@@ -37301,7 +37301,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit FINANCE_ADMIN navigation
+- Explicit ACCOUNTANT navigation
 - External support dispute reference investigated inline
 
 Next Screens:
@@ -37728,11 +37728,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Lọc sổ cái
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: FINANCE_ADMIN; valid required date range/paging
+Enabled When: ACCOUNTANT; valid required date range/paging
 
 Confirmation: None
 
@@ -37748,11 +37748,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Xuất báo cáo theo phạm vi đã chọn
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: FINANCE_ADMIN; bounded date scope; audit operational
+Enabled When: ACCOUNTANT; bounded date scope; audit operational
 
 Confirmation: None
 
@@ -37768,11 +37768,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Đối soát
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: FINANCE_ADMIN; bounded scope; consistent data snapshot
+Enabled When: ACCOUNTANT; bounded scope; consistent data snapshot
 
 Confirmation: None
 
@@ -37788,11 +37788,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Tra cứu vụ việc theo mã tham chiếu
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: FINANCE_ADMIN; known support reference; permitted scope
+Enabled When: ACCOUNTANT; known support reference; permitted scope
 
 Confirmation: None
 
@@ -37808,11 +37808,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Ghi giao dịch điều chỉnh
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: FINANCE_ADMIN; not self; nonzero amount; nonempty reason/ref; no duplicate; result nonnegative; CSRF
+Enabled When: ACCOUNTANT; not self; nonzero amount; nonempty reason/ref; no duplicate; result nonnegative; CSRF
 
 Confirmation: Required: confirm permitted target, signed amount, before/after balance and mandatory reason/reference; cancel adds no transaction
 
@@ -37828,7 +37828,7 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Thực hiện hoàn theo giao dịch gốc
 
-Actor: FINANCE_ADMIN
+Actor: ACCOUNTANT
 
 Visible When: Explicit assigned role and applicable context
 
@@ -37955,9 +37955,9 @@ Data preserved: All old transactions
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| FINANCE_ADMIN | Masked permitted ledger/source investigation and reconciliation | Filter fields and unsaved adjustment draft only; ledger rows immutable | Authorised compensating ADJUSTMENT or source-based refund workflow | No transaction edit/delete | No invented two-person approval workflow | Not own account; nonzero integer adjustment, nonnegative balance, reason/reference, duplicate prevention and atomic audit Explicit roles only; server revalidates each request. |
+| ACCOUNTANT | Masked permitted ledger/source investigation and reconciliation | Filter fields and unsaved adjustment draft only; ledger rows immutable | Authorised compensating ADJUSTMENT or source-based refund workflow | No transaction edit/delete | No invented two-person approval workflow | Not own account; nonzero integer adjustment, nonnegative balance, reason/reference, duplicate prevention and atomic audit Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -38053,7 +38053,7 @@ Feature: System Administration
 
 Scope: MVP
 
-Actors: SUPER_ADMIN
+Actors: ADMIN
 
 Authentication: Required
 
@@ -38063,7 +38063,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical /admin/users combined list/detail; canonical split routes unconfirmed
 
-Purpose: Allows SUPER_ADMIN to search accounts and review permitted account summaries with masked personal information.
+Purpose: Allows ADMIN to search accounts and review permitted account summaries with masked personal information.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §76; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-08-quan-tri-he-thong.md](use-cases-08-quan-tri-he-thong.md) §UC-114 / BR-114-2–6; Nội dung trước đồng bộ của screen-fields.md §32 (nguồn bảo toàn field, đã phân bổ vào màn này); [db/migration/V1__core_schema.sql](../../db/migration/V1__core_schema.sql) §users / user_roles
 
@@ -38071,7 +38071,7 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit SUPER_ADMIN navigation
+- Explicit ADMIN navigation
 
 Next Screens:
 
@@ -38259,7 +38259,7 @@ Default: No implicit value
 
 Placeholder: Không bắt buộc; không thay thế label.
 
-Allowed Values: USER; TEACHER; MANAGER; CONTENT_ADMIN; FINANCE_ADMIN; SUPER_ADMIN
+Allowed Values: LEARNER; TEACHER; MODERATOR; CONTENT_EDITOR; ACCOUNTANT; ADMIN
 
 Validation: Only six fixed role codes
 
@@ -38321,11 +38321,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Tìm tài khoản
 
-Actor: SUPER_ADMIN
+Actor: ADMIN
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: Explicit SUPER_ADMIN; valid query/filters
+Enabled When: Explicit ADMIN; valid query/filters
 
 Confirmation: None
 
@@ -38341,11 +38341,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Mở tài khoản
 
-Actor: SUPER_ADMIN
+Actor: ADMIN
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: SUPER_ADMIN; account exists
+Enabled When: ADMIN; account exists
 
 Confirmation: None
 
@@ -38419,9 +38419,9 @@ Data preserved: No write
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| SUPER_ADMIN | Masked account summaries under allowed filters | Query/filter controls only | None | None | None | No row role/restriction mutation; detail-read audit and approved PII projection at SCR-077 Explicit roles only; server revalidates each request. |
+| ADMIN | Masked account summaries under allowed filters | Query/filter controls only | None | None | None | No row role/restriction mutation; detail-read audit and approved PII projection at SCR-077 Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -38454,7 +38454,7 @@ Load Account search, User summaries with protected-data checks before rendering.
 
 - Password hashes/tokens
 - Raw list email/phone
-- Generic ADMIN/GUEST/SYSTEM assigned roles
+- GUEST or job accounts shown as assigned roles
 - Full login history in MVP list
 - Implicit finance/content privileges
 
@@ -38510,7 +38510,7 @@ Feature: System Administration
 
 Scope: MVP
 
-Actors: SUPER_ADMIN
+Actors: ADMIN
 
 Authentication: Required
 
@@ -38742,9 +38742,9 @@ Default: No implicit value
 
 Placeholder: Không bắt buộc; không thay thế label.
 
-Allowed Values: USER; TEACHER; MANAGER; CONTENT_ADMIN; FINANCE_ADMIN; SUPER_ADMIN
+Allowed Values: LEARNER; TEACHER; MODERATOR; CONTENT_EDITOR; ACCOUNTANT; ADMIN
 
-Validation: Six codes only; target not banned/locked for grant; no self-grant; preserve last active SUPER_ADMIN
+Validation: Six codes only; target not banned/locked for grant; no self-grant; preserve last active ADMIN
 
 Validation Message: Chỉ cấp hoặc thu hồi một trong sáu vai trò được duyệt; phải giữ quản trị viên hệ thống cuối cùng.
 
@@ -38850,11 +38850,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Cấm hoặc hạn chế tài khoản theo chính sách
 
-Actor: SUPER_ADMIN
+Actor: ADMIN
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: SUPER_ADMIN; not own account; not last active SUPER_ADMIN; reason; CSRF
+Enabled When: ADMIN; not own account; not last active ADMIN; reason; CSRF
 
 Confirmation: Required: confirm target account, exact role/restriction action and source-defined consequences; never override self/last-admin safeguards
 
@@ -38870,11 +38870,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Gỡ hạn chế tài khoản
 
-Actor: SUPER_ADMIN
+Actor: ADMIN
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: SUPER_ADMIN; currently restricted target; CSRF
+Enabled When: ADMIN; currently restricted target; CSRF
 
 Confirmation: Required: confirm target account, exact role/restriction action and source-defined consequences; never override self/last-admin safeguards
 
@@ -38890,11 +38890,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Cấp vai trò
 
-Actor: SUPER_ADMIN
+Actor: ADMIN
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: SUPER_ADMIN; target valid and not locked/banned; not self-grant; allowed code; CSRF
+Enabled When: ADMIN; target valid and not locked/banned; not self-grant; allowed code; CSRF
 
 Confirmation: Required: confirm target account, exact role/restriction action and source-defined consequences; never override self/last-admin safeguards
 
@@ -38910,11 +38910,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Thu hồi vai trò
 
-Actor: SUPER_ADMIN
+Actor: ADMIN
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: SUPER_ADMIN; allowed current relation; not last active SUPER_ADMIN; CSRF
+Enabled When: ADMIN; allowed current relation; not last active ADMIN; CSRF
 
 Confirmation: Required: confirm target account, exact role/restriction action and source-defined consequences; never override self/last-admin safeguards
 
@@ -38971,7 +38971,7 @@ Data State: No role change
 
 ### 10. Error Handling
 
-Condition: SELF_BAN (409) / BAN_LAST_SUPER_ADMIN (409)
+Condition: SELF_BAN (409) / BAN_LAST_ADMIN (409)
 
 User-facing behavior: Block restriction
 
@@ -39001,7 +39001,7 @@ Navigation: Stay
 
 Data preserved: Roles
 
-Condition: REVOKE_LAST_SUPER_ADMIN (409)
+Condition: REVOKE_LAST_ADMIN (409)
 
 User-facing behavior: Block last active administrator removal
 
@@ -39037,9 +39037,9 @@ Data preserved: Current relation state
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| SUPER_ADMIN | Authorised account detail, roles, restrictions; V2 login/audit history only when supplied | Role/restriction action draft fields; not user profile/password/credit balance | Role relation via permitted grant only | Revoke role/remove restriction only; no account/history hard delete | None | No self-grant, preserve last active SUPER_ADMIN; reason/audit/revoke sessions; no inherited finance/content/manager authority Explicit roles only; server revalidates each request. |
+| ADMIN | Authorised account detail, roles, restrictions; V2 login/audit history only when supplied | Role/restriction action draft fields; not user profile/password/credit balance | Role relation via permitted grant only | Revoke role/remove restriction only; no account/history hard delete | None | No self-grant, preserve last active ADMIN; reason/audit/revoke sessions; no inherited finance/content/manager authority Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -39049,7 +39049,7 @@ Preserve business, ownership, audit and transaction rules.
 
 ### 13. Confirmation / Modal Requirements
 
-Role grant/revoke and approved restriction dialogs show target, role/reason and source-defined session effects. Required confirmation for the listed grant/revoke/restriction actions. Last-active-SUPER_ADMIN and self-grant protections apply before and during submit; a confirmation cannot override them. No password/secret viewing dialog.
+Role grant/revoke and approved restriction dialogs show target, role/reason and source-defined session effects. Required confirmation for the listed grant/revoke/restriction actions. Last-active-ADMIN and self-grant protections apply before and during submit; a confirmation cannot override them. No password/secret viewing dialog.
 
 Dialog/sheet là action bên trong màn, không phát sinh screen ID; giữ focus và trả về đúng trigger khi hủy.
 
@@ -39072,9 +39072,9 @@ Load Permitted account detail, Account restriction, Explicit role assignment, Au
 ### 17. Mockup Must NOT Show
 
 - Role catalogue CRUD
-- GUEST/SYSTEM role assignment
+- GUEST role assignment
 - Self-grant
-- Ban self/last active SUPER_ADMIN
+- Ban self/last active ADMIN
 - Preserve old access after role removal
 - Automatic session restoration
 - Full login IP
@@ -39134,7 +39134,7 @@ Feature: System Administration
 
 Scope: Deferred
 
-Actors: SUPER_ADMIN
+Actors: ADMIN
 
 Authentication: Required
 
@@ -39144,7 +39144,7 @@ Existing Route: Not confirmed
 
 Route Evidence (documentation only): Historical docs only; frontend absent, no confirmed route
 
-Purpose: Allows SUPER_ADMIN to update only approved configurable business parameters within their permitted ranges.
+Purpose: Allows ADMIN to update only approved configurable business parameters within their permitted ranges.
 
 Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` §78; metadata giữ nguyên, tình trạng nguồn xem quy tắc chung; [docs/reference/use-cases-08-quan-tri-he-thong.md](use-cases-08-quan-tri-he-thong.md) §UC-116 / BR-116-1–9; [docs/reference/database.md](database.md) §15 row7 / §17 row4; Nội dung trước đồng bộ của screen-fields.md §32 historical settings grouping (nguồn bảo toàn field, đã phân bổ vào màn này)
 
@@ -39152,13 +39152,13 @@ Sources: Screen List đã đọc tại `docs/generated/cnhsk-screen-list.docx` �
 
 Entry From:
 
-- Explicit SUPER_ADMIN navigation when deferred function is deliberately enabled
+- Explicit ADMIN navigation when deferred function is deliberately enabled
 
 Next Screens:
 
 - Remain SCR-078 after a permitted setting change
 
-Back Behavior: Authorised SUPER_ADMIN navigation; no implicit user-detail dependency
+Back Behavior: Authorised ADMIN navigation; no implicit user-detail dependency
 
 Cancel Behavior: Cancel local edit/dialog with no write; unsaved-change warning is a UX Recommendation
 
@@ -39404,11 +39404,11 @@ Selection behavior: Open one record; bulk only if explicitly allowed
 
 Action Name: Xem cấu hình được duyệt
 
-Actor: SUPER_ADMIN
+Actor: ADMIN
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: SUPER_ADMIN; catalogue/storage ready; deferred function enabled
+Enabled When: ADMIN; catalogue/storage ready; deferred function enabled
 
 Confirmation: None
 
@@ -39424,11 +39424,11 @@ Navigation After Cancel: Close without a write; retain form
 
 Action Name: Lưu giá trị cấu hình
 
-Actor: SUPER_ADMIN
+Actor: ADMIN
 
 Visible When: Explicit assigned role and applicable context
 
-Enabled When: SUPER_ADMIN; known key; valid type/range; safe effect; CSRF; storage approved
+Enabled When: ADMIN; known key; valid type/range; safe effect; CSRF; storage approved
 
 Confirmation: UX Recommendation: confirmation for consequential changes
 
@@ -39531,9 +39531,9 @@ Data preserved: Old values across system
 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| SUPER_ADMIN | Approved non-secret business setting catalogue only when available | Declared type/range value only after approval | No arbitrary setting-key creation | No setting deletion action | None | Deferred; catalogue/storage and safe effect unapproved; no environment, credential, API-key or token displays Explicit roles only; server revalidates each request. |
+| ADMIN | Approved non-secret business setting catalogue only when available | Declared type/range value only after approval | No arbitrary setting-key creation | No setting deletion action | None | Deferred; catalogue/storage and safe effect unapproved; no environment, credential, API-key or token displays Explicit roles only; server revalidates each request. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -39624,7 +39624,7 @@ Feature: Shared Utilities
 
 Scope: MVP
 
-Actors: GUEST, USER, TEACHER, MANAGER, CONTENT_ADMIN, FINANCE_ADMIN, SUPER_ADMIN
+Actors: GUEST, LEARNER, TEACHER, MODERATOR, CONTENT_EDITOR, ACCOUNTANT, ADMIN
 
 Authentication: Conditional
 
@@ -39647,12 +39647,12 @@ Entry From:
 Next Screens:
 
 - SCR-001: public return
-- SCR-010: explicit USER
+- SCR-010: explicit LEARNER
 - SCR-056 / SCR-058: explicit TEACHER
-- SCR-060 / SCR-062: explicit MANAGER
-- SCR-064 / SCR-065: explicit CONTENT_ADMIN
-- SCR-073 / SCR-074 / SCR-075: explicit FINANCE_ADMIN
-- SCR-076 / SCR-078: explicit SUPER_ADMIN
+- SCR-060 / SCR-062: explicit MODERATOR
+- SCR-064 / SCR-065: explicit CONTENT_EDITOR
+- SCR-073 / SCR-074 / SCR-075: explicit ACCOUNTANT
+- SCR-076 / SCR-078: explicit ADMIN
 
 Back Behavior: Last permitted referrer; fallback only to allowed role area or SCR-001.
 
@@ -39825,14 +39825,14 @@ Không có validation nhập business riêng; kiểm điều kiện action/role 
 | Actor | Can View | Can Edit | Can Create | Can Archive/Delete | Can Approve/Reject | Special Restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
 | GUEST | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
-| USER | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
+| LEARNER | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
 | TEACHER | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
-| MANAGER | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
-| CONTENT_ADMIN | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
-| FINANCE_ADMIN | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
-| SUPER_ADMIN | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
+| MODERATOR | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
+| CONTENT_EDITOR | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
+| ACCOUNTANT | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
+| ADMIN | Thông báo an toàn về quyền truy cập. | Không có. | Không có. | Không có. | Không có. | Không kế thừa vai trò; chỉ trở về khu vực được gán rõ. Không trả dữ liệu riêng tư. Lỗi 401 xử lý qua xác thực, không đổi thành 403. |
 
-Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. SYSTEM không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
+Role còn lại không có quyền thao tác được cấp riêng tại màn này; quyền public read không kéo theo quyền tạo/sửa. Không có role inheritance. Job định kỳ không có menu hoặc phiên người dùng. Server kiểm lại role và ownership cho từng request.
 
 ### 12. Business Data & Status Values
 
@@ -39865,7 +39865,7 @@ No dynamic private payload; only safe error context.
 
 - Private resource detail
 - Stack trace
-- Assumed USER route for admin
+- Assumed LEARNER route for admin
 - Permission request/workflow without source
 - 401 labelled 403
 

@@ -1,0 +1,530 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Auth API
+  version: 1.1.0
+  description: >
+    Hợp đồng spec 001-auth-rbac. Nguồn sự thật cho mọi endpoint xác thực, tài khoản, quản trị người dùng.
+    Mọi lỗi dùng schema ErrorResponse. Request đổi trạng thái xác thực bằng cookie cần header X-XSRF-TOKEN
+    (trừ các path ghi "Miễn CSRF").
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: auth
+  - name: me
+  - name: admin-users
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
+  parameters:
+    ClientType:
+      name: X-Client-Type
+      in: header
+      required: false
+      description: Thiếu hoặc giá trị lạ thì xử lý như WEB (FR-089)
+      schema: { type: string, enum: [WEB, MOBILE] }
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+
+  schemas:
+    RoleCode:
+      type: string
+      enum: [LEARNER, TEACHER, MODERATOR, CONTENT_EDITOR, ACCOUNTANT, ADMIN]
+    UserStatus:
+      type: string
+      enum: [ACTIVE, UNVERIFIED, BANNED]
+
+    ErrorResponse:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string, example: VALIDATION_FAILED }
+        message: { type: string }
+        request_id: { type: string }
+        details:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: { type: string }
+              message: { type: string }
+        banReason: { type: string }
+        suspendedUntil: { type: string, format: date-time }
+        blockedUntil: { type: string, format: date-time }
+        retryAfterSeconds: { type: integer }
+
+    RegisterRequest:
+      type: object
+      required: [email, password, confirmPassword, displayName, acceptTerms]
+      additionalProperties: false
+      properties:
+        email: { type: string, maxLength: 255, format: email }
+        password: { type: string, minLength: 8, maxLength: 72 }
+        confirmPassword: { type: string }
+        displayName: { type: string, minLength: 2, maxLength: 100 }
+        acceptTerms: { type: boolean, const: true }
+    RegisterResponse:
+      type: object
+      required: [userId, email, emailVerified]
+      properties:
+        userId: { type: integer, format: int64 }
+        email: { type: string }
+        emailVerified: { type: boolean, const: false }
+
+    TokenRequest:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string }
+    EmailVerifiedResponse:
+      type: object
+      required: [emailVerified]
+      properties:
+        emailVerified: { type: boolean, const: true }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email: { type: string, maxLength: 255 }
+        password: { type: string, maxLength: 72 }
+    CurrentUser:
+      type: object
+      required: [id, email, displayName, emailVerified, roles]
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string }
+        displayName: { type: string }
+        emailVerified: { type: boolean }
+        roles: { type: array, items: { $ref: '#/components/schemas/RoleCode' } }
+        hskLevel: { type: [integer, 'null'], minimum: 1, maximum: 9 }
+        avatarUrl: { type: [string, 'null'] }
+    LoginResponse:
+      type: object
+      required: [user]
+      description: Ở WEB chỉ có user (token nằm trong cookie). Ở MOBILE có thêm 3 trường token.
+      properties:
+        user: { $ref: '#/components/schemas/CurrentUser' }
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        accessTokenExpiresIn: { type: integer, example: 900 }
+    RefreshTokenBody:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+
+    EmailRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, maxLength: 255 }
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword, confirmPassword]
+      additionalProperties: false
+      properties:
+        token: { type: string }
+        newPassword: { type: string, minLength: 8, maxLength: 72 }
+        confirmPassword: { type: string }
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword, confirmPassword]
+      additionalProperties: false
+      properties:
+        currentPassword: { type: string }
+        newPassword: { type: string, minLength: 8, maxLength: 72 }
+        confirmPassword: { type: string }
+
+    Profile:
+      type: object
+      required: [displayName, email, emailVerified]
+      properties:
+        displayName: { type: string }
+        avatarUrl: { type: [string, 'null'] }
+        hskLevel: { type: [integer, 'null'], minimum: 1, maximum: 9 }
+        email: { type: string }
+        emailVerified: { type: boolean }
+    ProfilePatch:
+      type: object
+      additionalProperties: false
+      properties:
+        displayName: { type: string, minLength: 2, maxLength: 100 }
+        avatarUrl: { type: [string, 'null'], maxLength: 500, pattern: '^https://' }
+        hskLevel: { type: [integer, 'null'], minimum: 1, maximum: 9 }
+
+    AdminUserSummary:
+      type: object
+      required: [id, emailMasked, displayName, roles, status, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        emailMasked: { type: string, example: 'ba•••@gmail.com' }
+        displayName: { type: string }
+        roles: { type: array, items: { $ref: '#/components/schemas/RoleCode' } }
+        status: { $ref: '#/components/schemas/UserStatus' }
+        createdAt: { type: string, format: date-time }
+    AdminUserPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/AdminUserSummary' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    AdminUserDetail:
+      type: object
+      required: [id, email, displayName, roles, status, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        email: { type: string }
+        displayName: { type: string }
+        roles:
+          type: array
+          items:
+            type: object
+            required: [code, grantedAt]
+            properties:
+              code: { $ref: '#/components/schemas/RoleCode' }
+              grantedBy: { type: [integer, 'null'], format: int64 }
+              grantedAt: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/UserStatus' }
+        bannedAt: { type: [string, 'null'], format: date-time }
+        banReason: { type: [string, 'null'] }
+        emailVerifiedAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+    GrantRoleRequest:
+      type: object
+      required: [roleCode]
+      properties:
+        roleCode: { $ref: '#/components/schemas/RoleCode' }
+    BanRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 5, maxLength: 500 }
+
+  responses:
+    Error:
+      description: Lỗi theo spec §5
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+paths:
+  /api/auth/csrf:
+    get:
+      tags: [auth]
+      summary: Cấp cookie XSRF-TOKEN
+      security: []
+      responses:
+        '204': { description: Set-Cookie XSRF-TOKEN }
+
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Đăng ký (FR-001→008). Miễn CSRF
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '201':
+          description: Đã tạo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RegisterResponse' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/auth/verify-email:
+    post:
+      tags: [auth]
+      summary: Xác thực email (FR-009, FR-011, FR-094). Miễn CSRF
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TokenRequest' }
+      responses:
+        '200':
+          description: Đã xác thực (kể cả gọi lại)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EmailVerifiedResponse' }
+        '400': { $ref: '#/components/responses/Error' }
+
+  /api/auth/verify-email/resend:
+    post:
+      tags: [auth]
+      summary: Gửi lại email xác thực (FR-012, FR-013)
+      responses:
+        '202': { description: Đã nhận }
+        '401': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Đăng nhập ba client (FR-014→025, FR-046→050, FR-089). Miễn CSRF
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ClientType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: WEB đặt cookie access_token, refresh_token, XSRF-TOKEN; MOBILE trả token trong body
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '423': { $ref: '#/components/responses/Error' }
+
+  /api/auth/refresh:
+    post:
+      tags: [auth]
+      summary: Làm mới token, xoay vòng (FR-031→033). Miễn CSRF
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ClientType'
+      requestBody:
+        required: false
+        description: Chỉ MOBILE gửi body; WEB dùng cookie refresh_token
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshTokenBody' }
+      responses:
+        '200':
+          description: Như login
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/auth/logout:
+    post:
+      tags: [auth]
+      summary: Đăng xuất phiên hiện tại (FR-034, FR-035)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshTokenBody' }
+      responses:
+        '204': { description: Đã đăng xuất; WEB xoá cookie }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /api/auth/logout-all:
+    post:
+      tags: [auth]
+      summary: Đăng xuất mọi thiết bị (FR-036)
+      responses:
+        '204': { description: Đã đăng xuất }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /api/auth/forgot-password:
+    post:
+      tags: [auth]
+      summary: Quên mật khẩu — luôn 202 (FR-038→041, FR-093). Miễn CSRF
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmailRequest' }
+      responses:
+        '202': { description: Cùng một thông báo cho mọi email }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/auth/reset-password:
+    post:
+      tags: [auth]
+      summary: Đặt lại mật khẩu (FR-042, FR-045). Miễn CSRF
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResetPasswordRequest' }
+      responses:
+        '204': { description: Đã đặt lại }
+        '400': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Người dùng hiện tại (FR-027)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CurrentUser' }
+        '401': { $ref: '#/components/responses/Error' }
+
+  /api/me/profile:
+    get:
+      tags: [me]
+      summary: Xem hồ sơ (FR-051)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+        '401': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [me]
+      summary: Sửa hồ sơ (FR-051→053, FR-095)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProfilePatch' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/me/password:
+    post:
+      tags: [me]
+      summary: Đổi mật khẩu (FR-043→045)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
+      responses:
+        '204': { description: Đã đổi }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/users:
+    get:
+      tags: [admin-users]
+      summary: Tìm tài khoản — chỉ ADMIN (FR-097)
+      parameters:
+        - { name: q, in: query, schema: { type: string, minLength: 2, maxLength: 100 } }
+        - { name: role, in: query, schema: { $ref: '#/components/schemas/RoleCode' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/UserStatus' } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUserPage' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/users/{id}:
+    get:
+      tags: [admin-users]
+      summary: Chi tiết tài khoản — chỉ ADMIN, ghi VIEW_USER_PII (FR-097)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUserDetail' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/admin/users/{id}/roles:
+    post:
+      tags: [admin-users]
+      summary: Gán role (FR-062→066)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GrantRoleRequest' }
+      responses:
+        '204': { description: Đã gán }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/users/{id}/roles/{roleCode}:
+    delete:
+      tags: [admin-users]
+      summary: Thu hồi role (FR-064→066)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: roleCode
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/RoleCode' }
+      responses:
+        '204': { description: Đã thu hồi }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /api/admin/users/{id}/ban:
+    post:
+      tags: [admin-users]
+      summary: Cấm tài khoản (FR-096)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BanRequest' }
+      responses:
+        '204': { description: Đã cấm }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [admin-users]
+      summary: Gỡ cấm (FR-096)
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204': { description: Đã gỡ cấm }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }

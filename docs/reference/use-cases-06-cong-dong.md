@@ -9,8 +9,8 @@
 > (cổng 8080). Đường dẫn API giữ tiền tố `/api/community/**` để sau này tách service không
 > phải sửa client.
 >
-> Nhóm lớn nhất (24 UC) và có **hai actor quản trị**: `MANAGER` (kiểm duyệt) và
-> `CONTENT_ADMIN` (cuộc thi).
+> Nhóm lớn nhất (24 UC) và có **hai actor quản trị**: `MODERATOR` (kiểm duyệt) và
+> `CONTENT_EDITOR` (cuộc thi).
 
 ---
 
@@ -18,30 +18,30 @@
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
 | --- | --- | --- | --- | --- | --- |
-| UC-069 | Đăng bài lên blog cộng đồng | `USER` | P2 | V2 | 5.1 |
-| UC-070 | Xem danh sách bài đã duyệt | `GUEST` `USER` | P2 | V2 | 5.1 |
-| UC-071 | Bình luận vào bài viết | `USER` | P2 | V2 | 5.1 |
-| UC-072 | Trả lời bình luận (lồng nhau) | `USER` | P3 | V2 | 5.1 |
-| UC-073 | Thích bài viết | `USER` | P3 | V2 | 5.1 |
-| UC-074 | Theo dõi người dùng khác | `USER` | P3 | V2 | 5.1 |
-| UC-075 | Báo cáo bài viết vi phạm | `USER` | P2 | V2 | 5.1 |
-| UC-076 | Duyệt bài đăng chờ kiểm duyệt | `MANAGER` | P2 | V2 | 5.1 |
-| UC-077 | Từ chối bài đăng kèm lý do | `MANAGER` | P2 | V2 | 5.1 |
-| UC-078 | Xử lý báo cáo vi phạm | `MANAGER` | P2 | V2 | 5.1 |
-| UC-079 | Ẩn hoặc xóa bình luận vi phạm | `MANAGER` | P2 | V2 | 5.1 |
-| UC-080 | Chơi quiz theo chủ đề | `USER` | P2 | V2 | 5.2 |
-| UC-081 | Xem kết quả quiz và thứ hạng | `USER` | P2 | V2 | 5.2 |
-| UC-082 | Xem bảng xếp hạng theo chủ đề | `GUEST` `USER` | P2 | V2 | 5.3 |
-| UC-083 | Xem bảng xếp hạng theo game | `GUEST` `USER` | P2 | V2 | 5.3 |
-| UC-084 | Lọc bảng xếp hạng theo tuần/tháng/all-time | `USER` | P3 | V2 | 5.3 |
-| UC-085 | Hỏi trợ lý ảo AI | `USER` | P1 | **MVP** | 5.5 |
-| UC-086 | Xem lịch sử hội thoại với AI | `USER` | P2 | MVP | 5.5 |
-| UC-087 | Chơi game (4 game Game Box) | `USER` | P1 | **MVP** | 5.6 |
-| UC-088 | Lưu điểm game và cộng mastery | `SYSTEM` | P1 | **MVP** | 5.6 |
-| UC-089 | Chơi game gõ pinyin | `USER` | P3 | V2 | 5.7 |
-| UC-090 | Xem danh sách cuộc thi | `GUEST` `USER` | P2 | V2 | 5.8 |
-| UC-091 | Đăng ký tham gia cuộc thi | `USER` | P2 | V2 | 5.8 |
-| UC-092 | Thi đấu trong cuộc thi (trong khung giờ) | `USER` | P2 | V2 | 5.8 |
+| UC-069 | Đăng bài lên blog cộng đồng | `LEARNER` | P2 | V2 | 5.1 |
+| UC-070 | Xem danh sách bài đã duyệt | `GUEST` `LEARNER` | P2 | V2 | 5.1 |
+| UC-071 | Bình luận vào bài viết | `LEARNER` | P2 | V2 | 5.1 |
+| UC-072 | Trả lời bình luận (lồng nhau) | `LEARNER` | P3 | V2 | 5.1 |
+| UC-073 | Thích bài viết | `LEARNER` | P3 | V2 | 5.1 |
+| UC-074 | Theo dõi người dùng khác | `LEARNER` | P3 | V2 | 5.1 |
+| UC-075 | Báo cáo bài viết vi phạm | `LEARNER` | P2 | V2 | 5.1 |
+| UC-076 | Duyệt bài đăng chờ kiểm duyệt | `MODERATOR` | P2 | V2 | 5.1 |
+| UC-077 | Từ chối bài đăng kèm lý do | `MODERATOR` | P2 | V2 | 5.1 |
+| UC-078 | Xử lý báo cáo vi phạm | `MODERATOR` | P2 | V2 | 5.1 |
+| UC-079 | Ẩn hoặc xóa bình luận vi phạm | `MODERATOR` | P2 | V2 | 5.1 |
+| UC-080 | Chơi quiz theo chủ đề | `LEARNER` | P2 | V2 | 5.2 |
+| UC-081 | Xem kết quả quiz và thứ hạng | `LEARNER` | P2 | V2 | 5.2 |
+| UC-082 | Xem bảng xếp hạng theo chủ đề | `GUEST` `LEARNER` | P2 | V2 | 5.3 |
+| UC-083 | Xem bảng xếp hạng theo game | `GUEST` `LEARNER` | P2 | V2 | 5.3 |
+| UC-084 | Lọc bảng xếp hạng theo tuần/tháng/all-time | `LEARNER` | P3 | V2 | 5.3 |
+| UC-085 | Hỏi trợ lý ảo AI | `LEARNER` | P1 | **MVP** | 5.5 |
+| UC-086 | Xem lịch sử hội thoại với AI | `LEARNER` | P2 | MVP | 5.5 |
+| UC-087 | Chơi game (4 game Game Box) | `LEARNER` | P1 | **MVP** | 5.6 |
+| UC-088 | Lưu điểm game và cộng mastery | «include» UC-087 · `LEARNER` | P1 | **MVP** | 5.6 |
+| UC-089 | Chơi game gõ pinyin | `LEARNER` | P3 | V2 | 5.7 |
+| UC-090 | Xem danh sách cuộc thi | `GUEST` `LEARNER` | P2 | V2 | 5.8 |
+| UC-091 | Đăng ký tham gia cuộc thi | `LEARNER` | P2 | V2 | 5.8 |
+| UC-092 | Thi đấu trong cuộc thi (trong khung giờ) | `LEARNER` | P2 | V2 | 5.8 |
 
 > **Chỉ 4 UC là MVP:** UC-085, UC-086 (trợ lý AI), UC-087, UC-088 (Game Box). 20 UC còn lại
 > là V2 — và blog (UC-069 → UC-079) **đứng đầu danh sách cắt** trong WBS nếu chậm tiến độ.
@@ -52,18 +52,18 @@
 
 | | |
 |---|---|
-| **UC-ID** | UC-069 · **Actor** `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| **UC-ID** | UC-069 · **Actor** `LEARNER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
 
 ## Mô tả
 
 Người học viết bài chia sẻ kinh nghiệm, hỏi bài, tìm bạn học. Bài vào trạng thái **`PENDING`**,
-`MANAGER` duyệt rồi mới công khai.
+`MODERATOR` duyệt rồi mới công khai.
 
 **5 phân loại:** chia sẻ kinh nghiệm · hỏi bài · tìm bạn học · văn hóa · việc làm
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Email đã xác thực (chống spam từ tài khoản rác)
 3. Chưa vượt giới hạn bài/ngày
 
@@ -78,8 +78,8 @@ Người học viết bài chia sẻ kinh nghiệm, hỏi bài, tìm bạn học
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Viết bài" |
-| 2 | `USER` | Nhập tiêu đề, nội dung, chọn phân loại |
+| 1 | `LEARNER` | Bấm "Viết bài" |
+| 2 | `LEARNER` | Nhập tiêu đề, nội dung, chọn phân loại |
 | 3 | Client | `POST /api/community/posts` |
 | 4 | System | Kiểm email đã xác thực |
 | 5 | System | Kiểm giới hạn bài/ngày |
@@ -115,12 +115,12 @@ Cho phép (mục B quyết định v2: "tác giả sửa khi còn `PENDING`"). S
 | `EDIT_APPROVED_POST` | 403 | 🔴 Sửa bài đã duyệt | Xem ghi chú |
 | `AUTHOR_ID_FROM_CLIENT` | 400 | Client gửi `author_id` | Bỏ qua, lấy từ token |
 | `STATUS_FROM_CLIENT` | 400 | 🔴 Client gửi `status = APPROVED` | **Vi phạm kiểm duyệt** — bỏ qua tuyệt đối |
-| `AI_MODERATION_UNAVAILABLE` | — | Dịch vụ kiểm nội dung lỗi | Vẫn ghi `PENDING` — `MANAGER` duyệt tay |
+| `AI_MODERATION_UNAVAILABLE` | — | Dịch vụ kiểm nội dung lỗi | Vẫn ghi `PENDING` — `MODERATOR` duyệt tay |
 | `COPYRIGHT_CONTENT` | 422 | Bài chép đề thi của thầy | Không phát hiện tự động được; cần báo cáo |
 
 > 🔴 **`XSS_IN_CONTENT` ở đây nguy hiểm hơn UC-064 (ghi chú).** Ghi chú chỉ mình xem — tự-XSS.
-> Bài blog **mọi người xem**, kể cả `MANAGER` và `SUPER_ADMIN` khi duyệt. Một bài chứa script
-> đánh cắp cookie của `MANAGER` là **leo thang đặc quyền**.
+> Bài blog **mọi người xem**, kể cả `MODERATOR` và `ADMIN` khi duyệt. Một bài chứa script
+> đánh cắp cookie của `MODERATOR` là **leo thang đặc quyền**.
 > Web dùng **cookie** để xác thực (không phải header), nên cookie phải có `HttpOnly` — HR-03
 > đã bắt đủ 5 thuộc tính. `HttpOnly` là thứ chặn script đọc cookie. Đây là lý do cụ thể của luật đó.
 
@@ -130,7 +130,7 @@ Cho phép (mục B quyết định v2: "tác giả sửa khi còn `PENDING`"). S
 > Hoặc đơn giản hơn: không cho sửa, chỉ cho xoá và viết bài mới.
 
 > 🔴 **`STATUS_FROM_CLIENT` là cùng mẫu lỗi với `FORBIDDEN_FIELD` ở UC-011** (gửi
-> `{"roles":["SUPER_ADMIN"]}`). Nhận nguyên body rồi map vào entity là cho client đặt bất kỳ
+> `{"roles":["ADMIN"]}`). Nhận nguyên body rồi map vào entity là cho client đặt bất kỳ
 > trường nào. **Phải whitelist** trường được ghi: `title`, `content`, `category`. Hết.
 
 ## Business rule
@@ -140,8 +140,8 @@ Cho phép (mục B quyết định v2: "tác giả sửa khi còn `PENDING`"). S
 | BR-069-1 | UC này thuộc V2. Không gen code cho MVP nếu nhóm đang ưu tiên AI Assistant và Game Box. |
 | BR-069-2 | Người dùng muốn đăng bài cộng đồng phải đăng nhập và đã xác thực email. |
 | BR-069-3 | Bài viết mới chỉ được lưu ở trạng thái `DRAFT` hoặc `PENDING`. Client không được tự đặt trạng thái `APPROVED`. |
-| BR-069-4 | Bài `PENDING` chỉ tác giả và `MANAGER` được xem. Người dùng khác không được thấy bài chưa duyệt. |
-| BR-069-5 | Bài chỉ công khai sau khi được `MANAGER` duyệt. |
+| BR-069-4 | Bài `PENDING` chỉ tác giả và `MODERATOR` được xem. Người dùng khác không được thấy bài chưa duyệt. |
+| BR-069-5 | Bài chỉ công khai sau khi được `MODERATOR` duyệt. |
 | BR-069-6 | Nếu bài đã duyệt được chỉnh sửa, bài phải quay lại trạng thái `PENDING` và tạm ẩn khỏi danh sách công khai cho đến khi được duyệt lại. |
 | BR-069-7 | Mỗi người dùng bị giới hạn số bài đăng mỗi ngày để tránh spam. MVP/V2 đề xuất tối đa 5 bài/ngày. |
 | BR-069-8 | Nội dung bài viết phải được escape hoặc sanitize trước khi hiển thị để tránh XSS. |
@@ -175,7 +175,7 @@ GET  /api/community/posts/mine
 
 | | |
 |---|---|
-| **UC-ID** | UC-070 · **Actor** `GUEST` `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| **UC-ID** | UC-070 · **Actor** `GUEST` `LEARNER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
 
 ## Mô tả
 
@@ -222,7 +222,7 @@ Chỉ đọc. Tăng `view_count` (tuỳ chọn).
 > 🔴 **`PENDING_POST_LEAKED` là vi phạm nghiệm thu trực tiếp.** Lọc `status` phải ở **tầng
 > repository**, không phải lọc ở service hay để client tự bỏ. Cách an toàn nhất: một method
 > `findPublished(...)` duy nhất cho mọi endpoint công khai, và **không** có method nào trả hết
-> bài không điều kiện ngoài endpoint của `MANAGER`.
+> bài không điều kiện ngoài endpoint của `MODERATOR`.
 
 > 🔴 **`AUTHOR_PII_LEAKED`:** entity `User` có `email`, `password_hash`. Trả entity thẳng ra
 > JSON là lộ email của mọi tác giả — và `password_hash` nếu quên `@JsonIgnore`.
@@ -273,7 +273,7 @@ GET /api/community/posts/mine
 
 | | |
 |---|---|
-| **UC-ID** | UC-071 · **Actor** `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| **UC-ID** | UC-071 · **Actor** `LEARNER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
 
 ## Mô tả
 
@@ -282,7 +282,7 @@ báo cáo sau.
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập, email đã xác thực
+1. `LEARNER` đã đăng nhập, email đã xác thực
 2. Bài `status = APPROVED`
 3. Bài không bị khoá bình luận
 
@@ -294,7 +294,7 @@ báo cáo sau.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Nhập bình luận, bấm gửi |
+| 1 | `LEARNER` | Nhập bình luận, bấm gửi |
 | 2 | Client | `POST /api/community/posts/{id}/comments` |
 | 3 | System | Kiểm bài `APPROVED` |
 | 4 | System | Kiểm giới hạn tần suất |
@@ -314,7 +314,7 @@ báo cáo sau.
 | --- | --- | --- | --- |
 | `POST_NOT_APPROVED` | 403 | Bài chưa duyệt | Chặn (A1) |
 | `POST_NOT_FOUND` | 404 | ID sai | Chặn |
-| `COMMENTS_LOCKED` | 403 | `MANAGER` khoá bình luận bài đó | Hiện "bài này đã đóng bình luận" |
+| `COMMENTS_LOCKED` | 403 | `MODERATOR` khoá bình luận bài đó | Hiện "bài này đã đóng bình luận" |
 | `EMPTY_COMMENT` | 400 | Rỗng | Chặn |
 | `COMMENT_TOO_LONG` | 400 | > 5.000 ký tự | Chặn |
 | `RATE_LIMIT_EXCEEDED` | 429 | > 30 bình luận/giờ | Chống spam |
@@ -325,7 +325,7 @@ báo cáo sau.
 | `DELETED_POST` | 404 | Bài bị xoá | Chặn |
 
 > 🔴 **`XSS_IN_COMMENT` là đường tấn công dễ nhất trong cả hệ thống.** Bài viết phải qua
-> `MANAGER` duyệt — có người đọc. Bình luận **đăng ngay, không ai duyệt**. Kẻ tấn công bình
+> `MODERATOR` duyệt — có người đọc. Bình luận **đăng ngay, không ai duyệt**. Kẻ tấn công bình
 > luận một script vào bài phổ biến, ai đọc cũng bị.
 > **Bắt buộc:** escape khi render (React mặc định làm), `HttpOnly` cookie, và Content-Security-Policy.
 
@@ -338,7 +338,7 @@ báo cáo sau.
 | # | Rule |
 | --- | --- |
 | BR-071-1 | UC này thuộc V2, không gen code cho MVP. |
-| BR-071-2 | Chỉ `USER` đã đăng nhập và xác thực email mới được bình luận. |
+| BR-071-2 | Chỉ `LEARNER` đã đăng nhập và xác thực email mới được bình luận. |
 | BR-071-3 | Người dùng chỉ được bình luận vào bài đã `APPROVED` và chưa bị khóa bình luận. |
 | BR-071-4 | Bình luận không qua kiểm duyệt trước; hệ thống xử lý vi phạm bằng báo cáo và quản lý sau khi đăng. |
 | BR-071-5 | Nội dung bình luận phải có giới hạn độ dài, không được rỗng và phải được escape khi hiển thị. |
@@ -375,7 +375,7 @@ DELETE /api/community/comments/{id}
 
 | | |
 |---|---|
-| **UC-ID** | UC-072 · **Actor** `USER` · **Pri** P3 · **Scope** V2 · **FT** 5.1 |
+| **UC-ID** | UC-072 · **Actor** `LEARNER` · **Pri** P3 · **Scope** V2 · **FT** 5.1 |
 
 ## Mô tả
 
@@ -394,7 +394,7 @@ Trả lời một bình luận, tạo cây lồng nhau. `comments.parent_id` tr�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Trả lời" ở một bình luận |
+| 1 | `LEARNER` | Bấm "Trả lời" ở một bình luận |
 | 2 | Client | `POST /api/community/comments/{parentId}/replies` |
 | 3 | System | Kiểm bình luận cha tồn tại, **cùng bài** |
 | 4 | System | Kiểm độ sâu ≤ 3 |
@@ -469,7 +469,7 @@ GET  /api/community/posts/{id}/comments
 
 | | |
 |---|---|
-| **UC-ID** | UC-073 · **Actor** `USER` · **Pri** P3 · **Scope** V2 · **FT** 5.1 |
+| **UC-ID** | UC-073 · **Actor** `LEARNER` · **Pri** P3 · **Scope** V2 · **FT** 5.1 |
 
 ## Mô tả
 
@@ -477,7 +477,7 @@ Thích/bỏ thích bài. Một người thích một bài **đúng một lần**
 
 ## Tiền điều kiện
 
-`USER` đã đăng nhập; bài `APPROVED`.
+`LEARNER` đã đăng nhập; bài `APPROVED`.
 
 ## Hậu điều kiện
 
@@ -487,7 +487,7 @@ Thích/bỏ thích bài. Một người thích một bài **đúng một lần**
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm tim |
+| 1 | `LEARNER` | Bấm tim |
 | 2 | Client | `POST /api/community/posts/{id}/like` |
 | 3 | System | Kiểm bài `APPROVED` |
 | 4 | System | `INSERT likes (user_id, post_id)` — unique constraint |
@@ -528,7 +528,7 @@ Thích/bỏ thích bài. Một người thích một bài **đúng một lần**
 | # | Rule |
 | --- | --- |
 | BR-073-1 | UC này thuộc V2/P3, không gen code cho MVP. |
-| BR-073-2 | Chỉ `USER` đã đăng nhập mới được thích hoặc bỏ thích bài viết. |
+| BR-073-2 | Chỉ `LEARNER` đã đăng nhập mới được thích hoặc bỏ thích bài viết. |
 | BR-073-3 | Người dùng chỉ được thích bài đã `APPROVED`. |
 | BR-073-4 | Mỗi người dùng chỉ được thích một bài viết một lần. |
 | BR-073-5 | Thao tác thích/bỏ thích nên idempotent: bấm thích nhiều lần không tạo nhiều lượt thích. |
@@ -560,7 +560,7 @@ DELETE /api/community/posts/{id}/like
 
 | | |
 |---|---|
-| **UC-ID** | UC-074 · **Actor** `USER` · **Pri** P3 · **Scope** V2 · **FT** 5.1 |
+| **UC-ID** | UC-074 · **Actor** `LEARNER` · **Pri** P3 · **Scope** V2 · **FT** 5.1 |
 
 ## Mô tả
 
@@ -568,7 +568,7 @@ Theo dõi người khác để thấy bài của họ trong dòng riêng. `follo
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Người được theo dõi tồn tại, không bị ban
 3. Không phải chính mình
 
@@ -580,7 +580,7 @@ Theo dõi người khác để thấy bài của họ trong dòng riêng. `follo
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Theo dõi" ở trang người khác |
+| 1 | `LEARNER` | Bấm "Theo dõi" ở trang người khác |
 | 2 | Client | `POST /api/community/users/{id}/follow` |
 | 3 | System | Kiểm không phải chính mình |
 | 4 | System | Kiểm người đó tồn tại (qua `authApi`) |
@@ -610,11 +610,11 @@ Theo dõi người khác để thấy bài của họ trong dòng riêng. `follo
 > 🔴 **`FOLLOWEE_DELETED` — `follows.followee_id` trỏ sang `auth.users` không có khoá ngoại**
 > (DB v5 §0.4: ba cột trỏ xuyên schema). DB **không** tự dọn khi user bị xoá → `follows` còn
 > dòng trỏ vào hư không.
-> **Cần:** khi `SUPER_ADMIN` xoá user (UC-114), phải gọi dọn dữ liệu `community` qua lớp `api`.
+> **Cần:** khi `ADMIN` xoá user (UC-114), phải gọi dọn dữ liệu `community` qua lớp `api`.
 > Hoặc chốt **không bao giờ hard delete user**, chỉ `banned_at` — đơn giản và an toàn hơn.
 
 > ⚠️ **`NO_BLOCK_FEATURE` là khoảng trống về an toàn người dùng.** Có theo dõi mà không có chặn:
-> người bị quấy rối không có cách tự bảo vệ, chỉ báo cáo bài (UC-075) và chờ `MANAGER`.
+> người bị quấy rối không có cách tự bảo vệ, chỉ báo cáo bài (UC-075) và chờ `MODERATOR`.
 > Với đồ án thì chấp nhận được (P3/V2), nhưng nên ghi nhận — hội đồng có thể hỏi.
 
 ## Business rule
@@ -656,16 +656,16 @@ GET    /api/community/me/followers
 
 | | |
 |---|---|
-| **UC-ID** | UC-075 · **Actor** `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| **UC-ID** | UC-075 · **Actor** `LEARNER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
 
 ## Mô tả
 
-Báo cáo bài hoặc bình luận vi phạm. Ghi `moderation_reports`, vào hàng đợi `MANAGER` (UC-078).
+Báo cáo bài hoặc bình luận vi phạm. Ghi `moderation_reports`, vào hàng đợi `MODERATOR` (UC-078).
 Đây là lớp phòng vệ **sau** khi nội dung đã công khai.
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Nội dung bị báo cáo tồn tại và đang công khai
 3. Chưa báo cáo cùng nội dung đó
 
@@ -677,7 +677,7 @@ Báo cáo bài hoặc bình luận vi phạm. Ghi `moderation_reports`, vào hà
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Báo cáo", chọn lý do, ghi chi tiết |
+| 1 | `LEARNER` | Bấm "Báo cáo", chọn lý do, ghi chi tiết |
 | 2 | Client | `POST /api/community/reports` — `{target_type, target_id, reason, detail}` |
 | 3 | System | Kiểm nội dung tồn tại |
 | 4 | System | Kiểm chưa báo cáo trùng |
@@ -688,13 +688,13 @@ Báo cáo bài hoặc bình luận vi phạm. Ghi `moderation_reports`, vào hà
 ## Luồng thay thế
 
 **A1 — Nhiều người báo cáo cùng bài**
-Mỗi người một dòng. Đạt ngưỡng (ví dụ 5) thì tự ẩn tạm — không chờ `MANAGER` rảnh.
+Mỗi người một dòng. Đạt ngưỡng (ví dụ 5) thì tự ẩn tạm — không chờ `MODERATOR` rảnh.
 
 **A2 — Báo cáo bài của chính mình**
 Cho phép nhưng vô nghĩa; hoặc chặn. Đề xuất: chặn.
 
 **A3 — Báo cáo sai/lạm dụng**
-`MANAGER` đánh dấu `REJECTED`. Người báo cáo sai nhiều lần thì giới hạn.
+`MODERATOR` đánh dấu `REJECTED`. Người báo cáo sai nhiều lần thì giới hạn.
 
 ## Bảng exception
 
@@ -712,14 +712,14 @@ Cho phép nhưng vô nghĩa; hoặc chặn. Đề xuất: chặn.
 > 🔴 **`REPORT_ABUSE` — báo cáo hàng loạt là một dạng tấn công.** Kẻ xấu tạo 10 tài khoản, báo
 > cáo bài của người mình không thích → đạt ngưỡng tự ẩn → bài bị ẩn dù không vi phạm.
 > **Giảm bằng:** chỉ tính báo cáo từ tài khoản đã xác thực email và có tuổi ≥ 7 ngày; và
-> `MANAGER` xem được ai báo cáo để nhận ra mẫu lạm dụng.
+> `MODERATOR` xem được ai báo cáo để nhận ra mẫu lạm dụng.
 
 > 🔴 **`REPORTER_PII_LEAKED`:** người báo cáo **không được** lộ cho tác giả bài. Nếu response
 > UC-070 hoặc trang bài có danh sách người báo cáo thì người bị báo cáo biết ai tố mình → trả
-> thù. Chỉ `MANAGER` thấy danh tính người báo cáo.
+> thù. Chỉ `MODERATOR` thấy danh tính người báo cáo.
 
 > ⚠️ **`AUTO_HIDE_THRESHOLD_UNDEFINED` liên quan trực tiếp tới vấn đề feature tree 5.1 đã
-> cảnh báo:** *"Kiểm duyệt thủ công **không mở rộng được** — 100 bài/ngày là Manager không duyệt
+> cảnh báo:** *"Kiểm duyệt thủ công **không mở rộng được** — 100 bài/ngày là Moderator không duyệt
 > xuể."* Tự ẩn theo ngưỡng báo cáo là cách giảm tải, nhưng ngưỡng bao nhiêu thì **chưa chốt**.
 > Thấp quá → lạm dụng dễ; cao quá → nội dung xấu tồn tại lâu.
 
@@ -728,11 +728,11 @@ Cho phép nhưng vô nghĩa; hoặc chặn. Đề xuất: chặn.
 | # | Rule |
 | --- | --- |
 | BR-075-1 | UC này thuộc V2, không gen code cho MVP. |
-| BR-075-2 | Chỉ `USER` đã đăng nhập mới được báo cáo nội dung vi phạm. |
+| BR-075-2 | Chỉ `LEARNER` đã đăng nhập mới được báo cáo nội dung vi phạm. |
 | BR-075-3 | Một người dùng chỉ được báo cáo cùng một nội dung một lần. |
 | BR-075-4 | Người dùng không được báo cáo nội dung của chính mình. |
 | BR-075-5 | Báo cáo phải có lý do nằm trong danh sách lý do hệ thống hỗ trợ. |
-| BR-075-6 | Danh tính người báo cáo chỉ `MANAGER` được xem, không hiển thị cho tác giả nội dung bị báo cáo. |
+| BR-075-6 | Danh tính người báo cáo chỉ `MODERATOR` được xem, không hiển thị cho tác giả nội dung bị báo cáo. |
 | BR-075-7 | MVP/V2 đơn giản chỉ đưa báo cáo vào hàng đợi xử lý, chưa tự động ẩn nội dung nếu chưa chốt ngưỡng tự ẩn. |
 | BR-075-8 | Hệ thống giới hạn số báo cáo mỗi ngày để tránh lạm dụng chức năng báo cáo. |
 
@@ -761,11 +761,11 @@ POST /api/community/reports
 
 | | |
 |---|---|
-| **UC-ID** | UC-076 · **Actor** `MANAGER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| **UC-ID** | UC-076 · **Actor** `MODERATOR` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
 
 ## Mô tả
 
-`MANAGER` xem hàng đợi bài `PENDING`, duyệt cho công khai. Nghiệm thu 5.1: "**Manager duyệt
+`MODERATOR` xem hàng đợi bài `PENDING`, duyệt cho công khai. Nghiệm thu 5.1: "**Moderator duyệt
 xong bài hiện ngay**".
 
 > Nhật ký duyệt gộp vào `posts.reviewed_by` · `reviewed_at` · `review_reason` — **không có
@@ -773,7 +773,7 @@ xong bài hiện ngay**".
 
 ## Tiền điều kiện
 
-1. Người dùng có role `MANAGER`
+1. Người dùng có role `MODERATOR`
 2. Có bài `status = PENDING`
 
 ## Hậu điều kiện
@@ -787,11 +787,11 @@ xong bài hiện ngay**".
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `MANAGER` | Mở trang kiểm duyệt |
-| 2 | System | Kiểm role `MANAGER` |
+| 1 | `MODERATOR` | Mở trang kiểm duyệt |
+| 2 | System | Kiểm role `MODERATOR` |
 | 3 | System | `GET /api/community/moderation/posts?status=PENDING` — sắp cũ nhất trước |
-| 4 | `MANAGER` | Đọc bài |
-| 5 | `MANAGER` | Bấm "Duyệt" |
+| 4 | `MODERATOR` | Đọc bài |
+| 5 | `MODERATOR` | Bấm "Duyệt" |
 | 6 | Client | `PATCH /api/community/moderation/posts/{id}/approve` |
 | 7 | System | Kiểm role lần nữa **ở server** |
 | 8 | System | Kiểm bài còn `PENDING` |
@@ -802,34 +802,34 @@ xong bài hiện ngay**".
 ## Luồng thay thế
 
 **A1 — Duyệt nhiều bài một lúc** — nhận mảng id; mỗi bài một transaction để một lỗi không chặn cả lô.
-**A2 — Bài đã được `MANAGER` khác duyệt** — 409, refresh hàng đợi.
+**A2 — Bài đã được `MODERATOR` khác duyệt** — 409, refresh hàng đợi.
 **A3 — Duyệt bài của chính mình** — 🔴 xem exception.
 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | 🔴 **Kiểm ở server** — ẩn menu không đủ |
+| `FORBIDDEN_ROLE` | 403 | Không phải `MODERATOR` | 🔴 **Kiểm ở server** — ẩn menu không đủ |
 | `POST_NOT_PENDING` | 409 | Đã duyệt/từ chối | Refresh (A2) |
-| `SELF_APPROVAL` | 403 | 🔴 `MANAGER` duyệt bài của mình | Xem ghi chú |
+| `SELF_APPROVAL` | 403 | 🔴 `MODERATOR` duyệt bài của mình | Xem ghi chú |
 | `POST_NOT_FOUND` | 404 | ID sai | Chặn |
-| `CONCURRENT_REVIEW` | 409 | Hai `MANAGER` cùng duyệt | 🔴 Xem ghi chú |
+| `CONCURRENT_REVIEW` | 409 | Hai `MODERATOR` cùng duyệt | 🔴 Xem ghi chú |
 | `AUTHOR_DELETED` | — | Tác giả đã xoá | Vẫn duyệt được; không gửi thông báo |
 | `MODERATION_QUEUE_TOO_LARGE` | — | 🔴 Hàng đợi hàng trăm bài | Xem ghi chú |
 | `NO_AUDIT_LOG` | — | Không ghi ai duyệt | `reviewed_by` **bắt buộc** — không có thì không truy được trách nhiệm |
 
 > 🔴 **`SELF_APPROVAL` là vi phạm separation of duties** — đúng nguyên tắc đã dùng để tách
-> `ADMIN` thành 3 role. `MANAGER` viết bài rồi tự duyệt là bỏ qua kiểm duyệt hoàn toàn.
-> **Đúng:** `MANAGER` viết bài thì `MANAGER` khác duyệt. Nếu chỉ có một `MANAGER` thì
-> `SUPER_ADMIN` duyệt. Với nhóm 6 người demo thì có ít nhất 2 tài khoản `MANAGER`.
+> `ADMIN` thành 3 role. `MODERATOR` viết bài rồi tự duyệt là bỏ qua kiểm duyệt hoàn toàn.
+> **Đúng:** `MODERATOR` viết bài thì `MODERATOR` khác duyệt. Nếu chỉ có một `MODERATOR` thì
+> `ADMIN` duyệt. Với nhóm 6 người demo thì có ít nhất 2 tài khoản `MODERATOR`.
 
-> 🔴 **`CONCURRENT_REVIEW`:** hai `MANAGER` mở cùng bài, một duyệt một từ chối. Ai ghi sau thắng
+> 🔴 **`CONCURRENT_REVIEW`:** hai `MODERATOR` mở cùng bài, một duyệt một từ chối. Ai ghi sau thắng
 > → `reviewed_by` là người này mà `status` theo người kia.
 > **Cách chặn:** `UPDATE posts SET status='APPROVED' WHERE id=? AND status='PENDING'`. Trả về 0
 > dòng thì báo 409. Một câu SQL, không cần khoá.
 
 > 🔴 **`MODERATION_QUEUE_TOO_LARGE` là vấn đề feature tree đã tự cảnh báo:** *"100 bài/ngày là
-> Manager không duyệt xuể. Cân nhắc: chỉ duyệt bài của tài khoản mới, hoặc duyệt sau khi có
+> Moderator không duyệt xuể. Cân nhắc: chỉ duyệt bài của tài khoản mới, hoặc duyệt sau khi có
 > người báo cáo."*
 > **Cần chốt một trong ba:**
 > — Duyệt hết (hiện tại) — an toàn, không mở rộng được
@@ -842,12 +842,12 @@ xong bài hiện ngay**".
 | # | Rule |
 | --- | --- |
 | BR-076-1 | UC này thuộc V2, không gen code cho MVP. |
-| BR-076-2 | Chỉ người có vai trò `MANAGER` mới được duyệt bài. Việc kiểm tra quyền phải thực hiện ở server. |
-| BR-076-3 | `MANAGER` không được duyệt bài do chính mình viết. |
+| BR-076-2 | Chỉ người có vai trò `MODERATOR` mới được duyệt bài. Việc kiểm tra quyền phải thực hiện ở server. |
+| BR-076-3 | `MODERATOR` không được duyệt bài do chính mình viết. |
 | BR-076-4 | Chỉ bài đang ở trạng thái `PENDING` mới được duyệt. |
 | BR-076-5 | Khi duyệt thành công, bài chuyển sang `APPROVED` và xuất hiện công khai ngay. |
 | BR-076-6 | Khi duyệt, hệ thống phải ghi người duyệt và thời điểm duyệt. |
-| BR-076-7 | Nếu hai `MANAGER` xử lý cùng một bài, chỉ request đầu tiên thành công; request sau phải nhận trạng thái bài đã được xử lý. |
+| BR-076-7 | Nếu hai `MODERATOR` xử lý cùng một bài, chỉ request đầu tiên thành công; request sau phải nhận trạng thái bài đã được xử lý. |
 
 ## API · DB
 
@@ -862,12 +862,12 @@ PATCH /api/community/moderation/posts/{id}/approve
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | `MANAGER` duyệt bài | `APPROVED`, hiện công khai ngay |
-| T2 | `USER` gọi endpoint | 403 |
-| T3 | `MANAGER` duyệt bài của mình | 403 `SELF_APPROVAL` |
-| T4 | Hai `MANAGER` cùng duyệt | Một 200, một 409 |
+| T1 | `MODERATOR` duyệt bài | `APPROVED`, hiện công khai ngay |
+| T2 | `LEARNER` gọi endpoint | 403 |
+| T3 | `MODERATOR` duyệt bài của mình | 403 `SELF_APPROVAL` |
+| T4 | Hai `MODERATOR` cùng duyệt | Một 200, một 409 |
 | T5 | Duyệt bài đã `REJECTED` | 409 |
-| T6 | Sau khi duyệt | `reviewed_by` = đúng `MANAGER` |
+| T6 | Sau khi duyệt | `reviewed_by` = đúng `MODERATOR` |
 
 ---
 
@@ -875,7 +875,7 @@ PATCH /api/community/moderation/posts/{id}/approve
 
 | | |
 |---|---|
-| **UC-ID** | UC-077 · **Actor** `MANAGER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| **UC-ID** | UC-077 · **Actor** `MODERATOR` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
 
 ## Mô tả
 
@@ -884,7 +884,7 @@ Từ chối bài kèm **lý do bắt buộc**. Tác giả nhận được lý do
 
 ## Tiền điều kiện
 
-1. Role `MANAGER`
+1. Role `MODERATOR`
 2. Bài `status = PENDING`
 3. Có lý do (không rỗng)
 
@@ -896,9 +896,9 @@ Từ chối bài kèm **lý do bắt buộc**. Tác giả nhận được lý do
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `MANAGER` | Bấm "Từ chối" |
+| 1 | `MODERATOR` | Bấm "Từ chối" |
 | 2 | Client | Mở form lý do (chọn mẫu hoặc tự viết) |
-| 3 | `MANAGER` | Nhập lý do |
+| 3 | `MODERATOR` | Nhập lý do |
 | 4 | Client | `PATCH /api/community/moderation/posts/{id}/reject` — `{reason}` |
 | 5 | System | Kiểm role + bài `PENDING` |
 | 6 | System | **Kiểm lý do không rỗng** |
@@ -908,31 +908,31 @@ Từ chối bài kèm **lý do bắt buộc**. Tác giả nhận được lý do
 ## Luồng thay thế
 
 **A1 — Tác giả sửa rồi gửi lại** — bài về `PENDING`, giữ lịch sử lý do cũ (hoặc ghi đè — cần chốt).
-**A2 — Từ chối kèm cảnh báo tài khoản** — vi phạm nặng thì `MANAGER` treo tài khoản (cần cột `suspended_at` — mục A chưa chốt).
+**A2 — Từ chối kèm cảnh báo tài khoản** — vi phạm nặng thì `MODERATOR` treo tài khoản (cần cột `suspended_at` — mục A chưa chốt).
 **A3 — Tác giả khiếu nại** — không có luồng khiếu nại trong scope.
 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | Chặn ở server |
+| `FORBIDDEN_ROLE` | 403 | Không phải `MODERATOR` | Chặn ở server |
 | `EMPTY_REASON` | 400 | 🔴 Lý do rỗng | **Bắt buộc** — xem ghi chú |
 | `REASON_TOO_LONG` | 400 | > 1.000 ký tự | Chặn |
 | `POST_NOT_PENDING` | 409 | Đã xử lý | Chặn |
 | `SELF_REJECTION` | 403 | Từ chối bài của mình | Như `SELF_APPROVAL` |
-| `CONCURRENT_REVIEW` | 409 | Hai `MANAGER` | `UPDATE ... WHERE status='PENDING'` |
+| `CONCURRENT_REVIEW` | 409 | Hai `MODERATOR` | `UPDATE ... WHERE status='PENDING'` |
 | `REASON_HISTORY_LOST` | — | ⚠️ Gửi lại ghi đè lý do cũ | Xem ghi chú |
 | `NOTIFICATION_FAILED` | — | Gửi thông báo lỗi | **Không** rollback việc từ chối; tác giả thấy lý do khi vào xem bài |
 | `SUSPEND_COLUMN_MISSING` | 500 | ⚠️ Chưa có cột `suspended_at` | A2 không làm được |
 
 > 🔴 **`EMPTY_REASON` — lý do rỗng làm tính năng vô nghĩa.** Tác giả nhận "bài bị từ chối" mà
 > không biết vì sao → sửa mò → gửi lại → bị từ chối lại. Vòng lặp này làm mất người dùng và
-> tăng việc cho `MANAGER`.
+> tăng việc cho `MODERATOR`.
 > Luồng đã chốt trong feature tree ghi rõ "REJECT thì **báo lý do**" — đây là yêu cầu, không
 > phải tuỳ chọn. Validate ở server, không chỉ `required` ở form.
 
 > ⚠️ **`REASON_HISTORY_LOST`:** `posts` chỉ có **một** cột `review_reason`. Bài bị từ chối 3
-> lần thì chỉ còn lý do cuối. `MANAGER` không thấy được người này đã bị từ chối vì gì trước đó
+> lần thì chỉ còn lý do cuối. `MODERATOR` không thấy được người này đã bị từ chối vì gì trước đó
 > → không nhận ra mẫu vi phạm lặp lại.
 > **Đánh đổi đã chấp nhận** khi gộp nhật ký duyệt vào `posts` (bỏ bảng riêng). Ghi nhận giới hạn này.
 
@@ -941,8 +941,8 @@ Từ chối bài kèm **lý do bắt buộc**. Tác giả nhận được lý do
 | # | Rule |
 | --- | --- |
 | BR-077-1 | UC này thuộc V2, không gen code cho MVP. |
-| BR-077-2 | Chỉ `MANAGER` được từ chối bài đăng. |
-| BR-077-3 | `MANAGER` không được từ chối bài do chính mình viết. |
+| BR-077-2 | Chỉ `MODERATOR` được từ chối bài đăng. |
+| BR-077-3 | `MODERATOR` không được từ chối bài do chính mình viết. |
 | BR-077-4 | Chỉ bài đang ở trạng thái `PENDING` mới được từ chối. |
 | BR-077-5 | Khi từ chối bài, lý do là bắt buộc và không được rỗng. |
 | BR-077-6 | Khi từ chối thành công, bài chuyển sang `REJECTED`, lưu lý do, người duyệt và thời điểm duyệt. |
@@ -963,7 +963,7 @@ PATCH /api/community/moderation/posts/{id}/reject
 | --- | --- | --- |
 | T1 | Từ chối kèm lý do | `REJECTED`, tác giả thấy lý do |
 | T2 | Lý do rỗng | 400 `EMPTY_REASON` |
-| T3 | `USER` gọi | 403 |
+| T3 | `LEARNER` gọi | 403 |
 | T4 | Bài đã `APPROVED` | 409 |
 | T5 | Gửi thông báo lỗi | Bài **vẫn** `REJECTED` |
 | T6 | Từ chối lần 2 | Lý do cũ **bị ghi đè** (giới hạn đã biết) |
@@ -974,7 +974,7 @@ PATCH /api/community/moderation/posts/{id}/reject
 
 | | |
 |---|---|
-| **UC-ID** | UC-078 · **Actor** `MANAGER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| **UC-ID** | UC-078 · **Actor** `MODERATOR` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
 
 ## Mô tả
 
@@ -983,7 +983,7 @@ và xử lý tác giả.
 
 ## Tiền điều kiện
 
-Role `MANAGER`; có báo cáo `status = PENDING`.
+Role `MODERATOR`; có báo cáo `status = PENDING`.
 
 ## Hậu điều kiện
 
@@ -996,10 +996,10 @@ Role `MANAGER`; có báo cáo `status = PENDING`.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `MANAGER` | Mở hàng đợi báo cáo |
+| 1 | `MODERATOR` | Mở hàng đợi báo cáo |
 | 2 | System | `GET /api/community/moderation/reports?status=PENDING` — nhóm theo nội dung bị báo cáo |
-| 3 | `MANAGER` | Xem nội dung + các lý do báo cáo + ai báo cáo |
-| 4 | `MANAGER` | Quyết định |
+| 3 | `MODERATOR` | Xem nội dung + các lý do báo cáo + ai báo cáo |
+| 4 | `MODERATOR` | Quyết định |
 | 5 | Client | `PATCH /api/community/moderation/reports/{id}` — `{decision, note}` |
 | 6 | System | Kiểm role |
 | 7 | System | **Transaction:** cập nhật báo cáo + xử lý nội dung |
@@ -1008,7 +1008,7 @@ Role `MANAGER`; có báo cáo `status = PENDING`.
 
 ## Luồng thay thế
 
-**A1 — Nhiều báo cáo cùng một bài** — xử lý một lần, đóng hết. Không bắt `MANAGER` bấm 5 lần.
+**A1 — Nhiều báo cáo cùng một bài** — xử lý một lần, đóng hết. Không bắt `MODERATOR` bấm 5 lần.
 **A2 — Báo cáo sai** — `REJECTED`, nội dung hiện lại nếu đã tự ẩn.
 **A3 — Vi phạm nặng** — xoá nội dung + treo tài khoản (cần cột `suspended_at`).
 
@@ -1016,43 +1016,43 @@ Role `MANAGER`; có báo cáo `status = PENDING`.
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | Chặn |
+| `FORBIDDEN_ROLE` | 403 | Không phải `MODERATOR` | Chặn |
 | `REPORT_NOT_FOUND` | 404 | ID sai | Chặn |
 | `REPORT_ALREADY_HANDLED` | 409 | Đã xử lý | Chặn |
 | `TARGET_ALREADY_DELETED` | 200 | Nội dung đã bị xoá | Đóng báo cáo, không lỗi |
 | `PARTIAL_REPORT_CLOSURE` | — | 🔴 Xử lý 1 trong 5 báo cáo | Xem ghi chú |
 | `AUTO_HIDDEN_NOT_RESTORED` | — | 🔴 Từ chối báo cáo mà quên hiện lại nội dung | Xem ghi chú |
 | `SUSPEND_COLUMN_MISSING` | 500 | ⚠️ Chưa có `suspended_at` | A3 không làm được |
-| `MANAGER_ROLE_ESCALATION` | 403 | `MANAGER` cố ban tài khoản | 🔴 **Ban là quyền `SUPER_ADMIN`** — `MANAGER` chỉ treo |
+| `MANAGER_ROLE_ESCALATION` | 403 | `MODERATOR` cố ban tài khoản | 🔴 **Ban là quyền `ADMIN`** — `MODERATOR` chỉ treo |
 | `NO_DECISION_AUDIT` | — | Không ghi ai quyết định | Bắt buộc ghi |
 
 > 🔴 **`PARTIAL_REPORT_CLOSURE`:** 5 người báo cáo cùng bài = 5 dòng `moderation_reports`.
-> `MANAGER` xử lý theo từng dòng thì xoá bài ở dòng 1, còn 4 dòng vẫn `PENDING` trỏ vào bài đã
-> xoá → hàng đợi đầy rác, và `MANAGER` bấm tiếp thì lỗi `TARGET_ALREADY_DELETED`.
+> `MODERATOR` xử lý theo từng dòng thì xoá bài ở dòng 1, còn 4 dòng vẫn `PENDING` trỏ vào bài đã
+> xoá → hàng đợi đầy rác, và `MODERATOR` bấm tiếp thì lỗi `TARGET_ALREADY_DELETED`.
 > **Đúng:** nhóm theo `(target_type, target_id)` ở bước 2, và đóng **tất cả** ở bước 8 trong
 > cùng transaction.
 
 > 🔴 **`AUTO_HIDDEN_NOT_RESTORED` — hệ quả của tự ẩn theo ngưỡng (UC-075 bước 6).** Nếu bài bị
-> tự ẩn vì 5 báo cáo, rồi `MANAGER` kết luận báo cáo sai, mà **quên** đặt lại trạng thái hiện
+> tự ẩn vì 5 báo cáo, rồi `MODERATOR` kết luận báo cáo sai, mà **quên** đặt lại trạng thái hiện
 > → bài bị ẩn vĩnh viễn dù không vi phạm. Tác giả không hiểu vì sao bài mất.
 > **Bắt buộc:** quyết định `REJECTED` phải **luôn** kèm hành động hiện lại nội dung, trong cùng
 > transaction.
 
-> 🔴 **`MANAGER_ROLE_ESCALATION` — phân quyền theo quyết định v2:** `MANAGER` có "duyệt bài · xử
-> lý báo cáo · ẩn hoặc xoá comment". **Không có** quyền ban tài khoản — đó là `SUPER_ADMIN`
-> (UC-114). Nếu endpoint xử lý báo cáo cho phép kèm `action: BAN_USER` thì `MANAGER` leo quyền.
+> 🔴 **`MANAGER_ROLE_ESCALATION` — phân quyền theo quyết định v2:** `MODERATOR` có "duyệt bài · xử
+> lý báo cáo · ẩn hoặc xoá comment". **Không có** quyền ban tài khoản — đó là `ADMIN`
+> (UC-114). Nếu endpoint xử lý báo cáo cho phép kèm `action: BAN_USER` thì `MODERATOR` leo quyền.
 
 ## Business rule
 
 | # | Rule |
 | --- | --- |
 | BR-078-1 | UC này thuộc V2, không gen code cho MVP. |
-| BR-078-2 | Chỉ `MANAGER` được xử lý báo cáo vi phạm. |
-| BR-078-3 | Báo cáo cùng trỏ đến một nội dung nên được nhóm lại để `MANAGER` xử lý một lần. |
+| BR-078-2 | Chỉ `MODERATOR` được xử lý báo cáo vi phạm. |
+| BR-078-3 | Báo cáo cùng trỏ đến một nội dung nên được nhóm lại để `MODERATOR` xử lý một lần. |
 | BR-078-4 | Khi chấp nhận báo cáo, hệ thống ẩn hoặc xóa mềm nội dung vi phạm và đóng các báo cáo liên quan. |
 | BR-078-5 | Khi từ chối báo cáo, nội dung phải được giữ nguyên hoặc hiện lại nếu trước đó từng bị ẩn tạm. |
 | BR-078-6 | Việc xử lý nội dung và cập nhật trạng thái báo cáo phải nhất quán; không để báo cáo đã xử lý nhưng nội dung vẫn sai trạng thái. |
-| BR-078-7 | `MANAGER` không có quyền ban tài khoản trong UC này. Nếu cần ban tài khoản, chuyển sang quyền quản trị cao hơn. |
+| BR-078-7 | `MODERATOR` không có quyền ban tài khoản trong UC này. Nếu cần ban tài khoản, chuyển sang quyền quản trị cao hơn. |
 | BR-078-8 | Hệ thống phải ghi người xử lý và thời điểm xử lý báo cáo. |
 
 ## API · DB
@@ -1070,10 +1070,10 @@ PATCH /api/community/moderation/reports/{id}
 | --- | --- | --- |
 | T1 | 5 báo cáo cùng bài, xử lý 1 lần | **Cả 5** đóng |
 | T2 | Từ chối báo cáo, bài đang tự ẩn | Bài **hiện lại** |
-| T3 | `USER` gọi | 403 |
-| T4 | `MANAGER` gửi `action: BAN_USER` | 403 |
+| T3 | `LEARNER` gọi | 403 |
+| T4 | `MODERATOR` gửi `action: BAN_USER` | 403 |
 | T5 | Xử lý báo cáo đã xử lý | 409 |
-| T6 | Sau khi xử lý | Có ghi `MANAGER` nào quyết định |
+| T6 | Sau khi xử lý | Có ghi `MODERATOR` nào quyết định |
 
 ---
 
@@ -1081,7 +1081,7 @@ PATCH /api/community/moderation/reports/{id}
 
 | | |
 |---|---|
-| **UC-ID** | UC-079 · **Actor** `MANAGER` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
+| **UC-ID** | UC-079 · **Actor** `MODERATOR` · **Pri** P2 · **Scope** V2 · **FT** 5.1 |
 
 ## Mô tả
 
@@ -1090,7 +1090,7 @@ lớp phòng vệ duy nhất.
 
 ## Tiền điều kiện
 
-Role `MANAGER`; bình luận tồn tại.
+Role `MODERATOR`; bình luận tồn tại.
 
 ## Hậu điều kiện
 
@@ -1100,7 +1100,7 @@ Bình luận `status = HIDDEN` hoặc `DELETED`; cây trả lời được giữ
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `MANAGER` | Chọn bình luận, bấm "Ẩn" hoặc "Xoá" |
+| 1 | `MODERATOR` | Chọn bình luận, bấm "Ẩn" hoặc "Xoá" |
 | 2 | Client | `PATCH /api/community/moderation/comments/{id}` — `{action, reason}` |
 | 3 | System | Kiểm role |
 | 4 | System | Đặt `status = HIDDEN`/`DELETED`, ghi `moderated_by`, `reason` |
@@ -1111,20 +1111,20 @@ Bình luận `status = HIDDEN` hoặc `DELETED`; cây trả lời được giữ
 
 **A1 — Ẩn cả cây** — vi phạm nặng ở gốc thì ẩn cả nhánh. Cần tham số riêng, không phải mặc định.
 **A2 — Hiện lại bình luận đã ẩn** — cho phép (sửa quyết định sai).
-**A3 — Xoá bình luận của `MANAGER` khác** — cho phép; ghi nhật ký.
+**A3 — Xoá bình luận của `MODERATOR` khác** — cho phép; ghi nhật ký.
 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
-| `FORBIDDEN_ROLE` | 403 | Không phải `MANAGER` | Chặn |
+| `FORBIDDEN_ROLE` | 403 | Không phải `MODERATOR` | Chặn |
 | `COMMENT_NOT_FOUND` | 404 | ID sai | Chặn |
 | `HARD_DELETE_BREAKS_TREE` | — | 🔴 Xoá cứng làm mất trả lời | Xem ghi chú |
 | `HIDDEN_COMMENT_STILL_VISIBLE` | — | 🔴 Ẩn nhưng API vẫn trả | Xem ghi chú |
 | `NO_MODERATION_REASON` | 400 | Không có lý do | Bắt buộc như UC-077 |
 | `CASCADE_HIDE_UNINTENDED` | — | Ẩn cha ẩn luôn cả con ngoài ý muốn | Ẩn cây phải là **tham số tường minh** |
 | `ALREADY_HIDDEN` | 200 | Đã ẩn | Idempotent |
-| `MANAGER_HIDES_OWN_CRITICISM` | — | ⚠️ `MANAGER` ẩn bình luận phê bình mình | Xem ghi chú |
+| `MANAGER_HIDES_OWN_CRITICISM` | — | ⚠️ `MODERATOR` ẩn bình luận phê bình mình | Xem ghi chú |
 
 > 🔴 **`HARD_DELETE_BREAKS_TREE` — cùng vấn đề `ORPHAN_REPLY` (UC-072).** Xoá cứng bình luận có
 > 5 trả lời thì 5 trả lời mất `parent_id` hợp lệ. Nếu khoá ngoại là `CASCADE` thì mất luôn cả 5
@@ -1133,26 +1133,26 @@ Bình luận `status = HIDDEN` hoặc `DELETED`; cây trả lời được giữ
 
 > 🔴 **`HIDDEN_COMMENT_STILL_VISIBLE`:** đặt `status = HIDDEN` mà endpoint lấy bình luận
 > (UC-071/072) không lọc `status` thì bình luận vẫn hiện — hành động kiểm duyệt **không có tác
-> dụng**, và `MANAGER` tưởng đã xử lý.
+> dụng**, và `MODERATOR` tưởng đã xử lý.
 > **Cùng mẫu lỗi với `PENDING_POST_LEAKED` (UC-070).** Lọc trạng thái phải ở repository, một
 > method dùng chung.
 
-> ⚠️ **`MANAGER_HIDES_OWN_CRITICISM` là rủi ro lạm quyền.** `MANAGER` ẩn được bình luận phê bình
+> ⚠️ **`MANAGER_HIDES_OWN_CRITICISM` là rủi ro lạm quyền.** `MODERATOR` ẩn được bình luận phê bình
 > mình mà không ai biết. Giảm bằng: **bắt buộc ghi nhật ký** (`moderated_by` + `reason`) và
-> `SUPER_ADMIN` xem được nhật ký đó. Không chặn được bằng code, chỉ làm cho có dấu vết.
+> `ADMIN` xem được nhật ký đó. Không chặn được bằng code, chỉ làm cho có dấu vết.
 
 ## Business rule
 
 | # | Rule |
 | --- | --- |
 | BR-079-1 | UC này thuộc V2, không gen code cho MVP. |
-| BR-079-2 | Chỉ `MANAGER` được ẩn hoặc xóa bình luận vi phạm. |
+| BR-079-2 | Chỉ `MODERATOR` được ẩn hoặc xóa bình luận vi phạm. |
 | BR-079-3 | Khi xóa bình luận, hệ thống dùng soft delete, không xóa cứng khỏi database. |
 | BR-079-4 | Bình luận bị ẩn hoặc bị xóa không được hiển thị như bình luận bình thường ở các endpoint đọc bình luận. |
 | BR-079-5 | Nếu bình luận có trả lời, hệ thống giữ cây trả lời và hiển thị vị trí bình luận cha bằng nội dung thay thế như “[đã xóa]” hoặc “[đã bị ẩn]”. |
-| BR-079-6 | Khi `MANAGER` ẩn hoặc xóa bình luận, lý do là bắt buộc. |
+| BR-079-6 | Khi `MODERATOR` ẩn hoặc xóa bình luận, lý do là bắt buộc. |
 | BR-079-7 | Ẩn cả nhánh bình luận chỉ thực hiện khi người quản lý chọn rõ hành động đó, không làm mặc định. |
-| BR-079-8 | Hệ thống ghi người xử lý và thời điểm xử lý để `SUPER_ADMIN` có thể kiểm tra nếu cần. |
+| BR-079-8 | Hệ thống ghi người xử lý và thời điểm xử lý để `ADMIN` có thể kiểm tra nếu cần. |
 
 ## API · DB
 
@@ -1169,7 +1169,7 @@ PATCH /api/community/moderation/comments/{id}
 | T1 | Ẩn bình luận | Không hiện ở UC-071 nữa |
 | T2 | Ẩn bình luận có 5 trả lời | 5 trả lời **vẫn còn** |
 | T3 | Xoá bình luận | Dòng **vẫn trong DB**, hiện "[đã xoá]" |
-| T4 | `USER` gọi | 403 |
+| T4 | `LEARNER` gọi | 403 |
 | T5 | Không có lý do | 400 |
 | T6 | Ẩn 2 lần | 200, không lỗi |
 | T7 | Sau khi ẩn | `moderated_by` có giá trị |
@@ -1180,7 +1180,7 @@ PATCH /api/community/moderation/comments/{id}
 
 | | |
 |---|---|
-| **UC-ID** | UC-080 · **Actor** `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.2 |
+| **UC-ID** | UC-080 · **Actor** `LEARNER` · **Pri** P2 · **Scope** V2 · **FT** 5.2 |
 
 ## Mô tả
 
@@ -1192,7 +1192,7 @@ Quiz riêng cho mỗi chủ đề, chơi bất cứ lúc nào. Nguồn câu hỏ
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. `quiz_sets` có bộ cho chủ đề đó
 3. Có câu hỏi `APPROVED` trong `learning.questions`
 
@@ -1208,13 +1208,13 @@ Quiz riêng cho mỗi chủ đề, chơi bất cứ lúc nào. Nguồn câu hỏ
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn quiz theo chủ đề |
+| 1 | `LEARNER` | Chọn quiz theo chủ đề |
 | 2 | System | `POST /api/community/quiz-sets/{id}/attempts` |
 | 3 | System | Kiểm đã làm lần nào chưa (quyết định có tính hạng) |
 | 4 | System | Lấy câu hỏi qua `ContentLookup` — **lọc `APPROVED`** |
 | 5 | System | Tạo `quiz_attempts`, ghi `served_at` |
 | 6 | System | Trả câu hỏi **không kèm đáp án** |
-| 7 | `USER` | Trả lời hết |
+| 7 | `LEARNER` | Trả lời hết |
 | 8 | Client | `POST .../attempts/{id}/submit` |
 | 9 | System | **Chấm ở server**, ghi `quiz_answers` |
 | 10 | System | Tính điểm + thời gian |
@@ -1303,7 +1303,7 @@ POST /api/community/quiz-sets/{id}/attempts/{aid}/submit
 
 | | |
 |---|---|
-| **UC-ID** | UC-081 · **Actor** `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.2 |
+| **UC-ID** | UC-081 · **Actor** `LEARNER` · **Pri** P2 · **Scope** V2 · **FT** 5.2 |
 
 ## Mô tả
 
@@ -1321,7 +1321,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Nộp quiz xong |
+| 1 | `LEARNER` | Nộp quiz xong |
 | 2 | System | `GET /api/community/quiz-attempts/{id}/result` |
 | 3 | System | Kiểm sở hữu + `SUBMITTED` |
 | 4 | System | Tổng hợp từ `quiz_answers` |
@@ -1394,7 +1394,7 @@ GET /api/community/quiz-sets/{id}/leaderboard
 
 | | |
 |---|---|
-| **UC-ID** | UC-082 · **Actor** `GUEST` `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.3 |
+| **UC-ID** | UC-082 · **Actor** `GUEST` `LEARNER` · **Pri** P2 · **Scope** V2 · **FT** 5.3 |
 
 ## Mô tả
 
@@ -1461,7 +1461,7 @@ Chỉ đọc.
 | # | Rule |
 | --- | --- |
 | BR-082-1 | UC này thuộc V2, không gen code cho MVP. |
-| BR-082-2 | `GUEST` và `USER` đều được xem bảng xếp hạng công khai. |
+| BR-082-2 | `GUEST` và `LEARNER` đều được xem bảng xếp hạng công khai. |
 | BR-082-3 | `GUEST` chỉ xem top, không có phần “hạng của tôi”. |
 | BR-082-4 | Bảng xếp hạng sắp xếp theo điểm cao hơn trước; nếu bằng điểm thì người hoàn thành nhanh hơn đứng trên. |
 | BR-082-5 | Response bảng xếp hạng chỉ hiển thị tên hiển thị, ảnh đại diện nếu có, điểm và thời gian. Không trả email hoặc thông tin riêng tư. |
@@ -1494,7 +1494,7 @@ GET /api/public/community/leaderboard/topics/{id}?period={week|month|all}
 
 | | |
 |---|---|
-| **UC-ID** | UC-083 · **Actor** `GUEST` `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.3 |
+| **UC-ID** | UC-083 · **Actor** `GUEST` `LEARNER` · **Pri** P2 · **Scope** V2 · **FT** 5.3 |
 
 ## Mô tả
 
@@ -1542,7 +1542,7 @@ Giống UC-082, khác: nguồn là `learning.attempts` với `kind='GAME'`, kho�
 > 🔴 **`CHEATED_SCORE_IN_RANKING` — bảng xếp hạng là nơi gian lận **có lợi** nhất.** Chống gian
 > lận ở UC-088 phải chặt, vì một điểm giả lên bảng công khai là mất uy tín cả tính năng, và
 > người chơi thật bỏ chơi.
-> **Cần:** điểm bị đánh cờ `suspicious` **không** vào Redis; và `FINANCE_ADMIN`/`SUPER_ADMIN`
+> **Cần:** điểm bị đánh cờ `suspicious` **không** vào Redis; và `ACCOUNTANT`/`ADMIN`
 > xoá được dòng khỏi bảng xếp hạng.
 
 ## Business rule
@@ -1581,7 +1581,7 @@ GET /api/public/community/leaderboard/games/{code}?period={p}
 
 | | |
 |---|---|
-| **UC-ID** | UC-084 · **Actor** `USER` · **Pri** P3 · **Scope** V2 · **FT** 5.3 |
+| **UC-ID** | UC-084 · **Actor** `LEARNER` · **Pri** P3 · **Scope** V2 · **FT** 5.3 |
 
 ## Mô tả
 
@@ -1599,7 +1599,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn "Tháng này" |
+| 1 | `LEARNER` | Chọn "Tháng này" |
 | 2 | Client | Gọi lại UC-082/083 với `period=month` |
 | 3 | System | Đọc key `rank:*:month` (có mốc thời gian) |
 | 4 | Client | Hiện bảng mới |
@@ -1660,7 +1660,7 @@ Cùng endpoint UC-082/083 với tham số `period`.
 
 | | |
 |---|---|
-| **UC-ID** | UC-085 · **Actor** `USER` · **Pri** P1 · **Scope** **MVP** · **FT** 5.5 |
+| **UC-ID** | UC-085 · **Actor** `LEARNER` · **Pri** P1 · **Scope** **MVP** · **FT** 5.5 |
 
 ## Mô tả
 
@@ -1670,7 +1670,7 @@ Người học đã đăng nhập có thể mở trợ lý trên các trang củ
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập — `GUEST` **không** dùng được (tốn tiền)
+1. `LEARNER` đã đăng nhập — `GUEST` **không** dùng được (tốn tiền)
 2. Còn lượt hỏi trong quota MVP; không dùng ví điểm cho UC này
 3. Câu hỏi ≤ giới hạn độ dài
 4. API AI khả dụng
@@ -1687,7 +1687,7 @@ Người học đã đăng nhập có thể mở trợ lý trên các trang củ
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm nút tròn góc phải dưới, nhập câu hỏi |
+| 1 | `LEARNER` | Bấm nút tròn góc phải dưới, nhập câu hỏi |
 | 2 | Client | `POST /api/assistant/ask` — `{session_id?, question, page_context}` |
 | 3 | System | Kiểm độ dài câu hỏi |
 | 4 | System | **Kiểm hạn mức** |
@@ -1748,7 +1748,7 @@ Người học đã đăng nhập có thể mở trợ lý trên các trang củ
 
 | # | Rule |
 | --- | --- |
-| BR-085-1 | Chỉ `USER` đã đăng nhập mới được dùng trợ lý AI. `GUEST` không được dùng vì mỗi lượt hỏi gọi API ngoài. |
+| BR-085-1 | Chỉ `LEARNER` đã đăng nhập mới được dùng trợ lý AI. `GUEST` không được dùng vì mỗi lượt hỏi gọi API ngoài. |
 | BR-085-2 | Trong MVP, trợ lý AI dùng quota/hạn mức lượt hỏi. Chưa triển khai ví tiền hoặc thanh toán nếu payment scope chưa chốt. |
 | BR-085-3 | Chỉ hành động gọi API AI mới tiêu tốn quota. Mở hộp chat, xem lịch sử hoặc đọc lại câu trả lời cũ không tiêu tốn quota. |
 | BR-085-4 | Nếu người dùng hết quota, hệ thống phải báo rõ hết lượt và không gọi API AI. |
@@ -1787,7 +1787,7 @@ GET  /api/assistant/history
 
 | | |
 |---|---|
-| **UC-ID** | UC-086 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 5.5 |
+| **UC-ID** | UC-086 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 5.5 |
 
 ## Mô tả
 
@@ -1795,7 +1795,7 @@ Người học xem lại các cuộc trò chuyện trước và mở từng phi�
 
 ## Tiền điều kiện
 
-`USER` đã đăng nhập. Chưa có phiên hội thoại vẫn xem được danh sách rỗng.
+`LEARNER` đã đăng nhập. Chưa có phiên hội thoại vẫn xem được danh sách rỗng.
 
 ## Hậu điều kiện
 
@@ -1805,10 +1805,10 @@ Chỉ đọc. **Không tính lượt** — xem lại không gọi API.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở "Lịch sử hỏi đáp" |
+| 1 | `LEARNER` | Mở "Lịch sử hỏi đáp" |
 | 2 | Client | `GET /api/assistant/history` |
 | 3 | System | Lấy `ai_chats` **của người đang đăng nhập**, chưa hết hạn, sắp theo `updated_at` mới nhất |
-| 4 | `USER` | Chọn một phiên |
+| 4 | `LEARNER` | Chọn một phiên |
 | 5 | Client | `GET /api/assistant/sessions/{id}/messages` |
 | 6 | System | **Kiểm sở hữu** |
 | 7 | System | Trả tin nhắn theo thứ tự |
@@ -1879,7 +1879,7 @@ DELETE /api/assistant/sessions/{id}
 
 | | |
 |---|---|
-| **UC-ID** | UC-087 · **Actor** `USER` · **Pri** P1 · **Scope** **MVP** · **FT** 5.6 |
+| **UC-ID** | UC-087 · **Actor** `LEARNER` · **Pri** P1 · **Scope** **MVP** · **FT** 5.6 |
 
 ## Mô tả
 
@@ -1887,7 +1887,7 @@ Game Box có bốn trò chơi: Mưa chữ, Ghép Pinyin, Ghép Bộ thủ và B�
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập; cookie chung tên miền `cnhsk.com` (HR-03) hoặc token đã tiêm (UC-013)
+1. `LEARNER` đã đăng nhập; cookie chung tên miền `cnhsk.com` (HR-03) hoặc token đã tiêm (UC-013)
 2. Có từ vựng cho game
 3. Chưa vượt giới hạn ván/giờ
 
@@ -1902,14 +1902,14 @@ Game Box có bốn trò chơi: Mưa chữ, Ghép Pinyin, Ghép Bộ thủ và B�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở `game.cnhsk.com`, chọn game |
+| 1 | `LEARNER` | Mở `game.cnhsk.com`, chọn game |
 | 2 | Client | Gửi cookie chung (web) hoặc header (WebView) |
 | 3 | System | Xác thực; kiểm giới hạn ván/giờ |
 | 4 | System | `POST /api/community/games/{code}/rounds` |
 | 5 | System | Lấy từ vựng qua `ContentLookup` — ưu tiên từ người học đang học |
 | 6 | System | Tạo `learning.attempts` với `kind='GAME'`, ghi `served_at` và snapshot `served_items`; `round_id` là ID của dòng này |
 | 7 | System | Trả nội dung ván (**không** kèm đáp án nếu game có đáp án) |
-| 8 | `USER` | Chơi |
+| 8 | `LEARNER` | Chơi |
 | 9 | Client | `POST .../rounds/{id}/submit` — kết quả từng item |
 | 10 | System | UC-088 xử lý |
 
@@ -2000,7 +2000,7 @@ POST /api/community/games/{code}/rounds/{id}/submit
 
 | | |
 |---|---|
-| **UC-ID** | UC-088 · **Actor** `SYSTEM` · **Pri** P1 · **Scope** **MVP** · **FT** 5.6 |
+| **UC-ID** | UC-088 · **Actor** «include» của UC-087 Chơi game — actor `LEARNER` · **Pri** P1 · **Scope** **MVP** · **FT** 5.6 |
 
 ## Mô tả
 
@@ -2115,7 +2115,7 @@ MVP: `learning.attempts` (`kind='GAME'`, điểm và trạng thái ván), `learn
 
 | | |
 |---|---|
-| **UC-ID** | UC-089 · **Actor** `USER` · **Pri** P3 · **Scope** V2 · **FT** 5.7 |
+| **UC-ID** | UC-089 · **Actor** `LEARNER` · **Pri** P3 · **Scope** V2 · **FT** 5.7 |
 
 ## Mô tả
 
@@ -2123,7 +2123,7 @@ Trong game gõ pinyin, chữ Hán rơi trên màn hình và người học gõ c
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Thiết bị có bàn phím
 3. Từ có `pinyin` đầy đủ dấu thanh
 
@@ -2202,7 +2202,7 @@ Cùng endpoint UC-087/088 với `game_code = TYPE_PINYIN`.
 
 | | |
 |---|---|
-| **UC-ID** | UC-090 · **Actor** `GUEST` `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.8 |
+| **UC-ID** | UC-090 · **Actor** `GUEST` `LEARNER` · **Pri** P2 · **Scope** V2 · **FT** 5.8 |
 
 ## Mô tả
 
@@ -2249,7 +2249,7 @@ Chỉ đọc.
 > 🔴 **`CONTEST_TIMEZONE_ERROR` — với cuộc thi thì lệch giờ là lỗi nghiêm trọng nhất.** Nghiệm
 > thu 5.8: "**ngoài khung giờ không vào thi được**". Cuộc thi 20h–21h **giờ Việt Nam**:
 > — `starts_at` lưu `TIMESTAMPTZ` là đúng
-> — Nhưng `CONTENT_ADMIN` nhập "20:00" ở form phải hiểu là giờ VN, và client phải hiện giờ VN
+> — Nhưng `CONTENT_EDITOR` nhập "20:00" ở form phải hiểu là giờ VN, và client phải hiện giờ VN
 > Sai một đầu là cuộc thi mở lúc 13h hoặc 03h → người đăng ký vào không được, người không biết
 > lại vào được.
 > **Lần thứ tư vấn đề múi giờ xuất hiện** (UC-044, UC-051, UC-084, UC-090).
@@ -2259,7 +2259,7 @@ Chỉ đọc.
 | # | Rule |
 | --- | --- |
 | BR-090-1 | UC này thuộc V2, không gen code cho MVP. |
-| BR-090-2 | `GUEST` và `USER` được xem danh sách cuộc thi đã công bố. |
+| BR-090-2 | `GUEST` và `LEARNER` được xem danh sách cuộc thi đã công bố. |
 | BR-090-3 | Cuộc thi ở trạng thái nháp hoặc chưa công bố không được hiển thị công khai. |
 | BR-090-4 | Trạng thái cuộc thi được tính từ thời gian hiện tại so với thời gian bắt đầu và kết thúc, không cần lưu cứng trạng thái nếu có thể tính được. |
 | BR-090-5 | Khung giờ cuộc thi hiển thị theo giờ Việt Nam. |
@@ -2291,7 +2291,7 @@ GET /api/public/contests/{id}
 
 | | |
 |---|---|
-| **UC-ID** | UC-091 · **Actor** `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.8 |
+| **UC-ID** | UC-091 · **Actor** `LEARNER` · **Pri** P2 · **Scope** V2 · **FT** 5.8 |
 
 ## Mô tả
 
@@ -2299,7 +2299,7 @@ Người dùng đã đăng nhập đăng ký một cuộc thi đã công bố tr
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Cuộc thi chưa kết thúc
 3. Chưa đăng ký
 4. Còn chỗ (nếu có giới hạn)
@@ -2312,7 +2312,7 @@ Người dùng đã đăng nhập đăng ký một cuộc thi đã công bố tr
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Đăng ký" |
+| 1 | `LEARNER` | Bấm "Đăng ký" |
 | 2 | Client | `POST /api/contests/{id}/join` |
 | 3 | System | Kiểm cuộc thi chưa kết thúc |
 | 4 | System | Kiểm chưa đăng ký (unique) |
@@ -2343,7 +2343,7 @@ Người dùng đã đăng nhập đăng ký một cuộc thi đã công bố tr
 > 🔴 **`MULTI_ACCOUNT_ABUSE` — rủi ro trực tiếp của "tài khoản mới tham gia free" + "phần thưởng
 > thật".** Một người tạo 20 tài khoản để tăng cơ hội thắng. Với phần thưởng thật thì đây là
 > gian lận có động cơ kinh tế.
-> **Giảm bằng:** yêu cầu email đã xác thực; giới hạn theo IP khi đăng ký; và `CONTENT_ADMIN`
+> **Giảm bằng:** yêu cầu email đã xác thực; giới hạn theo IP khi đăng ký; và `CONTENT_EDITOR`
 > xem được danh sách để phát hiện mẫu lạ.
 > **Không chặn được hoàn toàn** — cần ghi nhận giới hạn này, vì hội đồng có thể hỏi "làm sao
 > chống nhiều tài khoản".
@@ -2360,7 +2360,7 @@ Người dùng đã đăng nhập đăng ký một cuộc thi đã công bố tr
 | # | Rule |
 | --- | --- |
 | BR-091-1 | UC này thuộc V2, không gen code cho MVP. |
-| BR-091-2 | Chỉ `USER` đã đăng nhập mới được đăng ký cuộc thi. |
+| BR-091-2 | Chỉ `LEARNER` đã đăng nhập mới được đăng ký cuộc thi. |
 | BR-091-3 | Tài khoản mới được tham gia miễn phí nếu đã đăng nhập và đáp ứng điều kiện của cuộc thi. |
 | BR-091-4 | Nếu cuộc thi có phần thưởng hoặc xếp hạng công khai, người tham gia nên có email đã xác thực để giảm rủi ro nhiều tài khoản ảo. |
 | BR-091-5 | Mỗi người dùng chỉ được đăng ký một lần cho mỗi cuộc thi. |
@@ -2395,7 +2395,7 @@ DELETE /api/contests/{id}/join
 
 | | |
 |---|---|
-| **UC-ID** | UC-092 · **Actor** `USER` · **Pri** P2 · **Scope** V2 · **FT** 5.8 |
+| **UC-ID** | UC-092 · **Actor** `LEARNER` · **Pri** P2 · **Scope** V2 · **FT** 5.8 |
 
 ## Mô tả
 
@@ -2405,7 +2405,7 @@ Người đã đăng ký chỉ được vào thi và nộp bài trong khung gi�
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập, **đã đăng ký** (UC-091)
+1. `LEARNER` đã đăng nhập, **đã đăng ký** (UC-091)
 2. **Đang trong khung giờ** `starts_at ≤ now() ≤ ends_at`
 3. Chưa nộp bài
 4. Cuộc thi có đề
@@ -2421,13 +2421,13 @@ Người đã đăng ký chỉ được vào thi và nộp bài trong khung gi�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Vào thi" |
+| 1 | `LEARNER` | Bấm "Vào thi" |
 | 2 | System | Kiểm đã đăng ký |
 | 3 | System | **Kiểm đang trong khung giờ** |
 | 4 | System | Kiểm chưa nộp |
 | 5 | System | Tạo `contest_submissions` `IN_PROGRESS`, ghi `served_at` |
 | 6 | System | Trả đề **không kèm đáp án** |
-| 7 | `USER` | Làm bài |
+| 7 | `LEARNER` | Làm bài |
 | 8 | Client | `POST /api/contests/{id}/submit` |
 | 9 | System | **Kiểm lại còn trong khung giờ** |
 | 10 | System | **Chấm ở server** |
@@ -2438,7 +2438,7 @@ Người đã đăng ký chỉ được vào thi và nộp bài trong khung gi�
 
 **A1 — Hết giờ giữa bài** — client tự nộp khi đồng hồ về 0; server kiểm `submitted_at ≤ ends_at + grace`.
 **A2 — Vào thi lúc 20h59 (thi 20h–21h)** — cho vào nhưng chỉ còn 1 phút. Hoặc chặn vào khi còn < N phút — cần chốt.
-**A3 — Chuyển tab** — ghi `cheat_events`; **không** tự loại, để `CONTENT_ADMIN` xem xét.
+**A3 — Chuyển tab** — ghi `cheat_events`; **không** tự loại, để `CONTENT_EDITOR` xem xét.
 **A4 — Mất mạng** — client giữ kết quả, gửi lại; server kiểm khung giờ.
 
 ## Bảng exception
@@ -2528,7 +2528,7 @@ GET  /api/contests/{id}/leaderboard      (chỉ sau khi đóng)
 | | |
 | --- | --- |
 | **ID** | UC-134 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P3 |
 | **Scope** | **V2** |
 | **Tính năng gốc** | 5.1 |
@@ -2552,7 +2552,7 @@ Người học chia sẻ kinh nghiệm và trao đổi với người học khá
 
 ## Tiền điều kiện
 
-- `USER` đã đăng nhập và đã xác thực email
+- `LEARNER` đã đăng nhập và đã xác thực email
 - Tài khoản không bị hạn chế đăng nội dung
 
 ## Hậu điều kiện
@@ -2563,13 +2563,13 @@ Người học chia sẻ kinh nghiệm và trao đổi với người học khá
 
 ## Luồng chính
 
-1. `USER` mở khu vực cộng đồng
+1. `LEARNER` mở khu vực cộng đồng
 2. Xem danh sách bài viết đã được duyệt
 3. Chọn đọc một bài hoặc viết bài mới của mình
 4. Khi viết bài mới, hệ thống lưu ở trạng thái chờ duyệt
-5. `USER` bình luận hoặc thích những bài đang đọc
+5. `LEARNER` bình luận hoặc thích những bài đang đọc
 6. Hệ thống ghi nhận và hiển thị ngay các tương tác này
-7. Khi bài của mình được duyệt, `USER` nhận thông báo
+7. Khi bài của mình được duyệt, `LEARNER` nhận thông báo
 
 ## Luồng thay thế
 
@@ -2633,7 +2633,7 @@ POST /api/community/posts/{id}/reports
 | | |
 | --- | --- |
 | **ID** | UC-135 |
-| **Actor chính** | `MANAGER` |
+| **Actor chính** | `MODERATOR` |
 | **Priority** | P3 |
 | **Scope** | **V2** |
 | **Tính năng gốc** | 5.2 |
@@ -2665,14 +2665,14 @@ Người kiểm duyệt xem xét nội dung chờ duyệt và các báo cáo vi 
 
 ## Luồng chính
 
-1. `MANAGER` mở hàng đợi kiểm duyệt
+1. `MODERATOR` mở hàng đợi kiểm duyệt
 2. Xem danh sách bài chờ duyệt và báo cáo vi phạm
 3. Mở một mục để xem nội dung đầy đủ
 4. Quyết định cho hiển thị, từ chối, hoặc ẩn nội dung
 5. Khi từ chối, nhập lý do để người viết hiểu
 6. Hệ thống ghi lại quyết định kèm người thực hiện và thời điểm
 7. Hệ thống thông báo cho người viết về kết quả
-8. `MANAGER` chuyển sang mục tiếp theo
+8. `MODERATOR` chuyển sang mục tiếp theo
 
 ## Luồng thay thế
 
@@ -2741,10 +2741,10 @@ POST /api/community/moderation/{id}/reject
 | 1 | UC-092 | `ANSWER_KEY_IN_RESPONSE` | Phần thưởng **thật** — lọt đáp án là mọi biện pháp chống gian lận khác vô nghĩa |
 | 2 | UC-088 | `CLIENT_SENT_SCORE` | Tin điểm client là bỏ toàn bộ HR-06; ba lớp chống gian lận thành hình thức |
 | 3 | UC-087 | `COOKIE_NOT_SHARED` | Cookie thiếu `domain=cnhsk.com` → **chặn toàn bộ** nhóm game (P1/MVP) |
-| 4 | UC-069 · UC-071 | `XSS_IN_CONTENT` / `XSS_IN_COMMENT` | Bình luận **không qua duyệt** — script đánh cắp cookie `MANAGER` là leo quyền |
+| 4 | UC-069 · UC-071 | `XSS_IN_CONTENT` / `XSS_IN_COMMENT` | Bình luận **không qua duyệt** — script đánh cắp cookie `MODERATOR` là leo quyền |
 | 5 | UC-080 | `MASTERY_UPDATED_BY_QUIZ` | Quiz chơi nhiều lần được → cho đổi mastery là farm vô hạn, mastery mất ý nghĩa |
 | 6 | UC-088 | `ROUND_ALREADY_SUBMITTED` | Phải khóa `learning.attempts` khi nộp để không cộng điểm/mastery hai lần |
-| 7 | UC-076 | `SELF_APPROVAL` | `MANAGER` tự duyệt bài mình = bỏ kiểm duyệt; vi phạm separation of duties |
+| 7 | UC-076 | `SELF_APPROVAL` | `MODERATOR` tự duyệt bài mình = bỏ kiểm duyệt; vi phạm separation of duties |
 | 8 | UC-091 | `CHEAT_EVENTS_JSONB_WRITTEN` | **Mâu thuẫn thật** giữa DB v5 (gộp JSONB) và AC-09 (JSONB chỉ đọc) |
 | 9 | UC-092 | `RANKING_PUBLISHED_EARLY` | Công bố sớm → người thi sau biết ngưỡng thắng, không công bằng |
 | 10 | UC-085 | `AI_GIVES_EXAM_ANSWERS` | Trợ lý "xuyên suốt mọi trang" mở được lúc đang làm bài |
@@ -2779,7 +2779,7 @@ POST /api/community/moderation/{id}/reject
 | 10 | Chưa kiểm **tỉ lệ pinyin thiếu dấu thanh** trong `characters` | UC-089 | 🔴 Có thể phải cắt UC (P3) |
 | 11 | Chưa có key Redis **có mốc thời gian** + TTL cho kỳ hạn | UC-082 · UC-084 | 🔴 Bảng "tuần này" chứa điểm tuần trước |
 | 12 | Chưa kẹp `giây ≤ 999.999` khi encode score | UC-082 · UC-083 | 🔴 Tràn, sai thứ hạng |
-| 13 | Chưa có cột `suspended_at` (mục A quyết định v2) | UC-077 · UC-078 | ⚠️ `MANAGER` không treo được tài khoản |
+| 13 | Chưa có cột `suspended_at` (mục A quyết định v2) | UC-077 · UC-078 | ⚠️ `MODERATOR` không treo được tài khoản |
 | 14 | `posts` chỉ có **một** cột `review_reason` — mất lịch sử từ chối | UC-077 | ⚠️ Đánh đổi đã chấp nhận khi gộp bảng |
 | 15 | Chưa có luật **dọn `follows`/`likes` khi xoá user** (cột trỏ xuyên schema không FK) | UC-074 | ⚠️ Hoặc chốt không hard delete user |
 | 16 | **Không có tính năng chặn người khác** (chỉ có theo dõi) | UC-074 | ⚠️ An toàn người dùng |
