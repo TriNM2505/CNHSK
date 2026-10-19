@@ -3,6 +3,7 @@ import { apiRequest } from '@/shared/api'
 import type {
   ConfirmImportRequest,
   ImportDataType,
+  ImportErrorPage,
   ImportPreview,
   ImportRun,
   ImportRunPage,
@@ -35,4 +36,22 @@ export function confirmImportRun(runId: number, body: ConfirmImportRequest): Pro
 
 export function getImportRuns(page: number, signal?: AbortSignal): Promise<ImportRunPage> {
   return apiRequest<ImportRunPage>(`/api/admin/imports?page=${page}&size=10`, { signal })
+}
+
+export function getImportRun(runId: number, signal?: AbortSignal): Promise<ImportRun> {
+  return apiRequest<ImportRun>(`/api/admin/imports/${runId}`, { signal })
+}
+
+export function getImportErrors(
+  runId: number,
+  page: number,
+  signal?: AbortSignal,
+): Promise<ImportErrorPage> {
+  return apiRequest<ImportErrorPage>(`/api/admin/imports/${runId}/errors?page=${page}&size=20`, {
+    signal,
+  })
+}
+
+export function getImportErrorsFile(runId: number) {
+  return apiRequest(`/api/admin/imports/${runId}/errors.csv`, { responseType: 'blob' })
 }

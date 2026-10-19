@@ -30,21 +30,30 @@ export interface ImportMappedError {
   requestId?: string
 }
 
+export const IMPORT_FILE_ERROR_MESSAGES: Readonly<Record<string, string>> = {
+  EMPTY_FILE: 'File không có dòng dữ liệu để kiểm tra.',
+  ENCODING_ERROR: 'File không phải UTF-8 hoặc chữ Hán bị hỏng.',
+  FILE_TOO_LARGE: 'File vượt quá giới hạn 2 MB.',
+  TEMPLATE_MISMATCH: 'Các cột trong file không khớp mẫu đã chọn.',
+  TOO_MANY_ROWS: 'File vượt quá giới hạn 5.000 dòng dữ liệu.',
+  UNSUPPORTED_FILE_FORMAT: 'File không đúng định dạng CSV được hỗ trợ.',
+  VALIDATION_FAILED: 'Loại dữ liệu hoặc file chưa hợp lệ.',
+}
+
 export function mapImportUploadError(error: unknown): ImportMappedError {
   const apiError = toApiError(error)
-  const messages: Record<string, string> = {
-    FILE_TOO_LARGE: 'File vượt quá giới hạn 2 MB.',
-    VALIDATION_FAILED: 'Loại dữ liệu hoặc file chưa hợp lệ.',
-    UNSUPPORTED_FILE_FORMAT: 'File không đúng định dạng CSV được hỗ trợ.',
-    ENCODING_ERROR: 'File không phải UTF-8 hoặc chữ Hán bị hỏng.',
-    TEMPLATE_MISMATCH: 'Các cột trong file không khớp mẫu đã chọn.',
-    EMPTY_FILE: 'File không có dòng dữ liệu để kiểm tra.',
-    TOO_MANY_ROWS: 'File vượt quá giới hạn 5.000 dòng dữ liệu.',
-  }
   return {
-    message: messages[apiError.errorCode] ?? apiError.message,
+    message: IMPORT_FILE_ERROR_MESSAGES[apiError.errorCode] ?? apiError.message,
     requestId: apiError.requestId,
   }
+}
+
+export function getImportFailureMessage(failureReason?: string | null): string {
+  if (failureReason === 'INTERRUPTED') return 'Quá trình nhập bị gián đoạn.'
+  if (failureReason && IMPORT_FILE_ERROR_MESSAGES[failureReason]) {
+    return IMPORT_FILE_ERROR_MESSAGES[failureReason]
+  }
+  return 'Không thể hoàn tất lần nhập dữ liệu.'
 }
 
 export type ConfirmErrorKind = 'retryable' | 'rerun' | 'terminal'

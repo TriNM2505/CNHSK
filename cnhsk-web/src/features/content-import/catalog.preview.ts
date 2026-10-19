@@ -7,6 +7,8 @@ import { previewContentEditor } from '@/shared/layout/Layout.preview'
 
 import { LearningDataImportView } from './components/LearningDataImportView'
 import { learningDataImportPreviews } from './components/LearningDataImportView.preview'
+import { ImportReportView } from './components/ImportReportView'
+import { importReportPreviews } from './components/ImportReportView.preview'
 
 const importEntries = [
   ['scr-068-ready', 'Nhập dữ liệu — Mặc định', learningDataImportPreviews.ready],
@@ -37,7 +39,7 @@ const editorAuth: AuthContextValue = {
   user: previewContentEditor,
 }
 
-export const previews = importEntries.map(([id, title, props]) => ({
+const learningDataImportEntries = importEntries.map(([id, title, props]) => ({
   fullFrame: true,
   group: 'screen' as const,
   id,
@@ -50,3 +52,27 @@ export const previews = importEntries.map(([id, title, props]) => ({
   scr: 'SCR-068',
   title,
 })) satisfies readonly PreviewEntry[]
+
+const reportEntries = [
+  ['scr-069-ready', 'Báo cáo nhập — Có dữ liệu', importReportPreviews.ready],
+  ['scr-069-loading', 'Báo cáo nhập — Đang tải', importReportPreviews.loading],
+  ['scr-069-empty', 'Báo cáo nhập — Không có lỗi', importReportPreviews.empty],
+  ['scr-069-error', 'Báo cáo nhập — Lỗi tải', importReportPreviews.error],
+  ['scr-069-running', 'Báo cáo nhập — Đang nhập', importReportPreviews.running],
+] as const
+
+const importReportEntries = reportEntries.map(([id, title, props]) => ({
+  fullFrame: true,
+  group: 'screen' as const,
+  id,
+  render: () =>
+    createElement(
+      AuthContext.Provider,
+      { value: editorAuth },
+      createElement(AdminLayout, null, createElement(ImportReportView, props)),
+    ),
+  scr: 'SCR-069',
+  title,
+})) satisfies readonly PreviewEntry[]
+
+export const previews = [...learningDataImportEntries, ...importReportEntries]

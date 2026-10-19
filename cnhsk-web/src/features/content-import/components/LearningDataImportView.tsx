@@ -37,6 +37,7 @@ import type {
   ImportRunStatus,
   ImportTemplate,
 } from '../types'
+import { CellText } from './CellText'
 
 export type ImportSectionState = 'loading' | 'empty' | 'error' | 'ready'
 
@@ -86,29 +87,12 @@ export interface LearningDataImportViewProps {
   uploading: boolean
 }
 
-const HAN_PATTERN = /\p{Script=Han}/u
-
 const RUN_STATUS_TONES: Record<ImportRunStatus, StatusTone> = {
   COMPLETED: 'success',
   EXPIRED: 'neutral',
   FAILED: 'danger',
   PENDING: 'info',
   RUNNING: 'info',
-}
-
-/** Giá trị CSV có chữ Hán thì gắn lang + font Hán để hiển thị đúng nét. */
-function CellText({ value }: { value?: string | null }) {
-  if (value === null || value === undefined || value === '') {
-    return <span className="text-ink-muted">—</span>
-  }
-  if (HAN_PATTERN.test(value)) {
-    return (
-      <span className="break-words font-hanzi" lang="zh-CN">
-        {value}
-      </span>
-    )
-  }
-  return <span className="break-words">{value}</span>
 }
 
 function RequestId({ requestId }: { requestId?: string }) {

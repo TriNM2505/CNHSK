@@ -33,6 +33,14 @@ const admin: CurrentUser = {
   roles: ['ADMIN'],
 }
 
+const contentEditor: CurrentUser = {
+  ...learner,
+  id: 3,
+  email: 'editor@example.com',
+  displayName: 'Biên tập viên nội dung',
+  roles: ['CONTENT_EDITOR'],
+}
+
 function unauthenticatedError() {
   return new ApiError({
     errorCode: 'UNAUTHENTICATED',
@@ -100,6 +108,14 @@ describe('application routes', () => {
 
     expect(await screen.findByRole('heading', { name: 'Chi tiết tài khoản' })).toBeVisible()
     expect(screen.queryByRole('heading', { name: 'Màn SCR-077 đang dựng' })).not.toBeInTheDocument()
+  })
+
+  it('allows a content editor to open the real import report screen', async () => {
+    getCurrentUserMock.mockResolvedValue(contentEditor)
+    renderRoute('/content/imports/khong-hop-le')
+
+    expect(await screen.findByRole('heading', { name: 'Báo cáo nhập dữ liệu' })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Màn SCR-069 đang dựng' })).not.toBeInTheDocument()
   })
 
   it('does not infer LEARNER access from the ADMIN role', async () => {

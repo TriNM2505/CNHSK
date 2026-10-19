@@ -87,6 +87,13 @@ export interface ImportRunPage {
   totalElements: number
 }
 
+export interface ImportErrorPage {
+  items: ImportRowError[]
+  page: number
+  size: number
+  totalElements: number
+}
+
 export interface ConfirmImportRequest {
   acknowledgeRerun: boolean
 }
