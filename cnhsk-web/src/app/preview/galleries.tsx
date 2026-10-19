@@ -1,21 +1,32 @@
-import { BookOpen, Search, Trash2 } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { BookOpen, CheckCircle2, PartyPopper, Search, SearchX, Trash2 } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 
 import {
   Button,
   Card,
+  ConfirmPanel,
+  DataTable,
+  EmptyState,
+  ErrorState,
   FormField,
   HanziText,
   IconButton,
   Input,
   LevelBadge,
+  PageState,
   PageHeader,
+  Pagination,
   PasswordInput,
+  Progress,
   Section,
   Select,
+  Skeleton,
   StatTile,
   StatusBadge,
+  Tabs,
   Textarea,
+  Toast,
+  type DataTableColumn,
 } from '@/shared/ui'
 
 interface GalleryProps {
@@ -326,5 +337,289 @@ export function SharedUiOverviewGallery() {
         </div>
       </Card>
     </Gallery>
+  )
+}
+
+export function ProgressGallery() {
+  return (
+    <Gallery title="Progress">
+      <div className="max-w-reading space-y-4">
+        <Progress value={35} />
+        <Progress label="7 trên 10 bài" max={10} tone="success" value={7} />
+        <Progress label="3 ngày liên tiếp" max={7} tone="accent" value={3} />
+      </div>
+    </Gallery>
+  )
+}
+
+interface PreviewUser {
+  email: string
+  id: number
+  name: string
+  role: string
+  status: ReactNode
+}
+
+const previewUsers: PreviewUser[] = [
+  {
+    email: 'ba•••@gmail.com',
+    id: 1,
+    name: 'Người học mẫu',
+    role: 'LEARNER',
+    status: <StatusBadge tone="success">Hoạt động</StatusBadge>,
+  },
+  {
+    email: 'th•••@gmail.com',
+    id: 2,
+    name: 'Giáo viên mẫu',
+    role: 'TEACHER',
+    status: <StatusBadge tone="neutral">Chưa xác minh</StatusBadge>,
+  },
+]
+
+const previewUserColumns: DataTableColumn<PreviewUser>[] = [
+  { header: 'Tên hiển thị', id: 'name', render: (row) => row.name },
+  { header: 'Email', id: 'email', render: (row) => row.email },
+  { header: 'Vai trò', id: 'role', render: (row) => row.role },
+  { header: 'Trạng thái', id: 'status', render: (row) => row.status },
+  { header: 'Mã nội bộ', hideOnMobile: true, id: 'id', numeric: true, render: (row) => row.id },
+]
+
+export function DataTableGallery() {
+  return (
+    <Gallery title="DataTable">
+      <ExampleGroup title="Mặc định">
+        <DataTable
+          caption="Danh sách tài khoản mẫu"
+          columns={previewUserColumns}
+          rowKey={(row) => row.id}
+          rows={previewUsers}
+        />
+      </ExampleGroup>
+      <ExampleGroup title="Hàng tương tác">
+        <DataTable
+          caption="Danh sách tài khoản có thể mở"
+          columns={previewUserColumns}
+          getRowLabel={(row) => `Mở tài khoản ${row.name}`}
+          onRowClick={() => undefined}
+          rowKey={(row) => row.id}
+          rows={previewUsers}
+        />
+      </ExampleGroup>
+    </Gallery>
+  )
+}
+
+export function PaginationGallery() {
+  const [page, setPage] = useState(2)
+
+  return (
+    <Gallery title="Pagination">
+      <Pagination onChange={setPage} page={page} size={10} total={34} />
+    </Gallery>
+  )
+}
+
+export function TabsGallery() {
+  const [activeTab, setActiveTab] = useState('vocabulary')
+
+  return (
+    <Gallery title="Tabs">
+      <Tabs
+        items={[
+          { id: 'vocabulary', label: 'Từ mới', panel: <Card>Nội dung từ mới</Card> },
+          { id: 'recognition', label: 'Nhận diện', panel: <Card>Bài luyện nhận diện</Card> },
+          { id: 'listening', label: 'Nghe', panel: <Card>Bài luyện nghe</Card> },
+          { disabled: true, id: 'test', label: 'Kiểm tra', panel: null },
+        ]}
+        label="Các bước học"
+        onChange={setActiveTab}
+        value={activeTab}
+      />
+    </Gallery>
+  )
+}
+
+export function ConfirmPanelGallery() {
+  const [panel, setPanel] = useState<'default' | 'danger' | null>(null)
+
+  return (
+    <Gallery title="ConfirmPanel">
+      <div className="flex flex-wrap gap-3">
+        <Button onClick={() => setPanel('default')}>Mở xác nhận</Button>
+        <Button onClick={() => setPanel('danger')} variant="danger">
+          Mở xác nhận xoá
+        </Button>
+      </div>
+      <ConfirmPanel
+        confirmLabel="Tiếp tục"
+        message="Hãy kiểm tra lại thông tin trước khi tiếp tục."
+        onCancel={() => setPanel(null)}
+        onConfirm={() => setPanel(null)}
+        open={panel === 'default'}
+        title="Xác nhận thao tác"
+      />
+      <ConfirmPanel
+        confirmLabel="Xoá"
+        danger
+        message="Dữ liệu đã xoá không thể khôi phục."
+        onCancel={() => setPanel(null)}
+        onConfirm={() => setPanel(null)}
+        open={panel === 'danger'}
+        title="Xoá mục này?"
+      />
+    </Gallery>
+  )
+}
+
+export function ToastGallery() {
+  const [visibleTones, setVisibleTones] = useState(() => new Set(['success', 'error', 'info']))
+  const closeToast = (tone: string) => {
+    setVisibleTones((current) => {
+      const next = new Set(current)
+      next.delete(tone)
+      return next
+    })
+  }
+
+  return (
+    <Gallery title="Toast">
+      <div className="mb-4">
+        <Button
+          onClick={() => setVisibleTones(new Set(['success', 'error', 'info']))}
+          size="sm"
+          variant="outline"
+        >
+          Hiện lại thông báo
+        </Button>
+      </div>
+      <div className="space-y-3">
+        {visibleTones.has('success') ? (
+          <Toast message="Đã lưu thay đổi." onClose={() => closeToast('success')} tone="success" />
+        ) : null}
+        {visibleTones.has('error') ? (
+          <Toast
+            message="Không thể hoàn thành thao tác."
+            onClose={() => closeToast('error')}
+            tone="error"
+          />
+        ) : null}
+        {visibleTones.has('info') ? (
+          <Toast
+            message="Dữ liệu đang được cập nhật."
+            onClose={() => closeToast('info')}
+            tone="info"
+          />
+        ) : null}
+      </div>
+    </Gallery>
+  )
+}
+
+export function EmptyStateGallery() {
+  return (
+    <Gallery title="EmptyState">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <EmptyState
+          action={<Button>Bắt đầu</Button>}
+          description="Tạo mục đầu tiên để bắt đầu sử dụng."
+          title="Chưa có dữ liệu"
+        />
+        <EmptyState
+          description="Hãy thay đổi từ khoá hoặc bộ lọc rồi thử lại."
+          icon={<SearchX aria-hidden="true" className="size-5" />}
+          title="Không có kết quả"
+        />
+        <EmptyState
+          action={<Button variant="outline">Xem nội dung khác</Button>}
+          description="Bạn đã xử lý tất cả mục trong danh sách."
+          icon={<PartyPopper aria-hidden="true" className="size-5" />}
+          title="Đã hoàn thành"
+        />
+      </div>
+    </Gallery>
+  )
+}
+
+export function ErrorStateGallery() {
+  return (
+    <Gallery title="ErrorState">
+      <div className="space-y-4">
+        <ErrorState message="Kết nối tới máy chủ bị gián đoạn." />
+        <ErrorState
+          message="Không tải được danh sách. Vui lòng thử lại."
+          onRetry={() => undefined}
+          requestId="req-mau-123"
+        />
+      </div>
+    </Gallery>
+  )
+}
+
+export function SkeletonGallery() {
+  return (
+    <Gallery title="Skeleton">
+      <div className="space-y-4">
+        <Skeleton variant="text" />
+        <Skeleton variant="card" />
+        <Skeleton variant="table" />
+      </div>
+    </Gallery>
+  )
+}
+
+export function PageStateGallery() {
+  return (
+    <Gallery title="PageState">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <StateExample title="Đang tải">
+          <PageState
+            empty={null}
+            error={null}
+            loading={<Skeleton variant="card" />}
+            state="loading"
+          >
+            Nội dung
+          </PageState>
+        </StateExample>
+        <StateExample title="Rỗng">
+          <PageState
+            empty={<EmptyState description="Chưa có dữ liệu mẫu." title="Danh sách trống" />}
+            error={null}
+            loading={null}
+            state="empty"
+          >
+            Nội dung
+          </PageState>
+        </StateExample>
+        <StateExample title="Lỗi">
+          <PageState
+            empty={null}
+            error={<ErrorState message="Không thể tải dữ liệu mẫu." onRetry={() => undefined} />}
+            loading={null}
+            state="error"
+          >
+            Nội dung
+          </PageState>
+        </StateExample>
+        <StateExample title="Có dữ liệu">
+          <PageState empty={null} error={null} loading={null} state="ready">
+            <Card className="flex items-center gap-3">
+              <CheckCircle2 aria-hidden="true" className="size-5 text-success" />
+              Nội dung đã sẵn sàng
+            </Card>
+          </PageState>
+        </StateExample>
+      </div>
+    </Gallery>
+  )
+}
+
+function StateExample({ children, title }: GalleryProps) {
+  return (
+    <section className="rounded-md border border-line bg-surface p-4">
+      <h2 className="mb-3 text-label text-ink">{title}</h2>
+      {children}
+    </section>
   )
 }
