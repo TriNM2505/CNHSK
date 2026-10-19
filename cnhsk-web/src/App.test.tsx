@@ -1,16 +1,13 @@
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 
 import App from '@/App'
 
 describe('App', () => {
-  it('renders and handles the scaffold interaction', async () => {
-    const user = userEvent.setup()
-
+  it('renders the temporary CNHSK token preview', () => {
     render(<App />)
-    await user.click(screen.getByRole('button', { name: 'count is 0' }))
 
-    expect(screen.getByRole('button', { name: 'count is 1' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'CNHSK' })).toBeVisible()
+    expect(screen.getByText('汉字')).toHaveAttribute('lang', 'zh-Hans')
   })
 })
