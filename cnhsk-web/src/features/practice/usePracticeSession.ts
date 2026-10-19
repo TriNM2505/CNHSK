@@ -19,12 +19,12 @@ import { ApiError, toApiError } from '@/shared/api'
 
 export type PracticeSessionState = 'loading' | 'idle' | 'ready' | 'finished' | 'abandoned' | 'error'
 
-export type PracticePendingOperation = 'start' | 'answer' | 'finish' | 'abandon' | null
+export type PracticePendingOperation = 'start' | 'answer' | 'finish' | 'abandon' | 'sync' | null
 
 export interface UsePracticeSessionOptions {
   source: PracticeSource
   refId?: number | null
-  start: () => Promise<SessionView>
+  start: () => Promise<SessionView | null>
 }
 
 export interface UsePracticeSessionResult {
@@ -40,6 +40,7 @@ export interface UsePracticeSessionResult {
   finish: (answers?: AnswerRequest[]) => Promise<FinishResult | null>
   abandon: () => Promise<boolean>
   reload: () => void
+  sync: () => Promise<SessionView | null>
 }
 
 const PRACTICE_ERROR_MESSAGES: Partial<Record<string, string>> = {
@@ -187,7 +188,18 @@ export function usePracticeSession({
     if (!beginOperation('start')) return null
     try {
       const created = await startRef.current()
-      if (mountedRef.current) applySession(created)
+      if (mountedRef.current) {
+        if (created) {
+          applySession(created)
+        } else {
+          setSession(null)
+          setResults({})
+          setDrafts({})
+          setFinishResult(null)
+          setError(null)
+          setState('idle')
+        }
+      }
       return created
     } catch (caught) {
       if (mountedRef.current) setError(practiceError(caught))
@@ -264,6 +276,20 @@ export function usePracticeSession({
 
   const reload = useCallback(() => setReloadKey((current) => current + 1), [])
 
+  const sync = useCallback(async () => {
+    if (!session || !beginOperation('sync')) return null
+    try {
+      const refreshed = await getSession(session.sessionId)
+      if (mountedRef.current) applySession(refreshed)
+      return refreshed
+    } catch (caught) {
+      if (mountedRef.current) setError(practiceError(caught))
+      return null
+    } finally {
+      endOperation()
+    }
+  }, [applySession, beginOperation, endOperation, session])
+
   return {
     abandon,
     answer,
@@ -277,5 +303,6 @@ export function usePracticeSession({
     session,
     start,
     state,
+    sync,
   }
 }

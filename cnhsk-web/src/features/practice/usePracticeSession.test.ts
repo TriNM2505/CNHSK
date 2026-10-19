@@ -91,6 +91,19 @@ describe('usePracticeSession', () => {
     expect(result.current.session).toEqual(created)
   })
 
+  it('keeps the session idle without an error when start returns null', async () => {
+    const start = vi.fn().mockResolvedValue(null)
+    const { result } = renderHook(() => usePracticeSession({ source: 'TOPIC_STUDY', start }))
+
+    await waitFor(() => expect(result.current.state).toBe('idle'))
+
+    await act(() => result.current.start())
+
+    expect(result.current.state).toBe('idle')
+    expect(result.current.session).toBeNull()
+    expect(result.current.error).toBeNull()
+  })
+
   it('shows only the IMMEDIATE result returned by the server', async () => {
     const serverResult: AnswerResult = {
       correct: false,
@@ -153,6 +166,37 @@ describe('usePracticeSession', () => {
     expect(result.current.error?.message).toBe(message)
     expect(result.current.pending).toBeNull()
     expect(result.current.state).toBe('ready')
+  })
+
+  it('syncs the current session after ANSWER_ALREADY_SUBMITTED and clears the error', async () => {
+    const active = createSession({ sessionId: 51, source: 'TOPIC_STUDY' })
+    const submitted = createSession({
+      answered: [{ answer: 'LEARNED', correct: null, no: 1 }],
+      sessionId: 51,
+      source: 'TOPIC_STUDY',
+      status: 'SUBMITTED',
+    })
+    answerItemMock.mockRejectedValue(apiError('ANSWER_ALREADY_SUBMITTED', 409))
+    getSessionMock.mockResolvedValue(submitted)
+    const { result } = renderHook(() =>
+      usePracticeSession({
+        source: 'TOPIC_STUDY',
+        start: vi.fn().mockResolvedValue(active),
+      }),
+    )
+    await waitFor(() => expect(result.current.state).toBe('idle'))
+    await act(() => result.current.start())
+    await act(() => result.current.answer(1, { answer: 'LEARNED', durationMs: 500 }))
+
+    expect(result.current.error?.errorCode).toBe('ANSWER_ALREADY_SUBMITTED')
+
+    await act(() => result.current.sync())
+
+    expect(getSessionMock).toHaveBeenCalledWith(51)
+    expect(result.current.error).toBeNull()
+    expect(result.current.state).toBe('finished')
+    expect(result.current.session).toEqual(submitted)
+    expect(result.current.finishResult).toBeNull()
   })
 
   it('sends the total audio play count, including zero when audio was not played', async () => {

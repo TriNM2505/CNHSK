@@ -5,7 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { appRoutes } from '@/app/routes'
 import { getCurrentUser } from '@/features/auth/api/getCurrentUser'
 import type { CurrentUser } from '@/features/auth/types'
-import { getTopics } from '@/features/vocab/api/topics'
+import { getTopic, getTopics } from '@/features/vocab/api/topics'
+import type { TopicDetail } from '@/features/vocab/types'
 import { ApiError, AUTH_EXPIRED_EVENT } from '@/shared/api'
 
 vi.mock('@/features/auth/api/getCurrentUser', () => ({
@@ -17,10 +18,13 @@ vi.mock('@/features/auth/api/signOutCurrentUser', () => ({
 }))
 
 vi.mock('@/features/vocab/api/topics', () => ({
+  getTopic: vi.fn(),
   getTopics: vi.fn(),
+  startTopicStudySession: vi.fn(),
 }))
 
 const getCurrentUserMock = vi.mocked(getCurrentUser)
+const getTopicMock = vi.mocked(getTopic)
 const getTopicsMock = vi.mocked(getTopics)
 
 const learner: CurrentUser = {
@@ -47,6 +51,27 @@ const contentEditor: CurrentUser = {
   roles: ['CONTENT_EDITOR'],
 }
 
+const routeTopic: TopicDetail = {
+  actions: {
+    canPracticeListening: true,
+    canPracticeRecognition: true,
+    canStudy: false,
+    canTakeTest: true,
+    retryAvailableAt: null,
+    testBlockedReason: null,
+  },
+  bestTestPercent: null,
+  code: 'ROUTE_TOPIC',
+  hskLevel: 1,
+  id: 1,
+  learnedWords: 1,
+  name: 'Chủ đề định tuyến',
+  percent: 100,
+  status: 'IN_PROGRESS',
+  totalWords: 1,
+  words: [],
+}
+
 function unauthenticatedError() {
   return new ApiError({
     errorCode: 'UNAUTHENTICATED',
@@ -65,6 +90,7 @@ function renderRoute(path: string) {
 
 beforeEach(() => {
   getCurrentUserMock.mockRejectedValue(unauthenticatedError())
+  getTopicMock.mockReset().mockResolvedValue(routeTopic)
   getTopicsMock.mockReset().mockResolvedValue([])
 })
 
@@ -187,10 +213,6 @@ describe('application routes', () => {
   })
 
   it.each([
-    ['/learn/topics/topic-1/study', 'Màn SCR-012 đang dựng'],
-    ['/learn/topics/topic-1/practice/recognition', 'Màn SCR-012 đang dựng'],
-    ['/learn/topics/topic-1/practice/listening', 'Màn SCR-012 đang dựng'],
-    ['/learn/topics/topic-1/test', 'Màn SCR-012 đang dựng'],
     ['/learn/pronunciation/stages/3', 'Màn SCR-016 đang dựng'],
     ['/learn/characters/writing/lexeme-1', 'Màn SCR-014 đang dựng'],
     ['/learn/characters/writing/challenge', 'Màn SCR-014 đang dựng'],
@@ -199,6 +221,19 @@ describe('application routes', () => {
     renderRoute(path)
 
     expect(await screen.findByRole('heading', { name: heading })).toBeVisible()
+  })
+
+  it.each([
+    '/learn/topics/1/study',
+    '/learn/topics/1/practice/recognition',
+    '/learn/topics/1/practice/listening',
+    '/learn/topics/1/test',
+  ])('maps topic child route %s to the real SCR-012 screen', async (path) => {
+    getCurrentUserMock.mockResolvedValue(learner)
+    renderRoute(path)
+
+    expect(await screen.findByRole('heading', { name: 'Chủ đề định tuyến' })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Màn SCR-012 đang dựng' })).not.toBeInTheDocument()
   })
 
   it('moves an expired protected session to login', async () => {
