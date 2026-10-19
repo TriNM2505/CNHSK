@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { appRoutes } from '@/app/routes'
 import { getCurrentUser } from '@/features/auth/api/getCurrentUser'
 import type { CurrentUser } from '@/features/auth/types'
+import { getTopics } from '@/features/vocab/api/topics'
 import { ApiError, AUTH_EXPIRED_EVENT } from '@/shared/api'
 
 vi.mock('@/features/auth/api/getCurrentUser', () => ({
@@ -15,7 +16,12 @@ vi.mock('@/features/auth/api/signOutCurrentUser', () => ({
   signOutCurrentUser: vi.fn(),
 }))
 
+vi.mock('@/features/vocab/api/topics', () => ({
+  getTopics: vi.fn(),
+}))
+
 const getCurrentUserMock = vi.mocked(getCurrentUser)
+const getTopicsMock = vi.mocked(getTopics)
 
 const learner: CurrentUser = {
   id: 1,
@@ -59,6 +65,7 @@ function renderRoute(path: string) {
 
 beforeEach(() => {
   getCurrentUserMock.mockRejectedValue(unauthenticatedError())
+  getTopicsMock.mockReset().mockResolvedValue([])
 })
 
 describe('application routes', () => {
@@ -116,6 +123,14 @@ describe('application routes', () => {
 
     expect(await screen.findByRole('heading', { name: 'Báo cáo nhập dữ liệu' })).toBeVisible()
     expect(screen.queryByRole('heading', { name: 'Màn SCR-069 đang dựng' })).not.toBeInTheDocument()
+  })
+
+  it('allows a learner to open the real topic list screen', async () => {
+    getCurrentUserMock.mockResolvedValue(learner)
+    renderRoute('/learn/topics')
+
+    expect(await screen.findByRole('heading', { name: 'Chủ đề từ vựng' })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Màn SCR-011 đang dựng' })).not.toBeInTheDocument()
   })
 
   it('does not infer LEARNER access from the ADMIN role', async () => {
