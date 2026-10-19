@@ -22,3 +22,17 @@ export interface LoginResponse {
   refreshToken?: string
   accessTokenExpiresIn?: number
 }
+
+export interface RegisterRequest {
+  email: string
+  password: string
+  confirmPassword: string
+  displayName: string
+  acceptTerms: boolean
+}
+
+export interface RegisterResponse {
+  userId: number
+  email: string
+  emailVerified: boolean
+}
