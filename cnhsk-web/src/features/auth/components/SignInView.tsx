@@ -1,4 +1,4 @@
-import { CircleAlert, Clock3, ShieldAlert } from 'lucide-react'
+import { CircleAlert, CircleCheck, Clock3, ShieldAlert } from 'lucide-react'
 import type { FormEvent } from 'react'
 
 import { cn } from '@/shared/lib/cn'
@@ -32,6 +32,21 @@ function formatDateTime(value: string): string {
 }
 
 function NoticeBanner({ notice }: { notice: SignInNotice }) {
+  if (notice.kind === 'password-reset') {
+    return (
+      <div
+        className="mb-5 flex items-start gap-3 rounded-md border border-success bg-success-bg p-4 text-body-sm text-success"
+        role="status"
+      >
+        <CircleCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+        <div className="min-w-0">
+          <p className="font-semibold">Đã đặt lại mật khẩu</p>
+          <p className="mt-1">Hãy đăng nhập bằng mật khẩu mới.</p>
+        </div>
+      </div>
+    )
+  }
+
   const isBlocked = notice.kind === 'blocked'
   const isSuspended = notice.kind === 'suspended'
   const isInformational = isBlocked || isSuspended

@@ -31,6 +31,12 @@ export const signInPreviews = {
     submitDisabled: true,
     values: { email: 'nguoi.hoc@example.com', password: '' },
   },
+  passwordReset: {
+    ...idleCallbacks,
+    notice: { kind: 'password-reset' },
+    state: 'ready',
+    values: { email: '', password: '' },
+  },
   banned: {
     ...idleCallbacks,
     notice: { banReason: 'Vi phạm quy định cộng đồng.', kind: 'banned' },

@@ -11,6 +11,16 @@ export interface CurrentUser {
   avatarUrl?: string | null
 }
 
+export interface EmailRequest {
+  email: string
+}
+
+export interface ResetPasswordRequest {
+  token: string
+  newPassword: string
+  confirmPassword: string
+}
+
 export interface TokenRequest {
   token: string
 }

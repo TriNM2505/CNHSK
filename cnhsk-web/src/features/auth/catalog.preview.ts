@@ -8,6 +8,12 @@ import { SignInView } from './components/SignInView'
 import { signInPreviews } from './components/SignInView.preview'
 import { RegisterView } from './components/RegisterView'
 import { registerPreviews } from './components/RegisterView.preview'
+import { ForgotPasswordView } from './components/ForgotPasswordView'
+import {
+  forgotPasswordPreviews,
+  resetPasswordPreviews,
+} from './components/PasswordResetViews.preview'
+import { ResetPasswordView } from './components/ResetPasswordView'
 import { VerifyEmailView } from './components/VerifyEmailView'
 import { verifyEmailPreviews } from './components/VerifyEmailView.preview'
 
@@ -17,6 +23,7 @@ const signInEntries = [
   ['scr-002-invalid-credentials', 'Đăng nhập — Lỗi 401', signInPreviews.invalidCredentials],
   ['scr-002-blocked', 'Đăng nhập — Bị chặn 423', signInPreviews.blocked],
   ['scr-002-banned', 'Đăng nhập — Bị cấm 403', signInPreviews.banned],
+  ['scr-002-password-reset', 'Đăng nhập — Vừa đặt lại mật khẩu', signInPreviews.passwordReset],
   ['scr-002-field-errors', 'Đăng nhập — Lỗi trường 422', signInPreviews.fieldErrors],
 ] as const
 
@@ -73,6 +80,36 @@ const verifyEmailEntries = [
   ['scr-004-error', 'Xác thực email — Lỗi hệ thống', verifyEmailPreviews.error],
 ] as const
 
+const forgotPasswordEntries = [
+  ['scr-005-default', 'Quên mật khẩu — Mặc định', forgotPasswordPreviews.default],
+  ['scr-005-submitting', 'Quên mật khẩu — Đang gửi', forgotPasswordPreviews.submitting],
+  [
+    'scr-005-invalid-email',
+    'Quên mật khẩu — Email sai định dạng',
+    forgotPasswordPreviews.invalidEmail,
+  ],
+  ['scr-005-sent', 'Quên mật khẩu — Đã nhận yêu cầu', forgotPasswordPreviews.sent],
+  ['scr-005-error', 'Quên mật khẩu — Lỗi hệ thống', forgotPasswordPreviews.error],
+] as const
+
+const resetPasswordEntries = [
+  ['scr-006-default', 'Đặt lại mật khẩu — Mặc định', resetPasswordPreviews.default],
+  ['scr-006-submitting', 'Đặt lại mật khẩu — Đang gửi', resetPasswordPreviews.submitting],
+  ['scr-006-validation', 'Đặt lại mật khẩu — Lỗi phía khách', resetPasswordPreviews.validation],
+  [
+    'scr-006-unchanged',
+    'Đặt lại mật khẩu — Trùng mật khẩu cũ 422',
+    resetPasswordPreviews.unchanged,
+  ],
+  ['scr-006-missing-token', 'Đặt lại mật khẩu — Thiếu token', resetPasswordPreviews.missingToken],
+  [
+    'scr-006-invalid-token',
+    'Đặt lại mật khẩu — Token hỏng 400',
+    resetPasswordPreviews.invalidToken,
+  ],
+  ['scr-006-generic-error', 'Đặt lại mật khẩu — Lỗi hệ thống', resetPasswordPreviews.genericError],
+] as const
+
 const guestAuth: AuthContextValue = {
   error: null,
   reloadCurrentUser: async () => undefined,
@@ -120,6 +157,32 @@ export const previews = [
         createElement(PublicLayout, null, createElement(VerifyEmailView, props)),
       ),
     scr: 'SCR-004',
+    title,
+  })),
+  ...forgotPasswordEntries.map(([id, title, props]) => ({
+    fullFrame: true,
+    group: 'screen' as const,
+    id,
+    render: () =>
+      createElement(
+        AuthContext.Provider,
+        { value: guestAuth },
+        createElement(PublicLayout, null, createElement(ForgotPasswordView, props)),
+      ),
+    scr: 'SCR-005',
+    title,
+  })),
+  ...resetPasswordEntries.map(([id, title, props]) => ({
+    fullFrame: true,
+    group: 'screen' as const,
+    id,
+    render: () =>
+      createElement(
+        AuthContext.Provider,
+        { value: guestAuth },
+        createElement(PublicLayout, null, createElement(ResetPasswordView, props)),
+      ),
+    scr: 'SCR-006',
     title,
   })),
 ] satisfies readonly PreviewEntry[]

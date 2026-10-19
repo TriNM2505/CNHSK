@@ -56,6 +56,13 @@ describe('Scr002SignInPage', () => {
     vi.mocked(signIn).mockReset()
   })
 
+  it('hiện thông báo thành công khi vừa đặt lại mật khẩu (từ SCR-006)', () => {
+    renderPage({ pathname: '/login', state: { passwordReset: true } })
+
+    expect(screen.getByRole('status')).toHaveTextContent('Đã đặt lại mật khẩu')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
   it('đọc navigation state ACCOUNT_BANNED ngay khi mở màn', () => {
     renderPage({
       pathname: '/login',

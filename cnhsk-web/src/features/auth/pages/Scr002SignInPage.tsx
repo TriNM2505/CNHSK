@@ -10,6 +10,7 @@ import { navigateAfterSignIn } from '../navigateAfterSignIn'
 import {
   getSignInFailure,
   normalizeLoginRequest,
+  type PasswordResetNavigationState,
   type SignInFieldErrors,
   type SignInNotice,
   validateLogin,
@@ -19,7 +20,9 @@ import type { LoginRequest } from '../types'
 const EMPTY_VALUES: LoginRequest = { email: '', password: '' }
 
 function noticeFromNavigationState(state: unknown): SignInNotice | undefined {
-  const navigationState = state as AuthNavigationState | null
+  const navigationState = state as (AuthNavigationState & PasswordResetNavigationState) | null
+  if (navigationState?.passwordReset === true) return { kind: 'password-reset' }
+
   const authNotice = navigationState?.authNotice
   if (authNotice?.reason !== 'ACCOUNT_BANNED') return undefined
 
@@ -56,7 +59,7 @@ export default function Scr002SignInPage() {
   const sourceBlocked = notice?.kind === 'blocked' && Date.parse(notice.blockedUntil) > Date.now()
   const state = mutation.pending
     ? ('submitting' as const)
-    : notice || Object.keys(fieldErrors).length
+    : (notice && notice.kind !== 'password-reset') || Object.keys(fieldErrors).length
       ? ('error' as const)
       : ('ready' as const)
   const destinationToRegister = useMemo(() => registerPath(redirect), [redirect])
@@ -64,7 +67,11 @@ export default function Scr002SignInPage() {
   const updateField = (field: keyof LoginRequest, value: string) => {
     setValues((current) => ({ ...current, [field]: value }))
     setFieldErrors((current) => ({ ...current, [field]: undefined }))
-    if (notice?.kind === 'validation' || notice?.kind === 'invalid-credentials') {
+    if (
+      notice?.kind === 'validation' ||
+      notice?.kind === 'invalid-credentials' ||
+      notice?.kind === 'password-reset'
+    ) {
       setNotice(undefined)
     }
   }

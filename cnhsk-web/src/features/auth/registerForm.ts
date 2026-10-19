@@ -1,5 +1,6 @@
 import { toApiError } from '@/shared/api'
 
+import { normalizeEmail, validateEmail } from './emailValidation'
 import { validateNewPassword } from './passwordValidation'
 import type { RegisterRequest } from './types'
 
@@ -15,7 +16,6 @@ export interface RegisterFailure {
   notice: RegisterNotice
 }
 
-const SIMPLE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const REGISTER_FIELDS = new Set<keyof RegisterRequest>([
   'acceptTerms',
   'confirmPassword',
@@ -33,7 +33,7 @@ export function normalizeRegisterRequest(values: RegisterRequest): RegisterReque
     acceptTerms: values.acceptTerms,
     confirmPassword: values.confirmPassword,
     displayName: values.displayName.trim(),
-    email: values.email.trim().toLowerCase(),
+    email: normalizeEmail(values.email),
     password: values.password,
   }
 }
@@ -41,19 +41,14 @@ export function normalizeRegisterRequest(values: RegisterRequest): RegisterReque
 export function validateRegister(values: RegisterRequest): RegisterFieldErrors {
   const errors: RegisterFieldErrors = {}
   const displayName = values.displayName.trim()
-  const email = values.email.trim().toLowerCase()
+  const email = normalizeEmail(values.email)
 
   if (displayName.length < 2 || displayName.length > 100) {
     errors.displayName = 'Tên hiển thị cần từ 2–100 ký tự.'
   }
 
-  if (!email) {
-    errors.email = 'Vui lòng nhập email.'
-  } else if (email.length > 255) {
-    errors.email = 'Email không được vượt quá 255 ký tự.'
-  } else if (!SIMPLE_EMAIL_PATTERN.test(email)) {
-    errors.email = 'Vui lòng nhập email đúng định dạng.'
-  }
+  const emailError = validateEmail(values.email)
+  if (emailError) errors.email = emailError
 
   const passwordError = validateNewPassword(values.password, email)
   if (passwordError) errors.password = passwordError

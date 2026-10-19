@@ -1,10 +1,12 @@
 import { toApiError } from '@/shared/api'
 
+import { normalizeEmail, validateEmail } from './emailValidation'
 import type { LoginRequest } from './types'
 
 export type SignInFieldErrors = Partial<Record<keyof LoginRequest, string>>
 
 export type SignInNotice =
+  | { kind: 'password-reset' }
   | { kind: 'invalid-credentials' }
   | { blockedUntil: string; kind: 'blocked' }
   | { banReason?: string; kind: 'banned' }
@@ -12,12 +14,15 @@ export type SignInNotice =
   | { kind: 'validation' }
   | { kind: 'generic'; message: string; requestId?: string }
 
+/** SCR-006 đặt cờ này khi chuyển về /login sau khi đặt lại mật khẩu thành công (FR-042). */
+export interface PasswordResetNavigationState {
+  passwordReset?: boolean
+}
+
 export interface SignInFailure {
   fieldErrors: SignInFieldErrors
   notice: SignInNotice
 }
-
-const SIMPLE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -29,22 +34,15 @@ function optionalString(value: unknown): string | undefined {
 
 export function normalizeLoginRequest(values: LoginRequest): LoginRequest {
   return {
-    email: values.email.trim().toLowerCase(),
+    email: normalizeEmail(values.email),
     password: values.password,
   }
 }
 
 export function validateLogin(values: LoginRequest): SignInFieldErrors {
   const errors: SignInFieldErrors = {}
-  const normalizedEmail = values.email.trim()
-
-  if (!normalizedEmail) {
-    errors.email = 'Vui lòng nhập email.'
-  } else if (normalizedEmail.length > 255) {
-    errors.email = 'Email không được vượt quá 255 ký tự.'
-  } else if (!SIMPLE_EMAIL_PATTERN.test(normalizedEmail)) {
-    errors.email = 'Vui lòng nhập email đúng định dạng.'
-  }
+  const emailError = validateEmail(values.email)
+  if (emailError) errors.email = emailError
 
   if (!values.password) {
     errors.password = 'Vui lòng nhập mật khẩu.'
