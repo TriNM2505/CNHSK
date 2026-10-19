@@ -103,7 +103,7 @@ describe('application routes', () => {
     getCurrentUserMock.mockResolvedValue({ ...learner, roles: [] })
     renderRoute('/me/password')
 
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-008 đang dựng' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Đổi mật khẩu' })).toBeVisible()
     expect(screen.queryByRole('navigation', { name: 'Học tập' })).not.toBeInTheDocument()
     expect(screen.queryByRole('navigation', { name: 'Quản trị' })).not.toBeInTheDocument()
   })
@@ -142,7 +142,7 @@ describe('application routes', () => {
     expect(screen.queryByRole('heading', { name: 'Màn SCR-002 đang dựng' })).not.toBeInTheDocument()
 
     await act(async () => resolveUser?.(learner))
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-007 đang dựng' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Thông tin cá nhân' })).toBeVisible()
   })
 
   it.each([
