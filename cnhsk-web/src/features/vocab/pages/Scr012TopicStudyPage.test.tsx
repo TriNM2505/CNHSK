@@ -13,12 +13,13 @@ import {
 import type { FinishResult, SessionView } from '@/features/practice'
 import { ApiError } from '@/shared/api'
 
-import { getTopic, startTopicStudySession } from '../api/topics'
+import { getTopic, startTopicPracticeSession, startTopicStudySession } from '../api/topics'
 import type { TopicDetail } from '../types'
 import Scr012TopicStudyPage from './Scr012TopicStudyPage'
 
 vi.mock('../api/topics', () => ({
   getTopic: vi.fn(),
+  startTopicPracticeSession: vi.fn(),
   startTopicStudySession: vi.fn(),
 }))
 
@@ -121,6 +122,25 @@ describe('Scr012TopicStudyPage', () => {
   beforeEach(() => {
     vi.mocked(getTopic).mockReset().mockResolvedValue(topic)
     vi.mocked(startTopicStudySession).mockReset().mockResolvedValue(session())
+    vi.mocked(startTopicPracticeSession)
+      .mockReset()
+      .mockResolvedValue(
+        session({
+          feedback: 'IMMEDIATE',
+          items: [
+            {
+              no: 1,
+              options: [{ key: 'A', text: 'mẹ' }],
+              prompt: { text: '妈妈' },
+              rules: {},
+              skill: 'VOCAB',
+              type: 'MEANING_CHOICE',
+            },
+          ],
+          sessionId: 81,
+          source: 'TOPIC_PRACTICE',
+        }),
+      )
     vi.mocked(findActiveSession).mockReset().mockResolvedValue(null)
     vi.mocked(getSession).mockReset().mockResolvedValue(session())
     vi.mocked(answerItem)
@@ -199,13 +219,11 @@ describe('Scr012TopicStudyPage', () => {
     )
   })
 
-  it('dùng khối trung tính chung cho bước FE-26 và không hiện nội dung mastery', async () => {
+  it('bước nhận diện mở lượt luyện thật và không hiện nội dung mastery', async () => {
     renderPage('/learn/topics/11/practice/recognition')
 
-    expect(await screen.findAllByRole('heading', { name: 'Luyện nhận diện' })).toHaveLength(2)
-    expect(
-      screen.getByText('Nội dung của bước này sẽ được bổ sung trong phần tiếp theo.'),
-    ).toBeVisible()
+    expect(await screen.findByRole('button', { name: /mẹ/ })).toBeVisible()
+    expect(startTopicPracticeSession).toHaveBeenCalledWith(11, { mode: 'RECOGNITION' })
     expect(screen.queryByText(/TODO|thành thạo|mở khóa khi/i)).not.toBeInTheDocument()
   })
 
@@ -379,9 +397,7 @@ describe('Scr012TopicStudyPage', () => {
     await screen.findByText('妈妈')
 
     await user.click(screen.getByRole('link', { name: /Luyện nhận diện/ }))
-    expect(
-      await screen.findByText('Nội dung của bước này sẽ được bổ sung trong phần tiếp theo.'),
-    ).toBeVisible()
+    expect(await screen.findByRole('button', { name: /mẹ/ })).toBeVisible()
     expect(abandonSession).not.toHaveBeenCalled()
   })
 })

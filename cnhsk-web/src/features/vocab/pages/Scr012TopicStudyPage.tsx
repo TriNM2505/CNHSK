@@ -20,6 +20,7 @@ import {
 } from '../topicStudyFlow'
 import type { TopicDetail } from '../types'
 import type { StartTopicStudyResult } from '../types'
+import { TopicPracticeController } from './TopicPracticeController'
 
 const DUPLICATE_ERROR_CODES = new Set(['ANSWER_ALREADY_SUBMITTED', 'SESSION_ALREADY_SUBMITTED'])
 const RESTART_ERROR_CODES = new Set(['SESSION_EXPIRED', 'SESSION_NOT_FOUND', 'ATTEMPT_NOT_OWNED'])
@@ -253,6 +254,13 @@ function TopicStudyPageContent({
       error={topicQuery.error}
       onRetry={topicQuery.reload}
       state={state}
+      stepPanel={
+        topic && activeStep === 'recognition' && topic.actions.canPracticeRecognition ? (
+          <TopicPracticeController mode="RECOGNITION" topic={topic} />
+        ) : topic && activeStep === 'listening' && topic.actions.canPracticeListening ? (
+          <TopicPracticeController mode="LISTENING" topic={topic} />
+        ) : undefined
+      }
       studyPanel={
         topic && activeStep === 'study' && topic.actions.canStudy ? (
           <TopicStudyController onTopicFinished={topicQuery.reload} topic={topic} />

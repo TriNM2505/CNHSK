@@ -1,7 +1,13 @@
 import { apiRequest } from '@/shared/api'
+import type { SessionView } from '@/features/practice'
 import type { HskLevel } from '@/shared/ui'
 
-import type { StartTopicStudyResult, TopicDetail, TopicSummary } from '../types'
+import type {
+  StartTopicPracticeRequest,
+  StartTopicStudyResult,
+  TopicDetail,
+  TopicSummary,
+} from '../types'
 
 export function getTopics(hskLevel?: HskLevel, signal?: AbortSignal) {
   const query = hskLevel ? `?hskLevel=${hskLevel}` : ''
@@ -16,5 +22,12 @@ export function startTopicStudySession(topicId: number) {
   return apiRequest<StartTopicStudyResult>(
     `/api/topics/${encodeURIComponent(String(topicId))}/study-sessions`,
     { method: 'POST' },
+  )
+}
+
+export function startTopicPracticeSession(topicId: number, request: StartTopicPracticeRequest) {
+  return apiRequest<SessionView>(
+    `/api/topics/${encodeURIComponent(String(topicId))}/practice-sessions`,
+    { body: request, method: 'POST' },
   )
 }

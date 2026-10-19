@@ -6,6 +6,8 @@ import { LearnerLayout } from '@/shared/layout'
 import { previewLearner } from '@/shared/layout/Layout.preview'
 
 import { TopicListView } from './components/TopicListView'
+import { TopicPracticeStepView } from './components/TopicPracticeStepView'
+import { topicPracticePreviews } from './components/TopicPracticeStepView.preview'
 import { topicListPreviews } from './components/TopicListView.preview'
 import { StudyStepView, TopicStudyView } from './components/TopicStudyView'
 import { studyStepPreviews, topicStudyPreviews } from './components/TopicStudyView.preview'
@@ -82,4 +84,41 @@ const topicStudyEntries = studyEntries.map(([id, title, props, studyProps]) => (
   title,
 })) satisfies readonly PreviewEntry[]
 
-export const previews = [...topicListEntries, ...topicStudyEntries]
+const practiceEntries = [
+  ['scr-012-recognition', 'Học chủ đề — Luyện nhận diện', topicPracticePreviews.recognition],
+  ['scr-012-feedback', 'Học chủ đề — Phản hồi sau khi chấm', topicPracticePreviews.feedback],
+  ['scr-012-listening', 'Học chủ đề — Luyện nghe', topicPracticePreviews.listening],
+  ['scr-012-practice-loading', 'Học chủ đề — Đang tải lượt luyện', topicPracticePreviews.loading],
+  ['scr-012-mismatch', 'Học chủ đề — Lượt luyện khác đang dở', topicPracticePreviews.mismatch],
+  [
+    'scr-012-practice-unavailable',
+    'Học chủ đề — Chưa đủ từ để luyện',
+    topicPracticePreviews.unavailable,
+  ],
+  ['scr-012-practice-error', 'Học chủ đề — Lỗi lượt luyện', topicPracticePreviews.error],
+  ['scr-012-practice-finished', 'Học chủ đề — Tổng kết luyện', topicPracticePreviews.finished],
+] as const
+
+const topicPracticeEntries = practiceEntries.map(([id, title, props]) => ({
+  fullFrame: true,
+  group: 'screen' as const,
+  id,
+  render: () =>
+    createElement(
+      AuthContext.Provider,
+      { value: learnerAuth },
+      createElement(
+        LearnerLayout,
+        null,
+        createElement(TopicStudyView, {
+          ...topicStudyPreviews.ready,
+          activeStep: props.mode === 'LISTENING' ? 'listening' : 'recognition',
+          stepPanel: createElement(TopicPracticeStepView, props),
+        }),
+      ),
+    ),
+  scr: 'SCR-012',
+  title,
+})) satisfies readonly PreviewEntry[]
+
+export const previews = [...topicListEntries, ...topicStudyEntries, ...topicPracticeEntries]

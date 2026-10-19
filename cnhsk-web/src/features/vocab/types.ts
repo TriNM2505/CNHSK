@@ -49,3 +49,10 @@ export type StartTopicStudyResult =
       reason: 'NO_NEW_WORDS'
       session: null
     }
+
+export type TopicPracticeMode = 'RECOGNITION' | 'LISTENING'
+
+export type StartTopicPracticeRequest = {
+  mode: TopicPracticeMode
+  focusLexemeIds?: number[]
+}

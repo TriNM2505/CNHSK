@@ -7,7 +7,6 @@ import { SessionProgress, SessionSummary, StudyCard } from '@/features/practice'
 import { cn } from '@/shared/lib/cn'
 import {
   Button,
-  Card,
   EmptyState,
   ErrorState,
   HanziText,
@@ -150,23 +149,12 @@ export function StudyStepView({
   return null
 }
 
-export function DeferredTopicStep({ label }: { label: string }) {
-  return (
-    <Card className="text-center">
-      <BookOpenText aria-hidden="true" className="mx-auto size-8 text-brand-700" />
-      <h2 className="mt-3 text-h3 text-ink">{label}</h2>
-      <p className="mt-2 text-body-sm text-ink-secondary">
-        Nội dung của bước này sẽ được bổ sung trong phần tiếp theo.
-      </p>
-    </Card>
-  )
-}
-
 export type TopicStudyViewProps = {
   activeStep: TopicStep
   error?: LoadError
   onRetry: () => void
   state: PageStateValue
+  stepPanel?: ReactNode
   studyPanel?: ReactNode
   topic?: TopicDetail
 }
@@ -176,6 +164,7 @@ export function TopicStudyView({
   error,
   onRetry,
   state,
+  stepPanel,
   studyPanel,
   topic,
 }: TopicStudyViewProps) {
@@ -292,7 +281,7 @@ export function TopicStudyView({
             ) : activeStep === 'study' ? (
               studyPanel
             ) : (
-              <DeferredTopicStep label={STEP_LABELS[activeStep]} />
+              stepPanel
             )}
           </section>
         </div>
