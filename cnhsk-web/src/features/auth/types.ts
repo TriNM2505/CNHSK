@@ -11,6 +11,14 @@ export interface CurrentUser {
   avatarUrl?: string | null
 }
 
+export interface TokenRequest {
+  token: string
+}
+
+export interface EmailVerifiedResponse {
+  emailVerified: true
+}
+
 export interface LoginRequest {
   email: string
   password: string

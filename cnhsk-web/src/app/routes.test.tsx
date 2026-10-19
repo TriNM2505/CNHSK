@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -174,14 +174,16 @@ describe('application routes', () => {
   })
 
   it('keeps a public route open when the session expires', async () => {
+    // Không phụ thuộc màn đã dựng hay chưa: chỉ kiểm route công khai không bị đẩy sang /login.
     getCurrentUserMock.mockResolvedValue(learner)
-    const { router } = renderRoute('/verify-email?token=sample')
-    await screen.findByRole('heading', { name: 'Màn SCR-004 đang dựng' })
+    const { router } = renderRoute('/reset-password?token=sample')
+    await waitFor(() => expect(getCurrentUserMock).toHaveBeenCalled())
+    await screen.findByRole('main')
 
     act(() => window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT)))
 
-    expect(router.state.location.pathname).toBe('/verify-email')
-    expect(screen.getByRole('heading', { name: 'Màn SCR-004 đang dựng' })).toBeVisible()
+    expect(router.state.location.pathname).toBe('/reset-password')
+    expect(router.state.location.search).toBe('?token=sample')
   })
 
   it('always moves a banned account to login with a safe notice', async () => {
