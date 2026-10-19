@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { Outlet } from 'react-router-dom'
 
 import { isRoleAccess, type RouteAccess, type RouteLayout } from '@/app/routeAccess'
+import { screenRegistry, type ScreenId } from '@/app/screenRegistry'
 import { AuthProvider, RequireAuthenticated, RequireGuest, RequireRole } from '@/shared/auth'
 import { AdminLayout, LearnerLayout, PublicLayout, RoleLayout } from '@/shared/layout'
 import { Skeleton } from '@/shared/ui'
@@ -14,7 +15,7 @@ const ScreenUnderConstructionPage = lazy(async () => {
 type ScreenRouteProps = {
   access: RouteAccess
   layout: RouteLayout
-  scr: `SCR-${string}`
+  scr: ScreenId
 }
 
 function ScreenFallback() {
@@ -39,10 +40,15 @@ function ScreenLayout({ children, layout }: { children: ReactNode; layout: Route
 }
 
 export function ScreenRoute({ access, layout, scr }: ScreenRouteProps) {
+  const RegisteredScreen = screenRegistry[scr]
   const content = (
     <ScreenLayout layout={layout}>
       <Suspense fallback={<ScreenFallback />}>
-        <ScreenUnderConstructionPage scr={scr} showAuthNotice={scr === 'SCR-002'} />
+        {RegisteredScreen ? (
+          <RegisteredScreen />
+        ) : (
+          <ScreenUnderConstructionPage scr={scr} showAuthNotice={scr === 'SCR-002'} />
+        )}
       </Suspense>
     </ScreenLayout>
   )

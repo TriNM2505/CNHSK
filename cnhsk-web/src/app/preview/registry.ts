@@ -1,5 +1,6 @@
-import { createElement, type ReactNode } from 'react'
+import { createElement } from 'react'
 
+import type { PreviewEntry, PreviewState } from '@/app/preview/types'
 import {
   ButtonGallery,
   CardGallery,
@@ -31,26 +32,17 @@ import {
   LearnerLayoutGallery,
   PublicLayoutGallery,
 } from '@/app/preview/layoutGalleries'
-import {
-  AudioButtonGallery,
-  ChoiceQuestionGallery,
-  PinyinInputGallery,
-  SessionProgressGallery,
-  SessionSummaryGallery,
-  StudyCardGallery,
-} from '@/app/preview/practiceGalleries'
+import { previews as accountPreviews } from '@/features/account/catalog.preview'
+import { previews as adminUserPreviews } from '@/features/admin-users/catalog.preview'
+import { previews as authPreviews } from '@/features/auth/catalog.preview'
+import { previews as contentImportPreviews } from '@/features/content-import/catalog.preview'
+import { previews as grammarPreviews } from '@/features/grammar/catalog.preview'
+import { previews as hanziPreviews } from '@/features/hanzi/catalog.preview'
+import { previews as practicePreviews } from '@/features/practice/catalog.preview'
+import { previews as pronunciationPreviews } from '@/features/pronunciation/catalog.preview'
+import { previews as vocabPreviews } from '@/features/vocab/catalog.preview'
 
-export type PreviewState = 'loading' | 'empty' | 'error' | 'ready'
-
-export interface PreviewEntry {
-  fullFrame?: boolean
-  group: 'component' | 'screen'
-  id: string
-  render: (state: PreviewState) => ReactNode
-  scr?: string
-  states?: readonly PreviewState[]
-  title: string
-}
+export type { PreviewEntry, PreviewState } from '@/app/preview/types'
 
 export const previewRegistry: readonly PreviewEntry[] = [
   {
@@ -218,42 +210,15 @@ export const previewRegistry: readonly PreviewEntry[] = [
     render: () => createElement(AdminLayoutGallery),
     title: 'AdminLayout',
   },
-  {
-    group: 'component',
-    id: 'practice-choice-question',
-    render: () => createElement(ChoiceQuestionGallery),
-    title: 'ChoiceQuestion',
-  },
-  {
-    group: 'component',
-    id: 'practice-pinyin-input',
-    render: () => createElement(PinyinInputGallery),
-    title: 'PinyinInput',
-  },
-  {
-    group: 'component',
-    id: 'practice-audio-button',
-    render: () => createElement(AudioButtonGallery),
-    title: 'AudioButton',
-  },
-  {
-    group: 'component',
-    id: 'practice-study-card',
-    render: () => createElement(StudyCardGallery),
-    title: 'StudyCard',
-  },
-  {
-    group: 'component',
-    id: 'practice-session-progress',
-    render: () => createElement(SessionProgressGallery),
-    title: 'SessionProgress',
-  },
-  {
-    group: 'component',
-    id: 'practice-session-summary',
-    render: () => createElement(SessionSummaryGallery),
-    title: 'SessionSummary',
-  },
+  ...authPreviews,
+  ...accountPreviews,
+  ...adminUserPreviews,
+  ...contentImportPreviews,
+  ...vocabPreviews,
+  ...grammarPreviews,
+  ...pronunciationPreviews,
+  ...hanziPreviews,
+  ...practicePreviews,
 ]
 
 export function getPreviewStates(entry: PreviewEntry): readonly PreviewState[] {

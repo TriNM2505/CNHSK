@@ -34,4 +34,19 @@ describe('preview registry', () => {
     expect(layouts.map(({ id }) => id)).toEqual(['layout-public', 'layout-learner', 'layout-admin'])
     expect(layouts.every(({ fullFrame }) => fullFrame)).toBe(true)
   })
+
+  it('includes practice previews from its feature catalog', () => {
+    const practiceIds = previewRegistry
+      .filter(({ id }) => id.startsWith('practice-'))
+      .map(({ id }) => id)
+
+    expect(practiceIds).toEqual([
+      'practice-choice-question',
+      'practice-pinyin-input',
+      'practice-audio-button',
+      'practice-study-card',
+      'practice-session-progress',
+      'practice-session-summary',
+    ])
+  })
 })
