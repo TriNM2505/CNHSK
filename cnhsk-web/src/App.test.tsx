@@ -8,6 +8,6 @@ describe('App', () => {
     render(<App />)
 
     expect(screen.getByRole('heading', { name: 'CNHSK' })).toBeVisible()
-    expect(screen.getByText('汉字')).toHaveAttribute('lang', 'zh-Hans')
+    expect(screen.getByText('汉字')).toHaveAttribute('lang', 'zh-CN')
   })
 })
