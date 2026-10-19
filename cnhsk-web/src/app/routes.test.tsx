@@ -91,7 +91,7 @@ describe('application routes', () => {
     getCurrentUserMock.mockResolvedValue(admin)
     renderRoute('/admin/users')
 
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-076 đang dựng' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Quản lý tài khoản' })).toBeVisible()
   })
 
   it('does not infer LEARNER access from the ADMIN role', async () => {
@@ -128,7 +128,7 @@ describe('application routes', () => {
     getCurrentUserMock.mockResolvedValue(admin)
     const { router } = renderRoute('/login')
 
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-076 đang dựng' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Quản lý tài khoản' })).toBeVisible()
     expect(router.state.location.pathname).toBe('/admin/users')
   })
 
