@@ -1,0 +1,517 @@
+<title>Cây tri thức CNHSK</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;800&family=JetBrains+Mono:wght@400;600&family=Noto+Serif+SC:wght@600&display=swap">
+<style>
+/* Layout: one reading column (~72ch) with wide bands for diagrams and tables; jade = structure, cinnabar = weak, gold = consolidating */
+:root {
+  --paper: #f4f6f2; --panel: #e9ede6; --ink: #18211c; --muted: #5a6760; --rule: #cfd6cd;
+  --jade: #1f6f5c; --jade-soft: #d6e8e1; --cinnabar: #b4322a; --cinnabar-soft: #f3dcd9;
+  --gold: #9a7420; --gold-soft: #f1e6c9; --code-bg: #e3e8e1;
+  --f-body: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --f-han: "Noto Serif SC", "SimSun", serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #111614; --panel: #1a211e; --ink: #e4eae6; --muted: #9aa8a0; --rule: #2c3631;
+  --jade: #5fbf9f; --jade-soft: #1d3a31; --cinnabar: #e6685e; --cinnabar-soft: #3d2120;
+  --gold: #d6b25a; --gold-soft: #3a3020; --code-bg: #1e2622; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #111614; --panel: #1a211e; --ink: #e4eae6; --muted: #9aa8a0; --rule: #2c3631;
+  --jade: #5fbf9f; --jade-soft: #1d3a31; --cinnabar: #e6685e; --cinnabar-soft: #3d2120;
+  --gold: #d6b25a; --gold-soft: #3a3020; --code-bg: #1e2622; color-scheme: dark; }
+
+body { background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 72px; }
+.prose { max-width: 72ch; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.2; }
+h1 { font-size: clamp(2rem, 5vw, 3.1rem); font-weight: 800; letter-spacing: -0.02em; margin: 0.2em 0 0.3em; }
+h2 { font-size: 1.55rem; font-weight: 800; margin: 0 0 0.5em; }
+h3 { font-size: 1.1rem; font-weight: 600; margin: 1.6em 0 0.4em; }
+p { margin: 0 0 0.9em; }
+.eyebrow { font-family: var(--f-mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--jade); }
+.lead { font-size: 1.15rem; color: var(--muted); max-width: 64ch; }
+.han { font-family: var(--f-han); }
+code, .kid { font-family: var(--f-mono); font-size: 0.88em; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+section { padding-top: 48px; margin-top: 48px; border-top: 1px solid var(--rule); }
+a { color: var(--jade); }
+a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--jade); outline-offset: 2px; }
+
+/* hero tree strip */
+.hero { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 32px; align-items: center; }
+.layers { display: grid; gap: 8px; }
+.layer { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 12px; align-items: baseline; padding: 10px 14px; background: var(--panel); border-radius: 8px; }
+.layer b { font-family: var(--f-mono); font-size: 0.75rem; color: var(--muted); letter-spacing: 0.06em; }
+.layer.node { background: var(--jade-soft); }
+.layer span { min-width: 0; }
+
+/* assumptions chips */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.chips li { font-size: 0.85rem; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; }
+.chips li b { font-family: var(--f-mono); color: var(--jade); margin-right: 4px; }
+
+/* principles */
+.principles { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 32px; }
+.principles li { padding: 14px 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; }
+.principles .n { font-family: var(--f-mono); color: var(--jade); font-weight: 600; }
+.principles strong { display: block; }
+.principles small { color: var(--muted); font-size: 0.9rem; }
+
+/* build order: real sequence, so numbered */
+.steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: 20px 0 0; }
+.step { padding: 12px 14px; border-left: 3px solid var(--jade); background: var(--panel); }
+.step + .step { border-left-color: var(--jade-soft); }
+.step .n { font-family: var(--f-mono); font-size: 0.75rem; color: var(--jade); }
+.step b { display: block; margin: 2px 0 4px; }
+.step small { color: var(--muted); font-family: var(--f-mono); font-size: 0.75rem; line-height: 1.5; display: block; }
+
+/* tables */
+.tbl { overflow-x: auto; margin: 12px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--rule); }
+th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+.tag { display: inline-block; font-size: 0.72rem; font-family: var(--f-mono); padding: 1px 7px; border-radius: 4px; }
+.tag.keep { background: var(--jade-soft); color: var(--jade); }
+.tag.add { background: var(--gold-soft); color: var(--gold); }
+.tag.no { background: var(--cinnabar-soft); color: var(--cinnabar); }
+.warn { border-left: 3px solid var(--cinnabar); background: var(--cinnabar-soft); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0; }
+.warn b { color: var(--cinnabar); }
+
+/* flow tabs */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 12px; }
+.tabs a { font: inherit; font-size: 0.88rem; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--rule); color: var(--ink); text-decoration: none; }
+.tabs a:hover { background: var(--jade-soft); }
+.flow { background: var(--panel); border-radius: 10px; padding: 18px; margin-top: 16px; scroll-margin-top: 16px; } .flow h3 { margin: 0 0 10px; }
+.flow .diagram { overflow-x: auto; }
+.flow pre.mermaid { background: transparent; margin: 0; text-align: center; }
+.flow p { margin-top: 12px; font-size: 0.93rem; color: var(--muted); max-width: 80ch; }
+pre.code { background: var(--code-bg); padding: 14px 16px; border-radius: 8px; overflow-x: auto; font-family: var(--f-mono); font-size: 0.82rem; line-height: 1.55; margin: 12px 0; }
+
+/* calculator */
+.calc { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.calc table select, .calc table input { font: inherit; font-size: 0.85rem; padding: 4px 6px; border: 1px solid var(--rule); border-radius: 6px; background: var(--paper); color: var(--ink); max-width: 100%; }
+.calc table input { width: 4.5em; }
+.calc td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.calc td:first-child { font-weight: 400; }
+.calc .num { text-align: right; font-family: var(--f-mono); }
+.calc-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { font: inherit; font-size: 0.88rem; padding: 7px 14px; border-radius: 6px; border: 1px solid var(--jade); background: transparent; color: var(--jade); cursor: pointer; }
+.btn.primary { background: var(--jade); color: var(--paper); }
+.btn.ghost { border-color: var(--rule); color: var(--muted); }
+.result { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; padding: 16px 18px; background: var(--panel); border-radius: 10px; }
+.result .big { font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+.result .lbl { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.bar { position: relative; flex: 1 1 260px; min-width: 0; height: 14px; border-radius: 7px; background: linear-gradient(90deg, var(--cinnabar-soft) 0 60%, var(--gold-soft) 60% 80%, var(--jade-soft) 80% 100%); }
+.bar i { position: absolute; top: -5px; width: 4px; height: 24px; background: var(--ink); border-radius: 2px; transform: translateX(-2px); transition: left 0.3s; }
+.bar .tick { position: absolute; top: 18px; font-size: 0.7rem; color: var(--muted); font-family: var(--f-mono); transform: translateX(-50%); }
+.state { font-weight: 600; padding: 4px 12px; border-radius: 999px; }
+.state.review { background: var(--cinnabar-soft); color: var(--cinnabar); }
+.state.consolidate { background: var(--gold-soft); color: var(--gold); }
+.state.extend { background: var(--jade-soft); color: var(--jade); }
+.state.insufficient { background: var(--panel); color: var(--muted); border: 1px dashed var(--muted); }
+
+/* code tree + api */
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+.qs { counter-reset: q; list-style: none; padding: 0; }
+.qs li { counter-increment: q; padding: 10px 0 10px 40px; position: relative; border-bottom: 1px solid var(--rule); }
+.qs li::before { content: counter(q); position: absolute; left: 0; top: 10px; font-family: var(--f-mono); color: var(--gold); font-weight: 600; }
+
+@media (max-width: 760px) {
+  .hero, .two { grid-template-columns: minmax(0, 1fr); }
+  .steps { grid-template-columns: minmax(0, 1fr); }
+  .step + .step { border-left-color: var(--jade); }
+}
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <div>
+    <div class="eyebrow">CNHSK · Cây Năng Lực Hán Ngữ v2.0 · 18/10/2026</div>
+    <h1>Mỗi câu trả lời là bằng chứng về đúng một nút năng lực</h1>
+    <p class="lead">Logic hướng làm, công nghệ và luồng xử lý để CNHSK chạy đúng cây tri thức HSK 3.0 của Học Bá: biết người học vững nút nào, hổng nút nào, hổng vì nút gốc nào, và hôm nay nên ôn gì.</p>
+    <ul class="chips" aria-label="Giả định đang dùng">
+      <li><b>Q1</b>Áp phần lõi (hướng B)</li>
+      <li><b>Q2</b>Leitner cho mục từ</li>
+      <li><b>Q3</b>Lược đồ 1–9, nạp 174 nút sơ cấp</li>
+      <li><b>Q4</b>Biên học tập thay cổng 90%</li>
+      <li><b>Q5</b>Phụ lục B làm bản nháp</li>
+    </ul>
+  </div>
+  <div class="layers" aria-label="Bốn tầng của cây">
+    <div class="layer"><b>MIỀN</b><span>NA · CH · TV · NP · NL · VB</span></div>
+    <div class="layer"><b>CỤM</b><span>NP cấp 3 · câu đặc biệt</span></div>
+    <div class="layer node"><b>NÚT</b><span><span class="kid">NP3-004</span> Câu chữ <span class="han">把</span> · nơi tính mastery</span></div>
+    <div class="layer"><b>MỤC TỪ</b><span><span class="kid">W2-0388</span> <span class="han">打车</span> · chỉ có ở TV và CH</span></div>
+  </div>
+</header>
+
+<section id="logic">
+  <div class="eyebrow">Logic hướng làm</div>
+  <h2>Bảy nguyên tắc</h2>
+  <p class="prose">Module <code>auth</code>, <code>learning</code>, <code>community</code> mới là khung rỗng. Không có code nào phải gỡ, chỉ có tài liệu và migration phải sửa. Đây là lúc đổi rẻ nhất.</p>
+  <ol class="principles">
+    <li><span class="n">1</span><span><strong>Cây là dữ liệu, không phải code</strong><small>Nạp vào bảng <code>kt_*</code> từ CSV. Không hard-code KID trong Java.</small></span></li>
+    <li><span class="n">2</span><span><strong>CNHSK nhập cây, không biên soạn cây</strong><small>Nhập → kiểm tra DAG → kích hoạt phiên bản. Không xây công cụ vẽ cây.</small></span></li>
+    <li><span class="n">3</span><span><strong>Minh chứng chỉ thêm, không sửa</strong><small>Sai thì đánh <code>valid=false</code> kèm lý do, không xoá.</small></span></li>
+    <li><span class="n">4</span><span><strong>Mastery là hàm thuần của minh chứng</strong><small>Bảng <code>mastery</code> chỉ là bộ đệm, tính lại được bất cứ lúc nào.</small></span></li>
+    <li><span class="n">5</span><span><strong>Cập nhật trong cùng transaction</strong><small>Lưu bài làm, ghi minh chứng, cập nhật mastery cùng lúc. Chơi game xong mastery đổi ngay.</small></span></li>
+    <li><span class="n">6</span><span><strong>Tham số có phiên bản</strong><small>Trọng số, ngưỡng, bán rã nằm trong <code>mp_policy.params</code>. Mọi bản ghi lưu <code>policy_version</code>.</small></span></li>
+    <li><span class="n">7</span><span><strong>Chưa có dữ liệu khác với yếu</strong><small>Dưới 3 minh chứng là trạng thái riêng, không bao giờ báo yếu.</small></span></li>
+  </ol>
+
+  <h3>Thứ tự dựng</h3>
+  <div class="steps">
+    <div class="step"><span class="n">BƯỚC 1</span><b>Dữ liệu cây</b><small>kt_node · kt_edge · kiểm tra DAG</small></div>
+    <div class="step"><span class="n">BƯỚC 2</span><b>Nối nội dung</b><small>item_kid · error_code · lexemes.node_kid</small></div>
+    <div class="step"><span class="n">BƯỚC 3</span><b>Bộ tính mastery</b><small>evidence · mastery · lexical_state</small></div>
+    <div class="step"><span class="n">BƯỚC 4</span><b>Gợi ý + chẩn đoán</b><small>Recommender · DiagnosticRunner</small></div>
+    <div class="step"><span class="n">BƯỚC 5</span><b>Màn hình</b><small>hồ sơ năng lực · biên học tập · điểm yếu theo nút</small></div>
+  </div>
+</section>
+
+<section id="tech">
+  <div class="eyebrow">Công nghệ</div>
+  <h2>Dùng tiếp, thêm, và không cần</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Công nghệ</th><th>Trạng thái</th><th>Dùng cho cây tri thức</th></tr></thead>
+    <tbody>
+      <tr><td>Spring Boot 3.5.14 · Java 17</td><td><span class="tag keep">có sẵn</span></td><td>Module <code>learning</code> chứa cây, mastery, gợi ý, chẩn đoán</td></tr>
+      <tr><td>PostgreSQL</td><td><span class="tag keep">có sẵn</span></td><td>Recursive CTE kiểm tra DAG · JSONB cho tham số · partial unique index cho "đúng 1 KID chính"</td></tr>
+      <tr><td>Flyway</td><td><span class="tag keep">có sẵn</span></td><td><code>V3__knowledge_tree</code> → <code>V5__mastery_engine</code></td></tr>
+      <tr><td>Spring Data JPA (validate)</td><td><span class="tag keep">có sẵn</span></td><td>Entity cho <code>kt_node</code>, <code>evidence</code>, <code>mastery</code></td></tr>
+      <tr><td>Spring Security + JJWT</td><td><span class="tag keep">có sẵn</span></td><td>Endpoint <code>/api/me/*</code> lấy người học từ JWT</td></tr>
+      <tr><td>ArchUnit</td><td><span class="tag keep">có sẵn</span></td><td>Chặn <code>community.game</code> ghi thẳng mastery; phải qua <code>learning.api</code></td></tr>
+      <tr><td><code>@Scheduled</code></td><td><span class="tag keep">có sẵn</span></td><td>Job đêm: đến hạn ôn, hạ trạng thái khi độ tin cậy &lt; 1,0</td></tr>
+      <tr><td>Testcontainers PostgreSQL</td><td><span class="tag add">thêm</span></td><td>Test đang chạy H2, mà H2 không chạy đúng recursive CTE, JSONB, partial index</td></tr>
+      <tr><td>Apache Commons CSV</td><td><span class="tag add">thêm</span></td><td>Nạp CSV nút, cạnh, mã lỗi, ánh xạ từ → nút</td></tr>
+      <tr><td>Node + pdfjs (một lần)</td><td><span class="tag add">thêm, ngoài app</span></td><td>Trích bảng phụ lục B từ PDF ra CSV</td></tr>
+      <tr><td>CSDL đồ thị (Neo4j)</td><td><span class="tag no">không cần</span></td><td>Vài trăm nút, vài nghìn cạnh. Đặc tả mục 1.4: PostgreSQL đủ</td></tr>
+      <tr><td>Redis cho cây</td><td><span class="tag no">không cần</span></td><td>Cây nhỏ, bất biến theo phiên bản → giữ trong bộ nhớ JVM (<code>TreeSnapshot</code>)</td></tr>
+      <tr><td>Kafka / Event Bus</td><td><span class="tag no">không cần</span></td><td>Một tiến trình, cập nhật cùng transaction. Event Bus là của LMS Học Bá</td></tr>
+      <tr><td>BKT / IRT (pyBKT)</td><td><span class="tag no">để sau</span></td><td>Chỉ khi ~400 học viên, mỗi nút ≥ 2.000 lượt (đặc tả mục 5.12)</td></tr>
+    </tbody>
+  </table></div>
+  <div class="warn"><b>Hai lệch cấu hình phát hiện khi scout.</b> <code>pom.xml</code> đặt Java 17, Report 2 ghi Java 21. Migration nằm ở <code>db/migration/</code> ngoài classpath, trong khi Flyway mặc định đọc <code>classpath:db/migration</code>, nên hiện tại Flyway không chạy migration nào.</div>
+</section>
+
+<section id="flows">
+  <div class="eyebrow">Luồng logic</div>
+  <h2>Tám luồng của cây</h2>
+  <nav class="tabs" aria-label="Các luồng">
+    <a href="#p-import">Nạp cây</a>
+    <a href="#p-main">Trả lời → mastery</a>
+    <a href="#p-blame">Phân bổ lỗi</a>
+    <a href="#p-state">Trạng thái nút</a>
+    <a href="#p-frontier">Biên học tập</a>
+    <a href="#p-lex">Mục từ Leitner</a>
+    <a href="#p-rec">Gợi ý ôn</a>
+    <a href="#p-diag">Chẩn đoán</a>
+  </nav>
+
+  <div class="flow" id="p-import">
+    <h3>Nạp cây</h3>
+    <div class="diagram"><pre class="mermaid">flowchart LR
+  A["CSV phụ lục B / bảng tính Học Bá"] --> B["TreeImporter"]
+  B --> C["kt_version (nháp)"]
+  C --> D["kt_node, kt_edge"]
+  D --> E{"DagValidator: 4 kiểm tra"}
+  E -- lỗi --> F["Rollback, trả danh sách lỗi"]
+  E -- sạch --> G["is_active = true"]
+  G --> H["TreeSnapshot trong bộ nhớ"]</pre></div>
+    <p>Bốn kiểm tra: vòng lặp · tiên quyết cấp cao hơn nút · cạnh bắc cầu thừa · quá 4 tiên quyết trực tiếp. Chạy bằng Java khi nhập và bằng recursive CTE trong test.</p>
+  </div>
+
+  <div class="flow" id="p-main">
+    <h3>Từ câu trả lời đến mastery</h3>
+    <div class="diagram"><pre class="mermaid">sequenceDiagram
+  participant U as Người học
+  participant API as Exam/Topic API
+  participant EW as EvidenceWriter
+  participant MC as MasteryCalculator
+  participant DB as PostgreSQL
+  U->>API: Nộp bài / kết thúc ván game
+  API->>DB: BEGIN, lưu attempt_items đã chấm
+  API->>EW: các câu đã chấm
+  EW->>DB: đọc item_kid + error_code
+  EW->>EW: phân bổ minh chứng
+  EW->>DB: INSERT evidence
+  EW->>MC: các KID vừa có minh chứng
+  MC->>DB: đọc 8 minh chứng gần nhất mỗi KID
+  MC->>MC: mastery, độ tin cậy, trạng thái
+  MC->>DB: UPSERT mastery, COMMIT
+  API-->>U: kết quả + nút đổi trạng thái</pre></div>
+    <p>Một transaction từ lưu bài làm đến cập nhật mastery. Mục tiêu dưới 1 giây.</p>
+  </div>
+
+  <div class="flow" id="p-blame">
+    <h3>Phân bổ lỗi: sai thì trừ nút nào</h3>
+    <div class="diagram"><pre class="mermaid">flowchart TD
+  Q["Một câu đã chấm"] --> V{"Hợp lệ?"}
+  V -- không --> X["evidence valid=false + lý do"]
+  V -- có --> C{"Trả lời"}
+  C -- đúng --> A1["Mọi KID của câu: s=100 (chính w=1,0, phụ w=0,5)"]
+  C -- "sai, có mã lỗi" --> A2["Chỉ KID của mã lỗi: s=0, w=1,0"]
+  C -- "sai, không mã lỗi" --> A3["Chỉ KID chính: s=0, w=1,0"]</pre></div>
+    <p>Ví dụ: câu sắp xếp <span class="han">作业/我/写完了/把</span>, KID chính <span class="kid">NP3-004</span>, phụ <span class="kid">NP2-013</span>. Chọn phương án gắn <span class="kid">E-NP-07</span> thì chỉ câu <span class="han">把</span> bị 0, bổ ngữ kết quả không bị phạt. Không hợp lệ khi: bị cờ gian lận, timeout, đã làm đúng câu này trong 7 ngày, câu đã bị ngưng.</p>
+  </div>
+
+  <div class="flow" id="p-state">
+    <h3>Trạng thái của một nút</h3>
+    <div class="diagram"><pre class="mermaid">stateDiagram-v2
+  [*] --> notyet
+  notyet --> insufficient: có minh chứng đầu tiên
+  insufficient --> review: đủ, m &lt; 60
+  insufficient --> consolidate: đủ, 60 đến 79
+  insufficient --> extend: đủ, m ≥ 80
+  review --> consolidate: m ≥ 60
+  consolidate --> extend: m ≥ 80
+  extend --> consolidate: m &lt; 77
+  consolidate --> review: m &lt; 57
+  extend --> insufficient: tin cậy &lt; 1,0
+  consolidate --> insufficient: tin cậy &lt; 1,0
+  review --> insufficient: tin cậy &lt; 1,0
+  notyet --> inferred: nút phụ thuộc ≥ 80</pre></div>
+    <p>Đủ minh chứng = từ 3 minh chứng hợp lệ, không cùng một ngày, độ tin cậy từ 1,0. Hạn ôn: giỏ ôn 3 ngày, củng cố 7, mở rộng 14. Vùng đệm 3 điểm chặn trạng thái nhảy qua lại.</p>
+  </div>
+
+  <div class="flow" id="p-frontier">
+    <h3>Biên học tập thay cổng 90%</h3>
+    <div class="diagram"><pre class="mermaid">flowchart LR
+  A["NP1-014 trạng ngữ (vững)"] --> B["NP2-006 了 sau động từ (vững)"]
+  C["NP1-018 了 cuối câu (vững)"] --> B
+  B --> D["NP2-013 bổ ngữ kết quả (củng cố)"]
+  D --> E["NP3-004 câu 把 (chưa mở)"]
+  B --> E
+  E --> F["NP3-005 câu 被 (chưa mở)"]
+  style D fill:#f1e6c9,stroke:#9a7420,color:#18211c
+  style E fill:#e9ede6,stroke:#5a6760,color:#18211c
+  style F fill:#e9ede6,stroke:#5a6760,color:#18211c</pre></div>
+    <p>Một nút sẵn sàng học khi chưa vững và mọi tiên quyết trực tiếp đã vững (mở rộng hoặc suy ra vững). Ở đây bổ ngữ kết quả đang củng cố, nên câu <span class="han">把</span> chưa mở; hệ thống gợi ý ôn bổ ngữ kết quả trước. Chủ đề từ vựng không có tiên quyết bắt buộc nên luôn mở.</p>
+  </div>
+
+  <div class="flow" id="p-lex">
+    <h3>Tầng mục từ (Leitner)</h3>
+    <div class="diagram"><pre class="mermaid">flowchart LR
+  A["Thẻ ôn từ / chữ"] --> B{"Đúng?"}
+  B -- đúng --> C["lên 1 hộp (tối đa 5)"]
+  B -- sai --> D["về hộp 1"]
+  C --> E["ôn lại sau 1, 2, 4, 8, 16 ngày"]
+  D --> E
+  E --> F["Mastery nút TV = 0,5 × tỉ lệ từ hộp ≥ 3 + 0,5 × MP câu ngữ cảnh"]</pre></div>
+    <p>Flashcard chỉ đổi hộp, không sinh minh chứng MP. Câu ngữ cảnh (đọc hiểu có từ của nút) mới sinh minh chứng. Ví dụ <span class="kid">TV2-007</span>: 26/40 từ ở hộp từ 3 trở lên (65%), câu ngữ cảnh 72, nên mastery 68,5 (củng cố).</p>
+  </div>
+
+  <div class="flow" id="p-rec">
+    <h3>Gợi ý ôn hằng ngày</h3>
+    <div class="diagram"><pre class="mermaid">flowchart TD
+  S["Các nút đã học"] --> P["Điểm ưu tiên"]
+  P --> T["Chọn tối đa 5 nút"]
+  T --> Q["Số câu: giỏ ôn 8, chưa đủ 3, củng cố 5, mở rộng 3"]
+  Q --> R{"Tiên quyết đang yếu?"}
+  R -- có --> R1["Chèn 2 câu tiên quyết lên trước"]
+  R -- không --> B["Lấy câu đã duyệt, bỏ câu làm trong 7 ngày"]
+  R1 --> B
+  B --> C{"Đủ câu?"}
+  C -- thiếu --> D["Giao số có được + AI sinh câu vào hàng đợi duyệt"]
+  C -- đủ --> E["Tối đa 20 câu + lý do bằng lời"]
+  D --> E</pre></div>
+    <p>Điểm ưu tiên: giỏ ôn 100 + (60 − m) · chưa đủ 55 · củng cố đến hạn 60 + (80 − m) · mở rộng đến hạn 30 · cộng 20 nếu đến hạn · cộng 15 cho mỗi nút phụ thuộc sắp học. Lý do mẫu: "Bổ ngữ kết quả đang 43%, và câu <span class="han">把</span> cần bổ ngữ kết quả."</p>
+  </div>
+
+  <div class="flow" id="p-diag">
+    <h3>Bài chẩn đoán đầu vào</h3>
+    <div class="diagram"><pre class="mermaid">flowchart TD
+  A["Phạm vi: nút cấp mục tiêu + tiên quyết"] --> B["Chọn nút có nhiều nút liên quan chưa xác định nhất"]
+  B --> C["Hỏi 2 câu: trung bình + khó"]
+  C --> D{"Kết quả"}
+  D -- "đúng 2" --> E["Vững; mọi tiên quyết suy ra vững"]
+  D -- "sai 2" --> F["Chưa vững; mọi nút phụ thuộc suy ra chưa vững"]
+  D -- "1/1" --> G["Thêm 1 câu dễ, theo đa số"]
+  E --> H{"Hết nút / 35 câu / 30 phút?"}
+  F --> H
+  G --> H
+  H -- chưa --> B
+  H -- rồi --> I["Ghi minh chứng w=0,8 cho câu đã làm"]</pre></div>
+    <p>Suy luận chạy trên <code>TreeSnapshot</code> trong bộ nhớ, đi ngược hoặc xuôi theo cạnh tiên quyết. Khoảng 60 nút cần 25–35 câu thay vì hàng trăm.</p>
+  </div>
+</section>
+
+<section id="calc">
+  <div class="eyebrow">Thử công thức</div>
+  <h2>Máy tính MP-1.0</h2>
+  <p class="prose">Nạp sẵn ví dụ của đặc tả: học viên Quốc Bảo, nút <span class="kid">NP3-004</span> câu <span class="han">把</span>, 5 minh chứng. Sửa bất kỳ ô nào để thấy mastery và trạng thái đổi. Trọng số w = bối cảnh × dạng câu × vai trò × 0,5<sup>ngày/30</sup>.</p>
+  <div class="calc">
+    <div class="tbl"><table id="ev-table">
+      <thead><tr><th>#</th><th>Bối cảnh</th><th>Dạng câu</th><th>Vai trò</th><th>Ngày trước</th><th>Điểm</th><th class="num">w</th><th class="num">w × s</th><th></th></tr></thead>
+      <tbody id="ev-body"></tbody>
+    </table></div>
+    <div class="calc-actions">
+      <button class="btn primary" id="add-exam" type="button">Thêm bài thi 80 điểm hôm nay</button>
+      <button class="btn" id="add-row" type="button">Thêm minh chứng</button>
+      <button class="btn ghost" id="reset" type="button">Về ví dụ đặc tả</button>
+    </div>
+    <div class="result" aria-live="polite">
+      <div><div class="lbl">Mastery</div><div class="big" id="m-val">53,3</div></div>
+      <div><div class="lbl">Độ tin cậy Σw</div><div class="big" id="c-val" style="font-size:1.6rem">2,41</div></div>
+      <div class="bar" aria-hidden="true"><i id="m-mark" style="left:53%"></i><span class="tick" style="left:60%">60</span><span class="tick" style="left:80%">80</span></div>
+      <span class="state review" id="s-val">Giỏ ôn ưu tiên</span>
+    </div>
+    <p class="prose" style="color:var(--muted);font-size:0.9rem;margin:0">Đặc tả ghi 53,3 rồi 61,1 sau bài thi. Máy tính này bỏ qua vùng đệm 3 điểm và quy tắc "không cùng một ngày" để dễ đọc; bộ tính thật có cả hai.</p>
+  </div>
+</section>
+
+<section id="code">
+  <div class="eyebrow">Bố cục code</div>
+  <h2>Module learning và API</h2>
+  <div class="two">
+    <div style="min-width:0">
+<pre class="code">com.cnhsk.learning
+├── tree/        TreeImporter · DagValidator
+│                TreeSnapshot · KtNode · KtEdge
+├── content/     ItemKid · ErrorCode
+├── mastery/     MasteryPolicy · EvidenceWriter
+│                MasteryCalculator · StateMachine
+│                NightlyJob
+├── lexical/     LexicalScheduler (Leitner)
+├── recommend/   Recommender
+├── diagnostic/  DiagnosticRunner
+└── api/         LearningApi  ← community.game
+                 chỉ gọi qua đây (ArchUnit)</pre>
+    </div>
+    <div class="tbl" style="margin:0;min-width:0"><table>
+      <thead><tr><th>Endpoint</th><th>Trả về</th></tr></thead>
+      <tbody>
+        <tr><td><code>GET /api/tree</code></td><td>Nút + cạnh của phiên bản đang dùng</td></tr>
+        <tr><td><code>GET /api/me/mastery</code></td><td>Hồ sơ năng lực theo miền</td></tr>
+        <tr><td><code>GET /api/me/mastery/{kid}/evidence</code></td><td>Minh chứng tạo ra con số</td></tr>
+        <tr><td><code>GET /api/me/frontier</code></td><td>Biên học tập</td></tr>
+        <tr><td><code>GET /api/me/recommendations/today</code></td><td>Tối đa 5 nút, 20 câu, kèm lý do</td></tr>
+        <tr><td><code>POST /api/diagnostics</code></td><td>Bắt đầu chẩn đoán, nhận câu tiếp</td></tr>
+        <tr><td><code>POST /api/admin/tree/import</code></td><td>Nhập CSV, kiểm tra DAG, kích hoạt</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <h3>Ba lựa chọn kỹ thuật</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Câu hỏi</th><th>Chọn</th><th>Lý do</th></tr></thead>
+    <tbody>
+      <tr><td>Tính mastery khi nào</td><td>Khi ghi, lưu vào <code>mastery</code></td><td>Đọc nhiều hơn ghi; vẫn giữ hàm tính lại từ <code>evidence</code> để kiểm toán</td></tr>
+      <tr><td>Cây nằm ở đâu lúc chạy</td><td>DB + snapshot trong bộ nhớ</td><td>Chẩn đoán và gợi ý duyệt cạnh liên tục; cây nhỏ, bất biến theo phiên bản</td></tr>
+      <tr><td>Mục từ lưu ở đâu</td><td>Thêm 3 cột vào <code>lexemes</code></td><td><code>lexemes</code> đã có chữ, pinyin, âm Hán Việt, nghĩa; không tạo bảng trùng</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="risks">
+  <div class="eyebrow">Rủi ro và câu hỏi mở</div>
+  <h2>Chỗ dễ hỏng nhất</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Rủi ro</th><th>Mức</th><th>Giảm thiểu</th></tr></thead>
+    <tbody>
+      <tr><td>Thiếu câu hỏi</td><td><span class="tag no">cao</span></td><td>174 nút × ít nhất 5 câu = 870 câu đã duyệt cho sơ cấp. Báo cáo độ phủ theo nút; AI sinh + giáo viên duyệt cho nút thiếu</td></tr>
+      <tr><td>Gắn sai KID</td><td><span class="tag no">cao</span></td><td>Sai một câu làm sai mastery của mọi người làm câu đó. Giáo viên xác nhận KID khi duyệt; theo dõi câu lệch tỉ lệ đúng</td></tr>
+      <tr><td>Phụ lục B thiếu can_do, ví dụ, mã W/Z</td><td><span class="tag add">TB</span></td><td>Cột cho phép rỗng ở bản nháp; thay khi Học Bá giao bản chính thức</td></tr>
+      <tr><td>Test trên H2 cho kết quả sai</td><td><span class="tag add">TB</span></td><td>Testcontainers PostgreSQL cho test cây và mastery</td></tr>
+      <tr><td>Report, slide đã nói FSRS</td><td><span class="tag add">TB</span></td><td>Phase 6: căn chỉnh theo đặc tả Học Bá 16/10</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Cần trả lời trước khi code</h3>
+  <ol class="qs">
+    <li>Học Bá chấp nhận Leitner hay muốn FSRS cho tầng mục từ?</li>
+    <li>Có bảng tính cây chính thức và danh sách từ, chữ có mã W/Z trước tuần 6 không?</li>
+    <li>Java 17 hay 21 là chuẩn của nhóm?</li>
+    <li>Game có ghi từng lượt đoán thành một câu có KID, hay chỉ có điểm tổng của ván?</li>
+  </ol>
+</section>
+
+</div>
+
+<script>
+(function () {
+  // MP-1.0 calculator. Weights from the spec, section 5.4
+  const CONTEXT = { exam: ['Thi / đề HSK đầy đủ', 1.0], quiz: ['Quiz / đề luyện / chẩn đoán', 0.8], graded: ['Bài giáo viên chấm', 0.6], practice: ['Luyện tự chọn / game', 0.5] };
+  const FORM = { open: ['Tự luận / điền / sắp xếp', 1.0], mcq4: ['Trắc nghiệm 4 đáp án', 0.75], mcq3: ['Trắc nghiệm 3 đáp án', 0.67], binary: ['Đúng / sai', 0.5] };
+  const ROLE = { primary: ['KID chính', 1.0], secondary: ['KID phụ', 0.5], error: ['Mã lỗi', 1.0] };
+  const SAMPLE = [
+    { ctx: 'practice', form: 'open', role: 'primary', days: 1, score: 0 },
+    { ctx: 'graded', form: 'open', role: 'primary', days: 3, score: 50 },
+    { ctx: 'quiz', form: 'mcq4', role: 'primary', days: 6, score: 100 },
+    { ctx: 'graded', form: 'open', role: 'secondary', days: 9, score: 100 },
+    { ctx: 'quiz', form: 'open', role: 'primary', days: 13, score: 40 }
+  ];
+  let rows = SAMPLE.map(r => ({ ...r }));
+  const body = document.getElementById('ev-body');
+  const fmt = (x, d) => x.toLocaleString('vi-VN', { minimumFractionDigits: d, maximumFractionDigits: d });
+
+  function opts(map, sel) {
+    return Object.entries(map).map(([k, v]) => `<option value="${k}"${k === sel ? ' selected' : ''}>${v[0]}</option>`).join('');
+  }
+  function render() {
+    body.innerHTML = rows.map((r, i) => `<tr>
+      <td>${i + 1}</td>
+      <td><select id="ctx-${i}" data-i="${i}" data-k="ctx" aria-label="Bối cảnh">${opts(CONTEXT, r.ctx)}</select></td>
+      <td><select id="form-${i}" data-i="${i}" data-k="form" aria-label="Dạng câu">${opts(FORM, r.form)}</select></td>
+      <td><select id="role-${i}" data-i="${i}" data-k="role" aria-label="Vai trò KID">${opts(ROLE, r.role)}</select></td>
+      <td><input id="days-${i}" type="number" min="0" max="365" data-i="${i}" data-k="days" value="${r.days}" aria-label="Số ngày trước"></td>
+      <td><input id="score-${i}" type="number" min="0" max="100" data-i="${i}" data-k="score" value="${r.score}" aria-label="Điểm"></td>
+      <td class="num" id="w-${i}"></td><td class="num" id="ws-${i}"></td>
+      <td><button class="btn ghost" type="button" data-del="${i}" aria-label="Xoá minh chứng ${i + 1}">Xoá</button></td></tr>`).join('');
+    compute();
+  }
+  function compute() {
+    // Window: 8 newest, practice capped at 3 (spec 5.5)
+    const order = rows.map((r, i) => ({ r, i })).sort((a, b) => a.r.days - b.r.days);
+    let practice = 0; const used = new Set();
+    for (const o of order) {
+      if (used.size >= 8) break;
+      if (o.r.ctx === 'practice') { if (practice >= 3) continue; practice++; }
+      used.add(o.i);
+    }
+    let sw = 0, sws = 0;
+    rows.forEach((r, i) => {
+      const w = CONTEXT[r.ctx][1] * FORM[r.form][1] * ROLE[r.role][1] * Math.pow(0.5, r.days / 30);
+      const inWin = used.has(i);
+      document.getElementById('w-' + i).textContent = inWin ? fmt(w, 3) : 'ngoài cửa sổ';
+      document.getElementById('ws-' + i).textContent = inWin ? fmt(w * r.score, 1) : '';
+      if (inWin) { sw += w; sws += w * r.score; }
+    });
+    const m = sw > 0 ? sws / sw : null;
+    const enough = used.size >= 3 && sw >= 1.0;
+    document.getElementById('m-val').textContent = m === null ? '—' : fmt(m, 1);
+    document.getElementById('c-val').textContent = fmt(sw, 2);
+    document.getElementById('m-mark').style.left = (m === null ? 0 : Math.max(0, Math.min(100, m))) + '%';
+    const s = document.getElementById('s-val');
+    let cls = 'insufficient', txt = 'Chưa đủ minh chứng';
+    if (enough && m !== null) {
+      if (m < 60) { cls = 'review'; txt = 'Giỏ ôn ưu tiên · ôn 8 câu · hạn 3 ngày'; }
+      else if (m < 80) { cls = 'consolidate'; txt = 'Củng cố · ôn 5 câu · hạn 7 ngày'; }
+      else { cls = 'extend'; txt = 'Mở rộng · ôn 3 câu khó · hạn 14 ngày'; }
+    }
+    s.className = 'state ' + cls; s.textContent = txt;
+  }
+  body.addEventListener('input', e => {
+    const t = e.target, i = +t.dataset.i, k = t.dataset.k;
+    if (!k) return;
+    rows[i][k] = (k === 'days' || k === 'score') ? Math.max(0, +t.value || 0) : t.value;
+    compute();
+  });
+  body.addEventListener('click', e => {
+    const d = e.target.dataset.del;
+    if (d === undefined) return;
+    rows.splice(+d, 1); render();
+  });
+  document.getElementById('add-exam').addEventListener('click', () => {
+    // A new exam is the newest evidence; shift no other rows
+    rows.unshift({ ctx: 'exam', form: 'open', role: 'primary', days: 0, score: 80 }); render();
+  });
+  document.getElementById('add-row').addEventListener('click', () => {
+    rows.push({ ctx: 'quiz', form: 'mcq4', role: 'primary', days: 0, score: 100 }); render();
+  });
+  document.getElementById('reset').addEventListener('click', () => { rows = SAMPLE.map(r => ({ ...r })); render(); });
+  render();
+})();
+</script>

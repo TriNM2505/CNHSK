@@ -6,7 +6,7 @@
 > (file catalog riêng đã bỏ — mỗi file tự liệt UC của nhóm mình)
 >
 > Đây là nhóm **adaptive learning** — phần "thông minh" của hệ thống và là điểm mạnh nhất khi
-> bảo vệ. Cũng là nhóm có nhiều UC `SYSTEM` (tự động) nhất: 6 trong 14.
+> bảo vệ. Cũng là nhóm có nhiều bước tự động nhất: 6 UC trước đây gán `SYSTEM` nay là «include» của UC người học, gộp vào UC khác hoặc chuyển thành Background Job (đổi 18/10/2026).
 
 ---
 
@@ -14,20 +14,20 @@
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
 | --- | --- | --- | --- | --- | --- |
-| UC-042 | Cập nhật mastery sau khi trả lời đúng/sai | `SYSTEM` | P0 | MVP | 3.1 |
-| UC-043 | Cập nhật mastery ngay sau khi chơi game | `SYSTEM` | P0 | MVP | 3.1 |
-| UC-044 | Tính lại hạn ôn theo FSRS | `SYSTEM` | P0 | MVP | 3.1 |
-| UC-045 | Xem cây chủ đề và trạng thái khóa/mở | `USER` | P1 | MVP | 3.2 |
-| UC-046 | Mở khóa chủ đề khi đạt 90% | `SYSTEM` | P1 | MVP | 3.2 |
-| UC-047 | Nhận bài luyện cho phần yếu (chưa đạt 90%) | `USER` | P1 | MVP | 3.2 |
-| UC-048 | Yêu cầu AI sinh bài luyện theo điểm yếu | `USER` | P1 | MVP | 3.3 |
-| UC-049 | AI sinh câu hỏi vào hàng đợi duyệt | `SYSTEM` | P1 | MVP | 3.3 |
-| UC-050 | Tái sử dụng câu hỏi đã duyệt cho người khác | `SYSTEM` | P2 | MVP | 3.3 |
-| UC-051 | Xem thống kê tiến độ cá nhân | `USER` | P1 | MVP | 3.4 |
-| UC-052 | Xem biểu đồ tiến bộ 7/30/90 ngày | `USER` | P2 | MVP | 3.4 |
-| UC-053 | Xem bản đồ mạnh-yếu theo kỹ năng | `USER` | P2 | MVP | 3.4 |
-| UC-054 | Cài đặt giờ nhắc học và kênh nhận | `USER` | P2 | MVP | 3.5 |
-| UC-055 | Gửi nhắc học tự động đúng giờ | `SYSTEM` | P2 | MVP | 3.5 |
+| UC-042 | Cập nhật mastery sau khi trả lời đúng/sai | «include» UC-029, 035, 047, 088 · `LEARNER` | P0 | MVP | 3.1 |
+| UC-043 | Cập nhật mastery ngay sau khi chơi game | Gộp vào UC-042 | P0 | MVP | 3.1 |
+| UC-044 | Tính lại hạn ôn theo FSRS | «include» UC-042 · `LEARNER` | P0 | MVP | 3.1 |
+| UC-045 | Xem cây chủ đề và trạng thái khóa/mở | `LEARNER` | P1 | MVP | 3.2 |
+| UC-046 | Mở khóa chủ đề khi đạt 90% | «include» UC-029 · `LEARNER` | P1 | MVP | 3.2 |
+| UC-047 | Nhận bài luyện cho phần yếu (chưa đạt 90%) | `LEARNER` | P1 | MVP | 3.2 |
+| UC-048 | Yêu cầu AI sinh bài luyện theo điểm yếu | `LEARNER` | P1 | MVP | 3.3 |
+| UC-049 | AI sinh câu hỏi vào hàng đợi duyệt | «include» UC-048 · `LEARNER` | P1 | MVP | 3.3 |
+| UC-050 | Tái sử dụng câu hỏi đã duyệt cho người khác | «include» UC-047 · `LEARNER` | P2 | MVP | 3.3 |
+| UC-051 | Xem thống kê tiến độ cá nhân | `LEARNER` | P1 | MVP | 3.4 |
+| UC-052 | Xem biểu đồ tiến bộ 7/30/90 ngày | `LEARNER` | P2 | MVP | 3.4 |
+| UC-053 | Xem bản đồ mạnh-yếu theo kỹ năng | `LEARNER` | P2 | MVP | 3.4 |
+| UC-054 | Cài đặt giờ nhắc học và kênh nhận | `LEARNER` | P2 | MVP | 3.5 |
+| UC-055 | Gửi nhắc học tự động đúng giờ | Background Job | P2 | MVP | 3.5 |
 
 > **Ánh xạ DB cho UC-042–045:** `user_knowledge_state` và `user_topic_progress`
 > trong luồng tương ứng các dòng `learning.user_progress` có `target_type`
@@ -40,7 +40,7 @@
 
 | | |
 |---|---|
-| **UC-ID** | UC-042 · **Actor** `SYSTEM` · **Pri** P0 · **Scope** MVP · **FT** 3.1 |
+| **UC-ID** | UC-042 · **Actor** «include» của UC-029, UC-035, UC-047, UC-088 — actor `LEARNER` · **Pri** P0 · **Scope** MVP · **FT** 3.1 |
 
 ## Mô tả
 
@@ -161,7 +161,7 @@ Không có endpoint — service nội bộ module `learning`.
 
 | | |
 |---|---|
-| **UC-ID** | UC-043 · **Actor** `SYSTEM` · **Pri** P0 · **Scope** MVP · **FT** 3.1 |
+| **UC-ID** | UC-043 · **Actor** — · **Đã gộp vào UC-042** (cùng hành vi, chỉ khác nguồn dữ liệu) · **Pri** P0 · **Scope** MVP · **FT** 3.1 |
 
 ## Mô tả
 
@@ -274,7 +274,7 @@ Lời gọi nội bộ: `community` → `learning.api.LearningApi.applyGameResul
 
 | | |
 |---|---|
-| **UC-ID** | UC-044 · **Actor** `SYSTEM` · **Pri** P0 · **Scope** MVP · **FT** 3.1 |
+| **UC-ID** | UC-044 · **Actor** «include» của UC-042, UC-024, UC-066 — actor `LEARNER` · **Pri** P0 · **Scope** MVP · **FT** 3.1 |
 
 ## Mô tả
 
@@ -376,7 +376,7 @@ Service nội bộ, không endpoint. `user_knowledge_state` (đọc + ghi qua UC
 
 | | |
 |---|---|
-| **UC-ID** | UC-045 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 3.2 |
+| **UC-ID** | UC-045 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 3.2 |
 
 ## Mô tả
 
@@ -384,7 +384,7 @@ Cây chủ đề cho người học thấy chủ đề nào đã xong, đang h�
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. `topics` có cột quan hệ tiên quyết
 3. `topic_knowledge_points` đã map chủ đề → điểm kiến thức
 
@@ -396,7 +396,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở cây lộ trình trong SCR-011 — Topic List; đây là vùng trong màn, không phải trang riêng |
+| 1 | `LEARNER` | Mở cây lộ trình trong SCR-011 — Topic List; đây là vùng trong màn, không phải trang riêng |
 | 2 | System | `GET /api/learning-path/tree` |
 | 3 | System | Lấy toàn bộ `topics` + quan hệ tiên quyết |
 | 4 | System | Lấy `user_topic_progress` của người đang đăng nhập |
@@ -406,7 +406,7 @@ Chỉ đọc.
 
 ## Luồng thay thế
 
-**A1 — `USER` mới**
+**A1 — `LEARNER` mới**
 Chỉ node gốc `AVAILABLE`, còn lại `LOCKED`, mọi `completion_percent = 0`.
 
 **A2 — Chủ đề có nhiều tiên quyết**
@@ -420,14 +420,14 @@ Chỉ node gốc `AVAILABLE`, còn lại `LOCKED`, mọi `completion_percent = 0
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
 | `CIRCULAR_PREREQUISITE` | 500 | A cần B, B cần A | 🔴 Xem ghi chú |
-| `ORPHAN_TOPIC` | — | Chủ đề không tiên quyết và không phải gốc | Coi là `AVAILABLE`. Ghi log để `CONTENT_ADMIN` kiểm |
+| `ORPHAN_TOPIC` | — | Chủ đề không tiên quyết và không phải gốc | Coi là `AVAILABLE`. Ghi log để `CONTENT_EDITOR` kiểm |
 | `NO_ROOT_TOPIC` | 500 | Mọi chủ đề đều có tiên quyết | **Không mở được gì cả** — người học nhìn cây toàn ổ khoá. Phải validate khi nhập |
 | `PREREQUISITE_NOT_FOUND` | 500 | Trỏ tới chủ đề đã xoá | Bỏ quan hệ đó, ghi log |
 | `PROGRESS_PERCENT_MISMATCH` | — | `user_topic_progress` lệch dữ liệu thật | Cùng vấn đề UC-025 |
 | `TOPIC_HAS_NO_KNOWLEDGE_POINTS` | — | `topic_knowledge_points` rỗng | Không tính được % — hiện 0% mãi dù học xong. Ghi log |
 | `UNAUTHORIZED` | 401 | Chưa đăng nhập | Cần đăng nhập |
 
-> 🔴 **`CIRCULAR_PREREQUISITE` — lỗi cấu hình dữ liệu làm treo thuật toán.** `CONTENT_ADMIN`
+> 🔴 **`CIRCULAR_PREREQUISITE` — lỗi cấu hình dữ liệu làm treo thuật toán.** `CONTENT_EDITOR`
 > đặt "Gia đình" cần "Nghề nghiệp", "Nghề nghiệp" cần "Gia đình". Duyệt đồ thị để tính trạng
 > thái sẽ **lặp vô hạn** hoặc cả hai `LOCKED` vĩnh viễn.
 > **Phải chặn ở UC-112 (quản lý nội dung)** khi lưu quan hệ: kiểm chu trình bằng DFS trước khi
@@ -463,7 +463,7 @@ GET /api/learning-path/tree?hsk_level={n}
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | `USER` mới | Node gốc `AVAILABLE`, còn lại `LOCKED` |
+| T1 | `LEARNER` mới | Node gốc `AVAILABLE`, còn lại `LOCKED` |
 | T2 | Xong chủ đề A (90%) | B (cần A) chuyển `AVAILABLE` |
 | T3 | B cần A và C, chỉ xong A | B vẫn `LOCKED`, hiện thiếu C |
 | T4 | Dữ liệu có chu trình A↔B | Validate **chặn từ lúc lưu** |
@@ -476,7 +476,7 @@ GET /api/learning-path/tree?hsk_level={n}
 
 | | |
 |---|---|
-| **UC-ID** | UC-046 · **Actor** `SYSTEM` · **Pri** P1 · **Scope** MVP · **FT** 3.2 |
+| **UC-ID** | UC-046 · **Actor** «include» của UC-029 Làm bài kiểm tra cuối chủ đề — actor `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 3.2 |
 
 ## Mô tả
 
@@ -585,7 +585,7 @@ Không có endpoint — chạy trong UC-029, UC-042.
 
 | | |
 |---|---|
-| **UC-ID** | UC-047 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 3.2 |
+| **UC-ID** | UC-047 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 3.2 |
 
 ## Mô tả
 
@@ -594,7 +594,7 @@ Chủ đề chưa đạt 90% → hệ thống chỉ sinh bài cho **phần yếu
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Chủ đề `IN_PROGRESS`, `completion_percent < 90`
 3. Có điểm kiến thức trong chủ đề với `mastery` thấp
 4. Kho có câu `APPROVED` cho các điểm đó
@@ -607,14 +607,14 @@ Trả bộ bài luyện nhắm đúng phần yếu. Không tạo dữ liệu m�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn **Luyện phần còn yếu** trong một chủ đề |
+| 1 | `LEARNER` | Chọn **Luyện phần còn yếu** trong một chủ đề |
 | 2 | System | Kiểm tra quyền truy cập và trạng thái của chủ đề`GET /api/topics/{id}/weak-practice` |
 | 3 | System | Lấy `topic_knowledge_points` của chủ đề |
 | 4 | System | Join `user_knowledge_state`, sắp `mastery` tăng dần |
 | 5 | System | Lấy các điểm `mastery < 0.9` (chưa đạt ngưỡng) |
 | 6 | System | Lấy câu hỏi `APPROVED` cho các điểm đó, ưu tiên điểm yếu nhất |
 | 7 | System | Trả bộ câu + danh sách điểm yếu đang nhắm |
-| 8 | `USER` | Luyện — mastery cập nhật qua UC-042 |
+| 8 | `LEARNER` | Luyện — mastery cập nhật qua UC-042 |
 | 9 | System | Khi `completion_percent` đạt 90 → UC-046 mở chủ đề sau |
 
 ## Luồng thay thế
@@ -687,7 +687,7 @@ GET /api/topics/{id}/weak-practice
 
 | | |
 |---|---|
-| **UC-ID** | UC-048 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 3.3 |
+| **UC-ID** | UC-048 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 3.3 |
 
 ## Mô tả
 
@@ -695,7 +695,7 @@ Người học bấm yêu cầu AI sinh câu hỏi mới bám điểm yếu củ
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Có điểm kiến thức `mastery` thấp
 3. Còn lượt hoặc còn điểm (quota) — ⚠️ chờ `TODO(PAYMENT_SCOPE)`
 4. Chưa vượt giới hạn job đang chạy
@@ -711,7 +711,7 @@ Người học bấm yêu cầu AI sinh câu hỏi mới bám điểm yếu củ
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn **Nhờ AI tạo bài luyện** |
+| 1 | `LEARNER` | Chọn **Nhờ AI tạo bài luyện** |
 | 2 | System | `POST /api/ai/generate-practice` — `{knowledge_point_ids?, count}` |
 | 3 | System | Không truyền điểm → tự lấy 3–5 điểm yếu nhất (UC-040 A3) |
 | 4 | System | **Kiểm quota** qua `QuotaService` |
@@ -720,7 +720,7 @@ Người học bấm yêu cầu AI sinh câu hỏi mới bám điểm yếu củ
 | 7 | System | **Commit** |
 | 8 | System | Đẩy job cho worker (UC-049) chạy nền |
 | 9 | System | Trả `{job_id, status: QUEUED}` **ngay** |
-| 10 | `USER` | Làm việc khác; nhận thông báo khi câu hỏi đã duyệt xong |
+| 10 | `LEARNER` | Làm việc khác; nhận thông báo khi câu hỏi đã duyệt xong |
 
 ## Luồng thay thế
 
@@ -751,7 +751,7 @@ Từ UC-041 khi kho rỗng. Kiểm điểm đó tồn tại.
 
 > 🔴 **`QUOTA_DEDUCTED_BUT_JOB_FAILED` — mất tiền của người học.** Bước 5 trừ lượt, bước 6
 > tạo job. Nếu tách transaction: trừ tiền thành công, tạo job lỗi → người học mất 1 điểm mà
-> không nhận được gì. Với tiền thật thì đây là **tranh chấp**, và `FINANCE_ADMIN` phải xử lý
+> không nhận được gì. Với tiền thật thì đây là **tranh chấp**, và `ACCOUNTANT` phải xử lý
 > tay (UC-102).
 > **Bắt buộc:** bước 5 và 6 **cùng một transaction**. Bước 8 (đẩy worker) ở ngoài — nếu đẩy
 > lỗi thì job vẫn `QUEUED` trong DB và một scheduler quét lại được.
@@ -803,7 +803,7 @@ GET  /api/ai/jobs/{id}
 
 | | |
 |---|---|
-| **UC-ID** | UC-049 · **Actor** `SYSTEM` · **Pri** P1 · **Scope** MVP · **FT** 3.3 |
+| **UC-ID** | UC-049 · **Actor** «include» của UC-048 Yêu cầu AI sinh bài luyện — actor `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 3.3 |
 
 ## Mô tả
 
@@ -878,7 +878,7 @@ Job kẹt `RUNNING`. Scheduler quét job `RUNNING` quá 10 phút → về `QUEUE
 > 🔴 **`AI_HALLUCINATED_CONTENT` là rủi ro không thể validate bằng code.** AI trả câu đúng
 > format hoàn hảo: 4 đáp án, 1 đúng, có lời giải — nhưng câu tiếng Trung **sai ngữ pháp** hoặc
 > lời giải **sai kiến thức**. Không có cách tự động phát hiện.
-> Đây chính là lý do có UC-108 (`TEACHER` hoặc `CONTENT_ADMIN` duyệt). **Người duyệt là lớp bảo vệ duy nhất** —
+> Đây chính là lý do có UC-108 (`TEACHER` hoặc `CONTENT_EDITOR` duyệt). **Người duyệt là lớp bảo vệ duy nhất** —
 > nên không được có đường nào bỏ qua nó.
 
 > ⚠️ **`AI_QUESTION_INVALID` nối với `MALFORMED_QUESTION` ở UC-019.** Nếu validate bước 5 lỏng,
@@ -924,7 +924,7 @@ Không endpoint — worker nền.
 
 | | |
 |---|---|
-| **UC-ID** | UC-050 · **Actor** `SYSTEM` · **Pri** P2 · **Scope** MVP · **FT** 3.3 |
+| **UC-ID** | UC-050 · **Actor** «include» của UC-047 Nhận bài luyện cho phần yếu — actor `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 3.3 |
 
 ## Mô tả
 
@@ -944,7 +944,7 @@ Không tạo dữ liệu mới — chỉ là cách **truy vấn** ở UC-037, UC
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Yêu cầu bài luyện (UC-037/041/047) |
+| 1 | `LEARNER` | Yêu cầu bài luyện (UC-037/041/047) |
 | 2 | System | Tìm các câu hỏi `APPROVED` và đang khả dụng được gắn với các knowledge point đó. Truy vấn `questions` theo `knowledge_point_id`, `status = APPROVED` |
 | 3 | System | **Không** lọc theo `generated_for_user_id` — lấy cả câu sinh cho người khác |
 | 4 | System | Loại câu người B **đã làm** trong 7 ngày qua |
@@ -1020,11 +1020,11 @@ Không endpoint riêng — là điều kiện truy vấn ở UC-037/041/047.
 
 | | |
 |---|---|
-| **UC-ID** | UC-051 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 3.4 |
+| **UC-ID** | UC-051 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 3.4 |
 
 ## Mô tả
 
-`USER` có thể mở dashboard tiến độ cá nhân để xem các chỉ số học tập chính, gồm:
+`LEARNER` có thể mở dashboard tiến độ cá nhân để xem các chỉ số học tập chính, gồm:
 
 - chuỗi ngày học liên tiếp;
 - chuỗi ngày học dài nhất;
@@ -1038,7 +1038,7 @@ Dashboard phải hiển thị được rõ ràng trên cả web và thiết bị
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Có ít nhất một `study_sessions` (nếu chưa có thì hiện màn trống có hướng dẫn)
 
 ## Hậu điều kiện
@@ -1049,7 +1049,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở SCR-019 — Learning Progress (tiến độ cá nhân) |
+| 1 | `LEARNER` | Mở SCR-019 — Learning Progress (tiến độ cá nhân) |
 | 2 | System | Xác định tài khoản hiện tại từ authentication context `GET /api/me/progress` |
 | 3 | System | Đếm `study_sessions` theo ngày → tính `current_streak`, `longest_streak` |
 | 4 | System | Đếm `user_knowledge_state` `mastery ≥ 0.9` theo loại (từ/chữ/ngữ pháp) |
@@ -1060,7 +1060,7 @@ Chỉ đọc.
 
 ## Luồng thay thế
 
-**A1 — `USER` mới, chưa học gì**
+**A1 — `LEARNER` mới, chưa học gì**
 Hệ thống trả các metric rỗng hoặc bằng 0 theo định nghĩa và client hiển thị hướng dẫn bắt đầu học thay vì một dashboard toàn số 0.
 **A2 — Học nhiều thiết bị cùng ngày**
 Mọi hoạt động học hợp lệ trong cùng một local calendar date chỉ đóng góp một ngày vào `streak`, không phụ thuộc thiết bị.
@@ -1119,7 +1119,7 @@ GET /api/me/progress
 | T1 | Học 5 ngày liên tiếp | `current_streak = 5` |
 | T2 | Học 06h00 giờ VN | Tính vào **đúng ngày đó**, streak không đứt |
 | T3 | Học web + mobile cùng ngày | `streak` +1, không +2 |
-| T4 | `USER` mới | Màn hướng dẫn |
+| T4 | `LEARNER` mới | Màn hướng dẫn |
 | T5 | Hai user cùng học | Mỗi người thấy số **của mình** |
 | T6 | Nghỉ 1 ngày rồi học | `current_streak` reset, `longest_streak` giữ |
 | T7 | Tổng từ = 0 | % = 0, không chia 0 |
@@ -1130,7 +1130,7 @@ GET /api/me/progress
 
 | | |
 |---|---|
-| **UC-ID** | UC-052 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 3.4 |
+| **UC-ID** | UC-052 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 3.4 |
 
 ## Mô tả
 
@@ -1139,7 +1139,7 @@ hoặc 90 ngày.
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Có `study_sessions` trong khoảng chọn
 
 ## Hậu điều kiện
@@ -1150,7 +1150,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn khoảng **7 ngày**, **30 ngày** hoặc **90 ngày** |
+| 1 | `LEARNER` | Chọn khoảng **7 ngày**, **30 ngày** hoặc **90 ngày** |
 | 2 | System | Kiểm tra giá trị khoảng thời gian yêu cầu `GET /api/me/progress/chart?days=30` |
 | 3 | System | Nhóm `study_sessions` theo ngày (giờ Việt Nam) |
 | 4 | System | Với mỗi ngày: đếm phút học, số câu đúng/sai, số điểm kiến thức mới thuộc |
@@ -1213,7 +1213,7 @@ GET /api/me/progress/chart?days={7|30|90}
 | T2 | `days=365` | 400 |
 | T3 | Học ngày 1 và ngày 30 | 28 phần tử giữa = 0 |
 | T4 | Học 06h00 giờ VN | Vào đúng ngày đó |
-| T5 | `USER` mới | 30 phần tử đều 0 |
+| T5 | `LEARNER` mới | 30 phần tử đều 0 |
 | T6 | Mảng trả về | Không phần tử nào sau `today` |
 
 ---
@@ -1222,7 +1222,7 @@ GET /api/me/progress/chart?days={7|30|90}
 
 | | |
 |---|---|
-| **UC-ID** | UC-053 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 3.4 |
+| **UC-ID** | UC-053 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 3.4 |
 
 ## Mô tả
 
@@ -1230,7 +1230,7 @@ Biểu đồ radar: mastery trung bình theo **kỹ năng** (nghe · đọc · v
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. `knowledge_points` có **phân loại kỹ năng**
 3. Có `user_knowledge_state`
 
@@ -1242,7 +1242,7 @@ Chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở tab **Bản đồ kỹ năng** |
+| 1 | `LEARNER` | Mở tab **Bản đồ kỹ năng** |
 | 2 | System | `GET /api/me/skill-map` |
 | 3 | System | Join `user_knowledge_state` với `knowledge_points` |
 | 4 | System | Nhóm theo loại kỹ năng, tính `AVG(mastery)` |
@@ -1319,7 +1319,7 @@ GET /api/me/skill-map
 
 | | |
 |---|---|
-| **UC-ID** | UC-054 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 3.5 |
+| **UC-ID** | UC-054 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 3.5 |
 
 ## Mô tả
 
@@ -1328,7 +1328,7 @@ nhắc lúc 20h **giờ Việt Nam**".
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Email đã xác thực (nếu bật kênh email)
 
 ## Hậu điều kiện
@@ -1339,9 +1339,9 @@ nhắc lúc 20h **giờ Việt Nam**".
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở màn hình **Cài đặt nhắc học** |
+| 1 | `LEARNER` | Mở màn hình **Cài đặt nhắc học** |
 | 2 | System | `GET /api/me/notification-settings` — trả cài đặt hoặc mặc định |
-| 3 | `USER` | Chọn giờ (ví dụ 20:00), bật email, tắt web |
+| 3 | `LEARNER` | Chọn giờ (ví dụ 20:00), bật email, tắt web |
 | 4 | Client | `PUT /api/me/notification-settings` |
 | 5 | System | Kiểm tra giờ nhắc hợp lệ theo định dạng `HH:mm` và phạm vi `00:00–23:59` |
 | 6 | System | Nếu bật `EMAIL`, kiểm tra email hiện tại đã được xác thực `email_verified_at IS NOT NULL` |
@@ -1426,7 +1426,7 @@ PUT /api/me/notification-settings
 
 | | |
 |---|---|
-| **UC-ID** | UC-055 · **Actor** `SYSTEM` · **Pri** P2 · **Scope** MVP · **FT** 3.5 |
+| **UC-ID** | UC-055 · **Actor** — · **Không còn là UC: Background Job** chạy theo giờ; người học cài giờ ở UC-054 · **Pri** P2 · **Scope** MVP · **FT** 3.5 |
 
 ## Mô tả
 
@@ -1543,7 +1543,7 @@ Không endpoint — tác vụ định kỳ.
 | 3 | UC-042 | `NOT_IN_TRANSACTION` | Gọi ngoài transaction → nửa bài thi cập nhật mastery, không rollback được |
 | 4 | UC-055 | `WRONG_TIMEZONE` | Nhắc lúc 3h sáng thay vì 20h — sai nghiệm thu, người học tắt thông báo ngay |
 | 5 | UC-043 | `CROSS_MODULE_TRANSACTION_FAILED` | Mất tính nguyên tử = mất lợi thế chính của Modular Monolith |
-| 6 | UC-048 | `QUOTA_DEDUCTED_BUT_JOB_FAILED` | Mất tiền người học → tranh chấp, `FINANCE_ADMIN` xử lý tay |
+| 6 | UC-048 | `QUOTA_DEDUCTED_BUT_JOB_FAILED` | Mất tiền người học → tranh chấp, `ACCOUNTANT` xử lý tay |
 | 7 | UC-045 | `CIRCULAR_PREREQUISITE` | Chu trình tiên quyết → duyệt đồ thị lặp vô hạn hoặc khoá vĩnh viễn |
 | 8 | UC-051 | `STREAK_TIMEZONE_ERROR` | Học sáng bị tính vào hôm trước → streak đứt oan |
 | 9 | UC-049 | `AI_HALLUCINATED_CONTENT` | Câu đúng format nhưng sai kiến thức — **không validate được bằng code** |
@@ -1554,7 +1554,7 @@ Không endpoint — tác vụ định kỳ.
 | Nhóm | Xuất hiện ở | Bài học |
 | --- | --- | --- |
 | **Múi giờ** | UC-044 · UC-051 · UC-052 · UC-054 · UC-055 | Hai luật **trái nhau** trong cùng hệ thống: FSRS tính bằng **UTC**, nhắc học và streak tính bằng **giờ Việt Nam**. Nhầm chỗ nào cũng sai âm thầm. Phải ghi rõ chỗ nào dùng gì |
-| **Phải nằm trong transaction của caller** | UC-042 · UC-043 · UC-046 | Ba service `SYSTEM` đều được gọi từ trong transaction khác. Gọi sai chỗ là mất nguyên tử mà test thường không bắt. Kiểm `isActualTransactionActive()` ở đầu method |
+| **Phải nằm trong transaction của caller** | UC-042 · UC-043 · UC-046 | Ba bước tự động («include») đều được gọi từ trong transaction khác. Gọi sai chỗ là mất nguyên tử mà test thường không bắt. Kiểm `isActualTransactionActive()` ở đầu method |
 | **Dữ liệu tính sẵn lệch dữ liệu gốc** | UC-045 · UC-047 · UC-051 | `user_topic_progress.completion_percent` là gốc của cả ba. Lệch một chỗ thì cây chủ đề sai, luyện phần yếu mâu thuẫn, dashboard nói dối. Cần job đối chiếu |
 | **`null` khác `0`** | UC-052 · UC-053 | Ngày không học phải là 0 (biểu đồ liên tục); kỹ năng chưa học phải là `null` (không phải yếu). Ngược lại là **làm người học quyết định sai** |
 

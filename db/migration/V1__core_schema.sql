@@ -54,12 +54,12 @@ CREATE TABLE roles (
 
 -- 6 role trong DB. GUEST KHONG phai dong o day - la trang thai "chua co token".
 INSERT INTO roles (code, name, description) VALUES
-  ('USER',          'Nguoi hoc',            'Hoc, thi, choi game, dang bai cho duyet'),
-  ('TEACHER',       'Giao vien',            'Duyet cau hoi AI, sua noi dung, cham bai thue'),
-  ('MANAGER',       'Quan ly cong dong',    'Duyet bai dang, xu ly bao cao vi pham'),
-  ('CONTENT_ADMIN', 'Quan tri noi dung',    'Nhap du lieu, quan ly de thi va cuoc thi'),
-  ('FINANCE_ADMIN', 'Quan tri tai chinh',   'Sinh ma the, xem so cai, xu ly tranh chap'),
-  ('SUPER_ADMIN',   'Quan tri he thong',    'Quan ly nguoi dung, cap va thu hoi role');
+  ('LEARNER',        'Nguoi hoc',              'Hoc, thi, choi game, dang bai cho duyet'),
+  ('TEACHER',        'Giao vien',              'Duy nhat duyet cau hoi AI va sua noi dung cau hoi, cham bai thue'),
+  ('MODERATOR',      'Kiem duyet vien',        'Duyet bai dang, xu ly bao cao vi pham'),
+  ('CONTENT_EDITOR', 'Bien tap vien noi dung', 'Nhap du lieu, quan ly de thi, cuoc thi, tai lieu'),
+  ('ACCOUNTANT',     'Ke toan',                'Sinh ma the, quan ly goi, doi soat so cai, xu ly tranh chap'),
+  ('ADMIN',          'Quan tri vien',          'Quan ly nguoi dung, cap va thu hoi role, cau hinh he thong');
 
 CREATE TABLE user_roles (
   user_id    BIGINT      NOT NULL REFERENCES users(id),

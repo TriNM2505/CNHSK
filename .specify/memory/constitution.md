@@ -128,45 +128,47 @@ tin. Server luôn là nơi quyết định cuối cùng về tính hợp lệ, q
 Ba client (web chính, trang game, mobile) dùng chung một backend. Không client nào được
 coi là "đáng tin hơn" client khác.
 
-## Tám actor
+## Bảy actor
 
 Đọc trước khi thiết kế bất cứ thứ gì liên quan quyền. Sai mục này dẫn tới thêm role không
 cần thiết vào DB, hoặc chặn mất role thật sự cần.
 
-| Actor | Số UC | Có trong `user_roles`? | Quyền |
-|---|---|---|---|
-| `USER` | 79 | ✅ | Học, thi, chơi game, đăng bài (chờ duyệt) |
-| `GUEST` | 16 | ❌ | Xem trang công khai, tra từ điển, đăng ký |
-| `SYSTEM` | 14 | ❌ | Job định kỳ |
-| `CONTENT_ADMIN` | 6 | ✅ | Đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi |
-| `MANAGER` | 4 | ✅ | Duyệt bài đăng, xử lý báo cáo — Community |
-| `FINANCE_ADMIN` | 4 | ✅ | 🔴 Sinh mã thẻ, sổ cái, tranh chấp — **tiền thật** |
-| `TEACHER` | 4 | ✅ | Duyệt câu hỏi AI (cùng `CONTENT_ADMIN`), sửa nội dung, chấm bài thuê |
-| `SUPER_ADMIN` | 3 | ✅ | Người dùng, gán role, cấu hình |
+| Actor | Tên | Số UC | Có trong `user_roles`? | Quyền |
+|---|---|---|---|---|
+| `LEARNER` | Người học | 79 | ✅ | Học, thi, chơi game, đăng bài (chờ duyệt) |
+| `GUEST` | Khách | 16 | ❌ | Xem trang công khai, tra từ điển, đăng ký |
+| `CONTENT_EDITOR` | Biên tập viên nội dung | 6 | ✅ | Đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi |
+| `MODERATOR` | Kiểm duyệt viên | 4 | ✅ | Duyệt bài đăng, xử lý báo cáo — Community |
+| `ACCOUNTANT` | Kế toán | 4 | ✅ | 🔴 Sinh mã thẻ, sổ cái, tranh chấp — **tiền thật** |
+| `TEACHER` | Giáo viên | 4 | ✅ | **Duy nhất** duyệt câu hỏi AI và sửa nội dung câu hỏi; chấm bài thuê |
+| `ADMIN` | Quản trị viên | 3 | ✅ | Người dùng, gán role, cấu hình |
 
-**8 actor = 6 role trong DB + 2 actor không phải role.**
+**7 actor = 6 role trong DB + `GUEST`.** Chỉ actor quản trị tổng mang chữ "Admin".
 
-### Hai actor không phải role
+### Actor không phải role
 
 | Actor | Vì sao không phải role | Kiểm quyền bằng |
 |---|---|---|
 | `GUEST` | Chưa đăng nhập, **không có dòng** trong `auth.users` | **Không có JWT** |
-| `SYSTEM` | Job `@Scheduled`, **không phải người** | Quyền hệ thống, không qua `JwtFilter` |
 
-> ⚠️ **TUYỆT ĐỐI KHÔNG** thêm `GUEST` hay `SYSTEM` vào `user_roles`. Đây là lỗi dễ mắc: thấy
-> chúng trong danh sách actor rồi tưởng phải có `role_code` tương ứng.
+> ⚠️ **TUYỆT ĐỐI KHÔNG** thêm `GUEST` vào `user_roles`. Đây là lỗi dễ mắc: thấy
+> nó trong danh sách actor rồi tưởng phải có `role_code` tương ứng.
 
-### Vì sao `ADMIN` tách thành ba
+> **Job định kỳ không phải actor.** Các tác vụ `@Scheduled` (hạ gói hết hạn, nhắc học, hoàn lượt
+> quá hạn…) nằm ở danh mục Background Job của SRS, chạy bằng quyền hệ thống, không qua `JwtFilter`,
+> và cũng không có `role_code`.
 
-Một `ADMIN` làm được cả ba việc là vi phạm **đặc quyền tối thiểu**:
+### Vì sao tách quyền quản trị thành ba role
 
-- `FINANCE_ADMIN` chạm **tiền thật** → phải là role hẹp nhất. `NFR-S08` yêu cầu audit cả
-  thao tác **đọc** sổ cái — không phân biệt được nếu chỉ có một `ADMIN`
-- `CONTENT_ADMIN` duyệt nội dung → **không cần** quyền sinh mã thẻ
-- `SUPER_ADMIN` gán role → **không cần** quyền sinh mã thẻ
+Một role quản trị làm được cả ba việc là vi phạm **đặc quyền tối thiểu**:
 
-Trong 119 UC **không UC nào** dùng `ADMIN` đơn thuần. Mọi UC quản trị đều chỉ rõ một trong
-ba role đã tách. Chi tiết quyền: `business.md` §1.
+- `ACCOUNTANT` chạm **tiền thật** → phải là role hẹp nhất. `NFR-S08` yêu cầu audit cả
+  thao tác **đọc** sổ cái — không phân biệt được nếu một role làm mọi việc
+- `CONTENT_EDITOR` vận hành nội dung → **không cần** quyền sinh mã thẻ
+- `ADMIN` gán role → **không cần** quyền sinh mã thẻ, **không** đụng sổ cái, **không** sửa nội dung câu hỏi
+
+`ADMIN` là quản trị tổng về **tài khoản và hệ thống**, không phải role có mọi quyền.
+Chi tiết quyền: `business.md` §1.
 
 ## Mô hình kinh doanh
 
@@ -224,7 +226,7 @@ Vi phạm `BUS-*`: xử lý như `AC-*` — báo cáo và xin duyệt, cần RFC
 | **BUS-04** | Lịch ôn tập dùng **FSRS**, không dùng khoảng cố định kiểu Leitner | 41 | `business.md` §4 |
 | **BUS-05** | Ngưỡng hoàn thành chủ đề: **90%**. Đạt thì mở chủ đề tiếp theo | 33 | `business.md` §4, §9 |
 | **BUS-06** | Không lộ PII: email và số điện thoại PHẢI mask ở danh sách và log | 28 | `business.md` §8 |
-| **BUS-07** | Nội dung AI sinh LUÔN vào `PENDING_REVIEW`, chỉ `TEACHER`/`CONTENT_ADMIN` duyệt | 27 | `business.md` §6 |
+| **BUS-07** | Nội dung AI sinh LUÔN vào `PENDING_REVIEW`, chỉ `TEACHER` duyệt | 27 | `business.md` §6 |
 | **BUS-08** | Ngày học, streak, nhắc lịch, reset bảng xếp hạng tính theo **giờ Việt Nam**. Riêng FSRS tính bằng **UTC** | 25 | `business.md` §3 · `AC-08` |
 | **BUS-09** | Chấm điểm PHẢI ở server. Kết quả client gửi lên là dữ liệu chưa đáng tin. Chấm bằng dịch vụ ngoài: xem mục chi tiết dưới | 19 | `HR-06` · Nguyên tắc V |
 | **BUS-10** | Xoá nội dung do người dùng tạo là **soft delete**. Truy vấn đọc PHẢI lọc bản ghi đã xoá | 14 | mới — xem dưới |

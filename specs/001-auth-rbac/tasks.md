@@ -1,130 +1,130 @@
-# Tasks: Xác thực, RBAC và gói dịch vụ — Spec #001
+# Tasks: Xác thực, tài khoản và phân quyền — Spec #001
 
-> Nguồn: [`spec.md`](spec.md) (82 FR) · [`plan.md`](plan.md)
+> Nguồn: [`spec.md`](spec.md) v1.1.0 · [`contracts/openapi-auth.yaml`](contracts/openapi-auth.yaml) · [`plan.md`](plan.md)
 > ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸ hoãn · 🔴 chặn
 
-**Tổng: 34 task** — 5 task chặn (`T-00a`…`T-00e`) + 29 task thực thi.
+**Tổng: 36 task** — mỗi task ≤ 4 giờ, **một task = một nhánh `agent/001-<task>` = một PR**.
+Đường dẫn Java viết tắt: `…/` = `src/main/java/com/cnhsk/`; test `t/` = `src/test/java/com/cnhsk/`.
 
-Phân công và ước lượng thời gian **không ghi ở đây** — xem `wbs-estimate.md`
-(mã WBS `1.3.1`, `1.3.2`, `1.3.3` phủ spec này). File này chỉ trả lời **làm gì** và
-**theo thứ tự nào**.
+### Quy ước cho mọi task
+
+1. Đọc `AGENTS.md` → `spec.md` (mục ghi ở cột *Spec*) → OpenAPI. Không sửa file ngoài cột *File*.
+2. Mỗi FR trong task có test tên bắt đầu bằng mã FR, vd `FR031_refresh_rotatesToken`. Test lấy kịch bản từ AT tương ứng ở `spec.md` §14.
+3. Xong khi: test của task pass · `./mvnw verify` xanh (BE) hoặc `npm run lint && npm run typecheck && npm test` xanh (FE).
+4. Spec không nói → dừng, ghi `specs/001-auth-rbac/questions.md`. Không tự giả định.
+5. Commit: `feat(auth): FR-0xx <mô tả>`. Không nhắc AI.
 
 ---
 
-## Đợt 0 · Chặn — phải xong trước mọi task khác
+## Đợt 0 · Nền tảng (§0)
 
-| ID | Task | File | Spec ref | TT |
+| ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-00a | **RFC sửa `AC-04`**: bỏ 3 schema, dùng `public`. Cần cả nhóm duyệt | `.specify/memory/constitution.md` | `plan.md` §4.2 | 🔴 |
-| T-00b | Chuyển `db/migration/*.sql` → `src/main/resources/db/migration/` | 3 file SQL | `plan.md` §4.1 | ⬜ |
-| T-00c | Bỏ `flyway.schemas` khỏi `application.yaml` sau khi T-00a duyệt | `application.yaml` | `plan.md` §4.2 | ⬜ |
-| T-00d | Thêm `jacoco-maven-plugin` vào `pom.xml`, ngưỡng 80% | `pom.xml` | `ES-05` | ⬜ |
-| T-00e | Chạy `mvn flyway:migrate` trên PostgreSQL thật — xác nhận đủ bảng theo v7 | — | `plan.md` §3.1 | ⬜ |
+| T-00 | Hạ tầng dev: `docker-compose.yml` (PostgreSQL 18, Redis 7, Mailpit), `.env.example` đủ biến §0.3, README 5 lệnh chạy | `docker-compose.yml`, `.env.example`, `README.md` | §0.2, §0.3 | ⬜ |
+| T-01 | Migration: chuyển vào `src/main/resources/db/migration/`; viết lại `V1__core_schema.sql`, `V2__community.sql` khớp `database.md` (4 schema, `user_roles` có `CHECK` + `ix_ur_role`, bỏ `roles`, cột gói ở `users`). Xoá `db/migration/` cũ. Cấu hình `spring.flyway.schemas` | 2 file SQL, `application.yaml` | §0.2, §4 | ⬜ |
+| T-02 | `pom.xml`: `jacoco-maven-plugin` (80%), `springdoc-openapi-starter-webmvc-ui`, `testcontainers` (postgresql, junit-jupiter), `spring-boot-starter-mail`, `spring-boot-starter-data-redis`. `AbstractIntegrationTest` (PostgreSQL 18 + Redis 7 + GreenMail hoặc Mailpit container) | `pom.xml`, `t/support/AbstractIntegrationTest.java` | §0.2 | ⬜ |
+| T-03 | Lớp lỗi: `ErrorCode` (mọi mã §5), `ApiException`, `GlobalExceptionHandler` (gồm Bean Validation → 422 `details`, mọi lỗi khác → 500 `INTERNAL_ERROR`), `RequestIdFilter` (MDC + header) | `…/shared/exception/*`, `…/shared/config/RequestIdFilter.java` | §0.2 · AT-78 | ⬜ |
+| T-04 | Cấu hình chung: `CnhskProperties` (`@ConfigurationProperties` cho JWT, cookie, CORS, web base URL), kiểm `JWT_SECRET` ≥ 32 byte khi khởi động, bean `Clock`, Jackson UTC | `…/shared/config/*` | §0.3 · AT-79 | ⬜ |
+| T-05 | `AuditService.record(actorId, action, entity, before, after)` ghi `shared.audit_logs` + entity/repository; hàm `Masking.email()`, `Masking.ip()` | `…/shared/audit/*`, `…/shared/util/Masking.java` | §4.4, FR-057 | ⬜ |
+| T-06 | Hợp đồng: kiểm `contracts/openapi-auth.yaml` hợp lệ (plugin `openapi-generator` validate hoặc test đọc bằng `swagger-parser`); test hợp đồng so `/v3/api-docs` với file nguồn cho path + status code | `pom.xml`, `t/contract/AuthContractTest.java` | §13 · `AC-01` | ⬜ |
 
-> T-00a là **RFC**, không phải code. Không duyệt xong thì T-00c và mọi task entity đều treo.
+> T-01 là điểm khoá: sai migration thì `ddl-auto: validate` làm mọi entity hỏng. Chạy `./mvnw verify` với Testcontainers trước khi mở PR.
 
 ---
 
-## Đợt 1 · Nền tảng chung (`shared`)
+## Đợt 1 · Entity + bảo mật nền
 
-| ID | Task | File | Spec ref | TT |
+| ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | `GlobalExceptionHandler` — `{error_code, message, request_id}` | `shared/exception/` | `HR-09` · §5 Error Matrix | ⬜ |
-| T-02 | `JwtTokenProvider` — sinh/verify HS256, secret từ env | `shared/security/` | FR-061 · `HR-02` | ⬜ |
-| T-03 | `JwtFilter` — đọc **cookie trước, rồi header** | `shared/security/` | **FR-023** | ⬜ |
-| T-04 | `SecurityConfig` — default deny · CORS tường minh 2 origin | `shared/config/` | FR-028, FR-029, FR-060 | ⬜ |
-| T-05 | `CsrfConfig` — bật cho cookie, bỏ qua client dùng header | `shared/config/` | FR-024 · `HR-05` | ⬜ |
+| T-07 | Entity `User` (đủ cột §4.1, trạng thái suy ra `status()`), `UserRole` (`@IdClass`), `AuthToken`; enum `RoleCode`, `TokenType` lưu `@Enumerated(STRING)`; 3 repository (gồm `countActiveAdmins()`, tìm kiếm có `Pageable`) | `…/auth/entity/*`, `…/auth/repository/*` | §4.1–4.3 · AT-60 | ⬜ |
+| T-08 | `JwtService`: phát JWT HS256 (`sub`, `roles`, `ev`, `iat`, `exp`, `jti`), verify, phân biệt hết hạn (`TOKEN_EXPIRED`) với không hợp lệ | `…/shared/security/JwtService.java` | FR-016, FR-061 | ⬜ |
+| T-09 | `JwtAuthenticationFilter`: **cookie `access_token` trước, rồi `Authorization: Bearer`**; kiểm mốc `auth:invalid-before:{userId}` ở Redis (Redis lỗi → bỏ qua, log cảnh báo); ghi `AuthenticatedUser` vào `SecurityContext` | `…/shared/security/*` | FR-023, FR-061, FR-092, NFR-A02 · AT-25, AT-32, AT-64 | ⬜ |
+| T-10 | `SecurityConfig`: mặc định từ chối; danh sách endpoint công khai; 401/403 qua `ErrorCode`; CORS từ cấu hình (không `*`, `allowCredentials`); CSRF double-submit `XSRF-TOKEN` chỉ cho request dùng cookie, miễn các path ở §6; `GET /api/auth/csrf` | `…/shared/config/SecurityConfig.java`, `…/auth/controller/CsrfController.java` | FR-024, FR-028, FR-029, FR-060 · AT-26, AT-27, AT-31 | ⬜ |
+| T-11 | `CookieFactory`: tạo/xoá `access_token`, `refresh_token` (`Path=/api/auth`), `XSRF-TOKEN` đúng thuộc tính | `…/auth/service/CookieFactory.java` | FR-014, FR-014b, FR-015, FR-034 · AT-17, AT-18 | ⬜ |
+| T-12 | `TokenHasher` (SHA-256 hex) + `SecureTokenGenerator` (32 byte Base64URL); `RateLimiter` Redis (`INCR` + `EXPIRE` nguyên tử bằng Lua hoặc `SET NX EX` + `INCR`) | `…/shared/security/*` | FR-033, FR-040, NFR-S02 · AT-36, AT-44 | ⬜ |
 
-> **T-03 là task rủi ro cao nhất của spec này.** Sai thứ tự đọc token thì một loại client
-> không đăng nhập được, và lỗi chỉ hiện trên thiết bị thật, không hiện ở unit test.
+> **T-09 là task rủi ro cao nhất.** Sai thứ tự đọc token thì một loại client không đăng nhập được; lỗi chỉ hiện trên thiết bị thật. Test phải có cả ba: chỉ cookie, chỉ header, có cả hai (cookie thắng).
 
 ---
 
-## Đợt 2 · Entity + Repository
+## Đợt 2 · Đăng ký + xác thực email
 
-| ID | Task | File | Spec ref | TT |
+| ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-06 | `User` entity — 22 cột, enum-as-String | `auth/entity/User.java` | §4.1 · `AC-06` | ⬜ |
-| T-07 | `UserRole` entity — khoá kép, `role_code` dùng `CHECK` | `auth/entity/UserRole.java` | §4.2 | ⬜ |
-| T-08 | `AuthToken` entity — 3 `token_type`, chỉ lưu hash | `auth/entity/AuthToken.java` | §4.3 · FR-033 | ⬜ |
-| T-09 | `Plan` entity + `PlanRepository` | `learning/payment/entity/` | §4.4 | ⬜ |
-| T-10 | Repository cho 3 entity trên | `auth/repository/` | — | ⬜ |
+| T-13 | `MailService`: gửi email xác thực và đặt lại mật khẩu (template văn bản tiếng Việt), chạy **sau commit** (`@TransactionalEventListener(AFTER_COMMIT)`), SMTP lỗi chỉ log | `…/auth/service/MailService.java`, `…/auth/event/*` | FR-006, FR-007 · AT-08, AT-09 | ⬜ |
+| T-14 | `POST /api/auth/register`: DTO + validate (FR-091, FR-095), chuẩn hoá email, bcrypt 12, tạo user + `LEARNER` + `FREE` một transaction, bắt `DataIntegrityViolation` → 409 | `…/auth/controller/AuthController.java`, `…/auth/service/RegistrationService.java`, `…/auth/dto/*`, `…/auth/validation/*` | FR-001→FR-005, FR-008, FR-068, FR-091, FR-095 · AT-01→AT-07, AT-10 | ⬜ |
+| T-15 | `POST /api/auth/verify-email` (idempotent FR-094), `POST /api/auth/verify-email/resend` (3/giờ), `AuthApi.requireVerifiedEmail` | `…/auth/service/EmailVerificationService.java`, controller | FR-009→FR-013, FR-094 · AT-11→AT-16 | ⬜ |
 
 ---
 
-## Đợt 3 · Đăng ký + xác thực email
+## Đợt 3 · Đăng nhập ba client
 
-| ID | Task | File | Spec ref | TT |
+| ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-11 | `POST /api/auth/register` — tạo user + role + gói trong **1 transaction** | `AuthService` | FR-001…FR-008 | ⬜ |
-| T-12 | Gửi email xác thực — SMTP lỗi **vẫn trả 201** | `AuthService` + `MailSender` | FR-006, FR-007 · `NFR-A01` | ⬜ |
-| T-13 | `GET /api/auth/verify` + chặn thao tác đổi điểm khi chưa xác thực | `AuthService` | FR-009…FR-013 | ⬜ |
+| T-16 | `POST /api/auth/login`: đọc `X-Client-Type` (thiếu/lạ → WEB), kiểm chặn email–IP **trước** bcrypt, bcrypt hash giả khi email không tồn tại, kiểm cấm/tạm khoá, phát token, WEB đặt cookie / MOBILE trả body, ghi `LOGIN_SUCCESS` | `…/auth/service/LoginService.java`, controller | FR-014→FR-025, FR-089 · AT-17→AT-24, AT-28 | ⬜ |
+| T-17 | Chặn nguồn đăng nhập: đếm sai theo `sha256(email)`+IP, 5 lần/15 phút → khoá 15 phút → 423 kèm `blockedUntil`; xoá khi thành công | `…/auth/service/LoginAttemptService.java` | FR-046→FR-050 · AT-21, AT-51→AT-54, AT-80 | ⬜ |
+| T-18 | `GET /api/auth/me` (shape §13) | controller, `…/auth/service/CurrentUserService.java` | FR-026, FR-027 · AT-29, AT-30 | ⬜ |
 
 ---
 
-## Đợt 4 · Đăng nhập 3 client
+## Đợt 4 · Vòng đời token và mật khẩu
 
-| ID | Task | File | Spec ref | TT |
+| ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-14 | `POST /api/auth/login` — cookie đủ **5 thuộc tính** cho web | `AuthService` | FR-014…FR-021 · `HR-03` | ⬜ |
-| T-15 | Nhánh mobile — token trong **body**, không đặt cookie | `AuthService` | FR-022…FR-025 | ⬜ |
-| T-16 | `GET /api/auth/me` — cho trang game biết mình là ai | `AuthController` | **FR-027** | ⬜ |
-| T-17 | Redis chặn theo cặp email–IP sau 5 lần sai/15 phút, TTL 15 phút; reset khi đăng nhập hoặc đặt lại mật khẩu thành công | `AuthService` | FR-046…FR-050 | ⬜ |
-
-> **T-16 dễ bị bỏ sót.** Cookie `HttpOnly` nên JavaScript trang game **không đọc được**
-> token — không có endpoint này thì trang game không biết đã đăng nhập hay chưa.
+| T-19 | `POST /api/auth/refresh`: rotation một transaction (`SELECT … FOR UPDATE` dòng token), phát hiện tái dùng → thu hồi tất cả + `TOKEN_REUSE`; WEB cookie / MOBILE body | `…/auth/service/RefreshTokenService.java` | FR-031→FR-033 · AT-33→AT-36 | ⬜ |
+| T-20 | `logout`, `logout-all`, `SessionInvalidationService` (ghi `auth:invalid-before:{userId}` TTL 15 phút) | `…/auth/service/SessionInvalidationService.java`, controller | FR-034→FR-036, FR-092 · AT-37→AT-39 | ⬜ |
+| T-21 | `forgot-password` (luôn 202; giới hạn 3/giờ/email, 10/giờ/IP; bỏ qua tài khoản bị cấm) + `reset-password` (thu hồi mọi refresh, FR-092, `PASSWORD_UNCHANGED`) | `…/auth/service/PasswordResetService.java` | FR-038→FR-042, FR-045, FR-093 · AT-41→AT-47, AT-50 | ⬜ |
+| T-22 | `GET/PATCH /api/me/profile` (3 field, chặn field lạ bằng `@JsonIgnoreProperties(ignoreUnknown=false)` → 422), `POST /api/me/password` (giữ phiên hiện tại theo `jti`/refresh hiện tại) | `…/auth/controller/MeController.java`, `…/auth/service/ProfileService.java` | FR-043→FR-045, FR-051→FR-053 · AT-48→AT-50, AT-55→AT-57 | ⬜ |
 
 ---
 
-## Đợt 5 · Token lifecycle
+## Đợt 5 · Quản trị tài khoản và role
 
-| ID | Task | File | Spec ref | TT |
+| ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-18 | Refresh + **rotation + reuse detection** (thu hồi toàn bộ) | `TokenService` | FR-031…FR-033 | ⬜ |
-| T-19 | Logout web (xoá cookie) · mobile (thu hồi) · mọi thiết bị | `AuthService` | FR-034…FR-036 | ⬜ |
-| T-20 | Quên / đặt lại / đổi mật khẩu — `SecureRandom` ≥16 ký tự | `AuthService` | FR-038…FR-045 · `BUS-13` | ⬜ |
+| T-23 | `GET /api/admin/users` (tìm, lọc, phân trang, email mask) + `GET /api/admin/users/{id}` (email đầy đủ, `VIEW_USER_PII`) | `…/auth/controller/AdminUserController.java`, `…/auth/service/AdminUserQueryService.java` | FR-054, FR-057, FR-097 · AT-58, AT-59, AT-75, AT-76 | ⬜ |
+| T-24 | Gán/thu hồi role: chặn tự cấp/tự thu hồi `ADMIN`, `ADMIN` cuối cùng (khoá `pg_advisory_xact_lock` hoặc `SELECT … FOR UPDATE` các dòng `ADMIN`), 409 trùng, `audit_logs`, FR-092 | `…/auth/service/RoleService.java`, controller | FR-058→FR-066 · AT-60→AT-70 | ⬜ |
+| T-25 | Cấm/gỡ cấm: `reason` 5–500, chặn tự cấm và `ADMIN` cuối cùng, thu hồi refresh, FR-092, `audit_logs` | `…/auth/service/BanService.java`, controller | FR-020, FR-096 · AT-22, AT-73, AT-74 | ⬜ |
+| T-26 | `BootstrapAdminRunner` (`ApplicationRunner`) | `…/auth/service/BootstrapAdminRunner.java` | §0.2 · AT-77 | ⬜ |
+| T-27 | `auth.api.AuthApi` (`currentUser()`, `requireVerifiedEmail()`, `hasRole()`); bỏ `allowEmptyShould(true)` trong `ModuleBoundaryTest` | `…/auth/api/*`, `t/architecture/ModuleBoundaryTest.java` | FR-010 · `AC-03` · AT-12 | ⬜ |
 
 ---
 
-## Đợt 6 · RBAC + gói dịch vụ
+## Đợt 6 · Frontend `cnhsk-web`
 
-| ID | Task | File | Spec ref | TT |
+| ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-21 | `RoleService` — gán/thu hồi role, chặn tự cấp, ghi `audit_logs` | `auth/service/RoleService.java` | FR-058…FR-066 | ⬜ |
-| T-22 | `ProfileController` — xem/sửa cá nhân, **kiểm quyền sở hữu** | `auth/controller/` | FR-051…FR-055 · `BUS-01` | ⬜ |
-| T-23 | `PlanService` + job reset lượt tháng (giờ Việt Nam) | `learning/payment/` | FR-067…FR-075 · `BUS-08` | ⬜ |
-| T-24 | `AuthApi` + `PlanLookup` — lớp `api` cho module khác | `auth/api/`, `learning/api/` | `AC-03` | ⬜ |
+| T-28 | Khởi tạo `cnhsk-web` (Vite React TS), Tailwind với token `design.md` §6, ESLint + Prettier, Vitest + Testing Library, script `lint`/`typecheck`/`test`; proxy Vite `/api` → `localhost:8080` | `cnhsk-web/**` (khung) | §0.2 | ⬜ |
+| T-29 | `shared/api/client.ts` (cookie, `X-Client-Type`, CSRF, refresh một lần cho request song song), `shared/auth/AuthProvider.tsx`, `RequireRole.tsx`, layout public/learner/admin, SCR-079, trang 404 | `cnhsk-web/src/shared/**`, `src/app/**` | §12.2, FR-037 · AT-40 | ⬜ |
+| T-30 | SCR-002 Sign In + SCR-003 Register + điều hướng FR-090 | `cnhsk-web/src/features/auth/**` | FR-087, FR-090 · AT-71, AT-72 | ⬜ |
+| T-31 | SCR-004 Verify Email + SCR-005 Forgot + SCR-006 Reset + banner chưa xác thực | `cnhsk-web/src/features/auth/**` | FR-088 · AT-71 | ⬜ |
+| T-32 | SCR-007 Profile + SCR-008 Change Password | `cnhsk-web/src/features/account/**` | FR-051, FR-043 | ⬜ |
+| T-33 | SCR-076 User List + SCR-077 User Detail (gán/thu hồi role, cấm/gỡ cấm có bước xác nhận trong trang) | `cnhsk-web/src/features/admin-users/**` | FR-096, FR-097 | ⬜ |
+| T-34 | SCR-001 Landing phần tài khoản (nút đăng nhập/đăng ký, "Khu vực của bạn" khi đa role) | `cnhsk-web/src/features/landing/**` | FR-090 | ⬜ |
 
-> **T-24 làm cuối nhưng quan trọng nhất cho các spec sau.** Xong T-24 thì bỏ
-> `allowEmptyShould(true)` trong `ModuleBoundaryTest` để rule hoạt động thật.
-
-> **V2 — UC-014:** Chức năng `SUPER_ADMIN` xem lịch sử đăng nhập thành công
-> (FR-056…FR-057) được triển khai sau MVP, không thuộc T-22.
+Mỗi màn: field, nhãn, thông báo lấy đúng `screen-fields.md` (dòng ở §12.1); đủ 3 trạng thái Loading · Empty · Error; test Vitest cho validate và xử lý lỗi API.
 
 ---
 
-## Đợt 7 · Kiểm thử
+## Đợt 7 · Kiểm thử tổng
 
-| ID | Task | Spec ref | TT |
+| ID | Task | Spec | TT |
 |---|---|---|---|
-| T-25 | OpenAPI cho 14 endpoint — viết **TRƯỚC** khi code (`AC-01`) | `AC-01` | ⬜ |
-| T-26 | Integration test 3 client cùng một tài khoản | **SC-001** | ⬜ |
-| T-27 | Test cookie chung `cnhsk.com` → `game.cnhsk.com` | **SC-002** | ⬜ |
-| T-28 | Test 27 mã lỗi trong Error Matrix | §5 | ⬜ |
-| T-29 | Coverage ≥ 80% (`ES-05`) | `ES-05` | ⬜ |
-
-> T-25 đứng ở đợt 7 trong bảng nhưng **phải làm trước đợt 3** theo `AC-01` (API First).
-> Để ở đây cho cùng nhóm "việc kiểm thử & hợp đồng".
+| T-35 | Integration test luồng đủ: đăng ký → xác thực → đăng nhập WEB và MOBILE cùng tài khoản → `/me` từ origin game → refresh → đổi mật khẩu → đăng xuất; test mọi mã lỗi §5 có ít nhất một ca; coverage ≥ 80% | SC-001→SC-006 · §5 · `ES-05` | ⬜ |
 
 ---
 
 ## Thứ tự thực thi
 
 ```
-Đợt 0 (chặn) → T-25 OpenAPI → Đợt 1 → Đợt 2 → Đợt 3 → Đợt 4 → Đợt 5 → Đợt 6 → T-26…T-29
+T-00 → T-01 → T-02 → T-03 → T-04 → T-05 → T-06
+     → T-07 → T-08 → T-09 → T-10 → T-11 → T-12
+     → T-13 → T-14 → T-15 → T-16 → T-17 → T-18
+     → T-19 → T-20 → T-21 → T-22 → T-23 → T-24 → T-25 → T-26 → T-27
+     → T-35
+T-28 có thể chạy song song từ sau T-06; T-29→T-34 sau T-18 (cần API thật hoặc chạy cùng BE local)
 ```
 
-**Ba task rủi ro cao, làm cẩn thận nhất:** T-03 (`JwtFilter` 2 nhánh) · T-14 (cookie 5 thuộc
-tính) · T-18 (rotation + reuse detection).
+**Ba task rủi ro cao:** T-09 (đọc token hai nhánh) · T-16 (cookie + chặn trước bcrypt) · T-19 (rotation + phát hiện tái dùng).
 
-**Hiện trạng: 0/34 task xong.** T-00a đang chặn — cần RFC sửa `AC-04`.
+**Hiện trạng: 0/36 task xong.** Chờ cả nhóm duyệt `spec.md` v1.1.0 (đặc biệt câu 6, 7 ở §9) rồi khoá: `Status APPROVED`, tag `spec/001-auth-rbac/v1.1.0`.

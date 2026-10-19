@@ -1,0 +1,101 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Pronunciation Stages API
+  version: 1.0.0
+  description: >
+    Hợp đồng spec 005. Trả lời/kết thúc dùng bộ máy spec 003 (/api/practice/sessions/{id}/answers, /finish);
+    FinishResult.extra = PronStageExtra. Chỉ LEARNER.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: pronunciation
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    ErrorResponse:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ErrorResponse'
+    SessionView:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/SessionView'
+    StageState:
+      type: string
+      enum: [LOCKED, AVAILABLE, COMPLETED]
+    StageSummary:
+      type: object
+      required: [stageIndex, name, passPercent, unitCount, playable, state]
+      properties:
+        stageIndex: { type: integer, minimum: 1, maximum: 8 }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        targetSounds: { type: array, items: { type: string } }
+        passPercent: { type: number, example: 80.0 }
+        unitCount: { type: integer }
+        playable: { type: boolean }
+        state: { $ref: '#/components/schemas/StageState' }
+        bestAccuracy: { type: [number, 'null'] }
+        activeSessionId: { type: [integer, 'null'], format: int64 }
+        activeAnswered: { type: [integer, 'null'] }
+    PronStageExtra:
+      type: object
+      description: FinishResult.extra của nguồn PRON_STAGE
+      properties:
+        stageIndex: { type: integer }
+        accuracy: { type: [number, 'null'] }
+        bestAccuracy: { type: [number, 'null'] }
+        passPercent: { type: number }
+        passed: { type: boolean }
+        unlockedNextStage: { type: boolean }
+        nextStageIndex: { type: [integer, 'null'] }
+        needed: { type: [number, 'null'] }
+        completedAllStages: { type: boolean }
+        noScore: { type: boolean }
+  responses:
+    Error:
+      description: Lỗi theo spec 005 §5
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Session:
+      description: Lượt luyện tầng
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/SessionView' }
+
+paths:
+  /api/pronunciation/stages:
+    get:
+      tags: [pronunciation]
+      operationId: listPronunciationStages
+      summary: 8 tầng kèm trạng thái của người gọi (FR-001…FR-005)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/StageSummary' } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/pronunciation/stages/{stageIndex}/sessions:
+    post:
+      tags: [pronunciation]
+      operationId: startPronunciationStage
+      summary: Bắt đầu hoặc tiếp tục một tầng (FR-006…FR-008)
+      parameters:
+        - name: stageIndex
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { $ref: '#/components/responses/Session' }
+        '201': { $ref: '#/components/responses/Session' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }

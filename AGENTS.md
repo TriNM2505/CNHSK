@@ -213,4 +213,4 @@ nhưng **CHƯA có trong SQL**:
 | Trạng thái tài khoản | Đã có `locked_until` `suspended_at` `banned_at` trong `V1__` |
 | Chống IDOR | Thành `BUS-01` trong Hiến pháp — lặp 68 lần trong đặc tả |
 | Lượt free | **10 lượt mỗi tính năng mỗi tháng**, reset 00:00 ngày 1 giờ Việt Nam |
-| Actor | **8 actor = 6 role trong DB + 2 không phải role.** DB: `USER` `TEACHER` `MANAGER` `CONTENT_ADMIN` `FINANCE_ADMIN` `SUPER_ADMIN`. Không phải role: `GUEST` (chưa đăng nhập) · `SYSTEM` (job định kỳ). **Đừng** thêm 2 cái cuối vào `user_roles`. Xem Hiến pháp §Tám actor |
+| Actor | **7 actor = 6 role trong DB + `GUEST`.** DB: `LEARNER` `TEACHER` `MODERATOR` `CONTENT_EDITOR` `ACCOUNTANT` `ADMIN`. Không phải role: `GUEST` (chưa đăng nhập). Job định kỳ **không** phải actor. **Đừng** thêm `GUEST` vào `user_roles`. Chỉ `TEACHER` duyệt và sửa câu hỏi. Xem Hiến pháp §Bảy actor |

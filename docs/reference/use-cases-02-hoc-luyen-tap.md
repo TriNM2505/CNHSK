@@ -4,7 +4,7 @@
 > **Bản final** · cập nhật 2026-10-01
 > **Tám file đặc tả:** `use-cases-01-xac-thuc` → `use-cases-08-quan-tri-he-thong`
 > (file catalog riêng đã bỏ — mỗi file tự liệt UC của nhóm mình)
-> **Role:** theo Hiến pháp §Tám actor — 6 role trong DB + `GUEST` + `SYSTEM`
+> **Role:** theo Hiến pháp §Bảy actor — 6 role trong DB + `GUEST`
 
 ---
 
@@ -12,24 +12,24 @@
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
 | --- | --- | --- | --- | --- | --- |
-| UC-015 | Luyện viết chữ Hán theo nét | `USER` | P1 | MVP | 1.1 |
-| UC-016 | Luyện viết chế độ "nhớ rồi viết" | `USER` | P2 | MVP | 1.1 |
-| UC-017 | Luyện viết chế độ thử thách | `USER` | P2 | MVP | 1.1 |
-| UC-018 | Luyện viết chế độ nghe chép | `USER` | P2 | MVP | 1.1 |
-| UC-019 | Nhận diện chữ — nhìn chữ chọn nghĩa | `USER` | P1 | MVP | 1.2 |
-| UC-020 | Nhận diện chữ — nghe âm chọn chữ | `USER` | P1 | MVP | 1.2 |
-| UC-021 | Luyện phát âm theo 8 tầng | `USER` | P1 | MVP | 1.3 |
-| UC-022 | Mở tầng phát âm tiếp theo | `SYSTEM` | P1 | MVP | 1.3 |
-| UC-023 | Học điểm ngữ pháp HSK | `USER` | P1 | MVP | 1.4 |
-| UC-024 | Ôn lại ngữ pháp theo lịch FSRS | `USER` | P1 | MVP | 1.4 |
-| UC-025 | Xem danh sách chủ đề từ vựng | `USER` | P0 | MVP | 1.5 |
-| UC-026 | Học từ mới trong một chủ đề | `USER` | P0 | MVP | 1.5 |
-| UC-027 | Luyện nhận diện từ trong chủ đề | `USER` | P1 | MVP | 1.5 |
-| UC-028 | Luyện nghe từ trong chủ đề | `USER` | P1 | MVP | 1.5 |
-| UC-029 | Làm bài kiểm tra cuối chủ đề | `USER` | P0 | MVP | 1.5 |
-| UC-030 | Xem video có phụ đề tương tác | `USER` | P2 | V2 | 1.6 |
-| UC-031 | Bấm từ trong phụ đề xem nghĩa | `USER` | P2 | V2 | 1.6 |
-| UC-032 | Lưu từ từ phụ đề vào sổ tay | `USER` | P2 | V2 | 1.6 |
+| UC-015 | Luyện viết chữ Hán theo nét | `LEARNER` | P1 | MVP | 1.1 |
+| UC-016 | Luyện viết chế độ "nhớ rồi viết" | `LEARNER` | P2 | MVP | 1.1 |
+| UC-017 | Luyện viết chế độ thử thách | `LEARNER` | P2 | MVP | 1.1 |
+| UC-018 | Luyện viết chế độ nghe chép | `LEARNER` | P2 | MVP | 1.1 |
+| UC-019 | Nhận diện chữ — nhìn chữ chọn nghĩa | `LEARNER` | P1 | MVP | 1.2 |
+| UC-020 | Nhận diện chữ — nghe âm chọn chữ | `LEARNER` | P1 | MVP | 1.2 |
+| UC-021 | Luyện phát âm theo 8 tầng | `LEARNER` | P1 | MVP | 1.3 |
+| UC-022 | Mở tầng phát âm tiếp theo | «include» UC-021 · `LEARNER` | P1 | MVP | 1.3 |
+| UC-023 | Học điểm ngữ pháp HSK | `LEARNER` | P1 | MVP | 1.4 |
+| UC-024 | Ôn lại ngữ pháp theo lịch FSRS | `LEARNER` | P1 | MVP | 1.4 |
+| UC-025 | Xem danh sách chủ đề từ vựng | `LEARNER` | P0 | MVP | 1.5 |
+| UC-026 | Học từ mới trong một chủ đề | `LEARNER` | P0 | MVP | 1.5 |
+| UC-027 | Luyện nhận diện từ trong chủ đề | `LEARNER` | P1 | MVP | 1.5 |
+| UC-028 | Luyện nghe từ trong chủ đề | `LEARNER` | P1 | MVP | 1.5 |
+| UC-029 | Làm bài kiểm tra cuối chủ đề | `LEARNER` | P0 | MVP | 1.5 |
+| UC-030 | Xem video có phụ đề tương tác | `LEARNER` | P2 | V2 | 1.6 |
+| UC-031 | Bấm từ trong phụ đề xem nghĩa | `LEARNER` | P2 | V2 | 1.6 |
+| UC-032 | Lưu từ từ phụ đề vào sổ tay | `LEARNER` | P2 | V2 | 1.6 |
 
 > **Ánh xạ tên bảng khi triển khai:** một số luồng bên dưới còn dùng tên từ thiết kế cũ.
 > Theo `docs/reference/database.md`, `topic_words` là `learning.topic_items`;
@@ -46,7 +46,7 @@
 | | |
 | --- | --- |
 | **UC-ID** | UC-015 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Actor phụ** | — |
 | **Priority** | P1 · **Scope** MVP · **FT** 1.1 |
 | **Client** | Web · Mobile (shared component) |
@@ -57,7 +57,7 @@ Người học tập viết một chữ Hán theo mẫu và thứ tự nét đư
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập, access token còn hiệu lực
+1. `LEARNER` đã đăng nhập, access token còn hiệu lực
 2. Chữ cần luyện tồn tại trong `characters` và **có dữ liệu nét** (`stroke_data` JSONB)
 3. Thư viện `hanzi-writer` 3.7.3 đã load xong trên client
 
@@ -72,10 +72,10 @@ Người học tập viết một chữ Hán theo mẫu và thứ tự nét đư
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn chữ cần luyện từ danh sách hoặc từ chủ đề |
+| 1 | `LEARNER` | Chọn chữ cần luyện từ danh sách hoặc từ chủ đề |
 | 2 | System | `GET /api/characters/{id}` — trả chữ, pinyin, nghĩa, `stroke_data` |
 | 3 | Client | `hanzi-writer` render khung chữ và bắt đầu chế độ `quiz` với `showHintAfterMisses: 1` |
-| 4 | `USER` | Tô nét thứ nhất theo hướng dẫn |
+| 4 | `LEARNER` | Tô nét thứ nhất theo hướng dẫn |
 | 5 | Client | Kiểm nét tại **client** (thư viện tự chấm hình học), hiện nét đúng màu xanh |
 | 6 | | Lặp bước 4–5 cho tới nét cuối |
 | 7 | Client | Đếm tổng số lần sai, tính `accuracy = 1 − misses / total_strokes` |
@@ -87,7 +87,7 @@ Người học tập viết một chữ Hán theo mẫu và thứ tự nét đư
 ## Luồng thay thế
 
 **A1 — Người học bỏ giữa (chưa viết hết nét)**
-Tại bước 6, `USER` thoát trang. Client gửi `POST /api/practice/writing` với
+Tại bước 6, `LEARNER` thoát trang. Client gửi `POST /api/practice/writing` với
 `completed: false`. Server **ghi `study_sessions` nhưng KHÔNG cập nhật mastery** — viết
 nửa vời không phải bằng chứng đã thuộc.
 
@@ -162,7 +162,7 @@ POST /api/practice/writing
 
 | | |
 |---|---|
-| **UC-ID** | UC-016 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 1.1 |
+| **UC-ID** | UC-016 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 1.1 |
 
 ## Mô tả
 
@@ -170,7 +170,7 @@ Người học nhìn chữ mẫu trong vài giây, sau đó tự viết lại kh
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Chữ có `stroke_data`
 3. **Đã luyện chữ này ở chế độ theo nét ít nhất 1 lần** — không cho nhảy thẳng vào chế độ khó
 
@@ -182,12 +182,12 @@ Thành công → mastery tăng với hệ số **1.0**; `study_sessions` ghi `mo
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn chế độ "Nhớ rồi viết" |
+| 1 | `LEARNER` | Chọn chế độ "Nhớ rồi viết" |
 | 2 | System | Kiểm đã luyện chế độ theo nét chưa |
 | 3 | System | Trả chữ + `stroke_data` + `preview_seconds` (mặc định 5) |
 | 4 | Client | Hiện chữ mẫu, đếm ngược 5 giây |
 | 5 | Client | **Ẩn chữ**, mở khung viết trắng, tắt hint |
-| 6 | `USER` | Viết lại toàn bộ chữ |
+| 6 | `LEARNER` | Viết lại toàn bộ chữ |
 | 7 | Client | Chấm bằng `hanzi-writer`, tính `accuracy` |
 | 8 | Client | `POST /api/practice/writing` với `mode: "RECALL"` |
 | 9 | System | Cập nhật mastery hệ số 1.0 |
@@ -251,7 +251,7 @@ POST /api/practice/writing   (mode = RECALL)
 
 | | |
 |---|---|
-| **UC-ID** | UC-017 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 1.1 |
+| **UC-ID** | UC-017 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 1.1 |
 
 ## Mô tả
 
@@ -259,7 +259,7 @@ Người học viết một dãy chữ liên tiếp trước khi hết giờ. L�
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Có ít nhất 10 chữ đã ở trạng thái "đang học" hoặc "đã thuộc"
 
 ## Hậu điều kiện
@@ -273,11 +273,11 @@ Người học viết một dãy chữ liên tiếp trước khi hết giờ. L�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Thử thách" |
+| 1 | `LEARNER` | Bấm "Thử thách" |
 | 2 | System | `POST /api/practice/challenge/start` — chọn 10 chữ từ `user_knowledge_state` ưu tiên chữ gần hạn ôn |
 | 3 | System | Sinh `challenge_id`, ghi `served_at`, trả danh sách chữ + `time_limit_seconds` + `max_mistakes` |
 | 4 | Client | Đếm ngược, hiện chữ thứ nhất |
-| 5 | `USER` | Viết chữ |
+| 5 | `LEARNER` | Viết chữ |
 | 6 | Client | Chấm; đúng → chữ tiếp; sai → tăng `mistakes` |
 | 7 | | Lặp tới khi hết dãy, hết giờ, hoặc `mistakes = max_mistakes` |
 | 8 | Client | `POST /api/practice/challenge/{id}/submit` — gửi kết quả từng chữ |
@@ -354,7 +354,7 @@ POST /api/practice/challenge/{id}/submit
 
 | | |
 |---|---|
-| **UC-ID** | UC-018 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 1.1 |
+| **UC-ID** | UC-018 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 1.1 |
 
 ## Mô tả
 
@@ -362,7 +362,7 @@ Người học nghe cách đọc rồi viết lại chữ Hán tương ứng, kh
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Chữ có **cả** `stroke_data` **và** `audio_url`
 3. Thiết bị có loa/tai nghe hoạt động
 
@@ -374,11 +374,11 @@ Mastery cập nhật hệ số **1.2** cho **hai** loại kỹ năng: viết và
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn chế độ "Nghe chép" |
+| 1 | `LEARNER` | Chọn chế độ "Nghe chép" |
 | 2 | System | Trả `audio_url` + `stroke_data` (client cần để chấm) nhưng **không render chữ** |
 | 3 | Client | Phát audio tự động |
-| 4 | `USER` | Nghe, có thể bấm phát lại |
-| 5 | `USER` | Viết chữ đã nghe |
+| 4 | `LEARNER` | Nghe, có thể bấm phát lại |
+| 5 | `LEARNER` | Viết chữ đã nghe |
 | 6 | Client | Chấm nét, tính `accuracy` |
 | 7 | Client | `POST /api/practice/writing` với `mode: "DICTATION"`, `replay_count` |
 | 8 | System | Cập nhật mastery |
@@ -446,7 +446,7 @@ POST /api/practice/writing   (mode = DICTATION)
 
 | | |
 |---|---|
-| **UC-ID** | UC-019 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 1.2 |
+| **UC-ID** | UC-019 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 1.2 |
 
 ## Mô tả
 
@@ -454,7 +454,7 @@ Màn hình đưa ra một chữ Hán và bốn nghĩa tiếng Việt. Người h
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Kho `questions` có câu loại `CHAR_TO_MEANING` cho mức HSK của người học
 3. Mỗi câu có đúng 4 dòng trong `question_options`, **đúng 1** dòng `is_correct = true`
 
@@ -469,12 +469,12 @@ Màn hình đưa ra một chữ Hán và bốn nghĩa tiếng Việt. Người h
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Vào phần "Nhận diện chữ" |
+| 1 | `LEARNER` | Vào phần "Nhận diện chữ" |
 | 2 | System | `GET /api/practice/recognition?type=CHAR_TO_MEANING&count=10` |
 | 3 | System | Chọn câu ưu tiên điểm kiến thức gần hạn ôn; **không trả `is_correct`** trong response |
 | 4 | System | Ghi `served_at` cho lượt luyện |
 | 5 | Client | Hiện chữ + 4 đáp án đã trộn thứ tự |
-| 6 | `USER` | Chọn một đáp án |
+| 6 | `LEARNER` | Chọn một đáp án |
 | 7 | Client | `POST /api/practice/recognition/answer` — `{question_id, option_id, duration_ms}` |
 | 8 | System | **Server** so `option_id` với `question_options.is_correct` |
 | 9 | System | Ghi `attempt_answers`, cập nhật mastery, trả `{correct, correct_option_id, explanation}` |
@@ -483,7 +483,7 @@ Màn hình đưa ra một chữ Hán và bốn nghĩa tiếng Việt. Người h
 ## Luồng thay thế
 
 **A1 — Bỏ qua câu hỏi**
-`USER` bấm "bỏ qua". Ghi `attempt_answers` với `option_id = NULL`. Mastery **không đổi** —
+`LEARNER` bấm "bỏ qua". Ghi `attempt_answers` với `option_id = NULL`. Mastery **không đổi** —
 bỏ qua không phải sai.
 
 **A2 — Hết câu hỏi trong kho**
@@ -500,7 +500,7 @@ Bước 2 trả ít hơn `count`. Client hiện "đã luyện hết câu ở m�
 | `OPTION_NOT_IN_QUESTION` | 400 | `option_id` không thuộc câu đó | **Gian lận** — ghi log, không tính |
 | `ANSWER_ALREADY_SUBMITTED` | 409 | Trả lời cùng câu 2 lần trong một lượt | Chặn farm mastery bằng cách gửi lại |
 | `NO_QUESTIONS_AVAILABLE` | 200 (mảng rỗng) | Kho hết câu | **Không phải lỗi** — trả 200 mảng rỗng, client hiện thông báo |
-| `MALFORMED_QUESTION` | 500 | Câu có 0 hoặc >1 đáp án đúng | Ẩn câu đó khỏi kho, báo `CONTENT_ADMIN`, ghi `question_reports` |
+| `MALFORMED_QUESTION` | 500 | Câu có 0 hoặc >1 đáp án đúng | Ẩn câu đó khỏi kho, báo `CONTENT_EDITOR`, ghi `question_reports` |
 | `RATE_LIMIT_EXCEEDED` | 429 | > 600 câu/giờ | Chặn bot |
 | `UNAUTHORIZED` | 401 | Token hết hạn | Refresh rồi gửi lại |
 
@@ -548,7 +548,7 @@ POST /api/practice/recognition/answer
 
 | | |
 |---|---|
-| **UC-ID** | UC-020 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 1.2 |
+| **UC-ID** | UC-020 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 1.2 |
 
 ## Mô tả
 
@@ -556,7 +556,7 @@ Người học nghe một âm đọc và chọn chữ Hán tương ứng trong b
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Có câu loại `AUDIO_TO_CHAR` với `audio_url` hợp lệ
 3. 4 đáp án là **chữ**, không phải nghĩa
 
@@ -570,10 +570,10 @@ Giống UC-019, khác ở bước 5: client phát audio thay vì hiện chữ; 4
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Vào phần "Nghe chọn chữ" |
+| 1 | `LEARNER` | Vào phần "Nghe chọn chữ" |
 | 2 | System | `GET /api/practice/recognition?type=AUDIO_TO_CHAR&count=10` |
 | 3 | Client | Phát audio, hiện 4 chữ |
-| 4 | `USER` | Chọn chữ |
+| 4 | `LEARNER` | Chọn chữ |
 | 5 | Client | `POST /api/practice/recognition/answer` kèm `replay_count` |
 | 6 | System | Chấm ở server, cập nhật mastery nghe |
 
@@ -586,7 +586,7 @@ Giống UC-019, khác ở bước 5: client phát audio thay vì hiện chữ; 4
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
-| `AUDIO_NOT_AVAILABLE` | 422 | Câu thiếu `audio_url` | Loại câu khỏi kho, báo `CONTENT_ADMIN` |
+| `AUDIO_NOT_AVAILABLE` | 422 | Câu thiếu `audio_url` | Loại câu khỏi kho, báo `CONTENT_EDITOR` |
 | `AUDIO_LOAD_FAILED` | — | CDN/mạng | Bỏ qua câu, **không** ghi là sai |
 | `TOO_MANY_REPLAYS` | 400 | `replay_count > 3` | Client bị sửa |
 | `OPTION_NOT_IN_QUESTION` | 400 | Đáp án lạ | Gian lận |
@@ -632,7 +632,7 @@ POST /api/practice/recognition/answer
 
 | | |
 |---|---|
-| **UC-ID** | UC-021 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 1.3 |
+| **UC-ID** | UC-021 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 1.3 |
 
 ## Mô tả
 
@@ -640,7 +640,7 @@ Người học luyện nghe và phân biệt thanh mẫu, vận mẫu, thanh đi
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Tầng đang mở (tầng 1 mở sẵn; tầng N cần hoàn thành tầng N−1 — xem UC-022)
 3. `pronunciation_units` có dữ liệu cho tầng đó
 
@@ -655,12 +655,12 @@ Người học luyện nghe và phân biệt thanh mẫu, vận mẫu, thanh đi
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở trang "Luyện phát âm" |
+| 1 | `LEARNER` | Mở trang "Luyện phát âm" |
 | 2 | System | `GET /api/pronunciation/stages` — trả 8 tầng kèm trạng thái khoá/mở và `accuracy` đã đạt |
-| 3 | `USER` | Chọn một tầng đang mở |
+| 3 | `LEARNER` | Chọn một tầng đang mở |
 | 4 | System | Kiểm quyền vào tầng; `GET /api/pronunciation/stages/{id}/units` |
 | 5 | Client | Hiện bài: phát audio, 4 lựa chọn (thanh mẫu/vận mẫu/thanh điệu) |
-| 6 | `USER` | Chọn đáp án |
+| 6 | `LEARNER` | Chọn đáp án |
 | 7 | Client | `POST /api/pronunciation/answer` |
 | 8 | System | Chấm ở server, ghi kết quả |
 | 9 | | Lặp 5–8 hết các unit của tầng |
@@ -686,7 +686,7 @@ Server trả `STAGE_LOCKED`. Không dựa vào ẩn nút ở UI.
 | --- | --- | --- | --- |
 | `STAGE_LOCKED` | 403 | Chưa hoàn thành tầng trước | Hiện "hoàn thành tầng N−1 trước". **Kiểm ở server** |
 | `STAGE_NOT_FOUND` | 404 | `stage_id` ngoài 1–8 | Về danh sách tầng |
-| `STAGE_HAS_NO_UNITS` | 500 | Tầng chưa nhập dữ liệu | Báo `CONTENT_ADMIN`, ẩn tầng khỏi danh sách |
+| `STAGE_HAS_NO_UNITS` | 500 | Tầng chưa nhập dữ liệu | Báo `CONTENT_EDITOR`, ẩn tầng khỏi danh sách |
 | `UNIT_NOT_IN_STAGE` | 400 | Trả lời unit không thuộc tầng | Gian lận |
 | `AUDIO_NOT_AVAILABLE` | 422 | Unit thiếu audio | Bỏ unit, **không tính vào `accuracy`** — không phạt người học vì dữ liệu thiếu |
 | `ANSWER_ALREADY_SUBMITTED` | 409 | Trả lời unit 2 lần trong một lượt | Chặn |
@@ -727,7 +727,7 @@ POST /api/pronunciation/answer
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | `USER` mới mở tầng 1 | 200, danh sách unit |
+| T1 | `LEARNER` mới mở tầng 1 | 200, danh sách unit |
 | T2 | Gọi tầng 5 khi mới xong tầng 1 | 403 `STAGE_LOCKED` |
 | T3 | Làm tầng 1 đúng 85% | `accuracy = 85`, tầng 2 mở |
 | T4 | Làm lại tầng 1 được 70% | Vẫn lưu 85, tầng 2 **vẫn mở** |
@@ -739,7 +739,7 @@ POST /api/pronunciation/answer
 
 | | |
 |---|---|
-| **UC-ID** | UC-022 · **Actor** `SYSTEM` · **Pri** P1 · **Scope** MVP · **FT** 1.3 |
+| **UC-ID** | UC-022 · **Actor** «include» của UC-021 Luyện phát âm — actor `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 1.3 |
 
 ## Mô tả
 
@@ -827,7 +827,7 @@ Không có endpoint riêng — chạy trong `POST /api/pronunciation/answer` khi
 
 | | |
 |---|---|
-| **UC-ID** | UC-023 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 1.4 |
+| **UC-ID** | UC-023 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 1.4 |
 
 ## Mô tả
 
@@ -835,7 +835,7 @@ Người học chọn một điểm ngữ pháp HSK để xem cấu trúc, giả
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. `grammar_points` có dữ liệu cho cấp HSK đó
 3. Điểm ngữ pháp đã liên kết `knowledge_points`
 
@@ -850,12 +850,12 @@ Người học chọn một điểm ngữ pháp HSK để xem cấu trúc, giả
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn cấp HSK rồi chọn điểm ngữ pháp |
+| 1 | `LEARNER` | Chọn cấp HSK rồi chọn điểm ngữ pháp |
 | 2 | System | `GET /api/grammar/{id}` — cấu trúc, giải thích, ví dụ |
 | 3 | Client | Hiện nội dung học |
-| 4 | `USER` | Đọc, bấm "đã hiểu" |
+| 4 | `LEARNER` | Đọc, bấm "đã hiểu" |
 | 5 | System | `GET /api/grammar/{id}/exercises` — 3–5 bài tập ngắn |
-| 6 | `USER` | Làm bài tập |
+| 6 | `LEARNER` | Làm bài tập |
 | 7 | Client | `POST /api/grammar/{id}/complete` — `{exercise_results, duration_ms}` |
 | 8 | System | Chấm ở server, tính `rating` FSRS (Again/Hard/Good/Easy) từ tỉ lệ đúng |
 | 9 | System | Tạo hoặc cập nhật `user_knowledge_state`, tính `next_review_at` |
@@ -878,7 +878,7 @@ không được `Easy`.
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
 | `GRAMMAR_POINT_NOT_FOUND` | 404 | ID sai | Về danh sách |
-| `NO_KNOWLEDGE_POINT_LINKED` | 500 | `grammar_points` chưa nối `knowledge_points` | **Không tạo được lịch ôn.** Ghi log, báo `CONTENT_ADMIN`, vẫn cho học nhưng không ghi FSRS |
+| `NO_KNOWLEDGE_POINT_LINKED` | 500 | `grammar_points` chưa nối `knowledge_points` | **Không tạo được lịch ôn.** Ghi log, báo `CONTENT_EDITOR`, vẫn cho học nhưng không ghi FSRS |
 | `NO_EXERCISES` | 200 | Điểm chưa có bài tập | Không phải lỗi — bỏ bước 5–6, `rating = Hard` |
 | `INVALID_EXERCISE_RESULT` | 400 | Kết quả cho bài tập không thuộc điểm này | Gian lận |
 | `ALREADY_LEARNED` | 409 | Đã học rồi | Chuyển sang UC-024 (A1) |
@@ -929,7 +929,7 @@ POST /api/grammar/{id}/complete
 
 | | |
 |---|---|
-| **UC-ID** | UC-024 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 1.4 |
+| **UC-ID** | UC-024 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 1.4 |
 
 ## Mô tả
 
@@ -937,7 +937,7 @@ Người học làm bài ôn cho những điểm ngữ pháp đã đến hạn. 
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Có ít nhất một dòng `user_knowledge_state` với `next_review_at ≤ now()`
 
 ## Hậu điều kiện
@@ -951,12 +951,12 @@ Người học làm bài ôn cho những điểm ngữ pháp đã đến hạn. 
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Vào "Ôn hôm nay" |
+| 1 | `LEARNER` | Vào "Ôn hôm nay" |
 | 2 | System | `GET /api/review/due?type=GRAMMAR` — sắp theo `next_review_at` cũ nhất trước |
 | 3 | Client | Hiện số lượng cần ôn |
-| 4 | `USER` | Bắt đầu ôn |
+| 4 | `LEARNER` | Bắt đầu ôn |
 | 5 | Client | Hiện bài ôn cho điểm thứ nhất |
-| 6 | `USER` | Trả lời |
+| 6 | `LEARNER` | Trả lời |
 | 7 | Client | `POST /api/review/answer` — `{knowledge_point_id, rating hoặc answer, duration_ms}` |
 | 8 | System | Chấm ở server, tính `rating` FSRS |
 | 9 | System | Cập nhật `stability`, `difficulty`, `next_review_at` |
@@ -1036,7 +1036,7 @@ POST /api/review/answer
 
 | | |
 |---|---|
-| **UC-ID** | UC-025 · **Actor** `USER` · **Pri** P0 · **Scope** MVP · **FT** 1.5 |
+| **UC-ID** | UC-025 · **Actor** `LEARNER` · **Pri** P0 · **Scope** MVP · **FT** 1.5 |
 
 ## Mô tả
 
@@ -1044,7 +1044,7 @@ Người học xem các chủ đề từ vựng, tiến độ hoàn thành và t
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. `topics` có dữ liệu
 3. Mỗi chủ đề có ít nhất 1 dòng `topic_words`
 
@@ -1057,7 +1057,7 @@ Không đổi dữ liệu — use case chỉ đọc. Nhưng phải trả % **tí
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở SCR-011 — Topic List (danh sách chủ đề từ vựng) |
+| 1 | `LEARNER` | Mở SCR-011 — Topic List (danh sách chủ đề từ vựng) |
 | 2 | System | `GET /api/topics` |
 | 3 | System | Với mỗi chủ đề: đọc `user_topic_progress` lấy % hoàn thành |
 | 4 | System | Xác định trạng thái: `LOCKED` · `AVAILABLE` · `IN_PROGRESS` · `COMPLETED` |
@@ -1066,7 +1066,7 @@ Không đổi dữ liệu — use case chỉ đọc. Nhưng phải trả % **tí
 
 ## Luồng thay thế
 
-**A1 — `USER` mới, chưa có `user_topic_progress`**
+**A1 — `LEARNER` mới, chưa có `user_topic_progress`**
 Trả `completion_percent = 0` cho mọi chủ đề. Chủ đề gốc (không có tiên quyết) là `AVAILABLE`,
 còn lại `LOCKED`.
 
@@ -1118,7 +1118,7 @@ GET /api/topics?hsk_level={n}
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | `USER` mới | Chủ đề gốc `AVAILABLE`, còn lại `LOCKED`, % = 0 |
+| T1 | `LEARNER` mới | Chủ đề gốc `AVAILABLE`, còn lại `LOCKED`, % = 0 |
 | T2 | Học 9/10 từ chủ đề A | % = 90, `status = COMPLETED`, chủ đề B mở |
 | T3 | `hsk_level = 12` | 400 `INVALID_HSK_LEVEL` |
 | T4 | Chủ đề không có `topic_words` | Không xuất hiện trong response |
@@ -1131,7 +1131,7 @@ GET /api/topics?hsk_level={n}
 
 | | |
 |---|---|
-| **UC-ID** | UC-026 · **Actor** `USER` · **Pri** P0 · **Scope** MVP · **FT** 1.5 |
+| **UC-ID** | UC-026 · **Actor** `LEARNER` · **Pri** P0 · **Scope** MVP · **FT** 1.5 |
 
 ## Mô tả
 
@@ -1139,7 +1139,7 @@ Trong một chủ đề, người học xem và nghe từng từ mới cùng ch�
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Chủ đề ở trạng thái `AVAILABLE` hoặc `IN_PROGRESS` (không `LOCKED`)
 3. `topic_words` có từ chưa học
 
@@ -1154,11 +1154,11 @@ Trong một chủ đề, người học xem và nghe từng từ mới cùng ch�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn chủ đề, bấm "Học từ mới" |
+| 1 | `LEARNER` | Chọn chủ đề, bấm "Học từ mới" |
 | 2 | System | Kiểm chủ đề không `LOCKED` |
 | 3 | System | `GET /api/topics/{id}/words?status=NEW&limit=10` |
 | 4 | Client | Hiện thẻ từ thứ nhất: chữ, pinyin, âm Hán-Việt, nghĩa, ví dụ, nút audio |
-| 5 | `USER` | Đọc, nghe audio, bấm "Tiếp" |
+| 5 | `LEARNER` | Đọc, nghe audio, bấm "Tiếp" |
 | 6 | System | `POST /api/topics/{id}/progress` — `{word_id, action: "LEARNED", duration_ms}` |
 | 7 | System | Tạo `user_knowledge_state` trạng thái `LEARNING`, tính `next_review_at` |
 | 8 | System | Cập nhật `user_topic_progress` **cùng transaction** |
@@ -1239,7 +1239,7 @@ POST /api/topics/{id}/progress
 
 | | |
 |---|---|
-| **UC-ID** | UC-027 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 1.5 |
+| **UC-ID** | UC-027 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 1.5 |
 
 ## Mô tả
 
@@ -1247,7 +1247,7 @@ Người học làm câu hỏi trắc nghiệm để nhận diện các từ v�
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập, chủ đề không khoá
+1. `LEARNER` đã đăng nhập, chủ đề không khoá
 2. Có ≥ 4 từ ở trạng thái `LEARNING` trở lên trong chủ đề (cần 1 đúng + 3 nhiễu)
 
 ## Hậu điều kiện
@@ -1258,10 +1258,10 @@ Mastery từng từ cập nhật; từ đúng liên tục 3 lần chuyển `LEAR
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Luyện nhận diện" trong chủ đề |
+| 1 | `LEARNER` | Bấm "Luyện nhận diện" trong chủ đề |
 | 2 | System | Lấy từ đang học trong chủ đề, sinh câu hỏi với nhiễu **cùng chủ đề** |
 | 3 | System | Ghi `served_at`, trả câu hỏi **không kèm** `is_correct` |
-| 4 | `USER` | Chọn đáp án |
+| 4 | `LEARNER` | Chọn đáp án |
 | 5 | Client | `POST /api/topics/{id}/practice/answer` |
 | 6 | System | Chấm ở server, cập nhật mastery |
 | 7 | System | Nếu từ đúng 3 lần liên tiếp → `MASTERED`, cập nhật `user_topic_progress` |
@@ -1328,7 +1328,7 @@ POST /api/topics/{id}/practice/answer
 
 | | |
 |---|---|
-| **UC-ID** | UC-028 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 1.5 |
+| **UC-ID** | UC-028 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 1.5 |
 
 ## Mô tả
 
@@ -1336,7 +1336,7 @@ Người học nghe cách đọc của một từ trong chủ đề rồi chọn
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập, chủ đề không khoá
+1. `LEARNER` đã đăng nhập, chủ đề không khoá
 2. Từ trong chủ đề có `audio_url`
 
 ## Hậu điều kiện
@@ -1403,7 +1403,7 @@ POST /api/topics/{id}/practice/answer
 
 | | |
 |---|---|
-| **UC-ID** | UC-029 · **Actor** `USER` · **Pri** P0 · **Scope** MVP · **FT** 1.5 |
+| **UC-ID** | UC-029 · **Actor** `LEARNER` · **Pri** P0 · **Scope** MVP · **FT** 1.5 |
 
 ## Mô tả
 
@@ -1411,7 +1411,7 @@ Sau các bước học và luyện tập, người học làm bài kiểm tra t�
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập, chủ đề không khoá
+1. `LEARNER` đã đăng nhập, chủ đề không khoá
 2. Đã học ≥ 80% số từ trong chủ đề (không cho thi khi chưa học)
 3. Có đủ câu hỏi cho chủ đề
 
@@ -1427,11 +1427,11 @@ Sau các bước học và luyện tập, người học làm bài kiểm tra t�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Kiểm tra cuối chủ đề" |
+| 1 | `LEARNER` | Bấm "Kiểm tra cuối chủ đề" |
 | 2 | System | Kiểm đã học ≥ 80% từ |
 | 3 | System | `POST /api/topics/{id}/final-test/start` — sinh bộ đề trộn 4 dạng (nhìn chữ, nghe, viết, điền) |
 | 4 | System | Tạo `attempts`, ghi `served_at`, trả `attempt_id` + câu hỏi **không kèm đáp án** |
-| 5 | `USER` | Làm toàn bộ bài |
+| 5 | `LEARNER` | Làm toàn bộ bài |
 | 6 | Client | `POST /api/topics/{id}/final-test/{attempt_id}/submit` — gửi tất cả câu trả lời |
 | 7 | System | Kiểm `attempt` chưa nộp, kiểm thời gian hợp lệ |
 | 8 | System | **Chấm từng câu ở server**, ghi `attempt_answers` |
@@ -1521,7 +1521,7 @@ POST /api/topics/{id}/final-test/{attempt_id}/submit
 
 | | |
 |---|---|
-| **UC-ID** | UC-030 · **Actor** `USER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
+| **UC-ID** | UC-030 · **Actor** `LEARNER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
 
 ## Mô tả
 
@@ -1532,7 +1532,7 @@ Người học xem video tiếng Trung kèm phụ đề song ngữ và pinyin. H
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. `learning.videos` có video `PUBLISHED`, cột `subtitles` có phụ đề đã gắn timestamp
 3. Video YouTube còn khả dụng và cho phép nhúng
 
@@ -1547,14 +1547,14 @@ Người học xem video tiếng Trung kèm phụ đề song ngữ và pinyin. H
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn video theo cấp HSK/chủ đề |
+| 1 | `LEARNER` | Chọn video theo cấp HSK/chủ đề |
 | 2 | System | `GET /api/videos` — danh sách kèm cấp, độ dài, ảnh bìa |
-| 3 | `USER` | Chọn video |
+| 3 | `LEARNER` | Chọn video |
 | 4 | System | `GET /api/videos/{id}/subtitles` — phụ đề kèm `start_ms`, `end_ms`, chữ, pinyin, nghĩa |
 | 5 | Client | Load player, đồng bộ phụ đề theo `currentTime` |
-| 6 | `USER` | Xem; dùng nút tua lại câu / giảm tốc / lặp câu |
+| 6 | `LEARNER` | Xem; dùng nút tua lại câu / giảm tốc / lặp câu |
 | 7 | Client | Highlight câu phụ đề đang phát |
-| 8 | `USER` | Bấm từ trong phụ đề → UC-031 |
+| 8 | `LEARNER` | Bấm từ trong phụ đề → UC-031 |
 | 9 | Client | `POST /api/videos/{id}/progress` — gửi vị trí xem để server cập nhật `user_progress.position_ms` cho video này |
 
 ## Luồng thay thế
@@ -1562,14 +1562,14 @@ Người học xem video tiếng Trung kèm phụ đề song ngữ và pinyin. H
 **A1 — Tua lại câu** — client `seek` về `start_ms` của câu hiện tại.
 **A2 — Lặp một câu** — client lặp trong `[start_ms, end_ms]` tới khi tắt.
 **A3 — Ẩn lớp phụ đề** — thuần client, lưu `localStorage`.
-**A4 — Video bị xoá ở nguồn (YouTube)** — hiện "video không còn khả dụng", đánh dấu `videos.status = UNAVAILABLE` để `CONTENT_ADMIN` xử lý.
+**A4 — Video bị xoá ở nguồn (YouTube)** — hiện "video không còn khả dụng", đánh dấu `videos.status = UNAVAILABLE` để `CONTENT_EDITOR` xử lý.
 
 ## Bảng exception
 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
 | `VIDEO_NOT_FOUND` | 404 | ID sai | Về danh sách |
-| `VIDEO_UNAVAILABLE` | 410 | Nguồn đã xoá | Ẩn khỏi danh sách, báo `CONTENT_ADMIN` (A4) |
+| `VIDEO_UNAVAILABLE` | 410 | Nguồn đã xoá | Ẩn khỏi danh sách, báo `CONTENT_EDITOR` (A4) |
 | `NO_SUBTITLES` | 422 | Video chưa có phụ đề | Không mở — video không phụ đề mất hết giá trị học |
 | `SUBTITLE_TIMING_INVALID` | 500 | `start_ms ≥ end_ms` hoặc chồng lấn | Phụ đề nhảy sai, không highlight đúng câu. Kiểm khi nhập |
 | `SUBTITLE_OUT_OF_RANGE` | 500 | `end_ms > video_duration_ms` | Phụ đề dài hơn video — dữ liệu sai |
@@ -1622,7 +1622,7 @@ POST /api/videos/{id}/progress
 
 | | |
 |---|---|
-| **UC-ID** | UC-031 · **Actor** `USER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
+| **UC-ID** | UC-031 · **Actor** `LEARNER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
 
 ## Mô tả
 
@@ -1642,18 +1642,18 @@ Không đổi dữ liệu học. Chỉ ghi `feature_usage` nếu dùng lượt t
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm một từ trong phụ đề |
+| 1 | `LEARNER` | Bấm một từ trong phụ đề |
 | 2 | Client | Tạm dừng video |
 | 3 | Client | Dùng dữ liệu từ vựng đã được server gắn vào response phụ đề, nếu có |
 | 4 | Client | Nếu chưa có dữ liệu từ vựng, gọi `GET /api/dictionary/lookup?word=X` |
 | 5 | Client | Hiện popup: chữ, pinyin, âm Hán-Việt, nghĩa, audio, nút lưu |
-| 6 | `USER` | Đọc; có thể bấm lưu (UC-032) hoặc đóng |
+| 6 | `LEARNER` | Đọc; có thể bấm lưu (UC-032) hoặc đóng |
 | 7 | Client | Đóng popup, phát tiếp video |
 
 ## Luồng thay thế
 
 **A1 — Response phụ đề đã kèm thông tin từ** — không gọi API từ điển, hiện ngay.
-**A2 — Từ không có trong từ điển** — hiện "chưa có trong từ điển", cho báo lỗi để `CONTENT_ADMIN` bổ sung.
+**A2 — Từ không có trong từ điển** — hiện "chưa có trong từ điển", cho báo lỗi để `CONTENT_EDITOR` bổ sung.
 **A3 — Bấm vào dấu câu hoặc khoảng trắng** — bỏ qua, không mở popup.
 **A4 — Bấm nhiều từ liên tiếp** — popup cũ đóng, popup mới mở; video vẫn dừng.
 
@@ -1709,7 +1709,7 @@ GET /api/dictionary/lookup?word={x}
 
 | | |
 |---|---|
-| **UC-ID** | UC-032 · **Actor** `USER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
+| **UC-ID** | UC-032 · **Actor** `LEARNER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
 
 ## Mô tả
 
@@ -1718,7 +1718,7 @@ Người học lưu một từ trong phụ đề vào sổ tay hoặc bộ flash
 ## Tiền điều kiện
 
 1. Popup UC-031 đang mở
-2. `USER` đã đăng nhập
+2. `LEARNER` đã đăng nhập
 3. Có sổ tay hoặc bộ flashcard đích thuộc người học, hoặc người học tạo mới
 
 ## Hậu điều kiện
@@ -1732,9 +1732,9 @@ Người học lưu một từ trong phụ đề vào sổ tay hoặc bộ flash
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm "Lưu vào sổ tay" hoặc "Thêm flashcard" |
+| 1 | `LEARNER` | Bấm "Lưu vào sổ tay" hoặc "Thêm flashcard" |
 | 2 | Client | Nếu flashcard: hiện chọn deck hoặc tạo deck mới |
-| 3 | `USER` | Chọn deck |
+| 3 | `LEARNER` | Chọn deck |
 | 4 | Client | `POST /api/notes` hoặc `POST /api/flashcard-decks/{id}/cards` |
 | 5 | System | Kiểm `collections.user_id` của sổ tay hoặc bộ thẻ bằng người đang đăng nhập |
 | 6 | System | Kiểm trùng — từ này đã trong deck chưa |
@@ -1803,7 +1803,7 @@ POST /api/flashcard-decks          (tạo deck mới — A2)
 
 | | |
 | --- | --- |
-| **UC-ID** | UC-120 · **Actor** `USER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
+| **UC-ID** | UC-120 · **Actor** `LEARNER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
 | **Quan hệ** | `«extend»` **UC-030** — chỉ làm được khi đang xem video |
 
 ## Mô tả
@@ -1819,7 +1819,7 @@ phải tự tái tạo chữ từ âm thanh, nên phát hiện đúng chỗ mìn
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập
+1. `LEARNER` đã đăng nhập
 2. Video có `subtitles` JSONB với ít nhất một câu hợp lệ
 3. Câu được chọn có `start_ms < end_ms` và nằm trong `duration_ms`
 
@@ -1835,10 +1835,10 @@ phải tự tái tạo chữ từ âm thanh, nên phát hiện đúng chỗ mìn
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Đang xem video, bấm "Luyện chép" ở một câu phụ đề |
+| 1 | `LEARNER` | Đang xem video, bấm "Luyện chép" ở một câu phụ đề |
 | 2 | Client | `seek` về `start_ms`, phát tới `end_ms`, **ẩn phụ đề chữ Hán** |
-| 3 | `USER` | Nghe, gõ lại chữ Hán vào ô nhập |
-| 4 | `USER` | Bấm "Kiểm tra" |
+| 3 | `LEARNER` | Nghe, gõ lại chữ Hán vào ô nhập |
+| 4 | `LEARNER` | Bấm "Kiểm tra" |
 | 5 | Client | `POST /api/videos/{id}/dictation` với `subtitle_index` + `submitted_text` |
 | 6 | System | Lấy `expected_text` từ `videos.subtitles[subtitle_index].text_cn` |
 | 7 | System | Chuyển cả hai chuỗi sang pinyin, tách mỗi âm tiết thành **phụ âm đầu · phần vận · thanh điệu** |
@@ -1873,7 +1873,7 @@ phải tự tái tạo chữ từ âm thanh, nên phát hiện đúng chỗ mìn
 | # | Rule |
 | --- | --- |
 | BR-120-1 | Chấm Dictation PHẢI ở server (`BUS-09`). Client chỉ gửi văn bản người học gõ, không gửi điểm. |
-| BR-120-2 | `expected_text` PHẢI được chụp lại vào `dictation_attempts` lúc chấm. Nếu `CONTENT_ADMIN` sửa phụ đề sau đó, lịch sử vẫn giải thích được vì sao người học sai. |
+| BR-120-2 | `expected_text` PHẢI được chụp lại vào `dictation_attempts` lúc chấm. Nếu `CONTENT_EDITOR` sửa phụ đề sau đó, lịch sử vẫn giải thích được vì sao người học sai. |
 | BR-120-3 | `char_score` và `tone_score` là **hai điểm riêng**, không gộp thành một điểm trung bình. |
 | BR-120-4 | So sánh PHẢI bỏ qua dấu câu và khoảng trắng. Người học gõ 我是学生 hay 我是学生。đều đúng. |
 | BR-120-5 | Chữ phồn thể gõ vào câu giản thể tính là **sai chữ**, không tự quy đổi. HSK dùng giản thể. |
@@ -1913,7 +1913,7 @@ POST /api/videos/{id}/dictation
 
 | | |
 | --- | --- |
-| **UC-ID** | UC-121 · **Actor** `USER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
+| **UC-ID** | UC-121 · **Actor** `LEARNER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
 | **Quan hệ** | `«extend»` **UC-120** — chỉ xem được sau khi đã nộp |
 
 ## Mô tả
@@ -1922,8 +1922,8 @@ Xem kết quả một lượt Dictation: điểm chữ, điểm thanh điệu, v
 
 ## Tiền điều kiện
 
-1. `USER` đã nộp ít nhất một lượt Dictation cho câu đó
-2. Dòng `dictation_attempts` thuộc chính `USER` này (`BUS-01`)
+1. `LEARNER` đã nộp ít nhất một lượt Dictation cho câu đó
+2. Dòng `dictation_attempts` thuộc chính `LEARNER` này (`BUS-01`)
 
 ## Hậu điều kiện
 
@@ -1933,11 +1933,11 @@ Không đổi dữ liệu — màn chỉ đọc.
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Sau khi nộp, màn tự hiện kết quả |
+| 1 | `LEARNER` | Sau khi nộp, màn tự hiện kết quả |
 | 2 | Client | Hiện `expected_text` với từng chữ tô màu theo `diff[].kind` |
 | 3 | Client | Hiện hai thanh điểm riêng: chữ và thanh điệu |
-| 4 | `USER` | Bấm một chữ sai → hiện pinyin đúng vs pinyin đã gõ |
-| 5 | `USER` | Chọn "Làm lại câu này" → về UC-120, hoặc "Luyện nói câu này" → UC-122 |
+| 4 | `LEARNER` | Bấm một chữ sai → hiện pinyin đúng vs pinyin đã gõ |
+| 5 | `LEARNER` | Chọn "Làm lại câu này" → về UC-120, hoặc "Luyện nói câu này" → UC-122 |
 
 ## Luồng thay thế
 
@@ -1983,7 +1983,7 @@ GET /api/videos/{id}/dictation/history?subtitle_index=
 
 | | |
 | --- | --- |
-| **UC-ID** | UC-122 · **Actor** `USER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
+| **UC-ID** | UC-122 · **Actor** `LEARNER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
 | **Quan hệ** | `«extend»` **UC-030** · `«include»` **UC-096** (trừ điểm khi dùng tính năng tốn phí) |
 
 ## Mô tả
@@ -1996,7 +1996,7 @@ GET /api/videos/{id}/dictation/history?subtitle_index=
 
 ## Tiền điều kiện
 
-1. `USER` đã đăng nhập và **đã xác thực email** (`FR-010` — thao tác tốn phí cần xác thực)
+1. `LEARNER` đã đăng nhập và **đã xác thực email** (`FR-010` — thao tác tốn phí cần xác thực)
 2. Còn lượt free hoặc còn điểm
 3. Trình duyệt đã cho quyền microphone
 4. Câu phụ đề có `start_ms < end_ms`
@@ -2013,9 +2013,9 @@ GET /api/videos/{id}/dictation/history?subtitle_index=
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Đang xem video, bấm "Luyện nói" ở một câu |
+| 1 | `LEARNER` | Đang xem video, bấm "Luyện nói" ở một câu |
 | 2 | Client | Phát câu mẫu `[start_ms, end_ms]` |
-| 3 | `USER` | Bấm ghi âm, đọc theo, bấm dừng |
+| 3 | `LEARNER` | Bấm ghi âm, đọc theo, bấm dừng |
 | 4 | Client | Gửi audio + `subtitle_index` tới **server ta** qua `POST /api/videos/{id}/shadowing` |
 | 5 | System | Kiểm hạn mức — **UC-096** trừ lượt |
 | 6 | System | Gửi audio + `expected_text` tới dịch vụ đánh giá phát âm |
@@ -2113,7 +2113,7 @@ POST /api/videos/{id}/shadowing
 
 | | |
 | --- | --- |
-| **UC-ID** | UC-123 · **Actor** `USER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
+| **UC-ID** | UC-123 · **Actor** `LEARNER` · **Pri** P2 · **Scope** **V2** · **FT** 1.6 |
 | **Quan hệ** | `«extend»` **UC-122** — chỉ xem được sau khi đã chấm |
 
 ## Mô tả
@@ -2123,7 +2123,7 @@ Xem điểm phát âm chi tiết: điểm tổng, điểm trôi chảy, độ đ
 ## Tiền điều kiện
 
 1. Có ít nhất một dòng `shadowing_attempts` cho câu đó
-2. Dòng thuộc chính `USER` này (`BUS-01`)
+2. Dòng thuộc chính `LEARNER` này (`BUS-01`)
 
 ## Hậu điều kiện
 
@@ -2136,8 +2136,8 @@ Không đổi dữ liệu — màn chỉ đọc.
 | 1 | Client | Hiện ba điểm: chính xác · trôi chảy · đầy đủ |
 | 2 | Client | Hiện câu phụ đề, từng âm tiết tô màu theo điểm riêng |
 | 3 | Client | Hiện ghi chú *"chưa chấm riêng thanh điệu"* (BR-122-9) |
-| 4 | `USER` | Bấm một âm tiết điểm thấp → hiện pinyin và gợi ý cách đặt lưỡi |
-| 5 | `USER` | Chọn "Đọc lại" → về UC-122, hoặc "Chép câu này" → UC-120 |
+| 4 | `LEARNER` | Bấm một âm tiết điểm thấp → hiện pinyin và gợi ý cách đặt lưỡi |
+| 5 | `LEARNER` | Chọn "Đọc lại" → về UC-122, hoặc "Chép câu này" → UC-120 |
 
 ## Luồng thay thế
 
@@ -2185,7 +2185,7 @@ GET /api/videos/{id}/shadowing/history?subtitle_index=
 
 | | |
 | --- | --- |
-| **UC-ID** | UC-124 · **Actor** `USER` · **Pri** P3 · **Scope** **V2** · **FT** 1.6 |
+| **UC-ID** | UC-124 · **Actor** `LEARNER` · **Pri** P3 · **Scope** **V2** · **FT** 1.6 |
 | **Quan hệ** | `«extend»` **UC-030** |
 
 ## Mô tả
@@ -2208,11 +2208,11 @@ Không đổi dữ liệu — thuần client. Trạng thái bật/tắt lặp l�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Bấm biểu tượng lặp ở một câu phụ đề |
+| 1 | `LEARNER` | Bấm biểu tượng lặp ở một câu phụ đề |
 | 2 | Client | `seekTo(start_ms)`, bật cờ lặp cho câu đó |
 | 3 | Client | Mỗi ~100ms đọc `getCurrentTime()` |
 | 4 | Client | Nếu `currentTime ≥ end_ms` → `seekTo(start_ms)` |
-| 5 | `USER` | Bấm lại biểu tượng để tắt |
+| 5 | `LEARNER` | Bấm lại biểu tượng để tắt |
 
 ## Luồng thay thế
 
@@ -2268,7 +2268,7 @@ Không có — thuần client.
 | | |
 | --- | --- |
 | **ID** | UC-126 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P1 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 1.1 |
@@ -2289,7 +2289,7 @@ Người học luyện viết chữ Hán theo nhiều chế độ khác nhau, t�
 
 ## Tiền điều kiện
 
-- `USER` đã đăng nhập
+- `LEARNER` đã đăng nhập
 - Chữ cần luyện có dữ liệu thứ tự nét trong kho dữ liệu
 - Người học còn lượt dùng nếu chế độ đó có giới hạn
 
@@ -2301,15 +2301,15 @@ Người học luyện viết chữ Hán theo nhiều chế độ khác nhau, t�
 
 ## Luồng chính
 
-1. `USER` mở phần luyện viết
+1. `LEARNER` mở phần luyện viết
 2. Chọn chữ muốn luyện hoặc để hệ thống chọn theo lịch ôn
 3. Chọn chế độ luyện phù hợp với mình
 4. Hệ thống hiển thị khung viết theo chế độ đã chọn
-5. `USER` viết chữ trên khung
+5. `LEARNER` viết chữ trên khung
 6. Hệ thống đối chiếu nét vừa viết với thứ tự nét chuẩn
 7. Hệ thống cho biết kết quả và chỉ ra nét nào chưa đúng
 8. Kết quả được dùng để cập nhật mức độ nắm vững và lịch ôn
-9. `USER` chuyển sang chữ tiếp theo hoặc kết thúc lượt luyện
+9. `LEARNER` chuyển sang chữ tiếp theo hoặc kết thúc lượt luyện
 
 ## Luồng thay thế
 
@@ -2370,7 +2370,7 @@ POST /api/learning/writing-attempts
 | | |
 | --- | --- |
 | **ID** | UC-127 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P1 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 1.2 |
@@ -2389,7 +2389,7 @@ Người học làm bài tập trắc nghiệm để nhận biết chữ Hán, c
 
 ## Tiền điều kiện
 
-- `USER` đã đăng nhập
+- `LEARNER` đã đăng nhập
 - Có đủ chữ trong kho để tạo câu hỏi và các đáp án nhiễu
 - Câu hỏi đã được gắn điểm kiến thức
 
@@ -2401,14 +2401,14 @@ Người học làm bài tập trắc nghiệm để nhận biết chữ Hán, c
 
 ## Luồng chính
 
-1. `USER` mở phần luyện nhận diện chữ
+1. `LEARNER` mở phần luyện nhận diện chữ
 2. Hệ thống chọn chữ cần luyện theo lịch ôn hoặc theo chủ đề đang học
 3. Hệ thống tạo câu hỏi kèm các đáp án nhiễu
-4. `USER` chọn đáp án
+4. `LEARNER` chọn đáp án
 5. Hệ thống chấm và cho biết đúng hay sai
 6. Nếu sai, hệ thống hiện đáp án đúng kèm giải thích
 7. Kết quả được dùng để cập nhật mức độ nắm vững
-8. `USER` chuyển sang câu tiếp theo hoặc kết thúc
+8. `LEARNER` chuyển sang câu tiếp theo hoặc kết thúc
 
 ## Luồng thay thế
 
@@ -2466,7 +2466,7 @@ POST /api/learning/recognition/answers
 | | |
 | --- | --- |
 | **ID** | UC-128 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P0 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 1.4 |
@@ -2487,7 +2487,7 @@ Người học đi qua một chủ đề từ vựng theo trình tự từ học
 
 ## Tiền điều kiện
 
-- `USER` đã đăng nhập
+- `LEARNER` đã đăng nhập
 - Chủ đề đang ở trạng thái đã mở
 - Chủ đề có đủ từ vựng và câu hỏi để học
 
@@ -2499,15 +2499,15 @@ Người học đi qua một chủ đề từ vựng theo trình tự từ học
 
 ## Luồng chính
 
-1. `USER` chọn một chủ đề đã mở
+1. `LEARNER` chọn một chủ đề đã mở
 2. Hệ thống hiển thị danh sách từ và tiến độ hiện tại của chủ đề
-3. `USER` xem lần lượt các từ mới
-4. `USER` làm bài luyện nhận diện và luyện nghe cho các từ vừa xem
+3. `LEARNER` xem lần lượt các từ mới
+4. `LEARNER` làm bài luyện nhận diện và luyện nghe cho các từ vừa xem
 5. Hệ thống cập nhật tiến độ sau mỗi bước
-6. Khi đã luyện đủ, `USER` làm bài kiểm tra cuối chủ đề
+6. Khi đã luyện đủ, `LEARNER` làm bài kiểm tra cuối chủ đề
 7. Hệ thống chấm bài và tính mức hoàn thành của chủ đề
 8. Nếu đạt ngưỡng, hệ thống mở chủ đề kế tiếp
-9. `USER` xem kết quả và chọn học tiếp hoặc chuyển chủ đề
+9. `LEARNER` xem kết quả và chọn học tiếp hoặc chuyển chủ đề
 
 ## Luồng thay thế
 
@@ -2571,7 +2571,7 @@ POST /api/learning/topics/{id}/complete
 | | |
 | --- | --- |
 | **ID** | UC-129 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P2 |
 | **Scope** | **V2** |
 | **Tính năng gốc** | 1.6 |
@@ -2594,7 +2594,7 @@ Người học chọn một video tiếng Trung có phụ đề và học theo n
 
 ## Tiền điều kiện
 
-- `USER` đã đăng nhập
+- `LEARNER` đã đăng nhập
 - Video đã được công bố và còn truy cập được ở nguồn
 - Video có phụ đề đã gắn mốc thời gian
 
@@ -2606,14 +2606,14 @@ Người học chọn một video tiếng Trung có phụ đề và học theo n
 
 ## Luồng chính
 
-1. `USER` mở danh sách video và chọn theo cấp hoặc chủ đề
+1. `LEARNER` mở danh sách video và chọn theo cấp hoặc chủ đề
 2. Hệ thống tải video cùng phụ đề đã gắn mốc thời gian
-3. `USER` xem video, phụ đề chạy đồng bộ theo lời thoại
-4. `USER` chọn cách học muốn dùng cho câu đang nghe
+3. `LEARNER` xem video, phụ đề chạy đồng bộ theo lời thoại
+4. `LEARNER` chọn cách học muốn dùng cho câu đang nghe
 5. Hệ thống mở bài tập tương ứng với cách học đã chọn
-6. `USER` làm bài và nhận kết quả
+6. `LEARNER` làm bài và nhận kết quả
 7. Hệ thống lưu kết quả và vị trí xem hiện tại
-8. `USER` tiếp tục với câu khác hoặc kết thúc buổi học
+8. `LEARNER` tiếp tục với câu khác hoặc kết thúc buổi học
 
 ## Luồng thay thế
 
@@ -2630,14 +2630,14 @@ Người học gõ lại câu vừa nghe, hệ thống so với phụ đề gố
 Người học ghi âm giọng mình đọc theo câu mẫu. Chi tiết ở UC-122.
 
 **A5 · Video không còn ở nguồn**
-Hệ thống đánh dấu video không khả dụng và báo cho người quản trị nội dung.
+Hệ thống đánh dấu video không khả dụng và báo cho biên tập viên nội dung.
 
 ## Exception
 
 | Mã | Tình huống | HTTP | Xử lý |
 | --- | --- | --- | --- |
 | `VIDEO_NOT_FOUND` | Video không tồn tại | **404** | Về danh sách video |
-| `VIDEO_UNAVAILABLE` | Nguồn đã xóa video | **410** | Ẩn khỏi danh sách, báo người quản trị nội dung |
+| `VIDEO_UNAVAILABLE` | Nguồn đã xóa video | **410** | Ẩn khỏi danh sách, báo biên tập viên nội dung |
 | `NO_SUBTITLES` | Video chưa có phụ đề | **422** | Không mở video, vì không phụ đề thì mất giá trị học |
 | `SUBTITLE_TIMING_INVALID` | Mốc thời gian phụ đề sai | **500** | Phụ đề không khớp lời thoại, kiểm lại khi nhập |
 

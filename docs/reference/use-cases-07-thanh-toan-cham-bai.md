@@ -32,21 +32,21 @@
 
 | UC-ID | Use case | Actor | Pri | Scope | FT |
 | --- | --- | --- | --- | --- | --- |
-| UC-093 | Xem gói dịch vụ, số điểm và lượt còn lại | `USER` | P1 | MVP | 6.1 |
-| UC-094 | Đổi mã CREDIT để cộng điểm | `USER` | P1 | MVP | 6.1 |
-| UC-095 | Đổi mã SUBSCRIPTION để kích hoạt hoặc gia hạn gói | `USER` | P1 | MVP | 6.1 |
-| UC-096 | Xác định và tiêu thụ quyền sử dụng cho tính năng tốn phí | Supporting UC | P1 | MVP | 6.1 |
-| UC-097 | Hoàn quyền sử dụng khi hành động thất bại | Supporting UC | P1 | MVP | 6.1 |
-| UC-098 | Xem lịch sử giao dịch điểm của mình | `USER` | P2 | MVP | 6.1 |
-| UC-099 | Sinh lô mã thẻ nạp | `FINANCE_ADMIN` | P1 | MVP | 6.1 |
-| UC-100 | Xem và đối chiếu sổ cái giao dịch điểm | `FINANCE_ADMIN` | P1 | MVP | 6.1 |
-| UC-101 | Quản lý gói dịch vụ | `FINANCE_ADMIN` | P2 | MVP | 6.1 |
-| UC-102 | Xử lý tranh chấp về điểm | `FINANCE_ADMIN` | P2 | MVP | 6.1 |
-| UC-103 | Gửi yêu cầu nhờ chấm bài viết | `USER` | P2 | MVP | 6.2 |
+| UC-093 | Xem gói dịch vụ, số điểm và lượt còn lại | `LEARNER` | P1 | MVP | 6.1 |
+| UC-094 | Đổi mã CREDIT để cộng điểm | `LEARNER` | P1 | MVP | 6.1 |
+| UC-095 | Đổi mã SUBSCRIPTION để kích hoạt hoặc gia hạn gói | `LEARNER` | P1 | MVP | 6.1 |
+| UC-096 | Xác định và tiêu thụ quyền sử dụng cho tính năng tốn phí | «include» UC-048, 103… · `LEARNER` | P1 | MVP | 6.1 |
+| UC-097 | Hoàn quyền sử dụng khi hành động thất bại | «extend» UC-096 · `LEARNER` | P1 | MVP | 6.1 |
+| UC-098 | Xem lịch sử giao dịch điểm của mình | `LEARNER` | P2 | MVP | 6.1 |
+| UC-099 | Sinh lô mã thẻ nạp | `ACCOUNTANT` | P1 | MVP | 6.1 |
+| UC-100 | Xem và đối chiếu sổ cái giao dịch điểm | `ACCOUNTANT` | P1 | MVP | 6.1 |
+| UC-101 | Quản lý gói dịch vụ | `ACCOUNTANT` | P2 | MVP | 6.1 |
+| UC-102 | Xử lý tranh chấp về điểm | `ACCOUNTANT` | P2 | MVP | 6.1 |
+| UC-103 | Gửi yêu cầu nhờ chấm bài viết | `LEARNER` | P2 | MVP | 6.2 |
 | UC-104 | Xem hàng đợi bài chờ chấm | `TEACHER` | P2 | MVP | 6.2 |
 | UC-105 | Nhận bài và gửi kết quả chấm | `TEACHER` | P2 | MVP | 6.2 |
-| UC-106 | Xem trạng thái và kết quả chấm | `USER` | P2 | MVP | 6.2 |
-| UC-107 | Hết hạn yêu cầu chấm chưa được nhận và hoàn quyền sử dụng | Scheduler | P2 | MVP | 6.2 |
+| UC-106 | Xem trạng thái và kết quả chấm | `LEARNER` | P2 | MVP | 6.2 |
+| UC-107 | Hết hạn yêu cầu chấm chưa được nhận và hoàn quyền sử dụng | Background Job | P2 | MVP | 6.2 |
 
 ---
 
@@ -72,7 +72,7 @@ Mọi UC dưới đây tuân theo sáu quy tắc đã chốt cho bảng dính ti
 
 | | |
 |---|---|
-| **UC-ID** | UC-093 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
+| **UC-ID** | UC-093 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
 
 ## Mô tả
 
@@ -108,7 +108,7 @@ Số lượt trong gói/quota và số dư điểm là hai nguồn sử dụng k
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở SCR-030 Plan & Credits để xem thông tin gói dịch vụ và số dư. |
+| 1 | `LEARNER` | Mở SCR-030 Plan & Credits để xem thông tin gói dịch vụ và số dư. |
 | 2 | Client | Gửi yêu cầu lấy thông tin gói/quota và số dư bằng phiên hiện tại. |
 | 3 | System | Xác định người dùng từ phiên đăng nhập; không dùng `user_id` do client tự chọn. |
 | 4 | System | Xác định gói đang có hiệu lực tại thời điểm kiểm tra. Nếu gói trả phí đã hết hạn, áp dụng quyền FREE. |
@@ -187,7 +187,7 @@ Thứ tự giao dịch phải ổn định theo thiết kế ledger; không ch�
 
 | | |
 |---|---|
-| **UC-ID** | UC-094 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
+| **UC-ID** | UC-094 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
 
 ## Mô tả
 
@@ -223,7 +223,7 @@ Giá trị điểm luôn lấy từ dữ liệu mã do hệ thống quản lý. 
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Nhập mã và xác nhận nạp điểm. |
+| 1 | `LEARNER` | Nhập mã và xác nhận nạp điểm. |
 | 2 | Client | Gửi yêu cầu đổi mã kèm CSRF nếu là web dùng cookie. |
 | 3 | System | Kiểm tra xác thực, quyền thao tác và giới hạn số lần nhập sai của tài khoản. |
 | 4 | System | Kiểm tra định dạng mã, tính hash để tìm mã tương ứng; không log mã thô. |
@@ -313,7 +313,7 @@ một dòng ledger cũ là giải pháp đầy đủ.
 
 | | |
 |---|---|
-| **UC-ID** | UC-095 · **Actor** `USER` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
+| **UC-ID** | UC-095 · **Actor** `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
 
 ## Mô tả
 
@@ -348,7 +348,7 @@ Nếu người dùng đang dùng cùng gói và gói còn hạn, thời lượng
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Nhập mã gói và xác nhận sử dụng. |
+| 1 | `LEARNER` | Nhập mã gói và xác nhận sử dụng. |
 | 2 | System | Thực hiện các kiểm tra chung về mã như UC-094. |
 | 3 | System | Xác định mã thuộc loại `SUBSCRIPTION`; lấy gói và số ngày từ dữ liệu server. |
 | 4 | System | Xác định gói hiện tại và thời hạn hiện tại của tài khoản. |
@@ -430,7 +430,7 @@ hoặc suy ra gói từ `value`. Giá niêm yết không chứng minh số tiề
 
 | | |
 |---|---|
-| **UC-ID** | UC-096 · **Actor** Supporting UC (được gọi từ UC khác) · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
+| **UC-ID** | UC-096 · **Actor** «include» của UC-048, UC-103 và mọi tính năng tốn phí — actor `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
 
 ## Mô tả
 
@@ -556,7 +556,7 @@ UC này không thêm bảng/cột hoặc thay contract của caller.
 
 | | |
 |---|---|
-| **UC-ID** | UC-097 · **Actor** Supporting UC (được gọi từ UC khác) · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
+| **UC-ID** | UC-097 · **Actor** «extend» của UC-096, chỉ chạy khi hành động thất bại — actor `LEARNER` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
 
 ## Mô tả
 
@@ -676,7 +676,7 @@ gồm thay đổi trạng thái và hoàn, không commit hoàn độc lập rồ
 
 | | |
 |---|---|
-| **UC-ID** | UC-098 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 6.1 |
+| **UC-ID** | UC-098 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 6.1 |
 
 ## Mô tả
 
@@ -705,7 +705,7 @@ Người dùng xem lịch sử các giao dịch điểm thuộc tài khoản c�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở SCR-031 Transaction History — “Lịch sử giao dịch”. |
+| 1 | `LEARNER` | Mở SCR-031 Transaction History — “Lịch sử giao dịch”. |
 | 2 | Client | Gửi yêu cầu danh sách với tham số phân trang và bộ lọc loại giao dịch nếu có. |
 | 3 | System | Xác định người dùng từ phiên đăng nhập và kiểm tra tham số. |
 | 4 | System | Lấy các giao dịch chỉ thuộc tài khoản đó. |
@@ -772,17 +772,17 @@ Dùng DTO dành cho người dùng, không trả toàn bộ entity hoặc join t
 
 | | |
 |---|---|
-| **UC-ID** | UC-099 · **Actor** `FINANCE_ADMIN` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
+| **UC-ID** | UC-099 · **Actor** `ACCOUNTANT` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
 
 ## Mô tả
 
-`FINANCE_ADMIN` sinh một lô mã `CREDIT` hoặc `SUBSCRIPTION` để phân phối bên ngoài CNHSK. Hệ thống quản lý phát hành, trạng thái và việc đổi mã nhưng không xác nhận việc mua bán hoặc thu tiền ngoài hệ thống.
+`ACCOUNTANT` sinh một lô mã `CREDIT` hoặc `SUBSCRIPTION` để phân phối bên ngoài CNHSK. Hệ thống quản lý phát hành, trạng thái và việc đổi mã nhưng không xác nhận việc mua bán hoặc thu tiền ngoài hệ thống.
 
 Mã được sinh bằng nguồn ngẫu nhiên an toàn và chỉ lưu dưới dạng hash. Mã thô chỉ xuất hiện **một lần** trong kết quả tạo lô để quản trị tải xuống; sau đó hệ thống không có chức năng xem lại mã thô.
 
 ## Tiền điều kiện
 
-1. Người thao tác đã đăng nhập và có role `FINANCE_ADMIN`.
+1. Người thao tác đã đăng nhập và có role `ACCOUNTANT`.
 2. Request ghi từ web có CSRF hợp lệ.
 3. Loại mã và giá trị/quyền lợi cần phát hành đã được cấu hình hợp lệ.
 4. Với thẻ SUBSCRIPTION, hệ thống xác định được gói và quyền lợi được cấp cho mã.
@@ -807,7 +807,7 @@ Mã được sinh bằng nguồn ngẫu nhiên an toàn và chỉ lưu dưới d
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `FINANCE_ADMIN` | Chọn loại mã, số lượng, giá trị/quyền lợi, hạn nếu có và thông tin phân phối. |
+| 1 | `ACCOUNTANT` | Chọn loại mã, số lượng, giá trị/quyền lợi, hạn nếu có và thông tin phân phối. |
 | 2 | Client | Gửi yêu cầu tạo lô kèm CSRF. |
 | 3 | System | Kiểm tra role, CSRF, số lượng và dữ liệu cấu hình. |
 | 4 | System | Sinh đủ số lượng mã bằng `SecureRandom`, mỗi mã dài tối thiểu 16 ký tự. |
@@ -816,7 +816,7 @@ Mã được sinh bằng nguồn ngẫu nhiên an toàn và chỉ lưu dưới d
 | 7 | System | Ghi audit, tuyệt đối không ghi mã thô. |
 | 8 | System | Commit việc phát hành. |
 | 9 | System | Sau commit, trả CSV/dữ liệu chứa mã thô đúng một lần. |
-| 10 | `FINANCE_ADMIN` | Tải và bảo quản file mã bên ngoài hệ thống. |
+| 10 | `ACCOUNTANT` | Tải và bảo quản file mã bên ngoài hệ thống. |
 
 ## Luồng thay thế
 
@@ -835,7 +835,7 @@ Mã được sinh bằng nguồn ngẫu nhiên an toàn và chỉ lưu dưới d
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Chưa xác thực | Không phát hành. |
-| `FORBIDDEN_ROLE` | 403 | Không có FINANCE_ADMIN | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có ACCOUNTANT | Chặn. |
 | `CSRF_TOKEN_MISSING` | 403 | Thiếu/sai CSRF | Không thay đổi lô. |
 | `BATCH_TOO_LARGE` | 422 | Số lượng vượt giới hạn 1.000 | Không phát hành một phần. |
 | `INVALID_BATCH_DATA` | 422 | Giá trị/thời lượng/hạn/thông tin phân phối sai | Trả lỗi đúng trường. |
@@ -845,8 +845,8 @@ Mã được sinh bằng nguồn ngẫu nhiên an toàn và chỉ lưu dưới d
 
 | # | Rule |
 | --- | --- |
-| BR-099-1 | PAYMENT_SCOPE đã chốt: FINANCE_ADMIN được phát hành mã CREDIT/SUBSCRIPTION để phân phối ngoài hệ thống; CNHSK không tích hợp cổng thanh toán. |
-| BR-099-2 | Chỉ `FINANCE_ADMIN` được sinh mã thẻ. Không dùng role `ADMIN` chung cho chức năng này. |
+| BR-099-1 | PAYMENT_SCOPE đã chốt: ACCOUNTANT được phát hành mã CREDIT/SUBSCRIPTION để phân phối ngoài hệ thống; CNHSK không tích hợp cổng thanh toán. |
+| BR-099-2 | Chỉ `ACCOUNTANT` được sinh mã thẻ. Không dùng role `ADMIN` chung cho chức năng này. |
 | BR-099-3 | Mã thẻ phải được sinh ngẫu nhiên bằng nguồn ngẫu nhiên an toàn, không dùng mã tuần tự hoặc mã dễ đoán. |
 | BR-099-4 | Mã thẻ phải đủ dài để không thể dò thực tế. Đề xuất tối thiểu 16 ký tự. |
 | BR-099-5 | Hệ thống chỉ lưu hash của mã thẻ, không lưu mã thô. |
@@ -873,9 +873,9 @@ bán mã hoặc thu tiền bên ngoài.
 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
-| T1 | FINANCE_ADMIN sinh 100 CREDIT hợp lệ | Đủ 100 UNUSED và audit; một response CSV. |
-| T2 | CONTENT_ADMIN/USER không có FINANCE_ADMIN | 403. |
-| T3 | SUPER_ADMIN không có FINANCE_ADMIN | 403; không có kế thừa quyền ngầm. |
+| T1 | ACCOUNTANT sinh 100 CREDIT hợp lệ | Đủ 100 UNUSED và audit; một response CSV. |
+| T2 | CONTENT_EDITOR/LEARNER không có ACCOUNTANT | 403. |
+| T3 | ADMIN không có ACCOUNTANT | 403; không có kế thừa quyền ngầm. |
 | T4 | Số lượng 0, âm, không nguyên hoặc 2.000 | Validation thất bại; không có lô một phần. |
 | T5 | Không đặt hạn và đặt hạn đã qua | Không hạn được phép; hạn đã qua bị từ chối. |
 | T6 | Va chạm hash trong lô/DB | Xử lý an toàn, đủ số lượng UNIQUE hoặc rollback toàn bộ. |
@@ -892,17 +892,17 @@ bán mã hoặc thu tiền bên ngoài.
 
 | | |
 |---|---|
-| **UC-ID** | UC-100 · **Actor** `FINANCE_ADMIN` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
+| **UC-ID** | UC-100 · **Actor** `ACCOUNTANT` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
 
 ## Mô tả
 
-`FINANCE_ADMIN` xem, lọc, xuất và đối chiếu sổ cái điểm toàn hệ thống để kiểm tra biến động điểm và hỗ trợ xử lý tranh chấp. Sổ cái điểm **không phải** báo cáo doanh thu tiền mặt vì tiền thật được thu bên ngoài CNHSK.
+`ACCOUNTANT` xem, lọc, xuất và đối chiếu sổ cái điểm toàn hệ thống để kiểm tra biến động điểm và hỗ trợ xử lý tranh chấp. Sổ cái điểm **không phải** báo cáo doanh thu tiền mặt vì tiền thật được thu bên ngoài CNHSK.
 
 UC này chỉ đọc dữ liệu sổ cái. Nếu phát hiện sai lệch, hệ thống không tự sửa hoặc tự tạo giao dịch điều chỉnh.
 
 ## Tiền điều kiện
 
-1. Người thao tác đã đăng nhập và có role `FINANCE_ADMIN`.
+1. Người thao tác đã đăng nhập và có role `ACCOUNTANT`.
 2. Yêu cầu tra cứu có khoảng thời gian hợp lệ và có giới hạn phân trang/xuất dữ liệu.
 3. Cơ chế audit truy cập dữ liệu tài chính đang hoạt động.
 
@@ -924,7 +924,7 @@ UC này chỉ đọc dữ liệu sổ cái. Nếu phát hiện sai lệch, hệ 
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `FINANCE_ADMIN` | Chọn khoảng thời gian và bộ lọc người dùng/loại giao dịch nếu cần. |
+| 1 | `ACCOUNTANT` | Chọn khoảng thời gian và bộ lọc người dùng/loại giao dịch nếu cần. |
 | 2 | Client | Gửi yêu cầu danh sách với bộ lọc và phân trang. |
 | 3 | System | Kiểm tra role và tính hợp lệ của phạm vi thời gian. |
 | 4 | System | Lấy các giao dịch đúng bộ lọc, sắp xếp ổn định và phân trang. |
@@ -948,7 +948,7 @@ UC này chỉ đọc dữ liệu sổ cái. Nếu phát hiện sai lệch, hệ 
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không trả sổ cái. |
-| `FORBIDDEN_ROLE` | 403 | Không có FINANCE_ADMIN | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có ACCOUNTANT | Chặn. |
 | `INVALID_DATE_RANGE` | 422 | Thiếu/sai khoảng thời gian | Không truy vấn bỏ giới hạn. |
 | `UNBOUNDED_EXPORT` | 422 | Yêu cầu xuất không có giới hạn hợp lệ | Từ chối. |
 | `LEDGER_READ_ERROR` | 500 | Không đọc được dữ liệu hoặc không ghi được audit bắt buộc | Báo lỗi; không tự sửa dữ liệu. |
@@ -958,7 +958,7 @@ UC này chỉ đọc dữ liệu sổ cái. Nếu phát hiện sai lệch, hệ 
 | # | Rule |
 | --- | --- |
 | BR-100-1 | Sổ cái giao dịch điểm là một phần của MVP theo PAYMENT_SCOPE đã chốt; đây không phải sổ doanh thu tiền mặt bên ngoài CNHSK. |
-| BR-100-2 | Chỉ `FINANCE_ADMIN` được xem sổ cái toàn hệ thống. |
+| BR-100-2 | Chỉ `ACCOUNTANT` được xem sổ cái toàn hệ thống. |
 | BR-100-3 | Mọi lần xem hoặc xuất sổ cái phải ghi audit log. |
 | BR-100-4 | Danh sách sổ cái phải có bộ lọc thời gian bắt buộc và phân trang. |
 | BR-100-5 | Khi hiển thị danh sách, thông tin người dùng phải được hạn chế. Email được che một phần; thông tin đầy đủ chỉ được xem ở ngữ cảnh điều tra có quyền phù hợp. |
@@ -983,7 +983,7 @@ Giữ ba endpoint hiện có; không bổ sung cổng thanh toán hay báo cáo 
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
 | T1 | Xem một tháng có nhiều trang | Danh sách đúng trang, tổng tính trên toàn bộ phạm vi lọc. |
-| T2 | Tài khoản không có FINANCE_ADMIN | 403, không lộ dữ liệu. |
+| T2 | Tài khoản không có ACCOUNTANT | 403, không lộ dữ liệu. |
 | T3 | Thiếu ngày hoặc từ ngày lớn hơn đến ngày | 422, không truy vấn bỏ giới hạn. |
 | T4 | Danh sách và CSV có thông tin người dùng | PII được hạn chế/che; không có mã thẻ hoặc hash. |
 | T5 | Xem/xuất/đối chiếu | Có audit đúng người và phạm vi. |
@@ -999,17 +999,17 @@ Giữ ba endpoint hiện có; không bổ sung cổng thanh toán hay báo cáo 
 
 | | |
 |---|---|
-| **UC-ID** | UC-101 · **Actor** `FINANCE_ADMIN` · **Pri** P2 · **Scope** MVP · **FT** 6.1 |
+| **UC-ID** | UC-101 · **Actor** `ACCOUNTANT` · **Pri** P2 · **Scope** MVP · **FT** 6.1 |
 
 ## Mô tả
 
-`FINANCE_ADMIN` quản lý danh mục các gói dịch vụ được CNHSK hỗ trợ, gồm tên/mã gói, giá niêm yết, thời lượng, quyền lợi và trạng thái còn cung cấp hay không. Phạm vi mã gói hiện tại là `FREE`, `PREMIUM`, `PREMIUM_PLUS`; UC này không mở đường tạo tùy ý loại gói mới ngoài phạm vi đã chốt.
+`ACCOUNTANT` quản lý danh mục các gói dịch vụ được CNHSK hỗ trợ, gồm tên/mã gói, giá niêm yết, thời lượng, quyền lợi và trạng thái còn cung cấp hay không. Phạm vi mã gói hiện tại là `FREE`, `PREMIUM`, `PREMIUM_PLUS`; UC này không mở đường tạo tùy ý loại gói mới ngoài phạm vi đã chốt.
 
 Thay đổi danh mục chỉ áp dụng cho việc cấp quyền mới. Hệ thống không được sửa lịch sử hoặc làm mất quyền lợi đã cấp cho người dùng/mã đã phát hành trước đó.
 
 ## Tiền điều kiện
 
-1. Người thao tác đã đăng nhập và có `FINANCE_ADMIN`.
+1. Người thao tác đã đăng nhập và có `ACCOUNTANT`.
 2. Với thao tác ghi từ web, CSRF token hợp lệ.
 3. Mã gói, cấu trúc quyền lợi và quy tắc thời lượng thuộc phạm vi được phê duyệt.
 4. Nếu thay đổi có thể ảnh hưởng quyền lợi cũ, hệ thống phải có dữ liệu đủ để bảo toàn quyền đã cấp.
@@ -1032,7 +1032,7 @@ Thay đổi danh mục chỉ áp dụng cho việc cấp quyền mới. Hệ th�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `FINANCE_ADMIN` | Mở danh mục gói và chọn tạo gói còn thiếu trong phạm vi cho phép, sửa hoặc ngưng cung cấp. |
+| 1 | `ACCOUNTANT` | Mở danh mục gói và chọn tạo gói còn thiếu trong phạm vi cho phép, sửa hoặc ngưng cung cấp. |
 | 2 | Client | Gửi yêu cầu đọc hoặc thay đổi gói. |
 | 3 | System | Kiểm tra role và CSRF đối với thao tác ghi. |
 | 4 | System | Kiểm tra mã/tên, giá, thời lượng và cấu trúc quyền lợi. |
@@ -1056,7 +1056,7 @@ Thay đổi danh mục chỉ áp dụng cho việc cấp quyền mới. Hệ th�
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không đọc/ghi danh mục quản trị. |
-| `FORBIDDEN_ROLE` | 403 | Không có FINANCE_ADMIN | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có ACCOUNTANT | Chặn. |
 | `CSRF_TOKEN_MISSING` | 403 | Thiếu/sai CSRF | Không cập nhật. |
 | `INVALID_PLAN_DATA` | 422 | Giá/thời lượng/quyền lợi không hợp lệ | Giữ dữ liệu cũ. |
 | `DUPLICATE_PLAN` | 409 | Mã/tên gói trùng | Không tạo bản ghi trùng. |
@@ -1068,7 +1068,7 @@ Thay đổi danh mục chỉ áp dụng cho việc cấp quyền mới. Hệ th�
 | # | Rule |
 | --- | --- |
 | BR-101-1 | PAYMENT_SCOPE đã chốt có gói dịch vụ và mã SUBSCRIPTION; quản lý gói thuộc phạm vi MVP. |
-| BR-101-2 | Chỉ `FINANCE_ADMIN` được tạo, sửa hoặc ngưng bán gói dịch vụ. |
+| BR-101-2 | Chỉ `ACCOUNTANT` được tạo, sửa hoặc ngưng bán gói dịch vụ. |
 | BR-101-3 | Giá gói không được âm và không dùng kiểu số thực. |
 | BR-101-4 | Gói đã có người dùng hoặc mã chưa dùng trỏ tới không được xóa cứng. Chỉ được ngưng bán bằng trạng thái không hoạt động. |
 | BR-101-5 | Đổi giá gói chỉ áp dụng cho giao dịch mới, không áp hồi tố cho người đã mua trước đó. |
@@ -1101,7 +1101,7 @@ Giữ nguyên đường dẫn API đã liệt kê; trước triển khai phải 
 | T5 | Đổi giá | Giá trị lịch sử đã cấp không đổi theo giá mới. |
 | T6 | Ngưng cung cấp gói đang có người dùng/thẻ hợp lệ | Không mất quyền cũ, không xóa dữ liệu. |
 | T7 | Sửa quyền lợi khi chưa bảo lưu được quyền cũ | 409; không chỉ cảnh báo rồi vẫn lưu. |
-| T8 | Không có FINANCE_ADMIN hoặc thiếu CSRF | Bị chặn. |
+| T8 | Không có ACCOUNTANT hoặc thiếu CSRF | Bị chặn. |
 | T9 | Audit lỗi | Thay đổi danh mục rollback. |
 
 ---
@@ -1110,17 +1110,17 @@ Giữ nguyên đường dẫn API đã liệt kê; trước triển khai phải 
 
 | | |
 |---|---|
-| **UC-ID** | UC-102 · **Actor** `FINANCE_ADMIN` · **Pri** P2 · **Scope** MVP · **FT** 6.1 |
+| **UC-ID** | UC-102 · **Actor** `ACCOUNTANT` · **Pri** P2 · **Scope** MVP · **FT** 6.1 |
 
 ## Mô tả
 
-`FINANCE_ADMIN` xác minh một khiếu nại liên quan đến số điểm bằng cách đối chiếu sổ cái và hành động nguồn. UC này không tạo thêm hệ thống quản lý ticket/khiếu nại; yêu cầu có thể được tiếp nhận từ kênh hỗ trợ hiện tại và phải có mã tham chiếu để truy vết.
+`ACCOUNTANT` xác minh một khiếu nại liên quan đến số điểm bằng cách đối chiếu sổ cái và hành động nguồn. UC này không tạo thêm hệ thống quản lý ticket/khiếu nại; yêu cầu có thể được tiếp nhận từ kênh hỗ trợ hiện tại và phải có mã tham chiếu để truy vết.
 
 Nếu sai lệch là hậu quả của một hành động thất bại đã tiêu thụ quyền sử dụng, xử lý theo UC-097. `ADJUSTMENT` chỉ dùng cho trường hợp cần điều chỉnh nghiệp vụ khác. Giao dịch cũ không bao giờ bị sửa hoặc xóa để “sửa số dư”.
 
 ## Tiền điều kiện
 
-1. Người thao tác đã đăng nhập và có `FINANCE_ADMIN`.
+1. Người thao tác đã đăng nhập và có `ACCOUNTANT`.
 2. Có mã tham chiếu hoặc thông tin đủ để xác định vụ việc và người dùng liên quan.
 3. Với thao tác điều chỉnh từ web, CSRF token hợp lệ.
 4. Có đủ căn cứ để xác định có cần điều chỉnh hay không; không tự cộng bù khi bằng chứng chưa đủ.
@@ -1148,11 +1148,11 @@ Nếu sai lệch là hậu quả của một hành động thất bại đã ti�
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `FINANCE_ADMIN` | Nhận khiếu nại và tra cứu giao dịch liên quan bằng phạm vi phù hợp. |
+| 1 | `ACCOUNTANT` | Nhận khiếu nại và tra cứu giao dịch liên quan bằng phạm vi phù hợp. |
 | 2 | System | Kiểm tra quyền, trả dữ liệu cần thiết và ghi audit truy cập. |
-| 3 | `FINANCE_ADMIN` | Đối chiếu thẻ, hành động nguồn, refund/adjustment và chuỗi số dư. |
-| 4 | `FINANCE_ADMIN` | Kết luận: không điều chỉnh, hoàn theo UC-097 hoặc cần ADJUSTMENT. |
-| 5 | `FINANCE_ADMIN` | Nếu cần điều chỉnh, nhập amount, lý do và mã tham chiếu. |
+| 3 | `ACCOUNTANT` | Đối chiếu thẻ, hành động nguồn, refund/adjustment và chuỗi số dư. |
+| 4 | `ACCOUNTANT` | Kết luận: không điều chỉnh, hoàn theo UC-097 hoặc cần ADJUSTMENT. |
+| 5 | `ACCOUNTANT` | Nếu cần điều chỉnh, nhập amount, lý do và mã tham chiếu. |
 | 6 | System | Kiểm tra lại quyền, chặn tự điều chỉnh tài khoản của chính người thao tác và kiểm dữ liệu đầu vào. |
 | 7 | System | Kiểm tra vụ việc chưa được xử lý lặp theo tham chiếu. |
 | 8 | System | Lấy số dư hiện tại, kiểm số dư sau không âm và append `ADJUSTMENT`. |
@@ -1174,7 +1174,7 @@ Nếu sai lệch là hậu quả của một hành động thất bại đã ti�
 | Mã lỗi | HTTP | Nguyên nhân | Xử lý |
 | --- | --- | --- | --- |
 | `UNAUTHENTICATED` | 401 | Phiên không hợp lệ | Không tra cứu/điều chỉnh. |
-| `FORBIDDEN_ROLE` | 403 | Không có FINANCE_ADMIN | Chặn. |
+| `FORBIDDEN_ROLE` | 403 | Không có ACCOUNTANT | Chặn. |
 | `CSRF_TOKEN_MISSING` | 403 | Thiếu/sai CSRF | Không điều chỉnh. |
 | `SELF_ADJUSTMENT` | 403 | Người thực hiện là tài khoản được điều chỉnh | Chặn. |
 | `INVALID_ADJUSTMENT` | 422 | Thiếu lý do/tham chiếu, amount = 0 hoặc làm số dư âm | Không ghi giao dịch. |
@@ -1186,11 +1186,11 @@ Nếu sai lệch là hậu quả của một hành động thất bại đã ti�
 | # | Rule |
 | --- | --- |
 | BR-102-1 | Tranh chấp điểm được xử lý trên sổ cái điểm đã chốt trong MVP; UC này không quản lý tranh chấp tiền mặt thu ngoài hệ thống. |
-| BR-102-2 | Chỉ `FINANCE_ADMIN` được xử lý tranh chấp về điểm. |
+| BR-102-2 | Chỉ `ACCOUNTANT` được xử lý tranh chấp về điểm. |
 | BR-102-3 | Không được sửa hoặc xóa giao dịch cũ để xử lý tranh chấp. Mọi điều chỉnh phải tạo giao dịch điều chỉnh mới. |
 | BR-102-4 | Giao dịch điều chỉnh phải có lý do rõ ràng và mã tham chiếu khiếu nại hoặc nguồn xác minh. |
 | BR-102-5 | Người xử lý điều chỉnh phải được ghi lại trong giao dịch hoặc audit log. |
-| BR-102-6 | `FINANCE_ADMIN` không được tự điều chỉnh điểm cho chính tài khoản của mình. |
+| BR-102-6 | `ACCOUNTANT` không được tự điều chỉnh điểm cho chính tài khoản của mình. |
 | BR-102-7 | Một tranh chấp chỉ được xử lý một lần để tránh cộng/trừ lặp. |
 | BR-102-8 | Nếu lỗi là do hệ thống đã trừ điểm nhưng thao tác thất bại, phải xử lý bằng luồng hoàn điểm, không dùng điều chỉnh thủ công. |
 | BR-102-9 | Điều chỉnh không được làm số dư người dùng âm. |
@@ -1228,7 +1228,7 @@ chưa có quyết định tạo kho khiếu nại trong CNHSK.
 
 | | |
 |---|---|
-| **UC-ID** | UC-103 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 6.2 |
+| **UC-ID** | UC-103 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 6.2 |
 
 ## Mô tả
 
@@ -1273,9 +1273,9 @@ Bản bài được gửi phải được giữ cố định để giáo viên c
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Chọn bài ESSAY hoặc nhập bài tự viết cần giáo viên chấm. |
+| 1 | `LEARNER` | Chọn bài ESSAY hoặc nhập bài tự viết cần giáo viên chấm. |
 | 2 | Client | Hiển thị điều kiện sử dụng, thời hạn nhận/chấm và chính sách hoàn đã được duyệt. |
-| 3 | `USER` | Kiểm tra nội dung và xác nhận gửi. |
+| 3 | `LEARNER` | Kiểm tra nội dung và xác nhận gửi. |
 | 4 | Client | Gửi nội dung/tham chiếu bài cùng định danh chống lặp và CSRF nếu cần. |
 | 5 | System | Kiểm tra quyền sở hữu bài nguồn, nội dung và điều kiện hợp lệ. |
 | 6 | System | Kiểm tra không có yêu cầu `PENDING` hoặc `ASSIGNED` khác cho cùng bài theo quy tắc đã duyệt. |
@@ -1454,7 +1454,7 @@ Nội dung đầy đủ chỉ được trả qua thao tác được phân quyề
 | # | Đầu vào | Kết quả |
 | --- | --- | --- |
 | T1 | TEACHER mở hàng đợi có nhiều trang | Metadata sắp theo hạn, thứ tự ổn định và có phân trang. |
-| T2 | USER/CONTENT_ADMIN/SUPER_ADMIN không có TEACHER | 403. |
+| T2 | LEARNER/CONTENT_EDITOR/ADMIN không có TEACHER | 403. |
 | T3 | Tài khoản có thêm TEACHER hợp lệ | Được xem theo quyền TEACHER, không suy diễn từ role khác. |
 | T4 | Kiểm response | Không có danh tính người học hoặc toàn bộ bài viết. |
 | T5 | Bài đã ASSIGNED, hết hạn hoặc đúng biên hết hạn | Không xuất hiện trong hàng đợi PENDING, dù job chưa chạy. |
@@ -1630,7 +1630,7 @@ giúp client xác định lần giao hiện hành để submission cũ không á
 
 | | |
 |---|---|
-| **UC-ID** | UC-106 · **Actor** `USER` · **Pri** P2 · **Scope** MVP · **FT** 6.2 |
+| **UC-ID** | UC-106 · **Actor** `LEARNER` · **Pri** P2 · **Scope** MVP · **FT** 6.2 |
 
 ## Mô tả
 
@@ -1656,7 +1656,7 @@ Xem lại yêu cầu hoặc kết quả không tiêu thụ thêm quota/điểm v
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `USER` | Mở danh sách yêu cầu chấm hoặc mở một yêu cầu cụ thể. |
+| 1 | `LEARNER` | Mở danh sách yêu cầu chấm hoặc mở một yêu cầu cụ thể. |
 | 2 | Client | Gửi yêu cầu danh sách/chi tiết bằng phiên hiện tại. |
 | 3 | System | Xác định người dùng từ phiên và kiểm tra quyền sở hữu yêu cầu. |
 | 4 | System | Kiểm tra trạng thái yêu cầu. |
@@ -1733,7 +1733,7 @@ Không tự bổ sung API khiếu nại, sửa điểm thi hoặc cập nhật m
 
 | | |
 |---|---|
-| **UC-ID** | UC-107 · **Actor** Scheduler (kích hoạt theo thời gian) · **Pri** P2 · **Scope** MVP · **FT** 6.2 |
+| **UC-ID** | UC-107 · **Actor** — · **Không còn là UC: Background Job** chạy theo hạn nhận bài chấm · **Pri** P2 · **Scope** MVP · **FT** 6.2 |
 
 ## Mô tả
 
@@ -1851,7 +1851,7 @@ vào một transaction hoặc commit hoàn riêng trước khi trạng thái đ�
 | | |
 | --- | --- |
 | **ID** | UC-136 |
-| **Actor chính** | `USER` |
+| **Actor chính** | `LEARNER` |
 | **Priority** | P0 |
 | **Scope** | MVP |
 | **Tính năng gốc** | 6.1 |
@@ -1874,7 +1874,7 @@ Người học theo dõi số lượt còn lại và số điểm của mình, n
 
 ## Tiền điều kiện
 
-- `USER` đã đăng nhập
+- `LEARNER` đã đăng nhập
 - Với thao tác nhập mã, tài khoản đã xác thực email
 
 ## Hậu điều kiện
@@ -1885,13 +1885,13 @@ Người học theo dõi số lượt còn lại và số điểm của mình, n
 
 ## Luồng chính
 
-1. `USER` mở màn gói dịch vụ và điểm
+1. `LEARNER` mở màn gói dịch vụ và điểm
 2. Hệ thống hiển thị gói hiện tại, số điểm còn lại và số lượt miễn phí theo từng tính năng
-3. `USER` nhập mã thẻ nếu muốn nạp thêm hoặc đổi gói
+3. `LEARNER` nhập mã thẻ nếu muốn nạp thêm hoặc đổi gói
 4. Hệ thống kiểm mã thẻ còn hiệu lực và chưa được dùng
 5. Hệ thống cộng điểm hoặc kích hoạt gói tương ứng
 6. Hệ thống ghi một dòng vào sổ giao dịch
-7. `USER` xem lại số dư mới và lịch sử giao dịch
+7. `LEARNER` xem lại số dư mới và lịch sử giao dịch
 
 ## Luồng thay thế
 
