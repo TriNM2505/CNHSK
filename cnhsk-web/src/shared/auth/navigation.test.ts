@@ -17,6 +17,13 @@ afterEach(() => {
 })
 
 describe('getAuthenticatedDestination', () => {
+  it('uses the topic list as the learner default destination', () => {
+    expect(getAuthenticatedDestination(learner)).toEqual({
+      type: 'internal',
+      to: '/learn/topics',
+    })
+  })
+
   it('uses the only available role area as the default destination', () => {
     expect(getAuthenticatedDestination({ ...learner, roles: ['ADMIN'] })).toEqual({
       type: 'internal',
@@ -38,7 +45,7 @@ describe('getAuthenticatedDestination', () => {
     })
     expect(getAuthenticatedDestination(learner, '/admin/users')).toEqual({
       type: 'internal',
-      to: '/me/profile',
+      to: '/learn/topics',
     })
   })
 
@@ -47,11 +54,11 @@ describe('getAuthenticatedDestination', () => {
 
     expect(getAuthenticatedDestination(learner, '//evil.example/path')).toEqual({
       type: 'internal',
-      to: '/me/profile',
+      to: '/learn/topics',
     })
     expect(getAuthenticatedDestination(learner, 'https://evil.example/path')).toEqual({
       type: 'internal',
-      to: '/me/profile',
+      to: '/learn/topics',
     })
   })
 

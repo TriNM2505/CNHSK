@@ -104,6 +104,22 @@ describe('application routes', () => {
     renderRoute('/me/password')
 
     expect(await screen.findByRole('heading', { name: 'Màn SCR-008 đang dựng' })).toBeVisible()
+    expect(screen.queryByRole('navigation', { name: 'Học tập' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Quản trị' })).not.toBeInTheDocument()
+  })
+
+  it('uses the learner layout for the password screen when LEARNER is present', async () => {
+    getCurrentUserMock.mockResolvedValue(learner)
+    renderRoute('/me/password')
+
+    expect(await screen.findByRole('navigation', { name: 'Học tập' })).toBeInTheDocument()
+  })
+
+  it('uses the admin layout for the password screen when only ADMIN is present', async () => {
+    getCurrentUserMock.mockResolvedValue(admin)
+    renderRoute('/me/password')
+
+    expect(await screen.findByRole('navigation', { name: 'Quản trị' })).toBeInTheDocument()
   })
 
   it('moves an authenticated user away from a guest-only route using FR-090', async () => {

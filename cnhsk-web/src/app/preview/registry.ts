@@ -26,10 +26,16 @@ import {
   TextareaGallery,
   ToastGallery,
 } from '@/app/preview/galleries'
+import {
+  AdminLayoutGallery,
+  LearnerLayoutGallery,
+  PublicLayoutGallery,
+} from '@/app/preview/layoutGalleries'
 
 export type PreviewState = 'loading' | 'empty' | 'error' | 'ready'
 
 export interface PreviewEntry {
+  fullFrame?: boolean
   group: 'component' | 'screen'
   id: string
   render: (state: PreviewState) => ReactNode
@@ -182,6 +188,27 @@ export const previewRegistry: readonly PreviewEntry[] = [
     id: 'component-page-state',
     render: () => createElement(PageStateGallery),
     title: 'PageState',
+  },
+  {
+    fullFrame: true,
+    group: 'component',
+    id: 'layout-public',
+    render: () => createElement(PublicLayoutGallery),
+    title: 'PublicLayout',
+  },
+  {
+    fullFrame: true,
+    group: 'component',
+    id: 'layout-learner',
+    render: () => createElement(LearnerLayoutGallery),
+    title: 'LearnerLayout',
+  },
+  {
+    fullFrame: true,
+    group: 'component',
+    id: 'layout-admin',
+    render: () => createElement(AdminLayoutGallery),
+    title: 'AdminLayout',
   },
 ]
 

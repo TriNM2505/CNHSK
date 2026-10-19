@@ -17,7 +17,7 @@ export function ScreenUnderConstructionPage({
   const authNotice = showAuthNotice ? state?.authNotice : undefined
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas p-4 font-sans">
+    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-canvas p-4 font-sans">
       <div className="w-full max-w-reading text-center">
         {authNotice?.reason === 'ACCOUNT_BANNED' ? (
           <section

@@ -1,8 +1,9 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Outlet } from 'react-router-dom'
 
-import type { RoleCode } from '@/features/auth/types'
+import { isRoleAccess, type RouteAccess, type RouteLayout } from '@/app/routeAccess'
 import { AuthProvider, RequireAuthenticated, RequireGuest, RequireRole } from '@/shared/auth'
+import { AdminLayout, LearnerLayout, PublicLayout, RoleLayout } from '@/shared/layout'
 import { Skeleton } from '@/shared/ui'
 
 const ScreenUnderConstructionPage = lazy(async () => {
@@ -11,29 +12,44 @@ const ScreenUnderConstructionPage = lazy(async () => {
 })
 
 type ScreenRouteProps = {
-  guard?: 'authenticated' | 'guest' | 'role'
-  roles?: readonly RoleCode[]
+  access: RouteAccess
+  layout: RouteLayout
   scr: `SCR-${string}`
 }
 
 function ScreenFallback() {
   return (
-    <main className="mx-auto min-h-screen max-w-content bg-canvas p-4 sm:p-6">
+    <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-content bg-canvas p-4 sm:p-6">
       <Skeleton className="mx-auto max-w-reading" variant="card" />
     </main>
   )
 }
 
-export function ScreenRoute({ guard, roles = [], scr }: ScreenRouteProps) {
+function ScreenLayout({ children, layout }: { children: ReactNode; layout: RouteLayout }) {
+  switch (layout) {
+    case 'learner':
+      return <LearnerLayout>{children}</LearnerLayout>
+    case 'admin':
+      return <AdminLayout>{children}</AdminLayout>
+    case 'by-role':
+      return <RoleLayout>{children}</RoleLayout>
+    case 'public':
+      return <PublicLayout>{children}</PublicLayout>
+  }
+}
+
+export function ScreenRoute({ access, layout, scr }: ScreenRouteProps) {
   const content = (
-    <Suspense fallback={<ScreenFallback />}>
-      <ScreenUnderConstructionPage scr={scr} showAuthNotice={scr === 'SCR-002'} />
-    </Suspense>
+    <ScreenLayout layout={layout}>
+      <Suspense fallback={<ScreenFallback />}>
+        <ScreenUnderConstructionPage scr={scr} showAuthNotice={scr === 'SCR-002'} />
+      </Suspense>
+    </ScreenLayout>
   )
 
-  if (guard === 'guest') return <RequireGuest>{content}</RequireGuest>
-  if (guard === 'authenticated') return <RequireAuthenticated>{content}</RequireAuthenticated>
-  if (guard === 'role') return <RequireRole roles={roles}>{content}</RequireRole>
+  if (access === 'guest') return <RequireGuest>{content}</RequireGuest>
+  if (access === 'authenticated') return <RequireAuthenticated>{content}</RequireAuthenticated>
+  if (isRoleAccess(access)) return <RequireRole roles={access}>{content}</RequireRole>
   return content
 }
 

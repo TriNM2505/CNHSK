@@ -27,4 +27,11 @@ describe('preview registry', () => {
       ]),
     )
   })
+
+  it('registers all three layout galleries as full-frame previews', () => {
+    const layouts = previewRegistry.filter(({ id }) => id.startsWith('layout-'))
+
+    expect(layouts.map(({ id }) => id)).toEqual(['layout-public', 'layout-learner', 'layout-admin'])
+    expect(layouts.every(({ fullFrame }) => fullFrame)).toBe(true)
+  })
 })

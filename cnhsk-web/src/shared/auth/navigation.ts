@@ -1,3 +1,4 @@
+import { canUserAccessRoute, findKnownRoute } from '@/app/routeAccess'
 import type { CurrentUser, RoleCode } from '@/features/auth/types'
 
 export const AUTHENTICATED_ROLES: readonly RoleCode[] = [
@@ -11,32 +12,9 @@ export const AUTHENTICATED_ROLES: readonly RoleCode[] = [
 
 export type AuthDestination = { type: 'internal'; to: string } | { type: 'external'; href: string }
 
-function hasRole(user: CurrentUser, role: RoleCode): boolean {
-  return user.roles.includes(role)
-}
-
 function canAccessInternalPath(user: CurrentUser, pathname: string): boolean {
-  if (['/', '/verify-email', '/reset-password', '/403'].includes(pathname)) return true
-  if (pathname === '/me/password') return true
-  if (pathname === '/me/profile') return hasRole(user, 'LEARNER')
-  if (pathname === '/admin/users' || pathname.startsWith('/admin/users/')) {
-    return hasRole(user, 'ADMIN')
-  }
-  if (pathname === '/content/imports' || pathname.startsWith('/content/imports/')) {
-    return hasRole(user, 'CONTENT_EDITOR')
-  }
-  if (pathname === '/learn/topics' || pathname.startsWith('/learn/topics/')) {
-    return hasRole(user, 'LEARNER')
-  }
-  if (pathname === '/learn/grammar' || pathname.startsWith('/learn/grammar/')) {
-    return hasRole(user, 'LEARNER')
-  }
-  if (pathname === '/learn/pronunciation' || pathname.startsWith('/learn/pronunciation/')) {
-    return hasRole(user, 'LEARNER')
-  }
-  if (pathname.startsWith('/learn/characters/')) return hasRole(user, 'LEARNER')
-
-  return false
+  const route = findKnownRoute(pathname)
+  return route ? canUserAccessRoute(user, route.access) : false
 }
 
 function resolveRedirect(user: CurrentUser, redirect: string): AuthDestination | undefined {
@@ -72,7 +50,7 @@ function getDefaultDestination(user: CurrentUser): AuthDestination {
 
   switch (uniqueRoles[0]) {
     case 'LEARNER':
-      return { type: 'internal', to: '/me/profile' }
+      return { type: 'internal', to: '/learn/topics' }
     case 'CONTENT_EDITOR':
       return { type: 'internal', to: '/content/imports' }
     case 'ADMIN':

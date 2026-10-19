@@ -2,7 +2,7 @@ import { Button } from '@/shared/ui'
 
 export function NotFoundPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas p-4">
+    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center bg-canvas p-4">
       <div className="max-w-reading text-center">
         <p className="text-label text-brand-600">404</p>
         <h1 className="mt-2 text-h1-sm text-ink sm:text-h1">Không tìm thấy trang</h1>

@@ -27,5 +27,7 @@ export function PreviewFrame() {
         ? 'ready'
         : (states[0] ?? 'ready')
 
+  if (entry.fullFrame) return entry.render(state)
+
   return <main className="min-h-screen bg-canvas p-4 sm:p-6">{entry.render(state)}</main>
 }
