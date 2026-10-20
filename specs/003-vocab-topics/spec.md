@@ -103,7 +103,7 @@ Java: `enum PracticeSource { …; AttemptKind kind(); FeedbackMode feedback(); D
 | **E-R6** | Câu chọn: khoá phải thuộc `options` của câu | **400** `OPTION_NOT_IN_ITEM` |
 | **E-R7** | `durationMs` 0…3 600 000; thiếu `answer` khi không `skipped`/`audioFailed` | **422** `VALIDATION_FAILED` |
 | **E-R8** | `durationMs < rules.minDurationMs` → vẫn chấm, `meta.suspicious = true` | không lỗi |
-| **E-R9** | `replayCount > rules.maxReplays` | **400** `TOO_MANY_REPLAYS` |
+| **E-R9** | `replayCount > rules.maxReplays`. **`replayCount` = tổng số lần người học đã phát audio của câu đó, kể cả lần đầu** (0 = chưa nghe). `maxReplays: 3` ⇒ nghe tối đa 3 lần (BR-020-5) | **400** `TOO_MANY_REPLAYS` |
 | **E-R10** | `audioFailed = true` chỉ hợp lệ khi `rules.hasAudio`; câu ghi `is_correct = NULL`, `meta.audioFailed = true`, **không tính** vào điểm | **400** `AUDIO_NOT_IN_ITEM` |
 | **E-R11** | `skipped = true`: `IMMEDIATE` → `is_correct = NULL`, không tính điểm; `DEFERRED` → coi như chưa trả lời (sai khi nộp). Nguồn có `allowSkip = false` (vd `PRON_STAGE`, `GAME_ROUND`) từ chối | **400** `SKIP_NOT_ALLOWED` |
 | **E-R12** | ≤ **600** câu trả lời/giờ và ≤ **120** lượt mới/giờ mỗi người (Redis `practice:ans:{userId}:{yyyyMMddHH}`, `practice:start:…`; Redis lỗi → bỏ qua, log cảnh báo) | **429** `RATE_LIMITED` kèm `retryAfterSeconds` |

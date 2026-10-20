@@ -381,6 +381,11 @@ CONSTRAINT ck_users_plan_expiry CHECK (
   OR (plan_code <> 'FREE' AND plan_expires_at IS NOT NULL))
 ```
 
+> **`free_usage`, `usage_reset_at` — spec này KHÔNG map vào entity** (chốt 2026-10-20). Cột có sẵn trong V1, có
+> `DEFAULT` nên tạo user vẫn chạy; `ddl-auto: validate` không kiểm cột không map. `free_usage JSONB` là bộ đếm ghi
+> thường xuyên → trái `AC-09` (JSONB chỉ cho dữ liệu chỉ đọc). Spec gói dịch vụ (credits-plans) thiết kế lại cách đếm
+> lượt free (bảng đếm riêng) và bỏ hai cột này bằng migration mới.
+
 **Trạng thái suy ra** (không lưu cột riêng): `BANNED` nếu `banned_at IS NOT NULL`; `UNVERIFIED` nếu `email_verified_at IS NULL`; còn lại `ACTIVE`. `ADMIN` "còn hoạt động" = có role `ADMIN` và `banned_at IS NULL`.
 
 ### 4.2 · `auth.user_roles`
@@ -576,7 +581,7 @@ SCR-007 chỉ có 3 field của FR-051/FR-095; nút "Cài đặt nhắc học" d
 
 | Role | Khu vực | Màn mặc định |
 |---|---|---|
-| `LEARNER` | Học tập | SCR-010 (chưa có ở đợt này → tạm SCR-007) |
+| `LEARNER` | Học tập | SCR-010 (chưa có ở đợt này → tạm SCR-011 `/learn/topics`) |
 | `TEACHER` | Giáo viên | SCR-056 (chưa có → SCR-079 với thông báo "đang xây dựng") |
 | `MODERATOR` | Kiểm duyệt | SCR-060 (V2) |
 | `CONTENT_EDITOR` | Nội dung | SCR-068 (spec nhập dữ liệu) |

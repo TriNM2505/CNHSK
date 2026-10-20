@@ -200,23 +200,22 @@ không theo trí nhớ. Bảng phân số version cho từng spec: `database.md`
 
 ### DB dùng chung trên Neon
 
-| Nhánh Neon | Dùng cho |
-|---|---|
-| `main` | DB chung — chỉ chạy migration đã merge vào `main` của git |
-| nhánh riêng mỗi người | Tách từ `main`; thử migration ở đây, hỏng thì xoá tạo lại |
+**Một DB chung** (Neon, nhánh `main`, database `cnhsk_db`) cho cả nhóm, **một file `.env` chung** leader gửi riêng
+từng người. Đặt `.env` ở gốc repo trên máy mình — đã `.gitignore`, **không bao giờ commit**, không dán vào chat/PR.
+Mẫu biến: `.env.example`.
 
-Biến môi trường (để trong `.env` ở gốc repo — đã `.gitignore`, **không bao giờ commit**, không dán vào chat/PR):
+| Tài khoản | Ai giữ | Quyền |
+|---|---|---|
+| `svc_app` | cả nhóm (trong `.env` chung) | đọc/ghi dữ liệu; **không** tạo/sửa/xoá bảng |
+| `neondb_owner` | **chỉ leader** | Flyway: tạo/sửa bảng |
 
-```
-DB_URL=jdbc:postgresql://<host-khong-co-pooler>/cnhsk_db?sslmode=require
-DB_USER=svc_app                     # app: chi doc/ghi du lieu
-DB_PASSWORD=...
-DB_MIGRATION_USER=neondb_owner      # Flyway: tao/sua bang
-DB_MIGRATION_PASSWORD=...
-```
-
-Flyway cần kết nối **trực tiếp** (host không có `-pooler`). Test tự động vẫn dùng PostgreSQL trong
-Testcontainers, không chạy test trên Neon.
+- **Bảng mới chỉ lên DB chung sau khi PR có migration được merge** — leader chạy Flyway ngay sau merge.
+  Lấy `main` mới mà app không khởi động vì "migration chưa chạy" → báo leader.
+- Viết migration mới: **test bằng PostgreSQL trong Testcontainers/Docker**, không chạy thử lên DB chung
+  (một người chạy V3 chưa merge lên DB chung sẽ làm app của cả nhóm báo lỗi).
+- `svc_app` phải tạo **bằng SQL** (`CREATE ROLE svc_app LOGIN PASSWORD '...'`), không tạo trên Neon Console —
+  role tạo trên Console thuộc `neon_superuser`, có quyền xoá bảng.
+- Kết nối **trực tiếp** (host không có `-pooler`), luôn `sslmode=require`.
 
 ## 12 · Chưa chốt — đừng tự quyết
 
@@ -225,8 +224,6 @@ Testcontainers, không chạy test trên Neon.
 - **`TODO(RATIFICATION_DATE)`** — chờ 6 thành viên xác nhận ngày phê chuẩn Hiến pháp
 - **`BUS-16`** — trọng số mastery từ luyện viết. `hanzi-writer` chấm nét ở **client**, mâu
   thuẫn `BUS-09` (chấm ở server). Chặn feature 1.1
-- **JWT HS256 hay RS256** — chặn FR-016, FR-061 của spec 001
-- **Thời gian sống access/refresh token** — đề xuất 15 phút / 30 ngày, chưa chốt
 
 ### Đã chốt — đừng hỏi lại
 
@@ -234,7 +231,9 @@ Testcontainers, không chạy test trên Neon.
 |---|---|
 | Thanh toán | **Tiền thật, thu ngoài hệ thống.** Không tích hợp cổng thanh toán. Xem Hiến pháp §Mô hình kinh doanh |
 | Coverage | **80% toàn bộ** (`ES-05`) |
-| Trạng thái tài khoản | Đã có `locked_until` `suspended_at` `banned_at` trong `V1__` |
+| Trạng thái tài khoản | `email_verified_at` · `suspended_at`/`suspended_until` · `banned_at` trong `V1__`. Sai mật khẩu chặn tạm theo email–IP ở **Redis**, không có cột `locked_until` (spec 001 FR-046) |
+| Token | **JWT HS256**, access **15 phút**, refresh **30 ngày**, xoay vòng mỗi lần làm mới (spec 001 §1.4) |
+| Database | **4 schema** `auth` · `learning` · `community` · `shared` (Hiến pháp v1.4.0 `AC-04`); FK cross-schema được phép (`AC-03`) |
 | Chống IDOR | Thành `BUS-01` trong Hiến pháp — lặp 68 lần trong đặc tả |
 | Lượt free | **10 lượt mỗi tính năng mỗi tháng**, reset 00:00 ngày 1 giờ Việt Nam |
 | Actor | **7 actor = 6 role trong DB + `GUEST`.** DB: `LEARNER` `TEACHER` `MODERATOR` `CONTENT_EDITOR` `ACCOUNTANT` `ADMIN`. Không phải role: `GUEST` (chưa đăng nhập). Job định kỳ **không** phải actor. **Đừng** thêm `GUEST` vào `user_roles`. Chỉ `TEACHER` duyệt và sửa câu hỏi. Xem Hiến pháp §Bảy actor |
