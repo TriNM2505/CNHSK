@@ -16,8 +16,8 @@
 ## 1. Authentication & Authorization
 
 - **Mật khẩu:** hash bằng `bcrypt` cost ≥ **12** hoặc `argon2id`. Không bao giờ log plaintext
-- **JWT:** thuật toán chốt sau (HS256 hoặc RS256 — chưa quyết).
-  Access token ngắn hạn, refresh token dài hạn, lưu DB dạng hash, có rotation
+- **JWT:** **HS256** (chốt 2026-10-20, Hiến pháp v1.4.1), secret ≥ 256 bit từ biến môi trường `JWT_SECRET`.
+  Access token **15 phút**, refresh token **30 ngày**, refresh lưu DB dạng hash, xoay vòng mỗi lần làm mới
 - **Cookie cho web:** đủ 5 thuộc tính `domain=cnhsk.com` · `httpOnly` · `secure` ·
   `sameSite=Lax` · `maxAge`. Bỏ `domain` thì `game.cnhsk.com` không nhận được cookie
 - **Header cho mobile:** React Native không có cookie như trình duyệt → dùng

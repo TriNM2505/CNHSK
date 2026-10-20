@@ -1,8 +1,8 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.3.0 → 1.4.0
-Bump rationale: MINOR — duyệt RFC trong database.md §18: AC-04 sang bốn schema khớp bốn module (thêm shared), AC-03 nói rõ khoá ngoại cross-schema được phép, đọc/ghi bảng của module khác vẫn cấm. Không bỏ nguyên tắc nào.
+Version change: 1.4.0 → 1.4.1
+Bump rationale: PATCH — chốt quyết định đang treo ở constraints/business.md: JWT HS256, access 15 phút, refresh 30 ngày (khớp spec 001). Không thêm hay bỏ rule.
 Lịch sử đầy đủ: CONSTITUTION_CHANGELOG.md
 
 Nguyên tắc được định nghĩa (5):
@@ -418,4 +418,4 @@ Những mục dưới đây nhóm chưa chốt. Ghi rõ ở đây thay vì giả
   🔴 **Đây là TODO duy nhất còn treo.** Chưa phê chuẩn thì các `HR-*` về hình thức chưa có
   hiệu lực ràng buộc.
 
-**Version**: 1.4.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-20
+**Version**: 1.4.1 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-20

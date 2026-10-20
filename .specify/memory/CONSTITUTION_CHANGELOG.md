@@ -23,6 +23,25 @@ Mỗi lần sửa hiến pháp PHẢI thêm một mục vào đầu file này, g
 
 ---
 
+## v1.4.1 — 2026-10-20
+
+**Loại bump:** PATCH — chốt một quyết định đang treo, không thêm hay bỏ rule.
+
+**Nguồn:** spec 001 T-08 bị chặn vì `constraints/business.md` còn ghi "HS256 hoặc RS256 — chưa quyết",
+trong khi spec 001 §1.4 đã thiết kế HS256, access 15 phút, refresh 30 ngày. Chủ dự án chốt theo spec.
+
+### SỬA `constraints/business.md` — mục JWT
+
+| | Nội dung |
+|---|---|
+| Trước | Thuật toán chốt sau (HS256 hoặc RS256 — chưa quyết). Access ngắn hạn, refresh dài hạn |
+| Sau | **HS256**, secret ≥ 256 bit (`JWT_SECRET`). Access **15 phút**, refresh **30 ngày**, lưu hash, xoay vòng mỗi lần làm mới |
+
+*Vì sao HS256:* một ứng dụng Spring duy nhất vừa ký vừa kiểm token (`AC-02`), không có bên thứ ba cần
+khoá công khai để kiểm — RS256 chỉ thêm việc quản lý cặp khoá mà không thêm an toàn.
+
+---
+
 ## v1.4.0 — 2026-10-20
 
 **Loại bump:** MINOR — mở rộng hướng dẫn của `AC-03`, cập nhật `AC-04` theo thiết kế DB hiện hành.
