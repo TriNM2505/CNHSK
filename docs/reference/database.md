@@ -1010,6 +1010,9 @@ ALTER TABLE auth.users
              REFERENCES learning.plans(code),      -- FK cross-schema, xem §6
   ADD COLUMN plan_expires_at TIMESTAMPTZ,
   -- Luot free da dung theo feature_code. Reset dau moi chu ky.
+  -- ⚠️ TRAI AC-09 (JSONB chi cho du lieu chi doc, day la bo dem ghi lien tuc).
+  -- Chua ai dung (spec 001 khong map). Spec goi dich vu thiet ke lai bang bang dem rieng
+  -- va bo 2 cot nay bang migration moi.
   ADD COLUMN free_usage      JSONB       NOT NULL DEFAULT '{}',
   ADD COLUMN usage_reset_at  TIMESTAMPTZ NOT NULL DEFAULT now();
 
