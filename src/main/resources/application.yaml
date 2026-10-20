@@ -22,9 +22,14 @@ spring:
 
   flyway:
     enabled: true
-    # Ba schema deu do Flyway quan ly. Bang lich su dat o learning.
-    schemas: learning,auth,community
+    # Bon schema deu do Flyway quan ly (AC-04). Bang lich su dat o learning.
+    schemas: learning,auth,community,shared
     default-schema: learning
+    create-schemas: true
+    # Flyway chay bang tai khoan owner (tao/sua bang). App chay bang svc_app
+    # chi co quyen doc/ghi du lieu (database.md §10). Thieu bien thi dung chung tai khoan app.
+    user: ${DB_MIGRATION_USER:${DB_USER:svc_app}}
+    password: ${DB_MIGRATION_PASSWORD:${DB_PASSWORD:dev_app_pwd}}
 
   data:
     redis:

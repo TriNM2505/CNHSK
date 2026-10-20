@@ -23,6 +23,37 @@ Mỗi lần sửa hiến pháp PHẢI thêm một mục vào đầu file này, g
 
 ---
 
+## v1.4.0 — 2026-10-20
+
+**Loại bump:** MINOR — mở rộng hướng dẫn của `AC-03`, cập nhật `AC-04` theo thiết kế DB hiện hành.
+Không bỏ nguyên tắc nào; "module chỉ gọi nhau qua lớp `api`" giữ nguyên.
+
+**Nguồn:** RFC trong `docs/reference/database.md` §18, chủ dự án duyệt khi dựng DB chung
+(trước khi `V1`/`V2` chạy ở bất kỳ đâu). Spec 001 phát hiện `AC-04` còn ghi số bảng của DB v5
+(59 bảng) trong khi thiết kế, spec 001/002 và frontend đã theo bốn schema.
+
+### SỬA `AC-04`
+
+| | Nội dung |
+|---|---|
+| Trước | Ba schema (`auth` 4 · `learning` 40 · `community` 15), một `svc_app`, một `DataSource` |
+| Sau | **Bốn** schema khớp bốn module: `auth` 3 · `learning` 22 MVP (+2 V2) · `community` 5 (V2) · `shared` 1 — 26 bảng MVP, 33 khi đủ V2. `svc_app` được `GRANT` trên cả bốn; Flyway chạy bằng owner riêng |
+
+### SỬA `AC-03` — nói rõ phạm vi cấm
+
+| | Nội dung |
+|---|---|
+| Trước | CẤM module này truy cập thẳng bảng thuộc schema của module kia |
+| Sau | CẤM module này **đọc hoặc ghi** bảng của module kia (repository, entity, SQL). **Khoá ngoại cross-schema được phép** — ràng buộc toàn vẹn ở tầng DB. ArchUnit canh phần cấm |
+
+### SỬA câu chữ `AC-10`
+
+"một database ba schema" → "một database nhiều schema". Không đổi ngữ nghĩa.
+
+**Số rule:** không đổi ở cả bốn lớp.
+
+---
+
 ## v1.3.0 — 2026-10-08
 
 **Loại bump:** MINOR — mở rộng `BUS-09` cho trường hợp chấm bằng dịch vụ bên ngoài.

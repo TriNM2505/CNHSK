@@ -45,7 +45,7 @@ Chưa có file mẫu thật từ Học Bá (UC-110 BLOCKED). Spec chốt **mẫu
 | # | Thay đổi | Vì sao |
 |---|---|---|
 | 1 | `ALTER TABLE learning.topics ADD COLUMN code VARCHAR(50) NOT NULL` + `UNIQUE (code)` | Chủ đề chưa có khoá tự nhiên → không upsert được. Bảng rỗng lúc chạy (không seed) nên `NOT NULL` an toàn |
-| 2 | `learning.topic_items`: bỏ PK cũ, thêm `id BIGSERIAL PRIMARY KEY`, `CREATE UNIQUE INDEX uq_ti_lexeme ON learning.topic_items(topic_id, lexeme_id) WHERE lexeme_id IS NOT NULL`, `CREATE UNIQUE INDEX uq_ti_kp ON learning.topic_items(topic_id, knowledge_point_id) WHERE knowledge_point_id IS NOT NULL` | PK cũ gồm 2 cột cho phép NULL — PostgreSQL ép `NOT NULL` cho mọi cột PK nên **không chèn được** dòng chỉ có `lexeme_id` |
+| 2 | ~~`learning.topic_items`: bỏ PK cũ, thêm `id BIGSERIAL PRIMARY KEY`, `uq_ti_lexeme`, `uq_ti_kp`~~ — **đã có sẵn ở V1** (2026-10-20), V3 **không** làm lại | PK cũ gồm cột cho phép NULL — PostgreSQL ép `NOT NULL` cho mọi cột PK nên **không chèn được** dòng chỉ có `lexeme_id`; bỏ PK cũng không gỡ `NOT NULL`, nên sửa thẳng trong V1 |
 | 3 | `ALTER TABLE learning.pron_stages ADD COLUMN units JSONB NOT NULL DEFAULT '[]'` | Đơn vị luyện của tầng (D-02). Chỉ đổi qua nhập file → hợp `AC-09` |
 | 4 | `DROP INDEX learning.uq_import_file` | Chặn chạy lại cùng file — trái UC-110 A1 |
 | 5 | `CREATE UNIQUE INDEX uq_import_running ON learning.service_requests(kind) WHERE kind = 'IMPORT' AND status = 'RUNNING'` | Một lần nhập đang ghi tại một thời điểm (`CONCURRENT_IMPORT`) |

@@ -36,6 +36,7 @@ build/
 # Bi mat: token, mat khau, khoa
 .env
 .env.*
+!.env.example
 *.local
 application-local.yml
 application-local.yaml
