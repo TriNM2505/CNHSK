@@ -1306,7 +1306,8 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 1. `AC-05`: file đã chạy **không sửa**. Muốn đổi → file `V{n}__mo-ta.sql` mới, số `n` theo bảng trên hoặc xin leader.
 2. Cùng một PR: migration mới + entity + cập nhật file này (bảng, DDL) + spec nếu hợp đồng API đổi.
 3. Merge theo thứ tự phụ thuộc (001 → 002 → 003…). Không bật `outOfOrder`.
-4. DB cá nhân (nhánh Neon riêng) lệch thì xoá nhánh, tạo lại từ `main` rồi migrate.
+4. DB chung (Neon `main`) chỉ leader migrate, bằng tài khoản owner, ngay sau khi PR có migration được merge.
+   Thành viên dùng `svc_app` (không tạo/sửa bảng được) và test migration mới trên PostgreSQL Docker/Testcontainers.
 
 ---
 

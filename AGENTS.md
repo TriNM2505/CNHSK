@@ -200,23 +200,22 @@ không theo trí nhớ. Bảng phân số version cho từng spec: `database.md`
 
 ### DB dùng chung trên Neon
 
-| Nhánh Neon | Dùng cho |
-|---|---|
-| `main` | DB chung — chỉ chạy migration đã merge vào `main` của git |
-| nhánh riêng mỗi người | Tách từ `main`; thử migration ở đây, hỏng thì xoá tạo lại |
+**Một DB chung** (Neon, nhánh `main`, database `cnhsk_db`) cho cả nhóm, **một file `.env` chung** leader gửi riêng
+từng người. Đặt `.env` ở gốc repo trên máy mình — đã `.gitignore`, **không bao giờ commit**, không dán vào chat/PR.
+Mẫu biến: `.env.example`.
 
-Biến môi trường (để trong `.env` ở gốc repo — đã `.gitignore`, **không bao giờ commit**, không dán vào chat/PR):
+| Tài khoản | Ai giữ | Quyền |
+|---|---|---|
+| `svc_app` | cả nhóm (trong `.env` chung) | đọc/ghi dữ liệu; **không** tạo/sửa/xoá bảng |
+| `neondb_owner` | **chỉ leader** | Flyway: tạo/sửa bảng |
 
-```
-DB_URL=jdbc:postgresql://<host-khong-co-pooler>/cnhsk_db?sslmode=require
-DB_USER=svc_app                     # app: chi doc/ghi du lieu
-DB_PASSWORD=...
-DB_MIGRATION_USER=neondb_owner      # Flyway: tao/sua bang
-DB_MIGRATION_PASSWORD=...
-```
-
-Flyway cần kết nối **trực tiếp** (host không có `-pooler`). Test tự động vẫn dùng PostgreSQL trong
-Testcontainers, không chạy test trên Neon.
+- **Bảng mới chỉ lên DB chung sau khi PR có migration được merge** — leader chạy Flyway ngay sau merge.
+  Lấy `main` mới mà app không khởi động vì "migration chưa chạy" → báo leader.
+- Viết migration mới: **test bằng PostgreSQL trong Testcontainers/Docker**, không chạy thử lên DB chung
+  (một người chạy V3 chưa merge lên DB chung sẽ làm app của cả nhóm báo lỗi).
+- `svc_app` phải tạo **bằng SQL** (`CREATE ROLE svc_app LOGIN PASSWORD '...'`), không tạo trên Neon Console —
+  role tạo trên Console thuộc `neon_superuser`, có quyền xoá bảng.
+- Kết nối **trực tiếp** (host không có `-pooler`), luôn `sslmode=require`.
 
 ## 12 · Chưa chốt — đừng tự quyết
 
