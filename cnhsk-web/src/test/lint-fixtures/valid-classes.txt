@@ -1,0 +1,9 @@
+const clsx = (...classes) => classes.join(' ')
+const twMerge = (...classes) => classes.join(' ')
+
+export function ValidClasses() {
+  const classes = clsx('text-brand-600 mt-4 sm:text-h1', 'rounded-t-lg border-t-line')
+  const merged = twMerge('sm:rounded-t-md', 'hover:border-t-line')
+
+  return <div className={`${classes} ${merged}`}>Hợp lệ</div>
+}

@@ -1,0 +1,15 @@
+const cn = (...classes) => classes.join(' ')
+const clsx = (...classes) => classes.join(' ')
+const twMerge = (...classes) => classes.join(' ')
+
+export function InvalidClasses({ active }) {
+  const fromCn = cn('c-Button bg-[#fff]')
+  const fromClsx = clsx(`u-row ${active ? 'block' : 'hidden'}`)
+  const fromTwMerge = twMerge('hover:bg-[#AF0000]', 'sm:t-h1')
+
+  return (
+    <div className={`border-[#12345678] ${active ? 'u-row' : 'c-Button'}`}>
+      {fromCn} {fromClsx} {fromTwMerge}
+    </div>
+  )
+}
