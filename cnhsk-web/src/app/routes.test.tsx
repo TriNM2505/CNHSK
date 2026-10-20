@@ -6,6 +6,7 @@ import { appRoutes } from '@/app/routes'
 import { getCurrentUser } from '@/features/auth/api/getCurrentUser'
 import type { CurrentUser } from '@/features/auth/types'
 import { getGrammarPoints } from '@/features/grammar/api/grammar'
+import { getPronunciationStages } from '@/features/pronunciation/api/pronunciation'
 import { getTopic, getTopics } from '@/features/vocab/api/topics'
 import type { TopicDetail } from '@/features/vocab/types'
 import { ApiError, AUTH_EXPIRED_EVENT } from '@/shared/api'
@@ -30,10 +31,16 @@ vi.mock('@/features/grammar/api/grammar', () => ({
   startGrammarLesson: vi.fn(),
 }))
 
+vi.mock('@/features/pronunciation/api/pronunciation', () => ({
+  getPronunciationStages: vi.fn(),
+  startPronunciationStageSession: vi.fn(),
+}))
+
 const getCurrentUserMock = vi.mocked(getCurrentUser)
 const getTopicMock = vi.mocked(getTopic)
 const getTopicsMock = vi.mocked(getTopics)
 const getGrammarPointsMock = vi.mocked(getGrammarPoints)
+const getPronunciationStagesMock = vi.mocked(getPronunciationStages)
 
 const learner: CurrentUser = {
   id: 1,
@@ -101,6 +108,22 @@ beforeEach(() => {
   getTopicMock.mockReset().mockResolvedValue(routeTopic)
   getTopicsMock.mockReset().mockResolvedValue([])
   getGrammarPointsMock.mockReset().mockResolvedValue([])
+  getPronunciationStagesMock.mockReset().mockResolvedValue([
+    {
+      activeAnswered: null,
+      activeSessionId: null,
+      bestAccuracy: null,
+      description: 'Phân biệt âm cuốn lưỡi.',
+      id: 303,
+      name: 'Âm cuốn lưỡi',
+      passPercent: 80,
+      playable: true,
+      stageIndex: 3,
+      state: 'AVAILABLE',
+      targetSounds: ['zh', 'ch', 'sh', 'r'],
+      unitCount: 10,
+    },
+  ])
 })
 
 describe('application routes', () => {
@@ -222,7 +245,6 @@ describe('application routes', () => {
   })
 
   it.each([
-    ['/learn/pronunciation/stages/3', 'Màn SCR-016 đang dựng'],
     ['/learn/characters/writing/lexeme-1', 'Màn SCR-014 đang dựng'],
     ['/learn/characters/writing/challenge', 'Màn SCR-014 đang dựng'],
   ])('maps child route %s to the correct screen', async (path, heading) => {
@@ -230,6 +252,14 @@ describe('application routes', () => {
     renderRoute(path)
 
     expect(await screen.findByRole('heading', { name: heading })).toBeVisible()
+  })
+
+  it('maps the pronunciation route to the real SCR-016 screen', async () => {
+    getCurrentUserMock.mockResolvedValue(learner)
+    renderRoute('/learn/pronunciation')
+
+    expect(await screen.findByRole('heading', { name: 'Luyện phát âm' })).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Màn SCR-016 đang dựng' })).not.toBeInTheDocument()
   })
 
   it.each([
