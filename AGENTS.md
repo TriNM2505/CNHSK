@@ -63,8 +63,10 @@ Thêm thư viện khác **phải hỏi trước**.
 
 ## 4 · Phạm vi được phép
 
-**Được đọc và ghi:** `src/` · `docs/` · `specs/`
-> Frontend chưa tồn tại — bản nháp `cnhsk-web/` đã xoá. Khi dựng lại, tên thư mục **bắt buộc** là `cnhsk-web` theo `ES-04`.
+**Được đọc và ghi:** `src/` · `docs/` · `specs/` · `cnhsk-web/src/features/<feature của spec đang làm>/`
+> Frontend **đã có** tại `cnhsk-web/` (React 18 + Vite + TS + Tailwind) — khung giao diện 19/20 màn web, gọi đúng
+> endpoint theo OpenAPI của spec. Không sửa `cnhsk-web/src/shared/`, `src/features/practice/`, `src/app/` khi chưa
+> báo người giữ phần nền. Xem giao diện không cần backend: `npm run dev` rồi mở `/__preview`.
 >
 > **Inventory UI FINAL: 79 màn, SCR-001–SCR-079.** `docs/generated/cnhsk-screen-list.docx` và
 > `docs/generated/cnhsk-screen-flow.png` là artifact đã duyệt; không đổi ID, tên hoặc cấu trúc màn.
@@ -178,21 +180,43 @@ có vi phạm.
 
 ## 11 · Trạng thái SQL — đọc trước khi viết entity
 
-**`db/migration/` hiện chỉ có `V1__core_schema.sql` và `V2__community.sql`.**
+**Migration ở `src/main/resources/db/migration/`:** `V1__core_schema.sql` (4 schema · 26 bảng MVP) và
+`V2__community.sql` (5 bảng `community`). Đây là **nguồn sự thật** của schema (`AC-05`) — entity viết theo SQL,
+không theo trí nhớ. Bảng phân số version cho từng spec: `database.md` §11.
 
-`database.md` **đã viết xong, chờ chủ dự án duyệt.** Những thứ đã mô tả trong v7
-nhưng **CHƯA có trong SQL**:
+**Mỗi entity khai schema tường minh:** `@Table(name = "users", schema = "auth")`. Thiếu là
+`ddl-auto: validate` báo lỗi lúc khởi động.
 
-| Thứ | Thuộc |
+### Quy trình đổi schema (viết entity trước, Flyway vẫn là nguồn chính)
+
+1. Sửa/thêm `@Entity` (schema, độ dài cột, kiểu dữ liệu).
+2. Nhờ Hibernate **xuất câu SQL ra file** (không chạy lên DB) để làm bản nháp.
+3. Viết migration mới `V{n}__mo-ta.sql` (số `n` theo `database.md` §11 hoặc xin leader), tự thêm phần
+   Hibernate không sinh được: `CHECK` cho enum (`AC-06`), partial index, unique nhiều cột, FK, seed.
+4. Chạy test với `ddl-auto: validate` — entity và migration lệch là đỏ, không merge.
+5. **Cùng PR:** migration + entity + cập nhật `database.md` (bảng, DDL) + spec nếu hợp đồng API đổi.
+
+**Cấm:** sửa file migration đã chạy · đặt `ddl-auto: update` · bật Flyway `outOfOrder`.
+
+### DB dùng chung trên Neon
+
+| Nhánh Neon | Dùng cho |
 |---|---|
-| Bảng `plans` · `pron_stages` · `videos` | feature 6.1 · 1.3 · 1.6 |
-| 4 cột gói trên `users`: `plan_code` `plan_expires_at` `free_usage` `usage_reset_at` | 6.1 |
-| 4 cột phễu trên `credit_cards`: `channel` `partner_code` `campaign` `issued_to` | 6.1 |
-| Cột `seq` + `UNIQUE(user_id, seq)` trên `credit_transactions` | chống đua sổ cái |
-| Bỏ bảng `roles` → `CHECK (role_code IN ...)` | `AC-06` |
-| Prefix 4 schema cho 31 bảng | `AC-04` |
+| `main` | DB chung — chỉ chạy migration đã merge vào `main` của git |
+| nhánh riêng mỗi người | Tách từ `main`; thử migration ở đây, hỏng thì xoá tạo lại |
 
-> **Quy trình:** mô tả `.md` xong → chủ dự án duyệt → mới gen SQL. Đừng tự viết migration.
+Biến môi trường (để trong `.env` ở gốc repo — đã `.gitignore`, **không bao giờ commit**, không dán vào chat/PR):
+
+```
+DB_URL=jdbc:postgresql://<host-khong-co-pooler>/cnhsk_db?sslmode=require
+DB_USER=svc_app                     # app: chi doc/ghi du lieu
+DB_PASSWORD=...
+DB_MIGRATION_USER=neondb_owner      # Flyway: tao/sua bang
+DB_MIGRATION_PASSWORD=...
+```
+
+Flyway cần kết nối **trực tiếp** (host không có `-pooler`). Test tự động vẫn dùng PostgreSQL trong
+Testcontainers, không chạy test trên Neon.
 
 ## 12 · Chưa chốt — đừng tự quyết
 

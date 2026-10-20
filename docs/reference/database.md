@@ -2,8 +2,10 @@
 
 > **Bản final.** Cập nhật 2026-10-08 · **4 schema · 33 bảng** (26 MVP + 7 V2)
 >
-> 🔴 **File này kiêm luôn RFC** sửa `AC-03` và `AC-04` của Hiến pháp — xem §9.
-> Chưa duyệt thì **chưa gen SQL**.
+> ✅ **RFC sửa `AC-03` và `AC-04` (§18) đã duyệt 2026-10-20** — Hiến pháp v1.4.0.
+> SQL đã sinh: `src/main/resources/db/migration/V1__core_schema.sql`, `V2__community.sql` (§11).
+> **Migration là nguồn sự thật của schema (`AC-05`).** DDL trong file này là thiết kế để đọc;
+> khác nhau thì theo migration và sửa file này cho khớp.
 
 ---
 
@@ -51,13 +53,13 @@ con số của **v5 (59 bảng)** đã bị thay thế.
 
 ## 2 · Bốn schema
 
-| Schema | Bảng | Module Java |
-|---|---|---|
-`auth` | 3 | `com.cnhsk.auth` |
-`learning` | 22 | `com.cnhsk.learning` |
-`community` | 5 | `com.cnhsk.community` |
-`shared` | 1 | `com.cnhsk.shared` |
-| **Tổng** | **31** | 4 module |
+| Schema | Bảng MVP | Bảng V2 | Module Java | Migration |
+|---|---|---|---|---|
+`auth` | 3 | — | `com.cnhsk.auth` | V1 |
+`learning` | 22 | 2 (`dictation_attempts`, `shadowing_attempts`) | `com.cnhsk.learning` | V1 · bảng V2 khi feature vào scope |
+`community` | — | 5 | `com.cnhsk.community` | V2 |
+`shared` | 1 | — | `com.cnhsk.shared` | V1 |
+| **Tổng** | **26** | **7** | **33 bảng** · 4 module | |
 
 **Bốn schema khớp đúng 4 module Java.** Bản trước không có tính chất này: `audit_logs` ghi hành vi
 của cả ba module nghiệp vụ nên không thuộc riêng module nào — Bản trước nhét nó vào `learning`
@@ -340,14 +342,20 @@ CREATE TABLE topics (
 );
 
 CREATE TABLE topic_items (
+  id                  BIGSERIAL PRIMARY KEY,
   topic_id            BIGINT NOT NULL REFERENCES topics(id),
   lexeme_id           BIGINT REFERENCES lexemes(id),
   knowledge_point_id  BIGINT REFERENCES knowledge_points(id),
   order_index         INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (topic_id, lexeme_id, knowledge_point_id),
   CONSTRAINT ck_topic_item CHECK (lexeme_id IS NOT NULL OR knowledge_point_id IS NOT NULL)
 );
+CREATE UNIQUE INDEX uq_ti_lexeme ON topic_items(topic_id, lexeme_id) WHERE lexeme_id IS NOT NULL;
+CREATE UNIQUE INDEX uq_ti_kp     ON topic_items(topic_id, knowledge_point_id) WHERE knowledge_point_id IS NOT NULL;
 ```
+
+> **Khoá chính là `id` riêng, không phải `(topic_id, lexeme_id, knowledge_point_id)`.**
+> PostgreSQL ép `NOT NULL` cho mọi cột thuộc PK, nên PK ba cột không chèn được dòng chỉ có
+> `lexeme_id`. Bỏ PK sau đó cũng không gỡ `NOT NULL`. Chống trùng bằng hai unique index có điều kiện.
 
 > **Thay 2 bảng v5** (`topic_words` + `topic_knowledge_points`) bằng một bảng —
 > cùng là "chủ đề chứa gì".
@@ -1280,17 +1288,25 @@ public class AuditLog { ... }
 
 ## 11 · Thứ tự migration
 
-| File | Nội dung |
-|---|---|
-`V1__core_schema.sql` | **sửa**: thêm `CREATE SCHEMA` ×4 + prefix cho 24 bảng |
-`V2__community.sql` | **sửa**: prefix `community.` cho 5 bảng |
-`V3__content_and_plans.sql` | **mới**: `pron_stages` · `videos` (kèm `source_type` + `external_id`) · `plans` + 4 cột gói trên `users` |
-`V5__video_practice.sql` | **mới** (2026-10-08): `dictation_attempts` · `shadowing_attempts` — feature 1.6 V2. Tách file riêng vì thuộc V2, không chặn MVP |
-`V4__funnel_and_ledger.sql` | **mới**: 4 cột phễu · cột `seq` + `UNIQUE` · bỏ `roles` + index |
+Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Flyway).
 
-> ⚠️ `AC-05`: *"File migration đã chạy thì KHÔNG được sửa."* `V1`/`V2` **chưa chạy ở đâu**
-> (DB chưa deploy, `git remote` vừa tạo) nên sửa được. Nếu đã chạy trên máy ai thì người đó
-> phải `DROP DATABASE` rồi migrate lại.
+| Version | File | Spec | Nội dung | Trạng thái |
+|---|---|---|---|---|
+| V1 | `V1__core_schema.sql` | 001 (dựng nền) | 4 schema · 26 bảng MVP. Gồm luôn `plans` (seed `FREE`) + 4 cột gói trên `users`, `pron_stages`, `videos` (`source_type`, `external_id`), 4 cột phễu `credit_cards`, `seq` + `UNIQUE` trên `credit_transactions`, `user_roles` dùng `CHECK` (không còn bảng `roles`), `topic_items` có `id` riêng | ✅ đã viết |
+| V2 | `V2__community.sql` | 001 (dựng nền) | 5 bảng `community` | ✅ đã viết |
+| V3 | `V3__content_import.sql` | 002 | `topics.code`, `pron_stages.units`, index nhập liệu (spec 002 §0.3) | ⬜ |
+| V4 | `V4__practice_engine.sql` | 003 | Cột `item_type`, `skill`, `meta` trên `attempt_items` + index (spec 003 §0.12) | ⬜ |
+| V5+ | — | spec sau | Leader cấp số khi spec cần đổi schema: gói dịch vụ, `dictation_attempts`/`shadowing_attempts` (feature 1.6 V2)… | — |
+
+> `V3__content_and_plans`, `V4__funnel_and_ledger`, `V5__video_practice` của bản trước **đã gộp vào V1**
+> (V1 chưa chạy ở đâu nên gộp được) — trừ hai bảng video luyện tập, chờ feature 1.6 vào scope.
+
+**Quy tắc khi DB chung đã chạy migration:**
+
+1. `AC-05`: file đã chạy **không sửa**. Muốn đổi → file `V{n}__mo-ta.sql` mới, số `n` theo bảng trên hoặc xin leader.
+2. Cùng một PR: migration mới + entity + cập nhật file này (bảng, DDL) + spec nếu hợp đồng API đổi.
+3. Merge theo thứ tự phụ thuộc (001 → 002 → 003…). Không bật `outOfOrder`.
+4. DB cá nhân (nhánh Neon riêng) lệch thì xoá nhánh, tạo lại từ `main` rồi migrate.
 
 ---
 
@@ -1402,6 +1418,9 @@ Mục 2 **gấp nhất** — `question_knowledge_points` nằm trong danh sách 
 
 
 ## 18 · RFC sửa Hiến pháp
+
+> ✅ **Đã duyệt 2026-10-20** — áp dụng vào Hiến pháp v1.4.0 (`CONSTITUTION_CHANGELOG.md`).
+> Con số bảng chốt: `auth` 3 · `learning` 22 MVP (+2 V2) · `community` 5 · `shared` 1.
 
 > Theo §Governance: *"Người đề xuất viết RFC nêu động cơ, thay đổi cụ thể, đánh giá rủi ro."*
 > Cần cả nhóm đồng thuận.

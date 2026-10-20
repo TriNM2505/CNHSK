@@ -2,7 +2,7 @@
 # Test nao dung SQL dac thu PostgreSQL thi chay DB that qua Docker.
 spring:
   datasource:
-    url: jdbc:h2:mem:cnhsk;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;INIT=CREATE SCHEMA IF NOT EXISTS auth\;CREATE SCHEMA IF NOT EXISTS learning\;CREATE SCHEMA IF NOT EXISTS community
+    url: jdbc:h2:mem:cnhsk;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;INIT=CREATE SCHEMA IF NOT EXISTS auth\;CREATE SCHEMA IF NOT EXISTS learning\;CREATE SCHEMA IF NOT EXISTS community\;CREATE SCHEMA IF NOT EXISTS shared
     username: sa
     password:
     driver-class-name: org.h2.Driver

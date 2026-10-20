@@ -84,7 +84,7 @@
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-001** | `GET /api/pronunciation/stages` SHALL trả mọi dòng `pron_stages` sắp `stage_index`: `{stageIndex, name, description, targetSounds, passPercent, unitCount, playable, state, bestAccuracy, activeSessionId, activeAnswered}` |
+| **FR-001** | `GET /api/pronunciation/stages` SHALL trả mọi dòng `pron_stages` sắp `stage_index`: `{id, stageIndex, name, description, targetSounds, passPercent, unitCount, playable, state, bestAccuracy, activeSessionId, activeAnswered}`; `id` = `pron_stages.id`, frontend dùng làm `refId` khi khôi phục lượt qua `/api/practice/sessions/active` |
 | **FR-002** | `playable = unitCount > 0` (đơn vị có `audioUrl`); `unitCount = 0` → giao diện hiện "Đang cập nhật" (E4) |
 | **FR-003** | `state ∈ {LOCKED, AVAILABLE, COMPLETED}`: `COMPLETED` nếu `bestAccuracy ≥ passPercent` của chính tầng đó; ngược lại `AVAILABLE` nếu **mở** (FR-004); còn lại `LOCKED` |
 | **FR-004** | Tầng `k` **mở** ⇔ `k = 1` **hoặc** có dòng `user_progress(PRON_STAGE, id tầng k)` **hoặc** tầng `k−1` đang `COMPLETED`. (Mệnh đề cuối xử lý E6; mệnh đề giữa xử lý E8) |

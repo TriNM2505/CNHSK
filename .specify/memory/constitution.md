@@ -1,8 +1,8 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.2.0 → 1.3.0
-Bump rationale: MINOR — mở rộng BUS-09 cho trường hợp chấm điểm bằng dịch vụ bên thứ ba (tính năng Shadowing, feature 1.6). Câu rule gốc không đổi; thêm ba điều kiện bắt buộc. Không bỏ hay định nghĩa lại nguyên tắc nào.
+Version change: 1.3.0 → 1.4.0
+Bump rationale: MINOR — duyệt RFC trong database.md §18: AC-04 sang bốn schema khớp bốn module (thêm shared), AC-03 nói rõ khoá ngoại cross-schema được phép, đọc/ghi bảng của module khác vẫn cấm. Không bỏ nguyên tắc nào.
 Lịch sử đầy đủ: CONSTITUTION_CHANGELOG.md
 
 Nguyên tắc được định nghĩa (5):
@@ -92,10 +92,12 @@ thoái hóa thành khối code rối.
 - **AC-02** — Một ứng dụng Spring Boot duy nhất `cnhsk-api`, cổng 8080,
   gồm bốn module: `auth`, `learning`, `community`, `shared`.
 - **AC-03** — Module gọi nhau CHỈ qua lớp `api` bằng lời gọi hàm.
-  CẤM module này truy cập thẳng bảng thuộc schema của module kia.
+  CẤM module này **đọc hoặc ghi** bảng thuộc schema của module kia (qua repository, entity
+  hay SQL trực tiếp). **Khoá ngoại cross-schema được phép** — đó là ràng buộc toàn vẹn ở
+  tầng DB, không phải truy cập dữ liệu. ArchUnit canh phần cấm ở tầng code.
   *Lý do:* giữ được ranh giới thì sau này tách microservice mới khả thi.
 - **AC-10** — Cộng mastery và lưu điểm game PHẢI nằm trong cùng một transaction.
-  *Lý do:* một database ba schema cho phép điều này; đây chính là lợi thế đã chọn khi
+  *Lý do:* một database nhiều schema cho phép điều này; đây chính là lợi thế đã chọn khi
   từ bỏ kiến trúc ba service.
 
 ### IV. Dữ liệu chính xác tuyệt đối
@@ -103,8 +105,10 @@ thoái hóa thành khối code rối.
 Sai kiểu dữ liệu ở tầng schema là loại lỗi phải migration mới sửa được — đắt nhất trong
 mọi loại lỗi.
 
-- **AC-04** — Một database `cnhsk_db`, ba schema (`auth` 4 bảng, `learning` 40 bảng,
-  `community` 15 bảng), một tài khoản `svc_app`, một `DataSource` trong Spring.
+- **AC-04** — Một database `cnhsk_db`, **bốn** schema khớp bốn module: `auth` (3 bảng) ·
+  `learning` (22 bảng MVP, thêm 2 bảng V2) · `community` (5 bảng V2) · `shared` (1 bảng) —
+  26 bảng MVP, 33 khi đủ V2. Một tài khoản `svc_app` được `GRANT` trên cả bốn schema;
+  Flyway chạy bằng tài khoản owner riêng. Một `DataSource` trong Spring.
 - **AC-05** — Flyway là nguồn sự thật DUY NHẤT của schema. `ddl-auto` PHẢI là `validate`,
   CẤM đặt `update`. File migration đã chạy thì KHÔNG được sửa; muốn đổi phải viết file
   version mới.
@@ -360,7 +364,7 @@ Hiến pháp này nêu **luật**. Chi tiết áp dụng nằm ở ba file trong
 |---|---|
 | `feature-tree.md` | **33 tính năng** đã chốt (32 sau khi cắt 5.4 Gia sư). Header file tự ghi "38" — con số đó **sai**, đếm thật chỉ có 33 mục `N.N` |
 | `kien-truc.md` | Kiến trúc Modular Monolith bản 5 |
-| **`database.md`** | **Bản hiện hành.** 4 schema · 31 bảng. Kiêm RFC sửa `AC-03`/`AC-04` |
+| **`database.md`** | **Bản hiện hành.** 4 schema · 33 bảng (26 MVP). RFC sửa `AC-03`/`AC-04` đã duyệt ở v1.4.0 |
 
 | `CONTEXT.md` | Pha 0: Problem Statement, Business Goal, Domain Knowledge |
 | `wbs-estimate.md` | 66 đầu việc, phân công, ước lượng |
@@ -414,4 +418,4 @@ Những mục dưới đây nhóm chưa chốt. Ghi rõ ở đây thay vì giả
   🔴 **Đây là TODO duy nhất còn treo.** Chưa phê chuẩn thì các `HR-*` về hình thức chưa có
   hiệu lực ràng buộc.
 
-**Version**: 1.3.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-08
+**Version**: 1.4.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-20

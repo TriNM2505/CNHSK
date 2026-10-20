@@ -27,8 +27,9 @@ components:
       enum: [LOCKED, AVAILABLE, COMPLETED]
     StageSummary:
       type: object
-      required: [stageIndex, name, passPercent, unitCount, playable, state]
+      required: [id, stageIndex, name, passPercent, unitCount, playable, state]
       properties:
+        id: { type: integer, format: int64, description: 'pron_stages.id — refId khi tìm lượt PRON_STAGE đang làm (/api/practice/sessions/active)' }
         stageIndex: { type: integer, minimum: 1, maximum: 8 }
         name: { type: string }
         description: { type: [string, 'null'] }
