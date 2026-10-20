@@ -576,7 +576,7 @@ SCR-007 chỉ có 3 field của FR-051/FR-095; nút "Cài đặt nhắc học" d
 
 | Role | Khu vực | Màn mặc định |
 |---|---|---|
-| `LEARNER` | Học tập | SCR-010 (chưa có ở đợt này → tạm SCR-007) |
+| `LEARNER` | Học tập | SCR-010 (chưa có ở đợt này → tạm SCR-011 `/learn/topics`) |
 | `TEACHER` | Giáo viên | SCR-056 (chưa có → SCR-079 với thông báo "đang xây dựng") |
 | `MODERATOR` | Kiểm duyệt | SCR-060 (V2) |
 | `CONTENT_EDITOR` | Nội dung | SCR-068 (spec nhập dữ liệu) |

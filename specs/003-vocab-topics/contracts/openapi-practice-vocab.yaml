@@ -131,7 +131,7 @@ components:
         no: { type: integer, minimum: 1 }
         answer: { type: [string, 'null'], maxLength: 100 }
         durationMs: { type: integer, minimum: 0, maximum: 3600000 }
-        replayCount: { type: integer, minimum: 0, default: 0 }
+        replayCount: { type: integer, minimum: 0, default: 0, description: 'Tổng số lần đã phát audio, kể cả lần đầu (spec 003 E-R9)' }
         skipped: { type: boolean, default: false }
         audioFailed: { type: boolean, default: false }
         clientMeta:

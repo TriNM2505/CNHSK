@@ -224,8 +224,6 @@ Mẫu biến: `.env.example`.
 - **`TODO(RATIFICATION_DATE)`** — chờ 6 thành viên xác nhận ngày phê chuẩn Hiến pháp
 - **`BUS-16`** — trọng số mastery từ luyện viết. `hanzi-writer` chấm nét ở **client**, mâu
   thuẫn `BUS-09` (chấm ở server). Chặn feature 1.1
-- **JWT HS256 hay RS256** — chặn FR-016, FR-061 của spec 001
-- **Thời gian sống access/refresh token** — đề xuất 15 phút / 30 ngày, chưa chốt
 
 ### Đã chốt — đừng hỏi lại
 
@@ -233,7 +231,9 @@ Mẫu biến: `.env.example`.
 |---|---|
 | Thanh toán | **Tiền thật, thu ngoài hệ thống.** Không tích hợp cổng thanh toán. Xem Hiến pháp §Mô hình kinh doanh |
 | Coverage | **80% toàn bộ** (`ES-05`) |
-| Trạng thái tài khoản | Đã có `locked_until` `suspended_at` `banned_at` trong `V1__` |
+| Trạng thái tài khoản | `email_verified_at` · `suspended_at`/`suspended_until` · `banned_at` trong `V1__`. Sai mật khẩu chặn tạm theo email–IP ở **Redis**, không có cột `locked_until` (spec 001 FR-046) |
+| Token | **JWT HS256**, access **15 phút**, refresh **30 ngày**, xoay vòng mỗi lần làm mới (spec 001 §1.4) |
+| Database | **4 schema** `auth` · `learning` · `community` · `shared` (Hiến pháp v1.4.0 `AC-04`); FK cross-schema được phép (`AC-03`) |
 | Chống IDOR | Thành `BUS-01` trong Hiến pháp — lặp 68 lần trong đặc tả |
 | Lượt free | **10 lượt mỗi tính năng mỗi tháng**, reset 00:00 ngày 1 giờ Việt Nam |
 | Actor | **7 actor = 6 role trong DB + `GUEST`.** DB: `LEARNER` `TEACHER` `MODERATOR` `CONTENT_EDITOR` `ACCOUNTANT` `ADMIN`. Không phải role: `GUEST` (chưa đăng nhập). Job định kỳ **không** phải actor. **Đừng** thêm `GUEST` vào `user_roles`. Chỉ `TEACHER` duyệt và sửa câu hỏi. Xem Hiến pháp §Bảy actor |
