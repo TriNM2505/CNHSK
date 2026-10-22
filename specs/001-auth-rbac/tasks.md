@@ -97,7 +97,7 @@
 | T-28 | Khởi tạo `cnhsk-web` (Vite React TS), Tailwind với token `design.md` §6, ESLint + Prettier, Vitest + Testing Library, script `lint`/`typecheck`/`test`; proxy Vite `/api` → `localhost:8080` | `cnhsk-web/**` (khung) | §0.2 | ✅ — proxy đã kiểm thật (HTTP 204) |
 | T-29 | `shared/api/client.ts` (cookie, `X-Client-Type`, CSRF, refresh một lần cho request song song), `shared/auth/AuthProvider.tsx`, `RequireRole.tsx`, layout public/learner/admin, SCR-079, trang 404 | `cnhsk-web/src/shared/**`, `src/app/**` | §12.2, FR-037 · AT-40 | ✅ |
 | T-30 | SCR-002 Sign In + SCR-003 Register + điều hướng FR-090 | `cnhsk-web/src/features/auth/**` | FR-087, FR-090 · AT-71, AT-72 | ✅ |
-| T-31 | SCR-004 Verify Email + SCR-005 Forgot + SCR-006 Reset + banner chưa xác thực | `cnhsk-web/src/features/auth/**` | FR-088 · AT-71 | ⬜ |
+| T-31 | SCR-004 Verify Email + SCR-005 Forgot + SCR-006 Reset + banner chưa xác thực | `cnhsk-web/src/features/auth/**` | FR-009→FR-013, FR-038→FR-045, FR-087→FR-088 · AT-11→AT-16, AT-41→AT-47, AT-50, AT-71 | ✅ |
 | T-32 | SCR-007 Profile + SCR-008 Change Password | `cnhsk-web/src/features/account/**` | FR-051, FR-043 | ⬜ |
 | T-33 | SCR-076 User List + SCR-077 User Detail (gán/thu hồi role, cấm/gỡ cấm có bước xác nhận trong trang) | `cnhsk-web/src/features/admin-users/**` | FR-096, FR-097 | ⬜ |
 | T-34 | SCR-001 Landing phần tài khoản (nút đăng nhập/đăng ký, "Khu vực của bạn" khi đa role) | `cnhsk-web/src/features/landing/**` | FR-090 | ⬜ |
