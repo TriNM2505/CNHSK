@@ -329,8 +329,12 @@ describe('apiRequest', () => {
 
     if (!result) throw new Error('Thiếu nội dung file tải xuống trong test')
     expect(result.fileName).toBe('danh-sách-lỗi.csv')
-    expect(result.blob).toBeInstanceOf(Blob)
     expect(result.blob.size).toBeGreaterThan(0)
+    expect(result.blob.type).toBe('text/csv;charset=utf-8')
+    expect(await result.blob.text()).toBe(csv.replace(/^\uFEFF/, ''))
+    expect(Array.from(new Uint8Array(await result.blob.arrayBuffer()).slice(0, 3))).toEqual([
+      0xef, 0xbb, 0xbf,
+    ])
     expect(fetchMock.mock.calls[0]?.[1]).not.toHaveProperty('responseType')
   })
 

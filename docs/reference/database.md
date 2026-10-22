@@ -261,17 +261,21 @@ CREATE TABLE users (
 ### 4.2 · `auth_tokens`
 
 ```sql
-CREATE TABLE auth_tokens (
+CREATE TABLE auth.auth_tokens (
   id          BIGSERIAL PRIMARY KEY,
-  user_id     BIGINT NOT NULL REFERENCES users(id),
+  user_id     BIGINT NOT NULL REFERENCES auth.users(id),
   token_type  VARCHAR(20) NOT NULL
               CHECK (token_type IN ('REFRESH','RESET_PASSWORD','EMAIL_VERIFY')),
   token_hash  VARCHAR(255) NOT NULL UNIQUE,
   expires_at  TIMESTAMPTZ NOT NULL,
   revoked_at  TIMESTAMPTZ,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  session_id  UUID,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_auth_tokens_refresh_session
+    CHECK (token_type <> 'REFRESH' OR session_id IS NOT NULL)
 );
-CREATE INDEX ix_tokens_user ON auth_tokens(user_id) WHERE revoked_at IS NULL;
+CREATE INDEX ix_tokens_user ON auth.auth_tokens(user_id) WHERE revoked_at IS NULL;
+CREATE INDEX ix_tokens_session ON auth.auth_tokens(session_id) WHERE session_id IS NOT NULL;
 ```
 
 > 🔴 **`EMAIL_VERIFY` là giá trị v5 thiếu** (khoảng trống #4 nhóm 0) — UC-001 và UC-002 cần nó.
@@ -1297,6 +1301,7 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 |---|---|---|---|---|
 | V1 | `V1__core_schema.sql` | 001 (dựng nền) | 4 schema · 26 bảng MVP. Gồm luôn `plans` (seed `FREE`) + 4 cột gói trên `users`, `pron_stages`, `videos` (`source_type`, `external_id`), 4 cột phễu `credit_cards`, `seq` + `UNIQUE` trên `credit_transactions`, `user_roles` dùng `CHECK` (không còn bảng `roles`), `topic_items` có `id` riêng | ✅ đã viết |
 | V2 | `V2__community.sql` | 001 (dựng nền) | 5 bảng `community` | ✅ đã viết |
+| V2.1 | `V2_1__auth_session_id.sql` | 001 | Thêm `session_id` UUID cho phiên refresh trong `auth.auth_tokens`, CHECK bắt buộc session ID cho REFRESH, partial index | T-22 |
 | V3 | `V3__content_import.sql` | 002 | `topics.code`, `pron_stages.units`, index nhập liệu (spec 002 §0.3) | ⬜ |
 | V4 | `V4__practice_engine.sql` | 003 | Cột `item_type`, `skill`, `meta` trên `attempt_items` + index (spec 003 §0.12) | ⬜ |
 | V5+ | — | spec sau | Leader cấp số khi spec cần đổi schema: gói dịch vụ, `dictation_attempts`/`shadowing_attempts` (feature 1.6 V2)… | — |

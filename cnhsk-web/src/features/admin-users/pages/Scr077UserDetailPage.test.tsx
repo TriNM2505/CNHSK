@@ -193,6 +193,41 @@ describe('Scr077UserDetailPage', () => {
     )
   })
 
+  it('cho phép cấp role cho tài khoản bị cấm và chỉ có hiệu lực sau khi gỡ cấm', async () => {
+    const bannedDetail: AdminUserDetail = {
+      ...detail,
+      roles: [detail.roles[0]!],
+      status: 'BANNED',
+      bannedAt: '2026-10-20T01:00:00Z',
+      banReason: 'Vi phạm điều khoản',
+    }
+    const updatedDetail: AdminUserDetail = {
+      ...bannedDetail,
+      roles: [
+        ...bannedDetail.roles,
+        { code: 'TEACHER', grantedAt: '2026-10-23T08:00:00Z', grantedBy: currentAdmin.id },
+      ],
+    }
+    getAdminUserDetailMock.mockResolvedValueOnce(bannedDetail).mockResolvedValueOnce(updatedDetail)
+    grantAdminUserRoleMock.mockResolvedValue()
+    renderPage()
+    const user = userEvent.setup()
+
+    await screen.findByRole('heading', { name: 'Minh Anh' })
+    expect(screen.getByText('Role có hiệu lực sau khi gỡ cấm')).toBeVisible()
+
+    await user.selectOptions(screen.getByLabelText('Vai trò cần cấp'), 'TEACHER')
+    await user.click(screen.getByRole('button', { name: 'Cấp vai trò' }))
+    const dialog = screen.getByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Cấp vai trò' }))
+
+    const rolesTable = screen.getByRole('table', { name: 'Vai trò đã cấp cho tài khoản' })
+    expect(await within(rolesTable).findByText('Giáo viên')).toBeVisible()
+    expect(grantAdminUserRoleMock).toHaveBeenCalledWith(101, { roleCode: 'TEACHER' })
+    expect(getAdminUserDetailMock).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('Role có hiệu lực sau khi gỡ cấm')).toBeVisible()
+  })
+
   it('sau khi tự thu hồi role không phải ADMIN, cập nhật AuthContext từ GET mới nhất', async () => {
     const selfDetail: AdminUserDetail = {
       ...detail,

@@ -215,12 +215,14 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 | **FR-014** | WHEN đăng nhập đúng từ web, THE system SHALL đặt cookie `access_token` với **đủ năm thuộc tính**: `Domain={COOKIE_DOMAIN}`, `HttpOnly`, `Secure={COOKIE_SECURE}`, `SameSite=Lax`, `Max-Age=900`, `Path=/` (`HR-03`) |
 | **FR-014b** | WHEN đăng nhập đúng từ web, THE system SHALL đặt cookie `refresh_token` với `Domain={COOKIE_DOMAIN}`, `HttpOnly`, `Secure`, `SameSite=Lax`, `Max-Age=2592000`, **`Path=/api/auth`** — chỉ gửi kèm các endpoint xác thực |
 | **FR-015** | THE system SHALL đặt `Domain` là tên miền cha, KHÔNG để trống. Để trống thì `game.cnhsk.com` **không nhận được cookie** và UC-005 hỏng |
-| **FR-016** | WHEN đăng nhập đúng, THE system SHALL sinh refresh token ngẫu nhiên 32 byte (`SecureRandom`, Base64URL), lưu **SHA-256 hash** vào `auth_tokens`, KHÔNG lưu token thô. Access token là JWT HS256 với claim: `sub` (user id), `roles` (mảng), `ev` (email đã xác thực: bool), `iat`, `exp`, `jti` |
+| **FR-016** | WHEN đăng nhập đúng, THE system SHALL sinh `session_id` UUID mới cho phiên, sinh refresh token ngẫu nhiên 32 byte (`SecureRandom`, Base64URL), lưu **SHA-256 hash** và `session_id` vào `auth_tokens`, KHÔNG lưu token thô. Access token là JWT HS256 với claim: `sub` (user id), `roles` (mảng), `ev` (email đã xác thực: bool), `iat`, `iatMs` (epoch milliseconds lúc phát), `exp`, `jti`, `sid` (`session_id` UUID) |
 | **FR-017** | WHEN mật khẩu sai hoặc email không tồn tại, THE system SHALL tăng bộ đếm Redis của cặp email chuẩn hoá–IP và trả **401** `INVALID_CREDENTIALS` nếu chưa đạt ngưỡng chặn |
 | **FR-018** | THE system SHALL trả **cùng một thông báo** "Email hoặc mật khẩu không đúng" cho email không tồn tại và mật khẩu sai; thời gian xử lý hai nhánh tương đương (vẫn chạy bcrypt với hash giả khi email không tồn tại) |
 | **FR-019** | WHEN đăng nhập thành công, THE system SHALL xoá bộ đếm Redis của cặp email–IP đó |
 | **FR-020** | WHILE `banned_at IS NOT NULL`, THE system SHALL từ chối đăng nhập với **403** `ACCOUNT_BANNED` kèm `banReason` |
 | **FR-021** | WHILE `suspended_until > now()`, THE system SHALL từ chối đăng nhập với **403** `ACCOUNT_SUSPENDED` kèm `suspendedUntil` |
+
+Nếu vừa bị cấm vừa bị treo, trả ACCOUNT_BANNED.
 
 ### Nhóm 4 — Đăng nhập mobile bằng header (FR-022…FR-025) · UC-004
 
@@ -245,8 +247,8 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-031** | WHEN nhận refresh token hợp lệ tại `POST /api/auth/refresh` (cookie `refresh_token` ở web, body `{refreshToken}` ở mobile), THE system SHALL cấp access token mới VÀ refresh token mới, rồi thu hồi refresh token cũ (rotation), trong một transaction |
-| **FR-032** | WHEN một refresh token đã thu hồi được dùng lại, THE system SHALL thu hồi **toàn bộ** refresh token của user đó, ghi `audit_logs` `action='TOKEN_REUSE'`, và trả **401** `TOKEN_REUSE_DETECTED` |
+| **FR-031** | WHEN nhận refresh token hợp lệ tại `POST /api/auth/refresh` (cookie `refresh_token` ở web, body `{refreshToken}` ở mobile), THE system SHALL cấp access token mới VÀ refresh token mới, rồi thu hồi refresh token cũ (rotation), trong một transaction; refresh token mới và access token mới giữ nguyên `session_id` của phiên cũ |
+| **FR-032** | WHEN một refresh token đã thu hồi được dùng lại, THE system SHALL kiểm tra trong cùng user và `session_id` có refresh-token row mới hơn hay không. Có row mới hơn cùng phiên → reuse: thu hồi **toàn bộ** refresh token của user đó, ghi `audit_logs` `action='TOKEN_REUSE'`, và trả **401** `TOKEN_REUSE_DETECTED`. Không có row mới hơn (token bị thu hồi có chủ đích, như đổi mật khẩu/đăng xuất) → chỉ trả **401** `INVALID_REFRESH_TOKEN`, không thu hồi các phiên khác và không ghi audit reuse |
 | **FR-033** | THE system SHALL so sánh refresh token bằng cách hash SHA-256 token người dùng gửi rồi đối chiếu `auth_tokens.token_hash`, KHÔNG so sánh token thô |
 | **FR-034** | WHEN đăng xuất từ web (`POST /api/auth/logout`), THE system SHALL xoá hai cookie (`Max-Age=0`, cùng `Domain`/`Path`) và thu hồi refresh token của phiên đó |
 | **FR-035** | WHEN đăng xuất từ mobile, THE system SHALL thu hồi refresh token nhận trong body |
@@ -263,7 +265,7 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 | **FR-041** | THE system SHALL giới hạn **3 yêu cầu/giờ mỗi email** và **10 yêu cầu/giờ mỗi IP** (FR-093); vượt → vẫn trả **202** cùng thông báo nhưng không gửi email (không tiết lộ) |
 | **FR-042** | WHEN đặt lại mật khẩu thành công (`POST /api/auth/reset-password`), THE system SHALL thu hồi token đó VÀ **toàn bộ** refresh token của user, xoá bộ đếm đăng nhập sai liên quan, đặt mốc vô hiệu phiên (FR-092), trả **204** |
 | **FR-043** | WHEN đổi mật khẩu khi đã đăng nhập (`POST /api/me/password`), THE system SHALL yêu cầu mật khẩu hiện tại đúng; sai → **422** `CURRENT_PASSWORD_INCORRECT` |
-| **FR-044** | WHEN đổi mật khẩu thành công, THE system SHALL thu hồi mọi refresh token **trừ phiên hiện tại** (E7) |
+| **FR-044** | WHEN đổi mật khẩu thành công, THE system SHALL xác định phiên hiện tại bằng claim JWT `sid` (`session_id`), rồi thu hồi mọi refresh token của user có `session_id <> sid` (E7). Không đặt marker FR-092; access token của phiên khác có thể còn hiệu lực đến khi hết hạn (tối đa 15 phút) |
 | **FR-045** | THE system SHALL từ chối mật khẩu mới trùng mật khẩu hiện tại với **422** `PASSWORD_UNCHANGED` (cả FR-042 và FR-043) |
 
 ### Nhóm 8 — Tạm chặn nguồn đăng nhập (FR-046…FR-050) · UC-012 («extend» UC-003, UC-004)
@@ -328,7 +330,7 @@ Các điểm `screen-fields.md` ghi "open issue". Spec chốt như sau; tài li�
 | **FR-089** | WHERE `/api/auth/login` hoặc `/api/auth/refresh` thiếu `X-Client-Type` hoặc giá trị không thuộc `WEB`/`MOBILE`, THE system SHALL xử lý như `WEB` (chỉ đặt cookie, **không** trả token trong body) | UC-004 trả cả cookie và body — sai với BR04/05 |
 | **FR-090** | WHEN đăng nhập web thành công, THE frontend SHALL chuyển tới: (1) `redirect` nếu là đường dẫn nội bộ người dùng có quyền, **hoặc** URL tuyệt đối có origin đúng bằng `VITE_GAME_ORIGIN` (trang game, spec 007) — mọi URL tuyệt đối khác bị bỏ qua để chống open redirect; (2) nếu chỉ có **một** khu vực được phép → khu vực đó (bảng §12.3); (3) nếu nhiều khu vực → SCR-001 ở trạng thái đã đăng nhập, hiện danh sách "Khu vực của bạn" để người dùng tự chọn. **Không** tự xếp hạng role | Đa role chưa định nghĩa đích đến |
 | **FR-091** | THE system SHALL yêu cầu mật khẩu mới: 8–72 ký tự (giới hạn bcrypt), có ít nhất một chữ cái và một chữ số, không chứa khoảng trắng hai đầu, khác email. Thông báo: "Mật khẩu cần 8–72 ký tự, gồm chữ và số." | Độ mạnh mật khẩu chưa có |
-| **FR-092** | WHEN cấm tài khoản, thu hồi role, đặt lại mật khẩu hoặc đăng xuất mọi thiết bị, THE system SHALL ghi Redis `auth:invalid-before:{userId} = epochSeconds` (TTL 15 phút = vòng đời access token). `JwtFilter` từ chối access token có `iat <` mốc đó: tài khoản bị cấm → **403** `ACCOUNT_BANNED`, trường hợp khác → **401** `SESSION_REVOKED`; client làm mới token (refresh vẫn hợp lệ ở trường hợp thu hồi role) để nhận role mới | Thu hồi role không có cơ chế vô hiệu token cũ |
+| **FR-092** | WHEN cấm tài khoản, thu hồi role, đặt lại mật khẩu hoặc đăng xuất mọi thiết bị, THE system SHALL ghi Redis `auth:invalid-before:{userId}` với TTL 15 phút = vòng đời access token. Giá trị là JSON: cấm tài khoản (`FR-096`) → `{"invalidBeforeMs": <epochMillis>, "reason": "BANNED", "banReason": "<lý do>"}`; thu hồi role, đặt lại mật khẩu hoặc đăng xuất mọi thiết bị → `{"invalidBeforeMs": <epochMillis>, "reason": "REVOKED"}`. `JwtAuthenticationFilter` từ chối access token có `iatMs < invalidBeforeMs`: `reason=BANNED` → **403** `ACCOUNT_BANNED` kèm `banReason`; `reason=REVOKED` → **401** `SESSION_REVOKED`. Không có key hoặc `iatMs >= invalidBeforeMs` thì tiếp tục request. JWT thiếu `iatMs` bị từ chối như thiếu `sid` (**401** `UNAUTHENTICATED`). Redis lỗi khi đọc → bỏ qua marker, ghi log cảnh báo, không truy vấn DB trong filter. Một helper dùng chung chịu trách nhiệm serialize/deserialize marker để các luồng cấm/thu hồi/đăng xuất tái sử dụng. Client làm mới token (refresh vẫn hợp lệ ở trường hợp thu hồi role) để nhận role mới | Thu hồi role không có cơ chế vô hiệu token cũ |
 | **FR-093** | THE system SHALL giới hạn quên mật khẩu 10 yêu cầu/giờ mỗi IP (khoá `auth:forgot:ip:{ip}`) và 3/giờ mỗi email (`auth:forgot:email:{sha256}`) | Giới hạn IP chưa có số |
 | **FR-094** | WHEN token xác thực đã dùng và tài khoản **đã** xác thực, THE system SHALL trả **200** `{ "emailVerified": true }` (idempotent). Mọi trường hợp lỗi khác dùng một mã `INVALID_VERIFY_TOKEN` (400) | UC-002 400/410/409 vs FR-011 |
 | **FR-095** | THE system SHALL chuẩn hoá email: bỏ khoảng trắng hai đầu, chữ thường, độ dài ≤ 255, đúng định dạng RFC 5322 đơn giản. Hồ sơ: `displayName` 2–100 ký tự; `avatarUrl` URL `https://` ≤ 500 ký tự hoặc `null` (không có upload ở MVP); `hskLevel` 1–9 hoặc `null` (cấp mục tiêu) | Tên field hồ sơ lệch UC/FR; avatar upload chưa có |
@@ -523,7 +525,7 @@ CREATE INDEX ix_tokens_user ON auth.auth_tokens(user_id) WHERE revoked_at IS NUL
 | 3 | Vòng đời token | **Chốt:** access 15 phút · refresh 30 ngày · xoay vòng (ADR-002) |
 | 4 | Lịch sử đăng nhập lưu đâu | **Chốt:** `shared.audit_logs` `action='LOGIN_SUCCESS'` |
 | 6 | Schema: `public` hay tách | **Chốt (chủ dự án 2026-10-06):** 4 schema + FK cross-schema được phép (RFC `AC-03`/`AC-04` trong `database.md`) — **cả nhóm duyệt RFC cùng spec; sau duyệt sửa `constitution.md`** |
-| 7 | Đích đến khi có nhiều role (FR-090) | **Đề xuất:** màn chọn khu vực, không xếp hạng role — **cần cả nhóm xác nhận** |
+| 7 | Đích đến khi có nhiều role (FR-090) | Đã chốt 2026-10-23: theo FR-090/AT-72 |
 
 Không còn câu hỏi chặn code.
 
