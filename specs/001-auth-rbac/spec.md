@@ -525,7 +525,7 @@ CREATE INDEX ix_tokens_user ON auth.auth_tokens(user_id) WHERE revoked_at IS NUL
 | 3 | Vòng đời token | **Chốt:** access 15 phút · refresh 30 ngày · xoay vòng (ADR-002) |
 | 4 | Lịch sử đăng nhập lưu đâu | **Chốt:** `shared.audit_logs` `action='LOGIN_SUCCESS'` |
 | 6 | Schema: `public` hay tách | **Chốt (chủ dự án 2026-10-06):** 4 schema + FK cross-schema được phép (RFC `AC-03`/`AC-04` trong `database.md`) — **cả nhóm duyệt RFC cùng spec; sau duyệt sửa `constitution.md`** |
-| 7 | Đích đến khi có nhiều role (FR-090) | **Đề xuất:** màn chọn khu vực, không xếp hạng role — **cần cả nhóm xác nhận** |
+| 7 | Đích đến khi có nhiều role (FR-090) | Đã chốt 2026-10-23: theo FR-090/AT-72 |
 
 Không còn câu hỏi chặn code.
 
