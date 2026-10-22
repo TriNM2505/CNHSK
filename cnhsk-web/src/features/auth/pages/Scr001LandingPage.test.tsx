@@ -41,6 +41,13 @@ function renderPage(overrides: Partial<AuthContextValue> = {}) {
 }
 
 describe('Scr001LandingPage', () => {
+  it('guest bình thường thấy CTA đăng ký và đăng nhập đúng route', () => {
+    renderPage()
+
+    expect(screen.getByRole('link', { name: 'Bắt đầu học' })).toHaveAttribute('href', '/register')
+    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute('href', '/login')
+  })
+
   it('hiện hero và phần giới thiệu trong lúc kiểm tra phiên', () => {
     renderPage({ status: 'loading' })
 
