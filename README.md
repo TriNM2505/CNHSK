@@ -82,19 +82,116 @@ ArchUnit | 1.5.0 |
 
 ## Chạy dự án
 
-```bash
-# Build + test
-./mvnw clean test
+### Hạ tầng dev — T-00, spec 001
 
-# Chạy
-./mvnw spring-boot:run
+Chuẩn bị Docker Desktop đang chạy Linux containers và Docker Compose từ 2.23.1
+(hỗ trợ `configs.content`). Backend dùng Java 17; frontend cần Node.js 20.19+ và npm.
+
+Chạy **5 lệnh** sau trong PowerShell tại thư mục gốc repo. Nếu đã có `.env`, giữ
+nguyên file của bạn và bỏ qua lệnh sao chép.
+
+```powershell
+# 1. Tạo cấu hình local từ template không chứa secret.
+Copy-Item .env.example .env
+
+# 2. Điền POSTGRES_PASSWORD, DB_PASSWORD và JWT_SECRET rồi lưu và đóng editor.
+notepad .env
+
+# 3. Kiểm tra cấu hình; --quiet tránh in mật khẩu đã nội suy.
+docker compose --env-file .env config --quiet
+
+# 4. Khởi động ba dịch vụ local và đợi PostgreSQL/Redis sẵn sàng.
+docker compose --env-file .env up -d --wait --wait-timeout 120
+
+# 5. Kiểm tra trạng thái và các cổng đã mở.
+docker compose --env-file .env ps
 ```
 
-Cần PostgreSQL 18 ở `localhost:5432`, database `cnhsk_db`, tài khoản `svc_app`.
-Biến môi trường: `DB_URL` · `DB_USER` · `DB_PASSWORD` · `REDIS_HOST`.
+`POSTGRES_PASSWORD` và `DB_PASSWORD` là hai mật khẩu local khác nhau, tự tạo bằng
+trình quản lý mật khẩu. Với hướng dẫn nạp biến bên dưới, dùng chuỗi hex ngẫu nhiên
+cho cả ba secret này để tránh ký tự có ý nghĩa đặc biệt trong `.env`.
+`JWT_SECRET` phải sinh ngẫu nhiên từ ít nhất 32 byte (64 ký tự hex).
+Không dùng giá trị mẫu hoặc chia sẻ các giá trị này trong git, ảnh chụp hay log.
 
-> ⚠️ **Frontend chưa tồn tại.** Bản nháp đã xoá. Khi dựng lại, tên thư mục bắt buộc là
-> `cnhsk-web` theo `ES-04`.
+| Dịch vụ | Địa chỉ local | Ghi chú |
+|---|---|---|
+| PostgreSQL 18 | `localhost:5432/cnhsk_db` | App dùng `DB_USER` (mặc định `svc_app`); owner là `postgres` |
+| Redis 7 | `localhost:6379` | Bộ đếm và mốc vô hiệu phiên của spec 001 |
+| Mailpit SMTP | `localhost:1025` | Không cần tài khoản, mật khẩu hoặc TLS |
+| Mailpit UI | `http://localhost:8025` | Xem email dev đã được SMTP nhận |
+
+Các cổng Docker chỉ bind `127.0.0.1`. PostgreSQL giữ dữ liệu trong named volume;
+Redis và email Mailpit là dữ liệu dev tạm thời. Dùng `docker compose stop` để dừng
+dịch vụ và giữ dữ liệu PostgreSQL. Không xoá volume để xử lý lỗi khởi động.
+
+Compose chỉ tạo database rỗng và role ứng dụng không có quyền superuser, tạo DB
+hay tạo role. Migration, schema và quyền truy cập bảng do T-01 xử lý theo
+`docs/reference/database.md`; Flyway phải dùng owner riêng. Script tạo role chỉ
+chạy ở lần khởi tạo volume đầu tiên. Đổi mật khẩu trong `.env` không tự đổi mật
+khẩu đã lưu trong PostgreSQL.
+
+Vị trí volume của PostgreSQL 18 là `/var/lib/postgresql` theo
+[tài liệu image chính thức](https://hub.docker.com/_/postgres).
+
+### Chạy backend sau khi hoàn thành các task nền tảng
+
+Docker Compose đọc `.env` để cấu hình container; Maven/Spring hiện không tự nạp
+file này. Trong cùng cửa sổ PowerShell sẽ chạy backend, nạp từng biến vào process:
+
+```powershell
+Get-Content .env | ForEach-Object {
+    $entry = $_.Trim()
+    if ($entry -and -not $entry.StartsWith('#')) {
+        $key, $value = $entry -split '=', 2
+        [Environment]::SetEnvironmentVariable($key, $value, 'Process')
+    }
+}
+```
+
+Định dạng `.env.example` dùng `KEY=VALUE` không có dấu nháy hoặc comment cùng dòng;
+giữ định dạng này khi điền giá trị để Compose và đoạn nạp trên đọc giống nhau.
+Các biến bắt buộc/tùy chọn của spec nằm đầy đủ trong `.env.example` (§0.3).
+
+T-00 chỉ xác nhận hạ tầng dev. Ở trạng thái repo hiện tại, migration còn nằm ngoài
+classpath (T-01), cấu hình JWT/cookie/SMTP và endpoint auth còn thuộc các task
+sau; việc ba container chạy không chứng minh backend/auth đã hoạt động.
+Chỉ chạy lệnh dưới trên database local sau khi các task nền tảng tương ứng hoàn tất:
+
+```powershell
+.\mvnw.cmd spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+Test backend hiện có dùng H2 qua profile test:
+
+```powershell
+.\mvnw.cmd test
+```
+
+### Frontend hiện có
+
+Frontend React 18 + Vite + TypeScript + Tailwind đã có tại `cnhsk-web/`:
+
+```powershell
+Set-Location cnhsk-web
+npm ci
+npm run dev
+```
+
+Mở `http://localhost:5173`. T-00 dựng các dịch vụ phụ trợ; nối API frontend với
+backend và proxy Vite thuộc các task tích hợp sau.
+
+### Đưa template vào commit
+
+`.gitignore` hiện bỏ qua cả `.env.example` theo mẫu `.env.*`. Khi tạo commit T-00,
+kiểm tra file template vẫn không chứa secret rồi stage **đúng ba file**:
+
+```powershell
+git add docker-compose.yml README.md
+git add -f .env.example
+git diff --cached --stat
+```
+
+Không force-add `.env` hoặc file chứa credentials thật.
 
 ---
 
