@@ -99,7 +99,7 @@
 | T-30 | SCR-002 Sign In + SCR-003 Register + điều hướng FR-090 | `cnhsk-web/src/features/auth/**` | FR-087, FR-090 · AT-71, AT-72 | ✅ |
 | T-31 | SCR-004 Verify Email + SCR-005 Forgot + SCR-006 Reset + banner chưa xác thực | `cnhsk-web/src/features/auth/**` | FR-009→FR-013, FR-038→FR-045, FR-087→FR-088 · AT-11→AT-16, AT-41→AT-47, AT-50, AT-71 | ✅ |
 | T-32 | SCR-007 Profile + SCR-008 Change Password | `cnhsk-web/src/features/account/**` | FR-051, FR-043→FR-045, FR-091, FR-095 · AT-48→AT-50, AT-55→AT-57 | ✅ |
-| T-33 | SCR-076 User List + SCR-077 User Detail (gán/thu hồi role, cấm/gỡ cấm có bước xác nhận trong trang) | `cnhsk-web/src/features/admin-users/**` | FR-096, FR-097 | ⬜ |
+| T-33 | SCR-076 User List + SCR-077 User Detail (gán/thu hồi role, cấm/gỡ cấm có bước xác nhận trong trang) | `cnhsk-web/src/features/admin-users/**` | FR-096, FR-097; FR-062…066; AT-65…70, AT-73…76 | ✅ |
 | T-34 | SCR-001 Landing phần tài khoản (nút đăng nhập/đăng ký, "Khu vực của bạn" khi đa role) | `cnhsk-web/src/features/landing/**` | FR-090 | ⬜ |
 
 Mỗi màn: field, nhãn, thông báo lấy đúng `screen-fields.md` (dòng ở §12.1); đủ 3 trạng thái Loading · Empty · Error; test Vitest cho validate và xử lý lỗi API.
