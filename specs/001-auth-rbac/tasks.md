@@ -110,7 +110,7 @@ Mỗi màn: field, nhãn, thông báo lấy đúng `screen-fields.md` (dòng ở
 
 | ID | Task | Spec | TT |
 |---|---|---|---|
-| T-35 | Integration test luồng đủ: đăng ký → xác thực → đăng nhập WEB và MOBILE cùng tài khoản → `/me` từ origin game → refresh → đổi mật khẩu → đăng xuất; test mọi mã lỗi §5 có ít nhất một ca; coverage ≥ 80% | SC-001→SC-006 · §5 · `ES-05` | ⬜ |
+| T-35 | Integration test luồng đủ: đăng ký → xác thực → đăng nhập WEB và MOBILE cùng tài khoản → `/me` từ origin game → refresh → đổi mật khẩu → đăng xuất; test mọi mã lỗi §5 có ít nhất một ca; coverage ≥ 80% | SC-001→SC-006 · §5 · `ES-05` | ✅ |
 
 ---
 
