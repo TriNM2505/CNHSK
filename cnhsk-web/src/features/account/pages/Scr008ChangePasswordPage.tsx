@@ -52,7 +52,8 @@ export default function Scr008ChangePasswordPage() {
       setValues(EMPTY_VALUES)
       setNotice({
         kind: 'success',
-        message: 'Các thiết bị khác đã được đăng xuất. Phiên trên thiết bị này vẫn giữ nguyên.',
+        message:
+          'Refresh token trên các thiết bị khác đã bị thu hồi; access token cũ có thể còn hiệu lực tối đa 15 phút.',
         title: 'Đã đổi mật khẩu',
       })
     } catch (error) {
