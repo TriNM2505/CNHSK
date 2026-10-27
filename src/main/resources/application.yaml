@@ -36,8 +36,22 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
+    default-encoding: UTF-8
+
 server:
   port: 8080
+
+# API documentation is opt-in and enabled only by the dev profile.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 
 # Mui gio cho moi tac vu dinh ky. Server chay UTC nen bat buoc ghi ro.
 app:

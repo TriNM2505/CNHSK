@@ -4,6 +4,14 @@ const CLIENT_TYPE = 'WEB'
 const CSRF_COOKIE_NAME = 'XSRF-TOKEN'
 const CSRF_HEADER_NAME = 'X-XSRF-TOKEN'
 const AUTH_EXCLUDED_PATHS = new Set(['/api/auth/login', '/api/auth/refresh', '/api/auth/logout'])
+const CSRF_EXEMPT_PATHS = new Set([
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/verify-email',
+  '/api/auth/refresh',
+])
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 export const AUTH_EXPIRED_EVENT = 'auth:expired'
@@ -229,14 +237,15 @@ async function requestInternal<T>(
 ): Promise<T> {
   const method = (init.method ?? 'GET').toUpperCase()
   const changesState = STATE_CHANGING_METHODS.has(method)
+  const requiresCsrf = changesState && !CSRF_EXEMPT_PATHS.has(getPathname(path))
   const { responseType = 'json', ...fetchInit } = init
 
-  if (changesState && !readCookie(CSRF_COOKIE_NAME)) await fetchCsrfToken(false)
+  if (requiresCsrf && !readCookie(CSRF_COOKIE_NAME)) await fetchCsrfToken(false)
 
   const headers = new Headers(init.headers)
   headers.set('X-Client-Type', CLIENT_TYPE)
 
-  const csrfToken = changesState ? readCookie(CSRF_COOKIE_NAME) : undefined
+  const csrfToken = requiresCsrf ? readCookie(CSRF_COOKIE_NAME) : undefined
   if (csrfToken) headers.set(CSRF_HEADER_NAME, csrfToken)
   else headers.delete(CSRF_HEADER_NAME)
 
@@ -259,7 +268,12 @@ async function requestInternal<T>(
   } catch (error) {
     if (!(error instanceof ApiError)) throw error
 
-    if (error.status === 403 && error.errorCode === 'CSRF_TOKEN_INVALID' && !retry.csrf) {
+    if (
+      requiresCsrf &&
+      error.status === 403 &&
+      error.errorCode === 'CSRF_TOKEN_INVALID' &&
+      !retry.csrf
+    ) {
       if (csrfGeneration === csrfGenerationAtSend) await fetchCsrfToken(true)
       return requestInternal<T>(path, init, { ...retry, csrf: true })
     }

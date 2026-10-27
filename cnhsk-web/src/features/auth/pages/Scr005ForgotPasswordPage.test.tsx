@@ -37,7 +37,9 @@ describe('Scr005ForgotPasswordPage', () => {
   })
 
   it('FR-038: gửi email đã chuẩn hoá và hiện cùng một thông báo', async () => {
-    vi.mocked(requestPasswordReset).mockResolvedValue(undefined)
+    vi.mocked(requestPasswordReset).mockResolvedValue({
+      message: 'Thông báo chung từ API, không hiển thị nguyên văn trong UI.',
+    })
     renderPage()
     const user = userEvent.setup()
 
@@ -48,6 +50,7 @@ describe('Scr005ForgotPasswordPage', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Nếu learner@example.com có tài khoản trong hệ thống',
     )
+    expect(screen.getByRole('status')).not.toHaveTextContent('Thông báo chung từ API')
     expect(screen.getByRole('link', { name: 'Quay lại đăng nhập' })).toHaveAttribute(
       'href',
       '/login',
@@ -55,7 +58,9 @@ describe('Scr005ForgotPasswordPage', () => {
   })
 
   it('cho gửi lại với email khác', async () => {
-    vi.mocked(requestPasswordReset).mockResolvedValue(undefined)
+    vi.mocked(requestPasswordReset).mockResolvedValue({
+      message: 'Thông báo chung từ API.',
+    })
     renderPage()
     const user = userEvent.setup()
 

@@ -82,13 +82,16 @@ describe('Scr008ChangePasswordPage', () => {
     expect(changePassword).not.toHaveBeenCalled()
   })
 
-  it('FR-044: thành công xoá form và báo thiết bị khác bị đăng xuất', async () => {
+  it('FR-044: thành công xoá form và nêu rõ access token khác còn hiệu lực tối đa 15 phút', async () => {
     vi.mocked(changePassword).mockResolvedValue(undefined)
     renderPage()
 
     await fill('MatKhauCu1', 'MatKhauMoi1')
 
     expect(await screen.findByRole('status')).toHaveTextContent('Đã đổi mật khẩu')
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Refresh token trên các thiết bị khác đã bị thu hồi; access token cũ có thể còn hiệu lực tối đa 15 phút.',
+    )
     expect(changePassword).toHaveBeenCalledWith({
       confirmPassword: 'MatKhauMoi1',
       currentPassword: 'MatKhauCu1',

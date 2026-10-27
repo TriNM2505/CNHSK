@@ -334,7 +334,7 @@ export function UserDetailView({
                   label="Vai trò cần cấp"
                 >
                   <Select
-                    disabled={busy || isSelf || data.status === 'BANNED' || !missingRoles.length}
+                    disabled={busy || isSelf || !missingRoles.length}
                     onChange={(event) => onRoleChange(event.target.value as RoleCode | '')}
                     value={selectedRole}
                   >
@@ -347,13 +347,7 @@ export function UserDetailView({
                   </Select>
                 </FormField>
                 <Button
-                  disabled={
-                    busy ||
-                    isSelf ||
-                    data.status === 'BANNED' ||
-                    !selectedRole ||
-                    !missingRoles.length
-                  }
+                  disabled={busy || isSelf || !selectedRole || !missingRoles.length}
                   onClick={() =>
                     selectedRole && onRequestAction({ kind: 'grant', role: selectedRole })
                   }
@@ -370,7 +364,7 @@ export function UserDetailView({
             ) : null}
             {data.status === 'BANNED' ? (
               <p className="mt-3 text-body-sm text-ink-secondary">
-                Hãy gỡ cấm tài khoản trước khi cấp thêm vai trò.
+                Role có hiệu lực sau khi gỡ cấm
               </p>
             ) : null}
 

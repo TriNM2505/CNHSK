@@ -23,8 +23,8 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
  * Du an moi khoi tao, cac goi module con rong nen chua co lop nao de kiem.
  * Mac dinh ArchUnit bao loi khi rule khong kiem duoc lop nao - de bat loi go sai
  * ten goi. O day biet chac la goi rong that, nen tat rieng tung luat.
- * Khi ba module da co code, CO THE BO cac dong allowEmptyShould de lay lai
- * lop bao ve chong go sai ten goi.
+ * Khi mot module chua co lop production, giu allowEmptyShould rieng cho cac rule
+ * nham vao package do; go bo khi module do co code that.
  */
 @AnalyzeClasses(
         packages = "com.cnhsk",
@@ -33,6 +33,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 class ModuleBoundaryTest {
 
     // ===== Module community khong duoc cham vao ruot cua module khac =====
+    // Giữ allowEmptyShould cho tới khi community có production class; gỡ khi module được khởi tạo.
 
     @ArchTest
     static final ArchRule community_chi_duoc_goi_auth_qua_api =
@@ -63,6 +64,7 @@ class ModuleBoundaryTest {
                     .allowEmptyShould(true);
 
     // ===== Module learning khong duoc cham vao ruot cua module khac =====
+    // Giữ allowEmptyShould cho tới khi learning có production class; gỡ khi module được khởi tạo.
 
     @ArchTest
     static final ArchRule learning_chi_duoc_goi_auth_qua_api =
@@ -93,8 +95,7 @@ class ModuleBoundaryTest {
                     .should().dependOnClassesThat()
                     .resideInAnyPackage("..learning..", "..community..")
                     .because("auth la module nen tang, phai tach ra duoc de dang nhat. "
-                            + "Auth biet den module khac thi khong bao gio tach duoc")
-                    .allowEmptyShould(true);
+                            + "Auth biet den module khac thi khong bao gio tach duoc");
 
     // ===== Module shared khong duoc phu thuoc nguoc =====
 
@@ -104,8 +105,7 @@ class ModuleBoundaryTest {
                     .should().dependOnClassesThat()
                     .resideInAnyPackage("..auth..", "..learning..", "..community..")
                     .because("shared la tang duoi cung - ai cung dung duoc shared, "
-                            + "nhung shared khong duoc dung nguoc len")
-                    .allowEmptyShould(true);
+                            + "nhung shared khong duoc dung nguoc len");
 
     // ===== Giu ba tang Controller -> Service -> Repository =====
 
@@ -114,13 +114,11 @@ class ModuleBoundaryTest {
             noClasses().that().resideInAPackage("..controller..")
                     .should().dependOnClassesThat().resideInAPackage("..repository..")
                     .because("Controller goi Service, Service goi Repository. "
-                            + "Goi tat lam logic nghiep vu roi vao Controller")
-                    .allowEmptyShould(true);
+                            + "Goi tat lam logic nghiep vu roi vao Controller");
 
     @ArchTest
     static final ArchRule repository_khong_duoc_goi_nguoc_len_service =
             noClasses().that().resideInAPackage("..repository..")
                     .should().dependOnClassesThat().resideInAPackage("..service..")
-                    .because("Repository la tang duoi cung, khong duoc goi nguoc len")
-                    .allowEmptyShould(true);
+                    .because("Repository la tang duoi cung, khong duoc goi nguoc len");
 }

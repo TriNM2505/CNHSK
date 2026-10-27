@@ -126,6 +126,14 @@ components:
       required: [email]
       properties:
         email: { type: string, maxLength: 255 }
+    ForgotPasswordResponse:
+      type: object
+      required: [message]
+      additionalProperties: false
+      properties:
+        message:
+          type: string
+          example: Nếu email có tài khoản trong hệ thống, hướng dẫn đặt lại mật khẩu sẽ được gửi.
     ResetPasswordRequest:
       type: object
       required: [token, newPassword, confirmPassword]
@@ -208,7 +216,9 @@ components:
       type: object
       required: [reason]
       properties:
-        reason: { type: string, minLength: 5, maxLength: 500 }
+        reason:
+          type: string
+          description: Server trims leading and trailing whitespace, then requires 5–500 characters.
 
   responses:
     Error:
@@ -276,6 +286,7 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
 
   /api/auth/login:
     post:
@@ -320,7 +331,6 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/LoginResponse' }
         '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
 
   /api/auth/logout:
     post:
@@ -342,6 +352,7 @@ paths:
       responses:
         '204': { description: Đã đăng xuất }
         '401': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
 
   /api/auth/forgot-password:
     post:
@@ -354,7 +365,11 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/EmailRequest' }
       responses:
-        '202': { description: Cùng một thông báo cho mọi email }
+        '202':
+          description: Cùng một thông báo cho mọi email
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ForgotPasswordResponse' }
         '422': { $ref: '#/components/responses/Error' }
 
   /api/auth/reset-password:
@@ -371,6 +386,7 @@ paths:
         '204': { description: Đã đặt lại }
         '400': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
 
   /api/auth/me:
     get:
@@ -463,6 +479,7 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
 
   /api/admin/users/{id}/roles:
     post:
@@ -499,6 +516,8 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
 
   /api/admin/users/{id}/ban:
     post:
@@ -518,6 +537,7 @@ paths:
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
     delete:
       tags: [admin-users]
       summary: Gỡ cấm (FR-096)

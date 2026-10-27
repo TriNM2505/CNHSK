@@ -1,5 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -7,6 +8,7 @@ import { ApiError } from '@/shared/api'
 import { AuthContext, type AuthContextValue } from '@/shared/auth'
 
 import { signIn } from '../api/signIn'
+import Scr001LandingPage from './Scr001LandingPage'
 import type { CurrentUser } from '../types'
 import Scr002SignInPage from './Scr002SignInPage'
 
@@ -42,6 +44,35 @@ function renderPage(initialEntry: string | { pathname: string; state?: unknown }
   )
 
   return auth
+}
+
+function renderSignInFlow(initialEntry = '/login') {
+  function AuthenticationFlow() {
+    const [user, setUser] = useState<CurrentUser | null>(null)
+    const auth: AuthContextValue = {
+      error: null,
+      reloadCurrentUser: vi.fn(async () => undefined),
+      setAuthenticatedUser: setUser,
+      signOut: vi.fn(async () => undefined),
+      status: user ? 'authenticated' : 'guest',
+      user,
+    }
+
+    return (
+      <AuthContext.Provider value={auth}>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <Routes>
+            <Route element={<Scr002SignInPage />} path="/login" />
+            <Route element={<Scr001LandingPage />} path="/" />
+            <Route element={<h1>Khu vực quản trị</h1>} path="/admin/users" />
+            <Route element={<h1>Danh sách chủ đề</h1>} path="/learn/topics" />
+          </Routes>
+        </MemoryRouter>
+      </AuthContext.Provider>
+    )
+  }
+
+  render(<AuthenticationFlow />)
 }
 
 async function enterCredentials() {
@@ -94,6 +125,38 @@ describe('Scr002SignInPage', () => {
     expect(await screen.findByRole('heading', { name: 'Danh sách chủ đề' })).toBeVisible()
     expect(signIn).toHaveBeenCalledWith({ email: 'learner@example.com', password: 'abc' })
     expect(auth.setAuthenticatedUser).toHaveBeenCalledWith(learner)
+  })
+
+  it('AT-72: đăng nhập ADMIN duy nhất đi thẳng tới khu vực quản trị', async () => {
+    vi.mocked(signIn).mockResolvedValue({ user: { ...learner, roles: ['ADMIN'] } })
+    renderSignInFlow()
+    const user = await enterCredentials()
+
+    await user.click(screen.getByRole('button', { name: 'Đăng nhập' }))
+
+    expect(await screen.findByRole('heading', { name: 'Khu vực quản trị' })).toBeVisible()
+  })
+
+  it('AT-72: đăng nhập nhiều role mở SCR-001 để người dùng tự chọn khu vực', async () => {
+    vi.mocked(signIn).mockResolvedValue({ user: { ...learner, roles: ['LEARNER', 'TEACHER'] } })
+    renderSignInFlow()
+    const user = await enterCredentials()
+
+    await user.click(screen.getByRole('button', { name: 'Đăng nhập' }))
+
+    expect(await screen.findByRole('heading', { name: 'Khu vực của bạn' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Học tập' })).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Giáo viên' })).toBeVisible()
+  })
+
+  it('AT-72: bỏ redirect nội bộ không được phép và dùng khu vực mặc định', async () => {
+    vi.mocked(signIn).mockResolvedValue({ user: learner })
+    renderSignInFlow('/login?redirect=%2Fadmin%2Fusers')
+    const user = await enterCredentials()
+
+    await user.click(screen.getByRole('button', { name: 'Đăng nhập' }))
+
+    expect(await screen.findByRole('heading', { name: 'Danh sách chủ đề' })).toBeVisible()
   })
 
   it('hiện thông báo chung khi API trả 401', async () => {

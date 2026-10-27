@@ -15,6 +15,10 @@ export interface EmailRequest {
   email: string
 }
 
+export interface ForgotPasswordResponse {
+  message: string
+}
+
 export interface ResetPasswordRequest {
   token: string
   newPassword: string
