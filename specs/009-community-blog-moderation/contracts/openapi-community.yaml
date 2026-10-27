@@ -1,0 +1,779 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Community Blog & Moderation API
+  version: 1.0.0
+  description: >
+    Hợp đồng spec 009-community-blog-moderation. Lỗi dùng ErrorResponse của spec 001.
+    /api/public/** không cần đăng nhập. /api/community/moderation/** cần role MODERATOR,
+    phần còn lại của /api/community/** cần role LEARNER. Request đổi trạng thái qua cookie cần X-XSRF-TOKEN.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: public-posts
+  - name: posts
+  - name: comments
+  - name: reports
+  - name: moderation
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+  schemas:
+    PostCategory:
+      type: string
+      enum: [EXPERIENCE, QUESTION, STUDY_BUDDY, CULTURE, JOB]
+    PostStatus:
+      type: string
+      enum: [DRAFT, PENDING, APPROVED, REJECTED, HIDDEN]
+    CommentStatus:
+      type: string
+      enum: [VISIBLE, HIDDEN, DELETED]
+    ReportTargetType:
+      type: string
+      enum: [POST, COMMENT]
+    ReportReason:
+      type: string
+      enum: [SPAM, OFFENSIVE, HARASSMENT, COPYRIGHT, OTHER]
+    CaseStatus:
+      type: string
+      enum: [PENDING, ACTIONED, REJECTED]
+    ErrorResponse:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+        retryAfterSeconds: { type: integer, description: Chỉ có với 429 TOO_MANY_REQUESTS }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+    UserRef:
+      type: object
+      description: Người dùng công khai — không bao giờ có email (FR-006)
+      required: [id, displayName]
+      properties:
+        id: { type: integer, format: int64 }
+        displayName: { type: [string, 'null'], description: null khi không lấy được tên — hiện "Người dùng đã rời" }
+    PostSummary:
+      type: object
+      required: [id, title, category, excerpt, author, publishedAt, commentCount, likeCount]
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        category: { $ref: '#/components/schemas/PostCategory' }
+        excerpt: { type: string, maxLength: 200 }
+        author: { $ref: '#/components/schemas/UserRef' }
+        publishedAt: { type: string, format: date-time }
+        commentCount: { type: integer, format: int64 }
+        likeCount: { type: integer, format: int64 }
+    PostDetail:
+      allOf:
+        - $ref: '#/components/schemas/PostSummary'
+        - type: object
+          required: [content]
+          properties:
+            content: { type: string }
+    PostSummaryPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/PostSummary' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    PostWrite:
+      type: object
+      description: Chỉ bốn trường này được ghi; trường lạ bị bỏ qua (FR-004)
+      required: [title, content, category, submit]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        content: { type: string, minLength: 1, maxLength: 50000 }
+        category: { $ref: '#/components/schemas/PostCategory' }
+        submit: { type: boolean, description: true → PENDING, false → DRAFT }
+    OwnPost:
+      type: object
+      required: [id, title, content, category, status, createdAt, updatedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        content: { type: string }
+        category: { $ref: '#/components/schemas/PostCategory' }
+        status: { $ref: '#/components/schemas/PostStatus' }
+        reviewReason: { type: [string, 'null'], description: Chỉ khi REJECTED hoặc HIDDEN }
+        publishedAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    OwnPostPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/OwnPost' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    ViewerState:
+      type: object
+      required: [liked, reported]
+      properties:
+        liked: { type: boolean }
+        reported: { type: boolean }
+    LikeState:
+      type: object
+      required: [liked, likeCount]
+      properties:
+        liked: { type: boolean }
+        likeCount: { type: integer, format: int64 }
+    CommentWrite:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string, minLength: 1, maxLength: 5000 }
+    Comment:
+      type: object
+      description: HIDDEN/DELETED chỉ xuất hiện khi còn hậu duệ, với content và author null (FR-018)
+      required: [id, postId, parentId, depth, status, content, author, createdAt, editedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        postId: { type: integer, format: int64 }
+        parentId: { type: [integer, 'null'], format: int64 }
+        depth: { type: integer, minimum: 0, maximum: 3 }
+        status: { $ref: '#/components/schemas/CommentStatus' }
+        content: { type: [string, 'null'] }
+        author:
+          oneOf:
+            - $ref: '#/components/schemas/UserRef'
+            - type: 'null'
+        createdAt: { type: string, format: date-time }
+        editedAt: { type: [string, 'null'], format: date-time }
+    ReportWrite:
+      type: object
+      required: [targetType, targetId, reason]
+      properties:
+        targetType: { $ref: '#/components/schemas/ReportTargetType' }
+        targetId: { type: integer, format: int64 }
+        reason: { $ref: '#/components/schemas/ReportReason' }
+        detail: { type: [string, 'null'], maxLength: 1000, description: Bắt buộc khi reason = OTHER }
+    ReportReceived:
+      type: object
+      required: [received]
+      properties:
+        received: { type: boolean, const: true }
+    ModerationPostSummary:
+      type: object
+      required: [id, title, category, excerpt, author, createdAt, updatedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        category: { $ref: '#/components/schemas/PostCategory' }
+        excerpt: { type: string }
+        author: { $ref: '#/components/schemas/UserRef' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    ModerationPostPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ModerationPostSummary' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    ModerationPost:
+      type: object
+      required: [id, title, content, category, status, author, createdAt, updatedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        content: { type: string }
+        category: { $ref: '#/components/schemas/PostCategory' }
+        status: { $ref: '#/components/schemas/PostStatus' }
+        author: { $ref: '#/components/schemas/UserRef' }
+        reviewReason: { type: [string, 'null'] }
+        reviewedBy:
+          oneOf:
+            - $ref: '#/components/schemas/UserRef'
+            - type: 'null'
+        reviewedAt: { type: [string, 'null'], format: date-time }
+        publishedAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    RejectWrite:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1, maxLength: 1000 }
+    ReportCaseSummary:
+      type: object
+      required: [id, targetType, targetId, reportCount, latestReason, createdAt, targetPreview]
+      properties:
+        id: { type: integer, format: int64 }
+        targetType: { $ref: '#/components/schemas/ReportTargetType' }
+        targetId: { type: integer, format: int64 }
+        reportCount: { type: integer }
+        latestReason: { $ref: '#/components/schemas/ReportReason' }
+        createdAt: { type: string, format: date-time }
+        targetPreview: { type: string, maxLength: 120 }
+    ReportCasePage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ReportCaseSummary' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    ReportedPost:
+      type: object
+      required: [kind, id, title, content, category, status, author]
+      properties:
+        kind: { type: string, const: POST }
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        content: { type: string }
+        category: { $ref: '#/components/schemas/PostCategory' }
+        status: { $ref: '#/components/schemas/PostStatus' }
+        author: { $ref: '#/components/schemas/UserRef' }
+    ReportedComment:
+      type: object
+      required: [kind, id, content, status, author, postId, postTitle]
+      properties:
+        kind: { type: string, const: COMMENT }
+        id: { type: integer, format: int64 }
+        content: { type: string }
+        status: { $ref: '#/components/schemas/CommentStatus' }
+        author: { $ref: '#/components/schemas/UserRef' }
+        postId: { type: integer, format: int64 }
+        postTitle: { type: string }
+    ReportEntry:
+      type: object
+      required: [reporter, reason, detail, reportedAt]
+      properties:
+        reporter: { $ref: '#/components/schemas/UserRef' }
+        reason: { $ref: '#/components/schemas/ReportReason' }
+        detail: { type: [string, 'null'] }
+        reportedAt: { type: string, format: date-time }
+    ReportCaseDetail:
+      type: object
+      required: [id, status, reportCount, target, reports, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        status: { $ref: '#/components/schemas/CaseStatus' }
+        reportCount: { type: integer }
+        target:
+          oneOf:
+            - $ref: '#/components/schemas/ReportedPost'
+            - $ref: '#/components/schemas/ReportedComment'
+          discriminator: { propertyName: kind }
+        reports: { type: array, items: { $ref: '#/components/schemas/ReportEntry' } }
+        handledBy:
+          oneOf:
+            - $ref: '#/components/schemas/UserRef'
+            - type: 'null'
+        handledAt: { type: [string, 'null'], format: date-time }
+        decisionNote: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+    ReportDecision:
+      type: object
+      required: [decision, note]
+      properties:
+        decision: { type: string, enum: [ACTION, REJECT] }
+        note: { type: string, minLength: 1, maxLength: 1000 }
+        commentAction:
+          type: string
+          enum: [HIDE, DELETE]
+          description: Bắt buộc khi decision = ACTION và hồ sơ trỏ tới bình luận; vắng mặt trong mọi trường hợp khác (FR-048)
+    CommentModeration:
+      type: object
+      required: [action, reason]
+      properties:
+        action: { type: string, enum: [HIDE, DELETE, RESTORE] }
+        reason: { type: string, minLength: 1, maxLength: 1000 }
+    ModerationComment:
+      type: object
+      required: [id, postId, parentId, depth, status, content, author, createdAt, moderatedBy, moderationReason]
+      properties:
+        id: { type: integer, format: int64 }
+        postId: { type: integer, format: int64 }
+        parentId: { type: [integer, 'null'], format: int64 }
+        depth: { type: integer, minimum: 0, maximum: 3 }
+        createdAt: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/CommentStatus' }
+        content: { type: string }
+        author: { $ref: '#/components/schemas/UserRef' }
+        moderatedBy:
+          oneOf:
+            - $ref: '#/components/schemas/UserRef'
+            - type: 'null'
+        moderationReason: { type: [string, 'null'] }
+  responses:
+    Error:
+      description: Lỗi theo spec 009 §5
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+paths:
+  /api/public/community/posts:
+    get:
+      tags: [public-posts]
+      operationId: listPublishedPosts
+      summary: Danh sách bài APPROVED (FR-012, FR-014)
+      security: []
+      parameters:
+        - name: category
+          in: query
+          schema: { $ref: '#/components/schemas/PostCategory' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostSummaryPage' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/public/community/posts/{id}:
+    get:
+      tags: [public-posts]
+      operationId: getPublishedPost
+      summary: Chi tiết bài APPROVED (FR-015)
+      security: []
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostDetail' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/public/community/posts/{id}/comments:
+    get:
+      tags: [public-posts]
+      operationId: listPostComments
+      summary: Cây bình luận dạng phẳng (FR-018)
+      security: []
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK, sắp createdAt tăng dần
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Comment' } }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/community/posts:
+    post:
+      tags: [posts]
+      operationId: createPost
+      summary: Tạo bài DRAFT hoặc PENDING (FR-007…FR-009)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OwnPost' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /api/community/posts/{id}:
+    put:
+      tags: [posts]
+      operationId: updatePost
+      summary: Tác giả sửa bài (FR-010, FR-011)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OwnPost' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/community/posts/mine:
+    get:
+      tags: [posts]
+      operationId: listMyPosts
+      summary: Bài của tôi, mọi trạng thái (FR-016)
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/PostStatus' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OwnPostPage' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/community/posts/mine/{id}:
+    get:
+      tags: [posts]
+      operationId: getMyPost
+      summary: Một bài của tôi để sửa (FR-016)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OwnPost' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/community/posts/{id}/viewer-state:
+    get:
+      tags: [posts]
+      operationId: getViewerState
+      summary: Tôi đã thích/báo cáo bài này chưa (FR-056)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ViewerState' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/community/posts/{id}/like:
+    post:
+      tags: [posts]
+      operationId: likePost
+      summary: Thích bài, idempotent (FR-028)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LikeState' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [posts]
+      operationId: unlikePost
+      summary: Bỏ thích, idempotent (FR-029)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LikeState' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/community/posts/{id}/comments:
+    post:
+      tags: [comments]
+      operationId: createComment
+      summary: Bình luận gốc (FR-017, FR-019)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /api/community/comments/{id}/replies:
+    post:
+      tags: [comments]
+      operationId: replyToComment
+      summary: Trả lời bình luận, tối đa 3 cấp (FR-020…FR-022)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /api/community/comments/{id}:
+    put:
+      tags: [comments]
+      operationId: updateComment
+      summary: Tác giả sửa trong 15 phút (FR-024)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    delete:
+      tags: [comments]
+      operationId: deleteComment
+      summary: Tác giả xoá mềm (FR-026)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '204': { description: Đã xoá hoặc đã ở trạng thái xoá/ẩn }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/community/reports:
+    post:
+      tags: [reports]
+      operationId: reportContent
+      summary: Báo cáo bài hoặc bình luận (FR-032…FR-038)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReportWrite' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportReceived' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /api/community/moderation/posts:
+    get:
+      tags: [moderation]
+      operationId: listPendingPosts
+      summary: Hàng đợi bài PENDING, cũ nhất trước (FR-039)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModerationPostPage' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/community/moderation/posts/{id}:
+    get:
+      tags: [moderation]
+      operationId: getModerationPost
+      summary: Chi tiết bài mọi trạng thái (FR-040)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModerationPost' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/community/moderation/posts/{id}/comments:
+    get:
+      tags: [moderation]
+      operationId: listPostCommentsForModeration
+      summary: Mọi bình luận của bài kèm nội dung đã ẩn (FR-063)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK, sắp createdAt tăng dần
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/ModerationComment' } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/community/moderation/posts/{id}/approve:
+    patch:
+      tags: [moderation]
+      operationId: approvePost
+      summary: Duyệt bài PENDING (FR-041, FR-042, FR-044)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModerationPost' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /api/community/moderation/posts/{id}/reject:
+    patch:
+      tags: [moderation]
+      operationId: rejectPost
+      summary: Từ chối bài PENDING kèm lý do (FR-042…FR-044)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RejectWrite' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModerationPost' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/community/moderation/reports:
+    get:
+      tags: [moderation]
+      operationId: listPendingReportCases
+      summary: Hồ sơ báo cáo PENDING (FR-046)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportCasePage' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/community/moderation/reports/{id}:
+    get:
+      tags: [moderation]
+      operationId: getReportCase
+      summary: Chi tiết hồ sơ kèm người báo cáo (FR-047)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportCaseDetail' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    patch:
+      tags: [moderation]
+      operationId: decideReportCase
+      summary: Xử lý hoặc bác hồ sơ (FR-048…FR-051)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReportDecision' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportCaseDetail' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/community/moderation/comments/{id}:
+    patch:
+      tags: [moderation]
+      operationId: moderateComment
+      summary: Ẩn, xoá mềm hoặc khôi phục một bình luận (FR-052…FR-055)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentModeration' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ModerationComment' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
