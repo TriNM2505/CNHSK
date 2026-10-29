@@ -67,6 +67,16 @@ describe('Scr007ProfilePage', () => {
     expect(screen.getByText('Đã xác thực email')).toBeVisible()
   })
 
+  it('chỉ cho chọn HSK 1–3 nhưng vẫn giữ cấp mục tiêu đã lưu ngoài phạm vi', async () => {
+    vi.mocked(getProfile).mockResolvedValue({ ...profile, hskLevel: 5 })
+    renderPage()
+
+    const select = await screen.findByLabelText('Cấp HSK mục tiêu')
+    expect(select).toHaveValue('5')
+    const values = Array.from((select as HTMLSelectElement).options).map((option) => option.value)
+    expect(values).toEqual(['', '1', '2', '3', '5'])
+  })
+
   it('lỗi tải hồ sơ hiện nút thử lại', async () => {
     vi.mocked(getProfile)
       .mockRejectedValueOnce(

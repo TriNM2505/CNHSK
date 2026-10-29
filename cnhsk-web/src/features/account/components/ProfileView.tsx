@@ -11,6 +11,7 @@ import {
   Select,
   Skeleton,
   StatusBadge,
+  SUPPORTED_HSK_LEVELS,
 } from '@/shared/ui'
 
 import type { ProfileFieldErrors, ProfileFormValues } from '../accountForms'
@@ -31,7 +32,13 @@ export interface ProfileViewProps {
   values: ProfileFormValues
 }
 
-const HSK_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+/** Cấp đang chọn ngoài phạm vi hỗ trợ (đã lưu từ trước) vẫn hiện để không mất giá trị khi sửa hồ sơ. */
+function hskLevelOptions(current: string) {
+  const levels: number[] = [...SUPPORTED_HSK_LEVELS]
+  const saved = Number(current)
+  if (current !== '' && Number.isInteger(saved) && !levels.includes(saved)) levels.push(saved)
+  return levels
+}
 
 /** Ảnh đại diện từ URL; ảnh hỏng thì hiện chữ cái đầu của tên. */
 function Avatar({ name, url }: { name: string; url: string }) {
@@ -165,7 +172,7 @@ export function ProfileView({
                 value={values.hskLevel}
               >
                 <option value="">Chưa chọn</option>
-                {HSK_LEVELS.map((level) => (
+                {hskLevelOptions(values.hskLevel).map((level) => (
                   <option key={level} value={String(level)}>
                     HSK {level}
                   </option>

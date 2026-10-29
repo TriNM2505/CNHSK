@@ -1,0 +1,43 @@
+grammar_text,exercise_no,stem,option_a,option_b,option_c,option_d,answer,explanation_vi
+A 是 B,1,我 ___ 学生。,是,很,吗,的,A,Nối chủ ngữ với danh từ chỉ danh tính dùng 是.
+A 是 B,2,他 ___ 老师，他是学生。,是,不是,很,吗,B,Phủ định của 是 là 不是.
+A 是 B,3,Câu nào đúng?,我是好。,我好是。,我很好。,是我好。,C,"Trước tính từ dùng 很, không dùng 是."
+句子 + 吗？,1,你是中国人 ___？,的,是,很,吗,D,Thêm 吗 cuối câu để hỏi có/không.
+句子 + 吗？,2,Câu hỏi nào đúng?,你好吗？,吗你好？,你吗好？,好你吗？,A,吗 luôn đứng cuối câu.
+句子 + 吗？,3,她是老师 ___？,不,吗,是,的,B,Câu trần thuật + 吗 thành câu hỏi.
+A 的 B,1,这是我 ___ 朋友。,是,吗,的,很,C,A 的 B: bạn của tôi là 我的朋友.
+A 的 B,2,"""Giáo viên của tôi"" là:",老师的我,我老师的,的我老师,我的老师,D,Người sở hữu đứng trước 的.
+A 的 B,3,他是 ___ 学生。,老师的,的老师,老师是,是老师,A,Học sinh của thầy giáo: 老师的学生.
+很 + Tính từ,1,今天 ___ 冷。,是,很,的,吗,B,Trước tính từ dùng 很.
+很 + Tính từ,2,Câu nào đúng?,他是高。,他高是。,他很高。,很他高。,C,"Không dùng 是 trước tính từ, dùng 很."
+很 + Tính từ,3,汉字 ___ 难。,有,在,是,很,D,Câu tính từ: Chủ ngữ + 很 + Tính từ.
+在 + Nơi chốn,1,我 ___ 家。,在,有,是,很,A,Chỉ nơi đang ở dùng 在.
+在 + Nơi chốn,2,医院在 ___？,什么,哪儿,多少,谁,B,Hỏi nơi chốn dùng 哪儿.
+在 + Nơi chốn,3,"""Thầy giáo ở trường"" là:",学校在老师。,老师学校在。,老师在学校。,在老师学校。,C,Chủ ngữ + 在 + Nơi chốn.
+有 (có),1,我 ___ 一个哥哥。,在,是,很,有,D,Chỉ sở hữu dùng 有.
+有 (có),2,我 ___ 电脑。,没有,不有,不是,没是,A,Phủ định của 有 là 没有.
+有 (có),3,"""Nhà tôi có năm người"" là:",我家是五口人。,我家有五口人。,我家在五口人。,我家很五口人。,B,Sự tồn tại dùng 有.
+了 (hoàn thành),1,我吃 ___ 米饭。,过,在,了,着,C,Hành động đã hoàn thành dùng 了 sau động từ.
+了 (hoàn thành),2,Câu phủ định nào đúng?,我没吃了饭。,我不吃了饭。,我吃没饭。,我没吃饭。,D,Phủ định dùng 没 và bỏ 了.
+了 (hoàn thành),3,外面下雨 ___。,了,过,呢,吗,A,了 cuối câu chỉ tình huống thay đổi.
+过 (trải nghiệm),1,我去 ___ 北京。,在,过,呢,吗,B,Đã từng làm gì dùng 过.
+过 (trải nghiệm),2,"""Tôi chưa từng đến Trung Quốc"" là:",我不去过中国。,我去没过中国。,我没去过中国。,我没过去中国。,C,Phủ định trải nghiệm: 没 + Động từ + 过.
+过 (trải nghiệm),3,你吃过中国菜 ___？,了,过,在,吗,D,Câu hỏi có/không thêm 吗 cuối câu.
+正在 + Động từ + 呢,1,他 ___ 看电视呢。,正在,了,过,比,A,Hành động đang diễn ra dùng 正在.
+正在 + Động từ + 呢,2,Câu nào đúng?,我正在吃了饭。,我正在吃饭呢。,我吃正在饭。,正在我吃饭。,B,Không dùng 了 cùng 正在.
+正在 + Động từ + 呢,3,妈妈 ___ 做饭。,把,被,在,比,C,在 + động từ cũng chỉ hành động đang diễn ra.
+A 比 B + Tính từ,1,他 ___ 我高。,把,被,很,比,D,So sánh hơn dùng 比.
+A 比 B + Tính từ,2,Câu nào đúng?,今天比昨天冷。,今天比昨天很冷。,今天很比昨天冷。,今天冷比昨天。,A,Không thêm 很 trong câu so sánh với 比.
+A 比 B + Tính từ,3,"""Táo đắt hơn chuối"" là:",香蕉比苹果贵。,苹果比香蕉贵。,苹果贵比香蕉。,比苹果香蕉贵。,B,A 比 B + Tính từ: A ... hơn B.
+把 + Tân ngữ + Động từ,1,我 ___ 作业做完了。,被,比,把,在,C,Câu chữ 把 đưa tân ngữ lên trước động từ.
+把 + Tân ngữ + Động từ,2,Câu nào đúng?,我把书看。,我看把书完了。,把我书看完了。,我把书看完了。,D,Sau động từ cần thành phần khác như 完了.
+把 + Tân ngữ + Động từ,3,请 ___ 门关上。,把,被,比,给,A,Yêu cầu xử lý đối tượng: 把 + Tân ngữ + Động từ.
+被 (bị động),1,我的手机 ___ 弟弟拿走了。,把,被,比,在,B,Câu bị động dùng 被.
+被 (bị động),2,Câu nào đúng?,蛋糕被吃。,蛋糕吃被完了。,蛋糕被吃完了。,被蛋糕吃完了。,C,Sau động từ cần thêm thành phần khác.
+被 (bị động),3,他 ___ 老师批评了。,把,比,让,被,D,Đối tượng chịu tác động + 被 + người làm.
+越来越 + Tính từ,1,天气 ___ 冷了。,越来越,很,比,正在,A,Mức độ ngày càng tăng dùng 越来越.
+越来越 + Tính từ,2,Câu nào đúng?,他的汉语越来越很好。,他的汉语越来越好。,他的汉语很越来越好。,越来越他的汉语好。,B,Không thêm 很 sau 越来越.
+越来越 + Tính từ,3,"""Tôi ngày càng thích món Trung Quốc"" là:",我很越来越喜欢中国菜。,越来越我喜欢中国菜。,我越来越喜欢中国菜。,我喜欢越来越中国菜。,C,越来越 đứng trước động từ tâm lý.
+虽然…但是…,1,虽然很累，___ 我很高兴。,因为,所以,如果,但是,D,虽然 đi cặp với 但是.
+虽然…但是…,2,___ 下雨，但是他还是来了。,虽然,因为,所以,如果,A,Vế thừa nhận mở đầu bằng 虽然.
+虽然…但是…,3,Câu nào đúng?,因为汉字很难，但是很有意思。,虽然汉字很难，但是很有意思。,虽然汉字很难，所以很有意思。,汉字虽然很难，因为很有意思。,B,Cặp từ đúng là 虽然…但是….

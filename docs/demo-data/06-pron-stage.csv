@@ -1,0 +1,4 @@
+stage_index,name,description,target_sounds,pass_percent
+1,Bốn thanh điệu,Nghe và phân biệt 4 thanh của tiếng Trung trên cùng một âm tiết.,ā|á|ǎ|à,80
+2,Thanh mẫu b p m f,Phân biệt các phụ âm môi b p m f.,b|p|m|f,80
+3,Vận mẫu đơn,Phân biệt 6 vận mẫu đơn a o e i u ü.,a|o|e|i|u|ü,80

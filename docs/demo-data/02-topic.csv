@@ -1,0 +1,16 @@
+code,name,hsk_level,order_index
+DEMO_GREETING,Chào hỏi,1,1
+DEMO_FAMILY,Gia đình,1,2
+DEMO_NUMBERS,Số đếm,1,3
+DEMO_TIME,Thời gian,1,4
+DEMO_FOOD,Ăn uống,1,5
+DEMO_SCHOOL,Trường học,1,6
+DEMO_SHOPPING,Mua sắm,1,7
+DEMO_TRAVEL,Đi lại và phương hướng,1,8
+DEMO_EVERYDAY,Đời sống hằng ngày,1,9
+DEMO_WEATHER,Thời tiết và mùa,2,10
+DEMO_HOBBY,Sở thích và thể thao,2,11
+DEMO_HEALTH,Sức khoẻ,2,12
+DEMO_WORK,Công việc,3,13
+DEMO_TRAVEL_PLAN,Du lịch,3,14
+DEMO_FEELINGS,Cảm xúc và tính cách,3,15

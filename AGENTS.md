@@ -236,4 +236,5 @@ Mẫu biến: `.env.example`.
 | Database | **4 schema** `auth` · `learning` · `community` · `shared` (Hiến pháp v1.4.0 `AC-04`); FK cross-schema được phép (`AC-03`) |
 | Chống IDOR | Thành `BUS-01` trong Hiến pháp — lặp 68 lần trong đặc tả |
 | Lượt free | **10 lượt mỗi tính năng mỗi tháng**, reset 00:00 ngày 1 giờ Việt Nam |
+| Phạm vi cấp HSK | **Nội dung đồ án: HSK 1–3.** HSK 4–9 là hướng phát triển. DB, mẫu nhập và API **giữ 1–9** (không đổi schema); giao diện chỉ cho chọn 1–3 qua `SUPPORTED_HSK_LEVELS` (`cnhsk-web/src/shared/ui/LevelBadge.tsx`). Dữ liệu demo tự soạn: `docs/demo-data/` |
 | Actor | **7 actor = 6 role trong DB + `GUEST`.** DB: `LEARNER` `TEACHER` `MODERATOR` `CONTENT_EDITOR` `ACCOUNTANT` `ADMIN`. Không phải role: `GUEST` (chưa đăng nhập). Job định kỳ **không** phải actor. **Đừng** thêm `GUEST` vào `user_roles`. Chỉ `TEACHER` duyệt và sửa câu hỏi. Xem Hiến pháp §Bảy actor |

@@ -2,6 +2,9 @@ import { cn } from '@/shared/lib/cn'
 
 export type HskLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 
+/** Cấp HSK mà nội dung đồ án hỗ trợ. HSK 4–9 là hướng phát triển: dữ liệu và API vẫn nhận 1–9. */
+export const SUPPORTED_HSK_LEVELS: readonly HskLevel[] = [1, 2, 3]
+
 export interface LevelBadgeProps {
   className?: string
   exact?: boolean

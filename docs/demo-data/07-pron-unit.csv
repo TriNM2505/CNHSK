@@ -1,0 +1,16 @@
+stage_index,unit_code,audio_url,prompt_vi,option_a,option_b,option_c,option_d,answer,explanation_vi
+1,T1-MA1,,Nghe và chọn thanh đúng,mā,má,mǎ,mà,A,Thanh 1 đều và cao.
+1,T1-MA2,,Nghe và chọn thanh đúng,mā,má,mǎ,mà,B,Thanh 2 đi lên.
+1,T1-MA3,,Nghe và chọn thanh đúng,mā,má,mǎ,mà,C,Thanh 3 xuống rồi lên.
+1,T1-MA4,,Nghe và chọn thanh đúng,mā,má,mǎ,mà,D,Thanh 4 đi xuống mạnh.
+1,T1-BA3,,Nghe và chọn thanh đúng,bā,bá,bǎ,bà,C,Thanh 3 xuống rồi lên.
+2,T2-BA,,Nghe và chọn thanh mẫu,b,p,m,f,A,b không bật hơi.
+2,T2-PA,,Nghe và chọn thanh mẫu,b,p,m,f,B,p bật hơi mạnh.
+2,T2-MA,,Nghe và chọn thanh mẫu,b,p,m,f,C,m là âm mũi.
+2,T2-FA,,Nghe và chọn thanh mẫu,b,p,m,f,D,f là âm môi răng.
+2,T2-PO,,Nghe và chọn thanh mẫu,b,p,m,f,B,p bật hơi mạnh.
+3,T3-A,,Nghe và chọn vận mẫu,a,o,e,i,A,a mở miệng rộng.
+3,T3-E,,Nghe và chọn vận mẫu,a,o,e,i,C,e đọc gần như ơ.
+3,T3-I,,Nghe và chọn vận mẫu,a,o,e,i,D,i đọc như i tiếng Việt.
+3,T3-U,,Nghe và chọn vận mẫu,u,ü,o,e,A,u tròn môi.
+3,T3-UE,,Nghe và chọn vận mẫu,u,ü,o,e,B,ü tròn môi nhưng lưỡi như i.
