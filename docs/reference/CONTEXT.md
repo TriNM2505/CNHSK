@@ -112,6 +112,7 @@ Ghi rõ để tránh phình scope:
 | Mô phỏng kỳ thi HSK thật | Đếm ngược chuẩn, chống gian lận khi thi — không đủ thời gian |
 | Gia sư trong hệ thống | Không phải thế mạnh sản phẩm; dùng bên thứ ba |
 | Mạng xã hội đầy đủ | Blog có kiểm duyệt là đủ; không làm chat, không làm chặn người |
+| Nội dung HSK 4–9 | **Chốt 2026-10-29:** đồ án làm nội dung **HSK 1–3**; 4–9 là hướng phát triển. Schema và API vẫn nhận 1–9 để mở rộng chỉ cần nhập thêm dữ liệu và mở lựa chọn trên giao diện |
 
 ---
 
