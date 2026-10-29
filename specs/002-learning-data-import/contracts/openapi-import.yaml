@@ -133,10 +133,24 @@ components:
     ImportRun:
       type: object
       required: [runId, dataType, fileName, status, createdAt, createdBy, errorCount]
+      allOf:
+        - anyOf:
+            - required: [failureReason]
+              properties:
+                status: { const: FAILED }
+                failureReason: { const: FILE_TOO_LARGE }
+            - properties:
+                dataType: { $ref: '#/components/schemas/DataType' }
+                fileName: { type: string }
       properties:
         runId: { type: integer, format: int64 }
-        dataType: { $ref: '#/components/schemas/DataType' }
-        fileName: { type: string }
+        dataType:
+          type: [string, 'null']
+          oneOf: [{ $ref: '#/components/schemas/DataType' }, { type: 'null' }]
+          description: null chỉ khi FAILED do FILE_TOO_LARGE trước khi đọc được metadata; mọi trường hợp khác bắt buộc có giá trị.
+        fileName:
+          type: [string, 'null']
+          description: null chỉ khi FAILED do FILE_TOO_LARGE trước khi đọc được metadata; mọi trường hợp khác bắt buộc có giá trị.
         status: { $ref: '#/components/schemas/RunStatus' }
         createdAt: { type: string, format: date-time }
         completedAt: { type: [string, 'null'], format: date-time }

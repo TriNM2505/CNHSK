@@ -11,6 +11,11 @@ import { ImportReportView } from './components/ImportReportView'
 import { importReportPreviews } from './components/ImportReportView.preview'
 
 const importEntries = [
+  [
+    'scr-068-early-multipart-failure',
+    'Nhập dữ liệu — File quá lớn, chưa đọc được metadata',
+    learningDataImportPreviews.earlyMultipartFailure,
+  ],
   ['scr-068-ready', 'Nhập dữ liệu — Mặc định', learningDataImportPreviews.ready],
   ['scr-068-loading', 'Nhập dữ liệu — Đang tải', learningDataImportPreviews.loading],
   ['scr-068-error', 'Nhập dữ liệu — Lỗi tải mẫu', learningDataImportPreviews.error],
@@ -54,6 +59,11 @@ const learningDataImportEntries = importEntries.map(([id, title, props]) => ({
 })) satisfies readonly PreviewEntry[]
 
 const reportEntries = [
+  [
+    'scr-069-early-multipart-failure',
+    'Báo cáo nhập — File quá lớn, chưa đọc được metadata',
+    importReportPreviews.earlyMultipartFailure,
+  ],
   ['scr-069-ready', 'Báo cáo nhập — Có dữ liệu', importReportPreviews.ready],
   ['scr-069-loading', 'Báo cáo nhập — Đang tải', importReportPreviews.loading],
   ['scr-069-empty', 'Báo cáo nhập — Không có lỗi', importReportPreviews.empty],

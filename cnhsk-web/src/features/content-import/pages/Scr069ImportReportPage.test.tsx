@@ -78,6 +78,27 @@ describe('Scr069ImportReportPage', () => {
     vi.mocked(downloadBlob).mockReset()
   })
 
+  it('FR008_FR026: báo cáo upload sớm thiếu metadata và nhập lại không gắn loại dữ liệu null', async () => {
+    vi.mocked(getImportRun).mockResolvedValue({
+      ...completedRun,
+      dataType: null,
+      fileName: null,
+      status: 'FAILED',
+      failureReason: 'FILE_TOO_LARGE',
+      errorCount: 0,
+      result: null,
+    })
+    vi.mocked(getImportErrors).mockResolvedValue({ items: [], page: 0, size: 20, totalElements: 0 })
+    renderPage()
+    expect(await screen.findByText('Không đọc được tên tệp')).toBeVisible()
+    expect(screen.getByText('Loại dữ liệu').nextElementSibling).toHaveTextContent('—')
+    expect(screen.getByText('File vượt quá giới hạn 2 MB.')).toBeVisible()
+    const retry = screen.getByRole('link', { name: 'Sửa file và nhập lại' })
+    expect(retry).toHaveAttribute('href', '/content/imports')
+    await userEvent.click(retry)
+    expect(await screen.findByTestId('location')).toHaveTextContent(/^\/content\/imports$/)
+  })
+
   it.each([
     '/content/imports/abc',
     '/content/imports/0',

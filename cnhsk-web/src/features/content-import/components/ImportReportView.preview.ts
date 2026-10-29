@@ -61,6 +61,25 @@ const base = {
 } satisfies ImportReportViewProps
 
 export const importReportPreviews = {
+  earlyMultipartFailure: {
+    ...base,
+    errors: {
+      ...base.errors,
+      data: { ...sampleErrors, items: [], totalElements: 0 },
+      state: 'empty',
+    },
+    run: {
+      ...sampleRun,
+      completedAt: null,
+      dataType: null,
+      errorCount: 0,
+      failureReason: 'FILE_TOO_LARGE',
+      fileName: null,
+      result: null,
+      status: 'FAILED',
+      totals: null,
+    },
+  },
   empty: {
     ...base,
     errors: {

@@ -175,6 +175,29 @@ const base = {
 } satisfies LearningDataImportViewProps
 
 export const learningDataImportPreviews = {
+  earlyMultipartFailure: {
+    ...base,
+    history: {
+      ...base.history,
+      data: {
+        ...sampleHistory,
+        items: [
+          {
+            createdAt: '2026-10-20T05:00:00Z',
+            createdBy: { displayName: 'Biên tập viên', id: 102 },
+            dataType: null,
+            errorCount: 0,
+            failureReason: 'FILE_TOO_LARGE',
+            fileName: null,
+            runId: 43,
+            status: 'FAILED',
+          },
+          ...sampleHistory.items,
+        ],
+        totalElements: sampleHistory.totalElements + 1,
+      },
+    },
+  },
   ready: base,
   loading: { ...base, history: { ...base.history, state: 'loading' }, state: 'loading' },
   error: {

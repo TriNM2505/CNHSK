@@ -23,6 +23,7 @@ import com.cnhsk.shared.exception.ErrorCode;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -37,13 +38,24 @@ public class CsvReader {
             .setTrailingData(false)
             .build();
 
+    private final ImportProperties properties;
+
+    public CsvReader() {
+        this(new ImportProperties());
+    }
+
+    @Autowired
+    public CsvReader(ImportProperties properties) {
+        this.properties = properties;
+    }
+
     public ReadResult read(ImportDataType dataType, String fileName, byte[] content) {
         Objects.requireNonNull(dataType, "dataType must not be null");
         Objects.requireNonNull(content, "content must not be null");
         if (fileName == null || !fileName.endsWith(".csv")) {
             throw new ImportFileException(ErrorCode.UNSUPPORTED_FILE_FORMAT);
         }
-        if (content.length > MAX_FILE_BYTES) {
+        if (content.length > properties.getMaxFileSize().toBytes()) {
             throw new ImportFileException(ErrorCode.FILE_TOO_LARGE);
         }
 
@@ -112,7 +124,7 @@ public class CsvReader {
         }
     }
 
-    private static ReadResult readRows(Iterator<CSVRecord> records, String decoded, List<String> headers) {
+    private ReadResult readRows(Iterator<CSVRecord> records, String decoded, List<String> headers) {
         List<Row> rows = new ArrayList<>();
         List<RowError> errors = new ArrayList<>();
         int totalRows = 0;
@@ -134,7 +146,7 @@ public class CsvReader {
                 continue;
             }
             totalRows++;
-            if (totalRows > MAX_DATA_ROWS) {
+            if (totalRows > properties.getMaxRows()) {
                 throw new ImportFileException(ErrorCode.TOO_MANY_ROWS);
             }
             if (record.size() != headers.size()) {

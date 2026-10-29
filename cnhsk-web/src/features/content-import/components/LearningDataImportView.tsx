@@ -384,12 +384,12 @@ function HistorySection({
     {
       header: 'Loại dữ liệu',
       id: 'dataType',
-      render: (run) => IMPORT_DATA_TYPE_LABELS[run.dataType],
+      render: (run) => (run.dataType === null ? '—' : IMPORT_DATA_TYPE_LABELS[run.dataType]),
     },
     {
       header: 'Tên file',
       id: 'fileName',
-      render: (run) => <span className="break-all">{run.fileName}</span>,
+      render: (run) => <span className="break-all">{run.fileName ?? 'Không đọc được tên tệp'}</span>,
     },
     {
       header: 'Người nhập',

@@ -2,6 +2,13 @@ spring:
   application:
     name: cnhsk-api
 
+  servlet:
+    multipart:
+      max-file-size: ${cnhsk.import.max-file-size:2MB}
+      max-request-size: 3MB
+      file-size-threshold: 3MB
+      resolve-lazily: true
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/cnhsk_db}
     username: ${DB_USER:svc_app}
@@ -56,3 +63,9 @@ springdoc:
 # Mui gio cho moi tac vu dinh ky. Server chay UTC nen bat buoc ghi ro.
 app:
   timezone: Asia/Ho_Chi_Minh
+
+cnhsk:
+  import:
+    max-file-size: 2MB
+    max-rows: 5000
+    preview-ttl: 30m

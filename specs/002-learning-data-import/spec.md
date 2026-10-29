@@ -121,7 +121,7 @@ và một dòng sai không được làm mất 999 dòng đúng.
 | **FR-005** | THE system SHALL đọc CSV theo RFC 4180 (dấu phẩy, ngoặc kép, xuống dòng trong ô có ngoặc) bằng `commons-csv` `CSVFormat.RFC4180` có header; tên cột so khớp **chính xác, phân biệt hoa thường** sau khi bỏ khoảng trắng hai đầu |
 | **FR-006** | WHEN thiếu cột bắt buộc hoặc có cột lạ, THE system SHALL trả **422** `TEMPLATE_MISMATCH` kèm `details` liệt kê từng cột thiếu/lạ. Thứ tự cột **không** quan trọng |
 | **FR-007** | WHEN 0 dòng dữ liệu → **422** `EMPTY_FILE`; > 5 000 dòng → **422** `TOO_MANY_ROWS`. Dòng toàn ô trống bị bỏ qua, không tính |
-| **FR-008** | WHERE lỗi cấp file (FR-003…FR-007), THE system SHALL vẫn tạo một lần nhập `status='FAILED'`, `error_message` = mã lỗi, để lịch sử thấy lần thử; response lỗi kèm `runId` |
+| **FR-008** | WHERE lỗi cấp file (FR-003…FR-007), THE system SHALL vẫn tạo một lần nhập `status='FAILED'`, `error_message` = mã lỗi, để lịch sử thấy lần thử; response lỗi kèm `runId`. WHEN multipart bị chặn sớm bởi `MaxUploadSizeExceededException` trước khi đọc metadata, THE system SHALL vẫn ghi `FAILED`, `error_message='FILE_TOO_LARGE'` và trả **413** kèm `runId`; `payload.dataType`/`payload.fileName` được `null` trong trường hợp này, không đoán metadata |
 | **FR-009** | THE system SHALL kiểm từng dòng theo quy tắc §4 **sau khi** chuẩn hoá (FR-030). Một dòng có thể sinh nhiều lỗi (mỗi cột sai một lỗi) |
 | **FR-010** | THE system SHALL phát hiện khoá tự nhiên trùng trong cùng file: lần xuất hiện đầu hợp lệ, các lần sau lỗi `DUPLICATE_IN_FILE` |
 | **FR-011** | THE system SHALL kiểm tham chiếu (từ, chủ đề, điểm ngữ pháp, tầng) **trong DB** lúc kiểm tra; không tìm thấy → `REFERENCE_NOT_FOUND`. Tham chiếu tới bản ghi nằm trong **cùng file loại khác** không được hỗ trợ — phải nhập loại cha trước (thứ tự §4.0) |
@@ -149,7 +149,7 @@ và một dòng sai không được làm mất 999 dòng đúng.
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-026** | `GET /api/admin/imports/{id}` SHALL trả `{runId, dataType, fileName, status, createdAt, completedAt, createdBy:{id, displayName}, totals, result, errorCount, failureReason}`. `displayName` lấy qua `auth.api.AuthApi.displayNames(Set<Long>)` (`AC-03`) |
+| **FR-026** | `GET /api/admin/imports/{id}` SHALL trả `{runId, dataType, fileName, status, createdAt, completedAt, createdBy:{id, displayName}, totals, result, errorCount, failureReason}`. `dataType`/`fileName` chỉ được `null` khi `status='FAILED'` và `failureReason='FILE_TOO_LARGE'` do multipart chặn sớm chưa đọc được metadata; mọi trường hợp khác, gồm preview, `COMPLETED` và lỗi cấp file đã đọc được metadata, bắt buộc có đủ. `displayName` lấy qua `auth.api.AuthApi.displayNames(Set<Long>)` (`AC-03`) |
 | **FR-027** | `GET /api/admin/imports/{id}/errors?page&size` SHALL trả lỗi sắp theo `line`, rồi theo thứ tự cột trong mẫu; `size` 1–100, mặc định 20; sai → **422** `VALIDATION_FAILED`. Mỗi lỗi: `{line, column, value, code, message}`; `value` cắt còn 100 ký tự |
 | **FR-028** | `GET /api/admin/imports/{id}/errors.csv` SHALL trả `text/csv; charset=UTF-8` có BOM (để Excel đọc đúng chữ Hán), cột `line,column,value,code,message`, toàn bộ lỗi, tên file `import-{id}-errors.csv` |
 | **FR-029** | `GET /api/admin/imports?page&size` SHALL trả lịch sử mọi lần nhập (mọi `CONTENT_EDITOR` thấy hết), sắp `created_at` giảm dần, `size` 1–100 mặc định 10, mỗi dòng như FR-026 trừ `failureReason` |

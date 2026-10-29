@@ -148,3 +148,99 @@ Cả ô trống hoặc chỉ có `|` hợp lệ và giữ trống để FR-020 g
 khi cập nhật. Vượt giới hạn trả `INVALID_VALUE`, không thêm mã lỗi mới.
 
 Không còn câu hỏi mở của T-07; không sửa spec/OpenAPI.
+
+## T-08 — Upload và contract metadata nullable
+
+Trạng thái: leader đã duyệt phạm vi T-08 và thay đổi contract trong phiên
+2026-10-30. Quyết định gồm BE, OpenAPI/spec và FE trong cùng PR.
+
+### Q-T08-01 — Multipart bị chặn trước khi đọc được metadata
+
+FR-003 yêu cầu giới hạn multipart 2 MB và trả `413 FILE_TOO_LARGE`.
+FR-008 yêu cầu ghi lần nhập `FAILED` và trả `runId` cho lỗi cấp file.
+Nhưng nếu multipart parser chặn request trước khi đọc được các part,
+không thể bảo đảm lấy được `dataType`, `fileName` hoặc toàn bộ bytes để hash.
+`ImportRun` trong OpenAPI hiện yêu cầu `dataType` và `fileName` không null.
+Không được đoán một loại dữ liệu hoặc tên file thay thế để lấp metadata.
+
+Quyết định đã duyệt: giữ giới hạn 2 MB / request 3 MB, vẫn ghi `FAILED` và trả `runId`;
+metadata chưa đọc được lưu null, `file_hash` null (cột đã cho phép null).
+Chỉ trường hợp `FAILED` do parser chặn sớm với `FILE_TOO_LARGE` mới được
+thiếu metadata. `PENDING` và mọi preview thành công giữ đầy đủ metadata.
+Giới hạn native là ngoại lệ đối với bước đọc `dataType` trước kiểm file
+trong FR-002; role và CSRF vẫn phải được kiểm trước khi tạo lần nhập.
+
+Leader đã duyệt sửa spec/contract trước khi code. Chỉ đổi hai field của
+`ImportRun`, giữ nguyên danh sách required và các field khác; ràng buộc
+schema giữ metadata không null trừ `FAILED / FILE_TOO_LARGE`:
+
+```yaml
+dataType:
+  type: [string, 'null']
+  oneOf:
+    - $ref: '#/components/schemas/DataType'
+    - type: 'null'
+  description: Chỉ null khi FAILED do FILE_TOO_LARGE trước khi đọc được metadata.
+fileName:
+  type: [string, 'null']
+  description: Chỉ null khi FAILED do FILE_TOO_LARGE trước khi đọc được metadata.
+```
+
+Không đề xuất đổi `DataType` enum, `ImportPreview` hay schema database.
+Test T-08 phải có HTTP multipart thật vượt giới hạn để kiểm parser,
+`FAILED`, `runId` và metadata thiếu; không chỉ dùng MockMultipartFile.
+
+FE chỉ sửa `features/content-import/**`: types cho phép null ở ImportRun;
+SCR-068/SCR-069 hiển thị loại dữ liệu là `—`, tên tệp là
+`Không đọc được tên tệp`; thêm test và preview cho trạng thái này.
+Mô tả PR phải ghi `contract change: ImportRun nullable fields`.
+Không còn câu hỏi mở của T-08 về metadata; không đổi DB vì payload là JSONB.
+
+### Phạm vi dùng chung đã duyệt trong Shadow Plan T-08
+
+- `SecurityConfig`: thêm rule CONTENT_EDITOR cho imports trước rule ADMIN;
+  thêm guard chỉ áp dụng imports để giữ thứ tự role trước CSRF, tái dùng
+  JWT filter hiện có; các route khác giữ hành vi hiện tại.
+- Thêm `shared/security/RouteRoleGuardFilter.java` và
+  `shared/security/RouteCsrfTokenRequestHandler.java`; CSRF của imports chỉ
+  đọc header đã quy định, tránh việc đọc form kích hoạt parser trước gate.
+- `GlobalExceptionHandler`: chỉ thêm xử lý giữ `details` cho
+  `TEMPLATE_MISMATCH` như leader đã chốt ở T-05.
+- `application.yaml`: chỉ thêm cấu hình multipart và `cnhsk.import.*`;
+  giới hạn native 2 MB / 3 MB, ngưỡng ghi tạm 3 MB để giữ file trong RAM,
+  bật lazy parsing để controller xử lý lỗi multipart bằng formatter chung.
+- `AuthContractTest`: chỉ thêm hợp đồng imports vào tập contract đang hoạt
+  động; giữ nguyên các kiểm tra path/status của auth.
+
+### Kiểm chứng T-08 và self-check Constitution
+
+- FR-001/FR-002, AT-01: cả 5 role khác CONTENT_EDITOR bị chặn; khách 401;
+  role được kiểm trước CSRF và trước đọc multipart. Cookie cần header CSRF,
+  Bearer không có cookie được miễn theo spec 001. Test bằng MockMvc và HTTP thật.
+- FR-008, AT-02: file 2 MB + 1 byte qua Tomcat trả 413 kèm runId;
+  đọc lại PostgreSQL xác nhận FAILED, FILE_TOO_LARGE, dataType/fileName null.
+  File hợp lệ và lỗi cấp file đã đọc metadata đều giữ đầy đủ loại/tên tệp.
+- FR-012…014, AT-15…18: không ghi bảng nội dung; SHA-256 64 hex, TTL 30 phút;
+  so sánh 7 mẫu, ô trống giữ cũ, lô tối đa 500; giới hạn preview 20/lỗi 50
+  không cắt dữ liệu lưu; chỉ COMPLETED cùng hash mới báo đã nhập.
+- API First: contract và quyết định nullable được leader duyệt trước code;
+  `/v3/api-docs` đối chiếu tập contract auth + imports xanh, không bỏ kiểm tra auth.
+- AC-03: production learning chỉ gọi `auth.api.AuthApi`; shared không phụ thuộc
+  module nghiệp vụ; 8 kiểm tra ModuleBoundaryTest xanh. Không trả entity qua API.
+- AC-05/06/09: không đổi schema/migration; JSONB dùng đúng payload nhập đã duyệt;
+  không chạy DDL hay migration lên Neon; PostgreSQL/Redis dùng Testcontainers.
+- HR-02/03/04/07/08/09: không đọc/commit env hay secret; không log CSV/nội dung lỗi
+  parser; lỗi theo formatter chung có request_id, không stack trace ra client;
+  không đổi thuộc tính cookie/CORS; validate input, truy vấn JPA có tham số;
+  dữ liệu kiểm thử tự soạn. Không có thay đổi mật khẩu, tiền/điểm
+  hoặc chấm điểm client trong task này.
+- ES-01/02/03/06/07: giữ stack/dependency, naming hiện tại và nhánh part2;
+  FE chỉ sửa features/content-import; shared/config chỉ thêm dòng đã được duyệt.
+- ES-05: verify 770 test pass, 0 skip, JaCoCo line 94,61% (2983/3153);
+  FE lint 0 lỗi, typecheck và 442 test pass. Warning LevelBadge có sẵn,
+  không sửa file ngoài phạm vi. Không có TODO mới, diff --check sạch.
+- Safety: không xoá file, không sửa Hiến pháp, không push main; commit/push
+  nhánh spec theo ủy quyền của leader, PR tiếp tục Draft đến hết T-14.
+  ContentImportMigrationIntegrationTest không bị sửa ở nhánh part2.
+
+Không còn câu hỏi mở hay lệch spec của T-08 sau quyết định Q-T08-01.

@@ -10,6 +10,8 @@ import com.cnhsk.shared.security.AuthenticationApiException;
 import com.cnhsk.shared.security.JwtAuthenticationFilter;
 import com.cnhsk.shared.security.JwtService;
 import com.cnhsk.shared.security.SessionInvalidationService;
+import com.cnhsk.shared.security.RouteCsrfTokenRequestHandler;
+import com.cnhsk.shared.security.RouteRoleGuardFilter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.Filter;
 import jakarta.servlet.http.HttpServletRequest;
@@ -79,11 +81,19 @@ public class SecurityConfig {
         CookieCsrfTokenRepository csrfTokenRepository = csrfTokenRepository(properties);
         boolean swaggerEnabled = environment.acceptsProfiles(Profiles.of("dev"))
                 && !environment.acceptsProfiles(Profiles.of("prod"));
+        RequestMatcher importRoutes = request -> {
+            String path = request.getServletPath();
+            if (path.isEmpty()) {
+                path = request.getRequestURI().substring(request.getContextPath().length());
+            }
+            return "/api/admin/imports".equals(path) || path.startsWith("/api/admin/imports/");
+        };
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .csrfTokenRequestHandler(new RouteCsrfTokenRequestHandler(importRoutes))
                         .requireCsrfProtectionMatcher(cookieUnsafeRequestMatcher()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
@@ -105,12 +115,18 @@ public class SecurityConfig {
                         authorize.requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**",
                                 "/swagger-ui.html").denyAll();
                     }
+                    authorize.requestMatchers("/api/admin/imports", "/api/admin/imports/**").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers("/api/admin/**").hasRole("ADMIN")
                             .requestMatchers("/api/auth/verify-email/resend", "/api/auth/logout",
                                     "/api/auth/logout-all", "/api/auth/me", "/api/me/**")
                             .authenticated()
                             .anyRequest().denyAll();
                 })
+                .addFilterBefore(new RouteRoleGuardFilter(importRoutes,
+                                new JwtAuthenticationFilter(jwtService, invalidationService,
+                                        apiAuthenticationEntryPoint, apiAccessDeniedHandler),
+                                "CONTENT_EDITOR", apiAuthenticationEntryPoint, apiAccessDeniedHandler),
+                        org.springframework.security.web.csrf.CsrfFilter.class)
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService, invalidationService,
                                 apiAuthenticationEntryPoint, apiAccessDeniedHandler),
                         org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);

@@ -29,12 +29,12 @@ public class ImportFileException extends ApiException {
 
     private static String message(ErrorCode code) {
         return switch (code) {
-            case FILE_TOO_LARGE -> "File vượt quá kích thước tối đa 2 MB.";
+            case FILE_TOO_LARGE -> "File vượt quá kích thước tối đa cho phép.";
             case UNSUPPORTED_FILE_FORMAT -> "File phải là CSV hợp lệ theo định dạng RFC 4180.";
             case ENCODING_ERROR -> "File không phải UTF-8. Hãy lưu lại file bằng UTF-8 rồi thử lại.";
             case TEMPLATE_MISMATCH -> "Các cột trong file không khớp mẫu nhập dữ liệu.";
             case EMPTY_FILE -> "File không có dòng dữ liệu.";
-            case TOO_MANY_ROWS -> "File vượt quá giới hạn 5.000 dòng dữ liệu.";
+            case TOO_MANY_ROWS -> "File vượt quá số dòng dữ liệu tối đa cho phép.";
             default -> throw new IllegalArgumentException("Not an import file error code: " + code);
         };
     }

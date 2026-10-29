@@ -119,6 +119,22 @@ describe('Scr068LearningDataImportPage', () => {
     vi.restoreAllMocks()
   })
 
+  it('FR008_FR026: lịch sử hiển thị lần upload bị chặn trước khi đọc metadata', async () => {
+    vi.mocked(getImportRuns).mockResolvedValue({
+      items: [{ ...completedRun, dataType: null, fileName: null, status: 'FAILED', failureReason: 'FILE_TOO_LARGE' }],
+      page: 0,
+      size: 10,
+      totalElements: 1,
+    })
+    renderPage()
+    const table = await screen.findByRole('table', { name: 'Lịch sử các lần nhập dữ liệu' })
+    const fileName = await within(table).findByText('Không đọc được tên tệp')
+    const row = fileName.closest('tr')!
+    expect(within(row).getByText('—')).toBeVisible()
+    await userEvent.click(row)
+    expect(await screen.findByTestId('location')).toHaveTextContent('/content/imports/42')
+  })
+
   it('FR-036: kiểm tra phía khách trước khi gửi', async () => {
     renderPage()
     const user = userEvent.setup({ applyAccept: false })

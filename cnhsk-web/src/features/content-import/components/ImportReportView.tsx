@@ -100,7 +100,9 @@ function RunSummary({ run }: { run: ImportRun }) {
             <h2 className="text-h2 text-ink" id="import-run-summary-title">
               Tóm tắt lần nhập #{run.runId}
             </h2>
-            <p className="mt-1 break-all text-body-sm text-ink-secondary">{run.fileName}</p>
+            <p className="mt-1 break-all text-body-sm text-ink-secondary">
+              {run.fileName ?? 'Không đọc được tên tệp'}
+            </p>
           </div>
           <StatusBadge tone={STATUS_TONES[run.status]}>
             {IMPORT_RUN_STATUS_LABELS[run.status]}
@@ -110,7 +112,9 @@ function RunSummary({ run }: { run: ImportRun }) {
         <dl className="mt-5 grid gap-4 text-body-sm sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <dt className="text-ink-muted">Loại dữ liệu</dt>
-            <dd className="mt-1 font-semibold text-ink">{IMPORT_DATA_TYPE_LABELS[run.dataType]}</dd>
+            <dd className="mt-1 font-semibold text-ink">
+              {run.dataType === null ? '—' : IMPORT_DATA_TYPE_LABELS[run.dataType]}
+            </dd>
           </div>
           <div>
             <dt className="text-ink-muted">Người nhập</dt>
@@ -258,7 +262,10 @@ export function ImportReportView({
                 {downloadPending ? 'Đang tải' : 'Tải danh sách lỗi'}
               </Button>
             ) : null}
-            <Button to={`/content/imports?dataType=${run.dataType}`} variant="outline">
+            <Button
+              to={run.dataType === null ? '/content/imports' : `/content/imports?dataType=${run.dataType}`}
+              variant="outline"
+            >
               <FilePenLine aria-hidden="true" className="size-4" />
               Sửa file và nhập lại
             </Button>
