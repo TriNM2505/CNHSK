@@ -245,13 +245,14 @@ describe('application routes', () => {
   })
 
   it.each([
-    ['/learn/characters/writing/lexeme-1', 'Màn SCR-014 đang dựng'],
-    ['/learn/characters/writing/challenge', 'Màn SCR-014 đang dựng'],
-  ])('maps child route %s to the correct screen', async (path, heading) => {
+    ['/learn/characters/writing/lexeme-1', /Không tìm thấy chữ/],
+    ['/learn/characters/writing/challenge', /thử thách/i],
+  ])('maps child route %s to the real SCR-014 screen', async (path, text) => {
     getCurrentUserMock.mockResolvedValue(learner)
     renderRoute(path)
 
-    expect(await screen.findByRole('heading', { name: heading })).toBeVisible()
+    expect((await screen.findAllByText(text))[0]).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Màn SCR-014 đang dựng' })).not.toBeInTheDocument()
   })
 
   it('maps the pronunciation route to the real SCR-016 screen', async () => {
