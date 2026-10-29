@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 class MailServiceTest {
 
@@ -38,7 +40,7 @@ class MailServiceTest {
         mailService.sendVerificationEmail(new EmailVerificationRequestedEvent("learner@cnhsk.test", "verify-token"));
 
         MimeMessage message = sentMessage();
-        assertEquals("noreply@cnhsk.test", message.getFrom()[0].toString());
+        assertEquals("CNHSK <noreply@cnhsk.test>", message.getFrom()[0].toString());
         assertEquals("learner@cnhsk.test", message.getRecipients(MimeMessage.RecipientType.TO)[0].toString());
         assertEquals("Xác thực email CNHSK", message.getSubject());
         org.junit.jupiter.api.Assertions.assertTrue(message.getContent().toString().contains(
@@ -60,12 +62,31 @@ class MailServiceTest {
 
     @Test
     void smtpFailureIsSwallowedSoItCannotFailTheCommittedBusinessOperation() {
+        String email = "learner.private@cnhsk.test";
+        String secret = "secret-token";
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(MailService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
         when(mailSender.createMimeMessage()).thenReturn(newMimeMessage());
-        doThrow(new MailSendException("SMTP unavailable")).when(mailSender).send(any(MimeMessage.class));
+        doThrow(new MailSendException("SMTP unavailable for " + email + " and " + secret))
+                .when(mailSender).send(any(MimeMessage.class));
 
-        mailService.sendVerificationEmail(new EmailVerificationRequestedEvent("learner@cnhsk.test", "secret-token"));
+        try {
+            mailService.sendVerificationEmail(new EmailVerificationRequestedEvent(email, secret));
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
 
         verify(mailSender).send(any(MimeMessage.class));
+        String logOutput = appender.list.toString();
+        org.junit.jupiter.api.Assertions.assertTrue(logOutput.contains("MailSendException"));
+        org.junit.jupiter.api.Assertions.assertTrue(logOutput.contains("l***@cnhsk.test"));
+        org.junit.jupiter.api.Assertions.assertFalse(logOutput.contains(email));
+        org.junit.jupiter.api.Assertions.assertFalse(logOutput.contains(secret));
+        org.junit.jupiter.api.Assertions.assertFalse(appender.list.get(0).getThrowableProxy() != null);
     }
 
     @Test

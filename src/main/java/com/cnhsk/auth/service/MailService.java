@@ -1,6 +1,7 @@
 package com.cnhsk.auth.service;
 
 import java.net.URI;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
@@ -18,6 +19,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.util.UriComponentsBuilder;
 import jakarta.mail.MessagingException;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
 /** Sends authentication emails only after the transaction that requested them commits. */
@@ -70,19 +72,24 @@ public class MailService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
-            helper.setFrom(fromAddress);
+            helper.setFrom(new InternetAddress(fromAddress, "CNHSK", StandardCharsets.UTF_8.name()));
             helper.setTo(recipient);
             helper.setSubject(subject);
             helper.setText(text, false);
             mailSender.send(message);
-        } catch (MessagingException exception) {
-            LOGGER.warn("Could not prepare authentication email; mail error type={}",
-                    exception.getClass().getSimpleName());
-        } catch (MailException exception) {
+        } catch (MessagingException | UnsupportedEncodingException | MailException exception) {
             // Do not log the exception itself: provider messages can contain recipient or message details.
-            LOGGER.warn("Could not send authentication email; mail error type={}",
-                    exception.getClass().getSimpleName());
+            LOGGER.warn("Could not send authentication email; mail error type={}, recipient={}",
+                    exception.getClass().getSimpleName(), maskEmail(recipient));
         }
+    }
+
+    private static String maskEmail(String email) {
+        int atIndex = email == null ? -1 : email.lastIndexOf('@');
+        if (atIndex <= 0 || atIndex == email.length() - 1) {
+            return "***";
+        }
+        return email.charAt(0) + "***" + email.substring(atIndex);
     }
 
     private String link(String path, String token) {

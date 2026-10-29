@@ -113,12 +113,20 @@ cho cả ba secret này để tránh ký tự có ý nghĩa đặc biệt trong 
 `JWT_SECRET` phải sinh ngẫu nhiên từ ít nhất 32 byte (64 ký tự hex).
 Không dùng giá trị mẫu hoặc chia sẻ các giá trị này trong git, ảnh chụp hay log.
 
+### Email gửi xác thực và quên mật khẩu
+
+Môi trường của nhóm dùng Gmail SMTP thật — các giá trị nằm trong `.env` leader gửi riêng từng người. Mailpit dùng cho test tự động và khi làm offline.
+
+Khi chạy với cấu hình nhóm, dùng các giá trị Gmail trong `.env` leader gửi; không thay chúng bằng các giá trị Mailpit trong `.env.example`. Gmail dùng `smtp.gmail.com:587`, SMTP auth và STARTTLS bật. `SMTP_PASSWORD` là App Password Gmail 16 ký tự, còn `MAIL_FROM` cần trùng `SMTP_USER`; email sẽ hiển thị tên người gửi `CNHSK`.
+
+Khi làm offline, dùng Mailpit từ Docker Compose: `SMTP_HOST=localhost`, `SMTP_PORT=1025`, `SMTP_AUTH=false`, `SMTP_STARTTLS=false`. Xem thư tại `http://localhost:8025`.
+
 | Dịch vụ | Địa chỉ local | Ghi chú |
 |---|---|---|
 | PostgreSQL 18 | `localhost:5432/cnhsk_db` | App dùng `DB_USER` (mặc định `svc_app`); owner là `postgres` |
 | Redis 7 | `localhost:6379` | Bộ đếm và mốc vô hiệu phiên của spec 001 |
-| Mailpit SMTP | `localhost:1025` | Không cần tài khoản, mật khẩu hoặc TLS |
-| Mailpit UI | `http://localhost:8025` | Xem email dev đã được SMTP nhận |
+| Mailpit SMTP | `localhost:1025` | Test tự động và làm offline; không cần tài khoản, mật khẩu hoặc TLS |
+| Mailpit UI | `http://localhost:8025` | Xem email test/offline đã được SMTP nhận |
 
 Các cổng Docker chỉ bind `127.0.0.1`. PostgreSQL giữ dữ liệu trong named volume;
 Redis và email Mailpit là dữ liệu dev tạm thời. Dùng `docker compose stop` để dừng
@@ -152,9 +160,8 @@ Get-Content .env | ForEach-Object {
 giữ định dạng này khi điền giá trị để Compose và đoạn nạp trên đọc giống nhau.
 Các biến bắt buộc/tùy chọn của spec nằm đầy đủ trong `.env.example` (§0.3).
 
-T-00 chỉ xác nhận hạ tầng dev. Ở trạng thái repo hiện tại, migration còn nằm ngoài
-classpath (T-01), cấu hình JWT/cookie/SMTP và endpoint auth còn thuộc các task
-sau; việc ba container chạy không chứng minh backend/auth đã hoạt động.
+T-00 chỉ xác nhận hạ tầng dev; việc ba container chạy không chứng minh backend/auth
+đã hoạt động.
 Chỉ chạy lệnh dưới trên database local sau khi các task nền tảng tương ứng hoàn tất:
 
 ```powershell

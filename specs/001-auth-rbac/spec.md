@@ -60,7 +60,10 @@ Các mục dưới là **bắt buộc**, có task riêng ở `tasks.md` đợt 0
 | `COOKIE_DOMAIN` | Có | `localhost` (dev) · `cnhsk.com` (prod) | |
 | `COOKIE_SECURE` | Có | `false` (dev) · `true` (prod) | |
 | `APP_WEB_BASE_URL` | Có | `http://localhost:5173` | Dùng dựng link trong email |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Có | Mailpit `localhost:1025` | |
+| `SMTP_HOST`, `SMTP_PORT` | Có | Mailpit `localhost:1025` | Gmail SMTP thay thế: `smtp.gmail.com:587` |
+| `SMTP_AUTH`, `SMTP_STARTTLS` | Không | `false` | Đặt `true` khi dùng Gmail SMTP; mặc định tắt để Mailpit hoạt động không cần xác thực/TLS |
+| `SMTP_USER`, `SMTP_PASSWORD` | Có | Để trống với Mailpit | Gmail cần tài khoản SMTP và App Password 16 ký tự; giữ giá trị thật trong `.env` |
+| `MAIL_FROM` | Có | `no-reply@localhost` | Gmail cần trùng `SMTP_USER`; tên hiển thị là `CNHSK` |
 | `CNHSK_BOOTSTRAP_ADMIN_EMAIL`, `CNHSK_BOOTSTRAP_ADMIN_PASSWORD` | Không | | §0.2 |
 
 ---
