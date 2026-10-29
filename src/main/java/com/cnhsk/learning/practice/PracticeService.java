@@ -1,0 +1,240 @@
+package com.cnhsk.learning.practice;
+
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.TreeMap;
+
+import com.cnhsk.learning.practice.PracticeSourceHandler.Answer;
+import com.cnhsk.learning.practice.entity.Attempt;
+import com.cnhsk.learning.practice.entity.AttemptItem;
+import com.cnhsk.learning.practice.entity.AttemptItemRepository;
+import com.cnhsk.learning.practice.entity.AttemptRepository;
+import com.cnhsk.shared.exception.ApiException;
+import com.cnhsk.shared.exception.ErrorCode;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Server-side session creation and restoration; callers obtain user ids through AuthApi. */
+@Service
+public class PracticeService {
+
+    private final AttemptRepository attempts;
+    private final AttemptItemRepository attemptItems;
+    private final EntityManager entityManager;
+    private final ObjectMapper mapper;
+    private final Clock clock;
+    private final PracticeRateLimiter rateLimiter;
+    private final List<PracticeSourceHandler> handlers;
+
+    public PracticeService(AttemptRepository attempts, AttemptItemRepository attemptItems,
+            EntityManager entityManager, ObjectMapper mapper, Clock clock,
+            PracticeRateLimiter rateLimiter, List<PracticeSourceHandler> handlers) {
+        this.attempts = attempts;
+        this.attemptItems = attemptItems;
+        this.entityManager = entityManager;
+        this.mapper = mapper;
+        this.clock = clock;
+        this.rateLimiter = rateLimiter;
+        this.handlers = List.copyOf(handlers);
+    }
+
+    @Transactional
+    public SessionView start(StartPracticeCommand command) {
+        Duration ttl = lifetime(command);
+        validateItems(command);
+        JsonNode snapshot = mapper.valueToTree(new ServedSnapshot(command.sessionMeta(), command.items()));
+        rejectAnswerMetadata(snapshot.path("meta"));
+        rateLimiter.checkStart(command.userId());
+        Instant now = clock.instant();
+        Attempt attempt = new Attempt(command.userId(), command.source().kind().name(), command.source().name(),
+                command.refId(), now, now.plus(ttl), snapshot);
+        attempt.setGameCode(command.gameCode());
+        attempts.saveAndFlush(attempt);
+        for (Answer answer : command.preRecorded()) {
+            recordAtStart(attempt, command, answer);
+        }
+        return toView(attempt);
+    }
+
+    @Transactional
+    public SessionView view(long userId, long sessionId) {
+        // Serialize expiry changes with answer/finish so a GET cannot overwrite a submitted status.
+        Attempt attempt = attempts.findByIdForUpdate(sessionId).orElseThrow(PracticeService::notOwned);
+        if (!Objects.equals(attempt.getUserId(), userId)) {
+            throw notOwned();
+        }
+        if ("IN_PROGRESS".equals(attempt.getStatus()) && attempt.getExpiresAt().isBefore(clock.instant())) {
+            attempt.setStatus("EXPIRED");
+        }
+        return toView(attempt);
+    }
+
+    @Transactional(readOnly = true)
+    public SessionView findActive(long userId, PracticeSource source, Long refId) {
+        Objects.requireNonNull(source, "source");
+        String jpql = "select a from Attempt a where a.userId = :userId and a.refType = :source "
+                + "and a.status = 'IN_PROGRESS' and a.expiresAt >= :now"
+                + (refId == null ? "" : " and a.refId = :refId")
+                + " order by a.servedAt desc, a.id desc";
+        var query = entityManager.createQuery(jpql, Attempt.class)
+                .setParameter("userId", userId).setParameter("source", source.name())
+                .setParameter("now", clock.instant()).setMaxResults(1);
+        if (refId != null) {
+            query.setParameter("refId", refId);
+        }
+        return query.getResultList().stream().findFirst().map(this::toView).orElse(null);
+    }
+
+    private Duration lifetime(StartPracticeCommand command) {
+        Duration fixed = command.source().ttl();
+        Duration override = command.ttlOverride();
+        if (fixed != null) {
+            if (override != null) {
+                throw new IllegalArgumentException("Fixed-lifetime sources must not supply ttlOverride.");
+            }
+            return fixed;
+        }
+        if (override == null || override.isZero() || override.isNegative()) {
+            throw new IllegalArgumentException("GAME_ROUND requires a positive ttlOverride.");
+        }
+        return override;
+    }
+
+    private void validateItems(StartPracticeCommand command) {
+        var numbers = new HashSet<Integer>();
+        for (ServedItem item : command.items()) {
+            if (item.no() < 1 || !numbers.add(item.no())) {
+                throw new IllegalArgumentException("Served item numbers must be positive and unique.");
+            }
+        }
+        var recorded = new HashSet<Integer>();
+        for (Answer answer : command.preRecorded()) {
+            ServedItem item = itemAt(command.items(), answer.no());
+            if (item.type().gradable() || !recorded.add(answer.no())) {
+                throw new IllegalArgumentException("preRecorded requires distinct non-gradable served items.");
+            }
+        }
+    }
+
+    private ServedItem itemAt(List<ServedItem> items, int no) {
+        return items.stream().filter(item -> item.no() == no).findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("preRecorded item was not served."));
+    }
+
+    private void rejectAnswerMetadata(JsonNode node) {
+        if (node.isObject()) {
+            node.properties().forEach(field -> {
+                if (List.of("answer", "accept", "correctAnswer", "explanation").contains(field.getKey())) {
+                    throw new IllegalArgumentException("Session metadata must not contain server answers.");
+                }
+                rejectAnswerMetadata(field.getValue());
+            });
+        } else if (node.isArray()) {
+            node.forEach(this::rejectAnswerMetadata);
+        }
+    }
+
+    private void recordAtStart(Attempt attempt, StartPracticeCommand command, Answer answer) {
+        ServedItem item = itemAt(command.items(), answer.no());
+        if (answer.durationMs() < 0 || answer.durationMs() > 3_600_000 || answer.replayCount() < 0
+                || (answer.answer() == null && !answer.skipped() && !answer.audioFailed())
+                || (answer.answer() != null && answer.answer().length() > 100)) {
+            throw new IllegalArgumentException("Invalid preRecorded answer evidence.");
+        }
+        if (answer.skipped() && !command.source().allowSkip()) {
+            throw new IllegalArgumentException("Source does not allow skipped preRecorded items.");
+        }
+        if ((answer.audioFailed() && !item.rules().hasAudio())
+                || answer.replayCount() > item.rules().maxReplays()) {
+            throw new IllegalArgumentException("Invalid preRecorded audio evidence.");
+        }
+        var meta = new LinkedHashMap<String, Object>();
+        handlers.stream().filter(handler -> handler.source() == command.source()).forEach(handler -> {
+            handler.validateAnswer(item, answer);
+            meta.putAll(handler.enrichMeta(item, answer));
+        });
+        if (answer.durationMs() < item.rules().minDurationMs()) {
+            meta.put("suspicious", true);
+        }
+        if (answer.skipped()) {
+            meta.put("skipped", true);
+        }
+        if (answer.audioFailed()) {
+            meta.put("audioFailed", true);
+        }
+        meta.put("replayCount", answer.replayCount());
+        AttemptItem recorded = new AttemptItem(attempt.getId(), item.no(), item.type().name(), item.skill().name());
+        recorded.setLexemeId(item.lexemeId());
+        recorded.setAnswer(answer.answer());
+        recorded.setDurationMs(answer.durationMs());
+        recorded.setMeta(meta);
+        attemptItems.save(recorded);
+    }
+
+    private SessionView toView(Attempt attempt) {
+        PracticeSource source = PracticeSource.valueOf(attempt.getRefType());
+        ServedSnapshot snapshot = mapper.convertValue(attempt.getServedItems(), ServedSnapshot.class);
+        Map<Integer, ServedItem> servedByNo = new LinkedHashMap<>();
+        snapshot.items().forEach(item -> servedByNo.put(item.no(), item));
+        Map<Integer, ItemState> answered = new TreeMap<>();
+        for (AttemptItem recorded : attemptItems.findByAttemptIdOrderByOrderIndexAsc(attempt.getId())) {
+            ServedItem item = servedByNo.get(recorded.getOrderIndex());
+            boolean deferred = source.feedback() == FeedbackMode.DEFERRED;
+            boolean counted = item.type().gradable()
+                    && !Boolean.TRUE.equals(recorded.getMeta().get("skipped"))
+                    && !Boolean.TRUE.equals(recorded.getMeta().get("audioFailed"));
+            answered.put(item.no(), new ItemState(item.no(), recorded.getAnswer(),
+                    deferred ? null : recorded.getCorrect(),
+                    !deferred && recorded.getCorrect() != null ? item.answer() : null, !deferred && counted));
+        }
+        if (source.feedback() == FeedbackMode.DEFERRED && attempt.getDraftAnswers() != null) {
+            attempt.getDraftAnswers().properties().forEach(field -> {
+                int no = Integer.parseInt(field.getKey());
+                answered.put(no, new ItemState(no, field.getValue().path("answer").isNull()
+                        ? null : field.getValue().path("answer").asText(null), null, null, false));
+            });
+        }
+        return new SessionView(attempt.getId(), source, attempt.getRefId(), source.feedback(), attempt.getStatus(),
+                attempt.getServedAt(), attempt.getExpiresAt(),
+                snapshot.items().stream().map(ServedItemView::from).toList(),
+                List.copyOf(answered.values()), snapshot.meta());
+    }
+
+    private static ApiException notOwned() {
+        return new ApiException(ErrorCode.ATTEMPT_NOT_OWNED, HttpStatus.FORBIDDEN,
+                "Bạn không có quyền truy cập lượt luyện này.", Map.of());
+    }
+
+    public record StartPracticeCommand(long userId, PracticeSource source, Long refId, String gameCode,
+            List<ServedItem> items, List<Answer> preRecorded, Duration ttlOverride, Map<String, Object> sessionMeta) {
+        public StartPracticeCommand {
+            Objects.requireNonNull(source, "source");
+            items = List.copyOf(items);
+            preRecorded = preRecorded == null ? List.of() : List.copyOf(preRecorded);
+            sessionMeta = sessionMeta == null ? Map.of() : new LinkedHashMap<>(sessionMeta);
+        }
+    }
+
+    public record ServedSnapshot(Map<String, Object> meta, List<ServedItem> items) {
+    }
+
+    public record SessionView(long sessionId, PracticeSource source, Long refId, FeedbackMode feedback,
+            String status, Instant servedAt, Instant expiresAt, List<ServedItemView> items,
+            List<ItemState> answered, Map<String, Object> meta) {
+    }
+
+    public record ItemState(int no, String answer, Boolean correct,
+            @JsonInclude(JsonInclude.Include.NON_NULL) String correctAnswer, boolean counted) {
+    }
+}

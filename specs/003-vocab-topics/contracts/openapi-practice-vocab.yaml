@@ -6,6 +6,9 @@ info:
     Hợp đồng spec 003. Phần "practice" là bộ máy lượt luyện dùng chung cho spec 004–008
     (các spec đó $ref tới components/schemas ở file này). Chỉ LEARNER.
     Câu gửi client KHÔNG BAO GIỜ có answer/accept trước khi chấm.
+    Sửa 2026-10-30 (leader duyệt): hai GET dùng 403 ATTEMPT_NOT_OWNED cho lượt không tồn tại hoặc không thuộc người gọi;
+    thiếu refId tìm trên mọi ref_id; answered[].answer là đầu vào người học, DEFERRED không lộ đáp án trước finish.
+    T-04…T-06 áp dụng cùng lỗi 403 cho answers/finish/abandon khi triển khai.
 servers:
   - url: http://localhost:8080
 tags:
@@ -63,7 +66,7 @@ components:
     ServedItemView:
       type: object
       description: Câu đã phát, KHÔNG có answer/accept
-      required: [no, type, skill, prompt, rules]
+      required: ['no', type, skill, prompt, rules]
       properties:
         no: { type: integer, minimum: 1 }
         type: { type: string, example: MEANING_CHOICE }
@@ -98,12 +101,15 @@ components:
           additionalProperties: true
     ItemState:
       type: object
-      required: [no]
+      required: ['no']
+      description: >
+        Sửa 2026-10-30 (leader duyệt): answer là câu trả lời của chính người học;
+        correctAnswer chỉ trả khi feedback IMMEDIATE/RECORD. DEFERRED trước finish không trả correctAnswer/accept/explanation, correct luôn null.
       properties:
         no: { type: integer }
         answer: { type: [string, 'null'] }
         correct: { type: [boolean, 'null'] }
-        correctAnswer: { type: [string, 'null'] }
+        correctAnswer: { type: [string, 'null'], description: Chỉ có với feedback IMMEDIATE/RECORD và câu đã ghi/chấm }
         counted: { type: boolean }
     SessionView:
       type: object
@@ -126,7 +132,7 @@ components:
           additionalProperties: true
     AnswerRequest:
       type: object
-      required: [no, durationMs]
+      required: ['no', durationMs]
       properties:
         no: { type: integer, minimum: 1 }
         answer: { type: [string, 'null'], maxLength: 100 }
@@ -140,7 +146,7 @@ components:
           additionalProperties: true
     AnswerResult:
       type: object
-      required: [no]
+      required: ['no']
       properties:
         no: { type: integer }
         correct: { type: [boolean, 'null'] }
@@ -262,13 +268,15 @@ paths:
       tags: [practice]
       operationId: findActiveSession
       summary: Lượt đang làm của nguồn (§0.11)
+      description: 'Sửa 2026-10-30 (leader duyệt): lọc người gọi, IN_PROGRESS, expires_at >= now; mới nhất theo served_at DESC, id DESC; chỉ LEARNER.'
       parameters:
         - { name: source, in: query, required: true, schema: { $ref: '#/components/schemas/PracticeSource' } }
-        - { name: refId, in: query, schema: { type: integer, format: int64 } }
+        - { name: refId, in: query, description: 'Có thì lọc đúng ref_id; thiếu thì tìm trên mọi ref_id của nguồn', schema: { type: integer, format: int64 } }
       responses:
         '200': { $ref: '#/components/responses/Session' }
         '204': { description: Không có lượt đang làm }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
 
   /api/practice/sessions/{id}:
@@ -276,12 +284,13 @@ paths:
       tags: [practice]
       operationId: getSession
       summary: Xem lại lượt, không có đáp án (FR-010)
+      description: 'Sửa 2026-10-30 (leader duyệt): lượt không tồn tại hoặc của người khác đều 403 ATTEMPT_NOT_OWNED, cùng message. Chủ sở hữu nhận 200, lượt quá hạn chuyển EXPIRED; path sai kiểu trả 422. Chỉ LEARNER.'
       parameters: [ { $ref: '#/components/parameters/SessionId' } ]
       responses:
         '200': { $ref: '#/components/responses/Session' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
 
   /api/practice/sessions/{id}/answers:
     post:

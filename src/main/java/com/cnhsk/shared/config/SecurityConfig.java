@@ -105,6 +105,8 @@ public class SecurityConfig {
                         authorize.requestMatchers("/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**",
                                 "/swagger-ui.html").denyAll();
                     }
+                    authorize.requestMatchers(HttpMethod.GET, "/api/practice/sessions/active",
+                            "/api/practice/sessions/{id}").hasRole("LEARNER");
                     authorize.requestMatchers("/api/admin/**").hasRole("ADMIN")
                             .requestMatchers("/api/auth/verify-email/resend", "/api/auth/logout",
                                     "/api/auth/logout-all", "/api/auth/me", "/api/me/**")

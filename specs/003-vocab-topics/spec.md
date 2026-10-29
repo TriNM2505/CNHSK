@@ -73,6 +73,7 @@ Java: `enum PracticeSource { …; AttemptKind kind(); FeedbackMode feedback(); D
 ```
 
 - `answer` (khoá phương án) và `accept` (danh sách đáp án gõ chấp nhận) **không bao giờ** ra client trước khi câu được chấm. DTO gửi client là record riêng `ServedItemView` **không có hai trường này** (test assert).
+- **Sửa 2026-10-30 (leader duyệt):** `items` và `meta` không chứa đáp án server; `answered[].answer` được chứa câu trả lời của chính người học để khôi phục, kể cả `preRecorded` và tiếp tục lượt. `correctAnswer` chỉ trả cho câu đã ghi/chấm khi feedback là `IMMEDIATE`/`RECORD`. `DEFERRED` không trả `correctAnswer`, `accept`, `explanation` trước `finish`, `correct` luôn `null`.
 - `type` thuộc `ItemType` (§0.4); `skill` thuộc `Skill` (§0.5).
 
 ### 0.4 · Loại câu (`ItemType`, lưu `attempt_items.item_type`)
@@ -97,7 +98,7 @@ Java: `enum PracticeSource { …; AttemptKind kind(); FeedbackMode feedback(); D
 
 | Mã | Luật | Vi phạm |
 |---|---|---|
-| **E-R1** | Lượt phải tồn tại | **404** `SESSION_NOT_FOUND` |
+| **E-R1** | Lượt phải tồn tại; nếu không tồn tại thì xử lý giống E-R2 (`BUS-01`) | **403** `ATTEMPT_NOT_OWNED`, cùng thông báo với E-R2 |
 | **E-R2** | `attempts.user_id` = người gọi (`BUS-01`) | **403** `ATTEMPT_NOT_OWNED` |
 | **E-R3** | `status = IN_PROGRESS` và `now() ≤ expires_at`; quá hạn → chuyển `EXPIRED` | **422** `SESSION_EXPIRED` · **409** `SESSION_ALREADY_SUBMITTED` |
 | **E-R4** | `no` phải có trong `served_items` | **400** `ITEM_NOT_IN_SESSION` |
@@ -109,6 +110,8 @@ Java: `enum PracticeSource { …; AttemptKind kind(); FeedbackMode feedback(); D
 | **E-R10** | `audioFailed = true` chỉ hợp lệ khi `rules.hasAudio`; câu ghi `is_correct = NULL`, `meta.audioFailed = true`, **không tính** vào điểm | **400** `AUDIO_NOT_IN_ITEM` |
 | **E-R11** | `skipped = true`: `IMMEDIATE` → `is_correct = NULL`, không tính điểm; `DEFERRED` → coi như chưa trả lời (sai khi nộp). Nguồn có `allowSkip = false` (vd `PRON_STAGE`, `GAME_ROUND`) từ chối | **400** `SKIP_NOT_ALLOWED` |
 | **E-R12** | ≤ **600** câu trả lời/giờ và ≤ **120** lượt mới/giờ mỗi người (Redis `practice:ans:{userId}:{yyyyMMddHH}`, `practice:start:…`; Redis lỗi → bỏ qua, log cảnh báo) | **429** `RATE_LIMITED` kèm `retryAfterSeconds` |
+
+**Sửa 2026-10-30 (leader duyệt):** E-R1/E-R2 trả cùng **403** `ATTEMPT_NOT_OWNED` và cùng message cho lượt không tồn tại hoặc không thuộc người gọi. Áp dụng ngay cho hai GET của T-03; T-04…T-06 phải áp dụng cho `answers`/`finish`/`abandon`. Thay thế mọi quy định 404 `SESSION_NOT_FOUND` cũ theo Constitution `BUS-01`.
 
 ### 0.7 · Chấm câu gõ pinyin (`PINYIN_INPUT`)
 
@@ -163,6 +166,8 @@ Phát bằng `ApplicationEventPublisher` **đồng bộ trong transaction**. Đ�
 | `POST /api/practice/sessions/{id}/finish` | Kết thúc (§0.8) |
 | `POST /api/practice/sessions/{id}/abandon` | Bỏ lượt: E-R1…E-R3, `IN_PROGRESS → ABANDONED`, không điểm, không `study_events`, không sự kiện; câu đã ghi giữ nguyên (E-F8). **204** |
 
+**Sửa 2026-10-30 (leader duyệt):** `/active` có `refId` thì lọc đúng `ref_id`; thiếu thì tìm trên mọi `ref_id` của nguồn. Luôn lọc người gọi, `IN_PROGRESS`, `expires_at >= now`, chọn `served_at DESC, id DESC`; không có trả 204. GET xem lại của chủ sở hữu trả 200 cho mọi trạng thái; `IN_PROGRESS` quá hạn được đổi `EXPIRED` trước khi trả view. Query/path sai kiểu hoặc thiếu `source` trả 422 `VALIDATION_FAILED`; chỉ `LEARNER` được gọi hai GET (sai role: 403).
+
 `StartPracticeCommand` gồm: `userId, source, refId, gameCode` (chỉ `GAME_ROUND` → `attempts.game_code`), `items, preRecorded, ttlOverride, sessionMeta`.
 `sessionMeta` (cấu hình hiển thị, vd thời gian ván, số lỗi tối đa) lưu ở `served_items.meta` (§0.3) và trả trong `SessionView.meta`; **không** được chứa đáp án.
 
@@ -198,7 +203,7 @@ phần học/luyện/kiểm tra chạy độc lập, lưu bằng chứng để c
 | Mã | Chỉ số | Mốc |
 |---|---|---|
 | **SC-001** | Người học đi hết một chủ đề: học → luyện nhận diện → luyện nghe → kiểm tra | không lỗi trên dữ liệu thật đã nhập |
-| **SC-002** | Response bắt đầu lượt không chứa `answer`/`accept` | 100% endpoint |
+| **SC-002** | `items`/`meta` của response bắt đầu/khôi phục lượt không chứa đáp án server `answer`/`accept`; `answered[].answer` là đầu vào của người học | 100% endpoint |
 | **SC-003** | % hoàn thành chủ đề luôn khớp số từ đã học | 100% — tính khi đọc, không có bản cache để lệch |
 | **SC-004** | Không câu nào có hai đáp án đúng (trùng nghĩa, đồng âm) | 0 trên bộ test |
 
@@ -346,8 +351,7 @@ GROUP BY ti.topic_id;
 
 | Mã lỗi | HTTP | Khi | FR |
 |---|---|---|---|
-| `SESSION_NOT_FOUND` | 404 | Lượt không tồn tại | E-R1 |
-| `ATTEMPT_NOT_OWNED` | 403 | Lượt của người khác | E-R2 |
+| `ATTEMPT_NOT_OWNED` | 403 | Lượt không tồn tại hoặc của người khác, cùng thông báo | E-R1, E-R2 |
 | `SESSION_EXPIRED` | 422 | Quá hạn | E-R3 |
 | `SESSION_ALREADY_SUBMITTED` | 409 | Đã kết thúc | E-R3, E-F2 |
 | `ITEM_NOT_IN_SESSION` | 400 | `no` lạ | E-R4 |
@@ -465,8 +469,8 @@ GROUP BY ti.topic_id;
 
 | Method · Path | Thành công | Lỗi chính |
 |---|---|---|
-| `GET /api/practice/sessions/{id}` | 200 `SessionView` | 403, 404 |
-| `GET /api/practice/sessions/active?source&refId` | 200 `SessionView` · 204 | 422 |
+| `GET /api/practice/sessions/{id}` | 200 `SessionView` | 401, 403, 422 |
+| `GET /api/practice/sessions/active?source&refId` | 200 `SessionView` · 204 | 401, 403, 422 |
 | `POST /api/practice/sessions/{id}/answers` | 200 `AnswerResult` | 400, 403, 404, 409, 422, 429 |
 | `POST /api/practice/sessions/{id}/finish` | 200 `FinishResult` | 403, 404, 409, 422 |
 | `POST /api/practice/sessions/{id}/abandon` | 204 | 403, 404, 409, 422 |
@@ -482,8 +486,8 @@ GROUP BY ti.topic_id;
 
 | # | FR | G / W / T |
 |---|---|---|
-| AT-01 | FR-002, FR-003 | W tạo mọi loại lượt · T JSON response không có khoá `answer`, `accept` (assert trên chuỗi JSON) |
-| AT-02 | E-R2 | G lượt của A · W B trả lời · T 403 `ATTEMPT_NOT_OWNED` |
+| AT-01 | FR-002, FR-003 | W tạo/khôi phục mọi loại lượt · T `items`/`meta` không có đáp án server `answer`/`accept`; cho phép `answered[].answer` của người học. `DEFERRED` trước finish không có `correctAnswer`/`accept`/`explanation`, `correct=null` |
+| AT-02 | E-R1, E-R2 | G lượt của A · W B xem/trả lời hoặc dùng id không tồn tại · T cùng 403 `ATTEMPT_NOT_OWNED` và cùng message |
 | AT-03 | E-R3 | G lượt quá hạn (đồng hồ giả) · W trả lời · T 422 `SESSION_EXPIRED`, `status=EXPIRED` |
 | AT-04 | E-R4 | W `no=99` · T 400 |
 | AT-05 | E-R5 | W trả lời 2 lần cùng câu `IMMEDIATE`; W 2 request song song · T 409; DB chỉ 1 dòng |
@@ -524,6 +528,8 @@ GROUP BY ti.topic_id;
 | AT-38 | FR-039 | 18/20 · T `passed=true`, `firstCompletion=true`; lần sau đạt · T `firstCompletion=false` |
 | AT-39 | FR-040 | Lượt kiểm tra 25 giờ · T `EXPIRED`, `finish` → 422 |
 | AT-40 | FR-041…FR-045 (FE) | Vitest + Testing Library: lọc HSK; bước kiểm tra khoá có lý do; nghe lại tối đa 3; xác nhận nộp trong trang; tải lại trang khôi phục lượt |
+
+**Sửa 2026-10-30 (leader duyệt):** SC-002, AT-01/AT-02 và hai GET §13 được đồng bộ với Q-T03-01…03; các response 404 của thao tác ghi session trong bảng §13/OpenAPI sẽ được bỏ khi triển khai T-04…T-06, theo E-R1 mới.
 
 ---
 
