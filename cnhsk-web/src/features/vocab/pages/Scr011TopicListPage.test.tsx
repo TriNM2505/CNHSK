@@ -93,9 +93,18 @@ describe('Scr011TopicListPage', () => {
     await screen.findByRole('link', { name: /Gia đình/ })
     expect(getTopics).toHaveBeenCalledWith(1, expect.any(AbortSignal))
 
-    await user.selectOptions(screen.getByLabelText('Cấp HSK'), '9')
-    await waitFor(() => expect(getTopics).toHaveBeenCalledWith(9, expect.any(AbortSignal)))
-    expect(screen.getByTestId('location')).toHaveTextContent('/learn/topics?hskLevel=9')
+    await user.selectOptions(screen.getByLabelText('Cấp HSK'), '3')
+    await waitFor(() => expect(getTopics).toHaveBeenCalledWith(3, expect.any(AbortSignal)))
+    expect(screen.getByTestId('location')).toHaveTextContent('/learn/topics?hskLevel=3')
+  })
+
+  it('chỉ cho lọc HSK 1–3 và bỏ qua cấp ngoài phạm vi trên URL', async () => {
+    renderPage('/learn/topics?hskLevel=5')
+
+    await screen.findByRole('link', { name: /Gia đình/ })
+    expect(getTopics).toHaveBeenCalledWith(undefined, expect.any(AbortSignal))
+    const options = within(screen.getByLabelText('Cấp HSK')).getAllByRole('option')
+    expect(options.map((option) => option.getAttribute('value'))).toEqual(['', '1', '2', '3'])
   })
 
   it('tìm không dấu tiếng Việt theo chuỗi con mà không gọi lại API', async () => {

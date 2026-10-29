@@ -1,10 +1,10 @@
-import type { HskLevel } from '@/shared/ui'
+import { SUPPORTED_HSK_LEVELS, type HskLevel } from '@/shared/ui'
 
 import type { TopicStatus, TopicSummary } from './types'
 
 export type TopicStatusFilter = TopicStatus | 'ALL'
 
-export const HSK_LEVELS: readonly HskLevel[] = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+export const HSK_LEVELS: readonly HskLevel[] = SUPPORTED_HSK_LEVELS
 export const TOPIC_STATUSES: readonly TopicStatus[] = ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED']
 
 export function parseTopicListSearchParams(searchParams: URLSearchParams) {
