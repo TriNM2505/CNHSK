@@ -9,7 +9,9 @@
 | Trường | Giá trị |
 |---|---|
 | **Version** | 1.0.0 |
-| **Status** | DRAFT — chờ cả nhóm duyệt |
+| **Status** | APPROVED — hợp đồng API đã duyệt, được code |
+| **Approved by** | Leader (2026-10-30) |
+| **Locked on** | 2026-10-30 — đổi hợp đồng phải sửa OpenAPI + spec trước, leader duyệt lại |
 | **Phụ thuộc** | Spec 001 (đăng nhập, lỗi, CSRF) · Spec 002 (dữ liệu `lexemes`, `topics`, `topic_items`; `PinyinUtils`) |
 | **Spec dùng lại phần §0** | 004, 005, 006, 007, 008 |
 | **Quyết định chung** | Brainstorm 2026-10-19: D-01, D-03, D-04, D-05, D-06, D-11 |
@@ -412,7 +414,7 @@ GROUP BY ti.topic_id;
 | Q2 | "Đã học" = có thẻ học, không phải mastery | Chốt |
 | Q3 | Bài kiểm tra không có dạng viết chữ (viết ở spec 006) | Chốt — chốt open issue SCR-012 |
 | Q4 | `KNOWN` ("Tôi đã biết") tính là đã học ngay, đánh cờ `selfDeclared`; hạ cấp khi kiểm tra sai thuộc cây | Chốt |
-| Q5 | Migration `V4__practice_engine.sql` | **Cần nhóm duyệt** (đổi schema) |
+| Q5 | Migration `V4__practice_engine.sql` | **Chốt** (leader 2026-10-30) — chỉ test bằng Testcontainers; leader chạy lên Neon sau khi PR merge |
 | Q6 | Ngưỡng 80% học trước khi thi, 90% đạt, chờ 10 phút | Chốt theo UC-029, `BUS-05` |
 
 ---
