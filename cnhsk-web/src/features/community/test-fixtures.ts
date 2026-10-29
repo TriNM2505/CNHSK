@@ -31,6 +31,7 @@ export const ownPost: OwnPost = {
   reviewReason: null,
   publishedAt: null,
 }
+export const ownPostDraft: OwnPost = { ...ownPost, id: 46, title: 'Bản nháp mẫu', status: 'DRAFT', reviewReason: null, publishedAt: null }
 export const postDetail: PostDetail = {
   id: 42,
   title: postWrite.title,
@@ -60,6 +61,15 @@ export const publishedPage: PostSummaryPage = {
   totalElements: 1,
 }
 export const ownPage: OwnPostPage = { items: [ownPost], page: 0, size: 20, totalElements: 1 }
+export const ownPostRejected: OwnPost = { ...ownPost, id: 44, status: 'REJECTED', reviewReason: 'Vui lòng bổ sung nguồn trích dẫn.' }
+export const ownPostHidden: OwnPost = { ...ownPost, id: 45, status: 'HIDDEN', reviewReason: 'Bài viết vi phạm quy định cộng đồng.' }
+export const ownPostApproved: OwnPost = { ...ownPost, id: 43, status: 'APPROVED', reviewReason: null, publishedAt: timestamp }
+export const ownPageWithStatuses: OwnPostPage = {
+  items: [ownPostDraft, ownPost, ownPostApproved, ownPostRejected, ownPostHidden],
+  page: 0,
+  size: 20,
+  totalElements: 5,
+}
 export const comment: Comment = {
   id: 11,
   postId: 42,
