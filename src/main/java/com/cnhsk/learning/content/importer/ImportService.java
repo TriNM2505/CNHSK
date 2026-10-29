@@ -221,6 +221,9 @@ public class ImportService {
                     "Tệp này đã được nhập. Hãy xác nhận nhập lại.");
         }
         ImportDataType type = ImportDataType.valueOf((String) run.getPayload().get("dataType"));
+        Map<String, Object> payload = new LinkedHashMap<>(run.getPayload());
+        payload.put("runningSince", clock.instant().toString());
+        run.setPayload(payload);
         run.setStatus(ServiceRequestStatus.RUNNING);
         requests.saveAndFlush(run);
         return new ConfirmClaim(run, type, rows, null);

@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Set;
 
+import com.cnhsk.learning.content.importer.ImportMaintenance;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -21,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -38,6 +40,10 @@ class AuthContractTest {
             "specs", "001-auth-rbac", "contracts", "openapi-auth.yaml");
     private static final Set<String> HTTP_METHODS = Set.of(
             "get", "put", "post", "delete", "options", "head", "patch", "trace");
+
+    // Context H2 không có bảng learning.service_requests; runner khôi phục nhập dữ liệu kiểm ở integration test Testcontainers.
+    @MockitoBean
+    private ImportMaintenance importMaintenance;
 
     @Autowired
     private MockMvc mockMvc;

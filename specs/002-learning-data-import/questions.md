@@ -244,3 +244,83 @@ Không còn câu hỏi mở của T-08 về metadata; không đổi DB vì paylo
   ContentImportMigrationIntegrationTest không bị sửa ở nhánh part2.
 
 Không còn câu hỏi mở hay lệch spec của T-08 sau quyết định Q-T08-01.
+
+## T-11 — Khôi phục lần nhập bị ngắt
+
+Trạng thái: leader đã duyệt Shadow Plan và chốt Q-T11-01 trong phiên
+2026-10-30, gồm file test bổ sung và thay đổi mốc bắt đầu chạy trong
+`ImportService.confirm` đã commit ở T-10. Phần bổ sung T-10 nằm trong
+commit T-11 và phải được ghi rõ trong mô tả PR.
+Nguồn: FR-022, AT-27; `learning.service_requests` và `ServiceRequest` hiện có
+`created_at`, `completed_at`, không có mốc bắt đầu chuyển sang `RUNNING`.
+
+### Q-T11-01 — Mốc tính RUNNING cũ hơn 10 phút
+
+FR-022 yêu cầu khi khởi động, chuyển lần nhập `IMPORT / RUNNING` cũ hơn
+10 phút sang `FAILED`, `error_message = INTERRUPTED`, giữ các dòng nội dung
+đã commit. Spec chưa chỉ rõ 10 phút tính từ lúc tạo preview hay lúc bắt đầu
+ghi. Hai mốc khác nhau khi preview đã chờ lâu trước khi được xác nhận.
+
+Quyết định đã duyệt:
+
+- Không dùng `created_at`: DB Neon dùng chung, một ứng dụng khác khởi động
+  không được đánh `FAILED` lần nhập mới bắt đầu ghi sau khi preview chờ lâu.
+- Trong cùng transaction ngắn chuyển `PENDING -> RUNNING`, T-10 ghi
+  `payload.runningSince = clock.instant().toString()` (UTC, ISO-8601).
+- `ImportRecoveryRunner` chỉ chạy khi khởi động. Truy vấn bằng cột thật
+  `kind = IMPORT`, `status = RUNNING`; sau đó trong Java đọc
+  `payload.runningSince`. Không viết điều kiện SQL trên JSONB (`AC-09`).
+- `runningSince < now - 10 phút` thì chuyển `FAILED`,
+  `error_message = INTERRUPTED`; tại đúng mốc 10 phút thì giữ `RUNNING`.
+  Giữ nguyên các dòng nội dung đã commit.
+- Bản ghi `RUNNING` thiếu `runningSince` được coi là cũ: chuyển
+  `FAILED / INTERRUPTED`, log `WARN` chỉ kèm `runId`, không log payload.
+- Không đổi schema, không dùng `assigned_at` của luồng chấm bài.
+- Test dùng Clock giả: mốc chạy 11 phút trước -> FAILED; mốc chạy 5 phút
+  trước, preview tạo 25 phút trước -> giữ RUNNING; thiếu mốc -> FAILED + WARN.
+
+Không còn câu hỏi mở của Q-T11-01; không đổi hợp đồng API.
+
+### Phạm vi fixture H2 đã duyệt cho T-11
+
+Leader duyệt thêm `@MockitoBean ImportMaintenance` ở
+`CnhskApplicationTests` và `AuthContractTest`: hai context H2 không có bảng
+`learning.service_requests`; runner/job được kiểm thật trong integration
+test PostgreSQL/Testcontainers. Chỉ thêm import, mock và comment giải thích;
+không đổi hoặc xoá assertion. Khi tích hợp spec 003, giữ cả cấu hình phạm vi
+tài liệu của spec 003 và mock này nếu có xung đột trong `AuthContractTest`.
+
+### Kiểm chứng T-11 và self-check Constitution
+
+- FR-022, AT-27: runner thực sự chạy khi khởi động context; mốc chạy 11 phút
+  trước thành FAILED/INTERRUPTED; 5 phút trước với preview tạo 25 phút trước
+  giữ RUNNING; thiếu mốc thành FAILED và WARN chỉ runId. Đúng mốc 10 phút
+  giữ RUNNING; không sửa request thuộc luồng khác hoặc đã đổi trạng thái.
+- Timestamp runningSince được đọc từ DB trong writer để xác nhận transaction
+  claim T-10 đã commit trước khi ghi dòng. Giả lập lỗi finalization sau khi
+  dòng đã commit rồi phục hồi: nội dung đã ghi được giữ nguyên.
+- FR-024, AT-28: job được đăng ký và thực thi qua runnable thật của Spring,
+  cron 15 phút, zone Asia/Ho_Chi_Minh. Hết hạn lazy commit độc lập dù caller
+  rollback; confirm vẫn lưu EXPIRED/dọn validRows trước khi trả 410.
+  Giữ metadata/lỗi, xử lý lặp an toàn, khóa và kiểm lại trạng thái từng run.
+- FR-025, AT-29; HR-02/09, BUS-06: appender kiểm log upload/confirm, cả lỗi
+  writer chứa marker riêng, không lộ tên file/nội dung ô/email/exception.
+  WARN legacy không kèm payload hoặc stack trace. Không đọc/in env hay secret.
+- AC-01/03: giữ contract đã duyệt; production maintenance chỉ dùng learning,
+  không truy cập bảng/module khác. AuthApi/AuditService hiện có được giữ;
+  API vẫn trả DTO. 8 kiểm tra ModuleBoundaryTest và test hợp đồng xanh.
+- BUS-02, AC-08/09: claim và timestamp cùng transaction; bảo trì mỗi run
+  bằng REQUIRES_NEW và khóa JPA. Dùng Clock/Instant UTC; lọc kind/status bằng
+  cột thật, kiểm JSONB trong Java, không dùng assigned_at cho import.
+- AC-05/06, ES-01/02/03: giữ schema/migration, dependency, stack và naming;
+  chỉ dùng DB Testcontainers, không chạy migration/DDL lên Neon.
+- ES-05: verify 961 test pass, 0 failure/error/skip; JaCoCo line 95,42%
+  (3354/3515), maintenance + runner 100% (49/49). T-11 thêm 49 test
+  (29 unit + 20 PostgreSQL/Testcontainers). FE lint 0 lỗi, 1 warning sẵn có
+  ở LevelBadge; typecheck và 442 test pass. Không đổi assertion fixture H2.
+- Safety, ES-06/07: đúng phạm vi Shadow Plan và patch H2 đã duyệt; file sửa
+  không BOM/TODO, diff --check sạch. Giữ nguyên file local ngoài task,
+  Hiến pháp và ContentImportMigrationIntegrationTest. Một commit T-11,
+  push nhánh spec và cập nhật PR Draft theo ủy quyền; không push main/merge.
+
+Không còn câu hỏi mở hoặc lệch spec của T-11 sau Q-T11-01.
