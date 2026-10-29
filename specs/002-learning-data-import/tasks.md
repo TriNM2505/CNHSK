@@ -14,7 +14,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | `V3__content_import.sql` đúng 5 thay đổi §0.3 (thay đổi #2 `topic_items` đã có sẵn ở V1); test Flyway chạy sạch trên Testcontainers | `src/main/resources/db/migration/V3__content_import.sql` | §0.3 · AT-37 | ⬜ |
+| T-01 | `V3__content_import.sql` đúng 5 thay đổi §0.3 (thay đổi #2 `topic_items` đã có sẵn ở V1); test Flyway chạy sạch trên Testcontainers | `src/main/resources/db/migration/V3__content_import.sql` | §0.3 · AT-37 | ✅ 2026-10-29: migration + 10 test Flyway trên PostgreSQL/Testcontainers; `verify` xanh (260 test, không skip), line coverage 93,08%. Contract đã duyệt qua PR #13 (`199c4a8`); nhánh bàn giao `agent/002-t01` |
 | T-02 | Entity + repository `Lexeme` (`extra` map bằng `@JdbcTypeCode(SqlTypes.JSON)` sang record `LexemeExtra`), `Topic`, `TopicItem`, `PronStage` (`units` → `List<PronUnit>`), `ServiceRequest`; truy vấn khoá theo lô (`findByKindAndTextIn`, `findByCodeIn`…) | `…/learning/content/entity/*`, `…/learning/content/repository/*`, `…/learning/common/*` | §4 | ⬜ |
 | T-03 | `TextNormalizer` (NFC, khoảng trắng, `meaning_norm`) + `PinyinUtils` (`normalize`, `toNumbered`, kiểm ký tự hợp lệ) + `CjkUtils` (`isCjk`, `isBroken`) | `…/learning/content/text/*` | FR-030…FR-033 · AT-34…AT-36 | ⬜ |
 
