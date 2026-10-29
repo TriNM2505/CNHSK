@@ -131,3 +131,20 @@ chuỗi rỗng theo quy tắc ô tùy chọn trống của FR-020.
 
 Test phải bao phủ đầy đủ các trường hợp rỗng trên và giới hạn sau khi bỏ
 rỗng. Không còn câu hỏi mở của T-06; không sửa spec/OpenAPI.
+
+## T-07 — Kiểm dòng ngữ pháp và phát âm
+
+Trạng thái: leader đã duyệt Shadow Plan T-07 và quy tắc dưới đây trong
+phiên làm việc 2026-10-30. Nguồn: §4.6, FR-009, FR-020, Q-T06-02.
+
+### Q-T07-01 — Phần tử rỗng trong `target_sounds`
+
+§4.6 chốt tối đa 30 mục ngăn bằng `|`, mỗi mục tối đa 20 ký tự, nhưng chưa
+nêu cách xử lý mục rỗng hoặc khoảng trắng quanh từng mục.
+
+Quyết định đã duyệt: áp dụng cách làm như `tags` ở Q-T06-02: tách theo `|`,
+trim từng mục, bỏ mục rỗng; kiểm giới hạn 30 mục và 20 ký tự sau bước này.
+Cả ô trống hoặc chỉ có `|` hợp lệ và giữ trống để FR-020 giữ giá trị cũ
+khi cập nhật. Vượt giới hạn trả `INVALID_VALUE`, không thêm mã lỗi mới.
+
+Không còn câu hỏi mở của T-07; không sửa spec/OpenAPI.

@@ -3,6 +3,7 @@ package com.cnhsk.learning.content.importer.validate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,9 @@ final class RowValidationSupport {
                 if (template.dataType() == ImportDataType.LEXEME) {
                     pinyinNorm = PinyinUtils.normalize(row.value("pinyin"));
                     meaningNorm = TextNormalizer.normalizeMeaning(row.value("meaning_vi"));
+                }
+                if (template.dataType() == ImportDataType.GRAMMAR) {
+                    meaningNorm = TextNormalizer.normalizeMeaning(row.value("title_vi"));
                 }
                 validRows.add(new RowValidationResult.ValidatedRow(row.line, row.values, pinyinNorm, meaningNorm));
             }
@@ -103,6 +107,36 @@ final class RowValidationSupport {
 
         boolean eligible(String column) {
             return present(column) && !errors.containsKey(column);
+        }
+
+        boolean valid() {
+            return errors.isEmpty();
+        }
+
+        void canonicalInteger(String column) {
+            if (eligible(column)) {
+                value(column, Integer.toString(Integer.parseInt(value(column))));
+            }
+        }
+
+        void containsCjk(String column) {
+            if (eligible(column) && value(column).codePoints().noneMatch(CjkUtils::isCjk)) {
+                error(column, "NOT_CJK", "Cột " + column + " phải là chữ Hán");
+            }
+        }
+
+        void answer() {
+            String message = "Đáp án phải là A–D, trỏ tới phương án có nội dung; các phương án không được trùng";
+            if (eligible("answer") && (!Set.of("A", "B", "C", "D").contains(value("answer"))
+                    || !present("option_" + value("answer").toLowerCase(java.util.Locale.ROOT)))) {
+                error("answer", "INVALID_ANSWER", message);
+            }
+            Set<String> options = new HashSet<>();
+            for (String column : List.of("option_a", "option_b", "option_c", "option_d")) {
+                if (present(column) && !options.add(value(column))) {
+                    error("answer", "INVALID_ANSWER", message);
+                }
+            }
         }
 
         void requiredAndBroken(Set<String> cjkColumns) {
