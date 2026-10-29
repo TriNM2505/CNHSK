@@ -5,8 +5,16 @@ import { AuthContext, type AuthContextValue } from '@/shared/auth'
 import { LearnerLayout } from '@/shared/layout'
 import { previewLearner } from '@/shared/layout/Layout.preview'
 
+import { CharacterListView } from './components/CharacterListView'
+import { CharacterPracticeView } from './components/CharacterPracticeView'
 import { RecognitionView } from './components/RecognitionView'
 import { recognitionPreviews } from './components/RecognitionView.preview'
+import { WritingChallengeView } from './components/WritingChallengeView'
+import {
+  characterListPreviews,
+  characterPracticePreviews,
+  writingChallengePreviews,
+} from './components/WritingViews.preview'
 
 const learnerAuth: AuthContextValue = {
   error: null,
@@ -36,11 +44,40 @@ const recognitionEntries = [
   ['scr-015-error', 'Nhận diện chữ — Lỗi tải', recognitionPreviews.error],
 ] as const
 
-export const previews = recognitionEntries.map(([id, title, props]) => ({
-  fullFrame: true,
-  group: 'screen' as const,
-  id,
-  render: () => inLearnerLayout(createElement(RecognitionView, props)),
-  scr: 'SCR-015',
-  title,
-})) satisfies readonly PreviewEntry[]
+function screen(id: string, title: string, scr: string, render: () => ReturnType<typeof createElement>) {
+  return { fullFrame: true, group: 'screen' as const, id, render, scr, title }
+}
+
+export const previews = [
+  ...recognitionEntries.map(([id, title, props]) =>
+    screen(id, title, 'SCR-015', () => inLearnerLayout(createElement(RecognitionView, props))),
+  ),
+  ...(
+    [
+      ['scr-014-list', 'Luyện viết — Danh sách chữ', characterListPreviews.ready],
+      ['scr-014-list-empty', 'Luyện viết — Không tìm thấy', characterListPreviews.empty],
+      ['scr-014-list-loading', 'Luyện viết — Đang tải', characterListPreviews.loading],
+      ['scr-014-list-error', 'Luyện viết — Lỗi tải', characterListPreviews.error],
+    ] as const
+  ).map(([id, title, props]) =>
+    screen(id, title, 'SCR-014', () => inLearnerLayout(createElement(CharacterListView, props))),
+  ),
+  ...(
+    [
+      ['scr-014-stroke', 'Luyện viết — Viết theo nét', characterPracticePreviews.stroke],
+      ['scr-014-recall', 'Luyện viết — Nhớ rồi viết', characterPracticePreviews.recall],
+      ['scr-014-no-stroke', 'Luyện viết — Chưa có dữ liệu nét', characterPracticePreviews.noStrokeData],
+    ] as const
+  ).map(([id, title, props]) =>
+    screen(id, title, 'SCR-014', () => inLearnerLayout(createElement(CharacterPracticeView, props))),
+  ),
+  ...(
+    [
+      ['scr-014-challenge-intro', 'Thử thách viết — Giới thiệu', writingChallengePreviews.intro],
+      ['scr-014-challenge-not-enough', 'Thử thách viết — Chưa đủ chữ', writingChallengePreviews.notEnough],
+      ['scr-014-challenge-ready', 'Thử thách viết — Đang làm', writingChallengePreviews.ready],
+    ] as const
+  ).map(([id, title, props]) =>
+    screen(id, title, 'SCR-014', () => inLearnerLayout(createElement(WritingChallengeView, props))),
+  ),
+] satisfies readonly PreviewEntry[]
