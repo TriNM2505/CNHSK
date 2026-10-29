@@ -128,8 +128,32 @@ describe('Scr014CharacterWritingPage — luyện một chữ', () => {
     expect(screen.getByText('Viết theo nét trước')).toBeVisible()
     expect(screen.getByRole('button', { name: /Nghe chép/ })).toBeDisabled()
     expect(screen.getByText('Chữ chưa có âm thanh')).toBeVisible()
+    expect(screen.getByRole('link', { name: /Thử thách/ })).toHaveAttribute(
+      'href',
+      '/learn/characters/writing/challenge',
+    )
     expect(screen.getByTestId('hanzi-canvas-slot')).toBeVisible()
     expect(getCharacterMock).toHaveBeenCalledWith(11, expect.any(AbortSignal))
+  })
+
+  it('ẩn chữ đích bên cạnh khung viết trong RECALL và DICTATION', async () => {
+    const user = userEvent.setup()
+    getCharacterMock.mockResolvedValue({
+      ...detail,
+      audioUrl: '/audio/hao.mp3',
+      hasAudio: true,
+      writing: { dictationAvailable: true, recallUnlocked: true, strokeAvailable: true },
+    })
+    renderAt('/learn/characters/writing/11')
+
+    expect(await screen.findAllByText('好')).toHaveLength(2)
+    await user.click(screen.getByRole('button', { name: /Nhớ rồi viết/ }))
+    expect(screen.queryByText('好')).not.toBeInTheDocument()
+    expect(screen.getByText(/chữ mẫu không nằm cạnh bài làm/i)).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: /Nghe chép/ }))
+    expect(screen.queryByText('好')).not.toBeInTheDocument()
+    expect(screen.getByText(/chữ đích và thông tin gợi ý được giấu/i)).toBeVisible()
   })
 
   it('id không hợp lệ hoặc 404 hiện không tìm thấy chữ', async () => {

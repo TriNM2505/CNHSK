@@ -86,6 +86,9 @@ describe('Scr015CharacterRecognitionPage', () => {
     renderPage()
 
     expect(await screen.findByRole('button', { name: /Bắt đầu luyện/ })).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: 'Nhận diện chữ Hán' }).closest('.max-w-reading'),
+    ).not.toBeNull()
     expect(findActiveMock).toHaveBeenCalledWith('CHAR_RECOGNITION', null, expect.any(AbortSignal))
     const values = Array.from(
       (screen.getByLabelText('Cấp HSK') as HTMLSelectElement).options,
