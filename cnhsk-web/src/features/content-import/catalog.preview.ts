@@ -25,6 +25,12 @@ const importEntries = [
     learningDataImportPreviews.emptyHistory,
   ],
   ['scr-068-upload-error', 'Nhập dữ liệu — Lỗi file', learningDataImportPreviews.uploadError],
+  [
+    'scr-068-history-error',
+    'Nhập dữ liệu — Lỗi tải lịch sử',
+    learningDataImportPreviews.historyError,
+  ],
+  ['scr-068-uploading', 'Nhập dữ liệu — Đang kiểm tra file', learningDataImportPreviews.uploading],
   ['scr-068-preview', 'Nhập dữ liệu — Kết quả kiểm tra', learningDataImportPreviews.preview],
   [
     'scr-068-already-imported',
@@ -32,6 +38,12 @@ const importEntries = [
     learningDataImportPreviews.alreadyImported,
   ],
   ['scr-068-confirm', 'Nhập dữ liệu — Xác nhận ghi kho', learningDataImportPreviews.confirm],
+  ['scr-068-writing', 'Nhập dữ liệu — Đang ghi kho', learningDataImportPreviews.writing],
+  [
+    'scr-068-no-valid-rows',
+    'Nhập dữ liệu — Không có dòng hợp lệ',
+    learningDataImportPreviews.noValidRows,
+  ],
   ['scr-068-expired', 'Nhập dữ liệu — Hết hạn kiểm tra', learningDataImportPreviews.expired],
 ] as const
 

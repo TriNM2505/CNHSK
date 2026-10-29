@@ -41,7 +41,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-13 | SCR-068: chọn mẫu + hướng dẫn cột + tải mẫu, upload, kết quả kiểm tra, cảnh báo nhập lại, xác nhận trong trang, lịch sử | `cnhsk-web/src/features/content-import/**` | FR-036…FR-038, FR-040 · AT-42 | ⬜ |
+| T-13 | SCR-068: chọn mẫu + hướng dẫn cột + tải mẫu, upload, kết quả kiểm tra, cảnh báo nhập lại, xác nhận trong trang, lịch sử | `cnhsk-web/src/features/content-import/**` | FR-036…FR-038, FR-040 · AT-42 | ✅ 2026-10-30: hoàn thiện SCR-068, khóa thao tác lúc upload/confirm; kiểm hạn khi mở/gửi xác nhận, đóng khi hết hạn/bỏ tick; RERUN_CONFIRMATION_REQUIRED bật cảnh báo/tick dù preview ban đầu chưa trùng. Lỗi file ngay dưới ô chọn và có mô tả truy cập được; fixture preview đủ 7 mẫu đúng khóa/cột, thêm trạng thái chờ/valid=0/lỗi lịch sử, giữ SCR-069. Thêm 25 test FE theo mã FR (20 page + 5 API); FE lint 0 lỗi (1 warning sẵn có tại LevelBadge), typecheck/build và 473 test xanh; verify 1026 test pass, 0 failure/error/skip, JaCoCo line 95,50% (3456/3619). Diff sạch, UTF-8 không BOM, không TODO; không đổi contract/backend/shared/app/dependency/DB/migration, không sửa ContentImportMigrationIntegrationTest; đối chiếu screen-fields đã ghi questions.md, không có câu hỏi mở |
 | T-14 | SCR-069: tóm tắt, bảng lỗi phân trang, tải CSV lỗi, "Sửa file và nhập lại" | `cnhsk-web/src/features/content-import/**` | FR-039 | ⬜ |
 
 ---

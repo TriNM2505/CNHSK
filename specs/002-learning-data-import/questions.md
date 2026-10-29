@@ -410,3 +410,62 @@ Không còn câu hỏi mở của Q-T12-01/02.
   Một commit T-12, push nhánh spec và giữ PR Draft theo ủy quyền.
 
 Không còn câu hỏi mở hoặc lệch spec của T-12 sau hai quyết định đã duyệt.
+
+## T-13 — SCR-068 nhập dữ liệu học
+
+Trạng thái: leader duyệt Shadow Plan ngày 2026-10-30, gồm phạm vi test bổ sung;
+triển khai T-13 theo FR-036…FR-038, FR-040 và AT-42. Không có câu hỏi nghiệp vụ mới.
+
+Ghi nhận đối chiếu nguồn theo thứ tự ưu tiên đã quy định:
+
+- screen-fields.md SCR-068 còn ghi route chưa xác nhận và loại parser chờ
+  duyệt; áp dụng spec 002: `/content/imports`, CONTENT_EDITOR và bảy dataType
+  đã chốt. Giữ nguyên inventory/ID/tên màn, không sửa tài liệu màn ngoài task.
+- Fixture preview SCR-068 còn dùng hanzi/khóa hanzi-pinyin và chỉ hai mẫu;
+  cần đồng bộ theo mẫu v0 trong spec và API metadata hiện có, gồm khóa
+  LEXEME `(kind, text)`. Đây là dữ liệu preview/test tự soạn, không đổi contract.
+- Khóa thao tác khi đang xác nhận và hiển thị tick nhập lại sau mã
+  RERUN_CONFIRMATION_REQUIRED thực hiện FR-037/038 và trạng thái loading §12;
+  không thay đổi quyết định nghiệp vụ hoặc hành vi backend T-08…T-12.
+
+Phạm vi đã duyệt và thực hiện:
+
+- Đọc page/view/helper/API/types hiện có của content-import và component dùng chung
+  cần thiết; đối chiếu metadata bảy mẫu với ImportTemplate T-04 và contract T-12.
+- Chỉ sửa sáu file frontend đã nêu trong Shadow Plan: page SCR-068, view,
+  fixture preview, catalog preview, test page và test API; cùng tasks.md/questions.md.
+  Không sửa shared/app, SCR-069, backend, OpenAPI hoặc migration.
+- Khóa chọn file/loại dữ liệu, tải mẫu, hủy, lịch sử và ghi lần hai khi upload/confirm
+  đang chờ. Giữ bước xác nhận trong trang; kiểm lại hạn ở cả lúc mở và gửi,
+  đóng khi hết hạn/bỏ tick; mã RERUN_CONFIRMATION_REQUIRED bật cảnh báo/tick.
+- Lỗi cấp file đặt ngay dưới ô file, liên kết mô tả truy cập được và giữ requestId.
+  Preview tự soạn đủ bảy mẫu đúng khóa/cột/giới hạn; thêm trạng thái đang kiểm,
+  đang ghi, không có dòng hợp lệ và lỗi lịch sử. Giữ mọi entry SCR-069.
+- Tách fixture test khỏi *.preview theo lint có sẵn; không đổi cấu hình lint.
+  Test mới bắt đầu bằng mã FR, kiểm bảy lựa chọn/hướng dẫn, đúng 2 MB/vượt giới hạn,
+  multipart, tải mẫu/thử lại, sáu totals/ba hành động, nhập lại tại lúc confirm,
+  hết hạn trước tick, hủy xác nhận, khóa khi đang ghi và lịch sử phân trang 10.
+
+Kết quả và self-check T-13 (2026-10-30):
+
+- ES-05: Maven verify 1026 test pass, 0 failure/error/skip; JaCoCo line 95,50%
+  (3456/3619). FE lint 0 lỗi (1 warning sẵn có ở LevelBadge), typecheck/build
+  và 473 test pass trong 92 file; thêm 25 test FE (20 page + 5 API), 48 ca trong
+  hai file test liên quan đều xanh. git diff --check sạch, UTF-8 không BOM,
+  không TODO/FIXME trong content-import.
+- AC-01/03, BUS-01: dùng nguyên OpenAPI/API đã duyệt và client dùng chung;
+  giữ RBAC/CSRF/lỗi chuẩn, không truy cập entity/bảng/module khác từ frontend.
+  Không sửa endpoint, SecurityConfig, routeAccess hoặc screenRegistry.
+- BUS-09/AC-07: chỉ hiển thị totals do server trả, không tính/tin điểm client;
+  không đụng kiểu tiền/điểm, mật khẩu hoặc logic chấm bài.
+- AC-05/06/08/09, ES-01/02/03/08: không đổi schema/migration/JSONB/job,
+  dependency hoặc stack; giữ naming. Gate DB chỉ PostgreSQL/Testcontainers,
+  không chạy migration/DDL/app lên Neon. T-13 là phạm vi frontend đã duyệt.
+- HR-02/08, Safety: không đọc/in/commit env, secret hoặc dữ liệu giảng viên;
+  fixture tự soạn, không PII. Không sửa/xóa file ngoài phạm vi hoặc thay assertion
+  của task khác; giữ ContentImportMigrationIntegrationTest và hai fixture H2.
+- ES-06/07: một commit Conventional Commits có T-13, push nhánh spec đã duyệt,
+  cập nhật PR #18 dạng Draft; không push main/tự merge, T-14 vẫn chưa thực hiện.
+
+Không có câu hỏi mở của T-13; lệch screen-fields đã được đối chiếu ở trên,
+áp dụng spec/OpenAPI theo thứ tự ưu tiên leader quy định.
