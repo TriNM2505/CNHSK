@@ -1,4 +1,4 @@
-import { ArrowRight, Eye, Headphones } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 import type { AnswerResult, FinishResult, ServedItemView } from '@/features/practice'
 import { AudioButton, ChoiceQuestion, SessionProgress, SessionSummary } from '@/features/practice'
@@ -10,6 +10,7 @@ import {
   EmptyState,
   ErrorState,
   FormField,
+  HanziText,
   PageHeader,
   Select,
   Skeleton,
@@ -52,14 +53,14 @@ export interface RecognitionViewProps {
   total?: number
 }
 
-const MODE_ICONS: Record<RecognitionMode, typeof Eye> = {
-  AUDIO_TO_CHAR: Headphones,
-  CHAR_TO_MEANING: Eye,
+const MODE_HANZI: Record<RecognitionMode, string> = {
+  AUDIO_TO_CHAR: '听',
+  CHAR_TO_MEANING: '看',
 }
 
 export function RecognitionView(props: RecognitionViewProps) {
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-reading space-y-6">
       <PageHeader
         subtitle="Luyện nhận mặt chữ: nhìn chữ chọn nghĩa hoặc nghe rồi chọn chữ."
         title="Nhận diện chữ Hán"
@@ -142,7 +143,10 @@ function RecognitionBody({
       <div className="space-y-5">
         <SessionProgress current={current} total={total} />
         <Card className="space-y-5">
-          <p className="text-label text-ink-secondary">{RECOGNITION_MODE_LABELS[mode].title}</p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-label text-ink-secondary">{RECOGNITION_MODE_LABELS[mode].title}</p>
+            <span className="text-caption text-ink-muted">HSK {hskLevel}</span>
+          </div>
           {mode === 'AUDIO_TO_CHAR' && audioUrl && onAudioFailed ? (
             <AudioButton
               audioUrl={audioUrl}
@@ -201,13 +205,12 @@ function RecognitionBody({
         <legend className="text-h3 text-ink">Chọn chế độ</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           {RECOGNITION_MODES.map((option) => {
-            const Icon = MODE_ICONS[option]
             const selected = option === mode
             return (
               <button
                 aria-pressed={selected}
                 className={cn(
-                  'flex min-h-touch items-start gap-3 rounded-md border bg-surface p-4 text-left transition-colors',
+                  'flex min-h-touch flex-col items-start gap-2 rounded-md border bg-surface p-4 text-left transition-colors',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2',
                   selected ? 'border-brand-600 bg-brand-50' : 'border-line hover:border-brand-600',
                 )}
@@ -216,7 +219,9 @@ function RecognitionBody({
                 onClick={() => onModeChange?.(option)}
                 type="button"
               >
-                <Icon aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-brand-700" />
+                <HanziText aria-hidden="true" className="text-brand-700" size="md">
+                  {MODE_HANZI[option]}
+                </HanziText>
                 <span className="space-y-1">
                   <span className="block text-body font-semibold text-ink">
                     {RECOGNITION_MODE_LABELS[option].title}
