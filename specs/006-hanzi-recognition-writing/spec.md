@@ -9,7 +9,9 @@
 | Trường | Giá trị |
 |---|---|
 | **Version** | 1.0.0 |
-| **Status** | DRAFT — chờ cả nhóm duyệt |
+| **Status** | APPROVED — hợp đồng API đã duyệt, được code |
+| **Approved by** | Leader (2026-10-30) |
+| **Locked on** | 2026-10-30 — đổi hợp đồng phải sửa OpenAPI + spec trước, leader duyệt lại |
 | **Phụ thuộc** | Spec 001 · Spec 002 (`LEXEME` kind `CHAR`: `stroke_count`, `radical`, `audio_url`) · Spec 003 §0 |
 | **Quyết định chung** | Brainstorm 2026-10-19: D-01, D-03, D-04, D-08, D-12 |
 
@@ -213,7 +215,7 @@ Truy vấn `recallUnlocked` / tập đủ điều kiện thử thách dùng `att
 
 | # | Nội dung | Trạng thái |
 |---|---|---|
-| Q1 | Thêm `hanzi-writer@3.7.3`, dữ liệu nét `hanzi-writer-data@2.0.1` từ jsDelivr | **Cần nhóm duyệt** (thư viện mới + phụ thuộc CDN) |
+| Q1 | Thêm `hanzi-writer@3.7.3`, dữ liệu nét `hanzi-writer-data@2.0.1` từ jsDelivr | **Chốt** (leader 2026-10-30) — ghim đúng phiên bản; jsDelivr lỗi thì chuyển chế độ xem (E2) |
 | Q2 | `IMPOSSIBLE_DURATION` từ chối không ghi (theo UC-015 T3) | Chốt |
 | Q3 | Nghe chép: thời gian tối thiểu `max(nét×200, 1500 ms)` vì DB không lưu độ dài audio | Chốt tạm — thêm `audio_duration_ms` khi nhập nếu nhóm muốn chặt hơn |
 | Q4 | Một nguồn `CHAR_WRITING` + `meta.mode` | Chốt (§4) |
