@@ -1,0 +1,176 @@
+kind,text,pinyin,sino_viet,meaning_vi,hsk_level,audio_url,radical,stroke_count,example_cn,example_pinyin,example_vi,tags
+CHAR,一,yī,nhất,một,1,,一,1,一个人。,Yí gè rén.,Một người.,so-dem
+CHAR,二,èr,nhị,hai,1,,二,2,二月。,Èr yuè.,Tháng hai.,so-dem
+CHAR,三,sān,tam,ba,1,,一,3,三个朋友。,Sān gè péngyou.,Ba người bạn.,so-dem
+CHAR,四,sì,tứ,bốn,1,,囗,5,四个人。,Sì gè rén.,Bốn người.,so-dem
+CHAR,五,wǔ,ngũ,năm,1,,二,4,五月。,Wǔ yuè.,Tháng năm.,so-dem
+CHAR,六,liù,lục,sáu,1,,八,4,六个学生。,Liù gè xuésheng.,Sáu học sinh.,so-dem
+CHAR,七,qī,thất,bảy,1,,一,2,七月。,Qī yuè.,Tháng bảy.,so-dem
+CHAR,八,bā,bát,tám,1,,八,2,八个人。,Bā gè rén.,Tám người.,so-dem
+CHAR,九,jiǔ,cửu,chín,1,,乙,2,九月。,Jiǔ yuè.,Tháng chín.,so-dem
+CHAR,十,shí,thập,mười,1,,十,2,十个学生。,Shí gè xuésheng.,Mười học sinh.,so-dem
+CHAR,你,nǐ,nhĩ,bạn; anh; chị (ngôi thứ hai),1,,亻,7,你好！,Nǐ hǎo!,Xin chào!,chao-hoi
+CHAR,好,hǎo,hảo,tốt; hay; khoẻ,1,,女,6,我很好。,Wǒ hěn hǎo.,Tôi rất khoẻ.,chao-hoi
+CHAR,我,wǒ,ngã,tôi; mình,1,,戈,7,我是学生。,Wǒ shì xuésheng.,Tôi là học sinh.,chao-hoi
+CHAR,是,shì,thị,là,1,,日,9,他是老师。,Tā shì lǎoshī.,Anh ấy là giáo viên.,chao-hoi
+CHAR,不,bù,bất,không,1,,一,4,我不是老师。,Wǒ bú shì lǎoshī.,Tôi không phải giáo viên.,chao-hoi
+CHAR,他,tā,tha,anh ấy; ông ấy,1,,亻,5,他是我爸爸。,Tā shì wǒ bàba.,Ông ấy là bố tôi.,gia-dinh
+CHAR,她,tā,tha,cô ấy; bà ấy,1,,女,6,她是我妈妈。,Tā shì wǒ māma.,Bà ấy là mẹ tôi.,gia-dinh
+CHAR,人,rén,nhân,người,1,,人,2,我是中国人。,Wǒ shì Zhōngguó rén.,Tôi là người Trung Quốc.,gia-dinh
+CHAR,家,jiā,gia,nhà; gia đình,1,,宀,10,我家有四个人。,Wǒ jiā yǒu sì gè rén.,Nhà tôi có bốn người.,gia-dinh
+CHAR,爸,bà,ba,bố,1,,父,8,爸爸好！,Bàba hǎo!,Chào bố!,gia-dinh
+CHAR,妈,mā,ma,mẹ,1,,女,6,妈妈好！,Māma hǎo!,Chào mẹ!,gia-dinh
+CHAR,女,nǚ,nữ,nữ; con gái,1,,女,3,她是女老师。,Tā shì nǚ lǎoshī.,Cô ấy là giáo viên nữ.,gia-dinh
+CHAR,子,zǐ,tử,con; con trai,1,,子,3,儿子。,Érzi.,Con trai.,gia-dinh
+CHAR,年,nián,niên,năm,1,,干,6,今年。,Jīnnián.,Năm nay.,thoi-gian
+CHAR,月,yuè,nguyệt,tháng; mặt trăng,1,,月,4,一月。,Yī yuè.,Tháng một.,thoi-gian
+CHAR,日,rì,nhật,ngày; mặt trời,1,,日,4,生日。,Shēngrì.,Sinh nhật.,thoi-gian
+CHAR,天,tiān,thiên,trời; ngày,1,,大,4,今天很好。,Jīntiān hěn hǎo.,Hôm nay rất đẹp.,thoi-gian
+CHAR,吃,chī,ngật,ăn,1,,口,6,我吃米饭。,Wǒ chī mǐfàn.,Tôi ăn cơm.,an-uong
+CHAR,喝,hē,hát,uống,1,,口,12,我喝茶。,Wǒ hē chá.,Tôi uống trà.,an-uong
+CHAR,茶,chá,trà,trà,1,,艹,9,你喝茶吗？,Nǐ hē chá ma?,Bạn uống trà không?,an-uong
+CHAR,水,shuǐ,thuỷ,nước,1,,水,4,我喝水。,Wǒ hē shuǐ.,Tôi uống nước.,an-uong
+CHAR,米,mǐ,mễ,gạo,1,,米,6,米饭。,Mǐfàn.,Cơm.,an-uong
+CHAR,饭,fàn,phạn,cơm; bữa ăn,1,,饣,7,吃饭了吗？,Chī fàn le ma?,Ăn cơm chưa?,an-uong
+CHAR,学,xué,học,học,1,,子,8,我学汉语。,Wǒ xué Hànyǔ.,Tôi học tiếng Trung.,truong-hoc
+CHAR,生,shēng,sinh,sinh ra; sống,1,,生,5,学生。,Xuésheng.,Học sinh.,truong-hoc
+CHAR,书,shū,thư,sách,1,,,4,这是我的书。,Zhè shì wǒ de shū.,Đây là sách của tôi.,truong-hoc
+CHAR,看,kàn,khán,xem; nhìn,1,,目,9,我看书。,Wǒ kàn shū.,Tôi đọc sách.,truong-hoc
+CHAR,听,tīng,thính,nghe,1,,口,7,我听老师说。,Wǒ tīng lǎoshī shuō.,Tôi nghe thầy giáo nói.,truong-hoc
+CHAR,说,shuō,thuyết,nói,1,,讠,9,他说汉语。,Tā shuō Hànyǔ.,Anh ấy nói tiếng Trung.,truong-hoc
+CHAR,买,mǎi,mãi,mua,1,,,6,我买水果。,Wǒ mǎi shuǐguǒ.,Tôi mua hoa quả.,mua-sam
+CHAR,钱,qián,tiền,tiền,1,,钅,10,多少钱？,Duōshao qián?,Bao nhiêu tiền?,mua-sam
+CHAR,多,duō,đa,nhiều,1,,夕,6,人很多。,Rén hěn duō.,Người rất đông.,mua-sam
+CHAR,少,shǎo,thiểu,ít,1,,小,4,钱很少。,Qián hěn shǎo.,Tiền rất ít.,mua-sam
+CHAR,去,qù,khứ,đi,1,,厶,5,我去学校。,Wǒ qù xuéxiào.,Tôi đến trường.,di-lai
+CHAR,来,lái,lai,đến; tới,1,,,7,你来我家吧。,Nǐ lái wǒ jiā ba.,Bạn đến nhà tôi đi.,di-lai
+CHAR,车,chē,xa,xe,1,,车,4,我坐车去。,Wǒ zuò chē qù.,Tôi đi bằng xe.,di-lai
+CHAR,开,kāi,khai,mở; lái (xe),1,,,4,他开车。,Tā kāi chē.,Anh ấy lái xe.,di-lai
+CHAR,上,shàng,thượng,trên; lên,1,,一,3,书在桌子上。,Shū zài zhuōzi shang.,Sách ở trên bàn.,di-lai
+CHAR,下,xià,hạ,dưới; xuống,1,,一,3,下午。,Xiàwǔ.,Buổi chiều.,di-lai
+CHAR,大,dà,đại,to; lớn,1,,大,3,这个很大。,Zhège hěn dà.,Cái này rất to.,doi-song
+CHAR,小,xiǎo,tiểu,nhỏ; bé,1,,小,3,小猫。,Xiǎo māo.,Mèo con.,doi-song
+CHAR,中,zhōng,trung,giữa; trung,1,,丨,4,中国。,Zhōngguó.,Trung Quốc.,doi-song
+CHAR,国,guó,quốc,nước; quốc gia,1,,囗,8,你是哪国人？,Nǐ shì nǎ guó rén?,Bạn là người nước nào?,doi-song
+CHAR,口,kǒu,khẩu,miệng,1,,口,3,我家有五口人。,Wǒ jiā yǒu wǔ kǒu rén.,Nhà tôi có năm người.,doi-song
+CHAR,手,shǒu,thủ,tay,1,,手,4,我的手很小。,Wǒ de shǒu hěn xiǎo.,Tay tôi rất nhỏ.,doi-song
+CHAR,山,shān,sơn,núi,1,,山,3,这是一座山。,Zhè shì yí zuò shān.,Đây là một ngọn núi.,doi-song
+CHAR,火,huǒ,hoả,lửa,1,,火,4,火车。,Huǒchē.,Tàu hoả.,doi-song
+CHAR,有,yǒu,hữu,có,1,,月,6,我有一个朋友。,Wǒ yǒu yí gè péngyou.,Tôi có một người bạn.,doi-song
+CHAR,在,zài,tại,ở; tại,1,,土,6,我在家。,Wǒ zài jiā.,Tôi ở nhà.,doi-song
+CHAR,猫,māo,miêu,con mèo,1,,犭,11,我有一只猫。,Wǒ yǒu yì zhī māo.,Tôi có một con mèo.,doi-song
+CHAR,狗,gǒu,cẩu,con chó,1,,犭,8,那是我的狗。,Nà shì wǒ de gǒu.,Đó là con chó của tôi.,doi-song
+WORD,你好,nǐ hǎo,,xin chào,1,,,,你好！我是学生。,Nǐ hǎo! Wǒ shì xuésheng.,Xin chào! Tôi là học sinh.,chao-hoi
+WORD,谢谢,xièxie,tạ tạ,cảm ơn,1,,,,谢谢你！,Xièxie nǐ!,Cảm ơn bạn!,chao-hoi
+WORD,再见,zàijiàn,tái kiến,tạm biệt,1,,,,老师再见！,Lǎoshī zàijiàn!,Tạm biệt thầy cô!,chao-hoi
+WORD,对不起,duìbuqǐ,,xin lỗi,1,,,,对不起，我来晚了。,Duìbuqǐ wǒ lái wǎn le.,Xin lỗi tôi đến muộn.,chao-hoi
+WORD,没关系,méi guānxi,,không sao,1,,,,没关系！,Méi guānxi!,Không sao đâu!,chao-hoi
+WORD,不客气,bù kèqi,,đừng khách sáo; không có gì,1,,,,不客气！,Bú kèqi!,Không có gì!,chao-hoi
+WORD,名字,míngzi,danh tự,tên,1,,,,你叫什么名字？,Nǐ jiào shénme míngzi?,Bạn tên là gì?,chao-hoi
+WORD,什么,shénme,,cái gì; gì,1,,,,这是什么？,Zhè shì shénme?,Đây là cái gì?,chao-hoi
+WORD,老师,lǎoshī,lão sư,giáo viên; thầy cô,1,,,,她是老师。,Tā shì lǎoshī.,Cô ấy là giáo viên.,chao-hoi
+WORD,学生,xuésheng,học sinh,học sinh; sinh viên,1,,,,我是学生。,Wǒ shì xuésheng.,Tôi là học sinh.,chao-hoi
+WORD,朋友,péngyou,bằng hữu,bạn bè,1,,,,他是我的朋友。,Tā shì wǒ de péngyou.,Anh ấy là bạn của tôi.,chao-hoi
+WORD,爸爸,bàba,,bố,1,,,,我爸爸是老师。,Wǒ bàba shì lǎoshī.,Bố tôi là giáo viên.,gia-dinh
+WORD,妈妈,māma,,mẹ,1,,,,我妈妈很好。,Wǒ māma hěn hǎo.,Mẹ tôi rất khoẻ.,gia-dinh
+WORD,哥哥,gēge,ca ca,anh trai,1,,,,我有一个哥哥。,Wǒ yǒu yí gè gēge.,Tôi có một anh trai.,gia-dinh
+WORD,姐姐,jiějie,thư thư,chị gái,1,,,,我姐姐是医生。,Wǒ jiějie shì yīshēng.,Chị tôi là bác sĩ.,gia-dinh
+WORD,弟弟,dìdi,đệ đệ,em trai,1,,,,我弟弟是学生。,Wǒ dìdi shì xuésheng.,Em trai tôi là học sinh.,gia-dinh
+WORD,妹妹,mèimei,muội muội,em gái,1,,,,她是我妹妹。,Tā shì wǒ mèimei.,Cô ấy là em gái tôi.,gia-dinh
+WORD,儿子,érzi,nhi tử,con trai,1,,,,他有一个儿子。,Tā yǒu yí gè érzi.,Anh ấy có một con trai.,gia-dinh
+WORD,女儿,nǚ'ér,nữ nhi,con gái,1,,,,我女儿五岁。,Wǒ nǚ'ér wǔ suì.,Con gái tôi năm tuổi.,gia-dinh
+WORD,中国,zhōngguó,Trung Quốc,Trung Quốc,1,,,,我是中国人。,Wǒ shì Zhōngguó rén.,Tôi là người Trung Quốc.,gia-dinh
+WORD,多少,duōshao,đa thiểu,bao nhiêu,1,,,,这个多少钱？,Zhège duōshao qián?,Cái này bao nhiêu tiền?,so-dem
+WORD,今天,jīntiān,kim thiên,hôm nay,1,,,,今天是星期一。,Jīntiān shì xīngqīyī.,Hôm nay là thứ hai.,thoi-gian
+WORD,明天,míngtiān,minh thiên,ngày mai,1,,,,明天见！,Míngtiān jiàn!,Mai gặp lại!,thoi-gian
+WORD,昨天,zuótiān,tạc thiên,hôm qua,1,,,,昨天很冷。,Zuótiān hěn lěng.,Hôm qua rất lạnh.,thoi-gian
+WORD,现在,xiànzài,hiện tại,bây giờ,1,,,,现在几点？,Xiànzài jǐ diǎn?,Bây giờ là mấy giờ?,thoi-gian
+WORD,星期,xīngqī,tinh kỳ,tuần; thứ,1,,,,一个星期有七天。,Yí gè xīngqī yǒu qī tiān.,Một tuần có bảy ngày.,thoi-gian
+WORD,上午,shàngwǔ,thượng ngọ,buổi sáng,1,,,,我上午去学校。,Wǒ shàngwǔ qù xuéxiào.,Buổi sáng tôi đến trường.,thoi-gian
+WORD,中午,zhōngwǔ,trung ngọ,buổi trưa,1,,,,中午吃饭。,Zhōngwǔ chī fàn.,Buổi trưa ăn cơm.,thoi-gian
+WORD,下午,xiàwǔ,hạ ngọ,buổi chiều,1,,,,下午我在家。,Xiàwǔ wǒ zài jiā.,Buổi chiều tôi ở nhà.,thoi-gian
+WORD,米饭,mǐfàn,mễ phạn,cơm (gạo),1,,,,我喜欢吃米饭。,Wǒ xǐhuan chī mǐfàn.,Tôi thích ăn cơm.,an-uong
+WORD,水果,shuǐguǒ,thuỷ quả,hoa quả; trái cây,1,,,,我买水果。,Wǒ mǎi shuǐguǒ.,Tôi mua hoa quả.,an-uong
+WORD,苹果,píngguǒ,bình quả,quả táo,1,,,,这个苹果很大。,Zhège píngguǒ hěn dà.,Quả táo này rất to.,an-uong
+WORD,杯子,bēizi,bôi tử,cái cốc,1,,,,这是我的杯子。,Zhè shì wǒ de bēizi.,Đây là cốc của tôi.,an-uong
+WORD,饭店,fàndiàn,phạn điếm,nhà hàng; khách sạn,1,,,,我们去饭店吃饭。,Wǒmen qù fàndiàn chī fàn.,Chúng tôi đi nhà hàng ăn cơm.,an-uong
+WORD,喜欢,xǐhuan,hỉ hoan,thích,1,,,,我喜欢喝茶。,Wǒ xǐhuan hē chá.,Tôi thích uống trà.,an-uong
+WORD,学校,xuéxiào,học hiệu,trường học,1,,,,我们的学校很大。,Wǒmen de xuéxiào hěn dà.,Trường của chúng tôi rất to.,truong-hoc
+WORD,同学,tóngxué,đồng học,bạn học,1,,,,他是我的同学。,Tā shì wǒ de tóngxué.,Cậu ấy là bạn học của tôi.,truong-hoc
+WORD,汉语,hànyǔ,Hán ngữ,tiếng Trung (Hán ngữ),1,,,,我学汉语。,Wǒ xué Hànyǔ.,Tôi học tiếng Trung.,truong-hoc
+WORD,汉字,hànzì,Hán tự,chữ Hán,1,,,,这个汉字很难。,Zhège hànzì hěn nán.,Chữ Hán này rất khó.,truong-hoc
+WORD,学习,xuéxí,học tập,học tập,1,,,,我在学校学习。,Wǒ zài xuéxiào xuéxí.,Tôi học ở trường.,truong-hoc
+WORD,认识,rènshi,nhận thức,quen biết,1,,,,认识你很高兴。,Rènshi nǐ hěn gāoxìng.,Rất vui được làm quen với bạn.,truong-hoc
+WORD,商店,shāngdiàn,thương điếm,cửa hàng,1,,,,商店在哪儿？,Shāngdiàn zài nǎr?,Cửa hàng ở đâu?,mua-sam
+WORD,东西,dōngxi,đông tây,đồ vật; đồ,1,,,,我去买东西。,Wǒ qù mǎi dōngxi.,Tôi đi mua đồ.,mua-sam
+WORD,衣服,yīfu,y phục,quần áo,1,,,,这件衣服很好看。,Zhè jiàn yīfu hěn hǎokàn.,Bộ quần áo này rất đẹp.,mua-sam
+WORD,出租车,chūzūchē,xuất tô xa,xe taxi,1,,,,我坐出租车去。,Wǒ zuò chūzūchē qù.,Tôi đi bằng taxi.,di-lai
+WORD,飞机,fēijī,phi cơ,máy bay,1,,,,我坐飞机去中国。,Wǒ zuò fēijī qù Zhōngguó.,Tôi đi máy bay sang Trung Quốc.,di-lai
+WORD,火车站,huǒchēzhàn,hoả xa trạm,ga tàu hoả,1,,,,火车站在前面。,Huǒchēzhàn zài qiánmian.,Ga tàu ở phía trước.,di-lai
+WORD,医院,yīyuàn,y viện,bệnh viện,1,,,,医院在哪儿？,Yīyuàn zài nǎr?,Bệnh viện ở đâu?,di-lai
+WORD,哪儿,nǎr,,ở đâu,1,,,,你去哪儿？,Nǐ qù nǎr?,Bạn đi đâu?,di-lai
+WORD,这儿,zhèr,,ở đây,1,,,,我在这儿。,Wǒ zài zhèr.,Tôi ở đây.,di-lai
+WORD,那儿,nàr,,ở đó,1,,,,他在那儿。,Tā zài nàr.,Anh ấy ở đó.,di-lai
+WORD,前面,qiánmian,tiền diện,phía trước,1,,,,学校在前面。,Xuéxiào zài qiánmian.,Trường học ở phía trước.,di-lai
+WORD,后面,hòumian,hậu diện,phía sau,1,,,,商店在后面。,Shāngdiàn zài hòumian.,Cửa hàng ở phía sau.,di-lai
+WORD,天气,tiānqì,thiên khí,thời tiết,1,,,,今天天气很好。,Jīntiān tiānqì hěn hǎo.,Hôm nay thời tiết rất đẹp.,doi-song
+WORD,电视,diànshì,điện thị,ti vi,1,,,,我看电视。,Wǒ kàn diànshì.,Tôi xem ti vi.,doi-song
+WORD,电脑,diànnǎo,điện não,máy tính,1,,,,这是我的电脑。,Zhè shì wǒ de diànnǎo.,Đây là máy tính của tôi.,doi-song
+WORD,电影,diànyǐng,điện ảnh,phim,1,,,,我们去看电影吧。,Wǒmen qù kàn diànyǐng ba.,Chúng ta đi xem phim đi.,doi-song
+WORD,睡觉,shuìjiào,thuỵ giác,ngủ,1,,,,我十点睡觉。,Wǒ shí diǎn shuìjiào.,Tôi đi ngủ lúc mười giờ.,doi-song
+WORD,工作,gōngzuò,công tác,công việc; làm việc,1,,,,他在医院工作。,Tā zài yīyuàn gōngzuò.,Anh ấy làm việc ở bệnh viện.,doi-song
+WORD,医生,yīshēng,y sinh,bác sĩ,1,,,,她是医生。,Tā shì yīshēng.,Cô ấy là bác sĩ.,doi-song
+WORD,下雨,xià yǔ,,mưa,2,,,,今天下雨了。,Jīntiān xià yǔ le.,Hôm nay trời mưa rồi.,thoi-tiet
+WORD,下雪,xià xuě,,tuyết rơi,2,,,,北京冬天下雪。,Běijīng dōngtiān xià xuě.,Mùa đông Bắc Kinh có tuyết.,thoi-tiet
+WORD,晴天,qíngtiān,tình thiên,trời nắng,2,,,,明天是晴天。,Míngtiān shì qíngtiān.,Ngày mai trời nắng.,thoi-tiet
+WORD,阴天,yīntiān,âm thiên,trời âm u,2,,,,今天是阴天。,Jīntiān shì yīntiān.,Hôm nay trời âm u.,thoi-tiet
+WORD,春天,chūntiān,xuân thiên,mùa xuân,2,,,,我喜欢春天。,Wǒ xǐhuan chūntiān.,Tôi thích mùa xuân.,thoi-tiet
+WORD,夏天,xiàtiān,hạ thiên,mùa hè,2,,,,夏天很热。,Xiàtiān hěn rè.,Mùa hè rất nóng.,thoi-tiet
+WORD,秋天,qiūtiān,thu thiên,mùa thu,2,,,,秋天的天气很好。,Qiūtiān de tiānqì hěn hǎo.,Thời tiết mùa thu rất đẹp.,thoi-tiet
+WORD,冬天,dōngtiān,đông thiên,mùa đông,2,,,,冬天很冷。,Dōngtiān hěn lěng.,Mùa đông rất lạnh.,thoi-tiet
+WORD,刮风,guā fēng,,nổi gió,3,,,,外面刮风了。,Wàimian guā fēng le.,Bên ngoài nổi gió rồi.,thoi-tiet
+WORD,运动,yùndòng,vận động,vận động; thể thao,2,,,,我每天运动。,Wǒ měitiān yùndòng.,Tôi vận động mỗi ngày.,so-thich
+WORD,跑步,pǎobù,,chạy bộ,2,,,,他早上跑步。,Tā zǎoshang pǎobù.,Anh ấy chạy bộ buổi sáng.,so-thich
+WORD,游泳,yóuyǒng,du vịnh,bơi,2,,,,我会游泳。,Wǒ huì yóuyǒng.,Tôi biết bơi.,so-thich
+WORD,唱歌,chànggē,xướng ca,hát,2,,,,她喜欢唱歌。,Tā xǐhuan chànggē.,Cô ấy thích hát.,so-thich
+WORD,跳舞,tiàowǔ,khiêu vũ,nhảy múa,2,,,,我们去跳舞吧。,Wǒmen qù tiàowǔ ba.,Chúng ta đi nhảy đi.,so-thich
+WORD,踢足球,tī zúqiú,,đá bóng,2,,,,弟弟在踢足球。,Dìdi zài tī zúqiú.,Em trai đang đá bóng.,so-thich
+WORD,打篮球,dǎ lánqiú,,chơi bóng rổ,2,,,,我们下午打篮球。,Wǒmen xiàwǔ dǎ lánqiú.,Chiều nay chúng tôi chơi bóng rổ.,so-thich
+WORD,旅游,lǚyóu,lữ du,du lịch,2,,,,我想去中国旅游。,Wǒ xiǎng qù Zhōngguó lǚyóu.,Tôi muốn đi du lịch Trung Quốc.,so-thich
+WORD,音乐,yīnyuè,âm nhạc,âm nhạc,3,,,,我喜欢听音乐。,Wǒ xǐhuan tīng yīnyuè.,Tôi thích nghe nhạc.,so-thich
+WORD,爱好,àihào,ái hảo,sở thích,3,,,,你的爱好是什么？,Nǐ de àihào shì shénme?,Sở thích của bạn là gì?,so-thich
+WORD,身体,shēntǐ,thân thể,cơ thể; sức khoẻ,2,,,,你身体好吗？,Nǐ shēntǐ hǎo ma?,Bạn có khoẻ không?,suc-khoe
+WORD,生病,shēngbìng,sinh bệnh,bị ốm,2,,,,他生病了。,Tā shēngbìng le.,Anh ấy bị ốm rồi.,suc-khoe
+WORD,吃药,chī yào,,uống thuốc,2,,,,你要吃药。,Nǐ yào chī yào.,Bạn phải uống thuốc.,suc-khoe
+WORD,休息,xiūxi,hưu tức,nghỉ ngơi,2,,,,你应该休息一下。,Nǐ yīnggāi xiūxi yíxià.,Bạn nên nghỉ ngơi một chút.,suc-khoe
+WORD,眼睛,yǎnjing,,mắt,2,,,,她的眼睛很大。,Tā de yǎnjing hěn dà.,Mắt cô ấy rất to.,suc-khoe
+WORD,感冒,gǎnmào,cảm mạo,bị cảm,3,,,,我感冒了。,Wǒ gǎnmào le.,Tôi bị cảm rồi.,suc-khoe
+WORD,发烧,fāshāo,phát thiêu,bị sốt,3,,,,孩子发烧了。,Háizi fāshāo le.,Đứa trẻ bị sốt rồi.,suc-khoe
+WORD,公司,gōngsī,công ty,công ty,2,,,,我在公司工作。,Wǒ zài gōngsī gōngzuò.,Tôi làm việc ở công ty.,cong-viec
+WORD,经理,jīnglǐ,kinh lý,giám đốc; quản lý,3,,,,他是我们的经理。,Tā shì wǒmen de jīnglǐ.,Anh ấy là quản lý của chúng tôi.,cong-viec
+WORD,会议,huìyì,hội nghị,cuộc họp,3,,,,下午有一个会议。,Xiàwǔ yǒu yí gè huìyì.,Chiều nay có một cuộc họp.,cong-viec
+WORD,办公室,bàngōngshì,biện công thất,văn phòng,3,,,,经理在办公室。,Jīnglǐ zài bàngōngshì.,Quản lý ở văn phòng.,cong-viec
+WORD,同事,tóngshì,đồng sự,đồng nghiệp,3,,,,她是我的同事。,Tā shì wǒ de tóngshì.,Cô ấy là đồng nghiệp của tôi.,cong-viec
+WORD,认真,rènzhēn,nhận chân,chăm chỉ; nghiêm túc,3,,,,他工作很认真。,Tā gōngzuò hěn rènzhēn.,Anh ấy làm việc rất nghiêm túc.,cong-viec
+WORD,完成,wánchéng,hoàn thành,hoàn thành,3,,,,我完成了工作。,Wǒ wánchéng le gōngzuò.,Tôi đã hoàn thành công việc.,cong-viec
+WORD,检查,jiǎnchá,kiểm tra,kiểm tra,3,,,,请检查一下。,Qǐng jiǎnchá yíxià.,Hãy kiểm tra một chút.,cong-viec
+WORD,机会,jīhuì,cơ hội,cơ hội,3,,,,这是一个好机会。,Zhè shì yí gè hǎo jīhuì.,Đây là một cơ hội tốt.,cong-viec
+WORD,准备,zhǔnbèi,chuẩn bị,chuẩn bị,2,,,,我在准备考试。,Wǒ zài zhǔnbèi kǎoshì.,Tôi đang chuẩn bị thi.,cong-viec
+WORD,护照,hùzhào,hộ chiếu,hộ chiếu,3,,,,请给我看你的护照。,Qǐng gěi wǒ kàn nǐ de hùzhào.,Cho tôi xem hộ chiếu của bạn.,du-lich
+WORD,地图,dìtú,địa đồ,bản đồ,3,,,,我有一张地图。,Wǒ yǒu yì zhāng dìtú.,Tôi có một tấm bản đồ.,du-lich
+WORD,宾馆,bīnguǎn,tân quán,khách sạn,2,,,,我们住在宾馆。,Wǒmen zhù zài bīnguǎn.,Chúng tôi ở khách sạn.,du-lich
+WORD,机场,jīchǎng,cơ trường,sân bay,2,,,,我去机场。,Wǒ qù jīchǎng.,Tôi đi sân bay.,du-lich
+WORD,行李箱,xínglixiāng,,va li,3,,,,我的行李箱很重。,Wǒ de xínglixiāng hěn zhòng.,Va li của tôi rất nặng.,du-lich
+WORD,照片,zhàopiàn,chiếu phiến,bức ảnh,3,,,,这张照片很好看。,Zhè zhāng zhàopiàn hěn hǎokàn.,Bức ảnh này rất đẹp.,du-lich
+WORD,地铁,dìtiě,địa thiết,tàu điện ngầm,3,,,,我坐地铁上班。,Wǒ zuò dìtiě shàngbān.,Tôi đi làm bằng tàu điện ngầm.,du-lich
+WORD,附近,fùjìn,phụ cận,gần đây; xung quanh,3,,,,附近有商店吗？,Fùjìn yǒu shāngdiàn ma?,Gần đây có cửa hàng không?,du-lich
+WORD,高兴,gāoxìng,cao hứng,vui mừng,2,,,,我今天很高兴。,Wǒ jīntiān hěn gāoxìng.,Hôm nay tôi rất vui.,cam-xuc
+WORD,快乐,kuàilè,khoái lạc,vui vẻ,2,,,,生日快乐！,Shēngrì kuàilè!,Chúc mừng sinh nhật!,cam-xuc
+WORD,难过,nánguò,nan quá,buồn,3,,,,别难过。,Bié nánguò.,Đừng buồn.,cam-xuc
+WORD,生气,shēngqì,sinh khí,tức giận,3,,,,妈妈生气了。,Māma shēngqì le.,Mẹ giận rồi.,cam-xuc
+WORD,担心,dānxīn,đảm tâm,lo lắng,3,,,,别担心！,Bié dānxīn!,Đừng lo!,cam-xuc
+WORD,害怕,hàipà,hại phạ,sợ hãi,3,,,,我害怕狗。,Wǒ hàipà gǒu.,Tôi sợ chó.,cam-xuc
+WORD,满意,mǎnyì,mãn ý,hài lòng,3,,,,我很满意。,Wǒ hěn mǎnyì.,Tôi rất hài lòng.,cam-xuc
+WORD,着急,zháojí,trước cấp,sốt ruột; vội,3,,,,你别着急。,Nǐ bié zháojí.,Bạn đừng sốt ruột.,cam-xuc
+WORD,热情,rèqíng,nhiệt tình,nhiệt tình,3,,,,中国人很热情。,Zhōngguó rén hěn rèqíng.,Người Trung Quốc rất nhiệt tình.,cam-xuc
+WORD,聪明,cōngming,thông minh,thông minh,3,,,,她很聪明。,Tā hěn cōngming.,Cô ấy rất thông minh.,cam-xuc
