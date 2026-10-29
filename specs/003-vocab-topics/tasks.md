@@ -14,7 +14,7 @@
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-01 | `V4__practice_engine.sql` (§0.12); entity `Attempt`, `AttemptItem` (+ `served_items`, `draft_answers`, `meta` JSON); repository | `db/migration/V4__practice_engine.sql`, `…/learning/practice/entity/*` | §0.12 | ✅ 2026-10-30: `verify` xanh (451 test, không skip); line coverage toàn bộ 93,32%, practice 100%. V4 chỉ kiểm thử bằng Testcontainers, chưa chạy Neon |
-| T-02 | Kiểu lõi: `PracticeSource` (đủ 9 giá trị §0.2, chỉ 3 nguồn 003 có handler), `FeedbackMode`, `ItemType`, `Skill`, `ServedItem`, `ServedItemView` (mapper bỏ `answer`/`accept`), `PracticeSourceHandler` | `…/learning/practice/*` | §0.2–§0.5 · AT-01 | ⬜ |
+| T-02 | Kiểu lõi: `PracticeSource` (đủ 9 giá trị §0.2, chỉ 3 nguồn 003 có handler), `FeedbackMode`, `ItemType`, `Skill`, `ServedItem`, `ServedItemView` (mapper bỏ `answer`/`accept`), `PracticeSourceHandler` | `…/learning/practice/*` | §0.2–§0.5 · AT-01 | ✅ 2026-10-30: 27 test mới; `verify` xanh (478 test, không skip); line coverage toàn bộ 93,55%, practice 100%. Q-T02-01 đã chốt tại `questions.md` |
 | T-03 | `PracticeService.start/view/findActive` + `PracticeController` GET `/sessions/{id}`, `/active`; E-R1…E-R3; giới hạn tạo lượt E-R12 | `PracticeService.java`, `web/PracticeController.java`, `PracticeRateLimiter.java` | FR-001, FR-002, FR-010 · AT-02, AT-03, AT-11 | ⬜ |
 | T-04 | `PracticeService.answer` cho 3 kiểu phản hồi; E-R4…E-R12; `PinyinGrader` (§0.7) | `PracticeService.java`, `grading/*` | FR-004…FR-007 · AT-04…AT-12, AT-18 | ⬜ |
 | T-05 | `PracticeService.finish` (E-F1…E-F7) + sự kiện §0.9 + `study_events` | `PracticeService.java`, `event/*` | FR-008, FR-009 · AT-13…AT-15, AT-17 | ⬜ |
