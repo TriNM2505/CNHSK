@@ -35,6 +35,7 @@ import {
 import { previews as accountPreviews } from '@/features/account/catalog.preview'
 import { previews as adminUserPreviews } from '@/features/admin-users/catalog.preview'
 import { previews as authPreviews } from '@/features/auth/catalog.preview'
+import { previews as communityPreviews } from '@/features/community/catalog.preview'
 import { previews as contentImportPreviews } from '@/features/content-import/catalog.preview'
 import { previews as grammarPreviews } from '@/features/grammar/catalog.preview'
 import { previews as hanziPreviews } from '@/features/hanzi/catalog.preview'
@@ -211,6 +212,7 @@ export const previewRegistry: readonly PreviewEntry[] = [
     title: 'AdminLayout',
   },
   ...authPreviews,
+  ...communityPreviews,
   ...accountPreviews,
   ...adminUserPreviews,
   ...contentImportPreviews,
