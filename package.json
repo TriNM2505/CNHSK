@@ -1,0 +1,7 @@
+{
+  "name": "cnhsk-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix cnhsk-game ci && npm --prefix cnhsk-game run dev"
+  }
+}

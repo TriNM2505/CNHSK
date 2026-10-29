@@ -82,6 +82,20 @@ ArchUnit | 1.5.0 |
 
 ## Chạy dự án
 
+### Chạy thử sáu game
+
+Từ thư mục gốc của repo, cần Node.js 20.19+ và npm. Chạy:
+
+```powershell
+npm run dev
+```
+
+Lệnh này cài dependencies theo `cnhsk-game/package-lock.json` rồi chạy Vite.
+Mở địa chỉ Local mà Vite in ra (mặc định `http://127.0.0.1:5174/`).
+Giữ terminal chạy trong lúc chơi; nhấn `Ctrl+C` để dừng.
+Đây là bản game demo độc lập dùng dữ liệu mẫu, chưa cần backend hoặc Docker.
+Chi tiết sáu game và các giới hạn tích hợp: [`cnhsk-game/README.md`](cnhsk-game/README.md).
+
 ### Hạ tầng dev — T-00, spec 001
 
 Chuẩn bị Docker Desktop đang chạy Linux containers và Docker Compose từ 2.23.1
