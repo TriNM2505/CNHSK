@@ -95,3 +95,39 @@ leader đã xác nhận, như các quyết định T-03.
 T-05 giữ đầy đủ `details` trong `ImportFileException`; cần đưa việc bổ sung
 handler và test HTTP vào Shadow Plan T-08 trước khi triển khai endpoint.
 Leader đã xác nhận ghi nhận này và chốt xử lý ở T-08 trong phiên 2026-10-30.
+
+## T-06 — Kiểm dòng, trùng khóa và danh sách nhãn
+
+Trạng thái: leader đã chốt trong phiên làm việc 2026-10-30. Các quyết định
+dưới đây là căn cứ triển khai và test. Nguồn: FR-009, FR-010, §4.1, AT-13.
+
+### Q-T06-01 — Dòng trước có khóa đúng nhưng lỗi ở cột khác
+
+FR-010 chốt lần xuất hiện đầu hợp lệ, các lần sau lỗi `DUPLICATE_IN_FILE`.
+Chưa nêu rõ trường hợp dòng đầu có đủ khóa tự nhiên đúng nhưng lỗi ở cột
+khác (ví dụ thiếu `meaning_vi`), còn dòng sau cùng khóa đã sửa đủ dữ liệu.
+
+Quyết định đã duyệt: khóa tự nhiên chỉ được giữ bởi dòng hợp lệ đầu tiên,
+sau khi kiểm cả field lẫn tham chiếu. Dòng lỗi ở cột khác chỉ báo lỗi của
+chính nó, không giữ khóa và không nhận thêm lỗi trùng. Dòng hợp lệ đến sau
+dòng hợp lệ đầu tiên nhận `DUPLICATE_IN_FILE`, `firstLine` là dòng vật lý
+của dòng hợp lệ đầu tiên.
+
+Test bắt buộc: dòng 3 lỗi `hsk_level`, dòng 7 cùng khóa hợp lệ thì dòng 7
+hợp lệ; nếu cả dòng 3 và 7 đều hợp lệ thì dòng 7 trùng với `firstLine = 3`.
+
+### Q-T06-02 — Phần tử rỗng trong `tags`
+
+§4.1 quy định tối đa 10 nhãn, mỗi nhãn tối đa 30 ký tự, ngăn bằng `|`, nhưng
+chưa chốt `a||b`, `a| |b`, `|a` hoặc `a|`.
+
+Quyết định đã duyệt: tách theo `|`, trim từng nhãn và bỏ phần tử rỗng.
+`a||b`, `a| |b` thành `["a", "b"]`; `|a`, `a|` thành `["a"]`.
+Sau khi bỏ rỗng, tối đa 10 nhãn, mỗi nhãn tối đa 30 ký tự; vượt một trong
+hai giới hạn thì cột `tags` lỗi `INVALID_VALUE`. Ô trống hoặc chỉ có `|`
+là không có nhãn và hợp lệ. Trong giá trị dòng đã chuẩn hóa, nhãn được nối
+lại bằng `|` để bước ghi có thể tạo mảng `extra.tags`; không có nhãn giữ
+chuỗi rỗng theo quy tắc ô tùy chọn trống của FR-020.
+
+Test phải bao phủ đầy đủ các trường hợp rỗng trên và giới hạn sau khi bỏ
+rỗng. Không còn câu hỏi mở của T-06; không sửa spec/OpenAPI.
