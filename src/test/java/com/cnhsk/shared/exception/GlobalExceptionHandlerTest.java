@@ -103,6 +103,12 @@ class GlobalExceptionHandlerTest {
                 "TEMPLATE_MISMATCH",
                 "EMPTY_FILE",
                 "TOO_MANY_ROWS",
+                "IMPORT_RUN_NOT_FOUND",
+                "IMPORT_NOT_PENDING",
+                "IMPORT_PREVIEW_EXPIRED",
+                "NO_VALID_ROWS",
+                "RERUN_CONFIRMATION_REQUIRED",
+                "CONCURRENT_IMPORT",
                 "TOO_MANY_REQUESTS", "INTERNAL_ERROR");
     }
 

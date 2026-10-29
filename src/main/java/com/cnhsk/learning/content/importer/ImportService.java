@@ -5,10 +5,14 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -22,10 +26,18 @@ import com.cnhsk.learning.common.ServiceRequestStatus;
 import com.cnhsk.learning.content.importer.ImportPreview.PreviewRow;
 import com.cnhsk.learning.content.importer.ImportPreview.RowAction;
 import com.cnhsk.learning.content.importer.template.ImportDataType;
+import com.cnhsk.learning.content.importer.template.ImportTemplate;
 import com.cnhsk.learning.content.importer.validate.RowValidationResult;
+import com.cnhsk.learning.content.importer.validate.RowValidationResult.ValidatedRow;
 import com.cnhsk.learning.content.importer.validate.RowValidator;
+import com.cnhsk.learning.content.importer.write.RowWriter;
+import com.cnhsk.shared.audit.AuditService;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import org.hibernate.exception.ConstraintViolationException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -43,10 +55,14 @@ public class ImportService {
     private final ImportProperties properties;
     private final Clock clock;
     private final TransactionTemplate transactions;
+    private final EntityManager entityManager;
+    private final AuditService audit;
+    private final Map<ImportDataType, RowWriter> writers;
 
     public ImportService(AuthApi auth, CsvReader reader, List<RowValidator> validators, ImportChangePlanner planner,
             ServiceRequestRepository requests, ImportProperties properties, Clock clock,
-            PlatformTransactionManager transactionManager) {
+            PlatformTransactionManager transactionManager, EntityManager entityManager,
+            AuditService audit, List<RowWriter> writers) {
         this.auth = auth;
         this.reader = reader;
         this.validators = validators.stream().collect(Collectors.toUnmodifiableMap(RowValidator::dataType, Function.identity()));
@@ -54,6 +70,9 @@ public class ImportService {
         this.requests = requests;
         this.properties = properties;
         this.clock = clock;
+        this.entityManager = entityManager;
+        this.audit = audit;
+        this.writers = writers.stream().collect(Collectors.toUnmodifiableMap(RowWriter::dataType, Function.identity()));
         transactions = new TransactionTemplate(transactionManager);
         transactions.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
@@ -116,6 +135,154 @@ public class ImportService {
     public ApiException multipartTooLarge() {
         return failed(editor().userId(), null, null, null, new ImportFileException(ErrorCode.FILE_TOO_LARGE));
     }
+
+    /** Deliberately has no outer transaction: each callback must commit or roll back independently. */
+    public ImportRun confirm(long id, boolean acknowledgeRerun) {
+        CurrentUser actor = editor();
+        ConfirmClaim claim;
+        try {
+            claim = transactions.execute(status -> claim(id, acknowledgeRerun));
+        } catch (DataIntegrityViolationException exception) {
+            if (runningConflict(exception)) {
+                throw error(ErrorCode.CONCURRENT_IMPORT, HttpStatus.CONFLICT,
+                        "Đang có lần nhập khác ghi dữ liệu. Hãy thử lại sau.");
+            }
+            throw exception;
+        }
+        // Expiration must commit before the HTTP error is raised.
+        if (claim.failure() != null) {
+            throw claim.failure();
+        }
+        List<Map<String, Object>> errors = new ArrayList<>(claim.run().getErrorRows() == null
+                ? List.of() : claim.run().getErrorRows());
+        int created = 0;
+        int updated = 0;
+        int unchanged = 0;
+        int failed = 0;
+        for (ValidatedRow row : claim.rows()) {
+            try {
+                RowAction action = transactions.execute(status -> writers.get(claim.dataType()).write(row));
+                switch (action) {
+                    case CREATE -> created++;
+                    case UPDATE -> updated++;
+                    case UNCHANGED -> unchanged++;
+                }
+            } catch (RuntimeException exception) {
+                // Never copy exception messages, SQL or cell values to the error report.
+                failed++;
+                errors.add(errorMap(new CsvReader.RowError(row.line(), null, null, "ROW_WRITE_FAILED",
+                        "Không ghi được dòng này do lỗi hệ thống — thử nhập lại")));
+            }
+        }
+        int total = ((Number) claim.run().getPayload().get("totalRows")).intValue();
+        ImportResult result = new ImportResult(total, claim.rows().size(), total - claim.rows().size(),
+                created, updated, unchanged, failed);
+        sortErrors(errors, claim.dataType());
+        ServiceRequest completed = transactions.execute(status -> {
+            ServiceRequest run = lockedImport(id);
+            if (run.getStatus() != ServiceRequestStatus.RUNNING) {
+                throw new IllegalStateException("Import is no longer running");
+            }
+            run.setStatus(ServiceRequestStatus.COMPLETED);
+            run.setCompletedAt(clock.instant());
+            run.setResult(result.asMap());
+            run.setErrorRows(errors);
+            run.setPayload(metadata(claim.dataType(), (String) run.getPayload().get("fileName"), total));
+            audit.record(actor.userId(), "IMPORT_CONFIRM", "import:" + id, null, result.asMap());
+            return requests.saveAndFlush(run);
+        });
+        String displayName = auth.displayNames(Set.of(completed.getUserId())).get(completed.getUserId());
+        return new ImportRun(completed.getId(), claim.dataType(), (String) completed.getPayload().get("fileName"),
+                completed.getStatus().name(), completed.getCreatedAt(), completed.getCompletedAt(),
+                new CreatedBy(completed.getUserId(), displayName), null, result, errors.size(), null);
+    }
+
+    private ConfirmClaim claim(long id, boolean acknowledgeRerun) {
+        ServiceRequest run = lockedImport(id);
+        if (run.getStatus() != ServiceRequestStatus.PENDING) {
+            throw error(ErrorCode.IMPORT_NOT_PENDING, HttpStatus.CONFLICT, "Lần nhập không còn ở trạng thái chờ xác nhận.");
+        }
+        if (Instant.parse((String) run.getPayload().get("expiresAt")).isBefore(clock.instant())) {
+            Map<String, Object> payload = new LinkedHashMap<>(run.getPayload());
+            payload.remove("validRows");
+            run.setPayload(payload);
+            run.setStatus(ServiceRequestStatus.EXPIRED);
+            requests.saveAndFlush(run);
+            return new ConfirmClaim(run, null, List.of(), error(ErrorCode.IMPORT_PREVIEW_EXPIRED, HttpStatus.GONE,
+                    "Bản xem trước đã hết hạn. Hãy tải lại tệp."));
+        }
+        List<ValidatedRow> rows = storedRows(run);
+        if (rows.isEmpty()) {
+            throw error(ErrorCode.NO_VALID_ROWS, HttpStatus.UNPROCESSABLE_ENTITY, "Không có dòng hợp lệ để nhập.");
+        }
+        if (!acknowledgeRerun && requests.existsByKindAndStatusAndFileHash(
+                ServiceRequestKind.IMPORT, ServiceRequestStatus.COMPLETED, run.getFileHash())) {
+            throw error(ErrorCode.RERUN_CONFIRMATION_REQUIRED, HttpStatus.CONFLICT,
+                    "Tệp này đã được nhập. Hãy xác nhận nhập lại.");
+        }
+        ImportDataType type = ImportDataType.valueOf((String) run.getPayload().get("dataType"));
+        run.setStatus(ServiceRequestStatus.RUNNING);
+        requests.saveAndFlush(run);
+        return new ConfirmClaim(run, type, rows, null);
+    }
+
+    private ServiceRequest lockedImport(long id) {
+        ServiceRequest run = entityManager.find(ServiceRequest.class, id, LockModeType.PESSIMISTIC_WRITE);
+        if (run == null || run.getKind() != ServiceRequestKind.IMPORT) {
+            throw error(ErrorCode.IMPORT_RUN_NOT_FOUND, HttpStatus.NOT_FOUND, "Không tìm thấy lần nhập dữ liệu.");
+        }
+        return run;
+    }
+
+    private static List<ValidatedRow> storedRows(ServiceRequest run) {
+        List<?> stored = (List<?>) run.getPayload().getOrDefault("validRows", List.of());
+        return stored.stream().map(item -> {
+            Map<?, ?> row = (Map<?, ?>) item;
+            Map<String, String> values = new LinkedHashMap<>();
+            ((Map<?, ?>) row.get("values")).forEach((column, value) -> values.put((String) column, (String) value));
+            return new ValidatedRow(((Number) row.get("lineNo")).intValue(), values,
+                    (String) row.get("pinyinNorm"), (String) row.get("meaningNorm"));
+        }).sorted(Comparator.comparingInt(ValidatedRow::line)).toList();
+    }
+
+    private static boolean runningConflict(Throwable exception) {
+        for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
+            if (cause instanceof ConstraintViolationException constraint
+                    && "uq_import_running".equals(constraint.getConstraintName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void sortErrors(List<Map<String, Object>> errors, ImportDataType type) {
+        Map<String, Integer> columns = new HashMap<>();
+        ImportTemplate template = ImportTemplate.forType(type);
+        for (int index = 0; index < template.columns().size(); index++) {
+            columns.put(template.columns().get(index).name(), index);
+        }
+        errors.sort(Comparator.<Map<String, Object>>comparingInt(e -> ((Number) e.get("line")).intValue())
+                .thenComparingInt(e -> columns.getOrDefault(e.get("column"), Integer.MAX_VALUE)));
+    }
+
+    private static ApiException error(ErrorCode code, HttpStatus status, String message) {
+        return new ApiException(code, status, message, Map.of());
+    }
+
+    private record ConfirmClaim(ServiceRequest run, ImportDataType dataType, List<ValidatedRow> rows, ApiException failure) { }
+
+    public record CreatedBy(long id, String displayName) { }
+
+    public record ImportResult(int total, int valid, int invalid, int created, int updated, int unchanged, int failed) {
+        Map<String, Object> asMap() {
+            return Map.of("total", total, "valid", valid, "invalid", invalid, "created", created,
+                    "updated", updated, "unchanged", unchanged, "failed", failed);
+        }
+    }
+
+    public record ImportRun(long runId, ImportDataType dataType, String fileName, String status,
+            Instant createdAt, Instant completedAt, CreatedBy createdBy, ImportPreview.Totals totals,
+            ImportResult result, int errorCount, String failureReason) { }
 
     private ApiException failed(long userId, ImportDataType type, String fileName, String hash, ImportFileException failure) {
         ServiceRequest run = new ServiceRequest(userId, ServiceRequestKind.IMPORT);
