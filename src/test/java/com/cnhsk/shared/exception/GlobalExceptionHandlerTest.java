@@ -97,6 +97,12 @@ class GlobalExceptionHandlerTest {
                 "CURRENT_PASSWORD_INCORRECT", "PASSWORD_UNCHANGED", "FORBIDDEN", "SELF_ROLE_GRANT",
                 "SELF_ROLE_REVOKE", "SELF_BAN", "ROLE_ALREADY_GRANTED", "ROLE_NOT_GRANTED",
                 "REVOKE_LAST_ADMIN", "BAN_LAST_ADMIN", "USER_NOT_FOUND", "CSRF_TOKEN_INVALID",
+                "FILE_TOO_LARGE",
+                "UNSUPPORTED_FILE_FORMAT",
+                "ENCODING_ERROR",
+                "TEMPLATE_MISMATCH",
+                "EMPTY_FILE",
+                "TOO_MANY_ROWS",
                 "TOO_MANY_REQUESTS", "INTERNAL_ERROR");
     }
 

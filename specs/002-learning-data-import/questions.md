@@ -49,3 +49,49 @@ Quyết định đã duyệt:
 
 Không còn câu hỏi mở của T-03 trong tài liệu này. Không sửa spec/OpenAPI;
 chỉ ghi lại phần làm rõ hành vi đã được xác nhận trong Shadow Plan.
+
+## T-05 — Cấu trúc CSV
+
+Trạng thái: leader đã chốt trong phiên làm việc 2026-10-30. Các quyết định
+dưới đây là căn cứ triển khai và test T-05.
+Nguồn: FR-005, FR-006, FR-007 và Error Matrix §5.
+
+### Q-T05-01 — Header trùng tên sau khi bỏ khoảng trắng
+
+FR-006 chốt lỗi thiếu cột bắt buộc hoặc cột lạ, nhưng chưa nêu cách xử lý
+header trùng tên (ví dụ `text, text `). Cho phép trùng có thể làm mất giá trị
+khi ánh xạ mỗi dòng vào tên cột.
+
+Quyết định đã duyệt: chặn cả file bằng `422 TEMPLATE_MISMATCH`; `details`
+liệt kê từng cột trùng theo cùng dạng `{field, message}` của lỗi thiếu/thừa
+cột trong FR-006. Không để thư viện tự chọn một giá trị.
+
+### Q-T05-02 — Số ô của dòng khác số cột trong header
+
+FR-005 yêu cầu RFC 4180; spec chưa chốt việc dòng thiếu/thừa ô là lỗi cấp file
+hay lỗi riêng một dòng để tiếp tục nhập các dòng còn lại.
+
+Quyết định đã duyệt:
+
+- Dòng thiếu/thừa ô là lỗi riêng của dòng đó: `code = INVALID_VALUE`,
+  `column = null`, `line` là dòng vật lý bắt đầu bản ghi.
+- Thông báo: `Dòng có {n} ô, mẫu cần {m} ô — nếu nội dung có dấu phẩy, đặt ô đó trong ngoặc kép`.
+  `n` là số ô đọc được, `m` là số cột trong header đã kiểm theo mẫu.
+- Dòng lỗi không vào `validRows`; các dòng khác xử lý bình thường theo
+  SC-003 và NFR-R01. Không thêm mã lỗi cấp dòng vào enum đã khóa của OpenAPI.
+- Chỉ chặn cả file bằng `422 UNSUPPORTED_FILE_FORMAT` khi CSV hỏng cấu trúc
+  và không tách được dòng, ví dụ mở ngoặc kép nhưng không đóng (FR-005).
+- Ô rỗng có đủ dấu phân cách hợp lệ về cấu trúc; kiểm giá trị bắt buộc ở
+  T-06/T-07. Dòng toàn ô trống vẫn được bỏ qua theo FR-007.
+- Test bắt buộc: thừa ô, thiếu ô, ngoặc kép không đóng.
+
+Không còn câu hỏi mở của T-05. Không sửa spec/OpenAPI; ghi lại quyết định
+leader đã xác nhận, như các quyết định T-03.
+
+### Ghi nhận tích hợp cho T-08 — `details` của `TEMPLATE_MISMATCH`
+
+`GlobalExceptionHandler.handleApiException` hiện chỉ giữ `details` khi mã là
+`VALIDATION_FAILED`. FR-006 yêu cầu `TEMPLATE_MISMATCH` cũng trả danh sách này.
+T-05 giữ đầy đủ `details` trong `ImportFileException`; cần đưa việc bổ sung
+handler và test HTTP vào Shadow Plan T-08 trước khi triển khai endpoint.
+Leader đã xác nhận ghi nhận này và chốt xử lý ở T-08 trong phiên 2026-10-30.

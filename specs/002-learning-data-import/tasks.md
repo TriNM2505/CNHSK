@@ -23,7 +23,7 @@
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-04 | Thêm `commons-csv` 1.11.0; `ImportDataType`, `ColumnSpec`, `ImportTemplate` (7 mẫu §4, gồm `label`, `naturalKey`, `dependsOn`, `example`) | `pom.xml`, `…/learning/content/importer/template/*` | §4 · FR-034 | ✅ 2026-10-30: 7 mẫu và metadata dùng chung, ví dụ tự soạn khớp mẫu cha; 24 test FR034 pass, đối chiếu OpenAPI/§4; `verify` xanh (452 test, không skip), line coverage 93,31% (package template 100%). Nhánh `spec/002-learning-data-import-part2` |
-| T-05 | `CsvReader`: giải mã UTF-8 nghiêm ngặt, bỏ BOM, RFC 4180, kiểm header, đếm dòng, bỏ dòng trống; lỗi cấp file thành `ImportFileException(ErrorCode)` | `…/importer/CsvReader.java` | FR-002…FR-007 · AT-03…AT-08 | ⬜ |
+| T-05 | `CsvReader`: giải mã UTF-8 nghiêm ngặt, bỏ BOM, RFC 4180, kiểm header, đếm dòng, bỏ dòng trống; lỗi cấp file thành `ImportFileException(ErrorCode)` | `…/importer/CsvReader.java` | FR-002…FR-007 · AT-03…AT-08 | ✅ 2026-10-30: UTF-8/BOM, RFC 4180, header thiếu/lạ/trùng, giới hạn file/dòng; thiếu/thừa ô thành lỗi riêng dòng theo Q-T05-02; 51 test FR002…FR007 pass; `verify` xanh (503 test, không skip), line coverage 93,53% (CsvReader 100%). Quyết định leader tại `questions.md`; handler `details` xử lý ở T-08 |
 | T-06 | `RowValidator` cho `LEXEME`, `TOPIC`, `TOPIC_ITEM` + kiểm trùng trong file + kiểm tham chiếu theo lô | `…/importer/validate/*` | FR-009…FR-011, §4.1–4.3 · AT-09…AT-14 | ⬜ |
 | T-07 | `RowValidator` cho `GRAMMAR`, `GRAMMAR_EXERCISE`, `PRON_STAGE`, `PRON_UNIT` | `…/importer/validate/*` | §4.4–4.7 · AT-39 | ⬜ |
 
