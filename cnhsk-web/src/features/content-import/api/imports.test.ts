@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiRequest } from '@/shared/api'
 
@@ -18,7 +18,12 @@ vi.mock('@/shared/api', () => ({ apiRequest: vi.fn() }))
 const apiRequestMock = vi.mocked(apiRequest)
 
 describe('import report API', () => {
-  beforeEach(() => apiRequestMock.mockReset())
+  beforeEach(() => {
+    apiRequestMock.mockReset()
+  })
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
 
   it('gọi đúng endpoint chi tiết và danh sách lỗi phân trang 20', async () => {
     const controller = new AbortController()
@@ -44,6 +49,7 @@ describe('import report API', () => {
 
     expect(apiRequestMock).toHaveBeenCalledWith('/api/admin/imports/42/errors.csv', {
       responseType: 'blob',
+      signal: undefined,
     })
   })
 
@@ -91,4 +97,71 @@ describe('import report API', () => {
       signal: controller.signal,
     })
   })
+
+  it('FR028_csvSignal: truyền tín hiệu hủy cho endpoint CSV toàn bộ lỗi', async () => {
+    const controller = new AbortController()
+    await getImportErrorsFile(42, controller.signal)
+    expect(apiRequestMock).toHaveBeenCalledWith('/api/admin/imports/42/errors.csv', {
+      responseType: 'blob',
+      signal: controller.signal,
+    })
+  })
+
+  it('FR028_csvClient: shared client giữ BOM/Unicode, tên file và gửi cookie', async () => {
+    const actualApi = await vi.importActual<typeof import('@/shared/api')>('@/shared/api')
+    apiRequestMock.mockImplementation(actualApi.apiRequest)
+    const csv =
+      '\uFEFFline,column,value,code,message\r\n8,pinyin,学习,INVALID_PINYIN,Pinyin sai.\r\n'
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(csv, {
+        headers: {
+          'Content-Type': 'text/csv; charset=UTF-8',
+          'Content-Disposition': 'attachment; filename="import-42-errors.csv"',
+        },
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const controller = new AbortController()
+    const response = await getImportErrorsFile(42, controller.signal)
+    expect(response?.fileName).toBe('import-42-errors.csv')
+    expect(Array.from(new Uint8Array(await response!.blob.arrayBuffer()))).toEqual(
+      Array.from(new TextEncoder().encode(csv)),
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/admin\/imports\/42\/errors\.csv$/),
+      expect.objectContaining({
+        credentials: 'include',
+        method: 'GET',
+        signal: controller.signal,
+      }),
+    )
+  })
+
+  it.each([403, 500])(
+    'FR028_csvError_%s: shared client đọc lỗi JSON thay vì tải xuống',
+    async (status) => {
+      const actualApi = await vi.importActual<typeof import('@/shared/api')>('@/shared/api')
+      apiRequestMock.mockImplementation(actualApi.apiRequest)
+      const errorCode = status === 403 ? 'FORBIDDEN' : 'INTERNAL_ERROR'
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockResolvedValue(
+          new Response(
+            JSON.stringify({
+              error_code: errorCode,
+              message: 'Chưa tải được CSV.',
+              request_id: 'csv-client-42',
+            }),
+            { status, headers: { 'Content-Type': 'application/json' } },
+          ),
+        ),
+      )
+      await expect(getImportErrorsFile(42)).rejects.toMatchObject({
+        status,
+        errorCode,
+        message: 'Chưa tải được CSV.',
+        requestId: 'csv-client-42',
+      })
+    },
+  )
 })

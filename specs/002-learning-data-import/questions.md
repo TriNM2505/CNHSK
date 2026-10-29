@@ -469,3 +469,82 @@ Kết quả và self-check T-13 (2026-10-30):
 
 Không có câu hỏi mở của T-13; lệch screen-fields đã được đối chiếu ở trên,
 áp dụng spec/OpenAPI theo thứ tự ưu tiên leader quy định.
+
+## T-14 — SCR-069 báo cáo nhập dữ liệu
+
+Trạng thái: leader duyệt Shadow Plan ngày 2026-10-30, gồm bảy file frontend,
+tasks.md/questions.md và dọn lockfile theo chỉ đạo. Không có câu hỏi nghiệp vụ mới.
+
+Kiểm tra trước khi triển khai ngày 2026-10-30:
+
+- Đã fetch origin: main vẫn f8e173d; các T-01/T-03/T-05/T-10/T-27 của spec 001
+  đều hoàn tất trên main. Nhánh spec/002-learning-data-import-part2 chưa merge,
+  HEAD e66d691 (T-13), merge-base bằng origin/main mới nhất; tiếp tục PR #18.
+- screen-fields.md SCR-069 còn ghi route/export/storage chưa xác nhận, phân trang
+  mặc định 10 và mã INVALID_PAGINATION. Áp dụng spec/OpenAPI đã duyệt: route
+  /content/imports/:id, GET errors phân trang 20, errors.csv và VALIDATION_FAILED.
+  Không thêm bộ lọc, endpoint hoặc trạng thái business ngoài spec.
+- Giữ quyết định Q-T12-01: totals là snapshot lúc kiểm file, result là kết quả
+  lúc ghi; lỗi cấp file hoặc legacy thiếu snapshot được null. UI không bịa số 0
+  khi thiếu dữ liệu. Giữ Q-T08-01 về dataType/fileName null khi multipart chặn sớm.
+- Rà soát hiện trạng: summary có result đang ẩn totals và valid/invalid của result;
+  fixture preview không lỗi còn giữ invalid/failed khác 0. Cần đồng bộ theo
+  FR-026/039 và dữ liệu server trong phạm vi T-14 sau khi leader duyệt.
+- Tải CSV hiện chưa nhận AbortSignal hoặc hủy khi rời/đổi báo cáo. Shadow Plan
+  đề xuất hủy request và bỏ kết quả muộn của run cũ, không đổi endpoint/contract.
+
+Triển khai theo phạm vi đã duyệt:
+
+- Chỉ sửa page/test SCR-069, ImportReportView/preview, catalog preview và
+  api/imports.ts/imports.test.ts; không sửa shared/app, SCR-068, backend hoặc
+  OpenAPI. Mọi entry preview SCR-068 giữ nguyên.
+- Summary hiển thị đủ sáu số snapshot và bảy số kết quả trong hai nhóm riêng,
+  cùng errorCount. Không thay totals/result thiếu bằng số 0. Thông báo thành công
+  chỉ cho COMPLETED, errorCount=0 và có result; cộng created+updated+unchanged
+  đúng FR-039. Null metadata theo Q-T08-01 và legacy theo Q-T12-01 giữ nguyên.
+- Giữ API phân trang lỗi 20 từ server; loading/error/retry từng vùng, summary
+  vẫn đọc được khi lỗi chi tiết. RUNNING chỉ tải lại theo nút, không polling mới.
+  Link sửa file về SCR-068 với dataType, null thì không gắn loại dữ liệu.
+- Lựa chọn errors.csv theo lưu ý leader: shared apiRequest đã hỗ trợ responseType
+  blob, credentials include, tên Content-Disposition và đọc lỗi JSON 4xx/5xx.
+  Tiếp tục dùng client này; không thêm fetch riêng, không sửa shared/. Helper
+  downloadBlob hiện có tạo object URL, click a[download] và revoke trong finally.
+  Client feature chỉ thêm AbortSignal; page hủy khi unmount/đổi run, chặn tải lặp
+  và bỏ cả blob/lỗi trả muộn của run cũ. Ghi rõ lựa chọn này trong PR.
+- Đã xóa đúng C:\đồ án\CNHSK\package-lock.json (untracked) theo duyệt; root
+  node_modules không tồn tại. Đã git restore cnhsk-web/package-lock.json rồi
+  npm ci thành công; không npm install/thêm dependency. Hai lockfile không còn
+  trong git status và không nằm trong commit T-14.
+- Thêm 25 test FE (21 page + 4 API), tên bắt đầu bằng mã FR. Kiểm snapshot/result,
+  null/legacy/trạng thái, 45 lỗi/trang cuối 5 lỗi, loading/partial/retry,
+  Unicode/HTML an toàn, tải blob/names/pending/hủy/phản hồi muộn/JSON errors.
+  Test với shared client thật xác nhận bytes BOM/Unicode, cookie và lỗi 403/500.
+  Hook mock reset không trả mock function để Vitest không coi là cleanup;
+  so sánh toàn bộ bytes qua array để tránh khác realm Node/jsdom.
+
+Kết quả và self-check T-14 (2026-10-30):
+
+- ES-05: Maven verify 1026 test pass, 0 failure/error/skip; JaCoCo line 95,50%
+  (3456/3619), 8 ModuleBoundaryTest xanh. FE lint 0 lỗi (1 warning sẵn có ở
+  LevelBadge), typecheck/build và 498 test pass trong 92 file; content-import
+  91/91 pass, T-14 thêm 25 test. UTF-8 không BOM, diff check sạch, không TODO/FIXME.
+- AC-01/03, BUS-01, HR-07/09: giữ OpenAPI đã duyệt, DTO và shared client;
+  không trả entity, không đọc bảng/module khác, giữ route/role/CSRF/lỗi chuẩn.
+  ID mất độ chính xác không được gửi; lỗi/giá trị CSV hiển thị dạng text an toàn.
+  T-14 không sửa backend, SecurityConfig, ErrorCode, routeAccess/screenRegistry.
+- BUS-09, AC-07/08: hiển thị số liệu server, không thay đổi tiền/điểm/mật khẩu
+  hoặc logic chấm bài; thời gian vẫn qua formatter giờ Việt Nam, giữ ISO UTC.
+- AC-05/06/09, ES-01/02/03/08: không đổi DB/migration/JSONB/job, dependency,
+  stack hoặc naming. DB gate chỉ Testcontainers, không app/DDL/migration lên Neon;
+  ContentImportMigrationIntegrationTest và hai fixture H2 giữ nguyên.
+- HR-02/08, BUS-06, Safety: không đọc/in/commit env/secret/dữ liệu giảng viên;
+  fixture tự soạn và tên generic, không PII. Chỉ dọn root lockfile/restore lockfile
+  theo duyệt, không stage lockfile; giữ docs/docker-resume.md và env ngoài task.
+  Vite của workspace đã chạy lại ở localhost:5173 sau npm ci.
+- ES-06/07: một commit feat(learning): complete import report screen (T-14),
+  push nhánh spec đã duyệt; PR #18 cập nhật spec 002 T-04…T-14 và đủ ba thay đổi
+  contract đã duyệt (ImportRun nullable, payload.totals, FR-029 failureReason),
+  chuyển Ready for review sau gate; không push main/tự merge.
+
+Toàn bộ T-01…T-14 đã hoàn tất; không còn câu hỏi mở. Đối chiếu screen-fields
+được ghi ở trên, áp dụng spec/OpenAPI theo thứ tự ưu tiên leader quy định.

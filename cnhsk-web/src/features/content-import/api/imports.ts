@@ -52,6 +52,6 @@ export function getImportErrors(
   })
 }
 
-export function getImportErrorsFile(runId: number) {
-  return apiRequest(`/api/admin/imports/${runId}/errors.csv`, { responseType: 'blob' })
+export function getImportErrorsFile(runId: number, signal?: AbortSignal) {
+  return apiRequest(`/api/admin/imports/${runId}/errors.csv`, { responseType: 'blob', signal })
 }

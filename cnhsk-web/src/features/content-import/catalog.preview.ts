@@ -81,6 +81,20 @@ const reportEntries = [
   ['scr-069-empty', 'Báo cáo nhập — Không có lỗi', importReportPreviews.empty],
   ['scr-069-error', 'Báo cáo nhập — Lỗi tải', importReportPreviews.error],
   ['scr-069-running', 'Báo cáo nhập — Đang nhập', importReportPreviews.running],
+  ['scr-069-pending', 'Báo cáo nhập — Chờ xác nhận', importReportPreviews.pending],
+  ['scr-069-expired', 'Báo cáo nhập — Hết hạn kiểm tra', importReportPreviews.expired],
+  [
+    'scr-069-errors-unavailable',
+    'Báo cáo nhập — Lỗi tải chi tiết',
+    importReportPreviews.errorsUnavailable,
+  ],
+  [
+    'scr-069-page-out-of-range',
+    'Báo cáo nhập — Trang ngoài phạm vi',
+    importReportPreviews.pageOutOfRange,
+  ],
+  ['scr-069-downloading', 'Báo cáo nhập — Đang tải CSV', importReportPreviews.downloading],
+  ['scr-069-download-error', 'Báo cáo nhập — Lỗi tải CSV', importReportPreviews.downloadError],
 ] as const
 
 const importReportEntries = reportEntries.map(([id, title, props]) => ({
