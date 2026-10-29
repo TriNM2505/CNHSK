@@ -454,6 +454,8 @@ CREATE TABLE attempts (
 
 CREATE INDEX ix_att_user     ON attempts(user_id, kind, submitted_at DESC);
 CREATE INDEX ix_att_progress ON attempts(user_id, status) WHERE status = 'IN_PROGRESS';
+-- Spec 003 V4: active sessions and topic test history.
+CREATE INDEX ix_att_user_ref ON attempts(user_id, ref_type, ref_id, status);
 -- Quiz chi tinh hang LAN DAU (UC-080) — unique chan lan 2 vao bang xep hang
 CREATE UNIQUE INDEX uq_quiz_first ON attempts(user_id, ref_id)
   WHERE kind = 'QUIZ' AND status = 'SUBMITTED';
@@ -475,10 +477,17 @@ CREATE TABLE attempt_items (
   is_correct   BOOLEAN,                            -- NULL = ESSAY chua cham
   duration_ms  INTEGER,
   order_index  INTEGER NOT NULL DEFAULT 0,
-  answered_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  answered_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Spec 003 V4: queryable item type/skill and write-once evidence metadata.
+  item_type    VARCHAR(30) NOT NULL,
+  skill        VARCHAR(20) NOT NULL CHECK (skill IN
+               ('VOCAB','LISTENING','READING','CHARACTER','WRITING','GRAMMAR','PRONUNCIATION')),
+  meta         JSONB NOT NULL DEFAULT '{}'
 );
 CREATE INDEX ix_ai_attempt ON attempt_items(attempt_id);
 CREATE INDEX ix_ai_wrong   ON attempt_items(question_id) WHERE is_correct = false;
+CREATE UNIQUE INDEX uq_ai_order ON attempt_items(attempt_id, order_index);
+CREATE INDEX ix_ai_lexeme ON attempt_items(lexeme_id, attempt_id) WHERE lexeme_id IS NOT NULL;
 ```
 
 > 🔴 **`ON DELETE RESTRICT` giải quyết khoảng trống #5 nhóm 2.** Xoá câu hỏi đang có người làm
@@ -1309,7 +1318,7 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 | V2 | `V2__community.sql` | 001 (dựng nền) | 5 bảng `community` | ✅ đã viết |
 | V2.1 | `V2_1__auth_session_id.sql` | 001 | Thêm `session_id` UUID cho phiên refresh trong `auth.auth_tokens`, CHECK bắt buộc session ID cho REFRESH, partial index | T-22 |
 | V3 | `V3__content_import.sql` | 002 | `topics.code`, `pron_stages.units`, bỏ `uq_import_file`, thêm `uq_import_running` và `ix_req_import_hist` (spec 002 §0.3); nối sau V2.1 | ✅ Đã viết và kiểm thử 2026-10-29: 10 test migration pass trên Testcontainers, `verify` xanh (260 test, không skip; line coverage 93,08%). Spec 002 đã duyệt trên `main` qua PR #13. Chưa chạy Neon; leader chạy sau merge PR migration |
-| V4 | `V4__practice_engine.sql` | 003 | Cột `item_type`, `skill`, `meta` trên `attempt_items` + index (spec 003 §0.12) | ⬜ |
+| V4 | `V4__practice_engine.sql` | 003 | Cột `item_type`, `skill`, `meta` trên `attempt_items`; unique `uq_ai_order`, `ix_att_user_ref`, partial `ix_ai_lexeme` (spec 003 §0.12) | Chờ merge — chỉ kiểm thử bằng Testcontainers; chưa chạy Neon, leader chạy sau merge |
 | V5+ | — | spec sau | Leader cấp số khi spec cần đổi schema: gói dịch vụ, `dictation_attempts`/`shadowing_attempts` (feature 1.6 V2)… | — |
 
 > `V3__content_and_plans`, `V4__funnel_and_ledger`, `V5__video_practice` của bản trước **đã gộp vào V1**
