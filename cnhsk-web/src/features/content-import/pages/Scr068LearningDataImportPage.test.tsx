@@ -135,6 +135,37 @@ describe('Scr068LearningDataImportPage', () => {
     expect(await screen.findByTestId('location')).toHaveTextContent('/content/imports/42')
   })
 
+  it.each([
+    { reason: 'FILE_TOO_LARGE', message: 'File vượt quá giới hạn 2 MB.' },
+    { reason: 'ENCODING_ERROR', message: 'File không phải UTF-8 hoặc chữ Hán bị hỏng.' },
+    { reason: 'INTERRUPTED', message: 'Quá trình nhập bị gián đoạn.' },
+    { reason: 'PRIVATE_DATABASE_DETAIL', message: 'Không thể hoàn tất lần nhập dữ liệu.' },
+    { reason: undefined, message: 'Không thể hoàn tất lần nhập dữ liệu.' },
+  ])('FR029: lịch sử FAILED hiện lý do ngắn $reason', async ({ reason, message }) => {
+    vi.mocked(getImportRuns).mockResolvedValue({
+      items: [{ ...completedRun, status: 'FAILED', failureReason: reason }],
+      page: 0,
+      size: 10,
+      totalElements: 1,
+    })
+    renderPage()
+    const table = await screen.findByRole('table', { name: 'Lịch sử các lần nhập dữ liệu' })
+    expect(within(table).getByText(message)).toBeVisible()
+    expect(within(table).queryByText('PRIVATE_DATABASE_DETAIL')).not.toBeInTheDocument()
+  })
+
+  it('FR029: chỉ hiện lý do thất bại ở lần nhập FAILED', async () => {
+    vi.mocked(getImportRuns).mockResolvedValue({
+      items: [{ ...completedRun, failureReason: 'INTERRUPTED' }],
+      page: 0,
+      size: 10,
+      totalElements: 1,
+    })
+    renderPage()
+    const table = await screen.findByRole('table', { name: 'Lịch sử các lần nhập dữ liệu' })
+    expect(within(table).queryByText('Quá trình nhập bị gián đoạn.')).not.toBeInTheDocument()
+  })
+
   it('FR-036: kiểm tra phía khách trước khi gửi', async () => {
     renderPage()
     const user = userEvent.setup({ applyAccept: false })

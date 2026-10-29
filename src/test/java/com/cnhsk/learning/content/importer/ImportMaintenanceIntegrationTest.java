@@ -202,7 +202,7 @@ class ImportMaintenanceIntegrationTest extends AbstractIntegrationTest {
             return invocation.callRealMethod();
         }).when(writerTarget).write(any());
         confirm(id, 200);
-        assertThat(requests.findById(id).orElseThrow().getPayload()).containsOnlyKeys("dataType", "fileName", "totalRows");
+        assertThat(requests.findById(id).orElseThrow().getPayload()).containsOnlyKeys("dataType", "fileName", "totalRows", "totals");
     }
 
     @Test

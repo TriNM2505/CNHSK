@@ -160,7 +160,9 @@ components:
           properties:
             id: { type: integer, format: int64 }
             displayName: { type: string }
-        totals: { oneOf: [{ $ref: '#/components/schemas/Totals' }, { type: 'null' }] }
+        totals:
+          oneOf: [{ $ref: '#/components/schemas/Totals' }, { type: 'null' }]
+          description: Snapshot lưu khi kiểm file, giữ sau COMPLETED/EXPIRED; null khi lỗi cấp file chưa kiểm được dòng nào hoặc bản ghi cũ thiếu snapshot (Q-T12-01, leader duyệt 2026-10-30).
         result: { oneOf: [{ $ref: '#/components/schemas/Result' }, { type: 'null' }] }
         errorCount: { type: integer }
         failureReason: { type: [string, 'null'], example: ENCODING_ERROR }

@@ -324,3 +324,89 @@ tài liệu của spec 003 và mock này nếu có xung đột trong `AuthContra
   push nhánh spec và cập nhật PR Draft theo ủy quyền; không push main/merge.
 
 Không còn câu hỏi mở hoặc lệch spec của T-11 sau Q-T11-01.
+
+## T-12 — Báo cáo, lịch sử và mẫu CSV
+
+Trạng thái: leader đã duyệt Shadow Plan và chốt Q-T12-01/02 trong phiên
+2026-10-30. Nguồn: FR-026…FR-029, FR-034/035 và OpenAPI hiện hành.
+
+### Q-T12-01 — Totals của GET khi không có snapshot preview bền vững
+
+FR-026 liệt kê `totals`, nhưng không chốt giá trị theo trạng thái;
+OpenAPI cho phép `totals = null`. T-08 hiện chỉ trả sáu số preview trong
+response upload, không lưu chúng vào payload. T-10 lưu `result` khi
+COMPLETED và chỉ giữ metadata; T-11 dọn validRows khi EXPIRED. Không thể
+đọc lại đầy đủ sáu số preview ban đầu từ các bản ghi này. Tính lại hành động
+với DB hiện tại cũng không phải snapshot lúc kiểm tra file.
+
+Quyết định đã duyệt: không trả totals null cho mọi trạng thái.
+
+- Upload lưu `payload.totals = {total, valid, invalid, create, update,
+  unchanged}` cùng validRows. Đây là snapshot lúc kiểm file, không tính lại
+  bằng DB hiện tại khi đọc báo cáo.
+- COMPLETED và EXPIRED dọn validRows nhưng giữ totals cùng metadata.
+  GET chi tiết/lịch sử đọc totals từ payload; result đọc đúng dữ liệu đã lưu.
+- Totals null khi FAILED do lỗi cấp file chưa kiểm được dòng nào (như
+  FILE_TOO_LARGE, ENCODING_ERROR). Bản ghi cũ thiếu totals trả null, không lỗi.
+- Bổ sung lưu/giữ totals của T-08/T-10 trong commit T-12 và ghi rõ trong PR;
+  không đổi DB. Test cả COMPLETED, EXPIRED và lỗi cấp file.
+
+### Q-T12-02 — History bỏ failureReason nhưng schema hiện tại cần field này
+
+FR-029 yêu cầu mỗi item lịch sử như FR-026 trừ `failureReason`.
+Tuy nhiên OpenAPI `ImportRunPage.items` đang tham chiếu `ImportRun`;
+nhánh cho phép metadata null trong `ImportRun.allOf.anyOf` bắt buộc
+`failureReason = FILE_TOO_LARGE`, `status = FAILED`.
+
+Vì vậy item lịch sử của lần multipart bị chặn sớm có dataType/fileName
+null, nếu bỏ failureReason theo FR-029, sẽ không hợp lệ với schema hiện tại.
+Không thể vừa bỏ field theo spec vừa giữ nguyên schema này cho lịch sử.
+
+Quyết định đã duyệt: chọn B, chi tiết và lịch sử cùng schema ImportRun;
+lịch sử trả cả failureReason. Sửa FR-029 bỏ cụm "trừ failureReason", ghi
+dòng sửa ngày 2026-10-30 có leader duyệt. Giữ ImportRunPage.items tham chiếu
+ImportRun và giữ ràng buộc metadata nullable của T-08. FE lịch sử hiển thị
+lý do thất bại ngắn khi FAILED, chỉ sửa features/content-import/**.
+
+Phạm vi mở rộng đã duyệt gồm ImportService (lưu/giữ snapshot T-08/T-10),
+spec.md và FE content-import, kèm test cho hành vi này. Các assertion về
+payload hoàn tất trong test T-10/T-11 được đồng bộ thêm khóa totals, giữ
+kiểm containsOnlyKeys; không sửa assertion fixture H2 hay migration test.
+Không còn câu hỏi mở của Q-T12-01/02.
+
+### Kiểm chứng T-12 và self-check Constitution
+
+- FR-026, AT-30: DTO chỉ có metadata được phép, createdBy lấy id/displayName
+  qua AuthApi; tên theo lô cho lịch sử. Modern COMPLETED/EXPIRED giữ đủ totals;
+  lỗi FILE_TOO_LARGE/ENCODING_ERROR và legacy thiếu snapshot trả null.
+- Test tạo nội dung ở một lần nhập khác giữa preview và confirm: báo cáo
+  giữ totals.create của preview, result.unchanged phản ánh đúng lúc ghi.
+  Kiểm snapshot còn sau hoàn tất, expiry qua confirm, GET và scheduled job.
+- FR-027/028, AT-31/32: 45 lỗi -> trang thứ ba 5 lỗi; CSV 46 record kể header,
+  BOM UTF-8, đúng filename/content-type; thứ tự dòng/cột, null, cắt value theo
+  100 ký tự Unicode và round-trip dấu phẩy/ngoặc kép/xuống dòng.
+- FR-029, AT-33: 12 lần nhập của hai editor -> trang sau 2 record, mới nhất
+  trước; chỉ kind IMPORT. Lịch sử trả failureReason, kể cả multipart chặn
+  sớm có metadata null; FE hiện lý do ngắn và fallback mã chưa biết.
+- FR-034/035, AT-41: đủ bảy mẫu, header/example khớp metadata; các CSV tải
+  về được upload/confirm qua API theo thứ tự phụ thuộc. Dữ liệu tự soạn.
+- AC-01/03, HR-07/09, BUS-06: spec/contract/decision cập nhật trước endpoint;
+  role trước query, phân trang/dataType sai 422, run thiếu hoặc khác kind
+  trả 404 theo spec 002. Production chỉ gọi auth.api.AuthApi; DTO không lộ
+  email/hash/payload nội bộ. 8 ModuleBoundaryTest và test OpenAPI xanh.
+- BUS-02, AC-08/09: snapshot và validRows cùng transaction lưu preview;
+  giữ snapshot khi dọn, đọc lại sau maintenance commit. Clock/Instant UTC,
+  cron giữ zone đã duyệt; không viết điều kiện SQL trên JSONB.
+- AC-05/06, ES-01/02/03: không đổi DB, migration, dependency, stack hoặc
+  shared/frontend nền. DB test chỉ Testcontainers; không chạy DDL lên Neon.
+- ES-05: verify 1026 test pass, 0 failure/error/skip; JaCoCo line 95,50%
+  (3456/3619). T-12 thêm 65 test BE và 6 FE; trang lỗi 20 dòng p95 cục bộ
+  7 ms < 300 ms. FE lint 0 lỗi, 1 warning sẵn có ở LevelBadge; typecheck và
+  448 test xanh. Không sửa assertion H2; 2 assertion payload giữ containsOnlyKeys
+  và thêm đúng khóa totals theo quyết định leader.
+- HR-02/08, Safety, ES-06/07: không đọc/in/commit env, secret hoặc dữ liệu
+  giảng viên; không lưu CSV gốc. File sửa UTF-8 không BOM/TODO, diff sạch;
+  giữ nguyên file local ngoài task và ContentImportMigrationIntegrationTest.
+  Một commit T-12, push nhánh spec và giữ PR Draft theo ủy quyền.
+
+Không còn câu hỏi mở hoặc lệch spec của T-12 sau hai quyết định đã duyệt.

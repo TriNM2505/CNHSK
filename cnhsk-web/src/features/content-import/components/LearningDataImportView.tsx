@@ -21,7 +21,7 @@ import {
 } from '@/shared/ui'
 
 import { formatImportCountdown, formatImportDate } from '../formatters'
-import type { ImportMappedError, ImportSelectionErrors } from '../importFlow'
+import { getImportFailureMessage, type ImportMappedError, type ImportSelectionErrors } from '../importFlow'
 import {
   IMPORT_DATA_TYPE_LABELS,
   IMPORT_ROW_ACTION_LABELS,
@@ -406,9 +406,14 @@ function HistorySection({
       header: 'Trạng thái',
       id: 'status',
       render: (run) => (
-        <StatusBadge tone={RUN_STATUS_TONES[run.status]}>
-          {IMPORT_RUN_STATUS_LABELS[run.status]}
-        </StatusBadge>
+        <div>
+          <StatusBadge tone={RUN_STATUS_TONES[run.status]}>
+            {IMPORT_RUN_STATUS_LABELS[run.status]}
+          </StatusBadge>
+          {run.status === 'FAILED' ? (
+            <p className="mt-1 text-caption text-danger">{getImportFailureMessage(run.failureReason)}</p>
+          ) : null}
+        </div>
       ),
     },
     { header: 'Số lỗi', id: 'errorCount', numeric: true, render: (run) => run.errorCount },

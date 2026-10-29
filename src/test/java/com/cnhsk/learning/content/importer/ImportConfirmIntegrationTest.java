@@ -283,7 +283,7 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
         assertThat(response.path("createdBy").path("id").asLong()).isEqualTo(user.getId());
         assertThat(response.path("createdBy").path("displayName").asText()).isEqualTo("Người tạo lần nhập");
         ServiceRequest stored = requests.findById(id).orElseThrow();
-        assertThat(stored.getPayload()).containsOnlyKeys("dataType", "fileName", "totalRows");
+        assertThat(stored.getPayload()).containsOnlyKeys("dataType", "fileName", "totalRows", "totals");
         assertThat(stored.getCompletedAt()).isEqualTo(NOW);
         assertThat(mapper.<JsonNode>valueToTree(stored.getResult())).isEqualTo(response.path("result"));
         assertThat(audits(id)).singleElement().satisfies(audit -> {

@@ -103,10 +103,16 @@ public class ImportService {
             hash = sha256(bytes);
             RowValidationResult validated = validators.get(type).validate(reader.read(type, fileName, bytes));
             List<PreviewRow> rows = planner.plan(type, validated.validRows());
+            int valid = rows.size();
+            ImportPreview.Totals totals = new ImportPreview.Totals(validated.totalRows(), valid,
+                    validated.totalRows() - valid, count(rows, RowAction.CREATE), count(rows, RowAction.UPDATE),
+                    count(rows, RowAction.UNCHANGED));
             Instant expiresAt = clock.instant().plus(properties.getPreviewTtl());
             ServiceRequest run = new ServiceRequest(user.userId(), ServiceRequestKind.IMPORT);
             Map<String, Object> payload = metadata(type, fileName, validated.totalRows());
             payload.put("expiresAt", expiresAt.toString());
+            payload.put("totals", Map.of("total", totals.total(), "valid", totals.valid(), "invalid", totals.invalid(),
+                    "create", totals.create(), "update", totals.update(), "unchanged", totals.unchanged()));
             payload.put("validRows", validated.validRows().stream().map(row -> {
                 Map<String, Object> stored = new LinkedHashMap<>();
                 stored.put("lineNo", row.line());
@@ -119,10 +125,6 @@ public class ImportService {
             run.setFileHash(hash);
             run.setErrorRows(validated.errors().stream().map(ImportService::errorMap).toList());
             save(run);
-            int valid = rows.size();
-            ImportPreview.Totals totals = new ImportPreview.Totals(validated.totalRows(), valid,
-                    validated.totalRows() - valid, count(rows, RowAction.CREATE), count(rows, RowAction.UPDATE),
-                    count(rows, RowAction.UNCHANGED));
             boolean alreadyImported = requests.existsByKindAndStatusAndFileHash(
                     ServiceRequestKind.IMPORT, ServiceRequestStatus.COMPLETED, hash);
             return new ImportPreview(run.getId(), type, fileName, "PENDING", totals, alreadyImported, expiresAt,
@@ -187,14 +189,16 @@ public class ImportService {
             run.setCompletedAt(clock.instant());
             run.setResult(result.asMap());
             run.setErrorRows(errors);
-            run.setPayload(metadata(claim.dataType(), (String) run.getPayload().get("fileName"), total));
+            Map<String, Object> payload = metadata(claim.dataType(), (String) run.getPayload().get("fileName"), total);
+            if (run.getPayload().containsKey("totals")) payload.put("totals", run.getPayload().get("totals"));
+            run.setPayload(payload);
             audit.record(actor.userId(), "IMPORT_CONFIRM", "import:" + id, null, result.asMap());
             return requests.saveAndFlush(run);
         });
         String displayName = auth.displayNames(Set.of(completed.getUserId())).get(completed.getUserId());
         return new ImportRun(completed.getId(), claim.dataType(), (String) completed.getPayload().get("fileName"),
                 completed.getStatus().name(), completed.getCreatedAt(), completed.getCompletedAt(),
-                new CreatedBy(completed.getUserId(), displayName), null, result, errors.size(), null);
+                new CreatedBy(completed.getUserId(), displayName), storedTotals(completed), result, errors.size(), null);
     }
 
     private ConfirmClaim claim(long id, boolean acknowledgeRerun) {
@@ -286,6 +290,14 @@ public class ImportService {
     public record ImportRun(long runId, ImportDataType dataType, String fileName, String status,
             Instant createdAt, Instant completedAt, CreatedBy createdBy, ImportPreview.Totals totals,
             ImportResult result, int errorCount, String failureReason) { }
+
+    static ImportPreview.Totals storedTotals(ServiceRequest run) {
+        Map<?, ?> values = (Map<?, ?>) run.getPayload().get("totals");
+        if (values == null) return null;
+        return new ImportPreview.Totals(((Number) values.get("total")).intValue(), ((Number) values.get("valid")).intValue(),
+                ((Number) values.get("invalid")).intValue(), ((Number) values.get("create")).intValue(),
+                ((Number) values.get("update")).intValue(), ((Number) values.get("unchanged")).intValue());
+    }
 
     private ApiException failed(long userId, ImportDataType type, String fileName, String hash, ImportFileException failure) {
         ServiceRequest run = new ServiceRequest(userId, ServiceRequestKind.IMPORT);
