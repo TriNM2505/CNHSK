@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0B1020" />
+    <title>CNHSK Arcade · 6 trò chơi tiếng Trung</title>
+    <meta
+      name="description"
+      content="CNHSK Arcade — sáu trò chơi luyện chữ Hán, pinyin, bộ thủ và từ vựng. Bản demo dùng dữ liệu mẫu cục bộ."
+    />
+  </head>
+  <body>
+    <div id="root" style="padding:12vh 24px;text-align:center;color:#f5f0e8;font-family:system-ui,sans-serif">Đang mở CNHSK Arcade…</div>
+    <script>
+      function showStartupError(message) {
+        var root = document.getElementById('root')
+        if (!root || root.querySelector('main')) return
+        root.textContent = 'Không mở được game: ' + message
+        root.style.maxWidth = '800px'
+        root.style.margin = '0 auto'
+        root.style.overflowWrap = 'anywhere'
+      }
+      window.addEventListener('error', function (event) { showStartupError(event.message || 'Lỗi JavaScript') })
+      window.addEventListener('unhandledrejection', function (event) { showStartupError(String(event.reason?.message || event.reason || 'Lỗi tải dữ liệu')) })
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
