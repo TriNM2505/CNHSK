@@ -36,7 +36,7 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
-    mail:
+  mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
     username: ${SMTP_USER:}
@@ -46,6 +46,7 @@ spring:
       mail:
         smtp:
           auth: ${SMTP_AUTH:false}
+          debug: false
           starttls:
             enable: ${SMTP_STARTTLS:false}
             required: ${SMTP_STARTTLS:false}
