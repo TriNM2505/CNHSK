@@ -27,11 +27,13 @@ export interface UsePracticeSessionOptions {
   start: () => Promise<SessionView | null>
 }
 
+type PracticeDraft = Pick<AnswerRequest, 'no'> & Partial<AnswerRequest>
+
 export interface UsePracticeSessionResult {
   state: PracticeSessionState
   session: SessionView | null
   results: Readonly<Record<number, AnswerResult>>
-  drafts: Readonly<Record<number, AnswerRequest>>
+  drafts: Readonly<Record<number, Pick<AnswerRequest, 'no'> & Partial<AnswerRequest>>>
   finishResult: FinishResult | null
   error: ApiError | null
   pending: PracticePendingOperation
@@ -66,7 +68,7 @@ function practiceError(error: unknown): ApiError {
 }
 
 function restoredState(session: SessionView): {
-  drafts: Record<number, AnswerRequest>
+  drafts: Record<number, PracticeDraft>
   results: Record<number, AnswerResult>
 } {
   if (session.feedback === 'DEFERRED') {
@@ -74,7 +76,7 @@ function restoredState(session: SessionView): {
       drafts: Object.fromEntries(
         session.answered.map((item) => [
           item.no,
-          { answer: item.answer, durationMs: 0, no: item.no, replayCount: 0 },
+          { no: item.no, ...('answer' in item ? { answer: item.answer } : {}) },
         ]),
       ),
       results: {},
@@ -87,11 +89,10 @@ function restoredState(session: SessionView): {
       session.answered.map((item) => [
         item.no,
         {
-          accepted: true,
-          correct: item.correct,
-          correctAnswer: item.correctAnswer,
-          counted: item.counted,
           no: item.no,
+          ...('correct' in item ? { correct: item.correct } : {}),
+          ...('correctAnswer' in item ? { correctAnswer: item.correctAnswer } : {}),
+          ...('counted' in item ? { counted: item.counted } : {}),
         },
       ]),
     ),
@@ -112,19 +113,24 @@ export function usePracticeSession({
   const [state, setState] = useState<PracticeSessionState>('loading')
   const [session, setSession] = useState<SessionView | null>(null)
   const [results, setResults] = useState<Record<number, AnswerResult>>({})
-  const [drafts, setDrafts] = useState<Record<number, AnswerRequest>>({})
+  const [drafts, setDrafts] = useState<Record<number, PracticeDraft>>({})
   const [finishResult, setFinishResult] = useState<FinishResult | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
   const [pending, setPending] = useState<PracticePendingOperation>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const mountedRef = useRef(true)
+  const generationRef = useRef(0)
   const operationRef = useRef<PracticePendingOperation>(null)
+  const restoredDraftsRef = useRef<Record<number, PracticeDraft>>({})
+  const editedSinceRestoreRef = useRef(new Set<number>())
   const startRef = useRef(startSession)
 
   startRef.current = startSession
 
   const applySession = useCallback((nextSession: SessionView) => {
     const restored = restoredState(nextSession)
+    restoredDraftsRef.current = restored.drafts
+    editedSinceRestoreRef.current.clear()
     setSession(nextSession)
     setDrafts(restored.drafts)
     setResults(restored.results)
@@ -135,11 +141,20 @@ export function usePracticeSession({
 
   useEffect(() => {
     mountedRef.current = true
+    generationRef.current += 1
+    operationRef.current = null
+    restoredDraftsRef.current = {}
+    editedSinceRestoreRef.current.clear()
     const controller = new AbortController()
     let current = true
 
     setState('loading')
     setError(null)
+    setPending(null)
+    setSession(null)
+    setResults({})
+    setDrafts({})
+    setFinishResult(null)
 
     void findActiveSession(source, refId, controller.signal)
       .then(async (activeSession) => {
@@ -167,128 +182,159 @@ export function usePracticeSession({
     return () => {
       current = false
       mountedRef.current = false
+      generationRef.current += 1
       controller.abort()
     }
   }, [applySession, refId, reloadKey, source])
 
   const beginOperation = useCallback((operation: Exclude<PracticePendingOperation, null>) => {
-    if (operationRef.current) return false
+    if (operationRef.current || !mountedRef.current) return null
     operationRef.current = operation
     setPending(operation)
     setError(null)
-    return true
+    return generationRef.current
   }, [])
 
-  const endOperation = useCallback(() => {
-    operationRef.current = null
-    if (mountedRef.current) setPending(null)
-  }, [])
+  const isCurrent = useCallback(
+    (generation: number) => mountedRef.current && generationRef.current === generation,
+    [],
+  )
+
+  const endOperation = useCallback(
+    (generation: number) => {
+      if (!isCurrent(generation)) return
+      operationRef.current = null
+      setPending(null)
+    },
+    [isCurrent],
+  )
 
   const start = useCallback(async () => {
-    if (!beginOperation('start')) return null
+    const generation = beginOperation('start')
+    if (generation === null) return null
     try {
       const created = await startRef.current()
-      if (mountedRef.current) {
-        if (created) {
-          applySession(created)
-        } else {
-          setSession(null)
-          setResults({})
-          setDrafts({})
-          setFinishResult(null)
-          setError(null)
-          setState('idle')
-        }
+      if (!isCurrent(generation)) return null
+      if (created) {
+        applySession(created)
+      } else {
+        setSession(null)
+        setResults({})
+        setDrafts({})
+        setFinishResult(null)
+        setError(null)
+        setState('idle')
       }
       return created
     } catch (caught) {
-      if (mountedRef.current) setError(practiceError(caught))
+      if (isCurrent(generation)) setError(practiceError(caught))
       return null
     } finally {
-      endOperation()
+      endOperation(generation)
     }
-  }, [applySession, beginOperation, endOperation])
+  }, [applySession, beginOperation, endOperation, isCurrent])
 
   const answer = useCallback(
     async (no: number, request: Omit<AnswerRequest, 'no'>) => {
-      if (!session || !beginOperation('answer')) return null
+      if (!session) return null
+      const generation = beginOperation('answer')
+      if (generation === null) return null
       const completeRequest: AnswerRequest = { ...request, no }
 
       try {
         const answerResult = await answerItem(session.sessionId, completeRequest)
-        if (mountedRef.current) {
-          if (session.feedback === 'DEFERRED') {
-            setDrafts((current) => ({ ...current, [no]: completeRequest }))
-          } else {
-            setResults((current) => ({ ...current, [no]: answerResult }))
-          }
+        if (!isCurrent(generation)) return null
+        if (session.feedback === 'DEFERRED') {
+          editedSinceRestoreRef.current.add(no)
+          setDrafts((current) => ({ ...current, [no]: completeRequest }))
+        } else {
+          setResults((current) => ({ ...current, [no]: answerResult }))
         }
         return answerResult
       } catch (caught) {
-        if (mountedRef.current) setError(practiceError(caught))
+        if (isCurrent(generation)) setError(practiceError(caught))
         return null
       } finally {
-        endOperation()
+        endOperation(generation)
       }
     },
-    [beginOperation, endOperation, session],
+    [beginOperation, endOperation, isCurrent, session],
   )
 
   const finish = useCallback(
     async (answers?: AnswerRequest[]) => {
-      if (!session || !beginOperation('finish')) return null
-      const request: FinishRequest | undefined = answers ? { answers } : undefined
+      if (!session) return null
+      const generation = beginOperation('finish')
+      if (generation === null) return null
+      // Preserve the server's evidence for drafts restored from GET. Only edits
+      // made in this page lifetime may overwrite those saved answers.
+      const changedAnswers = answers?.filter((answer) => {
+        const restored = restoredDraftsRef.current[answer.no]
+        return (
+          !restored ||
+          editedSinceRestoreRef.current.has(answer.no) ||
+          (answer.answer ?? null) !== (restored.answer ?? null) ||
+          answer.skipped === true ||
+          answer.audioFailed === true
+        )
+      })
+      const request: FinishRequest | undefined = changedAnswers?.length
+        ? { answers: changedAnswers }
+        : undefined
 
       try {
         const completed = await finishSession(session.sessionId, request)
-        if (mountedRef.current) {
-          setFinishResult(completed)
-          setSession((current) => (current ? { ...current, status: completed.status } : current))
-          setState('finished')
-        }
+        if (!isCurrent(generation)) return null
+        setFinishResult(completed)
+        setSession((current) => (current ? { ...current, status: completed.status } : current))
+        setState('finished')
         return completed
       } catch (caught) {
-        if (mountedRef.current) setError(practiceError(caught))
+        if (isCurrent(generation)) setError(practiceError(caught))
         return null
       } finally {
-        endOperation()
+        endOperation(generation)
       }
     },
-    [beginOperation, endOperation, session],
+    [beginOperation, endOperation, isCurrent, session],
   )
 
   const abandon = useCallback(async () => {
-    if (!session || !beginOperation('abandon')) return false
+    if (!session) return false
+    const generation = beginOperation('abandon')
+    if (generation === null) return false
     try {
       await abandonSession(session.sessionId)
-      if (mountedRef.current) {
-        setSession((current) => (current ? { ...current, status: 'ABANDONED' } : current))
-        setState('abandoned')
-      }
+      if (!isCurrent(generation)) return false
+      setSession((current) => (current ? { ...current, status: 'ABANDONED' } : current))
+      setState('abandoned')
       return true
     } catch (caught) {
-      if (mountedRef.current) setError(practiceError(caught))
+      if (isCurrent(generation)) setError(practiceError(caught))
       return false
     } finally {
-      endOperation()
+      endOperation(generation)
     }
-  }, [beginOperation, endOperation, session])
+  }, [beginOperation, endOperation, isCurrent, session])
 
   const reload = useCallback(() => setReloadKey((current) => current + 1), [])
 
   const sync = useCallback(async () => {
-    if (!session || !beginOperation('sync')) return null
+    if (!session) return null
+    const generation = beginOperation('sync')
+    if (generation === null) return null
     try {
       const refreshed = await getSession(session.sessionId)
-      if (mountedRef.current) applySession(refreshed)
+      if (!isCurrent(generation)) return null
+      applySession(refreshed)
       return refreshed
     } catch (caught) {
-      if (mountedRef.current) setError(practiceError(caught))
+      if (isCurrent(generation)) setError(practiceError(caught))
       return null
     } finally {
-      endOperation()
+      endOperation(generation)
     }
-  }, [applySession, beginOperation, endOperation, session])
+  }, [applySession, beginOperation, endOperation, isCurrent, session])
 
   return {
     abandon,

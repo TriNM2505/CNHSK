@@ -9,6 +9,29 @@ const playMock = vi.spyOn(HTMLMediaElement.prototype, 'play')
 afterEach(() => playMock.mockReset())
 
 describe('AudioButton', () => {
+  it('FR043_allows the third play, blocks the fourth, and resets the counter after reload', async () => {
+    const user = userEvent.setup()
+    playMock.mockResolvedValue(undefined)
+    const { unmount } = render(
+      <AudioButton audioUrl="/audio/ni-hao.mp3" maxReplays={3} onAudioFailed={vi.fn()} />,
+    )
+    expect(playMock).not.toHaveBeenCalled()
+    const play = screen.getByRole('button', { name: 'Nghe từ' })
+    await user.click(play)
+    await user.click(play)
+    expect(play).toBeEnabled()
+    expect(playMock).toHaveBeenCalledTimes(2)
+    await user.click(play)
+    expect(playMock).toHaveBeenCalledTimes(3)
+    await user.click(screen.getByRole('button', { name: 'Đã hết lượt nghe' }))
+    expect(playMock).toHaveBeenCalledTimes(3)
+    unmount()
+
+    render(<AudioButton audioUrl="/audio/ni-hao.mp3" maxReplays={3} onAudioFailed={vi.fn()} />)
+    expect(screen.getByText('Đã nghe 0/3 lần')).toBeVisible()
+    expect(playMock).toHaveBeenCalledTimes(3)
+  })
+
   it('does not autoplay and locks after three total plays', async () => {
     const user = userEvent.setup()
     const onReplayCountChange = vi.fn()

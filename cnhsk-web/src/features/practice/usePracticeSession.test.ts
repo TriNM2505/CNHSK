@@ -59,6 +59,218 @@ beforeEach(() => {
 })
 
 describe('usePracticeSession', () => {
+  it('FR045_restores only the fields present in a DEFERRED snapshot', async () => {
+    const restored = createSession({
+      feedback: 'DEFERRED',
+      source: 'TOPIC_TEST',
+      answered: [{ no: 1, answer: 'A' }, { no: 2 }],
+    })
+    findActiveSessionMock.mockResolvedValue(restored)
+    getSessionMock.mockResolvedValue(restored)
+    const { result } = renderHook(() =>
+      usePracticeSession({ source: 'TOPIC_TEST', start: vi.fn() }),
+    )
+
+    await waitFor(() => expect(result.current.state).toBe('ready'))
+
+    expect(result.current.drafts).toEqual({ 1: { no: 1, answer: 'A' }, 2: { no: 2 } })
+    expect(result.current.results).toEqual({})
+    expect(answerItemMock).not.toHaveBeenCalled()
+    expect(finishSessionMock).not.toHaveBeenCalled()
+  })
+
+  it('FR045_finishes after reload without resending restored answers or invented evidence', async () => {
+    const restored = createSession({
+      feedback: 'DEFERRED',
+      source: 'TOPIC_TEST',
+      answered: [{ no: 1, answer: 'A' }],
+    })
+    findActiveSessionMock.mockResolvedValue(restored)
+    getSessionMock.mockResolvedValue(restored)
+    const { result } = renderHook(() =>
+      usePracticeSession({ source: 'TOPIC_TEST', start: vi.fn() }),
+    )
+    await waitFor(() => expect(result.current.state).toBe('ready'))
+
+    // The existing screen sends all displayed drafts with newly measured durations.
+    await act(() => result.current.finish([{ no: 1, answer: 'A', durationMs: 400 }]))
+
+    expect(finishSessionMock).toHaveBeenCalledOnce()
+    expect(finishSessionMock).toHaveBeenCalledWith(42, undefined)
+    expect(answerItemMock).not.toHaveBeenCalled()
+  })
+
+  it('FR045_keeps complete evidence for answers edited after reload and excludes old drafts', async () => {
+    const restored = createSession({
+      feedback: 'DEFERRED',
+      source: 'TOPIC_TEST',
+      answered: [
+        { no: 1, answer: 'A' },
+        { no: 2, answer: 'A' },
+      ],
+    })
+    findActiveSessionMock.mockResolvedValue(restored)
+    getSessionMock.mockResolvedValue(restored)
+    const { result } = renderHook(() =>
+      usePracticeSession({ source: 'TOPIC_TEST', start: vi.fn() }),
+    )
+    await waitFor(() => expect(result.current.state).toBe('ready'))
+    const edited = { no: 2, answer: 'B', durationMs: 1250, replayCount: 2 }
+
+    await act(() => result.current.answer(edited.no, edited))
+    expect(answerItemMock).toHaveBeenCalledOnce()
+    expect(answerItemMock).toHaveBeenCalledWith(42, edited)
+    expect(result.current.drafts[2]).toEqual(edited)
+    await act(() => result.current.finish([{ no: 1, answer: 'A', durationMs: 500 }, edited]))
+
+    expect(finishSessionMock).toHaveBeenCalledOnce()
+    expect(finishSessionMock).toHaveBeenCalledWith(42, { answers: [edited] })
+  })
+
+  it('FR045_includes an unsaved edit passed directly to finish after reload', async () => {
+    const restored = createSession({
+      feedback: 'DEFERRED',
+      source: 'TOPIC_TEST',
+      answered: [{ no: 1, answer: 'A' }],
+    })
+    findActiveSessionMock.mockResolvedValue(restored)
+    getSessionMock.mockResolvedValue(restored)
+    const { result } = renderHook(() =>
+      usePracticeSession({ source: 'TOPIC_TEST', start: vi.fn() }),
+    )
+    await waitFor(() => expect(result.current.state).toBe('ready'))
+    const edited = { no: 1, answer: 'B', durationMs: 900 }
+
+    await act(() => result.current.finish([edited]))
+
+    expect(finishSessionMock).toHaveBeenCalledOnce()
+    expect(finishSessionMock).toHaveBeenCalledWith(42, { answers: [edited] })
+  })
+
+  it('FR045_does not invent acceptance or grading fields when restoring RECORD items', async () => {
+    const restored = createSession({
+      feedback: 'RECORD',
+      source: 'TOPIC_STUDY',
+      answered: [{ no: 1 }, { no: 2, correct: null }],
+    })
+    findActiveSessionMock.mockResolvedValue(restored)
+    getSessionMock.mockResolvedValue(restored)
+    const { result } = renderHook(() =>
+      usePracticeSession({ source: 'TOPIC_STUDY', start: vi.fn() }),
+    )
+
+    await waitFor(() => expect(result.current.state).toBe('ready'))
+
+    expect(result.current.results).toEqual({ 1: { no: 1 }, 2: { no: 2, correct: null } })
+  })
+
+  it('FR045_keeps a real answer submitted again by the learner after reload', async () => {
+    const restored = createSession({
+      feedback: 'DEFERRED',
+      source: 'TOPIC_TEST',
+      answered: [{ no: 1, answer: 'A' }],
+    })
+    findActiveSessionMock.mockResolvedValue(restored)
+    getSessionMock.mockResolvedValue(restored)
+    const { result } = renderHook(() =>
+      usePracticeSession({ source: 'TOPIC_TEST', start: vi.fn() }),
+    )
+    await waitFor(() => expect(result.current.state).toBe('ready'))
+    const edited = { no: 1, answer: 'A', durationMs: 1500, replayCount: 1 }
+
+    await act(() => result.current.answer(edited.no, edited))
+    await act(() => result.current.finish([edited]))
+
+    expect(result.current.drafts[1]).toEqual(edited)
+    expect(finishSessionMock).toHaveBeenCalledWith(42, { answers: [edited] })
+  })
+
+  it('FR045_preserves a newly reported audio failure when finishing a restored draft', async () => {
+    const restored = createSession({
+      feedback: 'DEFERRED',
+      source: 'TOPIC_TEST',
+      answered: [{ no: 1, answer: 'A' }],
+    })
+    findActiveSessionMock.mockResolvedValue(restored)
+    getSessionMock.mockResolvedValue(restored)
+    const { result } = renderHook(() =>
+      usePracticeSession({ source: 'TOPIC_TEST', start: vi.fn() }),
+    )
+    await waitFor(() => expect(result.current.state).toBe('ready'))
+    const edited = { no: 1, audioFailed: true, durationMs: 1500, replayCount: 1 }
+
+    await act(() => result.current.finish([edited]))
+
+    expect(finishSessionMock).toHaveBeenCalledWith(42, { answers: [edited] })
+  })
+
+  it.each(['answer', 'finish', 'start', 'sync', 'abandon'])(
+    'FR045_ignores a late %s completion after moving to another topic',
+    async (operation) => {
+      const oldSession = createSession({ sessionId: 1, refId: 11 })
+      const newSession = createSession({ sessionId: 2, refId: 22 })
+      let release = () => {}
+      const blocked = new Promise<void>((resolve) => {
+        release = resolve
+      })
+      const start = vi.fn().mockResolvedValue(oldSession)
+      const { result, rerender } = renderHook(
+        ({ refId }) => usePracticeSession({ source: 'TOPIC_PRACTICE', refId, start }),
+        { initialProps: { refId: 11 } },
+      )
+      await waitFor(() => expect(result.current.state).toBe('idle'))
+      await act(() => result.current.start())
+      if (operation === 'answer')
+        answerItemMock.mockImplementationOnce(async () => {
+          await blocked
+          return { no: 1, correct: true }
+        })
+      if (operation === 'finish')
+        finishSessionMock.mockImplementationOnce(async () => {
+          await blocked
+          return { sessionId: 1, status: 'SUBMITTED', items: [], suspicious: false }
+        })
+      if (operation === 'start')
+        start.mockImplementationOnce(async () => {
+          await blocked
+          return oldSession
+        })
+      if (operation === 'sync')
+        getSessionMock.mockImplementationOnce(async () => {
+          await blocked
+          return oldSession
+        })
+      if (operation === 'abandon')
+        abandonSessionMock.mockImplementationOnce(async () => {
+          await blocked
+        })
+      let pending: Promise<unknown> = Promise.resolve()
+      act(() => {
+        if (operation === 'answer')
+          pending = result.current.answer(1, { answer: 'A', durationMs: 800 })
+        if (operation === 'finish') pending = result.current.finish()
+        if (operation === 'start') pending = result.current.start()
+        if (operation === 'sync') pending = result.current.sync()
+        if (operation === 'abandon') pending = result.current.abandon()
+      })
+      getSessionMock.mockResolvedValue(newSession)
+      findActiveSessionMock.mockResolvedValue(newSession)
+      rerender({ refId: 22 })
+      await waitFor(() => expect(result.current.session?.sessionId).toBe(2))
+
+      await act(async () => {
+        release()
+        await pending
+      })
+
+      expect(result.current.session).toEqual(newSession)
+      expect(result.current.state).toBe('ready')
+      expect(result.current.results).toEqual({})
+      expect(result.current.finishResult).toBeNull()
+      expect(result.current.pending).toBeNull()
+    },
+  )
+
   it('restores an active session with the full session endpoint', async () => {
     const active = createSession({ sessionId: 7 })
     const restored = createSession({

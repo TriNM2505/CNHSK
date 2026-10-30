@@ -18,6 +18,35 @@ const item: ServedItemView = {
 }
 
 describe('ChoiceQuestion', () => {
+  it('FR043_does not reveal supplied grading feedback in DEFERRED mode', () => {
+    render(
+      <ChoiceQuestion
+        feedbackMode="DEFERRED"
+        item={item}
+        onAnswer={vi.fn()}
+        result={{ no: 1, correct: false, correctAnswer: 'B', explanation: 'Server explanation' }}
+      />,
+    )
+
+    expect(screen.queryByText('Chưa chính xác')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Đáp án đúng/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Server explanation')).not.toBeInTheDocument()
+  })
+
+  it('FR043_allows retry after an unsuccessful IMMEDIATE answer', async () => {
+    const user = userEvent.setup()
+    const onAnswer = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce(undefined)
+    render(<ChoiceQuestion feedbackMode="IMMEDIATE" item={item} onAnswer={onAnswer} />)
+
+    await user.click(screen.getByRole('button', { name: /chúng tôi/i }))
+    await user.click(screen.getByRole('button', { name: /một phương án/i }))
+
+    expect(onAnswer).toHaveBeenNthCalledWith(2, 'B')
+  })
+
   it('locks IMMEDIATE choices after the first selection', async () => {
     const user = userEvent.setup()
     const onAnswer = vi.fn().mockResolvedValue(undefined)
