@@ -8,7 +8,7 @@ import { getCurrentUser } from '@/features/auth/api/getCurrentUser'
 import type { CurrentUser, RoleCode } from '@/features/auth/types'
 import { ApiError } from '@/shared/api'
 
-import { ownPost, postDetail, publishedPage } from './test-fixtures'
+import { moderationPage, moderationPost, ownPost, postDetail, publishedPage, reportCase, reportPage } from './test-fixtures'
 
 vi.mock('@/features/community/api/posts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/community/api/posts')>()),
@@ -21,6 +21,13 @@ vi.mock('@/features/community/api/posts', async (importOriginal) => ({
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
 vi.mock('@/features/auth/api/signOutCurrentUser', () => ({ signOutCurrentUser: vi.fn() }))
 vi.mock('@/features/community/api/comments', () => ({ listPostComments: vi.fn().mockResolvedValue([]) }))
+vi.mock('@/features/community/api/moderation', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/community/api/moderation')>()),
+  listPendingPosts: vi.fn().mockResolvedValue(moderationPage),
+  getModerationPost: vi.fn().mockResolvedValue(moderationPost),
+  listPendingReportCases: vi.fn().mockResolvedValue(reportPage),
+  getReportCase: vi.fn().mockResolvedValue(reportCase),
+}))
 
 const routes = [
   { path: '/community', url: '/community', scr: 'SCR-039', access: 'public', layout: 'public' },
@@ -128,7 +135,7 @@ describe('community route foundation (§12; FR-001 and AT-01/02 access only)', (
   })
 
   it.each(routes)(
-    'FR001_allowed role reaches $scr screen or fallback at $path',
+    'FR001_allowed role reaches $scr screen at $path',
     async ({ url, scr, access, layout }) => {
       if (Array.isArray(access)) getCurrentUserMock.mockResolvedValue(user(access))
       const router = renderRoute(url)
@@ -140,8 +147,14 @@ describe('community route foundation (§12; FR-001 and AT-01/02 access only)', (
         expect(await screen.findByRole('textbox', { name: 'Tiêu đề' })).toHaveValue(ownPost.title)
       } else if (scr === 'SCR-040') {
         expect(await screen.findByRole('heading', { name: postDetail.title })).toBeVisible()
+      } else if (scr === 'SCR-060') {
+        expect(await screen.findByRole('heading', { name: 'Bài chờ duyệt' })).toBeVisible()
+      } else if (scr === 'SCR-061') {
+        expect(await screen.findByRole('heading', { name: moderationPost.title })).toBeVisible()
+      } else if (scr === 'SCR-062') {
+        expect(await screen.findByRole('heading', { name: 'Báo cáo vi phạm' })).toBeVisible()
       } else {
-        expect(await screen.findByRole('heading', { name: `Màn ${scr} đang dựng` })).toBeVisible()
+        expect(await screen.findByRole('heading', { name: 'Hồ sơ báo cáo #9' })).toBeVisible()
       }
       expect(router.state.location.pathname).toBe(url)
       if (layout === 'learner')

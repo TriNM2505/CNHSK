@@ -1,8 +1,8 @@
-import { createElement } from 'react'
+import { createElement, useState } from 'react'
 
 import type { PreviewEntry } from '@/app/preview/types'
 import { AuthContext, type AuthContextValue } from '@/shared/auth'
-import { LearnerLayout, PublicLayout } from '@/shared/layout'
+import { AdminLayout, LearnerLayout, PublicLayout } from '@/shared/layout'
 import { previewLearner } from '@/shared/layout/Layout.preview'
 
 import { CommunityPostListView } from './components/CommunityPostListView'
@@ -12,9 +12,16 @@ import { CommentTree } from './components/CommentTree'
 import { CommentForm } from './components/CommentForm'
 import { ReportForm } from './components/ReportForm'
 import { CommentModerationForm } from './components/CommentModerationForm'
-import { ownPageWithStatuses, ownPostApproved, ownPostHidden, ownPostRejected, publishedPage, postDetail, publicDiscussion, moderationComment } from './test-fixtures'
+import { ownPageWithStatuses, ownPostApproved, ownPostHidden, ownPostRejected, publishedPage, postDetail, publicDiscussion, moderationComment, moderationPage, reportPage, moderationPostStates, reportedPostCase, reportCase, handledReportCase } from './test-fixtures'
 import type { PostFormValues } from './postForm'
 import type { OwnPost } from './types'
+import { PostModerationQueueView } from './components/PostModerationQueueView'
+import { ReportCaseQueueView } from './components/ReportCaseQueueView'
+import { PostModerationDetailView } from './components/PostModerationDetailView'
+import { ReportCaseDetailView } from './components/ReportCaseDetailView'
+import { PostReviewForm } from './components/PostReviewForm'
+import { ReportDecisionForm } from './components/ReportDecisionForm'
+import type { ReportDecision } from './types'
 
 const previewAuth: AuthContextValue = {
   error: null,
@@ -108,4 +115,27 @@ const detailPreviews: readonly PreviewEntry[] = [
   { id: 'scr-040-moderation-confirmation', title: 'Kiểm duyệt — Trong trang', render: () => createElement(CommentModerationForm, { action: 'HIDE', disabled: false, onSubmit: () => undefined, onCancel: () => undefined }) },
 ].map((entry) => ({ ...entry, group: 'screen' as const, scr: 'SCR-040', fullFrame: true, render: () => createElement(AuthContext.Provider, { value: entry.id.includes('moderator') || entry.id.includes('moderation') ? moderatorPreviewAuth : entry.id === 'scr-040-learner-interactions' ? learnerPreviewAuth : previewAuth }, createElement(PublicLayout, null, entry.render())) }))
 
-export const previews = [...entries, ...detailPreviews] satisfies readonly PreviewEntry[]
+function PostReviewPreview() {
+  const [reason, setReason] = useState('')
+  return createElement(PostReviewForm, { reason, onReasonChange: setReason, disabled: false, onApprove: () => undefined, onReject: () => undefined, onCancel: () => setReason('') })
+}
+function CaseDecisionPreview() {
+  const [note, setNote] = useState('')
+  const [decision, setDecision] = useState<ReportDecision['decision'] | ''>('')
+  const [commentAction, setCommentAction] = useState<'HIDE' | 'DELETE' | ''>('')
+  const [confirming, setConfirming] = useState(false)
+  return createElement(ReportDecisionForm, { targetKind: 'COMMENT', note, onNoteChange: setNote, decision, onDecisionChange: setDecision, commentAction, onCommentActionChange: setCommentAction, confirming, onConfirmingChange: setConfirming, disabled: false, onSubmit: () => undefined, onCancel: () => { setNote(''); setConfirming(false) } })
+}
+const queuePreviewEntries: PreviewEntry[] = (['loading', 'empty', 'error', 'ready'] as const).flatMap((state) => [
+  { id: `scr-060-${state}`, scr: 'SCR-060', title: `Bài chờ duyệt — ${state}`, group: 'screen' as const, render: () => createElement(PostModerationQueueView, { data: state === 'ready' ? moderationPage : undefined, state, error: 'Không thể tải hàng đợi.', page: 0, onPageChange: () => undefined, onRetry: () => undefined }) },
+  { id: `scr-062-${state}`, scr: 'SCR-062', title: `Hồ sơ báo cáo — ${state}`, group: 'screen' as const, render: () => createElement(ReportCaseQueueView, { data: state === 'ready' ? reportPage : undefined, state, error: 'Không thể tải hàng đợi.', page: 0, onPageChange: () => undefined, onRetry: () => undefined }) },
+])
+const moderationPreviewEntries: PreviewEntry[] = [
+  ...queuePreviewEntries,
+  ...moderationPostStates.map((post) => ({ id: `scr-061-${post.status.toLowerCase()}`, scr: 'SCR-061', group: 'screen' as const, title: `Chi tiết kiểm duyệt — ${post.status}`, render: () => createElement('main', { className: 'mx-auto max-w-reading p-4' }, createElement(PostModerationDetailView, { post }), post.status === 'PENDING' ? createElement(PostReviewPreview) : null) })),
+  { id: 'scr-061-comments', scr: 'SCR-061', group: 'screen' as const, title: 'Bình luận kiểm duyệt', render: () => createElement('main', { className: 'p-4' }, createElement(CommentTree, { postId: 42, comments: [moderationComment], actions: { userId: 100, learner: false, moderator: true, guest: false, verified: false, disabled: false, now: Date.now(), lockedEdits: new Set<number>(), onSelect: () => undefined }, onRetry: () => undefined })) },
+  ...[reportCase, reportedPostCase, handledReportCase].map((item) => ({ id: `scr-063-${item.id}`, scr: 'SCR-063', title: `Hồ sơ ${item.target.kind} — ${item.status}`, group: 'screen' as const, render: () => createElement('main', { className: 'mx-auto max-w-reading p-4' }, createElement(ReportCaseDetailView, { reportCase: item }), item.status === 'PENDING' && item.target.kind === 'COMMENT' ? createElement(CaseDecisionPreview) : null) })),
+  { id: 'scr-063-direct-confirmation', scr: 'SCR-063', group: 'screen' as const, title: 'Kiểm duyệt bình luận trực tiếp — Xác nhận độc lập', render: () => createElement('main', { className: 'p-4' }, createElement(ReportCaseDetailView, { reportCase }), createElement(CommentModerationForm, { action: 'HIDE', disabled: false, draft: { reason: 'Lý do tự nhập mẫu', confirming: true }, onDraftChange: () => undefined, onSubmit: () => undefined, onCancel: () => undefined })) },
+].map((entry: PreviewEntry) => ({ ...entry, fullFrame: true, render: () => createElement(AuthContext.Provider, { value: moderatorPreviewAuth }, createElement(AdminLayout, null, entry.render('ready'))) }))
+
+export const previews = [...entries, ...detailPreviews, ...moderationPreviewEntries] satisfies readonly PreviewEntry[]

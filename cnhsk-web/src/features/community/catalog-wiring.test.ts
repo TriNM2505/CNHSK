@@ -15,7 +15,7 @@ afterEach(() => {
 describe('community catalog foundation (§10, §12)', () => {
   it('FR058_registers SCR-039/SCR-040/SCR-041 and supplies unique preview states', async () => {
     const { previews } = await import('./catalog.preview')
-    expect(Object.keys(screens)).toEqual(['SCR-039', 'SCR-040', 'SCR-041'])
+    expect(Object.keys(screens)).toEqual(['SCR-039', 'SCR-040', 'SCR-041', 'SCR-060', 'SCR-061', 'SCR-062', 'SCR-063'])
     expect(previews.map(({ id }) => id)).toEqual(expect.arrayContaining([
       'scr-039-public-ready', 'scr-039-public-empty', 'scr-039-public-loading', 'scr-039-public-error',
       'scr-039-mine-statuses', 'scr-041-create', 'scr-041-edit-approved', 'scr-041-edit-rejected',
@@ -86,4 +86,24 @@ describe('community catalog foundation (§10, §12)', () => {
     const ids = previewRegistry.map(({ id }) => id)
     expect(new Set(ids).size).toBe(ids.length)
   }, 15_000)
+
+  it('FR060_FR062_FR063_moderation previews render four admin screens without network or storage hydration', async () => {
+    const { previews } = await import('./catalog.preview')
+    const entries = previews.filter(({ scr }) => ['SCR-060', 'SCR-061', 'SCR-062', 'SCR-063'].includes(scr ?? ''))
+    expect(new Set(entries.map(({ scr }) => scr))).toEqual(new Set(['SCR-060', 'SCR-061', 'SCR-062', 'SCR-063']))
+    expect(entries.map(({ id }) => id)).toEqual(expect.arrayContaining(['scr-060-ready', 'scr-061-hidden', 'scr-062-empty', 'scr-063-direct-confirmation']))
+    const fetch = vi.spyOn(globalThis, 'fetch')
+    const storage = vi.spyOn(Storage.prototype, 'getItem')
+    try {
+      for (const entry of entries) {
+        const view = render(createElement(MemoryRouter, null, entry.render('ready')))
+        expect(screen.getAllByRole('main')).toHaveLength(1)
+        expect(screen.getAllByRole('navigation', { name: 'Quản trị' })).toHaveLength(1)
+        if (entry.scr === 'SCR-062') expect(screen.queryByText(/Người báo cáo:/)).not.toBeInTheDocument()
+        view.unmount()
+      }
+      expect(fetch).not.toHaveBeenCalled()
+      expect(storage).not.toHaveBeenCalled()
+    } finally { fetch.mockRestore(); storage.mockRestore() }
+  })
 })

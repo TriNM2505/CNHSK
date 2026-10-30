@@ -163,3 +163,11 @@ export const reportPage: ReportCasePage = {
   size: 20,
   totalElements: 1,
 }
+
+export const moderationPostStates: ModerationPost[] = (['DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'HIDDEN'] as const).map((status) => ({
+  ...moderationPost,
+  status,
+  reviewReason: status === 'REJECTED' || status === 'HIDDEN' ? 'Lý do kiểm duyệt mẫu.' : null,
+}))
+export const reportedPostCase: ReportCaseDetail = { ...reportCase, id: 10, target: { kind: 'POST', id: 42, title: postWrite.title, content: postWrite.content, category: 'QUESTION', status: 'APPROVED', author } }
+export const handledReportCase: ReportCaseDetail = { ...reportCase, id: 12, status: 'ACTIONED', handledBy: { id: 8, displayName: 'Kiểm duyệt viên' }, handledAt: timestamp, decisionNote: 'Ghi chú xử lý mẫu.' }
