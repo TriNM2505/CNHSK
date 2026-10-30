@@ -5,7 +5,9 @@ public enum ItemType {
     MEANING_CHOICE(true),
     AUDIO_WORD_CHOICE(true),
     CLOZE_CHOICE(true),
-    PINYIN_INPUT(true);
+    PINYIN_INPUT(true),
+    LESSON_READ(false),
+    GRAMMAR_CHOICE(true);
 
     private final boolean gradable;
 

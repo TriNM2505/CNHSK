@@ -7,7 +7,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | Thêm `GRAMMAR_LESSON` vào `PracticeSource`, `LESSON_READ`/`GRAMMAR_CHOICE` vào `ItemType`; `GrammarQueryService` + `GET /api/grammar`, `GET /api/grammar/{id}` (truy vấn tổng hợp `learned`/`bestPercent`) | `…/learning/grammar/*`, `…/learning/practice/PracticeSource.java` | FR-001…FR-005 · AT-01…AT-04 | ⬜ |
+| T-01 | `GRAMMAR_LESSON` đã có trong `PracticeSource`; thêm `LESSON_READ`/`GRAMMAR_CHOICE` vào `ItemType`; `GrammarQueryService` + `GET /api/grammar`, `GET /api/grammar/{id}` (truy vấn tổng hợp `learned`/`bestPercent`) | `…/learning/grammar/*`, `…/learning/practice/ItemType.java`, `…/learning/api/PracticeApi.java` | FR-001…FR-005 · AT-01…AT-04 | ✅ |
 | T-02 | `GrammarLessonService` + `POST /lessons`: câu `LESSON_READ` ghi sẵn, `readTooFast`, chọn/trộn bài tập, không có bài tập → kết thúc ngay, tiếp tục lượt | `…/learning/grammar/GrammarLessonService.java` | FR-009…FR-014 · AT-05…AT-10 | ⬜ |
 | T-03 | `GrammarLessonHandler` (`extra`) | `…/learning/grammar/GrammarLessonHandler.java` | FR-015, FR-016 · AT-11, AT-12 | ⬜ |
 | T-04 | SCR-017 Grammar List (7 tab) | `cnhsk-web/src/features/grammar/pages/GrammarListPage.tsx` | FR-004 · AT-13 | ⬜ |

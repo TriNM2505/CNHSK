@@ -53,5 +53,6 @@ public enum ErrorCode {
     AUDIO_NOT_IN_ITEM,
     SKIP_NOT_ALLOWED,
     TOPIC_NOT_FOUND,
+    GRAMMAR_POINT_NOT_FOUND,
     INTERNAL_ERROR
 }
