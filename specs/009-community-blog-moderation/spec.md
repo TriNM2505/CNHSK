@@ -242,6 +242,7 @@ script trong bài/bình luận chạy trên máy `MODERATOR`, và sửa bài đ�
 | **FR-062** | SCR-062 hàng đợi hồ sơ báo cáo (FR-046), SCR-063 chi tiết (FR-047) với "Bác báo cáo" và "Xử lý nội dung" (bình luận: chọn Ẩn/Xoá; ghi chú bắt buộc). Danh tính người báo cáo chỉ hiện trên SCR-063 |
 | **FR-063** | Khi người xem có role `MODERATOR`, SCR-040 SHALL tải cây bình luận từ `GET /api/community/moderation/posts/{id}/comments` thay cho endpoint công khai: trả **mọi** bình luận của bài (mọi trạng thái bài) kèm `content`, `author`, `status`, `moderatedBy`, `moderationReason` (phần tử `ModerationComment`), sắp `created_at` tăng dần; bài không tồn tại → **404** `POST_NOT_FOUND`. Mỗi bình luận có nút Ẩn / Xoá (khi `VISIBLE`) hoặc Khôi phục (khi `HIDDEN`/`DELETED` không phải `AUTHOR_DELETED`), lý do bắt buộc, xác nhận trong trang |
 
+Trên SCR-040, FR-063 áp dụng cho bài APPROVED; bài ở trạng thái khác kiểm duyệt tại SCR-061.
 ### Key Entities
 
 | Bảng | Dùng thế nào |
