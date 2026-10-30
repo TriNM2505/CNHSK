@@ -15,17 +15,23 @@ import com.cnhsk.learning.practice.entity.Attempt;
 import com.cnhsk.learning.practice.entity.AttemptItem;
 import com.cnhsk.learning.practice.entity.AttemptItemRepository;
 import com.cnhsk.learning.practice.entity.AttemptRepository;
+import com.cnhsk.learning.practice.grading.PinyinGrader;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
-/** Server-side session creation and restoration; callers obtain user ids through AuthApi. */
+/** Session creation, restoration and server-side answers; callers obtain user ids through AuthApi. */
 @Service
 public class PracticeService {
 
@@ -36,6 +42,7 @@ public class PracticeService {
     private final Clock clock;
     private final PracticeRateLimiter rateLimiter;
     private final List<PracticeSourceHandler> handlers;
+    private TransactionTemplate answerTransaction;
 
     public PracticeService(AttemptRepository attempts, AttemptItemRepository attemptItems,
             EntityManager entityManager, ObjectMapper mapper, Clock clock,
@@ -47,6 +54,13 @@ public class PracticeService {
         this.clock = clock;
         this.rateLimiter = rateLimiter;
         this.handlers = List.copyOf(handlers);
+    }
+
+    @Autowired
+    void configureAnswerTransaction(PlatformTransactionManager manager) {
+        answerTransaction = new TransactionTemplate(manager);
+        // Expiry is committed before the API error is thrown, including when a caller has a transaction.
+        answerTransaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     @Transactional
@@ -94,6 +108,143 @@ public class PracticeService {
             query.setParameter("refId", refId);
         }
         return query.getResultList().stream().findFirst().map(this::toView).orElse(null);
+    }
+
+    public AnswerResult answer(long userId, long sessionId, Answer answer) {
+        AnswerOutcome outcome = Objects.requireNonNull(answerTransaction.execute(status ->
+                answerInTransaction(userId, sessionId, answer)));
+        if (outcome.failure() != null) {
+            throw outcome.failure();
+        }
+        return outcome.result();
+    }
+
+    private AnswerOutcome answerInTransaction(long userId, long sessionId, Answer answer) {
+        Attempt attempt = attempts.findByIdForUpdate(sessionId).orElseThrow(PracticeService::notOwned);
+        if (!Objects.equals(attempt.getUserId(), userId)) {
+            throw notOwned();
+        }
+        if ("EXPIRED".equals(attempt.getStatus())
+                || ("IN_PROGRESS".equals(attempt.getStatus()) && attempt.getExpiresAt().isBefore(clock.instant()))) {
+            attempt.setStatus("EXPIRED");
+            return new AnswerOutcome(null, failure(ErrorCode.SESSION_EXPIRED, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Lượt luyện đã hết hạn."));
+        }
+        if (!"IN_PROGRESS".equals(attempt.getStatus())) {
+            throw failure(ErrorCode.SESSION_ALREADY_SUBMITTED, HttpStatus.CONFLICT, "Lượt luyện đã kết thúc.");
+        }
+        PracticeSource source = PracticeSource.valueOf(attempt.getRefType());
+        ServedSnapshot snapshot = mapper.convertValue(attempt.getServedItems(), ServedSnapshot.class);
+        validateAnswerEvidence(answer);
+        ServedItem item = snapshot.items().stream().filter(candidate -> candidate.no() == answer.no()).findFirst()
+                .orElseThrow(() -> failure(ErrorCode.ITEM_NOT_IN_SESSION, HttpStatus.BAD_REQUEST,
+                        "Câu hỏi không thuộc lượt luyện này."));
+        boolean recordOnly = source.feedback() == FeedbackMode.RECORD || !item.type().gradable();
+        boolean deferred = source.feedback() == FeedbackMode.DEFERRED && !recordOnly;
+        if (!deferred && attemptItems.existsByAttemptIdAndOrderIndex(sessionId, item.no())) {
+            throw failure(ErrorCode.ANSWER_ALREADY_SUBMITTED, HttpStatus.CONFLICT, "Câu hỏi đã được trả lời.");
+        }
+        validateAnswerRules(source, item, answer);
+        rateLimiter.checkAnswer(userId);
+        var meta = new LinkedHashMap<String, Object>();
+        handlers.stream().filter(handler -> handler.source() == source).forEach(handler -> {
+            handler.validateAnswer(item, answer);
+            meta.putAll(handler.enrichMeta(item, answer));
+        });
+        if (deferred) {
+            ObjectNode draft = attempt.getDraftAnswers() == null ? mapper.createObjectNode()
+                    : (ObjectNode) attempt.getDraftAnswers().deepCopy();
+            draft.set(Integer.toString(item.no()), mapper.valueToTree(new DraftAnswer(answer.answer(),
+                    answer.durationMs(), answer.replayCount(), answer.skipped(), answer.audioFailed())));
+            attempt.setDraftAnswers(draft);
+            attempt.setDraftSavedAt(clock.instant());
+            return new AnswerOutcome(new AnswerResult(item.no(), null, null, null, null, null, true, null), null);
+        }
+        if (answer.durationMs() < item.rules().minDurationMs()) {
+            meta.put("suspicious", true);
+        }
+        if (answer.skipped()) {
+            meta.put("skipped", true);
+        }
+        if (answer.audioFailed()) {
+            meta.put("audioFailed", true);
+        }
+        meta.put("replayCount", answer.replayCount());
+        boolean counted = !recordOnly && !answer.skipped() && !answer.audioFailed();
+        Boolean correct = counted ? (item.type() == ItemType.PINYIN_INPUT
+                ? PinyinGrader.matches(answer.answer(), item.accept()) : Objects.equals(item.answer(), answer.answer()))
+                : null;
+        AttemptItem recorded = new AttemptItem(sessionId, item.no(), item.type().name(), item.skill().name());
+        recorded.setLexemeId(item.lexemeId());
+        recorded.setAnswer(answer.answer());
+        recorded.setDurationMs(answer.durationMs());
+        recorded.setCorrect(correct);
+        recorded.setMeta(meta);
+        attemptItems.saveAndFlush(recorded);
+        AnswerResult result = recordOnly
+                ? new AnswerResult(item.no(), null, null, null, null, null, null, true)
+                : new AnswerResult(item.no(), correct, counted ? item.answer() : null,
+                        counted ? item.accept() : null, counted ? item.explanation() : null, counted, null, null);
+        return new AnswerOutcome(result, null);
+    }
+
+    private void validateAnswerEvidence(Answer answer) {
+        if (answer == null) {
+            throw validation("answer");
+        }
+        if (answer.no() < 1) {
+            throw validation("no");
+        }
+        if (answer.durationMs() < 0 || answer.durationMs() > 3_600_000) {
+            throw validation("durationMs");
+        }
+        if (answer.replayCount() < 0) {
+            throw validation("replayCount");
+        }
+        if ((answer.answer() == null && !answer.skipped() && !answer.audioFailed())
+                || (answer.answer() != null && answer.answer().length() > 100)) {
+            throw validation("answer");
+        }
+        if (answer.skipped() && answer.audioFailed()) {
+            throw validation("skipped", "audioFailed");
+        }
+    }
+
+    private void validateAnswerRules(PracticeSource source, ServedItem item, Answer answer) {
+        if (answer.skipped() && !source.allowSkip()) {
+            throw failure(ErrorCode.SKIP_NOT_ALLOWED, HttpStatus.BAD_REQUEST, "Lượt luyện này không cho phép bỏ qua.");
+        }
+        if (answer.audioFailed() && !item.rules().hasAudio()) {
+            throw failure(ErrorCode.AUDIO_NOT_IN_ITEM, HttpStatus.BAD_REQUEST, "Câu hỏi không có âm thanh.");
+        }
+        if (answer.replayCount() > item.rules().maxReplays()) {
+            throw failure(ErrorCode.TOO_MANY_REPLAYS, HttpStatus.BAD_REQUEST, "Đã vượt số lần nghe cho phép.");
+        }
+        if (!answer.skipped() && !answer.audioFailed() && item.options() != null
+                && item.options().stream().noneMatch(option -> option.key().equals(answer.answer()))) {
+            throw failure(ErrorCode.OPTION_NOT_IN_ITEM, HttpStatus.BAD_REQUEST, "Đáp án không thuộc câu hỏi này.");
+        }
+    }
+
+    private static ApiException failure(ErrorCode code, HttpStatus status, String message) {
+        return new ApiException(code, status, message, Map.of());
+    }
+
+    private static ApiException validation(String... fields) {
+        return new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY,
+                "Dữ liệu không hợp lệ.", Map.of("details", java.util.Arrays.stream(fields)
+                        .map(field -> Map.of("field", field, "message", "Giá trị không hợp lệ.")).toList()));
+    }
+
+    private record AnswerOutcome(AnswerResult result, ApiException failure) {
+    }
+
+    public record DraftAnswer(String answer, int durationMs, int replayCount, boolean skipped, boolean audioFailed) {
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record AnswerResult(int no, Boolean correct, String correctAnswer, List<String> accept,
+            String explanation, Boolean counted, Boolean accepted, Boolean recorded) {
     }
 
     private Duration lifetime(StartPracticeCommand command) {
@@ -234,7 +385,7 @@ public class PracticeService {
             List<ItemState> answered, Map<String, Object> meta) {
     }
 
-    public record ItemState(int no, String answer, Boolean correct,
+    public record ItemState(int no, String answer, @JsonInclude(JsonInclude.Include.NON_NULL) Boolean correct,
             @JsonInclude(JsonInclude.Include.NON_NULL) String correctAnswer, boolean counted) {
     }
 }

@@ -104,7 +104,8 @@ components:
       required: ['no']
       description: >
         Sửa 2026-10-30 (leader duyệt): answer là câu trả lời của chính người học;
-        correctAnswer chỉ trả khi feedback IMMEDIATE/RECORD. DEFERRED trước finish không trả correctAnswer/accept/explanation, correct luôn null.
+        correctAnswer chỉ trả khi feedback IMMEDIATE/RECORD. Q-T04-03 (leader duyệt 2026-10-30):
+        DEFERRED trước finish không có field correct/correctAnswer/accept/explanation.
       properties:
         no: { type: integer }
         answer: { type: [string, 'null'] }
@@ -125,13 +126,14 @@ components:
         items: { type: array, items: { $ref: '#/components/schemas/ServedItemView' } }
         answered:
           type: array
-          description: IMMEDIATE/RECORD = kết quả đã chấm; DEFERRED = nháp (correct luôn null)
+          description: IMMEDIATE/RECORD = kết quả đã chấm; DEFERRED = nháp (không có field correct/correctAnswer trước finish)
           items: { $ref: '#/components/schemas/ItemState' }
         meta:
           type: object
           additionalProperties: true
     AnswerRequest:
       type: object
+      description: 'Q-T04-02 (leader duyệt 2026-10-30): skipped và audioFailed không được cùng true; vi phạm trả 422 VALIDATION_FAILED.'
       required: ['no', durationMs]
       properties:
         no: { type: integer, minimum: 1 }
@@ -297,6 +299,20 @@ paths:
       tags: [practice]
       operationId: answerItem
       summary: Trả lời một câu (§0.6)
+      description: |
+        Q-T04-04 (leader duyệt 2026-10-30): bổ sung đúng tám mã lỗi theo spec §5:
+        - 422 SESSION_EXPIRED: lượt quá hạn; trạng thái EXPIRED vẫn được lưu khi trả lỗi.
+        - 409 SESSION_ALREADY_SUBMITTED: lượt đã kết thúc.
+        - 400 ITEM_NOT_IN_SESSION: no không thuộc các câu đã phát.
+        - 409 ANSWER_ALREADY_SUBMITTED: câu IMMEDIATE/RECORD đã được trả lời.
+        - 400 OPTION_NOT_IN_ITEM: khóa đáp án không thuộc options của câu.
+        - 400 TOO_MANY_REPLAYS: số lần phát audio vượt rules.maxReplays.
+        - 400 AUDIO_NOT_IN_ITEM: báo audioFailed cho câu không có audio.
+        - 400 SKIP_NOT_ALLOWED: nguồn lượt không cho phép bỏ qua.
+        Lượt không tồn tại hoặc không thuộc người gọi cùng trả 403 ATTEMPT_NOT_OWNED.
+        DEFERRED lưu nháp gồm answer, durationMs, replayCount, skipped, audioFailed (Q-T04-01);
+        response chỉ có no và accepted:true, không có correct/correctAnswer/accept/explanation.
+        skipped=true cùng audioFailed=true trả 422 VALIDATION_FAILED (Q-T04-02).
       parameters: [ { $ref: '#/components/parameters/SessionId' } ]
       requestBody:
         required: true
@@ -312,7 +328,6 @@ paths:
         '400': { $ref: '#/components/responses/Error' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }

@@ -94,8 +94,10 @@ class PracticeControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk());
         mvc.perform(get("/api/auth/me").header("Authorization", bearer(owner, "LEARNER")))
                 .andExpect(status().isOk());
-        mvc.perform(post("/api/practice/sessions/{id}/answers", id).header("Authorization", bearer(owner, "LEARNER")))
-                .andExpect(status().isForbidden());
+        mvc.perform(post("/api/practice/sessions/{id}/answers", id).header("Authorization", bearer(owner, "LEARNER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"no\":1,\"answer\":\"LEARNED\",\"durationMs\":1000}"))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -212,7 +214,7 @@ class PracticeControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(view.path("answered").get(1).path("answer").asText()).isEqualTo("user-pinyin");
         assertThat(view.path("answered").get(2).path("answer").isNull()).isTrue();
         for (JsonNode state : view.path("answered")) {
-            assertThat(state.path("correct").isNull()).isTrue();
+            assertThat(state.has("correct")).isFalse();
         }
         assertThat(view.toString()).doesNotContain("correctAnswer", "\"accept\"", "explanation",
                 "secret-pinyin", "secret-explanation");

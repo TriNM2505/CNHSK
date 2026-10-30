@@ -29,20 +29,29 @@ public class PracticeRateLimiter {
     }
 
     public void checkStart(long userId) {
+        check(userId, "start", 120, "Bạn đã tạo quá nhiều lượt luyện. Vui lòng thử lại sau.");
+    }
+
+    public void checkAnswer(long userId) {
+        check(userId, "ans", 600, "Bạn đã trả lời quá nhiều câu. Vui lòng thử lại sau.");
+    }
+
+    private void check(long userId, String operation, long limit, String message) {
         var now = clock.instant();
         long retry = Math.max(1, (Duration.between(now, now.truncatedTo(ChronoUnit.HOURS).plus(1, ChronoUnit.HOURS))
                 .toMillis() + 999) / 1000);
         long count;
         try {
-            count = counters.increment("practice:start:" + userId + ":" + HOUR.format(now), Duration.ofSeconds(retry));
+            count = counters.increment("practice:" + operation + ":" + userId + ":" + HOUR.format(now),
+                    Duration.ofSeconds(retry));
         } catch (RuntimeException exception) {
             // Do not log Redis URLs, exception messages or caller-supplied content.
-            log.warn("Practice start rate limit unavailable; allowing request");
+            log.warn("Practice {} rate limit unavailable; allowing request", operation);
             return;
         }
-        if (count > 120) {
+        if (count > limit) {
             throw new ApiException(ErrorCode.RATE_LIMITED, HttpStatus.TOO_MANY_REQUESTS,
-                    "Bạn đã tạo quá nhiều lượt luyện. Vui lòng thử lại sau.", Map.of("retryAfterSeconds", retry));
+                    message, Map.of("retryAfterSeconds", retry));
         }
     }
 }

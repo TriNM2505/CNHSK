@@ -6,9 +6,12 @@ import java.util.Map;
 import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.learning.practice.PracticeService;
 import com.cnhsk.learning.practice.PracticeService.SessionView;
+import com.cnhsk.learning.practice.PracticeService.AnswerResult;
+import com.cnhsk.learning.practice.PracticeSourceHandler.Answer;
 import com.cnhsk.learning.practice.PracticeSource;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.cnhsk.shared.config.RequestIdFilter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,11 +19,20 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 @RestController
 @RequestMapping("/api/practice/sessions")
@@ -69,6 +81,40 @@ public class PracticeController {
         SessionView view = practice.findActive(auth.currentUser().userId(), parsed,
                 refId == null ? null : identifier(refId, "refId"));
         return view == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(view);
+    }
+
+    @PostMapping("/{id}/answers")
+    @Operation(operationId = "answerItem", tags = "practice", description = "Trả lời một câu theo spec 003 §0.6")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Kết quả hoặc xác nhận lưu nháp"),
+            @ApiResponse(responseCode = "400", description = "ITEM_NOT_IN_SESSION, OPTION_NOT_IN_ITEM, TOO_MANY_REPLAYS, AUDIO_NOT_IN_ITEM, SKIP_NOT_ALLOWED"),
+            @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
+            @ApiResponse(responseCode = "403", description = "Không có quyền truy cập hoặc CSRF không hợp lệ"),
+            @ApiResponse(responseCode = "409", description = "SESSION_ALREADY_SUBMITTED, ANSWER_ALREADY_SUBMITTED"),
+            @ApiResponse(responseCode = "422", description = "SESSION_EXPIRED, VALIDATION_FAILED"),
+            @ApiResponse(responseCode = "429", description = "RATE_LIMITED")
+    })
+    public AnswerResult answer(
+            @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
+            @Valid @RequestBody AnswerRequest request) {
+        return practice.answer(auth.currentUser().userId(), identifier(id, "id"), request.toAnswer());
+    }
+
+    public record AnswerRequest(@NotNull @Min(1) Integer no, @Size(max = 100) String answer,
+            @NotNull @Min(0) @Max(3_600_000) Integer durationMs,
+            @Min(0) Integer replayCount, Boolean skipped, Boolean audioFailed, Map<String, Object> clientMeta) {
+
+        public Answer toAnswer() {
+            return new Answer(no, answer, durationMs, replayCount == null ? 0 : replayCount,
+                    Boolean.TRUE.equals(skipped), Boolean.TRUE.equals(audioFailed), clientMeta);
+        }
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> malformedAnswer() {
+        return ResponseEntity.unprocessableEntity().body(Map.of("error_code", ErrorCode.VALIDATION_FAILED.name(),
+                "message", "Dữ liệu không hợp lệ.", "request_id", RequestIdFilter.currentRequestId(),
+                "details", List.of(Map.of("field", "request", "message", "Dữ liệu không hợp lệ."))));
     }
 
     private static long identifier(String value, String field) {

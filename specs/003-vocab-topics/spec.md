@@ -73,7 +73,7 @@ Java: `enum PracticeSource { …; AttemptKind kind(); FeedbackMode feedback(); D
 ```
 
 - `answer` (khoá phương án) và `accept` (danh sách đáp án gõ chấp nhận) **không bao giờ** ra client trước khi câu được chấm. DTO gửi client là record riêng `ServedItemView` **không có hai trường này** (test assert).
-- **Sửa 2026-10-30 (leader duyệt):** `items` và `meta` không chứa đáp án server; `answered[].answer` được chứa câu trả lời của chính người học để khôi phục, kể cả `preRecorded` và tiếp tục lượt. `correctAnswer` chỉ trả cho câu đã ghi/chấm khi feedback là `IMMEDIATE`/`RECORD`. `DEFERRED` không trả `correctAnswer`, `accept`, `explanation` trước `finish`, `correct` luôn `null`.
+- **Sửa 2026-10-30 (leader duyệt, Q-T04-01/03):** `items` và `meta` không chứa đáp án server; `answered[].answer` được chứa câu trả lời của chính người học để khôi phục, kể cả `preRecorded` và tiếp tục lượt. `correctAnswer` chỉ trả cho câu đã ghi/chấm khi feedback là `IMMEDIATE`/`RECORD`. Response answer và GET session của `DEFERRED` trước `finish` không có field `correct`, `correctAnswer`, `accept`, `explanation`.
 - `type` thuộc `ItemType` (§0.4); `skill` thuộc `Skill` (§0.5).
 
 ### 0.4 · Loại câu (`ItemType`, lưu `attempt_items.item_type`)
@@ -104,7 +104,7 @@ Java: `enum PracticeSource { …; AttemptKind kind(); FeedbackMode feedback(); D
 | **E-R4** | `no` phải có trong `served_items` | **400** `ITEM_NOT_IN_SESSION` |
 | **E-R5** | `IMMEDIATE`/`RECORD`: mỗi câu một lần — kiểm trước, unique `(attempt_id, order_index)` chặn đua | **409** `ANSWER_ALREADY_SUBMITTED` |
 | **E-R6** | Câu chọn: khoá phải thuộc `options` của câu | **400** `OPTION_NOT_IN_ITEM` |
-| **E-R7** | `durationMs` 0…3 600 000; thiếu `answer` khi không `skipped`/`audioFailed` | **422** `VALIDATION_FAILED` |
+| **E-R7** | `durationMs` 0…3 600 000; thiếu `answer` khi không `skipped`/`audioFailed`; `skipped=true` và `audioFailed=true` loại trừ nhau (Q-T04-02, leader duyệt 2026-10-30) | **422** `VALIDATION_FAILED` |
 | **E-R8** | `durationMs < rules.minDurationMs` → vẫn chấm, `meta.suspicious = true` | không lỗi |
 | **E-R9** | `replayCount > rules.maxReplays`. **`replayCount` = tổng số lần người học đã phát audio của câu đó, kể cả lần đầu** (0 = chưa nghe). `maxReplays: 3` ⇒ nghe tối đa 3 lần (BR-020-5) | **400** `TOO_MANY_REPLAYS` |
 | **E-R10** | `audioFailed = true` chỉ hợp lệ khi `rules.hasAudio`; câu ghi `is_correct = NULL`, `meta.audioFailed = true`, **không tính** vào điểm | **400** `AUDIO_NOT_IN_ITEM` |
@@ -255,7 +255,7 @@ phần học/luyện/kiểm tra chạy độc lập, lưu bằng chứng để c
 | **FR-003** | THE system SHALL trả câu cho client bằng `ServedItemView` không có `answer`, `accept` (SC-002) |
 | **FR-004** | THE system SHALL áp dụng E-R1…E-R12 cho `POST /api/practice/sessions/{id}/answers` |
 | **FR-005** | WHEN `IMMEDIATE`, THE system SHALL trả `{no, correct, correctAnswer, accept?, explanation, counted}` (`counted=false` với câu `skipped`/`audioFailed`) |
-| **FR-006** | WHEN `DEFERRED`, THE system SHALL trả `{no, accepted:true}` và ghi `draft_answers[no] = {answer, durationMs, replayCount, skipped}`, `draft_saved_at = now()` |
+| **FR-006** | WHEN `DEFERRED`, THE system SHALL trả `{no, accepted:true}` và ghi `draft_answers[no] = {answer, durationMs, replayCount, skipped, audioFailed}`, `draft_saved_at = now()`; thay nháp giữ đầy đủ bằng chứng của đáp án mới (Q-T04-01, leader duyệt 2026-10-30). Response answer và GET session trước finish không có field `correct`/`correctAnswer` |
 | **FR-007** | WHEN lượt `RECORD` **hoặc** câu `gradable = false`, THE system SHALL ghi `attempt_items` `is_correct = NULL`, `answer` = giá trị client gửi, trả `{no, recorded:true}` |
 | **FR-008** | THE system SHALL áp dụng E-F1…E-F9 cho `finish`; response `{sessionId, status, score, maxScore, percent, suspicious, items:[{no, correct, correctAnswer, yourAnswer}], extra}` (`percent = floor(score*100/maxScore)`, `null` khi `maxScore` = 0 hoặc `NULL`) |
 | **FR-009** | THE system SHALL phát `ItemGradedEvent`, `SessionFinishedEvent` (§0.9) trong transaction |
@@ -471,7 +471,7 @@ GROUP BY ti.topic_id;
 |---|---|---|
 | `GET /api/practice/sessions/{id}` | 200 `SessionView` | 401, 403, 422 |
 | `GET /api/practice/sessions/active?source&refId` | 200 `SessionView` · 204 | 401, 403, 422 |
-| `POST /api/practice/sessions/{id}/answers` | 200 `AnswerResult` | 400, 403, 404, 409, 422, 429 |
+| `POST /api/practice/sessions/{id}/answers` | 200 `AnswerResult` | 400, 401, 403, 409, 422, 429 |
 | `POST /api/practice/sessions/{id}/finish` | 200 `FinishResult` | 403, 404, 409, 422 |
 | `POST /api/practice/sessions/{id}/abandon` | 204 | 403, 404, 409, 422 |
 | `GET /api/topics?hskLevel` | 200 `[TopicSummary]` | 422 |
@@ -486,7 +486,7 @@ GROUP BY ti.topic_id;
 
 | # | FR | G / W / T |
 |---|---|---|
-| AT-01 | FR-002, FR-003 | W tạo/khôi phục mọi loại lượt · T `items`/`meta` không có đáp án server `answer`/`accept`; cho phép `answered[].answer` của người học. `DEFERRED` trước finish không có `correctAnswer`/`accept`/`explanation`, `correct=null` |
+| AT-01 | FR-002, FR-003 | W tạo/khôi phục mọi loại lượt · T `items`/`meta` không có đáp án server `answer`/`accept`; cho phép `answered[].answer` của người học. `DEFERRED` trước finish không có field `correct`/`correctAnswer`/`accept`/`explanation` (Q-T04-03) |
 | AT-02 | E-R1, E-R2 | G lượt của A · W B xem/trả lời hoặc dùng id không tồn tại · T cùng 403 `ATTEMPT_NOT_OWNED` và cùng message |
 | AT-03 | E-R3 | G lượt quá hạn (đồng hồ giả) · W trả lời · T 422 `SESSION_EXPIRED`, `status=EXPIRED` |
 | AT-04 | E-R4 | W `no=99` · T 400 |
