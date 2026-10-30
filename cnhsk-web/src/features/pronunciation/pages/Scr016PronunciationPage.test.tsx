@@ -115,6 +115,16 @@ function renderPage(path = '/learn/pronunciation/stages/1') {
   )
 }
 
+function singleQuestion() {
+  getStagesMock.mockResolvedValue([{ ...stage, unitCount: 1 }])
+  startSessionMock.mockResolvedValue(session({ items: [item(1)] }))
+}
+
+async function chooseFirst(user: ReturnType<typeof userEvent.setup>) {
+  const choices = await screen.findByRole('group', { name: 'Các phương án' })
+  await user.click(within(choices).getByRole('button', { name: /bā/ }))
+}
+
 describe('SCR-016 Pronunciation Practice', () => {
   afterEach(() => vi.restoreAllMocks())
 
@@ -134,7 +144,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     finishSessionMock.mockReset().mockResolvedValue(finished())
   })
 
-  it('tải danh sách một lần và hiển thị đủ tám tầng từ API', async () => {
+  it('FR017_tải danh sách một lần và hiển thị đủ tám tầng từ API', async () => {
     getStagesMock.mockResolvedValue(
       Array.from({ length: 8 }, (_, index) => ({
         ...stage,
@@ -151,7 +161,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     expect(getStagesMock).toHaveBeenCalledWith(expect.any(AbortSignal))
   })
 
-  it('hiện EmptyState khi stageIndex nằm ngoài 1–8', async () => {
+  it('FR006_hiện EmptyState khi stageIndex nằm ngoài 1–8', async () => {
     renderPage('/learn/pronunciation/stages/9')
 
     expect(
@@ -164,7 +174,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     expect(startSessionMock).not.toHaveBeenCalled()
   })
 
-  it('coi stageIndex không có trong danh sách như STAGE_NOT_FOUND', async () => {
+  it('FR006_coi stageIndex không có trong danh sách như STAGE_NOT_FOUND', async () => {
     renderPage('/learn/pronunciation/stages/2')
 
     expect(
@@ -173,7 +183,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     expect(startSessionMock).not.toHaveBeenCalled()
   })
 
-  it('map STAGE_LOCKED và dẫn tới tầng bắt buộc', async () => {
+  it('FR006_map STAGE_LOCKED và dẫn tới tầng bắt buộc', async () => {
     startSessionMock.mockRejectedValue(
       new ApiError({
         errorCode: 'STAGE_LOCKED',
@@ -194,7 +204,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     )
   })
 
-  it('map STAGE_HAS_NO_UNITS sang trạng thái đang cập nhật', async () => {
+  it('FR006_map STAGE_HAS_NO_UNITS sang trạng thái đang cập nhật', async () => {
     startSessionMock.mockRejectedValue(
       new ApiError({
         errorCode: 'STAGE_HAS_NO_UNITS',
@@ -210,7 +220,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     ).toBeVisible()
   })
 
-  it('khôi phục lượt theo stage.id và không POST lại', async () => {
+  it('FR007_khôi phục lượt theo stage.id và không POST lại', async () => {
     const restored = session({
       answered: [{ answer: 'A', correct: true, correctAnswer: 'A', counted: true, no: 1 }],
     })
@@ -224,7 +234,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     expect(screen.getByText('Câu 1/2')).toBeVisible()
   })
 
-  it('không có nút Bỏ qua và giới hạn nghe tối đa ba lần', async () => {
+  it('FR018_không có nút Bỏ qua và giới hạn nghe tối đa ba lần', async () => {
     vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
     const user = userEvent.setup()
     renderPage()
@@ -243,7 +253,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     )
   })
 
-  it('gửi audioFailed khi người học không nghe được', async () => {
+  it('FR018_gửi audioFailed khi người học không nghe được', async () => {
     const user = userEvent.setup()
     renderPage()
 
@@ -255,7 +265,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     )
   })
 
-  it('tự finish sau câu cuối và tải lại danh sách đúng một lần mà vẫn giữ kết quả', async () => {
+  it('FR019_tự finish sau câu cuối và tải lại danh sách đúng một lần mà vẫn giữ kết quả', async () => {
     const user = userEvent.setup()
     renderPage()
 
@@ -273,7 +283,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     expect(screen.getByText('Đã mở tầng 2')).toBeVisible()
   })
 
-  it('STAGE_INCOMPLETE sync rồi nhảy tới câu chưa làm và báo remaining', async () => {
+  it('FR019_STAGE_INCOMPLETE sync rồi nhảy tới câu chưa làm và báo remaining', async () => {
     const restored = session({
       answered: [{ answer: 'A', correct: true, correctAnswer: 'A', counted: true, no: 1 }],
     })
@@ -297,5 +307,305 @@ describe('SCR-016 Pronunciation Practice', () => {
     expect(await screen.findByText('Còn 1 câu chưa làm')).toBeVisible()
     expect(getSessionMock).toHaveBeenCalledTimes(2)
     expect(screen.getByText('Nghe câu 2')).toBeVisible()
+  })
+
+  it('FR017_hiện loading rồi empty khi API chưa có tầng nào', async () => {
+    let resolveStages!: (stages: PronunciationStageSummary[]) => void
+    getStagesMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveStages = resolve
+        }),
+    )
+    renderPage('/learn/pronunciation')
+
+    expect(screen.getByLabelText('Đang tải các tầng phát âm')).toBeVisible()
+    resolveStages([])
+    expect(
+      await screen.findByRole('heading', { name: 'Nội dung phát âm đang được cập nhật' }),
+    ).toBeVisible()
+    expect(startSessionMock).not.toHaveBeenCalled()
+  })
+
+  it('FR017_lỗi tải danh sách hiện requestId và thử lại bằng thao tác người dùng', async () => {
+    getStagesMock.mockRejectedValueOnce(
+      new ApiError({
+        errorCode: 'INTERNAL_ERROR',
+        status: 500,
+        message: 'Không tải được danh sách.',
+        requestId: 'req-stages',
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage('/learn/pronunciation')
+
+    expect(await screen.findByText('Mã lỗi: req-stages')).toBeVisible()
+    expect(getStagesMock).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(await screen.findByRole('link', { name: 'Bắt đầu' })).toBeVisible()
+    expect(getStagesMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('FR018_audio không tự phát và câu có đủ bốn lựa chọn', async () => {
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+    renderPage()
+
+    const choices = await screen.findByRole('group', { name: 'Các phương án' })
+    expect(within(choices).getAllByRole('button')).toHaveLength(4)
+    expect(play).not.toHaveBeenCalled()
+    expect(screen.getByText('Đã nghe 0/3 lần')).toBeVisible()
+  })
+
+  it('FR019_finish lỗi dừng lại và chỉ gọi lại khi người học bấm Thử lại', async () => {
+    singleQuestion()
+    finishSessionMock.mockRejectedValueOnce(
+      new ApiError({
+        errorCode: 'INTERNAL_ERROR',
+        status: 500,
+        message: 'Chưa kết thúc được lượt.',
+        requestId: 'req-finish',
+      }),
+    )
+    getSessionMock.mockResolvedValue(
+      session({
+        items: [item(1)],
+        answered: [{ no: 1, answer: 'A', correct: true, counted: true }],
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await chooseFirst(user)
+
+    await waitFor(() => expect(getSessionMock).toHaveBeenCalledTimes(1))
+    expect(await screen.findByText('Mã lỗi: req-finish')).toBeVisible()
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+    expect(startSessionMock).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Thử lại' }))
+    expect(await screen.findByText('Đã mở tầng 2')).toBeVisible()
+    expect(finishSessionMock).toHaveBeenCalledTimes(2)
+    expect(answerItemMock).toHaveBeenCalledTimes(1)
+    expect(startSessionMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('FR019_mất response finish nhưng GET đã SUBMITTED thì không tự tính kết quả', async () => {
+    singleQuestion()
+    finishSessionMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    getSessionMock.mockResolvedValue(
+      session({
+        items: [item(1)],
+        status: 'SUBMITTED',
+        answered: [{ no: 1, answer: 'A', correct: true, counted: true }],
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await chooseFirst(user)
+
+    expect(await screen.findByRole('heading', { name: 'Lượt đã kết thúc' })).toBeVisible()
+    await waitFor(() => expect(getStagesMock).toHaveBeenCalledTimes(2))
+    expect(getSessionMock).toHaveBeenCalledWith(901)
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('Độ chính xác')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Đã mở tầng|Còn .*% nữa/)).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Quay lại danh sách' })).toHaveAttribute(
+      'href',
+      '/learn/pronunciation',
+    )
+    expect(screen.getByRole('button', { name: 'Luyện lại' })).toBeEnabled()
+  })
+
+  it('FR019_409 finish hiện Lượt đã kết thúc và tải lại danh sách đúng một lần', async () => {
+    singleQuestion()
+    finishSessionMock.mockRejectedValueOnce(
+      new ApiError({
+        errorCode: 'SESSION_ALREADY_SUBMITTED',
+        status: 409,
+        message: 'Đã kết thúc.',
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await chooseFirst(user)
+
+    expect(await screen.findByRole('heading', { name: 'Lượt đã kết thúc' })).toBeVisible()
+    await waitFor(() => expect(getStagesMock).toHaveBeenCalledTimes(2))
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText('Độ chính xác')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Đã mở tầng|Còn .*% nữa/)).not.toBeInTheDocument()
+  })
+
+  it('FR019_tải lại danh sách lỗi vẫn giữ kết quả và không POST finish lại', async () => {
+    singleQuestion()
+    getStagesMock
+      .mockResolvedValueOnce([{ ...stage, unitCount: 1 }])
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    const user = userEvent.setup()
+    renderPage()
+    await chooseFirst(user)
+
+    expect(
+      await screen.findByText(
+        'Không thể cập nhật danh sách tầng. Lượt luyện hiện tại vẫn được giữ.',
+      ),
+    ).toBeVisible()
+    expect(screen.getByText('Đã mở tầng 2')).toBeVisible()
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Thử tải lại danh sách' }))
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+    expect(getStagesMock).toHaveBeenCalledTimes(3)
+    expect(screen.getByText('Đã mở tầng 2')).toBeVisible()
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+    expect(startSessionMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('FR019_remaining vẫn hiện và không tự finish lại khi sync chưa xác định câu thiếu', async () => {
+    singleQuestion()
+    finishSessionMock.mockRejectedValueOnce(
+      new ApiError({
+        errorCode: 'STAGE_INCOMPLETE',
+        status: 422,
+        message: 'Còn câu chưa làm.',
+        extra: { remaining: 6 },
+      }),
+    )
+    getSessionMock.mockResolvedValue(
+      session({
+        items: [item(1)],
+        answered: [{ no: 1, answer: 'A', correct: true, counted: true }],
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await chooseFirst(user)
+
+    expect(await screen.findByText('Còn 6 câu chưa làm')).toBeVisible()
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: 'Thử lại' })).toBeEnabled()
+  })
+
+  it('FR019_sau STAGE_INCOMPLETE làm câu thiếu rồi finish thành công', async () => {
+    const restored = session({
+      answered: [{ no: 1, answer: 'A', correct: true, counted: true }],
+    })
+    findActiveSessionMock.mockResolvedValue(restored)
+    getSessionMock.mockResolvedValue(restored)
+    finishSessionMock.mockRejectedValueOnce(
+      new ApiError({
+        errorCode: 'STAGE_INCOMPLETE',
+        status: 422,
+        message: 'Còn câu chưa làm.',
+        extra: { remaining: 1 },
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await chooseFirst(user)
+
+    expect(await screen.findByText('Còn 1 câu chưa làm')).toBeVisible()
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+    await chooseFirst(user)
+    expect(await screen.findByText('Đã mở tầng 2')).toBeVisible()
+    expect(finishSessionMock).toHaveBeenCalledTimes(2)
+    expect(startSessionMock).not.toHaveBeenCalled()
+    expect(answerItemMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('FR020_409 kết thúc rồi Luyện lại chuyển sang lượt mới', async () => {
+    singleQuestion()
+    finishSessionMock.mockRejectedValueOnce(
+      new ApiError({
+        errorCode: 'SESSION_ALREADY_SUBMITTED',
+        status: 409,
+        message: 'Đã kết thúc.',
+      }),
+    )
+    startSessionMock
+      .mockResolvedValueOnce(session({ items: [item(1)] }))
+      .mockResolvedValue(session({ items: [item(1)], sessionId: 902 }))
+    const user = userEvent.setup()
+    renderPage()
+    await chooseFirst(user)
+    expect(await screen.findByRole('heading', { name: 'Lượt đã kết thúc' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Luyện lại' }))
+
+    expect(await screen.findByText('Câu 0/1')).toBeVisible()
+    expect(screen.queryByRole('heading', { name: 'Lượt đã kết thúc' })).not.toBeInTheDocument()
+    expect(startSessionMock).toHaveBeenCalledTimes(2)
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('FR019_finish và sync cùng lỗi không tự lặp GET hay POST', async () => {
+    singleQuestion()
+    finishSessionMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    getSessionMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    const user = userEvent.setup()
+    renderPage()
+    await chooseFirst(user)
+
+    expect(await screen.findByRole('button', { name: 'Thử lại' })).toBeEnabled()
+    expect(getSessionMock).toHaveBeenCalledTimes(1)
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('FR019_audioFailed ở câu cuối tự finish và giữ bestAccuracy cũ khi noScore', async () => {
+    singleQuestion()
+    answerItemMock.mockResolvedValue({ no: 1, correct: null, counted: false })
+    finishSessionMock.mockResolvedValue(
+      finished({
+        accuracy: null,
+        bestAccuracy: 90,
+        needed: null,
+        noScore: true,
+        passed: false,
+        unlockedNextStage: false,
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: 'Không nghe được' }))
+
+    expect(await screen.findByRole('heading', { name: 'Chưa tính điểm lượt này' })).toBeVisible()
+    expect(screen.getByText('Chưa có')).toBeVisible()
+    expect(screen.getByText('90%')).toBeVisible()
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+    expect(screen.queryByText(/Đã mở tầng|Còn .*% nữa/)).not.toBeInTheDocument()
+  })
+
+  it('FR020_luyện lại tầng COMPLETED tạo lượt mới và không phát lại đáp án cũ', async () => {
+    singleQuestion()
+    getStagesMock.mockResolvedValue([
+      { ...stage, state: 'COMPLETED', bestAccuracy: 90, unitCount: 1 },
+    ])
+    startSessionMock
+      .mockResolvedValueOnce(session({ items: [item(1)] }))
+      .mockResolvedValue(session({ items: [item(1)], sessionId: 902 }))
+    const user = userEvent.setup()
+    renderPage('/learn/pronunciation')
+    await user.click(await screen.findByRole('link', { name: 'Luyện lại' }))
+    await chooseFirst(user)
+    await user.click(await screen.findByRole('button', { name: 'Luyện lại' }))
+
+    expect(await screen.findByRole('group', { name: 'Các phương án' })).toBeVisible()
+    expect(startSessionMock).toHaveBeenCalledTimes(2)
+    expect(startSessionMock).toHaveBeenNthCalledWith(2, 1)
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('Câu 0/1')).toBeVisible()
+    expect(screen.queryByText('Đã mở tầng 2')).not.toBeInTheDocument()
+  })
+
+  it('FR020_tầng COMPLETED có lượt đang làm thì Tiếp tục không tạo lượt khác', async () => {
+    getStagesMock.mockResolvedValue([
+      { ...stage, state: 'COMPLETED', bestAccuracy: 90, activeAnswered: 1, activeSessionId: 901 },
+    ])
+    const restored = session({ answered: [{ no: 1, answer: 'A', correct: true, counted: true }] })
+    findActiveSessionMock.mockResolvedValue(restored)
+    getSessionMock.mockResolvedValue(restored)
+    const user = userEvent.setup()
+    renderPage('/learn/pronunciation')
+    await user.click(await screen.findByRole('link', { name: 'Tiếp tục (1/2)' }))
+
+    expect(await screen.findByText('Nghe câu 2')).toBeVisible()
+    expect(startSessionMock).not.toHaveBeenCalled()
+    expect(finishSessionMock).not.toHaveBeenCalled()
   })
 })

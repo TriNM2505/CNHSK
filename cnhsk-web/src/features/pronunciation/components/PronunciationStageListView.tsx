@@ -47,7 +47,6 @@ function StageCard({
 }) {
   const locked = stage.state === 'LOCKED'
   const requiredStageIndex = Math.max(1, stage.stageIndex - 1)
-  const requiredPercent = previousStage?.passPercent ?? stage.passPercent
 
   return (
     <Card className="flex h-full flex-col gap-4">
@@ -89,7 +88,9 @@ function StageCard({
           <p className="flex items-start gap-2 text-body-sm text-ink-secondary">
             <LockKeyhole aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
             <span>
-              Hoàn thành tầng {requiredStageIndex} với ≥ {formatPercentage(requiredPercent)}
+              {previousStage
+                ? `Hoàn thành tầng ${requiredStageIndex} với ≥ ${formatPercentage(previousStage.passPercent)}`
+                : `Hoàn thành tầng ${requiredStageIndex} để mở tầng này`}
             </span>
           </p>
         ) : null}
@@ -144,8 +145,14 @@ export function PronunciationStageListView({
             Lộ trình tám tầng
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            {stages.map((stage, index) => (
-              <StageCard key={stage.id} previousStage={stages[index - 1]} stage={stage} />
+            {stages.map((stage) => (
+              <StageCard
+                key={stage.id}
+                previousStage={stages.find(
+                  (candidate) => candidate.stageIndex === stage.stageIndex - 1,
+                )}
+                stage={stage}
+              />
             ))}
           </div>
         </section>

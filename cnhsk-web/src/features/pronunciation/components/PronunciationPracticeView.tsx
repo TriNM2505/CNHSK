@@ -25,7 +25,8 @@ export interface PronunciationPracticeViewProps {
   requiredStageIndex?: number
   result?: AnswerResult
   stage?: PronunciationStageSummary
-  state: 'loading' | 'empty' | 'locked' | 'unavailable' | 'error' | 'ready' | 'finished'
+  state:
+    'loading' | 'empty' | 'locked' | 'unavailable' | 'error' | 'ready' | 'finished' | 'submitted'
   total?: number
 }
 
@@ -192,14 +193,38 @@ export function PronunciationPracticeView({
         <ResultView extra={finishExtra} onRestart={onRestart} pending={pending} />
       ) : null}
 
+      {state === 'submitted' ? (
+        <Card className="mx-auto max-w-reading space-y-5 text-center">
+          <h2 className="text-h2 text-ink">Lượt đã kết thúc</h2>
+          <p className="text-body-sm text-ink-secondary">
+            Bạn có thể quay lại danh sách tầng hoặc bắt đầu lượt luyện khác.
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button to="/learn/pronunciation" variant="outline">
+              Quay lại danh sách
+            </Button>
+            <Button disabled={pending} loading={pending} onClick={onRestart}>
+              Luyện lại
+            </Button>
+          </div>
+        </Card>
+      ) : null}
+
+      {state === 'ready' && incompleteRemaining !== undefined ? (
+        <p className="mb-4 rounded-md bg-warning-bg p-3 text-body-sm text-warning" role="status">
+          Còn {incompleteRemaining} câu chưa làm
+        </p>
+      ) : null}
+
+      {state === 'ready' && !item && incompleteRemaining !== undefined ? (
+        <Button disabled={pending} onClick={onRetry}>
+          Thử lại
+        </Button>
+      ) : null}
+
       {state === 'ready' && item && onAnswer && onAudioFailed ? (
         <div className="space-y-4">
           <SessionProgress current={answered} total={total} />
-          {incompleteRemaining !== undefined ? (
-            <p className="rounded-md bg-warning-bg p-3 text-body-sm text-warning" role="status">
-              Còn {incompleteRemaining} câu chưa làm
-            </p>
-          ) : null}
           <Card className="space-y-5">
             {typeof item.prompt.audioUrl === 'string' ? (
               <AudioButton
