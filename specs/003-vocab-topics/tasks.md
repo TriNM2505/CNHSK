@@ -28,7 +28,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-09 | `TopicQueryService`: truy vấn tổng hợp §4, `status`, `bestTestPercent`; `GET /api/topics`, `GET /api/topics/{id}` (gồm `actions`) | `…/learning/vocab/*` | FR-013…FR-018 · AT-22…AT-24 | ⬜ |
+| T-09 | `TopicQueryService`: truy vấn tổng hợp §4, `status`, `bestTestPercent`; `GET /api/topics`, `GET /api/topics/{id}` (gồm `actions`) | `…/learning/vocab/*`; leader duyệt 2026-10-30: `src/test/java/com/cnhsk/learning/vocab/TopicQueryIntegrationTest.java`, `src/test/java/com/cnhsk/learning/vocab/TopicContractTest.java`, `…/shared/config/SecurityConfig.java` (chỉ hai matcher GET), `…/shared/exception/ErrorCode.java` (TOPIC_NOT_FOUND trước INTERNAL_ERROR), `src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java` (đồng bộ thứ tự), `contracts/openapi-practice-vocab.yaml` (chỉ 422 GET chi tiết), `tasks.md`, `questions.md` (chỉ T-09) | FR-013…FR-018 · AT-22…AT-24 | ✅ Local 2026-10-30: Java 17 mvnw verify xanh, 1370 test, 0 failure/error/skip (35 test T-09); JaCoCo toàn bộ 96,47% (4422/4584), practice 100% (742/742), vocab 97,65% (83/85); diff sạch. Q-T09-01 Chốt. Chưa push/bàn giao PR mới cho đến leader báo #21 đã merge |
 | T-10 | `TopicStudyService` + `POST /study-sessions` (10 từ chưa học, tiếp tục lượt đang làm) | `…/learning/vocab/TopicStudyService.java` | FR-019…FR-022 · AT-25…AT-28 | ⬜ |
 | T-11 | `TopicPracticeService` + `POST /practice-sessions` (2 chế độ, ưu tiên từ yếu, luyện lại từ sai) | `…/learning/vocab/TopicPracticeService.java` | FR-025…FR-030 · AT-29…AT-32 | ⬜ |
 | T-12 | `TopicTestService` + `TopicTestHandler` + `POST /tests` (điều kiện, chờ 10 phút, 20 câu 4 dạng, thay thế) | `…/learning/vocab/TopicTestService.java` | FR-031…FR-040 · AT-33…AT-39 | ⬜ |

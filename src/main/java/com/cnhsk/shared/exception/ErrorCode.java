@@ -52,5 +52,6 @@ public enum ErrorCode {
     TOO_MANY_REPLAYS,
     AUDIO_NOT_IN_ITEM,
     SKIP_NOT_ALLOWED,
+    TOPIC_NOT_FOUND,
     INTERNAL_ERROR
 }
