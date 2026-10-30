@@ -93,7 +93,7 @@ public class ImportService {
         String hash = null;
         try {
             // Keep the declared extension gate before the size gate for parsed requests (FR-002).
-            if (!fileName.endsWith(".csv")) throw new ImportFileException(ErrorCode.UNSUPPORTED_FILE_FORMAT);
+            if (!CsvReader.hasCsvExtension(fileName)) throw new ImportFileException(ErrorCode.UNSUPPORTED_FILE_FORMAT);
             if (file.getSize() > properties.getMaxFileSize().toBytes()) throw new ImportFileException(ErrorCode.FILE_TOO_LARGE);
             byte[] bytes;
             try {

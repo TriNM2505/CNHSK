@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -52,7 +53,7 @@ public class CsvReader {
     public ReadResult read(ImportDataType dataType, String fileName, byte[] content) {
         Objects.requireNonNull(dataType, "dataType must not be null");
         Objects.requireNonNull(content, "content must not be null");
-        if (fileName == null || !fileName.endsWith(".csv")) {
+        if (!hasCsvExtension(fileName)) {
             throw new ImportFileException(ErrorCode.UNSUPPORTED_FILE_FORMAT);
         }
         if (content.length > properties.getMaxFileSize().toBytes()) {
@@ -83,6 +84,10 @@ public class CsvReader {
         } catch (CharacterCodingException exception) {
             throw new ImportFileException(ErrorCode.ENCODING_ERROR);
         }
+    }
+
+    static boolean hasCsvExtension(String fileName) {
+        return fileName != null && fileName.toLowerCase(Locale.ROOT).endsWith(".csv");
     }
 
     private static String trimHeader(String header) {

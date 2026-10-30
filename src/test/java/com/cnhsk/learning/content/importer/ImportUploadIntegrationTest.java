@@ -144,6 +144,30 @@ class ImportUploadIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.details.length()").value(2));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"data.csv", "data.CSV", "data.Csv"})
+    void FR002_uploadAcceptsEveryCsvExtensionCase(String name) throws Exception {
+        mvc.perform(multipart(PATH).file(file(name, VALID.getBytes(StandardCharsets.UTF_8)))
+                        .header("Authorization", bearer()).param("dataType", "TOPIC"))
+                .andExpect(status().isCreated());
+    }
+
+    @Test
+    void FR006_controllerPreservesMissingUnknownAndDuplicateColumnsInTheContractDetails() throws Exception {
+        var response = mvc.perform(multipart(PATH)
+                        .file(file("headers.csv", "code,name,unexpected, code \nAA,Tên,x,AA\n".getBytes(StandardCharsets.UTF_8)))
+                        .header("Authorization", bearer()).param("dataType", "TOPIC"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error_code").value("TEMPLATE_MISMATCH"))
+                .andExpect(jsonPath("$.details.length()").value(3)).andReturn();
+        JsonNode details = json(response).path("details");
+        assertThat(details.findValuesAsText("field")).containsExactlyInAnyOrder("hsk_level", "unexpected", "code");
+        assertThat(details.findValuesAsText("message")).containsExactlyInAnyOrder(
+                "Thiếu cột bắt buộc: hsk_level", "Cột không có trong mẫu: unexpected",
+                "Tên cột bị trùng sau khi bỏ khoảng trắng: code");
+        details.forEach(detail -> assertThat(detail.size()).isEqualTo(2));
+    }
+
     @Test
     void FR008_AT02_nativeMultipartLimitCreatesFailedRunWithNullMetadata() throws Exception {
         HttpResponse<String> response = nativeUpload(new byte[CsvReader.MAX_FILE_BYTES + 1], "CONTENT_EDITOR", false);

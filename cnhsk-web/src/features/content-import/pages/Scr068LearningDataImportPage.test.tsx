@@ -232,6 +232,65 @@ describe('Scr068LearningDataImportPage', () => {
     vi.restoreAllMocks()
   })
 
+  it('FR006: shows missing, unknown and duplicate column groups below the file input', async () => {
+    vi.mocked(uploadImportFile).mockRejectedValue(
+      new ApiError({
+        errorCode: 'TEMPLATE_MISMATCH',
+        message: 'Sai mẫu',
+        status: 422,
+        details: [
+          { field: 'pinyin', message: 'Thiếu cột bắt buộc: pinyin' },
+          { field: 'hsk_level', message: 'Thiếu cột bắt buộc: hsk_level' },
+          { field: 'note', message: 'Cột không có trong mẫu: note' },
+          { field: 'text', message: 'Tên cột bị trùng sau khi bỏ khoảng trắng: text' },
+        ],
+      }),
+    )
+    renderPage()
+    await chooseAndUpload()
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByText('Thiếu cột: pinyin, hsk_level')).toBeVisible()
+    expect(within(alert).getByText('Cột không thuộc mẫu: note')).toBeVisible()
+    expect(within(alert).getByText('Cột bị trùng: text')).toBeVisible()
+    expect(screen.getByLabelText(/File CSV/)).toHaveAttribute(
+      'aria-describedby',
+      expect.stringContaining('import-upload-error'),
+    )
+  })
+
+  it('FR006: a template mismatch without details keeps the general message', async () => {
+    vi.mocked(uploadImportFile).mockRejectedValue(
+      new ApiError({
+        errorCode: 'TEMPLATE_MISMATCH',
+        message: 'Sai mẫu',
+        status: 422,
+      }),
+    )
+    renderPage()
+    await chooseAndUpload()
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByText('Các cột trong file không khớp mẫu đã chọn.')).toBeVisible()
+    expect(
+      within(alert).queryByText(/Thiếu cột:|Cột không thuộc mẫu:|Cột bị trùng:/),
+    ).not.toBeInTheDocument()
+  })
+
+  it('FR006: omits empty column groups when only required columns are missing', async () => {
+    vi.mocked(uploadImportFile).mockRejectedValue(
+      new ApiError({
+        errorCode: 'TEMPLATE_MISMATCH',
+        message: 'Sai mẫu',
+        status: 422,
+        details: [{ field: 'pinyin', message: 'Thiếu cột bắt buộc: pinyin' }],
+      }),
+    )
+    renderPage()
+    await chooseAndUpload()
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByText('Thiếu cột: pinyin')).toBeVisible()
+    expect(within(alert).queryByText(/Cột không thuộc mẫu:|Cột bị trùng:/)).not.toBeInTheDocument()
+  })
+
   it('FR008_FR026: lịch sử hiển thị lần upload bị chặn trước khi đọc metadata', async () => {
     vi.mocked(getImportRuns).mockResolvedValue({
       items: [

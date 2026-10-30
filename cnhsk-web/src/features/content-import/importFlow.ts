@@ -1,6 +1,6 @@
 import { toApiError } from '@/shared/api'
 
-import type { ImportDataType } from './types'
+import type { ImportDataType, ImportTemplateErrorDetail } from './types'
 
 export const IMPORT_MAX_FILE_SIZE = 2 * 1024 * 1024
 
@@ -17,7 +17,7 @@ export function validateImportSelection(
   if (!dataType) errors.dataType = 'Hãy chọn loại dữ liệu.'
   if (!file) {
     errors.file = 'Hãy chọn file CSV cần kiểm tra.'
-  } else if (!file.name.toLocaleLowerCase('vi').endsWith('.csv')) {
+  } else if (!file.name.toLowerCase().endsWith('.csv')) {
     errors.file = 'Chỉ chấp nhận file có đuôi .csv.'
   } else if (file.size > IMPORT_MAX_FILE_SIZE) {
     errors.file = 'File vượt quá giới hạn 2 MB.'
@@ -28,6 +28,7 @@ export function validateImportSelection(
 export interface ImportMappedError {
   message: string
   requestId?: string
+  details?: ImportTemplateErrorDetail[]
 }
 
 export const IMPORT_FILE_ERROR_MESSAGES: Readonly<Record<string, string>> = {
@@ -42,9 +43,20 @@ export const IMPORT_FILE_ERROR_MESSAGES: Readonly<Record<string, string>> = {
 
 export function mapImportUploadError(error: unknown): ImportMappedError {
   const apiError = toApiError(error)
+  const details =
+    apiError.errorCode === 'TEMPLATE_MISMATCH' && Array.isArray(apiError.details)
+      ? apiError.details.filter(
+          (detail): detail is ImportTemplateErrorDetail =>
+            detail !== null &&
+            typeof detail === 'object' &&
+            typeof detail.field === 'string' &&
+            typeof detail.message === 'string',
+        )
+      : undefined
   return {
     message: IMPORT_FILE_ERROR_MESSAGES[apiError.errorCode] ?? apiError.message,
     requestId: apiError.requestId,
+    details,
   }
 }
 

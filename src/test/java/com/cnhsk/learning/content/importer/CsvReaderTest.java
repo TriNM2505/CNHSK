@@ -57,6 +57,12 @@ class CsvReaderTest {
         assertFileError(exception, ErrorCode.UNSUPPORTED_FILE_FORMAT, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"data.csv", "data.CSV", "data.Csv"})
+    void FR002_acceptsCsvExtensionWithoutCaseSensitivity(String fileName) {
+        assertThat(reader.read(ImportDataType.TOPIC, fileName, utf8(TOPIC_HEADER + TOPIC_ROW)).totalRows()).isEqualTo(1);
+    }
+
     @Test
     void FR003_fileAboveTwoMiBIsRejectedBeforeDecoding() {
         byte[] content = new byte[2 * 1024 * 1024 + 1];

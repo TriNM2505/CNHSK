@@ -47,6 +47,11 @@ export interface ImportRowError {
   message: string
 }
 
+export interface ImportTemplateErrorDetail {
+  field: string
+  message: string
+}
+
 export interface ImportPreviewRow {
   line: number
   action: ImportRowAction

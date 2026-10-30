@@ -104,16 +104,41 @@ function RequestId({ requestId }: { requestId?: string }) {
 }
 
 function InlineAlert({ error }: { error: ImportMappedError }) {
+  const columnGroups = [
+    { label: 'Thiếu cột', prefix: 'Thiếu cột bắt buộc:' },
+    { label: 'Cột không thuộc mẫu', prefix: 'Cột không có trong mẫu:' },
+    { label: 'Cột bị trùng', prefix: 'Tên cột bị trùng sau khi bỏ khoảng trắng:' },
+  ]
+    .map(({ label, prefix }) => ({
+      label,
+      fields:
+        error.details
+          ?.filter((detail) => detail.message.startsWith(prefix))
+          .map((detail) => detail.field) ?? [],
+    }))
+    .filter((group) => group.fields.length > 0)
+
   return (
     <div
       className="flex items-start gap-2 rounded-md border border-danger bg-danger-bg p-3 text-body-sm text-danger"
       role="alert"
     >
       <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-      <p className="min-w-0">
-        {error.message}
-        <RequestId requestId={error.requestId} />
-      </p>
+      <div className="min-w-0">
+        <p>
+          {error.message}
+          <RequestId requestId={error.requestId} />
+        </p>
+        {columnGroups.length > 0 ? (
+          <ul className="mt-2 list-inside list-disc">
+            {columnGroups.map((group) => (
+              <li key={group.label}>
+                {group.label}: {group.fields.join(', ')}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
     </div>
   )
 }
