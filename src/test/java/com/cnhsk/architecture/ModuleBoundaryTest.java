@@ -6,6 +6,8 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackage;
 
 /**
  * Kiem tra ranh gioi giua ba module auth / learning / community.
@@ -31,6 +33,15 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
         importOptions = ImportOption.DoNotIncludeTests.class
 )
 class ModuleBoundaryTest {
+
+    // FR012 / AC-03: cover every learning package, including practice/content and future packages.
+    @ArchTest
+    static final ArchRule FR012_community_chi_duoc_phu_thuoc_learning_api =
+            noClasses().that().resideInAPackage("..community..")
+                    .should().dependOnClassesThat(resideInAPackage("..learning..")
+                            .and(resideOutsideOfPackage("..learning.api..")))
+                    .because("community chỉ được gọi learning qua hợp đồng trong learning.api")
+                    .allowEmptyShould(true);
 
     // ===== Module community khong duoc cham vao ruot cua module khac =====
     // Giữ allowEmptyShould cho tới khi community có production class; gỡ khi module được khởi tạo.

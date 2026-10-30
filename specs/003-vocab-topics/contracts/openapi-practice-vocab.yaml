@@ -6,6 +6,9 @@ info:
     Hợp đồng spec 003. Phần "practice" là bộ máy lượt luyện dùng chung cho spec 004–008
     (các spec đó $ref tới components/schemas ở file này). Chỉ LEARNER.
     Câu gửi client KHÔNG BAO GIỜ có answer/accept trước khi chấm.
+    Sửa 2026-10-30 (leader duyệt): hai GET dùng 403 ATTEMPT_NOT_OWNED cho lượt không tồn tại hoặc không thuộc người gọi;
+    thiếu refId tìm trên mọi ref_id; answered[].answer là đầu vào người học, DEFERRED không lộ đáp án trước finish.
+    T-04…T-06 áp dụng cùng lỗi 403 cho answers/finish/abandon khi triển khai.
 servers:
   - url: http://localhost:8080
 tags:
@@ -63,7 +66,7 @@ components:
     ServedItemView:
       type: object
       description: Câu đã phát, KHÔNG có answer/accept
-      required: [no, type, skill, prompt, rules]
+      required: ['no', type, skill, prompt, rules]
       properties:
         no: { type: integer, minimum: 1 }
         type: { type: string, example: MEANING_CHOICE }
@@ -98,12 +101,16 @@ components:
           additionalProperties: true
     ItemState:
       type: object
-      required: [no]
+      required: ['no']
+      description: >
+        Sửa 2026-10-30 (leader duyệt): answer là câu trả lời của chính người học;
+        correctAnswer chỉ trả khi feedback IMMEDIATE/RECORD. Q-T04-03 (leader duyệt 2026-10-30):
+        DEFERRED trước finish không có field correct/correctAnswer/accept/explanation.
       properties:
         no: { type: integer }
         answer: { type: [string, 'null'] }
         correct: { type: [boolean, 'null'] }
-        correctAnswer: { type: [string, 'null'] }
+        correctAnswer: { type: [string, 'null'], description: Chỉ có với feedback IMMEDIATE/RECORD và câu đã ghi/chấm }
         counted: { type: boolean }
     SessionView:
       type: object
@@ -119,14 +126,15 @@ components:
         items: { type: array, items: { $ref: '#/components/schemas/ServedItemView' } }
         answered:
           type: array
-          description: IMMEDIATE/RECORD = kết quả đã chấm; DEFERRED = nháp (correct luôn null)
+          description: IMMEDIATE/RECORD = kết quả đã chấm; DEFERRED = nháp (không có field correct/correctAnswer trước finish)
           items: { $ref: '#/components/schemas/ItemState' }
         meta:
           type: object
           additionalProperties: true
     AnswerRequest:
       type: object
-      required: [no, durationMs]
+      description: 'Q-T04-02 (leader duyệt 2026-10-30): skipped và audioFailed không được cùng true; vi phạm trả 422 VALIDATION_FAILED.'
+      required: ['no', durationMs]
       properties:
         no: { type: integer, minimum: 1 }
         answer: { type: [string, 'null'], maxLength: 100 }
@@ -140,7 +148,7 @@ components:
           additionalProperties: true
     AnswerResult:
       type: object
-      required: [no]
+      required: ['no']
       properties:
         no: { type: integer }
         correct: { type: [boolean, 'null'] }
@@ -262,13 +270,15 @@ paths:
       tags: [practice]
       operationId: findActiveSession
       summary: Lượt đang làm của nguồn (§0.11)
+      description: 'Sửa 2026-10-30 (leader duyệt): lọc người gọi, IN_PROGRESS, expires_at >= now; mới nhất theo served_at DESC, id DESC; chỉ LEARNER.'
       parameters:
         - { name: source, in: query, required: true, schema: { $ref: '#/components/schemas/PracticeSource' } }
-        - { name: refId, in: query, schema: { type: integer, format: int64 } }
+        - { name: refId, in: query, description: 'Có thì lọc đúng ref_id; thiếu thì tìm trên mọi ref_id của nguồn', schema: { type: integer, format: int64 } }
       responses:
         '200': { $ref: '#/components/responses/Session' }
         '204': { description: Không có lượt đang làm }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
 
   /api/practice/sessions/{id}:
@@ -276,18 +286,33 @@ paths:
       tags: [practice]
       operationId: getSession
       summary: Xem lại lượt, không có đáp án (FR-010)
+      description: 'Sửa 2026-10-30 (leader duyệt): lượt không tồn tại hoặc của người khác đều 403 ATTEMPT_NOT_OWNED, cùng message. Chủ sở hữu nhận 200, lượt quá hạn chuyển EXPIRED; path sai kiểu trả 422. Chỉ LEARNER.'
       parameters: [ { $ref: '#/components/parameters/SessionId' } ]
       responses:
         '200': { $ref: '#/components/responses/Session' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
 
   /api/practice/sessions/{id}/answers:
     post:
       tags: [practice]
       operationId: answerItem
       summary: Trả lời một câu (§0.6)
+      description: |
+        Q-T04-04 (leader duyệt 2026-10-30): bổ sung đúng tám mã lỗi theo spec §5:
+        - 422 SESSION_EXPIRED: lượt quá hạn; trạng thái EXPIRED vẫn được lưu khi trả lỗi.
+        - 409 SESSION_ALREADY_SUBMITTED: lượt đã kết thúc.
+        - 400 ITEM_NOT_IN_SESSION: no không thuộc các câu đã phát.
+        - 409 ANSWER_ALREADY_SUBMITTED: câu IMMEDIATE/RECORD đã được trả lời.
+        - 400 OPTION_NOT_IN_ITEM: khóa đáp án không thuộc options của câu.
+        - 400 TOO_MANY_REPLAYS: số lần phát audio vượt rules.maxReplays.
+        - 400 AUDIO_NOT_IN_ITEM: báo audioFailed cho câu không có audio.
+        - 400 SKIP_NOT_ALLOWED: nguồn lượt không cho phép bỏ qua.
+        Lượt không tồn tại hoặc không thuộc người gọi cùng trả 403 ATTEMPT_NOT_OWNED.
+        DEFERRED lưu nháp gồm answer, durationMs, replayCount, skipped, audioFailed (Q-T04-01);
+        response chỉ có no và accepted:true, không có correct/correctAnswer/accept/explanation.
+        skipped=true cùng audioFailed=true trả 422 VALIDATION_FAILED (Q-T04-02).
       parameters: [ { $ref: '#/components/parameters/SessionId' } ]
       requestBody:
         required: true
@@ -303,7 +328,6 @@ paths:
         '400': { $ref: '#/components/responses/Error' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
@@ -313,6 +337,18 @@ paths:
       tags: [practice]
       operationId: finishSession
       summary: Kết thúc lượt (§0.8)
+      description: |
+        Q-T05-01…03 (leader chốt 2026-10-30): chỉ LEARNER, giữ cơ chế CSRF cho cookie.
+        Lượt không tồn tại hoặc không thuộc người gọi cùng trả 403 ATTEMPT_NOT_OWNED.
+        Lượt hết hạn trả 422 SESSION_EXPIRED và lưu EXPIRED; lượt đã kết thúc trả 409 SESSION_ALREADY_SUBMITTED.
+        DEFERRED gộp answers theo thứ tự, phần tử sau cùng no ghi đè phần tử trước.
+        Mỗi phần tử answers mới tính vào giới hạn 600 câu/giờ; nháp đã lưu không tính lại.
+        Vượt giới hạn trả 429 RATE_LIMITED cùng retryAfterSeconds, rollback toàn bộ finish,
+        giữ IN_PROGRESS và nháp cũ; Redis lỗi bỏ qua giới hạn như POST answers.
+        Kiểm bằng chứng trả 400 ITEM_NOT_IN_SESSION/OPTION_NOT_IN_ITEM/TOO_MANY_REPLAYS/AUDIO_NOT_IN_ITEM/SKIP_NOT_ALLOWED,
+        409 ANSWER_ALREADY_SUBMITTED hoặc 422 VALIDATION_FAILED theo luật chung.
+        suspicious tính tỷ lệ chỉ trên câu gradable có đáp án thật, không thiếu/skip/RECORD/audioFailed;
+        mẫu số 0 không gắn cờ theo tỷ lệ. OR với cờ nguồn trước onFinish.
       parameters: [ { $ref: '#/components/parameters/SessionId' } ]
       requestBody:
         required: false
@@ -328,21 +364,30 @@ paths:
         '400': { $ref: '#/components/responses/Error' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
 
   /api/practice/sessions/{id}/abandon:
     post:
       tags: [practice]
       operationId: abandonSession
       summary: Bỏ lượt, không tính điểm (§0.11)
+      description: |
+        Q-T06-01 (leader chốt 2026-10-30): chỉ LEARNER, giữ cơ chế CSRF cho cookie.
+        Kiểm ownership trước khi đổi trạng thái; lượt không tồn tại hoặc của người khác
+        đều trả 403 ATTEMPT_NOT_OWNED với cùng message, không trả 404.
+        IN_PROGRESS chưa hết hạn chuyển ABANDONED, trả 204 không có body.
+        Không tính điểm, ghi study_events, gọi hook finish hoặc phát sự kiện;
+        giữ nguyên attempt_items, served_items và draft_answers.
+        Quá hạn trả 422 SESSION_EXPIRED và lưu EXPIRED bằng cơ chế POST answers/finish;
+        expiresAt = now vẫn hợp lệ. Lượt đã kết thúc trả 409 SESSION_ALREADY_SUBMITTED.
+        Path id sai kiểu trả 422 VALIDATION_FAILED theo định dạng lỗi chung.
       parameters: [ { $ref: '#/components/parameters/SessionId' } ]
       responses:
         '204': { description: Đã bỏ }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
 

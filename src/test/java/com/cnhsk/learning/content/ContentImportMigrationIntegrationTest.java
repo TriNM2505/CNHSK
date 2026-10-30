@@ -170,6 +170,7 @@ class ContentImportMigrationIntegrationTest extends AbstractIntegrationTest {
                     .dataSource(database.getJdbcUrl(), database.getUsername(), database.getPassword())
                     .schemas("learning", "auth", "community", "shared")
                     .defaultSchema("learning")
+                    .target("3")
                     .load();
             assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1);
             assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
