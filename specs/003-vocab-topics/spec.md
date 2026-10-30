@@ -124,11 +124,11 @@ Java: `enum PracticeSource { …; AttemptKind kind(); FeedbackMode feedback(); D
 
 | Mã | Luật |
 |---|---|
-| **E-F1** | `POST /api/practice/sessions/{id}/finish` kiểm E-R1…E-R3; với `DEFERRED` nhận thêm `answers[]` (gộp vào nháp, câu sau ghi đè câu trước) |
+| **E-F1** | `POST /api/practice/sessions/{id}/finish` kiểm E-R1…E-R3; với `DEFERRED` nhận thêm `answers[]` (gộp vào nháp, câu sau ghi đè câu trước). Q-T05-02 (leader chốt 2026-10-30): mỗi phần tử mới tính vào giới hạn E-R12, nháp đã lưu không tính lại; vượt trả 429 `RATE_LIMITED` + `retryAfterSeconds`, rollback toàn bộ finish, giữ IN_PROGRESS và nháp cũ; Redis lỗi xử lý như T-04 |
 | **E-F2** | Khoá dòng `attempts` (`SELECT … FOR UPDATE`) rồi mới chấm — hai request nộp song song: một thành công, một **409** |
 | **E-F3** | `DEFERRED`: chấm mọi câu, ghi `attempt_items`; câu `gradable` không có đáp án → `is_correct = false`, `meta.missing = true`; câu `gradable = false` không có đáp án → `answer = NULL`, `is_correct = NULL`, `meta.missing = true` |
 | **E-F4** | `score` = số câu đúng; `max_score` = số câu `gradable` tính điểm (trừ `audioFailed`, trừ `skipped` của `IMMEDIATE`); nguồn có `maxScoreFromServed = true` (`GAME_ROUND`) → `max_score` = số câu `gradable` **đã phát** trừ `audioFailed` (câu bỏ lỡ vẫn nằm trong mẫu số — trần điểm của ván); lượt không có câu `gradable` nào → cả hai `NULL` |
-| **E-F5** | `duration_ms = submitted_at − served_at`; `suspicious = true` nếu ≥ 30% câu đã chấm có `meta.suspicious` **hoặc** luật riêng của nguồn báo |
+| **E-F5** | `duration_ms = submitted_at − served_at`; Q-T05-03 (leader chốt 2026-10-30): mẫu số `answeredCount` chỉ gồm câu `gradable` có đáp án thật, không thiếu/skip/RECORD/audioFailed; `suspiciousCount` là số câu trong tập đó có `meta.suspicious`. Cờ chung = `answeredCount > 0 && suspiciousCount*100 >= answeredCount*30`; OR với `PracticeSourceHandler.isSuspicious(FinishContext)` (default false) trước `onFinish`. Response, context `onFinish` và `SessionFinishedEvent` dùng cùng cờ cuối. Câu thiếu DEFERRED vẫn tính sai vào điểm |
 | **E-F6** | `status = SUBMITTED`, `submitted_at = now()`; ghi `study_events` (`event_type = 'STUDY'`, với `GAME_ROUND` là `'GAME'`, `ref_type`/`ref_id` như lượt, `local_date` = ngày giờ Việt Nam, `duration_ms`) |
 | **E-F7** | Gọi `PracticeSourceHandler.onFinish(...)` của nguồn **trong cùng transaction**; handler trả dữ liệu riêng (vd `passed`, `unlockedNextStage`) gộp vào response. Handler ném `ApiException` (vd lượt chưa làm đủ) → **rollback toàn bộ**, lượt giữ `IN_PROGRESS` |
 | **E-F7b** | `PracticeSourceHandler` có thêm 2 hook mặc định rỗng: `validateAnswer(item, answer)` (ném `ApiException` để từ chối một câu — luật riêng của nguồn) và `enrichMeta(item, answer) → Map` (thêm trường vào `attempt_items.meta` trước khi ghi). Bộ máy gọi cả hai ở mọi đường ghi câu (trả lời từng câu và nộp cả bài) |
@@ -472,7 +472,7 @@ GROUP BY ti.topic_id;
 | `GET /api/practice/sessions/{id}` | 200 `SessionView` | 401, 403, 422 |
 | `GET /api/practice/sessions/active?source&refId` | 200 `SessionView` · 204 | 401, 403, 422 |
 | `POST /api/practice/sessions/{id}/answers` | 200 `AnswerResult` | 400, 401, 403, 409, 422, 429 |
-| `POST /api/practice/sessions/{id}/finish` | 200 `FinishResult` | 403, 404, 409, 422 |
+| `POST /api/practice/sessions/{id}/finish` | 200 `FinishResult` | 400, 401, 403, 409, 422, 429 |
 | `POST /api/practice/sessions/{id}/abandon` | 204 | 403, 404, 409, 422 |
 | `GET /api/topics?hskLevel` | 200 `[TopicSummary]` | 422 |
 | `GET /api/topics/{id}` | 200 `TopicDetail` | 404 |

@@ -110,6 +110,28 @@ public class PracticeController {
         }
     }
 
+    @PostMapping("/{id}/finish")
+    @Operation(operationId = "finishSession", tags = "practice", description = "Kết thúc lượt theo spec 003 §0.8")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Kết quả kết thúc lượt"),
+            @ApiResponse(responseCode = "400", description = "ITEM_NOT_IN_SESSION, OPTION_NOT_IN_ITEM, TOO_MANY_REPLAYS, AUDIO_NOT_IN_ITEM, SKIP_NOT_ALLOWED"),
+            @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
+            @ApiResponse(responseCode = "403", description = "ATTEMPT_NOT_OWNED hoặc CSRF không hợp lệ"),
+            @ApiResponse(responseCode = "409", description = "SESSION_ALREADY_SUBMITTED, ANSWER_ALREADY_SUBMITTED"),
+            @ApiResponse(responseCode = "422", description = "SESSION_EXPIRED, VALIDATION_FAILED"),
+            @ApiResponse(responseCode = "429", description = "RATE_LIMITED")
+    })
+    public PracticeService.FinishResult finish(
+            @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
+            @Valid @RequestBody(required = false) FinishRequest request) {
+        List<Answer> answers = request == null || request.answers() == null ? List.of()
+                : request.answers().stream().map(AnswerRequest::toAnswer).toList();
+        return practice.finish(auth.currentUser().userId(), identifier(id, "id"), answers);
+    }
+
+    public record FinishRequest(List<@NotNull @Valid AnswerRequest> answers) {
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> malformedAnswer() {
         return ResponseEntity.unprocessableEntity().body(Map.of("error_code", ErrorCode.VALIDATION_FAILED.name(),

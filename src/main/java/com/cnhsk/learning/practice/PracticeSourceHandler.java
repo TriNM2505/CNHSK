@@ -13,6 +13,10 @@ public interface PracticeSourceHandler {
 
     Map<String, Object> onFinish(FinishContext context);
 
+    default boolean isSuspicious(FinishContext context) {
+        return false;
+    }
+
     default void validateAnswer(ServedItem item, Answer answer) {
     }
 

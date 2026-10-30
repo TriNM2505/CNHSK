@@ -337,6 +337,18 @@ paths:
       tags: [practice]
       operationId: finishSession
       summary: Kết thúc lượt (§0.8)
+      description: |
+        Q-T05-01…03 (leader chốt 2026-10-30): chỉ LEARNER, giữ cơ chế CSRF cho cookie.
+        Lượt không tồn tại hoặc không thuộc người gọi cùng trả 403 ATTEMPT_NOT_OWNED.
+        Lượt hết hạn trả 422 SESSION_EXPIRED và lưu EXPIRED; lượt đã kết thúc trả 409 SESSION_ALREADY_SUBMITTED.
+        DEFERRED gộp answers theo thứ tự, phần tử sau cùng no ghi đè phần tử trước.
+        Mỗi phần tử answers mới tính vào giới hạn 600 câu/giờ; nháp đã lưu không tính lại.
+        Vượt giới hạn trả 429 RATE_LIMITED cùng retryAfterSeconds, rollback toàn bộ finish,
+        giữ IN_PROGRESS và nháp cũ; Redis lỗi bỏ qua giới hạn như POST answers.
+        Kiểm bằng chứng trả 400 ITEM_NOT_IN_SESSION/OPTION_NOT_IN_ITEM/TOO_MANY_REPLAYS/AUDIO_NOT_IN_ITEM/SKIP_NOT_ALLOWED,
+        409 ANSWER_ALREADY_SUBMITTED hoặc 422 VALIDATION_FAILED theo luật chung.
+        suspicious tính tỷ lệ chỉ trên câu gradable có đáp án thật, không thiếu/skip/RECORD/audioFailed;
+        mẫu số 0 không gắn cờ theo tỷ lệ. OR với cờ nguồn trước onFinish.
       parameters: [ { $ref: '#/components/parameters/SessionId' } ]
       requestBody:
         required: false
@@ -352,9 +364,9 @@ paths:
         '400': { $ref: '#/components/responses/Error' }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
 
   /api/practice/sessions/{id}/abandon:
     post:

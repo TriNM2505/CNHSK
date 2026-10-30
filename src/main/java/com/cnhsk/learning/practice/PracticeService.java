@@ -3,6 +3,8 @@ package com.cnhsk.learning.practice;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -11,11 +13,15 @@ import java.util.Objects;
 import java.util.TreeMap;
 
 import com.cnhsk.learning.practice.PracticeSourceHandler.Answer;
+import com.cnhsk.learning.practice.PracticeSourceHandler.FinishContext;
+import com.cnhsk.learning.practice.PracticeSourceHandler.GradedItem;
 import com.cnhsk.learning.practice.entity.Attempt;
 import com.cnhsk.learning.practice.entity.AttemptItem;
 import com.cnhsk.learning.practice.entity.AttemptItemRepository;
 import com.cnhsk.learning.practice.entity.AttemptRepository;
 import com.cnhsk.learning.practice.grading.PinyinGrader;
+import com.cnhsk.learning.practice.event.ItemGradedEvent;
+import com.cnhsk.learning.practice.event.SessionFinishedEvent;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -24,6 +30,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,11 +49,12 @@ public class PracticeService {
     private final Clock clock;
     private final PracticeRateLimiter rateLimiter;
     private final List<PracticeSourceHandler> handlers;
+    private final ApplicationEventPublisher events;
     private TransactionTemplate answerTransaction;
 
     public PracticeService(AttemptRepository attempts, AttemptItemRepository attemptItems,
             EntityManager entityManager, ObjectMapper mapper, Clock clock,
-            PracticeRateLimiter rateLimiter, List<PracticeSourceHandler> handlers) {
+            PracticeRateLimiter rateLimiter, List<PracticeSourceHandler> handlers, ApplicationEventPublisher events) {
         this.attempts = attempts;
         this.attemptItems = attemptItems;
         this.entityManager = entityManager;
@@ -54,6 +62,7 @@ public class PracticeService {
         this.clock = clock;
         this.rateLimiter = rateLimiter;
         this.handlers = List.copyOf(handlers);
+        this.events = events;
     }
 
     @Autowired
@@ -181,11 +190,205 @@ public class PracticeService {
         recorded.setCorrect(correct);
         recorded.setMeta(meta);
         attemptItems.saveAndFlush(recorded);
+        publishItem(attempt, item, recorded);
         AnswerResult result = recordOnly
                 ? new AnswerResult(item.no(), null, null, null, null, null, null, true)
                 : new AnswerResult(item.no(), correct, counted ? item.answer() : null,
                         counted ? item.accept() : null, counted ? item.explanation() : null, counted, null, null);
         return new AnswerOutcome(result, null);
+    }
+
+    public FinishResult finish(long userId, long sessionId, List<Answer> answers) {
+        FinishOutcome outcome = Objects.requireNonNull(answerTransaction.execute(status ->
+                finishInTransaction(userId, sessionId, answers == null ? List.of() : answers)));
+        if (outcome.failure() != null) {
+            throw outcome.failure();
+        }
+        return outcome.result();
+    }
+
+    private FinishOutcome finishInTransaction(long userId, long sessionId, List<Answer> answers) {
+        Attempt attempt = attempts.findByIdForUpdate(sessionId).orElseThrow(PracticeService::notOwned);
+        if (!Objects.equals(attempt.getUserId(), userId)) {
+            throw notOwned();
+        }
+        Instant now = clock.instant();
+        if ("EXPIRED".equals(attempt.getStatus())
+                || ("IN_PROGRESS".equals(attempt.getStatus()) && attempt.getExpiresAt().isBefore(now))) {
+            attempt.setStatus("EXPIRED");
+            return new FinishOutcome(null, failure(ErrorCode.SESSION_EXPIRED, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Lượt luyện đã hết hạn."));
+        }
+        if (!"IN_PROGRESS".equals(attempt.getStatus())) {
+            throw failure(ErrorCode.SESSION_ALREADY_SUBMITTED, HttpStatus.CONFLICT, "Lượt luyện đã kết thúc.");
+        }
+        PracticeSource source = PracticeSource.valueOf(attempt.getRefType());
+        boolean deferred = source.feedback() == FeedbackMode.DEFERRED;
+        if (!deferred && !answers.isEmpty()) {
+            throw validation("answers");
+        }
+        ServedSnapshot snapshot = mapper.convertValue(attempt.getServedItems(), ServedSnapshot.class);
+        Map<Integer, ServedItem> served = new LinkedHashMap<>();
+        snapshot.items().forEach(item -> served.put(item.no(), item));
+        Map<Integer, AttemptItem> recorded = new TreeMap<>();
+        attemptItems.findByAttemptIdOrderByOrderIndexAsc(sessionId)
+                .forEach(item -> recorded.put(item.getOrderIndex(), item));
+        ObjectNode draft = attempt.getDraftAnswers() == null ? mapper.createObjectNode()
+                : (ObjectNode) attempt.getDraftAnswers().deepCopy();
+        for (Answer answer : answers) {
+            validateAnswerEvidence(answer);
+            ServedItem item = served.get(answer.no());
+            if (item == null) {
+                throw failure(ErrorCode.ITEM_NOT_IN_SESSION, HttpStatus.BAD_REQUEST,
+                        "Câu hỏi không thuộc lượt luyện này.");
+            }
+            validateAnswerRules(source, item, answer);
+            rateLimiter.checkAnswer(userId);
+            if (!item.type().gradable()) {
+                if (recorded.containsKey(item.no())) {
+                    throw failure(ErrorCode.ANSWER_ALREADY_SUBMITTED, HttpStatus.CONFLICT,
+                            "Câu hỏi đã được trả lời.");
+                }
+                recorded.put(item.no(), recordDeferredItem(attempt, source, item, answer, false));
+            } else {
+                draft.set(Integer.toString(item.no()), mapper.valueToTree(new DraftAnswer(answer.answer(),
+                        answer.durationMs(), answer.replayCount(), answer.skipped(), answer.audioFailed())));
+            }
+        }
+        if (deferred) {
+            if (!answers.isEmpty()) {
+                attempt.setDraftAnswers(draft);
+                attempt.setDraftSavedAt(now);
+            }
+            for (ServedItem item : snapshot.items()) {
+                if (recorded.containsKey(item.no())) {
+                    continue;
+                }
+                JsonNode evidence = draft.get(Integer.toString(item.no()));
+                DraftAnswer saved = evidence == null ? null : mapper.convertValue(evidence, DraftAnswer.class);
+                Answer answer = saved == null ? new Answer(item.no(), null, 0, 0, false, false, null)
+                        : new Answer(item.no(), saved.answer(), saved.durationMs(), saved.replayCount(),
+                                saved.skipped(), saved.audioFailed(), null);
+                recorded.put(item.no(), recordDeferredItem(attempt, source, item, answer, saved == null));
+            }
+        }
+        List<GradedItem> graded = new ArrayList<>();
+        for (AttemptItem evidence : recorded.values()) {
+            ServedItem item = served.get(evidence.getOrderIndex());
+            Map<String, Object> meta = evidence.getMeta();
+            Answer answer = new Answer(item.no(), evidence.getAnswer(),
+                    evidence.getDurationMs() == null ? 0 : evidence.getDurationMs(),
+                    ((Number) meta.getOrDefault("replayCount", 0)).intValue(),
+                    Boolean.TRUE.equals(meta.get("skipped")), Boolean.TRUE.equals(meta.get("audioFailed")), null);
+            boolean counted = source.feedback() != FeedbackMode.RECORD && item.type().gradable()
+                    && !answer.audioFailed() && (deferred || !answer.skipped());
+            graded.add(new GradedItem(item, answer, evidence.getCorrect(), counted, meta));
+        }
+        boolean hasGradable = source.feedback() != FeedbackMode.RECORD
+                && snapshot.items().stream().anyMatch(item -> item.type().gradable());
+        Long score = hasGradable ? graded.stream().filter(item -> Boolean.TRUE.equals(item.correct())).count() : null;
+        Long maxScore = hasGradable ? graded.stream().filter(GradedItem::counted).count() : null;
+        if (hasGradable && source.maxScoreFromServed()) {
+            maxScore = snapshot.items().stream().filter(item -> item.type().gradable()).count()
+                    - graded.stream().filter(item -> item.item().type().gradable() && item.answer().audioFailed()).count();
+        }
+        List<GradedItem> answered = graded.stream().filter(item -> item.counted() && item.answer().answer() != null
+                && !item.answer().skipped() && !Boolean.TRUE.equals(item.meta().get("missing"))).toList();
+        long suspiciousCount = answered.stream().filter(item -> Boolean.TRUE.equals(item.meta().get("suspicious"))).count();
+        boolean suspicious = !answered.isEmpty() && suspiciousCount * 100 >= answered.size() * 30L;
+        FinishContext context = new FinishContext(userId, sessionId, source, attempt.getRefId(), score, maxScore,
+                suspicious, attempt.getServedAt(), now, graded);
+        for (PracticeSourceHandler handler : handlers) {
+            if (handler.source() == source) {
+                suspicious |= handler.isSuspicious(context);
+            }
+        }
+        context = new FinishContext(userId, sessionId, source, attempt.getRefId(), score, maxScore,
+                suspicious, attempt.getServedAt(), now, graded);
+        int duration = Math.toIntExact(Duration.between(attempt.getServedAt(), now).toMillis());
+        attempt.setScore(score);
+        attempt.setMaxScore(maxScore);
+        attempt.setDurationMs(duration);
+        attempt.setSuspicious(suspicious);
+        attempt.setSubmittedAt(now);
+        attempt.setStatus("SUBMITTED");
+        entityManager.createNativeQuery("insert into learning.study_events "
+                        + "(user_id, event_type, ref_type, ref_id, local_date, duration_ms) "
+                        + "values (:userId, :eventType, :refType, :refId, :localDate, :duration)")
+                .setParameter("userId", userId).setParameter("eventType", source == PracticeSource.GAME_ROUND ? "GAME" : "STUDY")
+                .setParameter("refType", source.name()).setParameter("refId", attempt.getRefId())
+                .setParameter("localDate", now.atZone(ZoneId.of("Asia/Ho_Chi_Minh")).toLocalDate())
+                .setParameter("duration", duration).executeUpdate();
+        var extra = new LinkedHashMap<String, Object>();
+        for (PracticeSourceHandler handler : handlers) {
+            if (handler.source() == source) {
+                extra.putAll(handler.onFinish(context));
+            }
+        }
+        events.publishEvent(new SessionFinishedEvent(userId, sessionId, source, attempt.getRefId(), score, maxScore,
+                suspicious));
+        Integer percent = maxScore == null || maxScore == 0 ? null : Math.toIntExact(score * 100 / maxScore);
+        List<FinishItem> items = graded.stream().map(item -> new FinishItem(item.item().no(), item.correct(),
+                item.item().type().gradable() ? correctAnswer(item.item()) : null, item.answer().answer())).toList();
+        return new FinishOutcome(new FinishResult(sessionId, "SUBMITTED", score, maxScore, percent,
+                suspicious, items, extra), null);
+    }
+
+    private AttemptItem recordDeferredItem(Attempt attempt, PracticeSource source, ServedItem item,
+            Answer answer, boolean missing) {
+        var meta = new LinkedHashMap<String, Object>();
+        for (PracticeSourceHandler handler : handlers) {
+            if (handler.source() == source) {
+                handler.validateAnswer(item, answer);
+                meta.putAll(handler.enrichMeta(item, answer));
+            }
+        }
+        if (missing || answer.skipped()) {
+            meta.put("missing", true);
+        }
+        if (!missing && answer.durationMs() < item.rules().minDurationMs()) {
+            meta.put("suspicious", true);
+        }
+        if (answer.skipped()) {
+            meta.put("skipped", true);
+        }
+        if (answer.audioFailed()) {
+            meta.put("audioFailed", true);
+        }
+        meta.put("replayCount", answer.replayCount());
+        Boolean correct = !item.type().gradable() || answer.audioFailed() ? null
+                : !missing && !answer.skipped() && (item.type() == ItemType.PINYIN_INPUT
+                        ? PinyinGrader.matches(answer.answer(), item.accept()) : Objects.equals(item.answer(), answer.answer()));
+        AttemptItem recorded = new AttemptItem(attempt.getId(), item.no(), item.type().name(), item.skill().name());
+        recorded.setLexemeId(item.lexemeId());
+        recorded.setAnswer(answer.answer());
+        recorded.setCorrect(correct);
+        recorded.setDurationMs(missing ? null : answer.durationMs());
+        recorded.setMeta(meta);
+        attemptItems.saveAndFlush(recorded);
+        publishItem(attempt, item, recorded);
+        return recorded;
+    }
+
+    private String correctAnswer(ServedItem item) {
+        return item.answer() != null ? item.answer()
+                : item.accept() == null || item.accept().isEmpty() ? null : item.accept().get(0);
+    }
+
+    private void publishItem(Attempt attempt, ServedItem item, AttemptItem recorded) {
+        events.publishEvent(new ItemGradedEvent(attempt.getUserId(), attempt.getId(),
+                PracticeSource.valueOf(attempt.getRefType()), attempt.getRefId(), item.no(), item.lexemeId(),
+                item.skill(), item.type(), recorded.getCorrect(), recorded.getMeta()));
+    }
+
+    private record FinishOutcome(FinishResult result, ApiException failure) {
+    }
+
+    public record FinishResult(long sessionId, String status, Long score, Long maxScore, Integer percent,
+            boolean suspicious, List<FinishItem> items, Map<String, Object> extra) {
+    }
+
+    public record FinishItem(int no, Boolean correct, String correctAnswer, String yourAnswer) {
     }
 
     private void validateAnswerEvidence(Answer answer) {
@@ -331,6 +534,7 @@ public class PracticeService {
         recorded.setDurationMs(answer.durationMs());
         recorded.setMeta(meta);
         attemptItems.save(recorded);
+        publishItem(attempt, item, recorded);
     }
 
     private SessionView toView(Attempt attempt) {

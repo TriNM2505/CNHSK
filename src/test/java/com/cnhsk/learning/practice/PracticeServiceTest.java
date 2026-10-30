@@ -349,7 +349,8 @@ class PracticeServiceTest {
 
     private PracticeService service(List<PracticeSourceHandler> handlers) {
         return new PracticeService(attempts, items, mock(EntityManager.class), mapper,
-                Clock.fixed(NOW, ZoneOffset.UTC), limiter, handlers);
+                Clock.fixed(NOW, ZoneOffset.UTC), limiter, handlers,
+                mock(org.springframework.context.ApplicationEventPublisher.class));
     }
 
     static StartPracticeCommand command(PracticeSource source, List<ServedItem> items, List<Answer> preRecorded,
