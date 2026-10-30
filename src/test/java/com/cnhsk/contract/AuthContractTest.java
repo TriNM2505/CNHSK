@@ -32,7 +32,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"test", "dev"})
-@TestPropertySource(properties = "springdoc.api-docs.enabled=true")
+// Scope spec 001's runtime contract comparison to auth controllers as other modules add endpoints.
+@TestPropertySource(properties = {
+        "springdoc.api-docs.enabled=true",
+        "springdoc.packages-to-scan=com.cnhsk.auth"
+})
 @WithMockUser(username = "contract-test", roles = "ADMIN")
 class AuthContractTest {
 

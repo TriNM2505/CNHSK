@@ -116,6 +116,11 @@ public class SecurityConfig {
                                 "/swagger-ui.html").denyAll();
                     }
                     authorize.requestMatchers("/api/admin/imports", "/api/admin/imports/**").hasRole("CONTENT_EDITOR");
+                    authorize.requestMatchers(HttpMethod.GET, "/api/practice/sessions/active",
+                            "/api/practice/sessions/{id}").hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.POST, "/api/practice/sessions/{id}/answers").hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.POST, "/api/practice/sessions/{id}/finish").hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.POST, "/api/practice/sessions/{id}/abandon").hasRole("LEARNER");
                     authorize.requestMatchers("/api/admin/**").hasRole("ADMIN")
                             .requestMatchers("/api/auth/verify-email/resend", "/api/auth/logout",
                                     "/api/auth/logout-all", "/api/auth/me", "/api/me/**")
