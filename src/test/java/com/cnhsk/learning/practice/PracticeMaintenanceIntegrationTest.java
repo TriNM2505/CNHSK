@@ -69,7 +69,7 @@ class PracticeMaintenanceIntegrationTest extends AbstractIntegrationTest {
     @Autowired private Environment environment;
     @Autowired private PracticeFinishIntegrationTest.EventProbe probe;
     @MockitoBean private Clock clock;
-    @MockitoBean private PracticeSourceHandler handler;
+    @MockitoBean(name = "stubPracticeSourceHandler") private PracticeSourceHandler handler;
     private long owner;
 
     @BeforeEach

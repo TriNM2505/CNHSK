@@ -61,7 +61,7 @@ class PracticeApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private EventProbe probe;
     @MockitoBean private Clock clock;
-    @MockitoBean private PracticeSourceHandler handler;
+    @MockitoBean(name = "stubPracticeSourceHandler") private PracticeSourceHandler handler;
     private long owner;
 
     @BeforeEach
