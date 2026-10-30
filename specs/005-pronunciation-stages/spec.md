@@ -115,6 +115,7 @@ Tất cả trong **cùng transaction** với `finish` (BR-022-3).
 | **FR-014** | Mỗi lần kết thúc mở **tối đa một** tầng kế (BR-022-6) |
 | **FR-015** | WHEN đạt và là tầng có `stage_index` lớn nhất trong `pron_stages`, `completedAllStages = true` (E5) |
 | **FR-016** | `extra` SHALL là `{stageIndex, accuracy, bestAccuracy, passPercent, passed, unlockedNextStage, nextStageIndex, needed, completedAllStages, noScore}`; `needed = max(0, passPercent − accuracy)` khi chưa đạt (UC-022 A1) |
+| Làm rõ FR-016 (leader chốt 2026-10-30) | `passed`/`completedAllStages` theo accuracy của lượt hiện tại; đạt thì `needed=0.00`; noScore thì `accuracy=needed=null`, giữ bestAccuracy cũ, ba cờ `passed=unlockedNextStage=completedAllStages=false`, `noScore=true`, không ghi tiến độ; `nextStageIndex=k+1` nếu tầng đó tồn tại kể cả chưa đạt, ngược lại null. |
 
 ### Nhóm 4 — Giao diện (FR-017…FR-020) · SCR-016
 

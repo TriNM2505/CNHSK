@@ -163,3 +163,92 @@ Không đề xuất sửa `PracticeApi`, test bốn phương thức, bộ máy p
 - **BUS-09, BUS-11:** đáp án do server giữ và chấm; không nhận điểm client; luật mở tầng dùng ngưỡng đã có của T-01.
 - **ES-01, ES-03, ES-05:** giữ stack/naming; integration test endpoint; full gate và coverage đạt yêu cầu.
 - **ES-06, ES-07:** một commit Conventional Commits cho T-02; stage đúng file; nhánh `spec/*`; chỉ push nhánh spec theo duyệt, không tự merge.
+
+## T-03 - Shadow Plan đã duyệt ngày 2026-10-30
+
+### Kiểm tra đầu task
+
+- Đã đọc lại AGENTS, constitution, spec 001 §0, spec/OpenAPI/tasks 005. Không có `plan.md` của spec 005.
+- Đã `git fetch origin`; main vẫn ở `7391f87`, có V4 và phần nền spec 002/003. Không chờ T-13 của spec 003 theo chỉ đạo leader đã chốt.
+- Nhánh `spec/005-pronunciation-stages` chưa merge; có hai commit T-01 `8bf7b87` và T-02 `75324d0`. Giữ nguyên nhánh; không tạo part2, merge/rebase/pull main.
+- Ở bước đầu T-03, người dùng yêu cầu không push; quyết định duyệt T-03 bên dưới đã thay thế bằng việc cho phép push nhánh spec sau gate xanh.
+- Đã kiểm hook `PracticeSourceHandler`, đường finish/transaction của `PracticeService`, entity/repository Attempt, PronStage và schema `user_progress` hiện có. Chưa sửa code/test của T-03.
+
+### Shadow Plan đề xuất
+
+- **Task:** FR-010…FR-016 và §11; AT-08…AT-15, AT-18…AT-20; bổ sung regression AT-16/AT-17 cho tiến độ tạo từ handler.
+- **Đọc:** các tài liệu trên; spec 003 §0.8/§0.9, `PracticeSourceHandler`, `PracticeService.finish`, `Attempt`/repository, `PronStage`/repository, `UserProgress`, SQL V1/V3/V4; `ErrorCode`, danh sách mã trong `GlobalExceptionHandlerTest`, test finish/boundary/facade và hạ tầng Testcontainers liên quan.
+- **Tạo theo cột File:** `src/main/java/com/cnhsk/learning/pronunciation/PronStageHandler.java`; đăng ký handler cho `PRON_STAGE` bằng cơ chế bean hiện có.
+- **FR-010:** đối chiếu số câu đã có kết quả với snapshot `Attempt.servedItems.items`, không dùng số đơn vị hiện tại sau khi nhập lại nội dung. `FinishContext.items` chỉ có câu đã ghi nên cần đọc snapshot qua repository cùng module learning; không sửa bộ máy hoặc hợp đồng hook. Còn câu chưa trả lời thì ném 422 `STAGE_INCOMPLETE` kèm `remaining`, rollback finish.
+- **FR-011/§11:** tính accuracy từ kết quả server có `correct != null`, làm tròn hai chữ số; mẫu số 0 thì không ghi tiến độ. Hook `isSuspicious` kiểm `audioFailed * 100 > totalServed * 30`, kết hợp cờ sẵn có của bộ máy.
+- **FR-012…FR-015:** SQL native tham số hóa trong transaction finish hiện có; upsert điểm tốt nhất bằng `GREATEST`, state theo ngưỡng dữ liệu, giữ `unlocked_at` khi update theo SQL của spec; thời gian lấy từ `FinishContext.submittedAt` do Clock server cấp. Chèn đúng tầng `k+1` bằng `ON CONFLICT DO NOTHING`, lấy số dòng chèn để tính `unlockedNextStage`. `completedAllStages` theo tầng có `stage_index` lớn nhất thực tế trong dữ liệu, không tạo tầng mới.
+- **FR-016:** trả đủ mười trường `extra` theo contract và quyết định Q-T03-02 đã chốt bên dưới.
+- **Test:** đủ các AT của task; giữ điểm cao nhất và thời gian mở; không khóa lại; không mở quá một tầng; mẫu số loại audioFailed, noScore; ngưỡng suspicious 30% và trên 30%; rollback sau khi SQL tiến độ đã chạy; không lẫn dữ liệu người dùng. AT-13 bắt buộc hai luồng thật, hai session khác nhau của cùng người/tầng, finish đồng thời trên PostgreSQL/Testcontainers; assert đúng một dòng tầng kế, đúng một `unlockedNextStage=true`, điểm tốt nhất không bị ghi đè thấp hơn. Fixture tự tạo, không dùng dữ liệu demo hoặc Neon. Ghi nhận p95 finish cục bộ cho NFR-P02.
+- **Gate:** hai test T-03 + `ModuleBoundaryTest`, `PracticeApiTest`, `GlobalExceptionHandlerTest`, sau đó `.\mvnw.cmd verify` trên PowerShell thường có Docker; 0 failure/error/skip, coverage toàn bộ ít nhất 80%, practice ít nhất 90%, `git diff --check`, UTF-8 không BOM/TODO.
+- **Bàn giao:** cập nhật task sau gate, một commit Conventional Commits cho T-03, stage file cụ thể; push nhánh spec theo quyết định duyệt T-03, không merge PR.
+- **Rủi ro chính:** mất cập nhật khi hai lượt cùng kết thúc; tính remaining sai vì context chỉ chứa câu đã ghi; ghi tiến độ ngoài transaction finish; kiểm đúng null/0 của extra theo quyết định đã chốt.
+
+### Q-T03-01 - Xin bổ sung phạm vi file cho handler và test
+
+Cột File của T-03 hiện chỉ có `PronStageHandler.java`. Đề xuất leader duyệt thêm:
+
+- `src/main/java/com/cnhsk/shared/exception/ErrorCode.java`: chỉ thêm `STAGE_INCOMPLETE` ngay trước `INTERNAL_ERROR`.
+- `src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java`: chỉ thêm một tên mã đúng vị trí trong `containsExactly`, giữ các assertion khác.
+- `src/test/java/com/cnhsk/learning/pronunciation/PronStageHandlerTest.java`: unit test mới.
+- `src/test/java/com/cnhsk/learning/pronunciation/PronStageHandlerIntegrationTest.java`: integration, rollback và hai luồng thật trên PostgreSQL/Testcontainers.
+- `specs/005-pronunciation-stages/tasks.md`: cập nhật phạm vi sau khi duyệt và trạng thái sau gate.
+- `specs/005-pronunciation-stages/questions.md`: ghi quyết định và kết quả.
+
+Không đề xuất sửa `SecurityConfig`, controller, facade, `PracticeService`, `PracticeSourceHandler`, test spec khác, entity, dependency, migration hoặc cấu hình test. Không có endpoint mới; contract nguồn đã duyệt giữ nguyên nếu quyết định Q-T03-02 không đổi cấu trúc.
+
+**Leader chốt ngày 2026-10-30:** duyệt phạm vi trên. Chỉ thêm `STAGE_INCOMPLETE` ngay trước `INTERNAL_ERROR`, thêm tên mã cùng vị trí trong `GlobalExceptionHandlerTest`, giữ `containsExactly`; duyệt hai test mới và tài liệu spec 005. Nếu cần file dùng chung khác phải dừng và báo leader.
+
+**Trạng thái:** đã chốt, không còn câu hỏi mở về phạm vi.
+
+### Q-T03-02 - Giá trị extra ở trường hợp đạt/noScore và tầng kế
+
+FR-016 chỉ quy định `needed` khi chưa đạt; FR-011 quy định accuracy null và không ghi tiến độ khi counted=0. Chưa xác định đủ giá trị của `needed`, `nextStageIndex` và các cờ khi không có điểm. OpenAPI cho phép null ở accuracy, bestAccuracy, nextStageIndex, needed.
+
+**Leader chốt ngày 2026-10-30:**
+
+- Lượt có điểm: `passed` theo accuracy của lượt hiện tại; chưa đạt thì `needed=max(0, passPercent-accuracy)`, đạt thì `needed=0.00`.
+- `nextStageIndex=k+1` nếu tầng liền sau có trong dữ liệu, kể cả lượt chưa đạt; không có tầng đó thì null.
+- Lượt không có điểm: `accuracy=null`, `bestAccuracy` đọc giá trị cũ hoặc null; `needed=null`; `passed=false`, `unlockedNextStage=false`, `completedAllStages=false`, `noScore=true`; `nextStageIndex` vẫn theo quy tắc tồn tại ở trên. Không thay đổi bất kỳ dòng tiến độ nào.
+
+`passed` và `completedAllStages` tính theo accuracy của lượt hiện tại, không theo bestAccuracy; làm lại bị trượt vẫn giữ tầng `COMPLETED` nếu điểm tốt nhất còn đạt ngưỡng. Được thêm đúng một dòng làm rõ FR-016 trong `spec.md`, không đổi nội dung khác.
+
+**Trạng thái:** đã chốt, không còn câu hỏi mở về extra.
+
+### Điều kiện T-03 leader chốt ngày 2026-10-30
+
+- `remaining` tính từ câu chưa có `attempt_items`; `audioFailed` vẫn là đã trả lời. Lỗi 422 kèm `remaining` rollback finish, giữ `IN_PROGRESS`, không có tiến độ mới (AT-08).
+- Accuracy dùng `BigDecimal`, scale 2, `HALF_UP`, so sánh `compareTo`; đúng mốc passPercent là đạt.
+- Upsert tiến độ và chèn tầng kế bằng SQL `ON CONFLICT` trong cùng transaction finish; không đọc rồi ghi. `percent=GREATEST(cũ,mới)`, tối đa một tầng kế, hai lượt song song chỉ tạo một dòng tầng kế.
+- Lỗi ghi tiến độ rollback toàn bộ finish (AT-19). Cờ audio qua `isSuspicious`, OR với cờ chung sẵn có của bộ máy (AT-20).
+- Đủ AT-08…AT-15, AT-18…AT-20, thêm noScore và tầng cuối. Không sửa test spec khác, không tạo migration.
+- Gate chọn lọc T-03 + `ModuleBoundaryTest` + `PracticeApiTest` + `GlobalExceptionHandlerTest`, rồi Maven Wrapper `verify` trên PowerShell thường có Docker; 0 failure/error/skip, coverage toàn bộ ít nhất 80%, practice ít nhất 90%, diff sạch.
+- Chỉ đạo mới trong lần duyệt này **cho phép push nhánh spec sau gate**, thay thế yêu cầu giữ local ở đầu T-03. Một task một commit, stage từng file; không merge/rebase/pull main, force-push, push main hoặc merge PR.
+
+## Kết quả T-03 ngày 2026-10-30
+
+- Đăng ký `PronStageHandler` cho nguồn `PRON_STAGE`, dùng hook/transaction finish hiện có. Không sửa bộ máy, facade, controller hoặc test spec khác.
+- `remaining` theo snapshot đã phát và số câu đã có bằng chứng, kể cả audioFailed; chưa đủ ném 422 và rollback finish/study_events, giữ các câu đã trả lời.
+- Accuracy dùng BigDecimal scale 2/HALF_UP; đúng ngưỡng cấu hình là đạt. Các cờ passed/completedAllStages chỉ theo lượt hiện tại; noScore không ghi bất kỳ dòng tiến độ nào.
+- Upsert `GREATEST` và mở tầng kế dùng SQL ON CONFLICT trong transaction bắt buộc hiện có. Chỉ đọc lại percent sau upsert, khi transaction còn giữ khóa dòng; giữ nguyên thời gian mở và chỉ chèn tối đa tầng k+1.
+- `isSuspicious` dùng tỷ lệ audioFailed trên tổng câu đã phát, ngưỡng nghiêm ngặt >30%; giữ OR với cờ chung của bộ máy.
+- 50 test mới: 24 unit + 26 integration. AT-08…AT-15, AT-18…AT-20, noScore, tầng cuối, ngưỡng chính xác/làm tròn, timestamp, người dùng và dữ liệu không liên quan, regression AT-16/17 đều xanh.
+- AT-13: hai session khác nhau, hai luồng HTTP thật; barrier tại hook bảo đảm hai transaction cùng chạy trước SQL tiến độ; đúng một flag mở mới, một dòng tầng kế, bestAccuracy cuối 100.00. AT-19 gây lỗi sau khi hai dòng tiến độ đã ghi trong transaction, xác nhận rollback cả finish/tiến độ/event rồi retry thành công.
+- Gate chọn lọc T-03 + ModuleBoundaryTest/PracticeApiTest/GlobalExceptionHandlerTest: 87 test xanh, 0 failure/error/skip. Full Maven Wrapper verify trên Java 17/PowerShell thường có Docker: 1463 test trong 91 suite, 0 failure/error/skip, đối chiếu Surefire XML.
+- JaCoCo line: toàn bộ 4498/4664 (96,44%); practice 743/743 (100%); pronunciation 141/142 (99,30%).
+- NFR-P02: p95 finish cục bộ 18,5757 ms trên 20 mẫu sau warm-up; mỗi mẫu có chèn mới tầng kế, dưới 300 ms. Đây là phép đo trên Testcontainers local.
+- Hai file dùng chung chỉ thêm STAGE_INCOMPLETE đúng vị trí trong enum và containsExactly. Spec thêm đúng một dòng FR-016; contract OpenAPI giữ nguyên. Không tạo migration, thêm dependency, sửa cấu hình test hoặc frontend; không có câu hỏi T-03 còn mở.
+
+### Self-check Constitution T-03
+
+- **HR-02, HR-08, BUS-06:** không đọc/commit bí mật, dữ liệu bản quyền hoặc PII; fixture tự tạo, MockMvc không in request đăng ký khi test lỗi.
+- **HR-07, HR-09, BUS-01:** SQL tham số hóa; lỗi chuẩn có request_id; lượt không thuộc người gọi hoặc không tồn tại đều bị chặn trước hook, không ghi tiến độ người khác.
+- **AC-01, AC-03:** giữ contract đã duyệt; một dòng làm rõ spec theo chốt trước khi code. Handler/repository đều trong learning; không đọc/ghi bảng module khác.
+- **AC-05, AC-07, AC-08:** giữ nguyên migration/schema; accuracy/needed/best dùng BigDecimal và scale 2, không float/double; thời gian từ context/Clock server, không thêm job.
+- **BUS-02, BUS-09, BUS-11:** hook yêu cầu transaction đang có; upsert nguyên tử, race và rollback đã kiểm thật; điểm từ kết quả chấm server; so ngưỡng cấu hình bằng compareTo.
+- **ES-01, ES-03, ES-05:** stack/naming giữ nguyên; endpoint finish có integration test và coverage/gate đạt yêu cầu.
+- **ES-06, ES-07:** một commit Conventional Commits T-03, stage file cụ thể; chỉ push nhánh spec theo duyệt, không merge/rebase/pull main hoặc tự merge PR.
