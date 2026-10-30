@@ -42,6 +42,17 @@ spring:
     username: ${SMTP_USER:}
     password: ${SMTP_PASSWORD:}
     default-encoding: UTF-8
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:false}
+          debug: false
+          starttls:
+            enable: ${SMTP_STARTTLS:false}
+            required: ${SMTP_STARTTLS:false}
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
 server:
   port: 8080
