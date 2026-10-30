@@ -28,7 +28,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-09 | `TopicQueryService`: truy vấn tổng hợp §4, `status`, `bestTestPercent`; `GET /api/topics`, `GET /api/topics/{id}` (gồm `actions`) | `…/learning/vocab/*` | FR-013…FR-018 · AT-22…AT-24 | ⬜ |
+| T-09 | `TopicQueryService`: truy vấn tổng hợp §4, `status`, `bestTestPercent`; `GET /api/topics`, `GET /api/topics/{id}` (gồm `actions`) | `…/learning/vocab/*`; leader duyệt 2026-10-30: `src/test/java/com/cnhsk/learning/vocab/TopicQueryIntegrationTest.java`, `src/test/java/com/cnhsk/learning/vocab/TopicContractTest.java`, `…/shared/config/SecurityConfig.java` (chỉ hai matcher GET), `…/shared/exception/ErrorCode.java` (TOPIC_NOT_FOUND trước INTERNAL_ERROR), `src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java` (đồng bộ thứ tự), `contracts/openapi-practice-vocab.yaml` (chỉ 422 GET chi tiết), `tasks.md`, `questions.md` (chỉ T-09) | FR-013…FR-018 · AT-22…AT-24 | ✅ Local 2026-10-30: Java 17 mvnw verify xanh, 1370 test, 0 failure/error/skip (35 test T-09); JaCoCo toàn bộ 96,47% (4422/4584), practice 100% (742/742), vocab 97,65% (83/85); diff sạch. Q-T09-01 Chốt. Chưa push/bàn giao PR mới cho đến leader báo #21 đã merge |
 | T-10 | `TopicStudyService` + `POST /study-sessions` (10 từ chưa học, tiếp tục lượt đang làm) | `…/learning/vocab/TopicStudyService.java` | FR-019…FR-022 · AT-25…AT-28 | ⬜ |
 | T-11 | `TopicPracticeService` + `POST /practice-sessions` (2 chế độ, ưu tiên từ yếu, luyện lại từ sai) | `…/learning/vocab/TopicPracticeService.java` | FR-025…FR-030 · AT-29…AT-32 | ⬜ |
 | T-12 | `TopicTestService` + `TopicTestHandler` + `POST /tests` (điều kiện, chờ 10 phút, 20 câu 4 dạng, thay thế) | `…/learning/vocab/TopicTestService.java` | FR-031…FR-040 · AT-33…AT-39 | ⬜ |
@@ -37,7 +37,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-13 | Khung FE luyện tập dùng chung: `features/practice/` — hook `usePracticeSession` (bắt đầu/khôi phục/trả lời/kết thúc), component `ChoiceQuestion`, `PinyinInput`, `AudioButton` (đếm nghe lại, "Không nghe được"), `SessionSummary` | `cnhsk-web/src/features/practice/**` | FR-043, FR-045 | ⬜ |
+| T-13 | Khung FE luyện tập dùng chung: `features/practice/` — hook `usePracticeSession` (bắt đầu/khôi phục/trả lời/kết thúc), component `ChoiceQuestion`, `PinyinInput`, `AudioButton` (đếm nghe lại, "Không nghe được"), `SessionSummary` | `cnhsk-web/src/features/practice/**`; leader duyệt: `tasks.md`, `questions.md` (chỉ T-13) | FR-043, FR-045 | ✅ 2026-10-30: Q-T13-02/03 đã chốt; khôi phục đúng field GET, không giả thời gian/lượt nghe; finish loại nháp khôi phục chưa sửa, giữ đủ durationMs của câu sửa; chặn phản hồi lượt cũ và feedback DEFERRED. Thêm 16 test FR043/FR045; toàn FE 1021 test/114 file pass, không failure/error/skip; practice 42 ca. Lint 0 lỗi (1 warning có sẵn tại LevelBadge), typecheck/build xanh; diff sạch, không BOM/TODO/ép kiểu. Giữ tên export, AnswerRequest/FinishRequest và chữ ký answer()/finish(); không sửa caller/BE/OpenAPI/dependency/DB. Maven không chạy theo gate leader cho T-13; không có coverage BE mới. Bàn giao bằng một commit T-13 và Draft PR mới |
 | T-14 | SCR-011 Topic List | `cnhsk-web/src/features/vocab/pages/TopicListPage.tsx` (SCR-011) | FR-041 | ⬜ |
 | T-15 | SCR-012 khung + bước "Học từ mới" (thẻ từ) | `cnhsk-web/src/features/vocab/**` | FR-042, FR-023, FR-024 | ⬜ |
 | T-16 | SCR-012 bước luyện nhận diện / nghe (dùng T-13) | `cnhsk-web/src/features/vocab/**` | FR-043 | ⬜ |

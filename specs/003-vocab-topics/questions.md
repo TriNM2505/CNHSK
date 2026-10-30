@@ -379,3 +379,90 @@ Gate factory test rồi Java 17 mvnw verify trên PowerShell thường có Docke
 **Gate T-08 đạt (2026-10-30, 15:10:59 +07):** Leader chạy Java 17 mvnw verify trên PowerShell thường có Docker: BUILD SUCCESS, 711 test, 0 failure/error/skip. Đã đọc XML Surefire trên máy: đúng 711/0/0/0; PracticeApiTest 23/0/0/0, PracticeApiIntegrationTest 13/0/0/0, ModuleBoundaryTest 9/0/0/0. JaCoCo XML tạo lúc 15:10:59: toàn bộ 95,00% (3020/3179 dòng), practice 100% (742/742), learning.api 100% (94/94). Gate này thay thế kết quả bị hạn chế hạ tầng ở trên. Code không đổi sau gate; chỉ cập nhật tài liệu nghiệm thu. git diff --check sạch. Một commit T-08; bàn giao chỉ hoàn tất sau push và cập nhật Draft PR #19, rồi lập Shadow Plan T-13.
 
 **Self-check khi nghiệm thu T-08:** AC-01 không đổi HTTP endpoint/contract; AC-03 facade/DTO trong learning.api, không lộ kiểu nội bộ, rule community chỉ siết và tám rule cũ nguyên vẹn; BUS-01 mọi lời gọi giữ userId, missing/unowned cùng 403 ATTEMPT_NOT_OWNED, không đường system; BUS-02/AC-10 facade không có transaction riêng, giữ hook/event và rollback của bộ máy, integration đã xanh; HR-06/BUS-09 PracticeService tính điểm, facade không chấm/phát sự kiện, không lộ đáp án trước khi được phép; HR-05 giữ CSRF/security hiện có; HR-07 không thêm SQL hoặc endpoint nhận input; HR-09 chuyển tiếp lỗi hiện có; HR-02/BUS-06/HR-08 không secret/PII thật/dữ liệu bản quyền; AC-05 không đổi schema/migration, không chạy Neon; AC-07 Long/BIGINT; AC-08 giữ Instant/Duration/Clock; AC-09 không thêm query JSONB; ES-01/02 giữ Java 17/stack/dependency; ES-05 toàn bộ test không skip, coverage vượt 80%/90%, facade 100%; ES-06 một commit Conventional Commits T-08; ES-07 giữ spec/003-vocab-topics và Draft PR #19, không merge/rebase/force-push. Đúng sáu file, không BOM/TODO, diff sạch; chỉ stage hunk Q-T08, giữ nguyên phần bàn giao T-04 và env ngoài commit.
+
+
+## Q-T13-02 — Phạm vi khôi phục lượt luyện
+
+**Trạng thái:** Chốt bởi leader, ngày 2026-10-30. T-13 thực hiện theo Shadow Plan đã duyệt trong phiên làm việc.
+
+FR-045 chỉ khôi phục các trường ItemState hiện có: no, answer, correct, correctAnswer, counted. Không thêm trường vào GET session; không sửa backend/OpenAPI. Tải lại trang thì bộ đếm nghe của câu đang làm về 0. IMMEDIATE/RECORD đã khóa sau khi gửi; DEFERRED không hiện đúng/sai trước finish. replayCount tính cả lần đầu, tối đa ba lần; không autoplay. Tổng kết chỉ dùng điểm server.
+
+## Q-T13-03 — Kiểu draft khôi phục và bảo toàn bằng chứng server
+
+**Trạng thái:** Chốt bởi leader, ngày 2026-10-30.
+
+Chỉ đổi kiểu giá trị drafts trong usePracticeSession.ts thành `Pick<AnswerRequest, 'no'> & Partial<AnswerRequest>`. Giữ nguyên tên export, AnswerRequest, FinishRequest và chữ ký answer()/finish(). Không ép kiểu hoặc non-null assertion. restoredState chỉ lấy no và answer có trong GET, không tự điền durationMs/replayCount hoặc field vắng mặt.
+
+Khôi phục không gọi answer() hoặc tự gửi nháp lên server. Khi finish nhận toàn bộ nháp từ màn hiện có, hook lọc các câu khôi phục chưa sửa; nếu không còn câu mới thì gọi API finish không có answers. Câu sửa trong phiên có đủ durationMs được giữ; câu chưa kịp autosave nhưng đổi đáp án hoặc chủ động báo skip/audioFailed cũng được gửi. Không cần sửa caller ngoài features/practice.
+
+**Phạm vi thực hiện:** usePracticeSession.ts và test; ChoiceQuestion.tsx và test; AudioButton.test.tsx, SessionSummary.test.tsx; tasks.md và chỉ mục T-13 trong questions.md. Giữ phần bàn giao T-04 có sẵn ngoài commit. Tên export/props và các API request khác giữ nguyên. Handler thế hệ lượt chặn phản hồi mutation cũ khi đổi source/refId/reload; ChoiceQuestion ẩn feedback DEFERRED. AudioButton/SessionSummary đã đủ, chỉ bổ sung test biên và test điểm server.
+
+**Gate được duyệt:** toàn FE `npx vitest run --maxWorkers=2 --minWorkers=1`, lint, typecheck, build, git diff --check; không chạy Maven vì không sửa BE. Trước push kiểm `git merge-base --is-ancestor 7391f87 HEAD`; không merge/rebase/pull main. Một commit T-13, stage file cụ thể, push spec/003-vocab-topics, Draft PR mới; sau đó gửi Shadow Plan T-09 và chờ duyệt.
+
+
+**Nghiệm thu T-13 (2026-10-30):** Gate cuối `npx vitest run --maxWorkers=2 --minWorkers=1`: 114 file/1021 test pass, 0 failure/error/skip; 16 test mới FR043/FR045, package practice tổng 42 ca. Lint 0 lỗi, giữ 1 warning có sẵn tại shared/ui/LevelBadge.tsx; typecheck/build đều exit 0. Đã giữ cách gọi finishSession(id, undefined) hiện có để test grammar/hanzi nguyên vẹn; undefined không tạo body answers. Không sửa file ngoài scope hoặc assertion cũ. git diff --check sạch; file thay đổi UTF-8 không BOM, code không TODO, không dùng ép kiểu/non-null assertion. Maven không chạy và không có coverage BE mới theo gate leader.
+
+**Self-check Constitution:** AC-01 giữ HTTP contract/OpenAPI, chỉ đổi kiểu draft UI đã được Q-T13-03 duyệt; AC-03 giữ API/caller, không truy cập module hay DB; HR-06/BUS-09 tổng kết lấy score/maxScore từ server, DEFERRED ẩn phản hồi trước finish; HR-05/HR-09 giữ shared client CSRF/lỗi, không đổi auth; HR-07 input/request theo contract, nháp khôi phục không tự tạo bằng chứng hoặc gửi lại lúc finish; HR-02/BUS-06/HR-08 không đọc/đưa secret, PII thật hoặc dữ liệu bản quyền vào thay đổi; AC-05 không SQL/migration/Neon; ES-01/02 giữ stack/dependency; ES-05 toàn FE xanh và test mới lấy FR-043/045, phần AT-40 liên quan; ES-06/07 một commit T-13, push nhánh đã duyệt và Draft PR mới, không merge/rebase/pull main, force-push hoặc push main. Giữ phần bàn giao T-04 và file chưa theo dõi của người dùng ngoài commit. Không còn câu hỏi T-13 mở; bộ đếm nghe sau tải lại về 0 theo Q-T13-02.
+
+
+## Q-T09-01 — Shadow Plan TopicQueryService và hai GET chủ đề
+
+**Task:** T-09. **Trạng thái:** Chốt bởi leader ngày 2026-10-30, duyệt có điều kiện. Lập sau commit T-13 `10bf41e63bcf3248c6f46ac297d29982d094265c` đã push. T-09 ưu tiên demo học thật.
+
+**Điều kiện duyệt thay thế phần đề xuất bên dưới:** Giữ T-09 ở local trong khi leader chạy gate PR #21. Không push commit T-09 vào #21; chỉ sau khi leader báo #21 đã merge mới push cùng nhánh và mở Draft PR mới, không pull main. Không merge/rebase/pull main, force-push hoặc push main. File thực hiện đúng ba file production, hai test và các file shared/docs đã liệt kê; không sửa spec.md. OpenAPI chỉ thêm 422 cho GET /api/topics/{id}. SecurityConfig đúng hai matcher GET cho LEARNER. TOPIC_NOT_FOUND ngay trước INTERNAL_ERROR, đồng bộ containsExactly đúng thứ tự, không sửa test spec khác.
+
+Actions đã chốt: canStudy khi learnedWords<totalWords; recognition khi learnedWords>=1; listening khi có từ đã học của chủ đề có audio_url. TOPIC_TEST IN_PROGRESS chưa hết hạn ưu tiên canTakeTest=true, reason/retryAvailableAt=null. Nếu không: <4 từ → TOO_FEW_WORDS; học<80% → NOT_ENOUGH_LEARNED; lượt TOPIC_TEST gần nhất SUBMITTED, không đạt và chưa đủ 10 phút → RETRY_TOO_SOON, retryAvailableAt=submitted_at+10 phút; còn lại được thi. Dùng số nguyên và Clock; đúng 80%/10 phút được mở. FR-015 tổng hợp một query toàn danh sách theo lexeme của userId từ AuthApi.currentUser(), không giới hạn chủ đề/trạng thái lượt, không N+1/cache. bestTestPercent bỏ max_score=0, chia nguyên; không lọc JSONB. Không migration/index mới; cần index thì dừng xin V5. learning.vocab được đọc content trong cùng module learning. id sai định dạng/<=0 và hskLevel sai/ngoài 1–9 trả 422; id hợp lệ nhưng thiếu/rỗng trả 404 TOPIC_NOT_FOUND. Gate Testcontainers + Java 17 mvnw.cmd verify, 0 failure/error/skip, line coverage toàn bộ>=80%, practice>=90%, diff sạch.
+
+**Căn cứ:** FR-013…FR-018, AT-22…AT-24; spec §4 (tính đã học dùng chung giữa chủ đề), §5/§13 (lỗi/API), tham chiếu FR-031…FR-033 khi tính actions. Điều kiện bắt đầu đã có trên origin/main 7391f87: spec 001, spec 002 T-01…T-03, Q5 và T-01…T-08 của 003. Nội dung demo HSK 1–3; API/DB tiếp tục nhận 1–9, không sửa FE. Không có plan.md trong spec 003.
+
+**File đọc:** AGENTS.md → constitution.md → spec 001 §0 → spec 003 spec.md/contracts/openapi-practice-vocab.yaml/tasks.md/questions.md. Code cần thiết: auth/api/AuthApi.java và CurrentUser.java; learning/content/entity/{Topic,TopicItem,Lexeme}.java và repository tương ứng; learning/practice/entity/{Attempt,AttemptItem}.java và repository; shared/config/SecurityConfig.java; shared/exception/{ApiException,ErrorCode,GlobalExceptionHandler}.java; support/AbstractIntegrationTest.java; architecture/ModuleBoundaryTest.java; contract/AuthContractTest.java; shared/exception/GlobalExceptionHandlerTest.java; migration V1/V3/V4 chỉ đọc để khớp cột/index; pom.xml và cấu hình test chỉ đọc.
+
+**File dự kiến tạo trong cột File hiện có:**
+
+- `src/main/java/com/cnhsk/learning/vocab/TopicQueryService.java` — DTO record và tính actions/status/percent.
+- `src/main/java/com/cnhsk/learning/vocab/TopicQueryRepository.java` — truy vấn tổng hợp có tham số trong schema learning.
+- `src/main/java/com/cnhsk/learning/vocab/web/TopicController.java` — đúng GET /api/topics và GET /api/topics/{id}, lấy userId qua AuthApi.
+
+**Phạm vi bổ sung đã được leader duyệt có điều kiện:**
+
+- `src/test/java/com/cnhsk/learning/vocab/TopicQueryIntegrationTest.java` — Testcontainers PostgreSQL + HTTP cho hai GET, không sửa test nền.
+- `src/test/java/com/cnhsk/learning/vocab/TopicContractTest.java` — so đúng hai GET với contract và response DTO.
+- `src/main/java/com/cnhsk/shared/config/SecurityConfig.java` — chỉ thêm matcher GET /api/topics và /api/topics/{id}, hasRole LEARNER.
+- `src/main/java/com/cnhsk/shared/exception/ErrorCode.java` — chỉ thêm TOPIC_NOT_FOUND.
+- `src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java` — chỉ thêm TOPIC_NOT_FOUND vào containsExactly, giữ các mã/assertion cũ.
+- `specs/003-vocab-topics/{tasks.md,questions.md}` — chỉ T-09; `contracts/openapi-practice-vocab.yaml` chỉ thêm 422 cho GET chi tiết. Đã loại đề xuất sửa `spec.md` theo giới hạn leader chốt; contract được chốt trước endpoint.
+
+**Cách làm:** Danh sách dùng một truy vấn tổng hợp cho mọi chủ đề: từ đã học DISTINCT theo lexeme của người gọi trên mọi TOPIC_STUDY; tổng từ, dấu có lượt, điểm kiểm tra cao nhất được tổng hợp riêng để không nhân dòng khi JOIN. Lọc topic có lexeme, hskLevel 1–9, sắp hsk_level/order_index/id. COMPLETED theo lượt TOPIC_TEST đạt 90%, giữ bestTestPercent khi lượt sau điểm thấp. Chi tiết trả header cùng quy tắc + words theo order_index, learned dùng cùng định nghĩa toàn cục; missing/empty topic trả 404 TOPIC_NOT_FOUND. Read-only transaction, Clock cho cooldown, DTO không entity, SQL/JPQL có tham số, không cache/N+1, không truy vấn module khác. Không triển khai POST/handler học-luyện-kiểm tra hoặc FE, không thêm dependency/schema/migration.
+
+**Test mới:** Tên bắt đầu FR013_…FR018_. AT-22: HSK 10 trả 422, 1/9 hợp lệ, topic rỗng không xuất hiện, thứ tự đúng. AT-23: học từ X ở A thì B tính đã học; tài khoản khác không được hưởng; bằng chứng học không bị mất khi lượt hết hạn/bỏ dở. AT-24: thi 95 rồi 70 vẫn COMPLETED/best 95. FR-014: phần trăm nguyên/count không nhân đôi theo số lần học. FR-018: trường/word/order/audio/null, 404 missing/empty, các biên 4 từ/80%/10 phút theo quyết định actions; chỉ LEARNER, 401/403 đúng JSON/request_id và không có entity/PII. Contract test đúng path/status/schema của hai GET. Kiểm số truy vấn không tăng theo số topic; đo tham khảo danh sách 200 topic và 5000 câu trả lời theo NFR-P01, không coi thời gian cục bộ là bảo đảm p95 production.
+
+**Lệnh sau duyệt:** Test TopicQueryIntegrationTest/TopicContractTest/GlobalExceptionHandlerTest/ModuleBoundaryTest, rồi Java 17 `.\mvnw.cmd verify` trên PowerShell có Docker; đọc Surefire 0 failure/error/skip và JaCoCo line toàn bộ >=80%, practice >=90%; git diff --check, kiểm BOM/TODO và đúng phạm vi. Không chạy spring-boot:run lên Neon, SQL hoặc migration Neon. Demo thủ công dùng docs/demo-data nhập qua SCR-068; fixture test chỉ ở Testcontainers. Không merge/rebase/pull main hoặc force-push; một commit T-09 và Draft PR theo nhánh đã duyệt.
+
+**Rủi ro cần kiểm thử theo quyết định đã chốt:** JOIN nhân count, đếm học bị giới hạn nhầm theo topic, lẫn tiến độ người khác, mất COMPLETED sau lượt trượt, chia cho max_score 0, lệch đúng biên cooldown hoặc thứ tự ưu tiên actions. Không có nhu cầu migration/V5 cho T-09.
+
+**Đề xuất ban đầu — lưu lịch sử; đã chốt tại đầu mục:**
+
+1. Duyệt phạm vi bổ sung nêu trên vào cột File, gồm hai file dùng chung chỉ thêm dòng và test enum chỉ thêm một mã.
+2. Duyệt bảng actions đề xuất: canStudy = còn từ chưa học; canPracticeRecognition = có từ đã học; canPracticeListening = có từ đã học có audio; requiredWords = ceil(0.8*totalWords). Không kiểm đủ nhiễu ở T-09; việc sinh câu/lỗi NOT_ENOUGH_WORDS thuộc T-11. Nếu có TOPIC_TEST IN_PROGRESS chưa hết hạn thì canTakeTest=true để tiếp tục theo FR-033; nếu không, cần totalWords>=4, học>=80% và hết cooldown theo FR-032. testBlockedReason ưu tiên TOO_FEW_WORDS → NOT_ENOUGH_LEARNED → RETRY_TOO_SOON → null. retryAvailableAt chỉ có khi đang bị cooldown, là submittedAt của lượt trượt thuộc FR-032 +10 phút; ngoài ra null.
+3. Duyệt 422 VALIDATION_FAILED cho hskLevel/id sai kiểu hoặc ngoài kiểu số hỗ trợ; hskLevel ngoài 1–9 theo FR-013. OpenAPI GET chi tiết hiện chưa khai 422 nên cần bổ sung trước code, giữ 404 TOPIC_NOT_FOUND cho id số không tồn tại/không có từ.
+
+**Kết quả thực hiện local T-09 — 2026-10-30:**
+
+- Tạo đúng ba file production và hai file test đã liệt kê; thay đổi shared chỉ hai matcher GET, TOPIC_NOT_FOUND và thứ tự enum trong containsExactly. OpenAPI chỉ thêm 422 GET chi tiết. Không sửa spec.md, test spec khác, dependency, FE hay schema.
+- Một truy vấn tổng hợp danh sách theo userId từ AuthApi; learned theo lexeme không phụ thuộc chủ đề/trạng thái lượt; không N+1/cache hoặc điều kiện JSONB. Chi tiết dùng cùng tổng hợp và một query words, DTO không trả entity/PII. Actions đúng bảng chốt; kiểm thời điểm hết hạn bằng Instant/Clock để không làm mất biên nano khi bind JDBC.
+- Gate PowerShell có Docker: JAVA_HOME Java 17; bỏ biến DEBUG chỉ trong tiến trình test rồi chạy `.\mvnw.cmd verify`, BUILD SUCCESS lúc 22:03:47 +07. Đối chiếu Surefire XML: **1370 test, 0 failure, 0 error, 0 skip**. T-09 mới: **33 integration + 2 contract = 35**; AT-22/23/24, mọi nhánh actions, đúng 80%/10 phút, cách ly người dùng, query count đều xanh. Chín test kiến trúc xanh.
+- JaCoCo XML: toàn bộ **96,47% (4422/4584 dòng)**; practice **100% (742/742)**; vocab **97,65% (83/85)**. Đạt gate toàn bộ>=80%, practice>=90%.
+- Lần verify đầu có bốn failure kiểm tra log auth/import do biến môi trường DEBUG bật log Spring; không sửa các test đó hoặc cấu hình repo. Cả bốn đã xanh trong lần verify đầy đủ nêu trên.
+- Kiểm một query cho danh sách nhỏ và >=200 chủ đề/5000 attempt_items; 20 lần gọi tạo đúng 20 query. p95 cục bộ phần service/query trong lần verify đầy đủ **258 ms**; đây là số đo tham khảo, chưa phải phép đo HTTP end-to-end/production của NFR-P01.
+- `git diff --check` sạch; 11 file trong phạm vi đều UTF-8 không BOM; phần code/test mới không còn TODO/FIXME. Nhánh chứa 7391f87. Không có câu hỏi nghiệp vụ còn mở; giữ commit T-09 local, chưa push hoặc mở PR trong khi chờ leader báo #21 đã merge.
+
+**Self-check Constitution T-09:**
+
+- Nguyên tắc I, HR-02/HR-05/HR-08, BUS-01/BUS-06: hai GET chỉ LEARNER, userId lấy từ AuthApi.currentUser(), mọi bằng chứng lọc theo userId; test hai người dùng không chia sẻ tiến độ. Không trả entity/PII, lỗi theo envelope chung; không thay CSRF, không commit secret hoặc dữ liệu HSK có bản quyền.
+- Nguyên tắc II/AC-01: áp dụng contract và 422 đã được leader duyệt trước endpoint; test runtime so hai GET với OpenAPI. Phần spec.md cũ không sửa theo giới hạn phê duyệt.
+- Nguyên tắc III/AC-03: chỉ gọi auth.api.AuthApi qua ranh giới module; repository chỉ đọc bảng learning, content/practice cùng module. Chín test kiến trúc giữ nguyên và xanh.
+- Nguyên tắc IV/AC-07/AC-08, BUS-05: điểm lấy từ bằng chứng server; floor và so ngưỡng 80%/90% dùng số nguyên; cooldown dùng Clock/Instant. BUS-02: service read-only transaction, task không ghi nghiệp vụ.
+- Nguyên tắc V/HR-06/BUS-09: không nhận điểm hoặc userId từ request để tính tiến độ; không đổi cơ chế chấm server. AC-09: không dùng điều kiện JSONB.
+- AC-05: không sửa/tạo migration, index, ddl-auto hoặc chạy SQL/migration Neon; dữ liệu fixture và migration kiểm thử chỉ chạy trong Testcontainers.
+- ES-01/ES-05: Java 17, Maven Wrapper, không thêm thư viện; test FR-prefix theo AT và full gate/coverage đạt như trên.
+- ES-06/ES-07: một commit T-09 Conventional Commits, stage từng file và chỉ hunk T-09 của questions.md; giữ nhánh spec/003-vocab-topics, chờ thông báo merge #21 mới push/mở Draft PR mới. Không merge/rebase/pull main, force-push, push main hoặc tự merge PR.
