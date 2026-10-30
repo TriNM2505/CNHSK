@@ -81,6 +81,12 @@ export const comment: Comment = {
   createdAt: timestamp,
   editedAt: null,
 }
+export const publicDiscussion: Comment[] = [
+  { ...comment, id: 101, status: 'HIDDEN', content: null, author: null },
+  { ...comment, id: 102, parentId: 101, depth: 1, status: 'DELETED', content: null, author: null },
+  { ...comment, id: 103, parentId: 102, depth: 2, content: 'Trả lời vẫn còn\n中文' },
+  { ...comment, id: 104, parentId: 103, depth: 3, content: '<img src=x onerror=alert(1)>' },
+]
 export const moderationPost: ModerationPost = {
   ...ownPost,
   author,

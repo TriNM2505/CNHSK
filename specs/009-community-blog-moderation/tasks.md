@@ -60,7 +60,7 @@
 |---|---|---|---|---|
 | T-15 | Nền FE: `api/*` theo OpenAPI, `types.ts`, nhãn FR-061, `screens.ts`; thêm route §12 vào `routeAccess.ts` + catalog vào `screenRegistry.ts` (báo leader trước) | `cnhsk-web/src/features/community/**`, `cnhsk-web/src/app/routeAccess.ts`, `cnhsk-web/src/app/screenRegistry.ts` | §12, FR-061 | ✅ |
 | T-16 | SCR-039 danh sách + tab của tôi; SCR-041 tạo/sửa bài | `cnhsk-web/src/features/community/**` | FR-057, FR-059 · AT-49 | ✅ |
-| T-17 | SCR-040 chi tiết: cây bình luận, thích, bình luận/trả lời/sửa/xoá, báo cáo, nút kiểm duyệt cho `MODERATOR`; nội dung chỉ render text | `cnhsk-web/src/features/community/**` | FR-005, FR-058, FR-063 · AT-48, AT-49 | ⬜ |
+| T-17 | SCR-040 chi tiết: cây bình luận, thích, bình luận/trả lời/sửa/xoá, báo cáo, nút kiểm duyệt cho `MODERATOR`; nội dung chỉ render text | `cnhsk-web/src/features/community/**` | FR-005, FR-058, FR-063 · AT-48, AT-49 | ✅ |
 | T-18 | SCR-060/061 kiểm duyệt bài; SCR-062/063 hồ sơ báo cáo | `cnhsk-web/src/features/community/**` | FR-060, FR-062 · AT-49 | ⬜ |
 
 ---

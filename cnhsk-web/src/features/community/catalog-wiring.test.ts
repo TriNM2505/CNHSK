@@ -13,9 +13,9 @@ afterEach(() => {
 })
 
 describe('community catalog foundation (§10, §12)', () => {
-  it('FR057_T16 registers only SCR-039/SCR-041 and supplies unique preview states', async () => {
+  it('FR058_registers SCR-039/SCR-040/SCR-041 and supplies unique preview states', async () => {
     const { previews } = await import('./catalog.preview')
-    expect(Object.keys(screens)).toEqual(['SCR-039', 'SCR-041'])
+    expect(Object.keys(screens)).toEqual(['SCR-039', 'SCR-040', 'SCR-041'])
     expect(previews.map(({ id }) => id)).toEqual(expect.arrayContaining([
       'scr-039-public-ready', 'scr-039-public-empty', 'scr-039-public-loading', 'scr-039-public-error',
       'scr-039-mine-statuses', 'scr-041-create', 'scr-041-edit-approved', 'scr-041-edit-rejected',
@@ -41,6 +41,28 @@ describe('community catalog foundation (§10, §12)', () => {
       expect(screen.getByRole('main')).toBeInTheDocument()
       view.unmount()
     }
+  })
+
+  it('FR058_FR063_SCR-040 previews render public and privileged projections without API calls', async () => {
+    const { previews } = await import('./catalog.preview')
+    const entries = previews.filter(({ scr }) => scr === 'SCR-040')
+    expect(entries).toHaveLength(12)
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+    try {
+      for (const entry of entries) {
+        const view = render(createElement(MemoryRouter, null, entry.render('ready')))
+        expect(view.container.textContent).not.toBe('')
+        if (entry.id === 'scr-040-public-placeholders') {
+          expect(screen.getByText('[đã bị ẩn]')).toBeVisible()
+          expect(screen.getByText('[đã xoá]')).toBeVisible()
+          expect(screen.queryByText('Nội dung ẩn')).not.toBeInTheDocument()
+        }
+        if (entry.id === 'scr-040-moderator-comments') expect(screen.getByText('Nội dung ẩn')).toBeVisible()
+        if (entry.id === 'scr-040-learner-interactions') expect(screen.getByRole('textbox', { name: 'Nội dung bình luận' })).toBeEnabled()
+        view.unmount()
+      }
+      expect(fetchSpy).not.toHaveBeenCalled()
+    } finally { fetchSpy.mockRestore() }
   })
 
   it('FR057_app registries consume the feature catalogs when test-only entries are supplied', async () => {

@@ -8,17 +8,19 @@ import { getCurrentUser } from '@/features/auth/api/getCurrentUser'
 import type { CurrentUser, RoleCode } from '@/features/auth/types'
 import { ApiError } from '@/shared/api'
 
-import { ownPost, publishedPage } from './test-fixtures'
+import { ownPost, postDetail, publishedPage } from './test-fixtures'
 
 vi.mock('@/features/community/api/posts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/features/community/api/posts')>()),
   getMyPost: vi.fn().mockResolvedValue(ownPost),
+  getPublishedPost: vi.fn().mockResolvedValue(postDetail),
   listMyPosts: vi.fn().mockResolvedValue({ items: [], page: 0, size: 20, totalElements: 0 }),
   listPublishedPosts: vi.fn().mockResolvedValue(publishedPage),
 }))
 
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
 vi.mock('@/features/auth/api/signOutCurrentUser', () => ({ signOutCurrentUser: vi.fn() }))
+vi.mock('@/features/community/api/comments', () => ({ listPostComments: vi.fn().mockResolvedValue([]) }))
 
 const routes = [
   { path: '/community', url: '/community', scr: 'SCR-039', access: 'public', layout: 'public' },
@@ -136,6 +138,8 @@ describe('community route foundation (§12; FR-001 and AT-01/02 access only)', (
         expect(await screen.findByRole('heading', { name: 'Viết bài cộng đồng' })).toBeVisible()
       } else if (scr === 'SCR-041') {
         expect(await screen.findByRole('textbox', { name: 'Tiêu đề' })).toHaveValue(ownPost.title)
+      } else if (scr === 'SCR-040') {
+        expect(await screen.findByRole('heading', { name: postDetail.title })).toBeVisible()
       } else {
         expect(await screen.findByRole('heading', { name: `Màn ${scr} đang dựng` })).toBeVisible()
       }
