@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -64,7 +65,7 @@ public class ImportMaintenance {
         }
     }
 
-    @Scheduled(cron = "0 */15 * * * *", zone = "Asia/Ho_Chi_Minh")
+    @Scheduled(cron = "${cnhsk.import.maintenance-cron:0 */15 * * * *}", zone = "Asia/Ho_Chi_Minh")
     public void expirePreviews() {
         Instant now = clock.instant();
         for (ServiceRequest candidate : requests.findByKindAndStatus(
@@ -99,6 +100,7 @@ public class ImportMaintenance {
     }
 
     @Component
+    @ConditionalOnProperty(name = "cnhsk.import.recover-on-startup", havingValue = "true", matchIfMissing = true)
     static class ImportRecoveryRunner implements ApplicationRunner {
         private final ImportMaintenance maintenance;
 

@@ -25,6 +25,9 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.DefaultApplicationArguments;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.mock.env.MockEnvironment;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -144,6 +147,47 @@ class ImportMaintenanceTest {
         ImportMaintenance target = mock(ImportMaintenance.class);
         new ImportMaintenance.ImportRecoveryRunner(target).run(new DefaultApplicationArguments());
         verify(target).recoverInterrupted();
+    }
+
+    @Test
+    void FR022_startupRecoveryIsEnabledByDefault() {
+        ImportMaintenance target = mock(ImportMaintenance.class);
+        new ApplicationContextRunner().withBean(ImportMaintenance.class, () -> target)
+                .withUserConfiguration(ImportMaintenance.ImportRecoveryRunner.class).run(context -> {
+                    assertThat(context).hasSingleBean(ImportMaintenance.ImportRecoveryRunner.class);
+                    context.getBean(ImportMaintenance.ImportRecoveryRunner.class).run(new DefaultApplicationArguments());
+                    verify(target).recoverInterrupted();
+                });
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void FR022_startupRecoveryCanBeDisabledWithoutRemovingMaintenance(boolean enabled) {
+        ImportMaintenance target = mock(ImportMaintenance.class);
+        new ApplicationContextRunner().withBean(ImportMaintenance.class, () -> target)
+                .withPropertyValues("cnhsk.import.recover-on-startup=" + enabled)
+                .withUserConfiguration(ImportMaintenance.ImportRecoveryRunner.class).run(context -> {
+                    assertThat(context).hasSingleBean(ImportMaintenance.class);
+                    if (enabled) {
+                        assertThat(context).hasSingleBean(ImportMaintenance.ImportRecoveryRunner.class);
+                        context.getBean(ImportMaintenance.ImportRecoveryRunner.class).run(new DefaultApplicationArguments());
+                        verify(target).recoverInterrupted();
+                    } else {
+                        assertThat(context).doesNotHaveBean(ImportMaintenance.ImportRecoveryRunner.class);
+                        verify(target, never()).recoverInterrupted();
+                    }
+                });
+    }
+
+    @Test
+    void FR024_cronDefaultsToProductionScheduleAndSupportsDisablingInTests() throws Exception {
+        Scheduled scheduled = ImportMaintenance.class.getMethod("expirePreviews").getAnnotation(Scheduled.class);
+        assertThat(scheduled.cron()).isEqualTo("${cnhsk.import.maintenance-cron:0 */15 * * * *}");
+        assertThat(scheduled.zone()).isEqualTo("Asia/Ho_Chi_Minh");
+        MockEnvironment environment = new MockEnvironment();
+        assertThat(environment.resolveRequiredPlaceholders(scheduled.cron())).isEqualTo("0 */15 * * * *");
+        environment.setProperty("cnhsk.import.maintenance-cron", "-");
+        assertThat(environment.resolveRequiredPlaceholders(scheduled.cron())).isEqualTo(Scheduled.CRON_DISABLED);
     }
 
     @Test

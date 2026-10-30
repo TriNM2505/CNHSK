@@ -55,6 +55,7 @@ import org.springframework.scheduling.config.CronTask;
 import org.springframework.scheduling.config.ScheduledTaskHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.AopTestUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -75,6 +76,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc
+@TestPropertySource(properties = {
+        "cnhsk.import.recover-on-startup=true",
+        "cnhsk.import.maintenance-cron=0 */15 * * * *"
+})
 class ImportMaintenanceIntegrationTest extends AbstractIntegrationTest {
     private static final Instant NOW = Instant.parse("2026-10-30T00:00:00Z");
     private static final String ROOT = "/api/admin/imports";
@@ -301,7 +306,7 @@ class ImportMaintenanceIntegrationTest extends AbstractIntegrationTest {
                 });
         assertThat(stored(overdue).getStatus()).isEqualTo(ServiceRequestStatus.EXPIRED);
         Scheduled scheduled = ImportMaintenance.class.getMethod("expirePreviews").getAnnotation(Scheduled.class);
-        assertThat(scheduled.cron()).isEqualTo("0 */15 * * * *");
+        assertThat(scheduled.cron()).isEqualTo("${cnhsk.import.maintenance-cron:0 */15 * * * *}");
         assertThat(scheduled.zone()).isEqualTo("Asia/Ho_Chi_Minh");
     }
 
