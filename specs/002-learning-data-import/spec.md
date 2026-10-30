@@ -129,6 +129,8 @@ và một dòng sai không được làm mất 999 dòng đúng.
 | **FR-013** | THE system SHALL tính cho mỗi dòng hợp lệ hành động dự kiến so với DB: `CREATE` (khoá chưa có), `UPDATE` (có, ít nhất một ô khác), `UNCHANGED` (có, mọi ô có giá trị đều bằng) |
 | **FR-014** | THE system SHALL trả **201** `{runId, dataType, fileName, status:'PENDING', totals:{total, valid, invalid, create, update, unchanged}, alreadyImported, expiresAt, preview:[≤20 dòng hợp lệ đầu tiên], errors:[≤50 lỗi đầu], errorCount}`. `alreadyImported = true` khi tồn tại lần nhập `COMPLETED` cùng `file_hash` |
 
+**Làm rõ FR-002 (leader chốt 2026-10-30):** Đuôi `.csv` không phân biệt hoa thường (`.csv`, `.CSV`, `.Csv`).
+
 ### Nhóm 2 — Xác nhận và ghi (FR-015…FR-025)
 
 | Mã | Yêu cầu |
@@ -145,6 +147,8 @@ và một dòng sai không được làm mất 999 dòng đúng.
 | **FR-024** | THE system SHALL chuyển mọi lần nhập `PENDING` có `expiresAt < now()` sang `EXPIRED` và xoá `payload.validRows`: khi bị truy cập (lazy) **và** bằng job `@Scheduled(cron="0 */15 * * * *", zone="Asia/Ho_Chi_Minh")` |
 | **FR-025** | THE system SHALL KHÔNG lưu file gốc ở đĩa, DB hay log (BR-110-12, `AGENTS.md` §5); log chỉ ghi `runId`, `dataType`, số dòng |
 
+**Làm rõ FR-022 (leader chốt 2026-10-30):** Job định kỳ cũng thu hồi lần nhập `RUNNING` quá 10 phút (hoặc thiếu `runningSince`) → `FAILED`/`INTERRUPTED`, cùng luật với lúc khởi động.
+
 ### Nhóm 3 — Báo cáo và lịch sử (FR-026…FR-029)
 
 | Mã | Yêu cầu |
@@ -153,6 +157,8 @@ và một dòng sai không được làm mất 999 dòng đúng.
 | **FR-027** | `GET /api/admin/imports/{id}/errors?page&size` SHALL trả lỗi sắp theo `line`, rồi theo thứ tự cột trong mẫu; `size` 1–100, mặc định 20; sai → **422** `VALIDATION_FAILED`. Mỗi lỗi: `{line, column, value, code, message}`; `value` cắt còn 100 ký tự |
 | **FR-028** | `GET /api/admin/imports/{id}/errors.csv` SHALL trả `text/csv; charset=UTF-8` có BOM (để Excel đọc đúng chữ Hán), cột `line,column,value,code,message`, toàn bộ lỗi, tên file `import-{id}-errors.csv` |
 | **FR-029** | `GET /api/admin/imports?page&size` SHALL trả lịch sử mọi lần nhập (mọi `CONTENT_EDITOR` thấy hết), sắp `created_at` giảm dần, `size` 1–100 mặc định 10, mỗi dòng như FR-026, gồm `failureReason` |
+
+**Làm rõ FR-028 (leader chốt 2026-10-30):** Ô bắt đầu bằng `=`, `+`, `-`, `@`, tab hoặc CR được thêm tiền tố `'` để chống CSV injection.
 
 **Sửa 2026-10-30 (leader duyệt):** FR-029 dùng chung schema `ImportRun` với chi tiết, lịch sử trả cả `failureReason`; FE hiện lý do ngắn khi `FAILED`. FR-012 lưu `payload.totals` cùng `validRows`; FR-021/FR-024 dọn `validRows` nhưng giữ `{dataType, fileName, totalRows, totals}` (hết hạn có thể giữ `expiresAt`). FR-026/FR-029 đọc snapshot `totals` từ payload, `result` từ kết quả đã lưu. `totals=null` chỉ khi lỗi cấp file chưa kiểm được dòng nào hoặc bản ghi cũ thiếu snapshot; không tính lại theo DB hiện tại. Bổ sung T-08/T-10 trong commit T-12, không đổi DB; xem Q-T12-01/02 tại `questions.md`.
 
@@ -278,6 +284,8 @@ Cập nhật **giữ nguyên** `extra.exercises` (do `GRAMMAR_EXERCISE` quản).
 | `explanation_vi` | | ≤ 1 000 | `explanation` |
 
 Các phương án (đã chuẩn hoá) phải khác nhau đôi một, nếu không → `INVALID_ANSWER`. Upsert theo `no` trong mảng; mảng luôn sắp theo `no`.
+
+**Làm rõ FR-018…FR-020, §4.5/§4.7 (leader chốt 2026-10-30):** Trước khi lưu bài tập ngữ pháp hoặc đơn vị phát âm, kiểm lại phương án và đáp án trên dữ liệu sau khi ghép với giá trị cũ: các phương án có nội dung sau chuẩn hoá phải khác nhau đôi một, đáp án phải trỏ tới phương án có nội dung. Vi phạm → `INVALID_ANSWER` theo §4.8, rollback chỉ dòng đó và tiếp tục dòng sau.
 
 ### 4.6 · `PRON_STAGE` → `learning.pron_stages`
 
