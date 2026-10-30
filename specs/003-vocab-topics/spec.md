@@ -133,7 +133,7 @@ Java: `enum PracticeSource { …; AttemptKind kind(); FeedbackMode feedback(); D
 | **E-F7** | Gọi `PracticeSourceHandler.onFinish(...)` của nguồn **trong cùng transaction**; handler trả dữ liệu riêng (vd `passed`, `unlockedNextStage`) gộp vào response. Handler ném `ApiException` (vd lượt chưa làm đủ) → **rollback toàn bộ**, lượt giữ `IN_PROGRESS` |
 | **E-F7b** | `PracticeSourceHandler` có thêm 2 hook mặc định rỗng: `validateAnswer(item, answer)` (ném `ApiException` để từ chối một câu — luật riêng của nguồn) và `enrichMeta(item, answer) → Map` (thêm trường vào `attempt_items.meta` trước khi ghi). Bộ máy gọi cả hai ở mọi đường ghi câu (trả lời từng câu và nộp cả bài) |
 | **E-F8** | Lượt `IMMEDIATE`/`RECORD` hết hạn vẫn giữ mọi `attempt_items` đã ghi (bằng chứng không mất); chỉ đổi `status = EXPIRED` |
-| **E-F9** | Job `@Scheduled(cron="0 5 * * * *", zone="Asia/Ho_Chi_Minh")` chuyển `IN_PROGRESS` quá hạn sang `EXPIRED`; truy cập lượt quá hạn cũng chuyển ngay (lazy) |
+| **E-F9** | Job mặc định phút 05 mỗi giờ, zone `Asia/Ho_Chi_Minh`, chuyển `IN_PROGRESS` có `expires_at < now` sang `EXPIRED`; truy cập lượt quá hạn cũng chuyển ngay (lazy). Q-T06-01 (leader chốt 2026-10-30): `@Scheduled(cron="${cnhsk.practice.expire-cron:0 5 * * * *}", zone="Asia/Ho_Chi_Minh")`; profile test đặt `cnhsk.practice.expire-cron=-`, bean maintenance vẫn tồn tại để gọi trực tiếp; không đổi/xóa bằng chứng |
 
 ### 0.9 · Móc nối cây tri thức (D-04)
 
@@ -473,7 +473,7 @@ GROUP BY ti.topic_id;
 | `GET /api/practice/sessions/active?source&refId` | 200 `SessionView` · 204 | 401, 403, 422 |
 | `POST /api/practice/sessions/{id}/answers` | 200 `AnswerResult` | 400, 401, 403, 409, 422, 429 |
 | `POST /api/practice/sessions/{id}/finish` | 200 `FinishResult` | 400, 401, 403, 409, 422, 429 |
-| `POST /api/practice/sessions/{id}/abandon` | 204 | 403, 404, 409, 422 |
+| `POST /api/practice/sessions/{id}/abandon` | 204 | 401, 403, 409, 422 |
 | `GET /api/topics?hskLevel` | 200 `[TopicSummary]` | 422 |
 | `GET /api/topics/{id}` | 200 `TopicDetail` | 404 |
 | `POST /api/topics/{id}/study-sessions` | 201 `SessionView` · 200 `{session:null}` | 404, 429 |

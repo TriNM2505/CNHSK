@@ -132,6 +132,21 @@ public class PracticeController {
     public record FinishRequest(List<@NotNull @Valid AnswerRequest> answers) {
     }
 
+    @PostMapping("/{id}/abandon")
+    @Operation(operationId = "abandonSession", tags = "practice", description = "Bỏ lượt theo spec 003 §0.11")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Đã bỏ lượt, giữ nguyên bằng chứng"),
+            @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
+            @ApiResponse(responseCode = "403", description = "ATTEMPT_NOT_OWNED hoặc CSRF không hợp lệ"),
+            @ApiResponse(responseCode = "409", description = "SESSION_ALREADY_SUBMITTED"),
+            @ApiResponse(responseCode = "422", description = "SESSION_EXPIRED, VALIDATION_FAILED")
+    })
+    public ResponseEntity<Void> abandon(
+            @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
+        practice.abandon(auth.currentUser().userId(), identifier(id, "id"));
+        return ResponseEntity.noContent().build();
+    }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<Map<String, Object>> malformedAnswer() {
         return ResponseEntity.unprocessableEntity().body(Map.of("error_code", ErrorCode.VALIDATION_FAILED.name(),

@@ -130,17 +130,9 @@ public class PracticeService {
 
     private AnswerOutcome answerInTransaction(long userId, long sessionId, Answer answer) {
         Attempt attempt = attempts.findByIdForUpdate(sessionId).orElseThrow(PracticeService::notOwned);
-        if (!Objects.equals(attempt.getUserId(), userId)) {
-            throw notOwned();
-        }
-        if ("EXPIRED".equals(attempt.getStatus())
-                || ("IN_PROGRESS".equals(attempt.getStatus()) && attempt.getExpiresAt().isBefore(clock.instant()))) {
-            attempt.setStatus("EXPIRED");
-            return new AnswerOutcome(null, failure(ErrorCode.SESSION_EXPIRED, HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Lượt luyện đã hết hạn."));
-        }
-        if (!"IN_PROGRESS".equals(attempt.getStatus())) {
-            throw failure(ErrorCode.SESSION_ALREADY_SUBMITTED, HttpStatus.CONFLICT, "Lượt luyện đã kết thúc.");
+        ApiException rejected = writableFailure(attempt, userId, clock.instant());
+        if (rejected != null) {
+            return new AnswerOutcome(null, rejected);
         }
         PracticeSource source = PracticeSource.valueOf(attempt.getRefType());
         ServedSnapshot snapshot = mapper.convertValue(attempt.getServedItems(), ServedSnapshot.class);
@@ -209,18 +201,10 @@ public class PracticeService {
 
     private FinishOutcome finishInTransaction(long userId, long sessionId, List<Answer> answers) {
         Attempt attempt = attempts.findByIdForUpdate(sessionId).orElseThrow(PracticeService::notOwned);
-        if (!Objects.equals(attempt.getUserId(), userId)) {
-            throw notOwned();
-        }
         Instant now = clock.instant();
-        if ("EXPIRED".equals(attempt.getStatus())
-                || ("IN_PROGRESS".equals(attempt.getStatus()) && attempt.getExpiresAt().isBefore(now))) {
-            attempt.setStatus("EXPIRED");
-            return new FinishOutcome(null, failure(ErrorCode.SESSION_EXPIRED, HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Lượt luyện đã hết hạn."));
-        }
-        if (!"IN_PROGRESS".equals(attempt.getStatus())) {
-            throw failure(ErrorCode.SESSION_ALREADY_SUBMITTED, HttpStatus.CONFLICT, "Lượt luyện đã kết thúc.");
+        ApiException rejected = writableFailure(attempt, userId, now);
+        if (rejected != null) {
+            return new FinishOutcome(null, rejected);
         }
         PracticeSource source = PracticeSource.valueOf(attempt.getRefType());
         boolean deferred = source.feedback() == FeedbackMode.DEFERRED;
@@ -389,6 +373,37 @@ public class PracticeService {
     }
 
     public record FinishItem(int no, Boolean correct, String correctAnswer, String yourAnswer) {
+    }
+
+    public void abandon(long userId, long sessionId) {
+        ApiException rejected = answerTransaction.execute(status -> {
+            Attempt attempt = attempts.findByIdForUpdate(sessionId).orElseThrow(PracticeService::notOwned);
+            ApiException expired = writableFailure(attempt, userId, clock.instant());
+            if (expired != null) {
+                return expired;
+            }
+            attempt.setStatus("ABANDONED");
+            return null;
+        });
+        // The existing T-04 transaction commits expiry before its 422 response is raised.
+        if (rejected != null) {
+            throw rejected;
+        }
+    }
+
+    private ApiException writableFailure(Attempt attempt, long userId, Instant now) {
+        if (!Objects.equals(attempt.getUserId(), userId)) {
+            throw notOwned();
+        }
+        if ("EXPIRED".equals(attempt.getStatus())
+                || ("IN_PROGRESS".equals(attempt.getStatus()) && attempt.getExpiresAt().isBefore(now))) {
+            attempt.setStatus("EXPIRED");
+            return failure(ErrorCode.SESSION_EXPIRED, HttpStatus.UNPROCESSABLE_ENTITY, "Lượt luyện đã hết hạn.");
+        }
+        if (!"IN_PROGRESS".equals(attempt.getStatus())) {
+            throw failure(ErrorCode.SESSION_ALREADY_SUBMITTED, HttpStatus.CONFLICT, "Lượt luyện đã kết thúc.");
+        }
+        return null;
     }
 
     private void validateAnswerEvidence(Answer answer) {

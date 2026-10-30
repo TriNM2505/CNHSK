@@ -373,12 +373,21 @@ paths:
       tags: [practice]
       operationId: abandonSession
       summary: Bỏ lượt, không tính điểm (§0.11)
+      description: |
+        Q-T06-01 (leader chốt 2026-10-30): chỉ LEARNER, giữ cơ chế CSRF cho cookie.
+        Kiểm ownership trước khi đổi trạng thái; lượt không tồn tại hoặc của người khác
+        đều trả 403 ATTEMPT_NOT_OWNED với cùng message, không trả 404.
+        IN_PROGRESS chưa hết hạn chuyển ABANDONED, trả 204 không có body.
+        Không tính điểm, ghi study_events, gọi hook finish hoặc phát sự kiện;
+        giữ nguyên attempt_items, served_items và draft_answers.
+        Quá hạn trả 422 SESSION_EXPIRED và lưu EXPIRED bằng cơ chế POST answers/finish;
+        expiresAt = now vẫn hợp lệ. Lượt đã kết thúc trả 409 SESSION_ALREADY_SUBMITTED.
+        Path id sai kiểu trả 422 VALIDATION_FAILED theo định dạng lỗi chung.
       parameters: [ { $ref: '#/components/parameters/SessionId' } ]
       responses:
         '204': { description: Đã bỏ }
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
 
