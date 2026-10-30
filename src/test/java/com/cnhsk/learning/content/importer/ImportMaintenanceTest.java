@@ -161,6 +161,33 @@ class ImportMaintenanceTest {
         verify(manager).commit(any());
     }
 
+    @Test
+    void FR022_scheduledJobRecoversRunThatWasRecentAtStartup() {
+        Clock advancingClock = mock(Clock.class);
+        when(advancingClock.instant()).thenReturn(NOW);
+        maintenance = new ImportMaintenance(requests, entityManager, advancingClock, manager);
+        running(NOW.minusSeconds(180));
+        new ImportMaintenance.ImportRecoveryRunner(maintenance).run(new DefaultApplicationArguments());
+        assertThat(run.getStatus()).isEqualTo(ServiceRequestStatus.RUNNING);
+
+        when(advancingClock.instant()).thenReturn(NOW.plusSeconds(660));
+        maintenance.expirePreviews();
+        assertThat(run.getStatus()).isEqualTo(ServiceRequestStatus.FAILED);
+        assertThat(run.getErrorMessage()).isEqualTo("INTERRUPTED");
+    }
+
+    @Test
+    void FR022_scheduledJobRecoversMissingTimestampAndWarnsWithoutPrivateData() {
+        running(null);
+        maintenance.expirePreviews();
+        assertThat(run.getStatus()).isEqualTo(ServiceRequestStatus.FAILED);
+        assertThat(run.getErrorMessage()).isEqualTo("INTERRUPTED");
+        assertThat(logs.list).singleElement().satisfies(event -> {
+            assertThat(event.getLevel()).isEqualTo(Level.WARN);
+            assertThat(event.getFormattedMessage()).contains("runId=42").doesNotContain("private-cell", "private-file");
+        });
+    }
+
     @ParameterizedTest
     @ValueSource(longs = {0, 1, 1800})
     void FR024_previewAtOrBeforeItsDeadlineRemainsPending(long remainingSeconds) {

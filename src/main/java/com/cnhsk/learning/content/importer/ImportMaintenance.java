@@ -71,6 +71,7 @@ public class ImportMaintenance {
                 ServiceRequestKind.IMPORT, ServiceRequestStatus.PENDING)) {
             expireOnAccess(candidate.getId(), now);
         }
+        recoverInterrupted();
     }
 
     /** Commits lazy expiry before the caller builds a response or raises an HTTP error. */

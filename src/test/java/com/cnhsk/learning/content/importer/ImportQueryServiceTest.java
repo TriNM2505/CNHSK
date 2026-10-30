@@ -185,6 +185,22 @@ class ImportQueryServiceTest {
         verify(auth).displayNames(Set.of(1L, 2L));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"=1+1", "+SUM(A1)", "-2", "@cmd", "\tx", "\rx"})
+    void FR028_exportNeutralizesFormulasInEveryTextCellWithoutChangingStoredErrors(String value) throws Exception {
+        Map<String, Object> error = new java.util.LinkedHashMap<>(error(2, value, value));
+        error.put("code", value);
+        error.put("message", value);
+        run.setErrorRows(List.of(error));
+        String csv = new String(query.errorCsv(42L), StandardCharsets.UTF_8).substring(1);
+        try (var parser = CSVFormat.RFC4180.parse(new java.io.StringReader(csv))) {
+            assertThat(parser.getRecords().get(1).toList())
+                    .containsExactly("2", "'" + value, "'" + value, "'" + value, "'" + value);
+        }
+        assertThat(query.errors(42L, 0, 20).items().get(0).value()).isEqualTo(value);
+        assertThat(run.getErrorRows().get(0).get("message")).isEqualTo(value);
+    }
+
     @Test
     void FR024_FR029_historyReadsAgainAfterLazyExpiryCommits() {
         ServiceRequest expired = run(42L, 1L);

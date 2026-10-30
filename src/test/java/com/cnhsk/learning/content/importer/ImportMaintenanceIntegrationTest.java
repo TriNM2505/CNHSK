@@ -165,6 +165,21 @@ class ImportMaintenanceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void FR022_scheduledRecoveryAfterQuickRestartReleasesTheGlobalImportSlot() throws Exception {
+        ServiceRequest interrupted = running(NOW.minusSeconds(180));
+        restartRecovery();
+        assertThat(stored(interrupted).getStatus()).isEqualTo(ServiceRequestStatus.RUNNING);
+
+        doReturn(NOW.plusSeconds(660)).when(clock).instant();
+        maintenance.expirePreviews();
+        assertThat(stored(interrupted).getStatus()).isEqualTo(ServiceRequestStatus.FAILED);
+        assertThat(stored(interrupted).getErrorMessage()).isEqualTo("INTERRUPTED");
+        JsonNode result = confirm(upload(), 200);
+        assertThat(result.path("status").asText()).isEqualTo("COMPLETED");
+        assertThat(result.path("result").path("created").asInt()).isEqualTo(1);
+    }
+
+    @Test
     void FR022_runAtExactlyTenMinutesIsNotInterrupted() {
         ServiceRequest run = running(NOW.minusSeconds(600));
         maintenance.recoverInterrupted();

@@ -309,6 +309,42 @@ class RowWritersTest {
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
+    @ParameterizedTest
+    @EnumSource(value = ImportDataType.class, names = {"GRAMMAR_EXERCISE", "PRON_UNIT"})
+    void FR020_mergedOptionsCannotDuplicateAnOptionalValueKeptFromTheDatabase(ImportDataType type) {
+        parents(type);
+        Map<String, String> values = example(type);
+        writers.get(type).write(row(values));
+        Object previous = type == ImportDataType.GRAMMAR_EXERCISE ? grammar.getExtra() : stage.getUnits();
+        clearSaves();
+        values.put("option_a", "  " + values.get("option_c") + "  ");
+        values.put("option_c", "");
+        values.put("option_d", "");
+        values.put("answer", "A");
+
+        assertThatThrownBy(() -> writers.get(type).write(row(values)))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Đáp án phải là A–D, trỏ tới phương án có nội dung; các phương án không được trùng");
+        assertThat(type == ImportDataType.GRAMMAR_EXERCISE ? grammar.getExtra() : stage.getUnits()).isEqualTo(previous);
+        assertNoSaves();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ImportDataType.class, names = {"GRAMMAR_EXERCISE", "PRON_UNIT"})
+    void FR020_writerRejectsAnAnswerPointingToAnEmptyMergedOption(ImportDataType type) {
+        parents(type);
+        Map<String, String> values = example(type);
+        values.put("option_c", "");
+        values.put("option_d", "");
+        values.put("answer", "C");
+        assertThatThrownBy(() -> writers.get(type).write(row(values)))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Đáp án phải là A–D, trỏ tới phương án có nội dung; các phương án không được trùng");
+        assertNoSaves();
+        assertThat(grammar.getExtra().exercises()).isNull();
+        assertThat(stage.getUnits()).isEmpty();
+    }
+
     private void parents(ImportDataType type) {
         if (type == ImportDataType.TOPIC_ITEM) {
             Topic topic = new Topic("DAILY_LIFE", "Chủ đề", (short) 1);

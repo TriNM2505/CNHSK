@@ -30,6 +30,7 @@ import com.cnhsk.learning.content.importer.template.ImportTemplate;
 import com.cnhsk.learning.content.importer.validate.RowValidationResult;
 import com.cnhsk.learning.content.importer.validate.RowValidationResult.ValidatedRow;
 import com.cnhsk.learning.content.importer.validate.RowValidator;
+import com.cnhsk.learning.content.importer.write.InvalidAnswerException;
 import com.cnhsk.learning.content.importer.write.RowWriter;
 import com.cnhsk.shared.audit.AuditService;
 import com.cnhsk.shared.exception.ApiException;
@@ -169,6 +170,10 @@ public class ImportService {
                     case UPDATE -> updated++;
                     case UNCHANGED -> unchanged++;
                 }
+            } catch (InvalidAnswerException exception) {
+                failed++;
+                errors.add(errorMap(new CsvReader.RowError(row.line(), "answer", row.values().get("answer"),
+                        "INVALID_ANSWER", exception.getMessage())));
             } catch (RuntimeException exception) {
                 // Never copy exception messages, SQL or cell values to the error report.
                 failed++;

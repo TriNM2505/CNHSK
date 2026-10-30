@@ -3,15 +3,18 @@ package com.cnhsk.learning.content.importer.write;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import com.cnhsk.learning.content.entity.LexemeExtra;
 import com.cnhsk.learning.content.importer.validate.RowValidationResult.ValidatedRow;
+import com.cnhsk.learning.content.text.TextNormalizer;
 
 final class RowWriteSupport {
     private RowWriteSupport() { }
@@ -74,6 +77,22 @@ final class RowWriteSupport {
             }
         }
         return previous == null && merged.isEmpty() ? null : List.copyOf(merged);
+    }
+
+    static <T> void validateAnswer(List<T> options, String answer, Function<T, String> key,
+            Function<T, String> text) {
+        if (options == null || answer == null || !Set.of("A", "B", "C", "D").contains(answer)) {
+            throw new InvalidAnswerException();
+        }
+        Set<String> distinct = new HashSet<>();
+        boolean answerPresent = false;
+        for (T option : options) {
+            String value = TextNormalizer.normalizeCell("option", text.apply(option));
+            if (value == null || value.isEmpty()) continue;
+            if (!distinct.add(value)) throw new InvalidAnswerException();
+            if (answer.equals(key.apply(option))) answerPresent = true;
+        }
+        if (!answerPresent) throw new InvalidAnswerException();
     }
 
     /** Only actual imported-value changes count; optional blank cells never invoke a setter. */

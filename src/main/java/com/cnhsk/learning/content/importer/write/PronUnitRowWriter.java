@@ -39,6 +39,7 @@ public class PronUnitRowWriter implements RowWriter {
                 RowWriteSupport.options(row, existing == null ? null : existing.options(), PronUnit.Option::key, PronUnit.Option::new),
                 row.values().get("answer"),
                 RowWriteSupport.value(row, "explanation_vi", existing == null ? null : existing.explanation()));
+        RowWriteSupport.validateAnswer(next.options(), next.answerKey(), PronUnit.Option::key, PronUnit.Option::text);
         if (next.equals(existing)) {
             return RowAction.UNCHANGED;
         }

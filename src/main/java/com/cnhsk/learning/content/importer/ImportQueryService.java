@@ -147,7 +147,7 @@ public class ImportQueryService {
         StringWriter text = new StringWriter();
         text.write('\uFEFF');
         try (CSVPrinter printer = new CSVPrinter(text, CSVFormat.RFC4180)) {
-            for (List<?> row : rows) printer.printRecord(row);
+            for (List<?> row : rows) printer.printRecord(row.stream().map(CsvCellSanitizer::sanitize).toList());
         } catch (IOException exception) {
             throw new UncheckedIOException("Could not create import CSV", exception);
         }

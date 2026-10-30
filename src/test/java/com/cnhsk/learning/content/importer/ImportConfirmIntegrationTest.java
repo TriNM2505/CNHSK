@@ -371,6 +371,36 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
         confirm(upload(type, exampleCsv(type)).path("runId").asLong(), "{}", user, 200);
     }
 
+    @Test
+    void FR019_mergedAnswerFailureKeepsTheOldExerciseAndImportsTheFollowingRow() throws Exception {
+        importExample(ImportDataType.GRAMMAR);
+        importExample(ImportDataType.GRAMMAR_EXERCISE);
+        var previous = lexemes.findByKindAndText(com.cnhsk.learning.content.entity.LexemeKind.GRAMMAR, "是……的")
+                .orElseThrow().getExtra().exercises().get(0);
+        String csv = "grammar_text,exercise_no,stem,option_a,option_b,option_c,option_d,answer\n"
+                + "是……的,1,Đề cập nhật,呢,吗,,,A\n"
+                + "是……的,2,Đề hợp lệ,的,吗,,,A\n";
+        JsonNode preview = upload(ImportDataType.GRAMMAR_EXERCISE, csv);
+        assertThat(preview.path("totals").path("valid").asInt()).isEqualTo(2);
+        long id = preview.path("runId").asLong();
+        JsonNode report = json(confirm(id, "{}", user, 200));
+        assertThat(report.path("result").path("failed").asInt()).isEqualTo(1);
+        assertThat(report.path("result").path("created").asInt()).isEqualTo(1);
+        assertThat(report.path("result").path("updated").asInt()).isZero();
+        assertThat(report.path("result").path("valid").asInt()).isEqualTo(2);
+        assertThat(report.path("errorCount").asInt()).isEqualTo(1);
+        assertThat(requests.findById(id).orElseThrow().getErrorRows()).singleElement().satisfies(error -> {
+            assertThat(error).containsEntry("line", 2).containsEntry("column", "answer")
+                    .containsEntry("code", "INVALID_ANSWER")
+                    .containsEntry("message", "Đáp án phải là A–D, trỏ tới phương án có nội dung; các phương án không được trùng");
+        });
+        var exercises = lexemes.findByKindAndText(com.cnhsk.learning.content.entity.LexemeKind.GRAMMAR, "是……的")
+                .orElseThrow().getExtra().exercises();
+        assertThat(exercises).hasSize(2);
+        assertThat(exercises.get(0)).isEqualTo(previous);
+        assertThat(exercises.get(1).no()).isEqualTo(2);
+    }
+
     private JsonNode upload(ImportDataType type, String csv) throws Exception {
         return json(mvc.perform(multipart(ROOT).file(new MockMultipartFile("file", "synthetic.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8)))
                         .param("dataType", type.name()).header("Authorization", "Bearer " + token(user, "CONTENT_EDITOR")))

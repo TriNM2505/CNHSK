@@ -41,6 +41,7 @@ public class GrammarExerciseRowWriter implements RowWriter {
                 RowWriteSupport.options(row, existing == null ? null : existing.options(),
                         LexemeExtra.Option::key, LexemeExtra.Option::new), row.values().get("answer"),
                 RowWriteSupport.value(row, "explanation_vi", existing == null ? null : existing.explanation()));
+        RowWriteSupport.validateAnswer(next.options(), next.answerKey(), LexemeExtra.Option::key, LexemeExtra.Option::text);
         if (next.equals(existing)) {
             return RowAction.UNCHANGED;
         }
