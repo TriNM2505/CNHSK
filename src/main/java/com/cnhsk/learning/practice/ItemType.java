@@ -6,7 +6,10 @@ public enum ItemType {
     AUDIO_WORD_CHOICE(true),
     CLOZE_CHOICE(true),
     PINYIN_INPUT(true),
-    PRON_CHOICE(true);
+    PRON_CHOICE(true),
+    CHAR_MEANING_CHOICE(true),
+    AUDIO_CHAR_CHOICE(true),
+    WRITING_RESULT(false);
 
     private final boolean gradable;
 

@@ -120,6 +120,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/CharacterPage' }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
 
   /api/characters/{id}:
@@ -136,6 +137,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/CharacterDetail' }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
 
   /api/characters/recognition-sessions:

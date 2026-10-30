@@ -57,5 +57,6 @@ public enum ErrorCode {
     STAGE_LOCKED,
     STAGE_HAS_NO_UNITS,
     STAGE_INCOMPLETE,
+    CHARACTER_NOT_FOUND,
     INTERNAL_ERROR
 }

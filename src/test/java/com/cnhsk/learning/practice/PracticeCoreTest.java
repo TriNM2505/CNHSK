@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.OpenAPIV3Parser;
@@ -57,7 +58,7 @@ class PracticeCoreTest {
     @ParameterizedTest
     @EnumSource(ItemType.class)
     void FR007_studyCardsCannotBeGradedWhileQuestionTypesCan(ItemType type) {
-        assertThat(type.gradable()).isEqualTo(type != ItemType.STUDY_CARD);
+        assertThat(type.gradable()).isEqualTo(!Set.of(ItemType.STUDY_CARD, ItemType.WRITING_RESULT).contains(type));
     }
 
     @Test
