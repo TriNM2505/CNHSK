@@ -3,7 +3,10 @@ import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { PronunciationFinishExtra, PronunciationStageSummary } from '../types'
-import { PronunciationPracticeView } from './PronunciationPracticeView'
+import {
+  PronunciationPracticeView,
+  type PronunciationPracticeViewProps,
+} from './PronunciationPracticeView'
 
 const stage: PronunciationStageSummary = {
   activeAnswered: null,
@@ -36,10 +39,14 @@ function extra(overrides: Partial<PronunciationFinishExtra>): PronunciationFinis
   }
 }
 
-function renderResult(finishExtra: PronunciationFinishExtra) {
+function renderResult(
+  finishExtra: PronunciationFinishExtra,
+  finalAnswer?: PronunciationPracticeViewProps['finalAnswer'],
+) {
   render(
     <MemoryRouter>
       <PronunciationPracticeView
+        finalAnswer={finalAnswer}
         finishExtra={finishExtra}
         onRestart={vi.fn()}
         onRetry={vi.fn()}
@@ -121,5 +128,48 @@ describe('PronunciationPracticeView result', () => {
     expect(screen.queryByText(/Còn .*% nữa/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Đã mở tầng/)).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Sang tầng/ })).not.toBeInTheDocument()
+  })
+
+  it.each([true, false])('FR018_câu cuối có phản hồi correct=%s và lời giải server', (correct) => {
+    renderResult(extra({}), {
+      item: {
+        no: 10,
+        type: 'PRON_CHOICE',
+        skill: 'PRONUNCIATION',
+        prompt: { text: 'Nghe và chọn âm' },
+        options: [
+          { key: 'A', text: 'bā' },
+          { key: 'B', text: 'pā' },
+        ],
+        rules: { hasAudio: true, maxReplays: 3, minDurationMs: 500 },
+      },
+      result: { no: 10, correct, counted: true, correctAnswer: 'B', explanation: 'Âm p bật hơi.' },
+    })
+
+    expect(screen.getByRole('heading', { name: 'Câu cuối' })).toBeVisible()
+    expect(screen.getByText(correct ? 'Chính xác' : 'Chưa chính xác')).toBeVisible()
+    expect(screen.getByText('Âm p bật hơi.')).toBeVisible()
+    if (!correct) expect(screen.getByText(/Đáp án đúng: B/)).toBeVisible()
+    expect(screen.getByRole('button', { name: /bā/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /pā/ })).toBeDisabled()
+  })
+
+  it('FR018_câu cuối không tính điểm không được hiển thị như câu sai', () => {
+    renderResult(extra({ noScore: true, accuracy: null, passed: false }), {
+      item: { no: 10, type: 'PRON_CHOICE', skill: 'PRONUNCIATION', prompt: {}, rules: {} },
+      result: { no: 10, correct: null, counted: false },
+    })
+
+    expect(screen.getByText('Câu này không tính điểm.')).toBeVisible()
+    expect(screen.queryByText('Chưa chính xác')).not.toBeInTheDocument()
+    expect(screen.queryByText('Chính xác')).not.toBeInTheDocument()
+  })
+
+  it('FR018_không có kết quả answer thì không suy ra phản hồi câu cuối từ tổng kết', () => {
+    renderResult(extra({ accuracy: 100, bestAccuracy: 100 }))
+
+    expect(screen.queryByRole('heading', { name: 'Câu cuối' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Chính xác')).not.toBeInTheDocument()
+    expect(screen.queryByText('Chưa chính xác')).not.toBeInTheDocument()
   })
 })

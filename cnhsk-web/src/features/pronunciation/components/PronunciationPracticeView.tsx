@@ -12,6 +12,7 @@ type LoadError = { message: string; requestId?: string }
 export interface PronunciationPracticeViewProps {
   answered?: number
   error?: LoadError
+  finalAnswer?: { item: ServedItemView; result: AnswerResult }
   finishExtra?: PronunciationFinishExtra
   incompleteRemaining?: number
   item?: ServedItemView
@@ -108,6 +109,7 @@ function ResultView({
 export function PronunciationPracticeView({
   answered = 0,
   error,
+  finalAnswer,
   finishExtra,
   incompleteRemaining,
   item,
@@ -190,7 +192,25 @@ export function PronunciationPracticeView({
       />
 
       {state === 'finished' && finishExtra ? (
-        <ResultView extra={finishExtra} onRestart={onRestart} pending={pending} />
+        <div className="space-y-4">
+          <ResultView extra={finishExtra} onRestart={onRestart} pending={pending} />
+          {finalAnswer ? (
+            <Card className="mx-auto max-w-reading space-y-4">
+              <h2 className="text-h3 text-ink">Câu cuối</h2>
+              <ChoiceQuestion
+                feedbackMode="IMMEDIATE"
+                item={finalAnswer.item}
+                onAnswer={() => undefined}
+                result={finalAnswer.result}
+              />
+              {finalAnswer.result.correct === null || finalAnswer.result.correct === undefined ? (
+                <p className="text-body-sm text-ink-secondary" role="status">
+                  Câu này không tính điểm.
+                </p>
+              ) : null}
+            </Card>
+          ) : null}
+        </div>
       ) : null}
 
       {state === 'submitted' ? (

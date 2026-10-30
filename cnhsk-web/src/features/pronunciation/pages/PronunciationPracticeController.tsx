@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import type { AnswerRequest, FinishResult } from '@/features/practice'
+import type { AnswerRequest, AnswerResult, FinishResult, ServedItemView } from '@/features/practice'
 import { usePracticeSession } from '@/features/practice'
 import type { ApiError } from '@/shared/api'
 
@@ -68,6 +68,11 @@ export function PronunciationPracticeController({
   const [incompleteRemaining, setIncompleteRemaining] = useState<number>()
   const [finishError, setFinishError] = useState<ApiError>()
   const [alreadySubmitted, setAlreadySubmitted] = useState(false)
+  const [finalAnswer, setFinalAnswer] = useState<{
+    sessionId: number
+    item: ServedItemView
+    result: AnswerResult
+  }>()
   const initializedSessionRef = useRef<number>()
   const autoStartAttemptedRef = useRef(false)
   const autoFinishedSessionRef = useRef<number>()
@@ -196,7 +201,7 @@ export function PronunciationPracticeController({
   ])
 
   const submit = async (request: Omit<AnswerRequest, 'no'>) => {
-    if (!item) return null
+    if (!item || !sessionId) return null
     setIncompleteRemaining(undefined)
     setFinishError(undefined)
     autoFinishedSessionRef.current = undefined
@@ -207,6 +212,10 @@ export function PronunciationPracticeController({
       durationMs: clampDuration(performance.now() - questionStartedAtRef.current),
     })
     if (!answerResult) return null
+
+    if (answeredNumbers.size + 1 === items.length) {
+      setFinalAnswer({ sessionId, item, result: answerResult })
+    }
 
     return answerResult
   }
@@ -250,6 +259,7 @@ export function PronunciationPracticeController({
     setFinishError(undefined)
     setAlreadySubmitted(false)
     setIncompleteRemaining(undefined)
+    setFinalAnswer(undefined)
     await practice.start()
   }
 
@@ -264,6 +274,8 @@ export function PronunciationPracticeController({
     state = 'loading'
   } else if ((practice.state === 'finished' && !practice.error) || alreadySubmitted) {
     state = extra ? 'finished' : 'submitted'
+  } else if (practice.state === 'abandoned' && !practice.error) {
+    state = 'submitted'
   } else if (error?.errorCode === 'STAGE_NOT_FOUND') {
     state = 'empty'
   } else if (error?.errorCode === 'STAGE_LOCKED') {
@@ -280,6 +292,7 @@ export function PronunciationPracticeController({
     <PronunciationPracticeView
       answered={answeredNumbers.size}
       error={error ? { message: error.message, requestId: error.requestId } : undefined}
+      finalAnswer={finalAnswer?.sessionId === sessionId ? finalAnswer : undefined}
       finishExtra={extra}
       incompleteRemaining={incompleteRemaining}
       item={item}
