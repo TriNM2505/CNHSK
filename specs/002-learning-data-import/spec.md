@@ -9,9 +9,9 @@
 | Trường | Giá trị |
 |---|---|
 | **Version** | 1.0.0 |
-| **Status** | DRAFT — chờ cả nhóm duyệt |
-| **Approved by** | — |
-| **Locked on** | — |
+| **Status** | APPROVED — hợp đồng API đã duyệt, được code |
+| **Approved by** | Leader (2026-10-29) |
+| **Locked on** | 2026-10-29 — đổi hợp đồng phải sửa OpenAPI + spec trước, leader duyệt lại |
 | **Phụ thuộc** | Spec 001 (đăng nhập, role, CSRF, định dạng lỗi, `AuditService`) |
 | **Quyết định chung** | `plans/reports/brainstorm-261019-0551-spec-002-008-quyet-dinh-chung-report.md` (D-01, D-02, D-10, D-11, D-12) |
 
@@ -418,8 +418,8 @@ Lỗi cấp file (413, 422 nhóm FR-003…FR-007) có thêm `runId` trong body.
 | # | Nội dung | Trạng thái |
 |---|---|---|
 | Q1 | Định dạng CSV UTF-8, mẫu v0 §4 | **Chốt tạm** — xác nhận lại khi có file Học Bá (addendum nếu khác cấu trúc) |
-| Q2 | Thêm thư viện `org.apache.commons:commons-csv:1.11.0` | **Cần nhóm duyệt** (`AGENTS.md` §4) |
-| Q3 | Migration `V3__content_import.sql` (§0.3) | **Cần nhóm duyệt** (đổi schema) |
+| Q2 | Thêm thư viện `org.apache.commons:commons-csv:1.11.0` | **Chốt** (leader 2026-10-29) |
+| Q3 | Migration `V3__content_import.sql` (§0.3) | **Chốt** (leader 2026-10-29) — chỉ test bằng Testcontainers; leader chạy lên Neon sau khi PR merge |
 | Q4 | `ADMIN` không được nhập dữ liệu | Chốt theo BR-110-2 |
 | Q5 | Không nhập câu hỏi/đề thi đợt này | Chốt (D-01) |
 | Q6 | Giới hạn 2 MB / 5 000 dòng / hết hạn 30 phút | Chốt — đổi bằng cấu hình `cnhsk.import.*` |

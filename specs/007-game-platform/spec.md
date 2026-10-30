@@ -9,7 +9,9 @@
 | Trường | Giá trị |
 |---|---|
 | **Version** | 1.0.0 |
-| **Status** | DRAFT — chờ cả nhóm duyệt |
+| **Status** | APPROVED — hợp đồng API đã duyệt, được code |
+| **Approved by** | Leader (2026-10-30) |
+| **Locked on** | 2026-10-30 — đổi hợp đồng phải sửa OpenAPI + spec trước, leader duyệt lại |
 | **Phụ thuộc** | Spec 001 (cookie tên miền cha, CORS 2 origin, `/api/auth/me`, FR-090 redirect về trang game) · Spec 003 §0 (bộ máy lượt luyện, `PracticeApi`) |
 | **Spec đi kèm** | 008 (luật 4 game) — 007 khoá trước, 008 cắm `GameDefinition` vào |
 | **Quyết định chung** | Brainstorm 2026-10-19: D-03, D-04, D-09 · Plan validation V1 (app riêng), V6 (React + CSS, không engine) |

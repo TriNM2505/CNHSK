@@ -9,9 +9,9 @@
 | Trường | Giá trị |
 |---|---|
 | **Version** | 1.0.0 |
-| **Status** | DRAFT — chờ cả nhóm duyệt |
-| **Approved by** | — |
-| **Locked on** | — |
+| **Status** | APPROVED — hợp đồng API đã duyệt, được code |
+| **Approved by** | Leader (2026-10-29) |
+| **Locked on** | 2026-10-29 — đổi hợp đồng phải sửa OpenAPI + spec trước, leader duyệt lại |
 | **Phụ thuộc** | Spec 001 đã merge: đăng nhập, role `LEARNER`/`MODERATOR`, CSRF, định dạng lỗi, `AuditService`, `auth.api.AuthApi` |
 | **Quyết định nguồn** | `plans/reports/brainstorm-261027-0940-community-spec-009-parallel-report.md` (ngoài repo, leader giữ) |
 
@@ -242,6 +242,7 @@ script trong bài/bình luận chạy trên máy `MODERATOR`, và sửa bài đ�
 | **FR-062** | SCR-062 hàng đợi hồ sơ báo cáo (FR-046), SCR-063 chi tiết (FR-047) với "Bác báo cáo" và "Xử lý nội dung" (bình luận: chọn Ẩn/Xoá; ghi chú bắt buộc). Danh tính người báo cáo chỉ hiện trên SCR-063 |
 | **FR-063** | Khi người xem có role `MODERATOR`, SCR-040 SHALL tải cây bình luận từ `GET /api/community/moderation/posts/{id}/comments` thay cho endpoint công khai: trả **mọi** bình luận của bài (mọi trạng thái bài) kèm `content`, `author`, `status`, `moderatedBy`, `moderationReason` (phần tử `ModerationComment`), sắp `created_at` tăng dần; bài không tồn tại → **404** `POST_NOT_FOUND`. Mỗi bình luận có nút Ẩn / Xoá (khi `VISIBLE`) hoặc Khôi phục (khi `HIDDEN`/`DELETED` không phải `AUTHOR_DELETED`), lý do bắt buộc, xác nhận trong trang |
 
+Trên SCR-040, FR-063 áp dụng cho bài APPROVED; bài ở trạng thái khác kiểm duyệt tại SCR-061.
 ### Key Entities
 
 | Bảng | Dùng thế nào |
@@ -404,11 +405,11 @@ Mã mới thêm vào `ErrorCode` của spec 001; định dạng `{error_code, me
 | # | Nội dung | Trạng thái |
 |---|---|---|
 | Q1 | Phạm vi UC-069…073, UC-075…079; bỏ UC-074, khoá tài khoản, tự xoá bài, khoá bình luận | **Chốt** (leader 2026-10-27) |
-| Q2 | 5 lý do báo cáo FR-034 | **Chốt tạm** — nhóm xác nhận khi duyệt spec |
-| Q3 | Giới hạn 5 bài/ngày, 30 bình luận/giờ, 20 báo cáo/ngày, sửa bình luận 15 phút | **Chốt tạm** theo đề xuất trong UC — đổi bằng cấu hình `cnhsk.community.*` |
-| Q4 | Bỏ giới hạn 200 lượt thích/giờ của UC-073 | **Chốt tạm** — thích là idempotent, không tạo dữ liệu rác |
+| Q2 | 5 lý do báo cáo FR-034 | **Chốt** (leader 2026-10-29) |
+| Q3 | Giới hạn 5 bài/ngày, 30 bình luận/giờ, 20 báo cáo/ngày, sửa bình luận 15 phút | **Chốt** (leader 2026-10-29) — đổi bằng cấu hình `cnhsk.community.*` |
+| Q4 | Bỏ giới hạn 200 lượt thích/giờ của UC-073 | **Chốt** (leader 2026-10-29) — thích là idempotent, không tạo dữ liệu rác |
 | Q5 | Không tự ẩn theo ngưỡng báo cáo | **Chốt** theo BR-075-7 |
-| Q6 | Tiêu đề ≤ 200 ký tự | **Chốt tạm** (§0.3) |
+| Q6 | Tiêu đề ≤ 200 ký tự | **Chốt** (leader 2026-10-29, §0.3) |
 | Q7 | Sửa sơ đồ use case/UC cho khớp tên bảng `reactions`/`moderation_cases` | Gom vào PR tài liệu sau, không chặn spec |
 
 ---

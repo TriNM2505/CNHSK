@@ -336,6 +336,7 @@ CREATE INDEX ix_kp_skill ON knowledge_points(skill_type, hsk_level);
 ```sql
 CREATE TABLE topics (
   id            BIGSERIAL PRIMARY KEY,
+  code          VARCHAR(50) NOT NULL UNIQUE, -- V3: khoa tu nhien cho nhap du lieu
   name          VARCHAR(200) NOT NULL,
   hsk_level     SMALLINT NOT NULL,
   order_index   INTEGER NOT NULL DEFAULT 0,
@@ -453,6 +454,8 @@ CREATE TABLE attempts (
 
 CREATE INDEX ix_att_user     ON attempts(user_id, kind, submitted_at DESC);
 CREATE INDEX ix_att_progress ON attempts(user_id, status) WHERE status = 'IN_PROGRESS';
+-- Spec 003 V4: active sessions and topic test history.
+CREATE INDEX ix_att_user_ref ON attempts(user_id, ref_type, ref_id, status);
 -- Quiz chi tinh hang LAN DAU (UC-080) — unique chan lan 2 vao bang xep hang
 CREATE UNIQUE INDEX uq_quiz_first ON attempts(user_id, ref_id)
   WHERE kind = 'QUIZ' AND status = 'SUBMITTED';
@@ -474,10 +477,17 @@ CREATE TABLE attempt_items (
   is_correct   BOOLEAN,                            -- NULL = ESSAY chua cham
   duration_ms  INTEGER,
   order_index  INTEGER NOT NULL DEFAULT 0,
-  answered_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  answered_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- Spec 003 V4: queryable item type/skill and write-once evidence metadata.
+  item_type    VARCHAR(30) NOT NULL,
+  skill        VARCHAR(20) NOT NULL CHECK (skill IN
+               ('VOCAB','LISTENING','READING','CHARACTER','WRITING','GRAMMAR','PRONUNCIATION')),
+  meta         JSONB NOT NULL DEFAULT '{}'
 );
 CREATE INDEX ix_ai_attempt ON attempt_items(attempt_id);
 CREATE INDEX ix_ai_wrong   ON attempt_items(question_id) WHERE is_correct = false;
+CREATE UNIQUE INDEX uq_ai_order ON attempt_items(attempt_id, order_index);
+CREATE INDEX ix_ai_lexeme ON attempt_items(lexeme_id, attempt_id) WHERE lexeme_id IS NOT NULL;
 ```
 
 > 🔴 **`ON DELETE RESTRICT` giải quyết khoảng trống #5 nhóm 2.** Xoá câu hỏi đang có người làm
@@ -697,9 +707,12 @@ CREATE INDEX ix_req_queue ON service_requests(kind, status, deadline_at)
 -- Mot user chi mot job AI dang chay (UC-048 JOB_ALREADY_RUNNING)
 CREATE UNIQUE INDEX uq_ai_running ON service_requests(user_id)
   WHERE kind = 'AI_GENERATE' AND status IN ('PENDING','RUNNING');
--- Nhap lai cung file khong tao ban trung (UC-110)
-CREATE UNIQUE INDEX uq_import_file ON service_requests(file_hash)
-  WHERE kind = 'IMPORT' AND status = 'COMPLETED';
+-- V3: cho phep nhap lai cung file; upsert theo khoa tu nhien o tung dong.
+-- Thay cho uq_import_file cua V1, chi cho mot lan nhap dang ghi tren toan he thong.
+CREATE UNIQUE INDEX uq_import_running ON service_requests(kind)
+  WHERE kind = 'IMPORT' AND status = 'RUNNING';
+CREATE INDEX ix_req_import_hist ON service_requests(created_at DESC)
+  WHERE kind = 'IMPORT';
 ```
 
 > **Thay 4 bảng v5:** `ai_generation_jobs` · `grading_requests` · `import_runs` ·
@@ -853,6 +866,8 @@ CREATE TABLE learning.pron_stages (
   description   TEXT,
   -- Am tiet / cap am de lan cua tang nay. Chi doc sau khi nhap -> hop AC-09.
   target_sounds JSONB        NOT NULL DEFAULT '[]',
+  -- V3: don vi luyen, chi ghi qua luong nhap (AC-09).
+  units         JSONB        NOT NULL DEFAULT '[]',
   -- BUS-11 chot 80%. De cot de sau doi duoc tung tang.
   pass_percent  NUMERIC(5,2) NOT NULL DEFAULT 80.00
                 CHECK (pass_percent BETWEEN 0 AND 100),
@@ -1302,8 +1317,8 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 | V1 | `V1__core_schema.sql` | 001 (dựng nền) | 4 schema · 26 bảng MVP. Gồm luôn `plans` (seed `FREE`) + 4 cột gói trên `users`, `pron_stages`, `videos` (`source_type`, `external_id`), 4 cột phễu `credit_cards`, `seq` + `UNIQUE` trên `credit_transactions`, `user_roles` dùng `CHECK` (không còn bảng `roles`), `topic_items` có `id` riêng | ✅ đã viết |
 | V2 | `V2__community.sql` | 001 (dựng nền) | 5 bảng `community` | ✅ đã viết |
 | V2.1 | `V2_1__auth_session_id.sql` | 001 | Thêm `session_id` UUID cho phiên refresh trong `auth.auth_tokens`, CHECK bắt buộc session ID cho REFRESH, partial index | T-22 |
-| V3 | `V3__content_import.sql` | 002 | `topics.code`, `pron_stages.units`, index nhập liệu (spec 002 §0.3) | ⬜ |
-| V4 | `V4__practice_engine.sql` | 003 | Cột `item_type`, `skill`, `meta` trên `attempt_items` + index (spec 003 §0.12) | ⬜ |
+| V3 | `V3__content_import.sql` | 002 | `topics.code`, `pron_stages.units`, bỏ `uq_import_file`, thêm `uq_import_running` và `ix_req_import_hist` (spec 002 §0.3); nối sau V2.1 | ✅ Đã viết và kiểm thử 2026-10-29: 10 test migration pass trên Testcontainers, `verify` xanh (260 test, không skip; line coverage 93,08%). Spec 002 đã duyệt trên `main` qua PR #13. Chưa chạy Neon; leader chạy sau merge PR migration |
+| V4 | `V4__practice_engine.sql` | 003 | Cột `item_type`, `skill`, `meta` trên `attempt_items`; unique `uq_ai_order`, `ix_att_user_ref`, partial `ix_ai_lexeme` (spec 003 §0.12) | Chờ merge — chỉ kiểm thử bằng Testcontainers; chưa chạy Neon, leader chạy sau merge |
 | V5+ | — | spec sau | Leader cấp số khi spec cần đổi schema: gói dịch vụ, `dictation_attempts`/`shadowing_attempts` (feature 1.6 V2)… | — |
 
 > `V3__content_and_plans`, `V4__funnel_and_ledger`, `V5__video_practice` của bản trước **đã gộp vào V1**
