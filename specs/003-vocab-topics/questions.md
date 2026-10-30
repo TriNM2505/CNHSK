@@ -466,3 +466,80 @@ Actions đã chốt: canStudy khi learnedWords<totalWords; recognition khi learn
 - AC-05: không sửa/tạo migration, index, ddl-auto hoặc chạy SQL/migration Neon; dữ liệu fixture và migration kiểm thử chỉ chạy trong Testcontainers.
 - ES-01/ES-05: Java 17, Maven Wrapper, không thêm thư viện; test FR-prefix theo AT và full gate/coverage đạt như trên.
 - ES-06/ES-07: một commit T-09 Conventional Commits, stage từng file và chỉ hunk T-09 của questions.md; giữ nhánh spec/003-vocab-topics, chờ thông báo merge #21 mới push/mở Draft PR mới. Không merge/rebase/pull main, force-push, push main hoặc tự merge PR.
+
+## Q-T10-01 — Shadow Plan học từ mới, đã duyệt
+
+**Task/căn cứ:** T-10, FR-019…FR-022, AT-25…AT-28; dùng FR-015/E4/E5 và bộ máy §0. Điều kiện bắt đầu đã đủ trên origin/main aa0c5d1 (PR #23 đã merge). Nhánh mới spec/003-vocab-topics-part2 tạo từ origin/main sau fetch; không merge/rebase/pull main. Fix COMPLETED max_score=0 được leader duyệt riêng, chỉ TopicQueryRepository và test hồi quy; không phải triển khai T-10.
+
+**Trạng thái:** DUYỆT ngày 2026-10-30; Q-T10-02…04 bên dưới là quyết định cuối của leader, thay thế các đề xuất ban đầu. T-10 làm trên spec/003-vocab-topics-part2, commit riêng với fix đã có.
+
+**File đọc:** AGENTS.md (§12), constitution.md và constraints/safety.md; spec 001 §0; spec 003 spec.md → contracts/openapi-practice-vocab.yaml → tasks.md/questions.md (không có plan.md). Code cần thiết: learning/vocab/{TopicQueryRepository,TopicQueryService,web/TopicController}.java; learning/practice/{PracticeService,PracticeSourceHandler,PracticeSource,ServedItem,ServedItemView,PracticeRateLimiter}.java và entity/{Attempt,AttemptItem,AttemptRepository,AttemptItemRepository}.java; learning/content/entity/{Topic,TopicItem,Lexeme,LexemeExtra}.java và repository hiện có; auth/api/AuthApi.java; shared/config/SecurityConfig.java, shared/exception/{ApiException,ErrorCode}.java; test support/AbstractIntegrationTest.java, learning/vocab/TopicContractTest.java, các test start/answer/finish hiện có; V1/V3/V4 và pom.xml chỉ đọc để khớp schema/gate.
+
+**Danh sách file xin bổ sung vào cột File T-10, chỉ sửa sau duyệt (10 file):**
+
+1. `src/main/java/com/cnhsk/learning/vocab/TopicStudyService.java` (tạo) — transaction điều phối tìm lượt đang làm/chọn từ/tạo lượt, kết quả nội bộ phân biệt 201/200.
+2. `src/main/java/com/cnhsk/learning/vocab/TopicStudyRepository.java` (tạo) — đọc content trong learning; kiểm topic/có từ, query tối đa 10 lexeme chưa học, khóa topic theo quyết định leader bên dưới.
+3. `src/main/java/com/cnhsk/learning/vocab/TopicStudyHandler.java` (tạo) — implement PracticeSourceHandler cho TOPIC_STUDY, validateAnswer/enrichMeta của FR-021, onFinish không thêm dữ liệu ngoài contract. Tách khỏi service để không tạo vòng dependency với PracticeService.
+4. `src/main/java/com/cnhsk/learning/vocab/web/TopicController.java` — chỉ thêm POST /api/topics/{id}/study-sessions, lấy userId qua AuthApi; giữ hai GET.
+5. `src/main/java/com/cnhsk/shared/config/SecurityConfig.java` (**dùng chung**) — chỉ THÊM đúng một matcher POST /api/topics/{id}/study-sessions cho LEARNER; không đổi CSRF/JWT/CORS.
+6. `src/test/java/com/cnhsk/learning/vocab/TopicStudyIntegrationTest.java` (tạo) — PostgreSQL Testcontainers + HTTP/start/answer/finish/đồng thời; fixture chỉ trong container.
+7. `src/test/java/com/cnhsk/learning/vocab/TopicContractTest.java` — giữ kiểm tra GET, bổ sung POST mới và các responses/schema đã được duyệt; không sửa test spec khác.
+8. `specs/003-vocab-topics/contracts/openapi-practice-vocab.yaml` — đề xuất chỉ thêm 403/422 vào POST study-sessions trước khi code, theo Q-T10-02; không đổi schema SessionView/AnswerRequest.
+9. `specs/003-vocab-topics/tasks.md` — cập nhật cột File sau duyệt, chỉ đánh dấu T-10 khi đủ gate.
+10. `specs/003-vocab-topics/questions.md` — quyết định và báo cáo T-10, giữ hunk T-04 của người dùng ngoài commit.
+
+Không đề xuất sửa PracticeService, PracticeSourceHandler, entity, repository content hiện có, ErrorCode, application config, FE hay migration. Nếu phải mở rộng tiếp thì dừng báo leader. Không cần migration/index mới; nếu phát sinh thì xin số V5, không chạy SQL/migration Neon.
+
+**Cách làm đề xuất:**
+
+- Dùng transaction ở TopicStudyService; userId chỉ từ AuthApi.currentUser(). Kiểm topic hợp lệ/có lexeme; tiếp tục TOPIC_STUDY IN_PROGRESS chưa hết hạn của đúng user/topic trước khi xét từ mới (FR-022). Trả nguyên SessionView/answered từ bộ máy; không đánh dấu học hay đếm lượt mới lần nữa.
+- Nếu không có lượt đang làm: query NOT EXISTS bằng chứng STUDY_CARD/TOPIC_STUDY của user theo lexeme trên mọi chủ đề và mọi trạng thái (FR-015/E4/E5), ORDER BY topic_items.order_index, id; giới hạn 10 ở DB, không lọc JSONB/N+1/cache. Hết từ chưa học trả đúng 200 {session:null, reason:NO_NEW_WORDS}; topic thiếu/rỗng trả 404 TOPIC_NOT_FOUND, không coi là học hết.
+- Tạo ServedItem STUDY_CARD/VOCAB, no liên tiếp, prompt chỉ text/pinyin/sinoViet/đủ meaning_vi/examples/audioUrl/kind; không phát extra.exercises/answerKey hoặc entity. Gọi PracticeService.start với TOPIC_STUDY, refId topic, không preRecorded/ttlOverride; RECORD, TTL 2 giờ và giới hạn lượt mới dùng bộ máy hiện có. Lượt mới trả 201 SessionView; tiếp tục trả 200 SessionView, không bọc thêm session ở hai nhánh này.
+- Handler FR-021 kiểm LEARNED/KNOWN và ghi selfDeclared cho KNOWN; handler gắn suspicious khi durationMs<1000 (đúng 1000 không gắn), chỉ ở nhánh trả lời bình thường. Skip/audioFailed và rules áp dụng Q-T10-03 đã chốt. Answer/finish dùng endpoint chung, is_correct/score/maxScore giữ RECORD, sự kiện/study_events qua engine, không tự ghi attempt_items khi start.
+- Advisory transaction lock theo cặp user/topic, truyền key bằng tham số theo Q-T10-04 đã chốt. Không khóa hàng topic và không giữ khóa qua thao tác học/answer/finish; hai người dùng không chặn nhau.
+
+**Test sẽ viết (FR019_/FR020_/FR021_/FR022_):**
+
+- AT-25: chủ đề >=14 từ, học 4/10 rồi hết hạn/bỏ dở; lượt mới đúng tối đa 10 từ chưa học, không chứa 4 từ cũ; học ở chủ đề khác cũng loại, user khác vẫn được học, thứ tự ổn định, không giới hạn API HSK về 1–3.
+- AT-26: hết từ trả 200 với session=null/reason; phân biệt 404 topic thiếu/rỗng; topic chỉ còn 1…9 từ thì phát đúng số còn lại, start chưa làm tăng learnedWords.
+- FR-020: đủ prompt/meaning/examples, null audio/pinyin hợp lệ theo dữ liệu, không lộ answer/accept/answerKey/PII/entity qua start/khôi phục.
+- AT-27: LEARNED/KNOWN hợp lệ, giá trị khác 422; KNOWN có selfDeclared; duration 200/999 suspicious và 1000 không suspicious; vẫn tính đã học ngay, RECORD correct=null, finish không có điểm. Skip/audioFailed/replay theo chốt Q-T10-03.
+- AT-28: gọi hai lần và hai request đồng thời cùng user/topic chỉ tạo một session, trả 201 rồi 200; biên hết hạn dùng Clock, hết hạn chọn lượt mới; user/topic khác không hưởng lượt của nhau. Resume ưu tiên dù đã học hết các từ trong lượt nhưng chưa finish.
+- Chỉ LEARNER; guest 401, role khác 403; cookie POST thiếu CSRF 403, CSRF hợp lệ/Bearer được gọi; id sai kiểu/<=0 trả 422 nếu Q-T10-02 được duyệt; 429 khi tạo quá 120 lượt mới/giờ, Redis lỗi theo engine. Contract test giữ hai GET và so thêm POST/status/body; không N+1 ở bước chọn từ.
+
+**Lệnh sau duyệt:** Java 17, PowerShell có Docker; bỏ DEBUG chỉ trong tiến trình test; `.\mvnw.cmd -Dtest=TopicStudyIntegrationTest,TopicContractTest test` rồi `.\mvnw.cmd verify`; Surefire 0 failure/error/skip, JaCoCo toàn bộ>=80%, practice>=90%. `git diff --check`, kiểm đúng phạm vi/UTF-8 không BOM/TODO, stage file cụ thể. Một commit T-10 sau commit fix riêng theo leader; push nhánh part2, cùng Draft PR T-10, không merge/rebase/pull main/force-push/push main.
+
+**Rủi ro:** khởi tạo hai lượt khi đua; khóa topic có thể chặn tạm người khác; chọn nhầm từ đã học do lọc theo chủ đề/trạng thái; lộ bài tập trong extra; áp dụng sai enum khi skip/audioFailed. Không tự chốt các điểm dưới.
+
+### Q-T10-02 — Responses của POST và phạm vi file
+
+**Chốt, 2026-10-30 — leader duyệt:** Đúng 10 file của Q-T10-01; cập nhật cột File T-10. SecurityConfig chỉ thêm một matcher POST `/api/topics/{id}/study-sessions` cho LEARNER. OpenAPI chỉ thêm 403 và 422 cho POST này, trước code; id sai định dạng hoặc <= 0 trả 422 như T-09. userId luôn lấy từ AuthApi.currentUser(). Không thêm rate limiter; E-R12 do PracticeService.start hiện có thực hiện, chỉ lượt mới tính vào hạn mức. Giữ nguyên bộ máy practice, test spec khác, FE, migration và dependency.
+
+### Q-T10-03 — Skip/audioFailed và số lần nghe STUDY_CARD
+
+**Chốt, 2026-10-30 — leader duyệt:** Giữ E-R10/E-R11, không xử lý riêng STUDY_CARD; đếm theo FR-015. "Không nghe được" ở thẻ học vẫn tính đã học, vì lọc meta JSONB bị cấm (AC-09) và FE đang gửi audioFailed. Handler chỉ kiểm LEARNED/KNOWN khi không skipped và không audioFailed; giá trị khác trả 422 VALIDATION_FAILED. meta.selfDeclared (KNOWN) và meta.suspicious (durationMs < 1000) chỉ ghi cho câu trả lời LEARNED/KNOWN bình thường, không ghi cho hai nhánh ngoại lệ. maxReplays=3, tính cả lần đầu; hasAudio khi audioUrl khác null. Để giữ nguyên engine (vốn gắn suspicious theo minDurationMs cả với skip/audioFailed), rules.minDurationMs=0 và hook nguồn áp dụng ngưỡng 1000 cho câu trả lời hợp lệ.
+
+### Q-T10-04 — Chống tạo trùng và thứ tự kiểm tra
+
+**Chốt, 2026-10-30 — leader duyệt:** Không khóa hàng topic. Trong cùng transaction, kiểm topic tồn tại/có từ trước (không có trả 404 TOPIC_NOT_FOUND kể cả còn lượt cũ; lượt cũ vẫn truy cập qua API session); tiếp đó dùng `SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))`, key `TOPIC_STUDY:{userId}:{topicId}` truyền bằng tham số. Rồi tìm lượt chưa hết hạn của đúng user/topic (200), hoặc chọn tối đa 10 từ chưa học theo order_index, bất kể chủ đề học trước (FR-015); hết từ trả 200 `{session:null,reason:"NO_NEW_WORDS"}`, có từ trả 201. Hai request cùng user/topic chỉ tạo một lượt; hai user khác nhau có khóa riêng và không chặn nhau. Không tạo migration hoặc sửa engine.
+
+**Phê duyệt Q-T10-01:** Shadow Plan đã DUYỆT ngày 2026-10-30, áp dụng quyết định Q-T10-02…04 trên `spec/003-vocab-topics-part2`; phần đề xuất khóa hàng topic phía trên được thay bằng advisory lock. Commit T-10 riêng với commit fix có sẵn; chỉ stage 10 file/hunk T-10, giữ hunk T-04 ngoài commit. Test chọn lọc rồi Java 17 `mvnw verify` với Docker: 0 failure/error/skip, coverage toàn bộ >=80%, practice >=90%; diff/BOM/TODO sạch; push và Draft PR, không merge/rebase/pull main, force-push hoặc push main. Không chạy SQL/migration lên Neon hoặc đưa secret vào commit/log/báo cáo.
+
+### Nghiệm thu T-10 — 2026-10-30
+
+- Triển khai đúng 10 file Q-T10-01: TopicStudyService/Repository/Handler, TopicController, SecurityConfig, TopicStudyIntegrationTest, TopicContractTest, OpenAPI, tasks.md và questions.md (chỉ T-10). Không sửa practice, test spec khác hoặc file dùng chung nào khác. Q-T10-02…04 đã Chốt; không còn câu hỏi T-10 mở.
+- POST study-sessions kiểm topic tồn tại/có từ trước; khóa advisory theo cặp user/topic bằng tham số trong cùng transaction; tiếp tục lượt đúng chủ hoặc lấy tối đa 10 từ chưa học theo FR-015 trên mọi chủ đề/trạng thái, thứ tự order_index rồi id. Hai request cùng người/chủ đề chỉ một lượt; người khác không bị khóa chặn. HSK 1–9 giữ nguyên ở API.
+- Prompt chỉ lấy các trường FR-020, không phát extra.exercises/answerKey hoặc entity. Handler chỉ kiểm LEARNED/KNOWN và ghi cờ ở nhánh trả lời bình thường; skip/audioFailed theo engine. Giới hạn đã chốt: "Không nghe được" vẫn tính đã học theo FR-015/AC-09; hasAudio theo audioUrl khác null; tối đa 3 lần phát tính cả lần đầu. Ngưỡng suspicious 1000 ms ở hook, rules.minDurationMs=0 để engine không gắn cờ nhánh ngoại lệ.
+- Test chọn lọc: `.\mvnw.cmd '-Dtest=TopicStudyIntegrationTest,TopicContractTest' test` xanh, 40 ca (37 study + 3 contract; 38 ca mới). Lần đầu một fixture vi phạm CHECK ck_topic_item, đã sửa fixture rồi chạy lại xanh; không sửa schema để né lỗi.
+- Gate cuối: Java 17 `.\mvnw.cmd verify` trên PowerShell ngoài sandbox có Docker, BUILD SUCCESS lúc 23:30:18 +07, 6 phút 49 giây; đối chiếu 88 Surefire XML: 1409 test, 0 failure/error/skip. JaCoCo line toàn bộ 96,51% (4481/4643), practice 100% (742/742), vocab 98,60% (141/143). `git diff --check` sạch, 10 file không BOM; code T-10 không TODO/FIXME. FE không thay đổi, gate FE không áp dụng.
+
+**Self-check Constitution T-10:**
+
+- AC-01: contract được leader duyệt; chỉ thêm đúng 403/422 POST study-sessions trước code, contract test và HTTP body/status xanh.
+- AC-03/BUS-01: userId lấy từ AuthApi.currentUser(), chỉ đọc/ghi dữ liệu learning; engine kiểm quyền session. Không truy cập bảng auth hoặc shared từ module learning, không trả entity.
+- BUS-02/HR-06/BUS-09: điều phối start và advisory lock cùng transaction; RECORD không có điểm, server kiểm enum/cờ, tiếp tục dùng answer/finish và transaction/sự kiện của engine.
+- HR-05/HR-07/HR-09: đúng một matcher LEARNER, CSRF cookie giữ nguyên; role/Bearer/CSRF/id sai đã test. SQL tham số hóa, lỗi đúng error_code/message/request_id và details khi validation; không đưa input/chi tiết nội bộ vào thông báo.
+- HR-02/HR-08/BUS-06: không đọc hoặc stage .env/secret, không log PII thật; fixture tự soạn trong Testcontainers, không dữ liệu bản quyền.
+- AC-05/AC-07/AC-09: không migration/index/DDL/Neon, không thay kiểu điểm; truy vấn từ đã học chỉ dùng cột quan hệ, không lọc JSONB; hạn chế audioFailed đã được leader chấp nhận và ghi rõ.
+- ES-01/ES-03/ES-05: Java 17/Maven Wrapper, không dependency mới; tên lớp/package/route đúng; test FR-prefix từ AT-25…28 và bảo mật/đồng thời, full verify không skip, coverage đạt ngưỡng toàn bộ và practice.
+- ES-06/ES-07: commit T-10 Conventional Commits riêng với fix có sẵn trên spec/003-vocab-topics-part2; stage file cụ thể và chỉ hunk T-10 của questions.md. Bàn giao sau push qua Draft PR #24; không merge PR, không merge/rebase/pull main, force-push hoặc push main.
