@@ -99,6 +99,94 @@ class CharacterQueryIntegrationTest extends AbstractIntegrationTest {
         }
     }
 
+    @Test
+    void FR001_AT01_listsCharactersThroughLearnerHttpAgainstPostgres() throws Exception {
+        Lexeme exact = characterWith("好", (short) 9, "hao", Integer.MAX_VALUE);
+        Lexeme sameLevel = characterWith("好他", (short) 9, "haoz", 10);
+        Lexeme wildcardDecoy = characterWith("偏旁", (short) 9, "pxqz", 9);
+        Lexeme backslashPrefix = characterWith("反斜", (short) 9, "p\\qz", 8);
+
+        String bearer = learnerBearer();
+        mvc.perform(get("/api/characters").param("size", "50").header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].id").value(org.hamcrest.Matchers.hasItem(exact.getId().intValue())));
+        mvc.perform(get("/api/characters").param("hskLevel", "9").param("size", "50")
+                        .header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].id").value(org.hamcrest.Matchers.hasItems(
+                        exact.getId().intValue(), sameLevel.getId().intValue(), wildcardDecoy.getId().intValue(),
+                        backslashPrefix.getId().intValue())))
+                .andExpect(jsonPath("$.totalElements").value(4));
+        mvc.perform(get("/api/characters").param("hskLevel", "9").param("q", "好")
+                        .header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].id").value(org.hamcrest.Matchers.contains(exact.getId().intValue())))
+                .andExpect(jsonPath("$.totalElements").value(1));
+        mvc.perform(get("/api/characters").param("hskLevel", "9").param("q", "hao")
+                        .header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].id").value(org.hamcrest.Matchers.containsInAnyOrder(
+                        exact.getId().intValue(), sameLevel.getId().intValue())))
+                .andExpect(jsonPath("$.totalElements").value(2));
+        mvc.perform(get("/api/characters").param("hskLevel", "9").param("q", "%")
+                        .header("Authorization", bearer))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/characters").param("hskLevel", "9").param("q", "p_q")
+                        .header("Authorization", bearer))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/characters").param("hskLevel", "9").param("q", "--")
+                        .header("Authorization", bearer))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+        mvc.perform(get("/api/characters").param("hskLevel", "9").param("q", "p\\q")
+                        .header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].id").value(org.hamcrest.Matchers.contains(
+                        backslashPrefix.getId().intValue())))
+                .andExpect(jsonPath("$.totalElements").value(1));
+
+        String orderPrefix = "x" + UUID.randomUUID().toString().replace("-", "").substring(0, 10);
+        Lexeme lowerFirst = characterWith("排甲" + orderPrefix, (short) 7, orderPrefix + "a", 10);
+        Lexeme lowerSecond = characterWith("排乙" + orderPrefix, (short) 7, orderPrefix + "b", 10);
+        Lexeme lowerThird = characterWith("排丙" + orderPrefix, (short) 7, orderPrefix + "c", 5);
+        Lexeme higherLevel = characterWith("排丁" + orderPrefix, (short) 8, orderPrefix + "d", 99);
+        String pageBearer = learnerBearer();
+        mvc.perform(get("/api/characters").param("q", orderPrefix).param("size", "2")
+                        .header("Authorization", pageBearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].id").value(org.hamcrest.Matchers.contains(
+                        lowerFirst.getId().intValue(), lowerSecond.getId().intValue())))
+                .andExpect(jsonPath("$.totalElements").value(4));
+        mvc.perform(get("/api/characters").param("q", orderPrefix).param("size", "2").param("page", "1")
+                        .header("Authorization", pageBearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].id").value(org.hamcrest.Matchers.contains(
+                        lowerThird.getId().intValue(), higherLevel.getId().intValue())))
+                .andExpect(jsonPath("$.totalElements").value(4));
+    }
+
+    @Test
+    void FR001_FR002_AT01_rejectsOutOfRangePageAndNonPositiveId() throws Exception {
+        String bearer = learnerBearer();
+        mvc.perform(get("/api/characters").param("size", "51").header("Authorization", bearer))
+                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.error_code").value("VALIDATION_FAILED"));
+        mvc.perform(get("/api/characters").param("page", "9999999999").header("Authorization", bearer))
+                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.error_code").value("VALIDATION_FAILED"));
+        mvc.perform(get("/api/characters").param("page", "1000000000").param("size", "50")
+                        .header("Authorization", bearer))
+                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.error_code").value("VALIDATION_FAILED"));
+        mvc.perform(get("/api/characters/{id}", 0).header("Authorization", bearer))
+                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.error_code").value("VALIDATION_FAILED"));
+        mvc.perform(get("/api/characters/{id}", -1).header("Authorization", bearer))
+                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.error_code").value("VALIDATION_FAILED"));
+        Lexeme word = lexemes.saveAndFlush(new Lexeme(LexemeKind.WORD, "valid-word-id", "nghĩa"));
+        mvc.perform(get("/api/characters/{id}", word.getId()).header("Authorization", bearer))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.error_code").value("CHARACTER_NOT_FOUND"));
+    }
+
+    private String learnerBearer() {
+        return "Bearer " + jwt.issueAccessToken(owner, List.of("LEARNER"), false, UUID.randomUUID());
+    }
+
     private void record(long userId, Lexeme lexeme, String mode, String answer) {
         var item = new ServedItem(1, ItemType.WRITING_RESULT, Skill.WRITING, lexeme.getId(),
                 new ServedItem.Prompt(lexeme.getText(), null, null, lexeme.getMeaningVi(), null,
@@ -115,9 +203,17 @@ class CharacterQueryIntegrationTest extends AbstractIntegrationTest {
         lexeme.setHskLevel((short) 1);
         if (text.startsWith("好")) {
             lexeme.setPinyin("hǎo");
-            lexeme.setPinyinNorm("hao3");
+            lexeme.setPinyinNorm("hao");
         }
         lexeme.setStrokeCount(strokes);
+        return lexemes.saveAndFlush(lexeme);
+    }
+
+    private Lexeme characterWith(String text, Short level, String pinyinNorm, int frequency) {
+        Lexeme lexeme = new Lexeme(LexemeKind.CHAR, text, "nghĩa " + text);
+        lexeme.setHskLevel(level);
+        lexeme.setPinyinNorm(pinyinNorm);
+        lexeme.setFrequency(frequency);
         return lexemes.saveAndFlush(lexeme);
     }
 

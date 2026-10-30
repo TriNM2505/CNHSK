@@ -8,7 +8,6 @@ import com.cnhsk.learning.content.text.PinyinUtils;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +21,9 @@ public class CharacterQueryService {
     }
 
     @Transactional(readOnly = true)
-    public CharacterPage list(Long hskLevel, String q, int page, int size) {
+    public CharacterPage list(Long hskLevel, String q, long page, long size) {
         if (hskLevel != null && (hskLevel < 1 || hskLevel > 9) || page < 0 || size < 1 || size > 50
-                || q != null && (q.isBlank() || q.length() > 20)) {
+                || page > Integer.MAX_VALUE / size || q != null && (q.isBlank() || q.length() > 20)) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY,
                     "Tham số không hợp lệ.", java.util.Map.of());
         }
@@ -36,16 +35,21 @@ public class CharacterQueryService {
                 // Exact Hanzi searches do not need pinyin normalization.
             }
         }
+        if (normalized != null && normalized.isEmpty()) {
+            normalized = null;
+        }
         var result = characters.search(LexemeKind.CHAR, hskLevel == null ? null : hskLevel.shortValue(), q,
-                normalized == null ? "" : normalized,
-                PageRequest.of(page, size, Sort.by(Sort.Order.asc("hskLevel"),
-                        Sort.Order.desc("frequency"), Sort.Order.asc("id"))));
-        return new CharacterPage(result.getContent().stream().map(CharacterSummary::from).toList(), page, size,
-                result.getTotalElements());
+                normalized, PageRequest.of(Math.toIntExact(page), Math.toIntExact(size)));
+        return new CharacterPage(result.getContent().stream().map(CharacterSummary::from).toList(),
+                Math.toIntExact(page), Math.toIntExact(size), result.getTotalElements());
     }
 
     @Transactional(readOnly = true)
     public CharacterDetail detail(long userId, long id) {
+        if (id <= 0) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Tham số không hợp lệ.", java.util.Map.of("field", "id"));
+        }
         Lexeme lexeme = characters.findCharacter(id);
         if (lexeme == null) {
             throw new ApiException(ErrorCode.CHARACTER_NOT_FOUND, HttpStatus.NOT_FOUND,

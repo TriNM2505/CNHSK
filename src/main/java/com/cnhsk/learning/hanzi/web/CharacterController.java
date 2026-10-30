@@ -30,7 +30,7 @@ public class CharacterController {
             @RequestParam(defaultValue = "0") String page,
             @RequestParam(defaultValue = "20") String size) {
         return characters.list(optionalNumber(hskLevel, "hskLevel"), q,
-                Math.toIntExact(number(page, "page")), Math.toIntExact(number(size, "size")));
+                number(page, "page"), number(size, "size"));
     }
 
     @GetMapping("/{id}")

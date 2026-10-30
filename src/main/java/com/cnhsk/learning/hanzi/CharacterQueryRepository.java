@@ -16,11 +16,13 @@ import org.springframework.stereotype.Repository;
 public class CharacterQueryRepository {
     private static final String SEARCH = "select x from Lexeme x where x.kind = :kind "
             + "and (:level is null or x.hskLevel = :level) "
-            + "and (:text is null or x.text = :text or x.pinyinNorm like concat(:prefix, '%')) "
+            + "and (:text is null or x.text = :text or (:hasPrefix = true "
+            + "and x.pinyinNorm like concat(:prefix, '%') escape '!')) "
             + "order by x.hskLevel asc, x.frequency desc, x.id asc";
     private static final String COUNT = "select count(x) from Lexeme x where x.kind = :kind "
             + "and (:level is null or x.hskLevel = :level) "
-            + "and (:text is null or x.text = :text or x.pinyinNorm like concat(:prefix, '%'))";
+            + "and (:text is null or x.text = :text or (:hasPrefix = true "
+            + "and x.pinyinNorm like concat(:prefix, '%') escape '!'))";
     private final EntityManager entityManager;
 
     public CharacterQueryRepository(EntityManager entityManager) {
@@ -28,14 +30,24 @@ public class CharacterQueryRepository {
     }
 
     public Page<Lexeme> search(LexemeKind kind, Short hskLevel, String text, String pinyinPrefix, Pageable pageable) {
+        String escapedPrefix = pinyinPrefix == null ? "" : escapeLikeLiteral(pinyinPrefix);
         var query = entityManager.createQuery(SEARCH, Lexeme.class)
                 .setParameter("kind", kind).setParameter("level", hskLevel)
-                .setParameter("text", text).setParameter("prefix", pinyinPrefix);
+                .setParameter("text", text).setParameter("hasPrefix", pinyinPrefix != null)
+                .setParameter("prefix", escapedPrefix);
         var count = entityManager.createQuery(COUNT, Long.class)
                 .setParameter("kind", kind).setParameter("level", hskLevel)
-                .setParameter("text", text).setParameter("prefix", pinyinPrefix);
+                .setParameter("text", text).setParameter("hasPrefix", pinyinPrefix != null)
+                .setParameter("prefix", escapedPrefix);
         return new PageImpl<>(query.setFirstResult(Math.toIntExact(pageable.getOffset()))
                 .setMaxResults(pageable.getPageSize()).getResultList(), pageable, count.getSingleResult());
+    }
+
+    private String escapeLikeLiteral(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 
     public Lexeme findCharacter(long id) {
