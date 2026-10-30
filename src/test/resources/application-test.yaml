@@ -38,6 +38,9 @@ springdoc:
     enabled: false
 
 cnhsk:
+  import:
+    recover-on-startup: false
+    maintenance-cron: "-"
   jwt:
     secret: ${random.uuid}
   practice:

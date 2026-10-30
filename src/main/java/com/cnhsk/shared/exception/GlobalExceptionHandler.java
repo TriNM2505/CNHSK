@@ -32,6 +32,9 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = errorBody(exception.getCode(), exception.getMessage());
         exception.getExtra().forEach((key, value) -> {
             if (!"error_code".equals(key) && !"message".equals(key) && !"request_id".equals(key)) {
+                if ("details".equals(key) && exception.getCode() == ErrorCode.TEMPLATE_MISMATCH) {
+                    body.put(key, value);
+                }
                 if (!"details".equals(key) || exception.getCode() == ErrorCode.VALIDATION_FAILED) {
                     body.put(key, value);
                 }

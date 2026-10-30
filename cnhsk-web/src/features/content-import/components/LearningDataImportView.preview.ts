@@ -1,72 +1,301 @@
-import type { ImportPreview, ImportRunPage, ImportTemplate } from '../types'
+import type { ImportPreview, ImportRunPage, ImportTemplate, ImportTemplateColumn } from '../types'
 import type { LearningDataImportViewProps } from './LearningDataImportView'
 
-/** Dữ liệu mẫu chỉ dùng cho /__preview. */
+function column(
+  name: string,
+  required: boolean,
+  maxLength: number | null,
+  description: string,
+  example: string,
+): ImportTemplateColumn {
+  return { name, required, maxLength, description, example }
+}
+
+/** Metadata theo bảy mẫu v0; ví dụ tự soạn cho /__preview. */
 const sampleTemplates: ImportTemplate[] = [
   {
     columns: [
-      {
-        description: 'Chữ Hán giản thể',
-        example: '学习',
-        maxLength: 32,
-        name: 'hanzi',
-        required: true,
-      },
-      {
-        description: 'Pinyin có dấu thanh',
-        example: 'xuéxí',
-        maxLength: 64,
-        name: 'pinyin',
-        required: true,
-      },
-      {
-        description: 'Nghĩa tiếng Việt',
-        example: 'học tập',
-        maxLength: 255,
-        name: 'meaning_vi',
-        required: true,
-      },
-      {
-        description: 'Cấp HSK 1–9',
-        example: '1',
-        maxLength: null,
-        name: 'hsk_level',
-        required: true,
-      },
+      column('kind', true, null, 'Loại dữ liệu: CHAR hoặc WORD.', 'WORD'),
+      column(
+        'text',
+        true,
+        20,
+        'CHAR: đúng 1 chữ Hán; WORD: từ 1 đến 20 ký tự, toàn bộ là chữ Hán.',
+        '我们',
+      ),
+      column(
+        'pinyin',
+        true,
+        200,
+        "Pinyin có dấu; chỉ chữ a–z, ü, nguyên âm có dấu thanh, khoảng trắng, ' và -.",
+        'wǒmen',
+      ),
+      column('sino_viet', false, 200, 'Âm Hán-Việt.', 'ngã môn'),
+      column(
+        'meaning_vi',
+        true,
+        1000,
+        'Nghĩa tiếng Việt; ngăn nhiều nghĩa bằng dấu ;.',
+        'chúng tôi; chúng ta',
+      ),
+      column('hsk_level', true, null, 'Cấp HSK: số nguyên từ 1 đến 9.', '1'),
+      column(
+        'audio_url',
+        false,
+        500,
+        'URL http:// hoặc https://, không có khoảng trắng.',
+        'https://example.com/women.mp3',
+      ),
+      column(
+        'radical',
+        false,
+        1,
+        'Chỉ dùng cho CHAR: đúng 1 chữ Hán hoặc bộ thủ U+2E80–U+2FDF.',
+        '',
+      ),
+      column('stroke_count', false, null, 'Chỉ dùng cho CHAR: số nét từ 1 đến 64.', ''),
+      column(
+        'example_cn',
+        false,
+        300,
+        'Câu ví dụ chứa ít nhất 1 chữ Hán; nếu có thì example_vi bắt buộc.',
+        '我们一起学习。',
+      ),
+      column('example_pinyin', false, 500, 'Pinyin của câu ví dụ.', 'Wǒmen yìqǐ xuéxí.'),
+      column(
+        'example_vi',
+        false,
+        500,
+        'Nghĩa câu ví dụ; bắt buộc khi example_cn có giá trị.',
+        'Chúng ta cùng học.',
+      ),
+      column(
+        'tags',
+        false,
+        null,
+        'Tối đa 10 nhãn, mỗi nhãn tối đa 30 ký tự; ngăn bằng dấu |.',
+        'đại từ|giao tiếp',
+      ),
     ],
     dataType: 'LEXEME',
     dependsOn: [],
     label: 'Chữ và từ vựng',
-    naturalKey: ['hanzi', 'pinyin'],
+    naturalKey: ['kind', 'text'],
   },
   {
     columns: [
-      {
-        description: 'Mã chủ đề',
-        example: 'gia-dinh',
-        maxLength: 64,
-        name: 'topic_code',
-        required: true,
-      },
-      {
-        description: 'Chữ Hán của từ',
-        example: '妈妈',
-        maxLength: 32,
-        name: 'hanzi',
-        required: true,
-      },
-      {
-        description: 'Pinyin của từ',
-        example: 'māma',
-        maxLength: 64,
-        name: 'pinyin',
-        required: true,
-      },
+      column('code', true, 50, 'Mã chủ đề theo mẫu ^[A-Z0-9_-]{2,50}$.', 'DAILY_LIFE'),
+      column('name', true, 200, 'Tên chủ đề.', 'Sinh hoạt hằng ngày'),
+      column('hsk_level', true, null, 'Cấp HSK: số nguyên từ 1 đến 9.', '1'),
+      column('order_index', false, null, 'Thứ tự: số nguyên từ 0 đến 100000, mặc định 0.', '0'),
+    ],
+    dataType: 'TOPIC',
+    dependsOn: [],
+    label: 'Chủ đề từ vựng',
+    naturalKey: ['code'],
+  },
+  {
+    columns: [
+      column(
+        'topic_code',
+        true,
+        null,
+        'Mã chủ đề đã tồn tại; nhập mẫu Chủ đề từ vựng trước.',
+        'DAILY_LIFE',
+      ),
+      column('kind', true, null, 'Loại dữ liệu: CHAR hoặc WORD.', 'WORD'),
+      column(
+        'text',
+        true,
+        null,
+        'Chữ hoặc từ đã tồn tại với cùng kind; nhập mẫu Chữ và từ vựng trước.',
+        '我们',
+      ),
+      column('order_index', false, null, 'Thứ tự: số nguyên từ 0 đến 100000, mặc định 0.', '0'),
     ],
     dataType: 'TOPIC_ITEM',
     dependsOn: ['TOPIC', 'LEXEME'],
     label: 'Từ trong chủ đề',
-    naturalKey: ['topic_code', 'hanzi', 'pinyin'],
+    naturalKey: ['topic_code', 'kind', 'text'],
+  },
+  {
+    columns: [
+      column('text', true, 200, 'Điểm ngữ pháp chứa ít nhất 1 chữ Hán.', '是……的'),
+      column('hsk_level', true, null, 'Cấp HSK: số nguyên từ 1 đến 9.', '2'),
+      column('title_vi', true, 300, 'Tên ngắn tiếng Việt.', 'Nhấn mạnh thông tin đã xảy ra'),
+      column(
+        'structure',
+        false,
+        300,
+        'Cấu trúc ngữ pháp.',
+        'Chủ ngữ + 是 + thông tin nhấn mạnh + động từ + 的',
+      ),
+      column(
+        'explanation_vi',
+        true,
+        3000,
+        'Giải thích ngữ pháp bằng tiếng Việt.',
+        'Dùng 是……的 để nhấn mạnh thời gian hoặc cách thức của một việc đã xảy ra.',
+      ),
+      column(
+        'common_mistake_vi',
+        false,
+        1000,
+        'Lỗi thường gặp.',
+        'Dùng cấu trúc này để kể một việc chưa xảy ra.',
+      ),
+      column('example1_cn', true, 300, 'Ví dụ 1 chứa chữ Hán; cần example1_vi.', '我是昨天来的。'),
+      column(
+        'example2_cn',
+        false,
+        300,
+        'Ví dụ 2 chứa chữ Hán; nếu có thì example2_vi bắt buộc.',
+        '他是坐车来的。',
+      ),
+      column(
+        'example3_cn',
+        false,
+        300,
+        'Ví dụ 3 chứa chữ Hán; nếu có thì example3_vi bắt buộc.',
+        '她是在家学的。',
+      ),
+      column('example1_pinyin', false, 500, 'Pinyin của ví dụ 1.', 'Wǒ shì zuótiān lái de.'),
+      column('example2_pinyin', false, 500, 'Pinyin của ví dụ 2.', 'Tā shì zuò chē lái de.'),
+      column('example3_pinyin', false, 500, 'Pinyin của ví dụ 3.', 'Tā shì zài jiā xué de.'),
+      column('example1_vi', true, 500, 'Nghĩa tiếng Việt của ví dụ 1.', 'Tôi đến hôm qua.'),
+      column(
+        'example2_vi',
+        false,
+        500,
+        'Nghĩa tiếng Việt của ví dụ 2; bắt buộc khi example2_cn có giá trị.',
+        'Anh ấy đến bằng xe.',
+      ),
+      column(
+        'example3_vi',
+        false,
+        500,
+        'Nghĩa tiếng Việt của ví dụ 3; bắt buộc khi example3_cn có giá trị.',
+        'Cô ấy đã học ở nhà.',
+      ),
+    ],
+    dataType: 'GRAMMAR',
+    dependsOn: [],
+    label: 'Điểm ngữ pháp',
+    naturalKey: ['text'],
+  },
+  {
+    columns: [
+      column(
+        'grammar_text',
+        true,
+        null,
+        'Điểm ngữ pháp đã tồn tại; nhập mẫu Điểm ngữ pháp trước.',
+        '是……的',
+      ),
+      column('exercise_no', true, null, 'Số bài tập: số nguyên từ 1 đến 20.', '1'),
+      column('stem', true, 500, 'Nội dung bài tập; có thể chứa ___.', '我是昨天来___。'),
+      column(
+        'option_a',
+        true,
+        200,
+        'Phương án A; các phương án phải khác nhau sau chuẩn hóa.',
+        '的',
+      ),
+      column(
+        'option_b',
+        true,
+        200,
+        'Phương án B; các phương án phải khác nhau sau chuẩn hóa.',
+        '吗',
+      ),
+      column('option_c', false, 200, 'Phương án C; bắt buộc khi option_d có giá trị.', '呢'),
+      column('option_d', false, 200, 'Phương án D; nếu có thì option_c bắt buộc.', '吧'),
+      column('answer', true, null, 'Đáp án A–D, phải trỏ tới phương án có nội dung.', 'A'),
+      column(
+        'explanation_vi',
+        false,
+        1000,
+        'Giải thích đáp án.',
+        'Điền 的 để hoàn thành cấu trúc 是……的.',
+      ),
+    ],
+    dataType: 'GRAMMAR_EXERCISE',
+    dependsOn: ['GRAMMAR'],
+    label: 'Bài tập ngữ pháp',
+    naturalKey: ['grammar_text', 'exercise_no'],
+  },
+  {
+    columns: [
+      column('stage_index', true, null, 'Số tầng: số nguyên từ 1 đến 8.', '1'),
+      column('name', true, 100, 'Tên tầng phát âm.', 'Phân biệt thanh mẫu'),
+      column(
+        'description',
+        false,
+        2000,
+        'Mô tả tầng phát âm.',
+        'Luyện nghe và phân biệt thanh mẫu b với p.',
+      ),
+      column(
+        'target_sounds',
+        false,
+        null,
+        'Tối đa 30 âm, mỗi âm tối đa 20 ký tự; ngăn bằng dấu |.',
+        'b|p',
+      ),
+      column(
+        'pass_percent',
+        false,
+        null,
+        'Ngưỡng đạt từ 0 đến 100, tối đa 2 chữ số thập phân, mặc định 80.',
+        '80',
+      ),
+    ],
+    dataType: 'PRON_STAGE',
+    dependsOn: [],
+    label: 'Tầng phát âm',
+    naturalKey: ['stage_index'],
+  },
+  {
+    columns: [
+      column(
+        'stage_index',
+        true,
+        null,
+        'Tầng phát âm đã tồn tại; nhập mẫu Tầng phát âm trước.',
+        '1',
+      ),
+      column('unit_code', true, 30, 'Mã bài nghe theo mẫu ^[A-Za-z0-9_-]{1,30}$.', 'BP_01'),
+      column(
+        'audio_url',
+        true,
+        500,
+        'URL http:// hoặc https://, không có khoảng trắng.',
+        'https://example.com/ba.mp3',
+      ),
+      column(
+        'prompt_vi',
+        false,
+        200,
+        'Yêu cầu bài nghe, mặc định: Nghe và chọn đáp án đúng.',
+        'Nghe và chọn đáp án đúng',
+      ),
+      column('option_a', true, 50, 'Phương án A: pinyin, thanh mẫu, vận mẫu hoặc số thanh.', 'b'),
+      column('option_b', true, 50, 'Phương án B: pinyin, thanh mẫu, vận mẫu hoặc số thanh.', 'p'),
+      column('option_c', false, 50, 'Phương án C: pinyin, thanh mẫu, vận mẫu hoặc số thanh.', 'm'),
+      column('option_d', false, 50, 'Phương án D: pinyin, thanh mẫu, vận mẫu hoặc số thanh.', 'f'),
+      column('answer', true, null, 'Đáp án A–D, phải trỏ tới phương án có nội dung.', 'A'),
+      column(
+        'explanation_vi',
+        false,
+        500,
+        'Giải thích đáp án.',
+        'Âm nghe được bắt đầu bằng thanh mẫu b.',
+      ),
+    ],
+    dataType: 'PRON_UNIT',
+    dependsOn: ['PRON_STAGE'],
+    label: 'Bài nghe phát âm',
+    naturalKey: ['stage_index', 'unit_code'],
   },
 ]
 
@@ -96,17 +325,29 @@ const samplePreview: ImportPreview = {
     {
       action: 'CREATE',
       line: 2,
-      values: { hanzi: '学习', hsk_level: '1', meaning_vi: 'học tập', pinyin: 'xuéxí' },
+      values: {
+        kind: 'WORD',
+        text: '学习',
+        hsk_level: '1',
+        meaning_vi: 'học tập',
+        pinyin: 'xuéxí',
+      },
     },
     {
       action: 'UPDATE',
       line: 3,
-      values: { hanzi: '妈妈', hsk_level: '1', meaning_vi: 'mẹ', pinyin: 'māma' },
+      values: { kind: 'WORD', text: '妈妈', hsk_level: '1', meaning_vi: 'mẹ', pinyin: 'māma' },
     },
     {
       action: 'UNCHANGED',
       line: 4,
-      values: { hanzi: '你好', hsk_level: '1', meaning_vi: 'xin chào', pinyin: 'nǐ hǎo' },
+      values: {
+        kind: 'WORD',
+        text: '你好',
+        hsk_level: '1',
+        meaning_vi: 'xin chào',
+        pinyin: 'nǐ hǎo',
+      },
     },
   ],
   runId: 42,
@@ -175,6 +416,29 @@ const base = {
 } satisfies LearningDataImportViewProps
 
 export const learningDataImportPreviews = {
+  earlyMultipartFailure: {
+    ...base,
+    history: {
+      ...base.history,
+      data: {
+        ...sampleHistory,
+        items: [
+          {
+            createdAt: '2026-10-20T05:00:00Z',
+            createdBy: { displayName: 'Biên tập viên', id: 102 },
+            dataType: null,
+            errorCount: 0,
+            failureReason: 'FILE_TOO_LARGE',
+            fileName: null,
+            runId: 43,
+            status: 'FAILED',
+          },
+          ...sampleHistory.items,
+        ],
+        totalElements: sampleHistory.totalElements + 1,
+      },
+    },
+  },
   ready: base,
   loading: { ...base, history: { ...base.history, state: 'loading' }, state: 'loading' },
   error: {
@@ -186,6 +450,19 @@ export const learningDataImportPreviews = {
     state: 'error',
   },
   emptyHistory: { ...base, history: { ...base.history, data: undefined, state: 'empty' } },
+  historyError: {
+    ...base,
+    history: {
+      ...base.history,
+      data: undefined,
+      error: {
+        message: 'Không tải được lịch sử nhập. Vui lòng thử lại.',
+        requestId: 'mau-history-0068',
+      },
+      state: 'error',
+    },
+  },
+  uploading: { ...base, uploading: true },
   uploadError: {
     ...base,
     uploadError: {
@@ -196,5 +473,14 @@ export const learningDataImportPreviews = {
   preview: { ...base, preview: samplePreview },
   alreadyImported: { ...base, preview: { ...samplePreview, alreadyImported: true } },
   confirm: { ...base, confirmOpen: true, preview: samplePreview },
+  writing: { ...base, confirmOpen: true, confirmPending: true, preview: samplePreview },
+  noValidRows: {
+    ...base,
+    preview: {
+      ...samplePreview,
+      preview: [],
+      totals: { create: 0, invalid: 2, total: 2, unchanged: 0, update: 0, valid: 0 },
+    },
+  },
   expired: { ...base, preview: samplePreview, remainingSeconds: 0 },
 } satisfies Record<string, LearningDataImportViewProps>

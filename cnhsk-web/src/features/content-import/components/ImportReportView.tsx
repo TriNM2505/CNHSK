@@ -87,8 +87,26 @@ function RunOutcome({ run }: { run: ImportRun }) {
   ) : null
 }
 
+function RunCounts({
+  title,
+  counts,
+}: {
+  title: string
+  counts: readonly (readonly [string, number])[]
+}) {
+  return (
+    <section aria-label={title} className="mt-5">
+      <h3 className="text-h3 text-ink">{title}</h3>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {counts.map(([label, value]) => (
+          <StatTile key={label} label={label} value={value} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 function RunSummary({ run }: { run: ImportRun }) {
-  const total = run.result?.total ?? run.totals?.total
   return (
     <>
       <section
@@ -100,7 +118,9 @@ function RunSummary({ run }: { run: ImportRun }) {
             <h2 className="text-h2 text-ink" id="import-run-summary-title">
               Tóm tắt lần nhập #{run.runId}
             </h2>
-            <p className="mt-1 break-all text-body-sm text-ink-secondary">{run.fileName}</p>
+            <p className="mt-1 break-all text-body-sm text-ink-secondary">
+              {run.fileName ?? 'Không đọc được tên tệp'}
+            </p>
           </div>
           <StatusBadge tone={STATUS_TONES[run.status]}>
             {IMPORT_RUN_STATUS_LABELS[run.status]}
@@ -110,7 +130,9 @@ function RunSummary({ run }: { run: ImportRun }) {
         <dl className="mt-5 grid gap-4 text-body-sm sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <dt className="text-ink-muted">Loại dữ liệu</dt>
-            <dd className="mt-1 font-semibold text-ink">{IMPORT_DATA_TYPE_LABELS[run.dataType]}</dd>
+            <dd className="mt-1 font-semibold text-ink">
+              {run.dataType === null ? '—' : IMPORT_DATA_TYPE_LABELS[run.dataType]}
+            </dd>
           </div>
           <div>
             <dt className="text-ink-muted">Người nhập</dt>
@@ -132,25 +154,38 @@ function RunSummary({ run }: { run: ImportRun }) {
               )}
             </dd>
           </div>
+          <div>
+            <dt className="text-ink-muted">Số lỗi</dt>
+            <dd className="mt-1 font-semibold tabular-nums text-ink">{run.errorCount}</dd>
+          </div>
         </dl>
 
-        {total !== undefined ? (
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            <StatTile label="Tổng số dòng" value={total} />
-            {run.result ? (
-              <>
-                <StatTile label="Tạo mới" value={run.result.created} />
-                <StatTile label="Cập nhật" value={run.result.updated} />
-                <StatTile label="Không đổi" value={run.result.unchanged} />
-                <StatTile label="Lỗi ghi" value={run.result.failed} />
-              </>
-            ) : (
-              <>
-                <StatTile label="Hợp lệ" value={run.totals?.valid ?? 0} />
-                <StatTile label="Không hợp lệ" value={run.totals?.invalid ?? 0} />
-              </>
-            )}
-          </div>
+        {run.totals ? (
+          <RunCounts
+            title="Số liệu lúc kiểm tra file"
+            counts={[
+              ['Tổng số dòng', run.totals.total],
+              ['Hợp lệ', run.totals.valid],
+              ['Không hợp lệ', run.totals.invalid],
+              ['Tạo mới', run.totals.create],
+              ['Cập nhật', run.totals.update],
+              ['Không đổi', run.totals.unchanged],
+            ]}
+          />
+        ) : null}
+        {run.result ? (
+          <RunCounts
+            title="Kết quả ghi"
+            counts={[
+              ['Tổng số dòng', run.result.total],
+              ['Hợp lệ', run.result.valid],
+              ['Không hợp lệ', run.result.invalid],
+              ['Tạo mới', run.result.created],
+              ['Cập nhật', run.result.updated],
+              ['Không đổi', run.result.unchanged],
+              ['Lỗi ghi', run.result.failed],
+            ]}
+          />
         ) : null}
       </section>
 
@@ -258,7 +293,14 @@ export function ImportReportView({
                 {downloadPending ? 'Đang tải' : 'Tải danh sách lỗi'}
               </Button>
             ) : null}
-            <Button to={`/content/imports?dataType=${run.dataType}`} variant="outline">
+            <Button
+              to={
+                run.dataType === null
+                  ? '/content/imports'
+                  : `/content/imports?dataType=${run.dataType}`
+              }
+              variant="outline"
+            >
               <FilePenLine aria-hidden="true" className="size-4" />
               Sửa file và nhập lại
             </Button>

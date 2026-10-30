@@ -4,7 +4,7 @@ import type { ImportReportViewProps } from './ImportReportView'
 const sampleRun: ImportRun = {
   completedAt: '2026-10-20T03:12:00Z',
   createdAt: '2026-10-20T03:10:00Z',
-  createdBy: { displayName: 'Nguyễn Minh Anh', id: 102 },
+  createdBy: { displayName: 'Biên tập viên', id: 102 },
   dataType: 'LEXEME',
   errorCount: 2,
   fileName: 'tu-vung-hsk1.csv',
@@ -19,6 +19,7 @@ const sampleRun: ImportRun = {
   },
   runId: 42,
   status: 'COMPLETED',
+  totals: { total: 40, valid: 39, invalid: 1, create: 19, update: 10, unchanged: 10 },
 }
 
 const sampleErrors: ImportErrorPage = {
@@ -60,7 +61,35 @@ const base = {
   state: 'ready',
 } satisfies ImportReportViewProps
 
+const pending = {
+  ...base,
+  errors: {
+    ...base.errors,
+    data: { ...sampleErrors, items: sampleErrors.items.slice(0, 1), totalElements: 1 },
+  },
+  run: { ...sampleRun, completedAt: null, errorCount: 1, result: null, status: 'PENDING' },
+} satisfies ImportReportViewProps
+
 export const importReportPreviews = {
+  earlyMultipartFailure: {
+    ...base,
+    errors: {
+      ...base.errors,
+      data: { ...sampleErrors, items: [], totalElements: 0 },
+      state: 'empty',
+    },
+    run: {
+      ...sampleRun,
+      completedAt: null,
+      dataType: null,
+      errorCount: 0,
+      failureReason: 'FILE_TOO_LARGE',
+      fileName: null,
+      result: null,
+      status: 'FAILED',
+      totals: null,
+    },
+  },
   empty: {
     ...base,
     errors: {
@@ -68,7 +97,20 @@ export const importReportPreviews = {
       data: { ...sampleErrors, items: [], totalElements: 0 },
       state: 'empty',
     },
-    run: { ...sampleRun, errorCount: 0 },
+    run: {
+      ...sampleRun,
+      errorCount: 0,
+      totals: { total: 40, valid: 40, invalid: 0, create: 20, update: 10, unchanged: 10 },
+      result: {
+        total: 40,
+        valid: 40,
+        invalid: 0,
+        created: 20,
+        updated: 10,
+        unchanged: 10,
+        failed: 0,
+      },
+    },
   },
   error: {
     ...base,
@@ -78,13 +120,38 @@ export const importReportPreviews = {
   },
   loading: { ...base, run: undefined, state: 'loading' },
   ready: base,
+  pending,
+  expired: { ...pending, run: { ...pending.run, status: 'EXPIRED' } },
   running: {
+    ...pending,
+    run: { ...pending.run, status: 'RUNNING' },
+  },
+  errorsUnavailable: {
     ...base,
     errors: {
       ...base.errors,
-      data: { ...sampleErrors, items: [], totalElements: 0 },
+      data: undefined,
+      error: {
+        message: 'Không tải được danh sách lỗi. Vui lòng thử lại.',
+        requestId: 'mau-errors-0069',
+      },
+      state: 'error',
+    },
+  },
+  pageOutOfRange: {
+    ...base,
+    errors: {
+      ...base.errors,
+      data: { ...sampleErrors, items: [], page: 99 },
       state: 'empty',
     },
-    run: { ...sampleRun, completedAt: null, errorCount: 0, result: null, status: 'RUNNING' },
+  },
+  downloading: { ...base, downloadPending: true },
+  downloadError: {
+    ...base,
+    downloadError: {
+      message: 'Chưa tải được danh sách lỗi. Vui lòng thử lại.',
+      requestId: 'mau-download-0069',
+    },
   },
 } satisfies Record<string, ImportReportViewProps>

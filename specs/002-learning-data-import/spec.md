@@ -121,13 +121,15 @@ và một dòng sai không được làm mất 999 dòng đúng.
 | **FR-005** | THE system SHALL đọc CSV theo RFC 4180 (dấu phẩy, ngoặc kép, xuống dòng trong ô có ngoặc) bằng `commons-csv` `CSVFormat.RFC4180` có header; tên cột so khớp **chính xác, phân biệt hoa thường** sau khi bỏ khoảng trắng hai đầu |
 | **FR-006** | WHEN thiếu cột bắt buộc hoặc có cột lạ, THE system SHALL trả **422** `TEMPLATE_MISMATCH` kèm `details` liệt kê từng cột thiếu/lạ. Thứ tự cột **không** quan trọng |
 | **FR-007** | WHEN 0 dòng dữ liệu → **422** `EMPTY_FILE`; > 5 000 dòng → **422** `TOO_MANY_ROWS`. Dòng toàn ô trống bị bỏ qua, không tính |
-| **FR-008** | WHERE lỗi cấp file (FR-003…FR-007), THE system SHALL vẫn tạo một lần nhập `status='FAILED'`, `error_message` = mã lỗi, để lịch sử thấy lần thử; response lỗi kèm `runId` |
+| **FR-008** | WHERE lỗi cấp file (FR-003…FR-007), THE system SHALL vẫn tạo một lần nhập `status='FAILED'`, `error_message` = mã lỗi, để lịch sử thấy lần thử; response lỗi kèm `runId`. WHEN multipart bị chặn sớm bởi `MaxUploadSizeExceededException` trước khi đọc metadata, THE system SHALL vẫn ghi `FAILED`, `error_message='FILE_TOO_LARGE'` và trả **413** kèm `runId`; `payload.dataType`/`payload.fileName` được `null` trong trường hợp này, không đoán metadata |
 | **FR-009** | THE system SHALL kiểm từng dòng theo quy tắc §4 **sau khi** chuẩn hoá (FR-030). Một dòng có thể sinh nhiều lỗi (mỗi cột sai một lỗi) |
 | **FR-010** | THE system SHALL phát hiện khoá tự nhiên trùng trong cùng file: lần xuất hiện đầu hợp lệ, các lần sau lỗi `DUPLICATE_IN_FILE` |
 | **FR-011** | THE system SHALL kiểm tham chiếu (từ, chủ đề, điểm ngữ pháp, tầng) **trong DB** lúc kiểm tra; không tìm thấy → `REFERENCE_NOT_FOUND`. Tham chiếu tới bản ghi nằm trong **cùng file loại khác** không được hỗ trợ — phải nhập loại cha trước (thứ tự §4.0) |
-| **FR-012** | WHEN kiểm tra xong, THE system SHALL tạo `service_requests` `kind='IMPORT'`, `status='PENDING'`, `file_hash` = SHA-256 hex nội dung file, `payload` = `{dataType, fileName, totalRows, validRows:[dòng đã chuẩn hoá kèm lineNo], expiresAt}`, `error_rows` = danh sách lỗi; **không** ghi bảng nội dung nào |
+| **FR-012** | WHEN kiểm tra xong, THE system SHALL tạo `service_requests` `kind='IMPORT'`, `status='PENDING'`, `file_hash` = SHA-256 hex nội dung file, `payload` = `{dataType, fileName, totalRows, totals:{total, valid, invalid, create, update, unchanged}, validRows:[dòng đã chuẩn hoá kèm lineNo], expiresAt}`, `error_rows` = danh sách lỗi; **không** ghi bảng nội dung nào |
 | **FR-013** | THE system SHALL tính cho mỗi dòng hợp lệ hành động dự kiến so với DB: `CREATE` (khoá chưa có), `UPDATE` (có, ít nhất một ô khác), `UNCHANGED` (có, mọi ô có giá trị đều bằng) |
 | **FR-014** | THE system SHALL trả **201** `{runId, dataType, fileName, status:'PENDING', totals:{total, valid, invalid, create, update, unchanged}, alreadyImported, expiresAt, preview:[≤20 dòng hợp lệ đầu tiên], errors:[≤50 lỗi đầu], errorCount}`. `alreadyImported = true` khi tồn tại lần nhập `COMPLETED` cùng `file_hash` |
+
+**Làm rõ FR-002 (leader chốt 2026-10-30):** Đuôi `.csv` không phân biệt hoa thường (`.csv`, `.CSV`, `.Csv`).
 
 ### Nhóm 2 — Xác nhận và ghi (FR-015…FR-025)
 
@@ -139,20 +141,26 @@ và một dòng sai không được làm mất 999 dòng đúng.
 | **FR-018** | THE system SHALL ghi **từng dòng trong transaction riêng** (`TransactionTemplate` `PROPAGATION_REQUIRES_NEW`), theo thứ tự `lineNo`; mỗi dòng tính lại hành động so với DB **tại lúc ghi** |
 | **FR-019** | WHEN một dòng ghi lỗi (ngoại lệ DB, vi phạm ràng buộc), THE system SHALL rollback **chỉ dòng đó**, thêm lỗi `ROW_WRITE_FAILED` (thông báo chung, không lộ SQL) vào `error_rows`, và tiếp tục dòng sau (BR-110-5) |
 | **FR-020** | WHEN cập nhật bản ghi đã có, THE system SHALL chỉ ghi đè cột có giá trị trong file; ô tuỳ chọn trống **giữ** giá trị cũ (E6). Không có thao tác xoá |
-| **FR-021** | WHEN ghi xong mọi dòng, THE system SHALL đặt `status='COMPLETED'`, `completed_at=now()`, `result={total, valid, invalid, created, updated, unchanged, failed}`, xoá `payload.validRows` (chỉ giữ `{dataType, fileName, totalRows}`), và ghi `audit_logs` `action='IMPORT_CONFIRM'`, `entity='import:{id}'`, `after=result` |
+| **FR-021** | WHEN ghi xong mọi dòng, THE system SHALL đặt `status='COMPLETED'`, `completed_at=now()`, `result={total, valid, invalid, created, updated, unchanged, failed}`, xoá `payload.validRows` (chỉ giữ `{dataType, fileName, totalRows, totals}`; bản ghi cũ thiếu totals giữ nguyên thiếu), và ghi `audit_logs` `action='IMPORT_CONFIRM'`, `entity='import:{id}'`, `after=result` |
 | **FR-022** | WHERE xử lý bị ngắt giữa chừng (ứng dụng tắt), THE system SHALL để lần nhập ở `RUNNING`; khi khởi động, job `ImportRecoveryRunner` chuyển mọi `RUNNING` cũ hơn 10 phút sang `FAILED` (`error_message='INTERRUPTED'`). Các dòng đã ghi giữ nguyên (mỗi dòng là transaction riêng); chạy lại cùng file là an toàn |
 | **FR-023** | THE system SHALL xử lý xác nhận **đồng bộ** trong request (≤ 5 000 dòng); response **200** = tóm tắt như FR-026 |
 | **FR-024** | THE system SHALL chuyển mọi lần nhập `PENDING` có `expiresAt < now()` sang `EXPIRED` và xoá `payload.validRows`: khi bị truy cập (lazy) **và** bằng job `@Scheduled(cron="0 */15 * * * *", zone="Asia/Ho_Chi_Minh")` |
 | **FR-025** | THE system SHALL KHÔNG lưu file gốc ở đĩa, DB hay log (BR-110-12, `AGENTS.md` §5); log chỉ ghi `runId`, `dataType`, số dòng |
 
+**Làm rõ FR-022 (leader chốt 2026-10-30):** Job định kỳ cũng thu hồi lần nhập `RUNNING` quá 10 phút (hoặc thiếu `runningSince`) → `FAILED`/`INTERRUPTED`, cùng luật với lúc khởi động.
+
 ### Nhóm 3 — Báo cáo và lịch sử (FR-026…FR-029)
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-026** | `GET /api/admin/imports/{id}` SHALL trả `{runId, dataType, fileName, status, createdAt, completedAt, createdBy:{id, displayName}, totals, result, errorCount, failureReason}`. `displayName` lấy qua `auth.api.AuthApi.displayNames(Set<Long>)` (`AC-03`) |
+| **FR-026** | `GET /api/admin/imports/{id}` SHALL trả `{runId, dataType, fileName, status, createdAt, completedAt, createdBy:{id, displayName}, totals, result, errorCount, failureReason}`. `dataType`/`fileName` chỉ được `null` khi `status='FAILED'` và `failureReason='FILE_TOO_LARGE'` do multipart chặn sớm chưa đọc được metadata; mọi trường hợp khác, gồm preview, `COMPLETED` và lỗi cấp file đã đọc được metadata, bắt buộc có đủ. `displayName` lấy qua `auth.api.AuthApi.displayNames(Set<Long>)` (`AC-03`) |
 | **FR-027** | `GET /api/admin/imports/{id}/errors?page&size` SHALL trả lỗi sắp theo `line`, rồi theo thứ tự cột trong mẫu; `size` 1–100, mặc định 20; sai → **422** `VALIDATION_FAILED`. Mỗi lỗi: `{line, column, value, code, message}`; `value` cắt còn 100 ký tự |
 | **FR-028** | `GET /api/admin/imports/{id}/errors.csv` SHALL trả `text/csv; charset=UTF-8` có BOM (để Excel đọc đúng chữ Hán), cột `line,column,value,code,message`, toàn bộ lỗi, tên file `import-{id}-errors.csv` |
-| **FR-029** | `GET /api/admin/imports?page&size` SHALL trả lịch sử mọi lần nhập (mọi `CONTENT_EDITOR` thấy hết), sắp `created_at` giảm dần, `size` 1–100 mặc định 10, mỗi dòng như FR-026 trừ `failureReason` |
+| **FR-029** | `GET /api/admin/imports?page&size` SHALL trả lịch sử mọi lần nhập (mọi `CONTENT_EDITOR` thấy hết), sắp `created_at` giảm dần, `size` 1–100 mặc định 10, mỗi dòng như FR-026, gồm `failureReason` |
+
+**Làm rõ FR-028 (leader chốt 2026-10-30):** Ô bắt đầu bằng `=`, `+`, `-`, `@`, tab hoặc CR được thêm tiền tố `'` để chống CSV injection.
+
+**Sửa 2026-10-30 (leader duyệt):** FR-029 dùng chung schema `ImportRun` với chi tiết, lịch sử trả cả `failureReason`; FE hiện lý do ngắn khi `FAILED`. FR-012 lưu `payload.totals` cùng `validRows`; FR-021/FR-024 dọn `validRows` nhưng giữ `{dataType, fileName, totalRows, totals}` (hết hạn có thể giữ `expiresAt`). FR-026/FR-029 đọc snapshot `totals` từ payload, `result` từ kết quả đã lưu. `totals=null` chỉ khi lỗi cấp file chưa kiểm được dòng nào hoặc bản ghi cũ thiếu snapshot; không tính lại theo DB hiện tại. Bổ sung T-08/T-10 trong commit T-12, không đổi DB; xem Q-T12-01/02 tại `questions.md`.
 
 ### Nhóm 4 — Chuẩn hoá (FR-030…FR-033)
 
@@ -276,6 +284,8 @@ Cập nhật **giữ nguyên** `extra.exercises` (do `GRAMMAR_EXERCISE` quản).
 | `explanation_vi` | | ≤ 1 000 | `explanation` |
 
 Các phương án (đã chuẩn hoá) phải khác nhau đôi một, nếu không → `INVALID_ANSWER`. Upsert theo `no` trong mảng; mảng luôn sắp theo `no`.
+
+**Làm rõ FR-018…FR-020, §4.5/§4.7 (leader chốt 2026-10-30):** Trước khi lưu bài tập ngữ pháp hoặc đơn vị phát âm, kiểm lại phương án và đáp án trên dữ liệu sau khi ghép với giá trị cũ: các phương án có nội dung sau chuẩn hoá phải khác nhau đôi một, đáp án phải trỏ tới phương án có nội dung. Vi phạm → `INVALID_ANSWER` theo §4.8, rollback chỉ dòng đó và tiếp tục dòng sau.
 
 ### 4.6 · `PRON_STAGE` → `learning.pron_stages`
 

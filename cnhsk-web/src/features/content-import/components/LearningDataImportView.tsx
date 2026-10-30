@@ -21,7 +21,11 @@ import {
 } from '@/shared/ui'
 
 import { formatImportCountdown, formatImportDate } from '../formatters'
-import type { ImportMappedError, ImportSelectionErrors } from '../importFlow'
+import {
+  getImportFailureMessage,
+  type ImportMappedError,
+  type ImportSelectionErrors,
+} from '../importFlow'
 import {
   IMPORT_DATA_TYPE_LABELS,
   IMPORT_ROW_ACTION_LABELS,
@@ -100,26 +104,53 @@ function RequestId({ requestId }: { requestId?: string }) {
 }
 
 function InlineAlert({ error }: { error: ImportMappedError }) {
+  const columnGroups = [
+    { label: 'Thiếu cột', prefix: 'Thiếu cột bắt buộc:' },
+    { label: 'Cột không thuộc mẫu', prefix: 'Cột không có trong mẫu:' },
+    { label: 'Cột bị trùng', prefix: 'Tên cột bị trùng sau khi bỏ khoảng trắng:' },
+  ]
+    .map(({ label, prefix }) => ({
+      label,
+      fields:
+        error.details
+          ?.filter((detail) => detail.message.startsWith(prefix))
+          .map((detail) => detail.field) ?? [],
+    }))
+    .filter((group) => group.fields.length > 0)
+
   return (
     <div
       className="flex items-start gap-2 rounded-md border border-danger bg-danger-bg p-3 text-body-sm text-danger"
       role="alert"
     >
       <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-      <p className="min-w-0">
-        {error.message}
-        <RequestId requestId={error.requestId} />
-      </p>
+      <div className="min-w-0">
+        <p>
+          {error.message}
+          <RequestId requestId={error.requestId} />
+        </p>
+        {columnGroups.length > 0 ? (
+          <ul className="mt-2 list-inside list-disc">
+            {columnGroups.map((group) => (
+              <li key={group.label}>
+                {group.label}: {group.fields.join(', ')}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
     </div>
   )
 }
 
 function TemplateGuide({
+  disabled,
   onDownloadTemplate,
   downloadError,
   downloadPending,
   template,
 }: {
+  disabled: boolean
   downloadError?: string
   downloadPending: boolean
   onDownloadTemplate: () => void
@@ -142,7 +173,13 @@ function TemplateGuide({
             ) : null}
           </p>
         </div>
-        <Button loading={downloadPending} onClick={onDownloadTemplate} size="sm" variant="outline">
+        <Button
+          disabled={disabled}
+          loading={downloadPending}
+          onClick={onDownloadTemplate}
+          size="sm"
+          variant="outline"
+        >
           <Download aria-hidden="true" className="size-4" />
           Tải mẫu
         </Button>
@@ -226,27 +263,33 @@ function PreviewResult({
   acknowledgeRerun,
   confirmBlockedMessage,
   confirmError,
+  confirmPending,
   onAcknowledgeChange,
   onCancelPreview,
   onRequestConfirm,
   preview,
   remainingSeconds,
   template,
+  uploading,
 }: Pick<
   LearningDataImportViewProps,
   | 'acknowledgeRerun'
   | 'confirmBlockedMessage'
   | 'confirmError'
+  | 'confirmPending'
   | 'onAcknowledgeChange'
   | 'onCancelPreview'
   | 'onRequestConfirm'
   | 'remainingSeconds'
+  | 'uploading'
 > & { preview: ImportPreview; template?: ImportTemplate }) {
+  const busy = uploading || confirmPending
   const expired = remainingSeconds <= 0
   const blockedMessage =
     confirmBlockedMessage ??
     (expired ? 'Kết quả kiểm tra đã hết hạn, hãy tải file lên lại.' : undefined)
   const confirmDisabled =
+    busy ||
     Boolean(blockedMessage) ||
     preview.totals.valid === 0 ||
     (preview.alreadyImported && !acknowledgeRerun)
@@ -318,7 +361,11 @@ function PreviewResult({
           <div className="mt-6 flex flex-wrap items-baseline justify-between gap-2">
             <h3 className="text-h3 text-ink">Dòng lỗi ({preview.errorCount})</h3>
             <Link
+              aria-disabled={busy || undefined}
               className="text-body-sm font-semibold text-brand-700 underline underline-offset-2"
+              onClick={(event) => {
+                if (busy) event.preventDefault()
+              }}
               to={`/content/imports/${preview.runId}`}
             >
               Xem tất cả {preview.errorCount} lỗi
@@ -344,7 +391,7 @@ function PreviewResult({
             <input
               checked={acknowledgeRerun}
               className="size-5 shrink-0 accent-brand-700"
-              disabled={Boolean(blockedMessage)}
+              disabled={busy || Boolean(blockedMessage)}
               onChange={(event) => onAcknowledgeChange(event.target.checked)}
               type="checkbox"
             />
@@ -363,7 +410,7 @@ function PreviewResult({
         <Button disabled={confirmDisabled} onClick={onRequestConfirm}>
           Xác nhận nhập dữ liệu
         </Button>
-        <Button onClick={onCancelPreview} variant="ghost">
+        <Button disabled={busy} onClick={onCancelPreview} variant="ghost">
           Huỷ
         </Button>
       </div>
@@ -384,12 +431,14 @@ function HistorySection({
     {
       header: 'Loại dữ liệu',
       id: 'dataType',
-      render: (run) => IMPORT_DATA_TYPE_LABELS[run.dataType],
+      render: (run) => (run.dataType === null ? '—' : IMPORT_DATA_TYPE_LABELS[run.dataType]),
     },
     {
       header: 'Tên file',
       id: 'fileName',
-      render: (run) => <span className="break-all">{run.fileName}</span>,
+      render: (run) => (
+        <span className="break-all">{run.fileName ?? 'Không đọc được tên tệp'}</span>
+      ),
     },
     {
       header: 'Người nhập',
@@ -406,9 +455,16 @@ function HistorySection({
       header: 'Trạng thái',
       id: 'status',
       render: (run) => (
-        <StatusBadge tone={RUN_STATUS_TONES[run.status]}>
-          {IMPORT_RUN_STATUS_LABELS[run.status]}
-        </StatusBadge>
+        <div>
+          <StatusBadge tone={RUN_STATUS_TONES[run.status]}>
+            {IMPORT_RUN_STATUS_LABELS[run.status]}
+          </StatusBadge>
+          {run.status === 'FAILED' ? (
+            <p className="mt-1 text-caption text-danger">
+              {getImportFailureMessage(run.failureReason)}
+            </p>
+          ) : null}
+        </div>
       ),
     },
     { header: 'Số lỗi', id: 'errorCount', numeric: true, render: (run) => run.errorCount },
@@ -489,6 +545,7 @@ export function LearningDataImportView({
   uploadError,
   uploading,
 }: LearningDataImportViewProps) {
+  const busy = uploading || confirmPending
   const selectedTemplate = templates.find((template) => template.dataType === dataType)
   const previewTemplate = preview
     ? templates.find((template) => template.dataType === preview.dataType)
@@ -535,7 +592,7 @@ export function LearningDataImportView({
                 required
               >
                 <Select
-                  disabled={uploading}
+                  disabled={busy}
                   onChange={(event) => onDataTypeChange(event.target.value as ImportDataType | '')}
                   value={dataType}
                 >
@@ -548,25 +605,34 @@ export function LearningDataImportView({
                 </Select>
               </FormField>
 
-              <FormField
-                error={selectionErrors.file}
-                hint="Chỉ nhận file .csv mã hoá UTF-8, tối đa 2 MB và 5.000 dòng."
-                htmlFor="import-file"
-                label="File CSV"
-                required
-              >
-                <Input
-                  accept=".csv"
-                  disabled={uploading}
-                  key={fileInputKey}
-                  onChange={(event) => onFileChange(event.target.files?.[0])}
-                  type="file"
-                />
-              </FormField>
+              <div>
+                <FormField
+                  error={selectionErrors.file}
+                  hint="Chỉ nhận file .csv mã hoá UTF-8, tối đa 2 MB và 5.000 dòng."
+                  htmlFor="import-file"
+                  label="File CSV"
+                  required
+                >
+                  <Input
+                    accept=".csv"
+                    aria-describedby={uploadError ? 'import-upload-error' : undefined}
+                    disabled={busy}
+                    key={fileInputKey}
+                    onChange={(event) => onFileChange(event.target.files?.[0])}
+                    type="file"
+                  />
+                </FormField>
+                {uploadError ? (
+                  <div className="mb-4" id="import-upload-error">
+                    <InlineAlert error={uploadError} />
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             {selectedTemplate ? (
               <TemplateGuide
+                disabled={busy}
                 downloadError={downloadError}
                 downloadPending={downloadPending}
                 onDownloadTemplate={onDownloadTemplate}
@@ -578,14 +644,8 @@ export function LearningDataImportView({
               Chỉ tải lên dữ liệu bạn có quyền sử dụng. Hệ thống không lưu lại file gốc.
             </p>
 
-            {uploadError ? (
-              <div className="mt-4">
-                <InlineAlert error={uploadError} />
-              </div>
-            ) : null}
-
             <div className="mt-4">
-              <Button loading={uploading} type="submit">
+              <Button disabled={busy} loading={uploading} type="submit">
                 <FileUp aria-hidden="true" className="size-4" />
                 {uploading ? 'Đang kiểm tra' : 'Tải lên và kiểm tra'}
               </Button>
@@ -599,16 +659,20 @@ export function LearningDataImportView({
           acknowledgeRerun={acknowledgeRerun}
           confirmBlockedMessage={confirmBlockedMessage}
           confirmError={confirmError}
+          confirmPending={confirmPending}
           onAcknowledgeChange={onAcknowledgeChange}
           onCancelPreview={onCancelPreview}
           onRequestConfirm={onRequestConfirm}
           preview={preview}
           remainingSeconds={remainingSeconds}
           template={previewTemplate}
+          uploading={uploading}
         />
       ) : null}
 
-      <HistorySection {...history} />
+      <fieldset aria-label="Lịch sử nhập" className="min-w-0" disabled={busy}>
+        <HistorySection {...history} />
+      </fieldset>
 
       <ConfirmPanel
         confirmLabel="Ghi vào kho"

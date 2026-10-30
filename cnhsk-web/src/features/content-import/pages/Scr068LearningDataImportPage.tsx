@@ -62,8 +62,18 @@ export default function Scr068LearningDataImportPage() {
   const [now, setNow] = useState(() => Date.now())
 
   const templates = templatesQuery.data ?? []
+  const busy = upload.pending || confirm.pending
   const remainingSeconds = preview ? getImportRemainingSeconds(preview.expiresAt, now) : 0
   const previewActive = Boolean(preview && !confirmBlockedMessage && remainingSeconds > 0)
+  const canConfirmAt = (timestamp: number) =>
+    Boolean(
+      preview &&
+      !confirmBlockedMessage &&
+      preview.totals.valid > 0 &&
+      getImportRemainingSeconds(preview.expiresAt, timestamp) > 0 &&
+      (!preview.alreadyImported || acknowledgeRerun),
+    )
+  const confirmationEligible = canConfirmAt(now)
 
   // Loại dữ liệu trên URL nhưng server không có mẫu đó thì bỏ chọn.
   useEffect(() => {
@@ -78,10 +88,10 @@ export default function Scr068LearningDataImportPage() {
     return () => window.clearInterval(timer)
   }, [previewActive])
 
-  // Hết giờ khi đang mở bước xác nhận thì đóng lại, trừ khi request đã gửi.
+  // Đóng bước xác nhận khi hết hạn hoặc bỏ tick nhập lại, trừ khi request đã gửi.
   useEffect(() => {
-    if (preview && remainingSeconds <= 0 && !confirm.pending) setConfirmOpen(false)
-  }, [confirm.pending, preview, remainingSeconds])
+    if (!confirmationEligible && !confirm.pending) setConfirmOpen(false)
+  }, [confirm.pending, confirmationEligible])
 
   const clearPreview = () => {
     setPreview(undefined)
@@ -92,7 +102,7 @@ export default function Scr068LearningDataImportPage() {
   }
 
   const handleUpload = async () => {
-    if (upload.pending) return
+    if (busy) return
     const errors = validateImportSelection(dataType, file)
     setSelectionErrors(errors)
     setUploadError(undefined)
@@ -112,7 +122,7 @@ export default function Scr068LearningDataImportPage() {
   }
 
   const handleDownloadTemplate = async () => {
-    if (!dataType || downloadPending) return
+    if (!dataType || downloadPending || busy) return
     setDownloadPending(true)
     setDownloadError(undefined)
     try {
@@ -129,7 +139,13 @@ export default function Scr068LearningDataImportPage() {
   }
 
   const handleConfirm = async () => {
-    if (!preview || confirm.pending) return
+    if (!preview || busy || !confirmOpen) return
+    const timestamp = Date.now()
+    setNow(timestamp)
+    if (!canConfirmAt(timestamp)) {
+      setConfirmOpen(false)
+      return
+    }
     setConfirmError(undefined)
     try {
       const run = await confirm.run({ acknowledgeRerun, runId: preview.runId })
@@ -140,7 +156,10 @@ export default function Scr068LearningDataImportPage() {
       if (mapped.kind === 'terminal') {
         setConfirmBlockedMessage(mapped.message)
       } else {
-        if (mapped.kind === 'rerun') setAcknowledgeRerun(false)
+        if (mapped.kind === 'rerun') {
+          setPreview((current) => current && { ...current, alreadyImported: true })
+          setAcknowledgeRerun(false)
+        }
         setConfirmError({ message: mapped.message, requestId: mapped.requestId })
       }
     }
@@ -160,13 +179,20 @@ export default function Scr068LearningDataImportPage() {
       history={{
         data: historyQuery.data,
         error: historyQuery.error ? toLoadError(historyQuery.error) : undefined,
-        onOpenRun: (runId) => navigate(`/content/imports/${runId}`),
-        onPageChange: setHistoryPage,
-        onRetry: historyQuery.reload,
+        onOpenRun: (runId) => {
+          if (!busy) navigate(`/content/imports/${runId}`)
+        },
+        onPageChange: (page) => {
+          if (!busy) setHistoryPage(page)
+        },
+        onRetry: () => {
+          if (!busy) historyQuery.reload()
+        },
         state: historyQuery.state,
       }}
       loadError={templatesQuery.error ? toLoadError(templatesQuery.error) : undefined}
       onAcknowledgeChange={(value) => {
+        if (busy) return
         setAcknowledgeRerun(value)
         setConfirmError(undefined)
       }}
@@ -174,6 +200,7 @@ export default function Scr068LearningDataImportPage() {
         if (!confirm.pending) setConfirmOpen(false)
       }}
       onCancelPreview={() => {
+        if (busy) return
         clearPreview()
         setFile(undefined)
         setFileInputKey((key) => key + 1)
@@ -182,17 +209,23 @@ export default function Scr068LearningDataImportPage() {
       }}
       onConfirm={() => void handleConfirm()}
       onDataTypeChange={(value) => {
+        if (busy) return
         setDataType(value)
         setDownloadError(undefined)
         setSelectionErrors((current) => ({ ...current, dataType: undefined }))
       }}
       onDownloadTemplate={() => void handleDownloadTemplate()}
       onFileChange={(nextFile) => {
+        if (busy) return
         setFile(nextFile)
         setSelectionErrors((current) => ({ ...current, file: undefined }))
         setUploadError(undefined)
       }}
       onRequestConfirm={() => {
+        if (busy) return
+        const timestamp = Date.now()
+        setNow(timestamp)
+        if (!canConfirmAt(timestamp)) return
         setConfirmError(undefined)
         setConfirmOpen(true)
       }}

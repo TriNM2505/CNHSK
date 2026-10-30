@@ -47,6 +47,11 @@ export interface ImportRowError {
   message: string
 }
 
+export interface ImportTemplateErrorDetail {
+  field: string
+  message: string
+}
+
 export interface ImportPreviewRow {
   line: number
   action: ImportRowAction
@@ -68,8 +73,9 @@ export interface ImportPreview {
 
 export interface ImportRun {
   runId: number
-  dataType: ImportDataType
-  fileName: string
+  /** Null only for FAILED / FILE_TOO_LARGE before multipart metadata was read. */
+  dataType: ImportDataType | null
+  fileName: string | null
   status: ImportRunStatus
   createdAt: string
   completedAt?: string | null

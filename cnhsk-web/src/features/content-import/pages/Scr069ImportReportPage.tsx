@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 
 import { toApiError, useApiQuery } from '@/shared/api'
@@ -24,6 +24,9 @@ function ValidImportReport({ runId }: { runId: number }) {
   const parsed = useMemo(() => parseImportReportSearchParams(searchParams), [searchParams])
   const [downloadPending, setDownloadPending] = useState(false)
   const [downloadError, setDownloadError] = useState<ReturnType<typeof toLoadError>>()
+  const downloadController = useRef<AbortController>()
+
+  useEffect(() => () => downloadController.current?.abort(), [])
 
   useEffect(() => {
     if (parsed.needsCleanup) setSearchParams(parsed.canonical, { replace: true })
@@ -43,16 +46,21 @@ function ValidImportReport({ runId }: { runId: number }) {
   }
 
   const handleDownload = async () => {
-    if (downloadPending) return
+    if (downloadController.current) return
+    const controller = new AbortController()
+    downloadController.current = controller
     setDownloadPending(true)
     setDownloadError(undefined)
     try {
-      const response = await getImportErrorsFile(runId)
-      if (response) downloadBlob(response.blob, response.fileName ?? `import-${runId}-errors.csv`)
+      const response = await getImportErrorsFile(runId, controller.signal)
+      if (!controller.signal.aborted && response) {
+        downloadBlob(response.blob, response.fileName ?? `import-${runId}-errors.csv`)
+      }
     } catch (error) {
-      setDownloadError(toLoadError(error))
+      if (!controller.signal.aborted) setDownloadError(toLoadError(error))
     } finally {
-      setDownloadPending(false)
+      downloadController.current = undefined
+      if (!controller.signal.aborted) setDownloadPending(false)
     }
   }
 
@@ -101,5 +109,5 @@ export default function Scr069ImportReportPage() {
     )
   }
 
-  return <ValidImportReport runId={runId} />
+  return <ValidImportReport key={runId} runId={runId} />
 }

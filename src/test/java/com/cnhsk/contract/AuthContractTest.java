@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Set;
 
+import com.cnhsk.learning.content.importer.ImportMaintenance;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -21,6 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -42,6 +44,10 @@ class AuthContractTest {
             "specs", "001-auth-rbac", "contracts", "openapi-auth.yaml");
     private static final Set<String> HTTP_METHODS = Set.of(
             "get", "put", "post", "delete", "options", "head", "patch", "trace");
+
+    // Context H2 không có bảng learning.service_requests; runner khôi phục nhập dữ liệu kiểm ở integration test Testcontainers.
+    @MockitoBean
+    private ImportMaintenance importMaintenance;
 
     @Autowired
     private MockMvc mockMvc;
@@ -125,6 +131,15 @@ class AuthContractTest {
     @Test
     void AC01_runtimeDocumentedPathsAndStatusesAreDeclaredBySourceContract() throws Exception {
         OpenAPI contract = readContract();
+        SwaggerParseResult imports = new OpenAPIV3Parser().readContents(Files.readString(Path.of(
+                "specs", "002-learning-data-import", "contracts", "openapi-import.yaml")));
+        assertThat(imports.getMessages()).isEmpty();
+        assertThat(imports.getOpenAPI()).isNotNull();
+        imports.getOpenAPI().getPaths().forEach((path, item) -> {
+            assertThat(path).startsWith("/api/admin/imports");
+            assertThat(contract.getPaths()).doesNotContainKey(path);
+            contract.getPaths().addPathItem(path, item);
+        });
         MvcResult result = mockMvc.perform(get("/v3/api-docs").accept(MediaType.APPLICATION_JSON))
                 .andReturn();
 
@@ -171,5 +186,28 @@ class AuthContractTest {
                 .as("OpenAPI parser messages")
                 .isEmpty();
         return result.getOpenAPI();
+    }
+
+    @Test
+    void FR008_FR026_importRunMetadataCanBeNullOnlyForEarlyOversizeFailure() throws IOException {
+        SwaggerParseResult parsed = new OpenAPIV3Parser().readContents(Files.readString(Path.of(
+                "specs", "002-learning-data-import", "contracts", "openapi-import.yaml")));
+        assertThat(parsed.getMessages()).isEmpty();
+        var run = parsed.getOpenAPI().getComponents().getSchemas().get("ImportRun");
+        for (String field : Set.of("dataType", "fileName")) {
+            io.swagger.v3.oas.models.media.Schema<?> schema =
+                    (io.swagger.v3.oas.models.media.Schema<?>) run.getProperties().get(field);
+            assertThat(schema.getTypes()).containsExactlyInAnyOrder("string", "null");
+            assertThat(schema.getDescription()).contains("null chỉ khi FAILED do FILE_TOO_LARGE");
+        }
+        var alternatives = (io.swagger.v3.oas.models.media.Schema<?>) run.getAllOf().get(0);
+        var earlyFailure = (io.swagger.v3.oas.models.media.Schema<?>) alternatives.getAnyOf().get(0);
+        assertThat(earlyFailure.getRequired()).contains("failureReason");
+        assertThat(((io.swagger.v3.oas.models.media.Schema<?>) earlyFailure.getProperties().get("status")).getConst()).isEqualTo("FAILED");
+        assertThat(((io.swagger.v3.oas.models.media.Schema<?>) earlyFailure.getProperties().get("failureReason")).getConst()).isEqualTo("FILE_TOO_LARGE");
+        var knownMetadata = (io.swagger.v3.oas.models.media.Schema<?>) alternatives.getAnyOf().get(1);
+        assertThat(((io.swagger.v3.oas.models.media.Schema<?>) knownMetadata.getProperties().get("fileName")).getTypes()).containsExactly("string");
+        assertThat(((io.swagger.v3.oas.models.media.Schema<?>) knownMetadata.getProperties().get("dataType")).get$ref())
+                .isEqualTo("#/components/schemas/DataType");
     }
 }
