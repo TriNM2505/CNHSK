@@ -185,6 +185,22 @@ class TopicQueryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void FR016_zeroScoreTestDoesNotCompleteTopicButAPassingScoredTestStillDoes() throws Exception {
+        Topic topic = topicWithWords(1, 0, 4);
+        testAttempt(owner, topic, 0, 0, NOW.minusSeconds(900), NOW.minusSeconds(800));
+        JsonNode row = find(list(owner, null), topic.getId());
+        assertThat(row.path("status").asText()).isEqualTo("IN_PROGRESS");
+        assertThat(row.path("bestTestPercent").isNull()).isTrue();
+        JsonNode detail = detail(owner, topic);
+        assertThat(detail.path("status").asText()).isEqualTo("IN_PROGRESS");
+        assertThat(detail.path("bestTestPercent").isNull()).isTrue();
+
+        testAttempt(owner, topic, 9, 10, NOW.minusSeconds(700), NOW.minusSeconds(600));
+        assertThat(find(list(owner, null), topic.getId()).path("status").asText()).isEqualTo("COMPLETED");
+        assertThat(detail(owner, topic).path("status").asText()).isEqualTo("COMPLETED");
+    }
+
+    @Test
     void FR017_ignoresZeroDenominatorsAndUnsubmittedTests() throws Exception {
         Topic topic = topicWithWords(1, 0, 4);
         testAttempt(owner, topic, 0, 0, NOW.minusSeconds(900), NOW.minusSeconds(800));

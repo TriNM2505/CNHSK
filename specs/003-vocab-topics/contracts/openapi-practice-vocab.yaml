@@ -446,7 +446,9 @@ paths:
                       reason: { type: string, const: NO_NEW_WORDS }
         '201': { $ref: '#/components/responses/Session' }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
 
   /api/topics/{id}/practice-sessions:

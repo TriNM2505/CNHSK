@@ -38,7 +38,7 @@ class TopicContractTest {
         JsonNode runtime = mapper.readTree(mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
         assertThat(runtime.path("paths").fieldNames()).toIterable().containsExactlyInAnyOrder(
-                "/api/topics", "/api/topics/{id}");
+                "/api/topics", "/api/topics/{id}", "/api/topics/{id}/study-sessions");
         for (String path : Set.of("/api/topics", "/api/topics/{id}")) {
             var operation = source.getPaths().get(path).getGet();
             JsonNode documented = runtime.path("paths").path(path).path("get");
@@ -51,6 +51,27 @@ class TopicContractTest {
         assertThat(hsk.path("minimum").asInt()).isEqualTo(1);
         assertThat(hsk.path("maximum").asInt()).isEqualTo(9);
         JsonNode id = runtime.path("paths").path("/api/topics/{id}").path("get").path("parameters").get(0).path("schema");
+        assertThat(id.path("type").asText()).isEqualTo("integer");
+        assertThat(id.path("format").asText()).isEqualTo("int64");
+    }
+
+    @Test
+    void FR019_startStudyRuntimeResponsesAndBodiesMatchApprovedContract() throws Exception {
+        String path = "/api/topics/{id}/study-sessions";
+        var source = contract().getPaths().get(path).getPost();
+        JsonNode runtime = mapper.readTree(mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        JsonNode documented = runtime.path("paths").path(path).path("post");
+        assertThat(documented.path("operationId").asText()).isEqualTo(source.getOperationId());
+        assertThat(documented.path("responses").fieldNames()).toIterable()
+                .containsExactlyInAnyOrderElementsOf(source.getResponses().keySet());
+        JsonNode created = documented.path("responses").path("201").path("content").path("*/*").path("schema");
+        assertThat(created.path("$ref").asText()).isEqualTo("#/components/schemas/SessionView");
+        JsonNode ok = documented.path("responses").path("200").path("content").path("*/*").path("schema").path("oneOf");
+        assertThat(ok).hasSize(2);
+        assertThat(runtime.path("components").path("schemas").path("NoNewWords").path("properties").fieldNames())
+                .toIterable().containsExactlyInAnyOrder("session", "reason");
+        JsonNode id = documented.path("parameters").get(0).path("schema");
         assertThat(id.path("type").asText()).isEqualTo("integer");
         assertThat(id.path("format").asText()).isEqualTo("int64");
     }

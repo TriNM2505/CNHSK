@@ -24,7 +24,7 @@ public class TopicQueryRepository {
                   AND ai.lexeme_id IS NOT NULL
             ), activity AS (
                 SELECT ref_id, count(*) > 0 AS has_attempt,
-                       bool_or(ref_type = 'TOPIC_TEST' AND status = 'SUBMITTED'
+                       bool_or(ref_type = 'TOPIC_TEST' AND status = 'SUBMITTED' AND max_score > 0
                                AND score * 100 >= 90 * max_score) AS completed,
                        max(CASE WHEN ref_type = 'TOPIC_TEST' AND status = 'SUBMITTED'
                                 THEN score * 100 / nullif(max_score, 0) END) AS best_percent,
