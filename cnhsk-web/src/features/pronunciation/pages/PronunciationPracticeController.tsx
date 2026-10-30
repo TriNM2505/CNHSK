@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import type { AnswerRequest, FinishResult } from '@/features/practice'
+import type { AnswerRequest, AnswerResult, FinishResult, ServedItemView } from '@/features/practice'
 import { usePracticeSession } from '@/features/practice'
+import type { ApiError } from '@/shared/api'
 
 import { startPronunciationStageSession } from '../api/pronunciation'
-import { PronunciationPracticeView } from '../components/PronunciationPracticeView'
+import {
+  PronunciationPracticeView,
+  type PronunciationPracticeViewProps,
+} from '../components/PronunciationPracticeView'
 import type { PronunciationFinishExtra, PronunciationStageSummary } from '../types'
-
-const DUPLICATE_ERRORS = new Set(['ANSWER_ALREADY_SUBMITTED', 'SESSION_ALREADY_SUBMITTED'])
 
 function clampDuration(value: number) {
   return Math.min(Math.max(Math.round(value), 0), 3_600_000)
@@ -64,11 +66,19 @@ export function PronunciationPracticeController({
   const [activeNo, setActiveNo] = useState<number>()
   const [replayCount, setReplayCount] = useState(0)
   const [incompleteRemaining, setIncompleteRemaining] = useState<number>()
+  const [finishError, setFinishError] = useState<ApiError>()
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false)
+  const [finalAnswer, setFinalAnswer] = useState<{
+    sessionId: number
+    item: ServedItemView
+    result: AnswerResult
+  }>()
   const initializedSessionRef = useRef<number>()
   const autoStartAttemptedRef = useRef(false)
   const autoFinishedSessionRef = useRef<number>()
   const refreshedSessionRef = useRef<number>()
   const syncedErrorRef = useRef<unknown>()
+  const finishSyncedRef = useRef(false)
   const questionStartedAtRef = useRef(performance.now())
 
   const startSession = useCallback(
@@ -107,21 +117,35 @@ export function PronunciationPracticeController({
   useEffect(() => {
     questionStartedAtRef.current = performance.now()
     setReplayCount(0)
-  }, [activeNo])
+  }, [activeNo, practice.session?.sessionId])
 
   useEffect(() => {
     const error = practice.error
-    if (!error || syncedErrorRef.current === error) return
+    if (!error || practice.pending || syncedErrorRef.current === error) return
+    syncedErrorRef.current = error
+    if (error.errorCode === 'SESSION_ALREADY_SUBMITTED') {
+      setAlreadySubmitted(true)
+      return
+    }
     if (error.errorCode === 'STAGE_INCOMPLETE') {
-      syncedErrorRef.current = error
+      finishSyncedRef.current = true
       setIncompleteRemaining(errorNumber(error, 'remaining'))
       initializedSessionRef.current = undefined
-      autoFinishedSessionRef.current = undefined
       void practice.sync()
       return
     }
-    if (DUPLICATE_ERRORS.has(error.errorCode)) {
-      syncedErrorRef.current = error
+    if (error.errorCode === 'ANSWER_ALREADY_SUBMITTED') {
+      initializedSessionRef.current = undefined
+      void practice.sync()
+      return
+    }
+    if (
+      autoFinishedSessionRef.current === practice.session?.sessionId &&
+      practice.session &&
+      !finishSyncedRef.current
+    ) {
+      finishSyncedRef.current = true
+      setFinishError(error)
       initializedSessionRef.current = undefined
       void practice.sync()
     }
@@ -130,26 +154,33 @@ export function PronunciationPracticeController({
   const extra = finishExtra(practice.finishResult)
 
   useEffect(() => {
-    const sessionId = practice.finishResult?.sessionId
-    if (!sessionId || !extra || refreshedSessionRef.current === sessionId) return
+    const sessionId = practice.session?.sessionId
+    if (
+      !sessionId ||
+      (practice.state !== 'finished' && !alreadySubmitted) ||
+      refreshedSessionRef.current === sessionId
+    )
+      return
     refreshedSessionRef.current = sessionId
     onStagesRefresh()
-  }, [extra, onStagesRefresh, practice.finishResult?.sessionId])
+  }, [alreadySubmitted, onStagesRefresh, practice.session?.sessionId, practice.state])
 
   const item = items.find((candidate) => candidate.no === activeNo)
   const result = activeNo === undefined ? undefined : practice.results[activeNo]
 
-  const finish = async () => {
-    const sessionId = practice.session?.sessionId
+  const finishSession = practice.finish
+  const sessionId = practice.session?.sessionId
+  const finish = useCallback(async () => {
     if (!sessionId || autoFinishedSessionRef.current === sessionId) return
     autoFinishedSessionRef.current = sessionId
-    const completed = await practice.finish()
-    if (!completed) autoFinishedSessionRef.current = undefined
-  }
+    await finishSession()
+  }, [finishSession, sessionId])
 
   useEffect(() => {
     if (
       practice.state !== 'ready' ||
+      practice.error ||
+      finishError ||
       !practice.session ||
       !items.length ||
       answeredNumbers.size < items.length ||
@@ -158,11 +189,23 @@ export function PronunciationPracticeController({
       return
     }
     void finish()
-  })
+  }, [
+    answeredNumbers.size,
+    finish,
+    finishError,
+    items.length,
+    practice.error,
+    practice.pending,
+    practice.session,
+    practice.state,
+  ])
 
   const submit = async (request: Omit<AnswerRequest, 'no'>) => {
-    if (!item) return null
+    if (!item || !sessionId) return null
     setIncompleteRemaining(undefined)
+    setFinishError(undefined)
+    autoFinishedSessionRef.current = undefined
+    finishSyncedRef.current = false
     const answerResult = await practice.answer(item.no, {
       replayCount,
       ...request,
@@ -170,9 +213,10 @@ export function PronunciationPracticeController({
     })
     if (!answerResult) return null
 
-    const answeredAfterSubmit = new Set(answeredNumbers)
-    answeredAfterSubmit.add(item.no)
-    if (answeredAfterSubmit.size >= items.length) await finish()
+    if (answeredNumbers.size + 1 === items.length) {
+      setFinalAnswer({ sessionId, item, result: answerResult })
+    }
+
     return answerResult
   }
 
@@ -188,6 +232,20 @@ export function PronunciationPracticeController({
   }
 
   const retry = () => {
+    if (practice.pending) return
+    if (
+      practice.state === 'ready' &&
+      autoFinishedSessionRef.current === sessionId &&
+      answeredNumbers.size >= items.length &&
+      items.length
+    ) {
+      setFinishError(undefined)
+      finishSyncedRef.current = false
+      autoFinishedSessionRef.current = undefined
+      void finish()
+      return
+    }
+    setFinishError(undefined)
     autoStartAttemptedRef.current = false
     initializedSessionRef.current = undefined
     practice.reload()
@@ -197,38 +255,44 @@ export function PronunciationPracticeController({
     if (practice.pending) return
     initializedSessionRef.current = undefined
     autoFinishedSessionRef.current = undefined
+    finishSyncedRef.current = false
+    setFinishError(undefined)
+    setAlreadySubmitted(false)
     setIncompleteRemaining(undefined)
+    setFinalAnswer(undefined)
     await practice.start()
   }
 
-  const error = practice.error
+  const error = finishError ?? practice.error
   const requiredStageIndex = errorNumber(error, 'requiredStageIndex')
-  const state =
-    error?.errorCode === 'STAGE_NOT_FOUND'
-      ? 'empty'
-      : error?.errorCode === 'STAGE_LOCKED'
-        ? 'locked'
-        : error?.errorCode === 'STAGE_HAS_NO_UNITS'
-          ? 'unavailable'
-          : error?.errorCode === 'STAGE_INCOMPLETE' ||
-              (error && DUPLICATE_ERRORS.has(error.errorCode)) ||
-              practice.state === 'loading' ||
-              practice.state === 'idle' ||
-              practice.pending === 'start' ||
-              practice.pending === 'sync'
-            ? 'loading'
-            : practice.state === 'finished' && extra
-              ? 'finished'
-              : error
-                ? 'error'
-                : practice.state === 'ready'
-                  ? 'ready'
-                  : 'loading'
+  let state: PronunciationPracticeViewProps['state'] = 'loading'
+  if (
+    practice.pending === 'start' ||
+    practice.pending === 'sync' ||
+    practice.pending === 'finish'
+  ) {
+    state = 'loading'
+  } else if ((practice.state === 'finished' && !practice.error) || alreadySubmitted) {
+    state = extra ? 'finished' : 'submitted'
+  } else if (practice.state === 'abandoned' && !practice.error) {
+    state = 'submitted'
+  } else if (error?.errorCode === 'STAGE_NOT_FOUND') {
+    state = 'empty'
+  } else if (error?.errorCode === 'STAGE_LOCKED') {
+    state = 'locked'
+  } else if (error?.errorCode === 'STAGE_HAS_NO_UNITS') {
+    state = 'unavailable'
+  } else if (error) {
+    state = 'error'
+  } else if (practice.state === 'ready') {
+    state = 'ready'
+  }
 
   return (
     <PronunciationPracticeView
       answered={answeredNumbers.size}
       error={error ? { message: error.message, requestId: error.requestId } : undefined}
+      finalAnswer={finalAnswer?.sessionId === sessionId ? finalAnswer : undefined}
       finishExtra={extra}
       incompleteRemaining={incompleteRemaining}
       item={item}

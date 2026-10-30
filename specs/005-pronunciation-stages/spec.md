@@ -123,6 +123,7 @@ Tất cả trong **cùng transaction** với `finish` (BR-022-3).
 |---|---|
 | **FR-017** | Trang danh sách SHALL hiện 8 thẻ tầng: số tầng, tên, mô tả, âm luyện (`targetSounds` dạng chip), trạng thái (khoá có lý do "Hoàn thành tầng {k−1} với ≥ {pass}%", đang học, hoàn thành), độ chính xác tốt nhất, nút "Bắt đầu"/"Tiếp tục ({activeAnswered}/{unitCount})"/"Luyện lại" |
 | **FR-018** | Màn làm bài SHALL: nút phát audio (người dùng bấm, không tự phát), đếm nghe lại tối đa 3, nút "Không nghe được", 4 lựa chọn, phản hồi đúng/sai + giải thích, thanh tiến độ "{answered}/{total}", **không** có nút "Bỏ qua" |
+| Làm rõ FR-018 (leader chốt 2026-10-31) | Hiện đủ các lựa chọn server trả về, tối đa 4; dữ liệu demo đều có 4 lựa chọn, frontend không hard-code số lựa chọn. |
 | **FR-019** | Khi trả lời câu cuối, frontend SHALL tự gọi `finish` và hiện kết quả: độ chính xác, điểm tốt nhất, "Đã mở tầng {n}" (hiệu ứng nhẹ, tôn trọng `prefers-reduced-motion`) hoặc "Còn {needed}% nữa", "Hoàn thành lộ trình phát âm" khi `completedAllStages` |
 | **FR-020** | Nút "Luyện lại" trên tầng `COMPLETED` SHALL tạo lượt mới (khi không có lượt đang làm) |
 
