@@ -37,7 +37,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-13 | Khung FE luyện tập dùng chung: `features/practice/` — hook `usePracticeSession` (bắt đầu/khôi phục/trả lời/kết thúc), component `ChoiceQuestion`, `PinyinInput`, `AudioButton` (đếm nghe lại, "Không nghe được"), `SessionSummary` | `cnhsk-web/src/features/practice/**` | FR-043, FR-045 | ⬜ |
+| T-13 | Khung FE luyện tập dùng chung: `features/practice/` — hook `usePracticeSession` (bắt đầu/khôi phục/trả lời/kết thúc), component `ChoiceQuestion`, `PinyinInput`, `AudioButton` (đếm nghe lại, "Không nghe được"), `SessionSummary` | `cnhsk-web/src/features/practice/**`; leader duyệt: `tasks.md`, `questions.md` (chỉ T-13) | FR-043, FR-045 | ✅ 2026-10-30: Q-T13-02/03 đã chốt; khôi phục đúng field GET, không giả thời gian/lượt nghe; finish loại nháp khôi phục chưa sửa, giữ đủ durationMs của câu sửa; chặn phản hồi lượt cũ và feedback DEFERRED. Thêm 16 test FR043/FR045; toàn FE 1021 test/114 file pass, không failure/error/skip; practice 42 ca. Lint 0 lỗi (1 warning có sẵn tại LevelBadge), typecheck/build xanh; diff sạch, không BOM/TODO/ép kiểu. Giữ tên export, AnswerRequest/FinishRequest và chữ ký answer()/finish(); không sửa caller/BE/OpenAPI/dependency/DB. Maven không chạy theo gate leader cho T-13; không có coverage BE mới. Bàn giao bằng một commit T-13 và Draft PR mới |
 | T-14 | SCR-011 Topic List | `cnhsk-web/src/features/vocab/pages/TopicListPage.tsx` (SCR-011) | FR-041 | ⬜ |
 | T-15 | SCR-012 khung + bước "Học từ mới" (thẻ từ) | `cnhsk-web/src/features/vocab/**` | FR-042, FR-023, FR-024 | ⬜ |
 | T-16 | SCR-012 bước luyện nhận diện / nghe (dùng T-13) | `cnhsk-web/src/features/vocab/**` | FR-043 | ⬜ |

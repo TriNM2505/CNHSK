@@ -97,7 +97,9 @@ export function ChoiceQuestion({
         })}
       </div>
 
-      {result ? <AnswerFeedback options={options} result={result} /> : null}
+      {feedbackMode !== 'DEFERRED' && result ? (
+        <AnswerFeedback options={options} result={result} />
+      ) : null}
     </section>
   )
 }

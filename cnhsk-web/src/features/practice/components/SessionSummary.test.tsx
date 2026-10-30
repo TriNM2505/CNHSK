@@ -6,6 +6,25 @@ import type { FinishResult } from '@/features/practice/types'
 import { Button } from '@/shared/ui'
 
 describe('SessionSummary', () => {
+  it('FR043_uses the server score rather than recomputing it from the returned item list', () => {
+    render(
+      <SessionSummary
+        actions={null}
+        result={{
+          sessionId: 42,
+          status: 'SUBMITTED',
+          suspicious: false,
+          score: 7,
+          maxScore: 10,
+          items: [{ no: 1, correct: true }],
+        }}
+      />,
+    )
+
+    expect(screen.getByText('7/10')).toBeVisible()
+    expect(screen.queryByText('1/1')).not.toBeInTheDocument()
+  })
+
   it('renders server scores, wrong answers and supplied actions', () => {
     const result: FinishResult = {
       items: [
