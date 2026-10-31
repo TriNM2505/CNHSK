@@ -75,3 +75,21 @@ Các findings dưới đây giữ trạng thái P2 / OPEN, xử lý bằng PR FE
 - Chưa có E2E với backend Community thật.
 - Leader ưu tiên backend trước; visual refinement giống Hanzii được defer đến sau khi có backend. Quyết định này thay thứ tự Visual QA trước backend đã ghi ngày 2026-10-30, không thay các quyết định nghiệp vụ K1-A hoặc T-18.
 - **T-18 Visual QA: NOT COMPLETED / DEFERRED.** Không ghi nhận PASS.
+
+## [009] Leader — Chốt Backend T-02 / Q-T02-1 — 2026-10-31
+
+- Status: CHỐT / APPROVED BY LEADER.
+- Duyệt implementation T-02 theo phương án staged verification. T-01 đã được nghiệm thu và merge; cập nhật T-01 ✅ trong PR T-02. T-02 chỉ được đánh ✅ sau implementation, quality gates và independent source review đạt điều kiện delivery.
+- S = 24 operations trong locked `contracts/openapi-community.yaml` (21 paths), với expected inventory độc lập cho method/path/operationId/exact response statuses.
+- H = Community handlers thực sự đăng ký trong Spring MVC, nhận diện theo package `com.cnhsk.community` và package con hoặc Community route prefixes.
+- D = Community operations từ `/v3/api-docs` thật do Springdoc sinh ra.
+- Luôn assert H subset S, D equals H, exact response statuses cho operations đã có. Không bỏ qua handler thiếu documentation; extra/hidden/method/status drift phải FAIL.
+- Missing operations phải báo số lượng cụ thể và danh sách ổn định, tối thiểu `source=24, runtime=<H>, documented=<D>, missing=<24-H>`.
+- Chưa có controllers, kể cả H = D = 0, không đồng nghĩa runtime parity PASS. Khi đó chỉ xác nhận source contract và staged consistency, chưa chứng nhận đủ API.
+- Không dùng mode flag, system property, cấu hình chế độ hoặc profile riêng để thay đổi strictness assertions. T-02 luôn chạy cùng một bộ assertions staged đã duyệt.
+- T-14 bắt buộc đưa `src/test/java/com/cnhsk/contract/CommunityContractTest.java` vào Shadow Plan và proposed file allowlist, chuyển assertion thành H = D = S, yêu cầu runtime đủ 24 operations và exact statuses. Missing/hidden/extra handlers vẫn phải bị phát hiện. Nếu Shadow Plan T-14 thiếu mục này, Leader không duyệt T-14. Không triển khai gate T-14 trong T-02.
+- Mỗi controller Community ở T-03–T-14 phải khai đủ `@ApiResponses` theo approved contract.
+- Chỉ 3 file T-02 được phép thay đổi: `src/test/java/com/cnhsk/contract/CommunityContractTest.java`, `specs/009-community-blog-moderation/tasks.md`, `specs/009-community-blog-moderation/questions.md`.
+- Không thay shared/auth/learning, locked contracts, migrations, dependencies hoặc test configuration dùng chung. Chỉ cô lập Spring test context trong test mới khi cần; không mock MVC handlers, Springdoc hoặc `/v3/api-docs`, không tắt toàn bộ security filters.
+- Bảy FE findings FE009-AUD-01…07 vẫn P2 / OPEN, không sửa trong T-02.
+- **T-18 Visual QA: NOT COMPLETED / DEFERRED.** Không có xác nhận E2E với backend Community thật.

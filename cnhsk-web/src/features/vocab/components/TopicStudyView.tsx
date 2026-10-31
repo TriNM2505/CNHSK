@@ -26,7 +26,7 @@ const STEP_LABELS: Record<TopicStep, string> = {
   study: 'Học từ mới',
   recognition: 'Luyện nhận diện',
   listening: 'Luyện nghe',
-  test: 'Kiểm tra',
+  test: 'Kiểm tra cuối chủ đề',
 }
 
 const STEPS: readonly TopicStep[] = ['study', 'recognition', 'listening', 'test']
@@ -136,6 +136,7 @@ export function StudyStepView({
         <SessionProgress current={current} total={total} />
         <StudyCard
           item={item}
+          key={item.no}
           onAudioFailed={onAudioFailed}
           onContinue={onContinue}
           onKnown={onKnown}
@@ -151,6 +152,7 @@ export function StudyStepView({
 
 export type TopicStudyViewProps = {
   activeStep: TopicStep
+  canResumeStudy?: boolean
   error?: LoadError
   onRetry: () => void
   state: PageStateValue
@@ -161,6 +163,7 @@ export type TopicStudyViewProps = {
 
 export function TopicStudyView({
   activeStep,
+  canResumeStudy = false,
   error,
   onRetry,
   state,
@@ -218,7 +221,10 @@ export function TopicStudyView({
           <nav aria-label="Các bước học chủ đề" className="mt-6">
             <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {STEPS.map((step, index) => {
-                const blockedReason = getTopicStepBlockedReason(topic, step)
+                const blockedReason =
+                  step === 'study' && canResumeStudy
+                    ? undefined
+                    : getTopicStepBlockedReason(topic, step)
                 const active = step === activeStep
                 const classes = cn(
                   'flex min-h-touch items-start gap-2 rounded-sm border px-3 py-2 text-label no-underline',
