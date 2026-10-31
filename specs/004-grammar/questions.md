@@ -27,3 +27,12 @@
 - Gọi `rateLimiter.checkStart(userId)` trước `recordAndFinish`; `GRAMMAR_LESSON` vẫn tính quota 120 lượt/giờ (chỉ `CHAR_WRITING` được miễn).
 - `readDurationMs` ngoài 0…3 600 000 → 422; id sai định dạng → 422; id không phải `GRAMMAR` → 404 `GRAMMAR_POINT_NOT_FOUND`.
 - Test bắt buộc: response không chứa đáp án; AT-09 kiểm `learned=true` qua `GET /api/grammar`.
+
+## 2026-11-01 — T-02 readTooFast (duyệt tạm)
+
+- Leader duyệt tạm: T-02 giữ `readTooFast` ở `meta` của lượt (response và snapshot) vì chưa có `GrammarLessonHandler`.
+- **AT-06 mới đạt ở response.** Phần bằng chứng trên `LESSON_READ.meta` (spec §10) chuyển sang T-03.
+- T-03 bắt buộc, chưa đủ thì leader không nghiệm thu T-03:
+  - `GrammarLessonHandler` ghi `readTooFast=true` vào `meta` của đúng câu `LESSON_READ` trong `attempt_items`; cờ do server tính, không lấy từ client.
+  - Bỏ `readTooFast` khỏi `meta` của lượt (response và snapshot) để chỉ còn một nguồn.
+  - Sửa test T-02 đang assert `meta` của lượt sang truy vấn DB thật: giải thích 500 ký tự đọc 2 giây thì có cờ, 100 ký tự thì không; kiểm cả nhánh không có bài tập (FR-013) và có bài tập. Việc sửa test T-02 được phép trong T-03 và phải nêu trong Shadow Plan T-03.
