@@ -39,7 +39,8 @@ class TopicContractTest {
         JsonNode runtime = mapper.readTree(mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
         assertThat(runtime.path("paths").fieldNames()).toIterable().containsExactlyInAnyOrder(
-                "/api/topics", "/api/topics/{id}", "/api/topics/{id}/study-sessions", "/api/topics/{id}/practice-sessions");
+                "/api/topics", "/api/topics/{id}", "/api/topics/{id}/study-sessions", "/api/topics/{id}/practice-sessions",
+                "/api/topics/{id}/tests");
         for (String path : Set.of("/api/topics", "/api/topics/{id}")) {
             var operation = source.getPaths().get(path).getGet();
             JsonNode documented = runtime.path("paths").path(path).path("get");
@@ -119,6 +120,26 @@ class TopicContractTest {
         assertThat(focus.path("maxItems").asInt()).isEqualTo(((Schema<?>) sourceProperties.get("focusLexemeIds")).getMaxItems());
         assertThat(focus.path("items").path("type").asText()).isEqualTo("integer");
         assertThat(focus.path("items").path("format").asText()).isEqualTo("int64");
+    }
+
+    @Test
+    void FR031_testPostMatchesApprovedResponsesAndSessionSchema() throws Exception {
+        String path = "/api/topics/{id}/tests";
+        var source = contract().getPaths().get(path).getPost();
+        JsonNode runtime = mapper.readTree(mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        JsonNode operation = runtime.path("paths").path(path).path("post");
+        assertThat(operation.path("operationId").asText()).isEqualTo(source.getOperationId());
+        assertThat(operation.path("responses").fieldNames()).toIterable()
+                .containsExactlyInAnyOrderElementsOf(source.getResponses().keySet());
+        for (String status : Set.of("200", "201")) {
+            assertThat(operation.path("responses").path(status).path("content").path("application/json")
+                    .path("schema").path("$ref").asText()).isEqualTo("#/components/schemas/SessionView");
+        }
+        assertThat(operation.path("requestBody").isMissingNode()).isTrue();
+        JsonNode id = operation.path("parameters").get(0).path("schema");
+        assertThat(id.path("type").asText()).isEqualTo("integer");
+        assertThat(id.path("format").asText()).isEqualTo("int64");
     }
 
     private static OpenAPI contract() throws Exception {

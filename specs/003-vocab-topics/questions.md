@@ -263,7 +263,7 @@ Job UPDATE tham số hóa chỉ IN_PROGRESS và expires_at < now; flush/clear pe
 - `specs/003-vocab-topics/spec.md`, `contracts/openapi-practice-vocab.yaml`: chỉ đồng bộ POST abandon, bỏ 404 theo Q-T03-01 đã chốt; không đổi endpoint khác hoặc schema dùng chung.
 - `specs/003-vocab-topics/tasks.md`, `questions.md`: ghi phạm vi, quyết định và nghiệm thu; giữ nguyên thay đổi có sẵn.
 
-**Cách làm đề xuất:**
+**Cách làm đã duyệt (đồng bộ các Chốt 2026-10-31):**
 
 1. Giữ cơ chế EXPIRED hiện có của view/answer/finish; bổ sung abandon dùng cùng khóa dòng và cơ chế transaction T-04/T-05. Missing/unowned cùng 403; trạng thái kết thúc 409; quá hạn lưu EXPIRED rồi trả 422; đúng biên expiresAt = now vẫn hợp lệ.
 2. Abandon chỉ chuyển IN_PROGRESS sang ABANDONED, trả 204; không điểm, study_events, hook finish hoặc sự kiện. Giữ nguyên attempt_items, snapshot và nháp đã có.
@@ -633,3 +633,101 @@ Không đề xuất migration/index/dependency hoặc handler mới. Tái sử d
 - AC-05/AC-07/AC-08/AC-09: không migration/Neon hoặc đổi kiểu điểm/thời gian; TTL/Clock và các ghi evidence dùng engine; lịch sử dùng cột quan hệ, không lọc answer/meta JSONB, không thêm meta.mode.
 - ES-01/ES-03/ES-05: Java 17/Maven Wrapper, không dependency mới; package/route/naming đúng; test tên FR025…FR030 theo AT và yêu cầu bù câu; full gate không skip, coverage vượt cả ngưỡng toàn bộ 80% và practice 90%.
 - ES-06/ES-07: một Conventional Commit T-11 trên spec/003-vocab-topics-part3 từ main ee910c8; stage đúng 11 file và push/mở Draft PR mới sau gate; không merge PR, merge/rebase/pull main, force-push hoặc push main. Rủi ro stub TOPIC_TEST/TopicTestHandler của T-12 từ PR #26 vẫn được giữ để chốt trong task đó.
+
+## Q-T12-01 — Shadow Plan kiểm tra cuối chủ đề, đã duyệt
+
+**Task:** T-12; FR-031…FR-040, AT-33…AT-39; thêm AT-01/02/12/13/28 để kiểm snapshot, ownership, DEFERRED, đồng thời start. DUYỆT ngày 2026-10-31; các Chốt dưới đây thay thế đề xuất ban đầu. Đã thực hiện đúng một lần `git fetch origin` rồi `git merge --ff-only origin/main` theo cho phép mới: Already up to date, HEAD/merge-base đều e5775df61b333b112b07c2f32ce5f5f5422f3a9f; không stash. Không fetch/merge/rebase/pull main thêm trong task.
+
+**Nhánh:** `spec/003-vocab-topics-t12`, worktree `C:/KLTN_FALL2026/CNHSK-t12`, tạo từ main fa612e8 sau fetch và xác nhận PR #31 merged. Theo yêu cầu tiếp theo của leader "trước khi làm pull code mới nhất về", đã fetch rồi cập nhật fast-forward tới `origin/main=e5775df61b333b112b07c2f32ce5f5f5422f3a9f`; không tạo merge commit/rebase, giữ nguyên plan chưa commit. Nhánh part4 rỗng ban đầu không dùng. Spec 001 có 36 task xong, spec 002 T-01…03 xong, Q5 chốt và T-11 đã merge. Kết quả 1613 test xanh/coverage 96,44%, practice 99,87%, vocab 99,09% là báo cáo leader cho bản gộp; chưa chạy gate T-12 trên nền mới.
+
+**Blocker nền đã được upstream xử lý:** Blob ErrorCode.java tại main fa612e8 từng có STAGE_INCOMPLETE trùng và thiếu dấu } cuối enum. Commit upstream eb195f3 đã sửa; sau fast-forward tới e5775df đã kiểm tra chỉ còn một khai báo và có ngoặc đóng. Không tự sửa lỗi nền hoặc gộp cleanup vào T-12. Chỉ thêm đúng hai mã lỗi T-12 đã duyệt; xem Q-T12-02.
+
+**File đọc:** AGENTS.md §12, constitution.md và constraints/safety.md, spec 001 §0/AuthApi/CSRF đã đọc và không đổi; spec 003 spec.md → contracts/openapi-practice-vocab.yaml → tasks.md/questions.md (không plan.md). Code liên quan: learning/vocab/{TopicQueryService,TopicQueryRepository,TopicStudyService,TopicStudyRepository,TopicPracticeService}.java, web/TopicController.java; learning/practice/{PracticeService,PracticeSource,PracticeSourceHandler,ServedItem,ServedItemView,PracticeRateLimiter}.java, generate/ChoiceItemFactory.java, entity/{Attempt,AttemptItem,AttemptRepository,AttemptItemRepository}.java; content/entity/{Lexeme,LexemeExtra,Topic,TopicItem}.java và text/PinyinUtils.java; auth/api/AuthApi.java; shared/config/SecurityConfig.java, shared/exception/{ApiException,ErrorCode}.java; test support/AbstractIntegrationTest.java, vocab/{TopicQueryIntegrationTest,TopicPracticeIntegrationTest,TopicContractTest}.java, ba test cần cô lập handler dưới đây và các test answer/maintenance/controller để đối chiếu tác động; GlobalExceptionHandlerTest.java. Migration/pom chỉ đọc khi đối chiếu schema/gate.
+
+**15 file đã duyệt vào cột File T-12; …/ = src/main/java/com/cnhsk/:**
+
+| # | File | Phạm vi |
+|---|---|---|
+| 1 | `…/learning/vocab/TopicTestService.java` (tạo) | Điều kiện/resume, chọn và trộn tối đa 20 từ, vòng 4 loại câu/fallback, gọi start |
+| 2 | `…/learning/vocab/TopicTestRepository.java` (tạo) | Từ/ví dụ, advisory lock user/topic, lịch sử nộp loại trừ session hiện tại, batch từ sai; tái dùng thống kê T-09 khi phù hợp |
+| 3 | `…/learning/vocab/TopicTestHandler.java` (tạo) | Bean tên topicTestHandler; isSuspicious/onFinish, extra; không override validateAnswer/enrichMeta |
+| 4 | `…/learning/vocab/web/TopicController.java` | Chỉ thêm POST `/api/topics/{id}/tests`, userId từ AuthApi, giữ các endpoint cũ |
+| 5 | `…/shared/config/SecurityConfig.java` (**dùng chung**) | Chỉ thêm đúng 1 matcher POST tests cho LEARNER |
+| 6 | `…/shared/exception/ErrorCode.java` (**dùng chung**) | Sau khi nền đã được sửa: chỉ thêm NOT_ENOUGH_LEARNED, RETRY_TOO_SOON trước INTERNAL_ERROR; giữ mã 006/T-11 và thứ tự cũ |
+| 7 | `src/test/java/com/cnhsk/learning/vocab/TopicTestIntegrationTest.java` (tạo) | Handler thật, HTTP/start/answer/finish, AT và biên/đồng thời |
+| 8 | `src/test/java/com/cnhsk/learning/vocab/TopicContractTest.java` | Thêm POST tests, 200/201/status/schema; giữ kiểm tra cũ |
+| 9 | `src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java` (**test dùng chung**) | Chỉ thêm đúng hai kỳ vọng enum tương ứng, giữ containsExactly và mã 006/T-11 |
+| 10 | `src/test/java/com/cnhsk/learning/api/PracticeApiIntegrationTest.java` | Đổi đúng tên mock stub sang topicTestHandler, không sửa assert/fixture |
+| 11 | `src/test/java/com/cnhsk/learning/practice/PracticeFinishIntegrationTest.java` | Cùng thay đổi annotation để finish giả không chạy handler nguồn thật |
+| 12 | `src/test/java/com/cnhsk/learning/practice/PracticeAbandonIntegrationTest.java` | Cùng thay đổi annotation vì race abandon/finish có thể kết thúc TOPIC_TEST giả |
+| 13 | `specs/003-vocab-topics/contracts/openapi-practice-vocab.yaml` | Chỉ POST tests: thêm 403 và mô tả quyết định được duyệt trước code; giữ shared schemas/finish/endpoint khác |
+| 14 | `specs/003-vocab-topics/tasks.md` | Phạm vi/quyết định/nghiệm thu T-12, chỉ ✅ sau gate |
+| 15 | `specs/003-vocab-topics/questions.md` | Plan, câu hỏi, Chốt và self-check T-12 |
+
+Không đề xuất sửa engine practice, ChoiceItemFactory, PinyinUtils, PracticeApi, entity, FE hoặc test spec 004/005/006. Không migration/index/dependency mới; nếu phát sinh schema thì dừng xin số V5 trước và chỉ test Testcontainers, không SQL/migration Neon.
+
+**Cách làm đề xuất:**
+
+1. Dùng transaction và Clock. Kiểm id đúng như T-09/T-11. Advisory xact lock bằng key có tham số `TOPIC_TEST:{userId}:{topicId}`, cùng cách T-10, không khóa hàng topic. Topic thiếu/rỗng 404; tìm active đúng người/chủ đề, chưa hết hạn (kể cả expiresAt=now) trả 200 trước kiểm điều kiện mới, theo FR-033/actions đã chốt T-09. Sau đó mới kiểm >=4 từ (422 NOT_ENOUGH_WORDS, requiredWords=4), học >=80% theo FR-015; thiếu học trả 422 NOT_ENOUGH_LEARNED với learnedWords/requiredWords=ceil(0.8*total). Cooldown đúng Q-T09: lượt gần nhất theo served_at DESC,id DESC, nếu SUBMITTED/trượt và chưa đủ 10 phút trả 429 RETRY_TOO_SOON + retryAfterSeconds làm tròn lên; đúng 10 phút hoặc đã đạt được tạo lượt mới.
+2. Trộn toàn bộ từ của chủ đề, không chỉ từ đã học; duyệt đến đủ 20 câu hoặc hết từ. Vòng i%4 MEANING_CHOICE/AUDIO_WORD_CHOICE/PINYIN_INPUT/CLOZE_CHOICE tính theo số câu đã sinh. Dùng factory 4 options cho câu chọn; audio thiếu hoặc ví dụ đầu không chứa text → MEANING_CHOICE; factory thiếu nhiễu → PINYIN_INPUT. PINYIN accept=toNumbered(pinyin) bỏ khoảng trắng; thiếu/sai pinyin bắt lỗi, thử MEANING_CHOICE, vẫn không được thì WARN lexemeId, bỏ từ và bù từ tiếp. Không câu nào sinh được trả 422 NOT_ENOUGH_WORDS và không tạo attempt. CLOZE thay đúng lần xuất hiện đầu bằng ＿＿, hint=examples[0].vi; skill theo loại câu. OR mixedDistractors khi factory dùng nhiễu ngoài chủ đề, không meta.mode/đáp án trong items/meta.
+3. Start qua engine TOPIC_TEST, DEFERRED/24 giờ, 201 mới và 200 resume; không preRecorded/ttlOverride/rate limiter mới. Hai start cùng người/chủ đề chỉ một session. Câu mới/nháp/review trước finish không có correct/correctAnswer/accept/explanation theo quy tắc đã chốt; own answered[].answer được phép. Answer/finish/expiry/abandon và chấm pinyin dùng nguyên engine.
+4. Handler isSuspicious dùng submittedAt-servedAt < 2000ms * số câu đã phát, OR do engine làm; không đổi điểm vì suspicious. onFinish dùng score/maxScore từ FinishContext, passed theo ngưỡng 90% và guard maxScore>0. KHÔNG advisory lock khi finish, tránh đảo thứ tự với khoá dòng engine; lock start bảo đảm một lượt mở. Truy vấn prior SUBMITTED loại trừ sessionId hiện tại, không phụ thuộc việc JPA đã flush current status hay chưa. bestPercent/topicCompleted gộp prior với current; firstCompletion=passed và chưa có prior pass. WrongWords theo Q-T12-06, batch query, không N+1; DTO/map không entity/PII. Hook chạy trong transaction hiện có, không gọi engine ngược; refId/topic/lexemeId thiếu không gây lỗi.
+
+**Cô lập mock TOPIC_TEST (đã duyệt):**
+
+- Bean thật dùng tên cố định topicTestHandler. Trong đúng ba file số 10…12, đổi `@MockitoBean(name = "stubPracticeSourceHandler")` thành `@MockitoBean(name = "topicTestHandler")` trên cùng field PracticeSourceHandler handler. Spring thay đúng handler thật bằng mock tại các context kiểm bộ máy/facade, tránh chạy cùng lúc cả mock TOPIC_TEST và handler business thật. Giữ mọi source setup/assert/fixture.
+- PracticeApiIntegrationTest và PracticeFinishIntegrationTest thực sự finish TOPIC_TEST giả. PracticeAbandonIntegrationTest cũng có race abandon/finish TOPIC_TEST nên cần cô lập dù mặc định mock trả TOPIC_STUDY. Hai lớp answer/maintenance chỉ answer/view/expiry cho TOPIC_TEST, không finish hợp lệ nên không đề xuất sửa; handler T-12 chỉ override hai hook finish, không thêm hook answer.
+- TopicTestIntegrationTest dùng bean thật, không mock PracticeSourceHandler, kiểm đủ passed/firstCompletion/best/wrongWords/suspicious và rollback/expiry cần thiết. Không dùng profile để tắt handler cho toàn bộ test; không nới assert để che lỗi. Test spec khác chỉ được chạy hồi quy, không tự sửa; phát sinh nhu cầu thì báo leader xin scope.
+
+**Test dự kiến (FR031_…FR040_, từ AT-33…39):**
+
+- 7/10 → requiredWords=8; đúng 80% được thi; <4 từ theo Q được chốt. Học ở chủ đề khác/skip/audioFailed vẫn theo FR-015; test hỏi cả 20% chưa học. Role/CSRF/id/ownership/request_id và 429 tạo lượt mới theo engine; resume không trừ lượt mới.
+- Active trả cùng id, 2 POST đồng thời 201/200 chỉ một session; user khác không bị khóa. Resume ưu tiên khi điều kiện nội dung đổi nhưng topic còn từ. Trượt 3 phút → retry≈420 giây, đủ 10 phút được thi, đạt được thi lại ngay; latest theo quy tắc T-09.
+- 25 từ → 20 câu không lặp; vòng loại câu dựa no, fallback audio/example/nhiễu; cloze chỉ thay lần đầu. Snapshot của 201/200/GET/nháp không lộ đáp án; ghi đè nháp, finish thiếu câu tính sai. Pinyin dùng quy tắc đã chốt AT-18 và lỗi dữ liệu Q-T12-05.
+- 20 câu/nộp 10 giây suspicious=true vẫn có điểm; đúng biên 2 giây/câu không gắn cờ nguồn; generic suspicious vẫn OR. 18/20 passed và firstCompletion true, lần sau false; giữ best/topicCompleted khi lượt sau điểm thấp. Missing/skip sai và audioFailed không tính điểm; wrongWords theo Q-T12-06, guard maxScore=0 không hoàn thành.
+- 25 giờ EXPIRED, finish 422 và không chấm. Hai POST đồng thời cùng người/chủ đề chỉ tạo một session; chỉ khóa advisory lúc start, giữ nguyên khóa dòng/transaction finish của engine. Completion/evidence/events theo transaction core. Hồi quy cả ba lớp được cô lập và answer/maintenance/controller còn nguyên trừ annotation nếu rơi vào điều kiện đã duyệt.
+
+**Lệnh sau khi nền được sửa và leader duyệt:** Java 17, PowerShell thường ngoài sandbox có Docker, bỏ DEBUG chỉ trong tiến trình test. `.\mvnw.cmd '-Dtest=TopicTestIntegrationTest,TopicContractTest,GlobalExceptionHandlerTest,PracticeApiIntegrationTest,PracticeFinishIntegrationTest,PracticeAbandonIntegrationTest,PracticeAnswerIntegrationTest,PracticeMaintenanceIntegrationTest' test`, rồi `.\mvnw.cmd verify`; 0 failure/error/skip, JaCoCo toàn bộ>=80%, practice>=90%, git diff --check/BOM/TODO sạch. Một commit `feat(vocab): add topic tests (T-12)`, stage file cụ thể/chỉ T-12, push và Draft PR mới. Không merge PR, merge/rebase/pull main sau khi tạo nhánh, force-push hoặc push main.
+
+### Q-T12-02 — Lỗi nền ErrorCode đã được xử lý upstream
+
+**Đã xử lý bằng code upstream:** eb195f3 sửa enum; đã cập nhật nhánh T-12 fast-forward tới e5775df theo yêu cầu pull mới nhất của leader và kiểm tra nguồn. Không gộp cleanup này vào T-12. Shadow Plan và Q-T12-03…06 sau đó được leader DUYỆT ngày 2026-10-31; triển khai theo đúng các Chốt này. Yêu cầu pull trước đó không được coi là duyệt triển khai.
+
+### Q-T12-03 — Phạm vi, file dùng chung và mock
+
+**Chốt, 2026-10-31 — leader duyệt:** Đúng 15 file; SecurityConfig 1 matcher POST tests cho LEARNER; ErrorCode chỉ NOT_ENOUGH_LEARNED/RETRY_TOO_SOON trước INTERNAL_ERROR, test enum thêm hai kỳ vọng đúng thứ tự, giữ containsExactly và mã 006/T-11. OpenAPI chỉ 403/mô tả POST này trước code. Ba named mock đã nêu đổi thành @MockitoBean(name="topicTestHandler"), giữ assert/fixture. Nếu PracticeAnswerIntegrationTest (ca dòng 299) hoặc PracticeMaintenanceIntegrationTest (ca dòng 176) fail vì TOPIC_TEST thì được đổi đúng annotation tương tự và báo trong PR; không sửa test khác, test ngoài phạm vi fail thì dừng báo leader. Chỉ advisory lock lúc start, KHÔNG lock finish. Không migration/DDL, dependency mới hoặc sửa engine.
+
+### Q-T12-04 — Mã lỗi khi chủ đề có 1…3 từ
+
+**Chốt, 2026-10-31 — leader duyệt:** Trong transaction/lock user+topic: id sai 422; topic thiếu/rỗng 404 TOPIC_NOT_FOUND; active chưa hết hạn 200; <4 từ 422 NOT_ENOUGH_WORDS kèm requiredWords=4; học<80% 422 NOT_ENOUGH_LEARNED kèm learnedWords/requiredWords; cooldown 429 RETRY_TOO_SOON kèm retryAfterSeconds. Dùng thống kê/công thức latest/cooldown T-09, không viết lệch; đúng 80% và đúng 10 phút được tạo mới.
+
+### Q-T12-05 — Từ cần PINYIN_INPUT nhưng pinyin thiếu hoặc không chuẩn hoá được
+
+**Chốt, 2026-10-31 — leader duyệt:** Trộn toàn bộ từ, duyệt tới đủ 20 câu hoặc hết từ; vòng i%4 với i là số câu ĐÃ SINH. Thay thế đúng FR-035. Khi cần PINYIN_INPUT mà pinyin thiếu/sai: bắt lỗi toNumbered, thử MEANING_CHOICE, vẫn không được thì bỏ từ, WARN chỉ kèm lexemeId, lấy từ tiếp. Không accept rỗng/null. Không câu nào sinh được → 422 NOT_ENOUGH_WORDS, không attempt. Bổ sung test thiếu pinyin đổi dạng và bù; không cắt danh sách 20 từ trước khi thử sinh.
+
+**Chi tiết triển khai:** TopicTestRepository tái sử dụng nguyên ChoiceItemFactory bằng constructor hiện có, cùng EntityManager/random và transaction start. Bắt IllegalArgumentException ngay tại helper chọn nhiễu. Không sửa factory/engine hoặc tạo bean factory mới. Lý do đã kiểm bằng test: gọi proxy transactional của factory rồi bắt lỗi pinyin ở caller vẫn khiến transaction bị rollback-only; mở REQUIRES_NEW lại chiếm thêm kết nối và làm test khóa khác user chờ hết thời gian với pool 3. Giải pháp cuối giữ toàn bộ start/generate/persist trong một transaction, một kết nối mỗi request. Test thiếu pinyin/bù câu và khóa theo user kiểm trực tiếp hành vi này.
+
+### Q-T12-06 — Nguồn dữ liệu wrongWords và dữ liệu đã thay đổi
+
+**Chốt, 2026-10-31 — leader duyệt:** Handler dùng điểm/thời gian server; passed khi score*100>=90*maxScore và maxScore>0. Lịch sử dùng attempts/cột quan hệ, loại session hiện tại, không điều kiện JSONB. wrongWords gồm correct=false cả bỏ trống, loại audioFailed, lấy Lexeme theo lô; ID mất/null bỏ khỏi danh sách, vẫn chấm snapshot. Không lỗi với refId không thật/null, lexemeId null hoặc topic thiếu từ test khác. Giữ bestPercent/topicCompleted theo lịch sử; không advisory lock finish. Bổ sung biên 90%, cooldown đúng 10 phút, topic 3 từ, bù câu thiếu pinyin, 2 POST chỉ một lượt và từ bỏ trống có trong wrongWords.
+
+**Self-check chuẩn bị:** AC-01 contract duyệt trước code; AC-03/BUS-01 AuthApi/learning-owned data; AC-05/AC-09 không migration/Neon, query lịch sử cột quan hệ; HR-02/HR-08 không secret/PII/dữ liệu HSK bản quyền; ES-01/ES-05/ES-07 giữ stack/gate/nhánh. Nền hợp lệ và plan đã duyệt. Sau triển khai: chọn lọc rồi verify Java 17/Docker, 0 failure/error/skip, coverage>=80%/practice>=90%, diff/BOM/TODO; một commit T-12, stage cụ thể, push Draft PR mới, báo commit/merge-base/test/coverage rồi dừng; không tự merge PR.
+
+### Báo cáo T-12 — 2026-10-31
+
+- Hoàn thành FR-031…FR-040/AT-33…39 theo Q-T12-03…06. Start có advisory lock theo user/topic, resume ưu tiên, kiểm đủ từ/80%/cooldown theo T-09; trộn toàn bộ ứng viên, sinh tới 20 câu và bù câu lỗi pinyin. DEFERRED/24 giờ, điểm/thời gian do engine tính. Handler không khóa advisory; lịch sử loại session hiện tại, wrongWords gồm bỏ trống và loại audioFailed, truy vấn từ theo lô.
+- Đúng 15 file trong bảng phạm vi T-12 ở trên. Ba test cũ chỉ đổi tên mock sang topicTestHandler; assert/fixture giữ nguyên. Cả PracticeAnswerIntegrationTest và PracticeMaintenanceIntegrationTest xanh, không dùng quyền sửa annotation có điều kiện. Không sửa test spec khác, engine hoặc ChoiceItemFactory. Không còn câu hỏi mở hay lệch spec; chi tiết xử lý transaction của helper được ghi tại Q-T12-05.
+- Gate chọn lọc cuối: `.\mvnw.cmd '-Dtest=TopicTestIntegrationTest,TopicContractTest,GlobalExceptionHandlerTest,PracticeApiIntegrationTest,PracticeFinishIntegrationTest,PracticeAbandonIntegrationTest,PracticeAnswerIntegrationTest,PracticeMaintenanceIntegrationTest' test` → BUILD SUCCESS, **148 test**, 0 failure/error/skip (40 T-12 integration, 5 contract, 5 handler lỗi, 98 hồi quy practice; thêm tổng cộng 41 ca mới).
+- `.\mvnw.cmd verify` → BUILD SUCCESS, Java 17/PowerShell thường có Docker, **8 phút 08 giây**. Đối chiếu 103 Surefire XML: **1766 test**, 0 failure/error/skip. JaCoCo line: **96,66% toàn bộ (5232/5413)**, **99,87% practice (758/759)**, **99,44% vocab (358/360)**. Vượt ngưỡng toàn bộ 80% và practice 90%; kiểm kiến trúc module xanh. FE không đổi.
+- `git diff --check` sạch; đúng 15 file UTF-8 không BOM, Java trong phạm vi không TODO/FIXME. Nhánh `spec/003-vocab-topics-t12`; merge-base **e5775df61b333b112b07c2f32ce5f5f5422f3a9f**. Một commit `feat(vocab): add topic tests (T-12)`, stage từng file cụ thể; push nhánh và mở Draft PR mới theo duyệt, báo commit/PR trong bàn giao rồi dừng chờ leader kiểm bản gộp.
+
+**Self-check Constitution T-12:**
+
+- ✅ AC-01: contract được leader duyệt trước code; YAML chỉ thêm 403/mô tả POST tests. Test runtime kiểm đủ 200/201, lỗi, schema SessionView và id int64; giữ kiểm tra endpoint cũ.
+- ✅ AC-03/BUS-01/BUS-06: userId từ AuthApi.currentUser(); chỉ truy cập bảng learning, không auth/shared table; DTO không entity/PII/đáp án trước finish. Test principal giả, role khác, ownership và snapshot đều xanh.
+- ✅ BUS-02/HR-06/BUS-09/AC-10: start/generate/persist cùng transaction; finish giữ transaction/khóa dòng/sự kiện của engine. Score/maxScore/thời gian lấy từ server; kiểm biên 90%, maxScore=0, wall time 2 giây/câu. Không advisory lock finish; hai POST chỉ tạo một lượt, user khác không bị khóa chung.
+- ✅ HR-01/HR-03/HR-04/HR-05/HR-07/HR-09: không đổi password hashing/cookie/CORS. Chỉ một matcher LEARNER; CSRF cookie giữ nguyên, Bearer dùng cơ chế hiện có. Id không hợp lệ trả 422, lỗi có error_code/message/request_id; SQL tham số hóa và WARN chỉ lexemeId, không lộ exception/input ra client.
+- ✅ HR-02/HR-08: không đọc/stage .env hoặc secret, không host Neon/email thật/dữ liệu HSK bản quyền. Fixture tự soạn trong Testcontainers; tài khoản test đăng ký qua API với dữ liệu example.test và mật khẩu sinh tạm.
+- ✅ AC-05/AC-06/AC-07/AC-08/AC-09: không migration/DDL/Neon hoặc sửa schema/enum DB; điểm BIGINT, thời gian Clock/server UTC. Query learned/cooldown/history bằng cột quan hệ, không lọc JSONB. Dữ liệu snapshot/draft/evidence và expiry qua engine hiện có.
+- ✅ ES-01/ES-03/ES-05: Java 17/Maven Wrapper, không dependency mới, naming đúng; test mới tên FR031…FR040 theo AT và các biên leader bổ sung. Gate đầy đủ 0 skip, coverage vượt cả hai ngưỡng.
+- ✅ ES-06/ES-07 và safety: đúng 15 file đã duyệt, shared chỉ thay phần được chốt; một Conventional Commit T-12, không nhắc công cụ trong message. Chỉ thực hiện một bước fetch/ff được cho phép trước code, giữ merge-base e5775df; không stash/restore thay đổi người khác, merge/rebase/pull main thêm, merge PR, force-push hoặc push main. Push/Draft PR là các bước leader đã cho phép; sau báo cáo dừng chờ review.
