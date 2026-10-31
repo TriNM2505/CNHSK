@@ -208,7 +208,7 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '422':
-          description: NOT_ENOUGH_CHARACTERS trả 422 với have và need=10 trong extra; validation lỗi theo định dạng ErrorResponse.
+          description: NOT_ENOUGH_CHARACTERS trả 422 với have và need=10 ở cấp ngoài cùng của ErrorResponse; validation lỗi theo định dạng ErrorResponse.
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }

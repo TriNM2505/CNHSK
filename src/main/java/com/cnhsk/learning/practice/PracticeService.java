@@ -230,6 +230,11 @@ public class PracticeService {
             return new FinishOutcome(null, rejected);
         }
         PracticeSource source = PracticeSource.valueOf(attempt.getRefType());
+        for (PracticeSourceHandler handler : handlers) {
+            if (handler.source() == source) {
+                handler.validateFinish(answers);
+            }
+        }
         boolean deferred = source.feedback() == FeedbackMode.DEFERRED;
         if (!deferred && !answers.isEmpty()) {
             throw validation("answers");
