@@ -497,11 +497,25 @@ paths:
       tags: [topics]
       operationId: startTopicTest
       summary: Bắt đầu hoặc tiếp tục kiểm tra (FR-031…FR-040)
+      description: |
+        Q-T12 (leader chốt 2026-10-31): chỉ LEARNER, giữ CSRF cookie; userId từ AuthApi.
+        Id sai trả 422; topic thiếu/rỗng trả 404 TOPIC_NOT_FOUND.
+        Trong transaction, advisory lock theo user/topic chỉ lúc bắt đầu; active chưa hết hạn trả 200.
+        Không active: <4 từ trả 422 NOT_ENOUGH_WORDS + requiredWords=4;
+        học dưới 80% trả 422 NOT_ENOUGH_LEARNED + learnedWords/requiredWords;
+        cooldown theo T-09 trả 429 RETRY_TOO_SOON + retryAfterSeconds, đúng 10 phút được tạo mới.
+        Trộn toàn bộ từ, duyệt tới 20 câu hoặc hết từ; vòng i%4 theo số câu đã sinh, fallback FR-035.
+        PINYIN_INPUT thiếu/sai pinyin thử MEANING_CHOICE; vẫn không được thì bỏ từ và lấy từ tiếp.
+        Không sinh được câu trả 422 NOT_ENOUGH_WORDS, không tạo attempt. Mới trả 201, DEFERRED/24 giờ.
+        Không đáp án trong items/meta, không kết quả trước finish. Không advisory lock khi finish.
+        Handler dùng điểm/thời gian server, bỏ session hiện tại khỏi lịch sử quan hệ;
+        wrongWords gồm câu sai/bỏ trống, loại audioFailed, lấy từ theo lô và bỏ ID đã mất.
       parameters: [ { $ref: '#/components/parameters/TopicId' } ]
       responses:
         '200': { $ref: '#/components/responses/Session' }
         '201': { $ref: '#/components/responses/Session' }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }

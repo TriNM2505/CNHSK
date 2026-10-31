@@ -11,6 +11,7 @@ import com.cnhsk.learning.vocab.TopicQueryService.TopicSummary;
 import com.cnhsk.learning.vocab.TopicStudyService;
 import com.cnhsk.learning.vocab.TopicPracticeService;
 import com.cnhsk.learning.vocab.TopicPracticeService.Mode;
+import com.cnhsk.learning.vocab.TopicTestService;
 import com.cnhsk.learning.practice.PracticeService.SessionView;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -46,14 +47,16 @@ public class TopicController {
     private final TopicStudyService study;
     private final TopicPracticeService practice;
     private final ObjectMapper mapper;
+    private final TopicTestService tests;
 
     public TopicController(TopicQueryService topics, AuthApi auth, TopicStudyService study,
-            TopicPracticeService practice, ObjectMapper mapper) {
+            TopicPracticeService practice, ObjectMapper mapper, TopicTestService tests) {
         this.topics = topics;
         this.auth = auth;
         this.study = study;
         this.practice = practice;
         this.mapper = mapper;
+        this.tests = tests;
     }
 
     @GetMapping
@@ -139,6 +142,28 @@ public class TopicController {
         long userId = auth.currentUser().userId();
         return ResponseEntity.status(HttpStatus.CREATED).body(practice.start(userId, positiveNumber(id, "id"),
                 Mode.valueOf(request.mode()), request.focusLexemeIds()));
+    }
+
+    @PostMapping(value = "/{id}/tests", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(operationId = "startTopicTest", tags = "topics")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tiếp tục lượt kiểm tra đang làm",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = SessionView.class))),
+            @ApiResponse(responseCode = "201", description = "Lượt kiểm tra mới",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = SessionView.class))),
+            @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
+            @ApiResponse(responseCode = "403", description = "Chỉ LEARNER; cookie yêu cầu CSRF"),
+            @ApiResponse(responseCode = "404", description = "TOPIC_NOT_FOUND"),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED, NOT_ENOUGH_WORDS, NOT_ENOUGH_LEARNED"),
+            @ApiResponse(responseCode = "429", description = "RETRY_TOO_SOON hoặc RATE_LIMITED")
+    })
+    public ResponseEntity<SessionView> startTest(
+            @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
+        long userId = auth.currentUser().userId();
+        var result = tests.start(userId, positiveNumber(id, "id"));
+        return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK).body(result.session());
     }
 
     @Schema(name = "TopicPracticeRequest")

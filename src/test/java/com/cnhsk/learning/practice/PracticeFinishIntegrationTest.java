@@ -82,7 +82,7 @@ class PracticeFinishIntegrationTest extends AbstractIntegrationTest {
     @Autowired private org.springframework.data.redis.core.StringRedisTemplate redis;
     @Autowired private EventProbe probe;
     @MockitoBean private Clock clock;
-    @MockitoBean(name = "stubPracticeSourceHandler") private PracticeSourceHandler handler;
+    @MockitoBean(name = "topicTestHandler") private PracticeSourceHandler handler;
     @MockitoSpyBean private RateLimiter counters;
     private long owner;
     private long nextRef;
