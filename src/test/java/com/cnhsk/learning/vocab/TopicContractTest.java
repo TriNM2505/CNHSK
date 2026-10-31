@@ -13,6 +13,7 @@ import java.util.Set;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +39,7 @@ class TopicContractTest {
         JsonNode runtime = mapper.readTree(mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
         assertThat(runtime.path("paths").fieldNames()).toIterable().containsExactlyInAnyOrder(
-                "/api/topics", "/api/topics/{id}", "/api/topics/{id}/study-sessions");
+                "/api/topics", "/api/topics/{id}", "/api/topics/{id}/study-sessions", "/api/topics/{id}/practice-sessions");
         for (String path : Set.of("/api/topics", "/api/topics/{id}")) {
             var operation = source.getPaths().get(path).getGet();
             JsonNode documented = runtime.path("paths").path(path).path("get");
@@ -92,6 +93,32 @@ class TopicContractTest {
         assertThat(runtime.path("TopicActions").path("properties").fieldNames()).toIterable()
                 .containsExactlyInAnyOrder("canStudy", "canPracticeRecognition", "canPracticeListening",
                         "canTakeTest", "testBlockedReason", "requiredWords", "retryAvailableAt");
+    }
+
+    @Test
+    void FR025_practicePostMatchesApprovedRequestAndResponses() throws Exception {
+        String path = "/api/topics/{id}/practice-sessions";
+        var source = contract().getPaths().get(path).getPost();
+        JsonNode runtime = mapper.readTree(mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        JsonNode operation = runtime.path("paths").path(path).path("post");
+        assertThat(operation.path("operationId").asText()).isEqualTo(source.getOperationId());
+        assertThat(operation.path("responses").fieldNames()).toIterable()
+                .containsExactlyInAnyOrderElementsOf(source.getResponses().keySet());
+        assertThat(operation.path("responses").path("201").path("content").path("application/json")
+                .path("schema").path("$ref").asText()).isEqualTo("#/components/schemas/SessionView");
+        assertThat(operation.path("requestBody").path("required").asBoolean()).isTrue();
+        JsonNode request = runtime.path("components").path("schemas").path("TopicPracticeRequest");
+        assertThat(request.path("properties").fieldNames()).toIterable().containsExactlyInAnyOrder("mode", "focusLexemeIds");
+        assertThat(request.path("required")).extracting(JsonNode::asText).containsExactly("mode");
+        Map<?, ?> sourceProperties = source.getRequestBody().getContent().get("application/json").getSchema().getProperties();
+        Schema<?> mode = (Schema<?>) sourceProperties.get("mode");
+        assertThat(request.path("properties").path("mode").path("enum")).extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(mode.getEnum().stream().map(Object::toString).toList());
+        JsonNode focus = request.path("properties").path("focusLexemeIds");
+        assertThat(focus.path("maxItems").asInt()).isEqualTo(((Schema<?>) sourceProperties.get("focusLexemeIds")).getMaxItems());
+        assertThat(focus.path("items").path("type").asText()).isEqualTo("integer");
+        assertThat(focus.path("items").path("format").asText()).isEqualTo("int64");
     }
 
     private static OpenAPI contract() throws Exception {

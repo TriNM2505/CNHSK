@@ -543,3 +543,93 @@ Không đề xuất sửa PracticeService, PracticeSourceHandler, entity, reposi
 - AC-05/AC-07/AC-09: không migration/index/DDL/Neon, không thay kiểu điểm; truy vấn từ đã học chỉ dùng cột quan hệ, không lọc JSONB; hạn chế audioFailed đã được leader chấp nhận và ghi rõ.
 - ES-01/ES-03/ES-05: Java 17/Maven Wrapper, không dependency mới; tên lớp/package/route đúng; test FR-prefix từ AT-25…28 và bảo mật/đồng thời, full verify không skip, coverage đạt ngưỡng toàn bộ và practice.
 - ES-06/ES-07: commit T-10 Conventional Commits riêng với fix có sẵn trên spec/003-vocab-topics-part2; stage file cụ thể và chỉ hunk T-10 của questions.md. Bàn giao sau push qua Draft PR #24; không merge PR, không merge/rebase/pull main, force-push hoặc push main.
+
+## Q-T11-01 — Shadow Plan luyện nhận diện/nghe, đã duyệt
+
+**Task:** T-11; FR-025…FR-030, AT-29…AT-32; dùng FR-015, §0.6/§0.10/§0.11 và AT-01/07/19…21 để kiểm việc nối vào engine/factory.
+
+**Trạng thái:** DUYỆT ngày 2026-10-31; Q-T11-02…06 dưới đây là quyết định cuối của leader, thay thế các đề xuất ban đầu. Nhánh `spec/003-vocab-topics-part3` tại worktree `C:/KLTN_FALL2026/CNHSK-t11`, tạo từ `origin/main` mới nhất `ee910c8` sau fetch (PR #26 đã merge). Điều kiện bắt đầu đủ: spec 001 có 36 task xong; spec 002 T-01…03 xong, Q5 đã chốt, T-10 đã merge. Baseline leader xác nhận 1537 test xanh; không dùng lại nhánh đã merge.
+
+**File đọc:** AGENTS.md §12, constitution.md, constraints/safety.md và spec 001 §0/CSRF/AuthApi đã đọc, không thay đổi trên main mới. Spec 003 spec.md → contracts/openapi-practice-vocab.yaml → tasks.md/questions.md; không có plan.md. Code liên quan: learning/vocab/TopicStudyService.java, TopicStudyRepository.java, TopicQueryRepository.java, web/TopicController.java; learning/practice/generate/ChoiceItemFactory.java, PracticeService.java, PracticeSource.java, ServedItem.java, ServedItemView.java, PracticeRateLimiter.java và entity/{Attempt,AttemptItem,AttemptRepository,AttemptItemRepository}.java; learning/content/entity/{Lexeme,LexemeExtra,Topic,TopicItem}.java; auth/api/AuthApi.java; shared/config/SecurityConfig.java, shared/exception/{ApiException,ErrorCode,GlobalExceptionHandler}.java; test support/AbstractIntegrationTest.java, learning/vocab/{TopicStudyIntegrationTest,TopicContractTest}.java, factory tests và shared/exception/GlobalExceptionHandlerTest.java; V1/V3/V4 và pom.xml chỉ đọc khi cần đối chiếu query/gate.
+
+**Danh sách file xin duyệt vào cột File T-11 (11 file; Java viết tắt …/ = src/main/java/com/cnhsk/):**
+
+| # | File | Nội dung |
+|---|---|---|
+| 1 | `…/learning/vocab/TopicPracticeService.java` (tạo) | Điều phối chọn từ, tạo câu qua factory và gọi engine, transaction |
+| 2 | `…/learning/vocab/TopicPracticeRepository.java` (tạo) | Truy vấn cột quan hệ: topic/các từ đã học, tổng hợp số lần đúng, toàn bộ ứng viên theo ưu tiên |
+| 3 | `…/learning/vocab/web/TopicController.java` | Thêm POST practice-sessions và DTO/enum nội bộ; AuthApi lấy userId; giữ GET và study POST |
+| 4 | `…/shared/config/SecurityConfig.java` (**dùng chung**) | Chỉ thêm một matcher POST `/api/topics/{id}/practice-sessions` cho LEARNER |
+| 5 | `…/shared/exception/ErrorCode.java` (**dùng chung**) | Chỉ thêm NO_LEARNED_WORDS, NO_AUDIO_WORDS, NOT_ENOUGH_WORDS, INVALID_FOCUS_WORDS trước INTERNAL_ERROR; giữ thứ tự mã cũ |
+| 6 | `src/test/java/com/cnhsk/learning/vocab/TopicPracticeIntegrationTest.java` (tạo) | AT-29…32, lỗi, bảo mật, snapshot, nối answer/finish và rate limit hiện có |
+| 7 | `src/test/java/com/cnhsk/learning/vocab/TopicContractTest.java` | Giữ kiểm tra cũ, bổ sung path/request/201/status cho POST mới |
+| 8 | `src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java` | Chỉ thêm bốn chuỗi enum vào danh sách containsExactly theo ErrorCode; không sửa assert/kịch bản khác |
+| 9 | `specs/003-vocab-topics/contracts/openapi-practice-vocab.yaml` | Chỉ POST practice-sessions: thêm 403 đang thiếu, mô tả quyết định được leader chốt trước code; giữ schema shared và endpoint khác |
+| 10 | `specs/003-vocab-topics/tasks.md` | Phạm vi đã duyệt, trạng thái và kết quả T-11; chỉ ✅ sau đủ gate |
+| 11 | `specs/003-vocab-topics/questions.md` | Shadow Plan, Q-T11-02…06, quyết định và nghiệm thu T-11 |
+
+Không đề xuất migration/index/dependency hoặc handler mới. Tái sử dụng nguyên PracticeService, ChoiceItemFactory và rate limiter; không sửa entity, bộ máy practice, FE, test spec khác hoặc năm named handler stub từ PR #26. Nếu phát sinh schema thì dừng xin leader cấp V5 trước, chỉ Testcontainers; không chạy SQL/migration Neon.
+
+**Cách làm đã duyệt:**
+
+1. Controller kiểm JSON/body bắt buộc, mode đúng RECOGNITION/LISTENING, focus 1…20 ID nguyên dương theo contract và Q đã chốt; id sai định dạng hoặc <=0 trả 422 như T-09. userId chỉ từ AuthApi.currentUser(); lỗi dùng ApiException/format chung. Topic thiếu/rỗng trả 404 TOPIC_NOT_FOUND.
+2. Xác định từ đã học đúng FR-015: có STUDY_CARD thuộc TOPIC_STUDY của user trên bất kỳ chủ đề/trạng thái nào, kể cả skip/audioFailed đã chốt T-10. Không lọc meta JSONB, không đọc auth/shared table. Query tổng hợp số lần is_correct=true trong TOPIC_PRACTICE của user trên mọi chủ đề/chế độ/trạng thái, ưu tiên ít đúng rồi ngẫu nhiên khi hoà (Q-T11-03).
+3. Kiểm chưa học từ nào trước focus; áp dụng focus rồi audio theo Q-T11-04. Duyệt toàn bộ danh sách ứng viên theo ưu tiên, bỏ từ thiếu nhiễu và bù từ sau cho tới đủ 10 câu hoặc hết ứng viên (Q-T11-05); không LIMIT 10 mục tiêu trước factory. Không query từng từ để đếm lịch sử; các truy vấn phân tầng nhiễu vẫn do factory hiện có làm.
+4. Gọi ChoiceItemFactory.create(word, topicId, type, 4); dùng options/correctAnswer phía server, không serialize ChoiceOptions ra client. RECOGNITION: MEANING_CHOICE/VOCAB, prompt.text, không pinyin. LISTENING: AUDIO_WORD_CHOICE/LISTENING, prompt.audioUrl, không phát text/pinyin/nghĩa mục tiêu. Câu không đủ nhiễu bị bỏ theo G-4; không còn câu trả NOT_ENOUGH_WORDS, không tự chuyển sang PINYIN_INPUT. mixedDistractors = OR cờ factory, đặt ở meta lượt theo G-4.
+5. Tạo no liên tiếp, minDurationMs=800 và maxReplays=3 tính cả lần đầu; LISTENING hasAudio=true, RECOGNITION hasAudio=false. Không thêm meta.mode; FE suy ra chế độ từ loại câu. Gọi PracticeService.start với TOPIC_PRACTICE, refId topic, không preRecorded/ttlOverride: IMMEDIATE, TTL 2 giờ. Mỗi POST hợp lệ tạo lượt mới, 201, không resume/deduplicate/khóa topic. Không nhận điểm client; answer/finish, suspicious, skip/audioFailed, sự kiện và 120 lượt/giờ dùng engine hiện có.
+
+**Test dự kiến (tên FR025_…FR030_, lấy AT làm gốc):**
+
+- FR025/AT-29: >10 từ đã học, X đúng 3 lần/Y đúng 0 → Y được ưu tiên, giới hạn 10; lịch sử user khác/TOPIC_TEST không tác động; hoà ngẫu nhiên, không phát lặp lexeme trong lượt. Kiểm học ở chủ đề khác và bằng chứng skip/audioFailed vẫn hợp lệ theo FR-015. Phạm vi lịch sử/trạng thái theo Q đã chốt.
+- FR026/AT-30: câu nhận diện đúng type/skill, prompt có chữ và không pinyin; đủ 4 options A–D, không trùng nghĩa; GET/start không lộ answer/accept/answerKey, entity hoặc PII. Nhiễu ngoài chủ đề gắn mixedDistractors; toàn kho không đủ → NOT_ENOUGH_WORDS.
+- FR027/FR028/AT-31: chỉ dùng mục tiêu có audio; không audio → NO_AUDIO_WORDS, chưa học → NO_LEARNED_WORDS; không cặp đồng âm trong options; đúng rules, max 3 lần tính cả lần đầu, audioFailed không tính điểm qua engine.
+- FR029/AT-32: chỉ mục tiêu trong focus hợp lệ; có từ chủ đề khác/chưa học/không tồn tại → INVALID_FOCUS_WORDS. Kiểm []/trùng/null/sai kiểu/>20 và focus không có audio theo Q-T11-04 đã duyệt; không âm thầm bỏ ID sai hoặc mở rộng pool mục tiêu.
+- FR030 + nối engine: durationMs=799/800 cho cờ đúng, chấm server IMMEDIATE, finish tính từ attempt_items; skip/audioFailed theo engine. 429 E-R12 khi tạo lượt thứ 121; không thêm rate limiter. Request lỗi không tạo attempt.
+- RBAC/CSRF: guest 401, các role khác 403, cookie thiếu/sai CSRF 403, cookie hợp lệ/Bearer thành công; id/body/mode sai 422 và request_id đúng. HSK 1–9 ở API giữ nguyên. Contract test so POST với source và giữ ba path cũ. Query chọn mục tiêu tổng hợp có giới hạn, không N+1 đếm đúng.
+
+**Lệnh sau duyệt:** PowerShell thường ngoài sandbox có Docker, Java 17; bỏ DEBUG chỉ trong tiến trình test. `.\mvnw.cmd '-Dtest=TopicPracticeIntegrationTest,TopicContractTest,GlobalExceptionHandlerTest' test`, rồi `.\mvnw.cmd verify`. Đối chiếu Surefire 0 failure/error/skip, JaCoCo toàn bộ>=80%, practice>=90%; `git diff --check`, phạm vi 11 file, UTF-8 không BOM/TODO. Một commit `feat(vocab): add topic practice sessions (T-11)`, stage từng file/hunk T-11; push nhánh part3 và mở Draft PR mới vào main sau đủ gate. Không merge PR, merge/rebase/pull main, force-push hoặc push main.
+
+**Rủi ro:** hiểu sai phạm vi điểm đúng; focus giới hạn nhầm cả nhiễu; thiếu sinh câu sau khi lấy 10 mục tiêu; lộ đáp án/đọc sai chế độ khi khôi phục. Giữ named stubs PR #26 để không tái phát lỗi Spring context. Rủi ro đã biết của T-12: stub TOPIC_TEST sẽ trùng nguồn khi có TopicTestHandler thật, đã ghi ở PR #26; không giải quyết bằng thay engine/test cũ trong T-11.
+
+### Q-T11-02 — Phạm vi file dùng chung và OpenAPI
+
+**Chốt, 2026-10-31 — leader duyệt:** Đúng 11 file trên. SecurityConfig chỉ thêm 1 matcher POST practice-sessions cho LEARNER. ErrorCode thêm NO_LEARNED_WORDS, NO_AUDIO_WORDS, NOT_ENOUGH_WORDS, INVALID_FOCUS_WORDS ngay trước INTERNAL_ERROR; GlobalExceptionHandlerTest đồng bộ thứ tự, giữ containsExactly. OpenAPI chỉ thêm 403 và mô tả cho POST này, trước code. Không sửa practice engine, ChoiceItemFactory, test spec khác; không migration/dependency. Nếu cần schema thì dừng xin số V5.
+
+### Q-T11-03 — Phạm vi đếm số câu đúng
+
+**Chốt, 2026-10-31 — leader duyệt:** Đếm theo user+lexeme trên mọi chủ đề, cả hai chế độ và mọi trạng thái lượt, chỉ ref_type=TOPIC_PRACTICE và is_correct=true. Lịch sử dùng cột quan hệ, không đọc/lọc JSONB; hoà thì ngẫu nhiên. TOPIC_TEST, người khác, câu sai/skip/audioFailed không làm tăng số đúng.
+
+### Q-T11-04 — focusLexemeIds và thứ tự lỗi
+
+**Chốt, 2026-10-31 — leader duyệt:** Thứ tự: (a) body sai, mode thiếu/sai, focus >20 hoặc [], ID <=0 trong body, null/sai kiểu theo contract → 422 VALIDATION_FAILED; (b) id topic sai định dạng/<=0 → 422, topic thiếu/rỗng → 404 TOPIC_NOT_FOUND; (c) chưa học từ nào của chủ đề → NO_LEARNED_WORDS; (d) có focus thì gộp ID trùng, bất kỳ ID không thuộc chủ đề hoặc chưa học → INVALID_FOCUS_WORDS, chỉ dùng các từ focus làm mục tiêu; nhiễu vẫn G-1…G-6; (e) LISTENING lọc audio_url khác null, không còn mục tiêu → NO_AUDIO_WORDS kể cả ngoài focus có audio; (f) không sinh được câu → NOT_ENOUGH_WORDS. Bốn lỗi nghiệp vụ đều HTTP 422.
+
+### Q-T11-05 — Khi G-4 loại mục tiêu trong nhóm 10 từ
+
+**Chốt, 2026-10-31 — leader duyệt:** Duyệt lần lượt toàn bộ ứng viên đã xếp ưu tiên, bỏ từ thiếu nhiễu; dừng khi đủ 10 câu hoặc hết ứng viên. KHÔNG chọn 10 từ rồi mới bỏ. Thêm test chứng minh từ ưu tiên thiếu nhiễu được bù bằng từ sau. Không tự đổi loại câu hoặc mở rộng focus.
+
+### Q-T11-06 — Meta chế độ và rules nhận diện
+
+**Chốt, 2026-10-31 — leader duyệt:** Không thêm meta.mode và không đổi contract cho mode; FE suy ra chế độ từ loại câu. RECOGNITION rules={minDurationMs:800,maxReplays:3,hasAudio:false}; LISTENING={800,3,true}. mixedDistractors=true trong SessionView.meta nếu bất kỳ câu đã sinh lấy nhiễu ngoài chủ đề. RECOGNITION không pinyin trong prompt; items/meta không có đáp án. Mỗi POST hợp lệ tạo lượt mới, 201, không advisory lock; userId từ AuthApi.currentUser().
+
+**Self-check chuẩn bị:** AC-01 contract duyệt trước code; AC-03/BUS-01 AuthApi và learning-owned data; AC-05/AC-09 không migration/Neon, lịch sử query cột quan hệ; HR-02/HR-08 không đọc/chuyển secret/dữ liệu bản quyền; ES-01/ES-05/ES-07 stack, gate và nhánh mới từ main. Gate sau triển khai: test chọn lọc, verify Java 17/Docker 0 failure/error/skip, coverage >=80%/practice >=90%, diff/BOM/TODO; một commit T-11, stage file cụ thể, push và Draft PR mới, không merge/rebase/pull main/force-push/push main.
+
+**Ghi chú triển khai trong phạm vi duyệt:** Test đầu phát hiện HttpMessageNotReadableException (JSON lỗi/body thiếu/sai kiểu) đang bị handler chung ánh xạ 500. T-11 đọc và kiểm JSON cục bộ trong TopicController, chuyển sang ApiException VALIDATION_FAILED qua handler chung; giữ DTO record cho OpenAPI. Kiểm nguyên dương và tràn Long, không cho Jackson cắt phần thập phân hoặc ép chuỗi thành ID; từ chối JSON có dữ liệu thừa sau object. Không sửa GlobalExceptionHandler hay thêm advice/handler mới. Cả 62 test chọn lọc (53 integration T-11, 4 contract, 5 error handler) đã xanh; gate toàn bộ chạy tiếp sau đó. Bốn shared expectation vẫn containsExactly, không nới assert để bỏ lỗi.
+
+### Nghiệm thu T-11 — 2026-10-31
+
+- Đúng 11 file Q-T11-01; Q-T11-02…06 Chốt, không còn câu hỏi T-11 mở. TopicPracticeService/Repository mới; controller thêm POST; SecurityConfig đúng 1 matcher; ErrorCode 4 mã ngay trước INTERNAL_ERROR và test containsExactly đồng bộ; integration/contract tests, OpenAPI, tasks/questions. Bộ máy practice, ChoiceItemFactory, test spec khác, migration/dependency và FE giữ nguyên.
+- FR-025: một truy vấn tập hợp ứng viên đã học theo FR-015, đếm đúng bằng cột quan hệ user+lexeme/TOPIC_PRACTICE/is_correct=true trên mọi chủ đề/chế độ/trạng thái, hoà ngẫu nhiên. Duyệt toàn bộ ứng viên và bù từ sau G-4, không LIMIT 10 trước khi sinh; dừng ở 10 câu hoặc hết danh sách. Test 12 ứng viên, từ đầu thiếu nhiễu được bù, đạt 10 câu, xác nhận 11 lần gọi factory.
+- FR-026…030: đúng câu nhận diện/nghe, 4 options, không pinyin ở nhận diện, không text/pinyin mục tiêu ở nghe, rules 800/3/hasAudio theo chế độ; mixedDistractors true khi có nhiễu ngoài chủ đề, không meta.mode. Focus gộp trùng, giới hạn mục tiêu; nhiễu vẫn G-1…G-6. Từng POST thành công là lượt mới 201, IMMEDIATE, TTL 2 giờ, không advisory lock. HSK 1–9 ở API giữ nguyên.
+- Thứ tự lỗi đã kiểm: JSON/body/focus shape/ID dương → topic → chưa học → focus hợp lệ → audio → sinh câu. JSON lỗi, thiếu body, sai kiểu, null, [], >20, Long tràn/số thập phân/chuỗi ID đều 422 VALIDATION_FAILED; request_id đúng. Các lỗi nghiệp vụ dùng bốn ErrorCode mới, thiếu/rỗng topic dùng TOPIC_NOT_FOUND.
+- `.\mvnw.cmd '-Dtest=TopicPracticeIntegrationTest,TopicContractTest,GlobalExceptionHandlerTest' test`: 62 pass (53 integration T-11, 4 contract, 5 error handler; 54 ca mới). `.\mvnw.cmd verify`: BUILD SUCCESS, Java 17/PowerShell ngoài sandbox có Docker, 7 phút 7 giây; 95 Surefire XML xác nhận 1591 test, 0 failure/error/skip. JaCoCo line toàn bộ 96,57% (4724/4892), practice 100% (743/743), vocab 99,09% (217/219). git diff --check sạch; 11 file UTF-8 không BOM, code T-11 không TODO/FIXME. FE không đổi nên không chạy gate FE.
+
+**Self-check Constitution T-11:**
+
+- AC-01: leader duyệt contract trước code, source chỉ thêm 403/mô tả cho POST mới; test runtime request/response/schema giữ đủ các kiểm tra cũ, focus optional và mode bắt buộc.
+- AC-03/BUS-01/BUS-06: userId chỉ từ AuthApi.currentUser(), học và lịch sử chỉ truy cập dữ liệu learning; test userId giả không lấy được tiến độ của người khác, response DTO không entity/PII/đáp án.
+- BUS-02/HR-06/BUS-09: transaction điều phối read/generate/start; IMMEDIATE answer/finish dùng engine, không tin score client (test score=999999 vẫn chấm 1), lịch sử đúng dựa evidence server.
+- HR-05/HR-07/HR-09: một matcher LEARNER, CSRF cookie và Bearer giữ nguyên; input kiểm trước query, SQL tham số hoá; sai body thành ApiException chuẩn qua handler chung duy nhất, không đưa nội dung input hoặc exception nội bộ vào lỗi client.
+- HR-02/HR-08: không đọc/stage .env hoặc secret, không log thông tin thật; fixture tự soạn chỉ trong Testcontainers, không dữ liệu đề/tài liệu bản quyền.
+- AC-05/AC-07/AC-08/AC-09: không migration/Neon hoặc đổi kiểu điểm/thời gian; TTL/Clock và các ghi evidence dùng engine; lịch sử dùng cột quan hệ, không lọc answer/meta JSONB, không thêm meta.mode.
+- ES-01/ES-03/ES-05: Java 17/Maven Wrapper, không dependency mới; package/route/naming đúng; test tên FR025…FR030 theo AT và yêu cầu bù câu; full gate không skip, coverage vượt cả ngưỡng toàn bộ 80% và practice 90%.
+- ES-06/ES-07: một Conventional Commit T-11 trên spec/003-vocab-topics-part3 từ main ee910c8; stage đúng 11 file và push/mở Draft PR mới sau gate; không merge PR, merge/rebase/pull main, force-push hoặc push main. Rủi ro stub TOPIC_TEST/TopicTestHandler của T-12 từ PR #26 vẫn được giữ để chốt trong task đó.
