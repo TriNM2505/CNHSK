@@ -18,3 +18,21 @@
 
 - FE tải toàn bộ danh sách điểm ngữ pháp một lần rồi chia bảy tab ở client; không gọi riêng `hskLevel=7,8,9`. Cách này cần thiết để mỗi tab hiện số điểm và tab mặc định chọn theo dữ liệu trả về.
 - T-04 chỉ bổ sung test acceptance cho SCR-017; không sửa production code khi implementation hiện tại đã khớp FR-004.
+
+## 2026-11-01 — T-02 GrammarLessonService
+
+- Leader chốt ngày 2026-10-31 và cho làm sau khi PR #38 (spec 006 T-03) đưa `PracticeService.recordAndFinish` lên `main`; không tự gọi `start` rồi `finish`, không sửa `PracticeService`.
+- `recordAndFinish` chỉ dùng cho điểm không có bài tập (mọi câu `gradable=false`); điểm có bài tập đi qua `PracticeService.start`.
+- FR-014: advisory lock theo giao dịch cho cặp user + điểm ngữ pháp trước khi tìm hoặc tạo lượt, để hai request đồng thời chỉ tạo một lượt.
+- Gọi `rateLimiter.checkStart(userId)` trước `recordAndFinish`; `GRAMMAR_LESSON` vẫn tính quota 120 lượt/giờ (chỉ `CHAR_WRITING` được miễn).
+- `readDurationMs` ngoài 0…3 600 000 → 422; id sai định dạng → 422; id không phải `GRAMMAR` → 404 `GRAMMAR_POINT_NOT_FOUND`.
+- Test bắt buộc: response không chứa đáp án; AT-09 kiểm `learned=true` qua `GET /api/grammar`.
+
+## 2026-11-01 — T-02 readTooFast (duyệt tạm)
+
+- Leader duyệt tạm: T-02 giữ `readTooFast` ở `meta` của lượt (response và snapshot) vì chưa có `GrammarLessonHandler`.
+- **AT-06 mới đạt ở response.** Phần bằng chứng trên `LESSON_READ.meta` (spec §10) chuyển sang T-03.
+- T-03 bắt buộc, chưa đủ thì leader không nghiệm thu T-03:
+  - `GrammarLessonHandler` ghi `readTooFast=true` vào `meta` của đúng câu `LESSON_READ` trong `attempt_items`; cờ do server tính, không lấy từ client.
+  - Bỏ `readTooFast` khỏi `meta` của lượt (response và snapshot) để chỉ còn một nguồn.
+  - Sửa test T-02 đang assert `meta` của lượt sang truy vấn DB thật: giải thích 500 ký tự đọc 2 giây thì có cờ, 100 ký tự thì không; kiểm cả nhánh không có bài tập (FR-013) và có bài tập. Việc sửa test T-02 được phép trong T-03 và phải nêu trong Shadow Plan T-03.

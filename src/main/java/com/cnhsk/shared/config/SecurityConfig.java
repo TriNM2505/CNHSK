@@ -124,6 +124,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.GET, "/api/topics").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/topics/{id}").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/grammar", "/api/grammar/{id}").hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.POST, "/api/grammar/{id}/lessons").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/characters").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/characters/{id}").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.POST, "/api/characters/recognition-sessions").hasRole("LEARNER");
