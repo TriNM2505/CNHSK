@@ -456,6 +456,20 @@ paths:
       tags: [topics]
       operationId: startTopicPractice
       summary: Bắt đầu luyện nhận diện/nghe (FR-025…FR-030)
+      description: |
+        Q-T11-02…06 (leader chốt 2026-10-31): chỉ LEARNER, giữ CSRF cho cookie.
+        Body sai, mode thiếu/sai, focusLexemeIds rỗng hoặc quá 20 phần tử,
+        ID không dương hoặc sai kiểu trả 422 VALIDATION_FAILED; id topic sai cũng trả 422.
+        Topic thiếu/rỗng trả 404 TOPIC_NOT_FOUND, chưa học từ nào trả 422 NO_LEARNED_WORDS.
+        Sau đó gộp ID focus trùng, kiểm mọi ID thuộc chủ đề và đã học, sai trả 422 INVALID_FOCUS_WORDS.
+        Focus chỉ giới hạn mục tiêu; nhiễu vẫn theo G-1…G-6.
+        LISTENING lọc mục tiêu có audio; không còn trả 422 NO_AUDIO_WORDS, kể cả ngoài focus có audio.
+        Đếm số đúng theo user/lexeme, mọi chủ đề/chế độ/trạng thái, chỉ TOPIC_PRACTICE và is_correct=true.
+        Duyệt toàn bộ ứng viên theo số đúng tăng dần, hoà ngẫu nhiên; bỏ từ thiếu nhiễu,
+        lấy từ sau bù tới 10 câu hoặc hết ứng viên; không có câu trả 422 NOT_ENOUGH_WORDS.
+        Mỗi POST hợp lệ tạo lượt mới, trả 201; không advisory lock, không meta.mode.
+        minDurationMs=800, maxReplays=3 kể cả lần đầu; hasAudio chỉ true cho LISTENING.
+        mixedDistractors=true ở meta lượt nếu có câu lấy nhiễu ngoài chủ đề; items/meta không có đáp án.
       parameters: [ { $ref: '#/components/parameters/TopicId' } ]
       requestBody:
         required: true
@@ -473,6 +487,7 @@ paths:
       responses:
         '201': { $ref: '#/components/responses/Session' }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
