@@ -1,5 +1,17 @@
 # Questions and decisions — Spec 006
 
+## Chốt T-06 ngày 2026-11-01
+
+Trạng thái: **Chốt — leader 2026-11-01**.
+
+- Phạm vi T-06 gồm đúng `HanziCanvas.tsx`, `HanziCanvas.test.tsx`, `cnhsk-web/package.json`, `cnhsk-web/package-lock.json`, `cnhsk-web/.env.example`, cập nhật riêng T-06 trong `tasks.md`, và ghi quyết định trong `questions.md`.
+- Chỉ thêm `hanzi-writer@3.7.3`; không cài `hanzi-writer-data`. Dữ liệu tải từ URL gốc `VITE_HANZI_DATA_URL=https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0.1`; loader nối `/{mã-hóa-chữ}.json`, bỏ dấu `/` cuối, biến rỗng dùng URL ghim trên.
+- T-06 chỉ làm nền canvas: tải dữ liệu nét, báo lỗi dữ liệu, khung 300×300 co theo màn hình nhỏ và tối thiểu 240 px, chống kết quả tải cũ ghi đè chữ mới, không gọi callback sau unmount và dọn writer. Không triển khai STROKE/RECALL/DICTATION hay thử thách.
+- Không sửa `HanziCanvasSlot.tsx`, `CharacterPracticeView.tsx`, `WritingChallengeView.tsx`, hoặc `Scr014CharacterWritingPage.test.tsx`; thay đổi tích hợp thuộc T-08/T-09. AT-23 chưa hoàn tất ở T-06; phần còn lại thuộc T-08/T-09.
+- T-06 chạy trong worktree riêng. Lockfile sinh bằng `npx --yes npm@11.13.0 install --package-lock-only --ignore-scripts --save-exact hanzi-writer@3.7.3`; chỉ chấp nhận diff `package.json +1`, `package-lock.json +7`, không có dòng xóa. Sau đó chạy `npm ci` và xác nhận diff không đổi.
+- Test mock `hanzi-writer` trong `HanziCanvas.test.tsx`, bao gồm URL/encoding, bỏ `/` cuối, fallback, lỗi HTTP/mạng/JSON, đổi chữ trong lúc tải, unmount, resize và kích thước tối thiểu 240 px.
+- Gate FE: `npm run lint`, `npm run typecheck`, `npx vitest run --maxWorkers=2 --minWorkers=1`, `npm run build`, `git diff --check`, kiểm BOM/TODO. Một commit T-06, file cụ thể, push và Draft PR riêng.
+
 ## Quyết định leader ngày 2026-10-31
 
 | # | Quyết định | Trạng thái |
