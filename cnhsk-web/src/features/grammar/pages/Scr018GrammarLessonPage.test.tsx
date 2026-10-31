@@ -11,6 +11,19 @@ import { getGrammarLesson, getGrammarPoints, startGrammarLesson } from '../api/g
 import type { GrammarLesson } from '../types'
 import Scr018GrammarLessonPage from './Scr018GrammarLessonPage'
 
+const { summaryResults } = vi.hoisted(() => ({ summaryResults: vi.fn() }))
+
+vi.mock('@/features/practice', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/practice')>()
+  return {
+    ...actual,
+    SessionSummary: (props: Parameters<typeof actual.SessionSummary>[0]) => {
+      summaryResults(props.result)
+      return <actual.SessionSummary {...props} />
+    },
+  }
+})
+
 vi.mock('../api/grammar', () => ({
   getGrammarLesson: vi.fn(),
   getGrammarPoints: vi.fn(),
@@ -101,6 +114,24 @@ function finish(extra: Record<string, unknown>): FinishResult {
   }
 }
 
+const READ_ANSWER = { answer: 'UNDERSTOOD', counted: false, no: 1 }
+
+function submitted(
+  answered: SessionView['answered'],
+  items: SessionView['items'] = session().items,
+): SessionView {
+  return { ...session('SUBMITTED'), answered, items }
+}
+
+function lastSummary() {
+  return summaryResults.mock.calls.at(-1)?.[0] as FinishResult
+}
+
+async function chooseFirstOption(user: ReturnType<typeof userEvent.setup>) {
+  const choices = await screen.findByRole('group', { name: 'Các phương án' })
+  await user.click(within(choices).getAllByRole('button')[0]!)
+}
+
 function renderPage(path = '/learn/grammar/21') {
   return render(
     <MemoryRouter initialEntries={[path]}>
@@ -115,6 +146,7 @@ describe('SCR-018 Grammar Lesson', () => {
   afterEach(() => vi.restoreAllMocks())
 
   beforeEach(() => {
+    summaryResults.mockClear()
     getGrammarLessonMock.mockReset().mockResolvedValue(lesson)
     getGrammarPointsMock.mockReset().mockResolvedValue([lesson])
     startGrammarLessonMock.mockReset().mockResolvedValue(session())
@@ -272,5 +304,190 @@ describe('SCR-018 Grammar Lesson', () => {
       'href',
       '/learn/grammar',
     )
+  })
+
+  it.each([null, '', '   '])(
+    'FR-006 hiện đủ nội dung bài và ẩn Lỗi thường gặp khi rỗng (%j)',
+    async (commonMistake) => {
+      getGrammarLessonMock.mockResolvedValue({ ...lesson, commonMistake })
+      renderPage()
+
+      expect(await screen.findByRole('heading', { name: 'Cấu trúc' })).toBeVisible()
+      expect(screen.getByText('HSK 2')).toBeVisible()
+      expect(screen.getByText('是……的')).toBeVisible()
+      expect(screen.getByText('Nhấn mạnh chi tiết')).toBeVisible()
+      expect(screen.getByText('S + 是 + … + 的')).toBeVisible()
+      expect(screen.getByRole('heading', { name: 'Giải thích' })).toBeVisible()
+      expect(screen.getByText('Giải thích bài học.')).toBeVisible()
+      expect(screen.getByRole('heading', { name: 'Ví dụ' })).toBeVisible()
+      expect(screen.getByText('我是昨天来的。')).toBeVisible()
+      expect(screen.getByText('Wǒ shì zuótiān lái de.')).toBeVisible()
+      expect(screen.getByText('Tôi đến hôm qua.')).toBeVisible()
+      expect(screen.queryByRole('heading', { name: 'Lỗi thường gặp' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Đã hiểu' })).toBeVisible()
+    },
+  )
+
+  it('FR-006 hiện Lỗi thường gặp khi có nội dung', async () => {
+    getGrammarLessonMock.mockResolvedValue({ ...lesson, commonMistake: 'Không bỏ 的 ở cuối câu.' })
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Lỗi thường gặp' })).toBeVisible()
+    expect(screen.getByText('Không bỏ 的 ở cuối câu.')).toBeVisible()
+  })
+
+  it('FR-008 không hiện Lần ôn tiếp theo khi đọc và khi kết thúc', async () => {
+    startGrammarLessonMock.mockResolvedValue({
+      finish: finish({ exercisesTotal: 0, skippedExercises: false }),
+      session: session('SUBMITTED'),
+    })
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Đã hiểu' }))
+    expect(await screen.findByRole('heading', { name: 'Đã ghi nhận bài học' })).toBeVisible()
+    expect(screen.queryByText(/Lần ôn tiếp theo/)).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [2, 'Đúng 2/2'],
+    [1, 'Đúng 1/2'],
+  ])('FR-018 làm hết bài tập (%i đúng) thì hiện "%s"', async (correct, title) => {
+    finishSessionMock.mockResolvedValue(
+      finish({
+        answered: 2,
+        correct,
+        exercisesTotal: 2,
+        percent: correct * 50,
+        skippedExercises: false,
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Đã hiểu' }))
+    await chooseFirstOption(user)
+    await user.click(await screen.findByRole('button', { name: /Câu tiếp/ }))
+    expect(await screen.findByText('Câu 2/2')).toBeVisible()
+    await chooseFirstOption(user)
+    await user.click(await screen.findByRole('button', { name: /Câu tiếp/ }))
+
+    expect(await screen.findByRole('heading', { name: title })).toBeVisible()
+    expect(screen.queryByText('Điểm này chưa có bài tập.')).not.toBeInTheDocument()
+    expect(finishSessionMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('FR-017 FR-018 bỏ qua sau xác nhận thì hiện Đã ghi nhận bài học', async () => {
+    finishSessionMock.mockResolvedValue(
+      finish({
+        answered: 0,
+        correct: 0,
+        exercisesTotal: 2,
+        percent: null,
+        skippedExercises: true,
+      }),
+    )
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Đã hiểu' }))
+    await user.click(await screen.findByRole('button', { name: 'Bỏ qua bài tập' }))
+    await user.click(screen.getByRole('button', { name: 'Bỏ qua và ghi nhận bài học' }))
+
+    expect(await screen.findByRole('heading', { name: 'Đã ghi nhận bài học' })).toBeVisible()
+    expect(screen.queryByText('Điểm này chưa có bài tập.')).not.toBeInTheDocument()
+  })
+
+  it('khôi phục lượt đã nộp ở nơi khác và dựng lại kết quả kèm percent', async () => {
+    answerItemMock.mockRejectedValue(
+      new ApiError({
+        errorCode: 'SESSION_ALREADY_SUBMITTED',
+        message: 'Lượt luyện đã kết thúc.',
+        requestId: 'req-409',
+        status: 409,
+      }),
+    )
+    getSessionMock.mockResolvedValue(
+      submitted([
+        READ_ANSWER,
+        { answer: 'A', correct: true, correctAnswer: 'A', counted: true, no: 2 },
+        { answer: 'A', correct: true, correctAnswer: 'A', counted: true, no: 3 },
+      ]),
+    )
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Đã hiểu' }))
+    await chooseFirstOption(user)
+
+    expect(await screen.findByRole('heading', { name: 'Đúng 2/2' })).toBeVisible()
+    expect(getSessionMock).toHaveBeenCalledWith(101)
+    expect(screen.getByText('2/2')).toBeVisible()
+    expect(screen.queryByText('Điểm này chưa có bài tập.')).not.toBeInTheDocument()
+    expect(lastSummary()).toMatchObject({
+      extra: { answered: 2, correct: 2, exercisesTotal: 2, percent: 100, skippedExercises: false },
+      maxScore: 2,
+      percent: 100,
+      score: 2,
+    })
+    expect(lastSummary().extra).not.toHaveProperty('firstTimeLearned')
+    expect(lastSummary().items.map((item) => item.no)).toEqual([2, 3])
+    expect(finishSessionMock).not.toHaveBeenCalled()
+  })
+
+  it('khôi phục lượt đã bỏ qua một câu thì hiện Đã ghi nhận bài học', async () => {
+    findActiveSessionMock.mockResolvedValue(session())
+    getSessionMock.mockResolvedValue(
+      submitted([
+        READ_ANSWER,
+        { answer: 'A', correct: true, correctAnswer: 'A', counted: true, no: 2 },
+        { answer: null, correct: null, counted: false, no: 3 },
+      ]),
+    )
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Đã ghi nhận bài học' })).toBeVisible()
+    expect(screen.queryByText('Điểm này chưa có bài tập.')).not.toBeInTheDocument()
+    expect(lastSummary()).toMatchObject({
+      extra: { answered: 1, correct: 1, exercisesTotal: 2, percent: 100, skippedExercises: true },
+      maxScore: 1,
+      percent: 100,
+      score: 1,
+    })
+  })
+
+  it('khôi phục lượt không có bài tập vẫn hiện Điểm này chưa có bài tập', async () => {
+    findActiveSessionMock.mockResolvedValue(session())
+    getSessionMock.mockResolvedValue(submitted([READ_ANSWER], [session().items[0]!]))
+    renderPage()
+
+    expect(await screen.findByRole('heading', { name: 'Đã ghi nhận bài học' })).toBeVisible()
+    expect(screen.getByText('Điểm này chưa có bài tập.')).toBeVisible()
+    expect(screen.getByText('Không chấm điểm')).toBeVisible()
+    expect(screen.queryByText('0/0')).not.toBeInTheDocument()
+    expect(lastSummary()).toMatchObject({
+      extra: { answered: 0, correct: 0, exercisesTotal: 0, percent: null, skippedExercises: false },
+      maxScore: null,
+      percent: null,
+      score: null,
+    })
+  })
+
+  it('POST trả lượt dở thì nhảy tới câu chưa trả lời đầu tiên', async () => {
+    startGrammarLessonMock.mockResolvedValue({
+      ...session(),
+      answered: [
+        READ_ANSWER,
+        { answer: 'A', correct: true, correctAnswer: 'A', counted: true, no: 2 },
+      ],
+    })
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: 'Đã hiểu' }))
+
+    expect(await screen.findByText('Câu 2/2')).toBeVisible()
+    expect(screen.getByText('我是昨天来___。')).toBeVisible()
+    expect(finishSessionMock).not.toHaveBeenCalled()
   })
 })

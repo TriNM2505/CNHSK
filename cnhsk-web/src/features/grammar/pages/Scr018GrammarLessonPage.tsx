@@ -30,17 +30,33 @@ function restoredFinishResult(
   session: ReturnType<typeof usePracticeSession>['session'],
 ): FinishResult | undefined {
   if (!session || session.status !== 'SUBMITTED') return undefined
+  // Rebuild the server summary from the reloaded session; firstTimeLearned is unknown here.
+  const choiceNumbers = new Set(
+    session.items.filter((item) => item.type === 'GRAMMAR_CHOICE').map((item) => item.no),
+  )
+  const choiceAnswers = session.answered.filter((answer) => choiceNumbers.has(answer.no))
+  const exercisesTotal = choiceNumbers.size
+  const answered = choiceAnswers.filter((answer) => answer.counted === true).length
+  const correct = choiceAnswers.filter((answer) => answer.correct === true).length
+  const percent = answered === 0 ? null : Math.floor((correct * 100) / answered)
+  const scored = exercisesTotal > 0
   return {
-    items: session.answered
-      .filter((answer) =>
-        session.items.some((item) => item.no === answer.no && item.type === 'GRAMMAR_CHOICE'),
-      )
-      .map((answer) => ({
-        correct: answer.correct,
-        correctAnswer: answer.correctAnswer,
-        no: answer.no,
-        yourAnswer: answer.answer,
-      })),
+    extra: {
+      answered,
+      correct,
+      exercisesTotal,
+      percent,
+      skippedExercises: answered < exercisesTotal,
+    },
+    items: choiceAnswers.map((answer) => ({
+      correct: answer.correct,
+      correctAnswer: answer.correctAnswer,
+      no: answer.no,
+      yourAnswer: answer.answer,
+    })),
+    maxScore: scored ? answered : null,
+    percent: scored ? percent : null,
+    score: scored ? correct : null,
     sessionId: session.sessionId,
     status: 'SUBMITTED',
     suspicious: false,

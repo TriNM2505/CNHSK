@@ -46,3 +46,14 @@
 - `firstTimeLearned` = không có lượt `GRAMMAR_LESSON` `SUBMITTED` nào khác của cùng user + điểm, loại trừ lượt hiện tại (cách của `TopicTestHandler`). Chấp nhận rủi ro không khóa khi finish.
 - Kết quả thực tế: engine **chấp nhận** `skipped=true` cho `GRAMMAR_CHOICE` (`GRAMMAR_LESSON.allowSkip = true`). Câu đó vẫn được ghi (`meta.skipped = true`, `is_correct NULL`) nhưng không tính vào `answered`, nên `skippedExercises = true`.
 - `POST answer` cho câu 1 (`LESSON_READ`) của lượt có bài tập trả 409 `ANSWER_ALREADY_SUBMITTED`; `meta` và `duration_ms` của câu đó không đổi.
+
+## 2026-11-01 — T-05 SCR-018 Grammar Lesson
+
+- Leader duyệt Shadow Plan T-05, đúng 4 file: `Scr018GrammarLessonPage.tsx`, `Scr018GrammarLessonPage.test.tsx`, `tasks.md`, `questions.md`. Không sửa `GrammarLessonView`, `features/practice`, `shared`, `app`, backend, lockfile.
+- SCR-018 đã có trên `main` và đạt FR-006…FR-008, FR-017; T-05 sửa lỗi FR-018 ở luồng khôi phục lượt đã `SUBMITTED` và bổ sung test.
+- Tiêu đề kết thúc theo FR-018: "Đúng {correct}/{total}"; US-1 chỉ mô tả tình huống.
+- `restoredFinishResult` dựng lại kết quả như `finish` thật, chỉ đếm câu `GRAMMAR_CHOICE` (không đếm `LESSON_READ`): `exercisesTotal`, `answered` (câu counted), `correct`, `percent` (`null` khi `answered = 0`, còn lại `floor(correct*100/answered)`), `skippedExercises = answered < exercisesTotal`; `score = correct`, `maxScore = answered`.
+- Điểm không có bài tập (`exercisesTotal = 0`): `score`, `maxScore`, `percent` để trống để vẫn hiện "Điểm này chưa có bài tập." và "Không chấm điểm", không hiện 0/0.
+- `firstTimeLearned` để trống trong luồng khôi phục; giao diện không hiển thị gì dựa vào nó.
+- Response `POST /lessons`: 201 `{session, finish}` hiện kết quả ngay, không gọi `finish`; 200/201 trả lượt dở thì nhảy tới câu chưa trả lời đầu tiên, trả lời hết thì tự `finish`.
+- Chạy thật: chưa chạy được. `.env` có sẵn nhưng DB chung từ chối đăng nhập của tài khoản ứng dụng (`password authentication failed`). Backend được khởi động với `spring.flyway.enabled=false` để không chạy migration; không tạo dữ liệu, không chạy SQL.
