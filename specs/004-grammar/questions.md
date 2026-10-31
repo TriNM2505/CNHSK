@@ -18,3 +18,12 @@
 
 - FE tải toàn bộ danh sách điểm ngữ pháp một lần rồi chia bảy tab ở client; không gọi riêng `hskLevel=7,8,9`. Cách này cần thiết để mỗi tab hiện số điểm và tab mặc định chọn theo dữ liệu trả về.
 - T-04 chỉ bổ sung test acceptance cho SCR-017; không sửa production code khi implementation hiện tại đã khớp FR-004.
+
+## 2026-11-01 — T-02 GrammarLessonService
+
+- Leader chốt ngày 2026-10-31 và cho làm sau khi PR #38 (spec 006 T-03) đưa `PracticeService.recordAndFinish` lên `main`; không tự gọi `start` rồi `finish`, không sửa `PracticeService`.
+- `recordAndFinish` chỉ dùng cho điểm không có bài tập (mọi câu `gradable=false`); điểm có bài tập đi qua `PracticeService.start`.
+- FR-014: advisory lock theo giao dịch cho cặp user + điểm ngữ pháp trước khi tìm hoặc tạo lượt, để hai request đồng thời chỉ tạo một lượt.
+- Gọi `rateLimiter.checkStart(userId)` trước `recordAndFinish`; `GRAMMAR_LESSON` vẫn tính quota 120 lượt/giờ (chỉ `CHAR_WRITING` được miễn).
+- `readDurationMs` ngoài 0…3 600 000 → 422; id sai định dạng → 422; id không phải `GRAMMAR` → 404 `GRAMMAR_POINT_NOT_FOUND`.
+- Test bắt buộc: response không chứa đáp án; AT-09 kiểm `learned=true` qua `GET /api/grammar`.
