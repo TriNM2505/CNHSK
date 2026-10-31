@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.cnhsk.learning.content.entity.Lexeme;
 import com.cnhsk.learning.content.entity.LexemeKind;
@@ -38,6 +39,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @AutoConfigureMockMvc
 class CharacterRecognitionIntegrationTest extends AbstractIntegrationTest {
+    private static final AtomicInteger NEXT_CHARACTER_CODE_POINT = new AtomicInteger(0x3400);
+
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper mapper;
     @Autowired private JwtService jwt;
@@ -47,11 +50,13 @@ class CharacterRecognitionIntegrationTest extends AbstractIntegrationTest {
     @MockitoSpyBean private ChoiceItemFactory choiceFactory;
     private long userId;
     private String bearer;
+    private String testRadical;
     private List<Lexeme> characters;
 
     @BeforeEach
     void setUp() throws Exception {
         when(clock.instant()).thenReturn(Instant.parse("2026-10-31T00:00:00Z"));
+        testRadical = "r" + UUID.randomUUID().toString().replace("-", "").substring(0, 7);
         userId = createUser();
         bearer = token(userId, "LEARNER");
         characters = List.of(
@@ -235,11 +240,15 @@ class CharacterRecognitionIntegrationTest extends AbstractIntegrationTest {
     }
 
     private Lexeme character(String pinyin, String meaning, boolean audio) {
-        String text = new String(Character.toChars(0x4e00 + Math.floorMod(UUID.randomUUID().hashCode(), 0x4fff)));
+        int codePoint = NEXT_CHARACTER_CODE_POINT.getAndIncrement();
+        if (codePoint > 0x4DBF) {
+            throw new IllegalStateException("CJK Extension A test characters exhausted.");
+        }
+        String text = new String(Character.toChars(codePoint));
         Lexeme lexeme = new Lexeme(LexemeKind.CHAR, text, meaning);
         lexeme.setPinyin(pinyin);
         lexeme.setHskLevel((short) (audio ? 7 : 9));
-        lexeme.setRadical("口");
+        lexeme.setRadical(testRadical);
         if (audio) {
             lexeme.setAudioUrl("https://audio.example.test/" + UUID.randomUUID() + ".mp3");
         }
