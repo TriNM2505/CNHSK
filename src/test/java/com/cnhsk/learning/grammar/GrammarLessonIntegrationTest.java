@@ -124,12 +124,23 @@ class GrammarLessonIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"2000,500,true", "4999,300,true", "5000,500,false", "2000,299,false", "0,100,false"})
-    void FR010_AT06_flagsFastReadingOnlyForLongExplanations(int duration, int length, boolean flagged) throws Exception {
-        Lexeme point = grammar(explanation(length), 1);
-        JsonNode session = start(owner, point, duration, 201);
-        assertThat(session.path("meta").has("readTooFast")).isEqualTo(flagged);
-        if (flagged) assertThat(session.path("meta").path("readTooFast").asBoolean()).isTrue();
+    @CsvSource({"2000,500,2,true", "2000,500,0,true", "2000,100,2,false", "2000,100,0,false",
+            "4999,300,2,true", "5000,500,2,false", "2000,299,0,false", "0,100,2,false"})
+    void FR010_AT06_flagsFastReadingOnTheLessonReadItemOnly(int duration, int length, int exercises, boolean flagged)
+            throws Exception {
+        Lexeme point = grammar(explanation(length), exercises);
+        JsonNode body = start(owner, point, duration, 201);
+        JsonNode session = exercises == 0 ? body.path("session") : body;
+        long id = session.path("sessionId").asLong();
+        AttemptItem read = attemptItems.findByAttemptIdOrderByOrderIndexAsc(id).get(0);
+        assertThat(read.getItemType()).isEqualTo("LESSON_READ");
+        if (flagged) {
+            assertThat(read.getMeta()).containsEntry("readTooFast", true);
+        } else {
+            assertThat(read.getMeta()).doesNotContainKey("readTooFast");
+        }
+        assertThat(session.path("meta").has("readTooFast")).isFalse();
+        assertThat(served(id).path("meta").has("readTooFast")).isFalse();
     }
 
     @Test
@@ -233,8 +244,9 @@ class GrammarLessonIntegrationTest extends AbstractIntegrationTest {
         String before = redis.opsForValue().get(startKey(learner));
         JsonNode resumed = start(learner, point, 1_000, 200);
         assertThat(resumed.path("sessionId").asLong()).isEqualTo(id);
-        assertThat(resumed.path("meta").has("readTooFast")).isFalse();
-        assertThat(attemptItems.findByAttemptIdOrderByOrderIndexAsc(id).get(0).getDurationMs()).isEqualTo(8_000);
+        AttemptItem read = attemptItems.findByAttemptIdOrderByOrderIndexAsc(id).get(0);
+        assertThat(read.getDurationMs()).isEqualTo(8_000);
+        assertThat(read.getMeta()).doesNotContainKey("readTooFast");
         assertThat(redis.opsForValue().get(startKey(learner))).isEqualTo(before);
         assertThat(start(other, point, 8_000, 201).path("sessionId").asLong()).isNotEqualTo(id);
 
