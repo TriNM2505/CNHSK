@@ -74,11 +74,34 @@ public class PracticeService {
 
     @Transactional
     public SessionView start(StartPracticeCommand command) {
+        return toView(createInTransaction(command, true));
+    }
+
+    /** Creates and finishes a pre-recorded non-DEFERRED attempt; the caller owns rate limiting. */
+    @Transactional
+    public FinishResult recordAndFinish(StartPracticeCommand command) {
+        if (command == null || command.source() == null || command.source().feedback() == FeedbackMode.DEFERRED
+                || command.preRecorded().isEmpty()
+                || command.items().stream().anyMatch(item -> item.type().gradable())) {
+            throw new IllegalArgumentException(
+                    "recordAndFinish requires a non-DEFERRED source with pre-recorded non-gradable items.");
+        }
+        Attempt attempt = createInTransaction(command, false);
+        FinishOutcome outcome = finishInTransaction(command.userId(), attempt.getId(), List.of());
+        if (outcome.failure() != null) {
+            throw outcome.failure();
+        }
+        return outcome.result();
+    }
+
+    private Attempt createInTransaction(StartPracticeCommand command, boolean checkStartLimit) {
         Duration ttl = lifetime(command);
         validateItems(command);
         JsonNode snapshot = mapper.valueToTree(new ServedSnapshot(command.sessionMeta(), command.items()));
         rejectAnswerMetadata(snapshot.path("meta"));
-        rateLimiter.checkStart(command.userId());
+        if (checkStartLimit) {
+            rateLimiter.checkStart(command.userId());
+        }
         Instant now = clock.instant();
         Attempt attempt = new Attempt(command.userId(), command.source().kind().name(), command.source().name(),
                 command.refId(), now, now.plus(ttl), snapshot);
@@ -87,7 +110,7 @@ public class PracticeService {
         for (Answer answer : command.preRecorded()) {
             recordAtStart(attempt, command, answer);
         }
-        return toView(attempt);
+        return attempt;
     }
 
     @Transactional

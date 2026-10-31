@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -41,6 +42,7 @@ import com.cnhsk.shared.security.RateLimiter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -147,6 +149,60 @@ class PracticeServiceTest {
         assertThat(view.answered().get(0).answer()).isEqualTo("KNOWN");
         assertThat(view.answered().get(0).counted()).isFalse();
         assertThat(mapper.writeValueAsString(view)).doesNotContain("correctAnswer", "accept", "explanation");
+    }
+
+    @Test
+    void FR016_recordAndFinishRecordsAndSubmitsWithinOneCallWithoutStartLimit() {
+        EntityManager entityManager = mock(EntityManager.class);
+        Query query = mock(Query.class);
+        when(entityManager.createNativeQuery(anyString())).thenReturn(query);
+        when(query.setParameter(anyString(), any())).thenReturn(query);
+        when(query.executeUpdate()).thenReturn(1);
+        service = new PracticeService(attempts, items, entityManager, mapper,
+                Clock.fixed(NOW, ZoneOffset.UTC), limiter, List.of(),
+                mock(org.springframework.context.ApplicationEventPublisher.class));
+        when(attempts.findByIdForUpdate(42L)).thenAnswer(ignored -> Optional.ofNullable(saved));
+        var writingItem = new ServedItem(1, ItemType.WRITING_RESULT, Skill.WRITING, 77L,
+                new ServedItem.Prompt("好", null, null, "tốt", null, null, null, null, "CHARACTER"),
+                null, null, null, null, new ServedItem.Rules(0, 3, false));
+        var answer = new Answer(1, "COMPLETED", 1000, 0, false, false, Map.of("mode", "STROKE"));
+        var command = new StartPracticeCommand(7, PracticeSource.CHAR_WRITING, 77L, null,
+                List.of(writingItem), List.of(answer), null, Map.of());
+
+        var result = service.recordAndFinish(command);
+
+        assertThat(result.sessionId()).isEqualTo(42L);
+        assertThat(result.status()).isEqualTo("SUBMITTED");
+        assertThat(saved.getStatus()).isEqualTo("SUBMITTED");
+        assertThat(recorded).hasSize(1);
+        assertThat(recorded.get(0).getAnswer()).isEqualTo("COMPLETED");
+        verifyNoInteractions(limiter);
+    }
+
+    @Test
+    void FR016_recordAndFinishAcceptsImmediateUngradableItemsWithNullScore() {
+        EntityManager entityManager = mock(EntityManager.class);
+        Query query = mock(Query.class);
+        when(entityManager.createNativeQuery(anyString())).thenReturn(query);
+        when(query.setParameter(anyString(), any())).thenReturn(query);
+        when(query.executeUpdate()).thenReturn(1);
+        service = new PracticeService(attempts, items, entityManager, mapper,
+                Clock.fixed(NOW, ZoneOffset.UTC), limiter, List.of(),
+                mock(org.springframework.context.ApplicationEventPublisher.class));
+        when(attempts.findByIdForUpdate(42L)).thenAnswer(ignored -> Optional.ofNullable(saved));
+        var studyCard = card(1);
+        var answer = new Answer(1, "KNOWN", 100, 0, false, false, Map.of());
+        var command = new StartPracticeCommand(7, PracticeSource.GRAMMAR_LESSON, 9L, null,
+                List.of(studyCard), List.of(answer), null, Map.of());
+
+        var result = service.recordAndFinish(command);
+
+        assertThat(result.status()).isEqualTo("SUBMITTED");
+        assertThat(result.score()).isNull();
+        assertThat(saved.getStatus()).isEqualTo("SUBMITTED");
+        assertThat(saved.getScore()).isNull();
+        assertThat(recorded).hasSize(1);
+        verifyNoInteractions(limiter);
     }
 
     @Test
