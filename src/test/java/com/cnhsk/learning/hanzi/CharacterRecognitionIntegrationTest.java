@@ -47,11 +47,13 @@ class CharacterRecognitionIntegrationTest extends AbstractIntegrationTest {
     @MockitoSpyBean private ChoiceItemFactory choiceFactory;
     private long userId;
     private String bearer;
+    private String testRadical;
     private List<Lexeme> characters;
 
     @BeforeEach
     void setUp() throws Exception {
         when(clock.instant()).thenReturn(Instant.parse("2026-10-31T00:00:00Z"));
+        testRadical = "r" + UUID.randomUUID().toString().replace("-", "").substring(0, 7);
         userId = createUser();
         bearer = token(userId, "LEARNER");
         characters = List.of(
@@ -239,7 +241,7 @@ class CharacterRecognitionIntegrationTest extends AbstractIntegrationTest {
         Lexeme lexeme = new Lexeme(LexemeKind.CHAR, text, meaning);
         lexeme.setPinyin(pinyin);
         lexeme.setHskLevel((short) (audio ? 7 : 9));
-        lexeme.setRadical("口");
+        lexeme.setRadical(testRadical);
         if (audio) {
             lexeme.setAudioUrl("https://audio.example.test/" + UUID.randomUUID() + ".mp3");
         }
