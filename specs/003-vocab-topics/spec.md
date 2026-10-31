@@ -316,6 +316,7 @@ phần học/luyện/kiểm tra chạy độc lập, lưu bằng chứng để c
 | Mã | Yêu cầu |
 |---|---|
 | **FR-041** | SCR-011 SHALL hiện lưới thẻ chủ đề (tên, cấp HSK, `learnedWords/totalWords`, thanh %, nhãn trạng thái "Chưa học"/"Đang học"/"Hoàn thành", điểm kiểm tra cao nhất), bộ lọc cấp HSK 1–9 ("Tất cả" mặc định), lọc trạng thái phía client. Không hiện ổ khoá |
+| **Làm rõ FR-041 (leader chốt 2026-10-31)** | Giai đoạn hiện tại bộ lọc chỉ hiện HSK 1–3 theo `SUPPORTED_HSK_LEVELS`; API và types vẫn nhận 1–9. |
 | **FR-042** | SCR-012 SHALL có đầu trang chủ đề và **4 bước**: "Học từ mới" · "Luyện nhận diện" · "Luyện nghe" · "Kiểm tra cuối chủ đề"; bước bị khoá theo `actions` hiện lý do ("Học thêm {n} từ để mở bài kiểm tra", "Chủ đề chưa có âm thanh") |
 | **FR-043** | Màn luyện SHALL: hiện câu, phát audio bằng `<audio>` (không tự phát trước khi người dùng bấm lần đầu), đếm số lần nghe lại (tối đa 3), nút "Không nghe được" (gửi `audioFailed`), nút "Bỏ qua" (gửi `skipped`), hiện đúng/sai + đáp án đúng sau khi chấm, "Câu tiếp", tổng kết cuối lượt |
 | **FR-044** | Màn kiểm tra SHALL cho đi lại giữa các câu, lưu nháp từng câu ngay khi chọn/gõ (debounce 500 ms với ô gõ), nút "Nộp bài" có bước xác nhận trong trang ("Còn {k} câu chưa làm — câu chưa làm tính sai"), kết quả: điểm, đạt/không đạt, từ sai, nút "Luyện lại từ sai" (gọi FR-029) |
