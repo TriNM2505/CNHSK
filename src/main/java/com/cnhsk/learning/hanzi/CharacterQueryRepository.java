@@ -92,6 +92,22 @@ public class CharacterQueryRepository {
         return Boolean.TRUE.equals(value);
     }
 
+    /** Checks a completed writing of the same mode in the strict ten-minute window. */
+    public boolean repeatWithin10Min(long userId, long lexemeId, String mode, Instant now) {
+        Object value = entityManager.createNativeQuery("select exists ("
+                + "select 1 from learning.attempt_items ai "
+                + "join learning.attempts a on a.id = ai.attempt_id "
+                + "where a.user_id = :userId and a.ref_type = 'CHAR_WRITING' and a.status = 'SUBMITTED' "
+                + "and a.ref_id = :lexemeId and ai.lexeme_id = :lexemeId "
+                + "and ai.item_type = 'WRITING_RESULT' and ai.answer = 'COMPLETED' "
+                + "and a.submitted_at > :cutoff and a.submitted_at <= :now "
+                + "and ai.meta->>'mode' = :mode)")
+                .setParameter("userId", userId).setParameter("lexemeId", lexemeId)
+                .setParameter("cutoff", now.minusSeconds(600)).setParameter("now", now)
+                .setParameter("mode", mode).getSingleResult();
+        return Boolean.TRUE.equals(value);
+    }
+
     public Instant lastPracticedAt(long userId, long lexemeId) {
         Object value = entityManager.createNativeQuery("select max(ai.answered_at) "
                 + "from learning.attempt_items ai join learning.attempts a on a.id = ai.attempt_id "

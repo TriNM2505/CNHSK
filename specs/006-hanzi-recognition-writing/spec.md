@@ -122,6 +122,8 @@ qua `charDataLoader` tự viết (ghim phiên bản). **Không thay đổi DB.**
 | **FR-018** | `repeatWithin10Min = true` khi đã có `WRITING_RESULT` `completed=true` cùng chữ, cùng `mode`, của người gọi trong 10 phút trước (E3) |
 | **FR-019** | Response **201** `{attemptId, recorded:true, counted, recallUnlocked}`; `counted = completed ∧ ¬repeatWithin10Min`; ≤ **300** lần ghi/giờ mỗi người (Redis `writing:{userId}:{yyyyMMddHH}`) → **429** `RATE_LIMITED` |
 
+`CHAR_WRITING` chỉ tính giới hạn FR-019; không tính practice:start (E-R12).
+
 ### Nhóm 4 — Thử thách (FR-020…FR-027) · UC-017
 
 | Mã | Yêu cầu |
