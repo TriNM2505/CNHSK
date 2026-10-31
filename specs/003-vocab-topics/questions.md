@@ -774,3 +774,72 @@ Không đề xuất sửa engine practice, ChoiceItemFactory, PinyinUtils, Pract
 - ✅ AC-05/AC-06/ES-01/ES-02/ES-03: không SQL/migration/Neon, schema/DB enum, dependency hoặc config; npm ci dùng lockfile hiện có, không đổi lockfile. Giữ React 18/TS 5.7/Vite 5 và component/route/naming hiện có.
 - ✅ ES-05: gate FE đúng duyệt, đủ npm ci/chọn lọc/lint/typecheck/full Vitest/build; 8 ca mới tên FR041 theo phần HSK của AT-40 và các ca leader chốt. Full 1059 pass, không skip/todo; giữ 8 test cũ, không sửa test spec khác. Maven không chạy theo duyệt, không yêu cầu ngoại lệ FR023 import.
 - ✅ ES-06/ES-07/safety: sửa đúng 4 file đã duyệt; chỉ spec thêm 1 dòng, không production/shared. Một Conventional Commit đúng message T-14, stage từng file cụ thể; push nhánh/Draft PR là quyền leader đã cho phép. Nền 73af018 xác nhận sau fetch, không merge/rebase/pull main sau khi tạo nhánh, merge PR, force-push/push main, stash/restore hoặc đụng thay đổi của người khác. Báo commit/merge-base/test rồi dừng chờ leader.
+
+## Q-T15-01 — Shadow Plan SCR-012 và Học từ mới
+
+**Chốt, 2026-10-31 — leader DUYỆT Shadow Plan T-15 với phạm vi 5 file.** FR-042/FR-023/FR-024; AT-40 của T-15 chỉ nghiệm thu phần bước bị chặn và lý do, không đánh dấu AT-40 đạt toàn bộ. T-14 đã đạt phần lọc HSK; các phần còn lại thuộc T-16/T-17.
+
+**Nền:** Đã fetch trước khi tạo nhánh mới `spec/003-vocab-topics-t15` từ `origin/main=9b26af7fdd7e4cda5747eb5e6ba6e4d1564fcf9a`, worktree `C:/KLTN_FALL2026/CNHSK-t15`. Không merge/rebase/pull main sau khi tạo. Điều kiện đủ: spec 001 có 36 dòng task ✅, spec 002 T-01…03 ✅, Q5 đã chốt; T-14 merge #34. Các thay đổi ở worktree IDE và worktree cũ giữ nguyên.
+
+**Đã đọc:** AGENTS.md/constitution/safety, spec 001 §0, spec 003/OpenAPI/tasks/questions; Q-T09/Q-T10/Q-T13, controller/view/helper/test SCR-012; chỉ đọc usePracticeSession, StudyCard, AudioButton, SessionSummary và test dùng chung để đối chiếu. Không có plan.md.
+
+| FR | Test đã có trên main | Phần còn thiếu đã được duyệt |
+|---|---|---|
+| FR-042 | Page: header/route mặc định, lý do khóa/số từ thiếu/cooldown; mở nhận diện thật | Đúng nhãn Kiểm tra cuối chủ đề, matrix actions/lý do, đổi topic không giữ cờ/ref cũ; không làm fallback requiredWords theo Q-T15-03 |
+| FR-023 | StudyCard: ẩn Hán Việt/audio rỗng và hai nút học; page: LEARNED/KNOWN/duration/resume | Bổ sung integration đủ trường thẻ, audioFailed đúng T-10, reset audio theo câu dù cùng URL; counter về 0 khi tải lại theo T-13 |
+| FR-024 | Finish/tổng kết/tải lại topic, sync SUBMITTED/409 và NO_NEW_WORDS | Retry start hoạt động, auto-start/auto-finish không lặp sau lỗi; finish lại chỉ khi người dùng bấm; giữ summary/CTA sau refresh canStudy=false; resume sau câu cuối trước finish |
+
+**Đúng 5 file được sửa:**
+
+| File | Phạm vi |
+|---|---|
+| `cnhsk-web/src/features/vocab/components/TopicStudyView.tsx` | Nhãn bước cuối, StudyCard reset theo câu và trạng thái resume trong khung |
+| `cnhsk-web/src/features/vocab/pages/Scr012TopicStudyPage.tsx` | Lifecycle theo topicId; kiểm /active dù canStudy=false; không POST khi hết từ và không active; retry có chủ ý, chặn auto-finish lặp; giữ summary sau refresh |
+| `cnhsk-web/src/features/vocab/pages/Scr012TopicStudyPage.test.tsx` | Thêm test FR023_/FR024_/FR042_ tái hiện lỗi trước khi sửa; giữ test/fixture/assert cũ |
+| `specs/003-vocab-topics/tasks.md` | Chỉ T-15: phạm vi, gate, kết quả và phần AT-40 đã kiểm |
+| `specs/003-vocab-topics/questions.md` | Chốt, kế hoạch, báo cáo/self-check T-15 |
+
+**Giới hạn đã chốt:** Giữ nguyên topicStudyFlow.ts, không fallback requiredWords, không test field vắng. Không sửa shared/app/practice, backend, spec/OpenAPI, dependency hoặc migration. Cần sửa ngoài 5 file thì dừng hỏi. Không thêm tính năng SCR-012/T-16/T-17; không LOCKED ở cấp chủ đề, bước bị chặn theo actions/lý do FR-042. Không nghe được vẫn tính đã học theo Q-T10-03; bộ đếm nghe về 0 khi tải lại theo Q-T13-02; không tự tạo thời gian/điểm/bằng chứng server.
+
+**Trình tự sau duyệt:** Ghi Chốt → npm ci → baseline/test mới tái hiện lỗi trên production cũ → chỉ sau khi có kết quả đỏ mới sửa hai file production → chọn lọc/hồi quy → lint/typecheck/full Vitest/build → diff/BOM/TODO/lockfile. Gate chỉ FE, không Maven; không có coverage BE mới. Không commit package-lock.json nếu npm ci thay đổi. Một commit T-15, git add file cụ thể, push nhánh và Draft PR mới; báo commit/merge-base/số test rồi dừng chờ leader báo xanh. Không merge PR/main, force-push/push main hoặc thao tác với thay đổi người khác; không secret/PII/email thật/host Neon/HSK bản quyền, SQL/Neon hoặc BOM.
+
+### Q-T15-02 — Khôi phục lượt cũ khi canStudy=false
+
+**Chốt, 2026-10-31 — leader DUYỆT:** Vẫn kiểm /active khi canStudy=false. Có lượt cũ hợp lệ thì tiếp tục hoặc finish, kể cả sau câu cuối; không có lượt thì hiện hết từ mới, không POST tạo lượt. Giữ summary/CTA sau refresh làm canStudy=false. Không mở lại các bước khác bằng điều kiện tự tính của client.
+
+### Q-T15-03 — Không làm fallback requiredWords
+
+**Chốt, 2026-10-31 — leader KHÔNG duyệt fallback:** Backend trả requiredWords kiểu long nên luôn có giá trị; field vắng không xảy ra với API thật. Giữ nguyên topicStudyFlow.ts; không sửa helper/type/OpenAPI và không viết test ca vắng. Đề xuất fallback trước đây đã bị loại khỏi phạm vi T-15.
+
+### Báo cáo T-15 — bàn giao 2026-11-01
+
+**Chốt ngày 2026-10-31; gate FE hoàn tất lúc 2026-10-31 23:59:48 +07.** Đúng 5 file ở Q-T15-01. Không thay topicStudyFlow.ts hoặc viết test requiredWords vắng; Q-T15-03 giữ nguyên quyết định không fallback.
+
+| FR | Test mới và kết quả | Hành vi sau sửa |
+|---|---|---|
+| FR-042 | 7 ca: đủ 4 nhãn, matrix bước bị chặn/lý do, tin canTakeTest server, đổi topic khi start pending/NO_NEW_WORDS | Bước cuối ghi đúng Kiểm tra cuối chủ đề. Page key theo topicId, không giữ cờ/ref/lượt cũ hoặc nhận phản hồi cũ sang topic mới. Các bước vẫn theo actions, ngoại lệ resume study đúng Q-T15-02. |
+| FR-023 | 5 ca: đầy đủ thẻ/ẩn rỗng, gửi một lần khi pending, cùng audio URL qua câu mới, counter sau reload, audioFailed | Tái dùng nguyên StudyCard/AudioButton, key theo no để reset theo câu. Không autoplay, tổng lượt nghe tính cả lần đầu; tải lại về 0. Không nghe được gửi audioFailed không answer và vẫn tính đã học theo chốt T-10. |
+| FR-024 | 7 ca: retry start, finish 500/429 không tự lặp, giữ summary sau refresh canStudy=false, resume partial/all-answered khi canStudy=false, không active thì không POST | Retry start reset cờ tự bắt đầu; auto-finish có guard error, chỉ thử lại khi người học bấm. Luôn kiểm active tại bước học, không tạo mới nếu canStudy=false. Giữ tổng kết/CTA sau refresh, không gửi lại câu đã ghi nhận hoặc tự chấm điểm. |
+
+**Bằng chứng test trước sửa:** npm ci exit 0, package-lock.json không đổi. Baseline 6 file liên quan: **66/66**. Chỉ thêm test trước khi sửa production, rồi chạy toàn bộ page: **38 ca, 26 qua/12 đỏ, 0 skip**; lỗi đúng các nhãn, retry start/finish 500/429 sau rerender, cùng audio URL, đổi topic và resume canStudy=false. Request finish gọi lặp được giữ pending trong test để tránh vòng lặp vô hạn; không sleep hoặc nới timeout/ngưỡng. Chỉ sau lần chạy đỏ mới sửa hai file production.
+
+**Gate cuối:**
+
+- `npm test -- src/features/vocab/pages/Scr012TopicStudyPage.test.tsx src/features/vocab/pages/TopicPracticeController.test.tsx src/features/vocab/pages/TopicTestController.test.tsx src/features/practice/components/StudyCard.test.tsx src/features/practice/components/AudioButton.test.tsx src/features/practice/usePracticeSession.test.ts --maxWorkers=2 --minWorkers=1`: **85/85**, 6 file; page 38 ca gồm 19 cũ/19 mới, không failure/error/skip/todo. Khối 19 ca cũ đã so với HEAD nền và giữ nguyên fixture/assert.
+- `npm run lint`: exit 0, **0 lỗi/1 warning có sẵn** react-refresh/only-export-components ở shared/ui/LevelBadge.tsx; không sửa file ngoài phạm vi. `npm run typecheck`: exit 0.
+- Full `npm test -- --maxWorkers=2 --minWorkers=1 --reporter=json --outputFile=<temp>`: exit 0, **1078 test/114 file**, tất cả assertion status=passed, 0 failure/error/skip/todo; đã đọc JSON đối chiếu.
+- `npm run build`: exit 0, **2149 module**, Vite **4,68 giây**. Gate chỉ FE đã duyệt: không Maven, không coverage BE mới; không áp dụng ngoại lệ FR023 import.
+- git diff --check sạch; 5 file UTF-8 không BOM; không thêm TODO/FIXME hoặc test focused/skipped. topicStudyFlow.ts, shared/app/practice, backend/OpenAPI/dependency/migration và package-lock.json nguyên vẹn. Không còn câu hỏi mở hay lệch spec. AT-40 **chỉ nghiệm thu bước bị chặn và lý do** trong T-15; chưa đánh dấu đạt toàn bộ, các phần còn lại thuộc T-16/T-17.
+
+**Bàn giao:** nhánh spec/003-vocab-topics-t15, merge-base **9b26af7fdd7e4cda5747eb5e6ba6e4d1564fcf9a**. Một commit `fix(vocab): complete topic study flow (T-15)`, stage đúng 5 file cụ thể, push và Draft PR mới; báo commit/merge-base/test rồi dừng chờ leader kiểm bản gộp/báo xanh. Không tự merge.
+
+**Self-check Constitution T-15:**
+
+- ✅ AC-01: bám FR-042/023/024 và Chốt Q-T15-01…03; không đổi endpoint/OpenAPI/spec hoặc thêm tính năng. requiredWords không fallback, helper/types giữ nguyên. AT-40 chỉ nghiệm thu đúng phần được duyệt.
+- ✅ AC-03/BUS-01/HR-03/HR-04/HR-05: giữ module boundary, AuthApi/principal/LEARNER, ownership, cookie/CORS/CSRF và API client. Chỉ sửa integration trong vocab, không truy cập DB hoặc sửa shared/app/practice.
+- ✅ BUS-02/HR-06/BUS-09/AC-07/AC-09: giữ BE transaction, score/maxScore và snapshot/evidence server. Finish sau khi các câu được ghi nhận, pending chống gửi trùng; lỗi không tự lặp, retry do người học bấm và không gửi lại câu cũ. canStudy=false vẫn resume lượt server; không active thì không POST mới. Không chấm điểm hay suy ra hoàn thành ở client, không thêm query JSONB.
+- ✅ AC-08/HR-07/HR-09: durationMs vẫn đo từ lúc thẻ hiện với giới hạn cũ; tổng lượt nghe/reload đúng chốt T-10/T-13. Lỗi giữ thông báo/request_id qua handler hiện có. Đổi topic remount theo ID và hook generation hiện có chặn phản hồi cũ; regression dùng promise điều khiển, không dựa sleep.
+- ✅ HR-01/HR-02/BUS-06/HR-08: không đổi password hashing; không đọc/stage .env, mật khẩu, App Password, token, host Neon/email/PII thật. Fixture mới tự soạn HSK 1–3, không dữ liệu đề/tài liệu HSK bản quyền; API/types vẫn 1–9.
+- ✅ AC-05/AC-06/ES-01/ES-02/ES-03: không SQL/migration/Neon/schema/enum DB/dependency; npm ci giữ lockfile, React/TS/Vite và naming hiện có. Hai file production thay đổi nhỏ, không xây lại màn; giữ shared hook/component và controller luyện/kiểm tra nguyên vẹn.
+- ✅ ES-05: 19 ca mới tên FR023_/FR024_/FR042_, test tái hiện đỏ trước sửa, toàn bộ gate FE xanh và không skip/todo. 19 ca cũ SCR-012 và các test khác giữ nguyên; Maven không chạy theo duyệt.
+- ✅ ES-06/ES-07/safety: đúng 5 file, một Conventional Commit T-15, không nhắc công cụ trong message; git add file cụ thể, push/Draft PR theo quyền đã duyệt. Nhánh từ main 9b26af7 sau fetch trước tạo nhánh; không merge/rebase/pull main thêm, merge PR, force-push/push main hoặc đụng thay đổi người khác. Sau báo cáo dừng chờ leader.
