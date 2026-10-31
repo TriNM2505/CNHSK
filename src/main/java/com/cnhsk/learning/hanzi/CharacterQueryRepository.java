@@ -2,6 +2,8 @@ package com.cnhsk.learning.hanzi;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 
 import com.cnhsk.learning.content.entity.Lexeme;
 import com.cnhsk.learning.content.entity.LexemeKind;
@@ -27,6 +29,27 @@ public class CharacterQueryRepository {
 
     public CharacterQueryRepository(EntityManager entityManager) {
         this.entityManager = entityManager;
+    }
+
+    public List<Lexeme> recognitionCandidates(short hskLevel, boolean requireAudio) {
+        return entityManager.createQuery("select x from Lexeme x where x.kind = :kind "
+                        + "and x.hskLevel = :level and trim(x.meaningVi) <> '' "
+                        + "and (:requireAudio = false or (x.audioUrl is not null and trim(x.audioUrl) <> '')) "
+                        + "order by x.id", Lexeme.class)
+                .setParameter("kind", LexemeKind.CHAR).setParameter("level", hskLevel)
+                .setParameter("requireAudio", requireAudio).getResultList();
+    }
+
+    /** Returns every answered recognition item, regardless of attempt status or mode. */
+    public List<Object[]> recognitionHistory(long userId, Collection<Long> lexemeIds) {
+        if (lexemeIds.isEmpty()) {
+            return List.of();
+        }
+        return entityManager.createQuery("select i.lexemeId, i.correct, i.answeredAt, i.id "
+                        + "from AttemptItem i, Attempt a where a.id = i.attemptId "
+                        + "and a.userId = :userId and a.refType = 'CHAR_RECOGNITION' "
+                        + "and i.lexemeId in :lexemeIds order by i.answeredAt desc, i.id desc", Object[].class)
+                .setParameter("userId", userId).setParameter("lexemeIds", lexemeIds).getResultList();
     }
 
     public Page<Lexeme> search(LexemeKind kind, Short hskLevel, String text, String pinyinPrefix, Pageable pageable) {

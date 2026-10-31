@@ -53,7 +53,8 @@ public class ChoiceItemFactory {
         Objects.requireNonNull(target, "target");
         Objects.requireNonNull(target.getId(), "target.id");
         Objects.requireNonNull(target.getKind(), "target.kind");
-        if (type != ItemType.MEANING_CHOICE && type != ItemType.AUDIO_WORD_CHOICE && type != ItemType.CLOZE_CHOICE) {
+        if (type != ItemType.MEANING_CHOICE && type != ItemType.AUDIO_WORD_CHOICE && type != ItemType.CLOZE_CHOICE
+                && type != ItemType.CHAR_MEANING_CHOICE && type != ItemType.AUDIO_CHAR_CHOICE) {
             throw new IllegalArgumentException("Choice generation requires a choice item type.");
         }
         if (optionCount < 2 || optionCount > 6) {
@@ -67,7 +68,7 @@ public class ChoiceItemFactory {
         Facts correct = facts(target, type);
         add(correct, selected, ids, texts, meanings, pronunciations);
         boolean mixed = false;
-        for (Tier tier : tiers(target, topicId)) {
+        for (Tier tier : tiers(target, topicId, type)) {
             var countQuery = entityManager.createQuery("select count(l) " + tier.clause(), Long.class);
             bind(countQuery, tier.parameters());
             int total = Math.toIntExact(countQuery.setMaxResults(1).getSingleResult());
@@ -86,7 +87,8 @@ public class ChoiceItemFactory {
                     Facts next = facts(candidate, type);
                     if (ids.contains(next.id()) || texts.contains(next.text())
                             || !Collections.disjoint(meanings, next.meanings())
-                            || (type == ItemType.AUDIO_WORD_CHOICE && pronunciations.contains(next.pronunciation()))) {
+                            || ((type == ItemType.AUDIO_WORD_CHOICE || type == ItemType.AUDIO_CHAR_CHOICE)
+                                    && pronunciations.contains(next.pronunciation()))) {
                         continue;
                     }
                     add(next, selected, ids, texts, meanings, pronunciations);
@@ -120,10 +122,26 @@ public class ChoiceItemFactory {
         return Optional.of(new ChoiceOptions(options, Objects.requireNonNull(answer), mixed));
     }
 
-    private List<Tier> tiers(Lexeme target, Long topicId) {
+    private List<Tier> tiers(Lexeme target, Long topicId, ItemType type) {
         List<Tier> tiers = new ArrayList<>();
         Map<String, Object> parameters = new LinkedHashMap<>();
         parameters.put("targetId", target.getId());
+        if (type == ItemType.CHAR_MEANING_CHOICE && target.getRadical() != null && !target.getRadical().isBlank()) {
+            parameters.put("kind", target.getKind());
+            parameters.put("radical", target.getRadical());
+            String sameLevel;
+            if (target.getHskLevel() == null) {
+                sameLevel = " and l.hskLevel is null";
+            } else {
+                parameters.put("level", target.getHskLevel());
+                sameLevel = " and l.hskLevel = :level";
+            }
+            tiers.add(new Tier(BASE + " and l.kind = :kind" + sameLevel + " and l.radical = :radical",
+                    Map.copyOf(parameters), false));
+            parameters.remove("kind");
+            parameters.remove("level");
+            parameters.remove("radical");
+        }
         if (topicId != null) {
             parameters.put("topicId", topicId);
             tiers.add(new Tier(BASE + " and " + IN_TOPIC, Map.copyOf(parameters), false));
@@ -153,9 +171,10 @@ public class ChoiceItemFactory {
         Set<String> meanings = Arrays.stream(normalizedMeaning.split("[;,]"))
                 .map(part -> TextNormalizer.normalizeCell("meaning_vi", part))
                 .filter(part -> !part.isEmpty()).collect(Collectors.toSet());
-        String display = type == ItemType.MEANING_CHOICE
+        String display = type == ItemType.MEANING_CHOICE || type == ItemType.CHAR_MEANING_CHOICE
                 ? TextNormalizer.normalizeCell("meaning_vi", lexeme.getMeaningVi().split(";", 2)[0]) : lexeme.getText();
-        String pronunciation = type == ItemType.AUDIO_WORD_CHOICE ? PinyinUtils.toNumbered(lexeme.getPinyin()) : null;
+        String pronunciation = type == ItemType.AUDIO_WORD_CHOICE || type == ItemType.AUDIO_CHAR_CHOICE
+                ? PinyinUtils.toNumbered(lexeme.getPinyin()) : null;
         return new Facts(lexeme.getId(), lexeme.getText(), display, meanings,
                 pronunciation == null ? null : pronunciation.replace(" ", ""));
     }
