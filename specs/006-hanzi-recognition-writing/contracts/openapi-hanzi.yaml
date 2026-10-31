@@ -170,6 +170,7 @@ paths:
                   session: { type: 'null' }
                   reason: { type: string, const: NO_CHARACTERS }
         '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
 
