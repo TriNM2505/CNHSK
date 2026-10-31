@@ -174,6 +174,23 @@ class ChoiceItemFactoryIntegrationTest {
     }
 
     @Test
+    void FR006_AT05_oneHundredCharacterAudioChoicesRejectSameToneHomophones() {
+        Lexeme target = character("是", "là", "shì", "日");
+        character("事", "việc", "shì", "日");
+        character("时", "thời gian", "shí", "日");
+        character("晴", "trời quang", "qíng", "日");
+        character("明", "sáng", "míng", "日");
+
+        for (int round = 0; round < 100; round++) {
+            var result = factory.create(target, null, ItemType.AUDIO_CHAR_CHOICE, 4).orElseThrow();
+            assertThat(result.options()).hasSize(4).extracting(ServedItem.Option::text)
+                    .contains("是", "时", "晴", "明").doesNotContain("事");
+            assertThat(result.options()).filteredOn(option -> option.key().equals(result.correctAnswer()))
+                    .extracting(ServedItem.Option::text).containsExactly("是");
+        }
+    }
+
+    @Test
     void FR011_factoryDefaultRandomBeanIsThreadLocalAndAnswersNeverEnterPublicItemView() {
         assertThat(random).isInstanceOf(ThreadLocalRandom.class);
         Lexeme target = word("我", "tôi", "wǒ", 1);
@@ -200,6 +217,16 @@ class ChoiceItemFactoryIntegrationTest {
         word.setHskLevel((short) level);
         entityManager.persist(word);
         return word;
+    }
+
+    private Lexeme character(String text, String meaning, String pinyin, String radical) {
+        Lexeme character = new Lexeme(LexemeKind.CHAR, text, meaning);
+        character.setMeaningNorm(TextNormalizer.normalizeMeaning(meaning));
+        character.setPinyin(pinyin);
+        character.setHskLevel((short) 1);
+        character.setRadical(radical);
+        entityManager.persist(character);
+        return character;
     }
 
     private long topic(Lexeme target, List<Lexeme> words) {

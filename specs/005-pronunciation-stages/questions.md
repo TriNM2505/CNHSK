@@ -252,3 +252,147 @@ FR-016 chỉ quy định `needed` khi chưa đạt; FR-011 quy định accuracy 
 - **BUS-02, BUS-09, BUS-11:** hook yêu cầu transaction đang có; upsert nguyên tử, race và rollback đã kiểm thật; điểm từ kết quả chấm server; so ngưỡng cấu hình bằng compareTo.
 - **ES-01, ES-03, ES-05:** stack/naming giữ nguyên; endpoint finish có integration test và coverage/gate đạt yêu cầu.
 - **ES-06, ES-07:** một commit Conventional Commits T-03, stage file cụ thể; chỉ push nhánh spec theo duyệt, không merge/rebase/pull main hoặc tự merge PR.
+
+## T-04 - Shadow Plan đã duyệt ngày 2026-10-30
+
+### Điều kiện bắt đầu và bàn giao
+
+- Leader đã duyệt Shadow Plan T-04 (FR-017…FR-020, AT-21), nhưng yêu cầu **chưa code**, chờ leader báo PR #22 đã merge. Không thêm commit vào #22.
+- Sau thông báo đó, được phép fetch và tạo nhánh mới `spec/005-pronunciation-stages-part2` từ `origin/main` mới nhất; làm T-04 trên Draft PR mới.
+- Chốt này đã được ghi local trong `questions.md` trước khi #22 merge; không commit/push vào nhánh của #22. Tài liệu đi cùng commit T-04 trên nhánh part2.
+- Một task một commit Conventional Commits có mã T-04; stage từng file cụ thể, push thường nhánh part2 và báo commit + số test. Không merge/rebase/pull main, force-push, push main hoặc merge PR.
+
+### Q-T04-01 - Phạm vi file
+
+**Leader chốt ngày 2026-10-30:** duyệt đúng bảy file trong `cnhsk-web/src/features/pronunciation/`:
+
+1. `pages/Scr016PronunciationPage.tsx`
+2. `pages/PronunciationPracticeController.tsx`
+3. `components/PronunciationStageListView.tsx`
+4. `components/PronunciationPracticeView.tsx`
+5. `pages/Scr016PronunciationPage.test.tsx`
+6. `components/PronunciationStageListView.test.tsx`
+7. `components/PronunciationPracticeView.test.tsx`
+
+Được sửa thêm `specs/005-pronunciation-stages/tasks.md` và `specs/005-pronunciation-stages/questions.md` để ghi quyết định, kết quả và trạng thái task sau gate.
+
+**File dùng chung:** không sửa. Giữ nguyên hook, API và component của `features/practice`; tái sử dụng trực tiếp, không viết lại hoặc tạo bản sao. Hai route SCR-016 hiện có tiếp tục được dùng. Nếu cần file ngoài danh sách hoặc file dùng chung, dừng và báo leader.
+
+**Trạng thái:** đã chốt, không còn câu hỏi mở về phạm vi.
+
+### Q-T04-02 - Lý do khóa khi thiếu dữ liệu tầng trước
+
+**Leader chốt ngày 2026-10-30:**
+
+- Có tầng `k−1` trong dữ liệu API: hiện đúng FR-017, "Hoàn thành tầng {k−1} với ≥ {pass}%"; `pass` lấy `passPercent` của chính tầng `k−1`, không lấy ngưỡng của tầng hiện tại hoặc dòng đứng trước bất kỳ.
+- Chỉ khi không có tầng `k−1` trong API mới hiện "Hoàn thành tầng {k−1} để mở tầng này".
+- Render các tầng API trả về; hiện đủ tám thẻ khi API trả đủ, không hard-code số tầng hoặc tạo dữ liệu giả.
+
+**Trạng thái:** đã chốt.
+
+### Q-T04-03 - Lượt đã kết thúc nhưng client không có kết quả finish
+
+**Leader chốt ngày 2026-10-30:** khi server đã finish nhưng client mất response, hoặc finish lại nhận 409 `SESSION_ALREADY_SUBMITTED`, hiện "Lượt đã kết thúc", tải lại danh sách và cho quay lại/luyện lại. Không tự tính `accuracy`, `needed`, `passed`.
+
+Kết quả đầy đủ chỉ lấy từ `extra` do server trả. Không suy ra kết quả của lượt hiện tại từ điểm tốt nhất trong danh sách tầng.
+
+**Trạng thái:** đã chốt.
+
+### Điều kiện triển khai và test T-04
+
+- FR-017: đủ ba nút "Bắt đầu" / "Tiếp tục ({activeAnswered}/{unitCount})" / "Luyện lại"; `playable=false` hiện "Đang cập nhật". Trạng thái và điểm lấy từ API, lý do khóa theo Q-T04-02.
+- FR-018: dùng lại audio/choice/progress chung; audio chỉ phát khi người học bấm, tối đa ba lần, có "Không nghe được", bốn lựa chọn, phản hồi và giải thích; không có "Bỏ qua".
+- FR-019: tự finish đúng một lần khi trả lời câu cuối. Lỗi finish thì dừng và cho thử lại bằng thao tác người dùng, không tự lặp. 422 `STAGE_INCOMPLETE` hiện đúng số `remaining`.
+- Giữ kết quả đã nhận nếu tải lại danh sách thất bại. "Đã mở tầng {n}" chỉ hiện khi `unlockedNextStage=true`; kết quả lấy từ `extra`, hiệu ứng tôn trọng `prefers-reduced-motion`.
+- FR-020: luyện lại tạo lượt mới khi không còn lượt đang làm; tiếp tục lượt hiện có qua bộ máy chung, dùng `stage.id` làm `refId`.
+- Giữ các assertion hiện có, không nới test. Test mới dùng tiền tố FR tương ứng; đủ AT-21 và regression cho khôi phục lượt, lỗi finish không lặp, thử lại có kiểm soát, remaining, noScore, điểm tốt nhất cũ cao hơn lượt hiện tại, tầng cuối, hai lý do khóa và trạng thái đã kết thúc không có extra.
+- Không thêm dependency, sửa backend, thay contract hoặc tạo migration. Không đọc/commit bí mật, host/chuỗi kết nối database hoặc dữ liệu đề thi có bản quyền; không chạy SQL/migration trên Neon.
+
+### Gate T-04 leader duyệt
+
+Chạy tại `cnhsk-web/`:
+
+- `npx vitest run --maxWorkers=2 --minWorkers=1`
+- `npm run lint`
+- `npm run typecheck`
+- `npm run build`
+
+Trên PowerShell dùng entry point `npx.cmd` / `npm.cmd` tương ứng nếu execution policy chặn script `.ps1`. Cuối cùng chạy `git diff --check` và kiểm UTF-8 không BOM cho các file sửa. **Không cần Maven verify** vì T-04 không sửa backend.
+
+**Điều kiện bắt đầu đã đủ:** sau chỉ đạo "duyệt" tiếp theo của người dùng, fetch xác nhận main `013070f` là merge PR #22 và chứa commit `3b7dccc`. Đã tạo `spec/005-pronunciation-stages-part2` trực tiếp từ main đó; không thêm commit vào nhánh cũ, không merge/rebase/pull main trong T-04.
+
+## Kết quả T-04 ngày 2026-10-30
+
+- SCR-016 tiếp tục dùng nguyên hook/API/component chung trong `features/practice`, API pronunciation và hai route hiện có. Chỉ sửa bảy file frontend đã duyệt cùng `tasks.md`, `questions.md`.
+- Thẻ khóa tra đúng tầng `k−1` theo `stageIndex`, lấy ngưỡng của tầng đó; thiếu tầng trước dùng câu không nêu ngưỡng theo Q-T04-02. Không tạo thẻ hoặc điểm giả; đủ tám thẻ khi API trả đủ.
+- Finish tự động một lần sau câu cuối; giữ dấu đã thử khi lỗi, đọc lại trạng thái lượt tối đa một lần cho lỗi finish thông thường để nhận biết response đã mất. Còn IN_PROGRESS thì hiện lỗi và chờ người dùng thử lại; retry finish không trả lời lại câu hoặc tạo lượt khác.
+- 422 STAGE_INCOMPLETE hiển thị remaining từ server, sync câu đã ghi và cho làm nốt; không tự lặp finish khi sync vẫn chưa xác định được câu thiếu. 409 SESSION_ALREADY_SUBMITTED hoặc GET xác nhận SUBMITTED nhưng không có extra thì hiện "Lượt đã kết thúc", tải lại danh sách, cho quay lại/luyện lại; không suy ra accuracy/needed/passed từ best.
+- Giữ kết quả của lượt khi refresh danh sách thất bại và cho thử tải lại danh sách riêng. Luyện lại tạo/tiếp tục lượt theo bộ máy; reset thời gian câu theo cả session và câu hiện tại.
+- Giữ mọi assertion cũ; bổ sung 20 test với tiền tố FR, tổng 41 test pronunciation trong năm file. Test gồm đủ AT-21, ngưỡng khóa/fallback khi nhập thiếu tầng, loading/empty/error, bốn lựa chọn/không autoplay/no-skip, audioFailed câu cuối/noScore, remaining và làm nốt, finish lỗi/sync lỗi không lặp, retry thủ công, mất response/409, refresh lỗi giữ kết quả, luyện lại và tiếp tục tầng đã hoàn thành.
+- Full gate cuối: `npx.cmd vitest run --maxWorkers=2 --minWorkers=1` có 1041 test / 114 file, tất cả pass, không failure/error/skip; exit code 0. `npm.cmd run lint`, `npm.cmd run typecheck`, `npm.cmd run build` đều exit code 0.
+- Lint có một warning cũ `react-refresh/only-export-components` tại `cnhsk-web/src/shared/ui/LevelBadge.tsx:6`; file giữ nguyên so với main. Không thêm suppression hoặc nới cấu hình lint/test.
+- Diff/check UTF-8 không BOM sạch, không TODO/skip trong bảy file frontend. Không sửa backend, API/contract, shared/app, practice chung, dependency hoặc migration; không chạy Maven verify theo duyệt T-04. Không còn câu hỏi chức năng mở của T-04.
+
+### Self-check Constitution T-04
+
+- **HR-02, HR-08, BUS-06 — PASS:** không đọc/commit env, bí mật, host/chuỗi kết nối database, email thật hoặc dữ liệu đề thi; fixture tự tạo, không in request nhạy cảm.
+- **HR-03…HR-05, HR-07, HR-09 — PASS:** giữ auth/cookie/CORS/CSRF và API client hiện có; không thêm SQL hoặc endpoint; route/response lỗi dùng hợp đồng đã duyệt, không trả lỗi nội bộ ra UI.
+- **HR-06, BUS-09, BUS-11 — PASS:** kết quả và ngưỡng hiển thị lấy từ server; không tự tính accuracy, needed, passed; thông báo mở tầng chỉ theo unlockedNextStage, không suy ra từ nextStageIndex/best.
+- **AC-01, AC-03, ES-01…ES-04 — PASS:** contract/stack/naming giữ nguyên; dùng trực tiếp practice chung, không copy/viết lại hook, API hoặc component; không sửa file ngoài phạm vi duyệt hay thêm thư viện.
+- **AC-05, AC-07, AC-08, BUS-02 — PASS:** không thay schema/migration, số liệu backend, thời gian/transaction backend hoặc job; không chạy database dùng chung. Phần FE chỉ định dạng và hiển thị số server trả.
+- **ES-05 — PASS:** gate frontend đúng số worker đã chốt; giữ assertion cũ, test mới tên FR, không skip; BOM/diff/TODO được kiểm. Warning lint nền được báo rõ và không sửa file ngoài phạm vi.
+- **ES-06, ES-07 và safety — PASS:** nhánh part2 từ main đã có #22; một commit T-04, stage file cụ thể, push thường và Draft PR mới theo duyệt; không thêm commit vào #22, stash/restore/xóa thay đổi người khác, force-push, push main hoặc merge PR.
+
+## T-04 — Quyết định sau review, leader chốt ngày 2026-10-31
+
+Leader đã đối chiếu báo cáo review với commit `cde41ae` và xác nhận cả bốn điểm. Sửa trong PR #25 trên `spec/005-pronunciation-stages-part2`, một commit sửa riêng sau commit T-04; được push thường lên nhánh này.
+
+### Q-T04-04 — Lượt abandoned khi khôi phục
+
+- Controller xử lý rõ `practice.state === 'abandoned'`, dùng lại màn "Lượt đã kết thúc" và nút bắt đầu lại; không rơi vào loading.
+- Không tự bắt đầu lượt mới. Một thao tác bắt đầu lại gọi `practice.start()` một lần; giữ chặn thao tác khi đang chờ.
+- Chuyển ca tái hiện EXPIRED/ABANDONED vào test thật của T-04, xác nhận fail trước sửa và pass sau sửa.
+
+### Q-T04-05 — Giữ phản hồi câu cuối
+
+- Giữ tự gọi finish theo FR-019; không thêm bước bấm "Xem kết quả".
+- Màn kết quả hiển thị thêm phản hồi đúng/sai và giải thích câu cuối theo FR-018, lấy từ kết quả server trả về trong lượt hiện tại.
+- Sau khi tải lại trang không có dữ liệu này thì không suy ra lời giải hoặc phản hồi câu cuối. Khi luyện lại không hiển thị lời giải của lượt cũ.
+- Chuyển ca tái hiện mất lời giải câu cuối vào test thật của T-04, xác nhận fail trước sửa và pass sau sửa.
+
+### Q-T04-06 — Giới hạn tầng nhập muộn được chấp nhận
+
+- Nếu đạt tầng N khi chưa nhập N+1, rồi nhập N+1 sau, tầng N+1 mở theo công thức FR-004 khi tầng N hiện còn COMPLETED.
+- Khi chưa có dòng tiến độ của N+1, tăng ngưỡng tầng N vượt điểm tốt nhất có thể làm N+1 khóa lại. Đây là giới hạn đã được leader xác nhận; giữ nguyên FR-004.
+- Không sửa backend, không đổi cách ghi tiến độ và không tạo migration trong lần sửa này.
+
+### Q-T04-07 — Số lựa chọn theo dữ liệu server
+
+- Không siết import của spec 002. Frontend hiển thị đủ các lựa chọn server trả về, tối đa 4; dữ liệu demo có đủ 4.
+- Chỉ thêm đúng một dòng làm rõ FR-018 trong `spec.md`; không hard-code 4 hoặc tạo lựa chọn giả ở frontend.
+
+### Shadow Plan và phạm vi đã được leader duyệt
+
+- Đọc hook/API/component practice hiện có, code/test T-04 và tài liệu spec 005. Sửa controller, màn kết quả và test trong bảy file T-04 đã duyệt, cùng `spec.md`, `tasks.md`, `questions.md` của 005.
+- Viết test tái hiện trước, chạy để xác nhận lỗi, rồi sửa và chạy lại. Giữ nguyên assertion cũ, dùng lại component practice chung.
+- Gate tại `cnhsk-web/`: `npx.cmd vitest run --maxWorkers=2 --minWorkers=1`, `npm.cmd run lint`, `npm.cmd run typecheck`, `npm.cmd run build`; kiểm `git diff --check` và UTF-8 không BOM.
+- Không sửa backend nên không cần Maven verify hoặc Docker. Không commit `docs/reviews/` hoặc ca tái hiện trong đó; giữ nguyên các file ngoài phạm vi và dữ liệu cục bộ có sẵn.
+- Stage từng file được duyệt; một commit sửa riêng, push thường nhánh part2. Không merge/rebase/pull main, force-push, push main, merge PR hoặc chạy SQL/migration trên Neon.
+
+### Kết quả sửa sau review ngày 2026-10-31
+
+- Commit T-04 gốc: `cde41ae`. Gate gốc đã ghi ngày 2026-10-30: 41 test pronunciation / 5 file; toàn bộ 1041 test / 114 file pass, không failure/error/skip; lint 0 lỗi và 1 warning nền; typecheck/build exit 0, diff/BOM sạch. Báo cáo bàn giao lần này gồm cả kết quả T-04 và commit sửa riêng.
+- Đã chuyển hai ca tái hiện vào `pages/Scr016PronunciationPage.test.tsx`. Trước sửa, chạy file page: 30 test, 26 pass / 4 fail; EXPIRED/ABANDONED không hiện màn kết thúc, câu cuối đúng/sai không giữ lời giải. Không chỉnh hoặc nới assertion cũ để làm xanh.
+- Sau sửa, 51 test pronunciation / 5 file pass (thêm 6 ca page và 4 ca view). Kiểm trạng thái abandoned không tự start; thao tác luyện lại chỉ start một lần khi bấm đúp; phản hồi đúng/sai/không tính điểm từ server, lời giải được giữ cả khi refresh danh sách lỗi; khôi phục không suy ra lời giải; luyện lại xóa lời giải lượt cũ; dữ liệu hai lựa chọn render đúng hai.
+- Controller chuyển abandoned sang màn "Lượt đã kết thúc". Phản hồi câu cuối chỉ lưu từ response answer thành công khi hoàn tất câu cuối, gắn với session hiện tại và xóa khi luyện lại. Màn kết quả tái sử dụng `ChoiceQuestion` với kết quả server, các lựa chọn khóa; vẫn tự gọi finish một lần, không thêm bước xem kết quả.
+- Đã thêm đúng một dòng làm rõ FR-018; Q-T04-06 là giới hạn được chấp nhận, giữ backend và FR-004. Không thay import của spec 002 hoặc hard-code số lựa chọn.
+- Gate cuối: `npx.cmd vitest run --maxWorkers=2 --minWorkers=1` — **1051 test / 114 file pass**, không failure/error/skip, exit 0. Lint/typecheck/build exit 0. Lint có đúng một warning nền `react-refresh/only-export-components` ở `shared/ui/LevelBadge.tsx:6`; giữ nguyên file và cấu hình.
+- `git diff --check` và UTF-8 không BOM sạch; không TODO/skip trong code/test sửa. Không chạy Maven verify/Docker vì không đổi backend, đúng phạm vi gate leader duyệt.
+
+### Self-check Constitution của commit sửa
+
+- **HR-02, HR-08, BUS-06 — PASS:** fixture tự tạo; không đọc/commit env, secret, thông tin kết nối, mật khẩu hoặc dữ liệu đề thi.
+- **HR-06, BUS-09 — PASS:** phản hồi và lời giải lấy từ response server, tổng kết lấy từ extra; không tính hoặc suy ra điểm, phản hồi hoặc lời giải khi thiếu dữ liệu server trong lượt hiện tại.
+- **AC-01, AC-03, ES-01…ES-04 — PASS:** chỉ làm rõ FR-018 theo duyệt; không đổi endpoint/OpenAPI, stack, dependency, module boundary hoặc file dùng chung; dùng lại practice trực tiếp.
+- **AC-05, AC-07, AC-08, BUS-02 — PASS:** không sửa backend, schema, migration, transaction, kiểu điểm, lịch hoặc dữ liệu chung. Giới hạn nhập tầng muộn đã được leader xác nhận tại Q-T04-06.
+- **ES-05, ES-06, ES-07 và safety — PASS:** test tái hiện fail trước/pass sau; full gate pass với warning nền được báo; commit sửa riêng sau T-04 trên nhánh part2, stage đúng bốn file frontend và ba tài liệu; không stage `docs/reviews/` hoặc các file ngoài phạm vi. Chỉ push thường nhánh đã duyệt, không merge PR/force-push/push main.
