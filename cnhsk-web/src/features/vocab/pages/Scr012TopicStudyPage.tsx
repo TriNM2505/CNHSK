@@ -40,11 +40,16 @@ function parsePositiveId(value: string | undefined) {
 }
 
 type StudyControllerProps = {
+  onResumeAvailabilityChange: (available: boolean) => void
   onTopicFinished: () => void
   topic: TopicDetail
 }
 
-function TopicStudyController({ onTopicFinished, topic }: StudyControllerProps) {
+function TopicStudyController({
+  onResumeAvailabilityChange,
+  onTopicFinished,
+  topic,
+}: StudyControllerProps) {
   const [noNewWords, setNoNewWords] = useState(false)
   const [replayCount, setReplayCount] = useState(0)
   const autoStartAttemptedRef = useRef(false)
@@ -54,6 +59,10 @@ function TopicStudyController({ onTopicFinished, topic }: StudyControllerProps) 
   const syncedErrorRef = useRef<unknown>()
 
   const startSession = useCallback(async () => {
+    if (!topic.actions.canStudy) {
+      setNoNewWords(true)
+      return null
+    }
     const response = await startTopicStudySession(topic.id)
     if (isNoNewWords(response)) {
       setNoNewWords(true)
@@ -61,13 +70,17 @@ function TopicStudyController({ onTopicFinished, topic }: StudyControllerProps) 
     }
     setNoNewWords(false)
     return response
-  }, [topic.id])
+  }, [topic.actions.canStudy, topic.id])
 
   const practice = usePracticeSession({
     refId: topic.id,
     source: 'TOPIC_STUDY',
     start: startSession,
   })
+
+  useEffect(() => {
+    onResumeAvailabilityChange(practice.session?.status === 'IN_PROGRESS')
+  }, [onResumeAvailabilityChange, practice.session?.status])
 
   const answeredNumbers = useMemo(() => {
     const answered = new Set(practice.session?.answered.map((item) => item.no) ?? [])
@@ -126,7 +139,7 @@ function TopicStudyController({ onTopicFinished, topic }: StudyControllerProps) 
     if (!sessionId || finishingSessionRef.current === sessionId) return
     finishingSessionRef.current = sessionId
     const result = await practice.finish()
-    if (!result && practice.error?.errorCode !== 'SESSION_ALREADY_SUBMITTED') {
+    if (!result) {
       finishingSessionRef.current = undefined
     }
   }, [practice])
@@ -134,6 +147,7 @@ function TopicStudyController({ onTopicFinished, topic }: StudyControllerProps) 
   useEffect(() => {
     if (
       practice.state === 'ready' &&
+      !practice.error &&
       practice.session?.items.length &&
       !currentItem &&
       practice.pending === null
@@ -143,6 +157,7 @@ function TopicStudyController({ onTopicFinished, topic }: StudyControllerProps) 
   }, [
     currentItem,
     finishCurrentSession,
+    practice.error,
     practice.pending,
     practice.session?.items.length,
     practice.state,
@@ -193,7 +208,10 @@ function TopicStudyController({ onTopicFinished, topic }: StudyControllerProps) 
     Boolean(practice.error && DUPLICATE_ERROR_CODES.has(practice.error.errorCode))
   const viewState = noNewWords
     ? 'no-new'
-    : duplicateSyncing || practice.state === 'loading' || practice.pending === 'start'
+    : duplicateSyncing ||
+        practice.state === 'loading' ||
+        practice.pending === 'start' ||
+        practice.pending === 'finish'
       ? 'loading'
       : practice.state === 'finished'
         ? 'finished'
@@ -220,7 +238,10 @@ function TopicStudyController({ onTopicFinished, topic }: StudyControllerProps) 
       onContinue={() => void submitAnswer('LEARNED')}
       onKnown={() => void submitAnswer('KNOWN')}
       onReplayCountChange={setReplayCount}
-      onRetry={practice.reload}
+      onRetry={() => {
+        autoStartAttemptedRef.current = false
+        practice.reload()
+      }}
       onStartAgain={() => {
         setNoNewWords(false)
         void practice.start()
@@ -241,6 +262,7 @@ function TopicStudyPageContent({
   topicId: number
 }) {
   const topicQuery = useApiQuery((signal) => getTopic(topicId, signal), [topicId])
+  const [canResumeStudy, setCanResumeStudy] = useState(false)
   const topic = topicQuery.data
   const stepAllowed = Boolean(topic && !getTopicStepBlockedReason(topic, activeStep))
   // Học/nộp xong thì chủ đề được tải lại và bước có thể bị khoá (hết từ mới, chờ thi lại).
@@ -262,6 +284,7 @@ function TopicStudyPageContent({
   return (
     <TopicStudyView
       activeStep={activeStep}
+      canResumeStudy={canResumeStudy}
       error={topicQuery.error}
       onRetry={topicQuery.reload}
       state={state}
@@ -275,8 +298,12 @@ function TopicStudyPageContent({
         ) : undefined
       }
       studyPanel={
-        topic && showPanel && activeStep === 'study' ? (
-          <TopicStudyController onTopicFinished={topicQuery.reload} topic={topic} />
+        topic && activeStep === 'study' ? (
+          <TopicStudyController
+            onResumeAvailabilityChange={setCanResumeStudy}
+            onTopicFinished={topicQuery.reload}
+            topic={topic}
+          />
         ) : undefined
       }
       topic={topic}
@@ -299,5 +326,5 @@ export default function Scr012TopicStudyPage() {
     return <TopicStudyView activeStep="study" onRetry={() => undefined} state="empty" />
   }
 
-  return <TopicStudyPageContent activeStep={activeStep} topicId={topicId} />
+  return <TopicStudyPageContent activeStep={activeStep} key={topicId} topicId={topicId} />
 }
