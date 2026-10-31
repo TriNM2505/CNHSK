@@ -61,7 +61,7 @@ class PracticeAbandonIntegrationTest extends AbstractIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private PracticeFinishIntegrationTest.EventProbe probe;
     @MockitoBean private Clock clock;
-    @MockitoBean private PracticeSourceHandler handler;
+    @MockitoBean(name = "topicTestHandler") private PracticeSourceHandler handler;
     private long owner;
 
     @BeforeEach

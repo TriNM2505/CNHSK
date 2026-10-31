@@ -73,7 +73,7 @@ class PracticeAnswerIntegrationTest extends AbstractIntegrationTest {
     @Autowired private JwtService jwt;
     @Autowired private StringRedisTemplate redis;
     @MockitoBean private Clock clock;
-    @MockitoBean private PracticeSourceHandler handler;
+    @MockitoBean(name = "stubPracticeSourceHandler") private PracticeSourceHandler handler;
     @MockitoSpyBean private RateLimiter counters;
     private long owner;
 

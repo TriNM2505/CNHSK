@@ -99,6 +99,7 @@
 | **FR-006** | `POST /api/pronunciation/stages/{stageIndex}/sessions` SHALL kiểm: `stageIndex` 1–8 và có dòng → ngược lại **404** `STAGE_NOT_FOUND`; tầng mở (FR-004) → ngược lại **403** `STAGE_LOCKED` kèm `requiredStageIndex`; `unitCount > 0` → ngược lại **422** `STAGE_HAS_NO_UNITS` |
 | **FR-007** | WHEN có lượt `PRON_STAGE` `IN_PROGRESS` chưa hết hạn của tầng, THE system SHALL trả lại lượt đó (`200`, US-2) |
 | **FR-008** | Lượt mới (`201`) SHALL gồm **mọi** đơn vị của tầng, thứ tự ngẫu nhiên, mỗi đơn vị một câu `PRON_CHOICE`: `prompt.audioUrl`, `prompt.text = prompt`, `options` trộn và gán lại khoá (spec 003 G-6), `answer`, `explanation`, `rules = {hasAudio:true, maxReplays:3, minDurationMs:500}` |
+| Làm rõ FR-008 (leader chốt 2026-10-30) | "Đơn vị" là đơn vị có `audioUrl` không rỗng, cùng định nghĩa `unitCount` ở FR-002; chỉ phát đơn vị có audio, tất cả thiếu audio → 422 `STAGE_HAS_NO_UNITS`; link audio lỗi khi tải vẫn xử lý `audioFailed` theo E3. |
 | **FR-009** | Trả lời dùng bộ máy spec 003 (`IMMEDIATE`); `skipped` → **400** `SKIP_NOT_ALLOWED`; `audioFailed` hợp lệ (E3) |
 | **FR-010** | `PronStageHandler.onFinish` SHALL ném **422** `STAGE_INCOMPLETE` (`remaining` = số câu chưa có `attempt_items`) khi còn câu chưa trả lời → rollback, lượt giữ `IN_PROGRESS` (E7) |
 | **FR-011** | `accuracy = round(correct * 100 / counted, 2)` với `counted` = số câu có `is_correct` khác `NULL` (loại `audioFailed`); `counted = 0` → `accuracy = null`, không cập nhật tiến độ, `extra.noScore = true` |
@@ -114,6 +115,7 @@ Tất cả trong **cùng transaction** với `finish` (BR-022-3).
 | **FR-014** | Mỗi lần kết thúc mở **tối đa một** tầng kế (BR-022-6) |
 | **FR-015** | WHEN đạt và là tầng có `stage_index` lớn nhất trong `pron_stages`, `completedAllStages = true` (E5) |
 | **FR-016** | `extra` SHALL là `{stageIndex, accuracy, bestAccuracy, passPercent, passed, unlockedNextStage, nextStageIndex, needed, completedAllStages, noScore}`; `needed = max(0, passPercent − accuracy)` khi chưa đạt (UC-022 A1) |
+| Làm rõ FR-016 (leader chốt 2026-10-30) | `passed`/`completedAllStages` theo accuracy của lượt hiện tại; đạt thì `needed=0.00`; noScore thì `accuracy=needed=null`, giữ bestAccuracy cũ, ba cờ `passed=unlockedNextStage=completedAllStages=false`, `noScore=true`, không ghi tiến độ; `nextStageIndex=k+1` nếu tầng đó tồn tại kể cả chưa đạt, ngược lại null. |
 
 ### Nhóm 4 — Giao diện (FR-017…FR-020) · SCR-016
 
@@ -121,6 +123,7 @@ Tất cả trong **cùng transaction** với `finish` (BR-022-3).
 |---|---|
 | **FR-017** | Trang danh sách SHALL hiện 8 thẻ tầng: số tầng, tên, mô tả, âm luyện (`targetSounds` dạng chip), trạng thái (khoá có lý do "Hoàn thành tầng {k−1} với ≥ {pass}%", đang học, hoàn thành), độ chính xác tốt nhất, nút "Bắt đầu"/"Tiếp tục ({activeAnswered}/{unitCount})"/"Luyện lại" |
 | **FR-018** | Màn làm bài SHALL: nút phát audio (người dùng bấm, không tự phát), đếm nghe lại tối đa 3, nút "Không nghe được", 4 lựa chọn, phản hồi đúng/sai + giải thích, thanh tiến độ "{answered}/{total}", **không** có nút "Bỏ qua" |
+| Làm rõ FR-018 (leader chốt 2026-10-31) | Hiện đủ các lựa chọn server trả về, tối đa 4; dữ liệu demo đều có 4 lựa chọn, frontend không hard-code số lựa chọn. |
 | **FR-019** | Khi trả lời câu cuối, frontend SHALL tự gọi `finish` và hiện kết quả: độ chính xác, điểm tốt nhất, "Đã mở tầng {n}" (hiệu ứng nhẹ, tôn trọng `prefers-reduced-motion`) hoặc "Còn {needed}% nữa", "Hoàn thành lộ trình phát âm" khi `completedAllStages` |
 | **FR-020** | Nút "Luyện lại" trên tầng `COMPLETED` SHALL tạo lượt mới (khi không có lượt đang làm) |
 
