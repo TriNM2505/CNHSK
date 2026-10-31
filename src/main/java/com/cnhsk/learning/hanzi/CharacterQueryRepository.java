@@ -4,6 +4,8 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import com.cnhsk.learning.content.entity.Lexeme;
 import com.cnhsk.learning.content.entity.LexemeKind;
@@ -11,6 +13,7 @@ import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /** Character search and writing evidence queries owned by the Hanzi feature. */
@@ -26,9 +29,11 @@ public class CharacterQueryRepository {
             + "and (:text is null or x.text = :text or (:hasPrefix = true "
             + "and x.pinyinNorm like concat(:prefix, '%') escape '!'))";
     private final EntityManager entityManager;
+    private final NamedParameterJdbcTemplate jdbc;
 
-    public CharacterQueryRepository(EntityManager entityManager) {
+    public CharacterQueryRepository(EntityManager entityManager, NamedParameterJdbcTemplate jdbc) {
         this.entityManager = entityManager;
+        this.jdbc = jdbc;
     }
 
     public List<Lexeme> recognitionCandidates(short hskLevel, boolean requireAudio) {
@@ -118,5 +123,60 @@ public class CharacterQueryRepository {
         if (value instanceof Timestamp timestamp) return timestamp.toInstant();
         if (value instanceof java.time.OffsetDateTime dateTime) return dateTime.toInstant();
         return (Instant) value;
+    }
+
+    public void lockChallengeStart(long userId) {
+        jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))",
+                Map.of("key", "WRITING_CHALLENGE:" + userId), result -> null);
+    }
+
+    /** Returns eligible characters ordered by their oldest submitted writing practice. */
+    public List<RankedCharacter> eligibleChallengeCharacters(long userId) {
+        return jdbc.query("""
+                WITH eligible AS (
+                    SELECT l.id
+                    FROM learning.lexemes l
+                    WHERE l.kind = 'CHAR' AND l.stroke_count IS NOT NULL
+                      AND EXISTS (
+                        SELECT 1
+                        FROM learning.attempts writing
+                        JOIN learning.attempt_items written ON written.attempt_id = writing.id
+                        WHERE writing.user_id = :userId
+                          AND writing.ref_type = 'CHAR_WRITING'
+                          AND writing.status = 'SUBMITTED'
+                          AND writing.ref_id = l.id
+                          AND written.lexeme_id = l.id
+                          AND written.item_type = 'WRITING_RESULT'
+                          AND written.answer = 'COMPLETED'
+                          AND written.meta->>'mode' = 'STROKE'
+                      )
+                )
+                SELECT eligible.id,
+                       max(CASE WHEN writing.id IS NOT NULL THEN practiced.answered_at END) AS last_practiced_at
+                FROM eligible
+                LEFT JOIN learning.attempt_items practiced
+                  ON practiced.lexeme_id = eligible.id
+                 AND practiced.item_type = 'WRITING_RESULT'
+                 AND practiced.answer IS NOT NULL
+                LEFT JOIN learning.attempts writing
+                  ON writing.id = practiced.attempt_id
+                 AND writing.user_id = :userId
+                 AND writing.ref_type IN ('CHAR_WRITING', 'WRITING_CHALLENGE')
+                 AND writing.status = 'SUBMITTED'
+                GROUP BY eligible.id
+                ORDER BY last_practiced_at ASC NULLS FIRST, eligible.id ASC
+                """, Map.of("userId", userId), (row, index) -> {
+            java.sql.Timestamp timestamp = row.getTimestamp("last_practiced_at");
+            return new RankedCharacter(row.getLong("id"), timestamp == null ? null : timestamp.toInstant());
+        });
+    }
+
+    public List<Lexeme> charactersByIds(Set<Long> ids) {
+        if (ids.isEmpty()) return List.of();
+        return entityManager.createQuery("select x from Lexeme x where x.id in :ids", Lexeme.class)
+                .setParameter("ids", ids).getResultList();
+    }
+
+    public record RankedCharacter(long lexemeId, Instant lastPracticedAt) {
     }
 }
