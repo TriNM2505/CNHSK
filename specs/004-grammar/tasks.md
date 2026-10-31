@@ -11,4 +11,4 @@
 | T-02 | `GrammarLessonService` + `POST /lessons`: câu `LESSON_READ` ghi sẵn, `readTooFast`, chọn/trộn bài tập, không có bài tập → kết thúc ngay, tiếp tục lượt | `…/learning/grammar/GrammarLessonService.java` | FR-009…FR-014 · AT-05…AT-10 | ✅ (bằng chứng AT-06 hoàn tất ở T-03) |
 | T-03 | `GrammarLessonHandler` (`extra`) | `…/learning/grammar/GrammarLessonHandler.java` | FR-015, FR-016 · AT-11, AT-12 | ✅ |
 | T-04 | SCR-017 Grammar List (7 tab) | `cnhsk-web/src/features/grammar/pages/Scr017GrammarListPage.tsx` | FR-004 · AT-13 | ✅ |
-| T-05 | SCR-018 Grammar Lesson: nội dung, đo thời gian đọc, bài tập (component chung), bỏ qua có xác nhận, kết thúc | `cnhsk-web/src/features/grammar/**` | FR-006…FR-008, FR-017, FR-018 · AT-13 | ⬜ |
+| T-05 | SCR-018 Grammar Lesson: nội dung, đo thời gian đọc, bài tập (component chung), bỏ qua có xác nhận, kết thúc | `cnhsk-web/src/features/grammar/**` | FR-006…FR-008, FR-017, FR-018 · AT-13 | ✅ |
