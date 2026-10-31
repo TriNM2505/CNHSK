@@ -35,8 +35,6 @@ public class GrammarLessonService {
 
     private static final int MAX_READ_DURATION_MS = 3_600_000;
     private static final int MAX_EXERCISES = 5;
-    private static final int READ_TOO_FAST_MS = 5_000;
-    private static final int LONG_EXPLANATION_CHARS = 300;
     private static final int CHOICE_MIN_DURATION_MS = 800;
 
     private final LexemeRepository lexemes;
@@ -70,17 +68,15 @@ public class GrammarLessonService {
         if (active != null) return new LessonStart(active, null, false);
 
         LexemeExtra extra = grammar.getExtra() == null ? LexemeExtra.empty() : grammar.getExtra();
-        boolean readTooFast = readTooFast(readDurationMs, extra.explanation());
         var items = new ArrayList<ServedItem>();
         items.add(lessonRead(grammar));
         for (LexemeExtra.Exercise exercise : pickExercises(extra.exercises())) {
             items.add(choice(items.size() + 1, grammar.getId(), exercise));
         }
-        // Session meta carries the flag now; clientMeta lets the T-03 source hook copy it onto LESSON_READ.
-        Map<String, Object> flags = readTooFast ? Map.of("readTooFast", true) : Map.of();
-        var understood = new Answer(1, "UNDERSTOOD", readDurationMs, 0, false, false, flags);
+        // GrammarLessonHandler derives readTooFast for this pre-recorded item; the session meta stays empty.
+        var understood = new Answer(1, "UNDERSTOOD", readDurationMs, 0, false, false, null);
         var command = new StartPracticeCommand(userId, PracticeSource.GRAMMAR_LESSON, grammarId, null,
-                items, List.of(understood), null, flags);
+                items, List.of(understood), null, null);
         if (items.size() > 1) return new LessonStart(practice.start(command), null, true);
 
         // recordAndFinish leaves rate limiting to the caller; grammar lessons still use the start quota.
@@ -93,11 +89,6 @@ public class GrammarLessonService {
         // Values form a bound key, never SQL. The lock releases at transaction completion.
         jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))",
                 Map.of("key", "GRAMMAR_LESSON:" + userId + ":" + grammarId), result -> null);
-    }
-
-    private static boolean readTooFast(int readDurationMs, String explanation) {
-        return readDurationMs < READ_TOO_FAST_MS && explanation != null
-                && explanation.codePointCount(0, explanation.length()) >= LONG_EXPLANATION_CHARS;
     }
 
     private List<LexemeExtra.Exercise> pickExercises(List<LexemeExtra.Exercise> exercises) {

@@ -36,3 +36,13 @@
   - `GrammarLessonHandler` ghi `readTooFast=true` vào `meta` của đúng câu `LESSON_READ` trong `attempt_items`; cờ do server tính, không lấy từ client.
   - Bỏ `readTooFast` khỏi `meta` của lượt (response và snapshot) để chỉ còn một nguồn.
   - Sửa test T-02 đang assert `meta` của lượt sang truy vấn DB thật: giải thích 500 ký tự đọc 2 giây thì có cờ, 100 ký tự thì không; kiểm cả nhánh không có bài tập (FR-013) và có bài tập. Việc sửa test T-02 được phép trong T-03 và phải nêu trong Shadow Plan T-03.
+
+## 2026-11-01 — T-03 GrammarLessonHandler
+
+- Leader duyệt Shadow Plan T-03, đúng 6 file: `GrammarLessonHandler` (mới), `GrammarLessonService`, `GrammarLessonHandlerIntegrationTest` (mới), `GrammarLessonIntegrationTest`, `tasks.md`, `questions.md`. Không sửa `PracticeService`, `PracticeSourceHandler`, `SecurityConfig`, OpenAPI, migration, frontend.
+- `readTooFast` chỉ còn một nguồn: `GrammarLessonHandler.enrichMeta` tự tính ở server cho câu `LESSON_READ` (đọc dưới 5 giây và `extra.explanation` ≥ 300 ký tự) rồi engine ghi vào `attempt_items.meta`. Handler không bao giờ lưu `clientMeta` của client. `meta` của lượt (response và snapshot) không còn cờ. Comment trong code không ghi mã task.
+- `answered` chỉ tính câu `GRAMMAR_CHOICE` được engine tính điểm (counted); `percent` = `floor(correct*100/answered)`, `null` khi `answered = 0`, khớp `FinishResult.percent` và `bestPercent`.
+- `exercisesTotal` đếm câu `GRAMMAR_CHOICE` trong snapshot của lượt, không đọc lexeme hiện tại.
+- `firstTimeLearned` = không có lượt `GRAMMAR_LESSON` `SUBMITTED` nào khác của cùng user + điểm, loại trừ lượt hiện tại (cách của `TopicTestHandler`). Chấp nhận rủi ro không khóa khi finish.
+- Kết quả thực tế: engine **chấp nhận** `skipped=true` cho `GRAMMAR_CHOICE` (`GRAMMAR_LESSON.allowSkip = true`). Câu đó vẫn được ghi (`meta.skipped = true`, `is_correct NULL`) nhưng không tính vào `answered`, nên `skippedExercises = true`.
+- `POST answer` cho câu 1 (`LESSON_READ`) của lượt có bài tập trả 409 `ANSWER_ALREADY_SUBMITTED`; `meta` và `duration_ms` của câu đó không đổi.
