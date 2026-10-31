@@ -9,7 +9,9 @@ public enum ItemType {
     PRON_CHOICE(true),
     CHAR_MEANING_CHOICE(true),
     AUDIO_CHAR_CHOICE(true),
-    WRITING_RESULT(false);
+    WRITING_RESULT(false),
+    LESSON_READ(false),
+    GRAMMAR_CHOICE(true);
 
     private final boolean gradable;
 

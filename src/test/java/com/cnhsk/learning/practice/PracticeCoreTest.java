@@ -58,7 +58,8 @@ class PracticeCoreTest {
     @ParameterizedTest
     @EnumSource(ItemType.class)
     void FR007_studyCardsCannotBeGradedWhileQuestionTypesCan(ItemType type) {
-        assertThat(type.gradable()).isEqualTo(!Set.of(ItemType.STUDY_CARD, ItemType.WRITING_RESULT).contains(type));
+        assertThat(type.gradable()).isEqualTo(!Set.of(ItemType.STUDY_CARD, ItemType.WRITING_RESULT, ItemType.LESSON_READ)
+                .contains(type));
     }
 
     @Test
