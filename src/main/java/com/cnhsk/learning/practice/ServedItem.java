@@ -37,7 +37,13 @@ public record ServedItem(
             String sentence,
             String hint,
             List<Example> examples,
-            String kind) {
+            String kind,
+            Integer strokeCount) {
+
+        public Prompt(String text, String pinyin, String sinoViet, String meaning, String audioUrl,
+                String sentence, String hint, List<Example> examples, String kind) {
+            this(text, pinyin, sinoViet, meaning, audioUrl, sentence, hint, examples, kind, null);
+        }
 
         public Prompt {
             examples = examples == null ? null : List.copyOf(examples);

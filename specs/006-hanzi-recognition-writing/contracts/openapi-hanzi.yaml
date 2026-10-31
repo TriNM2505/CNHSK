@@ -206,5 +206,10 @@ paths:
         '200': { $ref: '#/components/responses/Session' }
         '201': { $ref: '#/components/responses/Session' }
         '401': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422':
+          description: NOT_ENOUGH_CHARACTERS trả 422 với have và need=10 trong extra; validation lỗi theo định dạng ErrorResponse.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
         '429': { $ref: '#/components/responses/Error' }

@@ -12,6 +12,18 @@ Trạng thái: **Chốt — leader 2026-11-01**.
 - Test mock `hanzi-writer` trong `HanziCanvas.test.tsx`, bao gồm URL/encoding, bỏ `/` cuối, fallback, lỗi HTTP/mạng/JSON, đổi chữ trong lúc tải, unmount, resize và kích thước tối thiểu 240 px.
 - Gate FE: `npm run lint`, `npm run typecheck`, `npx vitest run --maxWorkers=2 --minWorkers=1`, `npm run build`, `git diff --check`, kiểm BOM/TODO. Một commit T-06, file cụ thể, push và Draft PR riêng.
 
+## Chốt T-04 ngày 2026-11-01
+
+Trạng thái: **Chốt — leader 2026-11-01**.
+
+- Phạm vi T-04 gồm `WritingChallengeService.java`, `WritingChallengeController.java`, `CharacterQueryRepository.java`, `ServedItem.java`, `SecurityConfig.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest.java`, `WritingChallengeIntegrationTest.java`, `contracts/openapi-hanzi.yaml`, `tasks.md` (chỉ T-04) và `questions.md`. Nếu `ServedItemView` cần chép trường prompt mới thì mới được sửa; hiện tại nó dùng trực tiếp `ServedItem.Prompt`.
+- Thêm `Integer strokeCount` cuối `ServedItem.Prompt`, giữ constructor cũ 9 tham số; các snapshot JSON cũ thiếu trường phải đọc được. Security chỉ thêm matcher POST `/api/writing/challenges` cho LEARNER; ErrorCode chỉ thêm `NOT_ENOUGH_CHARACTERS` ngay trước `INTERNAL_ERROR`, cùng đúng một kỳ vọng trong `GlobalExceptionHandlerTest`. Contract chỉ thêm 403 cho endpoint này và mô tả lỗi 422 `have`/`need=10`.
+- Eligibility chỉ gồm lexeme `CHAR`, có `stroke_count`, có attempt của user với `ref_type=CHAR_WRITING`, `status=SUBMITTED`, `ref_id=lexemeId`, item `WRITING_RESULT`, `answer='COMPLETED'`, `meta->>'mode'='STROKE'`. Đây là vị trí ngoại lệ JSONB thứ ba; luôn lọc cột quan hệ trước. Không dùng JSONB trong xếp hạng.
+- Xếp hạng qua một truy vấn nhóm toàn bộ ứng viên theo `max(attempt_items.answered_at)`, tăng dần, gồm attempt `CHAR_WRITING` và `WRITING_CHALLENGE`, `status=SUBMITTED`, `item_type=WRITING_RESULT`, `answer IS NOT NULL`; hòa được xáo bằng bean `practiceChoiceRandom`. Không gọi truy vấn riêng từng chữ.
+- Trong transaction, thứ tự bắt buộc là advisory lock theo key `WRITING_CHALLENGE:{userId}` → `findActive` → eligibility/ranking → lỗi 422 có `have`, `need=10` hoặc `PracticeService.start`. Lượt đang hoạt động trả 200 và không tiêu hạn mức; lượt mới trả 201 và dùng hạn mức practice:start 120/giờ; lượt hết hạn không được tiếp tục.
+- Không tạo migration, không sửa `WritingChallengeHandler`, practice handler/API hoặc file ngoài phạm vi trên. Test tích hợp gọi HTTP với PostgreSQL Testcontainers thật, không mock repository; gồm đủ AT-17/AT-18, concurrency (chỉ một lượt mới), session tiếp tục/hết hạn, rate limit, quyền truy cập, xếp hạng, không lộ đáp án và tương thích snapshot cũ.
+- Gate: test chọn lọc rồi `./mvnw verify` với Docker; 0 failure/error/skip (ngoại lệ FR023 theo quy định chung), coverage tổng ≥80%, Practice ≥90%, `git diff --check`, kiểm BOM/TODO và OpenAPI. Một commit T-04, file cụ thể, không gồm `package-lock.json`, push và Draft PR riêng.
+
 ## Quyết định leader ngày 2026-10-31
 
 | # | Quyết định | Trạng thái |
