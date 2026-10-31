@@ -731,3 +731,46 @@ Không đề xuất sửa engine practice, ChoiceItemFactory, PinyinUtils, Pract
 - ✅ AC-05/AC-06/AC-07/AC-08/AC-09: không migration/DDL/Neon hoặc sửa schema/enum DB; điểm BIGINT, thời gian Clock/server UTC. Query learned/cooldown/history bằng cột quan hệ, không lọc JSONB. Dữ liệu snapshot/draft/evidence và expiry qua engine hiện có.
 - ✅ ES-01/ES-03/ES-05: Java 17/Maven Wrapper, không dependency mới, naming đúng; test mới tên FR031…FR040 theo AT và các biên leader bổ sung. Gate đầy đủ 0 skip, coverage vượt cả hai ngưỡng.
 - ✅ ES-06/ES-07 và safety: đúng 15 file đã duyệt, shared chỉ thay phần được chốt; một Conventional Commit T-12, không nhắc công cụ trong message. Chỉ thực hiện một bước fetch/ff được cho phép trước code, giữ merge-base e5775df; không stash/restore thay đổi người khác, merge/rebase/pull main thêm, merge PR, force-push hoặc push main. Push/Draft PR là các bước leader đã cho phép; sau báo cáo dừng chờ review.
+
+## Q-T14-01 — Nghiệm thu SCR-011 Topic List
+
+**Chốt, 2026-10-31 — leader DUYỆT Shadow Plan T-14:** FR-041; AT-40 chỉ phần lọc HSK. Các phần còn lại của AT-40 thuộc T-15…T-17, không đánh dấu AT-40 đạt toàn bộ.
+
+**Nền:** Đã fetch origin và kiểm HEAD/merge-base/origin/main cùng **73af018c6338b453fa9e3c24e3b70a28e0732ab2**. Nhánh mới `spec/003-vocab-topics-t14`, worktree `C:/KLTN_FALL2026/CNHSK-t14`, tách riêng để giữ nguyên thay đổi của người dùng ở worktree IDE. Không merge/rebase/pull main sau khi tạo nhánh. Điều kiện bắt đầu đủ: 36 dòng task spec 001 đều ✅ (footer 14/36 đã cũ, chỉ báo không sửa trong task này), spec 002 T-01…03 ✅, Q5 đã chốt; T-12 đã merge qua PR #32, T-13 đã ✅ trên main.
+
+**Phạm vi đúng 4 file:**
+
+| File | Thay đổi được duyệt |
+|---|---|
+| `cnhsk-web/src/features/vocab/pages/Scr011TopicListPage.test.tsx` | Chỉ thêm test FR041_… và helper/fixture cần thiết; giữ nguyên 8 test cũ |
+| `specs/003-vocab-topics/tasks.md` | Sửa đường dẫn T-14 cho khớp màn hiện có, thêm phạm vi/kết quả gate, chỉ đánh dấu ✅ sau khi đạt gate |
+| `specs/003-vocab-topics/questions.md` | Chốt, báo cáo và self-check T-14 |
+| `specs/003-vocab-topics/spec.md` | Đúng một dòng làm rõ FR-041: bộ lọc UI hiện HSK 1–3 qua SUPPORTED_HSK_LEVELS, API/types vẫn 1–9 |
+
+**Cách làm đã duyệt:** Nghiệm thu và bổ sung test cho màn đang có; không dùng SCR-011 để thêm tính năng mới. Giữ controller/view/helper/query/API/types/route và shared nguyên vẹn. Áp dụng FR-016/FR-041/D-06: không trạng thái LOCKED, không ổ khóa; bổ sung test xác nhận. Screen-fields còn prerequisite/khóa là tài liệu thấp hơn spec; theo quyết định đã chốt, không hỏi lại. Nếu test cho thấy cần sửa production, dừng và báo leader, không sửa trong T-14 khi chưa có duyệt bổ sung.
+
+**File đã đọc:** AGENTS.md §12 → constitution.md/safety/global → spec 001 §0 → spec 003/spec và OpenAPI → tasks/questions (không plan.md), điều kiện spec 002. Đối chiếu SCR-011 trong screen-fields sau spec; code chỉ gồm Scr011TopicListPage/test, TopicListView/preview, topicListQuery, topics API/test, types/labels, shared useApiQuery/client/LevelBadge/FormField/Progress và routeAccess/routes/screenRegistry/screens. Chỉ đọc các file dùng chung, không sửa.
+
+**Test sẽ thêm:** đủ trường thẻ từ dữ liệu server, phân biệt điểm 0 với null và trạng thái hoàn thành; loading trước khi có dữ liệu; kết hợp tìm kiếm/trạng thái và xóa bộ lọc không gọi API lại; đổi HSK nhanh bỏ phản hồi cũ; Back/Forward giữ bộ lọc HSK trên URL; bấm thẻ sang đúng chi tiết; không LOCKED/ổ khóa. Giữ chọn HSK 1–3, API/types 1–9. Fixture tự soạn, không đề thi HSK/dữ liệu cá nhân thật.
+
+**Gate chỉ FE (leader chốt):** npm ci; test chọn lọc Scr011TopicListPage.test.tsx và api/topics.test.ts; npm run lint; npm run typecheck; full `npm test -- --maxWorkers=2 --minWorkers=1`; npm run build; git diff --check/BOM/TODO. Không chạy Maven vì không đổi backend; quy định ngoại lệ FR023 tốc độ import không cần áp dụng ở T-14. Không commit package-lock.json nếu npm ci làm đổi file, không thêm dependency/migration/SQL/Neon.
+
+**Bàn giao:** một commit `test(vocab): verify topic list acceptance (T-14)`, git add từng file cụ thể trong đúng phạm vi, push nhánh và Draft PR mới. Báo commit, merge-base, số test rồi dừng chờ leader kiểm bản gộp/báo xanh. Không merge PR, force-push/push main hoặc stash/restore thay đổi người khác; không secret, host Neon, email thật, BOM hoặc nội dung nhắc công cụ trong commit message.
+
+### Báo cáo T-14 — 2026-10-31
+
+- Nghiệm thu SCR-011 hiện có theo FR-041; thêm **8 test FR041_…**, giữ nguyên toàn bộ 8 test cũ/fixture/assert. Kiểm đủ trường thẻ lấy từ server; điểm 0 khác null, học đủ 100% không tự suy ra COMPLETED; loading; tìm kiếm + trạng thái + xóa bộ lọc không gọi API lại; HSK Back/Forward giữ URL; phản hồi HSK cũ không ghi đè mới; bấm thẻ đến đúng chi tiết; không LOCKED/ổ khóa. Không phát hiện lỗi cần sửa production.
+- Đúng 4 file trong Q-T14-01. tasks.md sửa đường dẫn cũ TopicListPage.tsx thành màn thực tế Scr011TopicListPage.tsx và ghi rõ file test/phạm vi; spec.md chỉ thêm **1 dòng** làm rõ FR-041 về UI HSK 1–3, API/types 1–9. Không sửa production, API/OpenAPI, shared/app/routeAccess/screenRegistry, test khác, package.json hoặc package-lock.json.
+- `npm ci` exit 0, lockfile nguyên vẹn. Test chọn lọc cũ trước thay đổi: **11/11**. Chọn lọc cuối bằng `npm test -- src/features/vocab/pages/Scr011TopicListPage.test.tsx src/features/vocab/api/topics.test.ts --maxWorkers=2 --minWorkers=1`: **19/19** (16 page + 3 API), exit 0.
+- `npm run lint`: exit 0, **0 lỗi/1 warning có sẵn** react-refresh/only-export-components tại shared/ui/LevelBadge.tsx. `npm run typecheck`: exit 0. `npm test -- --maxWorkers=2 --minWorkers=1 --reporter=json --outputFile=<temp>`: exit 0, **1059 test/114 file**, tất cả assertion status=passed, 0 failure/error/skip/todo; đã đọc JSON đối chiếu. `npm run build`: exit 0, 2149 module, Vite build 4,13 giây. Không chạy Maven theo gate chỉ FE đã duyệt, không có số coverage BE mới; không dùng kết quả T-12 làm coverage T-14.
+- `git diff --check` sạch; đúng 4 file UTF-8 không BOM, test không TODO/FIXME. Chỉ nghiệm thu **phần lọc HSK của AT-40**; các phần khác thuộc T-15…T-17, **chưa đánh dấu AT-40 đạt toàn bộ**. Không còn câu hỏi T-14 mở hay lệch spec; giữ D-06 không LOCKED. Bàn giao một commit `test(vocab): verify topic list acceptance (T-14)` trên `spec/003-vocab-topics-t14`, merge-base **73af018c6338b453fa9e3c24e3b70a28e0732ab2**; push và Draft PR mới rồi dừng chờ leader kiểm bản gộp/báo xanh.
+
+**Self-check Constitution T-14:**
+
+- ✅ AC-01: một dòng spec được leader duyệt trước khi thêm test; giữ hợp đồng GET /api/topics/OpenAPI và API/types 1–9, UI dùng SUPPORTED_HSK_LEVELS 1–3. Không thêm endpoint/tính năng mới, không vượt phạm vi AT-40.
+- ✅ AC-03/BUS-01/HR-03/HR-04/HR-05: không đổi module boundary, quyền LEARNER, ownership, cookie/CORS/CSRF hoặc shared client; chỉ kiểm màn đang dùng API và route hiện có, không truy cập DB/module khác.
+- ✅ HR-06/BUS-09/BUS-02/AC-07/AC-08/AC-09: thẻ dùng learnedWords/percent/status/bestTestPercent server trả, không chấm điểm hoặc tự suy ra hoàn thành; test điểm 0/null và 100% học vẫn IN_PROGRESS xanh. Không sửa transaction, kiểu điểm/thời gian hoặc query JSONB. Phản hồi request cũ không ghi đè dữ liệu mới đã kiểm bằng promise điều khiển, không sleep hay thời gian giả để che lỗi.
+- ✅ HR-01/HR-02/BUS-06/HR-07/HR-08/HR-09: không đổi password hashing/input validation/error handler; giữ lỗi chuẩn và request_id qua client hiện có. Fixture tự soạn, không PII/email thật, mật khẩu, token, host Neon, .env/secret hoặc dữ liệu đề HSK bản quyền; không in nội dung nhạy cảm. Không tự bỏ/ngắt assert để làm xanh.
+- ✅ AC-05/AC-06/ES-01/ES-02/ES-03: không SQL/migration/Neon, schema/DB enum, dependency hoặc config; npm ci dùng lockfile hiện có, không đổi lockfile. Giữ React 18/TS 5.7/Vite 5 và component/route/naming hiện có.
+- ✅ ES-05: gate FE đúng duyệt, đủ npm ci/chọn lọc/lint/typecheck/full Vitest/build; 8 ca mới tên FR041 theo phần HSK của AT-40 và các ca leader chốt. Full 1059 pass, không skip/todo; giữ 8 test cũ, không sửa test spec khác. Maven không chạy theo duyệt, không yêu cầu ngoại lệ FR023 import.
+- ✅ ES-06/ES-07/safety: sửa đúng 4 file đã duyệt; chỉ spec thêm 1 dòng, không production/shared. Một Conventional Commit đúng message T-14, stage từng file cụ thể; push nhánh/Draft PR là quyền leader đã cho phép. Nền 73af018 xác nhận sau fetch, không merge/rebase/pull main sau khi tạo nhánh, merge PR, force-push/push main, stash/restore hoặc đụng thay đổi của người khác. Báo commit/merge-base/test rồi dừng chờ leader.
