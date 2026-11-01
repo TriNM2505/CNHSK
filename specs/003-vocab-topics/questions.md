@@ -953,3 +953,146 @@ Hoàn thành FR-043 và phần khôi phục FR-045 theo Q-T16-01…03, đúng 5 
 - ✅ ES-01/ES-02/ES-03: giữ stack/dependency/lockfile, không thư viện mới. Giữ export và chữ ký caller/T-13; sửa trong hai file production hiện có, test mới tên FR043_/FR045_.
 - ✅ ES-05: test tái hiện đỏ trước sửa, ghi đủ tên/lỗi; 9 test cũ nguyên vẹn; toàn bộ gate FE xanh, không skip/todo. Không sửa logic cho các nghi vấn đã test xanh trước sửa.
 - ✅ ES-06/ES-07/safety: đúng 5 file đã duyệt, Conventional Commit có T-16, không nhắc công cụ; git add file cụ thể, push nhánh/Draft PR theo quyền leader. Không stash/restore thay đổi người khác, merge/rebase/pull main sau tạo nhánh, merge PR, force-push/push main; không đụng worktree IDE/các worktree cũ. Dừng sau báo cáo chờ leader review.
+
+## Q-T17-01 — Shadow Plan kiểm tra cuối chủ đề (DEFERRED)
+
+**Chốt, 2026-11-01 — leader DUYỆT đúng 7 file, gate chỉ FE, không Maven.** T-17: FR-044, liên quan FR-006/029/038…040/045, E-R7/E-R9…11/E-F1 và AT-40. Test tái hiện trước sửa, ghi số ca đỏ; giữ nguyên 9 test cũ. Nghi vấn không tái hiện được thì không sửa và ghi lại. TopicPracticeController chỉ sửa nhánh CTA focus, tuyệt đối giữ nguyên restoredFinishResult.
+
+**Nền:** Đã fetch origin rồi tạo nhánh mới spec/003-vocab-topics-t17 từ origin/main=818e86ae7ef8b8ec822555e3a87b0539180f10cf (merge PR #46), worktree C:/KLTN_FALL2026/CNHSK-t17. HEAD/merge-base cùng hash này, không pull/merge/rebase main sau tạo nhánh. Worktree mới sạch trước ghi plan; giữ nguyên worktree IDE/các worktree cũ. Điều kiện đủ: spec 001 có 36 dòng task ✅; spec 002 T-01…03 ✅; Q5 đã chốt; T-01…T-16 ✅, leader xác nhận T-16 trên bản gộp có 1132 test FE xanh.
+
+**File đã đọc / sẽ dùng:** AGENTS.md §12 → constitution/safety → spec 001 §0 → spec 003 §0, FR-025…045 và §14 → contracts/openapi-practice-vocab.yaml → tasks/questions (không plan.md của spec 003). Code: TopicTestController/test, TopicTestStepView/preview, topicTestFlow, TopicPracticeController và các regression focus T-16; Scr012TopicStudyPage để kiểm đường mount/refresh. Chỉ đọc hook usePracticeSession/test, ChoiceQuestion/AudioButton/PinyinInput, shared ConfirmPanel và practice index/types/API. Đối chiếu các test HSK/bước bị chặn/nghe/restore của T-13…T-16 để lập bảng AT-40. Đọc đúng phần actions của TopicQueryService và Chốt T-09 để xác nhận active test luôn canTakeTest=true; không cần sửa page hoặc backend vì tình huống này.
+
+**Đối chiếu tại nền (đọc tĩnh và định nghĩa test, chưa chạy gate T-17):** TopicTestController có 9 test, giữ nguyên toàn bộ test/assert/fixture cũ.
+
+| FR / ca nghiệm thu | Đã có trên main | Còn thiếu / cần kiểm bằng regression |
+|---|---|---|
+| FR-044: đi lại giữa câu, đổi đáp án | QuestionNavigator, Câu trước/sau; test chọn nháp rồi sang câu 4/câu 3; 4 dạng câu đều có view | Chọn lại câu cũ đúng trạng thái; sửa A→B khi request A chưa xong phải lưu B cuối cùng, không lấy response cũ ghi đè |
+| FR-044: lưu nháp ngay và pinyin 500 ms | Test chọn gửi answer ngay; test pinyin chờ 500 ms; hàng đợi tuần tự qua hook một operation | Kiểm biên 499/500 ms, rời câu/nộp khi chưa hết debounce, pending queue nhiều câu, lỗi lưu không tự lặp. flushDrafts hiện gọi tiếp sau cả khi answer trả null; effect pending cũng có thể kích lại khi lỗi |
+| FR-044 / E-R7/E-R11: xóa đáp án gõ đã lưu | Ô nhập cho phép xóa; countUnanswered coi rỗng là chưa làm | toAnswerRequest hiện gửi answer=null không skipped khi rỗng (không hợp lệ); draftsToAnswers lại loại nháp rỗng nên finish có thể giữ đáp án cũ. Cần Chốt Q-T17-02 |
+| FR-044 / AT-40: xác nhận nộp trong trang | ConfirmPanel role=dialog, số câu thiếu, cancel; test nộp ngay gửi đủ nháp chờ debounce | Nghiệm thu hủy không finish/không window.confirm, hết câu, bấm nộp trùng, chờ autosave đang chạy rồi gửi snapshot mới nhất; finish lỗi giữ nháp và chỉ nộp lại sau xác nhận mới. Chỉ sửa hành vi nếu test tái hiện lỗi |
+| DEFERRED: chưa chấm trước finish | Hook trả drafts, ChoiceQuestion feedback=DEFERRED; không truyền result trước nộp | Integration không hiện đúng/sai/đáp án/đạt trước finish; không tự finish khi đã làm đủ hoặc khi reload |
+| FR-044: kết quả và từ sai | Test dùng score/passed/wrongWords server; test firstCompletion và giữ kết quả sau refresh topic khóa | Kiểm đủ percent/đạt/chưa đạt/từ sai và ẩn CTA khi danh sách sai rỗng; lượt mới xóa refs, timer, counter, nháp, confirmation và thời điểm của lượt cũ |
+| FR-044 / FR-029: luyện lại từ sai | Test click CTA → recognition POST focusLexemeIds khi không có active practice | Nếu /active trả lượt RECOGNITION cũ cùng topic, TopicPracticeController vào ready và không POST focus; cần Chốt Q-T17-04, không tự bỏ lượt cũ |
+| FR-045 / AT-40: khôi phục DEFERRED | Test /active+GET lấy nháp, mở câu chưa làm đầu tiên; test giữ counter khi đi lại trong cùng trang | Reload không autosave/không bịa duration/replay, không gửi lại nháp chưa sửa lúc finish (Q-T13); sửa/clear sau restore được gửi; timer/request cũ không tác động topic/session mới |
+
+Các điểm nghi vấn trên mới là kết luận đọc tĩnh. Sau duyệt viết test tái hiện trước khi sửa; ghi số ca đỏ và tên/lỗi. Không sửa logic cho nghi vấn không tái hiện được, ghi rõ trong báo cáo.
+
+**Đúng 7 file được duyệt, không tạo file mới:**
+
+| File | Phạm vi đề nghị |
+|---|---|
+| cnhsk-web/src/features/vocab/pages/TopicTestController.tsx | Hàng đợi nháp theo phiên và bản sửa mới nhất; pause/retry sau lỗi theo Q-T17-03; clear theo Q-T17-02; timer/refs/duration theo session; finish từ snapshot mới nhất sau xác nhận; bỏ tác dụng phụ cũ |
+| cnhsk-web/src/features/vocab/components/TopicTestStepView.tsx | Trạng thái lưu lỗi và thao tác thử lại theo Q-T17-03; pending/xác nhận/nộp chỉ sửa nếu regression chứng minh cần; giữ giao diện và component T-13 |
+| cnhsk-web/src/features/vocab/topicTestFlow.ts | Biểu diễn thao tác xóa rõ ràng và chuyển sang skipped=true, giữ nháp xóa trong finish; không nhầm nháp restore chưa sửa với thao tác xóa mới |
+| cnhsk-web/src/features/vocab/pages/TopicPracticeController.tsx | Chỉ nhánh focus từ CTA T-17 khi đã có active RECOGNITION theo Q-T17-04; giữ các luồng T-16 khác và không sửa test T-16 |
+| cnhsk-web/src/features/vocab/pages/TopicTestController.test.tsx | Chỉ thêm FR044_/FR045_, helper/fixture tự soạn; giữ nguyên 9 ca cũ. Test xuyên màn CTA/focus đặt ở đây, không cần sửa TopicPracticeController.test.tsx |
+| specs/003-vocab-topics/tasks.md | Chỉ phạm vi/gate/kết quả T-17; kết luận rõ AT-40 đạt trọn hay còn thiếu, chỉ đánh dấu ✅ sau gate |
+| specs/003-vocab-topics/questions.md | Plan/câu hỏi/Chốt, bảng AT-40, bằng chứng đỏ trước sửa và báo cáo/self-check T-17 |
+
+**File dùng chung cần sửa: không có.** Giữ features/practice/shared/app, Scr012TopicStudyPage, TopicPracticeStepView, spec/OpenAPI/backend, test spec khác, dependency/lockfile, DB/migration. Không cần số migration V5. Nếu cần ngoài 7 file thì dừng báo leader trước.
+
+**restoredFinishResult / PR riêng spec 004:** TopicTestController hiện không import/dùng hàm này; T-17 đề nghị tiếp tục không dùng và không sửa phần gom helper. TOPIC_TEST có extra.passed/firstCompletion/wrongWords riêng, GET SessionView không trả các extra đó. Khi sync SUBMITTED mà không có FinishResult, giữ thông báo Đã nộp bài hiện có; không dựng extra hoặc kết quả thi từ helper IMMEDIATE. Kết quả đầy đủ FR-044 lấy từ response finish thật. Khôi phục trong AT-40 là lượt đang làm; không mở rộng sang lưu kết quả đầy đủ của lượt đã nộp khi thiếu contract. Nếu leader muốn đổi chính sách này thì chốt scope riêng trước code.
+
+**Các test sẽ thêm:** FR044_ cho A→B lúc save pending, autosave/queue lỗi và retry, biên pinyin 500 ms/rời câu, clear đã lưu/clear trước debounce rồi finish, xác nhận hủy/hết/thiếu câu, pending và chống nộp trùng, finish lỗi giữ nháp và xác nhận lại, không feedback DEFERRED trước nộp, kết quả/từ sai theo server, CTA focus với active recognition. FR045_ cho restore không auto-save/không tự finish/không resubmit nháp chưa sửa, clear/sửa nháp restore, reset timer/duration/counter theo session và không nhận phản hồi cũ khi đổi topic/rời bước. Dùng promise điều khiển và fake timer khi đo debounce; không sleep để che race. Giữ các test T-13…T-16 nguyên vẹn.
+
+**Cách làm và gate đã duyệt — chỉ FE, không Maven:** Ghi Chốt → npm ci → baseline 9 test cũ → thêm test tái hiện và lưu báo cáo đỏ trước sửa → chỉ sửa lỗi đã tái hiện trong scope → test chọn lọc → npm run lint → npm run typecheck → full Vitest → npm run build → git diff --check/BOM/TODO/lockfile. Không commit lockfile nếu npm ci đổi.
+
+Lệnh chọn lọc trong cnhsk-web: npm test -- src/features/vocab/pages/TopicTestController.test.tsx src/features/vocab/pages/TopicPracticeController.test.tsx src/features/vocab/pages/Scr012TopicStudyPage.test.tsx src/features/vocab/pages/Scr011TopicListPage.test.tsx src/features/practice --maxWorkers=2 --minWorkers=1. Full: npm test -- --maxWorkers=2 --minWorkers=1. Mỗi lượt thêm reporter JSON/outputFile riêng trong temp. Nếu Vitest đỏ rồi chạy lại xanh, vẫn báo file/tên test/thông báo lỗi nguyên văn trong PR, không bỏ qua hoặc tự kết luận do PR/có sẵn. Không skip/đổi ngưỡng/sửa test ngoài scope để lấy xanh; không chạy Maven hoặc áp ngoại lệ FR023 import cho task FE này.
+
+**AT-40 — tiêu chí để kết luận sau T-17:**
+
+| Phần AT-40 | Bằng chứng hiện có / cần bổ sung | Kết luận hiện tại |
+|---|---|---|
+| Lọc HSK | T-14, Scr011TopicListPage.test.tsx, FR041_ và Chốt UI HSK 1–3 | Đã nghiệm thu T-14; chạy hồi quy nguyên vẹn |
+| Bước kiểm tra bị chặn có lý do | T-15, Scr012TopicStudyPage.test.tsx, FR042_AT40_ | Đã nghiệm thu T-15; không tự tính eligibility client |
+| Nghe tối đa 3 | T-13/T-16, AudioButton và TopicPracticeController FR043_ | Đã nghiệm thu T-16; chạy hồi quy nguyên vẹn |
+| Xác nhận nộp trong trang | Có test T-17 happy path, thiếu ca hủy/pending/lỗi | Cần hoàn tất T-17 |
+| Reload khôi phục lượt | Study/practice đã nghiệm thu T-13/T-15/T-16; T-17 có ca restore cơ bản | Cần hoàn tất DEFERRED và bảo toàn nháp/bằng chứng |
+
+Chỉ báo **AT-40 đạt trọn** sau khi các câu hỏi được chốt, T-17 đủ các ca còn thiếu và gate/hồi quy toàn bộ xanh. Tại thời điểm gửi Shadow Plan: **chưa đạt trọn**. Báo cáo cuối sẽ ghi rõ đạt trọn hoặc liệt kê từng phần chưa đạt; không tự coi task cuối đồng nghĩa đã đạt AT-40.
+
+**Rủi ro/giới hạn:** Hook chỉ cho một operation; queue phải giữ bản sửa sau cùng khi request cũ hoàn thành và dừng khi lỗi. Xóa đáp án phải thay được draft server, không chỉ xóa UI. Timer/callback cũ có thể chạm refs lượt mới; phải kiểm bằng test trước sửa. Khi focus tạo lượt mới có thể tồn tại lượt practice cũ: API cho phép mỗi POST tạo lượt mới, không tự abandon khi chưa được chốt. GET chỉ có ItemState theo Q-T13-02/03: counter reload về 0, không đoán audioFailed/duration/replay hoặc gửi lại nháp chưa sửa. canTakeTest của active test đã được server xử lý đúng Chốt T-09, không cần đổi page/actions hoặc hỏi lại. Không đụng công việc gom helper của spec 004.
+
+**Bàn giao sau duyệt/gate:** Một commit fix(vocab): complete topic test flow (T-17), git add từng file cụ thể, push nhánh và Draft PR mới. Báo commit + merge-base + số test + kết luận AT-40 + câu hỏi/lỗi còn lại rồi dừng; theo duyệt T-17 mới nhất: giữ Draft PR, báo commit/merge-base/số test/AT-40 rồi dừng; chỉ leader merge sau khi báo xanh. Không secret/.env/host Neon/mật khẩu/App Password/email thật/HSK bản quyền; không SQL/DDL/Neon, stash/restore thay đổi người khác, git add . hoặc -A, merge/rebase/pull main, force-push/push main. Nhánh không chứa tên công cụ, commit theo Conventional Commits không nhắc công cụ và không BOM.
+
+**Self-check khi gửi Shadow Plan trước duyệt:** AC-01 giữ contract; AC-03/BUS-01 và HR-03…05 giữ API/module/auth/CSRF; HR-06/BUS-09 server chấm, không tự dựng kết quả thi; HR-02/HR-08 không secret/PII/bản quyền; AC-05/AC-09 không DB/migration/JSONB query; ES-01/05/06/07 giữ stack, scope/gate/commit/review. Chỉ ghi tài liệu câu hỏi, chưa sửa production/test hoặc chạy gate; dừng chờ leader duyệt phạm vi và chốt bên dưới.
+
+### Q-T17-02 — Xóa pinyin đã lưu
+
+**Chốt, 2026-11-01 — leader DUYỆT:** Chỉ xóa khi câu đã có đáp án lưu hoặc đang chờ lưu; ô chưa từng gõ không gửi. Xóa pinyin gửi skipped:true, không gửi answer; UI đánh dấu chưa làm, lưu {skipped:true} theo E-R11 DEFERRED (không audioFailed và không answer=null đơn lẻ), giữ thao tác xóa trong payload finish nếu còn chờ debounce. Khi gõ lại giá trị thì bỏ cờ skipped. Chỉ gắn cờ từ thao tác sửa thật; không suy diễn từ answer vắng/null khi restore. Như vậy server không chấm đáp án cũ và khi nộp câu này tính sai. Restore answer=null là chưa làm, không tự gửi lại hoặc suy diễn thao tác xóa. Không đổi API/backend.
+
+### Q-T17-03 — Lỗi autosave và thử lại
+
+**Chốt, 2026-11-01 — leader DUYỆT:** Khi save trả lỗi: dừng tự retry/queue, giữ nháp mới nhất và các câu chưa lưu, hiện thông báo/request_id và nút Thử lại lưu nháp. Chỉ thử lại khi người học bấm hoặc chủ động sửa đúng câu bị lỗi; không reload làm mất phần chưa lưu. Nộp bài vẫn cần xác nhận; finish lỗi giữ nháp và yêu cầu người học mở/xác nhận nộp lại, không tự nộp lặp. Lần lưu đang chờ phải xong rồi mới finish, payload là bản mới nhất của mọi câu. Chỉ sửa những ca có regression đỏ.
+
+### Q-T17-04 — Luyện lại từ sai khi đã có lượt nhận diện dở
+
+**Chốt, 2026-11-01 — leader DUYỆT:** Với CTA focus và active RECOGNITION: tạo lượt focus mới đúng một lần theo FR-025/029, giữ lượt cũ nguyên vẹn, xóa state focus chỉ sau start thành công. Khi active khác mode (LISTENING), giữ luồng hỏi tiếp tục/bỏ lượt hiện có của T-16. Không có state focus thì resume như cũ. Lỗi start không tự lặp, giữ state để bấm thử lại. Refresh sau khi xóa state không tạo thêm lượt. Trong TopicPracticeController.tsx chỉ sửa nhánh focus, giữ nguyên restoredFinishResult đang được spec 004 gom ở PR riêng.
+
+
+### T-17 — Bằng chứng trước sửa production (2026-11-01)
+
+Baseline 9/9. Thêm 24 ca FR044_/FR045_: red-1 có 31 ca, 10 đỏ/21 qua; bổ sung hai biên Chốt trước sửa (whitespace chưa có đáp án, focus gặp lượt cũ đã làm hết) thành red-2 33 ca, 12 đỏ/21 qua, 0 skip. Cả 9 test cũ vẫn qua. Đây là red regression có chủ ý trước sửa; báo cáo/log từng lượt giữ riêng trong temp. Danh sách red-2:
+
+| Test trong TopicTestController.test.tsx | Thông báo lỗi trước sửa |
+|---|---|
+| FR044_clearing a restored answer submits skipped immediately even inside debounce | AssertionError: expected undefined to deeply equal [ ObjectContaining{…} ] |
+| FR044_clearing a new pending answer is included in finish before debounce | AssertionError: expected undefined to deeply equal [ ObjectContaining{…} ] |
+| FR044_clearing a saved answer autosaves skipped without an answer field | AssertionError: expected { durationMs: 526, no: 3, …(2) } to match object { no: 3, skipped: true } |
+| FR045_null restored answer is unanswered and is not resaved or inferred as deletion | Error: Unable to find an element with the text: Câu 3/4. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible. |
+| FR044_whitespace without a previous answer never sends a deletion | AssertionError: expected "spy" to not be called at all, but actually been called 1 times |
+| FR044_save error pauses retries and the retry button saves the retained draft | Error: Unable to find role="alert" |
+| FR044_only editing the failed question resumes the paused queue with the latest values | Error: Unable to find role="alert" |
+| FR045_new session measures the first question again when its number is unchanged | AssertionError: expected +0 to be 800 // Object.is equality |
+| FR044_wrong-word CTA creates focus and keeps old recognition with all answers=false | AssertionError: expected "spy" to be called 1 times, but got 0 times |
+| FR044_wrong-word CTA creates focus and keeps old recognition with all answers=true | AssertionError: expected "spy" to be called 1 times, but got 0 times |
+| FR044_failed focused start retains state without looping and retries only on click | Error: Unable to find role="button" and name "Thử lại" |
+| FR045_refresh after focus state is cleared only restores the focused session | Error: Unable to find an element with the text: 爸爸. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible. |
+
+Đã xanh trước sửa: pending save A cùng bản mới nhất của hai câu khi nộp; debounce 500 ms/rời câu; xóa rồi gõ lại; hủy xác nhận; double submit; finish lỗi giữ nháp/xác nhận lại; restore không gửi lại nháp chưa sửa và không feedback; SUBMITTED chỉ thông báo; server percentage/wrongWords rỗng; timer cũ không chạm lượt mới; focus khác mode hỏi như T-16. Không sửa các luồng đã đạt, giữ làm nghiệm thu; giữ cleanup timer và finish confirmation hiện có, không sửa các nghi vấn không tái hiện được.
+
+### Báo cáo T-17 — bàn giao 2026-11-01
+
+Hoàn thành FR-044/FR-045 và nhánh FR-029 theo Chốt Q-T17-01…04, đúng 7 file. Không còn câu hỏi mở hoặc lệch spec. **AT-40 đã đạt trọn trong phạm vi đã chốt**, gồm đủ năm phần trong bảng bên dưới; không coi số thứ tự task cuối là bằng chứng thay cho test.
+
+| Phần AT-40 | Bằng chứng nghiệm thu / hồi quy cuối | Kết luận |
+|---|---|---|
+| Lọc HSK | Scr011TopicListPage: 16/16, gồm FR041_AT40_restoresTheHskFilterAndServerListWithBackAndForward và bộ lọc SUPPORTED_HSK_LEVELS 1–3 | Đạt, T-14 và hồi quy T-17 |
+| Bước kiểm tra bị chặn có lý do | Scr012TopicStudyPage: 38/38, gồm FR042_AT40_blocksTheStepAndExplainsItsReason, tin actions server | Đạt, T-15 và hồi quy T-17 |
+| Nghe lại tối đa ba lần | TopicPracticeController: 30/30 và AudioButton: 5/5, lần đầu có tính, chặn lần bốn, không autoplay | Đạt, T-13/T-16 và hồi quy T-17 |
+| Xác nhận nộp trong trang | TopicTestController: dialog số câu thiếu/hết, FR044_cancelling confirmation…, double submit…, finish error…; không window.confirm | Đạt T-17 |
+| Reload khôi phục lượt | Hook 22/22 + study/practice đã nghiệm thu; T-17 FR045_null restored answer…, restore keeps server drafts…, SUBMITTED sync… | Đạt cả RECORD/IMMEDIATE/DEFERRED theo contract |
+
+**Thay đổi đã kiểm bằng regression:**
+
+- Xóa pinyin chỉ tạo skipped=true khi có đáp án đã lưu/đang chờ lưu; không gửi answer hoặc audioFailed cùng thao tác xóa. Giữ skipped trong finish ngay cả trước hết debounce; xóa rồi gõ lại gửi đáp án mới, không skipped. Ô chưa gõ/whitespace-only không tạo xóa. Restore answer=null là chưa làm, mở đúng câu đó, không tự gửi lại.
+- Queue save lỗi dừng, giữ bản mới nhất/các câu chưa lưu; hiện Thử lại lưu nháp. Chỉ người học bấm hoặc sửa đúng câu lỗi mới tiếp tục queue. Chỉnh câu khác khi đang pause không tự retry câu lỗi. Câu mới đầu session đo duration lại dù no không đổi.
+- CTA focus gặp active RECOGNITION tạo một lượt mới, không abandon hoặc finish lượt cũ (kể cả lượt cũ đã trả lời hết). Start lỗi không lặp, giữ state để retry; sau thành công xóa state, refresh chỉ restore. Khác mode giữ luồng hỏi T-16.
+- Nhánh focus là phần duy nhất sửa trong TopicPracticeController.tsx; đã so nguyên chuỗi restoredFinishResult với HEAD nền và giữ nguyên hoàn toàn. Không dùng/gom helper ở TopicTestController hoặc features/practice.
+- Các nghi vấn đã xanh trước sửa không sửa production: latest snapshot của hai câu khi save pending, debounce/rời câu, clear→retype, cancel/double-confirm, finish lỗi giữ nháp/xác nhận lại, timer cũ không chạm lượt mới, DEFERRED không feedback/resubmit nháp chưa sửa, SUBMITTED chỉ thông báo, kết quả server và active khác mode. Giữ cleanup timer/confirmation hiện có. Toàn bộ ca bắt buộc leader yêu cầu đã có test.
+
+**Giới hạn đã chốt vẫn giữ:** GET chỉ cung cấp ItemState theo Q-T13-02/03; reload counter về 0, không suy diễn audioFailed/replay/duration hoặc gửi lại nháp chưa sửa. Sync DEFERRED SUBMITTED không có FinishResult chỉ hiện Đã nộp bài, không dựng điểm/passed/wrongWords. Kết quả đầy đủ sau finish thật lấy score/percent/extra server. Những giới hạn này được leader chấp nhận, không phải phần AT-40 còn thiếu.
+
+**Gate FE:**
+
+- npm ci: exit 0, package-lock.json không đổi; không cập nhật dependency.
+- Baseline 9/9; thêm 24 FR044_/FR045_. Hai báo cáo đỏ trước sửa: red-1 31 ca có 10 đỏ/21 qua; red-2 33 ca có 12 đỏ/21 qua sau thêm hai biên. Tên/lỗi từng ca ở bảng bằng chứng trước sửa, báo cáo/log giữ riêng không ghi đè. Cả 9 test cũ luôn xanh; đã so nguyên khối 9 test/assert với HEAD, fixture cũ giữ nguyên.
+- Sau sửa TopicTestController 33/33. Chọn lọc toàn bộ vocab pages + practice 159/159 trên 12 file: topic test 33, topic practice 30, SCR-012 38, SCR-011 16, practice 42. Không failure/error/skip/todo.
+- npm run lint: exit 0, 0 lỗi, 1 warning có sẵn react-refresh/only-export-components ở shared/ui/LevelBadge.tsx. npm run typecheck: exit 0.
+- Full Vitest full-1: 1156/1156 test trên 115 file, mọi assertion passed, 0 failed suite/failure/error/skip/todo, xanh ngay lượt đầu. Reporter JSON không có tiến độ giữa lượt nên đã kiểm tra tiến trình khi chờ; không hủy/chạy lại suite, không có gate đỏ rồi chạy lại xanh. Các ca đỏ nêu trên là TDD có chủ ý trước sửa.
+- npm run build: exit 0, Vite 5,41 giây. Gate chỉ FE theo duyệt; không Maven/coverage BE mới, không áp dụng ngoại lệ FR023 import.
+- git diff --check sạch; đúng 7 file UTF-8 không BOM; code sửa không TODO/FIXME/focused/skipped test. practice/shared/app/backend/OpenAPI/dependency/migration/lockfile nguyên vẹn; không SQL/DDL/Neon. Worktree IDE/các worktree cũ không bị sửa/stash/restore.
+
+**Bàn giao:** Nhánh spec/003-vocab-topics-t17, merge-base 818e86ae7ef8b8ec822555e3a87b0539180f10cf. Một commit fix(vocab): complete topic test flow (T-17), stage từng file cụ thể, push và Draft PR mới vào main. Theo duyệt mới nhất giữ Draft, báo commit/merge-base/số test và AT-40 rồi dừng; chỉ leader kiểm bản gộp/merge sau khi báo xanh. Commit dùng danh tính noreply công khai của tài khoản GitHub, không đưa email thật vào source/fixture/tài liệu/metadata.
+
+**Self-check Constitution T-17:**
+
+- ✅ AC-01: giữ contract/OpenAPI; skipped=true là field E-R11 đã có, không endpoint/error code mới. FR-044/045 và Q-T17-01…04 được duyệt trước code, AT-40 có bảng đủ phần/bằng chứng cụ thể.
+- ✅ AC-03/BUS-01/HR-03/HR-04/HR-05: chỉ dùng public API/hook/component practice hiện có; không module DB khác, không đổi auth/ownership/RBAC/cookie/CORS/CSRF/shared/app.
+- ✅ HR-06/BUS-09: server chấm; UI không đoán điểm/passed/wrongWords DEFERRED khi không có FinishResult. Kết quả dùng response server, không dựng mastery/completion. Hàm restoredFinishResult trong TopicPracticeController giữ nguyên để không đụng PR gom helper spec 004.
+- ✅ HR-07/HR-09: clear không gửi answer=null thiếu cờ; skipped và audioFailed không cùng true. Không tự lặp request lỗi; giữ thông báo an toàn/request_id. Lượt mới đo duration theo no/session, giữ clamp/evidence đúng contract.
+- ✅ Q-T13-02/03/E-R9/E-R11: không auto-save/finish/resubmit dữ liệu restore chưa sửa; null không suy thành xóa. Bỏ trống DEFERRED được server tính sai khi nộp; replay/counter không giả từ GET. Pending save phải xong trước finish, snapshot chứa bản mới nhất của cả hai câu.
+- ✅ HR-01/HR-02/BUS-06/HR-08: giữ hashing, không đọc/stage secret/.env/token/mật khẩu/App Password/host Neon/email thật/PII hoặc dữ liệu HSK bản quyền. Fixture tự soạn HSK 1–3; DB/API/types vẫn nhận 1–9. Credential chỉ trong bộ nhớ cho push/PR đã duyệt, không log/commit.
+- ✅ AC-05/AC-06/AC-07/AC-08/AC-09/BUS-02/AC-10: không DB/migration/SQL/DDL/Neon; giữ transaction, snapshot, kiểu điểm/thời gian và engine server; không query điều kiện JSONB hoặc đổi evidence server.
+- ✅ ES-01/ES-02/ES-03/ES-05: stack/dependency/lockfile nguyên vẹn; 24 test mới đúng mã FR, 9 ca cũ nguyên vẹn, test đỏ trước sửa và ghi tên/lỗi, toàn gate FE xanh không skip/todo. Không sửa nghi vấn không tái hiện.
+- ✅ ES-06/ES-07/safety: đúng 7 file được duyệt; một Conventional Commit T-17 không nhắc công cụ, git add file cụ thể, nhánh không chứa tên công cụ. Không merge/rebase/pull main sau tạo nhánh, merge PR, force-push/push main hoặc thay đổi người khác; Draft PR và dừng chờ leader theo chỉ đạo mới nhất.

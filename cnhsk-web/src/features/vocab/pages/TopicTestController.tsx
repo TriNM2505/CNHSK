@@ -9,6 +9,7 @@ import {
   countUnanswered,
   draftsToAnswers,
   getTestStartFailure,
+  isAnswered,
   PINYIN_DRAFT_DEBOUNCE_MS,
   readTestExtra,
   type TestDraft,
@@ -48,6 +49,9 @@ export function TopicTestController({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [submitRequested, setSubmitRequested] = useState(false)
   const [waitSeconds, setWaitSeconds] = useState(0)
+  const [failedSaveNo, setFailedSaveNo] = useState<number>()
+  const failedSaveNoRef = useRef<number>()
+  const clearableRef = useRef(new Set<number>())
   const initializedSessionRef = useRef<number>()
   const refreshedSessionRef = useRef<number>()
   const syncedErrorRef = useRef<unknown>()
@@ -74,9 +78,19 @@ export function TopicTestController({
       }
     })
     unsavedRef.current.clear()
-    firstShownRef.current = {}
+    failedSaveNoRef.current = undefined
+    setFailedSaveNo(undefined)
+    clearableRef.current = new Set(
+      Object.entries(restored)
+        .filter(([, draft]) => draft.answer?.trim())
+        .map(([no]) => Number(no)),
+    )
+    const firstNo = (
+      session.items.find((item) => !isAnswered(restored[item.no])) ?? session.items[0]
+    )?.no
+    firstShownRef.current = firstNo === undefined ? {} : { [firstNo]: Date.now() }
     setDrafts(restored)
-    setActiveNo((session.items.find((item) => !restored[item.no]) ?? session.items[0])?.no)
+    setActiveNo(firstNo)
   }, [practice.drafts, session])
 
   useEffect(() => {
@@ -88,7 +102,13 @@ export function TopicTestController({
   /** Lưu lần lượt các câu chưa lưu; hook chỉ cho một thao tác chạy tại một thời điểm. */
   const flushDrafts = useCallback(async () => {
     const current = practiceRef.current
-    if (savingRef.current || current.pending !== null || current.state !== 'ready') return
+    if (
+      savingRef.current ||
+      failedSaveNoRef.current !== undefined ||
+      current.pending !== null ||
+      current.state !== 'ready'
+    )
+      return
     // Câu đang chờ debounce chỉ được lưu khi hết 500 ms hoặc khi rời câu/nộp bài.
     const no = [...unsavedRef.current].find((candidate) => candidate !== debouncingNoRef.current)
     if (no === undefined) return
@@ -103,7 +123,15 @@ export function TopicTestController({
         no,
         toAnswerRequest(no, draft, durationSince(firstShownRef.current[no])),
       )
-      if (saved && draftsRef.current[no] === draft) unsavedRef.current.delete(no)
+      if (!saved) {
+        failedSaveNoRef.current = no
+        setFailedSaveNo(no)
+        return
+      }
+      if (draftsRef.current[no] === draft) {
+        unsavedRef.current.delete(no)
+        if (draft.skipped) clearableRef.current.delete(no)
+      }
     } finally {
       savingRef.current = false
     }
@@ -128,6 +156,11 @@ export function TopicTestController({
     draftsRef.current = next
     setDrafts(next)
     if (save === 'none') return
+    if (change.answer?.trim()) clearableRef.current.add(no)
+    if (failedSaveNoRef.current === no) {
+      failedSaveNoRef.current = undefined
+      setFailedSaveNo(undefined)
+    }
     unsavedRef.current.add(no)
     window.clearTimeout(pinyinTimerRef.current)
     if (save === 'debounce') {
@@ -248,11 +281,19 @@ export function TopicTestController({
         if (!submitRequested && practice.pending !== 'finish') setConfirmOpen(false)
       }}
       onChoose={(answer) => {
-        if (activeNo !== undefined) updateDraft(activeNo, { answer, audioFailed: false }, 'now')
+        if (activeNo !== undefined)
+          updateDraft(activeNo, { answer, audioFailed: false, skipped: false }, 'now')
       }}
       onConfirmSubmit={() => setSubmitRequested(true)}
       onPinyinChange={(value) => {
-        if (activeNo !== undefined) updateDraft(activeNo, { answer: value }, 'debounce')
+        if (activeNo === undefined) return
+        const hasAnswer = Boolean(value.trim())
+        const skipped = !hasAnswer && clearableRef.current.has(activeNo)
+        updateDraft(
+          activeNo,
+          { answer: value, skipped },
+          hasAnswer || skipped ? 'debounce' : 'none',
+        )
       }}
       onPracticeWrongWords={() =>
         navigate(topicStepPath(topic.id, 'recognition'), {
@@ -266,6 +307,11 @@ export function TopicTestController({
       }}
       onRequestSubmit={() => setConfirmOpen(true)}
       onRetry={practice.reload}
+      onRetrySave={() => {
+        failedSaveNoRef.current = undefined
+        setFailedSaveNo(undefined)
+        void flushDrafts()
+      }}
       onSelectQuestion={(no) => {
         // Rời câu đang gõ thì lưu luôn, không chờ hết debounce.
         if (unsavedRef.current.size) {
@@ -281,6 +327,7 @@ export function TopicTestController({
       }}
       requiredWords={startFailure?.kind === 'not-enough' ? startFailure.requiredWords : undefined}
       result={result}
+      saveFailed={failedSaveNo !== undefined}
       starting={practice.pending === 'start'}
       state={state}
       submitting={submitRequested || practice.pending === 'finish'}

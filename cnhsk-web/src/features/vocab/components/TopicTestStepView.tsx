@@ -50,10 +50,12 @@ export type TopicTestStepViewProps = {
   onReplayCountChange?: (count: number) => void
   onRequestSubmit?: () => void
   onRetry?: () => void
+  onRetrySave?: () => void
   onSelectQuestion?: (no: number) => void
   onStart?: () => void
   requiredWords?: number
   result?: TopicTestResult
+  saveFailed?: boolean
   starting?: boolean
   state:
     | 'loading'
@@ -277,10 +279,12 @@ export function TopicTestStepView({
   onReplayCountChange = () => undefined,
   onRequestSubmit,
   onRetry,
+  onRetrySave,
   onSelectQuestion = () => undefined,
   onStart,
   requiredWords,
   result,
+  saveFailed = false,
   starting = false,
   state,
   submitting = false,
@@ -397,7 +401,7 @@ export function TopicTestStepView({
   return (
     <div className="space-y-5">
       {error ? (
-        <p
+        <div
           className="rounded-md border border-danger bg-danger-bg p-3 text-body-sm text-danger"
           role="alert"
         >
@@ -405,7 +409,12 @@ export function TopicTestStepView({
           {error.requestId ? (
             <span className="mt-1 block text-caption">Mã lỗi: {error.requestId}</span>
           ) : null}
-        </p>
+          {saveFailed ? (
+            <Button className="mt-3" onClick={onRetrySave} variant="outline">
+              Thử lại lưu nháp
+            </Button>
+          ) : null}
+        </div>
       ) : null}
       <QuestionNavigator
         activeNo={activeNo}
