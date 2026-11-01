@@ -29,13 +29,18 @@ function isGrammarNotFound(error: { errorCode?: string; status?: number } | unde
 function restoredGrammarFinishResult(
   session: ReturnType<typeof usePracticeSession>['session'],
 ): FinishResult | undefined {
-  const restored = restoredFinishResult(session)
-  if (!restored || !session) return undefined
+  if (!session) return undefined
 
   const choiceNumbers = new Set(
     session.items.filter((item) => item.type === 'GRAMMAR_CHOICE').map((item) => item.no),
   )
-  const choiceAnswers = restored.items.filter((answer) => choiceNumbers.has(answer.no ?? -1))
+  const restored = restoredFinishResult({
+    ...session,
+    answered: session.answered.filter((answer) => choiceNumbers.has(answer.no)),
+  })
+  if (!restored) return undefined
+
+  // Rebuild the server summary from the reloaded session; firstTimeLearned is unknown here.
   const exercisesTotal = choiceNumbers.size
   const answered = restored.maxScore ?? 0
   const correct = restored.score ?? 0
@@ -50,7 +55,6 @@ function restoredGrammarFinishResult(
       percent,
       skippedExercises: answered < exercisesTotal,
     },
-    items: choiceAnswers,
     maxScore: scored ? answered : null,
     percent: scored ? percent : null,
     score: scored ? correct : null,

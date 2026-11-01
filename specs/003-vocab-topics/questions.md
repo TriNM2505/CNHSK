@@ -2,6 +2,14 @@
 
 Các căn cứ và đề xuất được giữ lại để truy vết. Quyết định ghi **Sửa 2026-10-30 (leader duyệt)** là nội dung áp dụng cho T-03.
 
+## Q-WEB-RESTORED-FINISH-01 — Dùng chung kết quả khi khôi phục session SUBMITTED
+
+**Trạng thái:** Chốt, 2026-11-01 (leader duyệt).
+
+**Quyết định:** `features/practice/restoredFinishResult` chỉ dựng dữ liệu chung từ `SessionView | null` đã SUBMITTED và không tự thêm `extra`. Nguồn cần metadata riêng tự bổ sung tại nơi dùng; Topic Practice giữ `extra: {}` để không đổi FR-045.
+
+Với Grammar, trước khi gọi helper phải tạo session nông có `answered` chỉ gồm các số câu `GRAMMAR_CHOICE`. Vì vậy `LESSON_READ` không thể ảnh hưởng `score`, `maxScore`, `percent` hoặc `items` trả về. Hàm helper không được sửa session đầu vào. Khi `maxScore = 0`, `percent` là `null`; câu skipped vẫn có trong `items` nhưng không được tính điểm.
+
 ## Q-T02-01 — Biểu diễn TTL động của GAME_ROUND trong PracticeSource
 
 **Task:** T-02. **Trạng thái:** Đã chốt bởi leader ngày 2026-10-30.

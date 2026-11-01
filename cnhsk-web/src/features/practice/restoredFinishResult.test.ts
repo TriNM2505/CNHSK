@@ -24,6 +24,13 @@ describe('restoredFinishResult', () => {
     expect(restoredFinishResult(session())).toBeUndefined()
   })
 
+  it.each(['ABANDONED', 'EXPIRED', 'IN_PROGRESS'] as const)(
+    'returns undefined for a %s session',
+    (status) => {
+      expect(restoredFinishResult(session({ status }))).toBeUndefined()
+    },
+  )
+
   it('rebuilds the submitted answer summary without source-specific extra data', () => {
     const result = restoredFinishResult(
       session({
@@ -50,5 +57,45 @@ describe('restoredFinishResult', () => {
       suspicious: false,
     })
     expect(result).not.toHaveProperty('extra')
+  })
+
+  it('floors the score, keeps skipped answers as items, and uses null percentage with no score', () => {
+    const result = restoredFinishResult(
+      session({
+        answered: [
+          { answer: 'A', correct: true, counted: true, no: 1 },
+          { answer: 'B', correct: true, counted: true, no: 2 },
+          { answer: 'C', correct: false, counted: true, no: 3 },
+          { answer: null, correct: null, counted: false, no: 4 },
+        ],
+        status: 'SUBMITTED',
+      }),
+    )
+
+    expect(result).toMatchObject({ maxScore: 3, percent: 66, score: 2 })
+    expect(result?.items).toContainEqual({ correct: null, correctAnswer: undefined, no: 4, yourAnswer: null })
+
+    const empty = restoredFinishResult(session({ status: 'SUBMITTED' }))
+    expect(empty).toMatchObject({ items: [], maxScore: 0, percent: null, score: 0 })
+  })
+
+  it('uses only a caller-filtered answer list and leaves the input session unchanged', () => {
+    const submitted = session({
+      answered: [
+        { answer: 'A', correct: true, counted: true, no: 1 },
+        { answer: 'B', correct: false, counted: true, no: 2 },
+      ],
+      status: 'SUBMITTED',
+    })
+    const before = structuredClone(submitted)
+    const filtered = { ...submitted, answered: submitted.answered.filter((answer) => answer.no === 2) }
+
+    expect(restoredFinishResult(filtered)).toMatchObject({
+      items: [{ correct: false, no: 2, yourAnswer: 'B' }],
+      maxScore: 1,
+      percent: 0,
+      score: 0,
+    })
+    expect(submitted).toEqual(before)
   })
 })
