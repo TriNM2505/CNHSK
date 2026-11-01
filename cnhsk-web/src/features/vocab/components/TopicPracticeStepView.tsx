@@ -32,6 +32,7 @@ export type TopicPracticeStepViewProps = {
   studyPath: string
   state:
     | 'loading'
+    | 'finishing'
     | 'ready'
     | 'finished'
     | 'mismatch'
@@ -70,9 +71,10 @@ export function TopicPracticeStepView({
   studyPath,
   total = 1,
 }: TopicPracticeStepViewProps) {
-  if (state === 'loading') {
+  if (state === 'loading' || state === 'finishing') {
     return (
       <div aria-label="Đang tải lượt luyện" className="space-y-4">
+        {state === 'finishing' ? <p role="status">Đang hoàn tất lượt luyện</p> : null}
         <Skeleton variant="card" />
         <Skeleton variant="card" />
       </div>
