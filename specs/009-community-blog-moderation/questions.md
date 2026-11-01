@@ -93,3 +93,40 @@ Các findings dưới đây giữ trạng thái P2 / OPEN, xử lý bằng PR FE
 - Không thay shared/auth/learning, locked contracts, migrations, dependencies hoặc test configuration dùng chung. Chỉ cô lập Spring test context trong test mới khi cần; không mock MVC handlers, Springdoc hoặc `/v3/api-docs`, không tắt toàn bộ security filters.
 - Bảy FE findings FE009-AUD-01…07 vẫn P2 / OPEN, không sửa trong T-02.
 - **T-18 Visual QA: NOT COMPLETED / DEFERRED.** Không có xác nhận E2E với backend Community thật.
+
+## [009] Leader — Backend T-03 Implementation Authorization — CHỐT 2026-11-01
+
+- Status: CHỐT / APPROVED BY LEADER. Leader duyệt implementation T-03 theo Shadow Plan đã review; chưa duyệt T-04.
+- Base phải là `origin/main` mới nhất sau fetch, không khóa vào mốc lịch sử. Base T-03 được xác minh khi bắt đầu: `1a2beaaba74d23156f4e26816d8b59e86408e551`. T-01/T-02 đã merge; không pull/merge/rebase main vào nhánh T-03 sau khi tạo.
+- Allowlist tối đa 14 file, không thay thế hoặc thêm file thứ 15 khi chưa được Leader duyệt:
+
+```text
+src/main/java/com/cnhsk/shared/config/SecurityConfig.java
+src/main/java/com/cnhsk/shared/exception/ErrorCode.java
+src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java
+specs/009-community-blog-moderation/tasks.md
+specs/009-community-blog-moderation/questions.md
+src/main/java/com/cnhsk/community/common/CommunityProperties.java
+src/main/java/com/cnhsk/community/common/CommunityLimits.java
+src/main/java/com/cnhsk/community/common/CommunityAuthors.java
+src/main/java/com/cnhsk/community/common/UserRef.java
+src/test/java/com/cnhsk/community/common/CommunityPropertiesTest.java
+src/test/java/com/cnhsk/community/common/CommunityAuthorsTest.java
+src/test/java/com/cnhsk/community/common/CommunityLimitsTest.java
+src/test/java/com/cnhsk/community/common/CommunityErrorResponseTest.java
+src/test/java/com/cnhsk/shared/config/CommunitySecurityConfigIntegrationTest.java
+```
+
+- `SecurityConfig` chỉ thêm đúng ba matcher: `GET /api/public/community/**` → `permitAll`; `/api/community/moderation/**` → `hasRole("MODERATOR")`; `/api/community/**` → `hasRole("LEARNER")`. Moderation phải đứng trước matcher learner rộng và tất cả trước default `denyAll`; không đổi các matcher cũ, JWT, CSRF, filter order hoặc cookie/bearer precedence.
+- Chèn đúng 13 ErrorCode sau đây, cùng thứ tự, ngay trước `INTERNAL_ERROR`: `SELF_MODERATION`, `SELF_REPORT`, `POST_NOT_FOUND`, `COMMENT_NOT_FOUND`, `TARGET_NOT_FOUND`, `REPORT_CASE_NOT_FOUND`, `POST_NOT_EDITABLE`, `POST_NOT_PENDING`, `COMMENT_NOT_EDITABLE`, `COMMENT_EDIT_WINDOW_EXPIRED`, `COMMENT_NOT_RESTORABLE`, `DUPLICATE_REPORT`, `REPORT_ALREADY_HANDLED`. Giữ nguyên mọi mã cũ, kể cả Spec-006; cập nhật đúng expected strings trong `GlobalExceptionHandlerTest`, giữ `containsExactly`.
+- `CommunityProperties` dùng prefix `cnhsk.community`, defaults 5 bài/ngày, 30 comments/replies mỗi 60 phút, 20 reports/ngày và edit window 15 phút; counts phải nguyên dương, Duration dương/không null, được override theo configuration hiện có. Không thêm YAML hoặc dependency.
+- `CommunityLimits` chỉ là foundation: quota policy, time snapshot, boundaries, retry và `ApiException`. Count/oldest do service sau cung cấp; không có repository query, DB count, Redis counter, lock, transaction hoặc concurrency enforcement trong T-03.
+- Tái sử dụng bean Clock UTC hiện hữu; mỗi snapshot chụp đúng một `Instant now`. Ngày quota dùng `Asia/Ho_Chi_Minh`; không thêm Clock bean hoặc đổi timezone hệ thống/DB.
+- Post/report retry tới midnight Việt Nam tiếp theo. Comments dùng rolling 60 phút với `created_at > now - 60 phút`, không reset theo giờ tròn; đúng cutoff đã hết quota. Khi bị chặn, retry tới lúc oldest comment còn hiệu lực hết hạn. Làm tròn lên giây, tối thiểu 1 giây; thiếu oldest cần thiết phải báo invariant, không bịa retry.
+- `CommunityAuthors.resolve(Set<Long>)` trả `Map<Long, UserRef>` chỉ có `{id, displayName}`. Empty không gọi AuthApi; nonempty gọi đúng một batch `AuthApi.displayNames`, missing name = null, không trả ID ngoài request hoặc fallback email/username. T-05/08/12/13/14 phải gom toàn bộ IDs trước một lần gọi adapter.
+- ProbeController là static nested class trong `CommunitySecurityConfigIntegrationTest`, chỉ đăng ký qua `@Import` của đúng test đó; không đăng ký thêm qua `@Bean`/component scan. Có thể dùng test-only profile guard để cô lập khỏi các SpringBootTest khác. Không mock/bypass security filters, không tạo controller production.
+- Regression `CommunityContractTest` phải tiếp tục báo `source=24, runtime=0, documented=0, missing=24`; đây là staged consistency, không phải full runtime API parity. Không sửa test T-02 để bỏ qua probe leakage.
+- Shadow Plan T-04, T-07, T-11 bắt buộc có chiến lược chống hai request đồng thời vượt quota khi count trên DB; thiếu mục này Leader không duyệt.
+- Controllers từ T-04 trở đi phải khai đúng `operationId` và đủ `@ApiResponses` theo locked OpenAPI. T-14 bắt buộc nâng `CommunityContractTest` thành full parity H = D = S.
+- Không sửa SharedConfiguration, application configuration, POM, GlobalExceptionHandler production, Auth/Learning/FE, migration hoặc locked Spec/OpenAPI. Không stage/commit/push trước independent source review PASS; review bundle/log/manifest nằm ngoài repository.
+- Bảy FE findings FE009-AUD-01…07 vẫn P2 / OPEN; **T-18 Visual QA: NOT COMPLETED / DEFERRED.**
