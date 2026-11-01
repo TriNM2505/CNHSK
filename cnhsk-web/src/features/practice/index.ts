@@ -1,4 +1,5 @@
 export * from './api'
 export * from './components'
+export * from './restoredFinishResult'
 export * from './types'
 export * from './usePracticeSession'

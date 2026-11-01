@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 
 import type { FinishResult, ServedItemView } from '@/features/practice'
-import { usePracticeSession } from '@/features/practice'
+import { restoredFinishResult, usePracticeSession } from '@/features/practice'
 import { useApiQuery } from '@/shared/api'
 
 import { getGrammarLesson, getGrammarPoints, startGrammarLesson } from '../api/grammar'
@@ -26,21 +26,23 @@ function isGrammarNotFound(error: { errorCode?: string; status?: number } | unde
   return error?.status === 404 || error?.errorCode === 'GRAMMAR_POINT_NOT_FOUND'
 }
 
-function restoredFinishResult(
+function restoredGrammarFinishResult(
   session: ReturnType<typeof usePracticeSession>['session'],
 ): FinishResult | undefined {
-  if (!session || session.status !== 'SUBMITTED') return undefined
-  // Rebuild the server summary from the reloaded session; firstTimeLearned is unknown here.
+  const restored = restoredFinishResult(session)
+  if (!restored || !session) return undefined
+
   const choiceNumbers = new Set(
     session.items.filter((item) => item.type === 'GRAMMAR_CHOICE').map((item) => item.no),
   )
-  const choiceAnswers = session.answered.filter((answer) => choiceNumbers.has(answer.no))
+  const choiceAnswers = restored.items.filter((answer) => choiceNumbers.has(answer.no ?? -1))
   const exercisesTotal = choiceNumbers.size
-  const answered = choiceAnswers.filter((answer) => answer.counted === true).length
-  const correct = choiceAnswers.filter((answer) => answer.correct === true).length
+  const answered = restored.maxScore ?? 0
+  const correct = restored.score ?? 0
   const percent = answered === 0 ? null : Math.floor((correct * 100) / answered)
   const scored = exercisesTotal > 0
   return {
+    ...restored,
     extra: {
       answered,
       correct,
@@ -48,18 +50,10 @@ function restoredFinishResult(
       percent,
       skippedExercises: answered < exercisesTotal,
     },
-    items: choiceAnswers.map((answer) => ({
-      correct: answer.correct,
-      correctAnswer: answer.correctAnswer,
-      no: answer.no,
-      yourAnswer: answer.answer,
-    })),
+    items: choiceAnswers,
     maxScore: scored ? answered : null,
     percent: scored ? percent : null,
     score: scored ? correct : null,
-    sessionId: session.sessionId,
-    status: 'SUBMITTED',
-    suspicious: false,
   }
 }
 
@@ -215,7 +209,7 @@ function GrammarLessonController({ lesson }: { lesson: GrammarLesson }) {
   }
 
   const finishResult =
-    immediateFinish ?? practice.finishResult ?? restoredFinishResult(practice.session)
+    immediateFinish ?? practice.finishResult ?? restoredGrammarFinishResult(practice.session)
   const nextPoint = useNextGrammarPoint(lesson, Boolean(finishResult))
   const stage = finishResult ? 'finished' : exerciseStarted ? 'exercise' : 'reading'
   const current = item ? choiceItems.findIndex((candidate) => candidate.no === item.no) + 1 : 1

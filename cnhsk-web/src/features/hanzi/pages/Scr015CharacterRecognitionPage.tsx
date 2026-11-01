@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import type { AnswerRequest, FinishResult, SessionView } from '@/features/practice'
-import { usePracticeSession } from '@/features/practice'
+import type { AnswerRequest, SessionView } from '@/features/practice'
+import { restoredFinishResult, usePracticeSession } from '@/features/practice'
 import { SUPPORTED_HSK_LEVELS, type HskLevel } from '@/shared/ui'
 
 import { startRecognitionSession } from '../api/recognition'
@@ -15,28 +15,6 @@ const QUESTIONS_PER_SESSION = 10
 
 function clampDuration(value: number) {
   return Math.min(Math.max(Math.round(value), 0), 3_600_000)
-}
-
-function restoredFinishResult(session: SessionView | null): FinishResult | undefined {
-  if (!session || session.status !== 'SUBMITTED') return undefined
-
-  const score = session.answered.filter((answer) => answer.correct === true).length
-  const maxScore = session.answered.filter((answer) => answer.counted === true).length
-
-  return {
-    items: session.answered.map((answer) => ({
-      correct: answer.correct,
-      correctAnswer: answer.correctAnswer,
-      no: answer.no,
-      yourAnswer: answer.answer,
-    })),
-    maxScore,
-    percent: maxScore === 0 ? null : Math.floor((score * 100) / maxScore),
-    score,
-    sessionId: session.sessionId,
-    status: 'SUBMITTED',
-    suspicious: false,
-  }
 }
 
 function restoredHskLevel(session: SessionView): HskLevel | undefined {

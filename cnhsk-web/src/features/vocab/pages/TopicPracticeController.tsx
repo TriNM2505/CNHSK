@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-import type { AnswerRequest, FinishResult, SessionView } from '@/features/practice'
-import { usePracticeSession } from '@/features/practice'
+import type { AnswerRequest, SessionView } from '@/features/practice'
+import { restoredFinishResult, usePracticeSession } from '@/features/practice'
 
 import { startTopicPracticeSession } from '../api/topics'
 import { TopicPracticeStepView } from '../components/TopicPracticeStepView'
@@ -34,27 +34,6 @@ function unavailableMessage(errorCode: string) {
   if (errorCode === 'NO_LEARNED_WORDS') return 'Bạn cần học ít nhất một từ trước khi luyện.'
   if (errorCode === 'NO_AUDIO_WORDS') return 'Chưa có từ đã học nào có âm thanh.'
   return 'Chưa có đủ từ phù hợp để tạo lượt luyện.'
-}
-
-function restoredFinishResult(session: SessionView | null): FinishResult | undefined {
-  if (session?.status !== 'SUBMITTED') return undefined
-  const score = session.answered.filter((answer) => answer.correct === true).length
-  const maxScore = session.answered.filter((answer) => answer.counted === true).length
-  return {
-    extra: {},
-    items: session.answered.map((answer) => ({
-      correct: answer.correct,
-      correctAnswer: answer.correctAnswer,
-      no: answer.no,
-      yourAnswer: answer.answer,
-    })),
-    maxScore,
-    percent: maxScore === 0 ? null : Math.floor((score * 100) / maxScore),
-    score,
-    sessionId: session.sessionId,
-    status: 'SUBMITTED',
-    suspicious: false,
-  }
 }
 
 type TopicPracticeControllerProps = {
@@ -247,7 +226,8 @@ function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
                       ? 'restart'
                       : 'loading'
 
-  const summaryResult = practice.finishResult ?? restoredFinishResult(practice.session)
+  const restored = restoredFinishResult(practice.session)
+  const summaryResult = practice.finishResult ?? (restored ? { ...restored, extra: {} } : undefined)
 
   return (
     <TopicPracticeStepView
