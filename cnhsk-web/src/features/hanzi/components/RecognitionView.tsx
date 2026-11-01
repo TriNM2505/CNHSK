@@ -30,7 +30,7 @@ export interface RecognitionViewProps {
   error?: LoadError
   finishConfirmOpen?: boolean
   finishResult?: FinishResult
-  hskLevel: HskLevel
+  hskLevel?: HskLevel
   item?: ServedItemView
   mode: RecognitionMode
   noCharacters?: boolean
@@ -39,6 +39,7 @@ export interface RecognitionViewProps {
   onFinishCancel?: () => void
   onFinishConfirm?: () => void
   onFinishRequest?: () => void
+  onFinishRetry?: () => void
   onHskLevelChange?: (level: HskLevel) => void
   onModeChange?: (mode: RecognitionMode) => void
   onNext?: () => void
@@ -84,6 +85,7 @@ function RecognitionBody({
   onFinishCancel,
   onFinishConfirm,
   onFinishRequest,
+  onFinishRetry,
   onHskLevelChange,
   onModeChange,
   onNext,
@@ -137,6 +139,22 @@ function RecognitionBody({
     )
   }
 
+  if (state === 'ready' && !item) {
+    return (
+      <Card className="space-y-4">
+        <p className="text-body-sm text-ink-secondary">Các câu đã trả lời. Hãy hoàn tất lượt để xem kết quả.</p>
+        {error ? (
+          <p className="rounded-md bg-danger-bg p-3 text-body-sm text-danger" role="alert">
+            {error.message}
+          </p>
+        ) : null}
+        <div className="flex justify-end">
+          <Button disabled={pending} onClick={onFinishRetry}>Thử kết thúc lại</Button>
+        </div>
+      </Card>
+    )
+  }
+
   if (state === 'ready' && item && onAnswer) {
     const audioUrl = typeof item.prompt.audioUrl === 'string' ? item.prompt.audioUrl : undefined
     return (
@@ -145,8 +163,15 @@ function RecognitionBody({
         <Card className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-label text-ink-secondary">{RECOGNITION_MODE_LABELS[mode].title}</p>
-            <span className="text-caption text-ink-muted">HSK {hskLevel}</span>
+            {hskLevel !== undefined ? (
+              <span className="text-caption text-ink-muted">HSK {hskLevel}</span>
+            ) : null}
           </div>
+          {error ? (
+            <p className="rounded-md bg-danger-bg p-3 text-body-sm text-danger" role="alert">
+              {error.message}
+            </p>
+          ) : null}
           {mode === 'AUDIO_TO_CHAR' && audioUrl && onAudioFailed ? (
             <AudioButton
               audioUrl={audioUrl}
@@ -241,7 +266,7 @@ function RecognitionBody({
           disabled={pending}
           id="recognition-hsk-level"
           onChange={(event) => onHskLevelChange?.(Number(event.target.value) as HskLevel)}
-          value={String(hskLevel)}
+          value={String(hskLevel ?? 1)}
         >
           {SUPPORTED_HSK_LEVELS.map((level) => (
             <option key={level} value={String(level)}>
