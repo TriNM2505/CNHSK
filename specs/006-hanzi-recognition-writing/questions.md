@@ -107,3 +107,9 @@ Trạng thái: **Chốt — leader 2026-11-01**.
 - `onDataError`: dừng quiz, không POST, chuyển chế độ xem với thông báo “Chữ này chưa có dữ liệu nét”. Giữ test cũ, chỉ đổi kỳ vọng Slot thành canvas. AT-23 chỉ nghiệm thu phần T-08.
 - Browser thật bắt buộc thử chữ có dữ liệu nét thật: canvas, quiz STROKE, animate giữa chừng rồi viết tiếp đến hoàn tất, RECALL ẩn mẫu, DICTATION không lộ chữ/viền, resize 240–300 px và chặn request data để kiểm tra lỗi. Có thể dùng Vite harness tạm, không commit và xóa sau thử. Nếu backend không chạy được, ghi rõ chưa nối backend thật; không tự tạo dữ liệu hoặc chạy SQL.
 - Gate FE: `npm ci`, lint, typecheck, Vitest với `--maxWorkers=2 --minWorkers=1`, build, `git diff --check`, BOM/TODO và xác nhận lockfile không đổi. Một commit T-08, push branch; người dùng tự tạo Draft PR. Không bắt đầu T-09.
+
+## Ghi nhận follow-up T-08 ngày 2026-11-01
+
+- Sau `recorded` hoặc `rejected`, các nút chế độ chỉ bị khóa khi đang gửi hoặc kết quả chưa xác nhận; có thể bắt đầu lượt mới bằng nút “Viết lại” hoặc bấm lại chế độ đang chọn.
+- Tách trạng thái kết thúc khỏi trạng thái đang gửi. Lỗi dữ liệu nét tiếp tục giữ chế độ xem khi đổi chế độ; DICTATION đã ghi nhận vẫn cho nghe lại mà không gửi attempt mới.
+- Kiểm thử hồi quy đi qua `Scr014CharacterWritingPage` và `changeMode`; trước sửa có 6 ca đỏ.
