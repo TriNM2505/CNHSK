@@ -48,6 +48,7 @@ import org.springframework.test.web.servlet.MvcResult;
 @AutoConfigureMockMvc
 class WritingChallengeIntegrationTest extends AbstractIntegrationTest {
     private static final AtomicInteger NEXT_CHARACTER_CODE_POINT = new AtomicInteger(0x4000);
+    private static final AtomicInteger NEXT_T05_CHARACTER_CODE_POINT = new AtomicInteger(0x4B00);
     private static final Instant NOW = Instant.parse("2026-10-31T12:00:00Z");
 
     @Autowired private MockMvc mvc;
@@ -64,6 +65,7 @@ class WritingChallengeIntegrationTest extends AbstractIntegrationTest {
     private final AtomicReference<Instant> now = new AtomicReference<>(NOW);
     private long userId;
     private String bearer;
+    private int challengeEventsBeforeLastFinish;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -281,6 +283,286 @@ class WritingChallengeIntegrationTest extends AbstractIntegrationTest {
         assertThat(prompt.strokeCount()).isNull();
     }
 
+    @Test
+    void FR024_AT19_secondFinishUsesSessionConflictAndExpiredFinishIsRejected() throws Exception {
+        JsonNode session = startChallengeWithEligibleCharacters(10, 5);
+        long sessionId = session.path("sessionId").asLong();
+
+        assertThat(finishChallenge(sessionId, completedAnswers(10, 5, Map.of())).getResponse().getStatus())
+                .isEqualTo(200);
+        JsonNode duplicateFinish = finishResponse(sessionId,
+                List.of(answer(1, "COMPLETED", 1_000, Map.of()), answer(1, "COMPLETED", 1_000, Map.of())), 409);
+        assertThat(duplicateFinish.path("error_code").asText()).isEqualTo("SESSION_ALREADY_SUBMITTED");
+
+        JsonNode expiredSession = startChallengeWithEligibleCharacters(10, 5);
+        now.set(NOW.plusSeconds(211));
+        JsonNode expired = finishResponse(expiredSession.path("sessionId").asLong(), List.of(), 422);
+        assertThat(expired.path("error_code").asText()).isEqualTo("SESSION_EXPIRED");
+        assertThat(attempts.findById(expiredSession.path("sessionId").asLong()).orElseThrow().getStatus())
+                .isEqualTo("EXPIRED");
+    }
+
+    @Test
+    void FR024_AT19_itemOutsideChallengeReturnsBadRequest() throws Exception {
+        JsonNode session = startChallengeWithEligibleCharacters(10, 5);
+
+        JsonNode error = finishResponse(session.path("sessionId").asLong(),
+                List.of(answer(11, "COMPLETED", 1_000, Map.of())), 400);
+
+        assertThat(error.path("error_code").asText()).isEqualTo("ITEM_NOT_IN_SESSION");
+        assertFinishRollbackAndCanRetry(session.path("sessionId").asLong());
+    }
+
+    @Test
+    void FR025_AT20_duplicateNumbersReturnMismatchAndRollbackBeforeRetry() throws Exception {
+        JsonNode session = startChallengeWithEligibleCharacters(10, 5);
+        long sessionId = session.path("sessionId").asLong();
+
+        JsonNode error = finishResponse(sessionId,
+                List.of(answer(1, "COMPLETED", 1_000, Map.of()), answer(1, "FAILED", 0, Map.of())), 400);
+
+        assertThat(error.path("error_code").asText()).isEqualTo("RESULT_COUNT_MISMATCH");
+        assertFinishRollbackAndCanRetry(sessionId);
+    }
+
+    @Test
+    void FR025_AT20_moreThanThreeFailuresReturnMismatchAndRollbackBeforeRetry() throws Exception {
+        JsonNode session = startChallengeWithEligibleCharacters(10, 5);
+        long sessionId = session.path("sessionId").asLong();
+
+        JsonNode error = finishResponse(sessionId, List.of(
+                answer(1, "FAILED", 0, Map.of()), answer(2, "FAILED", 0, Map.of()),
+                answer(3, "FAILED", 0, Map.of()), answer(4, "FAILED", 0, Map.of())), 400);
+
+        assertThat(error.path("error_code").asText()).isEqualTo("RESULT_COUNT_MISMATCH");
+        assertFinishRollbackAndCanRetry(sessionId);
+    }
+
+    @Test
+    void FR025_AT20_completedDurationUsesSnapshotStrokeCountAndRollsBackBeforeRetry() throws Exception {
+        JsonNode session = startChallengeWithEligibleCharacters(10, 12);
+        long sessionId = session.path("sessionId").asLong();
+
+        JsonNode error = finishResponse(sessionId, List.of(answer(1, "COMPLETED", 1_000, Map.of())), 400);
+
+        assertThat(error.path("error_code").asText()).isEqualTo("IMPOSSIBLE_DURATION");
+        assertFinishRollbackAndCanRetry(sessionId, 12);
+    }
+
+    @Test
+    void FR026_AT21_explicitIncompleteAndMissingAnswersAreCountedAsIncomplete() throws Exception {
+        JsonNode session = startChallengeWithEligibleCharacters(10, 5);
+        long sessionId = session.path("sessionId").asLong();
+        List<Map<String, Object>> answers = new java.util.ArrayList<>();
+        for (int no = 1; no <= 5; no++) answers.add(answer(no, "COMPLETED", 1_000, Map.of()));
+        answers.add(answer(6, "INCOMPLETE", 0, Map.of()));
+
+        JsonNode result = finishResponse(sessionId, answers, 200);
+
+        assertThat(result.hasNonNull("score")).isFalse();
+        assertThat(result.hasNonNull("maxScore")).isFalse();
+        assertThat(result.path("extra").path("completedChars").asInt()).isEqualTo(5);
+        assertThat(result.path("extra").path("failedChars").asInt()).isZero();
+        assertThat(result.path("extra").path("incompleteChars").asInt()).isEqualTo(5);
+        assertThat(result.path("extra").path("total").asInt()).isEqualTo(10);
+        assertThat(result.path("extra").path("finishedReason").asText()).isEqualTo("TIME_UP");
+        assertThat(jdbc.queryForObject("select count(*) from learning.attempt_items where attempt_id = ? and answer = 'COMPLETED'",
+                Integer.class, sessionId)).isEqualTo(5);
+        assertThat(jdbc.queryForObject("select count(*) from learning.attempt_items where attempt_id = ? and answer = 'INCOMPLETE'",
+                Integer.class, sessionId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from learning.attempt_items where attempt_id = ? and answer is null and meta->>'missing' = 'true'",
+                Integer.class, sessionId)).isEqualTo(4);
+        assertThat(challengeStudyEventCount()).isEqualTo(1);
+    }
+
+    @Test
+    void FR027_AT22_threeFailuresAndSevenCompletionsPreferMaximumMistakes() throws Exception {
+        JsonNode session = startChallengeWithEligibleCharacters(10, 5);
+        List<Map<String, Object>> answers = new java.util.ArrayList<>();
+        for (int no = 1; no <= 3; no++) answers.add(answer(no, "FAILED", 0, Map.of()));
+        for (int no = 4; no <= 10; no++) answers.add(answer(no, "COMPLETED", 1_000, Map.of()));
+
+        JsonNode result = finishResponse(session.path("sessionId").asLong(), answers, 200);
+
+        assertThat(result.path("extra").path("completedChars").asInt()).isEqualTo(7);
+        assertThat(result.path("extra").path("failedChars").asInt()).isEqualTo(3);
+        assertThat(result.path("extra").path("incompleteChars").asInt()).isZero();
+        assertThat(result.path("extra").path("finishedReason").asText()).isEqualTo("MAX_MISTAKES");
+    }
+
+    @Test
+    void FR027_allTenCompletionsReturnAllDone() throws Exception {
+        JsonNode session = startChallengeWithEligibleCharacters(10, 5);
+
+        JsonNode result = finishResponse(session.path("sessionId").asLong(), completedAnswers(10, 5, Map.of()), 200);
+
+        assertThat(result.path("extra").path("finishedReason").asText()).isEqualTo("ALL_DONE");
+        assertThat(result.path("extra").path("completedChars").asInt()).isEqualTo(10);
+    }
+
+    @Test
+    void FR025_rejectsUnsupportedAnswerFlagsAndInvalidClientEvidence() throws Exception {
+        JsonNode skippedSession = startChallengeWithEligibleCharacters(10, 5);
+        Map<String, Object> skipped = new java.util.LinkedHashMap<>(answer(1, "INCOMPLETE", 0, Map.of()));
+        skipped.put("skipped", true);
+        JsonNode skippedError = finishResponse(skippedSession.path("sessionId").asLong(), List.of(skipped), 422);
+        assertThat(skippedError.path("error_code").asText()).isEqualTo("VALIDATION_FAILED");
+        assertFinishRollbackAndCanRetry(skippedSession.path("sessionId").asLong());
+
+        JsonNode audioFailedSession = startChallengeWithEligibleCharacters(10, 5);
+        Map<String, Object> audioFailed = new java.util.LinkedHashMap<>(answer(1, "INCOMPLETE", 0, Map.of()));
+        audioFailed.put("audioFailed", true);
+        JsonNode audioFailedError = finishResponse(audioFailedSession.path("sessionId").asLong(), List.of(audioFailed), 422);
+        assertThat(audioFailedError.path("error_code").asText()).isEqualTo("VALIDATION_FAILED");
+        assertFinishRollbackAndCanRetry(audioFailedSession.path("sessionId").asLong());
+
+        JsonNode unknownAnswerSession = startChallengeWithEligibleCharacters(10, 5);
+        JsonNode unknownAnswer = finishResponse(unknownAnswerSession.path("sessionId").asLong(),
+                List.of(answer(1, "DONE", 1_000, Map.of())), 422);
+        assertThat(unknownAnswer.path("error_code").asText()).isEqualTo("VALIDATION_FAILED");
+        assertFinishRollbackAndCanRetry(unknownAnswerSession.path("sessionId").asLong());
+
+        JsonNode accuracySession = startChallengeWithEligibleCharacters(10, 5);
+        JsonNode badAccuracy = finishResponse(accuracySession.path("sessionId").asLong(),
+                List.of(answer(1, "COMPLETED", 1_000, Map.of("accuracy", new BigDecimal("1.01")))), 422);
+        assertThat(badAccuracy.path("error_code").asText()).isEqualTo("VALIDATION_FAILED");
+        assertFinishRollbackAndCanRetry(accuracySession.path("sessionId").asLong());
+
+        JsonNode missesSession = startChallengeWithEligibleCharacters(10, 5);
+        JsonNode badMisses = finishResponse(missesSession.path("sessionId").asLong(),
+                List.of(answer(1, "COMPLETED", 1_000, Map.of("strokeMisses", 51))), 422);
+        assertThat(badMisses.path("error_code").asText()).isEqualTo("VALIDATION_FAILED");
+        assertFinishRollbackAndCanRetry(missesSession.path("sessionId").asLong());
+
+        JsonNode wrongTypesSession = startChallengeWithEligibleCharacters(10, 5);
+        JsonNode wrongTypes = finishResponse(wrongTypesSession.path("sessionId").asLong(), List.of(
+                answer(1, "COMPLETED", 1_000, Map.of("accuracy", "0.5"))), 422);
+        assertThat(wrongTypes.path("error_code").asText()).isEqualTo("VALIDATION_FAILED");
+        assertFinishRollbackAndCanRetry(wrongTypesSession.path("sessionId").asLong());
+
+        JsonNode wrongMissesTypeSession = startChallengeWithEligibleCharacters(10, 5);
+        JsonNode wrongMissesType = finishResponse(wrongMissesTypeSession.path("sessionId").asLong(), List.of(
+                answer(1, "COMPLETED", 1_000, Map.of("accuracy", new BigDecimal("0.5"), "strokeMisses", "1"))), 422);
+        assertThat(wrongMissesType.path("error_code").asText()).isEqualTo("VALIDATION_FAILED");
+        assertFinishRollbackAndCanRetry(wrongMissesTypeSession.path("sessionId").asLong());
+
+        JsonNode replaySession = startChallengeWithEligibleCharacters(10, 5);
+        Map<String, Object> replay = new java.util.LinkedHashMap<>(answer(1, "COMPLETED", 1_000, Map.of()));
+        replay.put("replayCount", 1);
+        JsonNode replayError = finishResponse(replaySession.path("sessionId").asLong(), List.of(replay), 422);
+        assertThat(replayError.path("error_code").asText()).isEqualTo("VALIDATION_FAILED");
+        assertFinishRollbackAndCanRetry(replaySession.path("sessionId").asLong());
+    }
+
+    @Test
+    void FR026_metadataUsesSnapshotAndWhitelistAndCompletedChallengeAffectsRanking() throws Exception {
+        List<Lexeme> characters = new java.util.ArrayList<>();
+        for (int i = 0; i < 11; i++) {
+            Lexeme character = challengeCharacter(5);
+            characters.add(character);
+            long attemptId = recordStroke(character);
+            jdbc.update("update learning.attempt_items set answered_at = ? where attempt_id = ?",
+                    java.sql.Timestamp.from(NOW.minusSeconds(100L - i)), attemptId);
+        }
+
+        JsonNode first = postChallenge(bearer, 201);
+        long sessionId = first.path("sessionId").asLong();
+        JsonNode firstItem = first.path("items").get(0);
+        long completedLexemeId = firstItem.path("lexemeId").asLong();
+        long missingLexemeId = first.path("items").get(1).path("lexemeId").asLong();
+        Map<String, Object> clientMeta = Map.of("accuracy", new BigDecimal("0.75"), "strokeMisses", 2,
+                "mode", "DICTATION", "completed", false, "strokeCount", 999,
+                "coefficientProposal", 99, "clientOnly", "discard");
+        Map<String, Object> completed = answer(firstItem.path("no").asInt(), "COMPLETED", 1_000, clientMeta);
+
+        JsonNode result = finishResponse(sessionId, List.of(completed), 200);
+
+        assertThat(result.hasNonNull("score")).isFalse();
+        assertThat(result.hasNonNull("maxScore")).isFalse();
+        String metaJson = jdbc.queryForObject("select meta::text from learning.attempt_items where attempt_id = ? and order_index = ?",
+                String.class, sessionId, firstItem.path("no").asInt());
+        JsonNode storedMeta = mapper.readTree(metaJson);
+        assertThat(storedMeta.path("mode").asText()).isEqualTo("CHALLENGE");
+        assertThat(storedMeta.path("completed").asBoolean()).isTrue();
+        assertThat(storedMeta.path("strokeCount").asInt()).isEqualTo(5);
+        assertThat(storedMeta.path("coefficientProposal").decimalValue()).isEqualByComparingTo("1.20");
+        assertThat(storedMeta.path("accuracy").decimalValue()).isEqualByComparingTo("0.75");
+        assertThat(storedMeta.path("strokeMisses").asInt()).isEqualTo(2);
+        assertThat(storedMeta.path("usedAnimation").asBoolean()).isFalse();
+        assertThat(storedMeta.path("previewCount").asInt()).isZero();
+        assertThat(storedMeta.path("previewMs").asInt()).isZero();
+        assertThat(storedMeta.path("replayCount").asInt()).isZero();
+        assertThat(storedMeta.path("repeatWithin10Min").asBoolean()).isFalse();
+        assertThat(storedMeta.has("clientOnly")).isFalse();
+        assertThat(storedMeta.path("mode").asText()).isNotEqualTo("DICTATION");
+        jdbc.update("update learning.attempt_items set answered_at = ? where attempt_id = ? and order_index = ?",
+                java.sql.Timestamp.from(NOW.plusSeconds(100)), sessionId, firstItem.path("no").asInt());
+        now.set(NOW.plusSeconds(200));
+
+        JsonNode next = postChallenge(bearer, 201);
+        List<String> nextLexemeIds = next.path("items").findValuesAsText("lexemeId");
+        assertThat(nextLexemeIds).doesNotContain(Long.toString(completedLexemeId));
+        assertThat(nextLexemeIds).contains(Long.toString(missingLexemeId));
+    }
+
+    private JsonNode startChallengeWithEligibleCharacters(int count, Integer strokeCount) throws Exception {
+        for (int i = 0; i < count; i++) recordStroke(challengeCharacter(strokeCount));
+        return postChallenge(bearer, 201);
+    }
+
+    private MvcResult finishChallenge(long sessionId, List<Map<String, Object>> answers) throws Exception {
+        return mvc.perform(post("/api/practice/sessions/{id}/finish", sessionId)
+                        .header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsBytes(Map.of("answers", answers))))
+                .andExpect(status().isOk()).andReturn();
+    }
+
+    private JsonNode finishResponse(long sessionId, List<Map<String, Object>> answers, int expectedStatus)
+            throws Exception {
+        challengeEventsBeforeLastFinish = challengeStudyEventCount();
+        MvcResult result = mvc.perform(post("/api/practice/sessions/{id}/finish", sessionId)
+                        .header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsBytes(Map.of("answers", answers))))
+                .andExpect(status().is(expectedStatus)).andReturn();
+        return mapper.readTree(result.getResponse().getContentAsString());
+    }
+
+    private List<Map<String, Object>> completedAnswers(int count, int strokeCount, Map<String, Object> clientMeta) {
+        List<Map<String, Object>> answers = new java.util.ArrayList<>();
+        for (int no = 1; no <= count; no++) {
+            answers.add(answer(no, "COMPLETED", strokeCount * 200, clientMeta));
+        }
+        return answers;
+    }
+
+    private Map<String, Object> answer(int no, String value, int durationMs, Map<String, Object> clientMeta) {
+        return Map.of("no", no, "answer", value, "durationMs", durationMs, "replayCount", 0,
+                "skipped", false, "audioFailed", false, "clientMeta", clientMeta);
+    }
+
+    private void assertFinishRollbackAndCanRetry(long sessionId) throws Exception {
+        assertFinishRollbackAndCanRetry(sessionId, 5);
+    }
+
+    private void assertFinishRollbackAndCanRetry(long sessionId, int strokeCount) throws Exception {
+        assertThat(attempts.findById(sessionId).orElseThrow().getStatus()).isEqualTo("IN_PROGRESS");
+        assertThat(jdbc.queryForObject("select count(*) from learning.attempt_items where attempt_id = ?",
+                Integer.class, sessionId)).isZero();
+        assertThat(challengeStudyEventCount()).isEqualTo(challengeEventsBeforeLastFinish);
+
+        finishChallenge(sessionId, completedAnswers(10, strokeCount, Map.of()));
+
+        assertThat(attempts.findById(sessionId).orElseThrow().getStatus()).isEqualTo("SUBMITTED");
+        assertThat(jdbc.queryForObject("select count(*) from learning.attempt_items where attempt_id = ?",
+                Integer.class, sessionId)).isEqualTo(10);
+        assertThat(challengeStudyEventCount()).isEqualTo(challengeEventsBeforeLastFinish + 1);
+    }
+
+    private int challengeStudyEventCount() {
+        return jdbc.queryForObject("select count(*) from learning.study_events where user_id = ? "
+                + "and ref_type = 'WRITING_CHALLENGE'", Integer.class, userId);
+    }
+
     private JsonNode postChallenge(String authorization, int expectedStatus) throws Exception {
         MvcResult result = mvc.perform(post("/api/writing/challenges").header("Authorization", authorization))
                 .andExpect(status().is(expectedStatus)).andReturn();
@@ -309,8 +591,10 @@ class WritingChallengeIntegrationTest extends AbstractIntegrationTest {
     }
 
     private long recordWriting(Lexeme character, String mode, boolean completed) throws Exception {
+        int durationMs = character.getStrokeCount() == null ? 1_000
+                : Math.max(1_000, character.getStrokeCount().intValue() * 200);
         Map<String, Object> body = Map.of("lexemeId", character.getId(), "mode", mode, "completed", completed,
-                "accuracy", BigDecimal.ONE, "strokeMisses", 0, "durationMs", 1_000,
+                "accuracy", BigDecimal.ONE, "strokeMisses", 0, "durationMs", durationMs,
                 "usedAnimation", false, "previewCount", 0, "previewMs", 0, "replayCount", 0);
         String bodyResponse = mvc.perform(post("/api/writing/attempts").header("Authorization", bearer)
                         .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(body)))
@@ -335,6 +619,19 @@ class WritingChallengeIntegrationTest extends AbstractIntegrationTest {
         if (codePoint > 0x4A00) throw new IllegalStateException("CJK Extension A test characters exhausted.");
         Lexeme lexeme = new Lexeme(LexemeKind.CHAR, new String(Character.toChars(codePoint)),
                 "meaning-" + UUID.randomUUID());
+        lexeme.setPinyin("hǎo");
+        lexeme.setHskLevel((short) 3);
+        if (strokeCount != null) lexeme.setStrokeCount(strokeCount.shortValue());
+        return lexemes.saveAndFlush(lexeme);
+    }
+
+    private Lexeme challengeCharacter(Integer strokeCount) {
+        int codePoint = NEXT_T05_CHARACTER_CODE_POINT.getAndIncrement();
+        if (codePoint > 0x4CFF) {
+            throw new IllegalStateException("CJK Extension A T-05 test characters exhausted.");
+        }
+        Lexeme lexeme = new Lexeme(LexemeKind.CHAR, new String(Character.toChars(codePoint)),
+                "meaning-t05-" + UUID.randomUUID());
         lexeme.setPinyin("hǎo");
         lexeme.setHskLevel((short) 3);
         if (strokeCount != null) lexeme.setStrokeCount(strokeCount.shortValue());

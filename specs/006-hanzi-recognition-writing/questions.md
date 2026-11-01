@@ -1,5 +1,23 @@
 # Questions and decisions — Spec 006
 
+## Chốt T-05 ngày 2026-11-01
+
+Trạng thái: **Chốt — leader 2026-11-01**.
+
+- Nhánh T-05 là `spec/006-hanzi-t05` từ `978bc5d`; không fetch, merge, rebase hoặc pull main sau khi tạo nhánh.
+- Phạm vi gồm đúng `WritingChallengeHandler.java` (mới), `WritingChallengeIntegrationTest.java`, `PracticeService.java`, `PracticeSourceHandler.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest.java`, `contracts/openapi-hanzi.yaml`, `tasks.md` (chỉ T-05) và `questions.md`. Không sửa `openapi-practice-vocab.yaml`, `PracticeSource`, controller, SecurityConfig, PracticeApi hoặc migration.
+- Nộp lại dùng `SESSION_ALREADY_SUBMITTED` 409 có sẵn; `CHALLENGE_ALREADY_SUBMITTED` chỉ là tên trong UC. `ITEM_NOT_IN_SESSION` tương ứng `CHARACTER_NOT_IN_CHALLENGE`.
+- Thêm đúng hook mặc định `validateFinish(List<Answer> answers) {}` vào `PracticeSourceHandler`. `PracticeService` gọi hook của handler đúng source trong `finishInTransaction`, ngay sau kiểm `writableFailure` và trước vòng lặp answers. Điều này giữ lỗi hết hạn và nộp lại ưu tiên trước kiểm duplicate. `WritingChallengeHandler` trả 400 `RESULT_COUNT_MISMATCH` nếu no trùng. Quá 3 câu `FAILED` cũng trả 400 mã này trong `onFinish`; thêm mã trước `INTERNAL_ERROR` và đúng một kỳ vọng tương ứng, giữ `containsExactly`.
+- `strokeCount` null trong snapshot là vi phạm invariant; để lỗi nội bộ thành 500, không thêm mã lỗi riêng. Thử thách chỉ do T-04 tạo; không cần test trường hợp này.
+- Giới hạn 20 giây mỗi chữ và 200 giây toàn lượt thuộc FE theo FR-034. Backend giữ expiry 210 giây sẵn có; không thêm giới hạn backend.
+- `skipped=true` hoặc `audioFailed=true` trả 422 `VALIDATION_FAILED`; không ánh xạ thành `FAILED` hay `INCOMPLETE`. `validateAnswer` chấp nhận `COMPLETED`, `FAILED`, `INCOMPLETE`; answer null chỉ dùng cho câu thiếu do engine tạo và phải được chấp nhận.
+- Metadata mọi câu có đủ khóa FR-017: `mode='CHALLENGE'`, `completed` theo answer, `strokeCount` từ snapshot, `coefficientProposal` là BigDecimal 1.20 khi hoàn thành và 0.00 khi khác, `usedAnimation=false`, `previewCount=0`, `previewMs=0`, `replayCount=0`, `repeatWithin10Min=false`, `accuracy` và `strokeMisses` từ clientMeta nếu hợp lệ, nếu thiếu thì null. `accuracy` ngoài 0…1, `strokeMisses` ngoài 0…strokeCount×10 hoặc sai kiểu trả 422 `VALIDATION_FAILED`. Chỉ lưu các khóa trên, bỏ trường client gửi thêm.
+- `onFinish` kiểm số `FAILED` trước, rồi duration mọi `COMPLETED` theo `prompt.strokeCount × 200`; duration sai trả 400 `IMPOSSIBLE_DURATION`. Thành công trả `extra` gồm `completedChars`, `failedChars`, `incompleteChars`, `total=10`, `finishedReason`; thứ tự reason là 3 lỗi → `MAX_MISTAKES`, đủ complete+failed 10 → `ALL_DONE`, còn lại → `TIME_UP`. Score và maxScore vẫn null.
+- Tất cả ca 400 phải xác nhận rollback: session vẫn `IN_PROGRESS`, không có `attempt_items` hoặc `study_events`; sau đó cùng lượt finish hợp lệ được. Session đã `SUBMITTED` và request có no trùng vẫn trả 409. Thêm test 422 cho skip/audioFailed, answer lạ và dữ liệu accuracy/strokeMisses sai; ba lỗi `FAILED` + bảy `COMPLETED` ưu tiên `MAX_MISTAKES`; kết quả hoàn thành thử thách tham gia xếp hạng T-04, câu thiếu không tham gia.
+- Fixture mới dùng dải CJK Extension A U+4B00–U+4CFF, cấp tuần tự và báo lỗi nếu hết dải; không dùng U+5000–U+50FF.
+- Trong `openapi-hanzi.yaml`, chỉ sửa mô tả 422 của `POST /api/writing/challenges`: `have` và `need` ở cấp ngoài cùng ErrorResponse.
+- Gate: test chọn lọc gồm `WritingChallengeIntegrationTest`, `GlobalExceptionHandlerTest`, `PracticeServiceTest`; full `mvnw verify` có Docker, 0 failure/error/skip (ngoại lệ FR023 theo quy định chung), coverage tổng ≥80%, Practice ≥90%, OpenAPI consistency, `git diff --check`, BOM/TODO. Một commit T-05, file cụ thể, push và Draft PR riêng; không tự merge.
+
 ## Chốt T-06 ngày 2026-11-01
 
 Trạng thái: **Chốt — leader 2026-11-01**.

@@ -20,6 +20,9 @@ public interface PracticeSourceHandler {
     default void validateAnswer(ServedItem item, Answer answer) {
     }
 
+    default void validateFinish(List<Answer> answers) {
+    }
+
     default Map<String, Object> enrichMeta(ServedItem item, Answer answer) {
         return Map.of();
     }
