@@ -36,23 +36,56 @@ function unavailableMessage(errorCode: string) {
   return 'Chưa có đủ từ phù hợp để tạo lượt luyện.'
 }
 
-export function TopicPracticeController({
-  mode,
-  topic,
-}: {
+function restoredFinishResult(session: SessionView | null): FinishResult | undefined {
+  if (session?.status !== 'SUBMITTED') return undefined
+  const score = session.answered.filter((answer) => answer.correct === true).length
+  const maxScore = session.answered.filter((answer) => answer.counted === true).length
+  return {
+    extra: {},
+    items: session.answered.map((answer) => ({
+      correct: answer.correct,
+      correctAnswer: answer.correctAnswer,
+      no: answer.no,
+      yourAnswer: answer.answer,
+    })),
+    maxScore,
+    percent: maxScore === 0 ? null : Math.floor((score * 100) / maxScore),
+    score,
+    sessionId: session.sessionId,
+    status: 'SUBMITTED',
+    suspicious: false,
+  }
+}
+
+type TopicPracticeControllerProps = {
   mode: TopicPracticeMode
   topic: TopicDetail
-}) {
+}
+
+export function TopicPracticeController({ mode, topic }: TopicPracticeControllerProps) {
+  return <TopicPracticeSession key={`${topic.id}:${mode}`} mode={mode} topic={topic} />
+}
+
+function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
   const location = useLocation()
   const navigate = useNavigate()
+  const mountedRef = useRef(true)
   const initialFocusIdsRef = useRef(focusIdsFromState(location.state))
   const [abandonConfirmOpen, setAbandonConfirmOpen] = useState(false)
   const [activeNo, setActiveNo] = useState<number>()
   const [replayCount, setReplayCount] = useState(0)
   const initializedSessionRef = useRef<number>()
   const autoStartAttemptedRef = useRef(false)
+  const finishRequestedRef = useRef<number>()
   const shownAtRef = useRef(Date.now())
   const syncedErrorRef = useRef<unknown>()
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   const startSession = useCallback(async () => {
     const focusLexemeIds = initialFocusIdsRef.current
@@ -60,7 +93,7 @@ export function TopicPracticeController({
       ...(focusLexemeIds ? { focusLexemeIds } : {}),
       mode,
     })
-    if (focusLexemeIds) {
+    if (focusLexemeIds && mountedRef.current) {
       initialFocusIdsRef.current = undefined
       navigate(location.pathname, { replace: true, state: null })
     }
@@ -74,6 +107,9 @@ export function TopicPracticeController({
   })
   const restoredMode = modeFromSession(practice.session)
   const mismatch = Boolean(restoredMode && restoredMode !== mode)
+  const questionKey = practice.session ? `${practice.session.sessionId}:${activeNo}` : undefined
+  const currentQuestionRef = useRef(questionKey)
+  currentQuestionRef.current = questionKey
 
   const answeredNumbers = useMemo(() => {
     const values = new Set(practice.session?.answered.map((item) => item.no) ?? [])
@@ -81,12 +117,30 @@ export function TopicPracticeController({
     return values
   }, [practice.results, practice.session?.answered])
 
+  const finishCurrentSession = useCallback(async () => {
+    if (!practice.session) return
+    finishRequestedRef.current = practice.session.sessionId
+    await practice.finish()
+  }, [practice])
+
   useEffect(() => {
     const session = practice.session
-    if (!session || mismatch || initializedSessionRef.current === session.sessionId) return
+    if (
+      !session ||
+      mismatch ||
+      practice.state !== 'ready' ||
+      practice.error ||
+      practice.pending !== null ||
+      initializedSessionRef.current === session.sessionId
+    )
+      return
     initializedSessionRef.current = session.sessionId
-    setActiveNo(session.items.find((item) => !answeredNumbers.has(item.no))?.no)
-  }, [answeredNumbers, mismatch, practice.session])
+    finishRequestedRef.current = undefined
+    const nextItem = session.items.find((item) => !answeredNumbers.has(item.no))
+    setActiveNo(nextItem?.no)
+    // Only a newly restored session can finish here. Live answers wait for Next.
+    if (!nextItem && session.items.length > 0) void finishCurrentSession()
+  }, [answeredNumbers, finishCurrentSession, mismatch, practice])
 
   useEffect(() => {
     if (practice.state !== 'idle' || practice.error || autoStartAttemptedRef.current) return
@@ -97,7 +151,7 @@ export function TopicPracticeController({
   useEffect(() => {
     shownAtRef.current = Date.now()
     setReplayCount(0)
-  }, [activeNo])
+  }, [questionKey])
 
   useEffect(() => {
     const error = practice.error
@@ -134,7 +188,7 @@ export function TopicPracticeController({
       setActiveNo(nextItem.no)
       return
     }
-    await practice.finish()
+    await finishCurrentSession()
   }
 
   const abandonAndRestart = async () => {
@@ -159,37 +213,25 @@ export function TopicPracticeController({
     ? 'mismatch'
     : duplicateSyncing || practice.state === 'loading' || practice.pending === 'start'
       ? 'loading'
-      : practice.state === 'finished'
-        ? 'finished'
-        : error?.errorCode === 'INVALID_FOCUS_WORDS'
-          ? 'invalid-focus'
-          : error && UNAVAILABLE_ERRORS.has(error.errorCode)
-            ? 'unavailable'
-            : error && RESTART_ERRORS.has(error.errorCode)
-              ? 'restart'
-              : error
-                ? 'error'
-                : practice.state === 'ready'
-                  ? 'ready'
-                  : practice.state === 'abandoned'
-                    ? 'restart'
-                    : 'loading'
+      : practice.pending === 'finish'
+        ? 'finishing'
+        : practice.state === 'finished'
+          ? 'finished'
+          : error?.errorCode === 'INVALID_FOCUS_WORDS'
+            ? 'invalid-focus'
+            : error && UNAVAILABLE_ERRORS.has(error.errorCode)
+              ? 'unavailable'
+              : error && RESTART_ERRORS.has(error.errorCode)
+                ? 'restart'
+                : error
+                  ? 'error'
+                  : practice.state === 'ready'
+                    ? 'ready'
+                    : practice.state === 'abandoned'
+                      ? 'restart'
+                      : 'loading'
 
-  const summaryResult: FinishResult | undefined =
-    practice.finishResult ??
-    (practice.session?.status === 'SUBMITTED'
-      ? {
-          items: practice.session.answered.map((answer) => ({
-            correct: answer.correct,
-            correctAnswer: answer.correctAnswer,
-            no: answer.no,
-            yourAnswer: answer.answer,
-          })),
-          sessionId: practice.session.sessionId,
-          status: 'SUBMITTED',
-          suspicious: false,
-        }
-      : undefined)
+  const summaryResult = practice.finishResult ?? restoredFinishResult(practice.session)
 
   return (
     <TopicPracticeStepView
@@ -219,8 +261,18 @@ export function TopicPracticeController({
       onAnswer={submitChoice}
       onAudioFailed={(payload) => void submit({ ...payload, durationMs: 0 })}
       onNext={() => void next()}
-      onReplayCountChange={setReplayCount}
-      onRetry={practice.reload}
+      onReplayCountChange={(count) => {
+        if (mountedRef.current && currentQuestionRef.current === questionKey) setReplayCount(count)
+      }}
+      onRetry={() => {
+        autoStartAttemptedRef.current = false
+        if (practice.session && finishRequestedRef.current === practice.session.sessionId) {
+          void finishCurrentSession()
+          return
+        }
+        initializedSessionRef.current = undefined
+        practice.reload()
+      }}
       onSkip={() => void submit({ durationMs: 0, skipped: true })}
       onStartNormal={startNormal}
       pending={practice.pending !== null}
