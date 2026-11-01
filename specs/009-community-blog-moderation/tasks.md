@@ -33,7 +33,7 @@
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-04 | `PostService.create/update` + `MyPostController` POST/PUT: whitelist trường, xác thực email, giới hạn 5 bài/ngày, chuyển trạng thái FR-009/FR-011, `HIDDEN` → 409 | `…/community/post/*`, `…/community/post/web/MyPostController.java` | FR-002…FR-011 · AT-03…AT-10 | ✅ |
-| T-05 | `PostQueryService` + `PublicPostController` danh sách/chi tiết: `findPublished…` duy nhất, lọc danh mục, phân trang, đếm theo lô, tên tác giả theo lô | `…/community/post/*`, `…/community/post/web/PublicPostController.java` | FR-012…FR-015 · AT-11…AT-14, AT-17 | ⬜ |
+| T-05 | `PostQueryService` + `PublicPostController` danh sách/chi tiết: `findPublished…` duy nhất, lọc danh mục, phân trang, đếm theo lô, tên tác giả theo lô | `…/community/post/*`, `…/community/post/web/PublicPostController.java` | FR-012…FR-015 · AT-11…AT-14, AT-17 | ✅ |
 | T-06 | `GET /posts/mine`, `/posts/mine/{id}`, `/posts/{id}/viewer-state` | `MyPostController.java`, `PostQueryService.java` | FR-016, FR-056 · AT-15, AT-16, AT-47 | ⬜ |
 
 ## Đợt 2 · Bình luận và thích
