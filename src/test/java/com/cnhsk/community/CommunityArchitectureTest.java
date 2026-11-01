@@ -32,8 +32,10 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -113,8 +115,15 @@ class CommunityArchitectureTest {
         assertEquals(entities.keySet(), repositories);
         for (Class<?> repository : repositories) {
             assertTrue(repository.isInterface(), repository.getName());
-            assertEquals(0, repository.getDeclaredMethods().length,
-                    repository.getName() + " must not declare derived, JPQL, or JSONB queries");
+            Set<String> expectedMethods = repository == PostRepository.class
+                    ? Set.of("countByAuthorIdAndCreatedAtGreaterThanEqual", "findByIdForUpdate")
+                    : Set.of();
+            Set<String> actualMethods = Arrays.stream(repository.getDeclaredMethods())
+                    .map(Method::getName)
+                    .collect(Collectors.toSet());
+            assertEquals(expectedMethods, actualMethods, repository.getName());
+            assertEquals(expectedMethods.size(), repository.getDeclaredMethods().length,
+                    repository.getName() + " must not add overloads or unapproved repository methods");
             assertEquals(0, repository.getDeclaredFields().length, repository.getName());
             Type[] interfaces = repository.getGenericInterfaces();
             assertEquals(1, interfaces.length, repository.getName());
