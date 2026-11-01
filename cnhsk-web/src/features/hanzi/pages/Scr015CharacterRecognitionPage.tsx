@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import type { AnswerRequest } from '@/features/practice'
+import type { AnswerRequest, FinishResult, SessionView } from '@/features/practice'
 import { usePracticeSession } from '@/features/practice'
-import type { HskLevel } from '@/shared/ui'
+import { SUPPORTED_HSK_LEVELS, type HskLevel } from '@/shared/ui'
 
 import { startRecognitionSession } from '../api/recognition'
 import { RecognitionView, type RecognitionViewState } from '../components/RecognitionView'
@@ -17,25 +17,59 @@ function clampDuration(value: number) {
   return Math.min(Math.max(Math.round(value), 0), 3_600_000)
 }
 
+function restoredFinishResult(session: SessionView | null): FinishResult | undefined {
+  if (!session || session.status !== 'SUBMITTED') return undefined
+
+  const score = session.answered.filter((answer) => answer.correct === true).length
+  const maxScore = session.answered.filter((answer) => answer.counted === true).length
+
+  return {
+    items: session.answered.map((answer) => ({
+      correct: answer.correct,
+      correctAnswer: answer.correctAnswer,
+      no: answer.no,
+      yourAnswer: answer.answer,
+    })),
+    maxScore,
+    percent: maxScore === 0 ? null : Math.floor((score * 100) / maxScore),
+    score,
+    sessionId: session.sessionId,
+    status: 'SUBMITTED',
+    suspicious: false,
+  }
+}
+
+function restoredHskLevel(session: SessionView): HskLevel | undefined {
+  const value = session.meta?.hskLevel
+  if (typeof value !== 'number' || !SUPPORTED_HSK_LEVELS.includes(value as HskLevel)) {
+    return undefined
+  }
+  return value as HskLevel
+}
+
 export default function Scr015CharacterRecognitionPage() {
   const [mode, setMode] = useState<RecognitionMode>('CHAR_TO_MEANING')
   const [hskLevel, setHskLevel] = useState<HskLevel>(1)
+  const [sessionHskLevel, setSessionHskLevel] = useState<HskLevel>()
   const [noCharacters, setNoCharacters] = useState(false)
   const [setupRequested, setSetupRequested] = useState(false)
   const [finishConfirmOpen, setFinishConfirmOpen] = useState(false)
   const [activeNo, setActiveNo] = useState<number>()
   const [replayCount, setReplayCount] = useState(0)
   const initializedSessionRef = useRef<number>()
+  const autoFinishedSessionRef = useRef<number>()
+  const startedSessionRef = useRef<{ sessionId: number; hskLevel: HskLevel }>()
   const syncedErrorRef = useRef<unknown>()
   const shownAtRef = useRef(performance.now())
 
   const startSession = useCallback(async () => {
     const created = await startRecognitionSession({ count: QUESTIONS_PER_SESSION, hskLevel, mode })
     setNoCharacters(created === null)
+    if (created) startedSessionRef.current = { sessionId: created.sessionId, hskLevel }
     return created
   }, [hskLevel, mode])
 
-  // FR-004: lượt nhận diện không gắn chủ đề, nên không có `refId`.
+  // FR-004: lượt nhận diện không gắn chủ đề nên không có refId.
   const practice = usePracticeSession({ refId: null, source: 'CHAR_RECOGNITION', start: startSession })
   const sessionMode = modeFromSession(practice.session) ?? mode
 
@@ -49,8 +83,32 @@ export default function Scr015CharacterRecognitionPage() {
     const session = practice.session
     if (!session || initializedSessionRef.current === session.sessionId) return
     initializedSessionRef.current = session.sessionId
+    setSessionHskLevel(
+      restoredHskLevel(session) ??
+        (startedSessionRef.current?.sessionId === session.sessionId
+          ? startedSessionRef.current.hskLevel
+          : undefined),
+    )
     setActiveNo(session.items.find((item) => !answeredNumbers.has(item.no))?.no)
   }, [answeredNumbers, practice.session])
+
+  useEffect(() => {
+    const session = practice.session
+    if (
+      practice.state !== 'ready' ||
+      !session ||
+      session.status !== 'IN_PROGRESS' ||
+      session.items.length === 0 ||
+      activeNo !== undefined ||
+      session.items.some((item) => !answeredNumbers.has(item.no)) ||
+      practice.pending !== null ||
+      autoFinishedSessionRef.current === session.sessionId
+    ) {
+      return
+    }
+    autoFinishedSessionRef.current = session.sessionId
+    void practice.finish()
+  }, [activeNo, answeredNumbers, practice])
 
   useEffect(() => {
     shownAtRef.current = performance.now()
@@ -80,7 +138,7 @@ export default function Scr015CharacterRecognitionPage() {
     })
   }
 
-  // ChoiceQuestion bỏ chọn khi promise bị từ chối, nên chỉ ném lỗi khi gửi đáp án thất bại.
+  // ChoiceQuestion bỏ chọn khi promise bị từ chối nên chỉ ném lỗi khi gửi đáp án thất bại.
   const answer = async (selected: string) => {
     const answerResult = await submit({ answer: selected, durationMs: 0 })
     if (!answerResult) throw new Error('answer-failed')
@@ -98,6 +156,7 @@ export default function Scr015CharacterRecognitionPage() {
 
   const start = async () => {
     initializedSessionRef.current = undefined
+    autoFinishedSessionRef.current = undefined
     const created = await practice.start()
     if (created) setSetupRequested(false)
   }
@@ -109,10 +168,12 @@ export default function Scr015CharacterRecognitionPage() {
 
   const backToSetup = () => {
     setNoCharacters(false)
+    setSessionHskLevel(undefined)
     setSetupRequested(true)
   }
 
   const error = practice.error
+  const finishResult = practice.finishResult ?? restoredFinishResult(practice.session)
   const syncing =
     practice.pending === 'sync' || Boolean(error && DUPLICATE_ERRORS.has(error.errorCode))
   const state: RecognitionViewState =
@@ -125,7 +186,7 @@ export default function Scr015CharacterRecognitionPage() {
           : error && RESTART_ERRORS.has(error.errorCode)
             ? 'restart'
             : practice.state === 'finished'
-              ? practice.finishResult
+              ? finishResult
                 ? 'finished'
                 : 'setup'
               : 'ready'
@@ -135,8 +196,8 @@ export default function Scr015CharacterRecognitionPage() {
       current={current}
       error={error ? { message: error.message, requestId: error.requestId } : undefined}
       finishConfirmOpen={finishConfirmOpen}
-      finishResult={practice.finishResult ?? undefined}
-      hskLevel={hskLevel}
+      finishResult={finishResult ?? undefined}
+      hskLevel={state === 'setup' ? hskLevel : sessionHskLevel}
       item={item}
       mode={state === 'setup' ? mode : sessionMode}
       noCharacters={noCharacters}
@@ -145,6 +206,7 @@ export default function Scr015CharacterRecognitionPage() {
       onFinishCancel={() => setFinishConfirmOpen(false)}
       onFinishConfirm={() => void finishEarly()}
       onFinishRequest={() => setFinishConfirmOpen(true)}
+      onFinishRetry={() => void practice.finish()}
       onHskLevelChange={(level) => {
         setNoCharacters(false)
         setHskLevel(level)

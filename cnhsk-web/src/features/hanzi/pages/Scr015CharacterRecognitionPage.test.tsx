@@ -1,10 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { answerItem, findActiveSession, finishSession, getSession } from '@/features/practice/api'
 import type { FinishResult, SessionView } from '@/features/practice'
+
+import { ApiError } from '@/shared/api'
 
 import { startRecognitionSession } from '../api/recognition'
 import Scr015CharacterRecognitionPage from './Scr015CharacterRecognitionPage'
@@ -182,5 +184,165 @@ describe('Scr015CharacterRecognitionPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Kết thúc và xem kết quả' }))
     await waitFor(() => expect(finishMock).toHaveBeenCalledWith(401, undefined))
+  })
+  it('FR028_answerFailureKeepsQuestionShowsAlertAndCanRetry', async () => {
+    const user = userEvent.setup()
+    startMock.mockResolvedValue(session())
+    answerMock
+      .mockRejectedValueOnce(new ApiError({ status: 0, errorCode: 'NETWORK_ERROR', message: 'Lỗi mạng' }))
+      .mockResolvedValueOnce({ accepted: true, correct: true, correctAnswer: 'B', no: 1 })
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /Bắt đầu luyện/ }))
+    await user.click(screen.getByRole('button', { name: /tốt; hay/ }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Lỗi mạng')
+    expect(screen.getByText('好')).toBeVisible()
+    expect(screen.getByRole('button', { name: /tốt; hay/ })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: /tốt; hay/ }))
+    expect(await screen.findByText('Chính xác')).toBeVisible()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('FR028_finishFailureShowsAlertAndAllowsRetry', async () => {
+    const user = userEvent.setup()
+    startMock.mockResolvedValue(session({ items: [meaningItem(1, '好')] }))
+    answerMock.mockResolvedValue({ accepted: true, correct: true, correctAnswer: 'B', no: 1 })
+    finishMock
+      .mockRejectedValueOnce(new ApiError({ status: 0, errorCode: 'NETWORK_ERROR', message: 'Lỗi kết thúc' }))
+      .mockResolvedValueOnce(finishResult)
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /Bắt đầu luyện/ }))
+    await user.click(screen.getByRole('button', { name: /tốt; hay/ }))
+    await user.click(await screen.findByRole('button', { name: /Câu tiếp/ }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Lỗi kết thúc')
+    await user.click(screen.getByRole('button', { name: /Câu tiếp/ }))
+    expect(await screen.findByRole('button', { name: /Luyện lượt mới/ })).toBeVisible()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(finishMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('FR028_autoFinishesAllAnsweredRestoredSessionOnceThenWaitsForManualRetry', async () => {
+    const user = userEvent.setup()
+    const restored = session({ answered: [
+      { correct: true, correctAnswer: 'B', counted: true, no: 1 },
+      { correct: false, correctAnswer: 'A', counted: true, no: 2 },
+    ] })
+    findActiveMock.mockResolvedValue(restored)
+    getSessionMock.mockResolvedValue(restored)
+    finishMock
+      .mockRejectedValueOnce(new ApiError({ status: 0, errorCode: 'NETWORK_ERROR', message: 'Lỗi tự kết thúc' }))
+      .mockResolvedValueOnce(finishResult)
+    renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Lỗi tự kết thúc')
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 0)) })
+    expect(finishMock).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Thử kết thúc lại' }))
+    expect(await screen.findByRole('button', { name: /Luyện lượt mới/ })).toBeVisible()
+    expect(finishMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('FR028_restoresSummaryFromSubmittedSessionAnswers', async () => {
+    const restored = session({
+      status: 'SUBMITTED',
+      answered: [
+        { answer: 'B', correct: true, correctAnswer: 'B', counted: true, no: 1 },
+        { answer: 'A', correct: false, correctAnswer: 'B', counted: true, no: 2 },
+      ],
+    })
+    findActiveMock.mockResolvedValue(restored)
+    getSessionMock.mockResolvedValue(restored)
+    renderPage()
+    expect(await screen.findByText('1/2')).toBeVisible()
+    expect(screen.getByRole('button', { name: /Luyện lượt mới/ })).toBeVisible()
+  })
+
+  it('FR028_hidesHskLabelForRestoredSessionWithoutLevel', async () => {
+    findActiveMock.mockResolvedValue(session())
+    getSessionMock.mockResolvedValue(session())
+    renderPage()
+    await screen.findByText('好')
+    expect(screen.queryByText('HSK 1')).not.toBeInTheDocument()
+  })
+
+  it('FR028_usesHskLevelFromRestoredSessionMetadata', async () => {
+    findActiveMock.mockResolvedValue(session())
+    getSessionMock.mockResolvedValue(session({ meta: { hskLevel: 2 } }))
+    renderPage()
+    expect(await screen.findByText('HSK 2')).toBeVisible()
+  })
+
+  it('FR028_showsExactlyFourOptionsWithoutAnswerBeforeSubmit', async () => {
+    const user = userEvent.setup()
+    startMock.mockResolvedValue(session())
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /Bắt đầu luyện/ }))
+    expect(screen.getByRole('group', { name: 'Các phương án' }).querySelectorAll('button')).toHaveLength(4)
+    expect(screen.queryByText('Đáp án đúng:')).not.toBeInTheDocument()
+    expect(screen.queryByText('Chính xác')).not.toBeInTheDocument()
+  })
+
+  it('FR028_audioFailedSendsNoAnswerAndIsNotMarkedIncorrect', async () => {
+    const user = userEvent.setup()
+    startMock.mockResolvedValue(session({ items: [{
+      no: 1,
+      options: [{ key: 'A', text: '好' }, { key: 'B', text: '妈' }, { key: 'C', text: '是' }, { key: 'D', text: '事' }],
+      prompt: { audioUrl: '/audio/hao.mp3' },
+      rules: { hasAudio: true, maxReplays: 3, minDurationMs: 800 },
+      skill: 'LISTENING',
+      type: 'AUDIO_CHAR_CHOICE',
+    }] }))
+    answerMock.mockResolvedValue({ accepted: true, correct: null, counted: false, no: 1 })
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /Bắt đầu luyện/ }))
+    expect(document.querySelector('audio')).toHaveAttribute('src', '/audio/hao.mp3')
+    await user.click(screen.getByRole('button', { name: 'Không nghe được' }))
+    await waitFor(() => expect(answerMock).toHaveBeenCalledTimes(1))
+    expect(answerMock.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ audioFailed: true, replayCount: 0 }))
+    expect(answerMock.mock.calls[0]?.[1]).not.toHaveProperty('answer')
+    expect(await screen.findByText('Câu này không tính điểm.')).toBeVisible()
+  })
+
+  it('FR028_limitsAudioToThreeReplaysAndSubmitsReplayCount', async () => {
+    const user = userEvent.setup()
+    const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+    startMock.mockResolvedValue(session({ items: [{
+      no: 1,
+      options: [{ key: 'A', text: '好' }, { key: 'B', text: '妈' }, { key: 'C', text: '是' }, { key: 'D', text: '事' }],
+      prompt: { audioUrl: '/audio/hao.mp3' },
+      rules: { hasAudio: true, maxReplays: 3, minDurationMs: 800 },
+      skill: 'LISTENING',
+      type: 'AUDIO_CHAR_CHOICE',
+    }] }))
+    answerMock.mockResolvedValue({ accepted: true, correct: true, correctAnswer: 'A', no: 1 })
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /Bắt đầu luyện/ }))
+    await user.click(screen.getByRole('button', { name: 'Nghe từ' }))
+    await user.click(screen.getByRole('button', { name: 'Nghe từ' }))
+    await user.click(screen.getByRole('button', { name: 'Nghe từ' }))
+    await waitFor(() => expect(screen.getByText('Đã nghe 3/3 lần')).toBeVisible())
+    expect(screen.getByRole('button', { name: 'Đã hết lượt nghe' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: /好/ }))
+    await waitFor(() => expect(answerMock).toHaveBeenCalledWith(401, expect.objectContaining({ replayCount: 3 })))
+    play.mockRestore()
+  })
+
+  it('FR028_showsLoadingWhileActiveSessionIsPending', async () => {
+    let resolveActive!: (value: SessionView | null) => void
+    findActiveMock.mockReturnValue(new Promise((resolve) => { resolveActive = resolve }))
+    renderPage()
+    expect(screen.getByLabelText('Đang tải lượt nhận diện')).toBeVisible()
+    resolveActive(null)
+    expect(await screen.findByRole('button', { name: /Bắt đầu luyện/ })).toBeVisible()
+  })
+
+  it('FR028_preventsDuplicateAnswerRequests', async () => {
+    const user = userEvent.setup()
+    let resolveAnswer!: (value: Awaited<ReturnType<typeof answerItem>>) => void
+    startMock.mockResolvedValue(session())
+    answerMock.mockReturnValue(new Promise((resolve) => { resolveAnswer = resolve }))
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /Bắt đầu luyện/ }))
+    await user.dblClick(screen.getByRole('button', { name: /tốt; hay/ }))
+    expect(answerMock).toHaveBeenCalledTimes(1)
+    resolveAnswer({ accepted: true, correct: true, correctAnswer: 'B', no: 1 })
   })
 })

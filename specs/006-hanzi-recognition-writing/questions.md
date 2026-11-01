@@ -79,3 +79,15 @@ Trạng thái các quyết định dưới đây: **Chốt — leader 2026-10-31
 - File được duyệt cho T-03: `WritingService.java`, `web/WritingController.java`, `WritingAttemptHandler.java`, `PracticeService.java` (đúng phần `recordAndFinish` nêu trên), `CharacterQueryRepository.java`, `SecurityConfig.java` (thêm đúng matcher POST `/api/writing/attempts` cho LEARNER), `ErrorCode.java` (8 mã FR-011…FR-014 trước `INTERNAL_ERROR`), `GlobalExceptionHandlerTest.java`, `WritingServiceIntegrationTest.java`, `PracticeServiceTest.java` (chỉ thêm test mới cho `recordAndFinish`, không sửa test cũ), `spec.md`, `tasks.md` (chỉ T-03), và file này. Không sửa `PracticeRateLimiter`, `PracticeSourceHandler`, `PracticeApi`, `openapi-hanzi.yaml`; mọi file khác cần dừng và xin duyệt.
 - Test bắt buộc qua HTTP với PostgreSQL và Redis Testcontainers thật, không mock repository; đủ AT-08…AT-16, validation, rollback cả attempt/items/study_events khi finish handler lỗi, practice:start ở 120 vẫn cho POST writing thành công, writing counter 300 trả 429 không có attempt mới, và DICTATION replayCount=3 cho coefficient 0.8. Không gọi API 300 lần để đạt counter. `start` vẫn giữ giới hạn 120.
 - Gate: test chọn lọc, `mvnw verify` có Docker với 0 failure/error/skip, coverage tổng ≥80%, Practice ≥90%, đối chiếu contract hiện có, `git diff --check`, kiểm BOM/TODO. Một commit T-03 với file cụ thể, không gồm `package-lock.json`, push branch và Draft PR; không merge nếu leader chưa báo xanh.
+
+## Chốt T-07 ngày 2026-11-01
+
+Trạng thái: **Chốt — leader 2026-11-01**.
+
+- T-07 dùng đúng năm file: Scr015CharacterRecognitionPage.tsx, RecognitionView.tsx, Scr015CharacterRecognitionPage.test.tsx, tasks.md (chỉ T-07) và questions.md. Không thêm recognition.test.ts; không viết test HTTP 201 riêng vì apiRequest đã xử lý response.ok. Không sửa Practice/shared/app/backend/OpenAPI/lockfile.
+- Nhánh T-07 tạo mới từ origin/main mới nhất trong worktree riêng; không dùng worktree T-03 cũ.
+- Khi answer hoặc finish thất bại, RecognitionView ở trạng thái ready hiện role=alert cùng kiểu setup nhưng giữ câu hỏi. Không chuyển ErrorState/reload. Answer chọn lại được sau khi ChoiceQuestion bỏ chọn; finish có thể bấm lại “Câu tiếp” hoặc thao tác kết thúc. Alert biến mất khi thao tác sau thành công.
+- Khi reload session IN_PROGRESS đã trả lời hết, tự finish đúng một lần. Nếu lỗi, giữ alert và chỉ finish lại khi người học bấm nút thử lại; luồng vừa trả lời câu cuối vẫn chờ người học bấm “Câu tiếp”.
+- Khi sync nhận session SUBMITTED nhưng không có finishResult, dựng lại kết quả ngay trong page: score = số answer correct=true; maxScore = số answer counted=true; percent null nếu maxScore=0, ngược lại floor(score×100/maxScore). Render summary và nút “Luyện lượt mới”. CHAR_RECOGNITION có maxScoreFromServed=false.
+- Nhãn HSK khi resume lấy từ session nếu có; thiếu thì ẩn, không dùng cấp đang chọn ở form. Không thay backend.
+- Audio fixture không có prompt.text; FE không thêm phòng thủ để lọc trường này. AT-23 trong T-07 chỉ nghiệm thu SCR-015; phần viết/canvas/thử thách thuộc T-08/T-09.
