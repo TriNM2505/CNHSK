@@ -15,6 +15,7 @@ import Scr014CharacterWritingPage from './Scr014CharacterWritingPage'
 const canvasReadyMock = vi.hoisted(() => ({
   callback: undefined as (() => void) | undefined,
   dataError: undefined as (() => void) | undefined,
+  mounts: [] as string[],
   quiz: vi.fn(),
 }))
 
@@ -41,6 +42,7 @@ vi.mock('../components/HanziCanvas', async () => {
     React.useEffect(() => {
       canvasReadyMock.callback = props.onReady
       canvasReadyMock.dataError = props.onDataError
+      canvasReadyMock.mounts.push(props.character)
     }, [props.character, props.onDataError, props.onReady])
     return React.createElement('div', { 'aria-label': 'Khung viết chữ', 'data-testid': 'hanzi-canvas' })
   })
@@ -78,7 +80,14 @@ const testAuth: AuthContextValue = {
   },
 }
 
-afterEach(() => vi.useRealTimers())
+const originalDateNow = Date.now
+const originalPerformanceNow = performance.now
+
+afterEach(() => {
+  vi.useRealTimers()
+  Object.defineProperty(Date, 'now', { configurable: true, value: originalDateNow, writable: true })
+  Object.defineProperty(performance, 'now', { configurable: true, value: originalPerformanceNow, writable: true })
+})
 
 function LocationProbe() {
   const location = useLocation()
@@ -670,6 +679,135 @@ describe('Scr014CharacterWritingPage — thử thách FR-034', () => {
       && typeof answer.clientMeta?.accuracy === 'number' && typeof answer.clientMeta?.strokeMisses === 'number')).toBe(true)
     expect(await screen.findByText('Bạn đã hoàn thành thử thách.')).toBeVisible()
     expect(sessionStorage.getItem('cnhsk:hanzi:challenge:7:77')).toBeNull()
+  })
+
+  it('FR034_restartsQuizForEachRepeatedGlyphAndAcceptsSecondGlyphCompletion', async () => {
+    let clock = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => clock)
+    canvasReadyMock.mounts.length = 0
+    const repeatedGlyphSession = challengeSession()
+    repeatedGlyphSession.items = repeatedGlyphSession.items.map((item) => ({
+      ...item,
+      prompt: { ...item.prompt, text: '一' },
+    }))
+    await openChallenge(repeatedGlyphSession)
+    expect(canvasReadyMock.quiz).toHaveBeenCalledOnce()
+    expect(canvasReadyMock.mounts).toEqual(['一'])
+
+    for (let index = 1; index <= 10; index += 1) {
+      clock += 250
+      act(() => currentQuizOptions().onComplete({ character: '一', totalMistakes: 0 }))
+      if (index < 10) {
+        await screen.findByText(`pinyin-${index + 1}`)
+        await waitFor(() => expect(canvasReadyMock.mounts).toHaveLength(index + 1))
+        act(() => canvasReadyMock.callback?.())
+        await waitFor(() => expect(canvasReadyMock.quiz).toHaveBeenCalledTimes(index + 1))
+      }
+      const savedAnswers = JSON.parse(sessionStorage.getItem('cnhsk:hanzi:challenge:7:77') ?? '{}').answers
+      expect(savedAnswers).toEqual(expect.arrayContaining([expect.objectContaining({ answer: 'COMPLETED', no: index })]))
+    }
+    await waitFor(() => expect(finishSessionMock).toHaveBeenCalledOnce())
+    expect(canvasReadyMock.quiz).toHaveBeenCalledTimes(10)
+    expect(finishSessionMock.mock.calls[0]![1]?.answers).toHaveLength(10)
+  })
+
+  it('FR034_doesNotFinishAgainAfter503RetryReconcilesSubmittedSessionPastDeadline', async () => {
+    await openChallenge()
+    finishSessionMock.mockRejectedValueOnce(new ApiError({
+      errorCode: 'INTERNAL_ERROR', message: 'unavailable', status: 503,
+    }))
+    for (let failed = 1; failed <= 3; failed += 1) {
+      act(() => currentQuizOptions().onMistake({ totalMistakes: 3 }))
+      if (failed < 3) await readyNextChallengeItem(failed + 1, failed)
+    }
+    expect(await screen.findByRole('button', { name: /Kiểm tra \/ gửi lại/ })).toBeEnabled()
+    expect(finishSessionMock).toHaveBeenCalledOnce()
+
+    getSessionMock.mockResolvedValue(submittedChallenge(['FAILED', 'FAILED', 'FAILED', null, null, null, null, null, null, null]))
+    await userEvent.setup().click(screen.getByRole('button', { name: /Kiểm tra \/ gửi lại/ }))
+    await waitFor(() => expect(document.getElementById('challenge-summary-title')).toBeVisible())
+    expect(finishSessionMock).toHaveBeenCalledOnce()
+
+    const now = Date.now()
+    vi.spyOn(Date, 'now').mockReturnValue(now + 250_000)
+    await new Promise((resolve) => setTimeout(resolve, 350))
+    expect(finishSessionMock).toHaveBeenCalledOnce()
+  })
+
+  it('FR034_doesNotFinishAgainAfter409ReconciliationPastDeadline', async () => {
+    await openChallenge()
+    getSessionMock.mockResolvedValue(submittedChallenge(['FAILED', 'FAILED', 'FAILED', null, null, null, null, null, null, null]))
+    finishSessionMock.mockRejectedValueOnce(new ApiError({
+      errorCode: 'SESSION_ALREADY_SUBMITTED', message: 'submitted', status: 409,
+    }))
+    for (let failed = 1; failed <= 3; failed += 1) {
+      act(() => currentQuizOptions().onMistake({ totalMistakes: 3 }))
+      if (failed < 3) await readyNextChallengeItem(failed + 1, failed)
+    }
+    await waitFor(() => expect(document.getElementById('challenge-summary-title')).toBeVisible())
+    expect(finishSessionMock).toHaveBeenCalledOnce()
+
+    const now = Date.now()
+    vi.spyOn(Date, 'now').mockReturnValue(now + 250_000)
+    await new Promise((resolve) => setTimeout(resolve, 350))
+    expect(finishSessionMock).toHaveBeenCalledOnce()
+  })
+
+  it('FR034_showsOnlyPendingStateAfterTheTenthCharacterWhileFinishIsPending', async () => {
+    let clock = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => clock)
+    await openChallenge()
+    finishSessionMock.mockImplementation(() => new Promise(() => undefined))
+    for (let index = 1; index <= 10; index += 1) {
+      clock += 250
+      act(() => currentQuizOptions().onComplete({ character: challengeGlyphs[index - 1]!, totalMistakes: 0 }))
+      if (index < 10) await readyNextChallengeItem(index + 1, index)
+    }
+
+    expect(await screen.findByText('Đang gửi kết quả…')).toBeVisible()
+    expect(screen.queryByText('Không thể tải câu hỏi thử thách.')).not.toBeInTheDocument()
+    expect(screen.getByText('10/10')).toBeVisible()
+    expect(screen.queryByText('1/10')).not.toBeInTheDocument()
+    expect(finishSessionMock).toHaveBeenCalledOnce()
+  })
+
+  it.each([
+    ['400', 'IMPOSSIBLE_DURATION', 400],
+    ['422', 'VALIDATION_FAILED', 422],
+  ])('FR034_showsTerminalFinishErrorWithoutRetryForHTTP%s', async (_status, errorCode, status) => {
+    let clock = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => clock)
+    await openChallenge()
+    finishSessionMock.mockRejectedValueOnce(new ApiError({
+      errorCode, message: 'finish rejected', status,
+    }))
+    for (let index = 1; index <= 10; index += 1) {
+      clock += 250
+      act(() => currentQuizOptions().onComplete({ character: challengeGlyphs[index - 1]!, totalMistakes: 0 }))
+      if (index < 10) await readyNextChallengeItem(index + 1, index)
+    }
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('finish rejected')
+    expect(screen.getByRole('link', { name: 'Danh sách chữ' })).toBeVisible()
+    expect(screen.queryByRole('button', { name: /Kiểm tra \/ gửi lại/ })).not.toBeInTheDocument()
+    expect(screen.queryByText('Không thể tải câu hỏi thử thách.')).not.toBeInTheDocument()
+    expect(finishSessionMock).toHaveBeenCalledOnce()
+  })
+
+  it('FR034_startsDataErrorCharacterWithZeroDurationAfterPreviousCharacter', async () => {
+    let clock = 0
+    vi.spyOn(performance, 'now').mockImplementation(() => clock)
+    await openChallenge()
+    clock = 250
+    act(() => currentQuizOptions().onComplete({ character: challengeGlyphs[0]!, totalMistakes: 0 }))
+    await screen.findByText('pinyin-2')
+    await screen.findByTestId('hanzi-canvas')
+    expect(canvasReadyMock.quiz).toHaveBeenCalledOnce()
+    clock = 1_000
+    act(() => canvasReadyMock.dataError?.())
+
+    const answers = JSON.parse(sessionStorage.getItem('cnhsk:hanzi:challenge:7:77') ?? '{}').answers as Array<{ durationMs: number; no: number }>
+    expect(answers.find((answer) => answer.no === 2)?.durationMs).toBe(0)
   })
 
   it('FR034_countsThreeMistakesPerCharacterAndKeepsIncompleteDataErrorsOutOfTheFailureCount', async () => {

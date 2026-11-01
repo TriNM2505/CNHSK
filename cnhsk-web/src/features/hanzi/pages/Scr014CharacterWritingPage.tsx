@@ -528,6 +528,7 @@ function WritingChallengeController() {
     quizGenerationRef.current += 1
     canvasRef.current?.cancelQuiz()
     const durationMs = characterStartedAtRef.current === null ? 0 : performance.now() - characterStartedAtRef.current
+    characterStartedAtRef.current = null
     const strokeCount = typeof item.prompt.strokeCount === 'number' ? item.prompt.strokeCount : 0
     const finalAnswer: ChallengeAnswer['answer'] = answer === 'COMPLETED' && durationMs < strokeCount * 200
       ? 'INCOMPLETE'
@@ -571,7 +572,7 @@ function WritingChallengeController() {
   }, [canvasReady, dataError, finishStopped, markItem, session])
 
   useEffect(() => {
-    if (!session || practice.state !== 'ready' || !userId) return undefined
+    if (!session || practice.state !== 'ready' || !userId || finished || sessionExpired) return undefined
     const updateNow = () => setNow(Date.now())
     const timer = window.setInterval(updateNow, 250)
     document.addEventListener('visibilitychange', updateNow)
@@ -579,7 +580,7 @@ function WritingChallengeController() {
       window.clearInterval(timer)
       document.removeEventListener('visibilitychange', updateNow)
     }
-  }, [practice.state, session, userId])
+  }, [finished, practice.state, session, sessionExpired, userId])
 
   const limitSeconds = CHALLENGE_TIME_LIMIT_SECONDS
   const deadline = session ? Date.parse(session.servedAt) + limitSeconds * 1000 : 0
@@ -587,7 +588,7 @@ function WritingChallengeController() {
 
   useEffect(() => {
     if (!session || !answersHydrated || practice.state !== 'ready' || remainingSeconds > 0
-        || finishUnknown || finishStopped || finishStartedRef.current) return
+        || finished || sessionExpired || finishUnknown || finishStopped || finishStartedRef.current) return
     const duration = characterStartedAtRef.current === null
       ? 0
       : performance.now() - characterStartedAtRef.current
@@ -596,7 +597,7 @@ function WritingChallengeController() {
     quizGenerationRef.current += 1
     canvasRef.current?.cancelQuiz()
     void submitFinish(payload, session.sessionId)
-  }, [answersHydrated, finishStopped, finishUnknown, persistAnswers, practice.state, remainingSeconds, session, submitFinish])
+  }, [answersHydrated, finishStopped, finishUnknown, finished, persistAnswers, practice.state, remainingSeconds, session, sessionExpired, submitFinish])
 
   useEffect(() => {
     if (!session || practice.state !== 'ready' || !answersHydrated || !canvasReady || dataError
@@ -663,7 +664,9 @@ function WritingChallengeController() {
     <WritingChallengeView
       canvasRef={canvasRef}
       completed={completedCount}
-      current={Math.max(1, currentIndex + 1)}
+      current={currentIndex >= 0
+        ? currentIndex + 1
+        : Math.min(session?.items.length ?? CHALLENGE_SIZE, Math.max(1, answers.length))}
       currentMistakes={currentMistakes}
       dataError={dataError}
       error={toViewError(challengeError ?? error ?? undefined)}

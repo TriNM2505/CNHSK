@@ -219,15 +219,16 @@ export function WritingChallengeView({
         {character ? (
           <HanziCanvas
             character={character}
+            key={item?.no}
             onDataError={onDataError}
             onReady={onCanvasReady}
             ref={canvasRef}
             showCharacter={false}
             showOutline={false}
           />
-        ) : (
+        ) : item ? (
           <p role="alert" className="text-body-sm text-danger">Không thể tải câu hỏi thử thách.</p>
-        )}
+        ) : null}
         {dataError ? <p role="status" className="text-body-sm text-danger">Chữ này chưa có dữ liệu nét</p> : null}
         {pending ? <p role="status" className="text-body-sm text-ink-secondary">Đang gửi kết quả…</p> : null}
       </Card>
