@@ -26,7 +26,7 @@
 |---|---|---|---|---|
 | T-01 | Entity + repository `Post`, `Comment`, `Reaction` (+ `ReactionId`), `ModerationCase` (`reasons` → `List<ReportEntry>`); enum `PostStatus`, `PostCategory`, `CommentStatus`, `ReactionKind`, `TargetType`, `CaseStatus`, `ReportReason`; test khởi động với `ddl-auto: validate` trên Testcontainers | `…/community/{post,comment,reaction,moderation,common}/*` | §4, `AC-05`, `AC-06` | ✅ |
 | T-02 | Hợp đồng: test so `/v3/api-docs` với `contracts/openapi-community.yaml` (path + method + status code), theo mẫu test hợp đồng spec 001 | `t/contract/CommunityContractTest.java` | §13 · `AC-01` | ✅ |
-| T-03 | `SecurityConfig` thêm 3 matcher; `ErrorCode` thêm mã §5; `CommunityProperties`, `CommunityAuthors`, `CommunityLimits` (đồng hồ `Clock`, giờ VN) | `…/shared/config/SecurityConfig.java`, `…/shared/exception/ErrorCode.java`, `…/community/common/*` | FR-001, FR-006, §5 · AT-01, AT-02 | ⬜ |
+| T-03 | `SecurityConfig` thêm 3 matcher; `ErrorCode` thêm mã §5; `CommunityProperties`, `CommunityAuthors`, `CommunityLimits` (đồng hồ `Clock`, giờ VN) | `…/shared/config/SecurityConfig.java`, `…/shared/exception/ErrorCode.java`, `…/community/common/*` | FR-001, FR-006, §5 · AT-01, AT-02 | ✅ |
 
 ## Đợt 1 · Bài viết
 
