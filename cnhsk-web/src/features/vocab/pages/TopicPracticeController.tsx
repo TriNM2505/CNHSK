@@ -107,6 +107,12 @@ function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
   })
   const restoredMode = modeFromSession(practice.session)
   const mismatch = Boolean(restoredMode && restoredMode !== mode)
+  const focusedRecognition = Boolean(
+    initialFocusIdsRef.current &&
+    mode === 'RECOGNITION' &&
+    restoredMode === 'RECOGNITION' &&
+    practice.state === 'ready',
+  )
   const questionKey = practice.session ? `${practice.session.sessionId}:${activeNo}` : undefined
   const currentQuestionRef = useRef(questionKey)
   currentQuestionRef.current = questionKey
@@ -128,6 +134,7 @@ function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
     if (
       !session ||
       mismatch ||
+      focusedRecognition ||
       practice.state !== 'ready' ||
       practice.error ||
       practice.pending !== null ||
@@ -140,13 +147,19 @@ function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
     setActiveNo(nextItem?.no)
     // Only a newly restored session can finish here. Live answers wait for Next.
     if (!nextItem && session.items.length > 0) void finishCurrentSession()
-  }, [answeredNumbers, finishCurrentSession, mismatch, practice])
+  }, [answeredNumbers, finishCurrentSession, focusedRecognition, mismatch, practice])
 
   useEffect(() => {
-    if (practice.state !== 'idle' || practice.error || autoStartAttemptedRef.current) return
+    if (
+      (practice.state !== 'idle' && !focusedRecognition) ||
+      practice.error ||
+      practice.pending !== null ||
+      autoStartAttemptedRef.current
+    )
+      return
     autoStartAttemptedRef.current = true
     void practice.start()
-  }, [practice])
+  }, [focusedRecognition, practice])
 
   useEffect(() => {
     shownAtRef.current = Date.now()
@@ -211,7 +224,10 @@ function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
     practice.pending === 'sync' || Boolean(error && DUPLICATE_ERRORS.has(error.errorCode))
   const state = mismatch
     ? 'mismatch'
-    : duplicateSyncing || practice.state === 'loading' || practice.pending === 'start'
+    : duplicateSyncing ||
+        practice.state === 'loading' ||
+        practice.pending === 'start' ||
+        (focusedRecognition && !error)
       ? 'loading'
       : practice.pending === 'finish'
         ? 'finishing'

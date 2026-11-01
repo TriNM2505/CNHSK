@@ -9,6 +9,7 @@ export const PINYIN_DRAFT_DEBOUNCE_MS = 500
 export type TestDraft = {
   answer?: string
   audioFailed?: boolean
+  skipped?: boolean
   replayCount: number
 }
 
@@ -28,7 +29,11 @@ export function toAnswerRequest(no: number, draft: TestDraft, durationMs: number
     durationMs,
     no,
     replayCount: draft.replayCount,
-    ...(draft.audioFailed ? { audioFailed: true } : { answer: draft.answer?.trim() ?? null }),
+    ...(draft.audioFailed
+      ? { audioFailed: true }
+      : draft.skipped
+        ? { skipped: true }
+        : { answer: draft.answer?.trim() ?? null }),
   }
 }
 
@@ -38,9 +43,11 @@ export function draftsToAnswers(
   drafts: Readonly<Record<number, TestDraft>>,
   durations: Readonly<Record<number, number>>,
 ): AnswerRequest[] {
-  return items
-    .filter((item) => isAnswered(drafts[item.no]))
-    .map((item) => toAnswerRequest(item.no, drafts[item.no] as TestDraft, durations[item.no] ?? 0))
+  return items.flatMap((item) => {
+    const draft = drafts[item.no]
+    if (!draft || (!isAnswered(draft) && !draft.skipped)) return []
+    return [toAnswerRequest(item.no, draft, durations[item.no] ?? 0)]
+  })
 }
 
 function isWrongWord(value: unknown): value is TopicWrongWord {
