@@ -79,6 +79,7 @@ export function CharacterPracticeView({
   const timerRef = useRef<number | null>(null)
   const submitStartedRef = useRef(false)
   const submitAttemptRef = useRef(onSubmitAttempt)
+  const previousRestartKeyRef = useRef(restartKey)
   const audioReplayCountRef = useRef(0)
   const previewCountRef = useRef(0)
   const previewMsRef = useRef(0)
@@ -250,7 +251,8 @@ export function CharacterPracticeView({
   }, [beginMode, cancelQuiz, dataError, mode, stopTimer, writerReady])
 
   useEffect(() => {
-    if (restartKey === 0) return
+    if (restartKey === previousRestartKeyRef.current) return
+    previousRestartKeyRef.current = restartKey
     stopTimer()
     canvasRef.current?.cancelAnimations()
     cancelQuiz()

@@ -1,5 +1,25 @@
 # Questions and decisions — Spec 006
 
+## Chốt T-09 ngày 2026-11-01
+
+Trạng thái: **Chốt — leader 2026-11-01**.
+
+- T-09 dùng đồng hồ toàn lượt 200 giây tính từ `servedAt`; `perCharSeconds=20` không phải giới hạn, không tự chuyển chữ theo thời gian và có thể không hiển thị.
+- Khi GET xác nhận session `SUBMITTED` nhưng không còn `FinishResult`, dựng lại tổng kết từ `session.answered` phía server: đếm `COMPLETED`, `FAILED`, incomplete = 10 trừ hai số đó; `finishedReason` theo FR-027. Áp dụng cho cả timeout và 409. Câu thiếu có `answer=null`.
+- Quiz hoàn thành nhưng `durationMs < strokeCount × 200` thì gửi `INCOMPLETE`, chuyển chữ tiếp; tại đúng ngưỡng vẫn gửi `COMPLETED`. Không để một chữ quá nhanh làm hỏng cả lượt. Nếu server vẫn trả 400/422 bất thường, hiện alert, không tự gửi lại, có đường về danh sách; để session hết hạn.
+- Lỗi tải nét giữa lượt: dừng quiz, gửi `INCOMPLETE` tường minh với duration thực, không tăng lỗi, báo “Chữ này chưa có dữ liệu nét”, chuyển chữ tiếp; đồng hồ tiếp tục. Hết chữ thì finish bình thường, kể cả mọi chữ lỗi; không gửi `COMPLETED` do lỗi tải.
+- “Danh sách chữ” chỉ điều hướng, không gọi abandon và không hỏi xác nhận. Hiện “Đồng hồ vẫn chạy khi bạn rời trang”. Khi quay lại trong hạn khôi phục; sau deadline tự finish một lần; session hết hạn xử lý `SESSION_EXPIRED`.
+- Được xóa `HanziCanvasSlot.tsx` sau khi kiểm tra không còn import production; nếu file `.preview` còn dùng thì dừng và báo leader.
+- `HanziCanvas` luôn dùng aria-label “Khung viết chữ”, không chứa ký tự ở bất kỳ mode nào; thêm test.
+- Được cập nhật riêng T-09 trong `tasks.md`; ghi quyết định tại đây. Được tạo hai harness tạm `cnhsk-web/hanzi-challenge-harness.html` và `cnhsk-web/src/HanziChallengeHarness.tsx`, không commit, xóa sau kiểm thử.
+- Sai nét đếm theo quiz của chữ hiện tại; `totalMistakes >= 3` đánh dấu đúng một `FAILED`, hủy quiz trước khi chuyển. Callback cũ không chạy sau đổi chữ, hết giờ hoặc unmount. Đủ ba chữ FAILED thì kết thúc ngay, không tạo chữ FAILED thứ tư.
+- Hết giờ gửi chữ đang viết `INCOMPLETE`, không gửi chữ chưa tới. Nếu deadline trùng lúc vừa xong chữ cuối hoặc finish đang chờ thì chỉ có một POST.
+- Sau `npm ci`, kiểm lại khai báo `hanzi-writer@3.7.3`; nếu callback khác plan thì dừng và báo.
+- sessionStorage xóa sau finish thành công, `SESSION_EXPIRED`, hoặc GET xác nhận đã nộp. Key khác user/session bị bỏ qua. Không lưu prompt hoặc ký tự.
+- Timeout, 5xx, 429 giữ payload, không tự POST; chỉ gửi lại khi người học bấm. 409 không POST lại, GET session rồi dựng summary.
+- Đồng hồ so giờ máy với `servedAt`; sai lệch đồng hồ máy là giới hạn đã biết, không tự hiệu chỉnh.
+- Hai hồi quy T-08: `changeMode` chỉ restart cùng mode khi attempt đã `recorded`/`rejected`; restart effect chỉ chạy khi `restartKey` thực sự đổi.
+
 ## Chốt T-05 ngày 2026-11-01
 
 Trạng thái: **Chốt — leader 2026-11-01**.

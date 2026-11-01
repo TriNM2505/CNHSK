@@ -158,7 +158,7 @@ export const HanziCanvas = forwardRef<HanziCanvasHandle, HanziCanvasProps>(funct
 
   return (
     <div
-      aria-label={`Khung viết chữ ${character}`}
+      aria-label="Khung viết chữ"
       className="mx-auto aspect-square w-full min-w-[240px] max-w-[300px] overflow-hidden rounded-md border border-line bg-surface"
       data-testid="hanzi-canvas"
       ref={containerRef}

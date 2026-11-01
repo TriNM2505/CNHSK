@@ -1,4 +1,4 @@
-import { act, cleanup, render, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import HanziWriter, { type HanziWriterOptions } from 'hanzi-writer'
 import { createRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -102,6 +102,8 @@ describe('HanziCanvas', () => {
     const onReady = vi.fn()
     render(<HanziCanvas character="好" onReady={onReady} ref={ref} showCharacter={false} showOutline />)
 
+    expect(screen.getByTestId('hanzi-canvas')).toHaveAttribute('aria-label', 'Khung viết chữ')
+    expect(screen.getByTestId('hanzi-canvas').getAttribute('aria-label')).not.toContain('好')
     expect(capturedOptions()).toMatchObject({ showCharacter: false, showOutline: true })
     capturedOptions().onLoadCharDataSuccess?.({ medians: [], strokes: [] } as never)
     expect(onReady).toHaveBeenCalledOnce()
