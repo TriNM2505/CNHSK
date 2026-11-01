@@ -57,3 +57,23 @@ export interface CharacterDetail extends CharacterSummary {
 }
 
 export type WritingMode = 'STROKE' | 'RECALL' | 'DICTATION'
+
+export interface WritingAttemptRequest {
+  accuracy: number
+  completed: boolean
+  durationMs: number
+  lexemeId: number
+  mode: WritingMode
+  previewCount?: number
+  previewMs?: number
+  replayCount?: number
+  strokeMisses: number
+  usedAnimation?: boolean
+}
+
+export interface WritingAttemptResult {
+  attemptId: number
+  counted: boolean
+  recorded: boolean
+  recallUnlocked: boolean
+}

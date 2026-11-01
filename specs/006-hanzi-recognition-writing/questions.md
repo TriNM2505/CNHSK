@@ -91,3 +91,19 @@ Trạng thái: **Chốt — leader 2026-11-01**.
 - Khi sync nhận session SUBMITTED nhưng không có finishResult, dựng lại kết quả ngay trong page: score = số answer correct=true; maxScore = số answer counted=true; percent null nếu maxScore=0, ngược lại floor(score×100/maxScore). Render summary và nút “Luyện lượt mới”. CHAR_RECOGNITION có maxScoreFromServed=false.
 - Nhãn HSK khi resume lấy từ session nếu có; thiếu thì ẩn, không dùng cấp đang chọn ở form. Không thay backend.
 - Audio fixture không có prompt.text; FE không thêm phòng thủ để lọc trường này. AT-23 trong T-07 chỉ nghiệm thu SCR-015; phần viết/canvas/thử thách thuộc T-08/T-09.
+
+## Chốt T-08 ngày 2026-11-01
+
+Trạng thái: **Chốt — leader 2026-11-01**.
+
+- Phạm vi gồm 9 file trong `cnhsk-web/src/features/hanzi/**` theo Shadow Plan, cùng `tasks.md` (chỉ T-08) và `questions.md`. Giữ nguyên `HanziCanvasSlot.tsx` và `WritingChallengeView.tsx` cho T-09. Không sửa `features/practice`, shared, app, backend, contract, dependency hoặc lockfile; cần file khác thì dừng xin duyệt.
+- Khi POST timeout, mất mạng hoặc 5xx: hiện “Chưa xác nhận được kết quả”, không tự POST lại; người học có thể bấm “Gửi lại” để gửi đúng payload hoặc quay về danh sách. 4xx/429 không có nút gửi lại theo luồng này. Không dùng `sessionStorage`, không thêm backend. Attempt lặp trong 10 phút có `counted=false` theo backend.
+- RECALL `previewMs` tính cả 5000 ms ban đầu cộng 3000 ms cho mỗi lần xem thêm; `previewCount` chỉ đếm lần xem thêm, tối đa 2. Dùng hằng số, không đo thời gian thực.
+- `completed=false` chỉ gửi qua nút “Dừng” rõ ràng. Không POST khi rời route, unmount hoặc đóng tab. “Chưa nhớ” không gửi attempt.
+- `animateCharacter()` của `hanzi-writer@3.7.3` hủy quiz hiện tại. Sau khi animate hoàn tất, chạy quiz lại từ nét hiện tại bằng `quizStartStrokeNum`; cộng dồn lỗi trước/sau animate và không reset đồng hồ. Khóa nút trong lúc animate. Đổi chữ, mode hoặc unmount trong lúc animate thì không khởi chạy quiz mới. Xác minh tên option trong d.ts trước khi triển khai; không có thì dừng báo leader.
+- Payload giới hạn `strokeMisses = min(totalMistakes, strokeCount * 10)` để tuân miền backend; `accuracy` vẫn tính theo FR-031 từ tổng lỗi thật. `durationMs` dùng `clampDuration` theo SCR-015, miền 0…3.600.000.
+- Không cho chạy hai quiz song song: hủy quiz cũ trước khi tạo quiz mới. `recorded`, `counted`, `recallUnlocked` chỉ lấy từ response; `MODE_LOCKED` tải lại chi tiết chữ.
+- Test 429 dùng body JSON có `retryAfterSeconds` ở cấp ngoài cùng; xác nhận `ApiError.extra` nhận giá trị và UI hiện thời gian chờ, không tự gửi lại.
+- `onDataError`: dừng quiz, không POST, chuyển chế độ xem với thông báo “Chữ này chưa có dữ liệu nét”. Giữ test cũ, chỉ đổi kỳ vọng Slot thành canvas. AT-23 chỉ nghiệm thu phần T-08.
+- Browser thật bắt buộc thử chữ có dữ liệu nét thật: canvas, quiz STROKE, animate giữa chừng rồi viết tiếp đến hoàn tất, RECALL ẩn mẫu, DICTATION không lộ chữ/viền, resize 240–300 px và chặn request data để kiểm tra lỗi. Có thể dùng Vite harness tạm, không commit và xóa sau thử. Nếu backend không chạy được, ghi rõ chưa nối backend thật; không tự tạo dữ liệu hoặc chạy SQL.
+- Gate FE: `npm ci`, lint, typecheck, Vitest với `--maxWorkers=2 --minWorkers=1`, build, `git diff --check`, BOM/TODO và xác nhận lockfile không đổi. Một commit T-08, push branch; người dùng tự tạo Draft PR. Không bắt đầu T-09.

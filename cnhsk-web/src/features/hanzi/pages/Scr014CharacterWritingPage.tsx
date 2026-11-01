@@ -1,18 +1,18 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMatch, useParams, useSearchParams } from 'react-router-dom'
 
 import { usePracticeSession } from '@/features/practice'
-import { useApiQuery, type ApiError } from '@/shared/api'
+import { toApiError, useApiQuery, type ApiError } from '@/shared/api'
 import { SUPPORTED_HSK_LEVELS, type HskLevel } from '@/shared/ui'
 
-import { getCharacter, getCharacters, startWritingChallenge } from '../api/characters'
+import { getCharacter, getCharacters, recordWritingAttempt, startWritingChallenge } from '../api/characters'
 import { CHARACTER_PAGE_SIZE, CharacterListView } from '../components/CharacterListView'
 import { CharacterPracticeView } from '../components/CharacterPracticeView'
 import {
   CHALLENGE_TIME_LIMIT_SECONDS,
   WritingChallengeView,
 } from '../components/WritingChallengeView'
-import type { WritingMode } from '../types'
+import type { WritingAttemptRequest, WritingAttemptResult, WritingMode } from '../types'
 import { defaultWritingMode } from '../writingModes'
 
 const CHALLENGE_PATH = '/learn/characters/writing/challenge'
@@ -84,6 +84,12 @@ function CharacterListController() {
 function CharacterPracticeController({ rawId }: { rawId: string }) {
   const characterId = /^[1-9]\d*$/.test(rawId) ? Number(rawId) : undefined
   const [mode, setMode] = useState<WritingMode>()
+  const [attemptState, setAttemptState] = useState<'idle' | 'submitting' | 'recorded' | 'unknown' | 'rejected'>('idle')
+  const [attemptError, setAttemptError] = useState<ApiError | undefined>()
+  const [attemptResult, setAttemptResult] = useState<WritingAttemptResult | null>(null)
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState<number>()
+  const pendingPayloadRef = useRef<WritingAttemptRequest | null>(null)
+  const requestInFlightRef = useRef(false)
   const query = useApiQuery(
     (signal) =>
       characterId === undefined
@@ -91,23 +97,79 @@ function CharacterPracticeController({ rawId }: { rawId: string }) {
         : getCharacter(characterId, signal),
     [characterId],
   )
+  const reloadCharacter = query.reload
 
   useEffect(() => {
     if (query.data && mode === undefined) setMode(defaultWritingMode(query.data))
   }, [mode, query.data])
+
+  const sendAttempt = useCallback(async (request: WritingAttemptRequest) => {
+    if (requestInFlightRef.current) return
+    requestInFlightRef.current = true
+    pendingPayloadRef.current = request
+    setAttemptState('submitting')
+    setAttemptError(undefined)
+    setRetryAfterSeconds(undefined)
+    try {
+      const result = await recordWritingAttempt(request)
+      setAttemptResult(result)
+      setAttemptState('recorded')
+    } catch (caught: unknown) {
+      const apiError = toApiError(caught)
+      setAttemptError(apiError)
+      if (apiError.status === 0 || apiError.status >= 500) {
+        setAttemptState('unknown')
+      } else {
+        setAttemptState('rejected')
+      }
+      if (apiError.errorCode === 'RATE_LIMITED' && typeof apiError.extra.retryAfterSeconds === 'number') {
+        setRetryAfterSeconds(apiError.extra.retryAfterSeconds)
+      }
+      if (apiError.errorCode === 'MODE_LOCKED') {
+        reloadCharacter()
+        setMode('STROKE')
+      }
+    } finally {
+      requestInFlightRef.current = false
+    }
+  }, [reloadCharacter])
+
+  const retryUnknown = useCallback(() => {
+    if (attemptState !== 'unknown' || !pendingPayloadRef.current || requestInFlightRef.current) return
+    void sendAttempt(pendingPayloadRef.current)
+  }, [attemptState, sendAttempt])
+
+  const changeMode = useCallback((nextMode: WritingMode) => {
+    setAttemptState('idle')
+    setAttemptError(undefined)
+    setAttemptResult(null)
+    setRetryAfterSeconds(undefined)
+    pendingPayloadRef.current = null
+    setMode(nextMode)
+  }, [])
 
   const notFound =
     characterId === undefined ||
     query.error?.errorCode === 'CHARACTER_NOT_FOUND' ||
     query.error?.status === 404
 
+  const character = query.data && attemptResult
+    ? { ...query.data, writing: { ...query.data.writing, recallUnlocked: attemptResult.recallUnlocked } }
+    : query.data
+
   return (
     <CharacterPracticeView
-      character={query.data}
+      attemptError={attemptError ? { errorCode: attemptError.errorCode, message: attemptError.message } : undefined}
+      attemptResult={attemptResult}
+      attemptState={attemptState}
+      character={character}
       error={toViewError(query.error)}
       mode={mode}
-      onModeChange={setMode}
+      onModeChange={changeMode}
       onRetry={query.reload}
+      onRetryUnknown={retryUnknown}
+      onSubmitAttempt={(request) => void sendAttempt(request)}
+      retryAfterSeconds={retryAfterSeconds}
       state={
         notFound ? 'not-found' : query.state === 'ready' ? 'ready' : query.state === 'loading' ? 'loading' : 'error'
       }

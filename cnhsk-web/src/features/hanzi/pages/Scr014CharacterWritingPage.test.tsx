@@ -1,21 +1,45 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { findActiveSession } from '@/features/practice/api'
 import type { SessionView } from '@/features/practice'
-import { ApiError } from '@/shared/api'
+import { ApiError, parseApiError } from '@/shared/api'
 
-import { getCharacter, getCharacters, startWritingChallenge } from '../api/characters'
-import type { CharacterDetail } from '../types'
+import { getCharacter, getCharacters, recordWritingAttempt, startWritingChallenge } from '../api/characters'
+import type { CharacterDetail, WritingAttemptRequest, WritingAttemptResult } from '../types'
 import Scr014CharacterWritingPage from './Scr014CharacterWritingPage'
+
+const canvasReadyMock = vi.hoisted(() => ({ callback: undefined as (() => void) | undefined }))
 
 vi.mock('../api/characters', () => ({
   getCharacter: vi.fn(),
   getCharacters: vi.fn(),
+  recordWritingAttempt: vi.fn(),
   startWritingChallenge: vi.fn(),
 }))
+
+vi.mock('../components/HanziCanvas', async () => {
+  const React = await import('react')
+  const Canvas = React.forwardRef(function Canvas(
+    props: { character: string; onReady?: () => void },
+    ref,
+  ) {
+    React.useImperativeHandle(ref, () => ({
+      animateCharacter: vi.fn(),
+      cancelAnimations: vi.fn(),
+      cancelQuiz: vi.fn(),
+      quiz: vi.fn(),
+      setVisibility: vi.fn(),
+    }))
+    React.useEffect(() => {
+      canvasReadyMock.callback = props.onReady
+    }, [props.character, props.onReady])
+    return React.createElement('div', { 'data-testid': 'hanzi-canvas', 'data-character': props.character })
+  })
+  return { HanziCanvas: Canvas }
+})
 
 vi.mock('@/features/practice/api', () => ({
   abandonSession: vi.fn(),
@@ -27,6 +51,7 @@ vi.mock('@/features/practice/api', () => ({
 
 const getCharactersMock = vi.mocked(getCharacters)
 const getCharacterMock = vi.mocked(getCharacter)
+const recordWritingAttemptMock = vi.mocked(recordWritingAttempt)
 const startChallengeMock = vi.mocked(startWritingChallenge)
 const findActiveMock = vi.mocked(findActiveSession)
 
@@ -132,7 +157,7 @@ describe('Scr014CharacterWritingPage — luyện một chữ', () => {
       'href',
       '/learn/characters/writing/challenge',
     )
-    expect(screen.getByTestId('hanzi-canvas-slot')).toBeVisible()
+    expect(screen.getByTestId('hanzi-canvas')).toBeVisible()
     expect(getCharacterMock).toHaveBeenCalledWith(11, expect.any(AbortSignal))
   })
 
@@ -217,5 +242,81 @@ describe('Scr014CharacterWritingPage — thử thách', () => {
     expect(screen.getByText('0/3')).toBeVisible()
     expect(screen.getByText(/^3:[12]\d$/)).toBeVisible()
     expect(startChallengeMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('Scr014CharacterWritingPage — ghi lượt luyện viết', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    getCharacterMock.mockResolvedValue(detail)
+  })
+
+  async function submitIncomplete(user: ReturnType<typeof userEvent.setup>) {
+    const stopButton = await screen.findByRole('button', { name: 'Dừng' })
+    await screen.findByTestId('hanzi-canvas')
+    act(() => canvasReadyMock.callback?.())
+    await waitFor(() => expect(stopButton).toBeEnabled())
+    await user.click(stopButton)
+    await waitFor(() => expect(recordWritingAttemptMock).toHaveBeenCalledOnce())
+    return recordWritingAttemptMock.mock.calls[0]![0]
+  }
+
+  it('FR010_unknownOutcomeDoesNotRetryUntilTheLearnerClicksAndReusesTheSamePayload', async () => {
+    const user = userEvent.setup()
+    const response: WritingAttemptResult = { attemptId: 4, counted: true, recorded: true, recallUnlocked: true }
+    recordWritingAttemptMock.mockRejectedValueOnce(new ApiError({ errorCode: 'NETWORK_ERROR', message: 'offline', status: 0 }))
+      .mockResolvedValueOnce(response)
+    renderAt('/learn/characters/writing/11')
+
+    const submitted = await submitIncomplete(user) as WritingAttemptRequest
+    expect(await screen.findByText(/Chưa xác nhận được kết quả/)).toBeVisible()
+    expect(recordWritingAttemptMock).toHaveBeenCalledOnce()
+
+    await user.click(screen.getByRole('button', { name: 'Gửi lại' }))
+    await waitFor(() => expect(recordWritingAttemptMock).toHaveBeenCalledTimes(2))
+    expect(recordWritingAttemptMock.mock.calls[1]![0]).toEqual(submitted)
+    expect(await screen.findByText('Đã ghi nhận kết quả.')).toBeVisible()
+  })
+
+  it('FR019_readsTopLevelRetryAfterFromTheParsed429BodyAndDoesNotRetryAutomatically', async () => {
+    const user = userEvent.setup()
+    const error = parseApiError(429, {
+      error_code: 'RATE_LIMITED',
+      message: 'rate limit',
+      request_id: 'request-test',
+      retryAfterSeconds: 37,
+    })
+    expect(error.extra.retryAfterSeconds).toBe(37)
+    recordWritingAttemptMock.mockRejectedValue(error)
+    renderAt('/learn/characters/writing/11')
+
+    await submitIncomplete(user)
+    expect(await screen.findByText(/thử lại sau 37 giây/)).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Gửi lại' })).not.toBeInTheDocument()
+    expect(recordWritingAttemptMock).toHaveBeenCalledOnce()
+  })
+
+  it('FR010_leavingTheWritingRouteDoesNotPostAnAttempt', async () => {
+    const user = userEvent.setup()
+    renderAt('/learn/characters/writing/11')
+
+    await screen.findByTestId('hanzi-canvas')
+    await user.click(screen.getByRole('link', { name: 'Danh sách chữ' }))
+    expect(await screen.findByRole('link', { name: /好/ })).toBeVisible()
+    expect(recordWritingAttemptMock).not.toHaveBeenCalled()
+  })
+
+  it('FR013_modeLockedReloadsCharacterAndReturnsToStroke', async () => {
+    const user = userEvent.setup()
+    recordWritingAttemptMock.mockRejectedValue(new ApiError({
+      errorCode: 'MODE_LOCKED',
+      message: 'locked',
+      status: 403,
+    }))
+    renderAt('/learn/characters/writing/11')
+
+    await submitIncomplete(user)
+    await waitFor(() => expect(getCharacterMock).toHaveBeenCalledTimes(2))
+    expect(screen.getByRole('button', { name: /^Viết theo nét/ })).toHaveAttribute('aria-pressed', 'true')
   })
 })

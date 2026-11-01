@@ -1,18 +1,25 @@
-import { cleanup, render, waitFor } from '@testing-library/react'
+import { act, cleanup, render, waitFor } from '@testing-library/react'
 import HanziWriter, { type HanziWriterOptions } from 'hanzi-writer'
+import { createRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { HanziCanvas } from './HanziCanvas'
+import { HanziCanvas, type HanziCanvasHandle } from './HanziCanvas'
 
 const writerMocks = vi.hoisted(() => ({ create: vi.fn() }))
 vi.mock('hanzi-writer', () => ({ default: { create: writerMocks.create } }))
 
 type WriterOptions = Partial<HanziWriterOptions>
 type MockWriter = {
+  animateCharacter: ReturnType<typeof vi.fn>
   cancelQuiz: ReturnType<typeof vi.fn>
   options?: WriterOptions
+  quiz: ReturnType<typeof vi.fn>
   rendererDestroy: ReturnType<typeof vi.fn>
   renderStateCancel: ReturnType<typeof vi.fn>
+  showCharacter: ReturnType<typeof vi.fn>
+  hideCharacter: ReturnType<typeof vi.fn>
+  showOutline: ReturnType<typeof vi.fn>
+  hideOutline: ReturnType<typeof vi.fn>
   targetRemove: ReturnType<typeof vi.fn>
   updateDimensions: ReturnType<typeof vi.fn>
 }
@@ -22,10 +29,16 @@ const observers: ResizeObserver[] = []
 
 function createMockWriter(options?: WriterOptions) {
   const writer: MockWriter = {
+    animateCharacter: vi.fn(),
     cancelQuiz: vi.fn(),
     options,
+    quiz: vi.fn(),
     rendererDestroy: vi.fn(),
     renderStateCancel: vi.fn(),
+    showCharacter: vi.fn(),
+    hideCharacter: vi.fn(),
+    showOutline: vi.fn(),
+    hideOutline: vi.fn(),
     targetRemove: vi.fn(),
     updateDimensions: vi.fn(),
   }
@@ -62,7 +75,13 @@ beforeEach(() => {
     Object.assign(instance, {
       _hanziWriterRenderer: { destroy: instance.rendererDestroy },
       _renderState: { cancelAll: instance.renderStateCancel },
+      animateCharacter: instance.animateCharacter,
       cancelQuiz: instance.cancelQuiz,
+      quiz: instance.quiz,
+      showCharacter: instance.showCharacter,
+      hideCharacter: instance.hideCharacter,
+      showOutline: instance.showOutline,
+      hideOutline: instance.hideOutline,
       target: { node: target },
       updateDimensions: instance.updateDimensions,
     })
@@ -78,6 +97,32 @@ afterEach(() => {
 })
 
 describe('HanziCanvas', () => {
+  it('FR030_exposesReadyAndWriterControlsForTheSelectedPresentation', () => {
+    const ref = createRef<HanziCanvasHandle>()
+    const onReady = vi.fn()
+    render(<HanziCanvas character="好" onReady={onReady} ref={ref} showCharacter={false} showOutline />)
+
+    expect(capturedOptions()).toMatchObject({ showCharacter: false, showOutline: true })
+    capturedOptions().onLoadCharDataSuccess?.({ medians: [], strokes: [] } as never)
+    expect(onReady).toHaveBeenCalledOnce()
+
+    const quizOptions = { quizStartStrokeNum: 3, showHintAfterMisses: 1 }
+    act(() => ref.current?.quiz(quizOptions))
+    expect(writers[0]!.cancelQuiz).toHaveBeenCalledOnce()
+    expect(writers[0]!.quiz).toHaveBeenCalledWith(quizOptions)
+
+    const onAnimationComplete = vi.fn()
+    act(() => ref.current?.animateCharacter(onAnimationComplete))
+    const animateOptions = writers[0]!.animateCharacter.mock.calls[0]?.[0] as {
+      onComplete: (result: { canceled: boolean }) => void
+    }
+    act(() => animateOptions.onComplete({ canceled: false }))
+    expect(onAnimationComplete).toHaveBeenCalledWith(false)
+    act(() => ref.current?.setVisibility(false, false))
+    expect(writers[0]!.hideCharacter).toHaveBeenCalledWith({ duration: 0 })
+    expect(writers[0]!.hideOutline).toHaveBeenCalledWith({ duration: 0 })
+  })
+
   it('FR030_usesConfiguredPinnedDataUrlAndEncodesCharacter', async () => {
     vi.stubEnv('VITE_HANZI_DATA_URL', 'https://example.test/hanzi-data/')
     const fetchMock = vi.fn().mockResolvedValue({
