@@ -1,5 +1,5 @@
-import HanziWriter, { type CharacterJson } from 'hanzi-writer'
-import { useEffect, useRef } from 'react'
+import HanziWriter, { type CharacterJson, type QuizOptions } from 'hanzi-writer'
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 
 const PINNED_DATA_URL = 'https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0.1'
 const CANVAS_SIZE = 300
@@ -8,6 +8,17 @@ const MIN_CANVAS_SIZE = 240
 export interface HanziCanvasProps {
   character: string
   onDataError?: (error?: Error | string) => void
+  onReady?: () => void
+  showCharacter?: boolean
+  showOutline?: boolean
+}
+
+export interface HanziCanvasHandle {
+  animateCharacter: (onComplete: (canceled: boolean) => void) => void
+  cancelAnimations: () => void
+  cancelQuiz: () => void
+  quiz: (options: Partial<QuizOptions>) => void
+  setVisibility: (showCharacter: boolean, showOutline: boolean) => void
 }
 
 function dataBaseUrl() {
@@ -43,16 +54,63 @@ async function loadCharacterData(character: string): Promise<CharacterJson> {
   return data
 }
 
-export function HanziCanvas({ character, onDataError }: HanziCanvasProps) {
+export const HanziCanvas = forwardRef<HanziCanvasHandle, HanziCanvasProps>(function HanziCanvas(
+  { character, onDataError, onReady, showCharacter = true, showOutline = true },
+  ref,
+) {
   const containerRef = useRef<HTMLDivElement>(null)
   const onDataErrorRef = useRef(onDataError)
+  const onReadyRef = useRef(onReady)
+  const writerRef = useRef<HanziWriter | null>(null)
+  const activeRef = useRef(false)
+  const animationGenerationRef = useRef(0)
+  const initialPresentationRef = useRef({ showCharacter, showOutline })
   onDataErrorRef.current = onDataError
+  onReadyRef.current = onReady
+
+  useImperativeHandle(ref, () => ({
+    animateCharacter: (onComplete) => {
+      const writer = writerRef.current
+      if (!writer || !activeRef.current) return
+      const generation = ++animationGenerationRef.current
+      void writer.animateCharacter({
+        onComplete: (result) => {
+          if (activeRef.current && generation === animationGenerationRef.current) {
+            onComplete(result.canceled)
+          }
+        },
+      })
+    },
+    cancelQuiz: () => {
+      animationGenerationRef.current += 1
+      writerRef.current?.cancelQuiz()
+    },
+    cancelAnimations: () => {
+      animationGenerationRef.current += 1
+      writerRef.current?._renderState?.cancelAll()
+    },
+    quiz: (options) => {
+      const writer = writerRef.current
+      if (!writer || !activeRef.current) return
+      writer.cancelQuiz()
+      writer.quiz(options)
+    },
+    setVisibility: (nextShowCharacter, nextShowOutline) => {
+      const writer = writerRef.current
+      if (!writer || !activeRef.current) return
+      if (nextShowCharacter) void writer.showCharacter({ duration: 0 })
+      else void writer.hideCharacter({ duration: 0 })
+      if (nextShowOutline) void writer.showOutline({ duration: 0 })
+      else void writer.hideOutline({ duration: 0 })
+    },
+  }), [])
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return undefined
 
     let active = true
+    activeRef.current = true
     let writer: HanziWriter
     try {
       writer = HanziWriter.create(container, character, {
@@ -61,13 +119,18 @@ export function HanziCanvas({ character, onDataError }: HanziCanvasProps) {
         onLoadCharDataError: (error) => {
           if (active) onDataErrorRef.current?.(error instanceof Error || typeof error === 'string' ? error : undefined)
         },
+        onLoadCharDataSuccess: () => {
+          if (active) onReadyRef.current?.()
+        },
         padding: 20,
         renderer: 'canvas',
-        showCharacter: true,
-        showOutline: true,
+        showCharacter: initialPresentationRef.current.showCharacter,
+        showOutline: initialPresentationRef.current.showOutline,
         width: CANVAS_SIZE,
       })
+      writerRef.current = writer
     } catch (error) {
+      activeRef.current = false
       onDataErrorRef.current?.(error instanceof Error ? error : String(error))
       return undefined
     }
@@ -82,6 +145,9 @@ export function HanziCanvas({ character, onDataError }: HanziCanvasProps) {
 
     return () => {
       active = false
+      activeRef.current = false
+      animationGenerationRef.current += 1
+      writerRef.current = null
       resizeObserver.disconnect()
       writer.cancelQuiz()
       writer._renderState?.cancelAll()
@@ -98,4 +164,4 @@ export function HanziCanvas({ character, onDataError }: HanziCanvasProps) {
       ref={containerRef}
     />
   )
-}
+})
