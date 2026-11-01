@@ -130,3 +130,30 @@ src/test/java/com/cnhsk/shared/config/CommunitySecurityConfigIntegrationTest.jav
 - Controllers từ T-04 trở đi phải khai đúng `operationId` và đủ `@ApiResponses` theo locked OpenAPI. T-14 bắt buộc nâng `CommunityContractTest` thành full parity H = D = S.
 - Không sửa SharedConfiguration, application configuration, POM, GlobalExceptionHandler production, Auth/Learning/FE, migration hoặc locked Spec/OpenAPI. Không stage/commit/push trước independent source review PASS; review bundle/log/manifest nằm ngoài repository.
 - Bảy FE findings FE009-AUD-01…07 vẫn P2 / OPEN; **T-18 Visual QA: NOT COMPLETED / DEFERRED.**
+
+## [009] Leader — Backend T-04 Implementation Authorization — CHỐT 2026-11-02
+
+- Status: CHỐT / APPROVED BY LEADER. Leader duyệt implementation Backend T-04 theo Shadow Plan đã review; không mở rộng sang T-05 hoặc task sau.
+- Base là `origin/main` mới nhất sau fetch. T-04 dùng worktree và branch riêng; không tái sử dụng worktree T-03, không pull/merge/rebase main vào branch sau khi tạo.
+- Allowlist chính xác 11 file: 7 file CREATE (`PostService.java`, `MyPostController.java`, `PostWrite.java`, `OwnPost.java`, `PostServiceTest.java`, `MyPostControllerIntegrationTest.java`, `PostQuotaConcurrencyIntegrationTest.java`) và 4 file MODIFY (`PostRepository.java`, `CommunityArchitectureTest.java`, `tasks.md`, `questions.md`). Không tạo file thứ 12.
+- Chỉ cung cấp `POST /api/community/posts` (`createPost`, 201/401/403/422/429) và `PUT /api/community/posts/{id}` (`updatePost`, 200/401/403/409/422), theo locked OpenAPI; controller khai đúng operationId và toàn bộ response statuses. Không sửa OpenAPI hoặc CommunityContractTest.
+- `PostWrite` chỉ có `title`, `content`, `category`, `submit`; `submit` là `Boolean` + `@NotNull`. Compact constructor dùng `String.strip()`, Bean Validation `@Size` đếm UTF-16 bằng `String.length()`, không NFC. Unknown fields bị bỏ qua; không nhận metadata do client điều khiển.
+- Chuỗi HTML/Markdown được lưu nguyên văn sau `strip()`, không reject, sanitize, filter hoặc HTML-escape ở backend. Giá trị sau JSON decoding phải giữ nguyên trong response và DB.
+- Validation/authorization precedence: security 401/403 trước; MVC `@Valid` trả 422; sau đó kiểm tra verified email và trả 403 `ACCOUNT_UNVERIFIED`; POST mới kiểm quota, PUT mới khóa và kiểm tra trạng thái. Body sai của user chưa xác minh vẫn trả 422.
+- `MyPostController` tự xử lý cục bộ `HttpMessageNotReadableException` và `MethodArgumentTypeMismatchException` thành 422 `VALIDATION_FAILED`, message tiếng Việt ổn định, không lộ parser details; giữ request ID theo convention. Không sửa global handler.
+- Update lần đọc Post đầu tiên là `findByIdForUpdate` với `PESSIMISTIC_WRITE`. Nonexistent và non-owner trả cùng 403 response ngoài `request_id`; HIDDEN của owner trả 409 `POST_NOT_EDITABLE`. T-12 sau này dùng conditional UPDATE theo trạng thái, không bắt buộc dùng chung row-lock method của T-04.
+- Update giữ nguyên `id`, `author_id`, `created_at`, `published_at` và `review_reason`; `updated_at` lấy từ một Clock snapshot. APPROVED khi sửa chuyển DRAFT/PENDING và rời tập public. OwnPost chỉ trả `reviewReason` khi REJECTED/HIDDEN; trạng thái khác trả null.
+- POST quota khóa PostgreSQL transaction-level bằng key `community:post-quota:{authorId}` và parameterized `pg_advisory_xact_lock(hashtextextended(:key, 0))` trong `PostService`. Sau khi lấy lock mới chụp một snapshot, count mọi trạng thái từ `dayStart`, kiểm quota rồi insert; timestamp create/update lấy cùng snapshot. PUT không tính quota. Không dùng Redis/JVM locks.
+- `PostRepository` chỉ được khai báo thêm `countByAuthorIdAndCreatedAtGreaterThanEqual` và `findByIdForUpdate`; ba Community repositories còn lại giữ zero declared methods. T-05 read path không dùng row-lock method.
+- Concurrency integration test dùng PostgreSQL Testcontainers, fixtures user synthetic qua HTTP, bốn bài đã commit và hai HTTP workers; kiểm `pg_locks` xác nhận hai waiter trước khi nhả lock, sau đó đúng một 201, một 429 và tổng quota count bằng 5. Không dùng repository mock để chứng minh concurrency.
+- Controller phải trả đúng response OwnPost, không lộ dữ liệu Auth; response `reviewReason` tuân theo trạng thái. CommunityContractTest tiếp tục dùng S=24; H=2, D=2, missing=22 là kỳ vọng sau khi đo runtime, không phải kết quả được tuyên bố trước.
+- Giữ nguyên Auth/Learning/FE/shared infrastructure ngoài các file đã duyệt, migration/schema, POM/config, locked Spec/OpenAPI và toàn bộ lịch sử questions.md. T-04 chỉ đổi checkbox của chính task sang ✅ khi implementation, gates và review đạt điều kiện delivery; T-01/T-02/T-03 giữ ✅, task khác không đổi.
+- Bảy FE findings FE009-AUD-01…07 vẫn P2 / OPEN, xử lý bằng PR FE riêng. **T-18 Visual QA: NOT COMPLETED / DEFERRED**; không ghi PASS.
+- Sau implementation/gates phải có Independent Source Review PASS trước commit. Delivery là một Conventional Commit, push branch T-04 và Draft PR mới vào main; không merge PR. T-05 cần Shadow Plan và approval riêng.
+
+## [009] Leader — Q-T04-FR005 — CHỐT 2026-11-02
+
+- Leader xác nhận “không nhận HTML/Markdown” nghĩa là hệ thống không phân tích hay diễn giải markup. Backend lưu và trả nguyên văn sau `strip()`, kể cả `<img src=x onerror=alert(1)>` và `**đậm**`; không từ chối, không lọc, không escape. Frontend chỉ hiển thị dạng văn bản thuần theo AT-48.
+- Đây là diễn giải quyết định 2 đã chốt, không thay đổi nghiệp vụ. Không sửa locked Spec/OpenAPI và không thêm thư viện sanitize.
+- Bổ sung integration tests round-trip đúng hai chuỗi trên, HTTP validation trước verified-email, owner PUT trên HIDDEN, và hai thứ tự author/moderator tranh khóa bằng PostgreSQL transactions thật. Conditional SQL moderation chỉ nằm trong test, chưa triển khai T-12.
+- T-04 giữ ⬜ trong khi findings chưa khép lại; chỉ đánh ✅ khi đủ điều kiện delivery. Sau corrections và gates phải xuất review ZIP mới, dừng trước stage/commit cho Independent Source Review; quyết định này không tự chuyển review thành PASS.
