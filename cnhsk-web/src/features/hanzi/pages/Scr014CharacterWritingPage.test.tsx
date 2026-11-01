@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { findActiveSession } from '@/features/practice/api'
 import type { SessionView } from '@/features/practice'
@@ -11,7 +11,11 @@ import { getCharacter, getCharacters, recordWritingAttempt, startWritingChalleng
 import type { CharacterDetail, WritingAttemptRequest, WritingAttemptResult } from '../types'
 import Scr014CharacterWritingPage from './Scr014CharacterWritingPage'
 
-const canvasReadyMock = vi.hoisted(() => ({ callback: undefined as (() => void) | undefined }))
+const canvasReadyMock = vi.hoisted(() => ({
+  callback: undefined as (() => void) | undefined,
+  dataError: undefined as (() => void) | undefined,
+  quiz: vi.fn(),
+}))
 
 vi.mock('../api/characters', () => ({
   getCharacter: vi.fn(),
@@ -23,19 +27,20 @@ vi.mock('../api/characters', () => ({
 vi.mock('../components/HanziCanvas', async () => {
   const React = await import('react')
   const Canvas = React.forwardRef(function Canvas(
-    props: { character: string; onReady?: () => void },
+    props: { character: string; onDataError?: () => void; onReady?: () => void },
     ref,
   ) {
     React.useImperativeHandle(ref, () => ({
       animateCharacter: vi.fn(),
       cancelAnimations: vi.fn(),
       cancelQuiz: vi.fn(),
-      quiz: vi.fn(),
+      quiz: canvasReadyMock.quiz,
       setVisibility: vi.fn(),
     }))
     React.useEffect(() => {
       canvasReadyMock.callback = props.onReady
-    }, [props.character, props.onReady])
+      canvasReadyMock.dataError = props.onDataError
+    }, [props.character, props.onDataError, props.onReady])
     return React.createElement('div', { 'data-testid': 'hanzi-canvas', 'data-character': props.character })
   })
   return { HanziCanvas: Canvas }
@@ -54,6 +59,8 @@ const getCharacterMock = vi.mocked(getCharacter)
 const recordWritingAttemptMock = vi.mocked(recordWritingAttempt)
 const startChallengeMock = vi.mocked(startWritingChallenge)
 const findActiveMock = vi.mocked(findActiveSession)
+
+afterEach(() => vi.useRealTimers())
 
 function LocationProbe() {
   const location = useLocation()
@@ -139,7 +146,11 @@ describe('Scr014CharacterWritingPage — danh sách chữ', () => {
 })
 
 describe('Scr014CharacterWritingPage — luyện một chữ', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    canvasReadyMock.callback = undefined
+    canvasReadyMock.dataError = undefined
+  })
 
   it('mở sẵn Viết theo nét, khoá chế độ chưa dùng được kèm lý do, có khung viết 300 px', async () => {
     getCharacterMock.mockResolvedValue(detail)
@@ -159,6 +170,9 @@ describe('Scr014CharacterWritingPage — luyện một chữ', () => {
     )
     expect(screen.getByTestId('hanzi-canvas')).toBeVisible()
     expect(getCharacterMock).toHaveBeenCalledWith(11, expect.any(AbortSignal))
+    expect(screen.queryByText(/Chưa xác nhận được kết quả/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Gửi lại' })).not.toBeInTheDocument()
+    expect(recordWritingAttemptMock).not.toHaveBeenCalled()
   })
 
   it('ẩn chữ đích bên cạnh khung viết trong RECALL và DICTATION', async () => {
@@ -318,5 +332,148 @@ describe('Scr014CharacterWritingPage — ghi lượt luyện viết', () => {
     await submitIncomplete(user)
     await waitFor(() => expect(getCharacterMock).toHaveBeenCalledTimes(2))
     expect(screen.getByRole('button', { name: /^Viết theo nét/ })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  async function readyStrokeQuiz() {
+    await screen.findByTestId('hanzi-canvas')
+    act(() => canvasReadyMock.callback?.())
+    await waitFor(() => expect(canvasReadyMock.quiz).toHaveBeenCalled())
+  }
+
+  async function completeQuiz(quizIndex = -1) {
+    const quiz = canvasReadyMock.quiz.mock.calls.at(quizIndex)?.[0]
+    act(() => quiz.onComplete({ character: '好', totalMistakes: 0 }))
+    await waitFor(() => expect(recordWritingAttemptMock).toHaveBeenCalled())
+  }
+
+  it('FR032_recordedStrokeCanContinueIntoRecallAndPostsTheRecallPayload', async () => {
+    const user = userEvent.setup()
+    const recallCharacter = {
+      ...detail,
+      writing: { dictationAvailable: true, recallUnlocked: true, strokeAvailable: true },
+    }
+    getCharacterMock.mockResolvedValue(recallCharacter)
+    recordWritingAttemptMock.mockResolvedValue({
+      attemptId: 1, counted: true, recorded: true, recallUnlocked: true,
+    })
+    renderAt('/learn/characters/writing/11')
+    await readyStrokeQuiz()
+    await completeQuiz()
+    expect(await screen.findByText('Đã ghi nhận kết quả.')).toBeVisible()
+
+    const recallButton = screen.getByRole('button', { name: /Nhớ rồi viết/ })
+    expect(recallButton).toBeEnabled()
+    await user.click(recallButton)
+    expect(recallButton).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByText('Đang gửi kết quả…')).not.toBeInTheDocument()
+    expect(screen.getByText('Xem chữ mẫu trong 5 giây…')).toBeVisible()
+
+    await act(async () => { await new Promise((resolve) => window.setTimeout(resolve, 5100)) })
+    await waitFor(() => expect(canvasReadyMock.quiz).toHaveBeenCalledTimes(2))
+    await completeQuiz(1)
+    expect(recordWritingAttemptMock).toHaveBeenLastCalledWith(expect.objectContaining({ mode: 'RECALL' }))
+  }, 15_000)
+
+  it('FR031_recordedAttemptCanRestartWithFreshQuizAndOneNewPost', async () => {
+    const user = userEvent.setup()
+    recordWritingAttemptMock.mockResolvedValue({
+      attemptId: 1, counted: true, recorded: true, recallUnlocked: true,
+    })
+    renderAt('/learn/characters/writing/11')
+    await readyStrokeQuiz()
+    await completeQuiz()
+    expect(screen.queryByText('Đang gửi kết quả…')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Viết lại' }))
+    await waitFor(() => expect(canvasReadyMock.quiz).toHaveBeenCalledTimes(2))
+    expect(screen.getByText('Số nét sai: 0')).toBeVisible()
+    await completeQuiz(1)
+    expect(recordWritingAttemptMock).toHaveBeenCalledTimes(2)
+    expect(recordWritingAttemptMock).toHaveBeenLastCalledWith(expect.objectContaining({
+      completed: true,
+      mode: 'STROKE',
+      strokeMisses: 0,
+    }))
+  })
+
+  it('FR031_rejectedAttemptRestartsWhenTheSelectedModeIsClickedAgain', async () => {
+    const user = userEvent.setup()
+    recordWritingAttemptMock.mockRejectedValueOnce(new ApiError({
+      errorCode: 'VALIDATION_FAILED', message: 'invalid', status: 422,
+    })).mockResolvedValueOnce({ attemptId: 2, counted: true, recorded: true, recallUnlocked: false })
+    renderAt('/learn/characters/writing/11')
+    await readyStrokeQuiz()
+    await completeQuiz()
+    expect(await screen.findByRole('alert')).toHaveTextContent('invalid')
+    expect(screen.queryByText('Đang gửi kết quả…')).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /^Viết theo nét/ }))
+    await waitFor(() => expect(canvasReadyMock.quiz).toHaveBeenCalledTimes(2))
+    const stopButton = screen.getByRole('button', { name: 'Dừng' })
+    expect(stopButton).toBeEnabled()
+    await user.click(stopButton)
+    await waitFor(() => expect(recordWritingAttemptMock).toHaveBeenCalledTimes(2))
+  })
+
+  it('FR031_rejectedAttemptCanRestartFromTheWriteAgainButton', async () => {
+    const user = userEvent.setup()
+    recordWritingAttemptMock.mockRejectedValueOnce(new ApiError({
+      errorCode: 'VALIDATION_FAILED', message: 'invalid', status: 422,
+    })).mockResolvedValueOnce({ attemptId: 2, counted: true, recorded: true, recallUnlocked: false })
+    renderAt('/learn/characters/writing/11')
+    await readyStrokeQuiz()
+    await completeQuiz()
+    expect(await screen.findByRole('alert')).toHaveTextContent('invalid')
+
+    await user.click(screen.getByRole('button', { name: 'Viết lại' }))
+    await waitFor(() => expect(canvasReadyMock.quiz).toHaveBeenCalledTimes(2))
+    expect(screen.getByRole('button', { name: 'Dừng' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'Dừng' }))
+    await waitFor(() => expect(recordWritingAttemptMock).toHaveBeenCalledTimes(2))
+  })
+
+  it('FR030_dataErrorPersistsAcrossModeChangesWithoutLoadingOrPosting', async () => {
+    const user = userEvent.setup()
+    getCharacterMock.mockResolvedValue({
+      ...detail,
+      writing: { dictationAvailable: true, recallUnlocked: true, strokeAvailable: true },
+    })
+    renderAt('/learn/characters/writing/11')
+    await readyStrokeQuiz()
+    act(() => canvasReadyMock.dataError?.())
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chữ này chưa có dữ liệu nét')
+    const quizCallsBeforeModeChange = canvasReadyMock.quiz.mock.calls.length
+
+    await user.click(screen.getByRole('button', { name: /Nhớ rồi viết/ }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chữ này chưa có dữ liệu nét')
+    expect(screen.queryByText('Đang tải dữ liệu nét…')).not.toBeInTheDocument()
+    expect(canvasReadyMock.quiz).toHaveBeenCalledTimes(quizCallsBeforeModeChange)
+    expect(recordWritingAttemptMock).not.toHaveBeenCalled()
+  })
+
+  it('FR033_recordedDictationShowsTheAnswerAndAllowsReplayWithoutPostingAgain', async () => {
+    const user = userEvent.setup()
+    const playAudio = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+    getCharacterMock.mockResolvedValue({
+      ...detail,
+      audioUrl: '/audio/hao.mp3',
+      hasAudio: true,
+      writing: { dictationAvailable: true, recallUnlocked: false, strokeAvailable: true },
+    })
+    recordWritingAttemptMock.mockResolvedValue({
+      attemptId: 1, counted: true, recorded: true, recallUnlocked: false,
+    })
+    renderAt('/learn/characters/writing/11')
+    await readyStrokeQuiz()
+    await user.click(screen.getByRole('button', { name: /Nghe chép/ }))
+    await waitFor(() => expect(canvasReadyMock.quiz).toHaveBeenCalledTimes(2))
+    await completeQuiz(1)
+
+    expect(await screen.findByText('Chữ đúng: 好')).toBeVisible()
+    const listenButton = screen.getByRole('button', { name: 'Nghe từ' })
+    expect(listenButton).toBeEnabled()
+    await user.click(listenButton)
+    expect(playAudio).toHaveBeenCalledOnce()
+    expect(recordWritingAttemptMock).toHaveBeenCalledOnce()
   })
 })

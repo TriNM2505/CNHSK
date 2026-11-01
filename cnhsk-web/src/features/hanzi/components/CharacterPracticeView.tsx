@@ -29,9 +29,11 @@ export interface CharacterPracticeViewProps {
   error?: { message: string; requestId?: string }
   mode?: WritingMode
   onModeChange?: (mode: WritingMode) => void
+  onRestart?: () => void
   onRetry: () => void
   onRetryUnknown?: () => void
   onSubmitAttempt?: (request: WritingAttemptRequest) => void
+  restartKey?: number
   retryAfterSeconds?: number
   state: 'loading' | 'ready' | 'not-found' | 'error'
 }
@@ -42,7 +44,7 @@ const RECALL_INITIAL_PREVIEW_MS = 5000
 const RECALL_EXTRA_PREVIEW_MS = 3000
 const MAX_RECALL_PREVIEWS = 2
 
-type ActivityStage = 'loading' | 'preview' | 'writing' | 'animating' | 'fallback' | 'submitting'
+type ActivityStage = 'loading' | 'preview' | 'writing' | 'animating' | 'fallback' | 'submitting' | 'done'
 
 function clampDuration(value: number) {
   return Math.min(Math.max(Math.round(value), 0), 3_600_000)
@@ -56,9 +58,11 @@ export function CharacterPracticeView({
   error,
   mode,
   onModeChange,
+  onRestart,
   onRetry,
   onRetryUnknown,
   onSubmitAttempt,
+  restartKey = 0,
   retryAfterSeconds,
   state,
 }: CharacterPracticeViewProps) {
@@ -233,9 +237,9 @@ export function CharacterPracticeView({
       modeRef.current = mode
       startedAtRef.current = null
       readyRef.current = writerReady
-      setDataError(false)
-      setStage('loading')
+      setStage(dataError ? 'fallback' : 'loading')
       submitStartedRef.current = false
+      if (dataError) return
       if (mode) beginMode(mode)
       return
     }
@@ -243,7 +247,26 @@ export function CharacterPracticeView({
       readyRef.current = true
       beginMode(mode)
     }
-  }, [beginMode, cancelQuiz, mode, stopTimer, writerReady])
+  }, [beginMode, cancelQuiz, dataError, mode, stopTimer, writerReady])
+
+  useEffect(() => {
+    if (restartKey === 0) return
+    stopTimer()
+    canvasRef.current?.cancelAnimations()
+    cancelQuiz()
+    modeGenerationRef.current += 1
+    startedAtRef.current = null
+    submitStartedRef.current = false
+    if (!mode || !readyRef.current || !writerReady) {
+      setStage('loading')
+      return
+    }
+    if (dataError) {
+      setStage('fallback')
+      return
+    }
+    beginMode(mode)
+  }, [beginMode, cancelQuiz, dataError, mode, restartKey, stopTimer, writerReady])
 
   useEffect(() => {
     if (attemptState === 'recorded') {
@@ -251,12 +274,12 @@ export function CharacterPracticeView({
       canvasRef.current?.cancelAnimations()
       cancelQuiz()
       canvasRef.current?.setVisibility(true, true)
-      setStage('submitting')
+      setStage('done')
     } else if (attemptState === 'unknown' || attemptState === 'rejected') {
       stopTimer()
       canvasRef.current?.cancelAnimations()
       cancelQuiz()
-      setStage('submitting')
+      setStage('done')
     } else if (attemptState === 'submitting') {
       setStage('submitting')
     }
@@ -359,7 +382,7 @@ export function CharacterPracticeView({
   }
 
   const writingUnavailable = !mode || dataError
-  const isBlocked = attemptState === 'unknown' || attemptState === 'submitting' || attemptState === 'recorded'
+  const isBlocked = attemptState === 'unknown' || attemptState === 'submitting'
   const showCanvas = Boolean(mode) && !dataError
 
   return (
@@ -457,7 +480,7 @@ export function CharacterPracticeView({
               {mode === 'DICTATION' && character.audioUrl && !dataError ? (
                 <AudioButton
                   audioUrl={character.audioUrl}
-                  disabled={attemptState === 'submitting' || attemptState === 'recorded' || attemptState === 'unknown'}
+                  disabled={attemptState === 'submitting' || attemptState === 'unknown'}
                   initialReplayCount={0}
                   maxReplays={3}
                   onAudioFailed={handleAudioFailed}
@@ -514,6 +537,9 @@ export function CharacterPracticeView({
                   {mode === 'DICTATION' ? <span className="block">Chữ đúng: {character.text}</span> : null}
                 </p>
               ) : null}
+              {attemptState === 'recorded' || attemptState === 'rejected' ? (
+                <Button onClick={onRestart} variant="outline">Viết lại</Button>
+              ) : null}
 
               {attemptState !== 'unknown' && attemptState !== 'rejected' && attemptState !== 'recorded' ? (
                 <ModeControls
@@ -526,7 +552,7 @@ export function CharacterPracticeView({
                   previewRemaining={remainingPreviewCount}
                 />
               ) : null}
-              {attemptState === 'submitting' || stage === 'submitting' ? (
+              {attemptState === 'submitting' ? (
                 <p className="text-center text-body-sm text-ink-secondary" role="status">Đang gửi kết quả…</p>
               ) : null}
             </Card>

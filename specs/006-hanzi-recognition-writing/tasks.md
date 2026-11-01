@@ -18,3 +18,5 @@
 | T-09 | SCR-014 thử thách (đồng hồ, lỗi tối đa, tự nộp, giữ kết quả khi mất mạng) | `cnhsk-web/src/features/hanzi/**` | FR-034 · AT-23 | ⬜ |
 
 **Rủi ro cao:** T-03 (luật hợp lý — test từng mã lỗi), T-08 (tương tác `hanzi-writer` trên cảm ứng — kiểm tay trên điện thoại).
+
+**Ghi chú T-08:** PR #48 đã merge; follow-up `fix/006-hanzi-writing-result-flow` khắc phục việc bắt đầu lượt mới sau `recorded`/`rejected`, trạng thái kết thúc, giữ chế độ xem khi lỗi dữ liệu nét và nghe lại sau DICTATION.

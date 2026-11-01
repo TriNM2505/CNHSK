@@ -88,6 +88,7 @@ function CharacterPracticeController({ rawId }: { rawId: string }) {
   const [attemptError, setAttemptError] = useState<ApiError | undefined>()
   const [attemptResult, setAttemptResult] = useState<WritingAttemptResult | null>(null)
   const [retryAfterSeconds, setRetryAfterSeconds] = useState<number>()
+  const [restartKey, setRestartKey] = useState(0)
   const pendingPayloadRef = useRef<WritingAttemptRequest | null>(null)
   const requestInFlightRef = useRef(false)
   const query = useApiQuery(
@@ -139,14 +140,27 @@ function CharacterPracticeController({ rawId }: { rawId: string }) {
     void sendAttempt(pendingPayloadRef.current)
   }, [attemptState, sendAttempt])
 
-  const changeMode = useCallback((nextMode: WritingMode) => {
+  const clearAttempt = useCallback(() => {
     setAttemptState('idle')
     setAttemptError(undefined)
     setAttemptResult(null)
     setRetryAfterSeconds(undefined)
     pendingPayloadRef.current = null
-    setMode(nextMode)
   }, [])
+
+  const restartPractice = useCallback(() => {
+    clearAttempt()
+    setRestartKey((current) => current + 1)
+  }, [clearAttempt])
+
+  const changeMode = useCallback((nextMode: WritingMode) => {
+    clearAttempt()
+    if (nextMode === mode) {
+      setRestartKey((current) => current + 1)
+      return
+    }
+    setMode(nextMode)
+  }, [clearAttempt, mode])
 
   const notFound =
     characterId === undefined ||
@@ -168,7 +182,9 @@ function CharacterPracticeController({ rawId }: { rawId: string }) {
       onModeChange={changeMode}
       onRetry={query.reload}
       onRetryUnknown={retryUnknown}
+      onRestart={restartPractice}
       onSubmitAttempt={(request) => void sendAttempt(request)}
+      restartKey={restartKey}
       retryAfterSeconds={retryAfterSeconds}
       state={
         notFound ? 'not-found' : query.state === 'ready' ? 'ready' : query.state === 'loading' ? 'loading' : 'error'
