@@ -204,10 +204,10 @@
 | **Mô tả** | Hệ thống biết người học nắm chắc phần nào, yếu phần nào |
 | **Client** | Shared |
 | **Phạm vi** | MVP |
-| **Đơn vị đo** | Từng điểm kiến thức: từ vựng · ngữ pháp · chữ · kỹ năng |
-| **Cập nhật khi** | Làm bài thi · luyện tập · học từ theo chủ đề · **chơi game (tức thì)** |
-| **Bảng DB** | `knowledge_points` `user_knowledge_state` (L) |
-| **Kỹ thuật** | FSRS |
+| **Đơn vị đo** | Từng **nút KID** của Cây Năng Lực v2.0 (6 miền NA CH TV NP NL VB); từ, chữ, chủ đề nối vào nút (RFC đợt cuối R1) |
+| **Cập nhật khi** | Làm bài thi · luyện tập · kiểm tra chủ đề · bài xếp trình độ · **chơi game (tức thì)** |
+| **Bảng DB** | `knowledge_points` · `user_progress` (`KNOWLEDGE_POINT`, `LEXEME`) — spec 010, 011 |
+| **Kỹ thuật** | **MP-1.0** cho mastery (0–100, vững ≥ 80); **FSRS-5** cho lịch ôn mục từ (RFC R3, R4) |
 | **Index bắt buộc** | `(user_id, due_at)` và `(user_id, mastery)` |
 | **Nghiệm thu** | Đúng → mastery tăng, hạn ôn giãn; sai → giảm và hạn ôn gần lại. **Chơi game xong mastery đổi ngay, không phải chờ** |
 
@@ -387,10 +387,11 @@
 | **Trạng thái** | Làm mới |
 | **Giao diện** | Nút mở panel trong các màn được phép, không che nội dung học hoặc CTA. Không tự đưa panel vào khu quản trị hoặc public chỉ vì dùng chung layout |
 | **Biết ngữ cảnh** | Đang ở trang nào thì gợi ý theo trang đó. Ví dụ đang học chủ đề "Gia đình" thì AI biết |
-| **Trả lời được** | Giải thích nghĩa từ · phân tích cấu trúc câu · so sánh hai từ gần nghĩa · giải thích điểm ngữ pháp · gợi ý cách nhớ chữ |
-| **KHÔNG hiện ở** | Màn hình thi mô phỏng thật (nếu sau này làm) — để tránh gian lận |
-| **Bảng DB** | `ai_chat_sessions` `ai_chat_messages` (mới, L) |
-| **API** | `POST /api/assistant/ask` · `GET /api/assistant/history` |
+| **Trả lời được** | **Chỉ cách dùng CNHSK** (tính năng, điều hướng, tài khoản, thẻ/gói, đề thi, cây năng lực, thư viện). Câu kiến thức (nghĩa từ, ngữ pháp, dịch, giải bài) bị từ chối, gợi ý Tra từ điển/Dịch (RFC đợt cuối R12, spec 015) |
+| **KHÔNG hiện ở** | Mọi bài kiểm tra đang làm: đề thi thử, bài xếp trình độ, kiểm tra chủ đề — ẩn và chặn ở server ("thi nghiêm túc") |
+| **Lượt** | **Không trừ lượt**; ngưỡng an toàn 200 câu/người/ngày; trần token/tháng |
+| **Bảng DB** | Không lưu lịch sử (không dùng `ai_chats` đợt này) |
+| **API** | `POST /api/assistant/ask` |
 | **Chi phí** | **Tốn tiền mỗi lượt hỏi** → bắt buộc có hạn mức theo gói (xem 6.1) |
 | **Giới hạn kỹ thuật** | Chặn câu hỏi quá dài · giới hạn số lượt/ngày · lưu lịch sử để người dùng xem lại |
 | **Nghiệm thu** | Mở được ở ngữ cảnh được phép; hết hạn mức báo rõ; trả lời dưới 5 giây |
@@ -433,10 +434,10 @@
 | **Client** | Web chính · Mobile |
 | **Phạm vi** | **V2** |
 | **Trạng thái** | Làm mới |
-| **Cách tổ chức** | `CONTENT_EDITOR` tạo cuộc thi → đặt khung giờ (ví dụ 20h–21h) → đăng bài quảng bá → người dùng đăng ký → đúng giờ mở → hết giờ đóng → công bố xếp hạng; nếu thưởng bằng điểm tài chính, `ACCOUNTANT` thực hiện cộng điểm và ghi sổ cái |
+| **Cách tổ chức** | `CONTENT_EDITOR` tạo cuộc thi → đặt khung giờ (ví dụ 20h–21h) → đăng bài quảng bá → người dùng đăng ký → đúng giờ mở → hết giờ đóng → công bố xếp hạng; nếu thưởng bằng điểm tài chính, `ADMIN` thực hiện cộng điểm và ghi sổ cái (RFC R9) |
 | **Ai tham gia** | **Tài khoản mới cũng tham gia free** — dùng để thu hút người dùng |
 | **Tính điểm** | Như game: điểm + thời gian. Xếp hạng riêng cho mỗi cuộc thi |
-| **Phần thưởng** | Hiện trên trang cuộc thi. Thưởng hiện vật do bên tổ chức trao; thưởng bằng điểm tài chính do `ACCOUNTANT` xử lý và ghi sổ cái |
+| **Phần thưởng** | Hiện trên trang cuộc thi. Thưởng hiện vật do bên tổ chức trao; thưởng bằng điểm tài chính do `ADMIN` xử lý và ghi sổ cái (RFC R9) |
 | **Bảng DB** | `contests` `contest_participants` `contest_submissions` (C) — giải thưởng gộp vào `contests.prizes` JSONB, nhật ký gian lận gộp vào `contest_participants.cheat_events` JSONB |
 | **API** | `GET /api/contests` · `POST /api/contests/{id}/join` · `POST /api/contests/{id}/submit` |
 | **Nghiệm thu** | Ngoài khung giờ không vào thi được; xếp hạng công bố đúng sau khi đóng |
@@ -483,7 +484,7 @@ Bạn đề xuất **phát hiện chuyển tab**. Đây là biện pháp hợp l
 | **Premium tháng** | Không giới hạn trong tháng | Nhóm tự set |
 | **Điểm tài chính** | Mỗi lượt dùng trừ 1 điểm. Ví dụ 10.000đ = 100 điểm | Nhóm tự set |
 
-**Tính năng tốn lượt:** AI sinh bài (3.3) · dịch (4.1) · trợ lý ảo (5.5) · nhờ teacher chấm bài (6.2)
+**Tính năng tốn lượt:** AI sinh bài (3.3) · dịch (4.1) · nhờ teacher chấm bài (6.2). Trợ lý ảo (5.5) **không** tốn lượt (RFC R12)
 
 ### Thanh toán bằng thẻ nạp
 
@@ -537,7 +538,7 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 | **TEACHER** | Duyệt câu hỏi AI (cùng CONTENT_EDITOR), sửa nội dung học, nhận và chấm bài viết | Học tập |
 | **MODERATOR** | Duyệt bài đăng, xử lý báo cáo và kiểm duyệt bình luận | Cộng đồng |
 | **CONTENT_EDITOR** | Quản lý đề thi, kho câu hỏi, nhập dữ liệu và cuộc thi | Nội dung |
-| **ACCOUNTANT** | Quản lý gói dịch vụ, mã thẻ nạp, sổ cái điểm và tranh chấp | Tài chính |
+| **ACCOUNTANT** | Giữ mã, **không có quyền** từ 2026-11-03 — tài chính chuyển sang `ADMIN` (RFC R9) | — |
 | **ADMIN** | Quản lý người dùng, cấp/thu hồi role và cấu hình hệ thống | Hệ thống |
 
 ### Teacher chấm bài thuê
@@ -549,7 +550,7 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 | **Cần quyết** | Teacher nhận bao nhiêu phần trong số điểm người học trả? Có hạn thời gian phải chấm xong không? |
 | **Nghiệm thu** | Trừ điểm đúng lúc gửi yêu cầu; teacher không nhận thì hoàn điểm |
 
-> **Một người có nhiều role được** — bảng nối `user_roles` đã thiết kế cho việc này. `ADMIN` không tự động có quyền của `CONTENT_EDITOR` hoặc `ACCOUNTANT`. `GUEST` không được thêm vào `user_roles`.
+> **Một người có nhiều role được** — bảng nối `user_roles` đã thiết kế cho việc này. `ADMIN` không tự động có quyền của `CONTENT_EDITOR`; `ADMIN` làm tài chính (RFC R9) nhưng không nạp được mã do chính mình tạo. `GUEST` không được thêm vào `user_roles`.
 
 > Cấp/thu hồi role nằm tại **SCR-077 User Detail**, do `ADMIN` thực hiện.
 > Bộ 79 màn không có màn CRUD danh mục role riêng. **SCR-078 System Settings** đã
@@ -597,7 +598,7 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 | **Mô tả** | Nơi `TEACHER`, `MODERATOR`, `CONTENT_EDITOR`, `ACCOUNTANT` và `ADMIN` thực hiện chức năng quản trị theo đúng quyền riêng |
 | **Client** | Admin |
 | **Phạm vi** | MVP |
-| **Gồm** | `TEACHER`: hàng đợi câu hỏi AI, sửa nội dung học · `MODERATOR`: duyệt bài đăng và xử lý báo cáo · `CONTENT_EDITOR`: đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi · `ACCOUNTANT`: gói dịch vụ, thẻ nạp, sổ cái và tranh chấp · `ADMIN`: người dùng, role và cấu hình |
+| **Gồm** | `TEACHER`: hàng đợi câu hỏi AI, sửa nội dung học · `MODERATOR`: duyệt bài đăng và xử lý báo cáo · `CONTENT_EDITOR`: đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi · `ADMIN`: người dùng, role, cấu hình **và** gói dịch vụ, thẻ nạp, sổ cái (RFC R9) |
 | **Bảng DB** | `review_actions` `question_reports` `moderation_reports` `import_runs` · duyệt bài đọc cột `posts.reviewed_*` |
 | **Nghiệm thu** | Mỗi role chỉ thấy phần mình quản; duyệt hàng loạt 20 mục dưới 2 phút |
 

@@ -1,0 +1,80 @@
+openapi: 3.1.0
+info:
+  title: CNHSK System Assistant API
+  version: 0.1.0
+  description: >
+    Hợp đồng spec 015-system-assistant. Trợ lý chỉ trả lời về cách dùng CNHSK, chỉ cho LEARNER,
+    không lưu lịch sử (client gửi ≤ 10 tin gần nhất), không trừ lượt, ngưỡng an toàn 200 câu/người/ngày,
+    tắt khi người học đang làm bài kiểm tra. Thao tác ghi qua cookie cần header X-XSRF-TOKEN (spec 001).
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: assistant
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      description: Bắt buộc khi xác thực bằng cookie (spec 001)
+      schema: { type: string }
+  schemas:
+    ErrorResponse:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ErrorResponse'
+    ChatTurn:
+      type: object
+      required: [role, text]
+      properties:
+        role: { type: string, enum: [user, assistant] }
+        text: { type: string, minLength: 1, maxLength: 4000 }
+    AskRequest:
+      type: object
+      required: [question]
+      properties:
+        question: { type: string, minLength: 1, maxLength: 2000 }
+        history: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/ChatTurn' } }
+        pageContext: { type: [string, 'null'], pattern: '^SCR-0[0-7][0-9]$', description: Chỉ mã màn, không PII }
+    AskResult:
+      type: object
+      required: [answer, outOfScope]
+      properties:
+        answer: { type: string, description: Văn bản thuần; client hiển thị dạng chữ }
+        outOfScope: { type: boolean, description: 'true khi câu hỏi kiến thức bị từ chối' }
+
+paths:
+  /api/assistant/ask:
+    post:
+      tags: [assistant]
+      operationId: askAssistant
+      summary: Hỏi trợ lý về cách dùng hệ thống (FR-001…FR-011)
+      parameters:
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/AskRequest' } } }
+      responses:
+        '200':
+          description: Câu trả lời
+          content: { application/json: { schema: { $ref: '#/components/schemas/AskResult' } } }
+        '401':
+          description: UNAUTHENTICATED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '403':
+          description: FORBIDDEN · CSRF_TOKEN_INVALID · ASSISTANT_BLOCKED_DURING_TEST
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '422':
+          description: VALIDATION_FAILED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '429':
+          description: RATE_LIMITED kèm retryAfterSeconds (> 200 câu/ngày)
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '503':
+          description: ASSISTANT_UNAVAILABLE — Claude lỗi/timeout, thiếu khoá, hết ngân sách tháng, không có tài liệu
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }

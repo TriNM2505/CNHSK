@@ -80,11 +80,11 @@ CREATE SCHEMA IF NOT EXISTS shared;
 | `GUEST` | Khách | 16 | ❌ **không có tài khoản** |
 | `CONTENT_EDITOR` | Biên tập viên nội dung | 6 | ✅ |
 | `MODERATOR` | Kiểm duyệt viên | 4 | ✅ |
-| `ACCOUNTANT` | Kế toán | 4 | ✅ |
+| `ACCOUNTANT` | Kế toán | 0 — giữ mã, **không có quyền** (RFC R9) | ✅ |
 | `TEACHER` | Giáo viên | 4 | ✅ |
-| `ADMIN` | Quản trị viên | 3 | ✅ |
+| `ADMIN` | Quản trị viên | 7 — gồm tài chính (RFC R9) | ✅ |
 
-**7 actor = 6 role trong DB + `GUEST`.**
+**7 actor = 6 role trong DB + `GUEST`.** Mã `ACCOUNTANT` vẫn trong CHECK `user_roles` để không phải migration (Hiến pháp v1.5.0).
 
 - `GUEST` — khách chưa đăng nhập, **không có dòng** trong `auth.users`. Kiểm bằng *"không có
   JWT"*, không bằng `role_code`.
@@ -331,6 +331,12 @@ CREATE TABLE knowledge_points (
 CREATE INDEX ix_kp_skill ON knowledge_points(skill_type, hsk_level);
 ```
 
+> **RFC đợt cuối R1, R2 (2026-11-03):** mỗi dòng là **một nút KID** của Cây Năng Lực v2.0 (`code` dạng
+> `NP3-004`). V5 (spec 010 §0.1) thêm `domain`, `name_zh`, `can_do`, `prereq_ids`, `support_ids`,
+> `updated_at`, bỏ `NOT NULL` của `skill_type`, CHECK mã KID và `lexeme_id IS NULL`; `question_knowledge_points`
+> thêm `role` (PRIMARY/SECONDARY); `topics`, `lexemes` thêm `knowledge_point_id`. DDL đầy đủ cập nhật ở đây
+> trong PR của spec 010 T-05.
+
 ### 4.5 · `topics` và `topic_items`
 
 ```sql
@@ -532,6 +538,11 @@ CREATE INDEX ix_prog_due     ON user_progress(user_id, next_review_at)
   WHERE next_review_at IS NOT NULL;
 CREATE INDEX ix_prog_mastery ON user_progress(user_id, mastery);
 ```
+
+> **RFC đợt cuối R2, R3 (2026-11-03):** dòng `KNOWLEDGE_POINT` giữ mastery **MP-1.0** (`mastery` = giá trị ÷ 100),
+> không dùng FSRS. V6 (spec 011 §0.1) thêm `mp_state`, `confidence`, `evidence_item_ids BIGINT[]` và
+> `target_type = 'LEXEME'` cho lịch ôn FSRS từng mục từ. Dòng `FLASHCARD` (spec 014) dùng cột FSRS như cũ.
+> DDL đầy đủ cập nhật ở đây trong PR của spec 011 T-05.
 
 > 🔴 **Khoá chính `(user_id, target_type, target_id)` lấp 2 khoảng trống cùng lúc:**
 > `UNIQUE_VIOLATION` của UC-022 (hai tab cùng mở tầng phát âm) và UC-046 (hai request cùng mở
@@ -737,6 +748,8 @@ CREATE TABLE ai_chats (
 CREATE INDEX ix_chat_user ON ai_chats(user_id, updated_at DESC);
 ```
 
+> **RFC đợt cuối R12 (2026-11-03):** trợ lý của spec 015 **không lưu lịch sử** — đợt này không đọc/ghi bảng này.
+
 ### 4.15 · `audit_logs`
 
 ```sql
@@ -756,7 +769,7 @@ CREATE INDEX ix_audit_action ON audit_logs(action, created_at DESC);
 
 > **Bảng này thay `review_actions` của v5** và mở rộng cho mọi thao tác nhạy cảm:
 > sinh mã thẻ, cấp role, **đọc sổ cái**, khoá tài khoản, duyệt câu hỏi.
-> Quyết định v2 bắt `ACCOUNTANT` ghi audit cho cả thao tác **đọc**.
+> Quyết định v2 bắt thao tác tài chính (nay của `ADMIN` — RFC R9) ghi audit cho cả thao tác **đọc**.
 
 ### 4.16 · Năm bảng V2
 
@@ -1319,7 +1332,9 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 | V2.1 | `V2_1__auth_session_id.sql` | 001 | Thêm `session_id` UUID cho phiên refresh trong `auth.auth_tokens`, CHECK bắt buộc session ID cho REFRESH, partial index | T-22 |
 | V3 | `V3__content_import.sql` | 002 | `topics.code`, `pron_stages.units`, bỏ `uq_import_file`, thêm `uq_import_running` và `ix_req_import_hist` (spec 002 §0.3); nối sau V2.1 | ✅ Đã viết và kiểm thử 2026-10-29: 10 test migration pass trên Testcontainers, `verify` xanh (260 test, không skip; line coverage 93,08%). Spec 002 đã duyệt trên `main` qua PR #13. Chưa chạy Neon; leader chạy sau merge PR migration |
 | V4 | `V4__practice_engine.sql` | 003 | Cột `item_type`, `skill`, `meta` trên `attempt_items`; unique `uq_ai_order`, `ix_att_user_ref`, partial `ix_ai_lexeme` (spec 003 §0.12) | Chờ merge — chỉ kiểm thử bằng Testcontainers; chưa chạy Neon, leader chạy sau merge |
-| V5+ | — | spec sau | Leader cấp số khi spec cần đổi schema: gói dịch vụ, `dictation_attempts`/`shadowing_attempts` (feature 1.6 V2)… | — |
+| V5 | `V5__knowledge_tree.sql` | 010 | Cây KID trên `knowledge_points`, vai trò nhãn, `questions.code`/`difficulty`, `knowledge_point_id` trên `topics`/`lexemes` (spec 010 §0.1) | Leader cấp số 2026-11-03 — chưa viết |
+| V6 | `V6__mastery_progress.sql` | 011 | `user_progress`: `mp_state`, `confidence`, `evidence_item_ids`, `target_type 'LEXEME'` (spec 011 §0.1) | Leader cấp số 2026-11-03 — chưa viết; chạy sau V5 |
+| V7+ | — | spec sau | Leader cấp số khi spec cần đổi schema (012–015 không cần migration) | — |
 
 > `V3__content_and_plans`, `V4__funnel_and_ledger`, `V5__video_practice` của bản trước **đã gộp vào V1**
 > (V1 chưa chạy ở đâu nên gộp được) — trừ hai bảng video luyện tập, chờ feature 1.6 vào scope.
@@ -1361,6 +1376,11 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 | `user_progress` | Mastery + lịch ôn FSRS của mọi người học |
 | `credit_transactions` | Sổ cái tiền thật — **không bao giờ xoá dòng nào** |
 | `attempt_items` | Từng câu trả lời. Gốc của mọi phân tích lỗi sai |
+
+> **"Không đụng" = không xoá bảng, không xoá/đổi nghĩa cột cũ, không xoá dữ liệu** (RFC đợt cuối R2, 2026-11-03).
+> **Được thêm cột** bằng migration mới khi có RFC đồng thuận: V5 (spec 010) cho `knowledge_points`,
+> `question_knowledge_points`; V6 (spec 011) cho `user_progress`. Cột `attempt_items.question_id` bắt đầu
+> được ghi từ spec 012.
 
 ---
 

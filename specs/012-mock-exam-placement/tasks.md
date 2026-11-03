@@ -1,0 +1,74 @@
+# Tasks: Đề thi thử và bài xếp trình độ — Spec #012
+
+> Nguồn: [`spec.md`](spec.md) v1.0.0 · [`contracts/openapi-exam.yaml`](contracts/openapi-exam.yaml)
+> ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸ hoãn · 🔴 chặn
+
+**Tổng: 19 task** (17 code + 2 nội dung), ≤ 4 giờ/task, một task một nhánh `spec/012-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
+Đường dẫn: `…/` = `src/main/java/com/cnhsk/`; `t/` = `src/test/java/com/cnhsk/`; `web/` = `cnhsk-web/src/`.
+**Điều kiện bắt đầu:** spec 012 đã `APPROVED` 2026-11-03 — theo thứ tự luồng trong `workflow-phu-thuoc-task-010-015.md` (plan `261102-2104`). **Thứ tự: FE trước, BE sau** (Q13).
+File dùng chung (spec §0.5) phải nêu trong Shadow Plan từng task.
+
+## Đợt 1 · Frontend bằng dữ liệu mẫu
+
+| ID | Task | File | Spec · AT | TT |
+|---|---|---|---|---|
+| T-01 | Nền FE `exam`: `types.ts` theo OpenAPI, `api/*.ts` (client chung), `catalog.preview.ts` (3 đề HSK 1–3, kết quả đề, lượt xếp trình độ 3 khối + kết quả, KID mẫu — **tự soạn**), `screens.ts`; 5 route §12 (`LEARNER`, layout `learner`) vào `routeAccess.ts` + catalog vào `screenRegistry.ts`; union `PracticeSource` thêm `MOCK_EXAM`, `PLACEMENT`, `TARGETED_PRACTICE`, `ItemType` thêm `QUESTION_CHOICE` trong `features/practice/types.ts` (**báo leader trước**) | `web/features/exam/**`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts`, `web/features/practice/types.ts` | FR-001 (FE), §12 | ⬜ |
+| T-02 | SCR-020 Exam List: thẻ "Kiểm tra trình độ" 3 trạng thái, lưới đề theo cấp 1–3, "Bắt đầu"/"Tiếp tục", rỗng, Loading/Error | `web/features/exam/pages/Scr020ExamListPage.tsx` + test | FR-024 · AT-25 | ⬜ |
+| T-03 | SCR-021 Exam Attempt hai chế độ: dùng lại `usePracticeSession`; `MOCK_EXAM` (phần/câu, đếm, đánh dấu, "Đã lưu"/"Chưa lưu được" + `sessionStorage`, xác nhận nộp, chỉ đọc sau nộp, **không đồng hồ**); `PLACEMENT` (khối, bỏ qua, nộp khối → `next`) | `web/features/exam/pages/Scr021ExamAttemptPage.tsx`, `web/features/exam/components/*` + test | FR-025 · AT-26 | ⬜ |
+| T-04 | SCR-022 Exam Result hai chế độ: đề (điểm, phần, so lần trước, lọc Sai/Bỏ trống, lời giải, nhóm theo KID + "Luyện nút này"; khối điểm yếu ẩn sau cờ tới T-16) và xếp trình độ (cấp, độ tin cậy, theo cấp, 6 miền, "Chưa đo") | `web/features/exam/pages/Scr022ExamResultPage.tsx`, `Scr022PlacementResultPage.tsx` + test | FR-026 · AT-27 | ⬜ |
+| T-05 | SCR-023 Targeted Practice (phản hồi ngay, ghi chú câu vừa sai, rỗng không có AI) + SCR-068 thêm 2 `dataType` `EXAM`, `EXAM_QUESTION` với nhãn §0.3 (**báo leader trước** — feature `content-import`) | `web/features/exam/pages/Scr023TargetedPracticePage.tsx`, `web/features/content-import/types.ts`, `labels.ts` + test | FR-027, FR-005 (FE) · AT-28 | ⬜ |
+
+## Đợt 2 · Backend
+
+| ID | Task | File | Spec · AT | TT |
+|---|---|---|---|---|
+| T-06 | Mở rộng engine §0.2: 3 `PracticeSource`, `ItemType.QUESTION_CHOICE`, `ServedItem.questionId` + `ItemGradedEvent.questionId` (giữ constructor cũ), `PracticeService` ghi `attempt_items.question_id` + kiểm `validateItems`, `PracticeApi` đồng bộ; enum `PracticeSource` trong contract 003; `database.md` §11. **Full verify 003–008 bắt buộc** (**báo leader trước** — file của 003) | `…/learning/practice/{PracticeSource,ItemType,ServedItem,PracticeService}.java`, `…/practice/event/ItemGradedEvent.java`, `…/learning/api/PracticeApi.java`, `specs/003-vocab-topics/contracts/openapi-practice-vocab.yaml`, `docs/reference/database.md` + test | FR-002, FR-003 · AT-02, AT-03 | ⬜ |
+| T-07 | Mẫu `EXAM`: `ImportDataType`/`ImportTemplate` thêm 2 giá trị (khai cột cả 2, validator/writer chỉ `EXAM`), validator + writer; enum `dataType` + 4 mã lỗi dòng §4.1 trong `openapi-import.yaml`; đổi test "11 mẫu" thành 13 | `…/content/importer/template/*`, `…/importer/validate/ExamRowValidator.java`, `…/importer/write/ExamRowWriter.java`, `specs/002-…/contracts/openapi-import.yaml`, test 002/010 | FR-005…FR-007 · AT-05, AT-06 | ⬜ |
+| T-08 | `QuestionItemFactory` (câu → `ServedItem`, luật "câu dùng được" dùng chung cho nhập và phát đề) | `…/learning/exam/QuestionItemFactory.java` + test | FR-004 · AT-04 | ⬜ |
+| T-09 | Mẫu `EXAM_QUESTION`: validator (tham chiếu, phần, dùng được, cấp, trùng thứ tự DB + dòng phía trên, ≤ 200 câu) + writer upsert | `…/importer/validate/ExamQuestionRowValidator.java`, `…/importer/write/ExamQuestionRowWriter.java` + test | FR-008, FR-009 · AT-07, AT-08 | ⬜ |
+| T-10 | `GET /api/exams` (không N+1) + `POST /api/exams/{id}/attempts` (snapshot `points`, `sectionOf`); 3 mã `EXAM_NOT_FOUND`, `EXAM_NOT_PUBLISHED`, `EXAM_HAS_NO_QUESTIONS`; matcher `LEARNER` | `…/learning/exam/{ExamQueryService,ExamAttemptService}.java`, `…/exam/web/ExamController.java`, `…/shared/config/SecurityConfig.java`, `…/shared/exception/ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-001, FR-010, FR-011 · AT-01, AT-09, AT-10, AT-23 | ⬜ |
+| T-11 | `ExamScoring` (thuần) + `MockExamHandler.onFinish` + `GET /api/exam-attempts/{id}/result` (snapshot, `previous`, `wrongByKid` qua `kidsOfQuestions`); mã `ATTEMPT_NOT_SUBMITTED`; matcher | `…/exam/{ExamScoring,MockExamHandler,ExamResultService}.java`, `ExamController.java`, `SecurityConfig.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-012, FR-013 · AT-11, AT-12 | ⬜ |
+| T-12 | `POST /api/targeted-practice/sessions` + `TargetedPracticeHandler`; matcher | `…/exam/{TargetedPracticeService,TargetedPracticeHandler}.java`, `…/exam/web/TargetedPracticeController.java`, `SecurityConfig.java` | FR-015, FR-016 · AT-14, AT-15 | ⬜ |
+| T-13 | `PlacementAlgorithm` + `PlacementConfig` (`cnhsk.placement.*` trong `application.yaml`) + test bảng giá trị + **mô phỏng 4 000 lượt**. Lớp thuần — **không phụ thuộc task nào**, làm được ngay | `…/exam/{PlacementAlgorithm,PlacementConfig}.java`, `src/main/resources/application.yaml`, `t/learning/exam/PlacementAlgorithmTest.java`, `PlacementSimulationTest.java` | FR-017 · AT-16, AT-24 | ⬜ |
+| T-14 | Bài xếp trình độ phần 1: chọn câu theo khối (FR-018), `GET /api/placement/summary`, `POST /api/placement/runs`, `PlacementHandler`; mã `PLACEMENT_BANK_INSUFFICIENT`; matcher | `…/exam/{PlacementService,PlacementHandler}.java`, `…/exam/web/PlacementController.java`, `SecurityConfig.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-018…FR-020, FR-023 · AT-17…AT-19, AT-22 | ⬜ |
+| T-15 | Bài xếp trình độ phần 2: `POST …/runs/{runId}/next` (idempotent, bỏ khối hết hạn), `GET …/runs/{runId}/result` (6 miền, `wrongKids`); mã `PLACEMENT_NOT_FINISHED`; matcher | `PlacementService.java`, `PlacementController.java`, `SecurityConfig.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-021, FR-022 · AT-20, AT-21 | ⬜ |
+| T-16 | `GET /api/exam-attempts/{id}/weak-points` dùng `MasteryReader` của 011 (§10); matcher; bật khối điểm yếu ở SCR-022 | `…/exam/ExamWeakPointService.java`, `ExamController.java`, `SecurityConfig.java`, `web/features/exam/pages/Scr022ExamResultPage.tsx` | FR-014 · AT-13 | ⬜ |
+
+## Đợt 3 · Nối thật và nội dung
+
+| ID | Task | File | Spec · AT | TT |
+|---|---|---|---|---|
+| T-17 | FE SCR-020…023 gọi backend thật; sửa lệch contract (không đổi contract — lệch thì dừng báo leader); test hợp đồng `/v3/api-docs` so `openapi-exam.yaml` (path + status) | `web/features/exam/**`, `t/contract/ExamContractTest.java` | §13 · AT-25…AT-29 chạy với API thật | ⬜ |
+| T-18 | **Nội dung (không code):** soạn ngân hàng ≥ 30 câu MC/TF mỗi cấp HSK 1–3 (gắn KID chính, phủ các miền đo được) + 1 đề mỗi cấp, dạng CSV theo mẫu `QUESTION`, `EXAM`, `EXAM_QUESTION`. **Tự soạn, không lấy đề HSK thật** (`HR-08`); nạp qua SCR-068 trên môi trường demo | `docs/demo-data/exam/*.csv` | §0.3, SC-004 | ⬜ |
+| T-19 | Thử thật 5–10 người đã biết trình độ; so kết quả; chỉnh `thresholds`/khối nếu lệch; ghi kết quả vào `questions.md` (OQ-2) | `specs/012-mock-exam-placement/questions.md`, `application.yaml` (nếu chỉnh) | SC-004 · OQ-1, OQ-2 | ⬜ |
+
+## Thứ tự thực thi
+
+```
+T-01 → T-02 → T-03 → T-04 ; T-05 (song song T-02…T-04)
+T-13                                   (thuần, làm ngay, không chờ ai)
+T-06 → T-08 → T-10 → T-11
+T-06 → T-08 → T-12
+T-06 → T-08 → T-14 → T-15
+T-07 → T-09                            (T-09 cần cả T-08)
+spec 011 MasteryReader → T-16
+(T-04, T-05, T-11, T-12, T-15) → T-17 → T-19
+T-18 sau khi T-09 và spec 010 T-08 merge (nạp thử được); soạn nội dung bắt đầu ngay
+```
+
+**Phụ thuộc spec khác (merge trước):**
+
+| Task 012 | Cần | Vì sao |
+|---|---|---|
+| T-07 | 010 T-09 | Cùng `ImportDataType`/`ImportTemplate`, test đếm mẫu (11 → 13) |
+| T-08 | 010 T-05 | Entity `Question` |
+| T-11, T-12, T-14 | 010 T-10 | `KnowledgeTreeService` (`kidsOfQuestions`, `approvedQuestionIds`, `nodes`), mã `KNOWLEDGE_NODE_NOT_FOUND` |
+| T-16 | 011 (task cài `MasteryReader`) | Mastery để xếp điểm yếu (Q6) |
+
+- T-02…T-05 dùng `catalog.preview.ts`; không chờ backend.
+- T-06 là điểm khoá cho 011: chữ ký `ItemGradedEvent` (có `questionId`) không đổi sau merge.
+- T-10, T-11, T-12, T-14, T-15, T-16 cùng đụng `SecurityConfig`/`ErrorCode.java` nên merge lần lượt.
+
+**Bốn task rủi ro cao:** T-06 (sửa engine dùng chung 003–008) · T-13 (thuật toán phải đạt mô phỏng ≥ 80%) · T-11 (chấm theo snapshot, không lộ dữ liệu người khác) · T-15 (idempotent, bỏ khối hết hạn đúng).
+
+**Hiện trạng: 0/19 task xong.**

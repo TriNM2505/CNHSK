@@ -1,5 +1,7 @@
 # CNHSK — Đặc tả Use Case · Nhóm 2 · Luyện thi HSK
 
+> **RFC đợt cuối R6, R7 (2026-11-03):** đề thi thử **không đếm ngược**, hạn 24 giờ; có **bài xếp trình độ** là chế độ của SCR-020/021/022 (không thêm màn); trợ lý AI không có khi đang làm bài. Chi tiết: spec 012, 015.
+
 > **UC-033 → UC-041** · 9 use case · Tính năng 2.1 → 2.3
 > **Bản final** · cập nhật 2026-10-01
 > **Tám file đặc tả:** `use-cases-01-xac-thuc` → `use-cases-08-quan-tri-he-thong`

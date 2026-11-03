@@ -38,6 +38,8 @@
 
 # UC-042 · Cập nhật mastery sau khi trả lời đúng/sai
 
+> **RFC đợt cuối R1, R3 (2026-11-03):** `user_knowledge_state` = dòng `user_progress` `KNOWLEDGE_POINT` cho **nút KID** (Cây Năng Lực v2.0). Mastery tính bằng **MP-1.0**, thang **0–100** (thay BR-042-6 "0–1"), không dùng FSRS. Trọng số nguồn: thi 1,0 · quiz/chẩn đoán 0,8 · giáo viên chấm 0,6 · luyện/game 0,5 × dạng câu × vai trò. Chi tiết: spec 011.
+
 | | |
 |---|---|
 | **UC-ID** | UC-042 · **Actor** «include» của UC-029, UC-035, UC-047, UC-088 — actor `LEARNER` · **Pri** P0 · **Scope** MVP · **FT** 3.1 |
@@ -271,6 +273,8 @@ Lời gọi nội bộ: `community` → `learning.api.LearningApi.applyGameResul
 ---
 
 # UC-044 · Tính lại hạn ôn theo FSRS
+
+> **RFC đợt cuối R3 (2026-11-03):** FSRS (`BUS-04`) áp dụng cho **lịch ôn mục từ** (từ, chữ, ngữ pháp — dòng `user_progress` `LEXEME`) và flashcard (`FLASHCARD`), **không** cho mastery của nút KID. Chi tiết: spec 011 FR-019…FR-023, spec 014 FR-017…FR-018.
 
 | | |
 |---|---|
@@ -1017,6 +1021,8 @@ Không endpoint riêng — là điều kiện truy vấn ở UC-037/041/047.
 ---
 
 # UC-051 · Xem thống kê tiến độ cá nhân
+
+> **RFC đợt cuối R4 (2026-11-03):** "đã thuộc" = mastery ≥ **80** trên thang 0–100 (trạng thái `extend`), thay BR-051-3 (≥ 0,9). Đợt này chỉ làm phần cây năng lực của tiến độ (spec 011).
 
 | | |
 |---|---|

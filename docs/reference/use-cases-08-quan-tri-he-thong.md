@@ -1,5 +1,7 @@
 # CNHSK — Đặc tả Use Case · Nhóm 6c + 6d + 7 · Quản trị nội dung, hệ thống & tham khảo
 
+> **RFC đợt cuối R9 (2026-11-03, Hiến pháp v1.5.0):** `ACCOUNTANT` giữ mã nhưng **không có quyền**; nghiệp vụ tài chính (mã thẻ, gói, sổ cái) thuộc `ADMIN`. Chỗ nào trong file nhắc `ACCOUNTANT` làm tài chính thì đọc là `ADMIN`.
+
 > **UC-108 → UC-119** · 12 Use Case  
 > **Bản reviewed** · cập nhật 2026-10-08  
 > Mục tiêu của bản này: làm nguồn chuẩn để viết Use Case Description và hỗ trợ code generation.  

@@ -1,0 +1,42 @@
+# Chốt — Spec 012
+
+## 2026-11-02 — Shadow Plan spec (leader duyệt)
+
+Nguồn đã đọc (origin/main `5439672`): `AGENTS.md` §12, constitution v1.4.1, spec 003 §0 (engine), `PracticeService`, `PracticeSource`, `ItemType`, `ServedItem`, `PracticeSourceHandler`, `event/*`, `PracticeApi`, `AttemptItem`, `TopicTestService` (mẫu bắt đầu/tiếp tục), `ErrorCode`, `SecurityConfig`, migration V1–V4 (`exams`, `exam_questions`, `attempts`, `attempt_items`), UC-033…UC-041, UC-130/131, `screen-fields.md` SCR-020…SCR-023 (Open Issues), `database.md`, `CONTEXT.md` (DK-13), spec 010 (bản trên máy), plan `261102-2104` phase 4, `cnhsk-web` `routeAccess.ts`, `features/practice/*`.
+
+| # | Câu hỏi | Leader chốt |
+|---|---|---|
+| Q1 | Đồng hồ đề thi | **Không đếm ngược**, hạn 24 giờ như `TOPIC_TEST`, chỉ hiện thời gian đã làm |
+| Q2 | Bài thi chạy bằng gì | **Engine 003 + chỉ `MULTIPLE_CHOICE`/`TRUE_FALSE`**: thêm `MOCK_EXAM`, `PLACEMENT` (+ `TARGETED_PRACTICE` cho SCR-023) và `ItemType.QUESTION_CHOICE`; không sửa logic chấm |
+| Q3 | Gắn câu vào lượt | **Thêm `questionId` vào engine** (`ServedItem`, `PracticeApi`, `ItemGradedEvent`), ghi `attempt_items.question_id`; chỉ thêm, giữ constructor cũ |
+| Q4 | Cách tính điểm | **Điểm trọng số** theo `exam_questions.points` |
+| Q4b | Lưu điểm trọng số | **Snapshot `points` trong `served_items.meta`**, tính lại từ snapshot + `attempt_items`; `attempts.score` giữ số câu đúng |
+| Q5 | Nạp đề | **2 mẫu nhập `EXAM` + `EXAM_QUESTION`** (11 → 13 mẫu) |
+| Q6 | Phân tích điểm yếu SCR-022 | **Câu sai nhóm theo KID ngay; 3–5 điểm yếu theo mastery chờ 011** |
+| Q7 | Bài xếp trình độ | **Chế độ của SCR-020/021/022**, không thêm màn; ghi xung đột screen-fields vào RFC |
+| Q8 | Dạng câu, phần nghe | **Chỉ MC/TF, không câu nghe**; miền cần audio ghi "chưa đo" |
+| Q9 | Ngưỡng đạt cấp | **Tạm 60/65/75%** (file md), cấu hình được; leader đối chiếu PDF v2.0 |
+| Q10 | Làm lại bài xếp trình độ | **Không giới hạn** (spec thêm: ưu tiên câu chưa gặp ở lượt trước) |
+| Q11 | Giới hạn lượt đề thi | **Chỉ E-R12 của engine** (120 lượt mới/giờ) |
+| Q12 | Lưu nháp | **Dùng `DEFERRED` của engine**, không làm `PATCH /draft` riêng |
+| Q13 | Mặc định còn lại | **Duyệt**: đề miễn phí, 0 migration, 012 chỉ phát event (011 ghi minh chứng), FE trước BE, làm bài qua `/api/practice/sessions`, câu tự soạn, chỉ file trên máy |
+
+### Xung đột tài liệu đã ghi nhận
+
+| # | Xung đột | Xử lý |
+|---|---|---|
+| X1 | Plan phase 4 "đề có giờ, hết giờ tự nộp" ↔ UC-033…041 "không mô phỏng thi thật"; SCR-021 BLOCKED vì đồng hồ | Theo UC (Q1); sửa plan phase 4 |
+| X2 | screen-fields SCR-001/SCR-010 "không bịa màn/luồng placement" ↔ yêu cầu bài xếp trình độ của leader | Q7; RFC cập nhật SCR-001/010/020/021/022 |
+| X3 | SCR-022 "Mastery-ranked weak points", cấm xếp theo số câu sai ↔ mastery thuộc 011 | Q6; FR-014/T-16 chờ 011 |
+| X4 | UC-036 "tuỳ chọn chưa duyệt" ↔ engine `DEFERRED` đã lưu nháp | Q12 |
+| X5 | BR-034-5 tối đa 2 lần nghe ↔ engine E-R9 3 lần | Không phát sinh (Q8) |
+| X6 | UC dùng 404 cho lượt không tồn tại ↔ `BUS-01` (403) | Theo `BUS-01` như 003 |
+| X7 | `database.md` có `study_events.event_type='EXAM'` ↔ engine ghi `STUDY` mọi nguồn trừ game | Giữ engine, ghi rủi ro §11 |
+| X8 | Plan phase 4 cho bài xếp trình độ 5 dạng câu ↔ engine chỉ chấm so khoá | Q2/Q8: chỉ MC/TF |
+| X9 | `exams.hsk_level` CHECK 1–6 ↔ "DB/API giữ 1–9" (`AGENTS.md` §12) | Mẫu `EXAM` nhận 1–6 theo CHECK; `GET /api/exams` nhận 1–9 (cấp 7–9 trả rỗng) |
+
+### Còn mở
+
+- OQ-1: ngưỡng đạt từng cấp theo Cây Năng Lực v2.0 (leader đối chiếu PDF; đổi `cnhsk.placement.thresholds`).
+- OQ-2: kết quả thử thật 5–10 người (T-19) — ghi vào đây trước demo.
+- ~~Plan phase 4 cần sửa theo X1, X8~~ — đã sửa 2026-11-03.
