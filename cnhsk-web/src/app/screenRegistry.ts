@@ -6,6 +6,7 @@ import { screens as authScreens } from '@/features/auth/screens'
 import { screens as communityScreens } from '@/features/community/screens'
 import { screens as contentImportScreens } from '@/features/content-import/screens'
 import { screens as examScreens } from '@/features/exam/screens'
+import { screens as creditsScreens } from '@/features/credits/screens'
 import { screens as grammarScreens } from '@/features/grammar/screens'
 import { screens as hanziScreens } from '@/features/hanzi/screens'
 import { screens as libraryScreens } from '@/features/library/screens'
@@ -49,6 +50,7 @@ export const screenRegistry = createScreenRegistry([
   { feature: 'admin-users', screens: adminUserScreens },
   { feature: 'content-import', screens: contentImportScreens },
   { feature: 'exam', screens: examScreens },
+  { feature: 'credits', screens: creditsScreens },
   { feature: 'vocab', screens: vocabScreens },
   { feature: 'grammar', screens: grammarScreens },
   { feature: 'pronunciation', screens: pronunciationScreens },
