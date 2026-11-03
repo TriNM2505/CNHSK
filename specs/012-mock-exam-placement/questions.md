@@ -1,5 +1,12 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-08 QuestionItemFactory (leader duyệt)
+
+- Hàm public `isUsable(Question)` dùng chung cho nhập và phát câu; câu sai dạng bị loại, không chuẩn hoá.
+- `TRUE_FALSE` phải có tập khoá đúng `{A, B}`; thiếu, thừa hoặc khoá khác đều bị loại. Nhãn phát luôn là A "Đúng", B "Sai", không dùng text trong DB.
+- Mọi loại câu: khoá trùng hoặc rỗng bị loại. Audio/image rỗng nghĩa là null hoặc chuỗi trắng.
+- WARN chỉ ghi questionId và lý do cố định, không ghi nội dung hay đáp án. Fixture IMPORT có code duy nhất theo V5.
+
 ## 2026-11-04 — T-06 engine (leader duyệt)
 
 - Thêm cuối enum `PracticeSource`: `MOCK_EXAM`, `PLACEMENT`, `TARGETED_PRACTICE`; khớp §0.1 và không đổi luật của nguồn cũ.
