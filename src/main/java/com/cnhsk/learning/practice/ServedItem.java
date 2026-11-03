@@ -16,7 +16,13 @@ public record ServedItem(
         String answer,
         List<String> accept,
         String explanation,
-        Rules rules) {
+        Rules rules,
+        Long questionId) {
+
+    public ServedItem(int no, ItemType type, Skill skill, Long lexemeId, Prompt prompt,
+            List<Option> options, String answer, List<String> accept, String explanation, Rules rules) {
+        this(no, type, skill, lexemeId, prompt, options, answer, accept, explanation, rules, null);
+    }
 
     public ServedItem {
         Objects.requireNonNull(type, "type");

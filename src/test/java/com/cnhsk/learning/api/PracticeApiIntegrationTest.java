@@ -188,6 +188,41 @@ class PracticeApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void FR003_apiPersistsQuestionIdAndKeepsItOutOfTheSessionView() {
+        long questionId = createQuestion();
+        var question = new ServedItem(1, ItemType.QUESTION_CHOICE, PracticeApi.Skill.READING, null,
+                new PracticeApi.Prompt("Chọn đáp án", null, null, null, null, null, null, null, null),
+                List.of(new PracticeApi.Option("A", "Đúng"), new PracticeApi.Option("B", "Sai")),
+                "A", null, null, new PracticeApi.Rules(1500, 0, false), questionId);
+        var session = api.start(new StartPracticeCommand(owner, PracticeSource.MOCK_EXAM, 8L, null,
+                List.of(question), null, null, Map.of()));
+
+        assertThat(mapper.valueToTree(session).toString()).doesNotContain("questionId");
+        api.finish(owner, session.sessionId(), List.of(answer(1, "A")));
+
+        assertThat(items.findByAttemptIdOrderByOrderIndexAsc(session.sessionId())).singleElement()
+                .extracting(item -> item.getQuestionId()).isEqualTo(questionId);
+        assertThat(probe.graded).singleElement().extracting(ItemGradedEvent::questionId).isEqualTo(questionId);
+    }
+
+    @Test
+    void FR003_immediateQuestionChoicePersistsAndPublishesQuestionId() {
+        long questionId = createQuestion();
+        var question = new ServedItem(1, ItemType.QUESTION_CHOICE, PracticeApi.Skill.READING, null,
+                new PracticeApi.Prompt("Chọn đáp án", null, null, null, null, null, null, null, null),
+                List.of(new PracticeApi.Option("A", "Đúng"), new PracticeApi.Option("B", "Sai")),
+                "A", null, null, new PracticeApi.Rules(1500, 0, false), questionId);
+        var session = api.start(new StartPracticeCommand(owner, PracticeSource.TARGETED_PRACTICE, null, null,
+                List.of(question), null, null, Map.of()));
+
+        api.answer(owner, session.sessionId(), answer(1, "A"));
+
+        assertThat(items.findByAttemptIdOrderByOrderIndexAsc(session.sessionId())).singleElement()
+                .extracting(item -> item.getQuestionId()).isEqualTo(questionId);
+        assertThat(probe.graded).singleElement().extracting(ItemGradedEvent::questionId).isEqualTo(questionId);
+    }
+
+    @Test
     void FR012_AT17_listenerFailureRollsBackFinishAndKeepsThePreviousDraft() {
         long session = start(PracticeSource.TOPIC_TEST, 1).sessionId();
         api.answer(owner, session, answer(1, "A"));
@@ -260,6 +295,15 @@ class PracticeApiIntegrationTest extends AbstractIntegrationTest {
 
     private int studyEventCount() {
         return jdbc.queryForObject("select count(*) from learning.study_events where user_id = ?", Integer.class, owner);
+    }
+
+    private long createQuestion() {
+        return jdbc.queryForObject("INSERT INTO learning.questions "
+                + "(qtype, hsk_level, stem, options, correct_key, status) "
+                + "VALUES ('MULTIPLE_CHOICE', 1, 'Câu tự soạn', "
+                + "'[{\"key\":\"A\",\"text\":\"Đúng\",\"is_correct\":true},"
+                + "{\"key\":\"B\",\"text\":\"Sai\",\"is_correct\":false}]'::jsonb, 'A', 'APPROVED') RETURNING id",
+                Long.class);
     }
 
     private long createUser() throws Exception {

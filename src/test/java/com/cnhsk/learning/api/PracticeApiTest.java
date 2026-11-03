@@ -91,6 +91,24 @@ class PracticeApiTest {
                         .map(Enum::name).toArray(String[]::new));
     }
 
+    @Test
+    void FR003_boundaryPreservesQuestionIdWithoutExposingItInViews() {
+        when(service.start(any())).thenReturn(engineView(true));
+        var question = new PracticeApi.ServedItem(1, PracticeApi.ItemType.QUESTION_CHOICE,
+                PracticeApi.Skill.READING, null, new PracticeApi.Prompt("Chọn đáp án", null, null, null,
+                null, null, null, null, null), List.of(new PracticeApi.Option("A", "Đúng")), "A", null,
+                null, new PracticeApi.Rules(1500, 0, false), 91L);
+
+        var view = api.start(new PracticeApi.StartPracticeCommand(71, PracticeApi.PracticeSource.MOCK_EXAM,
+                12L, null, List.of(question), List.of(), null, Map.of()));
+        var captured = ArgumentCaptor.forClass(PracticeService.StartPracticeCommand.class);
+        verify(service).start(captured.capture());
+
+        assertThat(captured.getValue().items()).singleElement().extracting(
+                com.cnhsk.learning.practice.ServedItem::questionId).isEqualTo(91L);
+        assertThat(mapper.valueToTree(view).toString()).doesNotContain("questionId");
+    }
+
     @ParameterizedTest
     @EnumSource(PracticeApi.PracticeSource.class)
     void FR012_startPreservesCallerIdentityAndServerSnapshotForEverySource(PracticeApi.PracticeSource source) {
