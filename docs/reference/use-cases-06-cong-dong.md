@@ -1658,6 +1658,8 @@ Cùng endpoint UC-082/083 với tham số `period`.
 
 # UC-085 · Hỏi trợ lý ảo AI
 
+> **RFC đợt cuối R12 (2026-11-03) — thay mô tả và BR-085-2, BR-085-4, BR-085-10:** trợ lý **chỉ trả lời về cách dùng CNHSK**, từ chối câu kiến thức (gợi ý Tra từ điển/Dịch); **không trừ lượt** (ngưỡng an toàn 200 câu/người/ngày, trần token/tháng); **không có khi đang làm bài kiểm tra** (ẩn + chặn server); không lưu lịch sử. Chi tiết: spec 015.
+
 | | |
 |---|---|
 | **UC-ID** | UC-085 · **Actor** `LEARNER` · **Pri** P1 · **Scope** **MVP** · **FT** 5.5 |
@@ -1784,6 +1786,8 @@ GET  /api/assistant/history
 ---
 
 # UC-086 · Xem lịch sử hội thoại với AI
+
+> **RFC đợt cuối R12 (2026-11-03):** **ngoài phạm vi** — trợ lý không lưu lịch sử hội thoại (spec 015 Q3).
 
 | | |
 |---|---|

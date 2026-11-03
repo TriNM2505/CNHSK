@@ -127,12 +127,12 @@ Ghi rõ để tránh phình scope:
 | Thuật ngữ | Nghĩa trong dự án này | Dễ hiểu sai thành |
 |---|---|---|
 | **HSK** | Kỳ thi năng lực tiếng Trung, 6 cấp (HSK 1 dễ nhất). Từ 2021 có HSK 7–9 | Không phải thang điểm |
-| **Điểm kiến thức** (knowledge point) | Đơn vị nhỏ nhất đo được: một từ, một điểm ngữ pháp, một cặp âm dễ lẫn | Không phải "bài học" hay "chương" |
-| **Mastery** | Mức thành thạo **một điểm kiến thức** của **một người**, 0–1 | Không phải điểm bài thi |
-| **FSRS** | Thuật toán nhắc ôn: tính ngày sắp quên từ `stability` và `difficulty` | Không phải Leitner (hộp cố định) |
+| **Điểm kiến thức** (knowledge point) | **Một nút năng lực KID** của Cây Năng Lực v2.0 (vd `NP3-004`; 6 miền `NA CH TV NP NL VB`); từ, chữ, chủ đề **nối vào** nút (RFC đợt cuối R1) | Không phải "bài học", "chương", cũng **không** phải một từ |
+| **Mastery** | Mức thành thạo **một nút KID** của **một người**, **0–100**, tính bằng MP-1.0; "vững" ≥ 80 (RFC R3, R4) | Không phải điểm bài thi; không do FSRS tính |
+| **FSRS** | Thuật toán nhắc ôn **mục từ** (từ, chữ, ngữ pháp, flashcard): tính ngày sắp quên từ `stability` và `difficulty` | Không phải Leitner (hộp cố định); không tính mastery của nút |
 | **Chủ đề** (topic) | Nhóm từ theo ngữ cảnh: Gia đình, Nhà hàng… Có quan hệ tiên quyết | Không phải cấp HSK |
 | **Cổng 90%** | Ngưỡng hoàn thành chủ đề để mở chủ đề tiếp | Không phải điểm thi |
-| **Lượt** (credit) | Đơn vị tính phí cho 4 tính năng gọi API ngoài | Không phải điểm học tập |
+| **Lượt** (credit) | Đơn vị tính phí cho tính năng gọi API ngoài: `AI_GENERATE`, `TRANSLATE`, `GRADING`. Trợ lý (`ASSISTANT`) **không** trừ lượt (RFC R12) | Không phải điểm học tập |
 | **Bộ thủ** (radical) | Thành phần cấu tạo chữ Hán, dùng để tra chữ không biết đọc | Không phải nét |
 | **Pinyin** | Phiên âm Latin có dấu thanh: `hǎo`. Có 4 thanh + thanh nhẹ | Dấu thanh **là** phần nghĩa, không phải trang trí |
 | **Âm Hán-Việt** | Cách người Việt đọc chữ Hán: 好 = "hảo" | Không phải nghĩa, không phải pinyin |
@@ -168,7 +168,7 @@ Ghi rõ để tránh phình scope:
 | **DK-15** | Nhóm 6 người **làm song song**, nhiều người sửa cùng lúc | Leader giữ quyền đánh số migration; API-First để FE/BE chạy song song |
 | **DK-16** | Người duyệt câu AI là **lớp bảo vệ duy nhất** | AI viết câu đúng format nhưng sai kiến thức — không validate được bằng code |
 | **DK-17** | `GUEST` là **actor nhưng không phải role**; job định kỳ **không phải actor** | Thêm `GUEST` vào `user_roles` là sai vì `GUEST` không có tài khoản. Job `@Scheduled` nằm ở danh mục Background Job |
-| **DK-18** | Quyền quản trị chia **ba** role (`CONTENT_EDITOR`, `ACCOUNTANT`, `ADMIN`), không gộp một role làm mọi việc | `ACCOUNTANT` chạm tiền thật nên phải hẹp nhất. Gộp lại là vi phạm đặc quyền tối thiểu, và `NFR-S08` không audit riêng được |
+| **DK-18** | Quyền quản trị: `CONTENT_EDITOR` (nội dung) và `ADMIN` (tài khoản, hệ thống **và tài chính**); `ACCOUNTANT` giữ mã, không có quyền (RFC R9, Hiến pháp v1.5.0) | Mã thẻ có giá trị tiền thật → bù tách quyền: không ai nạp mã do mình tạo; `NFR-S08` audit cả đọc sổ cái; `ADMIN` không tự cấp role |
 
 ### 3.5 · Bảy actor
 
@@ -176,7 +176,7 @@ Ghi rõ để tránh phình scope:
 |---|---|---|
 `LEARNER` | 79 | ✅ |
 `GUEST` | 16 | ❌ chưa đăng nhập |
-`CONTENT_EDITOR` · `MODERATOR` · `ACCOUNTANT` · `TEACHER` · `ADMIN` | 6 · 4 · 4 · 4 · 3 | ✅ |
+`CONTENT_EDITOR` · `MODERATOR` · `ACCOUNTANT` · `TEACHER` · `ADMIN` | 6 · 4 · 0 (không dùng) · 4 · 7 | ✅ |
 
 **7 actor = 6 role trong DB + `GUEST`.** Chi tiết quyền: Hiến pháp §Bảy actor.
 
@@ -245,7 +245,7 @@ Ghi rõ để tránh phình scope:
 |---|---|---|
 | API dịch | UC-060 dịch đoạn văn | Tốn tiền mỗi lượt · có thể timeout → **phải hoàn lượt** |
 | API AI sinh câu | UC-048, UC-049 | Có thể trả câu sai kiến thức → **bắt buộc người duyệt** |
-| API trợ lý ảo | UC-085 | Nghiệm thu đòi trả lời dưới 5 giây |
+| API trợ lý ảo | UC-085 (thu hẹp: chỉ hỗ trợ dùng hệ thống, không trừ lượt — RFC R12) | Nghiệm thu đòi trả lời dưới 5 giây |
 | SMTP | UC-002 xác thực email | Lỗi SMTP **không được** chặn đăng ký |
 | `hanzi-writer` 3.7.3 | UC-015 luyện viết | Chấm nét ở **client** — server không kiểm lại được |
 
@@ -343,7 +343,7 @@ Bảy mục dưới đây đã được chốt tạm trong DB v6 nhưng **cần 
 | `NFR-S05` | CORS | Khai origin tường minh, **không** dùng `*` |
 | `NFR-S06` | Lỗi trả về client | `{error_code, message, request_id}` — không lộ stack trace |
 | `NFR-S07` | Log | Không chứa mã thẻ, mật khẩu, email người dùng |
-| `NFR-S08` | Thao tác của `ACCOUNTANT` | Ghi audit log cả thao tác **đọc** sổ cái |
+| `NFR-S08` | Thao tác tài chính (`ADMIN`, RFC R9) | Ghi audit log cả thao tác **đọc** sổ cái |
 
 ### 6.3 · Scalability
 

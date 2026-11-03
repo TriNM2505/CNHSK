@@ -1,0 +1,309 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Knowledge Tree and Question Bank API
+  version: 0.1.0
+  description: >
+    Hợp đồng spec 010-knowledge-tree. Cây năng lực (đọc) và kho câu hỏi (quản trị).
+    Nạp cây và câu hỏi đi qua luồng nhập spec 002 (/api/admin/imports/**) với 4 dataType mới
+    KNOWLEDGE_NODE, KNOWLEDGE_EDGE, QUESTION, NODE_LINK — xem specs/002-learning-data-import/contracts/openapi-import.yaml.
+    Thao tác ghi qua cookie cần header X-XSRF-TOKEN (spec 001).
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: knowledge-tree
+  - name: question-admin
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Kid:
+      name: kid
+      in: path
+      required: true
+      schema: { type: string, example: NP3-004 }
+    QuestionId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      description: Bắt buộc khi xác thực bằng cookie (spec 001)
+      schema: { type: string }
+  schemas:
+    ErrorResponse:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ErrorResponse'
+    Domain:
+      type: string
+      enum: [NA, CH, TV, NP, NL, VB]
+    SkillType:
+      type: string
+      enum: [LISTENING, READING, WRITING, VOCAB, GRAMMAR, CHARACTER]
+    QuestionType:
+      type: string
+      enum: [MULTIPLE_CHOICE, TRUE_FALSE, IMAGE_MATCH, SENTENCE_MATCH, FILL_BLANK, SENTENCE_ORDER, ESSAY]
+    QuestionStatus:
+      type: string
+      enum: [PENDING_REVIEW, APPROVED, REJECTED, ARCHIVED]
+    QuestionSource:
+      type: string
+      enum: [IMPORT, AI, MANUAL]
+    LabelRole:
+      type: string
+      enum: [PRIMARY, SECONDARY]
+    KnowledgeNode:
+      type: object
+      required: [kid, domain, hskLevel, nameVi, nameZh, prereqKids, supportKids]
+      properties:
+        kid: { type: string, example: NP3-004 }
+        domain: { $ref: '#/components/schemas/Domain' }
+        hskLevel: { type: integer, minimum: 1, maximum: 7, description: '7 = nhóm HSK 7–9' }
+        nameVi: { type: string }
+        nameZh: { type: string }
+        canDo: { type: [string, 'null'] }
+        skillType:
+          oneOf:
+            - $ref: '#/components/schemas/SkillType'
+            - type: 'null'
+        prereqKids: { type: array, items: { type: string } }
+        supportKids: { type: array, items: { type: string } }
+    KnowledgeTree:
+      type: object
+      required: [nodes]
+      properties:
+        nodes: { type: array, items: { $ref: '#/components/schemas/KnowledgeNode' } }
+    KnowledgeNodeDetail:
+      allOf:
+        - $ref: '#/components/schemas/KnowledgeNode'
+        - type: object
+          required: [dependentKids, topics, lexemeCount, approvedQuestionCount]
+          properties:
+            dependentKids: { type: array, items: { type: string } }
+            topics:
+              type: array
+              items:
+                type: object
+                required: [id, code, name]
+                properties:
+                  id: { type: integer, format: int64 }
+                  code: { type: string }
+                  name: { type: string }
+            lexemeCount: { type: integer }
+            approvedQuestionCount: { type: integer }
+    QuestionSummary:
+      type: object
+      required: [id, qtype, hskLevel, difficulty, stemSummary, source, status, secondaryKids, used]
+      properties:
+        id: { type: integer, format: int64 }
+        code: { type: [string, 'null'], description: 'null với câu AI' }
+        qtype: { $ref: '#/components/schemas/QuestionType' }
+        hskLevel: { type: integer, minimum: 1, maximum: 9 }
+        difficulty: { type: integer, minimum: 1, maximum: 3 }
+        stemSummary: { type: string, maxLength: 120 }
+        source: { $ref: '#/components/schemas/QuestionSource' }
+        status: { $ref: '#/components/schemas/QuestionStatus' }
+        primaryKid: { type: [string, 'null'] }
+        secondaryKids: { type: array, maxItems: 2, items: { type: string } }
+        used: { type: boolean, description: Đã có attempt_items trỏ tới câu }
+    QuestionPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/QuestionSummary' } }
+        page: { type: integer, minimum: 0 }
+        size: { type: integer, minimum: 1, maximum: 100 }
+        totalElements: { type: integer, format: int64 }
+    QuestionOption:
+      type: object
+      required: [key, text, isCorrect]
+      properties:
+        key: { type: string, pattern: '^[A-F]$' }
+        text: { type: string, maxLength: 300 }
+        isCorrect: { type: boolean }
+        errorKid: { type: [string, 'null'], description: Chỉ phương án sai của câu chọn đáp án }
+        errorNote: { type: [string, 'null'], maxLength: 200 }
+    QuestionLabel:
+      type: object
+      required: [kid, nameVi, role]
+      properties:
+        kid: { type: string }
+        nameVi: { type: string }
+        role: { $ref: '#/components/schemas/LabelRole' }
+    QuestionDetail:
+      type: object
+      required: [id, qtype, hskLevel, difficulty, stem, options, source, status, labels, used]
+      properties:
+        id: { type: integer, format: int64 }
+        code: { type: [string, 'null'] }
+        qtype: { $ref: '#/components/schemas/QuestionType' }
+        hskLevel: { type: integer, minimum: 1, maximum: 9 }
+        difficulty: { type: integer, minimum: 1, maximum: 3 }
+        stem: { type: string }
+        options: { type: array, items: { $ref: '#/components/schemas/QuestionOption' } }
+        correctKey: { type: [string, 'null'], description: FILL_BLANK và SENTENCE_ORDER }
+        explanation: { type: [string, 'null'] }
+        audioUrl: { type: [string, 'null'] }
+        imageUrl: { type: [string, 'null'] }
+        source: { $ref: '#/components/schemas/QuestionSource' }
+        status: { $ref: '#/components/schemas/QuestionStatus' }
+        reviewReason: { type: [string, 'null'] }
+        labels: { type: array, items: { $ref: '#/components/schemas/QuestionLabel' } }
+        used: { type: boolean }
+    QuestionUpdate:
+      type: object
+      description: Chỉ các trường sửa được (FR-020). qtype, code, status, source bị bỏ qua nếu gửi.
+      required: [stem, options, explanation, hskLevel, difficulty, primaryKid, secondaryKids]
+      properties:
+        stem: { type: string, minLength: 1, maxLength: 2000 }
+        options:
+          type: array
+          maxItems: 6
+          items:
+            type: object
+            required: [key, text, isCorrect]
+            properties:
+              key: { type: string, pattern: '^[A-F]$' }
+              text: { type: string, minLength: 1, maxLength: 300 }
+              isCorrect: { type: boolean }
+              errorKid: { type: [string, 'null'] }
+              errorNote: { type: [string, 'null'], maxLength: 200 }
+        correctKey: { type: [string, 'null'], maxLength: 50 }
+        explanation: { type: string, minLength: 1, maxLength: 3000 }
+        hskLevel: { type: integer, minimum: 1, maximum: 9 }
+        difficulty: { type: integer, minimum: 1, maximum: 3 }
+        audioUrl: { type: [string, 'null'], maxLength: 500 }
+        imageUrl: { type: [string, 'null'], maxLength: 500 }
+        primaryKid: { type: string }
+        secondaryKids: { type: array, maxItems: 2, items: { type: string } }
+  responses:
+    Error:
+      description: Lỗi theo spec 010 §5 (error_code ∈ UNAUTHENTICATED, FORBIDDEN, CSRF_TOKEN_INVALID, VALIDATION_FAILED, KNOWLEDGE_NODE_NOT_FOUND, QUESTION_NOT_FOUND, MALFORMED_QUESTION, KNOWLEDGE_NODE_REQUIRED, GRADING_CHANGE_NOT_ALLOWED, QUESTION_ARCHIVED)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+paths:
+  /api/knowledge-tree:
+    get:
+      tags: [knowledge-tree]
+      operationId: getKnowledgeTree
+      summary: Cây năng lực (FR-015) — LEARNER, CONTENT_EDITOR, TEACHER
+      parameters:
+        - name: domain
+          in: query
+          schema: { $ref: '#/components/schemas/Domain' }
+        - name: hskLevel
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 7 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KnowledgeTree' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/knowledge-tree/nodes/{kid}:
+    get:
+      tags: [knowledge-tree]
+      operationId: getKnowledgeNode
+      summary: Chi tiết một nút (FR-016)
+      parameters: [ { $ref: '#/components/parameters/Kid' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KnowledgeNodeDetail' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/admin/questions:
+    get:
+      tags: [question-admin]
+      operationId: listQuestions
+      summary: Tra kho câu hỏi (FR-017, FR-018) — CONTENT_EDITOR, TEACHER
+      parameters:
+        - { name: hskLevel, in: query, schema: { type: integer, minimum: 1, maximum: 9 } }
+        - { name: qtype, in: query, schema: { $ref: '#/components/schemas/QuestionType' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/QuestionStatus' } }
+        - { name: kid, in: query, schema: { type: string } }
+        - { name: q, in: query, schema: { type: string, minLength: 2, maxLength: 100 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 10 } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuestionPage' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/questions/{id}:
+    get:
+      tags: [question-admin]
+      operationId: getQuestion
+      summary: Chi tiết câu hỏi (FR-019) — CONTENT_EDITOR, TEACHER
+      parameters: [ { $ref: '#/components/parameters/QuestionId' } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuestionDetail' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [question-admin]
+      operationId: updateQuestion
+      summary: Sửa nội dung và nhãn (FR-020…FR-022) — chỉ TEACHER
+      parameters:
+        - { $ref: '#/components/parameters/QuestionId' }
+        - { $ref: '#/components/parameters/XsrfToken' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/QuestionUpdate' }
+      responses:
+        '200':
+          description: Đã lưu; trạng thái câu không đổi
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuestionDetail' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/questions/{id}/archive:
+    patch:
+      tags: [question-admin]
+      operationId: archiveQuestion
+      summary: Lưu trữ câu hỏi (FR-023) — chỉ CONTENT_EDITOR, idempotent
+      parameters:
+        - { $ref: '#/components/parameters/QuestionId' }
+        - { $ref: '#/components/parameters/XsrfToken' }
+      responses:
+        '200':
+          description: Câu ở trạng thái ARCHIVED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QuestionDetail' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }

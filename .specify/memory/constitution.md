@@ -1,8 +1,8 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.4.0 → 1.4.1
-Bump rationale: PATCH — chốt quyết định đang treo ở constraints/business.md: JWT HS256, access 15 phút, refresh 30 ngày (khớp spec 001). Không thêm hay bỏ rule.
+Version change: 1.4.1 → 1.5.0
+Bump rationale: MINOR — RFC đợt cuối (2026-11-03, R9, R10): nghiệp vụ tài chính chuyển từ ACCOUNTANT sang ADMIN (giữ mã role trong DB, không dùng); AC-09 thêm một ngoại lệ có tên cho users.free_usage. Không bỏ nguyên tắc nào.
 Lịch sử đầy đủ: CONSTITUTION_CHANGELOG.md
 
 Nguyên tắc được định nghĩa (5):
@@ -122,6 +122,9 @@ mọi loại lỗi.
   rõ `zone = "Asia/Ho_Chi_Minh"`.
 - **AC-09** — `JSONB` CHỈ dùng cho dữ liệu chỉ đọc. KHÔNG BAO GIỜ dùng cho thứ cần
   thống kê hay truy vấn theo điều kiện.
+  **Ngoại lệ có tên (duy nhất):** `auth.users.free_usage` — bộ đếm hạn mức theo tháng, ghi
+  mỗi lần tiêu thụ trong khi giữ khoá dòng `users` (`SELECT … FOR UPDATE`); không truy vấn
+  theo điều kiện trên cột này (RFC đợt cuối R10, spec 013). Thêm ngoại lệ khác phải qua RFC.
 
 ### V. Không tin client
 
@@ -143,11 +146,12 @@ cần thiết vào DB, hoặc chặn mất role thật sự cần.
 | `GUEST` | Khách | 16 | ❌ | Xem trang công khai, tra từ điển, đăng ký |
 | `CONTENT_EDITOR` | Biên tập viên nội dung | 6 | ✅ | Đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi |
 | `MODERATOR` | Kiểm duyệt viên | 4 | ✅ | Duyệt bài đăng, xử lý báo cáo — Community |
-| `ACCOUNTANT` | Kế toán | 4 | ✅ | 🔴 Sinh mã thẻ, sổ cái, tranh chấp — **tiền thật** |
+| `ACCOUNTANT` | Kế toán | 0 | ✅ (giữ mã, **không dùng**) | Từ 2026-11-03 không có quyền nào — nghiệp vụ chuyển sang `ADMIN` (RFC R9) |
 | `TEACHER` | Giáo viên | 4 | ✅ | **Duy nhất** duyệt câu hỏi AI và sửa nội dung câu hỏi; chấm bài thuê |
-| `ADMIN` | Quản trị viên | 3 | ✅ | Người dùng, gán role, cấu hình |
+| `ADMIN` | Quản trị viên | 7 | ✅ | Người dùng, gán role, cấu hình · 🔴 **tài chính**: sinh/khoá mã thẻ, gói dịch vụ, sổ cái — **tiền thật** |
 
-**7 actor = 6 role trong DB + `GUEST`.** Chỉ actor quản trị tổng mang chữ "Admin".
+**7 actor = 6 role trong DB + `GUEST`.** Chỉ actor quản trị tổng mang chữ "Admin". Mã `ACCOUNTANT`
+vẫn nằm trong CHECK `user_roles` và enum `RoleCode` để không phải migration; không endpoint nào cấp quyền cho nó.
 
 ### Actor không phải role
 
@@ -162,17 +166,21 @@ cần thiết vào DB, hoặc chặn mất role thật sự cần.
 > quá hạn…) nằm ở danh mục Background Job của SRS, chạy bằng quyền hệ thống, không qua `JwtFilter`,
 > và cũng không có `role_code`.
 
-### Vì sao tách quyền quản trị thành ba role
+### Vì sao tách quyền quản trị
 
-Một role quản trị làm được cả ba việc là vi phạm **đặc quyền tối thiểu**:
+- `CONTENT_EDITOR` vận hành nội dung → **không** có quyền tài chính
+- `TEACHER` duy nhất sửa nội dung câu hỏi → `ADMIN` **không** sửa nội dung câu hỏi
+- `ADMIN` quản trị tài khoản, hệ thống **và tài chính** (RFC R9, 2026-11-03). CNHSK là sản
+  phẩm phễu, không quản lý doanh thu (xem *Mô hình kinh doanh*), nên không cần role kế toán riêng.
 
-- `ACCOUNTANT` chạm **tiền thật** → phải là role hẹp nhất. `NFR-S08` yêu cầu audit cả
-  thao tác **đọc** sổ cái — không phân biệt được nếu một role làm mọi việc
-- `CONTENT_EDITOR` vận hành nội dung → **không cần** quyền sinh mã thẻ
-- `ADMIN` gán role → **không cần** quyền sinh mã thẻ, **không** đụng sổ cái, **không** sửa nội dung câu hỏi
+Vì `ADMIN` vừa gán role vừa sinh được mã có giá trị tiền thật, ba lớp bù **bắt buộc**:
 
-`ADMIN` là quản trị tổng về **tài khoản và hệ thống**, không phải role có mọi quyền.
-Chi tiết quyền: `business.md` §1.
+1. **Không ai nạp được mã do chính mình tạo** (`credit_cards.created_by <> người nạp`, kiểm trong cùng câu `UPDATE`).
+2. `NFR-S08` giữ nguyên: audit mọi lần sinh/khoá lô, sửa gói, và cả **đọc**, xuất, đối chiếu sổ cái.
+3. `ADMIN` không tự cấp role cho mình (`SELF_ROLE_GRANT`, spec 001).
+
+`ADMIN` không phải role có mọi quyền: không sửa câu hỏi, không duyệt bài cộng đồng.
+Chi tiết quyền: `business.md` §1, spec 013.
 
 ## Mô hình kinh doanh
 
@@ -418,4 +426,4 @@ Những mục dưới đây nhóm chưa chốt. Ghi rõ ở đây thay vì giả
   🔴 **Đây là TODO duy nhất còn treo.** Chưa phê chuẩn thì các `HR-*` về hình thức chưa có
   hiệu lực ràng buộc.
 
-**Version**: 1.4.1 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-10-20
+**Version**: 1.5.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-03

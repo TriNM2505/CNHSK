@@ -1,0 +1,450 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Mock Exam, Targeted Practice and Placement API
+  version: 0.1.0
+  description: >
+    Hợp đồng spec 012-mock-exam-placement. Đề thi thử, luyện theo nút, bài xếp trình độ.
+    Làm bài (GET session, answers, finish, abandon) đi qua engine spec 003
+    /api/practice/sessions/** với 3 PracticeSource mới MOCK_EXAM, PLACEMENT, TARGETED_PRACTICE —
+    xem specs/003-vocab-topics/contracts/openapi-practice-vocab.yaml.
+    Nạp đề qua luồng nhập spec 002 với 2 dataType mới EXAM, EXAM_QUESTION.
+    Mọi endpoint chỉ cho LEARNER. Thao tác ghi qua cookie cần header X-XSRF-TOKEN (spec 001).
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: exam
+  - name: targeted-practice
+  - name: placement
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    ExamId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    SessionId:
+      name: id
+      in: path
+      required: true
+      description: id lượt của engine (attempts.id)
+      schema: { type: integer, format: int64 }
+    RunId:
+      name: runId
+      in: path
+      required: true
+      description: id lượt khối 1 của bài xếp trình độ
+      schema: { type: integer, format: int64 }
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      description: Bắt buộc khi xác thực bằng cookie (spec 001)
+      schema: { type: string }
+  schemas:
+    ErrorResponse:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ErrorResponse'
+    SessionView:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/SessionView'
+    Domain:
+      type: string
+      enum: [NA, CH, TV, NP, NL, VB]
+    QuestionType:
+      type: string
+      enum: [MULTIPLE_CHOICE, TRUE_FALSE]
+    Score:
+      type: object
+      required: [score, maxScore, percent]
+      properties:
+        score: { type: integer, format: int64, description: Điểm trọng số theo exam_questions.points }
+        maxScore: { type: integer, format: int64 }
+        percent: { type: integer, minimum: 0, maximum: 100 }
+    ExamSection:
+      type: object
+      required: [index, name, questionCount]
+      properties:
+        index: { type: integer, minimum: 1, maximum: 10 }
+        name: { type: string }
+        questionCount: { type: integer }
+    ExamSummary:
+      type: object
+      required: [id, code, title, hskLevel, questionCount, sections, myAttempts]
+      properties:
+        id: { type: integer, format: int64 }
+        code: { type: string }
+        title: { type: string }
+        hskLevel: { type: integer, minimum: 1, maximum: 6 }
+        questionCount: { type: integer, minimum: 1, description: Số câu dùng được thật (BR-033-7) }
+        sections: { type: array, items: { $ref: '#/components/schemas/ExamSection' } }
+        myAttempts: { type: integer, description: Số lượt SUBMITTED của người gọi }
+        myBest:
+          oneOf:
+            - $ref: '#/components/schemas/Score'
+            - type: 'null'
+        activeSessionId: { type: [integer, 'null'], format: int64 }
+    SectionScore:
+      type: object
+      required: [index, name, score, maxScore]
+      properties:
+        index: { type: integer }
+        name: { type: string }
+        score: { type: integer, format: int64 }
+        maxScore: { type: integer, format: int64 }
+    ResultOption:
+      type: object
+      required: [key, text]
+      properties:
+        key: { type: string, pattern: '^[A-F]$' }
+        text: { type: string }
+    ResultItem:
+      type: object
+      required: ['no', sectionIndex, stem, options, correctKey, result]
+      properties:
+        no: { type: integer, minimum: 1 }
+        sectionIndex: { type: integer }
+        stem: { type: string }
+        options: { type: array, items: { $ref: '#/components/schemas/ResultOption' } }
+        yourAnswer: { type: [string, 'null'] }
+        correctKey: { type: string }
+        result: { type: string, enum: [CORRECT, WRONG, BLANK] }
+        explanation: { type: [string, 'null'], description: null = lời giải đang được cập nhật }
+        primaryKid: { type: [string, 'null'], description: null = câu chưa gắn nút (không có "luyện ngay") }
+        primaryKidName: { type: [string, 'null'] }
+        errorKid: { type: [string, 'null'], description: Mã lỗi gắn phương án người học chọn (spec 010) }
+        errorNote: { type: [string, 'null'] }
+    KidCount:
+      type: object
+      required: [kid, nameVi, wrong, total]
+      description: Ngữ cảnh câu sai theo nút, sắp theo kid — không phải xếp hạng điểm yếu
+      properties:
+        kid: { type: string, example: NP2-007 }
+        nameVi: { type: string }
+        wrong: { type: integer, description: Số câu sai hoặc bỏ trống }
+        total: { type: integer }
+    PreviousAttempt:
+      type: object
+      required: [score, maxScore, percent, submittedAt]
+      properties:
+        score: { type: integer, format: int64 }
+        maxScore: { type: integer, format: int64 }
+        percent: { type: integer }
+        submittedAt: { type: string, format: date-time }
+    ExamResult:
+      type: object
+      required: [sessionId, exam, submittedAt, score, maxScore, percent, correctCount, totalCount, bySection, items, wrongByKid]
+      properties:
+        sessionId: { type: integer, format: int64 }
+        exam:
+          type: object
+          required: [id, title, hskLevel]
+          properties:
+            id: { type: integer, format: int64 }
+            title: { type: string }
+            hskLevel: { type: integer }
+        submittedAt: { type: string, format: date-time }
+        score: { type: integer, format: int64 }
+        maxScore: { type: integer, format: int64 }
+        percent: { type: integer }
+        correctCount: { type: integer }
+        totalCount: { type: integer }
+        bySection: { type: array, items: { $ref: '#/components/schemas/SectionScore' } }
+        previous:
+          oneOf:
+            - $ref: '#/components/schemas/PreviousAttempt'
+            - type: 'null'
+        items: { type: array, items: { $ref: '#/components/schemas/ResultItem' } }
+        wrongByKid: { type: array, items: { $ref: '#/components/schemas/KidCount' } }
+    WeakPoint:
+      type: object
+      required: [kid, nameVi, mastery]
+      properties:
+        kid: { type: string }
+        nameVi: { type: string }
+        mastery: { type: integer, minimum: 0, maximum: 100, description: KID chưa có mastery = 0 (BR-040-4) }
+        state: { type: [string, 'null'], description: Trạng thái mastery do spec 011 định nghĩa }
+    TargetedPracticeRequest:
+      type: object
+      required: [kid]
+      properties:
+        kid: { type: string, pattern: '^(NA|CH|TV|NP|NL|VB)[1-7]-[0-9]{3}$' }
+        qtype: { $ref: '#/components/schemas/QuestionType' }
+        excludeQuestionId: { type: [integer, 'null'], format: int64 }
+    NoQuestions:
+      type: object
+      required: [session, reason]
+      properties:
+        session: { type: 'null' }
+        reason: { type: string, enum: [NO_QUESTIONS] }
+    PlacementLevel:
+      type: string
+      enum: [BELOW_1, HSK1, HSK2, HSK3, ABOVE_3]
+    PlacementConfidence:
+      type: string
+      enum: [SURE, TENTATIVE]
+    PlacementSummary:
+      type: object
+      required: [active, last]
+      properties:
+        active:
+          oneOf:
+            - type: object
+              required: [runId, sessionId]
+              properties:
+                runId: { type: integer, format: int64 }
+                sessionId: { type: integer, format: int64 }
+            - type: 'null'
+        last:
+          oneOf:
+            - type: object
+              required: [runId, level, confidence, completedAt]
+              properties:
+                runId: { type: integer, format: int64 }
+                level: { $ref: '#/components/schemas/PlacementLevel' }
+                confidence: { $ref: '#/components/schemas/PlacementConfidence' }
+                completedAt: { type: string, format: date-time }
+            - type: 'null'
+    PlacementStartRequest:
+      type: object
+      properties:
+        startLevel: { type: integer, minimum: 1, maximum: 3 }
+    PlacementStep:
+      type: object
+      required: [runId, session]
+      properties:
+        runId: { type: integer, format: int64 }
+        session:
+          oneOf:
+            - $ref: '#/components/schemas/SessionView'
+            - type: 'null'
+        concluded: { type: boolean, description: true khi đã kết luận (session = null) }
+    LevelScore:
+      type: object
+      required: [level, correct, total, percent]
+      properties:
+        level: { type: integer, minimum: 1, maximum: 3 }
+        correct: { type: integer }
+        total: { type: integer }
+        percent: { type: integer }
+    DomainScore:
+      type: object
+      required: [domain, correct, total, measured, tentative]
+      properties:
+        domain: { $ref: '#/components/schemas/Domain' }
+        correct: { type: integer }
+        total: { type: integer }
+        percent: { type: [integer, 'null'], description: null khi measured = false ("chưa đo") }
+        measured: { type: boolean }
+        tentative: { type: boolean, description: true khi 0 < total < 3 }
+    PlacementResult:
+      type: object
+      required: [runId, completedAt, level, confidence, itemCount, byLevel, domains, wrongKids]
+      properties:
+        runId: { type: integer, format: int64 }
+        completedAt: { type: string, format: date-time }
+        level: { $ref: '#/components/schemas/PlacementLevel' }
+        confidence: { $ref: '#/components/schemas/PlacementConfidence' }
+        itemCount: { type: integer, minimum: 1, maximum: 35 }
+        byLevel: { type: array, items: { $ref: '#/components/schemas/LevelScore' } }
+        domains:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items: { $ref: '#/components/schemas/DomainScore' }
+        wrongKids: { type: array, items: { $ref: '#/components/schemas/KidCount' } }
+  responses:
+    Unauthenticated:
+      description: UNAUTHENTICATED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Forbidden:
+      description: FORBIDDEN (sai role) · CSRF_TOKEN_INVALID · ATTEMPT_NOT_OWNED · EXAM_NOT_PUBLISHED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    ValidationFailed:
+      description: VALIDATION_FAILED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    RateLimited:
+      description: RATE_LIMITED kèm retryAfterSeconds (engine E-R12)
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    NotSubmitted:
+      description: ATTEMPT_NOT_SUBMITTED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+paths:
+  /api/exams:
+    get:
+      tags: [exam]
+      operationId: listExams
+      summary: Đề PUBLISHED có câu dùng được, kèm lịch sử của người gọi (FR-010)
+      parameters:
+        - name: hskLevel
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 9 }
+      responses:
+        '200':
+          description: Danh sách (rỗng khi cấp chưa có đề)
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/ExamSummary' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/exams/{id}/attempts:
+    post:
+      tags: [exam]
+      operationId: startExamAttempt
+      summary: Bắt đầu hoặc tiếp tục lượt MOCK_EXAM (FR-011)
+      parameters:
+        - $ref: '#/components/parameters/ExamId'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '201':
+          description: Lượt mới
+          content: { application/json: { schema: { $ref: '#/components/schemas/SessionView' } } }
+        '200':
+          description: Lượt dở còn hạn của người gọi
+          content: { application/json: { schema: { $ref: '#/components/schemas/SessionView' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: EXAM_NOT_FOUND
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '422':
+          description: EXAM_HAS_NO_QUESTIONS
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/exam-attempts/{id}/result:
+    get:
+      tags: [exam]
+      operationId: getExamResult
+      summary: Kết quả chi tiết lượt MOCK_EXAM đã nộp (FR-013)
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Kết quả
+          content: { application/json: { schema: { $ref: '#/components/schemas/ExamResult' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/NotSubmitted' }
+
+  /api/exam-attempts/{id}/weak-points:
+    get:
+      tags: [exam]
+      operationId: getExamWeakPoints
+      summary: 3–5 điểm yếu theo mastery của các KID trong lượt (FR-014, cần spec 011)
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Tăng dần theo mastery
+          content:
+            application/json:
+              schema: { type: array, maxItems: 5, items: { $ref: '#/components/schemas/WeakPoint' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/NotSubmitted' }
+
+  /api/targeted-practice/sessions:
+    post:
+      tags: [targeted-practice]
+      operationId: startTargetedPractice
+      summary: Lượt luyện câu APPROVED theo một KID (FR-015)
+      parameters:
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/TargetedPracticeRequest' } } }
+      responses:
+        '201':
+          description: Lượt TARGETED_PRACTICE (IMMEDIATE)
+          content: { application/json: { schema: { $ref: '#/components/schemas/SessionView' } } }
+        '200':
+          description: Không có câu phù hợp
+          content: { application/json: { schema: { $ref: '#/components/schemas/NoQuestions' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: KNOWLEDGE_NODE_NOT_FOUND
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/placement/summary:
+    get:
+      tags: [placement]
+      operationId: getPlacementSummary
+      summary: Lượt đang làm và kết quả gần nhất của người gọi (FR-019)
+      responses:
+        '200':
+          description: Tóm tắt
+          content: { application/json: { schema: { $ref: '#/components/schemas/PlacementSummary' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/placement/runs:
+    post:
+      tags: [placement]
+      operationId: startPlacementRun
+      summary: Bắt đầu bài xếp trình độ hoặc trả khối đang dở (FR-020)
+      parameters:
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: false
+        content: { application/json: { schema: { $ref: '#/components/schemas/PlacementStartRequest' } } }
+      responses:
+        '201':
+          description: Khối 1 mới
+          content: { application/json: { schema: { $ref: '#/components/schemas/PlacementStep' } } }
+        '200':
+          description: Khối đang dở còn hạn
+          content: { application/json: { schema: { $ref: '#/components/schemas/PlacementStep' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: VALIDATION_FAILED · PLACEMENT_BANK_INSUFFICIENT (details[{level, available}])
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/placement/runs/{runId}/next:
+    post:
+      tags: [placement]
+      operationId: nextPlacementBlock
+      summary: Khối kế tiếp hoặc kết luận (FR-021, idempotent)
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '201':
+          description: Khối mới
+          content: { application/json: { schema: { $ref: '#/components/schemas/PlacementStep' } } }
+        '200':
+          description: Khối đang dở, hoặc đã kết luận (session null, concluded true)
+          content: { application/json: { schema: { $ref: '#/components/schemas/PlacementStep' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/placement/runs/{runId}/result:
+    get:
+      tags: [placement]
+      operationId: getPlacementResult
+      summary: Kết quả năng lực của lượt đã kết luận (FR-022)
+      parameters:
+        - $ref: '#/components/parameters/RunId'
+      responses:
+        '200':
+          description: Kết quả
+          content: { application/json: { schema: { $ref: '#/components/schemas/PlacementResult' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: PLACEMENT_NOT_FINISHED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }

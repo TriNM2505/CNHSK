@@ -23,6 +23,22 @@ Mỗi lần sửa hiến pháp PHẢI thêm một mục vào đầu file này, g
 
 ---
 
+## v1.5.0 — 2026-11-03
+
+**Loại bump:** MINOR — định nghĩa lại phạm vi quyền của hai role quản trị và thêm một ngoại lệ có tên; không bỏ nguyên tắc nào.
+
+**Nguồn:** RFC đợt cuối spec 010–015 (`plans/261102-2104-dot-cuoi-cay-nang-luc-va-spec-010-015/reports/rfc-261103-thay-doi-tai-lieu-goc-dot-cuoi.md`), cả nhóm đồng thuận 2026-11-03. Spec 013 cần quyền tài chính cho `ADMIN`.
+
+| Mã | Thay đổi |
+|---|---|
+| §Bảy actor | **SỬA** — `ACCOUNTANT` giữ mã trong DB nhưng không có quyền; `ADMIN` thêm tài chính (sinh/khoá mã thẻ, gói, sổ cái) — RFC R9 |
+| §Vì sao tách quyền | **SỬA** — thêm 3 lớp bù bắt buộc: không nạp mã do mình tạo, audit cả đọc sổ cái, không tự cấp role |
+| **AC-09** | **SỬA** — thêm ngoại lệ có tên `auth.users.free_usage` (ghi khi giữ khoá dòng) — RFC R10 |
+
+Số rule: HR 9 → 9 · AC 10 → 10 · BUS 15 → 15 · ES 8 → 8.
+
+---
+
 ## v1.4.1 — 2026-10-20
 
 **Loại bump:** PATCH — chốt một quyết định đang treo, không thêm hay bỏ rule.

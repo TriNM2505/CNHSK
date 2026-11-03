@@ -117,6 +117,8 @@ Thứ tự nguồn nghiệp vụ: [Hiến pháp](../../.specify/memory/constitut
 
 ## SCR-001 — Landing
 
+> **RFC đợt cuối R7 (2026-11-03):** có **bài xếp trình độ**, là chế độ của SCR-020/021/022 (không thêm màn) — các dòng "không bịa màn/luồng placement" trong mục này bị thay. Chi tiết: spec 012.
+
 ### 1. General
 
 Screen ID: SCR-001
@@ -4010,6 +4012,8 @@ READY WITH PLACEHOLDERS
 Reason: Layout known; delivery precision/suppression not settled.
 
 ## SCR-010 — Learning Dashboard
+
+> **RFC đợt cuối R7 (2026-11-03):** có **bài xếp trình độ**, là chế độ của SCR-020/021/022 (không thêm màn) — các dòng "không bịa màn/luồng placement" trong mục này bị thay. Chi tiết: spec 012.
 
 ### 1. General
 
@@ -9159,6 +9163,8 @@ Reason: Core visible data, controls, permissions and states are supported. Legac
 
 ## SCR-019 — Learning Progress
 
+> **RFC đợt cuối R3, R4 (2026-11-03):** mastery theo **nút KID**, thang 0–100, "vững" ≥ **80** (thay "mastered ≥ 0.9"); kỹ năng hiển thị theo 6 miền v2.0. Chi tiết: spec 011.
+
 ### 1. General
 
 Screen ID: SCR-019
@@ -10327,6 +10333,8 @@ READY WITH PLACEHOLDERS
 Reason: Exam browsing fixed; optional charging/search details need placeholders.
 
 ## SCR-021 — Exam Attempt
+
+> **RFC đợt cuối R6, R12 (2026-11-03):** **không đếm ngược**, hạn 24 giờ; lưu nháp bằng kiểu `DEFERRED` của engine; có chế độ bài xếp trình độ; **không có trợ lý AI** khi đang làm bài. Gỡ BLOCKED về đồng hồ và lưu nháp. Chi tiết: spec 012, 015.
 
 ### 1. General
 
@@ -35941,6 +35949,8 @@ Reason: V2metadata/lifecycle mockup supported; allowlists/storage/field details 
 
 ## SCR-073 — Card Batch Management
 
+> **RFC đợt cuối R9 (2026-11-03):** role của màn là **`ADMIN`** (thay `ACCOUNTANT`); không nạp được mã do chính mình tạo. Chi tiết: spec 013.
+
 ### 1. General
 
 Screen ID: SCR-073
@@ -36702,6 +36712,8 @@ Reason: Batch policy/cap/one-time flow settled; approved denominations/plan link
 
 ## SCR-074 — Plan Management
 
+> **RFC đợt cuối R9 (2026-11-03):** role của màn là **`ADMIN`** (thay `ACCOUNTANT`); không nạp được mã do chính mình tạo. Chi tiết: spec 013.
+
 ### 1. General
 
 Screen ID: SCR-074
@@ -37272,6 +37284,8 @@ READY WITH PLACEHOLDERS
 Reason: Approved plan form structure clear; paid values/history preservation require decisions.
 
 ## SCR-075 — Credit Ledger
+
+> **RFC đợt cuối R9 (2026-11-03):** role của màn là **`ADMIN`** (thay `ACCOUNTANT`); không nạp được mã do chính mình tạo. Chi tiết: spec 013.
 
 ### 1. General
 

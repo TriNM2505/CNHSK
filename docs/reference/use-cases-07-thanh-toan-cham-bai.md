@@ -1,5 +1,7 @@
 # CNHSK — Đặc tả Use Case · Nhóm 6a + 6b · Thanh toán & Chấm bài thuê
 
+> **RFC đợt cuối R9 (2026-11-03, Hiến pháp v1.5.0):** mọi chỗ ghi actor `ACCOUNTANT` trong file này đọc là **`ADMIN`**; các BR "chỉ `ACCOUNTANT`", "không dùng role `ADMIN` chung" (BR-099-2, BR-100-2, BR-101-2) bị thay. Bù lại: **không ai nạp được mã do chính mình tạo**; audit cả đọc sổ cái giữ nguyên. Chi tiết: spec 013.
+
 > **UC-093 → UC-107** · 15 use case · Tính năng 6.1 · 6.2
 > **Bản chuẩn hóa Use Case** · cập nhật 2026-10-08
 > **Tám file đặc tả:** `use-cases-01-xac-thuc` → `use-cases-08-quan-tri-he-thong`
@@ -770,6 +772,8 @@ Dùng DTO dành cho người dùng, không trả toàn bộ entity hoặc join t
 
 # UC-099 · Sinh lô mã thẻ nạp
 
+> **RFC đợt cuối R9:** actor là **`ADMIN`** (thay `ACCOUNTANT`). Chi tiết: spec 013 (UC-102 tranh chấp ngoài phạm vi đợt này).
+
 | | |
 |---|---|
 | **UC-ID** | UC-099 · **Actor** `ACCOUNTANT` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
@@ -890,6 +894,8 @@ bán mã hoặc thu tiền bên ngoài.
 
 # UC-100 · Xem và đối chiếu sổ cái giao dịch điểm
 
+> **RFC đợt cuối R9:** actor là **`ADMIN`** (thay `ACCOUNTANT`). Chi tiết: spec 013 (UC-102 tranh chấp ngoài phạm vi đợt này).
+
 | | |
 |---|---|
 | **UC-ID** | UC-100 · **Actor** `ACCOUNTANT` · **Pri** P1 · **Scope** MVP · **FT** 6.1 |
@@ -996,6 +1002,8 @@ Giữ ba endpoint hiện có; không bổ sung cổng thanh toán hay báo cáo 
 ---
 
 # UC-101 · Quản lý gói dịch vụ
+
+> **RFC đợt cuối R9:** actor là **`ADMIN`** (thay `ACCOUNTANT`). Chi tiết: spec 013 (UC-102 tranh chấp ngoài phạm vi đợt này).
 
 | | |
 |---|---|
@@ -1107,6 +1115,8 @@ Giữ nguyên đường dẫn API đã liệt kê; trước triển khai phải 
 ---
 
 # UC-102 · Xử lý tranh chấp về điểm
+
+> **RFC đợt cuối R9:** actor là **`ADMIN`** (thay `ACCOUNTANT`). Chi tiết: spec 013 (UC-102 tranh chấp ngoài phạm vi đợt này).
 
 | | |
 |---|---|

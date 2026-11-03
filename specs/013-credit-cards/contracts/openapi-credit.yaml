@@ -1,0 +1,495 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Credit Cards, Wallet, Plans and Ledger API
+  version: 0.1.0
+  description: >
+    Hợp đồng spec 013-credit-cards. Tiền thật thu ngoài hệ thống; CNHSK chỉ nhận mã thẻ đã có giá trị.
+    Học viên (LEARNER) nạp mã, xem ví và lịch sử. Quản trị (ADMIN — thay ACCOUNTANT theo Q1) sinh/khoá lô,
+    sửa gói, xem/xuất/đối chiếu sổ cái. Không bao giờ trả mã thô ngoài response sinh lô, không trả hash.
+    Mọi thao tác ghi qua cookie cần header X-XSRF-TOKEN (HR-05, spec 001).
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: wallet
+  - name: card-admin
+  - name: plan-admin
+  - name: ledger-admin
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    BatchId:
+      name: batchId
+      in: path
+      required: true
+      schema: { type: string, pattern: '^B[0-9]{8}-[0-9A-Z]{6}$', example: B20261103-7K3QX9 }
+    PlanCode:
+      name: code
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/PlanCode' }
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+    From:
+      name: from
+      in: query
+      required: true
+      schema: { type: string, format: date }
+    To:
+      name: to
+      in: query
+      required: true
+      description: to − from ≤ 92 ngày
+      schema: { type: string, format: date }
+    TxType:
+      name: type
+      in: query
+      required: false
+      schema: { $ref: '#/components/schemas/TransactionType' }
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      description: Bắt buộc khi xác thực bằng cookie (spec 001)
+      schema: { type: string }
+  schemas:
+    ErrorResponse:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ErrorResponse'
+    CardType:
+      type: string
+      enum: [CREDIT, SUBSCRIPTION]
+    Channel:
+      type: string
+      enum: [ECOSYSTEM_GIFT, PARTNER_BATCH, DIRECT]
+    PlanCode:
+      type: string
+      enum: [FREE, PREMIUM, PREMIUM_PLUS]
+    PaidFeature:
+      type: string
+      enum: [AI_GENERATE, TRANSLATE, ASSISTANT, GRADING]
+    TransactionType:
+      type: string
+      enum: [TOPUP, DEDUCT, REFUND, ADJUSTMENT, TEACHER_PAYOUT, SUBSCRIPTION]
+    RedeemRequest:
+      type: object
+      required: [code]
+      properties:
+        code: { type: string, maxLength: 40, description: 'Không ghi log; chuẩn hoá ở server' }
+    PlanStatus:
+      type: object
+      required: [code, name, expiresAt, active]
+      properties:
+        code: { $ref: '#/components/schemas/PlanCode' }
+        name: { type: string }
+        expiresAt: { type: [string, 'null'], format: date-time, description: null với FREE }
+        active: { type: boolean }
+    RedeemResult:
+      type: object
+      required: [cardType, amount, balance, plan]
+      properties:
+        cardType: { $ref: '#/components/schemas/CardType' }
+        amount: { type: integer, description: 'Số điểm cộng; 0 với SUBSCRIPTION' }
+        balance: { type: integer, minimum: 0 }
+        plan: { $ref: '#/components/schemas/PlanStatus' }
+    QuotaLine:
+      type: object
+      required: [feature, limit, used, remaining]
+      properties:
+        feature: { $ref: '#/components/schemas/PaidFeature' }
+        limit: { type: integer, minimum: 0 }
+        used: { type: integer, minimum: 0 }
+        remaining: { type: integer, minimum: 0 }
+    Wallet:
+      type: object
+      required: [balance, plan, quota, resetAt]
+      properties:
+        balance: { type: integer, minimum: 0 }
+        plan: { $ref: '#/components/schemas/PlanStatus' }
+        quota: { type: array, minItems: 4, maxItems: 4, items: { $ref: '#/components/schemas/QuotaLine' } }
+        resetAt: { type: string, format: date-time, description: '00:00 ngày 1 tháng sau, giờ Việt Nam' }
+    Transaction:
+      type: object
+      required: [seq, type, amount, balanceBefore, balanceAfter, createdAt]
+      properties:
+        seq: { type: integer, minimum: 1 }
+        type: { $ref: '#/components/schemas/TransactionType' }
+        amount: { type: integer }
+        balanceBefore: { type: integer, minimum: 0 }
+        balanceAfter: { type: integer, minimum: 0 }
+        featureCode:
+          oneOf:
+            - $ref: '#/components/schemas/PaidFeature'
+            - type: 'null'
+        reason: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+    TransactionPage:
+      type: object
+      required: [items, page, size, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Transaction' } }
+        page: { type: integer }
+        size: { type: integer }
+        total: { type: integer, format: int64 }
+    CreateBatchRequest:
+      type: object
+      required: [cardType, quantity, channel]
+      properties:
+        cardType: { $ref: '#/components/schemas/CardType' }
+        value: { type: [integer, 'null'], minimum: 1, maximum: 10000, description: Chỉ CREDIT }
+        planDays: { type: [integer, 'null'], minimum: 1, maximum: 365, description: Chỉ SUBSCRIPTION (kích hoạt PREMIUM) }
+        quantity: { type: integer, minimum: 1, maximum: 100 }
+        channel: { $ref: '#/components/schemas/Channel' }
+        partnerCode: { type: [string, 'null'], maxLength: 50, description: Bắt buộc với PARTNER_BATCH }
+        campaign: { type: [string, 'null'], maxLength: 50 }
+        issuedTo: { type: [string, 'null'], maxLength: 255, description: Bắt buộc với ECOSYSTEM_GIFT }
+        expiresAt: { type: [string, 'null'], format: date-time }
+    CreatedBatch:
+      type: object
+      required: [batchId, codes]
+      properties:
+        batchId: { type: string }
+        codes:
+          type: array
+          description: Lần duy nhất mã thô rời server (BR-099-6)
+          items: { type: string, pattern: '^[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}-[0-9A-Z]{4}$' }
+    BatchSummary:
+      type: object
+      required: [batchId, cardType, channel, total, unused, used, voided, createdAt]
+      properties:
+        batchId: { type: string }
+        cardType: { $ref: '#/components/schemas/CardType' }
+        value: { type: [integer, 'null'] }
+        planDays: { type: [integer, 'null'] }
+        channel: { $ref: '#/components/schemas/Channel' }
+        partnerCode: { type: [string, 'null'] }
+        campaign: { type: [string, 'null'] }
+        issuedTo: { type: [string, 'null'] }
+        expiresAt: { type: [string, 'null'], format: date-time }
+        total: { type: integer }
+        unused: { type: integer }
+        used: { type: integer }
+        voided: { type: integer }
+        createdAt: { type: string, format: date-time }
+        createdByName: { type: [string, 'null'] }
+    BatchPage:
+      type: object
+      required: [items, page, size, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/BatchSummary' } }
+        page: { type: integer }
+        size: { type: integer }
+        total: { type: integer, format: int64 }
+    VoidResult:
+      type: object
+      required: [batchId, voided]
+      properties:
+        batchId: { type: string }
+        voided: { type: integer, minimum: 0 }
+    Benefits:
+      type: object
+      description: 'Hạn mức mỗi tháng theo tính năng (0–10 000); chỉ 4 khoá PaidFeature'
+      additionalProperties: { type: integer, minimum: 0, maximum: 10000 }
+    PlanView:
+      type: object
+      required: [code, exists, activeUsers]
+      properties:
+        code: { $ref: '#/components/schemas/PlanCode' }
+        exists: { type: boolean }
+        name: { type: [string, 'null'] }
+        description: { type: [string, 'null'] }
+        durationDays: { type: [integer, 'null'] }
+        price: { type: [string, 'null'], pattern: '^[0-9]{1,10}(\.[0-9]{1,2})?$', description: 'Giá niêm yết (NUMERIC 12,2), không phải tiền đã thu' }
+        benefits: { $ref: '#/components/schemas/Benefits' }
+        isActive: { type: [boolean, 'null'] }
+        activeUsers: { type: integer, format: int64 }
+    PlanUpdateRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 100 }
+        description: { type: [string, 'null'], maxLength: 2000 }
+        durationDays: { type: [integer, 'null'], minimum: 1, maximum: 365, description: Bắt buộc với PREMIUM }
+        price: { type: [string, 'null'], pattern: '^[0-9]{1,10}(\.[0-9]{1,2})?$', description: Bắt buộc với PREMIUM }
+        benefits: { $ref: '#/components/schemas/Benefits' }
+        isActive: { type: [boolean, 'null'], description: Bắt buộc với PREMIUM }
+    LedgerRow:
+      type: object
+      required: [id, userId, maskedEmail, seq, type, amount, balanceBefore, balanceAfter, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        userId: { type: integer, format: int64 }
+        maskedEmail: { type: string, example: 'ng***@g***.com' }
+        seq: { type: integer }
+        type: { $ref: '#/components/schemas/TransactionType' }
+        amount: { type: integer }
+        balanceBefore: { type: integer }
+        balanceAfter: { type: integer }
+        featureCode: { type: [string, 'null'] }
+        reason: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+    LedgerPage:
+      type: object
+      required: [items, page, size, total, totals]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/LedgerRow' } }
+        page: { type: integer }
+        size: { type: integer }
+        total: { type: integer, format: int64 }
+        totals:
+          type: object
+          required: [count, credited, debited]
+          properties:
+            count: { type: integer, format: int64 }
+            credited: { type: integer, format: int64, description: Tổng amount dương của toàn bộ bộ lọc }
+            debited: { type: integer, format: int64, description: Tổng amount âm của toàn bộ bộ lọc }
+    ReconciliationIssue:
+      type: object
+      required: [userId, maskedEmail, seq, kind]
+      properties:
+        userId: { type: integer, format: int64 }
+        maskedEmail: { type: string }
+        seq: { type: integer }
+        kind: { type: string, enum: [SEQ_GAP, BALANCE_CHAIN_BROKEN, FIRST_BALANCE_NOT_ZERO] }
+    Reconciliation:
+      type: object
+      required: [users, rows, totalBalance, totalAmount, issues]
+      properties:
+        users: { type: integer, format: int64 }
+        rows: { type: integer, format: int64 }
+        totalBalance: { type: integer, format: int64 }
+        totalAmount: { type: integer, format: int64 }
+        issues: { type: array, items: { $ref: '#/components/schemas/ReconciliationIssue' } }
+  responses:
+    Unauthenticated:
+      description: UNAUTHENTICATED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Forbidden:
+      description: FORBIDDEN (sai role) · CSRF_TOKEN_INVALID
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    ValidationFailed:
+      description: VALIDATION_FAILED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    BatchNotFound:
+      description: CARD_BATCH_NOT_FOUND
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+paths:
+  /api/credits/redeem:
+    post:
+      tags: [wallet]
+      operationId: redeemCard
+      summary: Nạp mã CREDIT hoặc SUBSCRIPTION (FR-009…FR-012)
+      parameters:
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RedeemRequest' } } }
+      responses:
+        '200':
+          description: Đã nạp
+          content: { application/json: { schema: { $ref: '#/components/schemas/RedeemResult' } } }
+        '400':
+          description: INVALID_CARD_CODE — một thông báo chung cho mọi nguyên nhân
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429':
+          description: RATE_LIMITED kèm retryAfterSeconds (≥ 5 lần sai/giờ/người hoặc ≥ 30/giờ/IP)
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+  /api/me/credits:
+    get:
+      tags: [wallet]
+      operationId: getMyWallet
+      summary: Gói, số dư, hạn mức còn lại của người gọi (FR-013)
+      responses:
+        '200':
+          description: Ví
+          content: { application/json: { schema: { $ref: '#/components/schemas/Wallet' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/me/credit-transactions:
+    get:
+      tags: [wallet]
+      operationId: listMyTransactions
+      summary: Lịch sử giao dịch của người gọi, seq giảm dần (FR-014)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Trang giao dịch
+          content: { application/json: { schema: { $ref: '#/components/schemas/TransactionPage' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/admin/card-batches:
+    post:
+      tags: [card-admin]
+      operationId: createCardBatch
+      summary: Sinh lô ≤ 100 mã; mã thô trả đúng một lần (FR-005, FR-006)
+      parameters:
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CreateBatchRequest' } } }
+      responses:
+        '201':
+          description: Lô đã sinh
+          content: { application/json: { schema: { $ref: '#/components/schemas/CreatedBatch' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: VALIDATION_FAILED · PLAN_NOT_AVAILABLE
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    get:
+      tags: [card-admin]
+      operationId: listCardBatches
+      summary: Danh sách lô, mới nhất trước (FR-007)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Trang lô
+          content: { application/json: { schema: { $ref: '#/components/schemas/BatchPage' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/admin/card-batches/{batchId}:
+    get:
+      tags: [card-admin]
+      operationId: getCardBatch
+      summary: Một lô (FR-007)
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+      responses:
+        '200':
+          description: Lô
+          content: { application/json: { schema: { $ref: '#/components/schemas/BatchSummary' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/BatchNotFound' }
+
+  /api/admin/card-batches/{batchId}/void:
+    patch:
+      tags: [card-admin]
+      operationId: voidCardBatch
+      summary: Khoá mọi mã UNUSED của lô, idempotent (FR-008)
+      parameters:
+        - $ref: '#/components/parameters/BatchId'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '200':
+          description: Số mã vừa khoá
+          content: { application/json: { schema: { $ref: '#/components/schemas/VoidResult' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/BatchNotFound' }
+
+  /api/admin/plans:
+    get:
+      tags: [plan-admin]
+      operationId: listPlans
+      summary: Đúng 3 mã gói (FR-015)
+      responses:
+        '200':
+          description: Gói
+          content:
+            application/json:
+              schema: { type: array, minItems: 3, maxItems: 3, items: { $ref: '#/components/schemas/PlanView' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/plans/{code}:
+    put:
+      tags: [plan-admin]
+      operationId: updatePlan
+      summary: Sửa FREE (tên, mô tả) hoặc tạo/sửa PREMIUM (FR-016)
+      parameters:
+        - $ref: '#/components/parameters/PlanCode'
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/PlanUpdateRequest' } } }
+      responses:
+        '200':
+          description: Gói sau khi lưu
+          content: { application/json: { schema: { $ref: '#/components/schemas/PlanView' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: PLAN_IN_USE — đổi benefits khi có người đang dùng gói
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '422':
+          description: VALIDATION_FAILED · PLAN_NOT_AVAILABLE (PREMIUM_PLUS)
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+  /api/admin/credit-transactions:
+    get:
+      tags: [ledger-admin]
+      operationId: listLedger
+      summary: Sổ cái theo khoảng ngày bắt buộc, có audit đọc (FR-017)
+      parameters:
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/TxType'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Trang sổ cái + tổng của bộ lọc
+          content: { application/json: { schema: { $ref: '#/components/schemas/LedgerPage' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/admin/credit-transactions/export:
+    get:
+      tags: [ledger-admin]
+      operationId: exportLedger
+      summary: Xuất CSV ≤ 10 000 dòng, có audit (FR-018)
+      parameters:
+        - $ref: '#/components/parameters/From'
+        - $ref: '#/components/parameters/To'
+        - $ref: '#/components/parameters/TxType'
+      responses:
+        '200':
+          description: CSV UTF-8
+          content:
+            text/csv:
+              schema: { type: string }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: VALIDATION_FAILED · EXPORT_TOO_LARGE
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+  /api/admin/credit-transactions/reconciliation:
+    get:
+      tags: [ledger-admin]
+      operationId: reconcileLedger
+      summary: Đối chiếu toàn sổ, không tự sửa (FR-019)
+      responses:
+        '200':
+          description: Kết quả đối chiếu
+          content: { application/json: { schema: { $ref: '#/components/schemas/Reconciliation' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }

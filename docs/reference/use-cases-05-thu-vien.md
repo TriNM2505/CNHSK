@@ -1536,6 +1536,8 @@ GET /api/learning/dictionary
 
 # UC-133 · Quản lý nội dung học cá nhân
 
+> **RFC đợt cuối R11 (2026-11-03):** ghi chú xoá mềm khôi phục được trong **30 ngày**; sau đó ẩn khỏi thùng rác, **không** xoá khỏi DB (`BUS-10`). Chi tiết: spec 014 FR-012.
+
 | | |
 | --- | --- |
 | **ID** | UC-133 |

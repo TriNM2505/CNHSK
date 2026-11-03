@@ -1,0 +1,618 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Dictionary, Translation, Notes and Flashcards API
+  version: 0.1.0
+  description: >
+    Hợp đồng spec 014-library. /api/public/dictionary/** mở cho mọi người (giới hạn theo IP hoặc người dùng);
+    sổ tay, bộ flashcard, ôn thẻ và dịch chỉ cho LEARNER, dữ liệu riêng của người gọi (BUS-01: 403).
+    Dịch trừ lượt TRANSLATE qua EntitlementApi (spec 013); cache hit không trừ lượt.
+    Thao tác ghi qua cookie cần header X-XSRF-TOKEN (spec 001).
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: dictionary
+  - name: translation
+  - name: notes
+  - name: flashcards
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    CardId:
+      name: cardId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      description: Bắt buộc khi xác thực bằng cookie (spec 001)
+      schema: { type: string }
+  schemas:
+    ErrorResponse:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ErrorResponse'
+    LexemeKind:
+      type: string
+      enum: [CHAR, WORD, GRAMMAR]
+    LexemeSummary:
+      type: object
+      required: [id, kind, text, meaningVi, approximate]
+      properties:
+        id: { type: integer, format: int64 }
+        kind: { $ref: '#/components/schemas/LexemeKind' }
+        text: { type: string }
+        pinyin: { type: [string, 'null'], description: Có dấu thanh }
+        sinoViet: { type: [string, 'null'] }
+        meaningVi: { type: string }
+        hskLevel: { type: [integer, 'null'] }
+        approximate: { type: boolean, description: 'true khi là gợi ý số nét ± 1' }
+    SearchResult:
+      type: object
+      required: [items, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/LexemeSummary' } }
+        total: { type: integer, format: int64 }
+        hint: { type: [string, 'null'], enum: [USE_TRANSLATE, null] }
+    RadicalCount:
+      type: object
+      required: [radical, charCount]
+      properties:
+        radical: { type: string }
+        charCount: { type: integer }
+    LexemeRef:
+      type: object
+      required: [id, text, meaningVi]
+      properties:
+        id: { type: integer, format: int64 }
+        text: { type: string }
+        pinyin: { type: [string, 'null'] }
+        meaningVi: { type: string }
+    LexemeDetail:
+      type: object
+      required: [id, kind, text, meaningVi, examples, components, containedIn, related]
+      properties:
+        id: { type: integer, format: int64 }
+        kind: { $ref: '#/components/schemas/LexemeKind' }
+        text: { type: string }
+        pinyin: { type: [string, 'null'] }
+        sinoViet: { type: [string, 'null'] }
+        meaningVi: { type: string }
+        hskLevel: { type: [integer, 'null'] }
+        audioUrl: { type: [string, 'null'] }
+        radical: { type: [string, 'null'] }
+        strokeCount: { type: [integer, 'null'] }
+        strokeData: { description: 'Dữ liệu nét của CHAR (spec 006) hoặc null', oneOf: [ { type: object, additionalProperties: true }, { type: 'null' } ] }
+        structure: { type: [string, 'null'], description: Cấu trúc ngữ pháp (spec 004) }
+        examples:
+          type: array
+          items:
+            type: object
+            properties:
+              cn: { type: string }
+              pinyin: { type: [string, 'null'] }
+              vi: { type: string }
+        components: { type: array, items: { $ref: '#/components/schemas/LexemeRef' } }
+        containedIn: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/LexemeRef' } }
+        related: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/LexemeRef' } }
+    TranslateRequest:
+      type: object
+      required: [text, from, to]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 2000 }
+        from: { type: string, enum: [ZH, VI] }
+        to: { type: string, enum: [ZH, VI] }
+    Segment:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string }
+        pinyin: { type: [string, 'null'] }
+        lexemeId: { type: [integer, 'null'], format: int64 }
+    TranslateResult:
+      type: object
+      required: [translated, segments, cached, consumption]
+      properties:
+        translated: { type: string }
+        pinyin: { type: [string, 'null'] }
+        segments: { type: array, items: { $ref: '#/components/schemas/Segment' } }
+        cached: { type: boolean }
+        consumption: { type: [string, 'null'], enum: [QUOTA, CREDIT, null] }
+    NoteRequest:
+      type: object
+      required: [content]
+      properties:
+        title: { type: [string, 'null'], maxLength: 200 }
+        content: { type: string, minLength: 1, maxLength: 10000 }
+        tags: { type: array, maxItems: 10, items: { type: string, maxLength: 50 } }
+        lexemeId: { type: [integer, 'null'], format: int64 }
+        sourceType: { type: [string, 'null'], enum: [DICTIONARY, TRANSLATION, MANUAL, null] }
+    Note:
+      type: object
+      required: [id, content, tags, createdAt, updatedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: [string, 'null'] }
+        content: { type: string }
+        tags: { type: array, items: { type: string } }
+        lexemeId: { type: [integer, 'null'], format: int64 }
+        sourceType: { type: [string, 'null'] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    NoteListItem:
+      type: object
+      required: [id, snippet, tags, updatedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: [string, 'null'] }
+        snippet: { type: string, description: 'Văn bản thô ≤ 200 ký tự; client phải escape' }
+        tags: { type: array, items: { type: string } }
+        lexemeId: { type: [integer, 'null'], format: int64 }
+        sourceType: { type: [string, 'null'] }
+        updatedAt: { type: string, format: date-time }
+    NotePage:
+      type: object
+      required: [items, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/NoteListItem' } }
+        total: { type: integer, format: int64 }
+    TrashNote:
+      allOf:
+        - $ref: '#/components/schemas/NoteListItem'
+        - type: object
+          required: [deletedAt, restorableUntil]
+          properties:
+            deletedAt: { type: string, format: date-time }
+            restorableUntil: { type: string, format: date-time }
+    DeckRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        description: { type: [string, 'null'], maxLength: 500 }
+        topicId: { type: [integer, 'null'], format: int64, description: Chỉ khi tạo — chép từ của chủ đề }
+    DeckSummary:
+      type: object
+      required: [id, name, cardCount, dueCount, createdAt]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        cardCount: { type: integer }
+        dueCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+    Card:
+      type: object
+      required: [id, front, back, reviewCount, lapseCount]
+      properties:
+        id: { type: integer, format: int64 }
+        lexemeId: { type: [integer, 'null'], format: int64 }
+        front: { type: string }
+        back: { type: string }
+        dueAt: { type: [string, 'null'], format: date-time, description: null = thẻ mới }
+        reviewCount: { type: integer }
+        lapseCount: { type: integer }
+    DeckDetail:
+      allOf:
+        - $ref: '#/components/schemas/DeckSummary'
+        - type: object
+          required: [cards]
+          properties:
+            cards: { type: array, maxItems: 500, items: { $ref: '#/components/schemas/Card' } }
+    CardRequest:
+      type: object
+      properties:
+        lexemeId: { type: [integer, 'null'], format: int64 }
+        front: { type: [string, 'null'], minLength: 1, maxLength: 200 }
+        back: { type: [string, 'null'], minLength: 1, maxLength: 2000 }
+    ReviewRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating: { type: string, enum: [AGAIN, HARD, GOOD, EASY] }
+    ReviewResult:
+      type: object
+      required: [cardId, nextReviewAt, intervalDays]
+      properties:
+        cardId: { type: integer, format: int64 }
+        nextReviewAt: { type: string, format: date-time }
+        intervalDays: { type: integer, minimum: 1, maximum: 365 }
+  responses:
+    Unauthenticated:
+      description: UNAUTHENTICATED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Forbidden:
+      description: FORBIDDEN · CSRF_TOKEN_INVALID · COLLECTION_NOT_OWNED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    ValidationFailed:
+      description: VALIDATION_FAILED · LIBRARY_LIMIT_REACHED (details.kind NOTES | DECKS | CARDS)
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    RateLimited:
+      description: RATE_LIMITED kèm retryAfterSeconds (khách thêm loginSuggested)
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    LexemeNotFound:
+      description: LEXEME_NOT_FOUND
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Duplicate:
+      description: CARD_DUPLICATE
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+paths:
+  /api/public/dictionary/search:
+    get:
+      tags: [dictionary]
+      operationId: searchDictionary
+      summary: Tra chữ Hán, pinyin, nghĩa Việt (FR-003…FR-005)
+      security: [{}, { cookieAuth: [] }, { bearerAuth: [] }]
+      parameters:
+        - { name: type, in: query, required: true, schema: { type: string, enum: [HANZI, PINYIN, MEANING] } }
+        - { name: q, in: query, required: true, schema: { type: string } }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Kết quả (rỗng khi không tìm thấy)
+          content: { application/json: { schema: { $ref: '#/components/schemas/SearchResult' } } }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/public/dictionary/radicals:
+    get:
+      tags: [dictionary]
+      operationId: listRadicals
+      summary: Bộ thủ có dữ liệu (FR-006)
+      security: [{}, { cookieAuth: [] }, { bearerAuth: [] }]
+      responses:
+        '200':
+          description: Danh sách
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/RadicalCount' } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/public/dictionary/by-radical:
+    get:
+      tags: [dictionary]
+      operationId: searchByRadical
+      summary: Chữ theo bộ thủ và/hoặc số nét (FR-006)
+      security: [{}, { cookieAuth: [] }, { bearerAuth: [] }]
+      parameters:
+        - { name: radical, in: query, required: false, schema: { type: string, maxLength: 10 } }
+        - { name: strokes, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 64 } }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Kết quả
+          content: { application/json: { schema: { $ref: '#/components/schemas/SearchResult' } } }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/public/dictionary/lexemes/{id}:
+    get:
+      tags: [dictionary]
+      operationId: getLexeme
+      summary: Chi tiết mục từ (FR-007)
+      security: [{}, { cookieAuth: [] }, { bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Chi tiết
+          content: { application/json: { schema: { $ref: '#/components/schemas/LexemeDetail' } } }
+        '404': { $ref: '#/components/responses/LexemeNotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/translate:
+    post:
+      tags: [translation]
+      operationId: translate
+      summary: Dịch Trung↔Việt, trừ lượt TRANSLATE khi không có cache (FR-019…FR-022)
+      parameters:
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/TranslateRequest' } } }
+      responses:
+        '200':
+          description: Bản dịch
+          content: { application/json: { schema: { $ref: '#/components/schemas/TranslateResult' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '402':
+          description: INSUFFICIENT_CREDITS — hết lượt và hết điểm, không gọi Claude
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '503':
+          description: TRANSLATE_UNAVAILABLE — Claude lỗi/timeout/thiếu khoá; lượt đã hoàn
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+  /api/notes:
+    get:
+      tags: [notes]
+      operationId: listNotes
+      summary: Ghi chú của người gọi, tìm và lọc thẻ (FR-010)
+      parameters:
+        - { name: q, in: query, required: false, schema: { type: string, minLength: 2, maxLength: 100 } }
+        - { name: tag, in: query, required: false, schema: { type: string, maxLength: 50 } }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Trang ghi chú
+          content: { application/json: { schema: { $ref: '#/components/schemas/NotePage' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+    post:
+      tags: [notes]
+      operationId: createNote
+      summary: Tạo ghi chú (FR-009)
+      parameters:
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/NoteRequest' } } }
+      responses:
+        '201':
+          description: Đã tạo
+          content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/LexemeNotFound' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/notes/trash:
+    get:
+      tags: [notes]
+      operationId: listTrash
+      summary: Ghi chú xoá trong 30 ngày (FR-012)
+      responses:
+        '200':
+          description: Thùng rác
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/TrashNote' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/notes/{id}:
+    get:
+      tags: [notes]
+      operationId: getNote
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Ghi chú
+          content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [notes]
+      operationId: updateNote
+      summary: Sửa ghi chú, bản sau cùng thắng (FR-011)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/NoteRequest' } } }
+      responses:
+        '200':
+          description: Đã lưu
+          content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+    delete:
+      tags: [notes]
+      operationId: deleteNote
+      summary: Xoá mềm (FR-012)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '204': { description: Đã xoá }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/notes/{id}/restore:
+    post:
+      tags: [notes]
+      operationId: restoreNote
+      summary: Khôi phục ghi chú xoá trong 30 ngày (FR-012)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '200':
+          description: Đã khôi phục
+          content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: NOTE_NOT_RESTORABLE
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/flashcard-decks:
+    get:
+      tags: [flashcards]
+      operationId: listDecks
+      summary: Bộ của người gọi (FR-013)
+      responses:
+        '200':
+          description: Danh sách
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/DeckSummary' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [flashcards]
+      operationId: createDeck
+      summary: Tạo bộ trống hoặc từ chủ đề (FR-013)
+      parameters:
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/DeckRequest' } } }
+      responses:
+        '201':
+          description: Đã tạo
+          content: { application/json: { schema: { $ref: '#/components/schemas/DeckDetail' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: TOPIC_NOT_FOUND
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/flashcard-decks/{id}:
+    get:
+      tags: [flashcards]
+      operationId: getDeck
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Bộ + thẻ
+          content: { application/json: { schema: { $ref: '#/components/schemas/DeckDetail' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    patch:
+      tags: [flashcards]
+      operationId: updateDeck
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/DeckRequest' } } }
+      responses:
+        '200':
+          description: Đã lưu
+          content: { application/json: { schema: { $ref: '#/components/schemas/DeckSummary' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+    delete:
+      tags: [flashcards]
+      operationId: deleteDeck
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '204': { description: Đã xoá mềm }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/flashcard-decks/{id}/cards:
+    post:
+      tags: [flashcards]
+      operationId: addCard
+      summary: Thêm thẻ từ mục từ hoặc tự nhập (FR-015)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CardRequest' } } }
+      responses:
+        '201':
+          description: Đã thêm
+          content: { application/json: { schema: { $ref: '#/components/schemas/Card' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/LexemeNotFound' }
+        '409': { $ref: '#/components/responses/Duplicate' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+
+  /api/flashcard-decks/{id}/cards/{cardId}:
+    patch:
+      tags: [flashcards]
+      operationId: updateCard
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CardId'
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CardRequest' } } }
+      responses:
+        '200':
+          description: Đã lưu
+          content: { application/json: { schema: { $ref: '#/components/schemas/Card' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Duplicate' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+    delete:
+      tags: [flashcards]
+      operationId: deleteCard
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/CardId'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '204': { description: Đã xoá mềm }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/flashcard-decks/{id}/due:
+    get:
+      tags: [flashcards]
+      operationId: listDueCards
+      summary: ≤ 100 thẻ đến hạn hoặc mới; ahead = ôn trước (FR-017)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - { name: ahead, in: query, required: false, schema: { type: boolean, default: false } }
+      responses:
+        '200':
+          description: Thẻ cần ôn
+          content:
+            application/json:
+              schema: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/Card' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/flashcards/{cardId}/review:
+    post:
+      tags: [flashcards]
+      operationId: reviewCard
+      summary: Tự đánh giá thẻ, cập nhật lịch FSRS; không đổi mastery (FR-018)
+      parameters:
+        - $ref: '#/components/parameters/CardId'
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReviewRequest' } } }
+      responses:
+        '200':
+          description: Lịch mới
+          content: { application/json: { schema: { $ref: '#/components/schemas/ReviewResult' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }

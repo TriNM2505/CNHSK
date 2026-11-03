@@ -1,0 +1,215 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Mastery, Learning Frontier and Due Review API
+  version: 0.1.0
+  description: >
+    Hợp đồng spec 011-mastery-learning-frontier. Mastery MP-1.0 theo nút KID (thang 0–100),
+    biên học tập, gợi ý ôn và lịch ôn mục từ FSRS-5.
+    Cấu trúc cây (nút, tiên quyết) lấy từ spec 010 GET /api/knowledge-tree.
+    Ôn từng câu đi qua engine spec 003 /api/practice/sessions/** với PracticeSource DUE_REVIEW.
+    Mọi endpoint chỉ cho LEARNER và chỉ trả dữ liệu của người gọi.
+    Thao tác ghi qua cookie cần header X-XSRF-TOKEN (spec 001).
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: mastery
+  - name: review
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Kid:
+      name: kid
+      in: path
+      required: true
+      schema: { type: string, example: NP3-004 }
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      description: Bắt buộc khi xác thực bằng cookie (spec 001)
+      schema: { type: string }
+  schemas:
+    ErrorResponse:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ErrorResponse'
+    SessionView:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/SessionView'
+    MasteryState:
+      type: string
+      enum: [notyet, insufficient, review, consolidate, extend, inferred]
+    EvidenceContext:
+      type: string
+      enum: [EXAM, QUIZ, GRADED, PRACTICE]
+    EvidenceForm:
+      type: string
+      enum: [OPEN, MCQ4, MCQ3, BINARY]
+    EvidenceRole:
+      type: string
+      enum: [PRIMARY, SECONDARY, ERROR]
+    MasteryNode:
+      type: object
+      required: [kid, value, confidence, evidenceCount, state, frontier]
+      properties:
+        kid: { type: string, example: NP3-004 }
+        value: { type: [number, 'null'], minimum: 0, maximum: 100, description: 'Một chữ số thập phân; null = chưa có minh chứng' }
+        confidence: { type: number, minimum: 0, description: Σw của cửa sổ tại thời điểm đọc }
+        evidenceCount: { type: integer, minimum: 0, maximum: 8 }
+        state: { $ref: '#/components/schemas/MasteryState' }
+        frontier: { type: boolean, description: Nút trên biên học tập (FR-014) }
+        dueAt: { type: [string, 'null'], format: date-time }
+    MasteryTree:
+      type: object
+      required: [nodes]
+      properties:
+        nodes: { type: array, items: { $ref: '#/components/schemas/MasteryNode' } }
+    EvidenceView:
+      type: object
+      required: [answeredAt, source, context, form, role, score, weight]
+      properties:
+        answeredAt: { type: string, format: date-time }
+        source: { type: string, example: TOPIC_TEST, description: PracticeSource của lượt }
+        context: { $ref: '#/components/schemas/EvidenceContext' }
+        form: { $ref: '#/components/schemas/EvidenceForm' }
+        role: { $ref: '#/components/schemas/EvidenceRole' }
+        score: { type: integer, enum: [0, 100] }
+        weight: { type: number, description: w_static × bán rã tại thời điểm đọc }
+    PrereqState:
+      type: object
+      required: [kid, nameVi, state]
+      properties:
+        kid: { type: string }
+        nameVi: { type: string }
+        state: { $ref: '#/components/schemas/MasteryState' }
+    MasteryNodeDetail:
+      allOf:
+        - $ref: '#/components/schemas/MasteryNode'
+        - type: object
+          required: [prereqs, evidence, approvedQuestionCount]
+          properties:
+            prereqs: { type: array, items: { $ref: '#/components/schemas/PrereqState' } }
+            evidence: { type: array, maxItems: 8, items: { $ref: '#/components/schemas/EvidenceView' } }
+            approvedQuestionCount: { type: integer }
+    Recommendation:
+      type: object
+      required: [kid, nameVi, kind, reason]
+      properties:
+        kid: { type: string }
+        nameVi: { type: string }
+        kind: { type: string, enum: [PREREQ, REVIEW, CONSOLIDATE, NEW] }
+        reason: { type: string, example: 'Cần ôn: 42/100' }
+        value: { type: [number, 'null'] }
+    ReviewSummary:
+      type: object
+      required: [dueCount, nextDueAt]
+      properties:
+        dueCount: { type: integer, minimum: 0 }
+        nextDueAt: { type: [string, 'null'], format: date-time }
+    ReviewStartRequest:
+      type: object
+      properties:
+        ahead: { type: boolean, default: false, description: Lấy cả mục chưa đến hạn (ôn trước) }
+    NothingDue:
+      type: object
+      required: [session, reason]
+      properties:
+        session: { type: 'null' }
+        reason: { type: string, enum: [NOTHING_DUE] }
+  responses:
+    Unauthenticated:
+      description: UNAUTHENTICATED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Forbidden:
+      description: FORBIDDEN (sai role) · CSRF_TOKEN_INVALID
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+paths:
+  /api/mastery:
+    get:
+      tags: [mastery]
+      operationId: getMyMastery
+      summary: Trạng thái mọi nút của cây cho người gọi (FR-016)
+      responses:
+        '200':
+          description: Cùng thứ tự với GET /api/knowledge-tree
+          content: { application/json: { schema: { $ref: '#/components/schemas/MasteryTree' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/mastery/nodes/{kid}:
+    get:
+      tags: [mastery]
+      operationId: getMyMasteryNode
+      summary: Chi tiết một nút, minh chứng trong cửa sổ, tiên quyết (FR-017)
+      parameters:
+        - $ref: '#/components/parameters/Kid'
+      responses:
+        '200':
+          description: Chi tiết
+          content: { application/json: { schema: { $ref: '#/components/schemas/MasteryNodeDetail' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: KNOWLEDGE_NODE_NOT_FOUND
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+  /api/mastery/recommendations:
+    get:
+      tags: [mastery]
+      operationId: getMyRecommendations
+      summary: Tối đa 5 nút nên luyện hôm nay, có lý do (FR-015)
+      responses:
+        '200':
+          description: Theo thứ tự ưu tiên
+          content:
+            application/json:
+              schema: { type: array, maxItems: 5, items: { $ref: '#/components/schemas/Recommendation' } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/reviews/summary:
+    get:
+      tags: [review]
+      operationId: getReviewSummary
+      summary: Số mục từ đến hạn ôn và hạn kế tiếp (FR-021)
+      responses:
+        '200':
+          description: Tóm tắt
+          content: { application/json: { schema: { $ref: '#/components/schemas/ReviewSummary' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/reviews/sessions:
+    post:
+      tags: [review]
+      operationId: startReviewSession
+      summary: Lượt ôn DUE_REVIEW ≤ 50 mục, quá hạn lâu nhất trước (FR-022)
+      parameters:
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: false
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReviewStartRequest' } } }
+      responses:
+        '201':
+          description: Lượt mới
+          content: { application/json: { schema: { $ref: '#/components/schemas/SessionView' } } }
+        '200':
+          description: Lượt dở còn hạn, hoặc không có mục (NothingDue)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SessionView'
+                  - $ref: '#/components/schemas/NothingDue'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: VALIDATION_FAILED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '429':
+          description: RATE_LIMITED kèm retryAfterSeconds (engine E-R12)
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }

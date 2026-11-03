@@ -1,6 +1,6 @@
 # constraints/business.md — Ràng buộc NGHIỆP VỤ
 
-**Version:** 1.0.0 | **Cập nhật:** 2026-09-28 | **Maintainer:** Trí (leader) + cả nhóm
+**Version:** 1.1.0 | **Cập nhật:** 2026-11-03 (RFC đợt cuối R1, R3, R9 — Hiến pháp v1.5.0) | **Maintainer:** Trí (leader) + cả nhóm
 **Enforcement:** Code review + CI (logic nghiệp vụ cần người verify, không tự động 100%)
 
 > 📎 **Mã chuẩn tắc ở hiến pháp.** File này giải thích CHI TIẾT; mã `BUS-01…BUS-15` và
@@ -23,7 +23,7 @@
 - **Header cho mobile:** React Native không có cookie như trình duyệt → dùng
   `Authorization: Bearer`. WebView chơi game: app tiêm token vào header
 - **RBAC 6 role trong DB:** `LEARNER` · `TEACHER` · `MODERATOR` · `CONTENT_EDITOR` ·
-  `ACCOUNTANT` · `ADMIN`.
+  `ACCOUNTANT` · `ADMIN`. Từ 2026-11-03 `ACCOUNTANT` **giữ mã nhưng không có quyền** (RFC R9).
   Kiểm role từ JWT; trái quyền → **403** (không trả 401/404 để giấu endpoint)
 - **Một người có nhiều role được** — bảng nối `user_roles` đã thiết kế cho việc này
 - **Cộng 1 actor KHÔNG phải role trong DB:** `GUEST` — xem §1.1
@@ -34,16 +34,16 @@
 | `TEACHER` | Giáo viên | **Duy nhất** duyệt câu hỏi AI sinh và sửa nội dung câu hỏi; **chấm bài thuê** | chất lượng học thuật |
 | `MODERATOR` | Kiểm duyệt viên | Duyệt bài đăng, xử lý báo cáo vi phạm | Community |
 | `CONTENT_EDITOR` | Biên tập viên nội dung | Nhập dữ liệu, quản lý đề thi và kho câu hỏi (trạng thái, xếp vào đề — **không** sửa nội dung câu), cuộc thi, tài liệu tham khảo | vận hành nội dung |
-| `ACCOUNTANT` | Kế toán | 🔴 Sinh lô mã thẻ, quản lý gói, xem và đối soát sổ cái, xử lý tranh chấp | **tiền thật** |
-| `ADMIN` | Quản trị viên | Quản lý người dùng, gán role, cấu hình hệ thống, xem lịch sử đăng nhập | quản trị tổng |
+| `ACCOUNTANT` | Kế toán | Không có quyền (giữ mã trong DB, RFC R9) | — |
+| `ADMIN` | Quản trị viên | Quản lý người dùng, gán role, cấu hình hệ thống, xem lịch sử đăng nhập · 🔴 **tài chính**: sinh/khoá lô mã thẻ, quản lý gói, xem/xuất/đối chiếu sổ cái | quản trị tổng + **tiền thật** |
 
-> 🔴 **Vì sao tách quyền quản trị thành ba role.** Một role làm được cả ba việc là vi phạm nguyên tắc
-> **đặc quyền tối thiểu**. `ACCOUNTANT` chạm tiền thật nên phải là role hẹp nhất —
-> `NFR-S08` yêu cầu ghi audit cả thao tác **đọc** sổ cái, không phân biệt được nếu một role
-> làm mọi việc. `CONTENT_EDITOR` vận hành nội dung thì không cần quyền sinh mã thẻ.
+> 🔴 **Vì sao gộp tài chính vào `ADMIN` (RFC R9, 2026-11-03).** CNHSK là sản phẩm phễu, không quản lý
+> doanh thu, nên không cần role kế toán riêng. Bù cho việc mất tách quyền — **bắt buộc**:
+> không ai nạp được mã do chính mình tạo; `NFR-S08` ghi audit cả thao tác **đọc** sổ cái;
+> `ADMIN` không tự cấp role cho mình. `CONTENT_EDITOR` không có quyền tài chính.
 >
-> `ADMIN` là quản trị tổng về **tài khoản và hệ thống**, không phải role có mọi quyền:
-> không đụng sổ cái, không duyệt hay sửa nội dung câu hỏi. Chỉ actor này mang chữ "Admin".
+> `ADMIN` vẫn không phải role có mọi quyền: không duyệt hay sửa nội dung câu hỏi, không duyệt bài
+> cộng đồng. Chỉ actor này mang chữ "Admin". Chi tiết: spec 013.
 
 ### 1.1 · Actor không phải role
 
@@ -91,14 +91,21 @@
 
 ## 4. Mastery và lộ trình học
 
-- **Đơn vị đo mastery:** từng điểm kiến thức — từ vựng · ngữ pháp · chữ · kỹ năng.
+> **Sửa theo RFC đợt cuối (R1, R3, R4, R5 — 2026-11-03).** Chi tiết: spec 010, 011.
+
+- **Đơn vị đo mastery:** từng **nút năng lực KID** của Cây Năng Lực v2.0 (vd `NP3-004`), 6 miền
+  `NA CH TV NP NL VB`. Một từ, chữ, chủ đề **không** phải nút — chúng **nối vào** nút (`knowledge_point_id`).
   Không đo theo bài học
-- **Thuật toán:** FSRS. Đúng → mastery tăng, hạn ôn giãn ra; sai → giảm, hạn ôn gần lại
-- **Cập nhật khi:** làm bài thi · luyện tập · học từ theo chủ đề · **chơi game (tức thì)**
-- **Chơi game xong mastery đổi NGAY**, không chờ. `MasteryUpdater.applyGameResult()` chạy
-  **cùng transaction** với lúc lưu điểm
-- **Index bắt buộc:** `(user_id, due_at)` và `(user_id, mastery)`
-- **Ngưỡng qua cổng chủ đề: 90%** — đạt thì mở chủ đề tiếp theo
+- **Thuật toán mastery: MP-1.0** — trung bình có trọng số của ≤ 8 minh chứng gần nhất (bối cảnh ×
+  dạng câu × vai trò × bán rã 30 ngày), thang **0–100**; trạng thái `notyet · insufficient · review (< 60) ·
+  consolidate (60–79) · extend (≥ 80) · inferred`. **"Vững" = ≥ 80**
+- **FSRS** vẫn là thuật toán **lịch ôn mục từ** (từ, chữ, ngữ pháp, flashcard) — `BUS-04` giữ nguyên;
+  FSRS **không** ghi mastery của nút
+- **Cập nhật khi:** nộp bài thi · luyện tập · kiểm tra chủ đề · bài xếp trình độ · **chơi game** — cùng
+  transaction với lúc lưu bài/điểm (`AC-10`). Luyện viết chưa tính (`BUS-16` còn treo)
+- **Biên học tập:** nút được gợi ý học khi mọi tiên quyết đạt **củng cố (≥ 60)**; chỉ gợi ý + tô màu,
+  **không khoá** nội dung
+- **Ngưỡng qua cổng chủ đề: 90%** — đạt thì mở chủ đề tiếp theo (`BUS-05`, không đổi)
 - Chưa đạt 90% → hệ thống **chỉ sinh bài cho phần yếu**, không bắt học lại cả chủ đề
 
 > 📎 Canonical: constitution **AC-10**, **BUS-02**, **BUS-04**, **BUS-05**.
@@ -128,7 +135,7 @@ Server PHẢI kiểm **ba điều kiện** trước khi lưu điểm:
 
 - Câu hỏi AI sinh vào DB với trạng thái **`PENDING_REVIEW`**
 - **KHÔNG BAO GIỜ** hiện câu `PENDING_REVIEW` cho người học
-- **Chỉ `TEACHER`** được duyệt và sửa nội dung câu hỏi. `CONTENT_EDITOR`, `ACCOUNTANT` và `ADMIN`
+- **Chỉ `TEACHER`** được duyệt và sửa nội dung câu hỏi. `CONTENT_EDITOR` và `ADMIN`
   **không** duyệt nội dung — duyệt cần chuyên môn kiến thức, và một người chịu trách nhiệm
   thì khi câu sai mới rõ ai sửa
 - AI lỗi hoặc timeout → dùng ngân hàng câu hỏi có sẵn và ghi log, **không** để người học thấy lỗi
@@ -167,8 +174,9 @@ Server PHẢI kiểm **ba điều kiện** trước khi lưu điểm:
 
 | Thuật ngữ | Nghĩa chuẩn trong CNHSK |
 |---|---|
-| **Mastery** | Mức thành thạo của một người với **một điểm kiến thức** (không phải với bài học hay chủ đề). Tính bằng FSRS |
-| **Knowledge point** | Đơn vị kiến thức nhỏ nhất: một từ vựng, một điểm ngữ pháp, một chữ Hán, một kỹ năng. Bảng `knowledge_points` |
+| **Mastery** | Mức thành thạo 0–100 của một người với **một nút KID** (không phải với bài học hay chủ đề). Tính bằng MP-1.0; "vững" ≥ 80 (RFC R3, R4) |
+| **Knowledge point** | **Một nút năng lực KID** của Cây Năng Lực v2.0 (vd `NP3-004`). Bảng `knowledge_points`. Từ/chữ/chủ đề nối vào nút qua `knowledge_point_id` (RFC R1) |
+| **Biên học tập** | Các nút chưa vững mà mọi tiên quyết đã ≥ 60 — dùng để gợi ý, không khoá (RFC R5) |
 | **Cổng kiểm tra (gate)** | Ngưỡng **90%** của một chủ đề. Đạt thì chủ đề sau mở |
 | **Topic / Chủ đề** | Nhóm điểm kiến thức theo đề tài. Cây chủ đề có thứ tự mở dần |
 | **Đề thi thử** | Chỉ **luyện tập**, KHÔNG mô phỏng thi thật. Mô phỏng thi thật đã bị loại khỏi scope |
