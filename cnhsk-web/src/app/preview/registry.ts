@@ -42,6 +42,7 @@ import { previews as creditsPreviews } from '@/features/credits/catalog.preview'
 import { previews as grammarPreviews } from '@/features/grammar/catalog.preview'
 import { previews as hanziPreviews } from '@/features/hanzi/catalog.preview'
 import { previews as libraryPreviews } from '@/features/library/catalog.preview'
+import { previews as masteryPreviews } from '@/features/mastery/catalog.preview'
 import { previews as practicePreviews } from '@/features/practice/catalog.preview'
 import { previews as pronunciationPreviews } from '@/features/pronunciation/catalog.preview'
 import { previews as questionBankPreviews } from '@/features/question-bank/catalog.preview'
@@ -227,6 +228,7 @@ export const previewRegistry: readonly PreviewEntry[] = [
   ...pronunciationPreviews,
   ...hanziPreviews,
   ...libraryPreviews,
+  ...masteryPreviews,
   ...questionBankPreviews,
   ...practicePreviews,
 ]

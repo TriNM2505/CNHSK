@@ -10,6 +10,7 @@ import { screens as creditsScreens } from '@/features/credits/screens'
 import { screens as grammarScreens } from '@/features/grammar/screens'
 import { screens as hanziScreens } from '@/features/hanzi/screens'
 import { screens as libraryScreens } from '@/features/library/screens'
+import { screens as masteryScreens } from '@/features/mastery/screens'
 import { screens as pronunciationScreens } from '@/features/pronunciation/screens'
 import { screens as questionBankScreens } from '@/features/question-bank/screens'
 import { screens as vocabScreens } from '@/features/vocab/screens'
@@ -57,5 +58,6 @@ export const screenRegistry = createScreenRegistry([
   { feature: 'pronunciation', screens: pronunciationScreens },
   { feature: 'hanzi', screens: hanziScreens },
   { feature: 'library', screens: libraryScreens },
+  { feature: 'mastery', screens: masteryScreens },
   { feature: 'question-bank', screens: questionBankScreens },
 ])

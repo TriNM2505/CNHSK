@@ -12,7 +12,7 @@ File dùng chung (spec §0.3) phải nêu trong Shadow Plan từng task.
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | Nền FE `mastery`: `types.ts` theo OpenAPI, `api/*.ts`, `catalog.preview.ts` (cây ~30 nút tự soạn đủ 6 trạng thái + biên, 5 gợi ý, 12 mục ôn), `screens.ts`; 3 route §12 (`LEARNER`, layout `learner`) vào `routeAccess.ts` + `screenRegistry.ts`; `DUE_REVIEW`, `FLASHCARD_RATING` trong `features/practice/types.ts` (**báo leader trước**) | `web/features/mastery/**`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts`, `web/features/practice/types.ts` | FR-001 (FE), §12 | ⬜ |
+| T-01 | Nền FE `mastery`: `types.ts` và `api/mastery.ts`, `api/reviews.ts` theo OpenAPI; `catalog.preview.ts` có cây ~30 nút tự soạn đủ 6 trạng thái + biên, 5 gợi ý, 12 mục ôn và đăng ký `previews` trong preview registry; `screens.ts`; 3 route §12 (`LEARNER`, layout `learner`) vào `routeAccess.ts` + `screenRegistry.ts`; chỉ thêm `DUE_REVIEW` vào cuối `PracticeSource`, đặt type `FlashcardRating` ở mastery (báo leader trước) | `web/features/mastery/**`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts`, `web/app/preview/registry.ts`, `web/features/practice/types.ts` | FR-001 (FE), §12 | ✅ |
 | T-02 | SCR-019 Learning Progress: lưới 6 miền × HSK 1–3, màu + nhãn chữ, viền biên, bảng chi tiết KID, người mới | `web/features/mastery/pages/Scr019LearningProgressPage.tsx`, `components/*` + test | FR-024 · AT-24 | ⬜ |
 | T-03 | SCR-010 Learning Dashboard: khối "Gợi ý hôm nay" + khối "Ôn tập" | `web/features/mastery/pages/Scr010LearningDashboardPage.tsx` + test | FR-025 · AT-25 | ⬜ |
 | T-04 | SCR-013 Due Review: dùng lại `usePracticeSession`; câu chọn + thẻ 4 mức, đếm còn lại, tạm dừng, rỗng + "Ôn trước" | `web/features/mastery/pages/Scr013DueReviewPage.tsx` + test | FR-026 · AT-26 | ⬜ |
@@ -70,4 +70,4 @@ T-05 + T-11 → T-13 → T-14         (T-14 cần cả T-07)
 
 **Bốn task rủi ro cao:** T-07 (phân bổ đúng + cùng transaction `finish`) · T-06 (công thức phải ra 53,3/61,1) · T-11 (FSRS-5 đúng công thức) · T-12 (sửa engine dùng chung).
 
-**Hiện trạng: 0/15 task xong.**
+**Hiện trạng: 1/15 task xong.**
