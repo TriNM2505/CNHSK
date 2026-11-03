@@ -12,7 +12,7 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | Nền FE `library`: `types.ts` theo OpenAPI, `api/*.ts`, `catalog.preview.ts` (≈ 30 mục từ tự soạn đủ 3 loại, ghi chú, 2 bộ, kết quả dịch mẫu), `screens.ts`; 6 route §12 (2 public, 4 `LEARNER`) vào `routeAccess.ts` + `screenRegistry.ts` + mục điều hướng (**báo leader trước**) | `web/features/library/**`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts`, `web/shared/auth/navigation.ts` | FR-001 (FE), §12 | ⬜ |
+| T-01 | Nền FE `library`: `types.ts` theo OpenAPI, `api/*.ts`, `catalog.preview.ts` (≈ 30 mục từ tự soạn đủ 3 loại, ghi chú, 2 bộ, kết quả dịch mẫu), `screens.ts`; 6 route §12 (2 public, 4 `LEARNER`) vào `routeAccess.ts` + `screenRegistry.ts` + mục điều hướng (**báo leader trước**) | `web/features/library/**`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts`, `web/shared/auth/navigation.ts` | FR-001 (FE), §12 | ✅ (leader duyệt; menu tách PR riêng — xem `questions.md`) |
 | T-02 | SCR-024 Dictionary Search + SCR-025 Dictionary Detail (dùng lại thành phần nét của 006) | `web/features/library/pages/Scr024DictionarySearchPage.tsx`, `Scr025DictionaryDetailPage.tsx` + test | FR-023, FR-024 · AT-23, AT-24 | ⬜ |
 | T-03 | SCR-026 Translation (đoạn bấm được, popup tra từ + lưu) | `web/features/library/pages/Scr026TranslationPage.tsx` + test | FR-025 · AT-25 | ⬜ |
 | T-04 | SCR-027 Personal Notes (tìm, thẻ, thùng rác, đoạn trích escape) | `web/features/library/pages/Scr027PersonalNotesPage.tsx` + test | FR-026 · AT-26 | ⬜ |
@@ -63,4 +63,4 @@ T-13 → T-14
 
 **Bốn task rủi ro cao:** T-14 (trừ/hoàn lượt đúng, không lộ nội dung, chống prompt injection) · T-06 (giới hạn khách theo IP, tra pinyin đúng) · T-08 (403 dữ liệu riêng, giới hạn) · T-12 (đúng FSRS, không đổi mastery).
 
-**Hiện trạng: 0/15 task xong.**
+**Hiện trạng: 1/15 task xong.**
