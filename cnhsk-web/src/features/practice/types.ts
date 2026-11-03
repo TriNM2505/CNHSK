@@ -8,6 +8,9 @@ export type PracticeSource =
   | 'CHAR_WRITING'
   | 'WRITING_CHALLENGE'
   | 'GAME_ROUND'
+  | 'MOCK_EXAM'
+  | 'PLACEMENT'
+  | 'TARGETED_PRACTICE'
 
 export type FeedbackMode = 'IMMEDIATE' | 'DEFERRED' | 'RECORD'
 export type SessionStatus = 'IN_PROGRESS' | 'SUBMITTED' | 'ABANDONED' | 'EXPIRED'

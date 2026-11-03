@@ -37,6 +37,7 @@ import { previews as adminUserPreviews } from '@/features/admin-users/catalog.pr
 import { previews as authPreviews } from '@/features/auth/catalog.preview'
 import { previews as communityPreviews } from '@/features/community/catalog.preview'
 import { previews as contentImportPreviews } from '@/features/content-import/catalog.preview'
+import { previews as examPreviews } from '@/features/exam/catalog.preview'
 import { previews as creditsPreviews } from '@/features/credits/catalog.preview'
 import { previews as grammarPreviews } from '@/features/grammar/catalog.preview'
 import { previews as hanziPreviews } from '@/features/hanzi/catalog.preview'
@@ -218,6 +219,7 @@ export const previewRegistry: readonly PreviewEntry[] = [
   ...accountPreviews,
   ...adminUserPreviews,
   ...contentImportPreviews,
+  ...examPreviews,
   ...creditsPreviews,
   ...vocabPreviews,
   ...grammarPreviews,
