@@ -39,6 +39,7 @@ import { previews as communityPreviews } from '@/features/community/catalog.prev
 import { previews as contentImportPreviews } from '@/features/content-import/catalog.preview'
 import { previews as grammarPreviews } from '@/features/grammar/catalog.preview'
 import { previews as hanziPreviews } from '@/features/hanzi/catalog.preview'
+import { previews as libraryPreviews } from '@/features/library/catalog.preview'
 import { previews as practicePreviews } from '@/features/practice/catalog.preview'
 import { previews as pronunciationPreviews } from '@/features/pronunciation/catalog.preview'
 import { previews as vocabPreviews } from '@/features/vocab/catalog.preview'
@@ -220,6 +221,7 @@ export const previewRegistry: readonly PreviewEntry[] = [
   ...grammarPreviews,
   ...pronunciationPreviews,
   ...hanziPreviews,
+  ...libraryPreviews,
   ...practicePreviews,
 ]
 
