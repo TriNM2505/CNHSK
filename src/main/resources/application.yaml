@@ -80,3 +80,16 @@ cnhsk:
     max-file-size: 2MB
     max-rows: 5000
     preview-ttl: 30m
+  placement:
+    block-size: 5
+    min-items: 25
+    max-items: 35
+    up-at: 4
+    down-at: 2
+    thresholds:
+      1: 60
+      2: 65
+      3: 75
+    sure-min-items: 10
+    start-level: 2
+    min-bank-per-level: 10
