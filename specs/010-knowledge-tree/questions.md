@@ -1,5 +1,13 @@
 # Chốt — Spec 010
 
+## 2026-11-04 — Leader duyệt 010/T-01 (luồng B)
+
+- Thêm `cnhsk-web/src/app/preview/registry.ts` ngoài cột File của T-01 để đăng ký preview của feature. Đây là quyết định chung cho mọi task T-01 nền frontend.
+- Theo OQ-1, tạm hiển thị mã miền `NA`, `CH`, `TV`, `NP`, `NL`, `VB`; chưa tự đặt tên tiếng Việt cho miền.
+- Duyệt hai route `/content/questions` (SCR-064), `/content/questions/:id` (SCR-059), guard `CONTENT_EDITOR`/`TEACHER`, layout `admin`; đăng ký catalog `question-bank` với `screens = {} satisfies ScreenCatalog`.
+- Không sửa `shared/layout/navigation.ts`; mục menu "Kho câu hỏi" để PR điều hướng chung hoặc T-13.
+- Duyệt cập nhật ✅ T-01 trong cùng PR sau khi gate xanh; mô tả PR liệt kê từng file theo tên thật, không dùng wildcard.
+
 ## 2026-11-02 — Shadow Plan spec (leader duyệt)
 
 Nguồn đã đọc: `AGENTS.md`, constitution v1.4.1, `constraints/` (business, global, safety), `CONTEXT.md`, spec 002/003 §0/004/005, `specs/001-auth-rbac/tasks.md`, feature-tree 2.1–3.3/6.3/6.4/6.6, UC-109/110/112/137, `screen-fields.md` SCR-059/064, `design.md`, `database.md`, migration V1–V4, `learning.api.PracticeApi`, `auth.api.AuthApi`, Cây Năng Lực v2.0 (qua báo cáo trích của plan `261017-1654`), 3 file `Caytrithuc/*.md`.

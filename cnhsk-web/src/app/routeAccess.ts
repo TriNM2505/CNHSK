@@ -77,6 +77,20 @@ export const appRouteDefinitions = [
   },
   { access: 'public', kind: 'screen', layout: 'public', path: '/403', scr: 'SCR-079' },
   {
+    access: ['CONTENT_EDITOR', 'TEACHER'],
+    kind: 'screen',
+    layout: 'admin',
+    path: '/content/questions',
+    scr: 'SCR-064',
+  },
+  {
+    access: ['CONTENT_EDITOR', 'TEACHER'],
+    kind: 'screen',
+    layout: 'admin',
+    path: '/content/questions/:id',
+    scr: 'SCR-059',
+  },
+  {
     access: ['CONTENT_EDITOR'],
     kind: 'screen',
     layout: 'admin',
