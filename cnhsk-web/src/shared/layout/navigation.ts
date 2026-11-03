@@ -1,4 +1,15 @@
-import { BookOpen, Gamepad2, Languages, Mic2, PenTool, Upload, UsersRound } from 'lucide-react'
+import {
+  BookOpen,
+  CreditCard,
+  Gamepad2,
+  Languages,
+  ListChecks,
+  Mic2,
+  Package,
+  PenTool,
+  Upload,
+  UsersRound,
+} from 'lucide-react'
 import type { ComponentType, SVGProps } from 'react'
 
 import type { RoleCode } from '@/features/auth/types'
@@ -57,6 +68,27 @@ export const adminNavigation: readonly NavigationItem[] = [
     label: 'Người dùng',
     role: 'ADMIN',
     to: '/admin/users',
+  },
+  {
+    activePrefixes: ['/admin/card-batches'],
+    icon: CreditCard,
+    label: 'Lô mã thẻ',
+    role: 'ADMIN',
+    to: '/admin/card-batches',
+  },
+  {
+    activePrefixes: ['/admin/plans'],
+    icon: Package,
+    label: 'Gói dịch vụ',
+    role: 'ADMIN',
+    to: '/admin/plans',
+  },
+  {
+    activePrefixes: ['/admin/ledger'],
+    icon: ListChecks,
+    label: 'Sổ cái điểm',
+    role: 'ADMIN',
+    to: '/admin/ledger',
   },
 ]
 
