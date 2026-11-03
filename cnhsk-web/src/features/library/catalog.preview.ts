@@ -1,6 +1,12 @@
-import { createElement } from 'react'
+import { createElement, useState } from 'react'
 
-import type { PreviewEntry } from '@/app/preview/types'
+import type { PreviewEntry, PreviewState } from '@/app/preview/types'
+import { ApiError } from '@/shared/api'
+
+import { DictionarySearchView } from './components/DictionarySearchView'
+import { LexemeDetailView } from './components/LexemeDetailView'
+import { LexemeSaveActions, type LexemeSaveActionsProps } from './components/LexemeSaveActions'
+import { dictionarySearchParams, type DictionarySearch } from './dictionarySearch'
 
 import type {
   DeckDetail,
@@ -309,36 +315,136 @@ function samplePreview(title: string, rows: readonly { id: number; text: string 
   )
 }
 
+function DictionaryPreview({
+  state,
+  learner = false,
+  rateLimited = false,
+}: {
+  state: PreviewState
+  learner?: boolean
+  rateLimited?: boolean
+}) {
+  const [draft, setDraft] = useState<DictionarySearch>({
+    type: 'HANZI',
+    q: '日',
+    radical: '',
+    strokes: '',
+    page: 0,
+  })
+  const [page, setPage] = useState(0)
+  const result =
+    state === 'empty'
+      ? libraryTranslationHint
+      : { ...librarySearchResult, items: libraryLexemes.slice(page * 20, (page + 1) * 20) }
+  return createElement(DictionarySearchView, {
+    draft,
+    onChange: setDraft,
+    onSubmit: () => setPage(0),
+    onPageChange: setPage,
+    onRetry: () => undefined,
+    onRadicalsRetry: () => undefined,
+    state,
+    result,
+    error: new ApiError({
+      status: rateLimited ? 429 : 503,
+      errorCode: rateLimited ? 'RATE_LIMITED' : 'NETWORK_ERROR',
+      message: 'Chưa thể tra cứu. Vui lòng thử lại.',
+      extra: { retryAfterSeconds: 60 },
+    }),
+    radicals: libraryRadicals,
+    searched: true,
+    page,
+    returnTo: `/dictionary?${dictionarySearchParams({ ...draft, page })}`,
+    loginTo: '/login?redirect=%2Fdictionary',
+    canTranslate: learner,
+    guest: !learner,
+  })
+}
+
+function DetailPreview({
+  state,
+  entry,
+  access,
+}: {
+  state: PreviewState
+  entry: LexemeDetail
+  access: LexemeSaveActionsProps['access']
+}) {
+  return createElement(LexemeDetailView, {
+    entry,
+    state: state === 'empty' ? 'error' : state,
+    error: new ApiError({
+      status: state === 'empty' ? 404 : 503,
+      errorCode: state === 'empty' ? 'LEXEME_NOT_FOUND' : 'NETWORK_ERROR',
+      message: state === 'empty' ? 'Mục từ không tồn tại.' : 'Chưa tải được mục từ.',
+    }),
+    backTo: '/dictionary?type=HANZI&q=日&page=0',
+    onRetry: () => undefined,
+    saveActions: createElement(LexemeSaveActions, {
+      key: `${entry.id}:${access}`,
+      entry,
+      access,
+      loginTo: `/login?redirect=%2Fdictionary%2F${entry.id}`,
+      onReloadAuth: () => undefined,
+      onCreateNote: async () => undefined,
+      onLoadDecks: async () => libraryDeckSummaries,
+      onAddCard: async () => undefined,
+    }),
+  })
+}
+
+function sampleDetail(id: number): LexemeDetail {
+  const entry = libraryLexemeDetails.find((lexeme) => lexeme.id === id)
+  if (!entry) throw new Error(`Missing original dictionary sample ${id}`)
+  return entry
+}
+
 export const previews = [
   {
     group: 'screen',
     id: 'library-dictionary-samples',
     scr: 'SCR-024',
-    title: 'Tra cứu — Dữ liệu mẫu',
-    render: () =>
-      samplePreview(
-        'Mục từ mẫu',
-        libraryLexemes.map((entry) => ({
-          id: entry.id,
-          text: `${entry.text} · ${entry.pinyin} · ${entry.meaningVi} · HSK ${entry.hskLevel}`,
-        })),
-      ),
+    title: 'Tra từ điển — Khách',
+    render: (state) => createElement(DictionaryPreview, { state }),
   },
   {
     group: 'screen',
     id: 'library-detail-samples',
     scr: 'SCR-025',
-    title: 'Chi tiết mục từ — Dữ liệu mẫu',
-    render: () =>
-      samplePreview(
-        'Các loại mục từ',
-        libraryLexemeDetails
-          .filter(({ id }) => [101, 212, 301].includes(id))
-          .map((entry) => ({
-            id: entry.id,
-            text: `${entry.kind} · ${entry.text} · ${entry.meaningVi}${entry.structure ? ` · ${entry.structure}` : ''}`,
-          })),
-      ),
+    title: 'Chi tiết chữ Hán — Khách',
+    render: (state) =>
+      createElement(DetailPreview, { state, entry: sampleDetail(101), access: 'guest' }),
+  },
+  {
+    group: 'screen',
+    id: 'library-dictionary-learner',
+    scr: 'SCR-024',
+    title: 'Tra từ điển — Học viên',
+    render: (state) => createElement(DictionaryPreview, { state, learner: true }),
+  },
+  {
+    group: 'screen',
+    id: 'library-dictionary-rate-limited',
+    scr: 'SCR-024',
+    title: 'Tra từ điển — Khách hết lượt tra',
+    states: ['error'],
+    render: (state) => createElement(DictionaryPreview, { state, rateLimited: true }),
+  },
+  {
+    group: 'screen',
+    id: 'library-detail-learner',
+    scr: 'SCR-025',
+    title: 'Chi tiết từ vựng — Học viên',
+    render: (state) =>
+      createElement(DetailPreview, { state, entry: sampleDetail(212), access: 'learner' }),
+  },
+  {
+    group: 'screen',
+    id: 'library-detail-grammar',
+    scr: 'SCR-025',
+    title: 'Chi tiết ngữ pháp — Tài khoản không có LEARNER',
+    render: (state) =>
+      createElement(DetailPreview, { state, entry: sampleDetail(301), access: 'other' }),
   },
   {
     group: 'screen',

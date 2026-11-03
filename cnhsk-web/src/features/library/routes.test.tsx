@@ -10,7 +10,15 @@ import type { CurrentUser, RoleCode } from '@/features/auth/types'
 import { ApiError } from '@/shared/api'
 import { getAuthenticatedDestination } from '@/shared/auth/navigation'
 
+import { getLexeme, searchDictionary } from './api/dictionary'
+
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
+vi.mock('./api/dictionary', () => ({
+  getLexeme: vi.fn(),
+  searchDictionary: vi.fn(),
+  listRadicals: vi.fn(),
+  searchByRadical: vi.fn(),
+}))
 
 const routes = [
   { path: '/dictionary', url: '/dictionary', scr: 'SCR-024', access: 'public', layout: 'public' },
@@ -65,6 +73,20 @@ function renderRoute(path: string) {
 }
 
 beforeEach(() => {
+  vi.mocked(searchDictionary).mockReset().mockResolvedValue({ items: [], total: 0 })
+  vi.mocked(getLexeme)
+    .mockReset()
+    .mockResolvedValue({
+      id: 101,
+      kind: 'CHAR',
+      text: '日',
+      meaningVi: 'ngày; mặt trời',
+      examples: [],
+      components: [],
+      containedIn: [],
+      related: [],
+      strokeData: null,
+    })
   getCurrentUserMock
     .mockReset()
     .mockRejectedValue(
@@ -97,7 +119,9 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
     'FR001_guest can open $scr at $url',
     async ({ url, scr }) => {
       const router = renderRoute(url)
-      expect(await screen.findByRole('heading', { name: `Màn ${scr} đang dựng` })).toBeVisible()
+      expect(
+        await screen.findByRole('heading', { name: scr === 'SCR-024' ? 'Tra từ điển' : '日' }),
+      ).toBeVisible()
       expect(router.state.location.pathname).toBe(url)
     },
   )
@@ -106,7 +130,9 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
     getCurrentUserMock.mockResolvedValue(user(['LEARNER']))
     const router = renderRoute(url)
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: `Màn ${scr} đang dựng` })).toBeVisible()
+      const title =
+        scr === 'SCR-024' ? 'Tra từ điển' : scr === 'SCR-025' ? '日' : `Màn ${scr} đang dựng`
+      expect(screen.getByRole('heading', { name: title })).toBeVisible()
     })
     expect(router.state.location.pathname).toBe(url)
   })
@@ -161,15 +187,19 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
   )
 
   it('exposes all six sample catalogs through the existing preview registry', () => {
-    expect(
-      previewRegistry.filter(({ id }) => id.startsWith('library-')).map(({ scr }) => scr),
-    ).toEqual(routes.map(({ scr }) => scr))
+    expect([
+      ...new Set(
+        previewRegistry.filter(({ id }) => id.startsWith('library-')).map(({ scr }) => scr),
+      ),
+    ]).toEqual(routes.map(({ scr }) => scr))
   })
 
   it('renders the original dictionary samples without a backend', async () => {
     renderRoute('/__preview/frame/library-dictionary-samples/ready')
-    expect(await screen.findByRole('heading', { name: 'Mục từ mẫu' })).toBeVisible()
-    expect(screen.getAllByRole('listitem')).toHaveLength(30)
+    expect(await screen.findByRole('heading', { name: 'Tra từ điển' })).toBeVisible()
+    expect(screen.getAllByRole('listitem')).toHaveLength(20)
     expect(getCurrentUserMock).not.toHaveBeenCalled()
+    expect(searchDictionary).not.toHaveBeenCalled()
+    expect(getLexeme).not.toHaveBeenCalled()
   })
 })
