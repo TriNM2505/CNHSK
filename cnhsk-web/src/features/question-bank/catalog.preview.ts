@@ -1,0 +1,258 @@
+import { createElement } from 'react'
+
+import type { PreviewEntry } from '@/app/preview/types'
+
+import type {
+  KnowledgeNode,
+  KnowledgeTree,
+  QuestionDetail,
+  QuestionLabel,
+  QuestionPage,
+  QuestionType,
+} from './types'
+
+// Original fixtures; KIDs and questions do not reproduce the source tree or HSK exams.
+const nodeRows = [
+  ['NA1-901', 'NA', 1, 'Nhận diện âm đơn mẫu', '辨音示例', 'LISTENING'],
+  ['CH1-901', 'CH', 1, 'Nhận diện chữ quen thuộc mẫu', '认字示例', 'CHARACTER'],
+  ['TV1-901', 'TV', 1, 'Từ chỉ đồ vật mẫu', '物品词示例', 'VOCAB'],
+  ['TV2-901', 'TV', 2, 'Từ chỉ hoạt động mẫu', '动作词示例', 'VOCAB'],
+  ['NP1-901', 'NP', 1, 'Câu giới thiệu mẫu', '介绍句示例', 'GRAMMAR'],
+  ['NP2-901', 'NP', 2, 'Câu chỉ vị trí mẫu', '位置句示例', 'GRAMMAR'],
+  ['NP3-901', 'NP', 3, 'Sắp xếp câu ngắn mẫu', '组句示例', 'GRAMMAR'],
+  ['NL1-901', 'NL', 1, 'Đọc câu ngắn mẫu', '读句示例', 'READING'],
+  ['VB1-901', 'VB', 1, 'Nhận biết ý đoạn ngắn mẫu', '短文示例', null],
+] as const
+
+export const knowledgeTreeSample: KnowledgeTree = {
+  nodes: nodeRows.map(([kid, domain, hskLevel, nameVi, nameZh, skillType]): KnowledgeNode => ({
+    kid,
+    domain,
+    hskLevel,
+    nameVi,
+    nameZh,
+    canDo: `Thực hành nội dung tự soạn: ${nameVi.toLowerCase()}.`,
+    skillType,
+    prereqKids: kid === 'NP2-901' ? ['NP1-901'] : kid === 'NP3-901' ? ['NP2-901'] : [],
+    supportKids: kid === 'NP2-901' ? ['TV2-901'] : [],
+  })),
+}
+
+function label(kid: string, role: QuestionLabel['role'] = 'PRIMARY'): QuestionLabel {
+  const node = knowledgeTreeSample.nodes.find((entry) => entry.kid === kid)!
+  return { kid, nameVi: node.nameVi, role }
+}
+
+function question(
+  id: number,
+  qtype: QuestionType,
+  fields: Pick<QuestionDetail, 'stem' | 'options' | 'explanation'> & Partial<QuestionDetail>,
+): QuestionDetail {
+  return {
+    id,
+    code: `DEMO_Q_${id}`,
+    qtype,
+    hskLevel: 1,
+    difficulty: 2,
+    source: 'IMPORT',
+    status: 'APPROVED',
+    correctKey: null,
+    audioUrl: null,
+    imageUrl: null,
+    reviewReason: null,
+    labels: [label('TV1-901')],
+    used: false,
+    ...fields,
+  }
+}
+
+export const questionSamples: QuestionDetail[] = [
+  question(101, 'MULTIPLE_CHOICE', {
+    stem: 'Chọn nghĩa của 水 trong câu 我喝水。',
+    options: [
+      { key: 'A', text: 'nước', isCorrect: true },
+      { key: 'B', text: 'sách', isCorrect: false, errorKid: 'TV2-901', errorNote: 'Nhầm đồ vật.' },
+    ],
+    explanation: '水 nghĩa là nước; 我喝水 nghĩa là tôi uống nước.',
+    labels: [label('TV1-901'), label('TV2-901', 'SECONDARY')],
+    used: true,
+  }),
+  question(102, 'MULTIPLE_CHOICE', {
+    stem: 'Chọn từ chỉ ngày mai.',
+    options: [
+      { key: 'A', text: '今天', isCorrect: false },
+      { key: 'B', text: '明天', isCorrect: true },
+      { key: 'C', text: '昨天', isCorrect: false },
+    ],
+    explanation: '明天 nghĩa là ngày mai.',
+    hskLevel: 2,
+    code: null,
+    source: 'AI',
+    status: 'PENDING_REVIEW',
+  }),
+  question(103, 'TRUE_FALSE', {
+    stem: 'Câu 她是老师。 có nghĩa là cô ấy là giáo viên.',
+    options: [
+      { key: 'A', text: 'Đúng', isCorrect: true },
+      { key: 'B', text: 'Sai', isCorrect: false },
+    ],
+    explanation: '老师 là giáo viên; câu dùng 是 để giới thiệu.',
+    labels: [label('NP1-901')],
+  }),
+  question(104, 'TRUE_FALSE', {
+    stem: 'Câu 书在桌子上。 có nghĩa là sách ở dưới bàn.',
+    options: [
+      { key: 'A', text: 'Đúng', isCorrect: false },
+      { key: 'B', text: 'Sai', isCorrect: true },
+    ],
+    explanation: '上 chỉ phía trên, vì vậy sách ở trên bàn.',
+    hskLevel: 2,
+    labels: [label('NP2-901')],
+    status: 'ARCHIVED',
+    used: true,
+  }),
+  question(105, 'IMAGE_MATCH', {
+    stem: 'Hình minh hoạ mẫu là một quyển sách. Chọn từ phù hợp.',
+    imageUrl: 'https://assets.example.test/question-bank/book.svg',
+    options: [
+      { key: 'A', text: '书', isCorrect: true },
+      { key: 'B', text: '水', isCorrect: false },
+    ],
+    explanation: '书 là sách.',
+    labels: [label('CH1-901')],
+  }),
+  question(106, 'IMAGE_MATCH', {
+    stem: 'Hình minh hoạ mẫu là một ngọn núi. Chọn từ phù hợp.',
+    imageUrl: 'https://assets.example.test/question-bank/mountain.svg',
+    options: [
+      { key: 'A', text: '人', isCorrect: false },
+      { key: 'B', text: '山', isCorrect: true },
+    ],
+    explanation: '山 là núi.',
+    hskLevel: 2,
+    source: 'MANUAL',
+  }),
+  question(107, 'SENTENCE_MATCH', {
+    stem: 'Chọn nghĩa phù hợp với 今天我看书。',
+    options: [
+      { key: 'A', text: 'Hôm nay tôi đọc sách.', isCorrect: true },
+      { key: 'B', text: 'Ngày mai tôi uống nước.', isCorrect: false },
+    ],
+    explanation: '今天 là hôm nay; 看书 là đọc sách.',
+    labels: [label('NL1-901')],
+  }),
+  question(108, 'SENTENCE_MATCH', {
+    stem: 'Chọn câu phù hợp với “Bạn tôi ở trường”.',
+    options: [
+      { key: 'A', text: '我的朋友在学校。', isCorrect: true },
+      { key: 'B', text: '我明天去学校。', isCorrect: false },
+    ],
+    explanation: '我的朋友 là bạn tôi; 在学校 là ở trường.',
+    hskLevel: 2,
+    labels: [label('NP2-901'), label('NL1-901', 'SECONDARY')],
+    status: 'REJECTED',
+    code: null,
+    source: 'AI',
+    reviewReason: 'Ví dụ mẫu cần thêm ngữ cảnh.',
+  }),
+  question(109, 'FILL_BLANK', {
+    stem: 'Điền từ “nước”: 我喝___。',
+    options: [],
+    correctKey: '水',
+    explanation: 'Điền 水 để tạo câu 我喝水。',
+  }),
+  question(110, 'FILL_BLANK', {
+    stem: 'Điền từ chỉ vị trí “ở”: 他___学校学习。',
+    options: [],
+    correctKey: '在',
+    explanation: '在 đứng trước địa điểm 学校.',
+    hskLevel: 3,
+    labels: [label('NP2-901')],
+  }),
+  question(111, 'SENTENCE_ORDER', {
+    stem: 'Sắp xếp các mảnh thành câu “Hôm nay tôi đọc sách”.',
+    options: [
+      { key: 'A', text: '我', isCorrect: false },
+      { key: 'B', text: '今天', isCorrect: false },
+      { key: 'C', text: '看书', isCorrect: false },
+    ],
+    correctKey: 'BAC',
+    explanation: 'Thứ tự mẫu là 今天我看书。',
+    hskLevel: 3,
+    labels: [label('NP3-901')],
+    used: true,
+  }),
+  question(112, 'SENTENCE_ORDER', {
+    stem: 'Sắp xếp các mảnh thành câu “Anh ấy học ở trường”.',
+    options: [
+      { key: 'A', text: '他', isCorrect: false },
+      { key: 'B', text: '在学校', isCorrect: false },
+      { key: 'C', text: '学习', isCorrect: false },
+    ],
+    correctKey: 'ABC',
+    explanation: 'Thứ tự mẫu là 他在学校学习。',
+    hskLevel: 3,
+    labels: [label('NP3-901'), label('TV2-901', 'SECONDARY')],
+  }),
+]
+
+export const questionPageSample: QuestionPage = {
+  items: questionSamples
+    .slice(0, 10)
+    .map(({ id, code, qtype, hskLevel, difficulty, stem, source, status, labels, used }) => ({
+      id,
+      code,
+      qtype,
+      hskLevel,
+      difficulty,
+      stemSummary: stem.slice(0, 120),
+      source,
+      status,
+      primaryKid: labels.find(({ role }) => role === 'PRIMARY')?.kid ?? null,
+      secondaryKids: labels.filter(({ role }) => role === 'SECONDARY').map(({ kid }) => kid),
+      used,
+    })),
+  page: 0,
+  size: 10,
+  totalElements: questionSamples.length,
+}
+
+function sampleList(title: string, questions: readonly QuestionDetail[]) {
+  return createElement(
+    'section',
+    { className: 'mx-auto max-w-reading space-y-4' },
+    createElement('h1', { className: 'text-h1-sm text-ink' }, title),
+    createElement(
+      'ul',
+      { className: 'space-y-3' },
+      questions.map(({ id, code, qtype, stem, hskLevel }) =>
+        createElement(
+          'li',
+          { className: 'rounded-md border border-line bg-surface p-4 text-body text-ink', key: id },
+          `${code ?? 'Câu AI'} · ${qtype} · HSK ${hskLevel} · ${stem}`,
+        ),
+      ),
+    ),
+  )
+}
+
+export const previews = [
+  {
+    group: 'screen',
+    id: 'question-bank-samples',
+    scr: 'SCR-064',
+    title: 'Kho câu hỏi — Dữ liệu mẫu',
+    render: () => sampleList('Kho câu hỏi mẫu', questionSamples),
+  },
+  {
+    group: 'screen',
+    id: 'question-bank-detail-samples',
+    scr: 'SCR-059',
+    title: 'Chi tiết câu hỏi — Các loại câu mẫu',
+    render: () =>
+      sampleList(
+        'Các loại câu hỏi mẫu',
+        questionSamples.filter((_, index) => index % 2 === 0),
+      ),
+  },
+] satisfies readonly PreviewEntry[]
