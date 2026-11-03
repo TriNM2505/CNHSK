@@ -19,6 +19,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.cnhsk.auth.api.AuthApi;
+import com.cnhsk.auth.api.CurrentUser;
+import com.cnhsk.auth.api.RoleCode;
+import com.cnhsk.community.common.ReactionKind;
 import com.cnhsk.community.comment.CommentRepository;
 import com.cnhsk.community.common.CommunityAuthors;
 import com.cnhsk.community.common.PostCategory;
@@ -42,6 +46,7 @@ class PostQueryServiceTest {
     private CommentRepository comments;
     private ReactionRepository reactions;
     private CommunityAuthors authors;
+    private AuthApi auth;
     private PostQueryService service;
 
     @BeforeEach
@@ -50,7 +55,8 @@ class PostQueryServiceTest {
         comments = mock(CommentRepository.class);
         reactions = mock(ReactionRepository.class);
         authors = mock(CommunityAuthors.class);
-        service = new PostQueryService(posts, comments, reactions, authors);
+        auth = mock(AuthApi.class);
+        service = new PostQueryService(posts, comments, reactions, authors, auth);
     }
 
     @Test
@@ -73,6 +79,7 @@ class PostQueryServiceTest {
             assertThat(detail.commentCount()).isZero();
             assertThat(detail.likeCount()).isZero();
         }
+        verifyNoInteractions(auth);
     }
 
     @Test
@@ -106,6 +113,7 @@ class PostQueryServiceTest {
         var order = inOrder(posts);
         order.verify(posts).countPublished(PostCategory.QUESTION);
         order.verify(posts).findPublished(isNull(), eq(PostCategory.QUESTION), any(Pageable.class));
+        verifyNoInteractions(auth);
     }
 
     @Test
@@ -158,6 +166,151 @@ class PostQueryServiceTest {
             assertThat(author.get("displayName").isNull()).isTrue();
             assertNoPrivateFields(rendered);
         }
+        verifyNoInteractions(auth);
+    }
+
+    @Test
+    void FR001_privateReadsRequireActualLearnerBeforeAnyRepositoryCall() {
+        ApiException unauthenticated = new ApiException(ErrorCode.UNAUTHENTICATED, HttpStatus.UNAUTHORIZED,
+                "Authentication required", Map.of());
+        when(auth.currentUser()).thenThrow(unauthenticated);
+        assertThatThrownBy(() -> service.ownList(0, 20, null)).isSameAs(unauthenticated);
+        assertThatThrownBy(() -> service.ownDetail(1)).isSameAs(unauthenticated);
+        assertThatThrownBy(() -> service.viewerState(1)).isSameAs(unauthenticated);
+        org.mockito.Mockito.reset(auth);
+        for (RoleCode role : RoleCode.values()) {
+            if (role == RoleCode.LEARNER) continue;
+            when(auth.currentUser()).thenReturn(new CurrentUser(42, Set.of(role), true));
+            assertForbidden(() -> service.ownList(0, 20, null));
+            assertForbidden(() -> service.ownDetail(1));
+            assertForbidden(() -> service.viewerState(1));
+        }
+        verifyNoInteractions(posts, comments, reactions, authors);
+        verify(auth, never()).requireVerifiedEmail(anyLong());
+        verify(auth, never()).hasRole(anyLong(), any());
+    }
+
+    @Test
+    void FR016_ownerListUsesSessionIdentityCountsBeforeFetchingAndReturnsExactProjection() {
+        learner();
+        Post owned = post(8, 42, "Body");
+        owned.setStatus(PostStatus.REJECTED);
+        owned.setReviewReason("Revise synthetic source");
+        when(posts.countOwned(42, PostStatus.REJECTED)).thenReturn(9L);
+        when(posts.findOwned(eq(42L), isNull(), eq(PostStatus.REJECTED), any(Pageable.class)))
+                .thenReturn(List.of(owned));
+        var page = service.ownList(1, 3, PostStatus.REJECTED);
+        assertThat(page.page()).isEqualTo(1);
+        assertThat(page.size()).isEqualTo(3);
+        assertThat(page.totalElements()).isEqualTo(9);
+        assertThat(page.items()).containsExactly(PostService.toOwnPost(owned));
+        var pageable = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        var order = inOrder(posts);
+        order.verify(posts).countOwned(42, PostStatus.REJECTED);
+        order.verify(posts).findOwned(eq(42L), isNull(), eq(PostStatus.REJECTED), pageable.capture());
+        assertThat(pageable.getValue().getOffset()).isEqualTo(3);
+        verifyNoMoreInteractions(posts);
+        verifyNoInteractions(authors, comments, reactions);
+        verify(auth, never()).requireVerifiedEmail(anyLong());
+    }
+
+    @Test
+    void FR016_emptyAndOutOfRangeOwnerPagesDoNotOverflowOrFetchRows() {
+        learner();
+        when(posts.countOwned(42, null)).thenReturn(0L, 3L, 3L);
+        for (int number : new int[] {0, 99, Integer.MAX_VALUE}) {
+            var page = service.ownList(number, 50, null);
+            assertThat(page.items()).isEmpty();
+            assertThat(page.page()).isEqualTo(number);
+            assertThat(page.totalElements()).isEqualTo(number == 0 ? 0 : 3);
+        }
+        verify(posts, never()).findOwned(anyLong(), any(), any(), any());
+        verifyNoInteractions(authors, comments, reactions);
+    }
+
+    @Test
+    void FR016_ownerDetailsMapEveryStatusWithoutMutatingStoredReviewMetadata() {
+        learner();
+        for (PostStatus status : PostStatus.values()) {
+            Post post = post(7, 42, "Literal <b>body</b>");
+            post.setStatus(status);
+            post.setReviewReason("Stored reason");
+            when(posts.findOwned(eq(42L), eq(7L), isNull(), any(Pageable.class))).thenReturn(List.of(post));
+            var detail = service.ownDetail(7);
+            assertThat(detail).isEqualTo(PostService.toOwnPost(post));
+            assertThat(detail.status()).isEqualTo(status);
+            assertThat(detail.reviewReason()).isEqualTo(status == PostStatus.REJECTED || status == PostStatus.HIDDEN
+                    ? "Stored reason" : null);
+            assertThat(post.getReviewReason()).isEqualTo("Stored reason");
+            assertThat(post.getPublishedAt()).isEqualTo(PUBLISHED);
+        }
+        Post hidden = post(7, 42, "Body");
+        hidden.setStatus(PostStatus.HIDDEN);
+        when(posts.findOwned(eq(42L), eq(7L), isNull(), any(Pageable.class))).thenReturn(List.of(hidden));
+        assertThat(service.ownDetail(7).reviewReason()).isNull();
+        verifyNoInteractions(authors, comments, reactions);
+        verify(posts, never()).findById(any());
+        verify(posts, never()).findByIdForUpdate(anyLong());
+        verify(posts, never()).countOwned(anyLong(), any());
+    }
+
+    @Test
+    void FR016_ownerMissUsesOnlyOwnershipScopedLookupAndSafeForbidden() {
+        learner();
+        when(posts.findOwned(eq(42L), eq(99L), isNull(), any(Pageable.class))).thenReturn(List.of());
+        assertForbidden(() -> service.ownDetail(99));
+        verify(posts).findOwned(eq(42L), eq(99L), isNull(), any(Pageable.class));
+        verifyNoMoreInteractions(posts);
+        verifyNoInteractions(authors, comments, reactions);
+    }
+
+    @Test
+    void FR056_viewerVisibilityFailureStopsBeforeReactionLookup() {
+        learner();
+        when(posts.findPublished(eq(9L), isNull(), any(Pageable.class))).thenReturn(List.of());
+        assertThatThrownBy(() -> service.viewerState(9)).isInstanceOfSatisfying(ApiException.class, error -> {
+            assertThat(error.getCode()).isEqualTo(ErrorCode.POST_NOT_FOUND);
+            assertThat(error.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+        });
+        verify(posts).findPublished(eq(9L), isNull(), any(Pageable.class));
+        verifyNoMoreInteractions(posts);
+        verifyNoInteractions(reactions, comments, authors);
+    }
+
+    @Test
+    void FR056_viewerFlagsCoverAllCombinationsForOnlyTheAuthenticatedUser() {
+        learner();
+        when(posts.findPublished(eq(8L), isNull(), any(Pageable.class))).thenReturn(List.of(post(8, 43, "Body")));
+        List<List<ReactionKind>> combinations = List.of(List.of(), List.of(ReactionKind.LIKE),
+                List.of(ReactionKind.REPORT), List.of(ReactionKind.LIKE, ReactionKind.REPORT));
+        for (List<ReactionKind> kinds : combinations) {
+            when(reactions.findPostViewerKinds(42, 8)).thenReturn(kinds);
+            var state = service.viewerState(8);
+            assertThat(state.liked()).isEqualTo(kinds.contains(ReactionKind.LIKE));
+            assertThat(state.reported()).isEqualTo(kinds.contains(ReactionKind.REPORT));
+        }
+        verifyNoInteractions(authors, comments);
+        verify(auth, never()).requireVerifiedEmail(anyLong());
+    }
+
+    @Test
+    void FR006_publicReadsNeverResolveAuthenticatedIdentity() {
+        when(posts.countPublished(null)).thenReturn(0L);
+        service.publishedList(0, 20, null);
+        when(posts.findPublished(eq(9L), isNull(), any(Pageable.class))).thenReturn(List.of());
+        assertThatThrownBy(() -> service.publishedDetail(9)).isInstanceOf(ApiException.class);
+        verifyNoInteractions(auth);
+    }
+
+    private void learner() {
+        when(auth.currentUser()).thenReturn(new CurrentUser(42, Set.of(RoleCode.LEARNER), false));
+    }
+
+    private void assertForbidden(org.assertj.core.api.ThrowableAssert.ThrowingCallable action) {
+        assertThatThrownBy(action).isInstanceOfSatisfying(ApiException.class, error -> {
+            assertThat(error.getCode()).isEqualTo(ErrorCode.FORBIDDEN);
+            assertThat(error.getStatus()).isEqualTo(HttpStatus.FORBIDDEN);
+        });
     }
 
     private void assertNoPrivateFields(JsonNode node) {

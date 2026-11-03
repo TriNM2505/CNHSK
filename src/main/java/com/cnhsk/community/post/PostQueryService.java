@@ -5,14 +5,23 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.cnhsk.auth.api.AuthApi;
+import com.cnhsk.auth.api.CurrentUser;
+import com.cnhsk.auth.api.RoleCode;
+
 import com.cnhsk.community.comment.CommentRepository;
 import com.cnhsk.community.common.CommunityAuthors;
 import com.cnhsk.community.common.PostCategory;
 import com.cnhsk.community.common.PostCount;
+import com.cnhsk.community.common.PostStatus;
+import com.cnhsk.community.common.ReactionKind;
 import com.cnhsk.community.common.UserRef;
 import com.cnhsk.community.post.web.PostDetail;
 import com.cnhsk.community.post.web.PostSummary;
 import com.cnhsk.community.post.web.PostSummaryPage;
+import com.cnhsk.community.post.web.OwnPost;
+import com.cnhsk.community.post.web.OwnPostPage;
+import com.cnhsk.community.post.web.ViewerState;
 import com.cnhsk.community.reaction.ReactionRepository;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
@@ -28,13 +37,62 @@ public class PostQueryService {
     private final CommentRepository comments;
     private final ReactionRepository reactions;
     private final CommunityAuthors authors;
+    private final AuthApi authApi;
 
     public PostQueryService(PostRepository posts, CommentRepository comments,
-            ReactionRepository reactions, CommunityAuthors authors) {
+            ReactionRepository reactions, CommunityAuthors authors, AuthApi authApi) {
         this.posts = posts;
         this.comments = comments;
         this.reactions = reactions;
         this.authors = authors;
+        this.authApi = authApi;
+    }
+
+    public OwnPostPage ownList(int page, int size, PostStatus status) {
+        long authorId = learnerId();
+        if (page < 0 || size < 1 || size > 50) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Phân trang không hợp lệ.", Map.of("details", List.of(
+                            Map.of("field", "page/size", "message", "Trang phải từ 0, kích thước từ 1 đến 50."))));
+        }
+        long total = posts.countOwned(authorId, status);
+        long offset = (long) page * size;
+        if (offset >= total) {
+            return new OwnPostPage(List.of(), page, size, total);
+        }
+        List<OwnPost> items = posts.findOwned(authorId, null, status, PageRequest.of(page, size)).stream()
+                .map(PostService::toOwnPost).toList();
+        return new OwnPostPage(items, page, size, total);
+    }
+
+    public OwnPost ownDetail(long id) {
+        long authorId = learnerId();
+        Post post = posts.findOwned(authorId, id, null, PageRequest.of(0, 1)).stream().findFirst()
+                .orElseThrow(PostQueryService::forbidden);
+        return PostService.toOwnPost(post);
+    }
+
+    public ViewerState viewerState(long id) {
+        long userId = learnerId();
+        if (posts.findPublished(id, null, PageRequest.of(0, 1)).isEmpty()) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND, HttpStatus.NOT_FOUND,
+                    "Không tìm thấy bài viết.", Map.of());
+        }
+        List<ReactionKind> kinds = reactions.findPostViewerKinds(userId, id);
+        return new ViewerState(kinds.contains(ReactionKind.LIKE), kinds.contains(ReactionKind.REPORT));
+    }
+
+    private long learnerId() {
+        CurrentUser user = authApi.currentUser();
+        if (!user.roles().contains(RoleCode.LEARNER)) {
+            throw forbidden();
+        }
+        return user.userId();
+    }
+
+    private static ApiException forbidden() {
+        return new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                "Bạn không có quyền thực hiện thao tác này.", Map.of());
     }
 
     public PostSummaryPage publishedList(int page, int size, PostCategory category) {
