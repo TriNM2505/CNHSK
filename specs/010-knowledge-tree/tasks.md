@@ -12,7 +12,7 @@ File dùng chung (spec §0.3) phải nêu trong Shadow Plan từng task.
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | Nền FE `question-bank`: `types.ts` theo OpenAPI, `api/*.ts` (client chung), `catalog.preview.ts` (cây + 12 câu mẫu tự soạn đủ 6 `qtype`), `screens.ts`; thêm 2 route vào `routeAccess.ts` (`CONTENT_EDITOR`, `TEACHER`, layout `admin`) + catalog vào `screenRegistry.ts` (**báo leader trước**) | `web/features/question-bank/**`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts` | FR-001 (FE), §12 | ⬜ |
+| T-01 | Nền FE `question-bank`: `types.ts` theo OpenAPI, `api/*.ts` (client chung), `catalog.preview.ts` (cây + 12 câu mẫu tự soạn đủ 6 `qtype`), `screens.ts`; thêm 2 route vào `routeAccess.ts` (`CONTENT_EDITOR`, `TEACHER`, layout `admin`) + catalog vào `screenRegistry.ts` (**báo leader trước**) | `web/features/question-bank/**`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts` | FR-001 (FE), §12 | ✅ 2026-11-04: leader duyệt bổ sung preview registry và hai file tài liệu (questions.md); 12 câu tự soạn, sáu loại, HSK 1–3, cây mẫu sáu miền; screens rỗng theo nền hiện có. 53 test mới; toàn FE 1.412 test pass/125 file, lint 0 lỗi (1 warning có sẵn ở LevelBadge), build pass. Java 17 verify/Testcontainers: 2.017 test, 0 failure/error/skip; JaCoCo line 96,83% (5980/6176). Gate backend chạy riêng: import p95 16.806 ms < 30.000 ms, giữ nguyên test/ngưỡng. Rebase lên origin/main 401882d sau PR #59; không sửa navigation, contract, backend, dependency hay schema. |
 | T-02 | SCR-064 Question Bank: bộ lọc (HSK 1–3, loại, trạng thái, nút, tìm), bảng, phân trang 10, giữ lọc trên URL, Loading/Empty/Error | `web/features/question-bank/pages/Scr064QuestionBankPage.tsx` + test | FR-017, FR-018, FR-026 · AT-26 | ⬜ |
 | T-03 | SCR-059 Question Edit: xem đủ; `TEACHER` form sửa (khoá trường chấm điểm khi `used`), `CONTENT_EDITOR` chỉ xem + lưu trữ; xác nhận trong trang; chọn nút từ API cây | `web/features/question-bank/pages/Scr059QuestionEditPage.tsx` + test | FR-019…FR-023, FR-027 · AT-27 | ⬜ |
 | T-04 | SCR-068: 4 `dataType` mới + nhãn §0.2; hướng dẫn cột đọc từ `GET templates` (**báo leader trước** — feature `content-import`) | `web/features/content-import/types.ts`, `labels.ts` + test | FR-028 · AT-28 | ⬜ |
@@ -51,4 +51,4 @@ T-05 → T-10 → T-11 → T-12
 
 **Ba task rủi ro cao:** T-05 (migration đổi bảng "không đụng") · T-07 (kiểm DAG đúng khi xét DB + dòng trong file + kiểm lại lúc ghi) · T-08 (chặn đổi cách chấm câu đã dùng).
 
-**Hiện trạng: 0/13 task xong.**
+**Hiện trạng: 1/13 task xong.**
