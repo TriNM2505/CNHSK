@@ -88,6 +88,15 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void knowledgeNodeNotFoundReturns404AndStandardError() throws Exception {
+        mockMvc.perform(get("/test/knowledge-node-missing").header(RequestIdFilter.HEADER_NAME, "t10-not-found"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error_code").value("KNOWLEDGE_NODE_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Không tìm thấy nút năng lực."))
+                .andExpect(jsonPath("$.request_id").value("t10-not-found"));
+    }
+
+    @Test
     void errorCodeContainsEveryCodeFromTheSpecification() {
         assertThat(ErrorCode.values()).extracting(Enum::name).containsExactly(
                 "VALIDATION_FAILED", "EMAIL_ALREADY_EXISTS", "INVALID_CREDENTIALS", "LOGIN_SOURCE_BLOCKED",
@@ -112,11 +121,17 @@ class GlobalExceptionHandlerTest {
                 "SELF_MODERATION", "SELF_REPORT", "POST_NOT_FOUND", "COMMENT_NOT_FOUND", "TARGET_NOT_FOUND",
                 "REPORT_CASE_NOT_FOUND", "POST_NOT_EDITABLE", "POST_NOT_PENDING", "COMMENT_NOT_EDITABLE",
                 "COMMENT_EDIT_WINDOW_EXPIRED", "COMMENT_NOT_RESTORABLE", "DUPLICATE_REPORT", "REPORT_ALREADY_HANDLED",
-                "INTERNAL_ERROR");
+                "KNOWLEDGE_NODE_NOT_FOUND", "INTERNAL_ERROR");
     }
 
     @RestController
     static class ErrorTestController {
+
+        @GetMapping("/test/knowledge-node-missing")
+        void missingKnowledgeNode() {
+            throw new ApiException(ErrorCode.KNOWLEDGE_NODE_NOT_FOUND, HttpStatus.NOT_FOUND,
+                    "Không tìm thấy nút năng lực.", Map.of());
+        }
 
         @GetMapping("/test/api-error")
         void apiError() {

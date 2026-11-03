@@ -1,5 +1,24 @@
 # Chốt — Spec 010
 
+## 2026-11-04 — Leader duyệt 010/T-10 (luồng B)
+
+- Base `origin/main` là `5a6da76` (đã có PR #65); nhánh `spec/010-t10`, worktree riêng. Repository mới đặt tại `learning/knowledge/repository/KnowledgeTreeQueryRepository.java`. Contract test dùng chung tên `contract/KnowledgeContractTest.java`; T-10 chỉ kiểm hai operation đọc cây, T-11/T-12/T-13 bổ sung operation quản trị sau.
+- Phần chữ ký khoá cho 011/012 là các method của FR-024/FR-025 trong `learning.knowledge.KnowledgeTreeService`:
+  - `List<KnowledgeNode> nodes()`
+  - `Optional<KnowledgeNode> node(String kid)`
+  - `Map<Long, QuestionKids> kidsOfQuestions(Set<Long> questionIds)`
+  - `Optional<String> kidOfLexeme(long lexemeId)`
+  - `Optional<String> kidOfTopic(long topicId)`
+  - `List<Long> approvedQuestionIds(Set<String> kids, Integer hskLevel, int limit)`
+- FR-024 hiện liệt kê 5 method, FR-025 thêm 1 method: tổng **6 method** nêu trên. Tin duyệt ghi "7 method"; đã báo lại leader để xác nhận số lượng, không tự thêm method ngoài FR. `KnowledgeNodeDetail detail(String kid)` chỉ phục vụ controller, **không thuộc phần khoá** cho 011/012.
+- Các kiểu nội bộ là public record lồng trong service: `KnowledgeNode(long id, String kid, KnowledgeDomain domain, int hskLevel, String nameVi, String nameZh, String canDo, KnowledgeSkillType skillType, List<String> prereqKids, List<String> supportKids)`; `QuestionKids(String primaryKid, List<String> secondaryKids, Map<String, DistractorError> errorsByOption)`; `DistractorError(String errorKid, String errorNote)`. `id` của nút dùng nội bộ, không xuất qua hai API cây; controller trả đúng field đã khoá trong OpenAPI.
+- `approvedQuestionCount` đếm **DISTINCT question_id** có trạng thái `APPROVED`, gắn nút ở **mọi vai trò**. `approvedQuestionIds()` chỉ lấy nhãn `PRIMARY`, sắp ID tăng dần, giới hạn 1–200; giới hạn sai ném `IllegalArgumentException`.
+- `kidsOfQuestions(Set.of())` trả map rỗng, **không query**. ID không tồn tại hoặc câu chưa có nhãn không xuất hiện trong map; hành vi được ghi trong Javadoc và kiểm thử. Chính/phụ và lỗi theo khoá phương án lấy bằng một query cho cả tập, JSONB chỉ đọc trong Java.
+- Bộ lọc cây: `domain` chỉ nhận `NA`, `CH`, `TV`, `NP`, `NL`, `VB`; `hskLevel` **1–7**, không giới hạn theo phạm vi demo HSK 1–3. KID sai dạng/không có trả **404** `KNOWLEDGE_NODE_NOT_FOUND`; mẫu KID theo `ck_kp_kid` của V5: `^(NA|CH|TV|NP|NL|VB)[1-7]-[0-9]{3}$`.
+- Matcher chỉ `GET /api/knowledge-tree/**`, đặt ngay trước matcher tổng `/api/admin/**`, cho `LEARNER`, `CONTENT_EDITOR`, `TEACHER`; không kế thừa quyền `ADMIN`. Mã lỗi thêm ngay trước `INTERNAL_ERROR` theo L2. Nếu main đổi file dùng chung trong lúc làm, báo leader xếp hàng, không tự merge/rebase.
+- Duyệt cập nhật ✅ T-10 trong cùng PR sau khi toàn bộ gate xanh; một conventional commit, đúng 12 file allowlist, mở Draft PR, không merge. Không đổi contract, schema, dependency, entity `Topic`/`Lexeme`, không truy cập Neon.
+- Gate thực tế: 72 test mới; targeted T-10 + GlobalExceptionHandlerTest **74 test**, contract (010/001/009) + ModuleBoundaryTest **31 test**, đều 0 failure/error/skip. `DEBUG=false`, Java 17, Docker/Testcontainers: `mvnw -B verify` **2.167 test / 130 suite**, 0 failure/error/skip; JaCoCo LINE **96,55% (6376/6604)**, tất cả coverage check pass. Benchmark import 5.000 dòng p95 **17.405 ms < 30.000 ms**. `git diff --check`, kiểm BOM và TODO trong code task đều sạch; Maven không cấu hình Java linter riêng. Fixture tự soạn, câu `IMPORT` có code riêng; không đổi/hạ/ngắt test hoặc ngưỡng coverage.
+
 ## 2026-11-04 — Leader duyệt 010/T-05 (luồng B)
 
 - V5 giữ đúng khối SQL §0.1, gồm `skill_type DROP NOT NULL`; không thêm bảng, cột hay ALTER ngoài khối đã khoá. Entity `Topic`/`Lexeme` và migration V1–V4 giữ nguyên.
