@@ -93,7 +93,7 @@ public class PostService {
         }
     }
 
-    private static OwnPost toOwnPost(Post post) {
+    static OwnPost toOwnPost(Post post) {
         String reviewReason = post.getStatus() == PostStatus.REJECTED || post.getStatus() == PostStatus.HIDDEN
                 ? post.getReviewReason() : null;
         return new OwnPost(post.getId(), post.getTitle(), post.getContent(), post.getCategory(), post.getStatus(),
