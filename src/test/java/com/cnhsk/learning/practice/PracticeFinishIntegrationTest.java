@@ -33,6 +33,7 @@ import com.cnhsk.learning.practice.PracticeService.StartPracticeCommand;
 import com.cnhsk.learning.practice.PracticeSourceHandler.Answer;
 import com.cnhsk.learning.practice.PracticeSourceHandler.FinishContext;
 import com.cnhsk.learning.practice.entity.Attempt;
+import com.cnhsk.learning.practice.entity.AttemptItem;
 import com.cnhsk.learning.practice.entity.AttemptItemRepository;
 import com.cnhsk.learning.practice.entity.AttemptRepository;
 import com.cnhsk.learning.practice.event.ItemGradedEvent;
@@ -180,6 +181,19 @@ class PracticeFinishIntegrationTest extends AbstractIntegrationTest {
         assertThat(probe.finished).containsExactly(new SessionFinishedEvent(owner, id, PracticeSource.TOPIC_TEST,
                 1L, 1L, 3L, false));
         assertThat(probe.allTransactional).isTrue();
+    }
+
+    @Test
+    void FR003_deferredQuestionChoicePersistsAndPublishesQuestionId() {
+        long questionId = createQuestion();
+        ServedItem question = PracticeServiceTest.questionChoice(1, questionId);
+        long id = start(PracticeSource.MOCK_EXAM, List.of(question));
+
+        practice.finish(owner, id, List.of(answer(1, "A", 1500)));
+
+        assertThat(items.findByAttemptIdOrderByOrderIndexAsc(id)).singleElement()
+                .extracting(AttemptItem::getQuestionId).isEqualTo(questionId);
+        assertThat(probe.graded).singleElement().extracting(ItemGradedEvent::questionId).isEqualTo(questionId);
     }
 
     @ParameterizedTest
@@ -583,6 +597,15 @@ class PracticeFinishIntegrationTest extends AbstractIntegrationTest {
     private ApiException rejected() {
         return new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY,
                 "Nguồn từ chối kết thúc lượt.", Map.of());
+    }
+
+    private long createQuestion() {
+        return jdbc.queryForObject("INSERT INTO learning.questions "
+                + "(qtype, hsk_level, stem, options, correct_key, status) "
+                + "VALUES ('MULTIPLE_CHOICE', 1, 'Câu tự soạn', "
+                + "'[{\"key\":\"A\",\"text\":\"Đúng\",\"is_correct\":true},"
+                + "{\"key\":\"B\",\"text\":\"Sai\",\"is_correct\":false}]'::jsonb, 'A', 'APPROVED') RETURNING id",
+                Long.class);
     }
 
     private ServedItem audio(int no) {

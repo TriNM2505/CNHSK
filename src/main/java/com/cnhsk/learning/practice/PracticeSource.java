@@ -11,7 +11,10 @@ public enum PracticeSource {
     CHAR_RECOGNITION(AttemptKind.PRACTICE, FeedbackMode.IMMEDIATE, Duration.ofHours(2), true, false),
     CHAR_WRITING(AttemptKind.PRACTICE, FeedbackMode.RECORD, Duration.ofMinutes(30), true, false),
     WRITING_CHALLENGE(AttemptKind.WRITING_CHALLENGE, FeedbackMode.DEFERRED, Duration.ofSeconds(210), true, false),
-    GAME_ROUND(AttemptKind.GAME, FeedbackMode.IMMEDIATE, null, false, true);
+    GAME_ROUND(AttemptKind.GAME, FeedbackMode.IMMEDIATE, null, false, true),
+    MOCK_EXAM(AttemptKind.EXAM, FeedbackMode.DEFERRED, Duration.ofHours(24), true, false),
+    PLACEMENT(AttemptKind.EXAM, FeedbackMode.DEFERRED, Duration.ofHours(2), true, false),
+    TARGETED_PRACTICE(AttemptKind.PRACTICE, FeedbackMode.IMMEDIATE, Duration.ofHours(2), true, false);
 
     private final AttemptKind kind;
     private final FeedbackMode feedback;

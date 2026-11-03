@@ -11,7 +11,8 @@ public enum ItemType {
     AUDIO_CHAR_CHOICE(true),
     WRITING_RESULT(false),
     LESSON_READ(false),
-    GRAMMAR_CHOICE(true);
+    GRAMMAR_CHOICE(true),
+    QUESTION_CHOICE(true);
 
     private final boolean gradable;
 

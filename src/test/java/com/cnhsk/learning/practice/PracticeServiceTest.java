@@ -238,6 +238,20 @@ class PracticeServiceTest {
     }
 
     @Test
+    void FR003_questionChoiceRequiresQuestionIdAndExistingTypesRejectIt() {
+        ServedItem questionWithoutId = questionChoice(1, null);
+        ServedItem existingTypeWithQuestionId = new ServedItem(1, ItemType.MEANING_CHOICE, Skill.VOCAB, null,
+                choice(1).prompt(), choice(1).options(), "A", null, null,
+                new ServedItem.Rules(800, 0, false), 99L);
+
+        assertThatThrownBy(() -> service.start(command(PracticeSource.MOCK_EXAM, List.of(questionWithoutId),
+                List.of(), null, Map.of()))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.start(command(PracticeSource.TOPIC_PRACTICE, List.of(existingTypeWithQuestionId),
+                List.of(), null, Map.of()))).isInstanceOf(IllegalArgumentException.class);
+        assertThat(choice(1).questionId()).isNull();
+    }
+
+    @Test
     void FR002_preRecordedRejectsInvalidDurationAnswerAndAudioEvidence() {
         List<Answer> invalid = List.of(
                 new Answer(1, "KNOWN", -1, 0, false, false, null),
@@ -426,5 +440,12 @@ class PracticeServiceTest {
         return new ServedItem(no, ItemType.STUDY_CARD, Skill.VOCAB, null,
                 new ServedItem.Prompt("我", "wǒ", "ngã", "tôi", null, null, null, null, "WORD"),
                 null, null, null, null, new ServedItem.Rules(1000, 0, false));
+    }
+
+    static ServedItem questionChoice(int no, Long questionId) {
+        return new ServedItem(no, ItemType.QUESTION_CHOICE, Skill.READING, null,
+                new ServedItem.Prompt("Chọn đáp án", null, null, null, null, null, null, null, null),
+                List.of(new ServedItem.Option("A", "Đúng"), new ServedItem.Option("B", "Sai")),
+                "A", null, null, new ServedItem.Rules(1500, 0, false), questionId);
     }
 }

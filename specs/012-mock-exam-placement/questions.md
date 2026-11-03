@@ -1,5 +1,11 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-06 engine (leader duyệt)
+
+- Thêm cuối enum `PracticeSource`: `MOCK_EXAM`, `PLACEMENT`, `TARGETED_PRACTICE`; khớp §0.1 và không đổi luật của nguồn cũ.
+- `QUESTION_CHOICE` là loại duy nhất bắt buộc có `questionId`; mọi loại khác phải có `questionId = null`. Engine ghi giá trị này ở cả ba đường tạo `attempt_items` và phát trong `ItemGradedEvent`.
+- Không migration: `attempts.kind` đã nhận `EXAM`, `attempt_items.question_id` đã có từ V1. Giữ constructor cũ của `ServedItem` và `ItemGradedEvent`; không trả `questionId` cho client.
+
 ## 2026-11-02 — Shadow Plan spec (leader duyệt)
 
 Nguồn đã đọc (origin/main `5439672`): `AGENTS.md` §12, constitution v1.4.1, spec 003 §0 (engine), `PracticeService`, `PracticeSource`, `ItemType`, `ServedItem`, `PracticeSourceHandler`, `event/*`, `PracticeApi`, `AttemptItem`, `TopicTestService` (mẫu bắt đầu/tiếp tục), `ErrorCode`, `SecurityConfig`, migration V1–V4 (`exams`, `exam_questions`, `attempts`, `attempt_items`), UC-033…UC-041, UC-130/131, `screen-fields.md` SCR-020…SCR-023 (Open Issues), `database.md`, `CONTEXT.md` (DK-13), spec 010 (bản trên máy), plan `261102-2104` phase 4, `cnhsk-web` `routeAccess.ts`, `features/practice/*`.

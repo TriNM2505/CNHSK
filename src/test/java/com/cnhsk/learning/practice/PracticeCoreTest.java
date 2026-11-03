@@ -32,9 +32,12 @@ class PracticeCoreTest {
             "CHAR_RECOGNITION, PRACTICE, IMMEDIATE, 7200, true, false",
             "CHAR_WRITING, PRACTICE, RECORD, 1800, true, false",
             "WRITING_CHALLENGE, WRITING_CHALLENGE, DEFERRED, 210, true, false",
-            "GAME_ROUND, GAME, IMMEDIATE, DYNAMIC, false, true"
+            "GAME_ROUND, GAME, IMMEDIATE, DYNAMIC, false, true",
+            "MOCK_EXAM, EXAM, DEFERRED, 86400, true, false",
+            "PLACEMENT, EXAM, DEFERRED, 7200, true, false",
+            "TARGETED_PRACTICE, PRACTICE, IMMEDIATE, 7200, true, false"
     }, nullValues = "DYNAMIC")
-    void FR001_nineSourcesKeepSpecifiedLifetimeFeedbackAndScoringPolicy(
+    void FR002_allSourcesKeepSpecifiedLifetimeFeedbackAndScoringPolicy(
             PracticeSource source, AttemptKind kind, FeedbackMode feedback, Long ttlSeconds,
             boolean allowSkip, boolean maxScoreFromServed) {
         assertThat(source.kind()).isEqualTo(kind);
@@ -60,6 +63,11 @@ class PracticeCoreTest {
     void FR007_studyCardsCannotBeGradedWhileQuestionTypesCan(ItemType type) {
         assertThat(type.gradable()).isEqualTo(!Set.of(ItemType.STUDY_CARD, ItemType.WRITING_RESULT, ItemType.LESSON_READ)
                 .contains(type));
+    }
+
+    @Test
+    void FR002_questionChoiceIsTheOnlyQuestionBoundItemType() {
+        assertThat(ItemType.QUESTION_CHOICE.gradable()).isTrue();
     }
 
     @Test

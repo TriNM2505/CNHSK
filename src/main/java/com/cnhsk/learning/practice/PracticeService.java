@@ -199,6 +199,7 @@ public class PracticeService {
                 ? PinyinGrader.matches(answer.answer(), item.accept()) : Objects.equals(item.answer(), answer.answer()))
                 : null;
         AttemptItem recorded = new AttemptItem(sessionId, item.no(), item.type().name(), item.skill().name());
+        recorded.setQuestionId(item.questionId());
         recorded.setLexemeId(item.lexemeId());
         recorded.setAnswer(answer.answer());
         recorded.setDurationMs(answer.durationMs());
@@ -372,6 +373,7 @@ public class PracticeService {
                 : !missing && !answer.skipped() && (item.type() == ItemType.PINYIN_INPUT
                         ? PinyinGrader.matches(answer.answer(), item.accept()) : Objects.equals(item.answer(), answer.answer()));
         AttemptItem recorded = new AttemptItem(attempt.getId(), item.no(), item.type().name(), item.skill().name());
+        recorded.setQuestionId(item.questionId());
         recorded.setLexemeId(item.lexemeId());
         recorded.setAnswer(answer.answer());
         recorded.setCorrect(correct);
@@ -390,7 +392,7 @@ public class PracticeService {
     private void publishItem(Attempt attempt, ServedItem item, AttemptItem recorded) {
         events.publishEvent(new ItemGradedEvent(attempt.getUserId(), attempt.getId(),
                 PracticeSource.valueOf(attempt.getRefType()), attempt.getRefId(), item.no(), item.lexemeId(),
-                item.skill(), item.type(), recorded.getCorrect(), recorded.getMeta()));
+                item.skill(), item.type(), recorded.getCorrect(), recorded.getMeta(), item.questionId()));
     }
 
     private record FinishOutcome(FinishResult result, ApiException failure) {
@@ -514,6 +516,9 @@ public class PracticeService {
             if (item.no() < 1 || !numbers.add(item.no())) {
                 throw new IllegalArgumentException("Served item numbers must be positive and unique.");
             }
+            if ((item.type() == ItemType.QUESTION_CHOICE) != (item.questionId() != null)) {
+                throw new IllegalArgumentException("QUESTION_CHOICE requires questionId and other item types reject it.");
+            }
         }
         var recorded = new HashSet<Integer>();
         for (Answer answer : command.preRecorded()) {
@@ -572,6 +577,7 @@ public class PracticeService {
         }
         meta.put("replayCount", answer.replayCount());
         AttemptItem recorded = new AttemptItem(attempt.getId(), item.no(), item.type().name(), item.skill().name());
+        recorded.setQuestionId(item.questionId());
         recorded.setLexemeId(item.lexemeId());
         recorded.setAnswer(answer.answer());
         recorded.setDurationMs(answer.durationMs());

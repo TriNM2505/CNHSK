@@ -69,7 +69,7 @@ public class PracticeApi {
                         new com.cnhsk.learning.practice.ServedItem.Option(option.key(), option.text())).toList(),
                 item.answer(), item.accept(), item.explanation(),
                 new com.cnhsk.learning.practice.ServedItem.Rules(item.rules().minDurationMs(),
-                        item.rules().maxReplays(), item.rules().hasAudio()));
+                        item.rules().maxReplays(), item.rules().hasAudio()), item.questionId());
     }
 
     private static SessionView viewOf(PracticeService.SessionView view) {
@@ -102,13 +102,13 @@ public class PracticeApi {
 
     public enum PracticeSource {
         TOPIC_STUDY, TOPIC_PRACTICE, TOPIC_TEST, GRAMMAR_LESSON, PRON_STAGE,
-        CHAR_RECOGNITION, CHAR_WRITING, WRITING_CHALLENGE, GAME_ROUND
+        CHAR_RECOGNITION, CHAR_WRITING, WRITING_CHALLENGE, GAME_ROUND, MOCK_EXAM, PLACEMENT, TARGETED_PRACTICE
     }
 
     public enum FeedbackMode { IMMEDIATE, DEFERRED, RECORD }
 
     public enum ItemType { STUDY_CARD, MEANING_CHOICE, AUDIO_WORD_CHOICE, CLOZE_CHOICE, PINYIN_INPUT, PRON_CHOICE,
-        CHAR_MEANING_CHOICE, AUDIO_CHAR_CHOICE, WRITING_RESULT, LESSON_READ, GRAMMAR_CHOICE }
+        CHAR_MEANING_CHOICE, AUDIO_CHAR_CHOICE, WRITING_RESULT, LESSON_READ, GRAMMAR_CHOICE, QUESTION_CHOICE }
 
     public enum Skill { VOCAB, LISTENING, READING, CHARACTER, WRITING, GRAMMAR, PRONUNCIATION }
 
@@ -124,7 +124,12 @@ public class PracticeApi {
 
     /** Server-only snapshot input. Session responses use ServedItemView instead. */
     public record ServedItem(int no, ItemType type, Skill skill, Long lexemeId, Prompt prompt,
-            List<Option> options, String answer, List<String> accept, String explanation, Rules rules) {
+            List<Option> options, String answer, List<String> accept, String explanation, Rules rules, Long questionId) {
+        public ServedItem(int no, ItemType type, Skill skill, Long lexemeId, Prompt prompt,
+                List<Option> options, String answer, List<String> accept, String explanation, Rules rules) {
+            this(no, type, skill, lexemeId, prompt, options, answer, accept, explanation, rules, null);
+        }
+
         public ServedItem {
             options = copy(options);
             accept = copy(accept);
