@@ -138,7 +138,7 @@ CREATE SCHEMA IF NOT EXISTS shared;
 
 | # | Bảng | Mục đích | UC |
 |---|---|---|---|
-| 12 | `question_knowledge_points` | Nhãn kiến thức — **không được đụng** | UC-040, 041 |
+| 12 | `question_knowledge_points` | Nhãn kiến thức chính/phụ (V5, xem §13) | UC-040, 041 |
 | 13 | `exams` | Đề thi + `sections JSONB` | UC-033, 112 |
 | 14 | `exam_questions` | Đề ↔ câu hỏi, có thứ tự | UC-034 |
 
@@ -302,6 +302,7 @@ CREATE TABLE lexemes (
   extra         JSONB NOT NULL DEFAULT '{}',
   frequency     INTEGER NOT NULL DEFAULT 0,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  knowledge_point_id BIGINT REFERENCES knowledge_points(id), -- V5: noi vao nut KID
 
   CONSTRAINT uq_lexeme UNIQUE (kind, text)
 );
@@ -311,6 +312,7 @@ CREATE INDEX ix_lex_kind_hsk ON lexemes(kind, hsk_level);
 -- GIAI QUYET khoang trong #2 nhom 4: tra nghia Viet phai dung index,
 -- khong duoc LIKE '%x%' quet toan bang.
 CREATE INDEX ix_lex_meaning ON lexemes USING gin (meaning_norm gin_trgm_ops);
+CREATE INDEX ix_lexeme_kp ON lexemes(knowledge_point_id) WHERE knowledge_point_id IS NOT NULL;
 ```
 
 ### 4.4 · `knowledge_points`
@@ -318,24 +320,35 @@ CREATE INDEX ix_lex_meaning ON lexemes USING gin (meaning_norm gin_trgm_ops);
 ```sql
 CREATE TABLE knowledge_points (
   id          BIGSERIAL PRIMARY KEY,
-  code        VARCHAR(50) NOT NULL UNIQUE,   -- 'GP-HSK3-205'
+  code        VARCHAR(50) NOT NULL UNIQUE,   -- 'NP3-901'
   title       VARCHAR(200) NOT NULL,
   -- GIAI QUYET khoang trong #1+#2 nhom 3: UC-053 va UC-038 deu can cot nay.
   -- Chot 6 ky nang — sua sau phai nhap lai question_knowledge_points.
-  skill_type  VARCHAR(20) NOT NULL
+  skill_type  VARCHAR(20)
               CHECK (skill_type IN ('LISTENING','READING','WRITING','VOCAB','GRAMMAR','CHARACTER')),
   hsk_level   SMALLINT NOT NULL CHECK (hsk_level BETWEEN 1 AND 9),
-  lexeme_id   BIGINT REFERENCES lexemes(id),  -- neu diem KT gan voi 1 lexeme
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  lexeme_id   BIGINT REFERENCES lexemes(id),  -- V5: giu cot cu, bat buoc NULL
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  domain      VARCHAR(2) NOT NULL CHECK (domain IN ('NA','CH','TV','NP','NL','VB')),
+  name_zh     VARCHAR(200) NOT NULL,
+  can_do      TEXT,
+  prereq_ids  BIGINT[] NOT NULL DEFAULT '{}',
+  support_ids BIGINT[] NOT NULL DEFAULT '{}',
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT ck_kp_kid CHECK (
+    code ~ '^(NA|CH|TV|NP|NL|VB)[1-7]-[0-9]{3}$'
+    AND left(code, 2) = domain
+    AND substring(code FROM 3 FOR 1)::SMALLINT = hsk_level),
+  CONSTRAINT ck_kp_no_lexeme CHECK (lexeme_id IS NULL)
 );
 CREATE INDEX ix_kp_skill ON knowledge_points(skill_type, hsk_level);
+CREATE INDEX ix_kp_domain ON knowledge_points(domain, hsk_level);
 ```
 
 > **RFC đợt cuối R1, R2 (2026-11-03):** mỗi dòng là **một nút KID** của Cây Năng Lực v2.0 (`code` dạng
-> `NP3-004`). V5 (spec 010 §0.1) thêm `domain`, `name_zh`, `can_do`, `prereq_ids`, `support_ids`,
-> `updated_at`, bỏ `NOT NULL` của `skill_type`, CHECK mã KID và `lexeme_id IS NULL`; `question_knowledge_points`
-> thêm `role` (PRIMARY/SECONDARY); `topics`, `lexemes` thêm `knowledge_point_id`. DDL đầy đủ cập nhật ở đây
-> trong PR của spec 010 T-05.
+> `NP3-004`). DDL trên mô tả cấu trúc sau V5 (spec 010 §0.1), gồm kỹ năng tùy chọn, hai mảng cạnh
+> và CHECK mã KID/`lexeme_id IS NULL`. Vai trò nhãn của `question_knowledge_points` ở §4.6;
+> `topics`, `lexemes` nối vào nút bằng `knowledge_point_id` nullable.
 
 ### 4.5 · `topics` và `topic_items`
 
@@ -349,8 +362,10 @@ CREATE TABLE topics (
   -- Tien quyet dang mang — tranh them bang noi chi de luu 1-2 dong.
   -- Kiem CHU TRINH bang DFS truoc khi luu (UC-045 CIRCULAR_PREREQUISITE).
   prereq_ids    BIGINT[] NOT NULL DEFAULT '{}',
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  knowledge_point_id BIGINT REFERENCES knowledge_points(id) -- V5
 );
+CREATE INDEX ix_topic_kp ON topics(knowledge_point_id) WHERE knowledge_point_id IS NOT NULL;
 
 CREATE TABLE topic_items (
   id                  BIGSERIAL PRIMARY KEY,
@@ -376,14 +391,16 @@ CREATE UNIQUE INDEX uq_ti_kp     ON topic_items(topic_id, knowledge_point_id) WH
 ```sql
 CREATE TABLE questions (
   id            BIGSERIAL PRIMARY KEY,
+  code          VARCHAR(50) UNIQUE,         -- V5: khoa tu nhien cho cau nhap
   qtype         VARCHAR(20) NOT NULL CHECK (qtype IN
                 ('MULTIPLE_CHOICE','TRUE_FALSE','IMAGE_MATCH','SENTENCE_MATCH',
                  'FILL_BLANK','SENTENCE_ORDER','ESSAY')),
   hsk_level     SMALLINT NOT NULL,
+  difficulty    SMALLINT NOT NULL DEFAULT 2 CHECK (difficulty BETWEEN 1 AND 3), -- V5
   stem          TEXT NOT NULL,
   -- [{key:'A', text:'...', is_correct:true}, ...] — JSONB CHI DOC (AC-09)
   options       JSONB NOT NULL DEFAULT '[]',
-  correct_key   VARCHAR(20),               -- cho FILL_BLANK, SENTENCE_ORDER
+  correct_key   VARCHAR(50),               -- theo V1: FILL_BLANK, SENTENCE_ORDER
   explanation   TEXT,
   audio_url     TEXT,
   image_url     TEXT,
@@ -407,9 +424,22 @@ CREATE TABLE questions (
   ),
   CONSTRAINT ck_reject_reason CHECK (
     status <> 'REJECTED' OR review_reason IS NOT NULL
-  )
+  ),
+  CONSTRAINT ck_q_import_code CHECK (source <> 'IMPORT' OR code IS NOT NULL)
 );
 CREATE INDEX ix_q_serve ON questions(status, qtype, hsk_level) WHERE status = 'APPROVED';
+```
+
+`question_knowledge_points` đã có từ V1; V5 chỉ thêm `role` và unique index cho nhãn chính:
+
+```sql
+CREATE TABLE question_knowledge_points (
+  question_id        BIGINT NOT NULL REFERENCES questions(id) ON DELETE RESTRICT,
+  knowledge_point_id BIGINT NOT NULL REFERENCES knowledge_points(id),
+  role               VARCHAR(10) NOT NULL DEFAULT 'PRIMARY' CHECK (role IN ('PRIMARY','SECONDARY')),
+  PRIMARY KEY (question_id, knowledge_point_id)
+);
+CREATE UNIQUE INDEX uq_qkp_primary ON question_knowledge_points(question_id) WHERE role = 'PRIMARY';
 ```
 
 > 🔴 **`options JSONB` thay bảng `question_options` của v5.** Đáp án luôn đọc **cả cụm**,
@@ -1332,7 +1362,7 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 | V2.1 | `V2_1__auth_session_id.sql` | 001 | Thêm `session_id` UUID cho phiên refresh trong `auth.auth_tokens`, CHECK bắt buộc session ID cho REFRESH, partial index | T-22 |
 | V3 | `V3__content_import.sql` | 002 | `topics.code`, `pron_stages.units`, bỏ `uq_import_file`, thêm `uq_import_running` và `ix_req_import_hist` (spec 002 §0.3); nối sau V2.1 | ✅ Đã viết và kiểm thử 2026-10-29: 10 test migration pass trên Testcontainers, `verify` xanh (260 test, không skip; line coverage 93,08%). Spec 002 đã duyệt trên `main` qua PR #13. Chưa chạy Neon; leader chạy sau merge PR migration |
 | V4 | `V4__practice_engine.sql` | 003 | Cột `item_type`, `skill`, `meta` trên `attempt_items`; unique `uq_ai_order`, `ix_att_user_ref`, partial `ix_ai_lexeme` (spec 003 §0.12). Spec 012 ghi `attempt_items.question_id` cho nguồn `MOCK_EXAM`, `PLACEMENT`, `TARGETED_PRACTICE` | Chờ merge — chỉ kiểm thử bằng Testcontainers; chưa chạy Neon, leader chạy sau merge |
-| V5 | `V5__knowledge_tree.sql` | 010 | Cây KID trên `knowledge_points`, vai trò nhãn, `questions.code`/`difficulty`, `knowledge_point_id` trên `topics`/`lexemes` (spec 010 §0.1) | Leader cấp số 2026-11-03 — chưa viết |
+| V5 | `V5__knowledge_tree.sql` | 010 | Cây KID trên `knowledge_points`, vai trò nhãn, `questions.code`/`difficulty`, `knowledge_point_id` trên `topics`/`lexemes` (spec 010 §0.1) | ✅ Đã viết và kiểm thử 2026-11-04: 40 test AT-30 trên PostgreSQL Testcontainers; `ddl-auto: validate`. Chưa chạy Neon; leader chạy sau merge |
 | V6 | `V6__mastery_progress.sql` | 011 | `user_progress`: `mp_state`, `confidence`, `evidence_item_ids`, `target_type 'LEXEME'` (spec 011 §0.1) | Leader cấp số 2026-11-03 — chưa viết; chạy sau V5 |
 | V7+ | — | spec sau | Leader cấp số khi spec cần đổi schema (012–015 không cần migration) | — |
 
@@ -1378,7 +1408,7 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 | `attempt_items` | Từng câu trả lời. Gốc của mọi phân tích lỗi sai |
 
 > **"Không đụng" = không xoá bảng, không xoá/đổi nghĩa cột cũ, không xoá dữ liệu** (RFC đợt cuối R2, 2026-11-03).
-> **Được thêm cột** bằng migration mới khi có RFC đồng thuận: V5 (spec 010) cho `knowledge_points`,
+> **Được thêm cột** bằng migration mới khi có RFC đồng thuận: [V5](../../src/main/resources/db/migration/V5__knowledge_tree.sql) (spec 010) cho `knowledge_points`,
 > `question_knowledge_points`; V6 (spec 011) cho `user_progress`. Cột `attempt_items.question_id` bắt đầu
 > được ghi từ spec 012.
 

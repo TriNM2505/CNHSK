@@ -601,11 +601,11 @@ class PracticeFinishIntegrationTest extends AbstractIntegrationTest {
 
     private long createQuestion() {
         return jdbc.queryForObject("INSERT INTO learning.questions "
-                + "(qtype, hsk_level, stem, options, correct_key, status) "
+                + "(qtype, hsk_level, stem, options, correct_key, status, code) "
                 + "VALUES ('MULTIPLE_CHOICE', 1, 'Câu tự soạn', "
                 + "'[{\"key\":\"A\",\"text\":\"Đúng\",\"is_correct\":true},"
-                + "{\"key\":\"B\",\"text\":\"Sai\",\"is_correct\":false}]'::jsonb, 'A', 'APPROVED') RETURNING id",
-                Long.class);
+                + "{\"key\":\"B\",\"text\":\"Sai\",\"is_correct\":false}]'::jsonb, 'A', 'APPROVED', ?) RETURNING id",
+                Long.class, "TEST-" + UUID.randomUUID());
     }
 
     private ServedItem audio(int no) {

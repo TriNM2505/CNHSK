@@ -1,5 +1,13 @@
 # Chốt — Spec 010
 
+## 2026-11-04 — Leader duyệt 010/T-05 (luồng B)
+
+- V5 giữ đúng khối SQL §0.1, gồm `skill_type DROP NOT NULL`; không thêm bảng, cột hay ALTER ngoài khối đã khoá. Entity `Topic`/`Lexeme` và migration V1–V4 giữ nguyên.
+- `questions.correct_key` theo V1 thực tế: `VARCHAR(50)`. Entity và DDL trong `database.md` dùng 50; không thêm ALTER vào V5.
+- `database.md` được đồng bộ thêm §3 (bỏ nhãn "không được đụng" của `question_knowledge_points`) và §4.3 (cột `lexemes.knowledge_point_id`); §13 chỉ thêm dẫn chiếu V5. Chỉ sửa các dòng cần thiết, không format lại file.
+- Kiểm AT-30 trên PostgreSQL Testcontainers, mỗi ca vi phạm constraint cách ly giao dịch; gate Java 17 với `DEBUG=false`. Leader chạy V5 trên Neon sau merge.
+- Sau khi 012/T-06 merge (#63), leader duyệt bổ sung `PracticeApiIntegrationTest.java` và `PracticeFinishIntegrationTest.java` vào allowlist T-05: V5 (`ck_q_import_code`) buộc fixture `IMPORT` có `code`. Đã sửa đúng hai helper `createQuestion()` để thêm `code` duy nhất mỗi lần gọi (`TEST-` + UUID); giữ nguồn `IMPORT`, assertion và logic khác.
+
 ## 2026-11-04 — Leader duyệt 010/T-01 (luồng B)
 
 - Thêm `cnhsk-web/src/app/preview/registry.ts` ngoài cột File của T-01 để đăng ký preview của feature. Đây là quyết định chung cho mọi task T-01 nền frontend.
