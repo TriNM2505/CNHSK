@@ -32,11 +32,10 @@ public final class PlacementAlgorithm {
     }
 
     private PlacementLevel estimate(List<BlockResult> blocks, PlacementConfig config) {
-        List<BlockResult> levelThreeBlocks = blocks.stream().filter(block -> block.level() == 3).toList();
-        if (levelThreeBlocks.size() >= 2) {
-            BlockResult previous = levelThreeBlocks.get(levelThreeBlocks.size() - 2);
-            BlockResult latest = levelThreeBlocks.get(levelThreeBlocks.size() - 1);
-            if (isUp(previous, config) && isUp(latest, config)) {
+        if (blocks.size() >= 2) {
+            BlockResult previous = blocks.get(blocks.size() - 2);
+            BlockResult latest = blocks.get(blocks.size() - 1);
+            if (previous.level() == 3 && latest.level() == 3 && isUp(previous, config) && isUp(latest, config)) {
                 return PlacementLevel.ABOVE_3;
             }
         }

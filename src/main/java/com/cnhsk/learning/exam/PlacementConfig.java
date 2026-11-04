@@ -117,6 +117,7 @@ public class PlacementConfig {
     @AssertTrue(message = "Placement configuration is invalid")
     public boolean isPlacementConfigurationValid() {
         return minItems <= maxItems
+                && minBankPerLevel >= blockSize
                 && downAt < upAt
                 && upAt <= blockSize
                 && startLevel >= 1

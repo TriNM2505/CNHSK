@@ -1,5 +1,11 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-14 bắt đầu bài xếp trình độ (leader duyệt)
+
+- FR-018 mô tả `runId` trong metadata. T-14 không lưu trường này vì snapshot được dựng trước khi DB cấp ID. Nguồn duy nhất là `refId ?? id`. Snapshot giữ `placement.block`, `placement.level` và `placement.kidOf` theo số câu.
+- T-15 ghi một lần `placement.conclusion = {completedAt, bankExhausted}` vào snapshot khối gốc bằng `jsonb_set` dưới cùng khoá `placement:run:<userId>`. T-14 chỉ đọc dấu mốc, lấy lượt hoàn thành gần nhất và tính lại cấp, độ tin cậy. T-15 kiểm engine không ghi đè `served_items`.
+- Cấu hình bắt buộc `min-bank-per-level >= block-size`. Sửa T-13 để `ABOVE_3` xét hai khối cuối đúng §0.4, giữ ngưỡng và seed mô phỏng.
+
 ## 2026-11-04 — T-12 luyện theo nút (leader duyệt)
 
 - Mỗi POST có câu dùng được tạo lượt mới. Không dùng lại lượt dở, không khoá theo KID.
