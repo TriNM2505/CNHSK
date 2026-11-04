@@ -17,6 +17,23 @@ const importEntries = [
     learningDataImportPreviews.earlyMultipartFailure,
   ],
   ['scr-068-ready', 'Nhập dữ liệu — Mặc định', learningDataImportPreviews.ready],
+  [
+    'scr-068-knowledge-node',
+    'Nhập dữ liệu — Nút cây năng lực',
+    learningDataImportPreviews.knowledgeNode,
+  ],
+  [
+    'scr-068-knowledge-edge',
+    'Nhập dữ liệu — Quan hệ giữa các nút',
+    learningDataImportPreviews.knowledgeEdge,
+  ],
+  ['scr-068-question', 'Nhập dữ liệu — Câu hỏi', learningDataImportPreviews.question],
+  ['scr-068-node-link', 'Nhập dữ liệu — Gắn nội dung vào nút', learningDataImportPreviews.nodeLink],
+  [
+    'scr-068-template-unavailable',
+    'Nhập dữ liệu — Mẫu chưa sẵn sàng',
+    learningDataImportPreviews.templateUnavailable,
+  ],
   ['scr-068-loading', 'Nhập dữ liệu — Đang tải', learningDataImportPreviews.loading],
   ['scr-068-error', 'Nhập dữ liệu — Lỗi tải mẫu', learningDataImportPreviews.error],
   [

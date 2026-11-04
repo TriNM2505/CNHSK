@@ -28,6 +28,7 @@ import {
 } from '../importFlow'
 import {
   IMPORT_DATA_TYPE_LABELS,
+  IMPORT_DATA_TYPES,
   IMPORT_ROW_ACTION_LABELS,
   IMPORT_RUN_STATUS_LABELS,
 } from '../labels'
@@ -86,6 +87,7 @@ export interface LearningDataImportViewProps {
   remainingSeconds: number
   selectionErrors: ImportSelectionErrors
   state: ImportSectionState
+  templateUnavailable: boolean
   templates: readonly ImportTemplate[]
   uploadError?: ImportMappedError
   uploading: boolean
@@ -541,6 +543,7 @@ export function LearningDataImportView({
   remainingSeconds,
   selectionErrors,
   state,
+  templateUnavailable,
   templates,
   uploadError,
   uploading,
@@ -597,9 +600,9 @@ export function LearningDataImportView({
                   value={dataType}
                 >
                   <option value="">Chọn loại dữ liệu</option>
-                  {templates.map((template) => (
-                    <option key={template.dataType} value={template.dataType}>
-                      {IMPORT_DATA_TYPE_LABELS[template.dataType]}
+                  {IMPORT_DATA_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {IMPORT_DATA_TYPE_LABELS[type]}
                     </option>
                   ))}
                 </Select>
@@ -630,7 +633,17 @@ export function LearningDataImportView({
               </div>
             </div>
 
-            {selectedTemplate ? (
+            {templateUnavailable ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-canvas p-4">
+                <p className="text-body-sm text-ink-secondary" role="status">
+                  Mẫu nhập này chưa sẵn sàng trên máy chủ
+                </p>
+                <Button disabled size="sm" variant="outline">
+                  <Download aria-hidden="true" className="size-4" />
+                  Tải mẫu
+                </Button>
+              </div>
+            ) : selectedTemplate ? (
               <TemplateGuide
                 disabled={busy}
                 downloadError={downloadError}
@@ -645,7 +658,7 @@ export function LearningDataImportView({
             </p>
 
             <div className="mt-4">
-              <Button disabled={busy} loading={uploading} type="submit">
+              <Button disabled={busy || templateUnavailable} loading={uploading} type="submit">
                 <FileUp aria-hidden="true" className="size-4" />
                 {uploading ? 'Đang kiểm tra' : 'Tải lên và kiểm tra'}
               </Button>

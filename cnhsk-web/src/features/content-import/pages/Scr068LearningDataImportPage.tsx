@@ -62,6 +62,11 @@ export default function Scr068LearningDataImportPage() {
   const [now, setNow] = useState(() => Date.now())
 
   const templates = templatesQuery.data ?? []
+  const templateUnavailable = Boolean(
+    dataType &&
+    templatesQuery.state === 'ready' &&
+    !templates.some((template) => template.dataType === dataType),
+  )
   const busy = upload.pending || confirm.pending
   const remainingSeconds = preview ? getImportRemainingSeconds(preview.expiresAt, now) : 0
   const previewActive = Boolean(preview && !confirmBlockedMessage && remainingSeconds > 0)
@@ -74,12 +79,6 @@ export default function Scr068LearningDataImportPage() {
       (!preview.alreadyImported || acknowledgeRerun),
     )
   const confirmationEligible = canConfirmAt(now)
-
-  // Loại dữ liệu trên URL nhưng server không có mẫu đó thì bỏ chọn.
-  useEffect(() => {
-    if (templatesQuery.state !== 'ready' || !dataType) return
-    if (!templatesQuery.data?.some((template) => template.dataType === dataType)) setDataType('')
-  }, [dataType, templatesQuery.data, templatesQuery.state])
 
   // Đồng hồ hết hạn chỉ chạy khi còn kết quả kiểm tra dùng được.
   useEffect(() => {
@@ -102,7 +101,7 @@ export default function Scr068LearningDataImportPage() {
   }
 
   const handleUpload = async () => {
-    if (busy) return
+    if (busy || templatesQuery.state !== 'ready' || templateUnavailable) return
     const errors = validateImportSelection(dataType, file)
     setSelectionErrors(errors)
     setUploadError(undefined)
@@ -122,7 +121,14 @@ export default function Scr068LearningDataImportPage() {
   }
 
   const handleDownloadTemplate = async () => {
-    if (!dataType || downloadPending || busy) return
+    if (
+      !dataType ||
+      downloadPending ||
+      busy ||
+      templatesQuery.state !== 'ready' ||
+      templateUnavailable
+    )
+      return
     setDownloadPending(true)
     setDownloadError(undefined)
     try {
@@ -235,6 +241,7 @@ export default function Scr068LearningDataImportPage() {
       remainingSeconds={remainingSeconds}
       selectionErrors={selectionErrors}
       state={templatesQuery.state}
+      templateUnavailable={templateUnavailable}
       templates={templates}
       uploadError={uploadError}
       uploading={upload.pending}

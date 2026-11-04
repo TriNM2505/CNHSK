@@ -1,5 +1,15 @@
 export type ImportDataType =
-  'LEXEME' | 'TOPIC' | 'TOPIC_ITEM' | 'GRAMMAR' | 'GRAMMAR_EXERCISE' | 'PRON_STAGE' | 'PRON_UNIT'
+  | 'LEXEME'
+  | 'TOPIC'
+  | 'TOPIC_ITEM'
+  | 'GRAMMAR'
+  | 'GRAMMAR_EXERCISE'
+  | 'PRON_STAGE'
+  | 'PRON_UNIT'
+  | 'KNOWLEDGE_NODE'
+  | 'KNOWLEDGE_EDGE'
+  | 'QUESTION'
+  | 'NODE_LINK'
 
 export type ImportRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'EXPIRED'
 export type ImportRowAction = 'CREATE' | 'UPDATE' | 'UNCHANGED'

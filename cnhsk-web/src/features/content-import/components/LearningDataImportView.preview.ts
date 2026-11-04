@@ -11,7 +11,7 @@ function column(
   return { name, required, maxLength, description, example }
 }
 
-/** Metadata theo bảy mẫu v0; ví dụ tự soạn cho /__preview. */
+/** Metadata for the eleven approved templates; original examples for /__preview. */
 const sampleTemplates: ImportTemplate[] = [
   {
     columns: [
@@ -297,6 +297,139 @@ const sampleTemplates: ImportTemplate[] = [
     label: 'Bài nghe phát âm',
     naturalKey: ['stage_index', 'unit_code'],
   },
+  {
+    columns: [
+      column(
+        'kid',
+        true,
+        null,
+        'Mã nút gồm miền, cấp 1–7 và ba chữ số; chuẩn hoá chữ hoa.',
+        'NP2-001',
+      ),
+      column('name_vi', true, 200, 'Tên tiếng Việt của nút.', 'Nhấn mạnh thông tin đã xảy ra'),
+      column(
+        'name_zh',
+        true,
+        200,
+        'Tên tiếng Trung, chứa ít nhất một chữ Hán.',
+        '强调已发生的信息',
+      ),
+      column(
+        'can_do',
+        false,
+        1000,
+        'Năng lực người học đạt được.',
+        'Nhấn mạnh thời gian của một việc đã xảy ra.',
+      ),
+      column(
+        'skill_type',
+        false,
+        null,
+        'Kỹ năng chính nếu có: LISTENING, READING, WRITING, VOCAB, GRAMMAR, CHARACTER.',
+        'GRAMMAR',
+      ),
+    ],
+    dataType: 'KNOWLEDGE_NODE',
+    dependsOn: [],
+    label: 'Nút cây năng lực',
+    naturalKey: ['kid'],
+  },
+  {
+    columns: [
+      column('from_kid', true, null, 'Nút đã tồn tại, đứng trước nút đích.', 'NP1-001'),
+      column('to_kid', true, null, 'Nút đích đã tồn tại.', 'NP2-001'),
+      column('edge_type', true, null, 'PREREQ: tiên quyết; SUPPORT: hỗ trợ.', 'PREREQ'),
+    ],
+    dataType: 'KNOWLEDGE_EDGE',
+    dependsOn: ['KNOWLEDGE_NODE'],
+    label: 'Quan hệ giữa các nút',
+    naturalKey: ['from_kid', 'to_kid'],
+  },
+  {
+    columns: [
+      column(
+        'code',
+        true,
+        50,
+        'Mã câu hỏi gồm 3–50 chữ hoa, chữ số, dấu _ hoặc -.',
+        'DEMO_NP1_001',
+      ),
+      column(
+        'qtype',
+        true,
+        null,
+        'MULTIPLE_CHOICE, SENTENCE_MATCH, IMAGE_MATCH, TRUE_FALSE, FILL_BLANK hoặc SENTENCE_ORDER; chưa hỗ trợ ESSAY.',
+        'MULTIPLE_CHOICE',
+      ),
+      column('hsk_level', true, null, 'Cấp HSK: số nguyên từ 1 đến 9.', '1'),
+      column('difficulty', false, null, 'Độ khó từ 1 đến 3, mặc định 2.', '2'),
+      column('stem', true, 2000, 'Nội dung câu hỏi; FILL_BLANK phải chứa ___.', '我___学生。'),
+      column(
+        'option_a',
+        false,
+        300,
+        'Phương án A; loại chọn đáp án cần 2–6 phương án liên tiếp từ A.',
+        '是',
+      ),
+      column('option_b', false, 300, 'Phương án B.', '有'),
+      column('option_c', false, 300, 'Phương án C nếu có.', ''),
+      column('option_d', false, 300, 'Phương án D nếu có.', ''),
+      column('option_e', false, 300, 'Phương án E nếu có.', ''),
+      column('option_f', false, 300, 'Phương án F nếu có.', ''),
+      column(
+        'correct',
+        true,
+        null,
+        'Khoá đúng; TRUE/FALSE; đáp án điền ≤ 50 ký tự; hoặc thứ tự dùng mỗi mảnh câu đúng một lần.',
+        'A',
+      ),
+      column('explanation', true, 3000, 'Lời giải câu hỏi.', 'Dùng 是 để giới thiệu thân phận.'),
+      column('audio_url', false, null, 'URL âm thanh nếu có.', ''),
+      column('image_url', false, null, 'URL ảnh; bắt buộc cho IMAGE_MATCH.', ''),
+      column('kid_primary', true, null, 'Đúng một KID chính đã tồn tại.', 'NP1-001'),
+      column(
+        'kid_secondary',
+        false,
+        null,
+        'Tối đa hai KID phụ, ngăn bằng |; không trùng nhau hoặc trùng KID chính.',
+        'TV1-001',
+      ),
+      column(
+        'distractor_errors',
+        false,
+        null,
+        'Tối đa sáu mục KEY:KID hoặc KEY:KID:ghi chú, ngăn bằng |; chỉ gắn phương án sai của loại chọn đáp án, ghi chú ≤ 200 ký tự.',
+        'B:NP1-001:Nhầm cấu trúc giới thiệu',
+      ),
+    ],
+    dataType: 'QUESTION',
+    dependsOn: ['KNOWLEDGE_NODE'],
+    label: 'Câu hỏi',
+    naturalKey: ['code'],
+  },
+  {
+    columns: [
+      column(
+        'target_type',
+        true,
+        null,
+        'TOPIC hoặc WORD → miền TV; CHAR → CH; GRAMMAR → NP.',
+        'GRAMMAR',
+      ),
+      column(
+        'target_key',
+        true,
+        null,
+        'TOPIC: mã chủ đề; loại khác: nội dung mục từ đúng loại, đã tồn tại.',
+        '是……的',
+      ),
+      column('kid', true, null, 'KID đã tồn tại và khớp miền của nội dung.', 'NP2-001'),
+    ],
+    dataType: 'NODE_LINK',
+    dependsOn: ['KNOWLEDGE_NODE', 'TOPIC', 'LEXEME', 'GRAMMAR'],
+    label: 'Gắn nội dung vào nút',
+    naturalKey: ['target_type', 'target_key'],
+  },
 ]
 
 const samplePreview: ImportPreview = {
@@ -411,6 +544,7 @@ const base = {
   remainingSeconds: 1500,
   selectionErrors: {},
   state: 'ready',
+  templateUnavailable: false,
   templates: sampleTemplates,
   uploading: false,
 } satisfies LearningDataImportViewProps
@@ -440,6 +574,16 @@ export const learningDataImportPreviews = {
     },
   },
   ready: base,
+  knowledgeNode: { ...base, dataType: 'KNOWLEDGE_NODE' },
+  knowledgeEdge: { ...base, dataType: 'KNOWLEDGE_EDGE' },
+  question: { ...base, dataType: 'QUESTION' },
+  nodeLink: { ...base, dataType: 'NODE_LINK' },
+  templateUnavailable: {
+    ...base,
+    dataType: 'KNOWLEDGE_NODE',
+    templateUnavailable: true,
+    templates: sampleTemplates.slice(0, 7),
+  },
   loading: { ...base, history: { ...base.history, state: 'loading' }, state: 'loading' },
   error: {
     ...base,
