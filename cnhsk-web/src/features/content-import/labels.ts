@@ -8,6 +8,10 @@ export const IMPORT_DATA_TYPE_LABELS: Record<ImportDataType, string> = {
   GRAMMAR_EXERCISE: 'Bài tập ngữ pháp',
   PRON_STAGE: 'Tầng phát âm',
   PRON_UNIT: 'Bài nghe phát âm',
+  KNOWLEDGE_NODE: 'Nút cây năng lực',
+  KNOWLEDGE_EDGE: 'Quan hệ giữa các nút',
+  QUESTION: 'Câu hỏi',
+  NODE_LINK: 'Gắn nội dung vào nút',
 }
 
 export const IMPORT_DATA_TYPES = Object.keys(IMPORT_DATA_TYPE_LABELS) as ImportDataType[]

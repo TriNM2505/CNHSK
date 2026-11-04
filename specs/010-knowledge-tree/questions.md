@@ -1,5 +1,18 @@
 # Chốt — Spec 010
 
+## 2026-11-04 — Leader duyệt 010/T-04 (luồng B)
+
+- Tiếp tục từ note trong lịch sử “spec 10 - T04”; nhánh `spec/010-t04`, worktree `.worktrees/010-t04`. Đã fetch và fast-forward worktree sạch từ `6a13d82` lên `origin/main` tại `3d4921a` trước khi code; T-03 đã merge qua PR #71.
+- Allowlist đã duyệt **9 file**: `content-import/types.ts`, `labels.ts`, `components/LearningDataImportView.preview.ts`, `catalog.preview.ts`, `pages/Scr068LearningDataImportPage.test.tsx`, `pages/Scr068LearningDataImportPage.tsx`, `components/LearningDataImportView.tsx` và hai tài liệu `tasks.md`, `questions.md` của spec 010. Thêm bốn loại theo thứ tự `KNOWLEDGE_NODE`, `KNOWLEDGE_EDGE`, `QUESTION`, `NODE_LINK`; 012/T-05 sẽ nối `EXAM`, `EXAM_QUESTION` vào cuối sau T-04.
+- Leader duyệt nghiệm thu FR-028/AT-28 trước backend: 11 lựa chọn bằng mock/preview; hướng dẫn thật chỉ đọc từ `GET templates`. Contract `openapi-import.yaml` và ba test backend đang khẳng định bảy mẫu thuộc T-06, không sửa trong T-04.
+- Leader duyệt bổ sung page/View: **page quyết định, View hiển thị**. Page tính `templateUnavailable` từ loại đã chọn và metadata API, truyền boolean xuống View; giữ lựa chọn qua URL/dropdown, kiểm lại cả hai handler tải mẫu/upload. View chỉ dùng prop này để hiện “Mẫu nhập này chưa sẵn sàng trên máy chủ” và khoá hai nút; không tự suy ra trạng thái hoặc gọi API. Không dựng cột thay thế; page không import preview hoặc thêm `eslint-disable`.
+- Preview cập nhật prop mới và có trạng thái thiếu metadata với server bảy mẫu. Test kiểm đủ bốn loại mới qua dropdown/URL; gọi trực tiếp callback trên View giả lập không khoá nút để chứng minh page vẫn chặn request; hồi quy bảy loại cũ và chuyển lại mẫu có metadata vẫn dùng được file đã chọn.
+- T-13 cần đối chiếu luật kiểm theo loại câu trong `questionEditForm.ts` với `QuestionRules` của backend khi nối API thật (leader nhắc sau PR #71).
+- Gate T-04 chỉ FE: toàn bộ Vitest, lint 0 lỗi, TypeScript/Vite build. Chỉ đánh ✅ T-04 khi toàn bộ gate xanh; một conventional commit, Draft PR vào `main`, leader merge.
+- Gate cuối trên đủ 9 file: **33 test mới**; targeted `content-import` **133/133 test, 4/4 file**; toàn FE **1.742/1.742 test, 142/142 file**, 0 fail/skip, 178,54 giây (`npx vitest run --maxWorkers=2 --minWorkers=2`). Lint **0 lỗi**, chỉ 1 warning `react-refresh/only-export-components` có sẵn tại `shared/ui/LevelBadge.tsx`; TypeScript/Vite build pass. `git diff --check`, kiểm BOM và TODO/FIXME/test disable trong code task sạch; đánh ✅ T-04 theo leader duyệt.
+- Đã `git fetch origin` trước khi mở PR: `origin/main` vẫn là `3d4921a`, `content-import/types.ts` và `labels.ts` trên main không thay đổi so với base. Bàn giao bằng một conventional commit, đúng 9 file, Draft PR vào `main`; leader review/merge. Backend/contract và ba test “7 mẫu” vẫn thuộc T-06.
+- Self-check Global **PASS**: không thêm dependency, tên type/biến đúng quy ước, không đổi ranh giới module. Business **PASS**: không thêm log PII hoặc thay đổi mật khẩu/tiền/điểm/chấm bài; fixture tự soạn. Safety **PASS**: chỉ sửa đúng 9 file đã duyệt; không xoá file, đổi SQL/schema, credentials, contract, cấu hình auth hay hiến pháp; không truy cập Neon hoặc merge PR.
+
 ## 2026-11-04 — Leader duyệt 010/T-03 (luồng B)
 
 - T-02 đã merge qua PR #68. Base T-03 là `origin/main` tại `e39b14f`; tạo nhánh `spec/010-t03` và worktree riêng, Draft PR đặt base `main`. Bỏ đề xuất chồng nhánh lên T-02.

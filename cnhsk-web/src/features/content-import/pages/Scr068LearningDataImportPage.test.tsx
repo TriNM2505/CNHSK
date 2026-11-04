@@ -12,7 +12,14 @@ import {
   getImportTemplates,
   uploadImportFile,
 } from '../api/imports'
-import type { ImportPreview, ImportRun, ImportRunPage, ImportTemplate } from '../types'
+import * as importView from '../components/LearningDataImportView'
+import type {
+  ImportDataType,
+  ImportPreview,
+  ImportRun,
+  ImportRunPage,
+  ImportTemplate,
+} from '../types'
 import Scr068LearningDataImportPage from './Scr068LearningDataImportPage'
 
 vi.mock('../api/imports', () => ({
@@ -146,7 +153,62 @@ const templates: ImportTemplate[] = [
       column('explanation_vi', false, 500),
     ],
   },
+  {
+    dataType: 'KNOWLEDGE_NODE',
+    label: 'Nút cây năng lực',
+    naturalKey: ['kid'],
+    dependsOn: [],
+    columns: [
+      column('kid', true, null, 'NP1-001'),
+      column('name_vi', true, 200),
+      column('name_zh', true, 200),
+      column('can_do', false, 1000),
+      column('skill_type', false),
+    ],
+  },
+  {
+    dataType: 'KNOWLEDGE_EDGE',
+    label: 'Quan hệ giữa các nút',
+    naturalKey: ['from_kid', 'to_kid'],
+    dependsOn: ['KNOWLEDGE_NODE'],
+    columns: [column('from_kid', true), column('to_kid', true), column('edge_type', true)],
+  },
+  {
+    dataType: 'QUESTION',
+    label: 'Câu hỏi',
+    naturalKey: ['code'],
+    dependsOn: ['KNOWLEDGE_NODE'],
+    columns: [
+      column('code', true, 50),
+      column('qtype', true),
+      column('hsk_level', true),
+      column('difficulty', false),
+      column('stem', true, 2000),
+      column('option_a', false, 300),
+      column('option_b', false, 300),
+      column('option_c', false, 300),
+      column('option_d', false, 300),
+      column('option_e', false, 300),
+      column('option_f', false, 300),
+      column('correct', true),
+      column('explanation', true, 3000),
+      column('audio_url', false),
+      column('image_url', false),
+      column('kid_primary', true),
+      column('kid_secondary', false),
+      column('distractor_errors', false),
+    ],
+  },
+  {
+    dataType: 'NODE_LINK',
+    label: 'Gắn nội dung vào nút',
+    naturalKey: ['target_type', 'target_key'],
+    dependsOn: ['KNOWLEDGE_NODE', 'TOPIC', 'LEXEME', 'GRAMMAR'],
+    columns: [column('target_type', true), column('target_key', true), column('kid', true)],
+  },
 ]
+
+const knowledgeTypes = ['KNOWLEDGE_NODE', 'KNOWLEDGE_EDGE', 'QUESTION', 'NODE_LINK'] as const
 
 const NOW = Date.parse('2026-10-20T05:00:00Z')
 
@@ -570,13 +632,17 @@ describe('Scr068LearningDataImportPage', () => {
     ['GRAMMAR_EXERCISE', 'Bài tập ngữ pháp', 'grammar_text, exercise_no', 9],
     ['PRON_STAGE', 'Tầng phát âm', 'stage_index', 5],
     ['PRON_UNIT', 'Bài nghe phát âm', 'stage_index, unit_code', 10],
+    ['KNOWLEDGE_NODE', 'Nút cây năng lực', 'kid', 5],
+    ['KNOWLEDGE_EDGE', 'Quan hệ giữa các nút', 'from_kid, to_kid', 3],
+    ['QUESTION', 'Câu hỏi', 'code', 18],
+    ['NODE_LINK', 'Gắn nội dung vào nút', 'target_type, target_key', 3],
   ] as const)(
-    'FR036_guide_%s: chọn đủ bảy mẫu và hướng dẫn đúng khóa/cột',
+    'FR036_FR028_AT28_guide_%s: chọn đủ mười một mẫu và hướng dẫn đúng khóa/cột',
     async (type, label, key, count) => {
       renderPage()
       const user = userEvent.setup()
       const select = await screen.findByLabelText(/Loại dữ liệu/)
-      expect(within(select).getAllByRole('option')).toHaveLength(8)
+      expect(within(select).getAllByRole('option')).toHaveLength(12)
       expect(within(select).getByRole('option', { name: label })).toHaveValue(type)
       await user.selectOptions(select, type)
       expect(screen.getAllByText(key)[0]).toBeVisible()
@@ -588,6 +654,190 @@ describe('Scr068LearningDataImportPage', () => {
       expect(screen.getByLabelText(/File CSV/)).toHaveAttribute('accept', '.csv')
     },
   )
+
+  it('FR028_AT28: giữ đúng nhãn và thứ tự mười một loại dữ liệu', async () => {
+    renderPage()
+    const select = await screen.findByLabelText(/Loại dữ liệu/)
+    expect(
+      within(select)
+        .getAllByRole('option')
+        .map((option) => [(option as HTMLOptionElement).value, option.textContent]),
+    ).toEqual([
+      ['', 'Chọn loại dữ liệu'],
+      ['LEXEME', 'Chữ và từ vựng'],
+      ['TOPIC', 'Chủ đề từ vựng'],
+      ['TOPIC_ITEM', 'Từ trong chủ đề'],
+      ['GRAMMAR', 'Điểm ngữ pháp'],
+      ['GRAMMAR_EXERCISE', 'Bài tập ngữ pháp'],
+      ['PRON_STAGE', 'Tầng phát âm'],
+      ['PRON_UNIT', 'Bài nghe phát âm'],
+      ['KNOWLEDGE_NODE', 'Nút cây năng lực'],
+      ['KNOWLEDGE_EDGE', 'Quan hệ giữa các nút'],
+      ['QUESTION', 'Câu hỏi'],
+      ['NODE_LINK', 'Gắn nội dung vào nút'],
+    ])
+  })
+
+  it.each(knowledgeTypes)('FR028_AT28: lấy hướng dẫn %s từ metadata API', async (dataType) => {
+    const template = templates.find((item) => item.dataType === dataType)!
+    vi.mocked(getImportTemplates).mockResolvedValue([
+      {
+        ...template,
+        naturalKey: ['server_key'],
+        dependsOn: ['PRON_STAGE'],
+        columns: [
+          {
+            name: 'server_column',
+            required: true,
+            maxLength: 37,
+            description: 'Mô tả riêng từ máy chủ.',
+            example: '服务器示例',
+          },
+        ],
+      },
+    ])
+    renderPage(`/content/imports?dataType=${dataType}`)
+    const table = await screen.findByRole('table', { name: `Danh sách cột mẫu ${template.label}` })
+    expect(within(table).getAllByRole('row')).toHaveLength(2)
+    for (const text of [
+      'server_column',
+      'Có',
+      '37 ký tự',
+      'Mô tả riêng từ máy chủ.',
+      '服务器示例',
+    ]) {
+      expect(within(table).getByText(text)).toBeVisible()
+    }
+    expect(screen.getByText('server_key')).toBeVisible()
+    expect(screen.getByText(/Cần nhập trước: Tầng phát âm/)).toBeVisible()
+  })
+
+  it.each(knowledgeTypes)('FR028_AT28: chọn sẵn, tải mẫu và upload đúng %s', async (dataType) => {
+    const { downloadBlob } = await import('@/shared/lib/downloadBlob')
+    const blob = new Blob(['server_column\nexample'])
+    vi.mocked(getImportTemplateFile).mockResolvedValue({ blob, fileName: `${dataType}-server.csv` })
+    vi.mocked(uploadImportFile).mockResolvedValue(makePreview({ dataType }))
+    renderPage(`/content/imports?dataType=${dataType}`)
+    const user = userEvent.setup()
+    const select = await screen.findByLabelText(/Loại dữ liệu/)
+    expect(select).toHaveValue(dataType)
+    await user.click(screen.getByRole('button', { name: 'Tải mẫu' }))
+    expect(getImportTemplateFile).toHaveBeenCalledWith(dataType)
+    expect(downloadBlob).toHaveBeenCalledWith(blob, `${dataType}-server.csv`)
+
+    const file = csvFile(`${dataType}.csv`)
+    await user.upload(screen.getByLabelText(/File CSV/), file)
+    await user.click(screen.getByRole('button', { name: 'Tải lên và kiểm tra' }))
+    expect(uploadImportFile).toHaveBeenCalledWith(dataType, file)
+    expect(await screen.findByRole('region', { name: 'Kết quả kiểm tra' })).toBeVisible()
+  })
+
+  it.each(templates.slice(0, 7).map((template) => template.dataType))(
+    'FR028_AT28: server chỉ trả bảy mẫu vẫn tải và upload được %s',
+    async (dataType: ImportDataType) => {
+      vi.mocked(getImportTemplates).mockResolvedValue(templates.slice(0, 7))
+      vi.mocked(getImportTemplateFile).mockResolvedValue({ blob: new Blob(['example']) })
+      vi.mocked(uploadImportFile).mockResolvedValue(makePreview({ dataType }))
+      renderPage(`/content/imports?dataType=${dataType}`)
+      const user = userEvent.setup()
+      const select = await screen.findByLabelText(/Loại dữ liệu/)
+      expect(select).toHaveValue(dataType)
+      await user.click(screen.getByRole('button', { name: 'Tải mẫu' }))
+      expect(getImportTemplateFile).toHaveBeenCalledWith(dataType)
+      const file = csvFile()
+      await user.upload(screen.getByLabelText(/File CSV/), file)
+      await user.click(screen.getByRole('button', { name: 'Tải lên và kiểm tra' }))
+      expect(uploadImportFile).toHaveBeenCalledWith(dataType, file)
+    },
+  )
+
+  it.each(knowledgeTypes)(
+    'FR028_AT28: server có bảy mẫu, chọn %s bằng dropdown giữ lựa chọn và chặn request',
+    async (dataType) => {
+      vi.mocked(getImportTemplates).mockResolvedValue(templates.slice(0, 7))
+      renderPage()
+      const user = userEvent.setup()
+      const select = await screen.findByLabelText(/Loại dữ liệu/)
+      await user.upload(screen.getByLabelText(/File CSV/), csvFile())
+      await user.selectOptions(select, dataType)
+
+      expect(select).toHaveValue(dataType)
+      expect(screen.getByText('Mẫu nhập này chưa sẵn sàng trên máy chủ')).toBeVisible()
+      expect(screen.queryByRole('table', { name: /Danh sách cột mẫu/ })).not.toBeInTheDocument()
+      const downloadButton = screen.getByRole('button', { name: 'Tải mẫu' })
+      const uploadButton = screen.getByRole('button', { name: 'Tải lên và kiểm tra' })
+      expect(downloadButton).toBeDisabled()
+      expect(uploadButton).toBeDisabled()
+      await user.click(downloadButton)
+      await user.click(uploadButton)
+      fireEvent.submit(screen.getByLabelText(/File CSV/).closest('form')!)
+      expect(getImportTemplateFile).not.toHaveBeenCalled()
+      expect(uploadImportFile).not.toHaveBeenCalled()
+      expect(select).toHaveValue(dataType)
+    },
+  )
+
+  it.each(knowledgeTypes)(
+    'FR028_AT28: server có bảy mẫu, chọn %s qua URL giữ lựa chọn và chặn request',
+    async (dataType) => {
+      vi.mocked(getImportTemplates).mockResolvedValue(templates.slice(0, 7))
+      renderPage(`/content/imports?dataType=${dataType}`)
+      const user = userEvent.setup()
+      expect(await screen.findByText('Mẫu nhập này chưa sẵn sàng trên máy chủ')).toBeVisible()
+      const select = screen.getByLabelText(/Loại dữ liệu/)
+      expect(select).toHaveValue(dataType)
+      expect(screen.queryByRole('table', { name: /Danh sách cột mẫu/ })).not.toBeInTheDocument()
+      await user.upload(screen.getByLabelText(/File CSV/), csvFile())
+      const downloadButton = screen.getByRole('button', { name: 'Tải mẫu' })
+      const uploadButton = screen.getByRole('button', { name: 'Tải lên và kiểm tra' })
+      expect(downloadButton).toBeDisabled()
+      expect(uploadButton).toBeDisabled()
+      await user.click(downloadButton)
+      await user.click(uploadButton)
+      fireEvent.submit(screen.getByLabelText(/File CSV/).closest('form')!)
+      expect(getImportTemplateFile).not.toHaveBeenCalled()
+      expect(uploadImportFile).not.toHaveBeenCalled()
+      expect(select).toHaveValue(dataType)
+    },
+  )
+
+  it.each(knowledgeTypes)(
+    'FR028_AT28: page tự chặn callback tải mẫu/upload %s khi View không khoá nút',
+    async (dataType) => {
+      vi.mocked(getImportTemplates).mockResolvedValue(templates.slice(0, 7))
+      const view = vi.spyOn(importView, 'LearningDataImportView').mockReturnValue(<div />)
+      renderPage(`/content/imports?dataType=${dataType}`)
+      await waitFor(() => expect(view.mock.lastCall?.[0].templateUnavailable).toBe(true))
+      act(() => view.mock.lastCall![0].onFileChange(csvFile()))
+      await act(async () => {
+        view.mock.lastCall![0].onDownloadTemplate()
+        view.mock.lastCall![0].onUpload()
+      })
+      expect(view.mock.lastCall![0].dataType).toBe(dataType)
+      expect(getImportTemplateFile).not.toHaveBeenCalled()
+      expect(uploadImportFile).not.toHaveBeenCalled()
+    },
+  )
+
+  it('FR028_AT28: chọn lại mẫu có metadata khôi phục tải mẫu/upload và giữ file đã chọn', async () => {
+    vi.mocked(getImportTemplates).mockResolvedValue(templates.slice(0, 7))
+    vi.mocked(getImportTemplateFile).mockResolvedValue({ blob: new Blob(['example']) })
+    vi.mocked(uploadImportFile).mockResolvedValue(makePreview())
+    renderPage('/content/imports?dataType=QUESTION')
+    const user = userEvent.setup()
+    await screen.findByText('Mẫu nhập này chưa sẵn sàng trên máy chủ')
+    const file = csvFile()
+    await user.upload(screen.getByLabelText(/File CSV/), file)
+    await user.selectOptions(screen.getByLabelText(/Loại dữ liệu/), 'LEXEME')
+
+    expect(screen.queryByText('Mẫu nhập này chưa sẵn sàng trên máy chủ')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tải mẫu' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Tải lên và kiểm tra' })).toBeEnabled()
+    await user.click(screen.getByRole('button', { name: 'Tải mẫu' }))
+    await user.click(screen.getByRole('button', { name: 'Tải lên và kiểm tra' }))
+    expect(getImportTemplateFile).toHaveBeenCalledWith('LEXEME')
+    expect(uploadImportFile).toHaveBeenCalledWith('LEXEME', file)
+  })
 
   it('FR036_guideDetails: hiện giới hạn, ví dụ và mẫu phụ thuộc từ API', async () => {
     renderPage('/content/imports?dataType=LEXEME')
