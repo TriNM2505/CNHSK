@@ -59,6 +59,50 @@ beforeEach(() => {
 })
 
 describe('usePracticeSession', () => {
+  it('loads directly by ID, aborts an obsolete load and clears drafts between blocks', async () => {
+    let resolveOld!: (session: SessionView) => void
+    getSessionMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveOld = resolve
+          }),
+      )
+      .mockResolvedValueOnce(
+        createSession({
+          sessionId: 43,
+          source: 'PLACEMENT',
+          feedback: 'DEFERRED',
+          answered: [{ no: 1, answer: 'B' }],
+        }),
+      )
+      .mockResolvedValueOnce(
+        createSession({ sessionId: 44, source: 'PLACEMENT', feedback: 'DEFERRED' }),
+      )
+    const { result, rerender } = renderHook(({ id }) => usePracticeSession({ sessionId: id }), {
+      initialProps: { id: 42 },
+    })
+    const oldSignal = getSessionMock.mock.calls[0]?.[1]
+    rerender({ id: 43 })
+    await waitFor(() => expect(result.current.session?.sessionId).toBe(43))
+    expect(oldSignal?.aborted).toBe(true)
+    await act(async () => resolveOld(createSession({ sessionId: 42 })))
+    expect(result.current.drafts).toEqual({ 1: { no: 1, answer: 'B' } })
+    rerender({ id: 44 })
+    await waitFor(() => expect(result.current.session?.sessionId).toBe(44))
+    expect(result.current.drafts).toEqual({})
+    expect(findActiveSessionMock).not.toHaveBeenCalled()
+  })
+
+  it.each([403, 404])('preserves error state when direct loading returns %s', async (status) => {
+    getSessionMock.mockRejectedValueOnce(apiError('ATTEMPT_NOT_OWNED', status))
+    const { result } = renderHook(() => usePracticeSession({ sessionId: 42 }))
+    await waitFor(() => expect(result.current.state).toBe('error'))
+    expect(result.current.error?.status).toBe(status)
+    expect(result.current.session).toBeNull()
+    expect(findActiveSessionMock).not.toHaveBeenCalled()
+  })
+
   it('FR045_restores only the fields present in a DEFERRED snapshot', async () => {
     const restored = createSession({
       feedback: 'DEFERRED',
