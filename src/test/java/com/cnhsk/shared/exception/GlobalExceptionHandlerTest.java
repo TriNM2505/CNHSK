@@ -106,6 +106,15 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void questionNotFoundReturns404AndStandardError() throws Exception {
+        mockMvc.perform(get("/test/question-missing").header(RequestIdFilter.HEADER_NAME, "t11-not-found"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error_code").value("QUESTION_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Không tìm thấy câu hỏi."))
+                .andExpect(jsonPath("$.request_id").value("t11-not-found"));
+    }
+
+    @Test
     void errorCodeContainsEveryCodeFromTheSpecification() {
         assertThat(ErrorCode.values()).extracting(Enum::name).containsExactly(
                 "VALIDATION_FAILED", "EMAIL_ALREADY_EXISTS", "INVALID_CREDENTIALS", "LOGIN_SOURCE_BLOCKED",
@@ -132,7 +141,7 @@ class GlobalExceptionHandlerTest {
                 "COMMENT_EDIT_WINDOW_EXPIRED", "COMMENT_NOT_RESTORABLE", "DUPLICATE_REPORT", "REPORT_ALREADY_HANDLED",
                 "KNOWLEDGE_NODE_NOT_FOUND", "EXAM_NOT_FOUND", "EXAM_NOT_PUBLISHED", "EXAM_HAS_NO_QUESTIONS",
                 "ATTEMPT_NOT_SUBMITTED", "PLACEMENT_BANK_INSUFFICIENT", "PLACEMENT_NOT_FINISHED",
-                "LEXEME_NOT_FOUND", "INTERNAL_ERROR");
+                "LEXEME_NOT_FOUND", "QUESTION_NOT_FOUND", "INTERNAL_ERROR");
     }
 
     @RestController
@@ -142,6 +151,11 @@ class GlobalExceptionHandlerTest {
         void missingLexeme() {
             throw new ApiException(ErrorCode.LEXEME_NOT_FOUND, HttpStatus.NOT_FOUND,
                     "Không tìm thấy mục từ.", Map.of());
+        }
+
+        @GetMapping("/test/question-missing")
+        void missingQuestion() {
+            throw new ApiException(ErrorCode.QUESTION_NOT_FOUND, HttpStatus.NOT_FOUND, "Không tìm thấy câu hỏi.", Map.of());
         }
 
         @GetMapping("/test/knowledge-node-missing")

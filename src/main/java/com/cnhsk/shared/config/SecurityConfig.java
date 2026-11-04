@@ -149,6 +149,8 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.POST, "/api/pronunciation/stages/{stageIndex}/sessions").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/knowledge-tree/**")
                             .hasAnyRole("LEARNER", "CONTENT_EDITOR", "TEACHER");
+                    authorize.requestMatchers(HttpMethod.GET, "/api/admin/questions", "/api/admin/questions/**")
+                            .hasAnyRole("CONTENT_EDITOR", "TEACHER");
                     authorize.requestMatchers("/api/admin/**").hasRole("ADMIN")
                             .requestMatchers("/api/auth/verify-email/resend", "/api/auth/logout",
                                     "/api/auth/logout-all", "/api/auth/me", "/api/me/**")
