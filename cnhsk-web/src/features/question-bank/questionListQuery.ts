@@ -1,5 +1,6 @@
 import { SUPPORTED_HSK_LEVELS, type HskLevel } from '@/shared/ui/LevelBadge'
 
+import { questionTextLength } from './questionEditForm'
 import type { QuestionSource, QuestionStatus, QuestionType } from './types'
 
 export const QUESTION_PAGE_SIZE = 10
@@ -37,7 +38,7 @@ export type QuestionListQuery = {
 }
 
 export function questionSearchError(value: string): string | undefined {
-  const length = value.trim().length
+  const length = questionTextLength(value.trim())
   return length > 0 && (length < 2 || length > 100)
     ? 'Nhập từ 2 đến 100 ký tự hoặc để trống.'
     : undefined

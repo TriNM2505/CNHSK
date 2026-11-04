@@ -53,8 +53,21 @@ export function mapImportUploadError(error: unknown): ImportMappedError {
             typeof detail.message === 'string',
         )
       : undefined
+  const dataTypeValidation =
+    apiError.errorCode === 'VALIDATION_FAILED' &&
+    Array.isArray(apiError.details) &&
+    apiError.details.some(
+      (detail) =>
+        detail !== null &&
+        typeof detail === 'object' &&
+        'field' in detail &&
+        detail.field === 'dataType',
+    )
   return {
-    message: IMPORT_FILE_ERROR_MESSAGES[apiError.errorCode] ?? apiError.message,
+    message:
+      dataTypeValidation && apiError.message.trim()
+        ? apiError.message
+        : (IMPORT_FILE_ERROR_MESSAGES[apiError.errorCode] ?? apiError.message),
     requestId: apiError.requestId,
     details,
   }

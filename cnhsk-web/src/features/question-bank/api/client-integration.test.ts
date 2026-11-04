@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '@/shared/api'
 
+import { toQuestionUpdate } from '../questionEditForm'
 import type { QuestionDetail, QuestionUpdate } from '../types'
 import { getKnowledgeNode, getKnowledgeTree } from './knowledge'
 import { archiveQuestion, getQuestion, listQuestions, updateQuestion } from './questions'
@@ -61,6 +62,120 @@ afterEach(() => {
 })
 
 describe('question-bank API foundation with the real shared client (§13)', () => {
+  it('T13_AT26_AT27_sends a Unicode list query and normalized PUT body to the fake server, then archives without a body', async () => {
+    document.cookie = 'XSRF-TOKEN=test-question-csrf; path=/'
+    const query = { hskLevel: 3, kid: 'NP3-901', q: '𠀀😀 & 今天?', page: 1, size: 10 }
+    const body = toQuestionUpdate({
+      ...update,
+      primaryKid: ' tv1-901 ',
+      secondaryKids: [' np3-901 '],
+      correctKey: ' 𠀀😀 ',
+      audioUrl: '',
+      imageUrl: null,
+    })
+    const server = vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+      const url = new URL(String(input))
+      expect(url.origin).toBe(origin)
+      expect(init?.credentials).toBe('include')
+      if (init?.method === 'GET' && url.pathname === '/api/admin/questions') {
+        expect(Object.fromEntries(url.searchParams)).toEqual({
+          hskLevel: '3',
+          kid: 'NP3-901',
+          q: '𠀀😀 & 今天?',
+          page: '1',
+          size: '10',
+        })
+        return json({ items: [], page: 1, size: 10, totalElements: 0 })
+      }
+      expect(new Headers(init?.headers).get('X-XSRF-TOKEN')).toBe('test-question-csrf')
+      if (init?.method === 'PUT' && url.pathname === '/api/admin/questions/901') {
+        expect(JSON.parse(String(init.body))).toEqual({
+          ...update,
+          primaryKid: 'TV1-901',
+          secondaryKids: ['NP3-901'],
+          correctKey: '𠀀😀',
+          audioUrl: null,
+          imageUrl: null,
+        })
+        return json({ ...detail, ...body })
+      }
+      expect(url.pathname).toBe('/api/admin/questions/901/archive')
+      expect(init?.method).toBe('PATCH')
+      expect(init?.body).toBeUndefined()
+      return json({ ...detail, status: 'ARCHIVED' })
+    })
+    vi.stubGlobal('fetch', server)
+    await expect(listQuestions(query)).resolves.toMatchObject({ page: 1, size: 10 })
+    await expect(updateQuestion(901, body)).resolves.toMatchObject({ correctKey: '𠀀😀' })
+    await expect(archiveQuestion(901)).resolves.toMatchObject({ status: 'ARCHIVED' })
+    expect(server).toHaveBeenCalledTimes(3)
+  })
+
+  it.each([
+    [404, 'QUESTION_NOT_FOUND'],
+    [409, 'GRADING_CHANGE_NOT_ALLOWED'],
+    [409, 'QUESTION_ARCHIVED'],
+    [422, 'MALFORMED_QUESTION'],
+    [422, 'KNOWLEDGE_NODE_REQUIRED'],
+  ] as const)(
+    'T13_AT27_preserves PUT %s %s and field details through the real client',
+    async (status, errorCode) => {
+      document.cookie = 'XSRF-TOKEN=test-question-csrf; path=/'
+      const details = [
+        { field: 'correctKey', message: 'Đáp án cần kiểm tra.' },
+        { field: 'unknownField', message: 'Lỗi bổ sung từ máy chủ.' },
+      ]
+      vi.stubGlobal(
+        'fetch',
+        vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+          expect(String(input)).toBe(`${origin}/api/admin/questions/901`)
+          expect(init?.method).toBe('PUT')
+          expect(JSON.parse(String(init?.body))).toEqual(update)
+          return json(
+            {
+              error_code: errorCode,
+              message: 'Lỗi kiểm thử an toàn.',
+              request_id: 'req-mutation',
+              details,
+            },
+            status,
+          )
+        }),
+      )
+      await expect(updateQuestion(901, update)).rejects.toMatchObject({
+        status,
+        errorCode,
+        requestId: 'req-mutation',
+        details,
+      })
+    },
+  )
+
+  it('T13_AT27_preserves archive 404 through the real client', async () => {
+    document.cookie = 'XSRF-TOKEN=test-question-csrf; path=/'
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockImplementation(async (input, init) => {
+        expect(String(input)).toBe(`${origin}/api/admin/questions/901/archive`)
+        expect(init?.method).toBe('PATCH')
+        expect(init?.body).toBeUndefined()
+        return json(
+          {
+            error_code: 'QUESTION_NOT_FOUND',
+            message: 'Không tìm thấy câu hỏi.',
+            request_id: 'req-archive',
+          },
+          404,
+        )
+      }),
+    )
+    await expect(archiveQuestion(901)).rejects.toMatchObject({
+      status: 404,
+      errorCode: 'QUESTION_NOT_FOUND',
+      requestId: 'req-archive',
+    })
+  })
+
   it('FR001_reads the tree and node detail with the cookie session and AbortSignal', async () => {
     const node = {
       kid: 'NP1-901',
