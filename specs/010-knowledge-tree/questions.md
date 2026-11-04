@@ -1,5 +1,40 @@
 # Chốt — Spec 010
 
+## 2026-11-04 — Leader nhận tối ưu QUESTION, duyệt ngoại lệ gate và mở Draft PR
+
+- Nhận đúng phần tối ưu 5 file, không mở rộng thêm. Số SQL đã được test khoá lại; tạo mới trên máy Tường giảm từ 39.545 xuống 33.210 ms (khoảng 16%). **Bỏ mục tiêu tạo mới dưới 20 giây**. Leader xác định chi phí còn lại ở 5.000 transaction riêng từng dòng và PostgreSQL trong Docker trên Windows; giữ thiết kế transaction của spec 002.
+- NFR-P04 QUESTION (`T08_QUESTION_CONFIRM_BENCHMARK`) thuộc nhóm benchmark nhạy môi trường, cùng nhóm FR-023 của spec 002. **Gate chính thức chạy trên máy leader**, nơi tạo mới đo được 24–30 giây. Giữ nguyên ngưỡng 30.000 ms, 5.000 câu, năm mẫu và toàn bộ assertion; không sửa cấu hình hoặc đánh dấu skip test.
+- Ngoại lệ local được duyệt: chạy `mvnw -B verify "-Dtest=!QuestionImportIntegrationTest#NFR_P04*"`, chỉ loại đúng method benchmark QUESTION. Mô tả PR bắt buộc ghi **FULL VERIFY FAILED (1 test môi trường: NFR_P04 QUESTION benchmark)**, kèm bảng thời gian/SQL trước và sau, kết quả verify theo ngoại lệ và JaCoCo LINE. Leader chạy full verify có benchmark trước khi merge.
+- Gate theo ngoại lệ trên Java 17.0.9, Docker Linux 29.9.2, `DEBUG=false`: **BUILD SUCCESS**, **2.616 test / 159 suite, 0 failure/error/skip**, 09:34 phút; JaCoCo LINE **96,98% (7.763/8.005 dòng; 242 chưa phủ)**, mọi coverage check pass. `QuestionImportIntegrationTest` vẫn chạy đủ 12 test còn lại, QUESTION concurrency 7 test pass. Benchmark hồi quy FR-023 p95 **20.029 ms <30.000**, EDGE p95 **64 ms <10.000**, phân trang lỗi **12 ms <300**. Log `target/question-writer-verify.log`, không commit.
+- Bỏ phần in số đo tạm vừa thêm, giữ test đếm SELECT/DML. Hai log `target/question-writer-before.log` và `target/question-writer-after.log` được xoá theo yêu cầu leader sau khi đã ghi đầy đủ số đo; không commit log hoặc phần đo tạm. Một conventional commit `perf(content-import): …`, đúng 5 file, Draft PR, không merge.
+- Sau khi mở Draft PR tối ưu, được code T-11 theo Shadow Plan 12 file đã duyệt. Nhánh T-11 giữ base `ee74b24`; không tự rebase hoặc đưa commit tối ưu vào nhánh này. Leader gộp với main mới nhất khi review; muốn chạy gate local có bản tối ưu phải báo leader trước.
+- Self-check cuối: **Global PASS · Business PASS · Safety PASS**; đúng 5 file allowlist, fixture tự soạn, không đổi schema/contract/dependency/config hoặc truy cập Neon. `git diff --check` sạch, 0 BOM, 0 TODO/FIXME/test disable trong code thay đổi; backend chưa có linter Java riêng. Gate local theo ngoại lệ xanh; gate chính thức có NFR-P04 chờ leader.
+
+## 2026-11-04 — Leader duyệt tối ưu writer QUESTION trước T-11
+
+- Base `origin/main` tại `7f6e615`, nhánh/worktree riêng `fix/010-question-writer-perf` / `.worktrees/010-question-writer-perf`. Allowlist đúng 5 file: `QuestionRowWriter.java`, `QuestionRowWriterTest.java`, `QuestionImportIntegrationTest.java`, `tasks.md`, `questions.md`. T-09 đã merge PR #86; theo leader, **leader full verify PASS tại 7f6e615**, cập nhật ✅ T-09 và tiến độ 10/13.
+- NFR-P04 gồm một lần tạo mới 5.000 câu, bốn lần nhập lại UNCHANGED; p95 là max của năm mẫu. Giữ nguyên số dòng, số mẫu và ngưỡng 30.000 ms. Mục tiêu riêng của lần tối ưu này: tạo mới **dưới 20.000 ms trên máy Tường**; không đạt thì dừng báo leader, không cache KID cả lượt hoặc sửa `ImportService`.
+- Nhãn mới dùng `EntityManager.persist` thay `saveAll` để bỏ SELECT do merge khoá ghép. `questions.save` lấy IDENTITY ngay, không gọi `saveAndFlush` hoặc flush nhãn cuối dòng; transaction của dòng flush khi commit. Câu có sẵn đã managed dưới khoá. Nhãn không đổi được giữ nguyên; nhãn đổi vẫn xoá → flush → persist để đổi PRIMARY/SECONDARY an toàn.
+- Chỉ đọc `usedQuestionIds` khi chữ ký chấm thay đổi, sau khi lấy khoá `FOR UPDATE`. Giữ kiểm KID mỗi dòng, `GRADING_CHANGE_NOT_ALLOWED`, metadata duyệt/source/status/reusable, transaction riêng và rollback từng dòng. Không sửa repository, `QuestionRules`, `ImportService`, schema, contract, dependency hoặc FE.
+- Đo SQL bằng `StatementInspector` bao trọn transaction dòng, gồm flush khi commit, với 1 và 3 nhãn. Ký hiệu `S` = SELECT, `D` = INSERT/UPDATE/DELETE; không tính lệnh điều khiển transaction của JDBC. Test kiểm số SELECT, DML, tổng câu lệnh và nội dung/nhãn lưu thật:
+
+| Trường hợp | Nhãn | Trước: S / D / tổng | Sau: S / D / tổng |
+|---|---:|---:|---:|
+| Tạo mới | 1 | 3 / 2 / 5 | 2 / 2 / 4 |
+| Tạo mới | 3 | 5 / 4 / 9 | 2 / 4 / 6 |
+| Nhập lại UNCHANGED | 1 hoặc 3 | 4 / 0 / 4 | 3 / 0 / 3 |
+| Sửa lời giải, giữ nhãn | 1 | 5 / 3 / 8 | 3 / 1 / 4 |
+| Sửa lời giải, giữ nhãn | 3 | 7 / 7 / 14 | 3 / 1 / 4 |
+| Đổi nhãn, giữ nội dung | 1 | 5 / 2 / 7 | 3 / 2 / 5 |
+| Đổi PRIMARY ↔ SECONDARY | 3 | 7 / 6 / 13 | 3 / 6 / 9 |
+
+- Baseline cùng máy trước sửa writer, Java 17.0.9, Docker Linux 29.9.2, `DEBUG=false`: tạo mới **39.545 ms**, nhập lại **[20.542, 16.800, 16.286, 16.167] ms**, p95 **39.545 ms**. Lệnh `mvnw -B -Dtest=QuestionImportIntegrationTest#NFR_P04_*+AT11_AT12_writerSql* test`: 3 test, 1 failure (ngưỡng benchmark), 0 error/skip; hai ca đo SQL pass. Log `target/question-writer-before.log`, không commit.
+- Sau sửa, test chọn lọc `QuestionRowWriterTest`, `QuestionImportConcurrencyIntegrationTest`, `QuestionImportIntegrationTest#AT*`: **43 test, 0 failure/error/skip**, BUILD SUCCESS; gồm 7 ca đồng thời, đổi PRIMARY ↔ SECONDARY, rollback câu/nhãn rồi tiếp tục dòng sau và bảo vệ đáp án đã dùng. Log `target/question-writer-targeted.log`, không commit.
+- Benchmark sau sửa trên cùng máy, cùng Java/Docker và `DEBUG=false`: tạo mới **33.210 ms**, nhập lại **[18.413, 15.701, 15.127, 15.105] ms**, p95 **33.210 ms**. Lệnh `mvnw -B -Dtest=QuestionImportIntegrationTest#NFR_P04_* test`: **1 test, 1 failure (ngưỡng 30.000 ms), 0 error/skip**. Log `target/question-writer-after.log`, không commit. Tạo mới giảm 6.335 ms (khoảng 16%) nhưng chưa đạt mục tiêu 20.000 ms và chưa qua ngưỡng NFR-P04.
+- **Dừng theo điều kiện leader đã duyệt:** không mở rộng tối ưu, chưa chạy full verify nên chưa có JaCoCo cho bản sửa, chưa commit/push/mở Draft PR và chưa code T-11. Giữ đủ diff 5 file và số đo để leader quyết định bước tiếp theo. Không đổi ngưỡng, số dòng, số mẫu hoặc bỏ qua test.
+- Self-check: **Global PASS** (đúng stack, không thêm dependency hoặc đổi ranh giới module); **Business PASS** (fixture tự soạn, vẫn kiểm đáp án dưới khoá và rollback từng dòng, không log PII); **Safety PASS** (đúng 5 file, không đổi schema/contract/config/secret, chỉ dùng Testcontainers, không truy cập Neon). `git diff --check` sạch; 0 BOM ở 5 file; 0 TODO/FIXME/test disable trong 3 file code. **Quality gate chưa đạt** do NFR-P04 nêu trên.
+- Theo leader: sau khi PR tối ưu merge, nhánh T-11 từ `ee74b24` tiếp tục giữ nguyên; leader gộp với main mới nhất khi review. Không tự rebase hoặc đưa bản tối ưu vào nhánh T-11.
+
 ## 2026-11-04 — Leader duyệt 010/T-09 (luồng B)
 
 - T-08 đã merge qua PR #84; base `origin/main` tại `c9f418a`, nhánh/worktree mới `spec/010-t09` / `.worktrees/010-t09`. Đối chiếu code T-08 với main: allowlist đã duyệt vẫn khớp. Đúng 17 file, gồm hai tài liệu; không thêm `NodeLinkConcurrencyIntegrationTest.java`.

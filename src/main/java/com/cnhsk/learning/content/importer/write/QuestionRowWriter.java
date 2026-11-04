@@ -20,6 +20,7 @@ import com.cnhsk.learning.knowledge.entity.QuestionStatus;
 import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
 import com.cnhsk.learning.knowledge.repository.QuestionKnowledgePointRepository;
 import com.cnhsk.learning.knowledge.repository.QuestionRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,11 +30,14 @@ public class QuestionRowWriter implements RowWriter {
     private final QuestionRepository questions;
     private final QuestionKnowledgePointRepository labels;
     private final KnowledgePointRepository points;
+    private final EntityManager entities;
 
-    public QuestionRowWriter(QuestionRepository questions, QuestionKnowledgePointRepository labels, KnowledgePointRepository points) {
+    public QuestionRowWriter(QuestionRepository questions, QuestionKnowledgePointRepository labels,
+            KnowledgePointRepository points, EntityManager entities) {
         this.questions = questions;
         this.labels = labels;
         this.points = points;
+        this.entities = entities;
     }
 
     @Override public ImportDataType dataType() { return ImportDataType.QUESTION; }
@@ -52,9 +56,9 @@ public class QuestionRowWriter implements RowWriter {
             throw new RowWriteRejectedException(error.code(), QuestionImportSupport.column(error), error.message());
         }
         Draft value = checked.value();
-        if (previous != null && !questions.usedQuestionIds(List.of(previous.getId())).isEmpty()
-                && !QuestionRules.gradingSignature(QuestionImportSupport.stored(previous, "", List.of()))
-                        .equals(QuestionRules.gradingSignature(value))) {
+        if (previous != null && !QuestionRules.gradingSignature(QuestionImportSupport.stored(previous, "", List.of()))
+                .equals(QuestionRules.gradingSignature(value))
+                && !questions.usedQuestionIds(List.of(previous.getId())).isEmpty()) {
             throw new RowWriteRejectedException("GRADING_CHANGE_NOT_ALLOWED", "correct",
                     "Câu đã có người làm — không đổi được cách chấm; tạo câu mới");
         }
@@ -70,12 +74,14 @@ public class QuestionRowWriter implements RowWriter {
             question.setSource(QuestionSource.IMPORT); question.setStatus(QuestionStatus.APPROVED); question.setReusable(true);
         }
         apply(question, value);
-        questions.saveAndFlush(question);
-        // Free uq_qkp_primary before inserting a new primary, including a previous secondary with the same composite ID.
-        if (!oldLabels.isEmpty()) { labels.deleteAll(oldLabels); labels.flush(); }
-        List<QuestionKnowledgePoint> replacement = desired.entrySet().stream()
-                .map(label -> new QuestionKnowledgePoint(question.getId(), label.getKey(), label.getValue())).toList();
-        labels.saveAll(replacement); labels.flush();
+        // IDENTITY inserts a new question immediately; existing questions are already managed under the row lock.
+        if (previous == null) questions.save(question);
+        if (!old.equals(desired)) {
+            // Free uq_qkp_primary before inserting a new primary, including a previous secondary with the same composite ID.
+            if (!oldLabels.isEmpty()) { labels.deleteAll(oldLabels); labels.flush(); }
+            // These labels are new: persist avoids merge's existence SELECT for each assigned composite ID.
+            desired.forEach((pointId, role) -> entities.persist(new QuestionKnowledgePoint(question.getId(), pointId, role)));
+        }
         return previous == null ? RowAction.CREATE : RowAction.UPDATE;
     }
 

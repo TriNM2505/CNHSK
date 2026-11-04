@@ -18,11 +18,13 @@ import com.cnhsk.learning.knowledge.entity.QuestionType;
 import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
 import com.cnhsk.learning.knowledge.repository.QuestionKnowledgePointRepository;
 import com.cnhsk.learning.knowledge.repository.QuestionRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,15 +36,17 @@ class QuestionRowWriterTest {
     private QuestionRepository questions;
     private QuestionKnowledgePointRepository labels;
     private KnowledgePointRepository points;
+    private EntityManager entities;
     private QuestionRowWriter writer;
 
     @BeforeEach
     void setup() {
         questions = mock(QuestionRepository.class); labels = mock(QuestionKnowledgePointRepository.class); points = mock(KnowledgePointRepository.class);
-        writer = new QuestionRowWriter(questions, labels, points);
+        entities = mock(EntityManager.class);
+        writer = new QuestionRowWriter(questions, labels, points, entities);
         when(points.findByCodeIn(any())).thenReturn(List.of(QuestionRowValidatorTest.node("TV1-001", 1),
                 QuestionRowValidatorTest.node("TV1-002", 2), QuestionRowValidatorTest.node("NP2-003", 3)));
-        when(questions.saveAndFlush(any())).thenAnswer(call -> {
+        when(questions.save(any())).thenAnswer(call -> {
             Question question = call.getArgument(0);
             if (question.getId() == null) ReflectionTestUtils.setField(question, "id", 50L);
             return question;
@@ -55,7 +59,7 @@ class QuestionRowWriterTest {
         var cells = QuestionRowValidatorTest.values(type); cells.put("kid_secondary", "TV1-002|NP2-003");
         assertThat(writer.dataType()).isEqualTo(com.cnhsk.learning.content.importer.template.ImportDataType.QUESTION);
         assertThat(writer.write(row(cells))).isEqualTo(RowAction.CREATE);
-        verify(questions).saveAndFlush(org.mockito.ArgumentMatchers.argThat(question -> {
+        verify(questions).save(org.mockito.ArgumentMatchers.argThat(question -> {
             assertThat(question.getSource()).isEqualTo(QuestionSource.IMPORT);
             assertThat(question.getStatus()).isEqualTo(QuestionStatus.APPROVED);
             assertThat(question.isReusable()).isTrue(); assertThat(question.getDifficulty()).isEqualTo((short) 2);
@@ -67,13 +71,13 @@ class QuestionRowWriterTest {
             }
             return true;
         }));
-        verify(labels).saveAll(org.mockito.ArgumentMatchers.argThat(saved -> {
-            var values = java.util.stream.StreamSupport.stream(saved.spliterator(), false).toList();
-            assertThat(values).hasSize(3).allSatisfy(label -> assertThat(label.getQuestionId()).isEqualTo(50L));
-            assertThat(values).filteredOn(label -> label.getRole() == KnowledgeLabelRole.PRIMARY).singleElement()
-                    .extracting(QuestionKnowledgePoint::getKnowledgePointId).isEqualTo(1L);
-            return true;
-        }));
+        var persisted = ArgumentCaptor.forClass(QuestionKnowledgePoint.class);
+        verify(entities, times(3)).persist(persisted.capture());
+        assertThat(persisted.getAllValues()).allSatisfy(label -> assertThat(label.getQuestionId()).isEqualTo(50L));
+        assertThat(persisted.getAllValues()).filteredOn(label -> label.getRole() == KnowledgeLabelRole.PRIMARY).singleElement()
+                .extracting(QuestionKnowledgePoint::getKnowledgePointId).isEqualTo(1L);
+        verify(labels, never()).saveAll(any()); verify(labels, never()).flush();
+        verify(questions, never()).saveAndFlush(any()); verify(questions, never()).usedQuestionIds(any());
         verify(questions).findByCodeForUpdate("Q_IMPORT"); verify(questions, never()).findByCode(any());
     }
 
@@ -93,7 +97,7 @@ class QuestionRowWriterTest {
     void AT09_falseMapsToTheFixedBOptionRatherThanAFreeTextAnswer() {
         var cells = QuestionRowValidatorTest.values(QuestionType.TRUE_FALSE); cells.put("correct", "FALSE");
         assertThat(writer.write(row(cells))).isEqualTo(RowAction.CREATE);
-        verify(questions).saveAndFlush(org.mockito.ArgumentMatchers.argThat(question -> {
+        verify(questions).save(org.mockito.ArgumentMatchers.argThat(question -> {
             assertThat(question.getOptions()).filteredOn(QuestionOption::isCorrect).singleElement().extracting(QuestionOption::key).isEqualTo("B");
             assertThat(question.getCorrectKey()).isNull(); return true;
         }));
@@ -106,7 +110,8 @@ class QuestionRowWriterTest {
         var cells = QuestionRowValidatorTest.values(QuestionType.MULTIPLE_CHOICE); cells.put(field, value);
         assertThatThrownBy(() -> writer.write(row(cells))).isInstanceOfSatisfying(RowWriteRejectedException.class,
                 error -> assertThat(error.code()).isEqualTo("GRADING_CHANGE_NOT_ALLOWED"));
-        verify(questions, never()).saveAndFlush(any()); verify(labels, never()).deleteAll(any());
+        verify(questions, never()).save(any()); verify(labels, never()).deleteAll(any());
+        verifyNoInteractions(entities);
     }
 
     @ParameterizedTest
@@ -115,6 +120,8 @@ class QuestionRowWriterTest {
         existing(); when(questions.usedQuestionIds(any())).thenReturn(Set.of(50L));
         var cells = QuestionRowValidatorTest.values(QuestionType.MULTIPLE_CHOICE); cells.put(field, value);
         assertThat(writer.write(row(cells))).isEqualTo(RowAction.UPDATE);
+        verify(questions, never()).usedQuestionIds(any()); verify(labels, never()).deleteAll(any());
+        verifyNoInteractions(entities);
     }
 
     @Test
@@ -126,9 +133,11 @@ class QuestionRowWriterTest {
         var cells = QuestionRowValidatorTest.values(QuestionType.MULTIPLE_CHOICE);
         cells.put("kid_primary", "TV1-002"); cells.put("kid_secondary", "TV1-001");
         assertThat(writer.write(row(cells))).isEqualTo(RowAction.UPDATE);
-        var order = inOrder(labels);
+        var order = inOrder(labels, entities);
         order.verify(labels).findByQuestionIdIn(List.of(50L));
-        order.verify(labels).deleteAll(old); order.verify(labels).flush(); order.verify(labels).saveAll(any()); order.verify(labels).flush();
+        order.verify(labels).deleteAll(old); order.verify(labels).flush();
+        order.verify(entities, times(2)).persist(any(QuestionKnowledgePoint.class));
+        verify(labels, times(1)).flush(); verify(labels, never()).saveAll(any());
     }
 
     @Test
@@ -149,7 +158,8 @@ class QuestionRowWriterTest {
     void AT12_unchangedRowsDoNotSaveOrRewriteLabelsAndNewMissingReferencesAreRejected() {
         existing();
         assertThat(writer.write(row(QuestionRowValidatorTest.values(QuestionType.MULTIPLE_CHOICE)))).isEqualTo(RowAction.UNCHANGED);
-        verify(questions, never()).saveAndFlush(any()); verify(labels, never()).saveAll(any());
+        verify(questions, never()).save(any()); verify(questions, never()).usedQuestionIds(any());
+        verify(labels, never()).deleteAll(any()); verifyNoInteractions(entities);
         when(points.findByCodeIn(any())).thenReturn(List.of());
         assertThatThrownBy(() -> writer.write(row(QuestionRowValidatorTest.values(QuestionType.MULTIPLE_CHOICE))))
                 .isInstanceOfSatisfying(RowWriteRejectedException.class, error -> {
@@ -162,7 +172,7 @@ class QuestionRowWriterTest {
         var cells = QuestionRowValidatorTest.values(QuestionType.MULTIPLE_CHOICE); cells.put("distractor_errors", "A:TV1-001");
         assertThatThrownBy(() -> writer.write(row(cells))).isInstanceOfSatisfying(RowWriteRejectedException.class,
                 error -> assertThat(error.code()).isEqualTo("INVALID_VALUE"));
-        verify(questions, never()).saveAndFlush(any());
+        verify(questions, never()).save(any()); verifyNoInteractions(entities);
     }
 
     private Question existing() {

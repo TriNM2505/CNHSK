@@ -41,6 +41,8 @@ import org.hibernate.resource.jdbc.spi.StatementInspector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -55,6 +57,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.util.AopTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -85,6 +89,7 @@ class QuestionImportIntegrationTest extends AbstractIntegrationTest {
     @Autowired private QuestionRowValidator validator;
     @Autowired private ImportChangePlanner planner;
     @Autowired private SqlCapture capture;
+    @Autowired private PlatformTransactionManager transactions;
     @MockitoSpyBean private QuestionRowWriter writer;
     private QuestionRowWriter writerTarget;
     private User user;
@@ -306,6 +311,44 @@ class QuestionImportIntegrationTest extends AbstractIntegrationTest {
             assertThat(planner.plan(ImportDataType.QUESTION, checked.validRows())).hasSize(5000)
                     .allSatisfy(row -> assertThat(row.action()).isEqualTo(ImportPreview.RowAction.UNCHANGED));
             assertThat(capture.statements()).hasSize(20).allSatisfy(sql -> assertThat(sql).startsWith("select"));
+        } finally { capture.stop(); }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 3})
+    void AT11_AT12_writerSqlIsBoundedForCreateUnchangedContentAndLabelChanges(int labelCount) {
+        Map<String, String> cells = example("Q_SQL_" + labelCount);
+        if (labelCount == 3) cells.put("kid_secondary", "TV1-802|NP2-803");
+        assertWriterSql("create", cells, ImportPreview.RowAction.CREATE, labelCount, 2, 1 + labelCount);
+        assertWriterSql("unchanged", cells, ImportPreview.RowAction.UNCHANGED, labelCount, 3, 0);
+
+        cells.put("explanation", "Lời giải mới tự soạn để đo câu lệnh SQL");
+        assertWriterSql("content", cells, ImportPreview.RowAction.UPDATE, labelCount, 3, 1);
+        assertThat(question(cells.get("code")).getExplanation()).isEqualTo(cells.get("explanation"));
+
+        cells.put("kid_primary", "TV1-802");
+        if (labelCount == 3) cells.put("kid_secondary", "TV1-801|NP2-803");
+        assertWriterSql("labels", cells, ImportPreview.RowAction.UPDATE, labelCount, 3, 2 * labelCount);
+        List<QuestionKnowledgePoint> stored = labels.findByQuestionIdIn(List.of(question(cells.get("code")).getId()));
+        assertThat(stored).hasSize(labelCount);
+        assertThat(stored).filteredOn(label -> label.getRole() == KnowledgeLabelRole.PRIMARY).singleElement()
+                .extracting(QuestionKnowledgePoint::getKnowledgePointId).isEqualTo(point("TV1-802").getId());
+    }
+
+    private void assertWriterSql(String operation, Map<String, String> cells, ImportPreview.RowAction expected,
+            int labelCount, int selects, int dml) {
+        capture.start();
+        try {
+            var action = new TransactionTemplate(transactions).execute(status ->
+                    writer.write(new ValidatedRow(2, cells, null, null)));
+            assertThat(action).isEqualTo(expected);
+            List<String> statements = capture.statements();
+            long actualSelects = statements.stream().filter(sql -> sql.startsWith("select")).count();
+            long actualDml = statements.stream().filter(sql -> sql.startsWith("insert")
+                    || sql.startsWith("update") || sql.startsWith("delete")).count();
+            assertThat(actualSelects).as("%s SELECT count with %s labels", operation, labelCount).isEqualTo(selects);
+            assertThat(actualDml).as("%s DML count with %s labels", operation, labelCount).isEqualTo(dml);
+            assertThat(statements).hasSize(selects + dml);
         } finally { capture.stop(); }
     }
 
