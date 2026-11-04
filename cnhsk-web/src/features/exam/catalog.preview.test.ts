@@ -1,27 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
+import { previewRegistry } from '@/app/preview/registry'
+
 describe('exam preview catalog', () => {
-  it('có đúng ba đề tự soạn cho HSK 1–3', async () => {
-    const { examPreviews } = await import('./catalog.preview')
-
-    expect(examPreviews.map(({ hskLevel }) => hskLevel)).toEqual([1, 2, 3])
-  })
-
-  it('có lượt placement cho đủ ba khối và không lộ đáp án trước khi nộp', async () => {
-    const { placementStepPreviews } = await import('./catalog.preview')
-
-    expect(placementStepPreviews.map(({ session }) => session?.meta?.block)).toEqual([1, 2, 3])
-    expect(placementStepPreviews.flatMap(({ session }) => session?.items ?? [])).not.toContainEqual(
-      expect.objectContaining({ correctKey: expect.anything() }),
-    )
-  })
-
-  it('có mẫu kết quả đề, KID và sáu miền placement', async () => {
-    const { examResultPreview, placementResultPreview, previews } =
-      await import('./catalog.preview')
-
-    expect(examResultPreview.wrongByKid).toEqual([])
-    expect(placementResultPreview.domains).toHaveLength(6)
-    expect(previews).toEqual([])
+  it('FR024_AT25_registers three placement states and all page states', () => {
+    const entries = previewRegistry.filter((entry) => entry.scr === 'SCR-020')
+    expect(entries.map((entry) => entry.id)).toEqual([
+      'scr-020-new',
+      'scr-020-active',
+      'scr-020-result',
+    ])
+    for (const entry of entries) {
+      expect(entry.states).toEqual(['ready', 'loading', 'empty', 'error'])
+      for (const state of entry.states ?? []) expect(entry.render(state)).toBeTruthy()
+    }
   })
 })

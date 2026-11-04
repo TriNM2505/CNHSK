@@ -1,5 +1,10 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-02 SCR-020 (leader duyệt)
+
+- `ExamSummary` không có `status`; `GET /api/exams` chỉ trả đề PUBLISHED theo FR-010. FE giữ nguyên contract, không thêm trường hoặc tự lọc đề nháp; test khẳng định không hiện giá.
+- Thẻ kiểm tra trình độ ưu tiên `active` khi có cả `active` và `last`; chỉ hiện kết quả gần nhất khi không có lượt đang làm. Điểm `0%` khác `myBest = null` (chưa có điểm).
+
 ## 2026-11-04 — T-08 QuestionItemFactory (leader duyệt)
 
 - Hàm public `isUsable(Question)` dùng chung cho nhập và phát câu; câu sai dạng bị loại, không chuẩn hoá.
