@@ -4,6 +4,7 @@ import type { PreviewEntry, PreviewState } from '@/app/preview/types'
 import { ApiError } from '@/shared/api'
 
 import { QuestionBankListView } from './components/QuestionBankListView'
+import { QuestionEditView } from './components/QuestionEditView'
 import { questionSearchError, type QuestionListQuery } from './questionListQuery'
 
 import type {
@@ -13,6 +14,7 @@ import type {
   QuestionLabel,
   QuestionPage,
   QuestionType,
+  QuestionUpdate,
 } from './types'
 
 // Original fixtures; KIDs and questions do not reproduce the source tree or HSK exams.
@@ -293,23 +295,67 @@ function QuestionBankPreview({
   })
 }
 
-function sampleList(title: string, questions: readonly QuestionDetail[]) {
-  return createElement(
-    'section',
-    { className: 'mx-auto max-w-reading space-y-4' },
-    createElement('h1', { className: 'text-h1-sm text-ink' }, title),
-    createElement(
-      'ul',
-      { className: 'space-y-3' },
-      questions.map(({ id, code, qtype, stem, hskLevel }) =>
-        createElement(
-          'li',
-          { className: 'rounded-md border border-line bg-surface p-4 text-body text-ink', key: id },
-          `${code ?? 'Câu AI'} · ${qtype} · HSK ${hskLevel} · ${stem}`,
-        ),
-      ),
-    ),
-  )
+function QuestionEditPreview({
+  state,
+  sample,
+  editor = false,
+}: {
+  state: PreviewState
+  sample: QuestionDetail
+  editor?: boolean
+}) {
+  const [currentState, setCurrentState] = useState(state)
+  const [data, setData] = useState(sample)
+  const [action, setAction] = useState<'save' | 'archive'>()
+  const [body, setBody] = useState<QuestionUpdate>()
+  const [notice, setNotice] = useState<string>()
+  return createElement(QuestionEditView, {
+    action,
+    backTo: '/content/questions?page=0&size=10',
+    canArchive: editor && data.status !== 'ARCHIVED',
+    canEdit: !editor && data.status !== 'ARCHIVED' && data.qtype !== 'ESSAY',
+    data,
+    error: new ApiError({
+      status: 503,
+      errorCode: 'NETWORK_ERROR',
+      message: 'Chưa tải được câu hỏi. Vui lòng thử lại.',
+    }),
+    nodes: knowledgeTreeSample.nodes,
+    nodesState: 'ready',
+    notice,
+    onArchive: () => {
+      setNotice(undefined)
+      setAction('archive')
+    },
+    onCancelAction: () => setAction(undefined),
+    onConfirmAction: () => {
+      if (action === 'archive') {
+        setData({ ...data, status: 'ARCHIVED' })
+        setNotice('Đã lưu trữ câu hỏi.')
+      } else if (body) {
+        setData({
+          ...data,
+          ...body,
+          labels: [
+            label(body.primaryKid),
+            ...body.secondaryKids.map((kid) => label(kid, 'SECONDARY')),
+          ],
+        })
+        setNotice('Đã lưu thay đổi.')
+      }
+      setAction(undefined)
+    },
+    onDismissError: () => undefined,
+    onNodesRetry: () => undefined,
+    onRetry: () => setCurrentState('ready'),
+    onSave: (next) => {
+      setBody(next)
+      setNotice(undefined)
+      setAction('save')
+    },
+    pending: false,
+    state: currentState,
+  })
 }
 
 export const previews = [
@@ -334,10 +380,46 @@ export const previews = [
     id: 'question-bank-detail-samples',
     scr: 'SCR-059',
     title: 'Chi tiết câu hỏi — Các loại câu mẫu',
-    render: () =>
-      sampleList(
-        'Các loại câu hỏi mẫu',
-        questionSamples.filter((_, index) => index % 2 === 0),
-      ),
+    states: ['loading', 'empty', 'error', 'ready'],
+    render: (state) =>
+      createElement(QuestionEditPreview, { key: state, state, sample: questionSamples[0]! }),
+  },
+  ...questionSamples
+    .filter((_, index) => index % 2 === 1)
+    .map((sample): PreviewEntry => ({
+      group: 'screen',
+      id: `question-bank-detail-${sample.qtype.toLowerCase()}`,
+      scr: 'SCR-059',
+      title: `Chi tiết câu hỏi — ${sample.qtype}`,
+      states: ['ready'],
+      render: (state) => createElement(QuestionEditPreview, { state, sample }),
+    })),
+  {
+    group: 'screen',
+    id: 'question-bank-detail-editor',
+    scr: 'SCR-059',
+    title: 'Chi tiết câu hỏi — Biên tập viên xem và lưu trữ',
+    states: ['ready'],
+    render: (state) =>
+      createElement(QuestionEditPreview, { state, sample: questionSamples[0]!, editor: true }),
+  },
+  {
+    group: 'screen',
+    id: 'question-bank-detail-essay',
+    scr: 'SCR-059',
+    title: 'Chi tiết câu hỏi — Tự luận chỉ đọc',
+    states: ['ready'],
+    render: (state) =>
+      createElement(QuestionEditPreview, {
+        state,
+        sample: {
+          ...questionSamples[0]!,
+          qtype: 'ESSAY',
+          options: [],
+          used: false,
+          stem: 'Viết một câu giới thiệu bản thân bằng tiếng Trung.',
+          explanation: 'Câu tự luận tự soạn chỉ dùng minh hoạ chế độ chỉ đọc.',
+        },
+      }),
   },
 ] satisfies readonly PreviewEntry[]

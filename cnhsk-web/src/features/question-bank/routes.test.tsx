@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryRouter, matchRoutes, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -11,10 +11,15 @@ import { ApiError } from '@/shared/api'
 import { getAuthenticatedDestination } from '@/shared/auth/navigation'
 
 import { getKnowledgeTree } from './api/knowledge'
-import { listQuestions } from './api/questions'
+import { getQuestion, listQuestions } from './api/questions'
 
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
-vi.mock('./api/questions', () => ({ listQuestions: vi.fn() }))
+vi.mock('./api/questions', () => ({
+  listQuestions: vi.fn(),
+  getQuestion: vi.fn(),
+  updateQuestion: vi.fn(),
+  archiveQuestion: vi.fn(),
+}))
 vi.mock('./api/knowledge', () => ({ getKnowledgeTree: vi.fn() }))
 
 const routes = [
@@ -40,6 +45,20 @@ function renderRoute(path: string) {
 }
 
 beforeEach(() => {
+  vi.mocked(getQuestion).mockReset().mockResolvedValue({
+    id: 901,
+    qtype: 'FILL_BLANK',
+    hskLevel: 1,
+    difficulty: 2,
+    stem: '我喝___。',
+    options: [],
+    correctKey: '水',
+    explanation: 'Lời giải tự soạn.',
+    source: 'IMPORT',
+    status: 'APPROVED',
+    labels: [],
+    used: false,
+  })
   vi.mocked(listQuestions)
     .mockReset()
     .mockResolvedValue({ items: [], page: 0, size: 10, totalElements: 0 })
@@ -80,7 +99,7 @@ describe('question-bank route foundation (FR-001 FE, §12)', () => {
     const router = renderRoute(url)
     expect(
       await screen.findByRole('heading', {
-        name: scr === 'SCR-064' ? 'Kho câu hỏi' : `Màn ${scr} đang dựng`,
+        name: scr === 'SCR-064' ? 'Kho câu hỏi' : 'Chi tiết câu hỏi',
       }),
     ).toBeVisible()
     expect(screen.getByRole('navigation', { name: 'Quản trị' })).toBeInTheDocument()
@@ -119,7 +138,7 @@ describe('question-bank route foundation (FR-001 FE, §12)', () => {
   it('FR001_accepts an explicitly permitted role on a multi-role account', async () => {
     getCurrentUserMock.mockResolvedValue(user(['ADMIN', 'TEACHER']))
     const router = renderRoute('/content/questions/901')
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-059 đang dựng' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Chi tiết câu hỏi' })).toBeVisible()
     expect(router.state.location.pathname).toBe('/content/questions/901')
   })
 
@@ -143,7 +162,7 @@ describe('question-bank route foundation (FR-001 FE, §12)', () => {
   it('registers the list, second page and detail previews under the existing SCR ids', () => {
     expect(
       previewRegistry.filter(({ id }) => id.startsWith('question-bank-')).map(({ scr }) => scr),
-    ).toEqual(['SCR-064', 'SCR-064', 'SCR-059'])
+    ).toEqual(['SCR-064', 'SCR-064', ...Array<string>(9).fill('SCR-059')])
   })
 
   it('renders the first ten original samples through the preview route without an API call', async () => {
@@ -180,6 +199,23 @@ describe('question-bank route foundation (FR-001 FE, §12)', () => {
       ).toBeVisible(),
     )
     expect(listQuestions).not.toHaveBeenCalled()
+    expect(getKnowledgeTree).not.toHaveBeenCalled()
+  })
+
+  it('FR027_AT27_previews the real detail form without API calls', async () => {
+    renderRoute('/__preview/frame/question-bank-detail-samples/ready')
+    expect(await screen.findByRole('form', { name: 'Sửa câu hỏi' })).toBeVisible()
+    expect(screen.getByLabelText('Đáp án đúng A')).toBeDisabled()
+    expect(getQuestion).not.toHaveBeenCalled()
+    expect(getKnowledgeTree).not.toHaveBeenCalled()
+  })
+
+  it('FR027_AT27_previews editor archive confirmation inline without API calls', async () => {
+    renderRoute('/__preview/frame/question-bank-detail-editor/ready')
+    fireEvent.click(await screen.findByRole('button', { name: 'Lưu trữ câu hỏi' }))
+    expect(screen.getByRole('region', { name: 'Xác nhận lưu trữ' })).toBeVisible()
+    expect(screen.queryByRole('form', { name: 'Sửa câu hỏi' })).not.toBeInTheDocument()
+    expect(getQuestion).not.toHaveBeenCalled()
     expect(getKnowledgeTree).not.toHaveBeenCalled()
   })
 })
