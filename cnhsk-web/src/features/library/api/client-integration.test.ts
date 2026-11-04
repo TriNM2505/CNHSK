@@ -348,4 +348,81 @@ describe('library API with the real shared client (§13; AT-01 transport only)',
     controller.abort()
     await expect(dictionary.listRadicals(controller.signal)).rejects.toBe(aborted)
   })
+
+  it.each([
+    {
+      status: 409,
+      code: 'NOTE_DUPLICATE',
+      details: { noteId: 42 },
+      invoke: () => notes.createNote({ content: 'Nháp' }),
+    },
+    {
+      status: 409,
+      code: 'NOTE_DUPLICATE',
+      details: { noteId: 42 },
+      invoke: () => notes.updateNote(1, { content: 'Nháp', lexemeId: 123 }),
+    },
+    {
+      status: 404,
+      code: 'LEXEME_NOT_FOUND',
+      details: undefined,
+      invoke: () => notes.updateNote(1, { content: 'Nháp', lexemeId: 999 }),
+    },
+    {
+      status: 403,
+      code: 'COLLECTION_NOT_OWNED',
+      details: undefined,
+      invoke: () => notes.getNote(1),
+    },
+    {
+      status: 422,
+      code: 'LIBRARY_LIMIT_REACHED',
+      details: { kind: 'NOTES', limit: 1000 },
+      invoke: () => notes.createNote({ content: 'Nháp' }),
+    },
+    {
+      status: 422,
+      code: 'LIBRARY_LIMIT_REACHED',
+      details: { kind: 'NOTES', limit: 1000 },
+      invoke: () => notes.restoreNote(1),
+    },
+    {
+      status: 409,
+      code: 'NOTE_NOT_RESTORABLE',
+      details: undefined,
+      invoke: () => notes.restoreNote(1),
+    },
+    {
+      status: 409,
+      code: 'NOTE_DUPLICATE',
+      details: { noteId: 42 },
+      invoke: () => notes.restoreNote(1),
+    },
+  ])(
+    'preserves notebook $status $code and its details for SCR-027',
+    async ({ status, code, details, invoke }) => {
+      vi.stubGlobal(
+        'fetch',
+        vi
+          .fn<typeof fetch>()
+          .mockResolvedValue(
+            json(
+              {
+                error_code: code,
+                message: 'Thông báo an toàn',
+                request_id: 'notes-contract',
+                details,
+              },
+              status,
+            ),
+          ),
+      )
+      await expect(invoke()).rejects.toMatchObject({
+        status,
+        errorCode: code,
+        requestId: 'notes-contract',
+        details,
+      })
+    },
+  )
 })

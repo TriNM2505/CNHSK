@@ -11,6 +11,7 @@ import { ApiError } from '@/shared/api'
 import { getAuthenticatedDestination } from '@/shared/auth/navigation'
 
 import { getLexeme, searchDictionary } from './api/dictionary'
+import { listNotes, listTrash } from './api/notes'
 
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
 vi.mock('./api/dictionary', () => ({
@@ -18,6 +19,15 @@ vi.mock('./api/dictionary', () => ({
   searchDictionary: vi.fn(),
   listRadicals: vi.fn(),
   searchByRadical: vi.fn(),
+}))
+vi.mock('./api/notes', () => ({
+  listNotes: vi.fn(),
+  listTrash: vi.fn(),
+  getNote: vi.fn(),
+  createNote: vi.fn(),
+  updateNote: vi.fn(),
+  deleteNote: vi.fn(),
+  restoreNote: vi.fn(),
 }))
 
 const routes = [
@@ -73,20 +83,20 @@ function renderRoute(path: string) {
 }
 
 beforeEach(() => {
+  vi.mocked(listNotes).mockReset().mockResolvedValue({ items: [], total: 0 })
+  vi.mocked(listTrash).mockReset().mockResolvedValue([])
   vi.mocked(searchDictionary).mockReset().mockResolvedValue({ items: [], total: 0 })
-  vi.mocked(getLexeme)
-    .mockReset()
-    .mockResolvedValue({
-      id: 101,
-      kind: 'CHAR',
-      text: '日',
-      meaningVi: 'ngày; mặt trời',
-      examples: [],
-      components: [],
-      containedIn: [],
-      related: [],
-      strokeData: null,
-    })
+  vi.mocked(getLexeme).mockReset().mockResolvedValue({
+    id: 101,
+    kind: 'CHAR',
+    text: '日',
+    meaningVi: 'ngày; mặt trời',
+    examples: [],
+    components: [],
+    containedIn: [],
+    related: [],
+    strokeData: null,
+  })
   getCurrentUserMock
     .mockReset()
     .mockRejectedValue(
@@ -131,7 +141,13 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
     const router = renderRoute(url)
     await waitFor(() => {
       const title =
-        scr === 'SCR-024' ? 'Tra từ điển' : scr === 'SCR-025' ? '日' : `Màn ${scr} đang dựng`
+        scr === 'SCR-024'
+          ? 'Tra từ điển'
+          : scr === 'SCR-025'
+            ? '日'
+            : scr === 'SCR-027'
+              ? 'Sổ tay cá nhân'
+              : `Màn ${scr} đang dựng`
       expect(screen.getByRole('heading', { name: title })).toBeVisible()
     })
     expect(router.state.location.pathname).toBe(url)
@@ -202,4 +218,15 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
     expect(searchDictionary).not.toHaveBeenCalled()
     expect(getLexeme).not.toHaveBeenCalled()
   })
+
+  it.each(['library-note-samples', 'library-note-trash'])(
+    'renders %s without private API calls',
+    async (id) => {
+      renderRoute(`/__preview/frame/${id}/ready`)
+      expect(await screen.findByRole('heading', { name: 'Sổ tay cá nhân' })).toBeVisible()
+      expect(listNotes).not.toHaveBeenCalled()
+      expect(listTrash).not.toHaveBeenCalled()
+      expect(getCurrentUserMock).not.toHaveBeenCalled()
+    },
+  )
 })
