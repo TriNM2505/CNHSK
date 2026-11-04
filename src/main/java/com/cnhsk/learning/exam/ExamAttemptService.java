@@ -65,6 +65,7 @@ public class ExamAttemptService {
         if (active != null) return new StartResult(active, false);
 
         Map<String, Object> snapshot = Map.of("examId", examId, "title", exam.title(), "sections", exam.sections(),
+                "hskLevel", exam.hskLevel(),
                 "sectionOf", sectionOf, "points", points);
         SessionView session = practice.start(new StartPracticeCommand(userId, PracticeSource.MOCK_EXAM, examId,
                 null, items, List.of(), null, Map.of("exam", snapshot)));
