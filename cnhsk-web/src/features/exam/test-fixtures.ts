@@ -1,5 +1,74 @@
 import type { ExamSummary, PlacementSummary } from './types'
 import type { SessionView } from '@/features/practice'
+import type { ExamResult, PlacementResult, ResultItem } from './types'
+
+const resultItem: ResultItem = {
+  no: 1,
+  sectionIndex: 1,
+  stem: 'Câu tự soạn đúng',
+  result: 'CORRECT',
+  correctKey: 'A',
+  yourAnswer: 'A',
+  explanation: 'Lời giải tự soạn',
+  options: [
+    { key: 'A', text: 'Phương án một' },
+    { key: 'B', text: 'Phương án hai' },
+  ],
+  primaryKid: null,
+  primaryKidName: null,
+  errorKid: null,
+  errorNote: null,
+}
+const wrongKid = { kid: 'NP1-101', nameVi: 'Mẫu câu cơ bản', wrong: 1, total: 2 }
+export const examReviewFixture: ExamResult = {
+  sessionId: 5101,
+  exam: { id: 1201, hskLevel: 1, title: 'Đề thi tự soạn' },
+  score: 2,
+  maxScore: 5,
+  percent: 40,
+  correctCount: 1,
+  totalCount: 3,
+  submittedAt: '2026-11-04T00:00:00Z',
+  previous: null,
+  bySection: [{ index: 1, name: 'Đọc hiểu', score: 2, maxScore: 5 }],
+  items: [
+    resultItem,
+    {
+      ...resultItem,
+      no: 2,
+      stem: 'Câu tự soạn sai',
+      result: 'WRONG',
+      yourAnswer: 'B',
+      primaryKid: wrongKid.kid,
+    },
+    {
+      ...resultItem,
+      no: 3,
+      stem: 'Câu tự soạn bỏ trống',
+      result: 'BLANK',
+      yourAnswer: null,
+      explanation: ' ',
+    },
+  ],
+  wrongByKid: [wrongKid],
+}
+export const placementReviewFixture: PlacementResult = {
+  runId: 5201,
+  completedAt: '2026-11-04T00:00:00Z',
+  level: 'HSK2',
+  confidence: 'TENTATIVE',
+  itemCount: 5,
+  byLevel: [{ level: 2, correct: 2, total: 5, percent: 40 }],
+  domains: [
+    { domain: 'NA', measured: false, tentative: false, correct: 0, total: 0, percent: null },
+    { domain: 'CH', measured: false, tentative: false, correct: 0, total: 0, percent: null },
+    { domain: 'TV', measured: true, tentative: false, correct: 1, total: 3, percent: 33 },
+    { domain: 'NP', measured: true, tentative: true, correct: 1, total: 2, percent: 50 },
+    { domain: 'NL', measured: false, tentative: false, correct: 0, total: 0, percent: null },
+    { domain: 'VB', measured: false, tentative: false, correct: 0, total: 0, percent: null },
+  ],
+  wrongKids: [wrongKid],
+}
 
 export const mockAttemptFixture: SessionView = {
   sessionId: 5101,
