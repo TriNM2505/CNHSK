@@ -21,11 +21,14 @@ export type PracticeSessionState = 'loading' | 'idle' | 'ready' | 'finished' | '
 
 export type PracticePendingOperation = 'start' | 'answer' | 'finish' | 'abandon' | 'sync' | null
 
-export interface UsePracticeSessionOptions {
-  source: PracticeSource
-  refId?: number | null
-  start: () => Promise<SessionView | null>
-}
+export type UsePracticeSessionOptions =
+  | {
+      source: PracticeSource
+      refId?: number | null
+      start: () => Promise<SessionView | null>
+      sessionId?: never
+    }
+  | { sessionId: number; source?: never; refId?: never; start?: never }
 
 type PracticeDraft = Pick<AnswerRequest, 'no'> & Partial<AnswerRequest>
 
@@ -108,6 +111,7 @@ function stateForSession(session: SessionView): PracticeSessionState {
 export function usePracticeSession({
   source,
   refId,
+  sessionId,
   start: startSession,
 }: UsePracticeSessionOptions): UsePracticeSessionResult {
   const [state, setState] = useState<PracticeSessionState>('loading')
@@ -156,11 +160,13 @@ export function usePracticeSession({
     setDrafts({})
     setFinishResult(null)
 
-    void findActiveSession(source, refId, controller.signal)
-      .then(async (activeSession) => {
-        if (!activeSession) return null
-        return getSession(activeSession.sessionId, controller.signal)
-      })
+    const request =
+      sessionId !== undefined
+        ? getSession(sessionId, controller.signal)
+        : findActiveSession(source, refId, controller.signal).then((activeSession) =>
+            activeSession ? getSession(activeSession.sessionId, controller.signal) : null,
+          )
+    void request
       .then((restoredSession) => {
         if (!current || !mountedRef.current) return
         if (restoredSession) {
@@ -185,7 +191,7 @@ export function usePracticeSession({
       generationRef.current += 1
       controller.abort()
     }
-  }, [applySession, refId, reloadKey, source])
+  }, [applySession, refId, reloadKey, sessionId, source])
 
   const beginOperation = useCallback((operation: Exclude<PracticePendingOperation, null>) => {
     if (operationRef.current || !mountedRef.current) return null
@@ -210,6 +216,7 @@ export function usePracticeSession({
   )
 
   const start = useCallback(async () => {
+    if (!startRef.current) return null
     const generation = beginOperation('start')
     if (generation === null) return null
     try {

@@ -1,5 +1,11 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-03 SCR-021 (leader duyệt)
+
+- Hook nhận chế độ mở theo sessionId riêng và gọi GET trực tiếp. Đổi ID huỷ request cũ và làm mới toàn bộ trạng thái lượt.
+- MOCK_EXAM ghi lựa chọn vào sessionStorage theo sessionId trước POST answers, gửi phần chưa đồng bộ khi finish, rồi xoá nháp sau khi nộp thành công.
+- PLACEMENT tính bỏ qua là chưa trả lời. Nếu next lỗi sau khi nộp khối, chỉ thử lại next. View không nhận đáp án đúng hay lời giải và không có đồng hồ đếm ngược.
+
 ## 2026-11-04 — T-02 SCR-020 (leader duyệt)
 
 - `ExamSummary` không có `status`; `GET /api/exams` chỉ trả đề PUBLISHED theo FR-010. FE giữ nguyên contract, không thêm trường hoặc tự lọc đề nháp; test khẳng định không hiện giá.

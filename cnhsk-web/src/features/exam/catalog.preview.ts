@@ -4,7 +4,12 @@ import type { SessionView } from '@/features/practice'
 
 import type { ExamResult, ExamSummary, PlacementResult, PlacementStep } from './types'
 import { ExamListView } from './components/ExamListView'
-import { placementSummaryFixture } from './test-fixtures'
+import { ExamAttemptView } from './components/ExamAttemptView'
+import {
+  mockAttemptFixture,
+  placementAttemptFixture,
+  placementSummaryFixture,
+} from './test-fixtures'
 
 const optionSet = [
   { key: 'A', text: 'Phương án mẫu A' },
@@ -129,7 +134,7 @@ export const placementResultPreview = {
   wrongKids: [{ kid: 'NP1-101', nameVi: 'Mẫu câu cơ bản', total: 2, wrong: 1 }],
 } satisfies PlacementResult
 
-export const previews = (['new', 'active', 'result'] as const).map((mode): PreviewEntry => ({
+const listPreviews = (['new', 'active', 'result'] as const).map((mode): PreviewEntry => ({
   group: 'screen',
   id: `scr-020-${mode}`,
   scr: 'SCR-020',
@@ -153,3 +158,46 @@ export const previews = (['new', 'active', 'result'] as const).map((mode): Previ
       onStartPlacement: () => undefined,
     }),
 })) satisfies readonly PreviewEntry[]
+
+export const previews = [
+  ...listPreviews,
+  ...[mockAttemptFixture, placementAttemptFixture].map((session): PreviewEntry => {
+    const placement = session.source === 'PLACEMENT'
+    return {
+      group: 'screen',
+      id: 'scr-021-' + session.source.toLowerCase(),
+      scr: 'SCR-021',
+      title: placement ? 'Bài xếp trình độ' : 'Làm đề thi thử',
+      render: () =>
+        createElement(ExamAttemptView, {
+          title: placement ? 'Khối 1' : 'Đề thi tự soạn',
+          placement,
+          sections: [
+            {
+              index: 1,
+              name: 'Đọc hiểu',
+              questions: session.items.map(({ no, prompt, options }) => ({
+                no,
+                text: prompt.text ?? '',
+                options: options ?? [],
+              })),
+            },
+          ],
+          currentNo: 1,
+          choices: { 1: 'A' },
+          marks: [1],
+          pending: false,
+          readOnly: false,
+          confirming: false,
+          saveState: 'saved',
+          onNavigate: () => undefined,
+          onChoose: () => undefined,
+          onSkip: () => undefined,
+          onMark: () => undefined,
+          onConfirmChange: () => undefined,
+          onSubmit: () => undefined,
+          onContinue: () => undefined,
+        }),
+    }
+  }),
+] satisfies readonly PreviewEntry[]
