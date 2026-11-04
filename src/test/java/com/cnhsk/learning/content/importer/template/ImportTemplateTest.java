@@ -34,7 +34,7 @@ class ImportTemplateTest {
         dataTypes.forEach(value -> expected.add(value.asText()));
 
         assertThat(expected).containsExactly("LEXEME", "TOPIC", "TOPIC_ITEM", "GRAMMAR", "GRAMMAR_EXERCISE",
-                "PRON_STAGE", "PRON_UNIT", "KNOWLEDGE_NODE", "KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK");
+                "PRON_STAGE", "PRON_UNIT", "KNOWLEDGE_NODE", "KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION");
         assertThat(ImportDataType.values()).extracting(Enum::name).containsExactlyElementsOf(expected);
         assertThat(ImportTemplate.all()).extracting(template -> template.dataType().name())
                 .containsExactlyElementsOf(expected);
@@ -110,7 +110,7 @@ class ImportTemplateTest {
             }
             if (column.name().equals("hsk_level")) {
                 assertThat(Integer.parseInt(example)).isBetween(1, 3);
-                assertThat(column.description()).contains("1 đến 9");
+                assertThat(column.description()).contains(dataType == ImportDataType.EXAM ? "1 đến 6" : "1 đến 9");
             }
         }
     }
@@ -242,7 +242,14 @@ class ImportTemplateTest {
                                 entry("explanation", 3000), entry("audio_url", 500), entry("image_url", 500))),
                 new ExpectedTemplate(ImportDataType.NODE_LINK, "Gắn nội dung vào nút", List.of("target_type", "target_key"),
                         List.of(ImportDataType.KNOWLEDGE_NODE, ImportDataType.TOPIC, ImportDataType.LEXEME, ImportDataType.GRAMMAR),
-                        List.of("target_type", "target_key", "kid"), Set.of("target_type", "target_key", "kid"), Map.of()));
+                        List.of("target_type", "target_key", "kid"), Set.of("target_type", "target_key", "kid"), Map.of()),
+                new ExpectedTemplate(ImportDataType.EXAM, "Đề thi", List.of("code"), List.of(),
+                        List.of("code", "title", "hsk_level", "sections", "status"),
+                        Set.of("code", "title", "hsk_level", "sections", "status"), Map.of("code", 50, "title", 200)),
+                new ExpectedTemplate(ImportDataType.EXAM_QUESTION, "Câu trong đề thi", List.of("exam_code", "question_code"),
+                        List.of(ImportDataType.EXAM, ImportDataType.QUESTION),
+                        List.of("exam_code", "question_code", "section_index", "order_index", "points"),
+                        Set.of("exam_code", "question_code", "section_index", "order_index"), Map.of()));
     }
 
     private static JsonNode contractSchemas() throws IOException {

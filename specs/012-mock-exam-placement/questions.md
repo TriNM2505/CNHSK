@@ -1,5 +1,10 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-07 nhập đề EXAM (leader duyệt)
+
+- Cho phép đổi tên phần giữ nguyên chỉ số, thêm phần và bỏ phần trống. Bỏ hoặc đổi chỉ số phần đang có câu bị từ chối với INVALID_VALUE tại sections. Cấp mới lệch câu đang gắn bị từ chối với LEVEL_MISMATCH tại hsk_level.
+- Preview kiểm liên kết theo lô, writer kiểm lại dưới khoá. EXAM_QUESTION có metadata từ T-07, xử lý upload thuộc T-09.
+
 ## 2026-11-04 — T-15 chuyển khối và kết quả xếp trình độ (leader duyệt)
 
 - E9: khối mới nhất hết hạn được thay bằng khối cùng cấp và số thứ tự. Các câu đã phát ở khối hết hạn vẫn bị loại khỏi tập câu mới.

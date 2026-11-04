@@ -76,6 +76,7 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
     private static final Instant NOW = Instant.parse("2026-10-30T00:00:00Z");
     private static final String ROOT = "/api/admin/imports";
     @Autowired private MockMvc mvc;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
     @Autowired private ObjectMapper mapper;
     @Autowired private JwtService jwt;
     @Autowired private UserRepository users;
@@ -127,15 +128,17 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
         topics.deleteAllByIdInBatch(topics.findAll().stream().map(Topic::getId).filter(id -> !topicBaseline.contains(id)).toList());
         stages.deleteAllByIdInBatch(stages.findAll().stream().map(PronStage::getId).filter(id -> !stageBaseline.contains(id)).toList());
         Set<Long> createdQuestions = questions.findAll().stream().map(value -> value.getId()).filter(id -> !questionBaseline.contains(id)).collect(Collectors.toSet());
+        ownedUsers.forEach(id -> jdbc.update("DELETE FROM learning.exam_questions WHERE exam_id IN (SELECT id FROM learning.exams WHERE created_by = ?)", id));
         labels.deleteAllInBatch(labels.findByQuestionIdIn(createdQuestions)); questions.deleteAllByIdInBatch(createdQuestions);
         points.deleteAllByIdInBatch(points.findAll().stream().map(value -> value.getId()).filter(id -> !pointBaseline.contains(id)).toList());
+        ownedUsers.forEach(id -> jdbc.update("DELETE FROM learning.exams WHERE created_by = ?", id));
         users.deleteAllInBatch(createdUsers);
         createdUsers.clear();
     }
 
     @ParameterizedTest
-    @EnumSource(ImportDataType.class)
-    void FR018_FR023_allElevenSupportedTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
+    @EnumSource(value = ImportDataType.class, names = "EXAM_QUESTION", mode = EnumSource.Mode.EXCLUDE)
+    void FR018_FR023_allTwelveSupportedTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
         switch (type) {
             case NODE_LINK -> { importExample(ImportDataType.KNOWLEDGE_NODE); importExample(ImportDataType.LEXEME); }
             case QUESTION -> importExample(ImportDataType.KNOWLEDGE_NODE);
@@ -421,6 +424,59 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
         assertThat(exercises).hasSize(2);
         assertThat(exercises.get(0)).isEqualTo(previous);
         assertThat(exercises.get(1).no()).isEqualTo(2);
+    }
+
+    @Test
+    void FR005_examQuestionMetadataIsAvailableButUploadIsRejected() throws Exception {
+        MvcResult response = mvc.perform(multipart(ROOT).file(new MockMultipartFile("file", "synthetic.csv",
+                        "text/csv", exampleCsv(ImportDataType.EXAM_QUESTION).getBytes(StandardCharsets.UTF_8)))
+                .param("dataType", "EXAM_QUESTION").header("Authorization", "Bearer " + token(user, "CONTENT_EDITOR")))
+                .andExpect(status().isUnprocessableEntity()).andReturn();
+        assertError(response, "VALIDATION_FAILED");
+    }
+
+    @Test
+    void FR007_AT06_rechecksLinkedQuestionsAndPreservesExamCreatorAndPublication() throws Exception {
+        String code = "EXAM_" + java.util.UUID.randomUUID().toString().toUpperCase(java.util.Locale.ROOT);
+        String original = examCsv(code, 1, "1:Đọc hiểu|2:Phần trống", "PUBLISHED");
+        var created = upload(ImportDataType.EXAM, original);
+        assertThat(json(confirm(created.path("runId").asLong(), "{}", user, 200))
+                .path("result").path("created").asInt()).isEqualTo(1);
+        long id = jdbc.queryForObject("SELECT id FROM learning.exams WHERE code=?", Long.class, code);
+        var published = jdbc.queryForObject("SELECT published_at FROM learning.exams WHERE id=?", java.sql.Timestamp.class, id);
+        assertThat(published).isNotNull();
+        var unchanged = upload(ImportDataType.EXAM, original);
+        assertThat(json(confirm(unchanged.path("runId").asLong(), "{\"acknowledgeRerun\":true}", user, 200))
+                .path("result").path("unchanged").asInt()).isEqualTo(1);
+
+        var stale = upload(ImportDataType.EXAM, examCsv(code, 1, "2:Phần trống", "PUBLISHED"));
+        var staleLevel = upload(ImportDataType.EXAM, examCsv(code, 2, "1:Đọc hiểu", "PUBLISHED"));
+        long question = jdbc.queryForObject("""
+                INSERT INTO learning.questions(code,qtype,hsk_level,stem,options)
+                VALUES (?, 'TRUE_FALSE', 1, 'Câu tự soạn', '[{"key":"A"},{"key":"B"}]') RETURNING id
+                """, Long.class, "TEST-" + java.util.UUID.randomUUID());
+        jdbc.update("INSERT INTO learning.exam_questions(exam_id,question_id,section_index,order_index) VALUES (?,?,1,1)",
+                id, question);
+        var rejected = json(confirm(stale.path("runId").asLong(), "{}", user, 200));
+        assertThat(rejected.path("result").path("failed").asInt()).isEqualTo(1);
+        assertThat(json(confirm(staleLevel.path("runId").asLong(), "{}", user, 200))
+                .path("result").path("failed").asInt()).isEqualTo(1);
+        assertThat(upload(ImportDataType.EXAM, examCsv(code, 1, "2:Phần trống", "PUBLISHED"))
+                .path("totals").path("invalid").asInt()).isEqualTo(1);
+        assertThat(upload(ImportDataType.EXAM, examCsv(code, 2, "1:Đọc hiểu", "PUBLISHED"))
+                .path("totals").path("invalid").asInt()).isEqualTo(1);
+        for (String sections : List.of("1:Đổi tên|2:Phần trống", "1:Đổi tên|2:Phần trống|3:Thêm phần", "1:Đổi tên|3:Thêm phần")) {
+            var update = upload(ImportDataType.EXAM, examCsv(code, 1, sections, "PUBLISHED"));
+            assertThat(json(confirm(update.path("runId").asLong(), "{}", user, 200))
+                    .path("result").path("updated").asInt()).isEqualTo(1);
+        }
+        assertThat(jdbc.queryForObject("SELECT created_by FROM learning.exams WHERE id=?", Long.class, id)).isEqualTo(user.getId());
+        assertThat(jdbc.queryForObject("SELECT published_at FROM learning.exams WHERE id=?", java.sql.Timestamp.class, id))
+                .isEqualTo(published);
+    }
+
+    private static String examCsv(String code, int level, String sections, String status) {
+        return "code,title,hsk_level,sections,status\n" + code + ",Đề tự soạn," + level + "," + sections + "," + status + "\n";
     }
 
     private JsonNode upload(ImportDataType type, String csv) throws Exception {

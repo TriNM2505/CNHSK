@@ -49,6 +49,7 @@ class ImportChangePlannerTest {
     private TopicItemRepository items;
     private PronStageRepository stages;
     private ImportChangePlanner planner;
+    private final ExamImportSupport exams = mock(ExamImportSupport.class);
     private KnowledgePointRepository points;
     private QuestionRepository questions;
     private KnowledgeTreeQueryRepository questionLabels;
@@ -61,7 +62,25 @@ class ImportChangePlannerTest {
         points = mock(KnowledgePointRepository.class);
         questions = mock(QuestionRepository.class); questionLabels = mock(KnowledgeTreeQueryRepository.class);
         nodeLinks = mock(NodeLinkRepository.class);
-        planner = new ImportChangePlanner(lexemes, topics, items, stages, points, questions, questionLabels, nodeLinks);
+        planner = new ImportChangePlanner(lexemes, topics, items, stages, points, questions, questionLabels, nodeLinks, exams);
+    }
+
+    @Test
+    void FR007_examPreviewBatchesReadsAndComparesParsedSections() {
+        var rows = IntStream.range(0, 501).mapToObj(i -> new ValidatedRow(i + 2,
+                Map.of("code", "EXAM_" + i, "title", "Đề tự soạn", "hsk_level", "1",
+                        "sections", "1: Đọc", "status", "DRAFT"), null, null)).toList();
+        when(exams.exams(any(), eq(false))).thenAnswer(invocation -> {
+            List<String> codes = invocation.getArgument(0);
+            return codes.contains("EXAM_0") ? List.of(new ExamImportSupport.Exam("EXAM_0", "Đề tự soạn",
+                    1, List.of(new ExamImportSupport.Section(1, "Đọc")), "DRAFT", false)) : List.of();
+        });
+        var preview = planner.plan(ImportDataType.EXAM, rows);
+        assertThat(preview).hasSize(501);
+        assertThat(preview.get(0).action()).isEqualTo(RowAction.UNCHANGED);
+        assertThat(preview.get(500).action()).isEqualTo(RowAction.CREATE);
+        verify(exams, times(2)).exams(any(), eq(false));
+        verifyNoMoreInteractions(exams);
     }
 
     @Test
@@ -173,7 +192,7 @@ class ImportChangePlannerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_absentNaturalKeyIsCreateForEveryTemplate(ImportDataType type) {
         assertThat(action(type, example(type))).isEqualTo(RowAction.CREATE);
         verify(lexemes, never()).save(any()); verify(topics, never()).save(any());
@@ -181,14 +200,14 @@ class ImportChangePlannerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_existingKeyWithAllEqualValuesIsUnchanged(ImportDataType type) {
         fixtures();
         assertThat(action(type, example(type))).isEqualTo(RowAction.UNCHANGED);
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_anyChangedValueMakesUpdateWithoutMutatingStoredJson(ImportDataType type) {
         fixtures();
         Map<String, String> v = example(type);
@@ -209,7 +228,7 @@ class ImportChangePlannerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_FR020_optionalBlankKeepsOldValuesIncludingNestedJson(ImportDataType type) {
         fixtures();
         Map<String, String> v = example(type);

@@ -11,5 +11,7 @@ public enum ImportDataType {
     KNOWLEDGE_NODE,
     KNOWLEDGE_EDGE,
     QUESTION,
-    NODE_LINK
+    NODE_LINK,
+    EXAM,
+    EXAM_QUESTION
 }
