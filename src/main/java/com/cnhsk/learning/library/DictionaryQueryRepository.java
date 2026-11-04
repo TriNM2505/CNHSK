@@ -53,6 +53,36 @@ public class DictionaryQueryRepository {
                 Map.of("meaning", meaning, "prefix", escaped + "%", "contains", "%" + escaped + "%"), page, size);
     }
 
+    public List<RadicalService.RadicalCount> radicals() {
+        List<?> rows = entityManager.createNativeQuery("""
+                SELECT radical, count(*) AS char_count FROM learning.lexemes
+                WHERE kind = 'CHAR' AND radical IS NOT NULL AND radical <> ''
+                GROUP BY radical ORDER BY char_count DESC, radical ASC
+                """, Tuple.class).getResultList();
+        return rows.stream().map(value -> {
+            Tuple row = (Tuple) value;
+            return new RadicalService.RadicalCount(row.get("radical", String.class),
+                    ((Number) row.get("char_count")).longValue());
+        }).toList();
+    }
+
+    public Result byRadical(String radical, Integer strokes, boolean approximate, int page, int size) {
+        String where = "x.kind = 'CHAR'";
+        Map<String, Object> values = new java.util.HashMap<>();
+        if (radical != null) {
+            where += " AND x.radical = :radical";
+            values.put("radical", radical);
+        }
+        if (strokes != null) {
+            where += approximate ? " AND x.stroke_count IN (:strokes)" : " AND x.stroke_count = :strokes";
+            values.put("strokes", approximate
+                    ? java.util.stream.IntStream.of(strokes - 1, strokes + 1)
+                            .filter(value -> value >= 1 && value <= 64).boxed().toList()
+                    : strokes);
+        }
+        return search(where, "x.stroke_count ASC NULLS LAST, x.frequency DESC, x.id ASC", values, page, size);
+    }
+
     private Result search(String where, String order, Map<String, ?> values, int page, int size) {
         // where/order are fixed SQL fragments from the methods above, never caller-supplied text.
         Query rows = entityManager.createNativeQuery("SELECT " + FIELDS + " FROM learning.lexemes x WHERE "

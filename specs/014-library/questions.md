@@ -1,5 +1,18 @@
 # Chốt — Spec 014
 
+## 2026-11-04 — Leader duyệt 014/T-07
+
+- Base: `origin/main` `82a6b3b`, merge PR #87 (T-06); leader xác nhận full verify PASS tại `82a6b3b`. Allowlist 12 file, nhánh `spec/014-t07`, một conventional commit, PR Draft, không tự merge.
+- `strokeData` là object mô tả nguồn, không phải payload nét: mọi `CHAR` trả `{"source":"hanzi-writer-data"}`, kể cả khi `strokeCount` null; `WORD`/`GRAMMAR` trả null. SCR-025 chỉ kiểm khác null rồi dùng `HanziCanvas` của 006 tự tải theo chữ. Backend không gọi CDN, không lưu/nạp dữ liệu nét hoặc thêm migration. Quyết định này làm rõ FR-007/AT-07, giữ nguyên hình dạng object/null của contract.
+- Việc cho T-15: kiểm FE ẩn gọn khối hoạt hình khi CDN không có dữ liệu cho chữ đó; phần còn lại của chi tiết vẫn hiện. Đối chiếu thêm ID `int64` của API với `number` và kiểm tra safe integer trên FE; T-07 không sửa FE.
+- `related`: lấy `RELATED` và `SYNONYM` theo cả hai chiều, bỏ trùng theo ID, sắp `id ASC`, tối đa 10. Không lấy `CONTAINS`; liên kết này dùng riêng cho `components` (chiều đi ra, không giới hạn) và `containedIn` (chiều đi vào, tối đa 10). Hai nhóm CONTAINS cũng sắp `id ASC`.
+- `/radicals` không phân trang; chỉ đếm CHAR có bộ thủ, sắp `charCount DESC, radical ASC`. `/by-radical` cần ít nhất một bộ lọc; `radical` tối đa 10 ký tự, `strokes` nguyên 1–64; phân trang mặc định 0/20, size 1–50, kiểm sai trả 422 `VALIDATION_FAILED`. Thứ tự `stroke_count ASC NULLS LAST, frequency DESC, id ASC`.
+- Chỉ fallback ±1 nét khi tổng số kết quả chính xác bằng 0 và có `strokes`; giữ bộ lọc bộ thủ, chỉ xét số nét trong 1–64, đặt `approximate=true`. Trang vượt cuối không kích hoạt fallback.
+- Chi tiết tồn tại dùng đúng 2 SELECT: trường công khai và một truy vấn gộp các nhóm liên kết. Không N+1, không trả toàn bộ `extra`, `exercises` hoặc đáp án. Mảng rỗng trả `[]`. ID sai định dạng trả 404 `LEXEME_NOT_FOUND` trước truy vấn DB; ID không có trả cùng lỗi sau một SELECT. Endpoint chi tiết không có trường hợp 422 trong contract.
+- Cả ba endpoint nằm trong `DictionaryController`, dùng chung `@ModelAttribute`/`LibraryRateLimiter` với `/search`, đếm đúng một lần trước kiểm tham số, kể cả 422/404. Không thêm matcher hoặc cấu hình; giá trị SQL được bind tham số, không thêm index/migration.
+- `LEXEME_NOT_FOUND` thêm ngay trước `INTERNAL_ERROR` theo luật L2. NFR-P02: p95 chi tiết dưới 150 ms trên 5.000 mục từ tự soạn. Khi gate xanh, leader cho phép đánh ✅ T-06 kèm ghi chú `leader full verify PASS tại 82a6b3b` và ✅ T-07 trong cùng PR.
+- T-03, T-13, T-14 tiếp tục gác theo phân công của leader.
+
 ## 2026-11-04 — Leader duyệt 014/T-06
 
 - Base lúc bắt đầu: `origin/main` `ee74b24`, remote `TriNM2505/CNHSK`; đã cập nhật nhánh lên `7f6e615` (PR #86). `010/T-10` đã merge qua PR #66 (`c3a5fc7`). Bản kế hoạch trước dùng base `a740027`; đã đối chiếu các matcher knowledge-tree/exam/placement và khối cấu hình placement trên main mới. Hai file dùng chung không đổi giữa `ee74b24` và `7f6e615`.
