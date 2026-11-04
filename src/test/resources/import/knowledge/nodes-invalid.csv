@@ -1,0 +1,7 @@
+kid,name_vi,name_zh,can_do,skill_type
+NP10-001,Nút sai cấp,测试节点,,GRAMMAR
+XX1-001,Nút sai miền,测试节点,,VOCAB
+NP3-04,Nút sai mã,测试节点,,GRAMMAR
+NP3-094,Nút thiếu chữ Hán,abc,,GRAMMAR
+TV2-095,,测试节点,,VOCAB
+CH1-096,Nút hợp lệ tự soạn,汉字,Nhận biết chữ,CHARACTER

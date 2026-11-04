@@ -31,7 +31,8 @@ components:
   schemas:
     DataType:
       type: string
-      enum: [LEXEME, TOPIC, TOPIC_ITEM, GRAMMAR, GRAMMAR_EXERCISE, PRON_STAGE, PRON_UNIT]
+      enum: [LEXEME, TOPIC, TOPIC_ITEM, GRAMMAR, GRAMMAR_EXERCISE, PRON_STAGE, PRON_UNIT,
+             KNOWLEDGE_NODE, KNOWLEDGE_EDGE, QUESTION, NODE_LINK]
     RunStatus:
       type: string
       enum: [PENDING, RUNNING, COMPLETED, FAILED, EXPIRED]
@@ -104,7 +105,9 @@ components:
           type: string
           enum: [REQUIRED_MISSING, TOO_LONG, INVALID_VALUE, INVALID_HSK_LEVEL, NOT_CJK, BROKEN_TEXT,
                  INVALID_PINYIN, INVALID_URL, INVALID_ANSWER, DUPLICATE_IN_FILE, REFERENCE_NOT_FOUND,
-                 ROW_WRITE_FAILED]
+                 ROW_WRITE_FAILED, INVALID_KID, EDGE_SELF, EDGE_CYCLE, PREREQ_LEVEL_HIGHER,
+                 TOO_MANY_PREREQS, EDGE_REDUNDANT, EDGE_TYPE_CONFLICT, DOMAIN_MISMATCH,
+                 TOO_MANY_SECONDARY_KIDS, DUPLICATE_KID, GRADING_CHANGE_NOT_ALLOWED]
         message: { type: string }
     PreviewRow:
       type: object
@@ -194,7 +197,7 @@ paths:
     get:
       tags: [imports]
       operationId: listImportTemplates
-      summary: Danh sách 7 mẫu nhập (FR-034)
+      summary: Danh sách 11 mẫu nhập (002 FR-034, 010 FR-002)
       responses:
         '200':
           description: OK
@@ -245,6 +248,11 @@ paths:
       tags: [imports]
       operationId: uploadImportFile
       summary: Tải lên và kiểm tra — không ghi kho (FR-002…FR-014)
+      description: >
+        Loại dữ liệu chỉ được nhập khi có cả validator và writer. Loại đã có metadata
+        nhưng chưa có đủ bộ xử lý trả 422 VALIDATION_FAILED, details.field=dataType,
+        message="Loại dữ liệu này chưa hỗ trợ nhập" trước khi đọc tệp hoặc tạo lần nhập;
+        không ghi lần nhập hoặc audit. Metadata và CSV mẫu vẫn tải được.
       requestBody:
         required: true
         content:

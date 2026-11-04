@@ -27,6 +27,7 @@ import com.cnhsk.learning.content.repository.LexemeRepository;
 import com.cnhsk.learning.content.repository.PronStageRepository;
 import com.cnhsk.learning.content.repository.TopicItemRepository;
 import com.cnhsk.learning.content.repository.TopicRepository;
+import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
 import com.cnhsk.support.AbstractIntegrationTest;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +55,7 @@ class RowWritersIntegrationTest extends AbstractIntegrationTest {
     @Autowired private TopicItemRepository items;
     @Autowired private PronStageRepository stages;
     @Autowired private EntityManager entityManager;
+    @Autowired private KnowledgePointRepository points;
     private Map<ImportDataType, RowWriter> writers;
     private Map<ImportDataType, RowValidator> validators;
 
@@ -64,12 +66,15 @@ class RowWritersIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void FR020_allSevenWritersAreAvailableWithoutRequiringATransactionForMetadata() {
-        assertThat(writers).containsOnlyKeys(ImportDataType.values());
+    void FR020_eightWritersAreAvailableSeparatelyFromElevenTemplateDefinitions() {
+        assertThat(ImportTemplate.all()).hasSize(11);
+        assertThat(writers).containsOnlyKeys(ImportDataType.LEXEME, ImportDataType.TOPIC, ImportDataType.TOPIC_ITEM,
+                ImportDataType.GRAMMAR, ImportDataType.GRAMMAR_EXERCISE, ImportDataType.PRON_STAGE,
+                ImportDataType.PRON_UNIT, ImportDataType.KNOWLEDGE_NODE);
     }
 
     @ParameterizedTest
-    @EnumSource(ImportDataType.class)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
     void FR020_eachTemplatePersistsThenReimportsAndUpdatesTheSameNaturalKey(ImportDataType type) {
         parents(type);
         Map<String, String> values = example(type);
@@ -300,7 +305,7 @@ class RowWritersIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @EnumSource(ImportDataType.class)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void FR020_writingWithoutCallerTransactionIsRejectedBeforeAnyMutation(ImportDataType type) {
         ValidatedRow row = RowWritersTest.row(example(type));
@@ -334,6 +339,8 @@ class RowWritersIntegrationTest extends AbstractIntegrationTest {
             case TOPIC -> topics.count();
             case TOPIC_ITEM -> items.count();
             case PRON_STAGE, PRON_UNIT -> stages.count();
+            case KNOWLEDGE_NODE -> points.count();
+            default -> throw new IllegalArgumentException("No writer fixture: " + type);
         };
     }
 

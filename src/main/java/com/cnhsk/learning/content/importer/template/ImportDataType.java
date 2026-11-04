@@ -7,5 +7,9 @@ public enum ImportDataType {
     GRAMMAR,
     GRAMMAR_EXERCISE,
     PRON_STAGE,
-    PRON_UNIT
+    PRON_UNIT,
+    KNOWLEDGE_NODE,
+    KNOWLEDGE_EDGE,
+    QUESTION,
+    NODE_LINK
 }

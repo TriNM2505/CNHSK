@@ -33,7 +33,8 @@ class ImportTemplateTest {
         List<String> expected = new ArrayList<>();
         dataTypes.forEach(value -> expected.add(value.asText()));
 
-        assertThat(expected).hasSize(7);
+        assertThat(expected).containsExactly("LEXEME", "TOPIC", "TOPIC_ITEM", "GRAMMAR", "GRAMMAR_EXERCISE",
+                "PRON_STAGE", "PRON_UNIT", "KNOWLEDGE_NODE", "KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK");
         assertThat(ImportDataType.values()).extracting(Enum::name).containsExactlyElementsOf(expected);
         assertThat(ImportTemplate.all()).extracting(template -> template.dataType().name())
                 .containsExactlyElementsOf(expected);
@@ -142,6 +143,23 @@ class ImportTemplateTest {
             assertThat(List.of(row.get("option_a"), row.get("option_b"), row.get("option_c"), row.get("option_d")))
                     .doesNotHaveDuplicates();
         }
+        Map<String, String> node = exampleRow(ImportDataType.KNOWLEDGE_NODE);
+        assertThat(exampleRow(ImportDataType.KNOWLEDGE_EDGE)).containsEntry("from_kid", node.get("kid"));
+        assertThat(exampleRow(ImportDataType.QUESTION)).containsEntry("kid_primary", node.get("kid"));
+        assertThat(exampleRow(ImportDataType.NODE_LINK)).containsEntry("kid", node.get("kid"))
+                .containsEntry("target_type", lexeme.get("kind")).containsEntry("target_key", lexeme.get("text"));
+    }
+
+    @Test
+    void FR002_AT02_knowledgeRowErrorsAreDeclaredWithoutChangingTheResponseShape() throws IOException {
+        JsonNode schema = contractSchemas().path("RowError");
+        List<String> codes = new ArrayList<>();
+        schema.path("properties").path("code").path("enum").forEach(code -> codes.add(code.asText()));
+        assertThat(codes).doesNotHaveDuplicates().contains("REQUIRED_MISSING", "ROW_WRITE_FAILED", "INVALID_KID",
+                "EDGE_SELF", "EDGE_CYCLE", "PREREQ_LEVEL_HIGHER", "TOO_MANY_PREREQS", "EDGE_REDUNDANT",
+                "EDGE_TYPE_CONFLICT", "DOMAIN_MISMATCH", "TOO_MANY_SECONDARY_KIDS", "DUPLICATE_KID",
+                "GRADING_CHANGE_NOT_ALLOWED");
+        assertThat(propertyNames(schema.path("properties"))).containsExactlyInAnyOrder("line", "column", "value", "code", "message");
     }
 
     @Test
@@ -207,7 +225,24 @@ class ImportTemplateTest {
                                 "option_c", "option_d", "answer", "explanation_vi"),
                         Set.of("stage_index", "unit_code", "audio_url", "option_a", "option_b", "answer"),
                         Map.of("unit_code", 30, "audio_url", 500, "prompt_vi", 200, "option_a", 50, "option_b", 50,
-                                "option_c", 50, "option_d", 50, "explanation_vi", 500)));
+                                "option_c", 50, "option_d", 50, "explanation_vi", 500)),
+                new ExpectedTemplate(ImportDataType.KNOWLEDGE_NODE, "Nút cây năng lực",
+                        List.of("kid"), List.of(), List.of("kid", "name_vi", "name_zh", "can_do", "skill_type"),
+                        Set.of("kid", "name_vi", "name_zh"), Map.of("name_vi", 200, "name_zh", 200, "can_do", 1000)),
+                new ExpectedTemplate(ImportDataType.KNOWLEDGE_EDGE, "Quan hệ giữa các nút",
+                        List.of("from_kid", "to_kid"), List.of(ImportDataType.KNOWLEDGE_NODE),
+                        List.of("from_kid", "to_kid", "edge_type"), Set.of("from_kid", "to_kid", "edge_type"), Map.of()),
+                new ExpectedTemplate(ImportDataType.QUESTION, "Câu hỏi", List.of("code"), List.of(ImportDataType.KNOWLEDGE_NODE),
+                        List.of("code", "qtype", "hsk_level", "difficulty", "stem", "option_a", "option_b", "option_c",
+                                "option_d", "option_e", "option_f", "correct", "explanation", "audio_url", "image_url",
+                                "kid_primary", "kid_secondary", "distractor_errors"),
+                        Set.of("code", "qtype", "hsk_level", "stem", "correct", "explanation", "kid_primary"),
+                        Map.ofEntries(entry("code", 50), entry("stem", 2000), entry("option_a", 300), entry("option_b", 300),
+                                entry("option_c", 300), entry("option_d", 300), entry("option_e", 300), entry("option_f", 300),
+                                entry("explanation", 3000), entry("audio_url", 500), entry("image_url", 500))),
+                new ExpectedTemplate(ImportDataType.NODE_LINK, "Gắn nội dung vào nút", List.of("target_type", "target_key"),
+                        List.of(ImportDataType.KNOWLEDGE_NODE, ImportDataType.TOPIC, ImportDataType.LEXEME, ImportDataType.GRAMMAR),
+                        List.of("target_type", "target_key", "kid"), Set.of("target_type", "target_key", "kid"), Map.of()));
     }
 
     private static JsonNode contractSchemas() throws IOException {

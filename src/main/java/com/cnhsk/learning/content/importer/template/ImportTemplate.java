@@ -12,7 +12,8 @@ public record ImportTemplate(
         List<ColumnSpec> columns) {
 
     private static final List<ImportTemplate> TEMPLATES = List.of(
-            lexeme(), topic(), topicItem(), grammar(), grammarExercise(), pronStage(), pronUnit());
+            lexeme(), topic(), topicItem(), grammar(), grammarExercise(), pronStage(), pronUnit(),
+            knowledgeNode(), knowledgeEdge(), question(), nodeLink());
 
     public ImportTemplate {
         naturalKey = List.copyOf(naturalKey);
@@ -150,6 +151,69 @@ public record ImportTemplate(
                                 "Tối đa 30 âm, mỗi âm tối đa 20 ký tự; ngăn bằng dấu |.", "b|p"),
                         new ColumnSpec("pass_percent", false, null,
                                 "Ngưỡng đạt từ 0 đến 100, tối đa 2 chữ số thập phân, mặc định 80.", "80")));
+    }
+
+    private static ImportTemplate knowledgeNode() {
+        return new ImportTemplate(ImportDataType.KNOWLEDGE_NODE, "Nút cây năng lực",
+                List.of("kid"), List.of(), List.of(
+                        new ColumnSpec("kid", true, null,
+                                "Mã nút dạng miền + cấp 1–7 + ba chữ số, chuẩn hoá chữ hoa; ví dụ TV1-001.", "TV1-001"),
+                        new ColumnSpec("name_vi", true, 200, "Tên tiếng Việt của nút.", "Đại từ nhân xưng"),
+                        new ColumnSpec("name_zh", true, 200, "Tên tiếng Trung, có ít nhất một ký tự CJK.", "人称代词"),
+                        new ColumnSpec("can_do", false, 1000, "Năng lực người học đạt được.",
+                                "Nhận biết và sử dụng đại từ trong câu ngắn."),
+                        new ColumnSpec("skill_type", false, null,
+                                "Kỹ năng chính: LISTENING, READING, WRITING, VOCAB, GRAMMAR hoặc CHARACTER.", "VOCAB")));
+    }
+
+    private static ImportTemplate knowledgeEdge() {
+        return new ImportTemplate(ImportDataType.KNOWLEDGE_EDGE, "Quan hệ giữa các nút",
+                List.of("from_kid", "to_kid"), List.of(ImportDataType.KNOWLEDGE_NODE), List.of(
+                        new ColumnSpec("from_kid", true, null, "KID nút đứng trước, đã tồn tại.", "TV1-001"),
+                        new ColumnSpec("to_kid", true, null, "KID nút đích, đã tồn tại.", "TV2-001"),
+                        new ColumnSpec("edge_type", true, null, "PREREQ: tiên quyết; SUPPORT: hỗ trợ.", "PREREQ")));
+    }
+
+    private static ImportTemplate question() {
+        return new ImportTemplate(ImportDataType.QUESTION, "Câu hỏi",
+                List.of("code"), List.of(ImportDataType.KNOWLEDGE_NODE), List.of(
+                        new ColumnSpec("code", true, 50, "Mã câu hỏi theo mẫu ^[A-Z0-9_-]{3,50}$.", "DEMO_TV1_001"),
+                        new ColumnSpec("qtype", true, null,
+                                "MULTIPLE_CHOICE, SENTENCE_MATCH, IMAGE_MATCH, TRUE_FALSE, FILL_BLANK hoặc SENTENCE_ORDER; chưa hỗ trợ ESSAY.",
+                                "MULTIPLE_CHOICE"),
+                        new ColumnSpec("hsk_level", true, null, "Cấp HSK: số nguyên từ 1 đến 9.", "1"),
+                        new ColumnSpec("difficulty", false, null, "Độ khó từ 1 đến 3, mặc định 2.", "2"),
+                        new ColumnSpec("stem", true, 2000, "Nội dung câu hỏi; FILL_BLANK phải chứa ___.",
+                                "我和你一起学习。我们指的是谁？"),
+                        new ColumnSpec("option_a", false, 300, "Phương án A; các phương án liên tiếp từ A.", "我和你"),
+                        new ColumnSpec("option_b", false, 300, "Phương án B.", "他和她"),
+                        new ColumnSpec("option_c", false, 300, "Phương án C nếu có.", ""),
+                        new ColumnSpec("option_d", false, 300, "Phương án D nếu có.", ""),
+                        new ColumnSpec("option_e", false, 300, "Phương án E nếu có.", ""),
+                        new ColumnSpec("option_f", false, 300, "Phương án F nếu có.", ""),
+                        new ColumnSpec("correct", true, null,
+                                "Khoá đúng; TRUE/FALSE; đáp án điền tối đa 50 ký tự; hoặc thứ tự mỗi mảnh câu đúng một lần.", "A"),
+                        new ColumnSpec("explanation", true, 3000, "Lời giải câu hỏi.",
+                                "我们 bao gồm người nói và người đang cùng học trong câu."),
+                        new ColumnSpec("audio_url", false, 500, "URL http:// hoặc https://, không khoảng trắng.", ""),
+                        new ColumnSpec("image_url", false, 500, "URL ảnh; bắt buộc với IMAGE_MATCH.", ""),
+                        new ColumnSpec("kid_primary", true, null, "Một KID chính đã tồn tại.", "TV1-001"),
+                        new ColumnSpec("kid_secondary", false, null,
+                                "Tối đa hai KID phụ ngăn bằng |, không trùng nhau hoặc trùng KID chính.", ""),
+                        new ColumnSpec("distractor_errors", false, null,
+                                "Tối đa sáu mục KEY:KID hoặc KEY:KID:ghi chú ngăn bằng |; khoá phải là phương án sai của loại chọn đáp án, ghi chú tối đa 200 ký tự.",
+                                "B:TV1-001:Nhầm nhóm người được nhắc đến")));
+    }
+
+    private static ImportTemplate nodeLink() {
+        return new ImportTemplate(ImportDataType.NODE_LINK, "Gắn nội dung vào nút",
+                List.of("target_type", "target_key"),
+                List.of(ImportDataType.KNOWLEDGE_NODE, ImportDataType.TOPIC, ImportDataType.LEXEME, ImportDataType.GRAMMAR), List.of(
+                        new ColumnSpec("target_type", true, null,
+                                "TOPIC hoặc WORD thuộc miền TV; CHAR thuộc CH; GRAMMAR thuộc NP.", "WORD"),
+                        new ColumnSpec("target_key", true, null,
+                                "TOPIC: mã chủ đề; loại khác: nội dung mục từ đúng kind, đã tồn tại.", "我们"),
+                        new ColumnSpec("kid", true, null, "KID đã tồn tại, khớp miền của nội dung.", "TV1-001")));
     }
 
     private static ImportTemplate pronUnit() {
