@@ -2,6 +2,7 @@ package com.cnhsk.community.reaction;
 
 import java.util.List;
 import java.util.Set;
+import java.time.Instant;
 import com.cnhsk.community.common.PostCount;
 import com.cnhsk.community.common.ReactionKind;
 import org.springframework.data.jpa.repository.Query;
@@ -36,4 +37,19 @@ public interface ReactionRepository extends JpaRepository<Reaction, ReactionId> 
             WHERE user_id = :userId AND target_type = 'POST' AND target_id = :postId AND kind = 'LIKE'
             """, nativeQuery = true)
     int deletePostLike(@Param("userId") long userId, @Param("postId") long postId);
+
+    @Query("select count(r) from Reaction r where r.id.userId = :userId "
+            + "and r.id.kind = com.cnhsk.community.common.ReactionKind.REPORT "
+            + "and r.createdAt >= :dayStart and r.createdAt < :nextDayStart")
+    long countReportsInDay(@Param("userId") long userId, @Param("dayStart") Instant dayStart,
+            @Param("nextDayStart") Instant nextDayStart);
+
+    @Modifying
+    @Query(value = """
+            INSERT INTO community.reactions(user_id, target_type, target_id, kind, created_at)
+            VALUES (:userId, :targetType, :targetId, 'REPORT', :reportedAt)
+            ON CONFLICT (user_id, target_type, target_id, kind) DO NOTHING
+            """, nativeQuery = true)
+    int insertReport(@Param("userId") long userId, @Param("targetType") String targetType,
+            @Param("targetId") long targetId, @Param("reportedAt") Instant reportedAt);
 }

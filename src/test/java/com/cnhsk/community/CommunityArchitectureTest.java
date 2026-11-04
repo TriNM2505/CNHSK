@@ -122,7 +122,8 @@ class CommunityArchitectureTest {
                             "countByAuthorIdAndCreatedAtAfter", "findOldestCreatedAtByAuthorIdAndCreatedAtAfter",
                             "findReplyParentOnPublishedPost", "findTreeByPostId", "findOwnedPostId", "findOwnedForUpdate")
                     : repository == ReactionRepository.class ? Set.of("countLikesByPostIds", "findPostViewerKinds",
-                            "insertPostLike", "deletePostLike") : Set.of();
+                            "insertPostLike", "deletePostLike", "countReportsInDay", "insertReport")
+                    : repository == ModerationCaseRepository.class ? Set.of("upsertPendingReport") : Set.of();
             Set<String> actualMethods = Arrays.stream(repository.getDeclaredMethods())
                     .map(Method::getName)
                     .collect(Collectors.toSet());
