@@ -1,5 +1,9 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-10 danh sách và bắt đầu đề thi thử (leader duyệt)
+
+- Chọn `myBest` theo `percent` giảm dần. Nếu bằng nhau, chọn `score` cao hơn. Nếu vẫn bằng nhau, chọn lượt nộp sau. Trả cả `score`, `maxScore` và `percent` từ cùng lượt. Ví dụ, 8/10 (80%) đứng trên 9/20 (45%) khi trọng số đề thay đổi giữa hai lượt.
+
 ## 2026-11-04 — T-04 SCR-022 (leader duyệt)
 
 - Cờ `SHOW_EXAM_WEAK_POINTS = false` nằm trong `Scr022ExamResultPage.tsx` và được truyền vào View. T-16 nối `getExamWeakPoints` và bật cờ.
