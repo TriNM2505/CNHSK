@@ -1,5 +1,11 @@
 # Chốt — Spec 012
 
+## 2026-11-05 — T-18 dữ liệu demo HSK 1–3 (leader duyệt)
+
+- Mỗi cấp có 30 câu tự soạn (20 trắc nghiệm, 10 đúng/sai), phân bổ CH 8, TV 8, NP 8 và VB 6. NA và NL cần nghe hoặc nói nên hiển thị «Chưa đo» với ngân hàng chỉ có câu hỏi bằng văn bản này (Q8).
+- Dùng 12 nút demo đuôi `-901` thuộc dải `-9xx` dành cho dữ liệu demo. Mỗi câu có một KID chính. Bộ dữ liệu không cần cạnh giữa các nút.
+- Mỗi cấp có một đề `PUBLISHED` gồm 12 câu trong ba phần. Nạp theo thứ tự `KNOWLEDGE_NODE` → `QUESTION` → `EXAM` → `EXAM_QUESTION` qua luồng import.
+
 ## 2026-11-04 — T-09 nhập câu vào đề (leader duyệt)
 
 - Vị trí đang thuộc câu A trong DB vẫn bị giữ ở bước preview, kể cả khi dòng trước dự kiến chuyển A đi. Dòng đưa B vào vị trí đó trả DUPLICATE_ORDER vì mỗi dòng ghi độc lập.

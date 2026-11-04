@@ -1,0 +1,13 @@
+kid,name_vi,name_zh,can_do,skill_type
+CH1-901,Nhận diện chữ chỉ sự vật,辨认常用汉字,Có thể nhận diện chữ chỉ sự vật qua câu hỏi bằng văn bản.,CHARACTER
+TV1-901,Hiểu từ chỉ sinh hoạt hằng ngày,理解日常生活词语,Có thể hiểu từ chỉ sinh hoạt hằng ngày qua câu hỏi bằng văn bản.,VOCAB
+NP1-901,Dùng mẫu câu cơ bản,运用基本句式,Có thể dùng mẫu câu cơ bản qua câu hỏi bằng văn bản.,GRAMMAR
+VB1-901,Tìm thông tin trong câu ngắn,提取短句信息,Có thể tìm thông tin trong câu ngắn qua câu hỏi bằng văn bản.,READING
+CH2-901,Nhận diện thành phần và dạng chữ quen thuộc,辨认字形和偏旁,Có thể nhận diện thành phần và dạng chữ quen thuộc qua câu hỏi bằng văn bản.,CHARACTER
+TV2-901,Chọn từ trong tình huống quen thuộc,选择熟悉情境中的词语,Có thể chọn từ trong tình huống quen thuộc qua câu hỏi bằng văn bản.,VOCAB
+NP2-901,Hiểu thể và so sánh trong câu,理解动态助词与比较句,Có thể hiểu thể và so sánh trong câu qua câu hỏi bằng văn bản.,GRAMMAR
+VB2-901,Đọc trình tự và chi tiết trong đoạn ngắn,阅读短文顺序与细节,Có thể đọc trình tự và chi tiết trong đoạn ngắn qua câu hỏi bằng văn bản.,READING
+CH3-901,Phân biệt chữ gần dạng trong từ ghép,区分形近字和词中用字,Có thể phân biệt chữ gần dạng trong từ ghép qua câu hỏi bằng văn bản.,CHARACTER
+TV3-901,Hiểu từ chỉ hành động và quyết định,理解行动与决定用词,Có thể hiểu từ chỉ hành động và quyết định qua câu hỏi bằng văn bản.,VOCAB
+NP3-901,Hiểu cấu trúc và liên kết trong câu,理解句式与关联词,Có thể hiểu cấu trúc và liên kết trong câu qua câu hỏi bằng văn bản.,GRAMMAR
+VB3-901,Suy ra thông tin từ thông báo và tình huống,从通知和情境推断信息,Có thể suy ra thông tin từ thông báo và tình huống qua câu hỏi bằng văn bản.,READING
