@@ -535,12 +535,12 @@ CREATE INDEX ix_ai_lexeme ON attempt_items(lexeme_id, attempt_id) WHERE lexeme_i
 CREATE TABLE user_progress (
   user_id        BIGINT NOT NULL REFERENCES users(id),
   target_type    VARCHAR(20) NOT NULL CHECK (target_type IN
-                 ('KNOWLEDGE_POINT','TOPIC','PRON_STAGE','FLASHCARD','VIDEO')),
+                 ('KNOWLEDGE_POINT','TOPIC','PRON_STAGE','FLASHCARD','VIDEO','LEXEME')),
   target_id      BIGINT NOT NULL,
 
-  -- FSRS — dung cho KNOWLEDGE_POINT va FLASHCARD
+  -- MP-1.0 cho KNOWLEDGE_POINT (mastery = gia tri / 100); FSRS cho LEXEME va FLASHCARD
   mastery        NUMERIC(4,3) NOT NULL DEFAULT 0 CHECK (mastery BETWEEN 0 AND 1),
-  stability      NUMERIC(8,3) NOT NULL DEFAULT 0.1,
+  stability      NUMERIC(8,3) NOT NULL DEFAULT 0.1 CHECK (stability > 0),
   difficulty     NUMERIC(4,2) NOT NULL DEFAULT 5,
   next_review_at TIMESTAMPTZ,
   review_count   INTEGER NOT NULL DEFAULT 0,
@@ -559,6 +559,12 @@ CREATE TABLE user_progress (
   last_seen_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
 
+  -- V6: MP-1.0; inferred chi suy ra khi doc, khong luu
+  mp_state       VARCHAR(12) CHECK (mp_state IN ('notyet','insufficient','review','consolidate','extend')),
+  confidence     NUMERIC(6,3) CHECK (confidence >= 0),
+  evidence_item_ids BIGINT[] NOT NULL DEFAULT '{}',
+  CONSTRAINT ck_prog_mp CHECK (target_type <> 'KNOWLEDGE_POINT' OR mp_state IS NOT NULL),
+
   -- Chan race condition mo tang/mo chu de (UC-022, UC-046 UNIQUE_VIOLATION)
   PRIMARY KEY (user_id, target_type, target_id)
 );
@@ -567,12 +573,16 @@ CREATE TABLE user_progress (
 CREATE INDEX ix_prog_due     ON user_progress(user_id, next_review_at)
   WHERE next_review_at IS NOT NULL;
 CREATE INDEX ix_prog_mastery ON user_progress(user_id, mastery);
+CREATE INDEX ix_prog_type ON user_progress(user_id, target_type, state);
+CREATE INDEX ix_prog_kp_state ON user_progress(user_id, mp_state)
+  WHERE target_type = 'KNOWLEDGE_POINT';
 ```
 
 > **RFC đợt cuối R2, R3 (2026-11-03):** dòng `KNOWLEDGE_POINT` giữ mastery **MP-1.0** (`mastery` = giá trị ÷ 100),
-> không dùng FSRS. V6 (spec 011 §0.1) thêm `mp_state`, `confidence`, `evidence_item_ids BIGINT[]` và
+> không dùng FSRS. [V6](../../src/main/resources/db/migration/V6__mastery_progress.sql) (spec 011 §0.1) thêm `mp_state`, `confidence`, `evidence_item_ids BIGINT[]` và
 > `target_type = 'LEXEME'` cho lịch ôn FSRS từng mục từ. Dòng `FLASHCARD` (spec 014) dùng cột FSRS như cũ.
-> DDL đầy đủ cập nhật ở đây trong PR của spec 011 T-05.
+> `ck_prog_mp` buộc dòng `KNOWLEDGE_POINT` có `mp_state`; các loại khác vẫn được NULL. `confidence` nullable,
+> mảng minh chứng mặc định rỗng; giới hạn cửa sổ tám minh chứng thuộc xử lý nghiệp vụ, không có CHECK độ dài mảng.
 
 > 🔴 **Khoá chính `(user_id, target_type, target_id)` lấp 2 khoảng trống cùng lúc:**
 > `UNIQUE_VIOLATION` của UC-022 (hai tab cùng mở tầng phát âm) và UC-046 (hai request cùng mở
@@ -1363,7 +1373,7 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 | V3 | `V3__content_import.sql` | 002 | `topics.code`, `pron_stages.units`, bỏ `uq_import_file`, thêm `uq_import_running` và `ix_req_import_hist` (spec 002 §0.3); nối sau V2.1 | ✅ Đã viết và kiểm thử 2026-10-29: 10 test migration pass trên Testcontainers, `verify` xanh (260 test, không skip; line coverage 93,08%). Spec 002 đã duyệt trên `main` qua PR #13. Chưa chạy Neon; leader chạy sau merge PR migration |
 | V4 | `V4__practice_engine.sql` | 003 | Cột `item_type`, `skill`, `meta` trên `attempt_items`; unique `uq_ai_order`, `ix_att_user_ref`, partial `ix_ai_lexeme` (spec 003 §0.12). Spec 012 ghi `attempt_items.question_id` cho nguồn `MOCK_EXAM`, `PLACEMENT`, `TARGETED_PRACTICE` | Chờ merge — chỉ kiểm thử bằng Testcontainers; chưa chạy Neon, leader chạy sau merge |
 | V5 | `V5__knowledge_tree.sql` | 010 | Cây KID trên `knowledge_points`, vai trò nhãn, `questions.code`/`difficulty`, `knowledge_point_id` trên `topics`/`lexemes` (spec 010 §0.1) | ✅ Đã viết và kiểm thử 2026-11-04: 40 test AT-30 trên PostgreSQL Testcontainers; `ddl-auto: validate`. Chưa chạy Neon; leader chạy sau merge |
-| V6 | `V6__mastery_progress.sql` | 011 | `user_progress`: `mp_state`, `confidence`, `evidence_item_ids`, `target_type 'LEXEME'` (spec 011 §0.1) | Leader cấp số 2026-11-03 — chưa viết; chạy sau V5 |
+| V6 | `V6__mastery_progress.sql` | 011 | `user_progress`: `mp_state`, `confidence`, `evidence_item_ids`, `target_type 'LEXEME'`, `ck_prog_mp`, partial index `ix_prog_kp_state` (spec 011 §0.1) | ✅ Đã viết và kiểm thử 2026-11-05: 31 test AT-03 trên PostgreSQL Testcontainers, gồm nâng cấp V5 → V6; `ddl-auto: validate`. Full `verify`: 2.363 test, không fail/error/skip; line coverage 96,35%. Chưa chạy Neon; leader thực hiện sau merge |
 | V7+ | — | spec sau | Leader cấp số khi spec cần đổi schema (012–015 không cần migration) | — |
 
 > `V3__content_and_plans`, `V4__funnel_and_ledger`, `V5__video_practice` của bản trước **đã gộp vào V1**
@@ -1409,7 +1419,7 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 
 > **"Không đụng" = không xoá bảng, không xoá/đổi nghĩa cột cũ, không xoá dữ liệu** (RFC đợt cuối R2, 2026-11-03).
 > **Được thêm cột** bằng migration mới khi có RFC đồng thuận: [V5](../../src/main/resources/db/migration/V5__knowledge_tree.sql) (spec 010) cho `knowledge_points`,
-> `question_knowledge_points`; V6 (spec 011) cho `user_progress`. Cột `attempt_items.question_id` bắt đầu
+> `question_knowledge_points`; [V6](../../src/main/resources/db/migration/V6__mastery_progress.sql) (spec 011) mở rộng `user_progress` bằng cột, CHECK và index; không xoá cột hoặc dữ liệu. Cột `attempt_items.question_id` bắt đầu
 > được ghi từ spec 012.
 
 ---

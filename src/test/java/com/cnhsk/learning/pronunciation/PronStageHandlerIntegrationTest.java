@@ -1,12 +1,15 @@
 package com.cnhsk.learning.pronunciation;
 
 import java.math.BigDecimal;
+import java.sql.Array;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -454,7 +457,8 @@ class PronStageHandlerIntegrationTest {
         jdbc.update("INSERT INTO learning.user_progress (user_id, target_type, target_id, percent) VALUES (?, 'TOPIC', ?, ?)",
                 owner, first.getId(), new BigDecimal("33.00"));
         List<Map<String, Object>> before = jdbc.queryForList("SELECT * FROM learning.user_progress "
-                + "WHERE user_id = ? OR target_type = 'TOPIC' ORDER BY user_id, target_type, target_id", other);
+                + "WHERE user_id = ? OR target_type = 'TOPIC' ORDER BY user_id, target_type, target_id", other)
+                .stream().map(this::snapshot).toList();
 
         JsonNode extra = complete(1, 33, 0, 0).path("extra");
 
@@ -462,7 +466,7 @@ class PronStageHandlerIntegrationTest {
         assertThat(extra.path("passed").asBoolean()).isTrue();
         assertThat(extra.path("needed").decimalValue()).isEqualByComparingTo("0.00");
         assertThat(jdbc.queryForList("SELECT * FROM learning.user_progress WHERE user_id = ? OR target_type = 'TOPIC' "
-                + "ORDER BY user_id, target_type, target_id", other)).isEqualTo(before);
+                + "ORDER BY user_id, target_type, target_id", other).stream().map(this::snapshot).toList()).isEqualTo(before);
     }
 
     @Test
@@ -614,12 +618,26 @@ class PronStageHandlerIntegrationTest {
     }
 
     private Map<String, Object> progress(PronStage stage) {
-        return jdbc.queryForMap("SELECT * FROM learning.user_progress WHERE user_id = ? AND target_type = 'PRON_STAGE' AND target_id = ?",
-                owner, stage.getId());
+        return snapshot(jdbc.queryForMap("SELECT * FROM learning.user_progress WHERE user_id = ? AND target_type = 'PRON_STAGE' AND target_id = ?",
+                owner, stage.getId()));
     }
 
     private List<Map<String, Object>> allProgress() {
-        return jdbc.queryForList("SELECT * FROM learning.user_progress WHERE user_id = ? ORDER BY target_type, target_id", owner);
+        return jdbc.queryForList("SELECT * FROM learning.user_progress WHERE user_id = ? ORDER BY target_type, target_id", owner)
+                .stream().map(this::snapshot).toList();
+    }
+
+    private Map<String, Object> snapshot(Map<String, Object> row) {
+        for (var entry : row.entrySet()) {
+            if (entry.getValue() instanceof Array array) {
+                try {
+                    entry.setValue(Arrays.asList((Object[]) array.getArray()));
+                } catch (SQLException exception) {
+                    throw new AssertionError("Cannot read SQL array in progress snapshot", exception);
+                }
+            }
+        }
+        return row;
     }
 
     private Instant unlockedAt(PronStage stage) {
