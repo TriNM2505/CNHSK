@@ -146,3 +146,14 @@ export const placementSummaryFixture: PlacementSummary = {
     completedAt: '2026-11-03T16:45:00.000Z',
   },
 }
+
+export const targetedNodeFixture = { kid: 'NP1-101', nameVi: 'Mẫu câu cơ bản' }
+
+export const targetedSessionFixture: SessionView = {
+  ...mockAttemptFixture,
+  sessionId: 5301,
+  source: 'TARGETED_PRACTICE',
+  feedback: 'IMMEDIATE',
+  items: mockAttemptFixture.items.slice(0, 2),
+  meta: { repeatedNos: [1] },
+}

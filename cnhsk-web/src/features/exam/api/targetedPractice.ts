@@ -11,3 +11,11 @@ export function startTargetedPractice(
     method: 'POST',
   })
 }
+
+export async function getTargetedNodeName(kid: string, signal?: AbortSignal): Promise<string> {
+  const node = await apiRequest<{ nameVi: string }>(
+    '/api/knowledge-tree/nodes/' + encodeURIComponent(kid),
+    { signal },
+  )
+  return node.nameVi
+}

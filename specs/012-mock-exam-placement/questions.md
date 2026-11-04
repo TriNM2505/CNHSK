@@ -1,5 +1,10 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-05 SCR-023 và SCR-068 (leader duyệt)
+
+- SCR-023 lấy `nameVi` từ `GET /api/knowledge-tree/nodes/{kid}` qua API client của exam, mã hoá KID trong URL và gọi song song với bắt đầu lượt. Nếu lỗi lấy tên, chỉ hiện KID và vẫn cho luyện.
+- SCR-068 thêm `EXAM` và `EXAM_QUESTION` sau `NODE_LINK`. Khi thiếu metadata máy chủ, giữ lựa chọn và khoá tải mẫu, tải lên.
+
 ## 2026-11-04 — T-10 danh sách và bắt đầu đề thi thử (leader duyệt)
 
 - Chọn `myBest` theo `percent` giảm dần. Nếu bằng nhau, chọn `score` cao hơn. Nếu vẫn bằng nhau, chọn lượt nộp sau. Trả cả `score`, `maxScore` và `percent` từ cùng lượt. Ví dụ, 8/10 (80%) đứng trên 9/20 (45%) khi trọng số đề thay đổi giữa hai lượt.

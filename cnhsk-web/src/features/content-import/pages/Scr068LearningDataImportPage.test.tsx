@@ -434,7 +434,7 @@ describe('Scr068LearningDataImportPage', () => {
   })
 
   it('bỏ qua ?dataType= không hợp lệ', async () => {
-    renderPage('/content/imports?dataType=EXAM')
+    renderPage('/content/imports?dataType=UNKNOWN_TYPE')
     expect(await screen.findByLabelText(/Loại dữ liệu/)).toHaveValue('')
   })
 
@@ -637,12 +637,12 @@ describe('Scr068LearningDataImportPage', () => {
     ['QUESTION', 'Câu hỏi', 'code', 18],
     ['NODE_LINK', 'Gắn nội dung vào nút', 'target_type, target_key', 3],
   ] as const)(
-    'FR036_FR028_AT28_guide_%s: chọn đủ mười một mẫu và hướng dẫn đúng khóa/cột',
+    'FR036_FR028_AT28_guide_%s: chọn đủ mười ba mẫu và hướng dẫn đúng khóa/cột',
     async (type, label, key, count) => {
       renderPage()
       const user = userEvent.setup()
       const select = await screen.findByLabelText(/Loại dữ liệu/)
-      expect(within(select).getAllByRole('option')).toHaveLength(12)
+      expect(within(select).getAllByRole('option')).toHaveLength(14)
       expect(within(select).getByRole('option', { name: label })).toHaveValue(type)
       await user.selectOptions(select, type)
       expect(screen.getAllByText(key)[0]).toBeVisible()
@@ -655,7 +655,7 @@ describe('Scr068LearningDataImportPage', () => {
     },
   )
 
-  it('FR028_AT28: giữ đúng nhãn và thứ tự mười một loại dữ liệu', async () => {
+  it('FR028_AT28: giữ đúng nhãn và thứ tự mười ba loại dữ liệu', async () => {
     renderPage()
     const select = await screen.findByLabelText(/Loại dữ liệu/)
     expect(
@@ -675,8 +675,36 @@ describe('Scr068LearningDataImportPage', () => {
       ['KNOWLEDGE_EDGE', 'Quan hệ giữa các nút'],
       ['QUESTION', 'Câu hỏi'],
       ['NODE_LINK', 'Gắn nội dung vào nút'],
+      ['EXAM', 'Đề thi'],
+      ['EXAM_QUESTION', 'Câu trong đề thi'],
     ])
   })
+
+  it.each(['EXAM', 'EXAM_QUESTION'] as const)(
+    'FR005_AT28: giữ lựa chọn %s và khoá thao tác khi thiếu metadata',
+    async (dataType) => {
+      vi.mocked(getImportTemplates).mockResolvedValue(templates)
+      renderPage()
+      const user = userEvent.setup()
+      const select = await screen.findByLabelText(/Loại dữ liệu/)
+      const fileInput = screen.getByLabelText(/File CSV/)
+      await user.upload(fileInput, csvFile())
+      await user.selectOptions(select, dataType)
+
+      expect(select).toHaveValue(dataType)
+      expect(screen.getByText('Mẫu nhập này chưa sẵn sàng trên máy chủ')).toBeVisible()
+      const downloadButton = screen.getByRole('button', { name: 'Tải mẫu' })
+      const uploadButton = screen.getByRole('button', { name: 'Tải lên và kiểm tra' })
+      expect(downloadButton).toBeDisabled()
+      expect(uploadButton).toBeDisabled()
+      await user.click(downloadButton)
+      await user.click(uploadButton)
+      fireEvent.submit(fileInput.closest('form')!)
+      expect(getImportTemplateFile).not.toHaveBeenCalled()
+      expect(uploadImportFile).not.toHaveBeenCalled()
+      expect(select).toHaveValue(dataType)
+    },
+  )
 
   it.each(knowledgeTypes)('FR028_AT28: lấy hướng dẫn %s từ metadata API', async (dataType) => {
     const template = templates.find((item) => item.dataType === dataType)!

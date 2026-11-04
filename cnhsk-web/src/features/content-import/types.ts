@@ -10,6 +10,8 @@ export type ImportDataType =
   | 'KNOWLEDGE_EDGE'
   | 'QUESTION'
   | 'NODE_LINK'
+  | 'EXAM'
+  | 'EXAM_QUESTION'
 
 export type ImportRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'EXPIRED'
 export type ImportRowAction = 'CREATE' | 'UPDATE' | 'UNCHANGED'

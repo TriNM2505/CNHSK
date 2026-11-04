@@ -7,12 +7,15 @@ import { ExamListView } from './components/ExamListView'
 import { ExamAttemptView } from './components/ExamAttemptView'
 import { ExamResultView } from './components/ExamResultView'
 import { PlacementResultView } from './components/PlacementResultView'
+import { TargetedPracticeView } from './components/TargetedPracticeView'
 import {
   examReviewFixture,
   mockAttemptFixture,
   placementAttemptFixture,
   placementReviewFixture,
   placementSummaryFixture,
+  targetedNodeFixture,
+  targetedSessionFixture,
 } from './test-fixtures'
 
 const optionSet = [
@@ -228,4 +231,24 @@ export const previews = [
         }),
     }
   }),
+  {
+    group: 'screen',
+    id: 'scr-023-targeted-practice',
+    scr: 'SCR-023',
+    title: 'Luyện theo nút',
+    states: ['ready', 'loading', 'empty', 'error'],
+    render: (state) => {
+      const item = targetedSessionFixture.items[0]!
+      return createElement(TargetedPracticeView, {
+        kid: targetedNodeFixture.kid,
+        name: targetedNodeFixture.nameVi,
+        state: state === 'loading' || state === 'empty' || state === 'error' ? state : 'ready',
+        question: { text: item.prompt.text ?? '', options: item.options ?? [], repeated: true },
+        position: 1,
+        total: targetedSessionFixture.items.length,
+        error: state === 'error' ? 'Không thể tải bài luyện.' : undefined,
+        onRetry: () => undefined,
+      })
+    },
+  },
 ] satisfies readonly PreviewEntry[]
