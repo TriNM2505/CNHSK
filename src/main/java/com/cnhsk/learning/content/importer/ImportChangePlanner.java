@@ -28,6 +28,10 @@ import com.cnhsk.learning.content.repository.PronStageRepository;
 import com.cnhsk.learning.content.repository.TopicItemRepository;
 import com.cnhsk.learning.content.repository.TopicRepository;
 import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
+import com.cnhsk.learning.knowledge.repository.KnowledgeTreeQueryRepository;
+import com.cnhsk.learning.knowledge.repository.QuestionRepository;
+import com.cnhsk.learning.knowledge.QuestionRules;
+import com.cnhsk.learning.knowledge.entity.KnowledgeLabelRole;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,18 +45,24 @@ public class ImportChangePlanner {
     private final TopicItemRepository topicItems;
     private final PronStageRepository stages;
     private final KnowledgePointRepository points;
+    private final QuestionRepository questions;
+    private final KnowledgeTreeQueryRepository questionLabels;
 
     public ImportChangePlanner(LexemeRepository lexemes, TopicRepository topics,
-            TopicItemRepository topicItems, PronStageRepository stages, KnowledgePointRepository points) {
+            TopicItemRepository topicItems, PronStageRepository stages, KnowledgePointRepository points,
+            QuestionRepository questions, KnowledgeTreeQueryRepository questionLabels) {
         this.lexemes = lexemes;
         this.topics = topics;
         this.topicItems = topicItems;
         this.stages = stages;
         this.points = points;
+        this.questions = questions;
+        this.questionLabels = questionLabels;
     }
 
     @Transactional(readOnly = true)
     public List<PreviewRow> plan(ImportDataType type, List<ValidatedRow> rows) {
+        if (type == ImportDataType.QUESTION) return questionPlan(rows);
         List<PreviewRow> result = new ArrayList<>();
         for (int offset = 0; offset < rows.size(); offset += BATCH_SIZE) {
             List<ValidatedRow> batch = rows.subList(offset, Math.min(rows.size(), offset + BATCH_SIZE));
@@ -64,6 +74,34 @@ public class ImportChangePlanner {
                         .filter(cell -> !ImportTemplate.forType(type).naturalKey().contains(cell.getKey()))
                         .anyMatch(cell -> !same(cell.getKey(), cell.getValue(), old.get(cell.getKey())))
                                 ? RowAction.UPDATE : RowAction.UNCHANGED;
+                result.add(new PreviewRow(row.line(), action, row.values()));
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private List<PreviewRow> questionPlan(List<ValidatedRow> rows) {
+        List<PreviewRow> result = new ArrayList<>();
+        for (int offset = 0; offset < rows.size(); offset += BATCH_SIZE) {
+            var batch = rows.subList(offset, Math.min(rows.size(), offset + BATCH_SIZE));
+            var existing = questions.findByCodeIn(values(batch, "code")).stream()
+                    .collect(Collectors.toMap(question -> question.getCode(), Function.identity()));
+            Set<Long> ids = existing.values().stream().map(question -> question.getId()).collect(Collectors.toSet());
+            var labels = ids.isEmpty() ? List.<KnowledgeTreeQueryRepository.QuestionLabelRow>of() : questionLabels.questionLabels(ids);
+            for (ValidatedRow row : batch) {
+                var previous = existing.get(row.values().get("code"));
+                RowAction action = RowAction.CREATE;
+                if (previous != null) {
+                    var candidate = QuestionRules.validate(QuestionImportSupport.parse(row.values(), previous).value(),
+                            QuestionImportSupport.references(row.values())).value();
+                    Set<String> oldLabels = labels.stream().filter(label -> label.question().getId().equals(previous.getId()))
+                            .map(label -> label.role().name() + ":" + label.kid()).collect(Collectors.toSet());
+                    Set<String> desired = new java.util.HashSet<>();
+                    desired.add(KnowledgeLabelRole.PRIMARY.name() + ":" + candidate.primaryKid());
+                    candidate.secondaryKids().forEach(kid -> desired.add(KnowledgeLabelRole.SECONDARY.name() + ":" + kid));
+                    action = oldLabels.equals(desired) && QuestionImportSupport.sameQuestion(previous, candidate)
+                            ? RowAction.UNCHANGED : RowAction.UPDATE;
+                }
                 result.add(new PreviewRow(row.line(), action, row.values()));
             }
         }

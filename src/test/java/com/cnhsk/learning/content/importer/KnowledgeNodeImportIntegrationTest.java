@@ -201,7 +201,7 @@ class KnowledgeNodeImportIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"QUESTION", "NODE_LINK"})
+    @ValueSource(strings = {"NODE_LINK"})
     void FR002_unimplementedTypesRejectUploadWithoutReadingFilesOrRecordingRunsOrAudit(String type) throws Exception {
         long runCount = requests.count();
         long auditCount = auditLogs.count();
@@ -225,7 +225,7 @@ class KnowledgeNodeImportIntegrationTest extends AbstractIntegrationTest {
     void FR002_missingEitherProcessorStopsBeforeAnyFileAccess(boolean validator, boolean writer) {
         Availability fixture = availability(validator, writer);
         MultipartFile unopened = mock(MultipartFile.class);
-        assertThatThrownBy(() -> fixture.service().upload("QUESTION", unopened))
+        assertThatThrownBy(() -> fixture.service().upload("NODE_LINK", unopened))
                 .isInstanceOfSatisfying(ApiException.class, error -> {
                     assertThat(error.getCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
                     assertThat(error.getStatus().value()).isEqualTo(422);
@@ -239,8 +239,8 @@ class KnowledgeNodeImportIntegrationTest extends AbstractIntegrationTest {
     void FR002_registeringBothProcessorsAutomaticallyOpensAFutureType() throws Exception {
         Availability fixture = availability(true, true);
         MockMultipartFile file = new MockMultipartFile("file", "future.csv", "text/csv", "synthetic".getBytes(StandardCharsets.UTF_8));
-        assertThat(fixture.service().upload("QUESTION", file).totals().valid()).isEqualTo(1);
-        verify(fixture.reader()).read(ImportDataType.QUESTION, "future.csv", file.getBytes());
+        assertThat(fixture.service().upload("NODE_LINK", file).totals().valid()).isEqualTo(1);
+        verify(fixture.reader()).read(ImportDataType.NODE_LINK, "future.csv", file.getBytes());
         verify(fixture.requests()).saveAndFlush(any());
         verifyNoInteractions(fixture.audit());
     }
@@ -343,10 +343,10 @@ class KnowledgeNodeImportIntegrationTest extends AbstractIntegrationTest {
         when(auth.currentUser()).thenReturn(new CurrentUser(99L, Set.of(RoleCode.CONTENT_EDITOR), true));
         CsvReader reader = mock(CsvReader.class);
         RowValidator validator = mock(RowValidator.class);
-        when(validator.dataType()).thenReturn(ImportDataType.QUESTION);
+        when(validator.dataType()).thenReturn(ImportDataType.NODE_LINK);
         RowWriter writer = mock(RowWriter.class);
-        when(writer.dataType()).thenReturn(ImportDataType.QUESTION);
-        Map<String, String> values = Map.of("code", "FUTURE_QUESTION");
+        when(writer.dataType()).thenReturn(ImportDataType.NODE_LINK);
+        Map<String, String> values = Map.of("target_type", "TOPIC", "target_key", "FUTURE_TOPIC", "kid", "TV1-001");
         when(validator.validate(any())).thenReturn(new RowValidationResult(1, List.of(new ValidatedRow(2, values, null, null)), List.of()));
         ImportChangePlanner planner = mock(ImportChangePlanner.class);
         when(planner.plan(any(), any())).thenReturn(List.of(new ImportPreview.PreviewRow(2, ImportPreview.RowAction.CREATE, values)));

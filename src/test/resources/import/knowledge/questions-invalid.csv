@@ -1,0 +1,13 @@
+code,qtype,hsk_level,difficulty,stem,option_a,option_b,option_c,option_d,option_e,option_f,correct,explanation,audio_url,image_url,kid_primary,kid_secondary,distractor_errors
+"ERR_MCQ","MULTIPLE_CHOICE","1","","Câu hỏi từ ví dụ tự soạn。","我","你","","","","","F","Lời giải từ ví dụ tự soạn","","","TV1-801","",""
+"ERR_TRUE","TRUE_FALSE","1","","Câu hỏi từ ví dụ tự soạn。","我","","","","","","TRUE","Lời giải từ ví dụ tự soạn","","","TV1-801","",""
+"ERR_FILL","FILL_BLANK","1","","Câu hỏi từ ví dụ tự soạn。","","","","","","","在","Lời giải từ ví dụ tự soạn","","","TV1-801","",""
+"ERR_ORDER","SENTENCE_ORDER","1","","Câu hỏi từ ví dụ tự soạn。","我","你","学习","","","","AB","Lời giải từ ví dụ tự soạn","","","TV1-801","",""
+"ERR_IMAGE","IMAGE_MATCH","1","","Câu hỏi từ ví dụ tự soạn。","我","你","","","","","A","Lời giải từ ví dụ tự soạn","","","TV1-801","",""
+"ERR_ESSAY","ESSAY","1","","Câu hỏi từ ví dụ tự soạn。","我","你","","","","","A","Lời giải từ ví dụ tự soạn","","","TV1-801","",""
+"ERR_PRIMARY","MULTIPLE_CHOICE","1","","Câu hỏi từ ví dụ tự soạn。","我","你","","","","","A","Lời giải từ ví dụ tự soạn","","","","",""
+"ERR_SECONDARY","MULTIPLE_CHOICE","1","","Câu hỏi từ ví dụ tự soạn。","我","你","","","","","A","Lời giải từ ví dụ tự soạn","","","TV1-801","TV1-802|NP2-803|CH3-804",""
+"ERR_DUPLICATE","MULTIPLE_CHOICE","1","","Câu hỏi từ ví dụ tự soạn。","我","你","","","","","A","Lời giải từ ví dụ tự soạn","","","TV1-801","TV1-801",""
+"ERR_DISTRACTOR","MULTIPLE_CHOICE","1","","Câu hỏi từ ví dụ tự soạn。","我","你","","","","","A","Lời giải từ ví dụ tự soạn","","","TV1-801","","A:TV1-802"
+"ERR_FRAGMENTS","SENTENCE_ORDER","1","","Câu hỏi từ ví dụ tự soạn。","我","我","学习","","","","ABC","Lời giải từ ví dụ tự soạn","","","TV1-801","",""
+"ERR_REFERENCE","MULTIPLE_CHOICE","1","","Câu hỏi từ ví dụ tự soạn。","我","你","","","","","A","Lời giải từ ví dụ tự soạn","","","TV1-999","",""
