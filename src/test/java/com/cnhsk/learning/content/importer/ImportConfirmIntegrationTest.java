@@ -33,6 +33,7 @@ import com.cnhsk.learning.content.repository.LexemeRepository;
 import com.cnhsk.learning.content.repository.PronStageRepository;
 import com.cnhsk.learning.content.repository.TopicItemRepository;
 import com.cnhsk.learning.content.repository.TopicRepository;
+import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
 import com.cnhsk.shared.audit.AuditLog;
 import com.cnhsk.shared.audit.AuditLogRepository;
 import com.cnhsk.shared.audit.AuditService;
@@ -82,6 +83,7 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
     @Autowired private TopicItemRepository items;
     @Autowired private PronStageRepository stages;
     @Autowired private AuditLogRepository auditLogs;
+    @Autowired private KnowledgePointRepository points;
     @MockitoSpyBean private TopicRowWriter topicWriter;
     @MockitoSpyBean private AuditService audit;
     @MockitoSpyBean private Clock clock;
@@ -93,6 +95,7 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
     private Set<Long> lexemeBaseline;
     private Set<Long> itemBaseline;
     private Set<Long> stageBaseline;
+    private Set<Long> pointBaseline;
 
     @BeforeEach
     void setup() {
@@ -104,6 +107,7 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
         lexemeBaseline = lexemes.findAll().stream().map(Lexeme::getId).collect(Collectors.toSet());
         itemBaseline = items.findAll().stream().map(TopicItem::getId).collect(Collectors.toSet());
         stageBaseline = stages.findAll().stream().map(PronStage::getId).collect(Collectors.toSet());
+        pointBaseline = points.findAll().stream().map(value -> value.getId()).collect(Collectors.toSet());
     }
 
     @AfterEach
@@ -116,13 +120,14 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
         lexemes.deleteAllByIdInBatch(lexemes.findAll().stream().map(Lexeme::getId).filter(id -> !lexemeBaseline.contains(id)).toList());
         topics.deleteAllByIdInBatch(topics.findAll().stream().map(Topic::getId).filter(id -> !topicBaseline.contains(id)).toList());
         stages.deleteAllByIdInBatch(stages.findAll().stream().map(PronStage::getId).filter(id -> !stageBaseline.contains(id)).toList());
+        points.deleteAllByIdInBatch(points.findAll().stream().map(value -> value.getId()).filter(id -> !pointBaseline.contains(id)).toList());
         users.deleteAllInBatch(createdUsers);
         createdUsers.clear();
     }
 
     @ParameterizedTest
-    @EnumSource(ImportDataType.class)
-    void FR018_FR023_allSevenTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
+    void FR018_FR023_allEightSupportedTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
         switch (type) {
             case TOPIC_ITEM -> { importExample(ImportDataType.TOPIC); importExample(ImportDataType.LEXEME); }
             case GRAMMAR_EXERCISE -> importExample(ImportDataType.GRAMMAR);

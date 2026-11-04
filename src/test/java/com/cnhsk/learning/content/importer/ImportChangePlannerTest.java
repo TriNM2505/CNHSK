@@ -22,6 +22,10 @@ import com.cnhsk.learning.content.repository.LexemeRepository;
 import com.cnhsk.learning.content.repository.PronStageRepository;
 import com.cnhsk.learning.content.repository.TopicItemRepository;
 import com.cnhsk.learning.content.repository.TopicRepository;
+import com.cnhsk.learning.knowledge.entity.KnowledgeDomain;
+import com.cnhsk.learning.knowledge.entity.KnowledgePoint;
+import com.cnhsk.learning.knowledge.entity.KnowledgeSkillType;
+import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,16 +43,18 @@ class ImportChangePlannerTest {
     private TopicItemRepository items;
     private PronStageRepository stages;
     private ImportChangePlanner planner;
+    private KnowledgePointRepository points;
 
     @BeforeEach
     void setup() {
         lexemes = mock(LexemeRepository.class); topics = mock(TopicRepository.class);
         items = mock(TopicItemRepository.class); stages = mock(PronStageRepository.class);
-        planner = new ImportChangePlanner(lexemes, topics, items, stages);
+        points = mock(KnowledgePointRepository.class);
+        planner = new ImportChangePlanner(lexemes, topics, items, stages, points);
     }
 
     @ParameterizedTest
-    @EnumSource(ImportDataType.class)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_absentNaturalKeyIsCreateForEveryTemplate(ImportDataType type) {
         assertThat(action(type, example(type))).isEqualTo(RowAction.CREATE);
         verify(lexemes, never()).save(any()); verify(topics, never()).save(any());
@@ -56,14 +62,14 @@ class ImportChangePlannerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(ImportDataType.class)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_existingKeyWithAllEqualValuesIsUnchanged(ImportDataType type) {
         fixtures();
         assertThat(action(type, example(type))).isEqualTo(RowAction.UNCHANGED);
     }
 
     @ParameterizedTest
-    @EnumSource(ImportDataType.class)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_anyChangedValueMakesUpdateWithoutMutatingStoredJson(ImportDataType type) {
         fixtures();
         Map<String, String> v = example(type);
@@ -74,6 +80,8 @@ class ImportChangePlannerTest {
             case GRAMMAR -> "example2_vi";
             case GRAMMAR_EXERCISE -> "option_c";
             case PRON_UNIT -> "prompt_vi";
+            case KNOWLEDGE_NODE -> "name_vi";
+            default -> throw new IllegalArgumentException("No import planner fixture: " + type);
         };
         v.put(column, type == ImportDataType.TOPIC_ITEM ? "9" : "Đã đổi");
         assertThat(action(type, v)).isEqualTo(RowAction.UPDATE);
@@ -82,7 +90,7 @@ class ImportChangePlannerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(ImportDataType.class)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_FR020_optionalBlankKeepsOldValuesIncludingNestedJson(ImportDataType type) {
         fixtures();
         Map<String, String> v = example(type);
@@ -127,6 +135,28 @@ class ImportChangePlannerTest {
         assertThat(action(ImportDataType.PRON_UNIT, unit)).isEqualTo(RowAction.CREATE);
     }
 
+    @Test
+    void FR004_nodeLookupsAreBatchedAndPreviewNeverSaves() {
+        List<ValidatedRow> rows = IntStream.range(0, 1001).mapToObj(i -> new ValidatedRow(i + 2,
+                Map.of("kid", "NP" + (i / 500 + 1) + "-" + String.format(java.util.Locale.ROOT, "%03d", i % 500),
+                        "name_vi", "Nút tự soạn", "name_zh", "测试节点"), null, null)).toList();
+        when(points.findByCodeIn(any())).thenAnswer(invocation -> {
+            assertThat((java.util.Collection<?>) invocation.getArgument(0)).hasSizeLessThanOrEqualTo(500);
+            return List.of();
+        });
+        assertThat(planner.plan(ImportDataType.KNOWLEDGE_NODE, rows)).extracting(ImportPreview.PreviewRow::line)
+                .containsExactlyElementsOf(IntStream.range(2, 1003).boxed().toList());
+        verify(points, times(3)).findByCodeIn(any());
+        verify(points, never()).save(any());
+        verify(points, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void FR004_emptyNodePreviewDoesNotQuery() {
+        assertThat(planner.plan(ImportDataType.KNOWLEDGE_NODE, List.of())).isEmpty();
+        verifyNoInteractions(points);
+    }
+
     private RowAction action(ImportDataType type, Map<String, String> v) {
         return planner.plan(type, List.of(new ValidatedRow(7, v, null, null))).get(0).action();
     }
@@ -138,6 +168,11 @@ class ImportChangePlannerTest {
     }
 
     private void fixtures() {
+        Map<String, String> n = example(ImportDataType.KNOWLEDGE_NODE);
+        KnowledgePoint node = new KnowledgePoint(n.get("kid"), n.get("name_vi"), KnowledgeDomain.TV, n.get("name_zh"), (short) 1);
+        node.setCanDo(n.get("can_do"));
+        node.setSkillType(KnowledgeSkillType.valueOf(n.get("skill_type")));
+        when(points.findByCodeIn(any())).thenReturn(List.of(node));
         Map<String, String> v = example(ImportDataType.LEXEME);
         Lexeme word = new Lexeme(LexemeKind.WORD, v.get("text"), v.get("meaning_vi"));
         ReflectionTestUtils.setField(word, "id", 11L);

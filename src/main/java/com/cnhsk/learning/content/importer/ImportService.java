@@ -86,6 +86,9 @@ public class ImportService {
         } catch (IllegalArgumentException exception) {
             throw invalid("dataType", "Loại dữ liệu không hợp lệ.");
         }
+        if (!validators.containsKey(type) || !writers.containsKey(type)) {
+            throw invalid("dataType", "Loại dữ liệu này chưa hỗ trợ nhập");
+        }
         if (file == null || file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()) {
             throw invalid("file", "Cần chọn một tệp có tên.");
         }

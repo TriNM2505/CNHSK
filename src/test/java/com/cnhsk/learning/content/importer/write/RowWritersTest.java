@@ -70,7 +70,7 @@ class RowWritersTest {
     }
 
     @ParameterizedTest
-    @EnumSource(ImportDataType.class)
+    @EnumSource(value = ImportDataType.class, names = {"LEXEME", "TOPIC", "TOPIC_ITEM", "GRAMMAR", "GRAMMAR_EXERCISE", "PRON_STAGE", "PRON_UNIT"})
     void FR020_everyTemplateCreatesUpdatesAndReimportsWithoutAnotherSave(ImportDataType type) {
         parents(type);
         Map<String, String> values = example(type);
@@ -91,13 +91,13 @@ class RowWritersTest {
     }
 
     @ParameterizedTest
-    @EnumSource(ImportDataType.class)
+    @EnumSource(value = ImportDataType.class, names = {"LEXEME", "TOPIC", "TOPIC_ITEM", "GRAMMAR", "GRAMMAR_EXERCISE", "PRON_STAGE", "PRON_UNIT"})
     void FR020_blankOptionalCellsKeepPreviouslyStoredValues(ImportDataType type) {
         optionalCells(type, false);
     }
 
     @ParameterizedTest
-    @EnumSource(ImportDataType.class)
+    @EnumSource(value = ImportDataType.class, names = {"LEXEME", "TOPIC", "TOPIC_ITEM", "GRAMMAR", "GRAMMAR_EXERCISE", "PRON_STAGE", "PRON_UNIT"})
     void FR020_omittedOptionalColumnsKeepPreviouslyStoredValues(ImportDataType type) {
         optionalCells(type, true);
     }
@@ -379,6 +379,7 @@ class RowWritersTest {
             case TOPIC -> topics;
             case TOPIC_ITEM -> items;
             case PRON_STAGE, PRON_UNIT -> stages;
+            default -> throw new IllegalArgumentException("Not an original content fixture: " + type);
         };
         return mockingDetails(repository).getInvocations().stream().filter(i -> i.getMethod().getName().equals("saveAndFlush"))
                 .reduce((first, last) -> last).orElseThrow().getArgument(0);
@@ -418,6 +419,8 @@ class RowWritersTest {
             case GRAMMAR_EXERCISE -> "stem";
             case PRON_STAGE -> "name";
             case PRON_UNIT -> "answer";
+            case KNOWLEDGE_NODE -> "name_vi";
+            default -> throw new IllegalArgumentException("No writer fixture: " + type);
         };
     }
 

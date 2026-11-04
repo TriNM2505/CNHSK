@@ -57,7 +57,7 @@ public class ImportController {
     }
 
     @GetMapping(value = "/templates", produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(operationId = "listImportTemplates", tags = "imports", summary = "Danh sách bảy mẫu nhập")
+    @Operation(operationId = "listImportTemplates", tags = "imports", summary = "Danh sách 11 mẫu nhập")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Danh sách mẫu"),
             @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
             @ApiResponse(responseCode = "403", description = "Không có quyền")})

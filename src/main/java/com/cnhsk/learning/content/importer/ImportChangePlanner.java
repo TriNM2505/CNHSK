@@ -27,6 +27,7 @@ import com.cnhsk.learning.content.repository.LexemeRepository;
 import com.cnhsk.learning.content.repository.PronStageRepository;
 import com.cnhsk.learning.content.repository.TopicItemRepository;
 import com.cnhsk.learning.content.repository.TopicRepository;
+import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,13 +40,15 @@ public class ImportChangePlanner {
     private final TopicRepository topics;
     private final TopicItemRepository topicItems;
     private final PronStageRepository stages;
+    private final KnowledgePointRepository points;
 
     public ImportChangePlanner(LexemeRepository lexemes, TopicRepository topics,
-            TopicItemRepository topicItems, PronStageRepository stages) {
+            TopicItemRepository topicItems, PronStageRepository stages, KnowledgePointRepository points) {
         this.lexemes = lexemes;
         this.topics = topics;
         this.topicItems = topicItems;
         this.stages = stages;
+        this.points = points;
     }
 
     @Transactional(readOnly = true)
@@ -78,6 +81,13 @@ public class ImportChangePlanner {
     private Map<List<String>, Map<String, String>> snapshots(ImportDataType type, List<ValidatedRow> rows) {
         Map<List<String>, Map<String, String>> result = new HashMap<>();
         switch (type) {
+            case KNOWLEDGE_NODE -> points.findByCodeIn(values(rows, "kid")).forEach(point -> {
+                Map<String, String> v = new LinkedHashMap<>();
+                cell(v, "kid", point.getCode()); cell(v, "name_vi", point.getTitle());
+                cell(v, "name_zh", point.getNameZh()); cell(v, "can_do", point.getCanDo());
+                cell(v, "skill_type", point.getSkillType());
+                put(result, type, v);
+            });
             case LEXEME -> {
                 for (LexemeKind kind : List.of(LexemeKind.CHAR, LexemeKind.WORD)) {
                     List<String> texts = rows.stream().map(ValidatedRow::values)
