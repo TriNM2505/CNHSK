@@ -81,6 +81,21 @@ public class ImportChangePlanner {
     private Map<List<String>, Map<String, String>> snapshots(ImportDataType type, List<ValidatedRow> rows) {
         Map<List<String>, Map<String, String>> result = new HashMap<>();
         switch (type) {
+            case KNOWLEDGE_EDGE -> {
+                List<String> kids = rows.stream().flatMap(row -> java.util.stream.Stream.of(
+                        row.values().get("from_kid"), row.values().get("to_kid"))).distinct().toList();
+                var nodes = points.findByCodeIn(kids);
+                Map<Long, String> codes = nodes.stream().collect(Collectors.toMap(point -> point.getId(), point -> point.getCode()));
+                for (var target : nodes) {
+                    for (String edgeType : List.of("PREREQ", "SUPPORT")) {
+                        Long[] sources = edgeType.equals("PREREQ") ? target.getPrereqIds() : target.getSupportIds();
+                        for (long source : sources) {
+                            if (codes.containsKey(source)) put(result, type, Map.of("from_kid", codes.get(source),
+                                    "to_kid", target.getCode(), "edge_type", edgeType));
+                        }
+                    }
+                }
+            }
             case KNOWLEDGE_NODE -> points.findByCodeIn(values(rows, "kid")).forEach(point -> {
                 Map<String, String> v = new LinkedHashMap<>();
                 cell(v, "kid", point.getCode()); cell(v, "name_vi", point.getTitle());

@@ -319,7 +319,7 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void FR034_FR035_AT41_elevenCsvTemplatesMatchMetadataAndEightSupportedExamplesCanBeImported() throws Exception {
+    void FR034_FR035_AT41_elevenCsvTemplatesMatchMetadataAndNineSupportedExamplesCanBeImported() throws Exception {
         JsonNode templates = json(read("/templates", 200));
         assertThat(templates).hasSize(11);
         for (JsonNode template : templates) {
@@ -334,7 +334,7 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
                     assertThat(rows.get(1).get(column)).isEqualTo(template.path("columns").get(column).path("example").asText());
                 }
             }
-            if (Set.of("KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK").contains(type)) {
+            if (Set.of("QUESTION", "NODE_LINK").contains(type)) {
                 long before = requests.count();
                 var rejected = mvc.perform(multipart(ROOT).file(new MockMultipartFile("file", "synthetic.csv", "text/csv",
                                 csv.getContentAsByteArray())).param("dataType", type)
@@ -344,6 +344,11 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
                 assertThat(json(rejected).path("message").asText()).isEqualTo("Loại dữ liệu này chưa hỗ trợ nhập");
                 assertThat(requests.count()).isEqualTo(before);
             } else {
+                if (type.equals("KNOWLEDGE_EDGE")) {
+                    JsonNode parent = upload(ImportDataType.KNOWLEDGE_NODE,
+                            "kid,name_vi,name_zh\nTV2-001,Nút đích tự soạn,示例\n".getBytes(StandardCharsets.UTF_8));
+                    confirm(parent.path("runId").asLong());
+                }
                 JsonNode preview = upload(ImportDataType.valueOf(type), csv.getContentAsByteArray());
                 assertThat(preview.path("totals").path("valid").asInt()).isEqualTo(1);
                 confirm(preview.path("runId").asLong());
