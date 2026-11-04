@@ -1,5 +1,11 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-12 luyện theo nút (leader duyệt)
+
+- Mỗi POST có câu dùng được tạo lượt mới. Không dùng lại lượt dở, không khoá theo KID.
+- Chỉ lưu `repeatedNos: [1]` khi câu duy nhất dùng được chính là `excludeQuestionId`. Không đọc lịch sử câu sai và không thêm cửa sổ thời gian. Kiểm luồng SCR-022 truyền ID câu tại T-17.
+- Body sai trả 422 `VALIDATION_FAILED`. KID đúng dạng nhưng không tồn tại trả 404 `KNOWLEDGE_NODE_NOT_FOUND`.
+
 ## 2026-11-04 — T-11 kết quả đề thi thử (leader duyệt)
 
 - Lượt mới lưu `hskLevel` trong `sessionMeta.exam`. Lượt cũ thiếu trường này đọc `hsk_level` theo `examId`, kể cả đề đã `ARCHIVED`. Thiếu cả dòng đề là dữ liệu hỏng và trả 500.
