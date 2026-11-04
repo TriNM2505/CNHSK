@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 import com.cnhsk.learning.content.entity.Lexeme;
@@ -26,6 +27,10 @@ import com.cnhsk.learning.knowledge.entity.KnowledgeDomain;
 import com.cnhsk.learning.knowledge.entity.KnowledgePoint;
 import com.cnhsk.learning.knowledge.entity.KnowledgeSkillType;
 import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
+import com.cnhsk.learning.knowledge.repository.QuestionRepository;
+import com.cnhsk.learning.knowledge.repository.KnowledgeTreeQueryRepository;
+import com.cnhsk.learning.knowledge.entity.KnowledgeLabelRole;
+import com.cnhsk.learning.content.importer.validate.QuestionRowValidatorTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -44,13 +49,57 @@ class ImportChangePlannerTest {
     private PronStageRepository stages;
     private ImportChangePlanner planner;
     private KnowledgePointRepository points;
+    private QuestionRepository questions;
+    private KnowledgeTreeQueryRepository questionLabels;
 
     @BeforeEach
     void setup() {
         lexemes = mock(LexemeRepository.class); topics = mock(TopicRepository.class);
         items = mock(TopicItemRepository.class); stages = mock(PronStageRepository.class);
         points = mock(KnowledgePointRepository.class);
-        planner = new ImportChangePlanner(lexemes, topics, items, stages, points);
+        questions = mock(QuestionRepository.class); questionLabels = mock(KnowledgeTreeQueryRepository.class);
+        planner = new ImportChangePlanner(lexemes, topics, items, stages, points, questions, questionLabels);
+    }
+
+    @Test
+    void FR012_questionPreviewComparesFullReplacementLabelsAndOptionalScalarPreservation() {
+        var question = QuestionRowValidatorTest.existing("Q_IMPORT", 70);
+        question.setDifficulty((short) 3); question.setAudioUrl("https://example.test/kept.mp3");
+        when(questions.findByCodeIn(any())).thenReturn(List.of(question));
+        when(questionLabels.questionLabels(any())).thenReturn(List.of(
+                new KnowledgeTreeQueryRepository.QuestionLabelRow(question, "TV1-001", KnowledgeLabelRole.PRIMARY),
+                new KnowledgeTreeQueryRepository.QuestionLabelRow(question, "TV1-002", KnowledgeLabelRole.SECONDARY),
+                new KnowledgeTreeQueryRepository.QuestionLabelRow(question, "NP2-003", KnowledgeLabelRole.SECONDARY)));
+        var cells = QuestionRowValidatorTest.values(com.cnhsk.learning.knowledge.entity.QuestionType.MULTIPLE_CHOICE);
+        cells.put("kid_secondary", "NP2-003|TV1-002"); cells.put("difficulty", ""); cells.put("audio_url", "");
+        assertThat(action(ImportDataType.QUESTION, cells)).isEqualTo(RowAction.UNCHANGED);
+        cells.put("kid_secondary", ""); assertThat(action(ImportDataType.QUESTION, cells)).isEqualTo(RowAction.UPDATE);
+        cells.put("explanation", "Nội dung mới"); assertThat(action(ImportDataType.QUESTION, cells)).isEqualTo(RowAction.UPDATE);
+        verify(questions, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void FR012_questionPreviewUsesAtMostTwoQueriesPerFiveHundredRows() {
+        Map<Long, com.cnhsk.learning.knowledge.entity.Question> loaded = new LinkedHashMap<>();
+        when(questions.findByCodeIn(any())).thenAnswer(call -> {
+            java.util.Collection<String> codes = call.getArgument(0); assertThat(codes).hasSizeLessThanOrEqualTo(500);
+            return codes.stream().map(code -> {
+                var question = QuestionRowValidatorTest.existing(code, Math.abs((long) code.hashCode()) + 1);
+                loaded.put(question.getId(), question); return question;
+            }).toList();
+        });
+        when(questionLabels.questionLabels(any())).thenAnswer(call -> {
+            Set<Long> ids = call.getArgument(0);
+            return ids.stream().map(id -> new KnowledgeTreeQueryRepository.QuestionLabelRow(loaded.get(id), "TV1-001", KnowledgeLabelRole.PRIMARY)).toList();
+        });
+        var rows = IntStream.range(0, 1201).mapToObj(index -> {
+            var cells = QuestionRowValidatorTest.values(com.cnhsk.learning.knowledge.entity.QuestionType.MULTIPLE_CHOICE);
+            cells.put("code", "Q_BATCH_" + index); return new ValidatedRow(index + 2, cells, null, null);
+        }).toList();
+        assertThat(planner.plan(ImportDataType.QUESTION, rows)).hasSize(1201)
+                .allSatisfy(row -> assertThat(row.action()).isEqualTo(RowAction.UNCHANGED));
+        verify(questions, times(3)).findByCodeIn(any()); verify(questionLabels, times(3)).questionLabels(any());
+        verify(questions, never()).saveAndFlush(any()); verify(questions, never()).findByCode(any());
     }
 
     @Test

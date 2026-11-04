@@ -1,0 +1,7 @@
+code,qtype,hsk_level,difficulty,stem,option_a,option_b,option_c,option_d,option_e,option_f,correct,explanation,audio_url,image_url,kid_primary,kid_secondary,distractor_errors
+"T08_MCQ","MULTIPLE_CHOICE","1","","Câu hỏi từ ví dụ tự soạn。","我","你","","","","","A","Lời giải từ ví dụ tự soạn","","","TV1-801","TV1-802","B:TV1-802:Nhầm đại từ: ví dụ tự soạn"
+"T08_TRUE","TRUE_FALSE","1","","Câu hỏi từ ví dụ tự soạn。","","","","","","","TRUE","Lời giải từ ví dụ tự soạn","","","TV1-801","",""
+"T08_SENTENCE","SENTENCE_MATCH","1","","Câu hỏi từ ví dụ tự soạn。","甲","乙","丙","丁","戊","己","A","Lời giải từ ví dụ tự soạn","","","TV1-801","",""
+"T08_IMAGE","IMAGE_MATCH","1","","Câu hỏi từ ví dụ tự soạn。","我","你","","","","","A","Lời giải từ ví dụ tự soạn","","https://example.test/self-authored-image.png","TV1-801","",""
+"T08_FILL","FILL_BLANK","1","","我___学习。","","","","","","","在","Lời giải từ ví dụ tự soạn","","","TV1-801","",""
+"T08_ORDER","SENTENCE_ORDER","1","","Câu hỏi từ ví dụ tự soạn。","我","今天","学习","","","","CAB","Lời giải từ ví dụ tự soạn","","","TV1-801","",""

@@ -26,6 +26,8 @@ import com.cnhsk.learning.content.repository.PronStageRepository;
 import com.cnhsk.learning.content.repository.TopicItemRepository;
 import com.cnhsk.learning.content.repository.TopicRepository;
 import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
+import com.cnhsk.learning.knowledge.repository.QuestionRepository;
+import com.cnhsk.learning.knowledge.repository.QuestionKnowledgePointRepository;
 import com.cnhsk.shared.audit.AuditLogRepository;
 import com.cnhsk.shared.security.JwtService;
 import com.cnhsk.support.AbstractIntegrationTest;
@@ -74,6 +76,8 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
     @Autowired private AuditLogRepository auditLogs;
     @Autowired private ImportMaintenance maintenance;
     @Autowired private KnowledgePointRepository points;
+    @Autowired private QuestionRepository questions;
+    @Autowired private QuestionKnowledgePointRepository labels;
     @MockitoSpyBean private Clock clock;
     private final List<User> createdUsers = new ArrayList<>();
     private User user;
@@ -82,6 +86,7 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
     private Set<Long> stageBaseline;
     private Set<Long> itemBaseline;
     private Set<Long> pointBaseline;
+    private Set<Long> questionBaseline;
 
     @BeforeEach
     void setup() {
@@ -92,6 +97,7 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
         stageBaseline = stages.findAll().stream().map(value -> value.getId()).collect(Collectors.toSet());
         itemBaseline = items.findAll().stream().map(value -> value.getId()).collect(Collectors.toSet());
         pointBaseline = points.findAll().stream().map(value -> value.getId()).collect(Collectors.toSet());
+        questionBaseline = questions.findAll().stream().map(value -> value.getId()).collect(Collectors.toSet());
     }
 
     @AfterEach
@@ -104,6 +110,8 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
         lexemes.deleteAllByIdInBatch(lexemes.findAll().stream().map(value -> value.getId()).filter(id -> !lexemeBaseline.contains(id)).toList());
         topics.deleteAllByIdInBatch(topics.findAll().stream().map(Topic::getId).filter(id -> !topicBaseline.contains(id)).toList());
         stages.deleteAllByIdInBatch(stages.findAll().stream().map(value -> value.getId()).filter(id -> !stageBaseline.contains(id)).toList());
+        Set<Long> createdQuestions = questions.findAll().stream().map(value -> value.getId()).filter(id -> !questionBaseline.contains(id)).collect(Collectors.toSet());
+        labels.deleteAllInBatch(labels.findByQuestionIdIn(createdQuestions)); questions.deleteAllByIdInBatch(createdQuestions);
         points.deleteAllByIdInBatch(points.findAll().stream().map(value -> value.getId()).filter(id -> !pointBaseline.contains(id)).toList());
         users.deleteAllInBatch(createdUsers);
         createdUsers.clear();
@@ -319,7 +327,7 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void FR034_FR035_AT41_elevenCsvTemplatesMatchMetadataAndNineSupportedExamplesCanBeImported() throws Exception {
+    void FR034_FR035_AT41_elevenCsvTemplatesMatchMetadataAndTenSupportedExamplesCanBeImported() throws Exception {
         JsonNode templates = json(read("/templates", 200));
         assertThat(templates).hasSize(11);
         for (JsonNode template : templates) {
@@ -334,7 +342,7 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
                     assertThat(rows.get(1).get(column)).isEqualTo(template.path("columns").get(column).path("example").asText());
                 }
             }
-            if (Set.of("QUESTION", "NODE_LINK").contains(type)) {
+            if (Set.of("NODE_LINK").contains(type)) {
                 long before = requests.count();
                 var rejected = mvc.perform(multipart(ROOT).file(new MockMultipartFile("file", "synthetic.csv", "text/csv",
                                 csv.getContentAsByteArray())).param("dataType", type)
