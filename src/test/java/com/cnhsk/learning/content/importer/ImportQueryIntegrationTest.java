@@ -112,6 +112,7 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
         topics.deleteAllByIdInBatch(topics.findAll().stream().map(Topic::getId).filter(id -> !topicBaseline.contains(id)).toList());
         stages.deleteAllByIdInBatch(stages.findAll().stream().map(value -> value.getId()).filter(id -> !stageBaseline.contains(id)).toList());
         Set<Long> createdQuestions = questions.findAll().stream().map(value -> value.getId()).filter(id -> !questionBaseline.contains(id)).collect(Collectors.toSet());
+        userIds.forEach(id -> jdbc.update("DELETE FROM learning.exam_questions WHERE exam_id IN (SELECT id FROM learning.exams WHERE created_by = ?)", id));
         labels.deleteAllInBatch(labels.findByQuestionIdIn(createdQuestions)); questions.deleteAllByIdInBatch(createdQuestions);
         points.deleteAllByIdInBatch(points.findAll().stream().map(value -> value.getId()).filter(id -> !pointBaseline.contains(id)).toList());
         userIds.forEach(id -> jdbc.update("DELETE FROM learning.exams WHERE created_by = ?", id));
@@ -344,7 +345,9 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
                     assertThat(rows.get(1).get(column)).isEqualTo(template.path("columns").get(column).path("example").asText());
                 }
             }
-            if (type.equals("EXAM_QUESTION")) continue;
+            if (type.equals("EXAM_QUESTION")) {
+                jdbc.update("UPDATE learning.questions SET status='APPROVED' WHERE code='DEMO_TV1_001'");
+            }
             if (type.equals("KNOWLEDGE_EDGE")) {
                 JsonNode parent = upload(ImportDataType.KNOWLEDGE_NODE,
                         "kid,name_vi,name_zh\nTV2-001,Nút đích tự soạn,示例\n".getBytes(StandardCharsets.UTF_8));

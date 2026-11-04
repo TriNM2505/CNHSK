@@ -137,9 +137,15 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = "EXAM_QUESTION", mode = EnumSource.Mode.EXCLUDE)
-    void FR018_FR023_allTwelveSupportedTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
+    @EnumSource(ImportDataType.class)
+    void FR018_FR023_allThirteenSupportedTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
         switch (type) {
+            case EXAM_QUESTION -> {
+                importExample(ImportDataType.KNOWLEDGE_NODE);
+                importExample(ImportDataType.QUESTION);
+                jdbc.update("UPDATE learning.questions SET status='APPROVED' WHERE code='DEMO_TV1_001'");
+                importExample(ImportDataType.EXAM);
+            }
             case NODE_LINK -> { importExample(ImportDataType.KNOWLEDGE_NODE); importExample(ImportDataType.LEXEME); }
             case QUESTION -> importExample(ImportDataType.KNOWLEDGE_NODE);
             case KNOWLEDGE_EDGE -> {
@@ -424,15 +430,6 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
         assertThat(exercises).hasSize(2);
         assertThat(exercises.get(0)).isEqualTo(previous);
         assertThat(exercises.get(1).no()).isEqualTo(2);
-    }
-
-    @Test
-    void FR005_examQuestionMetadataIsAvailableButUploadIsRejected() throws Exception {
-        MvcResult response = mvc.perform(multipart(ROOT).file(new MockMultipartFile("file", "synthetic.csv",
-                        "text/csv", exampleCsv(ImportDataType.EXAM_QUESTION).getBytes(StandardCharsets.UTF_8)))
-                .param("dataType", "EXAM_QUESTION").header("Authorization", "Bearer " + token(user, "CONTENT_EDITOR")))
-                .andExpect(status().isUnprocessableEntity()).andReturn();
-        assertError(response, "VALIDATION_FAILED");
     }
 
     @Test

@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.cnhsk.learning.exam.QuestionItemFactory;
+import com.cnhsk.learning.knowledge.entity.Question;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Component;
 public class ExamImportSupport {
     private final NamedParameterJdbcTemplate jdbc;
     private final ObjectMapper mapper;
+    private final QuestionItemFactory factory = new QuestionItemFactory();
 
     public ExamImportSupport(NamedParameterJdbcTemplate jdbc, ObjectMapper mapper) {
         this.jdbc = jdbc;
@@ -76,6 +79,67 @@ public class ExamImportSupport {
                 """ + (lock ? " FOR UPDATE" : ""), Map.of("codes", codes),
                 (rs, row) -> new Exam(rs.getString("code"), rs.getString("title"), rs.getInt("hsk_level"),
                         readSections(rs.getString("sections")), rs.getString("status"), rs.getObject("published_at") != null));
+    }
+
+    public void lock(String code) {
+        jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))",
+                Map.of("key", "exam:import:" + code), rs -> null);
+    }
+
+    public Map<String, Map<String, Slot>> slots(Collection<String> codes) {
+        if (codes.isEmpty()) return Map.of();
+        return jdbc.query("""
+                SELECT e.code, q.code, eq.section_index, eq.order_index, eq.points
+                FROM learning.exams e JOIN learning.exam_questions eq ON eq.exam_id = e.id
+                JOIN learning.questions q ON q.id = eq.question_id WHERE e.code IN (:codes)
+                """, Map.of("codes", codes), rs -> {
+            Map<String, Map<String, Slot>> result = new HashMap<>();
+            while (rs.next()) result.computeIfAbsent(rs.getString(1), ignored -> new HashMap<>())
+                    .put(rs.getString(2), new Slot(rs.getInt(3), rs.getInt(4), rs.getInt(5)));
+            return result;
+        });
+    }
+
+    public Optional<Conflict> questionConflict(Exam exam, Question question, Slot slot) {
+        if (exam == null) return Optional.of(new Conflict("REFERENCE_NOT_FOUND", "exam_code", "Không tìm thấy đề thi."));
+        if (question == null) return Optional.of(new Conflict("REFERENCE_NOT_FOUND", "question_code", "Không tìm thấy câu hỏi."));
+        if (exam.sections().stream().noneMatch(section -> section.index() == slot.section())) {
+            return Optional.of(new Conflict("SECTION_NOT_FOUND", "section_index", "Không tìm thấy phần trong đề thi."));
+        }
+        if (!factory.isUsable(question)) {
+            return Optional.of(new Conflict("QUESTION_NOT_USABLE", "question_code", "Câu hỏi không dùng được trong đề thi."));
+        }
+        if (question.getHskLevel() != exam.level()) {
+            return Optional.of(new Conflict("LEVEL_MISMATCH", "question_code", "Cấp HSK của câu hỏi phải khớp với đề."));
+        }
+        return Optional.empty();
+    }
+
+    public static boolean occupied(Map<String, Slot> slots, String question, Slot requested) {
+        return slots.entrySet().stream().anyMatch(entry -> !question.equals(entry.getKey())
+                && entry.getValue().position().equals(requested.position()));
+    }
+
+    public static Conflict duplicateOrder() {
+        return new Conflict("DUPLICATE_ORDER", "order_index", "Vị trí này đã thuộc câu hỏi khác trong phần.");
+    }
+
+    public static Conflict tooManyQuestions() {
+        return new Conflict("INVALID_VALUE", "exam_code", "Mỗi đề có tối đa 200 câu hỏi.");
+    }
+
+    public record Position(int section, int order) {}
+
+    public record Slot(int section, int order, int points) {
+        public Position position() {
+            return new Position(section, order);
+        }
+
+        public static Slot from(Map<String, String> values) {
+            String points = values.getOrDefault("points", "");
+            return new Slot(Integer.parseInt(values.get("section_index")), Integer.parseInt(values.get("order_index")),
+                    points.isBlank() ? 1 : Integer.parseInt(points));
+        }
     }
 
     private List<Section> readSections(String json) {

@@ -1,5 +1,11 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-09 nhập câu vào đề (leader duyệt)
+
+- Vị trí đang thuộc câu A trong DB vẫn bị giữ ở bước preview, kể cả khi dòng trước dự kiến chuyển A đi. Dòng đưa B vào vị trí đó trả DUPLICATE_ORDER vì mỗi dòng ghi độc lập.
+- T-18: muốn đổi vị trí, nhập và xác nhận lần chuyển câu cũ ra một vị trí trống trước, sau đó mới nhập câu khác vào vị trí vừa giải phóng.
+- Hai writer EXAM và EXAM_QUESTION cùng lấy khoá theo mã đề, rồi FOR UPDATE dòng đề trước khi kiểm lại và ghi.
+
 ## 2026-11-04 — T-07 nhập đề EXAM (leader duyệt)
 
 - Cho phép đổi tên phần giữ nguyên chỉ số, thêm phần và bỏ phần trống. Bỏ hoặc đổi chỉ số phần đang có câu bị từ chối với INVALID_VALUE tại sections. Cấp mới lệch câu đang gắn bị từ chối với LEVEL_MISMATCH tại hsk_level.

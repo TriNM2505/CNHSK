@@ -67,6 +67,21 @@ public class ImportChangePlanner {
 
     @Transactional(readOnly = true)
     public List<PreviewRow> plan(ImportDataType type, List<ValidatedRow> rows) {
+        if (type == ImportDataType.EXAM_QUESTION) {
+            List<PreviewRow> result = new ArrayList<>();
+            for (int offset = 0; offset < rows.size(); offset += BATCH_SIZE) {
+                var batch = rows.subList(offset, Math.min(rows.size(), offset + BATCH_SIZE));
+                var slots = exams.slots(values(batch, "exam_code"));
+                for (var row : batch) {
+                    var old = slots.getOrDefault(row.values().get("exam_code"), Map.of())
+                            .get(row.values().get("question_code"));
+                    var action = old == null ? RowAction.CREATE
+                            : old.equals(ExamImportSupport.Slot.from(row.values())) ? RowAction.UNCHANGED : RowAction.UPDATE;
+                    result.add(new PreviewRow(row.line(), action, row.values()));
+                }
+            }
+            return List.copyOf(result);
+        }
         if (type == ImportDataType.EXAM) {
             Map<String, ExamImportSupport.Exam> existing = new HashMap<>();
             for (int offset = 0; offset < rows.size(); offset += BATCH_SIZE) {

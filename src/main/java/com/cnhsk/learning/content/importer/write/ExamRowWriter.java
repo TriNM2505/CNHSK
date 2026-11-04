@@ -1,7 +1,6 @@
 package com.cnhsk.learning.content.importer.write;
 
 import java.util.List;
-import java.util.Map;
 
 import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.learning.content.importer.ExamImportSupport;
@@ -35,8 +34,7 @@ public class ExamRowWriter implements RowWriter {
     public RowAction write(ValidatedRow row) {
         var values = row.values();
         String code = values.get("code");
-        jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))",
-                Map.of("key", "exam:import:" + code), rs -> null);
+        exams.lock(code);
         var existing = exams.exams(List.of(code), true).stream().findFirst();
         var sections = ExamImportSupport.sections(values.get("sections"));
         int level = Integer.parseInt(values.get("hsk_level"));
