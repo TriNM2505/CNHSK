@@ -23,6 +23,22 @@ public class LibraryConfig {
     @Min(1)
     private Integer maxNotes;
 
+    @NotNull
+    @Min(1)
+    private Integer maxDecks;
+
+    @NotNull
+    @Min(1)
+    private Integer maxCards;
+
+    public Integer getMaxDecks() { return maxDecks; }
+
+    public void setMaxDecks(Integer maxDecks) { this.maxDecks = maxDecks; }
+
+    public Integer getMaxCards() { return maxCards; }
+
+    public void setMaxCards(Integer maxCards) { this.maxCards = maxCards; }
+
     public Integer getMaxNotes() {
         return maxNotes;
     }
