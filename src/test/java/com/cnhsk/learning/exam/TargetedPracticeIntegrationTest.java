@@ -6,6 +6,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -38,6 +41,7 @@ class TargetedPracticeIntegrationTest extends AbstractIntegrationTest {
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper mapper;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private Clock clock;
     @Autowired private JwtService jwt;
     @Autowired private EntityManagerFactory entities;
     @Autowired private TargetedPracticeService practice;
@@ -138,6 +142,49 @@ class TargetedPracticeIntegrationTest extends AbstractIntegrationTest {
         for (int i = 0; i < 15; i++) question(node, "MULTIPLE_CHOICE", "APPROVED", "PRIMARY", false);
         assertThat(small).isPositive();
         assertThat(statementsForStart()).isEqualTo(small);
+    }
+
+    @Test
+    @Transactional
+    void FR015_AT14_startsTargetedPracticeDuringTopicTestCooldown() throws Exception {
+        long node = node(KID);
+        // The test transaction rolls back the linked topic, attempts and node together.
+        nodeIds.remove(Long.valueOf(node));
+        question(node, "TRUE_FALSE", "APPROVED", "PRIMARY", false);
+        long topic = jdbc.queryForObject("""
+                INSERT INTO learning.topics(code,name,hsk_level,knowledge_point_id)
+                VALUES (?, 'Chủ đề tự soạn', 1, ?) RETURNING id
+                """, Long.class, "TEST-" + UUID.randomUUID(), node);
+
+        var now = clock.instant().atOffset(ZoneOffset.UTC);
+        long study = jdbc.queryForObject("""
+                INSERT INTO learning.attempts(user_id,kind,ref_type,ref_id,status,served_at,submitted_at)
+                VALUES (?, 'PRACTICE', 'TOPIC_STUDY', ?, 'SUBMITTED', ?, ?) RETURNING id
+                """, Long.class, learner, topic, now.minusMinutes(3), now.minusMinutes(2));
+        for (int i = 1; i <= 4; i++) {
+            long lexeme = jdbc.queryForObject("""
+                    INSERT INTO learning.lexemes(kind,text,meaning_vi,hsk_level)
+                    VALUES ('WORD', ?, 'Từ tự soạn', 1) RETURNING id
+                    """, Long.class, "词" + UUID.randomUUID());
+            jdbc.update("INSERT INTO learning.topic_items(topic_id,lexeme_id,order_index) VALUES (?,?,?)",
+                    topic, lexeme, i);
+            jdbc.update("""
+                    INSERT INTO learning.attempt_items(attempt_id,lexeme_id,order_index,item_type,skill)
+                    VALUES (?, ?, ?, 'STUDY_CARD', 'VOCAB')
+                    """, study, lexeme, i);
+        }
+        jdbc.update("""
+                INSERT INTO learning.attempts(user_id,kind,ref_type,ref_id,status,served_at,submitted_at,score,max_score)
+                VALUES (?, 'TOPIC_TEST', 'TOPIC_TEST', ?, 'SUBMITTED', ?, ?, 3, 4)
+                """, learner, topic, now.minusMinutes(1), now);
+
+        mvc.perform(post("/api/topics/{id}/tests", topic).header("Authorization", bearer("LEARNER")))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.error_code").value("RETRY_TOO_SOON"));
+
+        JsonNode session = start(Map.of("kid", KID), 201);
+        assertThat(session.path("source").asText()).isEqualTo("TARGETED_PRACTICE");
+        assertThat(session.path("items").size()).isEqualTo(1);
     }
 
     @Test
