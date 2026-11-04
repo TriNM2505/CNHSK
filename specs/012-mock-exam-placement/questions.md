@@ -1,5 +1,10 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-11 kết quả đề thi thử (leader duyệt)
+
+- Lượt mới lưu `hskLevel` trong `sessionMeta.exam`. Lượt cũ thiếu trường này đọc `hsk_level` theo `examId`, kể cả đề đã `ARCHIVED`. Thiếu cả dòng đề là dữ liệu hỏng và trả 500.
+- `previous` lấy lượt đã nộp liền trước của cùng người và cùng đề theo thời điểm nộp, dùng ID khi trùng thời điểm. Phần trăm điểm trọng số làm tròn xuống như T-10.
+
 ## 2026-11-04 — T-05 SCR-023 và SCR-068 (leader duyệt)
 
 - SCR-023 lấy `nameVi` từ `GET /api/knowledge-tree/nodes/{kid}` qua API client của exam, mã hoá KID trong URL và gọi song song với bắt đầu lượt. Nếu lỗi lấy tên, chỉ hiện KID và vẫn cho luyện.
