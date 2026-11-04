@@ -1,18 +1,13 @@
 package com.cnhsk.contract;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.models.media.Schema;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.parser.OpenAPIV3Parser;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.media.Schema;
-import io.swagger.v3.parser.OpenAPIV3Parser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -20,6 +15,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -160,6 +159,41 @@ class KnowledgeContractTest {
 
     private JsonNode resolve(JsonNode runtime, JsonNode schema) {
         return schema.has("$ref") ? runtime.at(schema.path("$ref").asText().substring(1)) : schema;
+    }
+
+    @Test
+    void FR020_FR023_questionWriteOperationsAndRequestSchemaMatchContract() throws Exception {
+        OpenAPI source = contract(); JsonNode runtime = runtime();
+        for (String method : Set.of("put", "patch")) {
+            String path = method.equals("put") ? "/api/admin/questions/{id}" : "/api/admin/questions/{id}/archive";
+            var expected = method.equals("put") ? source.getPaths().get(path).getPut() : source.getPaths().get(path).getPatch();
+            JsonNode actual = runtime.path("paths").path(path).path(method);
+            assertThat(actual.path("operationId").asText()).isEqualTo(expected.getOperationId());
+            assertThat(actual.path("responses").fieldNames()).toIterable().containsExactlyInAnyOrderElementsOf(expected.getResponses().keySet());
+            assertThat(actual.path("responses").path("200").path("content").path("application/json").path("schema").path("$ref").asText())
+                    .isEqualTo("#/components/schemas/QuestionDetail");
+            assertThat(actual.path("parameters")).extracting(parameter -> parameter.path("name").asText())
+                    .containsExactlyInAnyOrder("id", "X-XSRF-TOKEN");
+            for (JsonNode parameter : actual.path("parameters")) {
+                boolean id = parameter.path("name").asText().equals("id");
+                assertThat(parameter.path("in").asText()).isEqualTo(id ? "path" : "header");
+                assertThat(parameter.path("required").asBoolean()).isEqualTo(id);
+                assertThat(parameter.path("schema").path("type").asText()).isEqualTo(id ? "integer" : "string");
+                if (id) assertThat(parameter.path("schema").path("format").asText()).isEqualTo("int64");
+            }
+        }
+        JsonNode request = runtime.path("paths").path("/api/admin/questions/{id}").path("put").path("requestBody");
+        assertThat(request.path("required").asBoolean()).isTrue();
+        JsonNode schema = resolve(runtime, request.path("content").path("application/json").path("schema"));
+        Schema<?> expected = source.getComponents().getSchemas().get("QuestionUpdate");
+        assertThat(schema.path("properties").fieldNames()).toIterable().containsExactlyInAnyOrderElementsOf(expected.getProperties().keySet());
+        assertThat(schema.path("required")).extracting(JsonNode::asText).containsExactlyInAnyOrderElementsOf(expected.getRequired());
+        assertThat(schema.path("properties").path("hskLevel").path("maximum").asInt()).isEqualTo(9);
+        assertThat(schema.path("properties").path("options").path("maxItems").asInt()).isEqualTo(6);
+        assertThat(schema.path("properties").path("secondaryKids").path("maxItems").asInt()).isEqualTo(2);
+        JsonNode option = resolve(runtime, schema.path("properties").path("options").path("items"));
+        assertThat(option.path("properties").fieldNames()).toIterable().containsExactlyInAnyOrder("key", "text", "isCorrect", "errorKid", "errorNote");
+        assertThat(option.path("required")).extracting(JsonNode::asText).containsExactlyInAnyOrder("key", "text", "isCorrect");
     }
 
     private OpenAPI contract() throws Exception {

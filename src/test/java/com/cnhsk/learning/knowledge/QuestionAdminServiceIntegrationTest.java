@@ -1,10 +1,5 @@
 package com.cnhsk.learning.knowledge;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
-
 import com.cnhsk.auth.entity.User;
 import com.cnhsk.auth.repository.UserRepository;
 import com.cnhsk.learning.knowledge.entity.KnowledgeDomain;
@@ -19,12 +14,21 @@ import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
 import com.cnhsk.learning.knowledge.repository.QuestionAdminQueryRepository.Filters;
 import com.cnhsk.learning.knowledge.repository.QuestionKnowledgePointRepository;
 import com.cnhsk.learning.knowledge.repository.QuestionRepository;
+import com.cnhsk.shared.security.AuthenticatedUser;
 import com.cnhsk.support.AbstractIntegrationTest;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.stream.IntStream;
+import java.util.UUID;
 import org.hibernate.resource.jdbc.spi.StatementInspector;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -32,6 +36,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -123,6 +129,30 @@ class QuestionAdminServiceIntegrationTest extends AbstractIntegrationTest {
 
     private KnowledgePoint node(String kid) {
         return points.saveAndFlush(new KnowledgePoint(kid, "Nút tự soạn " + kid, KnowledgeDomain.valueOf(kid.substring(0, 2)), "示例", (short) 1));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void AT20_AT22_updateReadsUsedExactlyOnceWithAndWithoutGradingChanges(boolean changed) {
+        Question question = question("T12_QUERY", node("NP1-971"));
+        User actor = user();
+        try {
+            var authentication = UsernamePasswordAuthenticationToken.authenticated(new AuthenticatedUser(actor.getId(), Set.of("TEACHER"), true,
+                    UUID.randomUUID().toString(), UUID.randomUUID(), Instant.now()), null, List.of());
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (!changed) use(question.getId(), "SUBMITTED", true);
+            entities.flush(); entities.clear(); capture.start();
+            var input = new QuestionAdminService.QuestionUpdate("Câu tự soạn mới", List.of(
+                    new QuestionAdminService.QuestionUpdateOption("A", "我", !changed, null, null),
+                    new QuestionAdminService.QuestionUpdateOption("B", "你", changed, null, null)), null, "Lời giải", 1, 2, null, null, "NP1-971", List.of());
+            var result = service.update(question.getId(), input);
+            assertThat(result.used()).isEqualTo(!changed);
+            var sql = capture.statements();
+            assertThat(sql.stream().filter(statement -> statement.startsWith("select") && statement.contains("attempt_items"))).hasSize(1);
+            int usage = IntStream.range(0, sql.size()).filter(index -> sql.get(index).startsWith("select") && sql.get(index).contains("attempt_items")).findFirst().orElseThrow();
+            int write = IntStream.range(0, sql.size()).filter(index -> sql.get(index).startsWith("update") && sql.get(index).contains("questions")).findFirst().orElseThrow();
+            assertThat(changed ? usage < write : usage > write).isTrue();
+        } finally { capture.stop(); SecurityContextHolder.clearContext(); }
     }
 
     private Question question(String code, KnowledgePoint point) {

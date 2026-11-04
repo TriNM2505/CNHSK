@@ -1,11 +1,10 @@
 package com.cnhsk.shared.exception;
 
-import java.util.Map;
-
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
+import com.cnhsk.shared.config.RequestIdFilter;
 import jakarta.validation.constraints.Min;
-
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.Valid;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -17,8 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.cnhsk.shared.config.RequestIdFilter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -141,11 +138,30 @@ class GlobalExceptionHandlerTest {
                 "COMMENT_EDIT_WINDOW_EXPIRED", "COMMENT_NOT_RESTORABLE", "DUPLICATE_REPORT", "REPORT_ALREADY_HANDLED",
                 "KNOWLEDGE_NODE_NOT_FOUND", "EXAM_NOT_FOUND", "EXAM_NOT_PUBLISHED", "EXAM_HAS_NO_QUESTIONS",
                 "ATTEMPT_NOT_SUBMITTED", "PLACEMENT_BANK_INSUFFICIENT", "PLACEMENT_NOT_FINISHED",
-                "LEXEME_NOT_FOUND", "QUESTION_NOT_FOUND", "INTERNAL_ERROR");
+                "LEXEME_NOT_FOUND", "QUESTION_NOT_FOUND", "MALFORMED_QUESTION", "KNOWLEDGE_NODE_REQUIRED",
+                "GRADING_CHANGE_NOT_ALLOWED", "QUESTION_ARCHIVED", "INTERNAL_ERROR");
+    }
+
+    @Test
+    void malformedQuestionKeepsFieldDetailsWithoutOverridingProtectedErrorFields() throws Exception {
+        mockMvc.perform(get("/test/malformed-question").header(RequestIdFilter.HEADER_NAME, "t12-protected"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error_code").value("MALFORMED_QUESTION"))
+                .andExpect(jsonPath("$.message").value("Câu hỏi không hợp lệ."))
+                .andExpect(jsonPath("$.request_id").value("t12-protected"))
+                .andExpect(jsonPath("$.details[0].field").value("options"))
+                .andExpect(jsonPath("$.details[0].message").value("Chỉ có một đáp án đúng."));
     }
 
     @RestController
     static class ErrorTestController {
+
+        @GetMapping("/test/malformed-question")
+        void malformedQuestion() {
+            throw new ApiException(ErrorCode.MALFORMED_QUESTION, HttpStatus.UNPROCESSABLE_ENTITY, "Câu hỏi không hợp lệ.",
+                    Map.of("error_code", "FORGED", "message", "FORGED", "request_id", "FORGED",
+                            "details", java.util.List.of(Map.of("field", "options", "message", "Chỉ có một đáp án đúng."))));
+        }
 
         @GetMapping("/test/lexeme-missing")
         void missingLexeme() {
