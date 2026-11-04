@@ -35,10 +35,10 @@ class GrammarPronRowValidatorsIntegrationTest extends AbstractIntegrationTest {
     @Autowired private List<RowValidator> validators;
 
     @Test
-    void FR009_eightTemplateValidatorsAreAvailableAsComponents() {
+    void FR009_nineTemplateValidatorsAreAvailableAsComponents() {
         assertThat(validators).extracting(RowValidator::dataType).containsExactlyInAnyOrder(ImportDataType.LEXEME,
                 ImportDataType.TOPIC, ImportDataType.TOPIC_ITEM, ImportDataType.GRAMMAR, ImportDataType.GRAMMAR_EXERCISE,
-                ImportDataType.PRON_STAGE, ImportDataType.PRON_UNIT, ImportDataType.KNOWLEDGE_NODE);
+                ImportDataType.PRON_STAGE, ImportDataType.PRON_UNIT, ImportDataType.KNOWLEDGE_NODE, ImportDataType.KNOWLEDGE_EDGE);
     }
 
     @Test

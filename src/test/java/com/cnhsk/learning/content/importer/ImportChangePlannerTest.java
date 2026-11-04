@@ -53,6 +53,41 @@ class ImportChangePlannerTest {
         planner = new ImportChangePlanner(lexemes, topics, items, stages, points);
     }
 
+    @Test
+    void FR007_edgeSnapshotsDistinguishBothArraysAndMissingPairsWithoutWriting() {
+        KnowledgePoint source = new KnowledgePoint("TV1-901", "Nguồn", KnowledgeDomain.TV, "示例", (short) 1);
+        KnowledgePoint target = new KnowledgePoint("TV1-902", "Đích", KnowledgeDomain.TV, "示例", (short) 1);
+        ReflectionTestUtils.setField(source, "id", 901L);
+        ReflectionTestUtils.setField(target, "id", 902L);
+        when(points.findByCodeIn(any())).thenReturn(List.of(source, target));
+        for (String type : List.of("PREREQ", "SUPPORT")) {
+            ValidatedRow row = new ValidatedRow(2, Map.of("from_kid", source.getCode(), "to_kid", target.getCode(),
+                    "edge_type", type), null, null);
+            assertThat(planner.plan(ImportDataType.KNOWLEDGE_EDGE, List.of(row)).get(0).action()).isEqualTo(RowAction.CREATE);
+            if (type.equals("PREREQ")) target.setPrereqIds(new Long[]{901L});
+            else target.setSupportIds(new Long[]{901L});
+            assertThat(planner.plan(ImportDataType.KNOWLEDGE_EDGE, List.of(row)).get(0).action()).isEqualTo(RowAction.UNCHANGED);
+            target.setPrereqIds(new Long[0]); target.setSupportIds(new Long[0]);
+        }
+        verify(points, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void FR007_edgeSnapshotsReadBothEndpointsOncePerFiveHundredRows() {
+        List<ValidatedRow> rows = IntStream.range(0, 1201).mapToObj(i -> new ValidatedRow(i + 2,
+                Map.of("from_kid", "TV1-901", "to_kid", "TV2-" + i, "edge_type", "PREREQ"), null, null)).toList();
+        when(points.findByCodeIn(any())).thenAnswer(invocation -> {
+            java.util.Collection<String> kids = invocation.getArgument(0);
+            assertThat(kids).contains("TV1-901").hasSizeLessThanOrEqualTo(501);
+            return List.of();
+        });
+        assertThat(planner.plan(ImportDataType.KNOWLEDGE_EDGE, rows)).hasSize(1201)
+                .allSatisfy(row -> assertThat(row.action()).isEqualTo(RowAction.CREATE));
+        verify(points, times(3)).findByCodeIn(any());
+        verify(points, never()).findAll();
+        verify(points, never()).saveAndFlush(any());
+    }
+
     @ParameterizedTest
     @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_absentNaturalKeyIsCreateForEveryTemplate(ImportDataType type) {

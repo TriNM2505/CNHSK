@@ -126,9 +126,15 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
-    void FR018_FR023_allEightSupportedTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
+    @EnumSource(value = ImportDataType.class, names = {"QUESTION", "NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
+    void FR018_FR023_allNineSupportedTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
         switch (type) {
+            case KNOWLEDGE_EDGE -> {
+                importExample(ImportDataType.KNOWLEDGE_NODE);
+                JsonNode parent = upload(ImportDataType.KNOWLEDGE_NODE,
+                        "kid,name_vi,name_zh\nTV2-001,Nút đích tự soạn,示例\n");
+                json(confirm(parent.path("runId").asLong(), "{}", user, 200));
+            }
             case TOPIC_ITEM -> { importExample(ImportDataType.TOPIC); importExample(ImportDataType.LEXEME); }
             case GRAMMAR_EXERCISE -> importExample(ImportDataType.GRAMMAR);
             case PRON_UNIT -> importExample(ImportDataType.PRON_STAGE);

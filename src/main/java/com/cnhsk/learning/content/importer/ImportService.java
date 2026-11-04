@@ -31,6 +31,7 @@ import com.cnhsk.learning.content.importer.validate.RowValidationResult;
 import com.cnhsk.learning.content.importer.validate.RowValidationResult.ValidatedRow;
 import com.cnhsk.learning.content.importer.validate.RowValidator;
 import com.cnhsk.learning.content.importer.write.InvalidAnswerException;
+import com.cnhsk.learning.content.importer.write.RowWriteRejectedException;
 import com.cnhsk.learning.content.importer.write.RowWriter;
 import com.cnhsk.shared.audit.AuditService;
 import com.cnhsk.shared.exception.ApiException;
@@ -173,6 +174,14 @@ public class ImportService {
                     case UPDATE -> updated++;
                     case UNCHANGED -> unchanged++;
                 }
+            } catch (RowWriteRejectedException exception) {
+                failed++;
+                String value = exception.field() == null ? null : row.values().get(exception.field());
+                if (value != null && value.codePointCount(0, value.length()) > 100) {
+                    value = value.substring(0, value.offsetByCodePoints(0, 100));
+                }
+                errors.add(errorMap(new CsvReader.RowError(row.line(), exception.field(), value,
+                        exception.code(), exception.getMessage())));
             } catch (InvalidAnswerException exception) {
                 failed++;
                 errors.add(errorMap(new CsvReader.RowError(row.line(), "answer", row.values().get("answer"),
