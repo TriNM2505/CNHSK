@@ -1,27 +1,33 @@
 package com.cnhsk.learning.knowledge.web;
 
-import java.util.List;
-import java.util.Map;
-
-import com.cnhsk.learning.knowledge.QuestionAdminService;
-import com.cnhsk.learning.knowledge.QuestionAdminService.QuestionView;
 import com.cnhsk.learning.knowledge.entity.KnowledgeLabelRole;
 import com.cnhsk.learning.knowledge.entity.Question;
 import com.cnhsk.learning.knowledge.entity.QuestionSource;
 import com.cnhsk.learning.knowledge.entity.QuestionStatus;
 import com.cnhsk.learning.knowledge.entity.QuestionType;
+import com.cnhsk.learning.knowledge.QuestionAdminService.QuestionUpdate;
+import com.cnhsk.learning.knowledge.QuestionAdminService.QuestionView;
+import com.cnhsk.learning.knowledge.QuestionAdminService;
 import com.cnhsk.learning.knowledge.repository.QuestionAdminQueryRepository.Filters;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import jakarta.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,9 +36,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "/api/admin/questions", produces = MediaType.APPLICATION_JSON_VALUE)
 public class QuestionAdminController {
     private final QuestionAdminService questions;
+    private final ObjectMapper mapper;
 
-    public QuestionAdminController(QuestionAdminService questions) {
+    public QuestionAdminController(QuestionAdminService questions, ObjectMapper mapper) {
         this.questions = questions;
+        this.mapper = mapper;
     }
 
     @GetMapping
@@ -69,6 +77,50 @@ public class QuestionAdminController {
             @ApiResponse(responseCode = "404", description = "QUESTION_NOT_FOUND")
     })
     public QuestionDetail detail(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
+        return detail(questions.detail(questionId(id)));
+    }
+
+    @PutMapping("/{id}")
+    @Operation(operationId = "updateQuestion", tags = "question-admin",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
+                    content = @io.swagger.v3.oas.annotations.media.Content(schema = @Schema(implementation = QuestionUpdate.class))))
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Đã lưu câu hỏi"),
+            @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
+            @ApiResponse(responseCode = "403", description = "Sai quyền hoặc CSRF"),
+            @ApiResponse(responseCode = "404", description = "QUESTION_NOT_FOUND"),
+            @ApiResponse(responseCode = "409", description = "QUESTION_ARCHIVED hoặc GRADING_CHANGE_NOT_ALLOWED"),
+            @ApiResponse(responseCode = "422", description = "MALFORMED_QUESTION hoặc KNOWLEDGE_NODE_REQUIRED")
+    })
+    public QuestionDetail update(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
+            HttpServletRequest request,
+            @RequestHeader(name = "X-XSRF-TOKEN", required = false) String xsrfToken) {
+        // Read the body after ID lookup, row locking and the archived guard, including malformed JSON.
+        return detail(questions.updateFrom(questionId(id), () -> readUpdate(request)));
+    }
+
+    @PatchMapping("/{id}/archive")
+    @Operation(operationId = "archiveQuestion", tags = "question-admin")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Câu hỏi ở trạng thái ARCHIVED"),
+            @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
+            @ApiResponse(responseCode = "403", description = "Sai quyền hoặc CSRF"),
+            @ApiResponse(responseCode = "404", description = "QUESTION_NOT_FOUND")
+    })
+    public QuestionDetail archive(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
+            @RequestHeader(name = "X-XSRF-TOKEN", required = false) String xsrfToken) {
+        return detail(questions.archive(questionId(id)));
+    }
+
+    private QuestionUpdate readUpdate(HttpServletRequest request) {
+        try {
+            return mapper.readValue(request.getInputStream(), QuestionUpdate.class);
+        } catch (IOException exception) {
+            throw QuestionAdminService.malformed(List.of(Map.of("field", "body", "message", "Nội dung JSON không hợp lệ.")));
+        }
+    }
+
+    private static long questionId(String id) {
         long parsed;
         try {
             parsed = Long.parseLong(id);
@@ -76,7 +128,7 @@ public class QuestionAdminController {
             throw QuestionAdminService.notFound();
         }
         if (parsed <= 0) throw QuestionAdminService.notFound();
-        return detail(questions.detail(parsed));
+        return parsed;
     }
 
     private static int integer(String value, String field, int minimum, int maximum) {

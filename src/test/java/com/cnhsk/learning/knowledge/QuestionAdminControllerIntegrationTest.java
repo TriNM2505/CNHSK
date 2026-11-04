@@ -1,10 +1,7 @@
 package com.cnhsk.learning.knowledge;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Stream;
-
+import com.cnhsk.auth.entity.User;
+import com.cnhsk.auth.repository.UserRepository;
 import com.cnhsk.learning.knowledge.entity.KnowledgeDomain;
 import com.cnhsk.learning.knowledge.entity.KnowledgeLabelRole;
 import com.cnhsk.learning.knowledge.entity.KnowledgePoint;
@@ -20,8 +17,13 @@ import com.cnhsk.learning.knowledge.repository.QuestionRepository;
 import com.cnhsk.shared.security.JwtService;
 import com.cnhsk.support.AbstractIntegrationTest;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Stream;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -31,13 +33,19 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -53,6 +61,9 @@ class QuestionAdminControllerIntegrationTest extends AbstractIntegrationTest {
     @Autowired private KnowledgePointRepository points;
     @Autowired private QuestionKnowledgePointRepository labels;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private UserRepository users;
+    private static final String WRITE_PASSWORD_HASH = new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
+    private long writeActorId;
 
     @ParameterizedTest
     @ValueSource(strings = {"CONTENT_EDITOR", "TEACHER"})
@@ -239,6 +250,167 @@ class QuestionAdminControllerIntegrationTest extends AbstractIntegrationTest {
         long[] sorted = samples.clone(); Arrays.sort(sorted); long p95 = sorted[(int) Math.ceil(samples.length * .95) - 1];
         System.out.println("T11_QUESTION_LIST_BENCHMARK rows=5000 samples_ms=" + Arrays.toString(samples) + " p95_ms=" + p95);
         assertThat(p95).isLessThan(100);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"LEARNER", "MODERATOR", "ACCOUNTANT", "ADMIN", "CONTENT_EDITOR"})
+    void AT01_putForbidsEveryRoleExceptTeacherBeforeIdAndBodyValidation(String role) throws Exception {
+        mvc.perform(put(ROOT + "/abc").header("Authorization", "Bearer " + token(role)).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("FORBIDDEN"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"LEARNER", "MODERATOR", "ACCOUNTANT", "ADMIN", "TEACHER"})
+    void AT01_archiveForbidsEveryRoleExceptEditorBeforeIdLookup(String role) throws Exception {
+        mvc.perform(patch(ROOT + "/abc/archive").header("Authorization", "Bearer " + token(role)))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("FORBIDDEN"));
+    }
+
+    @Test
+    void AT01_bothWriteOperationsRequireAuthenticationAndCookieCsrf() throws Exception {
+        for (boolean archive : List.of(false, true)) {
+            String path = ROOT + "/abc" + (archive ? "/archive" : "");
+            HttpMethod method = archive ? HttpMethod.PATCH : HttpMethod.PUT;
+            mvc.perform(request(method, path).contentType(MediaType.APPLICATION_JSON).content("{}"))
+                    .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.error_code").value("UNAUTHENTICATED"));
+            for (String header : List.of("", "wrong")) {
+                var call = request(method, path).cookie(new Cookie("access_token", token(archive ? "CONTENT_EDITOR" : "TEACHER")),
+                        new Cookie("XSRF-TOKEN", "csrf-real")).contentType(MediaType.APPLICATION_JSON).content("{}");
+                if (!header.isEmpty()) call.header("X-XSRF-TOKEN", header);
+                mvc.perform(call).andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("CSRF_TOKEN_INVALID"));
+            }
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"abc", "0", "-1", "1.5", "9223372036854775808", "9223372036854775807"})
+    void AT20_AT23_writeIdsUseTheSame404AsGetBeforeContentValidation(String id) throws Exception {
+        for (String body : List.of("{}", "{bad-json", "{\"hskLevel\":{}}")) {
+            mvc.perform(put(ROOT + "/{id}", id).header("Authorization", bearer()).contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isNotFound()).andExpect(jsonPath("$.error_code").value("QUESTION_NOT_FOUND"));
+        }
+        mvc.perform(patch(ROOT + "/{id}/archive", id).header("Authorization", "Bearer " + token("CONTENT_EDITOR")))
+                .andExpect(status().isNotFound()).andExpect(jsonPath("$.error_code").value("QUESTION_NOT_FOUND"));
+    }
+
+    @Test
+    void AT20_AT22_cookieUpdateSwapsLabelsIgnoresImmutableFieldsAndAuditsBeforeAfter() throws Exception {
+        Question question = writeQuestion(QuestionStatus.PENDING_REVIEW);
+        question.setSource(QuestionSource.AI); question.setCode(null); question.setReusable(false);
+        String access = writeToken("TEACHER");
+        question.setReviewedBy(writeActorId); question.setReviewedAt(java.time.Instant.parse("2026-01-01T00:00:00Z"));
+        question.setReviewReason("Giữ nguyên lý do"); questions.saveAndFlush(question);
+        ObjectNode body = body(); body.put("primaryKid", "tv1-971"); body.putArray("secondaryKids").add("NP1-971");
+        body.put("qtype", "ESSAY").put("code", "FORGED").put("status", "APPROVED").put("source", "IMPORT").put("reusable", true);
+        mvc.perform(put(ROOT + "/{id}", question.getId()).cookie(new Cookie("access_token", access), new Cookie("XSRF-TOKEN", "csrf-real"))
+                        .header("X-XSRF-TOKEN", "csrf-real").contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(body)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.qtype").value("MULTIPLE_CHOICE"))
+                .andExpect(jsonPath("$.source").value("AI")).andExpect(jsonPath("$.code").isEmpty())
+                .andExpect(jsonPath("$.status").value("PENDING_REVIEW")).andExpect(jsonPath("$.explanation").value("Lời giải mới tự soạn"));
+        assertThat(question.isReusable()).isFalse(); assertThat(question.getReviewedBy()).isEqualTo(writeActorId);
+        assertThat(question.getReviewedAt()).isEqualTo(java.time.Instant.parse("2026-01-01T00:00:00Z"));
+        assertThat(question.getReviewReason()).isEqualTo("Giữ nguyên lý do");
+        assertThat(labels.findByQuestionIdIn(List.of(question.getId())))
+                .extracting(label -> label.getRole() + ":" + label.getKnowledgePointId()).containsExactlyInAnyOrder(
+                        "PRIMARY:" + points.findByCode("TV1-971").orElseThrow().getId(),
+                        "SECONDARY:" + points.findByCode("NP1-971").orElseThrow().getId());
+        var audit = mapper.readTree(jdbc.queryForObject("SELECT detail::text FROM shared.audit_logs WHERE action='QUESTION_UPDATE' AND target_type='question' AND target_id=?", String.class, question.getId()));
+        assertThat(audit.path("before").path("explanation").asText()).isEqualTo("Lời giải cũ tự soạn");
+        assertThat(audit.path("after").path("explanation").asText()).isEqualTo("Lời giải mới tự soạn");
+        assertThat(audit.path("after").path("labels")).filteredOn(label -> label.path("role").asText().equals("PRIMARY"))
+                .singleElement().satisfies(label -> assertThat(label.path("kid").asText()).isEqualTo("TV1-971"));
+        assertThat(jdbc.queryForObject("SELECT actor_id FROM shared.audit_logs WHERE action='QUESTION_UPDATE' AND target_id=?", Long.class, question.getId())).isEqualTo(writeActorId);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"primary", "secondary", "error", "two-correct", "duplicate", "missing-primary", "empty-primary", "null-option", "missing-correct"})
+    void AT21_invalidContentsReturnFieldErrorsAndDoNotChangeTheDatabase(String kind) throws Exception {
+        Question question = writeQuestion(QuestionStatus.APPROVED); ObjectNode body = body();
+        switch (kind) {
+            case "primary" -> body.put("primaryKid", "NP1-999");
+            case "secondary" -> body.putArray("secondaryKids").add("TV1-999");
+            case "error" -> ((ObjectNode) body.path("options").get(1)).put("errorKid", "TV1-999");
+            case "two-correct" -> ((ObjectNode) body.path("options").get(1)).put("isCorrect", true);
+            case "duplicate" -> body.putArray("secondaryKids").add("NP1-971");
+            case "missing-primary" -> body.remove("primaryKid");
+            case "empty-primary" -> body.put("primaryKid", "　");
+            case "null-option" -> body.withArray("options").set(0, mapper.nullNode());
+            case "missing-correct" -> ((ObjectNode) body.path("options").get(1)).remove("isCorrect");
+            default -> throw new AssertionError(kind);
+        }
+        boolean required = kind.endsWith("primary") && !kind.equals("primary");
+        var result = mvc.perform(put(ROOT + "/{id}", question.getId()).header("Authorization", "Bearer " + writeToken("TEACHER"))
+                        .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(body)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error_code").value(required ? "KNOWLEDGE_NODE_REQUIRED" : "MALFORMED_QUESTION"));
+        if (!required) result.andExpect(jsonPath("$.details[0].field").isNotEmpty()).andExpect(jsonPath("$.details[0].message").isNotEmpty());
+        assertThat(jdbc.queryForObject("SELECT explanation FROM learning.questions WHERE id=?", String.class, question.getId())).isEqualTo("Lời giải cũ tự soạn");
+        assertThat(labels.findByQuestionIdIn(List.of(question.getId()))).hasSize(2); assertThat(auditCount(question.getId())).isZero();
+    }
+
+    @Test
+    void AT22_archivedPrecedesInvalidContentAndUsedGuardPrecedesAllWrites() throws Exception {
+        Question question = writeQuestion(QuestionStatus.ARCHIVED); String access = "Bearer " + writeToken("TEACHER");
+        for (String body : List.of("{}", "{bad-json", "{\"hskLevel\":{}}")) {
+            mvc.perform(put(ROOT + "/{id}", question.getId()).header("Authorization", access).contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isConflict()).andExpect(jsonPath("$.error_code").value("QUESTION_ARCHIVED"));
+        }
+        question.setStatus(QuestionStatus.APPROVED); questions.saveAndFlush(question); recordUse(question.getId(), writeActorId);
+        ObjectNode body = body(); ((ObjectNode) body.path("options").get(0)).put("isCorrect", false);
+        ((ObjectNode) body.path("options").get(1)).put("isCorrect", true);
+        mvc.perform(put(ROOT + "/{id}", question.getId()).header("Authorization", access).contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(body)))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.error_code").value("GRADING_CHANGE_NOT_ALLOWED"));
+        assertThat(jdbc.queryForObject("SELECT explanation FROM learning.questions WHERE id=?", String.class, question.getId())).isEqualTo("Lời giải cũ tự soạn");
+        assertThat(auditCount(question.getId())).isZero();
+    }
+
+    @Test
+    void AT23_cookieArchiveIsIdempotentAuditsOnceAndKeepsAttemptItems() throws Exception {
+        Question question = writeQuestion(QuestionStatus.APPROVED); String access = writeToken("CONTENT_EDITOR");
+        recordUse(question.getId(), writeActorId);
+        for (int call = 0; call < 2; call++) {
+            mvc.perform(patch(ROOT + "/{id}/archive", question.getId()).cookie(new Cookie("access_token", access), new Cookie("XSRF-TOKEN", "csrf-real"))
+                            .header("X-XSRF-TOKEN", "csrf-real"))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ARCHIVED")).andExpect(jsonPath("$.used").value(true));
+        }
+        assertThat(auditCount(question.getId())).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM learning.attempt_items WHERE question_id=?", Long.class, question.getId())).isEqualTo(1);
+    }
+
+    @Test
+    void AT21_unreadableJsonUsesSafeMalformedError() throws Exception {
+        Question question = writeQuestion(QuestionStatus.APPROVED);
+        mvc.perform(put(ROOT + "/{id}", question.getId()).header("Authorization", bearer()).contentType(MediaType.APPLICATION_JSON).content("{bad-json"))
+                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.error_code").value("MALFORMED_QUESTION"))
+                .andExpect(jsonPath("$.details[0].field").value("body"));
+    }
+
+    private Question writeQuestion(QuestionStatus status) {
+        KnowledgePoint primary = node("NP1-971"); KnowledgePoint secondary = node("TV1-971");
+        Question question = question("T12_WRITE", QuestionType.MULTIPLE_CHOICE, 1, status);
+        question.setOptions(List.of(new QuestionOption("A", "我", true, null, null), new QuestionOption("B", "你", false, null, null)));
+        question.setExplanation("Lời giải cũ tự soạn"); questions.saveAndFlush(question);
+        label(question, primary, KnowledgeLabelRole.PRIMARY); label(question, secondary, KnowledgeLabelRole.SECONDARY);
+        return question;
+    }
+    private ObjectNode body() {
+        ObjectNode body = mapper.createObjectNode().put("stem", "Câu tự soạn mới").put("explanation", "Lời giải mới tự soạn")
+                .put("hskLevel", 1).put("difficulty", 2).put("primaryKid", "NP1-971");
+        body.putArray("secondaryKids").add("TV1-971");
+        var options = body.putArray("options"); options.addObject().put("key", "A").put("text", "我").put("isCorrect", true);
+        options.addObject().put("key", "B").put("text", "你").put("isCorrect", false);
+        return body;
+    }
+    private String writeToken(String role) {
+        User actor = users.saveAndFlush(new User("t12-http-" + UUID.randomUUID() + "@example.test", WRITE_PASSWORD_HASH, "Người kiểm thử"));
+        writeActorId = actor.getId(); return jwt.issueAccessToken(actor.getId(), List.of(role), true, UUID.randomUUID());
+    }
+    private void recordUse(long questionId, long actorId) {
+        long attempt = jdbc.queryForObject("INSERT INTO learning.attempts(user_id,kind) VALUES (?,'PRACTICE') RETURNING id", Long.class, actorId);
+        jdbc.update("INSERT INTO learning.attempt_items(attempt_id,question_id,item_type,skill,order_index) VALUES (?,?,'QUESTION_CHOICE','READING',1)", attempt, questionId);
+    }
+    private long auditCount(long questionId) {
+        return jdbc.queryForObject("SELECT count(*) FROM shared.audit_logs WHERE target_type='question' AND target_id=?", Long.class, questionId);
     }
 
     private Question question(String code, QuestionType type, int level, QuestionStatus status) {

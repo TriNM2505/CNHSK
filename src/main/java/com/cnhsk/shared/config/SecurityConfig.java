@@ -1,40 +1,39 @@
 package com.cnhsk.shared.config;
 
-import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import com.cnhsk.shared.exception.ErrorCode;
 import com.cnhsk.shared.security.AccessDeniedApiException;
 import com.cnhsk.shared.security.AuthenticationApiException;
 import com.cnhsk.shared.security.JwtAuthenticationFilter;
 import com.cnhsk.shared.security.JwtService;
-import com.cnhsk.shared.security.SessionInvalidationService;
 import com.cnhsk.shared.security.RouteCsrfTokenRequestHandler;
 import com.cnhsk.shared.security.RouteRoleGuardFilter;
+import com.cnhsk.shared.security.SessionInvalidationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.Filter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.springframework.core.Ordered;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 
 @Configuration
@@ -151,6 +150,8 @@ public class SecurityConfig {
                             .hasAnyRole("LEARNER", "CONTENT_EDITOR", "TEACHER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/admin/questions", "/api/admin/questions/**")
                             .hasAnyRole("CONTENT_EDITOR", "TEACHER");
+                    authorize.requestMatchers(HttpMethod.PUT, "/api/admin/questions/{id}").hasRole("TEACHER");
+                    authorize.requestMatchers(HttpMethod.PATCH, "/api/admin/questions/{id}/archive").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers("/api/admin/**").hasRole("ADMIN")
                             .requestMatchers("/api/auth/verify-email/resend", "/api/auth/logout",
                                     "/api/auth/logout-all", "/api/auth/me", "/api/me/**")

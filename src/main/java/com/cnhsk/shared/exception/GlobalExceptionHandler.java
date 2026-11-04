@@ -1,25 +1,22 @@
 package com.cnhsk.shared.exception;
 
-import java.util.LinkedHashMap;
+import com.cnhsk.shared.config.RequestIdFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import jakarta.validation.ConstraintViolationException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import com.cnhsk.shared.config.RequestIdFilter;
-import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -33,7 +30,8 @@ public class GlobalExceptionHandler {
         exception.getExtra().forEach((key, value) -> {
             if (!"error_code".equals(key) && !"message".equals(key) && !"request_id".equals(key)) {
                 if ("details".equals(key) && (exception.getCode() == ErrorCode.TEMPLATE_MISMATCH
-                        || exception.getCode() == ErrorCode.PLACEMENT_BANK_INSUFFICIENT)) {
+                        || exception.getCode() == ErrorCode.PLACEMENT_BANK_INSUFFICIENT
+                        || exception.getCode() == ErrorCode.MALFORMED_QUESTION)) {
                     body.put(key, value);
                 }
                 if (!"details".equals(key) || exception.getCode() == ErrorCode.VALIDATION_FAILED) {
