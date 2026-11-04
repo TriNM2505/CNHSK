@@ -1,5 +1,10 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-04 SCR-022 (leader duyệt)
+
+- Cờ `SHOW_EXAM_WEAK_POINTS = false` nằm trong `Scr022ExamResultPage.tsx` và được truyền vào View. T-16 nối `getExamWeakPoints` và bật cờ.
+- `Scr022ResultRoute` dùng `sessionId` cho kết quả đề và `runId` cho kết quả xếp trình độ. ID không hợp lệ hiển thị không tìm thấy và không gọi API.
+
 ## 2026-11-04 — T-03 SCR-021 (leader duyệt)
 
 - Hook nhận chế độ mở theo sessionId riêng và gọi GET trực tiếp. Đổi ID huỷ request cũ và làm mới toàn bộ trạng thái lượt.

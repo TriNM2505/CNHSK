@@ -5,9 +5,13 @@ import type { SessionView } from '@/features/practice'
 import type { ExamResult, ExamSummary, PlacementResult, PlacementStep } from './types'
 import { ExamListView } from './components/ExamListView'
 import { ExamAttemptView } from './components/ExamAttemptView'
+import { ExamResultView } from './components/ExamResultView'
+import { PlacementResultView } from './components/PlacementResultView'
 import {
+  examReviewFixture,
   mockAttemptFixture,
   placementAttemptFixture,
+  placementReviewFixture,
   placementSummaryFixture,
 } from './test-fixtures'
 
@@ -161,6 +165,30 @@ const listPreviews = (['new', 'active', 'result'] as const).map((mode): PreviewE
 
 export const previews = [
   ...listPreviews,
+  {
+    group: 'screen',
+    id: 'scr-022-exam',
+    scr: 'SCR-022',
+    title: 'Kết quả đề thi',
+    render: () =>
+      createElement(ExamResultView, {
+        result: examReviewFixture,
+        filter: 'ALL',
+        onFilter: () => undefined,
+        showWeakPoints: false,
+      }),
+  },
+  {
+    group: 'screen',
+    id: 'scr-022-placement',
+    scr: 'SCR-022',
+    title: 'Kết quả xếp trình độ',
+    render: () =>
+      createElement(PlacementResultView, {
+        result: placementReviewFixture,
+        onRetake: () => undefined,
+      }),
+  },
   ...[mockAttemptFixture, placementAttemptFixture].map((session): PreviewEntry => {
     const placement = session.source === 'PLACEMENT'
     return {
