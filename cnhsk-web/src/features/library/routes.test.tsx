@@ -12,6 +12,8 @@ import { getAuthenticatedDestination } from '@/shared/auth/navigation'
 
 import { getLexeme, searchDictionary } from './api/dictionary'
 import { listNotes, listTrash } from './api/notes'
+import { getDeck, listDecks, listDueCards } from './api/flashcards'
+import { getTopics } from '@/features/vocab/api/topics'
 
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
 vi.mock('./api/dictionary', () => ({
@@ -29,6 +31,19 @@ vi.mock('./api/notes', () => ({
   deleteNote: vi.fn(),
   restoreNote: vi.fn(),
 }))
+vi.mock('./api/flashcards', () => ({
+  getDeck: vi.fn(),
+  listDecks: vi.fn(),
+  listDueCards: vi.fn(),
+  createDeck: vi.fn(),
+  updateDeck: vi.fn(),
+  deleteDeck: vi.fn(),
+  addCard: vi.fn(),
+  updateCard: vi.fn(),
+  deleteCard: vi.fn(),
+  reviewCard: vi.fn(),
+}))
+vi.mock('@/features/vocab/api/topics', () => ({ getTopics: vi.fn() }))
 
 const routes = [
   { path: '/dictionary', url: '/dictionary', scr: 'SCR-024', access: 'public', layout: 'public' },
@@ -83,6 +98,19 @@ function renderRoute(path: string) {
 }
 
 beforeEach(() => {
+  vi.mocked(getDeck)
+    .mockReset()
+    .mockResolvedValue({
+      id: 501,
+      name: 'Bộ thẻ kiểm thử',
+      cardCount: 0,
+      dueCount: 0,
+      createdAt: '2026-11-01T00:00:00Z',
+      cards: [],
+    })
+  vi.mocked(listDecks).mockReset().mockResolvedValue([])
+  vi.mocked(listDueCards).mockReset().mockResolvedValue([])
+  vi.mocked(getTopics).mockReset().mockResolvedValue([])
   vi.mocked(listNotes).mockReset().mockResolvedValue({ items: [], total: 0 })
   vi.mocked(listTrash).mockReset().mockResolvedValue([])
   vi.mocked(searchDictionary).mockReset().mockResolvedValue({ items: [], total: 0 })
@@ -147,7 +175,11 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
             ? '日'
             : scr === 'SCR-027'
               ? 'Sổ tay cá nhân'
-              : `Màn ${scr} đang dựng`
+              : scr === 'SCR-028'
+                ? 'Bộ thẻ của tôi'
+                : scr === 'SCR-029'
+                  ? 'Bộ thẻ kiểm thử'
+                  : `Màn ${scr} đang dựng`
       expect(screen.getByRole('heading', { name: title })).toBeVisible()
     })
     expect(router.state.location.pathname).toBe(url)
@@ -183,7 +215,7 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
   it('FR001_accepts LEARNER when combined with another role', async () => {
     getCurrentUserMock.mockResolvedValue(user(['ADMIN', 'LEARNER']))
     const router = renderRoute('/library/decks/501')
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-029 đang dựng' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Bộ thẻ kiểm thử' })).toBeVisible()
     expect(router.state.location.pathname).toBe('/library/decks/501')
   })
 
@@ -226,6 +258,22 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
       expect(await screen.findByRole('heading', { name: 'Sổ tay cá nhân' })).toBeVisible()
       expect(listNotes).not.toHaveBeenCalled()
       expect(listTrash).not.toHaveBeenCalled()
+      expect(getCurrentUserMock).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each(['library-deck-samples', 'library-card-samples', 'library-review-samples'])(
+    'renders %s without backend or auth requests',
+    async (id) => {
+      renderRoute(`/__preview/frame/${id}/ready`)
+      expect(
+        await screen.findByRole('heading', {
+          name: id === 'library-deck-samples' ? 'Bộ thẻ của tôi' : 'Từ dùng mỗi ngày',
+        }),
+      ).toBeVisible()
+      expect(listDecks).not.toHaveBeenCalled()
+      expect(getDeck).not.toHaveBeenCalled()
+      expect(listDueCards).not.toHaveBeenCalled()
       expect(getCurrentUserMock).not.toHaveBeenCalled()
     },
   )

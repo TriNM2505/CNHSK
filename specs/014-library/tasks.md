@@ -16,7 +16,7 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 | T-02 | SCR-024 Dictionary Search + SCR-025 Dictionary Detail (dùng lại thành phần nét của 006) | `web/features/library/pages/Scr024DictionarySearchPage.tsx`, `Scr025DictionaryDetailPage.tsx` + test | FR-023, FR-024 · AT-23, AT-24 | ✅ (leader duyệt; xem `questions.md`) |
 | T-03 | SCR-026 Translation (đoạn bấm được, popup tra từ + lưu) | `web/features/library/pages/Scr026TranslationPage.tsx` + test | FR-025 · AT-25 | ⬜ |
 | T-04 | SCR-027 Personal Notes (tìm, thẻ, thùng rác, đoạn trích escape) | `web/features/library/pages/Scr027PersonalNotesPage.tsx` + test | FR-026 · AT-26 | ✅ — leader duyệt 12 file; Vitest 1.825/1.825, lint chỉ warning LevelBadge có sẵn, build PASS; nối thật ở T-15 |
-| T-05 | SCR-028 Deck List + SCR-029 Deck Detail (thẻ, ôn 4 nút) | `web/features/library/pages/Scr028DeckListPage.tsx`, `Scr029DeckDetailPage.tsx` + test | FR-027, FR-028 · AT-27, AT-28 | ⬜ |
+| T-05 | SCR-028 Deck List + SCR-029 Deck Detail (thẻ, ôn 4 nút) | `web/features/library/pages/Scr028DeckListPage.tsx`, `Scr029DeckDetailPage.tsx` + test | FR-027, FR-028 · AT-27, AT-28 | ✅ — leader duyệt 15 file; Vitest 1.996/1.996, lint chỉ warning LevelBadge có sẵn, build PASS; nối thật ở T-15 |
 
 ## Đợt 2 · Backend
 
@@ -63,4 +63,4 @@ T-13 → T-14
 
 **Bốn task rủi ro cao:** T-14 (trừ/hoàn lượt đúng, không lộ nội dung, chống prompt injection) · T-06 (giới hạn khách theo IP, tra pinyin đúng) · T-08 (403 dữ liệu riêng, giới hạn) · T-12 (đúng FSRS, không đổi mastery).
 
-**Hiện trạng: 7/15 task xong.**
+**Hiện trạng: 8/15 task xong.**
