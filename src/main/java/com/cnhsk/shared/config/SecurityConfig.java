@@ -116,6 +116,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html").denyAll();
                     }
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/community/**").permitAll();
+                    authorize.requestMatchers(HttpMethod.GET, "/api/public/dictionary/**").permitAll();
                     authorize.requestMatchers("/api/community/moderation/**").hasRole("MODERATOR");
                     authorize.requestMatchers("/api/community/**").hasRole("LEARNER");
                     authorize.requestMatchers("/api/admin/imports", "/api/admin/imports/**").hasRole("CONTENT_EDITOR");

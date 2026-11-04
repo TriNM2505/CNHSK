@@ -1,5 +1,15 @@
 # Chốt — Spec 014
 
+## 2026-11-04 — Leader duyệt 014/T-06
+
+- Base lúc bắt đầu: `origin/main` `ee74b24`, remote `TriNM2505/CNHSK`; đã cập nhật nhánh lên `7f6e615` (PR #86). `010/T-10` đã merge qua PR #66 (`c3a5fc7`). Bản kế hoạch trước dùng base `a740027`; đã đối chiếu các matcher knowledge-tree/exam/placement và khối cấu hình placement trên main mới. Hai file dùng chung không đổi giữa `ee74b24` và `7f6e615`.
+- Khách: 60 lượt/giờ/IP. Mọi tài khoản đã xác thực: 600 lượt/giờ theo `userId`, không phân biệt role. Bộ đếm Redis nguyên tử, cửa sổ giờ UTC, TTL tới hết giờ; mỗi request đếm một lần trước kiểm tra tham số, kể cả 422. Redis lỗi vẫn cho tra, log WARN không chứa query, IP hoặc thông tin kết nối.
+- IP lấy từ `getRemoteAddr()`, không đọc `X-Forwarded-For`. Khi triển khai sau reverse proxy, leader theo dõi backlog cấu hình `server.forward-headers-strategy`; T-06 không thay đổi cấu hình proxy.
+- Fallback nhiều chữ Hán: bỏ chữ trùng, giữ thứ tự xuất hiện đầu tiên; ví dụ `人人` chỉ trả mục từ `人` một lần.
+- `LibraryConfig` chỉ có `guest-lookups-per-hour` và `authenticated-lookups-per-hour`; cả hai bắt buộc, phải dương và kiểm khi khởi động. Các hạn mức dịch/ôn/cache do task sử dụng tự thêm.
+- T-06 dùng nguyên contract, `PinyinUtils`/`TextNormalizer` và schema hiện có; query được bind tham số, wildcard LIKE được escape. Phân trang tại DB; không thêm mã lỗi.
+- Allowlist 16 file; gate JDK 17, DEBUG=false, Docker và Maven verify. Nếu gate xanh, leader cho phép đánh ✅ T-06 trong cùng PR. Chỉ lỗi thuộc nhóm môi trường đã biết (FR023 p95, T08_QUESTION_CONFIRM_BENCHMARK, PEXPIRETIME, CapturedOutput) được báo số đo và mở PR theo ngoại lệ leader duyệt; không hạ ngưỡng hoặc skip test.
+
 ## 2026-11-04 — Leader duyệt 014/T-02
 
 - SCR-024/025 là hai màn thật đầu tiên của library; dùng API client T-01, preview/test bằng dữ liệu tự soạn. Nghiệm thu nối backend thật ở T-15.

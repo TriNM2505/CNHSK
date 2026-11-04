@@ -76,6 +76,9 @@ app:
   timezone: Asia/Ho_Chi_Minh
 
 cnhsk:
+  library:
+    guest-lookups-per-hour: 60
+    authenticated-lookups-per-hour: 600
   import:
     max-file-size: 2MB
     max-rows: 5000

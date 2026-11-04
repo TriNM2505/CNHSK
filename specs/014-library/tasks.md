@@ -22,7 +22,7 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-06 | Tra cứu: `LibraryConfig` (`cnhsk.library.*`), `LibraryRateLimiter`, tìm chữ Hán/pinyin/nghĩa; matcher `permitAll` `/api/public/dictionary/**` | `…/learning/library/{LibraryConfig,LibraryRateLimiter,DictionaryService,PinyinQuery}.java`, `…/library/web/DictionaryController.java`, `SecurityConfig.java`, `application.yaml` | FR-001, FR-002, FR-003…FR-005 · AT-01…AT-05 | ⬜ |
+| T-06 | Tra cứu: `LibraryConfig` (`cnhsk.library.*`), `LibraryRateLimiter`, tìm chữ Hán/pinyin/nghĩa; matcher `permitAll` `/api/public/dictionary/**` | `…/learning/library/{LibraryConfig,LibraryRateLimiter,DictionaryService,PinyinQuery}.java`, `…/library/web/DictionaryController.java`, `SecurityConfig.java`, `application.yaml` | FR-001, FR-002, FR-003…FR-005 · AT-01…AT-05 | 🔄 (76 test T-06 đạt; full gate chỉ lỗi benchmark T-08 30.945 ms/30.000 ms — mở Draft theo ngoại lệ leader duyệt, chờ review) |
 | T-07 | Bộ thủ + chi tiết mục từ; mã `LEXEME_NOT_FOUND` | `…/library/{RadicalService,LexemeDetailService}.java`, `DictionaryController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-006, FR-007 · AT-06, AT-07 | ⬜ |
 | T-08 | Sổ tay: sổ mặc định, tạo/đọc/sửa, danh sách + tìm; mã `COLLECTION_NOT_OWNED`, `LIBRARY_LIMIT_REACHED`; matcher `LEARNER` `/api/notes/**` | `…/library/NotebookService.java`, `…/library/web/NoteController.java`, `SecurityConfig.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-008…FR-011 · AT-08…AT-10 | ⬜ |
 | T-09 | Xoá mềm, thùng rác, khôi phục; mã `NOTE_NOT_RESTORABLE` | `NotebookService.java`, `NoteController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-012 · AT-11 | ⬜ |
