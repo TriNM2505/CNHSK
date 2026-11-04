@@ -11,6 +11,7 @@ export type PracticeSource =
   | 'MOCK_EXAM'
   | 'PLACEMENT'
   | 'TARGETED_PRACTICE'
+  | 'DUE_REVIEW'
 
 export type FeedbackMode = 'IMMEDIATE' | 'DEFERRED' | 'RECORD'
 export type SessionStatus = 'IN_PROGRESS' | 'SUBMITTED' | 'ABANDONED' | 'EXPIRED'
