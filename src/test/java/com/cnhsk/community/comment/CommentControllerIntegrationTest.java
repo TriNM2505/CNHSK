@@ -10,7 +10,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -24,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.servlet.http.Cookie;
+import org.hibernate.resource.jdbc.spi.StatementInspector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +34,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.MockMvcPrint;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
@@ -45,9 +50,11 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(print = MockMvcPrint.NONE)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles({"test", "dev"})
 @Import(CommentControllerIntegrationTest.CommentClockConfiguration.class)
@@ -64,6 +71,7 @@ class CommentControllerIntegrationTest extends AbstractIntegrationTest {
     @Autowired private JdbcTemplate jdbc;
     @Autowired private JwtService jwt;
     @Autowired private CommentClock clock;
+    @Autowired private MutationSqlCapture sqlCapture;
     @Value("${test.mailpit.base-url}") private String mailpitUrl;
 
     @BeforeEach
@@ -330,6 +338,337 @@ class CommentControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(write.path("properties").path("content").path("maxLength").asInt()).isEqualTo(5000);
     }
 
+    @Test
+    void mutationsAuthorizeBeforeMalformedBodyAndIdBindingForGuestsRolesCsrfAndUnverifiedEmail() throws Exception {
+        Account unverified = register();
+        Session pending = login(unverified.email());
+        long postId = seedPost(unverified.id(), "APPROVED");
+        long id = seedComment(postId, null, unverified.id(), 0, "VISIBLE", clock.instant());
+        var before = jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id);
+        for (String method : List.of("PUT", "DELETE")) {
+            for (String target : List.of(Long.toString(id), Long.toString(Long.MAX_VALUE), "not-a-number")) {
+                error(mutation(method, target).contentType(MediaType.APPLICATION_JSON).content("not-json"),
+                        401, "UNAUTHENTICATED");
+                error(mutation(method, target).cookie(pending.access()).contentType(MediaType.APPLICATION_JSON)
+                        .content("not-json"), 403, "CSRF_TOKEN_INVALID");
+                error(cookieMutation(method, target, pending, "not-json"), 403, "ACCOUNT_UNVERIFIED");
+                error(cookieMutation(method, target, pending, body("\u3000")), 403, "ACCOUNT_UNVERIFIED");
+                for (String role : List.of("ADMIN", "MODERATOR", "TEACHER", "CONTENT_EDITOR", "ACCOUNTANT")) {
+                    String token = jwt.issueAccessToken(unverified.id(), Set.of(role), true, UUID.randomUUID());
+                    error(mutation(method, target).header("Authorization", "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON).content("not-json"), 403, "FORBIDDEN");
+                }
+            }
+        }
+        assertThat(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id)).isEqualTo(before);
+        verifyEmail(unverified);
+        Session verified = login(unverified.email());
+        updated(cookieMutation("PUT", Long.toString(id), verified, body("Cookie update")));
+        String mixed = jwt.issueAccessToken(unverified.id(), Set.of("ADMIN", "LEARNER"), true, UUID.randomUUID());
+        updated(put(commentPath(id)).header("Authorization", "Bearer " + mixed)
+                .contentType(MediaType.APPLICATION_JSON).content(body("Mixed-role bearer update")));
+        mvc.perform(delete(commentPath(id)).header("Authorization", "Bearer " + verified.access().getValue()))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void mutationsReturnIdenticalGenericForbiddenForMissingForeignMalformedAndOverflowIds() throws Exception {
+        Account caller = verifiedAccount();
+        Account other = verifiedAccount();
+        Session session = login(caller.email());
+        long postId = seedPost(other.id(), "APPROVED");
+        List<String> targets = new ArrayList<>(List.of("0", "-1", Long.toString(Long.MAX_VALUE), "not-a-number",
+                "9223372036854775808", "-9223372036854775809"));
+        List<Map<String, Object>> before = new ArrayList<>();
+        for (String state : List.of("VISIBLE", "HIDDEN", "DELETED")) {
+            long id = seedComment(postId, null, other.id(), 0, state, clock.instant().minusSeconds(3600));
+            targets.add(Long.toString(id));
+            before.add(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id));
+        }
+        JsonNode expected = null;
+        for (String method : List.of("PUT", "DELETE")) {
+            for (String target : targets) {
+                JsonNode response = error(cookieMutation(method, target, session, body("Attempted overwrite")), 403, "FORBIDDEN");
+                assertThat(fields(response)).containsExactlyInAnyOrder("error_code", "message", "request_id");
+                assertThat(response.path("message").asText()).isEqualTo("Bạn không có quyền thực hiện thao tác này.");
+                assertThat(response.toString()).doesNotContain(caller.email(), other.email(), "Private parent content",
+                        "Private moderation reason", "NumberFormatException", "MethodArgumentTypeMismatchException");
+                if (expected == null) expected = withoutRequestId(response);
+                assertThat(withoutRequestId(response)).isEqualTo(expected);
+            }
+        }
+        for (Map<String, Object> row : before) {
+            assertThat(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", row.get("id"))).isEqualTo(row);
+        }
+    }
+
+    @Test
+    void updateChangesOnlyContentAndDatabaseMicrosecondTimestampAndIgnoresAllForgedImmutableFields() throws Exception {
+        Account author = verifiedAccount();
+        Session session = login(author.email());
+        long postId = seedPost(author.id(), "APPROVED");
+        long parent = seedComment(postId, null, author.id(), 0, "VISIBLE", clock.instant().minusSeconds(700));
+        long id = seedComment(postId, parent, author.id(), 1, "VISIBLE", clock.instant().minusSeconds(600));
+        jdbc.update("UPDATE community.comments SET moderated_by=? WHERE id=?", author.id(), id);
+        var before = jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id);
+        var postBefore = jdbc.queryForMap("SELECT * FROM community.posts WHERE id=?", postId);
+        Instant rawNow = clock.instant().plusNanos(999);
+        clock.set(rawNow);
+        String literal = "<img src=x onerror=alert(1)>\n**đậm**";
+        ObjectNode body = mapper.createObjectNode().put("content", "\u3000 " + literal + " \u3000")
+                .put("id", -1).put("postId", -2).put("parentId", -3).put("authorId", -4).put("depth", 3)
+                .put("status", "DELETED").put("moderatedBy", -5).put("moderationReason", "Forged reason")
+                .put("createdAt", "2000-01-01T00:00:00Z").put("updatedAt", "2000-01-01T00:00:00Z")
+                .put("editedAt", "2000-01-01T00:00:00Z");
+
+        JsonNode response = updated(cookieMutation("PUT", Long.toString(id), session, mapper.writeValueAsString(body)));
+
+        assertThat(response.path("id").asLong()).isEqualTo(id);
+        assertThat(response.path("postId").asLong()).isEqualTo(postId);
+        assertThat(response.path("parentId").asLong()).isEqualTo(parent);
+        assertThat(response.path("depth").asInt()).isEqualTo(1);
+        assertThat(response.path("status").asText()).isEqualTo("VISIBLE");
+        assertThat(response.path("content").asText()).isEqualTo(literal);
+        assertThat(fields(response.path("author"))).containsExactlyInAnyOrder("id", "displayName");
+        assertThat(response.path("author").path("id").asLong()).isEqualTo(author.id());
+        assertThat(response.path("author").path("displayName").asText()).isEqualTo(DISPLAY_NAME);
+        assertThat(Instant.parse(response.path("createdAt").asText())).isEqualTo(((Timestamp) before.get("created_at")).toInstant());
+        assertThat(Instant.parse(response.path("editedAt").asText())).isEqualTo(rawNow.truncatedTo(ChronoUnit.MICROS));
+        assertThat(response.toString()).doesNotContain(author.email(), "Private moderation reason", "Forged reason");
+        var expected = new java.util.HashMap<>(before);
+        expected.put("content", literal);
+        expected.put("updated_at", Timestamp.from(rawNow.truncatedTo(ChronoUnit.MICROS)));
+        assertThat(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id)).isEqualTo(expected);
+        assertThat(jdbc.queryForMap("SELECT * FROM community.posts WHERE id=?", postId)).isEqualTo(postBefore);
+    }
+
+    @Test
+    void updateAllowsTenMinutesAndExactDeadlineButRejectsOneMicrosecondPastUsingPersistedCreationTime() throws Exception {
+        Account author = verifiedAccount();
+        Session session = login(author.email());
+        long postId = seedPost(author.id(), "APPROVED");
+        Instant now = clock.instant();
+        for (Instant createdAt : List.of(now.minusSeconds(600), now.minusSeconds(900).plusNanos(1000), now.minusSeconds(900))) {
+            long id = seedComment(postId, null, author.id(), 0, "VISIBLE", createdAt);
+            JsonNode response = updated(cookieMutation("PUT", Long.toString(id), session, body("Within deadline")));
+            assertThat(Instant.parse(response.path("createdAt").asText())).isEqualTo(createdAt);
+            assertThat(Instant.parse(response.path("editedAt").asText())).isEqualTo(now);
+            assertThat(jdbc.queryForMap("SELECT created_at,updated_at FROM community.comments WHERE id=?", id))
+                    .containsEntry("created_at", Timestamp.from(createdAt)).containsEntry("updated_at", Timestamp.from(now));
+        }
+        for (Instant createdAt : List.of(now.minusSeconds(900).minusNanos(1000), now.minusSeconds(960))) {
+            long id = seedComment(postId, null, author.id(), 0, "VISIBLE", createdAt);
+            var before = jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id);
+            error(cookieMutation("PUT", Long.toString(id), session, body("Expired")), 409, "COMMENT_EDIT_WINDOW_EXPIRED");
+            assertThat(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id)).isEqualTo(before);
+        }
+        long submicrosecondExpired = seedComment(postId, null, author.id(), 0, "VISIBLE", now.minusSeconds(900));
+        clock.set(now.plusNanos(1));
+        error(cookieMutation("PUT", Long.toString(submicrosecondExpired), session, body("Expired by one nanosecond")),
+                409, "COMMENT_EDIT_WINDOW_EXPIRED");
+        clock.set(now);
+        long simultaneous = seedComment(postId, null, author.id(), 0, "VISIBLE", now);
+        JsonNode response = updated(cookieMutation("PUT", Long.toString(simultaneous), session, body("Same instant")));
+        assertThat(response.path("editedAt").isNull()).isTrue();
+        assertThat(jdbc.queryForMap("SELECT created_at,updated_at FROM community.comments WHERE id=?", simultaneous))
+                .containsEntry("created_at", Timestamp.from(now)).containsEntry("updated_at", Timestamp.from(now));
+    }
+
+    @Test
+    void updateValidationRunsBeforeOwnershipAndIdParsingAndUsesTheExistingUnicodeUtf16Rules() throws Exception {
+        Account author = verifiedAccount();
+        Account other = verifiedAccount();
+        Session session = login(author.email());
+        long postId = seedPost(author.id(), "APPROVED");
+        long own = seedComment(postId, null, author.id(), 0, "VISIBLE", clock.instant().minusSeconds(30));
+        long foreign = seedComment(postId, null, other.id(), 0, "VISIBLE", clock.instant().minusSeconds(30));
+        var before = jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", own);
+        for (String target : List.of(Long.toString(own), Long.toString(foreign), Long.toString(Long.MAX_VALUE), "not-a-number",
+                "9223372036854775808")) {
+            for (String invalid : List.of("{}", "{\"content\":null}", body(""), body("\u3000\u2003"), body(" \t\r\n "),
+                    body("x".repeat(5001)), body("😀".repeat(2501)), "not-json", "{\"content\":")) {
+                JsonNode response = error(cookieMutation("PUT", target, session, invalid), 422, "VALIDATION_FAILED");
+                assertThat(fields(response)).containsExactlyInAnyOrder("error_code", "message", "request_id", "details");
+                assertThat(response.toString()).doesNotContain(author.email(), other.email(), "JsonParseException", "com.fasterxml.jackson");
+            }
+        }
+        assertThat(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", own)).isEqualTo(before);
+        for (String valid : List.of("汉".repeat(5000), "😀".repeat(2500), "\u3000汉\u3000")) {
+            assertThat(updated(cookieMutation("PUT", Long.toString(own), session, body(valid))).path("content").asText())
+                    .isEqualTo(valid.strip());
+        }
+    }
+
+    @Test
+    void updateRejectsHiddenAndDeletedCommentsBeforeAgeChecksWithoutChangingTheirRows() throws Exception {
+        Account author = verifiedAccount();
+        Session session = login(author.email());
+        long postId = seedPost(author.id(), "APPROVED");
+        for (String state : List.of("HIDDEN", "DELETED")) {
+            for (long age : List.of(30L, 3600L)) {
+                long id = seedComment(postId, null, author.id(), 0, state, clock.instant().minusSeconds(age));
+                var before = jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id);
+                error(cookieMutation("PUT", Long.toString(id), session, body("Attempted edit")), 409, "COMMENT_NOT_EDITABLE");
+                assertThat(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id)).isEqualTo(before);
+            }
+        }
+    }
+
+    @Test
+    void mutationsRemainAvailableForOwnCommentsOnEveryNonpublicParentPostAndIgnoreTheCreationQuota() throws Exception {
+        Account author = verifiedAccount();
+        Session session = login(author.email());
+        long approved = seedPost(author.id(), "APPROVED");
+        for (int i = 0; i < 30; i++) seedComment(approved, null, author.id(), 0, "VISIBLE", clock.instant().minusSeconds(30));
+        for (String state : NONPUBLIC) {
+            long postId = seedPost(author.id(), state);
+            var postBefore = jdbc.queryForMap("SELECT * FROM community.posts WHERE id=?", postId);
+            long id = seedComment(postId, null, author.id(), 0, "VISIBLE", clock.instant().minusSeconds(30));
+            assertThat(updated(cookieMutation("PUT", Long.toString(id), session, body("Private post comment")))
+                    .path("content").asText()).isEqualTo("Private post comment");
+            mvc.perform(cookieMutation("DELETE", Long.toString(id), session, "")).andExpect(status().isNoContent());
+            assertThat(jdbc.queryForObject("SELECT status FROM community.comments WHERE id=?", String.class, id)).isEqualTo("DELETED");
+            assertThat(jdbc.queryForMap("SELECT * FROM community.posts WHERE id=?", postId)).isEqualTo(postBefore);
+        }
+    }
+
+    @Test
+    void deleteSoftDeletesOnceDecrementsBothPublicCountsAndRetainsNineFieldAncestorAndVisibleReplies() throws Exception {
+        Account author = verifiedAccount();
+        Session session = login(author.email());
+        long postId = seedPost(author.id(), "APPROVED");
+        long id = seedComment(postId, null, author.id(), 0, "VISIBLE", clock.instant().minusSeconds(86400));
+        long firstReply = seedComment(postId, id, author.id(), 1, "VISIBLE", clock.instant().minusSeconds(50));
+        long secondReply = seedComment(postId, id, author.id(), 1, "VISIBLE", clock.instant().minusSeconds(40));
+        var before = jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id);
+        var firstBefore = jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", firstReply);
+        var secondBefore = jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", secondReply);
+        var postBefore = jdbc.queryForMap("SELECT * FROM community.posts WHERE id=?", postId);
+        assertPublicCommentCounts(postId, 3);
+        MvcResult deleted = mvc.perform(cookieMutation("DELETE", Long.toString(id), session, ""))
+                .andExpect(status().isNoContent()).andReturn();
+        assertThat(deleted.getResponse().getContentAsByteArray()).isEmpty();
+        var expected = new java.util.HashMap<>(before);
+        expected.put("status", "DELETED");
+        expected.put("moderated_by", author.id());
+        expected.put("moderation_reason", "AUTHOR_DELETED");
+        expected.put("updated_at", Timestamp.from(clock.instant()));
+        assertThat(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id)).isEqualTo(expected);
+        assertPublicCommentCounts(postId, 2);
+        JsonNode tree = read(mvc.perform(get("/api/public/community/posts/{id}/comments", postId))
+                .andExpect(status().isOk()).andReturn());
+        assertThat(tree).hasSize(3);
+        JsonNode ancestor = tree.get(0);
+        assertThat(fields(ancestor)).containsExactlyInAnyOrderElementsOf(COMMENT_FIELDS);
+        assertThat(ancestor.path("id").asLong()).isEqualTo(id);
+        assertThat(ancestor.path("postId").asLong()).isEqualTo(postId);
+        assertThat(ancestor.path("status").asText()).isEqualTo("DELETED");
+        assertThat(ancestor.path("content").isNull()).isTrue();
+        assertThat(ancestor.path("author").isNull()).isTrue();
+        assertThat(ancestor.path("editedAt").isNull()).isTrue();
+        assertThat(ancestor.toString()).doesNotContain("Private parent content", "Private moderation reason", author.email(), "AUTHOR_DELETED");
+        for (int index = 1; index <= 2; index++) {
+            assertThat(fields(tree.get(index))).containsExactlyInAnyOrderElementsOf(COMMENT_FIELDS);
+            assertThat(tree.get(index).path("id").asLong()).isEqualTo(index == 1 ? firstReply : secondReply);
+            assertThat(tree.get(index).path("content").asText()).isEqualTo("Private parent content");
+            assertThat(tree.get(index).path("parentId").asLong()).isEqualTo(id);
+            assertThat(tree.get(index).path("status").asText()).isEqualTo("VISIBLE");
+        }
+        clock.set(clock.instant().plusSeconds(1));
+        sqlCapture.start();
+        try {
+            mvc.perform(cookieMutation("DELETE", Long.toString(id), session, "")).andExpect(status().isNoContent());
+            assertThat(sqlCapture.statements()).noneMatch(sql -> sql.startsWith("update ") && sql.contains("community.comments"));
+        } finally { sqlCapture.stop(); }
+        assertThat(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id)).isEqualTo(expected);
+        assertThat(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", firstReply)).isEqualTo(firstBefore);
+        assertThat(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", secondReply)).isEqualTo(secondBefore);
+        assertThat(jdbc.queryForMap("SELECT * FROM community.posts WHERE id=?", postId)).isEqualTo(postBefore);
+        assertPublicCommentCounts(postId, 2);
+    }
+
+    @Test
+    void deletingAlreadyHiddenOrDeletedCommentsIsATrueSqlNoopForEveryPersistedColumn() throws Exception {
+        Account author = verifiedAccount();
+        Session session = login(author.email());
+        long postId = seedPost(author.id(), "APPROVED");
+        for (String state : List.of("HIDDEN", "DELETED")) {
+            long id = seedComment(postId, null, author.id(), 0, state, clock.instant().minusSeconds(86400));
+            jdbc.update("UPDATE community.comments SET moderated_by=?,updated_at=? WHERE id=?",
+                    author.id(), Timestamp.from(clock.instant().minusSeconds(30)), id);
+            var before = jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id);
+            sqlCapture.start();
+            try {
+                for (int i = 0; i < 2; i++) {
+                    MvcResult response = mvc.perform(cookieMutation("DELETE", Long.toString(id), session, ""))
+                            .andExpect(status().isNoContent()).andReturn();
+                    assertThat(response.getResponse().getContentAsByteArray()).isEmpty();
+                }
+                assertThat(sqlCapture.statements()).noneMatch(sql -> sql.startsWith("update ") && sql.contains("community.comments"));
+            } finally { sqlCapture.stop(); }
+            assertThat(jdbc.queryForMap("SELECT * FROM community.comments WHERE id=?", id)).isEqualTo(before);
+        }
+    }
+
+    @Test
+    void generatedMutationOpenApiMatchesLockedStatusesSchemasIdTypeAndSecurity() throws Exception {
+        JsonNode document = read(mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn());
+        JsonNode path = document.path("paths").path("/api/community/comments/{id}");
+        for (String method : List.of("put", "delete")) {
+            JsonNode operation = path.path(method);
+            assertThat(operation.path("operationId").asText()).isEqualTo(method.equals("put") ? "updateComment" : "deleteComment");
+            assertThat(fields(operation.path("responses"))).containsExactlyInAnyOrderElementsOf(method.equals("put")
+                    ? List.of("200", "401", "403", "409", "422") : List.of("204", "401", "403"));
+            assertThat(operation.path("parameters")).hasSize(1);
+            JsonNode id = operation.path("parameters").get(0);
+            assertThat(id.path("name").asText()).isEqualTo("id");
+            assertThat(id.path("in").asText()).isEqualTo("path");
+            assertThat(id.path("required").asBoolean()).isTrue();
+            assertThat(id.path("schema").path("type").asText()).isEqualTo("integer");
+            assertThat(id.path("schema").path("format").asText()).isEqualTo("int64");
+            JsonNode security = operation.has("security") ? operation.path("security") : document.path("security");
+            assertThat(security.isArray()).isTrue();
+            assertThat(security.toString()).contains("cookieAuth", "bearerAuth");
+            for (String code : method.equals("put") ? List.of("401", "403", "409", "422") : List.of("401", "403")) {
+                assertThat(operation.path("responses").path(code).toString()).contains("#/components/schemas/ErrorResponse");
+            }
+        }
+        JsonNode update = path.path("put");
+        assertThat(update.path("requestBody").path("required").asBoolean()).isTrue();
+        assertThat(update.path("requestBody").path("content").path("application/json").path("schema").path("$ref").asText())
+                .isEqualTo("#/components/schemas/CommentWrite");
+        assertThat(update.path("responses").path("200").path("content").path("application/json").path("schema").path("$ref").asText())
+                .isEqualTo("#/components/schemas/Comment");
+        assertThat(path.path("delete").has("requestBody")).isFalse();
+        assertThat(path.path("delete").path("responses").path("204").has("content")).isFalse();
+    }
+
+    private void assertPublicCommentCounts(long postId, long count) throws Exception {
+        JsonNode detail = read(mvc.perform(get("/api/public/community/posts/{id}", postId)).andExpect(status().isOk()).andReturn());
+        assertThat(detail.path("commentCount").asLong()).isEqualTo(count);
+        JsonNode page = read(mvc.perform(get("/api/public/community/posts").param("size", "50"))
+                .andExpect(status().isOk()).andReturn());
+        List<JsonNode> found = new ArrayList<>();
+        page.path("items").forEach(item -> { if (item.path("id").asLong() == postId) found.add(item); });
+        assertThat(found).singleElement().satisfies(item -> assertThat(item.path("commentCount").asLong()).isEqualTo(count));
+    }
+
+    private MockHttpServletRequestBuilder mutation(String method, String id) {
+        String path = "/api/community/comments/" + id;
+        return method.equals("PUT") ? put(path) : delete(path);
+    }
+
+    private MockHttpServletRequestBuilder cookieMutation(String method, String id, Session session, String content) {
+        return mutation(method, id).cookie(session.access(), session.csrf()).header("X-XSRF-TOKEN", session.csrf().getValue())
+                .contentType(MediaType.APPLICATION_JSON).content(content);
+    }
+
+    private JsonNode updated(MockHttpServletRequestBuilder request) throws Exception {
+        JsonNode response = read(mvc.perform(request).andExpect(status().isOk()).andReturn());
+        assertThat(fields(response)).containsExactlyInAnyOrderElementsOf(COMMENT_FIELDS);
+        return response;
+    }
+
     private void assertComment(JsonNode result, long author, long postId, Long parent, int depth, String content) {
         assertThat(fields(result)).containsExactlyInAnyOrderElementsOf(COMMENT_FIELDS);
         assertThat(result.path("id").asLong()).isPositive();
@@ -467,6 +806,7 @@ class CommentControllerIntegrationTest extends AbstractIntegrationTest {
 
     private static String rootPath(long id) { return "/api/community/posts/" + id + "/comments"; }
     private static String replyPath(long id) { return "/api/community/comments/" + id + "/replies"; }
+    private static String commentPath(long id) { return "/api/community/comments/" + id; }
     private record Account(long id, String email) { }
     private record Session(Cookie access, Cookie refresh, Cookie csrf) { }
 
@@ -475,6 +815,22 @@ class CommentControllerIntegrationTest extends AbstractIntegrationTest {
         @Bean
         @Primary
         CommentClock commentIntegrationClock() { return new CommentClock(); }
+        @Bean MutationSqlCapture commentMutationSqlCapture() { return new MutationSqlCapture(); }
+        @Bean HibernatePropertiesCustomizer commentMutationStatementInspector(MutationSqlCapture capture) {
+            return properties -> properties.put("hibernate.session_factory.statement_inspector", capture);
+        }
+    }
+
+    static class MutationSqlCapture implements StatementInspector {
+        private final ThreadLocal<List<String>> active = new ThreadLocal<>();
+        void start() { active.set(new ArrayList<>()); }
+        void stop() { active.remove(); }
+        List<String> statements() { return List.copyOf(active.get()); }
+        @Override public String inspect(String sql) {
+            List<String> statements = active.get();
+            if (statements != null) statements.add(sql.toLowerCase(Locale.ROOT).strip());
+            return sql;
+        }
     }
 
     static class CommentClock extends Clock {

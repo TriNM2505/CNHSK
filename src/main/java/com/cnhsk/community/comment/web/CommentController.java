@@ -9,6 +9,7 @@ import com.cnhsk.shared.exception.ErrorCode;
 import com.cnhsk.shared.exception.GlobalExceptionHandler;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -21,6 +22,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,6 +32,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerMapping;
 
 @RestController
 @RequestMapping("/api/community")
@@ -85,6 +91,61 @@ public class CommentController {
                     content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
     public CommentResponse replyToComment(@PathVariable("id") long parentId, @Valid @RequestBody CommentWrite request) {
         return service.reply(parentId, request);
+    }
+
+    @Hidden
+    @ModelAttribute
+    public void authorizeMutation(HttpServletRequest request) {
+        Object selected = request.getAttribute(HandlerMapping.BEST_MATCHING_HANDLER_ATTRIBUTE);
+        if (selected instanceof HandlerMethod handler
+                && (handler.hasMethodAnnotation(PutMapping.class) || handler.hasMethodAnnotation(DeleteMapping.class))) {
+            service.authorizeMutation();
+        }
+    }
+
+    @PutMapping(value = "/comments/{id}", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(operationId = "updateComment", tags = "comments")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK",
+                    content = @Content(schema = @Schema(implementation = CommentResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "403", description = "Không có quyền hoặc chưa xác minh email",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "409", description = "Bình luận không thể sửa hoặc đã hết thời hạn",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "422", description = "Dữ liệu không hợp lệ",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+    public CommentResponse updateComment(
+            @Parameter(required = true, schema = @Schema(type = "integer", format = "int64"))
+            @PathVariable("id") String id, @Valid @RequestBody CommentWrite request) {
+        // Keep path parsing after body validation, including when both inputs are invalid.
+        return service.update(commentId(id), request);
+    }
+
+    @DeleteMapping("/comments/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(operationId = "deleteComment", tags = "comments")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Đã xoá hoặc đã ở trạng thái xoá/ẩn", content = @Content),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "403", description = "Không có quyền hoặc chưa xác minh email",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+    public void deleteComment(
+            @Parameter(required = true, schema = @Schema(type = "integer", format = "int64"))
+            @PathVariable("id") String id) {
+        service.delete(commentId(id));
+    }
+
+    private static long commentId(String id) {
+        try {
+            return Long.parseLong(id);
+        } catch (NumberFormatException invalid) {
+            throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                    "Bạn không có quyền thực hiện thao tác này.", Map.of());
+        }
     }
 
     @Hidden
