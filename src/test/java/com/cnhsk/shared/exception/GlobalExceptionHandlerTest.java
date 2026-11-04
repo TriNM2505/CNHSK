@@ -140,7 +140,7 @@ class GlobalExceptionHandlerTest {
                 "ATTEMPT_NOT_SUBMITTED", "PLACEMENT_BANK_INSUFFICIENT", "PLACEMENT_NOT_FINISHED",
                 "LEXEME_NOT_FOUND", "QUESTION_NOT_FOUND", "MALFORMED_QUESTION", "KNOWLEDGE_NODE_REQUIRED",
                 "GRADING_CHANGE_NOT_ALLOWED", "QUESTION_ARCHIVED", "COLLECTION_NOT_OWNED", "LIBRARY_LIMIT_REACHED",
-                "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "INTERNAL_ERROR");
+                "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "CARD_DUPLICATE", "INTERNAL_ERROR");
     }
 
     @Test
@@ -177,8 +177,36 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.request_id").value("notes-restore-test"));
     }
 
+    @Test
+    void cardDuplicateReturns409WithoutDetailsAndProtectsStandardFields() throws Exception {
+        mockMvc.perform(get("/test/card-duplicate").header(RequestIdFilter.HEADER_NAME, "card-duplicate-test"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.error_code").value("CARD_DUPLICATE"))
+                .andExpect(jsonPath("$.message").value("Thẻ đã có trong bộ."))
+                .andExpect(jsonPath("$.request_id").value("card-duplicate-test")).andExpect(jsonPath("$.details").doesNotExist());
+    }
+
+    @Test
+    void cardLimitReturns422WithKindAndLimitDetails() throws Exception {
+        mockMvc.perform(get("/test/card-limit").header(RequestIdFilter.HEADER_NAME, "card-limit-test"))
+                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.error_code").value("LIBRARY_LIMIT_REACHED"))
+                .andExpect(jsonPath("$.request_id").value("card-limit-test"))
+                .andExpect(jsonPath("$.details.kind").value("CARDS")).andExpect(jsonPath("$.details.limit").value(500));
+    }
+
     @RestController
     static class ErrorTestController {
+
+        @GetMapping("/test/card-duplicate")
+        void cardDuplicate() {
+            throw new ApiException(ErrorCode.CARD_DUPLICATE, HttpStatus.CONFLICT, "Thẻ đã có trong bộ.",
+                    Map.of("details", Map.of("cardId", 42), "error_code", "FORGED", "message", "FORGED", "request_id", "FORGED"));
+        }
+
+        @GetMapping("/test/card-limit")
+        void cardLimit() {
+            throw new ApiException(ErrorCode.LIBRARY_LIMIT_REACHED, HttpStatus.UNPROCESSABLE_ENTITY, "Giới hạn thẻ.",
+                    Map.of("details", Map.of("kind", "CARDS", "limit", 500)));
+        }
 
         @GetMapping("/test/note-not-restorable")
         void noteNotRestorable() {

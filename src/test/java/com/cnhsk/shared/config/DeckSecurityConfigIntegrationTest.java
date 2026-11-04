@@ -87,5 +87,63 @@ class DeckSecurityConfigIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(delete("/api/flashcard-decks/{id}", deck).header("Authorization", bearer)).andExpect(status().isNoContent());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"POST", "PATCH", "DELETE"})
+    void FR015_FR016_cardGuestsReceive401(String method) throws Exception {
+        String path = "/api/flashcard-decks/" + deck + "/cards" + (method.equals("POST") ? "" : "/123");
+        mvc.perform(request(org.springframework.http.HttpMethod.valueOf(method), path))
+                .andExpect(status().isUnauthorized()).andExpect(jsonPath("$.error_code").value("UNAUTHENTICATED"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ADMIN", "ACCOUNTANT", "TEACHER", "CONTENT_EDITOR", "MODERATOR"})
+    void FR015_FR016_cardNonLearnersReceive403(String role) throws Exception {
+        String bearer = "Bearer " + token(List.of(role));
+        for (var request : List.of(post("/api/flashcard-decks/{id}/cards", deck),
+                patch("/api/flashcard-decks/{id}/cards/123", deck), delete("/api/flashcard-decks/{id}/cards/123", deck))) {
+            mvc.perform(request.header("Authorization", bearer)).andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("FORBIDDEN"));
+        }
+    }
+
+    @Test
+    void FR015_FR016_cardCookieWritesRequireMatchingCsrf() throws Exception {
+        long card = card();
+        Cookie access = new Cookie("access_token", token(List.of("LEARNER")));
+        for (String method : List.of("POST", "PATCH", "DELETE")) {
+            String path = "/api/flashcard-decks/" + deck + "/cards" + (method.equals("POST") ? "" : "/" + card);
+            mvc.perform(request(org.springframework.http.HttpMethod.valueOf(method), path).cookie(access)
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"front\":\"CSRF\",\"back\":\"Mặt sau\"}"))
+                    .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("CSRF_TOKEN_INVALID"));
+            mvc.perform(request(org.springframework.http.HttpMethod.valueOf(method), path).cookie(access, new Cookie("XSRF-TOKEN", "card-token"))
+                    .header("X-XSRF-TOKEN", "wrong").contentType(MediaType.APPLICATION_JSON).content("{\"front\":\"CSRF\",\"back\":\"Mặt sau\"}"))
+                    .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("CSRF_TOKEN_INVALID"));
+        }
+        mvc.perform(get("/api/flashcard-decks/{id}", deck).cookie(access)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.cards[0].front").value("Thẻ thử quyền"));
+        mvc.perform(post("/api/flashcard-decks/{id}/cards", deck).cookie(access, new Cookie("XSRF-TOKEN", "card-token"))
+                .header("X-XSRF-TOKEN", "card-token").contentType(MediaType.APPLICATION_JSON).content("{\"front\":\"Cookie hợp lệ\",\"back\":\"Mặt sau\"}"))
+                .andExpect(status().isCreated());
+        mvc.perform(patch("/api/flashcard-decks/{id}/cards/{cardId}", deck, card).cookie(access, new Cookie("XSRF-TOKEN", "card-token"))
+                .header("X-XSRF-TOKEN", "card-token").contentType(MediaType.APPLICATION_JSON).content("{\"back\":\"Mặt sau mới\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(delete("/api/flashcard-decks/{id}/cards/{cardId}", deck, card).cookie(access, new Cookie("XSRF-TOKEN", "card-token"))
+                .header("X-XSRF-TOKEN", "card-token")).andExpect(status().isNoContent());
+    }
+
+    @Test
+    void FR015_FR016_cardBearerWritesAllowLearnerWithOtherRolesWithoutCsrf() throws Exception {
+        long card = card();
+        String bearer = "Bearer " + token(List.of("LEARNER", "ADMIN"));
+        mvc.perform(post("/api/flashcard-decks/{id}/cards", deck).header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"front\":\"Bearer hợp lệ\",\"back\":\"Mặt sau\"}"))
+                .andExpect(status().isCreated());
+        mvc.perform(patch("/api/flashcard-decks/{id}/cards/{cardId}", deck, card).header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"back\":\"Mặt sau mới\"}"))
+                .andExpect(status().isOk());
+        mvc.perform(delete("/api/flashcard-decks/{id}/cards/{cardId}", deck, card).header("Authorization", bearer))
+                .andExpect(status().isNoContent());
+    }
+
+    private long card() { return jdbc.queryForObject("INSERT INTO learning.collection_items(collection_id,title,content) VALUES (?,'Thẻ thử quyền','Mặt sau') RETURNING id", Long.class, deck); }
     private String token(List<String> roles) { return jwt.issueAccessToken(user, roles, false, UUID.randomUUID()); }
 }
