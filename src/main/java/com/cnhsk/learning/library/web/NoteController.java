@@ -1,11 +1,13 @@
 package com.cnhsk.learning.library.web;
 
+import java.util.List;
 import java.util.Map;
 
 import com.cnhsk.learning.library.DictionaryService;
 import com.cnhsk.learning.library.NotebookService;
 import com.cnhsk.learning.library.NotebookService.Note;
 import com.cnhsk.learning.library.NotebookService.NotePage;
+import com.cnhsk.learning.library.NotebookService.TrashNote;
 import com.cnhsk.shared.exception.GlobalExceptionHandler;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -75,6 +78,26 @@ public class NoteController {
             @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED")})
     public Note update(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
                        @Valid @RequestBody NoteWrite request) { return notes.update(id, request); }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(operationId = "deleteNote", tags = "notes")
+    @ApiResponse(responseCode = "204", description = "Đã xoá, kể cả khi đã xoá trước đó")
+    public void delete(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
+        notes.delete(id);
+    }
+
+    @GetMapping("/trash")
+    @Operation(operationId = "listTrash", tags = "notes")
+    public List<TrashNote> trash() { return notes.trash(); }
+
+    @PostMapping("/{id}/restore")
+    @Operation(operationId = "restoreNote", tags = "notes")
+    @ApiResponses({@ApiResponse(responseCode = "409", description = "NOTE_NOT_RESTORABLE hoặc NOTE_DUPLICATE (details.noteId)"),
+            @ApiResponse(responseCode = "422", description = "LIBRARY_LIMIT_REACHED")})
+    public Note restore(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
+        return notes.restore(id);
+    }
 
     @Hidden
     @ExceptionHandler(HttpMessageNotReadableException.class)

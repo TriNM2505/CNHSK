@@ -67,5 +67,44 @@ class NotesSecurityConfigIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(get("/api/notes").cookie(access)).andExpect(status().isOk());
     }
 
+    @Test
+    void FR012_guestsCannotReadTrashOrRestore() throws Exception {
+        for (var request : List.of(get("/api/notes/trash"), post("/api/notes/123/restore"))) {
+            mvc.perform(request).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.error_code").value("UNAUTHENTICATED"));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"ADMIN", "ACCOUNTANT", "TEACHER", "CONTENT_EDITOR", "MODERATOR"})
+    void FR012_lifecycleRoutesRequireLearnerRole(String role) throws Exception {
+        for (var request : List.of(get("/api/notes/trash"), delete("/api/notes/123"), post("/api/notes/123/restore"))) {
+            mvc.perform(request.header("Authorization", "Bearer " + token(role)))
+                    .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("FORBIDDEN"));
+        }
+    }
+
+    @Test
+    void FR012_deleteAndRestoreRequireMatchingCookieCsrfAndAllowBearerOnly() throws Exception {
+        long book = jdbc.queryForObject("INSERT INTO learning.collections(user_id,kind,name) VALUES (?,'NOTEBOOK','Sổ thử CSRF') RETURNING id", Long.class, user);
+        long id = jdbc.queryForObject("INSERT INTO learning.collection_items(collection_id,content) VALUES (?,'Ghi chú tự soạn CSRF') RETURNING id", Long.class, book);
+        Cookie access = new Cookie("access_token", token("LEARNER"));
+        for (var request : List.of(delete("/api/notes/{id}", id), post("/api/notes/{id}/restore", id))) {
+            mvc.perform(request.cookie(access)).andExpect(status().isForbidden())
+                    .andExpect(jsonPath("$.error_code").value("CSRF_TOKEN_INVALID"));
+        }
+        for (var request : List.of(delete("/api/notes/{id}", id), post("/api/notes/{id}/restore", id))) {
+            mvc.perform(request.cookie(access, new Cookie("XSRF-TOKEN", "notes-token")).header("X-XSRF-TOKEN", "wrong"))
+                    .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("CSRF_TOKEN_INVALID"));
+        }
+        mvc.perform(delete("/api/notes/{id}", id).cookie(access, new Cookie("XSRF-TOKEN", "notes-token"))
+                .header("X-XSRF-TOKEN", "notes-token")).andExpect(status().isNoContent());
+        mvc.perform(get("/api/notes/trash").cookie(access)).andExpect(status().isOk());
+        mvc.perform(post("/api/notes/{id}/restore", id).cookie(access, new Cookie("XSRF-TOKEN", "notes-token"))
+                .header("X-XSRF-TOKEN", "notes-token")).andExpect(status().isOk());
+        String bearer = "Bearer " + token("LEARNER");
+        mvc.perform(delete("/api/notes/{id}", id).header("Authorization", bearer)).andExpect(status().isNoContent());
+        mvc.perform(post("/api/notes/{id}/restore", id).header("Authorization", bearer)).andExpect(status().isOk());
+    }
+
     private String token(String role) { return jwt.issueAccessToken(user, List.of(role), false, UUID.randomUUID()); }
 }

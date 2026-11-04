@@ -1,5 +1,7 @@
 package com.cnhsk.learning.library;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
@@ -19,14 +21,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class NotebookService {
 
+    private static final Duration RESTORE_WINDOW = Duration.ofDays(30);
     private final AuthApi auth;
     private final NotebookRepository notes;
     private final LibraryConfig config;
+    private final Clock clock;
 
-    public NotebookService(AuthApi auth, NotebookRepository notes, LibraryConfig config) {
+    public NotebookService(AuthApi auth, NotebookRepository notes, LibraryConfig config, Clock clock) {
         this.auth = auth;
         this.notes = notes;
         this.config = config;
+        this.clock = clock;
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -69,10 +74,56 @@ public class NotebookService {
                 snippet(note.content(), query), note.tags(), note.lexemeId(), note.sourceType(), note.updatedAt())).toList(), result.total());
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void delete(String id) {
+        long userId = auth.currentUser().userId();
+        notes.lock(userId);
+        Instant now = clock.instant();
+        long noteId = id(id);
+        var existing = notes.findForLifecycle(userId, noteId).orElseThrow(NotebookService::notOwned);
+        if (existing.deletedAt() == null) notes.softDelete(userId, noteId, now);
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
+    public List<TrashNote> trash() {
+        long userId = auth.currentUser().userId();
+        notes.lock(userId);
+        Instant now = clock.instant();
+        return notes.trash(userId, now.minus(RESTORE_WINDOW), now).stream().map(item -> {
+            Note note = item.note();
+            return new TrashNote(note.id(), note.title(), snippet(note.content(), null), note.tags(),
+                    note.lexemeId(), note.sourceType(), note.updatedAt(), item.deletedAt(), item.deletedAt().plus(RESTORE_WINDOW));
+        }).toList();
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Note restore(String id) {
+        long userId = auth.currentUser().userId();
+        notes.lock(userId);
+        Instant now = clock.instant();
+        long noteId = id(id);
+        var existing = notes.findForLifecycle(userId, noteId).orElseThrow(NotebookService::notOwned);
+        if (existing.deletedAt() == null || now.isAfter(existing.deletedAt().plus(RESTORE_WINDOW))) {
+            throw new ApiException(ErrorCode.NOTE_NOT_RESTORABLE, HttpStatus.CONFLICT,
+                    "Ghi chú chưa xoá hoặc đã quá hạn khôi phục 30 ngày.", Map.of());
+        }
+        checkDuplicate(userId, existing.note().lexemeId(), noteId);
+        if (notes.count(userId) >= config.getMaxNotes()) {
+            throw new ApiException(ErrorCode.LIBRARY_LIMIT_REACHED, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Sổ tay đã đạt giới hạn ghi chú.", Map.of("details", Map.of("kind", "NOTES", "limit", config.getMaxNotes())));
+        }
+        return notes.restore(userId, noteId, now);
+    }
+
     private void checkLexeme(long userId, Long lexemeId, long excludedId) {
         if (lexemeId == null) return;
         if (!notes.lexemeExists(lexemeId)) throw new ApiException(ErrorCode.LEXEME_NOT_FOUND,
                 HttpStatus.NOT_FOUND, "Không tìm thấy mục từ.", Map.of());
+        checkDuplicate(userId, lexemeId, excludedId);
+    }
+
+    private void checkDuplicate(long userId, Long lexemeId, long excludedId) {
+        if (lexemeId == null) return;
         notes.duplicate(userId, lexemeId, excludedId).ifPresent(noteId -> {
             throw new ApiException(ErrorCode.NOTE_DUPLICATE, HttpStatus.CONFLICT,
                     "Từ này đã có trong sổ tay.", Map.of("details", Map.of("noteId", noteId)));
@@ -112,4 +163,8 @@ public class NotebookService {
 
     @Schema(name = "NotePage")
     public record NotePage(List<NoteListItem> items, long total) { }
+
+    @Schema(name = "TrashNote")
+    public record TrashNote(long id, String title, String snippet, List<String> tags, Long lexemeId,
+                            String sourceType, Instant updatedAt, Instant deletedAt, Instant restorableUntil) { }
 }

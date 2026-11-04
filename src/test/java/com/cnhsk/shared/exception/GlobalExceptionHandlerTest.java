@@ -140,7 +140,7 @@ class GlobalExceptionHandlerTest {
                 "ATTEMPT_NOT_SUBMITTED", "PLACEMENT_BANK_INSUFFICIENT", "PLACEMENT_NOT_FINISHED",
                 "LEXEME_NOT_FOUND", "QUESTION_NOT_FOUND", "MALFORMED_QUESTION", "KNOWLEDGE_NODE_REQUIRED",
                 "GRADING_CHANGE_NOT_ALLOWED", "QUESTION_ARCHIVED", "COLLECTION_NOT_OWNED", "LIBRARY_LIMIT_REACHED",
-                "NOTE_DUPLICATE", "INTERNAL_ERROR");
+                "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "INTERNAL_ERROR");
     }
 
     @Test
@@ -169,8 +169,22 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.details.noteId").value(42)).andExpect(jsonPath("$.request_id").isNotEmpty());
     }
 
+    @Test
+    void noteNotRestorableReturns409WithRequestId() throws Exception {
+        mockMvc.perform(get("/test/note-not-restorable").header(RequestIdFilter.HEADER_NAME, "notes-restore-test"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.error_code").value("NOTE_NOT_RESTORABLE"))
+                .andExpect(jsonPath("$.message").value("Ghi chú đã quá hạn khôi phục."))
+                .andExpect(jsonPath("$.request_id").value("notes-restore-test"));
+    }
+
     @RestController
     static class ErrorTestController {
+
+        @GetMapping("/test/note-not-restorable")
+        void noteNotRestorable() {
+            throw new ApiException(ErrorCode.NOTE_NOT_RESTORABLE, HttpStatus.CONFLICT,
+                    "Ghi chú đã quá hạn khôi phục.", Map.of());
+        }
 
         @GetMapping("/test/malformed-question")
         void malformedQuestion() {

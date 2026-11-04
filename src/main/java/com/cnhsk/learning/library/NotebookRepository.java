@@ -2,6 +2,8 @@ package com.cnhsk.learning.library;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +25,12 @@ public class NotebookRepository {
             WHERE c.user_id = :userId AND c.kind = 'NOTEBOOK' AND c.deleted_at IS NULL AND i.deleted_at IS NULL
             """;
     private static final String SELECT = "SELECT i." + COLUMNS.replace(", ", ", i.") + " " + OWNED;
+    private static final String LIFECYCLE_OWNED = """
+            FROM learning.collection_items i JOIN learning.collections c ON c.id = i.collection_id
+            WHERE c.user_id = :userId AND c.kind = 'NOTEBOOK' AND c.deleted_at IS NULL
+            """;
+    private static final String LIFECYCLE_SELECT = "SELECT i." + COLUMNS.replace(", ", ", i.")
+            + ", i.deleted_at " + LIFECYCLE_OWNED;
     private final NamedParameterJdbcTemplate jdbc;
     private volatile String similarityFunction;
 
@@ -50,6 +58,35 @@ public class NotebookRepository {
 
     public Optional<Note> find(long userId, long id) {
         return jdbc.query(SELECT + " AND i.id=:id", Map.of("userId", userId, "id", id), this::note).stream().findFirst();
+    }
+
+    public Optional<LifecycleNote> findForLifecycle(long userId, long id) {
+        return jdbc.query(LIFECYCLE_SELECT + " AND i.id=:id", Map.of("userId", userId, "id", id), this::lifecycleNote)
+                .stream().findFirst();
+    }
+
+    public List<LifecycleNote> trash(long userId, Instant cutoff, Instant now) {
+        return jdbc.query(LIFECYCLE_SELECT + """
+                 AND i.deleted_at >= :cutoff AND i.deleted_at <= :now
+                 ORDER BY i.deleted_at DESC, i.id DESC
+                """, Map.of("userId", userId, "cutoff", Timestamp.from(cutoff), "now", Timestamp.from(now)), this::lifecycleNote);
+    }
+
+    public void softDelete(long userId, long id, Instant now) {
+        jdbc.update("""
+                UPDATE learning.collection_items SET deleted_at=:now
+                WHERE id=:id AND deleted_at IS NULL AND collection_id IN (
+                    SELECT id FROM learning.collections WHERE user_id=:userId AND kind='NOTEBOOK' AND deleted_at IS NULL)
+                """, Map.of("userId", userId, "id", id, "now", Timestamp.from(now)));
+    }
+
+    public Note restore(long userId, long id, Instant now) {
+        return jdbc.queryForObject("""
+                UPDATE learning.collection_items SET deleted_at=NULL, updated_at=:now
+                WHERE id=:id AND deleted_at IS NOT NULL AND collection_id IN (
+                    SELECT id FROM learning.collections WHERE user_id=:userId AND kind='NOTEBOOK' AND deleted_at IS NULL)
+                RETURNING
+                """ + COLUMNS, Map.of("userId", userId, "id", id, "now", Timestamp.from(now)), this::note);
     }
 
     public Optional<Long> duplicate(long userId, long lexemeId, long excludedId) {
@@ -146,4 +183,11 @@ public class NotebookRepository {
     }
 
     public record Page(List<Note> items, long total) { }
+
+    private LifecycleNote lifecycleNote(ResultSet rs, int row) throws SQLException {
+        Timestamp deleted = rs.getTimestamp("deleted_at");
+        return new LifecycleNote(note(rs, row), deleted == null ? null : deleted.toInstant());
+    }
+
+    public record LifecycleNote(Note note, Instant deletedAt) { }
 }

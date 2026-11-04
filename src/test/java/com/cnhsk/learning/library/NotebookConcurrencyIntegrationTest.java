@@ -2,7 +2,11 @@ package com.cnhsk.learning.library;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import java.sql.Timestamp;
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -25,6 +29,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -38,6 +43,7 @@ class NotebookConcurrencyIntegrationTest extends AbstractIntegrationTest {
     @Autowired private ObjectMapper mapper;
     @Autowired private JwtService jwt;
     @Autowired private PlatformTransactionManager transactionManager;
+    @Autowired private Clock clock;
     private long user;
     private String bearer;
 
@@ -104,6 +110,140 @@ class NotebookConcurrencyIntegrationTest extends AbstractIntegrationTest {
                 return null;
             });
         } finally { workers.shutdownNow(); }
+    }
+
+    @Test
+    void FR012_createAndRestoreShareLastQuotaSlot() throws Exception {
+        long book = lifecycleBook(user);
+        long target = deletedItem(book, null);
+        jdbc.update("INSERT INTO learning.collection_items(collection_id,content) SELECT ?, 'Ghi chú quota ' || n FROM generate_series(1,999) n", book);
+        List<MvcResult> results = lifecycleTogether(createRequest(null), restoreRequest(target, bearer));
+        assertThat(results.stream().filter(result -> result.getResponse().getStatus() == 422)).hasSize(1);
+        assertThat(results.stream().filter(result -> result.getResponse().getStatus() == 200 || result.getResponse().getStatus() == 201)).hasSize(1);
+        assertThat(activeCount(book)).isEqualTo(1000);
+        var rejected = results.stream().filter(result -> result.getResponse().getStatus() == 422).findFirst().orElseThrow();
+        var error = mapper.readTree(rejected.getResponse().getContentAsByteArray());
+        assertThat(error.path("error_code").asText()).isEqualTo("LIBRARY_LIMIT_REACHED");
+        assertThat(error.path("details").path("limit").asInt()).isEqualTo(1000);
+    }
+
+    @Test
+    void FR012_createAndRestoreSameLexemeReturnDuplicateInsteadOfUniqueFailure() throws Exception {
+        long book = lifecycleBook(user);
+        long lexeme = jdbc.queryForObject("INSERT INTO learning.lexemes(kind,text,meaning_vi) VALUES ('WORD',?,'Từ tự soạn') RETURNING id",
+                Long.class, "复并-" + UUID.randomUUID());
+        long target = deletedItem(book, lexeme);
+        List<MvcResult> results = lifecycleTogether(createRequest(lexeme), restoreRequest(target, bearer));
+        assertThat(results.stream().filter(result -> result.getResponse().getStatus() == 409)).hasSize(1);
+        assertThat(results.stream().filter(result -> result.getResponse().getStatus() == 200 || result.getResponse().getStatus() == 201)).hasSize(1);
+        assertThat(activeCount(book)).isEqualTo(1);
+        long activeId = jdbc.queryForObject("SELECT id FROM learning.collection_items WHERE collection_id=? AND deleted_at IS NULL", Long.class, book);
+        var conflict = results.stream().filter(result -> result.getResponse().getStatus() == 409).findFirst().orElseThrow();
+        var error = mapper.readTree(conflict.getResponse().getContentAsByteArray());
+        assertThat(error.path("error_code").asText()).isEqualTo("NOTE_DUPLICATE");
+        assertThat(error.path("details").path("noteId").asLong()).isEqualTo(activeId);
+    }
+
+    @Test
+    void FR012_parallelRestoresOfSameNoteReturn200AndNotRestorable() throws Exception {
+        long book = lifecycleBook(user);
+        long target = deletedItem(book, null);
+        List<MvcResult> results = lifecycleTogether(restoreRequest(target, bearer), restoreRequest(target, bearer));
+        assertThat(results.stream().mapToInt(result -> result.getResponse().getStatus()).toArray()).containsExactlyInAnyOrder(200, 409);
+        assertThat(activeCount(book)).isEqualTo(1);
+        var conflict = results.stream().filter(result -> result.getResponse().getStatus() == 409).findFirst().orElseThrow();
+        assertThat(mapper.readTree(conflict.getResponse().getContentAsByteArray()).path("error_code").asText()).isEqualTo("NOTE_NOT_RESTORABLE");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"DELETE", "TRASH", "RESTORE"})
+    void FR012_lifecycleOperationsWaitOnTheNotebookAdvisoryKey(String operation) throws Exception {
+        long book = lifecycleBook(user);
+        long target = deletedItem(book, null);
+        MockHttpServletRequestBuilder request = switch (operation) {
+            case "DELETE" -> delete("/api/notes/{id}", target).header("Authorization", bearer);
+            case "TRASH" -> get("/api/notes/trash").header("Authorization", bearer);
+            default -> restoreRequest(target, bearer);
+        };
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        try {
+            CompletableFuture<MvcResult> pending = new TransactionTemplate(transactionManager).execute(status -> {
+                lock();
+                var result = submitLifecycle(worker, request);
+                awaitWaiters(1);
+                assertThat(result).isNotDone();
+                return result;
+            });
+            assertThat(pending.get(20, TimeUnit.SECONDS).getResponse().getStatus()).isEqualTo(operation.equals("DELETE") ? 204 : 200);
+        } finally { worker.shutdownNow(); }
+    }
+
+    @Test
+    void FR012_anotherUserCanRestoreWhileFirstUserLockIsHeld() throws Exception {
+        long other = jdbc.queryForObject("INSERT INTO auth.users(email,password_hash,display_name) VALUES (?,'fixture-hash-unused','Người thử khác') RETURNING id",
+                Long.class, UUID.randomUUID() + "@example.test");
+        long target = deletedItem(lifecycleBook(other), null);
+        String otherBearer = "Bearer " + jwt.issueAccessToken(other, List.of("LEARNER"), false, UUID.randomUUID());
+        ExecutorService worker = Executors.newSingleThreadExecutor();
+        try {
+            new TransactionTemplate(transactionManager).execute(status -> {
+                lock();
+                try {
+                    assertThat(submitLifecycle(worker, restoreRequest(target, otherBearer)).get(10, TimeUnit.SECONDS).getResponse().getStatus()).isEqualTo(200);
+                } catch (Exception exception) { throw new IllegalStateException(exception); }
+                return null;
+            });
+        } finally { worker.shutdownNow(); }
+    }
+
+    private long lifecycleBook(long owner) {
+        return jdbc.queryForObject("INSERT INTO learning.collections(user_id,kind,name) VALUES (?,'NOTEBOOK','Sổ tự soạn') RETURNING id", Long.class, owner);
+    }
+
+    private long deletedItem(long book, Long lexeme) {
+        return jdbc.queryForObject("INSERT INTO learning.collection_items(collection_id,content,lexeme_id,deleted_at) VALUES (?,'Ghi chú khôi phục',?,?) RETURNING id",
+                Long.class, book, lexeme, Timestamp.from(clock.instant().minusSeconds(60)));
+    }
+
+    private long activeCount(long book) {
+        return jdbc.queryForObject("SELECT count(*) FROM learning.collection_items WHERE collection_id=? AND deleted_at IS NULL", Long.class, book);
+    }
+
+    private MockHttpServletRequestBuilder createRequest(Long lexeme) throws Exception {
+        Map<String, ?> body = lexeme == null ? Map.of("content", "Ghi chú tạo mới") : Map.of("content", "Ghi chú tạo mới", "lexemeId", lexeme);
+        return post("/api/notes").header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(body));
+    }
+
+    private MockHttpServletRequestBuilder restoreRequest(long id, String authorization) {
+        return post("/api/notes/{id}/restore", id).header("Authorization", authorization);
+    }
+
+    private List<MvcResult> lifecycleTogether(MockHttpServletRequestBuilder first, MockHttpServletRequestBuilder second) throws Exception {
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        try {
+            var pending = new TransactionTemplate(transactionManager).execute(status -> {
+                lock();
+                var results = List.of(submitLifecycle(workers, first), submitLifecycle(workers, second));
+                awaitWaiters(2);
+                return results;
+            });
+            return List.of(pending.get(0).get(20, TimeUnit.SECONDS), pending.get(1).get(20, TimeUnit.SECONDS));
+        } finally { workers.shutdownNow(); }
+    }
+
+    private CompletableFuture<MvcResult> submitLifecycle(ExecutorService workers, MockHttpServletRequestBuilder request) {
+        return CompletableFuture.supplyAsync(() -> {
+            try { return mvc.perform(request).andReturn(); }
+            catch (Exception exception) { throw new IllegalStateException(exception); }
+        }, workers);
+    }
+
+    private void awaitWaiters(int count) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15);
+        while (waiters() != count) {
+            if (System.nanoTime() > deadline) throw new IllegalStateException("Requests did not wait on notebook advisory lock");
+            try { Thread.sleep(10); } catch (InterruptedException exception) { Thread.currentThread().interrupt(); throw new IllegalStateException(exception); }
+        }
     }
 
     private List<MvcResult> together(Map<String, ?> first, Map<String, ?> second) throws Exception {

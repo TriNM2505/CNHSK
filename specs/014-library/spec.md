@@ -154,7 +154,7 @@ Phần tử kết quả tìm (FR-003…FR-006): `{id, kind, text, pinyin, sinoVi
 | **FR-009** | `POST /api/notes` body `{title?, content*, tags?, lexemeId?, sourceType?}` SHALL kiểm §0.1 (sai → **422** `VALIDATION_FAILED`); `lexemeId` không có → **404** `LEXEME_NOT_FOUND`; đủ 1 000 → **422** `LIBRARY_LIMIT_REACHED` `details{kind: NOTES, limit}`; mỗi từ một ghi chú chưa xoá trong sổ, trùng → **409** `NOTE_DUPLICATE` kèm `details{noteId}` (BR-062-4); trả **201** ghi chú |
 | **FR-010** | `GET /api/notes?q&tag&page&size` SHALL chỉ trả ghi chú chưa xoá của người gọi: `q` (≥ 2 ký tự, sai → 422) tìm trong `title` + `content` (trigram), sắp độ khớp rồi `updated_at` giảm dần; `tag` khớp chính xác; không tham số → `updated_at` giảm dần; mỗi phần tử `{id, title, snippet, tags, lexemeId, sourceType, updatedAt}` — `snippet` ≤ 200 ký tự quanh từ khoá, **văn bản thô** (FE escape trước khi tô — BR-065-6); rỗng → `[]` |
 | **FR-011** | `GET /api/notes/{id}` trả đủ ghi chú; `PUT /api/notes/{id}` (cùng luật FR-009) ghi đè, cập nhật `updated_at` (bản sau cùng thắng — BR-064-7); `lexemeId` không tồn tại → **404** `LEXEME_NOT_FOUND`; trùng từ của ghi chú chưa xoá khác → **409** `NOTE_DUPLICATE` kèm `details{noteId}`; giữ từ của chính ghi chú thì không trùng, sửa khi đủ hạn mức vẫn được |
-| **FR-012** | `DELETE /api/notes/{id}` SHALL đặt `deleted_at` (**204**; xoá lại → 204); `GET /api/notes/trash` trả ghi chú xoá trong 30 ngày (mới xoá trước) kèm `restorableUntil`; `POST /api/notes/{id}/restore` → xoá ≤ 30 ngày: bỏ `deleted_at` (**200**, kiểm giới hạn E11); quá 30 ngày hoặc chưa xoá → **409** `NOTE_NOT_RESTORABLE` |
+| **FR-012** | `DELETE /api/notes/{id}` SHALL đặt `deleted_at` (**204**; xoá lại → 204); `GET /api/notes/trash` trả ghi chú xoá trong 30 ngày (mới xoá trước) kèm `restorableUntil`; `POST /api/notes/{id}/restore` → xoá ≤ 30 ngày: bỏ `deleted_at` (**200**, kiểm giới hạn E11); quá 30 ngày hoặc chưa xoá → **409** `NOTE_NOT_RESTORABLE`; trùng từ của ghi chú chưa xoá khác → **409** `NOTE_DUPLICATE` kèm `details{noteId}` |
 
 ### Nhóm 3 — Flashcard (FR-013…FR-018) · SCR-028, SCR-029
 
@@ -218,7 +218,7 @@ Không migration. Ví dụ thẻ tạo từ mục từ 家人: `collection_items
 | `LEXEME_NOT_FOUND` | 404 | Mục từ không có | FR-007, FR-009, FR-011, FR-015 |
 | `COLLECTION_NOT_OWNED` | 403 | Bộ/thẻ/ghi chú không có hoặc của người khác | FR-001, FR-011…FR-018 |
 | `LIBRARY_LIMIT_REACHED` | 422 | Vượt 1 000 ghi chú / 50 bộ / 500 thẻ (`details.kind`) | FR-009, FR-012, FR-013, FR-015 |
-| `NOTE_DUPLICATE` | 409 | Từ đã có ghi chú chưa xoá trong sổ, `details{noteId}` | FR-009, FR-011 |
+| `NOTE_DUPLICATE` | 409 | Từ đã có ghi chú chưa xoá trong sổ, `details{noteId}`; áp dụng cả khôi phục | FR-009, FR-011, FR-012 |
 | `NOTE_NOT_RESTORABLE` | 409 | Khôi phục khi quá 30 ngày hoặc chưa xoá | FR-012 |
 | `CARD_DUPLICATE` | 409 | Thẻ trùng từ/mặt trước | FR-015, FR-016 |
 | `TOPIC_NOT_FOUND` | 404 | Chủ đề không có (mã của 003) | FR-013 |
@@ -389,7 +389,7 @@ Trạng thái mỗi màn: Loading · Empty · Error ("Thử lại").
 | AT-08 | FR-008, FR-009 | Ghi chú đầu tiên · T tạo đúng 1 sổ tay (2 request song song cũng chỉ 1); `content` rỗng / 10 001 ký tự / 11 thẻ · T 422; ghi chú thứ 1 001 · T 422 `LIBRARY_LIMIT_REACHED`; `userId` trong body · T bị bỏ qua |
 | AT-09 | FR-010 | `q="家"` (1 ký tự) · T 422; `q="gia đình"` · T đúng ghi chú, sắp đúng; `tag=hsk1` · T khớp chính xác; `snippet` chứa `<script>` · T trả nguyên văn (FE escape — AT-26); người khác · T không thấy |
 | AT-10 | FR-011 | Sửa từ 2 thiết bị · T bản sau thắng, `updated_at` mới |
-| AT-11 | FR-012, E10, E11 | Xoá · T 204, không còn trong danh sách, có trong thùng rác kèm `restorableUntil`; khôi phục · T 200; xoá 31 ngày trước · T 409; khôi phục khi đủ 1 000 · T 422 |
+| AT-11 | FR-012, E10, E11 | Xoá · T 204, không còn trong danh sách, có trong thùng rác kèm `restorableUntil`; khôi phục · T 200; xoá 31 ngày trước · T 409; khôi phục khi đủ 1 000 · T 422; khôi phục trùng từ của ghi chú chưa xoá khác · T 409 `NOTE_DUPLICATE` kèm `details{noteId}` |
 | AT-12 | FR-013 | Bộ thứ 51 · T 422; tạo từ chủ đề 30 từ · T 30 thẻ, `is_public=false`, 0 dòng `FLASHCARD`; chủ đề không có · T 404; đếm `dueCount` không N+1 |
 | AT-13 | FR-014 | Đổi tên · T 200; xoá bộ · T không còn trong danh sách, thẻ còn trong DB |
 | AT-14 | FR-015, E5 | Thêm cùng từ 2 lần · T 409; cùng mặt trước tự nhập · T 409; thẻ 501 · T 422; đổi `meaning_vi` của mục từ sau khi thêm · T thẻ không đổi |
