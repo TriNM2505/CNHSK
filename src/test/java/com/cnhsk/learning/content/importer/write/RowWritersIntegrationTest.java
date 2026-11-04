@@ -70,7 +70,7 @@ class RowWritersIntegrationTest extends AbstractIntegrationTest {
         assertThat(ImportTemplate.all()).hasSize(13);
         assertThat(writers).containsOnlyKeys(ImportDataType.LEXEME, ImportDataType.TOPIC, ImportDataType.TOPIC_ITEM,
                 ImportDataType.GRAMMAR, ImportDataType.GRAMMAR_EXERCISE, ImportDataType.PRON_STAGE,
-                ImportDataType.PRON_UNIT, ImportDataType.KNOWLEDGE_NODE, ImportDataType.KNOWLEDGE_EDGE, ImportDataType.QUESTION, ImportDataType.NODE_LINK, ImportDataType.EXAM);
+                ImportDataType.PRON_UNIT, ImportDataType.KNOWLEDGE_NODE, ImportDataType.KNOWLEDGE_EDGE, ImportDataType.QUESTION, ImportDataType.NODE_LINK, ImportDataType.EXAM, ImportDataType.EXAM_QUESTION);
     }
 
     @ParameterizedTest
@@ -305,7 +305,7 @@ class RowWritersIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = "EXAM_QUESTION", mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(ImportDataType.class)
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void FR020_writingWithoutCallerTransactionIsRejectedBeforeAnyMutation(ImportDataType type) {
         ValidatedRow row = RowWritersTest.row(example(type));

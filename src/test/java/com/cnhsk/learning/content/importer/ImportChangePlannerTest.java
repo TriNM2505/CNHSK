@@ -66,6 +66,24 @@ class ImportChangePlannerTest {
     }
 
     @Test
+    void FR009_examQuestionPreviewUsesDefaultPointsAndBatchesLinks() {
+        var rows = IntStream.range(0, 501).mapToObj(i -> new ValidatedRow(i + 2,
+                Map.of("exam_code", "EXAM_" + i, "question_code", "QUESTION_1", "section_index", "1",
+                        "order_index", "1", "points", ""), null, null)).toList();
+        when(exams.slots(any())).thenAnswer(invocation -> {
+            java.util.Collection<String> codes = invocation.getArgument(0);
+            return codes.contains("EXAM_0")
+                    ? Map.of("EXAM_0", Map.of("QUESTION_1", new ExamImportSupport.Slot(1, 1, 1)))
+                    : Map.of();
+        });
+        var preview = planner.plan(ImportDataType.EXAM_QUESTION, rows);
+        assertThat(preview.get(0).action()).isEqualTo(RowAction.UNCHANGED);
+        assertThat(preview.get(500).action()).isEqualTo(RowAction.CREATE);
+        verify(exams, times(2)).slots(any());
+        verifyNoMoreInteractions(exams);
+    }
+
+    @Test
     void FR007_examPreviewBatchesReadsAndComparesParsedSections() {
         var rows = IntStream.range(0, 501).mapToObj(i -> new ValidatedRow(i + 2,
                 Map.of("code", "EXAM_" + i, "title", "Đề tự soạn", "hsk_level", "1",
