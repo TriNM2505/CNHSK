@@ -12,6 +12,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
+    @Query("select c from Comment c where c.postId = :postId order by c.createdAt asc, c.id asc")
+    List<Comment> findTreeByPostId(@Param("postId") long postId);
+
     long countByAuthorIdAndCreatedAtAfter(long authorId, Instant cutoff);
 
     @Query("select min(c.createdAt) from Comment c where c.authorId = :authorId and c.createdAt > :cutoff")

@@ -10,6 +10,9 @@ import com.cnhsk.auth.api.CurrentUser;
 import com.cnhsk.auth.api.RoleCode;
 
 import com.cnhsk.community.comment.CommentRepository;
+import com.cnhsk.community.comment.CommentTreeBuilder;
+import com.cnhsk.community.comment.web.CommentResponse;
+import com.cnhsk.community.common.CommentStatus;
 import com.cnhsk.community.common.CommunityAuthors;
 import com.cnhsk.community.common.PostCategory;
 import com.cnhsk.community.common.PostCount;
@@ -29,6 +32,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Isolation;
 
 @Service
 @Transactional(readOnly = true)
@@ -117,6 +121,28 @@ public class PostQueryService {
         PostSummary summary = summaries(List.of(post)).get(0);
         return new PostDetail(summary.id(), summary.title(), summary.category(), summary.excerpt(),
                 summary.author(), summary.publishedAt(), summary.commentCount(), summary.likeCount(), post.getContent());
+    }
+
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    public List<CommentResponse> publishedComments(long id) {
+        if (posts.findPublished(id, null, PageRequest.of(0, 1)).isEmpty()) {
+            throw new ApiException(ErrorCode.POST_NOT_FOUND, HttpStatus.NOT_FOUND,
+                    "Không tìm thấy bài viết.", Map.of());
+        }
+        List<CommentTreeBuilder.Entry> entries = comments.findTreeByPostId(id).stream()
+                .map(comment -> new CommentTreeBuilder.Entry(comment.getId(), comment.getPostId(),
+                        comment.getParentId(), comment.getDepth(), comment.getStatus(), comment.getContent(),
+                        comment.getAuthorId(), comment.getCreatedAt(),
+                        comment.getUpdatedAt().isAfter(comment.getCreatedAt()) ? comment.getUpdatedAt() : null))
+                .toList();
+        List<CommentTreeBuilder.Entry> retained = CommentTreeBuilder.build(entries);
+        Set<Long> authorIds = retained.stream().filter(entry -> entry.status() == CommentStatus.VISIBLE)
+                .map(CommentTreeBuilder.Entry::authorId).collect(Collectors.toSet());
+        Map<Long, UserRef> resolved = authorIds.isEmpty() ? Map.of() : authors.resolve(authorIds);
+        return retained.stream().map(entry -> new CommentResponse(entry.id(), entry.postId(), entry.parentId(),
+                entry.depth(), entry.status(), entry.content(), entry.authorId() == null ? null
+                        : resolved.getOrDefault(entry.authorId(), new UserRef(entry.authorId(), null)),
+                entry.createdAt(), entry.editedAt())).toList();
     }
 
     private List<PostSummary> summaries(List<Post> found) {

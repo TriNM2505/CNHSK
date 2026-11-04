@@ -24,6 +24,8 @@ import com.cnhsk.auth.api.CurrentUser;
 import com.cnhsk.auth.api.RoleCode;
 import com.cnhsk.community.common.ReactionKind;
 import com.cnhsk.community.comment.CommentRepository;
+import com.cnhsk.community.comment.Comment;
+import com.cnhsk.community.common.CommentStatus;
 import com.cnhsk.community.common.CommunityAuthors;
 import com.cnhsk.community.common.PostCategory;
 import com.cnhsk.community.common.PostCount;
@@ -300,6 +302,75 @@ class PostQueryServiceTest {
         when(posts.findPublished(eq(9L), isNull(), any(Pageable.class))).thenReturn(List.of());
         assertThatThrownBy(() -> service.publishedDetail(9)).isInstanceOf(ApiException.class);
         verifyNoInteractions(auth);
+    }
+
+    @Test
+    void FR018_publishedCommentsUseOneVisibleAuthorBatchAndRedactPlaceholders() {
+        when(posts.findPublished(eq(1L), isNull(), any(Pageable.class))).thenReturn(List.of(post(1, 99, "Body")));
+        Comment deleted = comment(1, null, 90, CommentStatus.DELETED);
+        Comment hidden = comment(2, 1L, 91, CommentStatus.HIDDEN);
+        Comment visible = comment(3, 2L, 42, CommentStatus.VISIBLE);
+        visible.setUpdatedAt(PUBLISHED.plusSeconds(20));
+        when(comments.findTreeByPostId(1)).thenReturn(List.of(deleted, hidden, visible,
+                comment(4, null, 42, CommentStatus.VISIBLE)));
+        when(authors.resolve(Set.of(42L))).thenReturn(Map.of(42L, new UserRef(42L, null)));
+        var result = service.publishedComments(1);
+        assertThat(result).hasSize(4);
+        assertThat(result.subList(0, 2)).allSatisfy(node -> {
+            assertThat(node.content()).isNull();
+            assertThat(node.author()).isNull();
+            assertThat(node.editedAt()).isNull();
+        });
+        assertThat(result.get(2).content()).isEqualTo("literal **đậm**");
+        assertThat(result.get(2).author()).isEqualTo(new UserRef(42L, null));
+        assertThat(result.get(2).editedAt()).isEqualTo(PUBLISHED.plusSeconds(20));
+        assertThat(result.get(3).editedAt()).isNull();
+        var order = inOrder(posts, comments, authors);
+        order.verify(posts).findPublished(eq(1L), isNull(), any(Pageable.class));
+        order.verify(comments).findTreeByPostId(1);
+        order.verify(authors).resolve(Set.of(42L));
+        verifyNoMoreInteractions(posts, comments, authors);
+        verifyNoInteractions(auth, reactions);
+    }
+
+    @Test
+    void FR018_visibilityMissStopsBeforeCommentsAndAuthors() {
+        when(posts.findPublished(eq(1L), isNull(), any(Pageable.class))).thenReturn(List.of());
+        assertThatThrownBy(() -> service.publishedComments(1)).isInstanceOfSatisfying(ApiException.class, error -> {
+            assertThat(error.getCode()).isEqualTo(ErrorCode.POST_NOT_FOUND);
+            assertThat(error.getStatus()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(error.getMessage()).isEqualTo("Không tìm thấy bài viết.");
+        });
+        verifyNoInteractions(comments, authors, auth, reactions);
+    }
+
+    @Test
+    void FR018_emptyOrPrunedTreesDoNotResolveAuthors() {
+        when(posts.findPublished(eq(1L), isNull(), any(Pageable.class))).thenReturn(List.of(post(1, 99, "Body")));
+        when(comments.findTreeByPostId(1)).thenReturn(List.of(),
+                List.of(comment(1, null, 90, CommentStatus.HIDDEN)));
+        assertThat(service.publishedComments(1)).isEmpty();
+        assertThat(service.publishedComments(1)).isEmpty();
+        verifyNoInteractions(authors, auth, reactions);
+    }
+
+    @Test
+    void FR018_missingAuthorProjectionKeepsExplicitNullDisplayName() throws Exception {
+        when(posts.findPublished(eq(1L), isNull(), any(Pageable.class))).thenReturn(List.of(post(1, 99, "Body")));
+        when(comments.findTreeByPostId(1)).thenReturn(List.of(comment(1, null, 42, CommentStatus.VISIBLE)));
+        when(authors.resolve(Set.of(42L))).thenReturn(Map.of());
+        JsonNode node = new ObjectMapper().findAndRegisterModules().valueToTree(service.publishedComments(1));
+        assertThat(node.get(0).path("author").path("id").asLong()).isEqualTo(42);
+        assertThat(node.get(0).path("author").has("displayName")).isTrue();
+        assertThat(node.get(0).path("author").path("displayName").isNull()).isTrue();
+    }
+
+    private Comment comment(long id, Long parent, long author, CommentStatus status) {
+        Comment comment = new Comment(1L, parent, author, "literal **đậm**", (short) (parent == null ? 0 : 1), PUBLISHED);
+        ReflectionTestUtils.setField(comment, "id", id);
+        comment.setStatus(status);
+        comment.setUpdatedAt(status == CommentStatus.VISIBLE ? PUBLISHED : PUBLISHED.plusSeconds(10));
+        return comment;
     }
 
     private void learner() {

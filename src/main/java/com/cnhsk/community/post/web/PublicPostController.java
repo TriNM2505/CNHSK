@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.cnhsk.community.common.PostCategory;
+import com.cnhsk.community.comment.web.CommentResponse;
 import com.cnhsk.community.post.PostQueryService;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -65,6 +67,17 @@ public class PublicPostController {
                     content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
     public PostDetail detail(@PathVariable long id) {
         return service.publishedDetail(id);
+    }
+
+    @GetMapping("/{id}/comments")
+    @Operation(operationId = "listPostComments", tags = "public-posts")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK, sắp createdAt tăng dần",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = CommentResponse.class)))),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy bài viết",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+    public List<CommentResponse> listPostComments(@PathVariable long id) {
+        return service.publishedComments(id);
     }
 
     @Hidden
