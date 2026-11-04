@@ -134,9 +134,10 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = {"NODE_LINK"}, mode = EnumSource.Mode.EXCLUDE)
-    void FR018_FR023_allTenSupportedTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
+    @EnumSource(ImportDataType.class)
+    void FR018_FR023_allElevenSupportedTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
         switch (type) {
+            case NODE_LINK -> { importExample(ImportDataType.KNOWLEDGE_NODE); importExample(ImportDataType.LEXEME); }
             case QUESTION -> importExample(ImportDataType.KNOWLEDGE_NODE);
             case KNOWLEDGE_EDGE -> {
                 importExample(ImportDataType.KNOWLEDGE_NODE);
@@ -154,7 +155,8 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
         assertThat(result.path("status").asText()).isEqualTo("COMPLETED");
         assertThat(result.path("dataType").asText()).isEqualTo(type.name());
         assertThat(result.path("fileName").asText()).isEqualTo("synthetic.csv");
-        assertThat(result.path("result").path("created").asInt()).isEqualTo(1);
+        assertThat(result.path("result").path("created").asInt()).isEqualTo(type == ImportDataType.NODE_LINK ? 0 : 1);
+        assertThat(result.path("result").path("updated").asInt()).isEqualTo(type == ImportDataType.NODE_LINK ? 1 : 0);
         assertThat(result.path("result").path("failed").asInt()).isZero();
         assertThat(result.path("createdBy").path("displayName").asText()).isEqualTo("Người tạo lần nhập");
         assertThat(result.toString()).doesNotContain("@example.test", "validRows", "pinyinNorm");

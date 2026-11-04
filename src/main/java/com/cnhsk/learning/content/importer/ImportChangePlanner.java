@@ -24,6 +24,7 @@ import com.cnhsk.learning.content.importer.template.ImportDataType;
 import com.cnhsk.learning.content.importer.template.ImportTemplate;
 import com.cnhsk.learning.content.importer.validate.RowValidationResult.ValidatedRow;
 import com.cnhsk.learning.content.repository.LexemeRepository;
+import com.cnhsk.learning.content.repository.NodeLinkRepository;
 import com.cnhsk.learning.content.repository.PronStageRepository;
 import com.cnhsk.learning.content.repository.TopicItemRepository;
 import com.cnhsk.learning.content.repository.TopicRepository;
@@ -47,10 +48,11 @@ public class ImportChangePlanner {
     private final KnowledgePointRepository points;
     private final QuestionRepository questions;
     private final KnowledgeTreeQueryRepository questionLabels;
+    private final NodeLinkRepository nodeLinks;
 
     public ImportChangePlanner(LexemeRepository lexemes, TopicRepository topics,
             TopicItemRepository topicItems, PronStageRepository stages, KnowledgePointRepository points,
-            QuestionRepository questions, KnowledgeTreeQueryRepository questionLabels) {
+            QuestionRepository questions, KnowledgeTreeQueryRepository questionLabels, NodeLinkRepository nodeLinks) {
         this.lexemes = lexemes;
         this.topics = topics;
         this.topicItems = topicItems;
@@ -58,11 +60,13 @@ public class ImportChangePlanner {
         this.points = points;
         this.questions = questions;
         this.questionLabels = questionLabels;
+        this.nodeLinks = nodeLinks;
     }
 
     @Transactional(readOnly = true)
     public List<PreviewRow> plan(ImportDataType type, List<ValidatedRow> rows) {
         if (type == ImportDataType.QUESTION) return questionPlan(rows);
+        if (type == ImportDataType.NODE_LINK) return nodeLinkPlan(rows);
         List<PreviewRow> result = new ArrayList<>();
         for (int offset = 0; offset < rows.size(); offset += BATCH_SIZE) {
             List<ValidatedRow> batch = rows.subList(offset, Math.min(rows.size(), offset + BATCH_SIZE));
@@ -78,6 +82,30 @@ public class ImportChangePlanner {
             }
         }
         return List.copyOf(result);
+    }
+
+    private List<PreviewRow> nodeLinkPlan(List<ValidatedRow> rows) {
+        List<PreviewRow> result = new ArrayList<>();
+        for (int offset = 0; offset < rows.size(); offset += BATCH_SIZE) {
+            var batch = rows.subList(offset, Math.min(rows.size(), offset + BATCH_SIZE));
+            Map<List<String>, String> linkedKids = new HashMap<>();
+            nodeLinks.topics(linkKeys(batch, "TOPIC")).forEach(target -> linkedKids.put(List.of("TOPIC", target.key()), target.kid()));
+            for (LexemeKind kind : LexemeKind.values()) {
+                nodeLinks.lexemes(kind, linkKeys(batch, kind.name()))
+                        .forEach(target -> linkedKids.put(List.of(kind.name(), target.key()), target.kid()));
+            }
+            for (ValidatedRow row : batch) {
+                RowAction action = row.values().get("kid").equals(linkedKids.get(key(ImportDataType.NODE_LINK, row.values())))
+                        ? RowAction.UNCHANGED : RowAction.UPDATE;
+                result.add(new PreviewRow(row.line(), action, row.values()));
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private static List<String> linkKeys(List<ValidatedRow> rows, String type) {
+        return rows.stream().map(ValidatedRow::values).filter(row -> type.equals(row.get("target_type")))
+                .map(row -> row.get("target_key")).distinct().toList();
     }
 
     private List<PreviewRow> questionPlan(List<ValidatedRow> rows) {

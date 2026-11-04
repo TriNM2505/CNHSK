@@ -20,6 +20,7 @@ import com.cnhsk.learning.content.importer.template.ImportDataType;
 import com.cnhsk.learning.content.importer.template.ImportTemplate;
 import com.cnhsk.learning.content.importer.validate.RowValidationResult.ValidatedRow;
 import com.cnhsk.learning.content.repository.LexemeRepository;
+import com.cnhsk.learning.content.repository.NodeLinkRepository;
 import com.cnhsk.learning.content.repository.PronStageRepository;
 import com.cnhsk.learning.content.repository.TopicItemRepository;
 import com.cnhsk.learning.content.repository.TopicRepository;
@@ -51,6 +52,7 @@ class ImportChangePlannerTest {
     private KnowledgePointRepository points;
     private QuestionRepository questions;
     private KnowledgeTreeQueryRepository questionLabels;
+    private NodeLinkRepository nodeLinks;
 
     @BeforeEach
     void setup() {
@@ -58,7 +60,40 @@ class ImportChangePlannerTest {
         items = mock(TopicItemRepository.class); stages = mock(PronStageRepository.class);
         points = mock(KnowledgePointRepository.class);
         questions = mock(QuestionRepository.class); questionLabels = mock(KnowledgeTreeQueryRepository.class);
-        planner = new ImportChangePlanner(lexemes, topics, items, stages, points, questions, questionLabels);
+        nodeLinks = mock(NodeLinkRepository.class);
+        planner = new ImportChangePlanner(lexemes, topics, items, stages, points, questions, questionLabels, nodeLinks);
+    }
+
+    @Test
+    void FR014_nodeLinkPreviewDistinguishesNullSameAndDifferentLinksWithoutCreatingTargets() {
+        when(nodeLinks.topics(any())).thenReturn(List.of(new NodeLinkRepository.Target(1, "T09_TOPIC", null, null)));
+        var row = new ValidatedRow(2, Map.of("target_type", "TOPIC", "target_key", "T09_TOPIC", "kid", "TV1-801"), null, null);
+        assertThat(planner.plan(ImportDataType.NODE_LINK, List.of(row)).get(0).action()).isEqualTo(RowAction.UPDATE);
+        when(nodeLinks.topics(any())).thenReturn(List.of(new NodeLinkRepository.Target(1, "T09_TOPIC", 21L, "TV1-801")));
+        assertThat(planner.plan(ImportDataType.NODE_LINK, List.of(row)).get(0).action()).isEqualTo(RowAction.UNCHANGED);
+        when(nodeLinks.topics(any())).thenReturn(List.of(new NodeLinkRepository.Target(1, "T09_TOPIC", 22L, "TV1-802")));
+        assertThat(planner.plan(ImportDataType.NODE_LINK, List.of(row)).get(0).action()).isEqualTo(RowAction.UPDATE);
+        verify(nodeLinks, never()).updateTopic(anyLong(), anyLong()); verify(nodeLinks, never()).lockTopic(any());
+    }
+
+    @Test
+    void FR014_nodeLinkSnapshotsKeepKindsDistinctAndReadAtMostFiveHundredKeysPerBatch() {
+        when(nodeLinks.lexemes(any(), any())).thenAnswer(call -> {
+            LexemeKind kind = call.getArgument(0);
+            java.util.Collection<String> keys = call.getArgument(1);
+            assertThat(keys).hasSizeLessThanOrEqualTo(500);
+            return keys.stream().map(key -> new NodeLinkRepository.Target(1, key, 21L,
+                    kind == LexemeKind.CHAR ? "CH1-002" : "TV1-801")).toList();
+        });
+        var rows = IntStream.range(0, 1201).mapToObj(index -> new ValidatedRow(index + 2,
+                Map.of("target_type", index % 2 == 0 ? "CHAR" : "WORD", "target_key", "木" + index,
+                        "kid", index % 2 == 0 ? "CH1-002" : "TV1-801"), null, null)).toList();
+        assertThat(planner.plan(ImportDataType.NODE_LINK, rows)).hasSize(1201)
+                .allSatisfy(row -> assertThat(row.action()).isEqualTo(RowAction.UNCHANGED));
+        verify(nodeLinks, times(3)).lexemes(eq(LexemeKind.CHAR), any());
+        verify(nodeLinks, times(3)).lexemes(eq(LexemeKind.WORD), any());
+        verifyNoInteractions(points);
+        verify(nodeLinks, never()).updateLexeme(anyLong(), anyLong());
     }
 
     @Test

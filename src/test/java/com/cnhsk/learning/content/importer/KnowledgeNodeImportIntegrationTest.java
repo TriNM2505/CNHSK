@@ -201,26 +201,6 @@ class KnowledgeNodeImportIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"NODE_LINK"})
-    void FR002_unimplementedTypesRejectUploadWithoutReadingFilesOrRecordingRunsOrAudit(String type) throws Exception {
-        long runCount = requests.count();
-        long auditCount = auditLogs.count();
-        mvc.perform(multipart(ROOT).file(new MockMultipartFile("file", "not-csv.txt", "text/plain", new byte[]{(byte) 0xff}))
-                        .param("dataType", type).header("Authorization", bearer("CONTENT_EDITOR")))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.error_code").value("VALIDATION_FAILED"))
-                .andExpect(jsonPath("$.message").value("Loại dữ liệu này chưa hỗ trợ nhập"))
-                .andExpect(jsonPath("$.details[0].field").value("dataType"))
-                .andExpect(jsonPath("$.request_id").isNotEmpty());
-        assertThat(requests.count()).isEqualTo(runCount);
-        assertThat(auditLogs.count()).isEqualTo(auditCount);
-        mvc.perform(get(ROOT + "/templates/" + type + ".csv").header("Authorization", bearer("CONTENT_EDITOR")))
-                .andExpect(status().isOk());
-        assertThat(requests.count()).isEqualTo(runCount);
-        assertThat(auditLogs.count()).isEqualTo(auditCount);
-    }
-
-    @ParameterizedTest
     @CsvSource({"false,false", "true,false", "false,true"})
     void FR002_missingEitherProcessorStopsBeforeAnyFileAccess(boolean validator, boolean writer) {
         Availability fixture = availability(validator, writer);
