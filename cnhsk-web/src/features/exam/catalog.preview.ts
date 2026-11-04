@@ -1,7 +1,10 @@
+import { createElement } from 'react'
 import type { PreviewEntry } from '@/app/preview/types'
 import type { SessionView } from '@/features/practice'
 
 import type { ExamResult, ExamSummary, PlacementResult, PlacementStep } from './types'
+import { ExamListView } from './components/ExamListView'
+import { placementSummaryFixture } from './test-fixtures'
 
 const optionSet = [
   { key: 'A', text: 'Phương án mẫu A' },
@@ -126,4 +129,27 @@ export const placementResultPreview = {
   wrongKids: [{ kid: 'NP1-101', nameVi: 'Mẫu câu cơ bản', total: 2, wrong: 1 }],
 } satisfies PlacementResult
 
-export const previews = [] satisfies readonly PreviewEntry[]
+export const previews = (['new', 'active', 'result'] as const).map((mode): PreviewEntry => ({
+  group: 'screen',
+  id: `scr-020-${mode}`,
+  scr: 'SCR-020',
+  title: `Đề thi thử — ${mode}`,
+  states: ['ready', 'loading', 'empty', 'error'],
+  render: (state) =>
+    createElement(ExamListView, {
+      exams: state === 'empty' ? [] : examPreviews.filter((exam) => exam.hskLevel === 1),
+      placement:
+        mode === 'active'
+          ? { ...placementSummaryFixture, active: { runId: 3302, sessionId: 4302 } }
+          : mode === 'result'
+            ? placementSummaryFixture
+            : { active: null, last: null },
+      level: 1,
+      state: state === 'empty' ? 'ready' : state,
+      error: 'Không thể tải đề thi.',
+      onLevelChange: () => undefined,
+      onRetry: () => undefined,
+      onStartExam: () => undefined,
+      onStartPlacement: () => undefined,
+    }),
+})) satisfies readonly PreviewEntry[]

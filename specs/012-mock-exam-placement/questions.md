@@ -1,5 +1,10 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-02 SCR-020 (leader duyệt)
+
+- `ExamSummary` không có `status`; `GET /api/exams` chỉ trả đề PUBLISHED theo FR-010. FE giữ nguyên contract, không thêm trường hoặc tự lọc đề nháp; test khẳng định không hiện giá.
+- Thẻ kiểm tra trình độ ưu tiên `active` khi có cả `active` và `last`; chỉ hiện kết quả gần nhất khi không có lượt đang làm. Điểm `0%` khác `myBest = null` (chưa có điểm).
+
 ## 2026-11-04 — T-06 engine (leader duyệt)
 
 - Thêm cuối enum `PracticeSource`: `MOCK_EXAM`, `PLACEMENT`, `TARGETED_PRACTICE`; khớp §0.1 và không đổi luật của nguồn cũ.
