@@ -4,13 +4,23 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import jakarta.persistence.LockModeType;
 import com.cnhsk.community.common.PostCount;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
+
+    @Query("select c.postId from Comment c where c.id = :id and c.authorId = :authorId")
+    Optional<Long> findOwnedPostId(@Param("id") long id, @Param("authorId") long authorId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from Comment c where c.id = :id and c.authorId = :authorId and c.postId = :postId")
+    Optional<Comment> findOwnedForUpdate(@Param("id") long id, @Param("authorId") long authorId,
+            @Param("postId") long postId);
 
     @Query("select c from Comment c where c.postId = :postId order by c.createdAt asc, c.id asc")
     List<Comment> findTreeByPostId(@Param("postId") long postId);

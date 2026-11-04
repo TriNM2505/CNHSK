@@ -1,6 +1,7 @@
 package com.cnhsk.community.comment;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Set;
 
@@ -11,6 +12,8 @@ import com.cnhsk.community.comment.web.CommentResponse;
 import com.cnhsk.community.comment.web.CommentWrite;
 import com.cnhsk.community.common.CommunityAuthors;
 import com.cnhsk.community.common.CommunityLimits;
+import com.cnhsk.community.common.CommunityProperties;
+import com.cnhsk.community.common.CommentStatus;
 import com.cnhsk.community.common.PostStatus;
 import com.cnhsk.community.common.UserRef;
 import com.cnhsk.community.post.Post;
@@ -36,15 +39,18 @@ public class CommentService {
     private final CommunityLimits limits;
     private final CommunityAuthors authors;
     private final NamedParameterJdbcTemplate jdbc;
+    private final CommunityProperties properties;
 
     public CommentService(AuthApi authApi, CommentRepository comments, PostRepository posts,
-            CommunityLimits limits, CommunityAuthors authors, NamedParameterJdbcTemplate jdbc) {
+            CommunityLimits limits, CommunityAuthors authors, NamedParameterJdbcTemplate jdbc,
+            CommunityProperties properties) {
         this.authApi = authApi;
         this.comments = comments;
         this.posts = posts;
         this.limits = limits;
         this.authors = authors;
         this.jdbc = jdbc;
+        this.properties = properties;
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -65,6 +71,57 @@ public class CommentService {
         Long attachment = parent.getDepth() < 3 ? parent.getId() : parent.getParentId();
         short depth = (short) Math.min(3, parent.getDepth() + 1);
         return insert(post.getId(), attachment, depth, authorId, request.content());
+    }
+
+    /** Checks write prerequisites before MVC binds a mutation's body or identifier. */
+    public void authorizeMutation() {
+        verifiedLearnerId();
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public CommentResponse update(long id, CommentWrite request) {
+        long authorId = verifiedLearnerId();
+        Comment comment = lockOwnedComment(id, authorId);
+        if (comment.getStatus() != CommentStatus.VISIBLE) {
+            throw new ApiException(ErrorCode.COMMENT_NOT_EDITABLE, HttpStatus.CONFLICT,
+                    "Bình luận không thể chỉnh sửa.", Map.of());
+        }
+        CommunityLimits.Snapshot snapshot = limits.snapshot();
+        if (snapshot.now().isAfter(comment.getCreatedAt().plus(properties.getCommentEditWindow()))) {
+            throw new ApiException(ErrorCode.COMMENT_EDIT_WINDOW_EXPIRED, HttpStatus.CONFLICT,
+                    "Đã hết thời hạn chỉnh sửa bình luận.", Map.of());
+        }
+        comment.setContent(request.content());
+        comment.setUpdatedAt(snapshot.now().truncatedTo(ChronoUnit.MICROS));
+        UserRef author = authors.resolve(Set.of(authorId)).get(authorId);
+        return new CommentResponse(comment.getId(), comment.getPostId(), comment.getParentId(), comment.getDepth(),
+                comment.getStatus(), comment.getContent(), author, comment.getCreatedAt(),
+                comment.getUpdatedAt().isAfter(comment.getCreatedAt()) ? comment.getUpdatedAt() : null);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public void delete(long id) {
+        long authorId = verifiedLearnerId();
+        Comment comment = lockOwnedComment(id, authorId);
+        if (comment.getStatus() != CommentStatus.VISIBLE) {
+            return;
+        }
+        CommunityLimits.Snapshot snapshot = limits.snapshot();
+        comment.setStatus(CommentStatus.DELETED);
+        comment.setModeratedBy(authorId);
+        comment.setModerationReason("AUTHOR_DELETED");
+        comment.setUpdatedAt(snapshot.now().truncatedTo(ChronoUnit.MICROS));
+    }
+
+    private Comment lockOwnedComment(long id, long authorId) {
+        long postId = comments.findOwnedPostId(id, authorId).orElseThrow(CommentService::forbidden);
+        posts.findByIdForUpdate(postId).orElseThrow(CommentService::forbidden);
+        return comments.findOwnedForUpdate(id, authorId, postId).orElseThrow(CommentService::forbidden);
+    }
+
+    private static ApiException forbidden() {
+        return new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                "Bạn không có quyền thực hiện thao tác này.", Map.of());
     }
 
     private long verifiedLearnerId() {

@@ -42,7 +42,7 @@
 |---|---|---|---|---|
 | T-07 | `CommentService.create/reply` + `CommentController` POST: bài `APPROVED`, độ dài, 30/giờ, quy tắc cấp 3, không lộ nội dung cha | `…/community/comment/*` | FR-017, FR-019…FR-023 · AT-18…AT-21 | ✅ |
 | T-08 | `CommentTreeBuilder` (test đơn vị) + `GET /api/public/community/posts/{id}/comments` một truy vấn phẳng | `…/community/comment/CommentTreeBuilder.java`, `PublicPostController.java` | FR-018, FR-027 · AT-22…AT-24 | ✅ |
-| T-09 | Sửa trong 15 phút + tự xoá mềm (`AUTHOR_DELETED`) | `CommentService.java`, `CommentController.java` | FR-024…FR-026 · AT-25, AT-26 | ⬜ |
+| T-09 | Sửa trong 15 phút + tự xoá mềm (`AUTHOR_DELETED`) | `CommentService.java`, `CommentController.java` | FR-024…FR-026 · AT-25, AT-26 | ✅ |
 | T-10 | `LikeService` + POST/DELETE `/like`: `ON CONFLICT DO NOTHING`, idempotent, đếm từ `reactions` | `…/community/reaction/*`, `MyPostController.java` | FR-028…FR-031 · AT-27…AT-29 | ⬜ |
 
 ## Đợt 3 · Báo cáo và kiểm duyệt
