@@ -1,5 +1,11 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-15 chuyển khối và kết quả xếp trình độ (leader duyệt)
+
+- E9: khối mới nhất hết hạn được thay bằng khối cùng cấp và số thứ tự. Các câu đã phát ở khối hết hạn vẫn bị loại khỏi tập câu mới.
+- E10: nếu ngân hàng cạn trước khi có khối nào nộp, kết luận `BELOW_1 / TENTATIVE` với 0 câu, đủ sáu miền chưa đo và không có `wrongKids`.
+- Chỉ ghi một lần `placement.conclusion = {completedAt, bankExhausted}` vào khối gốc dưới khoá `placement:run:<userId>`. Engine ghi snapshot khi tạo Attempt; cột `served_items` có `updatable=false` nên các cập nhật sau đó của engine không ghi đè dấu mốc.
+
 ## 2026-11-04 — T-14 bắt đầu bài xếp trình độ (leader duyệt)
 
 - FR-018 mô tả `runId` trong metadata. T-14 không lưu trường này vì snapshot được dựng trước khi DB cấp ID. Nguồn duy nhất là `refId ?? id`. Snapshot giữ `placement.block`, `placement.level` và `placement.kidOf` theo số câu.

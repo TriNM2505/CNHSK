@@ -2,6 +2,7 @@ package com.cnhsk.learning.exam;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.EnumMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,8 +18,12 @@ import java.util.stream.IntStream;
 
 import com.cnhsk.learning.exam.PlacementAlgorithm.BlockResult;
 import com.cnhsk.learning.exam.PlacementAlgorithm.Conclusion;
+import com.cnhsk.learning.exam.PlacementAlgorithm.Next;
 import com.cnhsk.learning.exam.PlacementAlgorithm.Confidence;
 import com.cnhsk.learning.exam.PlacementAlgorithm.PlacementLevel;
+import com.cnhsk.learning.knowledge.KnowledgeTreeService;
+import com.cnhsk.learning.knowledge.KnowledgeTreeService.KnowledgeNode;
+import com.cnhsk.learning.knowledge.entity.KnowledgeDomain;
 import com.cnhsk.learning.knowledge.entity.Question;
 import com.cnhsk.learning.practice.PracticeService;
 import com.cnhsk.learning.practice.PracticeService.SessionView;
@@ -26,10 +31,12 @@ import com.cnhsk.learning.practice.PracticeService.StartPracticeCommand;
 import com.cnhsk.learning.practice.PracticeSource;
 import com.cnhsk.learning.practice.ServedItem;
 import com.cnhsk.learning.practice.entity.Attempt;
+import com.cnhsk.learning.practice.entity.AttemptItem;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import jakarta.persistence.Tuple;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -44,17 +51,19 @@ public class PlacementService {
     private final EntityManager entities;
     private final NamedParameterJdbcTemplate jdbc;
     private final Clock clock;
+    private final KnowledgeTreeService knowledge;
     private final RandomGenerator random;
     private final PlacementAlgorithm algorithm = new PlacementAlgorithm();
     private final QuestionItemFactory factory = new QuestionItemFactory();
 
     public PlacementService(PlacementConfig config, PracticeService practice, EntityManager entities,
-            NamedParameterJdbcTemplate jdbc, Clock clock, @Qualifier("practiceChoiceRandom") RandomGenerator random) {
+            NamedParameterJdbcTemplate jdbc, Clock clock, KnowledgeTreeService knowledge, @Qualifier("practiceChoiceRandom") RandomGenerator random) {
         this.config = config;
         this.practice = practice;
         this.entities = entities;
         this.jdbc = jdbc;
         this.clock = clock;
+        this.knowledge = knowledge;
         this.random = random;
     }
 
@@ -89,6 +98,56 @@ public class PlacementService {
         Attempt last = latestCompleted(attempts);
         Set<Long> previous = last == null ? Set.of() : servedQuestionIds(attempts, last.getId());
         List<BankQuestion> selected = selectBlock(bank.get(level), Set.of(), previous);
+        SessionView session = startBlock(userId, null, 1, level, selected);
+        return new StartResult(runId(session.sessionId(), session.refId()), session, true);
+    }
+
+    @Transactional
+    public StartResult next(long userId, long runId) {
+        lockRun(userId);
+        List<Attempt> blocks = runBlocks(userId, runId, true);
+        Attempt root = root(blocks, runId);
+        if (hasConclusion(root)) return new StartResult(runId, null, false);
+
+        Attempt active = active(blocks);
+        if (active != null) {
+            return new StartResult(runId, practice.view(userId, active.getId()), false);
+        }
+        List<BlockResult> submitted = blockResults(blocks);
+        var decision = algorithm.decide(submitted, config, false);
+        if (decision instanceof Conclusion) {
+            return conclude(userId, runId, false);
+        }
+
+        Attempt latest = blocks.get(0);
+        boolean retry = !"SUBMITTED".equals(latest.getStatus());
+        int level = retry ? placement(latest).path("level").intValue()
+                : ((Next) decision).level();
+        int block = placement(latest).path("block").intValue() + (retry ? 0 : 1);
+        if ("IN_PROGRESS".equals(latest.getStatus())) latest.setStatus("EXPIRED");
+
+        List<Attempt> history = attempts(userId);
+        Attempt last = latestCompleted(history);
+        Set<Long> previous = last == null ? Set.of() : servedQuestionIds(history, last.getId());
+        List<BankQuestion> selected = selectBlock(bank().getOrDefault(level, List.of()),
+                servedQuestionIds(blocks, runId), previous);
+        if (selected.isEmpty()) return conclude(userId, runId, true);
+        return new StartResult(runId, startBlock(userId, runId, block, level, selected), true);
+    }
+
+    private StartResult conclude(long userId, long runId, boolean exhausted) {
+        int updated = jdbc.update("""
+                UPDATE learning.attempts
+                SET served_items = jsonb_set(served_items, '{meta,placement,conclusion}',
+                    jsonb_build_object('completedAt', CAST(:completedAt AS text), 'bankExhausted', :exhausted))
+                WHERE id = :id AND user_id = :userId AND ref_type = 'PLACEMENT' AND ref_id IS NULL
+                """, Map.of("completedAt", clock.instant().toString(), "exhausted", exhausted,
+                "id", runId, "userId", userId));
+        if (updated != 1) throw new IllegalStateException("Placement conclusion could not be recorded");
+        return new StartResult(runId, null, false);
+    }
+
+    private SessionView startBlock(long userId, Long refId, int block, int level, List<BankQuestion> selected) {
         var items = new ArrayList<ServedItem>();
         Map<Integer, String> kidOf = new LinkedHashMap<>();
         for (BankQuestion entry : selected) {
@@ -96,10 +155,107 @@ public class PlacementService {
             items.add(factory.create(entry.question(), no).orElseThrow());
             kidOf.put(no, entry.kid());
         }
-        SessionView session = practice.start(new StartPracticeCommand(userId, PracticeSource.PLACEMENT,
-                null, null, items, List.of(), null,
-                Map.of("placement", Map.of("block", 1, "level", level, "kidOf", kidOf))));
-        return new StartResult(runId(session.sessionId(), session.refId()), session, true);
+        return practice.start(new StartPracticeCommand(userId, PracticeSource.PLACEMENT,
+                refId, null, items, List.of(), null,
+                Map.of("placement", Map.of("block", block, "level", level, "kidOf", kidOf))));
+    }
+
+    private List<Attempt> runBlocks(long userId, long runId, boolean lock) {
+        var query = entities.createQuery("""
+                SELECT a FROM Attempt a WHERE a.userId = :userId AND a.refType = 'PLACEMENT'
+                    AND (a.id = :runId OR a.refId = :runId)
+                ORDER BY a.servedAt DESC, a.id DESC
+                """, Attempt.class).setParameter("userId", userId).setParameter("runId", runId);
+        if (lock) query.setLockMode(LockModeType.PESSIMISTIC_WRITE);
+        return query.getResultList();
+    }
+
+    private static Attempt root(List<Attempt> blocks, long runId) {
+        return blocks.stream().filter(a -> a.getId() == runId && a.getRefId() == null).findFirst()
+                .orElseThrow(() -> new ApiException(ErrorCode.ATTEMPT_NOT_OWNED, HttpStatus.FORBIDDEN,
+                        "Bạn không có quyền truy cập lượt luyện này.", Map.of()));
+    }
+
+    @Transactional(readOnly = true)
+    public Result result(long userId, long runId) {
+        List<Attempt> blocks = runBlocks(userId, runId, false);
+        Attempt root = root(blocks, runId);
+        if (!hasConclusion(root)) {
+            throw new ApiException(ErrorCode.PLACEMENT_NOT_FINISHED, HttpStatus.CONFLICT,
+                    "Lượt xếp trình độ chưa kết luận.", Map.of());
+        }
+        List<Attempt> submitted = blocks.stream().filter(a -> "SUBMITTED".equals(a.getStatus()))
+                .sorted(Comparator.comparingInt(a -> placement(a).path("block").intValue())).toList();
+        Map<Long, Set<Integer>> correctNumbers = correctNumbers(submitted);
+        Map<Integer, Counts> levels = new TreeMap<>();
+        Map<KnowledgeDomain, Counts> domains = new EnumMap<>(KnowledgeDomain.class);
+        Map<String, Counts> kids = new TreeMap<>();
+        List<BlockResult> evidence = new ArrayList<>();
+        int itemCount = 0;
+        for (Attempt attempt : submitted) {
+            int level = placement(attempt).path("level").intValue();
+            JsonNode kidOf = placement(attempt).path("kidOf");
+            Set<Integer> correct = correctNumbers.getOrDefault(attempt.getId(), Set.of());
+            JsonNode items = attempt.getServedItems().path("items");
+            int blockCorrect = 0;
+            for (JsonNode item : items) {
+                int no = item.path("no").intValue();
+                boolean right = correct.contains(no);
+                if (right) blockCorrect++;
+                levels.computeIfAbsent(level, ignored -> new Counts()).add(right);
+                String kid = kidOf.path(Integer.toString(no)).textValue();
+                KnowledgeDomain domain = KnowledgeDomain.valueOf(kid.substring(0, 2));
+                domains.computeIfAbsent(domain, ignored -> new Counts()).add(right);
+                kids.computeIfAbsent(kid, ignored -> new Counts()).add(right);
+            }
+            evidence.add(new BlockResult(level, blockCorrect, items.size()));
+            itemCount += items.size();
+        }
+
+        Conclusion conclusion = conclusion(root, evidence);
+        List<LevelScore> byLevel = levels.entrySet().stream().map(entry -> {
+            Counts count = entry.getValue();
+            return new LevelScore(entry.getKey(), count.correct, count.total, count.percent());
+        }).toList();
+        List<DomainScore> domainScores = java.util.Arrays.stream(KnowledgeDomain.values()).map(domain -> {
+            Counts count = domains.getOrDefault(domain, new Counts());
+            return new DomainScore(domain, count.correct, count.total, count.total == 0 ? null : count.percent(),
+                    count.total > 0, count.total > 0 && count.total < 3);
+        }).toList();
+        return new Result(runId, completedAt(root), conclusion.level(), conclusion.confidence(),
+                itemCount, byLevel, domainScores, wrongKids(kids));
+    }
+
+    private Map<Long, Set<Integer>> correctNumbers(List<Attempt> submitted) {
+        if (submitted.isEmpty()) return Map.of();
+        return entities.createQuery("""
+                SELECT i FROM AttemptItem i WHERE i.attemptId IN :ids AND i.correct = true
+                """, AttemptItem.class).setParameter("ids", submitted.stream().map(Attempt::getId).toList())
+                .getResultList().stream().collect(Collectors.groupingBy(AttemptItem::getAttemptId,
+                        Collectors.mapping(AttemptItem::getOrderIndex, Collectors.toSet())));
+    }
+
+    private List<WrongKid> wrongKids(Map<String, Counts> kids) {
+        var wrong = kids.entrySet().stream().filter(entry -> entry.getValue().correct < entry.getValue().total).toList();
+        if (wrong.isEmpty()) return List.of();
+        Map<String, String> names = knowledge.nodes().stream()
+                .collect(Collectors.toMap(KnowledgeNode::kid, KnowledgeNode::nameVi));
+        return wrong.stream().map(entry -> new WrongKid(entry.getKey(), names.get(entry.getKey()),
+                entry.getValue().total - entry.getValue().correct, entry.getValue().total)).toList();
+    }
+
+    private static final class Counts {
+        private int correct;
+        private int total;
+
+        private void add(boolean right) {
+            total++;
+            if (right) correct++;
+        }
+
+        private int percent() {
+            return correct * 100 / total;
+        }
     }
 
     static long runId(long id, Long refId) {
@@ -141,17 +297,24 @@ public class PlacementService {
     }
 
     private Completed completed(Attempt root, List<Attempt> attempts) {
-        List<BlockResult> blocks = attempts.stream()
-                .filter(a -> runId(a.getId(), a.getRefId()) == root.getId() && "SUBMITTED".equals(a.getStatus()))
-                .sorted(Comparator.comparingInt(a -> placement(a).path("block").asInt()))
-                .map(a -> new BlockResult(placement(a).path("level").asInt(), Math.toIntExact(a.getScore()),
+        List<BlockResult> evidence = blockResults(attempts.stream()
+                .filter(a -> runId(a.getId(), a.getRefId()) == root.getId()).toList());
+        Conclusion result = conclusion(root, evidence);
+        return new Completed(root.getId(), result.level(), result.confidence(), completedAt(root));
+    }
+
+    private Conclusion conclusion(Attempt root, List<BlockResult> evidence) {
+        boolean exhausted = placement(root).path("conclusion").path("bankExhausted").asBoolean();
+        if (algorithm.decide(evidence, config, exhausted) instanceof Conclusion result) return result;
+        throw new IllegalStateException("Concluded placement run does not have a conclusion");
+    }
+
+    private static List<BlockResult> blockResults(List<Attempt> attempts) {
+        return attempts.stream().filter(a -> "SUBMITTED".equals(a.getStatus()))
+                .sorted(Comparator.comparingInt(a -> placement(a).path("block").intValue()))
+                .map(a -> new BlockResult(placement(a).path("level").intValue(), Math.toIntExact(a.getScore()),
                         a.getServedItems().path("items").size()))
                 .toList();
-        boolean exhausted = placement(root).path("conclusion").path("bankExhausted").asBoolean();
-        if (!(algorithm.decide(blocks, config, exhausted) instanceof Conclusion result)) {
-            throw new IllegalStateException("Concluded placement run does not have a conclusion");
-        }
-        return new Completed(root.getId(), result.level(), result.confidence(), completedAt(root));
     }
 
     private static JsonNode placement(Attempt attempt) {
@@ -220,5 +383,11 @@ public class PlacementService {
     public record Active(long runId, long sessionId) {}
     public record Completed(long runId, PlacementLevel level, Confidence confidence, Instant completedAt) {}
     public record Summary(Active active, Completed last) {}
+    public record LevelScore(int level, int correct, int total, int percent) {}
+    public record DomainScore(KnowledgeDomain domain, int correct, int total, Integer percent,
+            boolean measured, boolean tentative) {}
+    public record WrongKid(String kid, String nameVi, int wrong, int total) {}
+    public record Result(long runId, Instant completedAt, PlacementLevel level, Confidence confidence,
+            int itemCount, List<LevelScore> byLevel, List<DomainScore> domains, List<WrongKid> wrongKids) {}
     public record StartResult(long runId, SessionView session, boolean created) {}
 }

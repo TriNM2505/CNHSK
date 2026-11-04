@@ -10,7 +10,8 @@ public final class PlacementAlgorithm {
         Objects.requireNonNull(config, "config must not be null");
 
         if (blocks.isEmpty()) {
-            return new Next(config.getStartLevel());
+            return bankExhausted ? new Conclusion(PlacementLevel.BELOW_1, Confidence.TENTATIVE)
+                    : new Next(config.getStartLevel());
         }
 
         PlacementLevel estimate = estimate(blocks, config);
