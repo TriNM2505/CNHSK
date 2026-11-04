@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  limitQuestionInput,
   parseQuestionId,
+  questionTextLength,
   questionEditServerErrors,
   questionEditValues,
   toQuestionUpdate,
@@ -51,6 +53,121 @@ function question(qtype: QuestionType = 'MULTIPLE_CHOICE'): QuestionDetail {
 }
 
 describe('question edit form (FR-019…FR-022 FE · AT-27)', () => {
+  it.each(['𠀀', '😀'])(
+    'FR021_AT27_counts and limits %s without splitting a code point',
+    (character) => {
+      expect(questionTextLength(character.repeat(50))).toBe(50)
+      expect(limitQuestionInput(character.repeat(51), 50)).toBe(character.repeat(50))
+      expect(limitQuestionInput(`${character}a`, 2)).toBe(`${character}a`)
+    },
+  )
+
+  it('FR021_AT27_preserves decomposed input that fits after NFC normalization', () => {
+    const value = 'e\u0301'.repeat(50)
+    expect(limitQuestionInput(value, 50)).toBe(value)
+    expect(limitQuestionInput(value + '𠀀', 50)).toBe('é'.repeat(50))
+  })
+
+  it.each([
+    ['stem', 2000],
+    ['explanation', 3000],
+    ['correctKey', 50],
+  ] as const)('FR021_AT27_checks %s after NFC normalization in code points', (field, maximum) => {
+    const values = questionEditValues(question('FILL_BLANK'))
+    const prefix = field === 'stem' ? '___' : ''
+    const value = prefix + '𠀀'.repeat(maximum - questionTextLength(prefix))
+    expect(validateQuestionEdit({ ...values, [field]: value }, 'FILL_BLANK', nodes)).toEqual({})
+    expect(
+      validateQuestionEdit({ ...values, [field]: value + '𠀀' }, 'FILL_BLANK', nodes),
+    ).toHaveProperty(field)
+    if (field !== 'stem')
+      expect(
+        validateQuestionEdit(
+          { ...values, [field]: 'e\u0301'.repeat(maximum) },
+          'FILL_BLANK',
+          nodes,
+        ),
+      ).toEqual({})
+  })
+
+  it('FR021_AT27_checks option and error note boundaries in code points', () => {
+    const values = questionEditValues(question())
+    values.options[1] = {
+      key: 'B',
+      text: '𠀀'.repeat(300),
+      isCorrect: false,
+      errorKid: 'TV2-901',
+      errorNote: '😀'.repeat(200),
+    }
+    expect(validateQuestionEdit(values, 'MULTIPLE_CHOICE', nodes)).toEqual({})
+    values.options[1]!.text += '𠀀'
+    values.options[1]!.errorNote += '😀'
+    expect(validateQuestionEdit(values, 'MULTIPLE_CHOICE', nodes)).toMatchObject({
+      'options[1].text': expect.any(String),
+      'options[1].errorNote': expect.any(String),
+    })
+  })
+
+  it('FR021_AT27_normalizes label and error KIDs before membership and duplicate checks', () => {
+    const values = questionEditValues(question())
+    values.primaryKid = ' np1-901 '
+    values.secondaryKids = [' tv2-901 ']
+    values.options[1]!.errorKid = ' ch1-901 '
+    expect(toQuestionUpdate(values)).toMatchObject({
+      primaryKid: 'NP1-901',
+      secondaryKids: ['TV2-901'],
+      options: [expect.anything(), expect.objectContaining({ errorKid: 'CH1-901' })],
+    })
+    expect(validateQuestionEdit(values, 'MULTIPLE_CHOICE', nodes)).toEqual({})
+    values.secondaryKids = ['NP1-901', ' np1-901 ']
+    expect(validateQuestionEdit(values, 'MULTIPLE_CHOICE', nodes)).toHaveProperty('secondaryKids')
+  })
+
+  it.each(['我  学习', '我\t学习', '我\u00a0学习', '我\u2007学习', 'cafe\u0301'])(
+    'FR021_AT27_rejects normalized duplicate sentence fragments %s',
+    (text) => {
+      const values = questionEditValues(question('SENTENCE_ORDER'))
+      values.options[0]!.text = text.startsWith('我') ? '我 学习' : 'café'
+      values.options[1]!.text = text
+      expect(validateQuestionEdit(values, 'SENTENCE_ORDER', nodes)).toHaveProperty('options')
+    },
+  )
+
+  it.each(['HTTP://example.test/a', 'HTTPS://example.test/a', 'https://example.test/a\u2007b'])(
+    'FR021_AT27_rejects URL %s exactly as QuestionRules',
+    (audioUrl) => {
+      expect(
+        validateQuestionEdit(
+          { ...questionEditValues(question()), audioUrl },
+          'MULTIPLE_CHOICE',
+          nodes,
+        ),
+      ).toHaveProperty('audioUrl')
+    },
+  )
+
+  it('FR021_AT27_checks the backend URL prefix and 500 code point boundary', () => {
+    const values = questionEditValues(question())
+    const audioUrl = 'https://' + '𠀀'.repeat(492)
+    expect(validateQuestionEdit({ ...values, audioUrl }, 'MULTIPLE_CHOICE', nodes)).toEqual({})
+    expect(
+      validateQuestionEdit({ ...values, audioUrl: audioUrl + '𠀀' }, 'MULTIPLE_CHOICE', nodes),
+    ).toHaveProperty('audioUrl')
+    expect(
+      validateQuestionEdit({ ...values, audioUrl: 'http://' }, 'MULTIPLE_CHOICE', nodes),
+    ).toEqual({})
+  })
+
+  it('FR021_AT27_keeps repeated and unknown server details instead of dropping them', () => {
+    expect(
+      questionEditServerErrors([
+        { field: 'stem', message: 'Lỗi thứ nhất.' },
+        { field: 'stem', message: 'Lỗi thứ hai.' },
+        { field: 'newServerField', message: 'Lỗi chưa có ô tương ứng.' },
+      ]),
+    ).toEqual({ stem: 'Lỗi thứ nhất.\nLỗi thứ hai.', newServerField: 'Lỗi chưa có ô tương ứng.' })
+  })
+
   it.each([
     'MULTIPLE_CHOICE',
     'TRUE_FALSE',

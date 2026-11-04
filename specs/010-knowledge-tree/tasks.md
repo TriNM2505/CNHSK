@@ -34,7 +34,7 @@ File dùng chung (spec §0.3) phải nêu trong Shadow Plan từng task.
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-13 | FE SCR-064/059/068 gọi backend thật; sửa lệch contract (không đổi contract — lệch thì dừng báo leader); dùng test hợp đồng `/v3/api-docs` do T-12 bổ sung | `web/features/question-bank/**`; không sửa `KnowledgeContractTest.java` (phân công leader cho T-12) | §13 · AT-26…AT-28 chạy với API thật | ⬜ |
+| T-13 | FE SCR-064/059/068 gọi backend thật; sửa lệch contract (không đổi contract — lệch thì dừng báo leader); dùng test hợp đồng `/v3/api-docs` do T-12 bổ sung | `web/features/question-bank/**`, `web/features/content-import/**`, `questions.md`, `tasks.md` (đúng allowlist 13 file); không sửa `KnowledgeContractTest.java` (T-12 sở hữu) | §13 · AT-26…AT-28 | ✅ 2026-11-05 theo leader duyệt: giữ base cd7d1cb, fetch main bdccaac sau PR #92/#93; sáu DTO, mã lỗi và details.field của T-12 khớp FE/contract. Chuẩn hoá NFC/code point/KID/URL, giữ URL/bản nháp khi lỗi 404/409/422 và mọi details/request ID. 13 mẫu đều có metadata và bộ xử lý sau 012/T-09; giữ ca giả lập VALIDATION_FAILED field=dataType để kiểm cơ chế lỗi chung, đổi tên khỏi EXAM_QUESTION. Gate FE chạy lại: 1.826/1.826 test / 144 file, 0 fail/skip; riêng content-import 167/167 test; lint 0 lỗi (1 warning LevelBadge có sẵn), TypeScript/Vite build pass. Diff/BOM/self-check sạch, đúng 13 file; không rebase/merge main. Một conventional commit, push nhánh và Draft PR, leader review/merge. Chi tiết tại questions.md. |
 
 ## Thứ tự thực thi
 
@@ -52,4 +52,4 @@ T-05 → T-10 → T-11 → T-12
 
 **Ba task rủi ro cao:** T-05 (migration đổi bảng "không đụng") · T-07 (kiểm DAG đúng khi xét DB + dòng trong file + kiểm lại lúc ghi) · T-08 (chặn đổi cách chấm câu đã dùng).
 
-**Hiện trạng: 12/13 task xong.**
+**Hiện trạng: 13/13 task xong.**

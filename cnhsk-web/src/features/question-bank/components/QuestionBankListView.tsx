@@ -26,6 +26,7 @@ import {
   QUESTION_TYPE_LABELS,
   type QuestionListQuery,
 } from '../questionListQuery'
+import { limitQuestionInput } from '../questionEditForm'
 import type {
   KnowledgeNode,
   QuestionPage,
@@ -222,8 +223,7 @@ export function QuestionBankListView({
             hint="Tìm theo mã hoặc nội dung, từ 2 đến 100 ký tự."
           >
             <Input
-              maxLength={100}
-              onChange={(event) => onSearchChange(event.target.value)}
+              onChange={(event) => onSearchChange(limitQuestionInput(event.target.value, 100))}
               placeholder="Nhập mã hoặc nội dung câu hỏi"
               value={searchDraft}
             />

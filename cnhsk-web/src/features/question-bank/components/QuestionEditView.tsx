@@ -16,6 +16,8 @@ import {
 } from '@/shared/ui'
 
 import {
+  limitQuestionInput,
+  questionEditErrorMessage,
   questionEditServerErrors,
   questionEditValues,
   toQuestionUpdate,
@@ -153,7 +155,8 @@ export function QuestionEditView({
       if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus()
     }
   }, [action])
-  const errors = { ...localErrors, ...questionEditServerErrors(actionError?.details) }
+  const serverErrors = questionEditServerErrors(actionError?.details)
+  const errors = { ...localErrors, ...serverErrors }
   const change = <K extends keyof QuestionUpdate>(field: K, value: QuestionUpdate[K]) => {
     setValues((current) => ({ ...current, [field]: value }))
     setLocalErrors({})
@@ -181,6 +184,33 @@ export function QuestionEditView({
   const ready = state === 'ready' && data !== undefined
   const editable = canEdit && data?.status !== 'ARCHIVED' && data?.qtype !== 'ESSAY'
   const choice = data && ['MULTIPLE_CHOICE', 'IMAGE_MATCH', 'SENTENCE_MATCH'].includes(data.qtype)
+  const visibleFields = new Set<string>()
+  if (editable) {
+    for (const field of [
+      'stem',
+      'hskLevel',
+      'difficulty',
+      'explanation',
+      'audioUrl',
+      'imageUrl',
+      'primaryKid',
+      'secondaryKids',
+    ])
+      visibleFields.add(field)
+    if (data?.qtype === 'FILL_BLANK' || data?.qtype === 'SENTENCE_ORDER')
+      visibleFields.add('correctKey')
+    if (data?.qtype !== 'FILL_BLANK') {
+      visibleFields.add('options')
+      for (const [index, option] of values.options.entries()) {
+        visibleFields.add(`options[${index}].text`)
+        if (choice && !option.isCorrect) {
+          visibleFields.add(`options[${index}].errorKid`)
+          visibleFields.add(`options[${index}].errorNote`)
+        }
+      }
+    }
+  }
+  const generalErrors = Object.entries(serverErrors).filter(([field]) => !visibleFields.has(field))
 
   return (
     <div className="mx-auto max-w-reading space-y-6">
@@ -290,7 +320,7 @@ export function QuestionEditView({
           ) : null}
           {actionError ? (
             <section aria-label="Lỗi thao tác" className="space-y-2" role="alert">
-              <p>{actionError.message}</p>
+              <p>{questionEditErrorMessage(actionError)}</p>
               {actionError.requestId ? (
                 <p className="text-body-sm">Mã yêu cầu: {actionError.requestId}</p>
               ) : null}
@@ -300,11 +330,11 @@ export function QuestionEditView({
                   Tải lại câu hỏi
                 </Button>
               ) : null}
-              {Object.entries(questionEditServerErrors(actionError.details)).map(
-                ([field, message]) => (
-                  <p key={field}>{message}</p>
-                ),
-              )}
+              {generalErrors.map(([field, message]) => (
+                <p className="whitespace-pre-wrap" key={field}>
+                  {message}
+                </p>
+              ))}
             </section>
           ) : null}
           {editable ? (
@@ -337,9 +367,10 @@ export function QuestionEditView({
                   error={errors.stem}
                 >
                   <Textarea
-                    maxLength={2000}
                     value={values.stem}
-                    onChange={(event) => change('stem', event.target.value)}
+                    onChange={(event) =>
+                      change('stem', limitQuestionInput(event.target.value, 2000))
+                    }
                   />
                 </FormField>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -396,9 +427,12 @@ export function QuestionEditView({
                         >
                           <Input
                             disabled={data.qtype === 'TRUE_FALSE'}
-                            maxLength={300}
                             value={option.text}
-                            onChange={(event) => optionChange(index, { text: event.target.value })}
+                            onChange={(event) =>
+                              optionChange(index, {
+                                text: limitQuestionInput(event.target.value, 300),
+                              })
+                            }
                           />
                         </FormField>
                         {data.qtype !== 'SENTENCE_ORDER' ? (
@@ -449,10 +483,11 @@ export function QuestionEditView({
                             >
                               <Input
                                 disabled={!option.errorKid}
-                                maxLength={200}
                                 value={option.errorNote ?? ''}
                                 onChange={(event) =>
-                                  optionChange(index, { errorNote: event.target.value })
+                                  optionChange(index, {
+                                    errorNote: limitQuestionInput(event.target.value, 200),
+                                  })
                                 }
                               />
                             </FormField>
@@ -504,9 +539,10 @@ export function QuestionEditView({
                   >
                     <Input
                       disabled={data.used}
-                      maxLength={50}
                       value={values.correctKey ?? ''}
-                      onChange={(event) => change('correctKey', event.target.value)}
+                      onChange={(event) =>
+                        change('correctKey', limitQuestionInput(event.target.value, 50))
+                      }
                     />
                   </FormField>
                 ) : null}
@@ -517,9 +553,10 @@ export function QuestionEditView({
                   error={errors.explanation}
                 >
                   <Textarea
-                    maxLength={3000}
                     value={values.explanation}
-                    onChange={(event) => change('explanation', event.target.value)}
+                    onChange={(event) =>
+                      change('explanation', limitQuestionInput(event.target.value, 3000))
+                    }
                   />
                 </FormField>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -529,16 +566,18 @@ export function QuestionEditView({
                     error={errors.audioUrl}
                   >
                     <Input
-                      maxLength={500}
                       value={values.audioUrl ?? ''}
-                      onChange={(event) => change('audioUrl', event.target.value)}
+                      onChange={(event) =>
+                        change('audioUrl', limitQuestionInput(event.target.value, 500))
+                      }
                     />
                   </FormField>
                   <FormField htmlFor="edit-image" label="Đường dẫn ảnh" error={errors.imageUrl}>
                     <Input
-                      maxLength={500}
                       value={values.imageUrl ?? ''}
-                      onChange={(event) => change('imageUrl', event.target.value)}
+                      onChange={(event) =>
+                        change('imageUrl', limitQuestionInput(event.target.value, 500))
+                      }
                     />
                   </FormField>
                 </div>

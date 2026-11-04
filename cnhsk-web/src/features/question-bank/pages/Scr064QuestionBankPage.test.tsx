@@ -7,6 +7,7 @@ import { ApiError } from '@/shared/api'
 
 import { getKnowledgeTree } from '../api/knowledge'
 import { listQuestions } from '../api/questions'
+import { questionSearchError } from '../questionListQuery'
 import type { KnowledgeTree, QuestionPage, QuestionSummary } from '../types'
 import Scr064QuestionBankPage from './Scr064QuestionBankPage'
 
@@ -184,7 +185,7 @@ describe('SCR-064 question bank (FR-017, FR-018, FR-026 · AT-26)', () => {
     },
   )
 
-  it.each(['a', 'a'.repeat(101)])(
+  it.each(['a', 'a'.repeat(101), '𠀀', '😀', '𠀀'.repeat(101), '😀'.repeat(101)])(
     'FR017_AT26_removes an invalid URL search without sending it',
     async (q) => {
       const { router } = renderPage(
@@ -263,20 +264,17 @@ describe('SCR-064 question bank (FR-017, FR-018, FR-026 · AT-26)', () => {
     expect(listMock.mock.lastCall?.[0]?.q).toBe('TEST')
   })
 
-  it.each(['a', 'a'.repeat(101)])(
-    'FR017_AT26_does not submit an invalid draft search',
-    async (value) => {
-      const { router } = renderPage('/content/questions?q=TEST&page=1')
-      await table()
-      fireEvent.change(screen.getByLabelText('Tìm câu hỏi'), { target: { value } })
-      fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
-      expect(screen.getByText('Nhập từ 2 đến 100 ký tự hoặc để trống.')).toBeVisible()
-      expect(screen.getByLabelText('Tìm câu hỏi')).toHaveAttribute('aria-invalid', 'true')
-      expect(params(router).get('q')).toBe('TEST')
-      expect(params(router).get('page')).toBe('1')
-      expect(listMock).toHaveBeenCalledTimes(1)
-    },
-  )
+  it.each(['a', '😀'])('FR017_AT26_does not submit an invalid draft search', async (value) => {
+    const { router } = renderPage('/content/questions?q=TEST&page=1')
+    await table()
+    fireEvent.change(screen.getByLabelText('Tìm câu hỏi'), { target: { value } })
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
+    expect(screen.getByText('Nhập từ 2 đến 100 ký tự hoặc để trống.')).toBeVisible()
+    expect(screen.getByLabelText('Tìm câu hỏi')).toHaveAttribute('aria-invalid', 'true')
+    expect(params(router).get('q')).toBe('TEST')
+    expect(params(router).get('page')).toBe('1')
+    expect(listMock).toHaveBeenCalledTimes(1)
+  })
 
   it.each(['ab', 'a'.repeat(100)])(
     'FR017_AT26_accepts a search at the contract boundaries',
@@ -289,6 +287,58 @@ describe('SCR-064 question bank (FR-017, FR-018, FR-026 · AT-26)', () => {
       expect(listMock.mock.lastCall?.[0]?.q).toBe(q)
     },
   )
+
+  it.each(['𠀀', '😀'])(
+    'FR017_AT26_checks Unicode %s at 1/2 and 100/101 code points',
+    async (character) => {
+      expect(questionSearchError(character)).toBeTruthy()
+      expect(questionSearchError(character.repeat(2))).toBeUndefined()
+      expect(questionSearchError(character.repeat(100))).toBeUndefined()
+      expect(questionSearchError(character.repeat(101))).toBeTruthy()
+      const { router } = renderPage('/content/questions?hskLevel=3&kid=NP1-901&q=TEST&page=1')
+      await table()
+      const input = screen.getByLabelText('Tìm câu hỏi')
+      expect(input).not.toHaveAttribute('maxlength')
+      for (const count of [2, 100, 101]) {
+        fireEvent.change(input, { target: { value: character.repeat(count) } })
+        const expected = character.repeat(Math.min(count, 100))
+        expect(input).toHaveValue(expected)
+        fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
+        await waitFor(() => expect(listMock.mock.lastCall?.[0]?.q).toBe(expected))
+        expect(params(router).get('q')).toBe(expected)
+        expect(params(router).get('hskLevel')).toBe('3')
+        expect(params(router).get('kid')).toBe('NP1-901')
+        expect(params(router).get('page')).toBe('0')
+        expect(params(router).get('size')).toBe('10')
+      }
+    },
+  )
+
+  it('FR017_AT26_preserves the filter URL and request id on server validation errors and retries', async () => {
+    listMock.mockRejectedValueOnce(
+      new ApiError({
+        status: 422,
+        errorCode: 'VALIDATION_FAILED',
+        message: 'Bộ lọc không hợp lệ.',
+        requestId: 'req-list-validation',
+        details: [{ field: 'q', message: 'Kiểm tra từ khoá.' }],
+      }),
+    )
+    const { router } = renderPage('/content/questions?hskLevel=3&kid=NP1-901&q=TEST&page=1')
+    expect(await screen.findByText('Bộ lọc không hợp lệ.')).toBeVisible()
+    expect(screen.getByText('Mã lỗi: req-list-validation')).toBeVisible()
+    expect(params(router).get('q')).toBe('TEST')
+    expect(params(router).get('page')).toBe('1')
+    fireEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    await table()
+    expect(listMock.mock.lastCall?.[0]).toMatchObject({
+      hskLevel: 3,
+      kid: 'NP1-901',
+      q: 'TEST',
+      page: 1,
+      size: 10,
+    })
+  })
 
   it('FR017_AT26_can clear a committed search while retaining other filters', async () => {
     const { router } = renderPage('/content/questions?q=TEST&status=APPROVED&page=2')

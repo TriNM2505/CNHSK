@@ -32,8 +32,15 @@ vi.mock('../api/imports', () => ({
 
 vi.mock('@/shared/lib/downloadBlob', () => ({ downloadBlob: vi.fn() }))
 
-function column(name: string, required: boolean, maxLength: number | null = null, example = '') {
-  return { name, required, maxLength, example }
+// Server metadata from ImportTemplate on main at 34f5dff (012/T-07).
+function column(
+  name: string,
+  required: boolean,
+  maxLength: number | null,
+  description: string,
+  example: string,
+) {
+  return { name, required, maxLength, description, example }
 }
 
 const templates: ImportTemplate[] = [
@@ -43,19 +50,67 @@ const templates: ImportTemplate[] = [
     naturalKey: ['kind', 'text'],
     dependsOn: [],
     columns: [
-      column('kind', true),
-      column('text', true, 20, '我们'),
-      column('pinyin', true, 200),
-      column('sino_viet', false, 200),
-      column('meaning_vi', true, 1000),
-      column('hsk_level', true),
-      column('audio_url', false, 500),
-      column('radical', false, 1),
-      column('stroke_count', false),
-      column('example_cn', false, 300),
-      column('example_pinyin', false, 500),
-      column('example_vi', false, 500),
-      column('tags', false),
+      column('kind', true, null, 'Loại dữ liệu: CHAR hoặc WORD.', 'WORD'),
+      column(
+        'text',
+        true,
+        20,
+        'CHAR: đúng 1 chữ Hán; WORD: từ 1 đến 20 ký tự, toàn bộ là chữ Hán.',
+        '我们',
+      ),
+      column(
+        'pinyin',
+        true,
+        200,
+        "Pinyin có dấu; chỉ chữ a–z, ü, nguyên âm có dấu thanh, khoảng trắng, ' và -.",
+        'wǒmen',
+      ),
+      column('sino_viet', false, 200, 'Âm Hán-Việt.', 'ngã môn'),
+      column(
+        'meaning_vi',
+        true,
+        1000,
+        'Nghĩa tiếng Việt; ngăn nhiều nghĩa bằng dấu ;.',
+        'chúng tôi; chúng ta',
+      ),
+      column('hsk_level', true, null, 'Cấp HSK: số nguyên từ 1 đến 9.', '1'),
+      column(
+        'audio_url',
+        false,
+        500,
+        'URL http:// hoặc https://, không có khoảng trắng.',
+        'https://example.com/women.mp3',
+      ),
+      column(
+        'radical',
+        false,
+        1,
+        'Chỉ dùng cho CHAR: đúng 1 chữ Hán hoặc bộ thủ U+2E80–U+2FDF.',
+        '',
+      ),
+      column('stroke_count', false, null, 'Chỉ dùng cho CHAR: số nét từ 1 đến 64.', ''),
+      column(
+        'example_cn',
+        false,
+        300,
+        'Câu ví dụ chứa ít nhất 1 chữ Hán; nếu có thì example_vi bắt buộc.',
+        '我们一起学习。',
+      ),
+      column('example_pinyin', false, 500, 'Pinyin của câu ví dụ.', 'Wǒmen yìqǐ xuéxí.'),
+      column(
+        'example_vi',
+        false,
+        500,
+        'Nghĩa câu ví dụ; bắt buộc khi example_cn có giá trị.',
+        'Chúng ta cùng học.',
+      ),
+      column(
+        'tags',
+        false,
+        null,
+        'Tối đa 10 nhãn, mỗi nhãn tối đa 30 ký tự; ngăn bằng dấu |.',
+        'đại từ|giao tiếp',
+      ),
     ],
   },
   {
@@ -64,10 +119,10 @@ const templates: ImportTemplate[] = [
     naturalKey: ['code'],
     dependsOn: [],
     columns: [
-      column('code', true, 50),
-      column('name', true, 200),
-      column('hsk_level', true),
-      column('order_index', false),
+      column('code', true, 50, 'Mã chủ đề theo mẫu ^[A-Z0-9_-]{2,50}$.', 'DAILY_LIFE'),
+      column('name', true, 200, 'Tên chủ đề.', 'Sinh hoạt hằng ngày'),
+      column('hsk_level', true, null, 'Cấp HSK: số nguyên từ 1 đến 9.', '1'),
+      column('order_index', false, null, 'Thứ tự: số nguyên từ 0 đến 100000, mặc định 0.', '0'),
     ],
   },
   {
@@ -76,10 +131,22 @@ const templates: ImportTemplate[] = [
     naturalKey: ['topic_code', 'kind', 'text'],
     dependsOn: ['TOPIC', 'LEXEME'],
     columns: [
-      column('topic_code', true),
-      column('kind', true),
-      column('text', true),
-      column('order_index', false),
+      column(
+        'topic_code',
+        true,
+        null,
+        'Mã chủ đề đã tồn tại; nhập mẫu Chủ đề từ vựng trước.',
+        'DAILY_LIFE',
+      ),
+      column('kind', true, null, 'Loại dữ liệu: CHAR hoặc WORD.', 'WORD'),
+      column(
+        'text',
+        true,
+        null,
+        'Chữ hoặc từ đã tồn tại với cùng kind; nhập mẫu Chữ và từ vựng trước.',
+        '我们',
+      ),
+      column('order_index', false, null, 'Thứ tự: số nguyên từ 0 đến 100000, mặc định 0.', '0'),
     ],
   },
   {
@@ -88,21 +155,63 @@ const templates: ImportTemplate[] = [
     naturalKey: ['text'],
     dependsOn: [],
     columns: [
-      column('text', true, 200),
-      column('hsk_level', true),
-      column('title_vi', true, 300),
-      column('structure', false, 300),
-      column('explanation_vi', true, 3000),
-      column('common_mistake_vi', false, 1000),
-      column('example1_cn', true, 300),
-      column('example2_cn', false, 300),
-      column('example3_cn', false, 300),
-      column('example1_pinyin', false, 500),
-      column('example2_pinyin', false, 500),
-      column('example3_pinyin', false, 500),
-      column('example1_vi', true, 500),
-      column('example2_vi', false, 500),
-      column('example3_vi', false, 500),
+      column('text', true, 200, 'Điểm ngữ pháp chứa ít nhất 1 chữ Hán.', '是……的'),
+      column('hsk_level', true, null, 'Cấp HSK: số nguyên từ 1 đến 9.', '2'),
+      column('title_vi', true, 300, 'Tên ngắn tiếng Việt.', 'Nhấn mạnh thông tin đã xảy ra'),
+      column(
+        'structure',
+        false,
+        300,
+        'Cấu trúc ngữ pháp.',
+        'Chủ ngữ + 是 + thông tin nhấn mạnh + động từ + 的',
+      ),
+      column(
+        'explanation_vi',
+        true,
+        3000,
+        'Giải thích ngữ pháp bằng tiếng Việt.',
+        'Dùng 是……的 để nhấn mạnh thời gian hoặc cách thức của một việc đã xảy ra.',
+      ),
+      column(
+        'common_mistake_vi',
+        false,
+        1000,
+        'Lỗi thường gặp.',
+        'Dùng cấu trúc này để kể một việc chưa xảy ra.',
+      ),
+      column('example1_cn', true, 300, 'Ví dụ 1 chứa chữ Hán; cần example1_vi.', '我是昨天来的。'),
+      column(
+        'example2_cn',
+        false,
+        300,
+        'Ví dụ 2 chứa chữ Hán; nếu có thì example2_vi bắt buộc.',
+        '他是坐车来的。',
+      ),
+      column(
+        'example3_cn',
+        false,
+        300,
+        'Ví dụ 3 chứa chữ Hán; nếu có thì example3_vi bắt buộc.',
+        '她是在家学的。',
+      ),
+      column('example1_pinyin', false, 500, 'Pinyin của ví dụ 1.', 'Wǒ shì zuótiān lái de.'),
+      column('example2_pinyin', false, 500, 'Pinyin của ví dụ 2.', 'Tā shì zuò chē lái de.'),
+      column('example3_pinyin', false, 500, 'Pinyin của ví dụ 3.', 'Tā shì zài jiā xué de.'),
+      column('example1_vi', true, 500, 'Nghĩa tiếng Việt của ví dụ 1.', 'Tôi đến hôm qua.'),
+      column(
+        'example2_vi',
+        false,
+        500,
+        'Nghĩa tiếng Việt của ví dụ 2; bắt buộc khi example2_cn có giá trị.',
+        'Anh ấy đến bằng xe.',
+      ),
+      column(
+        'example3_vi',
+        false,
+        500,
+        'Nghĩa tiếng Việt của ví dụ 3; bắt buộc khi example3_cn có giá trị.',
+        'Cô ấy đã học ở nhà.',
+      ),
     ],
   },
   {
@@ -111,15 +220,39 @@ const templates: ImportTemplate[] = [
     naturalKey: ['grammar_text', 'exercise_no'],
     dependsOn: ['GRAMMAR'],
     columns: [
-      column('grammar_text', true),
-      column('exercise_no', true),
-      column('stem', true, 500),
-      column('option_a', true, 200),
-      column('option_b', true, 200),
-      column('option_c', false, 200),
-      column('option_d', false, 200),
-      column('answer', true),
-      column('explanation_vi', false, 1000),
+      column(
+        'grammar_text',
+        true,
+        null,
+        'Điểm ngữ pháp đã tồn tại; nhập mẫu Điểm ngữ pháp trước.',
+        '是……的',
+      ),
+      column('exercise_no', true, null, 'Số bài tập: số nguyên từ 1 đến 20.', '1'),
+      column('stem', true, 500, 'Nội dung bài tập; có thể chứa ___.', '我是昨天来___。'),
+      column(
+        'option_a',
+        true,
+        200,
+        'Phương án A; các phương án phải khác nhau sau chuẩn hóa.',
+        '的',
+      ),
+      column(
+        'option_b',
+        true,
+        200,
+        'Phương án B; các phương án phải khác nhau sau chuẩn hóa.',
+        '吗',
+      ),
+      column('option_c', false, 200, 'Phương án C; bắt buộc khi option_d có giá trị.', '呢'),
+      column('option_d', false, 200, 'Phương án D; nếu có thì option_c bắt buộc.', '吧'),
+      column('answer', true, null, 'Đáp án A–D, phải trỏ tới phương án có nội dung.', 'A'),
+      column(
+        'explanation_vi',
+        false,
+        1000,
+        'Giải thích đáp án.',
+        'Điền 的 để hoàn thành cấu trúc 是……的.',
+      ),
     ],
   },
   {
@@ -128,11 +261,29 @@ const templates: ImportTemplate[] = [
     naturalKey: ['stage_index'],
     dependsOn: [],
     columns: [
-      column('stage_index', true),
-      column('name', true, 100),
-      column('description', false, 2000),
-      column('target_sounds', false),
-      column('pass_percent', false),
+      column('stage_index', true, null, 'Số tầng: số nguyên từ 1 đến 8.', '1'),
+      column('name', true, 100, 'Tên tầng phát âm.', 'Phân biệt thanh mẫu'),
+      column(
+        'description',
+        false,
+        2000,
+        'Mô tả tầng phát âm.',
+        'Luyện nghe và phân biệt thanh mẫu b với p.',
+      ),
+      column(
+        'target_sounds',
+        false,
+        null,
+        'Tối đa 30 âm, mỗi âm tối đa 20 ký tự; ngăn bằng dấu |.',
+        'b|p',
+      ),
+      column(
+        'pass_percent',
+        false,
+        null,
+        'Ngưỡng đạt từ 0 đến 100, tối đa 2 chữ số thập phân, mặc định 80.',
+        '80',
+      ),
     ],
   },
   {
@@ -141,16 +292,40 @@ const templates: ImportTemplate[] = [
     naturalKey: ['stage_index', 'unit_code'],
     dependsOn: ['PRON_STAGE'],
     columns: [
-      column('stage_index', true),
-      column('unit_code', true, 30),
-      column('audio_url', true, 500),
-      column('prompt_vi', false, 200),
-      column('option_a', true, 50),
-      column('option_b', true, 50),
-      column('option_c', false, 50),
-      column('option_d', false, 50),
-      column('answer', true),
-      column('explanation_vi', false, 500),
+      column(
+        'stage_index',
+        true,
+        null,
+        'Tầng phát âm đã tồn tại; nhập mẫu Tầng phát âm trước.',
+        '1',
+      ),
+      column('unit_code', true, 30, 'Mã bài nghe theo mẫu ^[A-Za-z0-9_-]{1,30}$.', 'BP_01'),
+      column(
+        'audio_url',
+        true,
+        500,
+        'URL http:// hoặc https://, không có khoảng trắng.',
+        'https://example.com/ba.mp3',
+      ),
+      column(
+        'prompt_vi',
+        false,
+        200,
+        'Yêu cầu bài nghe, mặc định: Nghe và chọn đáp án đúng.',
+        'Nghe và chọn đáp án đúng',
+      ),
+      column('option_a', true, 50, 'Phương án A: pinyin, thanh mẫu, vận mẫu hoặc số thanh.', 'b'),
+      column('option_b', true, 50, 'Phương án B: pinyin, thanh mẫu, vận mẫu hoặc số thanh.', 'p'),
+      column('option_c', false, 50, 'Phương án C: pinyin, thanh mẫu, vận mẫu hoặc số thanh.', 'm'),
+      column('option_d', false, 50, 'Phương án D: pinyin, thanh mẫu, vận mẫu hoặc số thanh.', 'f'),
+      column('answer', true, null, 'Đáp án A–D, phải trỏ tới phương án có nội dung.', 'A'),
+      column(
+        'explanation_vi',
+        false,
+        500,
+        'Giải thích đáp án.',
+        'Âm nghe được bắt đầu bằng thanh mẫu b.',
+      ),
     ],
   },
   {
@@ -159,11 +334,29 @@ const templates: ImportTemplate[] = [
     naturalKey: ['kid'],
     dependsOn: [],
     columns: [
-      column('kid', true, null, 'NP1-001'),
-      column('name_vi', true, 200),
-      column('name_zh', true, 200),
-      column('can_do', false, 1000),
-      column('skill_type', false),
+      column(
+        'kid',
+        true,
+        null,
+        'Mã nút dạng miền + cấp 1–7 + ba chữ số, chuẩn hoá chữ hoa; ví dụ TV1-001.',
+        'TV1-001',
+      ),
+      column('name_vi', true, 200, 'Tên tiếng Việt của nút.', 'Đại từ nhân xưng'),
+      column('name_zh', true, 200, 'Tên tiếng Trung, có ít nhất một ký tự CJK.', '人称代词'),
+      column(
+        'can_do',
+        false,
+        1000,
+        'Năng lực người học đạt được.',
+        'Nhận biết và sử dụng đại từ trong câu ngắn.',
+      ),
+      column(
+        'skill_type',
+        false,
+        null,
+        'Kỹ năng chính: LISTENING, READING, WRITING, VOCAB, GRAMMAR hoặc CHARACTER.',
+        'VOCAB',
+      ),
     ],
   },
   {
@@ -171,7 +364,11 @@ const templates: ImportTemplate[] = [
     label: 'Quan hệ giữa các nút',
     naturalKey: ['from_kid', 'to_kid'],
     dependsOn: ['KNOWLEDGE_NODE'],
-    columns: [column('from_kid', true), column('to_kid', true), column('edge_type', true)],
+    columns: [
+      column('from_kid', true, null, 'KID nút đứng trước, đã tồn tại.', 'TV1-001'),
+      column('to_kid', true, null, 'KID nút đích, đã tồn tại.', 'TV2-001'),
+      column('edge_type', true, null, 'PREREQ: tiên quyết; SUPPORT: hỗ trợ.', 'PREREQ'),
+    ],
   },
   {
     dataType: 'QUESTION',
@@ -179,24 +376,96 @@ const templates: ImportTemplate[] = [
     naturalKey: ['code'],
     dependsOn: ['KNOWLEDGE_NODE'],
     columns: [
-      column('code', true, 50),
-      column('qtype', true),
-      column('hsk_level', true),
-      column('difficulty', false),
-      column('stem', true, 2000),
-      column('option_a', false, 300),
-      column('option_b', false, 300),
-      column('option_c', false, 300),
-      column('option_d', false, 300),
-      column('option_e', false, 300),
-      column('option_f', false, 300),
-      column('correct', true),
-      column('explanation', true, 3000),
-      column('audio_url', false),
-      column('image_url', false),
-      column('kid_primary', true),
-      column('kid_secondary', false),
-      column('distractor_errors', false),
+      column('code', true, 50, 'Mã câu hỏi theo mẫu ^[A-Z0-9_-]{3,50}$.', 'DEMO_TV1_001'),
+      column(
+        'qtype',
+        true,
+        null,
+        'MULTIPLE_CHOICE, SENTENCE_MATCH, IMAGE_MATCH, TRUE_FALSE, FILL_BLANK hoặc SENTENCE_ORDER; chưa hỗ trợ ESSAY.',
+        'MULTIPLE_CHOICE',
+      ),
+      column('hsk_level', true, null, 'Cấp HSK: số nguyên từ 1 đến 9.', '1'),
+      column(
+        'difficulty',
+        false,
+        null,
+        'Độ khó từ 1 đến 3; tạo mới mặc định 2, cập nhật để trống giữ giá trị cũ.',
+        '2',
+      ),
+      column(
+        'stem',
+        true,
+        2000,
+        'Nội dung câu hỏi; FILL_BLANK phải chứa ___.',
+        '我和你一起学习。我们指的是谁？',
+      ),
+      column(
+        'option_a',
+        false,
+        300,
+        'Phương án A; liên tiếp từ A, không trùng nội dung kể cả mảnh câu. Thay nguyên cấu trúc; để trống xoá phương án cũ tương ứng.',
+        '我和你',
+      ),
+      column(
+        'option_b',
+        false,
+        300,
+        'Phương án B; thay nguyên cấu trúc, để trống xoá phương án B cũ.',
+        '他和她',
+      ),
+      column('option_c', false, 300, 'Phương án C nếu có; để trống xoá phương án C cũ.', ''),
+      column('option_d', false, 300, 'Phương án D nếu có; để trống xoá phương án D cũ.', ''),
+      column('option_e', false, 300, 'Phương án E nếu có; để trống xoá phương án E cũ.', ''),
+      column('option_f', false, 300, 'Phương án F nếu có; để trống xoá phương án F cũ.', ''),
+      column(
+        'correct',
+        true,
+        null,
+        'Thay nguyên đáp án: khoá đúng; TRUE/FALSE; đáp án điền tối đa 50 ký tự; hoặc thứ tự mỗi mảnh câu đúng một lần.',
+        'A',
+      ),
+      column(
+        'explanation',
+        true,
+        3000,
+        'Lời giải câu hỏi.',
+        '我们 bao gồm người nói và người đang cùng học trong câu.',
+      ),
+      column(
+        'audio_url',
+        false,
+        500,
+        'URL http:// hoặc https://, không khoảng trắng; cập nhật để trống giữ giá trị cũ.',
+        '',
+      ),
+      column(
+        'image_url',
+        false,
+        500,
+        'URL ảnh; IMAGE_MATCH cần ảnh; cập nhật để trống giữ giá trị cũ.',
+        '',
+      ),
+      column(
+        'kid_primary',
+        true,
+        null,
+        'Một KID chính đã tồn tại; thay toàn bộ nhãn KID theo dòng nhập.',
+        'TV1-001',
+      ),
+      column(
+        'kid_secondary',
+        false,
+        null,
+        'Tối đa hai KID phụ ngăn bằng |, không trùng nhau hoặc trùng KID chính; để trống xoá toàn bộ KID phụ cũ.',
+        '',
+      ),
+      column(
+        'distractor_errors',
+        false,
+        null,
+        'Tối đa sáu mục KEY:KID hoặc KEY:KID:ghi chú ngăn bằng |; khoá phải là phương án sai của loại chọn đáp án, ghi chú tối đa 200 ký tự; để trống xoá toàn bộ nhãn lỗi cũ.',
+        'B:TV1-001:Nhầm nhóm người được nhắc đến',
+      ),
     ],
   },
   {
@@ -204,9 +473,55 @@ const templates: ImportTemplate[] = [
     label: 'Gắn nội dung vào nút',
     naturalKey: ['target_type', 'target_key'],
     dependsOn: ['KNOWLEDGE_NODE', 'TOPIC', 'LEXEME', 'GRAMMAR'],
-    columns: [column('target_type', true), column('target_key', true), column('kid', true)],
+    columns: [
+      column(
+        'target_type',
+        true,
+        null,
+        'TOPIC hoặc WORD thuộc miền TV; CHAR thuộc CH; GRAMMAR thuộc NP.',
+        'WORD',
+      ),
+      column(
+        'target_key',
+        true,
+        null,
+        'TOPIC: mã chủ đề; loại khác: nội dung mục từ đúng kind, đã tồn tại.',
+        '我们',
+      ),
+      column('kid', true, null, 'KID đã tồn tại, khớp miền của nội dung.', 'TV1-001'),
+    ],
+  },
+  {
+    dataType: 'EXAM',
+    label: 'Đề thi',
+    naturalKey: ['code'],
+    dependsOn: [],
+    columns: [
+      column('code', true, 50, 'Mã đề theo mẫu ^[A-Z0-9_-]{3,50}$.', 'DEMO_EXAM_01'),
+      column('title', true, 200, 'Tên đề thi.', 'Đề tự soạn số 1'),
+      column('hsk_level', true, null, 'Cấp HSK từ 1 đến 6.', '1'),
+      column('sections', true, null, 'Từ 1 đến 10 phần, chỉ số tăng dần.', '1:Đọc hiểu|2:Ngữ pháp'),
+      column('status', true, null, 'DRAFT, PUBLISHED hoặc ARCHIVED.', 'DRAFT'),
+    ],
+  },
+  {
+    dataType: 'EXAM_QUESTION',
+    label: 'Câu trong đề thi',
+    naturalKey: ['exam_code', 'question_code'],
+    dependsOn: ['EXAM', 'QUESTION'],
+    columns: [
+      column('exam_code', true, null, 'Mã đề đã tồn tại.', 'DEMO_EXAM_01'),
+      column('question_code', true, null, 'Mã câu hỏi đã tồn tại.', 'DEMO_TV1_001'),
+      column('section_index', true, null, 'Chỉ số phần có trong đề.', '1'),
+      column('order_index', true, null, 'Thứ tự câu từ 1 đến 999.', '1'),
+      column('points', false, null, 'Điểm từ 1 đến 10, mặc định 1.', '1'),
+    ],
   },
 ]
+
+const templatesWithoutExamMetadata = templates.filter(
+  ({ dataType }) => dataType !== 'EXAM' && dataType !== 'EXAM_QUESTION',
+)
 
 const knowledgeTypes = ['KNOWLEDGE_NODE', 'KNOWLEDGE_EDGE', 'QUESTION', 'NODE_LINK'] as const
 
@@ -636,6 +951,8 @@ describe('Scr068LearningDataImportPage', () => {
     ['KNOWLEDGE_EDGE', 'Quan hệ giữa các nút', 'from_kid, to_kid', 3],
     ['QUESTION', 'Câu hỏi', 'code', 18],
     ['NODE_LINK', 'Gắn nội dung vào nút', 'target_type, target_key', 3],
+    ['EXAM', 'Đề thi', 'code', 5],
+    ['EXAM_QUESTION', 'Câu trong đề thi', 'exam_code, question_code', 5],
   ] as const)(
     'FR036_FR028_AT28_guide_%s: chọn đủ mười ba mẫu và hướng dẫn đúng khóa/cột',
     async (type, label, key, count) => {
@@ -680,10 +997,203 @@ describe('Scr068LearningDataImportPage', () => {
     ])
   })
 
+  it.each(templates.map((template) => template.dataType))(
+    'FR028_AT28: đủ 13 metadata server thì mẫu %s sẵn sàng',
+    async (dataType) => {
+      renderPage(`/content/imports?dataType=${dataType}`)
+      const template = templates.find((item) => item.dataType === dataType)!
+      expect(
+        await screen.findByRole('table', { name: `Danh sách cột mẫu ${template.label}` }),
+      ).toBeVisible()
+      expect(screen.queryByText('Mẫu nhập này chưa sẵn sàng trên máy chủ')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Tải mẫu' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'Tải lên và kiểm tra' })).toBeEnabled()
+    },
+  )
+
+  it('FR028_AT28: EXAM có metadata và gửi file lên kiểm tra được', async () => {
+    vi.mocked(uploadImportFile).mockResolvedValue(
+      makePreview({
+        dataType: 'EXAM',
+        errorCount: 0,
+        errors: [],
+        preview: [
+          {
+            action: 'CREATE',
+            line: 2,
+            values: {
+              code: 'DEMO_EXAM_01',
+              title: 'Đề tự soạn số 1',
+              hsk_level: '1',
+              sections: '1:Đọc hiểu',
+              status: 'DRAFT',
+            },
+          },
+        ],
+        totals: { create: 1, invalid: 0, total: 1, unchanged: 0, update: 0, valid: 1 },
+      }),
+    )
+    renderPage('/content/imports?dataType=EXAM')
+    const user = userEvent.setup()
+    await screen.findByRole('table', { name: 'Danh sách cột mẫu Đề thi' })
+    const file = csvFile('de-tu-soan.csv')
+    await user.upload(screen.getByLabelText(/File CSV/), file)
+    await user.click(screen.getByRole('button', { name: 'Tải lên và kiểm tra' }))
+    expect(uploadImportFile).toHaveBeenCalledWith('EXAM', file)
+    expect(await screen.findByRole('region', { name: 'Kết quả kiểm tra' })).toBeVisible()
+  })
+
+  it('FR028_AT28: lỗi 422 VALIDATION_FAILED theo dataType hiện thông báo server và giữ lựa chọn cùng file', async () => {
+    const message = 'Loại dữ liệu này chưa hỗ trợ nhập'
+    vi.mocked(uploadImportFile).mockRejectedValue(
+      new ApiError({
+        status: 422,
+        errorCode: 'VALIDATION_FAILED',
+        message,
+        requestId: 'req-upload-datatype-validation',
+        details: [{ field: 'dataType', message }],
+      }),
+    )
+    renderPage('/content/imports?dataType=EXAM_QUESTION')
+    const user = userEvent.setup()
+    await screen.findByRole('table', { name: 'Danh sách cột mẫu Câu trong đề thi' })
+    expect(screen.queryByText('Mẫu nhập này chưa sẵn sàng trên máy chủ')).not.toBeInTheDocument()
+    const select = screen.getByLabelText(/Loại dữ liệu/)
+    const fileInput = screen.getByLabelText(/File CSV/) as HTMLInputElement
+    const file = csvFile('cau-trong-de.csv')
+    await user.upload(fileInput, file)
+    await user.click(screen.getByRole('button', { name: 'Tải lên và kiểm tra' }))
+    const alert = await screen.findByRole('alert')
+    expect(select).toHaveValue('EXAM_QUESTION')
+    expect(fileInput.files?.item(0)).toBe(file)
+    expect(screen.queryByRole('region', { name: 'Kết quả kiểm tra' })).not.toBeInTheDocument()
+    expect(within(alert).getByText('Mã lỗi: req-upload-datatype-validation')).toBeVisible()
+    expect(within(alert).getByText(message)).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Tải lên và kiểm tra' }))
+    expect(uploadImportFile).toHaveBeenNthCalledWith(1, 'EXAM_QUESTION', file)
+    expect(uploadImportFile).toHaveBeenNthCalledWith(2, 'EXAM_QUESTION', file)
+    expect(select).toHaveValue('EXAM_QUESTION')
+    expect(fileInput.files?.item(0)).toBe(file)
+  })
+
+  it.each([
+    {
+      name: 'VALIDATION_FAILED cho file',
+      errorCode: 'VALIDATION_FAILED',
+      message: 'Cần chọn một tệp có tên.',
+      details: [{ field: 'file', message: 'Cần chọn một tệp có tên.' }],
+      expected: 'Loại dữ liệu hoặc file chưa hợp lệ.',
+    },
+    {
+      name: 'VALIDATION_FAILED thiếu details',
+      errorCode: 'VALIDATION_FAILED',
+      message: 'Thông báo kiểm tra từ server.',
+      details: undefined,
+      expected: 'Loại dữ liệu hoặc file chưa hợp lệ.',
+    },
+    {
+      name: 'VALIDATION_FAILED dataType với message rỗng',
+      errorCode: 'VALIDATION_FAILED',
+      message: '',
+      details: [{ field: 'dataType', message: 'Loại dữ liệu này chưa hỗ trợ nhập' }],
+      expected: 'Loại dữ liệu hoặc file chưa hợp lệ.',
+    },
+    {
+      name: 'VALIDATION_FAILED dataType với message chỉ có khoảng trắng',
+      errorCode: 'VALIDATION_FAILED',
+      message: ' \t ',
+      details: [{ field: 'dataType', message: 'Loại dữ liệu này chưa hỗ trợ nhập' }],
+      expected: 'Loại dữ liệu hoặc file chưa hợp lệ.',
+    },
+    {
+      name: 'mã khác dù có field dataType',
+      errorCode: 'TOO_MANY_ROWS',
+      message: 'Thông báo riêng từ server.',
+      details: [{ field: 'dataType', message: 'Loại dữ liệu này chưa hỗ trợ nhập' }],
+      expected: 'File vượt quá giới hạn 5.000 dòng dữ liệu.',
+    },
+  ])('FR028_AT28: giữ ánh xạ cũ cho $name', async ({ errorCode, message, details, expected }) => {
+    vi.mocked(uploadImportFile).mockRejectedValue(
+      new ApiError({
+        status: 422,
+        errorCode,
+        message,
+        details,
+        requestId: 'req-upload-fallback',
+      }),
+    )
+    renderPage('/content/imports?dataType=EXAM_QUESTION')
+    const user = userEvent.setup()
+    await screen.findByRole('table', { name: 'Danh sách cột mẫu Câu trong đề thi' })
+    const file = csvFile('cau-trong-de.csv')
+    const fileInput = screen.getByLabelText(/File CSV/) as HTMLInputElement
+    await user.upload(fileInput, file)
+    await user.click(screen.getByRole('button', { name: 'Tải lên và kiểm tra' }))
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByText(expected)).toBeVisible()
+    expect(within(alert).getByText('Mã lỗi: req-upload-fallback')).toBeVisible()
+    expect(screen.getByLabelText(/Loại dữ liệu/)).toHaveValue('EXAM_QUESTION')
+    expect(fileInput.files?.item(0)).toBe(file)
+    expect(uploadImportFile).toHaveBeenCalledWith('EXAM_QUESTION', file)
+  })
+
+  it('FR028_AT28: hiện nguyên quy tắc ô trống QUESTION từ metadata máy chủ', async () => {
+    vi.mocked(getImportTemplates).mockResolvedValue(
+      templates.map((template) =>
+        template.dataType !== 'QUESTION'
+          ? template
+          : {
+              ...template,
+              columns: template.columns.map((item) => ({
+                ...item,
+                description:
+                  item.name === 'option_a'
+                    ? 'Thay nguyên cấu trúc; để trống xoá phương án cũ tương ứng.'
+                    : item.name === 'kid_secondary'
+                      ? 'Để trống xoá toàn bộ KID phụ.'
+                      : item.name === 'audio_url'
+                        ? 'Cập nhật để trống giữ giá trị cũ.'
+                        : item.description,
+              })),
+            },
+      ),
+    )
+    renderPage('/content/imports?dataType=QUESTION')
+    const guide = await screen.findByRole('table', { name: 'Danh sách cột mẫu Câu hỏi' })
+    for (const text of [
+      'Thay nguyên cấu trúc; để trống xoá phương án cũ tương ứng.',
+      'Để trống xoá toàn bộ KID phụ.',
+      'Cập nhật để trống giữ giá trị cũ.',
+    ])
+      expect(within(guide).getByText(text)).toBeVisible()
+  })
+
+  it.each(['EXAM', 'EXAM_QUESTION'] as const)(
+    'FR028_AT28: mẫu %s mở với cột, khoá và phụ thuộc thật từ 012/T-07',
+    async (dataType) => {
+      const template = templates.find((item) => item.dataType === dataType)!
+      renderPage('/content/imports?dataType=' + dataType)
+      const guide = await screen.findByRole('table', {
+        name: 'Danh sách cột mẫu ' + template.label,
+      })
+      for (const item of template.columns) {
+        const row = within(guide).getByText(item.name).closest('tr')!
+        expect(within(row).getByText(item.description!)).toBeVisible()
+        expect(within(row).getByText(item.required ? 'Có' : 'Không')).toBeVisible()
+      }
+      expect(screen.getAllByText(template.naturalKey.join(', '))[0]).toBeVisible()
+      if (dataType === 'EXAM_QUESTION')
+        expect(screen.getByText(/Cần nhập trước: Đề thi, Câu hỏi/)).toBeVisible()
+      expect(screen.queryByText('Mẫu nhập này chưa sẵn sàng trên máy chủ')).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Tải mẫu' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'Tải lên và kiểm tra' })).toBeEnabled()
+    },
+  )
+
   it.each(['EXAM', 'EXAM_QUESTION'] as const)(
     'FR005_AT28: giữ lựa chọn %s và khoá thao tác khi thiếu metadata',
     async (dataType) => {
-      vi.mocked(getImportTemplates).mockResolvedValue(templates)
+      vi.mocked(getImportTemplates).mockResolvedValue(templatesWithoutExamMetadata)
       renderPage()
       const user = userEvent.setup()
       const select = await screen.findByLabelText(/Loại dữ liệu/)

@@ -451,26 +451,48 @@ describe('SCR-059 question edit (FR-019…FR-023, FR-027 · AT-27)', () => {
   )
 
   it.each([
-    [409, 'GRADING_CHANGE_NOT_ALLOWED'],
-    [409, 'QUESTION_ARCHIVED'],
-    [422, 'MALFORMED_QUESTION'],
-    [422, 'KNOWLEDGE_NODE_REQUIRED'],
-    [403, 'FORBIDDEN'],
-  ])('FR022_AT27_displays %s %s without losing input or claiming success', async (status, code) => {
-    updateMock.mockRejectedValue(
-      apiError(status as number, code as string, 'Không thể lưu câu hỏi.'),
-    )
-    renderPage()
-    await form()
-    fireEvent.change(field('Lời giải'), { target: { value: 'Bản nháp cần giữ.' } })
-    await requestSave()
-    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận lưu thay đổi' }))
-    expect(await screen.findByText('Không thể lưu câu hỏi.')).toBeVisible()
-    expect(screen.getByText('Mã yêu cầu: req-question')).toBeVisible()
-    expect(field('Lời giải')).toHaveValue('Bản nháp cần giữ.')
-    expect(screen.queryByText('Đã lưu thay đổi.')).not.toBeInTheDocument()
-    expect(updateMock).toHaveBeenCalledTimes(1)
-  })
+    [
+      409,
+      'GRADING_CHANGE_NOT_ALLOWED',
+      'Câu đã có người làm — không đổi được cách chấm; hãy tạo câu mới thay thế.',
+    ],
+    [409, 'QUESTION_ARCHIVED', 'Câu hỏi đã được lưu trữ, không thể lưu thay đổi.'],
+    [
+      422,
+      'MALFORMED_QUESTION',
+      'Nội dung, đáp án hoặc nhãn câu hỏi chưa hợp lệ. Vui lòng kiểm tra các trường được báo lỗi.',
+    ],
+    [422, 'KNOWLEDGE_NODE_REQUIRED', 'Câu hỏi cần một nút năng lực chính.'],
+    [404, 'QUESTION_NOT_FOUND', 'Không tìm thấy câu hỏi trong kho.'],
+    [403, 'FORBIDDEN', 'Không thể lưu câu hỏi.'],
+  ])(
+    'FR022_AT27_displays %s %s without losing input or claiming success',
+    async (status, code, message) => {
+      updateMock.mockRejectedValue(
+        apiError(status as number, code as string, 'Không thể lưu câu hỏi.'),
+      )
+      renderPage()
+      await form()
+      fireEvent.change(field('Nội dung câu hỏi'), { target: { value: 'Nội dung bản nháp.' } })
+      fireEvent.change(field('Phương án A'), { target: { value: 'Nước tự soạn.' } })
+      fireEvent.change(field('Nút năng lực phụ 1'), { target: { value: 'TV2-901' } })
+      fireEvent.change(field('Đường dẫn ảnh'), {
+        target: { value: 'https://assets.example.test/draft.svg' },
+      })
+      fireEvent.change(field('Lời giải'), { target: { value: 'Bản nháp cần giữ.' } })
+      await requestSave()
+      fireEvent.click(screen.getByRole('button', { name: 'Xác nhận lưu thay đổi' }))
+      expect(await screen.findByText(message as string)).toBeVisible()
+      expect(screen.getByText('Mã yêu cầu: req-question')).toBeVisible()
+      expect(field('Lời giải')).toHaveValue('Bản nháp cần giữ.')
+      expect(field('Nội dung câu hỏi')).toHaveValue('Nội dung bản nháp.')
+      expect(field('Phương án A')).toHaveValue('Nước tự soạn.')
+      expect(field('Nút năng lực phụ 1')).toHaveValue('TV2-901')
+      expect(field('Đường dẫn ảnh')).toHaveValue('https://assets.example.test/draft.svg')
+      expect(screen.queryByText('Đã lưu thay đổi.')).not.toBeInTheDocument()
+      expect(updateMock).toHaveBeenCalledTimes(1)
+    },
+  )
 
   it('FR021_AT27_associates 422 details with form fields and preserves input', async () => {
     updateMock.mockRejectedValue(
@@ -481,10 +503,93 @@ describe('SCR-059 question edit (FR-019…FR-023, FR-027 · AT-27)', () => {
     renderPage()
     await requestSave()
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận lưu thay đổi' }))
-    await screen.findByText('Nhãn không hợp lệ.')
+    await screen.findByText(
+      'Nội dung, đáp án hoặc nhãn câu hỏi chưa hợp lệ. Vui lòng kiểm tra các trường được báo lỗi.',
+    )
     expect(field('Nút năng lực chính')).toHaveAttribute('aria-invalid', 'true')
     fireEvent.click(screen.getByRole('button', { name: 'Huỷ' }))
     expect(field('Nút năng lực chính')).toBeEnabled()
+  })
+
+  it.each([
+    ['stem', 'Nội dung câu hỏi'],
+    ['options[1].text', 'Phương án B'],
+    ['primaryKid', 'Nút năng lực chính'],
+    ['secondaryKids', 'Nút năng lực phụ 1'],
+  ])('FR021_AT27_attaches %s details to the matching form control', async (serverField, label) => {
+    updateMock.mockRejectedValue(
+      apiError(422, 'MALFORMED_QUESTION', 'Lỗi server.', [
+        { field: serverField, message: 'Trường này chưa hợp lệ.' },
+        { field: 'serverOnlyField', message: 'Lỗi cần hiển thị ở phần chung.' },
+      ]),
+    )
+    renderPage()
+    await requestSave()
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận lưu thay đổi' }))
+    const summary = await screen.findByRole('alert', { name: 'Lỗi thao tác' })
+    expect(within(summary).getByText('Lỗi cần hiển thị ở phần chung.')).toBeVisible()
+    expect(within(summary).queryByText('Trường này chưa hợp lệ.')).not.toBeInTheDocument()
+    expect(field(label)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText('Trường này chưa hợp lệ.')).toBeVisible()
+  })
+
+  it('FR021_AT27_attaches correctKey details to the fill answer', async () => {
+    getMock.mockResolvedValue(question('FILL_BLANK'))
+    updateMock.mockRejectedValue(
+      apiError(422, 'MALFORMED_QUESTION', 'Lỗi server.', [
+        { field: 'correctKey', message: 'Đáp án chưa hợp lệ.' },
+      ]),
+    )
+    renderPage()
+    await requestSave()
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận lưu thay đổi' }))
+    await screen.findByText('Đáp án chưa hợp lệ.')
+    expect(field('Đáp án đúng')).toHaveAttribute('aria-invalid', 'true')
+    expect(field('Đáp án đúng')).toHaveValue('水')
+  })
+
+  it('FR021_AT27_keeps details for hidden controls in the general error section', async () => {
+    getMock.mockResolvedValue(question('FILL_BLANK'))
+    updateMock.mockRejectedValue(
+      apiError(422, 'MALFORMED_QUESTION', 'Lỗi server.', [
+        { field: 'options[0].text', message: 'Cấu trúc không còn khớp với câu hỏi.' },
+      ]),
+    )
+    renderPage()
+    await requestSave()
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận lưu thay đổi' }))
+    const summary = await screen.findByRole('alert', { name: 'Lỗi thao tác' })
+    expect(within(summary).getByText('Cấu trúc không còn khớp với câu hỏi.')).toBeVisible()
+    expect(field('Đáp án đúng')).toHaveValue('水')
+  })
+
+  it('FR023_AT27_archive 404 keeps the displayed question and does not claim success', async () => {
+    archiveMock.mockRejectedValue(apiError(404, 'QUESTION_NOT_FOUND'))
+    renderPage({ roles: ['CONTENT_EDITOR'] })
+    fireEvent.click(await screen.findByRole('button', { name: 'Lưu trữ câu hỏi' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận lưu trữ' }))
+    expect(await screen.findByText('Không tìm thấy câu hỏi trong kho.')).toBeVisible()
+    expect(screen.getByText(question().stem)).toBeVisible()
+    expect(screen.getByText('Đã duyệt')).toBeVisible()
+    expect(screen.queryByText('Đã lưu trữ câu hỏi.')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['Nội dung câu hỏi', 2000],
+    ['Lời giải', 3000],
+    ['Phương án A', 300],
+    ['Đáp án đúng', 50],
+    ['Đường dẫn ảnh', 500],
+  ] as const)('FR021_AT27_limits %s by code point in the View', async (label, maximum) => {
+    getMock.mockResolvedValue(question(label === 'Đáp án đúng' ? 'FILL_BLANK' : 'MULTIPLE_CHOICE'))
+    renderPage()
+    await form()
+    const input = field(label)
+    expect(input).not.toHaveAttribute('maxlength')
+    fireEvent.change(input, { target: { value: '𠀀'.repeat(maximum) } })
+    expect(input).toHaveValue('𠀀'.repeat(maximum))
+    fireEvent.change(input, { target: { value: '𠀀'.repeat(maximum) + '😀' } })
+    expect(input).toHaveValue('𠀀'.repeat(maximum))
   })
 
   it('FR022_AT27_reloads authoritative used state after a grading conflict', async () => {

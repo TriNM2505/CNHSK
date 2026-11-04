@@ -1,5 +1,34 @@
 # Chốt — Spec 010
 
+## 2026-11-05 — 010/T-13: đối chiếu main bdccaac và chốt bàn giao
+
+- Leader đã xác nhận PR #92 (010/T-12) và PR #93 (012/T-09) merge. Đã `git fetch origin`, main **bdccaac**; nhánh/worktree giữ nguyên `spec/010-t13` / `.worktrees/010-t13`, base **cd7d1cb**, không rebase hoặc merge main. Đã đọc `QuestionAdminController`, `QuestionAdminService`, `QuestionRules`, `ErrorCode` trên origin/main và đối chiếu contract cùng FE; DTO, mã lỗi và tên field trong details khớp, tiếp tục gate FE và bàn giao theo uỷ quyền leader.
+- Leader đã duyệt thêm `cnhsk-web/src/features/content-import/importFlow.ts`, tổng allowlist **13 file**, liệt kê tường minh dưới đây. Không thêm file ngoài danh sách; `docs/SHADOW-PLAN-010-T13.md` và `t13-mapper-change.patch` không thuộc diff/index của worktree T-13, không đưa vào commit/PR. Không xoá hoặc di chuyển artifact gốc của phiên trước.
+
+- `cnhsk-web/src/features/content-import/api/client-integration.test.ts`
+- `cnhsk-web/src/features/content-import/importFlow.ts`
+- `cnhsk-web/src/features/content-import/pages/Scr068LearningDataImportPage.test.tsx`
+- `cnhsk-web/src/features/question-bank/api/client-integration.test.ts`
+- `cnhsk-web/src/features/question-bank/components/QuestionBankListView.tsx`
+- `cnhsk-web/src/features/question-bank/components/QuestionEditView.tsx`
+- `cnhsk-web/src/features/question-bank/pages/Scr059QuestionEditPage.test.tsx`
+- `cnhsk-web/src/features/question-bank/pages/Scr064QuestionBankPage.test.tsx`
+- `cnhsk-web/src/features/question-bank/questionEditForm.test.ts`
+- `cnhsk-web/src/features/question-bank/questionEditForm.ts`
+- `cnhsk-web/src/features/question-bank/questionListQuery.ts`
+- `specs/010-knowledge-tree/questions.md`
+- `specs/010-knowledge-tree/tasks.md`
+
+- Kiểm tra ghép nội dung ba phía bằng các bản tạm phát hiện thay đổi chồng của T-12/T-13 trong **tasks.md và questions.md**; phần FE không trùng thay đổi trên main. Theo leader, giữ base cd7d1cb, không rebase hoặc merge main vào nhánh; ghi rõ hai xung đột tài liệu trong Draft PR để leader xử lý khi review/merge.
+
+- **AT-28: metadata 13 mẫu (11 của 010 + 2 của 012/T-07).** Hai fixture API client/page lấy đầy đủ từ `ImportTemplate.java` ở `34f5dff`: tên/thứ tự mẫu, cột, required/maxLength, description/example, naturalKey và dependsOn. EXAM: 5 cột, naturalKey `[code]`, không phụ thuộc. EXAM_QUESTION: 5 cột, naturalKey `[exam_code,question_code]`, dependsOn `[EXAM,QUESTION]`. Cả hai có metadata nên SCR-068 không hiện “chưa sẵn sàng”. Giữ fixture riêng thiếu metadata đề thi và các ca server bảy mẫu để kiểm trạng thái khoá/tự mở theo metadata.
+- **13 mẫu đều có metadata và bộ xử lý (sau 012/T-09, bdccaac).** Đã kiểm `ExamQuestionRowWriter` trên main; EXAM_QUESTION đã nhập được. Giữ test phản hồi giả **422 VALIDATION_FAILED với field=dataType** để kiểm cơ chế hiển thị lỗi chung: hiện message server cùng request ID, giữ lựa chọn và đúng đối tượng File, gửi lại được cùng file. Đổi tên ca test và request ID thành tên chung theo dataType; fixture vẫn chọn EXAM_QUESTION như một trong 13 loại sẵn có.
+- Mapper chỉ giữ nguyên `apiError.message` khi mã là `VALIDATION_FAILED`, mảng details có phần tử `field === 'dataType'`, và message không rỗng sau trim. Message chỉ có khoảng trắng cũng dùng thông báo chung. VALIDATION_FAILED với field=file, thiếu details và các mã khác giữ nguyên mapping hiện tại; request ID/details và thông báo lịch sử nhập không thay đổi. Test fallback kiểm đủ năm trường hợp này trong SCR-068, không thêm file test ngoài allowlist.
+- **Gate sau đối chiếu main bdccaac:** `npx vitest run --maxWorkers=2 --minWorkers=2` **1.826/1.826 test, 144/144 file pass**, 0 fail/skip, **245,59 giây**. Toàn bộ `content-import` (SCR-068/SCR-069, API và import flow của 002) nằm trong lượt chạy này: **167/167 test, 5/5 file pass**. `npm run lint`: **0 lỗi**, 1 warning react-refresh/only-export-components có sẵn ở shared/ui/LevelBadge.tsx. `npm run build`: TypeScript/Vite **PASS**. Dùng wrapper `.cmd` của npm/npx trên Windows; không đổi execution policy, timeout/config/ngưỡng hoặc tắt test; dependencies/lockfile giữ nguyên. Log local: `cnhsk-010-t13-vitest-final.log`, `cnhsk-010-t13-lint-final.log`, `cnhsk-010-t13-build-final.log` trong thư mục TEMP; không đưa vào PR.
+- Phần question-bank: SCR-064 kiểm tìm kiếm Unicode và giữ URL/bộ lọc khi lỗi/retry; SCR-059 đồng bộ NFC/code point/KID/URL với QuestionRules, hiện riêng lỗi 404/409/422, giữ bản nháp và toàn bộ field details/request ID. Giữ quyền TEACHER/CONTENT_EDITOR, ESSAY chỉ đọc và khoá trường chấm khi used. Wrapper/types/route/shared/app/practice không đổi. Client integration dùng shared HTTP client thật với fetch giả, chưa thay cho nghiệm thu backend ghi thật.
+- Đối chiếu bản T-12 đã merge trên **bdccaac**: sáu DTO `QuestionPage`, `QuestionSummary`, `QuestionDetail`, `QuestionOption`, `QuestionLabel`, `QuestionUpdate` có tập field trùng FE. Contract nguồn và `QuestionRules` không đổi so với base. PUT nhận đúng 11 field sửa được; PATCH không body; lỗi 404 QUESTION_NOT_FOUND, 409 GRADING_CHANGE_NOT_ALLOWED/QUESTION_ARCHIVED, 422 MALFORMED_QUESTION/KNOWLEDGE_NODE_REQUIRED khớp ánh xạ FE. Details giữ nguyên camelCase và dạng `options[i].text/errorKid/errorNote/isCorrect`; các field `stem`, `hskLevel`, `difficulty`, `explanation`, `audioUrl`, `imageUrl`, `primaryKid`, `secondaryKids`, `correctKey`, `options` gắn đúng điều khiển đang hiện. Lỗi `body`, `qtype`, `options[i]`, field không có điều khiển hoặc điều khiển bị ẩn vẫn hiện ở phần lỗi chung; không mất message/details/request ID. KnowledgeContractTest.java thuộc T-12, T-13 không sửa; không chạy backend hoặc truy cập Neon trong phiên này.
+- Self-check **Global PASS**: không thêm dependency, giữ stack/naming/ranh giới module. **Business PASS**: fixture tự soạn, không log PII/secret hoặc đổi chấm điểm, tiền, mật khẩu/quyền. **Safety PASS**: đúng 13 file đã duyệt; không xoá file, đổi schema/migration/auth config/hiến pháp hoặc truy cập DB chung. `git diff --check` và BOM sạch; không thêm TODO/FIXME/test skip/only hoặc suppression. **Quality gate FE PASS**, đối chiếu T-12/13 mẫu trên main bdccaac đã khớp; tự đánh ✅ T-13 theo leader duyệt. Đồng bộ dòng T-12 đã merge từ tasks.md trên origin/main để bảng tiến độ đủ **13/13**. Một conventional commit đúng 13 file, push nhánh `spec/010-t13`, mở Draft PR vào main cho leader review/merge; giữ nguyên base cd7d1cb.
+
 ## 2026-11-04 — Leader duyệt 010/T-12 (luồng B)
 
 - Base `origin/main` là `cd7d1cb`, đã merge PR #90 (T-11); nhánh `spec/010-t12`, worktree `.worktrees/010-t12`. Leader duyệt đúng 14 file trong Shadow Plan; không sửa FE, schema, dependency hoặc chữ ký QuestionRules. Không rebase/merge main vào nhánh.
