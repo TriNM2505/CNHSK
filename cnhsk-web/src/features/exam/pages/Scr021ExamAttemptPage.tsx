@@ -58,7 +58,7 @@ function Attempt({ session, practice }: { session: SessionView; practice: Practi
   const [saveStates, setSaveStates] = useState<Record<number, 'saving' | 'saved' | 'failed'>>({})
   const exam = object(session.meta?.exam)
   const block = object(session.meta?.placement)
-  const runId = typeof block.runId === 'number' ? block.runId : (session.refId ?? session.sessionId)
+  const runId = session.refId ?? session.sessionId
   const advance = useApiMutation(() => nextPlacementBlock(runId))
   const busy = practice.pending !== null || advance.pending
   const readOnly = session.status === 'SUBMITTED'
@@ -199,6 +199,7 @@ function Attempt({ session, practice }: { session: SessionView; practice: Practi
             : undefined)
       }
       error={advance.error?.message ?? practice.error?.message}
+      retryNext={Boolean(advance.error)}
       onNavigate={selectQuestion}
       onChoose={(key) => {
         void choose(key)

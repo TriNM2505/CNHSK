@@ -16,6 +16,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,6 +40,15 @@ public class TargetedPracticeController {
 
     @PostMapping("/api/targeted-practice/sessions")
     @Operation(operationId = "startTargetedPractice", tags = "targeted-practice")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "201", description = "Created"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
+            @ApiResponse(responseCode = "404", description = "Resource not found"),
+            @ApiResponse(responseCode = "422", description = "Request cannot be processed"),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
     public ResponseEntity<?> start(@RequestBody(required = false) String request) {
         JsonNode body = readBody(request);
         JsonNode kid = body == null ? null : body.path("kid");

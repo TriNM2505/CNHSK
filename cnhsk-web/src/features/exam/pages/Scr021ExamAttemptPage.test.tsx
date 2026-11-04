@@ -100,12 +100,15 @@ describe('SCR-021 FR-025 / AT-26', () => {
     const blockTwo = {
       ...placementAttemptFixture,
       sessionId: 5202,
-      meta: { placement: { runId: 5201, block: 2 } },
+      refId: 5201,
+      meta: { placement: { block: 2, level: 3 } },
     }
     vi.mocked(getSession)
       .mockResolvedValueOnce(placementAttemptFixture)
       .mockResolvedValueOnce(blockTwo)
-    vi.mocked(nextPlacementBlock).mockResolvedValue({ runId: 5201, session: blockTwo })
+    vi.mocked(nextPlacementBlock)
+      .mockResolvedValueOnce({ runId: 5201, session: blockTwo })
+      .mockResolvedValueOnce({ runId: 5201, session: null, concluded: true })
     const user = userEvent.setup()
     open(5201)
     expect(await screen.findByRole('heading', { name: 'Khối 1' })).toBeVisible()
@@ -119,6 +122,12 @@ describe('SCR-021 FR-025 / AT-26', () => {
     })
     expect(nextPlacementBlock).toHaveBeenCalledWith(5201)
     expect(screen.getByText('Đã làm 0/5 câu · Còn lại 5 câu')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Nộp khối' }))
+    await waitFor(() =>
+      expect(screen.getByLabelText('Vị trí')).toHaveTextContent('/learn/placement/5201'),
+    )
+    expect(finishSession).toHaveBeenLastCalledWith(5202, undefined)
+    expect(nextPlacementBlock).toHaveBeenNthCalledWith(2, 5201)
   })
 
   it('retries only next after a submitted block and navigates to the placement result', async () => {
@@ -130,12 +139,21 @@ describe('SCR-021 FR-025 / AT-26', () => {
     open(5201)
     await user.click(await screen.findByRole('button', { name: 'Nộp khối' }))
     expect(await screen.findByRole('alert')).toBeVisible()
+    expect(nextPlacementBlock).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('button', { name: 'A. Phương án một' })).toBeDisabled()
-    await user.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+    await user.click(screen.getByRole('button', { name: 'Thử lại' }))
     await waitFor(() =>
       expect(screen.getByLabelText('Vị trí')).toHaveTextContent('/learn/placement/5201'),
     )
     expect(finishSession).toHaveBeenCalledOnce()
     expect(nextPlacementBlock).toHaveBeenCalledTimes(2)
+  })
+
+  it('continues a previously submitted block without marking it as a retry', async () => {
+    vi.mocked(getSession).mockResolvedValue({ ...placementAttemptFixture, status: 'SUBMITTED' })
+    open(5201)
+    expect(await screen.findByRole('button', { name: 'Tiếp tục' })).toBeEnabled()
+    expect(screen.queryByRole('button', { name: 'Thử lại' })).not.toBeInTheDocument()
+    expect(nextPlacementBlock).not.toHaveBeenCalled()
   })
 })
