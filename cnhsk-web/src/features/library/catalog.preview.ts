@@ -6,7 +6,10 @@ import { ApiError } from '@/shared/api'
 import { DictionarySearchView } from './components/DictionarySearchView'
 import { LexemeDetailView } from './components/LexemeDetailView'
 import { LexemeSaveActions, type LexemeSaveActionsProps } from './components/LexemeSaveActions'
+import { NoteEditor } from './components/NoteEditor'
+import { PersonalNotesView } from './components/PersonalNotesView'
 import { dictionarySearchParams, type DictionarySearch } from './dictionarySearch'
+import { newNoteDraft, noteDraft, type NoteDraft } from './personalNotes'
 
 import type {
   DeckDetail,
@@ -399,6 +402,52 @@ function sampleDetail(id: number): LexemeDetail {
   return entry
 }
 
+function NotesPreview({ state, trash = false }: { state: PreviewState; trash?: boolean }) {
+  const [filters, setFilters] = useState({ q: '', tag: '' })
+  const [draft, setDraft] = useState<NoteDraft>()
+  const [notice, setNotice] = useState('')
+  return createElement(PersonalNotesView, {
+    search: { q: '', tag: '', page: 0, tab: trash ? 'trash' : 'active' },
+    filters,
+    state,
+    items: trash ? libraryTrash : libraryNotePage.items,
+    total: trash ? libraryTrash.length : libraryNotePage.total,
+    busy: false,
+    opening: false,
+    notice,
+    error: new ApiError({
+      status: 503,
+      errorCode: 'UNAVAILABLE',
+      message: 'Chưa tải được ghi chú. Vui lòng thử lại.',
+    }),
+    onFiltersChange: setFilters,
+    onSearch: () => setNotice('Đây là dữ liệu mẫu của sổ tay.'),
+    onClear: () => setFilters({ q: '', tag: '' }),
+    onTabChange: () => setNotice('Xem mẫu Thùng rác riêng trong danh mục preview.'),
+    onPageChange: () => undefined,
+    onRetry: () => undefined,
+    onActionRetry: () => undefined,
+    onOpenRetry: () => undefined,
+    onNew: () => setDraft(newNoteDraft()),
+    onOpenNote: (id) => {
+      const note = libraryNotes.find((item) => item.id === id)
+      if (note) setDraft(noteDraft(note))
+    },
+    onDelete: () => setNotice('Xoá ghi chú cần xác nhận trong trang thật.'),
+    onRestore: () => setNotice('Khôi phục mẫu — không gọi backend.'),
+    editor: draft
+      ? createElement(NoteEditor, {
+          draft,
+          pending: false,
+          opening: false,
+          onChange: setDraft,
+          onSubmit: () => setNotice('Đã nhận bản nháp mẫu — không gọi backend.'),
+          onOpenNote: () => undefined,
+        })
+      : undefined,
+  })
+}
+
 export const previews = [
   {
     group: 'screen',
@@ -463,11 +512,14 @@ export const previews = [
     id: 'library-note-samples',
     scr: 'SCR-027',
     title: 'Sổ tay — Dữ liệu mẫu',
-    render: () =>
-      samplePreview(
-        'Ghi chú mẫu',
-        libraryNotes.map((note) => ({ id: note.id, text: `${note.title}: ${note.content}` })),
-      ),
+    render: (state) => createElement(NotesPreview, { state }),
+  },
+  {
+    group: 'screen',
+    id: 'library-note-trash',
+    scr: 'SCR-027',
+    title: 'Sổ tay — Thùng rác',
+    render: (state) => createElement(NotesPreview, { state, trash: true }),
   },
   {
     group: 'screen',

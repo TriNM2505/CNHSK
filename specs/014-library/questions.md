@@ -1,5 +1,19 @@
 # Chốt — Spec 014
 
+## 2026-11-05 — Leader duyệt 014/T-04
+
+- Base `origin/main` `bdccaac`, nhánh `spec/014-t04`, worktree `CNHSK-014-t04`. Allowlist đúng 12 file: `cnhsk-web/src/features/library/personalNotes.ts`, `personalNotes.test.ts`, `components/PersonalNotesView.tsx`, `components/NoteEditor.tsx`, `pages/Scr027PersonalNotesPage.tsx`, `pages/Scr027PersonalNotesPage.test.tsx`, `catalog.preview.ts`, `screens.ts`, `routes.test.tsx`, `api/client-integration.test.ts`, `specs/014-library/tasks.md`, `specs/014-library/questions.md` (các đường dẫn FE rút gọn cùng gốc `cnhsk-web/src/features/library/`). Một conventional commit, Draft PR, leader review/merge.
+- SCR-027 dùng page gọi `api/notes`, View/Editor chỉ nhận props; preview độc lập có loading/empty/error/ready cho ghi chú và thùng rác. Không import preview trong page, không thêm dependency, không sửa shared/app/backend/DB hoặc contract. Các model và API ghi chú T-01 đã khớp contract T-08; thêm test giữ nguyên error details.
+- Tìm sau trim và NFC, 2–100 Unicode code point, kiểm biên 1/2/100/101; bỏ q khi rỗng. Lọc tag bằng ô nhập, khớp chính xác, không gợi ý tag. Trang API từ 0, mặc định 20; đổi bộ lọc về trang đầu. Thùng rác dùng endpoint mảng hiện có và phân trang phía client.
+- Backend kiểm hạn mức; FE không kiểm quota và không gọi thêm truy vấn lấy tổng ghi chú. 422 `LIBRARY_LIMIT_REACHED` hiển thị `details.limit`, giữ nguyên editor. Số `total` chỉ dùng phân trang.
+- 409 `NOTE_DUPLICATE` hiện đúng "Từ này đã có trong sổ tay" và nút "Mở ghi chú đã có" theo `details.noteId`; không tự chuyển editor. Chỉ tải khi người dùng bấm; tải thất bại giữ bản nháp và cho thử lại. Chỉ dùng noteId là số nguyên dương an toàn; đánh giá đầy đủ int64 vẫn thuộc T-15.
+- Tiêu đề tuỳ chọn theo OpenAPI `NoteRequest` và `NoteWrite` T-08; `screen-fields.md` SCR-027 cũ còn ghi bắt buộc. Nội dung/tiêu đề/thẻ có giới hạn và bộ đếm; sửa giữ nguyên `lexemeId`/`sourceType`, không thêm bộ chọn điểm kiến thức. Mọi lỗi tạo/sửa giữ nguyên dữ liệu nhập.
+- Snippet là văn bản thô: React text node và `<mark>` chứa các đoạn text, không HTML injection. AT-26 có `<script>` và HTML, từ khoá chứa ký tự regex. Xoá cần ConfirmPanel trong trang, huỷ trả focus về trigger; không cập nhật danh sách trước API thành công.
+- Thùng rác hiển thị `deletedAt` và `restorableUntil` theo giờ Việt Nam; xử lý `NOTE_NOT_RESTORABLE`, `NOTE_DUPLICATE`, `LIBRARY_LIMIT_REACHED`. Huỷ request cũ, bỏ kết quả đến muộn, xoá state riêng khi đổi tài khoản; chặn gửi lặp. Backend xoá/khôi phục thuộc T-09, nghiệm thu nối backend thật thuộc T-15.
+- Gate: `npm ci` PASS; `npx vitest run --maxWorkers=2 --minWorkers=2` PASS 145 file, 1.825 test, không failure/skip; lint 0 error, duy nhất warning `react-refresh/only-export-components` tại LevelBadge có sẵn; production build PASS. Trên Windows gọi `npm.cmd`/`npx.cmd` do PowerShell chặn script shim `.ps1`.
+- Fetch trước PR: main lên `0acbae7`, #94/T-08 merge tại `f5b491b`, #97/010-T-13 merge sau đó. So với base, cả `SecurityConfig.java`, `ErrorCode.java`, `GlobalExceptionHandler.java`, `application.yaml` đã đổi; đã báo leader, không rebase/merge main vào nhánh. `tasks.md`/`questions.md` cũng có cập nhật T-08 trên main; leader giữ cả chốt T-08 và T-04 khi gộp.
+- Sau T-04 chỉ soạn Shadow Plan T-09 khi leader báo tiếp tục; không tự bắt đầu code T-09.
+
 ## 2026-11-04 — Leader duyệt 014/T-07
 
 - Base: `origin/main` `82a6b3b`, merge PR #87 (T-06); leader xác nhận full verify PASS tại `82a6b3b`. Allowlist 12 file, nhánh `spec/014-t07`, một conventional commit, PR Draft, không tự merge.
