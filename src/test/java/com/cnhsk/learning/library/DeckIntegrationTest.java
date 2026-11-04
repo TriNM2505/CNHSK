@@ -11,6 +11,8 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.sql.Timestamp;
+import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -223,7 +225,7 @@ class DeckIntegrationTest extends AbstractIntegrationTest {
         long card = card(id, "Thẻ giữ nguyên", 0);
         progress(user, card, clock.now.plusSeconds(3600), 8, 2);
         String oldCard = jdbc.queryForObject("SELECT row_to_json(i)::text FROM learning.collection_items i WHERE id=?", String.class, card);
-        Map<String, Object> oldProgress = jdbc.queryForMap("SELECT * FROM learning.user_progress WHERE user_id=? AND target_type='FLASHCARD' AND target_id=?", user, card);
+        Map<String, Object> oldProgress = progressSnapshot(card);
         Instant created = clock.now;
         clock.now = clock.now.plusSeconds(10);
         mvc.perform(patch("/api/flashcard-decks/{id}", id).header("Authorization", authorization).contentType(MediaType.APPLICATION_JSON)
@@ -242,7 +244,7 @@ class DeckIntegrationTest extends AbstractIntegrationTest {
         beforeDelete.remove("deleted_at");
         assertThat(afterDelete).isEqualTo(beforeDelete);
         assertThat(jdbc.queryForObject("SELECT row_to_json(i)::text FROM learning.collection_items i WHERE id=?", String.class, card)).isEqualTo(oldCard);
-        assertThat(jdbc.queryForMap("SELECT * FROM learning.user_progress WHERE user_id=? AND target_type='FLASHCARD' AND target_id=?", user, card)).isEqualTo(oldProgress);
+        assertThat(progressSnapshot(card)).isEqualTo(oldProgress);
         denied(Long.toString(id), authorization);
         mvc.perform(get("/api/flashcard-decks").header("Authorization", authorization)).andExpect(content().json("[]"));
     }
@@ -291,6 +293,21 @@ class DeckIntegrationTest extends AbstractIntegrationTest {
     private void progress(long owner, long card, Instant due, int reviews, int lapses) {
         jdbc.update("INSERT INTO learning.user_progress(user_id,target_type,target_id,next_review_at,review_count,lapse_count) VALUES (?,'FLASHCARD',?,?,?,?)",
                 owner, card, due == null ? null : Timestamp.from(due), reviews, lapses);
+    }
+
+    private Map<String, Object> progressSnapshot(long card) throws SQLException {
+        Map<String, Object> snapshot = jdbc.queryForMap(
+                "SELECT * FROM learning.user_progress WHERE user_id=? AND target_type='FLASHCARD' AND target_id=?", user, card);
+        for (var entry : snapshot.entrySet()) {
+            if (entry.getValue() instanceof java.sql.Array array) {
+                try {
+                    entry.setValue(Arrays.asList((Object[]) array.getArray()));
+                } finally {
+                    array.free();
+                }
+            }
+        }
+        return snapshot;
     }
 
     @TestConfiguration
