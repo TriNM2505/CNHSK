@@ -70,7 +70,7 @@ Cấu hình `cnhsk.library.*` (`application.yaml`); thiếu khoá → không kh�
 
 | File | Thay đổi | Task |
 |---|---|---|
-| `shared/exception/ErrorCode.java` + `GlobalExceptionHandlerTest` | 6 mã §5 trước `INTERNAL_ERROR` (sau mã của 010–013) | T-07, T-08, T-09, T-11, T-14 |
+| `shared/exception/ErrorCode.java` + `GlobalExceptionHandlerTest` | 7 mã §5 ngay trước `INTERNAL_ERROR`, theo thứ tự merge thực tế | T-07, T-08, T-09, T-11, T-14 |
 | `shared/config/SecurityConfig.java` | `/api/public/dictionary/**` → `permitAll`; `/api/notes/**`, `/api/flashcard-decks/**`, `/api/flashcards/**`, `POST /api/translate` → `LEARNER` | T-06, T-08, T-10, T-12, T-14 |
 | `src/main/resources/application.yaml` | `cnhsk.library.*`; `cnhsk.ai.translate-model` (khối `cnhsk.ai` do 015 T-04 tạo) | T-06, T-14 |
 | `cnhsk-web/src/app/routeAccess.ts`, `screenRegistry.ts`, `shared/auth/navigation.ts` | 6 route §12 | T-01 |
@@ -151,9 +151,9 @@ Phần tử kết quả tìm (FR-003…FR-006): `{id, kind, text, pinyin, sinoVi
 | Mã | Yêu cầu |
 |---|---|
 | **FR-008** | THE system SHALL dùng một sổ tay `NOTEBOOK` mỗi người (§0.1), tạo khi cần; `user_id` luôn lấy từ phiên (BR-064-2) |
-| **FR-009** | `POST /api/notes` body `{title?, content*, tags?, lexemeId?, sourceType?}` SHALL kiểm §0.1 (sai → **422** `VALIDATION_FAILED`); `lexemeId` không có → **404** `LEXEME_NOT_FOUND`; đủ 1 000 → **422** `LIBRARY_LIMIT_REACHED` `details{kind: NOTES, limit}`; trùng từ không chặn (BR-062-4); trả **201** ghi chú |
+| **FR-009** | `POST /api/notes` body `{title?, content*, tags?, lexemeId?, sourceType?}` SHALL kiểm §0.1 (sai → **422** `VALIDATION_FAILED`); `lexemeId` không có → **404** `LEXEME_NOT_FOUND`; đủ 1 000 → **422** `LIBRARY_LIMIT_REACHED` `details{kind: NOTES, limit}`; mỗi từ một ghi chú chưa xoá trong sổ, trùng → **409** `NOTE_DUPLICATE` kèm `details{noteId}` (BR-062-4); trả **201** ghi chú |
 | **FR-010** | `GET /api/notes?q&tag&page&size` SHALL chỉ trả ghi chú chưa xoá của người gọi: `q` (≥ 2 ký tự, sai → 422) tìm trong `title` + `content` (trigram), sắp độ khớp rồi `updated_at` giảm dần; `tag` khớp chính xác; không tham số → `updated_at` giảm dần; mỗi phần tử `{id, title, snippet, tags, lexemeId, sourceType, updatedAt}` — `snippet` ≤ 200 ký tự quanh từ khoá, **văn bản thô** (FE escape trước khi tô — BR-065-6); rỗng → `[]` |
-| **FR-011** | `GET /api/notes/{id}` trả đủ ghi chú; `PUT /api/notes/{id}` (cùng luật FR-009) ghi đè, cập nhật `updated_at` (bản sau cùng thắng — BR-064-7) |
+| **FR-011** | `GET /api/notes/{id}` trả đủ ghi chú; `PUT /api/notes/{id}` (cùng luật FR-009) ghi đè, cập nhật `updated_at` (bản sau cùng thắng — BR-064-7); `lexemeId` không tồn tại → **404** `LEXEME_NOT_FOUND`; trùng từ của ghi chú chưa xoá khác → **409** `NOTE_DUPLICATE` kèm `details{noteId}`; giữ từ của chính ghi chú thì không trùng, sửa khi đủ hạn mức vẫn được |
 | **FR-012** | `DELETE /api/notes/{id}` SHALL đặt `deleted_at` (**204**; xoá lại → 204); `GET /api/notes/trash` trả ghi chú xoá trong 30 ngày (mới xoá trước) kèm `restorableUntil`; `POST /api/notes/{id}/restore` → xoá ≤ 30 ngày: bỏ `deleted_at` (**200**, kiểm giới hạn E11); quá 30 ngày hoặc chưa xoá → **409** `NOTE_NOT_RESTORABLE` |
 
 ### Nhóm 3 — Flashcard (FR-013…FR-018) · SCR-028, SCR-029
@@ -200,6 +200,8 @@ Phần tử kết quả tìm (FR-003…FR-006): `{id, kind, text, pinyin, sinoVi
 
 ## 4 · Data Model
 
+**BR-062-4:** Mỗi `lexemeId` chỉ có một ghi chú chưa xoá trong một sổ tay; `lexemeId=null` không chịu giới hạn trùng từ. Ghi chú đã xoá không tính trùng. POST/PUT kiểm dưới advisory lock theo người dùng; trùng trả 409 `NOTE_DUPLICATE` với `details{noteId}` của ghi chú đang có. Lý do: **giữ uq_coll_lex của V1, không migration (leader chốt 2026-11-04)**.
+
 Không migration. Ví dụ thẻ tạo từ mục từ 家人: `collection_items { collection_id: 12, lexeme_id: 345, title: "家人", content: "jiārén — người nhà", order_index: 7 }`; lịch ôn: `user_progress { target_type: 'FLASHCARD', target_id: <id thẻ>, stability, difficulty, next_review_at, review_count, lapse_count }`.
 
 ---
@@ -213,16 +215,17 @@ Không migration. Ví dụ thẻ tạo từ mục từ 家人: `collection_items
 | `CSRF_TOKEN_INVALID` | 403 | Ghi qua cookie thiếu CSRF | FR-001 |
 | `VALIDATION_FAILED` | 422 | Tham số/body sai | FR-003…FR-006, FR-009…FR-011, FR-013, FR-015, FR-018, FR-019 |
 | `RATE_LIMITED` | 429 | Tra cứu quá giới hạn; ôn > 500/giờ | FR-002, FR-018 |
-| `LEXEME_NOT_FOUND` | 404 | Mục từ không có | FR-007, FR-009, FR-015 |
+| `LEXEME_NOT_FOUND` | 404 | Mục từ không có | FR-007, FR-009, FR-011, FR-015 |
 | `COLLECTION_NOT_OWNED` | 403 | Bộ/thẻ/ghi chú không có hoặc của người khác | FR-001, FR-011…FR-018 |
 | `LIBRARY_LIMIT_REACHED` | 422 | Vượt 1 000 ghi chú / 50 bộ / 500 thẻ (`details.kind`) | FR-009, FR-012, FR-013, FR-015 |
+| `NOTE_DUPLICATE` | 409 | Từ đã có ghi chú chưa xoá trong sổ, `details{noteId}` | FR-009, FR-011 |
 | `NOTE_NOT_RESTORABLE` | 409 | Khôi phục khi quá 30 ngày hoặc chưa xoá | FR-012 |
 | `CARD_DUPLICATE` | 409 | Thẻ trùng từ/mặt trước | FR-015, FR-016 |
 | `TOPIC_NOT_FOUND` | 404 | Chủ đề không có (mã của 003) | FR-013 |
 | `INSUFFICIENT_CREDITS` | 402 | Hết lượt + hết điểm (mã của 013) | FR-020 |
 | `TRANSLATE_UNAVAILABLE` | 503 | Claude lỗi/timeout/thiếu khoá; lượt đã hoàn | FR-020 |
 
-**Mã mới trong `ErrorCode.java`** (thứ tự cuối theo thứ tự merge thực tế — luật L2; trước `INTERNAL_ERROR`, sau mã của 010–013, theo thứ tự): `LEXEME_NOT_FOUND`, `COLLECTION_NOT_OWNED`, `LIBRARY_LIMIT_REACHED`, `NOTE_NOT_RESTORABLE`, `CARD_DUPLICATE`, `TRANSLATE_UNAVAILABLE`.
+**Mã mới trong `ErrorCode.java`** (theo thứ tự merge thực tế — luật L2; ngay trước `INTERNAL_ERROR`): T-08 thêm `COLLECTION_NOT_OWNED`, `LIBRARY_LIMIT_REACHED`, `NOTE_DUPLICATE` sau các mã đã merge, gồm `LEXEME_NOT_FOUND`, `QUESTION_NOT_FOUND`. Các task sau thêm `NOTE_NOT_RESTORABLE`, `CARD_DUPLICATE`, `TRANSLATE_UNAVAILABLE`.
 Mục từ là dữ liệu công khai → 404; sổ tay, bộ, thẻ là dữ liệu riêng → 403 (`BUS-01`, V5).
 
 ---

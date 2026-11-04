@@ -19,6 +19,18 @@ public class LibraryConfig {
     @Min(1)
     private Integer authenticatedLookupsPerHour;
 
+    @NotNull
+    @Min(1)
+    private Integer maxNotes;
+
+    public Integer getMaxNotes() {
+        return maxNotes;
+    }
+
+    public void setMaxNotes(Integer maxNotes) {
+        this.maxNotes = maxNotes;
+    }
+
     public Integer getGuestLookupsPerHour() {
         return guestLookupsPerHour;
     }
