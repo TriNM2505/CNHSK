@@ -99,3 +99,17 @@ cnhsk:
     sure-min-items: 10
     start-level: 2
     min-bank-per-level: 10
+  mastery:
+    window: 8
+    max-practice-in-window: 3
+    min-evidence: 3
+    min-distinct-days: 2
+    min-confidence: 1.0
+    half-life-days: 30
+    review-below: 60
+    extend-from: 80
+    hysteresis: 3
+    due-days:
+      review: 3
+      consolidate: 7
+      extend: 14
