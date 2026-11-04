@@ -49,10 +49,11 @@ public class ImportChangePlanner {
     private final QuestionRepository questions;
     private final KnowledgeTreeQueryRepository questionLabels;
     private final NodeLinkRepository nodeLinks;
+    private final ExamImportSupport exams;
 
     public ImportChangePlanner(LexemeRepository lexemes, TopicRepository topics,
             TopicItemRepository topicItems, PronStageRepository stages, KnowledgePointRepository points,
-            QuestionRepository questions, KnowledgeTreeQueryRepository questionLabels, NodeLinkRepository nodeLinks) {
+            QuestionRepository questions, KnowledgeTreeQueryRepository questionLabels, NodeLinkRepository nodeLinks, ExamImportSupport exams) {
         this.lexemes = lexemes;
         this.topics = topics;
         this.topicItems = topicItems;
@@ -61,10 +62,23 @@ public class ImportChangePlanner {
         this.questions = questions;
         this.questionLabels = questionLabels;
         this.nodeLinks = nodeLinks;
+        this.exams = exams;
     }
 
     @Transactional(readOnly = true)
     public List<PreviewRow> plan(ImportDataType type, List<ValidatedRow> rows) {
+        if (type == ImportDataType.EXAM) {
+            Map<String, ExamImportSupport.Exam> existing = new HashMap<>();
+            for (int offset = 0; offset < rows.size(); offset += BATCH_SIZE) {
+                var batch = rows.subList(offset, Math.min(rows.size(), offset + BATCH_SIZE));
+                exams.exams(values(batch, "code"), false).forEach(exam -> existing.put(exam.code(), exam));
+            }
+            return rows.stream().map(row -> {
+                var old = existing.get(row.values().get("code"));
+                var action = old == null ? RowAction.CREATE : old.matches(row.values()) ? RowAction.UNCHANGED : RowAction.UPDATE;
+                return new PreviewRow(row.line(), action, row.values());
+            }).toList();
+        }
         if (type == ImportDataType.QUESTION) return questionPlan(rows);
         if (type == ImportDataType.NODE_LINK) return nodeLinkPlan(rows);
         List<PreviewRow> result = new ArrayList<>();

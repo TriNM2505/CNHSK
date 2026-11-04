@@ -223,7 +223,7 @@ class ImportQueryServiceTest {
     @ParameterizedTest
     @EnumSource(ImportDataType.class)
     void FR034_FR035_AT41_eachTemplateHasExactlyItsHeaderAndOneExample(ImportDataType type) throws Exception {
-        assertThat(query.templates()).isEqualTo(ImportTemplate.all()).hasSize(11);
+        assertThat(query.templates()).isEqualTo(ImportTemplate.all()).hasSize(13);
         String csv = new String(query.templateCsv(type.name()), StandardCharsets.UTF_8);
         assertThat(csv).startsWith("\uFEFF");
         try (var parser = CSVFormat.RFC4180.parse(new java.io.StringReader(csv.substring(1)))) {
@@ -238,7 +238,7 @@ class ImportQueryServiceTest {
 
     @ParameterizedTest
     @NullAndEmptySource
-    @ValueSource(strings = {"EXAM", "lexeme", "LEXEME.csv"})
+    @ValueSource(strings = {"UNKNOWN", "lexeme", "LEXEME.csv"})
     void FR035_unknownTemplateIs422(String dataType) {
         assertFailure(() -> query.templateCsv(dataType), ErrorCode.VALIDATION_FAILED, 422);
         verifyNoInteractions(requests, maintenance);

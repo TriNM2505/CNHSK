@@ -160,7 +160,7 @@ public class QuestionRowValidatorTest {
 
     @Test
     void metadataKeepsElevenTemplatesAndTheApprovedQuestionColumnLayout() {
-        assertThat(ImportTemplate.all()).hasSize(11);
+        assertThat(ImportTemplate.all()).hasSize(13);
         var template = ImportTemplate.forType(ImportDataType.QUESTION);
         assertThat(template.naturalKey()).containsExactly("code");
         assertThat(template.dependsOn()).containsExactly(ImportDataType.KNOWLEDGE_NODE);

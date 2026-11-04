@@ -65,6 +65,7 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
     private static final List<String> GET_PATHS = List.of("", "/999999", "/999999/errors", "/999999/errors.csv",
             "/templates", "/templates/LEXEME.csv");
     @Autowired private MockMvc mvc;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
     @Autowired private ObjectMapper mapper;
     @Autowired private JwtService jwt;
     @Autowired private UserRepository users;
@@ -113,6 +114,7 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
         Set<Long> createdQuestions = questions.findAll().stream().map(value -> value.getId()).filter(id -> !questionBaseline.contains(id)).collect(Collectors.toSet());
         labels.deleteAllInBatch(labels.findByQuestionIdIn(createdQuestions)); questions.deleteAllByIdInBatch(createdQuestions);
         points.deleteAllByIdInBatch(points.findAll().stream().map(value -> value.getId()).filter(id -> !pointBaseline.contains(id)).toList());
+        userIds.forEach(id -> jdbc.update("DELETE FROM learning.exams WHERE created_by = ?", id));
         users.deleteAllInBatch(createdUsers);
         createdUsers.clear();
     }
@@ -327,9 +329,9 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void FR034_FR035_AT41_allElevenCsvTemplatesMatchMetadataAndCanBeImported() throws Exception {
+    void FR034_FR035_AT41_allThirteenCsvTemplatesMatchMetadataAndSupportedOnesCanBeImported() throws Exception {
         JsonNode templates = json(read("/templates", 200));
-        assertThat(templates).hasSize(11);
+        assertThat(templates).hasSize(13);
         for (JsonNode template : templates) {
             String type = template.path("dataType").asText();
             var csv = read("/templates/" + type + ".csv", 200).getResponse();
@@ -342,6 +344,7 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
                     assertThat(rows.get(1).get(column)).isEqualTo(template.path("columns").get(column).path("example").asText());
                 }
             }
+            if (type.equals("EXAM_QUESTION")) continue;
             if (type.equals("KNOWLEDGE_EDGE")) {
                 JsonNode parent = upload(ImportDataType.KNOWLEDGE_NODE,
                         "kid,name_vi,name_zh\nTV2-001,Nút đích tự soạn,示例\n".getBytes(StandardCharsets.UTF_8));

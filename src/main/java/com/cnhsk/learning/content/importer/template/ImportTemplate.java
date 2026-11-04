@@ -13,7 +13,7 @@ public record ImportTemplate(
 
     private static final List<ImportTemplate> TEMPLATES = List.of(
             lexeme(), topic(), topicItem(), grammar(), grammarExercise(), pronStage(), pronUnit(),
-            knowledgeNode(), knowledgeEdge(), question(), nodeLink());
+            knowledgeNode(), knowledgeEdge(), question(), nodeLink(), exam(), examQuestion());
 
     public ImportTemplate {
         naturalKey = List.copyOf(naturalKey);
@@ -203,6 +203,25 @@ public record ImportTemplate(
                         new ColumnSpec("distractor_errors", false, null,
                                 "Tối đa sáu mục KEY:KID hoặc KEY:KID:ghi chú ngăn bằng |; khoá phải là phương án sai của loại chọn đáp án, ghi chú tối đa 200 ký tự; để trống xoá toàn bộ nhãn lỗi cũ.",
                                 "B:TV1-001:Nhầm nhóm người được nhắc đến")));
+    }
+
+    private static ImportTemplate exam() {
+        return new ImportTemplate(ImportDataType.EXAM, "Đề thi", List.of("code"), List.of(), List.of(
+                new ColumnSpec("code", true, 50, "Mã đề theo mẫu ^[A-Z0-9_-]{3,50}$.", "DEMO_EXAM_01"),
+                new ColumnSpec("title", true, 200, "Tên đề thi.", "Đề tự soạn số 1"),
+                new ColumnSpec("hsk_level", true, null, "Cấp HSK từ 1 đến 6.", "1"),
+                new ColumnSpec("sections", true, null, "Từ 1 đến 10 phần, chỉ số tăng dần.", "1:Đọc hiểu|2:Ngữ pháp"),
+                new ColumnSpec("status", true, null, "DRAFT, PUBLISHED hoặc ARCHIVED.", "DRAFT")));
+    }
+
+    private static ImportTemplate examQuestion() {
+        return new ImportTemplate(ImportDataType.EXAM_QUESTION, "Câu trong đề thi",
+                List.of("exam_code", "question_code"), List.of(ImportDataType.EXAM, ImportDataType.QUESTION), List.of(
+                        new ColumnSpec("exam_code", true, null, "Mã đề đã tồn tại.", "DEMO_EXAM_01"),
+                        new ColumnSpec("question_code", true, null, "Mã câu hỏi đã tồn tại.", "DEMO_TV1_001"),
+                        new ColumnSpec("section_index", true, null, "Chỉ số phần có trong đề.", "1"),
+                        new ColumnSpec("order_index", true, null, "Thứ tự câu từ 1 đến 999.", "1"),
+                        new ColumnSpec("points", false, null, "Điểm từ 1 đến 10, mặc định 1.", "1")));
     }
 
     private static ImportTemplate nodeLink() {
