@@ -120,7 +120,7 @@ class CommunityArchitectureTest {
                             "findPublished", "countPublished", "findOwned", "countOwned")
                     : repository == CommentRepository.class ? Set.of("countVisibleByPostIds",
                             "countByAuthorIdAndCreatedAtAfter", "findOldestCreatedAtByAuthorIdAndCreatedAtAfter",
-                            "findReplyParentOnPublishedPost")
+                            "findReplyParentOnPublishedPost", "findTreeByPostId")
                     : repository == ReactionRepository.class ? Set.of("countLikesByPostIds", "findPostViewerKinds") : Set.of();
             Set<String> actualMethods = Arrays.stream(repository.getDeclaredMethods())
                     .map(Method::getName)
