@@ -21,7 +21,7 @@ File dùng chung (spec §0.3) phải nêu trong Shadow Plan từng task.
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-05 | `V6__mastery_progress.sql` (§0.1) + entity `KnowledgeProgress`, `LexemeSchedule` + repository; test migration Testcontainers (tên CHECK, `ck_prog_mp`, entity 005 `validate`); `database.md` §4.9, §11, §13. **Leader chạy V6 lên Neon sau merge** | `src/main/resources/db/migration/V6__mastery_progress.sql`, `…/learning/mastery/KnowledgeProgress.java`, `…/learning/review/LexemeSchedule.java`, repository, `docs/reference/database.md` | FR-003 · AT-03 | ⬜ |
+| T-05 | `V6__mastery_progress.sql` (§0.1) + entity `KnowledgeProgress`, `LexemeSchedule` + repository; test migration Testcontainers (tên CHECK, `ck_prog_mp`, entity 005 `validate`); `database.md` §4.9, §11, §13. **Leader chạy V6 lên Neon sau merge** | `src/main/resources/db/migration/V6__mastery_progress.sql`, `…/learning/mastery/KnowledgeProgress.java`, `…/learning/review/LexemeSchedule.java`, repository, `docs/reference/database.md` | FR-003 · AT-03 | ✅ |
 | T-06 | `MasteryConfig` (`cnhsk.mastery.*`, kiểm khi khởi động) + `MasteryCalculator` + `MasteryStateMachine` (thuần) + test ví dụ Quốc Bảo, cửa sổ, vùng đệm. **Không phụ thuộc task nào** | `…/learning/mastery/{MasteryConfig,MasteryCalculator,MasteryStateMachine}.java`, `application.yaml`, `t/learning/mastery/*Test.java` | FR-009, FR-010 · AT-09, AT-10 | ⬜ |
 | T-07 | `EvidenceAllocator` (bối cảnh, KID, trọng số, hợp lệ, luật 7 ngày) + `MasteryUpdater` (upsert, khoá dòng) + `MasteryListener` (`SessionFinishedEvent`) | `…/learning/mastery/{EvidenceAllocator,MasteryUpdater,MasteryListener}.java` + test | FR-004…FR-008, FR-012 · AT-04…AT-08, AT-12 | ⬜ |
 | T-08 | `MasteryRebuilder` + test so tăng dần ↔ phát lại (40 lượt trộn nguồn) | `…/learning/mastery/MasteryRebuilder.java` + test | FR-013 · AT-13 | ⬜ |
@@ -70,4 +70,4 @@ T-05 + T-11 → T-13 → T-14         (T-14 cần cả T-07)
 
 **Bốn task rủi ro cao:** T-07 (phân bổ đúng + cùng transaction `finish`) · T-06 (công thức phải ra 53,3/61,1) · T-11 (FSRS-5 đúng công thức) · T-12 (sửa engine dùng chung).
 
-**Hiện trạng: 1/15 task xong.**
+**Hiện trạng: 2/15 task xong.**

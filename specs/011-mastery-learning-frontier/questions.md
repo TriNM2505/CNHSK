@@ -65,3 +65,33 @@ Allowlist đã duyệt: 14 file, gồm 11 file trong Shadow Plan v2 và `app/pre
 - Frontend: `npm run test` — 1.547 test/135 file pass; `npm run lint` — exit 0, 0 error, 1 warning có sẵn tại `shared/ui/LevelBadge.tsx`; `npm run build` — pass.
 - T-01 thêm 52 test trong 3 file cho transport API, fixture và quyền route. AT-01 chỉ phủ phần FE/transport; AT-24–26 thuộc T-02–T-04, AT-27 thuộc T-15.
 - Self-check: đúng allowlist 14 file; không đổi dependency, schema, OpenAPI, mã lỗi hoặc SecurityConfig; không thêm secret/dữ liệu thật, BOM hoặc TODO. OQ-1 vẫn giữ mã miền.
+
+## 2026-11-04 — Leader duyệt Shadow Plan 011/T-05 (Dũng, luồng C)
+
+- Ưu tiên T-05 trước T-02 để mở đường T-07, T-09; không tự chuyển task sau.
+- Allowlist 10 file: V6, hai entity, hai repository, hai file test, `database.md`, `tasks.md`, `questions.md`. Đánh ✅ T-05 sau khi gate xanh theo duyệt của leader.
+- V6 chép nguyên khối §0.1 và có test đối chiếu nội dung với spec. Lệch thì dừng báo leader, không tự sửa SQL khóa; không sửa V1–V5.
+- Hai entity chỉ map cột mình dùng trong `learning.user_progress`, dùng khóa ghép hiện có. Mọi query repository lọc `target_type` bằng literal và có `userId`; không thêm association hoặc FK. Cột không map để DB lấy default.
+- Test nâng cấp V5 → V6 dùng container riêng theo mẫu V5. Test Spring dùng hạ tầng của `AbstractIntegrationTest`, Flyway và `ddl-auto: validate`, gồm entity 005 giữ nguyên.
+- Duyệt sửa thêm đúng hai dòng thiếu tại DDL `database.md` §4.9: `CHECK (stability > 0)` và `ix_prog_type` vốn đã có trong V1. Đây là đồng bộ tài liệu, không thêm SQL ngoài khối V6. Chỉ sửa §4.9, §11, §13; giữ nguyên nội dung V5 của 010.
+- Được dùng `JAVA_TOOL_OPTIONS=-Xmx1024m`, `MAVEN_OPTS=-Xmx384m`, `DEBUG=false` chỉ trong tiến trình chạy gate; ghi lại kết quả thật, không đổi cấu hình hoặc hạ coverage.
+- Neon do leader thực hiện sau merge: tạo branch backup, kiểm chưa có dòng `KNOWLEDGE_POINT`, kiểm tên `user_progress_target_type_check` trước V6. Task không chạy SQL hay migration lên Neon.
+
+## 2026-11-05 — Leader duyệt bổ sung hai file test Spec 005
+
+- Allowlist tăng từ 10 lên 12 file, thêm `src/test/java/com/cnhsk/learning/pronunciation/PronStageHandlerIntegrationTest.java` và `src/test/java/com/cnhsk/learning/pronunciation/PronunciationIntegrationTest.java`.
+- Bốn assertion snapshot `SELECT *` của 005 thất bại vì `PgArray.equals()` không so giá trị cột `evidence_item_ids` mới. Helper trong từng file chuyển mọi giá trị `java.sql.Array` thành `List` bằng `getArray()` trước khi so sánh; giữ đầy đủ cột, assertion và ý nghĩa trước bằng sau. Không sửa nghiệp vụ 005, V5 hoặc SQL V6.
+- Sau fetch, base nhánh T-05 là `fa1ad24`; `origin/main` là `211e7e3`, đi trước 47 commit và chỉ có migration tới V5. Giữ nguyên base theo chỉ đạo leader, không rebase hoặc merge main vào nhánh. Leader tích hợp và chạy lại full verify trên main mới nhất khi review.
+- Nếu full verify chỉ thất bại ở nhóm môi trường đã biết (FR023, NFR-P04 QUESTION, PEXPIRETIME, CapturedOutput), ghi kết quả thật trong PR; lỗi khác thì dừng báo leader. Chỉ đánh ✅ T-05 khi gate xanh.
+- Trước khi chạy V6 trên Neon sau merge, leader tạo backup `before-v6-<ngày>`, kiểm số dòng `KNOWLEDGE_POINT` bằng 0 và có `user_progress_target_type_check`; task không kết nối Neon.
+
+### Kết quả gate T-05
+
+- Base kiểm thử: `fa1ad24`; không rebase hoặc merge main sau chỉ đạo leader. Fetch trước PR thấy `origin/main` là `96ac2aa`, vẫn chỉ có migration tới V5. Full `verify` chạy toàn repo trên Docker/Testcontainers, Flyway bật và `ddl-auto: validate` giữ nguyên.
+- Hai class mới T-05: 31 test PASS (26 migration, 5 entity/repository), 0 failure/error/skip. Có đối chiếu V6 với SQL khóa tại §0.1, tên CHECK và `ck_prog_mp`, nâng cấp V5 → V6 trên container riêng, validate entity 005, round-trip và cô lập user/target type.
+- Hồi quy riêng hai class 005 sau sửa helper: 41 test PASS (26 handler, 15 pronunciation), 0 failure/error/skip; `BUILD SUCCESS`, 03:48 phút. Lỗi bốn assertion snapshot ở lượt verify trước đã hết; không loại cột hoặc giảm assertion.
+- Full `.\mvnw.cmd -B verify`: `BUILD SUCCESS`, exit 0, 33:34 phút; 2.363 test trong 139 class, 0 failure, 0 error, 0 skip; số liệu log khớp Surefire XML. Cả 31 test T-05 và 41 test hồi quy 005 đều PASS trong lượt full này.
+- JaCoCo line coverage 96,35% (6.625/6.876 dòng); branch coverage 87,55% (2.807/3.206 nhánh). Coverage check toàn bộ ≥ 80% PASS; không đổi ngưỡng hay cấu hình test.
+- Biến môi trường chỉ trong tiến trình gate: `JAVA_TOOL_OPTIONS=-Xmx1024m`, `MAVEN_OPTS=-Xmx384m`, `DEBUG=false`. Docker Desktop được khởi động để chạy container riêng; không chạy SQL lên Neon.
+- Log cục bộ: `%TEMP%\cnhsk-011-t05-targeted.log`, `%TEMP%\cnhsk-011-t05-pron-regression.log`, `%TEMP%\cnhsk-011-t05-verify-resumed.log`; báo cáo Surefire và JaCoCo trong `target/`, không commit artifact/log.
+- Đánh ✅ T-05 theo duyệt của leader sau gate xanh. Không có câu hỏi nghiệp vụ còn mở trong T-05; leader tích hợp với main mới nhất và kiểm thử lại trước merge. Không tự chuyển sang T-06 hoặc T-02.

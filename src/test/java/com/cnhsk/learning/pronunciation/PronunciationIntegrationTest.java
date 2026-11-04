@@ -1,8 +1,11 @@
 package com.cnhsk.learning.pronunciation;
 
 import java.math.BigDecimal;
+import java.sql.Array;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -192,9 +195,9 @@ class PronunciationIntegrationTest extends AbstractIntegrationTest {
         PronStage second = stage(2, List.of());
         progress(owner, first, "PRON_STAGE", "90.00", "COMPLETED");
         progress(owner, second, "PRON_STAGE", null, "AVAILABLE");
-        Map<String, Object> before = jdbc.queryForMap(
+        Map<String, Object> before = snapshot(jdbc.queryForMap(
                 "SELECT * FROM learning.user_progress WHERE user_id = ? AND target_type = ? AND target_id = ?",
-                owner, "PRON_STAGE", second.getId());
+                owner, "PRON_STAGE", second.getId()));
         first.setPassPercent(new BigDecimal("95.00"));
         stages.saveAndFlush(first);
 
@@ -203,9 +206,9 @@ class PronunciationIntegrationTest extends AbstractIntegrationTest {
         assertThat(result.get(0).path("state").asText()).isEqualTo("AVAILABLE");
         assertThat(result.get(0).path("bestAccuracy").decimalValue()).isEqualByComparingTo("90.00");
         assertThat(result.get(1).path("state").asText()).isEqualTo("AVAILABLE");
-        assertThat(jdbc.queryForMap(
+        assertThat(snapshot(jdbc.queryForMap(
                 "SELECT * FROM learning.user_progress WHERE user_id = ? AND target_type = ? AND target_id = ?",
-                owner, "PRON_STAGE", second.getId())).isEqualTo(before);
+                owner, "PRON_STAGE", second.getId()))).isEqualTo(before);
     }
 
     @Test
@@ -339,6 +342,19 @@ class PronunciationIntegrationTest extends AbstractIntegrationTest {
                         + "VALUES (?, ?, ?, ?, ?, ?)", userId, type, stage.getId(),
                 accuracy == null ? null : new BigDecimal(accuracy), state, java.sql.Timestamp.from(NOW));
         entityManager.clear();
+    }
+
+    private Map<String, Object> snapshot(Map<String, Object> row) {
+        for (var entry : row.entrySet()) {
+            if (entry.getValue() instanceof Array array) {
+                try {
+                    entry.setValue(Arrays.asList((Object[]) array.getArray()));
+                } catch (SQLException exception) {
+                    throw new AssertionError("Cannot read SQL array in progress snapshot", exception);
+                }
+            }
+        }
+        return row;
     }
 
     private int progressCount(long userId) {
