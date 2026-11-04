@@ -102,6 +102,62 @@ class KnowledgeContractTest {
                 .andReturn().getResponse().getContentAsByteArray());
     }
 
+    @Test
+    void FR001_FR017_FR019_questionGetOperationsParametersAndResponsesMatchContract() throws Exception {
+        OpenAPI source = contract(); JsonNode runtime = runtime();
+        for (String path : Set.of("/api/admin/questions", "/api/admin/questions/{id}")) {
+            var expected = source.getPaths().get(path).getGet();
+            JsonNode actual = runtime.path("paths").path(path).path("get");
+            assertThat(actual.path("operationId").asText()).isEqualTo(expected.getOperationId());
+            assertThat(actual.path("responses").fieldNames()).toIterable()
+                    .containsExactlyInAnyOrderElementsOf(expected.getResponses().keySet());
+            assertThat(actual.path("responses").path("200").path("content").path("application/json").path("schema").path("$ref").asText())
+                    .isEqualTo(expected.getResponses().get("200").getContent().get("application/json").getSchema().get$ref());
+        }
+        JsonNode parameters = runtime.path("paths").path("/api/admin/questions").path("get").path("parameters");
+        assertThat(parameters).extracting(value -> value.path("name").asText())
+                .containsExactlyInAnyOrder("hskLevel", "qtype", "status", "kid", "q", "page", "size");
+        for (JsonNode parameter : parameters) {
+            String name = parameter.path("name").asText();
+            assertThat(parameter.path("required").asBoolean()).isFalse();
+            var expected = source.getPaths().get("/api/admin/questions").getGet().getParameters().stream()
+                    .filter(value -> value.getName().equals(name)).findFirst().orElseThrow().getSchema();
+            JsonNode actual = resolve(runtime, parameter.path("schema"));
+            if (expected.getMinimum() != null) assertThat(actual.path("minimum").decimalValue()).isEqualByComparingTo(expected.getMinimum());
+            if (expected.getMaximum() != null) assertThat(actual.path("maximum").decimalValue()).isEqualByComparingTo(expected.getMaximum());
+            if (expected.getDefault() != null) assertThat(actual.path("default").asInt()).isEqualTo(((Number) expected.getDefault()).intValue());
+            if (name.equals("q")) {
+                assertThat(actual.path("minLength").asInt()).isEqualTo(2); assertThat(actual.path("maxLength").asInt()).isEqualTo(100);
+            }
+            if (name.equals("qtype") || name.equals("status")) {
+                String schema = name.equals("qtype") ? "QuestionType" : "QuestionStatus";
+                assertThat(actual.path("enum")).extracting(JsonNode::asText)
+                        .containsExactlyElementsOf(source.getComponents().getSchemas().get(schema).getEnum());
+            }
+        }
+        JsonNode id = runtime.path("paths").path("/api/admin/questions/{id}").path("get").path("parameters").get(0);
+        assertThat(id.path("name").asText()).isEqualTo("id"); assertThat(id.path("required").asBoolean()).isTrue();
+        assertThat(id.path("schema").path("type").asText()).isEqualTo("integer");
+        assertThat(id.path("schema").path("format").asText()).isEqualTo("int64");
+    }
+
+    @Test
+    void FR018_FR019_questionSchemasMatchFrontendFieldsAndCamelCaseOptions() throws Exception {
+        OpenAPI source = contract(); JsonNode runtime = runtime(); JsonNode schemas = runtime.path("components").path("schemas");
+        for (String name : Set.of("QuestionPage", "QuestionSummary", "QuestionDetail", "QuestionOption", "QuestionLabel")) {
+            assertThat(schemas.path(name).path("properties").fieldNames()).toIterable()
+                    .containsExactlyInAnyOrderElementsOf(source.getComponents().getSchemas().get(name).getProperties().keySet());
+        }
+        assertThat(schemas.path("QuestionSummary").path("properties").path("stemSummary").path("maxLength").asInt()).isEqualTo(120);
+        assertThat(schemas.path("QuestionOption").path("properties").has("is_correct")).isFalse();
+        assertThat(schemas.path("QuestionPage").path("properties").path("items").path("items").path("$ref").asText())
+                .isEqualTo("#/components/schemas/QuestionSummary");
+        assertThat(schemas.path("QuestionDetail").path("properties").path("options").path("items").path("$ref").asText())
+                .isEqualTo("#/components/schemas/QuestionOption");
+        assertThat(schemas.path("QuestionDetail").path("properties").path("labels").path("items").path("$ref").asText())
+                .isEqualTo("#/components/schemas/QuestionLabel");
+    }
+
     private JsonNode resolve(JsonNode runtime, JsonNode schema) {
         return schema.has("$ref") ? runtime.at(schema.path("$ref").asText().substring(1)) : schema;
     }
