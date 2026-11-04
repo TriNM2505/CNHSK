@@ -31,7 +31,9 @@ public class GlobalExceptionHandler {
             if (!"error_code".equals(key) && !"message".equals(key) && !"request_id".equals(key)) {
                 if ("details".equals(key) && (exception.getCode() == ErrorCode.TEMPLATE_MISMATCH
                         || exception.getCode() == ErrorCode.PLACEMENT_BANK_INSUFFICIENT
-                        || exception.getCode() == ErrorCode.MALFORMED_QUESTION)) {
+                        || exception.getCode() == ErrorCode.MALFORMED_QUESTION
+                        || exception.getCode() == ErrorCode.LIBRARY_LIMIT_REACHED
+                        || exception.getCode() == ErrorCode.NOTE_DUPLICATE)) {
                     body.put(key, value);
                 }
                 if (!"details".equals(key) || exception.getCode() == ErrorCode.VALIDATION_FAILED) {

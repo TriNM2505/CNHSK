@@ -382,6 +382,10 @@ paths:
         '404': { $ref: '#/components/responses/LexemeNotFound' }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 
+        '409':
+          description: NOTE_DUPLICATE — details.noteId là ghi chú chưa xoá đang gắn cùng từ
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
   /api/notes/trash:
     get:
       tags: [notes]
@@ -424,6 +428,10 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/Note' } } }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/LexemeNotFound' }
+        '409':
+          description: NOTE_DUPLICATE — details.noteId là ghi chú chưa xoá khác đang gắn cùng từ
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
         '422': { $ref: '#/components/responses/ValidationFailed' }
     delete:
       tags: [notes]

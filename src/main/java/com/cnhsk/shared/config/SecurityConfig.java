@@ -118,6 +118,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/dictionary/**").permitAll();
                     authorize.requestMatchers("/api/community/moderation/**").hasRole("MODERATOR");
                     authorize.requestMatchers("/api/community/**").hasRole("LEARNER");
+                    authorize.requestMatchers("/api/notes", "/api/notes/**").hasRole("LEARNER");
                     authorize.requestMatchers("/api/admin/imports", "/api/admin/imports/**").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers(HttpMethod.GET, "/api/practice/sessions/active",
                             "/api/practice/sessions/{id}").hasRole("LEARNER");

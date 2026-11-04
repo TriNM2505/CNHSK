@@ -139,7 +139,8 @@ class GlobalExceptionHandlerTest {
                 "KNOWLEDGE_NODE_NOT_FOUND", "EXAM_NOT_FOUND", "EXAM_NOT_PUBLISHED", "EXAM_HAS_NO_QUESTIONS",
                 "ATTEMPT_NOT_SUBMITTED", "PLACEMENT_BANK_INSUFFICIENT", "PLACEMENT_NOT_FINISHED",
                 "LEXEME_NOT_FOUND", "QUESTION_NOT_FOUND", "MALFORMED_QUESTION", "KNOWLEDGE_NODE_REQUIRED",
-                "GRADING_CHANGE_NOT_ALLOWED", "QUESTION_ARCHIVED", "INTERNAL_ERROR");
+                "GRADING_CHANGE_NOT_ALLOWED", "QUESTION_ARCHIVED", "COLLECTION_NOT_OWNED", "LIBRARY_LIMIT_REACHED",
+                "NOTE_DUPLICATE", "INTERNAL_ERROR");
     }
 
     @Test
@@ -153,6 +154,21 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.details[0].message").value("Chỉ có một đáp án đúng."));
     }
 
+    @Test
+    void noteLimitPreservesDetailsAndRejectsReservedExtraFields() throws Exception {
+        mockMvc.perform(get("/test/note-limit").header(RequestIdFilter.HEADER_NAME, "notes-limit-test"))
+                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.error_code").value("LIBRARY_LIMIT_REACHED"))
+                .andExpect(jsonPath("$.details.kind").value("NOTES")).andExpect(jsonPath("$.details.limit").value(1000))
+                .andExpect(jsonPath("$.request_id").value("notes-limit-test"));
+    }
+
+    @Test
+    void noteDuplicatePreservesExistingNoteId() throws Exception {
+        mockMvc.perform(get("/test/note-duplicate")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error_code").value("NOTE_DUPLICATE"))
+                .andExpect(jsonPath("$.details.noteId").value(42)).andExpect(jsonPath("$.request_id").isNotEmpty());
+    }
+
     @RestController
     static class ErrorTestController {
 
@@ -161,6 +177,17 @@ class GlobalExceptionHandlerTest {
             throw new ApiException(ErrorCode.MALFORMED_QUESTION, HttpStatus.UNPROCESSABLE_ENTITY, "Câu hỏi không hợp lệ.",
                     Map.of("error_code", "FORGED", "message", "FORGED", "request_id", "FORGED",
                             "details", java.util.List.of(Map.of("field", "options", "message", "Chỉ có một đáp án đúng."))));
+        }
+
+        @GetMapping("/test/note-limit")
+        void noteLimit() {
+            throw new ApiException(ErrorCode.LIBRARY_LIMIT_REACHED, HttpStatus.UNPROCESSABLE_ENTITY, "Giới hạn ghi chú.",
+                    Map.of("details", Map.of("kind", "NOTES", "limit", 1000), "error_code", "forged", "request_id", "forged"));
+        }
+
+        @GetMapping("/test/note-duplicate")
+        void noteDuplicate() {
+            throw new ApiException(ErrorCode.NOTE_DUPLICATE, HttpStatus.CONFLICT, "Ghi chú trùng.", Map.of("details", Map.of("noteId", 42)));
         }
 
         @GetMapping("/test/lexeme-missing")

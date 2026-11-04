@@ -1,5 +1,17 @@
 # Chốt — Spec 014
 
+## 2026-11-04 — Leader duyệt 014/T-08, hướng B
+
+- Base lúc bắt đầu `cd7d1cb`, cập nhật lần lượt qua `34f5dff` (#91) và `b737ffd` (#92) trước PR. #89 đã merge tại `287ad95`. #92 thêm bốn mã lỗi sau QUESTION_NOT_FOUND, matcher sửa/lưu trữ câu hỏi và details cho MALFORMED_QUESTION; đã giữ nguyên các thay đổi này khi tích hợp, ba mã T-08 đặt sau QUESTION_ARCHIVED, ngay trước INTERNAL_ERROR. Allowlist 19 file; sửa spec/contract theo chốt này trước code; không sửa DB hoặc migration.
+- BR-062-4 đổi thành mỗi `lexemeId` chỉ có một ghi chú chưa xoá trong sổ tay; giữ index `uq_coll_lex` của V1. Ghi chú không gắn từ có thể trùng nội dung; ghi chú trong thùng rác không tính trùng. POST trùng hoặc PUT đổi sang từ của ghi chú khác trả 409 `NOTE_DUPLICATE` với `details{noteId}`. PUT giữ nguyên từ của chính nó vẫn hợp lệ. PUT tham chiếu mục từ không có trả 404 `LEXEME_NOT_FOUND`.
+- Tạo sổ mặc định, kiểm quota và trùng từ dùng chung `pg_advisory_xact_lock(hashtextextended(:key,0))`, key `library:notebook:<userId>`, trong transaction READ_COMMITTED. Không có unique constraint cho NOTEBOOK/người nên luôn lấy khoá trước tìm/tạo. GET khi chưa có sổ không tạo dữ liệu. PUT vẫn được sửa khi đủ quota; `updated_at` lấy tại thời điểm ghi bằng `clock_timestamp()`.
+- Thêm cấu hình bắt buộc, dương `cnhsk.library.max-notes: 1000`; không khai trước hạn mức bộ/thẻ. `user_id` chỉ lấy từ phiên qua AuthApi; payload userId bị bỏ qua. Query luôn kiểm chủ sở hữu, kind NOTEBOOK và chưa xoá ở cả sổ/ghi chú; thiếu hoặc không sở hữu trả cùng 403 `COLLECTION_NOT_OWNED`.
+- V1 đã có extension pg_trgm và `ix_item_search` GIN trên content; title chưa có index trigram. T-08 dùng index hiện có, xếp similarity rồi updated_at DESC, id DESC, escape LIKE và bind giá trị; cần index title thì báo leader. NFR-P04 p95 dưới 200 ms trên 1.000 ghi chú tự soạn.
+- Testcontainers cho thấy Flyway cài pg_trgm trong schema learning, khác search_path của kết nối ứng dụng. Repository tra schema từ pg_extension/pg_namespace và quote identifier để gọi similarity đúng chỗ, không giả định learning/public, không đổi search_path, extension hoặc migration. Giá trị tìm kiếm vẫn bind tham số.
+- GlobalExceptionHandler cho trả details riêng với `LIBRARY_LIMIT_REACHED` và `NOTE_DUPLICATE`; không cho extra ghi đè error_code/message/request_id. Matcher LEARNER cho /api/notes và /api/notes/**, CSRF theo cơ chế hiện có.
+- T-09: khi khôi phục ghi chú có lexemeId trùng một ghi chú chưa xoá khác, trả 409 `NOTE_DUPLICATE`, không để lỗi unique thành 500; dùng cùng advisory key.
+- T-15: SCR-025 nhận 409 `NOTE_DUPLICATE` khi lưu vào sổ tay thì mở ghi chú `details.noteId` để sửa. T-08 không sửa FE.
+
 ## 2026-11-04 — Leader duyệt 014/T-07
 
 - Base: `origin/main` `82a6b3b`, merge PR #87 (T-06); leader xác nhận full verify PASS tại `82a6b3b`. Allowlist 12 file, nhánh `spec/014-t07`, một conventional commit, PR Draft, không tự merge.

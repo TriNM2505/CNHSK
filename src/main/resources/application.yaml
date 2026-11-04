@@ -79,6 +79,7 @@ cnhsk:
   library:
     guest-lookups-per-hour: 60
     authenticated-lookups-per-hour: 600
+    max-notes: 1000
   import:
     max-file-size: 2MB
     max-rows: 5000
