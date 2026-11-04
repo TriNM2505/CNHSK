@@ -12,6 +12,8 @@ export const IMPORT_DATA_TYPE_LABELS: Record<ImportDataType, string> = {
   KNOWLEDGE_EDGE: 'Quan hệ giữa các nút',
   QUESTION: 'Câu hỏi',
   NODE_LINK: 'Gắn nội dung vào nút',
+  EXAM: 'Đề thi',
+  EXAM_QUESTION: 'Câu trong đề thi',
 }
 
 export const IMPORT_DATA_TYPES = Object.keys(IMPORT_DATA_TYPE_LABELS) as ImportDataType[]

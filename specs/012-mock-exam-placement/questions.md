@@ -1,5 +1,10 @@
 # Chốt — Spec 012
 
+## 2026-11-04 — T-05 SCR-023 và SCR-068 (leader duyệt)
+
+- SCR-023 lấy `nameVi` từ `GET /api/knowledge-tree/nodes/{kid}` qua API client của exam, mã hoá KID trong URL và gọi song song với bắt đầu lượt. Nếu lỗi lấy tên, chỉ hiện KID và vẫn cho luyện.
+- SCR-068 thêm `EXAM` và `EXAM_QUESTION` sau `NODE_LINK`. Khi thiếu metadata máy chủ, giữ lựa chọn và khoá tải mẫu, tải lên.
+
 ## 2026-11-04 — T-04 SCR-022 (leader duyệt)
 
 - Cờ `SHOW_EXAM_WEAK_POINTS = false` nằm trong `Scr022ExamResultPage.tsx` và được truyền vào View. T-16 nối `getExamWeakPoints` và bật cờ.
