@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.cnhsk.community.post.PostService;
 import com.cnhsk.community.post.PostQueryService;
+import com.cnhsk.community.reaction.LikeService;
 import com.cnhsk.community.common.PostStatus;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
@@ -26,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -45,11 +47,14 @@ public class MyPostController {
     private final PostService service;
     private final GlobalExceptionHandler errors;
     private final PostQueryService queries;
+    private final LikeService likes;
 
-    public MyPostController(PostService service, GlobalExceptionHandler errors, PostQueryService queries) {
+    public MyPostController(PostService service, GlobalExceptionHandler errors, PostQueryService queries,
+            LikeService likes) {
         this.service = service;
         this.errors = errors;
         this.queries = queries;
+        this.likes = likes;
     }
 
     @GetMapping(value = "/mine", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -106,6 +111,40 @@ public class MyPostController {
         return queries.viewerState(id);
     }
 
+    @PostMapping(value = "/{id}/like", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(operationId = "likePost", tags = "posts", summary = "Thích bài, idempotent")
+    @SecurityRequirement(name = "cookieAuth")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK",
+                    content = @Content(schema = @Schema(implementation = LikeState.class))),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "403", description = "Không có quyền",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy bài viết",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+    public LikeState likePost(@PathVariable long id) {
+        return likes.like(id);
+    }
+
+    @DeleteMapping(value = "/{id}/like", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(operationId = "unlikePost", tags = "posts", summary = "Bỏ thích, idempotent")
+    @SecurityRequirement(name = "cookieAuth")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK",
+                    content = @Content(schema = @Schema(implementation = LikeState.class))),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "403", description = "Không có quyền",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy bài viết",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+    public LikeState unlikePost(@PathVariable long id) {
+        return likes.unlike(id);
+    }
+
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(operationId = "createPost", tags = "posts", summary = "Tạo bài DRAFT hoặc PENDING")
@@ -153,7 +192,7 @@ public class MyPostController {
                 return errors.handleApiException(new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
                         "Bạn không có quyền thực hiện thao tác này.", Map.of()), request);
             }
-            if ("getViewerState".equals(method)) {
+            if ("getViewerState".equals(method) || "likePost".equals(method) || "unlikePost".equals(method)) {
                 return errors.handleApiException(new ApiException(ErrorCode.POST_NOT_FOUND, HttpStatus.NOT_FOUND,
                         "Không tìm thấy bài viết.", Map.of()), request);
             }

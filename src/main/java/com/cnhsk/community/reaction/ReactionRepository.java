@@ -5,6 +5,7 @@ import java.util.Set;
 import com.cnhsk.community.common.PostCount;
 import com.cnhsk.community.common.ReactionKind;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +21,19 @@ public interface ReactionRepository extends JpaRepository<Reaction, ReactionId> 
             + "and r.id.targetType = com.cnhsk.community.common.TargetType.POST "
             + "and r.id.kind = com.cnhsk.community.common.ReactionKind.LIKE group by r.id.targetId")
     List<PostCount> countLikesByPostIds(@Param("postIds") Set<Long> postIds);
+
+    @Modifying
+    @Query(value = """
+            INSERT INTO community.reactions(user_id, target_type, target_id, kind)
+            VALUES (:userId, 'POST', :postId, 'LIKE')
+            ON CONFLICT (user_id, target_type, target_id, kind) DO NOTHING
+            """, nativeQuery = true)
+    int insertPostLike(@Param("userId") long userId, @Param("postId") long postId);
+
+    @Modifying
+    @Query(value = """
+            DELETE FROM community.reactions
+            WHERE user_id = :userId AND target_type = 'POST' AND target_id = :postId AND kind = 'LIKE'
+            """, nativeQuery = true)
+    int deletePostLike(@Param("userId") long userId, @Param("postId") long postId);
 }
