@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryRouter, matchRoutes, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -10,7 +10,12 @@ import type { CurrentUser, RoleCode } from '@/features/auth/types'
 import { ApiError } from '@/shared/api'
 import { getAuthenticatedDestination } from '@/shared/auth/navigation'
 
+import { getKnowledgeTree } from './api/knowledge'
+import { listQuestions } from './api/questions'
+
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
+vi.mock('./api/questions', () => ({ listQuestions: vi.fn() }))
+vi.mock('./api/knowledge', () => ({ getKnowledgeTree: vi.fn() }))
 
 const routes = [
   { path: '/content/questions', url: '/content/questions', scr: 'SCR-064' },
@@ -35,6 +40,10 @@ function renderRoute(path: string) {
 }
 
 beforeEach(() => {
+  vi.mocked(listQuestions)
+    .mockReset()
+    .mockResolvedValue({ items: [], page: 0, size: 10, totalElements: 0 })
+  vi.mocked(getKnowledgeTree).mockReset().mockResolvedValue({ nodes: [] })
   getCurrentUserMock.mockReset().mockRejectedValue(
     new ApiError({
       status: 401,
@@ -69,7 +78,11 @@ describe('question-bank route foundation (FR-001 FE, §12)', () => {
   )('FR001_$role can open $scr at $url in the admin layout', async ({ url, scr, role }) => {
     getCurrentUserMock.mockResolvedValue(user([role]))
     const router = renderRoute(url)
-    expect(await screen.findByRole('heading', { name: `Màn ${scr} đang dựng` })).toBeVisible()
+    expect(
+      await screen.findByRole('heading', {
+        name: scr === 'SCR-064' ? 'Kho câu hỏi' : `Màn ${scr} đang dựng`,
+      }),
+    ).toBeVisible()
     expect(screen.getByRole('navigation', { name: 'Quản trị' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe(url)
   })
@@ -127,16 +140,46 @@ describe('question-bank route foundation (FR-001 FE, §12)', () => {
     },
   )
 
-  it('registers exactly the two question-bank sample previews', () => {
+  it('registers the list, second page and detail previews under the existing SCR ids', () => {
     expect(
       previewRegistry.filter(({ id }) => id.startsWith('question-bank-')).map(({ scr }) => scr),
-    ).toEqual(['SCR-064', 'SCR-059'])
+    ).toEqual(['SCR-064', 'SCR-064', 'SCR-059'])
   })
 
-  it('renders all twelve original samples through the preview route without a backend', async () => {
+  it('renders the first ten original samples through the preview route without an API call', async () => {
     renderRoute('/__preview/frame/question-bank-samples/ready')
-    expect(await screen.findByRole('heading', { name: 'Kho câu hỏi mẫu' })).toBeVisible()
-    expect(screen.getAllByRole('listitem')).toHaveLength(12)
+    expect(await screen.findByRole('heading', { name: 'Kho câu hỏi' })).toBeVisible()
+    expect(
+      within(screen.getByRole('table', { name: 'Danh sách câu hỏi' })).getAllByRole('row'),
+    ).toHaveLength(11)
+    expect(screen.getByText('Trang 1 / 2')).toBeVisible()
     expect(getCurrentUserMock).not.toHaveBeenCalled()
+    expect(listQuestions).not.toHaveBeenCalled()
+    expect(getKnowledgeTree).not.toHaveBeenCalled()
+  })
+
+  it('FR026_AT26_previews page two using a fixed response without API calls', async () => {
+    renderRoute('/__preview/frame/question-bank-page-two/ready')
+    expect(await screen.findByText('Trang 2 / 2')).toBeVisible()
+    expect(
+      within(screen.getByRole('table', { name: 'Danh sách câu hỏi' })).getAllByRole('row'),
+    ).toHaveLength(3)
+    expect(listQuestions).not.toHaveBeenCalled()
+    expect(getKnowledgeTree).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['loading', 'Đang tải câu hỏi'],
+    ['empty', 'Chưa có câu hỏi trong phạm vi này'],
+    ['error', 'Không thể tải kho câu hỏi'],
+  ])('FR026_AT26_previews the %s state without API calls', async (state, text) => {
+    renderRoute(`/__preview/frame/question-bank-samples/${state}`)
+    await waitFor(() =>
+      expect(
+        state === 'loading' ? screen.getByRole('status', { name: text }) : screen.getByText(text),
+      ).toBeVisible(),
+    )
+    expect(listQuestions).not.toHaveBeenCalled()
+    expect(getKnowledgeTree).not.toHaveBeenCalled()
   })
 })

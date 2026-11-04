@@ -1,6 +1,10 @@
-import { createElement } from 'react'
+import { createElement, useState } from 'react'
 
-import type { PreviewEntry } from '@/app/preview/types'
+import type { PreviewEntry, PreviewState } from '@/app/preview/types'
+import { ApiError } from '@/shared/api'
+
+import { QuestionBankListView } from './components/QuestionBankListView'
+import { questionSearchError, type QuestionListQuery } from './questionListQuery'
 
 import type {
   KnowledgeNode,
@@ -196,25 +200,97 @@ export const questionSamples: QuestionDetail[] = [
   }),
 ]
 
+function sampleSummary(questionId: number) {
+  const { id, code, qtype, hskLevel, difficulty, stem, source, status, labels, used } =
+    questionSamples.find((entry) => entry.id === questionId)!
+  return {
+    id,
+    code,
+    qtype,
+    hskLevel,
+    difficulty,
+    stemSummary: stem.slice(0, 120),
+    source,
+    status,
+    primaryKid: labels.find(({ role }) => role === 'PRIMARY')?.kid ?? null,
+    secondaryKids: labels.filter(({ role }) => role === 'SECONDARY').map(({ kid }) => kid),
+    used,
+  }
+}
+
+// Fixed API response examples; the page and view preserve the response order and rows.
 export const questionPageSample: QuestionPage = {
-  items: questionSamples
-    .slice(0, 10)
-    .map(({ id, code, qtype, hskLevel, difficulty, stem, source, status, labels, used }) => ({
-      id,
-      code,
-      qtype,
-      hskLevel,
-      difficulty,
-      stemSummary: stem.slice(0, 120),
-      source,
-      status,
-      primaryKid: labels.find(({ role }) => role === 'PRIMARY')?.kid ?? null,
-      secondaryKids: labels.filter(({ role }) => role === 'SECONDARY').map(({ kid }) => kid),
-      used,
-    })),
+  items: [112, 111, 110, 109, 108, 107, 106, 105, 104, 103].map(sampleSummary),
   page: 0,
   size: 10,
   totalElements: questionSamples.length,
+}
+
+const questionSecondPageSample: QuestionPage = {
+  items: [102, 101].map(sampleSummary),
+  page: 1,
+  size: 10,
+  totalElements: questionSamples.length,
+}
+
+function QuestionBankPreview({
+  state,
+  secondPage = false,
+}: {
+  state: PreviewState
+  secondPage?: boolean
+}) {
+  const [currentState, setCurrentState] = useState(state)
+  const [query, setQuery] = useState<QuestionListQuery>({
+    hskLevel: '',
+    qtype: '',
+    status: '',
+    kid: '',
+    q: '',
+    page: secondPage ? 1 : 0,
+  })
+  const [searchDraft, setSearchDraft] = useState('')
+  const [searchError, setSearchError] = useState<string>()
+  const data =
+    currentState === 'empty'
+      ? { items: [], page: query.page, size: 10, totalElements: 0 }
+      : query.page === 1
+        ? questionSecondPageSample
+        : questionPageSample
+  return createElement(QuestionBankListView, {
+    data,
+    error: new ApiError({
+      status: 503,
+      errorCode: 'NETWORK_ERROR',
+      message: 'Chưa tải được kho câu hỏi. Vui lòng thử lại.',
+    }),
+    nodes: knowledgeTreeSample.nodes,
+    nodesState: 'ready',
+    onClearFilters: () => {
+      setQuery({ hskLevel: '', qtype: '', status: '', kid: '', q: '', page: 0 })
+      setSearchDraft('')
+      setSearchError(undefined)
+      setCurrentState('ready')
+    },
+    onFiltersChange: (next) => setQuery({ ...next, page: 0 }),
+    onNodesRetry: () => undefined,
+    onOpenQuestion: () => undefined,
+    onPageChange: (page) => setQuery({ ...query, page }),
+    onRetry: () => setCurrentState('ready'),
+    onSearchChange: (value) => {
+      setSearchDraft(value)
+      setSearchError(undefined)
+    },
+    onSearchSubmit: () => {
+      const error = questionSearchError(searchDraft)
+      setSearchError(error)
+      if (!error) setQuery({ ...query, q: searchDraft.trim(), page: 0 })
+    },
+    query,
+    searchDraft,
+    searchError,
+    state: currentState,
+  })
 }
 
 function sampleList(title: string, questions: readonly QuestionDetail[]) {
@@ -242,7 +318,16 @@ export const previews = [
     id: 'question-bank-samples',
     scr: 'SCR-064',
     title: 'Kho câu hỏi — Dữ liệu mẫu',
-    render: () => sampleList('Kho câu hỏi mẫu', questionSamples),
+    states: ['loading', 'empty', 'error', 'ready'],
+    render: (state) => createElement(QuestionBankPreview, { key: state, state }),
+  },
+  {
+    group: 'screen',
+    id: 'question-bank-page-two',
+    scr: 'SCR-064',
+    title: 'Kho câu hỏi — Trang 2',
+    states: ['ready'],
+    render: (state) => createElement(QuestionBankPreview, { state, secondPage: true }),
   },
   {
     group: 'screen',
