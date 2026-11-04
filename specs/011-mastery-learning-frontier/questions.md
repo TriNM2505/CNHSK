@@ -95,3 +95,24 @@ Allowlist đã duyệt: 14 file, gồm 11 file trong Shadow Plan v2 và `app/pre
 - Biến môi trường chỉ trong tiến trình gate: `JAVA_TOOL_OPTIONS=-Xmx1024m`, `MAVEN_OPTS=-Xmx384m`, `DEBUG=false`. Docker Desktop được khởi động để chạy container riêng; không chạy SQL lên Neon.
 - Log cục bộ: `%TEMP%\cnhsk-011-t05-targeted.log`, `%TEMP%\cnhsk-011-t05-pron-regression.log`, `%TEMP%\cnhsk-011-t05-verify-resumed.log`; báo cáo Surefire và JaCoCo trong `target/`, không commit artifact/log.
 - Đánh ✅ T-05 theo duyệt của leader sau gate xanh. Không có câu hỏi nghiệp vụ còn mở trong T-05; leader tích hợp với main mới nhất và kiểm thử lại trước merge. Không tự chuyển sang T-06 hoặc T-02.
+
+## 2026-11-05 — Leader chốt H1–H7 và nghiệm thu 011/T-06
+
+### Quyết định H1–H7
+
+- **H1 — Cấu hình MP-1.0:** chỉ khai báo 12 khóa đã duyệt: `window`, `max-practice-in-window`, `min-evidence`, `min-distinct-days`, `min-confidence`, `half-life-days`, `review-below`, `extend-from`, `hysteresis`, và ba khóa `due-days.review`, `due-days.consolidate`, `due-days.extend`. Mặc định lần lượt là `8`, `3`, `3`, `2`, `1.0`, `30`, `60`, `80`, `3`, `3`, `7`, `14`. Các field cấu hình dùng kiểu nullable và Jakarta Validation; quan hệ chéo kiểm `max-practice-in-window`, `min-evidence`, `min-distinct-days` không vượt `window`, `0 < review-below < extend-from ≤ 100`, `0 ≤ hysteresis < review-below`. Thiếu khóa, giá trị ngoài miền hoặc quan hệ sai làm ứng dụng không khởi động. Không thêm khóa `seen-item-days`, `inferred-*`, trọng số hay cấu hình FSRS trong T-06. `Settings` là record thuần.
+- **H2 — Làm tròn:** mastery làm tròn `HALF_UP` một chữ số thập phân và dùng chính giá trị đã làm tròn để so ngưỡng trạng thái. `59.94 → 59.9` vẫn `review`; `59.95 → 60.0` thành `consolidate`. Giá trị trung gian và confidence giữ độ chính xác cao.
+- **H3 — Cửa sổ:** xếp `answeredAt` giảm dần, rồi `itemId` giảm dần; lấy tối đa 8 minh chứng. Bỏ qua PRACTICE vượt quá 3 nhưng tiếp tục xét minh chứng cũ hơn để lấp cửa sổ. Năm PRACTICE và năm QUIZ cho cửa sổ 3 PRACTICE + 5 QUIZ. Không sửa collection đầu vào.
+- **H4 — Chuyển trạng thái:** quyết định trực tiếp theo giá trị cuối, có vùng đệm 3 điểm; không giới hạn một bậc mỗi lần. `consolidate` giữ ở 58, xuống `review` ở 56; `extend` giữ ở 78, xuống `consolidate` ở 76; `extend` có thể xuống thẳng `review` ở 56 và `review` có thể lên thẳng `extend` ở 85. `notyet`/`insufficient` dùng ngưỡng thẳng 60/80.
+- **H5 — Điểm:** điểm minh chứng là số nguyên trong đoạn 0–100; cả 50 và 40 trong ví dụ §4.1 đều hợp lệ.
+- **H6 — Bán rã:** đúng công thức FR-009: nghỉ lâu không làm mastery value giảm nếu điểm không đổi; chỉ confidence giảm theo bán rã. Khi confidence dưới `1.0`, trạng thái đọc là `insufficient`. E10 nói “giá trị giảm” là chưa chính xác; không sửa spec trong T-06.
+- **H7 — Đầu vào:** `itemId` trùng là vi phạm điều kiện đầu vào vì đây là khóa chính `attempt_items`; calculator không tự khử trùng. Nếu `answeredAt > today`, tuổi được tính bằng 0.
+
+Mastery tính thuần, không tự đọc đồng hồ hệ thống. Số ngày khác nhau và hạn ôn dùng `Asia/Ho_Chi_Minh`; `notyet` và `insufficient` không có hạn ôn. T-06 định nghĩa mã `inferred` tường minh nhưng không suy ra trạng thái này.
+
+### Kết quả gate T-06
+
+- Bốn test T-06 (`MasteryConfigTest`, `MasteryCalculatorTest`, `MasteryStateTest`, `MasteryStateMachineTest`): **21 test, 0 failure, 0 error, 0 skipped**.
+- Full `verify`: **BUILD SUCCESS**, 3.124 test trong 194 suite, 0 failure, 0 error, 0 skipped.
+- JaCoCo LINE: **96,94%** — 9.089 dòng covered / 9.376 tổng (287 missed). JaCoCo CLASS counter: 501 covered + 4 missed = **505 classes**. BRANCH: 4.140 covered / 4.667 tổng (527 missed); mọi coverage check đạt.
+- Gate chạy trong worktree `spec/011-t06`, không dùng `.env` hoặc Neon. Chỉ sửa 11 file allowlist; không thêm dependency, migration, bảng, endpoint hay mã lỗi. Không push hoặc tạo PR.
