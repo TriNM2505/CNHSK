@@ -349,6 +349,106 @@ describe('library API with the real shared client (§13; AT-01 transport only)',
     await expect(dictionary.listRadicals(controller.signal)).rejects.toBe(aborted)
   })
 
+  it('passes through the PATCH deck summary without inventing cards', async () => {
+    document.cookie = 'XSRF-TOKEN=flashcard-contract; path=/'
+    const summary = {
+      id: 3,
+      name: 'Tên đã sửa',
+      cardCount: 2,
+      dueCount: 1,
+      createdAt: deck.createdAt,
+    }
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(json(summary)))
+    const response = await flashcards.updateDeck(3, { name: 'Tên đã sửa', description: null })
+    expect(response).toEqual(summary)
+    expect(response).not.toHaveProperty('cards')
+  })
+
+  it.each(['AGAIN', 'HARD', 'GOOD', 'EASY'] as const)(
+    'sends exactly one %s review and preserves the server schedule',
+    async (rating) => {
+      document.cookie = 'XSRF-TOKEN=flashcard-contract; path=/'
+      const result = { cardId: 2, nextReviewAt: '2026-12-01T00:00:00Z', intervalDays: 26 }
+      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(json(result))
+      vi.stubGlobal('fetch', fetchMock)
+      await expect(flashcards.reviewCard(2, { rating })).resolves.toEqual(result)
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock.mock.calls[0]![0]).toBe(`${origin}/api/flashcards/2/review`)
+      expect(JSON.parse(String(fetchMock.mock.calls[0]![1]?.body))).toEqual({ rating })
+    },
+  )
+
+  it.each([
+    {
+      status: 422,
+      code: 'LIBRARY_LIMIT_REACHED',
+      details: { kind: 'DECKS', limit: 50 },
+      invoke: () => flashcards.createDeck({ name: 'Mẫu' }),
+    },
+    {
+      status: 422,
+      code: 'LIBRARY_LIMIT_REACHED',
+      details: { kind: 'CARDS', limit: 500 },
+      invoke: () => flashcards.addCard(3, { front: 'Mẫu', back: 'Tự soạn' }),
+    },
+    {
+      status: 409,
+      code: 'CARD_DUPLICATE',
+      details: undefined,
+      invoke: () => flashcards.updateCard(3, 2, { front: 'Mẫu', back: 'Tự soạn' }),
+    },
+    {
+      status: 404,
+      code: 'TOPIC_NOT_FOUND',
+      details: undefined,
+      invoke: () => flashcards.createDeck({ name: 'Mẫu', topicId: 99 }),
+    },
+    {
+      status: 404,
+      code: 'LEXEME_NOT_FOUND',
+      details: undefined,
+      invoke: () => flashcards.addCard(3, { lexemeId: 99 }),
+    },
+    {
+      status: 403,
+      code: 'COLLECTION_NOT_OWNED',
+      details: undefined,
+      invoke: () => flashcards.getDeck(3),
+    },
+    {
+      status: 429,
+      code: 'RATE_LIMITED',
+      details: undefined,
+      invoke: () => flashcards.reviewCard(2, { rating: 'GOOD' }),
+    },
+  ])(
+    'preserves deck/card $status $code details and never auto-retries',
+    async ({ status, code, details, invoke }) => {
+      document.cookie = 'XSRF-TOKEN=flashcard-contract; path=/'
+      const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+        json(
+          {
+            error_code: code,
+            message: 'Thông báo an toàn',
+            request_id: 'flashcard-contract',
+            details,
+            retryAfterSeconds: 45,
+          },
+          status,
+        ),
+      )
+      vi.stubGlobal('fetch', fetchMock)
+      await expect(invoke()).rejects.toMatchObject({
+        status,
+        errorCode: code,
+        details,
+        requestId: 'flashcard-contract',
+        extra: { retryAfterSeconds: 45 },
+      })
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    },
+  )
+
   it.each([
     {
       status: 409,
@@ -403,19 +503,17 @@ describe('library API with the real shared client (§13; AT-01 transport only)',
     async ({ status, code, details, invoke }) => {
       vi.stubGlobal(
         'fetch',
-        vi
-          .fn<typeof fetch>()
-          .mockResolvedValue(
-            json(
-              {
-                error_code: code,
-                message: 'Thông báo an toàn',
-                request_id: 'notes-contract',
-                details,
-              },
-              status,
-            ),
+        vi.fn<typeof fetch>().mockResolvedValue(
+          json(
+            {
+              error_code: code,
+              message: 'Thông báo an toàn',
+              request_id: 'notes-contract',
+              details,
+            },
+            status,
           ),
+        ),
       )
       await expect(invoke()).rejects.toMatchObject({
         status,

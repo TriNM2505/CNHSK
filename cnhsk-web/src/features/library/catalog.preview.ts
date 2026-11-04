@@ -8,8 +8,12 @@ import { LexemeDetailView } from './components/LexemeDetailView'
 import { LexemeSaveActions, type LexemeSaveActionsProps } from './components/LexemeSaveActions'
 import { NoteEditor } from './components/NoteEditor'
 import { PersonalNotesView } from './components/PersonalNotesView'
+import { DeckListView } from './components/DeckListView'
+import { DeckDetailView } from './components/DeckDetailView'
+import { FlashcardReviewView } from './components/FlashcardReviewView'
 import { dictionarySearchParams, type DictionarySearch } from './dictionarySearch'
 import { newNoteDraft, noteDraft, type NoteDraft } from './personalNotes'
+import { emptyCardDraft, emptyDeckDraft, type CardDraft } from './flashcardForms'
 
 import type {
   DeckDetail,
@@ -448,6 +452,108 @@ function NotesPreview({ state, trash = false }: { state: PreviewState; trash?: b
   })
 }
 
+function DeckListPreview({ state }: { state: PreviewState }) {
+  const [draft, setDraft] = useState(emptyDeckDraft)
+  const [page, setPage] = useState(0)
+  return createElement(DeckListView, {
+    state,
+    decks: libraryDeckSummaries,
+    draft,
+    page,
+    pending: false,
+    topics: [{ id: 11, name: 'Chủ đề tự soạn', totalWords: 2 }],
+    topicsState: 'ready',
+    error: new ApiError({
+      status: 503,
+      errorCode: 'UNAVAILABLE',
+      message: 'Chưa tải được bộ thẻ.',
+    }),
+    onPageChange: setPage,
+    onChange: setDraft,
+    onCreate: () => undefined,
+    onRetry: () => undefined,
+    onTopicsRetry: () => undefined,
+  })
+}
+
+function DeckDetailPreview({
+  state,
+  reviewing = false,
+}: {
+  state: PreviewState
+  reviewing?: boolean
+}) {
+  const deck = libraryDecks[0]!
+  const [deckDraft, setDeckDraft] = useState({
+    ...emptyDeckDraft(),
+    name: deck.name,
+    description: deck.description ?? '',
+  })
+  const [cardDraft, setCardDraft] = useState<CardDraft>(emptyCardDraft)
+  const [page, setPage] = useState(0)
+  const [review, setReview] = useState(reviewing)
+  const [flipped, setFlipped] = useState(false)
+  const [index, setIndex] = useState(0)
+  const [ahead, setAhead] = useState(false)
+  return createElement(DeckDetailView, {
+    state: state === 'empty' ? 'ready' : state,
+    deck: {
+      ...deck,
+      cards: state === 'empty' ? [] : deck.cards,
+      cardCount: state === 'empty' ? 0 : deck.cardCount,
+      dueCount: state === 'empty' ? 0 : deck.dueCount,
+    },
+    error: new ApiError({
+      status: 503,
+      errorCode: 'UNAVAILABLE',
+      message: 'Chưa tải được bộ thẻ.',
+    }),
+    deckDraft,
+    cardDraft,
+    page,
+    busy: false,
+    onPageChange: setPage,
+    onRetry: () => undefined,
+    onDeckChange: setDeckDraft,
+    onCardChange: setCardDraft,
+    onSaveDeck: () => undefined,
+    onSaveCard: () => undefined,
+    onNewCard: () => setCardDraft(emptyCardDraft()),
+    onEditCard: (card) => setCardDraft({ id: card.id, front: card.front, back: card.back }),
+    onDeleteCard: () => undefined,
+    onDeleteDeck: () => undefined,
+    onReview: () => {
+      setReview(true)
+      setIndex(0)
+      setFlipped(false)
+    },
+    review: review
+      ? createElement(FlashcardReviewView, {
+          state,
+          card: deck.cards[index],
+          remaining: deck.cards.length - index,
+          flipped,
+          pending: false,
+          completed: state === 'ready' && index === deck.cards.length,
+          ahead,
+          error: new ApiError({
+            status: 503,
+            errorCode: 'UNAVAILABLE',
+            message: 'Chưa tải được thẻ ôn.',
+          }),
+          onFlip: () => setFlipped(true),
+          onRate: () => {
+            setIndex((current) => Math.min(current + 1, deck.cards.length))
+            setFlipped(false)
+          },
+          onRetry: () => undefined,
+          onAhead: () => setAhead(true),
+          onClose: () => setReview(false),
+        })
+      : undefined,
+  })
+}
+
 export const previews = [
   {
     group: 'screen',
@@ -526,26 +632,20 @@ export const previews = [
     id: 'library-deck-samples',
     scr: 'SCR-028',
     title: 'Bộ thẻ — Dữ liệu mẫu',
-    render: () =>
-      samplePreview(
-        'Bộ thẻ mẫu',
-        libraryDeckSummaries.map((deck) => ({
-          id: deck.id,
-          text: `${deck.name} · ${deck.cardCount} thẻ · ${deck.dueCount} đến hạn`,
-        })),
-      ),
+    render: (state) => createElement(DeckListPreview, { state }),
   },
   {
     group: 'screen',
     id: 'library-card-samples',
     scr: 'SCR-029',
     title: 'Thẻ — Dữ liệu mẫu',
-    render: () =>
-      samplePreview(
-        'Thẻ mẫu',
-        libraryDecks.flatMap((deck) =>
-          deck.cards.map((card) => ({ id: card.id, text: `${card.front} · ${card.back}` })),
-        ),
-      ),
+    render: (state) => createElement(DeckDetailPreview, { state }),
+  },
+  {
+    group: 'screen',
+    id: 'library-review-samples',
+    scr: 'SCR-029',
+    title: 'Ôn bộ thẻ — Dữ liệu mẫu',
+    render: (state) => createElement(DeckDetailPreview, { state, reviewing: true }),
   },
 ] satisfies readonly PreviewEntry[]
