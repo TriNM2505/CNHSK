@@ -1,5 +1,33 @@
 # Chốt — Spec 014
 
+## 2026-11-05 — Leader duyệt 014/T-11
+
+- PR #103/T-10 đã merge tại `5530c76`; đã fetch và tạo nhánh `spec/014-t11`, worktree `CNHSK-014-t11` từ đúng origin/main này. Base có V6 `mastery_progress`, T-09/T-10 và tổng 9/15; code dùng lại của T-10 khớp kế hoạch. Không rebase hoặc sửa worktree gốc.
+- Allowlist đúng 11 file:
+  1. `src/main/java/com/cnhsk/learning/library/CardService.java`
+  2. `src/main/java/com/cnhsk/learning/library/CardRepository.java`
+  3. `src/main/java/com/cnhsk/learning/library/web/CardWrite.java`
+  4. `src/main/java/com/cnhsk/learning/library/web/DeckController.java`
+  5. `src/main/java/com/cnhsk/shared/exception/ErrorCode.java`
+  6. `src/test/java/com/cnhsk/learning/library/CardIntegrationTest.java`
+  7. `src/test/java/com/cnhsk/learning/library/CardConcurrencyIntegrationTest.java`
+  8. `src/test/java/com/cnhsk/shared/config/DeckSecurityConfigIntegrationTest.java`
+  9. `src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java`
+  10. `specs/014-library/tasks.md`
+  11. `specs/014-library/questions.md`
+- Ba endpoint theo contract: POST `/{id}/cards` trả 201 Card; PATCH `/{id}/cards/{cardId}` trả 200 Card; DELETE trả 204. Mọi ghi READ_COMMITTED dưới `library:decks:<userId>` của T-10, lấy now một lần từ Clock sau khoá; khoá dòng bộ, sửa/xoá khoá thêm dòng thẻ. Bộ/thẻ sai ID, không tồn tại, khác chủ, khác loại, sai bộ hoặc đã xoá trả 403 COLLECTION_NOT_OWNED; không tự tạo bộ.
+- Thứ tự POST: quyền sở hữu 403 → kiểm dữ liệu 422 → lexeme tồn tại 404 LEXEME_NOT_FOUND → trùng 409 CARD_DUPLICATE → hạn mức 422 LIBRARY_LIMIT_REACHED → ghi. Kiểm dữ liệu nghiệp vụ trong service sau kiểm quyền; DTO giữ hiện diện và kiểu JSON để phân biệt trường bị bỏ qua với null, không ép số thành chuỗi hoặc số thực thành ID nguyên.
+- POST chọn đúng một dạng `{lexemeId}` hoặc `{front, back}`; trộn trường của cả hai dạng trả 422 (kể cả trường gửi null). Tự nhập: front 1–200, back 1–2.000 Unicode code point, không rỗng/toàn khoảng trắng/NUL; lưu nguyên nội dung, kể cả HTML dưới dạng văn bản. Lexeme tạo snapshot text/pinyin/meaningVi đúng T-10, không tạo user_progress; order_index đặt sau thẻ cũ, không sắp lại thứ tự.
+- PATCH sửa được từng mặt riêng; trường thiếu giữ nguyên, gửi null/rỗng/toàn khoảng trắng/sai kiểu hoặc quá giới hạn trả 422. Cần ít nhất một mặt để sửa; lexemeId gửi trong PATCH bị bỏ qua, không đổi liên kết, order_index, created_at hoặc lịch ôn; updated_at dùng now. Bộ đủ 500 vẫn sửa được. DELETE chỉ đặt deleted_at của thẻ, giữ toàn bộ lịch ôn và các trường khác; xoá lại thẻ không còn hợp lệ trả 403.
+- Trùng với thẻ chưa xoá cùng bộ nếu cùng lexemeId hoặc front sau trim/gộp khoảng trắng Unicode (`Character.isWhitespace` hoặc `isSpaceChar`) thành một dấu cách. Giữ hoa/thường, dấu và dạng Unicode; không thêm NFC. Chỉ chuẩn hoá khoá so sánh, không đổi nội dung lưu. PATCH loại chính thẻ đang sửa khỏi phép so. Thẻ đã xoá không tính trùng/hạn mức; hạn mức dùng max-cards của T-10, trả details{kind: CARDS, limit: 500}.
+- Giữ nguyên uq_coll_lex của V1. INSERT dùng đúng ON CONFLICT (collection_id, lexeme_id) WHERE lexeme_id IS NOT NULL AND deleted_at IS NULL DO NOTHING RETURNING id; không có dòng trả về chuyển thành 409, không catch lỗi unique rồi tiếp tục trong transaction đã hỏng. Toàn bộ kiểm và ghi dưới cùng khoá/transaction, lỗi rollback hết.
+- CARD_DUPLICATE chỉ thêm ngay trước INTERNAL_ERROR, giữ thứ tự mã khác. Contract không yêu cầu details cho lỗi trùng nên không sửa GlobalExceptionHandler; test lỗi trùng không có details và hạn mức có details. Không sửa SecurityConfig, cấu hình, schema, migration, FE hoặc làm T-12.
+- Test PostgreSQL thật: tranh suất 499/500, cùng lexeme/front, hai PATCH tranh front, Clock sau chờ advisory, PATCH/DELETE chờ khoá dòng, người khác không chung khoá. Test chèn trùng trực tiếp bằng JDBC sau precheck trong transaction rồi thực thi INSERT thật để kiểm uq_coll_lex/ON CONFLICT trả 409 và rollback. Giữ nguyên assertion/ngưỡng T-08/T-10. Snapshot lịch V6 dùng row_to_json(p)::text, chuyển mảng thành giá trị JSON, không so PgArray theo identity; có evidence_item_ids không rỗng.
+- Gate chọn lọc CardIntegrationTest, CardConcurrencyIntegrationTest, DeckIntegrationTest, DeckConcurrencyIntegrationTest, DeckQueryCountIntegrationTest, DeckSecurityConfigIntegrationTest, GlobalExceptionHandlerTest, LibraryConfigTest; sau đó full mvnw.cmd -B verify (Java 17, DEBUG=false, Docker). Kiểm diff/BOM/dấu việc chưa làm/11 file. Một conventional commit, push, Draft PR; fetch trước PR, báo nếu file dùng chung đổi; không merge/rebase. Chỉ ngoại lệ môi trường đã biết theo duyệt leader được ghi số đo và vẫn mở PR, không hạ ngưỡng hoặc skip.
+- Chọn lọc PASS 134/134, 0 failure/error/skip. Test quan sát chờ khoá dùng pg_locks trực tiếp (transactionid/advisory), tránh snapshot pg_stat_activity trong transaction; không thay đổi assertion/ngưỡng có sẵn. Hồi quy DeckIntegrationTest trên V6 và kiểm 1/2 SELECT của T-10 đều PASS.
+- Full `mvnw.cmd -B verify` PASS trên base có V6: 3.179 test, 0 failure/error/skip, 13 phút 29 giây; Java 17, DEBUG=false, Docker. JaCoCo LINE 9.085/9.359 = 97,0723%; library và web 705/712. NFR-P04 sổ tay 1.000 ghi chú p95 51,960 ms, giữ nguyên ngưỡng 200 ms. Không dùng ngoại lệ môi trường, không hạ ngưỡng hoặc skip; đánh ✅ T-11 và tổng 10/15 theo duyệt.
+- Fetch trước PR: origin/main vẫn `5530c76`, không file nào trong allowlist đổi so với base. Không rebase/merge main. Self-check PASS: đúng 11 file, diff sạch, UTF-8 không BOM, không thêm dấu việc chưa làm trong code hoặc dòng thêm; những nhắc tên bước kiểm trong tài liệu cũ giữ nguyên. Không thêm dependency, không truy vấn xuyên module, AuthApi cung cấp người gọi và SQL bind tham số. Không sửa handler/security/config/schema/migration/FE hoặc code T-12; enum chỉ thêm đúng CARD_DUPLICATE, giữ nguyên assertion/ngưỡng T-08/T-10. Không log nội dung riêng hoặc credentials, chỉ commit/push nhánh đã duyệt.
+
 ## 2026-11-05 — Leader duyệt 014/T-10
 
 - Nhánh `spec/014-t10`, worktree `CNHSK-014-t10`, base `211e7e3` được leader chấp thuận dù T-05 đã merge tại `96ac2aa`; không rebase. Một conventional commit, push nhánh, Draft PR, leader review/merge. Không đụng thay đổi riêng ở worktree gốc.

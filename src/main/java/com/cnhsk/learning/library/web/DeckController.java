@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 
 import com.cnhsk.learning.library.DeckService;
+import com.cnhsk.learning.library.CardService;
+import com.cnhsk.learning.library.DeckService.Card;
 import com.cnhsk.learning.library.DeckService.DeckDetail;
 import com.cnhsk.learning.library.DeckService.DeckSummary;
 import com.cnhsk.learning.library.DictionaryService;
@@ -36,9 +38,14 @@ import org.springframework.web.bind.annotation.RestController;
         @ApiResponse(responseCode = "403", description = "FORBIDDEN, CSRF_TOKEN_INVALID hoặc COLLECTION_NOT_OWNED")})
 public class DeckController {
     private final DeckService decks;
+    private final CardService cards;
     private final GlobalExceptionHandler errors;
 
-    public DeckController(DeckService decks, GlobalExceptionHandler errors) { this.decks = decks; this.errors = errors; }
+    public DeckController(DeckService decks, CardService cards, GlobalExceptionHandler errors) {
+        this.decks = decks;
+        this.cards = cards;
+        this.errors = errors;
+    }
 
     @GetMapping
     @Operation(operationId = "listDecks", tags = "flashcards")
@@ -67,6 +74,34 @@ public class DeckController {
     @Operation(operationId = "deleteDeck", tags = "flashcards")
     @ApiResponse(responseCode = "204", description = "Đã xoá mềm")
     public void delete(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) { decks.delete(id); }
+
+    @PostMapping("/{id}/cards")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(operationId = "addCard", tags = "flashcards")
+    @ApiResponses({@ApiResponse(responseCode = "201", description = "Đã thêm"),
+            @ApiResponse(responseCode = "404", description = "LEXEME_NOT_FOUND"),
+            @ApiResponse(responseCode = "409", description = "CARD_DUPLICATE"),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED hoặc LIBRARY_LIMIT_REACHED")})
+    public Card addCard(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
+                        @RequestBody CardWrite request) { return cards.create(id, request); }
+
+    @PatchMapping("/{id}/cards/{cardId}")
+    @Operation(operationId = "updateCard", tags = "flashcards")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã lưu"),
+            @ApiResponse(responseCode = "409", description = "CARD_DUPLICATE"),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED")})
+    public Card updateCard(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
+                           @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String cardId,
+                           @RequestBody CardWrite request) {
+        return cards.update(id, cardId, request);
+    }
+
+    @DeleteMapping("/{id}/cards/{cardId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(operationId = "deleteCard", tags = "flashcards")
+    @ApiResponse(responseCode = "204", description = "Đã xoá mềm")
+    public void deleteCard(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
+                           @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String cardId) { cards.delete(id, cardId); }
 
     @Hidden
     @ExceptionHandler(HttpMessageNotReadableException.class)
