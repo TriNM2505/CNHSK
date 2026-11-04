@@ -102,6 +102,13 @@ class PlacementAlgorithmTest {
                 .run(context -> assertThat(context).hasFailed());
     }
 
+    @Test
+    void FR021_E10_noEvidenceAndExhaustedBankConcludesTentatively() {
+        assertThat(algorithm.decide(List.of(), config, true))
+                .isEqualTo(new Conclusion(PlacementLevel.BELOW_1, Confidence.TENTATIVE));
+        assertThat(algorithm.decide(List.of(), config, false)).isEqualTo(new Next(config.getStartLevel()));
+    }
+
     private BlockResult block(int level, int correct) {
         return new BlockResult(level, correct, config.getBlockSize());
     }

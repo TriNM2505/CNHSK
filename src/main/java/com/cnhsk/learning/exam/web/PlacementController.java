@@ -8,6 +8,7 @@ import com.cnhsk.learning.exam.PlacementService;
 import com.cnhsk.learning.practice.PracticeService.SessionView;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,6 +17,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,6 +48,31 @@ public class PlacementController {
                 .body(new StartedRun(run.runId(), run.session()));
     }
 
+    @PostMapping("/api/placement/runs/{runId}/next")
+    @Operation(operationId = "nextPlacementBlock", tags = "placement")
+    public ResponseEntity<PlacementStep> next(@PathVariable String runId) {
+        var step = placement.next(auth.currentUser().userId(), runId(runId));
+        return ResponseEntity.status(step.created() ? HttpStatus.CREATED : HttpStatus.OK)
+                .body(new PlacementStep(step.runId(), step.session(), step.session() == null ? true : null));
+    }
+
+    @GetMapping("/api/placement/runs/{runId}/result")
+    @Operation(operationId = "getPlacementResult", tags = "placement")
+    public PlacementService.Result result(@PathVariable String runId) {
+        return placement.result(auth.currentUser().userId(), runId(runId));
+    }
+
+    private static long runId(String value) {
+        try {
+            long parsed = Long.parseLong(value);
+            if (parsed > 0) return parsed;
+        } catch (NumberFormatException ignored) {
+            // Invalid and missing run identifiers have the same response.
+        }
+        throw new ApiException(ErrorCode.ATTEMPT_NOT_OWNED, HttpStatus.FORBIDDEN,
+                "Bạn không có quyền truy cập lượt luyện này.", Map.of());
+    }
+
     private Integer startLevel(String body) {
         if (body == null) return null;
         JsonNode request;
@@ -68,6 +95,9 @@ public class PlacementController {
                 "Dữ liệu không hợp lệ.", Map.of("details", List.of(Map.of("field", "startLevel",
                         "message", "Giá trị không hợp lệ."))));
     }
+
+    public record PlacementStep(long runId, @JsonInclude(JsonInclude.Include.ALWAYS) SessionView session,
+            @JsonInclude(JsonInclude.Include.NON_NULL) Boolean concluded) {}
 
     public record StartedRun(long runId, SessionView session) {}
 }
