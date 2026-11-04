@@ -1,0 +1,73 @@
+package com.cnhsk.learning.exam.web;
+
+import java.util.List;
+import java.util.Map;
+
+import com.cnhsk.auth.api.AuthApi;
+import com.cnhsk.learning.exam.PlacementService;
+import com.cnhsk.learning.practice.PracticeService.SessionView;
+import com.cnhsk.shared.exception.ApiException;
+import com.cnhsk.shared.exception.ErrorCode;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+public class PlacementController {
+    private final PlacementService placement;
+    private final AuthApi auth;
+    private final ObjectMapper mapper;
+
+    public PlacementController(PlacementService placement, AuthApi auth, ObjectMapper mapper) {
+        this.placement = placement;
+        this.auth = auth;
+        this.mapper = mapper;
+    }
+
+    @GetMapping("/api/placement/summary")
+    @Operation(operationId = "getPlacementSummary", tags = "placement")
+    public PlacementService.Summary summary() {
+        return placement.summary(auth.currentUser().userId());
+    }
+
+    @PostMapping("/api/placement/runs")
+    @Operation(operationId = "startPlacementRun", tags = "placement")
+    public ResponseEntity<StartedRun> start(@RequestBody(required = false) String body) {
+        var run = placement.start(auth.currentUser().userId(), startLevel(body));
+        return ResponseEntity.status(run.created() ? HttpStatus.CREATED : HttpStatus.OK)
+                .body(new StartedRun(run.runId(), run.session()));
+    }
+
+    private Integer startLevel(String body) {
+        if (body == null) return null;
+        JsonNode request;
+        try {
+            request = mapper.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS).readTree(body);
+        } catch (JsonProcessingException exception) {
+            throw validation();
+        }
+        if (request == null || !request.isObject()) throw validation();
+        JsonNode level = request.path("startLevel");
+        if (level.isMissingNode()) return null;
+        if (!level.isIntegralNumber() || !level.canConvertToInt() || level.intValue() < 1 || level.intValue() > 3) {
+            throw validation();
+        }
+        return level.intValue();
+    }
+
+    private static ApiException validation() {
+        return new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY,
+                "Dữ liệu không hợp lệ.", Map.of("details", List.of(Map.of("field", "startLevel",
+                        "message", "Giá trị không hợp lệ."))));
+    }
+
+    public record StartedRun(long runId, SessionView session) {}
+}

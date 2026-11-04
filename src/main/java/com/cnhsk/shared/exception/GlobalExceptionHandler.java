@@ -32,7 +32,8 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = errorBody(exception.getCode(), exception.getMessage());
         exception.getExtra().forEach((key, value) -> {
             if (!"error_code".equals(key) && !"message".equals(key) && !"request_id".equals(key)) {
-                if ("details".equals(key) && exception.getCode() == ErrorCode.TEMPLATE_MISMATCH) {
+                if ("details".equals(key) && (exception.getCode() == ErrorCode.TEMPLATE_MISMATCH
+                        || exception.getCode() == ErrorCode.PLACEMENT_BANK_INSUFFICIENT)) {
                     body.put(key, value);
                 }
                 if (!"details".equals(key) || exception.getCode() == ErrorCode.VALIDATION_FAILED) {

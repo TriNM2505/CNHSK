@@ -62,6 +62,8 @@ class PlacementAlgorithmTest {
     void FR017_AT16_oscillatingBlocksStopAtMaximumItems() {
         List<BlockResult> blocks = List.of(
                 block(2, 4), block(3, 4), block(3, 3), block(3, 4), block(3, 4), block(3, 2), block(2, 4));
+        assertThat(algorithm.decide(blocks.subList(0, 5), config, false)).isInstanceOf(Next.class);
+        assertThat(algorithm.decide(blocks.subList(0, 6), config, false)).isInstanceOf(Next.class);
 
         assertThat(algorithm.decide(blocks, config, false))
                 .isEqualTo(new Conclusion(PlacementLevel.HSK2, Confidence.SURE));
@@ -93,7 +95,7 @@ class PlacementAlgorithmTest {
     @ParameterizedTest
     @ValueSource(strings = {
             "block-size=0", "min-items=36", "up-at=6", "down-at=4", "start-level=4",
-            "thresholds.3=101", "sure-min-items=0", "min-bank-per-level=0"
+            "thresholds.3=101", "sure-min-items=0", "min-bank-per-level=0", "min-bank-per-level=4"
     })
     void FR017_invalidConfigurationPreventsStartup(String setting) {
         contextRunner.withPropertyValues("cnhsk.placement." + setting)
