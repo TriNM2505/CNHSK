@@ -460,7 +460,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409':
-          description: NOTE_NOT_RESTORABLE
+          description: NOTE_NOT_RESTORABLE hoặc NOTE_DUPLICATE — details.noteId là ghi chú chưa xoá khác đang gắn cùng từ
           content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
         '422': { $ref: '#/components/responses/ValidationFailed' }
 

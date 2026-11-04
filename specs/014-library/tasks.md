@@ -25,7 +25,7 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 | T-06 | Tra cứu: `LibraryConfig` (`cnhsk.library.*`), `LibraryRateLimiter`, tìm chữ Hán/pinyin/nghĩa; matcher `permitAll` `/api/public/dictionary/**` | `…/learning/library/{LibraryConfig,LibraryRateLimiter,DictionaryService,PinyinQuery}.java`, `…/library/web/DictionaryController.java`, `SecurityConfig.java`, `application.yaml` | FR-001, FR-002, FR-003…FR-005 · AT-01…AT-05 | ✅ — leader full verify PASS tại 82a6b3b |
 | T-07 | Bộ thủ + chi tiết mục từ; mã `LEXEME_NOT_FOUND` | `…/library/{RadicalService,LexemeDetailService}.java`, `DictionaryController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-006, FR-007 · AT-06, AT-07 | ✅ — full verify 2.729 test, 0 failure/error/skip; NFR-P02 p95 5,886 ms |
 | T-08 | Sổ tay: sổ mặc định, tạo/đọc/sửa, danh sách + tìm; mã `COLLECTION_NOT_OWNED`, `LIBRARY_LIMIT_REACHED`, `NOTE_DUPLICATE`; matcher `LEARNER` `/api/notes/**` | `…/library/NotebookService.java`, `…/library/web/NoteController.java`, `SecurityConfig.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-008…FR-011 · AT-08…AT-10 | ✅ — leader duyệt hướng B; full verify 2.913 test, 0 failure/error/skip; NFR-P04 p95 48,296 ms |
-| T-09 | Xoá mềm, thùng rác, khôi phục; mã `NOTE_NOT_RESTORABLE` | `NotebookService.java`, `NoteController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-012 · AT-11 | ⬜ |
+| T-09 | Xoá mềm, thùng rác, khôi phục; mã `NOTE_NOT_RESTORABLE` | `NotebookService.java`, `NotebookRepository.java`, `NoteController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` + test vòng đời/đồng thời/quyền | FR-012 · AT-11 | ✅ — chọn lọc 74 test PASS; full verify 2.994 test, 0 failure/error/skip; JaCoCo LINE 97,20% |
 | T-10 | Bộ flashcard: danh sách, tạo (trống/từ chủ đề), chi tiết, sửa, xoá; matcher `LEARNER` `/api/flashcard-decks/**` | `…/library/DeckService.java`, `…/library/web/DeckController.java`, `SecurityConfig.java` | FR-013, FR-014 · AT-12, AT-13 | ⬜ |
 | T-11 | Thẻ: thêm/sửa/xoá; mã `CARD_DUPLICATE` | `…/library/CardService.java`, `DeckController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-015, FR-016 · AT-14, AT-15 | ⬜ |
 | T-12 | Ôn thẻ: `GET …/due`, `POST /api/flashcards/{cardId}/review` dùng `FsrsScheduler`; matcher `/api/flashcards/**` | `…/library/FlashcardReviewService.java`, `…/library/web/FlashcardReviewController.java`, `SecurityConfig.java` | FR-017, FR-018 · AT-16, AT-17 | ⬜ |
@@ -63,4 +63,4 @@ T-13 → T-14
 
 **Bốn task rủi ro cao:** T-14 (trừ/hoàn lượt đúng, không lộ nội dung, chống prompt injection) · T-06 (giới hạn khách theo IP, tra pinyin đúng) · T-08 (403 dữ liệu riêng, giới hạn) · T-12 (đúng FSRS, không đổi mastery).
 
-**Hiện trạng: 6/15 task xong.**
+**Hiện trạng: 7/15 task xong.**
