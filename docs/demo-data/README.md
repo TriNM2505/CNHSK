@@ -23,6 +23,23 @@ Nạp bằng màn **SCR-068 Learning Data Import** (role `CONTENT_EDITOR`) — *
 Nhập file sau khi file đứng trước nó đã nhập xong (`TOPIC_ITEM` cần `LEXEME` + `TOPIC`, `GRAMMAR_EXERCISE` cần `GRAMMAR`, `PRON_UNIT` cần `PRON_STAGE`).
 Nhập lại cùng file là an toàn — hệ thống upsert theo khoá tự nhiên.
 
+## Đề thi và xếp trình độ HSK 1–3
+
+Trên môi trường demo, dùng SCR-068 với vai trò `CONTENT_EDITOR`. Xem trước và xác nhận từng file theo thứ tự dưới đây.
+Chỉ chuyển sang file tiếp theo khi lần nhập hiện tại đã hoàn tất với 0 dòng lỗi.
+
+| # | File | Loại dữ liệu (`dataType`) | Nội dung |
+|---|---|---|---|
+| 1 | `exam/00-knowledge-node.csv` | `KNOWLEDGE_NODE` | 12 nút demo đuôi `-901`, thuộc các miền CH, TV, NP, VB ở mỗi cấp |
+| 2 | `exam/01-question.csv` | `QUESTION` | 90 câu. Mỗi cấp có 20 câu trắc nghiệm và 10 câu đúng/sai |
+| 3 | `exam/02-exam.csv` | `EXAM` | 3 đề `PUBLISHED`, mỗi cấp một đề |
+| 4 | `exam/03-exam-question.csv` | `EXAM_QUESTION` | 36 liên kết, mỗi đề có 12 câu cùng cấp trong 3 phần, mỗi câu 1 hoặc 2 điểm |
+
+Mỗi cấp có 8 câu CH, 8 câu TV, 8 câu NP và 6 câu VB. Bài xếp trình độ dùng cả ngân hàng, gồm cả các câu trong đề.
+NA và NL cần nghe hoặc nói nên kết quả từ bộ câu hỏi bằng văn bản này hiển thị hai miền đó là «Chưa đo».
+Muốn đưa một câu vào vị trí đang có câu khác, hãy chuyển câu cũ sang vị trí trống và xác nhận lần nhập đó trước.
+Sau đó dùng lần nhập riêng để đưa câu mới vào vị trí vừa giải phóng, theo chốt T-09.
+
 ## Khi có dữ liệu của công ty
 
 Đổi tên/thứ tự cột của file công ty cho khớp mẫu v0 rồi nhập như trên — **không** sửa code.
