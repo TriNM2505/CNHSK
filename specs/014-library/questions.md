@@ -1,5 +1,37 @@
 # Chốt — Spec 014
 
+## 2026-11-05 — Leader duyệt 014/T-10
+
+- Nhánh `spec/014-t10`, worktree `CNHSK-014-t10`, base `211e7e3` được leader chấp thuận dù T-05 đã merge tại `96ac2aa`; không rebase. Một conventional commit, push nhánh, Draft PR, leader review/merge. Không đụng thay đổi riêng ở worktree gốc.
+- Allowlist đúng 14 file:
+  1. `src/main/java/com/cnhsk/learning/library/DeckService.java`
+  2. `src/main/java/com/cnhsk/learning/library/DeckRepository.java`
+  3. `src/main/java/com/cnhsk/learning/library/web/DeckController.java`
+  4. `src/main/java/com/cnhsk/learning/library/web/DeckWrite.java`
+  5. `src/main/java/com/cnhsk/learning/library/LibraryConfig.java`
+  6. `src/main/java/com/cnhsk/shared/config/SecurityConfig.java`
+  7. `src/main/resources/application.yaml`
+  8. `src/test/java/com/cnhsk/learning/library/LibraryConfigTest.java`
+  9. `src/test/java/com/cnhsk/learning/library/DeckIntegrationTest.java`
+  10. `src/test/java/com/cnhsk/learning/library/DeckConcurrencyIntegrationTest.java`
+  11. `src/test/java/com/cnhsk/learning/library/DeckQueryCountIntegrationTest.java`
+  12. `src/test/java/com/cnhsk/shared/config/DeckSecurityConfigIntegrationTest.java`
+  13. `specs/014-library/tasks.md`
+  14. `specs/014-library/questions.md`
+- Chỉ năm endpoint của bộ thẻ theo contract đã duyệt: GET danh sách, POST 201 `DeckDetail`, GET chi tiết, PATCH 200 `DeckSummary`, DELETE 204. ID sai định dạng, không tồn tại, của người khác, khác loại hoặc đã xoá đều 403 `COLLECTION_NOT_OWNED`. Không triển khai thêm/sửa/xoá từng thẻ hoặc ôn FSRS của T-11/T-12.
+- Mọi ghi chạy trong một transaction READ_COMMITTED, lấy advisory lock `library:decks:<userId>` trước, sau đó lấy `now` từ Clock một lần. Khoá tách khỏi `library:notebook:<userId>` và người dùng khác. Chủ sở hữu luôn lấy qua AuthApi, bỏ qua userId/isPublic trong payload; bộ mới luôn riêng tư.
+- POST kiểm chủ đề tồn tại trước hạn mức; thiếu trả 404 `TOPIC_NOT_FOUND`. Có 50 bộ chưa xoá thì 422 `LIBRARY_LIMIT_REACHED`, `details{kind: DECKS, limit: 50}`. Tên 1–100 Unicode code point, cho trùng; mô tả tuỳ chọn tối đa 500. PATCH chỉ đổi tên/mô tả và updated_at, vẫn được sửa khi đủ hạn mức, không chép lại topicId.
+- Chép tối đa 500 `topic_items` có lexeme, theo `order_index ASC, id ASC`; bỏ mục chỉ có knowledge point. Snapshot mặt trước là text; mặt sau ghép pinyin và meaningVi bằng ` — `, không có pinyin thì chỉ nghĩa. Chủ đề rỗng tạo bộ rỗng. Không tạo user_progress, không cập nhật snapshot khi nguồn thay đổi. Lỗi chép rollback cả bộ lẫn thẻ.
+- Chủ đề hơn 500 từ: chép 500 thẻ đầu. `DeckDetail`/`DeckSummary` hiện không có trường báo đã cắt; giữ nguyên contract, không tự thêm `truncated` hoặc trường khác.
+- Danh sách dùng một SELECT, sắp created_at DESC/id DESC; chi tiết dùng tối đa hai SELECT, thẻ theo order_index/id. SQL đếm cardCount/dueCount, bỏ thẻ đã xoá; lịch chỉ nối theo người gọi và target_type FLASHCARD. Theo FR-017, thẻ mới chưa có dòng FLASHCARD hoặc next_review_at không muộn hơn now được tính đến hạn. Không N+1.
+- DELETE chỉ đặt deleted_at của bộ; giữ nguyên thẻ, lịch ôn và updated_at. Bộ đã xoá không còn hợp lệ cho các thao tác, kể cả xoá lần nữa (403 theo contract bộ thẻ, khác sổ tay).
+- Cấu hình bắt buộc và dương khi khởi động: `cnhsk.library.max-decks: 50`, `max-cards: 500`. SecurityConfig chỉ thêm đúng matcher LEARNER cho `/api/flashcard-decks` và `/api/flashcard-decks/**`; không sửa schema, migration, FE, ErrorCode hoặc GlobalExceptionHandler.
+- Gate: test chọn lọc bốn lớp Deck và LibraryConfigTest, sau đó full `mvnw.cmd -B verify` với Java 17, DEBUG=false, Docker; kiểm diff, BOM, dấu việc chưa làm và phạm vi 14 file. Chỉ ngoại lệ môi trường đã được leader chốt mới được ghi số đo và vẫn mở PR, không hạ assertion/ngưỡng hoặc skip test.
+- Test chọn lọc PASS 46/46, không failure/error/skip. PostgreSQL thật kiểm tranh suất 49/50, hai lần xoá đồng thời, khoá riêng theo người dùng/sổ tay và Clock lấy sau khi chờ khoá; lỗi sau khi INSERT thẻ rollback cả bộ/thẻ. Hibernate Statistics đo qua MockMvc: danh sách đúng 1 SELECT với 0/1/10/50 bộ, chi tiết đúng 2 SELECT với 500 thẻ (không tồn tại 1, ID sai định dạng 0).
+- Fetch trước PR: `origin/main` là `96ac2aa`. So với base `211e7e3`, trong allowlist chỉ `tasks.md` và `questions.md` đổi; toàn bộ file code/config T-10 chưa đổi trên main. Không rebase hoặc gộp main vào nhánh. Khi gộp tài liệu, leader giữ chốt/✅ T-05 và T-09 đã có trên main (8/15 trước T-10, 9/15 sau khi gộp); bộ đếm của nhánh dựa trên base riêng.
+- Full `mvnw.cmd -B verify` PASS: 3.002 test, 0 failure, 0 error, 0 skip; 12 phút 36 giây, Java 17, DEBUG=false, Docker. JaCoCo LINE toàn bộ 8.784/9.032 = 97,2542%; library và web 508/513. NFR-P04 sổ tay giữ nguyên ngưỡng 200 ms, p95 55,612 ms trên 1.000 ghi chú. Không dùng ngoại lệ môi trường, không đổi assertion/ngưỡng test T-08; đánh ✅ T-10 theo duyệt.
+- Self-check PASS: đúng 14 file allowlist, diff sạch, UTF-8 không BOM, không dấu việc chưa làm trong file thay đổi. Không thêm dependency, không JOIN xuyên module, giá trị SQL bind tham số; AuthApi cung cấp người gọi. Quyền/CSRF có integration test, không thêm log dữ liệu riêng, không sửa credentials/schema/migration/FE/ErrorCode/GlobalExceptionHandler. SecurityConfig chỉ thêm một dòng matcher; commit và push chỉ nhánh T-10 đã được duyệt, không merge.
+
 ## 2026-11-05 — Leader duyệt 014/T-04
 
 - Base `origin/main` `bdccaac`, nhánh `spec/014-t04`, worktree `CNHSK-014-t04`. Allowlist đúng 12 file: `cnhsk-web/src/features/library/personalNotes.ts`, `personalNotes.test.ts`, `components/PersonalNotesView.tsx`, `components/NoteEditor.tsx`, `pages/Scr027PersonalNotesPage.tsx`, `pages/Scr027PersonalNotesPage.test.tsx`, `catalog.preview.ts`, `screens.ts`, `routes.test.tsx`, `api/client-integration.test.ts`, `specs/014-library/tasks.md`, `specs/014-library/questions.md` (các đường dẫn FE rút gọn cùng gốc `cnhsk-web/src/features/library/`). Một conventional commit, Draft PR, leader review/merge.
