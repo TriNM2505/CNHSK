@@ -14,6 +14,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,12 +38,25 @@ public class PlacementController {
 
     @GetMapping("/api/placement/summary")
     @Operation(operationId = "getPlacementSummary", tags = "placement")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "403", description = "Forbidden")
+    })
     public PlacementService.Summary summary() {
         return placement.summary(auth.currentUser().userId());
     }
 
     @PostMapping("/api/placement/runs")
     @Operation(operationId = "startPlacementRun", tags = "placement")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "201", description = "Created"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
+            @ApiResponse(responseCode = "422", description = "Request cannot be processed"),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
     public ResponseEntity<StartedRun> start(@RequestBody(required = false) String body) {
         var run = placement.start(auth.currentUser().userId(), startLevel(body));
         return ResponseEntity.status(run.created() ? HttpStatus.CREATED : HttpStatus.OK)
@@ -50,6 +65,13 @@ public class PlacementController {
 
     @PostMapping("/api/placement/runs/{runId}/next")
     @Operation(operationId = "nextPlacementBlock", tags = "placement")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "201", description = "Created"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
+            @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+    })
     public ResponseEntity<PlacementStep> next(@PathVariable String runId) {
         var step = placement.next(auth.currentUser().userId(), runId(runId));
         return ResponseEntity.status(step.created() ? HttpStatus.CREATED : HttpStatus.OK)
@@ -58,6 +80,12 @@ public class PlacementController {
 
     @GetMapping("/api/placement/runs/{runId}/result")
     @Operation(operationId = "getPlacementResult", tags = "placement")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "401", description = "Authentication required"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
+            @ApiResponse(responseCode = "409", description = "Attempt not submitted or run not concluded")
+    })
     public PlacementService.Result result(@PathVariable String runId) {
         return placement.result(auth.currentUser().userId(), runId(runId));
     }

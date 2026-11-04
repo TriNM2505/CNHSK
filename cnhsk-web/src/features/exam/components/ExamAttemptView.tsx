@@ -22,6 +22,7 @@ type Props = {
   onConfirmChange: (open: boolean) => void
   onSubmit: () => void
   onContinue: () => void
+  retryNext?: boolean
 }
 
 export function ExamAttemptView(props: Props) {
@@ -119,7 +120,7 @@ export function ExamAttemptView(props: Props) {
         )}
         {readOnly ? (
           <Button disabled={pending} onClick={props.onContinue}>
-            {placement ? 'Tiếp tục' : 'Xem kết quả'}
+            {placement ? (props.retryNext ? 'Thử lại' : 'Tiếp tục') : 'Xem kết quả'}
           </Button>
         ) : (
           <Button

@@ -1,5 +1,13 @@
 # Chốt — Spec 012
 
+## 2026-11-05 — T-17 tích hợp màn đề thi (leader duyệt)
+
+- SCR-022 mở luyện tập theo KID (FR-026). DTO kết quả hiện không có ID câu. SCR-023 tiếp tục chuyển tham số URL `exclude` hợp lệ thành `excludeQuestionId`. Truyền ID trực tiếp từ câu sai thuộc backlog.
+- ID sai dạng, không dương hoặc vượt int64 ở API kết quả đề và hai API placement `next`/`result` trả 403 `ATTEMPT_NOT_OWNED` như ID không tồn tại. Giữ 422 cho ID sai ở API bắt đầu đề theo contract.
+- AT-29 kiểm tám endpoint đã triển khai. Trước khi bổ sung annotation, tài liệu runtime chỉ khai báo 200 cho cả tám endpoint. `/weak-points` thuộc T-16.
+- Backlog tài liệu runtime: kiểu `runId` của placement và schema body của placement/targeted practice cần mô tả theo YAML. T-17 chỉ đối chiếu path, method và status.
+- SCR-021 lấy `runId` từ `refId ?? sessionId`. Nếu `next` lỗi sau khi nộp khối, màn hình giữ khối ở chế độ chỉ đọc và cho người dùng bấm «Thử lại» để gọi lại `next`.
+
 ## 2026-11-04 — T-09 nhập câu vào đề (leader duyệt)
 
 - Vị trí đang thuộc câu A trong DB vẫn bị giữ ở bước preview, kể cả khi dòng trước dự kiến chuyển A đi. Dòng đưa B vào vị trí đó trả DUPLICATE_ORDER vì mỗi dòng ghi độc lập.
