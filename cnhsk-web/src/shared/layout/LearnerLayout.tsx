@@ -12,6 +12,7 @@ import {
 import { cn } from '@/shared/lib/cn'
 import { useCurrentUser } from '@/shared/auth'
 import { Button } from '@/shared/ui'
+import { AssistantHost } from '@/features/assistant/components/AssistantHost'
 
 type LearnerLayoutProps = {
   children: ReactNode
@@ -113,7 +114,7 @@ export function LearnerLayout({
           </div>
         </aside>
       ) : null}
-      {children}
+      <AssistantHost>{children}</AssistantHost>
     </AppShell>
   )
 }

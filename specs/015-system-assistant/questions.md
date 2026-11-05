@@ -1,5 +1,13 @@
 # Chốt — Spec 015
 
+## 2026-11-06 — T-01 nền frontend trợ lý (leader duyệt)
+
+- Q-T01-01: lấy mã màn qua `matchRoutes` trên `appRouteDefinitions`, rồi kiểm mã có trong `screenRegistry`. Hai danh mục chỉ đọc. Không xác định được mã thì bỏ `pageContext`; request không gửi URL hay tham số route. Ẩn toàn bộ SCR-021 và nhánh `/learn/topics/:id/test`, kể cả query string và dấu `/` cuối.
+- Q-T01-02: khi đóng chỉ có nút tròn nổi, nằm trên thanh điều hướng mobile; vùng nội dung giữ đủ bề rộng và có khoảng trống cuối để cuộn CTA ra khỏi nút. Chỉ khi mở mới có cột bên phải trên desktop, hoặc khối toàn chiều rộng trên mobile.
+- Q-T01-03: câu trả lời được hiển thị đầy đủ. History gửi lại gồm tối đa 10 tin gần nhất, mỗi tin cắt còn 4.000 code point, giữ nguyên ký tự ngoài BMP.
+- Chat chỉ nằm trong state của trang. Vào bài kiểm tra, đổi tài khoản, đăng xuất hoặc mở cuộc trò chuyện mới sẽ xoá phiên chat tương ứng, huỷ request và loại bỏ phản hồi đến muộn. Thu gọn giữ nội dung.
+- T-01 cung cấp khung panel và luồng gửi tối thiểu. Các hành động riêng của `outOfScope`, thông báo 429/403/503 và Escape thuộc T-02.
+
 ## 2026-11-03 — Shadow Plan spec (leader duyệt)
 
 Nguồn đã đọc (origin/main `5439672`): `AGENTS.md`, constitution v1.4.1 (BUS-03, BUS-06, AC-09, BUS-10), migration V1 (`ai_chats`), UC-085/UC-086 (`use-cases-06`), `screen-fields.md` (đoạn "AI Assistant là panel dùng chung", Open Issues SCR-021), `CONTEXT.md` (Lượt), plan `261102-2104` phase 7 (red-team #9 đã chỉnh), spec 012/013/014 (bản trên máy).
