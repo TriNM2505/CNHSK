@@ -6,10 +6,12 @@ import type { PreviewEntry } from '@/app/preview/types'
 
 import { PlanCreditsView } from './components/PlanCreditsView'
 import { TransactionHistoryView } from './components/TransactionHistoryView'
+import { CardBatchView } from './components/CardBatchView'
 
 import type {
   BatchPage,
   CreatedBatch,
+  CreateBatchRequest,
   LedgerPage,
   PaidFeature,
   PlanView,
@@ -19,6 +21,7 @@ import type {
   Transaction,
   TransactionPage,
   Wallet,
+  VoidResult,
 } from './types'
 
 // Original, offline fixtures. U is outside the card-code alphabet, so these codes cannot be redeemed.
@@ -331,6 +334,63 @@ function TransactionHistoryPreview() {
   })
 }
 
+function CardBatchPreview() {
+  const [items, setItems] = useState(() => structuredClone(creditsBatchPage.items))
+  const [page, setPage] = useState(0)
+  const [created, setCreated] = useState<CreatedBatch>()
+  const [voided, setVoided] = useState<VoidResult>()
+  const sequence = useRef(4)
+
+  const create = async (body: CreateBatchRequest) => {
+    const batchId = `B20261106-DEMO${String(sequence.current++).padStart(2, '0')}`
+    const result = {
+      batchId,
+      codes: Array.from(
+        { length: body.quantity },
+        (_, index) => `DEMO-ONLY-${String(index + 1).padStart(4, '0')}-USE0`,
+      ),
+    }
+    setCreated(result)
+    setItems((current) => [
+      {
+        ...body,
+        batchId,
+        total: body.quantity,
+        unused: body.quantity,
+        used: 0,
+        voided: 0,
+        createdAt: new Date().toISOString(),
+        createdByName: 'Quản trị mẫu',
+      },
+      ...current,
+    ])
+    setPage(0)
+  }
+
+  const voidBatch = async (batchId: string) => {
+    const batch = items.find((item) => item.batchId === batchId)
+    if (!batch) return
+    setVoided({ batchId, voided: batch.unused })
+    setItems((current) =>
+      current.map((item) =>
+        item.batchId === batchId ? { ...item, unused: 0, voided: item.voided + item.unused } : item,
+      ),
+    )
+  }
+
+  return createElement(CardBatchView, {
+    state: items.length ? 'ready' : 'empty',
+    data: { items: items.slice(page * 20, (page + 1) * 20), page, size: 20, total: items.length },
+    page,
+    created,
+    voided,
+    onCreate: create,
+    onVoid: voidBatch,
+    onPageChange: setPage,
+    onRetry: () => undefined,
+  })
+}
+
 export const previews = [
   {
     group: 'screen',
@@ -351,14 +411,7 @@ export const previews = [
     id: 'credits-batch-samples',
     scr: 'SCR-073',
     title: 'Lô mã thẻ — Dữ liệu mẫu',
-    render: () =>
-      samplePreview(
-        'Lô mã mẫu',
-        creditsBatchPage.items.map((batch) => ({
-          id: batch.batchId,
-          text: `${batch.batchId} · ${batch.channel} · ${batch.used}/${batch.total} đã dùng`,
-        })),
-      ),
+    render: () => createElement(CardBatchPreview),
   },
   {
     group: 'screen',
