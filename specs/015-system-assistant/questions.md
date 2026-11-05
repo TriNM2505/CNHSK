@@ -1,5 +1,12 @@
 # Chốt — Spec 015
 
+## 2026-11-06 — T-02 trạng thái panel (leader duyệt)
+
+- Q-T02-01: Escape chỉ thu gọn panel, giữ chat, draft và request đang chạy, rồi trả focus về nút mở. «Cuộc trò chuyện mới» xoá chat, draft, lỗi và huỷ request như T-01.
+- Q-T02-02: chọn thông báo theo mã lỗi (`ApiError.errorCode` của client hiện có). `RATE_LIMITED` → «Bạn đã hỏi nhiều trong hôm nay, quay lại ngày mai»; `ASSISTANT_BLOCKED_DURING_TEST` → «Trợ lý tắt trong lúc làm bài»; `ASSISTANT_UNAVAILABLE` → «Trợ lý tạm thời chưa trả lời được, bạn thử lại sau». `FORBIDDEN`, `CSRF_TOKEN_INVALID` và các mã khác giữ `ApiError.message`.
+- Câu trả lời ngoài phạm vi có link «Tra từ điển» tới `/dictionary` và «Dịch câu» tới `/translate`. Cờ `outOfScope` chỉ thuộc tin nhắn hiển thị; history gửi lên vẫn chỉ gồm `role` và `text`.
+- Câu trả lời hiển thị bằng chuỗi JSX, giữ xuống dòng và hiển thị nguyên văn các ký tự giống HTML.
+
 ## 2026-11-06 — T-01 nền frontend trợ lý (leader duyệt)
 
 - Q-T01-01: lấy mã màn qua `matchRoutes` trên `appRouteDefinitions`, rồi kiểm mã có trong `screenRegistry`. Hai danh mục chỉ đọc. Không xác định được mã thì bỏ `pageContext`; request không gửi URL hay tham số route. Ẩn toàn bộ SCR-021 và nhánh `/learn/topics/:id/test`, kể cả query string và dấu `/` cuối.

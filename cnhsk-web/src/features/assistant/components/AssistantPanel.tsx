@@ -4,9 +4,11 @@ import { Button } from '@/shared/ui'
 
 import type { ChatTurn } from '../types'
 
+export type AssistantMessage = ChatTurn & { outOfScope?: boolean }
+
 type AssistantPanelProps = {
   draft: string
-  messages: readonly ChatTurn[]
+  messages: readonly AssistantMessage[]
   pending: boolean
   error?: string
   onDraftChange: (value: string) => void
@@ -36,6 +38,13 @@ export function AssistantPanel({
     <section
       aria-label="Trợ lý hỗ trợ CNHSK"
       className="flex max-h-[calc(100dvh-9rem)] flex-col gap-4 rounded-md border border-line bg-surface p-4"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault()
+          event.stopPropagation()
+          onCollapse()
+        }
+      }}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-h3">Trợ lý hỗ trợ CNHSK</h2>
@@ -56,10 +65,20 @@ export function AssistantPanel({
           <div key={index} className="whitespace-pre-wrap break-words text-body-sm">
             <p className="font-bold">{message.role === 'user' ? 'Bạn' : 'Trợ lý'}</p>
             <p>{message.text}</p>
+            {message.role === 'assistant' && message.outOfScope && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button to="/dictionary" size="sm" variant="outline">
+                  Tra từ điển
+                </Button>
+                <Button to="/translate" size="sm" variant="outline">
+                  Dịch câu
+                </Button>
+              </div>
+            )}
           </div>
         ))}
       </div>
-      {pending && <p role="status">Đang gửi câu hỏi…</p>}
+      {pending && <p role="status">Trợ lý đang trả lời…</p>}
       {error && <p role="alert">{error}</p>}
       <form
         className="space-y-2"
