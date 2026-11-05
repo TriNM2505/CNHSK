@@ -100,6 +100,21 @@ cnhsk:
     start-level: 2
     min-bank-per-level: 10
   mastery:
+    seen-item-days: 7
+    context-weights:
+      EXAM: 1.0
+      QUIZ: 0.8
+      GRADED: 0.6
+      PRACTICE: 0.5
+    form-weights:
+      OPEN: 1.0
+      MCQ4: 0.75
+      MCQ3: 0.67
+      BINARY: 0.5
+    role-weights:
+      PRIMARY: 1.0
+      SECONDARY: 0.5
+      ERROR: 1.0
     window: 8
     max-practice-in-window: 3
     min-evidence: 3
