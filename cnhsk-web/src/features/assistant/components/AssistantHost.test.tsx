@@ -7,9 +7,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CurrentUser } from '@/features/auth/types'
 import { AuthContext, type AuthContextValue } from '@/shared/auth/AuthContext'
 import { LearnerLayout } from '@/shared/layout/LearnerLayout'
+import { ApiError } from '@/shared/api'
 
 import { askAssistant } from '../api/ask'
-import { systemAnswer } from '../test-fixtures'
+import { assistantErrors, knowledgeAnswer, systemAnswer } from '../test-fixtures'
 import type { AskResult } from '../types'
 
 vi.mock('../api/ask', () => ({ askAssistant: vi.fn() }))
@@ -67,7 +68,7 @@ async function send(text: string) {
   const user = userEvent.setup()
   await user.type(screen.getByRole('textbox', { name: 'Câu hỏi về cách dùng CNHSK' }), text)
   await user.click(screen.getByRole('button', { name: 'Gửi' }))
-  await waitFor(() => expect(screen.queryByText('Đang gửi câu hỏi…')).not.toBeInTheDocument())
+  await waitFor(() => expect(screen.queryByText('Trợ lý đang trả lời…')).not.toBeInTheDocument())
 }
 
 describe('assistant FR013 / FR014', () => {
@@ -220,7 +221,7 @@ describe('assistant FR013 / FR014', () => {
       await user.click(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' }))
       await user.type(screen.getByRole('textbox'), 'Câu đang gửi')
       await user.click(screen.getByRole('button', { name: 'Gửi' }))
-      expect(screen.getByRole('status')).toHaveTextContent('Đang gửi')
+      expect(screen.getByRole('status')).toHaveTextContent('Trợ lý đang trả lời')
       const signal = vi.mocked(askAssistant).mock.calls[0]![1]!
       await user.click(screen.getByRole('button', { name: target }))
       expect(signal.aborted).toBe(true)
@@ -234,4 +235,101 @@ describe('assistant FR013 / FR014', () => {
       if (log) expect(log).toBeEmptyDOMElement()
     },
   )
+})
+
+describe('assistant FR015 / AT15 integration', () => {
+  beforeEach(() => {
+    vi.mocked(askAssistant).mockReset().mockResolvedValue(systemAnswer)
+  })
+
+  it('keeps out-of-scope actions in the UI and sends only role and text in history', async () => {
+    const user = userEvent.setup()
+    vi.mocked(askAssistant).mockResolvedValueOnce(knowledgeAnswer)
+    mount()
+    await user.click(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' }))
+    await send('Tôi muốn hỏi về một từ')
+    expect(screen.getByRole('link', { name: 'Tra từ điển' })).toHaveAttribute('href', '/dictionary')
+    expect(screen.getByRole('link', { name: 'Dịch câu' })).toHaveAttribute('href', '/translate')
+    await send('Tôi chọn chủ đề ở đâu?')
+    expect(vi.mocked(askAssistant).mock.calls[1]![0].history).toEqual([
+      { role: 'user', text: 'Tôi muốn hỏi về một từ' },
+      { role: 'assistant', text: knowledgeAnswer.answer },
+    ])
+  })
+
+  it.each(assistantErrors)(
+    'selects the message for $status / $errorCode and resets it with a new chat',
+    async (fixture) => {
+      const user = userEvent.setup()
+      vi.mocked(askAssistant).mockRejectedValueOnce(new ApiError(fixture))
+      mount()
+      await user.click(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' }))
+      await send('Tôi cần hướng dẫn sử dụng')
+      expect(screen.getByRole('alert').textContent).toBe(fixture.expected)
+      expect(screen.queryByRole('status')).not.toBeInTheDocument()
+      await user.type(screen.getByRole('textbox'), 'Bản nháp chưa gửi')
+      await user.click(screen.getByRole('button', { name: 'Cuộc trò chuyện mới' }))
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+      expect(screen.getByRole('log')).toBeEmptyDOMElement()
+      expect(screen.getByRole('textbox')).toHaveValue('')
+      await send('Một cuộc trò chuyện mới')
+      expect(vi.mocked(askAssistant).mock.calls[1]![0].history).toEqual([])
+      expect(screen.getByRole('log')).toHaveTextContent(systemAnswer.answer)
+    },
+  )
+
+  it('Escape keeps an active request, conversation and draft, and restores launcher focus', async () => {
+    const user = userEvent.setup()
+    let resolve: (result: AskResult) => void = () => undefined
+    vi.mocked(askAssistant).mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done
+        }),
+    )
+    mount()
+    await user.click(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' }))
+    await user.type(screen.getByRole('textbox'), 'Câu đang gửi')
+    await user.click(screen.getByRole('button', { name: 'Gửi' }))
+    await user.type(screen.getByRole('textbox'), 'Câu tiếp theo')
+    const signal = vi.mocked(askAssistant).mock.calls[0]![1]!
+    await user.keyboard('{Escape}')
+    const launcher = screen.getByRole('button', { name: 'Mở trợ lý CNHSK' })
+    expect(launcher).toHaveFocus()
+    expect(signal.aborted).toBe(false)
+    expect(screen.queryByRole('region', { name: 'Trợ lý hỗ trợ CNHSK' })).not.toBeInTheDocument()
+    await user.click(launcher)
+    expect(screen.getByRole('status')).toHaveTextContent('Trợ lý đang trả lời')
+    expect(screen.getByRole('textbox')).toHaveValue('Câu tiếp theo')
+    expect(screen.getByRole('log')).toHaveTextContent('Câu đang gửi')
+    await user.click(screen.getByRole('button', { name: 'Gửi' }))
+    expect(askAssistant).toHaveBeenCalledOnce()
+    await act(async () => resolve(systemAnswer))
+    expect(screen.getByRole('log')).toHaveTextContent(systemAnswer.answer)
+    expect(screen.getByRole('button', { name: 'Gửi' })).toBeEnabled()
+  })
+
+  it('a new chat can finish before an old cancelled request without stale content', async () => {
+    const user = userEvent.setup()
+    let resolveOld: (result: AskResult) => void = () => undefined
+    vi.mocked(askAssistant).mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolveOld = done
+        }),
+    )
+    mount()
+    await user.click(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' }))
+    await user.type(screen.getByRole('textbox'), 'Câu của phiên cũ')
+    await user.click(screen.getByRole('button', { name: 'Gửi' }))
+    const oldSignal = vi.mocked(askAssistant).mock.calls[0]![1]!
+    await user.click(screen.getByRole('button', { name: 'Cuộc trò chuyện mới' }))
+    expect(oldSignal.aborted).toBe(true)
+    await send('Câu của phiên mới')
+    await act(async () => resolveOld(knowledgeAnswer))
+    expect(screen.getByRole('log')).toHaveTextContent(systemAnswer.answer)
+    expect(screen.queryByText(knowledgeAnswer.answer)).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Dịch câu' })).not.toBeInTheDocument()
+    expect(vi.mocked(askAssistant).mock.calls[1]![0].history).toEqual([])
+  })
 })

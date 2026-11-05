@@ -8,8 +8,7 @@ import type { ScreenId } from '@/app/screenRegistry'
 
 import { askAssistant } from '../api/ask'
 import { assistantPageContext } from '../pageContext'
-import type { ChatTurn } from '../types'
-import { AssistantPanel } from './AssistantPanel'
+import { AssistantPanel, type AssistantMessage } from './AssistantPanel'
 
 function AssistantSession({
   children,
@@ -20,10 +19,24 @@ function AssistantSession({
 }) {
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState('')
-  const [messages, setMessages] = useState<ChatTurn[]>([])
+  const [messages, setMessages] = useState<AssistantMessage[]>([])
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string>()
   const controllerRef = useRef<AbortController | null>(null)
+  const launcherRef = useRef<HTMLButtonElement>(null)
+  const restoreFocusRef = useRef(false)
+
+  useEffect(() => {
+    if (!open && restoreFocusRef.current) {
+      restoreFocusRef.current = false
+      launcherRef.current?.focus()
+    }
+  }, [open])
+
+  function collapse() {
+    restoreFocusRef.current = true
+    setOpen(false)
+  }
 
   useEffect(
     () => () => {
@@ -61,10 +74,26 @@ function AssistantSession({
         controller.signal,
       )
       if (controllerRef.current !== controller || controller.signal.aborted) return
-      setMessages((current) => [...current, { role: 'assistant', text: result.answer }])
+      setMessages((current) => [
+        ...current,
+        { role: 'assistant', text: result.answer, outOfScope: result.outOfScope },
+      ])
     } catch (caughtError) {
       if (controllerRef.current !== controller || controller.signal.aborted) return
-      setError(toApiError(caughtError).message)
+      const apiError = toApiError(caughtError)
+      switch (apiError.errorCode) {
+        case 'RATE_LIMITED':
+          setError('Bạn đã hỏi nhiều trong hôm nay, quay lại ngày mai')
+          break
+        case 'ASSISTANT_BLOCKED_DURING_TEST':
+          setError('Trợ lý tắt trong lúc làm bài')
+          break
+        case 'ASSISTANT_UNAVAILABLE':
+          setError('Trợ lý tạm thời chưa trả lời được, bạn thử lại sau')
+          break
+        default:
+          setError(apiError.message)
+      }
     } finally {
       if (controllerRef.current === controller) {
         controllerRef.current = null
@@ -87,12 +116,13 @@ function AssistantSession({
             onSubmit={() => {
               void submit()
             }}
-            onCollapse={() => setOpen(false)}
+            onCollapse={collapse}
             onNewConversation={newConversation}
           />
         </aside>
       ) : (
         <button
+          ref={launcherRef}
           type="button"
           aria-label="Mở trợ lý CNHSK"
           aria-expanded={false}

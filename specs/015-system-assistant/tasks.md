@@ -12,7 +12,7 @@
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-01 | Nền FE `assistant`: `types.ts`, `api/ask.ts`, câu trả lời mẫu (trong/ngoài phạm vi); gắn panel vào layout học viên; ẩn ở SCR-021 và trang kiểm tra chủ đề (**báo leader trước** — layout dùng chung) | `web/features/assistant/**`, layout học viên trong `web/app/` | FR-013, FR-014 · AT-13, AT-14 | ✅ |
-| T-02 | Panel đủ trạng thái: gửi, đang trả lời, `outOfScope` + 2 nút, 429/403/503, escape câu trả lời, "Cuộc trò chuyện mới" | `web/features/assistant/components/*` + test | FR-015 · AT-15 | ⬜ |
+| T-02 | Panel đủ trạng thái: gửi, đang trả lời, `outOfScope` + 2 nút, 429/403/503, escape câu trả lời, "Cuộc trò chuyện mới" | `web/features/assistant/components/*` + test | FR-015 · AT-15 | ✅ |
 
 ## Đợt 2 · Nội dung và backend
 
