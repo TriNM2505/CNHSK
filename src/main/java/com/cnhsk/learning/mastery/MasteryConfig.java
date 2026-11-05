@@ -2,6 +2,8 @@ package com.cnhsk.learning.mastery;
 
 import java.math.BigDecimal;
 import java.util.Objects;
+import java.util.Map;
+import java.util.Set;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -63,6 +65,19 @@ public class MasteryConfig {
     @Valid
     private DueDays dueDays;
 
+    @NotNull
+    @Min(1)
+    private Integer seenItemDays;
+
+    @NotNull
+    private Map<String, BigDecimal> contextWeights;
+
+    @NotNull
+    private Map<String, BigDecimal> formWeights;
+
+    @NotNull
+    private Map<String, BigDecimal> roleWeights;
+
     @AssertTrue(message = "Mastery configuration relationships are invalid")
     public boolean isMasteryConfigurationValid() {
         return window != null
@@ -83,6 +98,54 @@ public class MasteryConfig {
     public Settings settings() {
         return new Settings(window, maxPracticeInWindow, minEvidence, minDistinctDays, minConfidence, halfLifeDays,
                 reviewBelow, extendFrom, hysteresis, dueDays.getReview(), dueDays.getConsolidate(), dueDays.getExtend());
+    }
+
+    @AssertTrue(message = "Evidence weights must have exactly the required positive keys")
+    public boolean isEvidenceConfigurationValid() {
+        return validWeights(contextWeights, Set.of("EXAM", "QUIZ", "GRADED", "PRACTICE"))
+                && validWeights(formWeights, Set.of("OPEN", "MCQ4", "MCQ3", "BINARY"))
+                && validWeights(roleWeights, Set.of("PRIMARY", "SECONDARY", "ERROR"));
+    }
+
+    private static boolean validWeights(Map<String, BigDecimal> weights, Set<String> keys) {
+        return weights != null && weights.keySet().equals(keys) && weights.values().stream()
+                .allMatch(value -> value != null && value.signum() > 0 && value.compareTo(BigDecimal.ONE) <= 0);
+    }
+
+    public EvidenceSettings evidenceSettings() {
+        return new EvidenceSettings(seenItemDays, contextWeights, formWeights, roleWeights);
+    }
+
+    public Integer getSeenItemDays() {
+        return seenItemDays;
+    }
+
+    public void setSeenItemDays(Integer seenItemDays) {
+        this.seenItemDays = seenItemDays;
+    }
+
+    public Map<String, BigDecimal> getContextWeights() {
+        return contextWeights;
+    }
+
+    public void setContextWeights(Map<String, BigDecimal> contextWeights) {
+        this.contextWeights = contextWeights;
+    }
+
+    public Map<String, BigDecimal> getFormWeights() {
+        return formWeights;
+    }
+
+    public void setFormWeights(Map<String, BigDecimal> formWeights) {
+        this.formWeights = formWeights;
+    }
+
+    public Map<String, BigDecimal> getRoleWeights() {
+        return roleWeights;
+    }
+
+    public void setRoleWeights(Map<String, BigDecimal> roleWeights) {
+        this.roleWeights = roleWeights;
     }
 
     public Integer getWindow() {
@@ -223,6 +286,20 @@ public class MasteryConfig {
             Objects.requireNonNull(reviewBelow);
             Objects.requireNonNull(extendFrom);
             Objects.requireNonNull(hysteresis);
+        }
+    }
+
+    public record EvidenceSettings(int seenItemDays, Map<String, BigDecimal> contextWeights,
+            Map<String, BigDecimal> formWeights, Map<String, BigDecimal> roleWeights) {
+        public EvidenceSettings {
+            if (seenItemDays < 1 || !validWeights(contextWeights, Set.of("EXAM", "QUIZ", "GRADED", "PRACTICE"))
+                    || !validWeights(formWeights, Set.of("OPEN", "MCQ4", "MCQ3", "BINARY"))
+                    || !validWeights(roleWeights, Set.of("PRIMARY", "SECONDARY", "ERROR"))) {
+                throw new IllegalArgumentException("Invalid evidence settings");
+            }
+            contextWeights = Map.copyOf(contextWeights);
+            formWeights = Map.copyOf(formWeights);
+            roleWeights = Map.copyOf(roleWeights);
         }
     }
 }

@@ -1,5 +1,26 @@
 # Chốt — Spec 011
 
+## 2026-11-05 — Leader duyệt 011/T-07
+
+- Q-T07-01: thêm `seen-item-days` (nguyên, ≥ 1, mặc định 7) và đúng các khóa trọng số §0.4; thiếu/thừa khóa hoặc trọng số ngoài (0,1] chặn startup. Giữ nguyên record Settings T-06, không thêm inferred-*.
+- Q-T07-02: cửa sổ lặp là khoảng mở (answered_at − 168 giờ UTC, answered_at); đúng 168 giờ không chặn, câu trước trong cùng lượt cũng tính.
+- Q-T07-03: mọi câu trả lời đúng trước đó của cùng người chặn câu hiện tại, dù lượt suspicious/ABANDONED/EXPIRED hoặc meta không hợp lệ. Câu hiện tại đúng hay sai đều bị bỏ; E5 chỉ nêu ví dụ “làm đúng lại”. Một truy vấn lịch sử cho cả lượt.
+- Q-T07-04: ánh xạ tên DUE_REVIEW → PRACTICE để dùng sau T-12; listener finish bỏ qua. Không thêm enum hoặc test tích hợp nguồn này trong T-07.
+- Q-T07-05: phân bổ lại nhãn hiện tại cho ID cũ; không còn thuộc KID đang cập nhật thì bỏ, không tự bổ sung KID khác. T-08 rebuild bổ sung sau.
+- Q-T07-06: chỉ bảo vệ cạnh tranh cùng KID theo E7; không thêm khóa user/câu. Khác KID có thể tính trùng khi cạnh tranh; T-08 rebuild xử lý.
+- Leader duyệt so w_static bằng giá trị BigDecimal (compareTo), không khóa scale và không làm tròn thêm. EvidenceAllocatorTest đổi assertion 0.6/0.3/1.0/0.25 sang isEqualByComparingTo; bổ sung nghiệm thu SECONDARY 0.125. Giá trị kỳ vọng không đổi.
+- Allowlist 11 file; một commit và Draft PR từ máy chính, không Git bundle; không chạy SQL/migration trên Neon.
+
+### Kết quả gate T-07 (đối chiếu log ngày 2026-11-06)
+
+- Base kiểm thử `df81d04`. Fetch trước bàn giao thấy origin/main `a0ca1fd` (PR #109/#110); không đổi learning/mastery, PracticeService, SessionFinishedEvent, V5/V6 hoặc application.yaml, không trùng allowlist. Không rebase/merge.
+- Targeted đúng sáu class đã duyệt: BUILD SUCCESS, exit 0, 28 test, 0 failure/error/skip; 01:18 phút. AT-12 hai finish cùng KID và hai KID đảo thứ tự PASS; E8 lỗi ghi KID thứ hai rollback tiến độ, items, study_events, trạng thái lượt PASS. NFR-P01: 10 câu và 50 câu cùng 12 truy vấn đọc.
+- Full `.\mvnw.cmd -B verify`: BUILD SUCCESS, exit 0, 47:35 phút, kết thúc 2026-11-05 19:16:42 +07:00; 3.342 test trong 205 suite, 0 failure/error/skip (Surefire XML khớp log). Không có báo cáo Failsafe riêng.
+- JaCoCo LINE 96,8753% = 9.673 covered / 9.985 tổng (312 missed); BRANCH 88,7179% = 4.498/5.070. Mọi coverage check PASS, giữ ngưỡng toàn bộ 80%.
+- Docker/Testcontainers, Flyway và Hibernate validate hoạt động. Biến môi trường chỉ tiến trình: DEBUG=false, JAVA_TOOL_OPTIONS=-Xmx1024m, MAVEN_OPTS=-Xmx384m. Log `%TEMP%\cnhsk-011-t07-targeted.log`, `%TEMP%\cnhsk-011-t07-verify.log`; không commit log/report.
+- EvidenceAllocatorTest đổi so sánh trọng số từ BigDecimal.equals sang isEqualByComparingTo theo leader: 0.6/0.3/1.0/0.25 không đổi giá trị; test riêng 0.125 PASS. Không khóa scale, không làm tròn thêm. Code T-07 không dùng BigDecimal.equals hoặc BigDecimal làm khóa Map/Set.
+- Đánh ✅ riêng T-07 sau gate xanh theo duyệt. Không sửa backlog MasteryConfig của T-06; giới hạn Q-T07-06 giữ nguyên, không có câu hỏi T-07 mới.
+
 ## 2026-11-03 — Shadow Plan spec (leader duyệt)
 
 Nguồn đã đọc (origin/main `5439672`): `AGENTS.md` §12, constitution v1.4.1 (AC-04, AC-09, AC-10, BUS-04/05/08/09/16), spec 003 §0 (engine, sự kiện), `SessionFinishedEvent`, `ItemGradedEvent`, `ChoiceItemFactory`, `TopicStudyService`, `SecurityConfig` (`/api/me/**`), migration V1 (`user_progress`), `UserProgress` (005), `database.md` §4.9/§13, UC-042…UC-055, `screen-fields.md` SCR-010/SCR-013/SCR-019, `Caytrithuc/01-architecture-overview`, `02-dev-integration-spec`, `03-ba-spec`, plan `261017-1654` (phase 1, 4, báo cáo `brainstorm-261018-2108`, bộ tính `cay-tri-thuc-cnhsk.html`), plan `261102-2104` phase 3, spec 010 và 012 (bản trên máy).
