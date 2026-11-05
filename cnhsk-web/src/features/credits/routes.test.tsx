@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, matchRoutes, MemoryRouter, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -14,7 +14,19 @@ import { getAuthenticatedDestination } from '@/shared/auth/navigation'
 import { AdminLayout } from '@/shared/layout'
 
 import { getMyWallet, listMyTransactions, redeemCard } from './api/wallet'
-import { creditsWallet, creditsTransactionPage, creditsRedeemResult } from './test-fixtures'
+import { createCardBatch, listCardBatches, voidCardBatch } from './api/cardBatches'
+import {
+  creditsWallet,
+  creditsTransactionPage,
+  creditsRedeemResult,
+  creditsBatchPage,
+} from './test-fixtures'
+
+vi.mock('./api/cardBatches', () => ({
+  createCardBatch: vi.fn(),
+  listCardBatches: vi.fn(),
+  voidCardBatch: vi.fn(),
+}))
 
 vi.mock('./api/wallet', () => ({
   getMyWallet: vi.fn(),
@@ -50,6 +62,7 @@ const getCurrentUserMock = vi.mocked(getCurrentUser)
 function screenHeading(scr: string) {
   if (scr === 'SCR-030') return 'Gói dịch vụ và điểm'
   if (scr === 'SCR-031') return 'Lịch sử giao dịch'
+  if (scr === 'SCR-073') return 'Lô mã thẻ'
   return `Màn ${scr} đang dựng`
 }
 
@@ -88,6 +101,9 @@ function renderAdminLayout(userRoles: RoleCode[]) {
 }
 
 beforeEach(() => {
+  vi.mocked(listCardBatches).mockReset().mockResolvedValue(structuredClone(creditsBatchPage))
+  vi.mocked(createCardBatch).mockReset()
+  vi.mocked(voidCardBatch).mockReset()
   vi.mocked(getMyWallet).mockReset().mockResolvedValue(structuredClone(creditsWallet))
   vi.mocked(listMyTransactions)
     .mockReset()
@@ -224,6 +240,37 @@ describe('credits ADMIN navigation (FR-001 FE)', () => {
 })
 
 describe('credits offline catalogs (§12)', () => {
+  it('runs the SCR-073 create/void preview offline and resets copies when remounted', async () => {
+    const view = renderRoute('/__preview/frame/credits-batch-samples/ready')
+    let data = within(await screen.findByRole('table', { name: 'Lô mã thẻ' }))
+    await userEvent.click(data.getByRole('button', { name: 'Khoá lô B20261102-DEMO02' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận khoá lô' }))
+    data = within(screen.getByRole('table', { name: 'Lô mã thẻ' }))
+    expect(data.queryByRole('button', { name: 'Khoá lô B20261102-DEMO02' })).not.toBeInTheDocument()
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Loại thẻ' }), 'CREDIT')
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Kênh phát hành' }),
+      'DIRECT',
+    )
+    await userEvent.type(screen.getByRole('spinbutton', { name: 'Số lượng mã' }), '1')
+    await userEvent.type(screen.getByRole('spinbutton', { name: 'Giá trị điểm mỗi mã' }), '7')
+    await userEvent.click(screen.getByRole('button', { name: 'Phát hành lô mã' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận phát hành' }))
+    const codes = within(await screen.findByRole('list', { name: 'Mã vừa phát hành' }))
+    expect(codes.getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Tải CSV' })).toBeEnabled()
+    expect(getCurrentUserMock).not.toHaveBeenCalled()
+    expect(listCardBatches).not.toHaveBeenCalled()
+    expect(createCardBatch).not.toHaveBeenCalled()
+    expect(voidCardBatch).not.toHaveBeenCalled()
+    view.dispose()
+    cleanup()
+    renderRoute('/__preview/frame/credits-batch-samples/ready')
+    data = within(await screen.findByRole('table', { name: 'Lô mã thẻ' }))
+    expect(data.getAllByRole('row')).toHaveLength(4)
+    expect(data.getByRole('button', { name: 'Khoá lô B20261102-DEMO02' })).toBeEnabled()
+    expect(screen.queryByRole('list', { name: 'Mã vừa phát hành' })).not.toBeInTheDocument()
+  })
   it('registers the five preview catalogs without duplicate screen or preview IDs', () => {
     const previews = previewRegistry.filter(({ id }) => id.startsWith('credits-'))
     expect(previews.map(({ scr }) => scr)).toEqual(routes.map(({ scr }) => scr))
@@ -231,7 +278,6 @@ describe('credits offline catalogs (§12)', () => {
   })
 
   it.each([
-    { view: 'credits-batch-samples', title: 'Lô mã mẫu', rows: 3 },
     { view: 'credits-plan-samples', title: 'Gói dịch vụ mẫu', rows: 3 },
     { view: 'credits-ledger-samples', title: 'Sổ cái mẫu', rows: 25 },
   ])('renders $view without authentication or backend calls', async ({ view, title, rows }) => {
@@ -242,6 +288,12 @@ describe('credits offline catalogs (§12)', () => {
   })
 
   it.each([
+    {
+      view: 'credits-batch-samples',
+      title: 'Lô mã thẻ',
+      table: 'Lô mã thẻ',
+      rows: 4,
+    },
     {
       view: 'credits-wallet-samples',
       title: 'Gói dịch vụ và điểm',
@@ -265,6 +317,9 @@ describe('credits offline catalogs (§12)', () => {
       expect(getMyWallet).not.toHaveBeenCalled()
       expect(listMyTransactions).not.toHaveBeenCalled()
       expect(redeemCard).not.toHaveBeenCalled()
+      expect(listCardBatches).not.toHaveBeenCalled()
+      expect(createCardBatch).not.toHaveBeenCalled()
+      expect(voidCardBatch).not.toHaveBeenCalled()
     },
   )
 })

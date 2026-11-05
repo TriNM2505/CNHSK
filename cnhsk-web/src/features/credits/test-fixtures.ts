@@ -1,4 +1,5 @@
 import type {
+  BatchPage,
   CreatedBatch,
   PaidFeature,
   RedeemResult,
@@ -11,6 +12,53 @@ import type {
 export const creditsCreatedBatch: CreatedBatch = {
   batchId: 'B20261103-DEMO04',
   codes: ['DEMO-ONLY-0001-USE0', 'DEMO-ONLY-0002-USE0', 'DEMO-ONLY-0003-USE0'],
+}
+
+export const creditsBatchPage: BatchPage = {
+  page: 0,
+  size: 20,
+  total: 3,
+  items: [
+    {
+      batchId: 'B20261103-DEMO03',
+      cardType: 'CREDIT',
+      value: 50,
+      channel: 'DIRECT',
+      total: 5,
+      unused: 0,
+      used: 2,
+      voided: 3,
+      campaign: 'thu-nghiem',
+      createdAt: '2026-11-30T17:00:00Z',
+      expiresAt: null,
+    },
+    {
+      batchId: 'B20261102-DEMO02',
+      cardType: 'SUBSCRIPTION',
+      planDays: 30,
+      channel: 'PARTNER_BATCH',
+      partnerCode: 'PARTNER_DEMO',
+      campaign: 'hoc-thu',
+      total: 10,
+      unused: 7,
+      used: 3,
+      voided: 0,
+      createdAt: '2026-11-02T02:00:00Z',
+      expiresAt: '2026-12-31T16:59:59Z',
+    },
+    {
+      batchId: 'B20261101-DEMO01',
+      cardType: 'CREDIT',
+      value: 100,
+      channel: 'ECOSYSTEM_GIFT',
+      issuedTo: 'Nhóm học thử mẫu',
+      total: 3,
+      unused: 1,
+      used: 2,
+      voided: 0,
+      createdAt: '2026-11-01T02:00:00Z',
+    },
+  ],
 }
 
 const events: readonly [Transaction['type'], number, PaidFeature | null, string][] = [
