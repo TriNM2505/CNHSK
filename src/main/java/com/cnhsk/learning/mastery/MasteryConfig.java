@@ -70,6 +70,15 @@ public class MasteryConfig {
     private Integer seenItemDays;
 
     @NotNull
+    @DecimalMin(value = "0.0", inclusive = false)
+    private BigDecimal inferredMinConfidence;
+
+    @NotNull
+    @DecimalMin(value = "0.0", inclusive = false)
+    @DecimalMax("100.0")
+    private BigDecimal inferredFrom;
+
+    @NotNull
     private Map<String, BigDecimal> contextWeights;
 
     @NotNull
@@ -114,6 +123,33 @@ public class MasteryConfig {
 
     public EvidenceSettings evidenceSettings() {
         return new EvidenceSettings(seenItemDays, contextWeights, formWeights, roleWeights);
+    }
+
+    @AssertTrue(message = "Inferred mastery configuration is invalid")
+    public boolean isInferredConfigurationValid() {
+        return inferredMinConfidence != null && inferredMinConfidence.signum() > 0
+                && inferredFrom != null && inferredFrom.signum() > 0
+                && inferredFrom.compareTo(BigDecimal.valueOf(100)) <= 0;
+    }
+
+    public InferenceSettings inferenceSettings() {
+        return new InferenceSettings(inferredMinConfidence, inferredFrom);
+    }
+
+    public BigDecimal getInferredMinConfidence() {
+        return inferredMinConfidence;
+    }
+
+    public void setInferredMinConfidence(BigDecimal inferredMinConfidence) {
+        this.inferredMinConfidence = inferredMinConfidence;
+    }
+
+    public BigDecimal getInferredFrom() {
+        return inferredFrom;
+    }
+
+    public void setInferredFrom(BigDecimal inferredFrom) {
+        this.inferredFrom = inferredFrom;
     }
 
     public Integer getSeenItemDays() {
@@ -300,6 +336,13 @@ public class MasteryConfig {
             contextWeights = Map.copyOf(contextWeights);
             formWeights = Map.copyOf(formWeights);
             roleWeights = Map.copyOf(roleWeights);
+        }
+    }
+
+    public record InferenceSettings(BigDecimal minConfidence, BigDecimal from) {
+        public InferenceSettings {
+            Objects.requireNonNull(minConfidence);
+            Objects.requireNonNull(from);
         }
     }
 }

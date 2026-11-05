@@ -115,6 +115,8 @@ cnhsk:
       PRIMARY: 1.0
       SECONDARY: 0.5
       ERROR: 1.0
+    inferred-min-confidence: 2.0
+    inferred-from: 80
     window: 8
     max-practice-in-window: 3
     min-evidence: 3

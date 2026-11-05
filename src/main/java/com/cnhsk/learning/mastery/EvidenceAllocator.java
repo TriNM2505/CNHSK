@@ -130,16 +130,12 @@ public class EvidenceAllocator {
                     continue;
                 }
                 if (item.getCorrect()) {
-                    add(result, kids.primaryKid(), item, context, form, "PRIMARY", score, settings);
-                    for (String kid : kids.secondaryKids()) {
-                        add(result, kid, item, context, form, "SECONDARY", score, settings);
+                    for (RoleAssignment target : questionTargets(true, kids, item.getAnswer())) {
+                        add(result, target.kid(), item, context, form, target.role(), score, settings);
                     }
                 } else {
-                    var error = kids.errorsByOption().get(item.getAnswer());
-                    if (error != null) {
-                        add(result, error.errorKid(), item, context, form, "ERROR", score, settings);
-                    } else {
-                        add(result, kids.primaryKid(), item, context, form, "PRIMARY", score, settings);
+                    for (RoleAssignment target : questionTargets(false, kids, item.getAnswer())) {
+                        add(result, target.kid(), item, context, form, target.role(), score, settings);
                     }
                 }
             } else if (item.getLexemeId() != null) {
@@ -232,10 +228,36 @@ public class EvidenceAllocator {
             log.warn("No knowledge label for attempt item {}", item.getId());
             return;
         }
-        BigDecimal weight = settings.contextWeights().get(context).multiply(settings.formWeights().get(form))
-                .multiply(settings.roleWeights().get(role));
+        BigDecimal weight = staticWeight(context, form, role, settings);
         result.add(new AllocatedEvidence(kid, item.getId(), item.getAnsweredAt(), score,
                 context, form, role, weight));
+    }
+
+    /** Pure role allocation shared by finish-time and read-time evidence reconstruction. */
+    public static List<RoleAssignment> questionTargets(boolean correct, QuestionKids kids, String answer) {
+        Objects.requireNonNull(kids, "kids");
+        if (correct) {
+            List<RoleAssignment> result = new ArrayList<>();
+            result.add(new RoleAssignment(kids.primaryKid(), "PRIMARY"));
+            kids.secondaryKids().forEach(kid -> result.add(new RoleAssignment(kid, "SECONDARY")));
+            return List.copyOf(result);
+        }
+        var error = kids.errorsByOption().get(answer);
+        return error == null ? List.of(new RoleAssignment(kids.primaryKid(), "PRIMARY"))
+                : List.of(new RoleAssignment(error.errorKid(), "ERROR"));
+    }
+
+    /** Pure static evidence weight shared by finish-time and read-time evidence reconstruction. */
+    public static BigDecimal staticWeight(String context, String form, String role,
+            MasteryConfig.EvidenceSettings settings) {
+        Objects.requireNonNull(settings, "settings");
+        BigDecimal contextWeight = settings.contextWeights().get(context);
+        BigDecimal formWeight = settings.formWeights().get(form);
+        BigDecimal roleWeight = settings.roleWeights().get(role);
+        if (contextWeight == null || formWeight == null || roleWeight == null) {
+            throw new IllegalArgumentException("Unknown evidence context, form or role");
+        }
+        return contextWeight.multiply(formWeight).multiply(roleWeight);
     }
 
     public static String contextOf(String source) {
@@ -255,7 +277,7 @@ public class EvidenceAllocator {
         };
     }
 
-    private static String formOf(ServedItem item) {
+    public static String formOf(ServedItem item) {
         int count = item.options() == null ? 0 : item.options().size();
         if (count >= 4) return "MCQ4";
         if (count == 3) return "MCQ3";
@@ -273,4 +295,6 @@ public class EvidenceAllocator {
                     "PRACTICE".equals(context));
         }
     }
+
+    public record RoleAssignment(String kid, String role) { }
 }
