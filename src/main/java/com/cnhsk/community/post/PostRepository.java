@@ -70,4 +70,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             """, nativeQuery = true)
     int rejectPending(@Param("id") long id, @Param("moderatorId") long moderatorId,
             @Param("reason") String reason, @Param("reviewedAt") Instant reviewedAt);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = """
+            UPDATE community.posts
+            SET status = 'HIDDEN', reviewed_by = :moderatorId, reviewed_at = :reviewedAt, review_reason = :note
+            WHERE id = :id AND status <> 'HIDDEN'
+            """, nativeQuery = true)
+    int hideForReport(@Param("id") long id, @Param("moderatorId") long moderatorId,
+            @Param("reviewedAt") Instant reviewedAt, @Param("note") String note);
 }

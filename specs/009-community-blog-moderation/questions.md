@@ -411,3 +411,62 @@ Java17.0.9, Docker/Testcontainers, DEBUG=false. Kết quả từ safe result JSO
 - Evidence local: `C:\WINDOWS\TEMP\cnhsk-spec009-t12-20261105-072050\approved-fix-round-20261105-083000\`: frozen14/source hashes, old evidence preservation hashes, logs/XML/results từng gate, actual-openapi.json, Docker diagnostics/authorization, gate3-safe-evidence, gate5-inventory-proof, gate6-scope/selector, gate7-safe-evidence/current exec/provenance, gate8 report/check/XML. Raw logs/XML giữ private; chỉ sanitized metrics trong tracking/PR.
 - Final freshness fetch: origin/main `df81d04616abd97e3ab5fe35c12640b6e16393a2`, merge-base vẫn approved ff2c235; PR108/Spec011 thêm FSRS scheduler/config/tests và independent cnhsk.fsrs application properties,7 paths. Không Community/shared audit/UserRef/security/AuthApi/handler/schema/POM/locked contract change hoặc semantic conflict T-12 được xác định. Tests vẫn trên approved base; không integrate/merge/rebase main mới.
 - Self-check: exact16 files (9 ADD/7 MODIFY), tracking chỉ T-12 checkbox và append mục này; frozen14 giữ nguyên, không dependency/migration/security config/handler/contract changes, plan artifacts không trong commit. Member source review không phát hiện finding mới; chưa tuyên bố Leader Independent Source Review PASS. Conditional delivery được phép theo quyết định Leader; Git commit/push/Draft PR được thực hiện sau self-review/provenance/scope check, không Ready/merge hoặc bắt đầu T-13.
+
+## [009] Leader — Chốt Backend T-13 / Q-T13 và conditional delivery — 2026-11-06
+
+- Status: CHỐT / APPROVED BY LEADER. Phạm vi FR-046…FR-051 / AT-40…AT-45; exact allowlist 18 files, 11 ADD + 7 MODIFY. T-13 được đánh ✅ theo quyết định bàn giao có điều kiện dưới đây; đây không phải xác nhận Full Verify hoặc coverage PASS.
+- Worktree `.worktrees/spec009-t13`, branch `spec/009-community-blog-moderation-t13`, approved base HEAD `2171960a2898135f32bf00f8106dce46f28a200c`. Giữ nguyên 16 source/test files sau sealed fix; chỉ sửa checkbox T-13 và append quyết định vào file này. Không thêm file thứ 19, không rerun Maven, rebase/reset/clean hoặc tác động worktree khác.
+
+### Q-T13 — Quyết định nghiệp vụ và kỹ thuật đã đóng băng
+
+- Chỉ `MODERATOR` dùng cả ba operation hàng đợi/chi tiết/quyết định; không yêu cầu thêm `LEARNER` hoặc xác thực email. Các role khác, kể cả `ADMIN` đơn lẻ, bị chặn trước khi truy cập dữ liệu. Giữ nguyên bốn route kiểm duyệt bài T-12.
+- Hàng đợi chỉ lấy `PENDING`, `report_count` giảm dần rồi `created_at` tăng dần; `page >= 0`, `size` 1–50. Tải target theo lô, không gọi repository loại còn lại khi không cần; `latestReason` lấy phần tử cuối mảng `reasons`, preview tối đa 120 Unicode code points. Trang rỗng/ngoài phạm vi chỉ count; không bịa preview cho target bị orphan.
+- Chi tiết đọc mọi trạng thái hồ sơ, giữ nội dung gốc của target cho moderator, kể cả bình luận đã xoá; tên tác giả/người báo cáo/người xử lý qua một lần `CommunityAuthors.resolve`. Response chỉ dùng `UserRef`, không lộ email; hồ sơ không tồn tại trả 404 `REPORT_CASE_NOT_FOUND`.
+- Thứ tự lỗi đã kiểm: validation độc lập 422 → hồ sơ thiếu 404 → target/parent thiếu hoặc loại không hỗ trợ fail closed 500 → tự kiểm duyệt 403 `SELF_MODERATION` → validation `commentAction` theo ngữ cảnh 422 → conditional close thua 409 `REPORT_ALREADY_HANDLED`. Lỗi nội bộ dùng handler đã có, chỉ log caseId/targetType, không trả stack trace hoặc nội dung ra client.
+- JSON decision kiểm đúng kiểu/enum, từ chối null tường minh cho `commentAction`, không coercion scalar hoặc nhận thêm JSON token. `note` strip và kiểm 1–1.000 Unicode code points. `commentAction=HIDE|DELETE` bắt buộc đúng khi `ACTION` trên COMMENT và phải vắng mặt trong các ngữ cảnh khác; không có quyết định cấm/treo tài khoản.
+- Quyết định dùng một transaction `READ_COMMITTED`: conditional UPDATE đóng case trước, sau đó conditional target DML, audit, rồi fresh reload response; cùng snapshot `Clock` với độ chính xác microsecond. Không thêm explicit lock hoặc đổi T-11 upsert. Case thua không ghi target/audit; lỗi SQL/constraint/audit thật rollback case, target và audit cùng transaction.
+- `REJECT` chỉ đóng case và audit. `ACTION` ẩn bài hoặc HIDE/DELETE bình luận; target đã ở trạng thái đích không bị ghi lại metadata, case vẫn đóng/audit. Giữ content, editedAt/updatedAt, cây và reply con của bình luận; HIDDEN → DELETED vẫn được phép. E9 giữ lifetime duplicate cho reporter cũ, reporter mới có thể tạo case PENDING mới sau khi đóng case trước.
+- Audit giữ `COMMUNITY_REPORT_ACTION` / `COMMUNITY_REPORT_REJECT`, `target_type=REPORT_CASE`, detail `{targetType,targetId,commentAction?}`; chỉ COMMENT ACTION có `commentAction`. Không sửa schema/migration, shared audit, AuthApi, security config, dependency hoặc locked OpenAPI.
+
+### Một vòng sửa OpenAPI được Leader duyệt
+
+- Java 17 nested sealed `ReportCaseDetail.Target permits ReportedPost, ReportedComment`; hai record target implement interface và service dùng kiểu này. Vòng sửa chỉ chạm `ReportCaseService`, `ReportCaseDetail`, `ReportedPost`, `ReportedComment`, `ReportCaseControllerIntegrationTest`; 11 source/test files còn lại giữ nguyên. Không đổi business SQL, transaction hoặc security behavior trong vòng sửa.
+- Runtime schema dùng named component `ReportTarget`, `oneOf` đúng `ReportedPost`/`ReportedComment`, discriminator `kind`, required const `POST`/`COMMENT`; `ReportCaseDetail.target` trỏ `$ref` tới component đó. Leader chấp nhận named-component deviation so với inline oneOf của locked contract; không thêm DTO file hay sửa contract để đổi hình thức schema. Wire JSON không có wrapper, field sets/kind/privacy và bảy moderation operations đã được kiểm bằng HTTP thật.
+- Gate 1–2 được reverify sau vòng sửa; evidence trước vòng sửa giữ riêng, không lấy làm kết quả hiện tại. Snapshot mới `gate2-actual-openapi.json` SHA-256 `1AAA16EEE533212310A50D8CF093A2CA7CEB022264D8A401C35F37B157D1E5C7`.
+- Backlog Springdoc nullable `$ref` đã duyệt: `handledBy` runtime hiện sinh `type: null` kèm `$ref: #/components/schemas/UserRef`. Giữ JSON null/non-null behavior đã kiểm, không mở thêm vòng sửa source/contract trong T-13; theo dõi khi xử lý tài liệu OpenAPI sau này.
+- Gate 4 đo thực tế source=24, runtime=22, documented=22, missing=2. Hai operation còn thiếu thuộc T-14: `GET /api/community/moderation/posts/{id}/comments` và `PATCH /api/community/moderation/comments/{id}`. Không thêm chúng trong T-13; T-14 chỉ bắt đầu sau khi Leader nghiệm thu PR T-13.
+
+### Verification — evidence sau sealed fix, không rerun khi account handoff/delivery
+
+| Gate | Command (`.\mvnw.cmd -B`) | Tests | Failures | Errors | Skips | Maven exit |
+|---|---|---:|---:|---:|---:|---:|
+| 1 unit | `-Dtest=ReportCaseServiceTest test` | 50 | 0 | 0 | 0 | 0 |
+| 2 HTTP/OpenAPI | `-Dtest=ReportCaseControllerIntegrationTest -Dcommunity.openapi.snapshot=<evidence>/gate2-actual-openapi.json test` | 16 | 0 | 0 | 0 | 0 |
+| 3 PostgreSQL/concurrency | `-Dtest=ReportCaseConcurrencyIntegrationTest test` | 24 | 0 | 0 | 0 | 0 |
+| 4 contract | `-Dtest=CommunityContractTest test` | 12 | 0 | 0 | 0 | 0 |
+| 5 architecture | `-Dtest=CommunityArchitectureTest,ModuleBoundaryTest test` | 14 | 0 | 0 | 0 | 0 |
+| 6 regression, 52 suites | `-Dtest=<gate6-handoff-scope.json:selector> test` | 770 | 0 | 0 | 0 | 0 |
+| 7 Full Verify, interrupted | `verify` | 3000 | 5 | 0 | 0 | 1 |
+| 8 JaCoCo | Không chạy; execution data không hợp lệ | N/A | N/A | N/A | N/A | N/A |
+
+- Gates 1–4 được khôi phục từ result JSON, BUILD SUCCESS, Surefire XML, hash trước/sau; Gate 4 đã kết thúc trước khi account handoff, không khởi chạy bản thứ hai. Gates 5–6 chạy tiếp một lần. Gate 6 kế thừa selector cũ, loại `CommunityContractTest` và `CommunityArchitectureTest` đã PASS ở Gates 4–5; exact 52 suites và 770 tests khớp XML/selector, gồm T-04…T-12, T-11 reports/upsert/quota/concurrency, T-12 post moderation/concurrency, shared audit, auth/security và legacy callers.
+- Gate 3 dùng PostgreSQL thật với bounded blocking observer: `ungrantedTransactionIdWait=true`, `sameCaseTargetAuditTransaction=true`; hai thứ tự upsert/close, competing moderators, rollback thật, E9, orphan fail closed và no-op metadata đều PASS. Không đổi observer hoặc assertions để lấy kết quả xanh.
+- Docker readiness exit 0 trong PowerShell ngoài sandbox, cùng execution environment với Maven; Java 17, `DEBUG=false`, Docker Desktop 27.2.0, Testcontainers 1.21.4, PostgreSQL 18-alpine, Redis 7-alpine và Mailpit. Không restart/prune hay đổi Docker config/context/ACL, không dùng DB chung thay Testcontainers.
+- Gate 7 giữ nguyên FAILED: từ `2026-11-05T18:06:20.8491404Z` đến `2026-11-05T18:30:42.6465854Z`, 176 suite có XML hoàn tất, 3.000 tests / 5 failures / 0 errors / 0 skips, Maven exit 1, BUILD FAILURE. Sau khi phát hiện NFR_P02 ngoài bốn ngoại lệ ban đầu, dừng đúng Surefire JVM thuộc Maven của worktree này theo STOP policy; fork exit -1. Đây là số liệu các suite hoàn tất trong lượt bị ngắt, không phải toàn bộ test inventory; không sửa/rerun để thay kết quả.
+
+| Exact failure method | Safe actual evidence |
+|---|---|
+| `com.cnhsk.learning.content.importer.ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget` | line398; samples_ms=[39648,34313,30627,31305,30905], p95=39648ms, yêu cầu<30000ms |
+| `com.cnhsk.learning.content.importer.QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries` | line304; samples_ms=[62702,40704,38894,36917,35791], p95=62702ms, yêu cầu<30000ms |
+| `com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.FR046_FR047_FR048_fifthFailureBlocksOnlyTheEmailIpPairAndUsesActualRedisExpiry` | line133; PEXPIRETIME1793903128065, expected[1793903128184,1793903128941], thấp hơn cận dưới119ms |
+| `com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.redisFailuresInAllThreeOperationsFailOpenAndOnlyLogSafeWarnings(CapturedOutput)` | line313; CapturedOutput failure, raw captured diagnostic và fixture email/IP/password giữ private |
+| `com.cnhsk.learning.knowledge.QuestionAdminControllerIntegrationTest.NFR_P02_fiveThousandSelfAuthoredQuestionsAreListedByKidWithinOneHundredMillisecondsP95` | line252; p95=156ms, yêu cầu<100ms; suite91 tests/1 failure/0 errors/0 skips |
+
+### Leader-approved conditional delivery
+
+- Leader công nhận NFR_P02 là ngoại lệ môi trường thứ năm cùng FR023, NFR_P04, PEXPIRETIME và CapturedOutput. Cho phép bàn giao T-13 sau mandatory STOP; không chạy lại Gate 7/Full Verify và không chuyển kết quả FAILED thành PASS.
+- Gate 8 không có JaCoCo hợp lệ: execution file sau khi dừng là 0 byte; Project/Community coverage đều không có số liệu. Leader chấp nhận thiếu coverage ở lần bàn giao này và sẽ chạy Full Verify cùng JaCoCo đầy đủ khi tích hợp vào main. Không dùng coverage cũ, hạ threshold 80% hoặc sửa configuration để thay thế.
+- Nội dung bắt buộc trong PR: "Gate 1–6 PASS; Gate 7 FAILED, bị ngắt sau 176 suite, 5 fail đều là test môi trường (FR023 39,6 s · NFR_P04 62,7 s · PEXPIRETIME · CapturedOutput · NFR_P02 156 ms); Gate 8 không có số liệu. Leader verify lại khi merge."
+- Quyết định hiện tại cho phép cập nhật tracking, stage exact18, một commit `feat(community): handle report moderation cases`, push branch T-13 và mở Draft PR vào main sau preflight. Không tuyên bố independent source review PASS chỉ từ việc được duyệt delivery; không merge, chuyển Ready for Review hoặc bắt đầu T-14.
+- Source integrity: 16/16 file khớp `source-freeze-sha256.json` sau sealed fix; SHA-256 của manifest `ACF83860133CE7B7719EF2B3E95E98AA4A949B9C523E7BB001C0203231EA9AEE`. 27 artifact trước vòng sửa giữ nguyên hash; không ghi đè evidence. Self-check: đúng allowlist, không đổi source/tests, dependency, schema/migration, security, locked contract hoặc worktree khác; precommit kiểm staged manifest/bytes/whitespace/secrets trước commit.
+- Evidence local: `C:\WINDOWS\TEMP\cnhsk-spec009-t13-20261105-implementation\approved-sealed-fix-round\`: source-freeze manifest, before/after hashes, result JSON/private logs/Surefire XML Gates1–7, Gate2 OpenAPI/schema proof, Gate3 PostgreSQL transaction/blocking proof, Gate6 exact scope, Gate7 mandatory-stop JSON/XML và execution provenance. Evidence trước sealed fix nằm ở thư mục cha, không trộn vào kết quả hiện tại. Chỉ đưa safe metrics vào tracking/PR, không commit raw logs/XML hoặc secrets.

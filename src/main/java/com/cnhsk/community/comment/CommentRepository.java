@@ -7,6 +7,7 @@ import java.util.Set;
 import jakarta.persistence.LockModeType;
 import com.cnhsk.community.common.PostCount;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -39,4 +40,14 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             + "where c.postId in :postIds and c.status = com.cnhsk.community.common.CommentStatus.VISIBLE "
             + "group by c.postId")
     List<PostCount> countVisibleByPostIds(@Param("postIds") Set<Long> postIds);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = """
+            UPDATE community.comments
+            SET status = :status, moderated_by = :moderatorId, moderation_reason = :note
+            WHERE id = :id
+              AND (status = 'VISIBLE' OR (:status = 'DELETED' AND status = 'HIDDEN'))
+            """, nativeQuery = true)
+    int moderateForReport(@Param("id") long id, @Param("status") String status,
+            @Param("moderatorId") long moderatorId, @Param("note") String note);
 }
