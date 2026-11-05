@@ -1,5 +1,8 @@
 import type {
   BatchPage,
+  LedgerPage,
+  PlanView,
+  Reconciliation,
   CreatedBatch,
   PaidFeature,
   RedeemResult,
@@ -158,4 +161,75 @@ export const creditsRedeemResult: RedeemResult = {
   amount: 100,
   balance: 221,
   plan: creditsWallet.plan,
+}
+
+export const creditsPlans: PlanView[] = [
+  {
+    code: 'FREE',
+    exists: true,
+    name: 'Miễn phí',
+    description: 'Gói miễn phí mẫu',
+    durationDays: null,
+    price: '0.00',
+    benefits: {},
+    isActive: true,
+    activeUsers: 42,
+  },
+  {
+    code: 'PREMIUM',
+    exists: true,
+    name: 'PREMIUM mẫu',
+    description: 'Cấu hình mẫu',
+    durationDays: 30,
+    price: '199000.00',
+    benefits: { AI_GENERATE: 100, TRANSLATE: 50, GRADING: 10 },
+    isActive: true,
+    activeUsers: 7,
+  },
+  { code: 'PREMIUM_PLUS', exists: false, name: null, activeUsers: 0 },
+]
+
+export const creditsLedgerRows = creditsTransactions.map((row) => ({
+  ...row,
+  id: 7000 + row.seq,
+  userId: 7,
+  maskedEmail: 'ma***@example.test',
+}))
+export const creditsLedgerPage: LedgerPage = {
+  items: creditsLedgerRows.slice(0, 20),
+  page: 0,
+  size: 20,
+  total: creditsLedgerRows.length,
+  totals: {
+    count: creditsLedgerRows.length,
+    credited: creditsLedgerRows.reduce((sum, row) => sum + Math.max(0, row.amount), 0),
+    debited: creditsLedgerRows.reduce((sum, row) => sum + Math.min(0, row.amount), 0),
+  },
+}
+export const creditsLedgerLastPage: LedgerPage = {
+  ...creditsLedgerPage,
+  page: 1,
+  items: creditsLedgerRows.slice(20),
+}
+export const creditsEmptyLedgerPage: LedgerPage = {
+  items: [],
+  page: 0,
+  size: 20,
+  total: 0,
+  totals: { count: 0, credited: 0, debited: 0 },
+}
+export const creditsReconciliation: Reconciliation = {
+  users: 1,
+  rows: 25,
+  totalBalance: 121,
+  totalAmount: 121,
+  issues: [],
+}
+export const creditsReconciliationWithIssues: Reconciliation = {
+  ...creditsReconciliation,
+  issues: [
+    { userId: 7, maskedEmail: 'ma***@example.test', seq: 1, kind: 'FIRST_BALANCE_NOT_ZERO' },
+    { userId: 7, maskedEmail: 'ma***@example.test', seq: 5, kind: 'SEQ_GAP' },
+    { userId: 7, maskedEmail: 'ma***@example.test', seq: 6, kind: 'BALANCE_CHAIN_BROKEN' },
+  ],
 }

@@ -1,20 +1,26 @@
 import { createElement, useRef, useState } from 'react'
 
 import { ApiError, toApiError } from '@/shared/api'
+import { downloadBlob } from '@/shared/lib/downloadBlob'
 
 import type { PreviewEntry } from '@/app/preview/types'
 
 import { PlanCreditsView } from './components/PlanCreditsView'
 import { TransactionHistoryView } from './components/TransactionHistoryView'
 import { CardBatchView } from './components/CardBatchView'
+import { PlanManagementView } from './components/PlanManagementView'
+import { CreditLedgerView } from './components/CreditLedgerView'
 
 import type {
   BatchPage,
   CreatedBatch,
   CreateBatchRequest,
   LedgerPage,
+  LedgerFilter,
   PaidFeature,
   PlanView,
+  PlanCode,
+  PlanUpdateRequest,
   Reconciliation,
   RedeemRequest,
   RedeemResult,
@@ -255,25 +261,6 @@ export const creditsReconciliationWithIssue: Reconciliation = {
   issues: [{ userId: 7, maskedEmail: 'ma***@example.test', seq: 4, kind: 'BALANCE_CHAIN_BROKEN' }],
 }
 
-function samplePreview(title: string, rows: readonly { id: string | number; text: string }[]) {
-  return createElement(
-    'section',
-    { className: 'mx-auto max-w-reading space-y-4' },
-    createElement('h1', { className: 'text-h1-sm text-ink' }, title),
-    createElement(
-      'ul',
-      { className: 'space-y-3' },
-      rows.map(({ id, text }) =>
-        createElement(
-          'li',
-          { className: 'rounded-md border border-line bg-surface p-4 text-body text-ink', key: id },
-          text,
-        ),
-      ),
-    ),
-  )
-}
-
 function PlanCreditsPreview() {
   const [wallet, setWallet] = useState(() => structuredClone(creditsWallet))
   const [pending, setPending] = useState(false)
@@ -391,6 +378,117 @@ function CardBatchPreview() {
   })
 }
 
+function PlanManagementPreview() {
+  const [plans, setPlans] = useState(() => structuredClone(creditsPlans))
+  const [saved, setSaved] = useState<PlanView>()
+  const [failure, setFailure] = useState<{ code: PlanCode; error: ApiError }>()
+  const save = async (code: PlanCode, body: PlanUpdateRequest) => {
+    setFailure(undefined)
+    setSaved(undefined)
+    const plan = plans.find((item) => item.code === code)
+    if (!plan || code === 'PREMIUM_PLUS') return
+    const features: PaidFeature[] = ['AI_GENERATE', 'TRANSLATE', 'ASSISTANT', 'GRADING']
+    if (
+      code === 'PREMIUM' &&
+      plan.activeUsers > 0 &&
+      features.some(
+        (feature) => (body.benefits?.[feature] ?? 0) !== (plan.benefits?.[feature] ?? 0),
+      )
+    ) {
+      setFailure({
+        code,
+        error: new ApiError({
+          status: 409,
+          errorCode: 'PLAN_IN_USE',
+          message: 'Không thể đổi hạn mức khi có người đang dùng gói.',
+        }),
+      })
+      return
+    }
+    const result = { ...plan, ...body, exists: true }
+    setPlans((current) => current.map((item) => (item.code === code ? result : item)))
+    setSaved(result)
+  }
+  return createElement(PlanManagementView, {
+    state: 'ready',
+    data: plans,
+    saved,
+    failure,
+    onSave: save,
+    onRetry: () => undefined,
+  })
+}
+
+function CreditLedgerPreview() {
+  const [filter, setFilter] = useState<LedgerFilter>()
+  const [page, setPage] = useState(0)
+  const [reconciliation, setReconciliation] = useState<Reconciliation>()
+  const rows = filter
+    ? creditsLedgerRows.filter((row) => {
+        const day = new Date(Date.parse(row.createdAt) + 7 * 60 * 60 * 1000)
+          .toISOString()
+          .slice(0, 10)
+        return day >= filter.from && day <= filter.to && (!filter.type || row.type === filter.type)
+      })
+    : []
+  const data: LedgerPage = {
+    items: rows.slice(page * 20, (page + 1) * 20),
+    page,
+    size: 20,
+    total: rows.length,
+    totals: {
+      count: rows.length,
+      credited: rows.reduce((sum, row) => sum + Math.max(0, row.amount), 0),
+      debited: rows.reduce((sum, row) => sum + Math.min(0, row.amount), 0),
+    },
+  }
+  return createElement(CreditLedgerView, {
+    state: !filter ? 'idle' : rows.length ? 'ready' : 'empty',
+    data: filter ? data : undefined,
+    filter,
+    page,
+    reconciliation,
+    exportPending: false,
+    reconcilePending: false,
+    onApply: (next) => {
+      setFilter(next)
+      setPage(0)
+    },
+    onFilterEdit: () => undefined,
+    onPageChange: setPage,
+    onRetry: () => undefined,
+    onExport: async () => {
+      // Offline preview simulates the server-generated file; runtime pages never build CSV.
+      const header =
+        'id,userId,maskedEmail,seq,type,amount,balanceBefore,balanceAfter,featureCode,reason,createdAt'
+      const quote = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`
+      const csv =
+        [
+          header,
+          ...rows.map((row) =>
+            [
+              row.id,
+              row.userId,
+              row.maskedEmail,
+              row.seq,
+              row.type,
+              row.amount,
+              row.balanceBefore,
+              row.balanceAfter,
+              row.featureCode,
+              row.reason,
+              row.createdAt,
+            ]
+              .map(quote)
+              .join(','),
+          ),
+        ].join('\r\n') + '\r\n'
+      downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'credit-ledger-preview.csv')
+    },
+    onReconcile: async () => setReconciliation(structuredClone(creditsReconciliationWithIssue)),
+  })
+}
+
 export const previews = [
   {
     group: 'screen',
@@ -418,27 +516,13 @@ export const previews = [
     id: 'credits-plan-samples',
     scr: 'SCR-074',
     title: 'Gói dịch vụ — Dữ liệu mẫu',
-    render: () =>
-      samplePreview(
-        'Gói dịch vụ mẫu',
-        creditsPlans.map((plan) => ({
-          id: plan.code,
-          text: `${plan.code} · ${plan.name ?? 'Chưa hỗ trợ đợt này'} · ${plan.activeUsers} người đang dùng`,
-        })),
-      ),
+    render: () => createElement(PlanManagementPreview),
   },
   {
     group: 'screen',
     id: 'credits-ledger-samples',
     scr: 'SCR-075',
     title: 'Sổ cái — Dữ liệu mẫu',
-    render: () =>
-      samplePreview(
-        'Sổ cái mẫu',
-        creditsLedgerRows.map((row) => ({
-          id: row.id,
-          text: `${row.maskedEmail} · #${row.seq} · ${row.amount} · ${row.balanceBefore} → ${row.balanceAfter}`,
-        })),
-      ),
+    render: () => createElement(CreditLedgerPreview),
   },
 ] satisfies readonly PreviewEntry[]
