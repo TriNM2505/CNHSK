@@ -50,7 +50,7 @@
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-11 | `ReportService` + `ReportController`: kiểm nội dung công khai, tự báo cáo, 20/ngày, một transaction chèn `REPORT` + upsert hồ sơ nối `reasons` | `…/community/moderation/ReportService.java`, `…/moderation/web/ReportController.java` | FR-032…FR-038 · AT-30…AT-34 | ✅ |
-| T-12 | `PostModerationService` + hàng đợi/chi tiết/duyệt/từ chối: `UPDATE` có điều kiện, `SELF_MODERATION`, audit | `…/moderation/PostModerationService.java`, `…/moderation/web/ModerationController.java` | FR-039…FR-045 · AT-35…AT-39 | ⬜ |
+| T-12 | `PostModerationService` + hàng đợi/chi tiết/duyệt/từ chối: `UPDATE` có điều kiện, `SELF_MODERATION`, audit | `…/moderation/PostModerationService.java`, `…/moderation/web/ModerationController.java` | FR-039…FR-045 · AT-35…AT-39 | ✅ |
 | T-13 | `ReportCaseService` hàng đợi/chi tiết hồ sơ (người báo cáo qua `CommunityAuthors`) + quyết định `ACTION`/`REJECT` một transaction + audit | `…/moderation/ReportCaseService.java`, `ModerationController.java` | FR-046…FR-051 · AT-40…AT-45 | ⬜ |
 | T-14 | `CommentModerationService` HIDE/DELETE/RESTORE, idempotent, `COMMENT_NOT_RESTORABLE`, audit; `GET /moderation/posts/{id}/comments` cây đầy đủ cho `MODERATOR` | `…/moderation/CommentModerationService.java`, `ModerationController.java` | FR-052…FR-055, FR-063 · AT-45, AT-46, AT-51 | ⬜ |
 

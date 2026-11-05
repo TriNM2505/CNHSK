@@ -117,7 +117,8 @@ class CommunityArchitectureTest {
             assertTrue(repository.isInterface(), repository.getName());
             Set<String> expectedMethods = repository == PostRepository.class
                     ? Set.of("countByAuthorIdAndCreatedAtGreaterThanEqual", "findByIdForUpdate",
-                            "findPublished", "countPublished", "findOwned", "countOwned")
+                            "findPublished", "countPublished", "findOwned", "countOwned",
+                            "countPending", "findPending", "findModerationAuthorId", "approvePending", "rejectPending")
                     : repository == CommentRepository.class ? Set.of("countVisibleByPostIds",
                             "countByAuthorIdAndCreatedAtAfter", "findOldestCreatedAtByAuthorIdAndCreatedAtAfter",
                             "findReplyParentOnPublishedPost", "findTreeByPostId", "findOwnedPostId", "findOwnedForUpdate")
