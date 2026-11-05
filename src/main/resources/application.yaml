@@ -76,6 +76,11 @@ app:
   timezone: Asia/Ho_Chi_Minh
 
 cnhsk:
+  ai:
+    assistant-model: claude-haiku-5-5
+    translate-model: claude-haiku-5-5
+    timeout: 15s
+    monthly-token-budget: 2000000
   library:
     guest-lookups-per-hour: 60
     authenticated-lookups-per-hour: 600

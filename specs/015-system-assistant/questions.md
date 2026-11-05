@@ -1,5 +1,20 @@
 # Chốt — Spec 015
 
+## 2026-11-06 — T-04 nền client dùng chung (leader duyệt)
+
+- Maven Central tại thời điểm kiểm tra 2026-11-05 21:15 UTC: bản ổn định mới nhất đã đủ 14 ngày là `com.anthropic:anthropic-java:3.1.0`, phát hành trên Central lúc 2026-10-21 21:58 UTC. `3.2.0` (2026-10-23 13:17 UTC) và các bản sau chưa đủ tuổi.
+- Đã đọc sources JAR 3.1.0 từ Central: có timeout theo request qua `RequestOptions`, `maxRetries`, system block có `cacheControl`, usage có input/output và hai trường token cache.
+- Tương thích classpath: SDK kéo `swagger-annotations:2.2.50`, trùng các lớp của `swagger-annotations-jakarta:2.2.47` đang do Springdoc quản lý. Loại dependency `swagger-annotations` từ SDK trong pom.xml, giữ SDK 3.1.0 và nguyên phiên bản Springdoc/Jakarta của dự án. Test OpenAPI bình luận lỗi response 204 có content trước khi loại, đạt sau khi loại; không sửa test/controller bình luận. Logging request/response của SDK luôn OFF, kể cả khi môi trường bật debug.
+- Q-T04-01: kiểm ngân sách trước, cộng usage thực sau, không đặt chỗ. Mức vượt tối đa bằng usage của các request đang chạy song song; cộng bằng Redis INCRBY nguyên tử. Đã dùng đúng bằng trần thì không gọi client.
+- Q-T04-02: tháng tính theo Asia/Ho_Chi_Minh từ Clock. Ghi usage vào tháng lúc bắt đầu kiểm, kể cả khi response về sang tháng sau. Key giữ tới đầu tháng kế tiếp + 24 giờ. Redis lỗi thì cho qua, chỉ WARN cố định, không ghi nguyên nhân có thể chứa dữ liệu nhạy cảm.
+- Q-T04-03: inputTokens = input_tokens + cache_creation_input_tokens + cache_read_input_tokens; trường null tính 0. Ngân sách cộng inputTokens + output_tokens. Cách hiểu dùng chung cho 014 và 015.
+- Q-T04-04 (thay thế): Bỏ temperature do API 2026-10-21 không nhận trường này. Spec 014 §0.3 yêu cầu temperature = 0; yêu cầu này không áp dụng được, 014/T-14 giữ ổn định bằng system prompt.
+- Q-T04-05: leader duyệt SDK 3.1.0 và không gửi temperature; giữ model claude-haiku-5-5 và chữ ký public. Có test request không chứa trường này. maxRetries(0), timeout theo từng request. SDK chỉ tạo khi có khoá và phát sinh lời gọi; profile test chỉ dùng StubClaudeClient, không gửi HTTP ra ngoài.
+- Chữ ký dùng chung: ClaudeClient.complete(String model, List<SystemBlock> systemBlocks, List<ChatMessage> messages, int maxTokens, Duration timeout) → Completion(text, inputTokens, outputTokens); SystemBlock(text, cache), ChatMessage(role, text), Role USER/ASSISTANT. AiUnavailableException.Reason: NOT_CONFIGURED, TIMEOUT, UPSTREAM_ERROR, BUDGET_EXCEEDED. TokenBudget.execute(Supplier<Completion>) kiểm và cộng usage, dùng cho cả 014/015. AiConfig: assistantModel, translateModel, timeout, monthlyTokenBudget; giá trị được kiểm khi khởi động, khoá API không thuộc validation.
+- Nguồn phiên bản: https://repo.maven.apache.org/maven2/com/anthropic/anthropic-java/
+- Nguồn kiểm API của SDK: https://repo.maven.apache.org/maven2/com/anthropic/anthropic-java-core/3.1.0/anthropic-java-core-3.1.0-sources.jar
+- Nguồn thay đổi tham số: https://platform.claude.com/docs/en/about-claude/model-deprecations#api-parameter-deprecations
+
 ## 2026-11-06 — T-02 trạng thái panel (leader duyệt)
 
 - Q-T02-01: Escape chỉ thu gọn panel, giữ chat, draft và request đang chạy, rồi trả focus về nút mở. «Cuộc trò chuyện mới» xoá chat, draft, lỗi và huỷ request như T-01.
