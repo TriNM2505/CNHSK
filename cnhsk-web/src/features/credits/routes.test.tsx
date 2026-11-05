@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, matchRoutes, MemoryRouter, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -15,12 +15,23 @@ import { AdminLayout } from '@/shared/layout'
 
 import { getMyWallet, listMyTransactions, redeemCard } from './api/wallet'
 import { createCardBatch, listCardBatches, voidCardBatch } from './api/cardBatches'
+import { listPlans, updatePlan } from './api/plans'
+import { exportLedger, listLedger, reconcileLedger } from './api/ledger'
 import {
   creditsWallet,
   creditsTransactionPage,
   creditsRedeemResult,
   creditsBatchPage,
+  creditsPlans,
+  creditsLedgerPage,
 } from './test-fixtures'
+
+vi.mock('./api/plans', () => ({ listPlans: vi.fn(), updatePlan: vi.fn() }))
+vi.mock('./api/ledger', () => ({
+  listLedger: vi.fn(),
+  exportLedger: vi.fn(),
+  reconcileLedger: vi.fn(),
+}))
 
 vi.mock('./api/cardBatches', () => ({
   createCardBatch: vi.fn(),
@@ -63,6 +74,8 @@ function screenHeading(scr: string) {
   if (scr === 'SCR-030') return 'Gói dịch vụ và điểm'
   if (scr === 'SCR-031') return 'Lịch sử giao dịch'
   if (scr === 'SCR-073') return 'Lô mã thẻ'
+  if (scr === 'SCR-074') return 'Quản lý gói dịch vụ'
+  if (scr === 'SCR-075') return 'Sổ cái điểm'
   return `Màn ${scr} đang dựng`
 }
 
@@ -101,6 +114,11 @@ function renderAdminLayout(userRoles: RoleCode[]) {
 }
 
 beforeEach(() => {
+  vi.mocked(listPlans).mockReset().mockResolvedValue(structuredClone(creditsPlans))
+  vi.mocked(updatePlan).mockReset()
+  vi.mocked(listLedger).mockReset().mockResolvedValue(structuredClone(creditsLedgerPage))
+  vi.mocked(exportLedger).mockReset()
+  vi.mocked(reconcileLedger).mockReset()
   vi.mocked(listCardBatches).mockReset().mockResolvedValue(structuredClone(creditsBatchPage))
   vi.mocked(createCardBatch).mockReset()
   vi.mocked(voidCardBatch).mockReset()
@@ -277,17 +295,39 @@ describe('credits offline catalogs (§12)', () => {
     expect(new Set(previews.map(({ id }) => id)).size).toBe(previews.length)
   })
 
-  it.each([
-    { view: 'credits-plan-samples', title: 'Gói dịch vụ mẫu', rows: 3 },
-    { view: 'credits-ledger-samples', title: 'Sổ cái mẫu', rows: 25 },
-  ])('renders $view without authentication or backend calls', async ({ view, title, rows }) => {
-    renderRoute(`/__preview/frame/${view}/ready`)
-    expect(await screen.findByRole('heading', { name: title })).toBeVisible()
-    expect(screen.getAllByRole('listitem')).toHaveLength(rows)
+  it('renders the SCR-074 View offline and saves a copy through inline confirmation', async () => {
+    const router = renderRoute('/__preview/frame/credits-plan-samples/ready')
+    expect(await screen.findByRole('heading', { name: 'Quản lý gói dịch vụ' })).toBeVisible()
+    for (const code of ['FREE', 'PREMIUM', 'PREMIUM_PLUS'])
+      expect(screen.getByRole('heading', { name: code })).toBeVisible()
+    const form = within(screen.getByRole('form', { name: 'Cấu hình FREE' }))
+    fireEvent.change(form.getByRole('textbox', { name: 'Tên gói' }), {
+      target: { value: 'Gói thử mới' },
+    })
+    await userEvent.click(form.getByRole('button', { name: 'Lưu FREE' }))
+    await userEvent.click(form.getByRole('button', { name: 'Xác nhận lưu' }))
+    expect(screen.getByText('Đã lưu gói FREE: Gói thử mới.')).toBeVisible()
+    router.dispose()
+    cleanup()
+    renderRoute('/__preview/frame/credits-plan-samples/ready')
+    expect(await screen.findByRole('form', { name: 'Cấu hình FREE' })).toBeVisible()
+    expect(
+      within(screen.getByRole('form', { name: 'Cấu hình FREE' })).getByRole('textbox', {
+        name: 'Tên gói',
+      }),
+    ).toHaveValue(creditsPlans[0]!.name)
     expect(getCurrentUserMock).not.toHaveBeenCalled()
+    expect(listPlans).not.toHaveBeenCalled()
+    expect(updatePlan).not.toHaveBeenCalled()
   })
 
   it.each([
+    {
+      view: 'credits-ledger-samples',
+      title: 'Sổ cái điểm',
+      table: 'Sổ cái điểm',
+      rows: 21,
+    },
     {
       view: 'credits-batch-samples',
       title: 'Lô mã thẻ',
@@ -311,6 +351,13 @@ describe('credits offline catalogs (§12)', () => {
     async ({ view, title, table, rows }) => {
       renderRoute(`/__preview/frame/${view}/ready`)
       expect(await screen.findByRole('heading', { name: title })).toBeVisible()
+      if (view === 'credits-ledger-samples') {
+        fireEvent.change(screen.getByLabelText(/^Từ ngày/), { target: { value: '2026-11-01' } })
+        fireEvent.change(screen.getByLabelText(/^Đến ngày/), { target: { value: '2026-11-01' } })
+        await userEvent.click(screen.getByRole('button', { name: 'Lọc sổ cái' }))
+        await userEvent.click(screen.getByRole('button', { name: 'Đối chiếu' }))
+        expect(screen.getByRole('region', { name: 'Kết quả đối chiếu toàn sổ' })).toBeVisible()
+      }
       const data = within(await screen.findByRole('table', { name: table }))
       expect(data.getAllByRole('row')).toHaveLength(rows)
       expect(getCurrentUserMock).not.toHaveBeenCalled()
@@ -320,6 +367,11 @@ describe('credits offline catalogs (§12)', () => {
       expect(listCardBatches).not.toHaveBeenCalled()
       expect(createCardBatch).not.toHaveBeenCalled()
       expect(voidCardBatch).not.toHaveBeenCalled()
+      expect(listPlans).not.toHaveBeenCalled()
+      expect(updatePlan).not.toHaveBeenCalled()
+      expect(listLedger).not.toHaveBeenCalled()
+      expect(exportLedger).not.toHaveBeenCalled()
+      expect(reconcileLedger).not.toHaveBeenCalled()
     },
   )
 })

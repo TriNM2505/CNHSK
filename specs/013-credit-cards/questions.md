@@ -1,5 +1,46 @@
 # Chốt — Spec 013
 
+## 2026-11-06 — Leader duyệt T-04: SCR-074 và SCR-075
+
+Người làm: Tường. Base `origin/main` = `a3dc0da`, đã có T-03 (#113). Phạm vi FR-027, FR-028; AT-25, AT-26. Leader duyệt đúng 12 file, một conventional commit và Draft PR; cho phép đánh ✅ riêng T-04 sau khi gate FE đạt. Không sửa API/types/contract, routeAccess, screenRegistry, navigation, ESLint hoặc shared. Backend T-05…T-13 do NgoQuocHuyy làm; không chạy `mvnw verify` trong task FE này.
+
+### Q-T04-01…03
+
+| Mã | Leader chốt và cách áp dụng |
+|---|---|
+| Q-T04-01 | Giữ contract/FR-017: `from`, `to` là ngày `YYYY-MM-DD` theo giờ Việt Nam. Yêu cầu ban đầu về gửi UTC timestamp đã được đính chính. FE gửi nguyên ngày được chọn; backend đổi biên ngày sang UTC. API T-01 giữ nguyên. |
+| Q-T04-02 | `to` bao gồm ngày cuối; kiểm `0 ≤ to − from ≤ 92` ngày. Hai ngày cách đúng 92 ngày hợp lệ, bao phủ 93 ngày lịch khi tính cả hai đầu. |
+| Q-T04-03 | Khi gói hiện có thiếu khoá trong `benefits`, hiển thị khoá đó bằng 0. Khi hạn mức không thay đổi, gửi nguyên snapshot map đã nhận, không tự thêm khoá 0. Chỉ dựng đủ bốn khoá khi có thay đổi giá trị hạn mức hoặc tạo PREMIUM. Giá niêm yết là chuỗi thập phân, chuẩn hoá bằng thao tác chuỗi, không tính tiền bằng số thực. |
+
+### Cách hiểu chung FE–BE
+
+- **Backend T-11 — ngày lọc:** nhận `from/to` là ngày Việt Nam, `to` bao gồm ngày cuối. Dùng phạm vi nửa mở `[00:00 Asia/Ho_Chi_Minh của from, 00:00 Asia/Ho_Chi_Minh của ngày sau to)`, rồi đổi hai biên sang UTC khi truy vấn timestamp. Kiểm hiệu hai ngày trong khoảng 0…92, không cộng thêm 1 khi kiểm giới hạn. Cùng quy tắc cho danh sách và xuất CSV. FE không gửi UTC timestamp thay cho tham số `date`.
+- **Backend T-10 — so sánh hạn mức:** nên so sánh `benefits` theo giá trị của bốn tính năng, thiếu khoá coi là 0, để không trả `PLAN_IN_USE` nhầm. FE giữ map nhận được khi chỉ sửa tên/mô tả/giá/số ngày/cờ đang bán; việc hiển thị khoá thiếu là 0 không tự biến thành thay đổi cấu hình. Có test snapshot PREMIUM thiếu `ASSISTANT`, sửa giá vẫn không thêm khoá; sửa giá trị hạn mức thì gửi đủ bốn khoá.
+- **Đối chiếu:** FR-019 và API không nhận bộ lọc; kết quả luôn là toàn sổ. UI ghi rõ phạm vi toàn sổ, không suy luận lỗi chuỗi từ trang dữ liệu hoặc bộ lọc loại. Không tự điều chỉnh giao dịch. Phần legacy trong `screen-fields.md` về tra cứu tài khoản/điều chỉnh nằm ngoài phạm vi đã khoá của T-04.
+- **CSV:** server tạo CSV; FE giữ nguyên Blob và dùng tên server trả, thiếu tên thì `credit-ledger.csv`. Không dựng lại CSV từ trang đang xem, không tự che/mở che email. `EXPORT_TOO_LARGE` hướng dẫn thu hẹp ngày/loại, không tải file và không xoá bảng/bộ lọc.
+
+### Thiết kế và ghi chú kỹ thuật T-04
+
+- `Scr074PlanManagementPage` gọi `listPlans(signal)` và `updatePlan(code, body)` từ `api/plans.ts`; kiểm ba mã gói đúng contract. View có form FREE/PREMIUM, PREMIUM_PLUS chỉ đọc, số người đang dùng từ server, xác nhận lưu ngay trong trang. `PLAN_IN_USE` gắn lỗi và giải thích vào các ô hạn mức, giữ draft. Kết quả lưu thành công vẫn hiện khi tải lại danh sách lỗi.
+- `Scr075CreditLedgerPage` dùng `listLedger({from, to, type?, page, size: 20}, signal)`, `exportLedger(filter, signal)`, `reconcileLedger(signal)` từ `api/ledger.ts`. Ban đầu chưa có ngày thì không gọi danh sách; chỉ truy vấn sau khi áp dụng bộ lọc hợp lệ. Tổng dùng `totals` của toàn bộ bộ lọc từ server, mang nhãn "Tổng điểm"; email hiển thị nguyên `maskedEmail`. Các thời điểm giao dịch dùng `Intl.DateTimeFormat` với `Asia/Ho_Chi_Minh`.
+- Export gắn với bộ lọc đã áp dụng; sửa draft/áp dụng phạm vi mới hoặc unmount sẽ huỷ request và bỏ qua Blob muộn, không tự tải. Chốt chống gửi lặp và thế hệ request ngăn phản hồi cũ xoá pending của request mới. Đối chiếu có trạng thái/lỗi/thử lại riêng và danh sách ba loại lỗi theo contract.
+- Page/View không import preview hoặc test fixture. `test-fixtures.ts` chỉ được các file test import; dữ liệu mới tạo bằng `structuredClone` trong từng ca. Hai preview render View và callback demo trên bản sao, giữ fixture gốc, năm preview ID và ba preview T-01…T-03. Chỉ preview mô phỏng file CSV, Page thật luôn nhận file từ API.
+- Không `confirm()`/dialog portal, không spy hàm timer toàn cục. Cleanup dùng cờ vòng đời và huỷ `AbortController`; đã bỏ hai thao tác tăng bộ đếm dư gây warning ref trong cleanup SCR-075, không tắt rule hay sửa ESLint. Sau sửa đã chạy lại test mục tiêu, ba seed, toàn bộ Vitest, lint và build.
+
+### Gate T-04 trên bản cuối
+
+| Lệnh/kiểm tra | Kết quả |
+|---|---|
+| `npm ci` | PASS; 333 package theo lockfile |
+| `npm run typecheck` | PASS |
+| Hai Page T-04 + `credits/routes.test.tsx`, 2 worker | 137 pass, 0 fail, 0 skip; SCR-074: 40, SCR-075: 36, routes/preview: 61; 11,94 giây |
+| Shuffle ba file, seed `2611064`, `2611065`, `2611066`, 2 worker | Cả ba: 137 pass, 0 fail, 0 skip; lần lượt 11,82 / 12,42 / 11,76 giây |
+| `npm run test -- --minWorkers=2 --maxWorkers=2` | 154 file pass; 2.174 test pass, 0 fail, 0 skip; 209,73 giây |
+| `npm run lint` | PASS; 0 error, chỉ 1 warning có sẵn `shared/ui/LevelBadge.tsx:6` (`react-refresh/only-export-components`) |
+| `npm run build` | PASS; TypeScript + Vite 5.4.21, 2.212 module; Vite build 4,71 giây |
+
+Lượt toàn bộ cuối không có fail ngoài T-04 nên không cần chạy riêng file test chập chờn. T-14 còn phần tích hợp backend thật; không mở lại menu tài chính trong T-04.
+
 ## 2026-11-06 — Leader duyệt T-03: SCR-073 Card Batch Management
 
 Người làm: Tường. Phạm vi FR-026, AT-24; validation/payload theo FR-005…FR-008 và quyền FE theo FR-001. Base `origin/main` = `a0ca1fd`, đã có T-01 (#59), PR ẩn menu #61 và T-02 (#110). Leader duyệt đúng 9 file, một conventional commit và Draft PR; cho phép đánh ✅ riêng T-03 sau khi gate FE đạt. Backend T-05…T-13 thuộc NgoQuocHuyy; T-03 không sửa backend hay chạy `mvnw verify` theo chốt leader.
