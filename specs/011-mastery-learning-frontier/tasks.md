@@ -27,7 +27,7 @@ File dùng chung (spec §0.3) phải nêu trong Shadow Plan từng task.
 | T-08 | `MasteryRebuilder` + test so tăng dần ↔ phát lại (40 lượt trộn nguồn) | `…/learning/mastery/MasteryRebuilder.java` + test | FR-013 · AT-13 | ⬜ |
 | T-09 | `MasteryQueryService` (đọc lại theo `today`, `inferred`) + `FrontierService` + `MasteryReader` (**khoá chữ ký khi merge** — 012 T-16 dùng) + `GET /api/mastery`, `/nodes/{kid}`; matcher | `…/learning/mastery/{MasteryQueryService,FrontierService,MasteryReader}.java`, `…/mastery/web/MasteryController.java`, `…/shared/config/SecurityConfig.java` | FR-001, FR-011, FR-014, FR-016…FR-018 · AT-01, AT-11, AT-14, AT-16…AT-18 | ⬜ |
 | T-10 | `RecommendationService` + `GET /api/mastery/recommendations`; matcher | `…/learning/mastery/RecommendationService.java`, `MasteryController.java`, `SecurityConfig.java` | FR-015 · AT-15 | ⬜ |
-| T-11 | `FsrsConfig` (`cnhsk.fsrs.*`, 19 trọng số, kiểm khi khởi động) + `FsrsScheduler` (thuần) + test; dùng nguyên 19 số của spec §0.5 (OQ-2 đã chốt). **Không phụ thuộc task nào** | `…/learning/review/{FsrsConfig,FsrsScheduler}.java`, `application.yaml`, `t/learning/review/FsrsSchedulerTest.java` | FR-019 · AT-19 | ⬜ |
+| T-11 | `FsrsConfig` (`cnhsk.fsrs.*`, 19 trọng số, kiểm khi khởi động) + `FsrsScheduler` (thuần) + test; dùng nguyên 19 số của spec §0.5 (OQ-2 đã chốt). **Không phụ thuộc task nào** | `…/learning/review/{FsrsConfig,FsrsScheduler}.java`, `application.yaml`, `t/learning/review/FsrsSchedulerTest.java` | FR-019 · AT-19 | ✅ 2026-11-05: 73 test mục tiêu PASS; full verify 3.328 test, 0 failure/error/skip; JaCoCo LINE 96,99% (9.423/9.715). API first/review, Rating/Memory/Result đã duyệt, khóa khi merge; bàn giao bundle từ máy mượn theo questions.md. |
 | T-12 | Engine §0.2: `PracticeSource.DUE_REVIEW`, `ItemType.FLASHCARD_RATING`, `PracticeApi`, contract 003. **Full verify 003–008, 012** (**báo leader trước**) | `…/learning/practice/{PracticeSource,ItemType}.java`, `…/learning/api/PracticeApi.java`, `specs/003-vocab-topics/contracts/openapi-practice-vocab.yaml` + test | FR-002 · AT-02 | ⬜ |
 | T-13 | `ReviewListener`: vào lịch ôn và cập nhật FSRS từ lượt đã nộp (gồm `TOPIC_STUDY`) | `…/learning/review/ReviewListener.java` + test | FR-020 · AT-20 | ⬜ |
 | T-14 | `GET /api/reviews/summary`, `POST /api/reviews/sessions`, `ReviewHandler` (rating thẻ, xử lý từng câu `DUE_REVIEW`: FSRS + minh chứng); matcher | `…/learning/review/{ReviewSessionService,ReviewHandler}.java`, `…/review/web/ReviewController.java`, `SecurityConfig.java` | FR-021…FR-023 · AT-21…AT-23 | ⬜ |
@@ -70,4 +70,4 @@ T-05 + T-11 → T-13 → T-14         (T-14 cần cả T-07)
 
 **Bốn task rủi ro cao:** T-07 (phân bổ đúng + cùng transaction `finish`) · T-06 (công thức phải ra 53,3/61,1) · T-11 (FSRS-5 đúng công thức) · T-12 (sửa engine dùng chung).
 
-**Hiện trạng: 2/15 task xong.**
+**Hiện trạng: 4/15 task xong.**

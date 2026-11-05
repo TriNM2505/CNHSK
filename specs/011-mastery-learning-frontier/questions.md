@@ -116,3 +116,41 @@ Mastery tính thuần, không tự đọc đồng hồ hệ thống. Số ngày 
 - Full `verify`: **BUILD SUCCESS**, 3.124 test trong 194 suite, 0 failure, 0 error, 0 skipped.
 - JaCoCo LINE: **96,94%** — 9.089 dòng covered / 9.376 tổng (287 missed). JaCoCo CLASS counter: 501 covered + 4 missed = **505 classes**. BRANCH: 4.140 covered / 4.667 tổng (527 missed); mọi coverage check đạt.
 - Gate chạy trong worktree `spec/011-t06`, không dùng `.env` hoặc Neon. Chỉ sửa 11 file allowlist; không thêm dependency, migration, bảng, endpoint hay mã lỗi. Không push hoặc tạo PR.
+
+## 2026-11-05 — Leader duyệt 011/T-11: FSRS-5 và API dùng chung với 014/T-12
+
+Allowlist 7 file: `FsrsConfig.java`, `FsrsScheduler.java`, `FsrsConfigTest.java`, `FsrsSchedulerTest.java`, `application.yaml`, `questions.md`, `tasks.md`. Base nhánh `spec/011-t11`: `ff2c235` trên origin/main, đã có PR #106 (`e7c7453`). Chỉ đánh ✅ T-11 khi gate xanh.
+
+### Bảy quyết định đã chốt
+
+1. **Thời gian:** `t` là số ngày lẻ giữa hai `Instant` UTC, tính cả giây/nanosecond. So `Duration` trực tiếp: dưới 24 giờ dùng nhánh ngắn hạn; đúng 24 giờ trở lên dùng nhánh dài hạn. `nextReviewAt = now + intervalDays` ngày UTC, không đọc đồng hồ hệ thống.
+2. **Ôn ngắn hạn:** S′ dùng công thức ngắn hạn; D′ vẫn cập nhật theo công thức chung; mọi lần `review` với AGAIN tăng `lapseCount`, kể cả trong ngày. FR-019 chưa nói rõ hai hành vi sau trong nhánh ngắn hạn; đây là quyết định bổ sung của leader, không phải tự suy diễn từ spec.
+3. **Lần đầu:** `first` trả `lapseCount = 0` với cả bốn rating; lần học đầu chưa tính là quên.
+4. **Đầu vào:** Memory yêu cầu stability dương/hữu hạn, difficulty trong [1,10], lapseCount không âm; sai ném `IllegalArgumentException`. Nếu `now < lastReviewAt`, coi thời gian đã qua bằng 0, dùng nhánh ngắn hạn để xử lý đồng hồ lệch nhẹ, giống H7 của T-06.
+5. **Weights:** đúng 19 số hữu hạn và chỉ w0…w3 phải dương; không thêm giới hạn cho các weights còn lại. Không kẹp stability. Nếu S′ tính được không hữu hạn hoặc không dương, ném `IllegalStateException`. D0(4) phải lấy giá trị chưa kẹp `w4 − exp(3 × w5) + 1`, sau đó mới kẹp D′ vào [1,10]. Dãy mặc định giữ nguyên §0.5.
+6. **API:** leader duyệt các chữ ký bên dưới, khóa khi merge để 014/T-12 dùng. Scheduler không làm tròn S/D theo cột DB; phần làm tròn theo độ chính xác cột DB thuộc 014/T-12 (XuanHuy). Chỉ khoảng ôn được làm tròn HALF_UP, theo công thức tổng quát của `desired-retention`, rồi giới hạn trong min/max; retention 0,9 tương đương HALF_UP(S′).
+7. **Bàn giao:** commit trên máy mượn, xuất Git bundle + SHA-256; trên máy được phép push phải kiểm `git bundle verify`, SHA-256, đúng 7 file và tác giả, rồi push nhánh `spec/011-t11` và tạo Draft PR. Không push từ máy mượn, không dùng `.env`, không chạy SQL/migration lên Neon, không sửa ACL hay cấu hình hệ thống.
+
+### Public API đã duyệt, khóa khi merge
+
+Package `com.cnhsk.learning.review`. `FsrsScheduler` là public final, constructor `public FsrsScheduler(FsrsConfig.Settings settings)`, hai method `public Result first(Rating g, Instant now)` và `public Result review(Memory prev, Rating g, Instant now)`.
+
+- `FsrsScheduler.Rating`: public enum `AGAIN`, `HARD`, `GOOD`, `EASY`, có `public int grade()` tương ứng 1/2/3/4.
+- `FsrsScheduler.Memory`: public record `(BigDecimal stability, BigDecimal difficulty, Instant lastReviewAt, int lapseCount)`.
+- `FsrsScheduler.Result`: public record `(BigDecimal stability, BigDecimal difficulty, int lapseCount, int intervalDays, Instant nextReviewAt)`.
+- `FsrsConfig.Settings`: public record `(List<Double> weights, BigDecimal desiredRetention, int minIntervalDays, int maxIntervalDays)`, sao chép list bất biến. Lấy bằng `FsrsConfig.settings()`; bản thân scheduler và các record không cần Spring context, repository hay DB.
+- `cnhsk.fsrs`: chỉ `weights`, `desired-retention`, `min-interval-days`, `max-interval-days`, `session-max-items`. Cấu hình thiếu/sai chặn startup. `session-max-items` mặc định 50, phải dương, không tham gia phép tính scheduler.
+
+### Backlog T-06 — chỉ ghi nhận
+
+`MasteryConfig` hiện chưa chặn trường hợp `extend-from − hysteresis < review-below`. Leader yêu cầu ghi nhận trong T-11; chưa sửa logic hoặc test T-06. Việc bổ sung điều kiện này cần duyệt riêng.
+
+### Kết quả gate T-11
+
+- Base kiểm thử và fetch sau gate: `ff2c235`, không đổi base trong lúc chạy test. Worktree không có `.env`; không kết nối Neon.
+- Targeted `FsrsConfigTest,FsrsSchedulerTest`: **BUILD SUCCESS**, exit 0, 34,372 giây; **73 test** (36 cấu hình, 37 scheduler), 0 failure, 0 error, 0 skipped. Có 2.000 lượt ôn với seed cố định, golden value FR-019, biên 24 giờ/đồng hồ lệch, D0(4) chưa kẹp và lỗi stability từ weights fixture.
+- Full `.\mvnw.cmd -B verify`: **BUILD SUCCESS**, exit 0, **13:56 phút**; **3.328 test trong 202 suite**, 0 failure, 0 error, 0 skipped. Số liệu log khớp Surefire XML; cả 73 test T-11 PASS trong lượt full.
+- JaCoCo LINE **96,99%** — **9.423/9.715 dòng** (292 missed); BRANCH **89,00%** — 4.355/4.893 nhánh (538 missed). Mọi coverage check đạt, ngưỡng LINE toàn bộ ≥ 80% giữ nguyên.
+- Sandbox không truy cập được parent POM Maven và Docker pipe. Chạy targeted/full bằng PowerShell ngoài sandbox theo quyền được cấp; Docker server 29.9.1, PostgreSQL/Redis/Mailpit qua Testcontainers. Không sửa ACL hoặc cấu hình hệ thống, không bỏ test, Flyway và Hibernate validation giữ nguyên.
+- Biến môi trường chỉ trong tiến trình gate: `JAVA_TOOL_OPTIONS=-Xmx1024m`, `MAVEN_OPTS=-Xmx384m`, `DEBUG=false`. Log cục bộ `%TEMP%\cnhsk-011-t11-targeted.log`, `%TEMP%\cnhsk-011-t11-verify.log`; report trong `target/surefire-reports` và `target/site/jacoco`, không commit log/artifact.
+- Đánh ✅ T-11 sau gate xanh theo duyệt. Self-check: đúng allowlist 7 file, không dependency/schema/migration/endpoint/mã lỗi mới, không sửa T-06 hoặc `application-test.yaml`, không BOM/secret/dữ liệu thật. Thay đổi dở `CharacterQueryRepository.java` ở checkout gốc giữ nguyên. Commit và bundle chỉ thực hiện tại bước bàn giao; không push từ máy mượn.
