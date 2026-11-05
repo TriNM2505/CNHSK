@@ -20,7 +20,7 @@
 |---|---|---|---|---|
 | T-03 | **Nội dung (không code):** viết 12 file hướng dẫn §0.3 theo tính năng đã merge + bộ 20 câu kiểm thử `docs/demo-data/assistant-eval.md`; leader duyệt. Bắt đầu ngay với 001–009, bổ sung khi 010–014 merge | `src/main/resources/help/*.md`, `docs/demo-data/assistant-eval.md` | FR-012 · AT-12 | ⬜ |
 | T-04 | `learning.ai`: `AiConfig` (`cnhsk.ai.*`), `ClaudeClient` + `AnthropicClaudeClient` (SDK, timeout, `cache_control`) + `StubClaudeClient`, `AiUnavailableException`, `TokenBudget`; `pom.xml`, `.env.example`. **Không phụ thuộc task nào — 014 T-14 cần task này** | `…/learning/ai/*`, `pom.xml`, `application.yaml`, `.env.example` + test | FR-006, FR-009 · AT-06, AT-09 | ✅ |
-| T-05 | `HelpLibrary` (nạp, kiểm 60 000 ký tự), `PiiMasker`, `AssistantPromptBuilder` (system §0.2, tên màn) + test | `…/learning/assistant/{HelpLibrary,PiiMasker,AssistantPromptBuilder}.java` + test | FR-005, FR-007, FR-010 · AT-05, AT-07, AT-10 | ⬜ |
+| T-05 | `HelpLibrary` (nạp, kiểm 60 000 ký tự), `PiiMasker`, `AssistantPromptBuilder` (system §0.2, tên màn) + test | `…/learning/assistant/{HelpLibrary,PiiMasker,AssistantPromptBuilder}.java` + test | FR-005, FR-007, FR-010 · AT-05, AT-07, AT-10 | ✅ |
 | T-06 | `AssistantService` + `POST /api/assistant/ask`: kiểm body, `TestInProgressGuard`, giới hạn ngày, gọi client, đọc JSON, lọc log; 2 mã `ASSISTANT_BLOCKED_DURING_TEST`, `ASSISTANT_UNAVAILABLE`; matcher `LEARNER` | `…/learning/assistant/{AssistantService,TestInProgressGuard}.java`, `…/assistant/web/AssistantController.java`, `SecurityConfig.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest`, `application.yaml` | FR-001…FR-004, FR-008, FR-011 · AT-01…AT-04, AT-08, AT-11 | ⬜ |
 
 ## Đợt 3 · Nối thật

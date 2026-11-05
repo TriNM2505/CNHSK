@@ -1,5 +1,12 @@
 # Chốt — Spec 015
 
+## 2026-11-06 — T-05 tài liệu, che PII và dựng prompt (leader duyệt)
+
+- Q-T05-01: `cnhsk.assistant.help-location` mặc định `classpath*:help/*.md`. Nạp UTF-8 lúc khởi động theo tên file. Đếm Unicode code point trong nội dung từng file, không tính dấu phân cách. Cho phép đúng 60.000. Toàn bộ nội dung trắng được coi là thư viện rỗng.
+- Q-T05-02: Che email trước rồi che số điện thoại trong câu hỏi và từng tin lịch sử. Chỉ che cụm số đứng riêng có tiền tố 0 hoặc +84 và 9–10 chữ số theo FR-005. Không cắt từ chuỗi số dài hơn, không che số dính chữ hoặc dấu gạch dưới. Nếu mã số đứng riêng có hình thức giống hệt số điện thoại thì che.
+- Q-T05-03: Map tiếng Việt chỉ gồm mã màn có route dùng LearnerLayout, kể cả đổi mật khẩu khi vào bằng vai trò học viên. Ưu tiên tiêu đề giao diện đã merge. SCR-030 là «Gói dịch vụ và điểm». Mã khác, null hoặc chuỗi tự do không thêm dòng tên màn.
+- Q-T05-04: Khi thư viện rỗng, `AssistantPromptBuilder.build` trả `Optional.empty()`. T-06 ánh xạ tín hiệu này sang 503 `ASSISTANT_UNAVAILABLE` trước khi gọi client. T-05 kiểm trực tiếp payload dựng từ các kiểu của ClaudeClient. Test qua endpoint đến stub thuộc T-06.
+
 ## 2026-11-06 — T-04 nền client dùng chung (leader duyệt)
 
 - Maven Central tại thời điểm kiểm tra 2026-11-05 21:15 UTC: bản ổn định mới nhất đã đủ 14 ngày là `com.anthropic:anthropic-java:3.1.0`, phát hành trên Central lúc 2026-10-21 21:58 UTC. `3.2.0` (2026-10-23 13:17 UTC) và các bản sau chưa đủ tuổi.
