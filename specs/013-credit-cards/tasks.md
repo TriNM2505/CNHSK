@@ -13,7 +13,7 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-01 | Nền FE `credits`: `types.ts` theo OpenAPI, `api/*.ts`, `catalog.preview.ts` (ví, 25 giao dịch, 3 lô, 3 gói, sổ cái mẫu — **mã mẫu tự bịa, không dùng được**), `screens.ts`; 5 route §12 (2 `LEARNER` layout `learner`, 3 `ADMIN` layout `admin`) vào `routeAccess.ts` + `screenRegistry.ts`; mục điều hướng tài chính dưới `ADMIN` trong `navigation.ts` (**báo leader trước**) | `web/features/credits/**`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts`, `web/shared/auth/navigation.ts` | FR-001 (FE), §12 | ✅ (leader duyệt; chốt trong `questions.md`) |
-| T-02 | SCR-030 Plan & Credits + SCR-031 Transaction History | `web/features/credits/pages/Scr030PlanCreditsPage.tsx`, `Scr031TransactionHistoryPage.tsx` + test | FR-024, FR-025 · AT-22, AT-23 | ⬜ |
+| T-02 | SCR-030 Plan & Credits + SCR-031 Transaction History | `web/features/credits/pages/Scr030PlanCreditsPage.tsx`, `Scr031TransactionHistoryPage.tsx` + test | FR-024, FR-025 · AT-22, AT-23 | ✅ |
 | T-03 | SCR-073 Card Batch Management (form điều kiện, mã hiện một lần + tải CSV ở client, bảng lô, khoá lô) | `web/features/credits/pages/Scr073CardBatchPage.tsx` + test | FR-026 · AT-24 | ⬜ |
 | T-04 | SCR-074 Plan Management + SCR-075 Credit Ledger | `web/features/credits/pages/Scr074PlanManagementPage.tsx`, `Scr075CreditLedgerPage.tsx` + test | FR-027, FR-028 · AT-25, AT-26 | ⬜ |
 

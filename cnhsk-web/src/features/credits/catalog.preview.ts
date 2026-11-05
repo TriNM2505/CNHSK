@@ -1,6 +1,11 @@
-import { createElement } from 'react'
+import { createElement, useRef, useState } from 'react'
+
+import { ApiError, toApiError } from '@/shared/api'
 
 import type { PreviewEntry } from '@/app/preview/types'
+
+import { PlanCreditsView } from './components/PlanCreditsView'
+import { TransactionHistoryView } from './components/TransactionHistoryView'
 
 import type {
   BatchPage,
@@ -9,6 +14,7 @@ import type {
   PaidFeature,
   PlanView,
   Reconciliation,
+  RedeemRequest,
   RedeemResult,
   Transaction,
   TransactionPage,
@@ -265,34 +271,80 @@ function samplePreview(title: string, rows: readonly { id: string | number; text
   )
 }
 
+function PlanCreditsPreview() {
+  const [wallet, setWallet] = useState(() => structuredClone(creditsWallet))
+  const [pending, setPending] = useState(false)
+  const [redeemError, setRedeemError] = useState<ApiError>()
+  const [result, setResult] = useState<RedeemResult>()
+  const busy = useRef(false)
+  const redeem = async ({ code }: RedeemRequest) => {
+    if (busy.current) return
+    busy.current = true
+    setPending(true)
+    setRedeemError(undefined)
+    try {
+      const normalize = (value: string) => value.replace(/[\s-]/g, '').toUpperCase()
+      if (normalize(code) !== normalize(creditsCreatedBatch.codes[0]!)) {
+        throw new ApiError({
+          status: 400,
+          errorCode: 'INVALID_CARD_CODE',
+          message: 'Mã thẻ không hợp lệ hoặc không thể sử dụng.',
+        })
+      }
+      const redeemed: RedeemResult = {
+        ...creditsRedeemResult,
+        balance: wallet.balance + creditsRedeemResult.amount,
+        plan: { ...wallet.plan },
+      }
+      setWallet((current) => ({
+        ...current,
+        balance: redeemed.balance,
+        plan: { ...redeemed.plan },
+      }))
+      setResult(redeemed)
+    } catch (error) {
+      setRedeemError(toApiError(error))
+    } finally {
+      busy.current = false
+      setPending(false)
+    }
+  }
+  return createElement(PlanCreditsView, {
+    state: 'ready',
+    wallet,
+    pending,
+    redeemError,
+    result,
+    onRetry: () => undefined,
+    onRedeem: redeem,
+  })
+}
+
+function TransactionHistoryPreview() {
+  const [page, setPage] = useState(0)
+  return createElement(TransactionHistoryView, {
+    state: 'ready',
+    data: page === 0 ? creditsTransactionPage : creditsTransactionLastPage,
+    page,
+    onPageChange: setPage,
+    onRetry: () => undefined,
+  })
+}
+
 export const previews = [
   {
     group: 'screen',
     id: 'credits-wallet-samples',
     scr: 'SCR-030',
     title: 'Ví điểm — Dữ liệu mẫu',
-    render: () =>
-      samplePreview('Ví điểm mẫu', [
-        { id: 'plan', text: `${creditsWallet.plan.name} · ${creditsWallet.balance} điểm` },
-        ...creditsWallet.quota.map((quota) => ({
-          id: quota.feature,
-          text: `${quota.feature}: ${quota.remaining}/${quota.limit} lượt còn lại`,
-        })),
-      ]),
+    render: () => createElement(PlanCreditsPreview),
   },
   {
     group: 'screen',
     id: 'credits-history-samples',
     scr: 'SCR-031',
     title: 'Lịch sử — Dữ liệu mẫu',
-    render: () =>
-      samplePreview(
-        'Giao dịch mẫu',
-        creditsTransactions.map((row) => ({
-          id: row.seq,
-          text: `#${row.seq} · ${row.type} · ${row.amount} · ${row.balanceBefore} → ${row.balanceAfter}`,
-        })),
-      ),
+    render: () => createElement(TransactionHistoryPreview),
   },
   {
     group: 'screen',
