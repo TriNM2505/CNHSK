@@ -37,6 +37,8 @@ class MasteryConfigTest {
                                     "MCQ3", new BigDecimal("0.67"), "BINARY", new BigDecimal("0.5")),
                             Map.of("PRIMARY", new BigDecimal("1.0"), "SECONDARY", new BigDecimal("0.5"),
                                     "ERROR", new BigDecimal("1.0"))));
+            assertThat(context.getBean(MasteryConfig.class).inferenceSettings()).isEqualTo(
+                    new MasteryConfig.InferenceSettings(new BigDecimal("2.0"), new BigDecimal("80")));
         });
     }
 
@@ -95,6 +97,24 @@ class MasteryConfigTest {
         }
     }
 
+    @Test
+    void inferredThresholdsRejectMissingAndOutOfRangeValuesAtStartup() {
+        String[] missingInference = Arrays.stream(validProperties().split(","))
+                .filter(value -> !value.startsWith("cnhsk.mastery.inferred-"))
+                .toArray(String[]::new);
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(ConfigurationPropertiesAutoConfiguration.class,
+                        ValidationAutoConfiguration.class))
+                .withUserConfiguration(MasteryConfig.class)
+                .withPropertyValues(missingInference)
+                .run(context -> assertThat(context).hasFailed());
+
+        for (String property : new String[] {"inferred-min-confidence=0", "inferred-from=0", "inferred-from=100.1"}) {
+            contextRunner.withPropertyValues("cnhsk.mastery." + property)
+                    .run(context -> assertThat(context).hasFailed());
+        }
+    }
+
     private String validProperties() {
         return "cnhsk.mastery.window=8,cnhsk.mastery.max-practice-in-window=3,"
                 + "cnhsk.mastery.min-evidence=3,cnhsk.mastery.min-distinct-days=2,"
@@ -104,7 +124,8 @@ class MasteryConfigTest {
                 + "cnhsk.mastery.due-days.consolidate=7,cnhsk.mastery.due-days.extend=14,"
                 + "cnhsk.mastery.seen-item-days=7,cnhsk.mastery.context-weights.EXAM=1.0,"
                 + "cnhsk.mastery.context-weights.QUIZ=0.8,cnhsk.mastery.context-weights.GRADED=0.6,"
-                + "cnhsk.mastery.context-weights.PRACTICE=0.5,cnhsk.mastery.form-weights.OPEN=1.0,"
+                + "cnhsk.mastery.context-weights.PRACTICE=0.5,cnhsk.mastery.inferred-min-confidence=2.0,"
+                + "cnhsk.mastery.inferred-from=80,cnhsk.mastery.form-weights.OPEN=1.0,"
                 + "cnhsk.mastery.form-weights.MCQ4=0.75,cnhsk.mastery.form-weights.MCQ3=0.67,"
                 + "cnhsk.mastery.form-weights.BINARY=0.5,cnhsk.mastery.role-weights.PRIMARY=1.0,"
                 + "cnhsk.mastery.role-weights.SECONDARY=0.5,cnhsk.mastery.role-weights.ERROR=1.0";

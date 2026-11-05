@@ -175,3 +175,24 @@ Package `com.cnhsk.learning.review`. `FsrsScheduler` là public final, construct
 - Sandbox không truy cập được parent POM Maven và Docker pipe. Chạy targeted/full bằng PowerShell ngoài sandbox theo quyền được cấp; Docker server 29.9.1, PostgreSQL/Redis/Mailpit qua Testcontainers. Không sửa ACL hoặc cấu hình hệ thống, không bỏ test, Flyway và Hibernate validation giữ nguyên.
 - Biến môi trường chỉ trong tiến trình gate: `JAVA_TOOL_OPTIONS=-Xmx1024m`, `MAVEN_OPTS=-Xmx384m`, `DEBUG=false`. Log cục bộ `%TEMP%\cnhsk-011-t11-targeted.log`, `%TEMP%\cnhsk-011-t11-verify.log`; report trong `target/surefire-reports` và `target/site/jacoco`, không commit log/artifact.
 - Đánh ✅ T-11 sau gate xanh theo duyệt. Self-check: đúng allowlist 7 file, không dependency/schema/migration/endpoint/mã lỗi mới, không sửa T-06 hoặc `application-test.yaml`, không BOM/secret/dữ liệu thật. Thay đổi dở `CharacterQueryRepository.java` ở checkout gốc giữ nguyên. Commit và bundle chỉ thực hiện tại bước bàn giao; không push từ máy mượn.
+
+## 2026-11-06 — Chốt và nghiệm thu 011/T-09
+
+### Các quyết định Q-T09 đã được leader duyệt
+
+1. **Q-T09-01 — Trạng thái khi đọc:** tính lại value/confidence bằng `clock.instant()`, rồi gọi `MasteryStateMachine.transition` với `mp_state` đã lưu làm trạng thái trước. GET không ghi DB. `dueAt` trả `next_review_at` đã lưu cho `review`/`consolidate`/`extend`; các trạng thái `notyet`/`insufficient`/`inferred` trả `null`.
+2. **Q-T09-02 — MasteryReader:** khóa API `learning.mastery.MasteryReader.valuesOf(long userId, Set<String> kids) → Map<String, MasteryReader.MasteryView>`, với record lồng `MasteryView(Integer value, String state)`. Tập rỗng trả map rỗng, không truy vấn. Mọi KID được yêu cầu có khóa; KID chưa có dữ liệu hoặc không tồn tại trong cây trả `null/notyet`.
+3. **Q-T09-03 — Làm tròn và inferred:** value làm tròn HALF_UP từ value đã làm tròn một chữ số (làm tròn hai lần là chủ đích). `inferred-min-confidence > 0`; `inferred-from` thuộc `(0,100]`; ngưỡng so sánh dùng `≥`; cấu hình sai chặn startup.
+4. **Q-T09-04 — Truy vấn và API:** GET `/api/mastery` dùng ba truy vấn theo AT-16; phân bổ lại evidence thực hiện trong bộ nhớ bằng hàm thuần dùng chung tách từ `EvidenceAllocator`. `MasteryReader` tối đa ba truy vấn, không tăng theo số KID. Security matcher `/api/mastery` và `/api/mastery/**` dành cho LEARNER, đứng trước `.authenticated()`. Giữ mã lỗi `KNOWLEDGE_NODE_NOT_FOUND` hiện có; không sửa OpenAPI, calculator, state machine hoặc migration. Kiểu integer/int64 phải khớp OpenAPI.
+5. **Q-T09-05 — Đánh dấu hoàn tất:** được đánh ✅ T-09 khi gate xanh và ghi số liệu gate tại tasks.md.
+
+### Ghi nhận điều tra fixture integration test
+
+Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, trong khi `PracticeService.finish()` mở transaction `REQUIRES_NEW`. Session chưa commit vì vậy không hiển thị với transaction finish, dẫn đến `notOwned`. Hai test class đã bỏ transaction bao ngoài và dọn fixture sau mỗi test; không sửa production code, assertion hay expected result. Integration fixture T-07 được dọn có giới hạn trong Testcontainers để dữ liệu còn lại không làm sai số lượng KID của AT-16.
+
+### Kết quả gate T-09
+
+- Targeted regression: **49 test, 0 failure, 0 error, 0 skipped**, exit 0; gồm OpenAPI contract, SecurityConfig và các regression mastery/T-07.
+- Full `mvnw verify`: **BUILD SUCCESS**, **3.499 test**, 0 failure, 0 error, 0 skipped, exit 0. AT-12/E8/NFR-P01 được chạy lại trong full suite; không phát hiện lỗi.
+- JaCoCo LINE: **96,78%** — **10.190/10.529 dòng** (339 missed); mọi coverage check đạt.
+- Trong lượt full verify, origin/main được fetch từ `74f1c67` lên `83a815f`. Thay đổi `application.yaml` trên main chỉ thêm khối `cnhsk.ai`; khối `cnhsk.mastery` của T-09 nằm ở vùng riêng, không chồng lấn. Không rebase/merge main.
