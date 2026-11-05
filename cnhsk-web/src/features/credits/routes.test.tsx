@@ -13,6 +13,15 @@ import { AuthContext, type AuthContextValue } from '@/shared/auth'
 import { getAuthenticatedDestination } from '@/shared/auth/navigation'
 import { AdminLayout } from '@/shared/layout'
 
+import { getMyWallet, listMyTransactions, redeemCard } from './api/wallet'
+import { creditsWallet, creditsTransactionPage, creditsRedeemResult } from './test-fixtures'
+
+vi.mock('./api/wallet', () => ({
+  getMyWallet: vi.fn(),
+  listMyTransactions: vi.fn(),
+  redeemCard: vi.fn(),
+}))
+
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
 
 const routes = [
@@ -37,6 +46,12 @@ const roles: RoleCode[] = [
   'ACCOUNTANT',
 ]
 const getCurrentUserMock = vi.mocked(getCurrentUser)
+
+function screenHeading(scr: string) {
+  if (scr === 'SCR-030') return 'Gói dịch vụ và điểm'
+  if (scr === 'SCR-031') return 'Lịch sử giao dịch'
+  return `Màn ${scr} đang dựng`
+}
 
 function user(userRoles: RoleCode[]): CurrentUser {
   return {
@@ -73,6 +88,11 @@ function renderAdminLayout(userRoles: RoleCode[]) {
 }
 
 beforeEach(() => {
+  vi.mocked(getMyWallet).mockReset().mockResolvedValue(structuredClone(creditsWallet))
+  vi.mocked(listMyTransactions)
+    .mockReset()
+    .mockResolvedValue(structuredClone(creditsTransactionPage))
+  vi.mocked(redeemCard).mockReset().mockResolvedValue(structuredClone(creditsRedeemResult))
   getCurrentUserMock
     .mockReset()
     .mockRejectedValue(
@@ -106,7 +126,7 @@ describe('credits route foundation (FR-001 FE, AT-01 access, §12)', () => {
     async ({ path, scr, role }) => {
       getCurrentUserMock.mockResolvedValue(user([role]))
       const router = renderRoute(path)
-      expect(await screen.findByRole('heading', { name: `Màn ${scr} đang dựng` })).toBeVisible()
+      expect(await screen.findByRole('heading', { name: screenHeading(scr) })).toBeVisible()
       expect(router.state.location.pathname).toBe(path)
     },
   )
@@ -130,7 +150,7 @@ describe('credits route foundation (FR-001 FE, AT-01 access, §12)', () => {
     getCurrentUserMock.mockResolvedValue(user([deniedRole]))
     const router = renderRoute(path)
     await waitFor(() => expect(router.state.location.pathname).toBe('/403'))
-    expect(screen.queryByText(`Màn ${scr} đang dựng`)).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: screenHeading(scr) })).not.toBeInTheDocument()
   })
 
   it.each(routes)(
@@ -138,7 +158,7 @@ describe('credits route foundation (FR-001 FE, AT-01 access, §12)', () => {
     async ({ path, scr }) => {
       getCurrentUserMock.mockResolvedValue(user(['ACCOUNTANT', 'LEARNER', 'ADMIN']))
       const router = renderRoute(path)
-      expect(await screen.findByRole('heading', { name: `Màn ${scr} đang dựng` })).toBeVisible()
+      expect(await screen.findByRole('heading', { name: screenHeading(scr) })).toBeVisible()
       expect(router.state.location.pathname).toBe(path)
     },
   )
@@ -211,8 +231,6 @@ describe('credits offline catalogs (§12)', () => {
   })
 
   it.each([
-    { view: 'credits-wallet-samples', title: 'Ví điểm mẫu', rows: 5 },
-    { view: 'credits-history-samples', title: 'Giao dịch mẫu', rows: 25 },
     { view: 'credits-batch-samples', title: 'Lô mã mẫu', rows: 3 },
     { view: 'credits-plan-samples', title: 'Gói dịch vụ mẫu', rows: 3 },
     { view: 'credits-ledger-samples', title: 'Sổ cái mẫu', rows: 25 },
@@ -222,4 +240,31 @@ describe('credits offline catalogs (§12)', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(rows)
     expect(getCurrentUserMock).not.toHaveBeenCalled()
   })
+
+  it.each([
+    {
+      view: 'credits-wallet-samples',
+      title: 'Gói dịch vụ và điểm',
+      table: 'Lượt sử dụng theo tính năng',
+      rows: 5,
+    },
+    {
+      view: 'credits-history-samples',
+      title: 'Lịch sử giao dịch',
+      table: 'Giao dịch điểm',
+      rows: 21,
+    },
+  ])(
+    'renders the $view View without authentication or backend calls',
+    async ({ view, title, table, rows }) => {
+      renderRoute(`/__preview/frame/${view}/ready`)
+      expect(await screen.findByRole('heading', { name: title })).toBeVisible()
+      const data = within(await screen.findByRole('table', { name: table }))
+      expect(data.getAllByRole('row')).toHaveLength(rows)
+      expect(getCurrentUserMock).not.toHaveBeenCalled()
+      expect(getMyWallet).not.toHaveBeenCalled()
+      expect(listMyTransactions).not.toHaveBeenCalled()
+      expect(redeemCard).not.toHaveBeenCalled()
+    },
+  )
 })
