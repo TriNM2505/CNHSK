@@ -48,6 +48,17 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void assistantErrorCodesUseExpectedStatusesAndMessages() throws Exception {
+        mockMvc.perform(get("/test/assistant-blocked"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error_code").value("ASSISTANT_BLOCKED_DURING_TEST"));
+        mockMvc.perform(get("/test/assistant-unavailable"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.error_code").value("ASSISTANT_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").value("Trợ lý tạm thời chưa trả lời được, bạn thử lại sau"));
+    }
+
+    @Test
     void validationFailureReturns422AndFieldDetails() throws Exception {
         mockMvc.perform(post("/test/validation")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -140,7 +151,7 @@ class GlobalExceptionHandlerTest {
                 "ATTEMPT_NOT_SUBMITTED", "PLACEMENT_BANK_INSUFFICIENT", "PLACEMENT_NOT_FINISHED",
                 "LEXEME_NOT_FOUND", "QUESTION_NOT_FOUND", "MALFORMED_QUESTION", "KNOWLEDGE_NODE_REQUIRED",
                 "GRADING_CHANGE_NOT_ALLOWED", "QUESTION_ARCHIVED", "COLLECTION_NOT_OWNED", "LIBRARY_LIMIT_REACHED",
-                "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "CARD_DUPLICATE", "INTERNAL_ERROR");
+                "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "CARD_DUPLICATE", "ASSISTANT_BLOCKED_DURING_TEST", "ASSISTANT_UNAVAILABLE", "INTERNAL_ERROR");
     }
 
     @Test
@@ -195,6 +206,17 @@ class GlobalExceptionHandlerTest {
 
     @RestController
     static class ErrorTestController {
+        @GetMapping("/test/assistant-blocked")
+        void assistantBlocked() {
+            throw new ApiException(ErrorCode.ASSISTANT_BLOCKED_DURING_TEST, HttpStatus.FORBIDDEN,
+                    "Trợ lý tắt trong lúc làm bài.", Map.of());
+        }
+
+        @GetMapping("/test/assistant-unavailable")
+        void assistantUnavailable() {
+            throw new ApiException(ErrorCode.ASSISTANT_UNAVAILABLE, HttpStatus.SERVICE_UNAVAILABLE,
+                    "Trợ lý tạm thời chưa trả lời được, bạn thử lại sau", Map.of());
+        }
 
         @GetMapping("/test/card-duplicate")
         void cardDuplicate() {

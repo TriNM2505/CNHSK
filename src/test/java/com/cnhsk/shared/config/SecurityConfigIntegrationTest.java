@@ -192,6 +192,26 @@ class SecurityConfigIntegrationTest {
     }
 
     @Test
+    void assistantPostRequiresLearnerAndCookieCsrf() throws Exception {
+        mockMvc.perform(post("/api/assistant/ask"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error_code").value("UNAUTHENTICATED"));
+        mockMvc.perform(post("/api/assistant/ask").header("Authorization", bearer("TEACHER"))
+                        .contentType("application/json").content("{\"question\":\"hi\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error_code").value("FORBIDDEN"));
+        mockMvc.perform(post("/api/assistant/ask").header("Authorization", bearer("LEARNER"))
+                        .contentType("application/json").content("{\"question\":\"hi\"}"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/assistant/ask")
+                        .cookie(new jakarta.servlet.http.Cookie(ACCESS_COOKIE,
+                                jwtService.issueAccessToken(42, java.util.List.of("LEARNER"), true, UUID.randomUUID())))
+                        .contentType("application/json").content("{\"question\":\"hi\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error_code").value("CSRF_TOKEN_INVALID"));
+    }
+
+    @Test
     void unknownApiRouteIsNotPublicByDefault() throws Exception {
         mockMvc.perform(get("/api/not-configured"))
                 .andExpect(status().isUnauthorized())
@@ -210,6 +230,11 @@ class SecurityConfigIntegrationTest {
         }
 
         @Bean
+        AssistantProbeController assistantProbeController() {
+            return new AssistantProbeController();
+        }
+
+        @Bean
         AdminProbeController adminProbeController() {
             return new AdminProbeController();
         }
@@ -222,6 +247,13 @@ class SecurityConfigIntegrationTest {
         String mutate() {
             return "ok";
         }
+    }
+
+    @RestController
+    @RequestMapping("/api/assistant")
+    static class AssistantProbeController {
+        @PostMapping("/ask")
+        String ask() { return "ok"; }
     }
 
     @RestController

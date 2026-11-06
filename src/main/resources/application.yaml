@@ -81,6 +81,8 @@ cnhsk:
     translate-model: claude-haiku-5-5
     timeout: 15s
     monthly-token-budget: 2000000
+  assistant:
+    daily-limit: 200
   library:
     guest-lookups-per-hour: 60
     authenticated-lookups-per-hour: 600
