@@ -349,6 +349,26 @@ describe('library API with the real shared client (§13; AT-01 transport only)',
     await expect(dictionary.listRadicals(controller.signal)).rejects.toBe(aborted)
   })
 
+  it('FR025_passes translation cancellation through the shared POST client', async () => {
+    document.cookie = 'XSRF-TOKEN=translation-token; path=/'
+    const controller = new AbortController()
+    const body = { text: '我读书。', from: 'ZH', to: 'VI' } as const
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(json(translated))
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(translate(body, controller.signal)).resolves.toEqual(translated)
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock.mock.calls[0]![1]).toMatchObject({
+      signal: controller.signal,
+      method: 'POST',
+      credentials: 'include',
+      body: JSON.stringify(body),
+    })
+    const aborted = new DOMException('Aborted', 'AbortError')
+    fetchMock.mockRejectedValue(aborted)
+    controller.abort()
+    await expect(translate(body, controller.signal)).rejects.toBe(aborted)
+  })
+
   it('passes through the PATCH deck summary without inventing cards', async () => {
     document.cookie = 'XSRF-TOKEN=flashcard-contract; path=/'
     const summary = {

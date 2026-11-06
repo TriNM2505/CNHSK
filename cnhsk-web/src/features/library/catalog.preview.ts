@@ -11,6 +11,8 @@ import { PersonalNotesView } from './components/PersonalNotesView'
 import { DeckListView } from './components/DeckListView'
 import { DeckDetailView } from './components/DeckDetailView'
 import { FlashcardReviewView } from './components/FlashcardReviewView'
+import { TranslationView } from './components/TranslationView'
+import { TranslationLexemePopup } from './components/TranslationLexemePopup'
 import { dictionarySearchParams, type DictionarySearch } from './dictionarySearch'
 import { newNoteDraft, noteDraft, type NoteDraft } from './personalNotes'
 import { emptyCardDraft, emptyDeckDraft, type CardDraft } from './flashcardForms'
@@ -26,6 +28,7 @@ import type {
   RadicalCount,
   SearchResult,
   TranslateResult,
+  TranslateRequest,
   TrashNote,
 } from './types'
 
@@ -303,23 +306,55 @@ export const libraryCachedTranslation: TranslateResult = {
   consumption: null,
 }
 
-function samplePreview(title: string, rows: readonly { id: number; text: string }[]) {
-  return createElement(
-    'section',
-    { className: 'mx-auto max-w-reading space-y-4' },
-    createElement('h1', { className: 'text-h1-sm text-ink' }, title),
-    createElement(
-      'ul',
-      { className: 'space-y-3' },
-      rows.map(({ id, text }) =>
-        createElement(
-          'li',
-          { className: 'rounded-md border border-line bg-surface p-4 text-body text-ink', key: id },
-          text,
-        ),
-      ),
-    ),
-  )
+function TranslationPreview({ state }: { state: PreviewState }) {
+  const [draft, setDraft] = useState<TranslateRequest>({
+    text: state === 'empty' ? '' : 'Hôm nay tôi học tiếng Trung.',
+    from: 'VI',
+    to: 'ZH',
+  })
+  const [changed, setChanged] = useState(false)
+  const [lexemeId, setLexemeId] = useState<number>()
+  const entry = libraryLexemeDetails.find(({ id }) => id === lexemeId)
+  const change = (next: TranslateRequest) => {
+    setDraft(next)
+    setChanged(true)
+    setLexemeId(undefined)
+  }
+  return createElement(TranslationView, {
+    draft,
+    pending: state === 'loading',
+    result: state === 'ready' && !changed ? libraryTranslation : undefined,
+    error:
+      state === 'error'
+        ? new ApiError({
+            status: 503,
+            errorCode: 'TRANSLATE_UNAVAILABLE',
+            message: 'Chưa thể dịch.',
+          })
+        : undefined,
+    onTextChange: (text) => change({ ...draft, text }),
+    onDirectionChange: (from) => change({ ...draft, from, to: from === 'ZH' ? 'VI' : 'ZH' }),
+    onSubmit: () => setChanged(false),
+    onOpenLexeme: setLexemeId,
+    popup: entry
+      ? createElement(TranslationLexemePopup, {
+          state: 'ready',
+          entry,
+          onClose: () => setLexemeId(undefined),
+          onRetry: () => undefined,
+          saveActions: createElement(LexemeSaveActions, {
+            key: entry.id,
+            entry,
+            access: 'learner',
+            loginTo: '/login?redirect=%2Ftranslate',
+            onReloadAuth: () => undefined,
+            onCreateNote: async () => undefined,
+            onLoadDecks: async () => libraryDeckSummaries,
+            onAddCard: async () => undefined,
+          }),
+        })
+      : undefined,
+  })
 }
 
 function DictionaryPreview({
@@ -606,12 +641,8 @@ export const previews = [
     id: 'library-translation-samples',
     scr: 'SCR-026',
     title: 'Dịch câu — Dữ liệu mẫu',
-    render: () =>
-      samplePreview('Bản dịch mẫu', [
-        { id: 1, text: 'Hôm nay tôi học tiếng Trung.' },
-        { id: 2, text: libraryTranslation.translated },
-        { id: 3, text: libraryTranslation.pinyin ?? '' },
-      ]),
+    states: ['ready', 'loading', 'empty', 'error'],
+    render: (state) => createElement(TranslationPreview, { state }),
   },
   {
     group: 'screen',
