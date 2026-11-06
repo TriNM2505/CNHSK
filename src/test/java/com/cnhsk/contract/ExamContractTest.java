@@ -8,9 +8,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.cnhsk.shared.security.JwtService;
 import com.cnhsk.support.AbstractIntegrationTest;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.parser.OpenAPIV3Parser;
+import io.swagger.v3.oas.models.media.Schema;
 import java.nio.file.Path;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,10 +47,8 @@ class ExamContractTest extends AbstractIntegrationTest {
         var response = mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn();
         var runtime = mapper.readTree(response.getResponse().getContentAsByteArray()).path("paths");
 
-        // T-16 adds the weak-points endpoint after MasteryReader is available.
         var expectedPaths = new TreeSet<>(paths.keySet());
-        assertThat(expectedPaths.remove("/api/exam-attempts/{id}/weak-points")).isTrue();
-        assertThat(expectedPaths).hasSize(8);
+        assertThat(expectedPaths).hasSize(9);
         assertThat(runtime.fieldNames()).toIterable().containsExactlyInAnyOrderElementsOf(expectedPaths);
 
         List<String> differences = new ArrayList<>();
@@ -65,6 +68,112 @@ class ExamContractTest extends AbstractIntegrationTest {
             });
         }
         assertThat(differences).isEmpty();
+    }
+
+    @Test
+    void AT29_weakPointsAndDeferredExamSchemasMatchContract() throws Exception {
+        var path = Path.of("specs", "012-mock-exam-placement", "contracts", "openapi-exam.yaml");
+        var parsed = new OpenAPIV3Parser().readLocation(path.toUri().toString(), null, null);
+        assertThat(parsed.getMessages()).isEmpty();
+        var expected = parsed.getOpenAPI();
+        var response = mvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn();
+        JsonNode runtime = mapper.readTree(response.getResponse().getContentAsByteArray());
+        JsonNode paths = runtime.path("paths");
+        String weakPath = "/api/exam-attempts/{id}/weak-points";
+        JsonNode weak = paths.path(weakPath).path("get");
+        var id = expected.getComponents().getParameters().get("SessionId").getSchema();
+        assertPathId(weak, "id", schemaTypes(id), id.getFormat());
+        var expectedList = expected.getPaths().get(weakPath).getGet().getResponses().get("200")
+                .getContent().get("application/json").getSchema();
+        JsonNode array = schema(weak.path("responses").path("200"));
+        assertThat(types(array)).containsExactly("array");
+        assertThat(array.path("maxItems").asInt()).isEqualTo(expectedList.getMaxItems());
+        JsonNode point = resolve(runtime, array.path("items"));
+        Schema<?> expectedPoint = expected.getComponents().getSchemas().get("WeakPoint");
+        assertThat(texts(point.path("required"))).containsExactlyInAnyOrderElementsOf(expectedPoint.getRequired());
+        var properties = point.path("properties");
+        assertThat(properties.fieldNames()).toIterable().containsExactlyInAnyOrderElementsOf(expectedPoint.getProperties().keySet());
+        for (String field : List.of("kid", "nameVi", "mastery", "state")) {
+            var fieldSchema = expectedPoint.getProperties().get(field);
+            assertThat(types(properties.path(field))).isEqualTo(schemaTypes(fieldSchema));
+        }
+        var mastery = expectedPoint.getProperties().get("mastery");
+        assertThat(properties.path("mastery").path("minimum").decimalValue()).isEqualByComparingTo(mastery.getMinimum());
+        assertThat(properties.path("mastery").path("maximum").decimalValue()).isEqualByComparingTo(mastery.getMaximum());
+        assertThat(properties.path("mastery").has("format")).isFalse();
+        for (String code : List.of("401", "403", "409")) {
+            JsonNode error = resolve(runtime, schema(weak.path("responses").path(code)));
+            assertThat(texts(error.path("required"))).containsExactlyInAnyOrder("error_code", "message", "request_id");
+        }
+
+        var runId = expected.getComponents().getParameters().get("RunId").getSchema();
+        assertPathId(paths.path("/api/placement/runs/{runId}/next").path("post"), "runId",
+                schemaTypes(runId), runId.getFormat());
+        assertPathId(paths.path("/api/placement/runs/{runId}/result").path("get"), "runId",
+                schemaTypes(runId), runId.getFormat());
+        JsonNode placement = paths.path("/api/placement/runs").path("post").path("requestBody");
+        assertThat(placement.path("required").asBoolean()).isFalse();
+        JsonNode placementBody = resolve(runtime, schema(placement));
+        assertThat(types(placementBody)).containsExactly("object");
+        assertThat(placementBody.path("properties").fieldNames()).toIterable().containsExactly("startLevel");
+        assertThat(texts(placementBody.path("required"))).isEmpty();
+        JsonNode level = placementBody.path("properties").path("startLevel");
+        Schema<?> expectedPlacement = expected.getComponents().getSchemas().get("PlacementStartRequest");
+        var expectedLevel = expectedPlacement.getProperties().get("startLevel");
+        assertThat(types(level)).isEqualTo(schemaTypes(expectedLevel));
+        assertThat(level.path("minimum").decimalValue()).isEqualByComparingTo(expectedLevel.getMinimum());
+        assertThat(level.path("maximum").decimalValue()).isEqualByComparingTo(expectedLevel.getMaximum());
+        assertThat(level.has("format")).isFalse();
+
+        JsonNode targeted = paths.path("/api/targeted-practice/sessions").path("post").path("requestBody");
+        assertThat(targeted.path("required").asBoolean()).isTrue();
+        JsonNode targetedBody = resolve(runtime, schema(targeted));
+        assertThat(types(targetedBody)).containsExactly("object");
+        Schema<?> expectedTargeted = expected.getComponents().getSchemas().get("TargetedPracticeRequest");
+        assertThat(texts(targetedBody.path("required"))).containsExactlyInAnyOrderElementsOf(expectedTargeted.getRequired());
+        JsonNode targetFields = targetedBody.path("properties");
+        assertThat(targetFields.fieldNames()).toIterable().containsExactlyInAnyOrderElementsOf(expectedTargeted.getProperties().keySet());
+        var kid = expectedTargeted.getProperties().get("kid");
+        assertThat(types(targetFields.path("kid"))).isEqualTo(schemaTypes(kid));
+        assertThat(targetFields.path("kid").path("pattern").asText()).isEqualTo(kid.getPattern());
+        var expectedTypes = expected.getComponents().getSchemas().get("QuestionType");
+        JsonNode qtype = resolve(runtime, targetFields.path("qtype"));
+        assertThat(types(qtype)).isEqualTo(schemaTypes(expectedTypes));
+        assertThat(texts(qtype.path("enum"))).containsExactlyInAnyOrderElementsOf(expectedTypes.getEnum());
+        JsonNode exclude = targetFields.path("excludeQuestionId");
+        var expectedExclude = expectedTargeted.getProperties().get("excludeQuestionId");
+        assertThat(types(exclude)).isEqualTo(schemaTypes(expectedExclude));
+        assertThat(exclude.path("format").asText()).isEqualTo(expectedExclude.getFormat());
+    }
+
+    private static JsonNode schema(JsonNode container) {
+        return container.path("content").path("application/json").path("schema");
+    }
+
+    private static JsonNode resolve(JsonNode document, JsonNode schema) {
+        return schema.has("$ref") ? document.at(schema.path("$ref").asText().substring(1)) : schema;
+    }
+
+    private static Set<String> texts(JsonNode array) {
+        return StreamSupport.stream(array.spliterator(), false).map(JsonNode::asText).collect(Collectors.toSet());
+    }
+
+    private static Set<String> types(JsonNode schema) {
+        JsonNode type = schema.path("type");
+        return type.isTextual() ? Set.of(type.asText()) : texts(type);
+    }
+
+    private static Set<String> schemaTypes(io.swagger.v3.oas.models.media.Schema<?> schema) {
+        return schema.getTypes() == null ? Set.of(schema.getType()) : schema.getTypes();
+    }
+
+    private static void assertPathId(JsonNode operation, String name, Set<String> type, String format) {
+        var parameter = StreamSupport.stream(operation.path("parameters").spliterator(), false)
+                .filter(node -> name.equals(node.path("name").asText())).findFirst().orElseThrow();
+        assertThat(parameter.path("in").asText()).isEqualTo("path");
+        assertThat(parameter.path("required").asBoolean()).isTrue();
+        assertThat(types(parameter.path("schema"))).isEqualTo(type);
+        assertThat(parameter.path("schema").path("format").asText()).isEqualTo(format);
     }
 
     @Test

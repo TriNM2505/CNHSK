@@ -16,6 +16,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
@@ -26,7 +28,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class TargetedPracticeController {
-    private static final Pattern KID = Pattern.compile("^(NA|CH|TV|NP|NL|VB)[1-7]-[0-9]{3}$");
+    private static final String KID_PATTERN = "^(NA|CH|TV|NP|NL|VB)[1-7]-[0-9]{3}$";
+    private static final Pattern KID = Pattern.compile(KID_PATTERN);
 
     private final TargetedPracticeService practice;
     private final AuthApi auth;
@@ -39,7 +42,10 @@ public class TargetedPracticeController {
     }
 
     @PostMapping("/api/targeted-practice/sessions")
-    @Operation(operationId = "startTargetedPractice", tags = "targeted-practice")
+    @Operation(operationId = "startTargetedPractice", tags = "targeted-practice",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = TargetedPracticeRequest.class))))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK"),
             @ApiResponse(responseCode = "201", description = "Created"),
@@ -88,4 +94,9 @@ public class TargetedPracticeController {
     }
 
     public record NoQuestions(@JsonInclude(JsonInclude.Include.ALWAYS) SessionView session, String reason) {}
+
+    @Schema(requiredProperties = "kid")
+    private record TargetedPracticeRequest(@Schema(pattern = KID_PATTERN) String kid,
+            @Schema(allowableValues = {"MULTIPLE_CHOICE", "TRUE_FALSE"}) String qtype,
+            @Schema(types = {"integer", "null"}, format = "int64") Long excludeQuestionId) {}
 }

@@ -8,11 +8,15 @@ import com.cnhsk.learning.exam.ExamAttemptService;
 import com.cnhsk.learning.exam.ExamQueryService;
 import com.cnhsk.learning.exam.ExamQueryService.ExamSummary;
 import com.cnhsk.learning.exam.ExamResultService;
+import com.cnhsk.learning.exam.ExamWeakPointService;
+import com.cnhsk.learning.exam.ExamWeakPointService.WeakPoint;
 import com.cnhsk.learning.practice.PracticeService.SessionView;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -29,12 +33,15 @@ public class ExamController {
     private final ExamQueryService exams;
     private final ExamAttemptService attempts;
     private final ExamResultService results;
+    private final ExamWeakPointService weakPoints;
     private final AuthApi auth;
 
-    public ExamController(ExamQueryService exams, ExamAttemptService attempts, ExamResultService results, AuthApi auth) {
+    public ExamController(ExamQueryService exams, ExamAttemptService attempts, ExamResultService results,
+            ExamWeakPointService weakPoints, AuthApi auth) {
         this.exams = exams;
         this.attempts = attempts;
         this.results = results;
+        this.weakPoints = weakPoints;
         this.auth = auth;
     }
 
@@ -82,6 +89,30 @@ public class ExamController {
             @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
         return results.result(auth.currentUser().userId(), attemptId(id));
     }
+
+    @GetMapping("/api/exam-attempts/{id}/weak-points")
+    @Operation(operationId = "getExamWeakPoints", tags = "exam")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tăng dần theo mastery",
+                    content = @Content(mediaType = "application/json",
+                            array = @ArraySchema(maxItems = 5, schema = @Schema(implementation = WeakPoint.class)))),
+            @ApiResponse(responseCode = "401", description = "Authentication required",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Attempt not submitted",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    public List<WeakPoint> weakPoints(
+            @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
+        return weakPoints.weakPoints(auth.currentUser().userId(), attemptId(id));
+    }
+
+    @Schema(requiredProperties = {"error_code", "message", "request_id"})
+    private record ErrorResponse(String error_code, String message, String request_id,
+            @Schema(type = "integer", types = {"integer"}) Integer retryAfterSeconds,
+            @Schema(type = "integer", types = {"integer"}) Integer learnedWords,
+            @Schema(type = "integer", types = {"integer"}) Integer requiredWords) {}
 
     private static long attemptId(String value) {
         try {

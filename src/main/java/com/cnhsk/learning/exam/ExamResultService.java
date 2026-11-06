@@ -41,15 +41,7 @@ public class ExamResultService {
 
     @Transactional(readOnly = true)
     public ExamResult result(long userId, long sessionId) {
-        Attempt current = entities.createQuery("""
-                SELECT a FROM Attempt a WHERE a.id = :id AND a.userId = :userId AND a.refType = 'MOCK_EXAM'
-                """, Attempt.class).setParameter("id", sessionId).setParameter("userId", userId)
-                .getResultList().stream().findFirst().orElseThrow(() -> new ApiException(
-                        ErrorCode.ATTEMPT_NOT_OWNED, HttpStatus.FORBIDDEN, "Không có quyền truy cập lượt làm bài này.", Map.of()));
-        if (!"SUBMITTED".equals(current.getStatus())) {
-            throw new ApiException(ErrorCode.ATTEMPT_NOT_SUBMITTED, HttpStatus.CONFLICT,
-                    "Lượt làm bài chưa được nộp.", Map.of());
-        }
+        Attempt current = requireSubmittedAttempt(entities, userId, sessionId);
 
         Attempt prior = entities.createQuery("""
                 SELECT a FROM Attempt a
@@ -112,6 +104,19 @@ public class ExamResultService {
         return new ExamResult(sessionId, new ExamIdentity(exam.examId(), exam.title(), level),
                 current.getSubmittedAt(), score.score(), score.maxScore(), score.percent(),
                 correct, items.size(), score.bySection(), previous, List.copyOf(items), wrongByKid);
+    }
+
+    static Attempt requireSubmittedAttempt(EntityManager entities, long userId, long sessionId) {
+        Attempt attempt = entities.createQuery("""
+                SELECT a FROM Attempt a WHERE a.id = :id AND a.userId = :userId AND a.refType = 'MOCK_EXAM'
+                """, Attempt.class).setParameter("id", sessionId).setParameter("userId", userId)
+                .getResultList().stream().findFirst().orElseThrow(() -> new ApiException(
+                        ErrorCode.ATTEMPT_NOT_OWNED, HttpStatus.FORBIDDEN, "Không có quyền truy cập lượt làm bài này.", Map.of()));
+        if (!"SUBMITTED".equals(attempt.getStatus())) {
+            throw new ApiException(ErrorCode.ATTEMPT_NOT_SUBMITTED, HttpStatus.CONFLICT,
+                    "Lượt làm bài chưa được nộp.", Map.of());
+        }
+        return attempt;
     }
 
     private Snapshot exam(Attempt attempt) {

@@ -1,10 +1,14 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/shared/ui/Button'
-import type { ExamResult, ResultItem } from '../types'
+import type { ExamResult, ResultItem, WeakPoint } from '../types'
 
 const filters = { ALL: 'Tất cả', WRONG: 'Sai', BLANK: 'Bỏ trống' } as const
 const labels = { CORRECT: 'Đúng', WRONG: 'Sai', BLANK: 'Bỏ trống' } as const
 export type ResultFilter = keyof typeof filters
+type WeakPointsState =
+  | { state: 'loading' }
+  | { state: 'error'; onRetry: () => void }
+  | { state: 'ready'; points: WeakPoint[] }
 
 function answerText(item: ResultItem, key: string) {
   const option = item.options.find((entry) => entry.key === key)
@@ -15,12 +19,12 @@ export function ExamResultView({
   result,
   filter,
   onFilter,
-  showWeakPoints,
+  weakPoints,
 }: {
   result: ExamResult
   filter: ResultFilter
   onFilter: (filter: ResultFilter) => void
-  showWeakPoints: boolean
+  weakPoints?: WeakPointsState
 }) {
   const items = result.items.filter((item) => filter === 'ALL' || item.result === filter)
   return (
@@ -107,9 +111,29 @@ export function ExamResultView({
           </ul>
         </section>
       )}
-      {showWeakPoints && (
+      {weakPoints && (weakPoints.state !== 'ready' || weakPoints.points.length > 0) && (
         <section aria-label="Điểm yếu cần luyện">
           <h2 className="text-h2">Điểm yếu cần luyện</h2>
+          {weakPoints.state === 'loading' && <p role="status">Đang tải điểm yếu…</p>}
+          {weakPoints.state === 'error' && (
+            <>
+              <p role="alert">Không thể tải điểm yếu.</p>
+              <Button onClick={weakPoints.onRetry}>Thử lại</Button>
+            </>
+          )}
+          {weakPoints.state === 'ready' && (
+            <ul className="space-y-2">
+              {weakPoints.points.map(({ kid, nameVi, mastery }) => (
+                <li key={kid}>
+                  {nameVi} ({kid}) · {mastery}%{' '}
+                  <Link className="text-brand-700 underline"
+                    to={'/learn/practice/targeted?kid=' + encodeURIComponent(kid)}>
+                    Luyện nút này
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       )}
     </main>
