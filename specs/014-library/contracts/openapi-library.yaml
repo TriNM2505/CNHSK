@@ -604,6 +604,7 @@ paths:
               schema: { type: array, maxItems: 100, items: { $ref: '#/components/schemas/Card' } }
         '401': { $ref: '#/components/responses/Unauthenticated' }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationFailed' }
 
   /api/flashcards/{cardId}/review:
     post:

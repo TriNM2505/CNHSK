@@ -9,6 +9,7 @@ import com.cnhsk.learning.library.DeckService.Card;
 import com.cnhsk.learning.library.DeckService.DeckDetail;
 import com.cnhsk.learning.library.DeckService.DeckSummary;
 import com.cnhsk.learning.library.DictionaryService;
+import com.cnhsk.learning.library.FlashcardReviewService;
 import com.cnhsk.shared.exception.GlobalExceptionHandler;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,16 +42,26 @@ public class DeckController {
     private final DeckService decks;
     private final CardService cards;
     private final GlobalExceptionHandler errors;
+    private final FlashcardReviewService reviews;
 
-    public DeckController(DeckService decks, CardService cards, GlobalExceptionHandler errors) {
+    public DeckController(DeckService decks, CardService cards, GlobalExceptionHandler errors, FlashcardReviewService reviews) {
         this.decks = decks;
         this.cards = cards;
         this.errors = errors;
+        this.reviews = reviews;
     }
 
     @GetMapping
     @Operation(operationId = "listDecks", tags = "flashcards")
     public List<DeckSummary> list() { return decks.list(); }
+
+    @GetMapping("/{id}/due")
+    @Operation(operationId = "listDueCards", tags = "flashcards")
+    @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED")
+    public List<Card> due(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
+                          @Parameter(schema = @Schema(type = "boolean", defaultValue = "false")) @RequestParam(required = false) String ahead) {
+        return reviews.due(id, ahead);
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)

@@ -54,4 +54,21 @@ public class LibraryRateLimiter {
                     "Bạn đã tra cứu quá giới hạn. Vui lòng thử lại sau.", extra);
         }
     }
+
+    public void checkFlashcardReview(long userId) {
+        var now = clock.instant();
+        long retry = Math.max(1, (Duration.between(now, now.truncatedTo(ChronoUnit.HOURS).plus(1, ChronoUnit.HOURS))
+                .toMillis() + 999) / 1000);
+        long count;
+        try {
+            count = counters.increment("library:flashcards:review:user:" + userId + ":" + HOUR.format(now), Duration.ofSeconds(retry));
+        } catch (RuntimeException exception) {
+            log.warn("Flashcard review rate limit unavailable; allowing request");
+            return;
+        }
+        if (count > config.getFlashcardReviewsPerHour()) {
+            throw new ApiException(ErrorCode.RATE_LIMITED, HttpStatus.TOO_MANY_REQUESTS,
+                    "Bạn đã ôn thẻ quá giới hạn. Vui lòng thử lại sau.", Map.of("retryAfterSeconds", retry));
+        }
+    }
 }
