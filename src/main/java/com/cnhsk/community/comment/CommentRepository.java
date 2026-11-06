@@ -15,6 +15,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select c from Comment c where c.id = :id")
+    Optional<Comment> findByIdForUpdate(@Param("id") long id);
+
     @Query("select c.postId from Comment c where c.id = :id and c.authorId = :authorId")
     Optional<Long> findOwnedPostId(@Param("id") long id, @Param("authorId") long authorId);
 
@@ -50,4 +54,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
             """, nativeQuery = true)
     int moderateForReport(@Param("id") long id, @Param("status") String status,
             @Param("moderatorId") long moderatorId, @Param("note") String note);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = """
+            UPDATE community.comments
+            SET status = :status, moderated_by = :moderatorId, moderation_reason = :reason
+            WHERE id = :id
+            """, nativeQuery = true)
+    int moderateDirect(@Param("id") long id, @Param("status") String status,
+            @Param("moderatorId") long moderatorId, @Param("reason") String reason);
 }

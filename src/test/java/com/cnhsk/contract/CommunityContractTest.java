@@ -72,7 +72,7 @@ class CommunityContractTest {
     @Test
     void AC01_sourceContractLocksAllPathsMethodsOperationIdsAndResponses() throws IOException {
         JsonNode document = readSource();
-        Map<OperationKey, ContractOperation> source = readOperations(document, false);
+        Map<OperationKey, ContractOperation> source = readOperations(document);
 
         assertThat(document.path("paths").size()).isEqualTo(21);
         assertThat(source).hasSize(24).containsExactlyInAnyOrderEntriesOf(EXPECTED);
@@ -83,13 +83,13 @@ class CommunityContractTest {
 
     @Test
     void AC01_registeredOperationsAndRuntimeDocumentationMatchTheSource() throws Exception {
-        Map<OperationKey, ContractOperation> source = readOperations(readSource(), false);
+        Map<OperationKey, ContractOperation> source = readOperations(readSource());
         Set<OperationKey> registered = registeredOperations();
         String json = mockMvc.perform(get("/v3/api-docs").accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         JsonNode document = objectMapper.readTree(json);
         assertValidOpenApi(json, document);
-        Map<OperationKey, ContractOperation> documented = readOperations(document, registered.isEmpty());
+        Map<OperationKey, ContractOperation> documented = readOperations(document);
 
         assertRuntimeContract(source, registered, documented);
         System.out.println(coverageSummary(source, registered, documented));
@@ -99,35 +99,52 @@ class CommunityContractTest {
     @Test
     void AC01_extraHttpMethodIsRejected() {
         OperationKey extra = key("PATCH", "/api/community/posts");
-        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, Set.of(extra),
-                Map.of(extra, operation("unexpected", "200"))))
+        Set<OperationKey> registered = new HashSet<>(EXPECTED.keySet());
+        registered.add(extra);
+        Map<OperationKey, ContractOperation> documented = new LinkedHashMap<>(EXPECTED);
+        documented.put(extra, operation("unexpected", "200"));
+        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, registered, documented))
                 .isInstanceOf(AssertionError.class).hasMessageContaining("Registered operations");
     }
 
     @Test
     void AC01_registeredOperationHiddenFromDocumentationIsRejected() {
-        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, Set.of(firstKey()), Map.of()))
+        Map<OperationKey, ContractOperation> documented = new LinkedHashMap<>(EXPECTED);
+        documented.remove(firstKey());
+        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, EXPECTED.keySet(), documented))
                 .isInstanceOf(AssertionError.class).hasMessageContaining("Documented operations");
     }
 
     @Test
     void AC01_extraResponseStatusIsRejected() {
-        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, Set.of(firstKey()),
-                Map.of(firstKey(), operation("listPublishedPosts", "200", "422", "500"))))
+        Map<OperationKey, ContractOperation> documented = new LinkedHashMap<>(EXPECTED);
+        documented.put(firstKey(), operation("listPublishedPosts", "200", "422", "500"));
+        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, EXPECTED.keySet(), documented))
                 .isInstanceOf(AssertionError.class).hasMessageContaining("Responses for");
     }
 
     @Test
     void AC01_missingResponseStatusIsRejected() {
-        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, Set.of(firstKey()),
-                Map.of(firstKey(), operation("listPublishedPosts", "200"))))
+        Map<OperationKey, ContractOperation> documented = new LinkedHashMap<>(EXPECTED);
+        documented.put(firstKey(), operation("listPublishedPosts", "200"));
+        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, EXPECTED.keySet(), documented))
                 .isInstanceOf(AssertionError.class).hasMessageContaining("Responses for");
     }
 
     @Test
+    void AC01_wrongOperationIdIsRejected() {
+        Map<OperationKey, ContractOperation> documented = new LinkedHashMap<>(EXPECTED);
+        documented.put(firstKey(), operation("incorrectListPublishedPosts", "200", "422"));
+        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, EXPECTED.keySet(), documented))
+                .isInstanceOf(AssertionError.class).hasMessageContaining("Operation ID for");
+    }
+
+    @Test
     void AC01_documentedOperationWithoutARegisteredHandlerIsRejected() {
-        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, Set.of(),
-                Map.of(firstKey(), EXPECTED.get(firstKey()))))
+        OperationKey extra = key("GET", "/api/community/unregistered");
+        Map<OperationKey, ContractOperation> documented = new LinkedHashMap<>(EXPECTED);
+        documented.put(extra, operation("unregisteredOperation", "200"));
+        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, EXPECTED.keySet(), documented))
                 .isInstanceOf(AssertionError.class).hasMessageContaining("Documented operations");
     }
 
@@ -150,9 +167,9 @@ class CommunityContractTest {
     }
 
     @Test
-    void AC01_missingOperationsHaveStableSortedCoverageForAnEmptyRuntime() {
-        assertRuntimeContract(EXPECTED, Set.of(), Map.of());
-
+    void AC01_emptyRuntimeIsRejectedAndMissingOperationsHaveStableSortedCoverage() {
+        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, Set.of(), Map.of()))
+                .isInstanceOf(AssertionError.class).hasMessageContaining("Registered operations");
         assertThat(coverageSummary(EXPECTED, Set.of(), Map.of()))
                 .isEqualTo("source=24, runtime=0, documented=0, missing=24");
         assertThat(missingOperationKeys(EXPECTED, Set.of())).hasSize(24).isSorted()
@@ -181,6 +198,31 @@ class CommunityContractTest {
                         "POST /api/community/reports",
                         "PUT /api/community/comments/{id}",
                         "PUT /api/community/posts/{id}");
+    }
+
+    @Test
+    void AC01_oneMissingRegisteredAndDocumentedOperationIsRejected() {
+        Map<OperationKey, ContractOperation> incomplete = new LinkedHashMap<>(EXPECTED);
+        incomplete.remove(key("PATCH", "/api/community/moderation/comments/{id}"));
+        assertThat(incomplete).hasSize(23);
+        assertThatThrownBy(() -> assertRuntimeContract(EXPECTED, incomplete.keySet(), incomplete))
+                .isInstanceOf(AssertionError.class).hasMessageContaining("Registered operations");
+    }
+
+    @Test
+    void AC01_completeRuntimeWithAllTwentyFourOperationsIsAccepted() {
+        assertRuntimeContract(EXPECTED, EXPECTED.keySet(), EXPECTED);
+        assertThat(coverageSummary(EXPECTED, EXPECTED.keySet(), EXPECTED))
+                .isEqualTo("source=24, runtime=24, documented=24, missing=0");
+    }
+
+    @Test
+    void AC01_missingNullAndEmptyPathsAreRejected() throws IOException {
+        for (String json : List.of("{}", "{\"paths\":null}", "{\"paths\":{}}")) {
+            JsonNode document = objectMapper.readTree(json);
+            assertThatThrownBy(() -> readOperations(document)).isInstanceOf(AssertionError.class)
+                    .hasMessageContaining("OpenAPI paths");
+        }
     }
 
     @Test
@@ -237,14 +279,10 @@ class CommunityContractTest {
         node.forEach(child -> assertLocalReferences(root, child));
     }
 
-    private static Map<OperationKey, ContractOperation> readOperations(JsonNode document, boolean allowEmpty) {
+    private static Map<OperationKey, ContractOperation> readOperations(JsonNode document) {
         JsonNode paths = document.path("paths");
-        if (paths.isMissingNode() || paths.isNull()) {
-            assertThat(allowEmpty).as("Missing paths require an independently empty handler inventory").isTrue();
-            return Map.of();
-        }
         assertThat(paths.isObject()).as("OpenAPI paths must be an object").isTrue();
-        assertThat(allowEmpty || !paths.isEmpty()).as("Paths require registered operations").isTrue();
+        assertThat(paths.isEmpty()).as("OpenAPI paths must be nonempty").isFalse();
         Map<OperationKey, ContractOperation> operations = new LinkedHashMap<>();
         Set<String> operationIds = new HashSet<>();
         paths.properties().forEach(pathEntry -> {
@@ -308,10 +346,12 @@ class CommunityContractTest {
 
     private static void assertRuntimeContract(Map<OperationKey, ContractOperation> source,
             Set<OperationKey> registered, Map<OperationKey, ContractOperation> documented) {
-        assertThat(source.keySet()).as("Registered operations must be declared by the source")
-                .containsAll(registered);
-        assertThat(documented.keySet()).as("Documented operations must exactly match registered operations")
-                .containsExactlyInAnyOrderElementsOf(registered);
+        assertThat(source).as("Source operations must match the locked twenty-four-operation inventory")
+                .hasSize(24).containsExactlyInAnyOrderEntriesOf(EXPECTED);
+        assertThat(registered).as("Registered operations must exactly match the source")
+                .containsExactlyInAnyOrderElementsOf(source.keySet());
+        assertThat(documented.keySet()).as("Documented operations must exactly match the source")
+                .containsExactlyInAnyOrderElementsOf(source.keySet());
         documented.forEach((key, operation) -> {
             assertThat(operation.operationId()).as("Operation ID for %s", key)
                     .isEqualTo(source.get(key).operationId());

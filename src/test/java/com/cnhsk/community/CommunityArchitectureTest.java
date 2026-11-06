@@ -123,7 +123,7 @@ class CommunityArchitectureTest {
                     : repository == CommentRepository.class ? Set.of("countVisibleByPostIds",
                             "countByAuthorIdAndCreatedAtAfter", "findOldestCreatedAtByAuthorIdAndCreatedAtAfter",
                             "findReplyParentOnPublishedPost", "findTreeByPostId", "findOwnedPostId", "findOwnedForUpdate",
-                            "moderateForReport")
+                            "moderateForReport", "findByIdForUpdate", "moderateDirect")
                     : repository == ReactionRepository.class ? Set.of("countLikesByPostIds", "findPostViewerKinds",
                             "insertPostLike", "deletePostLike", "countReportsInDay", "insertReport")
                     : repository == ModerationCaseRepository.class ? Set.of("upsertPendingReport",
