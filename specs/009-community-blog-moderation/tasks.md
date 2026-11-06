@@ -63,8 +63,15 @@
 | T-17 | SCR-040 chi tiết: cây bình luận, thích, bình luận/trả lời/sửa/xoá, báo cáo, nút kiểm duyệt cho `MODERATOR`; nội dung chỉ render text | `cnhsk-web/src/features/community/**` | FR-005, FR-058, FR-063 · AT-48, AT-49 | ✅ |
 | T-18 | SCR-060/061 kiểm duyệt bài; SCR-062/063 hồ sơ báo cáo | `cnhsk-web/src/features/community/**` | FR-060, FR-062 · AT-49 | ✅ |
 
+## Đợt 5 · Dọn cuối (leader thêm 2026-11-06)
+
+| ID | Task | File | Spec · AT | TT |
+|---|---|---|---|---|
+| T-19 | Sửa 7 lỗi FE mức P2 FE009-AUD-01…07 (SCR-040/041/061/063, điều hướng `MODERATOR`); chạy thử luồng cộng đồng với backend thật | `cnhsk-web/src/features/community/**`, file điều hướng dùng chung (nêu trong Shadow Plan) | FR-057…FR-063 · AT-49 | ⬜ |
+| T-20 | Sửa annotation OpenAPI sinh sai (`page`/`size` của `MyPostController`, `PublicPostController`; `CommentResponse.depth`) + gom hàm `excerpt` về `community.common` | `…/community/post/web/*Controller.java`, `…/comment/web/CommentResponse.java`, `…/community/common/*`, `PostQueryService`, `PostModerationService` + test | §13 · AT-49 | ⬜ |
+
 ---
 
-**Thứ tự:** T-01 → T-02 → T-03 → T-04 → T-05 → T-06 → (T-07 → T-08 → T-09) ∥ T-10 → T-11 → T-12 → T-13 → T-14 → T-15 → T-16 → T-17 → T-18.
+**Thứ tự:** T-01 → T-02 → T-03 → T-04 → T-05 → T-06 → (T-07 → T-08 → T-09) ∥ T-10 → T-11 → T-12 → T-13 → T-14 → T-15 → T-16 → T-17 → T-18 → T-19 → T-20.
 Sau T-14: chạy toàn bộ AT-01…AT-47, AT-50, AT-51 trong `./mvnw verify`. Sau T-18: chuyển PR sang Ready, báo leader review cả nhánh.
 **Rủi ro cao:** T-05 (lọc trạng thái + đếm theo lô), T-11 (upsert hồ sơ đồng thời), T-13 (transaction đóng hồ sơ + đổi nội dung).
