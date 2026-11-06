@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useApiQuery } from '@/shared/api'
 import { Button } from '@/shared/ui/Button'
-import { getExamResult } from '../api/exams'
+import { getExamResult, getExamWeakPoints } from '../api/exams'
 import { ExamResultView, type ResultFilter } from '../components/ExamResultView'
-
-const SHOW_EXAM_WEAK_POINTS = false
+import type { ExamResult } from '../types'
 
 export default function Scr022ExamResultPage({ sessionId }: { sessionId: number }) {
   const [filter, setFilter] = useState<ResultFilter>('ALL')
@@ -19,11 +18,32 @@ export default function Scr022ExamResultPage({ sessionId }: { sessionId: number 
     )
   if (!query.data) return <p role="alert">Không tìm thấy kết quả đề thi.</p>
   return (
-    <ExamResultView
+    <ExamResultWithWeakPoints
+      key={sessionId}
       result={query.data}
+      sessionId={sessionId}
       filter={filter}
       onFilter={setFilter}
-      showWeakPoints={SHOW_EXAM_WEAK_POINTS}
     />
   )
+}
+
+function ExamResultWithWeakPoints({
+  result,
+  sessionId,
+  filter,
+  onFilter,
+}: {
+  result: ExamResult
+  sessionId: number
+  filter: ResultFilter
+  onFilter: (value: ResultFilter) => void
+}) {
+  const query = useApiQuery((signal) => getExamWeakPoints(sessionId, signal), [sessionId])
+  const weakPoints = query.state === 'loading'
+    ? { state: 'loading' as const }
+    : query.state === 'error'
+      ? { state: 'error' as const, onRetry: query.reload }
+      : { state: 'ready' as const, points: query.data ?? [] }
+  return <ExamResultView result={result} filter={filter} onFilter={onFilter} weakPoints={weakPoints} />
 }

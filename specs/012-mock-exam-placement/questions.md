@@ -1,5 +1,11 @@
 # Chốt — Spec 012
 
+## 2026-11-06 — T-16 điểm yếu theo mastery (leader duyệt)
+
+- Q-T16-01: Sắp mastery tăng dần, đồng điểm thì KID tăng dần. “3–5” nghĩa là lấy tối đa 5 và trả đủ số KID có nếu ít hơn 5, kể cả 0–2.
+- Q-T16-02: Đọc mọi câu trong snapshot đã phát, kể cả câu đúng, sai và bỏ trống. Lấy primaryKid theo nhãn hiện tại, loại trùng và tra tên từ cây hiện tại như kết quả đề. Chưa có minh chứng thì mastery = 0 và giữ state do reader trả, thông thường là notyet.
+- Q-T16-03: Bổ sung tài liệu runtime cho runId và body placement/targeted practice theo YAML như đã giao từ T-17. Giữ nguyên logic xử lý request và đường dẫn. Kiểm schema runtime cùng endpoint weak-points.
+
 ## 2026-11-05 — T-17 tích hợp màn đề thi (leader duyệt)
 
 - SCR-022 mở luyện tập theo KID (FR-026). DTO kết quả hiện không có ID câu. SCR-023 tiếp tục chuyển tham số URL `exclude` hợp lệ thành `excludeQuestionId`. Truyền ID trực tiếp từ câu sai thuộc backlog.

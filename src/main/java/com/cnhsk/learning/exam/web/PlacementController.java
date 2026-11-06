@@ -14,6 +14,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
@@ -48,7 +51,10 @@ public class PlacementController {
     }
 
     @PostMapping("/api/placement/runs")
-    @Operation(operationId = "startPlacementRun", tags = "placement")
+    @Operation(operationId = "startPlacementRun", tags = "placement",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = PlacementStartRequest.class))))
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "OK"),
             @ApiResponse(responseCode = "201", description = "Created"),
@@ -72,7 +78,8 @@ public class PlacementController {
             @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "429", description = "Rate limit exceeded")
     })
-    public ResponseEntity<PlacementStep> next(@PathVariable String runId) {
+    public ResponseEntity<PlacementStep> next(
+            @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String runId) {
         var step = placement.next(auth.currentUser().userId(), runId(runId));
         return ResponseEntity.status(step.created() ? HttpStatus.CREATED : HttpStatus.OK)
                 .body(new PlacementStep(step.runId(), step.session(), step.session() == null ? true : null));
@@ -86,7 +93,8 @@ public class PlacementController {
             @ApiResponse(responseCode = "403", description = "Forbidden"),
             @ApiResponse(responseCode = "409", description = "Attempt not submitted or run not concluded")
     })
-    public PlacementService.Result result(@PathVariable String runId) {
+    public PlacementService.Result result(
+            @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String runId) {
         return placement.result(auth.currentUser().userId(), runId(runId));
     }
 
@@ -128,4 +136,7 @@ public class PlacementController {
             @JsonInclude(JsonInclude.Include.NON_NULL) Boolean concluded) {}
 
     public record StartedRun(long runId, SessionView session) {}
+
+    private record PlacementStartRequest(
+            @Schema(type = "integer", types = {"integer"}, minimum = "1", maximum = "3") Integer startLevel) {}
 }

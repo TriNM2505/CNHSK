@@ -178,7 +178,9 @@ export const previews = [
         result: examReviewFixture,
         filter: 'ALL',
         onFilter: () => undefined,
-        showWeakPoints: false,
+        weakPoints: { state: 'ready', points: [
+          { kid: 'NP1-101', nameVi: 'Trật tự từ', mastery: 20, state: null },
+        ] },
       }),
   },
   {

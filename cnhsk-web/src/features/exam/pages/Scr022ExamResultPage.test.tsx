@@ -1,6 +1,6 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { Link, MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getExamResult, getExamWeakPoints } from '../api/exams'
 import { examReviewFixture } from '../test-fixtures'
@@ -22,15 +22,65 @@ describe('SCR-022 exam result FR-026 / AT-27', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.mocked(getExamResult).mockResolvedValue(examReviewFixture)
+    vi.mocked(getExamWeakPoints).mockResolvedValue([])
   })
-  it('shows weighted scores, first-attempt result and keeps weak points off', async () => {
+  it('shows weighted scores and hides the weak points section when its list is empty', async () => {
     open()
     expect(await screen.findByText('Điểm trọng số: 2/5 (40%)')).toBeVisible()
     expect(screen.getByText('Số câu đúng: 1/3')).toBeVisible()
     expect(screen.getByText('Đọc hiểu: 2/5')).toBeVisible()
-    expect(screen.queryByText(/Lần trước|Điểm yếu cần luyện|đỗ|trượt/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Lần trước|đỗ|trượt/i)).not.toBeInTheDocument()
     expect(getExamResult).toHaveBeenCalledWith(5101, expect.any(AbortSignal))
+    expect(getExamWeakPoints).toHaveBeenCalledWith(5101, expect.any(AbortSignal))
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Điểm yếu cần luyện' })).not.toBeInTheDocument())
+  })
+  it('loads weak points after the main result and links each KID to targeted practice', async () => {
+    let resolveResult!: (value: typeof examReviewFixture) => void
+    vi.mocked(getExamResult).mockReturnValue(new Promise((resolve) => { resolveResult = resolve }))
+    vi.mocked(getExamWeakPoints).mockResolvedValue([
+      { kid: 'NP1-101', nameVi: 'Trật tự từ', mastery: 0, state: 'notyet' },
+      { kid: 'TV1-102', nameVi: 'Từ chỉ thời gian', mastery: 20, state: null },
+    ])
+    open()
     expect(getExamWeakPoints).not.toHaveBeenCalled()
+    resolveResult(examReviewFixture)
+    const region = await screen.findByRole('region', { name: 'Điểm yếu cần luyện' })
+    expect(await within(region).findByText(/Trật tự từ.*0%/)).toBeVisible()
+    expect(within(region).getAllByRole('link', { name: 'Luyện nút này' }).map((link) => link.getAttribute('href')))
+      .toEqual(['/learn/practice/targeted?kid=NP1-101', '/learn/practice/targeted?kid=TV1-102'])
+  })
+  it('keeps the result visible during loading and retries only the weak points request', async () => {
+    let rejectPoints!: (reason: Error) => void
+    vi.mocked(getExamWeakPoints).mockReturnValueOnce(new Promise((_, reject) => { rejectPoints = reject }))
+    open()
+    expect(await screen.findByText('Đang tải điểm yếu…')).toBeVisible()
+    expect(screen.getByText('Điểm trọng số: 2/5 (40%)')).toBeVisible()
+    rejectPoints(new Error('fixture'))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Không thể tải điểm yếu.')
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Điểm yếu cần luyện' })).not.toBeInTheDocument())
+    expect(getExamResult).toHaveBeenCalledTimes(1)
+    expect(getExamWeakPoints).toHaveBeenCalledTimes(2)
+  })
+  it('does not request weak points if the main result fails', async () => {
+    vi.mocked(getExamResult).mockRejectedValue(new Error('fixture'))
+    open()
+    expect(await screen.findByRole('alert')).toBeVisible()
+    expect(getExamWeakPoints).not.toHaveBeenCalled()
+  })
+  it('aborts weak points when the learner navigates to another attempt', async () => {
+    vi.mocked(getExamWeakPoints).mockImplementationOnce(() => new Promise(() => undefined))
+    render(
+      <MemoryRouter initialEntries={['/learn/exams/results/5101']}>
+        <Link to="/learn/exams/results/5102">Lượt khác</Link>
+        <Routes><Route path="/learn/exams/results/:sessionId" element={<Scr022ResultRoute />} /></Routes>
+      </MemoryRouter>,
+    )
+    expect(await screen.findByText('Đang tải điểm yếu…')).toBeVisible()
+    const signal = vi.mocked(getExamWeakPoints).mock.calls[0]?.[1]
+    await userEvent.click(screen.getByRole('link', { name: 'Lượt khác' }))
+    await waitFor(() => expect(getExamWeakPoints).toHaveBeenLastCalledWith(5102, expect.any(AbortSignal)))
+    expect(signal?.aborted).toBe(true)
   })
   it('filters wrong and blank separately, shows answers and links only where a KID exists', async () => {
     const user = userEvent.setup()
@@ -75,5 +125,6 @@ describe('SCR-022 exam result FR-026 / AT-27', () => {
     open(id)
     expect(screen.getByRole('alert')).toHaveTextContent('Không tìm thấy kết quả')
     expect(getExamResult).not.toHaveBeenCalled()
+    expect(getExamWeakPoints).not.toHaveBeenCalled()
   })
 })
