@@ -196,3 +196,20 @@ Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, 
 - Full `mvnw verify`: **BUILD SUCCESS**, **3.499 test**, 0 failure, 0 error, 0 skipped, exit 0. AT-12/E8/NFR-P01 được chạy lại trong full suite; không phát hiện lỗi.
 - JaCoCo LINE: **96,78%** — **10.190/10.529 dòng** (339 missed); mọi coverage check đạt.
 - Trong lượt full verify, origin/main được fetch từ `74f1c67` lên `83a815f`. Thay đổi `application.yaml` trên main chỉ thêm khối `cnhsk.ai`; khối `cnhsk.mastery` của T-09 nằm ở vùng riêng, không chồng lấn. Không rebase/merge main.
+
+## 2026-11-06 — Chốt 011/T-08
+
+1. `MasteryRebuilder.rebuild(userId)` chỉ được gọi trong test và bảo trì; không API, scheduled job hay tự kích hoạt khi nhãn đổi. Người bảo trì chọn người học cần chạy.
+2. `MasteryUpdater.update(userId, fresh, at)` nhận thời điểm phát lại; overload hiện có gọi overload này với `clock.instant()` để giữ nguyên hành vi finish. Rebuild truyền `attempt.submittedAt`.
+3. Cập nhật mastery và rebuild khóa transaction theo user bằng `pg_advisory_xact_lock(hashtextextended('mastery:user:' || userId, 0))` trước INSERT/FOR UPDATE; sau đó vẫn khóa progress row theo `knowledge_points.id` tăng dần. Việc thêm một truy vấn khóa mỗi finish không làm NFR-P01 tăng theo số câu.
+4. **Q-T08-04 thay thế:** allocator giữ nguyên và tra nhãn theo từng lượt. Rebuild cho kết quả theo nhãn tại lúc phát lại từng lượt (E9). Chỉ chạy khi bảo trì, lúc nhãn ổn định. Nếu nhãn đổi giữa chừng thì chạy lại rebuild; thao tác lặp lại an toàn vì luôn xóa rồi dựng lại từ đầu.
+5. Lịch sử sắp `submitted_at ASC`, rồi `attempt.id ASC` khi thời điểm trùng. Mỗi rebuild xóa trong cùng transaction và chỉ các dòng `KNOWLEDGE_POINT` của đúng user; lỗi thì rollback.
+6. AT-13 dùng 40 lượt `SUBMITTED` trộn nguồn, chưa có `DUE_REVIEW`; fixture đặt `answered_at` bằng SQL và điều khiển `Clock`. **011/T-14 bổ sung ca DUE_REVIEW cho AT-13.**
+7. AT-13 so sánh `mastery`, `confidence`, `mp_state`, `evidence_item_ids` và `next_review_at` giữa finish/listener thật với rebuild. Có ca đổi nhãn câu trước khi rebuild để xác nhận E9.
+
+### Kết quả gate T-08
+
+- Targeted T-08 cùng regression mastery T-06/T-07/T-09 và SecurityConfig: **92 test, 0 failure, 0 error, 0 skipped**, exit 0. Riêng `MasteryRebuilderIntegrationTest`: **5 test PASS**, gồm AT-13 40 lượt trộn nguồn, rebuild lặp ổn định, đổi nhãn E9, cách ly user/FLASHCARD, rollback và finish chạy song song với rebuild trên PostgreSQL/Testcontainers.
+- Full `.\mvnw.cmd -B verify`: **BUILD SUCCESS**, **3.578 test**, 0 failure, 0 error, 0 skipped, exit 0; thời gian 15:46. Docker Testcontainers hoạt động; không phát sinh ngoại lệ môi trường được liệt kê.
+- JaCoCo LINE: **96,82%** — **10.428/10.770 dòng** (342 missed); mọi coverage check đạt.
+- Regression T-07 giữ NFR-P01: **16 truy vấn đọc** cho cả lượt 10 câu và 50 câu.
