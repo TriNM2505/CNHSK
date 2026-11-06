@@ -92,13 +92,14 @@ class MasteryControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void generatedOpenApiHasBothMasteryRoutesAndContractTypes() throws Exception {
+    void generatedOpenApiHasMasteryRoutesAndRecommendationContractTypes() throws Exception {
         MockMvc openApiMvc = MockMvcBuilders.webAppContextSetup(context).build();
         MvcResult response = openApiMvc.perform(get("/v3/api-docs")).andExpect(status().isOk()).andReturn();
         JsonNode openApi = mapper.readTree(response.getResponse().getContentAsByteArray());
 
         assertThat(openApi.path("paths").path("/api/mastery").has("get")).isTrue();
         assertThat(openApi.path("paths").path("/api/mastery/nodes/{kid}").has("get")).isTrue();
+        assertThat(openApi.path("paths").path("/api/mastery/recommendations").has("get")).isTrue();
         assertThat(openApi.path("paths").path("/api/mastery").path("get").path("responses").has("401")).isTrue();
         assertThat(openApi.path("paths").path("/api/mastery/nodes/{kid}").path("get")
                 .path("responses").has("404")).isTrue();
@@ -106,6 +107,41 @@ class MasteryControllerIntegrationTest extends AbstractIntegrationTest {
                 .path("properties").path("evidenceCount").path("type").asText()).isEqualTo("integer");
         assertThat(openApi.path("components").path("schemas").path("MasteryNode")
                 .path("properties").path("confidence").path("type").asText()).isEqualTo("number");
+        JsonNode recommendations = openApi.path("paths").path("/api/mastery/recommendations").path("get")
+                .path("responses").path("200").path("content").path("application/json").path("schema");
+        assertThat(recommendations.path("type").asText()).isEqualTo("array");
+        assertThat(recommendations.path("maxItems").asInt()).isEqualTo(5);
+        JsonNode recommendationValue = openApi.path("components").path("schemas").path("Recommendation")
+                .path("properties").path("value");
+        assertThat(recommendationValue.path("type").isArray()).isTrue();
+        assertThat(recommendationValue.path("type").toString()).isEqualTo("[\"number\",\"null\"]");
+        assertThat(recommendationValue.has("format")).isFalse();
+    }
+
+    @Test
+    void recommendationsRequireLearnerAndIncludeNullableValueForNewNode() throws Exception {
+        mvc.perform(get("/api/mastery/recommendations"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error_code").value("UNAUTHENTICATED"));
+
+        long learner = user();
+        long nodeId = node();
+        long questionId = question(nodeId);
+        mvc.perform(get("/api/mastery/recommendations")
+                        .header("Authorization", bearer(learner, "CONTENT_EDITOR")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error_code").value("FORBIDDEN"));
+
+        JsonNode response = mapper.readTree(mvc.perform(get("/api/mastery/recommendations")
+                        .header("Authorization", bearer(learner, "LEARNER")))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray());
+        assertThat(response).hasSize(1);
+        assertThat(response.get(0).path("kid").asText())
+                .isEqualTo(jdbc.queryForObject("SELECT code FROM learning.knowledge_points WHERE id=?", String.class, nodeId));
+        assertThat(response.get(0).path("kind").asText()).isEqualTo("NEW");
+        assertThat(response.get(0).has("value")).isTrue();
+        assertThat(response.get(0).path("value").isNull()).isTrue();
+        assertThat(response.get(0).path("reason").asText()).isEqualTo("Nút mới đã đủ tiên quyết.");
     }
 
     @Test
