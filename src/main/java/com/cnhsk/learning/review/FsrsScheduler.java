@@ -15,6 +15,7 @@ public final class FsrsScheduler {
     private static final Duration ONE_DAY = Duration.ofDays(1);
     private static final BigDecimal NINETEEN = BigDecimal.valueOf(19);
     private static final BigDecimal EIGHTY_ONE = BigDecimal.valueOf(81);
+    private static final BigDecimal S_MAX = new BigDecimal("36500");
 
     private final Settings settings;
 
@@ -90,7 +91,7 @@ public final class FsrsScheduler {
                 .divide(retentionSquared.multiply(NINETEEN), 0, RoundingMode.HALF_UP);
         int days = interval.max(BigDecimal.valueOf(settings.minIntervalDays()))
                 .min(BigDecimal.valueOf(settings.maxIntervalDays())).intValueExact();
-        return new Result(stability, difficulty, lapseCount, days, now.plus(days, ChronoUnit.DAYS));
+        return new Result(stability.min(S_MAX), difficulty, lapseCount, days, now.plus(days, ChronoUnit.DAYS));
     }
 
     private static void validateMemory(BigDecimal stability, BigDecimal difficulty, int lapseCount) {

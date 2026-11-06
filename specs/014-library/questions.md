@@ -1,5 +1,41 @@
 # Chốt — Spec 014
 
+## 2026-11-06 — Leader duyệt 014/T-12, kèm chỉnh
+
+- Fetch origin/main `bcf89cb`, tạo nhánh `spec/014-t12-flashcard-review` và worktree `CNHSK-014-t12` từ base này. Chỉ triển khai T-12 theo duyệt, không rebase/merge hoặc đụng thay đổi riêng ở worktree gốc.
+- Allowlist tối đa 20 file (contract chỉ đổi cho ahead sai kiểu):
+  1. `src/main/java/com/cnhsk/learning/library/FlashcardReviewService.java`
+  2. `src/main/java/com/cnhsk/learning/library/FlashcardReviewRepository.java`
+  3. `src/main/java/com/cnhsk/learning/library/web/FlashcardReviewController.java`
+  4. `src/main/java/com/cnhsk/learning/library/web/FlashcardReviewWrite.java`
+  5. `src/main/java/com/cnhsk/learning/library/web/DeckController.java`
+  6. `src/main/java/com/cnhsk/learning/library/LibraryRateLimiter.java`
+  7. `src/main/java/com/cnhsk/learning/library/LibraryConfig.java`
+  8. `src/main/java/com/cnhsk/shared/config/SecurityConfig.java`
+  9. `src/main/resources/application.yaml`
+  10. `src/test/java/com/cnhsk/learning/library/FlashcardReviewIntegrationTest.java`
+  11. `src/test/java/com/cnhsk/learning/library/FlashcardReviewConcurrencyIntegrationTest.java`
+  12. `src/test/java/com/cnhsk/learning/library/FlashcardReviewQueryCountIntegrationTest.java`
+  13. `src/test/java/com/cnhsk/shared/config/FlashcardReviewSecurityConfigIntegrationTest.java`
+  14. `src/test/java/com/cnhsk/learning/library/LibraryRateLimiterTest.java`
+  15. `src/test/java/com/cnhsk/learning/library/LibraryConfigTest.java`
+  16. `specs/014-library/contracts/openapi-library.yaml`
+  17. `specs/014-library/questions.md`
+  18. `specs/014-library/tasks.md`
+  19. `src/main/java/com/cnhsk/learning/review/FsrsScheduler.java`
+  20. `src/test/java/com/cnhsk/learning/review/FsrsSchedulerTest.java`
+- Q-T12-01: base chưa có bean FsrsScheduler. Service dùng ObjectProvider: inject bean nếu đã có; nếu chưa thì tạo từ FsrsConfig.settings(), không đăng ký bean mới. Không sửa bất kỳ file 011 nào ngoài đúng cặp FsrsScheduler/FsrsSchedulerTest được leader bổ sung.
+- Q-T12-02: repository riêng dùng native query, không thêm entity và không sửa LexemeSchedule/repository của 011. READ_COMMITTED, advisory library:decks:<userId> → kiểm và khoá bộ/thẻ FOR UPDATE OF c,i → Clock lấy một lần (độ chính xác microsecond của DB) → INSERT FLASHCARD ON CONFLICT DO NOTHING RETURNING → SELECT đúng khoá user_id/FLASHCARD/cardId FOR UPDATE → UPDATE chỉ stability, difficulty, next_review_at, review_count+1, lapse_count, last_seen_at, updated_at. INSERT có kết quả thì first(), không thì review(Memory từ DB); không suy ra lần đầu từ review_count. Không UPDATE mastery, không attempt_items, không event mastery.
+- Q-T12-03: due luôn JOIN bộ/thẻ chưa xoá, đúng chủ và kind; progress của thẻ/bộ đã xoá vẫn giữ trong DB nhưng không ảnh hưởng danh sách. Thẻ mới chỉ khi chưa có dòng FLASHCARD của người gọi. SQL due gồm đúng 2 SELECT: sở hữu bộ và CTE lấy tối đa 100; quá hạn lâu nhất trước, rồi thẻ mới theo order_index/id. ahead=true chỉ lấy tương lai khi toàn bộ tập đến hạn/mới rỗng, không bù đủ 100. Không dùng session-max-items=50 của 011.
+- Q-T12-04 (leader chỉnh): validate body hoàn tất trước khi gọi limiter, rồi mới kiểm sở hữu. 403 nghiệp vụ tính một lần, mọi 422 body không tính; 401/sai role/CSRF bị chặn trước controller không tính. Không ModelAttribute. DTO validate JSON và rating trước limiter, dùng ApiException VALIDATION_FAILED hiện có cho thiếu/sai rating hoặc JSON không hợp lệ; không thêm exception handler cục bộ, không sửa GlobalExceptionHandler.
+- Rate limit riêng library:flashcards:review:user:<userId>:yyyyMMddHH, cửa sổ giờ UTC, cnhsk.library.flashcard-reviews-per-hour: 500 bắt buộc và dương lúc khởi động. Lượt 501 trả RATE_LIMITED + retryAfterSeconds làm tròn lên, không thêm Retry-After. Redis lỗi giữ fail-open và WARN không kèm thông tin kết nối như limiter hiện có. Matcher chỉ thêm một dòng LEARNER /api/flashcards/**; due dùng matcher bộ thẻ hiện có.
+- Theo cách dictionary/notes hiện xử lý query param bằng chuỗi và kiểm thủ công, ahead chỉ nhận true/false, thiếu là false; sai kiểu trả 422 VALIDATION_FAILED. Contract chỉ thêm response 422 cho GET /due, không thêm header Retry-After hoặc sửa response chung.
+- Leader duyệt sửa FsrsScheduler: cap stability ở S_MAX=36500 trong hàm result dùng chung cho first/review, sau tính interval để giữ công thức/giới hạn ngày hiện có. Giữ guard stability không hữu hạn/không dương, không clamp trong repository, không migration. first(AGAIN) lapse=0 theo 011; AGAIN tăng lapse kiểm ở lượt sau. Thêm test first vượt trần và chuỗi EASY cùng ngày đạt 36500; integration kiểm ghi DB thành công, không 500.
+- Gate chọn lọc toàn bộ test library + FsrsSchedulerTest/FsrsConfigTest và security mới; sau đó full mvnw.cmd -B verify (Java 17, DEBUG=false, Docker). Báo stability/2 SELECT/full verify/JaCoCo LINE; giữ assertion và ngưỡng test cũ. Chỉ ngoại lệ môi trường được leader duyệt (FR023, NFR_P04, LoginAttempt PEXPIRETIME/CapturedOutput, QuestionAdminControllerIntegrationTest.NFR_P02 chỉ p95) được báo tên/số đo và vẫn mở PR. Không skip/hạ ngưỡng. Commit từng file cụ thể, một conventional commit, Draft PR; fetch/báo thay đổi file dùng chung, không merge/rebase/force-push.
+- Chọn lọc bản cuối PASS 373/373, 0 failure/error/skip: FsrsSchedulerTest 42/42 (giữ toàn bộ test 011 cũ), FsrsConfigTest 36/36; review integration 24, concurrency 5, query-count 4, security 7 đều PASS. Chuỗi EASY cùng ngày ghi DB stability=36500, interval 365, 30 lượt không 500; hai lượt đầu đồng thời một dòng/count=2. Due đo đúng 2 SELECT với 0/1/120/500 thẻ và khi fallback ahead; ID thiếu 1 SELECT, sai định dạng 0. ahead sai kiểu thực tế 422 nên contract chỉ thêm đúng response 422 cho due. Body sai/thiếu/malformed/trailing JSON đều 422 không tăng counter; 403 nghiệp vụ tính một lần, lượt 501 là 429 không Retry-After.
+- Full `mvnw.cmd -B verify` PASS: 3.799 test, 0 failure/error/skip, 17 phút 38 giây; Java 17, DEBUG=false, Docker. JaCoCo LINE 10.881/11.249 = 96,7286%; library và web 798/808, review 146/158. NFR-P04 sổ tay 1.000 ghi chú p95 93,108 ms, giữ nguyên ngưỡng 200 ms. Không dùng ngoại lệ môi trường; đánh ✅ T-12, tổng 11/15 theo duyệt.
+- Fetch cuối trước PR: origin/main vẫn `bcf89cb`, không file nào trong 20 file allowlist đổi so với base. Self-check PASS: đúng 20 file, diff sạch, UTF-8 không BOM, không thêm dấu việc chưa làm trong code/dòng thêm; chỉ hai file FSRS được sửa trong learning/review. Không dependency mới, không SQL nối input người dùng hoặc truy vấn xuyên module; không log nội dung riêng/credential. Không sửa ErrorCode, GlobalExceptionHandler, LexemeSchedule/repository, migration, FE hoặc cấu hình credentials; không thêm bean FSRS, header hay handler cục bộ. Giữ assertion/ngưỡng test cũ, commit/push đúng nhánh đã duyệt; không merge/rebase/force-push.
+
 ## 2026-11-05 — Leader duyệt 014/T-11
 
 - PR #103/T-10 đã merge tại `5530c76`; đã fetch và tạo nhánh `spec/014-t11`, worktree `CNHSK-014-t11` từ đúng origin/main này. Base có V6 `mastery_progress`, T-09/T-10 và tổng 9/15; code dùng lại của T-10 khớp kế hoạch. Không rebase hoặc sửa worktree gốc.

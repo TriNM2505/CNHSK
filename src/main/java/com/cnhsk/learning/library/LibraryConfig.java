@@ -31,6 +31,14 @@ public class LibraryConfig {
     @Min(1)
     private Integer maxCards;
 
+    @NotNull
+    @Min(1)
+    private Integer flashcardReviewsPerHour;
+
+    public Integer getFlashcardReviewsPerHour() { return flashcardReviewsPerHour; }
+
+    public void setFlashcardReviewsPerHour(Integer value) { flashcardReviewsPerHour = value; }
+
     public Integer getMaxDecks() { return maxDecks; }
 
     public void setMaxDecks(Integer maxDecks) { this.maxDecks = maxDecks; }

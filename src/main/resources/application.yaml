@@ -89,6 +89,7 @@ cnhsk:
     max-notes: 1000
     max-decks: 50
     max-cards: 500
+    flashcard-reviews-per-hour: 500
   import:
     max-file-size: 2MB
     max-rows: 5000

@@ -81,10 +81,54 @@ class LibraryRateLimiterTest {
         }
     }
 
+    @Test
+    void T12_reviewAllows500AndRejects501WithAnIndependentUserCounter() {
+        when(counters.increment(anyString(), any())).thenReturn(500L, 501L);
+        var limiter = limiter("2026-11-06T12:30:00Z", 60, 600);
+        assertThatCode(() -> limiter.checkFlashcardReview(7L)).doesNotThrowAnyException();
+        assertThatThrownBy(() -> limiter.checkFlashcardReview(7L)).isInstanceOfSatisfying(ApiException.class, error -> {
+            assertThat(error.getCode()).isEqualTo(ErrorCode.RATE_LIMITED);
+            assertThat(error.getStatus()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+            assertThat(error.getExtra()).containsOnlyKeys("retryAfterSeconds").containsEntry("retryAfterSeconds", 1800L);
+        });
+        verify(counters, org.mockito.Mockito.times(2)).increment("library:flashcards:review:user:7:2026110612", Duration.ofMinutes(30));
+    }
+
+    @Test
+    void T12_reviewUsesConfiguredLimitAndNewUtcHourKey() {
+        when(counters.increment(anyString(), any())).thenReturn(3L);
+        LibraryConfig config = new LibraryConfig();
+        config.setFlashcardReviewsPerHour(2);
+        var limiter = new LibraryRateLimiter(counters, Clock.fixed(Instant.parse("2026-11-06T12:59:59.999Z"), ZoneOffset.UTC), config);
+        assertThatThrownBy(() -> limiter.checkFlashcardReview(7L)).isInstanceOfSatisfying(ApiException.class, error ->
+                assertThat(error.getExtra()).containsEntry("retryAfterSeconds", 1L));
+        verify(counters).increment("library:flashcards:review:user:7:2026110612", Duration.ofSeconds(1));
+        limiter("2026-11-06T13:00:00Z", 60, 600).checkFlashcardReview(7L);
+        verify(counters).increment("library:flashcards:review:user:7:2026110613", Duration.ofHours(1));
+    }
+
+    @Test
+    void T12_reviewCounterFailureAllowsRequestAndWarnsWithoutConnectionDetails() {
+        when(counters.increment(anyString(), any())).thenThrow(new IllegalStateException("fake-review-connection-secret"));
+        Logger logger = (Logger) LoggerFactory.getLogger(LibraryRateLimiter.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            assertThatCode(() -> limiter("2026-11-06T12:00:00Z", 60, 600).checkFlashcardReview(7L)).doesNotThrowAnyException();
+            assertThat(appender.list).singleElement().satisfies(event -> {
+                assertThat(event.getLevel().toString()).isEqualTo("WARN");
+                assertThat(event.getFormattedMessage()).doesNotContain("fake-review-connection-secret");
+                assertThat(event.getThrowableProxy()).isNull();
+            });
+        } finally { logger.detachAppender(appender); appender.stop(); }
+    }
+
     private LibraryRateLimiter limiter(String now, int guest, int authenticated) {
         LibraryConfig config = new LibraryConfig();
         config.setGuestLookupsPerHour(guest);
         config.setAuthenticatedLookupsPerHour(authenticated);
+        config.setFlashcardReviewsPerHour(500);
         return new LibraryRateLimiter(counters, Clock.fixed(Instant.parse(now), ZoneOffset.UTC), config);
     }
 }

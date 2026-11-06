@@ -21,7 +21,8 @@ class LibraryConfigTest {
     void FR002_bindsBothRequiredLookupLimits() {
         runner.withPropertyValues("cnhsk.library.guest-lookups-per-hour=60",
                 "cnhsk.library.authenticated-lookups-per-hour=600", "cnhsk.library.max-notes=1000",
-                "cnhsk.library.max-decks=50", "cnhsk.library.max-cards=500").run(context -> {
+                "cnhsk.library.max-decks=50", "cnhsk.library.max-cards=500",
+                "cnhsk.library.flashcard-reviews-per-hour=500").run(context -> {
                     assertThat(context).hasNotFailed();
                     LibraryConfig config = context.getBean(LibraryConfig.class);
                     assertThat(config.getGuestLookupsPerHour()).isEqualTo(60);
@@ -29,14 +30,15 @@ class LibraryConfigTest {
                     assertThat(config.getMaxNotes()).isEqualTo(1000);
                     assertThat(config.getMaxDecks()).isEqualTo(50);
                     assertThat(config.getMaxCards()).isEqualTo(500);
+                    assertThat(config.getFlashcardReviewsPerHour()).isEqualTo(500);
                 });
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"guest-lookups-per-hour", "authenticated-lookups-per-hour", "max-notes", "max-decks", "max-cards"})
+    @ValueSource(strings = {"guest-lookups-per-hour", "authenticated-lookups-per-hour", "max-notes", "max-decks", "max-cards", "flashcard-reviews-per-hour"})
     void FR002_missingEitherLimitPreventsStartup(String missing) {
         var configured = runner;
-        for (String field : new String[] {"guest-lookups-per-hour", "authenticated-lookups-per-hour", "max-notes", "max-decks", "max-cards"}) {
+        for (String field : new String[] {"guest-lookups-per-hour", "authenticated-lookups-per-hour", "max-notes", "max-decks", "max-cards", "flashcard-reviews-per-hour"}) {
             if (!field.equals(missing)) configured = configured.withPropertyValues("cnhsk.library." + field + "=1000");
         }
         configured.run(context -> assertThat(context).hasFailed());
@@ -45,10 +47,11 @@ class LibraryConfigTest {
     @ParameterizedTest
     @ValueSource(strings = {"0", "-1", "abc", "2147483648"})
     void FR002_invalidLimitsPreventStartup(String invalid) {
-        for (String field : new String[] {"guest-lookups-per-hour", "authenticated-lookups-per-hour", "max-notes", "max-decks", "max-cards"}) {
+        for (String field : new String[] {"guest-lookups-per-hour", "authenticated-lookups-per-hour", "max-notes", "max-decks", "max-cards", "flashcard-reviews-per-hour"}) {
             runner.withPropertyValues("cnhsk.library.guest-lookups-per-hour=60",
                     "cnhsk.library.authenticated-lookups-per-hour=600", "cnhsk.library.max-notes=1000",
                     "cnhsk.library.max-decks=50", "cnhsk.library.max-cards=500",
+                    "cnhsk.library.flashcard-reviews-per-hour=500",
                     "cnhsk.library." + field + "=" + invalid)
                     .run(context -> assertThat(context).hasFailed());
         }

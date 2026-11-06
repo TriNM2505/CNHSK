@@ -243,6 +243,31 @@ class FsrsSchedulerTest {
         }
     }
 
+    @ParameterizedTest
+    @EnumSource(Rating.class)
+    void T12_firstStabilityIsCappedWithoutChangingTheBoundedInterval(Rating rating) {
+        List<Double> weights = new ArrayList<>(WEIGHTS);
+        for (int index = 0; index < 4; index++) weights.set(index, 1_000_000.0);
+        Result result = scheduler(weights, "0.9", 1, 365).first(rating, NOW);
+        assertThat(result.stability()).isEqualByComparingTo("36500");
+        assertThat(result.intervalDays()).isEqualTo(365);
+        assertThat(result.nextReviewAt()).isEqualTo(NOW.plus(365, ChronoUnit.DAYS));
+        assertThat(result.lapseCount()).isZero();
+    }
+
+    @Test
+    void T12_sameDayEasySequenceSaturatesStabilityAtFsrsMaximum() {
+        Result result = scheduler.first(Rating.EASY, NOW);
+        for (int count = 1; count < 50; count++) {
+            result = scheduler.review(new Memory(result.stability(), result.difficulty(), NOW, result.lapseCount()), Rating.EASY, NOW);
+            assertThat(result.stability()).isLessThanOrEqualTo(new BigDecimal("36500"));
+        }
+        assertThat(result.stability()).isEqualByComparingTo("36500");
+        assertThat(result.intervalDays()).isEqualTo(365);
+        assertThat(result.nextReviewAt()).isEqualTo(NOW.plus(365, ChronoUnit.DAYS));
+        assertThat(result.lapseCount()).isZero();
+    }
+
     private Memory memory(String stability, String difficulty, int lapses) {
         return new Memory(new BigDecimal(stability), new BigDecimal(difficulty), NOW, lapses);
     }
