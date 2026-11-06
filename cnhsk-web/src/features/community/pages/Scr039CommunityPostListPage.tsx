@@ -69,6 +69,7 @@ function CommunityPostListContent() {
   const isLearner = authStatus === 'authenticated' && Boolean(user?.roles.includes('LEARNER'))
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const requestedMine = searchParams.get('tab') === 'mine'
   const mode = requestedMine && isLearner ? 'mine' : 'public'
   const [category, setCategory] = useState<PostCategory | ''>('')
@@ -87,7 +88,7 @@ function CommunityPostListContent() {
     }
   }, [authStatus, isLearner, searchParams, setSearchParams])
 
-  const onWrite = () => navigate(isLearner ? '/community/posts/new' : '/login')
+  const onWrite = () => navigate(isLearner ? '/community/posts/new' : '/login', isLearner ? { state: { communityEditorOrigin: `${location.pathname}${location.search}` } } : undefined)
   const onTabChange = (tab: 'public' | 'mine') => {
     const next = new URLSearchParams(searchParams)
     if (tab === 'mine') next.set('tab', 'mine')

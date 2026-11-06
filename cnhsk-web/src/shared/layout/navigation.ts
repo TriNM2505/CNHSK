@@ -1,4 +1,4 @@
-import { BookOpen, Gamepad2, Languages, Mic2, PenTool, Upload, UsersRound } from 'lucide-react'
+import { BookOpen, Flag, Gamepad2, Languages, Mic2, PenTool, ShieldCheck, Upload, UsersRound } from 'lucide-react'
 import type { ComponentType, SVGProps } from 'react'
 
 import type { RoleCode } from '@/features/auth/types'
@@ -57,6 +57,20 @@ export const adminNavigation: readonly NavigationItem[] = [
     label: 'Người dùng',
     role: 'ADMIN',
     to: '/admin/users',
+  },
+  {
+    activePrefixes: ['/moderation/posts'],
+    icon: ShieldCheck,
+    label: 'Bài chờ duyệt',
+    role: 'MODERATOR',
+    to: '/moderation/posts',
+  },
+  {
+    activePrefixes: ['/moderation/reports'],
+    icon: Flag,
+    label: 'Báo cáo vi phạm',
+    role: 'MODERATOR',
+    to: '/moderation/reports',
   },
 ]
 

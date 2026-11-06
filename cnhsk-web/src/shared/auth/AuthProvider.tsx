@@ -8,6 +8,7 @@ import type { CurrentUser } from '@/features/auth/types'
 import { ApiError, AUTH_EXPIRED_EVENT, type AuthExpiredDetail, toApiError } from '@/shared/api'
 
 import { AuthContext, type AuthContextValue, type AuthStatus } from './AuthContext'
+import { clearPrivateSessionStorage } from './session-private-storage'
 
 type AuthProviderProps = {
   children: ReactNode
@@ -42,6 +43,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const requestVersionRef = useRef(0)
   const requestControllerRef = useRef<AbortController | null>(null)
   const accountBannedRef = useRef(false)
+  const lastAuthenticatedUserIdRef = useRef<CurrentUser['id'] | null>(null)
 
   const requiresAuthentication = matches.some(
     (match) => (match.handle as AuthRouteHandle | undefined)?.requiresAuthentication === true,
@@ -53,15 +55,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     requestControllerRef.current = null
   }, [])
 
+  const applyAuthenticatedUser = useCallback((nextUser: CurrentUser) => {
+    const previousUserId = lastAuthenticatedUserIdRef.current
+    if (previousUserId !== null && previousUserId !== nextUser.id) clearPrivateSessionStorage()
+    lastAuthenticatedUserIdRef.current = nextUser.id
+    accountBannedRef.current = false
+    setUser(nextUser)
+    setStatus('authenticated')
+    setError(null)
+  }, [])
+
   const setAuthenticatedUser = useCallback(
     (nextUser: CurrentUser) => {
       cancelCurrentRequest()
-      accountBannedRef.current = false
-      setUser(nextUser)
-      setStatus('authenticated')
-      setError(null)
+      applyAuthenticatedUser(nextUser)
     },
-    [cancelCurrentRequest],
+    [applyAuthenticatedUser, cancelCurrentRequest],
   )
 
   const reloadCurrentUser = useCallback(async () => {
@@ -76,9 +85,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const nextUser = await getCurrentUser(controller.signal)
       if (requestVersionRef.current !== requestVersion) return
-      accountBannedRef.current = false
-      setUser(nextUser)
-      setStatus('authenticated')
+      applyAuthenticatedUser(nextUser)
     } catch (caughtError) {
       if (requestVersionRef.current !== requestVersion || isAbortError(caughtError)) return
 
@@ -94,7 +101,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       if (requestVersionRef.current === requestVersion) requestControllerRef.current = null
     }
-  }, [cancelCurrentRequest])
+  }, [applyAuthenticatedUser, cancelCurrentRequest])
 
   const signOut = useCallback(async () => {
     try {
@@ -103,6 +110,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Trạng thái phía client vẫn phải được xoá khi máy chủ không thể phản hồi.
     } finally {
       cancelCurrentRequest()
+      clearPrivateSessionStorage()
+      lastAuthenticatedUserIdRef.current = null
       setUser(null)
       setStatus('guest')
       setError(null)

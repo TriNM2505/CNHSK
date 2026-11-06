@@ -8,6 +8,6 @@ export function CommentForm({ value, onChange, onSubmit, onCancel, disabled, lab
       <textarea id="discussion-content" className="min-h-32 w-full border border-line p-3" disabled={disabled} value={value} onChange={(event) => onChange(event.target.value)} />
     </FormField>
     <Button type="submit" disabled={disabled}>Gửi bình luận</Button>
-    <Button className="ml-3" type="button" variant="outline" disabled={disabled} onClick={onCancel}>Đóng</Button>
+    <Button className="ml-3" type="button" variant="outline" onClick={onCancel}>Đóng</Button>
   </form>
 }

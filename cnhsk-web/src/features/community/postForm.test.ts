@@ -1,10 +1,27 @@
 import { describe, expect, it } from 'vitest'
 
-import { parsePostId, toPostWrite, validatePostForm, type PostFormValues } from './postForm'
+import { getPostFormChanges, parsePostId, sanitizePostEditorOrigin, toPostWrite, validatePostForm, type PostFormValues } from './postForm'
 
 const valid: PostFormValues = { title: '  Tiêu đề  ', content: '  Nội dung  ', category: 'QUESTION' }
 
 describe('community post form helpers (FR-007, FR-010, FR-059)', () => {
+  it('compares raw values and retains intentional empty fields in the changed patch', () => {
+    expect(getPostFormChanges(valid, valid)).toEqual({})
+    expect(getPostFormChanges({ ...valid, title: '', content: `${valid.content} ` }, valid)).toEqual({ title: '', content: `${valid.content} ` })
+  })
+
+  it.each([
+    ['/community', '/community'],
+    ['/community?tab=mine', '/community?tab=mine'],
+    ['/community/posts/42?view=discussion#comments', '/community/posts/42?view=discussion'],
+  ])('keeps only an approved community origin pathname and search: %s', (value, expected) => {
+    expect(sanitizePostEditorOrigin(value)).toBe(expected)
+  })
+
+  it.each([undefined, null, {}, '', 'https://example.invalid/community', '//example.invalid/community', '/\\example.invalid/community', '/community/posts/new', '/community/posts/42/edit', '/community/posts/0', '/community/posts/9007199254740992', '/admin/users', '/community\n'])('rejects an unsupported editor origin %s', (value) => {
+    expect(sanitizePostEditorOrigin(value)).toBeUndefined()
+  })
+
   it.each([['42', 42], ['0042', 42], ['1', 1], ['9007199254740991', Number.MAX_SAFE_INTEGER]] as const)(
     'FR059_accepts positive safe integer route ID %s', (raw, expected) => {
       expect(parsePostId(raw)).toBe(expected)

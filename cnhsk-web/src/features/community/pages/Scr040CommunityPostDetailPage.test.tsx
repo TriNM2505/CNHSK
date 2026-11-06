@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CurrentUser } from '@/features/auth/types'
 import { AuthContext, type AuthContextValue } from '@/shared/auth'
@@ -10,7 +10,7 @@ import * as comments from '../api/comments'
 import * as moderation from '../api/moderation'
 import { reportContent } from '../api/reports'
 import { postDetail, comment, publicDiscussion, moderationComment } from '../test-fixtures'
-import type { Comment, ModerationComment, PostDetail } from '../types'
+import type { Comment, ModerationComment, PostDetail, ReportReceived } from '../types'
 import Scr040CommunityPostDetailPage from './Scr040CommunityPostDetailPage'
 
 vi.mock('../api/posts', () => ({ getPublishedPost: vi.fn(), getViewerState: vi.fn(), likePost: vi.fn(), unlikePost: vi.fn() }))
@@ -27,9 +27,13 @@ function Navigation() {
   const navigate = useNavigate()
   return <><button onClick={() => navigate('/community/posts/43')} type="button">Post B</button><button onClick={() => navigate('/community/posts/42')} type="button">Post A</button></>
 }
+function EditorDestination() {
+  const location = useLocation()
+  return <output aria-label="Nguồn mở trình soạn">{(location.state as { communityEditorOrigin?: string } | null)?.communityEditorOrigin}</output>
+}
 function shell(user: CurrentUser | null, status: AuthContextValue['status'] = user ? 'authenticated' : 'guest', path = '/community/posts/42') {
   const auth: AuthContextValue = { user, status, error: status === 'error' ? error(503, 'AUTH_ERROR') : null, reloadCurrentUser: async () => undefined, setAuthenticatedUser: () => undefined, signOut: async () => undefined }
-  return <AuthContext.Provider value={auth}><MemoryRouter initialEntries={[path]}><Navigation /><Routes><Route path="/community/posts/:id" element={<Scr040CommunityPostDetailPage />} /><Route path="/login" element={<h1>Login destination</h1>} /></Routes></MemoryRouter></AuthContext.Provider>
+  return <AuthContext.Provider value={auth}><MemoryRouter initialEntries={[path]}><Navigation /><Routes><Route path="/community/posts/:id" element={<Scr040CommunityPostDetailPage />} /><Route path="/community/posts/:id/edit" element={<EditorDestination />} /><Route path="/login" element={<h1>Login destination</h1>} /></Routes></MemoryRouter></AuthContext.Provider>
 }
 const ready = () => screen.findByRole('heading', { name: postDetail.title })
 const card = (id: number) => screen.getByRole('article', { name: `Bình luận ${id}` })
@@ -53,6 +57,13 @@ afterEach(() => { vi.useRealTimers() })
 
 describe('SCR-040 public readiness and retained drafts', () => {
   const dualRole: CurrentUser = { ...learner, roles: ['LEARNER', 'MODERATOR'] }
+
+  it('keeps the detail location as the editor return destination', async () => {
+    render(shell({ ...learner, id: postDetail.author.id }, 'authenticated', '/community/posts/42?from=community'))
+    await ready()
+    fireEvent.click(screen.getByRole('link', { name: 'Sửa bài viết' }))
+    expect(screen.getByRole('status', { name: 'Nguồn mở trình soạn' })).toHaveTextContent('/community/posts/42?from=community')
+  })
 
   it.each(['comment', 'comment report', 'moderation'] as const)('FR015_FR063_public refresh hides dependent projections through pending/error and retains %s draft', async (draftKind) => {
     vi.mocked(moderation.listPostCommentsForModeration).mockResolvedValue([{ ...moderationComment, status: 'VISIBLE' }])
@@ -458,6 +469,56 @@ describe('SCR-040 learner discussion', () => {
     view.unmount()
     expect(vi.getTimerCount()).toBe(0)
   })
+  it.each(['public', 'moderator'] as const)('samples edit eligibility when delayed %s comments arrive after the deadline', async (source) => {
+    vi.useFakeTimers()
+    const startedAt = Date.parse('2026-10-30T10:00:00Z')
+    vi.setSystemTime(startedAt)
+    const pending = deferred<Comment[]>()
+    const privilegedPending = deferred<ModerationComment[]>()
+    const own = { ...ownComment(), createdAt: new Date(startedAt).toISOString() }
+    if (source === 'public') vi.mocked(comments.listPostComments).mockReturnValueOnce(pending.promise)
+    else vi.mocked(moderation.listPostCommentsForModeration).mockReturnValueOnce(privilegedPending.promise)
+    render(shell(source === 'public' ? learner : { ...learner, roles: ['LEARNER', 'MODERATOR'] }))
+    await act(async () => { await Promise.resolve() })
+    act(() => vi.setSystemTime(startedAt + 900001))
+    await act(async () => {
+      if (source === 'public') pending.resolve([own])
+      else privilegedPending.resolve([{ ...moderationComment, ...own, content: own.content ?? '', author: { id: learner.id, displayName: 'Tôi' } }])
+    })
+    expect(card(11)).toBeVisible()
+    expect(within(card(11)).queryByRole('button', { name: 'Sửa' })).not.toBeInTheDocument()
+    expect(comments.updateComment).not.toHaveBeenCalled()
+  })
+  it.each(['public', 'moderator'] as const)('expires a delayed %s comment at its absolute creation deadline', async (source) => {
+    vi.useFakeTimers()
+    const startedAt = Date.parse('2026-10-30T10:00:00Z')
+    vi.setSystemTime(startedAt)
+    const pending = deferred<Comment[]>()
+    const privilegedPending = deferred<ModerationComment[]>()
+    const own = { ...ownComment(), createdAt: new Date(startedAt - 600000).toISOString() }
+    if (source === 'public') vi.mocked(comments.listPostComments).mockReturnValueOnce(pending.promise)
+    else vi.mocked(moderation.listPostCommentsForModeration).mockReturnValueOnce(privilegedPending.promise)
+    render(shell(source === 'public' ? learner : { ...learner, roles: ['LEARNER', 'MODERATOR'] }))
+    await act(async () => { await Promise.resolve() })
+    act(() => vi.setSystemTime(startedAt + 240000))
+    await act(async () => {
+      if (source === 'public') pending.resolve([own])
+      else privilegedPending.resolve([{ ...moderationComment, ...own, content: own.content ?? '', author: { id: learner.id, displayName: 'Tôi' } }])
+    })
+    fireEvent.click(within(card(11)).getByRole('button', { name: 'Sửa' }))
+    const input = screen.getByRole('textbox', { name: 'Sửa bình luận' })
+    fireEvent.change(input, { target: { value: 'Keep until the absolute deadline' } })
+    act(() => vi.advanceTimersByTime(59999))
+    expect(input).toBeEnabled()
+    act(() => vi.advanceTimersByTime(1))
+    expect(input).toBeDisabled()
+    expect(input).toHaveValue('Keep until the absolute deadline')
+    expect(within(card(11)).queryByRole('button', { name: 'Sửa' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Đóng' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Đóng' }))
+    expect(screen.queryByRole('textbox', { name: 'Sửa bình luận' })).not.toBeInTheDocument()
+    expect(comments.updateComment).not.toHaveBeenCalled()
+  })
   it('FR026_delete waits for inline confirmation, accepts 204 and preserves descendants (AT-26)', async () => {
     const parent = ownComment()
     vi.mocked(comments.listPostComments).mockResolvedValue([parent, { ...comment, id: 12, parentId: 11, depth: 1 }])
@@ -474,6 +535,117 @@ describe('SCR-040 learner discussion', () => {
 })
 
 describe('SCR-040 likes, reports and moderation', () => {
+  it('keeps simultaneous post and comment report labels, descriptions and drafts independent', async () => {
+    vi.mocked(comments.listPostComments).mockResolvedValue([comment])
+    render(shell(learner))
+    await screen.findByRole('article', { name: 'Bình luận 11' })
+    fireEvent.click(screen.getByRole('button', { name: 'Báo cáo bài viết' }))
+    fireEvent.click(within(card(11)).getByRole('button', { name: 'Báo cáo' }))
+    const forms = screen.getAllByRole('form', { name: 'Báo cáo nội dung' })
+    expect(forms).toHaveLength(2)
+    const [postForm, commentForm] = forms
+    if (!postForm || !commentForm) throw new Error('Expected both post and comment report forms')
+    for (const form of [postForm, commentForm]) {
+      fireEvent.change(form.querySelector('select')!, { target: { value: 'OTHER' } })
+      fireEvent.submit(form)
+    }
+    const ids = Array.from(document.querySelectorAll('[id]'), (node) => node.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    for (const form of [postForm, commentForm]) {
+      for (const control of [within(form).getByRole('combobox', { name: 'Lý do báo cáo' }), within(form).getByRole('textbox', { name: 'Thông tin bổ sung' })]) {
+        expect(form.querySelector(`label[for="${control.id}"]`)).not.toBeNull()
+        for (const id of (control.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean)) {
+          expect(form.contains(document.getElementById(id))).toBe(true)
+        }
+      }
+      const detail = within(form).getByRole('textbox', { name: 'Thông tin bổ sung' })
+      expect(detail).toHaveAttribute('aria-invalid', 'true')
+      expect(detail.getAttribute('aria-describedby')?.split(' ')).toHaveLength(2)
+    }
+    fireEvent.change(within(postForm).getByRole('combobox', { name: 'Lý do báo cáo' }), { target: { value: 'SPAM' } })
+    fireEvent.change(within(postForm).getByRole('textbox', { name: 'Thông tin bổ sung' }), { target: { value: 'Post draft' } })
+    fireEvent.change(within(commentForm).getByRole('textbox', { name: 'Thông tin bổ sung' }), { target: { value: 'Comment draft' } })
+    fireEvent.submit(postForm)
+    await waitFor(() => expect(reportContent).toHaveBeenCalledWith({ targetType: 'POST', targetId: 42, reason: 'SPAM', detail: 'Post draft' }))
+    expect(within(commentForm).getByRole('textbox', { name: 'Thông tin bổ sung' })).toHaveValue('Comment draft')
+    expect(within(commentForm).getByRole('combobox', { name: 'Lý do báo cáo' })).toHaveValue('OTHER')
+    fireEvent.submit(commentForm)
+    await waitFor(() => expect(reportContent).toHaveBeenCalledWith({ targetType: 'COMMENT', targetId: 11, reason: 'OTHER', detail: 'Comment draft' }))
+    expect(reportContent).toHaveBeenCalledTimes(2)
+  })
+  it.each(['comment', 'report', 'moderation'] as const)('closes a pending %s form while preserving the discussion mutation lane', async (kind) => {
+    const pending = deferred<Comment>()
+    const pendingReport = deferred<ReportReceived>()
+    const pendingModeration = deferred<ModerationComment>()
+    vi.mocked(comments.createComment).mockReturnValueOnce(pending.promise)
+    vi.mocked(reportContent).mockReturnValueOnce(pendingReport.promise)
+    vi.mocked(moderation.moderateComment).mockReturnValueOnce(pendingModeration.promise)
+    vi.mocked(moderation.listPostCommentsForModeration).mockResolvedValue([{ ...moderationComment, status: 'VISIBLE' }])
+    render(shell({ ...learner, roles: ['LEARNER', 'MODERATOR'] }))
+    await screen.findByRole('article', { name: 'Bình luận 11' })
+    if (kind === 'comment') {
+      fireEvent.click(screen.getByRole('button', { name: 'Viết bình luận' }))
+      fireEvent.change(screen.getByRole('textbox', { name: 'Nội dung bình luận' }), { target: { value: 'Pending comment' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
+    } else if (kind === 'report') {
+      fireEvent.click(within(card(11)).getByRole('button', { name: 'Báo cáo' }))
+      fireEvent.change(screen.getByRole('combobox', { name: 'Lý do báo cáo' }), { target: { value: 'SPAM' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Gửi báo cáo' }))
+    } else {
+      fireEvent.click(within(card(11)).getByRole('button', { name: 'Ẩn' }))
+      fireEvent.change(screen.getByRole('textbox', { name: 'Lý do kiểm duyệt' }), { target: { value: 'Pending moderation' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Xác nhận kiểm duyệt' }))
+    }
+    const mutation = kind === 'comment' ? comments.createComment : kind === 'report' ? reportContent : moderation.moderateComment
+    await waitFor(() => expect(mutation).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('button', { name: 'Đóng' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Đóng' }))
+    expect(screen.queryByRole('button', { name: 'Đóng' })).not.toBeInTheDocument()
+    const newComment = screen.getByRole('button', { name: 'Viết bình luận' })
+    expect(newComment).toBeDisabled()
+    fireEvent.click(newComment)
+    expect(screen.queryByRole('textbox', { name: 'Nội dung bình luận' })).not.toBeInTheDocument()
+    expect(mutation).toHaveBeenCalledTimes(1)
+    await act(async () => {
+      if (kind === 'comment') pending.resolve(comment)
+      else if (kind === 'report') pendingReport.resolve({ received: true })
+      else pendingModeration.resolve(moderationComment)
+    })
+    expect(screen.queryByRole('button', { name: 'Đóng' })).not.toBeInTheDocument()
+    expect(mutation).toHaveBeenCalledTimes(1)
+  })
+  it('closes an editor locked by a conflict without resubmitting its retained draft', async () => {
+    vi.mocked(comments.updateComment).mockRejectedValueOnce(error(409, 'COMMENT_EDIT_WINDOW_EXPIRED'))
+    render(shell(learner))
+    await screen.findByRole('article', { name: 'Bình luận 11' })
+    fireEvent.click(within(card(11)).getByRole('button', { name: 'Sửa' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Sửa bình luận' }), { target: { value: 'Conflict draft' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
+    await waitFor(() => expect(comments.listPostComments).toHaveBeenCalledTimes(2))
+    expect(screen.getByRole('textbox', { name: 'Sửa bình luận' })).toBeDisabled()
+    expect(screen.getByRole('textbox', { name: 'Sửa bình luận' })).toHaveValue('Conflict draft')
+    expect(screen.getByRole('button', { name: 'Đóng' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Đóng' }))
+    expect(screen.queryByRole('textbox', { name: 'Sửa bình luận' })).not.toBeInTheDocument()
+    expect(comments.updateComment).toHaveBeenCalledTimes(1)
+  })
+  it('closes a report after its comment target disappears without enabling submission', async () => {
+    vi.mocked(comments.listPostComments).mockResolvedValueOnce([comment]).mockResolvedValue([])
+    vi.mocked(reportContent).mockRejectedValueOnce(error(404, 'TARGET_NOT_FOUND'))
+    render(shell(learner))
+    await screen.findByRole('article', { name: 'Bình luận 11' })
+    fireEvent.click(within(card(11)).getByRole('button', { name: 'Báo cáo' }))
+    fireEvent.change(screen.getByRole('combobox', { name: 'Lý do báo cáo' }), { target: { value: 'SPAM' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi báo cáo' }))
+    await waitFor(() => expect(comments.listPostComments).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.queryByRole('article', { name: 'Bình luận 11' })).not.toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'Gửi báo cáo' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Đóng' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Đóng' }))
+    expect(screen.queryByRole('form', { name: 'Báo cáo nội dung' })).not.toBeInTheDocument()
+    expect(reportContent).toHaveBeenCalledTimes(1)
+  })
   it('FR028_FR056_pending/error viewer is not assumed unliked and can retry', async () => {
     vi.mocked(posts.getViewerState).mockRejectedValueOnce(error(503, 'VIEWER_FAILED'))
     render(shell(learner))

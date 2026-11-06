@@ -54,17 +54,17 @@ Status: CHỐT / APPROVED BY LEADER.
 
 ### Backlog FE completeness audit — chưa sửa trong T-01
 
-Các findings dưới đây giữ trạng thái P2 / OPEN, xử lý bằng PR FE riêng trước nghiệm thu tích hợp.
+Trạng thái hiện tại, cập nhật delivery T-19 ngày 2026-11-06: bảy findings P2 đã FIXED (T-19) trong phạm vi Leader duyệt, có regression RED/GREEN cho từng finding. Các authorization phía dưới giữ nguyên trạng thái tại thời điểm ban hành.
 
 | ID | Màn hình / khu vực | Trạng thái |
 |---|---|---|
-| FE009-AUD-01 | SCR-041 — stale mutation navigate sau unmount | P2 / OPEN |
-| FE009-AUD-02 | SCR-041 — mất unsaved draft sau verify-email roundtrip | P2 / OPEN |
-| FE009-AUD-03 | SCR-041 — thiếu cancel/dirty-confirmation | P2 / OPEN |
-| FE009-AUD-04 | SCR-040 — edit-window timer dùng thời điểm cũ khi GET chậm | P2 / OPEN |
-| FE009-AUD-05 | SCR-040 — đồng thời hai ReportForm gây duplicate DOM IDs | P2 / OPEN |
-| FE009-AUD-06 | SCR-040, SCR-061, SCR-063 — inline CommentForm/ReportForm/CommentModerationForm có thể khóa nút Đóng khi mất eligibility | P2 / OPEN |
-| FE009-AUD-07 | Auth navigation → SCR-060–063 — MODERATOR entry còn hiển thị under construction/403 | P2 / OPEN |
+| FE009-AUD-01 | SCR-041 — stale mutation navigate sau unmount | FIXED (T-19) — Chặn callback cũ theo vòng đời editor, user/role và tài nguyên; giữ khóa chống gửi trùng. |
+| FE009-AUD-02 | SCR-041 — mất unsaved draft sau verify-email roundtrip | FIXED (T-19) — Lưu trường đã đổi và safe origin trong sessionStorage theo tab/user/màn; restore edit sau owned GET thành công. |
+| FE009-AUD-03 | SCR-041 — thiếu cancel/dirty-confirmation | FIXED (T-19) — Thêm Hủy và xác nhận inline khi dirty; discard xóa đúng nháp, origin sai về `/community?tab=mine`. |
+| FE009-AUD-04 | SCR-040 — edit-window timer dùng thời điểm cũ khi GET chậm | FIXED (T-19) — Tính thời hạn sửa theo thời điểm nhận GET để không dùng mốc cũ khi request chậm. |
+| FE009-AUD-05 | SCR-040 — đồng thời hai ReportForm gây duplicate DOM IDs | FIXED (T-19) — Dùng `useId` để hai ReportForm có DOM IDs độc lập. |
+| FE009-AUD-06 | SCR-040, SCR-061, SCR-063 — inline CommentForm/ReportForm/CommentModerationForm có thể khóa nút Đóng khi mất eligibility | FIXED (T-19) — Giữ nút Đóng hoạt động khi mất eligibility hoặc mutation đang pending. |
+| FE009-AUD-07 | `AdminLayout` — menu `MODERATOR` tới `/moderation/posts` và `/moderation/reports`, desktop/mobile và active detail prefixes | FIXED (T-19) — Nối hai menu MODERATOR trong AdminLayout tới `/moderation/posts` và `/moderation/reports`, gồm active detail prefixes. |
 
 ### Visual QA — trạng thái thực tế và thứ tự mới do Leader chốt
 
@@ -72,7 +72,7 @@ Các findings dưới đây giữ trạng thái P2 / OPEN, xử lý bằng PR FE
 - Đã xem năm trạng thái Preview của SCR-039 qua ảnh do người dùng cung cấp.
 - Chưa hoàn tất Visual QA đầy đủ tại 360/768/1280 px.
 - Chưa kiểm đủ SCR-040, SCR-041, SCR-060–063 bằng screenshot/browser QA.
-- Chưa có E2E với backend Community thật.
+- T-19 đã hoàn tất functional smoke với backend Community thật ngày 2026-11-06 (chi tiết ở cuối file); ảnh smoke là bằng chứng chức năng, không xác nhận Visual QA 360/768/1280 px.
 - Leader ưu tiên backend trước; visual refinement giống Hanzii được defer đến sau khi có backend. Quyết định này thay thứ tự Visual QA trước backend đã ghi ngày 2026-10-30, không thay các quyết định nghiệp vụ K1-A hoặc T-18.
 - **T-18 Visual QA: NOT COMPLETED / DEFERRED.** Không ghi nhận PASS.
 
@@ -306,7 +306,7 @@ Mọi lệnh Maven dùng Java17.0.9, Docker/Testcontainers và DEBUG=false. Gate
 - **FULL VERIFY FAILED — ENVIRONMENTAL EXCEPTIONS ONLY:** actual Maven exit1,3002 tests,2 failures,0 errors,0 skipped. Chỉ `ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget` tại dòng398: samples_ms=[49023,40856,37188,38429,40249], p95=49023ms >=30000ms; và `QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries` tại dòng304: samples_ms=[67202,46070,50095,52936,45524], p95=67202ms >=30000ms. LoginAttemptServiceIntegrationTest7/7 PASS, không có Redis expiry/log failure. Không sửa/skip benchmarks, failure-ignore hoặc rerun để chọn PASS.
 - Lần khởi chạy Full Verify trong sandbox bị chặn mạng khi resolve parent POM,0 tests/exit1. Tool yêu cầu quyền chạy ngoài sandbox, sau đó chỉ có một lượt full tests thực tế nêu trên; giữ riêng cả hai logs. Đây không phải environmental exception được miễn trừ; lỗi quyền mạng đã được giải quyết trước full tests.
 - **JaCoCo current full run:** configured report/check exit0, threshold80% không đổi; project LINE8697/8943=97,249245%; Community600/602=99,667774%. Một session từ2026-11-04T20:00:34.550Z đến20:25:51.588Z, nằm trong full-run interval20:00:26.040Z…20:25:53.151Z. Exec SHA-256 `0FB4528BC97741669424499C7032A70A7076314347302024A767466C3664F78F` giữ nguyên trước/sau report/check; XML mới SHA-256 `40DCFE5647D31219264C97D854A6D32A3297CACFBEDFC89B45416B2430A795B0`. Không dùng report lịch sử.
-- Evidence local: `C:\WINDOWS\TEMP\cnhsk-spec009-t10-20261105-021253\`: source-freeze/provenance, before/after schema, result JSON/XML từng gate, SQL/concurrency proof, current-run exec/XML và coverage proof. Raw logs/XML giữ private; tracking/PR chỉ ghi sanitized evidence.
+- Evidence local: `cnhsk-spec009-t10-20261105-021253` (evidence local ngoài repo): source-freeze/provenance, before/after schema, result JSON/XML từng gate, SQL/concurrency proof, current-run exec/XML và coverage proof. Raw logs/XML giữ private; tracking/PR chỉ ghi sanitized evidence.
 - Freshness trước delivery (2026-11-04T20:30:15Z): main `51879c3b95e69a4b133fb8305bbd8208b1c4c486`, ahead6/behind0 so với approved base. Changes thuộc Library/Spec014 và Mastery/Spec011; migration V6 chỉ đổi learning.user_progress, không đổi Community/reactions. Shared ErrorCode chỉ thêm NOTE_NOT_RESTORABLE, không đổi error behavior của hai endpoints. Không semantic conflict được xác định; không pull/merge/rebase. Verification thuộc approved base, chưa phải kiểm bản gộp main mới nhất.
 - Self-review source và read-only quality review không phát hiện actionable defect; không thay source trong resume. Exact10paths; tám source/test hashes cố định; không BOM/TODO/test disabled/secret mới/dependency/schema/POM/security/locked-contract change. Tracking chỉ đánh✅T-10 và append mục này; không sửa T-11…T-14. Conditional delivery riêng T-10 theo policy Leader đã duyệt: chỉ hai benchmark được nêu và LoginAttemptServiceIntegrationTest.FR046_FR047_FR048_fifthFailureBlocksOnlyTheEmailIpPairAndUsesActualRedisExpiry / LoginAttemptServiceIntegrationTest.redisFailuresInAllThreeOperationsFailOpenAndOnlyLogSafeWarnings, bất kỳ tổ hợp; failure/error ngoài nhóm phải STOP. Không gọi Full Verify PASS. Một Conventional Commit, push đúng task branch, Draft PR vào main; chờ Leader Independent Source Review và integration verification, không Ready/merge hoặc bắt đầu T-11.
 
@@ -346,7 +346,7 @@ Java17.0.9, Docker/Testcontainers, DEBUG=false. Kết quả từ safe result JSO
 | `com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.redisFailuresInAllThreeOperationsFailOpenAndOnlyLogSafeWarnings(CapturedOutput)` | `LoginAttemptServiceIntegrationTest.java:313`; captured MockMvc login diagnostic chứa REDACTED_EMAIL. Assertion captured output này khác warning predicate tại dòng312; không công bố fixture email/IP/password |
 
 - **JaCoCo current full run:** configured report/check exit0, threshold80% giữ nguyên; project LINE9022/9297=97,0420566%, Community684/689=99,2743106%. Full interval `2026-11-04T22:09:40.3169459Z`…`2026-11-04T22:31:01.4019250Z`; một exec session `22:09:48.733Z`…`22:31:00.375Z` nằm trọn trong interval. Exec SHA-256 `7E878EBC3F3AA109AFAEF2D622BB27526F3516F43F749D6992F2E3E0122D3DA2` giữ nguyên trước/sau report/check; fresh XML SHA-256 `6B38E9C710AD8D00FC333C88D7F00AA7C0DC1C6050B0C595AE10B2C4560A811A`, sinh `2026-11-04T22:34:10.1920015Z`. Không dùng coverage lịch sử hoặc chạy lại tests ở Gate8.
-- Evidence local: `C:\WINDOWS\TEMP\cnhsk-spec009-t11-20261105-044327\`: safe result JSON Gates1…8, source-freeze-sha256, before/after hash checks, gate3-safe-evidence, current-full-run exec/provenance/XML/coverage-proof và delivery-freshness. Raw logs/XML/failure messages giữ private; tracking chỉ dùng sanitized evidence. Cả11 source/test hashes khớp source-freeze trước/sau tracking sync.
+- Evidence local: `cnhsk-spec009-t11-20261105-044327` (evidence local ngoài repo): safe result JSON Gates1…8, source-freeze-sha256, before/after hash checks, gate3-safe-evidence, current-full-run exec/provenance/XML/coverage-proof và delivery-freshness. Raw logs/XML/failure messages giữ private; tracking chỉ dùng sanitized evidence. Cả11 source/test hashes khớp source-freeze trước/sau tracking sync.
 - Freshness `2026-11-04T22:36:05.0998838Z`: origin/main `9579029244f45b7a73202889d4de1de422f2c823` ahead2 so với approved base; PR#105 chỉ Library/Spec014, shared production ErrorCode chỉ thêm CARD_DUPLICATE. Không Community/security/AuthApi/production GlobalExceptionHandler/limits/schema/POM semantic impact được xác định. Tests vẫn trên approved base `5530c76c694075d3f0847962207c18103c65e28d`; không pull/merge/rebase/integrate main mới.
 - Self-check tracking: chỉ hai documents, T-11 checkbox và append mục này; T-01…T-10/T-12…T-18 và lịch sử questions giữ nguyên, UTF-8 không BOM, diff check sạch. Không sửa11 source/test files hoặc tạo file khác. Conditional delivery riêng T-11 đủ điều kiện; Git delivery còn pending. Chưa tuyên bố Leader Independent Source Review/code review PASS, commit/push/Draft PR đã xong, Ready/merge hoặc bắt đầu T-12.
 
@@ -408,7 +408,7 @@ Java17.0.9, Docker/Testcontainers, DEBUG=false. Kết quả từ safe result JSO
 | `com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.redisFailuresInAllThreeOperationsFailOpenAndOnlyLogSafeWarnings(CapturedOutput)` | line313; captured diagnostic có fixture email; không xuất giá trị email/IP/password hoặc raw captured output |
 
 - **JaCoCo current-run configured check PASS**, exit0, threshold80% giữ nguyên. Project LINE9426/9716=97,0152326%; Community774/780=99,2307692%. Full interval `2026-11-05T11:31:46.9244041Z`…`11:59:10.6240247Z`; một session `11:31:55.257Z`…`11:59:08.381Z` nằm trọn trong full run. Exec SHA-256 `8C0BB467CB53F1A0C211D7B41C1C7C471AC4D287E613E3EB57CBAE09A54F3768` không đổi trước/sau coverage; fresh XML SHA-256 `62A76675123AC793BE08497BC704266E7B6110FC024830811E9DA87AA46F3FB8`, sinh12:00:04.2731750Z. Không class-mismatch warning, exec/report cũ hoặc test rerun ở Gate8.
-- Evidence local: `C:\WINDOWS\TEMP\cnhsk-spec009-t12-20261105-072050\approved-fix-round-20261105-083000\`: frozen14/source hashes, old evidence preservation hashes, logs/XML/results từng gate, actual-openapi.json, Docker diagnostics/authorization, gate3-safe-evidence, gate5-inventory-proof, gate6-scope/selector, gate7-safe-evidence/current exec/provenance, gate8 report/check/XML. Raw logs/XML giữ private; chỉ sanitized metrics trong tracking/PR.
+- Evidence local: `cnhsk-spec009-t12-20261105-072050/approved-fix-round-20261105-083000` (evidence local ngoài repo): frozen14/source hashes, old evidence preservation hashes, logs/XML/results từng gate, actual-openapi.json, Docker diagnostics/authorization, gate3-safe-evidence, gate5-inventory-proof, gate6-scope/selector, gate7-safe-evidence/current exec/provenance, gate8 report/check/XML. Raw logs/XML giữ private; chỉ sanitized metrics trong tracking/PR.
 - Final freshness fetch: origin/main `df81d04616abd97e3ab5fe35c12640b6e16393a2`, merge-base vẫn approved ff2c235; PR108/Spec011 thêm FSRS scheduler/config/tests và independent cnhsk.fsrs application properties,7 paths. Không Community/shared audit/UserRef/security/AuthApi/handler/schema/POM/locked contract change hoặc semantic conflict T-12 được xác định. Tests vẫn trên approved base; không integrate/merge/rebase main mới.
 - Self-check: exact16 files (9 ADD/7 MODIFY), tracking chỉ T-12 checkbox và append mục này; frozen14 giữ nguyên, không dependency/migration/security config/handler/contract changes, plan artifacts không trong commit. Member source review không phát hiện finding mới; chưa tuyên bố Leader Independent Source Review PASS. Conditional delivery được phép theo quyết định Leader; Git commit/push/Draft PR được thực hiện sau self-review/provenance/scope check, không Ready/merge hoặc bắt đầu T-13.
 
@@ -469,7 +469,7 @@ Java17.0.9, Docker/Testcontainers, DEBUG=false. Kết quả từ safe result JSO
 - Nội dung bắt buộc trong PR: "Gate 1–6 PASS; Gate 7 FAILED, bị ngắt sau 176 suite, 5 fail đều là test môi trường (FR023 39,6 s · NFR_P04 62,7 s · PEXPIRETIME · CapturedOutput · NFR_P02 156 ms); Gate 8 không có số liệu. Leader verify lại khi merge."
 - Quyết định hiện tại cho phép cập nhật tracking, stage exact18, một commit `feat(community): handle report moderation cases`, push branch T-13 và mở Draft PR vào main sau preflight. Không tuyên bố independent source review PASS chỉ từ việc được duyệt delivery; không merge, chuyển Ready for Review hoặc bắt đầu T-14.
 - Source integrity: 16/16 file khớp `source-freeze-sha256.json` sau sealed fix; SHA-256 của manifest `ACF83860133CE7B7719EF2B3E95E98AA4A949B9C523E7BB001C0203231EA9AEE`. 27 artifact trước vòng sửa giữ nguyên hash; không ghi đè evidence. Self-check: đúng allowlist, không đổi source/tests, dependency, schema/migration, security, locked contract hoặc worktree khác; precommit kiểm staged manifest/bytes/whitespace/secrets trước commit.
-- Evidence local: `C:\WINDOWS\TEMP\cnhsk-spec009-t13-20261105-implementation\approved-sealed-fix-round\`: source-freeze manifest, before/after hashes, result JSON/private logs/Surefire XML Gates1–7, Gate2 OpenAPI/schema proof, Gate3 PostgreSQL transaction/blocking proof, Gate6 exact scope, Gate7 mandatory-stop JSON/XML và execution provenance. Evidence trước sealed fix nằm ở thư mục cha, không trộn vào kết quả hiện tại. Chỉ đưa safe metrics vào tracking/PR, không commit raw logs/XML hoặc secrets.
+- Evidence local: `cnhsk-spec009-t13-20261105-implementation/approved-sealed-fix-round` (evidence local ngoài repo): source-freeze manifest, before/after hashes, result JSON/private logs/Surefire XML Gates1–7, Gate2 OpenAPI/schema proof, Gate3 PostgreSQL transaction/blocking proof, Gate6 exact scope, Gate7 mandatory-stop JSON/XML và execution provenance. Evidence trước sealed fix nằm ở thư mục cha, không trộn vào kết quả hiện tại. Chỉ đưa safe metrics vào tracking/PR, không commit raw logs/XML hoặc secrets.
 
 ## T-14 — Comment moderation: quyết định Leader và conditional delivery (2026-11-06)
 
@@ -533,4 +533,53 @@ Các command dưới dùng `.\mvnw.cmd -B`; exact command đầy đủ, timestam
 
 - **Điều kiện B của Leader:** được conditional delivery với đúng bốn failures trên; Gate 7 vẫn FAILED, không gọi PASS. Không chạy lần thứ ba. Gate 8 PASS: configured report/check exit0, All coverage checks have been met; project LINE 9767/10061=97,08% (>=80%), Community LINE 1012/1022=99,02%, class mismatch=0. Execution data 1.141.125 bytes, SHA256 `11846CDA87ACFFE3EE6A11128B616D8C0E551A3F8EC26A2072088003070446EB`; session 04:39:40.946Z → 05:04:31.806Z nằm trong rerun. Report XML SHA256 `47FDAA5D67FAB1CD4C42629DCAD5E563A644260E0F15A28CC7BB2FFC002E405E`. Không dùng coverage lượt đầu hoặc miễn Gate 8.
 - Source integrity cuối: 10/10 khớp `source-freeze-springdoc31-recovery-sha256.json`, manifest SHA256 `3BF5E65C71B660C9EB555A52652D561F642DB96136C9AC6852637212E66AB3E0`; chain manifest trước helper/metadata và evidence hai lượt Gate 7 giữ nguyên. Chỉ hai tracking files được cập nhật khi đủ điều kiện B + Gate8. Delivery preflight phải kiểm exact12 (6 ADD/6 MODIFY), hashes, BOM/UTF-8/EOF/whitespace/secrets, staged diff-check; một Conventional Commit, push task branch, Draft PR main. Không Ready/merge hoặc bắt đầu SPEC-013.
-- Evidence local: `C:\WINDOWS\TEMP\cnhsk-spec009-t14-20261106-implementation\`: manifests, gate result JSON/private logs/Surefire XML, OpenAPI snapshots, PostgreSQL blocking/transaction proof, `gate7-infrastructure-investigation/`, first-run STOP, rerun classification/live events/once marker và Gate8 JaCoCo execution/report. Raw logs/XML không commit hoặc đăng lên PR; chỉ safe metrics.
+- Evidence local: `cnhsk-spec009-t14-20261106-implementation` (evidence local ngoài repo): manifests, gate result JSON/private logs/Surefire XML, OpenAPI snapshots, PostgreSQL blocking/transaction proof, `gate7-infrastructure-investigation/`, first-run STOP, rerun classification/live events/once marker và Gate8 JaCoCo execution/report. Raw logs/XML không commit hoặc đăng lên PR; chỉ safe metrics.
+
+## T-19 — FE completeness và functional smoke backend thật (2026-11-06)
+
+- Status: IMPLEMENTED / GATES PASS / REAL-BACKEND FUNCTIONAL SMOKE PASS. Leader duyệt cập nhật tracking; PR giữ Draft, chưa Ready/merge. T-20 chờ Leader merge T-19; không bắt đầu SPEC-013.
+- Exact25 theo `approved-allowlist.json`: 3 ADD + 22 MODIFY, gồm 23 file FE (15 production + 8 tests) và hai tracking files. Shared navigation, Layouts/tests, AuthProvider/tests và helper `session-private-storage.ts` thuộc ngoại lệ được duyệt.
+
+### Q-T19-01…04 — quyết định đã duyệt
+
+- **Q-T19-01 — Hủy/origin:** chỉ nhận origin SCR-039/SCR-040 đã sanitize; không hợp lệ thì Hủy về `/community?tab=mine`. Dirty form xác nhận inline trước discard; discard không mutation. Kết quả mutation sau editor unmount không navigate, báo lỗi hoặc ghi nháp.
+- **Q-T19-02 — nháp editor:** `sessionStorage` riêng từng tab, không TTL; chỉ lưu các trường ghi được do user thay đổi (`title/category/content`) và safe origin. Không response/token/mutation intent; lỗi inline. Edit chỉ restore sau owned GET thành công; không ghi khi unmount. Submit thành công/discard xóa đúng nháp; storage không khả dụng thì dùng state.
+- **Q-T19-03 — private storage:** namespace trung tính `cnhsk:private-session:`. Chỉ cleanup khi explicit logout, kể cả HTTP thất bại, hoặc accepted authenticated userId A → userId khác. Không cleanup vì expiry, ban, loading, refresh hay same-user profile. Namespace/lifecycle T-18 `cnhsk:spec009:t18:draft:` giữ nguyên.
+- **Q-T19-04 — base/navigation:** duyệt fast-forward-only nhánh chưa có commit riêng từ `50de06` tới `origin/main`; base thực tế `bcf89cb08e314d4a6235a774e74a775e2f2b521a`, mới hơn `c08d1e1`. Không merge commit hoặc tác động worktree khác. AUD-07 chỉ gồm hai đích menu `MODERATOR` trong `AdminLayout`: `/moderation/posts`, `/moderation/reports`. Shared default login/landing ngoài allowlist; không tuyên bố toàn bộ auth navigation đã sửa.
+
+### Verification — giữ nguyên failed evidence và recovery
+
+Chạy trong `.worktrees/spec009-t19/cnhsk-web`. Mọi valid test dùng Node22.23.4 portable chính thức đã kiểm SHA. `npm ci` thực sự exit0 theo debug log; wrapper Node23 exit1 vì stderr ExperimentalWarning. Các lần thử Node23/jsdom không tương thích có 0 tests giữ nguyên, không tính RED.
+
+- `C` = `npm.cmd test -- src/features/community src/shared/layout/Layouts.test.tsx src/shared/auth/AuthProvider.test.tsx --minWorkers=2 --maxWorkers=2`.
+- Vitest thêm `--reporter=default --reporter=json --outputFile=<evidence>/<gate>-results.json`. Exact commands/selector/cwd/runtime/timestamps/exit nằm trong JSON gate, gồm `tdd-red-node22.json` và `tdd-green.json`.
+
+| Gate / command | Kết quả thực tế |
+|---|---|
+| RED: `node node_modules/vitest/vitest.mjs run`, 5 selector trong `tdd-red-node22.json`, `--minWorkers=2 --maxWorkers=2` | 194 tests: 159 PASS / 35 intended FAIL / 0 skip, exit1; từng finding AUD-01…07 có reproduction |
+| Narrow GREEN: `npm.cmd test --`, 8 selector trong `tdd-green.json`, `--minWorkers=2 --maxWorkers=2` | 265/265 PASS, exit0 |
+| `C` lần đầu — FAILED | 596/597 PASS / 1 fail / 0 skip, exit1; `catalog-wiring.test.ts:37` yêu cầu 6 preview SCR-041, thực tế 8 |
+| `C` sau catalog recovery | 597/597 PASS / 0 fail / 0 skip, exit0 |
+| `C --sequence.shuffle --sequence.seed=17` | 597/597 PASS / 0 fail / 0 skip, exit0 |
+| `C --sequence.shuffle --sequence.seed=104729` | 597/597 PASS / 0 fail / 0 skip, exit0 |
+| `C --sequence.shuffle --sequence.seed=20261106` | 597/597 PASS / 0 fail / 0 skip, exit0 |
+| `npm.cmd test -- --minWorkers=2 --maxWorkers=2` | 159 files, 2309/2309 PASS / 0 fail / 0 skip, exit0; không dùng flaky exception |
+| `npm.cmd run lint` trước recovery TypeScript | 0 errors, 1 warning có sẵn `LevelBadge.tsx:6`, exit0 |
+| `npm.cmd run build` lần đầu — FAILED | 16 lỗi TypeScript trong hai test files, npm exit2 |
+| `npm.cmd test -- src/features/community/pages/Scr040CommunityPostDetailPage.test.tsx src/shared/auth/AuthProvider.test.tsx --minWorkers=2 --maxWorkers=2` | Sau type-only recovery: 104/104 PASS / 0 fail / 0 skip, exit0 |
+| `npm.cmd run lint` sau type-only recovery | 0 errors, cùng 1 warning có sẵn `LevelBadge.tsx:6`, exit0 |
+| `npm.cmd run build` sau type-only recovery | `tsc -b && vite build` PASS, exit0 |
+
+- Catalog recovery chỉ bỏ hai preview ngoài yêu cầu, giữ `onCancel`; `catalog-wiring.test.ts` không đổi byte. Type-only recovery chỉ sửa hai test files bằng assert forms length2 + explicit guard và keys `as const`; không non-null assertion/`any` hoặc đổi production/config. Leader duyệt cả hai recovery; failed logs/STOP/manifests cũ giữ nguyên.
+- Leader chỉ định không rerun full Vitest sau type-only recovery; full2309 PASS là lượt trước đó, sau recovery đã chạy targeted104/lint/build. Source review và narrow recovery review PASS.
+- Frozen manifest cuối `source-freeze-sha256-typescript-recovery.json`: 23 file, SHA256 `5B4700C2DB97485D14D6B2DFCDD7D63D287C7127CDF11368317D56EA3FCAA909`. `audit-regression-matrix.json` nối từng finding với reproduction RED/GREEN.
+
+### Functional smoke — backend Community thật
+
+- Stack local: PostgreSQL18 `127.0.0.1:15432`, Redis7 `6379`, Mailpit SMTP1025/UI8025, backend Java17 profile `dev` `127.0.0.1:18080`, Vite5173. Cổng5432/8080 bị chặn nên proxy/config tạm ở ngoài repo. Không Neon, DB direct, mock API hoặc sửa config repo.
+- Ba actor tổng hợp A/B/M dùng agent-browser0.27.0 với Chrome sessions cô lập vì native browser host không khả dụng. A chưa verify gửi bài nhận403 đúng quy định; verify thật qua Mailpit/API200, reload toàn trang rồi Continue restore đủ title/category/content và origin.
+- A tạo bài: `POST /api/community/posts`201/PENDING; M duyệt: `PATCH /api/community/moderation/posts/1/approve`200/APPROVED; A bình luận: `POST /api/community/posts/1/comments`201/VISIBLE; B báo cáo: `POST /api/community/reports`201.
+- M ACTION+HIDE: `PATCH /api/community/moderation/reports/1`200, case ACTIONED/đã đóng, comment HIDDEN. Direct `PATCH /api/community/moderation/comments/1` lần lượt RESTORE → DELETE → RESTORE → HIDE → RESTORE đều200. Cuối luồng comment VISIBLE/nguyên nội dung công khai, case vẫn ACTIONED/đã đóng, hai queues trống.
+- Hai ReportForm có IDs/nháp độc lập (`:r1:`, `:r3:`); đóng form bài giữ nháp comment. Sau submit editor mới trống; dirty Cancel hiện inline confirmation, discard về `/community?tab=mine`, mở lại trống, không POST thừa.
+- **Functional smoke PASS; Visual QA 360/768/1280 px vẫn NOT COMPLETED / DEFERRED.** Screenshots chỉ là functional evidence. Không phát hiện contract drift; không đổi locked OpenAPI/endpoint/backend behavior.
+- Evidence: `cnhsk-spec009-t19-20261106-implementation` (evidence local ngoài repo) — `community-recovery*`, `shuffle-*`, `full-vitest*`, `typescript-recovery-tests*`, `lint-typescript-recovery*`, `build-typescript-recovery*`, `audit-regression-matrix.json`, `smoke-results.json`, `smoke-ui-http-statuses.json`, manifests. Chỉ safe metrics vào tracking; raw logs/private environment/credentials/cookies/tokens không commit.

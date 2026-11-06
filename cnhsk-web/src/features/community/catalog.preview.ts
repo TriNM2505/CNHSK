@@ -78,7 +78,7 @@ function editorPreview(post?: OwnPost, overrides: Partial<Parameters<typeof Post
     createElement(
       LearnerLayout,
       null,
-      createElement(PostEditorView, { busy: false, errors: {}, locked: false, mode: post ? 'edit' : 'create', onChange: () => undefined, onSubmit: () => undefined, post, values: editorValues, ...overrides }),
+      createElement(PostEditorView, { busy: false, errors: {}, locked: false, mode: post ? 'edit' : 'create', onCancel: () => undefined, onChange: () => undefined, onSubmit: () => undefined, post, values: editorValues, ...overrides }),
     ),
   )
 }
