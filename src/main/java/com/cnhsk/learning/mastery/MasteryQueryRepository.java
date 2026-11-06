@@ -30,6 +30,25 @@ public class MasteryQueryRepository {
         this.mapper = mapper;
     }
 
+    /** Returns KIDs with at least one approved primary question in one batched query. */
+    public Set<String> kidsWithApprovedQuestions(Set<String> kids) {
+        if (kids.isEmpty()) {
+            return Set.of();
+        }
+        List<String> result = entityManager.createQuery("""
+                SELECT DISTINCT kp.code FROM Question q
+                JOIN QuestionKnowledgePoint label ON label.questionId = q.id
+                JOIN KnowledgePoint kp ON kp.id = label.knowledgePointId
+                WHERE q.status = com.cnhsk.learning.knowledge.entity.QuestionStatus.APPROVED
+                  AND label.role = com.cnhsk.learning.knowledge.entity.KnowledgeLabelRole.PRIMARY
+                  AND kp.code IN :kids
+                ORDER BY kp.code
+                """, String.class)
+                .setParameter("kids", kids)
+                .getResultList();
+        return Set.copyOf(result);
+    }
+
     /** Reads every requested evidence item, including its attempt snapshot and current labels, in one statement. */
     public List<EvidenceRow> evidence(Set<Long> itemIds) {
         if (itemIds.isEmpty()) {

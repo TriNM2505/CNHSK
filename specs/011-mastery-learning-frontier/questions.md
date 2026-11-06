@@ -213,3 +213,20 @@ Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, 
 - Full `.\mvnw.cmd -B verify`: **BUILD SUCCESS**, **3.578 test**, 0 failure, 0 error, 0 skipped, exit 0; thời gian 15:46. Docker Testcontainers hoạt động; không phát sinh ngoại lệ môi trường được liệt kê.
 - JaCoCo LINE: **96,82%** — **10.428/10.770 dòng** (342 missed); mọi coverage check đạt.
 - Regression T-07 giữ NFR-P01: **16 truy vấn đọc** cho cả lượt 10 câu và 50 câu.
+
+## 2026-11-06 — Chốt 011/T-10
+
+1. `MasteryQueryRepository` kiểm tra khả dụng câu hỏi theo lô. Một KID có câu dùng được khi có ít nhất một câu `APPROVED` gắn nhãn `PRIMARY`; test đối chiếu kết quả batch với `KnowledgeTreeService.approvedQuestionIds(Set.of(kid), null, 200)` cho từng KID. Nếu lệch, task dừng và báo leader.
+2. Recommendation sắp `REVIEW` theo value tăng dần rồi KID tăng dần; nhiều tiên quyết của cùng nút theo KID tăng dần; `CONSOLIDATE` theo KID tăng dần; `NEW` theo HSK tăng dần rồi KID tăng dần.
+3. Dựng danh sách theo thứ tự nhóm FR-015, chèn tiên quyết ngay trước review, bỏ KID trùng và lấy 5 phần tử đầu. Nếu phần tử thứ 5 là `PREREQ`, vẫn giữ dù `REVIEW` liên quan bị cắt.
+4. Mẫu reason cố định, không gọi AI: `PREREQ` — `Ôn {nameVi tiên quyết} trước khi ôn {nameVi nút cần ôn}.`; `REVIEW` — `Cần ôn: {value}/100.` với một chữ số thập phân và dấu phẩy Việt Nam; `CONSOLIDATE` — `Đến hạn củng cố {nameVi}.`; `NEW` — `Nút mới đã đủ tiên quyết.`
+5. `value` luôn có mặt trong JSON và được phép null; `notyet` trả null, còn `insufficient`/trạng thái có value trả giá trị đọc lại theo today. Schema sinh OpenAPI 3.1 phải là number/null, không có format.
+6. Mỗi KID chỉ xuất hiện một lần, giữ lần đầu xuất hiện; áp dụng cho cả `PREREQ`, `REVIEW`, `CONSOLIDATE`, `NEW`.
+
+### Kết quả gate T-10
+
+- OpenAPI sinh: **1 test PASS**, 0 failure/error/skip, exit 0; kiểm path, `maxItems=5`, `value` là number/null và không có format.
+- T-10 targeted: **8 test PASS**, 0 failure/error/skip, exit 0. Regression mastery T-06/T-07/T-08/T-09 và SecurityConfig: **56 test PASS**, 0 failure/error/skip, exit 0.
+- Full `.\mvnw.cmd -B verify`: **BUILD SUCCESS**, **3.620 test**, 0 failure, 0 error, 0 skipped, exit 0; Testcontainers dùng Docker hoạt động. Không phát sinh lỗi thuộc các ngoại lệ môi trường được duyệt.
+- JaCoCo LINE: **96,74%** — **10.671/11.031 dòng** (360 missed); toàn bộ coverage checks đạt.
+- NFR truy vấn: StatementInspector đo **4 SELECT với 10 nút và 4 SELECT với 50 nút** (fixture không có evidence). Test đối chiếu tập KID của batch với `KnowledgeTreeService.approvedQuestionIds` cho từng KID.
