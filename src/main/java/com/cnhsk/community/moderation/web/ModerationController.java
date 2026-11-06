@@ -2,6 +2,7 @@ package com.cnhsk.community.moderation.web;
 
 import java.util.List;
 import java.util.Map;
+import com.cnhsk.community.moderation.CommentModerationService;
 import com.cnhsk.community.moderation.PostModerationService;
 import com.cnhsk.community.moderation.ReportCaseService;
 import com.cnhsk.shared.exception.ApiException;
@@ -10,11 +11,15 @@ import com.cnhsk.shared.exception.GlobalExceptionHandler;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -35,14 +40,20 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RequestMapping(value = "/api/community/moderation", produces = MediaType.APPLICATION_JSON_VALUE)
 @SecurityRequirement(name = "cookieAuth")
 @SecurityRequirement(name = "bearerAuth")
+@SecurityScheme(name = "cookieAuth", type = SecuritySchemeType.APIKEY, in = SecuritySchemeIn.COOKIE,
+        paramName = "access_token")
+@SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT")
 public class ModerationController {
     private final PostModerationService service;
     private final ReportCaseService reportCases;
+    private final CommentModerationService commentModeration;
     private final GlobalExceptionHandler errors;
 
-    public ModerationController(PostModerationService service, ReportCaseService reportCases, GlobalExceptionHandler errors) {
+    public ModerationController(PostModerationService service, ReportCaseService reportCases,
+            CommentModerationService commentModeration, GlobalExceptionHandler errors) {
         this.service = service;
         this.reportCases = reportCases;
+        this.commentModeration = commentModeration;
         this.errors = errors;
     }
 
@@ -173,6 +184,44 @@ public class ModerationController {
         return reportCases.decideReportCase(caseId(id), request);
     }
 
+    @GetMapping("/posts/{id}/comments")
+    @Operation(operationId = "listPostCommentsForModeration", tags = "moderation")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = ModerationComment.class)))),
+            @ApiResponse(responseCode = "401", description = "Error",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "403", description = "Error",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "404", description = "Error",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+    public List<ModerationComment> listPostCommentsForModeration(
+            @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
+        return commentModeration.listPostCommentsForModeration(postId(id));
+    }
+
+    @PatchMapping(value = "/comments/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(operationId = "moderateComment", tags = "moderation")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK",
+                    content = @Content(schema = @Schema(implementation = ModerationComment.class))),
+            @ApiResponse(responseCode = "401", description = "Error",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "403", description = "Error",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "404", description = "Error",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "409", description = "Error",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "422", description = "Error",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+    public ModerationComment moderateComment(
+            @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
+            @Valid @RequestBody CommentModeration request) {
+        request.validateIndependent();
+        return commentModeration.moderateComment(commentId(id), request);
+    }
+
     @Hidden
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
     public ResponseEntity<Map<String, Object>> invalidRequest(Exception exception, HttpServletRequest request) {
@@ -197,6 +246,15 @@ public class ModerationController {
         } catch (NumberFormatException exception) {
             throw new ApiException(ErrorCode.REPORT_CASE_NOT_FOUND, HttpStatus.NOT_FOUND,
                     "Không tìm thấy hồ sơ báo cáo.", Map.of());
+        }
+    }
+
+    private static long commentId(String value) {
+        try {
+            return Long.parseLong(value);
+        } catch (NumberFormatException exception) {
+            throw new ApiException(ErrorCode.COMMENT_NOT_FOUND, HttpStatus.NOT_FOUND,
+                    "Không tìm thấy bình luận.", Map.of());
         }
     }
 }

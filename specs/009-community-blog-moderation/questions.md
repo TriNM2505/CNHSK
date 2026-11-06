@@ -470,3 +470,67 @@ Java17.0.9, Docker/Testcontainers, DEBUG=false. Kết quả từ safe result JSO
 - Quyết định hiện tại cho phép cập nhật tracking, stage exact18, một commit `feat(community): handle report moderation cases`, push branch T-13 và mở Draft PR vào main sau preflight. Không tuyên bố independent source review PASS chỉ từ việc được duyệt delivery; không merge, chuyển Ready for Review hoặc bắt đầu T-14.
 - Source integrity: 16/16 file khớp `source-freeze-sha256.json` sau sealed fix; SHA-256 của manifest `ACF83860133CE7B7719EF2B3E95E98AA4A949B9C523E7BB001C0203231EA9AEE`. 27 artifact trước vòng sửa giữ nguyên hash; không ghi đè evidence. Self-check: đúng allowlist, không đổi source/tests, dependency, schema/migration, security, locked contract hoặc worktree khác; precommit kiểm staged manifest/bytes/whitespace/secrets trước commit.
 - Evidence local: `C:\WINDOWS\TEMP\cnhsk-spec009-t13-20261105-implementation\approved-sealed-fix-round\`: source-freeze manifest, before/after hashes, result JSON/private logs/Surefire XML Gates1–7, Gate2 OpenAPI/schema proof, Gate3 PostgreSQL transaction/blocking proof, Gate6 exact scope, Gate7 mandatory-stop JSON/XML và execution provenance. Evidence trước sealed fix nằm ở thư mục cha, không trộn vào kết quả hiện tại. Chỉ đưa safe metrics vào tracking/PR, không commit raw logs/XML hoặc secrets.
+
+## T-14 — Comment moderation: quyết định Leader và conditional delivery (2026-11-06)
+
+- Phạm vi FR-052…FR-055, FR-063 / AT-45, AT-46, AT-51; branch `spec/009-community-blog-moderation-t14`, base `a3dc0dafe56403ea34d522cf8a82cac15b256718`, worktree `.worktrees/spec009-t14`. Exact12files: 6 ADD + 6 MODIFY, trong đó 10 source/test files đã đóng băng và hai tracking documents. Chỉ cập nhật tracking sau khi Gate 7 rerun đủ trường hợp B và Gate 8 PASS; không sửa source/tests trong infrastructure recovery.
+
+### Q-T14-1…6 — các quyết định đã duyệt
+
+- **Q-T14-1 — transaction và khóa dòng:** `findByIdForUpdate(id)` dùng `@Lock(PESSIMISTIC_WRITE)`; direct moderation chạy một transaction READ_COMMITTED. Role và validation độc lập trước khi đọc khóa; missing comment → 404 COMMENT_NOT_FOUND; SELF_MODERATION kiểm trên author của dòng đã khóa → 403. Không CAS/retry, row-version hoặc migration. Mutation chỉ cập nhật status/moderated_by/moderation_reason bằng native update; flush/reload fresh state trước DTO.
+- **Q-T14-2 — transition matrix:** dùng trạng thái thực tế sau khi có row lock theo bảng dưới. No-op trả 200 và phản ánh state thực tế; không UPDATE thật, không audit, không thay moderated_by/moderation_reason/updated_at. HIDE trên DELETED không hồi sinh comment hoặc thay marker.
+- **Q-T14-3 — concurrency và T-13:** hai moderators tuần tự hóa theo row lock; HIDE đồng thời chỉ một mutation/một comment audit. T-13 ReportCaseService giữ semantics audit hồ sơ riêng; T-14 chỉ audit direct transition thực sự. Không sửa source/tests T-13. PostgreSQL tests kiểm transaction-id wait thật, hai thứ tự actions, cross-operation races, author edit/delete races và không deadlock/lost update; không chỉ dựa timing hoặc Future.isDone().
+- **Q-T14-4 — audit và N6:** dùng `AuditService.recordDetail(actorId, action, "COMMENT", id, detail)`; actions COMMUNITY_COMMENT_HIDE/DELETE/RESTORE; detail đúng ba keys `{before, after, reason}`, status strings và reason đã strip, không thêm thông tin định danh. Audit cùng transaction mutation; PostgreSQL kiểm cùng backend PID/XID, audit insert thật và rollback khi audit failure. Native mutation không chạm updated_at; DB timestamp, public editedAt, content khi RESTORE, parent_id, depth, replies/cây đều giữ nguyên. No-op kiểm SQL UPDATE=0 và xmin không đổi.
+- **Q-T14-5 — AUTHOR_DELETED (quyết định thay thế chính thức):** nhận diện bằng đồng thời `status == DELETED && "AUTHOR_DELETED".equals(moderationReason) && Objects.equals(moderatedBy, authorId)`. CommentService thực sự đặt moderated_by=authorId khi author tự xóa; không dùng IS NULL, không sửa CommentService. Author-deleted HIDE/DELETE → 200 no-op, giữ toàn bộ metadata; RESTORE → 409 COMMENT_NOT_RESTORABLE. Legacy marker nhưng moderated_by khác authorId, kể cả null, được coi là moderator-deleted và RESTORE được phép. Không có chuỗi direct actions hồi sinh author-deleted. `reason.strip()` phải 1–1.000 Unicode code points; literal AUTHOR_DELETED sau strip bị 422 VALIDATION_FAILED, case-sensitive. Invalid/missing/null/wrong-type action/reason → 422; không sửa ErrorCode.
+- **Q-T14-6 — FR-063 và contract hoàn chỉnh:** GET moderation comments chỉ MODERATOR; guest 401, LEARNER/ADMIN không có MODERATOR 403, post missing 404 POST_NOT_FOUND. Post mọi trạng thái được phép; trả tất cả comments mọi status, raw content/parentId/depth, sort created_at ASC/id ASC. Một batch CommunityAuthors.resolve cho cả author và moderator, không N+1 hoặc public CommentTreeBuilder. ModerationComment đủ 10 required keys, parentId/moderatedBy/moderationReason nullable. Hai operations mới moderateComment/listPostCommentsForModeration giữ response application/json; cookie/bearer OR và CSRF được kiểm HTTP. Strict CommunityContractTest: source=runtime=documented=24, missing=0; giữ negative tests missing/extra/hidden/wrong operationId/statuses, không có mode flag.
+
+| Trạng thái sau khóa | HIDE | DELETE | RESTORE |
+|---|---|---|---|
+| VISIBLE | HIDDEN | DELETED | No-op 200 |
+| HIDDEN | No-op 200 | DELETED | VISIBLE |
+| DELETED by MODERATOR | No-op 200 | No-op 200 | VISIBLE |
+| DELETED by AUTHOR | No-op 200 | No-op 200 | 409 COMMENT_NOT_RESTORABLE |
+
+### Springdoc — quyết định metadata và backlog
+
+- Leader duyệt helper cho operations cũ chọn application/json → application/* → */* chỉ khi key trước không tồn tại; schema của key đã chọn sai/thiếu vẫn FAIL, không fallback che mismatch. Hai operations T-14 luôn strict application/json; không sửa assertions hoặc locked OpenAPI.
+- ModerationComment.depth giữ Java short, required, min0/max3; metadata cuối cùng có đồng thời `type = "integer"` và `types = {"integer"}`, không thêm format. Preflight sau sửa PASS một lần; generated schema integer/min0/max3 và đủ 24 Community operations. Hai preflight FAILED trước giữ nguyên log/XML/snapshot; một bước metadata scan phát hiện type đã tồn tại và không chạy Maven.
+- Đính chính của Leader: CommentResponse.depth của T-08, khi không khai báo explicit type, thực tế sinh type: integer kèm format: int32, không phải type: string. Không sửa DTO T-08.
+- Với Springdoc OpenAPI 3.1 hiện tại, field số có minimum/maximum muốn sinh đúng integer không có format phải khai báo đồng thời `type = "integer"` và `types = {"integer"}`.
+- 401/403 của một số endpoint cũ sinh content: */* thay vì application/json; contract test chỉ kiểm path + status nên chưa bắt được; gom sửa cùng OpenApiCustomizer.
+- Giữ backlog nullable $ref đã duyệt: moderatedBy sinh type: null kèm $ref UserRef theo pattern T-12/T-13; runtime null/non-null đã kiểm. Không triển khai OpenApiCustomizer hoặc tự miễn schema mismatch khác trong T-14.
+
+### Verification — kết quả thực tế, không đổi FAILED thành PASS
+
+Các command dưới dùng `.\mvnw.cmd -B`; exact command đầy đủ, timestamps, XML/log và hash trước/sau lưu trong result JSON tương ứng.
+
+| Gate | Command/selector | Tests | Failures | Errors | Skips | Maven exit |
+|---|---|---:|---:|---:|---:|---:|
+| 1 unit, giữ nguyên | -Dtest=CommentModerationServiceTest test | 75 | 0 | 0 | 0 | 0 |
+| OpenAPI preflight cuối | -Dtest=CommentModerationControllerIntegrationTest#generatedOpenApiMatchesLockedContract -Dcommunity.openapi.snapshot=<evidence>/openapi-springdoc31-recovery-actual.json test | 1 | 0 | 0 | 0 | 0 |
+| 2 HTTP/OpenAPI/security | -Dtest=CommentModerationControllerIntegrationTest -Dcommunity.openapi.snapshot=<evidence>/gate2-actual-openapi.json test | 11 | 0 | 0 | 0 | 0 |
+| 3 PostgreSQL/concurrency/N6/rollback | -Dtest=CommentModerationConcurrencyIntegrationTest test | 34 | 0 | 0 | 0 | 0 |
+| 4 strict contract | -Dtest=CommunityContractTest test | 16 | 0 | 0 | 0 | 0 |
+| 5 architecture | -Dtest=CommunityArchitectureTest,ModuleBoundaryTest test | 14 | 0 | 0 | 0 | 0 |
+| 6 regression, 55 suites | -Dtest=<gate6-selector.txt> test | 860 | 0 | 0 | 0 | 0 |
+| 7 lần đầu, FAILED, 211 suites | verify | 3432 | 9 | 495 | 0 | 1 |
+| 7 rerun duy nhất, FAILED, 211 suites | verify | 3600 | 4 | 0 | 0 | 1 |
+| 8 current-run JaCoCo, PASS | jacoco:report@report jacoco:check@check | N/A | N/A | N/A | N/A | 0 |
+
+- Gate 1 giữ PASS theo Leader, không rerun sau helper/metadata recovery vì không thay behavior; Gates 1–6 không rerun trong infrastructure recovery. Gate 6 XML khớp exact55selectors, gồm T-04…T-13, shared audit/auth/security và legacy callers.
+- Gate 7 lần đầu: UTC 2026-11-06T00:23:37.0653420Z → 04:00:27.7820092Z, BUILD FAILURE. PostgreSQL Connection refused đầu tiên tại Maven log line14511, 07:43:32.245+07, trong QuestionAdminControllerIntegrationTest; Redis refusal từ 07:43:12.006+07. Suite PASS ngay trước là QuestionAdminConcurrencyIntegrationTest (6/6); XML trước NFR_P02 có AT21_invalidContentsReturnFieldErrorsAndDoNotChangeTheDatabase(String)[9] PASS, nhưng không suy diễn thời gian tuyệt đối chỉ từ thứ tự XML.
+- Docker VM init.log ghi POST /shutdown lúc 00:43:26.815439609Z và all processes have shutdown lúc 00:43:27.244326194Z; actor không xác định. Surviving PostgreSQL/Redis container states giữ FinishedAt 00:43:02/03Z, StartedAt sau khi engine mở lại 04:12:26/27Z. docker events trả 0 events sau restart nên không dùng để phủ nhận sự cố; không có affirmative OOM evidence. Không suy đoán ai tắt engine hoặc nguyên nhân OOM.
+- Phân loại lượt đầu: 9 failures gồm 4 ngoại lệ đã xác minh, 2 có evidence connection trong testcase và 3 chưa chứng minh nguyên nhân riêng (NFR_P02 HTTP500 và hai PracticeRateLimiter assertions). 495 errors gồm 45 direct connection, 17 context-load có connection, 376 context-threshold cascade và 57 chưa đủ chứng cứ riêng. Không tự miễn các lỗi này; chỉ rerun sau approval mới của Leader.
+- Recovery: Docker Desktop 27.2.0, 16 CPU, memory 8.166.666.240 bytes (~7,61 GiB), version/info/ps exit0 trong PowerShell ngoài sandbox, không còn Maven/Surefire cũ. Engine đã được mở lại trước recovery; không đổi config/RAM, restart thêm, prune, xóa volume/data hoặc tác động worktree khác. Giữ 332 artifact cũ qua hash check; live Docker events được lưu cho rerun. Observer chỉ theo dõi lượt hiện có, ancestry + Surefire boot-JAR manifest ràng buộc target/test-classes T-14; không tạo thêm Maven run.
+- Gate 7 rerun duy nhất: UTC 04:39:31.1723902Z → 05:04:33.3238582Z, 3600/4/0/0, exit1, BUILD FAILURE. Không lỗi kết nối, không trigger mandatory STOP ngoài allowlist. QuestionAdminControllerIntegrationTest 91/91 PASS; NFR_P02 p95=36ms, không có HTTP500. Năm ngoại lệ được phép chỉ là FR023/NFR_P04/PEXPIRETIME/CapturedOutput/NFR_P02 vượt p95; lần này chỉ bốn ngoại lệ đầu xảy ra.
+
+| Failure trong rerun | Actual/expected an toàn |
+|---|---|
+| ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget | line398, p95=36404ms, yêu cầu <30000ms |
+| QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries | line304, p95=49924ms, yêu cầu <30000ms |
+| LoginAttemptServiceIntegrationTest.FR046_FR047_FR048_fifthFailureBlocksOnlyTheEmailIpPairAndUsesActualRedisExpiry | line133, PEXPIRETIME1793941113724, expected[1793941113951,1793941114623], thấp hơn cận dưới227ms |
+| LoginAttemptServiceIntegrationTest.redisFailuresInAllThreeOperationsFailOpenAndOnlyLogSafeWarnings(CapturedOutput) | line313; raw captured diagnostic giữ private, không đưa fixture PII/password vào tracking hoặc PR |
+
+- **Điều kiện B của Leader:** được conditional delivery với đúng bốn failures trên; Gate 7 vẫn FAILED, không gọi PASS. Không chạy lần thứ ba. Gate 8 PASS: configured report/check exit0, All coverage checks have been met; project LINE 9767/10061=97,08% (>=80%), Community LINE 1012/1022=99,02%, class mismatch=0. Execution data 1.141.125 bytes, SHA256 `11846CDA87ACFFE3EE6A11128B616D8C0E551A3F8EC26A2072088003070446EB`; session 04:39:40.946Z → 05:04:31.806Z nằm trong rerun. Report XML SHA256 `47FDAA5D67FAB1CD4C42629DCAD5E563A644260E0F15A28CC7BB2FFC002E405E`. Không dùng coverage lượt đầu hoặc miễn Gate 8.
+- Source integrity cuối: 10/10 khớp `source-freeze-springdoc31-recovery-sha256.json`, manifest SHA256 `3BF5E65C71B660C9EB555A52652D561F642DB96136C9AC6852637212E66AB3E0`; chain manifest trước helper/metadata và evidence hai lượt Gate 7 giữ nguyên. Chỉ hai tracking files được cập nhật khi đủ điều kiện B + Gate8. Delivery preflight phải kiểm exact12 (6 ADD/6 MODIFY), hashes, BOM/UTF-8/EOF/whitespace/secrets, staged diff-check; một Conventional Commit, push task branch, Draft PR main. Không Ready/merge hoặc bắt đầu SPEC-013.
+- Evidence local: `C:\WINDOWS\TEMP\cnhsk-spec009-t14-20261106-implementation\`: manifests, gate result JSON/private logs/Surefire XML, OpenAPI snapshots, PostgreSQL blocking/transaction proof, `gate7-infrastructure-investigation/`, first-run STOP, rerun classification/live events/once marker và Gate8 JaCoCo execution/report. Raw logs/XML không commit hoặc đăng lên PR; chỉ safe metrics.
