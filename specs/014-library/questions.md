@@ -1,5 +1,30 @@
 # Chốt — Spec 014
 
+## 2026-11-06 — Leader duyệt 014/T-13 Segmenter
+
+- Fetch origin/main `fae62f1` (đã có PR #125/T-12), tạo nhánh `spec/014-t13-segmenter` và worktree `CNHSK-014-t13` từ đúng base này. Không merge/rebase hoặc sửa worktree gốc.
+- Allowlist đúng 6 file:
+  1. `src/main/java/com/cnhsk/learning/library/Segmenter.java` — service điều phối, hàm static split thuần và các record kết quả; exception riêng không chứa nội dung đầu vào.
+  2. `src/main/java/com/cnhsk/learning/library/SegmenterQueryRepository.java` — một native SELECT với tham số mảng, chọn lexeme ưu tiên.
+  3. `src/test/java/com/cnhsk/learning/library/SegmenterTest.java` — fixture tự soạn, kiểm tách thuần, Unicode, giữ nguyên văn bản, pinyin và lỗi repository.
+  4. `src/test/java/com/cnhsk/learning/library/SegmenterIntegrationTest.java` — PostgreSQL Testcontainers, fixture commit trước đo, đếm SELECT và benchmark 2.000 code point.
+  5. `specs/014-library/questions.md` — các quyết định Q-T13-xx và bằng chứng gate.
+  6. `specs/014-library/tasks.md` — chỉ đánh dấu T-13 và cập nhật tiến độ khi gate đạt.
+- Q-T13-01: cùng text chọn WORD > GRAMMAR > CHAR, sau đó id nhỏ nhất. SQL DISTINCT ON (x.text), ORDER BY x.text, CASE x.kind ..., x.id ASC; không phụ thuộc thứ tự Map hay thứ tự chèn fixture.
+- Q-T13-02: chữ CJK không có trong bảng tra trả mỗi code point một segment, pinyin và lexemeId đều null; không gộp các chữ lạ.
+- Q-T13-03: gộp dải không-CJK liên tiếp, giữ nguyên mọi khoảng trắng, dấu câu, chữ Latin, số, emoji và xuống dòng. Ghép segment.text phải đúng đầu vào, không trim/chuẩn hoá nội dung.
+- Q-T13-04: whitelist các block CJK Unified Ideographs, Extension A–G, CJK Compatibility Ideographs và Compatibility Supplement, đồng thời Character.isIdeographic(int). Dấu câu CJK, chữ kana/hangul, bộ thủ và ký hiệu ngoài whitelist không được tra. Dùng code point và offset UTF-16; từ dài tối đa 8 code point, không cắt đôi surrogate pair.
+- Q-T13-05: GRAMMAR chứa ký hiệu như 是…的 tự nhiên không nằm trong candidate CJK liên tục; không xoá ký hiệu hoặc biến đổi pattern để khớp.
+- Segmenter.segment() gom distinct mọi chuỗi con CJK liên tục dài 1…8, gọi repository đúng một lần nếu tập không rỗng; rỗng/không-CJK không gọi repository và không SELECT. Segmenter.split(text, Map) là hàm thuần, so khớp dài nhất trước. Null đầu vào ném IllegalArgumentException.
+- Repository dùng `x.text = ANY(:texts)` với String[] được bind tường minh bằng Hibernate NativeQuery.setParameter(name, value, String[].class); PostgreSQL nhận một tham số mảng. Không SQL nối input, không setParameterList, không hàng nghìn placeholder, không truy vấn theo từng đoạn. Điều kiện kind và char_length giữ đúng phạm vi từ điển. Chỉ đọc learning.lexemes, không entity/dependency/migration mới.
+- Pinyin từng đoạn có thể null; bỏ qua null/rỗng/toàn khoảng trắng khi nối pinyin cả đoạn bằng một dấu cách, không đoạn nào có pinyin thì kết quả null. Pinyin có dấu được giữ nguyên sau bỏ khoảng trắng ở hai đầu; không chọn kind ưu tiên thấp hơn chỉ vì pinyin của kind đã chọn là null.
+- Lỗi repository được đổi thành Segmenter.SegmentationException có thông báo cố định, không đính kèm cause có thể chứa tham số SQL, không log văn bản, không trả kết quả fallback. T-14 chịu trách nhiệm bắt lỗi và giữ bản dịch. Không endpoint, TranslationService, Claude, mã lỗi mới hoặc thay đổi SecurityConfig/contract trong T-13.
+- Test tích hợp dùng PostgreSQL thật và fixture tự soạn đã commit trước khi gọi segmenter. Đầu vào hiệu năng gồm 2.000 chữ Ext B khác nhau (4.000 UTF-16 code unit), tạo 15.972 candidate distinct; đo toàn bộ segment() gồm truy vấn, tạo kết quả và transaction. Báo lượt đầu, sau 3 lượt warm-up lấy 20 mẫu, p50/p95 theo nearest-rank. Mốc 200 ms là mục tiêu mềm theo duyệt; không đổi fixture hoặc hạ assertion để che số đo chậm. Cleanup chỉ xoá đúng ID fixture do lớp test đã chèn.
+- Gate: toàn bộ test library, sau đó full `mvnw.cmd -B verify`, Java 17, DEBUG=false, Docker; giữ assertion/ngưỡng test cũ. Kiểm phạm vi 6 file, diff, UTF-8 không BOM và không dấu việc chưa làm; fetch trước PR, báo thay đổi file dùng chung, không rebase/merge. Một conventional commit, push nhánh đã duyệt, Draft PR vào main; không merge PR.
+- Kết quả gate ngày 2026-11-07: chọn lọc đủ 23 lớp library PASS 322/322, 0 failure/error/skip, 1 phút 47 giây. SegmenterTest 29 và SegmenterIntegrationTest 5 đều PASS, gồm null pinyin, mọi block đã chốt, giới hạn 8 code point và lỗi không chứa văn bản. Full `mvnw.cmd -B verify` PASS 3.833/3.833 test, 0 failure/error/skip, 16 phút 43 giây; Java 17, DEBUG=false, PostgreSQL Testcontainers. JaCoCo LINE 10.957/11.325 = 96,7506%, vượt ngưỡng 80%; toàn bộ lớp Segmenter/record/exception/repository đạt LINE 76/76. Không dùng ngoại lệ môi trường, không skip/hạ assertion. Đánh ✅ T-13, tổng 12/15.
+- SQL đo thực tế: đầu vào 2.000 code point, 15.972 candidate dùng đúng 1 SELECT; rỗng/không-CJK dùng 0 SELECT; ưu tiên kind và bind String[] trực tiếp đều được xác nhận trên PostgreSQL. Benchmark trong full verify: lượt đầu 118,642 ms, p50 54,492 ms, p95 105,246 ms (20 mẫu sau 3 warm-up), dưới mục tiêu mềm 200 ms. Lượt chọn lọc trước đó: đầu 112,331 ms, p50 354,914 ms, p95 411,126 ms, vượt mục tiêu mềm; giữ nguyên cả hai số đo và cùng fixture để thể hiện dao động giữa các lượt chạy, không thay đổi ngưỡng/assertion. Lượt chạy riêng ban đầu 34/34 PASS có số đo đầu 258,328 ms, p50 368,916 ms, p95 429,204 ms.
+- Fetch trước bàn giao: origin/main vẫn `fae62f1`, không file nào trong allowlist đổi so với base. Self-check PASS: đúng 6 file, diff sạch, UTF-8 không BOM, không thêm dấu việc chưa làm; không dependency/schema/contract/endpoint mới, không truy vấn xuyên module hoặc SQL ghép input. Không sửa SecurityConfig/ErrorCode, không log văn bản, không fallback của T-14. Chỉ stage từng file được duyệt; một conventional commit và Draft PR, không merge/rebase/force-push.
+
 ## 2026-11-06 — Leader duyệt 014/T-12, kèm chỉnh
 
 - Fetch origin/main `bcf89cb`, tạo nhánh `spec/014-t12-flashcard-review` và worktree `CNHSK-014-t12` từ base này. Chỉ triển khai T-12 theo duyệt, không rebase/merge hoặc đụng thay đổi riêng ở worktree gốc.
