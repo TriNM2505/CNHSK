@@ -34,6 +34,8 @@ public class MasteryUpdater {
             + "ON CONFLICT (user_id, target_type, target_id) DO NOTHING";
     private static final String LOCK = "SELECT mp_state, evidence_item_ids FROM learning.user_progress "
             + "WHERE user_id=? AND target_type='KNOWLEDGE_POINT' AND target_id=? FOR UPDATE";
+    private static final String LOCK_USER = "SELECT pg_advisory_xact_lock("
+            + "hashtextextended('mastery:user:' || CAST(? AS text), 0))";
     private static final String UPDATE = "UPDATE learning.user_progress SET mastery=?, confidence=?, mp_state=?, "
             + "evidence_item_ids=?, next_review_at=?, updated_at=? "
             + "WHERE user_id=? AND target_type='KNOWLEDGE_POINT' AND target_id=?";
@@ -57,9 +59,15 @@ public class MasteryUpdater {
 
     @Transactional(propagation = Propagation.MANDATORY)
     public void update(long userId, List<AllocatedEvidence> fresh) {
+        update(userId, fresh, clock.instant());
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void update(long userId, List<AllocatedEvidence> fresh, Instant at) {
         if (fresh.isEmpty()) {
             return;
         }
+        lockUser(userId);
         Map<String, Long> ids = tree.nodes().stream().collect(Collectors.toMap(
                 KnowledgeTreeService.KnowledgeNode::kid, KnowledgeTreeService.KnowledgeNode::id));
         Map<Long, List<AllocatedEvidence>> grouped = new HashMap<>();
@@ -89,7 +97,7 @@ public class MasteryUpdater {
         }
         Map<String, List<AllocatedEvidence>> previous = allocator.reallocate(userId, historicalIds).stream()
                 .collect(Collectors.groupingBy(AllocatedEvidence::kid));
-        Instant now = clock.instant();
+        Instant now = at;
         for (Long id : ordered) {
             String kid = ids.entrySet().stream().filter(entry -> entry.getValue().equals(id))
                     .map(Map.Entry::getKey).findFirst().orElseThrow();
@@ -122,6 +130,11 @@ public class MasteryUpdater {
                 throw new IllegalStateException("Locked progress row disappeared");
             }
         }
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void lockUser(long userId) {
+        jdbc.queryForObject(LOCK_USER, (result, number) -> null, userId);
     }
 
     private record ProgressRow(MasteryState state, List<Long> evidenceIds) { }
