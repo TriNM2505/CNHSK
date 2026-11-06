@@ -230,3 +230,20 @@ Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, 
 - Full `.\mvnw.cmd -B verify`: **BUILD SUCCESS**, **3.620 test**, 0 failure, 0 error, 0 skipped, exit 0; Testcontainers dùng Docker hoạt động. Không phát sinh lỗi thuộc các ngoại lệ môi trường được duyệt.
 - JaCoCo LINE: **96,74%** — **10.671/11.031 dòng** (360 missed); toàn bộ coverage checks đạt.
 - NFR truy vấn: StatementInspector đo **4 SELECT với 10 nút và 4 SELECT với 50 nút** (fixture không có evidence). Test đối chiếu tập KID của batch với `KnowledgeTreeService.approvedQuestionIds` cho từng KID.
+
+## 2026-11-07 — Chốt 011/T-13 (ReviewListener)
+
+1. **Q-T13-01 — Dependency:** T-13 phụ thuộc T-05 và T-11. T-12 không chặn T-13. T-13 bắt đầu trên main có PR #125 đã merge để dùng FsrsScheduler với giới hạn stability mới.
+2. **Q-T13-02 — TOPIC_STUDY:** `LEARNED` và `KNOWN` là minh chứng FSRS; không yêu cầu `is_correct=true`. Vẫn loại suspicious và metadata theo FR-008; không áp dụng cửa sổ 7 ngày.
+3. **Q-T13-03 — Rating:** Lần đầu TOPIC_STUDY: `LEARNED → GOOD`, `KNOWN → EASY`; nếu cùng lexeme có cả hai thì chọn `LEARNED → GOOD`. Lần đầu câu chấm điểm: có câu sai hợp lệ thì `AGAIN`, nếu không thì có câu đúng hợp lệ sẽ là `GOOD`. Khi đã có lịch, câu chấm điểm dùng cùng quy tắc sai/đúng; TOPIC_STUDY dùng `GOOD`. Mỗi lượt cập nhật tối đa một lần cho mỗi lexeme.
+4. **Q-T13-04 — Precision:** Khi lưu stability dùng scale 3 và difficulty scale 2, cả hai `RoundingMode.HALF_UP`. Scheduler không bị sửa; giới hạn stability dùng S_MAX của phiên bản FsrsScheduler đã merge.
+5. **Q-T13-05 — Mastery LEXEME:** T-13 không ghi cột `mastery` của dòng LEXEME; phần này để T-14.
+6. **Q-T13-06 — Whitelist nguồn:** Chỉ xử lý rõ các nguồn có minh chứng theo FR-005 và `TOPIC_STUDY`. Nguồn không hỗ trợ bị bỏ qua và ghi WARN. Không thêm enum hoặc xử lý `DUE_REVIEW`; ca tích hợp DUE_REVIEW thuộc T-14.
+
+### Kết quả gate T-13
+
+- Targeted `ReviewListenerTest,ReviewListenerIntegrationTest`: **18 test, 0 failure, 0 error, 0 skipped**, exit 0. Bao gồm PostgreSQL/Testcontainers, transaction rollback, concurrency và NFR query.
+- NFR query: sau khi dùng chung một KID trong lượt 10 và 50 item, **22 SELECT / 10 item** và **22 SELECT / 50 item**; assertion bình đẳng được giữ nguyên.
+- Regression mastery/FSRS liên quan T-06/T-07/T-08/T-09/T-10/T-11/T-13: **139 test, 0 failure, 0 error, 0 skipped**, exit 0.
+- Full `verify`: **3.817 test, 0 error, 0 skipped, 1 failure**, exit 1. Lỗi duy nhất `QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries`: **31.459 ms** so với ngưỡng **30.000 ms**; thuộc ngoại lệ NFR_P04 đã được leader chấp thuận. Không sửa hoặc nới assertion.
+- JaCoCo LINE từ execution data của chính lượt full verify: **96,72%** — **10.992/11.365 dòng** (373 missed). Báo cáo được tạo bằng execution data của lượt này sau khi Surefire hoàn tất toàn bộ suite.
