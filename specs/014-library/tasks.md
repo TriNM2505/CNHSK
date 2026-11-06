@@ -29,7 +29,7 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 | T-10 | Bộ flashcard: danh sách, tạo (trống/từ chủ đề), chi tiết, sửa, xoá; matcher `LEARNER` `/api/flashcard-decks/**` | `…/library/DeckService.java`, `…/library/web/DeckController.java`, `SecurityConfig.java` | FR-013, FR-014 · AT-12, AT-13 | ✅ — leader duyệt 14 file; chọn lọc 46/46; full verify 3.002 test, 0 failure/error/skip; JaCoCo LINE 97,2542%; SQL danh sách 1 SELECT, chi tiết 2 SELECT |
 | T-11 | Thẻ: thêm/sửa/xoá; mã `CARD_DUPLICATE` | `…/library/CardService.java`, `DeckController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-015, FR-016 · AT-14, AT-15 | ✅ — leader duyệt 11 file; chọn lọc 134/134; full verify 3.179 test, 0 failure/error/skip trên V6; JaCoCo LINE 97,0723%; tranh 499/500, trùng và guard unique PostgreSQL PASS |
 | T-12 | Ôn thẻ: `GET …/due`, `POST /api/flashcards/{cardId}/review` dùng `FsrsScheduler`; matcher `/api/flashcards/**` | `…/library/FlashcardReviewService.java`, `…/library/web/FlashcardReviewController.java`, `SecurityConfig.java` | FR-017, FR-018 · AT-16, AT-17 | ✅ — leader duyệt tối đa 20 file; chọn lọc 373/373; full verify 3.799 test, 0 failure/error/skip; JaCoCo LINE 96,7286%; due 2 SELECT, FSRS 42/42, stability 36500 ghi DB PASS |
-| T-13 | `Segmenter` (dài nhất trước, 1 truy vấn) — lớp gần thuần, test bằng từ điển fixture | `…/library/Segmenter.java` + test | FR-021 · AT-20 | ⬜ |
+| T-13 | `Segmenter` (dài nhất trước, 1 truy vấn) — lớp gần thuần, test bằng từ điển fixture | `…/library/Segmenter.java` + test | FR-021 · AT-20 | ✅ — leader duyệt 6 file; library 322/322; full verify 3.833 test, 0 failure/error/skip; JaCoCo LINE 96,7506%; 2.000 code point: 1 SELECT, đầu/p50/p95 118,642/54,492/105,246 ms trong full verify; lượt chọn lọc chậm hơn ghi đủ tại questions.md; không-CJK 0 SELECT |
 | T-14 | Dịch: `ClaudeTranslator` (dùng `ClaudeClient` của 015, system prompt §0.3, timeout 10 s, test bằng `StubClaudeClient`), `TranslationService` (cache, tiêu thụ, hoàn), `POST /api/translate`, lọc log; mã `TRANSLATE_UNAVAILABLE`; `cnhsk.ai.translate-model` | `…/library/{ClaudeTranslator,TranslationService}.java`, `…/library/web/TranslationController.java`, `SecurityConfig.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest`, `application.yaml` | FR-019, FR-020, FR-022 · AT-18, AT-19, AT-21, AT-22 | ⬜ |
 
 ## Đợt 3 · Nối thật
@@ -63,4 +63,4 @@ T-13 → T-14
 
 **Bốn task rủi ro cao:** T-14 (trừ/hoàn lượt đúng, không lộ nội dung, chống prompt injection) · T-06 (giới hạn khách theo IP, tra pinyin đúng) · T-08 (403 dữ liệu riêng, giới hạn) · T-12 (đúng FSRS, không đổi mastery).
 
-**Hiện trạng: 11/15 task xong.**
+**Hiện trạng: 12/15 task xong.**
