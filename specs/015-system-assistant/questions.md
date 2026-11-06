@@ -1,5 +1,14 @@
 # Chốt — Spec 015
 
+## 2026-11-06 — T-06 endpoint hỏi trợ lý (leader duyệt)
+
+- Q-T06-01: Kiểm body rồi kiểm bài đang làm, trước khi đặt chỗ Redis. Request trả 422 hoặc 403 không tính vào hạn mức ngày.
+- Q-T06-02: Đặt chỗ nguyên tử theo ngày Việt Nam. Hoàn lượt nếu thư viện rỗng hoặc ngân sách tháng từ chối trước khi gọi client. Khi bắt đầu `ClaudeClient.complete`, giữ lượt kể cả lỗi upstream hoặc timeout. Retry tính tới 00:00 hôm sau và làm tròn lên theo giây. Redis lỗi thì cho qua và chỉ WARN với metadata an toàn.
+- Q-T06-03 (thay thế): `ActiveTestApi.hasActiveTest` là API chỉ đọc riêng, dùng một truy vấn của `AttemptRepository`. Lọc đúng người gọi, nguồn `MOCK_EXAM`, `PLACEMENT`, `TOPIC_TEST`, trạng thái `IN_PROGRESS` và `expiresAt > now` từ Clock. Giữ nguyên `PracticeApi`, `PracticeApiTest` và `PracticeService`.
+- Q-T06-04: OpenAPI giữ nguyên. Controller kiểm kiểu JSON và đếm code point của câu hỏi sau khi cắt khoảng trắng. Khi có mặt, history phải là mảng. Page context nhận mã đúng pattern hoặc null. Sai body trả 422 qua xử lý cục bộ. Kết quả dạng văn bản thường dùng nguyên văn theo E6. JSON sai schema hoặc câu trả lời trắng trả 503.
+- Q-T06-05: Chỉ chấp nhận ngoại lệ gate cho FR023 import p95, NFR_P04/T08_QUESTION_CONFIRM_BENCHMARK, LoginAttempt PEXPIRETIME, LoginAttempt CapturedOutput và QuestionAdminControllerIntegrationTest.NFR_P02. Nếu chỉ các test này fail thì báo tên test, số đo và trạng thái FULL VERIFY FAILED. Lỗi Docker, mạng hay port cần khôi phục môi trường rồi chạy lại gate. Không skip test.
+- Kết quả T-06: targeted 98/98. FULL VERIFY FAILED (1 test môi trường: NFR_P04 p95 30.782 ms), 3.577 test, 0 error/skip. JaCoCo LINE 96,72%. Leader chấp nhận bàn giao Draft PR theo ngoại lệ Q-T06-05.
+
 ## 2026-11-06 — T-05 tài liệu, che PII và dựng prompt (leader duyệt)
 
 - Q-T05-01: `cnhsk.assistant.help-location` mặc định `classpath*:help/*.md`. Nạp UTF-8 lúc khởi động theo tên file. Đếm Unicode code point trong nội dung từng file, không tính dấu phân cách. Cho phép đúng 60.000. Toàn bộ nội dung trắng được coi là thư viện rỗng.
