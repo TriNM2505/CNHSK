@@ -24,6 +24,6 @@ export function CommentModerationForm({ action, disabled, onSubmit, onCancel, dr
       <textarea className="min-h-32 w-full border border-line p-3" id="moderation-reason" disabled={disabled || confirming} value={reason} onChange={(event) => updateDraft({ reason: event.target.value, confirming })} />
     </FormField>
     {confirming ? <section aria-label="Xác nhận kiểm duyệt"><p>Xác nhận {action === 'HIDE' ? 'ẩn' : action === 'DELETE' ? 'xoá' : 'khôi phục'} bình luận này? Các trả lời được giữ nguyên.</p><Button disabled={disabled} type="button" onClick={() => onSubmit({ action, reason: reason.trim() })}>Xác nhận kiểm duyệt</Button><Button disabled={disabled} type="button" variant="outline" onClick={() => updateDraft({ reason, confirming: false })}>Quay lại</Button></section> : <Button disabled={disabled} type="submit">Tiếp tục</Button>}
-    <Button className="ml-3" disabled={disabled} type="button" variant="outline" onClick={onCancel}>Đóng</Button>
+    <Button className="ml-3" type="button" variant="outline" onClick={onCancel}>Đóng</Button>
   </form>
 }

@@ -4,6 +4,28 @@ import type { PostCategory, PostWrite } from './types'
 export type PostFormValues = { title: string; content: string; category: PostCategory | '' }
 export type PostFormErrors = Partial<Record<keyof PostFormValues, string>>
 
+export function getPostFormChanges(values: PostFormValues, baseline: PostFormValues): Partial<PostFormValues> {
+  const changes: Partial<PostFormValues> = {}
+  if (values.title !== baseline.title) changes.title = values.title
+  if (values.content !== baseline.content) changes.content = values.content
+  if (values.category !== baseline.category) changes.category = values.category
+  return changes
+}
+
+export function sanitizePostEditorOrigin(value: unknown): string | undefined {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return undefined
+  if (value.includes('\\') || [...value].some((character) => character.charCodeAt(0) <= 32 || character.charCodeAt(0) === 127)) return undefined
+  try {
+    const url = new URL(value, 'https://cnhsk.invalid')
+    if (url.origin !== 'https://cnhsk.invalid') return undefined
+    const postId = /^\/community\/posts\/([0-9]+)$/.exec(url.pathname)?.[1]
+    if (url.pathname !== '/community' && parsePostId(postId) === undefined) return undefined
+    return `${url.pathname}${url.search}`
+  } catch {
+    return undefined
+  }
+}
+
 export function parsePostId(raw: string | undefined): number | undefined {
   if (!raw || !/^\d+$/.test(raw)) return undefined
   const value = Number(raw)

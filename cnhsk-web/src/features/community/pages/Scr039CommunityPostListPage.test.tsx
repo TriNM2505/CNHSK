@@ -68,7 +68,7 @@ describe('SCR-039 community post list (FR-057, FR-061, AT-49)', () => {
 
   it('FR057_learner writing opens the registered create route', async () => {
     const user = userEvent.setup()
-    function CreateRoute() { return <h1>SCR-041 create route</h1> }
+    function CreateRoute() { const location = useLocation(); return <><h1>SCR-041 create route</h1><output aria-label="editor origin">{(location.state as { communityEditorOrigin?: string } | null)?.communityEditorOrigin}</output></> }
     const auth: AuthContextValue = { error: null, reloadCurrentUser: async () => undefined, setAuthenticatedUser: () => undefined, signOut: async () => undefined, status: 'authenticated', user: learnerUser }
     render(<AuthContext.Provider value={auth}><MemoryRouter initialEntries={['/community']}><Routes>
       <Route element={<Scr039CommunityPostListPage />} path="/community" />
@@ -76,7 +76,20 @@ describe('SCR-039 community post list (FR-057, FR-061, AT-49)', () => {
     </Routes></MemoryRouter></AuthContext.Provider>)
     await user.click(await screen.findByRole('button', { name: 'Viết bài' }))
     expect(await screen.findByRole('heading', { name: 'SCR-041 create route' })).toBeVisible()
+    expect(screen.getByLabelText('editor origin')).toHaveTextContent(/^\/community$/)
     expect(listMyPosts).not.toHaveBeenCalled()
+  })
+
+  it('preserves the mine pathname and search when opening an owned post editor', async () => {
+    const user = userEvent.setup()
+    const auth: AuthContextValue = { error: null, reloadCurrentUser: async () => undefined, setAuthenticatedUser: () => undefined, signOut: async () => undefined, status: 'authenticated', user: learnerUser }
+    function EditorOrigin() { const location = useLocation(); return <output aria-label="editor origin">{(location.state as { communityEditorOrigin?: string } | null)?.communityEditorOrigin}</output> }
+    render(<AuthContext.Provider value={auth}><MemoryRouter initialEntries={['/community?tab=mine&view=own']}><Routes>
+      <Route element={<Scr039CommunityPostListPage />} path="/community" />
+      <Route element={<EditorOrigin />} path="/community/posts/:id/edit" />
+    </Routes></MemoryRouter></AuthContext.Provider>)
+    await user.click(await screen.findByRole('link', { name: 'Sửa bài' }))
+    expect(screen.getByLabelText('editor origin')).toHaveTextContent('/community?tab=mine&view=own')
   })
 
   it('FR057_learner URL selects mine and calls only listMyPosts with status/page/size', async () => {

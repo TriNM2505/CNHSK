@@ -39,6 +39,60 @@ beforeEach(() => {
 })
 afterEach(() => { vi.restoreAllMocks(); sessionStorage.clear() })
 describe('SCR-061 and SCR-063 independent comment moderation', () => {
+  it.each(['post', 'case'] as const)('closes a pending direct form on the %s screen while its mutation lane stays locked', async (kind) => {
+    const pending = deferred<ModerationComment>()
+    vi.mocked(moderation.moderateComment).mockReturnValueOnce(pending.promise)
+    render(shell(kind === 'post' ? '/moderation/posts/42' : '/moderation/reports/9'))
+    if (kind === 'post') await openPostComments()
+    else {
+      await openCasePanel()
+      fireEvent.change(screen.getByRole('combobox', { name: 'Quyết định' }), { target: { value: 'REJECT' } })
+      fireEvent.change(screen.getByRole('textbox', { name: 'Lý do xử lý' }), { target: { value: 'Separate case note' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục quyết định' }))
+    }
+    fireEvent.click(await screen.findByRole('button', { name: 'Ẩn' }))
+    typeAndConfirm('Pending direct reason')
+    await waitFor(() => expect(moderation.moderateComment).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('button', { name: 'Đóng' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Đóng' }))
+    expect(screen.queryByRole('form', { name: 'Kiểm duyệt bình luận' })).not.toBeInTheDocument()
+    const hide = screen.getByRole('button', { name: 'Ẩn' })
+    expect(hide).toBeDisabled()
+    fireEvent.click(hide)
+    expect(screen.queryByRole('form', { name: 'Kiểm duyệt bình luận' })).not.toBeInTheDocument()
+    if (kind === 'case') {
+      const decide = screen.getByRole('button', { name: 'Xác nhận quyết định' })
+      expect(decide).toBeDisabled()
+      fireEvent.click(decide)
+      expect(moderation.decideReportCase).not.toHaveBeenCalled()
+      expect(screen.getByRole('textbox', { name: 'Lý do xử lý' })).toHaveValue('Separate case note')
+    }
+    await act(async () => pending.resolve({ ...visible, status: 'HIDDEN' }))
+    expect(screen.queryByRole('form', { name: 'Kiểm duyệt bình luận' })).not.toBeInTheDocument()
+    expect(moderation.moderateComment).toHaveBeenCalledTimes(1)
+  })
+  it.each([
+    ['post', 409, 'COMMENT_NOT_RESTORABLE'], ['case', 409, 'COMMENT_NOT_RESTORABLE'],
+    ['post', 404, 'COMMENT_NOT_FOUND'], ['case', 404, 'COMMENT_NOT_FOUND'],
+    ['post', 403, 'SELF_MODERATION'], ['case', 403, 'SELF_MODERATION'],
+  ] as const)('closes an ineligible direct form on the %s screen after %i %s', async (kind, status, code) => {
+    const after: ModerationComment[] = status === 404 ? [] : status === 409 ? [{ ...moderationComment, status: 'DELETED', moderationReason: 'AUTHOR_DELETED' }] : [{ ...moderationComment, author: { id: moderator.id, displayName: 'Self' } }]
+    vi.mocked(moderation.listPostCommentsForModeration).mockResolvedValueOnce([moderationComment]).mockResolvedValue(after)
+    vi.mocked(moderation.moderateComment).mockRejectedValueOnce(new ApiError({ status, errorCode: code, message: code, requestId: 'test' }))
+    render(shell(kind === 'post' ? '/moderation/posts/42' : '/moderation/reports/9'))
+    if (kind === 'post') await openPostComments()
+    else await openCasePanel()
+    fireEvent.click(await screen.findByRole('button', { name: 'Khôi phục' }))
+    typeAndConfirm('Keep the rejected reason')
+    await screen.findByText(code)
+    await screen.findByText('Bình luận không còn đủ điều kiện cho thao tác này.')
+    expect(reason()).toHaveValue('Keep the rejected reason')
+    expect(screen.getByRole('button', { name: 'Xác nhận kiểm duyệt' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Đóng' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Đóng' }))
+    expect(screen.queryByRole('form', { name: 'Kiểm duyệt bình luận' })).not.toBeInTheDocument()
+    expect(moderation.moderateComment).toHaveBeenCalledTimes(1)
+  })
   it.each(['DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'HIDDEN'] satisfies PostStatus[])('FR040_FR063_all post status %s supports lazy full moderation comments', async (status) => {
     vi.mocked(moderation.getModerationPost).mockResolvedValue({ ...moderationPost, status })
     render(shell())

@@ -67,7 +67,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-19 | Sửa 7 lỗi FE mức P2 FE009-AUD-01…07 (SCR-040/041/061/063, điều hướng `MODERATOR`); chạy thử luồng cộng đồng với backend thật | `cnhsk-web/src/features/community/**`, file điều hướng dùng chung (nêu trong Shadow Plan) | FR-057…FR-063 · AT-49 | ⬜ |
+| T-19 | Sửa 7 lỗi FE mức P2 FE009-AUD-01…07 (SCR-040/041/061/063, điều hướng `MODERATOR`); chạy thử luồng cộng đồng với backend thật | `cnhsk-web/src/features/community/**`, file điều hướng dùng chung (nêu trong Shadow Plan) | FR-057…FR-063 · AT-49 | ✅ — community 597/597; 3 shuffle seed PASS; full Vitest 2309/2309; lint 0 error (1 warning LevelBadge có sẵn); build PASS sau recovery kiểu 2 file test; smoke backend thật PASS |
 | T-20 | Sửa annotation OpenAPI sinh sai (`page`/`size` của `MyPostController`, `PublicPostController`; `CommentResponse.depth`) + gom hàm `excerpt` về `community.common` | `…/community/post/web/*Controller.java`, `…/comment/web/CommentResponse.java`, `…/community/common/*`, `PostQueryService`, `PostModerationService` + test | §13 · AT-49 | ⬜ |
 
 ---

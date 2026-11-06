@@ -10,38 +10,42 @@ export type EditorMode = 'create' | 'edit'
 
 type Props = {
   busy: boolean
+  confirmingDiscard?: boolean
+  draftError?: string
   errors: PostFormErrors
   formError?: string
   verificationRequired?: boolean
   locked: boolean
   mode: EditorMode
+  onCancel: () => void
   onChange: (field: keyof PostFormValues, value: string) => void
+  onConfirmDiscard?: () => void
+  onKeepEditing?: () => void
   onSubmit: (submit: boolean) => void
+  onVerify?: () => boolean
   post?: OwnPost
   values: PostFormValues
+  verificationTo?: string
 }
 
-export function PostEditorView({ busy, errors, formError, locked, mode, onChange, onSubmit, post, values, verificationRequired }: Props) {
+export function PostEditorView({ busy, confirmingDiscard, draftError, errors, formError, locked, mode, onCancel, onChange, onConfirmDiscard, onKeepEditing, onSubmit, onVerify, post, values, verificationRequired, verificationTo = '/verify-email' }: Props) {
   const handleSubmit = (event: FormEvent<HTMLFormElement>, submit: boolean) => {
     event.preventDefault()
     onSubmit(submit)
   }
 
-  if (post?.status === 'HIDDEN') {
-    return <main className="mx-auto max-w-reading p-4 sm:p-6">
-      <h1 className="text-h1-sm text-ink sm:text-h1">Chỉnh sửa bài viết</h1>
+  return <main className="mx-auto max-w-reading p-4 sm:p-6">
+    <h1 className="text-h1-sm text-ink sm:text-h1">{mode === 'create' ? 'Viết bài cộng đồng' : 'Chỉnh sửa bài viết'}</h1>
+    {draftError ? <p className="mt-4 rounded-md border border-danger bg-danger-bg p-3" role="alert">{draftError}</p> : null}
+    {post?.status === 'HIDDEN' ? <>
       <p className="mt-4" role="status">{POST_STATUS_LABELS.HIDDEN}</p>
       {post.reviewReason ? <p className="mt-3 whitespace-pre-wrap">{post.reviewReason}</p> : null}
       <Button className="mt-5" to="/community?tab=mine" variant="outline">Về Bài viết của tôi</Button>
-    </main>
-  }
-
-  return <main className="mx-auto max-w-reading p-4 sm:p-6">
-    <h1 className="text-h1-sm text-ink sm:text-h1">{mode === 'create' ? 'Viết bài cộng đồng' : 'Chỉnh sửa bài viết'}</h1>
+    </> : <>
     {post?.status === 'APPROVED' ? <p className="mt-4 rounded-md border border-warning bg-warning-bg p-3" role="note">Bài sẽ tạm ẩn khỏi cộng đồng cho tới khi được duyệt lại</p> : null}
     {post?.status === 'REJECTED' && post.reviewReason ? <p className="mt-4 whitespace-pre-wrap" role="note">Lý do từ chối: {post.reviewReason}</p> : null}
     {formError ? <p className="mt-4 rounded-md border border-danger bg-danger-bg p-3" role="alert">{formError}</p> : null}
-    {verificationRequired ? <Button className="mt-3" to="/verify-email" variant="outline">Xác minh email</Button> : null}
+    {verificationRequired ? <Button className="mt-3" onClick={(event) => { if (onVerify && !onVerify()) event.preventDefault() }} to={verificationTo} variant="outline">Xác minh email</Button> : null}
     <form className="mt-5 space-y-4" onSubmit={(event) => handleSubmit(event, true)}>
       <FormField error={errors.title} htmlFor="post-title" label="Tiêu đề" required hint={`${values.title.trim().length}/200`}>
         <input className="min-h-control w-full rounded-sm border border-line bg-surface px-3" disabled={busy || locked} id="post-title" onChange={(event) => onChange('title', event.target.value)} value={values.title} />
@@ -61,5 +65,14 @@ export function PostEditorView({ busy, errors, formError, locked, mode, onChange
         <Button disabled={busy || locked} loading={busy} type="submit">{mode === 'edit' ? 'Gửi duyệt' : 'Gửi duyệt'}</Button>
       </div>
     </form>
+    </>}
+    <Button className="mt-4" onClick={onCancel} type="button" variant="ghost">Hủy</Button>
+    {confirmingDiscard ? <section aria-label="Xác nhận bỏ thay đổi" className="mt-5 rounded-md border border-warning bg-warning-bg p-4" role="region">
+      <p>Bạn có thay đổi chưa lưu. Bỏ các thay đổi và rời trình soạn thảo?</p>
+      <div className="mt-3 flex flex-wrap gap-3">
+        <Button onClick={onConfirmDiscard} type="button" variant="danger">Bỏ thay đổi</Button>
+        <Button onClick={onKeepEditing} type="button" variant="outline">Tiếp tục chỉnh sửa</Button>
+      </div>
+    </section> : null}
   </main>
 }

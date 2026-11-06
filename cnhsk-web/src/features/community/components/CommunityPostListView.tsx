@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 
 import { POST_CATEGORY_LABELS, POST_STATUS_LABELS } from '../labels'
 import type { OwnPost, OwnPostPage, PostCategory, PostStatus, PostSummaryPage } from '../types'
@@ -31,6 +31,7 @@ function Loading() {
 }
 
 function OwnPostCard({ post }: { post: OwnPost }) {
+  const location = useLocation()
   const showReason = (post.status === 'REJECTED' || post.status === 'HIDDEN') && post.reviewReason
   return (
     <article className="rounded-md border border-line bg-surface p-4">
@@ -41,7 +42,7 @@ function OwnPostCard({ post }: { post: OwnPost }) {
       <p className="mt-2 text-body-sm text-ink-secondary">{POST_CATEGORY_LABELS[post.category]}</p>
       {showReason ? <p className="mt-3 whitespace-pre-wrap text-body-sm">{post.reviewReason}</p> : null}
       {post.status !== 'HIDDEN' ? (
-        <Link className="mt-3 inline-block text-brand-700 underline" to={`/community/posts/${post.id}/edit`}>Sửa bài</Link>
+        <Link className="mt-3 inline-block text-brand-700 underline" state={{ communityEditorOrigin: `${location.pathname}${location.search}` }} to={`/community/posts/${post.id}/edit`}>Sửa bài</Link>
       ) : null}
     </article>
   )

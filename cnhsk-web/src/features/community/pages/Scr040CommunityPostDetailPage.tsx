@@ -28,7 +28,7 @@ function NotFound() {
 
 type DiscussionProps = { postId: number; user: CurrentUser | null; active: boolean; refreshPost: () => void }
 type QueryProps = DiscussionProps & { session: ReturnType<typeof useDiscussionSession> }
-type ThreadProps = QueryProps & { comments: readonly (Comment | ModerationComment)[]; state: 'loading' | 'empty' | 'error' | 'ready'; error: unknown; reload: () => void; moderator: boolean }
+type ThreadProps = QueryProps & { comments: readonly (Comment | ModerationComment)[]; receivedAt: number; state: 'loading' | 'empty' | 'error' | 'ready'; error: unknown; reload: () => void; moderator: boolean }
 
 function useDiscussionSession() {
   const [selection, setSelection] = useState<DiscussionSelection>()
@@ -50,16 +50,18 @@ function DiscussionSession(props: DiscussionProps & { moderator: boolean }) {
   return props.moderator ? <ModeratorDiscussion {...props} session={session} /> : <PublicDiscussion {...props} session={session} />
 }
 
-function DiscussionController({ postId, user, active, refreshPost, comments, state, error: queryError, reload, moderator, session }: ThreadProps) {
+function DiscussionController({ postId, user, active, refreshPost, comments, receivedAt, state, error: queryError, reload, moderator, session }: ThreadProps) {
   const learner = Boolean(user?.roles.includes('LEARNER'))
   const verified = Boolean(user?.emailVerified)
   const { selection, setSelection, drafts, setDrafts, error, setError, validation, setValidation, lockedEdits, setLockedEdits, reportDraft, setReportDraft, moderationDraft, setModerationDraft, action } = session
-  const [now, setNow] = useState(Date.now)
+  const [clock, setClock] = useState(Date.now)
+  const now = Math.max(clock, receivedAt)
   const { showToast } = useToast()
   useEffect(() => {
-    const update = () => setNow(Date.now())
+    const update = () => setClock(Date.now())
+    const sampledAt = Date.now()
     const expirations = comments.map((comment) => Date.parse(comment.createdAt) + COMMENT_EDIT_WINDOW_MS).filter((time) => time > now && Number.isFinite(time))
-    const timer = expirations.length ? window.setTimeout(update, Math.min(...expirations) - now) : undefined
+    const timer = expirations.length ? window.setTimeout(update, Math.max(0, Math.min(...expirations) - sampledAt)) : undefined
     window.addEventListener('focus', update)
     return () => { window.clearTimeout(timer); window.removeEventListener('focus', update) }
   }, [comments, now])
@@ -88,7 +90,7 @@ function DiscussionController({ postId, user, active, refreshPost, comments, sta
   const commentAllowed = learner && verified && !disabled && selection && (selection.kind === 'new' || (Boolean(selected) && (selection.kind === 'reply' || (selection.kind === 'edit' && editAllowed))))
   const submitComment = () => {
     if (!commentAllowed || !selection) return
-    if (selection.kind === 'edit' && selected && !canEditComment(selected, user?.id, Date.now())) { setNow(Date.now()); return }
+    if (selection.kind === 'edit' && selected && !canEditComment(selected, user?.id, Date.now())) { setClock(Date.now()); return }
     const content = drafts[draftKey] ?? ''
     const invalid = validateText(content, 5000); setValidation(invalid)
     if (invalid) return
@@ -112,12 +114,12 @@ function DiscussionController({ postId, user, active, refreshPost, comments, sta
 }
 
 function PublicDiscussion(props: QueryProps) {
-  const query = useApiQuery((signal) => listPostComments(props.postId, signal), [props.postId, props.session.revision])
-  return <DiscussionController {...props} comments={query.data ?? []} state={query.state} error={query.error} reload={props.session.reload} moderator={false} />
+  const query = useApiQuery(async (signal) => ({ comments: await listPostComments(props.postId, signal), receivedAt: Date.now() }), [props.postId, props.session.revision])
+  return <DiscussionController {...props} comments={query.data?.comments ?? []} receivedAt={query.data?.receivedAt ?? 0} state={query.state} error={query.error} reload={props.session.reload} moderator={false} />
 }
 function ModeratorDiscussion(props: QueryProps) {
-  const query = useApiQuery((signal) => listPostCommentsForModeration(props.postId, signal), [props.postId, props.session.revision])
-  return <DiscussionController {...props} comments={query.data ?? []} state={query.state} error={query.error} reload={props.session.reload} moderator />
+  const query = useApiQuery(async (signal) => ({ comments: await listPostCommentsForModeration(props.postId, signal), receivedAt: Date.now() }), [props.postId, props.session.revision])
+  return <DiscussionController {...props} comments={query.data?.comments ?? []} receivedAt={query.data?.receivedAt ?? 0} state={query.state} error={query.error} reload={props.session.reload} moderator />
 }
 
 function ViewerStateQuery({ postId, revision, children }: { postId: number; revision: number; children: (query: ReturnType<typeof useApiQuery<ViewerState>>) => ReactNode }) {

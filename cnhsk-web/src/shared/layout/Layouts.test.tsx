@@ -146,6 +146,44 @@ describe('LearnerLayout', () => {
 })
 
 describe('AdminLayout', () => {
+  it('shows moderator destinations on desktop and mobile, follows links and marks detail prefixes active', async () => {
+    const event = userEvent.setup()
+    renderLayout(<AdminLayout>Nội dung kiểm duyệt</AdminLayout>, {
+      initialPath: '/moderation/posts/42',
+      user: { ...learner, roles: ['MODERATOR'] },
+    })
+    const desktop = screen.getByRole('navigation', { name: 'Quản trị' })
+    const mobile = screen.getByRole('navigation', { name: 'Quản trị trên thiết bị di động' })
+    for (const navigation of [desktop, mobile]) {
+      expect(within(navigation).getAllByRole('link')).toHaveLength(2)
+      expect(within(navigation).getByRole('link', { name: 'Bài chờ duyệt' })).toHaveAttribute('href', '/moderation/posts')
+      expect(within(navigation).getByRole('link', { name: 'Bài chờ duyệt' })).toHaveAttribute('aria-current', 'page')
+      expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).toHaveAttribute('href', '/moderation/reports')
+      expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).not.toHaveAttribute('aria-current')
+    }
+    await event.click(within(desktop).getByRole('link', { name: 'Báo cáo vi phạm' }))
+    expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent('/moderation/reports')
+    for (const navigation of [desktop, mobile]) expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).toHaveAttribute('aria-current', 'page')
+    await event.click(within(mobile).getByRole('link', { name: 'Bài chờ duyệt' }))
+    expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent('/moderation/posts')
+  })
+  it('combines moderator navigation with existing exact-role destinations', () => {
+    renderLayout(<AdminLayout>Nội dung quản trị</AdminLayout>, {
+      initialPath: '/moderation/reports/9',
+      user: { ...learner, roles: ['LEARNER', 'MODERATOR', 'CONTENT_EDITOR', 'ADMIN'] },
+    })
+    for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
+      const navigation = screen.getByRole('navigation', { name })
+      expect(within(navigation).getAllByRole('link')).toHaveLength(4)
+      for (const label of ['Nhập dữ liệu', 'Người dùng', 'Bài chờ duyệt', 'Báo cáo vi phạm']) expect(within(navigation).getByRole('link', { name: label })).toBeInTheDocument()
+      expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).toHaveAttribute('aria-current', 'page')
+    }
+  })
+  it.each(['LEARNER', 'ADMIN', 'CONTENT_EDITOR', 'TEACHER', 'ACCOUNTANT'] as const)('does not grant moderator destinations to %s', (role) => {
+    renderLayout(<AdminLayout>Nội dung quản trị</AdminLayout>, { user: { ...learner, roles: [role] } })
+    expect(screen.queryByRole('link', { name: 'Bài chờ duyệt' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Báo cáo vi phạm' })).not.toBeInTheDocument()
+  })
   it.each([
     [['CONTENT_EDITOR'], ['Nhập dữ liệu'], ['Người dùng']],
     [['ADMIN'], ['Người dùng'], ['Nhập dữ liệu']],
