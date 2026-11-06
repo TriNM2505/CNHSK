@@ -14,6 +14,7 @@ import { getLexeme, searchDictionary } from './api/dictionary'
 import { listNotes, listTrash } from './api/notes'
 import { getDeck, listDecks, listDueCards } from './api/flashcards'
 import { getTopics } from '@/features/vocab/api/topics'
+import { translate } from './api/translation'
 
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
 vi.mock('./api/dictionary', () => ({
@@ -44,6 +45,7 @@ vi.mock('./api/flashcards', () => ({
   reviewCard: vi.fn(),
 }))
 vi.mock('@/features/vocab/api/topics', () => ({ getTopics: vi.fn() }))
+vi.mock('./api/translation', () => ({ translate: vi.fn() }))
 
 const routes = [
   { path: '/dictionary', url: '/dictionary', scr: 'SCR-024', access: 'public', layout: 'public' },
@@ -98,16 +100,14 @@ function renderRoute(path: string) {
 }
 
 beforeEach(() => {
-  vi.mocked(getDeck)
-    .mockReset()
-    .mockResolvedValue({
-      id: 501,
-      name: 'Bộ thẻ kiểm thử',
-      cardCount: 0,
-      dueCount: 0,
-      createdAt: '2026-11-01T00:00:00Z',
-      cards: [],
-    })
+  vi.mocked(getDeck).mockReset().mockResolvedValue({
+    id: 501,
+    name: 'Bộ thẻ kiểm thử',
+    cardCount: 0,
+    dueCount: 0,
+    createdAt: '2026-11-01T00:00:00Z',
+    cards: [],
+  })
   vi.mocked(listDecks).mockReset().mockResolvedValue([])
   vi.mocked(listDueCards).mockReset().mockResolvedValue([])
   vi.mocked(getTopics).mockReset().mockResolvedValue([])
@@ -173,13 +173,15 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
           ? 'Tra từ điển'
           : scr === 'SCR-025'
             ? '日'
-            : scr === 'SCR-027'
-              ? 'Sổ tay cá nhân'
-              : scr === 'SCR-028'
-                ? 'Bộ thẻ của tôi'
-                : scr === 'SCR-029'
-                  ? 'Bộ thẻ kiểm thử'
-                  : `Màn ${scr} đang dựng`
+            : scr === 'SCR-026'
+              ? 'Dịch câu'
+              : scr === 'SCR-027'
+                ? 'Sổ tay cá nhân'
+                : scr === 'SCR-028'
+                  ? 'Bộ thẻ của tôi'
+                  : scr === 'SCR-029'
+                    ? 'Bộ thẻ kiểm thử'
+                    : `Màn ${scr} đang dựng`
       expect(screen.getByRole('heading', { name: title })).toBeVisible()
     })
     expect(router.state.location.pathname).toBe(url)
@@ -235,12 +237,32 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
   )
 
   it('exposes all six sample catalogs through the existing preview registry', () => {
+    expect(previewRegistry.filter(({ id }) => id.startsWith('library-'))).toHaveLength(12)
     expect([
       ...new Set(
         previewRegistry.filter(({ id }) => id.startsWith('library-')).map(({ scr }) => scr),
       ),
     ]).toEqual(routes.map(({ scr }) => scr))
   })
+
+  it.each(['ready', 'loading', 'empty', 'error'])(
+    'FR025_renders the existing translation preview in %s without API calls',
+    async (state) => {
+      renderRoute(`/__preview/frame/library-translation-samples/${state}`)
+      expect(await screen.findByRole('heading', { name: 'Dịch câu' })).toBeVisible()
+      if (state === 'loading')
+        expect(screen.getByRole('form', { name: 'Dịch câu' })).toHaveAttribute('aria-busy', 'true')
+      if (state === 'empty')
+        expect(screen.getByRole('heading', { name: 'Chưa có bản dịch' })).toBeVisible()
+      if (state === 'error')
+        expect(screen.getByText('Dịch tạm thời lỗi — lượt đã được hoàn')).toBeVisible()
+      if (state === 'ready')
+        expect(screen.getByRole('region', { name: 'Kết quả dịch' })).toBeVisible()
+      expect(translate).not.toHaveBeenCalled()
+      expect(getLexeme).not.toHaveBeenCalled()
+      expect(getCurrentUserMock).not.toHaveBeenCalled()
+    },
+  )
 
   it('renders the original dictionary samples without a backend', async () => {
     renderRoute('/__preview/frame/library-dictionary-samples/ready')
