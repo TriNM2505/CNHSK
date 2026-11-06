@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import com.cnhsk.auth.service.BootstrapAdminRunner;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -85,15 +86,60 @@ class CommunityContractTest {
     void AC01_registeredOperationsAndRuntimeDocumentationMatchTheSource() throws Exception {
         Map<OperationKey, ContractOperation> source = readOperations(readSource());
         Set<OperationKey> registered = registeredOperations();
-        String json = mockMvc.perform(get("/v3/api-docs").accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        JsonNode document = objectMapper.readTree(json);
-        assertValidOpenApi(json, document);
+        JsonNode document = runtimeDocument();
         Map<OperationKey, ContractOperation> documented = readOperations(document);
 
         assertRuntimeContract(source, registered, documented);
         System.out.println(coverageSummary(source, registered, documented));
         missingOperationKeys(source, registered).forEach(key -> System.out.println("missing operation: " + key));
+    }
+
+    @Test
+    void publishedPostPaginationSchemasMatchTheLockedContract() throws Exception {
+        assertPaginationSchemas(runtimeDocument(), "/api/public/community/posts");
+    }
+
+    @Test
+    void ownPostPaginationSchemasMatchTheLockedContract() throws Exception {
+        assertPaginationSchemas(runtimeDocument(), "/api/community/posts/mine");
+    }
+
+    @Test
+    void commentDepthRetainsTheContractIntegerRange() throws Exception {
+        JsonNode expected = readSource().path("components").path("schemas")
+                .path("Comment").path("properties").path("depth");
+        JsonNode actual = runtimeDocument().path("components").path("schemas")
+                .path("Comment").path("properties").path("depth");
+        for (String constraint : List.of("type", "minimum", "maximum")) {
+            assertThat(actual.path(constraint)).as("Comment.depth %s", constraint)
+                    .isEqualTo(expected.path(constraint));
+        }
+    }
+
+    private void assertPaginationSchemas(JsonNode document, String path) throws IOException {
+        JsonNode expected = readSource().path("components").path("parameters");
+        JsonNode parameters = document.path("paths").path(path).path("get").path("parameters");
+        for (String name : List.of("page", "size")) {
+            List<JsonNode> matches = StreamSupport.stream(parameters.spliterator(), false)
+                    .filter(parameter -> name.equals(parameter.path("name").asText())
+                            && "query".equals(parameter.path("in").asText()))
+                    .map(parameter -> parameter.path("schema")).toList();
+            assertThat(matches).as("%s query parameter %s", path, name).hasSize(1);
+            assertThat(matches.get(0)).as("%s query schema %s", path, name)
+                    .isEqualTo(expected.path("page".equals(name) ? "Page" : "Size").path("schema"));
+        }
+    }
+
+    private JsonNode runtimeDocument() throws Exception {
+        String json = mockMvc.perform(get("/v3/api-docs").accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String snapshot = System.getProperty("community.openapi.snapshot");
+        if (snapshot != null) {
+            Files.writeString(Path.of(snapshot), json);
+        }
+        JsonNode document = objectMapper.readTree(json);
+        assertValidOpenApi(json, document);
+        return document;
     }
 
     @Test

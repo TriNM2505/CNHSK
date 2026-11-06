@@ -583,3 +583,49 @@ Chạy trong `.worktrees/spec009-t19/cnhsk-web`. Mọi valid test dùng Node22.2
 - Hai ReportForm có IDs/nháp độc lập (`:r1:`, `:r3:`); đóng form bài giữ nháp comment. Sau submit editor mới trống; dirty Cancel hiện inline confirmation, discard về `/community?tab=mine`, mở lại trống, không POST thừa.
 - **Functional smoke PASS; Visual QA 360/768/1280 px vẫn NOT COMPLETED / DEFERRED.** Screenshots chỉ là functional evidence. Không phát hiện contract drift; không đổi locked OpenAPI/endpoint/backend behavior.
 - Evidence: `cnhsk-spec009-t19-20261106-implementation` (evidence local ngoài repo) — `community-recovery*`, `shuffle-*`, `full-vitest*`, `typescript-recovery-tests*`, `lint-typescript-recovery*`, `build-typescript-recovery*`, `audit-regression-matrix.json`, `smoke-results.json`, `smoke-ui-http-statuses.json`, manifests. Chỉ safe metrics vào tracking; raw logs/private environment/credentials/cookies/tokens không commit.
+
+## T-20 — Pagination OpenAPI và excerpt dùng chung (2026-11-07)
+
+- Leader duyệt Shadow Plan exact9; base `9ae4d870ce0dcf915fead336c4d89fc6eb7ba828`, nhánh `spec/009-community-blog-moderation-t20`. Delivery giữ Draft để Leader review; không merge/rebase hoặc push main.
+- Bốn annotation query thêm `type = "integer"`; không dùng Integer.class, không customizer, không đổi runtime int/default/validation. Locked YAML và endpoint behavior giữ nguyên.
+- `CommentResponse.depth`: **không cần sửa**, theo quyết định Leader. GET `/v3/api-docs` mới trước/sau đều sinh `{"type":"integer","format":"int32","maximum":3,"minimum":0}`. Khớp integer và miền 0–3 trong `contracts/openapi-community.yaml`; YAML không cấm format int32. Test khóa type/minimum/maximum. File CommentResponse.java không đổi byte.
+- `PostExcerpt.fromContent` giữ đúng `min(200, codePointCount)` rồi `substring(0, offsetByCodePoints)`. Hai service dùng chung; đã bỏ cả hai hàm private cũ. Không thêm trim, normalize, ellipsis, escape/unescape; markup/entity, whitespace và xuống dòng giữ nguyên như trước.
+- Test characterization dùng expected literal cho chuỗi rỗng/ngắn/199/200/201, Hán tự, emoji và ký tự ngoài BMP tại biên200, combining-mark split, markup/entity và LF/CRLF. Đã chạy PASS trên hai implementation cũ trước chuyển code; PostQueryServiceTest hiện có giữ nguyên.
+
+### /v3/api-docs trước/sau — snapshot mới trên base T-20
+
+| Route GET | Query | Trước | Sau |
+|---|---|---|---|
+| `/api/public/community/posts` | `page` | `{"type":"string","default":"0","minimum":0}` | `{"type":"integer","default":0,"minimum":0}` |
+| `/api/public/community/posts` | `size` | `{"type":"string","default":"20","maximum":50,"minimum":1}` | `{"type":"integer","default":20,"maximum":50,"minimum":1}` |
+| `/api/community/posts/mine` | `page` | `{"type":"string","default":"0","minimum":0}` | `{"type":"integer","default":0,"minimum":0}` |
+| `/api/community/posts/mine` | `size` | `{"type":"string","default":"20","maximum":50,"minimum":1}` | `{"type":"integer","default":20,"maximum":50,"minimum":1}` |
+
+Sau sửa: bốn query schema đều integer, default là số, bounds giữ nguyên, không có format. Snapshot `openapi-before.json` và `openapi-after.json` được lấy qua MockMvc endpoint thật trong context contract hiện có, không mock OpenAPI. Depth snippet trước/sau: `{"type":"integer","format":"int32","maximum":3,"minimum":0}`.
+
+### Gate và provenance
+
+| Gate | Kết quả | Exit |
+|---|---|---:|
+| Characterization trên hai hàm cũ — PASS trước refactor | 60 tests; 0 failure / 0 error / 0 skip | 0 |
+| Contract RED trước sửa — chỉ hai regression pagination thất bại | 19 tests; 2 failure / 0 error / 0 skip | 1 |
+| Excerpt GREEN sau gom hàm — PASS | 60 tests; 0 failure / 0 error / 0 skip | 0 |
+| Contract GREEN sau sửa — PASS | 19 tests; 0 failure / 0 error / 0 skip | 0 |
+| Community + contract 009 — PASS, đủ 40/40 suite | 710 tests; 0 failure / 0 error / 0 skip | 0 |
+| Full verify — FULL VERIFY FAILED — APPROVED ENVIRONMENTAL EXCEPTIONS ONLY | 3847 tests; 5 failure / 0 error / 0 skip | 1 |
+| JaCoCo report/check current full run | Project LINE 10956/11324 = 96.75%; Community LINE 1011/1021 = 99.02% | 0 |
+
+- Chọn lọc: 39 lớp community + CommunityContractTest, expected40/actual40/missing0/extra0. Java17, DEBUG=false, PostgreSQL18/Redis7/Mailpit Testcontainers local; không dùng Neon hoặc DB chung.
+- Full verify: FULL VERIFY FAILED — APPROVED ENVIRONMENTAL EXCEPTIONS ONLY. Không skip, hạ assertion/ngưỡng, failure-ignore hoặc rerun để chọn PASS. Chỉ năm ngoại lệ môi trường đã duyệt được phép conditional delivery; lỗi ngoài tập phải STOP.
+- JaCoCo dùng exec riêng của chính lượt full verify: SHA256 `EBC44839E0B4FD70BA6048F895CB7607BC91018DDDE3E67286F68E6FC80FD5F7`, XML SHA256 `281C8CCEA5216C65E2AFFAB36F35F8E2237C00591642ADCC9D67A07853F45918`. Session nằm trong full-run interval; report/check PASS, threshold LINE80% giữ nguyên, class mismatch0; không dùng coverage lịch sử.
+- Source/test đóng băng 7/7 khớp xuyên các lượt GREEN và full; source inventory (src + pom) manifest SHA256 `7F167232B1C1642AE237C382D272E5CE993C82D63648A02AE72887ED7B8266F8`. Delivery source7 manifest SHA256 `1BD6438FBB806FDE10539FF896E586ADE418ABC7913D596AAC416DB946E43524`. Independent Source Review không có actionable finding; chỉ hai tracking files cần cập nhật, không cần docs ngoài scope.
+- Lần chạy characterization đầu bị sandbox chặn Maven Central trước khi có test (0tests); recovery ngoài sandbox PASS. Log lỗi ban đầu giữ riêng, không tính là RED. Các gate RED/GREEN và full giữ riêng evidence; chỉ safe metrics vào tracking/PR.
+- Evidence ngoài repo: `cnhsk-spec009-t20-20261107-implementation` — gate result JSON/Surefire XML/private logs, snapshot trước/sau, selection proof, source manifests, current full exec và coverage XML. Không commit raw log, script, screenshot, môi trường riêng hoặc credentials.
+- Self-check constitution: PASS — đúng module/naming, không dependency/schema/migration/auth/config/frontend/locked-contract change, không TODO mới/secret/fixture password. T-18 Visual QA vẫn NOT COMPLETED / DEFERRED; không bắt đầu spec013/T-05 trước prompt Leader.
+Các failures môi trường đã đối chiếu assertion và được conditional delivery: `com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.FR046_FR047_FR048_fifthFailureBlocksOnlyTheEmailIpPairAndUsesActualRedisExpiry`; `com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.redisFailuresInAllThreeOperationsFailOpenAndOnlyLogSafeWarnings(CapturedOutput)`; `com.cnhsk.learning.content.importer.ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget`; `com.cnhsk.learning.content.importer.QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries`; `com.cnhsk.learning.knowledge.QuestionAdminControllerIntegrationTest.NFR_P02_fiveThousandSelfAuthoredQuestionsAreListedByKidWithinOneHundredMillisecondsP95`.
+
+- LoginAttemptServiceIntegrationTest.FR046_FR047_FR048_fifthFailureBlocksOnlyTheEmailIpPairAndUsesActualRedisExpiry (line 133): PEXPIRETIME actual 1793992212113 ms; expected [1793992210414, 1793992211292] ms; upper-bound delta 821 ms. Approved environmental exception.
+- LoginAttemptServiceIntegrationTest.redisFailuresInAllThreeOperationsFailOpenAndOnlyLogSafeWarnings(CapturedOutput) (line 313): approved captured-output assertion exception.
+- ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget (line 398): p95 47861 ms; required less than 30000 ms. Approved environmental exception.
+- QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries (line 304): p95 63628 ms; required less than 30000 ms. Approved environmental exception.
+- QuestionAdminControllerIntegrationTest.NFR_P02_fiveThousandSelfAuthoredQuestionsAreListedByKidWithinOneHundredMillisecondsP95 (line 252): p95 128 ms; required less than 100 ms. Approved environmental exception.

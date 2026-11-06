@@ -16,6 +16,7 @@ import com.cnhsk.community.common.CommentStatus;
 import com.cnhsk.community.common.CommunityAuthors;
 import com.cnhsk.community.common.PostCategory;
 import com.cnhsk.community.common.PostCount;
+import com.cnhsk.community.common.PostExcerpt;
 import com.cnhsk.community.common.PostStatus;
 import com.cnhsk.community.common.ReactionKind;
 import com.cnhsk.community.common.UserRef;
@@ -155,7 +156,8 @@ public class PostQueryService {
         Set<Long> authorIds = found.stream().map(Post::getAuthorId).collect(Collectors.toSet());
         Map<Long, UserRef> resolved = authors.resolve(authorIds);
         return found.stream().map(post -> new PostSummary(post.getId(), post.getTitle(), post.getCategory(),
-                excerpt(post.getContent()), resolved.getOrDefault(post.getAuthorId(), new UserRef(post.getAuthorId(), null)),
+                PostExcerpt.fromContent(post.getContent()),
+                resolved.getOrDefault(post.getAuthorId(), new UserRef(post.getAuthorId(), null)),
                 post.getPublishedAt(), commentCounts.getOrDefault(post.getId(), 0L),
                 likeCounts.getOrDefault(post.getId(), 0L))).toList();
     }
@@ -164,8 +166,4 @@ public class PostQueryService {
         return rows.stream().collect(Collectors.toMap(PostCount::postId, PostCount::count));
     }
 
-    private static String excerpt(String content) {
-        int length = Math.min(200, content.codePointCount(0, content.length()));
-        return content.substring(0, content.offsetByCodePoints(0, length));
-    }
 }
