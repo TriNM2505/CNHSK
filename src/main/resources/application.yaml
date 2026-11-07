@@ -76,6 +76,9 @@ app:
   timezone: Asia/Ho_Chi_Minh
 
 cnhsk:
+  billing:
+    card-code-pepper: ${CARD_CODE_PEPPER}
+    free-monthly-limit: 10
   ai:
     assistant-model: claude-haiku-5-5
     translate-model: claude-haiku-5-5

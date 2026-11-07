@@ -1,5 +1,62 @@
 # Chốt — Spec 013
 
+## 2026-11-07 — T-05
+
+- Leader duyệt G1 trên nhánh `spec/013-t05`, base `52ea878d609670031cdd9239a3b555060ba0a052`, đúng 9 file (4 ADD, 5 MODIFY). Chỉ làm FR-002 / AT-02; dừng tại checkpoint G2 để ChatGPT review. Chưa được rebase, push, mở PR hoặc bắt đầu T-06.
+- **Q-T05-1 — API strict:** `format` và `hash` chỉ nhận 16 ký tự canonical Crockford; null/noncanonical ném `IllegalArgumentException` với message cố định, không kèm input/cause. Chỉ `normalize` là API nhận dữ liệu nhập chưa chuẩn. Javadoc `hash` nêu người gọi phải truyền kết quả của `normalize()`.
+- **Q-T05-2 — ASCII:** kiểm và từ chối non-ASCII trước casing; chỉ bỏ ASCII space/tab/CR/LF và `-`; uppercase `Locale.ROOT`, đổi O→0 và I/L→1, rồi kiểm đúng 16 ký tự canonical. NBSP, dotless i, sharp s, dash Unicode, full-width và ký tự Unicode khác bị từ chối. Không bỏ VT/FF hoặc các control khác. Đây là quyết định G1 thay đề xuất whitespace Unicode trong Shadow Plan.
+- **D3:** pepper bắt buộc ≥32 byte UTF-8, không trim/decode base64. Constraint trên boolean kiểm độ dài; diagnostic cố định chỉ nêu thuộc tính và luật; `toString()` che pepper. Main không có fallback, test profile có fixture giả; không dùng hoặc đọc giá trị môi trường riêng.
+- **D8:** dùng bean `Clock` có sẵn, ngày batch chuyển tường minh sang `Asia/Ho_Chi_Minh`. **D10:** không endpoint hoặc contract change; giữ nguyên OpenAPI đã khoá. Không thêm migration, cron, dependency hoặc shared configuration.
+- `CardCodes` dùng một `SecureRandom` tái sử dụng, không lưu mã/hash/batch đã sinh; mỗi lần hash tạo `Mac` cục bộ với key UTF-8 nguyên dạng, không chia sẻ `Mac` giữa threads. Không log mã, hash hoặc pepper.
+- Tiến độ: source/config và test đã triển khai; đã STOP ở lượt regression đầu và được leader duyệt recovery bỏ ép profile JVM. Recovery hoàn tất targeted/regression và JaCoCo PASS; full verify FAILED chỉ với hai ngoại lệ benchmark đã duyệt. Source/config/test giữ nguyên; bàn giao checkpoint G2 chờ ChatGPT review, không rebase, push hoặc PR.
+
+### Gate G1 và điểm STOP
+
+| Gate | Kết quả thực tế | Maven exit |
+|---|---|---:|
+| Targeted lần đầu trong sandbox | Maven Central bị Permission denied trước khi test chạy; 0 test, giữ riêng evidence | 1 |
+| Targeted network recovery ngoài sandbox | 16 tests (BillingConfigTest 5 + CardCodesTest 11), 0 failure/error/skip, BUILD SUCCESS | 0 |
+| Regression config/startup/contract | Đủ 9 suite, 88 tests: 87 pass, 1 failure, 0 error/skip, BUILD FAILURE | 1 |
+| Full verify | CHƯA CHẠY do STOP | — |
+| JaCoCo current full run | CHƯA CHẠY; không dùng coverage của targeted/regression | — |
+
+Failure: `AiConfigTest.FR006_AT06_missingKeyAllowsStartupAndFailsOnlyOnCompletion`, assertion tại `AiConfigTest.java:44` yêu cầu `AnthropicClaudeClient` nhưng nhận `StubClaudeClient`. Không thuộc FR023 / QuestionImport NFR_P04 / LoginAttempt PEXPIRETIME / CapturedOutput / QuestionAdmin NFR_P02.
+
+Đối chiếu runner/source: regression truyền `-Dspring.profiles.active=test` toàn JVM. `StubClaudeClient` có `@Profile("test")`, `AnthropicClaudeClient` có `@Profile("!test")`; ca kiểm AiConfig nói trên dùng ApplicationContextRunner và cố ý kiểm đường production không có API key. Ca tiếp theo mới bật profile test để kiểm stub. Không sửa AiConfigTest hoặc client ngoài allowlist.
+
+Tại thời điểm STOP đã đề xuất chờ leader duyệt: bỏ ép profile test ở mức JVM cho regression/full, giữ profile test sẵn có ở các test ứng dụng/integration và pepper giả; các ApplicationContextRunner tự kiểm profile riêng. Nếu bắt buộc ép profile JVM toàn cục, cần leader mở allowlist để test AiConfig cô lập profile ở đúng ca kiểm; không nới assertion. Không tự áp dụng khi chưa được duyệt.
+
+Source/test/config 7/7 file vẫn khớp frozen manifest sau targeted và regression; không có source drift. Evidence giữ ngoài repo; không ghi giá trị pepper, mã/hash hoặc log riêng vào tracking.
+
+### G1 recovery — Leader duyệt
+
+- Leader duyệt bỏ `-Dspring.profiles.active=test` trong runner, không sửa test cũ hoặc file ngoài allowlist. `BillingConfig` đã đúng `@Component` + `@Validated` + `@ConfigurationProperties` như `AiConfig`, nên không chỉnh source.
+- Lý do cờ cũ: diễn giải yêu cầu dùng test profile thành ép profile toàn JVM. Đây là lỗi điều phối runner, không phải biện pháp xử lý một failure thiếu pepper đã quan sát. Lượt targeted cũ PASS 16/16; failure regression duy nhất là sai loại client tại AiConfigTest.java:44; không có test thiếu pepper thực tế buộc phải thêm cờ.
+- Recovery dùng run ID và runner riêng, giữ nguyên các log/result/command FAILED cũ. Không ép profile bằng Maven/JVM. Regression/full không bù pepper toàn process; dùng cấu hình giả sẵn có của test profile, các test quản lý profile riêng. Nếu context dev/prod/no-profile thiếu pepper ngoài ca kiểm âm có chủ đích thì STOP, không tự sửa.
+- Targeted recovery: 16/16 tests PASS, 0 failure/error/skip, Maven exit0/BUILD SUCCESS, đủ 2 suite. Các config runner mục tiêu cô lập environment và system properties. Source/config 7/7 file giữ nguyên hash.
+
+### Kết quả recovery và checkpoint G2
+
+| Gate recovery | Kết quả thực tế | Exit / BUILD |
+|---|---|---|
+| Targeted BillingConfigTest + CardCodesTest | 16 tests, 0 failure/error/skip, đủ 2 suite | 0 / SUCCESS |
+| Regression config/startup/contract | 88 tests, 0 failure/error/skip, đủ 9 suite; AiConfigTest 9/9 PASS | 0 / SUCCESS |
+| Full verify | 3881 tests, 2 failures, 0 error/skip, đủ 246/246 suite, không thiếu/thừa class | 1 / FAILURE |
+| JaCoCo từ đúng full-run exec | Project LINE 11120/11496 = 96,73%; credit LINE 53/56 = 94,64%; All coverage checks have been met; class mismatch 0 | 0 / SUCCESS |
+
+**FULL VERIFY FAILED — chỉ hai ngoại lệ môi trường đã duyệt:**
+
+- `ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget`, assertion dòng 398: p95 33405 ms, yêu cầu <30000 ms.
+- `QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries`, assertion dòng 304: p95 46708 ms, yêu cầu <30000 ms.
+
+Phân loại từ XML kiểm đúng class/method, AssertionError và stack file:line; unknown failure 0. Không sửa assertion hoặc ngưỡng, không skip, không chạy lại để chọn PASS. Không có failure thiếu pepper dev/prod/no-profile ngoài các ca kiểm âm có chủ đích. Lượt full duy nhất của recovery chạy 01:56:02.603Z–03:31:29.147Z ngày 2026-11-07; không dùng kết quả full của spec trước.
+
+JaCoCo dùng exec SHA256 `CB0531C8B93C930819643E8D817CF492FE6AD966E799782AFB03CB6FB831C9AE`; XML SHA256 `1327DCED0659A2E1B89BEDFE1C36A93CBB9F5CC14C378C5FD24D4D8914A1EEC2`. Session 01:56:16.103Z–03:31:27.018Z nằm trong full-run interval. Report/check chạy trên cùng exec/classes, không chạy thêm test; threshold LINE80% giữ nguyên.
+
+Source/test/config 7/7 khớp manifest SHA256 `7D0F79D01215F73337B7D1E51528F118223D917EEAC4A66A5B30C052D5DA15E0`; manifest toàn src + pom + .env.example của các lượt gate đều `08CB3C70A86322854E7A284F7963CD53B7C86A12CFDAA27227615E17DDCA588A`. Không thay source giữa lượt FAILED ban đầu và recovery. Independent source review không có finding; targeted thực tế chứng minh toàn cause chain/stack/analyzer/action/captured log và toString không chứa fixture pepper.
+
+Evidence ngoài repo giữ riêng mọi lượt FAILED, recovery result JSON, Surefire XML/private logs, manifests và current exec/report. Chỉ số đo an toàn vào tracking. Checkpoint local chỉ gồm đúng 9 file allowlist; không commit plan, log, môi trường riêng hoặc dữ liệu thật. T-05 vẫn chờ ChatGPT review G2; chưa được G3 hoặc T-06. Self-check source/scope PASS: không ngoài allowlist, BOM/TODO mới, dependency/schema/migration/endpoint/contract/SharedConfiguration change hoặc log mã/hash/pepper.
+
 ## 2026-11-06 — Leader duyệt T-04: SCR-074 và SCR-075
 
 Người làm: Tường. Base `origin/main` = `a3dc0da`, đã có T-03 (#113). Phạm vi FR-027, FR-028; AT-25, AT-26. Leader duyệt đúng 12 file, một conventional commit và Draft PR; cho phép đánh ✅ riêng T-04 sau khi gate FE đạt. Không sửa API/types/contract, routeAccess, screenRegistry, navigation, ESLint hoặc shared. Backend T-05…T-13 do NgoQuocHuyy làm; không chạy `mvnw verify` trong task FE này.
