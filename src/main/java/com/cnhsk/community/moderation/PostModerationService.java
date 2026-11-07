@@ -13,6 +13,7 @@ import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.auth.api.CurrentUser;
 import com.cnhsk.auth.api.RoleCode;
 import com.cnhsk.community.common.CommunityAuthors;
+import com.cnhsk.community.common.PostExcerpt;
 import com.cnhsk.community.common.UserRef;
 import com.cnhsk.community.moderation.web.ModerationPost;
 import com.cnhsk.community.moderation.web.ModerationPostPage;
@@ -61,7 +62,7 @@ public class PostModerationService {
         List<Post> found = posts.findPending(PageRequest.of(page, size));
         Map<Long, UserRef> resolved = authors.resolve(found.stream().map(Post::getAuthorId).collect(Collectors.toSet()));
         List<ModerationPostSummary> items = found.stream().map(post -> new ModerationPostSummary(
-                post.getId(), post.getTitle(), post.getCategory(), excerpt(post.getContent()),
+                post.getId(), post.getTitle(), post.getCategory(), PostExcerpt.fromContent(post.getContent()),
                 userRef(resolved, post.getAuthorId()), post.getCreatedAt(), post.getUpdatedAt())).toList();
         return new ModerationPostPage(items, page, size, total);
     }
@@ -130,11 +131,6 @@ public class PostModerationService {
 
     private static UserRef userRef(Map<Long, UserRef> resolved, long id) {
         return resolved.getOrDefault(id, new UserRef(id, null));
-    }
-
-    private static String excerpt(String content) {
-        int count = Math.min(200, content.codePointCount(0, content.length()));
-        return content.substring(0, content.offsetByCodePoints(0, count));
     }
 
     private static ApiException selfModeration() {

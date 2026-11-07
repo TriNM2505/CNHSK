@@ -71,9 +71,9 @@ public class MyPostController {
             @ApiResponse(responseCode = "422", description = "Dữ liệu không hợp lệ",
                     content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
     public OwnPostPage listMyPosts(
-            @Parameter(schema = @Schema(minimum = "0", defaultValue = "0"))
+            @Parameter(schema = @Schema(type = "integer", minimum = "0", defaultValue = "0"))
             @RequestParam(defaultValue = "0") int page,
-            @Parameter(schema = @Schema(minimum = "1", maximum = "50", defaultValue = "20"))
+            @Parameter(schema = @Schema(type = "integer", minimum = "1", maximum = "50", defaultValue = "20"))
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) PostStatus status) {
         return queries.ownList(page, size, status);

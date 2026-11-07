@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.auth.api.CurrentUser;
@@ -39,7 +40,9 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
@@ -124,6 +127,34 @@ class PostModerationServiceTest {
         order.verify(authors).resolve(Set.of(AUTHOR));
         verifyNoMoreInteractions(auth, posts, authors);
         verifyNoInteractions(clock, audit);
+    }
+
+    @ParameterizedTest
+    @MethodSource("excerptContents")
+    void pendingQueuePreservesLiteralContentWithinTwoHundredCodePoints(String content, String expected) {
+        Post pending = post(TARGET, AUTHOR, PostStatus.PENDING);
+        pending.setContent(content);
+        when(posts.countPending()).thenReturn(1L);
+        when(posts.findPending(PageRequest.of(0, 20))).thenReturn(List.of(pending));
+        when(authors.resolve(Set.of(AUTHOR))).thenReturn(Map.of());
+
+        assertThat(service.listPendingPosts(0, 20).items().get(0).excerpt()).isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> excerptContents() {
+        return Stream.of(
+                Arguments.of("", ""),
+                Arguments.of("short text", "short text"),
+                Arguments.of("a".repeat(199), "a".repeat(199)),
+                Arguments.of("a".repeat(200), "a".repeat(200)),
+                Arguments.of("a".repeat(201), "a".repeat(200)),
+                Arguments.of("汉".repeat(201), "汉".repeat(200)),
+                Arguments.of("a".repeat(199) + "😀suffix", "a".repeat(199) + "😀"),
+                Arguments.of("😀".repeat(201), "😀".repeat(200)),
+                Arguments.of("a".repeat(199) + "𠀀suffix", "a".repeat(199) + "𠀀"),
+                Arguments.of("a".repeat(199) + "e\u0301suffix", "a".repeat(199) + "e"),
+                Arguments.of("  <b>**text**</b> &amp;\nnext\r\nline  ",
+                        "  <b>**text**</b> &amp;\nnext\r\nline  "));
     }
 
     @ParameterizedTest
