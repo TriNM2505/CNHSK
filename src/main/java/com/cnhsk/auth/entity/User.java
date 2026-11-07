@@ -65,11 +65,11 @@ public class User {
     @Column(name = "reminder_channels", nullable = false, length = 50)
     private String reminderChannels = "WEB";
 
-    @Column(name = "plan_code", nullable = false, length = 20)
+    @Column(name = "plan_code", nullable = false, length = 20, updatable = false)
     private String planCode = "FREE";
 
     @JdbcTypeCode(SqlTypes.TIMESTAMP)
-    @Column(name = "plan_expires_at", columnDefinition = "TIMESTAMPTZ")
+    @Column(name = "plan_expires_at", columnDefinition = "TIMESTAMPTZ", updatable = false)
     private Instant planExpiresAt;
 
     @CreationTimestamp

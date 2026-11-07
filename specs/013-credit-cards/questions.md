@@ -1,5 +1,35 @@
 # Chốt — Spec 013
 
+## 2026-11-07 — T-06
+
+- Base `5b4c478` đã merge T-05 qua PR #131. Leader duyệt G1 và đúng 11 file (5 ADD, 6 MODIFY), bao gồm thay đổi module 001; chỉ FR-003/004, AT-03 và sáu API §0.3. Dừng ở G2, chưa rebase/push/PR.
+- **Q1 — khóa và sổ cái:** `LedgerService.append` dùng `MANDATORY`, tự gọi `AuthApi.lockPlan(userId)` trước mọi truy vấn ledger. Caller vẫn khóa trước khi đọc/sửa PlanState; `updatePlan`/`updateUsage` có tiền điều kiện này trong hợp đồng. Không API thứ bảy, không transaction-proof registry. Sổ cái dùng JDBC SELECT dòng cuối rồi INSERT RETURNING, không JPA save.
+- **Q2 — quyền ghi cột gói:** chỉ thêm `updatable = false` cho `User.plan_code` và `plan_expires_at`, giữ insert/setter và mọi annotation khác. Không `@DynamicUpdate`. Test `staleUserFlushDoesNotOverwriteJdbcPlanUpdate`: load User → lock/update bằng JDBC → sửa displayName → save/flush → kiểm mã gói và hạn mới vẫn còn.
+- **Q3 — lỗi:** user không tồn tại dùng `USER_NOT_FOUND`/404, message hiện có “Không tìm thấy tài khoản.”; tham số không hợp lệ dùng `IllegalArgumentException`, message cố định “Tham số không hợp lệ.” Không thêm ErrorCode, không đổi hành vi bốn API cũ.
+- **Q4 — đếm gói:** PREMIUM chỉ khi mã PREMIUM và expiry > now; FREE khi mã FREE hoặc expiry <= now; mã khác trả 0. Không lọc role/status. Test gồm expiry = now và tài khoản banned.
+- **D5/D8/D10:** khóa user trước sổ cái; mọi thời điểm ghi qua `Clock` hoặc tham số `Instant` của API; không endpoint/schema/migration/contract/dependency/config mới. PlanState sao chép map thành snapshot bất biến; email qua `Masking.email`.
+
+### Q2 RED → GREEN và recovery
+
+- Lượt đầu dừng trước Maven vì JAVA_HOME cũ không hợp lệ, exit 1, chưa có test. Leader duyệt recovery chỉ đặt JAVA_HOME/Path trong phiên Maven; xác nhận Java 17.0.9, Maven 3.9.16, không sửa biến hệ thống hoặc repository config.
+- Lượt sandbox kế tiếp dừng trước compilation vì quyền mạng Maven Central, exit 1, chưa có test. Lượt ngoài sandbox được phê duyệt giữ nguyên selector và source.
+- RED hợp lệ: compilation/context thành công; `AuthPlanApiIntegrationTest.staleUserFlushDoesNotOverwriteJdbcPlanUpdate` FAIL đúng assertion expected PREMIUM / actual FREE; Tests run 1, Failures 1, Errors 0, Skipped 0, Maven exit 1. User.java lúc RED khớp base, chưa sửa annotation.
+- Sau RED chỉ sửa hai annotation đã duyệt. GREEN cùng selector: Tests run 1, Failures 0, Errors 0, Skipped 0, Maven exit 0, BUILD SUCCESS; cả mã gói và hạn mới được giữ khi flush entity cũ.
+- Full logs/XML/metadata các lượt FAILED và GREEN được giữ riêng ngoài repository; chưa tuyên bố G1 hoàn thành.
+
+### Gate và đối chiếu FR/AT
+
+- Targeted: Tests run 50, Failures 0, Errors 0, Skipped 0, Maven exit 0 / BUILD SUCCESS, đủ 6 suite: AuthApiServiceTest 14, AuthPlanApiIntegrationTest 10, AuthEntitiesTest 5, AuthRepositoriesIntegrationTest 5, LedgerArchitectureTest 3, LedgerServiceIntegrationTest 13.
+- FR-003/004: `firstAppendStartsAtOneWithZeroBalanceAndStoredTimestamp`, `sequentialAppendUsesTheLastBalanceAndPersistsMetadata`, `overdraftIsRejectedByTheDatabaseWithoutAnInsertedRow`, `arithmeticOverflowCannotWrapTheBalance` đã PASS.
+- AT-03: `sameUserConcurrentAppendsWaitForTheLockAndKeepContinuousSequence` quan sát transaction thứ hai chờ khóa trong PostgreSQL, rồi seq 1/2 và số dư 0→40→33; `failedAppendRollsBackPlanUsageAndEarlierAppends` và `caughtAppendFailureStillMarksTheCallerTransactionRollbackOnly` PASS; ba test architecture bảo vệ append-only, writer duy nhất và MANDATORY PASS.
+- §0.3/Q4: snapshot bất biến, writable transaction, lỗi 404/tham số cố định, cập nhật/rollback, masking, downgrade và FREE/PREMIUM/expiry-boundary đều PASS. Bốn API cũ giữ hành vi, hai suite entity/repository giữ PASS.
+- Regression: Tests run 693, Failures 0, Errors 0, Skipped 0, Maven exit 0 / BUILD SUCCESS, đủ 48 suite: toàn bộ 29 suite auth, 18 suite mock/spy AuthApi và ModuleBoundaryTest (9/9). Không xuất hiện ngoại lệ LoginAttempt; không sửa mock/stub cũ ngoài constructor wiring AuthApiServiceTest.
+- Self-review trước full gate: transaction/khóa trước đọc sổ cái, rollback, tràn số nguyên, append-only và compatibility đều có test PASS; source review độc lập không có finding. 9/9 file Java giữ hash của targeted, đúng 11-file allowlist, whitespace/BOM/secret-marker check sạch.
+- Full verify: Tests run 3911, Failures 2, Errors 0, Skipped 0, đủ 249/249 suite, Maven exit 1 / BUILD FAILURE. Phân loại XML xác nhận đúng hai ngoại lệ môi trường: `ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget` (dòng 398, p95 47800 ms > ngưỡng 30000 ms) và `QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries` (dòng 304, p95 69357 ms > ngưỡng 30000 ms). Unknown failure 0; không nới assertion, skip hoặc rerun để chọn PASS.
+- Full run không ép profile: 09:15:07.950Z–12:19:06.727Z ngày 2026-11-07. Nhóm credit PASS đầy đủ: BillingConfig 5, CardCodes 11, LedgerArchitecture 3, LedgerServiceIntegration 13; AuthPlanApiIntegration 10 và hai suite entity/repository cũng PASS trong full run.
+- JaCoCo từ chính full-run exec: Project LINE 11222/11600 = 96,74%; credit LINE 83/86 = 96,51%; report/check Maven exit 0 / BUILD SUCCESS, “All coverage checks have been met”. Vì verify dừng ở Surefire, chạy riêng `jacoco:report@report jacoco:check@check`, không chạy thêm test. Exec trước/sau report khớp bản full đã lưu; một session 09:15:24.433Z–12:19:03.737Z nằm trong full-run interval, không class mismatch. Không dùng execution data của targeted/regression hoặc task trước.
+- **G2 CONDITIONAL:** source review độc lập không có finding, targeted/regression đạt; full verify vẫn exit 1 chỉ do hai ngoại lệ đã duyệt. 9/9 file Java giữ hash qua mọi gate; đúng 11 file (5 ADD, 6 MODIFY), không config/dependency/schema/contract thay đổi. Chờ ChatGPT review G2 và Leader nghiệm thu trước G3; chưa rebase/push/PR, chưa bắt đầu T-07.
+
 ## 2026-11-07 — T-05
 
 - Leader duyệt G1 trên nhánh `spec/013-t05`, base `52ea878d609670031cdd9239a3b555060ba0a052`, đúng 9 file (4 ADD, 5 MODIFY). Chỉ làm FR-002 / AT-02; dừng tại checkpoint G2 để ChatGPT review. Chưa được rebase, push, mở PR hoặc bắt đầu T-06.

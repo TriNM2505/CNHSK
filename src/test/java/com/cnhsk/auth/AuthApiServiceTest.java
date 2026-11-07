@@ -8,13 +8,16 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Instant;
+import java.time.Clock;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.auth.api.CurrentUser;
+import com.cnhsk.auth.api.PlanState;
 import com.cnhsk.auth.api.RoleCode;
 import com.cnhsk.auth.entity.User;
 import com.cnhsk.auth.repository.UserRepository;
@@ -23,6 +26,7 @@ import com.cnhsk.auth.service.AuthApiService;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import com.cnhsk.shared.security.AuthenticatedUser;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -38,12 +43,13 @@ class AuthApiServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private UserRoleRepository userRoleRepository;
+    @Mock private NamedParameterJdbcTemplate jdbc;
 
     private AuthApi authApi;
 
     @BeforeEach
     void setUp() {
-        authApi = new AuthApiService(userRepository, userRoleRepository);
+        authApi = new AuthApiService(userRepository, userRoleRepository, jdbc, new ObjectMapper(), Clock.systemUTC());
         SecurityContextHolder.clearContext();
     }
 
@@ -146,6 +152,49 @@ class AuthApiServiceTest {
         assertThat(authApi.displayNames(Set.of())).isEmpty();
 
         verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void planStateCopiesUsageIntoAnImmutableSnapshot() {
+        Map<String, Integer> usage = new HashMap<>(Map.of("TRANSLATE", 2));
+        Instant reset = Instant.parse("2026-11-01T00:00:00Z");
+        PlanState snapshot = new PlanState("FREE", null, usage, reset);
+        usage.put("TRANSLATE", 9);
+
+        assertThat(snapshot.planCode()).isEqualTo("FREE");
+        assertThat(snapshot.planExpiresAt()).isNull();
+        assertThat(snapshot.usageResetAt()).isEqualTo(reset);
+        assertThat(snapshot.freeUsage()).containsExactlyEntriesOf(Map.of("TRANSLATE", 2));
+        assertThatThrownBy(() -> snapshot.freeUsage().put("TRANSLATE", 3))
+                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> new PlanState(null, null, Map.of(), reset))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("Tham số không hợp lệ.");
+    }
+
+    @Test
+    void maskedEmailsForEmptySetReturnsEmptyMapWithoutQuery() {
+        assertThat(authApi.maskedEmails(Set.of())).isEmpty();
+        verifyNoInteractions(jdbc, userRepository, userRoleRepository);
+    }
+
+    @Test
+    void unknownPlanCodeReturnsZeroWithoutQuery() {
+        assertThat(authApi.countActivePlan("PREMIUM_PLUS", Instant.EPOCH)).isZero();
+        assertThat(authApi.countActivePlan("UNSUPPORTED", Instant.EPOCH)).isZero();
+        verifyNoInteractions(jdbc);
+    }
+
+    @Test
+    void newReadMethodsRejectInvalidArgumentsWithFixedMessage() {
+        for (Runnable invalid : List.<Runnable>of(() -> authApi.maskedEmails(null),
+                () -> authApi.maskedEmails(Set.of(-1L)),
+                () -> authApi.countActivePlan(null, Instant.EPOCH),
+                () -> authApi.countActivePlan(" ", Instant.EPOCH),
+                () -> authApi.countActivePlan("PREMIUM", null))) {
+            assertThatThrownBy(invalid::run).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Tham số không hợp lệ.");
+        }
+        verifyNoInteractions(jdbc);
     }
 
     private static void assertApiFailure(Runnable invocation, ErrorCode code, HttpStatus status) {
