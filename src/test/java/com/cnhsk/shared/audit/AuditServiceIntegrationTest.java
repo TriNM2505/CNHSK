@@ -232,4 +232,77 @@ class AuditServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM shared.audit_logs WHERE actor_id = ?", Long.class, actorId)).isZero();
     }
+
+    @Test
+    void recordDetailWithoutNumericTargetPersistsNullAndNullableMetadata() throws Exception {
+        Long actor = jdbcTemplate.queryForObject(
+                "INSERT INTO auth.users(email,password_hash,display_name) VALUES (?,?,?) RETURNING id",
+                Long.class, "audit-batch-" + UUID.randomUUID() + "@example.test", "test-hash", "Batch Audit");
+        try {
+            Map<String, Object> metadata = new java.util.LinkedHashMap<>();
+            metadata.put("batchId", "B20261107-ABC123");
+            metadata.put("value", null);
+            metadata.put("planDays", 30);
+            metadata.put("totalValue", null);
+            auditService.recordDetail(actor, "CARD_BATCH_CREATE", "CARD_BATCH", metadata);
+            metadata.put("planDays", 365);
+            Map<String, Object> row = jdbcTemplate.queryForMap(
+                    "SELECT target_type,target_id,detail::text AS detail FROM shared.audit_logs WHERE actor_id=?", actor);
+            assertThat(row.get("target_type")).isEqualTo("CARD_BATCH");
+            assertThat(row.get("target_id")).isNull();
+            JsonNode detail = objectMapper.readTree(row.get("detail").toString());
+            assertThat(detail.path("planDays").asInt()).isEqualTo(30);
+            assertThat(detail.path("value").isNull()).isTrue();
+            assertThat(detail.path("totalValue").isNull()).isTrue();
+            assertThat(detail.path("batchId").asText()).isEqualTo("B20261107-ABC123");
+        } finally {
+            jdbcTemplate.update("DELETE FROM shared.audit_logs WHERE actor_id=?", actor);
+            jdbcTemplate.update("DELETE FROM auth.users WHERE id=?", actor);
+        }
+    }
+
+    @Test
+    void recordDetailWithoutNumericTargetKeepsRequiredFieldAndStorageValidation() {
+        assertThatNullPointerException().isThrownBy(() -> auditService.recordDetail(null, null, "CARD_BATCH", Map.of()));
+        assertThatNullPointerException().isThrownBy(() -> auditService.recordDetail(null, "CREATE", null, Map.of()));
+        assertThatNullPointerException().isThrownBy(() -> auditService.recordDetail(null, "CREATE", "CARD_BATCH", null));
+        assertThatIllegalArgumentException().isThrownBy(
+                () -> auditService.recordDetail(null, "A".repeat(51), "CARD_BATCH", Map.of()));
+        for (String type : List.of("", "card_batch", "_CARD", "1CARD", "CARD-BATCH", "CARD_BATCH\n", "T".repeat(31))) {
+            assertThatIllegalArgumentException().isThrownBy(() -> auditService.recordDetail(null, "CREATE", type, Map.of()));
+        }
+        String action = "A".repeat(50);
+        String type = "B".repeat(30);
+        try {
+            auditService.recordDetail(null, action, type, Map.of());
+            assertThat(jdbcTemplate.queryForObject(
+                    "SELECT count(*) FROM shared.audit_logs WHERE actor_id IS NULL AND action=? AND target_type=? AND target_id IS NULL",
+                    Long.class, action, type)).isEqualTo(1L);
+        } finally {
+            jdbcTemplate.update("DELETE FROM shared.audit_logs WHERE actor_id IS NULL AND action=? AND target_type=?", action, type);
+        }
+    }
+
+    @Test
+    void recordDetailWithoutNumericTargetSharesAndRollsBackTheCallerTransaction() {
+        Long actor = jdbcTemplate.queryForObject(
+                "INSERT INTO auth.users(email,password_hash,display_name) VALUES (?,?,?) RETURNING id",
+                Long.class, "audit-tx-" + UUID.randomUUID() + "@example.test", "test-hash", "Before Batch Audit");
+        try {
+            assertThatThrownBy(() -> new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+                jdbcTemplate.update("UPDATE auth.users SET display_name=? WHERE id=?", "After Batch Audit", actor);
+                Long txid = jdbcTemplate.queryForObject("SELECT txid_current()", Long.class);
+                auditService.recordDetail(actor, "CARD_BATCH_VOID", "CARD_BATCH", Map.of("voided", 0));
+                assertThat(jdbcTemplate.queryForObject(
+                        "SELECT xmin::text::bigint FROM shared.audit_logs WHERE actor_id=?", Long.class, actor)).isEqualTo(txid);
+                throw new IllegalStateException("Roll back batch audit");
+            })).isInstanceOf(IllegalStateException.class).hasMessage("Roll back batch audit");
+            assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM shared.audit_logs WHERE actor_id=?", Long.class, actor)).isZero();
+            assertThat(jdbcTemplate.queryForObject("SELECT display_name FROM auth.users WHERE id=?", String.class, actor))
+                    .isEqualTo("Before Batch Audit");
+        } finally {
+            jdbcTemplate.update("DELETE FROM shared.audit_logs WHERE actor_id=?", actor);
+            jdbcTemplate.update("DELETE FROM auth.users WHERE id=?", actor);
+        }
+    }
 }

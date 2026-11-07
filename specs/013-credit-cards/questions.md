@@ -1,5 +1,103 @@
 # Chốt — Spec 013
 
+## 2026-11-08 — T-07, G2 được duyệt và bàn giao G3
+
+- Leader xác nhận G2 review hoàn tất, không có blocking finding và duyệt G3: commit đúng 17 file (11 ADD/6 MODIFY), push spec/013-t07, mở Draft PR vào main; không merge/chuyển Ready hoặc bắt đầu T-08.
+- Fetch origin xác nhận main vẫn 8b3b2280b05eefd791ec00e990e08231a1317961 (T-06 PR #132); không rebase/rerun gates khi base này không đổi. 15 source/test phải giữ hash G2, chỉ cập nhật hai file tracking cho trạng thái bàn giao. Stage từng đường dẫn, không git add . hoặc -A.
+- Regression vẫn FAILED: 773/F1/E0/S0, exit 1, đúng FR023 p95 đã duyệt. Full recovery vẫn FAILED: 4014/F2/E0/S0, exit 1, đúng FR023/NFR-P04 đã duyệt. Contract 5 và targeted 126 PASS; JaCoCo report/check exit 0, Project/Credit+Web LINE 96,75%/97,05%; NFR-P02 riêng [76,85,101,103,254] ms, p95 254 ms <2000 ms. Không gọi Regression/Full Verify PASS.
+- Docker: evidence xác nhận lỗi PostgreSQL Testcontainers startup với IOException "The pipe has been ended" và lỗi khởi tạo lớp dây chuyền; root cause bên dưới Docker transport chưa được xác nhận. Không suy đoán Engine off, WSL, OOM hoặc thay đổi cấu hình là nguyên nhân. Recovery thực tế: Leader xác nhận đã bật Engine, kiểm docker version server 27.2.0, chạy lại full trên cùng source/JDK17 và không ép profile; lỗi hạ tầng không tái diễn. Giữ toàn bộ FAILED cũ, tách khỏi hai benchmark exemptions.
+- Hai nghĩa vụ chưa nghiệm thu ở T-07 chuyển T-08: ADMIN gọi POST redeem phải 403; nạp mã VOIDED phải trả 400 chung. T-07 chưa đánh hoàn tất trước Leader nghiệm thu; commit/PR identifiers được ghi trong evidence G3 và PR để tránh metadata tự tham chiếu trong commit.
+
+## 2026-11-08 — T-07, Leader duyệt recovery Docker
+
+- Leader xác nhận Docker Engine đã bật và yêu cầu thử lại. Preflight Docker ngoài sandbox trả server 27.2.0; branch/base vẫn spec/013-t07 tại 8b3b228, 15/15 hash source/test khớp manifest sau sửa annotation, locked YAML không đổi. Không sửa code/test, config, dependency hoặc schema.
+- Chỉ chạy lại đúng full `mvnw.cmd -B verify`, JAVA_HOME/PATH JDK 17 trong phiên, không ép profile. Lượt FAILED Docker trước được giữ nguyên evidence; đây là recovery sau thay đổi trạng thái hạ tầng do Leader xác nhận, không chọn lượt xanh bằng rerun.
+- Evidence recovery riêng `C:/WINDOWS/TEMP/cnhsk-spec013-t07-docker-recovery-20261108-040956/`; full bắt đầu 04:13:55.452 +07. Runner theo dõi XML từng suite và tự dừng đúng cây tiến trình Maven của lượt này nếu có lỗi ngoài năm ngoại lệ, không phụ thuộc phiên theo dõi. PostgreSQL Testcontainers đã khởi động thành công lúc 04:14:32.
+- Chưa có kết quả full recovery, JaCoCo hoặc NFR riêng; chỉ tiếp tục hai gate sau nếu full không có lỗi ngoài ngoại lệ được duyệt. Không commit/push/rebase/PR hoặc bắt đầu T-08; dừng G2 để review khi G1 đạt checkpoint.
+
+### Kết quả full recovery và JaCoCo
+
+- Full recovery hoàn tất tự nhiên, không bị ngắt: 04:13:55.452–04:55:42.605 +07, đủ 253 suite, 4014 tests/F2/E0/S0, Maven exit 1/BUILD FAILURE. Monitor phân loại đúng 2 failure đã duyệt, unknown failure=0; không tái diễn lỗi khởi tạo Docker/Testcontainers và không gọi FULL VERIFY PASS.
+- FR023: ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget, dòng 398, p95=76079 ms, ngưỡng <30000 ms; 5 mẫu [76079,60856,55743,51913,55852] ms. NFR-P04: QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries, dòng 304, p95=88055 ms, ngưỡng <30000 ms; 5 mẫu [88055,63192,65038,58377,59904] ms. Các failure khác/error/skip đều 0; không nới assertion hoặc rerun để chọn PASS.
+- Full-run exec lưu riêng: SHA256 C68BD93C4DCA12557095D8B1D115787EEDC2EEFC919738C0718E9C0766B28AA0, mtime 04:55:38.491 nằm trong full-run interval. Trước/sau report, exec gốc và bản lưu cùng hash; 15/15 source/test vẫn khớp manifest recovery.
+- Vì full dừng ở Surefire với hai ngoại lệ, chạy riêng `mvnw.cmd -B jacoco:report@report jacoco:check@check`, JDK 17, không thêm test hoặc ép profile: exit 0/BUILD SUCCESS, mọi coverage check đạt. Project LINE 11414/11797=96,75%; Credit gồm web 263/271=97,05%. Report có đúng một session nằm trong full run; class mismatch warning=0. XML SHA256 CD7E9BF1AEAE200C902D2E4C0B65AEC57154201B1047165C392A1248F0D3CCD4; report và exec đã sao lưu riêng trước NFR.
+- CardBatchIntegrationTest trong full PASS 52/F0/E0/S0, gồm HTTP numeric/null và AT-04; benchmark phụ full [33,34,34,35,36] ms, p95=36 ms. NFR-P02 riêng sau JaCoCo đang thực hiện bằng đúng một warm-up rồi năm HTTP POST quantity=100; chưa dùng số đo phụ thay kết quả gate riêng.
+
+### NFR riêng và bàn giao G2
+
+- NFR-P02 riêng chạy sau khi lưu full exec/report: `mvnw.cmd -B -Dtest=CardBatchIntegrationTest#hundredCodeCreationHttpP95IsBelowTwoSeconds test`, JDK 17 trong phiên, không ép profile; 05:03:51.424–05:06:05.223 +07, 1 test/F0/E0/S0, Maven exit 0/BUILD SUCCESS. Một warm-up rồi năm HTTP POST quantity=100, gồm commit và response; năm mẫu sắp tăng [76,85,101,103,254] ms, nearest-rank p95=254 ms <2000 ms. Không chọn mẫu hoặc rerun để lấy PASS.
+- Full exec và XML/HTML report đã lưu trước NFR; coverage Project/Credit ở trên chỉ lấy từ session full recovery, không dùng execution data NFR/targeted/regression. NFR chạy sau có thể thay exec mặc định của Maven; bản full lưu riêng và report giữ nguyên để đối chiếu hash.
+- G1 CONDITIONAL: contract/negative/HTTP numeric, targeted, JaCoCo và NFR đạt; regression và full vẫn ghi FAILED/exit 1 với đúng các ngoại lệ được duyệt. Mọi failure ngoài ngoại lệ trong full recovery=0, mọi error/skip=0. Không gọi full verify PASS.
+- Self-check: đúng 17 file (11 ADD/6 MODIFY); 15/15 source/test giữ hash trước recovery; không đổi locked YAML, schema/migration/dependency/config/SecurityConfig/CardCodes hoặc thêm TODO. Không đọc .env/secret, không truy cập Neon, không commit/push/rebase/PR hoặc bắt đầu T-08. T-07 chưa đánh hoàn tất; dừng tại G2 để ChatGPT review và Leader quyết định checkpoint tiếp theo.
+
+## 2026-11-08 — T-07, audit đầy đủ và sửa annotation một lượt
+
+- Leader mở rộng phạm vi annotation numeric trong đúng 17-file allowlist, yêu cầu audit một lượt trước sửa: chỉ integer↔string của DTO T-07 được sửa; path/status/field/required/nullability/enum/security hoặc loại mismatch khác thì STOP. Không thay Java types, logic, validation, nullability hoặc locked YAML.
+- Contract test bổ sung audit độc lập gom từng lỗi type/constraint/required/properties/ref/items trên bảy schema DTO/enum; giữ đủ 226 dòng contract test trước đó và bốn test/comparator cũ. Snapshot generated JSON chỉ xuất khi truyền `cnhsk.contract-audit-output`, là artifact ngoài repo, không phải profile JVM.
+- Audit trước sửa: 5 tests/F2/E0/S0, Maven exit 1/BUILD FAILURE, 00:23:36.924–00:25:51.814 +07 ngày 2026-11-08. Hai failure là comparator fail-fast và aggregate audit cùng phản ánh đúng ba type mismatch: BatchPage.page, BatchPage.size, BatchPage.total expected integer, actual string. Không có mismatch schema khác trong aggregate; ba test operation/status/security/negative/parameters còn lại PASS. Snapshot xác nhận total vẫn format int64.
+- Theo phân loại Leader duyệt, chỉ thêm `types={integer}` trên ba field BatchPage.page/size/total, giữ type integer, total format int64 và Java int/int/long. BatchSummary sáu field, CreateBatchRequest quantity/value/planDays, VoidResult.voided đã qua audit nên giữ nguyên.
+- HTTP integration đã có isIntegralNumber cho page/size/total của page, sáu field numeric của từng summary ở list/detail, cùng kiểm tra null theo CREDIT/SUBSCRIPTION; không cần sửa thêm assertion sau audit.
+- Chưa có kết quả gate sau sửa. Source/test được cố định bằng manifest trước contract sau sửa; evidence riêng ngoài repo `C:/WINDOWS/TEMP/cnhsk-spec013-t07-contract-audit-20261108-002250/`. Giữ mọi evidence FAILED trước đó, không chọn lượt xanh bằng rerun, không commit/push/PR.
+
+### Gate sau sửa annotation
+
+- Contract sau sửa: 5 tests/F0/E0/S0, Maven exit 0/BUILD SUCCESS, 00:27:45.406–00:30:23.112 +07 ngày 2026-11-08. Cả negative security OR và aggregate audit PASS, không mismatch. Snapshot trước/sau chỉ khác đúng ba type BatchPage.page/size/total từ string sang integer; total giữ format int64, normalized document còn lại giống nhau.
+- Targeted đầy đủ: 126 tests/F0/E0/S0, đủ 6/6 suite, Maven exit 0/BUILD SUCCESS, 00:31:29.383–00:33:24.883 +07. Contract 5, concurrency 3, CardBatchIntegration 52, CardBatchService 38, AuditServiceIntegration 12, GlobalExceptionHandler 16.
+- HTTP numeric/null assertions cho list/detail và page envelope PASS. AT-04 kiểm 100 mã có/không gạch và hash không có trong CapturedOutput/audit/GET PASS; hai loại card/ba channel, validation, authorization/CSRF, metadata, pagination/query count, void idempotent giữ USED và rollback khi audit lỗi PASS. Unit retry cuối/cạn giới hạn/memory duplicate/cause che dữ liệu và ba ca PostgreSQL concurrency PASS; D1 null target/transaction/validation cùng compatibility method cũ PASS.
+- Benchmark đi kèm targeted: 5 mẫu [53,59,60,64,68] ms, nearest-rank p95=68 ms. Đây chưa thay thế lượt NFR-P02 riêng sau full-run JaCoCo. Regression 59 suite đang thực hiện; full verify, JaCoCo và NFR riêng chưa có kết quả.
+- Regression đã hoàn tất 59/59 suite, missing/extra=0: 773 tests/F1/E0/S0, Maven exit 1/BUILD FAILURE, 00:35:48.670–00:48:39.232 +07. Failure duy nhất đúng ngoại lệ môi trường FR023: ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget, dòng 398, p95 50957 ms, yêu cầu <30000 ms; năm mẫu [50957,44738,47352,46121,48689] ms. Các assertion tạo đủ 5000 dòng và failed=0 đã PASS trước assertion thời gian; unknown failure=0. Không nới assertion, skip hoặc rerun. LoginAttempt và các suite còn lại PASS; 15/15 hash source/test trước/sau regression khớp.
+- Benchmark HTTP100 đi kèm regression: năm mẫu [25,28,29,32,33] ms, p95=33 ms; chỉ là evidence phụ, lượt NFR riêng sau full-run JaCoCo còn chờ. Full verify được mở sau khi phân loại regression chỉ có đúng ngoại lệ đã duyệt; không gọi regression PASS khi exit 1.
+
+### Full verify — STOP vì hạ tầng ngoài ngoại lệ
+
+- Lệnh đúng `mvnw.cmd -B verify`, JDK 17 JAVA_HOME/PATH trong phiên, không ép JVM profile: 00:51:45.257–01:10:24.353 +07 ngày 2026-11-08, Maven exit 1/BUILD FAILURE. XML hoàn tất 253 suite, 3638 tests/F0/E1528/S0; không gọi full verify PASS.
+- Lỗi đầu tiên ở AdminUserQueryIntegrationTest.AT75_searchFiltersAndReturnsRequestedPageOrderedByCreationTime: ExceptionInInitializerError khi khởi tạo AbstractIntegrationTest, ContainerLaunchException cho postgres:18-alpine; cause chain kết thúc java.io.IOException: The pipe has been ended. Sau đó nhiều suite lỗi Could not initialize class dây chuyền. Đây là lỗi Docker/Testcontainers, nằm ngoài năm ngoại lệ môi trường được duyệt nên STOP, không sửa source hoặc tự rerun.
+- Tác vụ theo dõi bị gián đoạn do giới hạn phiên; full Maven đã chạy tới kết thúc thay vì được ngắt ngay ở lỗi ngoài ngoại lệ. Ghi nhận đây là sai lệch quy trình STOP; không dùng việc chạy hết làm bằng chứng đạt gate. Controller xác nhận lại log/XML và trạng thái sau khi tiếp tục.
+- Source/test trước và sau full giữ nguyên 15/15 hash; class manifest có 681 class. Full-run exec đã được lưu riêng làm evidence với SHA256 F46CEBE4EB4488AF0463ABAE86C52F5E8271B5C0C43CDB88AD6818DF6F67DA72; không chạy JaCoCo report/check hoặc lấy coverage Project/Credit để nghiệm thu từ lượt lỗi hạ tầng này. Không chạy NFR-P02 riêng sau full; các số đo targeted/regression ở trên chỉ là evidence phụ.
+- Chỉ cập nhật tracking trạng thái STOP; manifest vẫn đúng 17 file (11 ADD/6 MODIFY), locked YAML giữ SHA256 4B3025DDA60DECFC13B59FA7A8F1CB590593EE36F068FCE051883003003DC6C5. Không commit/push/rebase/PR hoặc bắt đầu T-08. Chờ Leader duyệt recovery hạ tầng và gate tiếp theo, chưa đủ điều kiện nghiệm thu G2.
+
+## 2026-11-08 — T-07, tiếp tục vòng sửa 1/2
+
+- Leader duyệt sửa comparator security OR và annotation sáu numeric fields của BatchSummary; giữ Java types/nullability. Một negative test giữ từng requirement nguyên vẹn, phát hiện thiếu/thừa scheme, sai scopes và OR→AND. Không nới các assertion contract khác.
+- Leader duyệt bổ sung CardBatchIntegrationTest: chỉ thêm isIntegralNumber cho total/unused/used/voided/value/planDays ở GET list/detail, giữ toàn bộ kiểm tra giá trị hiện có; CREDIT planDays=null, SUBSCRIPTION value=null và planDays là integer. Có thêm kiểm tra kiểu total/page/size của page. Giữ nguyên hai file đã sửa từ vòng trước.
+- Quy tắc STOP mới: được thêm/sửa test trong đúng 17-file allowlist để đáp ứng yêu cầu đã duyệt; chỉ STOP khi cần file ngoài allowlist, sửa production ngoài phạm vi, generated contract lệch YAML, nới/xóa assertion hoặc failure ngoài năm ngoại lệ môi trường. Không tự sửa record production khác nếu runtime schema lệch.
+- Gate theo thứ tự: negative test security OR → targeted đầy đủ → regression AuditService/exception/Swagger/OpenAPI/auth/credit/callers → full verify không ép JVM profile → JaCoCo đúng full-run exec → NFR-P02 warm-up 1 và 5 HTTP POST quantity=100, nearest-rank p95 <2 giây. JDK 17 JAVA_HOME/PATH trong phiên. Không commit/push/rebase/PR; dừng G2 khi G1 đạt.
+- Chưa có kết quả gate của lượt tiếp tục này. Evidence riêng ngoài repo tại `C:/WINDOWS/TEMP/cnhsk-spec013-t07-round1-continue-20261108-000737/`; giữ nguyên evidence các lượt trước.
+
+### Kết quả vòng sửa 1/2 — STOP tại generated BatchPage
+
+- Đã bổ sung đúng 30 dòng kiểm tra kiểu HTTP; kiểm tra subsequence xác nhận giữ đủ 515 dòng integration test trước sửa. Hai file comparator/BatchSummary giữ nguyên hash của vòng sửa trước; review độc lập không có finding. Tổng diff kỹ thuật vòng sửa gồm đúng ba file; chỉ tracking được cập nhật thêm trong allowlist.
+- Negative gate: `CreditCardBatchContractTest#securityComparisonRejectsMissingExtraSchemesAndWrongScopes`, 1 test/F0/E0/S0, Maven exit 0/BUILD SUCCESS, 00:08:56.470–00:11:12.934 +07 ngày 2026-11-08. Reordered OR được chấp nhận; thiếu scheme, thừa scheme, sai scopes và OR→AND đều bị comparator phát hiện.
+- Targeted ngoài sandbox, JDK 17, không ép profile: 00:12:21.009–00:14:20.092 +07. `CreditCardBatchContractTest` 4/F1/E0/S0; `CardBatchConcurrencyIntegrationTest` 3/F0/E0/S0. Tổng các XML hoàn tất: 7/F1/E0/S0. Ctrl-C dừng Maven, tool trả exit 1; không có BUILD SUCCESS hoặc tổng kết đầy đủ toàn lượt.
+- Failure duy nhất: `integerNullableRecordsAndResponseShapesMatchTheLockedSchemas`, `[Types BatchPage.page] expected [integer], actual [string]`. Các schema đứng trước BatchPage trong vòng so sánh, gồm BatchSummary, đã qua; ba test contract còn lại (operation/status/security, negative security, parameters) PASS. Không sửa BatchPage hoặc record production khác sau failure.
+- HTTP numeric assertions đã compile nhưng `CardBatchIntegrationTest` vừa bắt đầu khi dừng, chưa có XML hoàn tất nên chưa tuyên bố PASS. CardBatchServiceTest, AuditServiceIntegrationTest và GlobalExceptionHandlerTest chưa chạy ở lượt targeted này. Regression/full verify/JaCoCo Project-Credit từ full-run exec/NFR-P02 chưa chạy; không có năm mẫu hoặc p95.
+- Dừng theo điều kiện generated OpenAPI lệch locked contract. Cần Leader duyệt phạm vi production BatchPage: kiểm page/size/total, giữ total int64 và runtime types. Không tự thay YAML, nới assertion, rerun để chọn PASS, commit/push/rebase/PR hoặc bắt đầu T-08.
+- Evidence: `negative.log`, `negative-status.json`, `negative-surefire/`; `targeted.log`, `targeted-status.json`, `targeted-surefire/` trong thư mục lượt tiếp tục. Manifests và diff vòng sửa giữ riêng; 15 source/test được đối chiếu hash với manifest đầu gate trước khi cập nhật tracking.
+
+## 2026-11-07 — T-07
+
+- Leader duyệt G1 trên `spec/013-t07`, base `8b3b228` (T-06 PR #132 đã merge), đúng 17 file: 11 ADD và 6 MODIFY. Chỉ FR-001/005–008; dừng ở G2, không push/rebase/PR hoặc bắt đầu T-08.
+- **Q1:** batchId sai pattern hoặc không tồn tại ở GET detail/PATCH void cùng trả 404 `CARD_BATCH_NOT_FOUND`, không thêm 422.
+- **Q2:** không advisory lock. BatchId kiểm EXISTS, một ứng viên ban đầu và tối đa năm lần sinh lại. Mã dùng Set trong bộ nhớ, INSERT nhiều dòng `ON CONFLICT (code_hash) DO NOTHING RETURNING code_hash`; giữ mã đã insert và chỉ bù phần thiếu, một vòng ban đầu và tối đa năm vòng retry. Cạn giới hạn hoặc lỗi persistence trả 500 `INTERNAL_ERROR`, message cố định, không cause chứa mã/hash. Seam Supplier nội bộ chỉ phục vụ ép collision, không đổi API public `CardCodes`.
+- **Giới hạn được giữ theo quyết định Q2:** EXISTS không bảo đảm loại race khi hai transaction đồng thời sinh cùng batchId trước khi một transaction commit; V1 không có UNIQUE cho batchId. Không tự thêm khóa, migration hoặc cơ chế thay thế. Unique code_hash vẫn được PostgreSQL bảo vệ.
+- **Q3:** SUBSCRIPTION lưu DB value=planDays; response/audit value=null, planDays=n, totalValue=null. CREDIT planDays=null, totalValue=quantity×value. PREMIUM phải tồn tại/active; đọc FOR SHARE trong transaction phát hành.
+- **Q4:** không sửa locked YAML; generated OpenAPI phải giữ integer|null và bốn path/method/status/operationId, required/enum/constraints. Lệch → STOP.
+- **Q5:** NFR-P02 một HTTP POST warm-up rồi năm POST quantity=100, p95 nearest-rank dưới 2 giây, đo cả commit và response.
+- **Q6:** 401 và 403 LEARNER/ACCOUNTANT trên cả bốn endpoint, 403 cookie POST/PATCH thiếu CSRF. Void giữ USED, chỉ UNUSED→VOIDED, gọi lại voided=0. Hai assertion nạp mã của AT-01/AT-07 chỉ nghiệm thu ở T-08; không thêm redeem trong T-07.
+- **Pagination/D1/AT-04:** list/detail readOnly REPEATABLE_READ, count và GROUP BY cùng snapshot; resolve tên theo một AuthApi.displayNames, test số truy vấn. Shared AuditService thêm overload bốn tham số ghi target_id=NULL; hai method cũ và positive-ID validation giữ nguyên. Test OutputCaptureExtension quét 100 mã có/không gạch và hash trong log/audit; CREATE/VOID chỉ audit metadata an toàn.
+- Gate dự kiến: JDK 17 JAVA_HOME/PATH trong phiên → targeted → regression audit/exception/OpenAPI/auth/credit/callers → full `mvnw -B verify` không ép JVM profile → JaCoCo đúng full-run exec. Chưa có kết quả gate; không đánh hoàn tất T-07.
+
+### G1 STOP tại gate contract
+
+- Self-review độc lập trước gate không có finding source cụ thể; whitespace check sạch, đúng 17-file allowlist (11 ADD/6 MODIFY). Java source được giữ nguyên từ manifest trước gate; không sửa code hoặc YAML sau failure.
+- Lượt sandbox targeted exit 1 trước compilation/test: Maven Central parent POM bị `Permission denied`. Lưu log/status riêng và chạy lại đúng selector ngoài sandbox theo yêu cầu xử lý sandbox; không thay source hoặc ép profile.
+- Lượt ngoài sandbox dùng Java 17.0.9, production compile và testCompile thành công. `CreditCardBatchContractTest`: 3 tests, 2 failures, 0 errors, 0 skipped. Q4 STOP, không sửa/rerun. Maven đã vào lớp concurrency trước khi monitor nhận summary; yêu cầu dừng lượt đang chạy và giữ evidence, không mở gate tiếp.
+- `fourRegisteredOperationsMatchLockedPathsMethodsIdsAndStatuses`: test so security OR theo thứ tự; expected cookieAuth rồi bearerAuth, generated bearerAuth rồi cookieAuth. Hai lựa chọn OR tương đương về ngữ nghĩa; comparator hiện nhạy thứ tự, chưa sửa.
+- `integerNullableRecordsAndResponseShapesMatchTheLockedSchemas`: `BatchSummary.total` expected type integer, generated type string. Đây là generated schema drift thật; nullable integer/constraints còn lại chưa được chứng minh toàn bộ vì assertion dừng tại đây.
+- Regression/full verify/JaCoCo từ full-run exec và NFR-P02 chưa có kết quả; không dùng coverage task khác hoặc targeted. Chưa commit/push/rebase/PR, chưa T-08. Chờ Leader duyệt vòng sửa contract annotation và comparator OR; không tự đổi locked YAML hoặc nới yêu cầu contract.
+- Evidence ngoài repo: `C:/WINDOWS/TEMP/cnhsk-spec013-t07-20261107-233917/` chứa manifests, log/status sandbox và lượt ngoài sandbox, cùng Surefire XML. Locked YAML SHA256 `4B3025DDA60DECFC13B59FA7A8F1CB590593EE36F068FCE051883003003DC6C5`.
+- Lượt targeted ngoài sandbox đã dừng bằng Ctrl-C, tool session trả exit 1; không có Maven BUILD SUCCESS hoặc tổng kết toàn lượt. Chỉ suite contract hoàn tất (3/F2/E0/S0), lớp concurrency đã bắt đầu nhưng không có XML hoàn tất; không tính các test chưa chạy thành skipped. Regression/full verify/NFR-P02 chưa chạy; không có JaCoCo Project/Credit từ full-run exec. `manifest-final.json` liệt kê đúng 17 file; 15/15 source/test giữ hash trước gate, tracking được cập nhật riêng. Chưa tạo commit.
+
 ## 2026-11-07 — T-06
 
 - Base `5b4c478` đã merge T-05 qua PR #131. Leader duyệt G1 và đúng 11 file (5 ADD, 6 MODIFY), bao gồm thay đổi module 001; chỉ FR-003/004, AT-03 và sáu API §0.3. Dừng ở G2, chưa rebase/push/PR.

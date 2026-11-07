@@ -151,7 +151,22 @@ class GlobalExceptionHandlerTest {
                 "ATTEMPT_NOT_SUBMITTED", "PLACEMENT_BANK_INSUFFICIENT", "PLACEMENT_NOT_FINISHED",
                 "LEXEME_NOT_FOUND", "QUESTION_NOT_FOUND", "MALFORMED_QUESTION", "KNOWLEDGE_NODE_REQUIRED",
                 "GRADING_CHANGE_NOT_ALLOWED", "QUESTION_ARCHIVED", "COLLECTION_NOT_OWNED", "LIBRARY_LIMIT_REACHED",
-                "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "CARD_DUPLICATE", "ASSISTANT_BLOCKED_DURING_TEST", "ASSISTANT_UNAVAILABLE", "INTERNAL_ERROR");
+                "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "CARD_DUPLICATE", "ASSISTANT_BLOCKED_DURING_TEST", "ASSISTANT_UNAVAILABLE",
+                "CARD_BATCH_NOT_FOUND", "PLAN_NOT_AVAILABLE", "INTERNAL_ERROR");
+    }
+
+    @Test
+    void cardBatchErrorsKeepTheirStatusMessageAndRequestId() throws Exception {
+        mockMvc.perform(get("/test/card-batch-missing").header(RequestIdFilter.HEADER_NAME, "batch-missing"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error_code").value("CARD_BATCH_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("Không tìm thấy lô mã."))
+                .andExpect(jsonPath("$.request_id").value("batch-missing"));
+        mockMvc.perform(get("/test/plan-unavailable").header(RequestIdFilter.HEADER_NAME, "plan-unavailable"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error_code").value("PLAN_NOT_AVAILABLE"))
+                .andExpect(jsonPath("$.message").value("Gói PREMIUM hiện không khả dụng."))
+                .andExpect(jsonPath("$.request_id").value("plan-unavailable"));
     }
 
     @Test
@@ -206,6 +221,18 @@ class GlobalExceptionHandlerTest {
 
     @RestController
     static class ErrorTestController {
+
+        @GetMapping("/test/card-batch-missing")
+        void missingCardBatch() {
+            throw new ApiException(ErrorCode.CARD_BATCH_NOT_FOUND, HttpStatus.NOT_FOUND,
+                    "Không tìm thấy lô mã.", Map.of());
+        }
+
+        @GetMapping("/test/plan-unavailable")
+        void unavailablePlan() {
+            throw new ApiException(ErrorCode.PLAN_NOT_AVAILABLE, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Gói PREMIUM hiện không khả dụng.", Map.of());
+        }
         @GetMapping("/test/assistant-blocked")
         void assistantBlocked() {
             throw new ApiException(ErrorCode.ASSISTANT_BLOCKED_DURING_TEST, HttpStatus.FORBIDDEN,
