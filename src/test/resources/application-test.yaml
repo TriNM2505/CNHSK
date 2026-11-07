@@ -38,6 +38,8 @@ springdoc:
     enabled: false
 
 cnhsk:
+  billing:
+    card-code-pepper: test-only-card-code-pepper-not-secret-0001
   import:
     recover-on-startup: false
     maintenance-cron: "-"
