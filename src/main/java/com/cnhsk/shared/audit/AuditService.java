@@ -62,6 +62,22 @@ public class AuditService {
         auditLogRepository.save(new AuditLog(actorId, action, targetType, targetId, convertedDetail));
     }
 
+    @Transactional
+    public void recordDetail(Long actorId, String action, String targetType, Map<String, ?> detail) {
+        Objects.requireNonNull(action, "action must not be null");
+        if (action.length() > 50) {
+            throw new IllegalArgumentException("action must not exceed 50 characters");
+        }
+        Objects.requireNonNull(targetType, "targetType must not be null");
+        if (!TARGET_TYPE_PATTERN.matcher(targetType).matches()) {
+            throw new IllegalArgumentException("targetType must use uppercase letters, digits and underscores");
+        }
+        Objects.requireNonNull(detail, "detail must not be null");
+        Map<String, Object> convertedDetail = objectMapper.convertValue(detail, new TypeReference<Map<String, Object>>() {
+        });
+        auditLogRepository.save(new AuditLog(actorId, action, targetType, null, convertedDetail));
+    }
+
     private EntityReference parseEntity(String entity) {
         Objects.requireNonNull(entity, "entity must not be null");
         Matcher matcher = ENTITY_PATTERN.matcher(entity);
