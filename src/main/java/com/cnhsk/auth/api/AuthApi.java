@@ -1,5 +1,6 @@
 package com.cnhsk.auth.api;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 
@@ -13,4 +14,19 @@ public interface AuthApi {
     boolean hasRole(long userId, RoleCode role);
 
     Map<Long, String> displayNames(Set<Long> userIds);
+
+    /** Locks the user's plan row until the caller's transaction completes. */
+    PlanState lockPlan(long userId);
+
+    /** Caller must hold lockPlan(userId) in the current transaction. */
+    void updatePlan(long userId, String planCode, Instant expiresAt);
+
+    /** Caller must hold lockPlan(userId) in the current transaction. */
+    void updateUsage(long userId, Map<String, Integer> usage, Instant resetAt);
+
+    int downgradeExpiredPlans(Instant now);
+
+    Map<Long, String> maskedEmails(Set<Long> userIds);
+
+    long countActivePlan(String planCode, Instant now);
 }
