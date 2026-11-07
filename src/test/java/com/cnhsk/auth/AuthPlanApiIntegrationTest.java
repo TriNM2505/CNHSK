@@ -41,13 +41,13 @@ class AuthPlanApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired private PlatformTransactionManager manager;
     private long userId;
     private final List<Long> createdIds = new ArrayList<>();
+    private final List<String> createdPlanCodes = new ArrayList<>();
+    private List<Map<String, Object>> plansBefore;
 
     @BeforeEach
     void setUp() {
-        jdbc.update("""
-                INSERT INTO learning.plans(code, name, duration_days) VALUES ('PREMIUM', 'Test Premium', 30)
-                ON CONFLICT (code) DO NOTHING
-                """);
+        plansBefore = jdbc.queryForList("SELECT * FROM learning.plans ORDER BY code");
+        createPlanIfAbsent("PREMIUM", "Test Premium");
         userId = users.saveAndFlush(new User("plan-" + UUID.randomUUID() + "@example.test",
                 PASSWORD_HASH, "Plan test")).getId();
         createdIds.add(userId);
@@ -56,6 +56,10 @@ class AuthPlanApiIntegrationTest extends AbstractIntegrationTest {
     @AfterEach
     void cleanUp() {
         users.deleteAllById(createdIds);
+        for (String code : createdPlanCodes) {
+            assertThat(jdbc.update("DELETE FROM learning.plans WHERE code = ?", code)).isEqualTo(1);
+        }
+        assertThat(jdbc.queryForList("SELECT * FROM learning.plans ORDER BY code")).isEqualTo(plansBefore);
     }
 
     @Test
@@ -167,6 +171,17 @@ class AuthPlanApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void conflictingPlanInsertPreservesTheRowWithoutClaimingOwnership() {
+        Map<String, Object> before = jdbc.queryForMap("SELECT * FROM learning.plans WHERE code = 'PREMIUM'");
+        List<String> ownedBefore = List.copyOf(createdPlanCodes);
+
+        createPlanIfAbsent("PREMIUM", "Must not replace existing plan");
+
+        assertThat(jdbc.queryForMap("SELECT * FROM learning.plans WHERE code = 'PREMIUM'")).isEqualTo(before);
+        assertThat(createdPlanCodes).containsExactlyElementsOf(ownedBefore);
+    }
+
+    @Test
     void activeCountsIncludeExpiredPlansInFreeWithoutRoleOrStatusFilters() {
         Instant now = Instant.parse("2026-11-07T00:00:00Z");
         long premiumBefore = auth.countActivePlan("PREMIUM", now);
@@ -174,10 +189,7 @@ class AuthPlanApiIntegrationTest extends AbstractIntegrationTest {
         long active = additionalUser("PREMIUM", now.plusSeconds(1));
         additionalUser("PREMIUM", now.minusSeconds(1));
         additionalUser("PREMIUM", now);
-        jdbc.update("""
-                INSERT INTO learning.plans(code, name, duration_days) VALUES ('PREMIUM_PLUS', 'Test Plus', 30)
-                ON CONFLICT (code) DO NOTHING
-                """);
+        createPlanIfAbsent("PREMIUM_PLUS", "Test Plus");
         additionalUser("PREMIUM_PLUS", now.plusSeconds(1));
         additionalUser("PREMIUM_PLUS", now.minusSeconds(1));
         jdbc.update("UPDATE auth.users SET banned_at = ?, ban_reason = 'Test status' WHERE id = ?",
@@ -213,6 +225,16 @@ class AuthPlanApiIntegrationTest extends AbstractIntegrationTest {
         jdbc.update("UPDATE auth.users SET free_usage = '{\"TRANSLATE\":\"invalid-counter\"}'::jsonb WHERE id = ?", userId);
         assertThatThrownBy(() -> new TransactionTemplate(manager).execute(status -> auth.lockPlan(userId)))
                 .isInstanceOf(IllegalStateException.class).hasMessage("Dữ liệu hạn mức không hợp lệ.");
+    }
+
+    private void createPlanIfAbsent(String code, String name) {
+        int inserted = jdbc.update("""
+                INSERT INTO learning.plans(code, name, duration_days) VALUES (?, ?, 30)
+                ON CONFLICT (code) DO NOTHING
+                """, code, name);
+        if (inserted == 1) {
+            createdPlanCodes.add(code);
+        }
     }
 
     private long additionalUser(String code, Instant expiry) {
