@@ -152,7 +152,7 @@ class GlobalExceptionHandlerTest {
                 "LEXEME_NOT_FOUND", "QUESTION_NOT_FOUND", "MALFORMED_QUESTION", "KNOWLEDGE_NODE_REQUIRED",
                 "GRADING_CHANGE_NOT_ALLOWED", "QUESTION_ARCHIVED", "COLLECTION_NOT_OWNED", "LIBRARY_LIMIT_REACHED",
                 "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "CARD_DUPLICATE", "ASSISTANT_BLOCKED_DURING_TEST", "ASSISTANT_UNAVAILABLE",
-                "CARD_BATCH_NOT_FOUND", "PLAN_NOT_AVAILABLE", "INTERNAL_ERROR");
+                "CARD_BATCH_NOT_FOUND", "PLAN_NOT_AVAILABLE", "INSUFFICIENT_CREDITS", "INTERNAL_ERROR");
     }
 
     @Test
@@ -167,6 +167,15 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.error_code").value("PLAN_NOT_AVAILABLE"))
                 .andExpect(jsonPath("$.message").value("Gói PREMIUM hiện không khả dụng."))
                 .andExpect(jsonPath("$.request_id").value("plan-unavailable"));
+    }
+
+    @Test
+    void insufficientCreditsKeeps402CodeMessageAndRequestId() throws Exception {
+        mockMvc.perform(get("/test/insufficient-credits").header(RequestIdFilter.HEADER_NAME, "billing-empty"))
+                .andExpect(status().isPaymentRequired())
+                .andExpect(jsonPath("$.error_code").value("INSUFFICIENT_CREDITS"))
+                .andExpect(jsonPath("$.message").value("Đã hết hạn mức và điểm."))
+                .andExpect(jsonPath("$.request_id").value("billing-empty"));
     }
 
     @Test
@@ -221,6 +230,12 @@ class GlobalExceptionHandlerTest {
 
     @RestController
     static class ErrorTestController {
+
+        @GetMapping("/test/insufficient-credits")
+        void insufficientCredits() {
+            throw new ApiException(ErrorCode.INSUFFICIENT_CREDITS, HttpStatus.PAYMENT_REQUIRED,
+                    "Đã hết hạn mức và điểm.", Map.of());
+        }
 
         @GetMapping("/test/card-batch-missing")
         void missingCardBatch() {
