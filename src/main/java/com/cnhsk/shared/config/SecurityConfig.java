@@ -121,6 +121,7 @@ public class SecurityConfig {
                     authorize.requestMatchers("/api/notes", "/api/notes/**").hasRole("LEARNER");
                     authorize.requestMatchers("/api/flashcard-decks", "/api/flashcard-decks/**").hasRole("LEARNER");
                     authorize.requestMatchers("/api/flashcards/**").hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.POST, "/api/translate").hasRole("LEARNER");
                     authorize.requestMatchers("/api/admin/imports", "/api/admin/imports/**").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers(HttpMethod.GET, "/api/practice/sessions/active",
                             "/api/practice/sessions/{id}").hasRole("LEARNER");
