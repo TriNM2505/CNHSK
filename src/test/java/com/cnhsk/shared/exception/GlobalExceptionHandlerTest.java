@@ -71,6 +71,16 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void translationUnavailableReturnsTheFixed503WithoutPrivateDetails() throws Exception {
+        mockMvc.perform(get("/test/translation-unavailable").header(RequestIdFilter.HEADER_NAME, "translation-error"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.error_code").value("TRANSLATE_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").value("Dịch tạm thời lỗi — lượt đã được hoàn."))
+                .andExpect(jsonPath("$.request_id").value("translation-error"))
+                .andExpect(jsonPath("$.details").doesNotExist());
+    }
+
+    @Test
     void methodParameterValidationReturns422AndFieldDetails() throws Exception {
         mockMvc.perform(get("/test/parameter-validation").param("page", "0"))
                 .andExpect(status().isUnprocessableEntity())
@@ -152,7 +162,7 @@ class GlobalExceptionHandlerTest {
                 "LEXEME_NOT_FOUND", "QUESTION_NOT_FOUND", "MALFORMED_QUESTION", "KNOWLEDGE_NODE_REQUIRED",
                 "GRADING_CHANGE_NOT_ALLOWED", "QUESTION_ARCHIVED", "COLLECTION_NOT_OWNED", "LIBRARY_LIMIT_REACHED",
                 "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "CARD_DUPLICATE", "ASSISTANT_BLOCKED_DURING_TEST", "ASSISTANT_UNAVAILABLE",
-                "CARD_BATCH_NOT_FOUND", "PLAN_NOT_AVAILABLE", "INSUFFICIENT_CREDITS", "INTERNAL_ERROR");
+                "CARD_BATCH_NOT_FOUND", "PLAN_NOT_AVAILABLE", "INSUFFICIENT_CREDITS", "TRANSLATE_UNAVAILABLE", "INTERNAL_ERROR");
     }
 
     @Test
@@ -230,6 +240,12 @@ class GlobalExceptionHandlerTest {
 
     @RestController
     static class ErrorTestController {
+
+        @GetMapping("/test/translation-unavailable")
+        void translationUnavailable() {
+            throw new ApiException(ErrorCode.TRANSLATE_UNAVAILABLE, HttpStatus.SERVICE_UNAVAILABLE,
+                    "Dịch tạm thời lỗi — lượt đã được hoàn.", Map.of());
+        }
 
         @GetMapping("/test/insufficient-credits")
         void insufficientCredits() {

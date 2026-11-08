@@ -1,5 +1,96 @@
 # Chốt — Spec 014
 
+## 2026-11-08 — Leader duyệt 014/T-14 G0 → G1, rút lại D5 sampling
+
+- G0 đã duyệt, base origin/main `95f401f`; tạo lại nhánh `spec/014-t14`, worktree `CNHSK-014-t14`. Không đụng thay đổi riêng ở worktree gốc; không đọc/tạo khoá API hoặc .env, không migration/SQL trên Neon.
+- Allowlist đúng 14 file:
+  1. `src/main/java/com/cnhsk/learning/library/ClaudeTranslator.java`
+  2. `src/main/java/com/cnhsk/learning/library/TranslationService.java`
+  3. `src/main/java/com/cnhsk/learning/library/web/TranslationController.java`
+  4. `src/main/java/com/cnhsk/learning/library/web/TranslateRequest.java`
+  5. `src/main/java/com/cnhsk/learning/library/web/TranslateResult.java`
+  6. `src/test/java/com/cnhsk/learning/library/ClaudeTranslatorTest.java`
+  7. `src/test/java/com/cnhsk/learning/library/TranslationServiceIntegrationTest.java`
+  8. `src/test/java/com/cnhsk/learning/library/TranslationControllerIntegrationTest.java`
+  9. `src/test/java/com/cnhsk/learning/library/TranslationLogIntegrationTest.java`
+  10. `src/main/java/com/cnhsk/shared/config/SecurityConfig.java`
+  11. `src/main/java/com/cnhsk/shared/exception/ErrorCode.java`
+  12. `src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java`
+  13. `specs/014-library/tasks.md`
+  14. `specs/014-library/questions.md`
+- Leader rút lại D5: “§0.3 temperature 0 không áp dụng — theo 015 Q-T04-04/05; ổn định bằng system prompt”. API 2026-10-21 từ chối temperature kể cả 0; không gửi tham số sampling nào. AnthropicClaudeClient và AnthropicClaudeClientTest đã hoàn nguyên hoàn toàn về origin/main; git diff origin/main trên đúng hai file rỗng. Translator chỉ yêu cầu dịch, không giải thích, không thêm nội dung và chỉ trả JSON {"translation":"…"}; không sửa interface/client/config của 015.
+- Leader chấp nhận giới hạn Q1 của 013: lỗi → refund → thử lại đúng nội dung cùng phút nhận receipt cũ, không trừ thêm. Giữ nguyên D3, không UUID hoặc xoá receipt; sẽ có test tài liệu hoá hành vi này.
+- Leader chấp nhận hai cache miss đồng thời cùng user/key, không gộp hoặc thêm khoá Redis. Hai lỗi phải hoàn có hiệu lực một lần (QUOTA giảm đúng một; CREDIT đúng một dòng REFUND). Một thành công + một lỗi có thể được miễn phí một lượt; đây là giới hạn đã chấp nhận, không tự đổi nghiệp vụ.
+- Consume/refund dùng REQUIRES_NEW, service không @Transactional; provider ngoài transaction. Segmenter lỗi hoặc ghi cache lỗi sau provider thành công không refund. Giữ D1–D10, parse 422 thông báo cố định; cache chỉ translation, Segmenter tính lại mỗi lần.
+- G1 bắt đầu 21:47:37 ngày 2026-11-08 (UTC+7). Preflight Java 17.0.12 đạt; Docker chưa chạy, đã khởi động Docker Desktop. Đến 21:51:08 Docker 29.9.2 sẵn sàng. Không có lệnh Maven nào trước test-compile dưới đây.
+- Lệnh Maven số 1: `mvnw.cmd -B test-compile`; bắt đầu 21:51:19, kết thúc 21:51:36, exit=1, Maven báo 14,328 giây. Dừng do compile SDK theo chỉ đạo cũ, đã được leader rút lại và không tính vào giới hạn hai vòng fix. Tiếp tục G1 lúc 22:02:12 sau hoàn nguyên hai file; giữ log cnhsk-014-t14-gates.log và cnhsk-014-t14-compile-01.log trong TEMP. Chưa đánh hoàn thành T-14, chưa commit/push/PR.
+- Các lệnh sau khi rút D5 (2026-11-08, UTC+7, Java 17/DEBUG=false; không ép spring.profiles.active):
+
+  | Lệnh/gate | Bắt đầu | Kết thúc | Kết quả |
+  |---|---|---|---|
+  | mvnw.cmd -B test-compile sau ClaudeTranslatorTest | 22:06:10 | 22:06:55 | PASS, Maven 42,947 s |
+  | mvnw.cmd -B test-compile sau TranslationServiceIntegrationTest | 22:10:17 | 22:10:58 | PASS, Maven 37,921 s |
+  | mvnw.cmd -B test-compile sau TranslationControllerIntegrationTest | 22:13:23 | 22:14:01 | PASS, Maven 35,431 s |
+  | mvnw.cmd -B test-compile sau TranslationLogIntegrationTest | 22:14:57 | 22:15:34 | PASS, Maven 34,942 s |
+  | mvnw.cmd -B test-compile sau GlobalExceptionHandlerTest | 22:16:12 | 22:16:51 | PASS, Maven 36,307 s |
+  | mvnw.cmd -B test-compile sau bổ sung latch/barrier | 22:19:29 | 22:20:12 | PASS, Maven 40,613 s |
+  | mvnw.cmd -B -Dtest=ClaudeTranslatorTest,TranslationServiceIntegrationTest,TranslationControllerIntegrationTest,TranslationLogIntegrationTest,GlobalExceptionHandlerTest test | 22:20:12 | 22:21:15 | FAIL: 86 test, 5 failure, 6 error, 0 skip; Maven 1:00 |
+
+- Targeted: Controller 29/29 và Log/AT-22 1/1 PASS, gồm validation, security, OpenAPI integer/int64 nullable và cached boolean. ClaudeTranslatorTest 17 test/1 error; service integration 21 test/4 failure/5 error; GlobalExceptionHandlerTest 18 test/1 failure. NFR-P03 hiện đo được bằng stub 20 mẫu cache miss, mỗi nguồn 20 từ: đầu 19,386 ms, p50 19,012 ms, p95 22,344 ms; đây chưa phải số đo nghiệm thu cuối vì gate targeted còn lỗi.
+- STOP G1 sau targeted, chưa chạy regression/full verify/JaCoCo: lỗi ngoài năm ngoại lệ được duyệt. Đã khoanh vùng (1) restub budget.execute bằng when(...) chạy Answer cũ với supplier null, gây NPE ngay trong setup của AT19_budgetFailurePreventsProviderCall; (2) stub refund qua proxy EntitlementApi kích hoạt propagation MANDATORY ngoài transaction, tạo UnfinishedStubbing và có dấu hiệu làm lệch hàng đợi response trong các test sau; (3) danh sách expected ErrorCode trong test chưa thêm TRANSLATE_UNAVAILABLE. Chưa kết luận mọi failure còn lại chỉ do cascade trước khi chạy lại sạch.
+- Đề xuất vòng fix 1 chỉ ba file test trong allowlist: dùng doThrow cho unit budget; lấy spy target bằng AopTestUtils khi stub/verify EntitlementApi, giữ lời gọi service qua proxy thật; thêm mã mới vào expected inventory, giữ toàn bộ mã/assertion cũ. Không sửa production, không nới/xoá assertion hoặc skip; sau duyệt compile từng file và chạy lại targeted rồi mới regression/full verify. Chưa tự áp dụng vì đây là lỗi runtime/targeted, không thuộc quyền tự sửa testCompile. T-14 vẫn chưa hoàn thành, chưa G2 review hoặc commit/push.
+- Leader đã duyệt Fix 1/2; bắt đầu 22:36:51. Chỉ sửa ba file test nêu trên: doAnswer/doThrow cho budget; AopTestUtils lấy spy target để stub/verify không chạy advice MANDATORY ngay lúc setup; inventory thêm đúng TRANSLATE_UNAVAILABLE. Không stub trả receipt cho consume/refund: các ca AT-18/AT-19 vẫn gọi EntitlementService thật qua proxy và kiểm free_usage, DEDUCT, REFUND trong PostgreSQL thật. Chỉ ca thử refund lỗi bơm exception theo D7. Toàn bộ assertion trước đó được giữ; có thêm kiểm target là spy. Hash tất cả file production giữ nguyên so với đầu Fix 1.
+- Đối chiếu đủ 11 lỗi targeted cũ (F=failure, E=error; C=ClaudeTranslatorTest, S=TranslationServiceIntegrationTest, G=GlobalExceptionHandlerTest). Không có lỗi ngoài ba nhóm đã duyệt:
+
+  | Test | Loại | Nguyên nhân | Nhóm fix |
+  |---|---|---|---|
+  | C.AT19_budgetFailurePreventsProviderCall | E | when(...) khi restub gọi Answer cũ với supplier null, NPE trước khi gọi translator | 1 |
+  | S.malformedCacheIsAMissAndAProviderFailureWithRefundFailureStillReturnsSanitized503 | E | Stub refund qua proxy kích hoạt MANDATORY ngoài transaction; failure đã enqueue chưa được dùng | 2 |
+  | S.concurrentCacheMissFailuresHaveOnlyOneEffectiveRefund(Source)[1: QUOTA] | E | BeforeEach gặp UnfinishedStubbing từ ca trên; queue còn response cũ | 2 |
+  | S.redisReadAndWriteFailuresAreBestEffortAndNeverRefundSuccessfulTranslation | E | Cascade FIFO: nhận UPSTREAM_ERROR còn lại từ ca concurrent CREDIT thay vì response mới | 2 |
+  | S.AT19_creditFailureWritesExactlyOneRefundReferencingTheDebit | F | Cascade FIFO: nhận success của ca cache lỗi thay vì TIMEOUT vừa enqueue, nên không ném exception | 2 |
+  | S.AT18_AT19_cacheContainsOnlyTranslationHasSevenDayTtlAndIsSharedWithoutBilling | E | Cascade FIFO: nhận TIMEOUT còn lại từ ca credit, trả 503 thay vì success | 2 |
+  | S.AT20_segmenterFailureStillCachesTheTranslationWithoutRefund | F | Cascade FIFO: nhận chuỗi 我读书。 còn lại sau NFR thay vì bản dịch của chính ca này | 2 |
+  | S.accepted013Q1_retryAfterRefundInTheSameMinuteReturnsOldReceiptWithoutAnotherCharge(Source)[1: QUOTA] | F | Cascade FIFO: lượt đầu nhận success còn lại từ ca segmenter thay vì lỗi | 2 |
+  | S.accepted013Q1_retryAfterRefundInTheSameMinuteReturnsOldReceiptWithoutAnotherCharge(Source)[2: CREDIT] | E | Cascade FIFO: lượt retry nhận TIMEOUT còn lại thay vì success, trả 503 | 2 |
+  | S.AT19_allProviderFailuresRefundQuotaAndKeepTheErrorSanitized(Reason)[1: NOT_CONFIGURED] | F | Cascade FIFO: nhận success còn lại từ ca longest-match, nên không ném exception | 2 |
+  | G.errorCodeContainsEveryCodeFromTheSpecification | F | Expected inventory chưa có mã mới TRANSLATE_UNAVAILABLE | 3 |
+
+- Bảng trên được đối chiếu thứ tự testcase trong XML baseline và FIFO của StubClaudeClient. Sau sửa đúng ba file, targeted đạt 86/86, 0 failure/error/skip: C 17/17, S 21/21, Controller 29/29, Log 1/1, G 18/18. Không sửa/clear queue trong StubClaudeClient; việc loại bỏ stubbing lỗi bảo đảm response được tiêu thụ đúng ca. Không dùng mock bỏ qua nghiệp vụ để làm xanh test.
+- Giải trình ClaudeTranslator.java +1/-1: thay dòng prompt “không thêm giải thích hoặc Markdown” thành “không giải thích, không thêm nội dung hoặc Markdown”. Đây là thay đổi ở lúc leader rút D5, trước Fix 1, để đáp ứng §0.3/D5 mới: chỉ dịch và ổn định đầu ra bằng system prompt. Không phải thay đổi parse/validation để né test; D6 vẫn bắt object JSON có translation string không blank, FAIL_ON_TRAILING_TOKENS giữ nguyên. Model translate-model, một SystemBlock cache=true, USER JSON, 4096 token và timeout 10 giây không đổi; không có tham số sampling. Vòng Fix 1 không thay dòng production này.
+- Kết quả G1 sau Fix 1, bàn giao G2 (2026-11-08, UTC+7):
+
+  | Lệnh/gate | Bắt đầu | Kết thúc | Kết quả |
+  |---|---|---|---|
+  | mvnw.cmd -B test-compile sau fix ClaudeTranslatorTest | 22:38:06 | 22:38:56 | PASS, Maven 44,103 s |
+  | mvnw.cmd -B test-compile sau fix TranslationServiceIntegrationTest | 22:40:25 | 22:41:03 | PASS, Maven 35,544 s |
+  | mvnw.cmd -B test-compile sau fix GlobalExceptionHandlerTest | 22:42:11 | 22:42:53 | PASS, Maven 39,922 s |
+  | mvnw.cmd -B -Dtest=ClaudeTranslatorTest,TranslationServiceIntegrationTest,TranslationControllerIntegrationTest,TranslationLogIntegrationTest,GlobalExceptionHandlerTest test | 22:42:53 | 22:43:55 | PASS 86/86, 0 failure/error/skip; Maven 59,304 s |
+  | mvnw.cmd -B -Dtest=$regressionTests test | 22:45:21 | 22:47:25 | PASS 616/616, đủ 43 lớp library + credit + ai; 0 failure/error/skip; Maven 2:01 |
+  | mvnw.cmd -B verify | 22:47:26 | 23:06:36 | Chạy đến hết: 4.154 test, 1 failure NFR-P04 đã duyệt, 0 error/skip; exit=1, Maven 19:07 |
+  | mvnw.cmd -B jacoco:report@report jacoco:check@check | 23:09:03 | 23:09:09 | PASS, reuse execution data lượt full, không chạy lại test; Maven 3,330 s |
+
+- RegressionTests được lấy từ toàn bộ *Test.java dưới src/test/java/com/cnhsk/learning/{library,credit,ai}, tên lớp nối dấu phẩy; lệnh đầy đủ lưu tại TEMP/cnhsk-014-t14-gates.log. AnthropicClaudeClientTest 18/18 PASS, không thay hai file AI client/test. Không ép -Dspring.profiles.active. Đã giữ máy thức trong regression/full và khôi phục chế độ nguồn lúc 23:06:36; không ngắt full verify giữa chừng.
+- Ngoại lệ duy nhất của full: QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries, dòng 304. Import 5.000 câu, samples_ms=[32693,24257,20191,22208,20228], local_p95_ms=32693; yêu cầu <30000 ms. Không lỗi HTTP/logic được ghi nhận trong failure này; test đã kiểm 5.000 created/unchanged và failed=0 trước assertion thời gian. Thuộc NFR_P04 QUESTION đã được duyệt, không sửa test/production, không nới ngưỡng hoặc chạy lại để che kết quả. Các lớp còn lại đạt 4.141/4.141, lớp QuestionImportIntegrationTest có 12/13 PASS: tổng 4.153 PASS/4.154, 1 failure, 0 error/skip. Số cuối đối chiếu Maven summary/XML; bộ đếm tiến độ chỉ cộng lớp PASS trước đó đã được đính chính.
+- Vì Surefire dừng lifecycle trước phase verify/report, đã chạy riêng đúng các execution JaCoCo report/check đã cấu hình trong pom trên execution data của chính lượt full (có bản sao target/t14-full-jacoco.exec). Không chạy lại tests và không đổi pom/ngưỡng. Import-Csv target/site/jacoco/jacoco.csv, cộng counter từng lớp: LINE 11.678/12.078 = 96,6882%, khớp tổng counter lớp trong XML. Counter bundle XML gộp theo nguồn là 11.672/12.072 = 96,6865%; chênh 6 dòng covered do cách gộp lớp/bundle, không phải dữ liệu từ lượt test khác. jacoco:check PASS ngưỡng bundle 80%. T-14 riêng các lớp mới 92/98 LINE; không thêm test chỉ để phủ toString hoặc nhánh SHA-256 không thể thiếu trong Java 17.
+- NFR-P03 bằng StubClaudeClient, mỗi lượt cache miss 20 từ/20 mẫu, không assertion thời gian cứng: targeted đầu/p50/p95 19,156/18,441/25,767 ms; regression 15,565/14,550/16,984 ms; full 9,147/7,677/9,147 ms. Đây là đo backend với stub, không phải độ trễ nhà cung cấp thật. AT-20 cache hit tính lại pinyin sau đổi từ điển với đúng một SELECT, không gọi lại provider/consume. AT-22 qua năm HTTP requests (gồm lỗi) PASS, không log source/translation/prompt/response và không có lịch sử.
+- Self-check G2: đúng 14 file allowlist, UTF-8 không BOM, diff --check sạch, không TODO/@Disabled, không thêm dependency/migration/FE/config; không stage/commit/push. Toàn bộ production giữ nguyên hash so với trước Fix 1; chỉ ba file test được sửa trong vòng này, giữ assertion/nghiệp vụ, không mock bỏ qua consume/refund. Fetch sau full: origin/main vẫn 95f401f, không lệch ErrorCode/SecurityConfig/EntitlementApi, không cần ngoại lệ rebase 013/T-08. G1 bàn giao review G2 với một ngoại lệ môi trường nêu trên; còn một vòng fix dự phòng, chưa dùng. Chưa đánh hoàn thành T-14 hoặc chuyển sang G3.
+
+### Leader duyệt G2 → G3; kiểm hàng đợi ở Fix 2
+
+- Leader xác nhận origin/main vẫn `95f401f`, trùng base; duyệt commit đúng 14 file, push `spec/014-t14` và Draft PR vào main. Không rebase, không chạy lại full verify hoặc merge. Hai file AnthropicClaudeClient/AnthropicClaudeClientTest tiếp tục không có diff so với origin/main.
+- Theo yêu cầu G3, dùng Fix 2 chỉ thêm tám assertion delta callCount trong hai file test: năm ở TranslationServiceIntegrationTest (provider JSON sai, credit refund, longest match, Segmenter lỗi, Redis lỗi), ba ở TranslationControllerIntegrationTest (503 sau 402, cookie hợp lệ sau các ca CSRF, contract không gọi provider). Không sửa production, không nới/xoá assertion, không đổi nghiệp vụ D1–D10. Mỗi ca enqueue một phản hồi nay kiểm delta=1; retry/concurrent kiểm delta=2, NFR kiểm delta=20, log kiểm delta=5; các ca không enqueue kiểm delta=0. Unit translator dùng lambda riêng, không dùng hàng đợi StubClaudeClient.
+- Mỗi test T-14 tiêu thụ hết các phản hồi đã đưa vào hàng đợi StubClaudeClient (kiểm qua delta callCount).
+
+  | Lệnh/gate Fix 2 (2026-11-08, UTC+7) | Bắt đầu | Kết thúc | Kết quả |
+  |---|---|---|---|
+  | mvnw.cmd -B test-compile sau assertion service | 23:23:13 | 23:23:46 | PASS, Maven 31,292 s |
+  | mvnw.cmd -B test-compile sau assertion controller | 23:24:05 | 23:24:37 | PASS, Maven 30,343 s |
+  | mvnw.cmd -B -Dtest=ClaudeTranslatorTest,TranslationServiceIntegrationTest,TranslationControllerIntegrationTest,TranslationLogIntegrationTest,GlobalExceptionHandlerTest test | 23:25:02 | 23:25:53 | PASS 86/86, 0 failure/error/skip; Maven 48,462 s |
+
+- NFR-P03 lượt kiểm assertion bổ sung: stub/cache miss/20 mẫu × 20 từ, đầu/p50/p95 17,316/15,748/18,756 ms. Số báo cáo G3 của lượt full vẫn là p95 9,147 ms; regression 616/616, full 4.154 test với đúng ngoại lệ NFR_P04, JaCoCo 96,6882% giữ như bảng G2. Không chạy lại full theo chỉ đạo leader; report CSV/XML và bản sao execution data của lượt full được giữ nguyên.
+- Self-check G3: allowlist đúng 14 file; UTF-8 không BOM; không TODO/@Disabled; diff --check sạch; không dependency, migration, cấu hình, FE hoặc sửa client 015. Stage từng đường dẫn, một conventional commit; không đụng .env hay thay đổi riêng của worktree gốc. Đánh ✅ T-14 theo duyệt G3 và ngoại lệ môi trường đã được chấp nhận; tiến độ 14/15, T-15 còn chờ Shadow Plan G0.
+
 ## 2026-11-07 — Leader duyệt 014/T-03 SCR-026 Translation
 
 - Fetch origin/main `6d3c20b` (đã có T-12 và T-13), tạo nhánh `spec/014-t03-translation`, worktree `CNHSK-014-t03` từ đúng base này. Không sửa worktree gốc hoặc thay đổi riêng của spec 003.
