@@ -48,6 +48,7 @@ public class NoteController {
 
     @GetMapping
     @Operation(operationId = "listNotes", tags = "notes")
+    @ApiResponse(responseCode = "200", description = "Danh sách ghi chú")
     @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED")
     public NotePage list(@RequestParam(required = false) String q, @RequestParam(required = false) String tag,
             @Parameter(schema = @Schema(type = "integer", minimum = "0", defaultValue = "0")) @RequestParam(required = false) String page,
@@ -67,13 +68,15 @@ public class NoteController {
 
     @GetMapping("/{id}")
     @Operation(operationId = "getNote", tags = "notes")
+    @ApiResponse(responseCode = "200", description = "Chi tiết ghi chú")
     public Note get(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
         return notes.get(id);
     }
 
     @PutMapping("/{id}")
     @Operation(operationId = "updateNote", tags = "notes")
-    @ApiResponses({@ApiResponse(responseCode = "404", description = "LEXEME_NOT_FOUND"),
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã lưu ghi chú"),
+            @ApiResponse(responseCode = "404", description = "LEXEME_NOT_FOUND"),
             @ApiResponse(responseCode = "409", description = "NOTE_DUPLICATE"),
             @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED")})
     public Note update(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
@@ -89,11 +92,13 @@ public class NoteController {
 
     @GetMapping("/trash")
     @Operation(operationId = "listTrash", tags = "notes")
+    @ApiResponse(responseCode = "200", description = "Ghi chú trong thùng rác")
     public List<TrashNote> trash() { return notes.trash(); }
 
     @PostMapping("/{id}/restore")
     @Operation(operationId = "restoreNote", tags = "notes")
-    @ApiResponses({@ApiResponse(responseCode = "409", description = "NOTE_NOT_RESTORABLE hoặc NOTE_DUPLICATE (details.noteId)"),
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã khôi phục ghi chú"),
+            @ApiResponse(responseCode = "409", description = "NOTE_NOT_RESTORABLE hoặc NOTE_DUPLICATE (details.noteId)"),
             @ApiResponse(responseCode = "422", description = "LIBRARY_LIMIT_REACHED")})
     public Note restore(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
         return notes.restore(id);
