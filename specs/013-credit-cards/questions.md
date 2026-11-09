@@ -1,3 +1,104 @@
+## 2026-11-10 — T-08 G2 APPROVED, G3 housekeeping được Leader duyệt
+
+- Leader duyệt G2 → G3 trên commit `ec2dce2a930cc8ad3b0263979b74ce1dd4014f19`, Draft PR #137. Đây là housekeeping, không phải Fix 3/2. Chỉ bỏ một dòng trống EOF ở đúng bảy file test và cập nhật tasks/questions; giữ production, Clock constructor, logic, assertions, test names và expected values.
+- Giữ implementation base `9510643c36633f8b993e3f119bafe6b1772ffde7`; origin/main `f9be7145a4ff59ee82af3c2c5632c087ffeddf73` không được rebase/merge vào nhánh này. Leader xác nhận PR #136 không trùng file và sẽ tự integrated verify trên cây đã gộp. T-12 đã MERGED PR #134 tại main95f401f; SPEC-014/T-14 đã merge PR #135 tại main9510643, giữ nguyên trạng thái.
+
+### Kết quả Fix 2/2 đã được G2 nghiệm thu
+
+- Chẩn đoán Redis/JVM clock skew: 80 mẫu TIME pha đầu giới hạn Redis đi trước JVM1040,638–1183,473ms; 40 replay công thức PEXPIRETIME−JVM trả122 trong khi PTTL không vượt120s. Pha sau offset âm−416,626…−330,922ms trả120. Xác nhận cơ chế overshoot do hai clock độc lập; không tuyên bố tái hiện exact121 của Fix1 vì thiếu timestamp lịch sử.
+- Fix2 thay PEXPIRETIME trừ JVM Clock bằng Redis PTTL tương đối: lấy max TTL hợp lệ của counter đang chặn, ceil milliseconds/1000, capping1…3600 giây; giữ bounded retry khi expiry race và fail-open/WARN an toàn khi Redis lỗi/missing/no-TTL. Giữ thresholds5/30, cửa sổ first-hit một giờ,429 không tăng counter và assertion119–120. Ba unit test bổ sung kiểm rounding/cap, không đọc JVM clock và nullTTL.
+- Targeted Fix2:115/F0/E0/S0, native exit0. Regression Fix2:728/F2/E0/S0, native exit1/**FAILED**; đúng hai ngoại lệ LoginAttempt, unknown0. Toàn bộ115 cases targeted PASS trong Full Verify; regression chọn suite riêng và không chọn GlobalExceptionHandlerTest, suite này PASS ở targeted/full.
+- Full Verify hiện hữu tự kết thúc:269 suites, **4.213 tests/F4/E0/S0, Maven native exit1 — FAILED**. Công bố start10/11/2026 00:45:34 +07, deadline01:45:34 +07; native run00:45:51,1394625–01:17:27,4548073 +07, không kill/restart vì failure. Không đổi thành PASS; cả bốn failure khớp chính xác whitelist, unknown0.
+
+| Failed test đúng tên Surefire | Ngoại lệ Leader duyệt | Đối chiếu |
+|---|---|---|
+| `com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.FR046_FR047_FR048_fifthFailureBlocksOnlyTheEmailIpPairAndUsesActualRedisExpiry` | LoginAttempt PEXPIRETIME | AssertionError, frame dòng133, assertion thời hạn tuyệt đối Redis |
+| `com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.redisFailuresInAllThreeOperationsFailOpenAndOnlyLogSafeWarnings(CapturedOutput)` | LoginAttempt CapturedOutput | AssertionError, frame dòng313, fixture trong captured output |
+| `com.cnhsk.learning.content.importer.ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget` | ImportConfirm FR023, chỉ p95 | AssertionError, frame dòng398;45972ms so với <30000ms |
+| `com.cnhsk.learning.content.importer.QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries` | QuestionImport NFR_P04, chỉ p95 | AssertionError, frame dòng304;56262ms so với <30000ms |
+
+Ngoại lệ thứ năm `com.cnhsk.learning.knowledge.QuestionAdminControllerIntegrationTest.NFR_P02_fiveThousandSelfAuthoredQuestionsAreListedByKidWithinOneHundredMillisecondsP95` chỉ áp dụng assertion p95 dòng252/<100ms; **không phát sinh** trong lượt Full Verify này. Không miễn trừ assertion chức năng, error hoặc failure khác.
+
+- JaCoCo report/check sau Full Verify: native exit0; Project LINE11814/12216 = **96,7092%**, Credit LINE557/578 = **96,3668%** (learning/credit và web). Dùng đúng exec full1.294.597byte, một session nằm trong native interval; XML/session/hash khớp, source/classes không đổi và không class mismatch. Coverage không thay đổi Full Verify FAILED/exit1 thành PASS.
+- Evidence G2 được giữ nguyên tại `C:/WINDOWS/TEMP/cnhsk-spec013-t08-g1-fix2-20261109-233052/`. ZIP G2 SHA256 `5CD676AE6879403410404F8614DC8C30CE6A598555E4212BE849FFD2DA8E5C45`; đủ20file13ADD/7MOD,1251checksum khớp và patch replay20/20; G012/12 giữ nguyên. Các FAILED/UNKNOWN/STOP trước đây bên dưới vẫn là lịch sử, không bị ghi đè.
+
+### NFR-P01 — giữ đầy đủ các lượt đo
+
+Mỗi lượt có20 warm-up +100 successful CREDIT HTTP POST riêng mã với PostgreSQL/Redis thật; p50/p95 nearest-rank (index49/94), giữ đủ100 mẫu nanosecond của từng lượt trong evidence. Không bỏ outlier, không chọn lượt đẹp và không thêm hard assertion300ms. Lượt có lỗi ở test khác vẫn giữ số đo riêng, không dùng để gọi gate PASS.
+
+| Lượt | p50 ms | p95 ms | Số mẫu | Gate gốc |
+|---|---:|---:|---:|---|
+| Targeted ban đầu | 33,8839 | 53,4196 | 100 | 111/F0/E1/S0, native UNKNOWN |
+| Fix1 targeted | 39,2488 | 75,0112 | 100 | 112/F0/E0/S0, native0 |
+| Fix1 regression | 36,6767 | 65,6396 | 100 | 725/F3/E0/S0, native1/FAILED |
+| Fix2 targeted | 44,5101 | 60,9820 | 100 | 115/F0/E0/S0, native0 |
+| Fix2 regression | 31,0701 | 45,2540 | 100 | 728/F2/E0/S0, native1/FAILED |
+| Fix2 Full Verify | 18,1248 | 24,2797 | 100 | 4213/F4/E0/S0, native1/FAILED |
+| G3 housekeeping targeted | 44,6204 | 62,9911 | 100 | 115/F0/E0/S0, native0/PASS |
+
+### G3 housekeeping — verification rút gọn
+
+Leader chỉ duyệt preflight JDK17/Docker/no-overlap → test-compile → targeted credit115/115 → diff-check → hai commit riêng/push và cập nhật **Draft PR #137**. Không chạy lại regression/full verify/JaCoCo; không tự sửa nghiệp vụ nếu targeted phát sinh lỗi. Native completion đã xác nhận: test-compile PASS/exit0; targeted9suites,115/F0/E0/S0 PASS/exit0. Không có failure để áp dụng ngoại lệ và không rerun để chọn xanh. Evidence riêng: `C:/WINDOWS/TEMP/cnhsk-spec013-t08-g3-20261110-0220/`.
+
+
+| Lệnh G3 | Native bắt đầu +07 | Native kết thúc +07 | Native elapsed ms | Native exit |
+|---|---|---|---:|---:|
+| test-compile | 2026-11-10T02:24:23.488+07:00 | 2026-11-10T02:26:18.712+07:00 | 115288 | 0 |
+| targeted credit | 2026-11-10T02:27:43.798+07:00 | 2026-11-10T02:30:21.064+07:00 | 157328 | 0 |
+
+G3 targeted NFR-P01 giữ riêng100mẫu: p50=44,6204ms, p95=62,9911ms; không thay các lượt trước và không hard assertion300ms. Chỉ chạy test-compile/targeted theo Leader; không regression/full verify/JaCoCo report-check mới. Tham số `-Djava.io.tmpdir` chỉ cô lập execution data vào TEMP G3 để bảo toàn exec/report G2.
+
+T-08 chưa MERGED. Dừng tại Draft PR để Leader integrated verify và merge; chưa bắt đầu T-09 G1. Chỉ sau Leader xác nhận T-08 MERGED mới chuẩn bị T-09 G0 và gom câu hỏi một lần.
+
+## 2026-11-09 — T-08 G1 Fix Round 2/2: chẩn đoán và sửa có điều kiện
+
+- Checkpoint push sớm 10/11/2026 +07: hai lượt test-compile PASS/native0; review ba file GREEN. Targeted chạy00:00:51.6176943–00:04:15.9260826,115 tests/F0/E0/S0, native Maven exit0. Tăng112→115 do ba unit test bổ sung, không bỏ test cũ. Regression/full/JaCoCo chưa chạy ở checkpoint này; Draft PR phải giữ WIP — G1 FIX 2/2, verification pending.
+- NFR-P01 targeted Fix2: warm-up20 +100 successful CREDIT HTTP POST/mã riêng, PostgreSQL/Redis thật; p50=44.5101ms, p95 nearest-rank=60.9820ms. Giữ toàn bộ100 mẫu trong packet, không hard assertion300ms và không thay thế các lượt đo trước bằng số mới.
+- Mapping test: retryAfterUsesLatestBlockingCounterAbsoluteExpiry → retryAfterUsesMaximumBlockingCounterRemainingTtl; thresholdsUseMaximumAbsoluteExpiryRoundedUpWithoutIncrementing → thresholdsUseMaximumRemainingTtlRoundedUpWithoutIncrementing. Giữ expected119–120/22; thay oracle cross-clock bằng PTTL tương đối, giữ cửa sổ3599000–3601000ms và assertions first-hit expiry không đổi. Thêm ba unit test cho rounding/cap1…3600, không đọc JVM Clock và nullTTL fail-open/WARN an toàn. Constructor service giữ chữ ký cũ để tương thích caller, không dùng Clock tính Redis TTL.
+- Leader duyệt vòng cuối, giữ base `9510643`; origin/main đã tiến tới `f9be714` được ghi riêng, không tự merge/rebase. Quyền mới: chỉ sau compile/targeted xác nhận native exit0 mới commit exact20 file, push nhánh và mở/cập nhật Draft PR WIP — G1 FIX 2/2, verification pending. Không coi push là G3 hay nghiệm thu G1.
+- Chẩn đoán không chạy lại regression: probe Java17 độc lập với Redis fixture riêng trên loopback, bracket Redis TIME bằng System.currentTimeMillis và nano RTT; đo PTTL/PEXPIRETIME/counter60s và120s. Pha đầu80 TIME samples ghi Redis đi trước JVM1040.638–1183.473ms, RTT1.533–10.783ms; cả40 replay công thức cũ trả122 dù PTTL IP không vượt120s. Cả hai counter đạt ngưỡng5/30; IP TTL dài hơn nên quyết định max retry. Fixture riêng đã dừng và tự xóa, không can thiệp counter của người khác.
+- Pha kiểm chứng tiếp theo3 case ghi offset âm−416.626…−330.922ms, RTT2.737–11.803ms, kết quả120, không tái hiện đúng121. Giữ nguyên cả hai pha. Bằng chứng xác nhận lỗi trừ timestamp tuyệt đối Redis cho Clock JVM độc lập, không khẳng định tái tạo exact121 hoặc biết timestamp của failure cũ. Không suy đoán nguyên nhân hệ thống làm offset đổi dấu.
+- Production fix được duyệt có điều kiện chỉ trong RedeemRateLimitService: PTTL tương đối, max TTL hợp lệ của counter đang chặn, ceil milliseconds/1000, kẹp1…3600; missing/no-TTL/expiry race xử lý tường minh theo fail-open/WARN an toàn. Giữ thresholds/cửa sổ,429 không tăng counter,422 ưu tiên và toàn bộ RBAC/transaction/redeem khác. Tests giữ119–120, thêm window/rounding/clock-independence coverage; gates chưa có kết quả ở checkpoint tài liệu này.
+- Các gate FAILED/STOP Fix1, native UNKNOWN của helper cũ và mọi bộ NFR dưới đây được giữ nguyên; không dùng coverage cũ. Full Verify tương lai có deadline60 phút công bố trước, không ngắt vì failure; regression vòng2 chỉ chấp nhận đúng hai LoginAttempt exceptions đã xác nhận, failure mới phải STOP, không tự sửa vòng3.
+
+## 2026-11-09 — T-08 G1 Fix Round 1/2 STOP tại G2
+
+- Rebase đã hoàn tất từ `95f401f30221f329974e76943bc9fda122f97802` lên `9510643c36633f8b993e3f119bafe6b1772ffde7`. Exact20 file (13 ADD/7 MODIFY), G0 12/12 hash không đổi, index rỗng. Hai conflict ErrorCode/GlobalExceptionHandlerTest được hợp nhất, giữ đủ code/test T-12/T-14; production không đổi sau rebase. `TRANSLATE_UNAVAILABLE`, `INVALID_CARD_CODE`, `INTERNAL_ERROR` đúng thứ tự.
+- Fixture `RedeemIntegrationTest.ledgerAndUpdatePlanFailuresRollBackCardUserAndLedger`: stack cũ56 dòng xác nhận advice MANDATORY chạy lúc setup proxy ngoài transaction. Sửa test-only bằng ultimate Mockito spy targets + doThrow, reset target trong finally/cleanup; giữ cả hai kịch bản và toàn bộ assertions cũ. Bổ sung card UNUSED/used_by và used_at NULL, full plan/quota snapshot, ledger count, counter user/IP không đổi, fixed500 an toàn. Targeted xác nhận method PASS; HTTP vẫn đi qua service/transaction thật.
+- test-compile lần đầu bị sandbox từ chối CIM trước Maven (native exit N/A); lần hai Maven compile kết thúc nhưng helper không lấy được native exit (UNKNOWN, không ghi PASS). Sửa helper TEMP giữ process handle, kiểm probe native0/native7; test-compile lần ba PASS/native0. Giữ nguyên evidence của cả ba lần, không sửa source để chọn kết quả xanh.
+- Targeted 09/11/2026 06:36:21.2308736–06:38:45.5586027 +07: 112 tests/F0/E0/S0, native Maven exit0. Số112 gồm111 test cũ cộng một handler test mới T-14 từ main, không xóa test để ép111. Contract3/3, concurrency4/4, RedeemIntegrationTest12/12, security9/9 đều PASS trong lượt targeted.
+- Regression 09/11/2026 06:41:04.4960167–06:51:04.4449655 +07: 78 suites,725 tests/F3/E0/S0, native Maven exit1, **FAILED**. Hai failure LoginAttemptServiceIntegrationTest nằm trong whitelist được đối chiếu riêng; failure `RedeemRateLimitIntegrationTest.retryAfterUsesLatestBlockingCounterAbsoluteExpiry` dòng75 ngoài whitelist: retryAfterSeconds thực tế121, assertion yêu cầu119–120. Chưa xác nhận root cause của sai lệch; không suy đoán clock/Redis từ triệu chứng.
+- STOP sau khi Maven regression tự kết thúc; không ngắt vì failure, không sửa/nới assertion, không rerun. Full Verify và JaCoCo **NOT RUN**; không sử dụng exec targeted/regression làm coverage full. Chưa công bố/chạy deadline full vì gate trước chưa đạt. Không commit/push/PR; chờ ChatGPT review/Leader.
+- NFR-P01 targeted Fix1: warm-up20,100 successful CREDIT POST/100 mã riêng/PostgreSQL và Redis thật, p50=39.2488ms, p95 nearest-rank=75.0112ms. Không assertion cứng300ms, không bỏ outlier;100 mẫu được lưu trong G2 packet. Số đo cũ p50=33.8839ms/p95=53.4196ms giữ nguyên bên dưới thuộc lượt targeted cũ có error, không thay thế lịch sử bằng lượt mới.
+- NFR-P01 trong regression FAILED cũng được giữ riêng: cùng phương pháp20+100 POST, p50=36.6767ms/p95=65.6396ms,100 mẫu trong packet; không dùng lượt này thay số đo targeted. Bốn suite caller translation T-14 đạt68/68 test; toàn bộ710 source file hash không đổi qua regression.
+
+## 2026-11-09 — T-08 G1 Fix Round 1/2 được Leader duyệt
+
+- Base bắt buộc: origin/main9510643c36633f8b993e3f119bafe6b1772ffde7, SPEC014/T14 PR#135 đã merge và dùng Entitlement API của T-12. T-08 rebase từ95f401f, không feature commit; scoped stash giữ nguyên làm recovery. 20/20file khôi phục,17byte-identical và3sharedfile hợp nhất;12G0artifacts hash giữ nguyên, index0. Conflict chỉ ErrorCode/GlobalExceptionHandlerTest trong allowlist; SecurityConfig tự hợp nhất giữ route translation.
+- Giữ toàn bộ quyết định G0/R1–R5/D4–D6/Q-V/Q-P/Q-NFR. ErrorCode theo main mới: TRANSLATE_UNAVAILABLE, INVALID_CARD_CODE, INTERNAL_ERROR; giữ INSUFFICIENT_CREDITS/HTTP402 và TRANSLATE_UNAVAILABLE/HTTP503 cùng mọi tests T12/T14.
+- Đã đọc full56dòng stacktrace của lỗi cũ: LedgerService SpringCGLIB proxy bị TransactionInterceptor chặn MANDATORY lúc setup dòng161, trước HTTP redeem; suppressed Mockito matcher/reset là hậu quả. Fix chỉ file RedeemIntegrationTest.java: spy-safe doThrow/doReturn trên ultimate Mockito spy target, không gọi method thật qua proxy trong setup; không sửa production để né lỗi. Giữ mọi scenarios/assertions, bổ sung cardused_by/used_atNULL, plan/ledger/counters bất biến và fixed500 an toàn. Chưa tuyên bố test PASS trước khi có kết quả mới.
+- Số targeted cũ111 tăng thành112 do main PR135 bổ sung một test handler503; giữ cả111ca cũ và test mới, không loại test để ép số111.
+- Giữ kết quả NFR-P01 cũ: warm-up20 POST,100successfulCREDIT POST/mã riêng/PG+Redis thật; p50=33,8839ms, p95nearest-rank=53,4196ms. 100mẫu gốc ở mục STOP bên dưới. Không thêm hard assertion300ms; kết quả cũ không được thay bằng lượt nhanh hơn. Số đo mới (nếu có) sẽ ghi riêng theo gate.
+- Pipeline mới dùng worker nền độc lập, lưu ownerPID/nativePID/start/deadline và nativeexit khi Maven thực sự kết thúc; không bàn giao khi worker cònRUNNING. Full công bố60phút, chỉ timeout mới kill ownedtree có reason/PIDs, không kill khi testfailure. PreflightJDK17/Docker/nooverlap trước từng Maven. Regression/full chưa chạy tại thời điểm ghi duyệt này; giữ nguyên mọi FAILED evidence cũ.
+## 2026-11-09 — T-08 G1 STOP tại targeted, giữ nguyên source/tests
+
+- 9 lượt test-compile sau từng file test: native exit0. Targeted có9suites/111tests/F0/E1/S0; error ngoài whitelist ở RedeemIntegrationTest.ledgerAndUpdatePlanFailuresRollBackCardUserAndLedger(CapturedOutput), IllegalTransactionStateException, dòng161. Setup MockitoSpyBean gọi LedgerService.append qua Spring proxy MANDATORY ngoài transaction trước khi gửi redeem; nhánh inject lỗi/rollback này chưa được nghiệm thu. Không tự sửa fixture hoặc rerun.
+- Không thu được native exit/end của Maven targeted: lời gọi cũ được dispatch muộn sau khi đổi executor; preflight executor thứ hai chặn đúng Java PID12716/13580, không có test run thứ hai. Không có targeted-result.json; process Maven đã thoát khi thử gắn handle. Giữ stdout/9XML/status gốc và báo native exit chưa xác nhận, không suy exit1 từ error XML. Regression/full/JaCoCo không chạy; không có coverage full-run được nghiệm thu.
+- Bằng chứng từng nhóm trong lượt targeted: contract3/3, concurrency4/4, security9/9 PASS; rollback missingPREMIUM và inactivePREMIUM PASS, nhưng test injectledger/updatePlan ERROR. Các kết quả PASS riêng không biến targeted thành PASS.
+- NFR-P01: warm-up20 POST,100successfulCREDIT POST riêng mã/PG+Redis thật. p50=33.8839ms, p95=53.4196ms, max=69.1805ms; nearest-rank kiểm đúng index49/94. Không assert ngưỡng300ms, không bỏ outlier. Đây là số đo của lượt targeted có error ở test khác, chưa phải nghiệm thu G1.
+- 100 mẫu nanosecond theo thứ tự đo: [44854700, 44640800, 48972100, 50710800, 54056600, 53419600, 56658500, 51573800, 53494800, 28329500, 26450300, 31975700, 33822700, 26671100, 26646700, 25120700, 27211000, 24012700, 24493500, 27918000, 22950600, 22561100, 26605100, 26781500, 25860200, 25568400, 24756300, 24133900, 31291900, 39311100, 41055600, 45179000, 47934500, 37769300, 35766300, 34419900, 37565600, 34262700, 35504900, 34143800, 32080100, 32999700, 33444500, 29327600, 34974800, 34538100, 38295700, 37367100, 44657500, 42787500, 40900600, 37337600, 32107000, 34810600, 32485400, 32067900, 30156500, 39413800, 31258700, 39913300, 69180500, 46917600, 41347300, 38736000, 38787100, 28539000, 30076100, 31220600, 36769400, 27085300, 25806600, 24557800, 28121300, 23931300, 23916100, 26981600, 29939900, 25535200, 32256700, 34671600, 32999200, 34236500, 26524700, 27681500, 26979400, 24893100, 33299400, 31569400, 37137300, 33883900, 41126200, 34774400, 36653600, 39575600, 37736000, 38471100, 37738300, 37705200, 50605400, 53697100].
+- Dừng theo Leader: cần phê duyệt sửa fixture/runtime test trước bất kỳ gate tiếp theo. Không commit/push/PR; không thay production/test sau failure.
+
+## 2026-11-08 — T-08 G1 được duyệt, base đã cập nhật
+
+- Leader xác nhận T-12 PR #134 đã merge vào `95f401f30221f329974e76943bc9fda122f97802`. T-08 đã fast-forward từ e6bd160 khi tracked/index sạch; 12 G0 artifact giữ nguyên hash. Không lấy thay đổi từ branch T-12 cũ. G1 chỉ exact 20 file (13 ADD/7 MODIFY), không commit/push/PR trước G2.
+- R1/D4: body đúng schema mới kiểm `billing:redeem:fail:user:{id}` ≥5 và `billing:redeem:fail:ip:{getRemoteAddr()}` ≥30 trong một giờ trước normalize. Invalid format/USED/expired/VOIDED/self-created cùng400/cùng message/tăng cả hai;429 không tăng. Retry từ expiryTimeMillis; Redis lỗi fail-open/WARN class-only.
+- Q-V: missing/null/non-string/code>40/malformed JSON/extra fields →422 VALIDATION_FAILED, không Redis/DB redeem, ưu tiên hơn429. Parse cục bộ nghiêm ngặt, không coerce number/boolean hoặc nhận trailing JSON. Body hợp lệ: blocked→normalize→lockPlan→UPDATE RETURNING.
+- Q-P/R2: SUB vẫn redeem khi PREMIUM.is_active=false; thiếu dòng PREMIUM →fixed500/rollback toàn bộ/cardUNUSED. PREMIUM user còn hiệu lực nối expiry cũ+n ngày, còn lại Clock now+n. Reason `PREMIUM +{n} ngày, giá niêm yết {price}`; BigDecimal hiện tại toPlainString scale2. Giữ D5 user lock trước card/ledger, không reset quota.
+- R3/R4/R5: không request logging filter; OutputCaptureExtension mã đúng/sai an toàn. LEARNER matcher `/api/credits/**`, `/api/me/credits`, `/api/me/credit-transactions` trước fallback; ADMIN403,VOIDED400. 10 user/1 mã:1success/9invalid chung. Nợ T-07 WARN chỉ exception class trong CardBatchService và test.
+- D6: không tự tạo endpoint/idempotency contract mới; nếu dùng billing:idem thì read trước consumption/fail-open, write afterCommit. Redeem hiện bảo vệ bằng atomic card claim, không tạo receipt Redis mới.
+- Q-NFR: warm-up20 POST +100 CREDIT POST thành công/mã riêng/PostgreSQL+Redis thật; p50/p95 nearest-rank và100 mẫu sẽ ghi sau gate. Ngưỡng300ms là mục tiêu báo cáo, KHÔNG assertion cứng; giữ đầy đủ assertions correctness100 lượt. Chưa có kết quả đo tại checkpoint này.
+- Gates: preflight JDK17/Docker/không gate trùng trước từng Maven; test-compile sau mỗi file test; targeted→regression→full verify→JaCoCo đúng full exec. Full timeout60phút công bố trước, không kill vì failure; chỉ kill owned tree khi quá timeout với reason/PIDs. Exit1 luôn FAILED, giữ đúng5 ngoại lệ, ngoài whitelist STOP. Không đổi Windows Power Settings.
 # Chốt — Spec 013
 
 ## 2026-11-08 — T-12, G1 resume và bàn giao G2

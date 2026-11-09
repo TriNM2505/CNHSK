@@ -49,6 +49,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+@org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
 class CardBatchServiceTest {
     private static final Instant NOW = Instant.parse("2026-11-07T00:00:00Z");
     private static final String BATCH = "B20261107-000001";
@@ -227,6 +228,20 @@ class CardBatchServiceTest {
         verifyNoInteractions(audit);
     }
 
+    @Test
+    void runtimeFailureWarnsOnlyExceptionClass(org.springframework.boot.test.system.CapturedOutput output) {
+        availableBatch();
+        String raw = raw(1);
+        String hash = codes.hash(raw);
+        String confidential = "synthetic-runtime-detail " + raw + " " + hash;
+        when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class), eq(String.class)))
+                .thenThrow(new IllegalStateException(confidential, new RuntimeException("synthetic-private-cause")));
+        assertThatThrownBy(() -> service(() -> raw, () -> BATCH).create(credit(1)))
+                .isInstanceOf(ApiException.class).hasMessage("Đã xảy ra lỗi nội bộ.").hasNoCause();
+        assertThat(output.getAll()).contains("WARN", "IllegalStateException")
+                .doesNotContain(raw, hash, confidential, "synthetic-private-cause");
+        verifyNoInteractions(audit);
+    }
     @Test
     void subscriptionUsesPlanDaysForStorageAndNullCreditValueInAudit() {
         when(jdbc.query(anyString(), anyMap(), any(RowMapper.class))).thenReturn(List.of(true));

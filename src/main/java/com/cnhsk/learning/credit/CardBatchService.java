@@ -32,11 +32,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CardBatchService {
+    private static final Logger LOG = LoggerFactory.getLogger(CardBatchService.class);
     private static final int MAX_RETRIES = 5;
     private static final String GROUP_SQL = """
             SELECT batch_id, min(card_type) AS card_type, min(value) AS value,
@@ -107,6 +110,7 @@ public class CardBatchService {
             throw exception;
         } catch (RuntimeException exception) {
             // Database errors can contain bound hashes; never propagate their cause or message.
+            LOG.warn("Card batch operation failed; cause_type={}", exception.getClass().getSimpleName());
             throw internal();
         }
     }
@@ -174,6 +178,7 @@ public class CardBatchService {
                     Map.of("size", size, "offset", (long) page * size), CardBatchService::row);
             return new BatchPage(summaries(rows), page, size, total == null ? 0 : total);
         } catch (DataAccessException exception) {
+            LOG.warn("Card batch operation failed; cause_type={}", exception.getClass().getSimpleName());
             throw internal();
         }
     }
@@ -188,6 +193,7 @@ public class CardBatchService {
             if (rows.isEmpty()) throw notFound();
             return summaries(rows).get(0);
         } catch (DataAccessException exception) {
+            LOG.warn("Card batch operation failed; cause_type={}", exception.getClass().getSimpleName());
             throw internal();
         }
     }
@@ -208,6 +214,7 @@ public class CardBatchService {
         } catch (ApiException exception) {
             throw exception;
         } catch (RuntimeException exception) {
+            LOG.warn("Card batch operation failed; cause_type={}", exception.getClass().getSimpleName());
             throw internal();
         }
     }

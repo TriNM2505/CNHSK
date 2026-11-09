@@ -162,7 +162,7 @@ class GlobalExceptionHandlerTest {
                 "LEXEME_NOT_FOUND", "QUESTION_NOT_FOUND", "MALFORMED_QUESTION", "KNOWLEDGE_NODE_REQUIRED",
                 "GRADING_CHANGE_NOT_ALLOWED", "QUESTION_ARCHIVED", "COLLECTION_NOT_OWNED", "LIBRARY_LIMIT_REACHED",
                 "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "CARD_DUPLICATE", "ASSISTANT_BLOCKED_DURING_TEST", "ASSISTANT_UNAVAILABLE",
-                "CARD_BATCH_NOT_FOUND", "PLAN_NOT_AVAILABLE", "INSUFFICIENT_CREDITS", "TRANSLATE_UNAVAILABLE", "INTERNAL_ERROR");
+                "CARD_BATCH_NOT_FOUND", "PLAN_NOT_AVAILABLE", "INSUFFICIENT_CREDITS", "TRANSLATE_UNAVAILABLE", "INVALID_CARD_CODE", "INTERNAL_ERROR");
     }
 
     @Test
@@ -179,6 +179,19 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.request_id").value("plan-unavailable"));
     }
 
+    @Test
+    void redeemErrorsPreserveStatusAndRetryWithoutLeakingProtectedFields() throws Exception {
+        mockMvc.perform(get("/test/invalid-card").header(RequestIdFilter.HEADER_NAME, "redeem-invalid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_code").value("INVALID_CARD_CODE"))
+                .andExpect(jsonPath("$.message").value("Mã thẻ không hợp lệ hoặc không thể sử dụng."))
+                .andExpect(jsonPath("$.request_id").value("redeem-invalid"));
+        mockMvc.perform(get("/test/redeem-limited").header(RequestIdFilter.HEADER_NAME, "redeem-limited"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.error_code").value("RATE_LIMITED"))
+                .andExpect(jsonPath("$.retryAfterSeconds").value(17))
+                .andExpect(jsonPath("$.request_id").value("redeem-limited"));
+    }
     @Test
     void insufficientCreditsKeeps402CodeMessageAndRequestId() throws Exception {
         mockMvc.perform(get("/test/insufficient-credits").header(RequestIdFilter.HEADER_NAME, "billing-empty"))
@@ -240,6 +253,18 @@ class GlobalExceptionHandlerTest {
 
     @RestController
     static class ErrorTestController {
+        @GetMapping("/test/invalid-card")
+        void invalidCard() {
+            throw new ApiException(ErrorCode.INVALID_CARD_CODE, HttpStatus.BAD_REQUEST,
+                    "Mã thẻ không hợp lệ hoặc không thể sử dụng.", Map.of());
+        }
+
+        @GetMapping("/test/redeem-limited")
+        void redeemLimited() {
+            throw new ApiException(ErrorCode.RATE_LIMITED, HttpStatus.TOO_MANY_REQUESTS,
+                    "Nhập sai quá nhiều lần.", Map.of("retryAfterSeconds", 17,
+                            "error_code", "FORGED", "message", "FORGED", "request_id", "FORGED"));
+        }
 
         @GetMapping("/test/translation-unavailable")
         void translationUnavailable() {

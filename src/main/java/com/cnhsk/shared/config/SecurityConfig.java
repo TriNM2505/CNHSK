@@ -87,6 +87,8 @@ public class SecurityConfig {
             }
             return "/api/admin/imports".equals(path) || path.startsWith("/api/admin/imports/");
         };
+        RequestMatcher redeemRoute = request -> "POST".equals(request.getMethod())
+                && "/api/credits/redeem".equals(request.getRequestURI().substring(request.getContextPath().length()));
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf
@@ -160,12 +162,19 @@ public class SecurityConfig {
                             .hasAnyRole("CONTENT_EDITOR", "TEACHER");
                     authorize.requestMatchers(HttpMethod.PUT, "/api/admin/questions/{id}").hasRole("TEACHER");
                     authorize.requestMatchers(HttpMethod.PATCH, "/api/admin/questions/{id}/archive").hasRole("CONTENT_EDITOR");
+                    authorize.requestMatchers("/api/credits/**", "/api/me/credits", "/api/me/credit-transactions")
+                            .hasRole("LEARNER");
                     authorize.requestMatchers("/api/admin/**").hasRole("ADMIN")
                             .requestMatchers("/api/auth/verify-email/resend", "/api/auth/logout",
                                     "/api/auth/logout-all", "/api/auth/me", "/api/me/**")
                             .authenticated()
                             .anyRequest().denyAll();
                 })
+                .addFilterBefore(new RouteRoleGuardFilter(redeemRoute,
+                                new JwtAuthenticationFilter(jwtService, invalidationService,
+                                        apiAuthenticationEntryPoint, apiAccessDeniedHandler),
+                                "LEARNER", apiAuthenticationEntryPoint, apiAccessDeniedHandler),
+                        org.springframework.security.web.csrf.CsrfFilter.class)
                 .addFilterBefore(new RouteRoleGuardFilter(importRoutes,
                                 new JwtAuthenticationFilter(jwtService, invalidationService,
                                         apiAuthenticationEntryPoint, apiAccessDeniedHandler),
