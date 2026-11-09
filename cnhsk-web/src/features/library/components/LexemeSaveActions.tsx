@@ -4,6 +4,7 @@ import { toApiError, useApiQuery, type ApiError } from '@/shared/api'
 import { Button, ErrorState, FormField, Input, Select, Textarea } from '@/shared/ui'
 
 import type { CardRequest, DeckSummary, LexemeDetail, NoteRequest } from '../types'
+import { duplicateNoteId } from '../personalNotes'
 
 export interface LexemeSaveActionsProps {
   entry: LexemeDetail
@@ -16,6 +17,7 @@ export interface LexemeSaveActionsProps {
 }
 
 function saveErrorMessage(error: ApiError) {
+  if (error.errorCode === 'NOTE_DUPLICATE') return 'Từ này đã có trong sổ tay'
   if (error.errorCode === 'CARD_DUPLICATE')
     return 'Mục từ đã có trong bộ thẻ này. Hãy chọn bộ khác.'
   if (error.status === 403) return 'Bạn không có quyền lưu vào sổ tay hoặc bộ thẻ này.'
@@ -229,6 +231,11 @@ export function LexemeSaveActions({
           {error ? (
             <div role="alert">
               <ErrorState message={saveErrorMessage(error)} requestId={error.requestId} />
+              {duplicateNoteId(error) !== undefined ? (
+                <Button to={`/library/notes?noteId=${duplicateNoteId(error)}`} variant="outline">
+                  Mở ghi chú đã có
+                </Button>
+              ) : null}
             </div>
           ) : null}
           <div className="flex flex-wrap gap-3">

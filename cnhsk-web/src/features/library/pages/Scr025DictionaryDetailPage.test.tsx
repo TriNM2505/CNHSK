@@ -163,6 +163,30 @@ beforeEach(() => {
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined)
 })
+
+it('shows the duplicate-note action while retaining the dictionary save draft', async () => {
+  vi.mocked(createNote).mockRejectedValueOnce(
+    new ApiError({
+      status: 409,
+      errorCode: 'NOTE_DUPLICATE',
+      message: 'Trùng',
+      details: { noteId: 42 },
+    }),
+  )
+  const { router } = renderPage()
+  await openNote()
+  fireEvent.change(screen.getByLabelText(/^Nội dung ghi chú/), {
+    target: { value: 'Nháp từ trang tra từ' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu ghi chú' }))
+  await screen.findByText('Từ này đã có trong sổ tay')
+  expect(screen.getByLabelText(/^Nội dung ghi chú/)).toHaveValue('Nháp từ trang tra từ')
+  expect(screen.getByRole('link', { name: 'Mở ghi chú đã có' })).toHaveAttribute(
+    'href',
+    '/library/notes?noteId=42',
+  )
+  expect(router.state.location.pathname).toBe('/dictionary/101')
+})
 afterEach(() => vi.restoreAllMocks())
 
 describe('SCR-025 detail and media (FR-024, AT-24)', () => {

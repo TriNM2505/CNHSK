@@ -36,7 +36,7 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-15 | FE SCR-024…029 gọi backend thật; sửa lệch contract (lệch thì dừng báo leader); test hợp đồng `/v3/api-docs` so `openapi-library.yaml` (path + status) | `web/features/library/**`, `t/contract/LibraryContractTest.java` | §13 · AT-23…AT-29 chạy với API thật | ⬜ |
+| T-15 | FE SCR-024…029 gọi backend thật; sửa lệch contract (lệch thì dừng báo leader); test hợp đồng `/v3/api-docs` so `openapi-library.yaml` (path + status) | `web/features/library/**`, `t/contract/LibraryContractTest.java` | §13 · AT-23…AT-29 chạy với API thật | ✅ — AT-23…28 đạt trên Chrome với Vite/API thật + Testcontainers trong 28,06 phút; AT-29 đủ 15 path/22 operation/status; contract 41/41, targeted 437/437, verify 4.161/4.161, JaCoCo LINE 96,6882%; Vitest 387/387 và full 2.387/2.387, lint/build PASS; 20 file, Fix 1 launcher; process/container và listener 8080/5173 đã dọn; Draft PR #136, chờ leader merge |
 
 ## Thứ tự thực thi
 
@@ -63,4 +63,4 @@ T-13 → T-14
 
 **Bốn task rủi ro cao:** T-14 (trừ/hoàn lượt đúng, không lộ nội dung, chống prompt injection) · T-06 (giới hạn khách theo IP, tra pinyin đúng) · T-08 (403 dữ liệu riêng, giới hạn) · T-12 (đúng FSRS, không đổi mastery).
 
-**Hiện trạng: 14/15 task xong.**
+**Hiện trạng: 15/15 task xong.**

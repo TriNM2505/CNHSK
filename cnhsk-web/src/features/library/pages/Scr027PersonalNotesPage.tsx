@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { ApiError, toApiError, useApiQuery } from '@/shared/api'
@@ -15,6 +15,7 @@ import {
   updateNote,
 } from '../api/notes'
 import { NoteEditor } from '../components/NoteEditor'
+import { isLibraryIdentifier } from '../api/identifiers'
 import { PersonalNotesView } from '../components/PersonalNotesView'
 import {
   newNoteDraft,
@@ -102,7 +103,7 @@ function PersonalNotesContent() {
     } else setParams(nextParams)
   }
 
-  const openNote = async (id: number) => {
+  const openNote = useCallback(async (id: number) => {
     if (busy.current) return
     if (!Number.isSafeInteger(id) || id < 1) return
     readController.current?.abort()
@@ -122,7 +123,29 @@ function PersonalNotesContent() {
       if (alive.current && !controller.signal.aborted)
         setOpen({ id, pending: false, error: toApiError(error) })
     }
-  }
+  }, [])
+
+  const requestedNoteId = params.get('noteId')
+  useEffect(() => {
+    if (requestedNoteId === null) {
+      setOpen((previous) => (previous.pending ? { pending: false } : previous))
+      return
+    }
+    const id = /^\d+$/.test(requestedNoteId) ? Number(requestedNoteId) : 0
+    if (!isLibraryIdentifier(id)) {
+      setOpen({
+        pending: false,
+        error: new ApiError({
+          status: 422,
+          errorCode: 'VALIDATION_FAILED',
+          message: 'ID ghi chú không hợp lệ.',
+        }),
+      })
+      return
+    }
+    void openNote(id)
+    return () => readController.current?.abort()
+  }, [requestedNoteId, openNote])
 
   const mutate = async (kind: MutationKind, id?: number) => {
     if (busy.current) return

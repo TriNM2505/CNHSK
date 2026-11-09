@@ -53,10 +53,12 @@ public class DeckController {
 
     @GetMapping
     @Operation(operationId = "listDecks", tags = "flashcards")
+    @ApiResponse(responseCode = "200", description = "Danh sách bộ thẻ")
     public List<DeckSummary> list() { return decks.list(); }
 
     @GetMapping("/{id}/due")
     @Operation(operationId = "listDueCards", tags = "flashcards")
+    @ApiResponse(responseCode = "200", description = "Thẻ để ôn")
     @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED")
     public List<Card> due(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
                           @Parameter(schema = @Schema(type = "boolean", defaultValue = "false")) @RequestParam(required = false) String ahead) {
@@ -73,10 +75,12 @@ public class DeckController {
 
     @GetMapping("/{id}")
     @Operation(operationId = "getDeck", tags = "flashcards")
+    @ApiResponse(responseCode = "200", description = "Chi tiết bộ thẻ")
     public DeckDetail get(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) { return decks.detail(id); }
 
     @PatchMapping("/{id}")
     @Operation(operationId = "updateDeck", tags = "flashcards")
+    @ApiResponse(responseCode = "200", description = "Đã lưu bộ thẻ")
     @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED")
     public DeckSummary update(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id,
                               @Valid @RequestBody DeckWrite request) { return decks.update(id, request); }
