@@ -329,4 +329,3 @@ abstract class RedeemFixture extends AbstractIntegrationTest {
         protected String userKey(long user) { return "billing:redeem:fail:user:"+user; }
         protected String ipKey(String address) { ips.add(address); return "billing:redeem:fail:ip:"+address; }
 }
-

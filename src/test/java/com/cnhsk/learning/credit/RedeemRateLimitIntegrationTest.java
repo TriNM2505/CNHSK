@@ -101,4 +101,3 @@ class RedeemRateLimitIntegrationTest extends AbstractIntegrationTest {
         });
     }
 }
-

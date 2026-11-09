@@ -104,4 +104,3 @@ class RedeemConcurrencyIntegrationTest extends RedeemFixture {
 
     private record Outcome(int status,String body) {}
 }
-

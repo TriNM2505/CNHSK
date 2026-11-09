@@ -152,4 +152,3 @@ class RedeemRateLimitServiceTest {
                 .doesNotContain("synthetic-raw-hash-read", "synthetic-private-cause", USER, IP);
     }
 }
-

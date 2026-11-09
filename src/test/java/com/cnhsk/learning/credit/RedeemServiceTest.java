@@ -180,4 +180,3 @@ class RedeemServiceTest {
                 .satisfies(f -> assertThat(((ApiException) f).getCode()).isEqualTo(code));
     }
 }
-

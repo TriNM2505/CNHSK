@@ -102,4 +102,3 @@ class CreditRedeemSecurityConfigIntegrationTest {
 
     private String token(List<String> roles) { return jwt.issueAccessToken(42,roles,false,UUID.randomUUID()); }
 }
-

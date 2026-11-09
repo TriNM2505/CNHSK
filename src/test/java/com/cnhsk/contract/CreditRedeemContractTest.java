@@ -117,4 +117,3 @@ class CreditRedeemContractTest {
         return node.path("type").isArray()?strings(node.path("type")):node.has("type")?Set.of(node.path("type").asText()):Set.of();
     }
 }
-
