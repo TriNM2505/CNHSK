@@ -1,5 +1,25 @@
 # Chốt — Spec 014
 
+## 2026-11-09 — T-15 nghiệm thu trình duyệt đạt, hoàn tất G3
+
+- Draft PR #136: https://github.com/TriNM2505/CNHSK/pull/136. Hai commit ban đầu: `0eb3f27` tách đúng hai controller và `bbe3f3a` chứa 18 file còn lại. Sau nghiệm thu chỉ cập nhật hai tài liệu này, không đổi code, test, dependency hoặc contract. Allowlist vẫn đúng 20 file.
+- Kiểm bằng Chrome 156 headless của máy, profile tạm riêng, qua DevTools tích hợp và WebSocket của `undici` đã có trong node_modules; không dùng Computer Use, không cài thư viện/driver, không dựng framework hay chụp ảnh. Thao tác trên DOM thật, click/nhập bằng trình duyệt, gọi Vite và backend thật; chỉ lưu URL/status phản hồi, không lưu token, mật khẩu hoặc nội dung dịch vào log. Khoảng kiểm trình duyệt 13:10:52–13:38:56 UTC+7, 28,06 phút, dưới hạn 90 phút.
+- Launcher bắt đầu 13:05:47, xuất READY với bind=127.0.0.1, port=8080, profile=test, provider=stub. Vite bắt đầu 13:06:02 tại 127.0.0.1:5173; API base cùng origin qua proxy. Chrome dùng cổng DevTools loopback 55660. Fixture tự soạn và 22 mục từ phân trang bổ sung chỉ ghi trong PostgreSQL container đã xác nhận database=library_acceptance; không dùng Neon, .env hoặc API key thật.
+
+  | AT | Trạng thái | Bằng chứng trình duyệt với API thật |
+  |---|---|---|
+  | AT-23 · SCR-024 | ĐẠT | Tra chữ Hán/pinyin/nghĩa/bộ thủ+số nét; rỗng giữ input; hint dịch chỉ LEARNER, khách không có; khách 429 hiện đăng nhập. Fixture 22 kết quả chia trang 20/2, chuyển trước/sau đúng. |
+  | AT-24 · SCR-025 | ĐẠT | Khách thấy đăng nhập để lưu; WORD strokeData=null ẩn nét, CHAR 日 chạy hoạt hình. Học viên lưu form điền sẵn thành công; thêm thẻ trùng nhận 409 và giữ form. NOTE_DUPLICATE giữ nháp, chỉ bấm nút mới mở noteId. |
+  | AT-25 · SCR-026 | ĐẠT | 2.000 code point ngoài BMP cho gửi, 2.001 chặn; đổi hướng không gọi API. Đang dịch khoá input/hướng/nút, không gửi thêm; bản dịch/pinyin/đoạn bấm/popup Escape trả focus đúng. Cache không trừ lượt; 503 giữ input và báo hoàn lượt; 402 có link /account/credits. Rời trang mất nội dung; localStorage/sessionStorage rỗng. Lưu popup tạo sourceType=TRANSLATION. |
+  | AT-26 · SCR-027 | ĐẠT | Nội dung script/HTML hiện chữ, không có script node hoặc dialog; q một ký tự chặn tại chỗ, mark từ khoá đúng, tag khớp chính xác. Xoá có xác nhận, huỷ trả focus; thùng rác có hai mốc thời gian, khôi phục thành công. Khôi phục trùng giữ bản ghi, chỉ mở ghi chú có sẵn khi bấm. Đổi tài khoản không còn editor/nội dung của người trước. |
+  | AT-27 · SCR-028 | ĐẠT | Tạo bộ trống và bộ từ chủ đề, nhận đúng 0/2 thẻ snapshot; hiện giới hạn 50/500, không có công tắc chia sẻ. Xoá bộ huỷ được/trả focus, xác nhận thành công mới bỏ khỏi danh sách. |
+  | AT-28 · SCR-029 | ĐẠT | Sửa metadata qua PATCH Summary, thêm/sửa/xoá thẻ và giữ nháp khi trùng. Lật và bốn mức AGAIN/HARD/GOOD/EASY: đúng bốn request thành công, số còn lại 4→3→2→1→0, khoảng 1/1/3/16 ngày. Không còn đến hạn thì Ôn trước lấy lại bốn thẻ; hiện câu không đổi mastery. Xoá thẻ vẫn giữ lịch trong DB. |
+  | AT-29 · contract | ĐẠT | Gate đã chạy: đủ 15 path/22 operation và tập status đúng YAML; không đổi LibraryContractTest hoặc YAML sau gate. |
+
+- Đối chiếu DB cuối 13:35:40, native exit=0: TRANSLATE usage tài khoản chính=1, tài khoản hết lượt=10; chuỗi response dịch 200/200/503/200/402/200, timeout đã hoàn và cache không trừ thêm. Ghi chú TRANSLATION mới có lexemeId=1; ghi chú DICTIONARY cũ đã xoá vẫn giữ nguồn/liên kết. Bốn dòng FLASHCARD đều review_count=1, mastery=0.000; dòng của thẻ xoá vẫn còn; attempt_items=0. Trình duyệt không có JavaScript dialog, storage vẫn rỗng.
+- Đã đóng Chrome lúc 13:38:56; dừng Java/Vite lúc 13:41:14–13:41:15 (native exit=-1 do chủ động dừng, không phải gate lỗi). Dọn đúng bốn container của launcher; kiểm 13:41:17: còn 0 container thuộc phiên và 0 listener 8080/5173/55660, cleanup exit=0. Không giữ server chạy sau nghiệm thu.
+- Tất cả AT-23…29 đã đạt, cho phép đánh ✅ T-15 và tiến độ 15/15. Các gate tự động và thời gian bên dưới giữ nguyên: verify 4.161/4.161, LINE 96,6882%, Vitest 2.387/2.387; không sửa code/test sau gate nên không chạy lại suite cho cập nhật tài liệu. PR vẫn Draft, không merge; leader review/verify trước khi gộp.
+
 ## 2026-11-09 — Leader xác nhận G3 sau kiểm phạm vi và launcher
 
 - Leader cho G3 ngay sau xác nhận phạm vi/client và launcher, không đợi AT-23…28; Draft PR phải ghi sáu AT này “chưa kiểm”, không đánh ✅ T-15, không merge trước nghiệm thu.
