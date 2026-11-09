@@ -1,3 +1,55 @@
+## 2026-11-10 — T-08 G2 APPROVED, G3 housekeeping được Leader duyệt
+
+- Leader duyệt G2 → G3 trên commit `ec2dce2a930cc8ad3b0263979b74ce1dd4014f19`, Draft PR #137. Đây là housekeeping, không phải Fix 3/2. Chỉ bỏ một dòng trống EOF ở đúng bảy file test và cập nhật tasks/questions; giữ production, Clock constructor, logic, assertions, test names và expected values.
+- Giữ implementation base `9510643c36633f8b993e3f119bafe6b1772ffde7`; origin/main `f9be7145a4ff59ee82af3c2c5632c087ffeddf73` không được rebase/merge vào nhánh này. Leader xác nhận PR #136 không trùng file và sẽ tự integrated verify trên cây đã gộp. T-12 đã MERGED PR #134 tại main95f401f; SPEC-014/T-14 đã merge PR #135 tại main9510643, giữ nguyên trạng thái.
+
+### Kết quả Fix 2/2 đã được G2 nghiệm thu
+
+- Chẩn đoán Redis/JVM clock skew: 80 mẫu TIME pha đầu giới hạn Redis đi trước JVM1040,638–1183,473ms; 40 replay công thức PEXPIRETIME−JVM trả122 trong khi PTTL không vượt120s. Pha sau offset âm−416,626…−330,922ms trả120. Xác nhận cơ chế overshoot do hai clock độc lập; không tuyên bố tái hiện exact121 của Fix1 vì thiếu timestamp lịch sử.
+- Fix2 thay PEXPIRETIME trừ JVM Clock bằng Redis PTTL tương đối: lấy max TTL hợp lệ của counter đang chặn, ceil milliseconds/1000, capping1…3600 giây; giữ bounded retry khi expiry race và fail-open/WARN an toàn khi Redis lỗi/missing/no-TTL. Giữ thresholds5/30, cửa sổ first-hit một giờ,429 không tăng counter và assertion119–120. Ba unit test bổ sung kiểm rounding/cap, không đọc JVM clock và nullTTL.
+- Targeted Fix2:115/F0/E0/S0, native exit0. Regression Fix2:728/F2/E0/S0, native exit1/**FAILED**; đúng hai ngoại lệ LoginAttempt, unknown0. Toàn bộ115 cases targeted PASS trong Full Verify; regression chọn suite riêng và không chọn GlobalExceptionHandlerTest, suite này PASS ở targeted/full.
+- Full Verify hiện hữu tự kết thúc:269 suites, **4.213 tests/F4/E0/S0, Maven native exit1 — FAILED**. Công bố start10/11/2026 00:45:34 +07, deadline01:45:34 +07; native run00:45:51,1394625–01:17:27,4548073 +07, không kill/restart vì failure. Không đổi thành PASS; cả bốn failure khớp chính xác whitelist, unknown0.
+
+| Failed test đúng tên Surefire | Ngoại lệ Leader duyệt | Đối chiếu |
+|---|---|---|
+| `com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.FR046_FR047_FR048_fifthFailureBlocksOnlyTheEmailIpPairAndUsesActualRedisExpiry` | LoginAttempt PEXPIRETIME | AssertionError, frame dòng133, assertion thời hạn tuyệt đối Redis |
+| `com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.redisFailuresInAllThreeOperationsFailOpenAndOnlyLogSafeWarnings(CapturedOutput)` | LoginAttempt CapturedOutput | AssertionError, frame dòng313, fixture trong captured output |
+| `com.cnhsk.learning.content.importer.ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget` | ImportConfirm FR023, chỉ p95 | AssertionError, frame dòng398;45972ms so với <30000ms |
+| `com.cnhsk.learning.content.importer.QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries` | QuestionImport NFR_P04, chỉ p95 | AssertionError, frame dòng304;56262ms so với <30000ms |
+
+Ngoại lệ thứ năm `com.cnhsk.learning.knowledge.QuestionAdminControllerIntegrationTest.NFR_P02_fiveThousandSelfAuthoredQuestionsAreListedByKidWithinOneHundredMillisecondsP95` chỉ áp dụng assertion p95 dòng252/<100ms; **không phát sinh** trong lượt Full Verify này. Không miễn trừ assertion chức năng, error hoặc failure khác.
+
+- JaCoCo report/check sau Full Verify: native exit0; Project LINE11814/12216 = **96,7092%**, Credit LINE557/578 = **96,3668%** (learning/credit và web). Dùng đúng exec full1.294.597byte, một session nằm trong native interval; XML/session/hash khớp, source/classes không đổi và không class mismatch. Coverage không thay đổi Full Verify FAILED/exit1 thành PASS.
+- Evidence G2 được giữ nguyên tại `C:/WINDOWS/TEMP/cnhsk-spec013-t08-g1-fix2-20261109-233052/`. ZIP G2 SHA256 `5CD676AE6879403410404F8614DC8C30CE6A598555E4212BE849FFD2DA8E5C45`; đủ20file13ADD/7MOD,1251checksum khớp và patch replay20/20; G012/12 giữ nguyên. Các FAILED/UNKNOWN/STOP trước đây bên dưới vẫn là lịch sử, không bị ghi đè.
+
+### NFR-P01 — giữ đầy đủ các lượt đo
+
+Mỗi lượt có20 warm-up +100 successful CREDIT HTTP POST riêng mã với PostgreSQL/Redis thật; p50/p95 nearest-rank (index49/94), giữ đủ100 mẫu nanosecond của từng lượt trong evidence. Không bỏ outlier, không chọn lượt đẹp và không thêm hard assertion300ms. Lượt có lỗi ở test khác vẫn giữ số đo riêng, không dùng để gọi gate PASS.
+
+| Lượt | p50 ms | p95 ms | Số mẫu | Gate gốc |
+|---|---:|---:|---:|---|
+| Targeted ban đầu | 33,8839 | 53,4196 | 100 | 111/F0/E1/S0, native UNKNOWN |
+| Fix1 targeted | 39,2488 | 75,0112 | 100 | 112/F0/E0/S0, native0 |
+| Fix1 regression | 36,6767 | 65,6396 | 100 | 725/F3/E0/S0, native1/FAILED |
+| Fix2 targeted | 44,5101 | 60,9820 | 100 | 115/F0/E0/S0, native0 |
+| Fix2 regression | 31,0701 | 45,2540 | 100 | 728/F2/E0/S0, native1/FAILED |
+| Fix2 Full Verify | 18,1248 | 24,2797 | 100 | 4213/F4/E0/S0, native1/FAILED |
+| G3 housekeeping targeted | 44,6204 | 62,9911 | 100 | 115/F0/E0/S0, native0/PASS |
+
+### G3 housekeeping — verification rút gọn
+
+Leader chỉ duyệt preflight JDK17/Docker/no-overlap → test-compile → targeted credit115/115 → diff-check → hai commit riêng/push và cập nhật **Draft PR #137**. Không chạy lại regression/full verify/JaCoCo; không tự sửa nghiệp vụ nếu targeted phát sinh lỗi. Native completion đã xác nhận: test-compile PASS/exit0; targeted9suites,115/F0/E0/S0 PASS/exit0. Không có failure để áp dụng ngoại lệ và không rerun để chọn xanh. Evidence riêng: `C:/WINDOWS/TEMP/cnhsk-spec013-t08-g3-20261110-0220/`.
+
+
+| Lệnh G3 | Native bắt đầu +07 | Native kết thúc +07 | Native elapsed ms | Native exit |
+|---|---|---|---:|---:|
+| test-compile | 2026-11-10T02:24:23.488+07:00 | 2026-11-10T02:26:18.712+07:00 | 115288 | 0 |
+| targeted credit | 2026-11-10T02:27:43.798+07:00 | 2026-11-10T02:30:21.064+07:00 | 157328 | 0 |
+
+G3 targeted NFR-P01 giữ riêng100mẫu: p50=44,6204ms, p95=62,9911ms; không thay các lượt trước và không hard assertion300ms. Chỉ chạy test-compile/targeted theo Leader; không regression/full verify/JaCoCo report-check mới. Tham số `-Djava.io.tmpdir` chỉ cô lập execution data vào TEMP G3 để bảo toàn exec/report G2.
+
+T-08 chưa MERGED. Dừng tại Draft PR để Leader integrated verify và merge; chưa bắt đầu T-09 G1. Chỉ sau Leader xác nhận T-08 MERGED mới chuẩn bị T-09 G0 và gom câu hỏi một lần.
+
 ## 2026-11-09 — T-08 G1 Fix Round 2/2: chẩn đoán và sửa có điều kiện
 
 - Checkpoint push sớm 10/11/2026 +07: hai lượt test-compile PASS/native0; review ba file GREEN. Targeted chạy00:00:51.6176943–00:04:15.9260826,115 tests/F0/E0/S0, native Maven exit0. Tăng112→115 do ba unit test bổ sung, không bỏ test cũ. Regression/full/JaCoCo chưa chạy ở checkpoint này; Draft PR phải giữ WIP — G1 FIX 2/2, verification pending.
