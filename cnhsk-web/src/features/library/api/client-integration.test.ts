@@ -55,6 +55,60 @@ afterEach(() => {
   clearCsrf()
 })
 
+describe('safe library IDs at the shared-client boundary', () => {
+  it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+    'never sends unsafe path/body ID %s',
+    async (id) => {
+      const fetchMock = vi.fn<typeof fetch>()
+      vi.stubGlobal('fetch', fetchMock)
+      const requests = [
+        () => dictionary.getLexeme(id),
+        () => notes.getNote(id),
+        () => notes.deleteNote(id),
+        () => notes.restoreNote(id),
+        () => notes.createNote({ content: 'Nháp', lexemeId: id }),
+        () => flashcards.getDeck(id),
+        () => flashcards.deleteDeck(id),
+        () => flashcards.createDeck({ name: 'Mẫu', topicId: id }),
+        () => flashcards.addCard(3, { lexemeId: id }),
+        () => flashcards.updateCard(3, id, { back: 'Mẫu' }),
+        () => flashcards.deleteCard(3, id),
+        () => flashcards.listDueCards(id),
+        () => flashcards.reviewCard(id, { rating: 'GOOD' }),
+      ]
+      for (const request of requests)
+        await expect(request()).rejects.toMatchObject({ errorCode: 'VALIDATION_FAILED' })
+      expect(fetchMock).not.toHaveBeenCalled()
+    },
+  )
+
+  it('rejects unsafe IDs in actual JSON responses before returning usable data', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>().mockResolvedValue(
+        json({
+          translated: 'Mẫu',
+          cached: false,
+          consumption: 'QUOTA',
+          segments: [{ text: '自作', lexemeId: Number.MAX_SAFE_INTEGER + 1 }],
+        }),
+      ),
+    )
+    document.cookie = 'XSRF-TOKEN=safe-id; path=/'
+    await expect(translate({ text: '自作', from: 'ZH', to: 'VI' })).rejects.toMatchObject({
+      errorCode: 'INVALID_RESPONSE',
+    })
+  })
+
+  it('preserves the maximum safe integer in the path and returned record', async () => {
+    const max = Number.MAX_SAFE_INTEGER
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(json({ ...note, id: max }))
+    vi.stubGlobal('fetch', fetchMock)
+    await expect(notes.getNote(max)).resolves.toMatchObject({ id: max })
+    expect(fetchMock.mock.calls[0]![0]).toBe(`${origin}/api/notes/${max}`)
+  })
+})
+
 describe('library API with the real shared client (§13; AT-01 transport only)', () => {
   it('FR001_public dictionary GETs preserve Unicode queries, pagination, nullable data and AbortSignal', async () => {
     const result = {

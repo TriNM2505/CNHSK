@@ -130,6 +130,34 @@ beforeEach(() => {
   })
 })
 
+it('keeps the translation and popup note draft on NOTE_DUPLICATE until an explicit open', async () => {
+  vi.mocked(createNote).mockRejectedValueOnce(
+    new ApiError({
+      status: 409,
+      errorCode: 'NOTE_DUPLICATE',
+      message: 'Trùng',
+      details: { noteId: 42 },
+    }),
+  )
+  const { router } = renderPage()
+  await translated()
+  fireEvent.click(screen.getByRole('button', { name: /Tra từ/ }))
+  await screen.findByRole('button', { name: 'Lưu vào sổ tay' })
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu vào sổ tay' }))
+  fireEvent.change(screen.getByLabelText(/^Nội dung ghi chú/), {
+    target: { value: 'Nháp từ bản dịch' },
+  })
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu ghi chú' }))
+  await screen.findByText('Từ này đã có trong sổ tay')
+  expect(screen.getByLabelText(/^Nội dung ghi chú/)).toHaveValue('Nháp từ bản dịch')
+  expect(screen.getByRole('link', { name: 'Mở ghi chú đã có' })).toHaveAttribute(
+    'href',
+    '/library/notes?noteId=42',
+  )
+  expect(router.state.location.pathname).toBe('/translate')
+  expect(translate).toHaveBeenCalledOnce()
+})
+
 describe('SCR-026 FR-025 / AT-25', () => {
   it('AT25_shows cached API output without pinyin or segments and without consuming another request', async () => {
     vi.mocked(translate).mockResolvedValue({

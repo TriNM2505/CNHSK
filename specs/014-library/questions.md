@@ -1,5 +1,103 @@
 # Chốt — Spec 014
 
+## 2026-11-09 — Leader xác nhận G3 sau kiểm phạm vi và launcher
+
+- Leader cho G3 ngay sau xác nhận phạm vi/client và launcher, không đợi AT-23…28; Draft PR phải ghi sáu AT này “chưa kiểm”, không đánh ✅ T-15, không merge trước nghiệm thu.
+- Đối chiếu nguyên git status --short: 14 file M + 6 file ?? = đúng 20 file allowlist. git diff --stat origin/main trước stage chỉ hiện 14 file vì không tính sáu file untracked: identifiers.ts, identifiers.test.ts, LexemeSaveActions.test.tsx, LibraryContractTest.java, LibraryApiIntegrationTest.java, LibraryAcceptanceServer.java. Sau add từng file/commit, diff origin/main sẽ hiện đủ 20 file; không có file thiếu khỏi triển khai.
+- Q-T15-01 đã thực hiện: updateDeck(): Promise<DeckSummary>, apiRequest cũng dùng DeckSummary. dictionary.ts dùng identifierPath cho path và checkedIdentifiers cho response; notes.ts dùng identifierPath/checkBodyIdentifiers/checkedIdentifiers; translation.ts dùng checkedIdentifiers để kiểm segments.lexemeId, không có ID request cần kiểm. Không sửa thêm client sau các gate PASS nên không cần chạy lại FE.
+- Làm rõ Fix 1: chỉ thêm System.setProperty("spring.devtools.restart.enabled","false") trước đọc stdin và --spring.devtools.livereload.enabled=false vào tham số launcher. TypeExcludeFilter cô lập source test đã thêm trong bước self-review trước Fix 1. spring-boot-devtools là dependency runtime/optional có sẵn trên origin/main; pom.xml không có diff, không thêm dependency. Giữ nguyên interface, backend/contract/assertion; còn một vòng fix dự phòng.
+- Đính chính báo cáo READY trước đó: khi process còn chạy, output FileStream bị đệm nên lần đọc trước dừng không thấy dòng cuối. Sau khi stream đã đóng/flush, log acceptance-fixed xác nhận: profile duy nhất test; Tomcat started on port 8080 lúc 12:39:57.790; Started LibraryAcceptanceServer in 15.854 seconds; sau seed và kiểm StubClaudeClient có dòng chính xác “LIBRARY_ACCEPTANCE_READY bind=127.0.0.1 port=8080 profile=test provider=stub max_minutes=90”. Vì vậy startup Fix 1 đã đạt; kết luận trước “chưa READY” chưa đầy đủ, không phải lỗi startup còn lại.
+- Không dùng lại Computer Use theo chỉ đạo mới. Các browser library riêng (Playwright/Puppeteer) không có trong dependency workspace; không tự cài hoặc dựng driver/công cụ mới. AT-23…28 trên trình duyệt vẫn CHƯA KIỂM; không dùng test tự động để tự đánh đạt. Tài nguyên nghiệm thu trước đó đã dọn, không giữ server/container trong lúc chờ. G3 tách commit annotation của hai controller riêng khỏi 18 file còn lại, push spec/014-t15 và Draft PR vào main; leader verify song song.
+
+## 2026-11-09 — T-15 G1 tiếp tục theo quyết định sửa annotation của leader
+
+- Nguyên nhân AT-29: @ApiResponses 401/403 ở cấp class NoteController/DeckController làm springdoc không tự sinh response 200 cho method chưa khai báo. YAML là chuẩn. Leader mở rộng allowlist 18 → 20 file, chỉ thêm responseCode=200/description vào đúng chín method, không content/schema, mapping, kiểu trả về, logic hoặc thay thứ tự annotation cũ. Không sửa YAML hoặc LibraryContractTest. Quyết định này không tính vào hai vòng fix.
+- Diff controller để review riêng: NoteController thêm 200 ở list/get/update/trash/restore (5 method); update/restore thêm trong mảng @ApiResponses hiện có. DeckController thêm 200 ở list/get/update/due (4 method). Không thêm import. LibraryContractTest giữ SHA-256 E210C9B0C7CBBF20211155F5A5AA7B4F041755214AE0BA3ABFE53C18BF07D3C6.
+- Allowlist đầy đủ 20 file:
+  1. `cnhsk-web/src/features/library/api/identifiers.ts`
+  2. `cnhsk-web/src/features/library/api/identifiers.test.ts`
+  3. `cnhsk-web/src/features/library/api/dictionary.ts`
+  4. `cnhsk-web/src/features/library/api/notes.ts`
+  5. `cnhsk-web/src/features/library/api/flashcards.ts`
+  6. `cnhsk-web/src/features/library/api/translation.ts`
+  7. `cnhsk-web/src/features/library/api/client-integration.test.ts`
+  8. `cnhsk-web/src/features/library/components/LexemeSaveActions.tsx`
+  9. `cnhsk-web/src/features/library/components/LexemeSaveActions.test.tsx`
+  10. `cnhsk-web/src/features/library/pages/Scr025DictionaryDetailPage.test.tsx`
+  11. `cnhsk-web/src/features/library/pages/Scr026TranslationPage.test.tsx`
+  12. `cnhsk-web/src/features/library/pages/Scr027PersonalNotesPage.tsx`
+  13. `cnhsk-web/src/features/library/pages/Scr027PersonalNotesPage.test.tsx`
+  14. `src/test/java/com/cnhsk/contract/LibraryContractTest.java`
+  15. `src/test/java/com/cnhsk/learning/library/LibraryApiIntegrationTest.java`
+  16. `src/test/java/com/cnhsk/learning/library/LibraryAcceptanceServer.java`
+  17. `specs/014-library/questions.md`
+  18. `specs/014-library/tasks.md`
+  19. `src/main/java/com/cnhsk/learning/library/web/NoteController.java`
+  20. `src/main/java/com/cnhsk/learning/library/web/DeckController.java`
+- Q-T15-01: PATCH client trả Promise<DeckSummary>; grep mọi nơi dùng chỉ thấy production SCR-029 đọc name/description rồi GET lại chi tiết, không đọc cards từ PATCH. Không sửa SCR-029 ngoài allowlist. Q-T15-02: không có helper tương đương trong shared, giữ hai file identifiers mới; chỉ chấp nhận number nguyên dương an toàn, không ép kiểu/đổi contract ID thành chuỗi. Kiểm ID path/body trước fetch và các ID response thư viện trước dùng; giữ null của lexemeId hợp lệ.
+- Q-T15-03: thông báo chính xác “Từ này đã có trong sổ tay”, giữ bản nháp; nút mở ghi chú có sẵn chỉ hiện khi details.noteId hợp lệ. Chỉ điều hướng khi người dùng bấm; URL chỉ noteId. SCR-027 tải ghi chú, có retry, abort và bỏ kết quả muộn khi đổi tài khoản/đổi URL; huỷ tải không kẹt loading.
+- Q-T15-04: LibraryAcceptanceServer nằm src/test, tên không kết thúc Test/IT, chỉ chạy thủ công, bind 127.0.0.1:8080, profile test và StubClaudeClient, PostgreSQL/Redis/Mailpit container riêng. Không dùng .env; loại property sources môi trường/JVM ngoài phiên và cấu hình kết nối trực tiếp từ container. Mật khẩu fixture dùng một lần nhận qua stdin, chỉ lưu bcrypt cost 12; không ghi/log plaintext, không API key hoặc pepper thật. Fixture tự soạn, thời hạn server 90 phút, shutdown hook đóng context/container. Chưa bắt đầu lượt kiểm trình duyệt.
+- LibraryApiIntegrationTest dùng TestRestTemplate qua cổng HTTP ngẫu nhiên thật, JDK request factory hỗ trợ PATCH, service/DB/billing thật. Sáu ca kiểm AT-23…28 cùng 401/403/CSRF, snapshot mastery chọn đúng cột (không SELECT * và không mảng PgArray), số attempt_items không đổi khi ôn. Mỗi ca chụp callCount trước, đếm số phản hồi đã nạp và assert delta bằng số nạp ở AfterEach; không mock bỏ qua consume/refund hoặc clear hàng đợi chung.
+
+  | Lệnh (2026-11-09, UTC+7) | Bắt đầu | Kết thúc | Native exit / kết quả |
+  |---|---|---|---|
+  | mvnw.cmd -B test-compile sau annotation | 07:07:50 | 07:08:28 | 0 / PASS, Maven 36,164 s |
+  | mvnw.cmd -B -Dtest=LibraryContractTest test | 07:08:43 | 07:09:21 | 0 / PASS 1/1, đủ 15 path/22 operation/status |
+  | mvnw.cmd -B -Dtest=<6 lớp contract> test | 07:09:33 | 07:10:27 | 0 / PASS 41/41, 0 failure/error/skip |
+  | mvnw.cmd -B test-compile sau LibraryApiIntegrationTest | 07:13:08 | 07:13:41 | 0 / PASS, Maven 30,881 s |
+  | mvnw.cmd -B test-compile sau self-review HTTP client hỗ trợ PATCH | 07:14:03 | 07:14:35 | 0 / PASS, Maven 30,252 s |
+  | mvnw.cmd -B test-compile sau LibraryAcceptanceServer | 07:17:15 | 07:17:47 | 0 / PASS, Maven 29,640 s |
+  | mvnw.cmd -B -Dtest=<toàn bộ contract/library> test | 07:18:24 | 07:20:20 | 0 / PASS 437/437, gồm sáu ca HTTP mới, 0 failure/error/skip |
+  | mvnw.cmd -B verify, timeout 60 phút, giữ máy thức | 07:20:56 | 07:39:08 | 0 / BUILD SUCCESS; 4.161/4.161, 0 failure/error/skip; Maven 18:09 |
+  | JaCoCo report/check của verify; Import-Csv kiểm LINE | 07:39:46 | 07:39:46 | PASS; 11.678/12.078 = 96,6882%, ngưỡng 80% |
+  | mvnw.cmd -B test-compile dependency:build-classpath sau self-review launcher | 07:39:51 | 07:40:38 | 0 / PASS, Maven 45,209 s; không chạy lại tests |
+  | npm.cmd ci | 07:40:14 | 07:40:33 | 0 / PASS; không đổi dependency/lockfile |
+  | npx.cmd vitest run src/features/library --maxWorkers=2 --minWorkers=2 | 07:41:03 | 07:41:30 | 0 / PASS 387/387, 13 file; 25,60 s |
+  | npx.cmd vitest run --maxWorkers=2 --minWorkers=2 | 07:42:08 | 07:46:30 | 0 / PASS 2.387/2.387, 163 file; 260,87 s |
+  | npm.cmd run lint | 07:46:59 | 07:47:07 | 0 / 0 error; đúng 1 warning LevelBadge có sẵn |
+  | npm.cmd run build | 07:47:07 | 07:47:23 | 0 / TypeScript + Vite PASS, Vite 5,14 s |
+  | mvnw.cmd -B test-compile sau Fix 1 launcher | 07:51:13 | 07:51:48 | 0 / PASS; Maven 32,754 s |
+
+- Full verify chạy hết 264 lớp, native exit=0, timeout=false; đã khôi phục chế độ nguồn. JaCoCo report/check thực thi trong verify và đạt; giữ bản sao execution data target/t15-full-jacoco.exec. NFR_P04 QuestionImport lần này PASS, samples_ms=[26064,20886,16349,16218,17098], p95=26064 ms <30000 ms; không dùng ngoại lệ môi trường.
+- Self-review launcher trước chạy tay: thêm TypeExcludeFilter chỉ cho phiên main để loại resource trong test-classes khỏi component scan, tránh vô tình dùng Clock/config fixture của test khác. Launcher không được test discovery chạy; đã compile lại và tạo classpath, sẽ kiểm trực tiếp bằng khởi động/dừng server. Hai controller, LibraryContractTest và LibraryApiIntegrationTest giữ nguyên hash của lượt full. Không sửa production hoặc assertion sau verify, không cần chạy lại full vì thay đổi chỉ ở utility không được suite chạy.
+- Trình duyệt tích hợp báo browser access host unavailable khi chuẩn bị tab; đã kết thúc phần công cụ đó và kiểm phương án computer-use Windows có sẵn. Chrome có cửa sổ điều khiển được; không cài/tạo công cụ mới, không chụp/lưu ảnh. Chưa bắt đầu lượt nghiệm thu, ngân sách 90 phút chưa dùng.
+- Không có lỗi testCompile/type-check hoặc assertion phải nới. Các gate tự động đều PASS, không phải chạy riêng test chập chờn, không dùng ngoại lệ. Hai controller và các test Java đã verify giữ nguyên hash; không chạy lại full chỉ vì thay đổi launcher test không được suite discovery chạy.
+- Fix 1/2 chỉ trong LibraryAcceptanceServer: lần chạy tay 07:48:59–07:49:11 bị devtools RestartLauncher gọi lại main, stdin lần hai đã hết nên báo thiếu mật khẩu fixture. Native process exit=0 nhưng không có READY, không coi là startup PASS. Thêm System.setProperty("spring.devtools.restart.enabled","false") trước đọc stdin và tắt livereload trong tham số riêng của launcher. Không sửa production/contract/assertion. Compile Fix 1 PASS; còn một vòng fix.
+- Lượt khởi động lại 12:39:33 chỉ có profile test và đi tới khởi tạo JPA nhưng chưa xuất LIBRARY_ACCEPTANCE_READY tại thời điểm dừng. Chưa kết luận launcher startup đã PASS. Browser tích hợp trước đó báo access host unavailable; công cụ Windows lần đầu báo “Computer Use app approval timed out”, lần thử lại tự dừng vì không xác định được URL browser hiện tại đủ chắc chắn để thực thi policy. Không tiếp tục UI, không dùng cách khác để vượt kiểm tra URL, không lưu ảnh hoặc dựng công cụ mới.
+- AT-29: ĐẠT. AT-23/24/25/26/27/28 trên trình duyệt: CHƯA KIỂM do công cụ UI bị chặn; các test tự động liên quan đã PASS trong library 387 và HTTP thật 6/6. Không thay nghiệm thu trình duyệt bằng kết quả mock hoặc tự đánh đạt. Ngân sách lượt kiểm UI chưa bắt đầu vì chưa điều khiển được tab.
+- Đã dọn tài nguyên lúc 12:41:27–12:41:30: chỉ Java PID 3076 và Vite PID 8144 được xác nhận thuộc T-15; native exit=-1 do dừng chủ động, không phải lỗi test/build. Bốn container của đúng launcher đã được dọn, còn 0; không còn listener trên 8080/5173. Cổng dự kiến/đã dùng: 127.0.0.1:8080 (backend chưa READY), 127.0.0.1:5173 (Vite và HTTP readiness 200). Lượt launcher trước cũng đã dọn hết bốn container.
+- G2 bàn giao chưa hoàn thành nghiệm thu UI: giữ T-15 chưa ✅, tiến độ 14/15. Chưa stage/commit/push/PR. Chờ phiên browser mà công cụ có thể xác minh URL để tiếp tục; cần kiểm lại startup Fix 1 và AT-23…28. Journal đầy đủ lệnh, native exit và giờ tại TEMP/cnhsk-014-t15-gates.log; logs compile07/acceptance-fixed/acceptance-fixed-err/vite lưu tại TEMP, không chứa plaintext mật khẩu fixture.
+
+## 2026-11-09 — T-15 G1: STOP tại AT-29 do lệch status OpenAPI
+
+- Leader duyệt G0/allowlist tối đa 18 file và cho bắt đầu sau #135 merge. Fetch xác nhận origin/main = `9510643c36633f8b993e3f119bafe6b1772ffde7`; tạo nhánh `spec/014-t15`, worktree `CNHSK-014-t15` từ đúng base. Không stash/restore/stage thay đổi riêng của specs/003-vocab-topics/questions.md; không đọc hoặc đụng .env.
+- Kiểm trước triển khai: chưa có helper ID tương đương trong cnhsk-web/src/shared. Grep toàn bộ nơi dùng updateDeck: production chỉ Scr029DeckDetailPage, nhận DeckSummary rồi đọc name/description và tải chi tiết riêng; không có nơi đọc .cards từ kết quả PATCH. Chưa sửa FE hoặc tạo helper vì ưu tiên AT-29 trước.
+- Đã thêm LibraryContractTest trong allowlist, dùng Spring context thật, /v3/api-docs thật và PostgreSQL/Redis Testcontainers. Kiểm đúng tập 15 path, 22 operation, cả request mapping và tập status từng operation, không dùng contains/subset để bỏ qua status thiếu. Không gọi Claude, không ghi billing hoặc nạp response vào StubClaudeClient.
+
+  | Lệnh (2026-11-09, UTC+7) | Bắt đầu | Kết thúc | Native exit / kết quả |
+  |---|---|---|---|
+  | Java 17.0.12, DEBUG=false, docker version | 06:50:43 | 06:50:43 | Java=0, Docker=0; Docker 29.9.2 |
+  | mvnw.cmd -B test-compile sau LibraryContractTest | 06:51:28 | 06:52:06 | 0 / PASS; Maven 36,158 s |
+  | mvnw.cmd -B -Dtest=LibraryContractTest -Dcnhsk.library.contract-audit-output=<TEMP>/cnhsk-014-t15-contract-audit.json test | 06:52:24 | 06:53:05 | 1 / FAIL; 1 test, 1 failure, 0 error/skip; Maven 37,929 s |
+
+- AT-29: tập path và operation/mapping đều khớp; 13/22 operation có tập status khớp, 9/22 thiếu response 200 trên /v3/api-docs so với YAML:
+
+  | Operation | YAML mong đợi | /v3/api-docs thực tế |
+  |---|---|---|
+  | GET /api/notes | 200, 401, 403, 422 | 401, 403, 422 |
+  | GET /api/notes/trash | 200, 401, 403 | 401, 403 |
+  | GET /api/notes/{id} | 200, 401, 403 | 401, 403 |
+  | PUT /api/notes/{id} | 200, 401, 403, 404, 409, 422 | 401, 403, 404, 409, 422 |
+  | POST /api/notes/{id}/restore | 200, 401, 403, 409, 422 | 401, 403, 409, 422 |
+  | GET /api/flashcard-decks | 200, 401, 403 | 401, 403 |
+  | GET /api/flashcard-decks/{id} | 200, 401, 403 | 401, 403 |
+  | PATCH /api/flashcard-decks/{id} | 200, 401, 403, 422 | 401, 403, 422 |
+  | GET /api/flashcard-decks/{id}/due | 200, 401, 403, 422 | 401, 403, 422 |
+
+- Đây là khác biệt tài liệu response sinh ra, không phải bằng chứng chín endpoint thực thi trả lỗi HTTP. Cần leader xử lý/duyệt hướng sửa các annotation tại NoteController/DeckController; hai file này nằm ngoài allowlist T-15. Theo chỉ đạo AT-29, STOP ngay sau khi thu đủ bảng; không sửa backend/contract, không nới assertion và chưa dùng vòng fix nào.
+- AT-23…AT-28: CHƯA KIỂM; AT-29: LỖI như bảng. Chưa chạy targeted toàn library, full verify (timeout 60 phút), JaCoCo hoặc các gate FE. Chưa tạo/chạy LibraryAcceptanceServer, không mở cổng HTTP nghiệm thu hoặc khởi động FE; ngân sách trình duyệt 90 phút chưa dùng. Không đánh hoàn thành T-15; tiến độ vẫn 14/15.
+- Bằng chứng: TEMP/cnhsk-014-t15-gates.log, cnhsk-014-t15-compile01.log, cnhsk-014-t15-contract.log, cnhsk-014-t15-contract-audit.json; XML Surefire tại target/surefire-reports/TEST-com.cnhsk.contract.LibraryContractTest.xml. Sau JVM kết thúc đã đối chiếu đúng bốn ID container trong log (PostgreSQL, Redis, Mailpit, Ryuk): tất cả đã được dọn, còn lại 0. Chỉ ba file thay đổi: LibraryContractTest.java và tasks.md/questions.md của 014; diff --check, UTF-8/BOM PASS. Worktree gốc vẫn chỉ có hai dòng bổ sung riêng của spec 003, không bị stash/restore/stage. Chưa stage, commit, push hoặc mở PR T-15; chờ leader chỉ đạo tiếp tục sau xử lý lệch contract.
+
 ## 2026-11-08 — Leader duyệt 014/T-14 G0 → G1, rút lại D5 sampling
 
 - G0 đã duyệt, base origin/main `95f401f`; tạo lại nhánh `spec/014-t14`, worktree `CNHSK-014-t14`. Không đụng thay đổi riêng ở worktree gốc; không đọc/tạo khoá API hoặc .env, không migration/SQL trên Neon.

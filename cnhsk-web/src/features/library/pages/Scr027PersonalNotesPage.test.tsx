@@ -133,6 +133,47 @@ beforeEach(() => {
 })
 
 describe('SCR-027 personal notes (FR-026, AT-26)', () => {
+  it('cancels a deep-link load when its ID is removed and ignores the late result', async () => {
+    let finish!: (value: Note) => void
+    vi.mocked(getNote).mockReturnValueOnce(
+      new Promise<Note>((resolve) => {
+        finish = resolve
+      }),
+    )
+    const { router } = renderPage('/library/notes?noteId=42')
+    await screen.findByText('Đang mở ghi chú…')
+    const signal = vi.mocked(getNote).mock.calls[0]![1]!
+    await act(async () => {
+      await router.navigate('/library/notes')
+    })
+    expect(signal.aborted).toBe(true)
+    expect(screen.queryByText('Đang mở ghi chú…')).not.toBeInTheDocument()
+    await act(async () => {
+      finish(note)
+    })
+    expect(screen.queryByRole('form', { name: 'Soạn ghi chú' })).not.toBeInTheDocument()
+    expect(screen.getByText('Chọn một ghi chú')).toBeVisible()
+  })
+
+  it('opens an existing note requested by ID and retries a failed load', async () => {
+    vi.mocked(getNote).mockRejectedValueOnce(error(403, 'COLLECTION_NOT_OWNED'))
+    renderPage('/library/notes?noteId=42')
+    await screen.findByText('Bạn không có quyền truy cập ghi chú này.')
+    expect(getNote).toHaveBeenCalledWith(42, expect.any(AbortSignal))
+    expect(screen.queryByRole('form', { name: 'Soạn ghi chú' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Thử lại/ }))
+    await screen.findByRole('form', { name: 'Soạn ghi chú' })
+    expect(screen.getByLabelText(/^Nội dung/)).toHaveValue(note.content)
+  })
+
+  it.each(['0', '-1', '1.5', 'NaN', '9007199254740992'])(
+    'does not fetch invalid noteId=%s from the URL',
+    async (id) => {
+      renderPage(`/library/notes?noteId=${id}`)
+      await screen.findByText('ID ghi chú không hợp lệ.')
+      expect(getNote).not.toHaveBeenCalled()
+    },
+  )
   it('loads exactly one unfiltered page without a separate quota query', async () => {
     renderPage()
     await ready()

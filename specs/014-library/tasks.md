@@ -36,7 +36,7 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-15 | FE SCR-024…029 gọi backend thật; sửa lệch contract (lệch thì dừng báo leader); test hợp đồng `/v3/api-docs` so `openapi-library.yaml` (path + status) | `web/features/library/**`, `t/contract/LibraryContractTest.java` | §13 · AT-23…AT-29 chạy với API thật | ⬜ |
+| T-15 | FE SCR-024…029 gọi backend thật; sửa lệch contract (lệch thì dừng báo leader); test hợp đồng `/v3/api-docs` so `openapi-library.yaml` (path + status) | `web/features/library/**`, `t/contract/LibraryContractTest.java` | §13 · AT-23…AT-29 chạy với API thật | 🔄 — leader cho G3/Draft PR, chờ nghiệm thu UI: AT-29 PASS, contract 41/41, targeted 437/437, verify 4.161/4.161, JaCoCo LINE 96,6882%; Vitest 387/387 và full 2.387/2.387, lint/build PASS; đã xác nhận READY sau flush log Fix 1; AT-23…28 trình duyệt CHƯA KIỂM, chưa ✅; process/container đã dọn |
 
 ## Thứ tự thực thi
 

@@ -1,12 +1,14 @@
 import { apiRequest } from '@/shared/api'
 
+import { checkedIdentifiers, checkBodyIdentifiers, identifierPath } from './identifiers'
+
 import type { Note, NoteListParams, NotePage, NoteRequest, TrashNote } from '../types'
 
 function notePath(id: number, suffix = '') {
-  return `/api/notes/${encodeURIComponent(String(id))}${suffix}`
+  return `/api/notes/${identifierPath(id)}${suffix}`
 }
 
-export function listNotes(
+export async function listNotes(
   { q, tag, page = 0, size = 20 }: NoteListParams = {},
   signal?: AbortSignal,
 ): Promise<NotePage> {
@@ -15,29 +17,31 @@ export function listNotes(
   if (tag !== undefined) query.set('tag', tag)
   query.set('page', String(page))
   query.set('size', String(size))
-  return apiRequest<NotePage>(`/api/notes?${query.toString()}`, { signal })
+  return checkedIdentifiers(apiRequest<NotePage>(`/api/notes?${query.toString()}`, { signal }))
 }
 
-export function createNote(body: NoteRequest): Promise<Note> {
-  return apiRequest<Note>('/api/notes', { body, method: 'POST' })
+export async function createNote(body: NoteRequest): Promise<Note> {
+  checkBodyIdentifiers(body)
+  return checkedIdentifiers(apiRequest<Note>('/api/notes', { body, method: 'POST' }))
 }
 
-export function getNote(id: number, signal?: AbortSignal): Promise<Note> {
-  return apiRequest<Note>(notePath(id), { signal })
+export async function getNote(id: number, signal?: AbortSignal): Promise<Note> {
+  return checkedIdentifiers(apiRequest<Note>(notePath(id), { signal }))
 }
 
-export function updateNote(id: number, body: NoteRequest): Promise<Note> {
-  return apiRequest<Note>(notePath(id), { body, method: 'PUT' })
+export async function updateNote(id: number, body: NoteRequest): Promise<Note> {
+  checkBodyIdentifiers(body)
+  return checkedIdentifiers(apiRequest<Note>(notePath(id), { body, method: 'PUT' }))
 }
 
-export function deleteNote(id: number): Promise<void> {
-  return apiRequest<void>(notePath(id), { method: 'DELETE' })
+export async function deleteNote(id: number): Promise<void> {
+  return checkedIdentifiers(apiRequest<void>(notePath(id), { method: 'DELETE' }))
 }
 
-export function listTrash(signal?: AbortSignal): Promise<TrashNote[]> {
-  return apiRequest<TrashNote[]>('/api/notes/trash', { signal })
+export async function listTrash(signal?: AbortSignal): Promise<TrashNote[]> {
+  return checkedIdentifiers(apiRequest<TrashNote[]>('/api/notes/trash', { signal }))
 }
 
-export function restoreNote(id: number): Promise<Note> {
-  return apiRequest<Note>(notePath(id, '/restore'), { method: 'POST' })
+export async function restoreNote(id: number): Promise<Note> {
+  return checkedIdentifiers(apiRequest<Note>(notePath(id, '/restore'), { method: 'POST' }))
 }
