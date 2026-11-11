@@ -94,7 +94,7 @@ class ReviewSessionServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void AT22_limitsSessionToConfiguredFiftyItems() {
+    void AT22_limitsAheadCandidatesAndLexemeLoadToConfiguredFiftyItems() {
         long user = user();
         List<Long> ids = new ArrayList<>();
         for (int index = 0; index < 60; index++) {
@@ -103,12 +103,19 @@ class ReviewSessionServiceIntegrationTest extends AbstractIntegrationTest {
             seed(user, id, NOW.minusSeconds(60L * (60 - index)));
         }
 
-        var result = reviews.start(user, false);
+        sqlCapture.start();
+        var result = reviews.start(user, true);
+        List<String> statements = sqlCapture.stop();
 
         assertThat(result.created()).isTrue();
         assertThat(result.session().items()).hasSize(50);
         assertThat(result.session().items().get(0).lexemeId()).isEqualTo(ids.get(0));
         assertThat(result.session().items().get(49).lexemeId()).isEqualTo(ids.get(49));
+        List<String> candidateQueries = statements.stream()
+                .filter(sql -> sql.startsWith("select p.target_id from learning.user_progress p join learning.lexemes l"))
+                .toList();
+        assertThat(candidateQueries).hasSize(1);
+        assertThat(candidateQueries.get(0)).contains("limit ?");
     }
 
     @Test

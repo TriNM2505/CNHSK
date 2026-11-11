@@ -267,7 +267,7 @@ Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, 
 
 1. **Q-T14-01 — Thứ tự lịch ôn:** các mục sắp `next_review_at ASC, target_id ASC`; mục cùng hạn có thứ tự ổn định theo `target_id`.
 2. **Q-T14-02 — Tạo lượt đồng thời:** trong transaction lấy `pg_advisory_xact_lock(hashtextextended('review:start:' || userId, 0))` trước khi tìm lượt `DUE_REVIEW` còn hiệu lực. Hai yêu cầu đồng thời chỉ tạo một attempt; bên tạo nhận 201, bên còn lại nhận 200 cùng sessionId.
-3. **Q-T14-03 — Mục mồ côi:** bỏ qua schedule không còn lexeme, ghi WARN chỉ gồm `userId` và `targetId`; không rollback và không tự tạo schedule. Summary dùng inner join lexeme; chọn session dùng left join để nhận diện, cảnh báo và loại mục mồ côi trước khi phát. Kết quả hiệu dụng chỉ gồm lexeme tồn tại.
+3. **Q-T14-03 — Mục mồ côi:** bỏ qua schedule không còn lexeme; không rollback và không tự tạo schedule. Summary và truy vấn ứng viên đều dùng inner join `learning.lexemes`, nên mục mồ côi bị loại ngay ở DB trước khi nạp lexeme. Không cần truy vấn kiểm tra riêng hoặc WARN theo từng mục.
 4. **Q-T14-04 — Hiệu năng:** NFR-P04 đo 50 mục WORD bằng PostgreSQL/Testcontainers, một lượt làm nóng và 10 mẫu; p95 **153 ms**, dưới 500 ms. SELECT thực đo mỗi mẫu **105–108**; `ChoiceItemFactory` không bị sửa.
 5. **Q-T14-05 — Chọn mục:** khi có lượt đang làm thì trả lại lượt đó, bỏ qua `ahead`. Nếu không, `ahead=false` chỉ lấy mục quá hạn; `ahead=true` lấy quá hạn trước theo hạn cũ nhất, rồi mục chưa đến hạn theo `next_review_at` tăng dần, tổng tối đa 50.
 6. `ReviewHandler` xử lý đồng bộ trong transaction trả lời; lỗi được ném lại để rollback. Thẻ nhận AGAIN/HARD/GOOD/EASY trực tiếp và chỉ cập nhật FSRS; câu chọn đúng/sai nhận GOOD/AGAIN, cập nhật FSRS và minh chứng mastery cùng transaction; bỏ qua không cập nhật FSRS hay minh chứng. Mục không có schedule bị bỏ qua và cảnh báo.
@@ -280,3 +280,13 @@ Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, 
 - Full `mvnw -B verify`: **BUILD SUCCESS**, **4.244 test**, 0 failure, 0 error, 0 skipped, exit 0.
 - JaCoCo LINE từ execution data của chính lượt full verify: **96,68%** — **11.965/12.376 dòng** (411 missed); coverage check đạt.
 - Trong full verify, NFR-P04 đo lại p95 **153 ms** cho 50 mục WORD, **105–108 SELECT/mẫu**; không sửa `ChoiceItemFactory`.
+
+### PR #139 — Fix vòng 1
+
+- Prompt của `MEANING_CHOICE` và `CHAR_MEANING_CHOICE` chỉ chứa `text`; các trường gợi ý đáp án là null và `examples` rỗng. Prompt flashcard vẫn có `text` và `meaning`. `ReviewControllerIntegrationTest` kiểm nội dung JSON của POST; các assertion này sẽ thất bại với cách dựng prompt chung trước fix vì câu chọn bị lộ `meaning`, pinyin, sinoViet, audio và examples.
+- Truy vấn ứng viên dùng inner join với `learning.lexemes`, `LIMIT session-max-items`, rồi chỉ nạp các ID đã giới hạn. Bài test 60 mục với `ahead=true` xác nhận tối đa 50 item và SQL có JOIN + LIMIT. Bỏ kiểm tra orphan trùng lặp và WARN từng dòng vì join đã lọc mục mồ côi.
+- Xóa record `NothingDue` không sử dụng.
+- Targeted `ReviewSessionServiceIntegrationTest,ReviewControllerIntegrationTest`: **9 test, 0 failure, 0 error, 0 skipped**, exit 0.
+- Regression practice/review/mastery: **822 test, 0 failure, 0 error, 0 skipped**, exit 0.
+- NFR-P04 50 mục WORD: p95 **240 ms** trong lượt đo riêng; **107–109 SELECT/mẫu**. Trong full verify, p95 **130 ms**, **105–107 SELECT/mẫu**; cả hai dưới ngưỡng 500 ms.
+- Full `mvnw -B verify`: **BUILD SUCCESS**, **4.245 test**, 0 failure, 0 error, 0 skipped, exit 0. JaCoCo LINE từ lượt này: **96,71%** — **11.955/12.362 dòng** (407 missed); coverage check đạt.

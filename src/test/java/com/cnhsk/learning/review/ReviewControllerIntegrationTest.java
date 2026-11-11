@@ -63,7 +63,7 @@ class ReviewControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     void dueReviewSessionUsesContractStatusesAndResumesTheSameSession() throws Exception {
         long lexeme = jdbc.queryForObject("INSERT INTO learning.lexemes(kind,text,meaning_vi) "
-                + "VALUES ('GRAMMAR',?, 'tự soạn') RETURNING id", Long.class, "grammar-" + UUID.randomUUID());
+                + "VALUES ('GRAMMAR',?, 'fixture grammar meaning') RETURNING id", Long.class, "grammar-" + UUID.randomUUID());
         jdbc.update("INSERT INTO learning.user_progress(user_id,target_type,target_id,stability,difficulty,"
                         + "review_count,lapse_count,last_seen_at,next_review_at) VALUES (?,'LEXEME',?,1,5,0,0,?,?)",
                 learner, lexeme, java.sql.Timestamp.from(NOW.minusSeconds(86_400)),
@@ -73,6 +73,8 @@ class ReviewControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isCreated()).andExpect(jsonPath("$.source").value("DUE_REVIEW"))
                 .andExpect(jsonPath("$.items[0].type").value("FLASHCARD_RATING"))
+                .andExpect(jsonPath("$.items[0].prompt.text").isNotEmpty())
+                .andExpect(jsonPath("$.items[0].prompt.meaning").value("fixture grammar meaning"))
                 .andReturn();
         long sessionId = com.fasterxml.jackson.databind.json.JsonMapper.builder().build()
                 .readTree(created.getResponse().getContentAsString()).path("sessionId").asLong();
@@ -80,6 +82,64 @@ class ReviewControllerIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(post("/api/reviews/sessions").header("Authorization", bearer("LEARNER"))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"ahead\":true}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.sessionId").value(sessionId));
+    }
+
+    @Test
+    void choicePromptDoesNotRevealAnswerInReviewSessionJson() throws Exception {
+        String fixtureId = UUID.randomUUID().toString();
+        String text = "review-choice-" + fixtureId;
+        String meaning = "fixture target meaning " + fixtureId;
+        long target = jdbc.queryForObject("INSERT INTO learning.lexemes(kind,text,pinyin,sino_viet,meaning_vi,"
+                        + "audio_url,extra) VALUES ('WORD',?,?,?,?,?,?::jsonb) RETURNING id", Long.class,
+                text, "fixture pinyin", "fixture sino viet", meaning, "https://fixture.invalid/audio.mp3",
+                "{\"examples\":[{\"cn\":\"fixture example\",\"pinyin\":\"fixture\",\"vi\":\"fixture translation\"}]}");
+        word("fixture-distractor-a-" + fixtureId, "fixture meaning a " + fixtureId);
+        word("fixture-distractor-b-" + fixtureId, "fixture meaning b " + fixtureId);
+        word("fixture-distractor-c-" + fixtureId, "fixture meaning c " + fixtureId);
+        String charText = "复习字" + fixtureId.substring(0, 8);
+        long charTarget = jdbc.queryForObject("INSERT INTO learning.lexemes(kind,text,pinyin,sino_viet,meaning_vi,"
+                        + "audio_url,extra) VALUES ('CHAR',?,?,?,?,?,?::jsonb) RETURNING id", Long.class,
+                charText, "fixture char pinyin", "fixture char sino", "fixture char meaning " + fixtureId,
+                "https://fixture.invalid/char-audio.mp3",
+                "{\"examples\":[{\"cn\":\"char fixture example\",\"pinyin\":\"fixture\",\"vi\":\"char translation\"}]}");
+        lexeme("CHAR", "fixture-char-a-" + fixtureId, "fixture char meaning a " + fixtureId);
+        lexeme("CHAR", "fixture-char-b-" + fixtureId, "fixture char meaning b " + fixtureId);
+        lexeme("CHAR", "fixture-char-c-" + fixtureId, "fixture char meaning c " + fixtureId);
+        jdbc.update("INSERT INTO learning.user_progress(user_id,target_type,target_id,stability,difficulty,"
+                        + "review_count,lapse_count,last_seen_at,next_review_at) VALUES (?,'LEXEME',?,1,5,0,0,?,?)",
+                learner, target, java.sql.Timestamp.from(NOW.minusSeconds(86_400)),
+                java.sql.Timestamp.from(NOW.minusSeconds(60)));
+        jdbc.update("INSERT INTO learning.user_progress(user_id,target_type,target_id,stability,difficulty,"
+                        + "review_count,lapse_count,last_seen_at,next_review_at) VALUES (?,'LEXEME',?,1,5,0,0,?,?)",
+                learner, charTarget, java.sql.Timestamp.from(NOW.minusSeconds(86_400)),
+                java.sql.Timestamp.from(NOW.minusSeconds(30)));
+
+        mvc.perform(post("/api/reviews/sessions").header("Authorization", bearer("LEARNER"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.items[0].type").value("MEANING_CHOICE"))
+                .andExpect(jsonPath("$.items[0].prompt.text").value(text))
+                .andExpect(jsonPath("$.items[0].prompt.pinyin").doesNotExist())
+                .andExpect(jsonPath("$.items[0].prompt.sinoViet").doesNotExist())
+                .andExpect(jsonPath("$.items[0].prompt.meaning").doesNotExist())
+                .andExpect(jsonPath("$.items[0].prompt.audioUrl").doesNotExist())
+                .andExpect(jsonPath("$.items[0].prompt.examples.length()").value(0))
+                .andExpect(jsonPath("$.items[1].type").value("CHAR_MEANING_CHOICE"))
+                .andExpect(jsonPath("$.items[1].prompt.text").value(charText))
+                .andExpect(jsonPath("$.items[1].prompt.pinyin").doesNotExist())
+                .andExpect(jsonPath("$.items[1].prompt.sinoViet").doesNotExist())
+                .andExpect(jsonPath("$.items[1].prompt.meaning").doesNotExist())
+                .andExpect(jsonPath("$.items[1].prompt.audioUrl").doesNotExist())
+                .andExpect(jsonPath("$.items[1].prompt.examples.length()").value(0));
+    }
+
+    private long word(String text, String meaning) {
+        return lexeme("WORD", text, meaning);
+    }
+
+    private long lexeme(String kind, String text, String meaning) {
+        return jdbc.queryForObject("INSERT INTO learning.lexemes(kind,text,meaning_vi) VALUES (?, ?, ?) RETURNING id",
+                Long.class, kind, text, meaning);
     }
 
     private long user() {
