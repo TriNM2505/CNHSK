@@ -184,13 +184,13 @@ class PracticeApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(session.source()).isEqualTo(PracticeSource.DUE_REVIEW);
         assertThat(session.items()).singleElement().extracting(item -> item.type().name())
                 .isEqualTo("FLASHCARD_RATING");
-        var response = api.answer(owner, session.sessionId(), answer(1, "rating-input"));
+        var response = api.answer(owner, session.sessionId(), answer(1, "GOOD"));
         assertThat(response.recorded()).isTrue();
         assertThat(response.correct()).isNull();
         assertThat(response.counted()).isNull();
         var saved = items.findByAttemptIdOrderByOrderIndexAsc(session.sessionId()).get(0);
         assertThat(saved.getItemType()).isEqualTo("FLASHCARD_RATING");
-        assertThat(saved.getAnswer()).isEqualTo("rating-input");
+        assertThat(saved.getAnswer()).isEqualTo("GOOD");
         assertThat(saved.getCorrect()).isNull();
 
         var result = api.finish(owner, session.sessionId(), List.of());

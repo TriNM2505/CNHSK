@@ -262,3 +262,21 @@ Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, 
 - Regression practice/review/FSRS/mastery/frontier/recommendation: **531 test, 0 failure, 0 error, 0 skipped**, exit 0.
 - Full `mvnw -B verify`: **BUILD SUCCESS**, **4.229 test**, 0 failure, 0 error, 0 skipped, exit 0; Testcontainers/PostgreSQL chạy được.
 - JaCoCo LINE từ execution data của chính lượt full verify: **96,72%** — **11.825/12.226 dòng** (401 missed); coverage check đạt.
+
+## 2026-11-11 — Chốt và nghiệm thu 011/T-14
+
+1. **Q-T14-01 — Thứ tự lịch ôn:** các mục sắp `next_review_at ASC, target_id ASC`; mục cùng hạn có thứ tự ổn định theo `target_id`.
+2. **Q-T14-02 — Tạo lượt đồng thời:** trong transaction lấy `pg_advisory_xact_lock(hashtextextended('review:start:' || userId, 0))` trước khi tìm lượt `DUE_REVIEW` còn hiệu lực. Hai yêu cầu đồng thời chỉ tạo một attempt; bên tạo nhận 201, bên còn lại nhận 200 cùng sessionId.
+3. **Q-T14-03 — Mục mồ côi:** bỏ qua schedule không còn lexeme, ghi WARN chỉ gồm `userId` và `targetId`; không rollback và không tự tạo schedule. Summary dùng inner join lexeme; chọn session dùng left join để nhận diện, cảnh báo và loại mục mồ côi trước khi phát. Kết quả hiệu dụng chỉ gồm lexeme tồn tại.
+4. **Q-T14-04 — Hiệu năng:** NFR-P04 đo 50 mục WORD bằng PostgreSQL/Testcontainers, một lượt làm nóng và 10 mẫu; p95 **153 ms**, dưới 500 ms. SELECT thực đo mỗi mẫu **105–108**; `ChoiceItemFactory` không bị sửa.
+5. **Q-T14-05 — Chọn mục:** khi có lượt đang làm thì trả lại lượt đó, bỏ qua `ahead`. Nếu không, `ahead=false` chỉ lấy mục quá hạn; `ahead=true` lấy quá hạn trước theo hạn cũ nhất, rồi mục chưa đến hạn theo `next_review_at` tăng dần, tổng tối đa 50.
+6. `ReviewHandler` xử lý đồng bộ trong transaction trả lời; lỗi được ném lại để rollback. Thẻ nhận AGAIN/HARD/GOOD/EASY trực tiếp và chỉ cập nhật FSRS; câu chọn đúng/sai nhận GOOD/AGAIN, cập nhật FSRS và minh chứng mastery cùng transaction; bỏ qua không cập nhật FSRS hay minh chứng. Mục không có schedule bị bỏ qua và cảnh báo.
+7. Persistence làm tròn stability scale 3 và difficulty scale 2 bằng HALF_UP; dùng `Clock`, không ghi cột mastery của LEXEME. Method khóa `LexemeScheduleRepository.lockByUserIdAndTargetId` dùng PESSIMISTIC_WRITE; hai trả lời đồng thời cùng lexeme tăng `review_count` đủ hai lần.
+
+### Kết quả gate T-14
+
+- Targeted T-14: **31 test, 0 failure, 0 error, 0 skipped**, exit 0; PostgreSQL/Testcontainers, endpoint, rollback, khóa đồng thời và NFR-P04 đều PASS.
+- Regression Practice/mastery/review: **372 test, 0 failure, 0 error, 0 skipped**, exit 0. Regression gồm Practice 003–008, ReviewListener/FSRS và mastery T-07…T-10.
+- Full `mvnw -B verify`: **BUILD SUCCESS**, **4.244 test**, 0 failure, 0 error, 0 skipped, exit 0.
+- JaCoCo LINE từ execution data của chính lượt full verify: **96,68%** — **11.965/12.376 dòng** (411 missed); coverage check đạt.
+- Trong full verify, NFR-P04 đo lại p95 **153 ms** cho 50 mục WORD, **105–108 SELECT/mẫu**; không sửa `ChoiceItemFactory`.
