@@ -92,6 +92,41 @@ class PracticeApiTest {
     }
 
     @Test
+    void FR002_newPracticeEnumsRoundTripThroughTheApiBoundary() throws Exception {
+        when(service.start(any())).thenReturn(engineView(false));
+        var rating = new PracticeApi.ServedItem(1, PracticeApi.ItemType.FLASHCARD_RATING,
+                PracticeApi.Skill.VOCAB, 71L, new PracticeApi.Prompt("字词", null, null, "nghĩa", null,
+                null, null, null, "WORD"), null, null, null, null, new PracticeApi.Rules(0, 0, false));
+        api.start(new PracticeApi.StartPracticeCommand(71, PracticeApi.PracticeSource.DUE_REVIEW,
+                5L, null, List.of(rating), List.of(), null, Map.of()));
+        var captured = ArgumentCaptor.forClass(PracticeService.StartPracticeCommand.class);
+        verify(service).start(captured.capture());
+
+        assertThat(captured.getValue().source().name()).isEqualTo("DUE_REVIEW");
+        assertThat(captured.getValue().items()).singleElement()
+                .extracting(item -> item.type().name()).isEqualTo("FLASHCARD_RATING");
+        assertThat(mapper.writeValueAsString(rating)).contains("\"type\":\"FLASHCARD_RATING\"");
+
+        var prompt = new com.cnhsk.learning.practice.ServedItem.Prompt(
+                "字词", null, null, "nghĩa", null, null, null, null, "WORD");
+        var engineRating = new com.cnhsk.learning.practice.ServedItemView(
+                1, com.cnhsk.learning.practice.ItemType.FLASHCARD_RATING,
+                com.cnhsk.learning.practice.Skill.VOCAB, 71L, prompt, null,
+                new com.cnhsk.learning.practice.ServedItem.Rules(0, 0, false));
+        when(service.view(71, 42)).thenReturn(new PracticeService.SessionView(42,
+                com.cnhsk.learning.practice.PracticeSource.DUE_REVIEW, 5L,
+                com.cnhsk.learning.practice.FeedbackMode.IMMEDIATE, "IN_PROGRESS", NOW, NOW.plus(Duration.ofHours(2)),
+                List.of(engineRating), List.of(), Map.of()));
+        var restored = api.view(71, 42);
+        assertThat(restored.source()).isEqualTo(PracticeApi.PracticeSource.DUE_REVIEW);
+        assertThat(restored.items()).singleElement()
+                .extracting(item -> item.type()).isEqualTo(PracticeApi.ItemType.FLASHCARD_RATING);
+        var json = mapper.readTree(mapper.writeValueAsString(restored));
+        assertThat(json.path("source").asText()).isEqualTo("DUE_REVIEW");
+        assertThat(json.path("items").get(0).path("type").asText()).isEqualTo("FLASHCARD_RATING");
+    }
+
+    @Test
     void FR003_boundaryPreservesQuestionIdWithoutExposingItInViews() {
         when(service.start(any())).thenReturn(engineView(true));
         var question = new PracticeApi.ServedItem(1, PracticeApi.ItemType.QUESTION_CHOICE,

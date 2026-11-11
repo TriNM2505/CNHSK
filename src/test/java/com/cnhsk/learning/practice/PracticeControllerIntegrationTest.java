@@ -114,6 +114,13 @@ class PracticeControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void FR002_activeEndpointParsesDueReviewSource() throws Exception {
+        mvc.perform(get("/api/practice/sessions/active").param("source", "DUE_REVIEW")
+                        .header("Authorization", bearer(owner, "LEARNER")))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void FR010_activeWithoutRefIdSearchesAcrossRefsAndBreaksTiesById() throws Exception {
         long first = start(PracticeSource.TOPIC_STUDY, 1L).sessionId();
         long latest = start(PracticeSource.TOPIC_STUDY, 2L).sessionId();

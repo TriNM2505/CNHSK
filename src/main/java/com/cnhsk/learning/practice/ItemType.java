@@ -12,7 +12,8 @@ public enum ItemType {
     WRITING_RESULT(false),
     LESSON_READ(false),
     GRAMMAR_CHOICE(true),
-    QUESTION_CHOICE(true);
+    QUESTION_CHOICE(true),
+    FLASHCARD_RATING(false);
 
     private final boolean gradable;
 

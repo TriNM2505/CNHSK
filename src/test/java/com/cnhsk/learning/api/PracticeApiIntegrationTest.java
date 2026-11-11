@@ -170,6 +170,36 @@ class PracticeApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void FR002_dueReviewFlashcardIsRecordedImmediatelyWithoutScoring() {
+        long lexemeId = jdbc.queryForObject(
+                "INSERT INTO learning.lexemes (kind, text, meaning_vi, hsk_level) "
+                        + "VALUES ('WORD', ?, 'Nghĩa tự soạn', 1) RETURNING id",
+                Long.class, "flashcard-fixture-" + UUID.randomUUID());
+        var flashcard = new ServedItem(1, ItemType.FLASHCARD_RATING, PracticeApi.Skill.VOCAB, lexemeId,
+                new PracticeApi.Prompt("字词", null, null, "nghĩa", null, null, null, null, "WORD"),
+                null, null, null, null, new PracticeApi.Rules(0, 0, false));
+        var session = api.start(new StartPracticeCommand(owner, PracticeSource.DUE_REVIEW, 5L, null,
+                List.of(flashcard), List.of(), null, Map.of()));
+
+        assertThat(session.source()).isEqualTo(PracticeSource.DUE_REVIEW);
+        assertThat(session.items()).singleElement().extracting(item -> item.type().name())
+                .isEqualTo("FLASHCARD_RATING");
+        var response = api.answer(owner, session.sessionId(), answer(1, "rating-input"));
+        assertThat(response.recorded()).isTrue();
+        assertThat(response.correct()).isNull();
+        assertThat(response.counted()).isNull();
+        var saved = items.findByAttemptIdOrderByOrderIndexAsc(session.sessionId()).get(0);
+        assertThat(saved.getItemType()).isEqualTo("FLASHCARD_RATING");
+        assertThat(saved.getAnswer()).isEqualTo("rating-input");
+        assertThat(saved.getCorrect()).isNull();
+
+        var result = api.finish(owner, session.sessionId(), List.of());
+        assertThat(result.score()).isNull();
+        assertThat(result.maxScore()).isNull();
+        assertThat(result.percent()).isNull();
+    }
+
+    @Test
     void FR012_immediateAnswerIsGradedByTheEngineAndCannotBeSubmittedTwice() {
         long session = start(PracticeSource.TOPIC_PRACTICE, 1).sessionId();
         var result = api.answer(owner, session, answer(1, "B"));

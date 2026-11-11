@@ -46,8 +46,8 @@ components:
         requiredWords: { type: integer }
     PracticeSource:
       type: string
-      description: Spec sau thêm giá trị (004 GRAMMAR_LESSON, 005 PRON_STAGE, 006 CHAR_RECOGNITION/CHAR_WRITING/WRITING_CHALLENGE, 007 GAME_ROUND, 012 MOCK_EXAM/PLACEMENT/TARGETED_PRACTICE)
-      enum: [TOPIC_STUDY, TOPIC_PRACTICE, TOPIC_TEST, GRAMMAR_LESSON, PRON_STAGE, CHAR_RECOGNITION, CHAR_WRITING, WRITING_CHALLENGE, GAME_ROUND, MOCK_EXAM, PLACEMENT, TARGETED_PRACTICE]
+      description: Spec sau thêm giá trị (004 GRAMMAR_LESSON, 005 PRON_STAGE, 006 CHAR_RECOGNITION/CHAR_WRITING/WRITING_CHALLENGE, 007 GAME_ROUND, 011 DUE_REVIEW, 012 MOCK_EXAM/PLACEMENT/TARGETED_PRACTICE)
+      enum: [TOPIC_STUDY, TOPIC_PRACTICE, TOPIC_TEST, GRAMMAR_LESSON, PRON_STAGE, CHAR_RECOGNITION, CHAR_WRITING, WRITING_CHALLENGE, GAME_ROUND, MOCK_EXAM, PLACEMENT, TARGETED_PRACTICE, DUE_REVIEW]
     FeedbackMode:
       type: string
       enum: [IMMEDIATE, DEFERRED, RECORD]
@@ -69,7 +69,7 @@ components:
       required: ['no', type, skill, prompt, rules]
       properties:
         no: { type: integer, minimum: 1 }
-        type: { type: string, example: MEANING_CHOICE }
+        type: { type: string, description: Spec sau bổ sung loại item (004 LESSON_READ/GRAMMAR_CHOICE; 005 PRON_CHOICE; 006 CHAR_MEANING_CHOICE/AUDIO_CHAR_CHOICE/WRITING_RESULT; 008 các loại game; 011 FLASHCARD_RATING; 012 QUESTION_CHOICE)., example: MEANING_CHOICE }
         skill: { $ref: '#/components/schemas/Skill' }
         lexemeId: { type: [integer, 'null'], format: int64 }
         prompt:

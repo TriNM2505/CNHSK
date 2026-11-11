@@ -247,3 +247,18 @@ Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, 
 - Regression mastery/FSRS liên quan T-06/T-07/T-08/T-09/T-10/T-11/T-13: **139 test, 0 failure, 0 error, 0 skipped**, exit 0.
 - Full `verify`: **3.817 test, 0 error, 0 skipped, 1 failure**, exit 1. Lỗi duy nhất `QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries`: **31.459 ms** so với ngưỡng **30.000 ms**; thuộc ngoại lệ NFR_P04 đã được leader chấp thuận. Không sửa hoặc nới assertion.
 - JaCoCo LINE từ execution data của chính lượt full verify: **96,72%** — **10.992/11.365 dòng** (373 missed). Báo cáo được tạo bằng execution data của lượt này sau khi Surefire hoàn tất toàn bộ suite.
+
+## 2026-11-11 — Chốt và nghiệm thu 011/T-12
+
+1. **Q-T12-01 — Enum/API contract:** `PracticeSource.DUE_REVIEW` được thêm vào enum nguồn và contract. `ServedItemView.type` tiếp tục là chuỗi mở; không đóng schema bằng enum `ItemType`. `FLASHCARD_RATING` được nêu trong description của trường `type`.
+2. **Q-T12-02 — study_events:** DUE_REVIEW tiếp tục ghi `event_type='STUDY'`; chỉ `GAME_ROUND` dùng `GAME`. Không sửa `PracticeService` hoặc thêm migration.
+3. `DUE_REVIEW` dùng đúng `(PRACTICE, IMMEDIATE, 2 giờ, allowSkip=true, maxScoreFromServed=false)`; `FLASHCARD_RATING` có `gradable=false`. Giá trị cũ và thứ tự cũ được giữ nguyên.
+4. T-12 không triển khai rating/FSRS/ReviewHandler. Các giá trị AGAIN/HARD/GOOD/EASY và luồng review thuộc T-14. Test xác nhận enum đồng bộ/round-trip, flashcard được ghi nhận nhưng không chấm điểm, và nguồn cũ giữ hành vi.
+5. Không cần migration: `attempts.ref_type` và item type không có CHECK ràng buộc các giá trị này.
+
+### Kết quả gate T-12
+
+- Targeted (`PracticeCoreTest,PracticeApiTest,PracticeApiIntegrationTest,PracticeControllerIntegrationTest,PracticeServiceTest`): **136 test, 0 failure, 0 error, 0 skipped**, exit 0. Fixture tích hợp tạo lexeme giả trong DB Testcontainers để thỏa FK; không thay assertion hay production code.
+- Regression practice/review/FSRS/mastery/frontier/recommendation: **531 test, 0 failure, 0 error, 0 skipped**, exit 0.
+- Full `mvnw -B verify`: **BUILD SUCCESS**, **4.229 test**, 0 failure, 0 error, 0 skipped, exit 0; Testcontainers/PostgreSQL chạy được.
+- JaCoCo LINE từ execution data của chính lượt full verify: **96,72%** — **11.825/12.226 dòng** (401 missed); coverage check đạt.
