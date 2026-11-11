@@ -35,7 +35,8 @@ class PracticeCoreTest {
             "GAME_ROUND, GAME, IMMEDIATE, DYNAMIC, false, true",
             "MOCK_EXAM, EXAM, DEFERRED, 86400, true, false",
             "PLACEMENT, EXAM, DEFERRED, 7200, true, false",
-            "TARGETED_PRACTICE, PRACTICE, IMMEDIATE, 7200, true, false"
+            "TARGETED_PRACTICE, PRACTICE, IMMEDIATE, 7200, true, false",
+            "DUE_REVIEW, PRACTICE, IMMEDIATE, 7200, true, false"
     }, nullValues = "DYNAMIC")
     void FR002_allSourcesKeepSpecifiedLifetimeFeedbackAndScoringPolicy(
             PracticeSource source, AttemptKind kind, FeedbackMode feedback, Long ttlSeconds,
@@ -56,18 +57,23 @@ class PracticeCoreTest {
         assertContractEnum(contract, "PracticeSource", PracticeSource.values());
         assertContractEnum(contract, "FeedbackMode", FeedbackMode.values());
         assertContractEnum(contract, "Skill", Skill.values());
+        var servedType = (io.swagger.v3.oas.models.media.Schema<?>) contract.getComponents().getSchemas()
+                .get("ServedItemView").getProperties().get("type");
+        assertThat(servedType.getDescription()).contains("FLASHCARD_RATING");
     }
 
     @ParameterizedTest
     @EnumSource(ItemType.class)
     void FR007_studyCardsCannotBeGradedWhileQuestionTypesCan(ItemType type) {
-        assertThat(type.gradable()).isEqualTo(!Set.of(ItemType.STUDY_CARD, ItemType.WRITING_RESULT, ItemType.LESSON_READ)
+        assertThat(type.gradable()).isEqualTo(!Set.of(ItemType.STUDY_CARD, ItemType.WRITING_RESULT, ItemType.LESSON_READ,
+                ItemType.FLASHCARD_RATING)
                 .contains(type));
     }
 
     @Test
     void FR002_questionChoiceIsTheOnlyQuestionBoundItemType() {
         assertThat(ItemType.QUESTION_CHOICE.gradable()).isTrue();
+        assertThat(ItemType.FLASHCARD_RATING.gradable()).isFalse();
     }
 
     @Test

@@ -14,7 +14,8 @@ public enum PracticeSource {
     GAME_ROUND(AttemptKind.GAME, FeedbackMode.IMMEDIATE, null, false, true),
     MOCK_EXAM(AttemptKind.EXAM, FeedbackMode.DEFERRED, Duration.ofHours(24), true, false),
     PLACEMENT(AttemptKind.EXAM, FeedbackMode.DEFERRED, Duration.ofHours(2), true, false),
-    TARGETED_PRACTICE(AttemptKind.PRACTICE, FeedbackMode.IMMEDIATE, Duration.ofHours(2), true, false);
+    TARGETED_PRACTICE(AttemptKind.PRACTICE, FeedbackMode.IMMEDIATE, Duration.ofHours(2), true, false),
+    DUE_REVIEW(AttemptKind.PRACTICE, FeedbackMode.IMMEDIATE, Duration.ofHours(2), true, false);
 
     private final AttemptKind kind;
     private final FeedbackMode feedback;
