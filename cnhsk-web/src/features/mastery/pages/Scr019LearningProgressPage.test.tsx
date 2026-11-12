@@ -77,6 +77,24 @@ const testDetail: MasteryNodeDetail = {
       score: 0,
       weight: 0.5,
     },
+    {
+      answeredAt: '2026-11-07T10:00:00Z',
+      source: 'GRADED_PRACTICE',
+      context: 'GRADED',
+      form: 'MCQ3',
+      role: 'SECONDARY',
+      score: 100,
+      weight: 0.6,
+    },
+    {
+      answeredAt: '2026-11-06T10:00:00Z',
+      source: 'PRACTICE',
+      context: 'PRACTICE',
+      form: 'BINARY',
+      role: 'ERROR',
+      score: 0,
+      weight: 0.25,
+    },
   ],
   approvedQuestionCount: 2,
 }
@@ -147,8 +165,9 @@ describe('SCR-019 Learning Progress (FR-024, AT-24)', () => {
 
     const frontier = container.querySelector<HTMLButtonElement>('[data-frontier="true"]')
     expect(frontier).not.toBeNull()
-    expect(frontier).toHaveClass('ring-2')
-    expect(frontier).toHaveAttribute('data-state')
+    expect(frontier).toHaveClass('border-2', 'border-brand-600')
+    expect(frontier).toHaveClass('focus-visible:ring-2', 'focus-visible:ring-focus')
+    expect(frontier).toHaveAttribute('data-frontier', 'true')
     expect(getKnowledgeTreeMock).toHaveBeenCalledTimes(1)
     expect(getKnowledgeTreeMock).toHaveBeenCalledWith(undefined, expect.any(AbortSignal))
   })
@@ -180,11 +199,23 @@ describe('SCR-019 Learning Progress (FR-024, AT-24)', () => {
     const evidenceRows = within(detailPanel)
       .getByRole('list', { name: 'Danh sách minh chứng' })
       .querySelectorAll('li')
+    const labels = [
+      'TOPIC_TEST · Bài kiểm tra · Trắc nghiệm 4 lựa chọn · Chính',
+      'MOCK_EXAM · Bài thi · Trả lời mở · Chính',
+      'GRADED_PRACTICE · Bài có chấm điểm · Trắc nghiệm 3 lựa chọn · Phụ',
+      'PRACTICE · Luyện tập · Đúng/Sai · Lỗi thường gặp',
+    ]
     detail.evidence.forEach((item, index) => {
       expect(evidenceRows[index]?.textContent).toContain(
-        `${item.source} · ${item.context} · ${item.form} · ${item.role}`,
+        labels[index],
+      )
+      expect(evidenceRows[index]?.querySelector('time')).toHaveAttribute(
+        'dateTime',
+        item.answeredAt,
       )
     })
+    expect(evidenceRows[0]?.textContent).toContain('17:00 9 thg 11, 2026')
+    expect(evidenceRows[1]?.textContent).toContain('17:00 8 thg 11, 2026')
   })
 
   it('shows the practice action disabled with an explanation when no approved questions exist', async () => {
@@ -229,6 +260,23 @@ describe('SCR-019 Learning Progress (FR-024, AT-24)', () => {
         'Bạn chưa có minh chứng — hãy làm bài kiểm tra trình độ hoặc luyện một chủ đề',
       ),
     ).not.toBeInTheDocument()
+  })
+
+  it('fills a KID missing from the mastery response as notyet', async () => {
+    const masteryWithoutNa: MasteryTree = {
+      nodes: testMasteryNodes.filter(({ kid }) => kid !== 'NA1-101'),
+    }
+    setSuccessfulResponses(testKnowledgeTree, masteryWithoutNa)
+
+    const { container } = renderPage()
+
+    const naNode = await waitFor(() => {
+      const node = container.querySelector<HTMLButtonElement>('button[data-kid="NA1-101"]')
+      expect(node).not.toBeNull()
+      return node!
+    })
+    expect(naNode).toHaveAttribute('data-state', 'notyet')
+    expect(naNode).toHaveTextContent('Chưa học')
   })
 
   it('shows a loading skeleton while the APIs are pending', async () => {
