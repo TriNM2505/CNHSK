@@ -18,7 +18,7 @@ Khối Ôn tập cho biết số mục đến hạn. Có mục đến hạn → 
 
 ## Ôn tập đến hạn
 
-Màn Ôn tập đến hạn có tiêu đề Ôn tập. Màn tự tải lượt ôn. Với câu chọn, chọn câu trả lời theo yêu cầu. Với thẻ, xem mặt trước → lật mặt sau → tự đánh giá bằng Quên, Khó, Được hoặc Dễ.
+Màn Ôn tập đến hạn có tiêu đề Ôn tập. Màn tự tải lượt ôn. Với câu chọn, chọn câu trả lời theo yêu cầu. Với thẻ, xem mặt trước → bấm Hiện đáp án → tự đánh giá bằng Quên, Khó, Được hoặc Dễ.
 
 Theo dõi số mục còn lại. Có thể Tạm dừng rồi quay lại lượt ôn. Khi chưa có mục đến hạn, màn hiện Chưa có mục đến hạn và nút Ôn trước.
 
@@ -28,4 +28,4 @@ Theo dõi số mục còn lại. Có thể Tạm dừng rồi quay lại lượt
 
 **Chưa có mục đến hạn có ôn được không?** Ở màn Ôn tập, bấm Ôn trước.
 
-**Tôi phải chọn mức nào sau khi lật thẻ?** Chọn Quên, Khó, Được hoặc Dễ theo mức nhớ của mình.
+**Tôi phải chọn mức nào sau khi hiện đáp án?** Chọn Quên, Khó, Được hoặc Dễ theo mức nhớ của mình.
