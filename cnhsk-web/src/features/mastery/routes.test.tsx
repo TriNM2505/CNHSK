@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { appRouteDefinitions, findKnownRoute } from '@/app/routeAccess'
 import { appRoutes } from '@/app/routes'
+import { screenRegistry } from '@/app/screenRegistry'
 import { getCurrentUser } from '@/features/auth/api/getCurrentUser'
 import type { CurrentUser, RoleCode } from '@/features/auth/types'
 import { ApiError } from '@/shared/api'
@@ -16,6 +17,7 @@ const routes = [
   { path: '/learn/review', scr: 'SCR-013' },
   { path: '/learn/progress', scr: 'SCR-019' },
 ] as const
+const fallbackRoutes = routes.filter(({ scr }) => scr !== 'SCR-019')
 const getCurrentUserMock = vi.mocked(getCurrentUser)
 
 function user(roles: RoleCode[]): CurrentUser {
@@ -55,12 +57,16 @@ describe('mastery route foundation (FR-001 FE, §12; AT-01 access only)', () => 
     },
   )
 
-  it.each(routes)('lets LEARNER open the existing fallback for $scr', async ({ path, scr }) => {
+  it.each(fallbackRoutes)('lets LEARNER open the existing fallback for $scr', async ({ path, scr }) => {
     getCurrentUserMock.mockResolvedValue(user(['LEARNER']))
     const router = renderRoute(path)
     expect(await screen.findByRole('heading', { name: `Màn ${scr} đang dựng` })).toBeVisible()
     expect(screen.getByRole('navigation', { name: 'Học tập' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe(path)
+  })
+
+  it('registers the SCR-019 learning progress page', () => {
+    expect(screenRegistry['SCR-019']).toBeDefined()
   })
 
   it.each(routes)(
@@ -91,7 +97,7 @@ describe('mastery route foundation (FR-001 FE, §12; AT-01 access only)', () => 
     expect(screen.queryByRole('heading', { name: `Màn ${scr} đang dựng` })).not.toBeInTheDocument()
   })
 
-  it.each(routes)('accepts multiple roles including LEARNER at $path', async ({ path, scr }) => {
+  it.each(fallbackRoutes)('accepts multiple roles including LEARNER at $path', async ({ path, scr }) => {
     getCurrentUserMock.mockResolvedValue(user(['ADMIN', 'LEARNER']))
     const router = renderRoute(path)
     expect(await screen.findByRole('heading', { name: `Màn ${scr} đang dựng` })).toBeVisible()

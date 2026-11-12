@@ -1,3 +1,5 @@
+import { createElement } from 'react'
+
 import type { PreviewEntry } from '@/app/preview/types'
 import type { ServedItemView, SessionView } from '@/features/practice/types'
 import type { KnowledgeDomain, KnowledgeTree } from '@/features/question-bank/types'
@@ -12,6 +14,7 @@ import type {
   Recommendation,
   ReviewSummary,
 } from './types'
+import { MasteryProgressView } from './components/MasteryProgressView'
 
 // Original demo content; domain codes stay unchanged while OQ-1 is open.
 const domainSamples: { domain: KnowledgeDomain; names: string[] }[] = [
@@ -253,4 +256,25 @@ export const reviewAheadSummaryPreview: ReviewSummary = {
 export const emptyReviewSummaryPreview: ReviewSummary = { dueCount: 0, nextDueAt: null }
 export const nothingDuePreview: NothingDue = { session: null, reason: 'NOTHING_DUE' }
 
-export const previews = [] satisfies readonly PreviewEntry[]
+const progressPreviewStates = ['ready', 'loading', 'empty', 'error'] as const
+
+export const previews = progressPreviewStates.map((state) => ({
+  fullFrame: true,
+  group: 'screen' as const,
+  id: `scr-019-${state}`,
+  render: () =>
+    createElement(MasteryProgressView, {
+      detail: state === 'ready' ? masteryNodeDetailsPreview[0] : undefined,
+      detailLoading: false,
+      isNewLearner: false,
+      knowledgeNodes: state === 'empty' ? [] : knowledgeTreePreview.nodes,
+      masteryNodes: masteryTreePreview.nodes,
+      onRetry: () => undefined,
+      onRetryDetail: () => undefined,
+      onSelectKid: () => undefined,
+      selectedKid: state === 'ready' ? masteryNodeDetailsPreview[0]!.kid : undefined,
+      state,
+    }),
+  scr: 'SCR-019',
+  title: `Tiến độ học tập — ${state}`,
+})) satisfies readonly PreviewEntry[]
