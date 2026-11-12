@@ -150,3 +150,61 @@ Quyết định có từ trước (leader, 2026-11-02): trợ lý dùng Claude, 
 - OQ-1: giá trị `cnhsk.ai.monthly-token-budget` (mặc định 2 000 000) — leader chỉnh theo ngân sách.
 - Kết quả bộ 20 câu kiểm thử (SC-002) — ghi vào đây trước demo.
 - Plan phase 7 cần sửa theo Q3, A5 — hỏi leader trước khi sửa.
+
+## 2026-11-13 — T-07: hợp đồng runtime và nghiệm thu backend Stub
+
+Base: `b8e812aae2aa15219c0e9203943a40d699a46cf1`, nhánh `spec/015-t07`. Allowlist leader duyệt: AssistantContractTest.java, AssistantController.java, questions.md, tasks.md. Không sửa FE, launcher của 011 hoặc YAML.
+
+### Q-T07-01 / Q-T07-02 — leader chốt
+
+- Viết AssistantContractTest trước, kế thừa AbstractIntegrationTest. So hai chiều path/method/status giữa YAML và /v3/api-docs; đối chiếu thêm RequestMappingHandlerMapping. Lần chạy trước sửa: 1 test fail có chủ đích; status mong đợi 200/401/403/422/429/503, runtime chỉ có 200. Path và method khớp.
+- Chỉ thêm annotation tài liệu vào AssistantController: Operation và ApiResponses. Không đổi xử lý request. Sau sửa, status khớp chính xác, không có status thừa nên không cần Hidden trên handler.
+- Giữ allowlist 4 file. Không sửa MasteryAcceptanceServer để nạp response cho StubClaudeClient. Stub rỗng trả ASSISTANT_UNAVAILABLE; leader đổi nghiệm thu trình duyệt sang 503, kèm body đúng và ca sai pageContext trả 422.
+- Phần code xong, chờ leader chạy Claude thật. Không đánh ✅ T-07. AT-12/SC-002 vẫn chờ bộ 20 câu trong docs/demo-data/assistant-eval.md trên máy leader; chưa có kết quả model thật.
+
+### Bằng chứng HTTP và giao diện local
+
+Dùng MasteryAcceptanceServer có sẵn, profile test, PostgreSQL/Redis/Mailpit Testcontainers, tài khoản learner fixture dùng một lần. Mật khẩu ngẫu nhiên truyền qua stdin, không ghi file. Không đặt khoá Claude và không gọi API model thật. Backend bind 127.0.0.1:8080; Vite bind 127.0.0.1:5173; Chrome headless dùng profile tạm.
+
+| Thao tác | Endpoint | Mong đợi / thực tế | Kết quả |
+|---|---|---|---|
+| Đăng nhập learner fixture bằng giao diện | POST /api/auth/login | 200 / 200 | Đăng nhập bằng cookie, không ép bearer |
+| SCR-010: mở panel, gửi câu hỏi cách dùng tự soạn | POST /api/assistant/ask | 503 / 503 ASSISTANT_UNAVAILABLE | Body có question, history = [], pageContext = SCR-010. Request có cookie và header CSRF; không ghi giá trị vào báo cáo. Hiện đúng “Trợ lý tạm thời chưa trả lời được, bạn thử lại sau” |
+| SCR-010: gửi câu thứ hai | POST /api/assistant/ask | 503 / 503 ASSISTANT_UNAVAILABLE | history gồm tin user trước, chỉ có role/text; một phần tử, không quá 10. pageContext vẫn SCR-010; hiện đúng thông báo |
+| Nạp CSRF bình thường trước fetch kiểm dữ liệu | GET /api/auth/csrf | 204 / 204 | Không ghi giá trị token |
+| Browser fetch: pageContext = ABC, question hợp lệ, history = [] | POST /api/assistant/ask | 422 / 422 VALIDATION_FAILED | Kiểm body vẫn có hiệu lực, không bị bỏ qua |
+| Mở Ôn tập, SCR-013, rồi mở panel | GET /learn/review | 200 / 200 | Panel Trợ lý hỗ trợ CNHSK vẫn hiển thị |
+
+Bằng chứng trên chỉ xác nhận luồng Stub theo chốt leader, không được tính là nghiệm thu câu trả lời Claude thật. Luồng 200 có stub được phủ bởi AssistantControllerIntegrationTest; hiển thị văn bản thuần và các trạng thái FE được phủ bởi Vitest AT-15. Ca 200 với Claude thật dành cho lượt chạy 20 câu của leader.
+
+Helper trình duyệt đã sửa cách nạp CSRF trước fetch và dùng thuộc tính status của Fetch API; không thay đổi ứng dụng để chiều helper. Lượt kiểm cuối cùng đạt. Dọn xong Java/Vite do task khởi động, 0/4 container launcher còn lại; giữ nguyên container local có từ trước.
+
+### Gate thực tế
+
+| Bước | Kết quả |
+|---|---|
+| npm ci | PASS; lockfile không đổi |
+| BE chọn lọc: AssistantContractTest, các Assistant*Test và HelpLibrary*Test | 49 test, 0 failure/error/skip |
+| FE assistant + Layouts.test.tsx, 2 worker | 69/69 PASS |
+| Shuffle FE chọn lọc, seed 17 / 104 / 2026 | Mỗi seed 69/69 PASS |
+| Full Vitest, minWorkers=2, maxWorkers=2 | 2409 PASS / 1 FAIL, tổng 2410; xem lỗi ngoài phạm vi dưới đây |
+| Chạy riêng Scr016PronunciationPage.test.tsx một lần | 30/30 PASS, không sửa test |
+| npm run lint | 0 lỗi, chỉ warning LevelBadge đã có |
+| npm run build | PASS |
+| Full mvnw.cmd -B verify, Java 17, DEBUG=false, Docker | 4247 test, 0 failure/error/skip; BUILD SUCCESS; 20:39 phút |
+| JaCoCo LINE | 96,7077% = 11955 / 12362 dòng; toàn bộ kiểm tra coverage đạt |
+| git diff --check / UTF-8 không BOM | PASS |
+
+Full Vitest lỗi ngoài T-07: `Scr016PronunciationPage.test.tsx > SCR-016 Pronunciation Practice > FR018_khôi phục lượt đã trả lời hết không suy ra lời giải câu cuối`. Nguyên văn lỗi: `TypeError: Cannot read properties of undefined (reading 'then')`, tại `src/shared/api/useApiQuery.ts:42:33`. Chạy riêng class một lần đạt 30/30; ghi nhận theo ngoại lệ test chập chờn ngoài task đã duyệt. Không gọi full Vitest là xanh hoàn toàn. Full Maven không dùng ngoại lệ môi trường nào.
+
+### Backlog schema — không sửa trong T-07
+
+Controller nhận RequestBody String nên /v3/api-docs mô tả request body là string; YAML mô tả object. Leader yêu cầu ghi backlog và giữ nguyên hành vi/chữ ký ở T-07.
+
+### Self-check
+
+- HR-02, BUS-06: không đưa mật khẩu, email fixture, cookie, token, khoá hoặc dữ liệu thật vào repo/PR; không gọi Claude thật.
+- HR-08: câu kiểm tự soạn; không sử dụng đề HSK hoặc PDF nội bộ.
+- AC-01: contract giữ nguyên; chỉ bổ sung tài liệu runtime và test đối chiếu.
+- AC-03, AC-05: không đổi ranh giới module, schema hay migration; chỉ DB Testcontainers.
+- Phạm vi: đúng 4 file; không sửa launcher, shared/, FE hoặc test có sẵn. T-07 chờ leader nghiệm thu Claude thật.

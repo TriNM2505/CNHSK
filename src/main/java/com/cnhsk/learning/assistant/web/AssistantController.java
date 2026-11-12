@@ -18,6 +18,9 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -41,6 +44,15 @@ public class AssistantController {
     }
 
     @PostMapping("/ask")
+    @Operation(operationId = "askAssistant", summary = "Hỏi trợ lý về cách dùng CNHSK")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Câu trả lời"),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID · ASSISTANT_BLOCKED_DURING_TEST"),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED"),
+            @ApiResponse(responseCode = "429", description = "RATE_LIMITED kèm retryAfterSeconds"),
+            @ApiResponse(responseCode = "503", description = "ASSISTANT_UNAVAILABLE")
+    })
     public AskResult ask(@RequestBody(required = false) String body) {
         if (body == null) {
             throw validation("request");
