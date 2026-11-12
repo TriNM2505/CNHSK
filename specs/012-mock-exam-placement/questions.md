@@ -137,3 +137,80 @@ Nguồn đã đọc (origin/main `5439672`): `AGENTS.md` §12, constitution v1.4
 - OQ-1: ngưỡng đạt từng cấp theo Cây Năng Lực v2.0 (leader đối chiếu PDF; đổi `cnhsk.placement.thresholds`).
 - OQ-2: kết quả thử thật 5–10 người (T-19) — ghi vào đây trước demo.
 - ~~Plan phase 4 cần sửa theo X1, X8~~ — đã sửa 2026-11-03.
+
+## 2026-11-13 — T-19 G0 đã duyệt: chuẩn bị local và P00 kỹ thuật
+
+Base được leader duyệt: `b8e812aae2aa15219c0e9203943a40d699a46cf1`, nhánh `spec/012-t19`. Không gộp main mới vào nhánh. Allowlist đang sửa: questions.md và tasks.md. Không sửa application.yaml hoặc thuật toán.
+
+### Chốt G0 và cách thu thập
+
+- Mục tiêu tuyển 8 người, cần ít nhất 5 lượt người thật hợp lệ, tối đa 10. Danh sách đang chờ leader chốt; hiện có **0 lượt người thật**.
+- Mỗi người phải đồng ý trước và được biết chỉ dùng dữ liệu để chỉnh thuật toán. Chỉ ghi mã P01…P10, trình độ biết trước, loại nguồn xác nhận và kết quả. Không thu/đưa tên, email, số điện thoại, ảnh chứng chỉ, mật khẩu hay định danh tài khoản vào repo/PR/nhóm.
+- Nguồn xác nhận: chứng chỉ / giáo viên xếp lớp / tự khai. Tự khai báo riêng, không tính vào điều kiện ít nhất 3 người lệch cùng chiều.
+- Biết trước HSK3: HSK3 hoặc ABOVE_3 đều khớp. Biết trước HSK4 trở lên: ABOVE_3 khớp; HSK3 ghi “thấp hơn (trần ngân hàng)”, không dùng để chỉnh ngưỡng. Giữ nguyên nhãn gốc hệ thống trong bảng.
+- Chỉ đề xuất chỉnh khi ít nhất 3 người đủ điều kiện lệch cùng chiều ở cùng cấp. Mỗi ngưỡng đổi tối đa ±5 điểm phần trăm mỗi vòng; lẻ tẻ chỉ ghi nhận.
+- G1 phải ghi giá trị cũ → mới và lý do, chờ leader duyệt trước khi sửa. Nếu có thay đổi cấu hình được duyệt, chạy lại PlacementAlgorithmTest và PlacementSimulationTest 4.000 lượt, giữ nguyên seed/tiêu chí.
+- Người thử làm trực tiếp trên máy Đạt. Không mở server ra LAN/internet, không dùng ngrok hay port-forward. Thử từ xa cần leader duyệt riêng.
+
+### Môi trường và cấu hình đã dùng
+
+PostgreSQL 18 / Redis 7 / Mailpit chạy project Docker riêng `cnhsk-t19-1113044249`; profile dev. Log startup đã xác nhận `jdbcUrl...jdbc:postgresql://127.0.0.1:15436/cnhsk_db` trước khi nhập. Kiểm listener: backend 18086, Vite 15176, PostgreSQL 15436, Redis 16386, SMTP 11036, Mailpit 18036 đều bind 127.0.0.1. Không dùng Neon.
+
+JWT_SECRET, CARD_CODE_PEPPER và mật khẩu DB sinh ngẫu nhiên riêng cho local, không dùng pepper/.env demo. Tài khoản CONTENT_EDITOR nhập liệu và learner P00 dùng một lần, không dùng tài khoản nhóm. Mật khẩu chỉ nằm trong bộ nhớ process/environment của phiên; không ghi file hay commit. Không có .env trong worktree.
+
+Cấu hình trên base, không đổi: thresholds {1:60, 2:65, 3:75}; block-size 5; min-items 25; max-items 35; up-at 4; down-at 2; sure-min-items 10; start-level 2; min-bank-per-level 10. Không phát hiện biến môi trường CNHSK_PLACEMENT* ghi đè.
+
+### Nạp T-18 qua giao diện SCR-068
+
+Đăng nhập CONTENT_EDITOR local, xem trước rồi xác nhận từng file theo README; không chèn câu hỏi bằng SQL.
+
+| Thứ tự | File | Loại | Số dòng | HTTP xem trước / xác nhận | Dòng lỗi / trạng thái |
+|---|---|---|---:|---|---|
+| 1 | exam/00-knowledge-node.csv | KNOWLEDGE_NODE | 12 | 201 / 200 | 0 / COMPLETED |
+| 2 | exam/01-question.csv | QUESTION | 90 | 201 / 200 | 0 / COMPLETED |
+| 3 | exam/02-exam.csv | EXAM | 3 | 201 / 200 | 0 / COMPLETED |
+| 4 | exam/03-exam-question.csv | EXAM_QUESTION | 36 | 201 / 200 | 0 / COMPLETED |
+
+Ngân hàng tự soạn T-18: mỗi cấp HSK 1–3 có 30 câu (20 MC + 10 TF), CH 8 / TV 8 / NP 8 / VB 6. Dữ liệu NA/NL không có trong ngân hàng chữ, không đoán kết quả hai miền này.
+
+### P00 — chỉ kiểm kỹ thuật, không thuộc mẫu SC-004
+
+Chrome headless local: learner mới → SCR-020 → Kiểm tra trình độ → SCR-021, nộp 5 khối → SCR-022. Helper chọn phương án theo chu kỳ để kiểm luồng; không làm bài như một người học, không dùng đáp án đúng để điều khiển lựa chọn. Vì vậy **P00 không xác nhận trình độ của Đạt/người thật, không dùng đánh giá độ chính xác hoặc đề xuất chỉnh ngưỡng**.
+
+| Mã | Trình độ biết trước | Nguồn | Cấp hệ thống | Độ tin cậy | byLevel đúng/tổng (1; 2; 3) | Số khối / câu | Thời gian | Ghi chú |
+|---|---|---|---|---|---|---|---|---|
+| P00 | Không áp dụng | Kiểm kỹ thuật tự động | BELOW_1 | SURE | 5/15; 4/10; 0/0 (không phát câu cấp 3) | 5 / 25 | 4 giây tự động, từ bắt đầu đến lấy kết quả | Loại khỏi mẫu người thật; không dùng 4 giây để ước lượng thời gian con người |
+
+byLevel API trả cấp 1 = 5/15 (33%), cấp 2 = 4/10 (40%); không có hàng cấp 3 vì chưa phát câu. Bảng ghi 0/0 cho cấp chưa phát, không đổi thành 0% đúng.
+
+| Miền | Đúng/tổng | Percent | measured | tentative | Giao diện |
+|---|---|---:|---|---|---|
+| NA | 0/0 | null | false | false | Chưa đo |
+| CH | 2/6 | 33 | true | false | Đã đo |
+| TV | 2/8 | 25 | true | false | Đã đo |
+| NP | 1/5 | 20 | true | false | Đã đo |
+| NL | 0/0 | null | false | false | Chưa đo |
+| VB | 4/6 | 66 | true | false | Đã đo |
+
+HTTP thật: POST /api/placement/runs → 201; 5 lần POST /api/practice/sessions/{id}/finish → 200; next khối 1–4 → 201; next sau khối 5 → 200, concluded=true, session=null; GET /api/placement/runs/{runId}/result → 200. SCR-022 hiện được nút Làm lại và nhãn Chưa đo.
+
+### Kịch bản người thật và bảng chờ thu thập
+
+Dự kiến tổ chức 20–30 phút/người theo G0, **chưa được đo với người thật**. Nhận đồng ý → ghi trình độ và loại nguồn → tài khoản local dùng một lần → SCR-020 → Kiểm tra trình độ (cấp bắt đầu mặc định 2) → làm độc lập qua các khối → SCR-022. Không gợi ý đáp án/tra cứu; dùng lượt hoàn thành đầu tiên. Ghi riêng sự cố mạng, hết hạn hoặc bỏ dở; không tính lượt chưa hoàn thành là kết quả.
+
+Lưu byLevel đúng/tổng của cả cấp 1, 2, 3 từ API/result; cấp không xuất hiện ghi 0/0 (chưa đo). Phân tích G1 theo cấu hình đã dùng. Nếu leader gửi ngưỡng mới, thêm cột “tính lại theo ngưỡng mới”, không ghi đè nhãn kết quả gốc.
+
+| Mã | Trình độ biết trước | Nguồn | Cấp hệ thống | Độ tin cậy | byLevel 1; 2; 3 | Số khối | Thời gian | Ghi chú sáu miền |
+|---|---|---|---|---|---|---|---|---|
+| P01 | Chưa thu thập | — | — | — | — | — | — | Chờ leader chốt người thử và sự đồng ý |
+| P02 | Chưa thu thập | — | — | — | — | — | — | Chưa chạy |
+| P03 | Chưa thu thập | — | — | — | — | — | — | Chưa chạy |
+| P04 | Chưa thu thập | — | — | — | — | — | — | Chưa chạy |
+| P05 | Chưa thu thập | — | — | — | — | — | — | Chưa chạy |
+| P06 | Chưa thu thập | — | — | — | — | — | — | Chưa chạy |
+| P07 | Chưa thu thập | — | — | — | — | — | — | Chưa chạy |
+| P08 | Chưa thu thập | — | — | — | — | — | — | Chưa chạy |
+
+P09/P10 chỉ bổ sung nếu cần và leader chốt. Chưa có cơ sở kết luận SC-004/OQ-2 đạt; không đề xuất thay đổi ngưỡng từ P00. T-19 giữ đang làm, không đánh ✅. T-17 được đánh ✅ theo PR #98, main 2023e6f và xác nhận của leader; không nhận kết quả P00 thay cho nghiệm thu toàn T-17.
+
+Kiểm chuẩn bị: mvnw compile PASS; npm ci PASS; 4 lần nhập 0 lỗi; P00 kỹ thuật PASS; diff/BOM kiểm riêng trên hai file tài liệu. Không thay code/config hay lockfile, không sử dụng dữ liệu HSK thật, không có kết quả người thật được tự tạo.
