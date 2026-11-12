@@ -156,13 +156,18 @@ describe('mastery preview foundation (T-01 data for AT-24–26)', () => {
     )
   })
 
-  it('provides empty and ahead states and an empty preview entry list pending pages', async () => {
+  it('provides empty and ahead review states and SCR-019 preview states', async () => {
     const { emptyReviewSummaryPreview, reviewAheadSummaryPreview, nothingDuePreview, previews } =
       await import('./catalog.preview')
     expect(emptyReviewSummaryPreview).toEqual({ dueCount: 0, nextDueAt: null })
     expect(reviewAheadSummaryPreview.dueCount).toBe(0)
     expect(reviewAheadSummaryPreview.nextDueAt).not.toBeNull()
     expect(nothingDuePreview).toEqual({ session: null, reason: 'NOTHING_DUE' })
-    expect(previews).toEqual([])
+    expect(previews.map(({ id, scr }) => [id, scr])).toEqual([
+      ['scr-019-ready', 'SCR-019'],
+      ['scr-019-loading', 'SCR-019'],
+      ['scr-019-empty', 'SCR-019'],
+      ['scr-019-error', 'SCR-019'],
+    ])
   })
 })
