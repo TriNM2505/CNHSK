@@ -69,7 +69,7 @@ components:
       required: ['no', type, skill, prompt, rules]
       properties:
         no: { type: integer, minimum: 1 }
-        type: { type: string, description: Spec sau bổ sung loại item (004 LESSON_READ/GRAMMAR_CHOICE; 005 PRON_CHOICE; 006 CHAR_MEANING_CHOICE/AUDIO_CHAR_CHOICE/WRITING_RESULT; 008 các loại game; 011 FLASHCARD_RATING; 012 QUESTION_CHOICE)., example: MEANING_CHOICE }
+        type: { type: string, description: Spec sau bổ sung loại item (004 LESSON_READ/GRAMMAR_CHOICE; 005 PRON_CHOICE; 006 CHAR_MEANING_CHOICE/AUDIO_CHAR_CHOICE/WRITING_RESULT; 008 dùng lại các loại sẵn có; 011 FLASHCARD_RATING; 012 QUESTION_CHOICE)., example: MEANING_CHOICE }
         skill: { $ref: '#/components/schemas/Skill' }
         lexemeId: { type: [integer, 'null'], format: int64 }
         prompt:
