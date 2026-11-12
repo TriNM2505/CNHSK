@@ -1,5 +1,78 @@
 # Chốt — Spec 015
 
+## 2026-11-12 — T-03 hướng dẫn học viên, G1
+
+- Base thực hiện: `234567758185ef39e2e8952d00c4dde2611a4d36` (`2345677`), nhánh `spec/015-t03`.
+  Trước khi cập nhật, `git log --oneline 09ea06a..HEAD` rỗng. Leader cho phép đúng lần này
+  dùng `git checkout -B spec/015-t03 origin/main`; không merge/rebase/pull main.
+- Q-T03-01: leader duyệt 15 file, gồm 12 file help, bộ 20 câu, questions.md và tasks.md.
+  Trong tasks.md chỉ đổi dòng T-03 và dòng Hiện trạng.
+- Q-T03-02: file 09 giữ «Tính năng đang hoàn thiện» vì chưa kiểm được ví/lịch sử thật.
+  Đính chính sau của leader: file 07 mô tả ba màn thật của spec 011 trên `2345677`,
+  không giữ câu «Tính năng đang hoàn thiện».
+- Q-T03-03: đánh dấu T-03 khi đối chiếu UI và gate đạt. Bộ 20 câu chạy Claude thật thuộc T-07,
+  chỉ leader chạy; T-03 chưa có kết quả SC-002.
+- Chỉ hướng dẫn LEARNER. Nội dung help không có màn quản trị/kiểm duyệt, route, URL,
+  email, tên người thật hoặc chỉ dẫn điều khiển trợ lý. Mỗi file có Câu hỏi thường gặp.
+- Đối chiếu tên: FE pageContext.ts gửi mã SCR; AssistantPromptBuilder đổi mã sang tên tiếng Việt.
+  SCR-010 được gọi là «Trang học tập» trong map, tiêu đề UI là «Học tập».
+  SCR-019 là «Cây năng lực» trong map, tiêu đề UI là «Tiến độ học tập».
+  SCR-013 là «Ôn tập đến hạn» trong map, tiêu đề UI là «Ôn tập».
+  File 07 ghi cả tên trong map và tiêu đề đang thấy, không thay đổi code tên màn.
+
+### Môi trường và giới hạn bằng chứng
+
+PostgreSQL 18, Redis và Mailpit chạy local trong Docker. Tài khoản nhập demo và học viên
+được tạo riêng trên DB local; tài khoản dùng để kiểm màn chỉ có LEARNER. Không dùng Neon.
+Đã nhập lại 10 CSV demo theo API nhập/xác nhận, mỗi loại upload 201, confirm 200, COMPLETED,
+0 dòng lỗi: LEXEME, TOPIC, TOPIC_ITEM, GRAMMAR, GRAMMAR_EXERCISE, PRON_STAGE,
+KNOWLEDGE_NODE, QUESTION, EXAM và EXAM_QUESTION. PRON_UNIT trong demo chưa có audio,
+không nhập file thiếu audio và không khẳng định đã kiểm được bài nghe đầy đủ.
+
+Chrome mở page thật, không mock API và không dùng catalog.preview. Kiểm màn bằng bearer
+được cấp qua API đăng nhập MOBILE của tài khoản demo. Lượt thử cookie local qua công cụ
+API đã trả CSRF_TOKEN_INVALID; bằng chứng ở đây không khẳng định nghiệm thu luồng cookie.
+Không gọi Claude thật. Không lưu ảnh vào PR. Bằng chứng chữ dưới đây không chứa danh tính
+hay thông tin đăng nhập. Bộ 20 câu chỉ chọn tính năng có hướng dẫn đã kiểm, có mã màn và
+nguồn cho từng đáp án; mười câu kiến thức đều tự soạn.
+
+### Bảng đối chiếu từng file
+
+| File trong help/ | Màn và route dùng để kiểm | Bằng chứng và phạm vi mô tả |
+|---|---|---|
+| 00-tong-quan.md | SCR-011 `/learn/topics`, LearnerLayout và menu tài khoản | Thấy Chủ đề, Ngữ pháp, Phát âm, Chữ Hán; menu có Hồ sơ, Đổi mật khẩu và Đăng xuất. Chỉ mô tả khu vực học viên. |
+| 01-tai-khoan.md | SCR-002 `/login`, SCR-003 `/register`, SCR-004 `/verify-email`, SCR-005 `/forgot-password`, SCR-007 `/me/profile`, SCR-008 `/me/password` | Mở các form auth thật trên Chrome. Hồ sơ tải 200, thấy Tên hiển thị, Cấp HSK mục tiêu, Lưu hồ sơ và email không đổi được. Màn mật khẩu hiện ba ô và điều kiện 8–72 ký tự, chữ/số. Tài khoản demo đăng ký và xác minh qua API local; không ghi nhận đã thao tác đổi mật khẩu thành công trên UI. |
+| 02-tu-vung-chu-de.md | SCR-011 `/learn/topics`, SCR-012 `/learn/topics/1` | GET danh sách/chi tiết 200; mở chủ đề thật tạo study-session 201. Thấy các trạng thái lọc, Học từ mới, Luyện nhận diện, Luyện nghe và Kiểm tra cuối chủ đề cùng điều kiện mở. Chưa có audio được ghi đúng trạng thái trên màn. |
+| 03-ngu-phap.md | SCR-017 `/learn/grammar`, SCR-018 `/learn/grammar/176` | GET danh sách/bài 200. Bấm Đã hiểu tạo lesson 201, chuyển sang ba câu chọn và Bỏ qua bài tập. Chỉ giải thích thao tác, không đưa kiến thức/đáp án bài vào help. |
+| 04-phat-am.md | SCR-016 `/learn/pronunciation` | GET stages 200; ba tầng demo hiển thị trạng thái, âm luyện và điều kiện 80%. Nút Đang cập nhật bị khoá do chưa có audio; không mô tả một lượt nghe đã hoàn tất. |
+| 05-chu-han.md | SCR-014 `/learn/characters/writing`, SCR-015 `/learn/characters/recognition` | Danh sách chữ tải 200; chọn Nhìn chữ chọn nghĩa và Bắt đầu luyện tạo session 201, hiện câu chọn, Bỏ qua và Kết thúc luyện tập. Phần viết chỉ hướng dẫn chọn chữ và thông báo dữ liệu nét, không khẳng định đã kiểm chấm nét thành công. |
+| 06-de-thi-va-xep-trinh-do.md | SCR-020 `/learn/exams`, SCR-021 `/learn/exams/sessions/:sessionId`, SCR-022 `/learn/exams/results/:sessionId`, SCR-023 `/learn/practice/targeted` | Danh sách đề/summary 200; tài khoản học viên đã nộp hai đề demo bằng API thật 200. Mở kết quả trên UI, result/weak-points đều 200; thấy điểm trọng số, số câu đúng, điểm theo phần, câu sai theo KID, Điểm yếu cần luyện và Luyện nút này. Bấm bộ lọc Bỏ trống hoạt động. Không ghi đã thử người thật (012/T-19) hay đo độ chính xác xếp trình độ. |
+| 07-cay-nang-luc-va-on-tap.md | SCR-010 `/learn`, SCR-019 `/learn/progress`, SCR-013 `/learn/review` và `?ahead=true` | Recommendations, mastery, knowledge-tree, node detail và review summary đều 200. Trước học thấy banner chưa có minh chứng; sau hai lượt đề thấy Chưa đủ minh chứng. Chọn nút hiện điểm, ba minh chứng, tiên quyết và Luyện nút này. Sau học từ/ngữ pháp, Trang học tập hiện lịch ôn; Ôn trước mở lượt 11 mục. Bấm Hiện đáp án thấy đủ Quên/Khó/Được/Dễ và Tạm dừng. |
+| 08-thu-vien.md | SCR-024 `/dictionary`, SCR-026 `/translate`, SCR-027 `/library/notes`, SCR-028 `/library/decks`, SCR-029 `/library/decks/:id` | Tra cứu dữ liệu thật; tạo bộ trống 201 rồi mở chi tiết 200, nhập Mặt trước/Mặt sau và Lưu thẻ thành công 201. Sổ tay GET 200, Tạo ghi chú mở form, nhập nội dung tự soạn và Lưu ghi chú thành công 201. Dịch chỉ kiểm form và trạng thái, không gọi dịch vụ model thật. |
+| 09-the-nap-va-goi.md | SCR-030 `/account/credits`, SCR-031 `/account/credits/history` | API ví/lịch sử chưa có hành vi đầy đủ trên base, UI hiện lỗi tải. Giữ đúng câu Tính năng đang hoàn thiện và hướng liên hệ quản trị; không hướng dẫn nạp thẻ chưa thao tác được trên UI. |
+| 10-cong-dong.md | SCR-039 `/community`, SCR-041 `/community/posts/new` và `/community/posts/:id/edit`, SCR-040 `/community/posts/:id` | Tạo nháp trên UI trả 201; về Bài viết của tôi thấy Bản nháp, Sửa bài và Đã lưu bản nháp. Với bài công khai tự soạn ở DB local, bấm Thích trả 200, Viết bình luận/Gửi bình luận trả 201, mở Báo cáo bài viết thấy form lý do và Gửi báo cáo. Thông báo bài bị ẩn đối chiếu thêm với component learner trên cùng base. Không mô tả quyền hay màn kiểm duyệt. |
+| 11-tro-ly.md | LearnerLayout tại SCR-017 `/learn/grammar` | Bấm Mở trợ lý CNHSK thấy Trợ lý hỗ trợ CNHSK, Thu gọn, Cuộc trò chuyện mới, ô hỏi, bộ đếm và Gửi. Phạm vi/giới hạn/ẩn khi thi đối chiếu mã T-01/T-02/T-06 đã merge. Chưa chạy model thật, chưa kết luận SC-002. |
+
+### Kích thước và gate
+
+12 file UTF-8 không BOM, tổng **14.868 Unicode code point**. Đếm bằng Java 17 đọc từng file
+UTF-8 và cộng `text.codePointCount(0, text.length())`, không cộng dấu phân cách. Các file theo
+thứ tự 00–11 có lần lượt: 1.274, 1.417, 1.123, 891, 811, 1.115, 1.757, 1.799, 1.577,
+192, 1.245, 1.667. Thấp hơn giới hạn G0 45.000 và ngưỡng HelpLibrary 60.000.
+
+Gate ngày 2026-11-12–13: `.\mvnw.cmd -B verify` với Java 17, Docker và DEBUG=false
+đạt BUILD SUCCESS, exit 0. **4.246 test, 0 failure/error/skip**, 18 phút 17 giây.
+JaCoCo LINE **96,71%** (11.955/12.362 dòng), toàn bộ coverage check đạt.
+Không dùng ngoại lệ môi trường. NFR_P04 QUESTION đạt p95 26.604 ms, dưới ngưỡng 30.000 ms.
+12 file help trong target/classes khớp hash với nguồn. Bộ 20 câu đủ 10 câu cách dùng có
+màn/ngữ cảnh và nguồn đáp án, 10 câu kiến thức tự soạn; toàn bộ kết quả model để Chưa chạy.
+
+Self-check Constitution: HR-02/BUS-06 không có secret/PII thật trong nội dung hay bằng chứng;
+HR-08 chỉ dùng câu tự soạn và bộ demo đã có; AC-05 không sửa migration hay chạy SQL trên Neon;
+ES-01 giữ Java 17 và dependency hiện có; ES-05 full verify và coverage đạt. Chỉ 15 file nội
+dung được duyệt, không đổi code, contract hay file dùng chung. Nội dung vẫn cần leader đọc
+và duyệt ý nghĩa trước merge; T-07 mới kiểm SC-002 trên máy leader.
+
 ## 2026-11-06 — T-06 endpoint hỏi trợ lý (leader duyệt)
 
 - Q-T06-01: Kiểm body rồi kiểm bài đang làm, trước khi đặt chỗ Redis. Request trả 422 hoặc 403 không tính vào hạn mức ngày.

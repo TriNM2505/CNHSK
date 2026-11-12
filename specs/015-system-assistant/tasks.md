@@ -18,7 +18,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-03 | **Nội dung (không code):** viết 12 file hướng dẫn §0.3 theo tính năng đã merge + bộ 20 câu kiểm thử `docs/demo-data/assistant-eval.md`; leader duyệt. Bắt đầu ngay với 001–009, bổ sung khi 010–014 merge | `src/main/resources/help/*.md`, `docs/demo-data/assistant-eval.md` | FR-012 · AT-12 | ⬜ |
+| T-03 | **Nội dung (không code):** viết 12 file hướng dẫn §0.3 theo tính năng đã merge + bộ 20 câu kiểm thử `docs/demo-data/assistant-eval.md`; leader duyệt. Bắt đầu ngay với 001–009, bổ sung khi 010–014 merge | `src/main/resources/help/*.md`, `docs/demo-data/assistant-eval.md` | FR-012 · AT-12 | ✅ G1: base 2345677, 12 file/14.868 code point; verify 4.246 test, 0 failure/error/skip, JaCoCo LINE 96,71%; chờ leader duyệt nội dung |
 | T-04 | `learning.ai`: `AiConfig` (`cnhsk.ai.*`), `ClaudeClient` + `AnthropicClaudeClient` (SDK, timeout, `cache_control`) + `StubClaudeClient`, `AiUnavailableException`, `TokenBudget`; `pom.xml`, `.env.example`. **Không phụ thuộc task nào — 014 T-14 cần task này** | `…/learning/ai/*`, `pom.xml`, `application.yaml`, `.env.example` + test | FR-006, FR-009 · AT-06, AT-09 | ✅ |
 | T-05 | `HelpLibrary` (nạp, kiểm 60 000 ký tự), `PiiMasker`, `AssistantPromptBuilder` (system §0.2, tên màn) + test | `…/learning/assistant/{HelpLibrary,PiiMasker,AssistantPromptBuilder}.java` + test | FR-005, FR-007, FR-010 · AT-05, AT-07, AT-10 | ✅ |
 | T-06 | `AssistantService` + `POST /api/assistant/ask`: kiểm body, `TestInProgressGuard`, giới hạn ngày, gọi client, đọc JSON, lọc log; 2 mã `ASSISTANT_BLOCKED_DURING_TEST`, `ASSISTANT_UNAVAILABLE`; matcher `LEARNER` | `…/learning/assistant/{AssistantService,TestInProgressGuard}.java`, `…/assistant/web/AssistantController.java`, `SecurityConfig.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest`, `application.yaml` | FR-001…FR-004, FR-008, FR-011 · AT-01…AT-04, AT-08, AT-11 | ✅ FULL VERIFY FAILED (1 test môi trường: NFR_P04 p95 30.782 ms) |
@@ -42,4 +42,4 @@ T-04 → T-05 → T-06
 
 **Ba task rủi ro cao:** T-06 (chặn khi đang thi, không lộ nội dung) · T-04 (khoá, timeout, trần chi phí) · T-03 (tài liệu sai → trả lời sai).
 
-**Hiện trạng: 0/7 task xong.**
+**Hiện trạng: 6/7 task xong; T-03 chờ leader duyệt nội dung trước merge, T-07 chưa làm.**
