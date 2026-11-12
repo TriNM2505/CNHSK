@@ -330,3 +330,26 @@ Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, 
 - Full Vitest: **2.410 test PASS** trên 166 file, 0 failure/error/skip, exit 0. Scr059QuestionEditPage cũng PASS trong lượt này.
 - Lint: 0 lỗi, 1 warning cũ tại src/shared/ui/LevelBadge.tsx, exit 0.
 - Build (gồm tsc -b): PASS, exit 0. git diff --check: PASS.
+## 2026-11-12 — Chốt và nghiệm thu 011/T-15
+
+1. **Q-T15-01 / Q-T15-02 — Backend acceptance local:** dùng `MasteryAcceptanceServer` trong test-scope với PostgreSQL 18, Redis 7 và Mailpit Testcontainers; không dùng Compose, env file local, Neon, SCR-068 hoặc CONTENT_EDITOR. Mật khẩu fixture chỉ nhập qua stdin. Ba learner và nội dung đều tự soạn.
+2. **Q-T15-03 — Phạm vi contract:** `MasteryContractTest` so hai chiều tất cả path dưới `/api/mastery**` và `/api/reviews**`, gồm path, method và status. Runtime OpenAPI khớp `openapi-mastery.yaml`; không có path/method/status thiếu hoặc thừa.
+3. **Q-T15-04 — Browser acceptance:** Chrome headless dùng profile tạm và API Backend local thật. JSON của API khớp các kiểu trong `cnhsk-web/src/features/mastery/types.ts` và `cnhsk-web/src/features/practice/types.ts`; không sửa source FE hoặc Backend.
+
+### Bảng nghiệm thu AT-24…AT-27
+
+| AT | Thao tác / endpoint thực tế | HTTP thực tế | Kết quả |
+|---|---|---|---|
+| AT-24 | SCR-019 với `learner-new`: `GET /api/knowledge-tree`, `GET /api/mastery`; SCR-019 với `learner-active`: cùng hai endpoint và `GET /api/mastery/nodes/TV1-902` | 200; 200; 200 | Learner mới thấy banner và lưới toàn `notyet`, chỉ HSK 1–3. Learner active thấy đủ sáu trạng thái, frontier, chi tiết KID và số câu được duyệt. |
+| AT-25 | SCR-010 với `learner-new` và `learner-active`: `GET /api/mastery/recommendations`, `GET /api/reviews/summary` | 200 cho cả bốn request | Learner mới nhận gợi ý NEW và summary `{dueCount:0,nextDueAt:null}`. Learner active nhận tối đa 5 gợi ý có REVIEW/CONSOLIDATE và summary đúng kiểu. |
+| AT-26 | SCR-013 với `learner-review`: `GET /api/reviews/summary`; `POST /api/reviews/sessions` với `{}`; `POST /api/reviews/sessions` với `{"ahead":true}`; `GET /api/practice/sessions/active?source=DUE_REVIEW`; hai `POST /api/practice/sessions/14/answers`; `POST /api/practice/sessions/14/finish`; `GET /api/reviews/summary` sau finish | 200; 200; 201; 200; 200, 200; 200; 200 | Summary ban đầu có 2 mục đến hạn; `NOTHING_DUE` hiển thị “Chưa có mục đến hạn” và “Ôn trước”; ahead gửi đúng body và tạo phiên. Câu chọn và flashcard được hiển thị/ghi nhận đúng, phiên hoàn tất với 2 mục đã xử lý và summary sau finish cập nhật. |
+| AT-27 | `GET /v3/api-docs` so với `openapi-mastery.yaml` bằng `MasteryContractTest` | test tự động | 1/1 PASS; không có chênh lệch path/method/status trong phạm vi mastery/reviews. |
+
+### Kết quả gate T-15
+
+- Targeted `MasteryContractTest`: **1 test**, 0 failure, 0 error, 0 skipped, exit 0.
+- Browser acceptance AT-24…AT-26: **đạt** trên Chrome headless với Backend local/Testcontainers; không dùng Neon. Sau nghiệm thu đã dừng tiến trình Java/Vite/Chrome do phiên này khởi chạy và xác nhận Docker không còn container acceptance.
+- Full `mvnw -B verify`: **BUILD SUCCESS**, **4.246 test**, 0 failure, 0 error, 0 skipped, exit 0; Docker/Testcontainers PostgreSQL 18 hoạt động.
+- JaCoCo LINE từ lượt full verify: **96,71%** — **11.955/12.362 dòng** (407 missed); coverage check đạt.
+- Full FE `npm run test`: **2.410/2.410 test**, 166 file, exit 0. `npm run lint`: 0 lỗi, 1 warning cũ ở `src/shared/ui/LevelBadge.tsx`, exit 0. `npm run typecheck`: exit 0. `npm run build`: exit 0.
+- Thay đổi contract Spec 003 chỉ là description `008 các loại game` → `008 dùng lại các loại sẵn có`; không thay path/schema/enum/request/response/status.

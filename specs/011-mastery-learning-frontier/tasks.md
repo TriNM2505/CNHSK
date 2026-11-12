@@ -36,7 +36,7 @@ File dùng chung (spec §0.3) phải nêu trong Shadow Plan từng task.
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-15 | FE SCR-010/013/019 gọi backend thật; sửa lệch contract (lệch thì dừng báo leader); test hợp đồng `/v3/api-docs` so `openapi-mastery.yaml` (path + status) | `web/features/mastery/**`, `t/contract/MasteryContractTest.java` | §13 · AT-24…AT-27 chạy với API thật | ⬜ |
+| T-15 | FE SCR-010/013/019 gọi backend thật; test hợp đồng `/v3/api-docs` so `openapi-mastery.yaml` (path/method/status hai chiều) | `MasteryAcceptanceServer.java`, `MasteryContractTest.java`, contract 003 | §13 · AT-24…AT-27 | ✅ 2026-11-12: AT-24…AT-27 đạt; targeted 1/1; full verify 4.246 test, 0 failure/error/skip, exit 0; JaCoCo LINE 96,71%; Vitest 2.410/2.410; lint 0 lỗi (1 warning cũ); typecheck/build exit 0. |
 
 ## Thứ tự thực thi
 
