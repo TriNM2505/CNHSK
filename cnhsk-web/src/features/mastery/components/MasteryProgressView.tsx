@@ -21,6 +21,7 @@ import type {
   MasteryNodeDetail,
   MasteryState,
 } from '../types'
+import { formatMasteryDateTime } from '../formatDateTime'
 
 const DOMAINS: readonly KnowledgeDomain[] = ['NA', 'CH', 'TV', 'NP', 'NL', 'VB']
 const LEVELS = [1, 2, 3] as const
@@ -61,17 +62,6 @@ const EVIDENCE_ROLE_LABELS: Record<EvidenceRole, string> = {
   PRIMARY: 'Chính',
   SECONDARY: 'Phụ',
   ERROR: 'Lỗi thường gặp',
-}
-
-const masteryDateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-  timeZone: 'Asia/Ho_Chi_Minh',
-})
-
-// eslint-disable-next-line react-refresh/only-export-components
-export function formatMasteryDateTime(value: string): string {
-  return masteryDateTimeFormatter.format(new Date(value))
 }
 
 export interface MasteryProgressViewProps {
@@ -273,7 +263,7 @@ export function MasteryProgressView({
                                 <li key={node.kid}>
                                   <button
                                     aria-pressed={isSelected}
-                                    className={`w-full rounded-md border p-3 text-left text-body-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${STATE_CLASSES[mastery.state]} ${mastery.frontier ? 'border-2 border-brand-600' : ''} ${isSelected ? 'shadow-sm' : ''}`}
+                                    className={`w-full rounded-md border p-3 text-left text-body-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${STATE_CLASSES[mastery.state]} ${mastery.frontier ? 'border-2' : ''} ${isSelected ? 'shadow-sm' : ''}`}
                                     data-frontier={String(mastery.frontier)}
                                     data-kid={node.kid}
                                     data-state={mastery.state}

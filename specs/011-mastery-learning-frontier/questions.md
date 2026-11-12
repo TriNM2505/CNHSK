@@ -306,3 +306,27 @@ Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, 
 - Vitest mastery: **67 test PASS**, 0 failure/error/skip, exit 0.
 - Full `npm run test`: **2.402 test PASS**, 0 failure/error/skip, exit 0.
 - `npm run typecheck`: PASS. `npm run lint`: 0 lỗi, 1 warning cũ tại `src/shared/ui/LevelBadge.tsx`. `npm run build`: PASS.
+## 2026-11-12 — Chốt và nghiệm thu 011/T-04 (SCR-013 Due Review)
+
+1. **Q-T04-01 — Tự bắt đầu:** SCR-013 tự bắt đầu một lần sau khi usePracticeSession khôi phục lượt đang làm và đưa state về idle; autoStartAttemptedRef chặn gọi lặp dưới StrictMode. Nếu URL có ahead=true, POST /api/reviews/sessions gửi { ahead: true }, còn lại gửi {}. NOTHING_DUE hiện “Chưa có mục đến hạn” và nút “Ôn trước”; nút đi tới /learn/review?ahead=true. Không tự thử lại khi hook lỗi; hiện ErrorState và “Thử lại”. Lượt dở được khôi phục, không tạo POST mới.
+
+2. **Q-T04-02 — Kết quả và hạn ôn:** Màn hoàn tất hiển thị tổng mục đã xử lý và số câu chọn đúng / tổng câu chọn; flashcard không tính đúng/sai, câu bỏ qua không tính sai. Sau finish, lấy hạn kế tiếp từ GET /api/reviews/summary và định dạng bằng formatMasteryDateTime. Nếu summary lỗi, vẫn giữ màn hoàn tất và hiện “Không tải được hạn ôn kế tiếp”.
+
+3. Câu chọn chỉ dùng phản hồi đúng/sai, không có nút đánh giá FSRS. Flashcard có đúng bốn nút “Quên / Khó / Được / Dễ”, gửi lần lượt AGAIN / HARD / GOOD / EASY. Bỏ qua không ghi kết quả sai. “Tạm dừng” chỉ điều hướng về /learn, không gọi abandon hoặc finish.
+
+4. formatMasteryDateTime được dùng chung tại features/mastery/formatDateTime.ts với locale vi-VN và múi giờ Asia/Ho_Chi_Minh. Frontier dùng thêm border-2, giữ màu viền theo trạng thái, data-frontier và focus ring bàn phím riêng.
+
+5. **Q-T04-03 — Tiết lộ đáp án flashcard và trạng thái trả lời:** Flashcard chỉ hiện chữ ở mặt trước. Người học bấm “Hiện đáp án” mới xem pinyin, Hán Việt, nghĩa, ví dụ và bốn nút rating; khi chuyển sang mục mới, thẻ trở lại mặt trước. “Bỏ qua” chỉ hiện khi mục hiện tại chưa được trả lời, tránh gửi answer lần hai cho cùng câu chọn.
+
+### Kết quả gate T-04
+
+- Targeted mastery T-02/T-03/T-04 và route tests: **53 test PASS**, 0 failure/error/skip, exit 0.
+- Full Vitest: **2.410/2.410 test PASS** (166 file), 0 failure/error/skip, exit 0.
+- Typecheck: PASS. Lint: 0 lỗi, 1 warning cũ tại src/shared/ui/LevelBadge.tsx. Build: PASS.
+
+### Kết quả fix vòng 1 PR #142
+
+- Vitest mastery: **75 test PASS**, 0 failure/error/skip, exit 0.
+- Full Vitest: **2.410 test PASS** trên 166 file, 0 failure/error/skip, exit 0. Scr059QuestionEditPage cũng PASS trong lượt này.
+- Lint: 0 lỗi, 1 warning cũ tại src/shared/ui/LevelBadge.tsx, exit 0.
+- Build (gồm tsc -b): PASS, exit 0. git diff --check: PASS.

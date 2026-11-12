@@ -1,7 +1,7 @@
 import type { ApiQueryState } from '@/shared/api'
 import { Button, Card, ErrorState, PageHeader, Skeleton } from '@/shared/ui'
 
-import { formatMasteryDateTime } from './MasteryProgressView'
+import { formatMasteryDateTime } from '../formatDateTime'
 import type { Recommendation, ReviewSummary } from '../types'
 
 export interface MasteryDashboardViewProps {

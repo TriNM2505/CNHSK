@@ -165,7 +165,8 @@ describe('SCR-019 Learning Progress (FR-024, AT-24)', () => {
 
     const frontier = container.querySelector<HTMLButtonElement>('[data-frontier="true"]')
     expect(frontier).not.toBeNull()
-    expect(frontier).toHaveClass('border-2', 'border-brand-600')
+    expect(frontier).toHaveClass('border-2', 'border-danger')
+    expect(frontier).not.toHaveClass('border-brand-600')
     expect(frontier).toHaveClass('focus-visible:ring-2', 'focus-visible:ring-focus')
     expect(frontier).toHaveAttribute('data-frontier', 'true')
     expect(getKnowledgeTreeMock).toHaveBeenCalledTimes(1)

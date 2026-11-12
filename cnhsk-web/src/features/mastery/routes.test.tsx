@@ -17,7 +17,6 @@ const routes = [
   { path: '/learn/review', scr: 'SCR-013' },
   { path: '/learn/progress', scr: 'SCR-019' },
 ] as const
-const fallbackRoutes = routes.filter(({ scr }) => scr === 'SCR-013')
 const getCurrentUserMock = vi.mocked(getCurrentUser)
 
 function user(roles: RoleCode[]): CurrentUser {
@@ -57,13 +56,6 @@ describe('mastery route foundation (FR-001 FE, §12; AT-01 access only)', () => 
     },
   )
 
-  it.each(fallbackRoutes)('lets LEARNER open the existing fallback for $scr', async ({ path, scr }) => {
-    getCurrentUserMock.mockResolvedValue(user(['LEARNER']))
-    const router = renderRoute(path)
-    expect(await screen.findByRole('heading', { name: `Màn ${scr} đang dựng` })).toBeVisible()
-    expect(screen.getByRole('navigation', { name: 'Học tập' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe(path)
-  })
 
   it('registers the SCR-019 learning progress page', () => {
     expect(screenRegistry['SCR-019']).toBeDefined()
@@ -71,6 +63,10 @@ describe('mastery route foundation (FR-001 FE, §12; AT-01 access only)', () => 
 
   it('registers the SCR-010 learning dashboard page', () => {
     expect(screenRegistry['SCR-010']).toBeDefined()
+  })
+
+  it('registers the SCR-013 due review page', () => {
+    expect(screenRegistry['SCR-013']).toBeDefined()
   })
 
   it.each(routes)(
@@ -101,12 +97,6 @@ describe('mastery route foundation (FR-001 FE, §12; AT-01 access only)', () => 
     expect(screen.queryByRole('heading', { name: `Màn ${scr} đang dựng` })).not.toBeInTheDocument()
   })
 
-  it.each(fallbackRoutes)('accepts multiple roles including LEARNER at $path', async ({ path, scr }) => {
-    getCurrentUserMock.mockResolvedValue(user(['ADMIN', 'LEARNER']))
-    const router = renderRoute(path)
-    expect(await screen.findByRole('heading', { name: `Màn ${scr} đang dựng` })).toBeVisible()
-    expect(router.state.location.pathname).toBe(path)
-  })
 
   it.each(routes)(
     'validates the post-login destination $path against the new guard',
