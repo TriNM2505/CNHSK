@@ -50,7 +50,13 @@ function flashcard(no: number) {
     type: 'FLASHCARD_RATING',
     skill: 'GRAMMAR' as const,
     lexemeId: 300 + no,
-    prompt: { text: '我学习。', pinyin: 'Wǒ xuéxí.', meaning: 'Tôi học.' },
+    prompt: {
+      text: '我学习。',
+      pinyin: 'Wǒ xuéxí.',
+      sinoViet: 'Ngã học tập.',
+      meaning: 'Tôi học.',
+      examples: [{ cn: '我每天学习。', vi: 'Tôi học mỗi ngày.' }],
+    },
     rules: {},
   }
 }
@@ -168,6 +174,9 @@ describe('SCR-013 Due Review (FR-026, AT-26)', () => {
     expect(screen.queryByRole('button', { name: 'Quên' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /Bạn khỏe không/ }))
     expect(await screen.findByText('Chính xác')).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Bỏ qua' })).not.toBeInTheDocument()
+    expect(mocks.answer).toHaveBeenCalledTimes(1)
+    expect(mocks.answer).toHaveBeenCalledWith(88, expect.objectContaining({ no: 1, answer: 'A' }))
     expect(await screen.findByText('1 mục còn lại')).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp' }))
     fireEvent.click(screen.getByRole('button', { name: /Bạn khỏe không/ }))
@@ -189,6 +198,18 @@ describe('SCR-013 Due Review (FR-026, AT-26)', () => {
       ['Dễ', 'EASY'],
     ] as const) {
       expect(await screen.findByText('我学习。')).toBeVisible()
+      expect(screen.queryByText('Tôi học.')).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Quên' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Hiện đáp án' })).toBeVisible()
+      fireEvent.click(screen.getByRole('button', { name: 'Hiện đáp án' }))
+      expect(await screen.findByText('Wǒ xuéxí.')).toBeVisible()
+      expect(screen.getByText('Ngã học tập.')).toBeVisible()
+      expect(screen.getByText('Tôi học.')).toBeVisible()
+      expect(screen.getByText(/Tôi học mỗi ngày\./)).toBeVisible()
+      expect(screen.getByRole('button', { name: 'Quên' })).toBeVisible()
+      expect(screen.getByRole('button', { name: 'Khó' })).toBeVisible()
+      expect(screen.getByRole('button', { name: 'Được' })).toBeVisible()
+      expect(screen.getByRole('button', { name: 'Dễ' })).toBeVisible()
       fireEvent.click(screen.getByRole('button', { name: label }))
       await waitFor(() => expect(mocks.answer).toHaveBeenCalledWith(
         88,

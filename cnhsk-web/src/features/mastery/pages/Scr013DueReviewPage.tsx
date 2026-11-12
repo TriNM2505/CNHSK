@@ -32,12 +32,17 @@ function answerResultFor(session: SessionView, results: Readonly<Record<number, 
   return results[no] ?? session.answered.find((answer) => answer.no === no)
 }
 
+function durationMs(shownAt: number): number {
+  return Math.min(Math.max(Math.round(performance.now() - shownAt), 0), 3_600_000)
+}
+
 export default function Scr013DueReviewPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const requestedAhead = searchParams.get('ahead') === 'true'
   const [nothingDue, setNothingDue] = useState(false)
   const [activeNo, setActiveNo] = useState<number>()
+  const [revealedFlashcardNo, setRevealedFlashcardNo] = useState<number>()
   const [nextDueAt, setNextDueAt] = useState<string | null>(null)
   const [summaryLoading, setSummaryLoading] = useState(true)
   const [summaryError, setSummaryError] = useState(false)
@@ -75,6 +80,9 @@ export default function Scr013DueReviewPage() {
   const currentItemNo = currentItem?.no
   const remaining = session ? Math.max(0, session.items.length - answeredNumbers.size) : 0
   const result = currentItem && session ? practice.results[currentItem.no] : undefined
+  const currentItemAnswered = currentItem !== undefined && (
+    Boolean(result) || session?.answered.some((answer) => answer.no === currentItem.no) === true
+  )
 
   useEffect(() => {
     if (practiceState !== 'idle' || practiceError || practicePending !== null || nothingDue) return
@@ -165,7 +173,7 @@ export default function Scr013DueReviewPage() {
     if (!currentItem) return
     const saved = await practice.answer(currentItem.no, {
       answer,
-      durationMs: Math.min(Math.max(Math.round(performance.now() - shownAtRef.current), 0), 3_600_000),
+      durationMs: durationMs(shownAtRef.current),
     })
     if (!saved) throw new Error('answer-failed')
     return saved
@@ -175,7 +183,7 @@ export default function Scr013DueReviewPage() {
     if (!currentItem) return
     const saved = await practice.answer(currentItem.no, {
       answer: rating,
-      durationMs: Math.min(Math.max(Math.round(performance.now() - shownAtRef.current), 0), 3_600_000),
+      durationMs: durationMs(shownAtRef.current),
     })
     if (saved) await advanceAfter(currentItem.no)
   }
@@ -183,7 +191,7 @@ export default function Scr013DueReviewPage() {
   const skipCurrent = async () => {
     if (!currentItem) return
     const saved = await practice.answer(currentItem.no, {
-      durationMs: Math.min(Math.max(Math.round(performance.now() - shownAtRef.current), 0), 3_600_000),
+      durationMs: durationMs(shownAtRef.current),
       skipped: true,
     })
     if (saved) await advanceAfter(currentItem.no)
@@ -324,26 +332,34 @@ export default function Scr013DueReviewPage() {
             <HanziText className="block" id="review-flashcard-title" size="lg">
               {currentItem.prompt.text}
             </HanziText>
-            {currentItem.prompt.pinyin ? <p className="text-h3 text-brand-700">{currentItem.prompt.pinyin}</p> : null}
-            {currentItem.prompt.sinoViet ? <p className="text-label text-ink-secondary">{currentItem.prompt.sinoViet}</p> : null}
-            {currentItem.prompt.meaning ? <p className="text-body text-ink">{currentItem.prompt.meaning}</p> : null}
-            {currentItem.prompt.examples?.length ? (
-              <ul className="space-y-2 text-body-sm text-ink-secondary">
-                {currentItem.prompt.examples.map((example, index) => (
-                  <li key={`${example.cn ?? 'example'}-${index}`}>
-                    {example.cn ? <span className="font-hanzi text-ink">{example.cn}</span> : null}
-                    {example.vi ? <span> — {example.vi}</span> : null}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <div aria-label="Đánh giá mức độ nhớ" className="grid grid-cols-2 gap-3 sm:grid-cols-4" role="group">
-              {RATINGS.map(({ label, value }) => (
-                <Button disabled={pending} key={value} onClick={() => void submitRating(value)}>
-                  {label}
-                </Button>
-              ))}
-            </div>
+            {revealedFlashcardNo === currentItem.no ? (
+              <>
+                {currentItem.prompt.pinyin ? <p className="text-h3 text-brand-700">{currentItem.prompt.pinyin}</p> : null}
+                {currentItem.prompt.sinoViet ? <p className="text-label text-ink-secondary">{currentItem.prompt.sinoViet}</p> : null}
+                {currentItem.prompt.meaning ? <p className="text-body text-ink">{currentItem.prompt.meaning}</p> : null}
+                {currentItem.prompt.examples?.length ? (
+                  <ul className="space-y-2 text-body-sm text-ink-secondary">
+                    {currentItem.prompt.examples.map((example, index) => (
+                      <li key={`${example.cn ?? 'example'}-${index}`}>
+                        {example.cn ? <span className="font-hanzi text-ink">{example.cn}</span> : null}
+                        {example.vi ? <span> — {example.vi}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                <div aria-label="Đánh giá mức độ nhớ" className="grid grid-cols-2 gap-3 sm:grid-cols-4" role="group">
+                  {RATINGS.map(({ label, value }) => (
+                    <Button disabled={pending} key={value} onClick={() => void submitRating(value)}>
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <Button disabled={pending} onClick={() => setRevealedFlashcardNo(currentItem.no)}>
+                Hiện đáp án
+              </Button>
+            )}
           </section>
         ) : (
           <ErrorState message={`Loại câu hỏi không được hỗ trợ: ${currentItem.type}`} onRetry={() => void practice.sync()} />
@@ -354,9 +370,11 @@ export default function Scr013DueReviewPage() {
           </Button>
         ) : null}
         <div className="flex flex-wrap justify-between gap-3">
-          <Button disabled={pending} onClick={() => void skipCurrent()} variant="outline">
-            Bỏ qua
-          </Button>
+          {!currentItemAnswered ? (
+            <Button disabled={pending} onClick={() => void skipCurrent()} variant="outline">
+              Bỏ qua
+            </Button>
+          ) : null}
           <Button disabled={pending} onClick={() => navigate('/learn')} variant="outline">
             Tạm dừng
           </Button>
