@@ -17,7 +17,7 @@ const routes = [
   { path: '/learn/review', scr: 'SCR-013' },
   { path: '/learn/progress', scr: 'SCR-019' },
 ] as const
-const fallbackRoutes = routes.filter(({ scr }) => scr !== 'SCR-019')
+const fallbackRoutes = routes.filter(({ scr }) => scr === 'SCR-013')
 const getCurrentUserMock = vi.mocked(getCurrentUser)
 
 function user(roles: RoleCode[]): CurrentUser {
@@ -67,6 +67,10 @@ describe('mastery route foundation (FR-001 FE, §12; AT-01 access only)', () => 
 
   it('registers the SCR-019 learning progress page', () => {
     expect(screenRegistry['SCR-019']).toBeDefined()
+  })
+
+  it('registers the SCR-010 learning dashboard page', () => {
+    expect(screenRegistry['SCR-010']).toBeDefined()
   })
 
   it.each(routes)(

@@ -12,7 +12,15 @@ import {
   type PageStateValue,
 } from '@/shared/ui'
 
-import type { EvidenceView, MasteryNode, MasteryNodeDetail, MasteryState } from '../types'
+import type {
+  EvidenceContext,
+  EvidenceForm,
+  EvidenceRole,
+  EvidenceView,
+  MasteryNode,
+  MasteryNodeDetail,
+  MasteryState,
+} from '../types'
 
 const DOMAINS: readonly KnowledgeDomain[] = ['NA', 'CH', 'TV', 'NP', 'NL', 'VB']
 const LEVELS = [1, 2, 3] as const
@@ -35,6 +43,37 @@ const STATE_CLASSES: Record<MasteryState, string> = {
   inferred: 'border-brand-100 bg-brand-50 text-brand-700',
 }
 
+const EVIDENCE_CONTEXT_LABELS: Record<EvidenceContext, string> = {
+  EXAM: 'Bài thi',
+  QUIZ: 'Bài kiểm tra',
+  GRADED: 'Bài có chấm điểm',
+  PRACTICE: 'Luyện tập',
+}
+
+const EVIDENCE_FORM_LABELS: Record<EvidenceForm, string> = {
+  OPEN: 'Trả lời mở',
+  MCQ4: 'Trắc nghiệm 4 lựa chọn',
+  MCQ3: 'Trắc nghiệm 3 lựa chọn',
+  BINARY: 'Đúng/Sai',
+}
+
+const EVIDENCE_ROLE_LABELS: Record<EvidenceRole, string> = {
+  PRIMARY: 'Chính',
+  SECONDARY: 'Phụ',
+  ERROR: 'Lỗi thường gặp',
+}
+
+const masteryDateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'Asia/Ho_Chi_Minh',
+})
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function formatMasteryDateTime(value: string): string {
+  return masteryDateTimeFormatter.format(new Date(value))
+}
+
 export interface MasteryProgressViewProps {
   detail?: MasteryNodeDetail
   detailError?: string
@@ -49,20 +88,6 @@ export interface MasteryProgressViewProps {
   state: PageStateValue
 }
 
-function masteryFor(kid: string, byKid: ReadonlyMap<string, MasteryNode>): MasteryNode {
-  return (
-    byKid.get(kid) ?? {
-      kid,
-      value: null,
-      confidence: 0,
-      evidenceCount: 0,
-      state: 'notyet',
-      frontier: false,
-      dueAt: null,
-    }
-  )
-}
-
 function formatValue(value: number | null) {
   return value === null ? '—' : `${value}/100`
 }
@@ -75,10 +100,12 @@ function EvidenceRow({ evidence }: { evidence: EvidenceView }) {
   return (
     <li className="border-b border-line py-3 last:border-0">
       <p className="text-body-sm text-ink">
-        {evidence.source} · {evidence.context} · {evidence.form} · {evidence.role}
+        {evidence.source} · {EVIDENCE_CONTEXT_LABELS[evidence.context]} ·{' '}
+        {EVIDENCE_FORM_LABELS[evidence.form]} · {EVIDENCE_ROLE_LABELS[evidence.role]}
       </p>
       <p className="mt-1 text-caption text-ink-secondary">
-        {evidence.score}/100 · trọng số {formatNumber(evidence.weight)} · {evidence.answeredAt}
+        {evidence.score}/100 · trọng số {formatNumber(evidence.weight)} ·{' '}
+        <time dateTime={evidence.answeredAt}>{formatMasteryDateTime(evidence.answeredAt)}</time>
       </p>
     </li>
   )
@@ -240,13 +267,13 @@ export function MasteryProgressView({
                         <td className="min-w-36 align-top" key={`${domain}-${level}`}>
                           <ul className="space-y-2">
                             {cellNodes.map((node) => {
-                              const mastery = masteryFor(node.kid, masteryByKid)
+                              const mastery = masteryByKid.get(node.kid)!
                               const isSelected = selectedKid === node.kid
                               return (
                                 <li key={node.kid}>
                                   <button
                                     aria-pressed={isSelected}
-                                    className={`w-full rounded-md border p-3 text-left text-body-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${STATE_CLASSES[mastery.state]} ${mastery.frontier ? 'ring-2 ring-focus' : ''} ${isSelected ? 'shadow-sm' : ''}`}
+                                    className={`w-full rounded-md border p-3 text-left text-body-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${STATE_CLASSES[mastery.state]} ${mastery.frontier ? 'border-2 border-brand-600' : ''} ${isSelected ? 'shadow-sm' : ''}`}
                                     data-frontier={String(mastery.frontier)}
                                     data-kid={node.kid}
                                     data-state={mastery.state}

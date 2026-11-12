@@ -4,6 +4,8 @@ import type { PreviewEntry } from '@/app/preview/types'
 import type { ServedItemView, SessionView } from '@/features/practice/types'
 import type { KnowledgeDomain, KnowledgeTree } from '@/features/question-bank/types'
 
+import { MasteryDashboardView } from './components/MasteryDashboardView'
+import { MasteryProgressView } from './components/MasteryProgressView'
 import type {
   EvidenceView,
   MasteryNode,
@@ -14,7 +16,6 @@ import type {
   Recommendation,
   ReviewSummary,
 } from './types'
-import { MasteryProgressView } from './components/MasteryProgressView'
 
 // Original demo content; domain codes stay unchanged while OQ-1 is open.
 const domainSamples: { domain: KnowledgeDomain; names: string[] }[] = [
@@ -258,7 +259,7 @@ export const nothingDuePreview: NothingDue = { session: null, reason: 'NOTHING_D
 
 const progressPreviewStates = ['ready', 'loading', 'empty', 'error'] as const
 
-export const previews = progressPreviewStates.map((state) => ({
+const progressPreviews = progressPreviewStates.map((state) => ({
   fullFrame: true,
   group: 'screen' as const,
   id: `scr-019-${state}`,
@@ -277,4 +278,74 @@ export const previews = progressPreviewStates.map((state) => ({
     }),
   scr: 'SCR-019',
   title: `Tiến độ học tập — ${state}`,
-})) satisfies readonly PreviewEntry[]
+}))
+
+const dashboardPreviews = [
+  {
+    id: 'scr-010-ready',
+    recommendations: recommendationsPreview,
+    recommendationsState: 'ready' as const,
+    reviewSummary: reviewSummaryPreview,
+    reviewState: 'ready' as const,
+    title: 'Bảng điều khiển học tập — sẵn sàng',
+  },
+  {
+    id: 'scr-010-ahead',
+    recommendations: recommendationsPreview,
+    recommendationsState: 'ready' as const,
+    reviewSummary: reviewAheadSummaryPreview,
+    reviewState: 'ready' as const,
+    title: 'Bảng điều khiển học tập — ôn trước',
+  },
+  {
+    id: 'scr-010-loading',
+    recommendations: undefined,
+    recommendationsState: 'loading' as const,
+    reviewSummary: reviewSummaryPreview,
+    reviewState: 'ready' as const,
+    title: 'Bảng điều khiển học tập — đang tải gợi ý',
+  },
+  {
+    id: 'scr-010-empty',
+    recommendations: [] as Recommendation[],
+    recommendationsState: 'ready' as const,
+    reviewSummary: emptyReviewSummaryPreview,
+    reviewState: 'ready' as const,
+    title: 'Bảng điều khiển học tập — trống',
+  },
+  {
+    id: 'scr-010-recommendations-error',
+    recommendations: undefined,
+    recommendationsState: 'error' as const,
+    reviewSummary: reviewSummaryPreview,
+    reviewState: 'ready' as const,
+    title: 'Bảng điều khiển học tập — lỗi gợi ý',
+  },
+  {
+    id: 'scr-010-review-error',
+    recommendations: recommendationsPreview,
+    recommendationsState: 'ready' as const,
+    reviewSummary: undefined,
+    reviewState: 'error' as const,
+    title: 'Bảng điều khiển học tập — lỗi ôn tập',
+  },
+] as const
+
+const dashboardPreviewEntries = dashboardPreviews.map((preview) => ({
+  fullFrame: true,
+  group: 'screen' as const,
+  id: preview.id,
+  render: () =>
+    createElement(MasteryDashboardView, {
+      onRetryRecommendations: () => undefined,
+      onRetryReview: () => undefined,
+      recommendations: preview.recommendations,
+      recommendationsState: preview.recommendationsState,
+      reviewState: preview.reviewState,
+      reviewSummary: preview.reviewSummary,
+    }),
+  scr: 'SCR-010',
+  title: preview.title,
+}))
+
+export const previews = [...dashboardPreviewEntries, ...progressPreviews] satisfies readonly PreviewEntry[]

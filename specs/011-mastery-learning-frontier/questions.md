@@ -290,3 +290,19 @@ Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, 
 - Regression practice/review/mastery: **822 test, 0 failure, 0 error, 0 skipped**, exit 0.
 - NFR-P04 50 mục WORD: p95 **240 ms** trong lượt đo riêng; **107–109 SELECT/mẫu**. Trong full verify, p95 **130 ms**, **105–107 SELECT/mẫu**; cả hai dưới ngưỡng 500 ms.
 - Full `mvnw -B verify`: **BUILD SUCCESS**, **4.245 test**, 0 failure, 0 error, 0 skipped, exit 0. JaCoCo LINE từ lượt này: **96,71%** — **11.955/12.362 dòng** (407 missed); coverage check đạt.
+
+## 2026-11-12 — Chốt 011/T-03 (SCR-010 Learning Dashboard)
+
+1. **Q-T03-01 — Điều hướng ôn:** "Ôn ngay" đi tới `/learn/review`; "Ôn trước" đi tới `/learn/review?ahead=true`. T-04 đọc query `ahead` và gửi `{ ahead: true }`.
+2. **Q-T03-02 — Lịch ôn:** khi `dueCount = 0` và `nextDueAt = null`, hiện "Chưa có lịch ôn tiếp theo" và không có nút "Ôn trước". Nếu có `nextDueAt`, hiển thị giờ theo `vi-VN`, `Asia/Ho_Chi_Minh` và nút "Ôn trước".
+3. **Q-T03-03 — Gợi ý:** danh sách rỗng hiện "Hôm nay chưa có gợi ý phù hợp"; không hiện badge `kind`; nếu API trả hơn 5 mục chỉ hiển thị 5 mục đầu.
+4. **Q-T03-04 — Nhãn minh chứng:** Context: `EXAM` "Bài thi", `QUIZ` "Bài kiểm tra", `GRADED` "Bài có chấm điểm", `PRACTICE` "Luyện tập". Form: `OPEN` "Trả lời mở", `MCQ4` "Trắc nghiệm 4 lựa chọn", `MCQ3` "Trắc nghiệm 3 lựa chọn", `BINARY` "Đúng/Sai". Role: `PRIMARY` "Chính", `SECONDARY` "Phụ", `ERROR` "Lỗi thường gặp". Các ánh xạ dùng `Record` để TypeScript phát hiện enum chưa được bao phủ.
+5. **Q-T03-05 — Ngày giờ:** dùng chung `Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', ... })` cho `answeredAt` và `nextDueAt`; test dùng ISO cố định để không phụ thuộc timezone máy.
+6. **Q-T03-06 — T-02:** marker được ghi là `✅ 2026-11-12: PR #140, main 9d544a2`.
+7. Mỗi khối dashboard có loading, error và Retry độc lập. Retry một khối chỉ gọi lại API của khối đó. Dashboard không hiển thị chuỗi ngày, lượt hay credit.
+
+### Kết quả gate T-03
+
+- Vitest mastery: **67 test PASS**, 0 failure/error/skip, exit 0.
+- Full `npm run test`: **2.402 test PASS**, 0 failure/error/skip, exit 0.
+- `npm run typecheck`: PASS. `npm run lint`: 0 lỗi, 1 warning cũ tại `src/shared/ui/LevelBadge.tsx`. `npm run build`: PASS.
