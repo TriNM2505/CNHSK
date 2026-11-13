@@ -59,6 +59,9 @@ public class CnhskProperties implements EnvironmentAware, InitializingBean {
         if (app.getWebBaseUrl() == null || !app.getWebBaseUrl().isAbsolute()) {
             throw new IllegalStateException("APP_WEB_BASE_URL must be an absolute URL.");
         }
+        if (app.getApiBaseUrl() == null || !app.getApiBaseUrl().isAbsolute()) {
+            throw new IllegalStateException("API_BASE_URL must be an absolute URL.");
+        }
     }
 
     private void applyEnvironmentVariables() {
@@ -80,6 +83,10 @@ public class CnhskProperties implements EnvironmentAware, InitializingBean {
         String webBaseUrl = environment.getProperty("APP_WEB_BASE_URL");
         if (webBaseUrl != null) {
             app.setWebBaseUrl(java.net.URI.create(webBaseUrl));
+        }
+        String apiBaseUrl = environment.getProperty("API_BASE_URL");
+        if (apiBaseUrl != null && !apiBaseUrl.isBlank()) {
+            app.setApiBaseUrl(java.net.URI.create(apiBaseUrl));
         }
     }
 
@@ -184,6 +191,7 @@ public class CnhskProperties implements EnvironmentAware, InitializingBean {
 
     public static class App {
         private java.net.URI webBaseUrl = java.net.URI.create("http://localhost:5173");
+        private java.net.URI apiBaseUrl = java.net.URI.create("http://localhost:8080");
 
         public java.net.URI getWebBaseUrl() {
             return webBaseUrl;
@@ -191,6 +199,14 @@ public class CnhskProperties implements EnvironmentAware, InitializingBean {
 
         public void setWebBaseUrl(java.net.URI webBaseUrl) {
             this.webBaseUrl = webBaseUrl;
+        }
+
+        public java.net.URI getApiBaseUrl() {
+            return apiBaseUrl;
+        }
+
+        public void setApiBaseUrl(java.net.URI apiBaseUrl) {
+            this.apiBaseUrl = apiBaseUrl;
         }
     }
 }

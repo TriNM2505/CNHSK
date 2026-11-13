@@ -1,9 +1,13 @@
 package com.cnhsk.auth.service;
 
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -13,7 +17,12 @@ import java.util.stream.Collectors;
 import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.auth.api.CurrentUser;
 import com.cnhsk.auth.api.PlanState;
+import com.cnhsk.auth.api.ReminderSendResult;
+import com.cnhsk.auth.api.ReminderSettings;
+import com.cnhsk.auth.api.ReminderTarget;
 import com.cnhsk.auth.api.RoleCode;
+import com.cnhsk.auth.reminder.ReminderSettingsService;
+import com.cnhsk.auth.reminder.UnsubscribeTokens;
 import com.cnhsk.auth.repository.UserRepository;
 import com.cnhsk.auth.repository.UserRoleRepository;
 import com.cnhsk.shared.exception.ApiException;
@@ -23,6 +32,9 @@ import com.cnhsk.shared.util.Masking;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -38,24 +50,43 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Service
 public class AuthApiService implements AuthApi {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthApiService.class);
     private static final String UNAUTHENTICATED_MESSAGE = "Không thể xác thực người dùng hiện tại.";
     private static final String ACCOUNT_UNVERIFIED_MESSAGE = "Vui lòng xác minh email trước khi tiếp tục.";
     private static final String INVALID_ARGUMENT_MESSAGE = "Tham số không hợp lệ.";
     private static final TypeReference<Map<String, Integer>> USAGE_TYPE = new TypeReference<>() {};
+    private static final String REMINDER_ELIGIBLE = """
+            email_verified_at IS NOT NULL AND banned_at IS NULL
+            AND (suspended_until IS NULL OR suspended_until <= :now)
+            AND 'EMAIL' = ANY(string_to_array(reminder_channels, ','))
+            """;
 
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final NamedParameterJdbcTemplate jdbc;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final ReminderSettingsService reminderSettings;
+    private final UnsubscribeTokens unsubscribeTokens;
+    private final MailService mailService;
+    private final int reminderBatchSize;
 
     public AuthApiService(UserRepository userRepository, UserRoleRepository userRoleRepository,
-            NamedParameterJdbcTemplate jdbc, ObjectMapper mapper, Clock clock) {
+            NamedParameterJdbcTemplate jdbc, ObjectMapper mapper, Clock clock,
+            ReminderSettingsService reminderSettings, UnsubscribeTokens unsubscribeTokens, MailService mailService,
+            @Value("${cnhsk.reminder.batch-size:500}") int reminderBatchSize) {
         this.userRepository = Objects.requireNonNull(userRepository, "userRepository must not be null.");
         this.userRoleRepository = Objects.requireNonNull(userRoleRepository, "userRoleRepository must not be null.");
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc must not be null.");
         this.mapper = Objects.requireNonNull(mapper, "mapper must not be null.");
         this.clock = Objects.requireNonNull(clock, "clock must not be null.");
+        this.reminderSettings = Objects.requireNonNull(reminderSettings, "reminderSettings must not be null.");
+        this.unsubscribeTokens = Objects.requireNonNull(unsubscribeTokens, "unsubscribeTokens must not be null.");
+        this.mailService = Objects.requireNonNull(mailService, "mailService must not be null.");
+        if (reminderBatchSize <= 0) {
+            throw new IllegalArgumentException("cnhsk.reminder.batch-size must be positive.");
+        }
+        this.reminderBatchSize = reminderBatchSize;
     }
 
     @Override
@@ -206,6 +237,58 @@ public class AuthApiService implements AuthApi {
         }
         return jdbc.queryForObject("SELECT count(*) FROM auth.users WHERE " + predicate,
                 Map.of("now", timestamp(now)), Long.class);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReminderSettings reminderSettings(long userId) {
+        requireValid(userId > 0);
+        return reminderSettings.readSettings(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ReminderTarget> reminderTargets(LocalTime hour) {
+        requireValid(hour != null && hour.getMinute() == 0 && hour.getSecond() == 0 && hour.getNano() == 0);
+        MapSqlParameterSource parameters = new MapSqlParameterSource().addValue("hour", hour, Types.TIME)
+                .addValue("now", timestamp(clock.instant())).addValue("limit", reminderBatchSize);
+        return jdbc.query("SELECT id, count(*) OVER () AS total FROM auth.users WHERE reminder_time = :hour AND "
+                + REMINDER_ELIGIBLE + " ORDER BY id LIMIT :limit", parameters, rows -> {
+                    List<ReminderTarget> targets = new ArrayList<>();
+                    long total = 0;
+                    while (rows.next()) {
+                        total = rows.getLong("total");
+                        targets.add(new ReminderTarget(rows.getLong("id")));
+                    }
+                    long remaining = total - targets.size();
+                    if (remaining > 0) {
+                        LOGGER.warn("Study reminder batch limit reached; remaining={}", remaining);
+                    }
+                    return List.copyOf(targets);
+                });
+    }
+
+    @Override
+    public ReminderSendResult sendStudyReminder(long userId, int dueCount) {
+        requireValid(userId > 0 && dueCount >= 0);
+        if (dueCount == 0) {
+            return ReminderSendResult.SKIPPED;
+        }
+        // Query the database again rather than reusing a potentially cached User entity.
+        Optional<ReminderRecipient> recipient = jdbc.query(
+                "SELECT email, display_name FROM auth.users WHERE id = :id AND " + REMINDER_ELIGIBLE,
+                Map.of("id", userId, "now", timestamp(clock.instant())),
+                (row, index) -> new ReminderRecipient(row.getString("email"), row.getString("display_name")))
+                .stream().findFirst();
+        if (recipient.isEmpty()) {
+            return ReminderSendResult.SKIPPED;
+        }
+        ReminderRecipient target = recipient.orElseThrow();
+        mailService.sendStudyReminder(target.email(), target.displayName(), dueCount, unsubscribeTokens.issue(userId));
+        return ReminderSendResult.SENT;
+    }
+
+    private record ReminderRecipient(String email, String displayName) {
     }
 
     private Map<String, Integer> readUsage(String json) {

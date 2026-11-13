@@ -4,6 +4,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.core.env.MapPropertySource;
 
@@ -51,7 +53,8 @@ class CnhskPropertiesTest {
                                 "JWT_SECRET", generatedSecret,
                                 "COOKIE_DOMAIN", "cnhsk.com",
                                 "COOKIE_SECURE", "true",
-                                "APP_WEB_BASE_URL", "https://cnhsk.com"))))
+                                "APP_WEB_BASE_URL", "https://cnhsk.com",
+                                "API_BASE_URL", "https://api.cnhsk.test"))))
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     CnhskProperties properties = context.getBean(CnhskProperties.class);
@@ -67,6 +70,45 @@ class CnhskPropertiesTest {
                             .containsExactly("https://cnhsk.com", "https://game.cnhsk.com");
                     assertThat(properties.getCors().isAllowCredentials()).isTrue();
                     assertThat(properties.getApp().getWebBaseUrl().toString()).isEqualTo("https://cnhsk.com");
+                    assertThat(properties.getApp().getApiBaseUrl().toString()).isEqualTo("https://api.cnhsk.test");
+                });
+    }
+
+    @Test
+    void apiBaseUrlDefaultsToLocalBackend() {
+        contextRunner.withPropertyValues("cnhsk.jwt.secret=" + UUID.randomUUID())
+                .withInitializer(context -> context.getEnvironment().getPropertySources()
+                        .addFirst(new MapPropertySource("test-environment", Map.of("API_BASE_URL", ""))))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(CnhskProperties.class).getApp().getApiBaseUrl().toString())
+                            .isEqualTo("http://localhost:8080");
+                });
+    }
+
+    @Test
+    void bindsApiBaseUrlFromTypedConfiguration() {
+        contextRunner.withPropertyValues("cnhsk.jwt.secret=" + UUID.randomUUID(),
+                        "cnhsk.app.api-base-url=https://backend.cnhsk.test")
+                .withInitializer(context -> context.getEnvironment().getPropertySources()
+                        .addFirst(new MapPropertySource("test-environment", Map.of("API_BASE_URL", ""))))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.getBean(CnhskProperties.class).getApp().getApiBaseUrl().toString())
+                            .isEqualTo("https://backend.cnhsk.test");
+                });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"relative/path", "/unsubscribe"})
+    void rejectsRelativeApiBaseUrl(String apiBaseUrl) {
+        contextRunner.withPropertyValues("cnhsk.jwt.secret=" + UUID.randomUUID())
+                .withInitializer(context -> context.getEnvironment().getPropertySources()
+                        .addFirst(new MapPropertySource("test-environment", Map.of("API_BASE_URL", apiBaseUrl))))
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(rootCauseMessage(context.getStartupFailure()))
+                            .contains("API_BASE_URL must be an absolute URL");
                 });
     }
 

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Instant;
 import java.time.Clock;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,11 +19,16 @@ import java.util.Set;
 import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.auth.api.CurrentUser;
 import com.cnhsk.auth.api.PlanState;
+import com.cnhsk.auth.api.ReminderSendResult;
+import com.cnhsk.auth.api.ReminderSettings;
 import com.cnhsk.auth.api.RoleCode;
 import com.cnhsk.auth.entity.User;
 import com.cnhsk.auth.repository.UserRepository;
 import com.cnhsk.auth.repository.UserRoleRepository;
+import com.cnhsk.auth.reminder.ReminderSettingsService;
+import com.cnhsk.auth.reminder.UnsubscribeTokens;
 import com.cnhsk.auth.service.AuthApiService;
+import com.cnhsk.auth.service.MailService;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import com.cnhsk.shared.security.AuthenticatedUser;
@@ -31,9 +37,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -44,12 +53,16 @@ class AuthApiServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private UserRoleRepository userRoleRepository;
     @Mock private NamedParameterJdbcTemplate jdbc;
+    @Mock private ReminderSettingsService reminderSettings;
+    @Mock private UnsubscribeTokens unsubscribeTokens;
+    @Mock private MailService mailService;
 
     private AuthApi authApi;
 
     @BeforeEach
     void setUp() {
-        authApi = new AuthApiService(userRepository, userRoleRepository, jdbc, new ObjectMapper(), Clock.systemUTC());
+        authApi = new AuthApiService(userRepository, userRoleRepository, jdbc, new ObjectMapper(), Clock.systemUTC(),
+                reminderSettings, unsubscribeTokens, mailService, 500);
         SecurityContextHolder.clearContext();
     }
 
@@ -232,6 +245,61 @@ class AuthApiServiceTest {
                     .hasMessage("Tham số không hợp lệ.");
         }
         verifyNoInteractions(jdbc);
+    }
+
+    @Test
+    void reminderTargetsRejectsNullOrNonWholeHoursBeforeQuerying() {
+        for (LocalTime invalid : new LocalTime[] {null, LocalTime.of(20, 30), LocalTime.of(20, 0, 1),
+                LocalTime.of(20, 0, 0, 1)}) {
+            assertThatThrownBy(() -> authApi.reminderTargets(invalid)).isInstanceOf(IllegalArgumentException.class);
+        }
+        verifyNoInteractions(jdbc);
+    }
+
+    @Test
+    void reminderSettingsDelegatesToTheSharedTypedSnapshot() {
+        ReminderSettings snapshot = new ReminderSettings(LocalTime.of(20, 0), true, false, false, false);
+        when(reminderSettings.readSettings(17L)).thenReturn(snapshot);
+
+        assertThat(authApi.reminderSettings(17L)).isSameAs(snapshot);
+        verify(reminderSettings).readSettings(17L);
+        verifyNoInteractions(jdbc, userRepository, userRoleRepository);
+    }
+
+    @Test
+    void reminderDeliveryRejectsInvalidUserOrNegativeCount() {
+        for (Runnable invalid : List.<Runnable>of(() -> authApi.sendStudyReminder(0, 5),
+                () -> authApi.sendStudyReminder(-1, 0), () -> authApi.sendStudyReminder(1, -1),
+                () -> authApi.reminderSettings(0), () -> authApi.reminderSettings(-1))) {
+            assertThatThrownBy(invalid::run).isInstanceOf(IllegalArgumentException.class);
+        }
+        verifyNoInteractions(jdbc, mailService, unsubscribeTokens);
+    }
+
+    @Test
+    void reminderDeliveryWithoutDueCardsSkipsWithoutDatabaseOrMail() {
+        assertThat(authApi.sendStudyReminder(17, 0)).isEqualTo(ReminderSendResult.SKIPPED);
+        verifyNoInteractions(jdbc, mailService, unsubscribeTokens);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, -1})
+    void nonPositiveReminderBatchSizePreventsContextStartup(int batchSize) {
+        new ApplicationContextRunner().withUserConfiguration(AuthApiService.class)
+                .withBean(UserRepository.class, () -> userRepository)
+                .withBean(UserRoleRepository.class, () -> userRoleRepository)
+                .withBean(NamedParameterJdbcTemplate.class, () -> jdbc)
+                .withBean(ObjectMapper.class, ObjectMapper::new)
+                .withBean(Clock.class, Clock::systemUTC)
+                .withBean(ReminderSettingsService.class, () -> reminderSettings)
+                .withBean(UnsubscribeTokens.class, () -> unsubscribeTokens)
+                .withBean(MailService.class, () -> mailService)
+                .withPropertyValues("cnhsk.reminder.batch-size=" + batchSize)
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasRootCauseInstanceOf(IllegalArgumentException.class)
+                            .hasStackTraceContaining("cnhsk.reminder.batch-size must be positive.");
+                });
     }
 
     private static void assertApiFailure(Runnable invocation, ErrorCode code, HttpStatus status) {
