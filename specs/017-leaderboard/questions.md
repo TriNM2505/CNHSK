@@ -8,7 +8,7 @@
 | Q2 | Điểm game mỗi người trong kỳ | Ván cao nhất | ✅ Chốt |
 | Q3 | Người bị khoá | Ẩn, không chiếm hạng | ✅ Chốt |
 | Q4 | Số dòng | API top 20; FE hiển thị chính top 5, "Xem thêm" mở tới 20; hạng không trùng (`ROW_NUMBER`) | ✅ Chốt |
-| Q5 | Mã + tên 6 game trong `learning.api.GameCode` | Theo phụ lục 008 | ⏳ Chờ 008 |
+| Q5 | Mã + tên 6 game trong `learning.api.GameCode` | Leader chốt sáu mã/tên và thứ tự tại Q-T02-01 bên dưới | ✅ ANSWERED |
 
 ## 2026-11-13 · Duyệt G0 T-01
 
@@ -22,6 +22,16 @@
 | Q-T01-06 | PII, lỗi DB và input | Truy vấn hồ sơ chỉ chọn `id`, `display_name`, `avatar_url`; lỗi DB của `bannedUserIds` phải ném lên; `userIds == null` ném `IllegalArgumentException`, set rỗng trả map rỗng không truy vấn | ✅ Duyệt |
 
 **Ghi chú cho T-04:** lọc ID bị cấm trước khi đánh hạng bằng `user_id <> ALL(:banned)` hoặc `NOT (user_id = ANY(:banned))` với mảng. Không dùng `NOT IN (...)` vì danh sách rỗng có thể tạo SQL không hợp lệ.
+
+## 2026-11-14 · Duyệt G0 T-02
+
+| # | Câu hỏi | Quyết định | Trạng thái |
+|---|---|---|---|
+| Q-T02-01 | Sáu mã, tên tiếng Việt và thứ tự | `CHAR_RAIN` — Mưa Chữ; `PINYIN_MATCH` — Ghép Pinyin; `RADICAL_MATCH` — Ghép Bộ Thủ; `CHAR_CATCH` — Bắt Chữ; `BRUSH_STROKE` — Thần Bút; `FLYING_DART` — Phi Đao. Giữ đúng thứ tự này | ✅ ANSWERED |
+| Q-T02-02 | Ownership và đồng bộ 007/008 | Enum chung nằm ở `learning.api.GameCode`, thuộc 017/T-02. 007 dùng lại, không tạo enum thứ hai trong `community.game`. Leader đồng bộ tài liệu 007/008 khi duyệt 008; T-02 không sửa hai spec đó | ✅ ANSWERED |
+| Q-T02-03 | Public API, allowlist và test | `private final String displayName`, accessor `displayName()`; `name()` là mã kỹ thuật. Không override `toString`, không annotation Jackson, không lưu ordinal. Duyệt đúng `GameCode.java`, `GameCodeTest.java`, `questions.md`, `tasks.md`; test `FR015_…` và regression theo G0 | ✅ ANSWERED |
+
+**Lý do chốt hai mã mới:** Thần Bút tô nét chữ (`arcade.ts: requiredStrokes`); Phi Đao phóng trúng chữ rơi, không gắn với pinyin. Dùng `FLYING_DART`, không dùng `PINYIN_DART` của bản nháp plan.
 
 ## Dữ kiện đã kiểm trên main `2735ac8`
 - `attempts` có `kind` (gồm QUIZ, GAME, CONTEST), `ref_type`, `ref_id`, `game_code`, `score` BIGINT, `duration_ms`, `suspicious`, `submitted_at`.
