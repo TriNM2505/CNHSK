@@ -66,7 +66,8 @@ public class ReminderSettingsService {
     }
 
     private static Map<String, Object> auditSettings(ReminderSettingsResponse settings) {
-        return Map.of("reminderTime", settings.reminderTime(), "channels", settings.channels());
+        return Map.of("reminderTime", settings.reminderTime(), "channels", settings.channels(),
+                "configured", settings.configured());
     }
 
     private static String canonicalChannels(ReminderUpdateRequest request) {

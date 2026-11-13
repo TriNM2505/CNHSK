@@ -89,13 +89,17 @@ public class SecurityConfig {
         };
         RequestMatcher redeemRoute = request -> "POST".equals(request.getMethod())
                 && "/api/credits/redeem".equals(request.getRequestURI().substring(request.getContextPath().length()));
+        RequestMatcher unsubscribeRoute = request -> "POST".equals(request.getMethod())
+                && "/api/public/reminder/unsubscribe".equals(
+                        request.getRequestURI().substring(request.getContextPath().length()));
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokenRepository)
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
                         .csrfTokenRequestHandler(new RouteCsrfTokenRequestHandler(importRoutes))
-                        .requireCsrfProtectionMatcher(cookieUnsafeRequestMatcher()))
+                        .requireCsrfProtectionMatcher(cookieUnsafeRequestMatcher())
+                        .ignoringRequestMatchers(unsubscribeRoute))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(apiAuthenticationEntryPoint)
@@ -118,6 +122,7 @@ public class SecurityConfig {
                     }
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/community/**").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/dictionary/**").permitAll();
+                    authorize.requestMatchers(HttpMethod.POST, "/api/public/reminder/unsubscribe").permitAll();
                     authorize.requestMatchers("/api/community/moderation/**").hasRole("MODERATOR");
                     authorize.requestMatchers("/api/community/**").hasRole("LEARNER");
                     authorize.requestMatchers("/api/notes", "/api/notes/**").hasRole("LEARNER");

@@ -83,7 +83,7 @@ class ReminderSettingsIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void FR006_AT02_verifiedLearnerUpdatesSettingsAndAuditsOnlyTimeAndChannels() throws Exception {
+    void FR006_AT02_verifiedLearnerUpdatesSettingsAndAuditsConfigurationState() throws Exception {
         User user = createUser(true, LocalTime.of(7, 0), "WEB");
 
         MvcResult result = update(user, "20:00", true, true);
@@ -98,10 +98,12 @@ class ReminderSettingsIntegrationTest extends AbstractIntegrationTest {
                 String.class, user.getId(), ACTION, user.getId());
         JsonNode audit = objectMapper.readTree(payload);
         assertThat(audit).isEqualTo(objectMapper.valueToTree(Map.of(
-                "before", Map.of("reminderTime", "07:00", "channels", Map.of("web", true, "email", false)),
-                "after", Map.of("reminderTime", "20:00", "channels", Map.of("web", true, "email", true)))));
+                "before", Map.of("reminderTime", "07:00", "channels", Map.of("web", true, "email", false),
+                        "configured", true),
+                "after", Map.of("reminderTime", "20:00", "channels", Map.of("web", true, "email", true),
+                        "configured", true))));
         assertThat(payload).doesNotContain(user.getEmail(), user.getDisplayName(), "@example.test",
-                "emailVerified", "configured", "timezone", "password");
+                "emailVerified", "timezone", "password");
 
         MvcResult readBack = mockMvc.perform(get(ROUTE).header("Authorization", bearer(user, true)))
                 .andExpect(status().isOk()).andReturn();
@@ -265,6 +267,23 @@ class ReminderSettingsIntegrationTest extends AbstractIntegrationTest {
                         .content(body("20:00", true, false)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error_code").value("UNAUTHENTICATED"));
+    }
+
+    @Test
+    void FR006_firstSaveAuditDistinguishesDefaultsFromConfiguredSettings() throws Exception {
+        User user = createUser(true, null, "WEB");
+
+        update(user, "20:00", true, false);
+
+        String payload = jdbc.queryForObject(
+                "SELECT detail::text FROM shared.audit_logs WHERE actor_id = ? AND action = ?",
+                String.class, user.getId(), ACTION);
+        JsonNode audit = objectMapper.readTree(payload);
+        assertThat(audit.path("before").get("configured")).isEqualTo(objectMapper.getNodeFactory().booleanNode(false));
+        assertThat(audit.path("after").get("configured")).isEqualTo(objectMapper.getNodeFactory().booleanNode(true));
+        assertThat(audit.path("before").path("reminderTime").asText()).isEqualTo("20:00");
+        assertThat(audit.path("after").path("reminderTime").asText()).isEqualTo("20:00");
+        assertThat(auditCount(user)).isEqualTo(1);
     }
 
     private User createUser(boolean verified, LocalTime reminderTime, String channels) {
