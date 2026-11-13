@@ -59,7 +59,7 @@ export function LearnerLayout({
   const bottomNavigation = (
     <nav
       aria-label="Học tập trên thiết bị di động"
-      className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 border-t border-line bg-surface px-1 pb-[env(safe-area-inset-bottom)] sm:hidden"
+      className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-6 border-t border-line bg-surface px-1 pb-[env(safe-area-inset-bottom)] sm:hidden"
     >
       {learnerNavigation.map((item) => {
         const Icon = item.icon
@@ -68,14 +68,15 @@ export function LearnerLayout({
           <NavigationLink
             active={active}
             className={cn(
-              'flex min-h-16 flex-col items-center justify-center gap-1 px-1 text-caption',
+              'flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 px-1 text-center text-caption',
+              item.to === '/references/media' && 'order-last',
               active && 'rounded-none border-t-2 border-brand-600 bg-brand-50',
             )}
             key={item.to}
             to={item.to}
           >
             <Icon aria-hidden="true" className="size-5" />
-            <span>{item.label}</span>
+            <span aria-label={item.label}>{item.mobileLabel ?? item.label}</span>
           </NavigationLink>
         )
       })}

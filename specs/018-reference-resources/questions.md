@@ -160,3 +160,46 @@ HTTP xác nhận 204 có đúng action/target/actor và detail {reason,note}; pa
 Fetch trước bàn giao: main 450ca82 (#152) chưa chứa deb4f03 (#151). Theo chỉ định leader, nhánh T-04 giữ nguyên base deb4f03, không rebase/merge main. PR T-04 phụ thuộc #151; trong lúc #151 chưa merge, diff GitHub với main có thể còn bao gồm phần T-03. Commit T-04 chỉ thay đúng 10 file đã duyệt, xét từ base deb4f03. Leader xử lý phần shared khi merge.
 
 Self-check: không dependency, migration, ErrorCode, application.yaml, RateLimiter hay entity/repository thay đổi. AuditService chỉ thêm dependency constructor và hàm đọc theo lô/record ReportStat; record/recordDetail không đổi chữ ký hoặc nội dung. Shared không phụ thuộc learning; code learning ghi audit qua AuditService, không truy vấn bảng audit trực tiếp. SQL tham số hoá; không điều kiện trên JSONB. SecurityConfig chỉ thêm đúng matcher POST cho LEARNER. Fixture tự soạn, tài khoản local dùng bcrypt cost 12; không secret/PII thật/dữ liệu có bản quyền. Không log note/userId trong nhánh Redis lỗi, không trả exception upstream. Không sửa/tắt/skip test cũ, không chạy SQL/migration trên Neon. Không push main, merge PR hoặc force-push.
+
+## T-06 — G0/G2 ngày 2026-11-14
+
+Base/merge-base: 5e5695ccf4f6aab2e1b764297b0e22e2a63cfe81; nhánh spec/018-t06, worktree riêng. Allowlist 27 file được leader duyệt, thực tế đúng 27 file; không sửa RoleLayout, shared/ui, contract hoặc backend ngoài ba tên màn đã duyệt.
+
+| Câu hỏi | Chốt | Trạng thái |
+|---|---|---|
+| Q-T06-01 | Ba route /references/media (SCR-053), /references/books (SCR-054), /references/books/:id (SCR-055): access public, layout by-role. Dùng RoleLayout sẵn có, không tự chọn role. PublicLayout chỉ thêm menu khách. Test guest/learner không redirect, đúng layout. | ANSWERED |
+| Q-T06-02 | Mobile có sáu ô; Tham khảo ở cuối, tên truy cập Tài liệu tham khảo. Kiểm 320/375/640px không tràn/cắt nghĩa; không thêm menu Thêm. | ANSWERED |
+| Q-T06-03 | Tag là ô nhập + Áp dụng, gửi nguyên giá trị (không trim), áp dụng tag hoặc đổi HSK/tab về page 0. Không suy danh sách tag từ một trang dữ liệu. | ANSWERED |
+| Q-T06-04 | API chi tiết trả kind khác BOOK thì SCR-055 hiện Không tìm thấy sách + liên kết về danh mục; không đổi API. | ANSWERED |
+
+File 27 AssistantPromptBuilder chỉ thêm SCR-053 Tài liệu nghe nhìn, SCR-054 Danh mục sách tham khảo, SCR-055 Chi tiết sách tham khảo vào SCREEN_NAMES. Không thêm SCR-009: leader đã sửa riêng trong 88e0155, không được thêm lần nữa để tránh trùng khoá Map.ofEntries.
+
+### G2 — Gate thực tế
+
+| Bước | Kết quả |
+|---|---|
+| npm ci trong cnhsk-web | PASS; không thay lockfile, không npm audit fix |
+| References + Layouts + routeAccess/routes/screenRegistry/preview registry | 109/109 test, 11 file, PASS |
+| Shuffle cùng tập test, seed 17 / 53 / 181, minWorkers=2 maxWorkers=2 | 109/109 mỗi seed, PASS cả ba |
+| Full Vitest minWorkers=2 maxWorkers=2 | 2.520/2.520 test, 177 file, PASS; 208,96 giây; không cần chạy lại test chập chờn |
+| npm run lint | 0 lỗi, chỉ một warning LevelBadge có sẵn |
+| npm run typecheck / npm run build | PASS / PASS (Vite 4,80 giây) |
+| mvnw.cmd -B -Dtest=AssistantPromptBuilderTest test, Java 17 DEBUG=false | 11 test: 10 pass, 1 failure, 0 error/skip. Chỉ FR007_learnerRouteDefinitionsAllHaveTrustedNames, message [SCR-009]. BUILD FAILURE — ngoại lệ được leader duyệt riêng cho base 5e5695c. Không có lỗi SCR-053/054/055, không sửa/nới test. |
+| Chrome headless với profile tạm và HTTP fixture local | 28 kiểm tra PASS, gồm 24 tổ hợp guest/learner × 3 màn × 320/375/640/1280px, 3 trạng thái loading/empty/error, 1 lượt báo lỗi 204 |
+| git diff --check / UTF-8 BOM / TODO mới | PASS / 0 / 0 |
+
+Lượt targeted đầu phát hiện lỗi ở test mới (truy vấn text nhiều dòng, thời điểm AuthProvider đổi layout, callback beforeEach trả mock function) và nhãn mobile chưa truyền ra DOM qua NavigationLink. Đã sửa trong allowlist và chạy lại gate cuối ở trên; không nới test cũ. Test mới bổ sung sau đó chọn đúng nút theo thẻ, chứng minh response báo lỗi cũ không ghi success sang thẻ mới. Không dùng ngoại lệ FE.
+
+### Bằng chứng UI và contract FE
+
+- SCR-053: YouTube/Podcast gọi đúng kind; chỉ bộ chọn HSK 1–3; gửi tag nguyên giá trị, page API bắt đầu 0; huỷ request cũ khi đổi bộ lọc. Bốn trạng thái tách biệt, lỗi có Thử lại, không giả danh sách rỗng.
+- SCR-054: luôn gọi kind=BOOK; thẻ có tác giả, cấp và link SCR-055; không nhúng nội dung sách. SCR-055 phân biệt không tìm thấy (404/kind khác/ID sai) với lỗi mạng có thử lại; nullable publisher/năm có nhãn Đang cập nhật; mô tả đầy đủ dạng chữ, nhãn affiliate cạnh nút mua/tham khảo.
+- AT-17: chuỗi <script> và HTML trong mô tả hiển thị chữ, không tạo script/img onerror; không dangerouslySetInnerHTML. AT-18: mọi link ngoài target=_blank, rel=noopener noreferrer. Ở 320/375/640px lưới đúng một cột, document.scrollWidth không vượt clientWidth. Nhãn Tham khảo ở 320px xuống hai dòng, đầy đủ; tên truy cập là Tài liệu tham khảo. Kiểm thêm desktop 1280px. Đã xem ảnh 320px learner và 375px chi tiết sách guest; ảnh chỉ nằm ngoài repo, không commit.
+- Chỉ LEARNER có menu Báo lỗi. Page gọi POST với reason/note, shared apiRequest giữ cơ chế cookie/CSRF có sẵn; form chặn gửi lặp khi pending, 300 code point được phép, 301 bị chặn. 204 hiện Đã ghi nhận báo lỗi; 429 hiện thông báo hạn mức, các lỗi khác giữ message. Không lẫn success giữa các thẻ/tài khoản.
+- Preview đăng ký cả SCR-053/054/055, mỗi màn đủ bốn trạng thái. View thuần props, fixture tự soạn có null; page/component không import preview hoặc test-fixtures. Không gọi HEAD hay mở website bên ngoài để kiểm link.
+
+Chrome dùng fixture HTTP bị chặn tại app local 127.0.0.1:15186, KHÔNG phải bằng chứng backend thật. Ảnh/JSON/log chỉ lưu ngoài repo. Không cần nạp DB hay chạy full Maven verify cho task FE cộng ba dòng tên màn; gate Java chọn lọc ghi trung thực failure đã được duyệt. Không dùng Neon, không đụng môi trường T-19.
+
+Fetch trước bàn giao: origin/main đã lên ba5bc05, gồm T-05 (#162) và sửa SCR-009 ở 88e0155. Giữ base 5e5695c; KHÔNG rebase/merge main theo leader. questions.md/tasks.md có thay đổi mới từ T-05 trên main; leader cần giữ cả hai mục khi gộp. AssistantPromptBuilder giữ cả dòng SCR-009 của main và ba dòng mới của T-06.
+
+Self-check: không dependency, migration, API/error code/security thay đổi; không secret/email thật/dữ liệu bản quyền. API client dùng đúng ba endpoint công khai/báo lỗi của YAML, dùng chung apiRequest và AbortSignal. RoleLayout nguyên trạng. Chỉ thêm assertion menu trong test layout cũ và tăng số link đúng từ 5 lên 6; mọi assertion khác giữ nguyên. Commit file cụ thể, không add ./-A, không push main/force-push/merge PR.

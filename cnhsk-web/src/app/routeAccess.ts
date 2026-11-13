@@ -366,6 +366,27 @@ export const appRouteDefinitions = [
     path: '/moderation/reports/:id',
     scr: 'SCR-063',
   },
+  {
+    access: 'public',
+    kind: 'screen',
+    layout: 'by-role',
+    path: '/references/media',
+    scr: 'SCR-053',
+  },
+  {
+    access: 'public',
+    kind: 'screen',
+    layout: 'by-role',
+    path: '/references/books',
+    scr: 'SCR-054',
+  },
+  {
+    access: 'public',
+    kind: 'screen',
+    layout: 'by-role',
+    path: '/references/books/:id',
+    scr: 'SCR-055',
+  },
   { access: 'public', kind: 'not-found', layout: 'public', path: '*' },
 ] as const satisfies readonly AppRouteDefinition[]
 

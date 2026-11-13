@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
 import { AppShell, BrandLink } from '@/shared/layout/AppShell'
 import { Button } from '@/shared/ui'
@@ -16,8 +17,13 @@ export function PublicLayout({ children }: PublicLayoutProps) {
   return (
     <div className="flex min-h-screen min-w-0 flex-col bg-canvas">
       <header className="sticky top-0 z-20 border-b border-line bg-surface px-4">
-        <div className="mx-auto flex h-16 max-w-content items-center justify-between gap-3">
+        <div className="mx-auto flex min-h-16 max-w-content flex-wrap items-center justify-between gap-3 py-2">
           <BrandLink />
+          <nav aria-label="Tài liệu công khai" className="min-w-0 text-body-sm">
+            <Link to="/references/media" className="inline-flex min-h-touch items-center">
+              Tài liệu tham khảo
+            </Link>
+          </nav>
           <nav aria-label="Tài khoản" className="flex items-center gap-2">
             <Button size="sm" to="/login" variant="ghost">
               Đăng nhập
