@@ -76,6 +76,12 @@ app:
   timezone: Asia/Ho_Chi_Minh
 
 cnhsk:
+  reference:
+    allowed-domains:
+      YOUTUBE_CHANNEL: [youtube.com, youtu.be]
+      PODCAST: [open.spotify.com, podcasts.apple.com, soundcloud.com, ximalaya.com, podcasts.google.com]
+      BOOK: [tiki.vn, shopee.vn, fahasa.com, amazon.com, books.google.com, nxbgd.vn]
+    thumbnail-domains: [i.ytimg.com, yt3.ggpht.com, salt.tikicdn.com, m.media-amazon.com]
   billing:
     card-code-pepper: ${CARD_CODE_PEPPER}
     free-monthly-limit: 10
