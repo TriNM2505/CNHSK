@@ -89,3 +89,36 @@ Base 7d66a11 (PR #148); nhánh spec/018-t02. T-01 ghi MERGED trong tasks.md và 
 Không dùng ngoại lệ môi trường. Full suite tăng đúng 44 test so với 4.368 test của base leader đã xác nhận.
 
 Self-check: đúng 8 file đã duyệt; application.yaml chỉ thêm cnhsk.reference, danh sách đúng §0.2. Không dependency mới; không endpoint, SecurityConfig, ErrorCode, migration, dữ liệu thật hay secret. Policy không gọi mạng, không log URL và không chuẩn hoá dữ liệu đầu vào. Host có dấu chấm cuối không được cho qua; userinfo/host rỗng trả MALFORMED_URL. Test chứng minh cấu hình sai làm khởi động thất bại. Không sửa hay skip test cũ. Không chạy SQL/migration trên Neon; quyền V7 do leader xử lý.
+
+## T-03 — Chốt leader ngày 2026-11-13
+
+- Q-T03-01 — ANSWERED: hskMin null không giới hạn dưới, hskMax null không giới hạn trên; cả hai null luôn hiện. Kiểm [null,3] và [4,null] với hsk=2 và hsk=5.
+- Q-T03-02 — ANSWERED: ID không phải số, <=0 hoặc vượt int64 trả 404 REFERENCE_NOT_FOUND, giống không tồn tại/DRAFT/HIDDEN. Không sửa contract.
+- Q-T03-03 — ANSWERED: Redis lỗi cho qua, WARN cố định, không IP/input/chi tiết kết nối, có test.
+- Q-T03-04 — ANSWERED: phút lịch theo Clock, một bộ đếm chung cho hai GET theo IP khách; request sai tham số vẫn tính; người đã đăng nhập không tính. retryAfterSeconds tới phút kế tiếp, tối thiểu 1. Ngưỡng 120 là hằng số; key reference:public:guest:<ip>:<yyyyMMddHHmm>, tách dictionary. IP lấy từ remoteAddr, không tin header tự gửi. Không sửa application.yaml.
+- Matcher chỉ GET /api/public/references và /api/public/references/{id}, đặt cạnh nhóm public hiện có. POST và đường dẫn con khác không public. Tag khớp chính xác bằng :tag = ANY(tags), có tham số hoá, không LIKE.
+- Base de73286, nhánh spec/018-t03. Query chỉ đọc, danh sách hai truy vấn cố định (count + page), chi tiết một truy vấn; luôn lọc PUBLISHED trong SQL. DTO không trả entity hoặc dữ liệu quản trị. REFERENCE_NOT_FOUND thêm ngay trước INTERNAL_ERROR và cập nhật test thứ tự enum.
+
+### T-03 — Gate và bằng chứng
+
+| Gate | Kết quả thực tế |
+|---|---|
+| ReferenceQueryServiceTest + ReferenceQueryIntegrationTest + PublicReferenceControllerIntegrationTest | 39 test, 0 failure/error/skip; BUILD SUCCESS |
+| GlobalExceptionHandlerTest + ModuleBoundaryTest | 28 test (19 + 9), 0 failure/error/skip; BUILD SUCCESS |
+| Full mvnw.cmd -B verify, Java 17, DEBUG=false, Docker local | 4.451 test, 0 failure/error/skip; BUILD SUCCESS; 31:32 phút |
+| JaCoCo LINE toàn dự án | 96,7601% (12.215/12.624 dòng); mọi coverage check đạt |
+| JaCoCo LINE learning.reference / reference.web | 98,7097% (153/155) / 100% (30/30) |
+| Danh sách 500 mục, p95 (10 warm-up + 40 mẫu) | Targeted 7,5036 ms; full suite 1,5531 ms; yêu cầu <150 ms |
+| git diff --check / UTF-8 BOM | PASS / 0 BOM |
+
+Không dùng ngoại lệ môi trường. Full suite tăng đúng 39 test so với 4.412 test của main de73286.
+
+PostgreSQL xác nhận: [null,3] có ở hsk=2 và không có ở hsk=5; [4,null] ngược lại; cả hai null luôn hiện. Tag so khớp chính xác, phân biệt hoa/thường, ký tự %/_ không thành wildcard; chuỗi giống SQL không làm thay đổi điều kiện. Sort sort_order/id ổn định, trang vượt phạm vi rỗng nhưng total vẫn đúng, offset lớn không tràn int. Danh sách giữ đúng hai lời gọi truy vấn khi tăng số mục; không N+1.
+
+HTTP xác nhận: GUEST và đủ sáu role đọc được; chỉ PUBLISHED. DRAFT/HIDDEN/ID thiếu hoặc sai đều 404 REFERENCE_NOT_FOUND. JSON common giữ trường null bắt buộc; trường sách chỉ xuất hiện với BOOK. Danh sách và chi tiết không có createdBy/status/reportCount/lastReportedAt hoặc thời gian quản trị. Mô tả chứa markup vẫn là chuỗi dữ liệu. POST và đường dẫn con ngoài hai GET không được mở public.
+
+Redis thật xác nhận: hai GET và tham số sai dùng chung hạn mức khách; lượt 120 qua, 121 trả 429 với retryAfterSeconds; IP khác độc lập, sang phút mới có bộ đếm mới. Tám request tranh suất cuối chỉ một request qua; TTL không bị gia hạn. Người đã xác thực không gọi bộ đếm; Redis lỗi cho qua với đúng một WARN cố định, không có exception upstream hoặc IP. Không tin header client để xác định IP.
+
+Fetch trước bàn giao vẫn de73286; ErrorCode/SecurityConfig không có thay đổi trên main cần rebase. T-02 cập nhật MERGED (#149, de73286).
+
+Self-check: đúng 10 file đã duyệt; không dependency/contract/migration/application.yaml/RateLimiter/entity/repository hoặc FE thay đổi. ErrorCode thêm REFERENCE_NOT_FOUND ngay trước INTERNAL_ERROR, GlobalExceptionHandlerTest giữ containsExactly. SecurityConfig chỉ thêm matcher GET cho đúng danh sách và /{id}. SQL dùng tham số và chỉ đọc bảng cùng module; không trả entity. Fixture tự soạn, mật khẩu chỉ giữ hash bcrypt cost 12, không PII thật/secret/dữ liệu có bản quyền. Không sửa/tắt/skip test cũ. Không SQL/migration trên Neon; không push main, merge PR hoặc force-push.
