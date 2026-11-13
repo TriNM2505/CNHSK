@@ -86,6 +86,7 @@ class PracticeServiceTest {
         var view = service.start(command(source, List.of(choice(1)), List.of(), override, Map.of("roundSeconds", 30)));
         assertThat(view.sessionId()).isEqualTo(42L);
         assertThat(saved.getKind()).isEqualTo(source.kind().name());
+        assertThat(saved.getRefType()).isEqualTo(source.name());
         assertThat(saved.getUserId()).isEqualTo(7L);
         assertThat(saved.getRefId()).isEqualTo(9L);
         assertThat(view.source()).isEqualTo(source);
@@ -319,9 +320,10 @@ class PracticeServiceTest {
         assertThat(service.view(7, 42).status()).isEqualTo("IN_PROGRESS");
     }
 
-    @Test
-    void FR003_deferredViewNeverSerializesResultsEvenWhenStoredEvidenceContainsThem() throws Exception {
-        service.start(command(PracticeSource.TOPIC_TEST, List.of(choice(1), choice(2)), List.of(), null, null));
+    @ParameterizedTest
+    @EnumSource(value = PracticeSource.class, names = {"TOPIC_TEST", "QUIZ", "QUIZ_RETRY"})
+    void FR003_deferredViewNeverSerializesResultsEvenWhenStoredEvidenceContainsThem(PracticeSource source) throws Exception {
+        service.start(command(source, List.of(choice(1), choice(2)), List.of(), null, null));
         when(attempts.findByIdForUpdate(42L)).thenReturn(Optional.of(saved));
         var graded = new AttemptItem(42L, 1, "MEANING_CHOICE", "VOCAB");
         graded.setAnswer("B");

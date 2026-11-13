@@ -91,6 +91,28 @@ class PracticeApiTest {
                         .map(Enum::name).toArray(String[]::new));
     }
 
+    @ParameterizedTest
+    @EnumSource(value = PracticeApi.PracticeSource.class, names = {"QUIZ", "QUIZ_RETRY"})
+    void quizSourcesRoundTripThroughStartAndView(PracticeApi.PracticeSource source) {
+        var engineSource = com.cnhsk.learning.practice.PracticeSource.valueOf(source.name());
+        var engineView = new PracticeService.SessionView(42, engineSource, 91L,
+                com.cnhsk.learning.practice.FeedbackMode.DEFERRED, "IN_PROGRESS", NOW,
+                NOW.plus(Duration.ofMinutes(30)), List.of(), List.of(), Map.of());
+        when(service.start(any())).thenReturn(engineView);
+        when(service.view(71, 42)).thenReturn(engineView);
+
+        var started = api.start(new PracticeApi.StartPracticeCommand(71, source, 91L, null,
+                List.of(item(true)), List.of(), null, Map.of()));
+        var captured = ArgumentCaptor.forClass(PracticeService.StartPracticeCommand.class);
+        verify(service).start(captured.capture());
+
+        assertThat(captured.getValue().source()).isEqualTo(engineSource);
+        assertThat(started.source()).isEqualTo(source);
+        assertThat(started.feedback()).isEqualTo(PracticeApi.FeedbackMode.DEFERRED);
+        assertThat(started.expiresAt()).isEqualTo(NOW.plus(Duration.ofMinutes(30)));
+        assertThat(api.view(71, 42)).isEqualTo(started);
+    }
+
     @Test
     void FR002_newPracticeEnumsRoundTripThroughTheApiBoundary() throws Exception {
         when(service.start(any())).thenReturn(engineView(false));

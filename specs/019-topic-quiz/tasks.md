@@ -11,7 +11,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | **⚿K1** `PracticeSource.QUIZ`, `QUIZ_RETRY` (§0.2) — gom chung PR với `CONTEST` (021); nếu ⚿K1 đã merge thì chỉ thêm 2 giá trị | `…/learning/practice/PracticeSource.java` + test | §0.2 | ⬜ |
+| T-01 | **⚿K1** `PracticeSource.QUIZ`, `QUIZ_RETRY` (§0.2); đồng bộ enum API và OpenAPI 003, giữ thứ tự cũ. `CONTEST` do 021 thêm riêng theo G0 leader duyệt 2026-11-14 | `…/learning/practice/PracticeSource.java`, `…/learning/api/PracticeApi.java`, contract 003 + test | §0.2 | 🔄 Chờ review |
 | T-02 | Tách khỏi học chính: `EvidenceAllocator.contextOf` trả `null` cho `QUIZ`/`QUIZ_RETRY` (**báo người giữ 011**); `existsActiveTest` thêm `'QUIZ'` (**báo người giữ 012/015**) + test mastery không đổi, trợ lý bị chặn | `…/learning/mastery/EvidenceAllocator.java`, `…/learning/practice/entity/AttemptRepository.java` + test [chờ T-01] | FR-016, FR-017 · AT-11, AT-12 | ⬜ |
 | T-03 | `QuizCatalog`: truy vấn chủ đề đủ câu (§4, một truy vấn/trang), `myFirstAttempt`, `myBestRetryScore`; `GET /api/quizzes`; cấu hình `cnhsk.quiz.*` (sau ⚿K7 đọc `SettingsApi`) | `…/learning/quiz/{QuizCatalog,QuizRepository}.java`, `…/quiz/web/QuizController.java`, `application.yaml`, `SecurityConfig.java` + test | FR-003…FR-005, FR-018 · AT-01, AT-02 | ⬜ |
 | T-04 | `QuizQuestionPicker` (ngẫu nhiên, cân `qtype`, chỉ APPROVED) + `QuizHandler` engine: chọn `QUIZ`/`QUIZ_RETRY`, trả phiên đang mở, chấm `score`, `suspicious`, xử lý đua `uq_quiz_first`; `POST /api/quizzes/{topicId}/attempts`; mã `QUIZ_NOT_AVAILABLE`; rate limit [chờ T-01] | `…/learning/quiz/{QuizQuestionPicker,QuizHandler,QuizSessionService}.java`, `ErrorCode.java` + test | FR-006…FR-011 · AT-03…AT-10 | ⬜ |

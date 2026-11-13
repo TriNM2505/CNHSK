@@ -36,7 +36,9 @@ class PracticeCoreTest {
             "MOCK_EXAM, EXAM, DEFERRED, 86400, true, false",
             "PLACEMENT, EXAM, DEFERRED, 7200, true, false",
             "TARGETED_PRACTICE, PRACTICE, IMMEDIATE, 7200, true, false",
-            "DUE_REVIEW, PRACTICE, IMMEDIATE, 7200, true, false"
+            "DUE_REVIEW, PRACTICE, IMMEDIATE, 7200, true, false",
+            "QUIZ, QUIZ, DEFERRED, 1800, true, false",
+            "QUIZ_RETRY, PRACTICE, DEFERRED, 1800, true, false"
     }, nullValues = "DYNAMIC")
     void FR002_allSourcesKeepSpecifiedLifetimeFeedbackAndScoringPolicy(
             PracticeSource source, AttemptKind kind, FeedbackMode feedback, Long ttlSeconds,
