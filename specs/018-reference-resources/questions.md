@@ -64,3 +64,28 @@ Fetch trước bàn giao: origin/main đã lên 7054115 (PR #147 của spec 013/
 - ES-05: full verify xanh, coverage vượt 80%. Không skip/tắt test.
 - Đúng 9 file đã duyệt; file test spec 010 chỉ đổi 22L thành 23L, không đổi tên hoặc assertion khác. Không sửa AuditService, ErrorCode, SecurityConfig, application.yaml, .env, dependency, AC-04/Hiến pháp hoặc code FE.
 - Chỉ kiểm trên PostgreSQL Testcontainers local, không chạy SQL/migration trên Neon. Leader áp V7 và gỡ quyền DELETE sau khi merge.
+
+## T-02 — Chốt leader ngày 2026-11-13
+
+- Q-T02-01 — ANSWERED: ReferenceUrlPolicy trả Optional<Violation>(field, reason). field là url hoặc thumbnailUrl; reason gồm MALFORMED_URL, NON_HTTPS_LINK, DOMAIN_NOT_ALLOWED. T-05 ánh xạ sang ErrorCode/422; T-02 không sửa ErrorCode.
+- Q-T02-02 — ANSWERED: chỉ nhận tiền tố https:// chữ thường, khớp CHECK V7; HTTPS:// trả NON_HTTPS_LINK. Không chuẩn hoá dữ liệu. Host không phân biệt hoa/thường, bỏ www. đầu host, so bằng hoặc hậu tố có ranh giới dấu chấm. Không bỏ dấu chấm cuối host.
+- Q-T02-03 — ANSWERED: thumbnail null là không có; chuỗi rỗng/trắng và URL có khoảng trắng đầu/cuối trả MALFORMED_URL. Không trim.
+- Thứ tự kiểm: parse → scheme → userinfo/host rỗng → domain. user@ và user:pass@ đều trả MALFORMED_URL. Không gửi HTTP/HEAD hay ghi URL vào log.
+- Cấu hình từ application.yaml đúng §0.2; thiếu kind, danh sách rỗng hoặc domain chứa scheme/đường dẫn làm khởi động thất bại. Không thêm dependency, endpoint, migration hay sửa entity/repository.
+
+### T-02 — Gate và self-check
+
+Base 7d66a11 (PR #148); nhánh spec/018-t02. T-01 ghi MERGED trong tasks.md và dòng V7 trong database.md ghi đã merge 13/11; leader chạy Neon. Không sửa entity/repository nên không thay dòng trống cuối hai file này.
+
+| Gate | Kết quả thực tế |
+|---|---|
+| ReferenceUrlPolicyTest + ReferencePropertiesTest | 44 test, 0 failure/error/skip; BUILD SUCCESS |
+| ModuleBoundaryTest | 9 test, 0 failure/error/skip; BUILD SUCCESS |
+| Full mvnw.cmd -B verify, Java 17, DEBUG=false, Docker local | 4.412 test, 0 failure/error/skip; BUILD SUCCESS; 19:27 phút |
+| JaCoCo LINE toàn dự án | 96,7390% (12.133/12.542 dòng); mọi coverage check đạt |
+| JaCoCo LINE learning.reference | 98,1132% (104/106 dòng) |
+| git diff --check / BOM | PASS / 0 BOM |
+
+Không dùng ngoại lệ môi trường. Full suite tăng đúng 44 test so với 4.368 test của base leader đã xác nhận.
+
+Self-check: đúng 8 file đã duyệt; application.yaml chỉ thêm cnhsk.reference, danh sách đúng §0.2. Không dependency mới; không endpoint, SecurityConfig, ErrorCode, migration, dữ liệu thật hay secret. Policy không gọi mạng, không log URL và không chuẩn hoá dữ liệu đầu vào. Host có dấu chấm cuối không được cho qua; userinfo/host rỗng trả MALFORMED_URL. Test chứng minh cấu hình sai làm khởi động thất bại. Không sửa hay skip test cũ. Không chạy SQL/migration trên Neon; quyền V7 do leader xử lý.
