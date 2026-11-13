@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.cnhsk.learning.mastery.EvidenceAllocator.AllocatedEvidence;
 import com.cnhsk.learning.practice.ItemType;
 import com.cnhsk.learning.practice.PracticeService.ServedSnapshot;
@@ -27,6 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.LoggerFactory;
 
 @Transactional
 class EvidenceAllocatorTest extends AbstractIntegrationTest {
@@ -50,10 +54,31 @@ class EvidenceAllocatorTest extends AbstractIntegrationTest {
                 "TARGETED_PRACTICE", "GAME_ROUND", "DUE_REVIEW")) {
             assertThat(EvidenceAllocator.contextOf(source)).isEqualTo("PRACTICE");
         }
-        for (String source : List.of("TOPIC_STUDY", "CHAR_WRITING", "WRITING_CHALLENGE", "PRON_STAGE")) {
+        for (String source : List.of("TOPIC_STUDY", "CHAR_WRITING", "WRITING_CHALLENGE", "PRON_STAGE",
+                "QUIZ", "QUIZ_RETRY")) {
             assertThat(EvidenceAllocator.contextOf(source)).isNull();
         }
         assertThat(EvidenceAllocator.contextOf("FUTURE_SOURCE")).isNull();
+    }
+
+    @Test
+    void quizSourcesAreExplicitlyExcludedWithoutUnknownSourceWarnings() {
+        Logger logger = (Logger) LoggerFactory.getLogger(EvidenceAllocator.class);
+        var appender = new ListAppender<ILoggingEvent>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            assertThat(EvidenceAllocator.contextOf("QUIZ")).isNull();
+            assertThat(EvidenceAllocator.contextOf("QUIZ_RETRY")).isNull();
+            assertThat(appender.list).isEmpty();
+
+            assertThat(EvidenceAllocator.contextOf("FUTURE_SOURCE")).isNull();
+            assertThat(appender.list).singleElement().satisfies(event ->
+                    assertThat(event.getFormattedMessage()).contains("No evidence context", "FUTURE_SOURCE"));
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
     }
 
     @Test
