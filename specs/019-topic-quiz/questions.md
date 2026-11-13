@@ -22,3 +22,29 @@
 - `EvidenceAllocator.contextOf` mặc định `null` + log WARN cho source lạ.
 - `AttemptRepository.existsActiveTest` hiện xét `MOCK_EXAM`, `PLACEMENT`, `TOPIC_TEST`.
 - `topics.knowledge_point_id` (V5), `question_knowledge_points.role` PRIMARY/SECONDARY.
+
+## 2026-11-14 · T-01 — G0 đã duyệt, chờ review
+
+- Base: `origin/main` `134b2588cb88018653509eaa905848605cf09d87`, fetch và kiểm lại ngay trước khi tạo nhánh `spec/019-t01`.
+- Leader duyệt allowlist 8 file, gồm enum engine/API, enum contract 003, ba test hiện có và hai file theo dõi của 019; giữ lượt sửa L4 cho `PracticeSource` đến khi T-01 merge.
+- Chỉ nối `QUIZ`, `QUIZ_RETRY` vào cuối các enum, giữ thứ tự nguồn cũ. `CONTEST` để 021 thêm riêng.
+- Chính sách: `QUIZ` có kind `QUIZ`; `QUIZ_RETRY` có kind `PRACTICE`; cả hai `DEFERRED`, TTL 30 phút, `allowSkip=true`, `maxScoreFromServed=false`.
+- Kiểm kê bắt buộc: `PracticeCoreTest` đối chiếu enum OpenAPI 003; `PracticeApiTest` đối chiếu enum boundary với engine. Bổ sung kiểm tra chính sách, kind/refType/thời hạn khi start, round-trip start/view và không lộ đáp án trong view DEFERRED.
+- T-01 cung cấp nguồn engine; không xác nhận AT-05/06 toàn luồng nộp (T-04), hoặc AT-11/12 về mastery/trợ lý (T-02).
+
+### G2 · 2026-11-14
+
+Maven Wrapper 3.9.16, JDK 17.0.12 (`JAVA_HOME` chỉ đặt trong phiên), `DEBUG=false`.
+Docker Desktop đã bật, `docker info` thành công (server 29.9.2); integration test dùng PostgreSQL/Redis/Mailpit của Testcontainers, không dùng Neon.
+
+| Bước | Lệnh | Tests | F/E/S | Exit |
+|---|---|---:|---|---:|
+| Targeted | `.\mvnw.cmd -B "-Dtest=PracticeCoreTest,PracticeServiceTest,PracticeApiTest" test` | 118 | 0/0/0 | 0 |
+| Regression | `.\mvnw.cmd -B "-Dtest=Practice*Test,ServedItemViewTest,ChoiceItemFactory*Test,PinyinGraderTest,GlobalExceptionHandlerTest,*ContractTest" test` | 410 | 0/0/0 | 0 |
+| Module boundary | `.\mvnw.cmd -B "-Dtest=ModuleBoundaryTest" test` | 9 | 0/0/0 | 0 |
+| Full verify | `.\mvnw.cmd -B verify` | 4673 | 0/0/0 | 0 |
+
+- Full verify chạy 19 phút 41 giây; JaCoCo LINE **96,805%** (12.574 covered / 12.989 total), `jacoco:check` pass ngưỡng 80%.
+- Không bỏ qua test hoặc áp ngoại lệ để đạt kết quả. Không phát sinh failure/error thuộc PEXPIRETIME, CapturedOutput, FR023, NFR_P04, NFR_P02; kết quả chạy này không thay thế việc review benchmark 011 của leader.
+- `git diff --check`: exit 0. Cả 8 file thay đổi không có UTF-8 BOM. Log và báo cáo kiểm tra nằm trong `target/g2/` cùng `target/site/jacoco/` (không commit).
+- Self-check: đúng allowlist; giữ thứ tự enum cũ; không thêm dependency/schema/migration; không đổi auth/security; không log đáp án/PII/token; không đụng thay đổi có sẵn trong checkout main. T-01 chờ leader review và merge.
