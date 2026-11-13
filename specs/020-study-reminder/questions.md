@@ -1,5 +1,23 @@
 # Câu hỏi và quyết định — Spec #020
 
+## 2026-11-14 · T-04 · Q-T04-01 — ANSWERED
+
+**Leader duyệt:** Sau khi giữ chỗ, `AuthApi.sendStudyReminder` trả `SKIPPED` thì nhả đúng claim ID mình tạo, không thử lại, tăng `skippedIneligible`, không tính là đã gửi. Log tổng kết FR-013 gồm đúng các trường `hour`, `candidates`, `sent`, `skippedNoCards`, `duplicate`, `skippedIneligible`, `failed`; không email, display_name, token hoặc message/stack trace của exception.
+
+## 2026-11-14 · T-04 · Q-T04-02 — ANSWERED
+
+**Leader duyệt:** Thử lại tối đa hai lần sau lần gửi đầu tiên (tối đa ba lần gửi), cách nhau hai giây qua Sleeper được tiêm; test dùng mock, không ngủ thật hai giây. Sleeper bị interrupt thì nhả claim đang giữ, khôi phục interrupt flag, dừng lượt hiện tại và vẫn log tổng kết. Mỗi claim/nhả claim dùng transaction ngắn `REQUIRES_NEW`; không giữ transaction trong SMTP hoặc thời gian chờ. Clock chốt ngày/giờ Việt Nam ở đầu lượt; dueCount lấy qua public `ReviewSessionService.summary` của 011, auth chỉ qua `AuthApi`.
+
+## 2026-11-14 · T-04 · Q-T04-03 — ANSWERED
+
+**Giới hạn leader chấp nhận:** Process chết sau khi claim đã commit nhưng trước khi gửi có thể làm người đó mất nhắc ngày hôm đó. T-04 không thêm TTL hoặc recovery. Unique `uq_reminder` có sẵn chống gửi trùng theo user/ngày/kênh; gửi lỗi hết retry hoặc bị bỏ qua thì chỉ xoá đúng claim mình tạo.
+
+**Phạm vi và cấu hình:** Allowlist G0 chín file, nhánh `spec/020-t04` từ đúng `8cca710`, không tự rebase/merge main. Production thêm `cnhsk.reminder.cron = 0 0 * * * *` và `batch-size = 500`, khớp fallback `@Value` T-03; test đặt cron `-` nhưng giữ bean để gọi trực tiếp. Khi 023 hoàn tất, batch-size sẽ chuyển sang `SettingsApi`; T-04 chưa thực hiện chuyển đổi này. Một conventional commit, Draft PR; tasks chỉ ghi T-04 chờ review sau khi gate xanh.
+
+**Gate cuối — PASS:** Hai bộ test mới: 34 test, F/E/S 0/0/0, exit 0. Targeted/regression: 314 test, F/E/S 0/0/0, exit 0. `./mvnw -B verify`: 4.604 test, F/E/S 0/0/0, exit 0, BUILD SUCCESS (15:35); JaCoCo LINE 96,7669% (12.451/12.867), mọi coverage check đạt. PostgreSQL/Mailpit xác nhận summary thật, claim commit trước SMTP, hai instance chỉ gửi một mail, retry đúng hai giây qua mock, A hết retry không chặn B, SKIPPED/interrupt nhả claim, biên ngày Việt Nam, release theo ID không xoá claim thay thế hoặc dữ liệu khác. `PracticeMaintenanceIntegrationTest`, `ImportMaintenanceTest`, `ImportMaintenanceIntegrationTest`, test reminder T-01…T-03, review summary, contract và ArchUnit chạy nguyên trạng đều xanh.
+
+**Self-check cuối — PASS:** Global: không dependency mới, Java 17/stack giữ nguyên, naming theo code hiện có; learning chỉ gọi auth qua `AuthApi`, dueCount qua public summary của 011, SQL production chỉ ở `learning.study_events`. Business: giữ chỗ trước gửi, transaction ngắn độc lập; không giữ transaction khi SMTP hoặc chờ retry; không đổi chấm điểm/tiền; không log email/display_name/token hay nội dung exception. Safety: đúng chín file đã duyệt, UTF-8 không BOM, diff check sạch, không TODO/FIXME trong code; không sửa schema/migration/ErrorCode/SecurityConfig/OpenAPI, không đọc/commit `.env` hoặc chạy SQL lên Neon; mọi DELETE có WHERE. Repo chưa có Java lint plugin; đã kiểm convention/diff/marker nguồn. Tasks chỉ ghi T-04 chờ review; một conventional commit và Draft PR, không tự merge/rebase main.
+
 ## 2026-11-14 · T-03 · Q-T03-01 — ANSWERED
 
 **Leader duyệt G0:** Thêm `CnhskProperties.App.apiBaseUrl`, mặc định `http://localhost:8080`, kiểm URL tuyệt đối như `webBaseUrl`; đọc biến `API_BASE_URL` theo cơ chế cấu hình hiện có. `.env.example` chỉ thêm `API_BASE_URL=` để trống và chú thích, không có giá trị thật. Giá trị môi trường trống không ghi đè cấu hình; khi chưa cấu hình dùng mặc định local.

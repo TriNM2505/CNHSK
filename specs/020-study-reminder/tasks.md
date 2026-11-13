@@ -19,7 +19,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-04 | `StudyReminderJob` (cron mỗi giờ, `zone` VN, `Clock`), giữ chỗ `study_events` `ON CONFLICT DO NOTHING`, gửi qua `AuthApi`, thử lại 2 lần, xoá giữ chỗ khi lỗi, log tổng kết không PII; cấu hình `cnhsk.reminder.*` + `application-test.yaml` cron `-` [chờ T-03] | `…/learning/reminder/StudyReminderJob.java`, `application.yaml`, `src/test/resources/application-test.yaml` + test | FR-007…FR-013 · AT-06…AT-12, AT-19 | ⬜ |
+| T-04 | `StudyReminderJob` (cron mỗi giờ, `zone` VN, `Clock`), giữ chỗ `study_events` `ON CONFLICT DO NOTHING`, gửi qua `AuthApi`, thử lại 2 lần, xoá giữ chỗ khi lỗi, log tổng kết không PII; cấu hình `cnhsk.reminder.*` + `application-test.yaml` cron `-` [chờ T-03] | `…/learning/reminder/StudyReminderJob.java`, `application.yaml`, `src/test/resources/application-test.yaml` + test | FR-007…FR-013 · AT-06…AT-12, AT-19 | 🔄 Chờ leader review — 2026-11-14: Q-T04-01…03 ANSWERED; 34 test mới, targeted/regression 314, full verify 4.604 test, F/E/S 0/0/0, exit 0; JaCoCo LINE 96,7669% (12.451/12.867). Allowlist chín file, diff check/UTF-8 không BOM/self-check PASS; scheduler inventory và test T-01…T-03 nguyên trạng đều xanh. |
 | T-05 | `GET /api/reminders/today` (kênh web, giờ VN, `dueCount`) [chờ T-03] | `…/learning/reminder/{TodayReminderService}.java`, `…/reminder/web/ReminderController.java` + test | FR-019 · AT-18 | ⬜ |
 
 ## Đợt 3 · Frontend + hợp đồng

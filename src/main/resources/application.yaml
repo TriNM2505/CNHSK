@@ -76,6 +76,9 @@ app:
   timezone: Asia/Ho_Chi_Minh
 
 cnhsk:
+  reminder:
+    cron: "0 0 * * * *"
+    batch-size: 500
   reference:
     allowed-domains:
       YOUTUBE_CHANNEL: [youtube.com, youtu.be]
