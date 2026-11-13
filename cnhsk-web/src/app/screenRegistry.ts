@@ -13,6 +13,7 @@ import { screens as libraryScreens } from '@/features/library/screens'
 import { screens as masteryScreens } from '@/features/mastery/screens'
 import { screens as pronunciationScreens } from '@/features/pronunciation/screens'
 import { screens as questionBankScreens } from '@/features/question-bank/screens'
+import { screens as referenceScreens } from '@/features/references/screens'
 import { screens as reminderScreens } from '@/features/reminder/screens'
 import { screens as vocabScreens } from '@/features/vocab/screens'
 
@@ -62,4 +63,5 @@ export const screenRegistry = createScreenRegistry([
   { feature: 'mastery', screens: masteryScreens },
   { feature: 'question-bank', screens: questionBankScreens },
   { feature: 'reminder', screens: reminderScreens },
+  { feature: 'references', screens: referenceScreens },
 ])

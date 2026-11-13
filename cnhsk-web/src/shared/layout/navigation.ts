@@ -1,4 +1,14 @@
-import { BookOpen, Flag, Gamepad2, Languages, Mic2, PenTool, ShieldCheck, Upload, UsersRound } from 'lucide-react'
+import {
+  BookOpen,
+  Flag,
+  Gamepad2,
+  Languages,
+  Mic2,
+  PenTool,
+  ShieldCheck,
+  Upload,
+  UsersRound,
+} from 'lucide-react'
 import type { ComponentType, SVGProps } from 'react'
 
 import type { RoleCode } from '@/features/auth/types'
@@ -7,6 +17,7 @@ export type NavigationItem = {
   activePrefixes: readonly string[]
   icon: ComponentType<SVGProps<SVGSVGElement>>
   label: string
+  mobileLabel?: string
   role?: RoleCode
   to: string
 }
@@ -35,6 +46,13 @@ export const learnerNavigation: readonly NavigationItem[] = [
     icon: PenTool,
     label: 'Chữ Hán',
     to: '/learn/characters/recognition',
+  },
+  {
+    activePrefixes: ['/references'],
+    icon: BookOpen,
+    label: 'Tài liệu tham khảo',
+    mobileLabel: 'Tham khảo',
+    to: '/references/media',
   },
 ]
 

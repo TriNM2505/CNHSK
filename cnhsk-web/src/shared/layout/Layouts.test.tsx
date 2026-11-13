@@ -79,6 +79,7 @@ describe('PublicLayout', () => {
 
     expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute('href', '/login')
     expect(screen.getByRole('link', { name: 'Đăng ký' })).toHaveAttribute('href', '/register')
+    expect(screen.getByRole('link', { name: 'Tài liệu tham khảo' })).toHaveAttribute('href', '/references/media')
   })
 
   it('shows the account menu to authenticated users', () => {
@@ -90,11 +91,11 @@ describe('PublicLayout', () => {
 })
 
 describe('LearnerLayout', () => {
-  it('renders four internal destinations and the configured game link', () => {
+  it('renders five internal destinations and the configured game link', () => {
     renderLayout(<LearnerLayout gameOrigin="http://localhost:5174">Nội dung học tập</LearnerLayout>)
 
     const desktopNavigation = screen.getByRole('navigation', { name: 'Học tập' })
-    expect(within(desktopNavigation).getAllByRole('link')).toHaveLength(5)
+    expect(within(desktopNavigation).getAllByRole('link')).toHaveLength(6)
     expect(within(desktopNavigation).getByRole('link', { name: 'Chủ đề' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -102,6 +103,12 @@ describe('LearnerLayout', () => {
     const gameLink = within(desktopNavigation).getByRole('link', { name: 'Game' })
     expect(gameLink).toHaveAttribute('href', 'http://localhost:5174')
     expect(gameLink).not.toHaveAttribute('target')
+    const mobileNavigation = screen.getByRole('navigation', { name: 'Học tập trên thiết bị di động' })
+    for (const navigation of [desktopNavigation, mobileNavigation]) {
+      expect(within(navigation).getByRole('link', { name: 'Tài liệu tham khảo' })).toHaveAttribute('href', '/references/media')
+      expect(within(navigation).getAllByRole('link')).toHaveLength(6)
+    }
+    expect(within(mobileNavigation).getByText('Tham khảo')).toBeVisible()
   })
 
   it('shows the verification banner only when email is not verified', () => {
