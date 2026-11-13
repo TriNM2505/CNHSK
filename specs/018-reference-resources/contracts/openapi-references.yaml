@@ -1,0 +1,302 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Reference Resources API
+  version: 0.1.0
+  description: >
+    Hợp đồng spec 018-reference-resources. Danh mục kênh YouTube, podcast và sách — chỉ link ngoài và mô tả,
+    không nội dung bản quyền. Công khai cho khách; LEARNER báo link lỗi (ghi audit); CONTENT_EDITOR quản trị.
+    Thao tác ghi qua cookie cần header X-XSRF-TOKEN (spec 001).
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: references-public
+  - name: references-admin
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      description: Bắt buộc khi xác thực bằng cookie (spec 001)
+      schema: { type: string }
+    RefId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+  responses:
+    Unauthenticated:
+      description: UNAUTHENTICATED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Forbidden:
+      description: FORBIDDEN · CSRF_TOKEN_INVALID
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    NotFound:
+      description: REFERENCE_NOT_FOUND
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Validation:
+      description: VALIDATION_FAILED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    UrlInvalid:
+      description: VALIDATION_FAILED · MALFORMED_URL · NON_HTTPS_LINK · DOMAIN_NOT_ALLOWED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    RateLimited:
+      description: RATE_LIMITED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+  schemas:
+    ErrorResponse:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ErrorResponse'
+    ReferenceKind:
+      type: string
+      enum: [YOUTUBE_CHANNEL, PODCAST, BOOK]
+    ReferenceStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, HIDDEN]
+    PublicReference:
+      type: object
+      required: [id, kind, title, description, url, thumbnailUrl, hskMin, hskMax, tags]
+      properties:
+        id: { type: integer, format: int64 }
+        kind: { $ref: '#/components/schemas/ReferenceKind' }
+        title: { type: string, maxLength: 200 }
+        description: { type: [string, 'null'], maxLength: 2000, description: Chữ thuần — client render dạng text }
+        url: { type: string, format: uri, pattern: '^https://' }
+        thumbnailUrl: { type: [string, 'null'], format: uri }
+        hskMin: { type: [integer, 'null'], minimum: 1, maximum: 9 }
+        hskMax: { type: [integer, 'null'], minimum: 1, maximum: 9 }
+        tags: { type: array, items: { type: string, maxLength: 30 } }
+        author: { type: [string, 'null'], description: Chỉ BOOK }
+        publisher: { type: [string, 'null'], description: Chỉ BOOK }
+        publishedYear: { type: [integer, 'null'], description: Chỉ BOOK }
+        isAffiliate: { type: boolean, description: Chỉ BOOK; true thì client hiện nhãn link tiếp thị liên kết }
+    PublicReferencePage:
+      type: object
+      required: [items, page, size, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/PublicReference' } }
+        page: { type: integer }
+        size: { type: integer }
+        total: { type: integer, format: int64 }
+    ReportRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, enum: [DEAD_LINK, WRONG_CONTENT, OTHER] }
+        note: { type: [string, 'null'], maxLength: 300 }
+    ReferenceInput:
+      type: object
+      required: [kind, title, url]
+      properties:
+        kind: { $ref: '#/components/schemas/ReferenceKind' }
+        title: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: [string, 'null'], maxLength: 2000 }
+        url: { type: string, maxLength: 2000 }
+        thumbnailUrl: { type: [string, 'null'], maxLength: 2000 }
+        hskMin: { type: [integer, 'null'], minimum: 1, maximum: 9 }
+        hskMax: { type: [integer, 'null'], minimum: 1, maximum: 9 }
+        tags: { type: array, maxItems: 10, items: { type: string, maxLength: 30 } }
+        sortOrder: { type: integer, default: 0 }
+        author: { type: [string, 'null'], maxLength: 200 }
+        publisher: { type: [string, 'null'], maxLength: 200 }
+        publishedYear: { type: [integer, 'null'], minimum: 1900, maximum: 2100 }
+        isAffiliate: { type: boolean, default: false }
+    AdminReference:
+      allOf:
+        - $ref: '#/components/schemas/PublicReference'
+        - type: object
+          required: [status, sortOrder, reportCount, lastReportedAt, publishedAt, updatedAt]
+          properties:
+            status: { $ref: '#/components/schemas/ReferenceStatus' }
+            sortOrder: { type: integer }
+            reportCount: { type: integer, minimum: 0 }
+            lastReportedAt: { type: [string, 'null'], format: date-time }
+            publishedAt: { type: [string, 'null'], format: date-time }
+            updatedAt: { type: string, format: date-time }
+    AdminReferencePage:
+      type: object
+      required: [items, page, size, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/AdminReference' } }
+        page: { type: integer }
+        size: { type: integer }
+        total: { type: integer, format: int64 }
+
+paths:
+  /api/public/references:
+    get:
+      tags: [references-public]
+      operationId: listPublicReferences
+      summary: Danh mục đã công bố theo loại (FR-004, FR-005)
+      security: [ {} ]
+      parameters:
+        - { name: kind, in: query, required: true, schema: { $ref: '#/components/schemas/ReferenceKind' } }
+        - { name: hsk, in: query, schema: { type: integer, minimum: 1, maximum: 9 } }
+        - { name: tag, in: query, schema: { type: string, maxLength: 30 } }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Trang tài nguyên
+          content: { application/json: { schema: { $ref: '#/components/schemas/PublicReferencePage' } } }
+        '422': { $ref: '#/components/responses/Validation' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/public/references/{id}:
+    get:
+      tags: [references-public]
+      operationId: getPublicReference
+      summary: Chi tiết tài nguyên đã công bố — SCR-055 (FR-006)
+      security: [ {} ]
+      parameters: [ { $ref: '#/components/parameters/RefId' } ]
+      responses:
+        '200':
+          description: Tài nguyên
+          content: { application/json: { schema: { $ref: '#/components/schemas/PublicReference' } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/references/{id}/report:
+    post:
+      tags: [references-public]
+      operationId: reportReference
+      summary: Người học báo link chết/sai — ghi audit (FR-009, FR-010)
+      security: [ { cookieAuth: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/RefId' }, { $ref: '#/components/parameters/XsrfToken' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReportRequest' } } }
+      responses:
+        '204': { description: Đã ghi nhận }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/Validation' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/admin/references:
+    get:
+      tags: [references-admin]
+      operationId: listAdminReferences
+      summary: Danh sách quản trị kèm số lần bị báo (FR-011)
+      security: [ { cookieAuth: [] }, { bearerAuth: [] } ]
+      parameters:
+        - { name: kind, in: query, schema: { $ref: '#/components/schemas/ReferenceKind' } }
+        - { name: status, in: query, schema: { $ref: '#/components/schemas/ReferenceStatus' } }
+        - { name: reported, in: query, schema: { type: boolean } }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Trang quản trị
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminReferencePage' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/Validation' }
+    post:
+      tags: [references-admin]
+      operationId: createReference
+      summary: Tạo tài nguyên ở trạng thái DRAFT (FR-012, FR-015)
+      security: [ { cookieAuth: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/XsrfToken' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReferenceInput' } } }
+      responses:
+        '201':
+          description: Đã tạo
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminReference' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/UrlInvalid' }
+
+  /api/admin/references/{id}:
+    get:
+      tags: [references-admin]
+      operationId: getAdminReference
+      summary: Chi tiết quản trị
+      security: [ { cookieAuth: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/RefId' } ]
+      responses:
+        '200':
+          description: Tài nguyên
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminReference' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [references-admin]
+      operationId: updateReference
+      summary: Sửa tài nguyên (không đổi trạng thái) (FR-012, FR-015)
+      security: [ { cookieAuth: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/RefId' }, { $ref: '#/components/parameters/XsrfToken' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReferenceInput' } } }
+      responses:
+        '200':
+          description: Đã sửa
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminReference' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UrlInvalid' }
+
+  /api/admin/references/{id}/publish:
+    post:
+      tags: [references-admin]
+      operationId: publishReference
+      summary: Công bố (FR-013)
+      security: [ { cookieAuth: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/RefId' }, { $ref: '#/components/parameters/XsrfToken' } ]
+      responses:
+        '200':
+          description: Đã công bố
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminReference' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: PUBLISH_INVALID_RESOURCE · MALFORMED_URL · NON_HTTPS_LINK · DOMAIN_NOT_ALLOWED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+  /api/admin/references/{id}/hide:
+    post:
+      tags: [references-admin]
+      operationId: hideReference
+      summary: Ẩn — không xoá cứng (FR-014)
+      security: [ { cookieAuth: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/RefId' }, { $ref: '#/components/parameters/XsrfToken' } ]
+      responses:
+        '200':
+          description: Đã ẩn
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminReference' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/admin/references/{id}/unhide:
+    post:
+      tags: [references-admin]
+      operationId: unhideReference
+      summary: Hiện lại về DRAFT — phải công bố lại (FR-014)
+      security: [ { cookieAuth: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/RefId' }, { $ref: '#/components/parameters/XsrfToken' } ]
+      responses:
+        '200':
+          description: Đã chuyển về DRAFT
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminReference' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }

@@ -1,0 +1,135 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Leaderboard API
+  version: 0.1.0
+  description: >
+    Hợp đồng spec 017-leaderboard. Bảng xếp hạng công khai theo chủ đề (lượt quiz đầu tiên) và theo game
+    (ván cao nhất mỗi người), kỳ tuần/tháng/toàn thời gian theo giờ Việt Nam. Không cần đăng nhập; có phiên
+    hợp lệ thì trả thêm myEntry. Chỉ đọc. Không trả email hay câu trả lời.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: leaderboard
+security:
+  - {}
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Period:
+      name: period
+      in: query
+      required: false
+      schema: { type: string, enum: [week, month, all], default: week }
+  responses:
+    Validation:
+      description: VALIDATION_FAILED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    RateLimited:
+      description: RATE_LIMITED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+  schemas:
+    ErrorResponse:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ErrorResponse'
+    LeaderboardEntry:
+      type: object
+      required: [rank, userId, displayName, avatarUrl, score, durationMs]
+      properties:
+        rank: { type: integer, minimum: 1 }
+        userId: { type: integer, format: int64, description: Chỉ để link hồ sơ công khai SCR-042 }
+        displayName: { type: string }
+        avatarUrl: { type: [string, 'null'] }
+        score: { type: integer, format: int64, minimum: 0 }
+        durationMs: { type: [integer, 'null'], minimum: 0 }
+    Leaderboard:
+      type: object
+      required: [type, ref, period, periodStart, periodEnd, entries, myEntry]
+      properties:
+        type: { type: string, enum: [TOPIC, GAME] }
+        ref: { type: string, description: topicId dạng chuỗi hoặc mã game }
+        period: { type: string, enum: [week, month, all] }
+        periodStart: { type: [string, 'null'], format: date-time, description: '+07:00; null khi all' }
+        periodEnd: { type: [string, 'null'], format: date-time, description: 'Mốc kết thúc (không gồm); null khi all' }
+        entries: { type: array, maxItems: 20, items: { $ref: '#/components/schemas/LeaderboardEntry' } }
+        myEntry:
+          oneOf:
+            - $ref: '#/components/schemas/LeaderboardEntry'
+            - type: 'null'
+    TopicOption:
+      type: object
+      required: [id, name, hskLevel]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        hskLevel: { type: integer, minimum: 1, maximum: 9 }
+    GameOption:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string, pattern: '^[A-Z_]{2,30}$' }
+        name: { type: string }
+
+paths:
+  /api/public/leaderboards/topics:
+    get:
+      tags: [leaderboard]
+      operationId: listLeaderboardTopics
+      summary: Danh sách chủ đề cho bộ chọn (FR-014)
+      parameters:
+        - { name: hsk, in: query, schema: { type: integer, minimum: 1, maximum: 9 } }
+      responses:
+        '200':
+          description: Chủ đề
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/TopicOption' } } } }
+        '422': { $ref: '#/components/responses/Validation' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/public/leaderboards/topics/{topicId}:
+    get:
+      tags: [leaderboard]
+      operationId: getTopicLeaderboard
+      summary: Bảng xếp hạng chủ đề theo kỳ (FR-004…FR-012)
+      parameters:
+        - { name: topicId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+        - $ref: '#/components/parameters/Period'
+      responses:
+        '200':
+          description: Bảng xếp hạng
+          content: { application/json: { schema: { $ref: '#/components/schemas/Leaderboard' } } }
+        '404':
+          description: TOPIC_NOT_FOUND
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '422': { $ref: '#/components/responses/Validation' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/public/leaderboards/games:
+    get:
+      tags: [leaderboard]
+      operationId: listLeaderboardGames
+      summary: Danh sách 6 game (FR-015)
+      responses:
+        '200':
+          description: Game
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/GameOption' } } } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/public/leaderboards/games/{gameCode}:
+    get:
+      tags: [leaderboard]
+      operationId: getGameLeaderboard
+      summary: Bảng xếp hạng game theo kỳ — ván cao nhất mỗi người (FR-004…FR-012)
+      parameters:
+        - { name: gameCode, in: path, required: true, schema: { type: string } }
+        - $ref: '#/components/parameters/Period'
+      responses:
+        '200':
+          description: Bảng xếp hạng
+          content: { application/json: { schema: { $ref: '#/components/schemas/Leaderboard' } } }
+        '422':
+          description: INVALID_GAME_CODE · VALIDATION_FAILED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '429': { $ref: '#/components/responses/RateLimited' }

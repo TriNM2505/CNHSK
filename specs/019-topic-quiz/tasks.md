@@ -1,0 +1,35 @@
+# Tasks: Quiz theo chủ đề — Spec #019
+
+> Nguồn: [`spec.md`](spec.md) v1.0.0 · [`contracts/openapi-quiz.yaml`](contracts/openapi-quiz.yaml)
+> ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸ hoãn · 🔴 chặn
+
+**Tổng: 8 task**, ≤ 4 giờ/task, một task một nhánh `spec/019-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
+Đường dẫn: `…/` = `src/main/java/com/cnhsk/`; `t/` = `src/test/java/com/cnhsk/`; `web/` = `cnhsk-web/src/`.
+**Điều kiện bắt đầu:** spec 019 `APPROVED`. **Không migration.** Điểm khoá: ⚿K1 (enum chung với 021). 017 không chặn.
+
+## Đợt 1 · Backend
+
+| ID | Task | File | Spec · AT | TT |
+|---|---|---|---|---|
+| T-01 | **⚿K1** `PracticeSource.QUIZ`, `QUIZ_RETRY` (§0.2) — gom chung PR với `CONTEST` (021); nếu ⚿K1 đã merge thì chỉ thêm 2 giá trị | `…/learning/practice/PracticeSource.java` + test | §0.2 | ⬜ |
+| T-02 | Tách khỏi học chính: `EvidenceAllocator.contextOf` trả `null` cho `QUIZ`/`QUIZ_RETRY` (**báo người giữ 011**); `existsActiveTest` thêm `'QUIZ'` (**báo người giữ 012/015**) + test mastery không đổi, trợ lý bị chặn | `…/learning/mastery/EvidenceAllocator.java`, `…/learning/practice/entity/AttemptRepository.java` + test [chờ T-01] | FR-016, FR-017 · AT-11, AT-12 | ⬜ |
+| T-03 | `QuizCatalog`: truy vấn chủ đề đủ câu (§4, một truy vấn/trang), `myFirstAttempt`, `myBestRetryScore`; `GET /api/quizzes`; cấu hình `cnhsk.quiz.*` (sau ⚿K7 đọc `SettingsApi`) | `…/learning/quiz/{QuizCatalog,QuizRepository}.java`, `…/quiz/web/QuizController.java`, `application.yaml`, `SecurityConfig.java` + test | FR-003…FR-005, FR-018 · AT-01, AT-02 | ⬜ |
+| T-04 | `QuizQuestionPicker` (ngẫu nhiên, cân `qtype`, chỉ APPROVED) + `QuizHandler` engine: chọn `QUIZ`/`QUIZ_RETRY`, trả phiên đang mở, chấm `score`, `suspicious`, xử lý đua `uq_quiz_first`; `POST /api/quizzes/{topicId}/attempts`; mã `QUIZ_NOT_AVAILABLE`; rate limit [chờ T-01] | `…/learning/quiz/{QuizQuestionPicker,QuizHandler,QuizSessionService}.java`, `ErrorCode.java` + test | FR-006…FR-011 · AT-03…AT-10 | ⬜ |
+| T-05 | `QuizResultService` + `GET /api/quiz-attempts/{sessionId}/result`; `firstAttempt` qua `ObjectProvider<LeaderboardService>` (017 tuỳ chọn) | `…/learning/quiz/QuizResultService.java` + test | FR-012, FR-013 · AT-13…AT-16 | ⬜ |
+
+## Đợt 2 · Frontend + hợp đồng
+
+| ID | Task | File | Spec · AT | TT |
+|---|---|---|---|---|
+| T-06 | Nền FE `quiz` + SCR-043 (ghi chú thi đua, lọc HSK, thẻ, Bắt đầu/Làm lại); route `/community/quizzes*`, menu Cộng đồng | `web/features/quiz/**`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts`, `web/shared/layout/navigation.ts` + test | FR-005, FR-019, FR-020, FR-023 | ⬜ |
+| T-07 | SCR-044 (nhãn tính hạng, điều hướng câu, nộp có xác nhận trong trang, thoát) dùng engine answers/finish; ẩn panel trợ lý (**báo người giữ 015**); SCR-045 (tóm tắt, đáp án, hạng lần đầu + top 10 từ API 017, nút điều hướng) | `web/features/quiz/components/**`, `web/features/assistant/components/AssistantHost.tsx` + test | FR-015, FR-021, FR-022 · AT-17 | ⬜ |
+| T-08 | Test hợp đồng `/v3/api-docs` so `openapi-quiz.yaml` | `t/contract/QuizContractTest.java` | AT-18 | ⬜ |
+
+## Thứ tự
+
+```
+T-01(⚿K1) ─► T-02
+          └─► T-04 ─► T-05 ─► T-08
+T-03 (song song, không chờ)
+T-06 ─► T-07 (song song từ đầu bằng dữ liệu mẫu; nối thật sau T-04/T-05)
+```
