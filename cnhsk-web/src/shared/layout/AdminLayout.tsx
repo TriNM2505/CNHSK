@@ -50,14 +50,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <NavigationLink
             active={active}
             className={cn(
-              'flex min-h-16 flex-col items-center justify-center gap-1 rounded-none px-2 text-caption',
+              'flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-none px-2 text-center text-caption',
               active && 'border-t-2 border-brand-600 bg-brand-50',
             )}
             key={item.to}
             to={item.to}
           >
             <Icon aria-hidden="true" className="size-5" />
-            <span>{item.label}</span>
+            <span aria-label={item.label}>{item.mobileLabel ?? item.label}</span>
           </NavigationLink>
         )
       })}

@@ -63,6 +63,14 @@ export const gameNavigationItem = {
 
 export const adminNavigation: readonly NavigationItem[] = [
   {
+    activePrefixes: ['/content/references'],
+    icon: BookOpen,
+    label: 'Tài nguyên tham khảo',
+    mobileLabel: 'Tham khảo',
+    role: 'CONTENT_EDITOR',
+    to: '/content/references',
+  },
+  {
     activePrefixes: ['/content/imports'],
     icon: Upload,
     label: 'Nhập dữ liệu',

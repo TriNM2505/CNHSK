@@ -6,6 +6,11 @@ import { ApiError } from '@/shared/api'
 import { BookDetailView } from './components/BookDetailView'
 import { ReferenceListView } from './components/ReferenceListView'
 import { ReferenceReportForm } from './components/ReferenceReportForm'
+import { ReferenceAdminView } from './admin/components/ReferenceAdminView'
+import { ReferenceEditorForm } from './admin/components/ReferenceEditorForm'
+import { draftOf, newDraft } from './admin/referenceForm'
+import { adminPage } from './admin/test-fixtures'
+import type { AdminListParams, AdminReference, ReferenceAction } from './admin/types'
 import { bookPage, bookReference, mediaPage, podcastReference } from './test-fixtures'
 import type { ReferenceKind } from './types'
 
@@ -57,6 +62,14 @@ function ListPreview({ state, books = false }: { state: PreviewState; books?: bo
 export const previews = [
   {
     group: 'screen',
+    id: 'references-admin',
+    scr: 'SCR-072',
+    title: 'Tài nguyên tham khảo',
+    states: ['loading', 'empty', 'error', 'ready'],
+    render: (state) => createElement(AdminPreview, { state }),
+  },
+  {
+    group: 'screen',
     id: 'references-media',
     scr: 'SCR-053',
     title: 'Tài liệu nghe nhìn',
@@ -88,3 +101,46 @@ export const previews = [
       }),
   },
 ] satisfies readonly PreviewEntry[]
+
+function AdminPreview({ state }: { state: PreviewState }) {
+  const [filters, setFilters] = useState<AdminListParams>({})
+  const [editing, setEditing] = useState<AdminReference | 'new'>()
+  const [confirmation, setConfirmation] = useState<{
+    item: AdminReference
+    action: ReferenceAction
+  }>()
+  const [notice, setNotice] = useState<string>()
+  return createElement(ReferenceAdminView, {
+    state,
+    data: state === 'empty' ? { ...adminPage, items: [], total: 0 } : adminPage,
+    error,
+    filters,
+    busy: false,
+    confirmation,
+    notice,
+    onFilter: setFilters,
+    onPage: (page) => setFilters({ ...filters, page }),
+    onRetry: () => undefined,
+    onCreate: () => setEditing('new'),
+    onEdit: (id) => setEditing(adminPage.items.find((item) => item.id === id)),
+    onAction: (item, action) => setConfirmation({ item, action }),
+    onCancel: () => setConfirmation(undefined),
+    onConfirm: () => {
+      setConfirmation(undefined)
+      setNotice('Đã cập nhật dữ liệu xem trước.')
+    },
+    editor: editing
+      ? createElement(ReferenceEditorForm, {
+          key: editing === 'new' ? 'new' : editing.id,
+          initial: editing === 'new' ? newDraft() : draftOf(editing),
+          editing: editing !== 'new',
+          pending: false,
+          onCancel: () => setEditing(undefined),
+          onSubmit: () => {
+            setEditing(undefined)
+            setNotice('Đã lưu dữ liệu xem trước.')
+          },
+        })
+      : undefined,
+  })
+}

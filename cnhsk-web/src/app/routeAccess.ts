@@ -387,6 +387,13 @@ export const appRouteDefinitions = [
     path: '/references/books/:id',
     scr: 'SCR-055',
   },
+  {
+    access: ['CONTENT_EDITOR'],
+    kind: 'screen',
+    layout: 'admin',
+    path: '/content/references',
+    scr: 'SCR-072',
+  },
   { access: 'public', kind: 'not-found', layout: 'public', path: '*' },
 ] as const satisfies readonly AppRouteDefinition[]
 

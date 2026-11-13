@@ -240,3 +240,46 @@ Chrome dùng fixture HTTP bị chặn tại app local 127.0.0.1:15186, KHÔNG ph
 Fetch trước bàn giao: origin/main đã lên ba5bc05, gồm T-05 (#162) và sửa SCR-009 ở 88e0155. Giữ base 5e5695c; KHÔNG rebase/merge main theo leader. questions.md/tasks.md có thay đổi mới từ T-05 trên main; leader cần giữ cả hai mục khi gộp. AssistantPromptBuilder giữ cả dòng SCR-009 của main và ba dòng mới của T-06.
 
 Self-check: không dependency, migration, API/error code/security thay đổi; không secret/email thật/dữ liệu bản quyền. API client dùng đúng ba endpoint công khai/báo lỗi của YAML, dùng chung apiRequest và AbortSignal. RoleLayout nguyên trạng. Chỉ thêm assertion menu trong test layout cũ và tăng số link đúng từ 5 lên 6; mọi assertion khác giữ nguyên. Commit file cụ thể, không add ./-A, không push main/force-push/merge PR.
+
+## T-07 — G0/G2 ngày 2026-11-14
+
+Nhánh spec/018-t07; base/merge-base 4b06f40ddc42a12a1a7ade320f1efc3108f7a7fb. Stacked trên #164, theo chỉ định leader. Worktree riêng, không rebase/merge main. Allowlist 20 file được duyệt, thực tế đúng 20 file.
+
+| Câu | Chốt leader | Trạng thái |
+|---|---|---|
+| Q-T07-01 | Đổi khỏi BOOK: payload gửi author/publisher/publishedYear null, isAffiliate false. Form giữ bản nháp sách nếu đổi lại BOOK trước khi Lưu. | ANSWERED |
+| Q-T07-02 | Chọn mới HSK 1–3. Mục cũ cấp 4–9 hiện giá trị hiện có và giữ nguyên nếu không sửa; không cung cấp lựa chọn mới cấp ngoài phạm vi. | ANSWERED |
+| Q-T07-03 | DRAFT: Công bố/Ẩn; PUBLISHED: Ẩn; HIDDEN: Hiện lại/Công bố. Ẩn nút no-op. Nếu đua giữa hai biên tập viên và API trả 200 cùng trạng thái thì cập nhật theo response, không báo lỗi, không tự sửa timestamp/reportCount. Test ba trạng thái + một ca no-op, không ma trận chín ô. | ANSWERED |
+
+### Thiết kế đã triển khai
+
+SCR-072 gọi đủ bảy operation /api/admin/references qua apiRequest chung, POST/PUT giữ CSRF; không thêm path miễn CSRF. GET detail trước khi sửa để PUT gửi đủ input. Không gửi id/status/reportCount/createdBy/publishedAt/updatedAt. Loại không phải BOOK luôn gửi null/false cho field sách. Không trim URL. Tag được thêm/bỏ riêng, giữ nguyên giá trị, không dùng dấu phân cách ngầm; ô tag chưa thêm phải được xử lý trước khi Lưu. Độ dài kiểm code point; kiểm số nguyên int32, năm 1900–2100, HSK min/max, tối đa 10 tag × 30 ký tự.
+
+Bộ lọc loại/trạng thái/có báo lỗi gửi sang server trước phân trang, đổi lọc về trang 0; không lọc reported trong JavaScript. Cột reportCount hiện cả số 0, lastReportedAt null là Chưa có, thời gian theo giờ Việt Nam. Nếu trang cuối rỗng sau thay đổi thì về trang hợp lệ. GET dùng AbortSignal, bỏ kết quả cũ khi đổi lọc. Editor tách vòng đời theo item/tài khoản, bỏ callback save đã unmount; không cho mở editor khác hoặc chuyển trạng thái khi đang sửa.
+
+View/form thuần props, page gọi API. Năm mã 422 ánh xạ details[{field,message}] vào field hợp lệ; field lạ không được gán vào object, lỗi chung vẫn hiện. Dữ liệu form giữ khi lưu thất bại. Xác nhận công bố/ẩn/hiện là vùng trong trang, Huỷ không POST; pending chặn gửi lặp. Hiện lại giải thích về DRAFT, cần công bố lại. Thành công lấy trạng thái từ response và tải lại danh sách, không suy audit hay tự cập nhật số báo lỗi.
+
+Route /content/references đúng CONTENT_EDITOR + admin. Menu Tài nguyên tham khảo chỉ CONTENT_EDITOR; ADMIN thuần bị chặn và không thấy menu. AdminLayout chỉ thêm mobileLabel, min-w-0/căn chữ, không đổi lọc role. Không sửa screenRegistry/preview registry chung vì feature đã đăng ký từ T-06. Không sửa AssistantPromptBuilder, backend, contract hoặc shared/ui. Bảng HTML ngữ nghĩa trong Card, khung overflow-x-auto riêng, không sửa DataTable.
+
+### G2 — Kết quả gate
+
+| Bước | Kết quả thực tế |
+|---|---|
+| npm ci trong cnhsk-web | PASS; không thay lockfile, không audit fix |
+| References admin + hồi quy public T-06 + layout/route/registry | 171/171 test, 15 file PASS |
+| Shuffle cùng tập, seed 17 / 53 / 181, minWorkers=2 maxWorkers=2 | 171/171 mỗi seed, PASS cả ba |
+| Full Vitest minWorkers=2 maxWorkers=2 | 2.582/2.582 test, 181 file PASS, 211,34 giây; tăng đúng 62 test so với tip T-06 |
+| npm run lint | 0 lỗi; chỉ warning LevelBadge có sẵn |
+| npm run typecheck / npm run build | PASS / PASS, build Vite 4,80 giây |
+| Chrome headless, profile tạm, fixture HTTP local | 14 kiểm tra PASS: 8 tổ hợp CONTENT_EDITOR/ADMIN × 320/375/640/1280px, tạo/sửa/công bố có xác nhận, loading/error/empty |
+| git diff --check / BOM / TODO mới / lockfile | PASS / 0 / 0 / không đổi |
+
+Targeted lần đầu 170 pass/1 fail vì test mới dùng matcher chưa có trong Vitest 2.1.9. Typecheck lần đầu cũng phát hiện exact không thuộc ByRoleOptions và Object.hasOwn chưa thuộc target hiện tại. Đã sửa trong test/helper mới, không đổi phiên bản, tsconfig hay test cũ; chạy lại targeted, ba seed và full suite xanh như trên. Không dùng ngoại lệ test chập chờn. FE-only: không chạy Maven verify/JaCoCo, không đổi Java.
+
+Chrome dùng app local 127.0.0.1:15187 và HTTP fixture bị chặn theo contract, KHÔNG phải kiểm backend thật. Ở 320px, menu CONTENT_EDITOR có Tham khảo + Nhập dữ liệu, ADMIN chỉ có Người dùng; tên truy cập đầy đủ, không cắt chữ hay cuộn ngang trang. Bảng cuộn trong region riêng; form một cột ở 375px, bề rộng trang bằng viewport. Kiểm thêm 640/1280px. Đã xem ảnh hai role ở 320px. Phép đo grid-template-columns ban đầu đếm sai chuỗi repeat(1, minmax(...)); đã sửa công cụ ngoài repo sang đo vị trí các field, không đổi CSS production. Ảnh/log/JSON ngoài repo, không commit.
+
+Luồng Chrome: tạo BOOK → POST 201, sửa → PUT 200, công bố chỉ sau xác nhận → POST 200. Fixture tự soạn, không cookie/token/email thật trong tài liệu. Vitest kiểm đủ hiển thị ba trạng thái, no-op 200, field errors, PUT defaults/field server bị loại, giữ draft sách, HSK cũ 4–9, giới hạn Unicode, phân trang/filter, request cũ, quyền route, chặn gửi lặp và retry. Audit thật là phạm vi test BE T-05; T-07 không khẳng định audit bằng mock FE.
+
+Fetch trước bàn giao: origin/main b0b92ca đã merge #164 và #162; merge-base vẫn 4b06f40. Không rebase/merge main; PR vẫn ghi stacked trên #164. questions.md/tasks.md có mục T-05 mới trên main, leader cần giữ cả hai phía khi gộp.
+
+Self-check: đúng 20 file, không dependency/backend/contract/CSRF exemption mới, không window.confirm/HTML injection/disable lint. Giữ assertion cũ, chỉ cập nhật số menu và thêm assertion menu mới theo role. Không secret, dữ liệu thật hay tài liệu có bản quyền; không Neon, SQL/migration. Dừng đúng Vite/Chrome của task sau khi kiểm; không chạm môi trường T-19. Một commit, add từng file, không push main/force-push/merge PR.

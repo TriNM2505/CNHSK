@@ -181,8 +181,8 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(4)
-      for (const label of ['Nhập dữ liệu', 'Người dùng', 'Bài chờ duyệt', 'Báo cáo vi phạm']) expect(within(navigation).getByRole('link', { name: label })).toBeInTheDocument()
+      expect(within(navigation).getAllByRole('link')).toHaveLength(5)
+      for (const label of ['Nhập dữ liệu', 'Người dùng', 'Bài chờ duyệt', 'Báo cáo vi phạm', 'Tài nguyên tham khảo']) expect(within(navigation).getByRole('link', { name: label })).toBeInTheDocument()
       expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).toHaveAttribute('aria-current', 'page')
     }
   })
@@ -192,9 +192,9 @@ describe('AdminLayout', () => {
     expect(screen.queryByRole('link', { name: 'Báo cáo vi phạm' })).not.toBeInTheDocument()
   })
   it.each([
-    [['CONTENT_EDITOR'], ['Nhập dữ liệu'], ['Người dùng']],
-    [['ADMIN'], ['Người dùng'], ['Nhập dữ liệu']],
-    [['CONTENT_EDITOR', 'ADMIN'], ['Nhập dữ liệu', 'Người dùng'], []],
+    [['CONTENT_EDITOR'], ['Nhập dữ liệu', 'Tài nguyên tham khảo'], ['Người dùng']],
+    [['ADMIN'], ['Người dùng'], ['Nhập dữ liệu', 'Tài nguyên tham khảo']],
+    [['CONTENT_EDITOR', 'ADMIN'], ['Nhập dữ liệu', 'Người dùng', 'Tài nguyên tham khảo'], []],
   ] as const)('shows only the areas granted by exact roles %j', (roles, visible, hidden) => {
     renderLayout(<AdminLayout>Nội dung quản trị</AdminLayout>, {
       initialPath: roles.some((role) => role === 'ADMIN') ? '/admin/users' : '/content/imports',
