@@ -16,6 +16,10 @@ public interface AuthApi {
 
     Map<Long, String> displayNames(Set<Long> userIds);
 
+    Set<Long> bannedUserIds();
+
+    Map<Long, PublicProfile> publicProfiles(Set<Long> userIds);
+
     /** Reads the user's plan snapshot without locking or changing it. */
     Optional<PlanState> readPlan(long userId);
 
