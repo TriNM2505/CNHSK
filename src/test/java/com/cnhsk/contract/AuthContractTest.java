@@ -149,6 +149,10 @@ class AuthContractTest {
         assertThat(reminderSettings).isNotNull();
         assertThat(contract.getPaths()).doesNotContainKey("/api/me/reminder");
         contract.getPaths().addPathItem("/api/me/reminder", reminderSettings);
+        PathItem unsubscribe = reminders.getOpenAPI().getPaths().get("/api/public/reminder/unsubscribe");
+        assertThat(unsubscribe).isNotNull();
+        assertThat(contract.getPaths()).doesNotContainKey("/api/public/reminder/unsubscribe");
+        contract.getPaths().addPathItem("/api/public/reminder/unsubscribe", unsubscribe);
         MvcResult result = mockMvc.perform(get("/v3/api-docs").accept(MediaType.APPLICATION_JSON))
                 .andReturn();
 

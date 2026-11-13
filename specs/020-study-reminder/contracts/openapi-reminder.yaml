@@ -103,6 +103,10 @@ paths:
       tags: [reminder]
       operationId: unsubscribeReminderEmail
       summary: Tắt nhắc email bằng token ký — một lần bấm, idempotent; nhận token ở body hoặc query (RFC 8058) (FR-015…FR-017)
+      description: >
+        Chỉ POST này được miễn CSRF. Token có thể nằm trong query, JSON hoặc form; các giá trị được gửi
+        đồng thời phải giống nhau. Token hoặc JSON không hợp lệ trả 400 với cùng message
+        "Liên kết tắt nhắc không hợp lệ hoặc đã hết hạn." Không ghi thêm audit nếu EMAIL đã tắt.
       security: [ {} ]
       parameters:
         - { name: token, in: query, required: false, schema: { type: string, maxLength: 512 } }
@@ -110,7 +114,12 @@ paths:
         required: false
         content:
           application/json: { schema: { $ref: '#/components/schemas/UnsubscribeRequest' } }
-          application/x-www-form-urlencoded: { schema: { type: object, properties: { List-Unsubscribe: { type: string } } } }
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                List-Unsubscribe: { type: string, example: One-Click }
+                token: { type: string, maxLength: 512 }
       responses:
         '204': { description: Đã tắt (hoặc đã tắt từ trước) }
         '400':
