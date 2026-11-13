@@ -20,7 +20,15 @@ type NotFoundRouteDefinition = {
   path: '*'
 }
 
-export type AppRouteDefinition = ScreenRouteDefinition | NotFoundRouteDefinition
+type UtilityRouteDefinition = {
+  access: 'public'
+  kind: 'utility'
+  layout: 'public'
+  path: '/reminder/unsubscribe'
+}
+
+export type AppRouteDefinition =
+  ScreenRouteDefinition | UtilityRouteDefinition | NotFoundRouteDefinition
 
 export const appRouteDefinitions = [
   { access: 'public', kind: 'screen', layout: 'public', path: '/', scr: 'SCR-001' },
@@ -60,6 +68,19 @@ export const appRouteDefinitions = [
     layout: 'by-role',
     path: '/me/password',
     scr: 'SCR-008',
+  },
+  {
+    access: ['LEARNER'],
+    kind: 'screen',
+    layout: 'learner',
+    path: '/me/reminders',
+    scr: 'SCR-009',
+  },
+  {
+    access: 'public',
+    kind: 'utility',
+    layout: 'public',
+    path: '/reminder/unsubscribe',
   },
   {
     access: ['ADMIN'],

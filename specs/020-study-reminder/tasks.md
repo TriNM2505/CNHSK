@@ -26,7 +26,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-06 | SCR-009 `/me/reminders` (giờ tròn, 2 công tắc, múi giờ, email chưa xác thực → vô hiệu + link SCR-004, Lưu/Huỷ, 4 trạng thái, responsive); trang công khai `/reminder/unsubscribe` một nút (không gọi API khi chỉ mở); banner SCR-010 (**báo người giữ 011**); route + lối vào từ SCR-007 | `web/features/reminder/**`, `web/features/mastery/pages/Scr010LearningDashboardPage.tsx`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts` + test | FR-018, FR-020…FR-023 · AT-17 | ⬜ |
+| T-06 | SCR-009 `/me/reminders` (giờ tròn, 2 công tắc, múi giờ, email chưa xác thực → vô hiệu + link SCR-004, Lưu/Huỷ, 4 trạng thái, responsive); trang công khai `/reminder/unsubscribe` một nút (không gọi API khi chỉ mở); banner SCR-010 (**báo người giữ 011**); route + lối vào từ SCR-007 | `web/features/reminder/**`, `web/features/mastery/pages/Scr010LearningDashboardPage.tsx`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts` + test | FR-018, FR-020…FR-023 · AT-17 | 🔄 Chờ leader review — 2026-11-14: Q-T06-01 ANSWERED, phạm vi 21 file; targeted 54/54 test / 5 file; full FE 2.464/2.464 test / 171 file, 0 fail/skip, exit 0. Lint 0 error (1 warning cũ), build pass; diff/UTF-8 không BOM/source marker/self-check PASS. Client chỉ thêm một path miễn CSRF; test kiểm kê cũ giữ nguyên, patch tạm đã xoá; giữ base 45ceaeb, không rebase. |
 | T-07 | Test hợp đồng `/v3/api-docs` so `openapi-reminder.yaml` | `t/contract/ReminderContractTest.java` | AT-20 | ⬜ |
 
 ## Thứ tự

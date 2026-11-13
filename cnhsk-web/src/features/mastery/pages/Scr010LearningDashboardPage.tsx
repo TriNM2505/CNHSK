@@ -1,4 +1,5 @@
 import { useApiQuery } from '@/shared/api'
+import { ReminderBanner } from '@/features/reminder/components/ReminderBanner'
 
 import { MasteryDashboardView } from '../components/MasteryDashboardView'
 import { getMyRecommendations } from '../api/mastery'
@@ -9,13 +10,16 @@ export default function Scr010LearningDashboardPage() {
   const review = useApiQuery(getReviewSummary, [])
 
   return (
-    <MasteryDashboardView
-      onRetryRecommendations={recommendations.reload}
-      onRetryReview={review.reload}
-      recommendations={recommendations.data}
-      recommendationsState={recommendations.state}
-      reviewState={review.state}
-      reviewSummary={review.data}
-    />
+    <>
+      <ReminderBanner />
+      <MasteryDashboardView
+        onRetryRecommendations={recommendations.reload}
+        onRetryReview={review.reload}
+        recommendations={recommendations.data}
+        recommendationsState={recommendations.state}
+        reviewState={review.state}
+        reviewSummary={review.data}
+      />
+    </>
   )
 }
