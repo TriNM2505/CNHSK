@@ -163,7 +163,26 @@ class GlobalExceptionHandlerTest {
                 "GRADING_CHANGE_NOT_ALLOWED", "QUESTION_ARCHIVED", "COLLECTION_NOT_OWNED", "LIBRARY_LIMIT_REACHED",
                 "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "CARD_DUPLICATE", "ASSISTANT_BLOCKED_DURING_TEST", "ASSISTANT_UNAVAILABLE",
                 "CARD_BATCH_NOT_FOUND", "PLAN_NOT_AVAILABLE", "INSUFFICIENT_CREDITS", "TRANSLATE_UNAVAILABLE", "INVALID_CARD_CODE", "EMAIL_NOT_VERIFIED",
-                "INVALID_UNSUBSCRIBE_TOKEN", "REFERENCE_NOT_FOUND", "INTERNAL_ERROR");
+                "INVALID_UNSUBSCRIBE_TOKEN", "REFERENCE_NOT_FOUND", "MALFORMED_URL", "NON_HTTPS_LINK", "DOMAIN_NOT_ALLOWED", "PUBLISH_INVALID_RESOURCE",
+                "INTERNAL_ERROR");
+    }
+
+    @Test
+    void referenceErrorsPreserveDetailsWithoutChangingOtherErrorHandling() {
+        var handler = new GlobalExceptionHandler();
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        var details = java.util.List.of(Map.of("field", "url", "message", "Invalid URL"));
+        for (ErrorCode code : java.util.List.of(ErrorCode.MALFORMED_URL, ErrorCode.NON_HTTPS_LINK,
+                ErrorCode.DOMAIN_NOT_ALLOWED, ErrorCode.PUBLISH_INVALID_RESOURCE, ErrorCode.VALIDATION_FAILED)) {
+            var response = handler.handleApiException(new ApiException(code, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Invalid input", Map.of("details", details)), request);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+            assertThat(response.getBody()).containsEntry("error_code", code.name()).containsEntry("details", details);
+        }
+        var unchanged = handler.handleApiException(new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
+                "Not allowed", Map.of("details", details, "retryAfterSeconds", 30)), request);
+        assertThat(unchanged.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(unchanged.getBody()).doesNotContainKey("details").containsEntry("retryAfterSeconds", 30);
     }
 
     @Test

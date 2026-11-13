@@ -33,7 +33,11 @@ public class GlobalExceptionHandler {
                         || exception.getCode() == ErrorCode.PLACEMENT_BANK_INSUFFICIENT
                         || exception.getCode() == ErrorCode.MALFORMED_QUESTION
                         || exception.getCode() == ErrorCode.LIBRARY_LIMIT_REACHED
-                        || exception.getCode() == ErrorCode.NOTE_DUPLICATE)) {
+                        || exception.getCode() == ErrorCode.NOTE_DUPLICATE
+                        || exception.getCode() == ErrorCode.MALFORMED_URL
+                        || exception.getCode() == ErrorCode.NON_HTTPS_LINK
+                        || exception.getCode() == ErrorCode.DOMAIN_NOT_ALLOWED
+                        || exception.getCode() == ErrorCode.PUBLISH_INVALID_RESOURCE)) {
                     body.put(key, value);
                 }
                 if (!"details".equals(key) || exception.getCode() == ErrorCode.VALIDATION_FAILED) {
