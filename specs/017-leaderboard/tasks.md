@@ -7,6 +7,8 @@
 Đường dẫn: `…/` = `src/main/java/com/cnhsk/`; `t/` = `src/test/java/com/cnhsk/`; `web/` = `cnhsk-web/src/`.
 **Điều kiện bắt đầu:** spec 017 `APPROVED`. **Không chờ 019/007** — test bằng dữ liệu `attempts` mẫu.
 
+**Ghi chú T-04 (Q-T01-04):** lọc tài khoản bị cấm trong SQL trước khi đánh hạng bằng `user_id <> ALL(:banned)` hoặc `NOT (user_id = ANY(:banned))` với mảng; không dùng `NOT IN (...)` cho danh sách có thể rỗng.
+
 ## Đợt 1 · Backend
 
 | ID | Task | File | Spec · AT | TT |

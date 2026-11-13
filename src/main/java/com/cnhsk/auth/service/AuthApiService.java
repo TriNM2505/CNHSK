@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.auth.api.CurrentUser;
 import com.cnhsk.auth.api.PlanState;
+import com.cnhsk.auth.api.PublicProfile;
 import com.cnhsk.auth.api.RoleCode;
 import com.cnhsk.auth.repository.UserRepository;
 import com.cnhsk.auth.repository.UserRoleRepository;
@@ -104,6 +105,38 @@ public class AuthApiService implements AuthApi {
         userRepository.findAllById(userIds)
                 .forEach(user -> names.put(user.getId(), user.getDisplayName()));
         return Map.copyOf(names);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Long> bannedUserIds() {
+        return jdbc.query("SELECT id FROM auth.users WHERE banned_at IS NOT NULL", Map.of(), rs -> {
+            Set<Long> ids = new java.util.LinkedHashSet<>();
+            while (rs.next()) {
+                ids.add(rs.getLong("id"));
+            }
+            return Set.copyOf(ids);
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, PublicProfile> publicProfiles(Set<Long> userIds) {
+        requireValid(userIds != null && userIds.stream().allMatch(id -> id != null && id > 0));
+        if (userIds.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, PublicProfile> profiles = jdbc.query("""
+                SELECT id, display_name, avatar_url FROM auth.users WHERE id IN (:ids)
+                """, Map.of("ids", userIds), rs -> {
+                    Map<Long, PublicProfile> result = new LinkedHashMap<>();
+                    while (rs.next()) {
+                        result.put(rs.getLong("id"), new PublicProfile(
+                                rs.getString("display_name"), rs.getString("avatar_url")));
+                    }
+                    return result;
+                });
+        return Map.copyOf(profiles);
     }
 
     @Override

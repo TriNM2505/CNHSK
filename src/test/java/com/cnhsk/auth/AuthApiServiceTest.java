@@ -6,11 +6,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 
-import java.time.Instant;
 import java.time.Clock;
+import java.time.Instant;
+import java.sql.ResultSet;
 import java.util.List;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -18,6 +24,7 @@ import java.util.Set;
 import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.auth.api.CurrentUser;
 import com.cnhsk.auth.api.PlanState;
+import com.cnhsk.auth.api.PublicProfile;
 import com.cnhsk.auth.api.RoleCode;
 import com.cnhsk.auth.entity.User;
 import com.cnhsk.auth.repository.UserRepository;
@@ -35,6 +42,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -152,6 +161,97 @@ class AuthApiServiceTest {
         assertThat(authApi.displayNames(Set.of())).isEmpty();
 
         verifyNoInteractions(userRepository);
+    }
+
+    @Test
+    void bannedUserIdsReturnsOnlyIdsFromTheBanQuery() throws Exception {
+        ResultSet rows = mock(ResultSet.class);
+        when(rows.next()).thenReturn(true, true, false);
+        when(rows.getLong("id")).thenReturn(11L, 12L);
+        when(jdbc.query(anyString(), anyMap(), org.mockito.ArgumentMatchers.<ResultSetExtractor<Set<Long>>>any()))
+                .thenAnswer(invocation -> {
+                    ResultSetExtractor<Set<Long>> extractor = invocation.getArgument(2);
+                    return extractor.extractData(rows);
+                });
+
+        assertThat(authApi.bannedUserIds()).containsExactlyInAnyOrder(11L, 12L);
+
+        org.mockito.ArgumentCaptor<String> sql = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(jdbc).query(sql.capture(), eq(Map.of()),
+                org.mockito.ArgumentMatchers.<ResultSetExtractor<Set<Long>>>any());
+        assertThat(sql.getValue()).contains("auth.users", "banned_at IS NOT NULL");
+        verifyNoInteractions(userRepository, userRoleRepository);
+    }
+
+    @Test
+    void bannedUserIdsReturnsEmptySetWhenNoAccountsAreBanned() throws Exception {
+        ResultSet rows = mock(ResultSet.class);
+        when(rows.next()).thenReturn(false);
+        when(jdbc.query(anyString(), anyMap(), org.mockito.ArgumentMatchers.<ResultSetExtractor<Set<Long>>>any()))
+                .thenAnswer(invocation -> {
+                    ResultSetExtractor<Set<Long>> extractor = invocation.getArgument(2);
+                    return extractor.extractData(rows);
+                });
+
+        assertThat(authApi.bannedUserIds()).isEmpty();
+    }
+
+    @Test
+    void bannedUserIdsPropagatesDatabaseFailures() {
+        when(jdbc.query(anyString(), anyMap(), org.mockito.ArgumentMatchers.<ResultSetExtractor<Set<Long>>>any()))
+                .thenThrow(new DataAccessResourceFailureException("database unavailable"));
+
+        assertThatThrownBy(authApi::bannedUserIds)
+                .isInstanceOf(DataAccessResourceFailureException.class);
+    }
+
+    @Test
+    void publicProfilesUsesOnePublicColumnBatchAndOmitsUnknownIds() throws Exception {
+        Set<Long> ids = Set.of(1L, 2L, 3L);
+        ResultSet rows = mock(ResultSet.class);
+        when(rows.next()).thenReturn(true, true, false);
+        when(rows.getLong("id")).thenReturn(1L, 2L);
+        when(rows.getString("display_name")).thenReturn("First", "Second");
+        when(rows.getString("avatar_url")).thenReturn("https://example.test/first.png", (String) null);
+        when(jdbc.query(anyString(), anyMap(),
+                org.mockito.ArgumentMatchers.<ResultSetExtractor<Map<Long, PublicProfile>>>any()))
+                .thenAnswer(invocation -> {
+                    ResultSetExtractor<Map<Long, PublicProfile>> extractor = invocation.getArgument(2);
+                    return extractor.extractData(rows);
+                });
+
+        assertThat(authApi.publicProfiles(ids)).containsExactlyInAnyOrderEntriesOf(Map.of(
+                1L, new PublicProfile("First", "https://example.test/first.png"),
+                2L, new PublicProfile("Second", null)));
+
+        org.mockito.ArgumentCaptor<String> sql = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.ArgumentCaptor<Map<String, ?>> parameters = org.mockito.ArgumentCaptor.forClass(Map.class);
+        verify(jdbc).query(sql.capture(), parameters.capture(),
+                org.mockito.ArgumentMatchers.<ResultSetExtractor<Map<Long, PublicProfile>>>any());
+        assertThat(sql.getValue()).contains("SELECT id, display_name, avatar_url", "WHERE id IN (:ids)")
+                .doesNotContain("email", "password_hash", "role");
+        assertThat(parameters.getValue().get("ids")).isEqualTo(ids);
+        verifyNoInteractions(userRepository, userRoleRepository);
+    }
+
+    @Test
+    void publicProfilesReturnsEmptyForEmptySetWithoutQuery() {
+        assertThat(authApi.publicProfiles(Set.of())).isEmpty();
+
+        verifyNoInteractions(jdbc);
+    }
+
+    @Test
+    void publicProfilesRejectsNullOrInvalidIds() {
+        Set<Long> idsWithNull = new HashSet<>(Arrays.asList(1L, null));
+
+        assertThatThrownBy(() -> authApi.publicProfiles(null))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("Tham số không hợp lệ.");
+        assertThatThrownBy(() -> authApi.publicProfiles(idsWithNull))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("Tham số không hợp lệ.");
+        assertThatThrownBy(() -> authApi.publicProfiles(Set.of(-1L)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("Tham số không hợp lệ.");
+        verifyNoInteractions(jdbc);
     }
 
     @Test
