@@ -26,6 +26,7 @@ public class AssistantPromptBuilder {
     private static final Map<String, String> SCREEN_NAMES = Map.ofEntries(
             Map.entry("SCR-007", "Thông tin cá nhân"),
             Map.entry("SCR-008", "Đổi mật khẩu"),
+            Map.entry("SCR-009", "Cài đặt nhắc học"),
             Map.entry("SCR-010", "Trang học tập"),
             Map.entry("SCR-011", "Chủ đề từ vựng"),
             Map.entry("SCR-012", "Chi tiết chủ đề từ vựng"),
