@@ -1,5 +1,35 @@
 # Câu hỏi và quyết định — Spec #020
 
+## 2026-11-14 · T-05 · Q-T05-01 — ANSWERED
+
+**Leader duyệt G0:** `show=true` khi kênh WEB bật, giờ hiện tại tại `Asia/Ho_Chi_Minh` lớn hơn hoặc bằng giờ nhắc và `dueCount > 0`. Người chưa cài đặt dùng mặc định FR-003 qua `AuthApi.reminderSettings`: `20:00`, web bật, email tắt, `configured=false`, không ghi DB. `dueCount` lấy qua public `ReviewSessionService.summary(userId)` của 011; không đọc `study_events`, không xét đã học hoặc đã nhận email trong ngày.
+
+**Phạm vi được duyệt:** Allowlist tám file và kế hoạch G0 đã được leader duyệt; giữ base `b9230db` trên nhánh `spec/020-t05` trong khi PR #156 được leader verify. `SecurityConfig` chỉ thêm matcher đúng `GET /api/reminders/today` với `hasRole("LEARNER")`; nếu xung đột với 018/T-05 của Đạt, leader giải quyết lúc merge. Vào G1, chạy gate theo kế hoạch, một conventional commit và Draft PR; không tự rebase/merge main.
+
+**Shadow plan G1 — leader đã duyệt và gửi lại đầy đủ:** Đọc contract 020, `AuthApi`/`ReminderSettings`, public summary của 011, security và mẫu test hiện có. Service lấy chủ thể từ `AuthApi.currentUser()`, trả record ba trường đặt trong service, giữ `dueCount` cả khi banner ẩn, format giờ `HH:mm`; toàn bộ thao tác chạy trong transaction chỉ đọc. Controller mỏng, operationId `getTodayReminder`, status 200/401/403 theo contract hiện có. Không đổi dependency, mã lỗi, schema, config hoặc frontend.
+
+**Exact allowlist — tám file:**
+
+- `src/main/java/com/cnhsk/learning/reminder/TodayReminderService.java`
+- `src/main/java/com/cnhsk/learning/reminder/web/ReminderController.java`
+- `src/main/java/com/cnhsk/shared/config/SecurityConfig.java`
+- `src/test/java/com/cnhsk/learning/reminder/TodayReminderServiceTest.java`
+- `src/test/java/com/cnhsk/learning/reminder/TodayReminderIntegrationTest.java`
+- `src/test/java/com/cnhsk/shared/config/TodayReminderSecurityConfigIntegrationTest.java`
+- `specs/020-study-reminder/questions.md`
+- `specs/020-study-reminder/tasks.md`
+
+**Gate theo thứ tự:** `./mvnw -B "-Dtest=TodayReminder*Test,TodayReminderSecurityConfigIntegrationTest" test`; `./mvnw -B "-Dtest=AuthContractTest,MasteryContractTest,GlobalExceptionHandlerTest,ModuleBoundaryTest,SecurityConfigIntegrationTest,ReviewSession*Test,ReminderSettings*Test,StudyReminderJob*Test" test`; `./mvnw -B verify`. Dùng Java 17, Docker và `DEBUG=false`; báo tổng test/F/E/S/exit, JaCoCo LINE ≥ 80%, diff check/UTF-8 không BOM/không TODO hoặc FIXME và đúng tám file. Chỉ sau khi gate xanh mới ghi T-05 chờ leader review, không đánh ✅; một conventional commit, push nhánh và Draft PR.
+
+**Gate cuối — PASS:** Chạy đúng thứ tự trên Java 17.0.9, Docker và `DEBUG=false`. Targeted: 41 test (11 unit, 14 PostgreSQL integration, 16 security), F/E/S 0/0/0, exit 0. Hồi quy: 135 test, F/E/S 0/0/0, exit 0. Full `./mvnw -B verify`: 4.645 test / 296 bộ, F/E/S 0/0/0, exit 0, BUILD SUCCESS (15:35); JaCoCo LINE 96,7717% (12.470/12.886), coverage check PASS. Test SQL bắt cả Hibernate và JDBC trong GET: chỉ SELECT, transaction chỉ đọc, không DML hoặc `study_events`; settings/summary thật, chủ thể từ phiên không bị query `userId` thay đổi, JSON đúng ba field, mặc định không ghi DB/audit, sự kiện học/nhắc trong ngày không đổi banner. Kiểm đầy đủ biên giờ Việt Nam, dueCount khi ẩn banner, cookie/Bearer, 401/403 và matcher đúng path/method; test T-01…T-04, contract, review và ArchUnit xanh nguyên trạng.
+
+**Self-check cuối — PASS:**
+
+- Global: PASS — không dependency mới, stack giữ nguyên; naming/package theo quy ước; learning chỉ gọi auth qua `AuthApi`, dùng public summary của 011, không truy vấn xuyên module.
+- Business: PASS — không đổi mật khẩu, tiền, điểm hoặc chấm game; không thêm log chứa PII/token; so giờ qua `Clock` tại `Asia/Ho_Chi_Minh`; mặc định FR-003 và quyết định Q-T05-01 được giữ nguyên.
+- Safety: PASS — đúng tám file đã duyệt, `SecurityConfig` chỉ thêm một matcher GET; không xoá file, không sửa schema/migration/config/hiến pháp, không đọc hoặc commit `.env`, không truy cập Neon; SQL dọn fixture chỉ chạy trong Testcontainers và có WHERE. Push nhánh/Draft PR đã được leader cho phép; không push main hoặc tự merge/rebase.
+- HR/AC/ES: PASS — không secret trong phần thay đổi, lỗi dùng handler hiện có; OpenAPI đã duyệt trước triển khai, endpoint và response 200/401/403 khớp contract; integration test và module boundary pass, không bỏ test; diff check, UTF-8 không BOM và không TODO/FIXME trong sáu file Java đều PASS. Repo chưa có Java lint plugin; kiểm convention/import/diff và marker nguồn, không thêm công cụ ngoài scope. T-05 chỉ ghi chờ leader review; một conventional commit trên `b9230db` và Draft PR phụ thuộc T-04/#156.
+
 ## 2026-11-14 · T-04 · Q-T04-01 — ANSWERED
 
 **Leader duyệt:** Sau khi giữ chỗ, `AuthApi.sendStudyReminder` trả `SKIPPED` thì nhả đúng claim ID mình tạo, không thử lại, tăng `skippedIneligible`, không tính là đã gửi. Log tổng kết FR-013 gồm đúng các trường `hour`, `candidates`, `sent`, `skippedNoCards`, `duplicate`, `skippedIneligible`, `failed`; không email, display_name, token hoặc message/stack trace của exception.
