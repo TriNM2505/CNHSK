@@ -81,6 +81,61 @@ class AuthPlanApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void readPlanWorksWithoutAWriteTransactionAndReturnsEmptyOnlyForAbsence() {
+        assertThat(auth.readPlan(userId)).isPresent();
+        assertThat(auth.readPlan(Long.MAX_VALUE)).isEmpty();
+        TransactionTemplate readOnly = new TransactionTemplate(manager);
+        readOnly.setReadOnly(true);
+        readOnly.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_REPEATABLE_READ);
+        PlanState state = readOnly.execute(status -> auth.readPlan(userId).orElseThrow());
+        assertThat(state.planCode()).isEqualTo("FREE");
+        assertThatThrownBy(() -> state.freeUsage().put("TRANSLATE", 3)).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void readPlanDoesNotWaitForAnUncommittedRowLock() throws Exception {
+        var executor = java.util.concurrent.Executors.newFixedThreadPool(2);
+        var locked = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        try {
+            var writer = executor.submit(() -> new TransactionTemplate(manager).executeWithoutResult(status -> {
+                auth.lockPlan(userId);
+                auth.updateUsage(userId, Map.of("TRANSLATE", 8), Instant.EPOCH);
+                locked.countDown();
+                try { assertThat(release.await(20, java.util.concurrent.TimeUnit.SECONDS)).isTrue(); }
+                catch (InterruptedException exception) { Thread.currentThread().interrupt(); throw new IllegalStateException(exception); }
+            }));
+            assertThat(locked.await(20, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            var reader = executor.submit(() -> auth.readPlan(userId).orElseThrow());
+            assertThat(reader.get(10, java.util.concurrent.TimeUnit.SECONDS).freeUsage()).isEmpty();
+            release.countDown();
+            writer.get(20, java.util.concurrent.TimeUnit.SECONDS);
+            assertThat(auth.readPlan(userId).orElseThrow().freeUsage()).containsEntry("TRANSLATE", 8);
+        } finally { release.countDown(); executor.shutdownNow(); }
+    }
+
+    @Test
+    void readPlanJoinsTheCallersRepeatableReadSnapshot() throws Exception {
+        var executor = java.util.concurrent.Executors.newSingleThreadExecutor();
+        TransactionTemplate snapshot = new TransactionTemplate(manager);
+        snapshot.setReadOnly(true);
+        snapshot.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_REPEATABLE_READ);
+        try {
+            snapshot.executeWithoutResult(status -> {
+                PlanState before = auth.readPlan(userId).orElseThrow();
+                var writer = executor.submit(() -> new TransactionTemplate(manager).executeWithoutResult(write -> {
+                    auth.lockPlan(userId);
+                    auth.updateUsage(userId, Map.of("TRANSLATE", 9), Instant.EPOCH);
+                }));
+                try { writer.get(20, java.util.concurrent.TimeUnit.SECONDS); }
+                catch (Exception exception) { throw new IllegalStateException(exception); }
+                assertThat(auth.readPlan(userId)).contains(before);
+            });
+            assertThat(auth.readPlan(userId).orElseThrow().freeUsage()).containsEntry("TRANSLATE", 9);
+        } finally { executor.shutdownNow(); }
+    }
+
+    @Test
     void lockedSnapshotReflectsJdbcPlanAndUsageUpdates() {
         Instant reset = Instant.parse("2026-11-01T00:00:00Z");
         new TransactionTemplate(manager).executeWithoutResult(status -> {

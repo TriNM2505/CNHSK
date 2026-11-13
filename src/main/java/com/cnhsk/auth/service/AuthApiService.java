@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -103,6 +104,19 @@ public class AuthApiService implements AuthApi {
         userRepository.findAllById(userIds)
                 .forEach(user -> names.put(user.getId(), user.getDisplayName()));
         return Map.copyOf(names);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<PlanState> readPlan(long userId) {
+        requireValid(userId > 0);
+        return jdbc.query("""
+                SELECT plan_code, plan_expires_at, free_usage::text, usage_reset_at
+                FROM auth.users WHERE id = :id
+                """, Map.of("id", userId), (rs, row) -> new PlanState(rs.getString("plan_code"),
+                        instant(rs.getTimestamp("plan_expires_at")), readUsage(rs.getString("free_usage")),
+                        instant(rs.getTimestamp("usage_reset_at"))))
+                .stream().findFirst();
     }
 
     @Override
