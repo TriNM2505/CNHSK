@@ -11,6 +11,7 @@ const CSRF_EXEMPT_PATHS = new Set([
   '/api/auth/reset-password',
   '/api/auth/verify-email',
   '/api/auth/refresh',
+  '/api/public/reminder/unsubscribe',
 ])
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 

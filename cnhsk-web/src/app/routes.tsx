@@ -31,6 +31,24 @@ const applicationRoutes: RouteObject[] = appRouteDefinitions.map((route) => {
     }
   }
 
+  if (route.kind === 'utility') {
+    return {
+      path: route.path,
+      handle: { requiresAuthentication: false },
+      lazy: async () => {
+        const { default: ReminderUnsubscribePage } =
+          await import('@/features/reminder/pages/ReminderUnsubscribePage')
+        return {
+          element: (
+            <PublicLayout>
+              <ReminderUnsubscribePage />
+            </PublicLayout>
+          ),
+        }
+      },
+    }
+  }
+
   return {
     element: <ScreenRoute access={route.access} layout={route.layout} scr={route.scr} />,
     handle: { requiresAuthentication: routeRequiresAuthentication(route.access) },

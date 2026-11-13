@@ -1,5 +1,30 @@
 # Câu hỏi và quyết định — Spec #020
 
+## 2026-11-14 · T-06 · Shadow plan và phạm vi tích hợp
+
+**Chỉ đạo:** Triển khai FE trên `spec/020-t06` từ `origin/main` mới nhất, base `45ceaebeeb065487e43fd49f55ee32ec8ed26280`. Đọc AGENTS/constitution, design token và shared/ui, spec/contract/tasks/questions 020, mẫu credits/library, shared API/CSRF/error, route/layout, SCR-007 và SCR-010. Không đổi BE, contract, dependency hoặc schema; một conventional commit, Draft PR, không push/merge main.
+
+**Kế hoạch và file trong phạm vi:** Tạo `features/reminder/types.ts`, `screens.ts`, `test-fixtures.ts`, `api/reminder.ts`, `api/reminder.test.ts`, `pages/Scr009ReminderSettingsPage.tsx` và test, `pages/ReminderUnsubscribePage.tsx` và test, `components/ReminderBanner.tsx` và test, `routes.test.tsx`. Sửa `app/routeAccess.ts`, `app/screenRegistry.ts`, `features/account/pages/Scr007ProfilePage.tsx` chỉ thêm lối vào và `features/mastery/pages/Scr010LearningDashboardPage.tsx` chỉ gắn banner; ghi `tasks.md`/`questions.md`. Các đường dẫn FE ở dưới `cnhsk-web/src/`.
+
+**Hành vi:** Form dùng API/shared UI và mặc định do server trả, đủ trạng thái tải/lỗi/rỗng/dữ liệu; Email chưa xác thực bị vô hiệu và lỗi 422 nằm cạnh công tắc. Huỷ khôi phục snapshot gần nhất, không PUT. Trang public chỉ POST unsubscribe sau thao tác bấm; không hiện hoặc log token, không hiển thị raw server error trên trang token. Banner lỗi API thì ẩn, đóng lưu ngày Việt Nam qua localStorage có try/catch; khi trang còn mở tới nửa đêm Việt Nam thì tải lại trạng thái từ server. T-05 chưa có trên base này: test dùng dữ liệu mẫu, production gọi đúng endpoint và ẩn khi chưa sẵn sàng.
+
+**Q-T06-01 — ANSWERED · Leader duyệt bổ sung ba file:**
+
+- `cnhsk-web/src/app/routes.tsx`: thêm nhánh route tiện ích public `/reminder/unsubscribe`, không gán SCR mới; route metadata ở `routeAccess.ts` phân biệt `utility` với `screen`.
+- `cnhsk-web/src/shared/layout/AccountMenu.tsx`: thêm đúng mục "Nhắc lịch học" tới `/me/reminders`, chỉ hiện với LEARNER; không sửa `navigation.ts`.
+- `cnhsk-web/src/shared/api/client.ts`: chỉ thêm `'/api/public/reminder/unsubscribe'` vào `CSRF_EXEMPT_PATHS`, giữ nguyên toàn bộ logic CSRF theo chỉ đạo mới nhất. PUT `/api/me/reminder` vẫn dùng cơ chế lấy/gửi CSRF hiện có.
+
+**Nhánh và kiểm kê:** Giữ nguyên base `45ceaeb`, không rebase hoặc merge main vào nhánh; leader merge `--no-ff`. Phần route/menu của patch đề xuất đã áp dụng; phần client làm theo quyết định chỉ thêm path nêu trên. Đã xoá `target/020-t06-integration-proposal.patch` theo yêu cầu, không đưa artifact tạm vào commit. Leader cho phép chỉ bổ sung kỳ vọng trong test kiểm kê nếu cần; lượt cuối không cần sửa test kiểm kê cũ: `cnhsk-web/src/app/routes.test.tsx`, `cnhsk-web/src/shared/api/client.csrf.test.ts`, `cnhsk-web/src/shared/layout/Layouts.test.tsx` đều giữ nguyên.
+
+**Gate cuối — PASS:** Targeted reminder: 54/54 test / 5 file, 0 fail/skip, exit 0. Sau đó chạy đúng thứ tự leader yêu cầu: toàn FE `npx vitest run` — 2.464/2.464 test / 171 file, 0 fail/skip, exit 0; `npm run -s lint` — 0 error, 1 warning có sẵn ở `shared/ui/LevelBadge.tsx`, exit 0; `npm run -s build` — TypeScript và Vite PASS, exit 0. Test client thật xác nhận mở link không có request, click mới đúng một POST không cần CSRF; PUT settings vẫn có CSRF. Các ca form mặc định/Lưu/Huỷ/422, unsubscribe thiếu token/204/400/429, banner đóng/ngày Việt Nam mới/storage lỗi/API lỗi, quyền route/menu, lối vào SCR-007 và banner trên SCR-010 đều xanh. Dữ liệu mẫu chỉ ở test, production gọi API thật. Diff check, UTF-8 không BOM, không TODO/FIXME, đúng phạm vi 21 file và patch tạm đã xoá đều PASS.
+
+**Self-check cuối — PASS:**
+
+- HR: PASS — không secret/token trong giao diện hoặc log, không HTML không an toàn; form dùng client chung và lỗi chuẩn; unsubscribe chỉ gửi sau thao tác bấm, không tự gửi khi mount hoặc retry tự động.
+- AC/Global: PASS — React/TypeScript/Vite và shared/ui/token giữ nguyên; không dependency, BE, contract, config hoặc schema mới; không đổi inventory 79 màn, trang tiện ích không có SCR; naming và phạm vi import đúng feature.
+- BUS: PASS — giờ chọn tròn 00:00–23:00, Email chưa xác thực bị vô hiệu và 422 đặt cạnh công tắc, Huỷ không PUT; banner theo kết quả server, đóng lưu ngày Việt Nam bằng storage có try/catch, không ghi DB; không đổi tiền/điểm/chấm game hoặc mật khẩu.
+- ES/Safety: PASS — toàn bộ test chạy đủ, không skip và không sửa kỳ vọng cũ để che lỗi; lint 0 error, build pass; đúng 21 file đã duyệt, UTF-8 không BOM/diff/source marker sạch; không đọc/commit `.env` hoặc truy cập Neon. Chỉ xoá đúng patch tạm được leader yêu cầu; không rebase, force-push hoặc push/merge main. T-06 chỉ ghi chờ leader review; một conventional commit và Draft PR.
+
 ## 2026-11-14 · T-04 · Q-T04-01 — ANSWERED
 
 **Leader duyệt:** Sau khi giữ chỗ, `AuthApi.sendStudyReminder` trả `SKIPPED` thì nhả đúng claim ID mình tạo, không thử lại, tăng `skippedIneligible`, không tính là đã gửi. Log tổng kết FR-013 gồm đúng các trường `hour`, `candidates`, `sent`, `skippedNoCards`, `duplicate`, `skippedIneligible`, `failed`; không email, display_name, token hoặc message/stack trace của exception.

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { useApiMutation, useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
+import { Button } from '@/shared/ui'
 
 import {
   formToProfilePatch,
@@ -85,7 +86,7 @@ export default function Scr007ProfilePage() {
     }
   }
 
-  return (
+  const profile = (
     <ProfileView
       email={query.data?.email}
       emailVerified={query.data?.emailVerified}
@@ -100,5 +101,16 @@ export default function Scr007ProfilePage() {
       state={state}
       values={values}
     />
+  )
+
+  return (
+    <>
+      {profile}
+      <div className="mx-auto mt-4 w-full max-w-reading">
+        <Button to="/me/reminders" variant="outline">
+          Cài đặt nhắc học
+        </Button>
+      </div>
+    </>
   )
 }
