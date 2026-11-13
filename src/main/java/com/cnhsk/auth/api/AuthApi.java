@@ -1,6 +1,8 @@
 package com.cnhsk.auth.api;
 
 import java.time.Instant;
+import java.time.LocalTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -37,4 +39,10 @@ public interface AuthApi {
     Map<Long, String> maskedEmails(Set<Long> userIds);
 
     long countActivePlan(String planCode, Instant now);
+
+    ReminderSettings reminderSettings(long userId);
+
+    List<ReminderTarget> reminderTargets(LocalTime hour);
+
+    ReminderSendResult sendStudyReminder(long userId, int dueCount);
 }

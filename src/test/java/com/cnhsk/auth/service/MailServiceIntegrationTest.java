@@ -6,8 +6,17 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.io.ByteArrayInputStream;
+import java.time.Instant;
+import java.time.LocalTime;
+import java.util.Properties;
 import java.util.UUID;
 
+import com.cnhsk.auth.api.AuthApi;
+import com.cnhsk.auth.api.ReminderSendResult;
+import com.cnhsk.auth.entity.User;
+import com.cnhsk.auth.reminder.UnsubscribeTokens;
+import com.cnhsk.auth.repository.UserRepository;
 import com.cnhsk.auth.event.EmailVerificationRequestedEvent;
 import com.cnhsk.auth.event.PasswordResetRequestedEvent;
 import com.cnhsk.support.AbstractIntegrationTest;
@@ -19,6 +28,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.web.util.UriComponentsBuilder;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -30,6 +44,7 @@ class MailServiceIntegrationTest extends AbstractIntegrationTest {
     @DynamicPropertySource
     static void registerWebBaseUrl(DynamicPropertyRegistry registry) {
         registry.add("cnhsk.app.web-base-url", () -> "https://cnhsk.test");
+        registry.add("cnhsk.app.api-base-url", () -> "https://api.cnhsk.test/");
     }
 
     @Autowired
@@ -40,6 +55,11 @@ class MailServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired private AuthApi auth;
+    @Autowired private UserRepository users;
+    @Autowired private UnsubscribeTokens tokens;
+    @Autowired private JdbcTemplate jdbc;
 
     @Value("${test.mailpit.base-url}")
     private String mailpitBaseUrl;
@@ -102,6 +122,48 @@ class MailServiceIntegrationTest extends AbstractIntegrationTest {
         });
 
         assertThat(readMessageList().path("messages")).isEmpty();
+    }
+
+    @Test
+    void FR014_FR015_AT13_deliversMultipartReminderWithFrontendLinksAndVerifiedUnsubscribeHeaders() throws Exception {
+        User fixture = new User("study-reminder-" + UUID.randomUUID() + "@example.test",
+                new BCryptPasswordEncoder(12).encode("ReminderFixture123"), "<script>name</script> & Learner");
+        fixture.setEmailVerifiedAt(Instant.parse("2026-01-01T00:00:00Z"));
+        fixture.setReminderTime(LocalTime.of(20, 0));
+        fixture.setReminderChannels("WEB,EMAIL");
+        User user = users.saveAndFlush(fixture);
+        try {
+            assertThat(auth.sendStudyReminder(user.getId(), 7)).isEqualTo(ReminderSendResult.SENT);
+
+            JsonNode message = onlyMessageDetail();
+            MimeMessage raw = rawMessage(message.path("ID").asText());
+            assertThat(raw.isMimeType("multipart/*")).isTrue();
+            assertThat(raw.getSubject()).isEqualTo("CNHSK · Bạn có 7 thẻ cần ôn hôm nay");
+            String header = raw.getHeader("List-Unsubscribe", null);
+            assertThat(header).startsWith("<https://api.cnhsk.test/api/public/reminder/unsubscribe?token=")
+                    .endsWith(">");
+            assertThat(raw.getHeader("List-Unsubscribe-Post", null)).isEqualTo("List-Unsubscribe=One-Click");
+            String token = UriComponentsBuilder.fromUriString(header.substring(1, header.length() - 1))
+                    .build().getQueryParams().getFirst("token");
+            assertThat(tokens.verify(token)).isEqualTo(user.getId());
+            assertThat(message.path("Text").asText()).contains("Xin chào " + user.getDisplayName(), "7 thẻ",
+                    "https://cnhsk.test/learn/review", "https://cnhsk.test/reminder/unsubscribe?token=" + token);
+            assertThat(message.path("HTML").asText()).contains("&lt;script&gt;name&lt;/script&gt; &amp; Learner",
+                    "7 thẻ", "href=\"https://cnhsk.test/learn/review\"", "Ôn ngay", "Tắt nhắc qua email",
+                    "href=\"https://cnhsk.test/reminder/unsubscribe?token=" + token + "\"")
+                    .doesNotContain("<script>");
+        } finally {
+            jdbc.update("DELETE FROM auth.users WHERE id = ?", user.getId());
+        }
+    }
+
+    private MimeMessage rawMessage(String messageId) throws Exception {
+        assertThat(messageId).isNotBlank();
+        HttpResponse<byte[]> response = httpClient.send(HttpRequest.newBuilder()
+                .uri(URI.create(mailpitBaseUrl + "/api/v1/message/" + messageId + "/raw")).GET().build(),
+                HttpResponse.BodyHandlers.ofByteArray());
+        assertThat(response.statusCode()).isEqualTo(200);
+        return new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(response.body()));
     }
 
     private JsonNode readMessageList() throws Exception {

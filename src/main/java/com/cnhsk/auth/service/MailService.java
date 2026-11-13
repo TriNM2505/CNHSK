@@ -18,11 +18,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.HtmlUtils;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
-/** Sends authentication emails only after the transaction that requested them commits. */
+/** Sends authentication emails after commit and study reminders synchronously for job retries. */
 @Service
 public class MailService {
 
@@ -32,6 +33,7 @@ public class MailService {
 
     private final JavaMailSender mailSender;
     private final URI webBaseUrl;
+    private final URI apiBaseUrl;
     private final String fromAddress;
 
     public MailService(JavaMailSender mailSender, CnhskProperties properties,
@@ -41,6 +43,10 @@ public class MailService {
                 .getApp().getWebBaseUrl();
         if (webBaseUrl == null || !webBaseUrl.isAbsolute()) {
             throw new IllegalArgumentException("APP_WEB_BASE_URL must be an absolute URL.");
+        }
+        this.apiBaseUrl = properties.getApp().getApiBaseUrl();
+        if (apiBaseUrl == null || !apiBaseUrl.isAbsolute()) {
+            throw new IllegalArgumentException("API_BASE_URL must be an absolute URL.");
         }
         if (fromAddress == null || fromAddress.isBlank()) {
             throw new IllegalArgumentException("MAIL_FROM must not be blank.");
@@ -68,6 +74,35 @@ public class MailService {
                         + "CNHSK");
     }
 
+    public void sendStudyReminder(String recipient, String displayName, int dueCount, String token) {
+        String reviewUrl = webBaseUrl.toString().replaceFirst("/+$", "") + "/learn/review";
+        String unsubscribeUrl = link("/reminder/unsubscribe", token);
+        String text = "Xin chào " + displayName + ",\n\n"
+                + "Bạn có " + dueCount + " thẻ cần ôn hôm nay.\n\n"
+                + "Ôn ngay: " + reviewUrl + "\n\n"
+                + "Tắt nhắc qua email: " + unsubscribeUrl + "\n\nCNHSK";
+        String html = "<html><body><p>Xin chào " + HtmlUtils.htmlEscape(displayName) + ",</p>"
+                + "<p>Bạn có " + dueCount + " thẻ cần ôn hôm nay.</p>"
+                + "<p><a href=\"" + HtmlUtils.htmlEscape(reviewUrl) + "\">Ôn ngay</a></p>"
+                + "<p><a href=\"" + HtmlUtils.htmlEscape(unsubscribeUrl) + "\">Tắt nhắc qua email</a></p>"
+                + "<p>CNHSK</p></body></html>";
+        MimeMessage message = mailSender.createMimeMessage();
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+            helper.setFrom(new InternetAddress(fromAddress, "CNHSK", StandardCharsets.UTF_8.name()));
+            helper.setTo(recipient);
+            helper.setSubject("CNHSK · Bạn có " + dueCount + " thẻ cần ôn hôm nay");
+            helper.setText(text, html);
+            message.setHeader("List-Unsubscribe", "<" + link(apiBaseUrl,
+                    "/api/public/reminder/unsubscribe", token) + ">");
+            message.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
+        } catch (MessagingException | UnsupportedEncodingException exception) {
+            throw new IllegalStateException("Could not prepare study reminder email.", exception);
+        }
+        // Let SMTP failures reach the caller so the reminder job can retry delivery.
+        mailSender.send(message);
+    }
+
     private void send(String recipient, String subject, String text) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -93,7 +128,11 @@ public class MailService {
     }
 
     private String link(String path, String token) {
-        String base = webBaseUrl.toString().replaceFirst("/+$", "");
+        return link(webBaseUrl, path, token);
+    }
+
+    private static String link(URI baseUrl, String path, String token) {
+        String base = baseUrl.toString().replaceFirst("/+$", "");
         return UriComponentsBuilder.fromUriString(base + path)
                 .queryParam("token", token)
                 .build()

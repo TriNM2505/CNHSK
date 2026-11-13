@@ -5,6 +5,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
+import com.cnhsk.auth.api.ReminderSettings;
 import com.cnhsk.auth.dto.ReminderSettingsResponse;
 import com.cnhsk.auth.dto.ReminderSettingsResponse.Channels;
 import com.cnhsk.auth.dto.ReminderUpdateRequest;
@@ -35,7 +36,12 @@ public class ReminderSettingsService {
 
     @Transactional(readOnly = true)
     public ReminderSettingsResponse getSettings(long userId) {
-        return toResponse(userRepository.findById(userId).orElseThrow(ReminderSettingsService::unauthenticated));
+        return toResponse(readSettings(userId));
+    }
+
+    @Transactional(readOnly = true)
+    public ReminderSettings readSettings(long userId) {
+        return settingsOf(userRepository.findById(userId).orElseThrow(ReminderSettingsService::unauthenticated));
     }
 
     @Transactional
@@ -47,22 +53,26 @@ public class ReminderSettingsService {
                     "Vui lòng xác thực email trước khi bật nhắc qua email.", Map.of());
         }
 
-        ReminderSettingsResponse before = toResponse(user);
+        ReminderSettingsResponse before = toResponse(settingsOf(user));
         user.setReminderTime(LocalTime.parse(request.reminderTime()));
         user.setReminderChannels(canonicalChannels(request));
-        ReminderSettingsResponse after = toResponse(user);
+        ReminderSettingsResponse after = toResponse(settingsOf(user));
         auditService.record(userId, "REMINDER_SETTINGS_UPDATED", "user:" + userId,
                 auditSettings(before), auditSettings(after));
         return after;
     }
 
-    private static ReminderSettingsResponse toResponse(User user) {
+    private static ReminderSettings settingsOf(User user) {
         boolean configured = user.getReminderTime() != null;
         LocalTime reminderTime = configured ? user.getReminderTime() : DEFAULT_TIME;
         List<String> channels = List.of(user.getReminderChannels().split(","));
-        return new ReminderSettingsResponse(TIME_FORMAT.format(reminderTime),
-                new Channels(!configured || channels.contains("WEB"), configured && channels.contains("EMAIL")),
-                user.getEmailVerifiedAt() != null, configured, TIMEZONE);
+        return new ReminderSettings(reminderTime, !configured || channels.contains("WEB"),
+                configured && channels.contains("EMAIL"), user.getEmailVerifiedAt() != null, configured);
+    }
+
+    private static ReminderSettingsResponse toResponse(ReminderSettings settings) {
+        return new ReminderSettingsResponse(TIME_FORMAT.format(settings.reminderTime()),
+                new Channels(settings.web(), settings.email()), settings.emailVerified(), settings.configured(), TIMEZONE);
     }
 
     private static Map<String, Object> auditSettings(ReminderSettingsResponse settings) {

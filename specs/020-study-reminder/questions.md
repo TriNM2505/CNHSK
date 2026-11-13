@@ -1,5 +1,33 @@
 # Câu hỏi và quyết định — Spec #020
 
+## 2026-11-14 · T-03 · Q-T03-01 — ANSWERED
+
+**Leader duyệt G0:** Thêm `CnhskProperties.App.apiBaseUrl`, mặc định `http://localhost:8080`, kiểm URL tuyệt đối như `webBaseUrl`; đọc biến `API_BASE_URL` theo cơ chế cấu hình hiện có. `.env.example` chỉ thêm `API_BASE_URL=` để trống và chú thích, không có giá trị thật. Giá trị môi trường trống không ghi đè cấu hình; khi chưa cấu hình dùng mặc định local.
+
+## 2026-11-14 · T-03 · Q-T03-02 — ANSWERED
+
+**Leader bổ sung FR-008:** Người đang đình chỉ cũng bị loại vì không đăng nhập được để ôn. Cả `reminderTargets` và bước đọc lại DB ngay trước khi gửi phải kiểm `banned_at IS NULL AND (suspended_until IS NULL OR suspended_until <= :now)`; `:now` lấy từ `Clock`. Đình chỉ còn hạn → không là target và trả `SKIPPED` khi gửi; đình chỉ đã qua hoặc đúng thời điểm hết hạn → được phép nếu các điều kiện khác đạt. Không sửa `spec.md`.
+
+## 2026-11-14 · T-03 · Q-T03-03 — ANSWERED
+
+**Leader duyệt chữ ký nội bộ:** `ReminderSettings(LocalTime reminderTime, boolean web, boolean email, boolean emailVerified, boolean configured)`, `ReminderTarget(long userId)` và enum `ReminderSendResult { SENT, SKIPPED }`. `sendStudyReminder` trả enum này. Settings phải dùng chung hàm tính mặc định với `ReminderSettingsService`, không format `HH:mm` rồi parse ngược.
+
+## 2026-11-14 · T-03 · Q-T03-04 — ANSWERED
+
+**Đầu vào:** `dueCount == 0` → `SKIPPED`; `dueCount < 0` hoặc `userId <= 0` → `IllegalArgumentException`; `batch-size <= 0` làm ứng dụng không khởi động. `hour` phải là giờ tròn; bind `LocalTime` trực tiếp, không đổi múi giờ (Q-T01-02). Batch mặc định 500 qua `@Value`; vượt thì WARN đúng số còn lại, không log userId/email/display_name/token. Lỗi gửi mail nhắc truyền ra caller để T-04 thử lại; mail xác thực/reset giữ nguyên hành vi nuốt lỗi.
+
+**Bảo đảm thử lại:** Gửi mail nhắc đồng bộ, không thêm transaction proxy quanh thao tác SMTP để lỗi tạm thời không đánh dấu transaction của caller là rollback-only. Test kiểm lỗi lần đầu truyền ra và lần gọi lại trong cùng transaction trả `SENT`.
+
+**Nhánh và phạm vi:** Leader giao `spec/020-t03` từ đúng `0345479` (T-02), không tự merge/rebase main. G0 duyệt 14 file và thêm `tasks.md` để ghi T-03 chờ review, không đánh dấu hoàn thành. `AuthApi` dùng chung với 017/T-01 (`bannedUserIds`, `publicProfiles`); xử lý L2 theo chỉ đạo leader, giữ các method của cả hai task. Một conventional commit và Draft PR.
+
+## 2026-11-14 · T-03 · Q-T03-05 — ANSWERED
+
+**Leader duyệt mở rộng allowlist 15 → 16 file:** Bổ sung `src/main/java/com/cnhsk/auth/reminder/ReminderSettingsService.java` để tách logic mặc định thành hàm dùng chung cho response REST và `AuthApi.reminderSettings`. `readSettings` trả snapshot có `LocalTime`; `settingsOf` là nơi duy nhất tính mặc định `20:00`, web bật, email tắt, `configured=false`. Chỉ response REST format `HH:mm`, không parse chuỗi ngược lại. GET/PUT `/api/me/reminder` giữ nguyên hành vi, JSON và audit; test T-01/T-02 chạy nguyên trạng. Không thay đổi file nào ngoài allowlist 16 file đã duyệt.
+
+**Gate cuối — PASS:** Targeted/regression 205 test, F/E/S 0/0/0, Maven exit 0. `./mvnw -B verify`: 4.570 test, F/E/S 0/0/0, exit 0, BUILD SUCCESS (15:32); JaCoCo LINE 96,7608% (12.367/12.781), mọi coverage check đạt. Test Mailpit xác nhận text + HTML, tiêu đề, hai link FE, hai header và token verify đúng user. Test PostgreSQL kiểm giá trị thô `20:00:00`, bind `LocalTime` trực tiếp, kênh EMAIL theo phần tử, batch/WARN, đình chỉ tương lai/đã qua/đúng thời điểm hết hạn và đọc lại DB dù entity đã cache. Test T-01/T-02 nguyên trạng, `AuthContractTest`, `GlobalExceptionHandlerTest`, `ModuleBoundaryTest` đều xanh.
+
+**Self-check cuối — PASS:** Global: không thêm dependency, stack giữ nguyên, naming theo code hiện có, module boundary pass. Business: không thay đổi chấm điểm/tiền; email chỉ ở auth, không log email/display_name/token; giờ nhắc giữ `LocalTime`, đình chỉ so theo `Clock`. Safety: đúng allowlist 16 file đã duyệt, UTF-8 không BOM, diff check sạch, không TODO/FIXME trong các file code thay đổi; không đọc/commit `.env`, không chạy SQL lên Neon, không migration/schema, không sửa ErrorCode/SecurityConfig/OpenAPI. Repo chưa có Java lint plugin; kiểm tra diff, convention và marker nguồn, không thêm công cụ ngoài scope. Chỉ cập nhật T-03 thành chờ review; một conventional commit và Draft PR, không tự merge/rebase main.
+
 ## 2026-11-13 · T-02 · Q-T02-01 — ANSWERED
 
 **Leader duyệt:** Token là `base64url(payload) + "." + base64url(hmac)`, không padding; HMAC-SHA256 ký trên chuỗi payload đã encode, dùng UTF-8 của secret từ cấu hình JWT hiện có. Payload đúng ba phần `userId.expEpochSec.REMINDER_UNSUBSCRIBE`, userId dương, hạn 30 ngày theo `Clock`. So chữ ký bằng `MessageDigest.isEqual` trước khi tin hoặc parse nội dung payload. Có `issue(userId)` để T-03 gửi mail.
