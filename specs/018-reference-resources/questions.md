@@ -122,3 +122,41 @@ Redis thật xác nhận: hai GET và tham số sai dùng chung hạn mức khá
 Fetch trước bàn giao vẫn de73286; ErrorCode/SecurityConfig không có thay đổi trên main cần rebase. T-02 cập nhật MERGED (#149, de73286).
 
 Self-check: đúng 10 file đã duyệt; không dependency/contract/migration/application.yaml/RateLimiter/entity/repository hoặc FE thay đổi. ErrorCode thêm REFERENCE_NOT_FOUND ngay trước INTERNAL_ERROR, GlobalExceptionHandlerTest giữ containsExactly. SecurityConfig chỉ thêm matcher GET cho đúng danh sách và /{id}. SQL dùng tham số và chỉ đọc bảng cùng module; không trả entity. Fixture tự soạn, mật khẩu chỉ giữ hash bcrypt cost 12, không PII thật/secret/dữ liệu có bản quyền. Không sửa/tắt/skip test cũ. Không SQL/migration trên Neon; không push main, merge PR hoặc force-push.
+
+## T-04 — Chốt leader ngày 2026-11-14
+
+Base deb4f03, đầu nhánh PR #151; leader sẽ merge --no-ff. Nhánh spec/018-t04 không rebase/merge main. Chưa có thay đổi của #152; leader xử lý xung đột khi merge.
+
+- Q-T04-01 — ANSWERED: countByTargets dùng created_at >= since[id]. Thiếu/null cutoff đếm toàn bộ. Trả đủ mọi ID, không có audit thì ReportStat(0,null); tập rỗng trả map rỗng, không query. ReportStat nằm trong shared.audit (record lồng AuditService), không phụ thuộc learning. Một truy vấn tổng hợp cả tập, theo target_type/target_id/action/created_at; không điều kiện JSONB.
+- Q-T04-02 — ANSWERED: 422/403/404 không trừ lượt. Giữ chỗ Redis sau khi xác nhận PUBLISHED và trước ghi audit. Ghi DB lỗi KHÔNG hoàn lượt; người gọi phải chờ ngày tiếp theo. Đây là giới hạn đã được leader chấp nhận; không tự xoá bộ đếm khi có lỗi.
+- Q-T04-03 — ANSWERED: Redis lỗi thì fail-closed, không ghi audit, trả 500 INTERNAL_ERROR với message cố định. WARN cố định, không userId/note/exception chi tiết. Không dùng cách cho qua của GET công khai.
+- Q-T04-04 — ANSWERED: ID sai dạng/<=0/vượt int64 trả 404 REFERENCE_NOT_FOUND. Note thiếu/null lưu null; có thì giữ nguyên, không trim. Quá 300 code point trả 422.
+- Khoá reference:report:<userId>:<id>:<yyyyMMdd theo Asia/Ho_Chi_Minh>, TTL tới hết ngày Việt Nam, retryAfterSeconds tối thiểu 1. Dùng RateLimiter có sẵn, không thêm bảng hay cơ chế bộ đếm mới.
+- AuditService thêm NamedParameterJdbcTemplate vào constructor; chữ ký và hành vi record/recordDetail giữ nguyên. Matcher chỉ POST /api/references/{id}/report cho LEARNER, cạnh nhóm reference. Không thêm ErrorCode.
+
+### Ghi sẵn cho T-05 — FR-011 / AT-14
+
+Bộ lọc reported=true phải lọc trong SQL TRƯỚC phân trang: EXISTS trên shared.audit_logs với action REFERENCE_REPORTED, target_type REFERENCE, target_id của mục và since = updated_at. countByTargets chỉ lấy reportCount/lastReportedAt cho trang đã lọc; không tải trang rồi lọc trong Java vì sẽ sai total và mất mục. T-04 chỉ cung cấp helper và kiểm số query, chưa nghiệm thu HTTP reported=true của T-05.
+
+### T-04 — Gate và self-check
+
+| Gate | Kết quả thực tế |
+|---|---|
+| ReferenceReportServiceTest + ReferenceReportIntegrationTest + ReferenceReportControllerIntegrationTest + AuditTargetCountIntegrationTest + AuditServiceIntegrationTest cũ | 56 test (8 + 6 + 25 + 5 + 12), 0 failure/error/skip; BUILD SUCCESS |
+| ModuleBoundaryTest | 9/9, 0 failure/error/skip; BUILD SUCCESS |
+| Full mvnw.cmd -B verify, Java 17, DEBUG=false, Docker local | 4.540 test, 0 failure/error/skip; BUILD SUCCESS; 16:17 phút |
+| JaCoCo LINE toàn dự án | 96,7906% (12.365/12.775 dòng); mọi coverage check đạt |
+| JaCoCo LINE shared.audit / learning.reference / reference.web | 98,8372% (85/86) / 99,0566% (210/212) / 98,1132% (52/53) |
+| git diff --check / UTF-8 BOM | PASS / 0 BOM |
+
+Không dùng ngoại lệ môi trường. Tăng đúng 44 test mới so với 4.496 test của base deb4f03; 12 test audit cũ giữ nguyên. Benchmark review trong full suite p95 125 ms, đạt <500 ms.
+
+Bằng chứng: helper trả đủ ID và cutoff inclusive, mặc định (0,null), hỗ trợ target type cũ, tập rỗng không query; tăng từ 1 lên 50 ID vẫn một query. RecordDetail cũ ghi rồi đếm được trong cùng transaction. Lỗi action/target không bị lẫn vào thống kê.
+
+PostgreSQL/Redis xác nhận hai request đồng thời chỉ một request ghi audit; người/mục/ngày độc lập; ngày đổi lúc 17:00 UTC (00:00 VN), TTL tới hết ngày. Khoá FOR SHARE ngăn cập nhật mục trong lúc transaction báo lỗi chưa xong. Lỗi writer audit được mô phỏng để kiểm rollback và bộ đếm Redis vẫn giữ lượt; thử lại bị 429, không tự hoàn lượt.
+
+HTTP xác nhận 204 có đúng action/target/actor và detail {reason,note}; payload tự gửi userId không thay người gọi. GUEST 401, role không phải LEARNER 403, cookie thiếu CSRF 403; cookie có CSRF và bearer LEARNER đều được gọi. 422/403/404 không chiếm suất báo hợp lệ tiếp theo. Note giữ null/khoảng trắng/Unicode, 300 code point được chấp nhận, 301 bị từ chối. Không thấy note trong log; Redis lỗi trả message 500 cố định và không có audit. Method/đường dẫn con ngoài matcher không được mở.
+
+Fetch trước bàn giao: main 450ca82 (#152) chưa chứa deb4f03 (#151). Theo chỉ định leader, nhánh T-04 giữ nguyên base deb4f03, không rebase/merge main. PR T-04 phụ thuộc #151; trong lúc #151 chưa merge, diff GitHub với main có thể còn bao gồm phần T-03. Commit T-04 chỉ thay đúng 10 file đã duyệt, xét từ base deb4f03. Leader xử lý phần shared khi merge.
+
+Self-check: không dependency, migration, ErrorCode, application.yaml, RateLimiter hay entity/repository thay đổi. AuditService chỉ thêm dependency constructor và hàm đọc theo lô/record ReportStat; record/recordDetail không đổi chữ ký hoặc nội dung. Shared không phụ thuộc learning; code learning ghi audit qua AuditService, không truy vấn bảng audit trực tiếp. SQL tham số hoá; không điều kiện trên JSONB. SecurityConfig chỉ thêm đúng matcher POST cho LEARNER. Fixture tự soạn, tài khoản local dùng bcrypt cost 12; không secret/PII thật/dữ liệu có bản quyền. Không log note/userId trong nhánh Redis lỗi, không trả exception upstream. Không sửa/tắt/skip test cũ, không chạy SQL/migration trên Neon. Không push main, merge PR hoặc force-push.
