@@ -5,11 +5,19 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 @Service
 public class AuditService {
@@ -19,10 +27,13 @@ public class AuditService {
 
     private final AuditLogRepository auditLogRepository;
     private final ObjectMapper objectMapper;
+    private final NamedParameterJdbcTemplate jdbc;
 
-    public AuditService(AuditLogRepository auditLogRepository, ObjectMapper objectMapper) {
+    public AuditService(AuditLogRepository auditLogRepository, ObjectMapper objectMapper,
+            NamedParameterJdbcTemplate jdbc) {
         this.auditLogRepository = auditLogRepository;
         this.objectMapper = objectMapper;
+        this.jdbc = jdbc;
     }
 
     @Transactional
@@ -76,6 +87,42 @@ public class AuditService {
         Map<String, Object> convertedDetail = objectMapper.convertValue(detail, new TypeReference<Map<String, Object>>() {
         });
         auditLogRepository.save(new AuditLog(actorId, action, targetType, null, convertedDetail));
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, ReportStat> countByTargets(String action, String targetType, Set<Long> ids,
+            Map<Long, Instant> since) {
+        Objects.requireNonNull(action, "action must not be null");
+        Objects.requireNonNull(targetType, "targetType must not be null");
+        Objects.requireNonNull(ids, "ids must not be null");
+        if (ids.isEmpty()) return Map.of();
+
+        Map<Long, ReportStat> result = new LinkedHashMap<>();
+        List<String> requested = new ArrayList<>();
+        MapSqlParameterSource parameters = new MapSqlParameterSource("action", action)
+                .addValue("targetType", targetType);
+        int index = 0;
+        for (Long id : ids) {
+            if (id == null || id <= 0) throw new IllegalArgumentException("target id must be positive");
+            Instant cutoff = since == null ? null : since.get(id);
+            requested.add("(:id" + index + ", CAST(:since" + index + " AS timestamptz))");
+            parameters.addValue("id" + index, id).addValue("since" + index,
+                    cutoff == null ? null : OffsetDateTime.ofInstant(cutoff, ZoneOffset.UTC));
+            result.put(id, new ReportStat(0, null));
+            index++;
+        }
+        String sql = "SELECT a.target_id, count(*) AS report_count, max(a.created_at) AS last_at "
+                + "FROM shared.audit_logs a JOIN (VALUES " + String.join(",", requested)
+                + ") AS requested(id, since_at) ON a.target_id = requested.id "
+                + "WHERE a.target_type = :targetType AND a.action = :action "
+                + "AND (requested.since_at IS NULL OR a.created_at >= requested.since_at) GROUP BY a.target_id";
+        jdbc.query(sql, parameters, (row, rowNumber) -> Map.entry(row.getLong("target_id"),
+                new ReportStat(row.getLong("report_count"), row.getTimestamp("last_at").toInstant())))
+                .forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+        return Map.copyOf(result);
+    }
+
+    public record ReportStat(long count, Instant lastAt) {
     }
 
     private EntityReference parseEntity(String entity) {
