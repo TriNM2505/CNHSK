@@ -250,7 +250,7 @@ CREATE TABLE users (
   ban_reason        TEXT,
 
   -- Nhac hoc — thay bang user_notification_settings cua v5
-  reminder_time     TIME,                  -- gio Viet Nam, NULL = tat
+  reminder_time     TIME,                  -- giờ Việt Nam, NULL = chưa cài (mặc định 20:00, WEB) — spec 020 FR-003
   reminder_channels VARCHAR(50) NOT NULL DEFAULT 'WEB',  -- 'WEB,EMAIL'
 
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),

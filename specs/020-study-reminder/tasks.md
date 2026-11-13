@@ -11,7 +11,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | `ReminderSettingsService` + `GET/PUT /api/me/reminder` (mặc định không ghi DB, chuẩn hoá kênh, kiểm giờ tròn, `EMAIL_NOT_VERIFIED` atomic, audit) (**module 001 — báo leader**) | `…/auth/reminder/ReminderSettingsService.java`, `…/auth/web/MeController.java` (hoặc controller mới), `ErrorCode.java`, `SecurityConfig.java` + test | FR-001, FR-003…FR-006 · AT-01…AT-05 | ⬜ |
+| T-01 | `ReminderSettingsService` + `GET/PUT /api/me/reminder` (mặc định không ghi DB, chuẩn hoá kênh, kiểm giờ tròn, `EMAIL_NOT_VERIFIED` atomic, audit) (**module 001 — báo leader**) | `…/auth/reminder/ReminderSettingsService.java`, `…/auth/web/MeController.java` (hoặc controller mới), `ErrorCode.java`, `SecurityConfig.java` + test | FR-001, FR-003…FR-006 · AT-01…AT-05 | 🔄 Chờ leader review — 2026-11-13: 71 targeted; full verify 4.457 test, F/E/S 0/0/0, exit 0; JaCoCo LINE 96,75% (12.177/12.586). Q-T01-01/Q-T01-02 ANSWERED; allowlist 14 file đã duyệt. |
 | T-02 | `UnsubscribeTokens` (HMAC `JWT_SECRET`, purpose, hạn 30 ngày, so sánh thời gian hằng) + `POST /api/public/reminder/unsubscribe` (body/query/form, idempotent, audit, rate limit); mã `INVALID_UNSUBSCRIBE_TOKEN` | `…/auth/reminder/{UnsubscribeTokens,ReminderUnsubscribeService}.java`, controller + test | FR-002, FR-016, FR-017 · AT-14…AT-16 | ⬜ |
 | T-03 | `AuthApi.reminderSettings`, `reminderTargets(hour)`, `sendStudyReminder(userId, dueCount)` + record; `MailService` mẫu mail nhắc (text + HTML) + header `List-Unsubscribe`, `List-Unsubscribe-Post` (**module 001 — báo leader**) | `…/auth/api/{AuthApi,ReminderSettings,ReminderTarget}.java`, `…/auth/service/{AuthApiService,MailService}.java` + test Mailpit | FR-008, FR-014, FR-015 · AT-11, AT-13 | ⬜ |
 
