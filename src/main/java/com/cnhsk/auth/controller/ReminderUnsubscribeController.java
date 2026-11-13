@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
@@ -51,14 +52,35 @@ public class ReminderUnsubscribeController {
                     @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = ReminderUnsubscribeRequest.class)),
                     @Content(mediaType = MediaType.APPLICATION_FORM_URLENCODED_VALUE,
-                            schema = @Schema(type = "object"))}))
+                            schema = @Schema(type = "object"), schemaProperties = {
+                                    @SchemaProperty(name = "List-Unsubscribe", schema = @Schema(type = "string", example = "One-Click")),
+                                    @SchemaProperty(name = "token", schema = @Schema(type = "string", maxLength = 512))
+                            })}))
     @Parameter(name = "token", in = ParameterIn.QUERY, schema = @Schema(type = "string", maxLength = 512))
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Đã tắt hoặc đã tắt từ trước"),
             @ApiResponse(responseCode = "400", description = "INVALID_UNSUBSCRIBE_TOKEN",
-                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}),
+                            schemaProperties = {
+                                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))
+                            })),
             @ApiResponse(responseCode = "429", description = "RATE_LIMITED",
-                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}),
+                            schemaProperties = {
+                                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))
+                            }))})
     public ResponseEntity<Void> unsubscribe(HttpServletRequest request) throws IOException {
         limiter.check(request.getRemoteAddr());
         String selected = null;

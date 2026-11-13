@@ -20,14 +20,14 @@
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-04 | `StudyReminderJob` (cron mỗi giờ, `zone` VN, `Clock`), giữ chỗ `study_events` `ON CONFLICT DO NOTHING`, gửi qua `AuthApi`, thử lại 2 lần, xoá giữ chỗ khi lỗi, log tổng kết không PII; cấu hình `cnhsk.reminder.*` + `application-test.yaml` cron `-` [chờ T-03] | `…/learning/reminder/StudyReminderJob.java`, `application.yaml`, `src/test/resources/application-test.yaml` + test | FR-007…FR-013 · AT-06…AT-12, AT-19 | 🔄 Chờ leader review — 2026-11-14: Q-T04-01…03 ANSWERED; 34 test mới, targeted/regression 314, full verify 4.604 test, F/E/S 0/0/0, exit 0; JaCoCo LINE 96,7669% (12.451/12.867). Allowlist chín file, diff check/UTF-8 không BOM/self-check PASS; scheduler inventory và test T-01…T-03 nguyên trạng đều xanh. |
-| T-05 | `GET /api/reminders/today` (kênh web, giờ VN, `dueCount`) [chờ T-03] | `…/learning/reminder/{TodayReminderService}.java`, `…/reminder/web/ReminderController.java` + test | FR-019 · AT-18 | 🔄 Chờ leader review — 2026-11-14: Q-T05-01 ANSWERED; targeted 41, hồi quy 135, full verify 4.645 test, F/E/S 0/0/0, exit 0; JaCoCo LINE 96,7717% (12.470/12.886). Đúng allowlist tám file; SQL GET chỉ đọc, không study_events/DML; diff check/UTF-8 không BOM/self-check PASS. |
+| T-05 | `GET /api/reminders/today` (kênh web, giờ VN, `dueCount`) [chờ T-03] | `…/learning/reminder/{TodayReminderService}.java`, `…/reminder/web/ReminderController.java` + test | FR-019 · AT-18 | MERGED (#158) — leader xác nhận 2026-11-14; Q-T05-01 ANSWERED; targeted 41, hồi quy 135, full verify 4.645 test, F/E/S 0/0/0, exit 0; JaCoCo LINE 96,7717% (12.470/12.886). Đúng allowlist tám file; SQL GET chỉ đọc, không study_events/DML; diff check/UTF-8 không BOM/self-check PASS. |
 
 ## Đợt 3 · Frontend + hợp đồng
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-06 | SCR-009 `/me/reminders` (giờ tròn, 2 công tắc, múi giờ, email chưa xác thực → vô hiệu + link SCR-004, Lưu/Huỷ, 4 trạng thái, responsive); trang công khai `/reminder/unsubscribe` một nút (không gọi API khi chỉ mở); banner SCR-010 (**báo người giữ 011**); route + lối vào từ SCR-007 | `web/features/reminder/**`, `web/features/mastery/pages/Scr010LearningDashboardPage.tsx`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts` + test | FR-018, FR-020…FR-023 · AT-17 | ⬜ |
-| T-07 | Test hợp đồng `/v3/api-docs` so `openapi-reminder.yaml` | `t/contract/ReminderContractTest.java` | AT-20 | ⬜ |
+| T-06 | SCR-009 `/me/reminders` (giờ tròn, 2 công tắc, múi giờ, email chưa xác thực → vô hiệu + link SCR-004, Lưu/Huỷ, 4 trạng thái, responsive); trang công khai `/reminder/unsubscribe` một nút (không gọi API khi chỉ mở); banner SCR-010 (**báo người giữ 011**); route + lối vào từ SCR-007 | `web/features/reminder/**`, `web/features/mastery/pages/Scr010LearningDashboardPage.tsx`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts` + test | FR-018, FR-020…FR-023 · AT-17 | MERGED (#159) — leader xác nhận 2026-11-14. |
+| T-07 | Test hợp đồng `/v3/api-docs` so `openapi-reminder.yaml` | `t/contract/ReminderContractTest.java` | AT-20 | 🔄 Chờ review — 2026-11-14: G3 80 mismatch metadata lần đầu → annotation/import trong sáu file main đã duyệt → 0 mismatch. Targeted 4, hồi quy ContractTest/ArchUnit 62, full verify 4.649 test, F/E/S 0/0/0, exit 0; JaCoCo LINE 96,7717% (12.470/12.886). Đúng scope chín file, diff/UTF-8 không BOM/annotation-only/source marker/self-check PASS; AuthContractTest, YAML, validation và logic giữ nguyên. Chi tiết questions.md. |
 
 ## Thứ tự
 
