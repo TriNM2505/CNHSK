@@ -76,6 +76,10 @@ app:
   timezone: Asia/Ho_Chi_Minh
 
 cnhsk:
+  quiz:
+    question-count: 10
+    min-seconds-per-question: 2
+    session-minutes: 30
   reminder:
     cron: "0 0 * * * *"
     batch-size: 500

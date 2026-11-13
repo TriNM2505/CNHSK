@@ -48,3 +48,49 @@ Docker Desktop đã bật, `docker info` thành công (server 29.9.2); integrati
 - Không bỏ qua test hoặc áp ngoại lệ để đạt kết quả. Không phát sinh failure/error thuộc PEXPIRETIME, CapturedOutput, FR023, NFR_P04, NFR_P02; kết quả chạy này không thay thế việc review benchmark 011 của leader.
 - `git diff --check`: exit 0. Cả 8 file thay đổi không có UTF-8 BOM. Log và báo cáo kiểm tra nằm trong `target/g2/` cùng `target/site/jacoco/` (không commit).
 - Self-check: đúng allowlist; giữ thứ tự enum cũ; không thêm dependency/schema/migration; không đổi auth/security; không log đáp án/PII/token; không đụng thay đổi có sẵn trong checkout main. T-01 chờ leader review và merge.
+
+## 2026-11-14 · T-03 — G0 đã duyệt; G2 được chấp nhận ngoại lệ, chờ review
+
+- Base: `origin/main` `5e5695ccf4f6aab2e1b764297b0e22e2a63cfe81`, fetch và kiểm tra ngay trước khi tạo `spec/019-t03`. T-03 độc lập với T-02; không rebase theo chỉ đạo leader.
+- Leader duyệt allowlist 11 file và lượt sửa `SecurityConfig.java`/`application.yaml`; xung đột ở file chung do leader xử lý khi merge.
+- Đếm câu APPROVED có liên kết PRIMARY với chính `topics.knowledge_point_id`. Test chủ đề 11 câu hợp lệ cộng một câu PRIMARY ở KID khác/SECONDARY ở KID của chủ đề vẫn bị ẩn khi cấu hình 12.
+- `questionCount` trong DTO và ngưỡng hiện chủ đề cùng đọc `cnhsk.quiz.question-count`; mặc định 10, test override 12. Hai cấu hình còn lại chuẩn bị cho T-04, chưa đổi engine ở T-03.
+- Một statement SQL tính eligibility, total, page và điểm cá nhân; trang vượt cuối giữ total. Lượt đầu suspicious vẫn có trong summary; chỉ đọc lịch sử SUBMITTED đúng user/kind/ref_type.
+- Test SELECT count là assert cứng (=1). Bài đo 300 chủ đề chỉ ghi p95 và assert query count, không có gate thời gian dễ chập chờn.
+- Giữ test bearer LEARNER và cookie; không sửa YAML contract ở T-03. Ghi nhận file contract trên base này hiện có cả cookieAuth và bearerAuth; so khớp contract đầy đủ dành cho T-08.
+- Fixture tự soạn, transaction rollback trả dữ liệu về trạng thái trước test; không dọn dữ liệu của suite khác. Thông báo giao diện FR-005 thuộc T-06; bắt đầu quiz/QUIZ_NOT_AVAILABLE thuộc T-04.
+
+### G2 T-03 · 2026-11-14 — chưa đạt
+
+JDK 17.0.12, Maven Wrapper 3.9.16, `DEBUG=false`; `docker info` thành công (29.9.2), integration test dùng Testcontainers.
+
+| Bước | Tests | F/E/S | Exit |
+|---|---:|---|---:|
+| Targeted lần đầu | 48 | 0/1/0 | 1 |
+| Targeted sau sửa fixture | 48 | 0/0/0 | 0 |
+| Regression security/contract/kiểm kê | 232 | 0/0/0 | 0 |
+| ModuleBoundaryTest | 9 | 0/0/0 | 0 |
+| Full `.\mvnw.cmd -B verify` | 4796 | 1/0/0 | 1 |
+
+- Targeted lần đầu lỗi fixture REJECTED thiếu `review_reason` theo `ck_q_reject`. Đã sửa đúng file test được duyệt và chạy lại; không đổi schema hoặc production để xử lý lỗi fixture.
+- Targeted: `.\mvnw.cmd -B "-Dtest=QuizConfigTest,QuizCatalogIntegrationTest,QuizSecurityConfigIntegrationTest" test`.
+- Regression: `.\mvnw.cmd -B "-Dtest=*SecurityConfigIntegrationTest,SecurityConfigIntegrationTest,GlobalExceptionHandlerTest,*ContractTest" test`.
+- Boundary: `.\mvnw.cmd -B "-Dtest=ModuleBoundaryTest" test`.
+- Full verify chạy 17 phút 47 giây. Failure duy nhất: `AssistantPromptBuilderTest.FR007_learnerRouteDefinitionsAllHaveTrustedNames` tại `SCR-009`.
+- Lỗi nền: 020/T-06 (commit `44f3f2d` trên base) thêm route LEARNER `SCR-009` nhưng `AssistantPromptBuilder.SCREEN_NAMES` chưa có "Cài đặt nhắc học". Builder, test và `routeAccess.ts` không có diff so với `origin/main` của base; T-03 không sửa các file này.
+- Đã đề xuất mở rộng thêm đúng `AssistantPromptBuilder.java`; leader chọn **giữ 11 file, dừng tại G2**. Không sửa trợ lý, không chạy lại G2 sau lựa chọn này và không thực hiện G3.
+- Assert SELECT count = **1** pass cho 0/1/10/50 chủ đề fixture và từng mẫu đo 300 chủ đề. p95 chỉ ghi số đo, không áp ngưỡng thời gian: targeted cuối **73,888 ms**, full suite **12,643 ms**; mỗi lượt 300 chủ đề fixture, 0 chủ đề đủ điều kiện có sẵn, 20 mẫu sau warmup.
+- Maven dừng ở Surefire do failure, nên JaCoCo report/check chưa chạy; không báo coverage đạt gate 80% hoặc full verify xanh. Không bỏ qua test, không áp ngoại lệ hoặc đổi test kiểm kê để che lỗi.
+- Không phát sinh failure/error thuộc các ngoại lệ đã biết PEXPIRETIME, CapturedOutput, FR023, NFR_P04, NFR_P02; review benchmark 011 vẫn thuộc leader.
+- `git diff --check`: exit 0; đúng 11 file allowlist, UTF-8 hợp lệ, không BOM; YAML contract giữ nguyên. Log/báo cáo kiểm tra nằm trong `target/g2/` (không commit).
+- Self-check: không thêm dependency/schema/migration/ErrorCode; chỉ thêm hai matcher đã duyệt và khối `cnhsk.quiz.*`; không log đáp án/PII/token; không đụng thay đổi có sẵn ở checkout main. Chưa commit/push/mở PR.
+
+### G2 T-03 · 2026-11-14 — leader chấp nhận ngoại lệ, cho phép G3
+
+- Leader xác nhận SCR-009 là lỗi nền trên base cũ, đã sửa tại [88e0155](https://github.com/TriNM2505/CNHSK/commit/88e01556e6c4990336a00483303c227295be0e76), có trên main `ba5bc054bf2ba101375776b66411a699c1b5060a`. Đã fetch để xác minh commit; nhánh task vẫn giữ base `5e5695c`, không rebase và không sửa file trợ lý.
+- Theo lệnh leader: `.\mvnw.cmd -B verify "-Dmaven.test.failure.ignore=true"`, JDK 17.0.12, Docker/Testcontainers, `DEBUG=false`.
+- Kết quả: **4796 tests, 1 failure, 0 error, 0 skip; exit 0**, 17 phút 34 giây. Đã đọc toàn bộ XML Surefire để xác nhận failure duy nhất là `AssistantPromptBuilderTest.FR007_learnerRouteDefinitionsAllHaveTrustedNames`, nội dung `[SCR-009]`; không dùng exit 0 để suy ra toàn bộ test pass.
+- JaCoCo LINE **96,8166%**: **12.743 covered / 13.162 total**, 419 missed; vượt ngưỡng 80%. Log có dòng nguyên văn: **`All coverage checks have been met.`**
+- Catalog: **1 SELECT/request** là assert cứng, pass; p95 của 300 chủ đề fixture trong lượt này **9,162 ms** (0 chủ đề đủ điều kiện có sẵn, 20 mẫu sau warmup), chỉ ghi số đo, không có gate thời gian.
+- Ngoại lệ SCR-009 được leader chấp nhận riêng để thực hiện G3; leader sẽ chạy full verify trên main mới khi merge. Các failure/error khác và skip không được chấp nhận trong lượt này, và không phát sinh.
+- Log mới: `target/g2/verify-coverage.log`; XML: `target/surefire-reports/`; coverage: `target/site/jacoco/`. Báo cáo full verify không ignore trước đó được giữ lại, không tô xanh failure SCR-009.
