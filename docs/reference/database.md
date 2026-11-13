@@ -100,7 +100,7 @@ CREATE SCHEMA IF NOT EXISTS shared;
 
 ---
 
-## 3 · Danh sách 33 bảng
+## 3 · Danh sách 34 bảng
 
 ### `auth` — 3 bảng
 
@@ -119,7 +119,7 @@ CREATE SCHEMA IF NOT EXISTS shared;
 > `user_roles` (3 dòng trước và sau đều y nguyên), `CHECK` chặn đúng role sai (`HACKER`),
 > không chặn sai role đúng (`TEACHER`).
 
-### `learning` — 22 bảng
+### `learning` — 23 bảng
 
 **Nội dung học (8 bảng)**
 
@@ -201,7 +201,13 @@ Thuộc schema `learning`, xếp cuối để không phải đánh lại số 11
 | 32 | **`dictation_attempts`** 🆕 | **Nghe rồi gõ lại** — `char_score` + `tone_score` riêng | UC-120, 121 |
 | 33 | **`shadowing_attempts`** 🆕 | **Nói nhái** — điểm phát âm từng âm tiết. Không lưu audio | UC-122, 123 |
 
-**Tổng: 26 MVP + 7 V2 = 33 bảng.**
+**Tài liệu tham khảo — spec 018 (V7, 1 bảng)**
+
+| # | Bảng | Vai trò | UC |
+|---|---|---|---|
+| 34 | `learning.reference_items` | Gộp kênh YouTube, podcast và sách; chỉ link ngoài/mô tả, không lưu nội dung bản quyền. CHECK HTTPS, khoảng HSK, trường sách, mốc công bố; index công khai/quản trị. Không xoá cứng ở ứng dụng; quyền DELETE được leader gỡ riêng theo §7.2 | UC-117, 118, 119 |
+
+**Tổng: 26 MVP + 7 V2 + 1 V7 = 34 bảng.**
 
 ---
 
@@ -1324,6 +1330,14 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA auth, learning, community, shared
   GRANT USAGE, SELECT ON SEQUENCES TO svc_app;
 ```
 
+**Riêng `learning.reference_items` (V7, BR-119-7):** default privileges ở trên tự cấp DELETE cho bảng mới. Sau khi V7 merge và leader chạy migration trên Neon, **leader** chạy lệnh sau để gỡ quyền xoá riêng bảng này. Quyền nằm ngoài Flyway, không đặt GRANT/REVOKE trong V7.
+
+```sql
+REVOKE DELETE ON learning.reference_items FROM svc_app;
+```
+
+Nếu chạy lại GRANT DELETE ON ALL TABLES ở trên, phải gỡ lại quyền DELETE riêng cho reference_items. Không đổi quyền của các bảng khác.
+
 > `svc_app` **KHÔNG** được `CREATE`/`DROP` — Flyway dùng tài khoản khác (owner) để migrate.
 
 ### 7.3 · `search_path`
@@ -1374,7 +1388,8 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 | V4 | `V4__practice_engine.sql` | 003 | Cột `item_type`, `skill`, `meta` trên `attempt_items`; unique `uq_ai_order`, `ix_att_user_ref`, partial `ix_ai_lexeme` (spec 003 §0.12). Spec 012 ghi `attempt_items.question_id` cho nguồn `MOCK_EXAM`, `PLACEMENT`, `TARGETED_PRACTICE` | Chờ merge — chỉ kiểm thử bằng Testcontainers; chưa chạy Neon, leader chạy sau merge |
 | V5 | `V5__knowledge_tree.sql` | 010 | Cây KID trên `knowledge_points`, vai trò nhãn, `questions.code`/`difficulty`, `knowledge_point_id` trên `topics`/`lexemes` (spec 010 §0.1) | ✅ Đã viết và kiểm thử 2026-11-04: 40 test AT-30 trên PostgreSQL Testcontainers; `ddl-auto: validate`. Chưa chạy Neon; leader chạy sau merge |
 | V6 | `V6__mastery_progress.sql` | 011 | `user_progress`: `mp_state`, `confidence`, `evidence_item_ids`, `target_type 'LEXEME'`, `ck_prog_mp`, partial index `ix_prog_kp_state` (spec 011 §0.1) | ✅ Đã viết và kiểm thử 2026-11-05: 31 test AT-03 trên PostgreSQL Testcontainers, gồm nâng cấp V5 → V6; `ddl-auto: validate`. Full `verify`: 2.363 test, không fail/error/skip; line coverage 96,35%. Chưa chạy Neon; leader thực hiện sau merge |
-| V7+ | — | spec sau | Leader cấp số khi spec cần đổi schema (012–015 không cần migration) | — |
+| V7 | `V7__reference_items.sql` | 018 | Bảng `learning.reference_items`, CHECK và hai index theo spec §0.1; DDL thuần, quyền ngoài migration (§7.2) | T-01 đã kiểm: targeted 96/96, full verify 4.309 test xanh; chờ review/merge, leader chạy Neon sau merge |
+| V8+ | — | spec sau | Leader cấp số khi spec cần đổi schema (012–015 không cần migration) | — |
 
 > `V3__content_and_plans`, `V4__funnel_and_ledger`, `V5__video_practice` của bản trước **đã gộp vào V1**
 > (V1 chưa chạy ở đâu nên gộp được) — trừ hai bảng video luyện tập, chờ feature 1.6 vào scope.
