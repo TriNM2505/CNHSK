@@ -1,5 +1,19 @@
 # Câu hỏi và quyết định — Spec #020
 
+## 2026-11-13 · T-01 · Q-T01-01 — ANSWERED
+
+**Câu hỏi:** Chú thích `reminder_time NULL = tắt` trong V1 và `database.md` khác với FR-003/AT-01. Trường hợp NULL phải được hiểu thế nào?
+
+**Leader chốt:** Làm theo FR-003/AT-01: NULL = chưa cài; GET trả `20:00`, `web=true`, `email=false`, `configured=false`, không ghi DB. Tắt nhắc bằng `reminder_channels=''`; sau khi PUT tắt cả hai kênh, giờ đã lưu vẫn có giá trị và GET trả `configured=true`, `web=false`, `email=false`. Giữ nguyên V1 đã chạy; chỉ sửa chú thích `reminder_time` trong `docs/reference/database.md`.
+
+## 2026-11-13 · T-01 · Q-T01-02 — ANSWERED
+
+**Câu hỏi:** PUT `20:00` ghi xuống PostgreSQL thành `13:00`; chỉ đọc lại qua entity có thể che lỗi vì hai lần chuyển múi giờ triệt tiêu nhau. Cách giữ đúng giờ nhắc Việt Nam trong cột `TIME` là gì?
+
+**Leader chốt:** `hibernate.jdbc.time_zone=UTC` (`application.yaml`) làm ánh xạ `LocalTime` mặc định chuyển giờ từ JVM +07 sang UTC. Chỉ thêm `@JdbcTypeCode(SqlTypes.LOCAL_TIME)` trên `User.reminderTime` để bind/đọc `LocalTime` trực tiếp; giữ nguyên các field khác, cấu hình UTC, cột SQL và V1. Test JDBC kiểm `reminder_time::text` bằng `20:00:00`, cùng các biên `00:00:00`/`23:00:00`, và GET đọc lại đúng `HH:00`.
+
+**Bàn giao T-03:** `reminderTargets(hour)` so sánh với cột `TIME` phải dùng cùng cách bind `LocalTime` trực tiếp, không tự chuyển giờ sang UTC. Giờ nhắc là giờ Việt Nam, không phải một thời điểm `Instant`.
+
 ## 2026-11-13 · Brainstorm với leader
 
 | # | Câu hỏi | Quyết định | Trạng thái |

@@ -140,6 +140,15 @@ class AuthContractTest {
             assertThat(contract.getPaths()).doesNotContainKey(path);
             contract.getPaths().addPathItem(path, item);
         });
+        SwaggerParseResult reminders = new OpenAPIV3Parser().readLocation(Path.of(
+                "specs", "020-study-reminder", "contracts", "openapi-reminder.yaml")
+                .toAbsolutePath().toString(), null, null);
+        assertThat(reminders.getMessages()).isEmpty();
+        assertThat(reminders.getOpenAPI()).isNotNull();
+        PathItem reminderSettings = reminders.getOpenAPI().getPaths().get("/api/me/reminder");
+        assertThat(reminderSettings).isNotNull();
+        assertThat(contract.getPaths()).doesNotContainKey("/api/me/reminder");
+        contract.getPaths().addPathItem("/api/me/reminder", reminderSettings);
         MvcResult result = mockMvc.perform(get("/v3/api-docs").accept(MediaType.APPLICATION_JSON))
                 .andReturn();
 

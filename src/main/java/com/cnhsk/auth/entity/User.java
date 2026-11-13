@@ -59,6 +59,7 @@ public class User {
     @Column(name = "ban_reason")
     private String banReason;
 
+    @JdbcTypeCode(SqlTypes.LOCAL_TIME)
     @Column(name = "reminder_time")
     private LocalTime reminderTime;
 

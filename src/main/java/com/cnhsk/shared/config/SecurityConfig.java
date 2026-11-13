@@ -166,6 +166,8 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.PATCH, "/api/admin/questions/{id}/archive").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers("/api/credits/**", "/api/me/credits", "/api/me/credit-transactions")
                             .hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.GET, "/api/me/reminder").hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.PUT, "/api/me/reminder").hasRole("LEARNER");
                     authorize.requestMatchers("/api/admin/**").hasRole("ADMIN")
                             .requestMatchers("/api/auth/verify-email/resend", "/api/auth/logout",
                                     "/api/auth/logout-all", "/api/auth/me", "/api/me/**")
