@@ -16,7 +16,7 @@ public interface AttemptRepository extends JpaRepository<Attempt, Long> {
     Optional<Attempt> findByIdForUpdate(@Param("id") Long id);
 
     @Query("select (count(a) > 0) from Attempt a where a.userId = :userId "
-            + "and a.status = 'IN_PROGRESS' and a.refType in ('MOCK_EXAM', 'PLACEMENT', 'TOPIC_TEST') "
+            + "and a.status = 'IN_PROGRESS' and a.refType in ('MOCK_EXAM', 'PLACEMENT', 'TOPIC_TEST', 'QUIZ') "
             + "and a.expiresAt > :now")
     boolean existsActiveTest(@Param("userId") long userId, @Param("now") Instant now);
 }

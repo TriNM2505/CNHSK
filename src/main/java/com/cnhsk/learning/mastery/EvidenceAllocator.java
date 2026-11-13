@@ -269,7 +269,7 @@ public class EvidenceAllocator {
             case "PLACEMENT", "TOPIC_TEST" -> "QUIZ";
             case "TOPIC_PRACTICE", "GRAMMAR_LESSON", "CHAR_RECOGNITION", "TARGETED_PRACTICE",
                     "GAME_ROUND", "DUE_REVIEW" -> "PRACTICE";
-            case "TOPIC_STUDY", "CHAR_WRITING", "WRITING_CHALLENGE", "PRON_STAGE" -> null;
+            case "TOPIC_STUDY", "CHAR_WRITING", "WRITING_CHALLENGE", "PRON_STAGE", "QUIZ", "QUIZ_RETRY" -> null;
             default -> {
                 log.warn("No evidence context for practice source {}", source);
                 yield null;

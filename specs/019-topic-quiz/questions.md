@@ -48,3 +48,35 @@ Docker Desktop đã bật, `docker info` thành công (server 29.9.2); integrati
 - Không bỏ qua test hoặc áp ngoại lệ để đạt kết quả. Không phát sinh failure/error thuộc PEXPIRETIME, CapturedOutput, FR023, NFR_P04, NFR_P02; kết quả chạy này không thay thế việc review benchmark 011 của leader.
 - `git diff --check`: exit 0. Cả 8 file thay đổi không có UTF-8 BOM. Log và báo cáo kiểm tra nằm trong `target/g2/` cùng `target/site/jacoco/` (không commit).
 - Self-check: đúng allowlist; giữ thứ tự enum cũ; không thêm dependency/schema/migration; không đổi auth/security; không log đáp án/PII/token; không đụng thay đổi có sẵn trong checkout main. T-01 chờ leader review và merge.
+
+## 2026-11-14 · T-02 — G0 đã duyệt, chờ review
+
+- Base: `origin/main` `61d6d5c771052e3b85804b45bc01a59c493f433c` (T-01 đã merge #157); fetch và kiểm lại `EvidenceAllocator`/`AttemptRepository` trước khi tạo `spec/019-t02`.
+- Leader duyệt allowlist 7 file và đã phối hợp với Dũng (011), Đạt (012/015); không cần chờ phản hồi thêm.
+- `QUIZ`/`QUIZ_RETRY` được loại tường minh khỏi minh chứng mastery, không đi vào WARN nguồn lạ. Giữ `PLACEMENT`/`TOPIC_TEST` → nhãn minh chứng `QUIZ` như cũ.
+- `existsActiveTest` chỉ thêm nguồn `QUIZ`, giữ kiểm tra user/status/hạn phiên; caller là `ActiveTestApi` → guard trợ lý.
+- AT-11: nộp 10 câu APPROVED qua engine thật, không suspicious; kiểm tra cả user chưa có tiến độ và user có minh chứng đối chứng. So sánh mọi cột `user_progress` bằng JDBC trước/sau; `attempt_items` vẫn lưu nhưng không được allocate/reallocate thành minh chứng mastery. Kiểm tra raw `served_at`/`submitted_at`/`duration_ms` bằng JDBC.
+- AT-12: HTTP trợ lý kiểm tra lượt đầu/retry, trạng thái đã kết thúc, biên hết hạn, khác chủ sở hữu, đồng thời có lượt đầu và retry; chặn không gọi AI hoặc trừ hạn mức. Giữ test hồi quy `PLACEMENT` và `TOPIC_TEST` đang mở.
+- Fixture mới tự soạn; cleanup theo đúng user/ID đã tạo, không xoá dữ liệu suite khác. Phần ẩn panel FE thuộc T-07.
+
+### G2 T-02 · 2026-11-14
+
+JDK 17.0.12 (`JAVA_HOME` đặt trong phiên), Maven Wrapper 3.9.16, `DEBUG=false`.
+`docker info` thành công (server 29.9.2); integration test dùng Testcontainers, không dùng Neon.
+
+| Bước | Tests | F/E/S | Exit |
+|---|---:|---|---:|
+| Targeted lần đầu | 27 | 0/4/0 | 1 |
+| Targeted sau sửa fixture | 27 | 0/0/0 | 0 |
+| Regression liên quan | 506 | 0/0/0 | 0 |
+| ModuleBoundaryTest | 9 | 0/0/0 | 0 |
+| Full `.\mvnw.cmd -B verify` | 4723 | 0/0/0 | 0 |
+
+- Targeted lần đầu lỗi setup trong test mới do thiếu `topics.code` bắt buộc từ V3. Đã bổ sung code duy nhất trong đúng file test được duyệt và chạy lại; không đổi schema hoặc production để xử lý lỗi này.
+- Targeted: `.\mvnw.cmd -B "-Dtest=EvidenceAllocatorTest,QuizMasteryIsolationIntegrationTest,AssistantControllerIntegrationTest" test`.
+- Regression: `.\mvnw.cmd -B "-Dtest=Mastery*Test,EvidenceAllocatorTest,QuizMasteryIsolationIntegrationTest,FrontierServiceTest,RecommendationService*Test,Assistant*Test,TestInProgressGuardTest,HelpLibraryTest,PiiMaskerTest,Practice*Test,GlobalExceptionHandlerTest,*ContractTest" test`.
+- Boundary: `.\mvnw.cmd -B "-Dtest=ModuleBoundaryTest" test`.
+- Full verify: 19 phút 02 giây; JaCoCo LINE **96,8337%** (12.661 covered / 13.075 total), `jacoco:check` pass ngưỡng 80%.
+- Không bỏ qua test hoặc áp ngoại lệ. Không phát sinh failure/error thuộc PEXPIRETIME, CapturedOutput, FR023, NFR_P04, NFR_P02; kết quả này không thay thế review benchmark 011 của leader.
+- `git diff --check`: exit 0. Đúng 7 file allowlist, UTF-8 hợp lệ, không BOM. Log/báo cáo ở `target/g2/`, coverage ở `target/site/jacoco/` (không commit).
+- Self-check: giữ ánh xạ nguồn cũ và điều kiện user/status/expiry; không thêm dependency/schema/migration; không đổi auth/security; không log đáp án/PII/token; không đụng thay đổi sẵn có ở checkout main. T-02 chờ leader review/merge.
