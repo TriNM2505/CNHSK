@@ -8,6 +8,8 @@ import java.time.format.DateTimeFormatter;
 import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.auth.api.ReminderSettings;
 import com.cnhsk.learning.review.ReviewSessionService;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,5 +40,8 @@ public class TodayReminderService {
         return new TodayReminder(show, dueCount, TIME_FORMAT.format(settings.reminderTime()));
     }
 
+    @Schema(requiredProperties = {"show", "dueCount", "reminderTime"})
+    @SchemaProperty(name = "dueCount", schema = @Schema(type = "integer", minimum = "0"))
+    @SchemaProperty(name = "reminderTime", schema = @Schema(type = "string", pattern = "^([01]\\d|2[0-3]):00$"))
     public record TodayReminder(boolean show, int dueCount, String reminderTime) { }
 }

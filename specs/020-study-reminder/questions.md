@@ -1,5 +1,61 @@
 # Câu hỏi và quyết định — Spec #020
 
+## 2026-11-14 · T-07 · G0 và G3 · AT-20
+
+**G0 — leader đã duyệt:** Nhánh `spec/020-t07` từ đúng `9bae0465329f591ba237c9194ac4f6642413c206`, không rebase; leader merge `--no-ff`. Allowlist gốc: `src/test/java/com/cnhsk/contract/ReminderContractTest.java`, `questions.md`, `tasks.md`. Nếu lệch do metadata springdoc, chỉ sửa annotation/import trong các controller/DTO reminder và file chứa record response hôm nay đã được leader chỉ định. Không sửa YAML, hành vi, chữ ký, validation thực thi, dependency, `AuthContractTest`, `SecurityConfig` hoặc file ngoài danh sách. T-05 ghi MERGED (#158), T-06 ghi MERGED (#159); T-07 chờ review sau gate xanh.
+
+**Shadow plan:** Đọc contract 020, các controller/DTO, `CreditWalletContractTest` và `MasteryContractTest`. Đọc YAML bằng parser có sẵn; lấy `/v3/api-docs` qua MockMvc. So hai chiều path/method/status và handler đã đăng ký; so property/required/type, pattern giờ, giới hạn token, minimum dueCount; resolve cả `$ref` bên ngoài của lỗi. Kiểm JSON/form-urlencoded RFC 8058, query token, header CSRF của PUT, mã 400/429, security OR cookie/Bearer và public unsubscribe. Chỉ chuẩn hoá thứ tự tập, biểu diễn type string/mảng và các dạng public tương đương khi không có security kế thừa. Có test âm cho thiếu/thừa operation/status/schema/required/type/pattern và security AND/scope/quyền thừa. Xuất JSON runtime và audit trước khi assert để giữ bằng chứng khi thất bại.
+
+**G3 · Lần chạy đầu:** `./mvnw -B "-Dtest=ReminderContractTest" test`: 4 test, F/E/S 1/0/0, exit 1. Tập ba path/bốn operation, operationId, registered handler và status đều khớp. Có đúng 80 mismatch metadata, kiểm kê dưới đây. Bằng chứng: `target/020-t07-contract-evidence/8533f7de-c194-4209-a7c5-499354a7f660-generated.json` và file `8533f7de-c194-4209-a7c5-499354a7f660-audit.json` cùng thư mục (artifact test, không commit).
+
+| Operation/phần | Mismatch lần đầu | Số |
+|---|---|---:|
+| GET settings · security | Mong cookieAuth OR bearerAuth; runtime chưa khai báo | 1 |
+| GET settings · 200 | Thiếu required của settings, pattern giờ, required của channels, const timezone | 4 |
+| GET settings · 401 | Schema lỗi bị suy thành schema settings; thiếu required/property và sáu field lỗi | 8 |
+| GET settings · 403 | Như 401 | 8 |
+| PUT settings · security | Chưa khai báo cookieAuth OR bearerAuth | 1 |
+| PUT settings · parameter | Thiếu header X-XSRF-TOKEN optional trong tài liệu | 1 |
+| PUT settings · 200 | Bốn lệch như GET settings 200 | 4 |
+| PUT settings · 401 | Schema lỗi bị suy thành schema settings | 8 |
+| PUT settings · 403 | Schema lỗi bị suy thành schema settings | 8 |
+| PUT settings · 422 | Schema lỗi bị suy thành schema settings | 8 |
+| POST unsubscribe · JSON | Thiếu minLength=20 và maxLength=512 của token | 2 |
+| POST unsubscribe · form | Thiếu tập property, schema List-Unsubscribe và schema token | 3 |
+| POST unsubscribe · 400 | Media type */* thay application/json; schema JSON không có | 2 |
+| POST unsubscribe · 429 | Như 400 | 2 |
+| GET today · security | Chưa khai báo cookieAuth OR bearerAuth | 1 |
+| GET today · 200 | Thiếu required, minimum dueCount=0, pattern giờ | 3 |
+| GET today · 401 | Schema lỗi bị suy thành schema today | 8 |
+| GET today · 403 | Như 401 | 8 |
+| **Tổng** | | **80** |
+
+Mỗi nhóm tám lệch của response lỗi gồm: required ba field không có (1), tập property sai (1), sáu schema field không có (6). Sáu field theo ErrorResponse đã khoá là `error_code`, `message`, `request_id`, `retryAfterSeconds`, `learnedWords`, `requiredWords`; ba field đầu bắt buộc. Không có thay đổi logic để xử lý các lệch này.
+
+**G3 · Mapping annotation sửa — sáu file main:**
+
+| File dưới src/main/java/com/cnhsk/ | Annotation/import bổ sung hoặc sửa |
+|---|---|
+| auth/controller/ReminderSettingsController.java | Hai SecurityRequirement ở class; Parameter mô tả header CSRF PUT; ApiResponse/Content/Schema/SchemaProperty cho schema lỗi JSON 401/403/422 |
+| auth/controller/ReminderUnsubscribeController.java | RequestBody/Content/SchemaProperty mô tả hai field form, ví dụ One-Click và giới hạn token; Content JSON/schema lỗi 400/429 |
+| learning/reminder/web/ReminderController.java | Hai SecurityRequirement; ApiResponse/Content/Schema/SchemaProperty lỗi JSON 401/403 |
+| auth/dto/ReminderSettingsResponse.java | Schema requiredProperties của settings/channels, pattern reminderTime, const timezone |
+| auth/dto/ReminderUnsubscribeRequest.java | SchemaProperty token string, minLength=20, maxLength=512; không thêm validation runtime |
+| learning/reminder/TodayReminderService.java | Chỉ annotation ở record TodayReminder: requiredProperties, minimum dueCount và pattern giờ; khai báo record gốc và hàm today giữ nguyên |
+
+`ReminderUpdateRequest.java` không cần sửa: required/type/pattern đã khớp. Không sửa `AuthContractTest` hoặc YAML. Diff main chỉ có import/annotation; SchemaProperty được dùng trong metadata Schema/Content để khai báo field mà không thêm model hoặc đổi chữ ký record.
+
+**G3 · Lần chạy sau:** Targeted 4 test, F/E/S 0/0/0, exit 0, BUILD SUCCESS; audit `mismatchCount=0`, danh sách mismatch rỗng. Cùng bộ test và tiêu chí so sánh, không bỏ test hoặc nới kỳ vọng sau lượt đầu. Gate tiếp theo theo thứ tự: `./mvnw -B "-Dtest=*ContractTest,!ReminderContractTest,ModuleBoundaryTest" test`, rồi `./mvnw -B verify`; dùng Java 17, Docker, `DEBUG=false`.
+
+**Gate cuối — PASS:** Chạy đúng thứ tự: targeted 4 test, F/E/S 0/0/0, exit 0; các ContractTest khác + ModuleBoundaryTest 62 test, F/E/S 0/0/0, exit 0; full `./mvnw -B verify` 4.649 test, F/E/S 0/0/0, exit 0, BUILD SUCCESS (16:10). JaCoCo LINE 96,7717% (12.470/12.886), coverage check PASS. Audit lượt full `target/020-t07-contract-evidence/ed146ad4-583d-4d3d-afbb-7b3f39502ce9-audit.json` tiếp tục 0 mismatch; JSON springdoc cùng run ID được giữ làm artifact. `AuthContractTest` chạy nguyên trạng và xanh.
+
+**Self-check cuối — PASS:**
+
+- Global/AC: PASS — không dependency mới, stack Java 17 giữ nguyên; naming/import đúng quy ước; không thay schema/migration/config/YAML hoặc ranh giới module, ModuleBoundaryTest xanh. File main chỉ thay Swagger annotation/import.
+- Business/HR: PASS — không thay hành vi, chữ ký, field trả về, status hoặc validation khi chạy; không đổi tiền/điểm/mật khẩu. Test chỉ đọc tài liệu API, không ghi/log PII/token hoặc truy cập Neon. ErrorResponse metadata khớp hợp đồng đã khoá.
+- Safety: PASS — đúng chín file trong allowlist đã duyệt (một test, sáu file main metadata, hai tài liệu), UTF-8 không BOM, diff sạch, không TODO/FIXME hoặc test skip. Đã so phần Java sau khi loại Swagger annotation/import với base trên cả sáu file và khớp hoàn toàn, kể cả annotation Spring/Jakarta, literal, chữ ký và thân hàm; bằng chứng hash tại `target/020-t07-annotation-proof.json`.
+- ES: PASS — targeted/hồi quy/full xanh, coverage ≥80%, các test kiểm kê cũ giữ nguyên. Không sửa `AuthContractTest`, `SecurityConfig` hoặc `ReminderUpdateRequest`; validation gốc của request giữ nguyên. Repo chưa có Java lint plugin; kiểm convention/diff/source marker, không thêm công cụ ngoài scope. T-05/T-06 ghi MERGED theo leader; T-07 chỉ ghi chờ review, một conventional commit và Draft PR, giữ base `9bae046`, không tự rebase/merge main.
+
 ## 2026-11-14 · T-05 · Q-T05-01 — ANSWERED
 
 **Leader duyệt G0:** `show=true` khi kênh WEB bật, giờ hiện tại tại `Asia/Ho_Chi_Minh` lớn hơn hoặc bằng giờ nhắc và `dueCount > 0`. Người chưa cài đặt dùng mặc định FR-003 qua `AuthApi.reminderSettings`: `20:00`, web bật, email tắt, `configured=false`, không ghi DB. `dueCount` lấy qua public `ReviewSessionService.summary(userId)` của 011; không đọc `study_events`, không xét đã học hoặc đã nhận email trong ngày.
