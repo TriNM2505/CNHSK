@@ -160,3 +160,41 @@ HTTP xác nhận 204 có đúng action/target/actor và detail {reason,note}; pa
 Fetch trước bàn giao: main 450ca82 (#152) chưa chứa deb4f03 (#151). Theo chỉ định leader, nhánh T-04 giữ nguyên base deb4f03, không rebase/merge main. PR T-04 phụ thuộc #151; trong lúc #151 chưa merge, diff GitHub với main có thể còn bao gồm phần T-03. Commit T-04 chỉ thay đúng 10 file đã duyệt, xét từ base deb4f03. Leader xử lý phần shared khi merge.
 
 Self-check: không dependency, migration, ErrorCode, application.yaml, RateLimiter hay entity/repository thay đổi. AuditService chỉ thêm dependency constructor và hàm đọc theo lô/record ReportStat; record/recordDetail không đổi chữ ký hoặc nội dung. Shared không phụ thuộc learning; code learning ghi audit qua AuditService, không truy vấn bảng audit trực tiếp. SQL tham số hoá; không điều kiện trên JSONB. SecurityConfig chỉ thêm đúng matcher POST cho LEARNER. Fixture tự soạn, tài khoản local dùng bcrypt cost 12; không secret/PII thật/dữ liệu có bản quyền. Không log note/userId trong nhánh Redis lỗi, không trả exception upstream. Không sửa/tắt/skip test cũ, không chạy SQL/migration trên Neon. Không push main, merge PR hoặc force-push.
+
+## T-05 — Chốt leader ngày 2026-11-14
+
+Base a9f7697, nhánh spec/018-t05, không có thay đổi #152; leader tự giải shared khi merge. Allowlist 11 file, gồm GlobalExceptionHandler chỉ thêm bốn mã T-05 vào nhánh giữ details; không đổi xử lý mã khác.
+
+- Q-T05-01 — ANSWERED: PUT thay toàn bộ input; trường tuỳ chọn bỏ qua về null/default (tags=[], sortOrder=0, isAffiliate=false). Field server (id/status/createdBy/publishedAt/updatedAt...) gửi kèm bị bỏ qua.
+- Q-T05-02 — ANSWERED: loại khác BOOK cho phép author/publisher/publishedYear null và isAffiliate=false; có giá trị (kể cả chuỗi rỗng) hoặc true trả 422 VALIDATION_FAILED.
+- Q-T05-03 — ANSWERED, thay đề xuất G0: publish khi PUBLISHED và hide khi HIDDEN là no-op 200. Unhide chỉ HIDDEN → DRAFT; ở DRAFT/PUBLISHED là no-op, không được hạ PUBLISHED thành DRAFT. No-op không audit, không đổi updated_at, không reset reportCount. Hide từ DRAFT/PUBLISHED → HIDDEN; publish từ DRAFT/HIDDEN → PUBLISHED sau kiểm điều kiện. Giữ published_at đầu tiên; chỉ đặt khi chưa có.
+- Q-T05-04 — ANSWERED: PUT mục PUBLISHED làm mất điều kiện công bố trả 422 PUBLISH_INVALID_RESOURCE, rollback, giữ nguyên mọi dữ liệu/trạng thái.
+
+| Nguồn | publish | hide | unhide |
+|---|---|---|---|
+| DRAFT | PUBLISHED, kiểm dữ liệu | HIDDEN | No-op DRAFT |
+| PUBLISHED | No-op PUBLISHED | HIDDEN | No-op PUBLISHED |
+| HIDDEN | PUBLISHED, kiểm dữ liệu | No-op HIDDEN | DRAFT |
+
+reported=true dùng EXISTS trên shared.audit_logs với action REFERENCE_REPORTED, target_type REFERENCE, target_id và created_at >= updated_at, trong cả query count và page, TRƯỚC LIMIT/OFFSET. reported=false/bỏ qua không lọc. countByTargets gọi một lần cho trang đã lọc, cutoff là updated_at từng mục; trang rỗng bỏ qua helper. Tổng tối đa ba query dữ liệu, không N+1.
+
+Bốn mã MALFORMED_URL, NON_HTTPS_LINK, DOMAIN_NOT_ALLOWED, PUBLISH_INVALID_RESOURCE thêm ngay trước INTERNAL_ERROR. Policy T-02 giữ nguyên, ánh xạ reason một-một và giữ đúng field url/thumbnailUrl trong details, không chứa giá trị URL. Matcher chỉ đúng bảy method/path quản trị cho CONTENT_EDITOR trước /api/admin/**; ADMIN thuần bị 403. Write + audit cùng transaction, mục cũ khoá FOR UPDATE. Dùng Clock và microsecond cho timestamp. Audit target REFERENCE và năm action, before/after không có số báo cáo tổng hợp. Không DELETE, không sửa policy/entity/repository/contract/migration.
+
+### T-05 — Gate và self-check
+
+| Gate | Kết quả thực tế |
+|---|---|
+| ReferenceAdminServiceTest + ReferenceAdminIntegrationTest + AdminReferenceControllerIntegrationTest + GlobalExceptionHandlerTest | 98/98 (16 + 16 + 46 + 20), F0/E0/S0, BUILD SUCCESS |
+| Hồi quy reference T-01…T-04 + AuditServiceIntegrationTest + AuditTargetCountIntegrationTest + ModuleBoundaryTest | 210/210, F0/E0/S0, BUILD SUCCESS; audit cũ 12/12, boundary 9/9 |
+| Full mvnw.cmd -B verify, Java 17, DEBUG=false, Docker local | 4.619 test, F0/E0/S0, BUILD SUCCESS; 17:09 phút; mọi coverage check đạt |
+| JaCoCo LINE toàn dự án | 96,8361% (12.610/13.022 dòng) |
+| JaCoCo LINE learning.reference / reference.web / shared.audit | 99,4924% (392/394) / 97,1429% (102/105) / 98,8372% (85/86) |
+| git diff --check / UTF-8 BOM | PASS / 0 BOM |
+
+Lần targeted đầu có một lỗi trong test mới kiểm OpenAPI: profile test không mở /v3/api-docs nên nhận 401. Đã sửa riêng lớp test mới dùng test + dev như tiền lệ LibraryContractTest, không sửa matcher production. Chạy lại 98/98 xanh; đây không phải ngoại lệ môi trường. Full verify tăng đúng 79 test so với base 4.540; không dùng ngoại lệ môi trường, không sửa/skip/nới test cũ.
+
+Bằng chứng PostgreSQL/HTTP: đủ chín ô chuyển trạng thái, no-op giữ updated_at/published_at/reportCount và không audit; hai request publish đồng thời chỉ một audit. PUT thay toàn bộ/default, bỏ qua field server; dữ liệu PUBLISHED thiếu title/url/author bị rollback. Audit lỗi thì toàn bộ create/update/transition rollback. reported=true lọc trước phân trang và dùng cùng predicate đếm tổng; cutoff inclusive, không lẫn action/target. Tăng số mục vẫn hai query trực tiếp cộng một countByTargets theo lô. Bảy endpoint có đúng status trong YAML, guest 401, các role không phải CONTENT_EDITOR (kể cả ADMIN thuần) 403, cookie cần CSRF. Bốn mã T-05 giữ details; FORBIDDEN vẫn bỏ details và giữ retryAfterSeconds như trước.
+
+Self-check: đúng 11 file duyệt; không thay entity/repository/policy/AuditService/contract/application.yaml/migration. SQL tham số hoá, không điều kiện JSONB. Chỉ thêm bốn mã trước INTERNAL_ERROR và bảy matcher CONTENT_EDITOR trước ADMIN. Fixture tự soạn, không secret/PII thật; không SQL trên Neon, không push main/merge PR/force-push. Nhánh giữ base a9f7697 theo chỉ định; leader giải xung đột shared lúc merge.
+
+Fetch trước bàn giao: origin/main = 5e5695c, đã chứa base a9f7697 (#154). Main có thay đổi shared mới (#152 unsubscribe và #158 study reminder); giữ nguyên base theo leader, không rebase/merge. Merge-base a9f76977749051d338d7ab06c75e1beb439ce4f9. Cần leader giữ cả các matcher/mã mới của main khi gộp.
