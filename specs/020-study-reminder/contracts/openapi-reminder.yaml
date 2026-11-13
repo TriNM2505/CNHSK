@@ -1,0 +1,134 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Study Reminder API
+  version: 0.1.0
+  description: >
+    Hợp đồng spec 020-study-reminder. Cài giờ nhắc (giờ tròn, giờ Việt Nam) và kênh WEB/EMAIL, tắt nhắc email
+    bằng một lần bấm (token ký), banner nhắc trên trang học. Job gửi mail chạy nền, không có endpoint.
+    Thao tác ghi qua cookie cần header X-XSRF-TOKEN (spec 001).
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: reminder
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      description: Bắt buộc khi xác thực bằng cookie (spec 001)
+      schema: { type: string }
+  responses:
+    Unauthenticated:
+      description: UNAUTHENTICATED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Forbidden:
+      description: FORBIDDEN · CSRF_TOKEN_INVALID
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+  schemas:
+    ErrorResponse:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ErrorResponse'
+    Channels:
+      type: object
+      required: [web, email]
+      properties:
+        web: { type: boolean }
+        email: { type: boolean }
+    ReminderSettings:
+      type: object
+      required: [reminderTime, channels, emailVerified, configured, timezone]
+      properties:
+        reminderTime: { type: string, pattern: '^([01]\d|2[0-3]):00$', example: '20:00' }
+        channels: { $ref: '#/components/schemas/Channels' }
+        emailVerified: { type: boolean }
+        configured: { type: boolean, description: 'false = chưa từng lưu, đang trả mặc định' }
+        timezone: { type: string, const: Asia/Ho_Chi_Minh }
+    ReminderUpdate:
+      type: object
+      required: [reminderTime, web, email]
+      properties:
+        reminderTime: { type: string, pattern: '^([01]\d|2[0-3]):00$' }
+        web: { type: boolean }
+        email: { type: boolean }
+    UnsubscribeRequest:
+      type: object
+      properties:
+        token: { type: string, minLength: 20, maxLength: 512 }
+    TodayReminder:
+      type: object
+      required: [show, dueCount, reminderTime]
+      properties:
+        show: { type: boolean }
+        dueCount: { type: integer, minimum: 0 }
+        reminderTime: { type: string, pattern: '^([01]\d|2[0-3]):00$' }
+
+paths:
+  /api/me/reminder:
+    get:
+      tags: [reminder]
+      operationId: getReminderSettings
+      summary: Cài đặt nhắc của tôi hoặc mặc định (FR-003)
+      security: [ { cookieAuth: [] }, { bearerAuth: [] } ]
+      responses:
+        '200':
+          description: Cài đặt
+          content: { application/json: { schema: { $ref: '#/components/schemas/ReminderSettings' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [reminder]
+      operationId: updateReminderSettings
+      summary: Lưu giờ nhắc và kênh (FR-004…FR-006)
+      security: [ { cookieAuth: [] }, { bearerAuth: [] } ]
+      parameters: [ { $ref: '#/components/parameters/XsrfToken' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ReminderUpdate' } } }
+      responses:
+        '200':
+          description: Đã lưu
+          content: { application/json: { schema: { $ref: '#/components/schemas/ReminderSettings' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: VALIDATION_FAILED · EMAIL_NOT_VERIFIED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+  /api/public/reminder/unsubscribe:
+    post:
+      tags: [reminder]
+      operationId: unsubscribeReminderEmail
+      summary: Tắt nhắc email bằng token ký — một lần bấm, idempotent; nhận token ở body hoặc query (RFC 8058) (FR-015…FR-017)
+      security: [ {} ]
+      parameters:
+        - { name: token, in: query, required: false, schema: { type: string, maxLength: 512 } }
+      requestBody:
+        required: false
+        content:
+          application/json: { schema: { $ref: '#/components/schemas/UnsubscribeRequest' } }
+          application/x-www-form-urlencoded: { schema: { type: object, properties: { List-Unsubscribe: { type: string } } } }
+      responses:
+        '204': { description: Đã tắt (hoặc đã tắt từ trước) }
+        '400':
+          description: INVALID_UNSUBSCRIBE_TOKEN
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '429':
+          description: RATE_LIMITED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+  /api/reminders/today:
+    get:
+      tags: [reminder]
+      operationId: getTodayReminder
+      summary: Banner nhắc trên trang học (FR-019)
+      security: [ { cookieAuth: [] }, { bearerAuth: [] } ]
+      responses:
+        '200':
+          description: Trạng thái banner
+          content: { application/json: { schema: { $ref: '#/components/schemas/TodayReminder' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }

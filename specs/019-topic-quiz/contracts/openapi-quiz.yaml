@@ -1,0 +1,190 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Topic Quiz API
+  version: 0.1.0
+  description: >
+    Hợp đồng spec 019-topic-quiz. Quiz 10 câu theo chủ đề, câu ngẫu nhiên từ kho APPROVED của KID chủ đề,
+    chấm ở server, chỉ lần nộp đầu tiên tính hạng, không cập nhật mastery. Trả lời và nộp dùng endpoint
+    engine practice 003 có sẵn (/api/practice/sessions/{id}/answers, /finish). Chỉ LEARNER.
+    Thao tác ghi qua cookie cần header X-XSRF-TOKEN (spec 001).
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: quiz
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      description: Bắt buộc khi xác thực bằng cookie (spec 001)
+      schema: { type: string }
+  responses:
+    Unauthenticated:
+      description: UNAUTHENTICATED
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Forbidden:
+      description: FORBIDDEN · CSRF_TOKEN_INVALID
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+  schemas:
+    ErrorResponse:
+      $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ErrorResponse'
+    FirstAttemptSummary:
+      type: [object, 'null']
+      required: [score, submittedAt, suspicious]
+      properties:
+        score: { type: integer, minimum: 0, maximum: 100 }
+        submittedAt: { type: string, format: date-time }
+        suspicious: { type: boolean }
+    QuizListing:
+      type: object
+      required: [topicId, topicName, hskLevel, questionCount, availableQuestions, myFirstAttempt, myBestRetryScore]
+      properties:
+        topicId: { type: integer, format: int64 }
+        topicName: { type: string }
+        hskLevel: { type: integer, minimum: 1, maximum: 9 }
+        questionCount: { type: integer, description: Số câu mỗi lượt (mặc định 10) }
+        availableQuestions: { type: integer, description: Số câu APPROVED trong kho của KID chủ đề }
+        myFirstAttempt: { $ref: '#/components/schemas/FirstAttemptSummary' }
+        myBestRetryScore: { type: [integer, 'null'], minimum: 0, maximum: 100 }
+    QuizListingPage:
+      type: object
+      required: [items, page, size, total]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/QuizListing' } }
+        page: { type: integer }
+        size: { type: integer }
+        total: { type: integer, format: int64 }
+    QuizOption:
+      type: object
+      required: [key, text]
+      properties:
+        key: { type: string }
+        text: { type: string }
+    QuizItem:
+      type: object
+      required: [itemId, prompt, options]
+      description: Không chứa đáp án, giải thích hay isCorrect (BR-080-5)
+      properties:
+        itemId: { type: integer, format: int64 }
+        prompt: { type: string }
+        audioUrl: { type: [string, 'null'] }
+        options: { type: array, minItems: 2, items: { $ref: '#/components/schemas/QuizOption' } }
+    QuizSession:
+      type: object
+      required: [sessionId, topicId, rankingEligible, expiresAt, items]
+      properties:
+        sessionId: { type: integer, format: int64 }
+        topicId: { type: integer, format: int64 }
+        rankingEligible: { type: boolean, description: 'true = lượt QUIZ đầu tiên, tính hạng' }
+        expiresAt: { type: string, format: date-time }
+        items: { type: array, items: { $ref: '#/components/schemas/QuizItem' } }
+    QuizResultItem:
+      type: object
+      required: [itemId, prompt, options, chosen, correct, explanation]
+      properties:
+        itemId: { type: integer, format: int64 }
+        prompt: { type: string }
+        options: { type: array, items: { $ref: '#/components/schemas/QuizOption' } }
+        chosen: { type: [string, 'null'], description: null = bỏ trống }
+        correct: { type: string }
+        explanation: { type: [string, 'null'] }
+    FirstAttemptRank:
+      type: [object, 'null']
+      required: [score, durationMs, rank, total]
+      properties:
+        score: { type: integer }
+        durationMs: { type: [integer, 'null'] }
+        rank: { type: [integer, 'null'], description: null khi 017 chưa có hoặc lượt đầu bị nghi vấn }
+        total: { type: [integer, 'null'] }
+    QuizResult:
+      type: object
+      required: [sessionId, topicId, topicName, score, correctCount, wrongCount, durationMs, rankingEligible, suspicious, items, firstAttempt]
+      properties:
+        sessionId: { type: integer, format: int64 }
+        topicId: { type: integer, format: int64 }
+        topicName: { type: string }
+        score: { type: integer, minimum: 0, maximum: 100 }
+        correctCount: { type: integer, minimum: 0 }
+        wrongCount: { type: integer, minimum: 0 }
+        durationMs: { type: integer, minimum: 0 }
+        rankingEligible: { type: boolean }
+        suspicious: { type: boolean }
+        items: { type: array, items: { $ref: '#/components/schemas/QuizResultItem' } }
+        firstAttempt: { $ref: '#/components/schemas/FirstAttemptRank' }
+
+paths:
+  /api/quizzes:
+    get:
+      tags: [quiz]
+      operationId: listQuizzes
+      summary: Chủ đề có đủ câu để làm quiz (FR-003…FR-005)
+      parameters:
+        - { name: hsk, in: query, schema: { type: integer, minimum: 1, maximum: 9 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: Trang quiz
+          content: { application/json: { schema: { $ref: '#/components/schemas/QuizListingPage' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422':
+          description: VALIDATION_FAILED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+  /api/quizzes/{topicId}/attempts:
+    post:
+      tags: [quiz]
+      operationId: startQuiz
+      summary: Bắt đầu hoặc tiếp tục lượt quiz (FR-006…FR-008)
+      parameters:
+        - { name: topicId, in: path, required: true, schema: { type: integer, format: int64, minimum: 1 } }
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '200':
+          description: Trả lại phiên đang mở
+          content: { application/json: { schema: { $ref: '#/components/schemas/QuizSession' } } }
+        '201':
+          description: Phiên mới
+          content: { application/json: { schema: { $ref: '#/components/schemas/QuizSession' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: TOPIC_NOT_FOUND
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '422':
+          description: QUIZ_NOT_AVAILABLE
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '429':
+          description: RATE_LIMITED (> 30 lượt/giờ)
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+  /api/quiz-attempts/{sessionId}/result:
+    get:
+      tags: [quiz]
+      operationId: getQuizResult
+      summary: Kết quả lượt quiz đã nộp của tôi (FR-012…FR-015)
+      parameters:
+        - { name: sessionId, in: path, required: true, schema: { type: integer, format: int64 } }
+      responses:
+        '200':
+          description: Kết quả
+          content: { application/json: { schema: { $ref: '#/components/schemas/QuizResult' } } }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403':
+          description: FORBIDDEN · ATTEMPT_NOT_OWNED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '404':
+          description: Không phải lượt quiz
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '422':
+          description: ATTEMPT_NOT_SUBMITTED
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
