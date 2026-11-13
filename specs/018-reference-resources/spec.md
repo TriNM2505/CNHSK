@@ -31,7 +31,7 @@
 | `CONTENT_EDITOR` thêm, sửa, công bố, ẩn, hiện lại; xem số lần bị báo (SCR-072) | Xoá cứng (BR-119-7) · `ADMIN` quản trị mục này (BR-119-2) |
 | Kiểm URL `https` + domain cho phép theo loại (BR-119-4, BR-119-5) | Sửa danh sách domain lúc chạy — đổi bằng deploy (Q2) |
 
-### 0.1 · Bảng mới duy nhất — `learning.reference_items` (H3 RFC; migration số V xin leader, H4)
+### 0.1 · Bảng mới duy nhất — `learning.reference_items` (H3 RFC; migration V7 đã được leader cấp, H4)
 
 ```sql
 CREATE TABLE learning.reference_items (
@@ -62,11 +62,11 @@ CREATE TABLE learning.reference_items (
 );
 CREATE INDEX ix_ref_public ON learning.reference_items(kind, sort_order, id) WHERE status = 'PUBLISHED';
 CREATE INDEX ix_ref_admin  ON learning.reference_items(kind, status, updated_at DESC);
-GRANT SELECT, INSERT, UPDATE ON learning.reference_items TO svc_app;   -- không DELETE (BR-119-7)
-GRANT USAGE ON SEQUENCE learning.reference_items_id_seq TO svc_app;
 ```
 
-Kèm sửa `database.md` §3, §11 (leader, theo RFC): AC-04 cập nhật.
+Quyền: không DELETE (BR-119-7). Leader chạy `REVOKE DELETE ON learning.reference_items FROM svc_app;` trên Neon sau khi V7 merge, theo database.md §7.2.
+
+Cùng PR T-01 cập nhật `database.md` §3, §7.2, §11. Leader giữ phần cập nhật AC-04/Hiến pháp theo RFC.
 
 ### 0.2 · Danh sách domain cho phép (Q2 — cố định trong cấu hình)
 

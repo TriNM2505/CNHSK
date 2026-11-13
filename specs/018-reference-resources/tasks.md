@@ -11,7 +11,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | **⚿K2** Migration `reference_items` (SQL §0.1, CHECK, index, GRANT không DELETE) + entity/repository + test ràng buộc DB | `src/main/resources/db/migration/V?__reference_items.sql`, `…/learning/reference/{ReferenceItem,ReferenceItemRepository}.java` + test | §0.1 · AT-09 (DB) | ⬜ |
+| T-01 | **⚿K2** Migration `reference_items` (DDL §0.1, CHECK, index; quyền ngoài Flyway) + entity/repository + test ràng buộc DB | `src/main/resources/db/migration/V7__reference_items.sql`, `…/learning/reference/{ReferenceItem,ReferenceItemRepository}.java` + test | §0.1 · AT-09 (DB) | 🔄 2026-11-13: code + gate đạt, chờ leader review |
 | T-02 | `ReferenceUrlPolicy` (parse, `https`, chặn user:pass, so host với `cnhsk.reference.allowed-domains`/`thumbnail-domains`) + cấu hình yaml + unit test đủ ca | `…/learning/reference/ReferenceUrlPolicy.java`, `application.yaml` + test | FR-015, §0.2 · AT-05…AT-08 | ⬜ |
 | T-03 | `ReferenceQueryService` + `GET /api/public/references`, `GET /api/public/references/{id}` (chỉ PUBLISHED, lọc HSK/tag, DTO công khai); mã `REFERENCE_NOT_FOUND`; permitAll + rate limit khách | `…/learning/reference/ReferenceQueryService.java`, `…/reference/web/PublicReferenceController.java`, `ErrorCode.java`, `SecurityConfig.java` + test | FR-001, FR-004…FR-006 · AT-01…AT-04 | ⬜ |
 | T-04 | `AuditService.countByTargets(...)` dùng `ix_audit_target` (**`shared` — báo leader**) + `ReferenceReportService` + `POST /api/references/{id}/report` (LEARNER, 1 lần/ngày/mục) | `…/shared/audit/AuditService.java`, `…/learning/reference/ReferenceReportService.java`, controller + test | FR-002, FR-009, FR-010, FR-016 · AT-12, AT-13 | ⬜ |
