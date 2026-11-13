@@ -74,8 +74,6 @@ class CreditRedeemContractTest {
         handlers.getHandlerMethods().forEach((mapping,handler)-> {
             for(String path:mapping.getPatternValues()) {
                 if(path.equals(PATH)) mapping.getMethodsCondition().getMethods().forEach(method->registered.add(method.name()+" "+path));
-                if(List.of("/api/me/credits","/api/me/credit-transactions").contains(path))
-                    assertThat(mapping.getMethodsCondition().getMethods()).doesNotContain(org.springframework.web.bind.annotation.RequestMethod.GET);
             }
         });
         assertThat(registered).containsExactly("POST "+PATH);

@@ -172,6 +172,42 @@ class AuthApiServiceTest {
     }
 
     @Test
+    void readPlanMapsAnImmutableSnapshotWithoutLockOrWrite() throws Exception {
+        java.sql.ResultSet row = mock(java.sql.ResultSet.class);
+        Instant expiresAt = Instant.parse("2031-12-01T00:00:00.123456Z");
+        when(row.getString("plan_code")).thenReturn("FREE", "PREMIUM");
+        when(row.getString("free_usage")).thenReturn("{\"TRANSLATE\":3}");
+        when(row.getTimestamp("plan_expires_at")).thenReturn((java.sql.Timestamp) null, java.sql.Timestamp.from(expiresAt));
+        when(row.getTimestamp("usage_reset_at")).thenReturn(java.sql.Timestamp.from(Instant.EPOCH));
+        when(jdbc.query(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(Map.of("id", 17L)),
+                org.mockito.ArgumentMatchers.<org.springframework.jdbc.core.RowMapper<PlanState>>any()))
+                .thenAnswer(invocation -> {
+                    assertThat((String) invocation.getArgument(0)).doesNotContainIgnoringCase("FOR UPDATE");
+                    org.springframework.jdbc.core.RowMapper<PlanState> mapping = invocation.getArgument(2);
+                    return List.of(mapping.mapRow(row, 0));
+                });
+        PlanState state = authApi.readPlan(17L).orElseThrow();
+        assertThat(state.planCode()).isEqualTo("FREE");
+        assertThat(state.planExpiresAt()).isNull();
+        assertThat(state.usageResetAt()).isEqualTo(Instant.EPOCH);
+        assertThat(state.freeUsage()).containsExactlyEntriesOf(Map.of("TRANSLATE", 3));
+        assertThatThrownBy(() -> state.freeUsage().put("TRANSLATE", 4)).isInstanceOf(UnsupportedOperationException.class);
+        PlanState premium = authApi.readPlan(17L).orElseThrow();
+        assertThat(premium.planCode()).isEqualTo("PREMIUM");
+        assertThat(premium.planExpiresAt()).isEqualTo(expiresAt);
+        assertThat(premium.usageResetAt()).isEqualTo(Instant.EPOCH);
+        assertThat(premium.freeUsage()).containsExactlyEntriesOf(Map.of("TRANSLATE", 3));
+        verifyNoInteractions(userRepository, userRoleRepository);
+    }
+
+    @Test
+    void readPlanReturnsEmptyForMissingUserWithoutNotFoundException() {
+        when(jdbc.query(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.eq(Map.of("id", 17L)),
+                org.mockito.ArgumentMatchers.<org.springframework.jdbc.core.RowMapper<PlanState>>any())).thenReturn(List.of());
+        assertThat(authApi.readPlan(17L)).isEmpty();
+    }
+
+    @Test
     void maskedEmailsForEmptySetReturnsEmptyMapWithoutQuery() {
         assertThat(authApi.maskedEmails(Set.of())).isEmpty();
         verifyNoInteractions(jdbc, userRepository, userRoleRepository);
@@ -187,6 +223,7 @@ class AuthApiServiceTest {
     @Test
     void newReadMethodsRejectInvalidArgumentsWithFixedMessage() {
         for (Runnable invalid : List.<Runnable>of(() -> authApi.maskedEmails(null),
+                () -> authApi.readPlan(0), () -> authApi.readPlan(-1),
                 () -> authApi.maskedEmails(Set.of(-1L)),
                 () -> authApi.countActivePlan(null, Instant.EPOCH),
                 () -> authApi.countActivePlan(" ", Instant.EPOCH),

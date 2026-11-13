@@ -39,6 +39,7 @@ class CreditRedeemSecurityConfigIntegrationTest {
     @Autowired private JwtService jwt;
     @Autowired @Qualifier("requestMappingHandlerMapping") private RequestMappingHandlerMapping handlers;
     @MockitoBean private RedeemService service;
+    @MockitoBean private com.cnhsk.learning.credit.WalletQueryService queries;
     @MockitoBean private SessionInvalidationService invalidation;
     @MockitoBean private Clock clock;
     private static final String PATH="/api/credits/redeem";
@@ -91,13 +92,6 @@ class CreditRedeemSecurityConfigIntegrationTest {
                 .header("X-XSRF-TOKEN","synthetic-csrf").contentType(MediaType.APPLICATION_JSON).content("{\"code\":\"fixture\"}"))
                 .andExpect(status().isOk());
         verify(service).redeem(eq(new RedeemRequest("fixture")),anyString());
-    }
-
-    @Test void noWalletOrHistoryGetHandlersHaveBeenAdded() {
-        handlers.getHandlerMethods().forEach((mapping,handler)-> {
-            if(mapping.getPatternValues().stream().anyMatch(path->List.of("/api/me/credits","/api/me/credit-transactions").contains(path)))
-                assertThat(mapping.getMethodsCondition().getMethods()).doesNotContain(org.springframework.web.bind.annotation.RequestMethod.GET);
-        });
     }
 
     private String token(List<String> roles) { return jwt.issueAccessToken(42,roles,false,UUID.randomUUID()); }

@@ -1,3 +1,189 @@
+## 2026-11-13 — T-09 G1 Fix: kết quả cuối G2, chờ Leader review
+
+Full Verify chạy đúng một lượt, hoàn tất trước deadline 17:30:33.5174436 (+07). Kết quả **FAILED, native exit 1: 4.305 tests/F4/E0/S0**, đủ 280 suites; XML và Maven summary khớp, không suite thiếu/thừa, không probe chạy lại, không failure ngoài năm ngoại lệ đã duyệt. Regression giữ **UNKNOWN native exit/end/duration**, 1.851/F4/E0/S0; Leader đã chấp nhận UNKNOWN để tiếp tục Full, không chạy lại hoặc suy exit 1 từ BUILD FAILURE.
+
+| Lệnh | Native start (+07) | Native end (+07) | Duration stopwatch | Tests/F/E/S | Native exit | Trạng thái |
+|---|---|---|---:|---|---|---|
+| test-compile (src/test/java/com/cnhsk/auth/AuthApiServiceTest.java explicit expiry fixtures) | 2026-11-13T10:38:07.6035891+07:00 | 2026-11-13T10:40:00.3813216+07:00 | 112.785 s | N/A (no tests) | 0 | PASSED |
+| test-compile (src/test/java/com/cnhsk/shared/config/WalletQuerySecurityConfigIntegrationTest.java empty versus whitespace) | 2026-11-13T10:45:39.4123573+07:00 | 2026-11-13T10:46:51.4170452+07:00 | 72.009 s | N/A (no tests) | 0 | PASSED |
+| test-compile (src/test/java/com/cnhsk/contract/CreditWalletContractTest.java pinned generated nullable backlog shape) | 2026-11-13T10:47:55.4352302+07:00 | 2026-11-13T10:48:50.8951806+07:00 | 55.464 s | N/A (no tests) | 0 | PASSED |
+| javac probe | 2026-11-13T10:51:09.0057201+07:00 | 2026-11-13T10:51:14.0071715+07:00 | 5.004 s | N/A (no tests) | 0 | PASSED |
+| CardBatch local probe | 2026-11-13T10:51:32.2532880+07:00 | 2026-11-13T10:52:27.8385533+07:00 | 55.590 s | 1/0/0/0 | 0 | PASSED |
+| Targeted T-09 (9 suites) | 2026-11-13T11:06:47.6398781+07:00 | 2026-11-13T11:09:08.1245108+07:00 | 140.492 s | 96/0/0/0 | 0 | PASSED |
+| Regression (116 suites) | 2026-11-13T11:10:50.7441944+07:00 | UNKNOWN; log only 2026-11-13T14:13:16.0000000+07:00 | UNKNOWN | 1851/4/0/0 | UNKNOWN | UNKNOWN |
+| Full verify (280 suites) | 2026-11-13T16:31:09.1090699+07:00 | 2026-11-13T17:00:53.5023914+07:00 | 1784.411 s | 4305/4/0/0 | 1 | FAILED |
+| JaCoCo report/check | 2026-11-13T17:01:59.4074777+07:00 | 2026-11-13T17:02:08.2177814+07:00 | 8.814 s | N/A (no tests) | 0 | PASSED |
+
+Lệnh đầy đủ, selectors và preflight/native PID nằm trong cumulative-native-command-ledger.json; ba test-compile được chạy ngay sau từng testfile. JDK 17.0.9, Docker Server 27.2.0; không có Maven gate trùng. Regression log báo Finished-at 14:13:16 và 03:02h, chỉ là evidence log, không thay native completion bị mất.
+
+Bốn failed tests từ Surefire Full (giữ nguyên tên method; CapturedOutput là tham số của method thứ hai):
+
+- 1. com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.FR046_FR047_FR048_fifthFailureBlocksOnlyTheEmailIpPairAndUsesActualRedisExpiry — frame 133; exact approved environmental exception.
+- 2. com.cnhsk.auth.service.LoginAttemptServiceIntegrationTest.redisFailuresInAllThreeOperationsFailOpenAndOnlyLogSafeWarnings — frame 313; exact approved environmental exception.
+- 3. com.cnhsk.learning.content.importer.ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget — frame 398; Full 36054 ms; regression 41682 ms; limit 30000 ms; exact approved environmental exception.
+- 4. com.cnhsk.learning.content.importer.QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries — frame 304; Full 59361 ms; regression 71307 ms; limit 30000 ms; exact approved environmental exception.
+
+LoginAttempt CapturedOutput chỉ trúng fixture email, không trúng outage literal; không mở rộng ngoại lệ sang dữ liệu khác. Ngoại lệ thứ năm QuestionAdminControllerIntegrationTest.NFR_P02_fiveThousandSelfAuthoredQuestionsAreListedByKidWithinOneHundredMillisecondsP95 không phát sinh trong Full này. Tất cả failure đúng java.lang.AssertionError, source frame và assertion đã đối soát.
+
+JaCoCo report/check riêng native exit 0, không chạy tests, dùng đúng maven-tmp/cnhsk-api-jacoco.exec của Full vừa hoàn tất. Project LINE **96,7272% (12029/12436)**; Credit và credit/web LINE **96,7492% (625/646)**. Exec SHA256 E7A0751F5841CEDDAB86AEE69FBDDD423982C448A7519315823EEA9DF922599C; một session nằm trong native interval Full, khớp XML session; source/class hashes không đổi. Hash được ghi sau report và kiểm trước/sau inspection/archive; không tuyên bố có digest trước report. Không dùng exec targeted/regression hoặc lượt bị ngắt.
+
+NFR-P03 ghi đầy đủ các lượt, mỗi lượt warm-up20 +100 mẫu, không chọn lượt đẹp và không hard assertion 100 ms:
+
+| Lượt | Warm-up + mẫu | p50 ms | p95 ms |
+|---|---:|---:|---:|
+| Original targeted FAILED (preserved) | 20 + 100 | 21.2587 | 28.3492 |
+| Fix targeted | 20 + 100 | 21.5407 | 33.8533 |
+| Regression UNKNOWN | 20 + 100 | 13.7458 | 17.2356 |
+| Full FAILED native 1 | 20 + 100 | 13.1362 | 17.0896 |
+
+Generated OpenAPI: path/method/status/required/numeric types và các schema khác khớp locked YAML. Technical debt duy nhất Transaction.featureCode: exact generated {"type":"null","$ref":"#/components/schemas/PaidFeature"}, khác oneOf(PaidFeature,null) của YAML. Test pin toàn bộ object, shape thay đổi phải FAIL; không customizer/YAML/shared handler. Runtime featureCode:null có key thật; history integration kiểm cả PaidFeature non-null và keySet chính xác 8 trường seq,type,amount,balanceBefore,balanceAfter,featureCode,reason,createdAt. Wallet.plan.code giữ đúng PlanCode.
+
+CardBatch local ADMIN probe duy nhất đã trả 422 VALIDATION_FAILED cho GET /api/admin/card-batches?page=%20 lúc 2026-11-13T10:52:26.799974900+07:00. Không gọi production hoặc commit mã probe. Ba lỗi targeted cũ đều được sửa trong ba test được duyệt; actual targeted 96/96 PASS/native0, giữ nguyên evidence FAILED cũ96/F2/E1/S0/native1.
+
+Scope cuối: 19/19 (10 ADD +9 MODIFY), Fix chỉ ba test + bổ sung questions.md; 15 file khác, gồm8 production và tasks.md, giữ SHA baseline. SecurityConfig/YAML/config/writer/migration/FE không đổi; matcher LEARNER hiện hữu từ T-08 được giữ nguyên. HEAD/base b8e812aae2aa15219c0e9203943a40d699a46cf1, branch spec/013-t09, index rỗng, diff --check exit0. Không commit/push/PR, không tích hợp main2735ac8 do Leader thông báo. tasks.md giữ nội dung lịch sử theo giới hạn Fix, chờ G3 được duyệt để đồng bộ.
+
+Evidence authoritative: plans/261112-0445-spec013-t09-shadow-plan/g1-fix-20261113-1032/{result-summary.json,final-report.md,cumulative-native-command-ledger.json,20261113-163033-517-full-reconciliation.json,20261113-163033-517-full-coverage-inspection.json}. Dừng G2 chờ review; không tự phê duyệt G2/G3.
+
+## 2026-11-13 — Full Verify đã release một lượt với deadline công bố trước
+
+- Sau quyết định chấp nhận regressionUNKNOWN, helperđộc lập hiddenPID36724 được chuẩn bị và chờ READY_FOR_RELEASE, chưa có Maven. Controller công bố timeout60phút từ helperStart16:30:33.5174436+07, deadline17:30:33.5174436+07 (10:30:33.5174436Z) trước khi ghi releasefile.
+- Releasefile ghi lúc16:31:08.239+07; nativeverifyCMDPID35600 bắt đầu2026-11-13T16:31:09.1090699+07:00. Deadline tính cảpreflight/standby, không gia hạn; không ngắt vìtestfailure. Chỉ đúngownedtree được xửlý nếuvượtdeadline.
+- Sourcebusiness và3tests vẫn đóng băng; không rebase/merge/pull hoặc rerunregression. Helper/artifact có boundedCIMpoll+nativehandlecapture đểlưu actualexit độc lập phiên;archiveerrors khôngđượcche nativeexit đãthu.
+- Evidence: plans/261112-0445-spec013-t09-shadow-plan/g1-fix-20261113-1032/20261113-163033-517-full/status.json, full-deadline-publication.json,full-release.json,ownership-observations.jsonl. Checkpointnày chưa cóFullresult/JaCoCo,khôngtuyênbốPASS hoặcG2/G3APPROVED.
+
+## 2026-11-13 — Regression UNKNOWN được Leader chấp nhận để tiếp tục Full một lượt
+
+- Sau gián đoạn phiên, regression1851/F4/E0/S0 đã có BUILD FAILURE/Finished-at trong stdout và đủ116fresh suites; cả4failure khớp đúng ngoại lệ đã duyệt, không missing/extra/Probe. Nhưng helper ghi Call cancelled, nativeExitCode=null, không có nativeEnd; session40219 không còn. Không suy native1 từ log, không sửa status gốc hoặc chạy lại regression.
+- Native start11:10:50.7441944+07; Maven log báo Finished-at14:13:16+07/Total time03:02h, đây chỉ là mốc log, không phải native completion đã được capture. HelperEnd14:07:14.6548007+07 với trạng tháiUNKNOWN.
+- Leader trả lời rõ: “Chấp nhận regression UNKNOWN và cho chạy Full Verify một lượt bằng helper độc lập”. Quyết định này chỉ cho phép bước Full mới; không đổi UNKNOWN thànhPASS/FAILED/native1, không rerun regression.
+- Bốn failure: LoginAttempt PEXPIRETIME(frame133),LoginAttempt CapturedOutput chỉfixtureemail(frame313);ImportConfirm FR023p95=41682ms≥30000(frame398);QuestionImport NFR_P04p95=71307ms≥30000(frame304). Không ngoại lệ thứ5QuestionAdmin trong regression. Full phải phân loại riêng từ XML của chính lượtFull.
+- Reconciliation posthoc dùng nativeStart đến logFinished-at+1giây để nhận diện XML; ghi rõ không phải native-completion interval. Evidence: plans/261112-0445-spec013-t09-shadow-plan/g1-fix-20261113-1032/20261113-111046-498-regression-UNKNOWN-posthoc-reconciliation.json; originalstatus/stdout được giữ nguyên.
+- Full mới dùng helperđộc lập, timeout60phút/deadline công bố trước Mavenrelease; không ngắt vìtestfailure; coverage chỉ lấyexec củaFullhoànchỉnh. Chưa cóFullresult hoặcJacoco tại checkpoint này.
+
+## 2026-11-13 — T-09 Fix targeted 96/96 PASS (native exit 0)
+
+- Actual9fresh suites,72source testmethods,96JUnitinvocations/F0/E0/S0; đối chiếu với96lượt FAILED cũ: số lượng không đổi, không missing/extra, không tính stale ProbeXML. Hai nhánh expiresAt vẫn ở cùng một testmethod; đổi tên pagination không xóa hoặc thêm invocation.
+
+| Native bắt đầu +07 | Native kết thúc +07 | Duration stopwatch | Tests/F/E/S | Native exit |
+|---|---|---:|---|---:|
+| 2026-11-13T11:06:47.6398781+07:00 | 2026-11-13T11:09:08.1245108+07:00 | 140.492s | 96/0/0/0 | 0 |
+
+~~~powershell
+.\mvnw.cmd -B "-Djava.io.tmpdir=D:\code_huy\Java Language\CNHSK\.worktrees\spec013-t09\plans\261112-0445-spec013-t09-shadow-plan\g1-fix-20261113-1032\20261113-110644-109-targeted\maven-tmp" -Dtest=AuthApiServiceTest,AuthPlanApiIntegrationTest,WalletQueryServiceTest,WalletQueryIntegrationTest,CreditTransactionHistoryIntegrationTest,WalletQuerySecurityConfigIntegrationTest,CreditWalletContractTest,CreditRedeemContractTest,CreditRedeemSecurityConfigIntegrationTest test
+~~~
+
+| Lỗi cũ | Fix được duyệt | Actual targeted mới |
+|---|---|---|
+| AuthApiServiceTest.readPlanMapsAnImmutableSnapshotWithoutLockOrWrite: ERROR Mockito | Explicit nullableTimestamp stub;FREE/null +PREMIUM/exactInstant .123456Z;giữ strictness/assertions | PASS;Authunit16/16,AuthPlanintegration14/14 |
+| Pagination blank/whitespace expectation: FAILURE | Test đổi tên paginationAbsentAndEmptyUseDefaultsWhileWhitespaceIsValidationFailed;absent/emptydefault4calls,whitespace422 | PASS;security14/14;CardBatchencodedspaceprobe422độc lập đã ghi |
+| CreditWalletContractTest nullable schema: FAILURE | Pin duy nhất Transaction.featureCode exact type:null+$refPaidFeature;mọi shape khác FAIL;so sánh còn lại giữ nghiêm | PASS;contract2/2,mismatch0,nullabledebt1 |
+
+- Generated shape thực tế vẫn {"type":"null","$ref":"#/components/schemas/PaidFeature"}; locked YAML vẫn oneOf(PaidFeature,null). Backlog nay được ghi đúng một entry, không sửa YAML/customizer/production. Runtime JSON featureCode:null có mặt;history integration còn kiểm nonnull TRANSLATE/GRADING và exact8keys.
+- NFR-P03 lượt targeted Fix:20warm-up+100mẫu HTTP200 đầy đủ;p50 21,5407ms,p95 33,8533ms,max68,7168ms;đối chiếu100ms,khônghardassert/chọnrun. Giữ100rawsamples và báo riêng với lượt FAILED trước (p50 21,2587,p95 28,3492).
+- Source744/class-resource740 hash entries không đổi qua lượt targeted;không có production/test thay đổi sau khi freeze. Các báo cáo fixed-targeted-reconciliation.json,fixed-targeted-nfr-reconciliation.json,fixed-targeted-source-class-hashes.json nằm tại plans/261112-0445-spec013-t09-shadow-plan/g1-fix-20261113-1032.
+- Regression116suites đã được release riêng sau helper targeted kết thúc;full verify/JaCoCo chưa chạy tại checkpoint này. Chưa tuyên bố G2/G3APPROVED vàkhôngcommit/push/PR.
+
+## 2026-11-13 — T-09 Fix: CardBatch local whitespace evidence
+
+- Kiểm chứng đúng một lần bằng MockMvc + PostgreSQL/Redis Testcontainers, user local có role ADMIN trong DB và JWT ADMIN được JwtService thật ký. Không gọi production. Probe source nằm trong plan artifact, class nằm ở ignored target/test-classes; tên Probe không khớp Surefire default nên không chạy lại trong regular targeted/regression/full. Không đưa probe vào source19 hoặc commit.
+
+~~~powershell
+.\mvnw.cmd -B "-Djava.io.tmpdir=D:\code_huy\Java Language\CNHSK\.worktrees\spec013-t09\plans\261112-0445-spec013-t09-shadow-plan\g1-fix-20261113-1032\20261113-105128-686-targeted\maven-tmp" -Dtest=T09CardBatchWhitespaceProbe test
+~~~
+
+| Native bắt đầu +07 | Native kết thúc +07 | Duration stopwatch | Tests/F/E/S | Native exit |
+|---|---|---:|---|---:|
+| 2026-11-13T10:51:32.2532880+07:00 | 2026-11-13T10:52:27.8385533+07:00 | 55.590s | 1/0/0/0 | 0 |
+
+- HTTP quan sát lúc 2026-11-13T10:52:26.799974900+07:00: GET /api/admin/card-batches?page=%20; rawQuery page=%20, decodedPage đúng một dấu cách; status422, error_code VALIDATION_FAILED, envelope đúng error_code/message/request_id.
+- Evidence JSON: plans/261112-0445-spec013-t09-shadow-plan/g1-fix-20261113-1032/20261113-105128-686-targeted/maven-tmp/card-batch-whitespace-probe/observed-response.json; reconciliation local-card-batch-probe-reconciliation.json; probejavac source/compiler/argumentfile/native exit trong cùng evidence root.
+- Kết quả xác nhận Q5 phân biệt empty với whitespace theo hành vi CardBatch hiện có. Không sửa CardBatchController/WalletController hoặc GlobalExceptionHandler. Các XML cũ ngoài nativeinterval được giữ và loại khỏi số đếm probe.
+- Cả3Fix test-compile đã PASS/native0. Regular targeted9 đang được chạy riêng; chưa suy diễn kết quả từ probe.
+
+## 2026-11-13 — T-09 G1 Fix được Leader duyệt (giữ base b8e812a)
+
+- Leader duyệt một lượt Fix cho đúng ba lỗi targeted cũ; giữ exact19 (10ADD+9MOD), branch spec/013-t09, HEAD/base b8e812aae2aa15219c0e9203943a40d699a46cf1. Origin/main2735ac8/PR145 do Leader thông báo là base drift; không fetch/rebase/merge/pull main trong lượt này.
+- Chỉ chỉnh AuthApiServiceTest.java, WalletQuerySecurityConfigIntegrationTest.java, CreditWalletContractTest.java và bổ sung questions.md. Không sửa AuthApiService/WalletController/production khác hoặc tasks.md. Các kết quả STOP/FAILED cũ bên dưới và ZIP cũ được giữ nguyên.
+- Auth unit: explicit stub getTimestamp(plan_expires_at) cho cả null và có Timestamp; assert Instant chính xác, giữ assertions cũ, không lenient.
+- Q5 được Leader giải thích: absent hoặc chuỗi rỗng page=/size= dùng0/20; chuỗi một dấu cách page=%20 trả422 VALIDATION_FAILED. Đổi tên test và phân biệt hai nhóm; không thay binding production.
+- Nullable exception chỉ đúng Transaction.featureCode: pin generated schema chính xác {"type":"null","$ref":"#/components/schemas/PaidFeature"}; shape thay đổi phải FAIL. Mọi schema/path/method/status/required/type khác vẫn so nghiêm YAML khóa; runtimeJSONnull vẫn được kiểm. Đây là technical debt được chấp nhận tạm thời, không sửa YAML/customizer/shared error handler.
+- Một lần local probe GET /api/admin/card-batches?page=%20 với user ADMIN fixture và JWT hợp lệ; nếu không422 thì STOP, không sửa CardBatchController. Probe ở plan artifact/ignored target, không thuộc19source và không được đưa vào commit.
+- Preflight mới xác nhận JDK17.0.9/DockerServer27.2 và chỉ có IDEJava, không Maven khác. Sau mỗi testfile chạy test-compile ngay; rồi probe một lần, targeted9, regression SPEC002/SPEC013/SPEC001/các suite liên quan, full verify và đúng full execJaCoCo nếu gates trước đủ điều kiện.
+- Full timeout60phút/deadline phải công bố trước release; không ngắt vì failure, chỉ timeout mới dừng ownedtree có lýdo/PID. Giữ đúng5ngoại lệ môi trường; ngoài whitelist STOP, không tự sửa/rerun để xanh. NFR-P03 warm20+100samples, p50/p95, không hardassert100ms.
+- Evidence mới: plans/261112-0445-spec013-t09-shadow-plan/g1-fix-20261113-1032/. Chưa tuyên bố kết quả mới hoặc G2/G3APPROVED; không commit/push/PR.
+
+## 2026-11-13 — T-09 G1 APPROVED, exact 19 file
+
+Leader đã duyệt allowlist G0 Finalization: 10 ADD + 9 MODIFY, bỏ WalletOpenApiConfiguration, không thêm customizer/config/YAML/migration/FE hoặc sửa SecurityConfig/GlobalExceptionHandler/LedgerService writer/EntitlementService. Chưa được commit/push/PR; dừng tại G2 để review.
+
+Trước code: tracked/index sạch, `git log --oneline 474bb74..HEAD` rỗng; fetch native exit 0 và origin/main đúng `b8e812aae2aa15219c0e9203943a40d699a46cf1`. Lệnh checkout được Leader chỉ định chuyển nhánh chưa có commit sang base này; không merge/rebase/pull/reset/clean. G0 artifacts untracked được giữ nguyên. T-08 đã MERGED PR #137, merge `09ea06a`, head `f3f1113`; không đổi các kết quả FAILED lịch sử bên dưới.
+
+| Quyết định | ÁP DỤNG trong T-09 |
+|---|---|
+| Q1 | `Optional<PlanState> readPlan(long userId)` trong AuthApi; provider SELECT không FOR UPDATE, chỉ đọc, không yêu cầu transaction ghi; không đổi lockPlan/updatePlan. |
+| Q2 | Optional.empty được WalletQueryService đổi thành 401 UNAUTHENTICATED cho cả hai GET; không 404 USER_NOT_FOUND hoặc empty-history 200 cho missing user. |
+| Q3 | Cả hai query methods `@Transactional(readOnly = true, isolation = REPEATABLE_READ)`; không row lock hoặc REQUIRES_NEW. |
+| Q4 | Giữ used thực, remaining=max(0,limit-used); kỳ cũ chỉ project used=0 trong bộ nhớ, không UPDATE free_usage/usage_reset_at. |
+| Q5 | Typed page default 0, size default 20; absent/blank dùng default, bounds/nonconvertible trả 422; tests viết trước controller handler, handler chuyển kiểu `@Hidden` cục bộ theo mẫu CardBatchController, không sửa shared handler. |
+| Q6 | NFR-P03 warm-up 20 + 100 mẫu, báo p50/p95 và đối chiếu 100 ms, không hard assertion hiệu năng hoặc chọn lượt đẹp. |
+
+- Matcher LEARNER của T-08 đã có: SecurityConfig dòng 167–168 trên base mới (G0 cũ: 164–165); giữ nguyên file và hash evidence. Safe GET cookie/bearer không cần CSRF.
+- Wallet.plan.code là PlanCode công khai, được giữ theo YAML. Transaction JSON có tập key chính xác `seq,type,amount,balanceBefore,balanceAfter,featureCode,reason,createdAt`, gồm cả nullable keys; cấm cardId/mã thẻ code/hash/refTransactionId và mọi field nội bộ.
+- UC-098/BR-098-3 yêu cầu lý do công khai; BR-098-4 cấm card material. Giữ reason lành tính, trả null nếu chứa chuỗi dạng mã 16 ký tự (kể cả format/alias/whitespace/chuỗi nối), hash 64 hex hoặc mẫu PII/token/secret. Không join card, không truy vấn theo từng item; policy ưu tiên không lộ dữ liệu, có thể ẩn cả reason trông giống mã. Không suppress toàn bộ reason ngoài SUBSCRIPTION.
+- AT-12/13, Clock đầu tháng Việt Nam, snapshot read-only/không ghi ledger/Redis, missing-user 401 và pagination/privacy nằm trong test matrix. History có ba SELECT cố định (readPlan/count/page); wallet ba SELECT (readPlan/balance/catalog).
+- Hai GET khai báo ApiResponses tường minh 200/401/403; history thêm 422. Contract suite dùng PostgreSQL thật và so hai chiều locked/generated/actual mappings. Chỉ lệch cách biểu diễn nullable Transaction.featureCode trong api-docs được ghi backlog, không STOP; runtime null và PaidFeature vẫn phải đúng. Lệch path/method/status hoặc failure ngoài năm ngoại lệ đã duyệt → STOP.
+- Trạng thái hiện tại: **G1 STOP — targeted FAILED, 96 tests/F2/E1/S0, Maven native exit 1**. Không sửa source/tests hoặc rerun sau failure; regression/full verify/JaCoCo NOT RUN. Chưa có G2 APPROVED hoặc quyền G3.
+
+Shadow Plan: `plans/261112-0445-spec013-t09-shadow-plan/`; bổ sung hiện hành `g1-approved-addendum.md`, gate evidence `g1-evidence/`. G0 là lịch sử, không thay thế evidence G1. Mỗi file test có test-compile ngay sau khi viết/chỉnh; compile-only test errors được sửa trong allowlist, mọi attempt được giữ nguyên.
+
+### T-09 — G1 STOP / evidence bàn giao G2 ngày 2026-11-13
+
+Không có commit T-09. HEAD/base b8e812aae2aa15219c0e9203943a40d699a46cf1, branch spec/013-t09; đúng 19 source paths (10 ADD + 9 MODIFY), index sạch. Điểm bắt đầu có timestamp độc lập là base checkout trong reflog: 03:21:58 +07; preflight đọc trước đó không có ledger timestamp riêng. G0 artifacts được giữ nguyên, quyết định mới ở addendum.
+
+**Targeted FAILED/native exit 1: 96 tests, F2/E1/S0, đủ 9 suites.** 13 test-compile checkpoints đều PASS/native exit 0. Không rerun để chọn xanh, không sửa production/tests sau failure. Không có failure thuộc năm ngoại lệ môi trường.
+
+| Phân loại | Exact test | Evidence và xử lý |
+|---|---|---|
+| ERROR ngoài whitelist → STOP | com.cnhsk.auth.AuthApiServiceTest.readPlanMapsAnImmutableSnapshotWithoutLockOrWrite | Mockito PotentialStubbingProblem: mock chỉ stub usage_reset_at, chưa stub getTimestamp(plan_expires_at); test dòng 179/185/187, provider dòng 117. Đây là lỗi test runtime, không phải lỗi compile được tự sửa. |
+| FAILURE ngoài whitelist → STOP | com.cnhsk.shared.config.WalletQuerySecurityConfigIntegrationTest.paginationAbsentEmptyAndBlankUseCardBatchDefaults | Dòng 110: giá trị chỉ có khoảng trắng trả 422 thay vì default/200 theo Q5. Không đổi expectation hoặc tự sửa binding sau failure. |
+| FAILURE thực tế; nullable backlog theo Leader | com.cnhsk.contract.CreditWalletContractTest.walletOperationsRegisteredRoutesStatusesSecurityParametersAndSchemasMatchTheLockedContractBidirectionally | Dòng 130: generated featureCode là {"type":"null","$ref":"#/components/schemas/PaidFeature"}, locked là oneOf(PaidFeature,null). Comparator ghi mismatch; backlog array gốc rỗng. Giữ nguyên cả hai và phân loại debt tại checkpoint này; không đổi exit 1 thành PASS. |
+
+Chỉ riêng biểu diễn nullable featureCode được Leader cho ghi backlog. Runtime featureCode null và giá trị TRANSLATE/GRADING đã đạt integration tests. Path/method/status khớp hai chiều với YAML và RequestMappingHandlerMapping: wallet GET 200/401/403; history GET 200/401/403/422; redeem POST 200/400/401/403/422/429. Không customizer/YAML change.
+
+Wallet PostgreSQL suite 13 invocations và history suite 8 đều PASS. Evidence có FREE used/remaining, stale projection không UPDATE, missing TRANSLATE benefit, expired PREMIUM→FREE, Clock tháng/năm/năm nhuận, snapshot khi writer commit giữa reads, owner/25 rows/seq DESC/long offset, missing-user 401 cả hai GET và không ghi ledger/usage/Redis business keys. Lý do công khai lành tính được giữ; 14 fixture reason nhạy cảm được trả null.
+
+JSON transaction thực tế kiểm keySet đúng tám field seq,type,amount,balanceBefore,balanceAfter,featureCode,reason,createdAt, không thiếu hoặc dư; explicit nullable keys vẫn có mặt. Runtime JSON/types/null audit được giữ trong attempt targeted.
+
+**NFR-P03:** một lượt targeted, warm-up 20 + đủ 100 mẫu HTTP GET PostgreSQL thật, tất cả status 200; p50 **21,2587 ms**, p95 **28,3492 ms**, max **29,7762 ms**, đối chiếu mục tiêu 100 ms; không hard assertion hiệu năng. Giữ mọi mẫu, không chọn run. Gate tổng vẫn FAILED.
+
+| # | Lệnh/checkpoint | Native bắt đầu +07 | Native kết thúc +07 | Giây | Tests/F/E/S | Native exit/status |
+|---:|---|---|---|---:|---|---|
+| 1 | test-compile — AuthApiServiceTest.java | 2026-11-13 03:26:46.9254296 +07 | 2026-11-13 03:27:55.2288876 +07 | 68.305 | N/A — không chạy test | 0 / PASSED |
+| 2 | test-compile — AuthPlanApiIntegrationTest.java | 2026-11-13 03:30:17.9940371 +07 | 2026-11-13 03:31:22.5203664 +07 | 64.531 | N/A — không chạy test | 0 / PASSED |
+| 3 | test-compile — WalletQueryServiceTest.java | 2026-11-13 03:32:57.4867788 +07 | 2026-11-13 03:34:04.0864134 +07 | 66.604 | N/A — không chạy test | 0 / PASSED |
+| 4 | test-compile — WalletQuerySecurityConfigIntegrationTest.java | 2026-11-13 03:35:29.5027741 +07 | 2026-11-13 03:36:25.0198585 +07 | 55.523 | N/A — không chạy test | 0 / PASSED |
+| 5 | test-compile — CreditRedeemContractTest.java | 2026-11-13 03:37:54.2933227 +07 | 2026-11-13 03:39:03.6002522 +07 | 69.310 | N/A — không chạy test | 0 / PASSED |
+| 6 | test-compile — CreditRedeemSecurityConfigIntegrationTest.java | 2026-11-13 03:39:45.6136901 +07 | 2026-11-13 03:40:50.4232236 +07 | 64.813 | N/A — không chạy test | 0 / PASSED |
+| 7 | test-compile — WalletQueryIntegrationTest.java | 2026-11-13 03:44:50.1267316 +07 | 2026-11-13 03:45:49.3364770 +07 | 59.217 | N/A — không chạy test | 0 / PASSED |
+| 8 | test-compile — WalletQueryIntegrationTest.java owned Redis scope | 2026-11-13 03:46:25.7835363 +07 | 2026-11-13 03:47:24.8312915 +07 | 59.053 | N/A — không chạy test | 0 / PASSED |
+| 9 | test-compile — CreditTransactionHistoryIntegrationTest.java | 2026-11-13 03:49:25.7017031 +07 | 2026-11-13 03:50:23.4102031 +07 | 57.716 | N/A — không chạy test | 0 / PASSED |
+| 10 | test-compile — CreditWalletContractTest.java | 2026-11-13 03:52:31.7845166 +07 | 2026-11-13 03:53:31.1052822 +07 | 59.324 | N/A — không chạy test | 0 / PASSED |
+| 11 | test-compile — CreditWalletContractTest.java runtime JSON evidence | 2026-11-13 03:54:00.4187947 +07 | 2026-11-13 03:54:58.8836982 +07 | 58.470 | N/A — không chạy test | 0 / PASSED |
+| 12 | test-compile — CreditWalletContractTest.java strict semantic schema audit | 2026-11-13 03:56:40.3123360 +07 | 2026-11-13 03:57:49.8698906 +07 | 69.562 | N/A — không chạy test | 0 / PASSED |
+| 13 | test-compile — CreditWalletContractTest.java disjoint nullable feature alternatives | 2026-11-13 03:58:19.1922043 +07 | 2026-11-13 03:59:19.6140043 +07 | 60.426 | N/A — không chạy test | 0 / PASSED |
+| 14 | Targeted exact 9 suites | 2026-11-13 04:00:21.8211717 +07 | 2026-11-13 04:02:28.3891898 +07 | 126.572 | 96/2/1/0 | 1 / FAILED |
+| — | Regression (45 suites đã lập danh sách) | NOT RUN | NOT RUN | N/A | N/A | N/A — STOP |
+| — | Full verify (timeout dự kiến 60 phút) | NOT RUN | NOT RUN | N/A | N/A | N/A — STOP |
+| — | JaCoCo từ full-run exec | NOT RUN | NOT RUN | N/A | N/A | N/A — chưa có full run |
+
+Giây dùng native stopwatch khi có, nếu không có thì native wall duration đã thu; JSON ledger giữ cả hai trường và full command. Không suy diễn native exit từ helper exit.
+
+Không có full-run exec T-09 để nghiệm thu Project/Credit LINE; không dùng targeted exec hoặc coverage T-08. Các số T-08 4213/F4 và LINE 96,7092% / 96,3668% bên dưới chỉ là lịch sử đã nghiệm thu, không phải kết quả T-09.
+
+Read-only closeout lúc 04:03:49 +07 xác nhận không còn helper/Maven/Surefire thuộc lượt này. Chỉ bàn giao G2 dạng STOP/FAILED để review, không commit/push/PR hoặc tự phê duyệt G2/G3. Việc đóng gói bị gián đoạn do giới hạn phiên và tiếp tục lúc 10:05 +07; không có Maven hoặc sửa production/tests trong khoảng gián đoạn.
+
+Evidence: plans/261112-0445-spec013-t09-shadow-plan/g1-evidence/targeted-stop-report.md, targeted-reconciliation.json, native-command-ledger.json, targeted-nfr-reconciliation.json; raw attempt 20261113-040017-796-targeted được giữ nguyên.
+
 ## 2026-11-10 — T-08 G2 APPROVED, G3 housekeeping được Leader duyệt
 
 - Leader duyệt G2 → G3 trên commit `ec2dce2a930cc8ad3b0263979b74ce1dd4014f19`, Draft PR #137. Đây là housekeeping, không phải Fix 3/2. Chỉ bỏ một dòng trống EOF ở đúng bảy file test và cập nhật tasks/questions; giữ production, Clock constructor, logic, assertions, test names và expected values.
