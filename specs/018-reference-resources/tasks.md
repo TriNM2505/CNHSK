@@ -22,7 +22,7 @@
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-06 | Nền FE `references` + SCR-053 (tab YouTube/Podcast), SCR-054, SCR-055: lọc, lưới thẻ, link an toàn, nhãn affiliate, báo lỗi (người học), 4 trạng thái, responsive; route + menu công khai/học viên | `web/features/references/**`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts`, `web/shared/layout/navigation.ts` + test | FR-007, FR-008, FR-019…FR-021, FR-023 · AT-17, AT-18 | ✅ 2026-11-14: FE 2.520/2.520, lint/typecheck/build PASS; Java 10/11, ngoại lệ SCR-009 được leader duyệt; chờ review |
-| T-07 | SCR-072 quản trị: bảng lọc + cột số lần báo, form tạo/sửa (trường sách theo `kind`), Công bố/Ẩn/Hiện lại có xác nhận trong trang; route `/content/references` + menu biên tập viên | `web/features/references/admin/**` + test | FR-022, FR-023 | ⬜ |
+| T-07 | SCR-072 quản trị: bảng lọc + cột số lần báo, form tạo/sửa (trường sách theo `kind`), Công bố/Ẩn/Hiện lại có xác nhận trong trang; route `/content/references` + menu biên tập viên | `web/features/references/admin/**` + test | FR-022, FR-023 | ✅ 2026-11-14: FE 2.582/2.582, targeted/shuffle 171/171, lint/typecheck/build PASS; chờ leader review |
 | T-08 | Dữ liệu mẫu tự soạn ≥ 10 mục (SQL seed dev hoặc script gọi API) + test hợp đồng `/v3/api-docs` so `openapi-references.yaml` | `docs/demo-data/09-references.csv`, `t/contract/ReferenceContractTest.java` | AT-19 | ⬜ |
 
 ## Thứ tự

@@ -6,17 +6,26 @@ import { previewRegistry } from '@/app/preview/registry'
 import { appRouteDefinitions } from '@/app/routeAccess'
 import { appRoutes } from '@/app/routes'
 import { getCurrentUser } from '@/features/auth/api/getCurrentUser'
-import type { CurrentUser } from '@/features/auth/types'
+import type { CurrentUser, RoleCode } from '@/features/auth/types'
 import { ApiError } from '@/shared/api'
 
 import { getReference, listReferences } from './api/references'
 import { bookPage, bookReference, mediaPage } from './test-fixtures'
+import { listAdminReferences } from './admin/api/references'
+import { adminPage } from './admin/test-fixtures'
 
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
 vi.mock('./api/references', () => ({
   listReferences: vi.fn(),
   getReference: vi.fn(),
   reportReference: vi.fn(),
+}))
+vi.mock('./admin/api/references', () => ({
+  listAdminReferences: vi.fn(),
+  getAdminReference: vi.fn(),
+  createReference: vi.fn(),
+  updateReference: vi.fn(),
+  transitionReference: vi.fn(),
 }))
 
 const routes = [
@@ -80,5 +89,53 @@ describe('references routes and registration', () => {
       screen.getByRole('navigation', { name: 'Học tập trên thiết bị di động' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Đăng nhập' })).not.toBeInTheDocument()
+  })
+})
+
+describe('SCR-072 route', () => {
+  beforeEach(() => {
+    vi.mocked(getCurrentUser).mockReset()
+    vi.mocked(listAdminReferences).mockReset().mockResolvedValue(adminPage)
+  })
+  it('registers the exact CONTENT_EDITOR admin route and preview', () => {
+    expect(appRouteDefinitions.find((route) => route.path === '/content/references')).toMatchObject(
+      { access: ['CONTENT_EDITOR'], layout: 'admin', scr: 'SCR-072' },
+    )
+    expect(previewRegistry.find((entry) => entry.scr === 'SCR-072')?.states).toEqual([
+      'loading',
+      'empty',
+      'error',
+      'ready',
+    ])
+  })
+  it('opens SCR-072 for CONTENT_EDITOR and shows its exact-role menu', async () => {
+    vi.mocked(getCurrentUser).mockResolvedValue({ ...learner, roles: ['CONTENT_EDITOR'] })
+    const router = createMemoryRouter(appRoutes, { initialEntries: ['/content/references'] })
+    render(<RouterProvider router={router} />)
+    expect(
+      await screen.findByRole('heading', { name: 'Tài nguyên tham khảo', level: 1 }),
+    ).toBeVisible()
+    expect(screen.getByRole('navigation', { name: 'Quản trị' })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Tài nguyên tham khảo' })).toHaveLength(2)
+    expect(router.state.location.pathname).toBe('/content/references')
+  })
+  it.each(['LEARNER', 'ADMIN', 'TEACHER', 'MODERATOR', 'ACCOUNTANT'] as RoleCode[])(
+    'blocks %s before loading reference admin data',
+    async (role) => {
+      vi.mocked(getCurrentUser).mockResolvedValue({ ...learner, roles: [role] })
+      const router = createMemoryRouter(appRoutes, { initialEntries: ['/content/references'] })
+      render(<RouterProvider router={router} />)
+      await waitFor(() => expect(router.state.location.pathname).toBe('/403'))
+      expect(listAdminReferences).not.toHaveBeenCalled()
+    },
+  )
+  it('sends a guest to login without loading protected data', async () => {
+    vi.mocked(getCurrentUser).mockRejectedValue(
+      new ApiError({ status: 401, errorCode: 'UNAUTHENTICATED', message: 'Chưa đăng nhập.' }),
+    )
+    const router = createMemoryRouter(appRoutes, { initialEntries: ['/content/references'] })
+    render(<RouterProvider router={router} />)
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    expect(listAdminReferences).not.toHaveBeenCalled()
   })
 })
