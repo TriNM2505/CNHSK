@@ -20,3 +20,13 @@
 - `attempts.kind` CHECK đã có `CONTEST`; `AttemptKind.CONTEST` đã có; `PracticeSource` chưa có `CONTEST`.
 - `ExamAttemptService.start` chặn đề không `PUBLISHED` — `ContestHandler` dựng câu như vậy nhưng không kiểm `PUBLISHED`.
 - `/api/public/community/**` đã `permitAll`; `/api/community/**` đã `LEARNER`.
+
+## 2026-11-14 · G0 T-01 — leader duyệt
+
+| # | Câu hỏi | Quyết định | Trạng thái |
+|---|---|---|---|
+| Q-T01-01 | Đồng bộ enum nguồn với contract của 003 | Thêm `CONTEST` vào cuối enum sau `QUIZ_RETRY` trong OpenAPI 003 và cả hai enum Java, cùng commit; giữ nguyên `PracticeCoreTest` | ✅ Chốt |
+| Q-T01-02 | Phạm vi AT-01 của T-01 | Kiểm catalog index (unique, cột, predicate), chèn trùng bị từ chối và các trường hợp khác người/cuộc thi/kind vẫn hợp lệ trên PostgreSQL Testcontainers. Không tạo container riêng để nâng V8 → V9; mọi integration test đã chạy Flyway V1 → V9 | ✅ Chốt |
+| Q-T01-03 | Phạm vi AT-13 khi chưa có `ContestHandler` | T-01 chèn thẳng lượt `CONTEST` để kiểm `existsActiveTest` và trợ lý trả 403 `ASSISTANT_BLOCKED_DURING_TEST`, không gọi stub/không trừ hạn mức; kiểm lượt đã nộp/bỏ dở/hết hạn/người khác không chặn. `EvidenceAllocatorTest` kiểm `CONTEST → null`. Phần chạy trọn tạo/nộp qua engine và chứng minh mastery không đổi chuyển sang T-02, không thuộc gate T-01 | ✅ Chốt |
+| Q-T01-04 | Backup và áp migration trên Neon | Chỉ leader backup và chạy V7 → V10 theo thứ tự merge. Tường chỉ kiểm V9 bằng Testcontainers, không truy cập Neon | ✅ Chốt |
+| Q-T01-05 | Fixture `PracticeServiceTest` giả định chỉ `GAME_ROUND` có TTL động | Leader duyệt file thứ 14: cấp override theo `source.ttl() == null`; loại `CONTEST` khỏi nhóm TTL cố định; cả `GAME_ROUND` và `CONTEST` đều được kiểm override thiếu/0/âm. Không sửa `PracticeService` hay assertion của nguồn khác | ✅ Chốt |

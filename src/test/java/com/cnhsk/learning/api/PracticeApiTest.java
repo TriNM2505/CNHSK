@@ -92,9 +92,10 @@ class PracticeApiTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = PracticeApi.PracticeSource.class, names = {"QUIZ", "QUIZ_RETRY"})
-    void quizSourcesRoundTripThroughStartAndView(PracticeApi.PracticeSource source) {
+    @EnumSource(value = PracticeApi.PracticeSource.class, names = {"QUIZ", "QUIZ_RETRY", "CONTEST"})
+    void deferredSourcesRoundTripThroughStartAndView(PracticeApi.PracticeSource source) {
         var engineSource = com.cnhsk.learning.practice.PracticeSource.valueOf(source.name());
+        Duration ttlOverride = source == PracticeApi.PracticeSource.CONTEST ? Duration.ofMinutes(30) : null;
         var engineView = new PracticeService.SessionView(42, engineSource, 91L,
                 com.cnhsk.learning.practice.FeedbackMode.DEFERRED, "IN_PROGRESS", NOW,
                 NOW.plus(Duration.ofMinutes(30)), List.of(), List.of(), Map.of());
@@ -102,15 +103,31 @@ class PracticeApiTest {
         when(service.view(71, 42)).thenReturn(engineView);
 
         var started = api.start(new PracticeApi.StartPracticeCommand(71, source, 91L, null,
-                List.of(item(true)), List.of(), null, Map.of()));
+                List.of(item(true)), List.of(), ttlOverride, Map.of()));
         var captured = ArgumentCaptor.forClass(PracticeService.StartPracticeCommand.class);
         verify(service).start(captured.capture());
 
         assertThat(captured.getValue().source()).isEqualTo(engineSource);
+        assertThat(captured.getValue().ttlOverride()).isEqualTo(ttlOverride);
         assertThat(started.source()).isEqualTo(source);
         assertThat(started.feedback()).isEqualTo(PracticeApi.FeedbackMode.DEFERRED);
         assertThat(started.expiresAt()).isEqualTo(NOW.plus(Duration.ofMinutes(30)));
         assertThat(api.view(71, 42)).isEqualTo(started);
+    }
+
+    @Test
+    void FR001_contestSourceIsAppendedAndUsesTheSpecifiedDynamicDeferredPolicy() {
+        assertThat(PracticeApi.PracticeSource.values()).endsWith(
+                PracticeApi.PracticeSource.QUIZ_RETRY, PracticeApi.PracticeSource.CONTEST);
+        assertThat(com.cnhsk.learning.practice.PracticeSource.values()).endsWith(
+                com.cnhsk.learning.practice.PracticeSource.QUIZ_RETRY,
+                com.cnhsk.learning.practice.PracticeSource.CONTEST);
+        var source = com.cnhsk.learning.practice.PracticeSource.CONTEST;
+        assertThat(source.kind()).isEqualTo(com.cnhsk.learning.practice.AttemptKind.CONTEST);
+        assertThat(source.feedback()).isEqualTo(com.cnhsk.learning.practice.FeedbackMode.DEFERRED);
+        assertThat(source.ttl()).isNull();
+        assertThat(source.allowSkip()).isTrue();
+        assertThat(source.maxScoreFromServed()).isFalse();
     }
 
     @Test

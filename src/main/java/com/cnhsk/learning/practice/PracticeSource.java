@@ -17,7 +17,8 @@ public enum PracticeSource {
     TARGETED_PRACTICE(AttemptKind.PRACTICE, FeedbackMode.IMMEDIATE, Duration.ofHours(2), true, false),
     DUE_REVIEW(AttemptKind.PRACTICE, FeedbackMode.IMMEDIATE, Duration.ofHours(2), true, false),
     QUIZ(AttemptKind.QUIZ, FeedbackMode.DEFERRED, Duration.ofMinutes(30), true, false),
-    QUIZ_RETRY(AttemptKind.PRACTICE, FeedbackMode.DEFERRED, Duration.ofMinutes(30), true, false);
+    QUIZ_RETRY(AttemptKind.PRACTICE, FeedbackMode.DEFERRED, Duration.ofMinutes(30), true, false),
+    CONTEST(AttemptKind.CONTEST, FeedbackMode.DEFERRED, null, true, false);
 
     private final AttemptKind kind;
     private final FeedbackMode feedback;
@@ -43,7 +44,7 @@ public enum PracticeSource {
     }
 
     /**
-     * Returns the fixed lifetime, or null for GAME_ROUND, which requires a positive
+     * Returns the fixed lifetime, or null for GAME_ROUND and CONTEST, which require a positive
      * server-supplied ttlOverride. Fixed-lifetime sources must reject overrides at start.
      */
     public Duration ttl() {

@@ -55,14 +55,14 @@ class EvidenceAllocatorTest extends AbstractIntegrationTest {
             assertThat(EvidenceAllocator.contextOf(source)).isEqualTo("PRACTICE");
         }
         for (String source : List.of("TOPIC_STUDY", "CHAR_WRITING", "WRITING_CHALLENGE", "PRON_STAGE",
-                "QUIZ", "QUIZ_RETRY")) {
+                "QUIZ", "QUIZ_RETRY", "CONTEST")) {
             assertThat(EvidenceAllocator.contextOf(source)).isNull();
         }
         assertThat(EvidenceAllocator.contextOf("FUTURE_SOURCE")).isNull();
     }
 
     @Test
-    void quizSourcesAreExplicitlyExcludedWithoutUnknownSourceWarnings() {
+    void FR008_AT13_quizAndContestSourcesAreExplicitlyExcludedWithoutUnknownSourceWarnings() {
         Logger logger = (Logger) LoggerFactory.getLogger(EvidenceAllocator.class);
         var appender = new ListAppender<ILoggingEvent>();
         appender.start();
@@ -70,6 +70,7 @@ class EvidenceAllocatorTest extends AbstractIntegrationTest {
         try {
             assertThat(EvidenceAllocator.contextOf("QUIZ")).isNull();
             assertThat(EvidenceAllocator.contextOf("QUIZ_RETRY")).isNull();
+            assertThat(EvidenceAllocator.contextOf("CONTEST")).isNull();
             assertThat(appender.list).isEmpty();
 
             assertThat(EvidenceAllocator.contextOf("FUTURE_SOURCE")).isNull();
