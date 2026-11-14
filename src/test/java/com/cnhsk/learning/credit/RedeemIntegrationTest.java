@@ -196,7 +196,7 @@ public class RedeemIntegrationTest extends RedeemFixture {
 
     @Test void missingPremiumRollsClaimBackWithoutChangingOtherPlanOwnership() throws Exception {
         String raw = card("SUBSCRIPTION", 30, admin);
-        doReturn(List.of()).when(named).query(eq("SELECT name,price FROM learning.plans WHERE code=:code"), anyMap(), any(RowMapper.class));
+        doReturn(List.of()).when(named).query(eq("SELECT name,price FROM learning.plans WHERE code=:code FOR SHARE"), anyMap(), any(RowMapper.class));
         response(redeem(learner, raw), 500);
         assertThat(cardStatus(raw)).isEqualTo("UNUSED");
         assertThat(balance(learner)).isZero();

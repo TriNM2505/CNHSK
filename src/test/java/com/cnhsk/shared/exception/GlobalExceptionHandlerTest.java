@@ -1,6 +1,7 @@
 package com.cnhsk.shared.exception;
 
 import com.cnhsk.shared.config.RequestIdFilter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.Valid;
@@ -164,7 +165,7 @@ class GlobalExceptionHandlerTest {
                 "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "CARD_DUPLICATE", "ASSISTANT_BLOCKED_DURING_TEST", "ASSISTANT_UNAVAILABLE",
                 "CARD_BATCH_NOT_FOUND", "PLAN_NOT_AVAILABLE", "INSUFFICIENT_CREDITS", "TRANSLATE_UNAVAILABLE", "INVALID_CARD_CODE", "EMAIL_NOT_VERIFIED",
                 "INVALID_UNSUBSCRIBE_TOKEN", "REFERENCE_NOT_FOUND", "MALFORMED_URL", "NON_HTTPS_LINK", "DOMAIN_NOT_ALLOWED", "PUBLISH_INVALID_RESOURCE",
-                "QUIZ_NOT_AVAILABLE", "QUIZ_ATTEMPT_NOT_FOUND", "INTERNAL_ERROR");
+                "QUIZ_NOT_AVAILABLE", "QUIZ_ATTEMPT_NOT_FOUND", "PLAN_IN_USE", "INTERNAL_ERROR");
     }
 
     @Test
@@ -183,6 +184,20 @@ class GlobalExceptionHandlerTest {
                 "Not allowed", Map.of("details", details, "retryAfterSeconds", 30)), request);
         assertThat(unchanged.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(unchanged.getBody()).doesNotContainKey("details").containsEntry("retryAfterSeconds", 30);
+    }
+
+    @Test
+    void planInUseReturns409WithOnlyTheProtectedErrorFields() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        mockMvc.perform(get("/test/plan-in-use").header(RequestIdFilter.HEADER_NAME, "plan-in-use"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error_code").value("PLAN_IN_USE"))
+                .andExpect(jsonPath("$.message").value("Không thể thay đổi quyền lợi của gói đang có người sử dụng."))
+                .andExpect(jsonPath("$.request_id").value("plan-in-use"))
+                .andExpect(jsonPath("$.details").doesNotExist())
+                .andExpect(result -> assertThat(mapper.readTree(result.getResponse().getContentAsByteArray()).size()).isEqualTo(3))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .doesNotContain("FORGED", "stackTrace", "exception"));
     }
 
     @Test
@@ -273,6 +288,13 @@ class GlobalExceptionHandlerTest {
 
     @RestController
     static class ErrorTestController {
+        @GetMapping("/test/plan-in-use")
+        void planInUse() {
+            throw new ApiException(ErrorCode.PLAN_IN_USE, HttpStatus.CONFLICT,
+                    "Không thể thay đổi quyền lợi của gói đang có người sử dụng.",
+                    Map.of("error_code", "FORGED", "message", "FORGED", "request_id", "FORGED"));
+        }
+
         @GetMapping("/test/invalid-card")
         void invalidCard() {
             throw new ApiException(ErrorCode.INVALID_CARD_CODE, HttpStatus.BAD_REQUEST,

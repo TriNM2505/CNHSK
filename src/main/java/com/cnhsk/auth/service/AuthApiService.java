@@ -186,11 +186,12 @@ public class AuthApiService implements AuthApi {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public PlanState lockPlan(long userId) {
+        // NO KEY UPDATE: không chặn FK key-share từ bảng khác; chỉ sửa cột gói
         requireWritableTransaction();
         requireValid(userId > 0);
         return jdbc.query("""
                 SELECT plan_code, plan_expires_at, free_usage::text, usage_reset_at
-                FROM auth.users WHERE id = :id FOR UPDATE
+                FROM auth.users WHERE id = :id FOR NO KEY UPDATE
                 """, Map.of("id", userId), (rs, row) -> new PlanState(rs.getString("plan_code"),
                         instant(rs.getTimestamp("plan_expires_at")), readUsage(rs.getString("free_usage")),
                         instant(rs.getTimestamp("usage_reset_at"))))

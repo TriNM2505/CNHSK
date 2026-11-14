@@ -4,12 +4,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.LockSupport;
 
 import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.auth.api.PlanState;
@@ -42,6 +48,7 @@ class AuthPlanApiIntegrationTest extends AbstractIntegrationTest {
     private long userId;
     private final List<Long> createdIds = new ArrayList<>();
     private final List<String> createdPlanCodes = new ArrayList<>();
+    private final List<Long> createdAuditIds = new ArrayList<>();
     private List<Map<String, Object>> plansBefore;
 
     @BeforeEach
@@ -55,6 +62,9 @@ class AuthPlanApiIntegrationTest extends AbstractIntegrationTest {
 
     @AfterEach
     void cleanUp() {
+        for (Long auditId : createdAuditIds) {
+            jdbc.update("DELETE FROM shared.audit_logs WHERE id = ? AND actor_id = ?", auditId, userId);
+        }
         users.deleteAllById(createdIds);
         for (String code : createdPlanCodes) {
             assertThat(jdbc.update("DELETE FROM learning.plans WHERE code = ?", code)).isEqualTo(1);
@@ -133,6 +143,101 @@ class AuthPlanApiIntegrationTest extends AbstractIntegrationTest {
             });
             assertThat(auth.readPlan(userId).orElseThrow().freeUsage()).containsEntry("TRANSLATE", 9);
         } finally { executor.shutdownNow(); }
+    }
+
+    @Test
+    void auditActorForeignKeyCompletesWhileThePlanLockIsStillHeld() throws Exception {
+        var pool = Executors.newFixedThreadPool(2);
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        try {
+            var holder = pool.submit(() -> new TransactionTemplate(manager).executeWithoutResult(status -> {
+                boundedLocks();
+                auth.lockPlan(userId);
+                locked.countDown();
+                await(release);
+            }));
+            await(locked);
+            var insertion = pool.submit(() -> new TransactionTemplate(manager).execute(status -> {
+                boundedLocks();
+                return jdbc.queryForObject("""
+                        INSERT INTO shared.audit_logs(actor_id, action, target_type, detail)
+                        VALUES (?, 'PLAN_UPDATED', 'PLAN', '{}'::jsonb) RETURNING id
+                        """, Long.class, userId);
+            }));
+            Long auditId = insertion.get(10, TimeUnit.SECONDS);
+            createdAuditIds.add(auditId);
+            assertThat(release.getCount()).isEqualTo(1);
+            assertThat(holder.isDone()).isFalse();
+            assertThat(jdbc.queryForObject("SELECT actor_id FROM shared.audit_logs WHERE id = ?", Long.class, auditId))
+                    .isEqualTo(userId);
+            release.countDown();
+            holder.get(15, TimeUnit.SECONDS);
+        } finally {
+            release.countDown();
+            pool.shutdownNow();
+            assertThat(pool.awaitTermination(20, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    @Test
+    void twoPlanLocksSerializeAndTheWaiterReadsTheCommittedUsage() throws Exception {
+        var pool = Executors.newFixedThreadPool(2);
+        CountDownLatch locked = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch contenderStarted = new CountDownLatch(1);
+        AtomicInteger holderPid = new AtomicInteger();
+        AtomicInteger contenderPid = new AtomicInteger();
+        try {
+            var holder = pool.submit(() -> new TransactionTemplate(manager).executeWithoutResult(status -> {
+                boundedLocks();
+                holderPid.set(jdbc.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                auth.lockPlan(userId);
+                auth.updateUsage(userId, Map.of("TRANSLATE", 6), Instant.EPOCH);
+                locked.countDown();
+                await(release);
+            }));
+            await(locked);
+            var contender = pool.submit(() -> new TransactionTemplate(manager).execute(status -> {
+                boundedLocks();
+                contenderPid.set(jdbc.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                contenderStarted.countDown();
+                return auth.lockPlan(userId);
+            }));
+            await(contenderStarted);
+            awaitBlockedBy(contenderPid.get(), holderPid.get());
+            assertThat(contender.isDone()).isFalse();
+            release.countDown();
+            holder.get(15, TimeUnit.SECONDS);
+            assertThat(contender.get(15, TimeUnit.SECONDS).freeUsage()).containsExactlyEntriesOf(Map.of("TRANSLATE", 6));
+        } finally {
+            release.countDown();
+            pool.shutdownNow();
+            assertThat(pool.awaitTermination(20, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    private void boundedLocks() {
+        jdbc.execute("SET LOCAL lock_timeout = '10s'");
+        jdbc.execute("SET LOCAL statement_timeout = '15s'");
+    }
+
+    private void awaitBlockedBy(int waitingPid, int blockingPid) {
+        long deadline = System.nanoTime() + Duration.ofSeconds(8).toNanos();
+        while (!Boolean.TRUE.equals(jdbc.queryForObject(
+                "SELECT ? = ANY(pg_blocking_pids(?))", Boolean.class, blockingPid, waitingPid))) {
+            if (System.nanoTime() >= deadline) throw new AssertionError("Second lockPlan did not wait for the first transaction.");
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
+        }
+    }
+
+    private static void await(CountDownLatch latch) {
+        try {
+            assertThat(latch.await(20, TimeUnit.SECONDS)).isTrue();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while coordinating plan locks.", exception);
+        }
     }
 
     @Test
