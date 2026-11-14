@@ -28,6 +28,8 @@ Mỗi game giao độc lập được (BE trước, FE sau). Nguồn FE: app 6 g
 | T-10 | FE Bắt Chữ | `game/games/char-catch/**` | FR-025, FR-028 · AT-19 | ⬜ |
 | T-11 | FE Thần Bút + Phi Đao (chỉ chế độ 60 s, ẩn chế độ màn — Q8); route `/play/brush-stroke`, `/play/flying-dart`, chuyển hướng `/arcade/*` | `game/games/{brush-stroke,flying-dart}/**`, router | FR-033, FR-034, FR-039, FR-040 · AT-17, AT-22 | ⬜ |
 
+**Chốt cho T-11 (task cuối):** siết GameRegistry: 0 định nghĩa cũng không khởi động.
+
 ## Thứ tự
 
 ```

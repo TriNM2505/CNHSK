@@ -77,3 +77,21 @@ Sau sửa fixture: tổng hợp ba test lookup + PracticeApiIntegrationTest + to
 Full verify sau sửa fixture: 4.963 test, F0/E0/S0, BUILD SUCCESS, 18:55 phút; không dùng ngoại lệ môi trường. JaCoCo LINE: 13.095 covered / 418 missed = 96,9067%; mọi coverage check đạt. Hai record API 22/22 dòng và ContentLookupImpl 35/35 dòng đều đạt 100% LINE. XML sinh từ chính lượt full verify cuối ngày 2026-11-14, không dùng báo cáo cũ.
 
 Self-check: đúng 7 file T-02 so với 19b3b6c; git diff --check PASS, UTF-8 không BOM, không TODO mới trong code. Không sửa utility/entity/repository/engine/PracticeApi, test cũ, dependency/config/contract/migration/frontend; không dùng Neon hay secrets. Lỗi compile và sáu lỗi fixture lần đầu đã ghi rõ, không hạ assertion, không skip. Trước bàn giao fetch main c7edc28: parent 19b3b6c đã là ancestor main, không có commit mới trên file content/API/007 liên quan ngoài phần nền đã kế thừa. Không rebase/merge main; PR vẫn ghi stacked trên #169 theo G0. Một conventional commit T-02, stage từng file, Draft PR.
+
+## 2026-11-14 · T-03 — G0 được leader duyệt
+
+Base `3fe9ab0beefd467b8c84f68b4036f4c92f6a8eb2`, nhánh `spec/007-t03`. Tái sử dụng worktree 007/T-02 sau khi kiểm sạch và commit đã nằm trong main; không thay nhánh/checkout 022 đang chờ review. Allowlist thực tế 11 file: 10 file G0 và tasks.md 008 được leader chỉ định thêm đúng một dòng ở task cuối.
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T03-01 | ANSWERED | Chuyển tiếp không có định nghĩa → registry rỗng, WARN một lần lúc khởi động: "chưa có GameDefinition nào". Có ít nhất một định nghĩa thì phải đủ 6 mã chung, không trùng/null; sai làm context không khởi động. Không placeholder production. T-04 trả danh sách rỗng, T-05 tạo ván trả 422 GAME_UNAVAILABLE khi chưa có định nghĩa. Task cuối 008 siết trường hợp 0 định nghĩa cũng không khởi động. |
+| Q-T03-02 | ANSWERED | validateAnswer trả void, chỉ kiểm luật bổ sung; vi phạm ném ApiException VALIDATION_FAILED/422 có sẵn. Đúng/sai do engine chấm từ snapshot; không nhận/trả điểm client gửi. |
+| Q-T03-03 | ANSWERED | item.rules().minDurationMs() là nguồn duy nhất, đặt theo từng lượt theo spec 008. Không thêm hằng số minDurationMs vào GameDefinition. Lượt quá nhanh xử lý theo suspicious ở T-06. |
+
+GameDefinition và GameContext chỉ dùng learning.api (GameCode, ContentLookup, PracticeApi.Skill/ServedItem); không import kiểu nội bộ learning.practice. Context do server dựng: userId null cho khách, hskLevel null khi chưa chọn; API vẫn nhận 1–9. Sáu định nghĩa giả chỉ ở src/test, không đăng ký component production. Registry sao chép danh sách đăng ký, trả danh sách bất biến đúng thứ tự GameCode; lookup mã chưa có trả Optional.empty để caller xử lý GAME_UNAVAILABLE.
+
+Spec/OpenAPI đồng bộ 4 → 6, bỏ enum riêng trong community.game và sửa PracticeApi.gameStats thành GameStatsApi.gameStats theo chốt T-01. T-01/T-02 ghi MERGED (#169/f77747d, #173/cc7b7ec). Không thay luật game 008, endpoint, mã lỗi, engine, cấu hình, dependency hay migration. Phần bỏ WebView/harness thực hiện ở T-09 theo phân công, không đổi trong T-03.
+
+Gate T-03: targeted GameDefinitionTest 15 + GameRegistryTest 11 + GameCodeTest 18 + ModuleBoundaryTest 9 = 53/53; hồi quy PracticeApiTest 36 + ContentLookupTest 10 = 46/46, tổng 99 test F0/E0/S0. Full Maven verify (Java 17, DEBUG=false, Docker): 5309 test, F0/E0/S0, BUILD SUCCESS, 19:28 phút. JaCoCo LINE 13684 covered / 434 missed = 96,9259%; package community.game 26 covered / 0 missed = 100%, mọi ngưỡng đạt. Không dùng ngoại lệ môi trường; không sửa test cũ.
+
+Self-check: đúng 11 file đã duyệt, UTF-8 không BOM, git diff --check sạch; không TODO mới trong code, không dependency/lockfile/config/endpoint/migration hay dữ liệu HSK thật. Fetch trước bàn giao origin/main = 00efcf8 (đã có #178 và #179), không đổi file nào trong allowlist hoặc GameCode/ContentLookup/PracticeApi so với base 3fe9ab0. Không rebase/merge main; một conventional commit, Draft PR để leader review.
