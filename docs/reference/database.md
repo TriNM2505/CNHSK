@@ -498,6 +498,8 @@ CREATE INDEX ix_att_user     ON attempts(user_id, kind, submitted_at DESC);
 CREATE INDEX ix_att_progress ON attempts(user_id, status) WHERE status = 'IN_PROGRESS';
 -- Spec 003 V4: active sessions and topic test history.
 CREATE INDEX ix_att_user_ref ON attempts(user_id, ref_type, ref_id, status);
+-- Spec 017 V8: loc bang xep hang chu de theo ky.
+CREATE INDEX ix_att_ref_rank ON attempts(kind, ref_id, submitted_at) WHERE status = 'SUBMITTED';
 -- Quiz chi tinh hang LAN DAU (UC-080) — unique chan lan 2 vao bang xep hang
 CREATE UNIQUE INDEX uq_quiz_first ON attempts(user_id, ref_id)
   WHERE kind = 'QUIZ' AND status = 'SUBMITTED';
@@ -1389,7 +1391,8 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 | V5 | `V5__knowledge_tree.sql` | 010 | Cây KID trên `knowledge_points`, vai trò nhãn, `questions.code`/`difficulty`, `knowledge_point_id` trên `topics`/`lexemes` (spec 010 §0.1) | ✅ Đã viết và kiểm thử 2026-11-04: 40 test AT-30 trên PostgreSQL Testcontainers; `ddl-auto: validate`. Chưa chạy Neon; leader chạy sau merge |
 | V6 | `V6__mastery_progress.sql` | 011 | `user_progress`: `mp_state`, `confidence`, `evidence_item_ids`, `target_type 'LEXEME'`, `ck_prog_mp`, partial index `ix_prog_kp_state` (spec 011 §0.1) | ✅ Đã viết và kiểm thử 2026-11-05: 31 test AT-03 trên PostgreSQL Testcontainers, gồm nâng cấp V5 → V6; `ddl-auto: validate`. Full `verify`: 2.363 test, không fail/error/skip; line coverage 96,35%. Chưa chạy Neon; leader thực hiện sau merge |
 | V7 | `V7__reference_items.sql` | 018 | Bảng `learning.reference_items`, CHECK và hai index theo spec §0.1; DDL thuần, quyền ngoài migration (§7.2) | T-01 đã kiểm: targeted 96/96, full verify 4.309 test xanh; đã merge 13/11; leader chạy Neon |
-| V8+ | — | spec sau | Leader cấp số khi spec cần đổi schema (012–015 không cần migration) | — |
+| V8 | `V8__leaderboard_index.sql` | 017 | Partial index `ix_att_ref_rank` trên `learning.attempts(kind, ref_id, submitted_at)` với `status = 'SUBMITTED'` | Leader cấp lại số V8 cho 017/T-03 ngày 14/11, thay quyết định V9 trước đó; kiểm thử trên Testcontainers, chưa chạy Neon |
+| V9 | — | 023 | `app_settings` | Leader dành riêng cho Spec 023, chưa triển khai; không thuộc 017/T-03 |
 
 > `V3__content_and_plans`, `V4__funnel_and_ledger`, `V5__video_practice` của bản trước **đã gộp vào V1**
 > (V1 chưa chạy ở đâu nên gộp được) — trừ hai bảng video luyện tập, chờ feature 1.6 vào scope.
