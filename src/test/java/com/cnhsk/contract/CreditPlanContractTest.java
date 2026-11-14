@@ -52,7 +52,9 @@ class CreditPlanContractTest extends AbstractIntegrationTest {
     private static final Set<String> OPERATIONS = Set.of("post /api/credits/redeem", "get /api/me/credits",
             "get /api/me/credit-transactions", "post /api/admin/card-batches", "get /api/admin/card-batches",
             "get /api/admin/card-batches/{batchId}", "patch /api/admin/card-batches/{batchId}/void",
-            "get /api/admin/plans", "put /api/admin/plans/{code}");
+            "get /api/admin/plans", "put /api/admin/plans/{code}",
+            "get /api/admin/credit-transactions", "get /api/admin/credit-transactions/export",
+            "get /api/admin/credit-transactions/reconciliation");
     private static final Set<String> VIEW_KEYS = Set.of("code", "exists", "name", "description", "durationDays", "price",
             "benefits", "isActive", "activeUsers");
 
@@ -106,12 +108,12 @@ class CreditPlanContractTest extends AbstractIntegrationTest {
         }
     }
 
-    @Test void exactNineRegisteredCreditOperationsAndStrictPlanSchemasMatchTheLockedContract() throws Exception {
+    @Test void registeredCreditOperationsAndStrictPlanSchemasMatchTheLockedContract() throws Exception {
         JsonNode expected = new ObjectMapper(new YAMLFactory()).readTree(Files.readString(CONTRACT));
         JsonNode actual = mapper.readTree(mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsByteArray());
-        Map<String, JsonNode> expectedOperations = operations(expected, true);
-        Map<String, JsonNode> actualOperations = operations(actual, false);
+        Map<String, JsonNode> expectedOperations = operations(expected);
+        Map<String, JsonNode> actualOperations = operations(actual);
         Set<String> registered = new LinkedHashSet<>();
         handlers.getHandlerMethods().forEach((mapping, handler) -> {
             if (handler.getBeanType().getPackageName().startsWith("com.cnhsk.learning.credit")) {
@@ -294,10 +296,10 @@ class CreditPlanContractTest extends AbstractIntegrationTest {
         }
     }
 
-    private static Map<String, JsonNode> operations(JsonNode document, boolean locked) {
+    private static Map<String, JsonNode> operations(JsonNode document) {
         Map<String, JsonNode> result = new LinkedHashMap<>();
         document.path("paths").fields().forEachRemaining(path -> path.getValue().fields().forEachRemaining(method -> {
-            if (METHODS.contains(method.getKey()) && (!locked || !path.getKey().startsWith("/api/admin/credit-transactions")))
+            if (METHODS.contains(method.getKey()))
                 result.put(method.getKey() + " " + path.getKey(), method.getValue());
         }));
         return result;
