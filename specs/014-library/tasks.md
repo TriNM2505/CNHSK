@@ -1,9 +1,9 @@
 # Tasks: Thư viện tra cứu, sổ tay, flashcard và dịch câu — Spec #014
 
-> Nguồn: [`spec.md`](spec.md) v1.0.0 · [`contracts/openapi-library.yaml`](contracts/openapi-library.yaml)
+> Nguồn: [`spec.md`](spec.md) v1.1.0 · [`contracts/openapi-library.yaml`](contracts/openapi-library.yaml) · phụ lục [`contracts/openapi-library-v1-1.yaml`](contracts/openapi-library-v1-1.yaml)
 > ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸ hoãn · 🔴 chặn
 
-**Tổng: 15 task**, ≤ 4 giờ/task, một task một nhánh `spec/014-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
+**Tổng: 18 task** (15 bản 1.0 + 3 phụ lục v1.1), ≤ 4 giờ/task, một task một nhánh `spec/014-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
 Đường dẫn: `…/` = `src/main/java/com/cnhsk/`; `t/` = `src/test/java/com/cnhsk/`; `web/` = `cnhsk-web/src/`.
 **Điều kiện bắt đầu:** spec 014 đã `APPROVED` 2026-11-03 — theo thứ tự luồng trong `workflow-phu-thuoc-task-010-015.md` (plan `261102-2104`). **Thứ tự: FE trước, BE sau.** **Không commit `ANTHROPIC_API_KEY`; test dịch dùng stub, không gọi Claude thật.**
 File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
@@ -38,6 +38,17 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 |---|---|---|---|---|
 | T-15 | FE SCR-024…029 gọi backend thật; sửa lệch contract (lệch thì dừng báo leader); test hợp đồng `/v3/api-docs` so `openapi-library.yaml` (path + status) | `web/features/library/**`, `t/contract/LibraryContractTest.java` | §13 · AT-23…AT-29 chạy với API thật | ✅ — AT-23…28 đạt trên Chrome với Vite/API thật + Testcontainers trong 28,06 phút; AT-29 đủ 15 path/22 operation/status; contract 41/41, targeted 437/437, verify 4.161/4.161, JaCoCo LINE 96,6882%; Vitest 387/387 và full 2.387/2.387, lint/build PASS; 20 file, Fix 1 launcher; process/container và listener 8080/5173 đã dọn; Draft PR #136, chờ leader merge |
 
+## Đợt 4 · Phụ lục v1.1 — bộ thẻ công khai, sao chép, menu Thư viện (leader thêm 2026-11-14, spec §16)
+
+Người code: Xuân Huy. Không migration. Báo cáo bộ thẻ ở phía 009 (T-25/T-26, Quốc Huy) cần T-16 đã merge.
+
+| ID | Task | File | Spec · AT | TT |
+|---|---|---|---|---|
+| T-16 | BE: bật/tắt công khai, xoá bộ tắt công khai, danh sách + chi tiết công khai, sao chép; `learning.api.PublicDeckApi`; mã `DECK_TOO_FEW_CARDS`, `PUBLIC_DECK_NOT_FOUND` (trước `INTERNAL_ERROR`); matcher `permitAll` `GET /api/public/flashcard-decks/**`; gộp `openapi-library-v1-1.yaml` vào file gốc (DeckSummary thêm `isPublic`, `sharedAt`), xoá file phụ lục, nâng số path/operation trong `LibraryContractTest` | `…/learning/library/{DeckSharingService,PublicDeckQueryService}.java`, `…/library/web/*`, `…/learning/api/PublicDeckApi.java`, `ErrorCode.java`, `SecurityConfig.java`, `specs/014-library/contracts/*` + test | FR-029…FR-032, FR-034 · AT-30…AT-38 | ⬜ |
+| T-17 | FE: công tắc chia sẻ + hộp xác nhận ở SCR-028; SCR-052 `/library/public-decks`; SCR-029 chế độ công khai `/library/public-decks/:id` (sao chép, báo cáo); route `by-role`; `SCREEN_NAMES` SCR-052 + `AssistantPromptBuilderTest` | `web/features/library/**`, `web/app/routeAccess.ts`, `screenRegistry.ts`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-033, FR-035, FR-036 · AT-39 | ⬜ |
+| T-18 | Menu Thư viện 5 mục (desktop nhóm thanh bên; mobile trong "Thêm" của 019/T-06) | `web/shared/layout/{navigation.ts,LearnerLayout.tsx}` + test | FR-037 · AT-40 | ⬜ |
+
+**Thứ tự đợt 4:** T-16 → T-17; T-18 sau khi 019/T-06 (menu "Thêm") đã merge.
 ## Thứ tự thực thi
 
 ```
@@ -63,4 +74,4 @@ T-13 → T-14
 
 **Bốn task rủi ro cao:** T-14 (trừ/hoàn lượt đúng, không lộ nội dung, chống prompt injection) · T-06 (giới hạn khách theo IP, tra pinyin đúng) · T-08 (403 dữ liệu riêng, giới hạn) · T-12 (đúng FSRS, không đổi mastery).
 
-**Hiện trạng: 15/15 task xong.**
+**Hiện trạng: 15/15 task bản 1.0 xong; phụ lục v1.1 T-16…T-18 chưa làm.**

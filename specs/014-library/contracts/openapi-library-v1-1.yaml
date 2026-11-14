@@ -1,0 +1,180 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Library — phụ lục v1.1 (bộ thẻ công khai, sao chép)
+  version: 1.1.0
+  description: >
+    Hợp đồng phụ lục spec 014 §16. Tách khỏi openapi-library.yaml vì LibraryContractTest khoá file gốc
+    (15 path, 22 operation, so hai chiều với /v3/api-docs). Task cài đặt (tasks.md T-16) gộp phần này vào file gốc
+    và nâng số path/operation trong test cùng một PR.
+    Thay đổi trên schema có sẵn: DeckSummary thêm isPublic (boolean) và sharedAt (date-time | null), cả hai bắt buộc.
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      description: Bắt buộc khi xác thực bằng cookie (spec 001)
+      schema: { type: string }
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+    VisibilityRequest:
+      type: object
+      required: [isPublic]
+      properties:
+        isPublic: { type: boolean }
+    DeckSummaryV11:
+      type: object
+      description: DeckSummary của file gốc + hai trường v1.1 (FR-029)
+      required: [id, name, cardCount, dueCount, createdAt, isPublic, sharedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        cardCount: { type: integer }
+        dueCount: { type: integer }
+        createdAt: { type: string, format: date-time }
+        isPublic: { type: boolean }
+        sharedAt: { type: [string, 'null'], format: date-time, description: Lần bật công khai gần nhất }
+    PublicAuthor:
+      type: object
+      required: [id, displayName, avatarUrl]
+      properties:
+        id: { type: integer, format: int64 }
+        displayName: { type: [string, 'null'] }
+        avatarUrl: { type: [string, 'null'] }
+    PublicDeckSummary:
+      type: object
+      required: [id, name, description, cardCount, author, sharedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        cardCount: { type: integer }
+        author: { $ref: '#/components/schemas/PublicAuthor' }
+        sharedAt: { type: string, format: date-time }
+    PublicDeckPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/PublicDeckSummary' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    PublicCard:
+      type: object
+      description: Chỉ nội dung — không lịch ôn, không id thẻ (FR-031)
+      required: [front, back]
+      properties:
+        front: { type: string }
+        back: { type: string }
+    PublicDeckDetail:
+      allOf:
+        - $ref: '#/components/schemas/PublicDeckSummary'
+        - type: object
+          required: [cards]
+          properties:
+            cards: { type: array, maxItems: 500, items: { $ref: '#/components/schemas/PublicCard' } }
+  responses:
+    Error:
+      description: Lỗi theo spec 014 §5
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+
+paths:
+  /api/flashcard-decks/{id}/visibility:
+    put:
+      tags: [flashcards]
+      operationId: setDeckVisibility
+      summary: Bật/tắt công khai bộ của mình (FR-029)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/VisibilityRequest' } } }
+      responses:
+        '200':
+          description: Trạng thái mới
+          content: { application/json: { schema: { $ref: '#/components/schemas/DeckSummaryV11' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/flashcard-decks/{id}/copy:
+    post:
+      tags: [flashcards]
+      operationId: copyPublicDeck
+      summary: Sao chép bộ công khai về thư viện của tôi (FR-032)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '201':
+          description: Bộ mới (DeckDetail của file gốc)
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/public/flashcard-decks:
+    get:
+      tags: [public-decks]
+      operationId: listPublicDecks
+      summary: Danh sách bộ thẻ công khai SCR-052 (FR-031)
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema: { type: string, minLength: 1, maxLength: 100 }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Trang bộ công khai
+          content: { application/json: { schema: { $ref: '#/components/schemas/PublicDeckPage' } } }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+
+  /api/public/flashcard-decks/{id}:
+    get:
+      tags: [public-decks]
+      operationId: getPublicDeck
+      summary: Xem bộ công khai, chỉ đọc (FR-031)
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Bộ + nội dung thẻ
+          content: { application/json: { schema: { $ref: '#/components/schemas/PublicDeckDetail' } } }
+        '404': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }

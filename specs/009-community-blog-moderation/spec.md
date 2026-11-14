@@ -8,7 +8,7 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.1.0 — phụ lục §16 hồ sơ cộng đồng + theo dõi (SCR-042, UC-074) |
+| **Version** | 1.1.0 — phụ lục §16 hồ sơ cộng đồng + theo dõi (SCR-042, UC-074) + báo cáo bộ thẻ công khai (§16.5) |
 | **Status** | APPROVED — hợp đồng API đã duyệt, được code |
 | **Approved by** | Leader (2026-10-29; phụ lục v1.1 2026-11-14) |
 | **Locked on** | 2026-10-29 — đổi hợp đồng phải sửa OpenAPI + spec trước, leader duyệt lại |
@@ -190,7 +190,7 @@ script trong bài/bình luận chạy trên máy `MODERATOR`, và sửa bài đ�
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-032** | `POST /api/community/reports` `{targetType, targetId, reason, detail}` SHALL kiểm `targetType` ∈ `POST`·`COMMENT`, `reason` theo FR-034, `detail` ≤ 1 000 ký tự (bắt buộc khi `reason = 'OTHER'`); sai → **422** `VALIDATION_FAILED` |
+| **FR-032** | `POST /api/community/reports` `{targetType, targetId, reason, detail}` SHALL kiểm `targetType` ∈ `POST`·`COMMENT` (v1.1 thêm `COLLECTION`, FR-073), `reason` theo FR-034, `detail` ≤ 1 000 ký tự (bắt buộc khi `reason = 'OTHER'`); sai → **422** `VALIDATION_FAILED` |
 | **FR-033** | THE system SHALL chỉ nhận báo cáo nội dung **đang công khai**: bài `APPROVED`; bình luận `VISIBLE` thuộc bài `APPROVED`. Khác hoặc không tồn tại → **404** `TARGET_NOT_FOUND` |
 | **FR-034** | Lý do báo cáo SHALL là một trong: `SPAM` (Spam, quảng cáo) · `OFFENSIVE` (Ngôn từ xúc phạm) · `HARASSMENT` (Quấy rối, công kích cá nhân) · `COPYRIGHT` (Vi phạm bản quyền, chép đề thi) · `OTHER` (Khác — ghi rõ) |
 | **FR-035** | Báo cáo nội dung của chính mình → **422** `SELF_REPORT` (BR-075-4). Quá **20 báo cáo mỗi ngày giờ Việt Nam** (đếm `reactions` `REPORT` của người gọi) → **429** `TOO_MANY_REQUESTS` (BR-075-8) |
@@ -460,7 +460,8 @@ Error (lỗi tải khác danh sách rỗng), nút đang gửi bị khoá.
 
 ## 13 · API Contract
 
-[`contracts/openapi-community.yaml`](contracts/openapi-community.yaml)
+[`contracts/openapi-community.yaml`](contracts/openapi-community.yaml) · phụ lục v1.1: [`contracts/openapi-community-v1-1.yaml`](contracts/openapi-community-v1-1.yaml)
+(tách riêng vì `CommunityContractTest` khoá file gốc; T-24 gộp vào file gốc khi cài đặt)
 
 | Method · Path | Request | Thành công | Lỗi chính |
 |---|---|---|---|
@@ -619,3 +620,22 @@ Leader chốt 2026-11-14 (plan đợt hoàn thiện, phase 12). Người code: Q
 | R1 | Trần 1 000 có thể vượt vài dòng khi request song song | Chấp nhận — trần chống bot, không phải luật tiền; không cần khoá |
 | R2 | Không có chặn người dùng (UC-074 A3, `NO_BLOCK_FEATURE`) | Chấp nhận — báo cáo bài (UC-075) vẫn có; ghi để trả lời hội đồng |
 | R3 | Người dùng bị xoá cứng để lại dòng `FOLLOW` mồ côi (`FOLLOWEE_DELETED`) | Không xảy ra — hệ thống chỉ khoá tài khoản, không xoá cứng (spec 001); dòng của người bị khoá đã bị lọc ở FR-065/FR-070 |
+
+### 16.5 · Báo cáo bộ thẻ công khai (FR-073…FR-076) — phối hợp spec 014 §16
+
+Leader chốt 2026-11-14 (014 Q7): bộ thẻ công khai ngay khi chia sẻ, vi phạm xử lý bằng báo cáo. `reactions` và `moderation_cases`
+đã cho `target_type='COLLECTION'` (V2) — không migration. `community` chỉ gọi `learning.api.PublicDeckApi` (014 FR-034), không đọc bảng `learning`.
+
+| Mã | Yêu cầu |
+|---|---|
+| **FR-073** | FR-032 SHALL nhận thêm `targetType = 'COLLECTION'`; FR-033: bộ thẻ hợp lệ khi `PublicDeckApi.findPublic(targetId)` có giá trị, ngược lại **404** `TARGET_NOT_FOUND`; FR-035 `SELF_REPORT` khi `ownerId` = người gọi. FR-034…FR-038 (lý do, giới hạn 20/ngày, upsert hồ sơ, không tự ẩn, response) áp dụng nguyên |
+| **FR-074** | FR-046 `targetPreview` của bộ thẻ = 120 ký tự đầu của tên bộ; FR-047 `target` của bộ thẻ = `ReportedDeck {id, name, description, isPublic, cardCount, author {id, displayName}, cards: ≤ 20 {front, back}}` lấy từ `PublicDeckApi.moderationView` (mọi trạng thái công khai); bộ không còn tồn tại → `target = null`, hồ sơ vẫn xem và đóng được |
+| **FR-075** | FR-048: `commentAction` phải vắng mặt với bộ thẻ; FR-049 `SELF_MODERATION` khi chủ bộ = người gọi; FR-050 `ACTION` với bộ thẻ → gọi `PublicDeckApi.unshare(targetId)` **trong cùng transaction** đóng hồ sơ (một DB, một transaction); bộ đã riêng tư → không ghi lại, hồ sơ vẫn đóng; `REJECT` không đổi bộ. FR-051 ghi `audit_logs` như cũ, `detail.targetType = 'COLLECTION'` |
+| **FR-076** | FE SCR-062/063 SHALL hiển thị hồ sơ bộ thẻ: nhãn "Bộ thẻ", tên, mô tả, trạng thái công khai, tối đa 20 thẻ (mặt trước/sau, chỉ text — FR-005); quyết định "Ẩn bộ thẻ" = `ACTION`, không có lựa chọn ẩn/xoá như bình luận |
+
+| # | FR | G / W / T |
+|---|---|---|
+| AT-62 | FR-073 | W báo cáo bộ công khai · T 201, hồ sơ `PENDING` `target_type='COLLECTION'`; bộ riêng · T 404 `TARGET_NOT_FOUND`; bộ của mình · T 422 `SELF_REPORT`; lần 2 · T 409 |
+| AT-63 | FR-074, FR-075 | W `MODERATOR` xem hồ sơ · T `target` có ≤ 20 thẻ; `ACTION` · T bộ `is_public=false`, rời danh sách công khai 014, hồ sơ `ACTIONED`, `audit_logs`; `ACTION` kèm `commentAction` · T 422; chủ bộ là `MODERATOR` xử lý · T 403 `SELF_MODERATION` |
+| AT-64 | FR-075 | G `unshare` ném lỗi · W `ACTION` · T rollback cả hồ sơ (vẫn `PENDING`) |
+| AT-65 | FR-076 (FE) | Vitest: hồ sơ bộ thẻ hiện nhãn và thẻ dạng text; không có lựa chọn ẩn/xoá bình luận |

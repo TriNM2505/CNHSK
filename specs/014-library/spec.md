@@ -2,15 +2,15 @@
 
 **Feature:** `014-library`
 **Feature tree:** 4.1 Tra cứu và dịch · 4.2 Sổ tay · 4.3 Flashcard · **Module:** `learning` (package `learning.library`)
-**Use case:** UC-056 · UC-057 · UC-058 · UC-059 · UC-060 · UC-061 · UC-062 · UC-063 · UC-064 · UC-065 · UC-066 · UC-067 · **Actor:** `GUEST`, `LEARNER`
-**Màn hình:** SCR-024 Dictionary Search · SCR-025 Dictionary Detail · SCR-026 Translation · SCR-027 Personal Notes · SCR-028 Flashcard Deck List · SCR-029 Flashcard Deck Detail
+**Use case:** UC-056 · UC-057 · UC-058 · UC-059 · UC-060 · UC-061 · UC-062 · UC-063 · UC-064 · UC-065 · UC-066 · UC-067 · UC-068 (phụ lục v1.1) · **Actor:** `GUEST`, `LEARNER`
+**Màn hình:** SCR-024 Dictionary Search · SCR-025 Dictionary Detail · SCR-026 Translation · SCR-027 Personal Notes · SCR-028 Flashcard Deck List · SCR-029 Flashcard Deck Detail · SCR-052 Public Flashcard Deck List (phụ lục v1.1)
 **Scope:** MVP · **Priority:** P1
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 — phụ lục §16 bộ thẻ công khai, sao chép, báo cáo, menu Thư viện |
 | **Status** | APPROVED — được code theo `tasks.md` |
-| **Approved by** | Leader (RFC đợt cuối R1–R12 đã đồng thuận) |
+| **Approved by** | Leader (RFC đợt cuối R1–R12 đã đồng thuận; phụ lục v1.1 2026-11-14) |
 | **Locked on** | 2026-11-03 |
 | **Phụ thuộc** | Spec 001 · Spec 002 (`PinyinUtils`, `TextNormalizer`) · Spec 003 (`topics`, `topic_items`) · Spec 004/006 (dữ liệu `extra` của GRAMMAR/CHAR) · **Spec 011** (`FsrsScheduler`, FR-019) · **Spec 013** (`EntitlementApi`, `INSUFFICIENT_CREDITS`) |
 | **Quyết định chung** | `questions.md` mục 2026-11-03 (Q1–Q6, T1–T2, D) · plan `261102-2104` phase 6 |
@@ -27,7 +27,8 @@
 | Chi tiết mục từ: âm, Hán Việt, nghĩa, cấp, bộ thủ, số nét, nét viết, ví dụ, chữ thành phần | Báo thiếu dữ liệu (BR-061-4) |
 | Dịch Trung↔Việt bằng Claude, trừ lượt `TRANSLATE`, cache, tách từ bấm xem nghĩa (Q2, T2) | Lịch sử dịch theo người dùng (T1) |
 | Sổ tay: tạo/sửa/xoá mềm/tìm/thẻ, thùng rác khôi phục 30 ngày (Q6) | Xoá hẳn tự động sau 30 ngày |
-| Bộ flashcard: tạo trống hoặc từ chủ đề 003 (Q5), thêm/sửa/xoá thẻ, ôn FSRS 4 mức (Q1) | Chia sẻ/sao chép bộ công khai (UC-068, V2), báo cáo bộ công khai |
+| Bộ flashcard: tạo trống hoặc từ chủ đề 003 (Q5), thêm/sửa/xoá thẻ, ôn FSRS 4 mức (Q1) | Hàng đợi duyệt bộ thẻ trước khi công khai (UC-068 `NO_MODERATION_FOR_DECKS` — chọn công khai ngay + báo cáo sau) |
+| **v1.1 (§16):** chia sẻ/thu hồi bộ, danh sách + xem bộ công khai SCR-052, sao chép bộ, báo cáo qua 009, menu Thư viện | |
 
 **Không migration.** Bảng dùng: `lexemes`, `lexeme_links`, `collections`, `collection_items`, `user_progress` (`FLASHCARD`), `topics`, `topic_items`.
 
@@ -224,6 +225,8 @@ Không migration. Ví dụ thẻ tạo từ mục từ 家人: `collection_items
 | `TOPIC_NOT_FOUND` | 404 | Chủ đề không có (mã của 003) | FR-013 |
 | `INSUFFICIENT_CREDITS` | 402 | Hết lượt + hết điểm (mã của 013) | FR-020 |
 | `TRANSLATE_UNAVAILABLE` | 503 | Claude lỗi/timeout/thiếu khoá; lượt đã hoàn | FR-020 |
+| `DECK_TOO_FEW_CARDS` *(mới, v1.1)* | 422 | Chia sẻ bộ có < 5 thẻ chưa xoá | FR-029 |
+| `PUBLIC_DECK_NOT_FOUND` *(mới, v1.1)* | 404 | Bộ không tồn tại, riêng tư, đã xoá, không phải bộ thẻ hoặc chủ bộ bị khoá — cùng một response | FR-031, FR-032 |
 
 **Mã mới trong `ErrorCode.java`** (theo thứ tự merge thực tế — luật L2; ngay trước `INTERNAL_ERROR`): T-08 thêm `COLLECTION_NOT_OWNED`, `LIBRARY_LIMIT_REACHED`, `NOTE_DUPLICATE` sau các mã đã merge, gồm `LEXEME_NOT_FOUND`, `QUESTION_NOT_FOUND`. Các task sau thêm `NOTE_NOT_RESTORABLE`, `CARD_DUPLICATE`, `TRANSLATE_UNAVAILABLE`.
 Mục từ là dữ liệu công khai → 404; sổ tay, bộ, thẻ là dữ liệu riêng → 403 (`BUS-01`, V5).
@@ -334,6 +337,8 @@ Mục từ là dữ liệu công khai → 404; sổ tay, bộ, thẻ là dữ li
 | SCR-027 Personal Notes | `/library/notes` | `LEARNER` | `/api/notes/**` | SCR-027 |
 | SCR-028 Flashcard Deck List | `/library/decks` | `LEARNER` | `GET`, `POST /api/flashcard-decks`, `GET /api/topics` (003) | SCR-028 |
 | SCR-029 Flashcard Deck Detail | `/library/decks/:id` | `LEARNER` | `/api/flashcard-decks/{id}/**`, `/api/flashcards/{cardId}/review` | SCR-029 |
+| SCR-052 Public Flashcard Deck List *(v1.1)* | `/library/public-decks` | public (`by-role`) | `GET /api/public/flashcard-decks` | SCR-052 · §16 |
+| SCR-029 chế độ công khai *(v1.1)* | `/library/public-decks/:id` | public (`by-role`) | `GET /api/public/flashcard-decks/{id}`, `POST /api/flashcard-decks/{id}/copy`, `POST /api/community/reports` | SCR-029 · §16 |
 
 | Open issue (screen-fields) | Chốt |
 |---|---|
@@ -344,7 +349,7 @@ Mục từ là dữ liệu công khai → 404; sổ tay, bộ, thẻ là dữ li
 | SCR-026: thời hạn lịch sử dịch | Không lưu (T1) |
 | SCR-026: nhà cung cấp | Claude (T2) |
 | SCR-027: thùng rác | Q6 |
-| SCR-029: báo cáo/kiểm duyệt bộ công khai | V2 |
+| SCR-029: báo cáo/kiểm duyệt bộ công khai | v1.1 §16 — báo cáo qua 009 |
 | SCR-029: API sửa/xoá thẻ | FR-016 |
 
 Trạng thái mỗi màn: Loading · Empty · Error ("Thử lại").
@@ -353,7 +358,8 @@ Trạng thái mỗi màn: Loading · Empty · Error ("Thử lại").
 
 ## 13 · API Contract
 
-[`contracts/openapi-library.yaml`](contracts/openapi-library.yaml)
+[`contracts/openapi-library.yaml`](contracts/openapi-library.yaml) · phụ lục v1.1: [`contracts/openapi-library-v1-1.yaml`](contracts/openapi-library-v1-1.yaml)
+(tách riêng vì `LibraryContractTest` khoá file gốc 15 path/22 operation; T-16 gộp vào file gốc và nâng số trong test cùng PR)
 
 | Method · Path | Thành công | Lỗi |
 |---|---|---|
@@ -372,6 +378,10 @@ Trạng thái mỗi màn: Loading · Empty · Error ("Thử lại").
 | `GET /api/flashcard-decks/{id}/due` | 200 `Card[]` | 401, 403 |
 | `POST /api/flashcards/{cardId}/review` | 200 `ReviewResult` | 401, 403, 422, 429 |
 | `POST /api/translate` | 200 `TranslateResult` | 401, 402, 403, 422, 503 |
+| `PUT /api/flashcard-decks/{id}/visibility` *(v1.1)* | 200 `DeckSummary` | 401, 403, 422 |
+| `POST /api/flashcard-decks/{id}/copy` *(v1.1)* | 201 `DeckDetail` | 401, 403, 404, 422 |
+| `GET /api/public/flashcard-decks` *(v1.1)* | 200 `PublicDeckPage` | 422, 429 |
+| `GET /api/public/flashcard-decks/{id}` *(v1.1)* | 200 `PublicDeckDetail` | 404, 429 |
 
 ---
 
@@ -414,3 +424,61 @@ Trạng thái mỗi màn: Loading · Empty · Error ("Thử lại").
 ## 15 · Gói việc
 
 [`tasks.md`](tasks.md)
+
+---
+
+## 16 · Phụ lục v1.1 — Bộ thẻ công khai, sao chép, báo cáo, menu Thư viện (UC-068, SCR-052)
+
+Leader chốt 2026-11-14 (plan đợt hoàn thiện, phase 9). Người code: Xuân Huy (014), Quốc Huy (phần báo cáo ở 009 §16.5).
+**Không migration**: `collections.is_public`, `shared_at`, `copied_from`, `ck_coll_share`, `ix_coll_public` có sẵn ở V1.
+Chính sách: **công khai ngay, báo cáo sau** (BR-068-8) — không có hàng đợi duyệt bộ thẻ.
+
+### 16.1 · Functional Requirements (FR-029…FR-037)
+
+| Mã | Yêu cầu |
+|---|---|
+| **FR-029** | `PUT /api/flashcard-decks/{id}/visibility` `{isPublic: boolean}` (`LEARNER`) SHALL: không phải chủ/không tồn tại/đã xoá → **403** `COLLECTION_NOT_OWNED`; `isPublic=true` khi bộ có < 5 thẻ chưa xoá → **422** `DECK_TOO_FEW_CARDS` (BR-068-3); bật → `is_public=true`, `shared_at=now()` nếu trước đó chưa công khai (đang công khai → giữ nguyên, idempotent); tắt → `is_public=false` (giữ `shared_at`). Trả **200** `DeckSummary` có `isPublic`, `sharedAt`. `POST`/`PATCH` bộ (FR-013/FR-014) vẫn bỏ qua mọi trường công khai trong body (BR-067-4/5) |
+| **FR-030** | Xoá bộ (FR-014 `DELETE`) SHALL đặt luôn `is_public=false`; mọi truy vấn công khai lọc `kind='FLASHCARD_DECK' AND is_public AND deleted_at IS NULL` và loại chủ bộ thuộc `AuthApi.bannedUserIds()` — **chỉ** bộ thẻ được công khai, sổ tay không bao giờ (rủi ro lộ ghi chú riêng) |
+| **FR-031** | `GET /api/public/flashcard-decks?q&page&size` (`GUEST` + `LEARNER`) SHALL trả trang `PublicDeckPage {items:[{id, name, description, cardCount, author{id, displayName, avatarUrl}, sharedAt}], page, size, totalElements}`; `q` (1–100 ký tự, tuỳ chọn) lọc tên không phân biệt hoa thường; sắp `shared_at` giảm dần rồi `id` giảm dần; `cardCount` đếm thẻ chưa xoá bằng một truy vấn `GROUP BY` cho cả trang; tác giả lấy theo lô một lần `AuthApi.publicProfiles`. `GET /api/public/flashcard-decks/{id}` trả `PublicDeckDetail` = phần tử trên + `cards:[{front, back}]` theo `order_index` — **không** có lịch ôn, `lexemeId`, id thẻ hay dữ liệu FSRS của chủ bộ; không đủ điều kiện FR-030 → **404** `PUBLIC_DECK_NOT_FOUND`. Giới hạn khách/người học như tra cứu (FR-002, chung bộ đếm) |
+| **FR-032** | `POST /api/flashcard-decks/{id}/copy` (`LEARNER`) SHALL: nguồn không đủ điều kiện FR-030 → **404** `PUBLIC_DECK_NOT_FOUND` (UC-067 `SOURCE_DECK_NOT_PUBLIC`, không lộ bộ riêng tồn tại); người gọi đã có 50 bộ → **422** `LIBRARY_LIMIT_REACHED` `kind: DECKS`; trong **một transaction** tạo bộ mới của người gọi (`name`, `description` chép từ nguồn, `is_public=false`, `copied_from = id nguồn`) và chép thẻ chưa xoá (`title`, `content`, `lexeme_id`, `order_index`) — **không** tạo dòng `user_progress` nào (thẻ chép là thẻ mới, `COPIED_REVIEW_SCHEDULE`, BR-067-7). Trả **201** `DeckDetail`. Sao chép bộ của chính mình được phép. Bản sao độc lập với bộ gốc (BR-068-6) |
+| **FR-033** | Nội dung bộ/thẻ công khai SHALL hiển thị bằng text node của React, không HTML (BR-068-7, `XSS_IN_CARD_CONTENT`) |
+| **FR-034** | `learning.api.PublicDeckApi` cho 009 (module `community` không đọc bảng `learning`, AC-03): `Optional<PublicDeckRef> findPublic(long deckId)` (đủ điều kiện FR-030 → `{deckId, ownerId, name}`); `Optional<DeckModerationView> moderationView(long deckId)` (mọi trạng thái trừ không tồn tại/không phải bộ thẻ: `{deckId, ownerId, name, description, isPublic, cardCount, cards: tối đa 20 {front, back}}`); `boolean unshare(long deckId)` (đặt `is_public=false`, trả `true` nếu đã đổi; dùng cho quyết định `ACTION` của MODERATOR). Chạy trong transaction của bên gọi |
+| **FR-035** | SCR-028 SHALL có công tắc "Chia sẻ lên cộng đồng" cho từng bộ; bật lần đầu → hộp xác nhận **trong trang** phải tích "Bộ thẻ không chép đề thi có bản quyền và không chứa thông tin cá nhân" mới gửi (UC-068 `COPYRIGHT_CONTENT`, `PII_IN_DECK`); hiện nhãn "Đang công khai"; < 5 thẻ → công tắc khoá kèm lý do |
+| **FR-036** | SCR-052 `/library/public-decks` (layout `by-role`, `public` cho khách) SHALL: danh sách thẻ bộ (tên, mô tả, số thẻ, người tạo, ngày chia sẻ), ô tìm theo tên, phân trang, rỗng → "Chưa có bộ thẻ công khai"; bấm bộ → SCR-029 chế độ công khai `/library/public-decks/:id` (chỉ đọc, xem mặt trước/sau) với nút "Sao chép về thư viện của tôi" (khách → `/login` giữ đường quay lại; thành công → SCR-029 bộ mới `/library/decks/:newId`; 422 giới hạn → thông báo, không sao chép một phần) và nút "Báo cáo" (`LEARNER`, không phải chủ bộ) dùng `POST /api/community/reports` `targetType: COLLECTION` (009 §16.5). Thêm `SCR-052` "Bộ thẻ cộng đồng" vào `AssistantPromptBuilder.SCREEN_NAMES` và chạy `AssistantPromptBuilderTest` |
+| **FR-037** | Menu **Thư viện** của người học (desktop: một nhóm trong thanh bên; mobile: trong menu "Thêm" của 019/T-06) SHALL gồm đúng 5 mục: Tra từ `/dictionary` · Dịch `/translate` · Sổ tay `/library/notes` · Bộ thẻ của tôi `/library/decks` · Bộ thẻ cộng đồng `/library/public-decks`. Tài liệu tham khảo (018) giữ mục riêng. `aria-label` đặt trên link, không trên `<span>` |
+
+### 16.2 · Thành phần
+
+| Lớp | Trách nhiệm |
+|---|---|
+| `learning.library.DeckSharingService` | FR-029, FR-030, FR-032 (khoá dòng bộ nguồn `FOR SHARE` khi chép để không chép nửa chừng) |
+| `learning.library.PublicDeckQueryService` + controller `/api/public/flashcard-decks/**` | FR-031; `SecurityConfig` thêm `permitAll` `GET /api/public/flashcard-decks/**` |
+| `learning.api.PublicDeckApi` | FR-034 |
+| `ErrorCode` | `DECK_TOO_FEW_CARDS`, `PUBLIC_DECK_NOT_FOUND` — ngay trước `INTERNAL_ERROR` theo thứ tự `main` lúc làm |
+
+### 16.3 · Acceptance Tests (AT-30…AT-40)
+
+| # | FR | G / W / T |
+|---|---|---|
+| AT-30 | FR-029 | W chủ bộ 4 thẻ bật công khai · T 422 `DECK_TOO_FEW_CARDS`; 5 thẻ · T 200 `isPublic=true`, `sharedAt` có; bật lần 2 · T `sharedAt` không đổi; người khác bật · T 403 |
+| AT-31 | FR-029 | W `POST /api/flashcard-decks` kèm `isPublic:true` · T 201, `is_public=false` |
+| AT-32 | FR-030, FR-031 | G bộ công khai, bộ riêng, bộ công khai đã xoá, bộ của người bị khoá, sổ tay · W danh sách công khai · T chỉ bộ đầu tiên |
+| AT-33 | FR-031 | W khách xem chi tiết bộ công khai · T 200, JSON không có `dueAt`, `stability`, `lexemeId`, id thẻ, `email`; bộ riêng · T 404 `PUBLIC_DECK_NOT_FOUND` |
+| AT-34 | FR-031 | G 20 bộ công khai · T số câu SQL không tăng theo số bộ; `publicProfiles` gọi 1 lần |
+| AT-35 | FR-032, BR-067-7 | G chủ bộ đã ôn 10 thẻ · W người khác sao chép · T 201, bộ mới `is_public=false`, `copied_from` đúng, đủ thẻ, **0** dòng `user_progress` của người sao chép, mọi thẻ đến hạn ngay |
+| AT-36 | FR-032 | W sao chép bộ riêng; id không tồn tại · T 404 cùng body; người đã có 50 bộ sao chép · T 422 `LIBRARY_LIMIT_REACHED`, không tạo gì |
+| AT-37 | FR-032, BR-068-6 | W chủ bộ sửa thẻ gốc sau khi đã có bản sao · T bản sao không đổi; thu hồi chia sẻ · T bản sao vẫn còn |
+| AT-38 | FR-034 | `findPublic` bộ riêng → rỗng; `unshare` bộ công khai → `true`, lần 2 → `false`; `moderationView` trả ≤ 20 thẻ |
+| AT-39 | FR-033, FR-035, FR-036 (FE) | Vitest: thẻ chứa `<img src=x onerror=alert(1)>` hiện dạng text; bật chia sẻ chưa tích xác nhận → không gửi; khách bấm sao chép → `/login`; 404 hiện "Bộ thẻ không còn công khai" |
+| AT-40 | FR-037 (FE) | Vitest: nhóm Thư viện đúng 5 mục và thứ tự; mục đang mở được đánh dấu; mobile nằm trong menu "Thêm" |
+
+### 16.4 · Quyết định và rủi ro
+
+| # | Nội dung | Trạng thái |
+|---|---|---|
+| Q7 | Công khai ngay, báo cáo sau qua 009 (`target_type='COLLECTION'`); MODERATOR xử lý `ACTION` → bộ về riêng tư | ✅ Leader chốt 2026-11-14 |
+| Q8 | Menu Thư viện 5 mục (FR-037); Tài liệu tham khảo để riêng | ✅ Leader chốt 2026-11-14 |
+| Q9 | Bộ riêng/không tồn tại khi xem công khai hoặc sao chép → 404 (UC-067 ghi 403 `SOURCE_DECK_NOT_PUBLIC`) — không lộ bộ riêng tồn tại | ✅ Chốt |
+| Q10 | API danh sách đặt ở `/api/public/flashcard-decks` trong module `learning` (UC-068 ghi `/api/community/flashcard-decks`) — tránh `community` đọc bảng `learning` | ✅ Chốt |
+| R1 | Chủ bộ bật công khai lại sau khi MODERATOR đã ẩn | Chấp nhận — người khác báo cáo lại được (hồ sơ mới); `audit_logs` giữ lịch sử; lạm dụng → `ADMIN` khoá tài khoản |
+| R2 | Không phát hiện tự động nội dung bản quyền/PII | Chấp nhận — xác nhận khi chia sẻ (FR-035) + báo cáo (Q7) |

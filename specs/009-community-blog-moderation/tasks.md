@@ -79,9 +79,11 @@ Người code: Quốc Huy. Nhánh mỗi task `spec/009-<task>`, một PR. Không
 | T-21 | `FollowService` + `FollowQueryRepository` + controller follow/unfollow; mã `SELF_FOLLOW`, `FOLLOW_LIMIT_REACHED` (trước `INTERNAL_ERROR`) + `GlobalExceptionHandlerTest` | `…/community/follow/**`, `…/shared/exception/ErrorCode.java` + test | FR-067…FR-069, FR-071 · AT-55…AT-58 | ⬜ |
 | T-22 | `CommunityProfileService`: hồ sơ, số đếm loại người bị khoá, danh sách followers/following theo lô; bộ lọc `authorId` cho danh sách bài công khai | `…/community/follow/**`, `…/community/post/**` + test | FR-064…FR-066, FR-070 · AT-52…AT-54, AT-59, AT-60, AT-61 (BE) | ⬜ |
 | T-23 | FE SCR-042 + link tác giả ở SCR-039/040; route `/community/users/:id` (`learner`); `SCREEN_NAMES` SCR-042 + `AssistantPromptBuilderTest` | `cnhsk-web/src/features/community/**`, `routeAccess.ts`, `screenRegistry.ts`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-072 · AT-61 (FE) | ⬜ |
-| T-24 | Test hợp đồng §16 so `/v3/api-docs` với `openapi-community.yaml` v1.1 | `t/contract/…` (test hợp đồng community có sẵn) | §13 | ⬜ |
+| T-24 | Gộp `contracts/openapi-community-v1-1.yaml` vào `openapi-community.yaml` (path mới, `authorId`, `COLLECTION`, `ReportedDeck`), xoá file phụ lục; nâng số operation/kiểm tham số trong `CommunityContractTest` | `specs/009-…/contracts/*`, `t/contract/CommunityContractTest.java` | §13, §16 | ⬜ |
+| T-25 | Báo cáo bộ thẻ: `targetType=COLLECTION` trong báo cáo, xem và xử lý hồ sơ qua `learning.api.PublicDeckApi` (cần 014/T-16 đã merge) | `…/community/moderation/**`, `…/community/report/**` + test | FR-073…FR-075 · AT-62…AT-64 | ⬜ |
+| T-26 | FE SCR-062/063 hiển thị hồ sơ bộ thẻ | `cnhsk-web/src/features/community/**` | FR-076 · AT-65 | ⬜ |
 
-**Thứ tự đợt 6:** T-21 → T-22 → T-24; T-23 song song từ đầu bằng dữ liệu mẫu, nối thật sau T-22.
+**Thứ tự đợt 6:** T-21 → T-22 → T-24; T-23 song song từ đầu bằng dữ liệu mẫu, nối thật sau T-22. T-25 sau 014/T-16 (cần `PublicDeckApi`), rồi T-26; T-24 gộp hợp đồng sau khi T-22 và T-25 xong.
 
 ---
 

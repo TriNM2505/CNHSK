@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CNHSK Community Blog & Moderation API
-  version: 1.1.0
+  version: 1.0.0
   description: >
     Hợp đồng spec 009-community-blog-moderation. Lỗi dùng ErrorResponse của spec 001.
     /api/public/** không cần đăng nhập. /api/community/moderation/** cần role MODERATOR,
@@ -14,7 +14,6 @@ tags:
   - name: comments
   - name: reports
   - name: moderation
-  - name: community-users
 
 security:
   - cookieAuth: []
@@ -328,41 +327,6 @@ components:
             - $ref: '#/components/schemas/UserRef'
             - type: 'null'
         moderationReason: { type: [string, 'null'] }
-    CommunityProfile:
-      type: object
-      description: Hồ sơ công khai SCR-042 (FR-064) — không có email, role, lý do khoá
-      required: [id, displayName, avatarUrl, followerCount, followingCount, approvedPostCount, followedByMe, self]
-      properties:
-        id: { type: integer, format: int64 }
-        displayName: { type: [string, 'null'] }
-        avatarUrl: { type: [string, 'null'] }
-        followerCount: { type: integer, format: int64 }
-        followingCount: { type: integer, format: int64 }
-        approvedPostCount: { type: integer, format: int64 }
-        followedByMe: { type: boolean }
-        self: { type: boolean }
-    FollowState:
-      type: object
-      required: [following, followerCount]
-      properties:
-        following: { type: boolean }
-        followerCount: { type: integer, format: int64 }
-    UserCard:
-      type: object
-      required: [id, displayName, avatarUrl, followedByMe]
-      properties:
-        id: { type: integer, format: int64 }
-        displayName: { type: [string, 'null'] }
-        avatarUrl: { type: [string, 'null'] }
-        followedByMe: { type: boolean }
-    UserCardPage:
-      type: object
-      required: [items, page, size, totalElements]
-      properties:
-        items: { type: array, items: { $ref: '#/components/schemas/UserCard' } }
-        page: { type: integer }
-        size: { type: integer }
-        totalElements: { type: integer, format: int64 }
   responses:
     Error:
       description: Lỗi theo spec 009 §5
@@ -381,10 +345,6 @@ paths:
         - name: category
           in: query
           schema: { $ref: '#/components/schemas/PostCategory' }
-        - name: authorId
-          in: query
-          description: Chỉ bài APPROVED của tác giả này (FR-066, v1.1)
-          schema: { type: integer, format: int64, minimum: 1 }
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/Size'
       responses:
@@ -816,90 +776,4 @@ paths:
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-
-  /api/community/users/{id}:
-    get:
-      tags: [community-users]
-      operationId: getCommunityProfile
-      summary: Hồ sơ cộng đồng SCR-042 (FR-064, FR-065)
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/CommunityProfile' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-
-  /api/community/users/{id}/follow:
-    post:
-      tags: [community-users]
-      operationId: followUser
-      summary: Theo dõi, idempotent (FR-067, FR-068)
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/FollowState' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-    delete:
-      tags: [community-users]
-      operationId: unfollowUser
-      summary: Bỏ theo dõi, idempotent (FR-069)
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/FollowState' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-
-  /api/community/users/{id}/followers:
-    get:
-      tags: [community-users]
-      operationId: listFollowers
-      summary: Người theo dõi (FR-070)
-      parameters:
-        - $ref: '#/components/parameters/Id'
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Size'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/UserCardPage' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
-
-  /api/community/users/{id}/following:
-    get:
-      tags: [community-users]
-      operationId: listFollowing
-      summary: Đang theo dõi (FR-070)
-      parameters:
-        - $ref: '#/components/parameters/Id'
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Size'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/UserCardPage' }
-        '401': { $ref: '#/components/responses/Error' }
-        '403': { $ref: '#/components/responses/Error' }
-        '404': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
