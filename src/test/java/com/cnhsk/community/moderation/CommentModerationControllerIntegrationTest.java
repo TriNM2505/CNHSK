@@ -531,10 +531,25 @@ class CommentModerationControllerIntegrationTest extends AbstractIntegrationTest
         return operation;
     }
 
+    @Test
+    void contractInventoryExcludesGamePathsButRetainsCommunityPaths() {
+        assertThat(isCommunityContractPath("/api/community/games")).isFalse();
+        assertThat(isCommunityContractPath("/api/community/games/CHAR_RAIN/rounds")).isFalse();
+        assertThat(isCommunityContractPath("/api/community/games/rounds/1/answers")).isFalse();
+        assertThat(isCommunityContractPath("/api/community/posts")).isTrue();
+        assertThat(isCommunityContractPath("/api/public/community/posts")).isTrue();
+        assertThat(isCommunityContractPath("/api/community/games-other")).isTrue();
+    }
+
+    private static boolean isCommunityContractPath(String path) {
+        if (path.equals("/api/community/games") || path.startsWith("/api/community/games/")) return false;
+        return path.startsWith("/api/community/") || path.startsWith("/api/public/community/");
+    }
+
     private static Map<String, OperationShape> operations(JsonNode document) {
         Map<String, OperationShape> result = new LinkedHashMap<>();
         document.path("paths").fields().forEachRemaining(path -> {
-            if (!path.getKey().startsWith("/api/community/") && !path.getKey().startsWith("/api/public/community/")) return;
+            if (!isCommunityContractPath(path.getKey())) return;
             path.getValue().fields().forEachRemaining(method -> {
                 if (!HTTP_METHODS.contains(method.getKey())) return;
                 JsonNode operation = method.getValue();

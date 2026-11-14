@@ -101,7 +101,7 @@ game chạm/chuột nhịp vừa.
 | **FR-002** | `GET /api/community/games` SHALL trả 6 game theo thứ tự enum: `{code, name, description, skill, howToPlay, timeLimitSeconds, playable, unavailableReason, myStats}`; **công khai** (khách xem được, `myStats = null`). Chuyển tiếp trước khi 008 có định nghĩa: registry rỗng → danh sách rỗng; tạo ván → 422 GAME_UNAVAILABLE (Q-T03-01) |
 | **FR-003** | `playable = isAvailable(ctx)`; `false` → `unavailableReason = "NOT_ENOUGH_CONTENT"` (BR-087-11) |
 | **FR-004** | `myStats` (đã đăng nhập) SHALL là `{bestPoints, roundsPlayed, lastPlayedAt}` chỉ tính ván `SUBMITTED` của người gọi cho game đó; `bestPoints = max(score) × pointsPerCorrect` |
-| **FR-005** | Kết quả FR-002 cho khách SHALL được cache 60 s (`@Cacheable`, khoá theo `playable`); phần `myStats` không cache |
+| **FR-005** | Phần chung (metadata + playable) SHALL được cache trong bộ nhớ 60 s; `myStats` không cache |
 
 ### Nhóm 2 — Tạo ván (FR-006…FR-011) · UC-087
 

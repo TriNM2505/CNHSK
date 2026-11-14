@@ -276,7 +276,15 @@ class CommunityContractTest {
         assertThat(isCommunityPackage("com.cnhsk.community")).isTrue();
         assertThat(isCommunityPackage("com.cnhsk.community.post.web")).isTrue();
         assertThat(isCommunityPackage("com.cnhsk.communityOther")).isFalse();
+        assertThat(isCommunityPackage("com.cnhsk.community.game")).isFalse();
+        assertThat(isCommunityPackage("com.cnhsk.community.game.web")).isFalse();
+        assertThat(isCommunityPackage("com.cnhsk.community.gameOther")).isTrue();
         assertThat(isCommunityPath("/api/community")).isTrue();
+        assertThat(isCommunityPath("/api/community/posts")).isTrue();
+        assertThat(isCommunityPath("/api/community/games")).isFalse();
+        assertThat(isCommunityPath("/api/community/games/CHAR_RAIN/rounds")).isFalse();
+        assertThat(isCommunityPath("/api/community/games/rounds/1/answers")).isFalse();
+        assertThat(isCommunityPath("/api/community/games-other")).isTrue();
         assertThat(isCommunityPath("/api/public/community/posts")).isTrue();
         assertThat(isCommunityPath("/api/communityOther/posts")).isFalse();
         assertThat(isCommunityPath("/api/public/communityOther")).isFalse();
@@ -332,6 +340,7 @@ class CommunityContractTest {
         Map<OperationKey, ContractOperation> operations = new LinkedHashMap<>();
         Set<String> operationIds = new HashSet<>();
         paths.properties().forEach(pathEntry -> {
+            if (isGamePath(pathEntry.getKey())) return;
             assertThat(pathEntry.getValue().isObject()).as("Path item %s", pathEntry.getKey()).isTrue();
             pathEntry.getValue().properties().forEach(methodEntry -> {
                 if (HTTP_METHODS.contains(methodEntry.getKey())) {
@@ -359,8 +368,10 @@ class CommunityContractTest {
         Map<OperationKey, String> operations = new LinkedHashMap<>();
         handlerMapping.getHandlerMethods().forEach((mapping, handler) -> {
             String packageName = ClassUtils.getUserClass(handler.getBeanType()).getPackageName();
-            Set<String> paths = mapping.getPatternValues();
-            if (isCommunityPackage(packageName) || paths.stream().anyMatch(CommunityContractTest::isCommunityPath)) {
+            if (isGamePackage(packageName)) return;
+            Set<String> paths = new HashSet<>(mapping.getPatternValues());
+            paths.removeIf(CommunityContractTest::isGamePath);
+            if (!paths.isEmpty() && (isCommunityPackage(packageName) || paths.stream().anyMatch(CommunityContractTest::isCommunityPath))) {
                 addMappings(operations, mapping.getMethodsCondition().getMethods(), paths, handler.toString());
             }
         });
@@ -368,12 +379,22 @@ class CommunityContractTest {
     }
 
     private static boolean isCommunityPackage(String packageName) {
+        if (isGamePackage(packageName)) return false;
         return packageName.equals("com.cnhsk.community") || packageName.startsWith("com.cnhsk.community.");
     }
 
     private static boolean isCommunityPath(String path) {
+        if (isGamePath(path)) return false;
         return path.equals("/api/community") || path.startsWith("/api/community/")
                 || path.equals("/api/public/community") || path.startsWith("/api/public/community/");
+    }
+
+    private static boolean isGamePackage(String packageName) {
+        return packageName.equals("com.cnhsk.community.game") || packageName.startsWith("com.cnhsk.community.game.");
+    }
+
+    private static boolean isGamePath(String path) {
+        return path.equals("/api/community/games") || path.startsWith("/api/community/games/");
     }
 
     private static void addMappings(Map<OperationKey, String> operations, Collection<RequestMethod> methods,
