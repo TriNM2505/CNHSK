@@ -78,6 +78,15 @@ class GradingConfigTest {
                 .map(entry -> "cnhsk.grading." + entry.getKey() + "=" + entry.getValue()).toArray(String[]::new));
     }
 
+    @Test
+    void FR017_disabledCronStartsWithoutChangingProductionDefaultsOrOtherValidation() {
+        Map<String, String> properties = values(); properties.put("expiry-job-cron", "-");
+        configured(properties).run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context.getBean(GradingConfig.class).getExpiryJobCron()).isEqualTo("-");
+        });
+    }
+
     private static Map<String, String> values() {
         return new LinkedHashMap<>(Map.of("claim-hours", "48", "grading-hours", "24", "teacher-payout-credits", "0",
                 "min-hanzi", "50", "max-hanzi", "500", "max-chars", "3000", "max-active-claims", "3",

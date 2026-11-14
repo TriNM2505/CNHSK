@@ -49,6 +49,6 @@ public class GradingConfig {
 
     @AssertTrue(message = "Grading expiry cron must be a valid Spring cron expression")
     public boolean isExpiryCronValid() {
-        return expiryJobCron != null && CronExpression.isValidExpression(expiryJobCron);
+        return "-".equals(expiryJobCron) || (expiryJobCron != null && CronExpression.isValidExpression(expiryJobCron));
     }
 }

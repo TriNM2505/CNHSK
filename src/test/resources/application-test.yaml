@@ -38,6 +38,8 @@ springdoc:
     enabled: false
 
 cnhsk:
+  grading:
+    expiry-job-cron: "-"
   reminder:
     cron: "-"
   billing:
