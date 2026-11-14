@@ -42,3 +42,4 @@ T-08, T-09 song song từ đầu bằng dữ liệu mẫu; nối thật sau T-05
 
 **Rủi ro cao:** T-02 (một lượt/người khi đua, hạn nộp + ân hạn, không lộ đáp án), T-05 (đủ người khi đua — đếm trong cùng khoá), T-07 (email chỉ ở một endpoint).
 **Lưu ý migration:** V9 phải merge trước V10 của 023 (Flyway cấm chạy lệch thứ tự).
+**Phối hợp 023:** khi 023/T-06 đã có `learning.api.ExamUsageGuard`, T-06 của 021 cài interface này (đề gắn cuộc thi `PUBLISHED` có `ends_at > now` → đang dùng) để 023 chặn lưu trữ đề. Nếu 021/T-06 làm trước, 023/T-06 thêm phần cài vào `community.contest`.
