@@ -2,15 +2,15 @@
 
 **Feature:** `009-community-blog-moderation`
 **Feature tree:** 5.1 (blog cộng đồng) · **Module:** `community` (package `com.cnhsk.community`)
-**Use case:** UC-069…UC-073, UC-075…UC-079 · **Actor:** `GUEST` · `LEARNER` · `MODERATOR`
-**Màn hình:** SCR-039 · SCR-040 · SCR-041 · SCR-060 · SCR-061 · SCR-062 · SCR-063
+**Use case:** UC-069…UC-079 (UC-074 từ phụ lục v1.1) · **Actor:** `GUEST` · `LEARNER` · `MODERATOR`
+**Màn hình:** SCR-039 · SCR-040 · SCR-041 · SCR-042 (phụ lục v1.1) · SCR-060 · SCR-061 · SCR-062 · SCR-063
 **Scope:** V2 · **Priority:** P2. Giao cho thành viên đang rảnh; không rút người khỏi spec MVP (BR-069-1)
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 — phụ lục §16 hồ sơ cộng đồng + theo dõi (SCR-042, UC-074) |
 | **Status** | APPROVED — hợp đồng API đã duyệt, được code |
-| **Approved by** | Leader (2026-10-29) |
+| **Approved by** | Leader (2026-10-29; phụ lục v1.1 2026-11-14) |
 | **Locked on** | 2026-10-29 — đổi hợp đồng phải sửa OpenAPI + spec trước, leader duyệt lại |
 | **Phụ thuộc** | Spec 001 đã merge: đăng nhập, role `LEARNER`/`MODERATOR`, CSRF, định dạng lỗi, `AuditService`, `auth.api.AuthApi` |
 | **Quyết định nguồn** | `plans/reports/brainstorm-261027-0940-community-spec-009-parallel-report.md` (ngoài repo, leader giữ) |
@@ -26,7 +26,8 @@
 
 | Trong phạm vi | Ngoài phạm vi |
 |---|---|
-| Đăng bài, lưu nháp, sửa bài của mình (UC-069) | UC-074 theo dõi người dùng, feed "đang theo dõi", SCR-042 hồ sơ cộng đồng |
+| Đăng bài, lưu nháp, sửa bài của mình (UC-069) | Feed "đang theo dõi" (bài của người mình theo dõi), chặn người dùng (UC-074 A3) |
+| Hồ sơ cộng đồng SCR-042, theo dõi/bỏ theo dõi, danh sách theo dõi (UC-074) — **phụ lục v1.1 §16** | |
 | Danh sách bài công khai + "Bài viết của tôi" (UC-070) | Quiz, bảng xếp hạng (UC-080…UC-084), trợ lý AI (UC-085/086), Game Box (UC-087/088), cuộc thi (UC-090+) |
 | Bình luận, trả lời lồng ≤ 3 cấp, sửa trong 15 phút, tự xoá (UC-071, UC-072) | Kiểm nội dung bằng AI — bài luôn chờ `MODERATOR` duyệt tay (fallback `AI_MODERATION_UNAVAILABLE` của UC-069) |
 | Thích/bỏ thích bài (UC-073) | Thích bình luận |
@@ -154,7 +155,7 @@ script trong bài/bình luận chạy trên máy `MODERATOR`, và sửa bài đ�
 | **FR-009** | WHEN tạo bài, THE system SHALL ghi `status = 'PENDING'` nếu `submit = true`, `'DRAFT'` nếu `false`; trả **201** `OwnPost` (§13) |
 | **FR-010** | `PUT /api/community/posts/{id}` cùng body và kiểm như FR-007 SHALL chỉ cho tác giả sửa; không phải tác giả **hoặc** bài không tồn tại → **403** `FORBIDDEN` (`BUS-01`). Bài `HIDDEN` → **409** `POST_NOT_EDITABLE` |
 | **FR-011** | WHEN sửa bài ở `DRAFT`/`PENDING`/`REJECTED`/`APPROVED`, THE system SHALL đặt trạng thái mới = `PENDING` nếu `submit = true`, `DRAFT` nếu `false`. Bài đang `APPROVED` sau khi sửa **rời khỏi danh sách công khai ngay** (BR-069-6). Giữ `review_reason` cũ để tác giả còn thấy lý do lần trước; `published_at` giữ nguyên |
-| **FR-012** | `GET /api/public/community/posts?category&page&size` SHALL trả **chỉ** bài `APPROVED`, lọc `category` nếu có, sắp `published_at` giảm dần rồi `id` giảm dần; `page` ≥ 0 (mặc định 0), `size` 1–50 (mặc định 20); sai → **422**. Trang quá lớn → `items` rỗng, 200 |
+| **FR-012** | `GET /api/public/community/posts?category&authorId&page&size` SHALL trả **chỉ** bài `APPROVED`, lọc `category` nếu có, lọc `authorId` nếu có (v1.1, FR-066), sắp `published_at` giảm dần rồi `id` giảm dần; `page` ≥ 0 (mặc định 0), `size` 1–50 (mặc định 20); sai → **422**. Trang quá lớn → `items` rỗng, 200 |
 | **FR-013** | THE system SHALL lọc trạng thái ở **tầng repository**: một method `findPublished…` duy nhất cho mọi endpoint công khai; không có method trả bài không điều kiện ngoài endpoint `moderation` (UC-070 `PENDING_POST_LEAKED`) |
 | **FR-014** | Mỗi phần tử danh sách SHALL có `{id, title, category, excerpt, author, publishedAt, commentCount, likeCount}`. `excerpt` = 200 ký tự đầu của `content`. `commentCount` = số bình luận `VISIBLE`; `likeCount` = số `reactions` `LIKE` của bài. Đếm bằng **một** truy vấn `GROUP BY` cho mỗi loại trên cả trang, không đếm từng bài (UC-070 T6) |
 | **FR-015** | `GET /api/public/community/posts/{id}` SHALL trả bài `APPROVED` đầy đủ `content` + các trường FR-014; bài không tồn tại hoặc không `APPROVED` → **404** `POST_NOT_FOUND` (cùng một response) |
@@ -249,7 +250,7 @@ Trên SCR-040, FR-063 áp dụng cho bài APPROVED; bài ở trạng thái khác
 |---|---|
 | `community.posts` | Bài, trạng thái, nhật ký duyệt gộp (`reviewed_by`, `reviewed_at`, `review_reason`) |
 | `community.comments` | Bình luận lồng, soft delete bằng `status` |
-| `community.reactions` | `LIKE` (thích bài) · `REPORT` (mỗi người một báo cáo cho mỗi nội dung). Không dùng `FOLLOW`, `USER`, `COLLECTION` |
+| `community.reactions` | `LIKE` (thích bài) · `REPORT` (mỗi người một báo cáo cho mỗi nội dung) · v1.1: `FOLLOW` với `target_type='USER'` (§16). Không dùng `COLLECTION` |
 | `community.moderation_cases` | Một hồ sơ `PENDING` gộp mọi báo cáo của một nội dung |
 | `shared.audit_logs` | Mọi quyết định của `MODERATOR` (§4.3) |
 | `auth.users` | **Chỉ** qua `AuthApi` — không entity, không repository, không `JOIN` trong module `community` |
@@ -330,6 +331,9 @@ Mảng JSON chỉ nối thêm, chỉ đọc để hiển thị, **không** truy 
 | `DUPLICATE_REPORT` | 409 | Đã báo cáo nội dung này | FR-036 |
 | `REPORT_ALREADY_HANDLED` | 409 | Hồ sơ đã xử lý | FR-050 |
 | `TOO_MANY_REQUESTS` | 429 | Vượt 5 bài/ngày, 30 bình luận/giờ, 20 báo cáo/ngày; kèm `retryAfterSeconds` | FR-008, FR-019, FR-035 |
+| `USER_NOT_FOUND` *(có sẵn)* | 404 | v1.1: người dùng không tồn tại **hoặc** bị khoá — cùng một response | FR-064, FR-067 |
+| `SELF_FOLLOW` *(mới, v1.1)* | 422 | Theo dõi chính mình | FR-067 |
+| `FOLLOW_LIMIT_REACHED` *(mới, v1.1)* | 422 | Đã theo dõi 1 000 người | FR-068 |
 
 Mã mới thêm vào `ErrorCode` của spec 001; định dạng `{error_code, message, request_id}` không đổi. `message` tiếng Việt, không chứa SQL.
 
@@ -340,7 +344,7 @@ Mã mới thêm vào `ErrorCode` của spec 001; định dạng `{error_code, me
 | Ràng buộc | Tuân thủ |
 |---|---|
 | **AC-01** API First | `contracts/openapi-community.yaml` duyệt trước khi code; test hợp đồng so `/v3/api-docs` |
-| **AC-03** Ranh giới module | Chỉ `auth.api.AuthApi` (`currentUser`, `requireVerifiedEmail`, `hasRole`, `displayNames`). Không import `auth.entity`/`auth.repository`/`auth.service`; ArchUnit có sẵn kiểm |
+| **AC-03** Ranh giới module | Chỉ `auth.api.AuthApi` (`currentUser`, `requireVerifiedEmail`, `hasRole`, `displayNames`; v1.1 thêm `publicProfiles`, `bannedUserIds`). Không import `auth.entity`/`auth.repository`/`auth.service`; ArchUnit có sẵn kiểm |
 | **AC-05** Flyway | Không migration; entity theo `V2__community.sql`, `ddl-auto: validate` |
 | **AC-06** Enum | `PostStatus`, `PostCategory`, `CommentStatus`, `ReactionKind`, `TargetType`, `CaseStatus`, `ReportReason` là enum Java `@Enumerated(STRING)` khớp `CHECK`; `ReportReason` chỉ nằm trong JSON, không có `CHECK` |
 | **AC-08** Thời gian | `TIMESTAMPTZ`; mốc "ngày" của FR-008, FR-035 tính theo `Asia/Ho_Chi_Minh` qua bean `Clock` |
@@ -442,6 +446,7 @@ Mọi bước xác nhận (xoá bình luận, từ chối, xử lý báo cáo) n
 | SCR-039 Community Post List | `/community` | `public` | public posts, mine | `screen-fields.md` dòng 20281 |
 | SCR-040 Community Post Detail | `/community/posts/:id` | `public` | public post, comments, viewer-state, like, comment, reply, report; `MODERATOR`: moderation comments, comment moderation | dòng 20753 |
 | SCR-041 Create / Edit Post | `/community/posts/new`, `/community/posts/:id/edit` | `['LEARNER']` | create, update, mine/{id} | dòng 21516 |
+| SCR-042 Community User Profile *(v1.1)* | `/community/users/:id` | `['LEARNER']`, layout `learner` | profile, follow, followers, following, public posts `authorId` | dòng 21986 · §16 |
 | SCR-060 Post Moderation Queue | `/moderation/posts` | `['MODERATOR']` | moderation posts | dòng 30019 |
 | SCR-061 Post Moderation Detail | `/moderation/posts/:id` | `['MODERATOR']` | moderation post, approve, reject | dòng 30360 |
 | SCR-062 Violation Report Queue | `/moderation/reports` | `['MODERATOR']` | moderation reports | dòng 30760 |
@@ -459,7 +464,7 @@ Error (lỗi tải khác danh sách rỗng), nút đang gửi bị khoá.
 
 | Method · Path | Request | Thành công | Lỗi chính |
 |---|---|---|---|
-| `GET /api/public/community/posts` | `category`, `page`, `size` | 200 `PostSummaryPage` | 422 |
+| `GET /api/public/community/posts` | `category`, `authorId` (v1.1), `page`, `size` | 200 `PostSummaryPage` | 422 |
 | `GET /api/public/community/posts/{id}` | — | 200 `PostDetail` | 404 |
 | `GET /api/public/community/posts/{id}/comments` | — | 200 `[Comment]` | 404 |
 | `POST /api/community/posts` | `PostWrite` | 201 `OwnPost` | 403, 422, 429 |
@@ -483,6 +488,11 @@ Error (lỗi tải khác danh sách rỗng), nút đang gửi bị khoá.
 | `PATCH /api/community/moderation/reports/{id}` | `ReportDecision` | 200 `ReportCaseDetail` | 403, 404, 409, 422 |
 | `GET /api/community/moderation/posts/{id}/comments` | — | 200 `[ModerationComment]` | 403, 404 |
 | `PATCH /api/community/moderation/comments/{id}` | `CommentModeration` | 200 `ModerationComment` | 403, 404, 409, 422 |
+| `GET /api/community/users/{id}` *(v1.1)* | — | 200 `CommunityProfile` | 403, 404 |
+| `POST /api/community/users/{id}/follow` *(v1.1)* | — | 200 `FollowState` | 403, 404, 422 |
+| `DELETE /api/community/users/{id}/follow` *(v1.1)* | — | 200 `FollowState` | 403 |
+| `GET /api/community/users/{id}/followers` *(v1.1)* | `page`, `size` | 200 `UserCardPage` | 403, 404, 422 |
+| `GET /api/community/users/{id}/following` *(v1.1)* | `page`, `size` | 200 `UserCardPage` | 403, 404, 422 |
 
 ---
 
@@ -550,3 +560,62 @@ Người dùng test tạo qua đường đăng ký/role của spec 001 hoặc he
 ## 15 · Gói việc cho Codex
 
 [`plan.md`](plan.md) · [`tasks.md`](tasks.md)
+
+---
+
+## 16 · Phụ lục v1.1 — Hồ sơ cộng đồng và theo dõi (SCR-042, UC-074)
+
+Leader chốt 2026-11-14 (plan đợt hoàn thiện, phase 12). Người code: Quốc Huy. **Không migration, không bảng mới**: quan hệ theo dõi là
+`community.reactions(user_id = người theo dõi, target_type = 'USER', target_id = người được theo dõi, kind = 'FOLLOW')`; khoá chính chặn trùng,
+`ix_react_target` phục vụ đếm người theo dõi, tiền tố khoá chính `user_id` phục vụ đếm đang theo dõi. Thông tin người dùng chỉ qua
+`AuthApi.publicProfiles(Set<Long>)` (tên, ảnh) và `AuthApi.bannedUserIds()` — cả hai có sẵn từ 017/T-01.
+
+### 16.1 · Functional Requirements (FR-064…FR-072)
+
+| Mã | Yêu cầu |
+|---|---|
+| **FR-064** | `GET /api/community/users/{id}` (role `LEARNER`) SHALL trả `CommunityProfile {id, displayName, avatarUrl, followerCount, followingCount, approvedPostCount, followedByMe, self}`. Người dùng không tồn tại (`publicProfiles` không có id) **hoặc** thuộc `bannedUserIds()` → **404** `USER_NOT_FOUND`, cùng một response (không lộ tài khoản bị khoá, SCR-042 §17) |
+| **FR-065** | Số đếm SHALL loại người bị khoá: `followerCount` = số dòng `FOLLOW` trỏ tới `{id}` có `user_id` không bị khoá; `followingCount` = số dòng `FOLLOW` của `{id}` có `target_id` không bị khoá; `approvedPostCount` = số bài `APPROVED` của `{id}`. Lọc bằng `<> ALL(:banned)` trong SQL; ba số đếm trong ≤ 2 truy vấn |
+| **FR-066** | Bài đã duyệt của người đó lấy bằng `GET /api/public/community/posts?authorId={id}` (FR-012 thêm bộ lọc `authorId`, vẫn qua `findPublished…`, FR-013). Không thêm endpoint bài riêng |
+| **FR-067** | `POST /api/community/users/{id}/follow` SHALL: `{id}` = người gọi → **422** `SELF_FOLLOW` (BR-074-2); không tồn tại hoặc bị khoá → **404** `USER_NOT_FOUND` (BR-074-5); rồi `INSERT … ON CONFLICT DO NOTHING` (idempotent, BR-074-3/4) → **200** `FollowState {following: true, followerCount}`. Không cần xác thực email (như thích, FR-002) |
+| **FR-068** | Trước khi chèn quan hệ **mới**, người gọi đã theo dõi ≥ **1 000** người (đếm mọi dòng `FOLLOW` của người gọi) → **422** `FOLLOW_LIMIT_REACHED` (UC-074). Đã theo dõi người đó rồi → 200, không kiểm trần. Hai request song song có thể vượt trần vài dòng — chấp nhận (§16.4) |
+| **FR-069** | `DELETE /api/community/users/{id}/follow` SHALL xoá dòng nếu có, **200** `FollowState {following: false, followerCount}`; không kiểm tồn tại/khoá để người dùng luôn bỏ theo dõi được (idempotent) |
+| **FR-070** | `GET /api/community/users/{id}/followers` và `/following` `?page&size` (`size` 1–50, mặc định 20) SHALL trả `UserCardPage {items: [{id, displayName, avatarUrl, followedByMe}], page, size, totalElements}`, loại người bị khoá, sắp `created_at` của quan hệ giảm dần rồi `id` giảm dần; `{id}` không tồn tại/bị khoá → **404**. Tên/ảnh lấy **theo lô** một lần `publicProfiles`; `followedByMe` một truy vấn cho cả trang (không N+1) |
+| **FR-071** | Mọi response §16 SHALL không có `email`, role, lý do khoá (FR-006, BUS-06). `avatarUrl` không có → `null`, FE hiện chữ cái đầu |
+| **FR-072** | FE SCR-042 (`/community/users/:id`, layout `learner`, `['LEARNER']`): khối danh tính (tên, ảnh), số người theo dõi/đang theo dõi (bấm mở danh sách tại chỗ, có tab và phân trang), nút "Theo dõi"/"Đang theo dõi" (khoá khi đang gửi; `self = true` → ẩn nút, hiện "Đây là hồ sơ của bạn"), danh sách bài đã duyệt (FR-066) bấm sang SCR-040. Tên tác giả ở SCR-039/040 thành link tới SCR-042; khách bấm → `/login` giữ đường quay lại. Thêm `SCR-042` "Hồ sơ cộng đồng" vào `AssistantPromptBuilder.SCREEN_NAMES` và chạy `AssistantPromptBuilderTest`. Lỗi 404 → "Không tìm thấy người dùng", không dựng hồ sơ giả |
+
+### 16.2 · Thành phần
+
+| Lớp | Trách nhiệm |
+|---|---|
+| `community.follow.*` | `FollowService` (FR-067…FR-069), `CommunityProfileService` (FR-064, FR-065, FR-070), `FollowQueryRepository` (SQL đếm + trang), controller `/api/community/users/**` |
+| `community.post.*` | Thêm `authorId` vào truy vấn công khai (FR-066) |
+| `ErrorCode` | `SELF_FOLLOW`, `FOLLOW_LIMIT_REACHED` — đặt ngay trước `INTERNAL_ERROR` theo thứ tự trên `main` lúc làm |
+| `SecurityConfig` | Không đổi — `/api/community/**` đã cần `LEARNER` (FR-001) |
+
+### 16.3 · Acceptance Tests (AT-52…AT-61)
+
+| # | FR | G / W / T |
+|---|---|---|
+| AT-52 | FR-064, FR-071 | G A theo dõi B, B có 2 bài `APPROVED` + 1 `PENDING` · W A xem hồ sơ B · T `followedByMe=true`, `approvedPostCount=2`, `self=false`; JSON không có `email`/`roles` |
+| AT-53 | FR-064 | W xem hồ sơ id không tồn tại; W xem hồ sơ người bị khoá · T 404 `USER_NOT_FOUND`, body giống nhau |
+| AT-54 | FR-064, FR-001 | W khách gọi `GET /api/community/users/{id}` · T 401 |
+| AT-55 | FR-067 | W theo dõi chính mình · T 422 `SELF_FOLLOW`; theo dõi người bị khoá · T 404 |
+| AT-56 | FR-067, BR-074-3 | W theo dõi 2 lần; W 10 request song song · T 200, đúng 1 dòng `reactions` |
+| AT-57 | FR-068 | G A đã theo dõi 1 000 người · W theo dõi người mới · T 422 `FOLLOW_LIMIT_REACHED`; W theo dõi lại người đã theo dõi · T 200 |
+| AT-58 | FR-069 | W bỏ theo dõi 2 lần; bỏ theo dõi người bị khoá · T 200 `following=false` cả ba |
+| AT-59 | FR-065, FR-070 | G B có 3 người theo dõi, 1 người bị khoá · T `followerCount=2`, danh sách 2 người, không có người bị khoá |
+| AT-60 | FR-070, NFR | G 20 người theo dõi · T số câu SQL không tăng theo số dòng (trang 5 và trang 20 bằng nhau); `publicProfiles` gọi 1 lần |
+| AT-61 | FR-066, FR-072 (FE) | `?authorId=B` chỉ trả bài `APPROVED` của B; Vitest: hồ sơ của mình ẩn nút theo dõi; nút khoá khi đang gửi; 404 hiện thông báo, không dựng hồ sơ; link tác giả SCR-040 → SCR-042 |
+
+### 16.4 · Quyết định và rủi ro
+
+| # | Nội dung | Trạng thái |
+|---|---|---|
+| Q8 | Dùng `reactions` `FOLLOW`/`USER` thay bảng `follows` của UC-074 (DB v5 đã gộp) | ✅ Chốt |
+| Q9 | Người bị khoá: 404 như không tồn tại (không lộ khoá, SCR-042 §17); UC-074 ghi `USER_BANNED` 422 — bỏ | ✅ Chốt |
+| Q10 | `SELF_FOLLOW` 422 (UC ghi 400) và trần 1 000 là 422 `FOLLOW_LIMIT_REACHED` (UC ghi 429) — theo quy ước dự án: 422 cho vi phạm luật nghiệp vụ, 429 chỉ cho giới hạn theo thời gian có `retryAfterSeconds` | ✅ Chốt |
+| Q11 | SCR-042 chỉ cho `LEARNER` (screen-fields: Authentication Required) — khách không xem được hồ sơ | ✅ Chốt |
+| R1 | Trần 1 000 có thể vượt vài dòng khi request song song | Chấp nhận — trần chống bot, không phải luật tiền; không cần khoá |
+| R2 | Không có chặn người dùng (UC-074 A3, `NO_BLOCK_FEATURE`) | Chấp nhận — báo cáo bài (UC-075) vẫn có; ghi để trả lời hội đồng |
+| R3 | Người dùng bị xoá cứng để lại dòng `FOLLOW` mồ côi (`FOLLOWEE_DELETED`) | Không xảy ra — hệ thống chỉ khoá tài khoản, không xoá cứng (spec 001); dòng của người bị khoá đã bị lọc ở FR-065/FR-070 |
