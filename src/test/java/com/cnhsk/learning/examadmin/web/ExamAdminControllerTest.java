@@ -51,6 +51,7 @@ class ExamAdminControllerTest {
     private final ExamAdminService service = mock(ExamAdminService.class);
     private final ObjectMapper mapper = new ObjectMapper();
     private MockMvc mvc;
+    private EtagBody publishedBody;
 
     @BeforeEach
     void setup() {
@@ -62,6 +63,12 @@ class ExamAdminControllerTest {
         when(service.create(anyLong(), any())).thenReturn(detail());
         when(service.detail(anyLong())).thenReturn(detail());
         when(service.clone(anyLong(), anyLong(), any())).thenReturn(detail());
+        when(service.archive(anyLong(), anyLong())).thenReturn(detail());
+        when(service.publish(anyLong(), anyLong(), any())).thenAnswer(call -> {
+            Supplier<EtagBody> body = call.getArgument(2);
+            publishedBody = body.get();
+            return detail();
+        });
         when(service.update(anyLong(), any())).thenAnswer(call -> {
             Supplier<ExamUpdate> body = call.getArgument(1);
             body.get();
@@ -197,7 +204,7 @@ class ExamAdminControllerTest {
     }
 
     @Test
-    void exactlyTheFiveImplementedOperationsMatchContractMethodsIdsAndStatuses() {
+    void exactlyTheSevenImplementedOperationsMatchContractMethodsIdsAndStatuses() {
         var contract = new OpenAPIV3Parser().readLocation(Path.of("specs/023-content-admin-settings/contracts/openapi-content-admin.yaml")
                 .toAbsolutePath().toUri().toString(), null, null).getOpenAPI();
         Set<String> actual = new TreeSet<>();
@@ -219,7 +226,34 @@ class ExamAdminControllerTest {
                     .containsExactlyInAnyOrderElementsOf(expected.getResponses().keySet());
         }
         assertThat(actual).containsExactlyInAnyOrder("GET /api/admin/exams", "POST /api/admin/exams", "GET /api/admin/exams/{id}",
-                "PUT /api/admin/exams/{id}", "POST /api/admin/exams/{id}/clone");
+                "PUT /api/admin/exams/{id}", "POST /api/admin/exams/{id}/clone",
+                "POST /api/admin/exams/{id}/publish", "POST /api/admin/exams/{id}/archive");
+    }
+
+    @Test
+    void lifecycleEndpointsTakeTheActorFromThePrincipal() throws Exception {
+        mvc.perform(post("/api/admin/exams/7/publish").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"etag\":\"expected\",\"actorId\":999}"))
+                .andExpect(status().isOk());
+        verify(service).publish(eq(7L), eq(42L), any());
+        assertThat(publishedBody).isEqualTo(new EtagBody("expected"));
+        mvc.perform(post("/api/admin/exams/7/archive")).andExpect(status().isOk());
+        verify(service).archive(7, 42);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "null", "[]", "{", "{} {}", "{}", "{\"etag\":null}", "{\"etag\":1}"})
+    void publicationRequiresAJsonObjectWithAStringEtag(String body) throws Exception {
+        mvc.perform(post("/api/admin/exams/7/publish").contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.error_code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void publicationStateConflictTakesPrecedenceOverMalformedBody() throws Exception {
+        doThrow(new ApiException(ErrorCode.EXAM_NOT_EDITABLE, org.springframework.http.HttpStatus.CONFLICT,
+                "Chỉ được công bố đề nháp.", Map.of())).when(service).publish(eq(7L), anyLong(), any());
+        mvc.perform(post("/api/admin/exams/7/publish").contentType(MediaType.APPLICATION_JSON).content("{"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.error_code").value("EXAM_NOT_EDITABLE"));
     }
 
     private ExamDetail detail() {

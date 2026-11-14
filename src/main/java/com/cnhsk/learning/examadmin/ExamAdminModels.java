@@ -42,6 +42,7 @@ public final class ExamAdminModels {
     @Schema(name = "CloneBody")
     public record CloneWrite(@NotNull @Pattern(regexp = "^[A-Z0-9-]{1,50}$") String code,
             @Size(max = 200) String title) { }
+    public record EtagBody(@NotNull String etag) { }
     @Schema(name = "ExamQuestionView")
     public record QuestionView(long questionId, int sectionIndex, int orderIndex, int points,
             String code, String qtype, String status, String kid, boolean hasAudio) { }

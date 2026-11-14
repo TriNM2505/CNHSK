@@ -238,6 +238,100 @@ class ExamAdminServiceTest {
         assertCode(() -> service.clone(404, 42, new CloneWrite("COPY", null)), ErrorCode.EXAM_NOT_FOUND);
     }
 
+    @Test
+    void publicationAuditsTheActorAndReturnsThePublishedDetail() {
+        when(store.find(7, false)).thenReturn(new ExamRow(7, row.code(), row.title(), 3, 1,
+                row.sections(), ExamStatus.PUBLISHED, Instant.EPOCH));
+        var result = service.publish(7, 42, () -> new EtagBody(service.etag(row, links)));
+        assertThat(result.status()).isEqualTo(ExamStatus.PUBLISHED);
+        assertThat(result.publishedAt()).isEqualTo(Instant.EPOCH);
+        var order = inOrder(store, audit);
+        order.verify(store).find(7, true);
+        order.verify(store).links(7);
+        order.verify(store).questions(links);
+        order.verify(store).publish(7);
+        order.verify(audit).recordDetail(42L, "EXAM_PUBLISH", "EXAM", 7, java.util.Map.of("before", "DRAFT", "after", "PUBLISHED"));
+        verify(store, never()).lockUsage(anyLong());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ExamStatus.class, names = {"PUBLISHED", "ARCHIVED"})
+    void publicationRejectsNonDraftsBeforeReadingTheBody(ExamStatus status) {
+        when(store.find(7, true)).thenReturn(new ExamRow(7, row.code(), row.title(), 3, 1, row.sections(), status, Instant.EPOCH));
+        Supplier<EtagBody> body = mock(Supplier.class);
+        assertCode(() -> service.publish(7, 42, body), ErrorCode.EXAM_NOT_EDITABLE);
+        verifyNoInteractions(body, audit);
+        verify(store, never()).publish(anyLong());
+    }
+
+    @Test
+    void publicationRejectsMissingAndStaleEtagsBeforeValidationOrWriting() {
+        assertCode(() -> service.publish(7, 42, () -> null), ErrorCode.VALIDATION_FAILED);
+        assertCode(() -> service.publish(7, 42, () -> new EtagBody(null)), ErrorCode.VALIDATION_FAILED);
+        assertCode(() -> service.publish(7, 42, () -> new EtagBody("stale")), ErrorCode.EDIT_CONFLICT);
+        verify(store, never()).questions(anyList());
+        verify(store, never()).publish(anyLong());
+        verifyNoInteractions(audit);
+    }
+
+    @Test
+    void publicationReturnsAllValidatorErrorsWithoutWriting() {
+        when(store.questions(links)).thenReturn(List.of());
+        assertThatThrownBy(() -> service.publish(7, 42, () -> new EtagBody(service.etag(row, links))))
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getCode()).isEqualTo(ErrorCode.EXAM_PUBLISH_INVALID);
+                    assertThat(mapper.valueToTree(exception.getExtra()).path("details").findValuesAsText("code"))
+                            .containsExactly("EMPTY_SECTION", "SCORE_MISMATCH");
+                });
+        verify(store, never()).publish(anyLong());
+        verifyNoInteractions(audit);
+    }
+
+    @Test
+    void archiveTakesTheUsageLockBeforeTheRowAndAllGuards() {
+        ExamUsageGuard first = mock(ExamUsageGuard.class);
+        ExamUsageGuard second = mock(ExamUsageGuard.class);
+        when(second.isInUse(7)).thenReturn(true);
+        service = new ExamAdminService(store, new ExamPublicationValidator(), audit, mapper, List.of(first, second));
+        assertCode(() -> service.archive(7, 42), ErrorCode.EXAM_IN_USE);
+        var order = inOrder(store, first, second);
+        order.verify(store).lockUsage(7);
+        order.verify(store).find(7, true);
+        order.verify(first).isInUse(7);
+        order.verify(second).isInUse(7);
+        verify(store, never()).archive(anyLong());
+        verifyNoInteractions(audit);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = ExamStatus.class, names = {"DRAFT", "PUBLISHED"})
+    void unusedExamsCanBeArchivedWithAnAudit(ExamStatus status) {
+        when(store.find(7, true)).thenReturn(new ExamRow(7, row.code(), row.title(), 3, 1, row.sections(), status, Instant.EPOCH));
+        when(store.find(7, false)).thenReturn(new ExamRow(7, row.code(), row.title(), 3, 1, row.sections(), ExamStatus.ARCHIVED, Instant.EPOCH));
+        assertThat(service.archive(7, 42).publishedAt()).isEqualTo(Instant.EPOCH);
+        verify(store).archive(7);
+        verify(audit).recordDetail(42L, "EXAM_ARCHIVE", "EXAM", 7, java.util.Map.of("before", status.name(), "after", "ARCHIVED"));
+    }
+
+    @Test
+    void alreadyArchivedDoesNotConsultGuardsOrWriteAnotherAudit() {
+        ExamUsageGuard guard = mock(ExamUsageGuard.class);
+        service = new ExamAdminService(store, new ExamPublicationValidator(), audit, mapper, List.of(guard));
+        when(store.find(7, true)).thenReturn(new ExamRow(7, row.code(), row.title(), 3, 1, row.sections(), ExamStatus.ARCHIVED, Instant.EPOCH));
+        var result = service.archive(7, 42);
+        assertThat(result.status()).isEqualTo(ExamStatus.ARCHIVED);
+        assertThat(result.publishedAt()).isEqualTo(Instant.EPOCH);
+        verifyNoInteractions(guard, audit);
+        verify(store, never()).archive(anyLong());
+    }
+
+    @Test
+    void lifecycleOperationsReturn404ForMissingExams() {
+        assertCode(() -> service.publish(404, 42, () -> null), ErrorCode.EXAM_NOT_FOUND);
+        assertCode(() -> service.archive(404, 42), ErrorCode.EXAM_NOT_FOUND);
+        verifyNoInteractions(audit);
+    }
+
     static ExamWrite valid() {
         return new ExamWrite("EXAM", "Đề tự soạn", 3, 1, List.of(new Section("Đọc", SectionType.READING, 0)),
                 List.of(new QuestionWrite(11, 0, 1)));

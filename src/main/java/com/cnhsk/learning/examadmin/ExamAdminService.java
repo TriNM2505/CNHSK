@@ -95,6 +95,44 @@ public class ExamAdminService {
     }
 
     @Transactional
+    public ExamDetail publish(long id, long actorId, Supplier<EtagBody> body) {
+        ExamRow current = required(store.find(id, true));
+        if (current.status() != ExamStatus.DRAFT) {
+            throw new ApiException(ErrorCode.EXAM_NOT_EDITABLE, HttpStatus.CONFLICT, "Chỉ được công bố đề nháp.", Map.of());
+        }
+        EtagBody input = body.get();
+        if (input == null || input.etag() == null) throw invalid("etag");
+        List<Link> links = store.links(id);
+        if (!etag(current, links).equals(input.etag())) {
+            throw new ApiException(ErrorCode.EDIT_CONFLICT, HttpStatus.CONFLICT,
+                    "Đề vừa được người khác sửa, tải lại.", Map.of());
+        }
+        var errors = validator.validate(current, store.questions(links));
+        if (!errors.isEmpty()) {
+            throw new ApiException(ErrorCode.EXAM_PUBLISH_INVALID, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Đề thi chưa đủ điều kiện công bố.", Map.of("details", errors));
+        }
+        store.publish(id);
+        audit.recordDetail(actorId, "EXAM_PUBLISH", "EXAM", id,
+                Map.of("before", current.status().name(), "after", ExamStatus.PUBLISHED.name()));
+        return view(required(store.find(id, false)));
+    }
+
+    @Transactional
+    public ExamDetail archive(long id, long actorId) {
+        store.lockUsage(id);
+        ExamRow current = required(store.find(id, true));
+        if (current.status() == ExamStatus.ARCHIVED) return view(current);
+        if (guards.stream().anyMatch(guard -> guard.isInUse(id))) {
+            throw new ApiException(ErrorCode.EXAM_IN_USE, HttpStatus.CONFLICT, "Đề thi đang được sử dụng.", Map.of());
+        }
+        store.archive(id);
+        audit.recordDetail(actorId, "EXAM_ARCHIVE", "EXAM", id,
+                Map.of("before", current.status().name(), "after", ExamStatus.ARCHIVED.name()));
+        return view(required(store.find(id, false)));
+    }
+
+    @Transactional
     public ExamDetail clone(long sourceId, long actorId, CloneWrite input) {
         ExamRow source = required(store.find(sourceId, true));
         if (input == null) throw invalid("body");

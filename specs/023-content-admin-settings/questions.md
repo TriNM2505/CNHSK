@@ -97,3 +97,32 @@
   nếu PR #187 merge trước thì giữ mọi mã EXAM trên main khi rebase theo chỉ đạo leader.
 - Gate backend: targeted → hồi quy auth/security/audit/cài đặt + `ModuleBoundaryTest` → full verify
   với Java 17, Docker/Testcontainers; không chạy SQL/migration trên Neon. FE không thay đổi.
+
+## 2026-11-15 · G0 công bố/lưu trữ đề đã duyệt
+
+- Nhánh `spec/023-t06`; 15 file đã duyệt. `ExamUsageGuard.java` chỉ thêm Javadoc,
+  giữ chữ ký. Đạt giữ exams/factory 012; Tường cài guard cuộc thi 021, phối hợp qua leader.
+- Bắt đầu sau #189 merge (`3164b35`), cập nhật nhánh lên main mới nhất trước gate,
+  base sau rebase `9e6773ba27a5572de438a2a01d1ba8780d0d9911` theo chỉ đạo leader.
+  Giữ toàn bộ mã lỗi main; hai mã `EXAM_PUBLISH_INVALID`, `EXAM_IN_USE` đặt sau
+  `GAME_UNAVAILABLE`, cuối ngay trước `INTERNAL_ERROR`.
+- Publish chỉ khoá dòng exam: kiểm DRAFT, etag, dùng validator chỉ đọc đã có; gom đủ lỗi
+  trong `details` của `EXAM_PUBLISH_INVALID`. Đề cũ thiếu type bị chặn bằng
+  `SECTION_TYPE_MISSING`; không đoán type hoặc đổi importer/factory/engine.
+- Khoá tư vấn chung: `pg_advisory_xact_lock(hashtextextended('exam:usage:' || examId, 0))`.
+  Bất kỳ luồng nào lấy cả khoá này và khoá dòng `learning.exams` PHẢI lấy khoá tư vấn TRƯỚC
+  (023 archive, 021 công bố/sửa cuộc thi gắn đề). Giữ khoá cùng transaction tới commit/rollback.
+  Javadoc `learning.api.ExamUsageGuard` là định nghĩa chuẩn để hai bên dùng cùng chuỗi khoá.
+- Archive: khoá tư vấn → khoá dòng → kiểm trạng thái/guard → đổi trạng thái + audit.
+  Đã ARCHIVED trả 200, không gọi guard/không thêm audit, giữ nguyên `published_at`.
+  Không có bean guard hoặc mọi bean false → không chặn; một true → `EXAM_IN_USE` 409.
+- Audit EXAM_PUBLISH/EXAM_ARCHIVE đúng principal, target EXAM/id và before/after trạng thái;
+  cùng transaction ghi. Lỗi audit/ghi rollback toàn bộ. Lượt thi đã mở tiếp tục bằng snapshot.
+- Test cạnh tranh chạy archive/publish trên cùng đề ở cả hai thứ tự, kiểm chờ khoá PostgreSQL,
+  không deadlock, trạng thái và audit đúng theo thứ tự thắng; mô phỏng writer 021 dùng cùng khoá.
+- Targeted đầu tiên: 165 F1/E0/S0, ca nộp lượt đang mở nhận 403 vì fixture `@Transactional`
+  chưa commit còn `PracticeService.finish` dùng REQUIRES_NEW. Leader duyệt sửa riêng fixture:
+  commit thật, code/title/user duy nhất; AfterEach chỉ dọn ID test sở hữu, child trước parent.
+  Giữ nguyên kỳ vọng 200/SUBMITTED/điểm đúng, không sửa engine hoặc nới test.
+- Gate sau rebase: targeted → hồi quy + ModuleBoundaryTest → full verify một lần;
+  Testcontainers/Java 17, báo F/E/S/LINE thực tế; lỗi ngoài ngoại lệ đã duyệt phải dừng.
