@@ -13,7 +13,7 @@
 | **Approved by** | Leader (2026-10-30) |
 | **Locked on** | 2026-10-30 — đổi hợp đồng phải sửa OpenAPI + spec trước, leader duyệt lại |
 | **Phụ thuộc** | Spec 001 (cookie tên miền cha, CORS 2 origin, `/api/auth/me`, FR-090 redirect về trang game) · Spec 003 §0 (bộ máy lượt luyện, `PracticeApi`) |
-| **Spec đi kèm** | 008 (luật 4 game) — 007 khoá trước, 008 cắm `GameDefinition` vào |
+| **Spec đi kèm** | 008 (luật 6 game) — 007 khoá trước, 008 cắm `GameDefinition` vào |
 | **Quyết định chung** | Brainstorm 2026-10-19: D-03, D-04, D-09 · Plan validation V1 (app riêng), V6 (React + CSS, không engine) |
 
 > **Codex đọc:** `AGENTS.md` → spec 001 §0, §12 → spec 003 §0 → file này → `contracts/openapi-games.yaml` → `tasks.md`.
@@ -97,8 +97,8 @@ game chạm/chuột nhịp vừa.
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-001** | THE system SHALL khai 4 game bằng `enum GameCode { CHAR_RAIN, PINYIN_MATCH, RADICAL_MATCH, CHAR_CATCH }` và interface `GameDefinition` (`code, name, description, skill, howToPlay, timeLimitSeconds, pointsPerCorrect, isAvailable(ctx), buildRound(ctx), validateAnswer(item, answer, elapsedMs), uiConfig()`); spec 008 cài đặt 4 lớp. **Không** bảng `game_catalog` (feature tree 5.6) |
-| **FR-002** | `GET /api/community/games` SHALL trả 4 game theo thứ tự enum: `{code, name, description, skill, howToPlay, timeLimitSeconds, playable, unavailableReason, myStats}`; **công khai** (khách xem được, `myStats = null`) |
+| **FR-001** | THE system SHALL dùng lại `learning.api.GameCode` gồm 6 mã theo thứ tự `CHAR_RAIN, PINYIN_MATCH, RADICAL_MATCH, CHAR_CATCH, BRUSH_STROKE, FLYING_DART`, không tạo enum khác; interface `GameDefinition` (`code, name, description, skill, howToPlay, timeLimitSeconds, pointsPerCorrect, isAvailable(ctx), buildRound(ctx), validateAnswer(item, answer, elapsedMs), uiConfig()`) do spec 008 cài đặt 6 game. `validateAnswer` trả void, chỉ kiểm luật bổ sung (vi phạm → VALIDATION_FAILED/422), đúng/sai do engine chấm từ snapshot. **Không** bảng `game_catalog` (feature tree 5.6) |
+| **FR-002** | `GET /api/community/games` SHALL trả 6 game theo thứ tự enum: `{code, name, description, skill, howToPlay, timeLimitSeconds, playable, unavailableReason, myStats}`; **công khai** (khách xem được, `myStats = null`). Chuyển tiếp trước khi 008 có định nghĩa: registry rỗng → danh sách rỗng; tạo ván → 422 GAME_UNAVAILABLE (Q-T03-01) |
 | **FR-003** | `playable = isAvailable(ctx)`; `false` → `unavailableReason = "NOT_ENOUGH_CONTENT"` (BR-087-11) |
 | **FR-004** | `myStats` (đã đăng nhập) SHALL là `{bestPoints, roundsPlayed, lastPlayedAt}` chỉ tính ván `SUBMITTED` của người gọi cho game đó; `bestPoints = max(score) × pointsPerCorrect` |
 | **FR-005** | Kết quả FR-002 cho khách SHALL được cache 60 s (`@Cacheable`, khoá theo `playable`); phần `myStats` không cache |
@@ -145,7 +145,7 @@ game chạm/chuột nhịp vừa.
 | **FR-025** | `shared/auth/useCurrentUser` SHALL gọi `GET /api/auth/me` khi tải; 401 sau khi đã thử refresh → trạng thái khách |
 | **FR-026** | Khách bấm "Đăng nhập để chơi": web → `window.location = {VITE_WEB_ORIGIN}/login?redirect={encodeURIComponent(location.href)}` (spec 001 FR-090 đã cho phép origin game); WebView → `postMessage({type:'AUTH_REQUIRED'})` |
 | **FR-027** | Route: `/` = SCR-035 Game Hub; `/play/:code` = SCR-036 Game Session; khác → trang 404 có nút về Hub |
-| **FR-028** | SCR-035 SHALL hiện 4 thẻ game (tên, mô tả, kỹ năng luyện, thời lượng, "Cách chơi" mở rộng được, thành tích cá nhân khi đăng nhập), nút "Chơi" (khoá khi `playable=false` kèm "Chưa đủ dữ liệu"), bộ chọn cấp HSK tuỳ chọn ("Từ tôi đang học" mặc định). **Không** có nút bảng xếp hạng (V2) |
+| **FR-028** | SCR-035 SHALL hiện 6 thẻ game (tên, mô tả, kỹ năng luyện, thời lượng, "Cách chơi" mở rộng được, thành tích cá nhân khi đăng nhập), nút "Chơi" (khoá khi `playable=false` kèm "Chưa đủ dữ liệu"), bộ chọn cấp HSK tuỳ chọn ("Từ tôi đang học" mặc định). **Không** có nút bảng xếp hạng (V2) |
 | **FR-029** | `GameShell` (SCR-036 khung) SHALL lo: màn sẵn sàng ("Bắt đầu" → tạo ván), đếm ngược 3 s trước khi hiện lượt đầu (server đã cộng 3 s vào `deadline`, FR-011), đồng hồ theo `deadline`, điểm hiện tại, hàng đợi gửi lượt tuần tự (E6), tự `finish` khi hết giờ hoặc hết lượt, nút "Thoát" (xác nhận trong trang → `abandon`), màn kết quả (FR-017: điểm, đúng/sai/bỏ lỡ, độ chính xác, thời gian, "Kỷ lục mới!", "Chơi lại", "Về danh sách"). Game cụ thể chỉ nhận `items`, `uiConfig`, `submitAnswer(no, answer)` |
 | **FR-030** | Hợp đồng WebView SHALL: đọc `window.__CNHSK_TOKEN__`, `window.__CNHSK_PLATFORM__ === 'mobile'`; gửi qua `window.ReactNativeWebView?.postMessage(JSON)`: `{type:'AUTH_REQUIRED'}`, `{type:'TOKEN_EXPIRED'}`, `{type:'ROUND_FINISHED', gameCode, points}`, `{type:'EXIT'}`; nhận `message` `{type:'TOKEN_REFRESHED', token}`. Có `public/webview-harness.html` mô phỏng app (iframe + tiêm token + log message) để kiểm tay. Token **không bao giờ** qua URL |
 | **FR-031** | Giao diện game SHALL dùng được bằng cảm ứng (vùng chạm ≥ 44 px), màn 360 px trở lên, tôn trọng `prefers-reduced-motion` (giảm chuyển động, game vẫn chơi được) |
@@ -164,7 +164,7 @@ WHERE user_id = :u AND kind = 'GAME' AND status = 'SUBMITTED'
 GROUP BY game_code;                       -- best: thêm AND suspicious = false (FR-018)
 ```
 
-Truy vấn nằm trong `learning` và lộ ra qua `PracticeApi.gameStats(userId)` (`AC-03`).
+Truy vấn nằm trong `learning` và lộ ra qua `GameStatsApi.gameStats(userId)` (`AC-03`); không mở rộng `PracticeApi` đã khoá.
 
 ---
 
@@ -196,7 +196,7 @@ Bộ máy trả mã `SESSION_*`; lớp `community.game` **dịch** sang mã `ROU
 | **HR-06 / BUS-09** không tin điểm client | §0.1, FR-013, FR-016 |
 | **AC-03** | `community.game` chỉ dùng `learning.api.PracticeApi`, `ContentLookup`; ArchUnit cấm `community..` → `learning..` trừ `learning.api..` |
 | **AC-10** | Sự kiện spec 003 trong transaction — mastery từ game sau này cùng commit |
-| Package | `community.game` (`GameCode`, `GameDefinition`, `GameRegistry`, `GameRoundService`, `GameRoundHandler`, `web.GameController`) |
+| Package | `community.game` (`GameContext`, `GameDefinition`, `GameRegistry`, `GameRoundService`, `GameRoundHandler`, `web.GameController`); mã game dùng `learning.api.GameCode` |
 
 ---
 
@@ -262,7 +262,7 @@ Bộ máy trả mã `SESSION_*`; lớp `community.game` **dịch** sang mã `ROU
 
 | Open issue | Chốt |
 |---|---|
-| SCR-036: hằng số điểm, thời gian tối thiểu, hạn ván | `pointsPerCorrect`, `timeLimitSeconds`, `minDurationMs` khai trong `GameDefinition` (giá trị ở spec 008); hạn = 3 s + thời gian + 15 s |
+| SCR-036: hằng số điểm, thời gian tối thiểu, hạn ván | `pointsPerCorrect`, `timeLimitSeconds` khai trong `GameDefinition`; minDurationMs đặt theo từng lượt trong ServedItem.rules (giá trị ở spec 008). Lượt quá nhanh xử lý theo suspicious ở T-06; hạn = 3 s + thời gian + 15 s |
 | SCR-036: tạm dừng | Không có (Q2) |
 | SCR-035/036: nút bảng xếp hạng | Ẩn (V2) |
 
@@ -287,7 +287,7 @@ Bộ máy trả mã `SESSION_*`; lớp `community.game` **dịch** sang mã `ROU
 
 | # | FR | G / W / T |
 |---|---|---|
-| AT-01 | FR-001 | Đăng ký 4 `GameDefinition` giả · T `GameRegistry` có đủ 4, thiếu một → ứng dụng không khởi động |
+| AT-01 | FR-001 | Đăng ký 6 `GameDefinition` giả chỉ trong test · T `GameRegistry` có đủ 6 theo enum; có ≥ 1 định nghĩa mà thiếu/trùng/null → ứng dụng không khởi động. Chuyển tiếp: 0 định nghĩa → registry rỗng, WARN một lần lúc khởi động; task cuối 008 siết trường hợp 0 cũng không khởi động (Q-T03-01) |
 | AT-02 | FR-002, FR-003 | Khách gọi danh mục · T 200, `myStats=null`; game giả không đủ dữ liệu · T `playable=false`, `NOT_ENOUGH_CONTENT` |
 | AT-03 | FR-004, FR-018 | 3 ván (5, 8 đúng; 9 đúng nhưng `suspicious`) · T `bestPoints = 8 × pointsPerCorrect`, `roundsPlayed=3` |
 | AT-04 | FR-006 | `code=SNAKE` · T 400 `INVALID_GAME_CODE`; khách tạo ván · T 401 |

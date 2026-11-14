@@ -31,7 +31,7 @@ components:
       $ref: '../../003-vocab-topics/contracts/openapi-practice-vocab.yaml#/components/schemas/ServedItemView'
     GameCode:
       type: string
-      enum: [CHAR_RAIN, PINYIN_MATCH, RADICAL_MATCH, CHAR_CATCH]
+      enum: [CHAR_RAIN, PINYIN_MATCH, RADICAL_MATCH, CHAR_CATCH, BRUSH_STROKE, FLYING_DART]
     GameInfo:
       type: object
       required: [code, name, description, skill, howToPlay, timeLimitSeconds, playable]
@@ -128,7 +128,7 @@ paths:
     get:
       tags: [games]
       operationId: listGames
-      summary: Danh mục 4 game, công khai; thành tích khi đăng nhập (FR-002…FR-005)
+      summary: Danh mục 6 game, công khai; thành tích khi đăng nhập (FR-002…FR-005)
       security: [ {}, { cookieAuth: [] }, { bearerAuth: [] } ]
       responses:
         '200':
