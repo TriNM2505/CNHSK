@@ -95,3 +95,32 @@ Spec/OpenAPI đồng bộ 4 → 6, bỏ enum riêng trong community.game và s�
 Gate T-03: targeted GameDefinitionTest 15 + GameRegistryTest 11 + GameCodeTest 18 + ModuleBoundaryTest 9 = 53/53; hồi quy PracticeApiTest 36 + ContentLookupTest 10 = 46/46, tổng 99 test F0/E0/S0. Full Maven verify (Java 17, DEBUG=false, Docker): 5309 test, F0/E0/S0, BUILD SUCCESS, 19:28 phút. JaCoCo LINE 13684 covered / 434 missed = 96,9259%; package community.game 26 covered / 0 missed = 100%, mọi ngưỡng đạt. Không dùng ngoại lệ môi trường; không sửa test cũ.
 
 Self-check: đúng 11 file đã duyệt, UTF-8 không BOM, git diff --check sạch; không TODO mới trong code, không dependency/lockfile/config/endpoint/migration hay dữ liệu HSK thật. Fetch trước bàn giao origin/main = 00efcf8 (đã có #178 và #179), không đổi file nào trong allowlist hoặc GameCode/ContentLookup/PracticeApi so với base 3fe9ab0. Không rebase/merge main; một conventional commit, Draft PR để leader review.
+
+## 2026-11-14 · T-04 — G0 được leader duyệt, chỉnh cache
+
+Base `fbf7ad0a084255f3cafaed745f9b5ed6ae351865` (đã merge #180), nhánh `spec/007-t04`. Tái sử dụng worktree game sau khi kiểm sạch và T-03 đã vào main. Allowlist 11 file; thay GameCatalogCacheConfig.java dự kiến bằng spec.md (chỉ FR-005), không tạo file cấu hình cache.
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T04-01 | ANSWERED | Availability chung dùng GameContext(null, null, contentLookup) cho cả khách lẫn tài khoản. Chỉ myStats là cá nhân. |
+| Q-T04-02 | ANSWERED | Snapshot trong bộ nhớ chứa metadata + playable + unavailableReason, thứ tự enum, TTL 60 giây theo Clock. Thread-safe, khi hết hạn chỉ một request tính lại; isAvailable chỉ chạy khi tính snapshot. Chấp nhận playable trễ tối đa 60 giây. FR-005 được sửa theo chốt này. Không @Cacheable/RedisCacheManager/@EnableCaching, không đổi cấu hình toàn app. |
+| Q-T04-03 | ANSWERED | Khách trả myStats=null; đã đăng nhập chưa có ván SUBMITTED trả bestPoints=0, roundsPlayed=0, lastPlayedAt=null. |
+| Q-T04-04 | NOT_APPLICABLE | Không dùng Redis cho cache danh mục, nên không có chính sách fallback Redis trong T-04. |
+
+GameCatalogService ghép stats sau snapshot, gọi GameStatsApi một lần cho danh mục có game; registry rỗng trả [] không cần đọc stats. Không cache kết quả cá nhân, không nhận userId từ client, không gọi buildRound hay đưa đáp án/snapshot ván ra API. GameInfo chỉ có các trường đúng YAML, pointsPerCorrect chỉ dùng nội bộ để nhân bestCorrect của server.
+
+SecurityConfig chỉ thêm đúng GET /api/community/games permitAll trước matcher community bao quát; không mở POST/đường con, không đổi JWT filter/CSRF/CORS. Ghi cho T-09: cookie hết hạn vẫn trả 401 ở filter; client game phải refresh và nếu refresh không thành công thì gọi lại như khách. T-04 chỉ kiểm hành vi này, không sửa filter.
+
+Targeted T-04 sau sửa fixture: 22/22, F0/E0/S0 (cache 6, service 7, HTTP/PostgreSQL 9), BUILD SUCCESS, 1:11 phút. Lượt đầu có một assertion tên mẫu sai hoa/thường so với GameCode.displayName và một lỗi đổi Mockito stub bằng when sau stub đang ném lỗi; đã sửa đúng hai fixture mới (lấy tên từ enum, dùng doReturn), giữ mọi assertion nghiệp vụ, không sửa production/test cũ để né lỗi.
+
+Hồi quy GameCatalog*Test, GameStats*Test, GameCodeTest, GameDefinitionTest, GameRegistryTest, ContentLookup*Test, GlobalExceptionHandlerTest và ModuleBoundaryTest: 147/147, F0/E0/S0, BUILD SUCCESS, 50,836 giây. Cache test dùng Clock giả, kiểm 59,999999999 giây chưa tính lại, đúng 60 giây tính lại và hai đợt 12 request song song chỉ một lần tính mỗi đợt. HTTP dùng GameStatsApi/PostgreSQL thật, xác nhận AT-03 (5/8 đúng, 9 đúng suspicious → bestPoints 80, roundsPlayed 3), thống kê mới vẫn được đọc trong TTL và hai tài khoản/khách không lẫn dữ liệu. Không dùng Redis cho cache, không ngủ chờ 60 giây, không mock timer toàn cục.
+
+Bổ sung phạm vi được leader duyệt: allowlist 11 → 13, thêm CommunityContractTest.java và CommentModerationControllerIntegrationTest.java. Lượt full đầu ghi nhận hai lỗi kiểm kê 009: AC01_registeredOperationsAndRuntimeDocumentationMatchTheSource và generatedOpenApiMatchesLockedContract coi GET /api/community/games là operation thừa. Đã dừng sửa và xin duyệt trước; sau khi được duyệt mới sửa bộ lọc chỉ loại /api/community/games cùng đường con và package com.cnhsk.community.game cùng package con. Giữ nguyên EXPECTED, hasSize(24) và mọi assertion cũ; thêm assertion ranh giới games/posts và tên gần giống. Không sửa YAML 009/007; spec.md 007 chỉ đổi FR-005 theo chốt cache đã duyệt. Dừng đúng các tiến trình Java con của lượt verify do task khởi động, không tính lượt dở này là gate đạt; chạy lại targeted/hồi quy và full verify trên bản sửa.
+
+Gate sau khi thêm hai file được duyệt: toàn bộ targeted/hồi quy phía trên cùng CommunityContractTest và CommentModerationControllerIntegrationTest đạt 178/178, F0/E0/S0, BUILD SUCCESS, 1:52 phút. Hai bộ kiểm kê 009 đã xanh với nguyên 24 operation.
+
+Full verify mới (Java 17, DEBUG=false, Docker/Testcontainers local): 5.408 test, F0/E0/S0, BUILD SUCCESS, 19:19 phút. Không dùng ngoại lệ môi trường. JaCoCo LINE từ XML mới của chính lượt full: 13.840 covered / 438 missed = 96,9323%; community.game và community.game.web 62/62 dòng = 100%; mọi ngưỡng đạt.
+
+Fetch trước bàn giao: origin/main = a9b07d4, đã merge #182 và #183. SecurityConfig trên main thêm matcher leaderboard và TEACHER; matcher GET game của T-04 nằm ở vị trí khác. Không tự merge/rebase; giữ base fbf7ad0 và báo leader khi bàn giao để kiểm bản gộp. Đã xác nhận commit T-03 của 022 ac4b09b là ancestor main để soạn G0 task sau, chưa tạo nhánh/code task mới.
+
+Self-check PASS: đúng 13 file đã duyệt, git diff --check sạch, UTF-8 không BOM, không dấu conflict/TODO mới hay test bị skip. Giữ nguyên 24 operation/EXPECTED của 009, không đổi YAML, dependency, cấu hình toàn app, engine, API learning hoặc JWT filter/CSRF/CORS. Snapshot chỉ có dữ liệu chung, stats của người gọi được đọc mới; không đưa secret/PII thật hay dữ liệu HSK có bản quyền vào thay đổi, không Neon/migration. Một conventional commit, stage từng file, Draft PR; không merge PR/main hay force-push. T-04 giữ chờ review.
