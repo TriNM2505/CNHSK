@@ -9,7 +9,7 @@
 | Trường | Giá trị |
 |---|---|
 | **Version** | 1.0.0 |
-| **Status** | DRAFT — chờ leader duyệt |
+| **Status** | APPROVED — leader duyệt 2026-11-14, được code theo `tasks.md` |
 | **Phụ thuộc** | Spec 012 (`exams`, `exam_questions`, `QuestionItemFactory`) · 010 (`/api/admin/questions`, trạng thái câu) · 003 (danh sách/chi tiết chủ đề, `BUS-05`) · 001 (`AuditService`, role) · 013/014/015/019 (khoá cấu hình đang đọc từ yaml) |
 | **Quyết định chung** | RFC đợt hoàn thiện H13 (⚿K7 `SettingsApi`) · plan `261113-1629` phase 6 · leader chốt 2026-11-14 (§9) |
 | **Người code** | Tường |
