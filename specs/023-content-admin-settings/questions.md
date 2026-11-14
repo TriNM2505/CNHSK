@@ -74,3 +74,26 @@
   cho phía đọc; `ExamSection`/`ExamWrite` vẫn bắt buộc type và durationMin hợp lệ.
 - Không sửa importer, factory hoặc engine 012; test detail/null/lỗi, clone nguyên JSON,
   etag ổn định và chỉnh sửa bổ sung type.
+
+## 2026-11-14 · G0 API quản trị cài đặt đã duyệt
+
+- Base: `origin/main` `ca7707832ef44309d14c4c5e55dd3a528ff1cba9`; nhánh `spec/023-t02`.
+- Sau khi #187 merge, rebase theo chỉ đạo leader lên `dc8adb426c4f044aa49d7fab69d3f5a110dab0b5`;
+  giữ nguyên mã lỗi EXAM, kiểm thử và các quyết định đã có trên main, chạy lại G2 sau tích hợp.
+- Leader duyệt 19 file và bổ sung tường minh `SettingKey.java` để khai `auditId`: tổng 20 file.
+- spec đặt controller ở shared nên tên người sửa lấy qua interface đảo chiều:
+  `shared.api.ActorNameLookup`, adapter `auth.service.SettingsActorNameLookup` gọi `AuthApi.displayNames`.
+  Không đọc bảng auth từ shared; chỉ trả id/tên hiển thị, không email.
+- Mọi PUT/DELETE lấy cùng advisory transaction lock `settings`. Kiểm tra khoảng từng khoá và
+  `min-hanzi < max-hanzi` theo giá trị hiệu lực sau ghi hoặc reset; vi phạm trả 422 `SETTING_OUT_OF_RANGE`.
+- Audit dùng `target_type = SETTING`, `target_id = SettingKey.auditId` khai tường minh 1–18;
+  không bao giờ dùng lại id, không dùng ordinal/hash. `oldValue` là giá trị hiệu lực trước ghi;
+  reset có `newValue = null`. Ghi audit cả khi giá trị không đổi hoặc reset không có dòng override.
+- Ghi/reset và audit cùng transaction. Chỉ invalidate cache của instance trong `afterCommit`;
+  rollback không invalidate. Instance khác vẫn theo TTL 30 giây của API đọc.
+- Chỉ 18 khoá whitelist xuất hiện hoặc sửa được; khoá nhạy cảm/không tồn tại trả 404 trước khi
+  đọc body hay truy vấn store. Giá trị không phải số nguyên hoặc ngoài khoảng trả 422.
+- Hai mã `SETTING_NOT_FOUND`, `SETTING_OUT_OF_RANGE` đặt cuối ngay trước `INTERNAL_ERROR`;
+  nếu PR #187 merge trước thì giữ mọi mã EXAM trên main khi rebase theo chỉ đạo leader.
+- Gate backend: targeted → hồi quy auth/security/audit/cài đặt + `ModuleBoundaryTest` → full verify
+  với Java 17, Docker/Testcontainers; không chạy SQL/migration trên Neon. FE không thay đổi.

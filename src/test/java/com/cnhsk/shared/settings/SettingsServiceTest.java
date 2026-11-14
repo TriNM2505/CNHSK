@@ -51,6 +51,19 @@ class SettingsServiceTest {
     }
 
     @Test
+    void adminHelpersUseTheValidatedDefaultsAndDoNotPopulateOrConsultTheCache() {
+        assertThat(service.defaultValue(BILLING_FREE_MONTHLY_LIMIT)).isEqualTo(10);
+        assertThat(service.resolveValue(BILLING_FREE_MONTHLY_LIMIT, null)).isEqualTo(10);
+        assertThat(service.resolveValue(BILLING_FREE_MONTHLY_LIMIT, "0")).isZero();
+        assertThat(service.resolveValue(BILLING_FREE_MONTHLY_LIMIT, "1000")).isEqualTo(1000);
+        assertThat(service.resolveValue(BILLING_FREE_MONTHLY_LIMIT, "invalid")).isEqualTo(10);
+        assertThat(service.resolveValue(BILLING_FREE_MONTHLY_LIMIT, "1001")).isEqualTo(10);
+        verifyNoInteractions(jdbc, transactions);
+        override(BILLING_FREE_MONTHLY_LIMIT, "28");
+        assertThat(service.getInt(BILLING_FREE_MONTHLY_LIMIT)).isEqualTo(28);
+    }
+
+    @Test
     void noRowUsesYamlAndCachesUntilExactExpiry() {
         var environment = SettingKeyTest.yamlDefaults();
         environment.getPropertySources().addFirst(new MapPropertySource("override",
