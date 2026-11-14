@@ -1,6 +1,6 @@
 # Tasks: Blog cộng đồng có kiểm duyệt — Spec #009
 
-> Nguồn: [`spec.md`](spec.md) v1.0.0 · [`contracts/openapi-community.yaml`](contracts/openapi-community.yaml) · [`plan.md`](plan.md)
+> Nguồn: [`spec.md`](spec.md) v1.1.0 · [`contracts/openapi-community.yaml`](contracts/openapi-community.yaml) · [`plan.md`](plan.md)
 > ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸ hoãn · 🔴 chặn
 
 **Tổng: 18 task**, mỗi task ≤ 4 giờ. Làm trên nhánh `spec/009-community-blog-moderation`, **mỗi task một commit + push**, PR Draft vào `main`.
@@ -69,6 +69,21 @@
 |---|---|---|---|---|
 | T-19 | Sửa 7 lỗi FE mức P2 FE009-AUD-01…07 (SCR-040/041/061/063, điều hướng `MODERATOR`); chạy thử luồng cộng đồng với backend thật | `cnhsk-web/src/features/community/**`, file điều hướng dùng chung (nêu trong Shadow Plan) | FR-057…FR-063 · AT-49 | ✅ — community 597/597; 3 shuffle seed PASS; full Vitest 2309/2309; lint 0 error (1 warning LevelBadge có sẵn); build PASS sau recovery kiểu 2 file test; smoke backend thật PASS |
 | T-20 | Sửa annotation OpenAPI sinh sai (`page`/`size` của `MyPostController`, `PublicPostController`; kiểm chứng `CommentResponse.depth` khớp, không sửa) + gom hàm `excerpt` về `community.common` | `…/community/post/web/*Controller.java`, `…/community/common/*`, `PostQueryService`, `PostModerationService` + test | §13 · AT-49 | ✅ — community + contract 710/710; full verify FULL VERIFY FAILED — APPROVED ENVIRONMENTAL EXCEPTIONS ONLY; JaCoCo LINE 96.75% |
+
+## Đợt 6 · Phụ lục v1.1 — hồ sơ cộng đồng + theo dõi (leader thêm 2026-11-14, spec §16)
+
+Người code: Quốc Huy. Nhánh mỗi task `spec/009-<task>`, một PR. Không migration. `AuthApi.publicProfiles`/`bannedUserIds` đã có (017/T-01).
+
+| ID | Task | File | Spec · AT | TT |
+|---|---|---|---|---|
+| T-21 | `FollowService` + `FollowQueryRepository` + controller follow/unfollow; mã `SELF_FOLLOW`, `FOLLOW_LIMIT_REACHED` (trước `INTERNAL_ERROR`) + `GlobalExceptionHandlerTest` | `…/community/follow/**`, `…/shared/exception/ErrorCode.java` + test | FR-067…FR-069, FR-071 · AT-55…AT-58 | ⬜ |
+| T-22 | `CommunityProfileService`: hồ sơ, số đếm loại người bị khoá, danh sách followers/following theo lô; bộ lọc `authorId` cho danh sách bài công khai | `…/community/follow/**`, `…/community/post/**` + test | FR-064…FR-066, FR-070 · AT-52…AT-54, AT-59, AT-60, AT-61 (BE) | ⬜ |
+| T-23 | FE SCR-042 + link tác giả ở SCR-039/040; route `/community/users/:id` (`learner`); `SCREEN_NAMES` SCR-042 + `AssistantPromptBuilderTest` | `cnhsk-web/src/features/community/**`, `routeAccess.ts`, `screenRegistry.ts`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-072 · AT-61 (FE) | ⬜ |
+| T-24 | Gộp `contracts/openapi-community-v1-1.yaml` vào `openapi-community.yaml` (path mới, `authorId`, `COLLECTION`, `ReportedDeck`), xoá file phụ lục; nâng số operation/kiểm tham số trong `CommunityContractTest` | `specs/009-…/contracts/*`, `t/contract/CommunityContractTest.java` | §13, §16 | ⬜ |
+| T-25 | Báo cáo bộ thẻ: `targetType=COLLECTION` trong báo cáo, xem và xử lý hồ sơ qua `learning.api.PublicDeckApi` (cần 014/T-16 đã merge) | `…/community/moderation/**`, `…/community/report/**` + test | FR-073…FR-075 · AT-62…AT-64 | ⬜ |
+| T-26 | FE SCR-062/063 hiển thị hồ sơ bộ thẻ | `cnhsk-web/src/features/community/**` | FR-076 · AT-65 | ⬜ |
+
+**Thứ tự đợt 6:** T-21 → T-22 → T-24; T-23 song song từ đầu bằng dữ liệu mẫu, nối thật sau T-22. T-25 sau 014/T-16 (cần `PublicDeckApi`), rồi T-26; T-24 gộp hợp đồng sau khi T-22 và T-25 xong.
 
 ---
 
