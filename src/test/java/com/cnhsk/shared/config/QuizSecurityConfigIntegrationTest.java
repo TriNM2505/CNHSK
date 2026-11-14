@@ -22,6 +22,7 @@ import com.cnhsk.auth.api.CurrentUser;
 import com.cnhsk.auth.api.RoleCode;
 import com.cnhsk.learning.quiz.QuizCatalog;
 import com.cnhsk.learning.quiz.QuizSessionService;
+import com.cnhsk.learning.quiz.QuizResultService;
 import com.cnhsk.learning.quiz.QuizCatalog.QuizListingPage;
 import com.cnhsk.learning.quiz.web.QuizController;
 import com.cnhsk.shared.security.JwtService;
@@ -56,6 +57,7 @@ class QuizSecurityConfigIntegrationTest {
     @Autowired private JwtService jwt;
     @MockitoBean private QuizCatalog catalog;
     @MockitoBean private QuizSessionService sessions;
+    @MockitoBean private QuizResultService results;
     @MockitoBean private AuthApi auth;
     @MockitoBean private SessionInvalidationService invalidation;
     @MockitoBean private Clock clock;
@@ -143,6 +145,21 @@ class QuizSecurityConfigIntegrationTest {
     }
 
     private String token(List<String> roles) { return jwt.issueAccessToken(42, roles, false, UUID.randomUUID()); }
+
+    @Test
+    void realResultRouteAcceptsLearnerCookieWithoutCsrfAndBearerKeepsCallerIdentity() throws Exception {
+        String token = token(List.of("LEARNER"));
+        mvc.perform(get("/api/quiz-attempts/7/result").param("userId", "999")
+                        .header("Authorization", "Bearer " + token)).andExpect(status().isOk());
+        mvc.perform(get("/api/quiz-attempts/8/result").cookie(new Cookie("access_token", token)))
+                .andExpect(status().isOk());
+        verify(results).result(42, 7);
+        verify(results).result(42, 8);
+        mvc.perform(get("/api/quiz-attempts/7/result")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/quiz-attempts/7/result")
+                        .header("Authorization", "Bearer " + token(List.of("ADMIN"))))
+                .andExpect(status().isForbidden());
+    }
 
     @TestConfiguration(proxyBeanMethods = false)
     static class Probes {

@@ -166,3 +166,49 @@ JDK 17.0.12, Maven Wrapper 3.9.16, `DEBUG=false`; `docker info` thành công (29
 - Không phát sinh failure/error ở PEXPIRETIME, CapturedOutput, FR023, NFR_P04, NFR_P02; không dùng các ngoại lệ để làm xanh build. SCR-009 đã pass trên base mới. Benchmark review của 011 vẫn thuộc leader, không được thay thế bởi kết quả này.
 - Self-check PASS: không thêm dependency/schema/migration; không sửa enum/contract hoặc cấu hình bảo mật; module boundary đạt; điểm/thời gian từ server, chỉ dùng BIGINT cho điểm; SQL tham số hoá, không log đáp án/PII/token; cleanup test theo ID riêng; 18 file đúng allowlist, không BOM, `git diff --check` sạch. Không sửa thay đổi có sẵn trong checkout main, không push/merge/rebase main.
 - T-04 chuyển **CHỜ REVIEW**, G3 theo duyệt của leader: một conventional commit đúng từng file, push nhánh `spec/019-t04` và Draft PR; leader review/merge.
+
+### G0/G1 T-05 · 2026-11-14 — leader duyệt có điều kiện, dừng ở G2
+
+- Base `13f1d96020e143f901b17012bbb9a635cc4ebef4`, nhánh `spec/019-t05`; đã fetch/kiểm ErrorCode và package leaderboard trước khi tạo nhánh. T-04 đã MERGED (#168); giữ nguyên thay đổi có sẵn của 003 ở checkout main.
+- **Q1 — DUYỆT:** tạo interface `learning.leaderboard.LeaderboardService`, không annotation/component/bean; chỉ `Optional<Rank> rankOf(long userId, long topicId)` và `record Rank(long rank, long total) {}`. Không tạo production implementation/stub. Leader báo Dũng của 017/T-05 cung cấp implementation sau. `ObjectProvider<LeaderboardService>` giữ phụ thuộc bean tuỳ chọn.
+- **Q2 — DUYỆT:** attempt không tồn tại hoặc không thuộc caller → 403 ATTEMPT_NOT_OWNED; của caller nhưng không phải QUIZ/QUIZ_RETRY → 404 QUIZ_ATTEMPT_NOT_FOUND. Mã mới ngay trước INTERNAL_ERROR theo base; cập nhật kiểm kê GlobalExceptionHandlerTest. Kiểm ownership trước nguồn/trạng thái và trước đọc/chiếu đáp án. Quiz chưa SUBMITTED → 422 ATTEMPT_NOT_SUBMITTED.
+- **Q3 — LEADER CHỈNH:** rankOf ném RuntimeException vẫn trả 200, firstAttempt giữ score/durationMs, rank/total=null; WARN chỉ sessionId/topicId, không exception/message/stack/PII. Lookup bắt buộc ngoài transaction đọc để tránh rollback-only/UnexpectedRollbackException.
+- Triển khai transaction: entry point `NOT_SUPPORTED` tạm ngưng transaction caller; TransactionTemplate REQUIRES_NEW + readOnly đọc và chiếu immutable DTO. Sau khi template hoàn tất/commit mới lấy optional bean và gọi rankOf. Không chuyển entity/lazy association qua ranh giới này. Transaction riêng của 017 nếu có được tách khỏi phần đọc/caller.
+- Lượt đầu suspicious không gọi rankOf (cả khi đang xem retry); không có bean hoặc lookup rỗng cũng giữ summary, rank/total=null. Không có lượt QUIZ/SUBMITTED thì firstAttempt=null. RankingEligible phản ánh nguồn đã lưu của lượt hiện tại; suspicious riêng như T-04.
+- Đề/options/correct/explanation dùng served_items snapshot; lựa chọn và số đúng từ evidence theo ordinal no, câu thiếu/bỏ qua chosen=null và tính sai. Điểm/thời gian lấy từ lượt đã nộp; không dùng config hiện tại để chấm lại, không đọc kho câu để dựng lại đề.
+- Chỉ đọc DB trong GET, không khoá/ghi attempt/mastery/event; batch evidence một lần. Không migration/dependency, không sửa engine, SecurityConfig/application.yaml hoặc YAML contract. Full contract parity thuộc T-08.
+- Test G2 gồm real context không bean; bean mock có rank/rỗng/RuntimeException; lỗi lookup chạy transaction REQUIRED thật để bắt rollback-only; caller transaction tạm ngưng rồi phục hồi; WARN không chứa chi tiết lỗi; ownership/422/404; snapshot sau sửa/ARCHIVED; nullable JSON; first/retry/suspicious/đổi config; số query không tăng theo số câu; security và ErrorCode inventory.
+- Fixture tái dùng QuizIntegrationFixture đã merge ở T-04, cleanup riêng theo ID, không sửa file fixture ngoài allowlist. **Dừng sau G2 báo leader, chưa commit/push/PR.**
+
+### G2 T-05 · 2026-11-14 — trước full verify
+
+- JDK 17.0.12 qua JAVA_HOME trong phiên, Docker Desktop 29.9.2 (`docker info` đạt), Testcontainers PostgreSQL/Redis/Mailpit; `DEBUG=false`, không sửa pom/cấu hình hệ thống, không dùng Neon.
+- Targeted `QuizResultServiceTest,QuizResultIntegrationTest,QuizResultRankingIntegrationTest,QuizSecurityConfigIntegrationTest,GlobalExceptionHandlerTest`: **60 tests, 0 failure/error/skip; exit 0** ngay lượt đầu (`target/g2/targeted.log`).
+- Regression toàn bộ practice/exam/vocab/mastery/assistant/API/quiz/leaderboard + ContractTest và security/kiểm kê liên quan: **983 tests, 0 failure/error/skip; exit 0** (`target/g2/regression.log`).
+- ModuleBoundaryTest: **9 tests, 0 failure/error/skip; exit 0** (`target/g2/boundary.log`).
+- Case Q3 pass: mock bean gọi TransactionTemplate REQUIRED thật rồi ném RuntimeException; GET vẫn 200, first score/duration giữ nguyên, rank/total=null; xác nhận trước lookup không có transaction đọc đang hoạt động. Caller transaction được tạm ngưng và phục hồi, không rollback-only. Unit test kiểm commit phần đọc xảy ra trước rankOf và WARN chỉ sessionId/topicId, không throwable/message nhạy cảm.
+- Context không bean pass; suspicious first không gọi lookup cho cả first/retry. Ownership 403 trước non-quiz 404; IN_PROGRESS/ABANDONED/EXPIRED 422 không lộ đáp án. Snapshot sau sửa/ARCHIVED và đổi question-count vẫn đúng; ordinal/options/null JSON đúng; retry giữ first; lượt bị chuyển retry hiển thị đúng.
+- GET không đổi score/snapshot/status/study_events/mastery. Với 5/30 câu, mỗi GET đều 2 statement Hibernate (attempt + batch evidence), ngoài các projection JDBC cố định cho topic/first; không tuyên bố tổng SQL là 2. Catalog hồi quy vẫn 1 SELECT/request, p95 300 chủ đề **19,092 ms** (20 mẫu, không gate thời gian).
+- Allowlist khớp **12 file**, UTF-8 hợp lệ, không BOM; `git diff --check` exit 0. Engine, SecurityConfig/application.yaml và YAML contract không có diff. Full verify đang chạy với lệnh thường, không ignore failure.
+
+### G2 T-05 · 2026-11-14 — ĐẠT, dừng theo leader
+
+| Bước | Tests | F/E/S | Exit |
+|---|---:|---|---:|
+| Targeted | 60 | 0/0/0 | 0 |
+| Regression liên quan | 983 | 0/0/0 | 0 |
+| ModuleBoundaryTest | 9 | 0/0/0 | 0 |
+| Full `.\mvnw.cmd -B verify` | 4990 | 0/0/0 | 0 |
+
+- Full verify **18 phút 50 giây**, không ignore failure/skip. Đọc **324 XML Surefire**: tổng 4990 tests, 0 failure/error/skip, khớp log và exit code thật (`target/g2/verify.exit`).
+- JaCoCo LINE **96,9349%**: **13.251 covered / 13.670 total**, 419 missed; log có dòng **`All coverage checks have been met.`** Log `target/g2/verify.log`, báo cáo `target/site/jacoco/jacoco.xml`.
+- Các test Q3, không bean, suspicious, ownership/404/422 và snapshot đều pass trong full suite. WARN thử nghiệm chỉ có sessionId/topicId, không kèm chi tiết exception. Không phát sinh UnexpectedRollbackException hoặc failure/error thuộc PEXPIRETIME, CapturedOutput, FR023, NFR_P04, NFR_P02; không dùng ngoại lệ để làm xanh build. Benchmark review 011 vẫn thuộc leader.
+- Catalog hồi quy giữ **1 SELECT/request**; p95 300 chủ đề trong full suite **13,261 ms**, 0 chủ đề đủ điều kiện có sẵn, 20 mẫu sau warmup; không thêm gate thời gian.
+- Self-check PASS: đúng 12 file đã duyệt; UTF-8 hợp lệ, không BOM/trailing whitespace, `git diff --check` sạch; interface 017 đúng một method/record, không bean/production implementation/stub; không dependency/schema/migration, không sửa engine/security/config/contract; điểm/thời gian từ dữ liệu server, không log đáp án/PII/token; test cleanup theo ID riêng, không dọn suite khác.
+- Đã ghi T-04 **MERGED (#168)** và trạng thái T-05. **Dừng ở G2 theo lệnh leader: chưa stage/commit/push/mở PR, không merge/rebase main.** HEAD vẫn là base `13f1d96020e143f901b17012bbb9a635cc4ebef4`; checkout main giữ nguyên thay đổi có sẵn ở `specs/003-vocab-topics/questions.md`.
+
+### G3 T-05 · 2026-11-14 — leader duyệt
+
+- Leader chấp nhận G2 4990 tests F0/E0/S0, JaCoCo LINE 96,9349%, đúng 12 file; cho phép stage từng tên file, commit `feat(learning): add topic quiz result endpoint`, push `spec/019-t05` và mở PR thường (không Draft).
+- PR mô tả GET `/api/quiz-attempts/{sessionId}/result`, interface LeaderboardService để 017/T-05 cài đặt, mã QUIZ_ATTEMPT_NOT_FOUND và kết quả gate. Ghi rõ rankOf gọi **ngoài** transaction readOnly: entry point NOT_SUPPORTED tạm ngưng transaction caller; reads.execute REQUIRES_NEW/readOnly hoàn tất trước lookup. Lỗi transaction riêng của rankOf không làm rollback-only phần đọc/caller.
+- Không đổi production/test sau G2; chỉ cập nhật trạng thái tài liệu trong hai file đã duyệt. T-05 chuyển CHỜ REVIEW; không merge, không rebase/pull main.

@@ -88,6 +88,22 @@ public class QuizRepository {
                 Map.of("id", topicId), Boolean.class));
     }
 
+    public Optional<String> topicName(long topicId) {
+        return jdbc.query("SELECT name FROM learning.topics WHERE id=:id", Map.of("id", topicId),
+                (row, no) -> row.getString(1)).stream().findFirst();
+    }
+
+    public Optional<FirstSubmission> firstSubmission(long userId, long topicId) {
+        return jdbc.query("""
+                SELECT score, duration_ms, suspicious FROM learning.attempts
+                WHERE user_id=:userId AND ref_id=:topicId AND kind='QUIZ' AND ref_type='QUIZ'
+                  AND status='SUBMITTED'
+                """, Map.of("userId", userId, "topicId", topicId),
+                (row, no) -> new FirstSubmission(row.getLong("score"),
+                        (Integer) row.getObject("duration_ms"), row.getBoolean("suspicious")))
+                .stream().findFirst();
+    }
+
     public boolean hasFirstSubmission(long userId, long topicId, long excludedSession) {
         return Boolean.TRUE.equals(jdbc.queryForObject("""
                 SELECT EXISTS(SELECT 1 FROM learning.attempts WHERE user_id=:userId AND ref_id=:topicId
@@ -140,6 +156,7 @@ public class QuizRepository {
     }
 
     public record CatalogPage(long total, List<TopicRow> items) { }
+    public record FirstSubmission(long score, Integer durationMs, boolean suspicious) { }
     public record TopicRow(long topicId, String topicName, int hskLevel, long availableQuestions,
             Long firstAttemptId, Long firstScore, Instant firstSubmittedAt, boolean firstSuspicious,
             Long bestRetryScore) { }
