@@ -2,16 +2,16 @@
 
 > Nguồn: [`spec.md`](spec.md) v1.0.0 · [`contracts/openapi-games.yaml`](contracts/openapi-games.yaml)
 
-**Tổng: 11 task**, ≤ 4 giờ/task, một task một PR `agent/007-<task>`. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
+**Tổng: 11 task**, ≤ 4 giờ/task, một task một PR `spec/007-t0x` (T-10/T-11: `spec/007-t10`, `spec/007-t11`). Quy ước chung: `specs/001-auth-rbac/tasks.md`.
 **Điều kiện:** spec 001 xong (cookie, CORS, FR-090); spec 003 đợt 0 xong.
 
 ## Backend
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | Thêm `GAME_ROUND` vào `PracticeSource` (`allowSkip=false`, `maxScoreFromServed=true`); `PracticeApi.gameStats(userId)`, `countRecentGameRounds(userId, since)` | `…/learning/practice/*`, `…/learning/api/PracticeApi.java` | FR-004, FR-007 | ⬜ |
+| T-01 | Chỉ bổ sung phần chưa có: `GameStatsApi.gameStats(userId)` + `countRecentGameRounds(userId, since)` qua query service chỉ đọc; `GAME_ROUND`/cấu hình đã có. Giữ nguyên `PracticeApi` và test khoá 4 phương thức | `…/learning/api/GameStatsApi.java`, `…/learning/practice/GameStatsQueryService.java` + test | FR-004, FR-007, FR-018 · dữ liệu AT-03/AT-05 | ✅ 2026-11-14: targeted 22/22; regression 349/349; full verify 4.935 F0/E0/S0, JaCoCo LINE 96,8936%; chờ leader review |
 | T-02 | `learning.api.ContentLookup` + cài đặt `ContentLookupImpl` (`pool`, `LexemeCard`, `pinyinKey`, `meaningKeys`, ưu tiên từ đã học, mặc định cấp 1) | `…/learning/api/ContentLookup.java`, `…/learning/content/ContentLookupImpl.java` | FR-020…FR-022 · AT-17 | ⬜ |
-| T-03 | `GameCode`, `GameDefinition`, `GameRegistry` (kiểm đủ 4 khi khởi động), 4 định nghĩa **giả** cho test | `…/community/game/*` | FR-001 · AT-01 | ⬜ |
+| T-03 | Dùng lại `learning.api.GameCode` đã có đủ 6 mã (không tạo enum mới); `GameDefinition`, `GameRegistry` kiểm đủ 6 khi khởi động + 6 định nghĩa **giả** cho test; đồng bộ spec/OpenAPI sang 6 mã trong PR T-03 | `…/community/game/*`, `spec.md`, `contracts/openapi-games.yaml` | FR-001 · AT-01 | ⬜ |
 | T-04 | `GET /api/community/games` (công khai, cache phần chung, `myStats`) | `…/community/game/web/GameController.java`, `GameCatalogService.java` | FR-002…FR-005 · AT-02, AT-03 | ⬜ |
 | T-05 | `GameRoundService.start` + `POST /{code}/rounds` (giới hạn 30/giờ, bỏ ván cũ cùng game, `buildRound`, `PracticeApi.start`, `deadline`) | `…/community/game/GameRoundService.java` | FR-006…FR-011 · AT-04…AT-08 | ⬜ |
 | T-06 | Trả lời / khôi phục / kết thúc / bỏ: kiểm `GAME_ROUND`, sở hữu, `ROUND_TIME_OVER`, từ chối trường lạ, dịch mã lỗi `SESSION_*` → `ROUND_*`, `GameRoundHandler` (trần, `extra`) | `GameRoundService.java`, `GameRoundHandler.java`, controller | FR-012…FR-019 · AT-09…AT-16 | ⬜ |
