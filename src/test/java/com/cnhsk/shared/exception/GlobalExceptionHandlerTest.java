@@ -164,7 +164,10 @@ class GlobalExceptionHandlerTest {
                 "NOTE_DUPLICATE", "NOTE_NOT_RESTORABLE", "CARD_DUPLICATE", "ASSISTANT_BLOCKED_DURING_TEST", "ASSISTANT_UNAVAILABLE",
                 "CARD_BATCH_NOT_FOUND", "PLAN_NOT_AVAILABLE", "INSUFFICIENT_CREDITS", "TRANSLATE_UNAVAILABLE", "INVALID_CARD_CODE", "EMAIL_NOT_VERIFIED",
                 "INVALID_UNSUBSCRIBE_TOKEN", "REFERENCE_NOT_FOUND", "MALFORMED_URL", "NON_HTTPS_LINK", "DOMAIN_NOT_ALLOWED", "PUBLISH_INVALID_RESOURCE",
-                "QUIZ_NOT_AVAILABLE", "QUIZ_ATTEMPT_NOT_FOUND", "INTERNAL_ERROR");
+                "QUIZ_NOT_AVAILABLE", "QUIZ_ATTEMPT_NOT_FOUND",
+                "GRADING_INVALID_ESSAY", "GRADING_DUPLICATE_ACTIVE", "GRADING_REQUEST_NOT_OWNED", "GRADING_NOT_CANCELLABLE",
+                "GRADING_SELF_GRADING", "GRADING_CLAIM_LIMIT", "GRADING_ALREADY_CLAIMED", "GRADING_NOT_ASSIGNEE",
+                "GRADING_DEADLINE_MISSED", "GRADING_INVALID_RESULT", "INTERNAL_ERROR");
     }
 
     @Test
@@ -271,8 +274,34 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.details.kind").value("CARDS")).andExpect(jsonPath("$.details.limit").value(500));
     }
 
+    @Test
+    void gradingEssayRetainsOnlyItsApprovedCountDetailsAndDoesNotChangeOtherCodes() throws Exception {
+        mockMvc.perform(get("/test/grading-essay").header(RequestIdFilter.HEADER_NAME, "grading-count"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error_code").value("GRADING_INVALID_ESSAY"))
+                .andExpect(jsonPath("$.request_id").value("grading-count"))
+                .andExpect(jsonPath("$.details.hanziCount").value(49));
+        mockMvc.perform(get("/test/grading-result-details"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error_code").value("GRADING_INVALID_RESULT"))
+                .andExpect(jsonPath("$.details").doesNotExist())
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString()).doesNotContain("private-essay"));
+    }
+
     @RestController
     static class ErrorTestController {
+        @GetMapping("/test/grading-essay")
+        void gradingEssay() {
+            throw new ApiException(ErrorCode.GRADING_INVALID_ESSAY, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Bài viết không đúng độ dài quy định.", Map.of("details", Map.of("hanziCount", 49)));
+        }
+
+        @GetMapping("/test/grading-result-details")
+        void gradingResultDetails() {
+            throw new ApiException(ErrorCode.GRADING_INVALID_RESULT, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Kết quả không hợp lệ.", Map.of("details", Map.of("essay", "private-essay")));
+        }
+
         @GetMapping("/test/invalid-card")
         void invalidCard() {
             throw new ApiException(ErrorCode.INVALID_CARD_CODE, HttpStatus.BAD_REQUEST,

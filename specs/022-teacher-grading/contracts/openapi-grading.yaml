@@ -44,12 +44,17 @@ components:
         message: { type: string }
         request_id: { type: string }
         details:
-          type: array
-          items:
-            type: object
-            properties:
-              field: { type: string }
-              message: { type: string }
+          oneOf:
+            - type: array
+              items:
+                type: object
+                properties:
+                  field: { type: string }
+                  message: { type: string }
+            - type: object
+              required: [hanziCount]
+              properties:
+                hanziCount: { type: integer, minimum: 0 }
     RequestStatus:
       type: string
       enum: [PENDING, ASSIGNED, COMPLETED, FAILED, EXPIRED]

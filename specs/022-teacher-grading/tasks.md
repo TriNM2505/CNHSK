@@ -11,7 +11,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | `GradingConfig` (`cnhsk.grading.*`, thiếu khoá → không khởi động), đếm chữ Hán, `essayHash`, `GradingRepository` (SQL chuyển trạng thái có điều kiện §0.2), mã lỗi §5 | `…/learning/grading/{GradingConfig,EssayRules,GradingRepository}.java`, `application.yaml`, `ErrorCode.java`, `GlobalExceptionHandlerTest` + test | §0.1…§0.3 · AT-01 | ⬜ |
+| T-01 | `GradingConfig` (`cnhsk.grading.*`, thiếu khoá → không khởi động), đếm chữ Hán, `essayHash`, `GradingRepository` (SQL chuyển trạng thái có điều kiện §0.2), mã lỗi §5 | `…/learning/grading/{GradingConfig,EssayRules,GradingRepository}.java`, `application.yaml`, `ErrorCode.java`, `GlobalExceptionHandlerTest` + test | §0.1…§0.3 · AT-01 | ✅ 2026-11-14: targeted 88/88; verify 5084 F0/E0/S0; LINE 96,9511%; chờ leader review |
 | T-02 | Người học: policy, gửi (khoá + trùng + `consume` + chèn trong một transaction), danh sách, chi tiết, huỷ + hoàn; `SecurityConfig` `LEARNER` | `…/learning/grading/GradingRequestService.java`, `…/grading/web/GradingRequestController.java`, `SecurityConfig.java` + test | FR-001…FR-007 · AT-02…AT-05, AT-17 | ⬜ |
 | T-03 | Giáo viên: hàng đợi, bài đang giữ, nhận (giới hạn 3, chặn tự chấm), xem, trả lại; `SecurityConfig` `TEACHER` `/api/teacher/**` | `…/learning/grading/TeacherGradingService.java`, `…/grading/web/TeacherGradingController.java`, `SecurityConfig.java` + test | FR-009…FR-013 · AT-06…AT-10 | ⬜ |
 | T-04 | Nộp kết quả: kiểm thang, cộng điểm, chuyển `COMPLETED` + `TEACHER_PAYOUT` một lần | `TeacherGradingService.java` + test | FR-014, FR-015 · AT-11, AT-12 | ⬜ |

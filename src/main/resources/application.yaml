@@ -154,6 +154,15 @@ cnhsk:
       review: 3
       consolidate: 7
       extend: 14
+  grading:
+    claim-hours: 48
+    grading-hours: 24
+    teacher-payout-credits: 0
+    min-hanzi: 50
+    max-hanzi: 500
+    max-chars: 3000
+    max-active-claims: 3
+    expiry-job-cron: "0 */5 * * * *"
   fsrs:
     weights: [0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575, 0.1192, 1.01925, 1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655, 0.6621]
     desired-retention: 0.9
