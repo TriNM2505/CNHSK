@@ -12,6 +12,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.cnhsk.learning.grading.GradingRepository.RequestRow;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.AfterEach;
@@ -356,6 +357,21 @@ class GradingRepositoryIntegrationTest {
         assertThat(race(List.of(complete, complete))).containsOnlyOnce(true).filteredOn(Boolean::booleanValue).hasSize(1);
         assertThat(repository.find(id).orElseThrow().status()).isEqualTo("COMPLETED");
         assertNoBilling();
+    }
+
+    @Test
+    void FR004_mineQueriesFilterBeforePagingAndUseADeterministicTieBreak() {
+        long first = repository.createPending(owner, payload(), NOW, NOW.plusSeconds(3600));
+        long second = repository.createPending(owner, payload(), NOW, NOW.plusSeconds(3600));
+        long newest = repository.createPending(owner, payload(), NOW.plusSeconds(1), NOW.plusSeconds(3600));
+        repository.createPending(other, payload(), NOW.plusSeconds(2), NOW.plusSeconds(3600));
+        assertThat(repository.cancel(second, owner, NOW.plusSeconds(3))).isTrue();
+        assertThat(repository.countMine(owner, null)).isEqualTo(3);
+        assertThat(repository.findMine(owner, null, 0, 2)).extracting(RequestRow::id).containsExactly(newest, second);
+        assertThat(repository.findMine(owner, null, 1, 2)).extracting(RequestRow::id).containsExactly(first);
+        assertThat(repository.countMine(owner, "PENDING")).isEqualTo(2);
+        assertThat(repository.findMine(owner, "PENDING", 1, 1)).extracting(RequestRow::id).containsExactly(first);
+        assertThat(repository.findMine(owner, null, Integer.MAX_VALUE, 50)).isEmpty();
     }
 
     private List<Boolean> race(List<Callable<Boolean>> calls) throws Exception {

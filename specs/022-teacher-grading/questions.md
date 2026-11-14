@@ -38,3 +38,21 @@ Test repository dùng PostgreSQL Testcontainers riêng, kiểm rollback và các
 Gate T-01 (Java 17, Docker local, DEBUG=false): targeted `GradingConfigTest` 25 + `EssayRulesTest` 12 + `GradingRepositoryIntegrationTest` 21 + `GlobalExceptionHandlerTest` 21 + `ModuleBoundaryTest` 9 = 88/88, F0/E0/S0. Full `mvnw.cmd -B verify`: 5084 test, F0/E0/S0, BUILD SUCCESS; JaCoCo LINE 13419/13841 = 96,9511%, mọi ngưỡng đạt. Không dùng ngoại lệ môi trường. `git diff --check` sạch; 13 file UTF-8 không BOM.
 
 Fetch trước bàn giao: origin/main = `cc7b7ec` (merge #173, 007/T-02). So với base `c7edc28`, main không đổi file nào trong allowlist T-01, gồm ErrorCode và handler; không có xung đột mã lỗi cần rebase. PR giữ base triển khai đã ghi ở trên.
+
+## 2026-11-14 · T-02 — G0 được leader duyệt
+
+Base `b435223fc65149978b15bfaff9a94551635e71e8`, đã kiểm chứa commit T-01 `203082a` qua merge PR #175 `c5da36b`. Nhánh `spec/022-t02`, worktree riêng; allowlist 12 file. Giữ nguyên thứ tự mã lỗi leader đã gộp với #174.
+
+| Mã | Chốt | Trạng thái |
+|---|---|---|
+| Q-T02-01 | Controller nhận id dạng String rồi parse. Sai dạng, ≤ 0, tràn int64 hoặc không tồn tại/sai loại/khác chủ đều trả 403 GRADING_REQUEST_NOT_OWNED; không để lỗi type-mismatch vào handler chung. | ANSWERED |
+| Q-T02-02 | JSON sai, thiếu essay, essay không phải string, prompt > 500 code point, hskLevel ngoài 1–9 hoặc sai kiểu → 422 VALIDATION_FAILED. Essay đúng kiểu nhưng sai độ dài/số chữ Hán → 422 GRADING_INVALID_ESSAY kèm details.hanziCount, không trừ lượt. | ANSWERED |
+| Q-T02-03 | refunded = (status = EXPIRED) hoặc (status = FAILED và error_message = CANCELLED_BY_LEARNER). Theo chốt leader, trạng thái và refund được xử lý trong cùng transaction; refund ném lỗi thì rollback trạng thái. | ANSWERED |
+
+Gửi: kiểm bài → khoá grading:submit:<userId> → kiểm hash đang PENDING/ASSIGNED → consume(GRADING, grading:<UUID server>) → chèn payload có biên nhận server, cùng một transaction. Huỷ: kiểm quyền → UPDATE có điều kiện → refund bằng biên nhận đã lưu, cùng transaction; UPDATE thua thì không refund. Thời điểm lấy từ Clock, reference định dạng GR-%06d. Không sửa bên trong 013.
+
+Danh sách dùng hai query (count + page), lọc owner/kind/status trước phân trang, sắp created_at DESC, id DESC. Preview lấy tối đa 100 code point. DTO người học chỉ chọn các trường theo contract, không trả nguyên RequestRow/payload/biên nhận/assignment/payout; result chỉ có khi COMPLETED. SecurityConfig thêm đúng 3 GET + 2 POST cho LEARNER, trước /api/admin/**, giữ nguyên CSRF.
+
+Gate T-02 (Java 17, DEBUG=false, Docker/Testcontainers local): targeted đầu 95/95; hồi quy sau hoàn thiện gồm Grading*Test + Entitlement*Test + GlobalExceptionHandlerTest + ModuleBoundaryTest đạt 223/223, F0/E0/S0 (HTTP integration 40/40). Full Maven verify: 5358 test, F0/E0/S0, BUILD SUCCESS, 18:34 phút; JaCoCo LINE 13774 covered / 438 missed = 96,9181%, mọi ngưỡng đạt. Không dùng ngoại lệ môi trường. Diff sạch, 12 file UTF-8 không BOM.
+
+AT-03 dùng billing thật: ép lỗi INSERT ở cả QUOTA/CREDIT giữ nguyên quota/số dư, không tạo yêu cầu/DEDUCT và không còn receipt Redis. AT-02: hai POST cùng bài sau chuẩn hoá chỉ một 201, một 409, một lần trừ. AT-05: refund lỗi rollback về PENDING rồi retry được; hai huỷ credit song song chỉ một REFUND; huỷ đua với claim chỉ một bên thắng. AT-04/17 kiểm quyền, sai loại, toàn bộ role khác, CSRF và không lộ các trường cấm. Fetch trước bàn giao vẫn origin/main b435223, không thay đổi file dùng chung mới.
