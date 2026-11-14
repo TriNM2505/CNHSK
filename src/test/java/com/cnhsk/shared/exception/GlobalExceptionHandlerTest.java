@@ -170,7 +170,22 @@ class GlobalExceptionHandlerTest {
                 "GRADING_SELF_GRADING", "GRADING_CLAIM_LIMIT", "GRADING_ALREADY_CLAIMED", "GRADING_NOT_ASSIGNEE",
                 "GRADING_DEADLINE_MISSED", "GRADING_INVALID_RESULT", "INVALID_GAME_CODE",
                 "EXAM_CODE_TAKEN", "EXAM_NOT_EDITABLE", "EDIT_CONFLICT",
-                "SETTING_NOT_FOUND", "SETTING_OUT_OF_RANGE", "ROUND_LIMIT_EXCEEDED", "GAME_UNAVAILABLE", "INTERNAL_ERROR");
+                "SETTING_NOT_FOUND", "SETTING_OUT_OF_RANGE", "ROUND_LIMIT_EXCEEDED", "GAME_UNAVAILABLE", "EXPORT_TOO_LARGE", "INTERNAL_ERROR");
+    }
+
+    @Test
+    void exportTooLargeReturns422AndProtectsStandardErrorFields() {
+        var handler = new GlobalExceptionHandler();
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        var response = handler.handleApiException(new ApiException(ErrorCode.EXPORT_TOO_LARGE,
+                HttpStatus.UNPROCESSABLE_ENTITY, "Không thể xuất quá 10.000 giao dịch.",
+                Map.of("error_code", "FORGED", "message", "FORGED", "request_id", "FORGED",
+                        "details", "private-ledger-data")), request);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(response.getBody()).containsEntry("error_code", "EXPORT_TOO_LARGE")
+                .containsEntry("message", "Không thể xuất quá 10.000 giao dịch.")
+                .containsKey("request_id").doesNotContainKey("details").hasSize(3);
+        assertThat(response.getBody().get("request_id")).isNotEqualTo("FORGED");
     }
 
     @Test
