@@ -1,0 +1,363 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Teacher Grading API
+  version: 1.0.0
+  description: >
+    Hợp đồng spec 022-teacher-grading. /api/grading/** và /api/grading-requests/** cần LEARNER;
+    /api/teacher/** cần TEACHER. Request đổi trạng thái qua cookie cần X-XSRF-TOKEN.
+    Không response nào cho người học có payout, biên nhận tiêu thụ hay danh tính giáo viên;
+    hàng đợi giáo viên không có nội dung bài hay danh tính người học.
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      schema: { type: string }
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+    RequestStatus:
+      type: string
+      enum: [PENDING, ASSIGNED, COMPLETED, FAILED, EXPIRED]
+    GradingPolicy:
+      type: object
+      required: [claimHours, gradingHours, minHanzi, maxHanzi, maxChars, cost, refundTerms]
+      properties:
+        claimHours: { type: integer }
+        gradingHours: { type: integer }
+        minHanzi: { type: integer }
+        maxHanzi: { type: integer }
+        maxChars: { type: integer }
+        cost: { type: integer, description: 1 lượt GRADING hoặc 1 điểm }
+        refundTerms: { type: string }
+    GradingRequestWrite:
+      type: object
+      required: [essay]
+      properties:
+        essay: { type: string, minLength: 1, maxLength: 3000 }
+        prompt: { type: [string, 'null'], maxLength: 500 }
+        hskLevel: { type: [integer, 'null'], minimum: 1, maximum: 9 }
+    Criteria:
+      type: object
+      required: [grammar, vocabulary, coherence, writing]
+      properties:
+        grammar: { type: integer, minimum: 0, maximum: 25 }
+        vocabulary: { type: integer, minimum: 0, maximum: 25 }
+        coherence: { type: integer, minimum: 0, maximum: 25 }
+        writing: { type: integer, minimum: 0, maximum: 25 }
+    Correction:
+      type: object
+      required: [original, corrected]
+      properties:
+        original: { type: string, minLength: 1, maxLength: 500 }
+        corrected: { type: string, minLength: 1, maxLength: 500 }
+        note: { type: [string, 'null'], maxLength: 500 }
+    GradingResult:
+      type: object
+      required: [score, criteria, feedback, corrections]
+      properties:
+        score: { type: integer, minimum: 0, maximum: 100 }
+        criteria: { $ref: '#/components/schemas/Criteria' }
+        feedback: { type: string }
+        corrections: { type: array, maxItems: 50, items: { $ref: '#/components/schemas/Correction' } }
+    GradingRequest:
+      type: object
+      required: [id, reference, status, essay, prompt, hskLevel, createdAt, deadline, completedAt, result, refunded]
+      properties:
+        id: { type: integer, format: int64 }
+        reference: { type: string, example: GR-000042 }
+        status: { $ref: '#/components/schemas/RequestStatus' }
+        essay: { type: string }
+        prompt: { type: [string, 'null'] }
+        hskLevel: { type: [integer, 'null'] }
+        createdAt: { type: string, format: date-time }
+        deadline: { type: [string, 'null'], format: date-time, description: Hạn nhận khi PENDING, hạn chấm khi ASSIGNED }
+        completedAt: { type: [string, 'null'], format: date-time }
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/GradingResult'
+            - type: 'null'
+        refunded: { type: boolean }
+    GradingRequestSummary:
+      type: object
+      required: [id, reference, essayPreview, status, createdAt, deadline, completedAt, score]
+      properties:
+        id: { type: integer, format: int64 }
+        reference: { type: string }
+        essayPreview: { type: string, maxLength: 100 }
+        status: { $ref: '#/components/schemas/RequestStatus' }
+        createdAt: { type: string, format: date-time }
+        deadline: { type: [string, 'null'], format: date-time }
+        completedAt: { type: [string, 'null'], format: date-time }
+        score: { type: [integer, 'null'] }
+    GradingRequestPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/GradingRequestSummary' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    QueueItem:
+      type: object
+      required: [id, reference, hanziCount, hskLevel, sentAt, claimDeadline, payoutCredits]
+      properties:
+        id: { type: integer, format: int64 }
+        reference: { type: string }
+        hanziCount: { type: integer }
+        hskLevel: { type: [integer, 'null'] }
+        sentAt: { type: string, format: date-time }
+        claimDeadline: { type: string, format: date-time }
+        payoutCredits: { type: integer }
+    QueuePage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/QueueItem' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    AssignedItem:
+      type: object
+      required: [id, reference, hanziCount, assignedAt, gradingDeadline]
+      properties:
+        id: { type: integer, format: int64 }
+        reference: { type: string }
+        hanziCount: { type: integer }
+        assignedAt: { type: string, format: date-time }
+        gradingDeadline: { type: string, format: date-time }
+    TeacherGradingDetail:
+      type: object
+      required: [id, reference, status, essay, prompt, hskLevel, hanziCount, assignedAt, gradingDeadline, payoutCredits, result]
+      properties:
+        id: { type: integer, format: int64 }
+        reference: { type: string }
+        status: { $ref: '#/components/schemas/RequestStatus' }
+        essay: { type: string }
+        prompt: { type: [string, 'null'] }
+        hskLevel: { type: [integer, 'null'] }
+        hanziCount: { type: integer }
+        assignedAt: { type: string, format: date-time }
+        gradingDeadline: { type: string, format: date-time }
+        payoutCredits: { type: integer }
+        result:
+          oneOf:
+            - $ref: '#/components/schemas/GradingResult'
+            - type: 'null'
+    GradingResultWrite:
+      type: object
+      required: [criteria, feedback, corrections]
+      properties:
+        criteria: { $ref: '#/components/schemas/Criteria' }
+        feedback: { type: string, minLength: 1, maxLength: 5000 }
+        corrections: { type: array, maxItems: 50, items: { $ref: '#/components/schemas/Correction' } }
+  responses:
+    Error:
+      description: Lỗi theo spec 022 §5
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+paths:
+  /api/grading/policy:
+    get:
+      tags: [grading]
+      operationId: getGradingPolicy
+      summary: Hạn, độ dài, chi phí, điều kiện hoàn (FR-001)
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/GradingPolicy' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/grading-requests:
+    get:
+      tags: [grading]
+      operationId: listMyGradingRequests
+      summary: Yêu cầu của tôi (FR-004)
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/RequestStatus' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/GradingRequestPage' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [grading]
+      operationId: createGradingRequest
+      summary: Gửi bài, trừ 1 lượt (FR-002, FR-003)
+      parameters: [{ $ref: '#/components/parameters/XsrfToken' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/GradingRequestWrite' } } }
+      responses:
+        '201':
+          description: Đã gửi
+          content: { application/json: { schema: { $ref: '#/components/schemas/GradingRequest' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '402': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/grading-requests/{id}:
+    get:
+      tags: [grading]
+      operationId: getMyGradingRequest
+      summary: Chi tiết + kết quả khi COMPLETED (FR-005)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/GradingRequest' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/grading-requests/{id}/cancel:
+    post:
+      tags: [grading]
+      operationId: cancelGradingRequest
+      summary: Huỷ khi chưa có giáo viên nhận, hoàn lượt (FR-006)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '200':
+          description: Đã huỷ và hoàn
+          content: { application/json: { schema: { $ref: '#/components/schemas/GradingRequest' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /api/teacher/grading-queue:
+    get:
+      tags: [teacher-grading]
+      operationId: getGradingQueue
+      summary: Hàng đợi ẩn danh (FR-009)
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/QueuePage' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/teacher/grading-requests/mine:
+    get:
+      tags: [teacher-grading]
+      operationId: listMyAssignedGrading
+      summary: Bài tôi đang giữ (FR-010)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/AssignedItem' } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/teacher/grading-requests/{id}:
+    get:
+      tags: [teacher-grading]
+      operationId: getAssignedGrading
+      summary: Bài đang giữ (FR-012)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/TeacherGradingDetail' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/teacher/grading-requests/{id}/claim:
+    post:
+      tags: [teacher-grading]
+      operationId: claimGrading
+      summary: Nhận bài (FR-011)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '200':
+          description: Đã nhận
+          content: { application/json: { schema: { $ref: '#/components/schemas/TeacherGradingDetail' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/teacher/grading-requests/{id}/release:
+    post:
+      tags: [teacher-grading]
+      operationId: releaseGrading
+      summary: Trả lại bài (FR-013)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '204': { description: Đã trả lại }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+
+  /api/teacher/grading-requests/{id}/complete:
+    post:
+      tags: [teacher-grading]
+      operationId: completeGrading
+      summary: Nộp kết quả chấm (FR-014, FR-015)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/GradingResultWrite' } } }
+      responses:
+        '200':
+          description: Đã chấm
+          content: { application/json: { schema: { $ref: '#/components/schemas/TeacherGradingDetail' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
