@@ -1,0 +1,520 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Contests API
+  version: 1.0.0
+  description: >
+    Hợp đồng spec 021-contests. /api/public/community/** không cần đăng nhập; /api/community/** cần LEARNER;
+    /api/admin/contests/** cần CONTENT_EDITOR. Request đổi trạng thái qua cookie cần X-XSRF-TOKEN.
+    Giờ trả ISO-8601 có offset +07:00. Trả lời câu hỏi dùng POST /api/practice/sessions/{id}/answers của spec 003.
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+    XsrfToken:
+      name: X-XSRF-TOKEN
+      in: header
+      required: false
+      schema: { type: string }
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+    ScheduleState:
+      type: string
+      enum: [UPCOMING, ONGOING, ENDED]
+    ContestStatus:
+      type: string
+      enum: [DRAFT, PUBLISHED, CANCELLED]
+    Prize:
+      type: object
+      required: [fromRank, toRank, description]
+      properties:
+        fromRank: { type: integer, minimum: 1 }
+        toRank: { type: integer, minimum: 1 }
+        description: { type: string, maxLength: 200 }
+    ContestSummary:
+      type: object
+      required: [id, name, startsAt, endsAt, state, prizes, maxParticipants, participantCount, rankingPublished]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        state: { $ref: '#/components/schemas/ScheduleState' }
+        prizes: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/Prize' } }
+        maxParticipants: { type: [integer, 'null'] }
+        participantCount: { type: integer, format: int64 }
+        rankingPublished: { type: boolean }
+    ContestPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/ContestSummary' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    ContestDetail:
+      allOf:
+        - $ref: '#/components/schemas/ContestSummary'
+        - type: object
+          required: [description, examTitle, durationMinutes, questionCount]
+          properties:
+            description: { type: [string, 'null'] }
+            examTitle: { type: string }
+            durationMinutes: { type: integer, description: 0 = chỉ giới hạn theo endsAt }
+            questionCount: { type: integer }
+    ServedItemView:
+      type: object
+      description: Câu đã phát theo spec 003 — không có answer/accept
+      additionalProperties: true
+    ContestSession:
+      type: object
+      required: [sessionId, contestId, deadline, serverTime, resumed, items]
+      properties:
+        sessionId: { type: integer, format: int64 }
+        contestId: { type: integer, format: int64 }
+        deadline: { type: string, format: date-time }
+        serverTime: { type: string, format: date-time }
+        resumed: { type: boolean }
+        items: { type: array, items: { $ref: '#/components/schemas/ServedItemView' } }
+    SubmitResult:
+      type: object
+      required: [submittedAt]
+      properties:
+        submittedAt: { type: string, format: date-time }
+    CheatEvent:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, enum: [TAB_HIDDEN] }
+    RankingRow:
+      type: object
+      required: [rank, userId, displayName, score, maxScore, durationMs]
+      properties:
+        rank: { type: integer, format: int64 }
+        userId: { type: integer, format: int64 }
+        displayName: { type: [string, 'null'] }
+        score: { type: integer, format: int64 }
+        maxScore: { type: integer, format: int64 }
+        durationMs: { type: [integer, 'null'] }
+    RankingPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/RankingRow' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    MyResult:
+      type: object
+      required: [status, submittedAt, score, maxScore, durationMs, rank, excluded]
+      properties:
+        status: { type: string, enum: [IN_PROGRESS, SUBMITTED, EXPIRED, ABANDONED] }
+        submittedAt: { type: [string, 'null'], format: date-time }
+        score: { type: [integer, 'null'], format: int64, description: null trước khi công bố }
+        maxScore: { type: [integer, 'null'], format: int64 }
+        durationMs: { type: [integer, 'null'] }
+        rank: { type: [integer, 'null'], format: int64 }
+        excluded: { type: [boolean, 'null'] }
+    ContestResults:
+      type: object
+      required: [contest, published, mine, ranking]
+      properties:
+        contest: { $ref: '#/components/schemas/ContestSummary' }
+        published: { type: boolean }
+        mine:
+          oneOf:
+            - $ref: '#/components/schemas/MyResult'
+            - type: 'null'
+        ranking:
+          oneOf:
+            - $ref: '#/components/schemas/RankingPage'
+            - type: 'null'
+    ContestWrite:
+      type: object
+      required: [name, startsAt, endsAt]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: [string, 'null'], maxLength: 5000 }
+        examId: { type: [integer, 'null'], format: int64 }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        maxParticipants: { type: [integer, 'null'], minimum: 1, maximum: 100000 }
+        prizes: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/Prize' } }
+    AdminContest:
+      type: object
+      required: [id, name, description, examId, examTitle, startsAt, endsAt, maxParticipants, prizes, status, state, rankingPublishedAt, participantCount]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        examId: { type: [integer, 'null'], format: int64 }
+        examTitle: { type: [string, 'null'] }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        maxParticipants: { type: [integer, 'null'] }
+        prizes: { type: array, items: { $ref: '#/components/schemas/Prize' } }
+        status: { $ref: '#/components/schemas/ContestStatus' }
+        state: { $ref: '#/components/schemas/ScheduleState' }
+        rankingPublishedAt: { type: [string, 'null'], format: date-time }
+        participantCount: { type: integer, format: int64 }
+    AdminContestPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/AdminContest' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    Participant:
+      type: object
+      required: [userId, displayName, status, score, maxScore, durationMs, submittedAt, suspicious, cheatEventCount]
+      properties:
+        userId: { type: integer, format: int64 }
+        displayName: { type: [string, 'null'] }
+        status: { type: string }
+        score: { type: [integer, 'null'], format: int64 }
+        maxScore: { type: [integer, 'null'], format: int64 }
+        durationMs: { type: [integer, 'null'] }
+        submittedAt: { type: [string, 'null'], format: date-time }
+        suspicious: { type: boolean }
+        cheatEventCount: { type: integer, format: int64 }
+    ParticipantDecision:
+      type: object
+      required: [excluded, note]
+      properties:
+        excluded: { type: boolean }
+        note: { type: string, minLength: 1, maxLength: 500 }
+    Winner:
+      type: object
+      description: Endpoint duy nhất có email (FR-024)
+      required: [rank, userId, displayName, email, score, durationMs, prize]
+      properties:
+        rank: { type: integer, format: int64 }
+        userId: { type: integer, format: int64 }
+        displayName: { type: [string, 'null'] }
+        email: { type: string, format: email }
+        score: { type: integer, format: int64 }
+        durationMs: { type: [integer, 'null'] }
+        prize: { type: string }
+  responses:
+    Error:
+      description: Lỗi theo spec 021 §5
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+paths:
+  /api/public/community/contests:
+    get:
+      tags: [contests]
+      operationId: listContests
+      summary: Cuộc thi đã công bố (FR-009)
+      security: []
+      parameters:
+        - name: state
+          in: query
+          schema: { $ref: '#/components/schemas/ScheduleState' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/ContestPage' } } }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/public/community/contests/{id}:
+    get:
+      tags: [contests]
+      operationId: getContest
+      summary: Chi tiết cuộc thi (FR-010)
+      security: []
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/ContestDetail' } } }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/community/contests/{id}/attempts:
+    post:
+      tags: [contests]
+      operationId: enterContest
+      summary: Vào thi hoặc tiếp tục lượt đang mở (FR-011)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '200':
+          description: Tiếp tục lượt đang mở
+          content: { application/json: { schema: { $ref: '#/components/schemas/ContestSession' } } }
+        '201':
+          description: Lượt mới
+          content: { application/json: { schema: { $ref: '#/components/schemas/ContestSession' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/community/contests/{id}/attempts/submit:
+    post:
+      tags: [contests]
+      operationId: submitContest
+      summary: Nộp bài một lần (FR-012)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '200':
+          description: Đã nộp — không có điểm/đáp án
+          content: { application/json: { schema: { $ref: '#/components/schemas/SubmitResult' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/community/contests/{id}/attempts/events:
+    post:
+      tags: [contests]
+      operationId: reportContestEvent
+      summary: Ghi nhận chuyển tab, không ảnh hưởng điểm (FR-013)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/CheatEvent' } } }
+      responses:
+        '204': { description: Đã ghi hoặc bỏ qua do giới hạn tần suất }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/community/contests/{id}/results:
+    get:
+      tags: [contests]
+      operationId: getContestResults
+      summary: Kết quả của tôi + bảng xếp hạng sau công bố (FR-014)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/ContestResults' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+
+  /api/admin/contests:
+    get:
+      tags: [contest-admin]
+      operationId: adminListContests
+      summary: Mọi cuộc thi (FR-017)
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/ContestStatus' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminContestPage' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    post:
+      tags: [contest-admin]
+      operationId: adminCreateContest
+      summary: Tạo cuộc thi DRAFT (FR-018)
+      parameters: [{ $ref: '#/components/parameters/XsrfToken' }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ContestWrite' } } }
+      responses:
+        '201':
+          description: Đã tạo
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminContest' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/contests/{id}:
+    get:
+      tags: [contest-admin]
+      operationId: adminGetContest
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminContest' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+    put:
+      tags: [contest-admin]
+      operationId: adminUpdateContest
+      summary: Sửa trước giờ thi (FR-019)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ContestWrite' } } }
+      responses:
+        '200':
+          description: Đã lưu
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminContest' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/contests/{id}/publish:
+    post:
+      tags: [contest-admin]
+      operationId: adminPublishContest
+      summary: Công bố cuộc thi (FR-020)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '200':
+          description: PUBLISHED
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminContest' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/contests/{id}/cancel:
+    post:
+      tags: [contest-admin]
+      operationId: adminCancelContest
+      summary: Huỷ khi chưa ai thi (FR-021)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '200':
+          description: CANCELLED
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminContest' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /api/admin/contests/{id}/participants:
+    get:
+      tags: [contest-admin]
+      operationId: adminListParticipants
+      summary: Thí sinh sau giờ thi, gồm cờ đáng ngờ và số lần chuyển tab (FR-022)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Participant' } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /api/admin/contests/{id}/participants/{userId}:
+    patch:
+      tags: [contest-admin]
+      operationId: adminDecideParticipant
+      summary: Loại hoặc giữ một thí sinh trước công bố (FR-022)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/XsrfToken'
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ParticipantDecision' } } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/Participant' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+
+  /api/admin/contests/{id}/ranking/publish:
+    post:
+      tags: [contest-admin]
+      operationId: adminPublishRanking
+      summary: Công bố xếp hạng sau giờ thi (FR-023)
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/XsrfToken'
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/AdminContest' } } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+
+  /api/admin/contests/{id}/winners:
+    get:
+      tags: [contest-admin]
+      operationId: adminListWinners
+      summary: Liên hệ người đạt giải — có email, ghi nhật ký mỗi lần xem (FR-024)
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Winner' } }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }

@@ -1392,7 +1392,8 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 | V6 | `V6__mastery_progress.sql` | 011 | `user_progress`: `mp_state`, `confidence`, `evidence_item_ids`, `target_type 'LEXEME'`, `ck_prog_mp`, partial index `ix_prog_kp_state` (spec 011 §0.1) | ✅ Đã viết và kiểm thử 2026-11-05: 31 test AT-03 trên PostgreSQL Testcontainers, gồm nâng cấp V5 → V6; `ddl-auto: validate`. Full `verify`: 2.363 test, không fail/error/skip; line coverage 96,35%. Chưa chạy Neon; leader thực hiện sau merge |
 | V7 | `V7__reference_items.sql` | 018 | Bảng `learning.reference_items`, CHECK và hai index theo spec §0.1; DDL thuần, quyền ngoài migration (§7.2) | T-01 đã kiểm: targeted 96/96, full verify 4.309 test xanh; đã merge 13/11; leader chạy Neon |
 | V8 | `V8__leaderboard_index.sql` | 017 | Partial index `ix_att_ref_rank` trên `learning.attempts(kind, ref_id, submitted_at)` với `status = 'SUBMITTED'` | Leader cấp lại số V8 cho 017/T-03 ngày 14/11, thay quyết định V9 trước đó; kiểm thử trên Testcontainers, chưa chạy Neon |
-| V9 | — | 023 | `app_settings` | Leader dành riêng cho Spec 023, chưa triển khai; không thuộc 017/T-03 |
+| V9 | `V9__contest_attempt_unique.sql` | 021 | Partial unique index `uq_contest_attempt` trên `learning.attempts(user_id, ref_id)` với `kind = 'CONTEST'` — một lượt/người/cuộc thi (spec 021 §0.2) | Leader cấp 2026-11-14 cho 021/T-01 (đổi từ 023); chưa triển khai |
+| V10 | — | 023 | `shared.app_settings` | Leader dành cho Spec 023 (dời từ V9 ngày 2026-11-14); phải merge sau V9 |
 
 > `V3__content_and_plans`, `V4__funnel_and_ledger`, `V5__video_practice` của bản trước **đã gộp vào V1**
 > (V1 chưa chạy ở đâu nên gộp được) — trừ hai bảng video luyện tập, chờ feature 1.6 vào scope.
