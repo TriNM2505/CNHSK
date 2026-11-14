@@ -22,10 +22,20 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /** Resolves a request identity from a verified cookie or mobile bearer token. */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    /** One route definition shared by authorization and optional authentication. */
+    public static final RequestMatcher LEADERBOARD_GETS = new OrRequestMatcher(
+            new AntPathRequestMatcher("/api/public/leaderboards/topics", "GET"),
+            new AntPathRequestMatcher("/api/public/leaderboards/topics/{topicId}", "GET"),
+            new AntPathRequestMatcher("/api/public/leaderboards/games", "GET"),
+            new AntPathRequestMatcher("/api/public/leaderboards/games/{gameCode}", "GET"));
 
     private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
     private static final String ACCESS_COOKIE = "access_token";
@@ -72,6 +82,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             claims = jwtService.verifyAccessToken(token);
         } catch (ApiException exception) {
+            if (continueAsGuest(request, response, chain)) return;
             rejectAuthentication(request, response, exception.getCode(), exception.getMessage(), exception.getExtra());
             return;
         }
@@ -80,6 +91,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         SessionInvalidationMarker marker = findMarkerOrContinue(userId);
         long issuedAtMs = ((Number) claims.get("iatMs")).longValue();
         if (marker != null && issuedAtMs < marker.invalidBeforeMs()) {
+            if (continueAsGuest(request, response, chain)) return;
             if (marker.reason() == SessionInvalidationMarker.Reason.BANNED) {
                 accessDeniedHandler.handle(request, response,
                         new AccessDeniedApiException(ErrorCode.ACCOUNT_BANNED, BANNED_ACCOUNT_MESSAGE,
@@ -103,6 +115,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     userId, exception);
             return null;
         }
+    }
+
+    private static boolean continueAsGuest(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+        if (!LEADERBOARD_GETS.matches(request)) return false;
+        SecurityContextHolder.clearContext();
+        chain.doFilter(request, response);
+        return true;
     }
 
     private void rejectAuthentication(HttpServletRequest request, HttpServletResponse response,

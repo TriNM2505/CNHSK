@@ -121,6 +121,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html").denyAll();
                     }
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/community/**").permitAll();
+                    authorize.requestMatchers(JwtAuthenticationFilter.LEADERBOARD_GETS).permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/dictionary/**").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/api/public/reminder/unsubscribe").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/references",

@@ -207,6 +207,47 @@ class JwtAuthenticationFilterTest {
         verify(values, never()).get(anyString());
     }
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"/api/public/leaderboards/topics", "/api/public/leaderboards/topics/9",
+            "/api/public/leaderboards/games", "/api/public/leaderboards/games/CHAR_RAIN"})
+    void AT15_onlyApprovedGetsDowngradeInvalidExpiredRevokedAndBannedTokens(String path) throws Exception {
+        for (String state : List.of("invalid", "expired", "revoked", "banned")) {
+            SecurityContextHolder.clearContext();
+            String access = state.equals("invalid") ? "bad-token"
+                    : token(15, NOW.minusSeconds(100), state.equals("expired") ? NOW.minusSeconds(1) : NOW.plusSeconds(900));
+            when(values.get("auth:invalid-before:15")).thenReturn(state.equals("revoked")
+                    ? objectMapper.writeValueAsString(SessionInvalidationMarker.revoked(NOW.toEpochMilli()))
+                    : state.equals("banned") ? objectMapper.writeValueAsString(SessionInvalidationMarker.banned(NOW.toEpochMilli(), "fixture")) : null);
+            MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
+            request.setServletPath(path);
+            request.addHeader("Authorization", "Bearer " + access);
+            assertTrue(run(request).get());
+            assertTrue(SecurityContextHolder.getContext().getAuthentication() == null);
+        }
+        verify(entryPoint, never()).commence(any(), any(), any());
+        verify(deniedHandler, never()).handle(any(), any(), any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"/api/public/leaderboards", "/api/public/leaderboards/topics/9/extra",
+            "/api/public/leaderboards/games/CHAR_RAIN/extra", "/api/topics"})
+    void publicPrefixDoesNotMakeOtherPathsOptional(String path) throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", path);
+        request.setServletPath(path);
+        request.addHeader("Authorization", "Bearer bad-token");
+        assertTrue(!run(request).get());
+        verify(entryPoint).commence(any(), any(), any());
+    }
+
+    @Test
+    void optionalAuthenticationNeverAppliesToWriteMethods() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/public/leaderboards/games");
+        request.setServletPath("/api/public/leaderboards/games");
+        request.addHeader("Authorization", "Bearer bad-token");
+        assertTrue(!run(request).get());
+        verify(entryPoint).commence(any(), any(), any());
+    }
+
     private AtomicBoolean run(MockHttpServletRequest request) throws IOException, ServletException {
         AtomicBoolean chainCalled = new AtomicBoolean();
         FilterChain chain = (servletRequest, servletResponse) -> chainCalled.set(true);
