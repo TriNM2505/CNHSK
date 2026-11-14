@@ -168,7 +168,21 @@ class GlobalExceptionHandlerTest {
                 "QUIZ_NOT_AVAILABLE", "QUIZ_ATTEMPT_NOT_FOUND", "PLAN_IN_USE",
                 "GRADING_INVALID_ESSAY", "GRADING_DUPLICATE_ACTIVE", "GRADING_REQUEST_NOT_OWNED", "GRADING_NOT_CANCELLABLE",
                 "GRADING_SELF_GRADING", "GRADING_CLAIM_LIMIT", "GRADING_ALREADY_CLAIMED", "GRADING_NOT_ASSIGNEE",
-                "GRADING_DEADLINE_MISSED", "GRADING_INVALID_RESULT", "INVALID_GAME_CODE", "INTERNAL_ERROR");
+                "GRADING_DEADLINE_MISSED", "GRADING_INVALID_RESULT", "INVALID_GAME_CODE",
+                "EXAM_CODE_TAKEN", "EXAM_NOT_EDITABLE", "EDIT_CONFLICT", "INTERNAL_ERROR");
+    }
+
+    @Test
+    void examEditingErrorsReturn409AndProtectTheStandardErrorFields() {
+        var handler = new GlobalExceptionHandler();
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        for (ErrorCode code : java.util.List.of(ErrorCode.EXAM_CODE_TAKEN, ErrorCode.EXAM_NOT_EDITABLE, ErrorCode.EDIT_CONFLICT)) {
+            var response = handler.handleApiException(new ApiException(code, HttpStatus.CONFLICT, "Không thể lưu đề.",
+                    Map.of("error_code", "FORGED", "message", "FORGED", "request_id", "FORGED", "details", "private")), request);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+            assertThat(response.getBody()).containsEntry("error_code", code.name()).containsEntry("message", "Không thể lưu đề.")
+                    .containsKey("request_id").doesNotContainKey("details").hasSize(3);
+        }
     }
 
     @Test

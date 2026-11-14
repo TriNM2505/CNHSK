@@ -192,6 +192,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.POST, "/api/admin/references", "/api/admin/references/{id}/publish",
                             "/api/admin/references/{id}/hide", "/api/admin/references/{id}/unhide").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers(HttpMethod.PUT, "/api/admin/references/{id}").hasRole("CONTENT_EDITOR");
+                    authorize.requestMatchers("/api/admin/exams", "/api/admin/exams/**").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers("/api/admin/**").hasRole("ADMIN")
                             .requestMatchers("/api/auth/verify-email/resend", "/api/auth/logout",
                                     "/api/auth/logout-all", "/api/auth/me", "/api/me/**")
