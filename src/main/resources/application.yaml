@@ -76,6 +76,8 @@ app:
   timezone: Asia/Ho_Chi_Minh
 
 cnhsk:
+  contest:
+    submit-grace-seconds: 5
   quiz:
     question-count: 10
     min-seconds-per-question: 2

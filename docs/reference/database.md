@@ -183,6 +183,29 @@ CREATE SCHEMA IF NOT EXISTS shared;
 > `AuditService` ở `com.cnhsk.shared` — khớp luật ArchUnit
 > *"shared không được phụ thuộc module nghiệp vụ"* (chiều ngược lại là được).
 
+**Spec 023 / V10:** thêm `shared.app_settings` lưu giá trị ghi đè cho 18 khoá nghiệp vụ
+trong `SettingKey` (UC-116). Sau V10, schema `shared` có 2 bảng. Theo migration thực tế,
+V1–V9 có 32 bảng (auth 3, learning 23, community 5, shared 1); V10 đưa tổng lên **33**.
+Con số thiết kế ở đầu tài liệu bao gồm các bảng V2 dự kiến, không cộng thêm vào mốc đó.
+Không có dòng = dùng `application.yaml`; về mặc định = xoá đúng dòng của khoá.
+Không lưu secret hoặc khoá kỹ thuật.
+
+```sql
+CREATE TABLE shared.app_settings (
+  key        VARCHAR(100) PRIMARY KEY,
+  value      TEXT         NOT NULL,
+  updated_by BIGINT       NOT NULL REFERENCES auth.users(id),
+  updated_at TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+```
+
+`updated_by` chỉ là ID phía Java; FK cross-schema bảo đảm toàn vẹn theo AC-03.
+SettingsService chỉ SELECT bảng của `shared`; module nghiệp vụ đọc qua `SettingsApi`.
+Cache trong bộ nhớ 30 giây; T-02 ghi/reset và audit trong cùng transaction, rồi xoá cache
+sau commit. V10 không seed, không sửa bảng/cột/index cũ. Chỉ test qua Testcontainers;
+leader backup trước khi áp dụng trên Neon sau merge. Rollback ứng dụng có thể bỏ qua bảng
+mới và giữ dữ liệu; không chạy migration ngược hoặc xoá bảng trên DB chung.
+
 ### `community` — 5 bảng (V2)
 
 | # | Bảng | Mục đích | UC |
@@ -1396,7 +1419,7 @@ Thư mục: `src/main/resources/db/migration/` (vị trí mặc định của Fl
 | V7 | `V7__reference_items.sql` | 018 | Bảng `learning.reference_items`, CHECK và hai index theo spec §0.1; DDL thuần, quyền ngoài migration (§7.2) | T-01 đã kiểm: targeted 96/96, full verify 4.309 test xanh; đã merge 13/11; leader chạy Neon |
 | V8 | `V8__leaderboard_index.sql` | 017 | Partial index `ix_att_ref_rank` trên `learning.attempts(kind, ref_id, submitted_at)` với `status = 'SUBMITTED'` | Leader cấp lại số V8 cho 017/T-03 ngày 14/11, thay quyết định V9 trước đó; kiểm thử trên Testcontainers, chưa chạy Neon |
 | V9 | `V9__contest_attempt_unique.sql` | 021 | Partial unique index `uq_contest_attempt` trên `learning.attempts(user_id, ref_id)` với `kind = 'CONTEST'` — một lượt/người/cuộc thi (spec 021 §0.2) | Leader cấp 2026-11-14 cho 021/T-01 (đổi từ 023); chưa triển khai |
-| V10 | — | 023 | `shared.app_settings` | Leader dành cho Spec 023 (dời từ V9 ngày 2026-11-14); phải merge sau V9 |
+| V10 | `V10__app_settings.sql` | 023 | `shared.app_settings`: giá trị ghi đè cài đặt nghiệp vụ, FK `updated_by` tới `auth.users` | Đã viết; kiểm thử bằng PostgreSQL Testcontainers, sau V9 đã có trên main. Chưa chạy Neon; leader backup và áp dụng sau merge |
 
 > `V3__content_and_plans`, `V4__funnel_and_ledger`, `V5__video_practice` của bản trước **đã gộp vào V1**
 > (V1 chưa chạy ở đâu nên gộp được) — trừ hai bảng video luyện tập, chờ feature 1.6 vào scope.
