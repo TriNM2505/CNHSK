@@ -81,7 +81,7 @@ public class RedeemService {
             String reason = null;
             PlanInfo plan;
             if (card.type() == CardType.SUBSCRIPTION) {
-                plan = plan("PREMIUM");
+                plan = plan("PREMIUM", true);
                 expires = (premium ? state.planExpiresAt() : now).plus(card.days(), ChronoUnit.DAYS);
                 planCode = "PREMIUM";
                 auth.updatePlan(user, planCode, expires);
@@ -105,7 +105,12 @@ public class RedeemService {
     }
 
     private PlanInfo plan(String code) {
-        List<PlanInfo> found = jdbc.query("SELECT name,price FROM learning.plans WHERE code=:code",
+        return plan(code, false);
+    }
+
+    private PlanInfo plan(String code, boolean lock) {
+        String sql = "SELECT name,price FROM learning.plans WHERE code=:code" + (lock ? " FOR SHARE" : "");
+        List<PlanInfo> found = jdbc.query(sql,
                 Map.of("code", code), (rs, row) -> new PlanInfo(rs.getString("name"), rs.getBigDecimal("price")));
         if (found.isEmpty()) throw internal();
         return found.get(0);
