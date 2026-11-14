@@ -21,7 +21,7 @@ Sửa code module khác (013/014/015/019, 003) → mỗi chỗ một task nhỏ,
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-05 | Danh sách, tạo, chi tiết (`etag`, `publicationErrors`), sửa nháp, nhân bản; mã `EXAM_CODE_TAKEN`, `EXAM_NOT_EDITABLE`, `EDIT_CONFLICT`; `SecurityConfig` `/api/admin/exams/**` | `…/learning/examadmin/**`, `SecurityConfig.java`, `ErrorCode.java` + test | FR-011…FR-014, FR-017 · AT-09, AT-10, AT-14 | ⬜ |
+| T-05 | Danh sách, tạo, chi tiết (`etag`, `publicationErrors`), sửa nháp, nhân bản; mã `EXAM_CODE_TAKEN`, `EXAM_NOT_EDITABLE`, `EDIT_CONFLICT`; `SecurityConfig` `/api/admin/exams/**` | `…/learning/examadmin/**`, `SecurityConfig.java`, `ErrorCode.java` + test | FR-011…FR-014, FR-017 · AT-09, AT-10, AT-14 | ✅ G2: targeted 144 F0/E0/S0; full verify 5620 F0/E0/S0, LINE 97,001216%; Draft chờ leader review/merge |
 | T-06 | `ExamPublicationValidator` + công bố; lưu trữ + `learning.api.ExamUsageGuard`; mã `EXAM_PUBLISH_INVALID`, `EXAM_IN_USE` (021 cài guard ở task của 021) | `…/learning/examadmin/**`, `…/learning/api/ExamUsageGuard.java`, `ErrorCode.java` + test | FR-015, FR-016, FR-018 · AT-11…AT-13 | ⬜ |
 
 ## Đợt 3 · Tiên quyết chủ đề + cổng

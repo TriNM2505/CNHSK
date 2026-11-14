@@ -116,6 +116,20 @@ components:
         name: { type: string, minLength: 1, maxLength: 100 }
         type: { type: string, enum: [LISTENING, READING, WRITING] }
         durationMin: { type: integer, minimum: 0, maximum: 180 }
+    ExamSectionView:
+      type: object
+      required: [name, type, durationMin]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        type:
+          type: [string, 'null']
+          enum: [LISTENING, READING, WRITING, null]
+          description: null = đề nhập từ 012 chưa có thông tin
+        durationMin:
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 180
+          description: null = đề nhập từ 012 chưa có thông tin
     ExamQuestionWrite:
       type: object
       required: [questionId, sectionIndex, points]
@@ -168,7 +182,7 @@ components:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, enum: [EMPTY_SECTION, QUESTION_NOT_APPROVED, QUESTION_WITHOUT_KID, QUESTION_UNSUPPORTED, LISTENING_AUDIO_MISSING, SCORE_MISMATCH] }
+        code: { type: string, enum: [EMPTY_SECTION, QUESTION_NOT_APPROVED, QUESTION_WITHOUT_KID, QUESTION_UNSUPPORTED, LISTENING_AUDIO_MISSING, SCORE_MISMATCH, SECTION_TYPE_MISSING] }
         message: { type: string }
         sectionIndex: { type: [integer, 'null'] }
         questionId: { type: [integer, 'null'], format: int64 }
@@ -181,7 +195,7 @@ components:
         title: { type: string }
         hskLevel: { type: integer }
         totalScore: { type: integer }
-        sections: { type: array, items: { $ref: '#/components/schemas/ExamSection' } }
+        sections: { type: array, items: { $ref: '#/components/schemas/ExamSectionView' } }
         status: { $ref: '#/components/schemas/ExamStatus' }
         publishedAt: { type: [string, 'null'], format: date-time }
         etag: { type: string }
