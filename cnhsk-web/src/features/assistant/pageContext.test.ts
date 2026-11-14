@@ -8,6 +8,9 @@ describe('assistant screen context', () => {
     ['/learn/topics/12/study', 'SCR-012'],
     ['/learn/topics/12/practice/recognition', 'SCR-012'],
     ['/learn/topics/12/practice/listening', 'SCR-012'],
+    ['/contests', 'SCR-048'],
+    ['/contests/2101', 'SCR-049'],
+    ['/contests/2101/results', 'SCR-051'],
   ])('FR013_reads the registered screen for %s', (pathname, scr) => {
     expect(assistantPageContext({ pathname })).toEqual({ pageContext: scr, hidden: false })
   })
@@ -19,6 +22,8 @@ describe('assistant screen context', () => {
     '/learn/topics/12/test/',
     '/community/quizzes/43/play',
     '/community/quizzes/43/play/',
+    '/contests/2101/attempt',
+    '/contests/2101/attempt/',
   ])('FR014_hides the assistant at %s', (pathname) => {
     expect(assistantPageContext({ pathname }).hidden).toBe(true)
   })

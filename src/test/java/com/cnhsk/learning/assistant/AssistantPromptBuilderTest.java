@@ -108,4 +108,15 @@ class AssistantPromptBuilderTest {
         var empty = new HelpLibrary(new DefaultResourceLoader(), emptyDirectory.toUri() + "*.md");
         assertThat(new AssistantPromptBuilder(empty, new PiiMasker()).build("Hỏi", List.of(), null)).isEmpty();
     }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "SCR-048|Danh sách cuộc thi", "SCR-049|Chi tiết cuộc thi",
+            "SCR-050|Làm bài cuộc thi", "SCR-051|Kết quả cuộc thi"
+    })
+    void FR016_AT20_contestScreensUseTheApprovedTrustedNames(String entry) {
+        String[] parts = entry.split("\\|", 2);
+        assertThat(builder.build("Cách dùng?", List.of(), parts[0]).orElseThrow().messages())
+                .containsExactly(new ChatMessage(Role.USER, "Cách dùng?" + SCREEN_LINE + parts[1]));
+    }
 }
