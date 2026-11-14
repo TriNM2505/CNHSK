@@ -318,6 +318,20 @@ export const appRouteDefinitions = [
   },
   { access: 'public', kind: 'screen', layout: 'public', path: '/community', scr: 'SCR-039' },
   {
+    access: 'public',
+    kind: 'screen',
+    layout: 'public',
+    path: '/leaderboards/topics',
+    scr: 'SCR-046',
+  },
+  {
+    access: 'public',
+    kind: 'screen',
+    layout: 'public',
+    path: '/leaderboards/games',
+    scr: 'SCR-047',
+  },
+  {
     access: ['LEARNER'],
     kind: 'screen',
     layout: 'learner',

@@ -73,6 +73,13 @@ export const learnerCommunityNavigation: readonly NavigationItem[] = [
     label: 'Cuộc thi',
     to: '/contests',
   },
+  {
+    activePrefixes: ['/leaderboards'],
+    icon: Trophy,
+    label: 'Bảng xếp hạng',
+    mobilePlacement: 'more',
+    to: '/leaderboards/topics',
+  },
 ]
 
 export const gameNavigationItem = {
