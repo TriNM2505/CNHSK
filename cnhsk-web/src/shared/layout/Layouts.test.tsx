@@ -102,7 +102,7 @@ describe('LearnerLayout', () => {
     renderLayout(<LearnerLayout gameOrigin="http://localhost:5174">Nội dung học tập</LearnerLayout>)
 
     const desktopNavigation = screen.getByRole('navigation', { name: 'Học tập' })
-    expect(within(desktopNavigation).getAllByRole('link')).toHaveLength(6)
+    expect(within(desktopNavigation).getAllByRole('link')).toHaveLength(7)
     expect(within(desktopNavigation).getByRole('link', { name: 'Chủ đề' })).toHaveAttribute(
       'aria-current',
       'page',
