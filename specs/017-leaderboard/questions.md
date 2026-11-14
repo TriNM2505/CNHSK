@@ -41,6 +41,18 @@
 | Q-T03-02 | Phân bổ version và thứ tự triển khai | Thay thế quyết định V9 trước đây: **V8 dành index `ix_att_ref_rank` của 017/T-03; V9 dành `app_settings` của 023 (chưa làm)**. 023 chưa viết, nên T-03 không phải chờ V8 khác; PR được review/merge bình thường, không HOLD. Không tạo migration V9 cho 017, không triển khai 023 | ✅ ANSWERED |
 | Q-T03-03 | Phạm vi AT-16 | T-03 kiểm Flyway, catalog index và nâng cấp bảo toàn schema/dữ liệu; EXPLAIN truy vấn leaderboard để T-04 nghiệm thu | ✅ ANSWERED |
 
+## 2026-11-14 · Duyệt G0 T-04 và base triển khai
+
+| # | Nội dung | Quyết định leader | Trạng thái |
+|---|---|---|---|
+| Q-T04-01 | Top, hạng của tôi và tổng số người | Duyệt một statement dùng `ROW_NUMBER()` và `COUNT(*) OVER()` để trả top, `myEntry`, `total`, tương đương FR-012; không sửa spec. `topSize` kiểm tra trong 1..20; `viewerId = null` chỉ trả top. Caller T-05 truyền banned IDs; dùng `SqlArrayValue("bigint", ...)`, từ chối set null, phần tử null hoặc ID ≤ 0 trước khi query | ✅ ANSWERED |
+| Q-T04-02 | Nghiệm thu EXPLAIN AT-16 | Phương án A là gate: `SET LOCAL enable_seqscan=off` trong transaction kiểm thử, kiểm tên `ix_att_ref_rank` / `ix_att_rank` trong plan JSON và khôi phục setting khi rollback. Phương án B seed 10.000 dòng + `ANALYZE`, chỉ ghi plan/thời gian ra log, không assert thời gian; dữ liệu rollback | ✅ ANSWERED |
+| Q-T04-03 | Cách ly PostgreSQL và allowlist | Repository IT dùng container riêng `postgres:18-alpine`, Flyway thật, rollback từng test, theo tiền lệ `ChoiceItemFactoryIntegrationTest`. Không sửa `AbstractIntegrationTest`/POM. Duyệt đúng 6 file: `LeaderboardPeriods.java`, `LeaderboardRepository.java`, `LeaderboardPeriodsTest.java`, `LeaderboardRepositoryIntegrationTest.java`, `questions.md`, `tasks.md` | ✅ ANSWERED |
+
+**Tie-break theo FR-009:** `score DESC, duration_ms ASC NULLS LAST, submitted_at ASC, user_id ASC`. Chỉ trong `DISTINCT ON (user_id)` chọn ván của cùng một người được thêm `id ASC` cuối để tất định. Chỉ đạo cũ dùng `id` cho thứ tự toàn bảng đã được leader đính chính; không sửa `spec.md`.
+
+**Base G2:** `13f1d96` sau khi PR #170 merge, có V8. Kết quả sơ bộ 28/28 trên `f77747d` không thay thế gate trên base mới. T-04 không cache, không bổ sung profile, controller hay endpoint; những phần đó thuộc T-05.
+
 ## Dữ kiện đã kiểm trên main `2735ac8`
 - `attempts` có `kind` (gồm QUIZ, GAME, CONTEST), `ref_type`, `ref_id`, `game_code`, `score` BIGINT, `duration_ms`, `suspicious`, `submitted_at`.
 - Index `ix_att_rank(kind, game_code, score DESC) WHERE status='SUBMITTED'`; `uq_quiz_first(user_id, ref_id) WHERE kind='QUIZ' AND status='SUBMITTED'`.
