@@ -283,3 +283,37 @@ Luồng Chrome: tạo BOOK → POST 201, sửa → PUT 200, công bố chỉ sau
 Fetch trước bàn giao: origin/main b0b92ca đã merge #164 và #162; merge-base vẫn 4b06f40. Không rebase/merge main; PR vẫn ghi stacked trên #164. questions.md/tasks.md có mục T-05 mới trên main, leader cần giữ cả hai phía khi gộp.
 
 Self-check: đúng 20 file, không dependency/backend/contract/CSRF exemption mới, không window.confirm/HTML injection/disable lint. Giữ assertion cũ, chỉ cập nhật số menu và thêm assertion menu mới theo role. Không secret, dữ liệu thật hay tài liệu có bản quyền; không Neon, SQL/migration. Dừng đúng Vite/Chrome của task sau khi kiểm; không chạm môi trường T-19. Một commit, add từng file, không push main/force-push/merge PR.
+
+## T-08 — Dữ liệu demo và hợp đồng API (2026-11-14)
+
+Base: 02bd90d (PR #166 đã merge). Nhánh spec/018-t08, allowlist 11 file, không stacked và không đưa main vào nhánh.
+
+### G0 — Các quyết định đã duyệt
+
+- Q-T08-01 — ANSWERED: không tạo load-references.ps1 hoặc script giữ token. CSV chỉ là danh sách để biên tập viên nhập tay qua SCR-072; README mục “10 · References” ghi tạo DRAFT → Công bố, và thao tác tạo trạng thái DRAFT/HIDDEN để demo bộ lọc. Test đọc chính CSV rồi gọi API trên Testcontainers, không nạp lên Neon.
+- Q-T08-02 — ANSWERED: 12 mục (4 YouTube, 4 podcast, 4 BOOK). Sách dùng dữ kiện thư mục công khai và mô tả tự viết; không chép giới thiệu/mục lục/ảnh bìa/nội dung sách. isAffiliate=false. Nguồn kiểm thư mục và ISBN nằm trong README; link sách là trang tìm theo ISBN trên domain được phép, không khẳng định tồn kho hay giá. Các giới thiệu nghe nhìn tự soạn, liên kết đến trang công khai, không sao chép nội dung chương trình. HSK 1–3 chỉ là gợi ý chọn nội dung demo.
+- Q-T08-03 — ANSWERED: chỉ sửa annotation trên ba controller và ba service DTO khi test chứng minh lệch; không đổi logic, chữ ký, serializer, validation, YAML hay dependency. Khai inline schema lỗi theo tiền lệ 020, không tham chiếu ErrorResponse không tồn tại. Cả sáu file annotation đều cần sửa trong lần này.
+- Theo chỉnh G0: bỏ test âm cho bộ so sánh. So hai chiều path/method/status/params/schema/security với YAML và RequestMappingHandlerMapping; ghi bằng chứng vào target/018-contract-evidence, không commit file sinh ra.
+
+### G1 — Đối chiếu và dữ liệu
+
+ReferenceContractTest lần đầu phát hiện 170 mismatch tài liệu: content type */*, schema lỗi thiếu hoặc bị suy thành DTO thành công, thiếu metadata security/CSRF và required/nullability/giới hạn/format của DTO. Không phát hiện lệch path/method/status hoặc hành vi cần sửa. Sau bổ sung annotation: 0 mismatch cho đúng 10 operation (2 public GET, 1 POST báo lỗi, 7 operation quản trị), gồm request body, params, media type, kiểu/null/enum/giới hạn/mảng, cookie/bearer và mapping controller. Không dùng wildcard để bỏ qua phần contract đang có.
+
+CSV UTF-8 không BOM, 12 URL khác nhau, tags có demo-reference, 4 mục mỗi loại. Không ảnh thumbnail, không file tải xuống, không dữ liệu đề thi. Test dùng tài khoản giả CONTENT_EDITOR với mật khẩu ngẫu nhiên băm bcrypt cost 12; rollback dữ liệu sau test, không ghi token hay mật khẩu vào bằng chứng.
+
+| Bước trên PostgreSQL/Redis Testcontainers local | HTTP mong đợi | Kết quả |
+|---|---|---|
+| Đọc 12 dòng CSV, tạo từng mục qua POST /api/admin/references | 201, DRAFT | 12/12 đúng |
+| Công bố từng mục qua POST /api/admin/references/{id}/publish | 200, PUBLISHED | 12/12 đúng |
+| GET công khai chi tiết từng mục | 200, khớp nội dung CSV | 12/12 đúng; không có createdBy/status/reportCount/lastReportedAt/sortOrder |
+| GET công khai theo kind và tag demo-reference | 200 | 4 kênh, 4 podcast, 4 sách; đúng tập ID đã tạo |
+| Chi tiết BOOK | 200 | author/publisher/publishedYear/isAffiliate khớp CSV |
+
+Đây là kiểm qua MockMvc với Spring context đầy đủ và PostgreSQL/Redis thật trong Docker local, không phải nhập tay qua Chrome/SCR-072. README quy định bước biên tập viên nạp lên môi trường demo; chưa khẳng định đã nạp môi trường demo hay đã xác nhận mọi liên kết ngoài còn hoạt động. Không gọi HEAD từ ứng dụng, không gọi API ngoài trong test.
+
+### G2 — Gate
+
+- Targeted ReferenceContractTest + toàn bộ *Reference*Test + GlobalExceptionHandlerTest + ModuleBoundaryTest: 293 test, F0/E0/S0, BUILD SUCCESS. Trong đó ReferenceContractTest 2/2 (contract + CSV).
+- Full .\mvnw.cmd -B verify (Java 17, DEBUG=false, Docker local): 4.915 test, F0/E0/S0, BUILD SUCCESS; 34:57 phút. Không dùng ngoại lệ môi trường. JaCoCo LINE: 13.006 covered / 418 missed = 96,8862%; mọi coverage check đạt. XML sinh sau chính lượt full verify này, không dùng báo cáo cũ.
+- Self-check: git diff --check PASS; 11/11 file UTF-8 không BOM; không TODO mới, không lockfile/dependency/YAML hay hành vi API thay đổi. So mã ngoài annotation Swagger với HEAD: cả 6 file Java giữ nguyên. Không sửa test cũ, không thêm test âm comparator, không Neon/secret/SQL seed/script giữ token. FE không đổi nên không chạy gate FE.
+- Fetch trước bàn giao: origin/main vẫn 02bd90d, không có commit main mới trên các file của task. Một conventional commit, stage từng file theo allowlist, Draft PR; leader review/merge.

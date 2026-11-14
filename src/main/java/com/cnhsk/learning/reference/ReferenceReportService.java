@@ -117,6 +117,7 @@ public class ReferenceReportService {
         DEAD_LINK, WRONG_CONTENT, OTHER
     }
 
+    @Schema(requiredProperties = {"reason"})
     public record ReportCommand(Reason reason,
             @Schema(types = {"string", "null"}, maxLength = 300) String note) {
     }

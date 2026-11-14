@@ -19,8 +19,11 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
@@ -52,11 +55,29 @@ public class AdminReferenceController {
     }
 
     @GetMapping
-    @Operation(operationId = "listAdminReferences", tags = "references-admin")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Trang quản trị"),
-            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
-            @ApiResponse(responseCode = "403", description = "FORBIDDEN"),
-            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED")})
+    @Operation(operationId = "listAdminReferences", tags = "references-admin", security = {@SecurityRequirement(name = "cookieAuth"), @SecurityRequirement(name = "bearerAuth")})
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Trang quản trị", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AdminReferencePage.class))),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} ))})
     public AdminReferencePage list(
             @Parameter(schema = @Schema(allowableValues = {"YOUTUBE_CHANNEL", "PODCAST", "BOOK"}))
             @RequestParam(required = false) String kind,
@@ -76,22 +97,59 @@ public class AdminReferenceController {
     }
 
     @GetMapping("/{id}")
-    @Operation(operationId = "getAdminReference", tags = "references-admin")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Tài nguyên quản trị"),
-            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
-            @ApiResponse(responseCode = "403", description = "FORBIDDEN"),
-            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND")})
+    @Operation(operationId = "getAdminReference", tags = "references-admin", security = {@SecurityRequirement(name = "cookieAuth"), @SecurityRequirement(name = "bearerAuth")})
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Tài nguyên quản trị", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AdminReference.class))),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} ))})
     public AdminReference detail(@Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1"))
             @PathVariable String id) {
         return service.detail(id);
     }
 
     @PostMapping
-    @Operation(operationId = "createReference", tags = "references-admin")
-    @ApiResponses({@ApiResponse(responseCode = "201", description = "Đã tạo DRAFT"),
-            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
-            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID"),
-            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED · MALFORMED_URL · NON_HTTPS_LINK · DOMAIN_NOT_ALLOWED")})
+    @Operation(operationId = "createReference", tags = "references-admin", security = {@SecurityRequirement(name = "cookieAuth"), @SecurityRequirement(name = "bearerAuth")})
+    @Parameter(name = "X-XSRF-TOKEN", in = ParameterIn.HEADER, required = false, schema = @Schema(type = "string"))
+    @ApiResponses({@ApiResponse(responseCode = "201", description = "Đã tạo DRAFT", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AdminReference.class))),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED · MALFORMED_URL · NON_HTTPS_LINK · DOMAIN_NOT_ALLOWED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} ))})
     public ResponseEntity<AdminReference> create(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
                     content = @Content(schema = @Schema(implementation = ReferenceInput.class)))
@@ -100,12 +158,37 @@ public class AdminReferenceController {
     }
 
     @PutMapping("/{id}")
-    @Operation(operationId = "updateReference", tags = "references-admin")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã sửa"),
-            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
-            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID"),
-            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND"),
-            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED · PUBLISH_INVALID_RESOURCE · MALFORMED_URL · NON_HTTPS_LINK · DOMAIN_NOT_ALLOWED")})
+    @Operation(operationId = "updateReference", tags = "references-admin", security = {@SecurityRequirement(name = "cookieAuth"), @SecurityRequirement(name = "bearerAuth")})
+    @Parameter(name = "X-XSRF-TOKEN", in = ParameterIn.HEADER, required = false, schema = @Schema(type = "string"))
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã sửa", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AdminReference.class))),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED · PUBLISH_INVALID_RESOURCE · MALFORMED_URL · NON_HTTPS_LINK · DOMAIN_NOT_ALLOWED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} ))})
     public AdminReference update(@Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1"))
             @PathVariable String id,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
@@ -115,34 +198,97 @@ public class AdminReferenceController {
     }
 
     @PostMapping("/{id}/publish")
-    @Operation(operationId = "publishReference", tags = "references-admin")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã công bố"),
-            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
-            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID"),
-            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND"),
-            @ApiResponse(responseCode = "422", description = "PUBLISH_INVALID_RESOURCE · MALFORMED_URL · NON_HTTPS_LINK · DOMAIN_NOT_ALLOWED")})
+    @Operation(operationId = "publishReference", tags = "references-admin", security = {@SecurityRequirement(name = "cookieAuth"), @SecurityRequirement(name = "bearerAuth")})
+    @Parameter(name = "X-XSRF-TOKEN", in = ParameterIn.HEADER, required = false, schema = @Schema(type = "string"))
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã công bố", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AdminReference.class))),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "422", description = "PUBLISH_INVALID_RESOURCE · MALFORMED_URL · NON_HTTPS_LINK · DOMAIN_NOT_ALLOWED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} ))})
     public AdminReference publish(@Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1"))
             @PathVariable String id) {
         return service.transition(id, Action.PUBLISH);
     }
 
     @PostMapping("/{id}/hide")
-    @Operation(operationId = "hideReference", tags = "references-admin")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã ẩn"),
-            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
-            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID"),
-            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND")})
+    @Operation(operationId = "hideReference", tags = "references-admin", security = {@SecurityRequirement(name = "cookieAuth"), @SecurityRequirement(name = "bearerAuth")})
+    @Parameter(name = "X-XSRF-TOKEN", in = ParameterIn.HEADER, required = false, schema = @Schema(type = "string"))
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã ẩn", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AdminReference.class))),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} ))})
     public AdminReference hide(@Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1"))
             @PathVariable String id) {
         return service.transition(id, Action.HIDE);
     }
 
     @PostMapping("/{id}/unhide")
-    @Operation(operationId = "unhideReference", tags = "references-admin")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã hiện lại về DRAFT hoặc giữ nguyên"),
-            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
-            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID"),
-            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND")})
+    @Operation(operationId = "unhideReference", tags = "references-admin", security = {@SecurityRequirement(name = "cookieAuth"), @SecurityRequirement(name = "bearerAuth")})
+    @Parameter(name = "X-XSRF-TOKEN", in = ParameterIn.HEADER, required = false, schema = @Schema(type = "string"))
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã hiện lại về DRAFT hoặc giữ nguyên", content = @Content(mediaType = "application/json", schema = @Schema(implementation = AdminReference.class))),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} ))})
     public AdminReference unhide(@Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1"))
             @PathVariable String id) {
         return service.transition(id, Action.UNHIDE);

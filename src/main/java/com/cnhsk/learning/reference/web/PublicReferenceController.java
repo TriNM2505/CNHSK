@@ -16,7 +16,9 @@ import com.cnhsk.shared.security.AuthenticatedUser;
 import com.cnhsk.shared.security.RateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -73,9 +75,21 @@ public class PublicReferenceController {
 
     @GetMapping
     @Operation(operationId = "listPublicReferences", tags = "references-public")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Trang tài nguyên"),
-            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED"),
-            @ApiResponse(responseCode = "429", description = "RATE_LIMITED")})
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Trang tài nguyên", content = @Content(mediaType = "application/json", schema = @Schema(implementation = PublicReferencePage.class))),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "429", description = "RATE_LIMITED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} ))})
     public PublicReferencePage list(
             @Parameter(required = true, schema = @Schema(allowableValues = {"YOUTUBE_CHANNEL", "PODCAST", "BOOK"}))
             @RequestParam(required = false) String kind,
@@ -92,9 +106,21 @@ public class PublicReferenceController {
 
     @GetMapping("/{id}")
     @Operation(operationId = "getPublicReference", tags = "references-public")
-    @ApiResponses({@ApiResponse(responseCode = "200", description = "Tài nguyên"),
-            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND"),
-            @ApiResponse(responseCode = "429", description = "RATE_LIMITED")})
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Tài nguyên", content = @Content(mediaType = "application/json", schema = @Schema(implementation = PublicReference.class))),
+            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "429", description = "RATE_LIMITED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} ))})
     public PublicReference detail(
             @Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1"))
             @PathVariable String id) {

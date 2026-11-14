@@ -14,8 +14,11 @@ import com.fasterxml.jackson.databind.ObjectReader;
 import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.SchemaProperty;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
@@ -43,13 +46,44 @@ public class ReferenceReportController {
     }
 
     @PostMapping("/{id}/report")
-    @Operation(operationId = "reportReference", tags = "references-public")
-    @ApiResponses({@ApiResponse(responseCode = "204", description = "Đã ghi nhận"),
-            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
-            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID"),
-            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND"),
-            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED"),
-            @ApiResponse(responseCode = "429", description = "RATE_LIMITED")})
+    @Operation(operationId = "reportReference", tags = "references-public", security = {@SecurityRequirement(name = "cookieAuth"), @SecurityRequirement(name = "bearerAuth")})
+    @Parameter(name = "X-XSRF-TOKEN", in = ParameterIn.HEADER, required = false, schema = @Schema(type = "string"))
+    @ApiResponses({@ApiResponse(responseCode = "204", description = "Đã ghi nhận", content = @Content),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "404", description = "REFERENCE_NOT_FOUND", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} )),
+            @ApiResponse(responseCode = "429", description = "RATE_LIMITED", content = @Content(mediaType = "application/json", schema = @Schema(type = "object", requiredProperties = {"error_code", "message", "request_id"}), schemaProperties = {
+                    @SchemaProperty(name = "error_code", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "message", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "request_id", schema = @Schema(type = "string")),
+                    @SchemaProperty(name = "retryAfterSeconds", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "learnedWords", schema = @Schema(type = "integer")),
+                    @SchemaProperty(name = "requiredWords", schema = @Schema(type = "integer"))} ))})
     public ResponseEntity<Void> report(
             @Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1")) @PathVariable String id,
             @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,

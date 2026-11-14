@@ -10,6 +10,8 @@ import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -103,14 +105,24 @@ public class ReferenceQueryService {
     }
 
     @JsonInclude(JsonInclude.Include.ALWAYS)
-    public record PublicReference(long id, ReferenceItem.Kind kind, String title, String description, String url,
-            String thumbnailUrl, Integer hskMin, Integer hskMax, List<String> tags,
-            @JsonInclude(JsonInclude.Include.NON_NULL) String author,
-            @JsonInclude(JsonInclude.Include.NON_NULL) String publisher,
-            @JsonInclude(JsonInclude.Include.NON_NULL) Integer publishedYear,
-            @JsonInclude(JsonInclude.Include.NON_NULL) @JsonProperty("isAffiliate") Boolean isAffiliate) {
+    @Schema(requiredProperties = {"id", "kind", "title", "description", "url", "thumbnailUrl", "hskMin", "hskMax", "tags"})
+    public record PublicReference(long id, ReferenceItem.Kind kind,
+            @Schema(maxLength = 200) String title,
+            @Schema(types = {"string", "null"}, maxLength = 2000) String description,
+            @Schema(format = "uri", pattern = "^https://") String url,
+            @Schema(types = {"string", "null"}, format = "uri") String thumbnailUrl,
+            @Schema(type = "integer", types = {"integer", "null"}, minimum = "1", maximum = "9") Integer hskMin,
+            @Schema(type = "integer", types = {"integer", "null"}, minimum = "1", maximum = "9") Integer hskMax,
+            @ArraySchema(schema = @Schema(type = "string", maxLength = 30)) List<String> tags,
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(types = {"string", "null"}) String author,
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(types = {"string", "null"}) String publisher,
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(type = "integer", types = {"integer", "null"}) Integer publishedYear,
+            @JsonInclude(JsonInclude.Include.NON_NULL) @JsonProperty("isAffiliate") @Schema(types = {"boolean"}) Boolean isAffiliate) {
     }
 
-    public record PublicReferencePage(List<PublicReference> items, int page, int size, long total) {
+    @Schema(requiredProperties = {"items", "page", "size", "total"})
+    public record PublicReferencePage(List<PublicReference> items,
+            @Schema(type = "integer", types = {"integer"}) int page,
+            @Schema(type = "integer", types = {"integer"}) int size, long total) {
     }
 }
