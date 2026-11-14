@@ -76,18 +76,30 @@ public class SettingsService implements SettingsApi {
             String raw = outsideCaller.execute(status -> jdbc.query(
                     "SELECT value FROM shared.app_settings WHERE key = ?",
                     result -> result.next() ? result.getString(1) : null, key.key()));
-            if (raw == null) {
-                return defaultValue;
-            }
-            int value = Integer.parseInt(raw);
-            if (key.accepts(value)) {
-                return value;
-            }
-        } catch (DataAccessException | NumberFormatException exception) {
+            return resolveValue(key, raw);
+        } catch (DataAccessException exception) {
             // Never log database values, exception messages or connection details.
         }
         warnUnavailable();
         return defaultValue;
+    }
+
+    int defaultValue(SettingKey key) {
+        return slots[Objects.requireNonNull(key).ordinal()].defaultValue;
+    }
+
+    int resolveValue(SettingKey key, String raw) {
+        if (raw == null) return defaultValue(key);
+        try {
+            int value = Integer.parseInt(raw);
+            if (key.accepts(value)) {
+                return value;
+            }
+        } catch (NumberFormatException exception) {
+            // Never log database values, exception messages or connection details.
+        }
+        warnUnavailable();
+        return defaultValue(key);
     }
 
     private synchronized void warnUnavailable() {
