@@ -5,7 +5,7 @@
 
 **Tổng: 10 task**, ≤ 4 giờ/task, một task một nhánh `spec/021-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
 Đường dẫn: `…/` = `src/main/java/com/cnhsk/`; `t/` = `src/test/java/com/cnhsk/`; `web/` = `cnhsk-web/src/`.
-**Điều kiện bắt đầu:** spec 021 `APPROVED`. Người code: Dũng. **Một migration V9** (leader cấp 2026-11-14). Không phụ thuộc 013, 023.
+**Điều kiện bắt đầu:** spec 021 `APPROVED`. Người code: Tường. **Một migration V9** (leader cấp 2026-11-14). Không phụ thuộc 013, 023.
 
 ## Đợt 1 · Backend `learning` (⚿K8)
 

@@ -12,7 +12,7 @@
 | **Status** | APPROVED — leader duyệt 2026-11-14, được code theo `tasks.md` |
 | **Phụ thuộc** | Spec 012 (engine thi thử `MockExamHandler`, `QuestionItemFactory`, đề `exams`) · Spec 003 (engine `PracticeService`) · Spec 001 (`AuthApi`, `AuditService`) · Spec 015 (`ActiveTestApi`) · 017/T-01 (`AuthApi.publicProfiles`) |
 | **Quyết định chung** | RFC đợt hoàn thiện H9, H14 · plan `261113-1629` phase 5 · leader chốt 2026-11-13/14 (§9) |
-| **Người code** | Dũng |
+| **Người code** | Tường |
 
 > **Người code đọc:** `AGENTS.md` → spec 012 §0 (engine thi) → file này → `contracts/openapi-contests.yaml` → `tasks.md`.
 
