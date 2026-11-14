@@ -212,3 +212,96 @@ JDK 17.0.12, Maven Wrapper 3.9.16, `DEBUG=false`; `docker info` thành công (29
 - Leader chấp nhận G2 4990 tests F0/E0/S0, JaCoCo LINE 96,9349%, đúng 12 file; cho phép stage từng tên file, commit `feat(learning): add topic quiz result endpoint`, push `spec/019-t05` và mở PR thường (không Draft).
 - PR mô tả GET `/api/quiz-attempts/{sessionId}/result`, interface LeaderboardService để 017/T-05 cài đặt, mã QUIZ_ATTEMPT_NOT_FOUND và kết quả gate. Ghi rõ rankOf gọi **ngoài** transaction readOnly: entry point NOT_SUPPORTED tạm ngưng transaction caller; reads.execute REQUIRES_NEW/readOnly hoàn tất trước lookup. Lỗi transaction riêng của rankOf không làm rollback-only phần đọc/caller.
 - Không đổi production/test sau G2; chỉ cập nhật trạng thái tài liệu trong hai file đã duyệt. T-05 chuyển CHỜ REVIEW; không merge, không rebase/pull main.
+### G0/G1 T-06 · 2026-11-14 — leader duyệt có điều kiện
+
+- Fetch ngay trước tạo nhánh: origin/main `13f1d96020e143f901b17012bbb9a635cc4ebef4`, nhánh `spec/019-t06`, worktree `C:\KLTN_FALL2026\CNHSK-019-t06`. #171 đang chờ leader verify/merge, không phụ thuộc T-06. Giữ nguyên thay đổi có sẵn của 003 ở checkout main; không pull/rebase main.
+- Duyệt 22 file theo G0. Route `/community/quizzes` SCR-043 và `/community/quizzes/:topicId/play` SCR-044 đều LEARNER/LearnerLayout. SCR-044 là wrapper placeholder hiện có, đăng ký rõ trong registry; màn làm bài thật và SCR-045 để T-07. Thêm trusted name SCR-043 "Quiz theo chủ đề", SCR-044 "Làm quiz theo chủ đề" và test tên màn để không tái diễn lỗi kiểm kê #159.
+- Menu desktop có nhóm Cộng đồng chỉ Quiz, activePrefixes đúng `['/community/quizzes']`; mobile giữ bốn mục học chính và nút Thêm, phần bổ sung chứa Tài liệu/Game/Cộng đồng→Quiz, giữ đường đích cũ. Nút có aria-expanded/aria-controls, Esc đóng/trả focus, menu đóng khi điều hướng. NavigationLink nhận ariaLabel trên link thực; bỏ aria-label trên span trong LearnerLayout. Không sửa AssistantHost.tsx.
+- FE types giữ đúng QuizListingPage/QuizSession contract: myFirstAttempt và myBestRetryScore nullable, itemId ordinal, audioUrl optional/null, không đáp án trước nộp. API dùng shared apiRequest/cookie/CSRF; GET hsk/page/size, POST không body. UI lọc Mọi cấp/HSK 1–3 theo constant chung, API types giữ 1–9; số câu từ questionCount, page API bắt đầu 0 được đổi sang Pagination bắt đầu 1.
+- CTA dựa myFirstAttempt !== null (kể cả điểm 0/suspicious): Làm lại/không tính hạng; chưa có first thì Bắt đầu/lượt đầu tính hạng. Điểm retry 0 vẫn hiện; không dùng retry score để suy ra đã tiêu thụ lượt đầu. Kết luận rankingEligible khi chuyển trang lấy từ POST server, không từ danh mục có thể cũ.
+- **Bàn giao T-07:** `?sessionId` và navigation state `quizSession` chỉ để chuyển trang nhanh. Khi mất state/tải lại trang, T-07 phải gọi lại **POST /api/quizzes/{topicId}/attempts** để resume (200, không tính quota); **không coi sessionId trên URL là nguồn sự thật**. T-07 thêm `/community/quizzes/attempts/:sessionId` SCR-045 cùng trusted name trợ lý và phối hợp Đạt để ẩn trợ lý SCR-044.
+- Bốn trạng thái loading/empty/error/ready, preview có dữ liệu tự soạn/tên dài và LearnerLayout thật. Xử lý 422 QUIZ_NOT_AVAILABLE/404 TOPIC_NOT_FOUND bằng thông báo và tải lại GET; 429 nhắc giới hạn 30 lượt/giờ, không auto POST retry; 401/403 theo luồng auth/403. Khóa CTA/deduplicate POST, bỏ qua GET cũ/abort, không điều hướng sau unmount hoặc đổi user.
+- Leader chỉ yêu cầu gate FE `npx vitest run`, `npm run -s lint`, `npm run -s build` và BE `AssistantPromptBuilderTest,ModuleBoundaryTest` trên JDK 17; **không full Maven verify**, leader chạy khi merge. QA trình duyệt 320/375/640 px là gate riêng, không thay bằng JSDOM. Dừng sau G2, chưa commit/push/PR.
+
+### G2 T-06 · đang xác minh
+
+- Node 24.18.0; dùng npm.cmd/npx.cmd vì PowerShell chặn npm.ps1, không đổi execution policy. npm ci theo lockfile, không sửa dependency/package/lock.
+- Targeted FE lần đầu: 63 tests, 1 failure do selector role=status trùng output đường dẫn của fixture; sửa selector trong file test đã duyệt. Targeted lại **63/63 pass, exit 0** (7 files).
+- Lint: exit 0, 0 error/1 warning có sẵn ở shared/ui/LevelBadge.tsx (react-refresh/only-export-components), giữ nguyên file ngoài allowlist. Build đầu exit 2 do ba chỗ test truy cập phần tử mảng có thể undefined; đã sửa kiểm tra an toàn trong test và build lại thành công; không đổi TypeScript config.
+- Gate BE JDK 17.0.12, DEBUG=false: **21 tests, 0 failure/error/skip, exit 0** (AssistantPromptBuilderTest 12 + ModuleBoundaryTest 9). Không full verify theo leader.
+- Full Vitest đầu (chạy đồng thời build/lint/BE): **2616 tests, 10 fail/2606 pass, 7 files fail/177 pass; exit 1**. Một lỗi xác định do chèn quiz preview lên đầu registry làm đổi preview mặc định; đã chuyển quiz preview xuống cuối, không sửa PreviewPage.test ngoài allowlist. Chín failure còn lại trong các suite community/reminder/library/pronunciation/question-bank đang được chạy lại toàn bộ với giới hạn worker, chưa kết luận là lỗi nền.
+- Browser QA hiện bị chặn: browser inventory báo **The browser access host is unavailable**, thử IAB cũng lỗi đó; truy cập app trình duyệt báo **Computer Use app approval timed out**. Đã hỏi user bật kết nối Browser/duyệt quyền; chưa đo và chưa ghi pass viewport 320/375/640. Preview cục bộ chạy tại `http://127.0.0.1:5196/__preview/frame/quiz-list/ready` (các trạng thái thay ready bằng loading/empty/error).
+
+### G2 T-06 · 2026-11-14 — CHƯA ĐẠT, leader giữ 22 file và dừng
+
+| Gate | Kết quả | Exit |
+|---|---|---:|
+| Targeted cuối (quiz/layout/routes/registry + PreviewPage) | 65 pass, 0 fail/skip; 8 files | 0 |
+| Full Vitest mặc định lần đầu | 2616 tests: 2606 pass, 10 fail; 7 files fail | 1 |
+| Full Vitest với `--maxWorkers=2 --minWorkers=1` | 2616 tests: 2615 pass, **1 fail**, 0 skip; 183 files pass/1 fail | 1 |
+| Lint cuối | 0 error, 1 warning có sẵn LevelBadge.tsx | 0 |
+| Build cuối (TypeScript + Vite) | đạt sau sửa test truy cập mảng | 0 |
+| AssistantPromptBuilderTest + ModuleBoundaryTest | 21 tests, F0/E0/S0 | 0 |
+| Trình duyệt 320/375/640 px | **chưa thực hiện đo/quan sát đủ gate** | — |
+
+- Failure còn lại: `src/features/community/routes.test.tsx` → `FR001_registers exactly eight unique paths with approved SCR, access and layout`, dòng 116. Test gom mọi `/community/**` và `/moderation/**`, nên nay nhận 10 route thay vì 8 sau khi thêm SCR-043/044. Đây là kiểm kê bị ảnh hưởng do T-06, không báo là lỗi nền. File này bị thiếu trong allowlist G0.
+- Đã đề xuất mở rộng thêm đúng file kiểm kê trên (23 file), chỉ thu hẹp selector về feed `/community`, `/community/posts/**`, `/moderation/**`, giữ assertion 8 route cũ; quiz có test riêng. Leader trả lời **"Giữ 22 file, dừng G2"**. Không sửa file kiểm kê ngoài allowlist, không chạy vòng sửa/test tiếp sau lựa chọn này.
+- Lỗi preview mặc định đã sửa trong registry được duyệt: nối quiz preview ở cuối, giữ thứ tự mặc định cũ. PreviewPage.test pass ở targeted cuối và full ít worker. Tám failure timing/interaction khác của lượt đầu không tái diễn ở lượt toàn bộ ít worker; không chỉnh test ngoài allowlist hoặc coi failure còn lại là pass.
+- Leader đồng thời duyệt quyền Computer Use; do lựa chọn dừng G2, không tiếp tục thao tác trình duyệt. Browser host trước đó không kết nối, truy cập app timeout; không có bằng chứng viewport thực tế, không dùng JSDOM để thay QA và không ghi pass. Preview dùng LearnerLayout thật và dữ liệu tự soạn đã sẵn sàng cho lượt kiểm sau.
+- Log trong `target/g2/`: `targeted-final.log`, `vitest.log`, `vitest-bounded.log`, `lint-final.log`, `build-final.log`, `backend.log`; exit code lưu riêng cho các gate chính. Không full Maven verify theo duyệt riêng của leader.
+- Self-check phạm vi: đúng 22 file, UTF-8 không BOM, `git diff --check` sạch; không dependency/lock/config/security/engine/contract mới; AssistantHost và community/routes.test.tsx giữ nguyên. Giữ thay đổi có sẵn của 003 tại checkout main. **Dừng G2 chưa đạt, chưa stage/commit/push/PR.**
+
+### G2 T-06 tiếp tục · 2026-11-14 — leader mở rộng 23 file
+
+- Leader duyệt thêm đúng `cnhsk-web/src/features/community/routes.test.tsx`. Chỉ sửa bộ lọc để loại path bắt đầu bằng `/community/quizzes`; giữ nguyên assertion "exactly eight" và danh sách 8 route của 009, không đổi production/route của 009. Quiz có route/access/registry tests riêng.
+- Xác nhận bốn file **đã nằm trong G0 22 file được duyệt**: `shared/layout/LearnerLayout.tsx` (menu mobile), `shared/layout/NavigationLink.tsx` (aria-label trên link thật), `shared/layout/Layouts.test.tsx` (kiểm kê menu và focus), `app/preview/registry.ts` (đăng ký preview). Không phải mở rộng bổ sung bốn file này.
+- Base đã cập nhật bằng **fast-forward nhánh spec/019-t06** từ 13f1d96 lên `dae6c7163c9086ed2eac6cb02bf39791695bcd55`; nhánh chưa có commit riêng nên không cần rebase. Lưu bản làm việc riêng rồi áp lại, giữ phần ghi chép T-05 trên main và phần T-06 khi giải xung đột nối cuối questions.md. Không merge/pull/rebase main, không sửa QuizResultIntegrationTest hoặc interface/production T-05/017.
+- Các gate được chạy lại trên base mới: full Vitest với 2 worker (không skip/đổi timeout), lint, build, AssistantPromptBuilderTest + ModuleBoundaryTest. Không full Maven verify theo duyệt trước.
+- QA thực tế/ảnh PR tiếp tục bị chặn sau khi user đã duyệt Computer Use: browser host vẫn báo unavailable; khi chọn Chrome, công cụ tự dừng với lý do **không xác định được URL hiện tại của browser Windows đủ chắc chắn để thực thi policy**. Không tiếp tục input UI sau thông báo này, không có ảnh/đo viewport đạt để đính kèm. Chưa mở PR khi điều kiện QA trước PR chưa hoàn tất.
+
+### Gate sau cập nhật base dae6c71 · 2026-11-14 — chưa đủ điều kiện PR
+
+| Gate | Kết quả | Exit |
+|---|---|---:|
+| Full Vitest, 2 worker | 2616 tests: 2614 pass/2 fail, 183 files pass/1 fail | 1 |
+| Chẩn đoán riêng suite Hán tự (không sửa file) | 44/44 pass | 0 |
+| Full Vitest cuối, 1 worker | 2616 tests: **2615 pass/1 fail**, 183 files pass/1 fail; 548,35 giây | 1 |
+| Lint | 0 error/1 warning có sẵn LevelBadge.tsx | 0 |
+| TypeScript + Vite build | đạt | 0 |
+| AssistantPromptBuilderTest + ModuleBoundaryTest | 21 tests, F0/E0/S0 | 0 |
+| QA 320/375/640 và ảnh PR | **chưa thực hiện đủ bằng chứng, công cụ đã dừng** | — |
+
+- Kiểm kê `community/routes.test.tsx` đã pass sau khi chỉ loại `/community/quizzes*`; không sửa danh sách 8 route/assertion hoặc production 009.
+- Lượt 2 worker có hai failure FR031/FR033 trong `Scr014CharacterWritingPage.test.tsx`, file không có diff; suite chạy riêng pass 44/44. Lượt full 1 worker cuối không còn hai failure đó nhưng còn `Scr059QuestionEditPage.test.tsx:236`, case `FR027_AT27_TEACHER edits SENTENCE_MATCH with the existing API wrappers`: expected nội dung `Chọn nghĩa của 水 trong câu 我喝水。`, received rỗng sau khi form đã hiện. Không tự kết luận đây là lỗi nền, không sửa file ngoài 23 file để làm xanh gate.
+- Đã hỏi leader có duyệt thêm file kiểm tra question-bank (24 file) để chuyển assertion nội dung sang await waitFor, giữ nguyên expected và không sửa production. Leader chọn **"Giữ 23 file"**; không sửa file question-bank, không đổi assertion/timeout và không mở rộng allowlist. Failure này vẫn được báo là chưa đạt, không coi là ngoại lệ được chấp nhận.
+- Log/exit trên base mới: `vitest-dae6c71.log`, `hanzi-diagnostic.log`, `vitest-dae6c71-final.log`, `lint-dae6c71.log`, `build-dae6c71.log`, `backend-dae6c71.log` trong target/g2. Không skip test, không đổi timeout, không full Maven verify.
+- Bộ gate tự động chưa đạt 0 fail; QA còn bị policy của công cụ chặn, không có screenshot hợp lệ để gắn PR. **Chưa stage/commit/push/mở PR**. Production/interface 019/T-05, QuizResultIntegrationTest, AssistantHost, question-bank và hanzi đều không có diff so với base mới.
+
+### Scr059 · leader xác nhận ngoại lệ và gate trên main mới
+
+- Leader xác nhận Scr059 là test FE chập chờn đã biết, không liên quan T-06, không duyệt file thứ 24. Chỉ cho tiếp tục nếu chạy riêng pass; nếu fail riêng phải dừng gửi log.
+- Đã chạy đúng lệnh `npx.cmd vitest run src/features/question-bank/pages/Scr059QuestionEditPage.test.tsx`: **64/64 pass, exit 0**, 1 test file, 5,94 giây, không sửa test/production question-bank (`target/g2/scr059-isolated.log`, `.exit`).
+- Câu phải ghi trong PR theo leader: **"Full Vitest 1 fail Scr059 (case TEACHER edits SENTENCE_MATCH, test chập chờn đã biết); chạy riêng pass 64/64"**. Không đổi báo cáo full thành 0 fail. Leader sẽ chạy full Vitest trên máy mình trước merge.
+- Fetch main mới `c7edc2821979abdf355d4334dd4754c45f13cec8`, cập nhật nhánh bằng fast-forward từ dae6c71, không rebase. Sáu file main mới chỉ đổi người triển khai spec 022/023/024, không có diff FE hoặc trợ lý giữa hai base; không thay đổi source đã test Scr059/full trước đó.
+- Gate xác nhận lại trên c7edc28: lint **exit 0, 0 error/1 warning LevelBadge.tsx có sẵn**; build **exit 0**; AssistantPromptBuilderTest **12/12**, ModuleBoundaryTest **9/9**, tổng **21 tests F0/E0/S0, exit 0** trên Java 17/DEBUG=false. Log `lint-c7edc28.log`, `build-c7edc28.log`, `backend-c7edc28.log` trong target/g2.
+- Server QA trả **HTTP 200** tại `http://127.0.0.1:5196/__preview/frame/quiz-list/ready`. Chưa có bằng chứng trình duyệt cho 320/375/640 px và chưa có ảnh PR. Sau khi user duyệt Computer Use, automatic approval review từ chối bind cửa sổ Edge cũ vì phiên không liên quan/URL chưa biết, có nguy cơ lộ nội dung riêng tư ngoài QA; không thử workaround trên cửa sổ đó. Phương án browser mới trỏ thẳng localhost và kiểm lại sau khi user chọn bật Browser đều báo **The browser access host is unavailable**.
+- Đã kiểm khả năng kết nối qua plugin-management: không có thao tác bật Browser host nội bộ được cung cấp; không cài/đổi quyền plugin, không chuyển code local lên dịch vụ browser cloud. Cần kết nối Browser hoạt động hoặc tab QA local đã xác định để kiểm tiếp; không đánh dấu QA/screenshot đạt chỉ từ JSDOM.
+- Điều kiện test chập chờn đã được leader chấp nhận theo kết quả riêng 64/64; điều kiện QA/ảnh trước PR vẫn chưa hoàn tất. **Giữ 23 file, chưa stage/commit/push/PR.**
+
+### QA thay thế được duyệt · Playwright và G3 · 2026-11-14
+
+- Leader duyệt thay QA tay bằng Playwright với Chromium phiên sạch, headless được; giữ 23 file, không thêm dependency dự án, không commit script/ảnh QA. Đạt QA thì được commit từng file, push `spec/019-t06` và mở PR. Điều kiện mới thay phần chặn QA ở các báo cáo trước.
+- Playwright, script tạm và ảnh nằm ngoài repo tại `C:\KLTN_FALL2026\qa-019-t06`; `cnhsk-web/package.json` và package-lock không thay đổi. Chromium **159.0.8154.6**, context mới không dùng hồ sơ/cookie cá nhân, chỉ localhost 5196; API của trang local được mock bằng fixture tự soạn và learner giả `example.test`, không đăng nhập tài khoản thật, không gọi BE/DB. Google Fonts bị chặn trước khi gửi mạng để giữ điều kiện chỉ local; ảnh dùng font dự phòng.
+- Hai loại trang được kiểm: `/__preview/frame/quiz-list/ready` cho SCR-043 trong LearnerLayout, và `/community/quizzes` với API mock để xác nhận active thực của route. POST mock thành công còn xác nhận điều hướng `/community/quizzes/43/play?sessionId=101` và menu Quiz tiếp tục active. Không sửa AssistantHost hoặc test của spec khác ngoài kiểm kê 009 đã duyệt.
+
+| Viewport | scrollWidth / clientWidth | Thẻ, lọc HSK, Bắt đầu/Làm lại, ghi chú | Tab tới Bắt đầu | Focus |
+|---|---|---|---:|---|
+| 320 | 320 / 320 | Đủ, không tràn/cắt; chọn HSK được | 4 | `:focus-visible`, viền xanh 2 px + khoảng trắng 2 px |
+| 375 | 375 / 375 | Đủ, không tràn/cắt; chọn HSK được | 4 | như trên |
+| 640 | 640 / 640 | Đủ, không tràn/cắt; chọn HSK được | 11 | như trên |
+| 1280 | 1280 / 1280 | Đủ, không tràn/cắt; chọn HSK được | 11 | như trên |
+
+- Menu mobile kiểm ở **320 và 375**: button Thêm mở/đóng, aria-expanded/controls, Quiz trong nhóm Cộng đồng và `aria-current=page`, Escape đóng/trả focus, nút đóng và click điều hướng đều đóng panel. Sidebar ở 640 và desktop 1280: Quiz active đúng, nhóm Cộng đồng chỉ có Quiz. Không có lỗi JavaScript của trang.
+- Đã chụp và xem lại 5 ảnh thật: `scr043-320.png`, `scr043-375.png`, `scr043-640.png`, `menu-mobile-375.png`, `menu-desktop-1280.png`. Ảnh và `report.json` ở thư mục `artifacts` ngoài repo; đính kèm ảnh qua GitHub CLI vào PR, không commit. QA chạy cuối **exit 0**; không cần sửa production sau QA.
+- Fetch main mới **ad480295718a1b21c84f590467fbb1cb29356ef9**, fast-forward nhánh từ c7edc28, không rebase. Diff c7edc28..ad48029 không có file FE hoặc trợ lý, nên kết quả full Vitest/lint/build đã được leader chấp nhận vẫn áp dụng cùng mã nguồn; không có thay đổi routeAccess/navigation/LearnerLayout từ main cần chạy lại gate. Xác nhận lại BE trên base mới: AssistantPromptBuilderTest **12/12** + ModuleBoundaryTest **9/9**, tổng **21 F0/E0/S0**, **exit 0**, Java 17/DEBUG=false (`target/g2/backend-ad48029.log`). Full Maven verify không thuộc gate T-06 theo chỉ đạo leader.
+- Self-check: giữ đúng allowlist 23 file; không dependency mới trong repo, không schema/SQL/secret/PII log, không đổi module boundary, không sửa file của Đạt/Dũng ngoài phạm vi đã phối hợp; không BOM, `git diff --check` sạch. Quyền commit/push nhánh và PR đã được leader cấp; không push/merge main.

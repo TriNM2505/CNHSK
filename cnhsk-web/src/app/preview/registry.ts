@@ -49,6 +49,7 @@ import { previews as practicePreviews } from '@/features/practice/catalog.previe
 import { previews as pronunciationPreviews } from '@/features/pronunciation/catalog.preview'
 import { previews as questionBankPreviews } from '@/features/question-bank/catalog.preview'
 import { previews as vocabPreviews } from '@/features/vocab/catalog.preview'
+import { previews as quizPreviews } from '@/features/quiz/catalog.preview'
 
 export type { PreviewEntry, PreviewState } from '@/app/preview/types'
 
@@ -235,6 +236,7 @@ export const previewRegistry: readonly PreviewEntry[] = [
   ...masteryPreviews,
   ...questionBankPreviews,
   ...practicePreviews,
+  ...quizPreviews,
 ]
 
 export function getPreviewStates(entry: PreviewEntry): readonly PreviewState[] {

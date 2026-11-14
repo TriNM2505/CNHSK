@@ -111,7 +111,9 @@ beforeEach(() => {
 describe('community route foundation (§12; FR-001 and AT-01/02 access only)', () => {
   it('FR001_registers exactly eight unique paths with approved SCR, access and layout', () => {
     const actual = appRouteDefinitions.filter(
-      ({ path }) => path.startsWith('/community') || path.startsWith('/moderation'),
+      ({ path }) =>
+        (path.startsWith('/community') && !path.startsWith('/community/quizzes')) ||
+        path.startsWith('/moderation'),
     )
     expect(actual).toEqual(
       routes.map(({ path, scr, access, layout }) => ({

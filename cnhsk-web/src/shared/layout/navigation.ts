@@ -1,6 +1,7 @@
 import {
   BookOpen,
   Flag,
+  ListChecks,
   Gamepad2,
   Languages,
   Mic2,
@@ -19,6 +20,7 @@ export type NavigationItem = {
   label: string
   mobileLabel?: string
   role?: RoleCode
+  mobilePlacement?: 'more'
   to: string
 }
 
@@ -52,7 +54,17 @@ export const learnerNavigation: readonly NavigationItem[] = [
     icon: BookOpen,
     label: 'Tài liệu tham khảo',
     mobileLabel: 'Tham khảo',
+    mobilePlacement: 'more',
     to: '/references/media',
+  },
+]
+
+export const learnerCommunityNavigation: readonly NavigationItem[] = [
+  {
+    activePrefixes: ['/community/quizzes'],
+    icon: ListChecks,
+    label: 'Quiz',
+    to: '/community/quizzes',
   },
 ]
 
