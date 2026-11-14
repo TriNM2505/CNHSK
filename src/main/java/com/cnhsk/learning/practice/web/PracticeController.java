@@ -117,7 +117,7 @@ public class PracticeController {
             @ApiResponse(responseCode = "400", description = "ITEM_NOT_IN_SESSION, OPTION_NOT_IN_ITEM, TOO_MANY_REPLAYS, AUDIO_NOT_IN_ITEM, SKIP_NOT_ALLOWED"),
             @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
             @ApiResponse(responseCode = "403", description = "ATTEMPT_NOT_OWNED hoặc CSRF không hợp lệ"),
-            @ApiResponse(responseCode = "409", description = "SESSION_ALREADY_SUBMITTED, ANSWER_ALREADY_SUBMITTED"),
+            @ApiResponse(responseCode = "409", description = "SESSION_ALREADY_SUBMITTED, ANSWER_ALREADY_SUBMITTED, CONTEST_SUBMIT_REQUIRED"),
             @ApiResponse(responseCode = "422", description = "SESSION_EXPIRED, VALIDATION_FAILED"),
             @ApiResponse(responseCode = "429", description = "RATE_LIMITED")
     })
@@ -126,7 +126,10 @@ public class PracticeController {
             @Valid @RequestBody(required = false) FinishRequest request) {
         List<Answer> answers = request == null || request.answers() == null ? List.of()
                 : request.answers().stream().map(AnswerRequest::toAnswer).toList();
-        return practice.finish(auth.currentUser().userId(), identifier(id, "id"), answers);
+        long userId = auth.currentUser().userId();
+        long sessionId = identifier(id, "id");
+        requireGenericSession(userId, sessionId);
+        return practice.finish(userId, sessionId, answers);
     }
 
     public record FinishRequest(List<@NotNull @Valid AnswerRequest> answers) {
@@ -138,13 +141,23 @@ public class PracticeController {
             @ApiResponse(responseCode = "204", description = "Đã bỏ lượt, giữ nguyên bằng chứng"),
             @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
             @ApiResponse(responseCode = "403", description = "ATTEMPT_NOT_OWNED hoặc CSRF không hợp lệ"),
-            @ApiResponse(responseCode = "409", description = "SESSION_ALREADY_SUBMITTED"),
+            @ApiResponse(responseCode = "409", description = "SESSION_ALREADY_SUBMITTED, CONTEST_SUBMIT_REQUIRED"),
             @ApiResponse(responseCode = "422", description = "SESSION_EXPIRED, VALIDATION_FAILED")
     })
     public ResponseEntity<Void> abandon(
             @Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
-        practice.abandon(auth.currentUser().userId(), identifier(id, "id"));
+        long userId = auth.currentUser().userId();
+        long sessionId = identifier(id, "id");
+        requireGenericSession(userId, sessionId);
+        practice.abandon(userId, sessionId);
         return ResponseEntity.noContent().build();
+    }
+
+    private void requireGenericSession(long userId, long sessionId) {
+        if (practice.view(userId, sessionId).source() == PracticeSource.CONTEST) {
+            throw new ApiException(ErrorCode.CONTEST_SUBMIT_REQUIRED, HttpStatus.CONFLICT,
+                    "Hãy nộp bài qua cuộc thi.", Map.of());
+        }
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
