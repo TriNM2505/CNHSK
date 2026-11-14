@@ -305,3 +305,50 @@ JDK 17.0.12, Maven Wrapper 3.9.16, `DEBUG=false`; `docker info` thành công (29
 - Đã chụp và xem lại 5 ảnh thật: `scr043-320.png`, `scr043-375.png`, `scr043-640.png`, `menu-mobile-375.png`, `menu-desktop-1280.png`. Ảnh và `report.json` ở thư mục `artifacts` ngoài repo; đính kèm ảnh qua GitHub CLI vào PR, không commit. QA chạy cuối **exit 0**; không cần sửa production sau QA.
 - Fetch main mới **ad480295718a1b21c84f590467fbb1cb29356ef9**, fast-forward nhánh từ c7edc28, không rebase. Diff c7edc28..ad48029 không có file FE hoặc trợ lý, nên kết quả full Vitest/lint/build đã được leader chấp nhận vẫn áp dụng cùng mã nguồn; không có thay đổi routeAccess/navigation/LearnerLayout từ main cần chạy lại gate. Xác nhận lại BE trên base mới: AssistantPromptBuilderTest **12/12** + ModuleBoundaryTest **9/9**, tổng **21 F0/E0/S0**, **exit 0**, Java 17/DEBUG=false (`target/g2/backend-ad48029.log`). Full Maven verify không thuộc gate T-06 theo chỉ đạo leader.
 - Self-check: giữ đúng allowlist 23 file; không dependency mới trong repo, không schema/SQL/secret/PII log, không đổi module boundary, không sửa file của Đạt/Dũng ngoài phạm vi đã phối hợp; không BOM, `git diff --check` sạch. Quyền commit/push nhánh và PR đã được leader cấp; không push/merge main.
+
+### G0/G1 T-07 · 2026-11-14 — duyệt 28 đường dẫn, base tạm T-06
+
+- Leader duyệt 28 đường dẫn, gồm xoá `Scr044QuizAttemptPlaceholderPage.tsx` để thay bằng SCR-044 thật (giữ route play), nối riêng `QUIZ`, `QUIZ_RETRY` vào cuối union FE PracticeSource. T-05 trong tasks đổi đúng `✅ MERGED — PR #171` theo yêu cầu. Không sửa hook/API practice dùng chung, AssistantHost production, navigation, screenRegistry tổng hoặc preview registry tổng.
+- Leader cho bắt đầu ngay từ `origin/spec/019-t06` **83648b198369d0195c6b5c442cc1fcb69537e4ba**, thay yêu cầu chờ hash main trước tạo nhánh. Đã fetch xác nhận SHA và tạo worktree `C:\KLTN_FALL2026\CNHSK-019-t07`, nhánh `spec/019-t07`. Khi leader báo #177 đã merge: fetch, **rebase nhánh T-07 lên origin/main**, kiểm log origin/main..HEAD chỉ còn thay đổi/commit T-07. **Không mở PR trước rebase; gate phải chạy sau rebase.** Chưa rebase, chưa chạy test/lint/build/QA tại thời điểm ghi G1 này.
+- **017 đã chốt:** adapter đúng `/api/public/leaderboards/topics/{topicId}?period=all`, tối đa 10 entry, giữ rank server, mock trong test; loading/error/empty chỉ ảnh hưởng khối Top 10, không che kết quả quiz. Link `/leaderboards/topics?topicId=` chỉ hiện nếu chính route đó đã đăng ký trong routeAccess, không hardcode feature flag, không dựng SCR-046 thay 017.
+- SCR-044: navigation state chỉ là handoff; mất state/reload POST same topic để resume rồi GET phiên engine khôi phục đáp án và `servedAt`. Không lấy sessionId từ URL để load phiên. Key theo user/topic, bỏ qua response cũ sau unmount, deduplicate POST khi StrictMode chạy lại effect. Kiểm source/refId/feedback/status từ engine trước render input; dùng `ChoiceQuestion` DEFERRED không feedback đúng/sai trước nộp.
+- Trả lời gửi ordinal no và durationMs qua engine; giữ lựa chọn chưa lưu khi lỗi để retry hoặc đính kèm finish, không ghi đè evidence của đáp án chỉ được khôi phục từ GET. Thời gian hiển thị là thời gian đã làm từ servedAt, không countdown/tự nộp; tổng câu lấy từ snapshot, không hard-code 10. Khoá thao tác ghi khi pending. Nộp còn câu trống xác nhận trong trang; chỉ chuyển kết quả sau SUBMITTED. Nút Thoát và điều hướng nội bộ dùng xác nhận rồi abandon; lỗi abandon giữ màn hiện tại, Escape huỷ xác nhận và trả focus.
+- SCR-045: GET kết quả riêng, điểm/count/duration và rankingEligible/suspicious theo server sau nộp (bao gồm race downgrade); ưu tiên nhãn suspicious, không ngụ ý tăng mastery. Hiện đáp án đã chọn/đúng/giải thích với chữ Đúng/Sai/Bỏ trống. First rank/total null thì ẩn dòng hạng, vẫn giữ score/duration. Retry POST rồi chuyển play bằng session server; 401/403 theo auth, 404/422/429 có thông báo, không tự retry POST.
+- Phần chung 015 được báo leader tại G0 và cập nhật tiến độ: chỉ thêm điều kiện SCR-044 vào `assistant/pageContext.ts` cùng test pageContext/AssistantHost; Host hiện đã dùng hidden tại đây nên không cần sửa production AssistantHost.tsx. Cả lượt đầu/retry đều ẩn panel và launcher trên SCR-044, SCR-043/045 vẫn có trợ lý; giữ hồi quy exam/topic-test. Thêm tên BE SCR-045 `Kết quả quiz theo chủ đề` và test kiểm kê để tránh lỗi screen-name #159.
+- Test đã viết cho API result/top, state loss và GET restore, nguồn retry, chọn/đổi câu, không lộ feedback, đáp án lưu lỗi cùng finish, confirmation/abandon và route blocker, trạng thái hết hạn/đã nộp, auth/422/429, race/suspicious UI, rank null, top lỗi/rỗng/cắt 10, route link hiện theo registry, preview 4 trạng thái và assistant. Test route cũ về placeholder được đổi sang màn thật. Chưa ghi nhận pass khi chưa chạy gate.
+- Gate leader chốt riêng T-07: full Vitest, lint, build; BE **chỉ AssistantPromptBuilderTest + ModuleBoundaryTest**, **không full Maven verify** (leader chạy lúc merge); Java 17/DEBUG=false. Playwright Chromium sạch ngoài repo tại 320/375/640/1280 cho làm bài, nộp/thoát, resume, kết quả, assistant hidden, focus và overflow; không commit script/ảnh, không thêm dependency dự án. Scr059 nếu tái diễn thì chạy riêng và báo theo điều kiện T-06, không tự sửa file thứ 29 hoặc tô xanh full suite.
+
+### T-07 · rebase và xác minh sau #177 · 2026-11-14
+
+- Leader báo #177 merged, main `3fe9ab0`. Đã commit cục bộ đúng 28 đường dẫn rồi fetch và **rebase thành công** lên `3fe9ab0beefd467b8c84f68b4036f4c92f6a8eb2`, không conflict. T-06 đã là ancestor của main nên `git log origin/main..HEAD` chỉ còn **một commit T-07**; diff với main đúng 28 đường dẫn. Chưa push nhánh trong lúc sửa G2. Khi hoàn tất gate sẽ amend các sửa trong allowlist vào cùng commit, không tạo thêm commit task.
+- Leader nhắc 021/T-08 sẽ sửa navigation/pageContext để thêm Cuộc thi/SCR-050; lần fetch trong G2 main vẫn `3fe9ab0`, chưa có thay đổi đó. T-07 chỉ thêm điều kiện SCR-044, giữ điều kiện exam/topic-test; không sửa navigation hoặc production Host. PR sau cần rebase và giữ cả SCR-044/SCR-050.
+- Lượt kiểm đầu sau rebase: targeted **137 tests, 132 pass/5 fail, exit 1**; 5 failure là selector đáp án giả định khoảng trắng trong accessible name của ChoiceQuestion (thực tế `Anước`/`Blửa`). Lint **exit 1** vì test import trực tiếp *.preview trái quy tắc repo; build **exit 2** vì hai EmptyState thiếu description, ByRoleOptions không có exact và deferred fixture suy luận literal true. Đã sửa trong 28 đường dẫn: dùng preview registry tổng, bổ sung props bắt buộc và kiểu/selector test đúng thư viện; không nới timeout/skip hoặc sửa shared component. Targeted sau sửa **137/137 pass, 11 files, exit 0** (`targeted-final.log`).
+- QA browser bắt được khác biệt với JSDOM: React Router có thể giữ navigation state trong history sau reload. Hook nay bỏ handoff nếu PerformanceNavigationTiming xác nhận reload chính URL hiện tại, rồi POST theo topic và GET phiên engine; vẫn dùng state cho chuyển trang SPA bình thường. Playwright xác nhận reload tạo đúng một resume, giữ sessionId/đáp án/thời gian, không tiêu thụ phiên mới. Lượt QA ban đầu **exit 1** do thiếu resume; sau sửa và chụp lại **exit 0** ở cả 4 viewport.
+- Gate lint/build được chạy lại sau sửa reload: **lint exit 0, 0 error/1 warning có sẵn LevelBadge.tsx**; **build exit 0**. BE sau rebase **AssistantPromptBuilderTest 12/12 + ModuleBoundaryTest 9/9 = 21 F0/E0/S0, exit 0**, Java 17.0.12/DEBUG=false. Full Maven verify không chạy theo duyệt riêng T-07. Full Vitest cuối đang được chạy với một worker trên mã đã sửa reload; kết quả cuối ghi tiếp bên dưới, chưa suy diễn pass.
+
+| QA Playwright Chromium 159.0.8154.6 | 320 | 375 | 640 | 1280 |
+|---|---:|---:|---:|---:|
+| SCR-044 scrollWidth / clientWidth | 320/320 | 375/375 | 640/640 | 1280/1280 |
+| SCR-045 scrollWidth / clientWidth | 320/320 | 375/375 | 640/640 | 1280/1280 |
+| Tab tới Nộp bài, có focus-visible/ring | 8 | 8 | 14 | 14 |
+| Resume giữ phiên/đáp án/thời gian | đạt | đạt | đạt | đạt |
+| Xác nhận nộp, result, retry, xác nhận abandon | đạt | đạt | đạt | đạt |
+| Ẩn trợ lý lượt đầu/retry; result giữ trợ lý | đạt | đạt | đạt | đạt |
+| Top 10 lỗi riêng; tối đa 10; route thiếu thì ẩn link | đạt | đạt | đạt | đạt |
+
+- QA dùng app/routes thật trên localhost **5197**, API mock từ fixture tự soạn, learner giả example.test, Chromium context mới mỗi viewport, không tài khoản thật/hồ sơ cá nhân/BE/DB. Chặn Google Fonts trước mạng để chỉ local, ảnh dùng font dự phòng. Không có lỗi JavaScript trang; không request ngoài localhost được cho phép.
+- Có **10 ảnh ngoài repo** tại `C:\KLTN_FALL2026\qa-019-t07\artifacts`: attempt/result ở 320/375/640/1280 và confirm-submit/confirm-exit ở 320, cùng report.json. Script, ảnh và Playwright ngoài repo, không đổi package/lock hoặc commit QA artifact. Gate/exit logs trong target/g2.
+
+### G2 T-07 cuối · đủ điều kiện Draft PR
+
+| Gate sau rebase | Kết quả thực tế | Exit |
+|---|---|---:|
+| Targeted quiz/assistant/registry/preview | 137/137 pass, 11 files | 0 |
+| Full Vitest `--maxWorkers=1 --minWorkers=1` | **2676/2676 pass, 188 files**, 581,23 giây, không fail/error/skip | **0** |
+| Lint sau sửa cuối | 0 error, 1 warning LevelBadge.tsx có sẵn | 0 |
+| TypeScript + Vite build sau sửa cuối | đạt | 0 |
+| AssistantPromptBuilderTest + ModuleBoundaryTest | 21 tests, F0/E0/S0 | 0 |
+| QA Playwright ở 320/375/640/1280 | các mục ở bảng trên đạt, 10 ảnh, không page error | 0 |
+
+- **Scr059 pass 64/64 ngay trong full suite**; không cần chạy riêng hoặc dùng ngoại lệ T-06. Không failure test spec khác, không skip/nới timeout. Các suite practice/exam/mastery/assistant/community/layout/registry đều nằm trong full suite đã pass trên mã cuối.
+- Self-check cuối: đúng allowlist 28 đường dẫn (bao gồm placeholder bị xoá), PracticeSource FE chỉ nối hai giá trị cuối; không BOM/UTF-8 lỗi, diff --check sạch; không dependency/lock/config/schema/SQL/secret/PII log mới, không sửa production Host/hook practice hoặc module boundary. Task nhánh rebase được leader duyệt; không push/merge/rebase main. G3 dùng một conventional commit chứa cả sửa G2 và báo cáo, push thường nhánh T-07, mở **Draft PR** base main kèm 10 ảnh ngoài repo.

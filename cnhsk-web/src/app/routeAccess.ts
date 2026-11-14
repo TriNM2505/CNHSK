@@ -335,6 +335,13 @@ export const appRouteDefinitions = [
     access: ['LEARNER'],
     kind: 'screen',
     layout: 'learner',
+    path: '/community/quizzes/attempts/:sessionId',
+    scr: 'SCR-045',
+  },
+  {
+    access: ['LEARNER'],
+    kind: 'screen',
+    layout: 'learner',
     path: '/community/posts/new',
     scr: 'SCR-041',
   },

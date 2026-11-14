@@ -12,6 +12,8 @@ export type PracticeSource =
   | 'PLACEMENT'
   | 'TARGETED_PRACTICE'
   | 'DUE_REVIEW'
+  | 'QUIZ'
+  | 'QUIZ_RETRY'
 
 export type FeedbackMode = 'IMMEDIATE' | 'DEFERRED' | 'RECORD'
 export type SessionStatus = 'IN_PROGRESS' | 'SUBMITTED' | 'ABANDONED' | 'EXPIRED'
