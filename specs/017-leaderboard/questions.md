@@ -53,6 +53,32 @@
 
 **Base G2:** `13f1d96` sau khi PR #170 merge, có V8. Kết quả sơ bộ 28/28 trên `f77747d` không thay thế gate trên base mới. T-04 không cache, không bổ sung profile, controller hay endpoint; những phần đó thuộc T-05.
 
+## 2026-11-14 · Duyệt G0 T-05
+
+**Base leader cấp:** `b2d3b12`, có merge T-04 `72d575e` và commit `4946603`. Triển khai trên `spec/017-t05-service`, không stack branch task cũ.
+
+| # | Nội dung | Quyết định leader | Trạng thái |
+|---|---|---|---|
+| Q-T05-01 | Implementation và interface 019 | Phương án A: `LeaderboardServiceImpl @Service`, giữ nguyên interface `LeaderboardService` đúng một method `rankOf` và record `Rank`. Controller dùng class Impl; `rankOf` đọc DB kỳ all | ✅ ANSWERED |
+| Q-T05-02 | Cache và eligibility | Cache top + total + snapshot banned. Không cache myEntry hoặc profile; profile lookup theo lô. Authenticated cache hit query myEntry với snapshot banned; `rankOf` đọc banned mới. TTL-only 60 giây, key đổi theo kỳ, không thêm event invalidation | ✅ ANSWERED |
+| Q-T05-03 | Redis timeout và ownership | 200 ms tính cho từng thao tác Redis cache. Duyệt client riêng **chỉ cho cache**, đóng khi app dừng; không đăng ký thêm `RedisConnectionFactory`, không sửa application.yaml chung. Rate limiter không dùng client riêng | ✅ ANSWERED |
+| Q-T05-04 | Optional authentication | Đúng bốn GET công khai: token sai/hết hạn/revoked/banned coi như guest. Route khác giữ nguyên hành vi. Danh sách bốn matcher khai báo một chỗ, SecurityConfig và JWT filter cùng dùng | ✅ ANSWERED |
+| Q-T05-05 | Guest rate limit | Fail-open + WARN khi Redis lỗi; bucket chung bốn endpoint, 120/phút/IP, chỉ dùng remoteAddr. `LeaderboardRateLimiter` bọc `RateLimiter.increment()` hiện có, không gọi client cache riêng | ✅ ANSWERED |
+| Q-T05-06 | Profile thiếu hoặc tên rỗng | Dùng `Người học`, avatar null, giữ nguyên rank | ✅ ANSWERED |
+| Q-T05-07 | Regression 019 | Duyệt sửa `QuizResultIntegrationTest` để cách ly ca no-bean khi implementation thật xuất hiện; không sửa production 019. Leader phối hợp Xuân Huy | ✅ ANSWERED |
+| Q-T05-08 | Allowlist và response | Duyệt đúng 20 file G0: 7 production mới của leaderboard, ErrorCode/SecurityConfig/JwtAuthenticationFilter, 6 test leaderboard/security mới, JwtAuthenticationFilterTest/QuizResultIntegrationTest và questions.md/tasks.md. Total chỉ nội bộ, HTTP DTO đúng OpenAPI | ✅ ANSWERED |
+
+**Đính chính cache key:** giữ đúng FR-016 `lb:{topic|game}:{ref}:{period}:{startEpochDay|all}`, không `v1`/`n20`. Version chỉ trong payload; top cố định 20 bằng hằng số, không thêm cấu hình top-size.
+
+**Backend không cần SCREEN_NAMES.** Không sửa frontend T-06 hoặc thực hiện contract acceptance T-07. Chỉ thêm `INVALID_GAME_CODE` sau `QUIZ_ATTEMPT_NOT_FOUND`, trước `INTERNAL_ERROR`. Dừng ở G2 báo gate, chưa commit/push/PR khi chưa được giao G3.
+
+## 2026-11-14 · T-05 bổ sung file 21 và rebase theo leader
+
+- Leader duyệt file thứ 21 `src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java`: chỉ bổ sung `INVALID_GAME_CODE` vào expected list, giữ `containsExactly` và toàn bộ test của main.
+- Không nghiệm thu bằng bằng chứng full verify cũ. Commit cục bộ 21 file rồi rebase lên `origin/main` `f6e471e` (đã có #174/#175/#178). Giữ `PLAN_IN_USE`, toàn bộ mã `GRADING_*` và matcher grading; `INVALID_GAME_CODE` đặt **ngay trước `INTERNAL_ERROR`**, sau `GRADING_INVALID_RESULT`, thay vị trí tương đối cũ sau quiz.
+- Windows chặn di chuyển hai file controller trong worktree cũ; giữ nguyên dữ liệu và commit dự phòng, không sửa ACL. Rebase thực hiện tại `.worktrees/017-t05-rebased`, nhánh đích `spec/017-t05`.
+- Gate mới: targeted leaderboard/security/GlobalExceptionHandlerTest/ModuleBoundaryTest, sau đó một lượt full `mvnw verify`; lấy số test và JaCoCo từ lượt mới. Chỉ push nhánh và mở Draft PR sau khi gate xanh, không merge.
+
 ## Dữ kiện đã kiểm trên main `2735ac8`
 - `attempts` có `kind` (gồm QUIZ, GAME, CONTEST), `ref_type`, `ref_id`, `game_code`, `score` BIGINT, `duration_ms`, `suspicious`, `submitted_at`.
 - Index `ix_att_rank(kind, game_code, score DESC) WHERE status='SUBMITTED'`; `uq_quiz_first(user_id, ref_id) WHERE kind='QUIZ' AND status='SUBMITTED'`.

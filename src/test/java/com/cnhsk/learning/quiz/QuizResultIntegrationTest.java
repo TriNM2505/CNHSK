@@ -26,16 +26,23 @@ class QuizResultIntegrationTest extends QuizIntegrationFixture {
     @Autowired QuizResultService results;
     @Autowired ObjectProvider<LeaderboardService> leaderboards;
     @Autowired EntityManagerFactory factory;
+    @Autowired org.springframework.context.ApplicationContext context;
 
     @Test
     void noLeaderboardBeanStillReturnsCompleteResultAndFirstSummaryWithNullRank() throws Exception {
-        assertThat(leaderboards.getIfAvailable()).isNull();
+        @SuppressWarnings("unchecked")
+        ObjectProvider<LeaderboardService> absentLeaderboard = org.mockito.Mockito.mock(ObjectProvider.class);
+        assertThat(absentLeaderboard.getIfAvailable()).isNull();
+        // Preserve the pre-017 fallback scenario without removing the real application bean.
+        var isolated = new QuizResultService(attempts,
+                context.getBean(com.cnhsk.learning.practice.entity.AttemptItemRepository.class),
+                context.getBean(QuizRepository.class), mapper, absentLeaderboard,
+                context.getBean(org.springframework.transaction.PlatformTransactionManager.class));
         Topic topic = topic(10, 0);
         long id = sessions.start(user, topic.id()).session().sessionId();
         advance(20);
         practice.finish(user, id, answers(8));
-        JsonNode result = mapper.readTree(mvc.perform(get(path(id)).header("Authorization", bearer()))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray());
+        JsonNode result = mapper.valueToTree(isolated.result(user, id));
         assertThat(result.fieldNames()).toIterable().containsExactlyInAnyOrder("sessionId", "topicId", "topicName",
                 "score", "correctCount", "wrongCount", "durationMs", "rankingEligible", "suspicious", "items", "firstAttempt");
         assertThat(result.path("score").asLong()).isEqualTo(80);
