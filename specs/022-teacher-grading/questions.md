@@ -56,3 +56,27 @@ Danh sách dùng hai query (count + page), lọc owner/kind/status trước phâ
 Gate T-02 (Java 17, DEBUG=false, Docker/Testcontainers local): targeted đầu 95/95; hồi quy sau hoàn thiện gồm Grading*Test + Entitlement*Test + GlobalExceptionHandlerTest + ModuleBoundaryTest đạt 223/223, F0/E0/S0 (HTTP integration 40/40). Full Maven verify: 5358 test, F0/E0/S0, BUILD SUCCESS, 18:34 phút; JaCoCo LINE 13774 covered / 438 missed = 96,9181%, mọi ngưỡng đạt. Không dùng ngoại lệ môi trường. Diff sạch, 12 file UTF-8 không BOM.
 
 AT-03 dùng billing thật: ép lỗi INSERT ở cả QUOTA/CREDIT giữ nguyên quota/số dư, không tạo yêu cầu/DEDUCT và không còn receipt Redis. AT-02: hai POST cùng bài sau chuẩn hoá chỉ một 201, một 409, một lần trừ. AT-05: refund lỗi rollback về PENDING rồi retry được; hai huỷ credit song song chỉ một REFUND; huỷ đua với claim chỉ một bên thắng. AT-04/17 kiểm quyền, sai loại, toàn bộ role khác, CSRF và không lộ các trường cấm. Fetch trước bàn giao vẫn origin/main b435223, không thay đổi file dùng chung mới.
+
+## 2026-11-14 · T-03 — G0 được leader duyệt
+
+Base `00efcf8b2ac1889b1d49eb120aa2e9b813cf86ab`, đã kiểm chứa T-02 qua PR #178 (`f6e471e`), nhánh `spec/022-t03`. Worktree 022 được tái sử dụng sau khi kiểm sạch và commit T-02 đã merge. Allowlist 10 file; không đổi bên trong 013, contract, mã lỗi, cấu hình, migration hoặc file game.
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T03-01 | ANSWERED | CLAIM lấy pg_advisory_xact_lock với key grading:claim:<teacherId> trước đếm và UPDATE, cùng transaction. Release không lấy khoá giáo viên: UPDATE có điều kiện chặn tranh chấp, release chỉ giảm số đang giữ. |
+| Q-T03-02 | ANSWERED | Claim: id sai dạng, ≤ 0, tràn int64, không tồn tại hoặc sai loại → 409 GRADING_ALREADY_CLAIMED. Detail/release tương ứng → 403 GRADING_NOT_ASSIGNEE. Id hợp lệ: tự chấm 403 → giới hạn 422 → UPDATE thua 409; không đổi contract. |
+| Q-T03-03 | ANSWERED | Mine sắp deadline_at ASC, id ASC, chỉ ASSIGNED của người gọi; bài quá hạn vẫn nằm trong mine/đếm đang giữ cho đến khi chuyển trạng thái. |
+
+Queue lọc PENDING, deadline_at > Clock.now và loại bài của chính giáo viên trước count/phân trang; chỉ SELECT metadata, không lấy nội dung bài hay người học vào projection. Count + page dùng hai query cố định; mine dùng một query. NFR-P01 chỉ assert số query không tăng với 1.000 yêu cầu; p95 chỉ đo và ghi, không thêm gate thời gian. Phép đo trong repository integration test là service + DB, không bao gồm HTTP/JWT.
+
+Nhận bài dùng SQL T-01, giữ claimDeadline gốc, hạn chấm từ Clock + grading-hours. Release chỉ cho assignee khi ASSIGNED; còn hạn nhận → PENDING, xoá assignment, khôi phục hạn; hết hạn nhận → EXPIRED, giữ assignment và refund cho người học bằng receipt server trong cùng transaction. Refund ném lỗi thì rollback toàn bộ; thao tác thua không refund. Không consume hay payout trong T-03.
+
+SecurityConfig chỉ thêm 3 GET + 2 POST TEACHER trước /api/admin/**, chưa mở /complete, không miễn CSRF. DTO theo đúng contract, không có danh tính người học, payload/consumption hay payout nội bộ. T-02 ghi MERGED — PR #178; T-03 giữ 🔄 chờ review khi mở PR.
+
+Gate chọn lọc T-03: TeacherGradingServiceTest + GradingRepositoryIntegrationTest 41/41, HTTP TeacherGradingControllerIntegrationTest 33/33, F0/E0/S0. Hồi quy toàn bộ grading, EssayRulesTest, Entitlement*Test, GlobalExceptionHandlerTest và ModuleBoundaryTest đạt 287/287, F0/E0/S0. AT-07 chạy 10 request HTTP đồng thời: đúng một 200 và chín 409. Hai yêu cầu của cùng giáo viên tranh suất thứ ba chỉ một thành công; hai release hết hạn chỉ một REFUND. Refund lỗi ở cả QUOTA/CREDIT rollback trạng thái, sau đó thử lại được. Release không lấy advisory lock của CLAIM.
+
+NFR-P01: 1.000 yêu cầu, count + page vẫn đúng 2 query; p95 service + PostgreSQL đo được 8,500 ms ở targeted và 6,811 ms ở hồi quy. Chỉ ghi số đo, không assert ngưỡng thời gian. Fetch trước bàn giao: origin/main = fbf7ad0 (007/T-03); so với base 00efcf8 không có thay đổi nào trong allowlist T-03, gồm SecurityConfig. Không merge/rebase/pull main vào nhánh.
+
+Full gate T-03: `.\mvnw.cmd -B verify` (Java 17, DEBUG=false, PostgreSQL/Redis Testcontainers local) đạt 5.411 test, F0/E0/S0, BUILD SUCCESS, 19:51 phút. Không dùng ngoại lệ môi trường. NFR-P01 ở lượt full: p95 2,394 ms, vẫn 2 query. JaCoCo LINE từ XML mới sinh của chính lượt full: 13.862 covered / 440 missed = 96,9235%; mọi coverage check đạt. T-03 giữ 🔄 chờ review, không đánh hoàn tất trước merge.
+
+Self-check: đúng 10 file allowlist; diff --check sạch, UTF-8 không BOM, không dấu conflict/TODO mới hoặc test bị skip. Không thêm thư viện, không đổi engine, module 013, ErrorCode, contract, cấu hình hoặc migration. Matcher giữ RBAC/CSRF, claim dùng khoá trong transaction, release/refund rollback và chỉ một bên thắng đã được kiểm bằng PostgreSQL/HTTP song song. Không đưa secret, thông tin thật hay dữ liệu HSK có bản quyền vào thay đổi; không dùng Neon. Stage từng file, một conventional commit và Draft PR; không merge PR/main hoặc force-push.

@@ -180,6 +180,10 @@ public class SecurityConfig {
                             "/api/grading-requests/{id}").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.POST, "/api/grading-requests",
                             "/api/grading-requests/{id}/cancel").hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.GET, "/api/teacher/grading-queue", "/api/teacher/grading-requests/mine",
+                            "/api/teacher/grading-requests/{id}").hasRole("TEACHER");
+                    authorize.requestMatchers(HttpMethod.POST, "/api/teacher/grading-requests/{id}/claim",
+                            "/api/teacher/grading-requests/{id}/release").hasRole("TEACHER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/me/reminder").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.PUT, "/api/me/reminder").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/admin/references", "/api/admin/references/{id}")

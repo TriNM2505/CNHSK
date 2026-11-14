@@ -83,6 +83,43 @@ public class GradingRepository {
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
+    public void lockTeacherClaim(long teacherId) {
+        jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))",
+                Map.of("key", "grading:claim:" + teacherId), rows -> null);
+    }
+
+    @Transactional(readOnly = true)
+    public long countQueue(long teacherId, Instant now) {
+        return jdbc.queryForObject("SELECT count(*) FROM learning.service_requests WHERE kind='GRADING' "
+                        + "AND status='PENDING' AND user_id<>:teacher AND deadline_at>:now",
+                parameters(0, now).addValue("teacher", teacherId), Long.class);
+    }
+
+    @Transactional(readOnly = true)
+    public List<QueueRow> findQueue(long teacherId, Instant now, int page, int size) {
+        return jdbc.query("SELECT id,(payload->>'hanziCount')::integer AS hanzi_count,"
+                        + "(payload->>'hskLevel')::integer AS hsk_level,created_at,deadline_at "
+                        + "FROM learning.service_requests WHERE kind='GRADING' AND status='PENDING' "
+                        + "AND user_id<>:teacher AND deadline_at>:now ORDER BY deadline_at,id LIMIT :size OFFSET :offset",
+                parameters(0, now).addValue("teacher", teacherId).addValue("size", size)
+                        .addValue("offset", Math.multiplyExact((long) page, size)),
+                (row, index) -> new QueueRow(row.getLong("id"), row.getInt("hanzi_count"),
+                        row.getObject("hsk_level", Integer.class), instant(row, "created_at"), instant(row, "deadline_at")));
+    }
+
+    @Transactional(readOnly = true)
+    public List<AssignedRow> findAssigned(long teacherId) {
+        return jdbc.query("SELECT id,(payload->>'hanziCount')::integer AS hanzi_count,assigned_at,deadline_at "
+                        + "FROM learning.service_requests WHERE kind='GRADING' AND status='ASSIGNED' AND assignee_id=:teacher "
+                        + "ORDER BY deadline_at,id", Map.of("teacher", teacherId),
+                (row, index) -> new AssignedRow(row.getLong("id"), row.getInt("hanzi_count"),
+                        instant(row, "assigned_at"), instant(row, "deadline_at")));
+    }
+
+    public record QueueRow(long id, int hanziCount, Integer hskLevel, Instant createdAt, Instant deadline) { }
+    public record AssignedRow(long id, int hanziCount, Instant assignedAt, Instant deadline) { }
+
+    @Transactional(propagation = Propagation.MANDATORY)
     public boolean claim(long id, long teacherId, Instant now, Instant gradingDeadline) {
         return jdbc.update("UPDATE learning.service_requests SET status='ASSIGNED',assignee_id=:teacher,assigned_at=:now,"
                         + "deadline_at=:deadline,payload=jsonb_set(payload,'{claimDeadline}',to_jsonb(deadline_at),true) "

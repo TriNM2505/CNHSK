@@ -27,6 +27,9 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -42,6 +45,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
 
 @DataJpaTest(properties = {"spring.flyway.enabled=true", "spring.jpa.hibernate.ddl-auto=validate"}, showSql = false)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -71,6 +76,7 @@ class GradingRepositoryIntegrationTest {
 
     @Autowired private GradingRepository repository;
     @Autowired private JdbcTemplate jdbc;
+    @Autowired private NamedParameterJdbcTemplate named;
     @Autowired private ObjectMapper mapper;
     @Autowired private PlatformTransactionManager transactions;
     private final List<Long> users = new ArrayList<>();
@@ -372,6 +378,91 @@ class GradingRepositoryIntegrationTest {
         assertThat(repository.countMine(owner, "PENDING")).isEqualTo(2);
         assertThat(repository.findMine(owner, "PENDING", 1, 1)).extracting(RequestRow::id).containsExactly(first);
         assertThat(repository.findMine(owner, null, Integer.MAX_VALUE, 50)).isEmpty();
+    }
+
+    @Test
+    void AT06_queueExcludesSelfExpiredAndOtherKindsBeforePaging() {
+        repository.createPending(teacher, payload(), NOW, NOW.plusSeconds(1));
+        repository.createPending(owner, payload(), NOW, NOW);
+        repository.createPending(owner, payload(), NOW, NOW.minusSeconds(1));
+        long late = repository.createPending(owner, payload(), NOW, NOW.plusSeconds(30));
+        long first = repository.createPending(owner, payload(), NOW, NOW.plusSeconds(10));
+        long second = repository.createPending(other, payload(), NOW, NOW.plusSeconds(10));
+        long assigned = repository.createPending(owner, payload(), NOW, NOW.plusSeconds(2));
+        assertThat(repository.claim(assigned, teacher, NOW, NOW.plusSeconds(40))).isTrue();
+        jdbc.update("INSERT INTO learning.service_requests(user_id,kind,status,payload,deadline_at) VALUES (?,'IMPORT','PENDING','{}',?)", owner, Timestamp.from(NOW.plusSeconds(1)));
+        assertThat(repository.countQueue(teacher, NOW)).isEqualTo(3);
+        assertThat(repository.findQueue(teacher, NOW, 0, 2)).extracting(GradingRepository.QueueRow::id).containsExactly(first, second);
+        assertThat(repository.findQueue(teacher, NOW, 1, 2)).extracting(GradingRepository.QueueRow::id).containsExactly(late);
+        assertThat(repository.findQueue(teacher, NOW, 0, 2)).allSatisfy(row -> {
+            assertThat(row.hanziCount()).isEqualTo(50); assertThat(row.hskLevel()).isNull();
+        });
+    }
+
+    @Test
+    void Q_T03_03_mineIncludesOnlyItsTeacherAndKeepsOverdueAssignments() {
+        long later = repository.createPending(owner, payload(), NOW, NOW.plusSeconds(3600));
+        long first = repository.createPending(owner, payload(), NOW, NOW.plusSeconds(3600));
+        long second = repository.createPending(owner, payload(), NOW, NOW.plusSeconds(3600));
+        long foreign = repository.createPending(owner, payload(), NOW, NOW.plusSeconds(3600));
+        assertThat(repository.claim(later, teacher, NOW, NOW.plusSeconds(30))).isTrue();
+        assertThat(repository.claim(first, teacher, NOW.minusSeconds(2), NOW.minusSeconds(1))).isTrue();
+        assertThat(repository.claim(second, teacher, NOW.minusSeconds(2), NOW.minusSeconds(1))).isTrue();
+        assertThat(repository.claim(foreign, other, NOW, NOW.plusSeconds(30))).isTrue();
+        assertThat(repository.findAssigned(teacher)).extracting(GradingRepository.AssignedRow::id).containsExactly(first, second, later);
+        assertThat(repository.countActiveClaims(teacher)).isEqualTo(3);
+    }
+
+    @Test
+    void NFR_P01_queueUsesTwoQueriesWithOneThousandRequestsAndOnlyMeasuresP95() {
+        var counted = spy(named);
+        var queries = new GradingRepository(counted, mapper);
+        var config = new GradingConfig(); config.setTeacherPayoutCredits(0);
+        var service = new TeacherGradingService(queries, config, mock(com.cnhsk.learning.api.EntitlementApi.class),
+                mapper, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
+        repository.createPending(owner, payload(), NOW, NOW.plusSeconds(3600));
+        assertThat(service.queue(teacher, 0, 20).totalElements()).isEqualTo(1);
+        verify(counted, times(1)).queryForObject(anyString(), any(SqlParameterSource.class), eq(Long.class));
+        verify(counted, times(1)).query(anyString(), any(SqlParameterSource.class), any(RowMapper.class));
+        for (int index = 1; index < 1000; index++) repository.createPending(owner, payload(), NOW, NOW.plusSeconds(3600));
+        clearInvocations(counted);
+        var page = service.queue(teacher, 0, 20);
+        assertThat(page.totalElements()).isEqualTo(1000); assertThat(page.items()).hasSize(20);
+        verify(counted, times(1)).queryForObject(anyString(), any(SqlParameterSource.class), eq(Long.class));
+        verify(counted, times(1)).query(anyString(), any(SqlParameterSource.class), any(RowMapper.class));
+        for (int warmup = 0; warmup < 3; warmup++) service.queue(teacher, 0, 20);
+        double[] milliseconds = new double[20];
+        for (int sample = 0; sample < milliseconds.length; sample++) {
+            long start = System.nanoTime(); service.queue(teacher, 0, 20);
+            milliseconds[sample] = (System.nanoTime() - start) / 1_000_000.0;
+        }
+        java.util.Arrays.sort(milliseconds);
+        System.out.printf(java.util.Locale.ROOT, "NFR-P01 grading queue rows=1000 queries=2 p95Ms=%.3f (service+DB, measurement only)%n", milliseconds[18]);
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void Q_T03_01_claimLockRequiresAndLivesInsideTheCallersTransaction() throws Exception {
+        assertThatThrownBy(() -> repository.lockTeacherClaim(teacher)).isInstanceOf(IllegalTransactionStateException.class);
+        var executor = Executors.newSingleThreadExecutor();
+        try {
+            tx().executeWithoutResult(status -> {
+                repository.lockTeacherClaim(teacher);
+                try {
+                    boolean same = executor.submit(() -> tx().execute(inner -> tryTeacherLock(teacher))).get(20, TimeUnit.SECONDS);
+                    boolean different = executor.submit(() -> tx().execute(inner -> tryTeacherLock(other))).get(20, TimeUnit.SECONDS);
+                    boolean submit = executor.submit(() -> tx().execute(inner -> tryLock(teacher))).get(20, TimeUnit.SECONDS);
+                    assertThat(same).isFalse(); assertThat(different).isTrue(); assertThat(submit).isTrue();
+                } catch (Exception exception) { throw new IllegalStateException("Claim lock fixture failed", exception); }
+            });
+            boolean afterCommit = tx().execute(status -> tryTeacherLock(teacher));
+            assertThat(afterCommit).isTrue();
+        } finally { executor.shutdownNow(); executor.awaitTermination(10, TimeUnit.SECONDS); }
+    }
+
+    private boolean tryTeacherLock(long teacherId) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("SELECT pg_try_advisory_xact_lock(hashtextextended(?,0))",
+                Boolean.class, "grading:claim:" + teacherId));
     }
 
     private List<Boolean> race(List<Callable<Boolean>> calls) throws Exception {
