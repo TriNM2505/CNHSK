@@ -83,6 +83,10 @@ describe('PublicLayout', () => {
       'href',
       '/references/media',
     )
+    expect(screen.getByRole('link', { name: 'Bảng xếp hạng' })).toHaveAttribute(
+      'href',
+      '/leaderboards/topics',
+    )
   })
 
   it('shows the account menu to authenticated users', () => {
@@ -151,10 +155,18 @@ describe('LearnerLayout', () => {
       initialPath: '/community/quizzes/43/play',
     })
     const community = screen.getByRole('navigation', { name: 'Cộng đồng' })
-    expect(within(community).getAllByRole('link')).toHaveLength(2)
+    expect(within(community).getAllByRole('link')).toHaveLength(3)
     expect(within(community).getByRole('link', { name: 'Quiz' })).toHaveAttribute(
       'aria-current',
       'page',
+    )
+    expect(within(community).getByRole('link', { name: 'Bảng xếp hạng' })).toHaveAttribute(
+      'href',
+      '/leaderboards/topics',
+    )
+    expect(within(community).getByRole('link', { name: 'Cuộc thi' })).toHaveAttribute(
+      'href',
+      '/contests',
     )
     const more = screen.getByRole('button', { name: 'Thêm' })
     await userEvent.click(more)

@@ -19,9 +19,15 @@ export function PublicLayout({ children }: PublicLayoutProps) {
       <header className="sticky top-0 z-20 border-b border-line bg-surface px-4">
         <div className="mx-auto flex min-h-16 max-w-content flex-wrap items-center justify-between gap-3 py-2">
           <BrandLink />
-          <nav aria-label="Tài liệu công khai" className="min-w-0 text-body-sm">
+          <nav
+            aria-label="Điều hướng công khai"
+            className="flex min-w-0 flex-wrap gap-4 text-body-sm"
+          >
             <Link to="/references/media" className="inline-flex min-h-touch items-center">
               Tài liệu tham khảo
+            </Link>
+            <Link to="/leaderboards/topics" className="inline-flex min-h-touch items-center">
+              Bảng xếp hạng
             </Link>
           </nav>
           <nav aria-label="Tài khoản" className="flex items-center gap-2">

@@ -31,7 +31,9 @@ describe('SCR-022 exam result FR-026 / AT-27', () => {
     expect(screen.getByText('Đọc hiểu: 2/5')).toBeVisible()
     expect(screen.queryByText(/Lần trước|đỗ|trượt/i)).not.toBeInTheDocument()
     expect(getExamResult).toHaveBeenCalledWith(5101, expect.any(AbortSignal))
-    expect(getExamWeakPoints).toHaveBeenCalledWith(5101, expect.any(AbortSignal))
+    await waitFor(() =>
+      expect(getExamWeakPoints).toHaveBeenCalledWith(5101, expect.any(AbortSignal)),
+    )
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Điểm yếu cần luyện' })).not.toBeInTheDocument())
   })
   it('loads weak points after the main result and links each KID to targeted practice', async () => {

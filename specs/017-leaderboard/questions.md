@@ -72,6 +72,19 @@
 
 **Backend không cần SCREEN_NAMES.** Không sửa frontend T-06 hoặc thực hiện contract acceptance T-07. Chỉ thêm `INVALID_GAME_CODE` sau `QUIZ_ATTEMPT_NOT_FOUND`, trước `INTERNAL_ERROR`. Dừng ở G2 báo gate, chưa commit/push/PR khi chưa được giao G3.
 
+## 2026-11-14 · Duyệt G0 T-06
+
+| # | Nội dung | Quyết định leader | Trạng thái |
+|---|---|---|---|
+| Q-T06-01 | Mặc định lựa chọn và trạng thái URL | Thiếu `topicId`/`game` thì chọn mục đầu tiên API trả; lựa chọn tường minh trong URL được giữ nguyên, kể cả topic HSK 4–9. Topic không tồn tại hiện lỗi 404 tiếng Việt và cho chọn lại. `hsk` được lưu trong URL | ✅ ANSWERED |
+| Q-T06-02 | i18n | Không thêm từ điển hoặc language picker. Spec 017 không yêu cầu i18n và ứng dụng hiện viết tiếng Việt trực tiếp | ✅ ANSWERED |
+| Q-T06-03 | Hạng của tôi ngoài vùng đang xem | Nếu `myEntry` chưa nằm trong phần đang hiển thị, kể cả hạng 6–20 khi thu gọn Top 5, hiển thị card riêng “Hạng của bạn: #N”; nếu dòng đã hiển thị thì chỉ tô nổi dòng | ✅ ANSWERED |
+| Q-T06-04 | Lỗi tải | Hiện lỗi thay bảng, giữ nguyên bộ lọc và có nút Thử lại; không giữ snapshot cũ | ✅ ANSWERED |
+| Q-T06-05 | Kiểu dữ liệu frontend | `features/leaderboard/types.ts` tự khai báo theo OpenAPI 017; không import type từ `features/quiz` và không sửa mã quiz | ✅ ANSWERED |
+| Q-T06-06 | Bảng responsive | Dùng bảng native và thẻ ở breakpoint ≤ 640 px trong feature; không sửa `DataTable` chung | ✅ ANSWERED |
+
+**Base T-06:** `origin/main` `dc8adb426c4f044aa49d7fab69d3f5a110dab0b5` (đã gồm PR #182). Duyệt allowlist đúng 24 file; bỏ các file từ điển VI/EN. Duyệt các file route, screen registry, preview registry, navigation, `PublicLayout` và `Layouts.test.tsx`. QA responsive 390/640/≥1024 bằng Playwright ngoài repo, không thêm dependency hoặc commit script/ảnh; đính kèm ảnh PR. Commit message không chứa mã spec/task.
+
 ## 2026-11-14 · T-05 bổ sung file 21 và rebase theo leader
 
 - Leader duyệt file thứ 21 `src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java`: chỉ bổ sung `INVALID_GAME_CODE` vào expected list, giữ `containsExactly` và toàn bộ test của main.
