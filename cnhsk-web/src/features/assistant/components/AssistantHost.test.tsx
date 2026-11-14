@@ -39,6 +39,7 @@ function Harness() {
   return (
     <AuthContext.Provider value={value}>
       <button onClick={() => navigate('/account/credits')}>Màn tín dụng</button>
+      <button onClick={() => navigate('/contests/2101/attempt/?from=detail')}>Vào SCR-050</button>
       <button onClick={() => navigate('/learn/exams/sessions/12/?mode=PLACEMENT')}>
         Vào SCR-021
       </button>
@@ -91,6 +92,26 @@ describe('assistant FR013 / FR014', () => {
   )
   beforeEach(() => {
     vi.mocked(askAssistant).mockReset().mockResolvedValue(systemAnswer)
+  })
+
+  it('FR016_AT20_hides the contest assistant and aborts an in-flight conversation on entry', async () => {
+    vi.mocked(askAssistant).mockImplementation(() => new Promise(() => undefined))
+    const user = userEvent.setup()
+    mount()
+    await user.click(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' }))
+    await user.type(
+      screen.getByRole('textbox', { name: 'Câu hỏi về cách dùng CNHSK' }),
+      'Cách dùng?',
+    )
+    await user.click(screen.getByRole('button', { name: 'Gửi' }))
+    const signal = vi.mocked(askAssistant).mock.calls[0]![1]!
+    await user.click(screen.getByRole('button', { name: 'Vào SCR-050' }))
+    expect(signal.aborted).toBe(true)
+    expect(screen.queryByRole('button', { name: 'Mở trợ lý CNHSK' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Trợ lý hỗ trợ CNHSK' })).not.toBeInTheDocument()
+    expect(screen.getByRole('main', { name: 'Nội dung học tập' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Màn tín dụng' }))
+    expect(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' })).toBeVisible()
   })
 
   it('AT13_opens and collapses without reducing closed content width or replacing page content', async () => {

@@ -15,6 +15,7 @@ export function assistantPageContext(location: { pathname: string }) {
   const hidden =
     pageContext === 'SCR-021' ||
     pageContext === 'SCR-044' ||
+    pageContext === 'SCR-050' ||
     Boolean(matchPath({ path: '/learn/topics/:id/test', end: true }, location.pathname))
   return { pageContext, hidden }
 }

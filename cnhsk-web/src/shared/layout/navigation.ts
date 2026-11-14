@@ -7,6 +7,7 @@ import {
   Mic2,
   PenTool,
   ShieldCheck,
+  Trophy,
   Upload,
   UsersRound,
 } from 'lucide-react'
@@ -65,6 +66,12 @@ export const learnerCommunityNavigation: readonly NavigationItem[] = [
     icon: ListChecks,
     label: 'Quiz',
     to: '/community/quizzes',
+  },
+  {
+    activePrefixes: ['/contests'],
+    icon: Trophy,
+    label: 'Cuộc thi',
+    to: '/contests',
   },
 ]
 

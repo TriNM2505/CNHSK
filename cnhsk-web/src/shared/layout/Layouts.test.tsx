@@ -131,6 +131,10 @@ describe('LearnerLayout', () => {
       'href',
       '/community/quizzes',
     )
+    expect(within(supplemental).getByRole('link', { name: 'Cuộc thi' })).toHaveAttribute(
+      'href',
+      '/contests',
+    )
     expect(within(supplemental).getByRole('link', { name: 'Quiz' })).toHaveAttribute(
       'aria-label',
       'Quiz',
@@ -147,7 +151,7 @@ describe('LearnerLayout', () => {
       initialPath: '/community/quizzes/43/play',
     })
     const community = screen.getByRole('navigation', { name: 'Cộng đồng' })
-    expect(within(community).getAllByRole('link')).toHaveLength(1)
+    expect(within(community).getAllByRole('link')).toHaveLength(2)
     expect(within(community).getByRole('link', { name: 'Quiz' })).toHaveAttribute(
       'aria-current',
       'page',
@@ -162,6 +166,32 @@ describe('LearnerLayout', () => {
     await userEvent.click(within(supplemental).getByRole('link', { name: 'Quiz' }))
     expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent(
       '/community/quizzes',
+    )
+    expect(more).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('navigation', { name: 'Điều hướng bổ sung' })).not.toBeInTheDocument()
+  })
+
+  it('FR015_AT20 keeps Cuộc thi active in Community and closes More after navigation', async () => {
+    renderLayout(<LearnerLayout>Nội dung</LearnerLayout>, {
+      initialPath: '/contests/2101/attempt',
+    })
+    const community = screen.getByRole('navigation', { name: 'Cộng đồng' })
+    expect(within(community).getByRole('link', { name: 'Cuộc thi' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(within(community).getByRole('link', { name: 'Quiz' })).not.toHaveAttribute(
+      'aria-current',
+    )
+    const more = screen.getByRole('button', { name: 'Thêm' })
+    await userEvent.click(more)
+    const supplemental = screen.getByRole('navigation', { name: 'Điều hướng bổ sung' })
+    const contestLink = within(supplemental).getByRole('link', { name: 'Cuộc thi' })
+    expect(contestLink).toHaveAttribute('href', '/contests')
+    expect(contestLink).toHaveAttribute('aria-current', 'page')
+    await userEvent.click(contestLink)
+    expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent(
+      '/contests',
     )
     expect(more).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByRole('navigation', { name: 'Điều hướng bổ sung' })).not.toBeInTheDocument()

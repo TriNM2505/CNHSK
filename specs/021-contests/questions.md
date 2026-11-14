@@ -1,5 +1,18 @@
 # Câu hỏi và quyết định — Spec #021
 
+## 2026-11-14 · G0 T-08 — leader duyệt
+
+| # | Câu hỏi | Quyết định | Trạng thái |
+|---|---|---|---|
+| Q-T08-01 | Làm FE khi V9/backend cuộc thi chưa merge | Nhánh từ cc7b7ec, dùng mẫu tự soạn trong catalog.preview.ts và test. Adapter giữ contract, không thay lỗi API thật bằng mẫu. Nối thật sau T-05; T-09 để sau T-07 | ✅ Chốt |
+| Q-T08-02 | File dùng chung với 019/T-06 và 015 | Leader chuyển tin cho Đạt; không chờ phản hồi mới code. Ẩn qua pageContext.ts, không sửa AssistantHost.tsx. Chỉ thêm Cuộc thi trong navigation.ts và cập nhật Layouts.test.tsx sau khi 019/T-06 merge/rebase; không sửa LearnerLayout.tsx hay lưới mobile. PR sau rebase và chạy lại AssistantPromptBuilderTest | ✅ Chốt |
+| Q-T08-03 | MyResult trước công bố | Fixture bám YAML: trường điểm/hạng có mặt và bằng null. UI luôn kiểm published; không hiện điểm, hạng, bảng hoặc đáp án trước công bố | ✅ Chốt |
+| Q-T08-04 | Phân trang hạng | Hiện đúng trang server trả, không tự thêm query page/size ngoài contract. Chốt phân trang cùng T-05 | ✅ Chốt cho T-08 |
+| Q-T08-05 | Hết giờ khi đang lưu đáp án | Khoá nhập, chờ các request lưu đã bắt đầu, rồi gọi submit đúng một lần. Chống trùng giữa nút bấm, timer và StrictMode. Lỗi giữ trạng thái chưa nộp và nút thử lại; server quyết ân hạn | ✅ Chốt |
+| Q-T08-06 | QA responsive | Kiểm SCR-048…051 tại 320/375/640 px, kèm ảnh trong PR; đủ loading/empty/error/ready và trước/sau công bố | ✅ Chốt |
+| Q-T08-07 | Full Vitest còn lỗi chập chờn SCR-059 ngoài allowlist T-08 | Leader duyệt ghi rõ full Vitest 1 fail SCR-059, chạy riêng pass 64/64 rồi push và mở Draft PR. T-08 giữ đúng 35 file; sửa race SCR-059 bằng PR riêng trên nhánh test/scr059-form-wait, chỉ một file test, giữ assertion và timeout | ✅ Chốt |
+| Q-T08-08 | Đưa ảnh QA vào PR | Đính kèm qa-scr-048-051.png qua GitHub, không commit ảnh vào repo | ✅ Chốt |
+
 ## 2026-11-14 · Leader chốt khi viết spec
 
 | # | Câu hỏi | Quyết định | Trạng thái |
