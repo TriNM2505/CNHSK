@@ -35,3 +35,45 @@ AT-03: kiểm phần dữ liệu (5/8/9 suspicious → bestCorrect=8, roundsPlay
 Practice package LINE: 554 covered / 2 missed = 99,6403%. Hai lớp mới GameStatsApi (16/16 dòng) và GameStatsQueryService (12/12 dòng) đều đạt 100% LINE. Báo cáo XML được sinh từ chính lượt full verify sau cùng; không dùng báo cáo cũ, không skip test, không dùng ngoại lệ môi trường.
 
 Self-check: đúng allowlist 7 file; UTF-8 không BOM, git diff --check PASS, không TODO mới; không thay dependency/lockfile/endpoint/config/contract. Đã kiểm diff các file PracticeApi, PracticeApiTest, PracticeSource, GameCode, PracticeService, PracticeSourceHandler, Attempt và spec/OpenAPI 007: không đổi. Không sửa test cũ; không log code lạ/PII, không secrets/Neon; fixture tự soạn và rollback. Trước bàn giao đã fetch trực tiếp main: origin/main vẫn 02bd90d, không có thay đổi main mới trên các file liên quan. Không merge/rebase; một conventional commit, add từng file, Draft PR để leader review.
+
+## T-02 — G0 được leader duyệt (2026-11-14)
+
+Nhánh spec/007-t02, stacked trên #169, base 19b3b6c52864cba68bc3fdb48b50b8a356cf11d5, worktree riêng. Chỉ sửa 7 file đã duyệt; không rebase/merge main. G0 ghi nhầm 12 trường: LexemeCard có đúng 11 trường FR-021: id, kind, text, pinyin, pinyinKey, meaningShort, meaningKeys, radical, strokeCount, audioUrl, hskLevel.
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T02-01 | ANSWERED | Có hskLevels: cấp áp dụng cho cả nhóm đã học và nhóm bổ sung. Không chọn cấp: ưu tiên mọi từ đã học phù hợp điều kiện, thiếu thì bổ sung cấp 1. Điều kiện kind/require* áp dụng cho cả hai nhóm. |
+| Q-T02-02 | ANSWERED | kinds null/rỗng mặc định CHAR+WORD, không nhận GRAMMAR; hskLevels null/rỗng là chưa chọn, giá trị hợp lệ 1–9; limit 1–200; preferLearnedBy null hoặc >0. Sai input nội bộ ném IllegalArgumentException, không thêm ErrorCode/endpoint. requireAudio/requireRadical khác null/trắng; requireStrokeCount >0. |
+| Q-T02-03 | ANSWERED | Pinyin hỏng: card vẫn trả, pinyinKey=null, WARN cố định không log nội dung/exception upstream. Không sửa dữ liệu. meaningKeys bất biến. |
+
+### Thiết kế và đối chiếu
+
+ContentLookup là interface trong learning.api với hai record GameContentQuery/LexemeCard, không trả entity hay LexemeKind nội bộ. Collections của query/card và list kết quả bất biến, sao chép phòng vệ. ContentLookupImpl là bean chỉ đọc, dùng NamedParameterJdbcTemplate và đúng một query, không thêm repository/migration/dependency/config.
+
+Nguồn đã học đúng 003 FR-015: DISTINCT attempt_items.lexeme_id từ STUDY_CARD trong TOPIC_STUDY của người đó, bất kể chủ đề và trạng thái lượt. Không dùng mastery, lịch SRS, đáp án đúng hay chỉ SUBMITTED. CTE + LEFT JOIN không nhân bản card khi có nhiều bằng chứng. Bộ lọc và LIMIT tại DB, ORDER BY nhóm đã học trước rồi random() trong từng nhóm. UserId, kind, cấp, limit và tập whitespace cho btrim đều bind tham số. Không truy vấn theo từng lexeme, không tải cả ngân hàng rồi cắt trong Java. Whitespace cho audio/radical gồm Unicode space như TextNormalizer, không chỉ dấu cách ASCII.
+
+pinyinKey dùng PinyinUtils.toNumbered rồi bỏ khoảng trắng; pinyin thiếu/trắng cũng cho key null. meaningKeys tách meaning_norm theo dấu chấm phẩy/phẩy, bỏ khoảng trắng và mảnh rỗng, loại trùng; meaning_norm thiếu/trắng thì dùng TextNormalizer.normalizeMeaning như tiền lệ ChoiceItemFactory. meaningShort lấy phần trước dấu chấm phẩy đầu tiên của meaning_vi, giữ dấu tiếng Việt và dấu phẩy bên trong phần đó. Các trường gốc được giữ nguyên, không UPDATE dữ liệu.
+
+### FR/AT và test
+
+- FR-020: defaults, tập null/rỗng, null member/kind sai, cấp ngoài 1–9, limit ngoài 1–200, userId không dương, query null bị từ chối trước DB; bộ lọc kind/HSK/require* độc lập và kết hợp. Fixture nội dung chỉ cấp 1–3; API vẫn nhận 1–9.
+- FR-021: đúng 11 trường, pinyin dấu/ü/nhiều âm, missing/invalid pinyin, normalized meaning thiếu, mảnh trùng/rỗng, dấu phẩy và dấu chấm phẩy, collection bất biến; WARN cố định không có pinyin/meaning thô. PostgreSQL kiểm projection và dữ liệu gốc không bị viết lại.
+- FR-022 / AT-17: người mới không chọn cấp chỉ cấp 1; 15 từ đã học được ưu tiên rồi bù, mức limit nhỏ hơn số đã học; chọn cấp lọc cả hai nhóm. Không có duplicate dù bằng chứng lặp; không lấy đã học của người khác, nguồn hoặc itemType sai. Lượt IN_PROGRESS/ABANDONED có STUDY_CARD vẫn là bằng chứng theo FR-015.
+- Một query khi ngân hàng tăng từ 1 lên 221, trả tối đa 200; LIMIT=1 hoạt động. Test ngẫu nhiên chỉ kiểm tập hợp/số lượng/thứ tự nhóm ưu tiên, không đòi chuỗi ngẫu nhiên cụ thể. ModuleBoundaryTest kiểm AC-03.
+
+### Gate
+
+Đang chạy targeted, sau đó hồi quy PinyinUtils/TextNormalizer/PinyinGrader/ChoiceItemFactory/TopicStudy/TopicQuery/ModuleBoundaryTest và full Maven verify (Java 17, DEBUG=false, Docker local). Không gọi Claude/API ngoài, không dùng Neon. Fixture tự soạn, tài khoản @example.test, mật khẩu ngẫu nhiên băm bcrypt cost 12, transaction test rollback.
+Targeted ba class mới: 28/28, F0/E0/S0, BUILD SUCCESS, 1:18 phút (ContentLookupTest 10, ContentLookupImplTest 11, ContentLookupIntegrationTest 7). Lượt compile đầu phát hiện constructor MapSqlParameterSource không có overload ba tham số; đã sửa trong ContentLookupImpl sang addValue(name, value, sqlType), không sửa test để né lỗi, rồi chạy lại targeted xanh.
+
+Hồi quy PinyinUtilsTest/TextNormalizerTest/PinyinGraderTest/ChoiceItemFactoryTest/ChoiceItemFactoryIntegrationTest/TopicStudyIntegrationTest/TopicQueryIntegrationTest/ModuleBoundaryTest: 259/259, F0/E0/S0, BUILD SUCCESS, 1:23 phút; ModuleBoundaryTest 9/9. Full verify đang chạy, chưa đánh hoàn tất.
+
+Lượt full verify đầu: 4.963 test, F6/E0/S0 (20:48 phút), sáu assertion trong ContentLookupIntegrationTest. Nguyên nhân: fixture mới giả định ngân hàng rỗng, trong khi PracticeApiIntegrationTest trước đó để lại một lexeme flashcard-fixture-* đã commit vào database dùng chung. Lookup trả đúng cả mục hợp lệ đó; không phải lỗi lọc production. Đã đổi riêng ContentLookupIntegrationTest sang DataJpaTest + PostgreSQL Testcontainers riêng theo tiền lệ ChoiceItemFactoryIntegrationTest, import đúng ContentLookupImpl. Giữ nguyên assertion, không xoá fixture hoặc sửa test cũ/production để né lỗi.
+
+Chạy cùng PracticeApiIntegrationTest để tái hiện đúng thứ tự: 44/44 test, F0/E0/S0, BUILD SUCCESS, 1:28 phút. Test dùng database riêng không còn phụ thuộc fixture đã commit của suite khác. Đang chạy lại tổng hợp 303 test targeted + hồi quy sau sửa fixture, rồi full verify; không dùng ngoại lệ cho sáu lỗi này.
+
+Sau sửa fixture: tổng hợp ba test lookup + PracticeApiIntegrationTest + toàn bộ hồi quy đã duyệt đạt 303/303 test, F0/E0/S0, BUILD SUCCESS, 1:41 phút. Full verify mới bắt đầu sau khi gate này đạt.
+
+Full verify sau sửa fixture: 4.963 test, F0/E0/S0, BUILD SUCCESS, 18:55 phút; không dùng ngoại lệ môi trường. JaCoCo LINE: 13.095 covered / 418 missed = 96,9067%; mọi coverage check đạt. Hai record API 22/22 dòng và ContentLookupImpl 35/35 dòng đều đạt 100% LINE. XML sinh từ chính lượt full verify cuối ngày 2026-11-14, không dùng báo cáo cũ.
+
+Self-check: đúng 7 file T-02 so với 19b3b6c; git diff --check PASS, UTF-8 không BOM, không TODO mới trong code. Không sửa utility/entity/repository/engine/PracticeApi, test cũ, dependency/config/contract/migration/frontend; không dùng Neon hay secrets. Lỗi compile và sáu lỗi fixture lần đầu đã ghi rõ, không hạ assertion, không skip. Trước bàn giao fetch main c7edc28: parent 19b3b6c đã là ancestor main, không có commit mới trên file content/API/007 liên quan ngoài phần nền đã kế thừa. Không rebase/merge main; PR vẫn ghi stacked trên #169 theo G0. Một conventional commit T-02, stage từng file, Draft PR.
