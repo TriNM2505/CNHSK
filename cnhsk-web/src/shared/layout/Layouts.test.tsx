@@ -79,7 +79,10 @@ describe('PublicLayout', () => {
 
     expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute('href', '/login')
     expect(screen.getByRole('link', { name: 'Đăng ký' })).toHaveAttribute('href', '/register')
-    expect(screen.getByRole('link', { name: 'Tài liệu tham khảo' })).toHaveAttribute('href', '/references/media')
+    expect(screen.getByRole('link', { name: 'Tài liệu tham khảo' })).toHaveAttribute(
+      'href',
+      '/references/media',
+    )
   })
 
   it('shows the account menu to authenticated users', () => {
@@ -91,7 +94,7 @@ describe('PublicLayout', () => {
 })
 
 describe('LearnerLayout', () => {
-  it('renders five internal destinations and the configured game link', () => {
+  it('keeps desktop destinations and uses four links plus More on mobile', async () => {
     renderLayout(<LearnerLayout gameOrigin="http://localhost:5174">Nội dung học tập</LearnerLayout>)
 
     const desktopNavigation = screen.getByRole('navigation', { name: 'Học tập' })
@@ -103,12 +106,65 @@ describe('LearnerLayout', () => {
     const gameLink = within(desktopNavigation).getByRole('link', { name: 'Game' })
     expect(gameLink).toHaveAttribute('href', 'http://localhost:5174')
     expect(gameLink).not.toHaveAttribute('target')
-    const mobileNavigation = screen.getByRole('navigation', { name: 'Học tập trên thiết bị di động' })
-    for (const navigation of [desktopNavigation, mobileNavigation]) {
-      expect(within(navigation).getByRole('link', { name: 'Tài liệu tham khảo' })).toHaveAttribute('href', '/references/media')
-      expect(within(navigation).getAllByRole('link')).toHaveLength(6)
-    }
-    expect(within(mobileNavigation).getByText('Tham khảo')).toBeVisible()
+    const mobileNavigation = screen.getByRole('navigation', {
+      name: 'Học tập trên thiết bị di động',
+    })
+    expect(
+      within(desktopNavigation).getByRole('link', { name: 'Tài liệu tham khảo' }),
+    ).toHaveAttribute('href', '/references/media')
+    expect(within(mobileNavigation).getAllByRole('link')).toHaveLength(4)
+    const more = within(mobileNavigation).getByRole('button', { name: 'Thêm' })
+    expect(more).toHaveAttribute('aria-expanded', 'false')
+    expect(more).toHaveAttribute('aria-controls', 'learner-more-menu')
+    await userEvent.click(more)
+    expect(more).toHaveAttribute('aria-expanded', 'true')
+    const supplemental = screen.getByRole('navigation', { name: 'Điều hướng bổ sung' })
+    expect(within(supplemental).getByRole('link', { name: 'Tài liệu tham khảo' })).toHaveAttribute(
+      'href',
+      '/references/media',
+    )
+    expect(within(supplemental).getByRole('link', { name: 'Game' })).toHaveAttribute(
+      'href',
+      'http://localhost:5174',
+    )
+    expect(within(supplemental).getByRole('link', { name: 'Quiz' })).toHaveAttribute(
+      'href',
+      '/community/quizzes',
+    )
+    expect(within(supplemental).getByRole('link', { name: 'Quiz' })).toHaveAttribute(
+      'aria-label',
+      'Quiz',
+    )
+    expect(supplemental.querySelector('span[aria-label]')).toBeNull()
+    await userEvent.keyboard('{Escape}')
+    expect(more).toHaveAttribute('aria-expanded', 'false')
+    expect(more).toHaveFocus()
+    expect(screen.queryByRole('navigation', { name: 'Điều hướng bổ sung' })).not.toBeInTheDocument()
+  })
+
+  it('keeps Quiz active on play routes and closes More after navigation', async () => {
+    renderLayout(<LearnerLayout>Nội dung</LearnerLayout>, {
+      initialPath: '/community/quizzes/43/play',
+    })
+    const community = screen.getByRole('navigation', { name: 'Cộng đồng' })
+    expect(within(community).getAllByRole('link')).toHaveLength(1)
+    expect(within(community).getByRole('link', { name: 'Quiz' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    const more = screen.getByRole('button', { name: 'Thêm' })
+    await userEvent.click(more)
+    const supplemental = screen.getByRole('navigation', { name: 'Điều hướng bổ sung' })
+    expect(within(supplemental).getByRole('link', { name: 'Quiz' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    await userEvent.click(within(supplemental).getByRole('link', { name: 'Quiz' }))
+    expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent(
+      '/community/quizzes',
+    )
+    expect(more).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('navigation', { name: 'Điều hướng bổ sung' })).not.toBeInTheDocument()
   })
 
   it('shows the verification banner only when email is not verified', () => {
@@ -163,16 +219,35 @@ describe('AdminLayout', () => {
     const mobile = screen.getByRole('navigation', { name: 'Quản trị trên thiết bị di động' })
     for (const navigation of [desktop, mobile]) {
       expect(within(navigation).getAllByRole('link')).toHaveLength(2)
-      expect(within(navigation).getByRole('link', { name: 'Bài chờ duyệt' })).toHaveAttribute('href', '/moderation/posts')
-      expect(within(navigation).getByRole('link', { name: 'Bài chờ duyệt' })).toHaveAttribute('aria-current', 'page')
-      expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).toHaveAttribute('href', '/moderation/reports')
-      expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).not.toHaveAttribute('aria-current')
+      expect(within(navigation).getByRole('link', { name: 'Bài chờ duyệt' })).toHaveAttribute(
+        'href',
+        '/moderation/posts',
+      )
+      expect(within(navigation).getByRole('link', { name: 'Bài chờ duyệt' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+      expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).toHaveAttribute(
+        'href',
+        '/moderation/reports',
+      )
+      expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).not.toHaveAttribute(
+        'aria-current',
+      )
     }
     await event.click(within(desktop).getByRole('link', { name: 'Báo cáo vi phạm' }))
-    expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent('/moderation/reports')
-    for (const navigation of [desktop, mobile]) expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent(
+      '/moderation/reports',
+    )
+    for (const navigation of [desktop, mobile])
+      expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
     await event.click(within(mobile).getByRole('link', { name: 'Bài chờ duyệt' }))
-    expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent('/moderation/posts')
+    expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent(
+      '/moderation/posts',
+    )
   })
   it('combines moderator navigation with existing exact-role destinations', () => {
     renderLayout(<AdminLayout>Nội dung quản trị</AdminLayout>, {
@@ -182,15 +257,30 @@ describe('AdminLayout', () => {
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
       expect(within(navigation).getAllByRole('link')).toHaveLength(5)
-      for (const label of ['Nhập dữ liệu', 'Người dùng', 'Bài chờ duyệt', 'Báo cáo vi phạm', 'Tài nguyên tham khảo']) expect(within(navigation).getByRole('link', { name: label })).toBeInTheDocument()
-      expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).toHaveAttribute('aria-current', 'page')
+      for (const label of [
+        'Nhập dữ liệu',
+        'Người dùng',
+        'Bài chờ duyệt',
+        'Báo cáo vi phạm',
+        'Tài nguyên tham khảo',
+      ])
+        expect(within(navigation).getByRole('link', { name: label })).toBeInTheDocument()
+      expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
     }
   })
-  it.each(['LEARNER', 'ADMIN', 'CONTENT_EDITOR', 'TEACHER', 'ACCOUNTANT'] as const)('does not grant moderator destinations to %s', (role) => {
-    renderLayout(<AdminLayout>Nội dung quản trị</AdminLayout>, { user: { ...learner, roles: [role] } })
-    expect(screen.queryByRole('link', { name: 'Bài chờ duyệt' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Báo cáo vi phạm' })).not.toBeInTheDocument()
-  })
+  it.each(['LEARNER', 'ADMIN', 'CONTENT_EDITOR', 'TEACHER', 'ACCOUNTANT'] as const)(
+    'does not grant moderator destinations to %s',
+    (role) => {
+      renderLayout(<AdminLayout>Nội dung quản trị</AdminLayout>, {
+        user: { ...learner, roles: [role] },
+      })
+      expect(screen.queryByRole('link', { name: 'Bài chờ duyệt' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: 'Báo cáo vi phạm' })).not.toBeInTheDocument()
+    },
+  )
   it.each([
     [['CONTENT_EDITOR'], ['Nhập dữ liệu', 'Tài nguyên tham khảo'], ['Người dùng']],
     [['ADMIN'], ['Người dùng'], ['Nhập dữ liệu', 'Tài nguyên tham khảo']],

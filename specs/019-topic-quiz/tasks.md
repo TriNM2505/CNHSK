@@ -21,7 +21,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-06 | Nền FE `quiz` + SCR-043 (ghi chú thi đua, lọc HSK, thẻ, Bắt đầu/Làm lại); route `/community/quizzes*`, menu Cộng đồng | `web/features/quiz/**`, `web/app/routeAccess.ts`, `web/app/screenRegistry.ts`, `web/shared/layout/navigation.ts` + test | FR-005, FR-019, FR-020, FR-023 | ⬜ |
+| T-06 | SCR-043 và placeholder SCR-044, menu Cộng đồng/Quiz; 23 file, base ad48029 cập nhật fast-forward từ c7edc28. Kiểm kê 009 pass. Leader chấp nhận full Vitest 1 fail Scr059 khi chạy riêng pass 64/64; lint 0 error, build pass, BE 21/21. QA Playwright phiên Chromium sạch đạt 320/375/640/1280 px, menu/active/focus và 5 ảnh ngoài repo; leader duyệt G3 | feature quiz, route/registry/preview, layout/navigation + test, kiểm kê 009, AssistantPromptBuilder + test, questions | FR-005, FR-019, FR-020, FR-023 | CHỜ REVIEW |
 | T-07 | SCR-044 (nhãn tính hạng, điều hướng câu, nộp có xác nhận trong trang, thoát) dùng engine answers/finish; ẩn panel trợ lý (**báo người giữ 015**); SCR-045 (tóm tắt, đáp án, hạng lần đầu + top 10 từ API 017, nút điều hướng) | `web/features/quiz/components/**`, `web/features/assistant/components/AssistantHost.tsx` + test | FR-015, FR-021, FR-022 · AT-17 | ⬜ |
 | T-08 | Test hợp đồng `/v3/api-docs` so `openapi-quiz.yaml` | `t/contract/QuizContractTest.java` | AT-18 | ⬜ |
 

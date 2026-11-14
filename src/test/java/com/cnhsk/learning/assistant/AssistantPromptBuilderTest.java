@@ -94,6 +94,14 @@ class AssistantPromptBuilderTest {
     }
 
     @Test
+    void quizRoutesHaveTrustedVietnameseNames() {
+        assertThat(builder.build("Hỏi", List.of(), "SCR-043").orElseThrow().messages().get(0).text())
+                .isEqualTo("Hỏi" + SCREEN_LINE + "Quiz theo chủ đề");
+        assertThat(builder.build("Hỏi", List.of(), "SCR-044").orElseThrow().messages().get(0).text())
+                .isEqualTo("Hỏi" + SCREEN_LINE + "Làm quiz theo chủ đề");
+    }
+
+    @Test
     void FR010_AT10_returnsNoPromptWithoutHelp(@TempDir Path emptyDirectory) {
         var empty = new HelpLibrary(new DefaultResourceLoader(), emptyDirectory.toUri() + "*.md");
         assertThat(new AssistantPromptBuilder(empty, new PiiMasker()).build("Hỏi", List.of(), null)).isEmpty();
