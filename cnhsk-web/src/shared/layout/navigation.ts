@@ -27,6 +27,13 @@ export type NavigationItem = {
 
 export const learnerNavigation: readonly NavigationItem[] = [
   {
+    activePrefixes: ['/grading'],
+    icon: PenTool,
+    label: 'Chấm bài',
+    mobilePlacement: 'more',
+    to: '/grading',
+  },
+  {
     activePrefixes: ['/learn/topics'],
     icon: BookOpen,
     label: 'Chủ đề',

@@ -15,13 +15,13 @@
 | T-02 | Người học: policy, gửi (khoá + trùng + `consume` + chèn trong một transaction), danh sách, chi tiết, huỷ + hoàn; `SecurityConfig` `LEARNER` | `…/learning/grading/GradingRequestService.java`, `…/grading/web/GradingRequestController.java`, `SecurityConfig.java` + test | FR-001…FR-007 · AT-02…AT-05, AT-17 | ✅ MERGED — PR #178 |
 | T-03 | Giáo viên: hàng đợi, bài đang giữ, nhận (giới hạn 3, chặn tự chấm), xem, trả lại; `SecurityConfig` `TEACHER` `/api/teacher/**` | `…/learning/grading/TeacherGradingService.java`, `…/grading/web/TeacherGradingController.java`, `SecurityConfig.java` + test | FR-009…FR-013 · AT-06…AT-10 | ✅ MERGED — PR #183, a9b07d4 |
 | T-04 | Nộp kết quả: kiểm thang, cộng điểm, chuyển `COMPLETED` + `TEACHER_PAYOUT` một lần | `TeacherGradingService.java` + test | FR-014, FR-015 · AT-11, AT-12 | ✅ MERGED — PR #190, 0167bac |
-| T-05 | `GradingExpiryJob`: hết hạn từng yêu cầu một transaction + hoàn, log sức khoẻ | `…/learning/grading/GradingExpiryJob.java` + test | FR-017…FR-019 · AT-13…AT-16 | 🔄 chờ review — targeted 87/87; hồi quy 385/385; full verify 5917 F0/E0/S0, LINE 97,0486% |
+| T-05 | `GradingExpiryJob`: hết hạn từng yêu cầu một transaction + hoàn, log sức khoẻ | `…/learning/grading/GradingExpiryJob.java` + test | FR-017…FR-019 · AT-13…AT-16 | ✅ MERGED — PR #193, aa9e455 |
 
 ## Đợt 2 · Frontend + hợp đồng
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-06 | Nền FE `grading` (types theo OpenAPI, api, dữ liệu mẫu tự soạn) + SCR-032/033/034; route `learner`; `SCREEN_NAMES` SCR-032/033/034 + `AssistantPromptBuilderTest`; mục menu "Chấm bài" | `web/features/grading/**`, `web/app/routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-008 · AT-18 | ⬜ |
+| T-06 | Nền FE `grading` (types theo OpenAPI, api, dữ liệu mẫu tự soạn) + SCR-032/033/034; route `learner`; `SCREEN_NAMES` SCR-032/033/034 + `AssistantPromptBuilderTest`; mục menu "Chấm bài" | `web/features/grading/**`, `web/app/routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-008 · AT-18 | 🔄 chờ review — targeted 79/79; AssistantPromptBuilderTest 19/19; FE FULL 2808/2809 (1 ngoại lệ môi trường leader duyệt); lint/build PASS |
 | T-07 | FE giáo viên SCR-056/057 (hàng đợi, bài đang giữ, khung chấm 4 tiêu chí, sửa lỗi, trả lại); route `['TEACHER']` layout `admin`; menu quản trị | `web/features/teacher-grading/**`, `routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts` + test | FR-016 · AT-18 | ⬜ |
 | T-08 | Nối FE với backend thật; sửa lệch hợp đồng (lệch thì dừng báo leader) | `web/features/grading/**`, `web/features/teacher-grading/**` | FR-008, FR-016 | ⬜ |
 | T-09 | Test hợp đồng `/v3/api-docs` so `openapi-grading.yaml` (hai chiều path + method + status) | `t/contract/GradingContractTest.java` | §13 · AT-19 | ⬜ |

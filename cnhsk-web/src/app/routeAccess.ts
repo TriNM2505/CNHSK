@@ -223,6 +223,9 @@ export const appRouteDefinitions = [
     path: '/learn/exams',
     scr: 'SCR-020',
   },
+  { access: ['LEARNER'], kind: 'screen', layout: 'learner', path: '/grading/new', scr: 'SCR-032' },
+  { access: ['LEARNER'], kind: 'screen', layout: 'learner', path: '/grading', scr: 'SCR-033' },
+  { access: ['LEARNER'], kind: 'screen', layout: 'learner', path: '/grading/:id', scr: 'SCR-034' },
   {
     access: ['LEARNER'],
     kind: 'screen',

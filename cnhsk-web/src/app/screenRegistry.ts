@@ -8,6 +8,7 @@ import { screens as contestScreens } from '@/features/contests/screens'
 import { screens as contentImportScreens } from '@/features/content-import/screens'
 import { screens as examScreens } from '@/features/exam/screens'
 import { screens as creditsScreens } from '@/features/credits/screens'
+import { screens as gradingScreens } from '@/features/grading/screens'
 import { screens as grammarScreens } from '@/features/grammar/screens'
 import { screens as hanziScreens } from '@/features/hanzi/screens'
 import { screens as libraryScreens } from '@/features/library/screens'
@@ -60,6 +61,7 @@ export const screenRegistry = createScreenRegistry([
   { feature: 'exam', screens: examScreens },
   { feature: 'credits', screens: creditsScreens },
   { feature: 'vocab', screens: vocabScreens },
+  { feature: 'grading', screens: gradingScreens },
   { feature: 'grammar', screens: grammarScreens },
   { feature: 'pronunciation', screens: pronunciationScreens },
   { feature: 'hanzi', screens: hanziScreens },

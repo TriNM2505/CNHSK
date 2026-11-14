@@ -103,6 +103,14 @@ class AssistantPromptBuilderTest {
                 .isEqualTo("Hỏi" + SCREEN_LINE + "Kết quả quiz theo chủ đề");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"SCR-032|Gửi bài chấm", "SCR-033|Yêu cầu chấm bài của tôi", "SCR-034|Chi tiết yêu cầu chấm bài"})
+    void gradingScreensHaveTheSameTrustedNamesAsTheLearnerPages(String entry) {
+        String[] parts = entry.split("\\|", 2);
+        assertThat(builder.build("Cách dùng?", List.of(), parts[0]).orElseThrow().messages())
+                .containsExactly(new ChatMessage(Role.USER, "Cách dùng?" + SCREEN_LINE + parts[1]));
+    }
+
     @Test
     void FR010_AT10_returnsNoPromptWithoutHelp(@TempDir Path emptyDirectory) {
         var empty = new HelpLibrary(new DefaultResourceLoader(), emptyDirectory.toUri() + "*.md");
