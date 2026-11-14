@@ -40,6 +40,44 @@ NA và NL cần nghe hoặc nói nên kết quả từ bộ câu hỏi bằng v�
 Muốn đưa một câu vào vị trí đang có câu khác, hãy chuyển câu cũ sang vị trí trống và xác nhận lần nhập đó trước.
 Sau đó dùng lần nhập riêng để đưa câu mới vào vị trí vừa giải phóng, theo chốt T-09.
 
+## 10 · References
+
+`09-references.csv` là danh sách để biên tập viên nhập tay tại **SCR-072 — Tài nguyên tham khảo**,
+không phải mẫu nhập của SCR-068. Không chạy SQL hay script đăng nhập để nạp danh sách này.
+File UTF-8 không BOM gồm 12 mục: 4 kênh YouTube, 4 podcast và 4 sách; mọi `isAffiliate` đều là `false`.
+
+1. Dùng tài khoản local có vai trò `CONTENT_EDITOR`, mở **Tài nguyên tham khảo** trong menu biên tập viên.
+2. Chọn **Tạo tài nguyên**, chọn loại rồi nhập các trường của một dòng CSV. Ô trống tương ứng không có giá trị;
+   `tags` là mảng JSON: nhập từng phần tử vào **Tag mới**, bấm **Thêm tag**. Không nhập dấu ngoặc hay dấu nháy vào tên tag.
+3. Lưu để tạo mục `DRAFT`, kiểm lại thông tin rồi chọn **Công bố**, xác nhận ngay trong trang.
+4. Lặp lại đủ 12 dòng. Kiểm danh sách công khai: **Tài liệu nghe nhìn** có 4 kênh và 4 podcast,
+   **Danh mục sách tham khảo** có 4 sách; mở từng sách để xem dữ kiện thư mục.
+5. Nếu cần demo bộ lọc, sau bước kiểm đủ 12 mục có thể **Ẩn** mục `Khởi động buổi học cùng Yoyo Chinese`;
+   với mục `Bắt đầu nghe cùng Coffee Break Chinese`, chọn **Ẩn** rồi **Hiện lại** để đưa về `DRAFT`. Khi muốn trở về bộ đủ 12 mục,
+   công bố lại cả hai. Không tạo bản sao nếu mục đã có: tìm theo tiêu đề và URL rồi sửa mục hiện có.
+
+Giới hạn HSK trong CSV chỉ là gợi ý chọn nội dung demo, không phải chứng nhận độ khó của toàn bộ kênh hoặc sách.
+Các mô tả là đoạn giới thiệu tự viết cho người học, không chép mô tả nhà cung cấp, nội dung sách, mục lục hay ảnh bìa.
+Không lưu ảnh thumbnail, bản PDF, đề thi hoặc tài liệu tải xuống. Liên kết ngoài có thể thay đổi;
+biên tập viên kiểm trang đích trước khi công bố trên môi trường demo.
+
+Nguồn đối chiếu thư mục của 4 sách (Tuttle Publishing, 2017):
+
+| Sách | Tác giả | ISBN | Nguồn nhà xuất bản |
+|---|---|---|---|
+| Basic Mandarin Chinese - Speaking & Listening Textbook | Cornelius C. Kubler | 9780804847247 | [Trang thư mục](https://www.tuttlepublishing.com/china/basic-mandarin-chinese-speaking-listening) |
+| Basic Chinese - Reading & Writing Textbook | Cornelius C. Kubler | 9780804847261 | [Trang thư mục](https://www.tuttlepublishing.com/china/basic-mandarin-chinese-reading-writing) |
+| Basic Chinese - Speaking & Listening Practice Book | Cornelius C. Kubler; Yang Wang | 9780804847254 | [Trang thư mục](https://tuttlepublishing.com/china/basic-mandarin-chinese-speaking-listening-practice-book) |
+| Basic Chinese - Reading & Writing Practice Book | Cornelius C. Kubler; Jerling Guo Kubler | 9780804847278 | [Trang thư mục](https://www.tuttlepublishing.com/china/basic-mandarin-chinese-reading-writing-practice-book) |
+
+Tác giả và ISBN cũng được đối chiếu trong [catalogue Tuttle Fall 2018](https://www.agenciabalcells.com/fileadmin/Catalogos/Tuttle_Fall_2018_Rights_Catalog.pdf).
+URL sách trong CSV là trang **tìm theo ISBN** trên Amazon, thuộc allowlist; không khẳng định tồn kho, giá hay ưu đãi.
+Nguồn thư mục trên đây chỉ để kiểm dữ kiện, không phải URL nhập vào trường liên kết của mục sách.
+URL kênh và podcast trong CSV trỏ tới trang công khai của chính kênh/chương trình; không sao chép nội dung phát hành.
+
+`ReferenceContractTest` đọc chính CSV, tạo từng mục qua API với vai trò biên tập viên trên Testcontainers,
+công bố và kiểm danh sách/chi tiết công khai. Test không thay cho bước biên tập viên kiểm liên kết trước khi nạp môi trường demo.
+
 ## Khi có dữ liệu của công ty
 
 Đổi tên/thứ tự cột của file công ty cho khớp mẫu v0 rồi nhập như trên — **không** sửa code.

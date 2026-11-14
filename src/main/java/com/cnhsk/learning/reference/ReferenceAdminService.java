@@ -27,6 +27,7 @@ import com.cnhsk.shared.exception.ErrorCode;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -313,25 +314,45 @@ public class ReferenceAdminService {
 
     public record ReferenceInput(@Schema(requiredMode = Schema.RequiredMode.REQUIRED) Kind kind,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 200) String title,
-            String description, @Schema(requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 2000) String url, String thumbnailUrl,
-            Integer hskMin, Integer hskMax, List<String> tags, int sortOrder, String author, String publisher,
-            Integer publishedYear, @JsonProperty("isAffiliate") boolean isAffiliate) {
+            @Schema(types = {"string", "null"}, maxLength = 2000) String description,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, maxLength = 2000) String url,
+            @Schema(types = {"string", "null"}, maxLength = 2000) String thumbnailUrl,
+            @Schema(type = "integer", types = {"integer", "null"}, minimum = "1", maximum = "9") Integer hskMin,
+            @Schema(type = "integer", types = {"integer", "null"}, minimum = "1", maximum = "9") Integer hskMax,
+            @ArraySchema(maxItems = 10, schema = @Schema(type = "string", maxLength = 30)) List<String> tags,
+            @Schema(type = "integer", types = {"integer"}, defaultValue = "0") int sortOrder,
+            @Schema(types = {"string", "null"}, maxLength = 200) String author,
+            @Schema(types = {"string", "null"}, maxLength = 200) String publisher,
+            @Schema(type = "integer", types = {"integer", "null"}, minimum = "1900", maximum = "2100") Integer publishedYear,
+            @JsonProperty("isAffiliate") @Schema(defaultValue = "false") boolean isAffiliate) {
         public ReferenceInput {
             tags = tags == null ? List.of() : java.util.Collections.unmodifiableList(new ArrayList<>(tags));
         }
     }
 
     @JsonInclude(JsonInclude.Include.ALWAYS)
-    public record AdminReference(long id, Kind kind, String title, String description, String url, String thumbnailUrl,
-            Integer hskMin, Integer hskMax, List<String> tags,
-            @JsonInclude(JsonInclude.Include.NON_NULL) String author,
-            @JsonInclude(JsonInclude.Include.NON_NULL) String publisher,
-            @JsonInclude(JsonInclude.Include.NON_NULL) Integer publishedYear,
-            @JsonInclude(JsonInclude.Include.NON_NULL) @JsonProperty("isAffiliate") Boolean isAffiliate,
-            Status status, int sortOrder, @Schema(type = "integer", types = {"integer"}, minimum = "0") long reportCount,
-            Instant lastReportedAt, Instant publishedAt, Instant updatedAt) {}
+    @Schema(requiredProperties = {"id", "kind", "title", "description", "url", "thumbnailUrl", "hskMin", "hskMax", "tags",
+            "status", "sortOrder", "reportCount", "lastReportedAt", "publishedAt", "updatedAt"})
+    public record AdminReference(long id, Kind kind, @Schema(maxLength = 200) String title,
+            @Schema(types = {"string", "null"}, maxLength = 2000) String description,
+            @Schema(format = "uri", pattern = "^https://") String url,
+            @Schema(types = {"string", "null"}, format = "uri") String thumbnailUrl,
+            @Schema(type = "integer", types = {"integer", "null"}, minimum = "1", maximum = "9") Integer hskMin,
+            @Schema(type = "integer", types = {"integer", "null"}, minimum = "1", maximum = "9") Integer hskMax,
+            @ArraySchema(schema = @Schema(type = "string", maxLength = 30)) List<String> tags,
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(types = {"string", "null"}) String author,
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(types = {"string", "null"}) String publisher,
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(type = "integer", types = {"integer", "null"}) Integer publishedYear,
+            @JsonInclude(JsonInclude.Include.NON_NULL) @JsonProperty("isAffiliate") @Schema(types = {"boolean"}) Boolean isAffiliate,
+            Status status, @Schema(type = "integer", types = {"integer"}) int sortOrder,
+            @Schema(type = "integer", types = {"integer"}, minimum = "0") long reportCount,
+            @Schema(types = {"string", "null"}, format = "date-time") Instant lastReportedAt,
+            @Schema(types = {"string", "null"}, format = "date-time") Instant publishedAt, Instant updatedAt) {}
 
-    public record AdminReferencePage(List<AdminReference> items, int page, int size, long total) {}
+    @Schema(requiredProperties = {"items", "page", "size", "total"})
+    public record AdminReferencePage(List<AdminReference> items,
+            @Schema(type = "integer", types = {"integer"}) int page,
+            @Schema(type = "integer", types = {"integer"}) int size, long total) {}
 
     private record Row(long id, Kind kind, String title, String description, String url, String thumbnailUrl,
             Integer hskMin, Integer hskMax, List<String> tags, int sortOrder, String author, String publisher,
