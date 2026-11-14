@@ -127,8 +127,17 @@ function renderPage({
   return router
 }
 
+const loadedForms = new WeakSet<HTMLElement>()
 async function form() {
-  return screen.findByRole('form', { name: 'Sửa câu hỏi' })
+  const editor = await screen.findByRole('form', { name: 'Sửa câu hỏi' })
+  if (!loadedForms.has(editor)) {
+    await waitFor(() =>
+      expect(within(editor).getByLabelText(/^Nội dung câu hỏi(?:\s*\*)?$/)).not.toHaveValue(''),
+    )
+    // Later calls must still allow validation tests to deliberately clear the form.
+    loadedForms.add(editor)
+  }
+  return editor
 }
 function field(label: string) {
   return screen.getByLabelText(new RegExp(`^${label}(?:\\s*\\*)?$`))
