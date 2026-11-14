@@ -12,7 +12,7 @@
 | **Status** | APPROVED — leader duyệt 2026-11-14, được code theo `tasks.md` |
 | **Phụ thuộc** | 010 (cây KID, `question_knowledge_points`, `/api/admin/questions`, SCR-059) · 011 (`MasteryReader`) · 015 (`ClaudeClient`, `TokenBudget`, `StubClaudeClient`) · 023 (`SettingsApi`, ⚿K7) · 001 (`AuthApi`, `AuditService`) |
 | **Quyết định chung** | Leader validate 2026-11-13: hệ thống tự sinh từ câu sai + dữ liệu cây tri thức, không học viên bấm, không thu phí; phải duyệt và gắn KID trước khi tới học viên · leader chốt 2026-11-14 (§9) |
-| **Người code** | Xuân Huy |
+| **Người code** | Quốc Huy |
 
 > **Người code đọc:** `AGENTS.md` → spec 010 §0 (cây KID, `options.error_kid`) → spec 015 §0.3 (`ClaudeClient`, ngân sách) → file này → `contracts/openapi-ai-practice.yaml` → `tasks.md`.
 

@@ -5,7 +5,7 @@
 
 **Tổng: 9 task**, ≤ 4 giờ/task, một task một nhánh `spec/024-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
 Đường dẫn: `…/` = `src/main/java/com/cnhsk/`; `t/` = `src/test/java/com/cnhsk/`; `web/` = `cnhsk-web/src/`.
-**Điều kiện bắt đầu:** spec 024 `APPROVED`. Người code: Xuân Huy. **Không migration.** Test chỉ dùng `StubClaudeClient`; **không commit `ANTHROPIC_API_KEY`**; chạy thật chỉ trên máy leader.
+**Điều kiện bắt đầu:** spec 024 `APPROVED`. Người code: Quốc Huy. **Không migration.** Test chỉ dùng `StubClaudeClient`; **không commit `ANTHROPIC_API_KEY`**; chạy thật chỉ trên máy leader.
 Khoá §0.1 đọc qua `SettingsApi` nếu 023/T-01 đã merge (T-01 thêm vào `SettingKey`), nếu chưa thì đọc yaml `cnhsk.ai-generate.*`.
 
 ## Đợt 1 · Backend

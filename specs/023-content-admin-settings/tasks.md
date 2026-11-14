@@ -5,7 +5,7 @@
 
 **Tổng: 12 task**, ≤ 4 giờ/task, một task một nhánh `spec/023-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
 Đường dẫn: `…/` = `src/main/java/com/cnhsk/`; `t/` = `src/test/java/com/cnhsk/`; `web/` = `cnhsk-web/src/`.
-**Điều kiện bắt đầu:** spec 023 `APPROVED`. Người code: Tường. **Migration V10** — chỉ merge sau V9 (021/T-01).
+**Điều kiện bắt đầu:** spec 023 `APPROVED`. Người code: Xuân Huy. **Migration V10** — chỉ merge sau V9 (021/T-01).
 Sửa code module khác (013/014/015/019, 003) → mỗi chỗ một task nhỏ, **báo người giữ module**, không đổi hành vi mặc định.
 
 ## Đợt 1 · Cài đặt hệ thống (⚿K7 — làm đầu tiên)

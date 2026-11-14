@@ -5,7 +5,7 @@
 
 **Tổng: 9 task**, ≤ 4 giờ/task, một task một nhánh `spec/022-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
 Đường dẫn: `…/` = `src/main/java/com/cnhsk/`; `t/` = `src/test/java/com/cnhsk/`; `web/` = `cnhsk-web/src/`.
-**Điều kiện bắt đầu:** spec 022 `APPROVED`. Người code: Quốc Huy. **Không migration.** `EntitlementApi`/`LedgerService` (013) đã có trên `main`. Không chờ 023.
+**Điều kiện bắt đầu:** spec 022 `APPROVED`. Người code: Đạt. **Không migration.** `EntitlementApi`/`LedgerService` (013) đã có trên `main`. Không chờ 023.
 
 ## Đợt 1 · Backend
 
