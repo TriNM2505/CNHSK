@@ -352,3 +352,27 @@ JDK 17.0.12, Maven Wrapper 3.9.16, `DEBUG=false`; `docker info` thành công (29
 
 - **Scr059 pass 64/64 ngay trong full suite**; không cần chạy riêng hoặc dùng ngoại lệ T-06. Không failure test spec khác, không skip/nới timeout. Các suite practice/exam/mastery/assistant/community/layout/registry đều nằm trong full suite đã pass trên mã cuối.
 - Self-check cuối: đúng allowlist 28 đường dẫn (bao gồm placeholder bị xoá), PracticeSource FE chỉ nối hai giá trị cuối; không BOM/UTF-8 lỗi, diff --check sạch; không dependency/lock/config/schema/SQL/secret/PII log mới, không sửa production Host/hook practice hoặc module boundary. Task nhánh rebase được leader duyệt; không push/merge/rebase main. G3 dùng một conventional commit chứa cả sửa G2 và báo cáo, push thường nhánh T-07, mở **Draft PR** base main kèm 10 ảnh ngoài repo.
+
+### G0/G1 T-08 · 2026-11-14 — 3 file, giữ nguyên contract YAML
+
+- Leader duyệt đúng 3 file: `src/test/java/com/cnhsk/contract/QuizContractTest.java`, questions.md và tasks.md. Không sửa YAML/production; nếu runtime lệch status so YAML phải dừng báo leader, không tự điều chỉnh hoặc lọc bỏ status.
+- **security không thuộc phạm vi so khớp hợp đồng; yaml giữ cookie + bearer theo hành vi thật**. T-03 chỉ ghi nhận contract có cả hai, không có quyết định bỏ bearer; bearer LEARNER vẫn được hỗ trợ/test. G0 ban đầu đề xuất bỏ bearer là diễn giải sai, đã bỏ khỏi phạm vi theo leader.
+- Leader xác nhận #179 merged và cấp base **00efcf8b2ac1889b1d49eb120aa2e9b813cf86ab**. Đã fetch xác nhận main chứa SHA T-07, tạo worktree `C:\KLTN_FALL2026\CNHSK-019-t08`, nhánh `spec/019-t08` từ đúng base đó. T-07 đổi trạng thái merged #179 trong tasks.
+- Test kế thừa AbstractIntegrationTest dùng chung PostgreSQL/Redis/Mailpit Testcontainers, profiles test/dev và springdoc chỉ scan `com.cnhsk.learning.quiz.web`. GET docs qua MockMvcPrint.NONE, không fixture/ghi/xoá DB, không Neon. So toàn bộ path/method/operationId/status hai chiều, đúng 3 path/3 operation. Handler mapping lọc theo package quiz.web (kể cả package con), không lọc theo prefix URL để tránh che route sai tên; mapping không hạn chế method được coi là tất cả method hợp lệ.
+- Tập status phải khớp nguyên vẹn: GET quizzes `{200,401,403,422}`; POST attempts `{200,201,401,403,404,422,429}`; GET result `{200,401,403,404,422}`. Không so security/schema hoặc thay đổi contract chỗ khác.
+- Gate giữ đúng thứ tự đã duyệt: QuizContractTest → *ContractTest + Quiz*Test → ModuleBoundaryTest → full mvnw verify, Java 17/DEBUG=false, kiểm docker info trước integration. Báo số test/F/E/S, exit thật, JaCoCo LINE ≥80%, coverage checks, diff check và BOM. Đợi gate trước một conventional commit/push/Draft PR; gửi G0 chính thức 023/T-01 cùng báo cáo PR T-08.
+
+### G2 T-08 · 2026-11-14 — đạt trên base 00efcf8
+
+| Gate đúng thứ tự | Tests | F/E/S | Exit |
+|---|---:|---|---:|
+| QuizContractTest | 1 | 0/0/0 | 0 |
+| *ContractTest + Quiz*Test | 166 | 0/0/0 | 0 |
+| ModuleBoundaryTest | 9 | 0/0/0 | 0 |
+| Full `mvnw.cmd -B verify` | **5360** | **0/0/0** | **0** |
+
+- Java **17.0.12**, Docker info **29.9.2 / Linux**, DEBUG=false trong phiên; Testcontainers chạy đủ integration, không Neon. Full verify **20 phút 47 giây**; log/exit trong `target/g2/{quiz-contract,regression,module-boundary,verify}.{log,exit}`.
+- JaCoCo LINE: **13.777 covered / 14.215 total**, missed **438**, **96,9187%** (>=80%). Build in đúng dòng **`All coverage checks have been met.`** và **BUILD SUCCESS**; số đo lấy từ counter LINE cấp report trong `target/site/jacoco/jacoco.xml`.
+- Runtime khớp 3 path/3 operation/operationId/tập status ở targeted, regression và full; không có lệch cần chỉnh YAML/production. Không failure/error/skip hoặc ngoại lệ môi trường được dùng để làm xanh gate; không nới timeout/ignore failure.
+- Self-check: đúng 3 file allowlist, UTF-8 hợp lệ/không BOM, diff --check sạch; YAML giữ nguyên cookie + bearer và không có diff, không security/schema check, không đổi production/FE/dependency/schema/secret/env. Test mới chỉ đọc docs/handler mapping, không tạo hoặc dọn fixture DB. Giữ thay đổi có sẵn của 003 ở checkout gốc. T-07 đã merged #179; T-08 chờ review, leader đóng spec 019 sau khi PR T-08 merge.
+- G3 theo duyệt: một conventional commit, stage đúng 3 tên file, push `spec/019-t08`, mở Draft PR base main, không merge. Bản G0 023/T-01 đã soạn ngoài repo và gửi cùng báo cáo PR, chưa tạo nhánh/sửa code 023.

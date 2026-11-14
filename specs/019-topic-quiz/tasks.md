@@ -22,8 +22,8 @@
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-06 | SCR-043 và placeholder SCR-044, menu Cộng đồng/Quiz; 23 file, base ad48029 cập nhật fast-forward từ c7edc28. Kiểm kê 009 pass. Leader chấp nhận full Vitest 1 fail Scr059 khi chạy riêng pass 64/64; lint 0 error, build pass, BE 21/21. QA Playwright phiên Chromium sạch đạt 320/375/640/1280 px, menu/active/focus và 5 ảnh ngoài repo; leader duyệt G3 | feature quiz, route/registry/preview, layout/navigation + test, kiểm kê 009, AssistantPromptBuilder + test, questions | FR-005, FR-019, FR-020, FR-023 | ✅ MERGED — PR #177 |
-| T-07 | SCR-044 thật: resume, engine answers/finish/abandon, xác nhận trong trang, ẩn trợ lý qua pageContext; SCR-045: kết quả server, hạng lần đầu và Top 10 độc lập. 28 đường dẫn, đã rebase main 3fe9ab0 sau #177; G2 full Vitest 2676/2676, lint 0 error, build đạt, BE 21 F0/E0/S0, QA Playwright 4 viewport và 10 ảnh ngoài repo | feature quiz + types practice, routeAccess, pageContext/test 015, AssistantPromptBuilder/test, questions/tasks | FR-009, FR-012…FR-015, FR-017, FR-019, FR-021…FR-023 · AT-17 | CHỜ REVIEW — Draft PR |
-| T-08 | Test hợp đồng `/v3/api-docs` so `openapi-quiz.yaml` | `t/contract/QuizContractTest.java` | AT-18 | ⬜ |
+| T-07 | SCR-044 thật: resume, engine answers/finish/abandon, xác nhận trong trang, ẩn trợ lý qua pageContext; SCR-045: kết quả server, hạng lần đầu và Top 10 độc lập. 28 đường dẫn, đã rebase main 3fe9ab0 sau #177; G2 full Vitest 2676/2676, lint 0 error, build đạt, BE 21 F0/E0/S0, QA Playwright 4 viewport và 10 ảnh ngoài repo | feature quiz + types practice, routeAccess, pageContext/test 015, AssistantPromptBuilder/test, questions/tasks | FR-009, FR-012…FR-015, FR-017, FR-019, FR-021…FR-023 · AT-17 | ✅ MERGED — PR #179 |
+| T-08 | QuizContractTest so hai chiều path/method/operationId/status, đúng 3 path/3 operation, handler package quiz.web; không so security, giữ YAML. Base 00efcf8, 3 file; G2 targeted 1, regression 166, boundary 9, full verify 5360 F0/E0/S0; LINE 96,9187% | `t/contract/QuizContractTest.java`, questions.md, tasks.md | AT-18 | CHỜ REVIEW — Draft PR |
 
 ## Thứ tự
 
