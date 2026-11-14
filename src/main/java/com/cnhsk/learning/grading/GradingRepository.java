@@ -52,6 +52,24 @@ public class GradingRepository {
     }
 
     @Transactional(readOnly = true)
+    public long countMine(long userId, String status) {
+        return jdbc.queryForObject("SELECT count(*) FROM learning.service_requests WHERE kind='GRADING' AND user_id=:user "
+                + "AND (:status IS NULL OR status=:status)", mineParameters(userId, status), Long.class);
+    }
+
+    @Transactional(readOnly = true)
+    public List<RequestRow> findMine(long userId, String status, int page, int size) {
+        return jdbc.query("SELECT " + COLUMNS + " FROM learning.service_requests WHERE kind='GRADING' AND user_id=:user "
+                        + "AND (:status IS NULL OR status=:status) ORDER BY created_at DESC,id DESC LIMIT :size OFFSET :offset",
+                mineParameters(userId, status).addValue("size", size).addValue("offset", Math.multiplyExact((long) page, size)),
+                (row, index) -> request(row));
+    }
+
+    private MapSqlParameterSource mineParameters(long userId, String status) {
+        return new MapSqlParameterSource("user", userId).addValue("status", status, java.sql.Types.VARCHAR);
+    }
+
+    @Transactional(readOnly = true)
     public boolean hasActiveEssay(long userId, String essayHash) {
         return Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM learning.service_requests "
                         + "WHERE kind='GRADING' AND user_id=:user AND status IN ('PENDING','ASSIGNED') "
