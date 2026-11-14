@@ -230,6 +230,13 @@ public class PracticeService {
         if (rejected != null) {
             return new FinishOutcome(null, rejected);
         }
+        PracticeSource originalSource = PracticeSource.valueOf(attempt.getRefType());
+        PracticeSourceHandler.SubmissionPolicy submission = null;
+        for (PracticeSourceHandler handler : handlers) {
+            if (handler.source() == originalSource) {
+                submission = handler.prepareSubmission(attempt);
+            }
+        }
         PracticeSource source = PracticeSource.valueOf(attempt.getRefType());
         for (PracticeSourceHandler handler : handlers) {
             if (handler.source() == source) {
@@ -304,6 +311,10 @@ public class PracticeService {
         if (hasGradable && source.maxScoreFromServed()) {
             maxScore = snapshot.items().stream().filter(item -> item.type().gradable()).count()
                     - graded.stream().filter(item -> item.item().type().gradable() && item.answer().audioFailed()).count();
+        }
+        if (hasGradable && submission != null) {
+            score = score * submission.scoreScale() / snapshot.items().size();
+            maxScore = submission.scoreScale();
         }
         List<GradedItem> answered = graded.stream().filter(item -> item.counted() && item.answer().answer() != null
                 && !item.answer().skipped() && !Boolean.TRUE.equals(item.meta().get("missing"))).toList();
@@ -501,6 +512,14 @@ public class PracticeService {
         if (fixed != null) {
             if (override != null) {
                 throw new IllegalArgumentException("Fixed-lifetime sources must not supply ttlOverride.");
+            }
+            for (PracticeSourceHandler handler : handlers) {
+                if (handler.source() == command.source()) {
+                    PracticeSourceHandler.SessionPolicy policy = handler.sessionPolicy();
+                    if (policy != null) {
+                        return policy.lifetime();
+                    }
+                }
             }
             return fixed;
         }

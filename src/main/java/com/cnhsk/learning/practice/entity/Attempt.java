@@ -24,10 +24,10 @@ public class Attempt {
     @Column(name = "user_id", nullable = false, updatable = false)
     private Long userId;
 
-    @Column(nullable = false, updatable = false, length = 20)
+    @Column(nullable = false, length = 20)
     private String kind;
 
-    @Column(name = "ref_type", updatable = false, length = 20)
+    @Column(name = "ref_type", length = 20)
     private String refType;
 
     @Column(name = "ref_id", updatable = false)
@@ -104,6 +104,15 @@ public class Attempt {
 
     public String getKind() {
         return kind;
+    }
+
+    /** Only the losing first-quiz submission may change its immutable-at-start source. */
+    public void convertQuizToRetry() {
+        if (!"IN_PROGRESS".equals(status) || !"QUIZ".equals(kind) || !"QUIZ".equals(refType)) {
+            throw new IllegalStateException("Only an in-progress first quiz can become a retry.");
+        }
+        kind = "PRACTICE";
+        refType = "QUIZ_RETRY";
     }
 
     public String getRefType() {

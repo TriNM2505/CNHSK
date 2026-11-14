@@ -425,6 +425,20 @@ class PracticeServiceTest {
                 mock(org.springframework.context.ApplicationEventPublisher.class));
     }
 
+    @Test
+    void serverLifetimeHookOverridesDefaultButNeverAcceptsClientOverride() {
+        PracticeSourceHandler handler = new PracticeSourceHandler() {
+            public PracticeSource source() { return PracticeSource.QUIZ; }
+            public Map<String, Object> onFinish(FinishContext context) { return Map.of(); }
+            public SessionPolicy sessionPolicy() { return new SessionPolicy(Duration.ofMinutes(7)); }
+        };
+        service = service(List.of(handler));
+        assertThat(service.start(command(PracticeSource.QUIZ, List.of(choice(1)), List.of(), null, Map.of()))
+                .expiresAt()).isEqualTo(NOW.plusSeconds(420));
+        assertThatThrownBy(() -> service.start(command(PracticeSource.QUIZ, List.of(choice(1)), List.of(),
+                Duration.ofMinutes(1), Map.of()))).isInstanceOf(IllegalArgumentException.class);
+    }
+
     static StartPracticeCommand command(PracticeSource source, List<ServedItem> items, List<Answer> preRecorded,
             Duration override, Map<String, Object> meta) {
         return new StartPracticeCommand(7, source, 9L, source == PracticeSource.GAME_ROUND ? "test-game" : null,

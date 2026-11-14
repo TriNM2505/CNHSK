@@ -125,3 +125,44 @@ JDK 17.0.12, Maven Wrapper 3.9.16, `DEBUG=false`; `docker info` thành công (29
 - Catalog: **1 SELECT/request** là assert cứng, pass; p95 của 300 chủ đề fixture trong lượt này **9,162 ms** (0 chủ đề đủ điều kiện có sẵn, 20 mẫu sau warmup), chỉ ghi số đo, không có gate thời gian.
 - Ngoại lệ SCR-009 được leader chấp nhận riêng để thực hiện G3; leader sẽ chạy full verify trên main mới khi merge. Các failure/error khác và skip không được chấp nhận trong lượt này, và không phát sinh.
 - Log mới: `target/g2/verify-coverage.log`; XML: `target/surefire-reports/`; coverage: `target/site/jacoco/`. Báo cáo full verify không ignore trước đó được giữ lại, không tô xanh failure SCR-009.
+
+### G0/G1 T-04 · 2026-11-14 — leader duyệt 18 file
+
+- Base `02bd90d787237e326593f2555477a6848b658fba`, nhánh `spec/019-t04`; đã fetch và kiểm engine/Attempt trước khi tạo nhánh. T-01/T-02/T-03 đã merge. Leader phối hợp người giữ 012; không sửa PracticeSource, SecurityConfig, application.yaml, contract hoặc migration.
+- Chốt MVP: chỉ MULTIPLE_CHOICE/TRUE_FALSE không audio/image, tái dùng `QuestionItemFactory` của 012. Điều kiện qtype/media `SUPPORTED` trong QuizRepository dùng chung cho catalog và tập picker; luôn PRIMARY đúng KID của chủ đề, APPROVED. Mở rộng qtype/media để sau. Picker còn loại phương án không hợp lệ theo factory, không sửa dữ liệu kho để đủ câu.
+- `itemId` = ordinal `no` 1..N trong snapshot, dùng trực tiếp cho answers/finish engine. API chỉ chiếu trường công khai, không trả đáp án/giải thích trước nộp.
+- Quota dùng `shared.security.RateLimiter.increment`, key `quiz:start:{userId}`, cửa sổ một giờ tính từ hit đầu, chung QUIZ/QUIZ_RETRY, tối đa 30 lần. Chỉ tăng khi cần tạo mới và đã đủ câu; resume miễn lượt. Không đếm DB, không thêm fallback khi Redis lỗi; lỗi propagate theo RateLimiter hiện có.
+- Start giữ advisory transaction lock theo user (namespace `quiz:start`), tìm phiên chưa hết hạn qua scalar JDBC và `FOR NO KEY UPDATE`, rồi dùng snapshot đang có trước khi kiểm lại kho. Submit chỉ giữ advisory theo user/topic (`quiz:submit`) sau khoá dòng attempt của engine; không lấy khoá start nên không tạo vòng chờ với start.
+- Hook mặc định không đổi hành vi handler cũ: `sessionPolicy()` trả null; `prepareSubmission()` trả null. Quiz đăng ký hai bean handler cùng policy. Chuẩn bị nộp chạy trước chấm và phát sự kiện từng câu, để trường hợp thua đua dùng đúng nguồn QUIZ_RETRY trong mọi event/result.
+- Submit QUIZ kiểm lịch sử sau advisory lock, không lọc suspicious, loại chính session hiện tại. Nếu đã có lượt đầu SUBMITTED thì gọi duy nhất `Attempt.convertQuizToRetry()` (chỉ IN_PROGRESS + kind/ref_type QUIZ), trước mọi flush SUBMITTED. Giữ `uq_quiz_first` làm chốt cuối; không catch unique violation để tiếp tục transaction đã hỏng.
+- Bỏ `updatable=false` riêng hai cột ORM kind/ref_type để Hibernate lưu chuyển đổi đã duyệt trong cùng transaction. Không thêm setter chung, không đổi cột/schema; các trường user/refId/served_items giữ bất biến. Phương thức chuyển từ chối lượt đã kết thúc, nguồn khác hoặc chuyển lặp.
+- `SubmissionPolicy(100)` chuẩn hoá điểm correctCount × 100 / tổng câu đã phát, maxScore=100 trước study event, finish hook và SessionFinishedEvent. Câu bỏ qua/thiếu vẫn thuộc mẫu số. TTL lấy config server; client ttlOverride của nguồn cố định vẫn bị từ chối, GAME_ROUND không đổi.
+- Suspect dùng `submitted_at - served_at` server, so sánh nghiêm ngặt với min-seconds × N; rules từng câu minDurationMs=0 để không tin duration client. Lượt đầu suspicious vẫn tiêu thụ lượt đầu.
+- Integration fixture commit riêng cho REQUIRES_NEW của engine; tự dọn theo user/question/topic/KID của test, không FLUSHDB, không dọn dữ liệu suite khác. Dữ liệu câu tự soạn.
+- Test FR/AT: cân 8+8→5+5 và bù dạng thiếu; catalog 12 APPROVED nhưng chỉ 8 hỗ trợ bị ẩn/POST 422; create201/resume200 snapshot; cấu hình N=12/TTL=7; điểm 80/100, retry100 giữ first80; 12 giây suspicious/20 giây hợp lệ và JDBC thô; abandon/expire; hai submit first chỉ một QUIZ, một QUIZ_RETRY với event/source/score nhất quán; start-start/start-finish không deadlock; 31 lần start→429, resume không tính; ownership/rollback, CSRF và bearer; mastery/assistant hồi quy.
+
+### G2 T-04 · 2026-11-14 — kiểm tra trước full verify
+
+- Môi trường: JDK 17.0.12 đặt JAVA_HOME trong phiên, Maven Wrapper 3.9.16, Docker Desktop 29.9.2 (`docker info` thành công), `DEBUG=false`. Không đổi cấu hình hệ thống hoặc pom; DB/Redis/Mailpit của Testcontainers.
+- Targeted lần đầu: **107 tests, 0 failure, 2 error, 0 skip; exit 1**. Mockito trả Duration.ZERO cho hook Duration mới; đổi thành SessionPolicy nullable để mock/handler cũ giữ mặc định no-op. Lỗi thứ hai là unfinished stubbing do test security gọi mock Clock trong thenReturn; sửa fixture dùng Instant cố định. Cả hai sửa trong allowlist, không bỏ test.
+- Targeted chạy lại: **107/0/0/0, exit 0**. Bổ sung xử lý topicId sai kiểu và test Redis lỗi propagate; targeted cuối **108/0/0/0, exit 0** (`target/g2/targeted-complete.log`).
+- Regression: **930 tests, 0 failure/error/skip; exit 0** (`target/g2/regression.log`). Chạy toàn bộ test practice/exam/vocab/mastery/assistant/API/quiz, các ContractTest và QuizSecurityConfigIntegrationTest/GlobalExceptionHandlerTest. Lượt này cũng xác nhận DTO/schema QuizSession/QuizItem/QuizOption sau khi khai báo đủ required/nullability; không sửa YAML contract.
+- ModuleBoundaryTest: **9/0/0/0, exit 0** (`target/g2/boundary.log`).
+- Catalog trong regression: assert cứng **1 SELECT/request**, p95 **16,343 ms** với 300 chủ đề fixture, 0 chủ đề đủ điều kiện có sẵn, 20 mẫu sau warmup. Chỉ ghi thời gian, không gate NFR theo tốc độ máy.
+- Đúng 18 file allowlist; UTF-8 hợp lệ, không BOM/trailing whitespace; `git diff --check` exit 0. Full verify đang chạy bằng lệnh thường, không kế thừa ngoại lệ/ignore của T-03.
+
+### G2 T-04 · 2026-11-14 — đạt, chuyển G3 chờ review
+
+| Bước | Tests | F/E/S | Exit |
+|---|---:|---|---:|
+| Targeted cuối | 108 | 0/0/0 | 0 |
+| Regression liên quan | 930 | 0/0/0 | 0 |
+| ModuleBoundaryTest | 9 | 0/0/0 | 0 |
+| Full `.\mvnw.cmd -B verify` | 4937 | 0/0/0 | 0 |
+
+- Full verify chạy **18 phút 22 giây**, không ignore failure/skip test. Đối chiếu **316 XML Surefire**: tổng 4937 tests, không failure/error/skip, khớp log Maven và exit code thật (`target/g2/verify.exit`).
+- JaCoCo LINE **96,9087%**: **13.135 covered / 13.554 total**, 419 missed; log có **`All coverage checks have been met.`** Báo cáo `target/site/jacoco/jacoco.xml`, log `target/g2/verify.log`.
+- Catalog full suite: **1 SELECT/request** là assert cứng, p95 **15,317 ms** với 300 chủ đề fixture, 0 chủ đề đủ điều kiện có sẵn, 20 mẫu sau warmup. Không thêm test NFR phụ thuộc tốc độ máy.
+- Không phát sinh failure/error ở PEXPIRETIME, CapturedOutput, FR023, NFR_P04, NFR_P02; không dùng các ngoại lệ để làm xanh build. SCR-009 đã pass trên base mới. Benchmark review của 011 vẫn thuộc leader, không được thay thế bởi kết quả này.
+- Self-check PASS: không thêm dependency/schema/migration; không sửa enum/contract hoặc cấu hình bảo mật; module boundary đạt; điểm/thời gian từ server, chỉ dùng BIGINT cho điểm; SQL tham số hoá, không log đáp án/PII/token; cleanup test theo ID riêng; 18 file đúng allowlist, không BOM, `git diff --check` sạch. Không sửa thay đổi có sẵn trong checkout main, không push/merge/rebase main.
+- T-04 chuyển **CHỜ REVIEW**, G3 theo duyệt của leader: một conventional commit đúng từng file, push nhánh `spec/019-t04` và Draft PR; leader review/merge.
