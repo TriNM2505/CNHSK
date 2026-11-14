@@ -23,6 +23,14 @@
 
 **Ghi chú cho T-04:** lọc ID bị cấm trước khi đánh hạng bằng `user_id <> ALL(:banned)` hoặc `NOT (user_id = ANY(:banned))` với mảng. Không dùng `NOT IN (...)` vì danh sách rỗng có thể tạo SQL không hợp lệ.
 
+## 2026-11-14 · Duyệt G0 T-03 và đổi số migration
+
+| # | Nội dung | Quyết định leader | Trạng thái |
+|---|---|---|---|
+| Q-T03-01 | Migration và exact allowlist | Duyệt 5 file: `V8__leaderboard_index.sql`, `LeaderboardMigrationIntegrationTest.java`, `questions.md`, `tasks.md`, `docs/reference/database.md`; SQL đúng §0.1, test migration thu gọn | ✅ ANSWERED |
+| Q-T03-02 | Phân bổ version và thứ tự triển khai | Thay thế quyết định V9 trước đây: **V8 dành index `ix_att_ref_rank` của 017/T-03; V9 dành `app_settings` của 023 (chưa làm)**. 023 chưa viết, nên T-03 không phải chờ V8 khác; PR được review/merge bình thường, không HOLD. Không tạo migration V9 cho 017, không triển khai 023 | ✅ ANSWERED |
+| Q-T03-03 | Phạm vi AT-16 | T-03 kiểm Flyway, catalog index và nâng cấp bảo toàn schema/dữ liệu; EXPLAIN truy vấn leaderboard để T-04 nghiệm thu | ✅ ANSWERED |
+
 ## Dữ kiện đã kiểm trên main `2735ac8`
 - `attempts` có `kind` (gồm QUIZ, GAME, CONTEST), `ref_type`, `ref_id`, `game_code`, `score` BIGINT, `duration_ms`, `suspicious`, `submitted_at`.
 - Index `ix_att_rank(kind, game_code, score DESC) WHERE status='SUBMITTED'`; `uq_quiz_first(user_id, ref_id) WHERE kind='QUIZ' AND status='SUBMITTED'`.

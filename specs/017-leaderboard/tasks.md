@@ -15,7 +15,7 @@
 |---|---|---|---|---|
 | T-01 | `AuthApi.bannedUserIds()`, `AuthApi.publicProfiles(ids)`, record `PublicProfile` + cài đặt + test (**module 001 — báo leader trước**) | `…/auth/api/{AuthApi,PublicProfile}.java`, `…/auth/service/AuthApiService.java`, `t/auth/AuthApiServiceTest.java` | §0.3, FR-003, FR-010 | ⬜ |
 | T-02 | `learning.api.GameCode` (6 mã + tên tiếng Việt) — nếu 007 đã tạo thì bỏ qua task này, ghi PR tham chiếu | `…/learning/api/GameCode.java` + test | FR-015, §0.3 | ⬜ |
-| T-03 | Migration index `ix_att_ref_rank` (**xin số V ở leader**, H4) | `src/main/resources/db/migration/V?__leaderboard_index.sql` | §0.1 · AT-16 | ⬜ |
+| T-03 | Migration index `ix_att_ref_rank` (**V8 được leader cấp**, Q-T03-02; V9 dành 023), test Flyway/catalog/upgrade; EXPLAIN để T-04 | `src/main/resources/db/migration/V8__leaderboard_index.sql`, `t/learning/leaderboard/LeaderboardMigrationIntegrationTest.java` | §0.1 · AT-16 phần migration | 🔄 |
 | T-04 | `LeaderboardPeriods` (kỳ tuần/tháng/all giờ VN, `Clock`) + `LeaderboardRepository` (SQL chủ đề + game, top 20, hạng của tôi, loại banned) + test Testcontainers dữ liệu mẫu | `…/learning/leaderboard/{LeaderboardPeriods,LeaderboardRepository}.java` + test | FR-004…FR-012 · AT-02…AT-10, AT-16 | ⬜ |
 | T-05 | `LeaderboardService` (cache Redis 60 s, fallback DB, `rankOf`) + `LeaderboardController` 4 endpoint; mã `INVALID_GAME_CODE`; permitAll + rate limit khách; optional auth cho `myEntry` | `…/learning/leaderboard/LeaderboardService.java`, `…/leaderboard/web/LeaderboardController.java`, `ErrorCode.java`, `SecurityConfig.java` + test | FR-001…FR-003, FR-013…FR-017 · AT-01, AT-11…AT-15 | ⬜ |
 
