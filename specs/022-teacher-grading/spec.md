@@ -9,7 +9,7 @@
 | Trường | Giá trị |
 |---|---|
 | **Version** | 1.0.0 |
-| **Status** | DRAFT — chờ leader duyệt |
+| **Status** | APPROVED — leader duyệt 2026-11-14, được code theo `tasks.md` |
 | **Phụ thuộc** | Spec 013 (`EntitlementApi.consume/refund`, `PaidFeature.GRADING`, `LedgerService`) · Spec 001 (`AuthApi`, role `TEACHER`) |
 | **Quyết định chung** | Leader 2026-11-13: giữ 022, làm phần lõi trước, chi phí đặt sau · leader chốt 2026-11-14 (§9) |
 | **Người code** | Quốc Huy |
