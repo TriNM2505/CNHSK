@@ -5,6 +5,8 @@ import com.cnhsk.learning.quiz.QuizCatalog;
 import com.cnhsk.learning.quiz.QuizCatalog.QuizListingPage;
 import com.cnhsk.learning.quiz.QuizSessionService;
 import com.cnhsk.learning.quiz.QuizSessionService.QuizSession;
+import com.cnhsk.learning.quiz.QuizResultService;
+import com.cnhsk.learning.quiz.QuizResultService.QuizResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,11 +28,39 @@ public class QuizController {
     private final QuizCatalog catalog;
     private final AuthApi auth;
     private final QuizSessionService sessions;
+    private final QuizResultService results;
 
-    public QuizController(QuizCatalog catalog, AuthApi auth, QuizSessionService sessions) {
+    public QuizController(QuizCatalog catalog, AuthApi auth, QuizSessionService sessions, QuizResultService results) {
         this.catalog = catalog;
         this.auth = auth;
         this.sessions = sessions;
+        this.results = results;
+    }
+
+    @GetMapping(value = "/api/quiz-attempts/{sessionId}/result", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(operationId = "getQuizResult", tags = "quiz")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Kết quả",
+                    content = @Content(schema = @Schema(implementation = QuizResult.class))),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN / ATTEMPT_NOT_OWNED",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "404", description = "QUIZ_ATTEMPT_NOT_FOUND",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "422", description = "ATTEMPT_NOT_SUBMITTED / VALIDATION_FAILED",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+    public QuizResult result(
+            @Parameter(schema = @Schema(type = "integer", types = {"integer"}, format = "int64"))
+            @PathVariable String sessionId) {
+        long userId = auth.currentUser().userId();
+        long id;
+        try {
+            id = Long.parseLong(sessionId);
+        } catch (NumberFormatException exception) {
+            throw QuizCatalog.invalid("sessionId");
+        }
+        return results.result(userId, id);
     }
 
     @PostMapping(value = "/api/quizzes/{topicId}/attempts", produces = MediaType.APPLICATION_JSON_VALUE)
