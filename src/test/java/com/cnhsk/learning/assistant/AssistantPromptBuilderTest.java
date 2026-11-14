@@ -99,6 +99,8 @@ class AssistantPromptBuilderTest {
                 .isEqualTo("Hỏi" + SCREEN_LINE + "Quiz theo chủ đề");
         assertThat(builder.build("Hỏi", List.of(), "SCR-044").orElseThrow().messages().get(0).text())
                 .isEqualTo("Hỏi" + SCREEN_LINE + "Làm quiz theo chủ đề");
+        assertThat(builder.build("Hỏi", List.of(), "SCR-045").orElseThrow().messages().get(0).text())
+                .isEqualTo("Hỏi" + SCREEN_LINE + "Kết quả quiz theo chủ đề");
     }
 
     @Test

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiRequest } from '@/shared/api'
-import { listQuizzes, startQuizAttempt } from './quizzes'
+import { getQuizResult, listQuizzes, startQuizAttempt } from './quizzes'
 import { quizSession } from '../test-fixtures'
 
 vi.mock('@/shared/api', () => ({ apiRequest: vi.fn() }))
@@ -27,6 +27,20 @@ describe('quiz API contract', () => {
     'rejects unsafe topic identifier %s before sending',
     (id) => {
       expect(() => startQuizAttempt(id)).toThrow('Mã chủ đề không hợp lệ.')
+      expect(apiRequest).not.toHaveBeenCalled()
+    },
+  )
+  it('GETs the owned result with AbortSignal', async () => {
+    const controller = new AbortController()
+    await getQuizResult(101, controller.signal)
+    expect(apiRequest).toHaveBeenCalledWith('/api/quiz-attempts/101/result', {
+      signal: controller.signal,
+    })
+  })
+  it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects unsafe result identifier %s',
+    (id) => {
+      expect(() => getQuizResult(id)).toThrow('Mã lượt quiz không hợp lệ.')
       expect(apiRequest).not.toHaveBeenCalled()
     },
   )

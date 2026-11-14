@@ -40,3 +40,57 @@ export type QuizSession = {
 }
 
 export type QuizListParams = { hsk?: HskLevel; page?: number; size?: number }
+
+export type QuizResultItem = {
+  itemId: number
+  prompt: string
+  options: QuizOption[]
+  chosen: string | null
+  correct: string
+  explanation: string | null
+}
+
+export type FirstAttemptRank = {
+  score: number
+  durationMs: number | null
+  rank: number | null
+  total: number | null
+}
+
+export type QuizResult = {
+  sessionId: number
+  topicId: number
+  topicName: string
+  score: number
+  correctCount: number
+  wrongCount: number
+  durationMs: number
+  rankingEligible: boolean
+  suspicious: boolean
+  items: QuizResultItem[]
+  firstAttempt: FirstAttemptRank | null
+}
+
+export type TopicRankEntry = {
+  rank: number
+  userId: number
+  displayName: string
+  avatarUrl: string | null
+  score: number
+  durationMs: number | null
+}
+
+export type TopicLeaderboard = {
+  type: 'TOPIC'
+  ref: string
+  period: 'all'
+  periodStart: string | null
+  periodEnd: string | null
+  entries: TopicRankEntry[]
+  myEntry: TopicRankEntry | null
+}
+
+export function quizDuration(milliseconds: number) {
+  const seconds = Math.max(0, Math.floor(milliseconds / 1000))
+  return `${Math.floor(seconds / 60)} phút ${seconds % 60} giây`
+}

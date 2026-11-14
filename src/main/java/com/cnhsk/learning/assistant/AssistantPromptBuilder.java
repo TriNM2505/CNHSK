@@ -50,6 +50,7 @@ public class AssistantPromptBuilder {
             Map.entry("SCR-041", "Viết bài cộng đồng / Chỉnh sửa bài viết"),
             Map.entry("SCR-043", "Quiz theo chủ đề"),
             Map.entry("SCR-044", "Làm quiz theo chủ đề"),
+            Map.entry("SCR-045", "Kết quả quiz theo chủ đề"),
             Map.entry("SCR-053", "Tài liệu nghe nhìn"),
             Map.entry("SCR-054", "Danh mục sách tham khảo"),
             Map.entry("SCR-055", "Chi tiết sách tham khảo"));

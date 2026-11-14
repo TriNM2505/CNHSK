@@ -9,11 +9,24 @@ import { previewRegistry } from '@/app/preview/registry'
 import { getCurrentUser } from '@/features/auth/api/getCurrentUser'
 import type { RoleCode } from '@/features/auth/types'
 import { ApiError } from '@/shared/api'
-import { listQuizzes } from './api/quizzes'
-import { quizPage } from './test-fixtures'
+import { getSession } from '@/features/practice/api'
+import { getQuizResult, listQuizzes, startQuizAttempt } from './api/quizzes'
+import { quizEngineSession, quizPage, quizResult, quizSession } from './test-fixtures'
 
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
-vi.mock('./api/quizzes', () => ({ listQuizzes: vi.fn(), startQuizAttempt: vi.fn() }))
+vi.mock('./api/quizzes', () => ({
+  listQuizzes: vi.fn(),
+  startQuizAttempt: vi.fn(),
+  getQuizResult: vi.fn(),
+}))
+vi.mock('./api/leaderboards', () => ({ getQuizTopTen: vi.fn().mockResolvedValue({ entries: [] }) }))
+vi.mock('@/features/practice/api', () => ({
+  getSession: vi.fn(),
+  findActiveSession: vi.fn(),
+  answerItem: vi.fn(),
+  finishSession: vi.fn(),
+  abandonSession: vi.fn(),
+}))
 const learner = {
   id: 1,
   roles: ['LEARNER'] as RoleCode[],
@@ -26,10 +39,14 @@ describe('quiz route registration and access', () => {
   beforeEach(() => {
     vi.mocked(getCurrentUser).mockReset().mockResolvedValue(learner)
     vi.mocked(listQuizzes).mockReset().mockResolvedValue(quizPage)
+    vi.mocked(startQuizAttempt).mockReset().mockResolvedValue(quizSession)
+    vi.mocked(getSession).mockReset().mockResolvedValue(quizEngineSession)
+    vi.mocked(getQuizResult).mockReset().mockResolvedValue(quizResult)
   })
   it.each([
     ['/community/quizzes', 'SCR-043'],
     ['/community/quizzes/:topicId/play', 'SCR-044'],
+    ['/community/quizzes/attempts/:sessionId', 'SCR-045'],
   ])('registers %s with learner layout and a screen', (path, scr) => {
     expect(appRouteDefinitions.find((route) => route.path === path)).toMatchObject({
       access: ['LEARNER'],
@@ -53,13 +70,25 @@ describe('quiz route registration and access', () => {
     expect(screen.getByRole('navigation', { name: 'Học tập' })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: 'Cộng đồng' })).toBeInTheDocument()
   })
-  it('opens the registered SCR-044 placeholder without making POST from an untrusted URL', async () => {
+  it('opens real SCR-044 by resuming the topic instead of trusting the URL session', async () => {
     const router = createMemoryRouter(appRoutes, {
       initialEntries: ['/community/quizzes/43/play?sessionId=999'],
     })
     render(<RouterProvider router={router} />)
-    expect(await screen.findByRole('heading', { name: 'Màn SCR-044 đang dựng' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Làm quiz theo chủ đề' })).toBeVisible()
+    expect(startQuizAttempt).toHaveBeenCalledWith(43)
+    expect(getSession).toHaveBeenCalledWith(101, expect.any(AbortSignal))
+    expect(screen.queryByRole('button', { name: 'Mở trợ lý CNHSK' })).not.toBeInTheDocument()
     expect(listQuizzes).not.toHaveBeenCalled()
+  })
+  it('opens SCR-045 with learner layout and keeps the assistant available', async () => {
+    const router = createMemoryRouter(appRoutes, {
+      initialEntries: ['/community/quizzes/attempts/101'],
+    })
+    render(<RouterProvider router={router} />)
+    expect(await screen.findByRole('heading', { name: 'Kết quả quiz theo chủ đề' })).toBeVisible()
+    expect(screen.getByRole('navigation', { name: 'Cộng đồng' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' })).toBeVisible()
   })
   it.each(['ADMIN', 'TEACHER', 'MODERATOR', 'CONTENT_EDITOR', 'ACCOUNTANT'] as RoleCode[])(
     'blocks %s before loading catalogue',

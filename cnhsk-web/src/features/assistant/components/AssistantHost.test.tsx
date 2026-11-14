@@ -72,6 +72,23 @@ async function send(text: string) {
 }
 
 describe('assistant FR013 / FR014', () => {
+  it.each([
+    '/community/quizzes/43/play?sessionId=101',
+    '/community/quizzes/43/play/?sessionId=102&retry=true',
+  ])('hides both launcher and panel on quiz play %s', (path) => {
+    mount(path)
+    expect(screen.queryByRole('button', { name: 'Mở trợ lý CNHSK' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Trợ lý hỗ trợ CNHSK' })).not.toBeInTheDocument()
+    expect(screen.getByRole('main', { name: 'Nội dung học tập' })).toBeVisible()
+    expect(askAssistant).not.toHaveBeenCalled()
+  })
+  it.each(['/community/quizzes', '/community/quizzes/attempts/101'])(
+    'keeps launcher on %s',
+    (path) => {
+      mount(path)
+      expect(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' })).toBeVisible()
+    },
+  )
   beforeEach(() => {
     vi.mocked(askAssistant).mockReset().mockResolvedValue(systemAnswer)
   })
