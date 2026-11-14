@@ -21,6 +21,7 @@ import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.auth.api.CurrentUser;
 import com.cnhsk.auth.api.RoleCode;
 import com.cnhsk.learning.quiz.QuizCatalog;
+import com.cnhsk.learning.quiz.QuizSessionService;
 import com.cnhsk.learning.quiz.QuizCatalog.QuizListingPage;
 import com.cnhsk.learning.quiz.web.QuizController;
 import com.cnhsk.shared.security.JwtService;
@@ -54,6 +55,7 @@ class QuizSecurityConfigIntegrationTest {
     @Autowired private MockMvc mvc;
     @Autowired private JwtService jwt;
     @MockitoBean private QuizCatalog catalog;
+    @MockitoBean private QuizSessionService sessions;
     @MockitoBean private AuthApi auth;
     @MockitoBean private SessionInvalidationService invalidation;
     @MockitoBean private Clock clock;
@@ -115,6 +117,21 @@ class QuizSecurityConfigIntegrationTest {
         mvc.perform(post("/api/quizzes/probe/attempts").cookie(access, new Cookie("XSRF-TOKEN", "quiz-csrf"))
                         .header("X-XSRF-TOKEN", "quiz-csrf"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void realStartRouteAcceptsLearnerBearerAndRequiresCsrfForCookie() throws Exception {
+        when(sessions.start(42, 9)).thenReturn(new QuizSessionService.Started(true,
+                new QuizSessionService.QuizSession(7, 9, true, Instant.parse("2026-11-14T04:00:00Z"), List.of())));
+        String token = token(List.of("LEARNER"));
+        mvc.perform(post("/api/quizzes/9/attempts").header("Authorization", "Bearer " + token))
+                .andExpect(status().isCreated()).andExpect(jsonPath("$.sessionId").value(7));
+        Cookie access = new Cookie("access_token", token);
+        mvc.perform(post("/api/quizzes/9/attempts").cookie(access)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/quizzes/9/attempts").cookie(access, new Cookie("XSRF-TOKEN", "quiz-csrf"))
+                        .header("X-XSRF-TOKEN", "quiz-csrf"))
+                .andExpect(status().isCreated());
+        mvc.perform(post("/api/quizzes/9/attempts")).andExpect(status().isUnauthorized());
     }
 
     @ParameterizedTest

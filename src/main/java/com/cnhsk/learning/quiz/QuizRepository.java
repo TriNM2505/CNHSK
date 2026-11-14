@@ -5,14 +5,24 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import com.cnhsk.learning.knowledge.entity.Question;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Tuple;
 import org.springframework.stereotype.Repository;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /** Learning-owned read projections; one statement includes empty-page totals and personal scores. */
 @Repository
 public class QuizRepository {
+    // Shared by catalog and picker. Media with blank URLs is absent, as in QuestionItemFactory.
+    private static final String SUPPORTED = """
+            q.qtype IN ('MULTIPLE_CHOICE', 'TRUE_FALSE')
+            AND coalesce(btrim(q.audio_url), '') = '' AND coalesce(btrim(q.image_url), '') = ''
+            """;
     private static final String CATALOG = """
             WITH eligible AS (
                 SELECT t.id, t.name, t.hsk_level, t.order_index, count(q.id) AS available
@@ -20,7 +30,7 @@ public class QuizRepository {
                 JOIN learning.question_knowledge_points qk
                   ON qk.knowledge_point_id = t.knowledge_point_id AND qk.role = 'PRIMARY'
                 JOIN learning.questions q ON q.id = qk.question_id AND q.status = 'APPROVED'
-                WHERE t.knowledge_point_id IS NOT NULL
+                WHERE t.knowledge_point_id IS NOT NULL AND (%s)
                   AND (cast(:hsk AS integer) IS NULL OR t.hsk_level = :hsk)
                 GROUP BY t.id
                 HAVING count(q.id) >= :questionCount
@@ -45,11 +55,56 @@ public class QuizRepository {
              AND first_attempt.status = 'SUBMITTED'
             LEFT JOIN retry_scores ON retry_scores.ref_id = p.id
             ORDER BY p.hsk_level, p.order_index, p.id
-            """;
+            """.formatted(SUPPORTED);
 
     private final EntityManager entityManager;
+    private final NamedParameterJdbcTemplate jdbc;
 
-    public QuizRepository(EntityManager entityManager) { this.entityManager = entityManager; }
+    public QuizRepository(EntityManager entityManager, NamedParameterJdbcTemplate jdbc) {
+        this.entityManager = entityManager;
+        this.jdbc = jdbc;
+    }
+
+    public void lockStart(long userId) { lock("quiz:start:" + userId); }
+
+    public void lockSubmission(long userId, long topicId) { lock("quiz:submit:" + userId + ":" + topicId); }
+
+    private void lock(String key) {
+        jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))", Map.of("key", key), row -> null);
+    }
+
+    public Optional<Long> active(long userId, long topicId, Instant now) {
+        // Scalar JDBC projection avoids caching a stale entity while finish owns the same row.
+        return jdbc.query("""
+                SELECT id FROM learning.attempts WHERE user_id=:userId AND ref_id=:topicId
+                  AND ref_type IN ('QUIZ','QUIZ_RETRY') AND status='IN_PROGRESS' AND expires_at >= :now
+                ORDER BY served_at DESC, id DESC LIMIT 1 FOR NO KEY UPDATE
+                """, Map.of("userId", userId, "topicId", topicId, "now", Timestamp.from(now)),
+                (row, no) -> row.getLong(1)).stream().findFirst();
+    }
+
+    public boolean topicExists(long topicId) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM learning.topics WHERE id=:id)",
+                Map.of("id", topicId), Boolean.class));
+    }
+
+    public boolean hasFirstSubmission(long userId, long topicId, long excludedSession) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("""
+                SELECT EXISTS(SELECT 1 FROM learning.attempts WHERE user_id=:userId AND ref_id=:topicId
+                  AND kind='QUIZ' AND status='SUBMITTED' AND id<>:sessionId)
+                """, Map.of("userId", userId, "topicId", topicId, "sessionId", excludedSession), Boolean.class));
+    }
+
+    public List<Question> questions(long topicId) {
+        List<?> rows = entityManager.createNativeQuery("""
+                SELECT q.* FROM learning.topics t
+                JOIN learning.question_knowledge_points qk
+                  ON qk.knowledge_point_id=t.knowledge_point_id AND qk.role='PRIMARY'
+                JOIN learning.questions q ON q.id=qk.question_id AND q.status='APPROVED'
+                WHERE t.id=:topicId AND (%s) ORDER BY q.id
+                """.formatted(SUPPORTED), Question.class).setParameter("topicId", topicId).getResultList();
+        return rows.stream().map(Question.class::cast).toList();
+    }
 
     public CatalogPage list(long userId, Integer hsk, int page, int size, int questionCount) {
         List<?> rows = entityManager.createNativeQuery(CATALOG, Tuple.class)

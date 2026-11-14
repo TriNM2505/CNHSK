@@ -1,10 +1,13 @@
 package com.cnhsk.learning.practice;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.cnhsk.learning.practice.entity.Attempt;
 
 /** Source hooks run synchronously inside the practice engine's transaction. */
 public interface PracticeSourceHandler {
@@ -12,6 +15,31 @@ public interface PracticeSourceHandler {
     PracticeSource source();
 
     Map<String, Object> onFinish(FinishContext context);
+
+    /** Server policy only; null keeps the source's existing lifetime. */
+    default SessionPolicy sessionPolicy() {
+        return null;
+    }
+
+    record SessionPolicy(Duration lifetime) {
+        public SessionPolicy {
+            if (lifetime == null || lifetime.isZero() || lifetime.isNegative()) {
+                throw new IllegalArgumentException("Server lifetime must be positive.");
+            }
+        }
+    }
+
+    /** Runs on the locked, IN_PROGRESS attempt before grading, events or SUBMITTED can flush. */
+    default SubmissionPolicy prepareSubmission(Attempt attempt) {
+        return null;
+    }
+
+    /** Opt-in score scale using all served items as the denominator. */
+    record SubmissionPolicy(long scoreScale) {
+        public SubmissionPolicy {
+            if (scoreScale <= 0) throw new IllegalArgumentException("Score scale must be positive.");
+        }
+    }
 
     default boolean isSuspicious(FinishContext context) {
         return false;
