@@ -124,3 +124,33 @@ Full verify mới (Java 17, DEBUG=false, Docker/Testcontainers local): 5.408 tes
 Fetch trước bàn giao: origin/main = a9b07d4, đã merge #182 và #183. SecurityConfig trên main thêm matcher leaderboard và TEACHER; matcher GET game của T-04 nằm ở vị trí khác. Không tự merge/rebase; giữ base fbf7ad0 và báo leader khi bàn giao để kiểm bản gộp. Đã xác nhận commit T-03 của 022 ac4b09b là ancestor main để soạn G0 task sau, chưa tạo nhánh/code task mới.
 
 Self-check PASS: đúng 13 file đã duyệt, git diff --check sạch, UTF-8 không BOM, không dấu conflict/TODO mới hay test bị skip. Giữ nguyên 24 operation/EXPECTED của 009, không đổi YAML, dependency, cấu hình toàn app, engine, API learning hoặc JWT filter/CSRF/CORS. Snapshot chỉ có dữ liệu chung, stats của người gọi được đọc mới; không đưa secret/PII thật hay dữ liệu HSK có bản quyền vào thay đổi, không Neon/migration. Một conventional commit, stage từng file, Draft PR; không merge PR/main hay force-push. T-04 giữ chờ review.
+
+
+## 2026-11-15 · T-05 — G0 được leader duyệt, chỉnh API vòng đời
+
+Base `3164b359caabf0b6d887996bfdb21579746b0eff`, nhánh `spec/007-t05`, worktree game sạch trước khi tạo nhánh; không đụng checkout 022 đang chờ merge. Allowlist 16 → 14 file: bỏ GameRoundLifecycleService.java và test tương ứng. Không sửa PracticeApi, PracticeApiTest, PracticeService, PracticeSourceHandler, Attempt hay migration.
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T05-01 | ANSWERED | Advisory xact lock game:start:<userId> dùng chung cả 6 game, giữ suốt đếm giới hạn → kiểm/dựng nội dung → bỏ ván cũ → start. Đếm bằng GameStatsApi.countRecentGameRounds, không viết lại SQL đếm. |
+| Q-T05-02 | ANSWERED | GameRoundApi gọi thẳng PracticeService.abandon cho ván IN_PROGRESS của người gọi, cùng game, chưa hết deadline snapshot. Không tự UPDATE trạng thái. Chấp nhận không nguyên tử: abandon dùng transaction riêng, start lỗi thì ván cũ vẫn đã bị bỏ, vì người chơi vốn muốn bỏ. API abandon dùng lại cho T-06. Không giữ khoá dòng ở transaction ngoài trước khi gọi engine REQUIRES_NEW. |
+| Q-T05-03 | ANSWERED | isAvailable=false hoặc buildRound trả null/rỗng → 422 GAME_UNAVAILABLE. Số câu tối thiểu do từng GameDefinition quyết. Không placeholder production khi registry còn rỗng. |
+| Q-T05-04 | ANSWERED | Chưa hết giờ xét served_at + 3 giây + timeLimitSeconds trong snapshot cũ, không xét expires_at có 15 giây grace. now == deadline là đã hết giờ. Snapshot hỏng → 500, không đoán thời lượng từ định nghĩa hiện tại. |
+| Q-T05-05 | ANSWERED | Không body hoặc {} được phép; JSON null, hskLevel:null, sai kiểu/phạm vi 1–9 hoặc trường lạ → 422 VALIDATION_FAILED. Mã game lạ → 400 INVALID_GAME_CODE đã có. Không nhận điểm từ client. |
+| Q-T05-06 | ANSWERED | Gate tự động kiểm query, transaction và request đồng thời thật. NFR-P02 đo p95, ghi kết quả so mốc 300 ms; không thêm assertion thời gian. |
+
+ROUND_LIMIT_EXCEEDED (429), GAME_UNAVAILABLE (422) thêm sau mọi mã hiện có, ngay trước INTERNAL_ERROR. Một matcher POST chính xác cho LEARNER cạnh GET danh mục, trước matcher community bao quát; không miễn CSRF hay đổi filter. Giới hạn 30 ván/60 phút trượt đếm mọi trạng thái và suspicious; served_at > since. retryAfterSeconds làm tròn lên, tối thiểu 1. Giữ nguyên giới hạn chung 120 lượt/giờ của engine.
+
+Response 201 chỉ có RoundStart/ServedItemView công khai; câu trả lời đúng và giải thích chỉ nằm trong snapshot DB. TTL engine = 3 + timeLimitSeconds + 15 giây; deadline công khai = servedAt + 3 + timeLimitSeconds. Availability được kiểm lại trực tiếp, không dùng cache danh mục T-04.
+
+Targeted sau sửa fixture: 62/62, F0/E0/S0, BUILD SUCCESS, 1:22 phút. GameRoundControllerIntegrationTest 13, GameRoundServiceTest 7, parser 29, GameRoundApiTest 13. Hai request MockMvc trên hai thread thực với PostgreSQL: ở suất thứ 30, hai game khác nhau chỉ có một 201 và một 429; hai lần tạo cùng game trả hai 201 và còn đúng một IN_PROGRESS, một ABANDONED. Start mới bị ép lỗi trả 500, ván cũ vẫn ABANDONED đúng Q2. P95 20 lần tạo = 43 ms so mốc tham khảo 300 ms, chỉ đo, không gate thời gian.
+
+Lượt đầu compile lỗi suy luận var thành TreeNode khi đọc JSON bằng parser; đã khai JsonNode tường minh. Lượt test đầu có 2 lỗi fixture SUBMITTED thiếu submitted_at, vi phạm ck_att_submitted; đã sửa helper mới theo constraint, không sửa production/migration/test cũ để né lỗi. Chạy lại toàn bộ targeted xanh như trên, không dùng ngoại lệ môi trường.
+
+Hồi quy sau targeted: 278/278, F0/E0/S0, BUILD SUCCESS, 2:12 phút. Gồm toàn bộ Game*Test, ContentLookup*Test, PracticeApiTest nguyên trạng, GlobalExceptionHandlerTest, ModuleBoundaryTest và hai bộ kiểm kê contract 009 (CommunityContractTest, CommentModerationControllerIntegrationTest). Không đổi test/contract 009; vẫn giữ nguyên 24 operation. P95 đo lại trong lượt hồi quy = 44 ms, không có assertion thời gian.
+
+Full Maven verify (Java 17.0.9, DEBUG=false, PostgreSQL/Redis Testcontainers local): 5.899 test, F0/E0/S0, BUILD SUCCESS, 19:40 phút, kết thúc 2026-11-15 01:09:12 +07. Không dùng ngoại lệ môi trường. JaCoCo LINE từ XML mới của chính lượt full: 14.706 covered / 448 missed = 97,0437%; mọi coverage check đạt. GameRoundApi 24/24 dòng, package community.game 89/89 dòng. Không dùng báo cáo coverage của lượt targeted hay task cũ.
+
+Fetch trước bàn giao: origin/main = 0167bac (PR #190, 022/T-04 đã merge). Trong các file T-05 dùng chung, chỉ SecurityConfig thay đổi: thêm POST /api/teacher/grading-requests/{id}/complete hasRole TEACHER ở cụm giáo viên, khác vị trí matcher game. ErrorCode/GlobalExceptionHandlerTest, file 007 và các API/engine learning liên quan không đổi so với base 3164b35. Không merge/rebase main; báo leader thay đổi này để kiểm trên bản gộp.
+
+Self-check PASS: đúng 14 file đã duyệt, UTF-8 không BOM, git diff --check sạch, không dấu conflict/TODO mới; không sửa PracticeApi/PracticeApiTest/PracticeService/PracticeSourceHandler/Attempt, contract, migration, dependency, cấu hình hay frontend. Không SQL trên Neon, secrets hoặc dữ liệu HSK có bản quyền. Giữ giới hạn engine, không nhận điểm client, chỉ dùng fixture tự soạn và tài khoản test; thêm đúng một matcher POST LEARNER, không đổi CSRF/CORS/filter. Ghi rõ Q2 không nguyên tử như đã duyệt. Một conventional commit, stage từng file, Draft PR; T-05 chờ leader review.
