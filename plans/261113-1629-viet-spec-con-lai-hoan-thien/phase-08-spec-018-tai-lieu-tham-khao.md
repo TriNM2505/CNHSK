@@ -11,7 +11,7 @@ owner: "Xuân Huy"
 # Phase 8: Spec 018 — Kênh, podcast và sách tham khảo
 
 ## Overview
-Feature 7.1 + 7.2. Màn SCR-053 YouTube & Podcasts, SCR-054 Book Catalogue, SCR-055 Book Detail (công khai); SCR-072 Reference Management (quản trị). Thêm 1 bảng: `learning.reference_items` (H3, dự kiến V8 — H4; 023 giữ V7).
+Feature 7.1 + 7.2. Màn SCR-053 YouTube & Podcasts, SCR-054 Book Catalogue, SCR-055 Book Detail (công khai); SCR-072 Reference Management (quản trị). Thêm 1 bảng: `learning.reference_items` (H3, thực tế V7 — đã merge 13/11).
 
 ## Context links
 - UC-117 Xem kênh YouTube và podcast, UC-118 Xem danh mục sách, UC-119 Quản lý danh mục tham khảo (use-cases-08)

@@ -26,7 +26,7 @@ Leader duyệt từng spec khi xong (không chờ đủ 8), rồi chốt file `w
 | K1 | PR enum: `PracticeSource.QUIZ`, `CONTEST` | Dũng, đầu tuần 2 (cần cho 021 sớm nhất) | 019 engine, 021 engine |
 | K2 | Migration `reference_items` | Xuân Huy | toàn bộ 018 BE |
 | K8 | `learning.api.ContestAttemptApi` + index unique 1 lượt CONTEST | Dũng (task đầu 021) | toàn bộ phần community của 021 |
-| K7 | V7 `app_settings` + `SettingKey` + `SettingsApi` | Tường, đầu tuần 2 (trước 013/T-14 nếu kịp) | giá/hạn 022, 020, 019, chuyển chỗ đọc 013/014/015, màn 078 |
+| K7 | V10 `app_settings` + `SettingKey` + `SettingsApi` | Tường, đầu tuần 2 (trước 013/T-14 nếu kịp) | giá/hạn 022, 020, 019, chuyển chỗ đọc 013/014/015, màn 078 |
 | K3 | 007 ghi `attempts` GAME (server chấm) | Đạt | dữ liệu thật cho 017 game LB |
 | K5 | 008 APPROVED | Leader | 007/008 BE |
 | K6 | 013/T-09…T-13 xong | Quốc Huy | Quốc Huy bắt đầu code 022 (spec viết song song trong tuần 1) |
@@ -39,7 +39,7 @@ Tường    : ⚿K7 SettingsApi → 013 T-14 (chờ T-09/T-11 theo màn) → 023
 Đạt      : sửa nhánh game → ⚿K5 → 007 BE (⚿K3) → 008 + phụ lục 2 game → nối FE game ; 012/T-19 khi có người thử
 Dũng     : ⚿K1 (PR enum) → nợ N+1 → 020 (độc lập) → 021 (⚿K8 trước) → 017 (fixture; game LB thật sau ⚿K3)
 Xuân Huy : ⚿K2 → 018 → phụ lục 014 → 024 (độc lập, mọi phụ thuộc đã merge)
-Leader   : RFC → duyệt spec → chạy V7 Neon → chạy thật 015/T-07, 024 với API key ; seed tài khoản TEACHER demo
+Leader   : RFC → duyệt spec → chạy V7…V10 Neon theo thứ tự merge → chạy thật 015/T-07, 024 với API key ; seed tài khoản TEACHER demo
 ```
 
 **Song song tối đa:** 020, 018, phụ lục 014, 024, 017 (với fixture), 023, 022 (consume/refund và LedgerService đã merge) không chờ spec mới. Chỉ 2 chỗ phải chờ: engine 019/021 (⚿K1, 1 PR nhỏ), dữ liệu game LB (⚿K3).
