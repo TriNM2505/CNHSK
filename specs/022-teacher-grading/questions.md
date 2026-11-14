@@ -80,3 +80,31 @@ NFR-P01: 1.000 yêu cầu, count + page vẫn đúng 2 query; p95 service + Post
 Full gate T-03: `.\mvnw.cmd -B verify` (Java 17, DEBUG=false, PostgreSQL/Redis Testcontainers local) đạt 5.411 test, F0/E0/S0, BUILD SUCCESS, 19:51 phút. Không dùng ngoại lệ môi trường. NFR-P01 ở lượt full: p95 2,394 ms, vẫn 2 query. JaCoCo LINE từ XML mới sinh của chính lượt full: 13.862 covered / 440 missed = 96,9235%; mọi coverage check đạt. T-03 giữ 🔄 chờ review, không đánh hoàn tất trước merge.
 
 Self-check: đúng 10 file allowlist; diff --check sạch, UTF-8 không BOM, không dấu conflict/TODO mới hoặc test bị skip. Không thêm thư viện, không đổi engine, module 013, ErrorCode, contract, cấu hình hoặc migration. Matcher giữ RBAC/CSRF, claim dùng khoá trong transaction, release/refund rollback và chỉ một bên thắng đã được kiểm bằng PostgreSQL/HTTP song song. Không đưa secret, thông tin thật hay dữ liệu HSK có bản quyền vào thay đổi; không dùng Neon. Stage từng file, một conventional commit và Draft PR; không merge PR/main hoặc force-push.
+
+## 2026-11-14 · T-04 — G0 được leader duyệt
+
+Base `a9b07d48666a9ad963b0f0a686326329f55a6c74`, chứa T-03/#183 (đã kiểm ancestor ac4b09b), nhánh `spec/022-t04`. Worktree 022 được tái sử dụng sau khi kiểm sạch. Allowlist 11 file: 10 file của G0 cùng spec.md (chỉ sửa dòng E6). Không sửa repository SQL, bên trong 013, ErrorCode, YAML, cấu hình hoặc migration.
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T04-01 | ANSWERED | Nộp lại, không còn ASSIGNED hoặc UPDATE thua → 403 GRADING_NOT_ASSIGNEE theo FR-014/015, §5 và YAML. Chỉ sửa E6 từ 409 thành 403. |
+| Q-T04-02 | ANSWERED | Bỏ qua trường dư như parser T-02, kể cả score/payout từ client. Điểm do server cộng bốn tiêu chí; payout lấy từ GradingConfig. Test gửi score/payout=999 không làm đổi hai giá trị này. |
+| Q-T04-03 | ANSWERED | Feedback/original/corrected chỉ whitespace Unicode cũng trả 422; nội dung hợp lệ giữ nguyên, đếm code point trên giá trị gốc. Note null/rỗng được phép. Criteria đủ bốn số nguyên 0–25; feedback 1–5.000, original/corrected 1–500, note tối đa 500, corrections bắt buộc và tối đa 50. |
+
+Complete trong một transaction: kiểm ASSIGNED/assignee → lấy Clock.now và kiểm hạn → conditional UPDATE T-01 → chỉ bên thắng append TEACHER_PAYOUT với request_id=id, feature_code=GRADING nếu payout>0. Payout=0 không gọi ledger. Append lỗi không bị nuốt, rollback toàn bộ trạng thái/result/score/feedback/payout/completedAt và bút toán. Không consume/refund hoặc advisory lock trong complete; claim/release giữ hành vi cũ. Trả kết quả từ bản ghi đã lưu, payoutCredits của response COMPLETED lấy từ payout đã lưu. Người học vẫn xem kết quả qua DTO T-02 không lộ payout/receipt/giáo viên.
+
+Matcher chỉ thêm POST /api/teacher/grading-requests/{id}/complete hasRole TEACHER cạnh claim/release, trước admin; không miễn CSRF. Handler body sai nằm cục bộ controller, message cố định, không giữ nguyên nhân JSON/input, không đổi mapper/handler chung. Request và diagnostic string không log nội dung chấm.
+
+Gate đầu: compile phát hiện dùng nhầm maxItems trên @Schema; đã sửa đúng sang @ArraySchema theo tiền lệ repo, không đổi dependency. Targeted sau sửa (GradingResultWriteTest 15 + TeacherGradingServiceTest 24 + GradingRepositoryIntegrationTest 26): 65/65, F0/E0/S0, BUILD SUCCESS. NFR-P01 chỉ cập nhật mock LedgerService ở constructor test, giữ toàn bộ assertion và phép đo p95, không thêm gate thời gian.
+
+HTTP/PostgreSQL với LedgerService/Entitlement thật: 53/53, F0/E0/S0, BUILD SUCCESS. AT-12: hai request HTTP đồng thời đúng một 200, một 403 và một TEACHER_PAYOUT +2 đúng teacher/request_id; 100 lần gửi trong 10 lô song song (10 request/lô) chỉ một 200 và 99 lần 403, vẫn một payout. Score/payout=999 trong body không ảnh hưởng: lưu score 78 từ bốn tiêu chí và payout 2 từ cấu hình test; mặc định payout=0 không gọi ledger.
+
+Ép lỗi sau khi LedgerService đã INSERT thật chứng minh rollback cả toàn bộ RequestRow và bút toán ở hai nguồn QUOTA/CREDIT; retry chỉ ghi một payout. Test overlap có latch chặn trước conditional UPDATE, chạy hai request/transaction thật: complete thắng hoặc release/expire thắng đều được ép kiểm, cho cả QUOTA/CREDIT. Complete thắng không refund, release/expire thắng không payout. Fixture expiry gọi repository/Entitlement trong transaction riêng, không tạo job T-05. Kiểm biên deadline bằng đúng Clock.now và sau 1 ms. Dọn ledger fixture của tất cả user trước khi dọn yêu cầu để giữ FK request_id; chỉ tác động dữ liệu test tự tạo trên Testcontainers.
+
+Hồi quy toàn bộ *Grading*Test, EssayRulesTest, Entitlement*Test, Ledger*Test, GlobalExceptionHandlerTest và ModuleBoundaryTest: 347/347, F0/E0/S0, BUILD SUCCESS, 1:12 phút. Đã giữ mọi assertion T-01…T-03, chỉ thay assertion T-03 tạm chặn /complete thành 422 GRADING_INVALID_RESULT khi endpoint mới thiếu body; kiểm CSRF/role cũ giữ nguyên.
+
+Full `.\mvnw.cmd -B verify` (Java 17, DEBUG=false, Docker/Testcontainers local) hoàn tất 2026-11-14 22:37:30 +07:00: 5.542 test, F0/E0/S0, BUILD SUCCESS, 18:15 phút; không dùng ngoại lệ môi trường. JaCoCo LINE từ báo cáo của chính lượt này: 14.129 covered / 442 missed = 96,9666%, mọi coverage check đạt. Không sửa code sau lượt gate; ngày 2026-11-15 tiếp tục kiểm kết quả và bàn giao.
+
+Fetch trước bàn giao ngày 2026-11-15: origin/main = 51fb956. Các file grading/spec 022 không đổi so với base a9b07d4; SecurityConfig thêm matcher GET game và admin exams ở các vị trí khác với POST complete. Không merge/rebase/pull main; giữ base đã duyệt và báo leader kiểm trên bản gộp.
+
+Self-check PASS: đúng 11 file allowlist, git diff --check sạch, UTF-8 không BOM, không dấu conflict/TODO mới hay test skip. Spec chỉ sửa E6; repository integration chỉ thêm mock constructor; không sửa SQL, LedgerService/Entitlement/013, ErrorCode, YAML, dependency, cấu hình, migration hoặc FE. Không consume/refund/advisory lock trong complete; điểm và payout do server quyết định, conditional UPDATE + append cùng transaction đã kiểm bằng PostgreSQL/HTTP song song và fault injection sau INSERT. Không secret/PII thật/dữ liệu HSK có bản quyền, không Neon. Một conventional commit, stage từng file, Draft PR; T-04 chờ review, không merge PR/main hoặc force-push.

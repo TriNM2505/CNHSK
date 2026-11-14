@@ -9,7 +9,10 @@ import java.util.Optional;
 import com.cnhsk.learning.api.Consumption;
 import com.cnhsk.learning.api.EntitlementApi;
 import com.cnhsk.learning.api.PaidFeature;
+import com.cnhsk.learning.credit.LedgerService;
 import com.cnhsk.learning.grading.GradingRepository.RequestRow;
+import com.cnhsk.learning.grading.web.GradingRequestViews.Criteria;
+import com.cnhsk.learning.grading.web.GradingResultWrite;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,12 +30,15 @@ class TeacherGradingServiceTest {
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
     private GradingRepository repository;
     private EntitlementApi entitlement;
+    private LedgerService ledger;
+    private GradingConfig config;
     private TeacherGradingService service;
 
     @BeforeEach void setup() {
         repository = mock(GradingRepository.class); entitlement = mock(EntitlementApi.class);
-        var config = new GradingConfig(); config.setMaxActiveClaims(3); config.setGradingHours(24); config.setTeacherPayoutCredits(0);
-        service = new TeacherGradingService(repository, config, entitlement, mapper, Clock.fixed(NOW, ZoneOffset.UTC));
+        ledger = mock(LedgerService.class);
+        config = new GradingConfig(); config.setMaxActiveClaims(3); config.setGradingHours(24); config.setTeacherPayoutCredits(0);
+        service = new TeacherGradingService(repository, config, entitlement, ledger, mapper, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test void AT06_queueMapsOnlyMetadataWithTwoRepositoryCalls() {
@@ -137,6 +143,77 @@ class TeacherGradingServiceTest {
         failure(() -> service.release(9, 42), ErrorCode.GRADING_NOT_ASSIGNEE, 403);
         verifyNoInteractions(entitlement); verify(repository, never()).lockTeacherClaim(anyLong());
     }
+
+    @Test void AT12_completeUsesConditionalUpdateBeforePayoutAndReturnsTheStoredResult() {
+        config.setTeacherPayoutCredits(2);
+        var assigned = row(7, "ASSIGNED", 9L);
+        var write = new GradingResultWrite(new Criteria(20, 18, 21, 19), "Nhận xét", List.of());
+        var result = mapper.createObjectNode(); result.set("criteria", mapper.valueToTree(write.criteria())); result.putArray("corrections");
+        var completed = new RequestRow(42, 7, "COMPLETED", assigned.payload(), result, 9L, NOW, assigned.deadline(),
+                78, write.feedback(), 2, NOW, NOW, null);
+        when(repository.find(42)).thenReturn(Optional.of(assigned), Optional.of(completed));
+        when(repository.complete(42, 9, NOW, 78, write.feedback(), result, 2)).thenReturn(true);
+        var detail = service.complete(9, 42, write);
+        assertThat(detail.status()).isEqualTo("COMPLETED"); assertThat(detail.result().score()).isEqualTo(78);
+        assertThat(detail.result().criteria()).isEqualTo(write.criteria()); assertThat(detail.payoutCredits()).isEqualTo(2);
+        var order = inOrder(repository, ledger);
+        order.verify(repository).find(42); order.verify(repository).complete(42, 9, NOW, 78, write.feedback(), result, 2);
+        order.verify(ledger).append(new LedgerService.AppendCommand(9, "TEACHER_PAYOUT", 2, "GRADING", null, 42L, null, null, null, null));
+        order.verify(repository).find(42);
+        verify(repository, never()).lockTeacherClaim(anyLong()); verifyNoInteractions(entitlement);
+    }
+
+    @Test void AT11_completionAtTheDeadlineIsAllowedAndZeroPayoutDoesNotCallLedger() {
+        var assigned = row(7, "ASSIGNED", 9L);
+        assigned = new RequestRow(42, 7, "ASSIGNED", assigned.payload(), null, 9L, NOW, NOW, null, null, null, NOW, null, null);
+        var write = new GradingResultWrite(new Criteria(0, 25, 0, 25), "Nhận xét", List.of());
+        var result = mapper.createObjectNode(); result.set("criteria", mapper.valueToTree(write.criteria())); result.putArray("corrections");
+        var completed = new RequestRow(42, 7, "COMPLETED", assigned.payload(), result, 9L, NOW, NOW, 50, write.feedback(), 0, NOW, NOW, null);
+        when(repository.find(42)).thenReturn(Optional.of(assigned), Optional.of(completed));
+        when(repository.complete(42, 9, NOW, 50, write.feedback(), result, 0)).thenReturn(true);
+        assertThat(service.complete(9, 42, write).result().score()).isEqualTo(50);
+        verifyNoInteractions(ledger, entitlement);
+    }
+
+    @Test void AT11_completionAfterDeadlineNeverUpdatesOrPays() {
+        var original = row(7, "ASSIGNED", 9L);
+        var assigned = new RequestRow(42, 7, "ASSIGNED", original.payload(), null, 9L, NOW.minusSeconds(3600),
+                NOW.minusMillis(1), null, null, null, NOW, null, null);
+        when(repository.find(42)).thenReturn(Optional.of(assigned));
+        failure(() -> service.complete(9, 42, resultWrite()), ErrorCode.GRADING_DEADLINE_MISSED, 422);
+        verify(repository, never()).complete(anyLong(), anyLong(), any(), anyInt(), anyString(), any(), anyInt());
+        verifyNoInteractions(ledger, entitlement);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"PENDING", "COMPLETED", "FAILED", "EXPIRED"})
+    void AT09_completeChecksAssignmentBeforeDeadlineOrContent(String state) {
+        var original = row(7, state, 9L);
+        when(repository.find(42)).thenReturn(Optional.of(new RequestRow(42, 7, state, original.payload(), null, 9L,
+                NOW, null, null, null, null, NOW, null, null)));
+        failure(() -> service.complete(9, 42, resultWrite()), ErrorCode.GRADING_NOT_ASSIGNEE, 403);
+        verifyNoInteractions(ledger, entitlement);
+    }
+
+    @Test void FR015_lostConditionalCompletionDoesNotPay() {
+        config.setTeacherPayoutCredits(2);
+        when(repository.find(42)).thenReturn(Optional.of(row(7, "ASSIGNED", 9L)));
+        failure(() -> service.complete(9, 42, resultWrite()), ErrorCode.GRADING_NOT_ASSIGNEE, 403);
+        verify(repository).complete(eq(42L), eq(9L), eq(NOW), eq(100), eq("Nhận xét"), any(), eq(2));
+        verifyNoInteractions(ledger, entitlement);
+    }
+
+    @Test void FR015_payoutFailureEscapesTheTransactionWithoutReturningASuccess() {
+        config.setTeacherPayoutCredits(2);
+        when(repository.find(42)).thenReturn(Optional.of(row(7, "ASSIGNED", 9L)));
+        when(repository.complete(eq(42L), eq(9L), eq(NOW), anyInt(), anyString(), any(), eq(2))).thenReturn(true);
+        doThrow(new IllegalStateException("Fixture payout unavailable")).when(ledger).append(any());
+        assertThatThrownBy(() -> service.complete(9, 42, resultWrite())).isInstanceOf(IllegalStateException.class)
+                .hasMessage("Fixture payout unavailable");
+        verify(repository, times(1)).find(42); verifyNoInteractions(entitlement);
+    }
+
+    private GradingResultWrite resultWrite() { return new GradingResultWrite(new Criteria(25, 25, 25, 25), "Nhận xét", List.of()); }
 
     private RequestRow row(long owner, String status, Long teacher) {
         var payload = mapper.createObjectNode().put("essay", "字".repeat(50)).put("hanziCount", 50).put("hskLevel", 3);

@@ -419,6 +419,7 @@ class GradingRepositoryIntegrationTest {
         var queries = new GradingRepository(counted, mapper);
         var config = new GradingConfig(); config.setTeacherPayoutCredits(0);
         var service = new TeacherGradingService(queries, config, mock(com.cnhsk.learning.api.EntitlementApi.class),
+                mock(com.cnhsk.learning.credit.LedgerService.class),
                 mapper, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
         repository.createPending(owner, payload(), NOW, NOW.plusSeconds(3600));
         assertThat(service.queue(teacher, 0, 20).totalElements()).isEqualTo(1);

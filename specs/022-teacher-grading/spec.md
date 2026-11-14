@@ -96,7 +96,7 @@ PENDING ──claim──► ASSIGNED ──complete──► COMPLETED
 | E3 | Job hết hạn đúng lúc giáo viên nhận | Một trong hai thắng (BR-107-7) |
 | E4 | Giáo viên nộp kết quả sau hạn chấm | **422** `GRADING_DEADLINE_MISSED`; job sẽ hoàn cho người học |
 | E5 | Giáo viên là người gửi bài (vừa `LEARNER` vừa `TEACHER`) | Không thấy bài của mình trong hàng đợi; nhận trực tiếp → **403** `GRADING_SELF_GRADING` |
-| E6 | Nộp kết quả hai lần (mạng chập) | Lần hai → **409** `GRADING_NOT_ASSIGNEE` (đã `COMPLETED`); không trả giáo viên hai lần |
+| E6 | Nộp kết quả hai lần (mạng chập) | Lần hai → **403** `GRADING_NOT_ASSIGNEE` (đã `COMPLETED`); không trả giáo viên hai lần |
 | E7 | Hoàn lượt thất bại (lỗi DB) | Rollback cả chuyển trạng thái; job lần sau thử lại |
 
 ---
