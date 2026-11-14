@@ -163,6 +163,13 @@ public class GradingRepository {
                 Map.of("now", Timestamp.from(now)), (row, index) -> request(row));
     }
 
+    @Transactional(readOnly = true)
+    public long countOverdue(Instant now) {
+        return jdbc.queryForObject("SELECT count(*) FROM learning.service_requests WHERE kind='GRADING' "
+                        + "AND status IN ('PENDING','ASSIGNED') AND deadline_at<:now",
+                Map.of("now", Timestamp.from(now)), Long.class);
+    }
+
     @Transactional(propagation = Propagation.MANDATORY)
     public boolean expire(long id, String expectedStatus, Instant now) {
         return jdbc.update("UPDATE learning.service_requests SET status='EXPIRED',completed_at=:now "
