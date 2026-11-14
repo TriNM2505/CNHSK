@@ -48,7 +48,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -82,7 +81,7 @@ class PracticeServiceTest {
     @ParameterizedTest
     @EnumSource(PracticeSource.class)
     void FR001_startUsesSourceKindAndServerClockForEverySource(PracticeSource source) {
-        Duration override = source == PracticeSource.GAME_ROUND ? Duration.ofSeconds(45) : null;
+        Duration override = source.ttl() == null ? Duration.ofSeconds(45) : null;
         var view = service.start(command(source, List.of(choice(1)), List.of(), override, Map.of("roundSeconds", 30)));
         assertThat(view.sessionId()).isEqualTo(42L);
         assertThat(saved.getKind()).isEqualTo(source.kind().name());
@@ -110,22 +109,25 @@ class PracticeServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(longs = {0, -1})
-    void FR001_gameRejectsNonPositiveLifetime(long seconds) {
-        assertThatThrownBy(() -> service.start(command(PracticeSource.GAME_ROUND, List.of(choice(1)), List.of(),
-                Duration.ofSeconds(seconds), Map.of()))).isInstanceOf(IllegalArgumentException.class);
+    @EnumSource(value = PracticeSource.class, names = {"GAME_ROUND", "CONTEST"})
+    void FR001_dynamicSourcesRejectNonPositiveLifetime(PracticeSource source) {
+        for (long seconds : new long[] {0, -1}) {
+            assertThatThrownBy(() -> service.start(command(source, List.of(choice(1)), List.of(),
+                    Duration.ofSeconds(seconds), Map.of()))).isInstanceOf(IllegalArgumentException.class);
+        }
         verifyNoInteractions(attempts, limiter);
     }
 
-    @Test
-    void FR001_gameRequiresAnExplicitLifetime() {
-        assertThatThrownBy(() -> service.start(command(PracticeSource.GAME_ROUND, List.of(choice(1)), List.of(),
+    @ParameterizedTest
+    @EnumSource(value = PracticeSource.class, names = {"GAME_ROUND", "CONTEST"})
+    void FR001_dynamicSourcesRequireAnExplicitLifetime(PracticeSource source) {
+        assertThatThrownBy(() -> service.start(command(source, List.of(choice(1)), List.of(),
                 null, Map.of()))).isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(attempts, limiter);
     }
 
     @ParameterizedTest
-    @EnumSource(value = PracticeSource.class, mode = EnumSource.Mode.EXCLUDE, names = "GAME_ROUND")
+    @EnumSource(value = PracticeSource.class, mode = EnumSource.Mode.EXCLUDE, names = {"GAME_ROUND", "CONTEST"})
     void FR001_fixedLifetimeRejectsEvenAnIdenticalOverride(PracticeSource source) {
         assertThatThrownBy(() -> service.start(command(source, List.of(choice(1)), List.of(), source.ttl(), Map.of())))
                 .isInstanceOf(IllegalArgumentException.class);

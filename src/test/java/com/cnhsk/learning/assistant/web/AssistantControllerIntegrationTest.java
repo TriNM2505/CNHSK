@@ -37,6 +37,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -297,6 +298,78 @@ class AssistantControllerIntegrationTest extends AbstractIntegrationTest {
             logger.detachAppender(appender);
             appender.stop();
         }
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "IN_PROGRESS, 600, true",
+            "SUBMITTED, 600, false",
+            "ABANDONED, 600, false",
+            "EXPIRED, 600, false",
+            "IN_PROGRESS, 0, false",
+            "IN_PROGRESS, -1, false"
+    })
+    void FR008_AT13_onlyAnActiveContestBlocksTheAssistantWithoutCallingTheStubOrTakingDailySlots(
+            String status, long remainingSeconds, boolean blocked) throws Exception {
+        long learner = contestLearner();
+        Instant now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
+        int before = stub.callCount();
+        try {
+            contestAttempt(learner, status, now.plusSeconds(remainingSeconds));
+            assertThat(activeTests.hasActiveTest(learner, now)).isEqualTo(blocked);
+            if (status.equals("IN_PROGRESS") && remainingSeconds == 0) {
+                assertThat(activeTests.hasActiveTest(learner, now.minusMillis(1))).isTrue();
+            }
+            if (!blocked) {
+                stub.enqueue(new ClaudeClient.Completion("Hướng dẫn kiểm thử cuộc thi", 1, 1));
+            }
+            var response = ask("{\"question\":\"Cuộc thi hoạt động thế nào?\"}", learner).getResponse();
+            assertThat(response.getStatus()).isEqualTo(blocked ? 403 : 200);
+            if (blocked) {
+                var error = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getContentAsByteArray());
+                assertThat(error.path("error_code").textValue()).isEqualTo("ASSISTANT_BLOCKED_DURING_TEST");
+            }
+            assertThat(stub.callCount()).isEqualTo(before + (blocked ? 0 : 1));
+            assertThat(redis.opsForValue().get(dailyKey(learner))).isEqualTo(blocked ? null : "1");
+        } finally {
+            cleanupQuizLearner(learner);
+        }
+    }
+
+    @Test
+    void FR008_AT13_anotherLearnersActiveContestDoesNotBlockTheCaller() throws Exception {
+        long learner = contestLearner();
+        long other = contestLearner();
+        int before = stub.callCount();
+        try {
+            contestAttempt(other, "IN_PROGRESS", clock.instant().plusSeconds(600));
+            assertThat(activeTests.hasActiveTest(other, clock.instant())).isTrue();
+            assertThat(activeTests.hasActiveTest(learner, clock.instant())).isFalse();
+            stub.enqueue(new ClaudeClient.Completion("Hướng dẫn kiểm thử cuộc thi", 1, 1));
+
+            assertThat(ask("{\"question\":\"Học thế nào?\"}", learner).getResponse().getStatus()).isEqualTo(200);
+            assertThat(stub.callCount()).isEqualTo(before + 1);
+            assertThat(redis.opsForValue().get(dailyKey(learner))).isEqualTo("1");
+            assertThat(redis.opsForValue().get(dailyKey(other))).isNull();
+        } finally {
+            cleanupQuizLearner(learner);
+            cleanupQuizLearner(other);
+        }
+    }
+
+    private long contestLearner() {
+        return jdbc.queryForObject("INSERT INTO auth.users(email,password_hash,display_name) "
+                + "VALUES (?,?,'Contest assistant fixture') RETURNING id", Long.class,
+                "contest-assistant-" + UUID.randomUUID() + "@example.test",
+                new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString()));
+    }
+
+    private void contestAttempt(long userId, String status, Instant expiresAt) {
+        jdbc.update("""
+                INSERT INTO learning.attempts(user_id,kind,ref_type,ref_id,status,expires_at,submitted_at)
+                VALUES (?,'CONTEST','CONTEST',21001,?,?,?)
+                """, userId, status, Timestamp.from(expiresAt),
+                "SUBMITTED".equals(status) ? Timestamp.from(clock.instant()) : null);
     }
 
     private void attempt(long userId, String source, String status, Instant expiresAt) {

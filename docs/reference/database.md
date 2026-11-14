@@ -503,6 +503,9 @@ CREATE INDEX ix_att_ref_rank ON attempts(kind, ref_id, submitted_at) WHERE statu
 -- Quiz chi tinh hang LAN DAU (UC-080) — unique chan lan 2 vao bang xep hang
 CREATE UNIQUE INDEX uq_quiz_first ON attempts(user_id, ref_id)
   WHERE kind = 'QUIZ' AND status = 'SUBMITTED';
+-- Spec 021 V9: one attempt per learner and contest, regardless of attempt status.
+CREATE UNIQUE INDEX uq_contest_attempt ON attempts(user_id, ref_id)
+  WHERE kind = 'CONTEST';
 ```
 
 > **Bảng này thay 5 bảng v5** và lấp 2 khoảng trống. Mọi luật chống gian lận
