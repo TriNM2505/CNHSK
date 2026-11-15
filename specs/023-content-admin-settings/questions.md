@@ -167,3 +167,44 @@
 - Không sửa test hoặc YAML 018/020; allowlist vẫn 24 file. Gate chạy lại:
   targeted → ReferenceContractTest + ReminderContractTest + TopicContractTest → hồi quy
   + ModuleBoundaryTest → full verify; xoá Env:DEBUG trước mỗi Maven command.
+
+## 2026-11-15 · G0 API tiên quyết đã duyệt
+
+- Allowlist 20 file: 19 file G0 và Topic.java chỉ thêm import/@DynamicUpdate, không đổi mapping khác.
+- Theo chỉ đạo mới, tạo spec/023-t08 từ đúng `00088afdda54ba54396cccde35bd67cc19af3c84`
+  (đầu PR #203), không chờ merge và không rebase. Draft PR base main ghi phụ thuộc #203;
+  trước khi #203 merge, diff có thể bao gồm T-07. Leader merge --no-ff giữ commit cha.
+- Gốc theo cạnh còn hiệu lực: bỏ ID mất khi đọc prerequisite, tính isRoot và DFS;
+  chỉ trỏ ID mất vẫn là gốc, khớp cổng T-07. PUT chặn mọi ID mới không tồn tại bằng
+  404 TOPIC_NOT_FOUND, sau ghi danh sách đích sạch. CYCLE kiểm trước NO_ROOT;
+  PREREQUISITE_NO_ROOT giữ làm lớp bảo vệ.
+- Khoá transaction chung `pg_advisory_xact_lock(hashtextextended('topic-prereq',0))`
+  trước FOR UPDATE topic đích, rồi đọc đồ thị mới nhất; DFS stack/ba màu trên toàn đồ thị;
+  chỉ UPDATE prereq_ids và audit trong cùng transaction. Writer tương thích FOR SHARE của T-07.
+- Giữ thứ tự input, không âm thầm dedup; tối đa 10 int64. Warning cấp cao hơn vẫn 200,
+  PUT luôn có warnings array; GET bỏ warnings. Audit TOPIC_PREREQ_UPDATE/TOPIC/id có before/after
+  đúng principal AuthenticatedUser, kể cả PUT không đổi; lỗi audit rollback UPDATE.
+- TopicPrerequisiteError chỉ dùng cho 422 của PUT: details.path cho CYCLE, mảng validation
+  cho VALIDATION_FAILED, không bắt buộc cho NO_ROOT. Giữ ErrorResponse chung, YAML 003 và contract/test 018/020.
+  TopicContractTest chỉ bổ sung hai path admin vào exact inventory, giữ mọi kiểm chứng learner.
+- Topic.java thêm @DynamicUpdate để importer-style save thay name/hsk/order không ghi lại
+  prereq_ids cũ. Test giữ managed entity cũ, PUT ở transaction khác commit trước rồi save name;
+  đọc DB sau cả hai commit phải giữ prerequisite mới. Không sửa TopicRowWriter.
+- Hai mã PREREQUISITE_CYCLE, PREREQUISITE_NO_ROOT sau TOPIC_LOCKED, ngay trước INTERNAL_ERROR
+  trên base nhánh. Leader giữ/tích hợp các mã QUESTION_NOT_PENDING/AI_GENERATION_* của main.
+- Matcher /api/admin/topics và /** cần CONTENT_EDITOR trước /api/admin/**;
+  ADMIN đơn lẻ không có quyền. Cookie PUT cần CSRF, bearer giữ cơ chế hiện tại.
+- Gate Java17/Testcontainers: xoá Env:DEBUG trước mọi Maven command; targeted → hồi quy
+  cổng/practice/contract/security/audit/importer topic + ModuleBoundaryTest → full verify.
+  NFR-P03 chỉ đo/log đồ thị 2000 node, không assert thời gian. Không migration/dependency/FE/Neon.
+- Targeted đầu: 93 F2/E0/S0. Hai test mới validWritesPreserveOrderWarnAndAuditEvenWhenTheListDoesNotChange
+  và selfTwoAndThreeStepCyclesAreRejectedAndTheWholeGraphIsChecked so JsonNode trực tiếp:
+  JSON đọc lại dùng IntNode, expected từ List<Long> dùng LongNode. Leader duyệt sửa 5 assertion
+  sang kiểm array/số nguyên/int64 rồi List<Long> containsExactlyElementsOf; giữ giá trị, thứ tự,
+  số lượng, fixture và production. Giữ log lượt đầu trong evidence.
+- Leader cho tự sửa lỗi assertion trong test mới thuộc task mà không dừng chờ lần nữa;
+  các lỗi khác vẫn theo quy trình dừng và năm ngoại lệ môi trường đã duyệt.
+- Gate sau sửa: targeted 93 F0/E0/S0; hồi quy 634 F0/E0/S0, gồm importer topic,
+  contract 018/020, năm test practice đọc YAML và ModuleBoundaryTest 9/9;
+  full verify 6216 F0/E0/S0, JaCoCo LINE 97,044617% (15269/15734), không dùng ngoại lệ môi trường.
+  DFS 2000 node/19945 cạnh: targeted 4,2836 ms, full 9,0914 ms; chỉ log, không assert timing.

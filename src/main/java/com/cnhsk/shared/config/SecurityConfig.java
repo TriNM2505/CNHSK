@@ -197,6 +197,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.PUT, "/api/admin/references/{id}").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers("/api/admin/exams", "/api/admin/exams/**").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers("/api/admin/settings", "/api/admin/settings/**").hasRole("ADMIN");
+                    authorize.requestMatchers("/api/admin/topics", "/api/admin/topics/**").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers("/api/admin/**").hasRole("ADMIN")
                             .requestMatchers("/api/auth/verify-email/resend", "/api/auth/logout",
                                     "/api/auth/logout-all", "/api/auth/me", "/api/me/**")

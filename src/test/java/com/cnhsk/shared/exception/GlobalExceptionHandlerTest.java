@@ -174,7 +174,7 @@ class GlobalExceptionHandlerTest {
                 "CONTEST_NOT_FOUND", "CONTEST_NOT_OPEN", "CONTEST_ALREADY_ATTEMPTED",
                 "CONTEST_SUBMIT_REQUIRED", "CONTEST_EXAM_INVALID", "EXAM_PUBLISH_INVALID", "EXAM_IN_USE",
                 "QUESTION_NOT_PENDING", "AI_GENERATION_DISABLED", "AI_GENERATION_BUSY", "TOPIC_LOCKED",
-                "CONTEST_FULL", "INTERNAL_ERROR");
+                "CONTEST_FULL", "PREREQUISITE_CYCLE", "PREREQUISITE_NO_ROOT", "INTERNAL_ERROR");
     }
 
     @Test
@@ -208,6 +208,25 @@ class GlobalExceptionHandlerTest {
                 .containsEntry("message", "Câu hỏi không hợp lệ.").containsEntry("details", details)
                 .containsKey("request_id").hasSize(4);
         assertThat(response.getBody().get("request_id")).isNotEqualTo("FORGED");
+    }
+
+    @Test
+    void prerequisiteCyclePreservesItsPathWithoutOverridingProtectedFields() {
+        var handler = new GlobalExceptionHandler();
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        var path = Map.of("path", java.util.List.of(7L, 8L, 7L));
+        var response = handler.handleApiException(new ApiException(ErrorCode.PREREQUISITE_CYCLE,
+                HttpStatus.UNPROCESSABLE_ENTITY, "Tiên quyết tạo thành vòng.", Map.of("details", path,
+                "error_code", "spoof", "message", "spoof", "request_id", "spoof")), request);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(response.getBody()).containsEntry("error_code", "PREREQUISITE_CYCLE")
+                .containsEntry("message", "Tiên quyết tạo thành vòng.").containsEntry("details", path);
+        assertThat(response.getBody().get("request_id")).isNotEqualTo("spoof");
+        for (var code : java.util.List.of(ErrorCode.PREREQUISITE_NO_ROOT, ErrorCode.TOPIC_NOT_FOUND)) {
+            var withoutDetails = handler.handleApiException(new ApiException(code, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Lỗi tiên quyết.", Map.of("details", path)), request);
+            assertThat(withoutDetails.getBody()).doesNotContainKey("details");
+        }
     }
 
     @Test
