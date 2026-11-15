@@ -154,3 +154,14 @@ Full Maven verify (Java 17.0.9, DEBUG=false, PostgreSQL/Redis Testcontainers loc
 Fetch trước bàn giao: origin/main = 0167bac (PR #190, 022/T-04 đã merge). Trong các file T-05 dùng chung, chỉ SecurityConfig thay đổi: thêm POST /api/teacher/grading-requests/{id}/complete hasRole TEACHER ở cụm giáo viên, khác vị trí matcher game. ErrorCode/GlobalExceptionHandlerTest, file 007 và các API/engine learning liên quan không đổi so với base 3164b35. Không merge/rebase main; báo leader thay đổi này để kiểm trên bản gộp.
 
 Self-check PASS: đúng 14 file đã duyệt, UTF-8 không BOM, git diff --check sạch, không dấu conflict/TODO mới; không sửa PracticeApi/PracticeApiTest/PracticeService/PracticeSourceHandler/Attempt, contract, migration, dependency, cấu hình hay frontend. Không SQL trên Neon, secrets hoặc dữ liệu HSK có bản quyền. Giữ giới hạn engine, không nhận điểm client, chỉ dùng fixture tự soạn và tài khoản test; thêm đúng một matcher POST LEARNER, không đổi CSRF/CORS/filter. Ghi rõ Q2 không nguyên tử như đã duyệt. Một conventional commit, stage từng file, Draft PR; T-05 chờ leader review.
+
+## T-09 — Phiên đăng nhập Game Box
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T09-01 | ANSWERED | Mobile bỏ 13/11. Tạm dừng FR-030 và AT-22, gồm cầu nối WebView, token tiêm và webview-harness.html. AT-19 kiểm theo nhánh cookie web. |
+| Q-T09-02 | ANSWERED | Ngoại lệ FR-024: chỉ GET /api/community/games được thử lại đúng một lần với credentials omit sau khi endpoint refresh từ chối phiên bằng 401. API trả danh mục khách (myStats null) và useCurrentUser chuyển về khách. Mọi request còn lại giữ credentials include. |
+
+Điều kiện refresh 401 TOKEN_EXPIRED hoặc SESSION_REVOKED, tên XSRF-TOKEN và X-XSRF-TOKEN, cùng ngoại lệ CSRF cho refresh được đối chiếu với cnhsk-web/src/shared/api/client.ts, src/main/java/com/cnhsk/shared/config/SecurityConfig.java và src/main/java/com/cnhsk/shared/security/JwtAuthenticationFilter.java.
+
+Gate T-09: npm ci 326 package; Vitest 33/33; lint 0 lỗi; build và typecheck PASS; Chrome 9 kiểm tra ở 320/375/640 px với API fixture local, 0 lỗi runtime; bundle gzip 74.317 byte, dưới 250 KB. Các lệnh FE chạy trên bản sao khớp từng byte trên ổ D.

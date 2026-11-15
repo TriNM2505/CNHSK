@@ -1,9 +1,25 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { appRoutes } from './routes'
+
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi
+      .fn()
+      .mockImplementation(async () =>
+        Response.json({ error_code: 'UNAUTHENTICATED' }, { status: 401 }),
+      ),
+  )
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
+})
 
 function open(path: string) {
   const router = createMemoryRouter(appRoutes, { initialEntries: [path] })
@@ -31,11 +47,25 @@ describe('game application routes (FR-027)', () => {
     'CHAR_CATCH',
     'BRUSH_STROKE',
     'FLYING_DART',
-  ])('preserves the game route parameter %s without starting a round', (code) => {
+  ])('preserves the game route parameter %s without starting a round', async (code) => {
     open(`/play/${code}?hskLevel=1`)
     expect(screen.getByRole('heading', { level: 1, name: 'Ván chơi' })).toBeVisible()
     expect(screen.getByRole('region', { name: 'Ván chơi' })).toHaveAttribute('data-game-code', code)
     expect(screen.queryByRole('button', { name: 'Bắt đầu' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Đăng nhập để chơi' })).toBeVisible()
+  })
+
+  it('AT-20 redirects through web login with the whole game URL encoded', async () => {
+    vi.stubEnv('VITE_WEB_ORIGIN', '')
+    const path = '/play/CHAR_RAIN?hskLevel=1&source=hub#round'
+    open(path)
+    const link = await screen.findByRole('link', { name: 'Đăng nhập để chơi' })
+    const href = link.getAttribute('href') ?? ''
+    const login = new URL(href)
+    expect(login.origin).toBe('http://localhost:5173')
+    expect(login.pathname).toBe('/login')
+    expect(href).toContain('redirect=http%3A%2F%2F')
+    expect(login.searchParams.get('redirect')).toBe(window.location.origin + path)
   })
 
   it.each(['/unknown', '/play', '/play/CHAR_RAIN/extra'])(
