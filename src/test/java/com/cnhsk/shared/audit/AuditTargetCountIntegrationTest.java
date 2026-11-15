@@ -121,6 +121,46 @@ class AuditTargetCountIntegrationTest extends AbstractIntegrationTest {
         return "COUNT_" + UUID.randomUUID();
     }
 
+    @Test
+    void FR022_countsActorsOnlyForTheRequestedActionTypeAndContest() {
+        long first = actor();
+        long second = actor();
+        String action = action();
+        audit.recordDetail(first, action, "CONTEST", 101, Map.of("type", "TAB_HIDDEN"));
+        audit.recordDetail(first, action, "CONTEST", 101, Map.of("type", "TAB_HIDDEN"));
+        audit.recordDetail(second, action, "CONTEST", 101, Map.of());
+        audit.recordDetail(null, action, "CONTEST", 101, Map.of());
+        audit.recordDetail(first, action + "X", "CONTEST", 101, Map.of());
+        audit.recordDetail(first, action, "OTHER", 101, Map.of());
+        audit.recordDetail(first, action, "CONTEST", 102, Map.of());
+        repository.flush();
+
+        assertThat(audit.countByActors(action, "CONTEST", 101))
+                .containsOnly(Map.entry(first, 2L), Map.entry(second, 1L));
+        assertThat(audit.countByActors("' OR true --", "CONTEST", 101)).isEmpty();
+        assertThat(audit.countByActors(action, "' OR true --", 101)).isEmpty();
+        assertThat(audit.countByActors(action, "CONTEST", 103)).isEmpty();
+    }
+
+    @Test
+    void FR022_usesOneAggregateQueryAndRejectsInvalidInputBeforeQuerying() {
+        var storage = spy(named);
+        var service = new AuditService(repository, mapper, storage);
+        assertThat(service.countByActors(action(), "CONTEST", 101)).isEmpty();
+        verify(storage, times(1)).query(anyString(), any(SqlParameterSource.class), any(RowMapper.class));
+        clearInvocations(storage);
+        assertThatIllegalArgumentException().isThrownBy(() -> service.countByActors("A", "CONTEST", 0));
+        assertThatNullPointerException().isThrownBy(() -> service.countByActors(null, "CONTEST", 101));
+        assertThatNullPointerException().isThrownBy(() -> service.countByActors("A", null, 101));
+        verifyNoInteractions(storage);
+    }
+
+    private long actor() {
+        String hash = new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
+        return jdbc.queryForObject("INSERT INTO auth.users(email,password_hash,display_name) VALUES (?,?,'Người tự soạn') RETURNING id",
+                Long.class, UUID.randomUUID() + "@example.test", hash);
+    }
+
     private void seed(String action, String type, long id, Instant createdAt) {
         jdbc.update("INSERT INTO shared.audit_logs(action,target_type,target_id,detail,created_at) "
                 + "VALUES (?, ?, ?, '{}'::jsonb, ?)", action, type, id, Timestamp.from(createdAt));

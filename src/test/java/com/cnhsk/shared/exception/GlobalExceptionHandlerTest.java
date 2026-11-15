@@ -174,7 +174,8 @@ class GlobalExceptionHandlerTest {
                 "CONTEST_NOT_FOUND", "CONTEST_NOT_OPEN", "CONTEST_ALREADY_ATTEMPTED",
                 "CONTEST_SUBMIT_REQUIRED", "CONTEST_EXAM_INVALID", "EXAM_PUBLISH_INVALID", "EXAM_IN_USE",
                 "QUESTION_NOT_PENDING", "AI_GENERATION_DISABLED", "AI_GENERATION_BUSY", "TOPIC_LOCKED",
-                "CONTEST_FULL", "PREREQUISITE_CYCLE", "PREREQUISITE_NO_ROOT", "INTERNAL_ERROR");
+                "CONTEST_FULL", "PREREQUISITE_CYCLE", "PREREQUISITE_NO_ROOT",
+                "CONTEST_LOCKED", "CONTEST_RANKING_TOO_EARLY", "CONTEST_HAS_ATTEMPTS", "INTERNAL_ERROR");
     }
 
     @Test
@@ -253,7 +254,10 @@ class GlobalExceptionHandlerTest {
                 ErrorCode.CONTEST_ALREADY_ATTEMPTED, HttpStatus.CONFLICT,
                 ErrorCode.CONTEST_SUBMIT_REQUIRED, HttpStatus.CONFLICT,
                 ErrorCode.CONTEST_EXAM_INVALID, HttpStatus.UNPROCESSABLE_ENTITY,
-                ErrorCode.CONTEST_FULL, HttpStatus.UNPROCESSABLE_ENTITY);
+                ErrorCode.CONTEST_FULL, HttpStatus.UNPROCESSABLE_ENTITY,
+                ErrorCode.CONTEST_LOCKED, HttpStatus.CONFLICT,
+                ErrorCode.CONTEST_RANKING_TOO_EARLY, HttpStatus.CONFLICT,
+                ErrorCode.CONTEST_HAS_ATTEMPTS, HttpStatus.CONFLICT);
         statuses.forEach((code, expected) -> {
             var response = handler.handleApiException(new ApiException(code, expected, "Không thể thi.",
                     Map.of("error_code", "FORGED", "message", "FORGED", "request_id", "FORGED")), request);

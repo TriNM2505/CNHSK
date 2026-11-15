@@ -294,6 +294,13 @@ class CommunityContractTest {
         assertThat(isCommunityPath("/api/public/community/contests/1")).isFalse();
         assertThat(isCommunityPath("/api/community/contests-other")).isTrue();
         assertThat(isCommunityPath("/api/public/community/contests-other")).isTrue();
+        assertThat(isContestPath("/api/admin/contests")).isTrue();
+        assertThat(isContestPath("/api/admin/contests/1/participants")).isTrue();
+        assertThat(isContestPath("/api/admin/contests-other")).isFalse();
+        var document = objectMapper.createObjectNode();
+        document.putObject("paths").putObject("/api/admin/contests-other").putObject("get")
+                .put("operationId", "otherAdminContestOperation").putObject("responses").putObject("200");
+        assertThat(readOperations(document)).containsOnlyKeys(key("GET", "/api/admin/contests-other"));
         assertThat(isCommunityPath("/api/public/community/posts")).isTrue();
         assertThat(isCommunityPath("/api/communityOther/posts")).isFalse();
         assertThat(isCommunityPath("/api/public/communityOther")).isFalse();
@@ -413,7 +420,8 @@ class CommunityContractTest {
 
     private static boolean isContestPath(String path) {
         return path.equals("/api/community/contests") || path.startsWith("/api/community/contests/")
-                || path.equals("/api/public/community/contests") || path.startsWith("/api/public/community/contests/");
+                || path.equals("/api/public/community/contests") || path.startsWith("/api/public/community/contests/")
+                || path.equals("/api/admin/contests") || path.startsWith("/api/admin/contests/");
     }
 
     private static void addMappings(Map<OperationKey, String> operations, Collection<RequestMethod> methods,
