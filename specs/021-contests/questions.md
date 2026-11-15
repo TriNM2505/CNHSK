@@ -1,5 +1,33 @@
 # Câu hỏi và quyết định — Spec #021
 
+## 2026-11-15 · G0 T-09 — leader duyệt đúng 27 file
+
+Nhánh `spec/021-t09` từ đúng `176507cba6843e42a84991d1f016dc37a3b93178` (đầu #212, có winners); leader merge giữ cha, không rebase. Chỉ làm SCR-070/071, giữ nguyên T-08. Sau gate commit đúng 27 file, mở Draft PR base main ghi **phụ thuộc #212**. Leader xử lý conflict navigation/Layouts với #208/#210 khi merge.
+
+| # | Câu hỏi | Quyết định | Trạng thái |
+|---|---|---|---|
+| Q-T09-01 | Đề đang gắn vào DRAFT bị lưu trữ | Giữ examId và tên, cảnh báo “Đề đã lưu trữ — chọn đề khác trước khi công bố”; cho lưu nháp, khoá công bố tới khi chọn đề hợp lệ. Dữ liệu cũ gây 422 CONTEST_EXAM_INVALID → thông báo và tải lại. Không tự xoá đề đã gắn | ✅ Leader duyệt |
+
+Allowlist 20 file mới dưới `cnhsk-web/src/features/contest-admin/`: `api/contests.ts`, `api/contests.test.ts`, `types.ts`, `contestForm.ts`, `contestForm.test.ts`, `contestActions.ts`, `contestActions.test.ts`, `components/ContestListView.tsx`, `components/ContestEditorForm.tsx`, `components/ContestParticipantsPanel.tsx`, `components/ContestWinnersPanel.tsx`, `pages/Scr070ContestListPage.tsx`, `pages/Scr070ContestListPage.test.tsx`, `pages/Scr071ContestEditorPage.tsx`, `pages/Scr071ContestEditorPage.test.tsx`, `catalog.preview.ts`, `catalog.preview.test.ts`, `test-fixtures.ts`, `routes.test.ts`, `screens.ts`.
+
+7 file cập nhật: `cnhsk-web/src/app/routeAccess.ts`, `cnhsk-web/src/app/screenRegistry.ts`, `cnhsk-web/src/app/preview/registry.ts`, `cnhsk-web/src/shared/layout/navigation.ts`, `cnhsk-web/src/shared/layout/Layouts.test.tsx`, `specs/021-contests/tasks.md`, `specs/021-contests/questions.md`.
+
+Shadow plan đã duyệt: đọc constitution/constraints, context, spec 012 §0, 021/spec+YAML+tasks+questions, contract GET danh sách đề 023, design/screen-fields, mẫu FE/API/test hiện có. Triển khai đúng ba route `['CONTENT_EDITOR']` layout `admin`, không thêm SCREEN_NAMES. Giờ nhập VN → ISO +07:00 độc lập múi giờ máy; API/types theo YAML, lệch thì dừng báo leader. Chỉ gọi winners từ nút “Hiện email”, cache no-store, không storage/cache, giữ email trong state tạm và xoá khi đóng/đổi cuộc thi/actor/unmount; mở lại gọi mới. 409 thông báo và tải lại, không tự lặp mutation. Preview dùng dữ liệu tự soạn, không gọi API thật.
+
+Test plan: AT-21 khoá trường khi CONTEST_LOCKED; khoá công bố trước endsAt; email ẩn và không request trước click, mỗi lần mở gọi mới; Loại/Giữ cần note 1–500, chỉ lượt SUBMITTED, khoá sau công bố; ba mã 409 tải lại; trường/giải/time offset/nullability và Q-T09-01; phân trang/lọc cuộc thi, tìm/phân trang đề DRAFT/PUBLISHED; role/menu/route/registry và preview không network. Gate `npm ci → npm test → npm run lint → npm run build`, `AssistantPromptBuilderTest` sau khi xoá Env:DEBUG; QA SCR-070/071 tại 320/375/640 px, ảnh/log ngoài commit. Chưa có kết quả gate khi ghi G0.
+
+### T-09 — kết quả triển khai và gate
+
+- Thêm hai màn đúng ba route CONTENT_EDITOR/admin; menu theo role, lazy screen registry và preview. Giữ bộ lọc/trang qua URL và state điều hướng về danh sách. Trạng thái, lý do khoá và lỗi tiếng Việt; mọi xác nhận trong màn. Khoá sửa tách khỏi khoá quyết định/công bố; 409 tải lại đúng dữ liệu, không lặp mutation.
+- Form gửi ISO +07:00 từ giờ VN, không phụ thuộc timezone máy. Đề tìm/phân trang bằng GET danh sách 023; lookup đề đang gắn duyệt từng trang khi cần để nhận đúng ARCHIVED ngoài trang hiện tại. Giữ examId/tên và cho lưu nháp theo Q-T09-01; khoá công bố khi đề chưa xác minh, không dùng được hoặc thay đổi chưa lưu. 422 CONTEST_EXAM_INVALID thông báo và tải lại.
+- Thí sinh hiển thị cờ, số chuyển tab và dữ liệu server, không tự tính điểm. Loại/Giữ có note trim không rỗng, tối đa 500; chỉ xét SUBMITTED trước công bố. Winners chỉ do click, cache no-store; StrictMode/render/công bố/reload không tự gọi, đóng/đổi cuộc thi/actor huỷ request và bỏ state email, mở lại gọi mới.
+- `npm.cmd ci`: native exit 0, 333 package từ lockfile, không thêm dependency hoặc đổi manifest/lock. PowerShell chặn npm.ps1 nên dùng npm.cmd. Hai lượt full Vitest đều **2.887 passed / 0 failed / 0 skipped**, native exit 0; lượt cuối ở `target/t09-vitest-final.json` và `.log`. Bộ liên quan trước full **109/F0/S0**. Lịch sử đầu: 13 failure trong 109 do matcher Vitest chưa hỗ trợ, query label có dấu bắt buộc và test đổi actor cần context thật; lượt tiếp 9 failure rồi đã sửa, không skip/hạ assertion. Giữ log/JSON lượt có artifact trong target.
+- `npm.cmd run lint`: native exit 0, **0 error / 1 warning đã có** tại shared/ui/LevelBadge.tsx (react-refresh/only-export-components), ngoài allowlist, không sửa. Lint không hoàn toàn hết warning; không gọi warning này là đã sửa. `npm.cmd run build`: native exit 0, tsc + Vite thành công; build đầu phát hiện option exact không được ByRoleOptions hỗ trợ trong test, đã bỏ option dư (name vẫn khớp chính xác theo mặc định), build sau xanh.
+- `AssistantPromptBuilderTest`: **19/F0/E0/S0**, native exit 0, BUILD SUCCESS; Env:DEBUG được xoá trước mỗi Maven, TEMP ASCII riêng. Lượt sandbox đầu không resolve được parent do mạng bị chặn, chưa chạy test; chạy lại ngoài sandbox thành công. Không sửa SCREEN_NAMES hoặc backend.
+- QA Chrome headless: **30 ảnh** tại **320/375/640 px**, timezone **America/Los_Angeles**, API tự soạn chặn tại trình duyệt, không chạy backend/Neon. Gồm SCR-070, form mới/nháp/đề lưu trữ/đang thi, note bắt buộc, xác nhận công bố và email ẩn/hiện. Mọi viewport scrollWidth bằng clientWidth, không exception runtime; winners chỉ do click, mỗi lần mở lại có request mới. Đã xem ảnh trực tiếp. Evidence `target/t09-qa/results.json`, 30 PNG, `target/t09-qa-final.log`; không commit ảnh/log. Các lượt thiết lập harness ban đầu lỗi do Chrome sandbox/intercept nhầm module Vite hoặc request bị huỷ đã giữ riêng, không tính là QA pass.
+
+Self-check trước nộp: **Global PASS** (đúng stack/dependency/naming, type theo YAML, không sửa module/backend); **Business PASS** (role chính xác, cookie/CSRF, server quyết trạng thái/điểm, audit winners theo từng click, không persist/log email, offset VN đúng); **Safety PASS** (đúng allowlist 27 file, không xoá file/secret/Neon/migration/BE/YAML/rebase, không đụng T-08). Không TODO/FIXME hoặc test skip/only trong feature. **Gate đạt với warning lint nền ghi rõ ở trên**; T-09 giữ 🔄 chờ leader review. GitHub xác nhận #212 còn mở, đầu đúng 176507c: Draft PR base main ghi phụ thuộc #212, phần diff tổ tiên tự hết sau leader merge giữ cha; không đổi base/rebase. Leader xử lý navigation/Layouts conflict với #208/#210.
+
 ## 2026-11-14 · G0 T-08 — leader duyệt
 
 | # | Câu hỏi | Quyết định | Trạng thái |

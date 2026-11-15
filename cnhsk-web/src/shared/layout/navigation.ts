@@ -108,6 +108,13 @@ export const adminNavigation: readonly NavigationItem[] = [
     to: '/content/topics/prerequisites',
   },
   {
+    activePrefixes: ['/content/contests'],
+    icon: Trophy,
+    label: 'Cuộc thi',
+    role: 'CONTENT_EDITOR',
+    to: '/content/contests',
+  },
+  {
     activePrefixes: ['/content/references'],
     icon: BookOpen,
     label: 'Tài nguyên tham khảo',
