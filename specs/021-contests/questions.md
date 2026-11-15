@@ -68,3 +68,50 @@
 T-03 triển khai trên đúng base `c2f85bb` theo leader duyệt. Hai integration test mới: 24 test, F0/E0/S0. Gate hồi quy theo G0: 367 test, F0/E0/S0. Full `mvnw.cmd -B verify`: 6.032 test, F0/E0/S0, native exit 0, BUILD SUCCESS; không dùng ngoại lệ môi trường. `Env:DEBUG` được xóa trước từng lệnh Maven. JaCoCo LINE từ đúng lượt full: 14.981 covered / 15.428 total = 97,10%; mọi coverage check đạt. Bốn file code/test giữ nguyên hash từ đầu tới cuối full verify; chỉ cập nhật tài liệu bàn giao sau gate.
 
 Sau gate, `origin/main` đã có merge #191 tại `ec3f865`, khớp hash leader đã báo; commit `c2f85bb` là ancestor của main. Điền hash này vào T-02 trong `tasks.md`, giữ T-03 ở 🔄 chờ review; không rebase nhánh T-03.
+
+## 2026-11-15 · G0 T-04 — leader duyệt 10 file
+
+| # | Câu hỏi | Quyết định | Trạng thái |
+|---|---|---|---|
+| Q-T04-01 | Base và bean `ContestAttemptApi` | Nhánh `spec/021-t04` từ đúng `c2c3bd55a5227ecb6e6c225eac59c0fc6379e6f3` (đầu #202). Leader merge #202 `--no-ff`, giữ commit này làm cha; không rebase T-04. Phụ thuộc nghiệp vụ vẫn T-02; Draft PR ghi **phụ thuộc #202**. Nếu #202 phải sửa, leader báo | ✅ Chốt |
+| Q-T04-02 | Hai kiểm kê 009 bắt nhầm namespace 021 | Duyệt `CommunityContractTest` và file thứ 10 `CommentModerationControllerIntegrationTest`. Loại đúng `/api/community/contests`, `/api/public/community/contests` và đường con; collector handler loại package `com.cnhsk.community.contest` và package con, như game. Giữ đúng 24 operation và kiểm tra âm, thêm `contests-other` vẫn thuộc 009. `/api/admin/contests/**` không thuộc kiểm kê này | ✅ Chốt |
+| Q-T04-03 | Phạm vi và gate | FR-009/FR-010, AT-14; entity khớp V2, chỉ `PUBLISHED`, trạng thái từ `Clock`, giờ trả `+07:00`. `participantCount`/đề qua `ContestAttemptApi`; không đọc trực tiếp bảng learning/auth trong production. Không migration, dependency, `SecurityConfig`, contract hoặc mã lỗi mới. Xóa `Env:DEBUG` trước từng Maven; test liên quan + contract 009 + module boundary, rồi full verify/JaCoCo LINE. Chỉ đúng năm ngoại lệ môi trường đã duyệt, không skip/nới assertion hay gọi exit 1 là PASS | ✅ Chốt |
+
+Shadow plan đã duyệt: đọc constitution/constraints, spec 021 + YAML, spec 012 §0, V2 và mẫu controller/test hiện có; sửa đúng allowlist dưới đây; chạy test liên quan rồi full verify; tự kiểm, commit đúng 10 file, push nhánh và mở Draft PR base main. Không merge hoặc chuyển Ready.
+
+1. `src/main/java/com/cnhsk/community/contest/Contest.java`
+2. `src/main/java/com/cnhsk/community/contest/ContestRepository.java`
+3. `src/main/java/com/cnhsk/community/contest/ContestQueryService.java`
+4. `src/main/java/com/cnhsk/community/contest/web/ContestViews.java`
+5. `src/main/java/com/cnhsk/community/contest/web/PublicContestController.java`
+6. `src/test/java/com/cnhsk/community/contest/PublicContestIntegrationTest.java`
+7. `specs/021-contests/questions.md`
+8. `specs/021-contests/tasks.md`
+9. `src/test/java/com/cnhsk/contract/CommunityContractTest.java`
+10. `src/test/java/com/cnhsk/community/moderation/CommentModerationControllerIntegrationTest.java`
+
+Năm ngoại lệ giữ nguyên từ gate chung (đối chiếu `specs/013-credit-cards/questions.md`): hai assertion Redis của `LoginAttemptServiceIntegrationTest` (`FR046_FR047_FR048_fifthFailureBlocksOnlyTheEmailIpPairAndUsesActualRedisExpiry` và `redisFailuresInAllThreeOperationsFailOpenAndOnlyLogSafeWarnings`); assertion p95 của `ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget`, `QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries`, `QuestionAdminControllerIntegrationTest.NFR_P02_fiveThousandSelfAuthoredQuestionsAreListedByKidWithinOneHundredMillisecondsP95`. Không mở rộng sang assertion chức năng hoặc lỗi khác trong cùng method.
+
+Checkpoint trước triển khai phần chính: hai file kiểm kê 009 đã sửa và chạy riêng **31/F0/E0/S0**, Maven native exit 0. Lượt đầu bị sandbox chặn Maven dependency resolution, chưa chạy test; lượt ngoài sandbox thành công. Chưa dùng checkpoint này thay cho gate sau khi thêm hai GET.
+
+## 2026-11-15 · T-04 — lịch sử gate đầu và leader duyệt file 11
+
+**T-04 cập nhật kiểm kê entity của 009 (CommunityArchitectureTest) thêm Contest**.
+
+Full verify đầu giữ nguyên kết quả **FAILED/native exit 1: 6.074/F2/E0/S0**, 385 suite, từ `11:34:34.7325405` đến `11:54:07.4801050` (+07). Hai failure ngoài năm ngoại lệ: `CommunityArchitectureTest.communityHasExactlyTheFourMappedEntities` (tập cũ có 4 entity, thực tế thêm `Contest`) và `entitiesUseExplicitCommunityTablesAndScalarReferences` (map cũ chưa có `Contest → contests`). Tám file Java T-04 giữ nguyên hash qua lượt full này. JaCoCo report/check riêng trên đúng exec full đầu: native exit 0, LINE **15.057/15.504 = 97,12%**; coverage đạt không thay đổi verdict full FAILED. Log/XML/exec của lượt đầu được giữ riêng trong `target/` và thư mục TEMP của lượt chạy.
+
+Trước full đầu: targeted đầu **131/F1/E1/S0**, native 1 (offset JSON thành UTC và fixture `SUBMITTED` thiếu `submitted_at`). Bản sửa annotation đầu không compile do Jackson không có thuộc tính đã dùng; không có test được chạy ở checkpoint đó. Targeted tiếp theo **131/F1/E0/S0**, native 1 (còn offset UTC). Sau khi dùng pattern múi giờ đã có trong repo và thêm test bảo toàn microsecond, targeted **132/F0/E0/S0**, native 0; riêng T-04 **42/F0/E0/S0**. Giữ mọi kết quả cũ, không coi lượt lỗi là ngoại lệ môi trường.
+
+Sau full đầu, leader yêu cầu giữ allowlist 10 file và dừng; chưa commit/push/PR. Chỉ đạo tiếp theo duyệt file thứ 11: `src/test/java/com/cnhsk/community/CommunityArchitectureTest.java`. Phạm vi chỉ thêm `Contest.class` vào tập entity (đổi tên method thành `communityHasExactlyTheFiveMappedEntities`) và thêm `Contest.class, "contests"` vào map bảng, cùng import cần thiết. Giữ schema `community`, mọi kiểm tra cấm quan hệ JPA/`ElementCollection`, hai luật ranh giới module và `repositoriesProvideOnlyTheJpaFoundation`. `Contest` vẫn là entity V2 với `exam_id`/`created_by` scalar; repository không kế thừa `JpaRepository`.
+
+Shadow plan tiếp tục đã duyệt: sửa file 11 và tài liệu trong allowlist; chạy riêng `CommunityArchitectureTest` → bộ test liên quan → full verify mới, xóa `Env:DEBUG` trước từng Maven. Chỉ khi đạt gate mới commit đúng **11 file**, push `spec/021-t04`, mở Draft PR base main ghi **phụ thuộc #202**; giữ base `c2c3bd5`, không rebase/merge/Ready.
+
+### Kết quả sau duyệt file 11
+
+- `CommunityArchitectureTest` riêng: **5/F0/E0/S0**, native exit 0.
+- Bộ liên quan 10 suite (T-04, cả hai kiểm kê 009, `ModuleBoundaryTest`, kiến trúc community, engine/đồng thời/xếp hạng/loại thí sinh và cô lập mastery cuộc thi): **137/F0/E0/S0**, native exit 0. Riêng `PublicContestIntegrationTest`: **42/F0/E0/S0**, kiểm guest và sáu role, cookie/CSRF, dữ liệu công khai, validation/404, sắp nhóm/phân trang, biên starts/ends theo `Clock`, port learning thật, `+07:00` và microsecond.
+- Full verify lần hai: **6.074/F0/E0/S0**, 385 suite mới, native exit 0, **BUILD SUCCESS**; `12:06:37.8394609` → `12:27:16.4960247` (+07), trong deadline `13:06:37.8394609`. Tổng XML khớp Maven; không dùng ngoại lệ môi trường. Lượt đầu **6.074/F2/E0/S0 — FAILED** phía trên vẫn được giữ nguyên.
+- JaCoCo từ đúng exec full lần hai: **15.057/15.504 LINE = 97,12%**, report/check đạt. Hai package `community.contest` và `.web`: **76/76 LINE = 100%**. Một session, không class mismatch; chín file Java trong allowlist giữ nguyên hash từ trước đến sau full. Exec SHA-256 `1B510A60C1F1F695C3E97C7B9A3C625860C4CF7A6FC084E9C1A534B6043228F2`.
+- Evidence riêng: `target/t04-architecture-approved*`, `t04-targeted-approved*`, `t04-full2*`; log/XML/report full đầu vẫn tại `t04-full*`, `t04-full-failed-reports/`, `t04-full1-jacoco/` và TEMP riêng. `Env:DEBUG` được xóa trước từng lệnh Maven.
+
+Self-check trước nộp: **Global PASS** (stack/dependency/naming giữ đúng; chỉ gọi chéo qua `learning.api.ContestAttemptApi`); **Business PASS** (chỉ `PUBLISHED`, trạng thái từ giờ server, response không có PII/đáp án/điểm; không đổi nghiệp vụ tiền/chấm điểm); **Safety PASS** (đúng 11 file đã duyệt, entity giữ schema `community` và scalar ID, không migration/SQL Neon/config bảo mật/dependency/secret/xóa file). Hai kiểm kê 009 vẫn khóa đúng 24 operation và giữ kiểm tra âm. `git diff --check` sạch, không `TODO` trong code T-04 mới; Maven không cấu hình Java linter riêng. OpenAPI đã được duyệt, hai GET khớp path/method/status của YAML, không sửa contract. Task chờ leader review; chưa tự nhận merge.

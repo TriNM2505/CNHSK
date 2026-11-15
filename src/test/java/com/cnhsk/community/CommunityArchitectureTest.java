@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.cnhsk.community.comment.Comment;
 import com.cnhsk.community.comment.CommentRepository;
+import com.cnhsk.community.contest.Contest;
 import com.cnhsk.community.moderation.ModerationCase;
 import com.cnhsk.community.moderation.ModerationCaseRepository;
 import com.cnhsk.community.post.Post;
@@ -65,13 +66,13 @@ class CommunityArchitectureTest {
                     .allowEmptyShould(false);
 
     @ArchTest
-    static void communityHasExactlyTheFourMappedEntities(JavaClasses classes) {
+    static void communityHasExactlyTheFiveMappedEntities(JavaClasses classes) {
         Set<Class<?>> entities = classes.stream()
                 .filter(javaClass -> javaClass.isAnnotatedWith(Entity.class))
                 .map(javaClass -> (Class<?>) javaClass.reflect())
                 .collect(Collectors.toSet());
 
-        assertEquals(Set.of(Post.class, Comment.class, Reaction.class, ModerationCase.class), entities);
+        assertEquals(Set.of(Post.class, Comment.class, Reaction.class, ModerationCase.class, Contest.class), entities);
     }
 
     @ArchTest
@@ -80,7 +81,8 @@ class CommunityArchitectureTest {
                 Post.class, "posts",
                 Comment.class, "comments",
                 Reaction.class, "reactions",
-                ModerationCase.class, "moderation_cases");
+                ModerationCase.class, "moderation_cases",
+                Contest.class, "contests");
 
         for (var javaClass : classes) {
             if (!javaClass.isAnnotatedWith(Entity.class)) {
