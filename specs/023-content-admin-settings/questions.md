@@ -616,3 +616,78 @@
 - Trước khi mở PR đã kiểm tra #218/T-10 được merge. Giữ base afc2c3f đã duyệt,
   không tự rebase/merge main; leader gộp phần route/registry/preview/navigation và
   tasks/questions nếu có conflict, giữ cả T-09/T-10 và số link nhiều role là 12.
+
+## T-13 — Nguồn số token tháng cho SCR-078 · G0 duyệt 9 file
+
+- Leader duyệt base `285d4d6`, nhánh `spec/023-t13`, đúng ADD 6 + MODIFY 3,
+  được làm thẳng G1 → gate → commit → Draft PR. T-09/#219 đã merge và giữ nguyên FE.
+- Q1 đã duyệt: counter âm trong hàm đọc mới coi là hỏng, trả used=null,
+  available=false; log WARN ngắn, không chứa giá trị thô hoặc exception/stack trace.
+  Không thay hành vi đọc/kiểm tra/ghi của check()/add()/execute().
+- Contract đã chốt và đối chiếu FE: GET `/api/admin/ai-usage` chỉ ADMIN, 200
+  `{month: yyyy-MM, used: long|null, budget: int, available: boolean}`. Month theo
+  Asia/Ho_Chi_Minh, key ai:tokens:uuuuMM. Budget đọc SettingsApi ở mỗi lần gọi,
+  không cache/fallback riêng. Key thiếu → 0/true; DataAccessException hoặc counter
+  hỏng/overflow/âm → null/false, vẫn HTTP 200. Không gọi nhà cung cấp hoặc tính lại
+  usage từ lịch sử; không tạo key, cộng token, sửa counter hay gia hạn TTL.
+- TokenBudget chỉ thêm currentUsage(), record bất biến và helper tháng/key dùng
+  chung. Execute chỉ thay hai dòng dựng tháng/key bằng helper; expiry, supplier,
+  check/add, Lua, key format, TTL, hoàn lượt, idempotency và fail-open giữ nguyên.
+- Controller và record response trong learning.ai.web; OpenAPI mô tả 200/401/403,
+  lỗi dùng cấu trúc chung error_code/message/request_id. Không sửa SecurityConfig:
+  rule /api/admin/** đã ADMIN. Phụ lục v1-1 chỉ chứa một path/operation này;
+  không sửa YAML gốc hoặc ContentAdminContractTest (10 path/13 operation).
+- Allowlist ADD 6: `src/main/java/com/cnhsk/learning/ai/web/AiUsageController.java`,
+  `src/test/java/com/cnhsk/learning/ai/TokenBudgetUsageTest.java`,
+  `src/test/java/com/cnhsk/learning/ai/TokenBudgetUsageIntegrationTest.java`,
+  `src/test/java/com/cnhsk/learning/ai/web/AiUsageControllerIntegrationTest.java`,
+  `src/test/java/com/cnhsk/contract/ContentAdminUsageContractTest.java`,
+  `specs/023-content-admin-settings/contracts/openapi-content-admin-v1-1.yaml`.
+- Allowlist MODIFY 3: `src/main/java/com/cnhsk/learning/ai/TokenBudget.java`,
+  `specs/023-content-admin-settings/tasks.md`, `specs/023-content-admin-settings/questions.md`.
+- Test mới tách riêng để không đổi assertion test cũ. Unit kiểm số long, key thiếu,
+  biên tháng/năm VN trên cùng instance, budget thay đổi, lỗi Redis/counter và log
+  an toàn; verify chỉ có GET counter. Redis thật Testcontainers dùng tháng 2198
+  riêng để kiểm key thiếu không tạo, counter/TTL không đổi, key persistent không
+  thêm expiry, hỏng không tự sửa, rollover và execute/read dùng chung key.
+- HTTP test dùng JWT/cookie thật và SettingsApi bean thật: ADMIN/multi-role 200,
+  role khác 403, guest 401; key thiếu, counter long/hỏng/âm, Redis lỗi vẫn 200;
+  thay budget qua API settings phản ánh ngay và giữ usage. Spy Redis chỉ mô phỏng
+  lỗi đọc counter của fixture. Snapshot/restore counter cùng TTL và setting, dọn
+  audit/actor riêng; không @MockitoBean SettingsApi.
+- Contract test phụ lục kiểm YAML ↔ /v3/api-docs ↔ RequestMappingHandlerMapping,
+  hai chiều path/method/status, owner package learning.ai.web; namespace chỉ root
+  hoặc root + '/', không nhận sibling prefix. Mapping ngoài phạm vi, owner lạ,
+  method không khai báo hoặc duplicate đều fail. Self-test bộ so sánh trong bộ nhớ;
+  mismatch thực tế ghi `target/content-admin-usage-contract-mismatches.json`, dừng
+  báo leader, không tự sửa contract/controller để che lệch.
+- Targeted gate PASS: 71 test F0/E0/S0, gồm 41 test mới và hồi quy TokenBudgetTest,
+  TokenBudgetIntegrationTest, ContentAdminContractTest, AssistantContractTest,
+  ModuleBoundaryTest. Phụ lục khớp một path/operation, status 200/401/403; không có
+  mismatch runtime/YAML/handler. Không cần sửa file ngoài allowlist hoặc test cũ.
+- Full `mvnw.cmd -B verify`: 6716 test, 427 lớp, F1/E0/S0, thời gian 34:40;
+  exit 1 chỉ vì ngoại lệ đã duyệt
+  `QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries`.
+  Số đo 5000 câu, 5 mẫu ms `[34715, 22744, 22474, 23149, 22015]`, local p95
+  34715 ms so với ngưỡng <30000 ms. Không sửa test/threshold/nghiệp vụ import,
+  không bỏ test khỏi lượt full; không có lỗi nào ngoài năm ngoại lệ được phép.
+- Vì Surefire dừng verify trước đóng gói/coverage khi có lỗi trên, chạy bổ sung
+  `mvnw.cmd -B -DskipTests verify` để thực hiện các phase còn lại bằng coverage đã
+  sinh từ đủ 6716 test. Bước này không chạy lại test; BUILD SUCCESS, JaCoCo check
+  PASS, LINE 97,174283% = 15991/16456 dòng. SHA-256 của file execution data trước/sau
+  bước đóng gói giống nhau, không thay dữ liệu coverage. Không diễn đạt lượt full
+  là F0 hoặc che ngoại lệ bằng cấu hình test failure ignore.
+- Trước mỗi lệnh Maven đã Remove-Item Env:DEBUG, dùng Java 17. HTTP security,
+  Redis thật không tạo key/đổi counter/gia hạn TTL, budget đổi qua SettingsApi,
+  rollover tháng VN, counter âm/hỏng/Redis lỗi và log an toàn đều PASS.
+- Log ở `C:\KLTN_FALL2026\023-t13-targeted.log`, `023-t13-verify.log`,
+  `023-t13-package-coverage.log`. Tổng hợp JUnit, bản sao execution data và hash ở
+  `C:\KLTN_FALL2026\qa-023-t13`; JaCoCo ở target/site/jacoco. Không commit artifact.
+- Self-check PASS: đúng ADD 6 + MODIFY 3, base/branch đúng, UTF-8 không BOM,
+  git diff --check sạch; so sánh thân execute chỉ có hai thay thế helper đã duyệt,
+  check/add giữ nguyên. Không sửa FE, SecurityConfig, YAML gốc, ContentAdminContractTest,
+  test cũ, SettingsApi/SettingKey/AiConfig, migration/schema hoặc dependency; không
+  @MockitoBean SettingsApi. Fixture tự soạn, snapshot/restore setting/counter/TTL,
+  không Neon/.env/secret/PII thật/dữ liệu đề HSK có bản quyền. File nháp shadow-plans,
+  PR body, logs, JAR, target và coverage ngoài commit.
+- T-13 giữ 🔄 khi mở Draft PR; leader review/merge mới chốt spec 023 đóng 13/13.
