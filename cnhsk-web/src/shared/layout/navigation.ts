@@ -10,6 +10,7 @@ import {
   Mic2,
   PenTool,
   ReceiptText,
+  Settings,
   ShieldCheck,
   Trophy,
   Upload,
@@ -99,6 +100,14 @@ export const gameNavigationItem = {
 } as const
 
 export const adminNavigation: readonly NavigationItem[] = [
+  {
+    activePrefixes: ['/admin/settings'],
+    icon: Settings,
+    label: 'Cài đặt hệ thống',
+    mobileLabel: 'Cài đặt',
+    role: 'ADMIN',
+    to: '/admin/settings',
+  },
   {
     activePrefixes: ['/content/topics/prerequisites'],
     icon: GitBranch,

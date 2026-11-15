@@ -7,6 +7,9 @@ import { createScreenRegistry, screenRegistry, type ScreenCatalog } from '@/app/
 const TestScreen = lazy(async () => ({ default: () => null }))
 
 describe('screen registry', () => {
+  it('registers system settings', () => {
+    expect(screenRegistry['SCR-078']).toBeDefined()
+  })
   it('registers the topic prerequisite screen', () => {
     expect(screenRegistry['SCR-067']).toBeDefined()
   })

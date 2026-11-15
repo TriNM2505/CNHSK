@@ -35,12 +35,18 @@ Sửa code module khác (013/014/015/019, 003) → mỗi chỗ một task nhỏ,
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-09 | FE SCR-078 (bảng theo nhóm, sửa có lý do, về mặc định, lịch sử, token đã dùng) | `web/features/admin-settings/**`, `routeAccess.ts`, `screenRegistry.ts`, menu quản trị + test | FR-008 · AT-20 | ⬜ |
+| T-09 | FE SCR-078 (bảng theo nhóm, sửa có lý do, về mặc định, lịch sử, token đã dùng); phần token phụ thuộc T-13 | `web/features/admin-settings/**`, `routeAccess.ts`, `screenRegistry.ts`, menu quản trị + test | FR-008 · AT-20 | ✅ G2 base `afc2c3f`, 27 file: targeted 120/120, full Vitest cuối 3014/3014 (228 file), không unhandled error/ngoại lệ; lint 0 lỗi/1 warning cũ, build PASS, QA 56 phép đo 320/375/640, AssistantPromptBuilderTest 19/19; phần token phụ thuộc T-13; Draft chờ leader review/merge |
 | T-10 | FE SCR-065/066 (bảng đề, trình sửa phần + chọn câu từ `/api/admin/questions`, kéo thả, lỗi công bố, 409) | `web/features/exam-admin/**`, `routeAccess.ts`, `screenRegistry.ts`, menu + test | FR-019 · AT-20 | ⬜ |
 | T-11 | FE SCR-067 + hiển thị khoá ở SCR-011/012 (003) | `web/features/topic-admin/**`, `web/features/vocab/**` (thẻ chủ đề), `routeAccess.ts`, `screenRegistry.ts` + test | FR-026 · AT-20 | ✅ G2 base `3716330`, phụ thuộc #207: targeted 256/256; full Vitest 2871/2871 (214 file); lint 0 lỗi/1 warning cũ; build PASS; QA 27 phép đo không tràn ngang 320/375/640; AssistantPromptBuilderTest 19/19; Draft chờ leader review/merge |
 | T-12 | Test hợp đồng `/v3/api-docs` so `openapi-content-admin.yaml` (hai chiều path + method + status) | `t/contract/ContentAdminContractTest.java` | §13 · AT-21 | ✅ G2 base `e681945`, đúng 3 file: targeted 6, hồi quy + boundary 21, full verify 6457 F0/E0/S0; LINE 97,115925% (15557/16019); 10 path/13 operation khớp, không dùng ngoại lệ; Draft chờ leader review/merge |
 
 ## Thứ tự
+
+| ID | Task bổ sung được leader chốt | File dự kiến | Spec | TT |
+|---|---|---|---|---|
+| T-13 | Nguồn HTTP token usage chỉ đọc: `GET /api/admin/ai-usage` (`ADMIN`), tháng VN, Redis lỗi trả `used=null`, `available=false`; FR-008 còn thiếu nguồn số liệu | `learning/ai/web/AiUsageController.java`, `TokenBudget.java`, phụ lục mới `contracts/openapi-content-admin-v1-1.yaml` + test riêng; không sửa YAML gốc/ContentAdminContractTest/SecurityConfig | FR-008 | ⬜ G0 riêng chờ duyệt; T-09 được merge độc lập, phần token phụ thuộc T-13 |
+
+Spec 023 đóng khi T-09 + T-10 + T-13 merge, theo chỉ đạo leader.
 
 ```
 T-01(⚿K7, V10 sau V9) ─► T-02 ─► T-03, T-04 ─► T-09

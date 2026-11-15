@@ -4,6 +4,14 @@ import { appRouteDefinitions, canUserAccessRoute, findKnownRoute } from '@/app/r
 import { appRoutes } from '@/app/routes'
 
 describe('route access table', () => {
+  it('requires ADMIN for SCR-078 in the admin layout', () => {
+    const route = findKnownRoute('/admin/settings')!
+    expect(route).toMatchObject({ scr: 'SCR-078', access: ['ADMIN'], layout: 'admin' })
+    const user = { id: 1, displayName: 'Test', email: 'test@example.invalid', emailVerified: true }
+    expect(canUserAccessRoute({ ...user, roles: ['ADMIN'] }, route.access)).toBe(true)
+    for (const role of ['CONTENT_EDITOR', 'LEARNER', 'TEACHER', 'MODERATOR', 'ACCOUNTANT'] as const)
+      expect(canUserAccessRoute({ ...user, roles: [role] }, route.access)).toBe(false)
+  })
   it('requires the exact CONTENT_EDITOR role for SCR-067 in the admin layout', () => {
     const route = findKnownRoute('/content/topics/prerequisites')!
     expect(route).toMatchObject({ scr: 'SCR-067', access: ['CONTENT_EDITOR'], layout: 'admin' })

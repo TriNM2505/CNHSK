@@ -258,6 +258,26 @@ describe('LearnerLayout', () => {
 })
 
 describe('AdminLayout', () => {
+  it('shows settings active for ADMIN on desktop and mobile', () => {
+    renderLayout(<AdminLayout>Cài đặt</AdminLayout>, {
+      initialPath: '/admin/settings',
+      user: { ...learner, roles: ['ADMIN'] },
+    })
+    for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
+      const link = within(screen.getByRole('navigation', { name })).getByRole('link', {
+        name: 'Cài đặt hệ thống',
+      })
+      expect(link).toHaveAttribute('href', '/admin/settings')
+      expect(link).toHaveAttribute('aria-current', 'page')
+    }
+  })
+  it.each(['CONTENT_EDITOR', 'LEARNER', 'TEACHER', 'MODERATOR', 'ACCOUNTANT'] as const)(
+    'hides settings from %s',
+    (role) => {
+      renderLayout(<AdminLayout>Nội dung</AdminLayout>, { user: { ...learner, roles: [role] } })
+      expect(screen.queryByRole('link', { name: 'Cài đặt hệ thống' })).not.toBeInTheDocument()
+    },
+  )
   it('shows the prerequisite destination active on desktop and mobile only for CONTENT_EDITOR', () => {
     renderLayout(<AdminLayout>Nội dung tiên quyết</AdminLayout>, {
       initialPath: '/content/topics/prerequisites',
@@ -325,11 +345,12 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(10)
+      expect(within(navigation).getAllByRole('link')).toHaveLength(11)
       for (const label of [
         'Nhập dữ liệu',
         'Tiên quyết chủ đề',
         'Người dùng',
+        'Cài đặt hệ thống',
         'Bài chờ duyệt',
         'Báo cáo vi phạm',
         'Tài nguyên tham khảo',
