@@ -17,6 +17,7 @@ type UserArea = {
 
 const userAreas: readonly UserArea[] = [
   { label: 'Học tập', role: 'LEARNER', to: '/learn/topics' },
+  { label: 'Chấm bài viết', role: 'TEACHER', to: '/teacher/grading' },
   { label: 'Nhập dữ liệu', role: 'CONTENT_EDITOR', to: '/content/imports' },
   { label: 'Quản trị người dùng', role: 'ADMIN', to: '/admin/users' },
 ]
@@ -56,7 +57,7 @@ export function AccountMenu({ inverse = false }: AccountMenuProps) {
       <div className="absolute right-0 z-30 mt-2 w-64 rounded-md border border-line bg-surface p-2 shadow-lg">
         <p className="truncate px-3 py-2 text-label text-ink">{user.displayName}</p>
 
-        {areas.length >= 2 ? (
+        {areas.length >= 2 || user.roles.includes('TEACHER') ? (
           <div className="border-y border-line py-2">
             <p className="px-3 pb-1 text-caption text-ink-muted">Khu vực của bạn</p>
             {areas.map((area) => (

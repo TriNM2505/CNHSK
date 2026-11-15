@@ -185,3 +185,33 @@ Surefire dừng lifecycle trước phase verify vì hai failure trên. Đã ch�
 Fetch cuối trước bàn giao: origin/main=611f764. Hai đường dẫn specs/022-teacher-grading/tasks.md và questions.md đã thay đổi trên main so với base; file GradingContractTest.java chưa có trên main. Giữ base a1d39fd theo G0, không merge/rebase/pull; báo leader khi giao PR để giữ đầy đủ các mục tài liệu khi gộp.
 
 Self-check: đúng ba file allowlist; chỉ đổi ô trạng thái T-09, không đổi trạng thái task khác; git diff --check sạch, UTF-8 không BOM. Không thay đổi controller, YAML, business code, schema/migration, dependency/lockfile, cấu hình hoặc test của spec khác. Không chạy FE theo G0. target/grading-contract-mismatches.txt và mọi log/coverage artifact không commit. Không dùng Neon, secret hoặc dữ liệu HSK có bản quyền. T-09 giữ chờ review; leader merge.
+
+
+## T-07 — FE giáo viên, SCR-056/057 (2026-11-15)
+
+G0 duyệt 28 file, base 611f7642cc31eecaab43a174e0015230ec19440b (#197/T-06 đã merge), nhánh spec/022-t07. 17 file features/teacher-grading và 11 file có sẵn: routeAccess, screenRegistry, preview registry, navigation, Layouts.test, AccountMenu, grading/routes.test, AssistantPromptBuilder main/test, tasks/questions. Không mở rộng allowlist.
+
+| Chốt | Trạng thái | Quyết định |
+| --- | --- | --- |
+| Q-T07-01 | ANSWERED | Chấm bài giữ trong learnerNavigation, chuyển cuối mảng ngay sau Tài liệu tham khảo; mobile vẫn ở Thêm. Không chuyển sang Cộng đồng. Giữ count Học tập=7 và Cộng đồng=3 trong Layouts.test; chỉ thêm assertion vị trí tại grading/routes.test. Không sửa LearnerLayout hoặc AdminLayout. |
+| Q-T07-02 | ANSWERED | Complete 200 hiển thị chính response server ở chế độ chỉ đọc và link về hàng đợi. Refresh GET sau COMPLETED nhận 403 thì hiện thông báo + link về hàng đợi; không POST lại. |
+| Q-T07-03 | ANSWERED | userAreas thêm Chấm bài viết / TEACHER / /teacher/grading. Để TEACHER thuần cũng thấy entry, khối khu vực hiển thị khi có nhiều khu vực hoặc có TEACHER; hành vi LEARNER thuần một khu vực vẫn giữ như cũ. Có test cho TEACHER, LEARNER+TEACHER và LEARNER không thấy entry. adminNavigation thêm đúng role TEACHER, giữ cơ chế lọc role sẵn có. |
+
+FR-016 / phần giáo viên AT-18: Page gọi đúng 6 operation trong OpenAPI, View thuần props, preview dùng fixture tự soạn. Queue và mine tải riêng, đủ loading/error/empty/ready, phân trang zero-based. Claim 409 hiện Bài đã có người nhận và GET lại cả queue/mine; không tự POST lại. Workspace hiển thị bài/đề/nhận xét/sửa lỗi bằng JSX text, đếm ngược hạn; bốn tiêu chí nguyên 0–25, tổng tự cộng, feedback 1–5.000 code point, tối đa 50 dòng (original/corrected có nội dung, tối đa 500; note rỗng/null được, tối đa 500). Nội dung hợp lệ giữ nguyên whitespace/xuống dòng. Request chỉ có criteria/feedback/corrections, không score/payout. Server quyết định deadline/điểm/payout; lỗi 422 giữ form, không tự thử lại. Complete/release xác nhận trong trang; chặn gửi kép và tranh thao tác ở client; đổi account/ID xoá draft, huỷ GET và bỏ phản hồi mutation cũ. Không lưu bài hoặc draft vào browser storage.
+
+BE chỉ thêm SCR-056 Hàng đợi chấm bài, SCR-057 Chấm bài viết vào SCREEN_NAMES. Test invariant cũ quy định mọi route ngoài learner/by-role không có tên; cập nhật đúng hai ngoại lệ SCR-056/057 theo G0, giữ nguyên kiểm learner và mọi màn quản trị khác, đồng thời thêm hai ca kiểm tên chính xác. Không sửa logic assistant hoặc backend grading, controller, contract, CSRF, dependency, migration hay cấu hình. Không chạy full Maven theo gate đã duyệt.
+
+Gate thực tế trên bản code cuối:
+- npm ci PASS, lockfile không đổi. Prettier chỉ chạy đúng các file TS/TSX allowlist, không format Markdown.
+- Typecheck PASS. Test chọn lọc teacher-grading + grading/routes.test.tsx + Layouts.test.tsx + routeAccess.test.tsx: 94/94, 9 file, PASS (22,32 s).
+- AssistantPromptBuilderTest: 21/21, F0/E0/S0, BUILD SUCCESS. Không chạy test BE khác hoặc full verify.
+- Lint PASS: 0 lỗi, chỉ warning LevelBadge có sẵn. Build (tsc -b + Vite) PASS, Vite 8,39 s.
+- Full Vitest hai worker: 2.863/2.863, 216/216 file PASS (260,28 s). Không có failure/error/skip, không cần dùng ngoại lệ chập chờn hoặc chạy riêng lại.
+
+Lượt đầu lỗi hai ca AccountMenu mới do it.each tách mảng role thành tham số; đã đổi fixture sang object roles, không hạ assertion. BE lượt đầu lỗi invariant non-learner như trên; đã sửa đúng hai ngoại lệ tên màn được duyệt trong file test allowlist, giữ tên test và các assertion khác. Chạy lại tương ứng đều đạt trước bàn giao.
+
+QA Chrome DevTools/CDP local: 27 kiểm tra PASS ở 320/375/640 px. Cả queue/workspace không tràn toàn trang; bảng overflow-x-auto và cuộn tới nút Nhận được; nút Nộp ở cuối form không bị nav cố định che. Kiểm nhận 200 → workspace, nộp 200 → readonly, refresh COMPLETED 403 → thông báo/đường về, trả lại 204 → queue; AccountMenu cho TEACHER và LEARNER+TEACHER, LEARNER thuần không có entry; Chấm bài cuối Học tập sau Tài liệu tham khảo; loading/error/empty. Không runtime exception. API bị intercept bằng fixture local tự soạn, không phải nghiệm thu backend thật T-08; không dùng tài khoản/cookie/token thật, không Neon. Ảnh PNG ngoài repo, không commit. Công cụ CUA vẫn lỗi failed to write kernel assets nên chưa đính kèm ảnh lên GitHub; bàn giao gói ảnh riêng, không ghi là đã tải lên PR.
+
+T-06 ghi MERGED #197/611f764 theo xác nhận leader; T-07 giữ chờ review. T-09 nằm riêng ở PR #198/base a1d39fd, không rebase/gộp nhánh đó. Một conventional commit đúng 28 file, không mã task/FR trong message, Draft PR; leader merge.
+
+Fetch cuối trước bàn giao: origin/main=6a171a4. So với base, main đã đổi AccountMenu.tsx (link Gói dịch vụ và điểm cho LEARNER), navigation.ts (ba mục tài chính ADMIN), Layouts.test.tsx và hai tài liệu 022. Những thay đổi này nằm ngoài code T-09; báo leader lưu ý giữ cả bổ sung tài chính trên main và lối giáo viên/vị trí Chấm bài của T-07 khi gộp. Không copy đè, merge/rebase/pull main hoặc sửa các bổ sung tài chính. Gate ở trên chạy trên base 611f764 như G0. Self-check cuối: đúng 28 file allowlist; UTF-8 không BOM, diff sạch, lockfile không đổi; ảnh/log/artifact QA không stage. Đã dừng riêng Vite của task và Chrome headless tự đóng; không dừng app/container của người khác.
