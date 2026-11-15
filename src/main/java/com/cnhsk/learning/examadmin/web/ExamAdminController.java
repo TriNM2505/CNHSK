@@ -105,6 +105,35 @@ public class ExamAdminController {
         });
     }
 
+    @PostMapping("/{id}/publish")
+    @Operation(operationId = "adminPublishExam", tags = "exam-admin",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
+                    content = @Content(schema = @Schema(implementation = EtagBody.class))))
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã công bố đề"),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN hoặc CSRF_TOKEN_INVALID"),
+            @ApiResponse(responseCode = "404", description = "EXAM_NOT_FOUND"),
+            @ApiResponse(responseCode = "409", description = "EXAM_NOT_EDITABLE hoặc EDIT_CONFLICT"),
+            @ApiResponse(responseCode = "422", description = "EXAM_PUBLISH_INVALID hoặc VALIDATION_FAILED")})
+    public ExamDetail publish(@PathVariable @Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1")) String id,
+            @AuthenticationPrincipal AuthenticatedUser user, HttpServletRequest request,
+            @RequestHeader(name = "X-XSRF-TOKEN", required = false) String xsrf) {
+        return service.publish(id(id), user.userId(), () -> new EtagBody(text(read(request), "etag")));
+    }
+
+    @PostMapping("/{id}/archive")
+    @Operation(operationId = "adminArchiveExam", tags = "exam-admin")
+    @ApiResponses({@ApiResponse(responseCode = "200", description = "Đã lưu trữ đề"),
+            @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN hoặc CSRF_TOKEN_INVALID"),
+            @ApiResponse(responseCode = "404", description = "EXAM_NOT_FOUND"),
+            @ApiResponse(responseCode = "409", description = "EXAM_IN_USE")})
+    public ExamDetail archive(@PathVariable @Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1")) String id,
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestHeader(name = "X-XSRF-TOKEN", required = false) String xsrf) {
+        return service.archive(id(id), user.userId());
+    }
+
     @PostMapping("/{id}/clone")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(operationId = "adminCloneExam", tags = "exam-admin",

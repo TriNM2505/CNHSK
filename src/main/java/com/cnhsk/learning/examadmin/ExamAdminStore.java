@@ -58,6 +58,19 @@ public class ExamAdminStore {
                 Map.of("id", id), (rs, row) -> exam(rs)).stream().findFirst().orElse(null);
     }
 
+    void lockUsage(long id) {
+        jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended('exam:usage:' || CAST(:id AS text), 0))",
+                Map.of("id", id), rs -> null);
+    }
+
+    void publish(long id) {
+        jdbc.update("UPDATE learning.exams SET status='PUBLISHED',published_at=now() WHERE id=:id", Map.of("id", id));
+    }
+
+    void archive(long id) {
+        jdbc.update("UPDATE learning.exams SET status='ARCHIVED' WHERE id=:id", Map.of("id", id));
+    }
+
     long insert(long actorId, String code, String title, int hskLevel, int totalScore, JsonNode sections) {
         return jdbc.queryForObject("""
                 INSERT INTO learning.exams(code,title,hsk_level,total_score,sections,status,created_by)

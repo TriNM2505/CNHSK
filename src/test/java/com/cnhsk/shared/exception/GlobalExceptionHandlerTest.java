@@ -172,7 +172,8 @@ class GlobalExceptionHandlerTest {
                 "EXAM_CODE_TAKEN", "EXAM_NOT_EDITABLE", "EDIT_CONFLICT",
                 "SETTING_NOT_FOUND", "SETTING_OUT_OF_RANGE", "ROUND_LIMIT_EXCEEDED", "GAME_UNAVAILABLE", "EXPORT_TOO_LARGE",
                 "CONTEST_NOT_FOUND", "CONTEST_NOT_OPEN", "CONTEST_ALREADY_ATTEMPTED",
-                "CONTEST_SUBMIT_REQUIRED", "CONTEST_EXAM_INVALID", "INTERNAL_ERROR");
+                "CONTEST_SUBMIT_REQUIRED", "CONTEST_EXAM_INVALID", "EXAM_PUBLISH_INVALID", "EXAM_IN_USE",
+                "INTERNAL_ERROR");
     }
 
     @Test
@@ -233,6 +234,24 @@ class GlobalExceptionHandlerTest {
             assertThat(response.getBody()).containsEntry("error_code", code.name()).containsEntry("message", "Cài đặt không hợp lệ.")
                     .containsKey("request_id").doesNotContainKey("details").hasSize(3);
         }
+    }
+
+    @Test
+    void publicationDetailsAreAllowedWithoutRelaxingOtherExamErrors() {
+        var handler = new GlobalExceptionHandler();
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        var details = java.util.List.of(Map.of("code", "EMPTY_SECTION", "sectionIndex", 0));
+        var response = handler.handleApiException(new ApiException(ErrorCode.EXAM_PUBLISH_INVALID,
+                HttpStatus.UNPROCESSABLE_ENTITY, "Đề chưa hợp lệ.", Map.of("details", details,
+                "error_code", "FORGED", "message", "FORGED", "request_id", "FORGED")), request);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(response.getBody()).containsEntry("error_code", "EXAM_PUBLISH_INVALID")
+                .containsEntry("message", "Đề chưa hợp lệ.").containsEntry("details", details).containsKey("request_id").hasSize(4);
+        var conflict = handler.handleApiException(new ApiException(ErrorCode.EXAM_IN_USE, HttpStatus.CONFLICT,
+                "Đề đang dùng.", Map.of("details", details)), request);
+        assertThat(conflict.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(conflict.getBody()).containsEntry("error_code", "EXAM_IN_USE").containsKey("request_id")
+                .doesNotContainKey("details").hasSize(3);
     }
 
     @Test

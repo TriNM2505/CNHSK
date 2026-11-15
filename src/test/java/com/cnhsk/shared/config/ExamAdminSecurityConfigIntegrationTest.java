@@ -61,6 +61,8 @@ class ExamAdminSecurityConfigIntegrationTest {
         when(service.create(anyLong(), any())).thenReturn(detail);
         when(service.update(anyLong(), any())).thenReturn(detail);
         when(service.clone(anyLong(), anyLong(), any())).thenReturn(detail);
+        when(service.publish(anyLong(), anyLong(), any())).thenReturn(detail);
+        when(service.archive(anyLong(), anyLong())).thenReturn(detail);
     }
 
     @Test
@@ -89,10 +91,12 @@ class ExamAdminSecurityConfigIntegrationTest {
         String bearer = "Bearer " + token(List.of(roles.split(",")));
         for (String operation : operations()) {
             mvc.perform(call(operation).header("Authorization", bearer))
-                    .andExpect(status().is(operation.startsWith("POST") ? 201 : 200));
+                    .andExpect(status().is(successStatus(operation)));
         }
         verify(service).create(eq(42L), any());
         verify(service).clone(eq(7L), eq(42L), any());
+        verify(service).publish(eq(7L), eq(42L), any());
+        verify(service).archive(7, 42);
     }
 
     @Test
@@ -109,7 +113,7 @@ class ExamAdminSecurityConfigIntegrationTest {
         verifyNoInteractions(service);
         for (String operation : operations().stream().filter(value -> !value.startsWith("GET")).toList()) {
             mvc.perform(call(operation).cookie(access, new Cookie("XSRF-TOKEN", "exam-csrf"))
-                    .header("X-XSRF-TOKEN", "exam-csrf")).andExpect(status().is(operation.startsWith("POST") ? 201 : 200));
+                    .header("X-XSRF-TOKEN", "exam-csrf")).andExpect(status().is(successStatus(operation)));
         }
     }
 
@@ -122,7 +126,12 @@ class ExamAdminSecurityConfigIntegrationTest {
 
     private List<String> operations() {
         return List.of("GET /api/admin/exams", "POST /api/admin/exams", "GET /api/admin/exams/7",
-                "PUT /api/admin/exams/7", "POST /api/admin/exams/7/clone");
+                "PUT /api/admin/exams/7", "POST /api/admin/exams/7/clone",
+                "POST /api/admin/exams/7/publish", "POST /api/admin/exams/7/archive");
+    }
+
+    private int successStatus(String operation) {
+        return operation.equals("POST /api/admin/exams") || operation.equals("POST /api/admin/exams/7/clone") ? 201 : 200;
     }
 
     private MockHttpServletRequestBuilder call(String operation) {
