@@ -191,3 +191,13 @@ Targeted 156 test. Full verify 6767 test, 0 failure/error/skip, BUILD SUCCESS. J
 Điều kiện refresh 401 TOKEN_EXPIRED hoặc SESSION_REVOKED, tên XSRF-TOKEN và X-XSRF-TOKEN, cùng ngoại lệ CSRF cho refresh được đối chiếu với cnhsk-web/src/shared/api/client.ts, src/main/java/com/cnhsk/shared/config/SecurityConfig.java và src/main/java/com/cnhsk/shared/security/JwtAuthenticationFilter.java.
 
 Gate T-09: npm ci 326 package; Vitest 33/33; lint 0 lỗi; build và typecheck PASS; Chrome 9 kiểm tra ở 320/375/640 px với API fixture local, 0 lỗi runtime; bundle gzip 74.317 byte, dưới 250 KB. Các lệnh FE chạy trên bản sao khớp từng byte trên ổ D.
+
+## T-10 — SCR-035 Game Hub
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T10-01 | ANSWERED | Mặc định chọn “Từ tôi đang học”, mở ván bằng route không có query. Tuỳ chọn HSK 1–9 mở /play/<code>?hskLevel=<n>, khớp FR-006. |
+
+Game Hub đọc danh mục qua client T-09. Danh mục rỗng khi registry chưa có định nghĩa; fixture sáu game chỉ dùng để test. Điểm và số ván bằng 0 được hiển thị khi có myStats. Cách chơi dùng details/summary và nút Chơi bị khoá với game không playable.
+
+Gate T-10: npm ci 326 package; Vitest 36/36; lint, typecheck và build PASS; Chrome QA 320/375/640 px với fixture local PASS, 0 lỗi runtime; gzip 74.933 byte. Gate FE chạy trên bản sao khớp từng byte trên ổ D.

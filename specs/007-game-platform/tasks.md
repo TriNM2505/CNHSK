@@ -23,7 +23,7 @@
 |---|---|---|---|---|
 | T-08 | Khởi tạo app (Vite React TS, Tailwind token chung, ESLint/Prettier/Vitest, cổng 5174, route `/`, `/play/:code`, 404); README chạy dev cùng `cnhsk-web` | `cnhsk-game/**` (khung) | FR-023, FR-027 | ⬜ |
 | T-09 | API client web (cookie/XSRF/refresh), useCurrentUser và nút đăng nhập | `cnhsk-game/src/shared/**`, `GameSessionPage.tsx` và test | FR-024…FR-026 · AT-19 (cookie web), AT-20; ⏸ FR-030 / AT-22 (WebView) | ⬜ |
-| T-10 | SCR-035 Game Hub | `cnhsk-game/src/app/pages/GameHubPage.tsx` | FR-028, FR-031 | ⬜ |
+| T-10 | SCR-035 Game Hub | `cnhsk-game/src/app/pages/GameHubPage.tsx` | FR-028, FR-031 | 🔄 chờ review — Vitest 36/36, lint/build/QA PASS |
 | T-11 | `GameShell` (SCR-036 khung): sẵn sàng, đếm ngược, đồng hồ theo server, hàng đợi lượt, tự kết thúc, thoát có xác nhận, màn kết quả, `ROUND_FINISHED`; game giả để test | `cnhsk-game/src/shared/ui/GameShell.tsx`, `cnhsk-game/src/games/_demo/**` (chỉ test) | FR-029, FR-031 · AT-21 | ⬜ |
 
 **Rủi ro cao:** T-06 (chống gian lận — AT-14 chạy song song thật), T-09 (cookie, XSRF và refresh trên web).
