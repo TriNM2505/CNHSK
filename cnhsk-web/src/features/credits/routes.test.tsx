@@ -217,13 +217,13 @@ describe('credits ADMIN navigation (FR-001 FE)', () => {
   it.each([{ userRoles: ['ADMIN'] }, { userRoles: ['ADMIN', 'CONTENT_EDITOR'] }] satisfies {
     userRoles: RoleCode[]
   }[])(
-    'FR001_hides paused finance links for $userRoles in desktop and mobile navigation',
+    'FR001_shows finance links for $userRoles in desktop and mobile navigation',
     ({ userRoles }) => {
       renderAdminLayout(userRoles)
       for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
         const navigation = within(screen.getByRole('navigation', { name }))
-        for (const { label } of financialLinks) {
-          expect(navigation.queryByRole('link', { name: label })).not.toBeInTheDocument()
+        for (const { label, path } of financialLinks) {
+          expect(navigation.getByRole('link', { name: label })).toHaveAttribute('href', path)
         }
         expect(navigation.getByRole('link', { name: 'Người dùng' })).toHaveAttribute(
           'href',
@@ -242,17 +242,24 @@ describe('credits ADMIN navigation (FR-001 FE)', () => {
     },
   )
 
-  it('FR001_keeps user management navigation working while finance links are hidden', async () => {
+  it('FR001_keeps finance and user management navigation working together', async () => {
     renderAdminLayout(['ADMIN'])
     const navigation = within(screen.getByRole('navigation', { name: 'Quản trị' }))
-    for (const { label } of financialLinks) {
-      expect(navigation.queryByRole('link', { name: label })).not.toBeInTheDocument()
+    for (const { label, path } of financialLinks) {
+      expect(navigation.getByRole('link', { name: label })).toHaveAttribute('href', path)
     }
+    expect(navigation.getByRole('link', { name: 'Sổ cái điểm' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
     expect(navigation.getByRole('link', { name: 'Người dùng' })).not.toHaveAttribute('aria-current')
     await userEvent.click(navigation.getByRole('link', { name: 'Người dùng' }))
     expect(navigation.getByRole('link', { name: 'Người dùng' })).toHaveAttribute(
       'aria-current',
       'page',
+    )
+    expect(navigation.getByRole('link', { name: 'Sổ cái điểm' })).not.toHaveAttribute(
+      'aria-current',
     )
   })
 })
