@@ -160,3 +160,28 @@ QA Chrome headless qua DevTools/CDP local, API được intercept bằng fixture
 Leader đã DUYỆT ngoại lệ FE và cho phép commit/mở Draft PR. Evidence theo đúng chốt: "FE FULL 2808/2809 — 1 test môi trường: routes.test.tsx › maps child route /learn/characters/writing/lexeme-1 to the real SCR-014 screen (dòng 254). Base aa9e455 không có T-06 cũng fail trên máy member; leader pass 24/24 trên a1d39fd." T-06 giữ 🔄 chờ review, chưa đánh MERGED/✅. Không mở rộng allowlist hoặc tự sửa test khác để làm xanh. Không có secret, tài khoản thật hoặc dữ liệu HSK có bản quyền trong thay đổi.
 
 Fetch cuối trước commit xác nhận origin/main=a1d39fd; git diff HEAD..origin/main trên toàn bộ 27 đường dẫn allowlist không có thay đổi. Self-check cuối: đúng 27 file thay đổi, 0 file ngoài allowlist, 0 BOM, index sạch trước stage, lockfile không đổi, git diff --check PASS. Giữ base aa9e455 theo chốt leader; một conventional commit không ghi mã task/FR, stage từng file cụ thể và Draft PR.
+
+## T-09 — kiểm hợp đồng chấm bài (2026-11-15)
+
+G0 đã được leader duyệt, base a1d39fd417865f02ca17788b401bb135f1d185ec, nhánh spec/022-t09. Allowlist đúng ba file: src/test/java/com/cnhsk/contract/GradingContractTest.java, questions.md và tasks.md của spec 022. Phạm vi §13 / AT-19: hai chiều path + method + status; không mở rộng sang schema/security hoặc sửa controller/YAML.
+
+| Chốt | Trạng thái | Quyết định |
+| --- | --- | --- |
+| Q-T09-01 | ANSWERED | Namespace chỉ gồm /api/grading và đường con, /api/grading-requests và đường con, đúng /api/teacher/grading-queue, /api/teacher/grading-requests và đường con. Không lấy toàn bộ /api/teacher; tránh gom endpoint giáo viên của spec khác. |
+| Q-T09-02 | ANSWERED | Kiểm kê RequestMappingHandlerMapping theo package com.cnhsk.learning.grading và package con. Handler grading có operation không có trong YAML cũng phải fail, kể cả path nằm ngoài namespace tài liệu mong đợi. |
+
+GradingContractTest kế thừa AbstractIntegrationTest: PostgreSQL/Redis/Mailpit Testcontainers local, profile test/dev, MockMvcPrint.NONE, springdoc chỉ scan package grading trong context riêng. Đọc YAML bằng Jackson YAML hiện có; khoá 10 path / 11 operation, so tập path/operation/status và toàn bộ handler grading. Phương thức mapping không giới hạn HTTP được ghi là wildcard để không bị bỏ qua. Thu đủ missing/unexpected theo thứ tự xác định vào target/grading-contract-mismatches.txt (không commit). Không sửa inventory/contract test của spec khác; nếu lệch thì dừng báo leader.
+
+Gate chọn lọc: GradingContractTest 1/1, F0/E0/S0, BUILD SUCCESS (4:28 phút gồm compile và khởi tạo Testcontainers/context). Báo cáo thực tế: PASS: 10 paths / 11 operations; path, method and status sets match. ModuleBoundaryTest 9/9, F0/E0/S0, BUILD SUCCESS (36,953 s). Không phát hiện lệch nên tiếp tục full verify trên cùng mã test; không sửa annotation/controller/YAML hoặc inventory test của spec khác.
+
+Full Maven verify (Java 17, DEBUG=false, PostgreSQL/Redis/Mailpit Testcontainers local) kết thúc 2026-11-15 06:59:50 +07:00, 56:17 phút: 6.064 test / 386 class, F2/E0/S0, BUILD FAILURE. FULL VERIFY FAILED (2 test môi trường thuộc nhóm ngoại lệ đã biết):
+- ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget: p95 40.443 ms, ngưỡng 30.000 ms.
+- QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries: 5.000 câu, samples_ms=[48884,36757,34807,36158,34326], p95 48.884 ms, ngưỡng 30.000 ms.
+
+Đối chiếu toàn bộ Surefire XML xác nhận chỉ đúng hai failure này, 0 error/skip; không có lệch hợp đồng hay lỗi grading. GradingContractTest cũng PASS trong lượt full, toàn bộ nhóm contract khác PASS; không sửa bộ lọc/kiểm kê của spec khác. T-09 không sửa luồng import, không sửa test benchmark hoặc ngưỡng; bàn giao Draft theo quy định ngoại lệ môi trường, không gọi full verify là xanh.
+
+Surefire dừng lifecycle trước phase verify vì hai failure trên. Đã chạy riêng jacoco:report@report và jacoco:check@check (không chạy lại hay skip test), dùng đúng D:/CNHSK-work/022-t09-temp/cnhsk-api-jacoco.exec của lượt full vừa kết thúc. Cấu hình agent append=false sẵn có bảo đảm exec thuộc lượt full, không gộp coverage từ targeted. Report/check BUILD SUCCESS, All coverage checks have been met. Aggregate LINE: 14.994 covered / 455 missed = 97,0548%; XML được tạo mới lúc 07:00:24 cùng ngày. Đây là kết quả coverage riêng; full verify vẫn FAILED như ghi trên.
+
+Fetch cuối trước bàn giao: origin/main=611f764. Hai đường dẫn specs/022-teacher-grading/tasks.md và questions.md đã thay đổi trên main so với base; file GradingContractTest.java chưa có trên main. Giữ base a1d39fd theo G0, không merge/rebase/pull; báo leader khi giao PR để giữ đầy đủ các mục tài liệu khi gộp.
+
+Self-check: đúng ba file allowlist; chỉ đổi ô trạng thái T-09, không đổi trạng thái task khác; git diff --check sạch, UTF-8 không BOM. Không thay đổi controller, YAML, business code, schema/migration, dependency/lockfile, cấu hình hoặc test của spec khác. Không chạy FE theo G0. target/grading-contract-mismatches.txt và mọi log/coverage artifact không commit. Không dùng Neon, secret hoặc dữ liệu HSK có bản quyền. T-09 giữ chờ review; leader merge.
