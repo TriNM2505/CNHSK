@@ -449,3 +449,102 @@
   controller/YAML/security/FE hoặc code contest 021. Module boundary giữ nguyên.
   Fixture tự soạn, bcrypt cost 12; không Neon/.env/secret/PII thật/đề HSK có bản quyền.
   git diff --check và UTF-8 không BOM PASS; log/target/file nháp shadow-plans ngoài commit.
+
+## 2026-11-15 · G0 giao diện quản trị đề thi đã duyệt
+
+- Nhánh `spec/023-t10`, base `384908993584e81bea75ad2b3f22809fa10f71ec`; không chờ
+  #215 (BE), không rebase/merge main. Giữ contest-admin SCR-070/071 đã có trên base.
+- Leader duyệt đúng 33 file (ADD 24, MODIFY 9). ADD trong `cnhsk-web/src/features/exam-admin/`:
+  `types.ts`, `screens.ts`, `examForm.ts`, `examForm.test.ts`, `test-fixtures.ts`,
+  `api/exams.ts`, `api/exams.test.ts`, `components/ExamListView.tsx`,
+  `components/ExamListView.preview.ts`, `components/ExamEditorView.tsx`,
+  `components/ExamEditorView.preview.ts`, `components/ExamSectionsEditor.tsx`,
+  `components/ExamSectionsEditor.test.tsx`, `components/ExamQuestionPicker.tsx`,
+  `components/ExamQuestionPicker.test.tsx`, `components/ExamQuestionsEditor.tsx`,
+  `components/ExamQuestionsEditor.test.tsx`, `pages/Scr065ExamListPage.tsx`,
+  `pages/Scr065ExamListPage.test.tsx`, `pages/Scr066ExamEditorPage.tsx`,
+  `pages/Scr066ExamEditorPage.test.tsx`, `catalog.preview.ts`, `catalog.preview.test.ts`,
+  `routes.test.tsx`. MODIFY: `app/routeAccess.ts`, `app/routeAccess.test.tsx`,
+  `app/screenRegistry.ts`, `app/screenRegistry.test.ts`, `app/preview/registry.ts`,
+  `shared/layout/navigation.ts`, `shared/layout/Layouts.test.tsx` dưới `cnhsk-web/src/`,
+  cùng hai tài liệu `specs/023-content-admin-settings/tasks.md`, `questions.md`.
+- Q2 đã duyệt: totalScore là tổng khai báo, tổng points tự cộng bên cạnh; lệch hiện
+  cảnh báo vàng, nháp vẫn lưu được. FE không chặn công bố bằng luật riêng hoặc lỗi
+  đã biết; GET publicationErrors và 422 EXAM_PUBLISH_INVALID là nguồn quyết định.
+- Ba route /content/exams, /content/exams/new, /content/exams/:id chỉ CONTENT_EDITOR,
+  layout admin; /new đứng trước /:id. Menu thêm Quản lý đề thi; ca nhiều role 10 → 11
+  theo duyệt. ADMIN đơn lẻ không kế thừa. Hai file Java giữ nguyên: màn admin không
+  thuộc SCREEN_NAMES; gate BE chỉ AssistantPromptBuilderTest, không full verify.
+- Danh sách giữ status/hsk/q/page trong URL, phân trang; clone/archive xác nhận trong
+  trang. API qua shared apiRequest để giữ auth/cookie/CSRF, không retry mutation riêng.
+- Editor tách schema đọc/ghi, giữ type/durationMin null của đề nhập cũ để yêu cầu bổ
+  sung, không đoán. durationMin 0 hợp lệ. Type/API đề giữ HSK 1–6; selector cấp mới dùng
+  SUPPORTED_HSK_LEVELS 1–3; dữ liệu cũ cấp khác không tự đổi. Giới hạn 1–5 phần, 300 câu,
+  điểm mỗi câu 1–100; tổng khai báo 1–1000. Key phần ổn định, serialize remap sectionIndex
+  và thứ tự array; kéo thả native cùng nút lên/xuống, không thêm dependency.
+- Picker dùng lại GET question-bank, cố định APPROVED, KID/dạng/hsk/q/page; các câu đã
+  chọn giữ trong draft xuyên trang, chống trùng toàn đề. Đọc chi tiết trước thêm để
+  kiểm trạng thái/KID mới và media; không sửa ngân hàng hoặc tự mở rộng factory 012.
+- PUT gửi etag từ bản đọc/lưu gần nhất. EDIT_CONFLICT giữ draft, khoá ghi và chỉ đọc
+  lại sau xác nhận; không thay etag để tự ghi đè. Chặn gửi lặp bằng ref. PUBLISHED/
+  ARCHIVED chỉ đọc cấu trúc; clone tạo DRAFT mới. Reload/back/navigation có xác nhận
+  bỏ draft; beforeunload cảnh báo. Lỗi mạng/5xx/404 cần đối chiếu lại trước ghi tiếp;
+  create/clone mất response dẫn về danh sách tìm theo mã, không tự POST lại.
+- Gate: npm ci → targeted/full Vitest → lint → build → QA 320/375/640 không tràn ngang;
+  không chạy song song Maven/FE. Java 17, Remove-Item Env:DEBUG trước Maven command;
+  AssistantPromptBuilderTest. Không sửa BE/YAML/engine/package/schema; lệch phải báo leader.
+
+### Evidence gate và lịch sử sửa trong phạm vi T-10
+
+- npm ci PASS theo lockfile, không thay dependency. PowerShell chặn npx.ps1 ở lần
+  gọi typecheck đầu; dùng npx.cmd, không đổi execution policy. Typecheck đầu có 3 lỗi
+  kiểu trong code mới (section enum, generic splice, createElement Button children);
+  đã sửa trong allowlist, typecheck sau đó PASS.
+- Targeted đầu 98 test F4, đều test list mới: DataTable render cả desktop/mobile trong
+  JSDOM nên query một link bị trùng. Đổi selector; lượt trung gian còn F3 vì các nút row
+  cũng có hai bản. Test chọn bản row tương ứng, giữ kỳ vọng/API call counts, không đổi
+  DataTable hoặc UI để làm xanh. Targeted cuối 13 file, 98/98 PASS.
+  Log: `C:\KLTN_FALL2026\023-t10-targeted.log`, `023-t10-targeted-final.log`, không commit.
+- Full Vitest: 230 file, 2987/2987 test PASS nhưng exit 1 do một unhandled rejection
+  Error: fixture tại Scr022ExamResultPage.test.tsx:60 (keeps the result visible during
+  loading and retries only the weak points request). SCR-022 thuộc ngoại lệ chập chờn
+  đã duyệt; chạy riêng đúng file 12/12 PASS, không unhandled error. Giữ nguyên test/source
+  ngoài allowlist, không ghi lượt full là sạch lỗi. Log: `023-t10-full-vitest.log`,
+  `023-t10-scr022-isolated.log` dưới `C:\KLTN_FALL2026\`, không commit.
+- Lint đầu phát hiện test preview mới import trực tiếp catalog.preview. Đổi test dùng
+  previewRegistry chung theo rule hiện có; test riêng 2/2 PASS. Sau QA căn lề/nhãn và
+  giữ giá trị lọc HSK cũ, targeted cuối vẫn 98/98 PASS (`023-t10-targeted-after-qa.log`).
+  Lint cuối 0 lỗi, 1 warning cũ react-refresh ở shared/ui/LevelBadge.tsx (file không đổi).
+  TypeScript/Vite build cuối PASS. Log: `023-t10-lint-final.log`, `023-t10-build-final.log`.
+- AssistantPromptBuilderTest: Java 17, xoá Env:DEBUG trước Maven; 19 F0/E0/S0,
+  BUILD SUCCESS. Hai file Java không thay đổi, SCR-065/066 không có SCREEN_NAMES.
+  Log: `C:\KLTN_FALL2026\023-t10-assistant.log` (không commit).
+- QA Chromium local chỉ dùng fixture tự soạn và API mock. Harness đầu trỏ production
+  /__preview vốn không đăng ký ở build; sửa harness dùng dev cho preview, production
+  build cho route thật, không sửa app để bật preview production. QA cuối 57 phép đo:
+  39 preview, 9 route thật, conflict/publish-error/403 và 6 chuỗi dài/HSK 4 ở 320/375/640;
+  document.scrollWidth <= clientWidth, không page error. Kéo thả native và nút lên/xuống,
+  remap sectionIndex, picker APPROVED, CSRF, tổng điểm lệch vẫn lưu, gửi đôi chỉ một PUT,
+  conflict giữ draft/cancel/confirm reload, 422 đủ lỗi, publish readonly, archive 409,
+  clone DRAFT và ADMIN bị chặn đều PASS. Mã dài 50 ký tự/tên CJK/cấp cũ không tự đổi.
+  Ảnh/số đo: `C:\KLTN_FALL2026\qa-023-t10\results.json` và PNG cùng thư mục; không commit.
+- Rà soát cuối phát hiện callback chọn câu đang chờ chi tiết giữ closure form cũ,
+  có thể làm mất metadata vừa nhập. Sửa trong editor: functional state update để gộp
+  vào draft hiện tại; version ref bỏ kết quả chọn cũ khi đã bắt đầu ghi/đọc lại, đóng
+  picker lúc mutation bắt đầu. Thêm test chờ chi tiết, sửa tên rồi resolve: giữ tên mới
+  và gửi đủ cả câu cũ/mới. Test mới ban đầu lỗi cú pháp dư dấu ngoặc, đã sửa trong
+  allowlist. Targeted sau sửa 99/99 PASS; chạy lại full vì có thay đổi logic bất đồng bộ.
+- Full cuối sau sửa race: 230 file, 2988/2988 PASS, exit 0, không unhandled error,
+  không dùng ngoại lệ. Giữ evidence full đầu/SCR-022 chạy riêng ở trên để truy vết,
+  không thay source/test SCR-022. Lint cuối vẫn 0 lỗi/1 warning cũ, build cuối PASS.
+  Log: `023-t10-targeted-final-race.log`, `023-t10-full-vitest-final.log`,
+  `023-t10-lint-final.log`, `023-t10-build-final.log` dưới `C:\KLTN_FALL2026\`.
+- QA cuối trên build sau sửa race vẫn 57/57 phép đo PASS; cố tình cho GET chi tiết câu
+  trả chậm 1 giây rồi nhập tên đề trong lúc chờ, tên mới vẫn giữ và được gửi khi lưu.
+  Không page error, 7 mutation có CSRF; không gửi lặp. Kết quả cuối thay thế bản đo
+  trước sửa trong `qa-023-t10/results.json`, giữ log gate riêng ngoài repository.
+- Self-check PASS: đúng ADD 24 + MODIFY 9, đúng base/branch, UTF-8 không BOM,
+  git diff --check sạch. Không đổi backend/YAML/engine/Java/SQL/schema/dependency,
+  app/shared chỉ trong phạm vi đã duyệt; giữ contest-admin. Dữ liệu tự soạn, không
+  secret/PII thật/đề HSK có bản quyền/Neon/.env. Không auto-retry mutation, tự ghi đè
+  etag hoặc thêm luật chặn công bố riêng. Log, ảnh, target/dist và file nháp ngoài commit.
