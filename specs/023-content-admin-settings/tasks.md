@@ -44,7 +44,7 @@ Sửa code module khác (013/014/015/019, 003) → mỗi chỗ một task nhỏ,
 
 | ID | Task bổ sung được leader chốt | File dự kiến | Spec | TT |
 |---|---|---|---|---|
-| T-13 | Nguồn HTTP token usage chỉ đọc: `GET /api/admin/ai-usage` (`ADMIN`), tháng VN, Redis lỗi trả `used=null`, `available=false`; FR-008 còn thiếu nguồn số liệu | `learning/ai/web/AiUsageController.java`, `TokenBudget.java`, phụ lục mới `contracts/openapi-content-admin-v1-1.yaml` + test riêng; không sửa YAML gốc/ContentAdminContractTest/SecurityConfig | FR-008 | 🔄 G2 base `285d4d6`, đúng 9 file (ADD 6/MODIFY 3); targeted 71 F0/E0/S0; full 6716 F1/E0/S0, duy nhất ngoại lệ NFR_P04 QuestionImport p95 34715 ms/30000 ms; đóng gói + JaCoCo trên coverage lượt full PASS, LINE 97,174283% (15991/16456); Draft chờ leader review/merge để đóng 13/13 |
+| T-13 | Nguồn HTTP token usage chỉ đọc: `GET /api/admin/ai-usage` (`ADMIN`), tháng VN, Redis lỗi trả `used=null`, `available=false`; FR-008 còn thiếu nguồn số liệu | `learning/ai/web/AiUsageController.java`, `TokenBudget.java`, phụ lục mới `contracts/openapi-content-admin-v1-1.yaml` + test riêng; không sửa YAML gốc/ContentAdminContractTest/SecurityConfig | FR-008 | ✅ MERGED — PR #220, d689d39; leader full verify 6716 F0/E0/S0 — spec 023 hoàn tất 13/13 |
 
 Spec 023 đóng khi T-09 + T-10 + T-13 merge, theo chỉ đạo leader.
 
