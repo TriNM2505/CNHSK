@@ -48,8 +48,23 @@
 
 | # | Câu hỏi | Quyết định | Trạng thái |
 |---|---|---|---|
-| Q-T02-01 | Interface có chín phương thức nhưng T-02 chỉ triển khai bốn | `ContestAttemptService` triển khai `start`, `countAttempts`, `submit`, `exam`, chưa `implements ContestAttemptApi`, không tạo stub. T-03 thêm năm phương thức còn lại rồi gắn interface. Thứ tự phụ thuộc sửa thành T-01 → T-02 → T-03 → T-04 → T-05… | ✅ Chốt |
+| Q-T02-01 | Interface có chín phương thức nhưng T-02 chỉ triển khai bốn | `ContestAttemptService` triển khai `start`, `countAttempts`, `submit`, `exam`, chưa `implements ContestAttemptApi`, không tạo stub. T-03 thêm năm phương thức còn lại rồi gắn interface. Leader đính chính khi duyệt T-03: T-03 phụ thuộc T-02; T-04 chỉ phụ thuộc T-02, không phụ thuộc T-03 | ✅ Chốt |
 | Q-T02-02 | Ân hạn nộp thay đổi trong lúc thi | Đọc `SettingsApi.getInt(CONTEST_SUBMIT_GRACE_SECONDS)`; chụp giá trị vào snapshot khi tạo lượt. `expiresAt = deadline + grace`; cấu hình mới chỉ áp dụng cho lượt tạo sau, resume giữ snapshot/deadline/expiry cũ. Không khai lại cấu hình YAML | ✅ Chốt |
 | Q-T02-03 | Điểm dùng để xếp hạng cuộc thi | Dùng số câu đúng (`score` hiện tại của engine), không dùng trọng số `exam_questions.points` và không sửa engine. FR-006 xếp `score DESC`, `duration_ms ASC`, phù hợp `ix_att_ref_rank` của V8 | ✅ Chốt |
 | Q-T02-04 | Khóa khi nộp với engine `REQUIRES_NEW` | Không giữ khóa dòng lượt ở transaction ngoài trước khi gọi engine; kiểm hai lần nộp song song, chỉ một lần ghi kết quả/bằng chứng/sự kiện | ✅ Chốt |
 | Q-T02-05 | Phần AT-13 chuyển từ T-01 | T-02 chạy trọn tạo lượt → lưu câu trả lời → nộp bằng engine; kiểm trợ lý bị chặn trước provider/hạn mức, mọi cột mastery không đổi và lượt cuộc thi không tạo bằng chứng mastery, kể cả khi tái phân bổ | ✅ Chốt |
+
+## 2026-11-15 · G0 T-03 — leader duyệt
+
+| # | Câu hỏi | Quyết định | Trạng thái |
+|---|---|---|---|
+| Q-T03-01 | `setExcluded` không có lượt `SUBMITTED` khớp người/cuộc thi | Trả 404 `CONTEST_NOT_FOUND` bằng mã có sẵn. Chỉ sửa `suspicious`, quyết định lặp lại vẫn thành công | ✅ Chốt |
+| Q-T03-02 | Sắp thí sinh khi có điểm/thời gian NULL | `participants` trả mọi trạng thái và cờ; sắp `score DESC NULLS LAST, duration_ms ASC NULLS LAST, submitted_at ASC NULLS LAST, user_id ASC` | ✅ Chốt |
+| Q-T03-03 | Lượt `SUBMITTED` thiếu `score` hoặc `max_score` | Không vào ranking/rankOf/total; vẫn xuất hiện trong myAttempt/participants. Ba phép đọc hạng dùng chung điều kiện `status='SUBMITTED' AND suspicious=false AND score IS NOT NULL AND max_score IS NOT NULL`, trong phạm vi `kind='CONTEST'` và cuộc thi được hỏi. `rankOf` không có hàng hợp lệ trả `Optional.empty()` | ✅ Chốt |
+| Q-T03-04 | Làm T-03 khi #191 chưa push merge lên main | Leader duyệt nhánh từ đúng `c2f85bb9330b819f41a3e8714a3a57dd8bf970a5`; #191 được merge `--no-ff` giữ commit này làm cha. Draft PR base main ghi phụ thuộc #191 nếu cần. Hash merge T-02 để trống tới khi leader gửi, điền trong cùng PR | ✅ Chốt |
+| Q-T03-05 | Phạm vi AT-12 | T-03 kiểm giữ/loại trong learning; khóa sau công bố, quyền và audit thuộc community/T-06. T-03 hoàn thiện đủ chín phương thức và gắn `ContestAttemptApi`, giữ nguyên chữ ký interface | ✅ Chốt |
+| Q-T03-06 | Gate | `Remove-Item Env:DEBUG -ErrorAction SilentlyContinue` trước mỗi lệnh Maven; test liên quan rồi full verify. Chỉ năm ngoại lệ môi trường đã duyệt được phép bàn giao có điều kiện; nếu xảy ra vẫn báo FAILED và số liệu thật, không skip hoặc hạ assertion/ngưỡng | ✅ Chốt |
+
+T-03 triển khai trên đúng base `c2f85bb` theo leader duyệt. Hai integration test mới: 24 test, F0/E0/S0. Gate hồi quy theo G0: 367 test, F0/E0/S0. Full `mvnw.cmd -B verify`: 6.032 test, F0/E0/S0, native exit 0, BUILD SUCCESS; không dùng ngoại lệ môi trường. `Env:DEBUG` được xóa trước từng lệnh Maven. JaCoCo LINE từ đúng lượt full: 14.981 covered / 15.428 total = 97,10%; mọi coverage check đạt. Bốn file code/test giữ nguyên hash từ đầu tới cuối full verify; chỉ cập nhật tài liệu bàn giao sau gate.
+
+Sau gate, `origin/main` đã có merge #191 tại `ec3f865`, khớp hash leader đã báo; commit `c2f85bb` là ancestor của main. Điền hash này vào T-02 trong `tasks.md`, giữ T-03 ở 🔄 chờ review; không rebase nhánh T-03.
