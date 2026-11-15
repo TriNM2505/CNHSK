@@ -137,3 +137,20 @@ Nguồn đã đọc (origin/main `5439672`): `AGENTS.md` §12, constitution v1.4
 - OQ-1: ngưỡng đạt từng cấp theo Cây Năng Lực v2.0 (leader đối chiếu PDF; đổi `cnhsk.placement.thresholds`).
 - OQ-2: kết quả thử thật 5–10 người (T-19) — ghi vào đây trước demo.
 - ~~Plan phase 4 cần sửa theo X1, X8~~ — đã sửa 2026-11-03.
+
+## 2026-11-16 — T-17 kiểm lại HTTP/UI (Q-T17-01, Q-T17-02)
+
+Code tích hợp đã vào main qua PR #98 (`2023e6f`). Nghiệm thu lại trên `b4f2efc` với Chromium, PostgreSQL/Redis Docker local và bộ CSV tự soạn của T-18. Datasource PostgreSQL được xác nhận tại `127.0.0.1:15437` trước khi nhập.
+
+| AT | Thao tác | Endpoint | HTTP mong đợi / thực tế | Kết quả |
+|---|---|---|---|---|
+| AT-25 | Mở danh sách đề, bắt đầu lượt, quay lại rồi nộp | `GET /api/exams` | 200 / 200 | Ban đầu `myBest` và `activeSessionId` là `null`. Khi đang làm, `activeSessionId` bằng `sessionId` và nút Tiếp tục trỏ đúng lượt. Sau khi nộp, `activeSessionId` về `null`, `myBest.percent = 0` và thẻ đề hiện 0%. |
+| AT-26 | Bắt đầu, chọn một đáp án sai, chuyển câu và xác nhận nộp | `POST /api/exams/{id}/attempts`, `POST /api/practice/sessions/{id}/answers`, `POST /api/practice/sessions/{id}/finish` | 201 / 201; 200 / 200; 200 / 200 | Nhận 12 câu. Payload phát câu và phản hồi lưu không lộ đáp án trước khi nộp. UI hiện Đã lưu và xác nhận còn 11 câu trống. |
+| AT-26 | Bắt đầu xếp trình độ, nộp từng khối | `POST /api/placement/runs`, `POST /api/practice/sessions/{id}/finish`, `POST /api/placement/runs/{runId}/next` | 201 / 201; 200 / 200 × 5; 201 / 201 × 4 và 200 / 200 khi kết luận | 5 khối × 5 câu. Finish dùng `sessionId` từng khối, next dùng cùng `runId` của lượt. Lần cuối `concluded = true`, không còn session và UI chuyển tới kết quả của lượt. |
+| AT-27 | Mở kết quả đề, lọc Sai/Bỏ trống, xem điểm yếu | `GET /api/exam-attempts/{id}/result`, `GET /api/exam-attempts/{id}/weak-points` | 200 / 200; 200 / 200 | Điểm 0%, `previous = null`, một câu sai và 11 câu bỏ trống. Hai nhãn được hiển thị riêng. Khối điểm yếu có 4 mục; kiểm `mastery` trong 0–100 và `state` nhận chuỗi hoặc `null`. |
+| AT-27 | Xem kết quả xếp trình độ | `GET /api/placement/runs/{runId}/result` | 200 / 200 | 25 câu, `BELOW_1` / `SURE`, đủ 6 miền. NA và NL có `measured = false`, `percent = null`; UI hiện Chưa đo. Đây là lượt kỹ thuật tự động, nằm ngoài mẫu T-19. |
+| AT-28 | Nạp 4 file qua SCR-068 theo thứ tự nút, câu hỏi, đề, câu trong đề | `POST /api/admin/imports`, `POST /api/admin/imports/{id}/confirm` | 201 / 201 và 200 / 200 cho cả 4 file | 12 nút, 90 câu hỏi, 3 đề và 36 liên kết; cả 4 lần `COMPLETED`, 0 dòng lỗi. |
+| AT-28 | Bấm Luyện nút này và chọn một đáp án trên SCR-023 | `POST /api/targeted-practice/sessions`, `POST /api/practice/sessions/{id}/answers` | 201 / 201; 200 / 200 | Link từ SCR-022 truyền KID. `repeatedNos = []` khi không có `exclude`; phản hồi đúng/sai hiện ngay sau khi trả lời. Luồng `exclude` → `excludeQuestionId`, ghi chú câu lặp và `NO_QUESTIONS` được kiểm trong Vitest SCR-023. |
+| AT-29 | So hợp đồng runtime với YAML | `GET /v3/api-docs` | 200 / 200 | `ExamContractTest` đạt 3/3, 0 failure/error/skip. Khớp path, method và status, gồm `/weak-points` từ T-16. |
+
+Gate tài liệu: `ExamContractTest` 3/3 với Docker (`BUILD SUCCESS`), Vitest `features/exam` 41/41 trong 10 file. Phạm vi PR là hai file tài liệu đã duyệt.
