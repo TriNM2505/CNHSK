@@ -122,6 +122,22 @@ public class AuditService {
         return Map.copyOf(result);
     }
 
+    @Transactional(readOnly = true)
+    public Map<Long, Long> countByActors(String action, String targetType, long targetId) {
+        Objects.requireNonNull(action, "action must not be null");
+        Objects.requireNonNull(targetType, "targetType must not be null");
+        if (targetId <= 0) throw new IllegalArgumentException("target id must be positive");
+        MapSqlParameterSource parameters = new MapSqlParameterSource("action", action)
+                .addValue("targetType", targetType).addValue("targetId", targetId);
+        Map<Long, Long> result = new LinkedHashMap<>();
+        jdbc.query("SELECT actor_id, count(*) AS event_count FROM shared.audit_logs "
+                        + "WHERE action = :action AND target_type = :targetType AND target_id = :targetId "
+                        + "AND actor_id IS NOT NULL GROUP BY actor_id", parameters,
+                (row, number) -> Map.entry(row.getLong("actor_id"), row.getLong("event_count")))
+                .forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+        return Map.copyOf(result);
+    }
+
     public record ReportStat(long count, Instant lastAt) {
     }
 

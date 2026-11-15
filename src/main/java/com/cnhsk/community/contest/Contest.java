@@ -10,6 +10,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -60,6 +63,29 @@ public class Contest {
 
     protected Contest() { }
 
+    Contest(String name, String description, Long examId, Instant startsAt, Instant endsAt,
+            Integer maxParticipants, List<Prize> prizes, long createdBy, Instant createdAt) {
+        update(name, description, examId, startsAt, endsAt, maxParticipants, prizes);
+        this.status = "DRAFT";
+        this.createdBy = createdBy;
+        this.createdAt = createdAt;
+    }
+
+    void update(String name, String description, Long examId, Instant startsAt, Instant endsAt,
+            Integer maxParticipants, List<Prize> prizes) {
+        this.name = name;
+        this.description = description;
+        this.examId = examId;
+        this.startsAt = startsAt;
+        this.endsAt = endsAt;
+        this.maxParticipants = maxParticipants;
+        this.prizes = List.copyOf(prizes);
+    }
+
+    void publish() { status = "PUBLISHED"; }
+    void cancel() { status = "CANCELLED"; }
+    void publishRanking(Instant now) { rankingPublishedAt = now; }
+
     public Long getId() { return id; }
     public String getName() { return name; }
     public String getDescription() { return description; }
@@ -81,6 +107,6 @@ public class Contest {
     public enum ScheduleState { UPCOMING, ONGOING, ENDED }
 
     @Schema(requiredProperties = {"fromRank", "toRank", "description"})
-    public record Prize(@Schema(minimum = "1") int fromRank, @Schema(minimum = "1") int toRank,
-            @Schema(maxLength = 200) String description) { }
+    public record Prize(@Min(1) @Schema(minimum = "1") int fromRank, @Min(1) @Schema(minimum = "1") int toRank,
+            @NotNull @Size(max = 200) @Schema(maxLength = 200) String description) { }
 }

@@ -9,7 +9,12 @@ import com.cnhsk.learning.api.PracticeApi;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public final class ContestViews {
     private static final String TIME_PATTERN = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX";
@@ -89,4 +94,49 @@ public final class ContestViews {
     @Schema(name = "ContestResults", requiredProperties = {"contest", "published", "mine", "ranking"})
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record ContestResults(ContestSummary contest, boolean published, MyResult mine, RankingPage ranking) { }
+
+    public enum ContestStatus { DRAFT, PUBLISHED, CANCELLED }
+
+    @Schema(name = "ContestWrite", requiredProperties = {"name", "startsAt", "endsAt"})
+    public record ContestWrite(@NotBlank @Size(max = 200) String name,
+            @Size(max = 5000) @Schema(types = {"string", "null"}) String description,
+            @Schema(types = {"integer", "null"}, format = "int64") Long examId,
+            @NotNull OffsetDateTime startsAt, @NotNull OffsetDateTime endsAt,
+            @Min(1) @Max(100000) @Schema(types = {"integer", "null"}) Integer maxParticipants,
+            @Size(max = 10) List<@NotNull @Valid Prize> prizes) { }
+
+    @Schema(name = "AdminContest", requiredProperties = {"id", "name", "description", "examId", "examTitle",
+            "startsAt", "endsAt", "maxParticipants", "prizes", "status", "state", "rankingPublishedAt", "participantCount"})
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public record AdminContest(long id, String name, @Schema(types = {"string", "null"}) String description,
+            @Schema(types = {"integer", "null"}, format = "int64") Long examId,
+            @Schema(types = {"string", "null"}) String examTitle,
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = TIME_PATTERN, timezone = TIME_ZONE) OffsetDateTime startsAt,
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = TIME_PATTERN, timezone = TIME_ZONE) OffsetDateTime endsAt,
+            @Schema(types = {"integer", "null"}) Integer maxParticipants, List<Prize> prizes,
+            ContestStatus status, ScheduleState state,
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = TIME_PATTERN, timezone = TIME_ZONE)
+            @Schema(types = {"string", "null"}, format = "date-time") OffsetDateTime rankingPublishedAt,
+            long participantCount) {
+        public AdminContest { prizes = List.copyOf(prizes); }
+    }
+
+    @Schema(name = "AdminContestPage", requiredProperties = {"items", "page", "size", "totalElements"})
+    public record AdminContestPage(List<AdminContest> items, int page, int size, long totalElements) {
+        public AdminContestPage { items = List.copyOf(items); }
+    }
+
+    @Schema(name = "Participant", requiredProperties = {"userId", "displayName", "status", "score", "maxScore",
+            "durationMs", "submittedAt", "suspicious", "cheatEventCount"})
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public record Participant(long userId, @Schema(types = {"string", "null"}) String displayName, String status,
+            @Schema(types = {"integer", "null"}, format = "int64") Long score,
+            @Schema(types = {"integer", "null"}, format = "int64") Long maxScore,
+            @Schema(types = {"integer", "null"}) Integer durationMs,
+            @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = TIME_PATTERN, timezone = TIME_ZONE)
+            @Schema(types = {"string", "null"}, format = "date-time") OffsetDateTime submittedAt,
+            boolean suspicious, long cheatEventCount) { }
+
+    @Schema(name = "ParticipantDecision", requiredProperties = {"excluded", "note"})
+    public record ParticipantDecision(@NotNull Boolean excluded, @NotBlank @Size(max = 500) String note) { }
 }
