@@ -208,3 +208,53 @@
   contract 018/020, năm test practice đọc YAML và ModuleBoundaryTest 9/9;
   full verify 6216 F0/E0/S0, JaCoCo LINE 97,044617% (15269/15734), không dùng ngoại lệ môi trường.
   DFS 2000 node/19945 cạnh: targeted 4,2836 ms, full 9,0914 ms; chỉ log, không assert timing.
+
+## 2026-11-15 · G0 kiểm thử hợp đồng quản trị nội dung đã duyệt
+
+- Nhánh `spec/023-t12`, base `e681945eb8f26d67efdf42040bb5fefbb6db6edb` (main đã merge #207,
+  có T-05/T-06/T-08). Không rebase/merge main vào nhánh.
+- Đúng 3 file: thêm `src/test/java/com/cnhsk/contract/ContentAdminContractTest.java`, sửa
+  tasks.md và questions.md của 023. Không đổi controller, YAML, test khác hoặc dependency.
+- Khoá đúng 10 path / 13 operation: settings 3/4, exams 5/7, topics 2/2.
+  Đối chiếu hai chiều path + method + status giữa YAML và GET /v3/api-docs;
+  đối chiếu tập operation đăng ký qua RequestMappingHandlerMapping, bắt cả endpoint bị ẩn.
+- Namespace chỉ root hoặc root + "/": /api/admin/settings, /api/admin/exams, /api/admin/topics.
+  Handler thuộc shared.settings hoặc learning.examadmin (kể cả package con) được kiểm cả
+  khi mapping đi ra ngoài namespace. Phần vocab chỉ TopicAdminController, không gom
+  TopicController của learner. Handler từ package khác đặt trong namespace admin vẫn bị kiểm.
+  Mapping không có method tường minh và mapping trùng cũng fail; không bỏ qua HEAD/OPTIONS/PATCH/TRACE.
+- Ca tự kiểm dùng dữ liệu trong bộ nhớ: path/method/status thiếu hoặc thừa, default/wildcard
+  response, boundary namespace/package, metadata PathItem, owner lạ, mapping không method/trùng.
+  Không thêm controller giả vào context, không sửa YAML để thử âm tính.
+- Khi lệch thực tế, test gom báo cáo an toàn vào target/content-admin-contract-mismatches.json
+  gồm path/method/status/owner; không commit báo cáo. Dừng báo leader, không sửa production/YAML
+  hoặc nới assertion để xanh.
+- Khảo sát base: ExamContractTest quét learning.exam.web, không khoá exam-admin. TopicContractTest
+  đã kiểm kê đủ 5 path learner + 2 path admin của T-08; TopicAdminContractTest khoá đúng 2 path
+  admin topics. Các test giữ nguyên, chạy hồi quy cùng ModuleBoundaryTest trước full verify.
+- Test mới dùng AbstractIntegrationTest/Testcontainers riêng, Java 17, profile test/dev để bật
+  Springdoc; MockMvcPrint.NONE. Không SQL/migration trên Neon. Xoá Env:DEBUG trước mọi Maven command.
+  Gate: ContentAdminContractTest → ExamContractTest/TopicContractTest/TopicAdminContractTest/
+  ModuleBoundaryTest → full verify, JaCoCo LINE ≥80%, chỉ 5 ngoại lệ môi trường đã duyệt.
+- Sau T-12, thứ tự theo chỉ đạo mới của leader: T-03 → T-04 → T-09 → T-10;
+  mỗi task tiếp theo lập G0 riêng, không triển khai cùng phạm vi T-12.
+
+### Evidence gate
+
+- Maven đầu bị sandbox chặn dependency resolution trước khi chạy test. Chạy lại với quyền
+  truy cập dependency/cache và Docker phù hợp, giữ Java 17 và xoá Env:DEBUG trước mỗi lệnh.
+- ContentAdminContractTest: 6 F0/E0/S0, BUILD SUCCESS. Bao gồm một ca đối chiếu runtime
+  thực và năm ca tự kiểm trong bộ nhớ. 10 path / 13 operation và các tập status đều khớp;
+  không sinh target/content-admin-contract-mismatches.json, không cần sửa controller/YAML.
+  Log cục bộ: `C:\KLTN_FALL2026\023-t12-targeted-final.log`.
+- Hồi quy: ExamContractTest 3/3, TopicContractTest 6/6, TopicAdminContractTest 3/3,
+  ModuleBoundaryTest 9/9; tổng 21 F0/E0/S0, BUILD SUCCESS. Các test giữ nguyên.
+  Log cục bộ: `C:\KLTN_FALL2026\023-t12-regression.log`.
+- Full `mvnw.cmd -B verify`: 6457 F0/E0/S0, BUILD SUCCESS, toàn bộ coverage check PASS;
+  JaCoCo LINE 97,115925% (15557 covered / 16019 total, 462 missed). Không dùng ngoại lệ
+  môi trường; ContentAdminContractTest chạy lại trong full vẫn 6/6. Tổng thời gian 27:49 phút.
+  Log cục bộ: `C:\KLTN_FALL2026\023-t12-verify.log`.
+- Không có mismatch thực tế hoặc lỗi assertion mới cần sửa. Không sinh báo cáo mismatch,
+  không sửa test khác/controller/YAML. File target và log cục bộ không commit.
+- Self-check PASS: đúng allowlist 3 file, không BOM, diff check sạch, không TODO/skip mới,
+  không thêm dependency, không đổi schema/SQL/FE, không commit secret hoặc dữ liệu thật.
