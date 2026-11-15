@@ -43,3 +43,13 @@
 | Q-T01-03 | Phạm vi AT-13 khi chưa có `ContestHandler` | T-01 chèn thẳng lượt `CONTEST` để kiểm `existsActiveTest` và trợ lý trả 403 `ASSISTANT_BLOCKED_DURING_TEST`, không gọi stub/không trừ hạn mức; kiểm lượt đã nộp/bỏ dở/hết hạn/người khác không chặn. `EvidenceAllocatorTest` kiểm `CONTEST → null`. Phần chạy trọn tạo/nộp qua engine và chứng minh mastery không đổi chuyển sang T-02, không thuộc gate T-01 | ✅ Chốt |
 | Q-T01-04 | Backup và áp migration trên Neon | Chỉ leader backup và chạy V7 → V10 theo thứ tự merge. Tường chỉ kiểm V9 bằng Testcontainers, không truy cập Neon | ✅ Chốt |
 | Q-T01-05 | Fixture `PracticeServiceTest` giả định chỉ `GAME_ROUND` có TTL động | Leader duyệt file thứ 14: cấp override theo `source.ttl() == null`; loại `CONTEST` khỏi nhóm TTL cố định; cả `GAME_ROUND` và `CONTEST` đều được kiểm override thiếu/0/âm. Không sửa `PracticeService` hay assertion của nguồn khác | ✅ Chốt |
+
+## 2026-11-14 · G0 T-02 — leader duyệt
+
+| # | Câu hỏi | Quyết định | Trạng thái |
+|---|---|---|---|
+| Q-T02-01 | Interface có chín phương thức nhưng T-02 chỉ triển khai bốn | `ContestAttemptService` triển khai `start`, `countAttempts`, `submit`, `exam`, chưa `implements ContestAttemptApi`, không tạo stub. T-03 thêm năm phương thức còn lại rồi gắn interface. Thứ tự phụ thuộc sửa thành T-01 → T-02 → T-03 → T-04 → T-05… | ✅ Chốt |
+| Q-T02-02 | Ân hạn nộp thay đổi trong lúc thi | Đọc `SettingsApi.getInt(CONTEST_SUBMIT_GRACE_SECONDS)`; chụp giá trị vào snapshot khi tạo lượt. `expiresAt = deadline + grace`; cấu hình mới chỉ áp dụng cho lượt tạo sau, resume giữ snapshot/deadline/expiry cũ. Không khai lại cấu hình YAML | ✅ Chốt |
+| Q-T02-03 | Điểm dùng để xếp hạng cuộc thi | Dùng số câu đúng (`score` hiện tại của engine), không dùng trọng số `exam_questions.points` và không sửa engine. FR-006 xếp `score DESC`, `duration_ms ASC`, phù hợp `ix_att_ref_rank` của V8 | ✅ Chốt |
+| Q-T02-04 | Khóa khi nộp với engine `REQUIRES_NEW` | Không giữ khóa dòng lượt ở transaction ngoài trước khi gọi engine; kiểm hai lần nộp song song, chỉ một lần ghi kết quả/bằng chứng/sự kiện | ✅ Chốt |
+| Q-T02-05 | Phần AT-13 chuyển từ T-01 | T-02 chạy trọn tạo lượt → lưu câu trả lời → nộp bằng engine; kiểm trợ lý bị chặn trước provider/hạn mức, mọi cột mastery không đổi và lượt cuộc thi không tạo bằng chứng mastery, kể cả khi tái phân bổ | ✅ Chốt |

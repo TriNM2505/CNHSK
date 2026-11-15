@@ -170,7 +170,9 @@ class GlobalExceptionHandlerTest {
                 "GRADING_SELF_GRADING", "GRADING_CLAIM_LIMIT", "GRADING_ALREADY_CLAIMED", "GRADING_NOT_ASSIGNEE",
                 "GRADING_DEADLINE_MISSED", "GRADING_INVALID_RESULT", "INVALID_GAME_CODE",
                 "EXAM_CODE_TAKEN", "EXAM_NOT_EDITABLE", "EDIT_CONFLICT",
-                "SETTING_NOT_FOUND", "SETTING_OUT_OF_RANGE", "ROUND_LIMIT_EXCEEDED", "GAME_UNAVAILABLE", "EXPORT_TOO_LARGE", "INTERNAL_ERROR");
+                "SETTING_NOT_FOUND", "SETTING_OUT_OF_RANGE", "ROUND_LIMIT_EXCEEDED", "GAME_UNAVAILABLE", "EXPORT_TOO_LARGE",
+                "CONTEST_NOT_FOUND", "CONTEST_NOT_OPEN", "CONTEST_ALREADY_ATTEMPTED",
+                "CONTEST_SUBMIT_REQUIRED", "CONTEST_EXAM_INVALID", "INTERNAL_ERROR");
     }
 
     @Test
@@ -186,6 +188,24 @@ class GlobalExceptionHandlerTest {
                 .containsEntry("message", "Không thể xuất quá 10.000 giao dịch.")
                 .containsKey("request_id").doesNotContainKey("details").hasSize(3);
         assertThat(response.getBody().get("request_id")).isNotEqualTo("FORGED");
+    }
+
+    @Test
+    void contestErrorsKeepTheApprovedStatusAndStandardErrorFields() {
+        var handler = new GlobalExceptionHandler();
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        var statuses = Map.of(ErrorCode.CONTEST_NOT_FOUND, HttpStatus.NOT_FOUND,
+                ErrorCode.CONTEST_NOT_OPEN, HttpStatus.UNPROCESSABLE_ENTITY,
+                ErrorCode.CONTEST_ALREADY_ATTEMPTED, HttpStatus.CONFLICT,
+                ErrorCode.CONTEST_SUBMIT_REQUIRED, HttpStatus.CONFLICT,
+                ErrorCode.CONTEST_EXAM_INVALID, HttpStatus.UNPROCESSABLE_ENTITY);
+        statuses.forEach((code, expected) -> {
+            var response = handler.handleApiException(new ApiException(code, expected, "Không thể thi.",
+                    Map.of("error_code", "FORGED", "message", "FORGED", "request_id", "FORGED")), request);
+            assertThat(response.getStatusCode()).isEqualTo(expected);
+            assertThat(response.getBody()).containsEntry("error_code", code.name()).containsEntry("message", "Không thể thi.")
+                    .containsKey("request_id").hasSize(3);
+        });
     }
 
     @Test

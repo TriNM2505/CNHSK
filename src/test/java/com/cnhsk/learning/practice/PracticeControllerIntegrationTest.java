@@ -256,6 +256,29 @@ class PracticeControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).path("userId").asLong();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"finish", "abandon"})
+    void AT07_contestRequiresDedicatedSubmissionAfterOwnershipCheck(String action) throws Exception {
+        long id = service.start(new StartPracticeCommand(owner, PracticeSource.CONTEST, 21002L, null,
+                List.of(PracticeServiceTest.choice(1)), List.of(), Duration.ofMinutes(10), Map.of())).sessionId();
+        for (long sessionId : List.of(id, Long.MAX_VALUE)) {
+            mvc.perform(post("/api/practice/sessions/{id}/" + action, sessionId)
+                            .header("Authorization", bearer(other, "LEARNER")))
+                    .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("ATTEMPT_NOT_OWNED"));
+        }
+        mvc.perform(post("/api/practice/sessions/{id}/" + action, id)
+                        .header("Authorization", bearer(owner, "LEARNER")))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.error_code").value("CONTEST_SUBMIT_REQUIRED"));
+        assertThat(attempts.findById(id).orElseThrow().getStatus()).isEqualTo("IN_PROGRESS");
+        assertThat(items.findByAttemptIdOrderByOrderIndexAsc(id)).isEmpty();
+        mvc.perform(get("/api/practice/sessions/{id}", id).header("Authorization", bearer(owner, "LEARNER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].answer").doesNotExist());
+        mvc.perform(post("/api/practice/sessions/{id}/answers", id).header("Authorization", bearer(owner, "LEARNER"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"no\":1,\"answer\":\"A\",\"durationMs\":3000}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.accepted").value(true))
+                .andExpect(jsonPath("$.correct").doesNotExist()).andExpect(jsonPath("$.correctAnswer").doesNotExist());
+    }
+
     private PracticeService.SessionView start(PracticeSource source, Long refId) {
         return startFor(owner, source, refId);
     }
