@@ -170,7 +170,41 @@ class GlobalExceptionHandlerTest {
                 "GRADING_SELF_GRADING", "GRADING_CLAIM_LIMIT", "GRADING_ALREADY_CLAIMED", "GRADING_NOT_ASSIGNEE",
                 "GRADING_DEADLINE_MISSED", "GRADING_INVALID_RESULT", "INVALID_GAME_CODE",
                 "EXAM_CODE_TAKEN", "EXAM_NOT_EDITABLE", "EDIT_CONFLICT",
-                "SETTING_NOT_FOUND", "SETTING_OUT_OF_RANGE", "ROUND_LIMIT_EXCEEDED", "GAME_UNAVAILABLE", "EXPORT_TOO_LARGE", "INTERNAL_ERROR");
+                "SETTING_NOT_FOUND", "SETTING_OUT_OF_RANGE", "ROUND_LIMIT_EXCEEDED", "GAME_UNAVAILABLE", "EXPORT_TOO_LARGE",
+                "QUESTION_NOT_PENDING", "AI_GENERATION_DISABLED", "AI_GENERATION_BUSY", "INTERNAL_ERROR");
+    }
+
+    @Test
+    void generationConflictsKeepTheirStatusAndProtectTheStandardEnvelope() {
+        var handler = new GlobalExceptionHandler();
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        for (ErrorCode code : java.util.List.of(ErrorCode.QUESTION_NOT_PENDING,
+                ErrorCode.AI_GENERATION_DISABLED, ErrorCode.AI_GENERATION_BUSY)) {
+            var response = handler.handleApiException(new ApiException(code, HttpStatus.CONFLICT,
+                    "Không thể thực hiện thao tác này.",
+                    Map.of("error_code", "FORGED", "message", "FORGED", "request_id", "FORGED",
+                            "details", "private-provider-data")), request);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+            assertThat(response.getBody()).containsEntry("error_code", code.name())
+                    .containsEntry("message", "Không thể thực hiện thao tác này.")
+                    .containsKey("request_id").doesNotContainKey("details").hasSize(3);
+            assertThat(response.getBody().get("request_id")).isNotEqualTo("FORGED");
+        }
+    }
+
+    @Test
+    void existingMalformedQuestionKeeps422AndStructuredDetails() {
+        var handler = new GlobalExceptionHandler();
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        var details = java.util.List.of(Map.of("field", "stem", "message", "Không được để trống."));
+        var response = handler.handleApiException(new ApiException(ErrorCode.MALFORMED_QUESTION,
+                HttpStatus.UNPROCESSABLE_ENTITY, "Câu hỏi không hợp lệ.",
+                Map.of("details", details, "error_code", "FORGED", "message", "FORGED", "request_id", "FORGED")), request);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(response.getBody()).containsEntry("error_code", "MALFORMED_QUESTION")
+                .containsEntry("message", "Câu hỏi không hợp lệ.").containsEntry("details", details)
+                .containsKey("request_id").hasSize(4);
+        assertThat(response.getBody().get("request_id")).isNotEqualTo("FORGED");
     }
 
     @Test

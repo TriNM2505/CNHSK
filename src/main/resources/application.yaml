@@ -98,8 +98,18 @@ cnhsk:
   ai:
     assistant-model: claude-haiku-5-5
     translate-model: claude-haiku-5-5
+    generate-model: claude-sonnet-5-5
     timeout: 15s
     monthly-token-budget: 2000000
+  ai-generate:
+    system-user-id: 0
+    window-days: 14
+    min-wrong: 20
+    min-bank: 10
+    batch-size: 5
+    max-batches-per-run: 3
+    cron: "0 0 2 * * *"
+    timeout: 60s
   assistant:
     daily-limit: 200
   library:
