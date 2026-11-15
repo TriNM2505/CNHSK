@@ -1,0 +1,71 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Content Admin — Monthly Usage Appendix
+  version: 1.1.0
+  description: >
+    Phụ lục FR-008: số token đã dùng tháng hiện tại theo Asia/Ho_Chi_Minh.
+    Chỉ ADMIN được đọc. Không tạo bộ đếm, không cộng token hoặc đổi TTL.
+    Hợp đồng gốc openapi-content-admin.yaml giữ nguyên.
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+paths:
+  /api/admin/ai-usage:
+    get:
+      tags: [admin-usage]
+      operationId: getAdminAiUsage
+      summary: Đọc số token đã dùng tháng này (ADMIN)
+      responses:
+        '200':
+          description: >
+            Không có key thì used=0, available=true. Redis lỗi hoặc counter hỏng
+            (gồm số âm) thì used=null, available=false; không trả 5xx vì lỗi đọc Redis.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiUsageResponse'
+        '401':
+          description: UNAUTHENTICATED
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: FORBIDDEN
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    AiUsageResponse:
+      type: object
+      required: [month, used, budget, available]
+      properties:
+        month:
+          type: string
+          pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+          example: '2026-11'
+          description: Tháng hiện tại theo giờ Việt Nam, yyyy-MM.
+        used:
+          type: [integer, 'null']
+          format: int64
+          minimum: 0
+          description: Số token của tháng; null khi available=false.
+        budget:
+          type: integer
+          format: int32
+          description: SettingsApi.getInt(AI_MONTHLY_TOKEN_BUDGET) tại thời điểm gọi.
+        available:
+          type: boolean
+          description: false nếu không đọc được bộ đếm Redis hợp lệ.
+    ErrorResponse:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }

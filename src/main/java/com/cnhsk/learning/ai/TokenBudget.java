@@ -39,8 +39,8 @@ public class TokenBudget {
     }
 
     public ClaudeClient.Completion execute(Supplier<ClaudeClient.Completion> operation) {
-        YearMonth month = YearMonth.from(clock.instant().atZone(ZONE));
-        String key = "ai:tokens:" + month.format(MONTH);
+        YearMonth month = currentMonth();
+        String key = keyFor(month);
         Instant expiry = month.plusMonths(1).atDay(1).atStartOfDay(ZONE).plusDays(1).toInstant();
         check(key);
         ClaudeClient.Completion result = operation.get();
@@ -52,6 +52,31 @@ public class TokenBudget {
         }
         add(key, total, expiry);
         return result;
+    }
+
+    /** Reads the current counter without creating it, charging usage or renewing its TTL. */
+    public Usage currentUsage() {
+        YearMonth month = currentMonth();
+        int budget = settings.getInt(SettingKey.AI_MONTHLY_TOKEN_BUDGET);
+        try {
+            String value = redis.opsForValue().get(keyFor(month));
+            long used = value == null ? 0 : Long.parseLong(value);
+            if (used < 0) throw new NumberFormatException();
+            return new Usage(month.toString(), used, budget, true);
+        } catch (DataAccessException | NumberFormatException exception) {
+            log.warn("AI token usage read unavailable");
+            return new Usage(month.toString(), null, budget, false);
+        }
+    }
+
+    public record Usage(String month, Long used, int budget, boolean available) {}
+
+    private YearMonth currentMonth() {
+        return YearMonth.from(clock.instant().atZone(ZONE));
+    }
+
+    private static String keyFor(YearMonth month) {
+        return "ai:tokens:" + month.format(MONTH);
     }
 
     private void check(String key) {
