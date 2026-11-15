@@ -181,3 +181,13 @@ Targeted và toàn bộ hồi quy learning.practice: 644 test, 0 failure/error/s
 AT-17 xác nhận các class game có mặt trong tập class mà luật ArchUnit hiện có kiểm tra. SharedLoginIT đổi tên thành SharedLoginIntegrationTest để Surefire tự chạy khi verify. AT-18 lấy cookie từ một lần đăng nhập WEB, dùng cho danh mục và ba ván độc lập để kiểm XSRF. Cấu hình app giữ nguyên.
 
 Targeted 156 test. Full verify 6767 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1650%. Surefire full verify: [INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.953 s -- in com.cnhsk.community.game.SharedLoginIntegrationTest
+## T-09 — Phiên đăng nhập Game Box
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T09-01 | ANSWERED | Mobile bỏ 13/11. Tạm dừng FR-030 và AT-22, gồm cầu nối WebView, token tiêm và webview-harness.html. AT-19 kiểm theo nhánh cookie web. |
+| Q-T09-02 | ANSWERED | Ngoại lệ FR-024: chỉ GET /api/community/games được thử lại đúng một lần với credentials omit sau khi endpoint refresh từ chối phiên bằng 401. API trả danh mục khách (myStats null) và useCurrentUser chuyển về khách. Mọi request còn lại giữ credentials include. |
+
+Điều kiện refresh 401 TOKEN_EXPIRED hoặc SESSION_REVOKED, tên XSRF-TOKEN và X-XSRF-TOKEN, cùng ngoại lệ CSRF cho refresh được đối chiếu với cnhsk-web/src/shared/api/client.ts, src/main/java/com/cnhsk/shared/config/SecurityConfig.java và src/main/java/com/cnhsk/shared/security/JwtAuthenticationFilter.java.
+
+Gate T-09: npm ci 326 package; Vitest 33/33; lint 0 lỗi; build và typecheck PASS; Chrome 9 kiểm tra ở 320/375/640 px với API fixture local, 0 lỗi runtime; bundle gzip 74.317 byte, dưới 250 KB. Các lệnh FE chạy trên bản sao khớp từng byte trên ổ D.

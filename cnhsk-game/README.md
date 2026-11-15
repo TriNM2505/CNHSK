@@ -37,7 +37,7 @@ Production hosting cần SPA fallback về `index.html` khi tải lại deep lin
 Chỉ khai tên biến ở đây, không lưu secret:
 
 - `VITE_API_BASE_URL`: API base cho client ở task tiếp theo; bỏ trống để dùng `/api` qua proxy local 8080.
-- `VITE_WEB_ORIGIN`: origin web chính cho luồng đăng nhập ở task tiếp theo; local là `http://localhost:5173`.
+- `VITE_WEB_ORIGIN`: origin web chính cho luồng đăng nhập. Khi không cấu hình, mặc định dev là `http://localhost:5173`.
 
 Biến Vite có thể xuất hiện trong bundle; tuyệt đối không đặt token hoặc API key vào đó.
 T-08 không đọc token, không làm auth/API/WebView, không lưu trạng thái vào browser storage.
