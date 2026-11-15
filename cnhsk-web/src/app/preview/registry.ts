@@ -1,4 +1,5 @@
 import { createElement } from 'react'
+import { previews as adminSettingsPreviews } from '@/features/admin-settings/catalog.preview'
 
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
 import {
@@ -226,6 +227,7 @@ export const previewRegistry: readonly PreviewEntry[] = [
     title: 'AdminLayout',
   },
   ...authPreviews,
+  ...adminSettingsPreviews,
   ...communityPreviews,
   ...contestPreviews,
   ...contestAdminPreviews,

@@ -548,3 +548,71 @@
   app/shared chỉ trong phạm vi đã duyệt; giữ contest-admin. Dữ liệu tự soạn, không
   secret/PII thật/đề HSK có bản quyền/Neon/.env. Không auto-retry mutation, tự ghi đè
   etag hoặc thêm luật chặn công bố riêng. Log, ảnh, target/dist và file nháp ngoài commit.
+
+## T-09 — SCR-078 System Settings · G0 đã duyệt, Q1 token usage đã chốt
+
+- Leader duyệt base `afc2c3f`, nhánh `spec/023-t09`, đúng 27 file (ADD 18,
+  MODIFY 9). Giữ nhánh trên base đã chốt; không rebase hoặc gộp main/#218.
+- Q1 đã chốt: FE gọi `GET /api/admin/ai-usage` (`ADMIN`), response 200
+  `{month, used: long|null, budget: int, available: boolean}`. Tháng hiện tại theo
+  giờ Việt Nam; budget từ SettingsApi. `available=false` hiện “Chưa đọc được số liệu”;
+  404 hoặc lỗi mạng hiện “Chưa có dữ liệu”; không dựng số 0 giả. Số liệu sẵn sàng
+  hiện `used / budget` định dạng vi-VN. Giá trị 0 thật vẫn được hiển thị.
+- Endpoint BE thuộc task T-13, contract phụ lục mới được leader giao G0 riêng.
+  T-09 được merge độc lập; **phần token phụ thuộc T-13**. QA FE dùng HTTP stub tự
+  soạn theo hợp đồng đã chốt, không tuyên bố đã kiểm tích hợp với endpoint BE T-13.
+- Danh sách nhóm/khóa, mô tả, giá trị/default/min/max lấy từ API. Không cố định
+  18 khóa hoặc bỏ nhóm AI sinh câu; runtime hiện có 24 khóa. Không tạo khóa tùy ý.
+- Sửa/reset một khóa tại chỗ, xem trước giá trị trước/sau, bắt buộc lý do;
+  chặn số không nguyên, ngoài khoảng, lý do trắng/quá 500 Unicode code point;
+  kiểm tra min-hanzi < max-hanzi cả khi sửa và reset. Backend quyết định cuối cùng.
+- PUT/DELETE qua shared apiRequest (cookie/CSRF có sẵn), không thêm retry ghi.
+  Ref chặn gửi lặp trước khi React render; khóa thao tác khi đang lưu. 422 giữ draft
+  và lý do; 404/ghi không xác định kết quả thì đọc lại danh mục, không tự gửi lại.
+  Nếu đọc lại lỗi thì giữ draft, khóa ghi đến khi đọc thành công. Đọc đến trễ không
+  được xóa editor vừa chọn cho khóa khác.
+- Reset có lý do cả khi đang mặc định; cho phép thực hiện hai lần theo hợp đồng.
+  Lịch sử mở tại chỗ, trang 0/size 20, giữ thứ tự server; newValue=null hiển thị
+  “Về mặc định”, actor không có tên dùng ID. Hủy request/kiểm generation khi đổi khóa
+  hoặc trang; không đưa phản hồi lịch sử cũ vào khóa mới.
+- Route `/admin/settings`, `['ADMIN']`, layout admin; menu desktop/mobile đúng quyền.
+  SCR-078 không thuộc learner/by-role nên không thêm SCREEN_NAMES và không sửa Java.
+  Menu nhiều role trên base này tăng 10 → 11; khi leader gộp cùng T-10 sẽ là 12.
+- Allowlist ADD 18 trong `cnhsk-web/src/features/admin-settings/`:
+  `types.ts`, `screens.ts`, `settingsForm.ts`, `settingsForm.test.ts`,
+  `test-fixtures.ts`, `api/settings.ts`, `api/settings.test.ts`,
+  `components/SettingsView.tsx`, `components/SettingsView.preview.ts`,
+  `components/SettingEditor.tsx`, `components/SettingEditor.test.tsx`,
+  `components/SettingHistory.tsx`, `components/SettingHistory.test.tsx`,
+  `pages/Scr078SystemSettingsPage.tsx`, `pages/Scr078SystemSettingsPage.test.tsx`,
+  `catalog.preview.ts`, `catalog.preview.test.ts`, `routes.test.tsx`.
+- Allowlist MODIFY 9: `cnhsk-web/src/app/routeAccess.ts`,
+  `cnhsk-web/src/app/routeAccess.test.tsx`, `cnhsk-web/src/app/screenRegistry.ts`,
+  `cnhsk-web/src/app/screenRegistry.test.ts`, `cnhsk-web/src/app/preview/registry.ts`,
+  `cnhsk-web/src/shared/layout/navigation.ts`, `cnhsk-web/src/shared/layout/Layouts.test.tsx`,
+  `specs/023-content-admin-settings/tasks.md`, `specs/023-content-admin-settings/questions.md`.
+- Lịch sử gate: targeted đầu 117 pass/2 fail ở test API mới do beforeEach trả mock
+  function và bị Vitest dùng làm cleanup. Sửa hook không trả giá trị, targeted 119/119.
+  Build đầu phát hiện prop description không thuộc PageHeader; đổi đúng subtitle.
+  Sau bổ sung ca đọc đến trễ, targeted 120/120. Full đầu 3012 pass/1 fail ở test cũ
+  `Scr016PronunciationPage.FR018_khôi phục lượt đã trả lời hết không suy ra lời giải câu cuối`
+  (undefined.then); chạy riêng cả file 30/30 PASS, không sửa file ngoài allowlist.
+- Gate cuối: npm ci PASS; targeted 120/120; full Vitest cuối 3014/3014 (228 file),
+  exit 0, không unhandled error, không dùng ngoại lệ. Lint 0 lỗi/1 warning cũ
+  `LevelBadge.tsx`; production build PASS. AssistantPromptBuilderTest 19/19,
+  Java 17 và Remove-Item Env:DEBUG trước Maven; không chạy/sửa BE ngoài test đã duyệt.
+- QA cuối: 56 phép đo ở 320/375/640 px, không tràn ngang/lỗi JavaScript. Xem preview
+  trên Vite dev và route thật trên production build với HTTP stub tự soạn: danh mục
+  24 khóa, số lớn/Unicode dài, xác nhận, 422, 404/lỗi mạng, không gửi lặp/auto retry,
+  PUT/DELETE đúng JSON + CSRF, reset hai lần, lịch sử phân trang, quyền route và ba
+  trạng thái token. Có kiểm tra số token tới Number.MAX_SAFE_INTEGER để bảo đảm wrap.
+  Artifact/log ở `C:\KLTN_FALL2026\qa-023-t09` và `023-t09-*.log`, không commit.
+- Self-check PASS: đúng ADD 18 + MODIFY 9, base/branch đúng; không sửa Java,
+  SCREEN_NAMES, BE/controller/security/YAML/schema/migration/dependency, shared API
+  hoặc file test/fixture ngoài allowlist. Không đổi assertion nghiệp vụ cũ; chỉ thêm
+  menu và đổi số link theo route mới. Fixture tự soạn; không Neon/.env/secret/PII thật/
+  dữ liệu đề HSK có bản quyền. UTF-8 không BOM, git diff --check PASS. Shadow plan,
+  script QA/scope check, ảnh, PR body, logs và target không thuộc commit.
+- Trước khi mở PR đã kiểm tra #218/T-10 được merge. Giữ base afc2c3f đã duyệt,
+  không tự rebase/merge main; leader gộp phần route/registry/preview/navigation và
+  tasks/questions nếu có conflict, giữ cả T-09/T-10 và số link nhiều role là 12.

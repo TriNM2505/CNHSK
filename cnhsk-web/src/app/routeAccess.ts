@@ -31,6 +31,7 @@ export type AppRouteDefinition =
   ScreenRouteDefinition | UtilityRouteDefinition | NotFoundRouteDefinition
 
 export const appRouteDefinitions = [
+  { access: ['ADMIN'], kind: 'screen', layout: 'admin', path: '/admin/settings', scr: 'SCR-078' },
   {
     access: ['CONTENT_EDITOR'],
     kind: 'screen',

@@ -1,6 +1,7 @@
 import type { ComponentType, LazyExoticComponent } from 'react'
 
 import { screens as accountScreens } from '@/features/account/screens'
+import { screens as adminSettingsScreens } from '@/features/admin-settings/screens'
 import { screens as adminUserScreens } from '@/features/admin-users/screens'
 import { screens as authScreens } from '@/features/auth/screens'
 import { screens as communityScreens } from '@/features/community/screens'
@@ -56,6 +57,7 @@ export function createScreenRegistry(catalogs: readonly FeatureScreenCatalog[]):
 
 export const screenRegistry = createScreenRegistry([
   { feature: 'exam-admin', screens: examAdminScreens },
+  { feature: 'admin-settings', screens: adminSettingsScreens },
   { feature: 'topic-admin', screens: topicAdminScreens },
   { feature: 'auth', screens: authScreens },
   { feature: 'community', screens: communityScreens },

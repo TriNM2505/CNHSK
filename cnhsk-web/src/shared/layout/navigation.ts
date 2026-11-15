@@ -11,6 +11,7 @@ import {
   Mic2,
   PenTool,
   ReceiptText,
+  Settings,
   ShieldCheck,
   Trophy,
   Upload,
@@ -107,6 +108,14 @@ export const adminNavigation: readonly NavigationItem[] = [
     mobileLabel: 'Đề thi',
     role: 'CONTENT_EDITOR',
     to: '/content/exams',
+  },
+  {
+    activePrefixes: ['/admin/settings'],
+    icon: Settings,
+    label: 'Cài đặt hệ thống',
+    mobileLabel: 'Cài đặt',
+    role: 'ADMIN',
+    to: '/admin/settings',
   },
   {
     activePrefixes: ['/content/topics/prerequisites'],
