@@ -171,3 +171,13 @@ Bốn matcher game chỉ cho LEARNER theo đúng method và giữ CSRF. Package 
 Leader duyệt bổ sung đúng một file, đưa allowlist lên 25. Test FR012_gameInputPreservesServerLifetimeAndScoringPolicy trong PracticeApiIntegrationTest dùng mã game và snapshot cũ nên handler mới từ chối snapshot trong lượt full đầu. Fixture chuyển sang CHAR_RAIN với timeLimitSeconds, pointsPerCorrect và uiConfig, dùng spy registry chỉ cho lần lookup của ca này. Giữ tên test và bốn kiểm tra TTL 45 giây, mã game lưu, score 0 và maxScore 1. Không đổi engine để đáp ứng fixture.
 
 Targeted và toàn bộ hồi quy learning.practice: 644 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6765 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1650% (16177 dòng covered, 472 dòng missed).
+
+## T-07 — Ranh giới module và phiên đăng nhập game
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T07-01 | ANSWERED | Nghiệm thu AT-18 theo cấu hình local hiện có, với web ở http://localhost:5173 và game ở http://localhost:5174. Origin https://game.cnhsk.com và domain cookie production do leader cấu hình khi triển khai. MockMvc kiểm tra việc API chấp nhận cookie web và trả header CORS. |
+
+AT-17 xác nhận các class game có mặt trong tập class mà luật ArchUnit hiện có kiểm tra. SharedLoginIT đổi tên thành SharedLoginIntegrationTest để Surefire tự chạy khi verify. AT-18 lấy cookie từ một lần đăng nhập WEB, dùng cho danh mục và ba ván độc lập để kiểm XSRF. Cấu hình app giữ nguyên.
+
+Targeted 156 test. Full verify 6767 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1650%. Surefire full verify: [INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.953 s -- in com.cnhsk.community.game.SharedLoginIntegrationTest
