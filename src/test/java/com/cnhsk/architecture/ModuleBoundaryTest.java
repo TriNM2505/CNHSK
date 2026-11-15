@@ -1,10 +1,12 @@
 package com.cnhsk.architecture;
 
+import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsideOfPackage;
@@ -33,6 +35,17 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsid
         importOptions = ImportOption.DoNotIncludeTests.class
 )
 class ModuleBoundaryTest {
+
+    @ArchTest
+    static void AT17_gameClassesAreIncludedInModuleBoundaryChecks(JavaClasses classes) {
+        assertThat(classes).extracting(javaClass -> javaClass.getName()).contains(
+                "com.cnhsk.community.game.GameRoundHandler",
+                "com.cnhsk.community.game.GameRoundService",
+                "com.cnhsk.community.game.web.GameController",
+                "com.cnhsk.community.game.web.GameRoundRequest",
+                "com.cnhsk.community.game.web.GameRoundStartRequest",
+                "com.cnhsk.community.game.web.GameViews");
+    }
 
     // FR012 / AC-03: cover every learning package, including practice/content and future packages.
     @ArchTest
