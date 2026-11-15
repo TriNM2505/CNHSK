@@ -99,7 +99,7 @@ class QuizCatalogIntegrationTest extends AbstractIntegrationTest {
     void defaultTenQuestionThresholdShowsTenAndHidesNine() {
         Topic nine = topic(1, 9);
         Topic ten = topic(1, 10);
-        QuizCatalog defaults = new QuizCatalog(repository, new QuizConfig());
+        QuizCatalog defaults = new QuizCatalog(repository, settings(new QuizConfig()));
         var result = defaults.list(user, 1, 0, 50);
         assertThat(result.items()).extracting(QuizCatalog.QuizListing::topicId)
                 .contains(ten.id()).doesNotContain(nine.id());
@@ -298,4 +298,13 @@ class QuizCatalogIntegrationTest extends AbstractIntegrationTest {
 
     private String bearer() { return "Bearer " + jwt.issueAccessToken(user, List.of("LEARNER"), false, UUID.randomUUID()); }
     private record Topic(long id, long kid) { }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(QuizConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.QUIZ_QUESTION_COUNT))
+                .thenAnswer(invocation -> config.getQuestionCount());
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.QUIZ_MIN_SECONDS_PER_QUESTION))
+                .thenAnswer(invocation -> config.getMinSecondsPerQuestion());
+        return settings;
+    }
 }

@@ -32,7 +32,7 @@ class LibraryRateLimiterIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired private RateLimiter counters;
     @Autowired private StringRedisTemplate redis;
-    @Autowired private LibraryConfig config;
+    @Autowired private com.cnhsk.shared.settings.SettingsApi settings;
 
     @Test
     void FR002_AT02_guestAllows60AndBlocks61WhileKeepingTheFirstHitTtl() {
@@ -111,6 +111,6 @@ class LibraryRateLimiterIntegrationTest extends AbstractIntegrationTest {
     }
 
     private LibraryRateLimiter limiter(RateLimiter backend, String now) {
-        return new LibraryRateLimiter(backend, Clock.fixed(Instant.parse(now), ZoneOffset.UTC), config);
+        return new LibraryRateLimiter(backend, Clock.fixed(Instant.parse(now), ZoneOffset.UTC), settings);
     }
 }

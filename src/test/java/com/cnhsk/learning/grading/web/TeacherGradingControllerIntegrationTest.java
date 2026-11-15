@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 import com.cnhsk.learning.api.EntitlementApi;
 import com.cnhsk.learning.api.Consumption;
 import com.cnhsk.learning.credit.LedgerService;
-import com.cnhsk.learning.grading.GradingConfig;
 import com.cnhsk.learning.grading.GradingRepository;
 import com.cnhsk.learning.grading.GradingRequestService;
 import com.cnhsk.shared.security.JwtService;
@@ -71,11 +70,11 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
     @MockitoSpyBean private GradingRepository repository;
     @MockitoSpyBean private EntitlementApi entitlement;
     @MockitoSpyBean private LedgerService ledger;
-    @MockitoSpyBean private GradingConfig config;
+    @MockitoSpyBean private com.cnhsk.shared.settings.SettingsService settings;
     private GradingRepository repositoryTarget;
     private EntitlementApi entitlementTarget;
     private LedgerService ledgerTarget;
-    private GradingConfig configTarget;
+    private com.cnhsk.shared.settings.SettingsService settingsTarget;
     private final List<Long> users = new ArrayList<>();
     private long learner;
     private long teacher;
@@ -86,12 +85,12 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
         repositoryTarget = AopTestUtils.getUltimateTargetObject(repository);
         entitlementTarget = AopTestUtils.getUltimateTargetObject(entitlement);
         ledgerTarget = AopTestUtils.getUltimateTargetObject(ledger);
-        configTarget = AopTestUtils.getUltimateTargetObject(config);
+        settingsTarget = AopTestUtils.getUltimateTargetObject(settings);
         learner = user(); teacher = user(); other = user();
     }
 
     @AfterEach void cleanup() {
-        reset(repositoryTarget, entitlementTarget, ledgerTarget, configTarget);
+        reset(repositoryTarget, entitlementTarget, ledgerTarget, settingsTarget);
         for (long id : users) {
             var keys = redis.keys("billing:*:" + id + ":*");
             if (keys != null && !keys.isEmpty()) redis.delete(keys);
@@ -361,7 +360,7 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
     @ValueSource(strings = {"QUOTA", "CREDIT"})
     void AT12_completeUsesServerScoresAndPayoutAndLearnerSeesOnlyTheResult(String source) throws Exception {
         boolean credit = source.equals("CREDIT"); if (credit) { usage(learner, 10); topup(learner); }
-        doReturn(2).when(configTarget).getTeacherPayoutCredits();
+        doReturn(2).when(settingsTarget).getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         long id = pending(learner); claim(teacher, id, 200);
         var receipt = repository.find(id).orElseThrow().payload().get("consumption").deepCopy();
         clearInvocations(repositoryTarget, entitlementTarget, ledgerTarget);
@@ -399,7 +398,7 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test void AT12_twoRealParallelHttpSubmissionsCreateExactlyOnePayout() throws Exception {
-        doReturn(2).when(configTarget).getTeacherPayoutCredits();
+        doReturn(2).when(settingsTarget).getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         long id = pending(learner); claim(teacher, id, 200); clearInvocations(entitlementTarget, ledgerTarget);
         assertThat(race(List.of(() -> completeStatus(id), () -> completeStatus(id)))).containsExactlyInAnyOrder(200, 403);
         assertThat(payoutRows(id)).isEqualTo(1); assertThat(balance(teacher)).isEqualTo(2);
@@ -408,7 +407,7 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test void SC003_oneHundredSubmissionsInParallelBatchesStillProduceOnePayout() throws Exception {
-        doReturn(2).when(configTarget).getTeacherPayoutCredits();
+        doReturn(2).when(settingsTarget).getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         long id = pending(learner); claim(teacher, id, 200); clearInvocations(entitlementTarget, ledgerTarget);
         var results = new ArrayList<Integer>();
         for (int batch = 0; batch < 10; batch++) {
@@ -435,7 +434,7 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
     @ValueSource(strings = {"QUOTA", "CREDIT"})
     void FR015_failureAfterRealLedgerInsertRollsBackEverythingAndRetryPaysOnce(String source) throws Exception {
         boolean credit = source.equals("CREDIT"); if (credit) { usage(learner, 10); topup(learner); }
-        doReturn(2).when(configTarget).getTeacherPayoutCredits();
+        doReturn(2).when(settingsTarget).getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         long id = pending(learner); claim(teacher, id, 200);
         var before = repository.find(id).orElseThrow(); clearInvocations(entitlementTarget);
         doAnswer(call -> { call.callRealMethod(); throw new IllegalStateException("Fixture payout unavailable"); })
@@ -455,7 +454,7 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test void AT11_exactDeadlineIsAcceptedButLateSubmissionDoesNotPay() throws Exception {
-        doReturn(2).when(configTarget).getTeacherPayoutCredits();
+        doReturn(2).when(settingsTarget).getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         long exact = pending(learner); long late = pending(learner);
         claim(teacher, exact, 200); claim(teacher, late, 200);
         deadline(exact, NOW); deadline(late, NOW.minusMillis(1)); clearInvocations(entitlementTarget, ledgerTarget);
@@ -469,7 +468,7 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test void AT11_invalidResultNeverChangesTheAssignedRequestOrBilling() throws Exception {
-        doReturn(2).when(configTarget).getTeacherPayoutCredits();
+        doReturn(2).when(settingsTarget).getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         long id = pending(learner); claim(teacher, id, 200);
         var before = repository.find(id).orElseThrow(); clearInvocations(repositoryTarget, entitlementTarget, ledgerTarget);
         var bodies = new ArrayList<>(List.of("", "null", "[]", "{}", "{", "{} {}", "42"));
@@ -504,7 +503,7 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test void FR015_lostConditionalUpdateNeverCallsLedgerOrRefund() throws Exception {
-        doReturn(2).when(configTarget).getTeacherPayoutCredits();
+        doReturn(2).when(settingsTarget).getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         long id = pending(learner); claim(teacher, id, 200); var before = repository.find(id).orElseThrow();
         doReturn(false).when(repositoryTarget).complete(eq(id), eq(teacher), any(), anyInt(), anyString(), any(), anyInt());
         clearInvocations(entitlementTarget, ledgerTarget);
@@ -516,7 +515,7 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
     @CsvSource({"QUOTA,true", "QUOTA,false", "CREDIT,true", "CREDIT,false"})
     void AT12_completionAndReleaseOverlapButOnlyTheWinnerCanPayOrRefund(String source, boolean completionWins) throws Exception {
         boolean credit = source.equals("CREDIT"); if (credit) { usage(learner, 10); topup(learner); }
-        doReturn(2).when(configTarget).getTeacherPayoutCredits();
+        doReturn(2).when(settingsTarget).getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         long id = pending(learner); assignedWithPastClaimDeadline(id, NOW.minusMillis(1));
         clearInvocations(repositoryTarget, entitlementTarget, ledgerTarget);
         overlappingCompletion(id, completionWins, false);
@@ -528,7 +527,7 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
     @CsvSource({"QUOTA,true", "QUOTA,false", "CREDIT,true", "CREDIT,false"})
     void AT12_completionAndExpiryOverlapButNeverProduceBothPayoutAndRefund(String source, boolean completionWins) throws Exception {
         boolean credit = source.equals("CREDIT"); if (credit) { usage(learner, 10); topup(learner); }
-        doReturn(2).when(configTarget).getTeacherPayoutCredits();
+        doReturn(2).when(settingsTarget).getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         long id = pending(learner); claim(teacher, id, 200); deadline(id, NOW);
         clearInvocations(repositoryTarget, entitlementTarget, ledgerTarget);
         overlappingCompletion(id, completionWins, true);

@@ -6,6 +6,8 @@ import java.util.Map;
 import com.cnhsk.learning.practice.PracticeSource;
 import com.cnhsk.learning.practice.PracticeSourceHandler;
 import com.cnhsk.learning.practice.entity.Attempt;
+import com.cnhsk.shared.settings.SettingKey;
+import com.cnhsk.shared.settings.SettingsApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -13,16 +15,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration(proxyBeanMethods = false)
 public class QuizHandler {
     @Bean
-    PracticeSourceHandler firstQuizHandler(QuizRepository repository, QuizConfig config) {
-        return new Source(PracticeSource.QUIZ, repository, config);
+    PracticeSourceHandler firstQuizHandler(QuizRepository repository, QuizConfig config, SettingsApi settings) {
+        return new Source(PracticeSource.QUIZ, repository, config, settings);
     }
 
     @Bean
-    PracticeSourceHandler retryQuizHandler(QuizRepository repository, QuizConfig config) {
-        return new Source(PracticeSource.QUIZ_RETRY, repository, config);
+    PracticeSourceHandler retryQuizHandler(QuizRepository repository, QuizConfig config, SettingsApi settings) {
+        return new Source(PracticeSource.QUIZ_RETRY, repository, config, settings);
     }
 
-    private record Source(PracticeSource source, QuizRepository repository, QuizConfig config)
+    private record Source(PracticeSource source, QuizRepository repository, QuizConfig config, SettingsApi settings)
             implements PracticeSourceHandler {
         @Override
         public SessionPolicy sessionPolicy() { return new SessionPolicy(Duration.ofMinutes(config.getSessionMinutes())); }
@@ -40,7 +42,7 @@ public class QuizHandler {
 
         @Override
         public boolean isSuspicious(FinishContext context) {
-            long minimum = (long) config.getMinSecondsPerQuestion() * 1000 * context.items().size();
+            long minimum = (long) settings.getInt(SettingKey.QUIZ_MIN_SECONDS_PER_QUESTION) * 1000 * context.items().size();
             return Duration.between(context.servedAt(), context.submittedAt()).toMillis() < minimum;
         }
 

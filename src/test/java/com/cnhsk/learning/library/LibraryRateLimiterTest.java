@@ -99,7 +99,7 @@ class LibraryRateLimiterTest {
         when(counters.increment(anyString(), any())).thenReturn(3L);
         LibraryConfig config = new LibraryConfig();
         config.setFlashcardReviewsPerHour(2);
-        var limiter = new LibraryRateLimiter(counters, Clock.fixed(Instant.parse("2026-11-06T12:59:59.999Z"), ZoneOffset.UTC), config);
+        var limiter = new LibraryRateLimiter(counters, Clock.fixed(Instant.parse("2026-11-06T12:59:59.999Z"), ZoneOffset.UTC), settings(config));
         assertThatThrownBy(() -> limiter.checkFlashcardReview(7L)).isInstanceOfSatisfying(ApiException.class, error ->
                 assertThat(error.getExtra()).containsEntry("retryAfterSeconds", 1L));
         verify(counters).increment("library:flashcards:review:user:7:2026110612", Duration.ofSeconds(1));
@@ -129,6 +129,17 @@ class LibraryRateLimiterTest {
         config.setGuestLookupsPerHour(guest);
         config.setAuthenticatedLookupsPerHour(authenticated);
         config.setFlashcardReviewsPerHour(500);
-        return new LibraryRateLimiter(counters, Clock.fixed(Instant.parse(now), ZoneOffset.UTC), config);
+        return new LibraryRateLimiter(counters, Clock.fixed(Instant.parse(now), ZoneOffset.UTC), settings(config));
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(LibraryConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.LIBRARY_GUEST_LOOKUPS_PER_HOUR))
+                .thenAnswer(invocation -> config.getGuestLookupsPerHour());
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.LIBRARY_AUTHENTICATED_LOOKUPS_PER_HOUR))
+                .thenAnswer(invocation -> config.getAuthenticatedLookupsPerHour());
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.LIBRARY_FLASHCARD_REVIEWS_PER_HOUR))
+                .thenAnswer(invocation -> config.getFlashcardReviewsPerHour());
+        return settings;
     }
 }

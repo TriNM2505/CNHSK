@@ -13,6 +13,8 @@ import com.cnhsk.learning.practice.PracticeSource;
 import com.cnhsk.learning.practice.ServedItem;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.cnhsk.shared.settings.SettingKey;
+import com.cnhsk.shared.settings.SettingsApi;
 import com.cnhsk.shared.security.RateLimiter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -25,16 +27,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class QuizSessionService {
     private final QuizRepository repository;
     private final QuizQuestionPicker picker;
-    private final QuizConfig config;
+    private final SettingsApi settings;
     private final PracticeService practice;
     private final RateLimiter limiter;
     private final Clock clock;
 
-    public QuizSessionService(QuizRepository repository, QuizQuestionPicker picker, QuizConfig config,
+    public QuizSessionService(QuizRepository repository, QuizQuestionPicker picker, SettingsApi settings,
             PracticeService practice, RateLimiter limiter, Clock clock) {
         this.repository = repository;
         this.picker = picker;
-        this.config = config;
+        this.settings = settings;
         this.practice = practice;
         this.limiter = limiter;
         this.clock = clock;
@@ -50,7 +52,7 @@ public class QuizSessionService {
             throw new ApiException(ErrorCode.TOPIC_NOT_FOUND, HttpStatus.NOT_FOUND,
                     "Không tìm thấy chủ đề.", Map.of());
         }
-        List<ServedItem> items = picker.pick(topicId, config.getQuestionCount());
+        List<ServedItem> items = picker.pick(topicId, settings.getInt(SettingKey.QUIZ_QUESTION_COUNT));
         // Shared Redis fixed-window policy; failures propagate just as RateLimiter defines.
         if (limiter.increment("quiz:start:" + userId, Duration.ofHours(1)) > 30) {
             throw new ApiException(ErrorCode.RATE_LIMITED, HttpStatus.TOO_MANY_REQUESTS,

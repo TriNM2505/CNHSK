@@ -17,6 +17,8 @@ import com.cnhsk.learning.grading.web.GradingRequestViews.*;
 import com.cnhsk.learning.grading.web.GradingRequestWrite;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.cnhsk.shared.settings.SettingKey;
+import com.cnhsk.shared.settings.SettingsApi;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,26 +34,29 @@ public class GradingRequestService {
     private final GradingRepository repository;
     private final EntitlementApi entitlement;
     private final GradingConfig config;
+    private final SettingsApi settings;
     private final ObjectMapper mapper;
     private final Clock clock;
 
-    public GradingRequestService(GradingRepository repository, EntitlementApi entitlement, GradingConfig config,
+    public GradingRequestService(GradingRepository repository, EntitlementApi entitlement, GradingConfig config, SettingsApi settings,
             ObjectMapper mapper, Clock clock) {
         this.repository = repository;
         this.entitlement = entitlement;
         this.config = config;
+        this.settings = settings;
         this.mapper = mapper;
         this.clock = clock;
     }
 
     public Policy policy() {
-        return new Policy(config.getClaimHours(), config.getGradingHours(), config.getMinHanzi(), config.getMaxHanzi(),
+        return new Policy(settings.getInt(SettingKey.GRADING_CLAIM_HOURS), settings.getInt(SettingKey.GRADING_GRADING_HOURS), settings.getInt(SettingKey.GRADING_MIN_HANZI), settings.getInt(SettingKey.GRADING_MAX_HANZI),
                 config.getMaxChars(), 1, REFUND_TERMS);
     }
 
     @Transactional
     public Detail submit(long userId, GradingRequestWrite request) {
-        var essay = EssayRules.validate(request.essay(), config);
+        var essay = EssayRules.validate(request.essay(), new EssayRules.LengthLimits(
+                settings.getInt(SettingKey.GRADING_MIN_HANZI), settings.getInt(SettingKey.GRADING_MAX_HANZI), config.getMaxChars()));
         repository.lockSubmit(userId);
         if (repository.hasActiveEssay(userId, essay.essayHash())) {
             throw error(ErrorCode.GRADING_DUPLICATE_ACTIVE, HttpStatus.CONFLICT, "Bài này đang chờ chấm.");
@@ -64,7 +69,7 @@ public class GradingRequestService {
         if (request.hskLevel() == null) payload.putNull("hskLevel");
         else payload.put("hskLevel", request.hskLevel());
         payload.set("consumption", mapper.valueToTree(consumption));
-        long id = repository.createPending(userId, payload, now, now.plus(config.getClaimHours(), ChronoUnit.HOURS));
+        long id = repository.createPending(userId, payload, now, now.plus(settings.getInt(SettingKey.GRADING_CLAIM_HOURS), ChronoUnit.HOURS));
         return detail(owned(userId, id));
     }
 

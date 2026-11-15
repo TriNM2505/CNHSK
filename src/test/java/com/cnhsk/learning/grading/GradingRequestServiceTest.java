@@ -37,7 +37,7 @@ class GradingRequestServiceTest {
         repository = mock(GradingRepository.class); entitlement = mock(EntitlementApi.class);
         GradingConfig config = new GradingConfig(); config.setClaimHours(48); config.setGradingHours(24);
         config.setMinHanzi(50); config.setMaxHanzi(500); config.setMaxChars(3000);
-        service = new GradingRequestService(repository, entitlement, config, mapper, Clock.fixed(NOW, ZoneOffset.UTC));
+        service = new GradingRequestService(repository, entitlement, config, settings(config), mapper, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test void FR001_policyUsesTheConfigurationAndExactRefundTerms() {
@@ -131,5 +131,18 @@ class GradingRequestServiceTest {
 
     private void failure(Runnable action, ErrorCode code) {
         assertThatThrownBy(action::run).isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.getCode()).isEqualTo(code));
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(GradingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.GRADING_CLAIM_HOURS))
+                .thenAnswer(invocation -> config.getClaimHours());
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.GRADING_GRADING_HOURS))
+                .thenAnswer(invocation -> config.getGradingHours());
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.GRADING_MIN_HANZI))
+                .thenAnswer(invocation -> config.getMinHanzi());
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.GRADING_MAX_HANZI))
+                .thenAnswer(invocation -> config.getMaxHanzi());
+        return settings;
     }
 }

@@ -375,3 +375,77 @@
   Test dùng bcrypt cost 12 và dữ liệu tự soạn, không secret/PII thật/Neon/.env;
   không thay đổi luồng quyền, CSRF hoặc ledger. Không commit log/artifact/file nháp;
   git diff --check, allowlist/base/branch và UTF-8 không BOM đều PASS.
+
+## 2026-11-15 · G0 chuyển consumer thư viện, quiz và chấm bài đã duyệt
+
+- Leader duyệt 25 file (ADD 2, MODIFY 23); nhánh `spec/023-t04` từ đúng
+  `d34ca971d905f05ee566a16ed4adb617d66e28db` (đầu #213), không dùng main `09b89ef`.
+  Draft PR ghi phụ thuộc #213; leader giữ commit cha khi merge, member không rebase.
+  Đạt (022) đã được leader báo trước về việc đổi nguồn đọc grading.
+- MODIFY production 014: `LibraryRateLimiter`, `NotebookService`, `DeckService`, `CardService`;
+  019: `QuizCatalog`, `QuizSessionService`, `QuizHandler`;
+  022: `GradingRequestService`, `TeacherGradingService`, `EssayRules`.
+  Tất cả thuộc `src/main/java/com/cnhsk/learning/{library,quiz,grading}/`, đuôi `.java`.
+- MODIFY test 014: `LibraryRateLimiterTest`, `LibraryRateLimiterIntegrationTest`;
+  019: `QuizCatalogIntegrationTest`, `QuizHandlerTest`, `QuizSessionIntegrationTest`;
+  022: `EssayRulesTest`, `GradingRequestServiceTest`, `TeacherGradingServiceTest`,
+  `GradingRepositoryIntegrationTest`, `GradingExpiryJobIntegrationTest`,
+  `web/TeacherGradingControllerIntegrationTest`. Đều thuộc `src/test/java/com/cnhsk/learning/`.
+  ADD `src/test/java/com/cnhsk/shared/settings/SettingsLibraryQuizConsumerIntegrationTest.java`
+  và `SettingsGradingConsumerIntegrationTest.java` cùng thư mục. MODIFY hai tài liệu
+  `specs/023-content-admin-settings/tasks.md`, `questions.md`; không sửa file ngoài allowlist.
+- Q1 đã duyệt: dùng d34ca97 để giữ lịch sử tài liệu T-03 và mẫu fixture consumer;
+  không sửa SettingsConsumerIntegrationTest của T-03. Hai lớp mới dùng chung support
+  package-private trong file library/quiz, theo cùng cách dùng API ADMIN/bean thật,
+  snapshot/restore setting, fixture tự soạn và dọn counter riêng từng người dùng.
+- Q2 đã duyệt: EssayRules nhận record LengthLimits(minHanzi,maxHanzi,maxChars) bất biến,
+  service dựng tại thời điểm dùng. EssayRulesTest chỉ đổi đối số fixture, giữ kỳ vọng
+  và thông báo lỗi null. Không đưa SettingsApi vào validator thuần.
+- Chuyển đủ 6 khoá library, 2 khoá quiz, 6 khoá grading. 021 đã dùng SettingsApi tại
+  ContestAttemptService nên chỉ hồi quy, không đổi code. Consumer chỉ giữ reference API;
+  không cache/fallback riêng hoặc giữ giá trị lúc constructor. Hạn mức trong details
+  và kiểm tra dùng cùng giá trị local; queue đọc payout một lần cho mỗi projection.
+- Giữ Lua/key/TTL/fail-open Redis, khoá/transaction, hoàn lượt/ledger. Hạ hạn mức không
+  xoá nội dung hay counter. Resume quiz giữ snapshot; min-seconds đọc khi nộp cho cả
+  QUIZ/QUIZ_RETRY, 0 tắt kiểm tra nhanh; session-minutes vẫn dùng QuizConfig.
+- Grading policy/giới hạn bài và deadline của thao tác mới dùng setting tại thời điểm dùng.
+  Không ghi lại deadline đã lưu; payout hoàn tất dùng giá trị lưu trong request.
+  Giữ max-chars, cron và validation LibraryConfig/QuizConfig/GradingConfig.
+- Test cũ chỉ đổi wiring/adapter fixture và stub payout sang SettingsService cụ thể;
+  mọi kỳ vọng cũ giữ nguyên. Không @MockitoBean SettingsApi. Hai integration test mới
+  không mock/spy SettingsApi/SettingsService; đổi/reset qua HTTP API ADMIN thật.
+- Gate Java 17/Testcontainers: Remove-Item Env:DEBUG trước mỗi Maven command;
+  targeted 13 lớp → hồi quy 014/019/022, contest 021, settings/contract/security và
+  ModuleBoundaryTest → full verify, JaCoCo LINE >= 80%. Chỉ 5 ngoại lệ môi trường đã duyệt;
+  lỗi khác ngoài phạm vi dừng báo leader. Không FE/Neon/.env/schema/YAML/dependency.
+
+### Evidence gate và lịch sử sửa trong phạm vi T-04
+
+- Targeted đầu: 216 F2/E0/S0; 206 test cũ xanh, hai lỗi đều trong test mới.
+  Quiz so expiry nanosecond từ response tạo với timestamp PostgreSQL đọc lại làm tròn
+  microsecond. Sửa test lấy snapshot đã lưu trước đổi setting rồi so nguyên response
+  resume sau đổi/reset, vẫn kiểm chính xác ID/items/thứ tự/expiry đã lưu.
+  Test payout gọi GET teacher sau COMPLETED kỳ vọng 200, nhưng API hiện có chỉ cho
+  teacher đọc ASSIGNED. Giữ 403 hiện có; kiểm payout bất biến qua DB, ledger và trạng
+  thái COMPLETED qua API learner. Không đổi production/quyền/assertion cũ.
+  Log cục bộ: `C:\KLTN_FALL2026\023-t04-targeted.log` (không commit).
+- Targeted sau sửa: 216 F0/E0/S0, BUILD SUCCESS; 206 test cũ và 10 test tích hợp mới.
+  Log: `C:\KLTN_FALL2026\023-t04-targeted-final.log` (không commit).
+- Trên base d34ca97 chưa có ContentAdminContractTest của T-12 (đã lên main ở nhánh khác).
+  Giữ base leader cấp, không chép/cherry-pick test hoặc rebase; hồi quy các contract
+  LibraryContractTest, QuizContractTest, GradingContractTest hiện có trên base.
+- Hồi quy 69 lớp: 1058 F0/E0/S0, BUILD SUCCESS; ModuleBoundaryTest 9/9.
+  Gồm toàn bộ library/quiz/grading/contest/settings, ba contract và quyền quiz.
+  Log: `C:\KLTN_FALL2026\023-t04-regression.log` (không commit).
+- Full verify một lượt: 6572 F0/E0/S0, BUILD SUCCESS trong 29 phút 31 giây;
+  ModuleBoundaryTest 9/9, JaCoCo LINE 97,143209% (15778/16242), coverage gate PASS.
+  Không dùng ngoại lệ môi trường nào trong năm ngoại lệ đã duyệt. Log:
+  `C:\KLTN_FALL2026\023-t04-verify.log`; coverage ở `target/site/jacoco/`, không commit.
+- Self-check PASS: đúng ADD 2 + MODIFY 23, base/branch đúng, mọi kỳ vọng test cũ
+  giữ nguyên (EssayRules chỉ đổi adapter đối số theo Q2). Không mock SettingsApi,
+  cache/fallback riêng hay giữ hạn mức số trong constructor/field. Không đổi validation
+  ba Config, session-minutes/max-chars/cron, Lua/key/TTL, snapshot quiz, deadline/payout
+  đã lưu, idempotency, hoàn lượt, chấm điểm, ledger, schema/migration, dependency,
+  controller/YAML/security/FE hoặc code contest 021. Module boundary giữ nguyên.
+  Fixture tự soạn, bcrypt cost 12; không Neon/.env/secret/PII thật/đề HSK có bản quyền.
+  git diff --check và UTF-8 không BOM PASS; log/target/file nháp shadow-plans ngoài commit.

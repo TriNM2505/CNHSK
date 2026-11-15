@@ -88,10 +88,10 @@ class GradingExpiryJobIntegrationTest {
     @MockitoSpyBean private GradingRepository repository;
     @MockitoSpyBean private EntitlementApi entitlement;
     @MockitoSpyBean private StringRedisTemplate redis;
-    @MockitoSpyBean private GradingConfig config;
+    @MockitoSpyBean private com.cnhsk.shared.settings.SettingsService settings;
     private GradingRepository repositoryTarget;
     private EntitlementApi entitlementTarget;
-    private GradingConfig configTarget;
+    private com.cnhsk.shared.settings.SettingsService settingsTarget;
     private final List<Long> users = new ArrayList<>();
     private int essayNumber;
 
@@ -99,11 +99,11 @@ class GradingExpiryJobIntegrationTest {
         clock.set(NOW);
         repositoryTarget = AopTestUtils.getUltimateTargetObject(repository);
         entitlementTarget = AopTestUtils.getUltimateTargetObject(entitlement);
-        configTarget = AopTestUtils.getUltimateTargetObject(config);
+        settingsTarget = AopTestUtils.getUltimateTargetObject(settings);
     }
 
     @AfterEach void cleanup() {
-        reset(repositoryTarget, entitlementTarget, configTarget, redis);
+        reset(repositoryTarget, entitlementTarget, settingsTarget, redis);
         for (long id : users) {
             var keys = redis.keys("billing:*:" + id + ":*"); if (keys != null && !keys.isEmpty()) redis.delete(keys);
             jdbc.update("DELETE FROM learning.credit_transactions WHERE user_id=?", id);
@@ -258,7 +258,7 @@ class GradingExpiryJobIntegrationTest {
     @ParameterizedTest @CsvSource({"false,false", "false,true", "true,false", "true,true"})
     void FR018_completionAndExpiryCannotBothPayAndRefund(boolean credit, boolean completeWins) throws Exception {
         long owner = user(), teacher = user(), id = pending(owner, credit); teachers.claim(teacher, id);
-        doReturn(2).when(configTarget).getTeacherPayoutCredits(); deadline(id, NOW.plusSeconds(1));
+        doReturn(2).when(settingsTarget).getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS); deadline(id, NOW.plusSeconds(1));
         var completeEntered = new CountDownLatch(1); var releaseComplete = new CountDownLatch(1);
         var expiryEntered = new CountDownLatch(1); var releaseExpiry = new CountDownLatch(1);
         doAnswer(call -> { completeEntered.countDown(); await(releaseComplete); return call.callRealMethod(); })
