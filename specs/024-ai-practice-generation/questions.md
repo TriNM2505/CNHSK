@@ -1,5 +1,11 @@
 # Câu hỏi và quyết định — Spec #024
 
+## 2026-11-16 · Leader yêu cầu sample chỉ dạng 4 phương án
+
+- Sample chỉ lấy APPROVED + PRIMARY có đúng4 options và đúng1 is_correct=true. FILL_BLANK options=[], câu3 options hoặc2 đáp án đúng không làm sample; options hợp lệ của các câu đó vẫn góp error_patterns như cũ. Ba sample là ba câu hợp lệ đầu tiên sau lọc, không N+1; malformed options vẫn skip riêng câu/WARN chỉ question ID.
+- Fix tiếp nối PR#226 trong exact9; chỉ test-compile → targeted T-03 → regression aigen, không chạy lại Full/JaCoCo. Kết quả Full FAILED/native1 và coverage cũ bên dưới là lịch sử commit225eb8b, không phải xác minh commit Fix. Leader sẽ integrated verify trên main834a4cd.
+- Gate Fix ngày2026-11-16: test-compile BUILD SUCCESS/native0; targeted đầu45/F0/E1/S0/native1 được giữ nguyên (unit fixture mapping chỉ2options, bị lọc sample nên NPE). Chỉ sửa fixture thêmC/Dfalse, giữ mọi assertion mapping/privacy; recovery riêng AiPromptBuilderTest4/F0/E0/S0/native0 cùng3suite/41case PASS giữ lại xác minh đủ45case T-03 qua hai attempt, không tuyên bố fresh45PASS. Regression aigen4suite config/selector **70/F0/E0/S0, BUILD SUCCESS/native0**. Không rerun compile/targeted suites đãPASS, Full/JaCoCo hoặc benchmark. Full exec gốc/copy1338905bytes giữ SHA256 `8657E95ED8017371D83B0CB372F2D7AF613C57C1F59E2DEE4FF80D3D6A93675E`; coverage Fix không đo, chờ integrated verify của Leader.
+
 ## 2026-11-15 · T-03 Leader duyệt exact9/Q1-A
 
 - Prompt giữ `code,title,name_zh,can_do,hsk_level`, prerequisite titles, tối đa80 lexemes và3 mẫu APPROVED PRIMARY hợp lệ cùng error patterns distinct; đúng hai system blocks cache=true. Không learner data/số đếm hoặc prompt/nội dung câu trong log.

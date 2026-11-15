@@ -88,6 +88,35 @@ class AiPromptBuilderIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void fillsSampleQuotaAfterFilteringNonFourChoiceQuestionsAndKeepsTheirErrorPatterns(CapturedOutput output) throws Exception {
+        long node = fixtures.node("Target", "Can do"), errorNode = fixtures.node("Error", "Can do");
+        fixtures.lexeme(node, "WORD", "sample-filter", 1);
+        long blank = fixtures.question(node, "PRIMARY", "APPROVED", "MANUAL", "blank-not-sample", fixtureOptions(null));
+        jdbc.update("UPDATE learning.questions SET qtype='FILL_BLANK', options='[]'::jsonb WHERE id=?", blank);
+        var three = mapper.readTree(fixtureOptions(fixtures.kid(errorNode)));
+        ((com.fasterxml.jackson.databind.node.ArrayNode) three).remove(3);
+        ((com.fasterxml.jackson.databind.node.ObjectNode) three.get(1)).put("error_note", "Three option pattern");
+        fixtures.question(node, "PRIMARY", "APPROVED", "MANUAL", "three-not-sample", three.toString());
+        var twoCorrect = mapper.readTree(fixtureOptions(fixtures.kid(errorNode)));
+        ((com.fasterxml.jackson.databind.node.ObjectNode) twoCorrect.get(2)).put("is_correct", true);
+        ((com.fasterxml.jackson.databind.node.ObjectNode) twoCorrect.get(1)).put("error_note", "Two correct pattern");
+        fixtures.question(node, "PRIMARY", "APPROVED", "MANUAL", "two-correct-not-sample", twoCorrect.toString());
+        for (int index = 0; index < 4; index++)
+            fixtures.question(node, "PRIMARY", "APPROVED", "IMPORT", "valid-sample-" + index, fixtureOptions(null));
+        sql.clear();
+        JsonNode data = context(builder.build(node, 5));
+        assertThat(data.path("samples")).hasSize(3);
+        for (int index = 0; index < 3; index++)
+            assertThat(data.path("samples").get(index).path("stem").asText()).isEqualTo("valid-sample-" + index);
+        assertThat(data.toString()).doesNotContain("blank-not-sample", "three-not-sample", "two-correct-not-sample", "valid-sample-3");
+        assertThat(data.path("error_patterns")).hasSize(2);
+        assertThat(data.path("error_patterns").toString()).contains("Three option pattern", "Two correct pattern");
+        assertThat(output.getAll()).doesNotContain("Skipping question with malformed options");
+        sql.assertContentReads(3);
+        assertThat(sql.statements).hasSize(3);
+    }
+
+    @Test
     void skipsOnlyMalformedLegacyQuestionAndLogsOnlyItsIdentifier(CapturedOutput output) throws Exception {
         long node = fixtures.node("Target", "Can do"), other = fixtures.node("Other", "Can do");
         fixtures.lexeme(node, "WORD", "legacy-case", 1);

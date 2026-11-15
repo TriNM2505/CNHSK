@@ -65,7 +65,9 @@ class AiPromptBuilderTest {
         content(17, "NP1-001", title, "can\\do\nquoted \"data\"");
         when(repository.promptQuestions(17)).thenReturn(List.of(new PromptQuestion(984321,
                 "Self-authored sample", "[{\"key\":\"A\",\"text\":\"right\",\"is_correct\":true},"
-                + "{\"key\":\"B\",\"text\":\"wrong\",\"is_correct\":false,\"error_kid\":\"NP1-002\",\"error_note\":\"note\"}]",
+                + "{\"key\":\"B\",\"text\":\"wrong\",\"is_correct\":false,\"error_kid\":\"NP1-002\",\"error_note\":\"note\"},"
+                + "{\"key\":\"C\",\"text\":\"third\",\"is_correct\":false},"
+                + "{\"key\":\"D\",\"text\":\"fourth\",\"is_correct\":false}]",
                 "Sample explanation", true)));
         var prompt = builder.build(17, 5);
         JsonNode context = mapper.readTree(prompt.systemBlocks().get(1).text());
@@ -89,14 +91,11 @@ class AiPromptBuilderTest {
 
     @Test
     @ExtendWith(OutputCaptureExtension.class)
-    void preservesLegacyFillBlankSamplesWithAnEmptyOptionsArray(CapturedOutput output) throws Exception {
+    void excludesLegacyFillBlankFromSamplesWithoutTreatingItsOptionsAsMalformed(CapturedOutput output) throws Exception {
         when(repository.promptQuestions(17)).thenReturn(List.of(new PromptQuestion(901,
                 "Self-authored fill blank ___", "[]", "Fill blank explanation", true)));
         JsonNode context = mapper.readTree(builder.build(17, 5).systemBlocks().get(1).text());
-        assertThat(context.path("samples").size()).isEqualTo(1);
-        assertThat(context.path("samples").get(0).path("stem").asText()).isEqualTo("Self-authored fill blank ___");
-        assertThat(context.path("samples").get(0).path("options").isArray()).isTrue();
-        assertThat(context.path("samples").get(0).path("options").size()).isZero();
+        assertThat(context.path("samples")).isEmpty();
         assertThat(output.getAll()).doesNotContain("WARN", "Skipping question");
     }
 

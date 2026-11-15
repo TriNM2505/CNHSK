@@ -74,7 +74,8 @@ public class AiPromptBuilder {
         for (PromptQuestion question : repository.promptQuestions(knowledgePointId)) {
             List<QuestionOption> options = options(question);
             if (options == null) continue;
-            if (question.approvedPrimary() && samples.size() < 3) {
+            if (question.approvedPrimary() && options.size() == 4
+                    && options.stream().filter(QuestionOption::isCorrect).count() == 1 && samples.size() < 3) {
                 ObjectNode sample = samples.addObject().put("stem", question.stem())
                         .put("explanation", question.explanation());
                 ArrayNode sampleOptions = sample.putArray("options");
