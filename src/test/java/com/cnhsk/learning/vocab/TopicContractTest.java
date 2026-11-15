@@ -40,7 +40,7 @@ class TopicContractTest {
                 .andReturn().getResponse().getContentAsString());
         assertThat(runtime.path("paths").fieldNames()).toIterable().containsExactlyInAnyOrder(
                 "/api/topics", "/api/topics/{id}", "/api/topics/{id}/study-sessions", "/api/topics/{id}/practice-sessions",
-                "/api/topics/{id}/tests");
+                "/api/topics/{id}/tests", "/api/admin/topics", "/api/admin/topics/{id}/prerequisites");
         for (String path : Set.of("/api/topics", "/api/topics/{id}")) {
             var operation = source.getPaths().get(path).getGet();
             JsonNode documented = runtime.path("paths").path(path).path("get");

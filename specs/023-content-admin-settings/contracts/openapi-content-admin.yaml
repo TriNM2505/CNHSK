@@ -236,7 +236,7 @@ components:
         name: { type: string }
         hskLevel: { type: integer }
         prereqs: { type: array, items: { $ref: '#/components/schemas/TopicRef' } }
-        isRoot: { type: boolean }
+        isRoot: { type: boolean, description: Không có cạnh tiên quyết tới chủ đề còn tồn tại; ID mất được bỏ qua. }
         warnings: { type: array, items: { type: string } }
     AdminTopicPage:
       type: object
@@ -251,6 +251,29 @@ components:
       required: [prereqIds]
       properties:
         prereqIds: { type: array, maxItems: 10, uniqueItems: true, items: { type: integer, format: int64 } }
+    TopicPrerequisiteCycleDetails:
+      type: object
+      required: [path]
+      properties:
+        path: { type: array, items: { type: integer, format: int64 } }
+    TopicPrerequisiteFieldError:
+      type: object
+      required: [field, message]
+      properties:
+        field: { type: string }
+        message: { type: string }
+    TopicPrerequisiteError:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+        details:
+          oneOf:
+            - $ref: '#/components/schemas/TopicPrerequisiteCycleDetails'
+            - type: array
+              items: { $ref: '#/components/schemas/TopicPrerequisiteFieldError' }
   responses:
     Error:
       description: Lỗi theo spec 023 §5
@@ -468,6 +491,10 @@ paths:
       tags: [topic-admin]
       operationId: adminListTopics
       summary: Chủ đề và tiên quyết (FR-020)
+      description: >
+        Bao gồm chủ đề chưa có từ; tìm q theo tên, không phân biệt hoa/thường,
+        ký tự %, _ và ! là literal. Sắp hskLevel, order_index, id tăng dần.
+        Bỏ ID tiên quyết đã mất khi đọc; isRoot tính trên cạnh còn hiệu lực.
       parameters:
         - name: hsk
           in: query
@@ -490,6 +517,15 @@ paths:
       tags: [topic-admin]
       operationId: adminSetTopicPrerequisites
       summary: Đặt tiên quyết, chặn vòng (FR-021)
+      description: >
+        Thay toàn bộ tiên quyết theo thứ tự body; [] để bỏ tiên quyết.
+        ID mới không tồn tại trả 404 TOPIC_NOT_FOUND; không bỏ qua khi ghi.
+        Sai kiểu, trùng hoặc quá 10 ID trả 422 VALIDATION_FAILED.
+        Khoá transaction topic-prereq trước FOR UPDATE topic đích, rồi đọc đồ thị mới nhất.
+        DFS toàn đồ thị theo cạnh còn hiệu lực; kiểm CYCLE trước NO_ROOT.
+        PREREQUISITE_CYCLE có details.path là đường vòng khép kín.
+        Warning cấp cao hơn không chặn lưu, PUT luôn trả warnings (có thể []).
+        UPDATE và audit TOPIC_PREREQ_UPDATE {before,after} cùng transaction, kể cả PUT không đổi.
       parameters:
         - $ref: '#/components/parameters/Id'
         - $ref: '#/components/parameters/XsrfToken'
@@ -503,4 +539,6 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
+        '422':
+          description: VALIDATION_FAILED, PREREQUISITE_CYCLE (details.path) hoặc PREREQUISITE_NO_ROOT
+          content: { application/json: { schema: { $ref: '#/components/schemas/TopicPrerequisiteError' } } }
