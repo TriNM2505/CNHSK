@@ -42,6 +42,7 @@ import { previews as contentImportPreviews } from '@/features/content-import/cat
 import { previews as examPreviews } from '@/features/exam/catalog.preview'
 import { previews as creditsPreviews } from '@/features/credits/catalog.preview'
 import { previews as gradingPreviews } from '@/features/grading/catalog.preview'
+import { previews as teacherGradingPreviews } from '@/features/teacher-grading/catalog.preview'
 import { previews as grammarPreviews } from '@/features/grammar/catalog.preview'
 import { previews as hanziPreviews } from '@/features/hanzi/catalog.preview'
 import { previews as referencePreviews } from '@/features/references/catalog.preview'
@@ -233,6 +234,7 @@ export const previewRegistry: readonly PreviewEntry[] = [
   ...creditsPreviews,
   ...vocabPreviews,
   ...gradingPreviews,
+  ...teacherGradingPreviews,
   ...grammarPreviews,
   ...pronunciationPreviews,
   ...hanziPreviews,

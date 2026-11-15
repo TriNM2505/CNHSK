@@ -87,6 +87,9 @@ describe('grading screen registration and learner access', () => {
     const grading = within(navigation).getByRole('link', { name: 'Chấm bài' })
     expect(grading).toHaveAttribute('href', '/grading')
     expect(grading).toHaveAttribute('aria-current', 'page')
+    const links = within(navigation).getAllByRole('link')
+    expect(links.at(-1)).toBe(grading)
+    expect(links.at(-2)).toHaveAccessibleName('Tài liệu tham khảo')
     expect(
       within(navigation).queryByRole('link', { name: 'Gói dịch vụ và điểm' }),
     ).not.toBeInTheDocument()

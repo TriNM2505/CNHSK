@@ -21,8 +21,8 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-06 | Nền FE `grading` (types theo OpenAPI, api, dữ liệu mẫu tự soạn) + SCR-032/033/034; route `learner`; `SCREEN_NAMES` SCR-032/033/034 + `AssistantPromptBuilderTest`; mục menu "Chấm bài" | `web/features/grading/**`, `web/app/routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-008 · AT-18 | 🔄 chờ review — targeted 79/79; AssistantPromptBuilderTest 19/19; FE FULL 2808/2809 (1 ngoại lệ môi trường leader duyệt); lint/build PASS |
-| T-07 | FE giáo viên SCR-056/057 (hàng đợi, bài đang giữ, khung chấm 4 tiêu chí, sửa lỗi, trả lại); route `['TEACHER']` layout `admin`; menu quản trị | `web/features/teacher-grading/**`, `routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts` + test | FR-016 · AT-18 | ⬜ |
+| T-06 | Nền FE `grading` (types theo OpenAPI, api, dữ liệu mẫu tự soạn) + SCR-032/033/034; route `learner`; `SCREEN_NAMES` SCR-032/033/034 + `AssistantPromptBuilderTest`; mục menu "Chấm bài" | `web/features/grading/**`, `web/app/routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-008 · AT-18 | ✅ MERGED — PR #197, 611f764 |
+| T-07 | FE giáo viên SCR-056/057 (hàng đợi, bài đang giữ, khung chấm 4 tiêu chí, sửa lỗi, trả lại); route `['TEACHER']` layout `admin`; menu quản trị | `web/features/teacher-grading/**`, `routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts` + test | FR-016 · AT-18 | 🔄 chờ review — targeted 94/94; FE 2863/2863; AssistantPromptBuilderTest 21/21; lint/build/QA PASS |
 | T-08 | Nối FE với backend thật; sửa lệch hợp đồng (lệch thì dừng báo leader) | `web/features/grading/**`, `web/features/teacher-grading/**` | FR-008, FR-016 | ⬜ |
 | T-09 | Test hợp đồng `/v3/api-docs` so `openapi-grading.yaml` (hai chiều path + method + status) | `t/contract/GradingContractTest.java` | §13 · AT-19 | ⬜ |
 

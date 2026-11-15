@@ -27,13 +27,6 @@ export type NavigationItem = {
 
 export const learnerNavigation: readonly NavigationItem[] = [
   {
-    activePrefixes: ['/grading'],
-    icon: PenTool,
-    label: 'Chấm bài',
-    mobilePlacement: 'more',
-    to: '/grading',
-  },
-  {
     activePrefixes: ['/learn/topics'],
     icon: BookOpen,
     label: 'Chủ đề',
@@ -65,6 +58,13 @@ export const learnerNavigation: readonly NavigationItem[] = [
     mobilePlacement: 'more',
     to: '/references/media',
   },
+  {
+    activePrefixes: ['/grading'],
+    icon: PenTool,
+    label: 'Chấm bài',
+    mobilePlacement: 'more',
+    to: '/grading',
+  },
 ]
 
 export const learnerCommunityNavigation: readonly NavigationItem[] = [
@@ -95,6 +95,13 @@ export const gameNavigationItem = {
 } as const
 
 export const adminNavigation: readonly NavigationItem[] = [
+  {
+    activePrefixes: ['/teacher/grading'],
+    icon: PenTool,
+    label: 'Chấm bài viết',
+    role: 'TEACHER',
+    to: '/teacher/grading',
+  },
   {
     activePrefixes: ['/content/references'],
     icon: BookOpen,

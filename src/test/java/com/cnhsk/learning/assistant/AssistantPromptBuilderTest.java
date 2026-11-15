@@ -85,6 +85,9 @@ class AssistantPromptBuilderTest {
                     assertThat(message).as(code).startsWith("Hỏi" + SCREEN_LINE)
                             .isNotEqualTo("Hỏi" + SCREEN_LINE);
                     count++;
+                } else if ("SCR-056".equals(code) || "SCR-057".equals(code)) {
+                    String name = "SCR-056".equals(code) ? "Hàng đợi chấm bài" : "Chấm bài viết";
+                    assertThat(message).as(code).isEqualTo("Hỏi" + SCREEN_LINE + name);
                 } else {
                     assertThat(message).as(code).isEqualTo("Hỏi");
                 }
@@ -104,7 +107,8 @@ class AssistantPromptBuilderTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"SCR-032|Gửi bài chấm", "SCR-033|Yêu cầu chấm bài của tôi", "SCR-034|Chi tiết yêu cầu chấm bài"})
+    @ValueSource(strings = {"SCR-032|Gửi bài chấm", "SCR-033|Yêu cầu chấm bài của tôi", "SCR-034|Chi tiết yêu cầu chấm bài",
+            "SCR-056|Hàng đợi chấm bài", "SCR-057|Chấm bài viết"})
     void gradingScreensHaveTheSameTrustedNamesAsTheLearnerPages(String entry) {
         String[] parts = entry.split("\\|", 2);
         assertThat(builder.build("Cách dùng?", List.of(), parts[0]).orElseThrow().messages())

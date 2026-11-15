@@ -251,6 +251,22 @@ describe('LearnerLayout', () => {
 })
 
 describe('AdminLayout', () => {
+  it('shows the teacher grading menu on desktop and mobile without moderator or editor permissions', () => {
+    renderLayout(<AdminLayout>Nội dung chấm bài</AdminLayout>, {
+      initialPath: '/teacher/grading/42',
+      user: { ...learner, roles: ['TEACHER'] },
+    })
+    for (const label of ['Quản trị', 'Quản trị trên thiết bị di động']) {
+      const nav = screen.getByRole('navigation', { name: label })
+      expect(within(nav).getAllByRole('link')).toHaveLength(1)
+      expect(within(nav).getByRole('link', { name: 'Chấm bài viết' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+      expect(within(nav).queryByRole('link', { name: 'Nhập dữ liệu' })).not.toBeInTheDocument()
+    }
+  })
+
   it('shows moderator destinations on desktop and mobile, follows links and marks detail prefixes active', async () => {
     const event = userEvent.setup()
     renderLayout(<AdminLayout>Nội dung kiểm duyệt</AdminLayout>, {
@@ -367,6 +383,25 @@ describe('RoleLayout', () => {
 })
 
 describe('AccountMenu area switching', () => {
+  it.each([{ roles: ['TEACHER'] }, { roles: ['LEARNER', 'TEACHER'] }] as const)(
+    'shows the teacher entry for exact roles %j',
+    async ({ roles }) => {
+      renderLayout(<PublicLayout>Nội dung</PublicLayout>, {
+        user: { ...learner, roles: [...roles] },
+      })
+      await userEvent.click(document.querySelector('summary')!)
+      expect(screen.getByRole('link', { name: 'Chấm bài viết' })).toHaveAttribute(
+        'href',
+        '/teacher/grading',
+      )
+    },
+  )
+  it('does not show a teacher area to an ordinary learner', async () => {
+    renderLayout(<PublicLayout>Nội dung</PublicLayout>)
+    await userEvent.click(document.querySelector('summary')!)
+    expect(screen.queryByRole('link', { name: 'Chấm bài viết' })).not.toBeInTheDocument()
+  })
+
   it('shows all exact areas for LEARNER plus ADMIN and lets the user switch', async () => {
     const event = userEvent.setup()
     renderLayout(<PublicLayout>Nội dung</PublicLayout>, {
