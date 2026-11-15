@@ -24,7 +24,7 @@
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-06 | Frontend bảng xếp hạng SCR-046/047: types/API, routes public, bộ lọc HSK/chủ đề/game/kỳ, Top 5 mở tới 20, myEntry, guest, bốn trạng thái, native table + mobile cards; Q-T06-01…06 | Đúng 24 file allowlist được duyệt: 16 file mới trong `cnhsk-web/src/features/leaderboard/` (types, API + test, query + test, formatters + test, view + test, hai page + test, screens, preview catalog, route integration) và 8 file sửa (`app/routeAccess.ts`, `app/screenRegistry.ts`, `app/preview/registry.ts`, `shared/layout/navigation.ts`, `shared/layout/PublicLayout.tsx`, `shared/layout/Layouts.test.tsx`, `questions.md`, `tasks.md`) | FR-018…FR-022 · AT-17 | ✅ #194 |
-| T-07 | Test hợp đồng `/v3/api-docs` so `openapi-leaderboard.yaml` (path/method/status hai chiều, khuôn `LibraryContractTest`) | `t/contract/LeaderboardContractTest.java` | AT-18 | chờ review |
+| T-07 | Test hợp đồng `/v3/api-docs` so `openapi-leaderboard.yaml` (path/method/status hai chiều, khuôn `LibraryContractTest`) | `t/contract/LeaderboardContractTest.java` | AT-18 | MERGED (#205, c3e55f5) — spec 017 hoàn tất 7/7 |
 
 ## Thứ tự
 
