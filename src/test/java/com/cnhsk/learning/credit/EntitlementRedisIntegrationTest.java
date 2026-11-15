@@ -202,6 +202,13 @@ class EntitlementRedisIntegrationTest extends AbstractIntegrationTest {
     }
 
     private EntitlementService service(StringRedisTemplate selectedRedis) {
-        return new EntitlementService(auth, ledger, jdbc, selectedRedis, mapper, config, Clock.fixed(NOW, ZoneOffset.UTC));
+        return new EntitlementService(auth, ledger, jdbc, selectedRedis, mapper, settings(config), Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(BillingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        return settings;
     }
 }

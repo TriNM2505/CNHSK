@@ -269,7 +269,7 @@ class PlanMaintenanceConcurrencyIntegrationTest extends PlanMaintenanceIntegrati
     private Boolean runJob() { maintenance().downgradeExpiredPlans(); return true; }
 
     private EntitlementService entitlement() {
-        return new EntitlementService(auth, ledger, named, redis, mapper, config, FIXED_CLOCK);
+        return new EntitlementService(auth, ledger, named, redis, mapper, settings(config), FIXED_CLOCK);
     }
 
     private void topup(long learner, int amount) {
@@ -385,5 +385,12 @@ class PlanMaintenanceConcurrencyIntegrationTest extends PlanMaintenanceIntegrati
             if (sql.contains("FOR NO KEY UPDATE") && !rows.isEmpty()) afterCatalogLock.run();
             return rows;
         }
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(BillingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        return settings;
     }
 }

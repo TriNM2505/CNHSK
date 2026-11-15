@@ -245,7 +245,7 @@ class WalletQueryIntegrationTest extends AbstractIntegrationTest {
 
     private WalletQueryService serviceAt(Instant instant) { return serviceAt(instant, auth, ledger, namedJdbc); }
     private WalletQueryService serviceAt(Instant instant, AuthApi api, LedgerService ledgerService, NamedParameterJdbcTemplate queryJdbc) {
-        var target = new WalletQueryService(api, ledgerService, queryJdbc, mapper, new BillingConfig(), Clock.fixed(instant, ZoneOffset.UTC));
+        var target = new WalletQueryService(api, ledgerService, queryJdbc, mapper, settings(new BillingConfig()), Clock.fixed(instant, ZoneOffset.UTC));
         ProxyFactory proxy = new ProxyFactory(target);
         proxy.setProxyTargetClass(true);
         proxy.addAdvice(new TransactionInterceptor(manager, new AnnotationTransactionAttributeSource()));
@@ -275,4 +275,11 @@ class WalletQueryIntegrationTest extends AbstractIntegrationTest {
                 Set.copyOf(redis.keys("billing:*:" + userId + ":*")), jdbc.queryForObject("SELECT count(*) FROM shared.audit_logs", Long.class));
     }
     private record Snapshot(Map<String, Object> user, List<Map<String, Object>> ledger, Set<String> redisKeys, long audits) {}
+
+    private static com.cnhsk.shared.settings.SettingsService settings(BillingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        return settings;
+    }
 }

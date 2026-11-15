@@ -303,7 +303,7 @@ class EntitlementServiceTest {
         ObjectMapper failingMapper = mock(ObjectMapper.class);
         when(failingMapper.writeValueAsString(any())).thenThrow(new com.fasterxml.jackson.core.JsonProcessingException(
                 "private-json-payload-marker") {});
-        service = new EntitlementService(auth, ledger, jdbc, redis, failingMapper, config, Clock.fixed(NOW, ZoneOffset.UTC));
+        service = new EntitlementService(auth, ledger, jdbc, redis, failingMapper, settings(config), Clock.fixed(NOW, ZoneOffset.UTC));
         captureWarnings(events -> {
             service.consume(USER, PaidFeature.TRANSLATE, KEY);
             finish(true);
@@ -375,7 +375,7 @@ class EntitlementServiceTest {
     }
 
     private EntitlementService service(Clock clock) {
-        return new EntitlementService(auth, ledger, jdbc, redis, mapper, config, clock);
+        return new EntitlementService(auth, ledger, jdbc, redis, mapper, settings(config), clock);
     }
 
     private PlanState plan(String code, Instant expiry, Map<String, Integer> usage) {
@@ -431,5 +431,12 @@ class EntitlementServiceTest {
                     ? TransactionSynchronization.STATUS_COMMITTED : TransactionSynchronization.STATUS_ROLLED_BACK));
             TransactionSynchronizationManager.clear();
         }
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(BillingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        return settings;
     }
 }

@@ -126,7 +126,7 @@ class PlanMaintenanceIntegrationTest extends PlanMaintenanceIntegrationSupport {
             ledger.append(new AppendCommand(learner, "TOPUP", 25, null, used.id(), null, null, null, null, null));
         });
         audit.recordDetail(administrator, "PLAN_UPDATED", "PLAN", Map.of("code", "PREMIUM"));
-        WalletQueryService wallet = new WalletQueryService(auth, ledger, named, mapper, config, FIXED_CLOCK);
+        WalletQueryService wallet = new WalletQueryService(auth, ledger, named, mapper, settings(config), FIXED_CLOCK);
         var walletBefore = asLearner(learner, wallet::wallet);
         assertThat(walletBefore.plan().code().name()).isEqualTo("FREE");
         Map<String, Object> beforeUser = userRow(learner);
@@ -312,4 +312,11 @@ class PlanMaintenanceIntegrationTest extends PlanMaintenanceIntegrationSupport {
     private record PreservedState(List<Map<String, Object>> users, List<Map<String, Object>> roles,
             List<Map<String, Object>> catalog, List<Map<String, Object>> ledger,
             List<Map<String, Object>> cards, List<Map<String, Object>> audit) {}
+
+    private static com.cnhsk.shared.settings.SettingsService settings(BillingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        return settings;
+    }
 }

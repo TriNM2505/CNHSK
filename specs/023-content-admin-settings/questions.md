@@ -267,3 +267,61 @@
 - Self-check: PASS phạm vi 40 file, contract/types, quyền route/menu, không thêm thư viện,
   không sửa SQL/BE nghiệp vụ/YAML, không commit secret/PII/dữ liệu đề thi thật.
   Hai file Java, package.json/package-lock.json và shadow-plans giữ ngoài commit.
+
+## 2026-11-15 · G0 chuyển consumer hạn mức đã duyệt
+
+- Nhánh `spec/023-t03`, base `43912434db80ea4027cdf0cdbc7f5a7f8686ea84`.
+  Leader duyệt đúng 19 file (ADD 1, MODIFY 18), không rebase/merge main.
+  Phần consumer 013/015 đã được leader điều phối; không gửi tin bên ngoài phiên.
+- MODIFY production: `learning/credit/EntitlementService.java`, `WalletQueryService.java`,
+  `learning/assistant/AssistantDailyLimit.java`, `learning/ai/TokenBudget.java`.
+  Cả bốn giữ reference SettingsApi và đọc getInt tại thời điểm dùng; wallet đọc một lần
+  cho mỗi projection FREE. PREMIUM giữ benefits hiện có, không dùng hạn mức FREE.
+- MODIFY test credit: `EntitlementServiceTest`, `EntitlementServiceIntegrationTest`,
+  `EntitlementConcurrencyIntegrationTest`, `EntitlementRedisIntegrationTest`,
+  `WalletQueryServiceTest`, `WalletQueryIntegrationTest`, `CreditTransactionHistoryIntegrationTest`,
+  `PlanMaintenanceIntegrationTest`, `PlanMaintenanceConcurrencyIntegrationTest`.
+  MODIFY test 015: `AssistantDailyLimitTest`, `TokenBudgetTest`, `TokenBudgetIntegrationTest`.
+  ADD `shared/settings/SettingsConsumerIntegrationTest.java`.
+  Hai file tài liệu MODIFY: `tasks.md`, `questions.md`; toàn bộ test dùng đuôi `.java`.
+- Q1 đã duyệt: TokenBudget.check đọc Redis bình thường dùng 0 khi chưa có key;
+  chặn BUDGET_EXCEEDED nếu used >= budget từ SettingsApi. Budget 0 chặn trước supplier
+  ngay lần đầu. Redis lỗi hoặc NumberFormatException vẫn fail-open và log.warn như 015;
+  AiConfig validation giữ nguyên, không đổi Lua/key/TTL/hoàn lượt/trừ điểm/idempotency.
+- Không reset counter khi sửa/reset setting, không thêm cache/fallback riêng cho consumer.
+  Test cũ chỉ đổi wiring constructor sang mock lớp cụ thể SettingsService, giữ các fixture
+  hạn mức và mọi assertion cũ. Không có @MockitoBean SettingsApi; test tích hợp mới dùng
+  bean SettingsService/SettingsApi thật và API ADMIN để thay đổi/reset ba setting.
+- Test mới kiểm AT-06 qua POST assistant thật, daily 0, tăng/reset không khởi động lại;
+  billing 0/2/3, wallet/entitlement nhất quán, credit fallback, idempotency và hoàn quota;
+  token 0 với key chưa có, tăng/giảm/reset không xoá số token đã dùng. Unit test kiểm
+  đọc lại trên cùng instance, key/TTL daily và fail-open token khi Redis/counter lỗi.
+- Dữ liệu tự soạn, chỉ Testcontainers PostgreSQL/Redis. Fixture snapshot/restore đúng
+  ba setting và counter token chung, dọn counter theo learner riêng; không Neon/.env.
+- Gate: Java 17, Remove-Item Env:DEBUG trước mỗi Maven command; targeted 13 lớp,
+  hồi quy consumer/settings + ModuleBoundaryTest, full verify và JaCoCo LINE >= 80%.
+  Chỉ năm ngoại lệ môi trường đã duyệt; mọi lỗi thực tế khác ngoài phạm vi phải dừng.
+
+### Evidence gate và lịch sử sửa trong phạm vi consumer
+
+- Targeted đầu: 152 F3/E0/S0, cả ba lỗi trong SettingsConsumerIntegrationTest mới:
+  fixture format ZonedDateTime bằng BASIC_ISO_DATE có hậu tố offset, đọc sai key daily.
+  Sửa fixture dùng toLocalDate() như production; không đổi production/key/TTL hoặc
+  assertion cũ. Bổ sung assertion số quota để kiểm mặc định không thể pass với mảng rỗng.
+  Log cục bộ: `C:\KLTN_FALL2026\023-t03-targeted.log` (không commit).
+- Targeted sau sửa: 152 F0/E0/S0, gồm 6 test tích hợp mới và 12 lớp test đổi wiring.
+  Log: `C:\KLTN_FALL2026\023-t03-targeted-final.log` (không commit).
+- Hồi quy consumer/settings + ModuleBoundaryTest: 207 F0/E0/S0, boundary 9/9.
+  Log: `C:\KLTN_FALL2026\023-t03-regression.log` (không commit).
+- Full verify một lượt: 6562 F0/E0/S0, BUILD SUCCESS trong 27 phút 43 giây;
+  ModuleBoundaryTest 9/9, JaCoCo LINE 97,141801% (15770/16234), coverage gate PASS.
+  Không dùng ngoại lệ môi trường nào trong năm ngoại lệ đã duyệt. Log:
+  `C:\KLTN_FALL2026\023-t03-verify.log`; JaCoCo ở `target/site/jacoco/`, không commit.
+- Self-check PASS: đúng ADD 1 + MODIFY 18; mọi assertion cũ giữ nguyên; không mock
+  SettingsApi; không giữ hạn mức trong field/constructor, thêm cache/fallback hay reset
+  counter. Không đổi Lua/key/TTL/idempotency/hoàn lượt/trừ điểm, AiConfig validation,
+  PREMIUM benefits, schema/migration, dependency, controller/YAML hoặc security.
+  Ranh giới module giữ nguyên; không thêm JOIN xuyên schema trong production.
+  Test dùng bcrypt cost 12 và dữ liệu tự soạn, không secret/PII thật/Neon/.env;
+  không thay đổi luồng quyền, CSRF hoặc ledger. Không commit log/artifact/file nháp;
+  git diff --check, allowlist/base/branch và UTF-8 không BOM đều PASS.

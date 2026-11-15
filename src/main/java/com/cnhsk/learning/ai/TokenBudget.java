@@ -9,6 +9,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.function.Supplier;
 
+import com.cnhsk.shared.settings.SettingKey;
+import com.cnhsk.shared.settings.SettingsApi;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -26,12 +29,12 @@ public class TokenBudget {
                     + "redis.call('EXPIRE', KEYS[1], ARGV[2]) return count", Long.class);
 
     private final StringRedisTemplate redis;
-    private final AiConfig config;
+    private final SettingsApi settings;
     private final Clock clock;
 
-    public TokenBudget(StringRedisTemplate redis, AiConfig config, Clock clock) {
+    public TokenBudget(StringRedisTemplate redis, SettingsApi settings, Clock clock) {
         this.redis = redis;
-        this.config = config;
+        this.settings = settings;
         this.clock = clock;
     }
 
@@ -52,9 +55,11 @@ public class TokenBudget {
     }
 
     private void check(String key) {
+        int budget = settings.getInt(SettingKey.AI_MONTHLY_TOKEN_BUDGET);
         try {
             String value = redis.opsForValue().get(key);
-            if (value != null && Long.parseLong(value) >= config.getMonthlyTokenBudget()) {
+            long used = value == null ? 0 : Long.parseLong(value);
+            if (used >= budget) {
                 throw new AiUnavailableException(AiUnavailableException.Reason.BUDGET_EXCEEDED);
             }
         } catch (DataAccessException | NumberFormatException exception) {

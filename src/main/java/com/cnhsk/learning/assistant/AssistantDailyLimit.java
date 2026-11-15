@@ -11,7 +11,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import com.cnhsk.shared.settings.SettingKey;
+import com.cnhsk.shared.settings.SettingsApi;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -32,13 +33,13 @@ public class AssistantDailyLimit {
 
     private final StringRedisTemplate redis;
     private final Clock clock;
-    private final int limit;
+    private final SettingsApi settings;
 
     public AssistantDailyLimit(StringRedisTemplate redis, Clock clock,
-            @Value("${cnhsk.assistant.daily-limit:200}") int limit) {
+            SettingsApi settings) {
         this.redis = redis;
         this.clock = clock;
-        this.limit = limit;
+        this.settings = settings;
     }
 
     public Reservation reserve(long userId) {
@@ -48,6 +49,7 @@ public class AssistantDailyLimit {
         Duration untilMidnight = Duration.between(now, midnight);
         long retrySeconds = untilMidnight.getSeconds() + (untilMidnight.getNano() == 0 ? 0 : 1);
         String key = "assistant:ask:" + userId + ":" + date.format(DAY);
+        int limit = settings.getInt(SettingKey.ASSISTANT_DAILY_LIMIT);
         try {
             Long result = redis.execute(RESERVE, List.of(key), Integer.toString(limit), Long.toString(retrySeconds));
             if (result == null) {
