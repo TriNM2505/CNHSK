@@ -142,6 +142,45 @@ class TopicContractTest {
         assertThat(id.path("format").asText()).isEqualTo("int64");
     }
 
+    @Test
+    void lockProjectionAndNewStartErrorsMatchTheUpdatedVocabularyContract() throws Exception {
+        var source = contract();
+        JsonNode document = mapper.readTree(mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        JsonNode runtime = document.path("components").path("schemas");
+        assertThat(source.getComponents().getSchemas().get("ErrorResponse").getProperties().keySet())
+                .containsExactlyInAnyOrder("error_code", "message", "request_id", "retryAfterSeconds", "learnedWords", "requiredWords");
+        for (String name : Set.of("TopicLockedError", "TopicLockedDetails")) {
+            var expected = source.getComponents().getSchemas().get(name);
+            assertThat(runtime.path(name).path("properties").fieldNames()).toIterable()
+                    .containsExactlyInAnyOrderElementsOf(expected.getProperties().keySet());
+            assertThat(runtime.path(name).path("required")).extracting(JsonNode::asText)
+                    .containsExactlyInAnyOrderElementsOf(expected.getRequired());
+        }
+        assertThat(runtime.path("TopicLockedError").path("properties").path("details").path("$ref").asText())
+                .isEqualTo("#/components/schemas/TopicLockedDetails");
+        assertThat(runtime.path("TopicLockedDetails").path("properties").path("lockedBy").path("items").path("$ref").asText())
+                .isEqualTo("#/components/schemas/LockedTopicRef");
+        for (String name : Set.of("TopicSummary", "TopicDetail")) {
+            assertThat(runtime.path(name).path("properties").path("status").path("enum")).extracting(JsonNode::asText)
+                    .containsExactly("NOT_STARTED", "IN_PROGRESS", "COMPLETED", "LOCKED");
+            assertThat(runtime.path(name).path("properties").path("lockedBy").path("items").path("$ref").asText())
+                    .isEqualTo("#/components/schemas/LockedTopicRef");
+        }
+        assertThat(runtime.path("LockedTopicRef").path("properties").fieldNames()).toIterable().containsExactlyInAnyOrder("id", "name");
+        assertThat(runtime.path("TopicActions").path("properties").path("testBlockedReason").path("enum")).extracting(JsonNode::asText)
+                .contains("TOPIC_LOCKED");
+        for (String suffix : Set.of("study-sessions", "practice-sessions", "tests")) {
+            String path = "/api/topics/{id}/" + suffix;
+            var operation = source.getPaths().get(path).getPost();
+            assertThat(operation.getDescription()).contains("TOPIC_LOCKED");
+            String errorRef = operation.getResponses().get("422").getContent().get("application/json").getSchema().get$ref();
+            assertThat(errorRef).isEqualTo("#/components/schemas/TopicLockedError");
+            assertThat(document.path("paths").path(path).path("post").path("responses").path("422")
+                    .path("content").path("application/json").path("schema").path("$ref").asText()).isEqualTo(errorRef);
+        }
+    }
+
     private static OpenAPI contract() throws Exception {
         var parsed = new OpenAPIV3Parser().readContents(Files.readString(Path.of(
                 "specs", "003-vocab-topics", "contracts", "openapi-practice-vocab.yaml")));

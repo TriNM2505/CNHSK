@@ -28,7 +28,7 @@ Sửa code module khác (013/014/015/019, 003) → mỗi chỗ một task nhỏ,
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-07 | Cổng khoá ở 003: `LOCKED`/`lockedBy` một truy vấn, `TOPIC_LOCKED` ở study/practice/tests (resume vẫn được); sửa `openapi-practice-vocab.yaml` + 5 test `learning.practice.*` đọc YAML **cùng PR** | `…/learning/vocab/{TopicQueryRepository,TopicQueryService,TopicLockQuery}.java`, `…/vocab/web/TopicController.java`, `specs/003-vocab-topics/contracts/openapi-practice-vocab.yaml`, `ErrorCode.java` + test | FR-022…FR-025 · AT-17…AT-19 | ⬜ |
+| T-07 | Cổng khoá ở 003: `LOCKED`/`lockedBy` một truy vấn, `TOPIC_LOCKED` ở study/practice/tests (resume vẫn được); sửa `openapi-practice-vocab.yaml` + 5 test `learning.practice.*` đọc YAML **cùng PR** | `…/learning/vocab/{TopicQueryRepository,TopicQueryService,TopicLockQuery}.java`, `…/vocab/web/TopicController.java`, `specs/003-vocab-topics/contracts/openapi-practice-vocab.yaml`, `ErrorCode.java` + test | FR-022…FR-025 · AT-17…AT-19 | ✅ G2 trên base `8e4c390`: targeted 387, contract 12, hồi quy + boundary 80; full verify lần hai 6156 F0/E0/S0, LINE 97,051471%; lượt full đầu dừng F2 contract 018/020 đã ghi evidence; Draft chờ leader review/merge |
 | T-08 | API tiên quyết: danh sách, đặt (DFS chống vòng, còn gốc, khoá tư vấn, cảnh báo cấp, audit); `SecurityConfig` `/api/admin/topics/**` | `…/learning/vocab/TopicPrerequisiteService.java`, `…/vocab/web/TopicAdminController.java`, `SecurityConfig.java`, `ErrorCode.java` + test | FR-020, FR-021 · AT-15, AT-16 | ⬜ |
 
 ## Đợt 4 · Frontend + hợp đồng

@@ -428,6 +428,20 @@ class TopicStudyIntegrationTest extends AbstractIntegrationTest {
         }
     }
 
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void prerequisiteGateRejectsNewStudyBeforeCreatingAnySession() throws Exception {
+        Topic prerequisite = topic(1);
+        Topic blocked = topic(1);
+        words(blocked, 1, false);
+        blocked.setPrereqIds(new Long[]{prerequisite.getId()});
+        topics.saveAndFlush(blocked);
+        var error = start(owner, blocked, 422);
+        assertThat(error.path("error_code").asText()).isEqualTo("TOPIC_LOCKED");
+        assertThat(error.path("details").path("lockedBy").get(0).path("id").asLong()).isEqualTo(prerequisite.getId());
+        assertThat(sessionCount(owner, blocked)).isZero();
+    }
+
     private long createUser() throws Exception {
         String password = "Aa1" + UUID.randomUUID();
         return mapper.readTree(mvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)

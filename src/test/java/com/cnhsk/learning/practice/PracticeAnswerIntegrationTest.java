@@ -442,6 +442,8 @@ class PracticeAnswerIntegrationTest extends AbstractIntegrationTest {
         assertThat(schema.path("type").asText()).isEqualTo("string");
         assertThat(schema.has("enum")).isFalse();
         assertThat(schema.size()).isEqualTo(1);
+        assertThat(operation.getDescription()).doesNotContain("TOPIC_LOCKED");
+        assertThat(api.getComponents().getSchemas().get("TopicLockedDetails").getRequired()).containsExactly("lockedBy");
     }
 
     private long createUser() throws Exception {

@@ -8,6 +8,7 @@ import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.learning.vocab.TopicQueryService;
 import com.cnhsk.learning.vocab.TopicQueryService.TopicDetail;
 import com.cnhsk.learning.vocab.TopicQueryService.TopicSummary;
+import com.cnhsk.learning.vocab.TopicLockQuery.LockedTopicRef;
 import com.cnhsk.learning.vocab.TopicStudyService;
 import com.cnhsk.learning.vocab.TopicPracticeService;
 import com.cnhsk.learning.vocab.TopicPracticeService.Mode;
@@ -105,7 +106,9 @@ public class TopicController {
             @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
             @ApiResponse(responseCode = "403", description = "Chỉ LEARNER; cookie yêu cầu CSRF"),
             @ApiResponse(responseCode = "404", description = "TOPIC_NOT_FOUND"),
-            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED"),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED hoặc TOPIC_LOCKED (details.lockedBy)",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = TopicLockedError.class))),
             @ApiResponse(responseCode = "429", description = "RATE_LIMITED")
     })
     public ResponseEntity<?> startStudy(
@@ -129,7 +132,9 @@ public class TopicController {
             @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
             @ApiResponse(responseCode = "403", description = "Chỉ LEARNER; cookie yêu cầu CSRF"),
             @ApiResponse(responseCode = "404", description = "TOPIC_NOT_FOUND"),
-            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED hoặc điều kiện luyện chưa đủ"),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED, TOPIC_LOCKED (details.lockedBy) hoặc điều kiện luyện chưa đủ",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = TopicLockedError.class))),
             @ApiResponse(responseCode = "429", description = "RATE_LIMITED")
     })
     public ResponseEntity<SessionView> startPractice(
@@ -156,7 +161,9 @@ public class TopicController {
             @ApiResponse(responseCode = "401", description = "Chưa đăng nhập"),
             @ApiResponse(responseCode = "403", description = "Chỉ LEARNER; cookie yêu cầu CSRF"),
             @ApiResponse(responseCode = "404", description = "TOPIC_NOT_FOUND"),
-            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED, NOT_ENOUGH_WORDS, NOT_ENOUGH_LEARNED"),
+            @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED, TOPIC_LOCKED (details.lockedBy), NOT_ENOUGH_WORDS, NOT_ENOUGH_LEARNED",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = TopicLockedError.class))),
             @ApiResponse(responseCode = "429", description = "RETRY_TOO_SOON hoặc RATE_LIMITED")
     })
     public ResponseEntity<SessionView> startTest(
@@ -165,6 +172,17 @@ public class TopicController {
         var result = tests.start(userId, positiveNumber(id, "id"));
         return ResponseEntity.status(result.created() ? HttpStatus.CREATED : HttpStatus.OK).body(result.session());
     }
+
+    @Schema(name = "TopicLockedError")
+    public record TopicLockedError(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String error_code,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String message,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String request_id,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) TopicLockedDetails details) { }
+
+    @Schema(name = "TopicLockedDetails")
+    public record TopicLockedDetails(
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<LockedTopicRef> lockedBy) { }
 
     @Schema(name = "TopicPracticeRequest")
     public record PracticeRequest(

@@ -224,7 +224,8 @@ class TopicQueryIntegrationTest extends AbstractIntegrationTest {
         JsonNode detail = detail(owner, topic);
         assertThat(detail.fieldNames()).toIterable().containsExactlyInAnyOrder(
                 "id", "code", "name", "hskLevel", "totalWords", "learnedWords", "percent", "status",
-                "bestTestPercent", "words", "actions");
+                "bestTestPercent", "lockedBy", "words", "actions");
+        assertThat(detail.path("lockedBy")).isEmpty();
         JsonNode words = detail.path("words");
         assertThat(words.get(0).path("lexemeId").asLong()).isEqualTo(first.getId());
         assertThat(words.get(1).path("lexemeId").asLong()).isEqualTo(second.getId());
@@ -376,6 +377,17 @@ class TopicQueryIntegrationTest extends AbstractIntegrationTest {
         } finally {
             statistics.setStatisticsEnabled(previouslyEnabled);
         }
+    }
+
+    @Test
+    void missingPrerequisiteIdsAreIgnoredWithoutEmittingNullNames() throws Exception {
+        Topic topic = topicWithWords(1, 0, 1);
+        topic.setPrereqIds(new Long[]{Long.MAX_VALUE});
+        topics.saveAndFlush(topic);
+        var row = find(list(owner, null), topic.getId());
+        assertThat(row.path("status").asText()).isEqualTo("NOT_STARTED");
+        assertThat(row.path("lockedBy")).isEmpty();
+        assertThat(detail(owner, topic).path("lockedBy")).isEmpty();
     }
 
     private long createUser() throws Exception {

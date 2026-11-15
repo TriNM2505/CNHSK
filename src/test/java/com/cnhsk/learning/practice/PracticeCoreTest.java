@@ -62,6 +62,9 @@ class PracticeCoreTest {
         var servedType = (io.swagger.v3.oas.models.media.Schema<?>) contract.getComponents().getSchemas()
                 .get("ServedItemView").getProperties().get("type");
         assertThat(servedType.getDescription()).contains("FLASHCARD_RATING");
+        assertThat(contract.getComponents().getSchemas().get("TopicStatus").getEnum())
+                .containsExactly("NOT_STARTED", "IN_PROGRESS", "COMPLETED", "LOCKED");
+        assertThat(contract.getComponents().getSchemas().get("LockedTopicRef").getRequired()).containsExactly("id", "name");
     }
 
     @ParameterizedTest

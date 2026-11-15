@@ -513,6 +513,9 @@ class PracticeFinishIntegrationTest extends AbstractIntegrationTest {
         assertThat(operation.getDescription()).contains("RATE_LIMITED", "ATTEMPT_NOT_OWNED", "SESSION_EXPIRED");
         var schemas = new ObjectMapper(new YAMLFactory()).readTree(yaml).path("components").path("schemas");
         assertThat(schemas.path("ErrorResponse").path("properties").path("error_code").size()).isEqualTo(1);
+        assertThat(operation.getDescription()).doesNotContain("TOPIC_LOCKED");
+        assertThat(schemas.path("TopicLockedDetails").path("properties").path("lockedBy").path("items").path("$ref").asText())
+                .isEqualTo("#/components/schemas/LockedTopicRef");
         var actual = PracticeControllerResponses.finishResponses();
         assertThat(actual).containsExactlyInAnyOrderElementsOf(operation.getResponses().keySet());
     }

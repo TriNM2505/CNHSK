@@ -172,7 +172,7 @@ class GlobalExceptionHandlerTest {
                 "EXAM_CODE_TAKEN", "EXAM_NOT_EDITABLE", "EDIT_CONFLICT",
                 "SETTING_NOT_FOUND", "SETTING_OUT_OF_RANGE", "ROUND_LIMIT_EXCEEDED", "GAME_UNAVAILABLE", "EXPORT_TOO_LARGE",
                 "CONTEST_NOT_FOUND", "CONTEST_NOT_OPEN", "CONTEST_ALREADY_ATTEMPTED",
-                "CONTEST_SUBMIT_REQUIRED", "CONTEST_EXAM_INVALID", "INTERNAL_ERROR");
+                "CONTEST_SUBMIT_REQUIRED", "CONTEST_EXAM_INVALID", "TOPIC_LOCKED", "INTERNAL_ERROR");
     }
 
     @Test
@@ -233,6 +233,21 @@ class GlobalExceptionHandlerTest {
             assertThat(response.getBody()).containsEntry("error_code", code.name()).containsEntry("message", "Cài đặt không hợp lệ.")
                     .containsKey("request_id").doesNotContainKey("details").hasSize(3);
         }
+    }
+
+    @Test
+    void topicLockDetailsAreReturnedWithoutOverridingReservedErrorFields() {
+        var handler = new GlobalExceptionHandler();
+        var request = new org.springframework.mock.web.MockHttpServletRequest();
+        var details = Map.of("lockedBy", java.util.List.of(Map.of("id", 7L, "name", "Tiên quyết")));
+        var response = handler.handleApiException(new ApiException(ErrorCode.TOPIC_LOCKED, HttpStatus.UNPROCESSABLE_ENTITY,
+                "Chủ đề đang khoá.", Map.of("details", details, "error_code", "FORGED", "message", "FORGED", "request_id", "FORGED")), request);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(response.getBody()).containsEntry("error_code", "TOPIC_LOCKED").containsEntry("message", "Chủ đề đang khoá.")
+                .containsEntry("details", details).containsKey("request_id").hasSize(4);
+        var other = handler.handleApiException(new ApiException(ErrorCode.TOPIC_NOT_FOUND, HttpStatus.NOT_FOUND,
+                "Không có chủ đề.", Map.of("details", details)), request);
+        assertThat(other.getBody()).doesNotContainKey("details");
     }
 
     @Test
