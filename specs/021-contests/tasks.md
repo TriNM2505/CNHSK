@@ -29,7 +29,7 @@
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-08 | FE người học SCR-048…051 (danh sách, chi tiết, làm bài có đồng hồ server + tự nộp + resume, kết quả); route `by-role`/`learner`; `SCREEN_NAMES` 4 màn + `AssistantPromptBuilderTest`; ẩn trợ lý ở SCR-050 (**báo Đạt — 015**); mục "Cuộc thi" nhóm Cộng đồng | `web/features/contests/**`, `web/app/routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts`, `web/features/assistant/components/AssistantHost.tsx`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-015, FR-016 · AT-20 | ✅ MERGED — PR #186 |
-| T-09 | FE ban tổ chức SCR-070/071 (form giờ VN, khoá trường, bảng thí sinh, công bố, liên hệ người đạt giải) | `web/features/contest-admin/**`, `routeAccess.ts`, `screenRegistry.ts` + test | FR-025, FR-026 · AT-21 | ⬜ |
+| T-09 | FE ban tổ chức SCR-070/071 (form giờ VN, khoá trường, bảng thí sinh, công bố, liên hệ người đạt giải) | `web/features/contest-admin/**`, `routeAccess.ts`, `screenRegistry.ts` + test | FR-025, FR-026 · AT-21 | 🔄 — Kiểm chứng xong, chờ leader review; đúng 27 file, base 176507c, không rebase, Draft PR phụ thuộc #212; full FE 2.887/F0/S0, build PASS, AssistantPromptBuilderTest 19/F0/E0/S0; QA 30 ảnh tại 320/375/640 px; lint 0 lỗi, 1 warning nền LevelBadge ngoài scope |
 | T-10 | Test hợp đồng `/v3/api-docs` so `openapi-contests.yaml` (hai chiều path + method + status) | `t/contract/ContestContractTest.java` | §13 · AT-22 | ⬜ |
 
 ## Thứ tự

@@ -305,13 +305,14 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(8)
+      expect(within(navigation).getAllByRole('link')).toHaveLength(9)
       for (const label of [
         'Nhập dữ liệu',
         'Người dùng',
         'Bài chờ duyệt',
         'Báo cáo vi phạm',
         'Tài nguyên tham khảo',
+        'Cuộc thi',
         ...financialLabels,
       ])
         expect(within(navigation).getByRole('link', { name: label })).toBeInTheDocument()
@@ -334,17 +335,21 @@ describe('AdminLayout', () => {
   it.each([
     [
       ['CONTENT_EDITOR'],
-      ['Nhập dữ liệu', 'Tài nguyên tham khảo'],
+      ['Nhập dữ liệu', 'Tài nguyên tham khảo', 'Cuộc thi'],
       ['Người dùng', ...financialLabels],
     ],
-    [['ADMIN'], ['Người dùng', ...financialLabels], ['Nhập dữ liệu', 'Tài nguyên tham khảo']],
+    [
+      ['ADMIN'],
+      ['Người dùng', ...financialLabels],
+      ['Nhập dữ liệu', 'Tài nguyên tham khảo', 'Cuộc thi'],
+    ],
     [['MODERATOR'], ['Bài chờ duyệt', 'Báo cáo vi phạm'], ['Người dùng', ...financialLabels]],
     [['TEACHER'], [], ['Người dùng', ...financialLabels]],
     [['LEARNER'], [], ['Người dùng', ...financialLabels]],
     [['ACCOUNTANT'], [], ['Người dùng', ...financialLabels]],
     [
       ['CONTENT_EDITOR', 'ADMIN'],
-      ['Nhập dữ liệu', 'Người dùng', 'Tài nguyên tham khảo', ...financialLabels],
+      ['Nhập dữ liệu', 'Người dùng', 'Tài nguyên tham khảo', 'Cuộc thi', ...financialLabels],
       [],
     ],
   ] as const)('shows only the areas granted by exact roles %j', (roles, visible, hidden) => {

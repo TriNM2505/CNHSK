@@ -5,6 +5,7 @@ import { screens as adminUserScreens } from '@/features/admin-users/screens'
 import { screens as authScreens } from '@/features/auth/screens'
 import { screens as communityScreens } from '@/features/community/screens'
 import { screens as contestScreens } from '@/features/contests/screens'
+import { screens as contestAdminScreens } from '@/features/contest-admin/screens'
 import { screens as contentImportScreens } from '@/features/content-import/screens'
 import { screens as examScreens } from '@/features/exam/screens'
 import { screens as creditsScreens } from '@/features/credits/screens'
@@ -55,6 +56,7 @@ export const screenRegistry = createScreenRegistry([
   { feature: 'auth', screens: authScreens },
   { feature: 'community', screens: communityScreens },
   { feature: 'contests', screens: contestScreens },
+  { feature: 'contest-admin', screens: contestAdminScreens },
   { feature: 'account', screens: accountScreens },
   { feature: 'admin-users', screens: adminUserScreens },
   { feature: 'content-import', screens: contentImportScreens },

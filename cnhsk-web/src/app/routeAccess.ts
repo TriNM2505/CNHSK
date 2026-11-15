@@ -448,6 +448,27 @@ export const appRouteDefinitions = [
     path: '/contests/:id/results',
     scr: 'SCR-051',
   },
+  {
+    access: ['CONTENT_EDITOR'],
+    kind: 'screen',
+    layout: 'admin',
+    path: '/content/contests',
+    scr: 'SCR-070',
+  },
+  {
+    access: ['CONTENT_EDITOR'],
+    kind: 'screen',
+    layout: 'admin',
+    path: '/content/contests/new',
+    scr: 'SCR-071',
+  },
+  {
+    access: ['CONTENT_EDITOR'],
+    kind: 'screen',
+    layout: 'admin',
+    path: '/content/contests/:id',
+    scr: 'SCR-071',
+  },
   { access: 'public', kind: 'not-found', layout: 'public', path: '*' },
 ] as const satisfies readonly AppRouteDefinition[]
 
