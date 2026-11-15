@@ -70,4 +70,4 @@ T-05 + T-11 → T-13 → T-14         (T-14 cần cả T-07)
 
 **Bốn task rủi ro cao:** T-07 (phân bổ đúng + cùng transaction `finish`) · T-06 (công thức phải ra 53,3/61,1) · T-11 (FSRS-5 đúng công thức) · T-12 (sửa engine dùng chung).
 
-**Hiện trạng: 9/15 task xong.**
+**Hiện trạng: 15/15 task xong — spec 011 hoàn tất (T-15 merge 2026-11-12).**
