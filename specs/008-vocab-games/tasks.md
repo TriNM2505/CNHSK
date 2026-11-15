@@ -11,8 +11,8 @@ Mỗi game giao độc lập được (BE trước, FE sau). Nguồn FE: app 6 g
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | Tiện ích chung: `ItemType` mới `TRACE_CHAR`, `PINYIN_PAIR`, `RADICAL_CHOICE`, `CATCH_CHOICE` (practice + `PracticeApi`, giữ thứ tự cũ, thêm cuối); chấm `TRACE_CHAR` = `answer == "PASS"`; `GameItemBuilders` (chọn nhiễu theo `meaningKeys`/`pinyinKey`, trộn + gán khoá); bỏ định nghĩa giả khỏi đăng ký | `…/learning/practice/ItemType.java`, `…/learning/api/PracticeApi.java`, `…/community/game/common/*` + test | GM-1…GM-8 · AT-16 | 🔄 chờ review — targeted 526; full verify 6781 F0/E0/S0, LINE 97,1572% |
-| T-02 | `CharRainGame` (tô nét) | `…/community/game/rain/*` + test | FR-001…FR-004 · AT-01…AT-03 | ⬜ |
+| T-01 | Tiện ích chung: `ItemType` mới `TRACE_CHAR`, `PINYIN_PAIR`, `RADICAL_CHOICE`, `CATCH_CHOICE` (practice + `PracticeApi`, giữ thứ tự cũ, thêm cuối); chấm `TRACE_CHAR` = `answer == "PASS"`; `GameItemBuilders` (chọn nhiễu theo `meaningKeys`/`pinyinKey`, trộn + gán khoá); bỏ định nghĩa giả khỏi đăng ký | `…/learning/practice/ItemType.java`, `…/learning/api/PracticeApi.java`, `…/community/game/common/*` + test | GM-1…GM-8 · AT-16 | ✅ MERGED — PR #229 / 1bed60e |
+| T-02 | `CharRainGame` (tô nét) | `…/community/game/rain/*` + test | FR-001…FR-004 · AT-01…AT-03 | 🔄 chờ review — targeted 193; full verify 6834 F0/E0/S0, LINE 97.1604% |
 | T-03 | `PinyinMatchGame` | `…/community/game/pinyin/*` + test | FR-007…FR-011 · AT-05…AT-08 | ⬜ |
 | T-04 | `RadicalMatchGame` + `RadicalLookalikes` | `…/community/game/radical/*` + test | FR-014…FR-017 · AT-09…AT-11 | ⬜ |
 | T-05 | `CharCatchGame` | `…/community/game/catchgame/*` + test | FR-019…FR-024 · AT-12…AT-15 | ⬜ |

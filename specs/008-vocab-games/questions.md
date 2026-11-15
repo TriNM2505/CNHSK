@@ -12,3 +12,11 @@ Mô tả type trong YAML 003 ghi “008 dùng lại loại sẵn có” đã cũ
 Targeted và toàn bộ hồi quy learning.practice: 526 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6781 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97,1572% (16234 dòng covered, 475 dòng missed).
 
 Targeted và toàn bộ hồi quy learning.practice: 526 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6781 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1572% (16234 dòng covered, 475 dòng missed).
+
+## T-02 — Mưa chữ
+
+- CharRainGame được dựng trực tiếp và chỉ đăng ký trong test. Đăng ký production cùng năm game còn lại thuộc T-06 theo Q-T01-01.
+- Dùng cùng điều kiện chữ duy nhất có số nét dương cho danh mục và tạo ván. Dữ liệu không đủ năm chữ đi qua GAME_UNAVAILABLE của engine.
+- Game giữ PASS trong snapshot. Engine chấm và giữ kỷ lục cũ khi ván bị đánh dấu suspicious.
+
+Targeted CharRain, community.game, ContentLookup và ModuleBoundaryTest: 193 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6834 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1604% (16492 dòng covered, 482 dòng missed).
