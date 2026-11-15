@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    min-width: 320px;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-body text-ink antialiased;
+    min-height: 100vh;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-focus ring-offset-2;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
