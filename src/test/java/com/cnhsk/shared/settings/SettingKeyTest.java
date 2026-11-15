@@ -42,7 +42,13 @@ class SettingKeyTest {
         "grading.min-hanzi,Chấm bài,1,1000,50",
         "grading.max-hanzi,Chấm bài,10,2000,500",
         "grading.max-active-claims,Chấm bài,1,20,3",
-        "contest.submit-grace-seconds,Cuộc thi,0,60,5"
+        "contest.submit-grace-seconds,Cuộc thi,0,60,5",
+        "ai-generate.system-user-id,AI sinh câu,0,2147483647,0",
+        "ai-generate.window-days,AI sinh câu,1,90,14",
+        "ai-generate.min-wrong,AI sinh câu,1,1000,20",
+        "ai-generate.min-bank,AI sinh câu,1,200,10",
+        "ai-generate.batch-size,AI sinh câu,1,10,5",
+        "ai-generate.max-batches-per-run,AI sinh câu,0,20,3"
     })
     void catalogMatchesApprovedBusinessSettings(String name, String group, int min, int max, int defaultValue) {
         SettingKey key = Arrays.stream(SettingKey.values()).filter(k -> k.key().equals(name)).findFirst().orElseThrow();
@@ -61,7 +67,7 @@ class SettingKeyTest {
 
     @Test
     void catalogIsFixedUniqueAndContainsNoSensitiveKeys() {
-        assertThat(SettingKey.values()).hasSize(18).extracting(SettingKey::key).doesNotHaveDuplicates();
+        assertThat(SettingKey.values()).hasSize(24).extracting(SettingKey::key).doesNotHaveDuplicates();
         for (SettingKey key : SettingKey.values()) {
             String name = key.key().toLowerCase(Locale.ROOT);
             assertThat(name).doesNotContain("key", "secret", "password", "pepper");
@@ -92,6 +98,25 @@ class SettingKeyTest {
                 "override", java.util.Map.of("cnhsk.billing.free-monthly-limit", raw)));
         assertThatThrownBy(() -> service(environment)).isInstanceOf(IllegalStateException.class)
                 .hasMessage("Invalid or missing default for setting billing.free-monthly-limit").hasNoCause();
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "ai-generate.system-user-id,-1,2147483648",
+        "ai-generate.window-days,0,91",
+        "ai-generate.min-wrong,0,1001",
+        "ai-generate.min-bank,0,201",
+        "ai-generate.batch-size,0,11",
+        "ai-generate.max-batches-per-run,-1,21"
+    })
+    void invalidGenerationDefaultsPreventStartupWithoutLeakingValues(String name, String belowMinimum, String aboveMaximum) {
+        for (String raw : java.util.List.of("not-an-integer", belowMinimum, aboveMaximum)) {
+            ConfigurableEnvironment environment = yamlDefaults();
+            environment.getPropertySources().addFirst(new org.springframework.core.env.MapPropertySource(
+                    "override", java.util.Map.of("cnhsk." + name, raw)));
+            assertThatThrownBy(() -> service(environment)).isInstanceOf(IllegalStateException.class)
+                    .hasMessage("Invalid or missing default for setting " + name).hasNoCause();
+        }
     }
 
     static ConfigurableEnvironment yamlDefaults() {

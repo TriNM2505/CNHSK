@@ -12,7 +12,7 @@ Khoá §0.1 đọc qua `SettingsApi` nếu 023/T-01 đã merge (T-01 thêm vào 
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | Cấu hình: khoá §0.1 (vào `SettingKey` nếu có, yaml mặc định), `cnhsk.ai.generate-model`, cron, timeout; mã lỗi §5 | `…/learning/aigen/AiGenerateConfig.java`, `application.yaml`, (`…/shared/settings/SettingKey.java`), `ErrorCode.java`, `GlobalExceptionHandlerTest` + test | §0.1, §5 | ⬜ |
+| T-01 | Cấu hình: khoá §0.1 (vào `SettingKey` nếu có, yaml mặc định), `cnhsk.ai.generate-model`, cron, timeout; mã lỗi §5 | `…/learning/aigen/AiGenerateConfig.java`, `application.yaml`, (`…/shared/settings/SettingKey.java`), `ErrorCode.java`, `GlobalExceptionHandlerTest` + test | §0.1, §5 | đã triển khai exact13/Q1-A, G2 đạt theo whitelist duyệt — compile native0; targeted 220/F0/E0/S0/native0; regression 109/F0/E0/S0/native0; Full 6161/F2/E0/S0 FAILED/native1 (2 ngoại lệ timing đã duyệt, đủ 391 suite); LINE 97.061672586% từ đúng Full exec; chờ Draft PR/Leader review |
 | T-02 | `WeakKnowledgeSelector`: gom câu sai (KID chính + `error_kid` đã chọn) + ưu tiên `MasteryReader`, lọc kho/lô chờ/`can_do`, dọn lô `STALE` | `…/learning/aigen/WeakKnowledgeSelector.java` + test | FR-002…FR-004 · AT-03…AT-06 | ⬜ |
 | T-03 | `AiPromptBuilder` (khối cố định + khối nút từ DB, không dữ liệu người học) + `AiQuestionValidator` | `…/learning/aigen/{AiPromptBuilder,AiQuestionValidator}.java` + test | §0.3, FR-007 · AT-09, AT-10 | ⬜ |
 | T-04 | `AiGenerationService` + `AiGenerationJob`: kiểm tài khoản đứng tên, tạo lô, gọi Claude ngoài transaction qua `TokenBudget`, lưu câu `PENDING_REVIEW` + KID, log | `…/learning/aigen/{AiGenerationService,AiGenerationJob}.java` + test | FR-001, FR-005, FR-006, FR-008…FR-010 · AT-01, AT-02, AT-07, AT-08 | ⬜ |

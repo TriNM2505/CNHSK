@@ -18,7 +18,13 @@ public enum SettingKey {
     GRADING_MIN_HANZI(15, "grading.min-hanzi", "Chấm bài", "Số chữ Hán tối thiểu", 1, 1_000),
     GRADING_MAX_HANZI(16, "grading.max-hanzi", "Chấm bài", "Số chữ Hán tối đa", 10, 2_000),
     GRADING_MAX_ACTIVE_CLAIMS(17, "grading.max-active-claims", "Chấm bài", "Số bài đang nhận tối đa", 1, 20),
-    CONTEST_SUBMIT_GRACE_SECONDS(18, "contest.submit-grace-seconds", "Cuộc thi", "Thời gian gia hạn nộp bài (giây)", 0, 60);
+    CONTEST_SUBMIT_GRACE_SECONDS(18, "contest.submit-grace-seconds", "Cuộc thi", "Thời gian gia hạn nộp bài (giây)", 0, 60),
+    AI_GENERATE_SYSTEM_USER_ID(19, "ai-generate.system-user-id", "AI sinh câu", "Mã tài khoản quản trị đứng tên lô, 0 để tắt tác vụ", 0, Integer.MAX_VALUE),
+    AI_GENERATE_WINDOW_DAYS(20, "ai-generate.window-days", "AI sinh câu", "Số ngày xét câu trả lời sai", 1, 90),
+    AI_GENERATE_MIN_WRONG(21, "ai-generate.min-wrong", "AI sinh câu", "Số lượt sai tối thiểu của một điểm tri thức", 1, 1_000),
+    AI_GENERATE_MIN_BANK(22, "ai-generate.min-bank", "AI sinh câu", "Chỉ sinh khi số câu đã duyệt của điểm tri thức ít hơn ngưỡng này", 1, 200),
+    AI_GENERATE_BATCH_SIZE(23, "ai-generate.batch-size", "AI sinh câu", "Số câu hỏi mỗi lô", 1, 10),
+    AI_GENERATE_MAX_BATCHES_PER_RUN(24, "ai-generate.max-batches-per-run", "AI sinh câu", "Số lô tối đa mỗi lần chạy", 0, 20);
 
     // Audit IDs are permanent identifiers: never reuse an ID, including after removing a key.
     private final long auditId;

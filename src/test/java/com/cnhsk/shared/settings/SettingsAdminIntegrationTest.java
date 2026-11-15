@@ -60,10 +60,23 @@ class SettingsAdminIntegrationTest extends AbstractIntegrationTest {
         String bearer = bearer();
         var listed = json(mvc.perform(get("/api/admin/settings").header("Authorization", bearer)).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsByteArray());
-        assertThat(listed).hasSize(18);
+        assertThat(listed).hasSize(24);
         assertThat(listed.get(0).path("currentValue").asInt()).isEqualTo(10);
         assertThat(listed.get(0).get("updatedBy").isNull()).isTrue();
         assertThat(listed.get(0).get("updatedAt").isNull()).isTrue();
+        List<SettingKey> generationKeys = List.of(AI_GENERATE_SYSTEM_USER_ID, AI_GENERATE_WINDOW_DAYS, AI_GENERATE_MIN_WRONG,
+                AI_GENERATE_MIN_BANK, AI_GENERATE_BATCH_SIZE, AI_GENERATE_MAX_BATCHES_PER_RUN);
+        for (int i = 0; i < generationKeys.size(); i++) {
+            SettingKey key = generationKeys.get(i);
+            JsonNode item = listed.get(18 + i);
+            assertThat(item.path("key").asText()).isEqualTo(key.key());
+            assertThat(item.path("group").asText()).isEqualTo("AI sinh câu");
+            assertThat(item.path("description").asText()).isEqualTo(key.description());
+            assertThat(item.path("type").asText()).isEqualTo("INT");
+            assertThat(item.path("min").asInt()).isEqualTo(key.min());
+            assertThat(item.path("max").asInt()).isEqualTo(key.max());
+            assertThat(item.path("defaultValue").asInt()).isEqualTo(environment.getProperty(key.defaultProperty(), Integer.class));
+        }
         long count = fixture.auditCount(BILLING_FREE_MONTHLY_LIMIT);
         assertThat(api.getInt(BILLING_FREE_MONTHLY_LIMIT)).isEqualTo(10);
         mvc.perform(put(path(BILLING_FREE_MONTHLY_LIMIT)).header("Authorization", bearer).contentType(MediaType.APPLICATION_JSON)
