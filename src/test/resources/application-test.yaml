@@ -44,6 +44,7 @@ cnhsk:
     cron: "-"
   billing:
     card-code-pepper: test-only-card-code-pepper-not-secret-0001
+    downgrade-cron: "-"
   import:
     recover-on-startup: false
     maintenance-cron: "-"

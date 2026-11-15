@@ -94,6 +94,7 @@ cnhsk:
   billing:
     card-code-pepper: ${CARD_CODE_PEPPER}
     free-monthly-limit: 10
+    downgrade-cron: "0 10 0 * * *"
   ai:
     assistant-model: claude-haiku-5-5
     translate-model: claude-haiku-5-5

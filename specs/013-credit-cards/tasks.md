@@ -29,7 +29,7 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 | T-10 | Gói: `GET /api/admin/plans`, `PUT /{code}` + audit; mã `PLAN_IN_USE` | `…/learning/credit/PlanAdminService.java`, `…/credit/web/PlanAdminController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest`; Q1#2 thêm AuthApiService/AuthPlanApiIntegrationTest | FR-015, FR-016 · AT-14 | ✅ MERGED — PR #174, merge d9dfc2f; leader full verify 5205/F0/E0/S0 |
 | T-11 | Sổ cái: danh sách + tổng, xuất CSV, đối chiếu (`LAG`), audit đọc; mã `EXPORT_TOO_LARGE` | `…/learning/credit/{LedgerQueryService,ReconciliationService}.java`, `…/credit/web/LedgerAdminController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-017…FR-019 · AT-15…AT-17 | chờ review |
 | T-12 | `learning.api.EntitlementApi` + `PaidFeature` + `Consumption` + `EntitlementService` (hạn mức → điểm → chặn, idempotency Redis, hoàn); mã `INSUFFICIENT_CREDITS` | `…/learning/api/{EntitlementApi,PaidFeature,Consumption}.java`, `…/learning/credit/EntitlementService.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-020…FR-022 · AT-18…AT-20 | ✅ MERGED — PR #134, main 95f401f; giữ G1/G2 FAILED history trong questions/evidence |
-| T-13 | `PlanMaintenance` job hạ gói hết hạn (cron cấu hình, test đặt `-`) | `…/learning/credit/PlanMaintenance.java`, `application.yaml` + test | FR-023 · AT-21 | ⬜ |
+| T-13 | `PlanMaintenance` job hạ gói hết hạn (cron cấu hình, test đặt `-`) | `…/learning/credit/PlanMaintenance.java`, `application.yaml` + test | FR-023 · AT-21 | chờ review — regression462/F0/native0; Full6094/F2 FAILED/native1 chỉ whitelist; LINE97.056%, Leader duyệt G3 |
 
 ## Đợt 3 · Nối thật
 
