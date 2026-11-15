@@ -215,3 +215,64 @@ QA Chrome DevTools/CDP local: 27 kiểm tra PASS ở 320/375/640 px. Cả queue/
 T-06 ghi MERGED #197/611f764 theo xác nhận leader; T-07 giữ chờ review. T-09 nằm riêng ở PR #198/base a1d39fd, không rebase/gộp nhánh đó. Một conventional commit đúng 28 file, không mã task/FR trong message, Draft PR; leader merge.
 
 Fetch cuối trước bàn giao: origin/main=6a171a4. So với base, main đã đổi AccountMenu.tsx (link Gói dịch vụ và điểm cho LEARNER), navigation.ts (ba mục tài chính ADMIN), Layouts.test.tsx và hai tài liệu 022. Những thay đổi này nằm ngoài code T-09; báo leader lưu ý giữ cả bổ sung tài chính trên main và lối giáo viên/vị trí Chấm bài của T-07 khi gộp. Không copy đè, merge/rebase/pull main hoặc sửa các bổ sung tài chính. Gate ở trên chạy trên base 611f764 như G0. Self-check cuối: đúng 28 file allowlist; UTF-8 không BOM, diff sạch, lockfile không đổi; ảnh/log/artifact QA không stage. Đã dừng riêng Vite của task và Chrome headless tự đóng; không dừng app/container của người khác.
+
+## T-08 — nghiệm thu FE với backend thật (2026-11-15)
+
+G0 được leader duyệt: nhánh spec/022-t08, base da0a5289ae8272d7139a111547aa4d85e1ecf048, đúng ba file (GradingAcceptanceServer.java, questions.md, tasks.md). Nhánh được tạo trên checkout sạch sau khi fetch; không merge/rebase/pull main. T-07 đã MERGED #208/da0a528, T-09 đã MERGED #198/ec153a4 (đối chiếu git log trên main).
+
+| Câu hỏi | Trạng thái | Chốt |
+| --- | --- | --- |
+| Q-T08-01 | ANSWERED | Launcher riêng theo tiền lệ LibraryAcceptanceServer/MasteryAcceptanceServer: Testcontainers PostgreSQL/Redis/Mailpit, profile test, HTTP chỉ bind 127.0.0.1. Mật khẩu fixture qua stdin; JWT secret, pepper và mật khẩu DB sinh trong bộ nhớ. Không đọc .env hoặc môi trường kết nối chung, không dùng Neon hay dịch vụ ngoài. Tên GradingAcceptanceServer không kết thúc bằng Test/Tests/IT. |
+
+Đính chính lịch sử T-07: theo review leader, commit a7c49a9 đã đưa hai file AssistantPromptBuilder main/test về main, bỏ tên SCR-056/057 và mọi ngoại lệ teacher. Gate sau sửa: 19/19, F0/E0/S0. Hai file Java này không có thay đổi ròng trong PR #208; PR còn 26 file. Các số 21/21 và mô tả thêm ngoại lệ ở mục T-07 phía trên là bằng chứng lượt triển khai trước khi nhận đính chính, không phải trạng thái cuối đã merge. T-08 không sửa assistant.
+
+### Môi trường và cách kiểm
+
+GradingAcceptanceServer chạy bằng test classpath, không được Surefire khám phá như một test. Launcher bỏ nguồn environment/system properties khỏi Spring Environment, đặt kết nối Testcontainers và secrets bằng MapPropertySource trong bộ nhớ; chạy từ thư mục tạm ngoài repo. Kiểm ClaudeClient thực sự là StubClaudeClient, không gọi Claude. Tắt log mật khẩu mặc định do Spring tạo cho user bảo mật dự phòng; không log mật khẩu fixture hay secrets. Thư viện và cấu hình production không đổi.
+
+Log Flyway lúc khởi động xác nhận jdbc:postgresql://localhost:<cổng ngẫu nhiên>/grading_acceptance, PostgreSQL 18; HTTP 127.0.0.1:8080; Redis/Mailpit do chính launcher tạo. Vite 127.0.0.1:5173, envFile=false, dùng proxy local hiện có. Bốn tài khoản dùng một lần gồm học viên còn lượt, học viên đã dùng hết 10 lượt/0 điểm và hai TEACHER; mật khẩu nhập qua stdin và chỉ giữ trong bộ nhớ chương trình kiểm. Dữ liệu bài/nhận xét/sửa lỗi tự soạn, không từ tài liệu HSK thật. Payout theo cấu hình đang có là 0, không đổi cấu hình tiền để nghiệm thu UI.
+
+Công cụ Windows UI không khởi tạo được (failed to write kernel assets), nên dùng Chrome headless/DevTools với profile tạm ngoài repo. Đăng nhập bằng form thật, nhận cookie thật; không intercept/fulfill response, không giả AuthApi/EntitlementApi hoặc grading API. Lượt cuối: 22 kiểm tra PASS, 51 request grading thực, 0 runtime exception. Chỉ lấy method/path/status/tên field vào evidence; không lưu cookie/token/mật khẩu. Những ca fetch được đánh dấu riêng, không gọi là kiểm bằng form.
+
+### Bảng bằng chứng HTTP thật
+
+Các id dưới đây là yêu cầu tổng hợp trong DB Testcontainers riêng, không phải dữ liệu người dùng thật. R1 = bài chấm 80 điểm; R2 = bài huỷ; R3 = bài trả lại rồi chấm 0 điểm.
+
+| Thao tác và cách kiểm | Endpoint | HTTP mong đợi / thực tế | Field kiểm | Kết quả UI / phạm vi |
+| --- | --- | --- | --- | --- |
+| 1. Mở SCR-032; GET đối chiếu thêm bằng fetch | GET /api/grading/policy | 200 / 200 | minHanzi=50, maxHanzi=500, cost, claimHours/gradingHours/refundTerms | Hiện điều kiện/chi phí, đếm chữ trước khi gửi |
+| 2. Điền bài, xác nhận gửi R1 bằng form | POST /api/grading-requests | 201 / 201 | id/reference, PENDING, prompt=null, hskLevel=null, result=null | Chuyển SCR-034 đúng id, giữ xuống dòng; chưa có kết quả |
+| 3. Gửi lại cùng bài đang chờ bằng fetch | POST /api/grading-requests | 409 / 409 | GRADING_DUPLICATE_ACTIVE | Ca API; không ghi là đã thử lỗi này qua form |
+| 4. Gửi 49 chữ Hán bằng fetch | POST /api/grading-requests | 422 / 422 | GRADING_INVALID_ESSAY, details.hanziCount=49 | Ca API, FE vốn chặn trước khi gửi |
+| 5. Mở SCR-056 bằng form; đọc thêm JSON để kiểm ẩn danh | GET /api/teacher/grading-queue?page=0&size=20 | 200 / 200 | items/page/size/totalElements, reference/hanziCount; không essay/userId/email | Hiện hàng đợi có R1, Bài tôi đang giữ tải qua GET mine |
+| 6. Bấm Nhận R1 | POST /api/teacher/grading-requests/{R1}/claim | 200 / 200 | ASSIGNED, assignedAt/gradingDeadline, result=null | Sang SCR-057, bài dạng chữ và đồng hồ hạn chấm |
+| 7. Huỷ R1 sau khi giáo viên nhận, bằng fetch | POST /api/grading-requests/{R1}/cancel | 409 / 409 | GRADING_NOT_CANCELLABLE | Ca API trạng thái đã đổi; không phải một cuộc đua đồng thời mới |
+| 8. Giáo viên B nhận R1 bằng fetch | POST /api/teacher/grading-requests/{R1}/claim | 409 / 409 | GRADING_ALREADY_CLAIMED | Ca API, không nhận trùng |
+| 9. Giáo viên B xem R1 bằng fetch | GET /api/teacher/grading-requests/{R1} | 403 / 403 | GRADING_NOT_ASSIGNEE | Không có nội dung bài trong response lỗi |
+| 10. Gửi tiêu chí 26 bằng fetch | POST /api/teacher/grading-requests/{R1}/complete | 422 / 422 | GRADING_INVALID_RESULT | Ca API, không thay đổi bài đang chấm |
+| 11. Chấm R1 bằng form: 4 tiêu chí 20, nhận xét và một dòng sửa lỗi | POST /api/teacher/grading-requests/{R1}/complete | 200 / 200 | result.score=80, criteria, feedback, corrections | Hiện kết quả server chỉ đọc, 80/100; chuỗi có thẻ script hiện nguyên văn, không tạo script element |
+| 12. Refresh SCR-057 sau hoàn thành | GET /api/teacher/grading-requests/{R1} | 403 / 403 | GRADING_NOT_ASSIGNEE | Hiện thông báo/đường về hàng đợi; không tự POST lại |
+| 13. Học viên mở SCR-034 R1 | GET /api/grading-requests/{R1} | 200 / 200 | COMPLETED, result.score=80; không payout/consumption/assigneeId | Hiện đủ bốn tiêu chí, nhận xét, sửa lỗi dạng chữ |
+| 14. SCR-033 chọn COMPLETED; fetch đối chiếu bộ lọc | GET /api/grading-requests?status=COMPLETED&page=0&size=20 | 200 / 200 | items, score=80, page=0, totalElements | Danh sách hiện R1, bộ lọc và dữ liệu trả về khớp |
+| 15. Gửi R2 rồi bấm Huỷ/Xác nhận huỷ | POST /api/grading-requests/{R2}/cancel | 200 / 200 | FAILED, refunded=true | Hiện Đã hoàn, nút huỷ không còn |
+| 16. Gửi R3, nhận rồi Trả lại/Xác nhận trả lại bằng form | POST /api/teacher/grading-requests/{R3}/release | 204 / 204 | Không body | Về queue, R3 hiện lại PENDING; không cố parse JSON từ 204 |
+| 17. Nhận lại R3, chấm bốn tiêu chí 0 bằng form; học viên xem lại | GET /api/grading-requests/{R3} | 200 / 200 | result.score=0, corrections=[] | Hiện 0/100, không coi là null; danh sách sửa lỗi rỗng có thông báo |
+| 18. Cố POST không gửi header CSRF, bằng fetch | POST /api/grading-requests/{R1}/cancel | 403 / 403 | CSRF_TOKEN_INVALID | Ca API, không miễn CSRF; mọi POST grading thành công trong lượt form có X-XSRF-TOKEN |
+| 19. Học viên hết lượt/điểm gửi bài bằng fetch | POST /api/grading-requests | 402 / 402 | INSUFFICIENT_CREDITS | Ca API; xử lý UI/link mua gói đã được Vitest kiểm, không ghi là đã kiểm lỗi 402 qua form |
+| 20. Học viên khác xem R1 bằng fetch | GET /api/grading-requests/{R1} | 403 / 403 | GRADING_REQUEST_NOT_OWNED | Không có kết quả riêng của R1 |
+| 21. LEARNER gọi queue bằng fetch | GET /api/teacher/grading-queue | 403 / 403 | FORBIDDEN | Chặn sai role |
+| 22. TEACHER thuần gọi danh sách người học bằng fetch | GET /api/grading-requests | 403 / 403 | FORBIDDEN | Chặn sai role |
+
+Đối chiếu FE types/api với DTO/YAML: đủ 11 operation; mine là mảng trực tiếp, hai danh sách là items/page/size/totalElements; id là số và route gửi chuỗi encode; thời gian ISO; prompt/hskLevel/result/deadline nullable được giữ; release không body; body complete chỉ criteria/feedback/corrections, không score/payout. Không phát hiện lệch cần sửa FE hoặc backend. Không mở rộng sang kiểm schema springdoc ngoài AT-19 path/method/status đã duyệt. Nếu sau này thấy lệch backend/YAML thì dừng báo leader, không sửa contract để test xanh.
+
+### Gate T-08
+
+FE trên base da0a528, không sửa code FE: test grading + teacher-grading 104/104 (12 file); full Vitest hai worker 3.117/3.117 (243 file), 263,47 s; lint 0 lỗi, chỉ warning LevelBadge có sẵn; build (tsc -b + Vite) PASS, Vite 5,89 s. Không dùng ngoại lệ chập chờn, không sửa test hoặc lockfile.
+
+BE targeted GradingContractTest + *Grading*Test + EssayRulesTest + ModuleBoundaryTest: 280/280, F0/E0/S0, BUILD SUCCESS. Contract 10 path/11 operation khớp hai chiều; ModuleBoundaryTest 9/9. Sau đó launcher được bổ sung cấu hình tắt log mật khẩu mặc định của framework, test-compile PASS và chạy lại toàn bộ 22 kiểm tra HTTP/UI trên launcher cuối: PASS; log cuối không còn dòng generated security password. Không thay đổi logic production hoặc test hiện có.
+
+Đã dừng Chrome/Vite/Java riêng do lượt kiểm khởi động; không xoá volume bền vững hoặc dừng môi trường khác. T-08 giữ chờ review, leader merge.
+
+Full Maven verify trên đúng launcher cuối, Java 17, DEBUG không có trong environment, Docker/Testcontainers local: 6.675 test / 423 class, F0/E0/S0, BUILD SUCCESS; 29:09 phút, kết thúc 2026-11-15 23:49:08 +07:00. Không dùng ngoại lệ môi trường. JaCoCo LINE từ XML mới của lượt full: 15.973 covered / 465 missed = 97,1712%; phân tích 953 class, mọi coverage check đạt. Exec đúng D:/CNHSK-work/022-t08-temp/cnhsk-api-jacoco.exec, không dùng report cũ hay ghép targeted.
+
+Fetch trước bàn giao vẫn origin/main=da0a528; ba file allowlist chưa có thay đổi mới trên main. Self-check PASS: đúng ba file, UTF-8 không BOM, git diff --check sạch; không đổi FE/production code/controller/YAML/shared/013, migration, dependency hay lockfile. Không có secret hoặc dữ liệu thật trong evidence/commit; không Neon hoặc dịch vụ ngoài. Một conventional commit và Draft PR; không merge/rebase/push main hoặc force-push. T-07/T-09 ghi MERGED đúng Git; T-08 chỉ chờ review, chưa ghi spec đã đóng.
