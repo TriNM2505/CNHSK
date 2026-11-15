@@ -23,7 +23,7 @@
 |---|---|---|---|---|
 | T-06 | Nền FE `grading` (types theo OpenAPI, api, dữ liệu mẫu tự soạn) + SCR-032/033/034; route `learner`; `SCREEN_NAMES` SCR-032/033/034 + `AssistantPromptBuilderTest`; mục menu "Chấm bài" | `web/features/grading/**`, `web/app/routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-008 · AT-18 | ✅ MERGED — PR #197, 611f764 |
 | T-07 | FE giáo viên SCR-056/057 (hàng đợi, bài đang giữ, khung chấm 4 tiêu chí, sửa lỗi, trả lại); route `['TEACHER']` layout `admin`; menu quản trị | `web/features/teacher-grading/**`, `routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts` + test | FR-016 · AT-18 | ✅ MERGED — PR #208, da0a528 |
-| T-08 | Nối FE với backend thật; sửa lệch hợp đồng (lệch thì dừng báo leader) | `web/features/grading/**`, `web/features/teacher-grading/**` | FR-008, FR-016 | 🔄 chờ review — HTTP/UI thật 22/22; FE 3117/3117; BE 6675 F0/E0/S0, LINE 97,1712%; lint/build PASS |
+| T-08 | Nối FE với backend thật; sửa lệch hợp đồng (lệch thì dừng báo leader) | `web/features/grading/**`, `web/features/teacher-grading/**` | FR-008, FR-016 | ✅ MERGED — PR #221, 53037f9 — spec 022 hoàn tất 9/9 |
 | T-09 | Test hợp đồng `/v3/api-docs` so `openapi-grading.yaml` (hai chiều path + method + status) | `t/contract/GradingContractTest.java` | §13 · AT-19 | ✅ MERGED — PR #198, ec153a4 |
 
 ## Thứ tự
