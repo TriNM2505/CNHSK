@@ -31,6 +31,13 @@ export type AppRouteDefinition =
   ScreenRouteDefinition | UtilityRouteDefinition | NotFoundRouteDefinition
 
 export const appRouteDefinitions = [
+  {
+    access: ['CONTENT_EDITOR'],
+    kind: 'screen',
+    layout: 'admin',
+    path: '/content/topics/prerequisites',
+    scr: 'SCR-067',
+  },
   { access: 'public', kind: 'screen', layout: 'public', path: '/', scr: 'SCR-001' },
   { access: 'guest', kind: 'screen', layout: 'public', path: '/login', scr: 'SCR-002' },
   { access: 'guest', kind: 'screen', layout: 'public', path: '/register', scr: 'SCR-003' },

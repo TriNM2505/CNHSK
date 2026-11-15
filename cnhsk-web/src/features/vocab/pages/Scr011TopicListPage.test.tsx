@@ -18,6 +18,7 @@ const topicList: TopicSummary[] = [
     hskLevel: 1,
     id: 11,
     learnedWords: 1,
+    lockedBy: [],
     name: 'Gia đình 家庭',
     percent: 71,
     status: 'IN_PROGRESS',
@@ -29,6 +30,7 @@ const topicList: TopicSummary[] = [
     hskLevel: 9,
     id: 12,
     learnedWords: 10,
+    lockedBy: [],
     name: 'Chào hỏi',
     percent: 100,
     status: 'COMPLETED',
@@ -40,6 +42,7 @@ const topicList: TopicSummary[] = [
     hskLevel: 2,
     id: 13,
     learnedWords: 0,
+    lockedBy: [],
     name: 'Du lịch',
     percent: 0,
     status: 'NOT_STARTED',
@@ -53,6 +56,7 @@ const hskThreeTopic: TopicSummary = {
   hskLevel: 3,
   id: 14,
   learnedWords: 4,
+  lockedBy: [],
   name: 'Trường học 学校',
   percent: 80,
   status: 'IN_PROGRESS',
@@ -104,6 +108,23 @@ function renderPage(entry = '/learn/topics') {
 
 describe('Scr011TopicListPage', () => {
   beforeEach(() => vi.mocked(getTopics).mockReset().mockResolvedValue(topicList))
+
+  it('shows locked cards with prerequisite links, retained progress and no start actions or nested links', async () => {
+    vi.mocked(getTopics).mockResolvedValue([
+      { ...topicList[0]!, status: 'LOCKED', lockedBy: [{ id: 12, name: 'Chào hỏi' }] },
+    ])
+    renderPage()
+    const title = await screen.findByRole('link', { name: 'Gia đình 家庭' })
+    const card = within(title.closest('article')!)
+    expect(card.getByRole('status')).toHaveTextContent('Đang khoá')
+    expect(card.getByRole('status')).toHaveTextContent('Cần đạt 90% bài kiểm tra: Chào hỏi')
+    expect(card.getByRole('link', { name: 'Chào hỏi' })).toHaveAttribute('href', '/learn/topics/12')
+    expect(card.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '71')
+    expect(card.queryByRole('button', { name: /học|luyện|kiểm tra/i })).not.toBeInTheDocument()
+    expect(document.querySelector('a a')).toBeNull()
+    await userEvent.click(screen.getByRole('button', { name: 'Đang khoá' }))
+    expect(card.getByText('Đang khoá')).toBeVisible()
+  })
 
   it('chuẩn hoá cấp HSK sai về Tất cả bằng replace và tải toàn bộ danh sách', async () => {
     const router = renderPage('/learn/topics?hskLevel=10&from=menu')
@@ -170,14 +191,24 @@ describe('Scr011TopicListPage', () => {
 
     const familyCard = await screen.findByRole('link', { name: /Gia đình/ })
     expect(familyCard).toHaveAttribute('href', '/learn/topics/11')
-    expect(within(familyCard).getByText('Gia đình 家庭')).toHaveAttribute('lang', 'zh-CN')
-    expect(within(familyCard).getByText('Đang học')).toBeVisible()
-    expect(within(familyCard).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '71')
-    expect(within(familyCard).getByText('83%')).toBeVisible()
+    expect(within(familyCard.closest('article')!).getByText('Gia đình 家庭')).toHaveAttribute(
+      'lang',
+      'zh-CN',
+    )
+    expect(within(familyCard.closest('article')!).getByText('Đang học')).toBeVisible()
+    expect(within(familyCard.closest('article')!).getByRole('progressbar')).toHaveAttribute(
+      'aria-valuenow',
+      '71',
+    )
+    expect(within(familyCard.closest('article')!).getByText('83%')).toBeVisible()
     expect(
-      within(screen.getByRole('link', { name: /Du lịch/ })).getByText('Chưa kiểm tra'),
+      within(screen.getByRole('link', { name: /Du lịch/ }).closest('article')!).getByText(
+        'Chưa kiểm tra',
+      ),
     ).toBeVisible()
-    expect(within(screen.getByRole('link', { name: /Chào hỏi/ })).getByText('HSK 9')).toBeVisible()
+    expect(
+      within(screen.getByRole('link', { name: /Chào hỏi/ }).closest('article')!).getByText('HSK 9'),
+    ).toBeVisible()
     expect(screen.queryByText(/mở khóa|còn khóa|đã thành thạo/i)).not.toBeInTheDocument()
   })
 
@@ -227,20 +258,23 @@ describe('Scr011TopicListPage', () => {
       NOT_STARTED: 'Chưa học',
       IN_PROGRESS: 'Đang học',
       COMPLETED: 'Hoàn thành',
+      LOCKED: 'Đang khoá',
     }
 
     for (const topic of topicList) {
       const card = screen.getByRole('link', { name: (name) => name.includes(topic.name) })
-      expect(within(card).getByText(topic.name)).toBeVisible()
-      expect(within(card).getByText(`HSK ${topic.hskLevel}`)).toBeVisible()
-      expect(within(card).getByText(`${topic.learnedWords}/${topic.totalWords} từ`)).toBeVisible()
-      expect(within(card).getByRole('progressbar')).toHaveAttribute(
+      expect(within(card.closest('article')!).getByText(topic.name)).toBeVisible()
+      expect(within(card.closest('article')!).getByText(`HSK ${topic.hskLevel}`)).toBeVisible()
+      expect(
+        within(card.closest('article')!).getByText(`${topic.learnedWords}/${topic.totalWords} từ`),
+      ).toBeVisible()
+      expect(within(card.closest('article')!).getByRole('progressbar')).toHaveAttribute(
         'aria-valuenow',
         String(topic.percent),
       )
-      expect(within(card).getByText(labels[topic.status])).toBeVisible()
+      expect(within(card.closest('article')!).getByText(labels[topic.status])).toBeVisible()
       expect(
-        within(card).getByText(
+        within(card.closest('article')!).getByText(
           topic.bestTestPercent === null ? 'Chưa kiểm tra' : `${topic.bestTestPercent}%`,
         ),
       ).toBeVisible()
@@ -255,12 +289,17 @@ describe('Scr011TopicListPage', () => {
     renderPage()
 
     const schoolCard = await screen.findByRole('link', { name: /Trường học/ })
-    expect(within(schoolCard).getByText('0%')).toBeVisible()
-    expect(within(schoolCard).getByText('Đang học')).toBeVisible()
-    expect(within(schoolCard).queryByText('Hoàn thành')).not.toBeInTheDocument()
-    expect(within(schoolCard).getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100')
+    expect(within(schoolCard.closest('article')!).getByText('0%')).toBeVisible()
+    expect(within(schoolCard.closest('article')!).getByText('Đang học')).toBeVisible()
+    expect(within(schoolCard.closest('article')!).queryByText('Hoàn thành')).not.toBeInTheDocument()
+    expect(within(schoolCard.closest('article')!).getByRole('progressbar')).toHaveAttribute(
+      'aria-valuenow',
+      '100',
+    )
     expect(
-      within(screen.getByRole('link', { name: /Du lịch/ })).getByText('Chưa kiểm tra'),
+      within(screen.getByRole('link', { name: /Du lịch/ }).closest('article')!).getByText(
+        'Chưa kiểm tra',
+      ),
     ).toBeVisible()
   })
 
@@ -397,7 +436,11 @@ describe('Scr011TopicListPage', () => {
     expect(screen.getByRole('button', { name: 'Chưa học' })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Đang học' })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Hoàn thành' })).toBeVisible()
-    expect(screen.queryByText(/LOCKED|khóa|khoá/i)).not.toBeInTheDocument()
+    expect(
+      within(screen.getByRole('region', { name: 'Danh sách chủ đề' })).queryByText(
+        /LOCKED|khóa|khoá/i,
+      ),
+    ).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/LOCKED|khóa|khoá/i)).not.toBeInTheDocument()
     expect(document.querySelector('svg[class*="lucide-lock"]')).not.toBeInTheDocument()
   })

@@ -51,6 +51,7 @@ import { previews as masteryPreviews } from '@/features/mastery/catalog.preview'
 import { previews as practicePreviews } from '@/features/practice/catalog.preview'
 import { previews as pronunciationPreviews } from '@/features/pronunciation/catalog.preview'
 import { previews as questionBankPreviews } from '@/features/question-bank/catalog.preview'
+import { previews as topicAdminPreviews } from '@/features/topic-admin/catalog.preview'
 import { previews as vocabPreviews } from '@/features/vocab/catalog.preview'
 import { previews as quizPreviews } from '@/features/quiz/catalog.preview'
 
@@ -232,6 +233,7 @@ export const previewRegistry: readonly PreviewEntry[] = [
   ...examPreviews,
   ...creditsPreviews,
   ...vocabPreviews,
+  ...topicAdminPreviews,
   ...gradingPreviews,
   ...grammarPreviews,
   ...pronunciationPreviews,

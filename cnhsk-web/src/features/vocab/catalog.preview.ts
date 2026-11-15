@@ -24,6 +24,7 @@ const learnerAuth: AuthContextValue = {
 }
 
 const entries = [
+  ['scr-011-locked', 'Chủ đề từ vựng — Đang khoá', topicListPreviews.locked],
   ['scr-011-ready', 'Chủ đề từ vựng — Mặc định', topicListPreviews.ready],
   ['scr-011-loading', 'Chủ đề từ vựng — Đang tải', topicListPreviews.loading],
   ['scr-011-empty', 'Chủ đề từ vựng — Chưa có chủ đề', topicListPreviews.empty],
@@ -46,6 +47,12 @@ const topicListEntries = entries.map(([id, title, props]) => ({
 })) satisfies readonly PreviewEntry[]
 
 const studyEntries = [
+  [
+    'scr-012-topic-locked',
+    'Học chủ đề — Khoá bởi tiên quyết',
+    topicStudyPreviews.topicLocked,
+    undefined,
+  ],
   ['scr-012-ready', 'Học chủ đề — Thẻ từ', topicStudyPreviews.ready, studyStepPreviews.ready],
   ['scr-012-loading', 'Học chủ đề — Đang tải', topicStudyPreviews.loading, undefined],
   ['scr-012-empty', 'Học chủ đề — Không tìm thấy', topicStudyPreviews.empty, undefined],

@@ -50,6 +50,7 @@ const topic: TopicDetail = {
   hskLevel: 1,
   id: 11,
   learnedWords: 4,
+  lockedBy: [],
   name: 'Gia đình',
   percent: 40,
   status: 'IN_PROGRESS',
@@ -174,6 +175,46 @@ describe('TopicPracticeController', () => {
   })
 
   afterEach(() => vi.restoreAllMocks())
+
+  it('renders TOPIC_LOCKED details from a practice start without retrying POST', async () => {
+    vi.mocked(startTopicPracticeSession).mockRejectedValue(
+      new ApiError({
+        status: 422,
+        errorCode: 'TOPIC_LOCKED',
+        message: 'Khoá',
+        details: { lockedBy: [{ id: 12, name: 'Chào hỏi' }] },
+      }),
+    )
+    renderPage('/learn/topics/11/practice/recognition')
+    expect(await screen.findByText('Đang khoá')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Chào hỏi' })).toHaveAttribute(
+      'href',
+      '/learn/topics/12',
+    )
+    expect(startTopicPracticeSession).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: /Bắt đầu/ })).not.toBeInTheDocument()
+  })
+
+  it('restores an active practice session on a locked topic and makes no new POST', async () => {
+    vi.mocked(getTopic).mockResolvedValue({
+      ...topic,
+      status: 'LOCKED',
+      lockedBy: [{ id: 12, name: 'Chào hỏi' }],
+      actions: {
+        canStudy: false,
+        canPracticeRecognition: false,
+        canPracticeListening: false,
+        canTakeTest: false,
+      },
+    })
+    vi.mocked(findActiveSession).mockResolvedValue({ sessionId: 81 } as Awaited<
+      ReturnType<typeof findActiveSession>
+    >)
+    vi.mocked(getSession).mockResolvedValue(practiceSession())
+    renderPage('/learn/topics/11/practice/recognition')
+    expect(await screen.findByRole('button', { name: /mẹ/ })).toBeVisible()
+    expect(startTopicPracticeSession).not.toHaveBeenCalled()
+  })
 
   it('FR-043: chấm xong hiện phản hồi, chỉ sang câu sau khi bấm "Câu tiếp", hết câu thì nộp', async () => {
     renderPage('/learn/topics/11/practice/recognition')

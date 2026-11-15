@@ -7,6 +7,9 @@ import { createScreenRegistry, screenRegistry, type ScreenCatalog } from '@/app/
 const TestScreen = lazy(async () => ({ default: () => null }))
 
 describe('screen registry', () => {
+  it('registers the topic prerequisite screen', () => {
+    expect(screenRegistry['SCR-067']).toBeDefined()
+  })
   it('rejects duplicate SCR ids across feature catalogs', () => {
     const first = { 'SCR-001': TestScreen } satisfies ScreenCatalog
     const second = { 'SCR-001': TestScreen } satisfies ScreenCatalog

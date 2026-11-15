@@ -18,6 +18,7 @@ export const previewTopic: TopicDetail = {
   hskLevel: 1,
   id: 11,
   learnedWords: 6,
+  lockedBy: [],
   name: 'Gia đình 家庭',
   percent: 60,
   status: 'IN_PROGRESS',
@@ -107,6 +108,21 @@ export const topicStudyPreviews = {
   },
   loading: { ...base, state: 'loading', topic: undefined },
   locked: { ...base, activeStep: 'listening' },
+  topicLocked: {
+    ...base,
+    topic: {
+      ...previewTopic,
+      status: 'LOCKED',
+      lockedBy: [{ id: 2, name: 'Chào hỏi và giao tiếp trong cuộc sống hằng ngày 问候' }],
+      actions: {
+        canStudy: false,
+        canPracticeListening: false,
+        canPracticeRecognition: false,
+        canTakeTest: false,
+        testBlockedReason: 'TOPIC_LOCKED',
+      },
+    },
+  },
   noNew: { ...base, studyPanel: null },
   ready: { ...base, studyPanel: null },
 } satisfies Record<string, TopicStudyViewProps>

@@ -22,6 +22,7 @@ import {
 import { TOPIC_STATUS_LABELS, TOPIC_STATUS_TONES } from '../labels'
 import { HSK_LEVELS, TOPIC_STATUSES, type TopicStatusFilter } from '../topicListQuery'
 import type { TopicSummary } from '../types'
+import { TopicLockNotice } from './TopicLockNotice'
 
 type LoadError = { message: string; requestId?: string }
 
@@ -57,28 +58,30 @@ function TopicName({ name }: { name: string }) {
 
 function TopicCard({ topic }: { topic: TopicSummary }) {
   return (
-    <Link
-      className="group flex min-h-56 flex-col rounded-md border border-line bg-surface p-5 no-underline shadow-sm transition hover:border-brand-600 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-      to={`/learn/topics/${topic.id}`}
-    >
+    <article className="group flex min-h-56 flex-col rounded-md border border-line bg-surface p-5 no-underline shadow-sm transition hover:border-brand-600 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <TopicName name={topic.name} />
+          <Link className="break-words text-ink hover:underline" to={`/learn/topics/${topic.id}`}>
+            <TopicName name={topic.name} />
+          </Link>
           <p className="mt-1 text-caption text-ink-muted">Mã chủ đề: {topic.code}</p>
         </div>
         <LevelBadge exact level={topic.hskLevel} />
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <StatusBadge tone={TOPIC_STATUS_TONES[topic.status]}>
-          {TOPIC_STATUS_LABELS[topic.status]}
-        </StatusBadge>
+        {topic.status !== 'LOCKED' ? (
+          <StatusBadge tone={TOPIC_STATUS_TONES[topic.status]}>
+            {TOPIC_STATUS_LABELS[topic.status]}
+          </StatusBadge>
+        ) : null}
         <span className="text-body-sm tabular-nums text-ink-secondary">
           {topic.learnedWords}/{topic.totalWords} từ
         </span>
       </div>
 
       <Progress className="mt-4" label={`${topic.percent}%`} value={topic.percent} />
+      {topic.status === 'LOCKED' ? <TopicLockNotice lockedBy={topic.lockedBy} /> : null}
 
       <div className="mt-auto flex items-center justify-between border-t border-line pt-4 text-body-sm">
         <span className="text-ink-secondary">Kết quả tốt nhất</span>
@@ -86,7 +89,7 @@ function TopicCard({ topic }: { topic: TopicSummary }) {
           {topic.bestTestPercent === null ? 'Chưa kiểm tra' : `${topic.bestTestPercent}%`}
         </strong>
       </div>
-    </Link>
+    </article>
   )
 }
 

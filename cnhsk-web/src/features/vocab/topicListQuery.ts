@@ -5,7 +5,12 @@ import type { TopicStatus, TopicSummary } from './types'
 export type TopicStatusFilter = TopicStatus | 'ALL'
 
 export const HSK_LEVELS: readonly HskLevel[] = SUPPORTED_HSK_LEVELS
-export const TOPIC_STATUSES: readonly TopicStatus[] = ['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED']
+export const TOPIC_STATUSES: readonly TopicStatus[] = [
+  'NOT_STARTED',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'LOCKED',
+]
 
 export function parseTopicListSearchParams(searchParams: URLSearchParams) {
   const rawLevel = searchParams.get('hskLevel')

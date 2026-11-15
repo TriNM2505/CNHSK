@@ -1,9 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
-import { appRouteDefinitions, findKnownRoute } from '@/app/routeAccess'
+import { appRouteDefinitions, canUserAccessRoute, findKnownRoute } from '@/app/routeAccess'
 import { appRoutes } from '@/app/routes'
 
 describe('route access table', () => {
+  it('requires the exact CONTENT_EDITOR role for SCR-067 in the admin layout', () => {
+    const route = findKnownRoute('/content/topics/prerequisites')!
+    expect(route).toMatchObject({ scr: 'SCR-067', access: ['CONTENT_EDITOR'], layout: 'admin' })
+    const user = { id: 1, displayName: 'Test', email: 'test@example.invalid', emailVerified: true }
+    expect(canUserAccessRoute({ ...user, roles: ['CONTENT_EDITOR'] }, route.access)).toBe(true)
+    for (const role of ['ADMIN', 'LEARNER', 'TEACHER', 'MODERATOR', 'ACCOUNTANT'] as const) {
+      expect(canUserAccessRoute({ ...user, roles: [role] }, route.access)).toBe(false)
+    }
+  })
   it('defines every production route rendered by routes.tsx exactly once', () => {
     const productionRoot = appRoutes.find((route) => route.children)
     const configuredPaths = productionRoot?.children?.map(({ path }) => path)

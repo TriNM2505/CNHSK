@@ -8,12 +8,15 @@ import type { CurrentUser } from '@/features/auth/types'
 import { getGrammarPoints } from '@/features/grammar/api/grammar'
 import { getPronunciationStages } from '@/features/pronunciation/api/pronunciation'
 import { getTopic, getTopics } from '@/features/vocab/api/topics'
+import { listAdminTopics } from '@/features/topic-admin/api/topics'
 import type { TopicDetail } from '@/features/vocab/types'
 import { ApiError, AUTH_EXPIRED_EVENT } from '@/shared/api'
 
 vi.mock('@/features/auth/api/getCurrentUser', () => ({
   getCurrentUser: vi.fn(),
 }))
+
+vi.mock('@/features/topic-admin/api/topics', () => ({ listAdminTopics: vi.fn() }))
 
 vi.mock('@/features/auth/api/signOutCurrentUser', () => ({
   signOutCurrentUser: vi.fn(),
@@ -80,6 +83,7 @@ const routeTopic: TopicDetail = {
   hskLevel: 1,
   id: 1,
   learnedWords: 1,
+  lockedBy: [],
   name: 'Chủ đề định tuyến',
   percent: 100,
   status: 'IN_PROGRESS',
@@ -104,6 +108,9 @@ function renderRoute(path: string) {
 }
 
 beforeEach(() => {
+  vi.mocked(listAdminTopics)
+    .mockReset()
+    .mockResolvedValue({ items: [], page: 0, size: 20, totalElements: 0 })
   getCurrentUserMock.mockRejectedValue(unauthenticatedError())
   getTopicMock.mockReset().mockResolvedValue(routeTopic)
   getTopicsMock.mockReset().mockResolvedValue([])
@@ -127,6 +134,34 @@ beforeEach(() => {
 })
 
 describe('application routes', () => {
+  it('opens SCR-067 for CONTENT_EDITOR', async () => {
+    getCurrentUserMock.mockResolvedValue(contentEditor)
+    renderRoute('/content/topics/prerequisites')
+    expect(await screen.findByRole('heading', { name: 'Tiên quyết chủ đề' })).toBeVisible()
+    expect(await screen.findByText('Không có chủ đề phù hợp')).toBeVisible()
+  })
+  it('sends a guest from SCR-067 to login with its destination', async () => {
+    const { router } = renderRoute('/content/topics/prerequisites')
+    expect(await screen.findByRole('heading', { name: 'Đăng nhập' })).toBeVisible()
+    expect(new URLSearchParams(router.state.location.search).get('redirect')).toBe(
+      '/content/topics/prerequisites',
+    )
+  })
+  it.each([['ADMIN'], ['LEARNER'], ['TEACHER'], ['MODERATOR'], ['ACCOUNTANT']] as const)(
+    'denies SCR-067 to %s without CONTENT_EDITOR',
+    async (role) => {
+      getCurrentUserMock.mockResolvedValue({ ...learner, roles: [role] })
+      const { router } = renderRoute('/content/topics/prerequisites')
+      expect(
+        await screen.findByRole('heading', {
+          name: /Không có quyền truy cập|Khu vực .*đang được xây dựng/,
+        }),
+      ).toBeVisible()
+      expect(router.state.location.pathname).toBe('/403')
+      expect(screen.queryByRole('heading', { name: 'Tiên quyết chủ đề' })).not.toBeInTheDocument()
+      expect(listAdminTopics).not.toHaveBeenCalled()
+    },
+  )
   it('renders the landing page at the root route', async () => {
     renderRoute('/')
 
