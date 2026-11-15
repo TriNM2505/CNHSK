@@ -13,24 +13,24 @@
 |---|---|---|---|---|
 | T-01 | **⚿K8** `V9__contest_attempt_unique.sql`; `PracticeSource.CONTEST` (thêm cuối) + `PracticeApi`; `ActiveTestApi`/`existsActiveTest` thêm `CONTEST`; `EvidenceAllocator` bỏ qua `CONTEST`; interface `learning.api.ContestAttemptApi` + record (§10) chưa cài | `src/main/resources/db/migration/V9__…`, `…/learning/practice/PracticeSource.java`, `…/learning/api/{PracticeApi,ContestAttemptApi}.java`, `AttemptRepository.java`, `EvidenceAllocator.java`, `docs/reference/database.md` + test | FR-001, FR-008, §0.2, §10 · AT-01, AT-13 | ✅ MERGED — PR #176 |
 | T-02 | `ContestHandler` + cài `ContestAttemptApi.start/countAttempts/submit/exam` (khoá tư vấn, resume, câu chụp từ đề `DRAFT`, `ttlOverride`, ân hạn); chặn finish/abandon chung → `CONTEST_SUBMIT_REQUIRED` | `…/learning/contest/*`, `…/learning/practice/web/PracticeController.java` hoặc `PracticeService`, `ErrorCode.java` + test | FR-002…FR-005 · AT-02…AT-04, AT-06, AT-07 | ✅ MERGED — PR #191, ec3f865 |
-| T-03 | `ContestAttemptApi.myAttempt/ranking/rankOf/participants/setExcluded` (SQL theo `ix_att_ref_rank`) | `…/learning/contest/*` + test | FR-006, FR-007 · AT-11, AT-12 (phần learning) | 🔄 |
+| T-03 | `ContestAttemptApi.myAttempt/ranking/rankOf/participants/setExcluded` (SQL theo `ix_att_ref_rank`) | `…/learning/contest/*` + test | FR-006, FR-007 · AT-11, AT-12 (phần learning) | ✅ MERGED — PR #202, 27ddaf3 |
 
 ## Đợt 2 · Backend `community`
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-04 | Entity `Contest`, `ContestQueryService`, `PublicContestController` (danh sách, chi tiết, trạng thái lịch theo `Clock`) | `…/community/contest/**` + test | FR-009, FR-010 · AT-14 | 🔄 — Kiểm chứng xong, chờ leader review; 11 file, base c2c3bd5, phụ thuộc #202; full 6.074/F0/E0/S0, LINE 97,12% |
-| T-05 | `ContestService` vào thi/nộp/sự kiện chuyển tab/kết quả; mã lỗi §5 | `…/community/contest/**`, `ErrorCode.java`, `GlobalExceptionHandlerTest` + test | FR-011…FR-014 · AT-05, AT-08…AT-10, AT-15 | 🔄 — Kiểm chứng xong, chờ leader review; 15 file, base 6b42620, phụ thuộc #204; full 6.139/F0/E0/S0, LINE 97,12% |
-| T-06 | `ContestAdminService` + controller: tạo/sửa/công bố/huỷ, thí sinh + loại/giữ, công bố xếp hạng; `SecurityConfig` `/api/admin/contests/**` → `CONTENT_EDITOR` | `…/community/contest/**`, `SecurityConfig.java` + test | FR-017…FR-023 · AT-12, AT-16, AT-17 | 🔄 — Kiểm chứng xong, chờ leader review; 18 file, base 9ba14a6; guard/concurrency 19, liên quan 514, full 6.490/F0/E0/S0; LINE 97,15% |
-| T-07 | Người đạt giải: `AuthApi.contactEmails(Set<Long>)` (**module 001 — báo leader trước**), endpoint winners + `audit_logs` | `…/auth/api/AuthApi.java`, `…/auth/service/AuthApiService.java`, `…/community/contest/**` + test | FR-024 · AT-18, AT-19 | 🔄 — Chờ review có điều kiện; 10 file, base 24264bf, phụ thuộc #209; targeted 76/F0/E0/S0; full 6.521/F1/E0/S0 FAILED (đúng ngoại lệ NFR-P04 p95), LINE 97,16%; chi tiết questions.md |
+| T-04 | Entity `Contest`, `ContestQueryService`, `PublicContestController` (danh sách, chi tiết, trạng thái lịch theo `Clock`) | `…/community/contest/**` + test | FR-009, FR-010 · AT-14 | ✅ MERGED — PR #204, fa2e902 |
+| T-05 | `ContestService` vào thi/nộp/sự kiện chuyển tab/kết quả; mã lỗi §5 | `…/community/contest/**`, `ErrorCode.java`, `GlobalExceptionHandlerTest` + test | FR-011…FR-014 · AT-05, AT-08…AT-10, AT-15 | ✅ MERGED — PR #206, 9ba14a6 |
+| T-06 | `ContestAdminService` + controller: tạo/sửa/công bố/huỷ, thí sinh + loại/giữ, công bố xếp hạng; `SecurityConfig` `/api/admin/contests/**` → `CONTENT_EDITOR` | `…/community/contest/**`, `SecurityConfig.java` + test | FR-017…FR-023 · AT-12, AT-16, AT-17 | ✅ MERGED — PR #209, 98fecb9 |
+| T-07 | Người đạt giải: `AuthApi.contactEmails(Set<Long>)` (**module 001 — báo leader trước**), endpoint winners + `audit_logs` | `…/auth/api/AuthApi.java`, `…/auth/service/AuthApiService.java`, `…/community/contest/**` + test | FR-024 · AT-18, AT-19 | ✅ MERGED — PR #212, 50e4891 |
 
 ## Đợt 3 · Frontend + hợp đồng
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-08 | FE người học SCR-048…051 (danh sách, chi tiết, làm bài có đồng hồ server + tự nộp + resume, kết quả); route `by-role`/`learner`; `SCREEN_NAMES` 4 màn + `AssistantPromptBuilderTest`; ẩn trợ lý ở SCR-050 (**báo Đạt — 015**); mục "Cuộc thi" nhóm Cộng đồng | `web/features/contests/**`, `web/app/routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts`, `web/features/assistant/components/AssistantHost.tsx`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-015, FR-016 · AT-20 | ✅ MERGED — PR #186 |
-| T-09 | FE ban tổ chức SCR-070/071 (form giờ VN, khoá trường, bảng thí sinh, công bố, liên hệ người đạt giải) | `web/features/contest-admin/**`, `routeAccess.ts`, `screenRegistry.ts` + test | FR-025, FR-026 · AT-21 | 🔄 — Kiểm chứng xong, chờ leader review; đúng 27 file, base 176507c, không rebase, Draft PR phụ thuộc #212; full FE 2.887/F0/S0, build PASS, AssistantPromptBuilderTest 19/F0/E0/S0; QA 30 ảnh tại 320/375/640 px; lint 0 lỗi, 1 warning nền LevelBadge ngoài scope |
-| T-10 | Test hợp đồng `/v3/api-docs` so `openapi-contests.yaml` (hai chiều path + method + status) | `t/contract/ContestContractTest.java` | §13 · AT-22 | 🔄 — Leader duyệt bàn giao một lần: đúng 3 file, base 50e4891; AT-22 15/F0/E0/S0, related 335/F0/E0/S0; FULL VERIFY FAILED 6.602/F1/E1/S0 (ngoài phạm vi T-10), LINE 97,1476%; timeout đăng ký 013 chạy riêng 1/F0/E0/S0. Commit/push/Draft PR có điều kiện, leader chạy lại full khi merge; không phải ngoại lệ thứ 6. Chi tiết questions.md |
+| T-09 | FE ban tổ chức SCR-070/071 (form giờ VN, khoá trường, bảng thí sinh, công bố, liên hệ người đạt giải) | `web/features/contest-admin/**`, `routeAccess.ts`, `screenRegistry.ts` + test | FR-025, FR-026 · AT-21 | ✅ MERGED — PR #214, 3849089 |
+| T-10 | Test hợp đồng `/v3/api-docs` so `openapi-contests.yaml` (hai chiều path + method + status) | `t/contract/ContestContractTest.java` | §13 · AT-22 | ✅ MERGED — PR #216, fb75698 (leader full verify 6624 F0/E0/S0) |
 
 ## Thứ tự
 
