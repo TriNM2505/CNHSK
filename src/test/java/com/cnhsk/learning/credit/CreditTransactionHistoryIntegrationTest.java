@@ -235,7 +235,7 @@ class CreditTransactionHistoryIntegrationTest extends AbstractIntegrationTest {
     }
 
     private WalletQueryService service(AuthApi api, NamedParameterJdbcTemplate queryJdbc) {
-        ProxyFactory proxy = new ProxyFactory(new WalletQueryService(api, ledger, queryJdbc, mapper, new BillingConfig(), Clock.systemUTC()));
+        ProxyFactory proxy = new ProxyFactory(new WalletQueryService(api, ledger, queryJdbc, mapper, settings(new BillingConfig()), Clock.systemUTC()));
         proxy.setProxyTargetClass(true);
         proxy.addAdvice(new TransactionInterceptor(manager, new AnnotationTransactionAttributeSource()));
         return (WalletQueryService) proxy.getProxy();
@@ -263,4 +263,11 @@ class CreditTransactionHistoryIntegrationTest extends AbstractIntegrationTest {
                 Set.copyOf(redis.keys("billing:*:" + userId + ":*")), jdbc.queryForObject("SELECT count(*) FROM shared.audit_logs", Long.class));
     }
     private record Snapshot(List<Map<String, Object>> users, List<Map<String, Object>> ledger, Set<String> redisKeys, long audits) {}
+
+    private static com.cnhsk.shared.settings.SettingsService settings(BillingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        return settings;
+    }
 }

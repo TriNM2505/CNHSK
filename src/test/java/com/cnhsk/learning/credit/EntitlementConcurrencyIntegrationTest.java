@@ -63,7 +63,7 @@ class EntitlementConcurrencyIntegrationTest extends AbstractIntegrationTest {
                 VALUES (?, ?, 'Entitlement concurrency test') RETURNING id
                 """, Long.class, "entitlement-race-" + UUID.randomUUID() + "@example.test", PASSWORD_HASH);
         service = new EntitlementService(auth, ledger, namedJdbc, redis, mapper,
-                new BillingConfig(), Clock.fixed(NOW, ZoneOffset.UTC));
+                settings(new BillingConfig()), Clock.fixed(NOW, ZoneOffset.UTC));
         usage(0);
     }
 
@@ -205,7 +205,7 @@ class EntitlementConcurrencyIntegrationTest extends AbstractIntegrationTest {
             }
         };
         EntitlementService movingService = new EntitlementService(auth, ledger, namedJdbc, redis, mapper,
-                new BillingConfig(), movingClock);
+                settings(new BillingConfig()), movingClock);
         contend(() -> {
             auth.lockPlan(userId);
             return true;
@@ -324,5 +324,12 @@ class EntitlementConcurrencyIntegrationTest extends AbstractIntegrationTest {
             }
             LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
         }
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(BillingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        return settings;
     }
 }

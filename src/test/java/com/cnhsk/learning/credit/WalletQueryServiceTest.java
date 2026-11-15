@@ -137,7 +137,7 @@ class WalletQueryServiceTest {
     }
 
     private WalletQueryService service(Instant now) {
-        return new WalletQueryService(auth, ledger, jdbc, new ObjectMapper(), config, Clock.fixed(now, ZoneOffset.UTC));
+        return new WalletQueryService(auth, ledger, jdbc, new ObjectMapper(), settings(config), Clock.fixed(now, ZoneOffset.UTC));
     }
 
     private void arrange(PlanState state, String benefits) throws Exception {
@@ -153,5 +153,12 @@ class WalletQueryServiceTest {
                     RowMapper<?> mapping = invocation.getArgument(2);
                     return List.of(mapping.mapRow(row, 0));
                 });
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(BillingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        return settings;
     }
 }

@@ -109,10 +109,17 @@ class TokenBudgetIntegrationTest extends AbstractIntegrationTest {
         when(clock.instant()).thenAnswer(invocation -> now.get());
         var config = new AiConfig();
         config.setMonthlyTokenBudget(1000L);
-        return new TokenBudget(redis, config, clock);
+        return new TokenBudget(redis, settings(config), clock);
     }
 
     private ClaudeClient.Completion call(StubClaudeClient stub) {
         return stub.complete("claude-haiku-5-5", List.of(), List.of(), 800, java.time.Duration.ofSeconds(15));
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(AiConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.AI_MONTHLY_TOKEN_BUDGET))
+                .thenAnswer(invocation -> Math.toIntExact(config.getMonthlyTokenBudget()));
+        return settings;
     }
 }

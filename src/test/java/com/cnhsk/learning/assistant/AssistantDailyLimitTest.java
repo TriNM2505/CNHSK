@@ -22,7 +22,7 @@ class AssistantDailyLimitTest {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class))).thenReturn(1L, 0L);
         AssistantDailyLimit limit = new AssistantDailyLimit(redis,
-                Clock.fixed(Instant.parse("2026-11-06T04:00:00Z"), ZoneOffset.UTC), 200);
+                Clock.fixed(Instant.parse("2026-11-06T04:00:00Z"), ZoneOffset.UTC), settings(200));
 
         var reservation = limit.reserve(42L);
         reservation.close();
@@ -37,7 +37,7 @@ class AssistantDailyLimitTest {
         StringRedisTemplate redis = mock(StringRedisTemplate.class);
         when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class))).thenReturn(0L);
         AssistantDailyLimit limit = new AssistantDailyLimit(redis,
-                Clock.fixed(Instant.parse("2026-11-06T16:59:50.100Z"), ZoneOffset.UTC), 200);
+                Clock.fixed(Instant.parse("2026-11-06T16:59:50.100Z"), ZoneOffset.UTC), settings(200));
 
         assertThatThrownBy(() -> limit.reserve(42L))
                 .isInstanceOfSatisfying(AssistantDailyLimit.RateLimitExceededException.class,
@@ -51,11 +51,38 @@ class AssistantDailyLimitTest {
         when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class)))
                 .thenThrow(new RedisConnectionFailureException("fixture error"));
         AssistantDailyLimit limit = new AssistantDailyLimit(redis,
-                Clock.fixed(Instant.parse("2026-11-06T17:00:00Z"), ZoneOffset.UTC), 200);
+                Clock.fixed(Instant.parse("2026-11-06T17:00:00Z"), ZoneOffset.UTC), settings(200));
 
         limit.reserve(42L).close();
 
         verify(redis).execute(any(RedisScript.class), eq(List.of("assistant:ask:42:20261107")),
                 any(Object[].class));
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void readsTheLimitAtEachReservationWithoutChangingTheCounterKeyOrExpiry() {
+        StringRedisTemplate redis = mock(StringRedisTemplate.class);
+        var settings = mock(com.cnhsk.shared.settings.SettingsService.class);
+        when(settings.getInt(com.cnhsk.shared.settings.SettingKey.ASSISTANT_DAILY_LIMIT)).thenReturn(1, 2, 0);
+        var arguments = new java.util.ArrayList<List<String>>();
+        when(redis.execute(any(RedisScript.class), anyList(), any(Object[].class))).thenAnswer(invocation -> {
+            Object[] args = (Object[]) invocation.getRawArguments()[2];
+            arguments.add(List.of(args[0].toString(), args[1].toString()));
+            return 1L;
+        });
+        var limit = new AssistantDailyLimit(redis,
+                Clock.fixed(Instant.parse("2026-11-06T16:59:50.100Z"), ZoneOffset.UTC), settings);
+        for (int request = 0; request < 3; request++) limit.reserve(42L).commit();
+        assertThat(arguments).containsExactly(List.of("1", "10"), List.of("2", "10"), List.of("0", "10"));
+        verify(redis, times(3)).execute(any(RedisScript.class), eq(List.of("assistant:ask:42:20261106")), any(Object[].class));
+        verify(settings, times(3)).getInt(com.cnhsk.shared.settings.SettingKey.ASSISTANT_DAILY_LIMIT);
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(int limit) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.ASSISTANT_DAILY_LIMIT))
+                .thenReturn(limit);
+        return settings;
     }
 }

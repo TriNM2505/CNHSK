@@ -18,6 +18,8 @@ import com.cnhsk.learning.api.PaidFeature;
 import com.cnhsk.learning.credit.LedgerService.AppendCommand;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.cnhsk.shared.settings.SettingKey;
+import com.cnhsk.shared.settings.SettingsApi;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,17 +50,17 @@ public class EntitlementService implements EntitlementApi {
     private final NamedParameterJdbcTemplate jdbc;
     private final StringRedisTemplate redis;
     private final ObjectMapper mapper;
-    private final BillingConfig config;
+    private final SettingsApi settings;
     private final Clock clock;
 
     public EntitlementService(AuthApi auth, LedgerService ledger, NamedParameterJdbcTemplate jdbc,
-            StringRedisTemplate redis, ObjectMapper mapper, BillingConfig config, Clock clock) {
+            StringRedisTemplate redis, ObjectMapper mapper, SettingsApi settings, Clock clock) {
         this.auth = auth;
         this.ledger = ledger;
         this.jdbc = jdbc;
         this.redis = redis;
         this.mapper = mapper;
-        this.config = config;
+        this.settings = settings;
         this.clock = clock;
     }
 
@@ -192,7 +194,7 @@ public class EntitlementService implements EntitlementApi {
     private int quotaLimit(PlanState state, PaidFeature feature, Instant now) {
         if (!"PREMIUM".equals(state.planCode()) || state.planExpiresAt() == null
                 || !state.planExpiresAt().isAfter(now)) {
-            return config.getFreeMonthlyLimit();
+            return settings.getInt(SettingKey.BILLING_FREE_MONTHLY_LIMIT);
         }
         var benefits = jdbc.queryForList("SELECT benefits::text FROM learning.plans WHERE code = :code",
                 Map.of("code", "PREMIUM"), String.class);

@@ -153,7 +153,7 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
         BillingConfig config = new BillingConfig();
         config.setFreeMonthlyLimit(2);
         EntitlementService configured = new EntitlementService(auth, ledger, namedJdbc, redis, mapper,
-                config, Clock.fixed(NOW, ZoneOffset.UTC));
+                settings(config), Clock.fixed(NOW, ZoneOffset.UTC));
         for (PaidFeature feature : PaidFeature.values()) {
             for (int use = 0; use < 2; use++) {
                 String key = feature.name() + use;
@@ -374,7 +374,7 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
                 org.mockito.ArgumentMatchers.eq("1"), org.mockito.ArgumentMatchers.any(java.time.Duration.class)))
                 .thenThrow(new org.springframework.data.redis.RedisConnectionFailureException("Injected failure"));
         EntitlementService selected = new EntitlementService(auth, ledger, namedJdbc, unavailable, mapper,
-                new BillingConfig(), Clock.fixed(NOW, ZoneOffset.UTC));
+                settings(new BillingConfig()), Clock.fixed(NOW, ZoneOffset.UTC));
         Consumption receipt = new Consumption(Source.QUOTA, null, PaidFeature.TRANSLATE, "redis-unavailable", MONTH);
         transaction().executeWithoutResult(status -> selected.refund(userId, receipt));
         assertThat(state().freeUsage()).containsEntry("TRANSLATE", 4);
@@ -428,7 +428,7 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     private EntitlementService serviceAt(Instant instant) {
-        return new EntitlementService(auth, ledger, namedJdbc, redis, mapper, new BillingConfig(),
+        return new EntitlementService(auth, ledger, namedJdbc, redis, mapper, settings(new BillingConfig()),
                 Clock.fixed(instant, ZoneOffset.UTC));
     }
 
@@ -466,5 +466,12 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
 
     private String idemKey(String key) {
         return "billing:idem:" + userId + ":" + key;
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(BillingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        return settings;
     }
 }
