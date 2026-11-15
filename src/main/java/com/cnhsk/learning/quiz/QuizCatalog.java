@@ -6,6 +6,8 @@ import java.util.Map;
 
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.cnhsk.shared.settings.SettingKey;
+import com.cnhsk.shared.settings.SettingsApi;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.http.HttpStatus;
@@ -15,11 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class QuizCatalog {
     private final QuizRepository repository;
-    private final QuizConfig config;
+    private final SettingsApi settings;
 
-    public QuizCatalog(QuizRepository repository, QuizConfig config) {
+    public QuizCatalog(QuizRepository repository, SettingsApi settings) {
         this.repository = repository;
-        this.config = config;
+        this.settings = settings;
     }
 
     @Transactional(readOnly = true)
@@ -27,7 +29,7 @@ public class QuizCatalog {
         if (hsk != null && (hsk < 1 || hsk > 9)) throw invalid("hsk");
         if (page < 0) throw invalid("page");
         if (size < 1 || size > 50) throw invalid("size");
-        int questionCount = config.getQuestionCount();
+        int questionCount = settings.getInt(SettingKey.QUIZ_QUESTION_COUNT);
         var result = repository.list(userId, hsk, page, size, questionCount);
         List<QuizListing> items = result.items().stream().map(row -> new QuizListing(
                 row.topicId(), row.topicName(), row.hskLevel(), questionCount, row.availableQuestions(),

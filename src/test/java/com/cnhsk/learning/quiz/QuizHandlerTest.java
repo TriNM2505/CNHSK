@@ -22,8 +22,8 @@ class QuizHandlerTest {
     @Test
     void twoSourcesUseConfiguredServerLifetimeAndOnlyFirstSourceLocksAndChecksHistory() {
         config.setSessionMinutes(7);
-        var first = configuration.firstQuizHandler(repository, config);
-        var retry = configuration.retryQuizHandler(repository, config);
+        var first = configuration.firstQuizHandler(repository, config, settings(config));
+        var retry = configuration.retryQuizHandler(repository, config, settings(config));
         assertThat(first.source()).isEqualTo(PracticeSource.QUIZ);
         assertThat(retry.source()).isEqualTo(PracticeSource.QUIZ_RETRY);
         assertThat(first.sessionPolicy().lifetime()).isEqualTo(Duration.ofMinutes(7));
@@ -44,7 +44,7 @@ class QuizHandlerTest {
     @Test
     void firstWithoutHistoryStaysQuizAndTransitionRejectsRepeatedOrFinishedOrNonQuizAttempts() {
         Attempt first = attempt();
-        configuration.firstQuizHandler(repository, config).prepareSubmission(first);
+        configuration.firstQuizHandler(repository, config, settings(config)).prepareSubmission(first);
         assertThat(first.getRefType()).isEqualTo("QUIZ");
         first.setStatus("SUBMITTED");
         assertThatThrownBy(first::convertQuizToRetry).isInstanceOf(IllegalStateException.class);
@@ -57,7 +57,7 @@ class QuizHandlerTest {
 
     @Test
     void serverTimeThresholdIsStrictAndZeroDisablesIt() {
-        var handler = configuration.firstQuizHandler(repository, config);
+        var handler = configuration.firstQuizHandler(repository, config, settings(config));
         var item = mock(PracticeSourceHandler.GradedItem.class);
         var items = java.util.Collections.nCopies(10, item);
         var fast = new PracticeSourceHandler.FinishContext(1, 3, PracticeSource.QUIZ, 2L, 80L, 100L,
@@ -84,7 +84,7 @@ class QuizHandlerTest {
         var practice = mock(com.cnhsk.learning.practice.PracticeService.class);
         var limiter = mock(com.cnhsk.shared.security.RateLimiter.class);
         var clock = java.time.Clock.fixed(Instant.EPOCH, java.time.ZoneOffset.UTC);
-        var service = new QuizSessionService(repository, picker, config, practice, limiter, clock);
+        var service = new QuizSessionService(repository, picker, settings(config), practice, limiter, clock);
         when(repository.active(1, 2, Instant.EPOCH)).thenReturn(java.util.Optional.empty());
         when(repository.topicExists(2)).thenReturn(true);
         when(picker.pick(2, 10)).thenReturn(List.of());
@@ -92,5 +92,14 @@ class QuizHandlerTest {
         when(limiter.increment("quiz:start:1", Duration.ofHours(1))).thenThrow(unavailable);
         assertThatThrownBy(() -> service.start(1, 2)).isSameAs(unavailable);
         verifyNoInteractions(practice);
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(QuizConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.QUIZ_QUESTION_COUNT))
+                .thenAnswer(invocation -> config.getQuestionCount());
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.QUIZ_MIN_SECONDS_PER_QUESTION))
+                .thenAnswer(invocation -> config.getMinSecondsPerQuestion());
+        return settings;
     }
 }

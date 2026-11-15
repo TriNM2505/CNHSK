@@ -250,6 +250,7 @@ abstract class QuizIntegrationFixture extends AbstractIntegrationTest {
     @Autowired QuizQuestionPicker picker;
     @Autowired QuizCatalog catalog;
     @Autowired QuizConfig config;
+    @org.springframework.test.context.bean.override.mockito.MockitoSpyBean com.cnhsk.shared.settings.SettingsService settings;
     @Autowired PracticeService practice;
     @Autowired AttemptRepository attempts;
     @Autowired JdbcTemplate jdbc;
@@ -276,6 +277,8 @@ abstract class QuizIntegrationFixture extends AbstractIntegrationTest {
         config.setQuestionCount(10);
         config.setSessionMinutes(30);
         config.setMinSecondsPerQuestion(2);
+        org.mockito.Mockito.doAnswer(invocation -> config.getQuestionCount()).when(settings).getInt(com.cnhsk.shared.settings.SettingKey.QUIZ_QUESTION_COUNT);
+        org.mockito.Mockito.doAnswer(invocation -> config.getMinSecondsPerQuestion()).when(settings).getInt(com.cnhsk.shared.settings.SettingKey.QUIZ_MIN_SECONDS_PER_QUESTION);
         user = jdbc.queryForObject("INSERT INTO auth.users(email,password_hash,display_name) "
                 + "VALUES (?,'fixture-unused','Quiz engine fixture') RETURNING id", Long.class,
                 "quiz-engine-"+UUID.randomUUID()+"@example.test");

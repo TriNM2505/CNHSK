@@ -16,6 +16,8 @@ import com.cnhsk.learning.grading.web.GradingResultWrite;
 import com.cnhsk.learning.grading.web.TeacherGradingViews.*;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.cnhsk.shared.settings.SettingKey;
+import com.cnhsk.shared.settings.SettingsApi;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
@@ -26,15 +28,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class TeacherGradingService {
     private final GradingRepository repository;
-    private final GradingConfig config;
+    private final SettingsApi settings;
     private final EntitlementApi entitlement;
     private final LedgerService ledger;
     private final ObjectMapper mapper;
     private final Clock clock;
 
-    public TeacherGradingService(GradingRepository repository, GradingConfig config, EntitlementApi entitlement,
+    public TeacherGradingService(GradingRepository repository, SettingsApi settings, EntitlementApi entitlement,
             LedgerService ledger, ObjectMapper mapper, Clock clock) {
-        this.repository = repository; this.config = config; this.entitlement = entitlement;
+        this.repository = repository; this.settings = settings; this.entitlement = entitlement;
         this.ledger = ledger;
         this.mapper = mapper; this.clock = clock;
     }
@@ -45,9 +47,10 @@ public class TeacherGradingService {
         }
         Instant now = clock.instant();
         long total = repository.countQueue(teacherId, now);
+        int payout = settings.getInt(SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         List<QueueItem> items = repository.findQueue(teacherId, now, page, size).stream().map(row ->
                 new QueueItem(row.id(), reference(row.id()), row.hanziCount(), row.hskLevel(), row.createdAt(),
-                        row.deadline(), config.getTeacherPayoutCredits())).toList();
+                        row.deadline(), payout)).toList();
         return new QueuePage(items, page, size, total);
     }
 
@@ -63,11 +66,11 @@ public class TeacherGradingService {
         if (row.userId() == teacherId) {
             throw error(ErrorCode.GRADING_SELF_GRADING, HttpStatus.FORBIDDEN, "Không thể nhận chấm bài của chính mình.");
         }
-        if (repository.countActiveClaims(teacherId) >= config.getMaxActiveClaims()) {
+        if (repository.countActiveClaims(teacherId) >= settings.getInt(SettingKey.GRADING_MAX_ACTIVE_CLAIMS)) {
             throw error(ErrorCode.GRADING_CLAIM_LIMIT, HttpStatus.UNPROCESSABLE_ENTITY, "Bạn đang giữ đủ số bài được phép.");
         }
         Instant now = clock.instant();
-        if (!repository.claim(id, teacherId, now, now.plus(config.getGradingHours(), ChronoUnit.HOURS))) throw alreadyClaimed();
+        if (!repository.claim(id, teacherId, now, now.plus(settings.getInt(SettingKey.GRADING_GRADING_HOURS), ChronoUnit.HOURS))) throw alreadyClaimed();
         return detail(assigned(teacherId, id));
     }
 
@@ -82,7 +85,7 @@ public class TeacherGradingService {
         }
         var criteria = submission.criteria();
         int score = criteria.grammar() + criteria.vocabulary() + criteria.coherence() + criteria.writing();
-        int payout = config.getTeacherPayoutCredits();
+        int payout = settings.getInt(SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         var result = mapper.createObjectNode();
         result.set("criteria", mapper.valueToTree(criteria)); result.set("corrections", mapper.valueToTree(submission.corrections()));
         if (!repository.complete(id, teacherId, now, score, submission.feedback(), result, payout)) throw notAssignee();
@@ -130,7 +133,7 @@ public class TeacherGradingService {
                 payload.path("prompt").isNull() || payload.path("prompt").isMissingNode() ? null : payload.path("prompt").asText(),
                 payload.path("hskLevel").isNull() || payload.path("hskLevel").isMissingNode() ? null : payload.path("hskLevel").intValue(),
                 payload.get("hanziCount").intValue(), row.assignedAt(), row.deadline(),
-                result == null ? config.getTeacherPayoutCredits() : row.payout(), result);
+                result == null ? settings.getInt(SettingKey.GRADING_TEACHER_PAYOUT_CREDITS) : row.payout(), result);
     }
 
     private String reference(long id) { return String.format(Locale.ROOT, "GR-%06d", id); }

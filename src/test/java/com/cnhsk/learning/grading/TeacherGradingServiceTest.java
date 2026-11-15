@@ -38,7 +38,7 @@ class TeacherGradingServiceTest {
         repository = mock(GradingRepository.class); entitlement = mock(EntitlementApi.class);
         ledger = mock(LedgerService.class);
         config = new GradingConfig(); config.setMaxActiveClaims(3); config.setGradingHours(24); config.setTeacherPayoutCredits(0);
-        service = new TeacherGradingService(repository, config, entitlement, ledger, mapper, Clock.fixed(NOW, ZoneOffset.UTC));
+        service = new TeacherGradingService(repository, settings(config), entitlement, ledger, mapper, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test void AT06_queueMapsOnlyMetadataWithTwoRepositoryCalls() {
@@ -225,5 +225,16 @@ class TeacherGradingServiceTest {
         assertThatThrownBy(action::run).isInstanceOfSatisfying(ApiException.class, error -> {
             assertThat(error.getCode()).isEqualTo(code); assertThat(error.getStatus().value()).isEqualTo(status);
         });
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(GradingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.GRADING_MAX_ACTIVE_CLAIMS))
+                .thenAnswer(invocation -> config.getMaxActiveClaims());
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.GRADING_GRADING_HOURS))
+                .thenAnswer(invocation -> config.getGradingHours());
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS))
+                .thenAnswer(invocation -> config.getTeacherPayoutCredits());
+        return settings;
     }
 }

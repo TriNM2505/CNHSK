@@ -14,12 +14,12 @@ import org.springframework.http.HttpStatus;
 public final class EssayRules {
     private EssayRules() { }
 
-    public static Essay validate(String raw, GradingConfig config) {
-        if (config == null) throw new IllegalArgumentException("Grading configuration is required.");
+    public static Essay validate(String raw, LengthLimits limits) {
+        if (limits == null) throw new IllegalArgumentException("Grading configuration is required.");
         String essay = trim(raw);
         int hanzi = countHanzi(essay);
-        if (essay.codePointCount(0, essay.length()) > config.getMaxChars()
-                || hanzi < config.getMinHanzi() || hanzi > config.getMaxHanzi()) {
+        if (essay.codePointCount(0, essay.length()) > limits.maxChars()
+                || hanzi < limits.minHanzi() || hanzi > limits.maxHanzi()) {
             throw new ApiException(ErrorCode.GRADING_INVALID_ESSAY, HttpStatus.UNPROCESSABLE_ENTITY,
                     "Bài viết không đúng độ dài quy định.", Map.of("details", Map.of("hanziCount", hanzi)));
         }
@@ -66,6 +66,8 @@ public final class EssayRules {
     private static boolean whitespace(int code) {
         return Character.isWhitespace(code) || Character.isSpaceChar(code);
     }
+
+    public record LengthLimits(int minHanzi, int maxHanzi, int maxChars) { }
 
     public record Essay(String essay, int hanziCount, String essayHash) {
         @Override

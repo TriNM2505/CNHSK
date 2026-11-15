@@ -9,6 +9,8 @@ import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.learning.library.web.DeckWrite;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.cnhsk.shared.settings.SettingKey;
+import com.cnhsk.shared.settings.SettingsApi;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -20,13 +22,13 @@ import org.springframework.transaction.annotation.Transactional;
 public class DeckService {
     private final AuthApi auth;
     private final DeckRepository decks;
-    private final LibraryConfig config;
+    private final SettingsApi settings;
     private final Clock clock;
 
-    public DeckService(AuthApi auth, DeckRepository decks, LibraryConfig config, Clock clock) {
+    public DeckService(AuthApi auth, DeckRepository decks, SettingsApi settings, Clock clock) {
         this.auth = auth;
         this.decks = decks;
-        this.config = config;
+        this.settings = settings;
         this.clock = clock;
     }
 
@@ -47,12 +49,13 @@ public class DeckService {
         if (request.topicId() != null && !decks.topicExists(request.topicId())) {
             throw new ApiException(ErrorCode.TOPIC_NOT_FOUND, HttpStatus.NOT_FOUND, "Không tìm thấy chủ đề.", Map.of());
         }
-        if (decks.count(userId) >= config.getMaxDecks()) {
+        int limit = settings.getInt(SettingKey.LIBRARY_MAX_DECKS);
+        if (decks.count(userId) >= limit) {
             throw new ApiException(ErrorCode.LIBRARY_LIMIT_REACHED, HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Đã đạt giới hạn bộ thẻ.", Map.of("details", Map.of("kind", "DECKS", "limit", config.getMaxDecks())));
+                    "Đã đạt giới hạn bộ thẻ.", Map.of("details", Map.of("kind", "DECKS", "limit", limit)));
         }
         long deckId = decks.insert(userId, request, now);
-        if (request.topicId() != null) decks.copyTopic(deckId, request.topicId(), config.getMaxCards(), now);
+        if (request.topicId() != null) decks.copyTopic(deckId, request.topicId(), settings.getInt(SettingKey.LIBRARY_MAX_CARDS), now);
         return decks.detail(userId, deckId, now).orElseThrow(DeckService::notOwned);
     }
 

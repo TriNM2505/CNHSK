@@ -19,7 +19,7 @@ class EssayRulesTest {
     @ValueSource(ints = {49, 501})
     void FR002_AT01_hanziOutsideTheRangeReturns422WithCountOnly(int count) {
         String essay = "字".repeat(count);
-        assertThatThrownBy(() -> EssayRules.validate(essay, config())).isInstanceOfSatisfying(ApiException.class, error -> {
+        assertThatThrownBy(() -> EssayRules.validate(essay, limits(config()))).isInstanceOfSatisfying(ApiException.class, error -> {
             assertThat(error.getCode()).isEqualTo(ErrorCode.GRADING_INVALID_ESSAY);
             assertThat(error.getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
             assertThat(error.getExtra()).containsExactly(Map.entry("details", Map.of("hanziCount", count)));
@@ -31,7 +31,7 @@ class EssayRulesTest {
     @ParameterizedTest
     @ValueSource(ints = {50, 500})
     void FR002_hanziEndpointsAreAccepted(int count) {
-        var essay = EssayRules.validate("字".repeat(count), config());
+        var essay = EssayRules.validate("字".repeat(count), limits(config()));
         assertThat(essay.hanziCount()).isEqualTo(count);
         assertThat(essay.essayHash()).matches("[0-9a-f]{64}");
     }
@@ -45,18 +45,18 @@ class EssayRulesTest {
     @Test
     void FR002_AT01_totalLengthUsesCodePointsAndUnicodeTrimWithoutChangingInternalLines() {
         String body = "字".repeat(50) + "😀".repeat(2950);
-        assertThat(EssayRules.validate("\u00A0\u3000\t" + body + "\r\n\u202F", config()).essay()).isEqualTo(body);
-        assertThatThrownBy(() -> EssayRules.validate(body + "😀", config())).isInstanceOfSatisfying(ApiException.class,
+        assertThat(EssayRules.validate("\u00A0\u3000\t" + body + "\r\n\u202F", limits(config())).essay()).isEqualTo(body);
+        assertThatThrownBy(() -> EssayRules.validate(body + "😀", limits(config()))).isInstanceOfSatisfying(ApiException.class,
                 error -> assertThat(error.getExtra()).containsEntry("details", Map.of("hanziCount", 50)));
         String lines = "字".repeat(25) + "\r\n\r\n  " + "字".repeat(25);
-        assertThat(EssayRules.validate(" \n" + lines + "\t ", config()).essay()).isEqualTo(lines);
+        assertThat(EssayRules.validate(" \n" + lines + "\t ", limits(config())).essay()).isEqualTo(lines);
     }
 
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {" \t\r\n\u00A0\u3000", "only Latin and punctuation!"})
     void FR002_missingOrNonHanziEssaysAreRejectedWithoutPrivateInput(String value) {
-        assertThatThrownBy(() -> EssayRules.validate(value, config())).isInstanceOfSatisfying(ApiException.class,
+        assertThatThrownBy(() -> EssayRules.validate(value, limits(config()))).isInstanceOfSatisfying(ApiException.class,
                 error -> assertThat(error.getExtra()).containsEntry("details", Map.of("hanziCount", 0)));
     }
 
@@ -75,7 +75,7 @@ class EssayRulesTest {
     @Test
     void FR002_rulesReadTheConfigurationAndDiagnosticsDoNotPrintTheEssay() {
         GradingConfig config = config(); config.setMinHanzi(2); config.setMaxHanzi(3); config.setMaxChars(5);
-        var essay = EssayRules.validate("  字字😀  ", config);
+        var essay = EssayRules.validate("  字字😀  ", limits(config));
         assertThat(essay.hanziCount()).isEqualTo(2);
         assertThat(essay.toString()).isEqualTo("Essay[hanziCount=2]").doesNotContain("字", essay.essayHash());
         assertThatIllegalArgumentException().isThrownBy(() -> EssayRules.validate("private", null))
@@ -86,5 +86,9 @@ class EssayRulesTest {
         GradingConfig config = new GradingConfig();
         config.setMinHanzi(50); config.setMaxHanzi(500); config.setMaxChars(3000);
         return config;
+    }
+
+    private EssayRules.LengthLimits limits(GradingConfig config) {
+        return new EssayRules.LengthLimits(config.getMinHanzi(), config.getMaxHanzi(), config.getMaxChars());
     }
 }

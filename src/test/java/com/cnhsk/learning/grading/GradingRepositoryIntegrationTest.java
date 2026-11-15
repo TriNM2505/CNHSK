@@ -418,7 +418,7 @@ class GradingRepositoryIntegrationTest {
         var counted = spy(named);
         var queries = new GradingRepository(counted, mapper);
         var config = new GradingConfig(); config.setTeacherPayoutCredits(0);
-        var service = new TeacherGradingService(queries, config, mock(com.cnhsk.learning.api.EntitlementApi.class),
+        var service = new TeacherGradingService(queries, settings(config), mock(com.cnhsk.learning.api.EntitlementApi.class),
                 mock(com.cnhsk.learning.credit.LedgerService.class),
                 mapper, java.time.Clock.fixed(NOW, java.time.ZoneOffset.UTC));
         repository.createPending(owner, payload(), NOW, NOW.plusSeconds(3600));
@@ -516,5 +516,16 @@ class GradingRepositoryIntegrationTest {
     @TestConfiguration(proxyBeanMethods = false)
     static class JsonConfiguration {
         @Bean ObjectMapper gradingTestMapper() { return new ObjectMapper().findAndRegisterModules(); }
+    }
+
+    private static com.cnhsk.shared.settings.SettingsService settings(GradingConfig config) {
+        var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.GRADING_MAX_ACTIVE_CLAIMS))
+                .thenAnswer(invocation -> config.getMaxActiveClaims());
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.GRADING_GRADING_HOURS))
+                .thenAnswer(invocation -> config.getGradingHours());
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.GRADING_TEACHER_PAYOUT_CREDITS))
+                .thenAnswer(invocation -> config.getTeacherPayoutCredits());
+        return settings;
     }
 }

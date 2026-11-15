@@ -11,6 +11,8 @@ import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.learning.library.web.NoteWrite;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.cnhsk.shared.settings.SettingKey;
+import com.cnhsk.shared.settings.SettingsApi;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,13 +26,13 @@ public class NotebookService {
     private static final Duration RESTORE_WINDOW = Duration.ofDays(30);
     private final AuthApi auth;
     private final NotebookRepository notes;
-    private final LibraryConfig config;
+    private final SettingsApi settings;
     private final Clock clock;
 
-    public NotebookService(AuthApi auth, NotebookRepository notes, LibraryConfig config, Clock clock) {
+    public NotebookService(AuthApi auth, NotebookRepository notes, SettingsApi settings, Clock clock) {
         this.auth = auth;
         this.notes = notes;
-        this.config = config;
+        this.settings = settings;
         this.clock = clock;
     }
 
@@ -39,9 +41,10 @@ public class NotebookService {
         long userId = auth.currentUser().userId();
         notes.lock(userId);
         checkLexeme(userId, request.lexemeId(), 0);
-        if (notes.count(userId) >= config.getMaxNotes()) {
+        int limit = settings.getInt(SettingKey.LIBRARY_MAX_NOTES);
+        if (notes.count(userId) >= limit) {
             throw new ApiException(ErrorCode.LIBRARY_LIMIT_REACHED, HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Sổ tay đã đạt giới hạn ghi chú.", Map.of("details", Map.of("kind", "NOTES", "limit", config.getMaxNotes())));
+                    "Sổ tay đã đạt giới hạn ghi chú.", Map.of("details", Map.of("kind", "NOTES", "limit", limit)));
         }
         return notes.insert(notes.notebook(userId), request);
     }
@@ -108,9 +111,10 @@ public class NotebookService {
                     "Ghi chú chưa xoá hoặc đã quá hạn khôi phục 30 ngày.", Map.of());
         }
         checkDuplicate(userId, existing.note().lexemeId(), noteId);
-        if (notes.count(userId) >= config.getMaxNotes()) {
+        int limit = settings.getInt(SettingKey.LIBRARY_MAX_NOTES);
+        if (notes.count(userId) >= limit) {
             throw new ApiException(ErrorCode.LIBRARY_LIMIT_REACHED, HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Sổ tay đã đạt giới hạn ghi chú.", Map.of("details", Map.of("kind", "NOTES", "limit", config.getMaxNotes())));
+                    "Sổ tay đã đạt giới hạn ghi chú.", Map.of("details", Map.of("kind", "NOTES", "limit", limit)));
         }
         return notes.restore(userId, noteId, now);
     }

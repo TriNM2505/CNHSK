@@ -11,6 +11,8 @@ import com.cnhsk.learning.library.DeckService.Card;
 import com.cnhsk.learning.library.web.CardWrite;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.cnhsk.shared.settings.SettingKey;
+import com.cnhsk.shared.settings.SettingsApi;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -22,14 +24,14 @@ public class CardService {
     private final AuthApi auth;
     private final DeckRepository decks;
     private final CardRepository cards;
-    private final LibraryConfig config;
+    private final SettingsApi settings;
     private final Clock clock;
 
-    public CardService(AuthApi auth, DeckRepository decks, CardRepository cards, LibraryConfig config, Clock clock) {
+    public CardService(AuthApi auth, DeckRepository decks, CardRepository cards, SettingsApi settings, Clock clock) {
         this.auth = auth;
         this.decks = decks;
         this.cards = cards;
-        this.config = config;
+        this.settings = settings;
         this.clock = clock;
     }
 
@@ -56,9 +58,10 @@ public class CardService {
         }
         List<ActiveCard> active = cards.active(deckId);
         checkDuplicate(active, null, lexemeId, front);
-        if (active.size() >= config.getMaxCards()) {
+        int limit = settings.getInt(SettingKey.LIBRARY_MAX_CARDS);
+        if (active.size() >= limit) {
             throw new ApiException(ErrorCode.LIBRARY_LIMIT_REACHED, HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Đã đạt giới hạn thẻ trong bộ.", Map.of("details", Map.of("kind", "CARDS", "limit", config.getMaxCards())));
+                    "Đã đạt giới hạn thẻ trong bộ.", Map.of("details", Map.of("kind", "CARDS", "limit", limit)));
         }
         long cardId = cards.insert(deckId, lexemeId, front, back, now).orElseThrow(CardService::duplicate);
         return cards.get(userId, deckId, cardId);
