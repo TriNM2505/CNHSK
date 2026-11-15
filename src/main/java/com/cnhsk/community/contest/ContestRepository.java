@@ -7,6 +7,7 @@ import java.util.Optional;
 import com.cnhsk.community.contest.Contest.ScheduleState;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository("communityContestRepository")
@@ -21,9 +22,16 @@ public class ContestRepository {
             """;
 
     private final EntityManager entities;
+    private final NamedParameterJdbcTemplate jdbc;
 
-    public ContestRepository(EntityManager entities) {
+    public ContestRepository(EntityManager entities, NamedParameterJdbcTemplate jdbc) {
         this.entities = entities;
+        this.jdbc = jdbc;
+    }
+
+    public void lockStart(long contestId) {
+        jdbc.query("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))",
+                java.util.Map.of("key", "contest:start:" + contestId), result -> null);
     }
 
     public Optional<Contest> findPublished(long id) {
