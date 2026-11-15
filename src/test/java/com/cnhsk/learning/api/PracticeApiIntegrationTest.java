@@ -2,6 +2,8 @@ package com.cnhsk.learning.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -12,10 +14,13 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.IntStream;
 
+import com.cnhsk.community.game.GameDefinition;
+import com.cnhsk.community.game.GameRegistry;
 import com.cnhsk.learning.api.PracticeApi.Answer;
 import com.cnhsk.learning.api.PracticeApi.ItemType;
 import com.cnhsk.learning.api.PracticeApi.PracticeSource;
@@ -45,6 +50,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -60,6 +66,7 @@ class PracticeApiIntegrationTest extends AbstractIntegrationTest {
     @Autowired private ObjectMapper mapper;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private EventProbe probe;
+    @MockitoSpyBean private GameRegistry gameRegistry;
     @MockitoBean private Clock clock;
     @MockitoBean(name = "topicTestHandler") private PracticeSourceHandler handler;
     private long owner;
@@ -282,10 +289,16 @@ class PracticeApiIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void FR012_gameInputPreservesServerLifetimeAndScoringPolicy() {
-        var view = api.start(new StartPracticeCommand(owner, PracticeSource.GAME_ROUND, null, "test-game",
-                List.of(choice(1)), null, Duration.ofSeconds(45), Map.of("roundSeconds", 30)));
+        var gameCode = GameCode.CHAR_RAIN;
+        var definition = mock(GameDefinition.class);
+        when(definition.skill()).thenReturn(PracticeApi.Skill.VOCAB);
+        doReturn(Optional.of(definition)).when(gameRegistry).find(gameCode);
+
+        var view = api.start(new StartPracticeCommand(owner, PracticeSource.GAME_ROUND, null, gameCode.name(),
+                List.of(choice(1)), null, Duration.ofSeconds(45),
+                Map.of("timeLimitSeconds", 27, "pointsPerCorrect", 10, "uiConfig", Map.of())));
         assertThat(view.expiresAt()).isEqualTo(NOW.plusSeconds(45));
-        assertThat(attempts.findById(view.sessionId()).orElseThrow().getGameCode()).isEqualTo("test-game");
+        assertThat(attempts.findById(view.sessionId()).orElseThrow().getGameCode()).isEqualTo(gameCode.name());
         var result = api.finish(owner, view.sessionId(), null);
         assertThat(result.score()).isZero();
         assertThat(result.maxScore()).isEqualTo(1);

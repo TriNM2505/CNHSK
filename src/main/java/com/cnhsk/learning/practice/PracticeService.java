@@ -172,6 +172,7 @@ public class PracticeService {
         rateLimiter.checkAnswer(userId);
         var meta = new LinkedHashMap<String, Object>();
         handlers.stream().filter(handler -> handler.source() == source).forEach(handler -> {
+            handler.validateAnswerContext(attempt, item, answer);
             handler.validateAnswer(item, answer);
             meta.putAll(handler.enrichMeta(item, answer));
         });
@@ -363,6 +364,7 @@ public class PracticeService {
         var meta = new LinkedHashMap<String, Object>();
         for (PracticeSourceHandler handler : handlers) {
             if (handler.source() == source) {
+                handler.validateAnswerContext(attempt, item, answer);
                 handler.validateAnswer(item, answer);
                 meta.putAll(handler.enrichMeta(item, answer));
             }
@@ -582,6 +584,7 @@ public class PracticeService {
         }
         var meta = new LinkedHashMap<String, Object>();
         handlers.stream().filter(handler -> handler.source() == command.source()).forEach(handler -> {
+            handler.validateAnswerContext(attempt, item, answer);
             handler.validateAnswer(item, answer);
             meta.putAll(handler.enrichMeta(item, answer));
         });

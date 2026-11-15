@@ -62,6 +62,43 @@ class GameRoundApiTest {
         api.abandon(7, 19); verify(practice).abandon(7, 19); verifyNoInteractions(jdbc);
     }
 
+    @Test @SuppressWarnings({"unchecked", "rawtypes"})
+    void serverSnapshotReadFiltersGameSourceAndReturnsKeysOnlyToTheJavaBoundary() throws Exception {
+        var item = new PracticeApi.ServedItem(1, PracticeApi.ItemType.MEANING_CHOICE, PracticeApi.Skill.VOCAB, null,
+                new PracticeApi.Prompt("Tự soạn", null, null, null, null, null, null, null, null),
+                List.of(new PracticeApi.Option("A", "Một")), "A", null, "Giải thích", new PracticeApi.Rules(300, 0, false));
+        var mapper = new ObjectMapper();
+        var result = mock(ResultSet.class);
+        when(result.getLong("id")).thenReturn(19L);
+        when(result.getLong("user_id")).thenReturn(7L);
+        when(result.getString("game_code")).thenReturn("CHAR_RAIN");
+        when(result.getString("status")).thenReturn("IN_PROGRESS");
+        when(result.getTimestamp("served_at")).thenReturn(Timestamp.from(START));
+        when(result.getTimestamp("expires_at")).thenReturn(Timestamp.from(START.plusSeconds(48)));
+        when(result.getString("served_items")).thenReturn(mapper.writeValueAsString(java.util.Map.of(
+                "meta", java.util.Map.of("timeLimitSeconds", 30, "pointsPerCorrect", 10, "uiConfig", java.util.Map.of()), "items", List.of(item))));
+        when(jdbc.query(anyString(), anyMap(), any(RowMapper.class))).thenAnswer(invocation -> {
+            RowMapper reader = invocation.getArgument(2);
+            return List.of(reader.mapRow(result, 0));
+        });
+        var round = api.find(19).orElseThrow();
+        assertThat(round.gameCode()).isEqualTo(GameCode.CHAR_RAIN);
+        assertThat(round.userId()).isEqualTo(7);
+        assertThat(round.gradableCount()).isEqualTo(1);
+        assertThat(round.items().get(0).answer()).isEqualTo("A");
+        assertThat(round.deadline()).isEqualTo(START.plusSeconds(33));
+        verify(jdbc).query(argThat(sql -> sql.contains("kind = 'GAME'") && sql.contains("ref_type = 'GAME_ROUND'")),
+                eq(java.util.Map.of("id", 19L)), any(RowMapper.class));
+    }
+
+    @Test void previousBestExcludesThisRoundAndSuspiciousOrUnsubmittedRounds() {
+        when(jdbc.queryForObject(anyString(), anyMap(), eq(Long.class))).thenReturn(8L);
+        assertThat(api.bestCorrectBefore(7, GameCode.CHAR_RAIN, 19)).isEqualTo(8L);
+        verify(jdbc).queryForObject(argThat(sql -> sql.contains("id <> :id") && sql.contains("suspicious = false")
+                        && sql.contains("status = 'SUBMITTED'") && sql.contains("kind = 'GAME'")),
+                eq(java.util.Map.of("user", 7L, "code", "CHAR_RAIN", "id", 19L)), eq(Long.class));
+    }
+
     @Test void Q_T05_01_lockAndActiveSelectionRequireTheCallersTransaction() throws Exception {
         assertThat(GameRoundApi.class.getMethod("lockStart", long.class).getAnnotation(Transactional.class).propagation())
                 .isEqualTo(Propagation.MANDATORY);
