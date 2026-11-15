@@ -126,7 +126,7 @@ game chạm/chuột nhịp vừa.
 | **FR-016** | `GameRoundHandler.onFinish` SHALL **khẳng định trần**: `score ≤ max_score` (= số lượt đã phát) — vi phạm là lỗi lập trình → ném `IllegalStateException` (rollback, log `ERROR`). Test cố ý chứng minh không đường nào vượt (SC-002, BR-088-4) |
 | **FR-017** | `extra` SHALL là `{points, maxPoints, correct, wrong, missed, accuracy, durationMs, skill, bestPoints, newBest, suspicious}`; `missed` = lượt đã phát chưa trả lời; `accuracy = floor(correct*100/(correct+wrong))` (null nếu 0); `newBest = points > bestPoints trước ván này` (BR-088-11) |
 | **FR-018** | Ván `suspicious` (spec 003 E-F5: ≥ 30% lượt nhanh hơn `minDurationMs` của game) **vẫn lưu điểm** (UC-088 A2) nhưng **không** tính vào `bestPoints` (FR-004 lọc `suspicious = false`) |
-| **FR-019** | `POST /api/community/games/rounds/{id}/abandon` SHALL gọi `PracticeApi.abandon` (E5) → **204** |
+| **FR-019** | `POST /api/community/games/rounds/{id}/abandon` SHALL gọi `GameRoundApi.abandon` (ủy quyền `PracticeService.abandon`, E5) → **204**; body lạ → **422** `VALIDATION_FAILED`, lượt hết hạn → **422** `ROUND_EXPIRED` |
 
 ### Nhóm 4 — `learning.api.ContentLookup` (FR-020…FR-022)
 
@@ -194,7 +194,7 @@ Bộ máy trả mã `SESSION_*`; lớp `community.game` **dịch** sang mã `ROU
 | **HR-03** cookie tên miền cha | Spec 001 FR-014/FR-015 — test SC-001 ở đây (T-11) |
 | **HR-04** CORS | Spec 001 FR-028 (origin game) |
 | **HR-06 / BUS-09** không tin điểm client | §0.1, FR-013, FR-016 |
-| **AC-03** | `community.game` chỉ dùng `learning.api.PracticeApi`, `ContentLookup`; ArchUnit cấm `community..` → `learning..` trừ `learning.api..` |
+| **AC-03** | `community.game` chỉ dùng các boundary `learning.api` (`PracticeApi`, `ContentLookup`, `GameRoundApi`, `GameRoundHooks`); ArchUnit cấm `community..` → `learning..` trừ `learning.api..` |
 | **AC-10** | Sự kiện spec 003 trong transaction — mastery từ game sau này cùng commit |
 | Package | `community.game` (`GameContext`, `GameDefinition`, `GameRegistry`, `GameRoundService`, `GameRoundHandler`, `web.GameController`); mã game dùng `learning.api.GameCode` |
 
@@ -279,7 +279,7 @@ Bộ máy trả mã `SESSION_*`; lớp `community.game` **dịch** sang mã `ROU
 | `GET /api/community/games/rounds/{id}` | `LEARNER` | 200 `RoundView` (khôi phục khi tải lại) | 403, 404 |
 | `POST /api/community/games/rounds/{id}/answers` | `LEARNER` | 200 `RoundAnswerResult` | 400, 403, 404, 409, 422, 429 |
 | `POST /api/community/games/rounds/{id}/finish` | `LEARNER` | 200 `RoundResult` | 403, 404, 409, 422 |
-| `POST /api/community/games/rounds/{id}/abandon` | `LEARNER` | 204 | 403, 404, 409 |
+| `POST /api/community/games/rounds/{id}/abandon` | `LEARNER` | 204 | 403, 404, 409, 422 |
 
 ---
 

@@ -430,6 +430,27 @@ class PracticeServiceTest {
     }
 
     @Test
+    void contextHookRunsBeforeTheExistingHookAndBeforePreRecordedEvidenceIsWritten() {
+        var visited = new ArrayList<String>();
+        PracticeSourceHandler handler = new PracticeSourceHandler() {
+            public PracticeSource source() { return PracticeSource.TOPIC_STUDY; }
+            public Map<String, Object> onFinish(FinishContext context) { return Map.of(); }
+            public void validateAnswerContext(Attempt attempt, ServedItem item, Answer answer) {
+                assertThat(attempt.getId()).isEqualTo(42L);
+                assertThat(attempt.getUserId()).isEqualTo(7L);
+                assertThat(recorded).isEmpty();
+                visited.add("context");
+            }
+            public void validateAnswer(ServedItem item, Answer answer) { visited.add("existing"); }
+        };
+        service = service(List.of(handler));
+        service.start(command(PracticeSource.TOPIC_STUDY, List.of(card(1)),
+                List.of(new Answer(1, "KNOWN", 1000, 0, false, false, Map.of())), null, Map.of()));
+        assertThat(visited).containsExactly("context", "existing");
+        assertThat(recorded).hasSize(1);
+    }
+
+    @Test
     void serverLifetimeHookOverridesDefaultButNeverAcceptsClientOverride() {
         PracticeSourceHandler handler = new PracticeSourceHandler() {
             public PracticeSource source() { return PracticeSource.QUIZ; }

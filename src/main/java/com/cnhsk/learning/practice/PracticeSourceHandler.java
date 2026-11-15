@@ -48,6 +48,10 @@ public interface PracticeSourceHandler {
     default void validateAnswer(ServedItem item, Answer answer) {
     }
 
+    /** Additional source policy, while the attempt row is locked and before an answer can be written. */
+    default void validateAnswerContext(Attempt attempt, ServedItem item, Answer answer) {
+    }
+
     default void validateFinish(List<Answer> answers) {
     }
 

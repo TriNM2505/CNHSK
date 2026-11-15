@@ -1,13 +1,16 @@
 package com.cnhsk.learning.api;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.cnhsk.learning.practice.PracticeService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,7 +21,7 @@ public class GameRoundApi {
     private final NamedParameterJdbcTemplate jdbc;
     private final ObjectMapper mapper;
 
-    GameRoundApi(PracticeService practice, NamedParameterJdbcTemplate jdbc, ObjectMapper mapper) {
+    GameRoundApi(@Lazy PracticeService practice, NamedParameterJdbcTemplate jdbc, ObjectMapper mapper) {
         this.practice = practice;
         this.jdbc = jdbc;
         this.mapper = mapper;
@@ -57,6 +60,73 @@ public class GameRoundApi {
     /** Ownership, status and expiry checks are performed by the existing engine. */
     public void abandon(long userId, long roundId) {
         practice.abandon(userId, roundId);
+    }
+
+    /** Server-only snapshot; community projects it into explicitly public DTOs after checking ownership. */
+    @Transactional(readOnly = true)
+    public Optional<GameRoundHooks.Round> find(long roundId) {
+        return read(roundId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<GameRoundHooks.Round> findOwned(long userId, long roundId) {
+        return read(roundId, userId);
+    }
+
+    private Optional<GameRoundHooks.Round> read(long roundId, Long owner) {
+        return jdbc.query("SELECT id, user_id, game_code, status, served_at, expires_at, served_items "
+                        + "FROM learning.attempts WHERE id = :id AND kind = 'GAME' AND ref_type = 'GAME_ROUND'",
+                Map.of("id", roundId), (row, index) -> {
+                    if (owner != null && row.getLong("user_id") != owner) {
+                        throw new com.cnhsk.shared.exception.ApiException(com.cnhsk.shared.exception.ErrorCode.ATTEMPT_NOT_OWNED,
+                                org.springframework.http.HttpStatus.FORBIDDEN, "Không có quyền truy cập lượt luyện này.", Map.of());
+                    }
+                    try {
+                        JsonNode snapshot = mapper.readTree(row.getString("served_items"));
+                        if (snapshot == null || !snapshot.isObject() || !snapshot.path("items").isArray()
+                                || snapshot.path("items").isEmpty() || !snapshot.path("meta").path("uiConfig").isObject()) {
+                            throw invalidSnapshot();
+                        }
+                        JsonNode meta = snapshot.path("meta");
+                        int duration = positive(meta.path("timeLimitSeconds"));
+                        int points = positive(meta.path("pointsPerCorrect"));
+                        var served = mapper.treeToValue(snapshot, PracticeService.ServedSnapshot.class);
+                        List<PracticeApi.ServedItem> items = served.items().stream().map(item ->
+                                mapper.convertValue(item, PracticeApi.ServedItem.class)).toList();
+                        int gradable = Math.toIntExact(served.items().stream().filter(item -> item.type().gradable()).count());
+                        return new GameRoundHooks.Round(row.getLong("id"), row.getLong("user_id"),
+                                GameCode.valueOf(row.getString("game_code")), row.getString("status"),
+                                row.getTimestamp("served_at").toInstant(), row.getTimestamp("expires_at").toInstant(),
+                                duration, points, gradable,
+                                mapper.convertValue(meta.path("uiConfig"), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() { }), items);
+                    } catch (com.fasterxml.jackson.core.JsonProcessingException | IllegalArgumentException exception) {
+                        throw invalidSnapshot();
+                    }
+                }).stream().findFirst();
+    }
+
+    @Transactional(readOnly = true)
+    public GameRoundHooks.AnswerTotals totals(long roundId) {
+        return jdbc.queryForObject("SELECT COUNT(*) FILTER (WHERE is_correct = true) AS correct, COUNT(*) AS answered "
+                        + "FROM learning.attempt_items WHERE attempt_id = :id", Map.of("id", roundId),
+                (row, index) -> new GameRoundHooks.AnswerTotals(row.getLong("correct"), row.getLong("answered")));
+    }
+
+    @Transactional(readOnly = true)
+    public long bestCorrectBefore(long userId, GameCode gameCode, long roundId) {
+        return jdbc.queryForObject("SELECT COALESCE(MAX(score), 0) FROM learning.attempts "
+                        + "WHERE user_id = :user AND kind = 'GAME' AND game_code = :code "
+                        + "AND status = 'SUBMITTED' AND suspicious = false AND id <> :id",
+                Map.of("user", userId, "code", gameCode.name(), "id", roundId), Long.class);
+    }
+
+    private static int positive(JsonNode value) {
+        if (!value.isIntegralNumber() || !value.canConvertToInt() || value.intValue() <= 0) throw invalidSnapshot();
+        return value.intValue();
+    }
+
+    private static IllegalStateException invalidSnapshot() {
+        return new IllegalStateException("Invalid stored game snapshot.");
     }
 
     private record ActiveRound(long id, Instant deadline) { }

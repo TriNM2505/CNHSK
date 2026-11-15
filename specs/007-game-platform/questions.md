@@ -154,3 +154,20 @@ Full Maven verify (Java 17.0.9, DEBUG=false, PostgreSQL/Redis Testcontainers loc
 Fetch trước bàn giao: origin/main = 0167bac (PR #190, 022/T-04 đã merge). Trong các file T-05 dùng chung, chỉ SecurityConfig thay đổi: thêm POST /api/teacher/grading-requests/{id}/complete hasRole TEACHER ở cụm giáo viên, khác vị trí matcher game. ErrorCode/GlobalExceptionHandlerTest, file 007 và các API/engine learning liên quan không đổi so với base 3164b35. Không merge/rebase main; báo leader thay đổi này để kiểm trên bản gộp.
 
 Self-check PASS: đúng 14 file đã duyệt, UTF-8 không BOM, git diff --check sạch, không dấu conflict/TODO mới; không sửa PracticeApi/PracticeApiTest/PracticeService/PracticeSourceHandler/Attempt, contract, migration, dependency, cấu hình hay frontend. Không SQL trên Neon, secrets hoặc dữ liệu HSK có bản quyền. Giữ giới hạn engine, không nhận điểm client, chỉ dùng fixture tự soạn và tài khoản test; thêm đúng một matcher POST LEARNER, không đổi CSRF/CORS/filter. Ghi rõ Q2 không nguyên tử như đã duyệt. Một conventional commit, stage từng file, Draft PR; T-05 chờ leader review.
+
+## 2026-11-16 · T-06 — Vòng đời ván chơi
+
+Base `b88eb70`, nhánh `spec/007-t06`. Leader duyệt 24 file.
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T06-01 | ANSWERED | `GameRoundHooks` nằm trong `learning.api`, được `community.game.GameRoundHandler` cài đặt. `GameRoundPracticeHandler` gọi qua interface. Engine chỉ thêm một hook default no-op để kiểm ngữ cảnh trước khi ghi đáp án, trong phạm vi khoá hiện có của engine. |
+| Q-T06-02 | ANSWERED | Kỷ lục dùng điểm từ snapshot và số câu đúng do server tính. So kỷ lục cũ bằng truy vấn loại chính ván đang kết thúc. Ván suspicious giữ kỷ lục cũ và trả `newBest=false`. |
+| Q-T06-03 | ANSWERED | OpenAPI bổ sung 422 cho `/abandon` khi body không hợp lệ hoặc ván hết hạn. Đổi FR-019 và bảng lỗi tương ứng. API uỷ quyền thao tác bỏ ván cho engine. |
+| Q-T06-04 | ANSWERED | ID không phải số, không dương hoặc tràn int64 trả 404 `ROUND_NOT_FOUND` như ID không tồn tại. |
+
+Bốn matcher game chỉ cho LEARNER theo đúng method và giữ CSRF. Package learning gọi interface, giữ nguyên ranh giới module. `GameRoundApi` khởi tạo dependency `PracticeService` qua proxy lazy để adapter có thể được đăng ký trong danh sách handler lúc engine khởi động. Fixture cho test finish hiện có được bổ sung định nghĩa game và snapshot, giữ nguyên các assertion cũ.
+
+Leader duyệt bổ sung đúng một file, đưa allowlist lên 25. Test FR012_gameInputPreservesServerLifetimeAndScoringPolicy trong PracticeApiIntegrationTest dùng mã game và snapshot cũ nên handler mới từ chối snapshot trong lượt full đầu. Fixture chuyển sang CHAR_RAIN với timeLimitSeconds, pointsPerCorrect và uiConfig, dùng spy registry chỉ cho lần lookup của ca này. Giữ tên test và bốn kiểm tra TTL 45 giây, mã game lưu, score 0 và maxScore 1. Không đổi engine để đáp ứng fixture.
+
+Targeted và toàn bộ hồi quy learning.practice: 644 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6765 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1650% (16177 dòng covered, 472 dòng missed).

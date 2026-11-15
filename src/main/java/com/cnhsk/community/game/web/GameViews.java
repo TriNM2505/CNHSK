@@ -34,4 +34,24 @@ public final class GameViews {
     @Schema(name = "GameMyStats")
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record MyStats(long bestPoints, long roundsPlayed, Instant lastPlayedAt) { }
+
+    @Schema(name = "RoundView")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public record RoundView(long roundId, GameCode gameCode, Instant serverTime, Instant startedAt,
+            int timeLimitSeconds, Instant deadline, int pointsPerCorrect, Map<String, Object> uiConfig,
+            List<PracticeApi.ServedItemView> items, String status, List<Answered> answered, long totalPoints) {
+        public RoundView { uiConfig = Map.copyOf(uiConfig); items = List.copyOf(items); answered = List.copyOf(answered); }
+    }
+
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public record Answered(int no, Boolean correct, String correctAnswer) { }
+
+    @Schema(name = "RoundAnswerResult")
+    public record RoundAnswerResult(int no, boolean correct, String correctAnswer, int pointsAwarded,
+            long totalPoints, long answeredCount) { }
+
+    @Schema(name = "RoundResult")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public record RoundResult(long roundId, long points, long maxPoints, long correct, long wrong, long missed,
+            Integer accuracy, int durationMs, String skill, long bestPoints, boolean newBest, boolean suspicious) { }
 }
