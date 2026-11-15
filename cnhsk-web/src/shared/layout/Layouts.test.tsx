@@ -258,6 +258,26 @@ describe('LearnerLayout', () => {
 })
 
 describe('AdminLayout', () => {
+  it('shows the prerequisite destination active on desktop and mobile only for CONTENT_EDITOR', () => {
+    renderLayout(<AdminLayout>Nội dung tiên quyết</AdminLayout>, {
+      initialPath: '/content/topics/prerequisites',
+      user: { ...learner, roles: ['CONTENT_EDITOR'] },
+    })
+    for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
+      const link = within(screen.getByRole('navigation', { name })).getByRole('link', {
+        name: 'Tiên quyết chủ đề',
+      })
+      expect(link).toHaveAttribute('href', '/content/topics/prerequisites')
+      expect(link).toHaveAttribute('aria-current', 'page')
+    }
+  })
+  it.each(['ADMIN', 'LEARNER', 'TEACHER', 'MODERATOR', 'ACCOUNTANT'] as const)(
+    'hides prerequisites from %s alone',
+    (role) => {
+      renderLayout(<AdminLayout>Nội dung</AdminLayout>, { user: { ...learner, roles: [role] } })
+      expect(screen.queryByRole('link', { name: 'Tiên quyết chủ đề' })).not.toBeInTheDocument()
+    },
+  )
   it('shows moderator destinations on desktop and mobile, follows links and marks detail prefixes active', async () => {
     const event = userEvent.setup()
     renderLayout(<AdminLayout>Nội dung kiểm duyệt</AdminLayout>, {
@@ -305,9 +325,10 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(8)
+      expect(within(navigation).getAllByRole('link')).toHaveLength(9)
       for (const label of [
         'Nhập dữ liệu',
+        'Tiên quyết chủ đề',
         'Người dùng',
         'Bài chờ duyệt',
         'Báo cáo vi phạm',
@@ -334,17 +355,27 @@ describe('AdminLayout', () => {
   it.each([
     [
       ['CONTENT_EDITOR'],
-      ['Nhập dữ liệu', 'Tài nguyên tham khảo'],
+      ['Nhập dữ liệu', 'Tài nguyên tham khảo', 'Tiên quyết chủ đề'],
       ['Người dùng', ...financialLabels],
     ],
-    [['ADMIN'], ['Người dùng', ...financialLabels], ['Nhập dữ liệu', 'Tài nguyên tham khảo']],
+    [
+      ['ADMIN'],
+      ['Người dùng', ...financialLabels],
+      ['Nhập dữ liệu', 'Tài nguyên tham khảo', 'Tiên quyết chủ đề'],
+    ],
     [['MODERATOR'], ['Bài chờ duyệt', 'Báo cáo vi phạm'], ['Người dùng', ...financialLabels]],
     [['TEACHER'], [], ['Người dùng', ...financialLabels]],
     [['LEARNER'], [], ['Người dùng', ...financialLabels]],
     [['ACCOUNTANT'], [], ['Người dùng', ...financialLabels]],
     [
       ['CONTENT_EDITOR', 'ADMIN'],
-      ['Nhập dữ liệu', 'Người dùng', 'Tài nguyên tham khảo', ...financialLabels],
+      [
+        'Nhập dữ liệu',
+        'Người dùng',
+        'Tài nguyên tham khảo',
+        'Tiên quyết chủ đề',
+        ...financialLabels,
+      ],
       [],
     ],
   ] as const)('shows only the areas granted by exact roles %j', (roles, visible, hidden) => {

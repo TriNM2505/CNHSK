@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  GitBranch,
   CreditCard,
   Flag,
   Layers,
@@ -98,6 +99,14 @@ export const gameNavigationItem = {
 } as const
 
 export const adminNavigation: readonly NavigationItem[] = [
+  {
+    activePrefixes: ['/content/topics/prerequisites'],
+    icon: GitBranch,
+    label: 'Tiên quyết chủ đề',
+    mobileLabel: 'Tiên quyết',
+    role: 'CONTENT_EDITOR',
+    to: '/content/topics/prerequisites',
+  },
   {
     activePrefixes: ['/content/references'],
     icon: BookOpen,

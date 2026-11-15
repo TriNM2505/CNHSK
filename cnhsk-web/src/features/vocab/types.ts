@@ -1,7 +1,9 @@
 import type { HskLevel } from '@/shared/ui'
 import type { SessionView } from '@/features/practice'
 
-export type TopicStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED'
+export type TopicStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'LOCKED'
+
+export type LockedTopicRef = { id: number; name: string }
 
 export type TopicSummary = {
   bestTestPercent: number | null
@@ -9,6 +11,7 @@ export type TopicSummary = {
   hskLevel: HskLevel
   id: number
   learnedWords: number
+  lockedBy: LockedTopicRef[]
   name: string
   percent: number
   status: TopicStatus
@@ -26,7 +29,8 @@ export type TopicWord = {
   text: string
 }
 
-export type TopicTestBlockedReason = 'NOT_ENOUGH_LEARNED' | 'TOO_FEW_WORDS' | 'RETRY_TOO_SOON'
+export type TopicTestBlockedReason =
+  'NOT_ENOUGH_LEARNED' | 'TOO_FEW_WORDS' | 'RETRY_TOO_SOON' | 'TOPIC_LOCKED'
 
 export type TopicActions = {
   canPracticeListening: boolean

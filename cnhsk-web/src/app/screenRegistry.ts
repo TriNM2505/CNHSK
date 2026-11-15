@@ -20,6 +20,7 @@ import { screens as referenceScreens } from '@/features/references/screens'
 import { screens as quizScreens } from '@/features/quiz/screens'
 import { screens as reminderScreens } from '@/features/reminder/screens'
 import { screens as vocabScreens } from '@/features/vocab/screens'
+import { screens as topicAdminScreens } from '@/features/topic-admin/screens'
 
 export type ScreenId = `SCR-${string}`
 export type ScreenComponent = LazyExoticComponent<ComponentType>
@@ -52,6 +53,7 @@ export function createScreenRegistry(catalogs: readonly FeatureScreenCatalog[]):
 }
 
 export const screenRegistry = createScreenRegistry([
+  { feature: 'topic-admin', screens: topicAdminScreens },
   { feature: 'auth', screens: authScreens },
   { feature: 'community', screens: communityScreens },
   { feature: 'contests', screens: contestScreens },

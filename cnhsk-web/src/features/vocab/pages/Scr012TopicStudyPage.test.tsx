@@ -46,6 +46,7 @@ const topic: TopicDetail = {
   hskLevel: 9,
   id: 11,
   learnedWords: 6,
+  lockedBy: [],
   name: 'Gia đình 家庭',
   percent: 61,
   status: 'IN_PROGRESS',
@@ -199,6 +200,68 @@ describe('Scr012TopicStudyPage', () => {
   })
 
   afterEach(() => vi.restoreAllMocks())
+
+  it('shows TOPIC_LOCKED from a raced study POST with clickable details.lockedBy', async () => {
+    vi.mocked(startTopicStudySession).mockRejectedValue(
+      new ApiError({
+        status: 422,
+        errorCode: 'TOPIC_LOCKED',
+        message: 'Khoá',
+        details: { lockedBy: [{ id: 12, name: 'Chào hỏi' }] },
+      }),
+    )
+    renderPage()
+    expect(await screen.findByText('Đang khoá')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Chào hỏi' })).toHaveAttribute(
+      'href',
+      '/learn/topics/12',
+    )
+    expect(screen.queryByText('Bạn đã học hết từ mới của chủ đề này')).not.toBeInTheDocument()
+    expect(startTopicStudySession).toHaveBeenCalledTimes(1)
+  })
+
+  it('hides the start navigation on a locked topic without starting or claiming no new words', async () => {
+    vi.mocked(getTopic).mockResolvedValue({
+      ...topic,
+      status: 'LOCKED',
+      lockedBy: [{ id: 12, name: 'Chào hỏi' }],
+      actions: {
+        canStudy: false,
+        canPracticeRecognition: false,
+        canPracticeListening: false,
+        canTakeTest: false,
+        testBlockedReason: 'TOPIC_LOCKED',
+      },
+    })
+    renderPage()
+    expect(await screen.findByText('Đang khoá')).toBeVisible()
+    await waitFor(() => expect(findActiveSession).toHaveBeenCalled())
+    expect(
+      screen.queryByRole('navigation', { name: 'Các bước học chủ đề' }),
+    ).not.toBeInTheDocument()
+    expect(startTopicStudySession).not.toHaveBeenCalled()
+    expect(screen.queryByText('Bạn đã học hết từ mới của chủ đề này')).not.toBeInTheDocument()
+  })
+
+  it('resumes an existing study session despite the topic prerequisite lock', async () => {
+    vi.mocked(getTopic).mockResolvedValue({
+      ...topic,
+      status: 'LOCKED',
+      lockedBy: [{ id: 12, name: 'Chào hỏi' }],
+      actions: { ...topic.actions, canStudy: false },
+    })
+    vi.mocked(findActiveSession).mockResolvedValue({
+      sessionId: 81,
+      source: 'TOPIC_STUDY',
+      refId: 11,
+      status: 'IN_PROGRESS',
+    } as Awaited<ReturnType<typeof findActiveSession>>)
+    vi.mocked(getSession).mockResolvedValue(session())
+    renderPage()
+    expect(await screen.findByText('妈妈')).toBeVisible()
+    expect(screen.getByText('Đang khoá')).toBeVisible()
+    expect(startTopicStudySession).not.toHaveBeenCalled()
+  })
 
   it.each(['/learn/topics/abc/study', '/learn/topics/0/study', '/learn/topics/-1/study'])(
     'ID không hợp lệ hiện trạng thái không tìm thấy: %s',
@@ -681,6 +744,7 @@ describe('Scr012TopicStudyPage', () => {
         .mockResolvedValue({
           ...studyTopic,
           learnedWords: 10,
+          lockedBy: [],
           percent: 100,
           actions: { ...studyTopic.actions, canStudy: false },
         })
@@ -751,6 +815,7 @@ describe('Scr012TopicStudyPage', () => {
         vi.mocked(getTopic).mockResolvedValue({
           ...studyTopic,
           learnedWords: 10,
+          lockedBy: [],
           percent: 100,
           actions: { ...studyTopic.actions, canStudy: false },
         })
@@ -790,6 +855,7 @@ describe('Scr012TopicStudyPage', () => {
       vi.mocked(getTopic).mockResolvedValue({
         ...studyTopic,
         learnedWords: 10,
+        lockedBy: [],
         percent: 100,
         actions: { ...studyTopic.actions, canStudy: false },
       })

@@ -32,6 +32,7 @@ const topic = {
   code: 'original',
   status: 'NOT_STARTED' as const,
   learnedWords: 0,
+  lockedBy: [],
   percent: 0,
   bestTestPercent: null,
 }

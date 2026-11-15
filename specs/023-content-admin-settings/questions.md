@@ -179,3 +179,62 @@
   contract 018/020, năm test practice đọc YAML và ModuleBoundaryTest 9/9;
   full verify 6216 F0/E0/S0, JaCoCo LINE 97,044617% (15269/15734), không dùng ngoại lệ môi trường.
   DFS 2000 node/19945 cạnh: targeted 4,2836 ms, full 9,0914 ms; chỉ log, không assert timing.
+
+## 2026-11-15 · G0 giao diện tiên quyết và khoá chủ đề đã duyệt
+
+- Nhánh `spec/023-t11`, base `3716330e91aee70499ed5360129e503685b7ce9c` (đầu #207).
+  Phụ thuộc #207; không rebase/merge main vào nhánh. Leader xử lý thứ tự merge.
+- Leader duyệt 39 file: bỏ hai file Java khỏi đề xuất 41 file ban đầu.
+  SCR-067 dùng layout admin nên KHÔNG thêm SCREEN_NAMES; giữ nguyên
+  AssistantPromptBuilder.java và AssistantPromptBuilderTest.java. Gate BE chỉ chạy
+  AssistantPromptBuilderTest, xoá Env:DEBUG trước mỗi Maven command; không full verify.
+- Duyệt bổ sung file thứ 40: `cnhsk-web/src/features/library/pages/Scr028DeckListPage.test.tsx`.
+  Chỉ thêm `lockedBy: []` vào fixture topic dùng chung cho mock getTopics và promise
+  phân trang (typecheck báo tại dòng gọi mock/resolver); không đổi assertion/nghiệp vụ library.
+  Leader cũng duyệt trước các test/fixture/preview ngoài allowlist chỉ thiếu lockedBy hoặc
+  kiểu LOCKED tương ứng do contract mới; phiên này không cần thêm file nào khác.
+- SCR-067 gọi GET có hsk/q/page/size; hai bộ lọc/phân trang độc lập cho topic và ứng viên.
+  Giữ lựa chọn xuyên trang/tìm kiếm; tối đa 10, không trùng, không tự trỏ; [] để bỏ hết.
+  Cấp chọn trên UI dùng SUPPORTED_HSK_LEVELS, dữ liệu/types vẫn giữ HSK 1–9.
+- PUT gửi thứ tự đã chọn, chặn gửi lặp khi pending, dùng shared apiRequest để giữ CSRF/auth.
+  CYCLE hiện đường vòng khép kín theo details.path; tên ngoài trang được tra qua GET không lọc,
+  size=50 và đọc tiếp trang cần thiết; không thêm endpoint. Tra lỗi/ID mất hiện ID rõ ràng,
+  không bịa tên. NO_ROOT giữ draft; 404 đọc lại và đối chiếu ID trước lần lưu thủ công tiếp theo.
+  Mạng/5xx đọc lại trước khi cho gửi tiếp; không tự retry PUT. Warnings từ response 200
+  hiện riêng sau khi lưu. Giữ nguyên ghi chú phân biệt tiên quyết chủ đề (cổng 90%) và KID.
+- SCR-011 tách article/link tên chủ đề để link lockedBy không lồng link. SCR-011/012 hiện
+  biểu tượng, chữ Đang khoá, ngưỡng 90% và tên tiên quyết bấm được; giữ tiến độ cũ.
+  LOCKED ẩn điều hướng bắt đầu học/luyện/kiểm tra. Ba POST bị TOPIC_LOCKED dùng
+  details.lockedBy và chuyển trang hiện tại sang trạng thái khoá ngay. Vẫn khôi phục lượt
+  học/luyện/kiểm tra còn hiệu lực qua hook hiện tại; không tạo lượt mới khi đã biết LOCKED.
+- Route SCR-067 chỉ CONTENT_EDITOR, layout admin; menu dùng role đúng cơ chế AdminLayout.
+  ADMIN đơn lẻ không kế thừa quyền. App/shared và vocab 003 được leader thông báo người giữ.
+  Không sửa backend nghiệp vụ, YAML, schema, dependency, engine practice hoặc dữ liệu Neon.
+
+### Evidence gate và lịch sử sửa trong phạm vi
+
+- npm ci PASS. Typecheck đầu phát hiện fixture library thiếu lockedBy (đã dừng xin và được
+  duyệt file 40); các lỗi types mới trong allowlist được sửa, không nới required lockedBy.
+- Targeted đầu 256 test: F3 trong test route mới, do kỳ vọng mọi role đều có tiêu đề 403
+  giống nhau. Giữ hành vi hiện có: TEACHER/MODERATOR/ACCOUNTANT có thông báo khu vực
+  chưa xây dựng; test vẫn kiểm /403, không mở SCR-067 và không gọi API. Không sửa auth guard.
+- Targeted tiếp theo F2 trong test mới của study/practice do thông báo tạm bị thay DOM
+  khi trạng thái khoá chuyển lên trang cha. Sửa production để chỉ trang cha render lý do,
+  không tạo thông báo tạm; không nới assertion. Targeted cuối 256/256, 16 file PASS.
+- Full Vitest: 214 file, 2871/2871 PASS, không dùng ngoại lệ chập chờn. Log cục bộ:
+  `C:\KLTN_FALL2026\023-t11-fe-test.log`.
+- Lint đầu có lỗi test mới import fixture preview (quy tắc chỉ file preview được import).
+  Đổi sang fixture tự soạn ngay trong test, giữ assertion. Kiểm lại 19/19 test liên quan PASS.
+  Sau chỉnh giao diện nút lưu, SCR-067 14/14 PASS. Lint cuối: 0 lỗi, 1 warning cũ
+  react-refresh/only-export-components ở shared/ui/LevelBadge.tsx (file không đổi).
+- Build TypeScript/Vite cuối PASS. QA Chromium headless bằng dữ liệu tự soạn, chỉ local:
+  24 trạng thái preview (8 trạng thái × 320/375/640) và 3 phép đo route thật, tổng 27;
+  document.scrollWidth không vượt clientWidth, không page error. Kiểm chọn/lưu với CSRF,
+  vòng bằng tên, cảnh báo cấp, khoá list/detail, POST đua TOPIC_LOCKED và ADMIN bị chặn.
+  Ảnh và số đo: `C:\KLTN_FALL2026\qa-023-t11\`; không commit artifact QA/file nháp.
+- Maven đầu bị sandbox chặn dependency resolution trước khi chạy test; chạy lại có quyền
+  truy cập phù hợp: Java 17, AssistantPromptBuilderTest 19 F0/E0/S0, BUILD SUCCESS.
+  Log cuối: `C:\KLTN_FALL2026\023-t11-assistant-test-final.log`.
+- Self-check: PASS phạm vi 40 file, contract/types, quyền route/menu, không thêm thư viện,
+  không sửa SQL/BE nghiệp vụ/YAML, không commit secret/PII/dữ liệu đề thi thật.
+  Hai file Java, package.json/package-lock.json và shadow-plans giữ ngoài commit.

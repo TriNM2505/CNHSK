@@ -8,6 +8,7 @@ const topics: TopicSummary[] = [
     hskLevel: 1,
     id: 1,
     learnedWords: 8,
+    lockedBy: [],
     name: 'Gia đình 家庭',
     percent: 80,
     status: 'IN_PROGRESS',
@@ -19,6 +20,7 @@ const topics: TopicSummary[] = [
     hskLevel: 1,
     id: 2,
     learnedWords: 12,
+    lockedBy: [],
     name: 'Chào hỏi 问候',
     percent: 100,
     status: 'COMPLETED',
@@ -30,6 +32,7 @@ const topics: TopicSummary[] = [
     hskLevel: 2,
     id: 3,
     learnedWords: 0,
+    lockedBy: [],
     name: 'Trường học 学校',
     percent: 0,
     status: 'NOT_STARTED',
@@ -62,5 +65,18 @@ export const topicListPreviews = {
   },
   filteredEmpty: { ...base, search: 'không có', topics: [] },
   loading: { ...base, state: 'loading', topics: [] },
+  locked: {
+    ...base,
+    topics: [
+      {
+        ...topics[0]!,
+        status: 'LOCKED',
+        lockedBy: [
+          { id: 2, name: 'Chào hỏi và giao tiếp trong cuộc sống hằng ngày 问候' },
+          { id: 3, name: 'Trường học 学校' },
+        ],
+      },
+    ],
+  },
   ready: base,
 } satisfies Record<string, TopicListViewProps>

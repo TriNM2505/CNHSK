@@ -49,6 +49,7 @@ const topic: TopicDetail = {
   hskLevel: 1,
   id: 11,
   learnedWords: 8,
+  lockedBy: [],
   name: 'Gia đình',
   percent: 80,
   status: 'IN_PROGRESS',
@@ -214,6 +215,47 @@ describe('TopicTestController', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.restoreAllMocks()
+  })
+
+  it('shows TOPIC_LOCKED from a test start using details.lockedBy and hides the start button', async () => {
+    vi.mocked(startTopicTest).mockRejectedValue(
+      new ApiError({
+        status: 422,
+        errorCode: 'TOPIC_LOCKED',
+        message: 'Khoá',
+        details: { lockedBy: [{ id: 12, name: 'Chào hỏi' }] },
+      }),
+    )
+    renderPage()
+    await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu kiểm tra' }))
+    expect(await screen.findByText('Đang khoá')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Chào hỏi' })).toHaveAttribute(
+      'href',
+      '/learn/topics/12',
+    )
+    expect(startTopicTest).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('button', { name: 'Bắt đầu kiểm tra' })).not.toBeInTheDocument()
+  })
+
+  it('resumes an active test despite a new prerequisite lock', async () => {
+    vi.mocked(getTopic).mockResolvedValue({
+      ...topic,
+      status: 'LOCKED',
+      lockedBy: [{ id: 12, name: 'Chào hỏi' }],
+      actions: {
+        canStudy: false,
+        canPracticeRecognition: false,
+        canPracticeListening: false,
+        canTakeTest: false,
+      },
+    })
+    vi.mocked(findActiveSession).mockResolvedValue({ sessionId: 91 } as Awaited<
+      ReturnType<typeof findActiveSession>
+    >)
+    vi.mocked(getSession).mockResolvedValue(testSession())
+    renderPage()
+    expect(await screen.findByText('Câu 1/4')).toBeVisible()
+    expect(startTopicTest).not.toHaveBeenCalled()
   })
 
   it('lưu nháp ngay khi chọn, đánh dấu câu đã làm bằng chữ, đi lại được giữa các câu', async () => {

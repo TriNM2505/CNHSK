@@ -17,9 +17,10 @@ import {
   parseTopicStep,
   practiceErrorMessage,
   topicStepPath,
+  topicLockedBy,
   type TopicStep,
 } from '../topicStudyFlow'
-import type { TopicDetail } from '../types'
+import type { LockedTopicRef, TopicDetail } from '../types'
 import type { StartTopicStudyResult } from '../types'
 import { TopicPracticeController } from './TopicPracticeController'
 import { TopicTestController } from './TopicTestController'
@@ -40,12 +41,14 @@ function parsePositiveId(value: string | undefined) {
 }
 
 type StudyControllerProps = {
+  onTopicLocked: (lockedBy: LockedTopicRef[]) => void
   onResumeAvailabilityChange: (available: boolean) => void
   onTopicFinished: () => void
   topic: TopicDetail
 }
 
 function TopicStudyController({
+  onTopicLocked,
   onResumeAvailabilityChange,
   onTopicFinished,
   topic,
@@ -60,6 +63,7 @@ function TopicStudyController({
 
   const startSession = useCallback(async () => {
     if (!topic.actions.canStudy) {
+      if (topic.status === 'LOCKED') return null
       setNoNewWords(true)
       return null
     }
@@ -70,13 +74,18 @@ function TopicStudyController({
     }
     setNoNewWords(false)
     return response
-  }, [topic.actions.canStudy, topic.id])
+  }, [topic.actions.canStudy, topic.id, topic.status])
 
   const practice = usePracticeSession({
     refId: topic.id,
     source: 'TOPIC_STUDY',
     start: startSession,
   })
+
+  useEffect(() => {
+    const refs = topicLockedBy(practice.error)
+    if (refs !== undefined) onTopicLocked(refs)
+  }, [practice.error, onTopicLocked])
 
   useEffect(() => {
     onResumeAvailabilityChange(practice.session?.status === 'IN_PROGRESS')
@@ -98,13 +107,14 @@ function TopicStudyController({
       practice.state !== 'idle' ||
       practice.error ||
       noNewWords ||
+      topic.status === 'LOCKED' ||
       autoStartAttemptedRef.current
     ) {
       return
     }
     autoStartAttemptedRef.current = true
     void practice.start()
-  }, [noNewWords, practice])
+  }, [noNewWords, practice, topic.status])
 
   useEffect(() => {
     if (!currentItem) return
@@ -223,6 +233,15 @@ function TopicStudyController({
               ? 'ready'
               : 'loading'
 
+  const lockedBy = topicLockedBy(practice.error)
+  if (lockedBy !== undefined) return null
+  if (
+    topic.status === 'LOCKED' &&
+    practice.state !== 'loading' &&
+    practice.session?.status !== 'IN_PROGRESS'
+  )
+    return null
+
   return (
     <StudyStepView
       current={currentIndex}
@@ -263,7 +282,25 @@ function TopicStudyPageContent({
 }) {
   const topicQuery = useApiQuery((signal) => getTopic(topicId, signal), [topicId])
   const [canResumeStudy, setCanResumeStudy] = useState(false)
-  const topic = topicQuery.data
+  const [errorLockedBy, setErrorLockedBy] = useState<LockedTopicRef[]>()
+  const onTopicLocked = useCallback((refs: LockedTopicRef[]) => setErrorLockedBy(refs), [])
+  useEffect(() => setErrorLockedBy(undefined), [topicQuery.data])
+  const topic: TopicDetail | undefined =
+    topicQuery.data && errorLockedBy !== undefined
+      ? {
+          ...topicQuery.data,
+          status: 'LOCKED',
+          lockedBy: errorLockedBy,
+          actions: {
+            ...topicQuery.data.actions,
+            canStudy: false,
+            canPracticeRecognition: false,
+            canPracticeListening: false,
+            canTakeTest: false,
+            testBlockedReason: 'TOPIC_LOCKED',
+          },
+        }
+      : topicQuery.data
   const stepAllowed = Boolean(topic && !getTopicStepBlockedReason(topic, activeStep))
   // Học/nộp xong thì chủ đề được tải lại và bước có thể bị khoá (hết từ mới, chờ thi lại).
   // Giữ panel của bước đang mở để người học vẫn thấy kết quả cho tới khi rời bước.
@@ -272,7 +309,7 @@ function TopicStudyPageContent({
     if (stepAllowed) setStickyStep(activeStep)
     else setStickyStep((current) => (current === activeStep ? current : undefined))
   }, [activeStep, stepAllowed])
-  const showPanel = stepAllowed || stickyStep === activeStep
+  const showPanel = stepAllowed || stickyStep === activeStep || topic?.status === 'LOCKED'
   const state = topic
     ? 'ready'
     : isTopicNotFound(topicQuery.error)
@@ -290,16 +327,21 @@ function TopicStudyPageContent({
       state={state}
       stepPanel={
         topic && showPanel && activeStep === 'recognition' ? (
-          <TopicPracticeController mode="RECOGNITION" topic={topic} />
+          <TopicPracticeController mode="RECOGNITION" onTopicLocked={onTopicLocked} topic={topic} />
         ) : topic && showPanel && activeStep === 'listening' ? (
-          <TopicPracticeController mode="LISTENING" topic={topic} />
+          <TopicPracticeController mode="LISTENING" onTopicLocked={onTopicLocked} topic={topic} />
         ) : topic && showPanel && activeStep === 'test' ? (
-          <TopicTestController onTopicFinished={topicQuery.reload} topic={topic} />
+          <TopicTestController
+            onTopicFinished={topicQuery.reload}
+            onTopicLocked={onTopicLocked}
+            topic={topic}
+          />
         ) : undefined
       }
       studyPanel={
         topic && activeStep === 'study' ? (
           <TopicStudyController
+            onTopicLocked={onTopicLocked}
             onResumeAvailabilityChange={setCanResumeStudy}
             onTopicFinished={topicQuery.reload}
             topic={topic}

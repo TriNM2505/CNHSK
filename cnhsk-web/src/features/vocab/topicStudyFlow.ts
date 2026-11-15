@@ -1,7 +1,27 @@
 import type { ApiError } from '@/shared/api'
 
 import { formatTopicDateTime } from './formatters'
-import type { TopicDetail } from './types'
+import type { LockedTopicRef, TopicDetail } from './types'
+
+export function topicLockedBy(error: ApiError | null): LockedTopicRef[] | undefined {
+  if (error?.status !== 422 || error.errorCode !== 'TOPIC_LOCKED') return undefined
+  const details = error.details
+  if (
+    !details ||
+    typeof details !== 'object' ||
+    !('lockedBy' in details) ||
+    !Array.isArray(details.lockedBy)
+  )
+    return []
+  return details.lockedBy.filter(
+    (value): value is LockedTopicRef =>
+      value !== null &&
+      typeof value === 'object' &&
+      Number.isSafeInteger(value.id) &&
+      value.id > 0 &&
+      typeof value.name === 'string',
+  )
+}
 
 export type TopicStep = 'study' | 'recognition' | 'listening' | 'test'
 
@@ -26,6 +46,8 @@ export function isTopicNotFound(error: ApiError | undefined) {
 }
 
 export function getTopicStepBlockedReason(topic: TopicDetail, step: TopicStep) {
+  if (topic.status === 'LOCKED')
+    return `Cần đạt 90% bài kiểm tra: ${topic.lockedBy.map(({ name }) => name).join(', ')}`
   if (step === 'study')
     return topic.actions.canStudy ? undefined : 'Bạn đã học hết từ mới của chủ đề này.'
   if (step === 'recognition') {

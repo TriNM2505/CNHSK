@@ -6,8 +6,8 @@ import { restoredFinishResult, usePracticeSession } from '@/features/practice'
 
 import { startTopicPracticeSession } from '../api/topics'
 import { TopicPracticeStepView } from '../components/TopicPracticeStepView'
-import { practiceErrorMessage, topicStepPath } from '../topicStudyFlow'
-import type { TopicDetail, TopicPracticeMode } from '../types'
+import { practiceErrorMessage, topicStepPath, topicLockedBy } from '../topicStudyFlow'
+import type { LockedTopicRef, TopicDetail, TopicPracticeMode } from '../types'
 
 const DUPLICATE_ERRORS = new Set(['ANSWER_ALREADY_SUBMITTED', 'SESSION_ALREADY_SUBMITTED'])
 const RESTART_ERRORS = new Set(['SESSION_EXPIRED', 'SESSION_NOT_FOUND', 'ATTEMPT_NOT_OWNED'])
@@ -37,15 +37,27 @@ function unavailableMessage(errorCode: string) {
 }
 
 type TopicPracticeControllerProps = {
+  onTopicLocked: (lockedBy: LockedTopicRef[]) => void
   mode: TopicPracticeMode
   topic: TopicDetail
 }
 
-export function TopicPracticeController({ mode, topic }: TopicPracticeControllerProps) {
-  return <TopicPracticeSession key={`${topic.id}:${mode}`} mode={mode} topic={topic} />
+export function TopicPracticeController({
+  mode,
+  topic,
+  onTopicLocked,
+}: TopicPracticeControllerProps) {
+  return (
+    <TopicPracticeSession
+      key={`${topic.id}:${mode}`}
+      mode={mode}
+      topic={topic}
+      onTopicLocked={onTopicLocked}
+    />
+  )
 }
 
-function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
+function TopicPracticeSession({ mode, topic, onTopicLocked }: TopicPracticeControllerProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const mountedRef = useRef(true)
@@ -67,6 +79,7 @@ function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
   }, [])
 
   const startSession = useCallback(async () => {
+    if (topic.status === 'LOCKED') return null
     const focusLexemeIds = initialFocusIdsRef.current
     const created = await startTopicPracticeSession(topic.id, {
       ...(focusLexemeIds ? { focusLexemeIds } : {}),
@@ -77,7 +90,7 @@ function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
       navigate(location.pathname, { replace: true, state: null })
     }
     return created
-  }, [location.pathname, mode, navigate, topic.id])
+  }, [location.pathname, mode, navigate, topic.id, topic.status])
 
   const practice = usePracticeSession({
     refId: topic.id,
@@ -85,6 +98,10 @@ function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
     start: startSession,
   })
   const restoredMode = modeFromSession(practice.session)
+  useEffect(() => {
+    const refs = topicLockedBy(practice.error)
+    if (refs !== undefined) onTopicLocked(refs)
+  }, [practice.error, onTopicLocked])
   const mismatch = Boolean(restoredMode && restoredMode !== mode)
   const focusedRecognition = Boolean(
     initialFocusIdsRef.current &&
@@ -133,12 +150,13 @@ function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
       (practice.state !== 'idle' && !focusedRecognition) ||
       practice.error ||
       practice.pending !== null ||
-      autoStartAttemptedRef.current
+      autoStartAttemptedRef.current ||
+      topic.status === 'LOCKED'
     )
       return
     autoStartAttemptedRef.current = true
     void practice.start()
-  }, [focusedRecognition, practice])
+  }, [focusedRecognition, practice, topic.status])
 
   useEffect(() => {
     shownAtRef.current = Date.now()
@@ -228,6 +246,15 @@ function TopicPracticeSession({ mode, topic }: TopicPracticeControllerProps) {
 
   const restored = restoredFinishResult(practice.session)
   const summaryResult = practice.finishResult ?? (restored ? { ...restored, extra: {} } : undefined)
+
+  const lockedBy = topicLockedBy(error)
+  if (lockedBy !== undefined) return null
+  if (
+    topic.status === 'LOCKED' &&
+    practice.state !== 'loading' &&
+    (practice.session?.status !== 'IN_PROGRESS' || mismatch || focusedRecognition)
+  )
+    return null
 
   return (
     <TopicPracticeStepView

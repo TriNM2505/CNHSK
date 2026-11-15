@@ -15,8 +15,8 @@ import {
   type TestDraft,
   toAnswerRequest,
 } from '../topicTestFlow'
-import { practiceErrorMessage, topicStepPath } from '../topicStudyFlow'
-import type { TopicDetail } from '../types'
+import { practiceErrorMessage, topicStepPath, topicLockedBy } from '../topicStudyFlow'
+import type { LockedTopicRef, TopicDetail } from '../types'
 
 const DUPLICATE_ERRORS = new Set(['ANSWER_ALREADY_SUBMITTED', 'SESSION_ALREADY_SUBMITTED'])
 const MAX_DURATION_MS = 3_600_000
@@ -26,19 +26,28 @@ function durationSince(shownAt: number | undefined) {
 }
 
 export function TopicTestController({
+  onTopicLocked,
   onTopicFinished,
   topic,
 }: {
+  onTopicLocked: (lockedBy: LockedTopicRef[]) => void
   onTopicFinished: () => void
   topic: TopicDetail
 }) {
   const navigate = useNavigate()
-  const startSession = useCallback(() => startTopicTest(topic.id), [topic.id])
+  const startSession = useCallback(
+    () => (topic.status === 'LOCKED' ? Promise.resolve(null) : startTopicTest(topic.id)),
+    [topic.id, topic.status],
+  )
   const practice = usePracticeSession({
     refId: topic.id,
     source: 'TOPIC_TEST',
     start: startSession,
   })
+  useEffect(() => {
+    const refs = topicLockedBy(practice.error)
+    if (refs !== undefined) onTopicLocked(refs)
+  }, [practice.error, onTopicLocked])
   const practiceRef = useRef(practice)
   practiceRef.current = practice
 
@@ -255,6 +264,15 @@ export function TopicTestController({
   })()
 
   const activeDraft = activeNo === undefined ? undefined : drafts[activeNo]
+
+  const lockedBy = topicLockedBy(error)
+  if (lockedBy !== undefined) return null
+  if (
+    topic.status === 'LOCKED' &&
+    practice.state !== 'loading' &&
+    practice.session?.status !== 'IN_PROGRESS'
+  )
+    return null
 
   return (
     <TopicTestStepView

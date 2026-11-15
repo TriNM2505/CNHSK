@@ -37,7 +37,7 @@ Sửa code module khác (013/014/015/019, 003) → mỗi chỗ một task nhỏ,
 |---|---|---|---|---|
 | T-09 | FE SCR-078 (bảng theo nhóm, sửa có lý do, về mặc định, lịch sử, token đã dùng) | `web/features/admin-settings/**`, `routeAccess.ts`, `screenRegistry.ts`, menu quản trị + test | FR-008 · AT-20 | ⬜ |
 | T-10 | FE SCR-065/066 (bảng đề, trình sửa phần + chọn câu từ `/api/admin/questions`, kéo thả, lỗi công bố, 409) | `web/features/exam-admin/**`, `routeAccess.ts`, `screenRegistry.ts`, menu + test | FR-019 · AT-20 | ⬜ |
-| T-11 | FE SCR-067 + hiển thị khoá ở SCR-011/012 (003) | `web/features/topic-admin/**`, `web/features/vocab/**` (thẻ chủ đề), `routeAccess.ts`, `screenRegistry.ts` + test | FR-026 · AT-20 | ⬜ |
+| T-11 | FE SCR-067 + hiển thị khoá ở SCR-011/012 (003) | `web/features/topic-admin/**`, `web/features/vocab/**` (thẻ chủ đề), `routeAccess.ts`, `screenRegistry.ts` + test | FR-026 · AT-20 | ✅ G2 base `3716330`, phụ thuộc #207: targeted 256/256; full Vitest 2871/2871 (214 file); lint 0 lỗi/1 warning cũ; build PASS; QA 27 phép đo không tràn ngang 320/375/640; AssistantPromptBuilderTest 19/19; Draft chờ leader review/merge |
 | T-12 | Test hợp đồng `/v3/api-docs` so `openapi-content-admin.yaml` (hai chiều path + method + status) | `t/contract/ContentAdminContractTest.java` | §13 · AT-21 | ⬜ |
 
 ## Thứ tự

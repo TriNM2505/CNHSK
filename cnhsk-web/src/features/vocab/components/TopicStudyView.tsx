@@ -19,6 +19,7 @@ import {
 
 import { getTopicStepBlockedReason, topicStepPath, type TopicStep } from '../topicStudyFlow'
 import type { TopicDetail } from '../types'
+import { TopicLockNotice } from './TopicLockNotice'
 
 type LoadError = { message: string; requestId?: string }
 
@@ -216,70 +217,75 @@ export function TopicStudyView({
               Đã học {topic.learnedWords}/{topic.totalWords} từ
             </p>
             <Progress className="mt-2" label={`${topic.percent}%`} value={topic.percent} />
+            {topic.status === 'LOCKED' ? <TopicLockNotice lockedBy={topic.lockedBy} /> : null}
           </header>
 
-          <nav aria-label="Các bước học chủ đề" className="mt-6">
-            <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              {STEPS.map((step, index) => {
-                const blockedReason =
-                  step === 'study' && canResumeStudy
-                    ? undefined
-                    : getTopicStepBlockedReason(topic, step)
-                const active = step === activeStep
-                const classes = cn(
-                  'flex min-h-touch items-start gap-2 rounded-sm border px-3 py-2 text-label no-underline',
-                  active
-                    ? 'border-brand-600 bg-brand-50 text-brand-700'
-                    : 'border-line bg-surface text-ink-secondary',
-                  blockedReason && 'cursor-not-allowed text-ink-muted',
-                )
-                const content = (
-                  <>
-                    <span>{index + 1}.</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block">{STEP_LABELS[step]}</span>
-                      {blockedReason ? (
-                        <span className="mt-1 block text-caption font-normal">{blockedReason}</span>
-                      ) : null}
-                    </span>
-                    {blockedReason ? (
-                      <LockKeyhole aria-hidden="true" className="size-4 shrink-0" />
-                    ) : null}
-                  </>
-                )
-
-                return (
-                  <li key={step}>
-                    {blockedReason ? (
-                      <span
-                        aria-current={active ? 'step' : undefined}
-                        aria-disabled="true"
-                        className={classes}
-                        title={blockedReason}
-                      >
-                        {content}
+          {topic.status !== 'LOCKED' ? (
+            <nav aria-label="Các bước học chủ đề" className="mt-6">
+              <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {STEPS.map((step, index) => {
+                  const blockedReason =
+                    step === 'study' && canResumeStudy
+                      ? undefined
+                      : getTopicStepBlockedReason(topic, step)
+                  const active = step === activeStep
+                  const classes = cn(
+                    'flex min-h-touch items-start gap-2 rounded-sm border px-3 py-2 text-label no-underline',
+                    active
+                      ? 'border-brand-600 bg-brand-50 text-brand-700'
+                      : 'border-line bg-surface text-ink-secondary',
+                    blockedReason && 'cursor-not-allowed text-ink-muted',
+                  )
+                  const content = (
+                    <>
+                      <span>{index + 1}.</span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block">{STEP_LABELS[step]}</span>
+                        {blockedReason ? (
+                          <span className="mt-1 block text-caption font-normal">
+                            {blockedReason}
+                          </span>
+                        ) : null}
                       </span>
-                    ) : (
-                      <Link
-                        aria-current={active ? 'step' : undefined}
-                        className={classes}
-                        to={topicStepPath(topic.id, step)}
-                      >
-                        {content}
-                      </Link>
-                    )}
-                  </li>
-                )
-              })}
-            </ol>
-          </nav>
+                      {blockedReason ? (
+                        <LockKeyhole aria-hidden="true" className="size-4 shrink-0" />
+                      ) : null}
+                    </>
+                  )
+
+                  return (
+                    <li key={step}>
+                      {blockedReason ? (
+                        <span
+                          aria-current={active ? 'step' : undefined}
+                          aria-disabled="true"
+                          className={classes}
+                          title={blockedReason}
+                        >
+                          {content}
+                        </span>
+                      ) : (
+                        <Link
+                          aria-current={active ? 'step' : undefined}
+                          className={classes}
+                          to={topicStepPath(topic.id, step)}
+                        >
+                          {content}
+                        </Link>
+                      )}
+                    </li>
+                  )
+                })}
+              </ol>
+            </nav>
+          ) : null}
 
           <section aria-labelledby="topic-step-title" className="mt-6">
             <h2 className="mb-4 text-h2 text-ink" id="topic-step-title">
               {STEP_LABELS[activeStep]}
             </h2>
             {(activeStep === 'study' ? studyPanel : stepPanel) ??
-              (getTopicStepBlockedReason(topic, activeStep) ? (
+              (topic.status !== 'LOCKED' && getTopicStepBlockedReason(topic, activeStep) ? (
                 <EmptyState
                   description={getTopicStepBlockedReason(topic, activeStep)}
                   icon={<LockKeyhole aria-hidden="true" className="size-5" />}

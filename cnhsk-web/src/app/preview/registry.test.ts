@@ -3,6 +3,20 @@ import { describe, expect, it } from 'vitest'
 import { previewRegistry } from '@/app/preview/registry'
 
 describe('preview registry', () => {
+  it('includes SCR-067 failure/warning states and both learner prerequisite locks', () => {
+    expect(previewRegistry.map(({ id }) => id)).toEqual(
+      expect.arrayContaining([
+        'scr-067-ready',
+        'scr-067-cycle',
+        'scr-067-warning',
+        'scr-067-loading',
+        'scr-067-empty',
+        'scr-067-error',
+        'scr-011-locked',
+        'scr-012-topic-locked',
+      ]),
+    )
+  })
   it('does not contain duplicate ids', () => {
     const ids = previewRegistry.map(({ id }) => id)
 
