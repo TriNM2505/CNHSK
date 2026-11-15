@@ -191,3 +191,14 @@ Targeted 156 test. Full verify 6767 test, 0 failure/error/skip, BUILD SUCCESS. J
 Điều kiện refresh 401 TOKEN_EXPIRED hoặc SESSION_REVOKED, tên XSRF-TOKEN và X-XSRF-TOKEN, cùng ngoại lệ CSRF cho refresh được đối chiếu với cnhsk-web/src/shared/api/client.ts, src/main/java/com/cnhsk/shared/config/SecurityConfig.java và src/main/java/com/cnhsk/shared/security/JwtAuthenticationFilter.java.
 
 Gate T-09: npm ci 326 package; Vitest 33/33; lint 0 lỗi; build và typecheck PASS; Chrome 9 kiểm tra ở 320/375/640 px với API fixture local, 0 lỗi runtime; bundle gzip 74.317 byte, dưới 250 KB. Các lệnh FE chạy trên bản sao khớp từng byte trên ổ D.
+
+## T-11 — SCR-036 GameShell
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T11-01 | ANSWERED | T-11 giao GameShell và adapter round. Route thật giữ trạng thái chờ, spec 008 gắn component game. Game giả chỉ dùng trong test. |
+| Q-T11-02 | ANSWERED | Nếu mất phản hồi khi gửi đáp án, đọc GET /rounds/{id} để đối chiếu answered trước khi gửi lại. ROUND_ALREADY_SUBMITTED khi chưa nhận được RoundResult hiển thị “Ván đã kết thúc”; ROUND_EXPIRED hiển thị hết hạn; cả hai có đường về Hub. ROUND_TIME_OVER khoá nhập rồi yêu cầu finish. |
+
+Đồng hồ lấy offset serverTime − Date.now() khi nhận RoundStart hoặc RoundView. Đếm ngược tới startedAt + 3 giây và dùng deadline của server cho thời gian còn lại. Hàng đợi giữ thứ tự, một đáp án đang gửi mỗi lúc; hết giờ và hết câu dùng chung một lần tự finish. Nếu mất phản hồi finish, thao tác kiểm tra lại của người chơi đọc trạng thái ván trước khi gửi finish cho ván còn IN_PROGRESS.
+
+Gate T-11: npm ci 326 package; Vitest 45/45; lint, typecheck và build PASS; Chrome QA 320/375/640 px với fixture local PASS, 0 lỗi runtime; gzip 74.440 byte. Gate FE chạy trên bản sao khớp từng byte trên ổ D.
