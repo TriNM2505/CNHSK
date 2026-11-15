@@ -22,7 +22,7 @@
 | T-04 | Entity `Contest`, `ContestQueryService`, `PublicContestController` (danh sách, chi tiết, trạng thái lịch theo `Clock`) | `…/community/contest/**` + test | FR-009, FR-010 · AT-14 | 🔄 — Kiểm chứng xong, chờ leader review; 11 file, base c2c3bd5, phụ thuộc #202; full 6.074/F0/E0/S0, LINE 97,12% |
 | T-05 | `ContestService` vào thi/nộp/sự kiện chuyển tab/kết quả; mã lỗi §5 | `…/community/contest/**`, `ErrorCode.java`, `GlobalExceptionHandlerTest` + test | FR-011…FR-014 · AT-05, AT-08…AT-10, AT-15 | 🔄 — Kiểm chứng xong, chờ leader review; 15 file, base 6b42620, phụ thuộc #204; full 6.139/F0/E0/S0, LINE 97,12% |
 | T-06 | `ContestAdminService` + controller: tạo/sửa/công bố/huỷ, thí sinh + loại/giữ, công bố xếp hạng; `SecurityConfig` `/api/admin/contests/**` → `CONTENT_EDITOR` | `…/community/contest/**`, `SecurityConfig.java` + test | FR-017…FR-023 · AT-12, AT-16, AT-17 | 🔄 — Kiểm chứng xong, chờ leader review; 18 file, base 9ba14a6; guard/concurrency 19, liên quan 514, full 6.490/F0/E0/S0; LINE 97,15% |
-| T-07 | Người đạt giải: `AuthApi.contactEmails(Set<Long>)` (**module 001 — báo leader trước**), endpoint winners + `audit_logs` | `…/auth/api/AuthApi.java`, `…/auth/service/AuthApiService.java`, `…/community/contest/**` + test | FR-024 · AT-18, AT-19 | ⬜ |
+| T-07 | Người đạt giải: `AuthApi.contactEmails(Set<Long>)` (**module 001 — báo leader trước**), endpoint winners + `audit_logs` | `…/auth/api/AuthApi.java`, `…/auth/service/AuthApiService.java`, `…/community/contest/**` + test | FR-024 · AT-18, AT-19 | 🔄 — Chờ review có điều kiện; 10 file, base 24264bf, phụ thuộc #209; targeted 76/F0/E0/S0; full 6.521/F1/E0/S0 FAILED (đúng ngoại lệ NFR-P04 p95), LINE 97,16%; chi tiết questions.md |
 
 ## Đợt 3 · Frontend + hợp đồng
 

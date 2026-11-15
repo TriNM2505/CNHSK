@@ -10,6 +10,7 @@ import com.cnhsk.community.contest.web.ContestViews.ContestStatus;
 import com.cnhsk.community.contest.web.ContestViews.ContestWrite;
 import com.cnhsk.community.contest.web.ContestViews.Participant;
 import com.cnhsk.community.contest.web.ContestViews.ParticipantDecision;
+import com.cnhsk.community.contest.web.ContestViews.Winner;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import com.cnhsk.shared.exception.GlobalExceptionHandler;
@@ -25,6 +26,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -167,6 +169,18 @@ public class ContestAdminController {
             @ApiResponse(responseCode = "409", description = "Lỗi yêu cầu", content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
     public AdminContest publishRanking(@PathVariable @Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1")) String id) {
         return service.publishRanking(id(id));
+    }
+
+    @GetMapping("/{id}/winners")
+    @Operation(operationId = "adminListWinners", tags = "contest-admin")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(array = @ArraySchema(schema = @Schema(implementation = Winner.class)))),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực", content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "403", description = "Không có quyền", content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy cuộc thi", content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "409", description = "Chưa công bố xếp hạng", content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+    public ResponseEntity<List<Winner>> winners(@PathVariable @Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1")) String id) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.winners(id(id)));
     }
 
     @Hidden

@@ -139,4 +139,10 @@ public final class ContestViews {
 
     @Schema(name = "ParticipantDecision", requiredProperties = {"excluded", "note"})
     public record ParticipantDecision(@NotNull Boolean excluded, @NotBlank @Size(max = 500) String note) { }
+
+    @Schema(name = "Winner", requiredProperties = {"rank", "userId", "displayName", "email", "score", "durationMs", "prize"})
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public record Winner(long rank, long userId, @Schema(types = {"string", "null"}) String displayName,
+            @Schema(format = "email") String email, long score,
+            @Schema(types = {"integer", "null"}) Integer durationMs, String prize) { }
 }

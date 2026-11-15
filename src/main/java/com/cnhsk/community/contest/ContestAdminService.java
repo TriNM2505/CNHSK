@@ -4,12 +4,15 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import com.cnhsk.auth.api.AuthApi;
+import com.cnhsk.auth.api.PublicProfile;
 import com.cnhsk.auth.api.RoleCode;
 import com.cnhsk.community.contest.Contest.Prize;
 import com.cnhsk.community.contest.Contest.ScheduleState;
@@ -19,9 +22,11 @@ import com.cnhsk.community.contest.web.ContestViews.ContestStatus;
 import com.cnhsk.community.contest.web.ContestViews.ContestWrite;
 import com.cnhsk.community.contest.web.ContestViews.Participant;
 import com.cnhsk.community.contest.web.ContestViews.ParticipantDecision;
+import com.cnhsk.community.contest.web.ContestViews.Winner;
 import com.cnhsk.learning.api.ContestAttemptApi;
 import com.cnhsk.learning.api.ContestAttemptApi.ContestParticipant;
 import com.cnhsk.learning.api.ContestAttemptApi.ExamSummary;
+import com.cnhsk.learning.api.ContestAttemptApi.RankingRow;
 import com.cnhsk.shared.audit.AuditService;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
@@ -165,6 +170,38 @@ public class ContestAdminService {
         audit.recordDetail(actor, "CONTEST_RANKING_PUBLISH", "CONTEST", id,
                 Map.of("rankingPublishedAt", now.toString()));
         return view(contest, now);
+    }
+
+    @Transactional(isolation = Isolation.REPEATABLE_READ)
+    public List<Winner> winners(long id) {
+        long actor = editorId();
+        Contest contest = contests.find(id).orElseThrow(ContestAdminService::notFound);
+        if (!"PUBLISHED".equals(contest.getStatus()) || contest.getRankingPublishedAt() == null) throw locked();
+        List<Prize> prizes = contest.getPrizes().stream().filter(prize -> prize.fromRank() <= prize.toRank()).toList();
+        int lastRank = prizes.stream().mapToInt(Prize::toRank).max().orElse(0);
+        Map<RankingRow, String> awarded = new LinkedHashMap<>();
+        for (int page = 0; (long) page * 50 < lastRank; page++) {
+            var ranking = attempts.ranking(id, page, 50);
+            for (RankingRow row : ranking.items()) {
+                if (row.rank() > lastRank) break;
+                prizes.stream().filter(prize -> row.rank() >= prize.fromRank() && row.rank() <= prize.toRank())
+                        .findFirst().ifPresent(prize -> awarded.put(row, prize.description()));
+            }
+            if (ranking.items().isEmpty() || ((long) page + 1) * 50 >= ranking.total()) break;
+        }
+        var ids = awarded.keySet().stream().map(RankingRow::userId).collect(Collectors.toSet());
+        var profiles = ids.isEmpty() ? Map.<Long, PublicProfile>of() : auth.publicProfiles(ids);
+        var emails = ids.isEmpty() ? Map.<Long, String>of() : auth.contactEmails(ids);
+        List<Winner> result = new ArrayList<>();
+        awarded.forEach((row, prize) -> {
+            String email = emails.get(row.userId());
+            if (email == null) throw new IllegalStateException("Không tìm thấy liên hệ người đạt giải.");
+            PublicProfile profile = profiles.get(row.userId());
+            result.add(new Winner(row.rank(), row.userId(), profile == null ? null : profile.displayName(), email,
+                    row.score(), row.durationMs(), prize));
+        });
+        audit.recordDetail(actor, "CONTEST_WINNERS_VIEW", "CONTEST", id, Map.of("winnerCount", result.size()));
+        return List.copyOf(result);
     }
 
     private Contest lockForWrite(long id, Long replacementExamId) {

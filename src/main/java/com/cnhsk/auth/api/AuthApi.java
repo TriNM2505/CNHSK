@@ -22,6 +22,9 @@ public interface AuthApi {
 
     Map<Long, PublicProfile> publicProfiles(Set<Long> userIds);
 
+    /** Raw contact emails for audited contest winner views; only contest workflows may call this method. */
+    Map<Long, String> contactEmails(Set<Long> userIds);
+
     /** Reads the user's plan snapshot without locking or changing it. */
     Optional<PlanState> readPlan(long userId);
 

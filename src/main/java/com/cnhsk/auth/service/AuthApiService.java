@@ -172,6 +172,20 @@ public class AuthApiService implements AuthApi {
 
     @Override
     @Transactional(readOnly = true)
+    public Map<Long, String> contactEmails(Set<Long> userIds) {
+        requireValid(userIds != null && userIds.stream().allMatch(id -> id != null && id > 0));
+        if (userIds.isEmpty()) return Map.of();
+        Map<Long, String> emails = jdbc.query("SELECT id, email FROM auth.users WHERE id IN (:ids)",
+                Map.of("ids", userIds), rs -> {
+                    Map<Long, String> result = new LinkedHashMap<>();
+                    while (rs.next()) result.put(rs.getLong("id"), rs.getString("email"));
+                    return result;
+                });
+        return Map.copyOf(emails);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<PlanState> readPlan(long userId) {
         requireValid(userId > 0);
         return jdbc.query("""
