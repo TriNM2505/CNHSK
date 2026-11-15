@@ -13,7 +13,11 @@ public enum ItemType {
     LESSON_READ(false),
     GRAMMAR_CHOICE(true),
     QUESTION_CHOICE(true),
-    FLASHCARD_RATING(false);
+    FLASHCARD_RATING(false),
+    TRACE_CHAR(true),
+    PINYIN_PAIR(true),
+    RADICAL_CHOICE(true),
+    CATCH_CHOICE(true);
 
     private final boolean gradable;
 

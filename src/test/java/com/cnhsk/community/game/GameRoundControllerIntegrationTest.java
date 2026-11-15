@@ -396,6 +396,43 @@ class GameRoundControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(stats.gameStats(owner).get(GameCode.CHAR_RAIN).roundsPlayed()).isEqualTo(2);
     }
 
+    @Test void GM8_gradeNewGameItemsWithoutExposingTheSnapshotAnswer() throws Exception {
+        var trace = PracticeApi.ItemType.TRACE_CHAR;
+        var served = List.of(
+                gameItem(1, trace),
+                gameItem(2, trace),
+                gameItem(3, PracticeApi.ItemType.PINYIN_PAIR),
+                gameItem(4, PracticeApi.ItemType.RADICAL_CHOICE),
+                gameItem(5, PracticeApi.ItemType.CATCH_CHOICE));
+        long id = practice.start(new PracticeApi.StartPracticeCommand(owner, PracticeApi.PracticeSource.GAME_ROUND,
+                null, GameCode.CHAR_RAIN.name(), served, List.of(), java.time.Duration.ofSeconds(48),
+                java.util.Map.of("timeLimitSeconds", 30, "pointsPerCorrect", 10, "uiConfig", java.util.Map.of())))
+                .sessionId();
+
+        JsonNode publicItems = roundView(id).path("items");
+        assertThat(publicItems).hasSize(5);
+        assertPublic(publicItems);
+        assertThat(publicItems.get(0).path("type").asText()).isEqualTo("TRACE_CHAR");
+        assertThat(publicItems.get(0).path("options").isMissingNode() || publicItems.get(0).path("options").isNull()).isTrue();
+        assertThat(publicItems.toString()).doesNotContain("PASS");
+
+        answer(id, 1, "PASS", 100).andExpect(status().isOk()).andExpect(jsonPath("$.correct").value(true));
+        answer(id, 2, "pass", 100).andExpect(status().isOk()).andExpect(jsonPath("$.correct").value(false));
+        for (int no = 3; no <= 5; no++) {
+            answer(id, no, "A", 1000).andExpect(status().isOk()).andExpect(jsonPath("$.correct").value(true));
+        }
+        finishRound(id).andExpect(status().isOk()).andExpect(jsonPath("$.points").value(40))
+                .andExpect(jsonPath("$.maxPoints").value(50)).andExpect(jsonPath("$.suspicious").value(true));
+    }
+
+    private static PracticeApi.ServedItem gameItem(int no, PracticeApi.ItemType type) {
+        boolean trace = type == PracticeApi.ItemType.TRACE_CHAR;
+        return new PracticeApi.ServedItem(no, type, PracticeApi.Skill.CHARACTER, null,
+                new PracticeApi.Prompt("字", null, null, null, null, null, null, null, null),
+                trace ? null : List.of(new PracticeApi.Option("A", "Đáp án mẫu"), new PracticeApi.Option("B", "Mục khác")),
+                trace ? "PASS" : "A", null, null, new PracticeApi.Rules(300, 0, false));
+    }
+
     @Test void AT16_abandonUsesTheExistingEngineAndNeverAppearsInStatistics() throws Exception {
         long id = fullRound(2);
         answer(id, 1, "A", 1000).andExpect(status().isOk());
