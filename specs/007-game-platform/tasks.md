@@ -14,8 +14,8 @@
 | T-03 | Dùng lại `learning.api.GameCode` đã có đủ 6 mã (không tạo enum mới); `GameDefinition`, `GameRegistry` kiểm đủ 6 khi khởi động + 6 định nghĩa **giả** cho test; đồng bộ spec/OpenAPI sang 6 mã trong PR T-03 | `…/community/game/*`, `spec.md`, `contracts/openapi-games.yaml` | FR-001 · AT-01 | ✅ MERGED — PR #180 / fbf7ad0 |
 | T-04 | `GET /api/community/games` (công khai, cache phần chung, `myStats`) | `…/community/game/web/GameController.java`, `GameCatalogService.java` | FR-002…FR-005 · AT-02, AT-03 | ✅ MERGED — PR #184 / ca77078 |
 | T-05 | `GameRoundService.start` + `POST /{code}/rounds` (giới hạn 30/giờ, bỏ ván cũ cùng game, `buildRound`, `PracticeApi.start`, `deadline`) | `…/community/game/GameRoundService.java` | FR-006…FR-011 · AT-04…AT-08 | ✅ MERGED — PR #192 |
-| T-06 | Trả lời / khôi phục / kết thúc / bỏ: kiểm `GAME_ROUND`, sở hữu, `ROUND_TIME_OVER`, từ chối trường lạ, dịch mã lỗi `SESSION_*` → `ROUND_*`, `GameRoundHandler` (trần, `extra`) | `GameRoundService.java`, `GameRoundHandler.java`, controller | FR-012…FR-019 · AT-09…AT-16 | 🔄 chờ review — targeted 644; full verify 6765 F0/E0/S0, LINE 97.1650% |
-| T-07 | ArchUnit: `community..` chỉ phụ thuộc `learning.api..`; integration SC-001 (cookie + origin game) | `t/architecture/ModuleBoundaryTest.java`, `t/community/game/SharedLoginIntegrationTest.java` (SharedLoginIT → SharedLoginIntegrationTest (Surefire)) | §6 · AT-17, AT-18 | 🔄 chờ review — targeted 156; full verify 6767 F0/E0/S0, LINE 97.1650% |
+| T-06 | Trả lời / khôi phục / kết thúc / bỏ: kiểm `GAME_ROUND`, sở hữu, `ROUND_TIME_OVER`, từ chối trường lạ, dịch mã lỗi `SESSION_*` → `ROUND_*`, `GameRoundHandler` (trần, `extra`) | `GameRoundService.java`, `GameRoundHandler.java`, controller | FR-012…FR-019 · AT-09…AT-16 | ✅ MERGED — PR #222 / 0adf331 |
+| T-07 | ArchUnit: `community..` chỉ phụ thuộc `learning.api..`; integration SC-001 (cookie + origin game) | `t/architecture/ModuleBoundaryTest.java`, `t/community/game/SharedLoginIntegrationTest.java` (SharedLoginIT → SharedLoginIntegrationTest (Surefire)) | §6 · AT-17, AT-18 | ✅ MERGED — PR #223 / bf24d06 |
 
 ## Frontend `cnhsk-game`
 
