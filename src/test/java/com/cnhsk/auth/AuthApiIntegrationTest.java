@@ -98,6 +98,22 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                 .containsExactly("displayName", "avatarUrl");
     }
 
+    @Test
+    void contactEmailsReturnsOnlyRequestedExistingAccountsWithoutAPrincipal() {
+        String hash = new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
+        User first = userRepository.saveAndFlush(new User(uniqueEmail(), hash, "Người đạt giải tự soạn"));
+        User other = userRepository.saveAndFlush(new User(uniqueEmail(), hash, "Người ngoài tập được hỏi"));
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+
+        var emails = authApi.contactEmails(java.util.Set.of(first.getId(), Long.MAX_VALUE));
+        assertThat(emails).containsOnly(java.util.Map.entry(first.getId(), first.getEmail()));
+        assertThat(emails).doesNotContainKey(other.getId());
+        assertThat(authApi.contactEmails(java.util.Set.of(first.getId(), other.getId())))
+                .containsOnly(java.util.Map.entry(first.getId(), first.getEmail()), java.util.Map.entry(other.getId(), other.getEmail()));
+        assertThat(authApi.contactEmails(java.util.Set.of())).isEmpty();
+        assertThatThrownBy(() -> emails.clear()).isInstanceOf(UnsupportedOperationException.class);
+    }
+
     private static String uniqueEmail() {
         return "auth-api-public-" + UUID.randomUUID() + "@example.test";
     }

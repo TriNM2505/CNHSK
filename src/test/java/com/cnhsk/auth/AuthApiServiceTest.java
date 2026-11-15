@@ -177,6 +177,44 @@ class AuthApiServiceTest {
     }
 
     @Test
+    void contactEmailsEmptyAndInvalidSetsDoNotQueryOrNeedAPrincipal() {
+        assertThat(authApi.contactEmails(Set.of())).isEmpty();
+        for (Set<Long> invalid : Arrays.asList(null, Set.of(0L), Set.of(-1L), new HashSet<>(Arrays.asList(1L, null)))) {
+            assertThatThrownBy(() -> authApi.contactEmails(invalid)).isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Tham số không hợp lệ.");
+        }
+        verifyNoInteractions(jdbc, userRepository, userRoleRepository);
+    }
+
+    @Test
+    void contactEmailsUsesOneBoundBatchReturnsOnlyRequestedRowsAndIsImmutable() throws Exception {
+        Set<Long> ids = Set.of(11L, 12L, 13L);
+        ResultSet rows = mock(ResultSet.class);
+        when(rows.next()).thenReturn(true, true, false);
+        when(rows.getLong("id")).thenReturn(11L, 12L);
+        when(rows.getString("email")).thenReturn("winner-one@example.test", "winner-two@example.test");
+        when(jdbc.query(anyString(), eq(Map.of("ids", ids)), org.mockito.ArgumentMatchers.<ResultSetExtractor<Map<Long, String>>>any()))
+                .thenAnswer(call -> ((ResultSetExtractor<?>) call.getArgument(2)).extractData(rows));
+
+        Map<Long, String> emails = authApi.contactEmails(ids);
+        assertThat(emails).containsExactlyInAnyOrderEntriesOf(Map.of(11L, "winner-one@example.test", 12L, "winner-two@example.test"));
+        assertThatThrownBy(() -> emails.put(99L, "other@example.test")).isInstanceOf(UnsupportedOperationException.class);
+        var sql = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(jdbc).query(sql.capture(), eq(Map.of("ids", ids)),
+                org.mockito.ArgumentMatchers.<ResultSetExtractor<Map<Long, String>>>any());
+        assertThat(sql.getValue()).contains("SELECT id, email", "WHERE id IN (:ids)").doesNotContain("password", "avatar");
+        verifyNoInteractions(userRepository, userRoleRepository);
+    }
+
+    @Test
+    void contactEmailsPropagatesDatabaseFailureWithoutFallingBackToAllUsers() {
+        when(jdbc.query(anyString(), eq(Map.of("ids", Set.of(11L))),
+                org.mockito.ArgumentMatchers.<ResultSetExtractor<Map<Long, String>>>any()))
+                .thenThrow(new DataAccessResourceFailureException("synthetic lookup failure"));
+        assertThatThrownBy(() -> authApi.contactEmails(Set.of(11L))).isInstanceOf(DataAccessResourceFailureException.class);
+    }
+
+    @Test
     void bannedUserIdsReturnsOnlyIdsFromTheBanQuery() throws Exception {
         ResultSet rows = mock(ResultSet.class);
         when(rows.next()).thenReturn(true, true, false);
