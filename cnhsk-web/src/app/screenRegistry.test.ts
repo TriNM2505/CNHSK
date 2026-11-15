@@ -7,6 +7,10 @@ import { createScreenRegistry, screenRegistry, type ScreenCatalog } from '@/app/
 const TestScreen = lazy(async () => ({ default: () => null }))
 
 describe('screen registry', () => {
+  it('registers exam management without replacing contests or learner exams', () => {
+    for (const id of ['SCR-065', 'SCR-066', 'SCR-070', 'SCR-071', 'SCR-020'] as const)
+      expect(screenRegistry[id]).toBeDefined()
+  })
   it('registers the topic prerequisite screen', () => {
     expect(screenRegistry['SCR-067']).toBeDefined()
   })

@@ -325,8 +325,9 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(10)
+      expect(within(navigation).getAllByRole('link')).toHaveLength(11)
       for (const label of [
+        'Quản lý đề thi',
         'Nhập dữ liệu',
         'Tiên quyết chủ đề',
         'Người dùng',
@@ -356,13 +357,13 @@ describe('AdminLayout', () => {
   it.each([
     [
       ['CONTENT_EDITOR'],
-      ['Nhập dữ liệu', 'Tài nguyên tham khảo', 'Tiên quyết chủ đề', 'Cuộc thi'],
+      ['Nhập dữ liệu', 'Tài nguyên tham khảo', 'Tiên quyết chủ đề', 'Cuộc thi', 'Quản lý đề thi'],
       ['Người dùng', ...financialLabels],
     ],
     [
       ['ADMIN'],
       ['Người dùng', ...financialLabels],
-      ['Nhập dữ liệu', 'Tài nguyên tham khảo', 'Tiên quyết chủ đề', 'Cuộc thi'],
+      ['Nhập dữ liệu', 'Tài nguyên tham khảo', 'Tiên quyết chủ đề', 'Cuộc thi', 'Quản lý đề thi'],
     ],
     [['MODERATOR'], ['Bài chờ duyệt', 'Báo cáo vi phạm'], ['Người dùng', ...financialLabels]],
     [['TEACHER'], [], ['Người dùng', ...financialLabels]],
@@ -371,6 +372,7 @@ describe('AdminLayout', () => {
     [
       ['CONTENT_EDITOR', 'ADMIN'],
       [
+        'Quản lý đề thi',
         'Nhập dữ liệu',
         'Người dùng',
         'Tài nguyên tham khảo',

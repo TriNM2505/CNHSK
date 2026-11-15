@@ -4,6 +4,16 @@ import { appRouteDefinitions, canUserAccessRoute, findKnownRoute } from '@/app/r
 import { appRoutes } from '@/app/routes'
 
 describe('route access table', () => {
+  it('assigns all exam management paths only to CONTENT_EDITOR and keeps new static', () => {
+    for (const path of ['/content/exams', '/content/exams/new', '/content/exams/2301']) {
+      const route = findKnownRoute(path)!
+      expect(route).toMatchObject({ access: ['CONTENT_EDITOR'], layout: 'admin' })
+      expect(route.kind === 'screen' && route.scr).toBe(
+        path === '/content/exams' ? 'SCR-065' : 'SCR-066',
+      )
+    }
+    expect(findKnownRoute('/content/exams/new')?.path).toBe('/content/exams/new')
+  })
   it('requires the exact CONTENT_EDITOR role for SCR-067 in the admin layout', () => {
     const route = findKnownRoute('/content/topics/prerequisites')!
     expect(route).toMatchObject({ scr: 'SCR-067', access: ['CONTENT_EDITOR'], layout: 'admin' })

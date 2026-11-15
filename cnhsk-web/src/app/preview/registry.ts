@@ -41,6 +41,7 @@ import { previews as contestPreviews } from '@/features/contests/catalog.preview
 import { previews as contestAdminPreviews } from '@/features/contest-admin/catalog.preview'
 import { previews as contentImportPreviews } from '@/features/content-import/catalog.preview'
 import { previews as examPreviews } from '@/features/exam/catalog.preview'
+import { previews as examAdminPreviews } from '@/features/exam-admin/catalog.preview'
 import { previews as creditsPreviews } from '@/features/credits/catalog.preview'
 import { previews as gradingPreviews } from '@/features/grading/catalog.preview'
 import { previews as grammarPreviews } from '@/features/grammar/catalog.preview'
@@ -233,6 +234,7 @@ export const previewRegistry: readonly PreviewEntry[] = [
   ...adminUserPreviews,
   ...contentImportPreviews,
   ...examPreviews,
+  ...examAdminPreviews,
   ...creditsPreviews,
   ...vocabPreviews,
   ...topicAdminPreviews,

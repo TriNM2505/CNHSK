@@ -8,6 +8,7 @@ import { screens as contestScreens } from '@/features/contests/screens'
 import { screens as contestAdminScreens } from '@/features/contest-admin/screens'
 import { screens as contentImportScreens } from '@/features/content-import/screens'
 import { screens as examScreens } from '@/features/exam/screens'
+import { screens as examAdminScreens } from '@/features/exam-admin/screens'
 import { screens as creditsScreens } from '@/features/credits/screens'
 import { screens as gradingScreens } from '@/features/grading/screens'
 import { screens as grammarScreens } from '@/features/grammar/screens'
@@ -54,6 +55,7 @@ export function createScreenRegistry(catalogs: readonly FeatureScreenCatalog[]):
 }
 
 export const screenRegistry = createScreenRegistry([
+  { feature: 'exam-admin', screens: examAdminScreens },
   { feature: 'topic-admin', screens: topicAdminScreens },
   { feature: 'auth', screens: authScreens },
   { feature: 'community', screens: communityScreens },
