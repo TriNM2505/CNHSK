@@ -1,7 +1,10 @@
 package com.cnhsk.learning.aigen;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import jakarta.persistence.EntityManager;
@@ -106,6 +109,97 @@ public class WeakKnowledgeQueryRepository {
             return new ActiveRun(number(row[0]), (String) row[1]);
         }).toList();
     }
+
+    public Optional<PromptNode> promptNode(long knowledgePointId) {
+        List<?> rows = entityManager.createNativeQuery("""
+                SELECT kp.id, kp.code, kp.title, kp.name_zh, kp.can_do, kp.hsk_level, prerequisite.title
+                FROM learning.knowledge_points kp
+                LEFT JOIN LATERAL unnest(kp.prereq_ids) WITH ORDINALITY link(id, position) ON true
+                LEFT JOIN learning.knowledge_points prerequisite ON prerequisite.id = link.id
+                WHERE kp.id = :id
+                ORDER BY link.position
+                """).setParameter("id", knowledgePointId).getResultList();
+        if (rows.isEmpty()) return Optional.empty();
+        Object[] node = (Object[]) rows.get(0);
+        List<String> titles = new ArrayList<>();
+        for (Object value : rows) {
+            String title = (String) ((Object[]) value)[6];
+            if (title != null) titles.add(title);
+        }
+        return Optional.of(new PromptNode(number(node[0]), (String) node[1], (String) node[2],
+                (String) node[3], (String) node[4], ((Number) node[5]).intValue(), titles));
+    }
+
+    public List<PromptLexeme> promptLexemes(long knowledgePointId) {
+        List<?> rows = entityManager.createNativeQuery("""
+                SELECT text, pinyin, meaning_vi FROM learning.lexemes
+                WHERE knowledge_point_id = :id ORDER BY id LIMIT 80
+                """).setParameter("id", knowledgePointId).getResultList();
+        return rows.stream().map(value -> {
+            Object[] row = (Object[]) value;
+            return new PromptLexeme((String) row[0], (String) row[1], (String) row[2]);
+        }).toList();
+    }
+
+    public List<PromptQuestion> promptQuestions(long knowledgePointId) {
+        // All linked options feed error patterns; only approved PRIMARY content can become a sample.
+        List<?> rows = entityManager.createNativeQuery("""
+                SELECT q.id,
+                       CASE WHEN q.status = 'APPROVED' AND label.role = 'PRIMARY' THEN q.stem END,
+                       q.options::text,
+                       CASE WHEN q.status = 'APPROVED' AND label.role = 'PRIMARY' THEN q.explanation END,
+                       q.status = 'APPROVED' AND label.role = 'PRIMARY'
+                FROM learning.questions q
+                JOIN learning.question_knowledge_points label ON label.question_id = q.id
+                WHERE label.knowledge_point_id = :id ORDER BY q.id
+                """).setParameter("id", knowledgePointId).getResultList();
+        return rows.stream().map(value -> {
+            Object[] row = (Object[]) value;
+            return new PromptQuestion(number(row[0]), (String) row[1], (String) row[2],
+                    (String) row[3], (Boolean) row[4]);
+        }).toList();
+    }
+
+    public List<String> existingStems(long knowledgePointId) {
+        List<?> rows = entityManager.createNativeQuery("""
+                SELECT q.stem FROM learning.questions q
+                JOIN learning.question_knowledge_points label ON label.question_id = q.id
+                WHERE label.knowledge_point_id = :id
+                """, String.class).setParameter("id", knowledgePointId).getResultList();
+        return rows.stream().map(String.class::cast).toList();
+    }
+
+    public Set<String> existingKidCodes(Set<String> kids) {
+        if (kids.isEmpty()) return Set.of();
+        List<?> rows = entityManager.createNativeQuery("""
+                SELECT code FROM learning.knowledge_points WHERE code IN (:kids)
+                """, String.class).setParameter("kids", kids).getResultList();
+        return strings(rows);
+    }
+
+    public Set<String> allowedCharacters(Set<String> characters, int hskLevel) {
+        if (characters.isEmpty()) return Set.of();
+        List<?> rows = entityManager.createNativeQuery("""
+                SELECT text FROM learning.lexemes
+                WHERE kind = 'CHAR' AND hsk_level <= :level AND text IN (:characters)
+                """, String.class).setParameter("level", hskLevel)
+                .setParameter("characters", characters).getResultList();
+        return strings(rows);
+    }
+
+    private static Set<String> strings(List<?> rows) {
+        Set<String> result = new HashSet<>();
+        for (Object row : rows) result.add((String) row);
+        return Set.copyOf(result);
+    }
+
+    public record PromptNode(long knowledgePointId, String kid, String title, String nameZh,
+            String canDo, int hskLevel, List<String> prerequisiteTitles) {
+        public PromptNode { prerequisiteTitles = List.copyOf(prerequisiteTitles); }
+    }
+    public record PromptLexeme(String text, String pinyin, String meaningVi) { }
+    public record PromptQuestion(long id, String stem, String optionsJson, String explanation,
+            boolean approvedPrimary) { }
 
     private static long number(Object value) {
         if (value instanceof Number number) return number.longValue();

@@ -1,5 +1,16 @@
 # Câu hỏi và quyết định — Spec #024
 
+## 2026-11-15 · T-03 Leader duyệt exact9/Q1-A
+
+- Prompt giữ `code,title,name_zh,can_do,hsk_level`, prerequisite titles, tối đa80 lexemes và3 mẫu APPROVED PRIMARY hợp lệ cùng error patterns distinct; đúng hai system blocks cache=true. Không learner data/số đếm hoặc prompt/nội dung câu trong log.
+- Legacy options hỏng: skip riêng câu cho cả sample/error patterns, WARN chỉ question ID; không làm mất các câu hợp lệ còn lại hoặc sửa selector T-02.
+- Contract nội bộ: `AiPromptBuilder.build(knowledgePointId,batchSize)` trả immutable Prompt; `AiQuestionValidator.validate(rawJson,Prompt)` trả accepted drafts + dropped zero-based index/reason. Whole JSON/cấu trúc lô hỏng → exception an toàn INVALID_OUTPUT không parser cause; lỗi từng câu → drop riêng. Correct key suy ra từ duy nhất một isCorrect, options được ánh xạ sang QuestionOption snake_case hiện hữu.
+- Validator gom đọc references/CHAR theo cấp và stem mọi status/source/role cùng KID; NFC/Unicode whitespace, code-point lengths; không DB writes/provider/schema/config thay đổi. T-04 sở hữu claim/recheck/persistence, race stem không được tuyên bố đã loại bỏ bằng DB unique.
+- G1/gates/Draft PR đã được Leader duyệt; G2 xác minh ngày2026-11-16: compile BUILD SUCCESS/native0; targeted4 suite **44/F0/E0/S0/native0**; regression8 suite **118/F0/E0/S0/native0**. Không rerun gate PASS; source/build tooling giữ nguyên freeze từ compile tới coverage.
+- Full duy nhất `20261115-201631154-full`, không exclude/skip: **404/404 fresh suite,6349/F2/E0/S0, BUILD FAILURE/FAILED/native1**; native03:16:39.571–03:59:14.332 Asia/Ho_Chi_Minh, trước deadline04:16:39.571. Native/XML/case inventory khớp, ngoài exact5 whitelist0;44test T-03 trong Full F0/E0/S0. Hai failure đều đúng assertion đã duyệt: `ImportConfirmIntegrationTest.FR023_fiveIndependent5000RowImportsMeetTheLocalP95Budget`:398, p95 **38099ms>30000ms**; `QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries`:304, p95 **48382ms>30000ms**. Ba whitelist còn lại không fail. Không tuyên bố toàn bộ test PASS.
+- JaCoCo LINE BUNDLE từ đúng Full exec: **15619 covered/457 missed=97.157253048%≥80%**, report/check-only BUILD SUCCESS/native0;917 analyzed classes. Exec gốc1338905bytes, SHA256 `8657E95ED8017371D83B0CB372F2D7AF613C57C1F59E2DEE4FF80D3D6A93675E`, original/preserved bytes trước/sau coverage không đổi; session khớp Full, source/classes khớp. Không Maven test sau Full. Evidence cục bộ trong `plans/261115-2035-spec024-t03-shadow-plan/reports/`, không commit.
+- G2 đạt điều kiện ngoại lệ Leader duyệt; G3 Draft PR được phép, không Ready/merge/main push. Giữ nguyên toàn bộ lịch sử T-01/T-02 phía dưới.
+
 ## 2026-11-15 · T-02 đã triển khai cap100, G2 đạt theo whitelist được Leader duyệt
 
 - Phạm vi exact7/Q1-A: selector và query repository cùng ba test, hai tài liệu SPEC. Cap cuối **100 user/lần chạy**, chỉ phá hòa tại boundary; vẫn xét toàn bộ tiedKids, xếp user theo số item sai duy nhất giảm dần rồi userId tăng dần, đếm review chỉ cho user thực sự đóng góp vào từng KID. Raw wrongCount, eligibility và thứ tự ưu tiên không đổi; không sửa module011, schema, config, dependency, endpoint hoặc production exception translation.
