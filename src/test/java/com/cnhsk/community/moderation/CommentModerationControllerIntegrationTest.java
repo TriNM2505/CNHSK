@@ -532,18 +532,30 @@ class CommentModerationControllerIntegrationTest extends AbstractIntegrationTest
     }
 
     @Test
-    void contractInventoryExcludesGamePathsButRetainsCommunityPaths() {
+    void contractInventoryExcludesGameAndContestPathsButRetainsCommunityPaths() {
         assertThat(isCommunityContractPath("/api/community/games")).isFalse();
         assertThat(isCommunityContractPath("/api/community/games/CHAR_RAIN/rounds")).isFalse();
         assertThat(isCommunityContractPath("/api/community/games/rounds/1/answers")).isFalse();
         assertThat(isCommunityContractPath("/api/community/posts")).isTrue();
         assertThat(isCommunityContractPath("/api/public/community/posts")).isTrue();
         assertThat(isCommunityContractPath("/api/community/games-other")).isTrue();
+        assertThat(isCommunityContractPath("/api/community/contests")).isFalse();
+        assertThat(isCommunityContractPath("/api/community/contests/1/attempts")).isFalse();
+        assertThat(isCommunityContractPath("/api/public/community/contests")).isFalse();
+        assertThat(isCommunityContractPath("/api/public/community/contests/1")).isFalse();
+        assertThat(isCommunityContractPath("/api/community/contests-other")).isTrue();
+        assertThat(isCommunityContractPath("/api/public/community/contests-other")).isTrue();
     }
 
     private static boolean isCommunityContractPath(String path) {
         if (path.equals("/api/community/games") || path.startsWith("/api/community/games/")) return false;
+        if (isContestPath(path)) return false;
         return path.startsWith("/api/community/") || path.startsWith("/api/public/community/");
+    }
+
+    private static boolean isContestPath(String path) {
+        return path.equals("/api/community/contests") || path.startsWith("/api/community/contests/")
+                || path.equals("/api/public/community/contests") || path.startsWith("/api/public/community/contests/");
     }
 
     private static Map<String, OperationShape> operations(JsonNode document) {
