@@ -296,6 +296,9 @@ class PracticeAbandonIntegrationTest extends AbstractIntegrationTest {
         var operation = parsed.getOpenAPI().getPaths().get("/api/practice/sessions/{id}/abandon").getPost();
         assertThat(operation.getResponses().keySet()).containsExactlyInAnyOrder("204", "401", "403", "409", "422");
         assertThat(operation.getDescription()).contains("ATTEMPT_NOT_OWNED", "SESSION_EXPIRED", "SESSION_ALREADY_SUBMITTED");
+        assertThat(operation.getDescription()).doesNotContain("TOPIC_LOCKED");
+        assertThat(parsed.getOpenAPI().getPaths().get("/api/topics/{id}/study-sessions").getPost().getDescription())
+                .contains("TOPIC_LOCKED", "active", "FOR SHARE");
         var annotations = PracticeController.class.getMethod("abandon", String.class).getAnnotation(ApiResponses.class);
         assertThat(Arrays.stream(annotations.value()).map(ApiResponse::responseCode).toList())
                 .containsExactlyInAnyOrderElementsOf(operation.getResponses().keySet());

@@ -23,10 +23,12 @@ public class TopicStudyService {
 
     private final TopicStudyRepository repository;
     private final PracticeService practice;
+    private final TopicLockQuery locks;
 
-    public TopicStudyService(TopicStudyRepository repository, PracticeService practice) {
+    public TopicStudyService(TopicStudyRepository repository, PracticeService practice, TopicLockQuery locks) {
         this.repository = repository;
         this.practice = practice;
+        this.locks = locks;
     }
 
     @Transactional
@@ -38,6 +40,7 @@ public class TopicStudyService {
         repository.lock(userId, topicId);
         SessionView active = practice.findActive(userId, PracticeSource.TOPIC_STUDY, topicId);
         if (active != null) return new StudyStart(active, false);
+        locks.requireOpen(userId, topicId);
 
         List<Lexeme> words = repository.unlearned(userId, topicId);
         if (words.isEmpty()) return new StudyStart(null, false);

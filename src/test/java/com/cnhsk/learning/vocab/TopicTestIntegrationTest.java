@@ -544,6 +544,18 @@ class TopicTestIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString()).path("userId").asLong();
     }
 
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void prerequisiteGatePrecedesTheNewTestWordAndLearningThresholds() throws Exception {
+        Topic prerequisite = topic();
+        Topic blocked = topic();
+        words(blocked, 1, false, false);
+        blocked.setPrereqIds(new Long[]{prerequisite.getId()});
+        topics.saveAndFlush(blocked);
+        assertError(start(owner, blocked, 422), "TOPIC_LOCKED");
+        assertThat(sessionCount(owner, blocked)).isZero();
+    }
+
     private Topic topic() {
         return topics.saveAndFlush(new Topic("T12-" + UUID.randomUUID(), "Chủ đề kiểm tra thử", (short) 1));
     }

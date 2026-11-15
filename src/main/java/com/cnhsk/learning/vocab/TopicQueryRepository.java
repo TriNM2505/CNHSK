@@ -24,8 +24,8 @@ public class TopicQueryRepository {
                   AND ai.lexeme_id IS NOT NULL
             ), activity AS (
                 SELECT ref_id, count(*) > 0 AS has_attempt,
-                       bool_or(ref_type = 'TOPIC_TEST' AND status = 'SUBMITTED' AND max_score > 0
-                               AND score * 100 >= 90 * max_score) AS completed,
+            """ + TopicLockQuery.COMPLETED_SQL + """
+                       AS completed,
                        max(CASE WHEN ref_type = 'TOPIC_TEST' AND status = 'SUBMITTED'
                                 THEN score * 100 / nullif(max_score, 0) END) AS best_percent,
                        max(CASE WHEN ref_type = 'TOPIC_TEST' AND status = 'IN_PROGRESS'
@@ -45,15 +45,17 @@ public class TopicQueryRepository {
                    coalesce(a.has_attempt, false) AS has_attempt,
                    coalesce(a.completed, false) AS completed, a.best_percent,
                    a.active_test_expires_at, lt.failed_at,
-                   count(*) FILTER (WHERE l.lexeme_id IS NOT NULL AND x.audio_url IS NOT NULL) AS learned_audio
+                   count(*) FILTER (WHERE l.lexeme_id IS NOT NULL AND x.audio_url IS NOT NULL) AS learned_audio,
+                   CAST(topic_lock.blocked_by AS text) AS blocked_by
             FROM learning.topics t JOIN learning.topic_items ti ON ti.topic_id = t.id
             JOIN learning.lexemes x ON x.id = ti.lexeme_id
             LEFT JOIN learned l ON l.lexeme_id = ti.lexeme_id
             LEFT JOIN activity a ON a.ref_id = t.id
             LEFT JOIN latest_test lt ON lt.ref_id = t.id
+            """ + TopicLockQuery.LOCK_JOIN + """
             WHERE (cast(:hskLevel AS integer) IS NULL OR t.hsk_level = :hskLevel)
               AND (cast(:topicId AS bigint) IS NULL OR t.id = :topicId)
-            GROUP BY t.id, a.has_attempt, a.completed, a.best_percent, a.active_test_expires_at, lt.failed_at
+            GROUP BY t.id, a.has_attempt, a.completed, a.best_percent, a.active_test_expires_at, lt.failed_at, topic_lock.blocked_by
             ORDER BY t.hsk_level, t.order_index, t.id
             """;
 
@@ -72,9 +74,11 @@ public class TopicQueryRepository {
             """;
 
     private final EntityManager entityManager;
+    private final TopicLockQuery locks;
 
-    public TopicQueryRepository(EntityManager entityManager) {
+    public TopicQueryRepository(EntityManager entityManager, TopicLockQuery locks) {
         this.entityManager = entityManager;
+        this.locks = locks;
     }
 
     public List<TopicRow> summaries(long userId, Integer hskLevel, Long topicId) {
@@ -89,7 +93,7 @@ public class TopicQueryRepository {
                     number(row, "total_words").longValue(), number(row, "learned_words").longValue(),
                     row.get("has_attempt", Boolean.class), row.get("completed", Boolean.class),
                     best == null ? null : best.intValue(), instant(row.get("active_test_expires_at")),
-                    instant(row.get("failed_at")), number(row, "learned_audio").longValue());
+                    instant(row.get("failed_at")), number(row, "learned_audio").longValue(), locks.parse(row.get("blocked_by", String.class)));
         }).toList();
     }
 
@@ -119,6 +123,6 @@ public class TopicQueryRepository {
 
     public record TopicRow(long id, String code, String name, int hskLevel, long totalWords,
                            long learnedWords, boolean hasAttempt, boolean completed, Integer bestPercent,
-                           Instant activeTestExpiresAt, Instant failedAt, long learnedAudio) {
+                           Instant activeTestExpiresAt, Instant failedAt, long learnedAudio, List<TopicLockQuery.LockedTopicRef> lockedBy) {
     }
 }

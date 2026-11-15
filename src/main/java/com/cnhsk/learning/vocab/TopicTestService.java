@@ -37,13 +37,15 @@ public class TopicTestService {
     private final PracticeService practice;
     private final Clock clock;
     private final RandomGenerator random;
+    private final TopicLockQuery locks;
 
     public TopicTestService(TopicTestRepository repository, PracticeService practice, Clock clock,
-            @Qualifier("practiceChoiceRandom") RandomGenerator random) {
+            @Qualifier("practiceChoiceRandom") RandomGenerator random, TopicLockQuery locks) {
         this.repository = repository;
         this.practice = practice;
         this.clock = clock;
         this.random = random;
+        this.locks = locks;
     }
 
     @Transactional
@@ -53,6 +55,7 @@ public class TopicTestService {
                 HttpStatus.NOT_FOUND, "Không tìm thấy chủ đề hoặc chủ đề chưa có từ.", Map.of()));
         SessionView active = practice.findActive(userId, PracticeSource.TOPIC_TEST, topicId);
         if (active != null) return new TestStart(active, false);
+        locks.requireOpen(userId, topicId);
         if (topic.totalWords() < 4) {
             throw rejected(ErrorCode.NOT_ENOUGH_WORDS, "Chủ đề cần ít nhất 4 từ để kiểm tra.", Map.of("requiredWords", 4));
         }

@@ -28,11 +28,13 @@ public class TopicPracticeService {
     private final TopicPracticeRepository repository;
     private final ChoiceItemFactory choices;
     private final PracticeService practice;
+    private final TopicLockQuery locks;
 
-    public TopicPracticeService(TopicPracticeRepository repository, ChoiceItemFactory choices, PracticeService practice) {
+    public TopicPracticeService(TopicPracticeRepository repository, ChoiceItemFactory choices, PracticeService practice, TopicLockQuery locks) {
         this.repository = repository;
         this.choices = choices;
         this.practice = practice;
+        this.locks = locks;
     }
 
     @Transactional
@@ -41,6 +43,7 @@ public class TopicPracticeService {
             throw new ApiException(ErrorCode.TOPIC_NOT_FOUND, HttpStatus.NOT_FOUND,
                     "Không tìm thấy chủ đề hoặc chủ đề chưa có từ.", Map.of());
         }
+        locks.requireOpen(userId, topicId);
         List<Lexeme> candidates = repository.candidates(userId, topicId);
         if (candidates.isEmpty()) throw rejected(ErrorCode.NO_LEARNED_WORDS, "Bạn chưa học từ nào của chủ đề.");
         if (focusLexemeIds != null) {

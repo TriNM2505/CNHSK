@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.cnhsk.learning.vocab.TopicQueryRepository.TopicRow;
+import com.cnhsk.learning.vocab.TopicLockQuery.LockedTopicRef;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -39,18 +40,20 @@ public class TopicQueryService {
                         "Không tìm thấy chủ đề hoặc chủ đề chưa có từ.", Map.of()));
         TopicSummary header = summary(row);
         return new TopicDetail(header.id(), header.code(), header.name(), header.hskLevel(), header.totalWords(),
-                header.learnedWords(), header.percent(), header.status(), header.bestTestPercent(),
+                header.learnedWords(), header.percent(), header.status(), header.bestTestPercent(), header.lockedBy(),
                 repository.words(userId, id), actions(row, now));
     }
 
     private static TopicSummary summary(TopicRow row) {
-        String status = row.completed() ? "COMPLETED"
+        String status = !row.lockedBy().isEmpty() ? "LOCKED" : row.completed() ? "COMPLETED"
                 : row.learnedWords() > 0 || row.hasAttempt() ? "IN_PROGRESS" : "NOT_STARTED";
         return new TopicSummary(row.id(), row.code(), row.name(), row.hskLevel(), row.totalWords(),
-                row.learnedWords(), (int) (row.learnedWords() * 100 / row.totalWords()), status, row.bestPercent());
+                row.learnedWords(), (int) (row.learnedWords() * 100 / row.totalWords()), status, row.bestPercent(), row.lockedBy());
     }
 
     private static TopicActions actions(TopicRow row, Instant now) {
+        if (!row.lockedBy().isEmpty()) return new TopicActions(false, false, false, false,
+                "TOPIC_LOCKED", (row.totalWords() * 80 + 99) / 100, null);
         String reason = null;
         Instant retryAt = null;
         if (row.activeTestExpiresAt() == null || row.activeTestExpiresAt().isBefore(now)) {
@@ -70,15 +73,15 @@ public class TopicQueryService {
     @Schema(name = "TopicSummary")
     public record TopicSummary(long id, String code, String name, int hskLevel, long totalWords,
                                long learnedWords, int percent,
-                               @Schema(allowableValues = {"NOT_STARTED", "IN_PROGRESS", "COMPLETED"}) String status,
-                               Integer bestTestPercent) {
+                               @Schema(allowableValues = {"NOT_STARTED", "IN_PROGRESS", "COMPLETED", "LOCKED"}) String status,
+                               Integer bestTestPercent, List<LockedTopicRef> lockedBy) {
     }
 
     @Schema(name = "TopicDetail")
     public record TopicDetail(long id, String code, String name, int hskLevel, long totalWords,
                               long learnedWords, int percent,
-                              @Schema(allowableValues = {"NOT_STARTED", "IN_PROGRESS", "COMPLETED"}) String status,
-                              Integer bestTestPercent, List<TopicWord> words, TopicActions actions) {
+                              @Schema(allowableValues = {"NOT_STARTED", "IN_PROGRESS", "COMPLETED", "LOCKED"}) String status,
+                              Integer bestTestPercent, List<LockedTopicRef> lockedBy, List<TopicWord> words, TopicActions actions) {
     }
 
     public record TopicWord(long lexemeId, String text, String pinyin, String sinoViet, String meaning,
@@ -86,7 +89,7 @@ public class TopicQueryService {
     }
 
     public record TopicActions(boolean canStudy, boolean canPracticeRecognition, boolean canPracticeListening,
-                               boolean canTakeTest, String testBlockedReason, long requiredWords,
+                               boolean canTakeTest, @Schema(nullable = true, allowableValues = {"NOT_ENOUGH_LEARNED", "TOO_FEW_WORDS", "RETRY_TOO_SOON", "TOPIC_LOCKED"}) String testBlockedReason, long requiredWords,
                                Instant retryAvailableAt) {
     }
 }

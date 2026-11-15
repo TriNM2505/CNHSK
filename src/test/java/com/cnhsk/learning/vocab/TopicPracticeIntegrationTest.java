@@ -461,6 +461,18 @@ class TopicPracticeIntegrationTest extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsString()).path("userId").asLong();
     }
 
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void prerequisiteGatePrecedesEligibilityInBothPracticeModes() throws Exception {
+        Topic prerequisite = topic(1);
+        Topic blocked = topic(1);
+        words(blocked, 1, false);
+        blocked.setPrereqIds(new Long[]{prerequisite.getId()});
+        topics.saveAndFlush(blocked);
+        for (String mode : List.of("RECOGNITION", "LISTENING")) assertError(start(owner, blocked, mode, null, 422), "TOPIC_LOCKED");
+        assertThat(sessionCount(owner, blocked)).isZero();
+    }
+
     private Topic topic(int level) {
         return topics.saveAndFlush(new Topic("T11-" + UUID.randomUUID(), "Chủ đề luyện thử", (short) level));
     }

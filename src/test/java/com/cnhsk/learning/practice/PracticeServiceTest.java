@@ -413,6 +413,8 @@ class PracticeServiceTest {
                 .containsExactlyInAnyOrder("200", "401", "403", "422");
         assertThat(api.getPaths().get("/api/practice/sessions/active").getGet().getResponses().keySet())
                 .containsExactlyInAnyOrder("200", "204", "401", "403", "422");
+        assertThat(api.getComponents().getSchemas().get("TopicSummary").getRequired()).contains("lockedBy");
+        assertThat(api.getPaths().get("/api/topics/{id}/tests").getPost().getDescription()).contains("TOPIC_LOCKED", "active");
         for (String name : List.of("ServedItemView", "ItemState", "AnswerRequest", "AnswerResult")) {
             var required = new ObjectMapper(new YAMLFactory()).readTree(yaml)
                     .at("/components/schemas/" + name + "/required");

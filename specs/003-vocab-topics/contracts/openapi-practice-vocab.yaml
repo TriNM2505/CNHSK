@@ -191,10 +191,31 @@ components:
           additionalProperties: true
     TopicStatus:
       type: string
-      enum: [NOT_STARTED, IN_PROGRESS, COMPLETED]
+      enum: [NOT_STARTED, IN_PROGRESS, COMPLETED, LOCKED]
+    LockedTopicRef:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+    TopicLockedDetails:
+      type: object
+      required: [lockedBy]
+      properties:
+        lockedBy:
+          type: array
+          items: { $ref: '#/components/schemas/LockedTopicRef' }
+    TopicLockedError:
+      type: object
+      required: [error_code, message, request_id, details]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+        details: { $ref: '#/components/schemas/TopicLockedDetails' }
     TopicSummary:
       type: object
-      required: [id, code, name, hskLevel, totalWords, learnedWords, percent, status]
+      required: [id, code, name, hskLevel, totalWords, learnedWords, percent, status, lockedBy]
       properties:
         id: { type: integer, format: int64 }
         code: { type: string }
@@ -205,6 +226,10 @@ components:
         percent: { type: integer, minimum: 0, maximum: 100 }
         status: { $ref: '#/components/schemas/TopicStatus' }
         bestTestPercent: { type: [integer, 'null'] }
+        lockedBy:
+          type: array
+          description: Các tiên quyết trực tiếp chưa COMPLETED của người học, thứ tự id; không khoá trả []. ID tiên quyết không tồn tại được bỏ qua.
+          items: { $ref: '#/components/schemas/LockedTopicRef' }
     TopicDetail:
       allOf:
         - $ref: '#/components/schemas/TopicSummary'
@@ -233,7 +258,7 @@ components:
                 canPracticeRecognition: { type: boolean }
                 canPracticeListening: { type: boolean }
                 canTakeTest: { type: boolean }
-                testBlockedReason: { type: [string, 'null'], enum: [NOT_ENOUGH_LEARNED, TOO_FEW_WORDS, RETRY_TOO_SOON, null] }
+                testBlockedReason: { type: [string, 'null'], enum: [NOT_ENOUGH_LEARNED, TOO_FEW_WORDS, RETRY_TOO_SOON, TOPIC_LOCKED, null] }
                 requiredWords: { type: integer }
                 retryAvailableAt: { type: [string, 'null'], format: date-time }
     TopicTestExtra:
@@ -430,6 +455,12 @@ paths:
       tags: [topics]
       operationId: startTopicStudy
       summary: Bắt đầu học từ mới (FR-019…FR-022)
+      description: >
+        Topic thiếu/rỗng trả 404. Lượt active còn hạn vẫn trả 200 trước cổng tiên quyết.
+        Start mới lấy FOR SHARE trên topic rồi đọc tiên quyết mới nhất trong cùng transaction;
+        khoá trả 422 TOPIC_LOCKED, details theo TopicLockedDetails: {lockedBy:[{id,name}]}.
+        COMPLETED là TOPIC_TEST SUBMITTED max_score>0 và score*100>=90*max_score; chỉ xét trực tiếp.
+        GET/answers/finish/abandon của lượt đã mở không bị áp cổng này.
       parameters: [ { $ref: '#/components/parameters/TopicId' } ]
       responses:
         '200':
@@ -448,7 +479,11 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
+        '422':
+          description: TOPIC_LOCKED (details.lockedBy) hoặc lỗi điều kiện bắt đầu/validation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TopicLockedError' }
         '429': { $ref: '#/components/responses/Error' }
 
   /api/topics/{id}/practice-sessions:
@@ -461,6 +496,9 @@ paths:
         Body sai, mode thiếu/sai, focusLexemeIds rỗng hoặc quá 20 phần tử,
         ID không dương hoặc sai kiểu trả 422 VALIDATION_FAILED; id topic sai cũng trả 422.
         Topic thiếu/rỗng trả 404 TOPIC_NOT_FOUND, chưa học từ nào trả 422 NO_LEARNED_WORDS.
+        Sau kiểm topic tồn tại, start mới lấy FOR SHARE rồi đọc tiên quyết: chưa đủ trả
+        422 TOPIC_LOCKED với details theo TopicLockedDetails: {lockedBy:[{id,name}]}, trước điều kiện luyện.
+        Chỉ xét tiên quyết trực tiếp, bỏ qua ID đã mất; không ảnh hưởng GET/answers/finish/abandon của lượt cũ.
         Sau đó gộp ID focus trùng, kiểm mọi ID thuộc chủ đề và đã học, sai trả 422 INVALID_FOCUS_WORDS.
         Focus chỉ giới hạn mục tiêu; nhiễu vẫn theo G-1…G-6.
         LISTENING lọc mục tiêu có audio; không còn trả 422 NO_AUDIO_WORDS, kể cả ngoài focus có audio.
@@ -489,7 +527,11 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
+        '422':
+          description: TOPIC_LOCKED (details.lockedBy) hoặc lỗi điều kiện bắt đầu/validation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TopicLockedError' }
         '429': { $ref: '#/components/responses/Error' }
 
   /api/topics/{id}/tests:
@@ -501,6 +543,9 @@ paths:
         Q-T12 (leader chốt 2026-10-31): chỉ LEARNER, giữ CSRF cookie; userId từ AuthApi.
         Id sai trả 422; topic thiếu/rỗng trả 404 TOPIC_NOT_FOUND.
         Trong transaction, advisory lock theo user/topic chỉ lúc bắt đầu; active chưa hết hạn trả 200.
+        Không active: FOR SHARE dòng topic rồi đọc tiên quyết mới nhất; chưa đủ trả 422 TOPIC_LOCKED
+        với details theo TopicLockedDetails: {lockedBy:[{id,name}]}, trước điều kiện thi/cooldown.
+        Chỉ xét tiên quyết trực tiếp, bỏ qua ID đã mất; lượt đã mở vẫn resume/nộp được.
         Không active: <4 từ trả 422 NOT_ENOUGH_WORDS + requiredWords=4;
         học dưới 80% trả 422 NOT_ENOUGH_LEARNED + learnedWords/requiredWords;
         cooldown theo T-09 trả 429 RETRY_TOO_SOON + retryAfterSeconds, đúng 10 phút được tạo mới.
@@ -517,5 +562,9 @@ paths:
         '401': { $ref: '#/components/responses/Error' }
         '403': { $ref: '#/components/responses/Error' }
         '404': { $ref: '#/components/responses/Error' }
-        '422': { $ref: '#/components/responses/Error' }
+        '422':
+          description: TOPIC_LOCKED (details.lockedBy) hoặc lỗi điều kiện bắt đầu/validation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TopicLockedError' }
         '429': { $ref: '#/components/responses/Error' }

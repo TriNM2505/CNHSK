@@ -39,7 +39,8 @@ public class GlobalExceptionHandler {
                         || exception.getCode() == ErrorCode.NON_HTTPS_LINK
                         || exception.getCode() == ErrorCode.DOMAIN_NOT_ALLOWED
                         || exception.getCode() == ErrorCode.PUBLISH_INVALID_RESOURCE
-                        || exception.getCode() == ErrorCode.EXAM_PUBLISH_INVALID)) {
+                        || exception.getCode() == ErrorCode.EXAM_PUBLISH_INVALID
+                        || exception.getCode() == ErrorCode.TOPIC_LOCKED)) {
                     body.put(key, value);
                 }
                 if (!"details".equals(key) || exception.getCode() == ErrorCode.VALIDATION_FAILED) {

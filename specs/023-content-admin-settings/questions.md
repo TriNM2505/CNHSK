@@ -126,3 +126,44 @@
   Giữ nguyên kỳ vọng 200/SUBMITTED/điểm đúng, không sửa engine hoặc nới test.
 - Gate sau rebase: targeted → hồi quy + ModuleBoundaryTest → full verify một lần;
   Testcontainers/Java 17, báo F/E/S/LINE thực tế; lỗi ngoài ngoại lệ đã duyệt phải dừng.
+
+## 2026-11-15 · G0 cổng tiên quyết chủ đề đã duyệt
+
+- Nhánh `spec/023-t07`, base `8e4c3906f9739e93221d69b5de4fabfe4a3623b8`, đúng 24 file.
+  Không chờ #195; leader xử lý thứ tự mã lỗi khi tích hợp. TOPIC_LOCKED đặt cuối trước
+  INTERNAL_ERROR; sau khi gộp #195 sẽ đứng sau EXAM_PUBLISH_INVALID/EXAM_IN_USE.
+- Predicate completed giữ đúng `bool_or(ref_type='TOPIC_TEST' AND status='SUBMITTED'
+  AND max_score>0 AND score*100>=90*max_score)`, định nghĩa một chỗ trong TopicLockQuery,
+  TopicQueryRepository tham chiếu lại. Tiên quyết trực tiếp dùng AND theo đúng user;
+  không lan khoá đệ quy theo trạng thái UI LOCKED của tiên quyết.
+- ID trong prereq_ids không tồn tại được BỎ QUA, không khoá và không trả name null;
+  LockedTopicRef.name bắt buộc. T-08 sẽ chặn ID không tồn tại khi đặt tiên quyết.
+- Danh sách giữ đúng một SQL aggregate cho toàn trang, gồm lockedBy; không N+1 hoặc cache.
+  Detail giữ query tổng hợp + words. LOCKED ưu tiên mọi trạng thái; tiến độ/best score giữ nguyên.
+- Khoá: bốn can* false, testBlockedReason=TOPIC_LOCKED, retryAvailableAt=null,
+  requiredWords theo công thức cũ. Không khoá trả lockedBy=[].
+- Start mới: FOR SHARE topic đích → SELECT tiên quyết mới nhất → tạo lượt, cùng transaction.
+  Admin UPDATE cùng row phải serialize; share trước → lượt commit rồi mới thêm tiên quyết;
+  admin trước → start đọc điều kiện mới. Không thêm khoá này cho resume.
+- Study/test active còn hạn trả 200 trước cổng. Practice POST luôn tạo mới nên phải qua cổng;
+  GET session/active, answers/finish/abandon của lượt cũ giữ nguyên. Lượt hết hạn không bypass.
+- TOPIC_LOCKED 422 trả details.lockedBy=[{id,name}]; giữ protected fields ở handler.
+  YAML 003, TopicContractTest và đủ năm test practice đọc YAML đổi cùng PR; giữ error_code string
+  và nguyên status/lỗi engine chung, không thêm enum toàn cục hoặc nới assert cũ.
+- Trước mọi Maven command xoá Env:DEBUG; Java17/Docker/Testcontainers; đo/log thời gian,
+  không assert hiệu năng theo thời gian. Targeted → hồi quy + ModuleBoundaryTest → full verify;
+  chỉ năm ngoại lệ môi trường cũ được báo kèm tên/số đo, lỗi khác dừng.
+
+### Schema lỗi topic tách khỏi ErrorResponse dùng chung — leader duyệt sửa
+
+- Lượt full verify đầu đã dừng FAILED sau 1580 test, F2/E0/S0:
+  ReferenceContractTest và ReminderContractTest. Nguyên nhân là thêm `details` vào
+  ErrorResponse của YAML 003 làm thay đổi schema mà contract 018/020 tham chiếu,
+  trong khi runtime của hai module vẫn giữ schema cũ. Giữ lịch sử lỗi này trong evidence.
+- Giữ nguyên ErrorResponse chung, không thêm details. Thêm TopicLockedError và
+  TopicLockedDetails riêng; chỉ response 422 của ba POST study-sessions,
+  practice-sessions và tests tham chiếu schema mới. Annotation TopicController dùng
+  cùng schema; TopicContractTest đối chiếu ref, field, required và lockedBy của runtime/YAML.
+- Không sửa test hoặc YAML 018/020; allowlist vẫn 24 file. Gate chạy lại:
+  targeted → ReferenceContractTest + ReminderContractTest + TopicContractTest → hồi quy
+  + ModuleBoundaryTest → full verify; xoá Env:DEBUG trước mỗi Maven command.
