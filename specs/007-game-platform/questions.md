@@ -201,3 +201,13 @@ Gate T-09: npm ci 326 package; Vitest 33/33; lint 0 lỗi; build và typecheck P
 Game Hub đọc danh mục qua client T-09. Danh mục rỗng khi registry chưa có định nghĩa; fixture sáu game chỉ dùng để test. Điểm và số ván bằng 0 được hiển thị khi có myStats. Cách chơi dùng details/summary và nút Chơi bị khoá với game không playable.
 
 Gate T-10: npm ci 326 package; Vitest 36/36; lint, typecheck và build PASS; Chrome QA 320/375/640 px với fixture local PASS, 0 lỗi runtime; gzip 74.933 byte. Gate FE chạy trên bản sao khớp từng byte trên ổ D.
+## T-11 — SCR-036 GameShell
+
+| Mã | Trạng thái | Chốt |
+|---|---|---|
+| Q-T11-01 | ANSWERED | T-11 giao GameShell và adapter round. Route thật giữ trạng thái chờ, spec 008 gắn component game. Game giả chỉ dùng trong test. |
+| Q-T11-02 | ANSWERED | Nếu mất phản hồi khi gửi đáp án, đọc GET /rounds/{id} để đối chiếu answered trước khi gửi lại. ROUND_ALREADY_SUBMITTED khi chưa nhận được RoundResult hiển thị “Ván đã kết thúc”; ROUND_EXPIRED hiển thị hết hạn; cả hai có đường về Hub. ROUND_TIME_OVER khoá nhập rồi yêu cầu finish. |
+
+Đồng hồ lấy offset serverTime − Date.now() khi nhận RoundStart hoặc RoundView. Đếm ngược tới startedAt + 3 giây và dùng deadline của server cho thời gian còn lại. Hàng đợi giữ thứ tự, một đáp án đang gửi mỗi lúc; hết giờ và hết câu dùng chung một lần tự finish. Nếu mất phản hồi finish, thao tác kiểm tra lại của người chơi đọc trạng thái ván trước khi gửi finish cho ván còn IN_PROGRESS.
+
+Gate T-11: npm ci 326 package; Vitest 45/45; lint, typecheck và build PASS; Chrome QA 320/375/640 px với fixture local PASS, 0 lỗi runtime; gzip 74.440 byte. Gate FE chạy trên bản sao khớp từng byte trên ổ D.
