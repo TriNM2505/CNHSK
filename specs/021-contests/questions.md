@@ -28,6 +28,50 @@ Test plan: AT-21 khoá trường khi CONTEST_LOCKED; khoá công bố trước e
 
 Self-check trước nộp: **Global PASS** (đúng stack/dependency/naming, type theo YAML, không sửa module/backend); **Business PASS** (role chính xác, cookie/CSRF, server quyết trạng thái/điểm, audit winners theo từng click, không persist/log email, offset VN đúng); **Safety PASS** (đúng allowlist 27 file, không xoá file/secret/Neon/migration/BE/YAML/rebase, không đụng T-08). Không TODO/FIXME hoặc test skip/only trong feature. **Gate đạt với warning lint nền ghi rõ ở trên**; T-09 giữ 🔄 chờ leader review. GitHub xác nhận #212 còn mở, đầu đúng 176507c: Draft PR base main ghi phụ thuộc #212, phần diff tổ tiên tự hết sau leader merge giữ cha; không đổi base/rebase. Leader xử lý navigation/Layouts conflict với #208/#210.
 
+## 2026-11-15 · G0 T-10 — leader duyệt đúng 3 file
+
+Nhánh `spec/021-t10`, base chính xác **50e4891821f263be02b19bbdd02f377a34518541**, sau merge #212. Đã kiểm `176507cba6843e42a84991d1f016dc37a3b93178` là ancestor, có winners. #214/T-09 do leader verify riêng, không đưa thay đổi FE vào T-10.
+
+Allowlist: **ADD** `src/test/java/com/cnhsk/contract/ContestContractTest.java`; **MODIFY** `specs/021-contests/tasks.md`, `specs/021-contests/questions.md`.
+
+Shadow plan đã duyệt: đọc constitution/constraints, 021/spec+YAML+tasks+questions, ba controller và mẫu Quiz/Community/GradingContractTest, AbstractIntegrationTest/POM/test profile. So YAML ↔ MockMvc `/v3/api-docs` ↔ RequestMappingHandlerMapping: 14 path, 16 operation, path/method/status hai chiều. Document lọc hẹp đúng root hoặc root + `/` cho `/api/public/community/contests`, `/api/community/contests`, `/api/admin/contests`; handler theo đúng package `com.cnhsk.community.contest` hoặc package con. Không lọc theo danh sách operation nguồn để giấu endpoint thừa. Giữ security filter, Testcontainers, không mock AuthApi/SettingsApi, không nối Neon.
+
+Ca âm trong cùng test: thiếu/thừa path/method/status, mất winners cả ở source và runtime, tài liệu/handler rỗng, thiếu/thừa handler, handler không khai báo method và ranh giới namespace/package. Status handler đọc từ ApiResponse gắn trên method được RequestMappingHandlerMapping đăng ký. Runtime JSON và audit mismatch ghi dưới `target/021-contest-contract/`, không commit. **Nếu có lệch thực tế thì giữ test đỏ, dừng báo danh sách lệch; không sửa controller/YAML.**
+
+Gate: ContestContractTest trước để phát hiện lệch; sau đó bộ liên quan `ContestContractTest,CommunityContractTest,*Contest*IntegrationTest,ModuleBoundaryTest,CommunityArchitectureTest`, rồi full `mvnw.cmd -B verify`/JaCoCo LINE ≥80%. Xoá Env:DEBUG trước từng Maven, TEMP ASCII riêng; lưu log/XML, F/E/S và native exit thật, không skip/nới assertion. `git diff --check`, không TODO, đúng allowlist. Xong commit đúng 3 file, push nhánh, Draft PR; không tự merge. Chưa có kết quả gate khi ghi G0.
+
+### T-10 — kiểm chứng hợp đồng đầu tiên
+
+Lượt sandbox đầu không resolve được parent POM vì mạng bị chặn, native exit 1, chưa chạy test; giữ log `target/t10-contract-first.log`. Chạy lại cùng test ngoài sandbox, đã xoá Env:DEBUG và dùng TEMP ASCII riêng: **15/F0/E0/S0**, native exit **0**, **BUILD SUCCESS**, hoàn tất `2026-11-15T18:05:11+07:00` (Maven 01:27). Inventory **source=14/16, documented=14/16, registered=14/16; mismatch=0**, bao gồm winners và toàn bộ tập status của ba phía. Ca âm đều xanh, không skip hoặc miễn assertion.
+
+Evidence: `target/t10-contract-retry.log`, XML `TEST-com.cnhsk.contract.ContestContractTest.xml`, `target/021-contest-contract/e8d72169-21f6-4e38-8603-e14e6683ac5e-{runtime,audit}.json`. Không có lệch thực tế để yêu cầu sửa controller/YAML; tiếp tục bộ liên quan và full verify theo G0. Source Java giữ nguyên sau checkpoint này.
+
+Bộ liên quan trên cùng base: **335/F0/E0/S0**, native exit **0**, **BUILD SUCCESS**, hoàn tất `2026-11-15T18:08:38+07:00` (Maven 01:54). ContestContractTest 15, CommunityContractTest 19, ModuleBoundaryTest 9, CommunityArchitectureTest 5 và đủ các integration test contest đã chọn đều xanh. Contract 021 tiếp tục source/documented/registered **14/16**, mismatch **0**. XML đối chiếu khớp tổng Maven, Java giữ nguyên SHA-256 qua lượt liên quan. Log/meta/summary và bản sao XML ở `target/t10-related*`, evidence contract có mã `3a3a7521-4c8a-4e6b-a382-7e3cf1025411`. Chưa dùng kết quả này thay full verify.
+
+### T-10 — full verify FAILED và diagnostic, chưa commit/Draft PR
+
+- Full `mvnw.cmd -B verify` với TEMP ASCII riêng: **6.602/F1/E1/S0 — FAILED**, **417 suite**, native exit **1**, Maven **30:34**, hoàn tất `2026-11-15T18:40:39+07:00`. Không skip, failure-ignore, nới assertion hoặc chạy lại full để chọn xanh. XML khớp tổng Maven; giữ nguyên toàn bộ 417 XML trong `target/t10-full-reports/` trước diagnostic.
+- Contract 021 trong chính lượt full: **15/F0/E0/S0**, **source=14/16, documented=14/16, registered=14/16, mismatch=0**. Evidence mã `ebf90510-8ca7-4436-b15b-b712f71dbbed`. Không có lệch thực tế giữa YAML, docs và handler, không sửa controller/YAML.
+- **F1:** `QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries`, assertion dòng 304: samples `[32376, 22025, 20588, 23551, 23323]` ms, p95 **32.376 > 30.000 ms**. Đây đúng assertion p95 trong năm ngoại lệ môi trường đã chốt. Kết quả xác nhận 5.000 dòng mỗi lượt đã đạt trước assertion; các assertion query-count 21/20 sau dòng 304 chưa chạy trong lượt full này. Không nhận cả method là đã qua chỉ vì thuộc danh sách ngoại lệ.
+- **E1 ngoài năm ngoại lệ:** `PlanAdminConcurrencyIntegrationTest.freeCatalogEditDoesNotBlockActualRegistrationForeignKey`, `TimeoutException` tại `whileHeld` dòng 380 (`independent.get(8, TimeUnit.SECONDS)`), gọi từ dòng 190. Không sửa test/timeout hoặc production của spec 013 ngoài allowlist, không tự thêm ngoại lệ.
+- Giữ exec full riêng `target/t10-full-jacoco.exec`, SHA-256 **620F821113D47FA7B3860D1CB7BA152E531972218D967F76361E2A1C73FC5728**. Chạy riêng `jacoco:report@report jacoco:check@check` trên **đúng exec full**, native exit **0**, mọi coverage check đạt; LINE **15.803 covered / 16.267 total = 97,147599%**. Không có warning class mismatch trong lượt coverage. Coverage PASS không biến verdict full FAILED thành xanh.
+- Diagnostic đúng **một lần**, chỉ method bị timeout, giữ nguyên source, TEMP/exec riêng: **1/F0/E0/S0**, native exit **0**, BUILD SUCCESS, Maven **32.930 s**, hoàn tất `2026-11-15T18:43:46+07:00`. Kết quả riêng không xoá E1 của full và chưa đủ để tự kết luận nguyên nhân. XML diagnostic giữ ở `target/t10-plan-diagnostic-report.xml`; XML full của lớp vẫn ở thư mục 417 report riêng, không dùng report mặc định đã bị diagnostic ghi lại để tính lại full.
+- Java giữ SHA-256 **6ADC020C89A54D9FEAEEBE364E03EA2968849504F7F85961C22DB5A8184D9297** qua related, full và diagnostic; YAML cũng giữ nguyên hash. Evidence full `target/t10-full.log`, `t10-full-meta.json`, `t10-full-result.json`, `t10-full-summary.json`, `t10-full-evidence.json`, `t10-full-line-coverage.json`, `t10-full-coverage*`, `target/site/jacoco/`; diagnostic `t10-plan-diagnostic*`. Env:DEBUG được xoá trước từng Maven. Không commit log/ảnh/exec/report.
+
+**Q-T10-01 — CHỜ LEADER:** Full gate chưa đạt vì E1 đăng ký ngoài năm ngoại lệ dù diagnostic riêng xanh. Xin chốt cho commit đúng 3 file và mở Draft PR có điều kiện (ghi rõ full FAILED, chưa đóng T-10/021), hoặc giữ nhánh chưa commit/PR chờ xử lý lỗi ở spec 013. Không tự bỏ qua E1.
+
+Self-check: **Global PASS** (Java 17, thư viện hiện có, đúng package và nguồn YAML); **Business PASS trong phạm vi AT-22** (đủ hợp đồng, không gọi nghiệp vụ winners để lấy email thật, không đổi behavior/quyền/PII); **Safety PASS** (đúng 3 file, không production/YAML/FE/dependency/migration/Neon/secret/xoá file). Backend không có Java linter riêng; diff/whitespace/TODO được kiểm trước bàn giao. **Gate full FAIL F1/E1/S0**, không đánh dấu T-10 xong, chưa commit/push/Draft PR khi ghi checkpoint này.
+
+### T-10 — leader duyệt bàn giao một lần sau checkpoint đỏ
+
+**Q-T10-01 — ĐÃ CHỐT:** Leader duyệt phương án 1: commit đúng 3 file → push → Draft PR, ghi rõ **FULL VERIFY FAILED (F1/E1 ngoài phạm vi T-10)**. Giữ nguyên toàn bộ lịch sử full và diagnostic ở trên; không sửa test 013, không nới assertion. Đây là **chấp nhận một lần cho T-10, không phải ngoại lệ thứ 6**.
+
+Leader báo base **3849089** vừa full verify xanh trên máy leader (**6.599/F0/E0/S0**); đây là kết quả do leader cung cấp, không thay cho lượt full FAILED trên nhánh T-10/base 50e4891. Lý do chấp nhận: T-10 chỉ thêm test hợp đồng, không đụng 013. Leader sẽ chạy lại full khi merge; xanh thì merge, đỏ lặp lại thì leader xử lý riêng ở 013, không chặn bàn giao T-10. Không tự rebase/merge hoặc đổi base 50e4891 đã duyệt.
+
+PR phải nêu đủ lớp/method và thông điệp: F1 `com.cnhsk.learning.content.importer.QuestionImportIntegrationTest.NFR_P04_fiveThousandQuestionsMeetTheThirtySecondConfirmBudgetAndUseBatchedPreviewQueries`, `java.lang.AssertionError`, `Expecting actual: 32376L to be less than: 30000L`, testcase **127,781 s**; E1 `com.cnhsk.learning.credit.PlanAdminConcurrencyIntegrationTest.freeCatalogEditDoesNotBlockActualRegistrationForeignKey`, `java.util.concurrent.TimeoutException` (không có message riêng), chờ future **8 s**, testcase full **10,338 s**. Full từ `18:10:02.383+07:00` đến `18:40:39.532+07:00`, Maven 30:34. Chỉ E1 đã chạy diagnostic riêng: **1/F0/E0/S0**, testcase **1,343 s**, tổng Maven **32.930 s**, kết thúc `18:43:46.606+07:00`; không có lượt chạy riêng F1. Không dùng diagnostic hoặc coverage để đổi verdict full.
+
+Self-check bàn giao: **Global/Business/Safety PASS trong scope**; Java/YAML/exec full giữ nguyên hash và chỉ 3 file được stage/commit. **Full vẫn FAILED**, bàn giao Draft theo chấp nhận một lần đã nêu, T-10 giữ 🔄 chờ leader review/merge; không tự đánh dấu 021 đóng 10/10.
+
 ## 2026-11-14 · G0 T-08 — leader duyệt
 
 | # | Câu hỏi | Quyết định | Trạng thái |
