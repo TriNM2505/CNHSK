@@ -60,9 +60,7 @@ public class AssistantPromptBuilder {
             Map.entry("SCR-051", "Kết quả cuộc thi"),
             Map.entry("SCR-053", "Tài liệu nghe nhìn"),
             Map.entry("SCR-054", "Danh mục sách tham khảo"),
-            Map.entry("SCR-055", "Chi tiết sách tham khảo"),
-            Map.entry("SCR-056", "Hàng đợi chấm bài"),
-            Map.entry("SCR-057", "Chấm bài viết"));
+            Map.entry("SCR-055", "Chi tiết sách tham khảo"));
 
     private final HelpLibrary help;
     private final PiiMasker masker;
