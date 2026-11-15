@@ -35,7 +35,7 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-14 | Xác nhận FE SCR-030/031/073/074/075 gọi API thật; mở menu học viên và ba mục tài chính ADMIN; kiểm responsive; chạy lại năm `Credit*ContractTest` hiện có, không thêm Java test | `web/shared/layout/{AccountMenu.tsx,navigation.ts,Layouts.test.tsx}`, `web/features/credits/routes.test.tsx`, `tasks.md`, `questions.md` | §13 · AT-22…AT-27; QA bằng mock | chờ review — FE 2819/F0/S0, lint 0 error/1 warning cũ, build PASS; contract 18/F0/E0/S0; QA mobile 320/375/640 px PASS; chi tiết/quan sát desktop trong questions.md |
+| T-14 | Xác nhận FE SCR-030/031/073/074/075 gọi API thật; mở menu học viên và ba mục tài chính ADMIN; kiểm responsive; chạy lại năm `Credit*ContractTest` hiện có, không thêm Java test | `web/shared/layout/{AccountMenu.tsx,navigation.ts,Layouts.test.tsx}`, `web/features/credits/routes.test.tsx`, `tasks.md`, `questions.md` | §13 · AT-22…AT-27; QA bằng mock | ✅ MERGED — PR #200, a22e0fd; leader verify vitest 2819/2819, lint/build PASS |
 
 ## Thứ tự thực thi
 
@@ -58,6 +58,6 @@ T-06 → T-13
 
 **Bốn task rủi ro cao:** T-08 (một mã một lần dưới tải đồng thời, không lộ mã) · T-06 (sửa `AuthApi` của 001, khoá dòng `users`) · T-12 (không trừ hai lần, không âm) · T-11 (audit đọc, che email).
 
-**Hiện trạng: 13/14 task đã merge (T-01…T-13). Còn T-14; sau khi merge là 14/14.**
+**Hiện trạng: 14/14 task đã merge — spec 013 hoàn tất (T-14 PR #200, a22e0fd).**
 
 Lịch sử G1 Fix1/2 T-08: SPEC-014/T-14 đã merge PR #135 tại main 9510643; TranslationService đã sử dụng Entitlement API. Regression T-09 bao gồm caller translation, các kiểm tra 503/402 hiện có và practice/review suites đã merge ở base mới. Không dùng evidence T-08 để thay thế verification T-09.
