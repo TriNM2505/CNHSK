@@ -11,9 +11,9 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-01 | **⚿K8** `V9__contest_attempt_unique.sql`; `PracticeSource.CONTEST` (thêm cuối) + `PracticeApi`; `ActiveTestApi`/`existsActiveTest` thêm `CONTEST`; `EvidenceAllocator` bỏ qua `CONTEST`; interface `learning.api.ContestAttemptApi` + record (§10) chưa cài | `src/main/resources/db/migration/V9__…`, `…/learning/practice/PracticeSource.java`, `…/learning/api/{PracticeApi,ContestAttemptApi}.java`, `AttemptRepository.java`, `EvidenceAllocator.java`, `docs/reference/database.md` + test | FR-001, FR-008, §0.2, §10 · AT-01, AT-13 | ⬜ |
-| T-02 | `ContestHandler` + cài `ContestAttemptApi.start/countAttempts/submit/exam` (khoá tư vấn, resume, câu chụp từ đề `DRAFT`, `ttlOverride`, ân hạn); chặn finish/abandon chung → `CONTEST_SUBMIT_REQUIRED` | `…/learning/contest/*`, `…/learning/practice/web/PracticeController.java` hoặc `PracticeService`, `ErrorCode.java` + test | FR-002…FR-005 · AT-02…AT-04, AT-06, AT-07 | ⬜ |
-| T-03 | `ContestAttemptApi.myAttempt/ranking/rankOf/participants/setExcluded` (SQL theo `ix_att_ref_rank`) | `…/learning/contest/*` + test | FR-006, FR-007 · AT-11, AT-12 (phần learning) | ⬜ |
+| T-01 | **⚿K8** `V9__contest_attempt_unique.sql`; `PracticeSource.CONTEST` (thêm cuối) + `PracticeApi`; `ActiveTestApi`/`existsActiveTest` thêm `CONTEST`; `EvidenceAllocator` bỏ qua `CONTEST`; interface `learning.api.ContestAttemptApi` + record (§10) chưa cài | `src/main/resources/db/migration/V9__…`, `…/learning/practice/PracticeSource.java`, `…/learning/api/{PracticeApi,ContestAttemptApi}.java`, `AttemptRepository.java`, `EvidenceAllocator.java`, `docs/reference/database.md` + test | FR-001, FR-008, §0.2, §10 · AT-01, AT-13 | ✅ MERGED — PR #176 |
+| T-02 | `ContestHandler` + cài `ContestAttemptApi.start/countAttempts/submit/exam` (khoá tư vấn, resume, câu chụp từ đề `DRAFT`, `ttlOverride`, ân hạn); chặn finish/abandon chung → `CONTEST_SUBMIT_REQUIRED` | `…/learning/contest/*`, `…/learning/practice/web/PracticeController.java` hoặc `PracticeService`, `ErrorCode.java` + test | FR-002…FR-005 · AT-02…AT-04, AT-06, AT-07 | ✅ MERGED — PR #191, ec3f865 |
+| T-03 | `ContestAttemptApi.myAttempt/ranking/rankOf/participants/setExcluded` (SQL theo `ix_att_ref_rank`) | `…/learning/contest/*` + test | FR-006, FR-007 · AT-11, AT-12 (phần learning) | 🔄 |
 
 ## Đợt 2 · Backend `community`
 
@@ -28,7 +28,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-08 | FE người học SCR-048…051 (danh sách, chi tiết, làm bài có đồng hồ server + tự nộp + resume, kết quả); route `by-role`/`learner`; `SCREEN_NAMES` 4 màn + `AssistantPromptBuilderTest`; ẩn trợ lý ở SCR-050 (**báo Đạt — 015**); mục "Cuộc thi" nhóm Cộng đồng | `web/features/contests/**`, `web/app/routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts`, `web/features/assistant/components/AssistantHost.tsx`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-015, FR-016 · AT-20 | ⬜ |
+| T-08 | FE người học SCR-048…051 (danh sách, chi tiết, làm bài có đồng hồ server + tự nộp + resume, kết quả); route `by-role`/`learner`; `SCREEN_NAMES` 4 màn + `AssistantPromptBuilderTest`; ẩn trợ lý ở SCR-050 (**báo Đạt — 015**); mục "Cuộc thi" nhóm Cộng đồng | `web/features/contests/**`, `web/app/routeAccess.ts`, `screenRegistry.ts`, `web/shared/layout/navigation.ts`, `web/features/assistant/components/AssistantHost.tsx`, `…/learning/assistant/AssistantPromptBuilder.java` + test | FR-015, FR-016 · AT-20 | ✅ MERGED — PR #186 |
 | T-09 | FE ban tổ chức SCR-070/071 (form giờ VN, khoá trường, bảng thí sinh, công bố, liên hệ người đạt giải) | `web/features/contest-admin/**`, `routeAccess.ts`, `screenRegistry.ts` + test | FR-025, FR-026 · AT-21 | ⬜ |
 | T-10 | Test hợp đồng `/v3/api-docs` so `openapi-contests.yaml` (hai chiều path + method + status) | `t/contract/ContestContractTest.java` | §13 · AT-22 | ⬜ |
 

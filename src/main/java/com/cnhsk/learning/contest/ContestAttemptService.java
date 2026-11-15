@@ -7,8 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.cnhsk.learning.api.ContestAttemptApi;
+import com.cnhsk.learning.api.ContestAttemptApi.ContestParticipant;
 import com.cnhsk.learning.api.ContestAttemptApi.ContestSession;
 import com.cnhsk.learning.api.ContestAttemptApi.ExamSummary;
+import com.cnhsk.learning.api.ContestAttemptApi.MyContestAttempt;
+import com.cnhsk.learning.api.ContestAttemptApi.RankingPage;
 import com.cnhsk.learning.api.PracticeApi;
 import com.cnhsk.learning.contest.ContestRepository.ContestAttempt;
 import com.cnhsk.learning.practice.PracticeService;
@@ -27,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-public class ContestAttemptService {
+public class ContestAttemptService implements ContestAttemptApi {
     private final ContestRepository contests;
     private final PracticeService practice;
     private final PracticeApi practiceApi;
@@ -45,6 +49,7 @@ public class ContestAttemptService {
         this.transactions = new TransactionTemplate(transactionManager);
     }
 
+    @Override
     public ContestSession start(long userId, long contestId, long examId, Instant deadline) {
         int grace = settings.getInt(SettingKey.CONTEST_SUBMIT_GRACE_SECONDS);
         return transactions.execute(status -> {
@@ -76,11 +81,13 @@ public class ContestAttemptService {
         });
     }
 
+    @Override
     @Transactional(readOnly = true)
     public long countAttempts(long contestId) {
         return contests.countAttempts(contestId);
     }
 
+    @Override
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Instant submit(long userId, long contestId) {
         ContestAttempt attempt = contests.attempt(userId, contestId).orElseThrow(() -> new ApiException(
@@ -97,6 +104,44 @@ public class ContestAttemptService {
         return contests.attempt(userId, contestId).orElseThrow().submittedAt();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<MyContestAttempt> myAttempt(long userId, long contestId) {
+        return contests.myAttempt(userId, contestId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RankingPage ranking(long contestId, int page, int size) {
+        if (page < 0 || size < 1 || size > 50) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Tham số phân trang không hợp lệ.", Map.of());
+        }
+        return contests.ranking(contestId, page, size);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Long> rankOf(long userId, long contestId) {
+        return contests.rankOf(userId, contestId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ContestParticipant> participants(long contestId) {
+        return contests.participants(contestId);
+    }
+
+    @Override
+    @Transactional
+    public void setExcluded(long contestId, long userId, boolean excluded) {
+        if (!contests.setExcluded(contestId, userId, excluded)) {
+            throw new ApiException(ErrorCode.CONTEST_NOT_FOUND, HttpStatus.NOT_FOUND,
+                    "Không tìm thấy lượt thi đã nộp.", Map.of());
+        }
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<ExamSummary> exam(long examId) {
         return contests.exam(examId).map(exam -> new ExamSummary(exam.id(), exam.title(), exam.status(),
