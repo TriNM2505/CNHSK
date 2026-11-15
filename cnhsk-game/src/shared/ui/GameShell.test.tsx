@@ -21,7 +21,13 @@ const fixture: RoundStart = {
   timeLimitSeconds: 5,
   pointsPerCorrect: 10,
   uiConfig: { label: 'Fixture game' },
-  items: [1, 2].map((no) => ({ no, type: 'MEANING_CHOICE', prompt: {} })),
+  items: [1, 2].map((no) => ({
+    no,
+    type: 'MEANING_CHOICE',
+    skill: 'VOCAB',
+    prompt: {},
+    rules: { minDurationMs: 300, maxReplays: 0, hasAudio: false },
+  })),
 }
 const result = {
   roundId: 42,
@@ -85,6 +91,28 @@ function advance(ms: number) {
 }
 
 const paths = () => fetchMock.mock.calls.map(([path]) => path)
+
+it('passes the server option text and key through to the game', async () => {
+  fetchMock
+    .mockResolvedValueOnce(
+      json({
+        ...fixture,
+        items: fixture.items.map((item) => ({
+          ...item,
+          options: [{ key: 'B', text: 'Đáp án mẫu từ server' }],
+        })),
+      }),
+    )
+    .mockResolvedValueOnce(score(1))
+  show()
+  await press('Bắt đầu')
+  await advance(3200)
+  await press('Trả lời 1 · Đáp án mẫu từ server')
+  expect(fetchMock).toHaveBeenLastCalledWith(
+    round + '/answers',
+    expect.objectContaining({ body: expect.stringContaining('"answer":"B"') }),
+  )
+})
 
 it.each([undefined, 9])('uses the route HSK level %s on round creation', async (level) => {
   fetchMock.mockResolvedValueOnce(json(fixture))

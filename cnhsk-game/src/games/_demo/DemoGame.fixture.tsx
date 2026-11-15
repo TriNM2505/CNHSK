@@ -9,9 +9,9 @@ export function DemoGame({ items, uiConfig, submitAnswer }: GameProps) {
           type="button"
           key={item.no}
           className="min-h-touch rounded-sm border border-line px-3"
-          onClick={() => submitAnswer(item.no, 'A')}
+          onClick={() => submitAnswer(item.no, item.options?.[0]?.key ?? 'A')}
         >
-          Trả lời {item.no}
+          {'Trả lời ' + item.no + (item.options?.[0] ? ' · ' + item.options[0].text : '')}
         </button>
       ))}
     </div>

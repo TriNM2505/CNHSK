@@ -3,11 +3,11 @@ import { apiRequest } from './client'
 export type ServedItem = {
   no: number
   type: string
-  skill?: string
+  skill: string
   lexemeId?: number | null
   prompt: Record<string, unknown>
-  options?: { key: string; label: string }[] | null
-  rules?: Record<string, unknown>
+  options?: { key: string; text: string }[]
+  rules: { minDurationMs: number; maxReplays: number; hasAudio: boolean }
 }
 
 export type RoundStart = {
