@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, KeyRound, LogOut, UserRound } from 'lucide-react'
+import { Bell, ChevronDown, KeyRound, LogOut, UserRound, Wallet } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { CurrentUser, RoleCode } from '@/features/auth/types'
@@ -78,6 +78,12 @@ export function AccountMenu({ inverse = false }: AccountMenuProps) {
             <Link className={itemClasses} to="/me/reminders">
               <Bell aria-hidden="true" className="size-4" />
               Nhắc lịch học
+            </Link>
+          ) : null}
+          {hasLearnerArea ? (
+            <Link className={itemClasses} to="/account/credits">
+              <Wallet aria-hidden="true" className="size-4" />
+              Gói dịch vụ và điểm
             </Link>
           ) : null}
           <Link className={itemClasses} to="/me/password">

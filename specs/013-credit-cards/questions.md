@@ -1,3 +1,53 @@
+## 15/11/2026 — T-14 G0 được Leader duyệt; mở lại menu tài chính
+
+- T-14 mở lại menu tài chính đã ẩn từ #61 vì backend 013 đã đủ. Gộp menu học viên "Gói dịch vụ và điểm" vào cùng task/PR. Thứ tự mới: 013/T-14 → 021/T-03 → 021/T-04; 021/T-03 chưa có nhánh/PR là bình thường.
+- Nhánh `spec/013-t14`, base cố định `0fab09a0bd0905b654d80376366c2b45646b76e7`. Exact allowlist 6 MODIFY/0 ADD: `shared/layout/AccountMenu.tsx`, `shared/layout/navigation.ts`, `shared/layout/Layouts.test.tsx`, `features/credits/routes.test.tsx` (đều dưới `cnhsk-web/src/`), cùng `specs/013-credit-cards/tasks.md` và file này. Không merge/rebase/pull main về sau.
+- AccountMenu chỉ hiện mục `/account/credits` khi có role LEARNER, cùng nhóm hồ sơ/nhắc lịch; không thêm vào userAreas hoặc thanh học tập. Ba mục ADMIN: Lô mã thẻ (`/admin/card-batches`, mobile "Lô thẻ"), Gói dịch vụ (`/admin/plans`, "Gói"), Sổ cái điểm (`/admin/ledger`, "Sổ cái"). Icon Wallet/CreditCard/Layers/ReceiptText đã kiểm có export trong lucide-react hiện hữu. Nhãn mobile cũ giữ nguyên trừ khi QA 320 px chứng minh tràn.
+- Giữ toàn bộ guard/redirect, `routeAccess.ts`, BE, YAML, migration và dependency. Không viết thêm test hợp đồng Java. Ba ca menu cũ trong credits/routes.test.tsx chuyển sang kiểm ADMIN thấy menu; các role khác vẫn không thấy.
+
+### Bảng so khớp tĩnh FE ↔ BE ↔ YAML trên base
+
+Nguồn: `features/credits/types.ts`, bốn `api/*.ts`; `learning/credit/web/*.java`, `learning/api/PaidFeature.java`; `contracts/openapi-credit.yaml`. Các field optional/nullable theo YAML; Java Instant thành chuỗi ISO, integer/int64 thành number ở FE, giá niêm yết giữ string.
+
+| Type/nhóm | FE ↔ BE ↔ YAML | Kết luận |
+|---|---|---|
+| CardType / Channel | CREDIT, SUBSCRIPTION / ECOSYSTEM_GIFT, PARTNER_BATCH, DIRECT | Khớp |
+| PlanCode / PaidFeature | FREE, PREMIUM, PREMIUM_PLUS / AI_GENERATE, TRANSLATE, ASSISTANT, GRADING | Khớp |
+| TransactionType | TOPUP, DEDUCT, REFUND, ADJUSTMENT, TEACHER_PAYOUT, SUBSCRIPTION | Khớp |
+| RedeemRequest / PlanStatus / RedeemResult | code / code,name,expiresAt,active / cardType,amount,balance,plan | Khớp; expiresAt nullable |
+| Wallet / QuotaLine | balance,plan,quota,resetAt / feature,limit,used,remaining | Khớp |
+| Transaction | seq,type,amount,balanceBefore,balanceAfter,featureCode,reason,createdAt | Khớp runtime; featureCode/reason optional-nullable |
+| TransactionPage / BatchPage / LedgerPage | items,page,size,total; items dùng đúng loại dòng | Khớp |
+| CreateBatchRequest | cardType,value,planDays,quantity,channel,partnerCode,campaign,issuedTo,expiresAt | Khớp; field điều kiện và nullable giữ nguyên |
+| CreatedBatch / VoidResult | batchId,codes / batchId,voided | Khớp |
+| BatchSummary | batchId,cardType,value,planDays,channel,partnerCode,campaign,issuedTo,expiresAt,total,unused,used,voided,createdAt,createdByName | Khớp |
+| PlanView / PlanUpdateRequest / Benefits | Đúng 9 field view và 6 field request; price string, map chỉ bốn PaidFeature, không bắt buộc đủ khoá | Khớp |
+| LedgerRow / LedgerPage.totals | id,userId,maskedEmail,seq,type,amount,balanceBefore,balanceAfter,featureCode,reason,createdAt / count,credited,debited | Khớp |
+| Reconciliation / ReconciliationIssue | users,rows,totalBalance,totalAmount,issues / userId,maskedEmail,seq,kind; SEQ_GAP,BALANCE_CHAIN_BROKEN,FIRST_BALANCE_NOT_ZERO | Khớp |
+| API client | Đủ 12 operation đúng URL/method; phân trang 0/20, from/to là ngày; ghi dùng CSRF; CSV nhận Blob | Khớp kiểm tra tĩnh; test transport hiện hữu chạy trong gate FE |
+
+Không có lệch type runtime mới. Debt nullable đã được Leader duyệt từ T-09 giữ nguyên: generated `Transaction.featureCode` là exact `{"type":"null","$ref":"#/components/schemas/PaidFeature"}`, YAML là oneOf(PaidFeature,null). Không sửa BE/YAML hoặc nới pin hiện hữu; năm Credit*ContractTest xác nhận lại.
+
+### Gate và QA T-14
+
+Đã chạy tuần tự trên source cuối, mọi lệnh native exit 0. PowerShell dùng `npm.cmd`/`npx.cmd` vì execution policy chặn shim `.ps1`; không đổi policy hoặc dependency.
+
+| Gate | Kết quả |
+|---|---|
+| npm ci | PASS; 333 package theo lockfile |
+| npx vitest run | PASS; 210 file, 2.819 test, 0 fail/0 skip, 174,25 giây; không chạy lại ca chập chờn |
+| Phần menu/transport trong lượt full FE | Layouts 32, credits/routes 61, credits/api/client-integration 20 test PASS; guard/redirect giữ nguyên |
+| npm run lint | PASS; 0 error, 1 warning có sẵn tại shared/ui/LevelBadge.tsx:6 (react-refresh/only-export-components) |
+| npm run build | PASS; TypeScript và Vite 5.4.21, 2.290 module, Vite 6,50 giây |
+| Bỏ Env:DEBUG rồi mvnw.cmd -B "-Dtest=Credit*ContractTest" test | BUILD SUCCESS; 18/F0/E0/S0, 1 phút 58 giây; XML xác nhận đúng 5 suite: CardBatch 5, Ledger 4, Plan 4, Redeem 3, Wallet 2 |
+
+- Không full verify vì không sửa Java. Debt nullable giữ nguyên pin; không phát sinh lệch hợp đồng mới. Test contract dùng hạ tầng test riêng hiện hữu, không dùng Neon.
+- **QA bằng mock:** Chrome headless chạy bản production build, server chỉ bind loopback, mock đúng các URL API thật bằng fixture bịa hiện hữu. Viewport mobile có vùng nội dung đúng 320/375/640 CSS px: 31 phép đo (năm màn × ba cỡ × menu tài khoản đóng/mở, cộng trạng thái phát hành mã), `scrollWidth = clientWidth`, độ tràn ngang lớn nhất 0 px. ADMIN nhiều role có đủ 8 mục ở 320/375 px; 640 px chuyển sidebar. Nhãn mới nằm trong cột của mình, giữ nguyên mọi nhãn mobile cũ.
+- Luồng mock PASS: nạp mã +100 rồi mở lịch sử; tạo lô, tải CSV, khoá mã chưa dùng, tải lại trang mất mã thô; lưu FREE; lọc/xuất sổ cái và hiện ba loại lỗi đối chiếu; user chỉ ADMIN không thấy mục ví học viên. Kiểm request ghi có CSRF; localStorage/sessionStorage rỗng sau các màn, không exception JavaScript. Đây không phải QA giao dịch với backend thật.
+- Quan sát riêng khi resize **desktop Windows** thành cửa sổ 320 px: scrollbar cổ điển chiếm 15 px, clientWidth còn305 trong khi CSS nền `styles/index.css:20` vốn đặt min-width320, nên có cuộn ngang15px. Giữ nguyên CSS nền ngoài allowlist; không nhầm trường hợp này với viewport mobile320. Lượt đo desktop và ảnh gốc vẫn giữ ở thư mục tạm, không gọi là PASS không tràn. QA mobile sau đó dùng điều kiện nghiêm `scrollWidth ≤ clientWidth` và `clientWidth = viewport yêu cầu`.
+- Evidence local ngoài commit: `%TEMP%/cnhsk-013-t14-vitest.log`, `%TEMP%/cnhsk-013-t14-contract.log`, `target/surefire-reports/TEST-*Credit*ContractTest.xml`; ảnh và JSON QA mobile ở `%TEMP%/cnhsk-013-t14-qa/mobile/`, quan sát desktop ở thư mục cha. Không commit log, ảnh, script QA hoặc CSV tải xuống.
+- Self-check: PASS — exact6 MODIFY/0 ADD; không dependency/BE/YAML/migration/routeAccess; không secret/PII thật/mã thẻ thật; không storage mã/sổ cái; không TODO mới; không sửa API hoặc quy tắc quyền. T-11/T-13 đã ghi đúng merge; T-14 chờ review và tổng merge vẫn13/14. G3 theo quyền Leader: stage từng path, conventional commit không mã task/FR, push nhánh không force, Draft PR; không Ready/merge/push main.
+
 ## 15/11/2026 — T13 DEBUG recovery và verification đến G3
 
 - Leader xác nhận bốn failures regression trước do biến môi trường shell `DEBUG`, không phải source T13; cho phép recovery không sửa Java/YAML/tests. Trong chính PowerShell launcher/helper chạy Maven đã `Remove-Item Env:DEBUG`, assert không còn, và xác minh DEBUG vắng mặt trong ProcessStartInfo child environment ngay trước launch; không sửa biến User/Machine hoặc log giá trị cũ. Base `a1d39fd417865f02ca17788b401bb135f1d185ec`, exact9, Q1-A/Q2-A giữ nguyên; source runtime khớp freeze gốc.

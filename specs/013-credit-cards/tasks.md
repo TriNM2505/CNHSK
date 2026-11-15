@@ -27,15 +27,15 @@ File dùng chung (spec §0.4) phải nêu trong Shadow Plan từng task.
 | T-08 | Nạp mã: chặn sai (`RateLimiter`), `UPDATE` nguyên tử, `TOPUP`/`SUBSCRIPTION` + gia hạn, lọc mã khỏi log request; mã `INVALID_CARD_CODE`; matcher `LEARNER` trước `/api/me/**`; **test 10 request song song** | `…/learning/credit/RedeemService.java`, `…/credit/web/WalletController.java`, `SecurityConfig.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-009…FR-012 · AT-08…AT-11 | ✅ MERGED — PR #137, merge 09ea06a, head f3f1113; Leader xác nhận. Giữ toàn bộ lịch sử Full Verify 4213/F4/E0/S0 FAILED/exit1 và JaCoCo đã nghiệm thu trong questions/evidence. |
 | T-09 | `GET /api/me/credits`, `GET /api/me/credit-transactions`; dùng lại matcher LEARNER hiện có | `…/learning/credit/WalletQueryService.java`, `WalletController.java`, bốn record view; `AuthApi`/`AuthApiService` và tests theo exact allowlist | FR-001, FR-004, FR-013, FR-014, FR-022 · AT-12, AT-13 | ✅ MERGED — PR #147, merge commit 7054115; Leader xác nhận Integrated Verify4306/F0/E0/S0 BUILD SUCCESS, JaCoCo đạt. Giữ toàn bộ G1 FAILED/UNKNOWN history trong questions/evidence. |
 | T-10 | Gói: `GET /api/admin/plans`, `PUT /{code}` + audit; mã `PLAN_IN_USE` | `…/learning/credit/PlanAdminService.java`, `…/credit/web/PlanAdminController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest`; Q1#2 thêm AuthApiService/AuthPlanApiIntegrationTest | FR-015, FR-016 · AT-14 | ✅ MERGED — PR #174, merge d9dfc2f; leader full verify 5205/F0/E0/S0 |
-| T-11 | Sổ cái: danh sách + tổng, xuất CSV, đối chiếu (`LAG`), audit đọc; mã `EXPORT_TOO_LARGE` | `…/learning/credit/{LedgerQueryService,ReconciliationService}.java`, `…/credit/web/LedgerAdminController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-017…FR-019 · AT-15…AT-17 | chờ review |
+| T-11 | Sổ cái: danh sách + tổng, xuất CSV, đối chiếu (`LAG`), audit đọc; mã `EXPORT_TOO_LARGE` | `…/learning/credit/{LedgerQueryService,ReconciliationService}.java`, `…/credit/web/LedgerAdminController.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-017…FR-019 · AT-15…AT-17 | ✅ MERGED — PR #196, a1d39fd |
 | T-12 | `learning.api.EntitlementApi` + `PaidFeature` + `Consumption` + `EntitlementService` (hạn mức → điểm → chặn, idempotency Redis, hoàn); mã `INSUFFICIENT_CREDITS` | `…/learning/api/{EntitlementApi,PaidFeature,Consumption}.java`, `…/learning/credit/EntitlementService.java`, `ErrorCode.java`, `GlobalExceptionHandlerTest` | FR-020…FR-022 · AT-18…AT-20 | ✅ MERGED — PR #134, main 95f401f; giữ G1/G2 FAILED history trong questions/evidence |
-| T-13 | `PlanMaintenance` job hạ gói hết hạn (cron cấu hình, test đặt `-`) | `…/learning/credit/PlanMaintenance.java`, `application.yaml` + test | FR-023 · AT-21 | chờ review — regression462/F0/native0; Full6094/F2 FAILED/native1 chỉ whitelist; LINE97.056%, Leader duyệt G3 |
+| T-13 | `PlanMaintenance` job hạ gói hết hạn (cron cấu hình, test đặt `-`) | `…/learning/credit/PlanMaintenance.java`, `application.yaml` + test | FR-023 · AT-21 | ✅ MERGED — PR #199, 0fab09a |
 
 ## Đợt 3 · Nối thật
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-14 | FE SCR-030/031/073/074/075 gọi backend thật; sửa lệch contract (lệch thì dừng báo leader); test hợp đồng `/v3/api-docs` so `openapi-credit.yaml` (path + status) | `web/features/credits/**`, `t/contract/CreditContractTest.java` | §13 · AT-22…AT-27 chạy với API thật | ⬜ |
+| T-14 | Xác nhận FE SCR-030/031/073/074/075 gọi API thật; mở menu học viên và ba mục tài chính ADMIN; kiểm responsive; chạy lại năm `Credit*ContractTest` hiện có, không thêm Java test | `web/shared/layout/{AccountMenu.tsx,navigation.ts,Layouts.test.tsx}`, `web/features/credits/routes.test.tsx`, `tasks.md`, `questions.md` | §13 · AT-22…AT-27; QA bằng mock | chờ review — FE 2819/F0/S0, lint 0 error/1 warning cũ, build PASS; contract 18/F0/E0/S0; QA mobile 320/375/640 px PASS; chi tiết/quan sát desktop trong questions.md |
 
 ## Thứ tự thực thi
 
@@ -58,6 +58,6 @@ T-06 → T-13
 
 **Bốn task rủi ro cao:** T-08 (một mã một lần dưới tải đồng thời, không lộ mã) · T-06 (sửa `AuthApi` của 001, khoá dòng `users`) · T-12 (không trừ hai lần, không âm) · T-11 (audit đọc, che email).
 
-**Hiện trạng: 11/14 task đã merge (T-01…T-10 và T-12). Còn T-11, T-13, T-14.**
+**Hiện trạng: 13/14 task đã merge (T-01…T-13). Còn T-14; sau khi merge là 14/14.**
 
 Lịch sử G1 Fix1/2 T-08: SPEC-014/T-14 đã merge PR #135 tại main 9510643; TranslationService đã sử dụng Entitlement API. Regression T-09 bao gồm caller translation, các kiểm tra 503/402 hiện có và practice/review suites đã merge ở base mới. Không dùng evidence T-08 để thay thế verification T-09.

@@ -15,6 +15,13 @@ const learner: CurrentUser = {
   roles: ['LEARNER'],
 }
 
+const financialLinks = [
+  { label: 'Lô mã thẻ', mobileLabel: 'Lô thẻ', to: '/admin/card-batches' },
+  { label: 'Gói dịch vụ', mobileLabel: 'Gói', to: '/admin/plans' },
+  { label: 'Sổ cái điểm', mobileLabel: 'Sổ cái', to: '/admin/ledger' },
+] as const
+const financialLabels = financialLinks.map(({ label }) => label)
+
 function LocationValue() {
   const location = useLocation()
   return <output aria-label="Đường dẫn hiện tại">{location.pathname}</output>
@@ -298,13 +305,14 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(5)
+      expect(within(navigation).getAllByRole('link')).toHaveLength(8)
       for (const label of [
         'Nhập dữ liệu',
         'Người dùng',
         'Bài chờ duyệt',
         'Báo cáo vi phạm',
         'Tài nguyên tham khảo',
+        ...financialLabels,
       ])
         expect(within(navigation).getByRole('link', { name: label })).toBeInTheDocument()
       expect(within(navigation).getByRole('link', { name: 'Báo cáo vi phạm' })).toHaveAttribute(
@@ -324,9 +332,21 @@ describe('AdminLayout', () => {
     },
   )
   it.each([
-    [['CONTENT_EDITOR'], ['Nhập dữ liệu', 'Tài nguyên tham khảo'], ['Người dùng']],
-    [['ADMIN'], ['Người dùng'], ['Nhập dữ liệu', 'Tài nguyên tham khảo']],
-    [['CONTENT_EDITOR', 'ADMIN'], ['Nhập dữ liệu', 'Người dùng', 'Tài nguyên tham khảo'], []],
+    [
+      ['CONTENT_EDITOR'],
+      ['Nhập dữ liệu', 'Tài nguyên tham khảo'],
+      ['Người dùng', ...financialLabels],
+    ],
+    [['ADMIN'], ['Người dùng', ...financialLabels], ['Nhập dữ liệu', 'Tài nguyên tham khảo']],
+    [['MODERATOR'], ['Bài chờ duyệt', 'Báo cáo vi phạm'], ['Người dùng', ...financialLabels]],
+    [['TEACHER'], [], ['Người dùng', ...financialLabels]],
+    [['LEARNER'], [], ['Người dùng', ...financialLabels]],
+    [['ACCOUNTANT'], [], ['Người dùng', ...financialLabels]],
+    [
+      ['CONTENT_EDITOR', 'ADMIN'],
+      ['Nhập dữ liệu', 'Người dùng', 'Tài nguyên tham khảo', ...financialLabels],
+      [],
+    ],
   ] as const)('shows only the areas granted by exact roles %j', (roles, visible, hidden) => {
     renderLayout(<AdminLayout>Nội dung quản trị</AdminLayout>, {
       initialPath: roles.some((role) => role === 'ADMIN') ? '/admin/users' : '/content/imports',
@@ -341,6 +361,29 @@ describe('AdminLayout', () => {
       expect(within(navigation).queryByRole('link', { name: label })).not.toBeInTheDocument(),
     )
   })
+
+  it.each(financialLinks)(
+    'opens $to and marks its prefixes active on desktop and mobile',
+    async ({ label, mobileLabel, to }) => {
+      renderLayout(<AdminLayout>Nội dung tài chính</AdminLayout>, {
+        initialPath: `${to}/detail`,
+        user: { ...learner, roles: ['ADMIN'] },
+      })
+      for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
+        const navigation = within(screen.getByRole('navigation', { name }))
+        const link = navigation.getByRole('link', { name: label })
+        expect(link).toHaveAttribute('href', to)
+        expect(link).toHaveAttribute('aria-current', 'page')
+        if (name === 'Quản trị trên thiết bị di động') expect(link).toHaveTextContent(mobileLabel)
+      }
+      await userEvent.click(
+        within(screen.getByRole('navigation', { name: 'Quản trị' })).getByRole('link', {
+          name: label,
+        }),
+      )
+      expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent(to)
+    },
+  )
 })
 
 describe('RoleLayout', () => {
@@ -367,6 +410,28 @@ describe('RoleLayout', () => {
 })
 
 describe('AccountMenu area switching', () => {
+  it.each([
+    { roles: ['LEARNER'], visible: true },
+    { roles: ['LEARNER', 'ADMIN'], visible: true },
+    { roles: ['ADMIN'], visible: false },
+  ] as const)('shows credits only when LEARNER is assigned: $roles', async ({ roles, visible }) => {
+    renderLayout(<PublicLayout>Nội dung</PublicLayout>, {
+      user: { ...learner, roles: [...roles] },
+    })
+    await userEvent.click(document.querySelector('summary')!)
+    if (visible) {
+      const link = screen.getByRole('link', { name: 'Gói dịch vụ và điểm' })
+      expect(link).toBeVisible()
+      expect(link).toHaveAttribute('href', '/account/credits')
+      await userEvent.click(link)
+      expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent(
+        '/account/credits',
+      )
+    } else {
+      expect(screen.queryByRole('link', { name: 'Gói dịch vụ và điểm' })).not.toBeInTheDocument()
+    }
+  })
+
   it('shows all exact areas for LEARNER plus ADMIN and lets the user switch', async () => {
     const event = userEvent.setup()
     renderLayout(<PublicLayout>Nội dung</PublicLayout>, {
