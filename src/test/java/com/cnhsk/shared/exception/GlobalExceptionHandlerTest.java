@@ -172,7 +172,7 @@ class GlobalExceptionHandlerTest {
                 "EXAM_CODE_TAKEN", "EXAM_NOT_EDITABLE", "EDIT_CONFLICT",
                 "SETTING_NOT_FOUND", "SETTING_OUT_OF_RANGE", "ROUND_LIMIT_EXCEEDED", "GAME_UNAVAILABLE",
                 "CONTEST_NOT_FOUND", "CONTEST_NOT_OPEN", "CONTEST_ALREADY_ATTEMPTED",
-                "CONTEST_SUBMIT_REQUIRED", "CONTEST_EXAM_INVALID", "INTERNAL_ERROR");
+                "CONTEST_SUBMIT_REQUIRED", "CONTEST_EXAM_INVALID", "CONTEST_FULL", "INTERNAL_ERROR");
     }
 
     @Test
@@ -183,7 +183,8 @@ class GlobalExceptionHandlerTest {
                 ErrorCode.CONTEST_NOT_OPEN, HttpStatus.UNPROCESSABLE_ENTITY,
                 ErrorCode.CONTEST_ALREADY_ATTEMPTED, HttpStatus.CONFLICT,
                 ErrorCode.CONTEST_SUBMIT_REQUIRED, HttpStatus.CONFLICT,
-                ErrorCode.CONTEST_EXAM_INVALID, HttpStatus.UNPROCESSABLE_ENTITY);
+                ErrorCode.CONTEST_EXAM_INVALID, HttpStatus.UNPROCESSABLE_ENTITY,
+                ErrorCode.CONTEST_FULL, HttpStatus.UNPROCESSABLE_ENTITY);
         statuses.forEach((code, expected) -> {
             var response = handler.handleApiException(new ApiException(code, expected, "Không thể thi.",
                     Map.of("error_code", "FORGED", "message", "FORGED", "request_id", "FORGED")), request);

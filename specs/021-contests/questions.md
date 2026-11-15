@@ -115,3 +115,47 @@ Shadow plan tiếp tục đã duyệt: sửa file 11 và tài liệu trong allow
 - Evidence riêng: `target/t04-architecture-approved*`, `t04-targeted-approved*`, `t04-full2*`; log/XML/report full đầu vẫn tại `t04-full*`, `t04-full-failed-reports/`, `t04-full1-jacoco/` và TEMP riêng. `Env:DEBUG` được xóa trước từng lệnh Maven.
 
 Self-check trước nộp: **Global PASS** (stack/dependency/naming giữ đúng; chỉ gọi chéo qua `learning.api.ContestAttemptApi`); **Business PASS** (chỉ `PUBLISHED`, trạng thái từ giờ server, response không có PII/đáp án/điểm; không đổi nghiệp vụ tiền/chấm điểm); **Safety PASS** (đúng 11 file đã duyệt, entity giữ schema `community` và scalar ID, không migration/SQL Neon/config bảo mật/dependency/secret/xóa file). Hai kiểm kê 009 vẫn khóa đúng 24 operation và giữ kiểm tra âm. `git diff --check` sạch, không `TODO` trong code T-04 mới; Maven không cấu hình Java linter riêng. OpenAPI đã được duyệt, hai GET khớp path/method/status của YAML, không sửa contract. Task chờ leader review; chưa tự nhận merge.
+
+## 2026-11-15 · G0 T-05 — leader duyệt 15 file
+
+| # | Câu hỏi | Quyết định | Trạng thái |
+|---|---|---|---|
+| Q-T05-01 | Làm T-05 khi #204 chưa merge | Được làm trước từ đúng `6b426209895a07511d6fe96ddc420aabc8c41927` (đầu #204), nhánh `spec/021-t05`. Leader merge #204 giữ commit này làm cha; không rebase. Draft PR ghi **phụ thuộc #204** | ✅ Chốt |
+| Q-T05-02 | `/results` có giới hạn page/size nhưng thiếu response 422 | Duyệt file thứ 15 `contracts/openapi-contests.yaml`: chỉ thêm `'422': { $ref: '#/components/responses/Error' }` cho GET `/api/community/contests/{id}/results`. Page âm hoặc size ngoài 1–50 trả `VALIDATION_FAILED` 422; không đổi phần khác của YAML. Contract được cập nhật trước code | ✅ Chốt |
+| Q-T05-03 | AT-08 nói không lộ điểm, YAML yêu cầu các field của MyResult | Theo Q-T08-03: trước công bố `mine={status,submittedAt,score:null,maxScore:null,durationMs:null,rank:null,excluded:null}`, `ranking=null`. Test cả JSON thô để chứng minh không lộ giá trị thật | ✅ Chốt |
+
+Shadow plan đã duyệt: FR-011…FR-014 / AT-05, AT-08…AT-10, AT-15; test bổ sung phần HTTP của xếp hạng và hồi quy nộp/đồng thời. Sửa đúng 14 file G0 và YAML đã bổ sung, không sửa `AuthApi`, `SecurityConfig`, migration, FE hoặc hai kiểm kê 009. Chỉ thêm `CONTEST_FULL` (422) ngay trước `INTERNAL_ERROR` trên base; giữ thứ tự mã cũ, leader gộp với mã mới của main khi merge.
+
+FR-011 giữ thứ tự: không PUBLISHED → 404; requireVerifiedEmail → 403 ACCOUNT_UNVERIFIED; người tạo → 403 FORBIDDEN; không ONGOING → 422 CONTEST_NOT_OPEN; chưa có lượt + đủ sức chứa → 422 CONTEST_FULL; rồi gọi start. Khóa `contest:start:{id}` bằng `pg_advisory_xact_lock(hashtextextended(:key, 0))`, kiểm lượt/đếm/start trong cùng transaction READ_COMMITTED. Nộp không giữ khóa ngoài qua engine REQUIRES_NEW. Sự kiện chỉ TAB_HIDDEN, tối đa một lần/10 giây/người bằng RateLimiter hiện có; vượt vẫn 204, chỉ ghi audit. Kết quả lấy tên từ một lô `AuthApi.publicProfiles`, không email/avatar/đáp án. Giờ trả +07:00.
+
+Gate: xóa `Env:DEBUG` trước từng Maven; test mới + hồi quy contest/lỗi/contract 009/kiến trúc, rồi full verify với Testcontainers và JaCoCo LINE từ đúng full exec ≥80%. Chỉ đúng năm ngoại lệ môi trường đã ghi ở T-04; exit 1 vẫn FAILED. Xong mới commit đúng 15 file, push nhánh và mở Draft PR; không merge/Ready, không tự cập nhật ✅.
+
+Allowlist T-05 đã duyệt:
+
+1. `src/main/java/com/cnhsk/community/contest/ContestRepository.java`
+2. `src/main/java/com/cnhsk/community/contest/ContestService.java`
+3. `src/main/java/com/cnhsk/community/contest/ContestQueryService.java`
+4. `src/main/java/com/cnhsk/community/contest/web/ContestViews.java`
+5. `src/main/java/com/cnhsk/community/contest/web/ContestController.java`
+6. `src/main/java/com/cnhsk/shared/exception/ErrorCode.java`
+7. `src/test/java/com/cnhsk/shared/exception/GlobalExceptionHandlerTest.java`
+8. `src/test/java/com/cnhsk/community/contest/ContestFixtures.java`
+9. `src/test/java/com/cnhsk/community/contest/ContestAttemptControllerIntegrationTest.java`
+10. `src/test/java/com/cnhsk/community/contest/ContestStartConcurrencyIntegrationTest.java`
+11. `src/test/java/com/cnhsk/community/contest/ContestEventControllerIntegrationTest.java`
+12. `src/test/java/com/cnhsk/community/contest/ContestResultsControllerIntegrationTest.java`
+13. `specs/021-contests/questions.md`
+14. `specs/021-contests/tasks.md`
+15. `specs/021-contests/contracts/openapi-contests.yaml`
+
+Checkpoint test: `test-compile` native exit 0. Lượt liên quan đầu **232/F0/E1/S0**, native exit 1: fixture của test ranking cố đặt `auth.users.display_name=NULL`, vi phạm NOT NULL của V1; không phải ngoại lệ môi trường. Đã dùng tên tự soạn hợp lệ trong ca ranking và giữ kiểm tra tên null bằng ca riêng khi port `AuthApi.publicProfiles` không trả hồ sơ. Lượt sau **233/F0/E0/S0**, 16 suite, native exit 0; riêng bốn suite T-05 **65/F0/E0/S0**. NFR-P02 với 1.000 lượt: 30 mẫu sau 10 warm-up, p50=14 ms, p95=19 ms (<300 ms), một lô tên/trang. Giữ log/XML lượt lỗi tại `target/t05-targeted*`; không skip hoặc nới assertion.
+
+### T-05 · Kết quả gate và self-check
+
+- Full `mvnw.cmd -B verify`: **6.139/F0/E0/S0**, 389 suite mới; native exit 0, **BUILD SUCCESS**. Bắt đầu `2026-11-15T13:10:31.6858157+07:00`, kết thúc `13:32:12.2172165+07:00`, trong deadline `14:10:31.6858157+07:00`. Tổng XML khớp Maven. Không dùng năm ngoại lệ môi trường; không có skip.
+- JaCoCo từ đúng exec full: **15.160/15.609 LINE = 97,12%**; report/check đạt. Hai package `community.contest` và `.web`: **178/180 LINE = 98,89%**. Một session, class mismatch 0; 12 file Java và YAML giữ nguyên hash trước/sau full. Exec SHA-256 `A9D554326E5D1E42C9426C612913A422199251D5E1CE42AB7C665BA317EC0BB4`.
+- Bốn suite T-05 trong full: **65/F0/E0/S0**. NFR-P02 cùng lượt full, 1.000 lượt/30 mẫu sau 10 warm-up: **p50=10 ms, p95=15 ms**, dưới 300 ms; một lần gọi `publicProfiles` cho mỗi trang, không N+1 tên. Race HTTP ba người/sức chứa hai cho đúng hai lượt mới và một 422; 20 request cùng người chỉ tạo một lượt; hai request nộp ghi kết quả một lần.
+- OpenAPI generated của bốn operation T-05 khớp path/method/operationId/status/security với YAML đã duyệt; YAML chỉ thêm một dòng 422 của `/results`. JSON trước công bố giữ các trường nhạy cảm null và không chứa giá trị thật; response không có email/avatar/đáp án. Hai kiểm kê 009 vẫn khóa đúng 24 operation.
+- Evidence: `target/t05-test-compile.log`, `t05-targeted*`, `t05-full*`, `target/site/jacoco/` và TEMP riêng của full. Lượt targeted đầu FAILED/native 1 vẫn giữ nguyên ở trên. `Env:DEBUG` được xóa trước từng lệnh Maven.
+
+Self-check: **Global PASS** (Java 17/stack/dependency/naming đúng; community chỉ gọi auth/learning qua API); **Business PASS** (đúng thứ tự FR-011, sức chứa và start cùng khóa/transaction, server chấm điểm/giữ deadline, events chỉ audit, tên theo lô và không lộ PII/đáp án); **Safety PASS** (đúng 15 file đã duyệt, không AuthApi/SecurityConfig/migration/FE/hai test 009, không SQL Neon/secret/xóa file). `git diff --check` sạch, không BOM, không TODO/FIXME trong code thuộc allowlist; Maven không cấu hình Java linter riêng. Giữ mã mới ngay trước INTERNAL_ERROR trên base, không rebase; leader xử lý thứ tự enum khi merge. Task chờ review; không tự đánh dấu ✅ hoặc merge.
