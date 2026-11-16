@@ -22,4 +22,8 @@ public interface GameDefinition {
     void validateAnswer(PracticeApi.ServedItem item, String answer, int elapsedMs);
 
     Map<String, Object> uiConfig();
+
+    default Map<String, Object> uiConfig(List<PracticeApi.ServedItem> items) {
+        return uiConfig();
+    }
 }

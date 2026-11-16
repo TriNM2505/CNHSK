@@ -57,7 +57,7 @@ public class GameRoundService {
         if (items == null || items.isEmpty()) throw unavailable();
         int duration = definition.timeLimitSeconds();
         int points = definition.pointsPerCorrect();
-        var uiConfig = definition.uiConfig();
+        var uiConfig = definition.uiConfig(items);
         rounds.abandonActive(userId, code, clock.instant());
         // Abandon commits independently by design, even if the following start fails.
         var session = practice.start(new PracticeApi.StartPracticeCommand(userId, PracticeApi.PracticeSource.GAME_ROUND,
