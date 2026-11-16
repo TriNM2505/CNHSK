@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { Button, Card, PageHeader, Skeleton, StatusBadge } from '@/shared/ui'
 
 import { formatCountdown } from '../verifyEmailFlow'
-import { LoginBambooBackdrop, PandaIllustration } from './PandaBambooScene'
+import { AuthBambooShell, PandaIllustration } from './PandaBambooScene'
 
 export type VerifyEmailMode = 'loading' | 'guide' | 'verifying' | 'verified' | 'invalid' | 'error'
 
@@ -168,8 +168,7 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
   const header = headerInfo(mode)
 
   return (
-    <div className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden">
-      <LoginBambooBackdrop />
+    <AuthBambooShell>
       <main className="relative z-10 mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-8 sm:px-6 sm:py-12">
         <Card className="border-brand-100 bg-surface-subtle p-5 shadow-sm sm:p-6">
           <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -296,6 +295,6 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
           </Card>
         ) : null}
       </main>
-    </div>
+    </AuthBambooShell>
   )
 }

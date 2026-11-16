@@ -7,7 +7,7 @@ import { NEW_PASSWORD_REQUIREMENT } from '../passwordValidation'
 import type { RegisterFieldErrors, RegisterNotice } from '../registerForm'
 import type { RegisterRequest } from '../types'
 import { AuthSplitLayout } from './AuthSplitLayout'
-import { CardCornerPandas, LoginBambooBackdrop, RightGiantPandaScene } from './PandaBambooScene'
+import { AuthBambooShell, CardCornerPandas, RightGiantPandaScene } from './PandaBambooScene'
 
 export type RegisterViewState = 'ready' | 'submitting' | 'error'
 
@@ -78,12 +78,11 @@ export function RegisterView({
   const termsErrorId = fieldErrors.acceptTerms ? 'register-accept-terms-error' : undefined
 
   return (
-    <div className="relative isolate overflow-hidden">
-      <LoginBambooBackdrop />
+    <AuthBambooShell>
       <AuthSplitLayout
         aside={REGISTER_ASIDE}
         cardDecorator={<CardCornerPandas />}
-        customAside={<RightGiantPandaScene />}
+        customAside={<RightGiantPandaScene mood="welcome" />}
         hideMobileBanner
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
@@ -223,6 +222,6 @@ export function RegisterView({
           </Button>
         </div>
       </AuthSplitLayout>
-    </div>
+    </AuthBambooShell>
   )
 }

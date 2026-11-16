@@ -7,7 +7,7 @@ import { Button, FormField, Input, PageHeader, PasswordInput, StatusBadge } from
 import type { SignInFieldErrors, SignInNotice } from '../signInForm'
 import type { LoginRequest } from '../types'
 import { AuthSplitLayout } from './AuthSplitLayout'
-import { CardCornerPandas, LoginBambooBackdrop, RightGiantPandaScene } from './PandaBambooScene'
+import { AuthBambooShell, CardCornerPandas, RightGiantPandaScene } from './PandaBambooScene'
 
 export type SignInViewState = 'ready' | 'submitting' | 'error'
 
@@ -133,12 +133,11 @@ export function SignInView({
   }
 
   return (
-    <div className="relative isolate overflow-hidden">
-      <LoginBambooBackdrop />
+    <AuthBambooShell>
       <AuthSplitLayout
         aside={SIGN_IN_ASIDE}
         cardDecorator={<CardCornerPandas />}
-        customAside={<RightGiantPandaScene />}
+        customAside={<RightGiantPandaScene mood="welcome" />}
         hideMobileBanner
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
@@ -204,6 +203,6 @@ export function SignInView({
           </Button>
         </div>
       </AuthSplitLayout>
-    </div>
+    </AuthBambooShell>
   )
 }

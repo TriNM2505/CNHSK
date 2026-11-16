@@ -1,6 +1,6 @@
 import { Button, Card, PageHeader, Skeleton, StatusBadge } from '@/shared/ui'
 
-import { LoginBambooBackdrop, PandaIllustration } from './PandaBambooScene'
+import { AuthBambooShell, PandaIllustration } from './PandaBambooScene'
 
 export type AccessDeniedViewState = 'loading' | 'empty' | 'error' | 'ready'
 export type AccessDeniedMode = 'guest' | 'forbidden' | 'under-construction'
@@ -40,12 +40,11 @@ export function AccessDeniedView({
 }: AccessDeniedViewProps) {
   if (state === 'loading') {
     return (
-      <div className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden">
-        <LoginBambooBackdrop />
+      <AuthBambooShell>
         <main className="relative z-10 mx-auto w-full min-w-0 max-w-reading px-4 py-10 sm:px-6 sm:py-16">
           <Skeleton className="min-h-72" variant="card" />
         </main>
-      </div>
+      </AuthBambooShell>
     )
   }
 
@@ -61,9 +60,8 @@ export function AccessDeniedView({
       : 'Tài khoản hiện tại không có quyền mở khu vực vừa yêu cầu. Không có dữ liệu riêng tư nào được hiển thị.'
 
   return (
-    <div className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden">
-      <LoginBambooBackdrop />
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full min-w-0 max-w-reading flex-col justify-center px-4 py-8 sm:px-6 sm:py-12">
+    <AuthBambooShell>
+      <main className="relative z-10 mx-auto flex w-full min-w-0 max-w-reading flex-1 flex-col justify-center px-4 py-8 sm:px-6 sm:py-12">
         <div
           aria-hidden="true"
           className="pointer-events-none relative z-20 -mb-6 flex justify-center"
@@ -118,6 +116,6 @@ export function AccessDeniedView({
           </div>
         </Card>
       </main>
-    </div>
+    </AuthBambooShell>
   )
 }
