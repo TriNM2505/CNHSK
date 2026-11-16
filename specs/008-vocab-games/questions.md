@@ -82,3 +82,9 @@ Targeted Thần Bút, Phi Đao, đăng ký sáu game và hồi quy: 636 test, 0 
 - Q-T08-04 (ANSWERED): 3 sao nếu ≥90% và tô sai ≤2 lần, 2 sao nếu ≥70%, còn lại 1 sao. Độ chính xác = số nét đạt / tổng lần tô. Sao chỉ hiển thị.
 - Q-T08-05 (ANSWERED): bổ sung prop tuỳ chọn onItemShown(no) so với năm props của FR-027 để GM-6 tính thời lượng từ lúc câu hiện. Shell giữ lần gọi đầu, dùng mốc cũ nếu game không gọi. Mưa Chữ báo sau khi vẽ khung, Ghép Bộ Thủ báo sau khi chuyển câu.
 - Gate FE trên base 6b6393d: npm ci, lint, typecheck, Vitest 118/118 (12 file), build đạt. QA Chrome trên trang fixture local ở 320/375/640 px: không cuộn ngang, khung vuông, chữ 96 px, bốn nút 64 px và phản hồi sai đúng với kết quả trả về. JS entry 71,67 kB gzip so với mốc 250 kB; hai game chưa gắn route.
+
+## T-09 — Ghép Pinyin
+
+- Q-T09-01 (ANSWERED): Ghép Pinyin không gọi onItemShown. GameShell đo thời lượng từ lần gửi hoặc bỏ lỡ trước. Tính từ lúc chọn từ có thể gắn cờ GM-6 oan khi người chơi đã đọc bảng; tính từ lúc cả bảng hiện sẽ cộng dồn thời gian của các cặp trước. Theo mốc đã chốt, mỗi cặp có thời gian riêng; cặp đầu của bảng sau có thể tính thêm đến khoảng 800 ms phản hồi và chuyển bảng.
+- AT-18/E6: sáu từ dùng cùng sáu thẻ từ server. Ghép đúng làm mờ và gỡ cả cặp; ghép sai hiện cặp đúng 800 ms rồi gỡ từ và thẻ đúng, giữ thẻ chọn nhầm. Promise bị reject thì gỡ từ, giữ các thẻ và mở khoá. Bảng sau dùng bộ thẻ riêng theo uiConfig.boards.
+- Gate FE tại 07d0fe0: npm ci, lint, typecheck, Vitest 124/124 (13 file), build đạt. Test qua GameShell xác nhận cặp thứ hai gửi durationMs = 1300 ms từ lần gửi trước, dù chỉ 100 ms từ lúc chọn từ. Chrome dùng fixture ở 320/375/640 px: không tràn ngang, mỗi nút ít nhất 44 px, kiểm phản hồi sai bằng thao tác chạm. JS entry 71,67 kB gzip so với mốc 250 kB; route thật thuộc T-11.
