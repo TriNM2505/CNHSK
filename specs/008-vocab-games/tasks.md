@@ -16,13 +16,13 @@ Mỗi game giao độc lập được (BE trước, FE sau). Nguồn FE: app 6 g
 | T-03 | `PinyinMatchGame` | `…/community/game/pinyin/*` + test | FR-007…FR-011 · AT-05…AT-08 | ✅ MERGED — PR #232 / 8c6e226 |
 | T-04 | `RadicalMatchGame` + `RadicalLookalikes` | `…/community/game/radical/*` + test | FR-014…FR-017 · AT-09…AT-11 | ✅ MERGED — PR #233 / 20c08e9 |
 | T-05 | `CharCatchGame` | `…/community/game/catchgame/*` + test | FR-019…FR-024 · AT-12…AT-15 | ✅ MERGED — PR #235 / b7b5818 |
-| T-06 | `BrushStrokeGame` + `FlyingDartGame` (`accept` có/không thanh, `minDurationMs` theo âm tiết); test xếp hạng 6 game qua `LeaderboardRepository` | `…/community/game/{brush,dart}/*` + test | FR-029…FR-032, FR-035…FR-038, FR-041 · AT-20, AT-21, AT-23, AT-24 | ✅ MERGED — PR #236 |
+| T-06 | `BrushStrokeGame` + `FlyingDartGame` (`accept` có/không thanh, `minDurationMs` theo âm tiết); test xếp hạng 6 game qua `LeaderboardRepository` | `…/community/game/{brush,dart}/*` + test | FR-029…FR-032, FR-035…FR-038, FR-041 · AT-20, AT-21, AT-23, AT-24 | ✅ MERGED — PR #236 / d3581b7 |
 
 ## Đợt 2 · Frontend (`cnhsk-game`)
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-07 | Engine dùng chung: chuyển `engine/{arcade,strokeScore,path,pinyin}.ts` + test từ `feat/dat-six-games`; dữ liệu nét từ gói `hanzi-writer-data` (không commit file dữ liệu tự sinh); bỏ thưởng chuỗi/tốc độ khỏi hiển thị điểm | `game/engine/**`, `cnhsk-game/package.json` | GM-2, GM-8, FR-006 | 🔄 chờ review — FE 107/107; lint, typecheck, build PASS |
+| T-07 | Engine dùng chung: chuyển `engine/{arcade,strokeScore,path,pinyin}.ts` + test từ `feat/dat-six-games`; dữ liệu nét từ gói `hanzi-writer-data` (không commit file dữ liệu tự sinh); bỏ thưởng chuỗi/tốc độ khỏi hiển thị điểm | `game/engine/**`, `cnhsk-game/package.json` | GM-2, GM-8, FR-006 | ✅ MERGED — PR #237 |
 | T-08 | FE Mưa chữ (tô nét) + Ghép Bộ thủ | `game/games/char-rain/**`, `radical-match/**` | FR-004…FR-006, FR-018, FR-026…FR-028 · AT-04 | ⬜ |
 | T-09 | FE Ghép Pinyin | `game/games/pinyin-match/**` | FR-012, FR-013 · AT-18 | ⬜ |
 | T-10 | FE Bắt Chữ | `game/games/char-catch/**` | FR-025, FR-028 · AT-19 | ⬜ |
