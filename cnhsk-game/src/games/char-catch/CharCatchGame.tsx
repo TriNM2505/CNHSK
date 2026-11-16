@@ -51,6 +51,7 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
   const active = useRef(false)
   const resolved = useRef(false)
   const announced = useRef(false)
+  const loadTimeLeft = useRef(perItemMs)
   const timeLeft = useRef(perItemMs)
   const answerDeadline = useRef<number>()
   const gradingDeadline = useRef(0)
@@ -70,6 +71,7 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
     return () => {
       active.current = false
       playAttempt.current += 1
+      if (initialPlay.current === 'autoplay') initialPlay.current = 'pending'
       element?.pause()
     }
   }, [])
@@ -80,17 +82,18 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
     audio.current.pause()
     setPlaying(false)
     if (initialPlay.current === 'autoplay') {
-      initialPlay.current = 'manual'
-      setNeedsTap(true)
+      // A paused load can retry on resume, using only its remaining time.
+      initialPlay.current = audioReady ? 'manual' : 'pending'
+      if (audioReady) setNeedsTap(true)
     }
-  }, [disabled])
+  }, [audioReady, disabled])
 
   useEffect(() => {
-    if (!disabled && audioReady && !audioFailed && !resolved.current && initialPlay.current === 'pending' && audio.current) {
+    if (!disabled && !audioFailed && !resolved.current && initialPlay.current === 'pending' && audio.current) {
       initialPlay.current = 'autoplay'
       void playAudio(audio.current)
     }
-  }, [audioFailed, audioReady, disabled])
+  }, [audioFailed, disabled])
 
   useEffect(() => {
     if (disabled || !ready || audioFailed || announced.current || resolved.current) return
@@ -109,7 +112,15 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
       miss()
       return
     }
-    if (!ready || selected !== undefined) return
+    if (!ready) {
+      const deadline = performance.now() + loadTimeLeft.current
+      const timeout = window.setTimeout(miss, loadTimeLeft.current)
+      return () => {
+        window.clearTimeout(timeout)
+        loadTimeLeft.current = Math.max(0, deadline - performance.now())
+      }
+    }
+    if (selected !== undefined) return
     const deadline = performance.now() + timeLeft.current
     answerDeadline.current = deadline
     let timeout: number
@@ -148,6 +159,7 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
       if (attempt !== playAttempt.current || resolved.current) return
       initialPlay.current = 'played'
       setNeedsTap(false)
+      setAudioReady(true)
     } catch (error) {
       if (attempt !== playAttempt.current || resolved.current) return
       setPlaying(false)
@@ -155,6 +167,7 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
         if (initialPlay.current !== 'played') {
           initialPlay.current = 'manual'
           setNeedsTap(true)
+          setAudioReady(true)
         }
       } else {
         setAudioFailed(true)

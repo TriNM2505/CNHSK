@@ -120,14 +120,18 @@ it('shows a correct answer and advances after a rejection on the next item', asy
 })
 
 it('starts audio and the timer at readiness, pauses on disable and caps replay', async () => {
-  const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+  let playbackStarted!: () => void
+  const play = vi.spyOn(HTMLMediaElement.prototype, 'play')
+    .mockReturnValueOnce(new Promise((resolve) => { playbackStarted = resolve }))
+    .mockResolvedValue()
   const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
   const { container, onMissed, onItemShown, setDisabled, unmount } = show([audioItem])
-  await advance(6000)
+  expect(play).toHaveBeenCalledTimes(1)
+  await advance(2000)
   expect(timeLeft()).toBe(4000)
   expect(onItemShown).not.toHaveBeenCalled()
-  expect(play).not.toHaveBeenCalled()
   await canPlay(media(container))
+  await act(async () => playbackStarted())
   expect(onItemShown.mock.calls).toEqual([[3]])
   expect(play).toHaveBeenCalledTimes(1)
   await advance(1000)
@@ -149,13 +153,13 @@ it('starts audio and the timer at readiness, pauses on disable and caps replay',
   expect(onMissed).not.toHaveBeenCalled()
 })
 
-it('offers Chạm để nghe after NotAllowedError without using the replay allowance', async () => {
+it('offers Chạm để nghe before canplay without using the replay allowance', async () => {
   const play = vi.spyOn(HTMLMediaElement.prototype, 'play')
     .mockRejectedValueOnce(new DOMException('Autoplay denied', 'NotAllowedError'))
     .mockResolvedValue()
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
   const { container, onItemShown, onMissed } = show([audioItem])
-  await canPlay(media(container))
+  await advance(0)
   expect(onItemShown.mock.calls).toEqual([[3]])
   expect(onMissed).not.toHaveBeenCalled()
   expect(button('Chạm để nghe')).toBeEnabled()
@@ -171,21 +175,61 @@ it('offers Chạm để nghe after NotAllowedError without using the replay allo
   expect(onMissed).not.toHaveBeenCalled()
 })
 
+it('starts the answer timer when play resolves without canplay', async () => {
+  let playbackStarted!: () => void
+  vi.spyOn(HTMLMediaElement.prototype, 'play')
+    .mockReturnValueOnce(new Promise((resolve) => { playbackStarted = resolve }))
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+  const { onItemShown, onMissed } = show([audioItem])
+  await advance(2500)
+  expect(onItemShown).not.toHaveBeenCalled()
+  await act(async () => playbackStarted())
+  expect(onItemShown.mock.calls).toEqual([[3]])
+  await advance(3999)
+  expect(onMissed).not.toHaveBeenCalled()
+  await advance(1)
+  expect(onMissed.mock.calls).toEqual([[3]])
+})
+
+it('pauses the loading limit while disabled and keeps the remaining time on re-enable', async () => {
+  let interrupted!: (error: DOMException) => void
+  const play = vi.spyOn(HTMLMediaElement.prototype, 'play')
+    .mockReturnValueOnce(new Promise((_resolve, reject) => { interrupted = reject }))
+    .mockImplementation(() => new Promise(() => {}))
+  const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+  const { onItemShown, onMissed, submitAnswer, setDisabled } = show([audioItem])
+  await advance(1250)
+  setDisabled(true)
+  expect(pause).toHaveBeenCalledTimes(1)
+  await act(async () => interrupted(new DOMException('Paused', 'AbortError')))
+  await advance(6000)
+  expect(play).toHaveBeenCalledTimes(1)
+  expect(onMissed).not.toHaveBeenCalled()
+  setDisabled(false)
+  expect(play).toHaveBeenCalledTimes(2)
+  await advance(2749)
+  expect(onMissed).not.toHaveBeenCalled()
+  await advance(1)
+  expect(onMissed.mock.calls).toEqual([[3]])
+  expect(onItemShown).not.toHaveBeenCalled()
+  expect(submitAnswer).not.toHaveBeenCalled()
+})
+
 it.each(['load', 'play'])('E5 misses once on %s failure without submitting', async (failure) => {
   vi.spyOn(HTMLMediaElement.prototype, 'play').mockRejectedValue(new DOMException('Decode failure', 'NotSupportedError'))
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
   const { container, onMissed, submitAnswer } = show([audioItem, meaning])
   const element = media(container)
   if (failure === 'load') fireEvent.error(element)
-  else await canPlay(element)
+  else await advance(0)
   fireEvent.error(element)
   expect(screen.getByRole('heading', { name: 'núi' })).toBeVisible()
   expect(onMissed.mock.calls).toEqual([[3]])
   expect(submitAnswer).not.toHaveBeenCalled()
 })
 
-it('starts audio only after the player starts the shell, and misses without posting an answer', async () => {
-  const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue()
+it('starts audio after the shell countdown and misses a hung load at 4000 ms without a POST to answers', async () => {
+  const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(() => new Promise(() => {}))
   vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
   vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:8080')
   document.cookie = 'XSRF-TOKEN=fixture; Path=/'
@@ -205,9 +249,16 @@ it('starts audio only after the player starts the shell, and misses without post
     throw new Error('Unexpected request ' + url)
   })
   vi.stubGlobal('fetch', fetchMock)
+  const onMissed = vi.fn()
+  function TestGame(props: GameProps) {
+    return <CharCatchGame {...props} onMissed={(no) => {
+      onMissed(no)
+      props.onMissed(no)
+    }} />
+  }
   const { container } = render(
     <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <GameShell code="CHAR_CATCH" Game={CharCatchGame} />
+      <GameShell code="CHAR_CATCH" Game={TestGame} />
     </MemoryRouter>,
   )
   await advance(5000)
@@ -217,10 +268,14 @@ it('starts audio only after the player starts the shell, and misses without post
   await advance(2999)
   expect(media(container)).toBeNull()
   await advance(1)
-  await canPlay(media(container))
   expect(play).toHaveBeenCalledTimes(1)
-  await advance(4000)
+  await advance(3999)
+  expect(screen.getByText('Đang tải âm thanh…')).toBeVisible()
+  expect(onMissed).not.toHaveBeenCalled()
+  await advance(1)
+  expect(screen.getByText('Đã đi qua tất cả các chữ.')).toBeVisible()
   await advance(800)
+  expect(onMissed.mock.calls).toEqual([[3]])
   const urls = fetchMock.mock.calls.map(([url]) => String(url))
   expect(urls.filter((url) => url.endsWith('/finish'))).toHaveLength(1)
   expect(urls.some((url) => url.includes('/answers'))).toBe(false)
