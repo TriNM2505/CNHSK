@@ -11,7 +11,6 @@ import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
   Button,
   Card,
-  DataTable,
   EmptyState,
   ErrorState,
   FormField,
@@ -20,7 +19,6 @@ import {
   Section,
   Skeleton,
   StatTile,
-  type DataTableColumn,
 } from '@/shared/ui'
 
 import type { PaidFeature, RedeemRequest, RedeemResult, Wallet } from '../types'
@@ -53,18 +51,6 @@ const vietnamTime = new Intl.DateTimeFormat('vi-VN', {
   minute: '2-digit',
   hourCycle: 'h23',
 })
-
-const quotaColumns: readonly DataTableColumn<Wallet['quota'][number]>[] = [
-  { id: 'feature', header: 'Tính năng', render: ({ feature }) => featureNames[feature] },
-  { id: 'limit', header: 'Hạn mức', numeric: true, render: ({ limit }) => limit },
-  { id: 'used', header: 'Đã dùng', numeric: true, render: ({ used }) => used },
-  {
-    id: 'remaining',
-    header: 'Còn lại',
-    numeric: true,
-    render: ({ remaining }) => <strong>{remaining}</strong>,
-  },
-]
 
 function rawCode(value: string) {
   return value.replace(/[\s-]/g, '').replace(/[a-z]/g, (letter) => letter.toUpperCase())
@@ -327,12 +313,41 @@ export function PlanCreditsView({
             title="Hạn mức theo tính năng"
             subtitle={`Đặt lại lúc ${vietnamTime.format(new Date(wallet.resetAt))} (giờ Việt Nam)`}
           >
-            <DataTable
-              caption="Lượt sử dụng theo tính năng"
-              columns={quotaColumns}
-              rows={wallet.quota}
-              rowKey={(line) => line.feature}
-            />
+            <div className="rounded-md border border-line bg-surface">
+              <table className="w-full table-fixed border-collapse text-body-sm">
+                <caption className="sr-only">Lượt sử dụng theo tính năng</caption>
+                <thead>
+                  <tr className="border-b border-line bg-surface-subtle text-ink">
+                    <th scope="col" className="w-2/5 break-words p-2 text-left sm:p-3">
+                      Tính năng
+                    </th>
+                    <th scope="col" className="break-words p-2 text-right sm:p-3">
+                      Hạn mức
+                    </th>
+                    <th scope="col" className="break-words p-2 text-right sm:p-3">
+                      Đã dùng
+                    </th>
+                    <th scope="col" className="break-words p-2 text-right sm:p-3">
+                      Còn lại
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {wallet.quota.map((line) => (
+                    <tr key={line.feature} className="border-b border-line last:border-b-0">
+                      <th scope="row" className="break-words p-2 text-left font-semibold sm:p-3">
+                        {featureNames[line.feature]}
+                      </th>
+                      <td className="break-words p-2 text-right tabular-nums sm:p-3">{line.limit}</td>
+                      <td className="break-words p-2 text-right tabular-nums sm:p-3">{line.used}</td>
+                      <td className="break-words p-2 text-right font-semibold tabular-nums sm:p-3">
+                        {line.remaining}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </Section>
         </div>
       ) : (
