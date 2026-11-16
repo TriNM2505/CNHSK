@@ -1,7 +1,7 @@
 import { CircleAlert, CircleCheck, LoaderCircle, MailCheck } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-import { Button, Skeleton } from '@/shared/ui'
+import { Button, Card, PageHeader, Skeleton, StatusBadge } from '@/shared/ui'
 
 import { formatCountdown } from '../verifyEmailFlow'
 
@@ -47,7 +47,7 @@ function ResendSection({
 }: Pick<VerifyEmailViewProps, 'authenticated' | 'loginToResend' | 'onResend' | 'resend'>) {
   if (!authenticated) {
     return (
-      <div className="mt-6 rounded-md border border-line bg-surface-subtle p-4">
+      <div className="rounded-md border border-line bg-surface-subtle p-4">
         <p className="text-body-sm text-ink-secondary">
           Đăng nhập để gửi lại liên kết xác thực tới email của bạn.
         </p>
@@ -62,14 +62,19 @@ function ResendSection({
   const cooling = resend.kind === 'cooldown'
 
   return (
-    <div className="mt-6">
-      <Button disabled={cooling} loading={sending} onClick={onResend} variant="outline">
-        {cooling
-          ? `Gửi lại sau ${formatCountdown(resend.secondsLeft)}`
-          : sending
-            ? 'Đang gửi lại'
-            : 'Gửi lại email xác thực'}
-      </Button>
+    <div className="rounded-md border border-line bg-surface-subtle p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-body-sm text-ink-secondary">
+          Chưa nhận được thư hoặc liên kết đã hết hạn?
+        </p>
+        <Button disabled={cooling} loading={sending} onClick={onResend} variant="outline">
+          {cooling
+            ? `Gửi lại sau ${formatCountdown(resend.secondsLeft)}`
+            : sending
+              ? 'Đang gửi lại'
+              : 'Gửi lại email xác thực'}
+        </Button>
+      </div>
 
       {resend.kind === 'sent' ? (
         <p className="mt-3 flex items-start gap-2 text-body-sm text-success" role="status">
@@ -99,143 +104,166 @@ function ResendSection({
   )
 }
 
-function VerifiedContent({
-  authenticated,
-  continueTarget,
-  loginTo,
-}: Pick<VerifyEmailViewProps, 'authenticated' | 'continueTarget' | 'loginTo'>) {
-  return (
-    <>
-      <p className="mb-2 flex items-center gap-2 text-label text-success">
-        <CircleCheck aria-hidden="true" className="size-5" />
-        <span>Đã xác thực</span>
-      </p>
-      <h1 className="text-h1-sm text-ink sm:text-h1">Email đã được xác thực</h1>
-      <p className="mb-6 mt-2 text-body text-ink-secondary">
-        Tài khoản của bạn đã được xác thực. Bạn có thể tiếp tục học.
-      </p>
-      {authenticated ? (
-        <ContinueButton target={continueTarget}>Tiếp tục</ContinueButton>
-      ) : (
-        <Button to={loginTo}>Đăng nhập để tiếp tục</Button>
-      )}
-    </>
-  )
-}
-
-function GuideContent(props: VerifyEmailViewProps) {
-  const { authenticated, continueTarget, email, loginTo, registerTo } = props
-  return (
-    <>
-      <p className="mb-2 flex items-center gap-2 text-label text-brand-700">
-        <MailCheck aria-hidden="true" className="size-5" />
-        <span>Xác thực email</span>
-      </p>
-      <h1 className="text-h1-sm text-ink sm:text-h1">Kiểm tra hộp thư của bạn</h1>
-      <p className="mt-2 break-words text-body text-ink-secondary">
-        {email ? (
-          <>
-            Liên kết xác thực đã gửi tới <strong className="text-ink">{email}</strong>. Mở email và
-            bấm vào liên kết để xác thực tài khoản.
-          </>
-        ) : (
-          'Mở email chúng tôi đã gửi và bấm vào liên kết để xác thực tài khoản.'
-        )}
-      </p>
-      <ul className="mt-4 list-disc space-y-1 pl-5 text-body-sm text-ink-secondary">
-        <li>Không thấy email? Kiểm tra thư mục spam hoặc quảng cáo.</li>
-        <li>Liên kết có hiệu lực trong 24 giờ.</li>
-        <li>Bạn vẫn học được trước khi xác thực.</li>
-      </ul>
-
-      <ResendSection {...props} />
-
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        {authenticated ? (
-          <ContinueButton target={continueTarget}>Bỏ qua, vào học</ContinueButton>
-        ) : (
-          <Button to={loginTo} variant="ghost">
-            Bỏ qua, vào học
-          </Button>
-        )}
-      </div>
-
-      <p className="mt-6 flex flex-wrap items-center gap-1 text-body-sm text-ink-secondary">
-        <span>Sai địa chỉ email?</span>
-        <Button size="sm" to={registerTo} variant="ghost">
-          Đăng ký lại
-        </Button>
-      </p>
-    </>
-  )
-}
-
-function InvalidContent(props: VerifyEmailViewProps) {
-  return (
-    <>
-      <p className="mb-2 flex items-center gap-2 text-label text-warning">
-        <CircleAlert aria-hidden="true" className="size-5" />
-        <span>Liên kết không dùng được</span>
-      </p>
-      <h1 className="text-h1-sm text-ink sm:text-h1">Liên kết đã hết hạn hoặc đã được dùng</h1>
-      <p className="mt-2 text-body text-ink-secondary">
-        Mỗi liên kết xác thực chỉ dùng được một lần và có hiệu lực trong 24 giờ. Hãy gửi lại để nhận
-        liên kết mới.
-      </p>
-      <ResendSection {...props} />
-    </>
-  )
-}
-
-function ErrorContent({ errorRequestId, onRetryVerify }: VerifyEmailViewProps) {
-  return (
-    <div
-      className="flex items-start gap-3 rounded-md border border-danger bg-danger-bg p-4 text-body-sm text-danger"
-      role="alert"
-    >
-      <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-      <div className="min-w-0">
-        <p className="font-semibold">Chưa kiểm tra được liên kết</p>
-        <p className="mt-1">Đã có lỗi khi xác thực email. Vui lòng thử lại.</p>
-        {errorRequestId ? <p className="mt-1 text-caption">Mã lỗi: {errorRequestId}</p> : null}
-        <Button className="mt-3" onClick={onRetryVerify} size="sm" variant="outline">
-          Thử lại
-        </Button>
-      </div>
-    </div>
-  )
+function headerInfo(mode: VerifyEmailMode) {
+  switch (mode) {
+    case 'verified':
+      return {
+        badge: <StatusBadge tone="success">Đã xác thực</StatusBadge>,
+        subtitle: 'Tài khoản của bạn đã được xác thực. Bạn có thể tiếp tục học.',
+        title: 'Email đã được xác thực',
+      }
+    case 'invalid':
+      return {
+        badge: <StatusBadge tone="warning">Liên kết không dùng được</StatusBadge>,
+        subtitle:
+          'Mỗi liên kết xác thực chỉ dùng được một lần và có hiệu lực trong 24 giờ. Hãy gửi lại để nhận liên kết mới.',
+        title: 'Liên kết đã hết hạn hoặc đã được dùng',
+      }
+    case 'guide':
+      return {
+        badge: <StatusBadge tone="info">Xác thực email</StatusBadge>,
+        subtitle: 'Email đã xác thực giúp khôi phục mật khẩu và bật thông báo học tập khi cần.',
+        title: 'Kiểm tra hộp thư của bạn',
+      }
+    case 'error':
+      return {
+        badge: <StatusBadge tone="danger">Chưa kiểm tra được</StatusBadge>,
+        subtitle: 'Đã có sự cố khi kiểm tra liên kết xác thực email.',
+        title: 'Xác thực email',
+      }
+    default:
+      return {
+        badge: <StatusBadge tone="neutral">Xác thực email</StatusBadge>,
+        subtitle: 'Đang kiểm tra trạng thái xác thực email của tài khoản.',
+        title: 'Xác thực email',
+      }
+  }
 }
 
 export function VerifyEmailView(props: VerifyEmailViewProps) {
-  const { mode } = props
+  const {
+    authenticated,
+    continueTarget,
+    email,
+    errorRequestId,
+    loginTo,
+    mode,
+    onRetryVerify,
+    registerTo,
+  } = props
+  const header = headerInfo(mode)
 
   return (
-    <main className="grid min-h-[calc(100vh-4rem)] min-w-0 bg-surface lg:grid-cols-[minmax(0,3fr)_minmax(20rem,2fr)]">
-      <section className="flex min-w-0 items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
-        <div className="w-full max-w-md">
-          {mode === 'loading' ? <Skeleton variant="card" /> : null}
-          {mode === 'verifying' ? (
-            <p className="flex items-center gap-3 text-body text-ink" role="status">
-              <LoaderCircle aria-hidden="true" className="size-5 motion-safe:animate-spin" />
-              <span>Đang kiểm tra liên kết xác thực…</span>
-            </p>
-          ) : null}
-          {mode === 'verified' ? <VerifiedContent {...props} /> : null}
-          {mode === 'guide' ? <GuideContent {...props} /> : null}
-          {mode === 'invalid' ? <InvalidContent {...props} /> : null}
-          {mode === 'error' ? <ErrorContent {...props} /> : null}
-        </div>
-      </section>
+    <main className="mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-8 sm:px-6 sm:py-12">
+      <div>
+        <div className="mb-3">{header.badge}</div>
+        <PageHeader className="mb-0" subtitle={header.subtitle} title={header.title} />
+      </div>
 
-      <aside className="hidden min-w-0 items-center bg-brand-800 px-10 py-12 text-surface lg:flex">
-        <div className="mx-auto max-w-md">
-          <h2 className="text-h2">Xác thực email để giữ tài khoản an toàn</h2>
-          <p className="mt-4 text-body">
-            Email đã xác thực giúp bạn khôi phục mật khẩu khi cần. Bạn vẫn học được trước khi xác
-            thực.
+      {mode === 'loading' ? <Skeleton variant="card" /> : null}
+
+      {mode === 'verifying' ? (
+        <Card className="p-5 sm:p-6">
+          <p className="flex items-center gap-3 text-body text-ink" role="status">
+            <LoaderCircle aria-hidden="true" className="size-5 motion-safe:animate-spin" />
+            <span>Đang kiểm tra liên kết xác thực…</span>
           </p>
-        </div>
-      </aside>
+        </Card>
+      ) : null}
+
+      {mode === 'verified' ? (
+        <Card className="space-y-5 p-5 sm:p-6">
+          <div className="flex items-start gap-3 rounded-md border border-success bg-success-bg p-4 text-body-sm text-success">
+            <CircleCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+            <p>
+              Địa chỉ email của bạn đã được xác nhận. Bạn có thể sử dụng đầy đủ tính năng khôi phục
+              mật khẩu và nhận nhắc lịch học qua email.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {authenticated ? (
+              <ContinueButton target={continueTarget}>Tiếp tục</ContinueButton>
+            ) : (
+              <Button to={loginTo}>Đăng nhập để tiếp tục</Button>
+            )}
+          </div>
+        </Card>
+      ) : null}
+
+      {mode === 'guide' ? (
+        <>
+          <Card className="space-y-5 p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <span
+                aria-hidden="true"
+                className="flex size-10 shrink-0 items-center justify-center rounded-pill bg-brand-50 text-brand-700"
+              >
+                <MailCheck className="size-5" />
+              </span>
+              <p className="min-w-0 break-words text-body text-ink-secondary">
+                {email ? (
+                  <>
+                    Liên kết xác thực đã gửi tới <strong className="text-ink">{email}</strong>. Mở
+                    email và bấm vào liên kết để xác thực tài khoản.
+                  </>
+                ) : (
+                  'Mở email chúng tôi đã gửi và bấm vào liên kết để xác thực tài khoản.'
+                )}
+              </p>
+            </div>
+
+            <ul className="list-disc space-y-1.5 rounded-sm bg-canvas p-4 pl-8 text-body-sm text-ink-secondary">
+              <li>Không thấy email? Kiểm tra thư mục spam hoặc quảng cáo.</li>
+              <li>Liên kết có hiệu lực trong 24 giờ.</li>
+              <li>Bạn vẫn học được trước khi xác thực.</li>
+            </ul>
+
+            <ResendSection {...props} />
+          </Card>
+
+          <Card className="flex flex-wrap items-center justify-between gap-4 p-4 sm:px-6">
+            <div className="flex flex-wrap items-center gap-3">
+              {authenticated ? (
+                <ContinueButton target={continueTarget}>Bỏ qua, vào học</ContinueButton>
+              ) : (
+                <Button to={loginTo} variant="outline">
+                  Bỏ qua, vào học
+                </Button>
+              )}
+            </div>
+
+            <p className="flex flex-wrap items-center gap-1 text-body-sm text-ink-secondary">
+              <span>Sai địa chỉ email?</span>
+              <Button size="sm" to={registerTo} variant="ghost">
+                Đăng ký lại
+              </Button>
+            </p>
+          </Card>
+        </>
+      ) : null}
+
+      {mode === 'invalid' ? (
+        <Card className="space-y-5 p-5 sm:p-6">
+          <ResendSection {...props} />
+        </Card>
+      ) : null}
+
+      {mode === 'error' ? (
+        <Card
+          className="flex items-start gap-3 border-danger bg-danger-bg p-5 text-body-sm text-danger sm:p-6"
+          role="alert"
+        >
+          <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+          <div className="min-w-0">
+            <p className="font-semibold">Chưa kiểm tra được liên kết</p>
+            <p className="mt-1">Đã có lỗi khi xác thực email. Vui lòng thử lại.</p>
+            {errorRequestId ? <p className="mt-1 text-caption">Mã lỗi: {errorRequestId}</p> : null}
+            <Button className="mt-4" onClick={onRetryVerify} size="sm" variant="outline">
+              Thử lại
+            </Button>
+          </div>
+        </Card>
+      ) : null}
     </main>
   )
 }

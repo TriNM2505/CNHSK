@@ -1,7 +1,7 @@
 import { CircleAlert, Link2Off } from 'lucide-react'
 import type { FormEvent } from 'react'
 
-import { Button, FormField, PasswordInput } from '@/shared/ui'
+import { Button, FormField, PageHeader, PasswordInput, StatusBadge } from '@/shared/ui'
 
 import type {
   ResetPasswordFieldErrors,
@@ -27,7 +27,9 @@ export interface ResetPasswordViewProps {
 }
 
 const ASIDE = {
+  badge: 'Bảo vệ phiên đăng nhập',
   body: 'Sau khi đặt lại, mọi phiên đăng nhập cũ trên các thiết bị sẽ bị đăng xuất để bảo vệ tài khoản.',
+  hanzi: '密码',
   title: 'Đặt mật khẩu mới an toàn',
 }
 
@@ -51,15 +53,23 @@ export function ResetPasswordView({
   if (!linkUsable || notice?.kind === 'invalid-token') {
     return (
       <AuthSplitLayout aside={ASIDE}>
-        <p className="mb-2 flex items-center gap-2 text-label text-warning">
-          <Link2Off aria-hidden="true" className="size-5" />
-          <span>Liên kết không dùng được</span>
-        </p>
-        <h1 className="text-h1-sm text-ink sm:text-h1">Liên kết đặt lại không hợp lệ</h1>
-        <p className="mb-6 mt-2 text-body text-ink-secondary" role="alert">
-          Liên kết đặt lại mật khẩu không hợp lệ, đã hết hạn hoặc đã được dùng. Liên kết chỉ có hiệu
-          lực 1 giờ và dùng được một lần.
-        </p>
+        <div className="mb-3">
+          <StatusBadge tone="warning">Liên kết không dùng được</StatusBadge>
+        </div>
+        <PageHeader
+          subtitle="Vui lòng yêu cầu gửi lại hướng dẫn đặt lại mật khẩu."
+          title="Liên kết đặt lại không hợp lệ"
+        />
+        <div
+          className="mb-6 flex items-start gap-3 rounded-md border border-warning bg-warning-bg p-4 text-body-sm text-ink"
+          role="alert"
+        >
+          <Link2Off aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-warning" />
+          <p>
+            Liên kết đặt lại mật khẩu không hợp lệ, đã hết hạn hoặc đã được dùng. Liên kết chỉ có
+            hiệu lực 1 giờ và dùng được một lần.
+          </p>
+        </div>
         <Button to={forgotTo}>Gửi liên kết mới</Button>
       </AuthSplitLayout>
     )
@@ -67,10 +77,13 @@ export function ResetPasswordView({
 
   return (
     <AuthSplitLayout aside={ASIDE}>
-      <h1 className="text-h1-sm text-ink sm:text-h1">Đặt lại mật khẩu</h1>
-      <p className="mb-6 mt-2 text-body text-ink-secondary">
-        Nhập mật khẩu mới cho tài khoản của bạn.
-      </p>
+      <div className="mb-3">
+        <StatusBadge tone="neutral">Cập nhật mật khẩu</StatusBadge>
+      </div>
+      <PageHeader
+        subtitle="Nhập mật khẩu mới cho tài khoản của bạn. Mọi phiên đăng nhập hiện có sẽ được thu hồi."
+        title="Đặt lại mật khẩu"
+      />
 
       {notice ? (
         <div

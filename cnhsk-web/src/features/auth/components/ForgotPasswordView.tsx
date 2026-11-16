@@ -1,7 +1,7 @@
 import { CircleAlert, MailCheck } from 'lucide-react'
 import type { FormEvent } from 'react'
 
-import { Button, FormField, Input } from '@/shared/ui'
+import { Button, FormField, Input, PageHeader, StatusBadge } from '@/shared/ui'
 
 import { AuthSplitLayout } from './AuthSplitLayout'
 
@@ -21,7 +21,9 @@ export interface ForgotPasswordViewProps {
 }
 
 const ASIDE = {
+  badge: 'Bảo mật tài khoản',
   body: 'Dù tài khoản có tồn tại hay không, bạn đều nhận cùng một thông báo. Cách này giúp người khác không dò được email nào đã đăng ký.',
+  hanzi: '安全',
   title: 'Phản hồi giống nhau cho mọi trường hợp',
 }
 
@@ -45,18 +47,27 @@ export function ForgotPasswordView({
   if (state === 'sent') {
     return (
       <AuthSplitLayout aside={ASIDE}>
-        <p className="mb-2 flex items-center gap-2 text-label text-success">
-          <MailCheck aria-hidden="true" className="size-5" />
-          <span>Đã nhận yêu cầu</span>
-        </p>
-        <h1 className="text-h1-sm text-ink sm:text-h1">Kiểm tra hộp thư của bạn</h1>
-        <p className="mt-2 break-words text-body text-ink-secondary" role="status">
-          Nếu <strong className="text-ink">{sentTo}</strong> có tài khoản trong hệ thống, hướng dẫn
-          đặt lại mật khẩu sẽ được gửi tới đó trong vài phút. Liên kết có hiệu lực 1 giờ.
-        </p>
+        <div className="mb-3">
+          <StatusBadge tone="success">Đã nhận yêu cầu</StatusBadge>
+        </div>
+        <PageHeader
+          subtitle="Hướng dẫn khôi phục sẽ được gửi nếu địa chỉ email đã đăng ký."
+          title="Kiểm tra hộp thư của bạn"
+        />
+        <div
+          className="flex items-start gap-3 rounded-md border border-success bg-success-bg p-4 text-body-sm text-ink"
+          role="status"
+        >
+          <MailCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-success" />
+          <p className="min-w-0 break-words">
+            Nếu <strong className="font-semibold text-ink">{sentTo}</strong> có tài khoản trong hệ
+            thống, hướng dẫn đặt lại mật khẩu sẽ được gửi tới đó trong vài phút. Liên kết có hiệu
+            lực 1 giờ.
+          </p>
+        </div>
         <div className="mt-6 flex flex-wrap gap-3">
           <Button to={loginTo}>Quay lại đăng nhập</Button>
-          <Button onClick={onSendAgain} variant="ghost">
+          <Button onClick={onSendAgain} variant="outline">
             Gửi lại với email khác
           </Button>
         </div>
@@ -66,11 +77,13 @@ export function ForgotPasswordView({
 
   return (
     <AuthSplitLayout aside={ASIDE}>
-      <h1 className="text-h1-sm text-ink sm:text-h1">Quên mật khẩu</h1>
-      <p className="mb-6 mt-2 text-body text-ink-secondary">
-        Nhập email của tài khoản. Nếu email có trong hệ thống, chúng tôi gửi hướng dẫn đặt lại mật
-        khẩu.
-      </p>
+      <div className="mb-3">
+        <StatusBadge tone="neutral">Khôi phục mật khẩu</StatusBadge>
+      </div>
+      <PageHeader
+        subtitle="Nhập email của tài khoản. Nếu email có trong hệ thống, chúng tôi gửi hướng dẫn đặt lại mật khẩu."
+        title="Quên mật khẩu"
+      />
 
       {state === 'error' && error ? (
         <div
@@ -106,12 +119,12 @@ export function ForgotPasswordView({
         </Button>
       </form>
 
-      <p className="mt-6 flex flex-wrap items-center justify-center gap-1 text-body-sm text-ink-secondary">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4 text-body-sm text-ink-secondary">
         <span>Nhớ ra mật khẩu rồi?</span>
         <Button size="sm" to={loginTo} variant="ghost">
           Quay lại đăng nhập
         </Button>
-      </p>
+      </div>
     </AuthSplitLayout>
   )
 }
