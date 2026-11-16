@@ -16,6 +16,9 @@ public interface AuthApi {
 
     boolean hasRole(long userId, RoleCode role);
 
+    /** Checks the stored administrator role and current account restrictions without requiring a login context. */
+    boolean isActiveAdmin(long userId);
+
     Map<Long, String> displayNames(Set<Long> userIds);
 
     Set<Long> bannedUserIds();

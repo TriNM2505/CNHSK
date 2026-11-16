@@ -65,21 +65,40 @@ public class WeakKnowledgeSelector {
     }
 
     public List<Candidate> select() {
+        return select(false);
+    }
+
+    /** Generation can continue past an unreadable legacy question without changing strict selection callers. */
+    public List<Candidate> selectForGeneration() {
+        return select(true);
+    }
+
+    private List<Candidate> select(boolean skipMalformed) {
         Instant now = clock.instant();
         Settings settings = new Settings(config.windowDays(), config.minWrong(), config.minBank(),
                 config.maxBatchesPerRun());
         cleanup.executeWithoutResult(status -> repository.failStale(now));
         if (settings.max() == 0) return List.of();
-        return reads.execute(status -> select(now, settings));
+        return reads.execute(status -> select(now, settings, skipMalformed));
     }
 
-    private List<Candidate> select(Instant now, Settings settings) {
+    private List<Candidate> select(Instant now, Settings settings, boolean skipMalformed) {
         List<Contribution> contributions = new ArrayList<>();
         Map<String, Long> wrongCounts = new HashMap<>();
         Map<Long, Map<String, String>> optionsByQuestion = new HashMap<>();
+        Set<Long> invalidQuestions = new HashSet<>();
         for (WrongAnswer answer : repository.wrongAnswers(now.minus(settings.windowDays(), ChronoUnit.DAYS), now)) {
-            Map<String, String> errors = optionsByQuestion.computeIfAbsent(answer.questionId(),
-                    ignored -> errors(answer.optionsJson()));
+            if (invalidQuestions.contains(answer.questionId())) continue;
+            Map<String, String> errors;
+            try {
+                errors = optionsByQuestion.computeIfAbsent(answer.questionId(), ignored -> skipMalformed
+                        ? generationErrors(answer.optionsJson()) : errors(answer.optionsJson()));
+            } catch (IllegalStateException exception) {
+                if (!skipMalformed) throw exception;
+                invalidQuestions.add(answer.questionId());
+                log.warn("Skipping question with malformed options: {}", answer.questionId());
+                continue;
+            }
             String errorKid = errors.get(answer.answer());
             contribute(wrongCounts, answer.primaryKid(), answer.count());
             contribute(wrongCounts, errorKid, answer.count());
@@ -155,6 +174,30 @@ public class WeakKnowledgeSelector {
                 }
                 if (!option.isCorrect() && option.errorKid() != null && !option.errorKid().isBlank()) {
                     result.put(option.key(), option.errorKid());
+                }
+            }
+            return result;
+        } catch (IOException | IllegalArgumentException exception) {
+            throw new IllegalStateException("Cannot read generation question options");
+        }
+    }
+
+    private Map<String, String> generationErrors(String json) {
+        try {
+            JsonNode options = mapper.readTree(json);
+            if (options == null || !options.isArray()) throw new IllegalStateException("Invalid generation question options");
+            Set<String> keys = new HashSet<>();
+            Map<String, String> result = new HashMap<>();
+            for (JsonNode option : options) {
+                if (!option.isObject() || !option.path("key").isTextual() || option.get("key").textValue().isBlank()
+                        || !option.path("text").isTextual() || option.get("text").textValue().isBlank()
+                        || !option.path("is_correct").isBoolean() || !keys.add(option.get("key").textValue())) {
+                    throw new IllegalStateException("Invalid generation question options");
+                }
+                JsonNode kid = option.get("error_kid");
+                if (kid != null && !kid.isNull() && !kid.isTextual()) throw new IllegalStateException("Invalid generation question options");
+                if (!option.get("is_correct").booleanValue() && kid != null && kid.isTextual() && !kid.textValue().isBlank()) {
+                    result.put(option.get("key").textValue(), kid.textValue());
                 }
             }
             return result;

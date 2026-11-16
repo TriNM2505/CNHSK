@@ -39,6 +39,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
+@org.junit.jupiter.api.extension.ExtendWith(org.springframework.boot.test.system.OutputCaptureExtension.class)
 class WeakKnowledgeSelectorTest {
 
     private static final Instant NOW = Instant.parse("2026-11-15T04:00:00Z");
@@ -350,6 +351,39 @@ class WeakKnowledgeSelectorTest {
         assertThatThrownBy(selector::select).isInstanceOf(IllegalStateException.class)
                 .hasMessageNotContaining(json).hasNoCause();
         verify(repository, never()).nodes(any());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"{", "null", "[null]", "[{\"key\":\"B\"},{\"key\":\"B\"}]"})
+    void legacyOptionsDropTheWholeQuestionAndWarnOnceAcrossGroupedUsers(String json,
+            org.springframework.boot.test.system.CapturedOutput output) throws Exception {
+        wrong(new WrongAnswer(1, 77, "B", A, json, 50),
+                new WrongAnswer(2, 77, "B", A, json, 50), row(3, B, 20));
+        nodes(node(1, A, 0), node(2, B, 0));
+
+        assertThat(selector.selectForGeneration()).containsExactly(new Candidate(2, B, 20, 0, 0));
+        verify(repository).nodes(Set.of(B));
+        verify(mapper, times(1)).readTree(json);
+        assertThat(output.getAll().lines().filter(line -> line.contains("WARN") && line.contains("77"))).hasSize(1);
+    }
+
+    @Test
+    void missingOptionsSkipPrimaryAndKeepValidSibling() {
+        wrong(new WrongAnswer(1, 78, "B", A, null, 100), row(2, B, 20));
+        nodes(node(1, A, 0), node(2, B, 0));
+
+        assertThat(selector.selectForGeneration()).containsExactly(new Candidate(2, B, 20, 0, 0));
+        verify(repository).nodes(Set.of(B));
+    }
+
+    @Test
+    void generationSelectionPreservesStrictResultsAndBothValidContributions() {
+        wrong(new WrongAnswer(1, 90, "B", A, options(A, C), 10), row(2, B, 20));
+        nodes(node(1, A, 0), node(2, B, 0));
+        var strict = selector.select();
+
+        assertThat(selector.selectForGeneration()).isEqualTo(strict)
+                .containsExactly(new Candidate(1, A, 20, 0, 0), new Candidate(2, B, 20, 0, 0));
     }
 
     private void wrong(WrongAnswer... rows) {

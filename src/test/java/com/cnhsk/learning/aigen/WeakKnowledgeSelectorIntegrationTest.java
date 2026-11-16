@@ -359,6 +359,38 @@ class WeakKnowledgeSelectorIntegrationTest extends AbstractIntegrationTest {
         }
     }
 
+    @Test
+    void legacyOptionsRemoveEveryContributionAndPreserveValidQuestions() {
+        doReturn(1).when(config).minWrong();
+        long primary = fixtures.node(), error = fixtures.node(), sibling = fixtures.node();
+        long malformed = fixtures.question(primary, "IMPORT", "APPROVED", fixtures.kid(error));
+        jdbc.update("UPDATE learning.questions SET options='[null,null]'::jsonb WHERE id=?", malformed);
+        fixtures.items(fixtures.user(), malformed, "B", false, NOW, 40);
+        fixtures.items(fixtures.user(), malformed, "B", false, NOW, 40);
+        fixtures.wrong(fixtures.user(), sibling, 3);
+
+        assertThat(selector.selectForGeneration()).extracting(WeakKnowledgeSelector.Candidate::knowledgePointId)
+                .containsExactly(sibling);
+    }
+
+    @Test
+    void contestAndMockExamWrongAnswersContributeAlongsidePractice() {
+        doReturn(1).when(config).minWrong();
+        long node = fixtures.node(), user = fixtures.user();
+        long question = fixtures.question(node, "IMPORT", "APPROVED", null);
+        for (String kind : List.of("CONTEST", "EXAM")) {
+            fixtures.items(user, question, "B", false, NOW, 2);
+            long attempt = fixtures.attempts.get(fixtures.attempts.size() - 1);
+            jdbc.update("UPDATE learning.attempts SET kind=?,ref_type=? WHERE id=?", kind,
+                    kind.equals("EXAM") ? "MOCK_EXAM" : "CONTEST", attempt);
+        }
+
+        assertThat(selector.select()).singleElement().satisfies(candidate -> {
+            assertThat(candidate.knowledgePointId()).isEqualTo(node);
+            assertThat(candidate.wrongCount()).isEqualTo(4);
+        });
+    }
+
     private void assertOwnBulkReads() {
         verify(repository).wrongAnswers(any(), any()); verify(repository).nodes(any()); verify(repository).activeRuns();
         assertThat(sql.statements.stream().filter(statement -> statement.toLowerCase().contains("learning.attempt_items"))).hasSize(1);
