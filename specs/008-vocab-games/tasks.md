@@ -22,7 +22,7 @@ Mỗi game giao độc lập được (BE trước, FE sau). Nguồn FE: app 6 g
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-07 | Engine dùng chung: chuyển `engine/{arcade,strokeScore,path,pinyin}.ts` + test từ `feat/dat-six-games`; dữ liệu nét từ gói `hanzi-writer-data` (không commit file dữ liệu tự sinh); bỏ thưởng chuỗi/tốc độ khỏi hiển thị điểm | `game/engine/**`, `cnhsk-game/package.json` | GM-2, GM-8, FR-006 | ⬜ |
+| T-07 | Engine dùng chung: chuyển `engine/{arcade,strokeScore,path,pinyin}.ts` + test từ `feat/dat-six-games`; dữ liệu nét từ gói `hanzi-writer-data` (không commit file dữ liệu tự sinh); bỏ thưởng chuỗi/tốc độ khỏi hiển thị điểm | `game/engine/**`, `cnhsk-game/package.json` | GM-2, GM-8, FR-006 | 🔄 chờ review — FE 107/107; lint, typecheck, build PASS |
 | T-08 | FE Mưa chữ (tô nét) + Ghép Bộ thủ | `game/games/char-rain/**`, `radical-match/**` | FR-004…FR-006, FR-018, FR-026…FR-028 · AT-04 | ⬜ |
 | T-09 | FE Ghép Pinyin | `game/games/pinyin-match/**` | FR-012, FR-013 · AT-18 | ⬜ |
 | T-10 | FE Bắt Chữ | `game/games/char-catch/**` | FR-025, FR-028 · AT-19 | ⬜ |

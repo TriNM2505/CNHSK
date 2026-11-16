@@ -44,3 +44,11 @@ Targeted RadicalMatch, community.game, ContentLookup và ModuleBoundaryTest: 212
 - PINYIN và AUDIO so pinyinKey gồm thanh, MEANING so meaningKeys. Đăng ký production thuộc T-06 theo Q-T01-01.
 
 Targeted CharCatch, community.game, ContentLookup và ModuleBoundaryTest: 215 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6856 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1517% (16611 dòng covered, 487 dòng missed).
+
+## T-07 — Engine FE và dữ liệu nét
+
+- Q-T07-01 (ANSWERED): ghim [hanzi-writer-data 2.0.1](https://www.npmjs.com/package/hanzi-writer-data/v/2.0.1), dữ liệu từ [Make Me a Hanzi](https://github.com/skishore/makemeahanzi) theo [Arphic Public License](https://github.com/chanind/hanzi-writer-data/blob/master/ARPHICPL.TXT). Vite dev phục vụ tại /stroke-data/ từ dependency. Build chỉ sao JSON và ARPHICPL.TXT nguyên văn vào dist/stroke-data/. Không giới hạn tập chữ và không commit dữ liệu nét.
+- Loader nhận một ký tự Hán, mã hoá URL và cache kết quả hợp lệ theo chữ. HTTP lỗi, mạng lỗi, body HTML hay JSON sai cấu trúc đều trả null để xử lý bỏ lỡ theo E7. Preview trả thẳng 404 cho chữ thiếu. T-08/T-11 dùng loader khi gắn game vào UI.
+- Q-T07-02 (ANSWERED): chuyển arcade, path, strokeScore và pinyin từ afed013. Bỏ stage mode, tự rút đề, gradePinyin và điểm thưởng theo chuỗi/tốc độ. Không chuyển glyphScore vì không có game gọi. GameShell tiếp tục hiển thị điểm từ server. Giữ kiểm cú pháp pinyin để chặn nhập thiếu thanh (AT-22).
+- Gate tại base b7b5818: npm ci, lint, typecheck, Vitest 107/107 (10 file), build đều PASS. AT-20: i=0/20/25 lần lượt 6000/3000/3000 ms.
+- Dev và preview: 一.json 200 application/json, giấy phép 200, chữ thiếu 404, package.json 404. SHA-256 giấy phép trong gói và build trùng nhau. dist/stroke-data có 9.575 file, 32.251.261 byte. JS ban đầu 71,67 kB gzip so với mốc 250 kB.
