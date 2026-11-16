@@ -189,9 +189,8 @@ export function ReferenceEditorForm({
                 label="Link tiếp thị liên kết"
                 error={errors.isAffiliate}
               >
-                <Input
+                <input
                   type="checkbox"
-                  className="size-4 min-h-0 p-0"
                   checked={draft.isAffiliate}
                   onChange={(event) => change('isAffiliate', event.target.checked)}
                 />

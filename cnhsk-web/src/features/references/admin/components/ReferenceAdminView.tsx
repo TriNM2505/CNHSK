@@ -7,7 +7,6 @@ import {
   EmptyState,
   ErrorState,
   FormField,
-  Input,
   PageHeader,
   Pagination,
   Select,
@@ -149,9 +148,8 @@ export function ReferenceAdminView(props: ReferenceAdminViewProps) {
             </Select>
           </FormField>
           <label className="mb-4 flex min-h-touch items-center gap-2 text-body-sm md:mt-7">
-            <Input
+            <input
               type="checkbox"
-              className="size-4 min-h-0 p-0"
               checked={filters.reported === true}
               onChange={(event) =>
                 props.onFilter({ ...filters, reported: event.target.checked ? true : undefined })
