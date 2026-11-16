@@ -73,3 +73,12 @@ Targeted Thần Bút, Phi Đao, đăng ký sáu game và hồi quy: 636 test, 0 
 - Q-T07-02 (ANSWERED): chuyển arcade, path, strokeScore và pinyin từ afed013. Bỏ stage mode, tự rút đề, gradePinyin và điểm thưởng theo chuỗi/tốc độ. Không chuyển glyphScore vì không có game gọi. GameShell tiếp tục hiển thị điểm từ server. Giữ kiểm cú pháp pinyin để chặn nhập thiếu thanh (AT-22).
 - Gate tại base b7b5818: npm ci, lint, typecheck, Vitest 107/107 (10 file), build đều PASS. AT-20: i=0/20/25 lần lượt 6000/3000/3000 ms.
 - Dev và preview: 一.json 200 application/json, giấy phép 200, chữ thiếu 404, package.json 404. SHA-256 giấy phép trong gói và build trùng nhau. dist/stroke-data có 9.575 file, 32.251.261 byte. JS ban đầu 71,67 kB gzip so với mốc 250 kB.
+
+## T-08 — Mưa Chữ và Ghép Bộ Thủ
+
+- Q-T08-01 (ANSWERED): GameShell trả Promise phản hồi từ POST hoặc RoundView.answered khi khôi phục. onMissed không POST, đặt lại mốc thời lượng và tính lượt đã xử lý. Hàng đợi giữ phản hồi cuối tối đa 800 ms, kết thúc theo deadline nếu đến sớm hơn. Thêm bước chờ với kiểm trước/sau 800 ms vào đúng hai biến thể của `checks whether a lost answer reached the server before replay (recorded=true/false)` để phản ánh thời gian giữ câu cuối. Giữ mọi assertion cũ.
+- Q-T08-02 (ANSWERED): Mưa Chữ dùng khung cố định, đồng hồ 180 s của ván. Dữ liệu nét thiếu gọi onMissed; nét sai tô lại; chỉ gửi PASS khi hoàn tất.
+- Q-T08-03 (ANSWERED): kiểm hai game qua GameShell trong test. Gắn route thật thuộc T-11.
+- Q-T08-04 (ANSWERED): 3 sao nếu ≥90% và tô sai ≤2 lần, 2 sao nếu ≥70%, còn lại 1 sao. Độ chính xác = số nét đạt / tổng lần tô. Sao chỉ hiển thị.
+- Q-T08-05 (ANSWERED): bổ sung prop tuỳ chọn onItemShown(no) so với năm props của FR-027 để GM-6 tính thời lượng từ lúc câu hiện. Shell giữ lần gọi đầu, dùng mốc cũ nếu game không gọi. Mưa Chữ báo sau khi vẽ khung, Ghép Bộ Thủ báo sau khi chuyển câu.
+- Gate FE trên base 6b6393d: npm ci, lint, typecheck, Vitest 118/118 (12 file), build đạt. QA Chrome trên trang fixture local ở 320/375/640 px: không cuộn ngang, khung vuông, chữ 96 px, bốn nút 64 px và phản hồi sai đúng với kết quả trả về. JS entry 71,67 kB gzip so với mốc 250 kB; hai game chưa gắn route.
