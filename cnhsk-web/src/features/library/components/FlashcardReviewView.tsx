@@ -64,16 +64,23 @@ export function FlashcardReviewView(props: FlashcardReviewViewProps) {
       ) : null}
       {props.state === 'ready' && props.card ? (
         <>
-          <div className="space-y-3 rounded-md border border-line bg-canvas p-6">
-            <h3 className="text-label text-ink">Mặt trước</h3>
-            <p className="whitespace-pre-wrap break-words text-h2 text-ink">{props.card.front}</p>
+          <div className="space-y-4 rounded-md border border-line bg-canvas p-6">
+            <div className="space-y-1">
+              <h3 className="text-label text-ink-secondary">Mặt trước</h3>
+              <p
+                className="whitespace-pre-wrap break-words font-hanzi text-h2 text-ink"
+                lang="zh-CN"
+              >
+                {props.card.front}
+              </p>
+            </div>
             {props.flipped ? (
-              <>
-                <h3 className="text-label text-ink">Mặt sau</h3>
+              <div className="space-y-1 border-t border-line pt-4">
+                <h3 className="text-label text-ink-secondary">Mặt sau</h3>
                 <p className="whitespace-pre-wrap break-words text-body text-ink">
                   {props.card.back}
                 </p>
-              </>
+              </div>
             ) : (
               <Button disabled={props.pending} onClick={props.onFlip}>
                 Lật thẻ

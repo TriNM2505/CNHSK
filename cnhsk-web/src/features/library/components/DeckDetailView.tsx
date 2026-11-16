@@ -55,7 +55,7 @@ export interface DeckDetailViewProps {
 export function DeckDetailView(props: DeckDetailViewProps) {
   const page = clientPage(props.page, props.deck?.cards.length ?? 0)
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-20 sm:px-6">
       <PageHeader
         title={props.deck?.name ?? 'Chi tiết bộ thẻ'}
         actions={
@@ -65,13 +65,16 @@ export function DeckDetailView(props: DeckDetailViewProps) {
         }
       />
       {props.notice ? (
-        <p role="status" className="text-body text-success">
+        <p
+          role="status"
+          className="rounded-md border border-success bg-success-bg p-4 text-body-sm text-success"
+        >
           {props.notice}
         </p>
       ) : null}
       {props.state === 'loading' ? (
-        <div aria-label="Đang tải chi tiết bộ thẻ">
-          <Skeleton className="h-32" />
+        <div aria-label="Đang tải chi tiết bộ thẻ" role="status">
+          <Skeleton variant="card" />
         </div>
       ) : null}
       {props.state === 'error' ? (
@@ -95,24 +98,29 @@ export function DeckDetailView(props: DeckDetailViewProps) {
       {props.review ??
         (props.deck ? (
           <>
-            {props.deck.description ? (
-              <p className="whitespace-pre-wrap break-words text-body text-ink-secondary">
-                {props.deck.description}
-              </p>
-            ) : null}
-            <p className="text-body-sm text-ink-secondary">
-              {props.deck.cardCount} thẻ · {props.deck.dueCount} đến hạn · Tối đa 500 thẻ trong bộ
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button disabled={props.busy} onClick={props.onReview}>
-                Ôn bộ này
-              </Button>
-              <Button disabled={props.busy} variant="danger" onClick={props.onDeleteDeck}>
-                Xoá bộ thẻ
-              </Button>
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-brand-100 bg-brand-50 p-5">
+              <div className="min-w-0 space-y-1">
+                {props.deck.description ? (
+                  <p className="whitespace-pre-wrap break-words text-body text-ink">
+                    {props.deck.description}
+                  </p>
+                ) : null}
+                <p className="text-body-sm font-medium text-ink-secondary">
+                  {props.deck.cardCount} thẻ · {props.deck.dueCount} đến hạn · Tối đa 500 thẻ trong
+                  bộ
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button disabled={props.busy} onClick={props.onReview}>
+                  Ôn bộ này
+                </Button>
+                <Button disabled={props.busy} variant="danger" onClick={props.onDeleteDeck}>
+                  Xoá bộ thẻ
+                </Button>
+              </div>
             </div>
-            <div className="grid items-start gap-6 lg:grid-cols-2">
-              <section aria-label="Thẻ trong bộ" className="space-y-4">
+            <div className="grid min-w-0 items-start gap-6 lg:grid-cols-2">
+              <section aria-label="Thẻ trong bộ" className="min-w-0 space-y-4">
                 {props.state === 'ready' && props.deck.cards.length === 0 ? (
                   <EmptyState
                     title="Bộ thẻ trống"
@@ -127,9 +135,12 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                         .map((card) => (
                           <li
                             key={card.id}
-                            className="space-y-3 rounded-md border border-line bg-surface p-4"
+                            className="space-y-3 rounded-md border border-line bg-surface p-5"
                           >
-                            <p className="whitespace-pre-wrap break-words text-h3 text-ink">
+                            <p
+                              className="whitespace-pre-wrap break-words font-hanzi text-h3 text-ink"
+                              lang="zh-CN"
+                            >
                               {card.front}
                             </p>
                             <p className="whitespace-pre-wrap break-words text-body text-ink-secondary">
@@ -146,7 +157,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                               )}{' '}
                               · {card.reviewCount} lượt ôn · {card.lapseCount} lần quên
                             </p>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2 border-t border-line pt-3">
                               <Button
                                 disabled={props.busy}
                                 variant="outline"
@@ -174,11 +185,11 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                   </>
                 ) : null}
               </section>
-              <div className="space-y-6">
+              <div className="min-w-0 space-y-6">
                 <form
                   aria-label="Sửa bộ thẻ"
                   noValidate
-                  className="space-y-3 rounded-md border border-line bg-surface p-4"
+                  className="space-y-3 rounded-md border border-line bg-surface p-5"
                   onSubmit={(event) => {
                     event.preventDefault()
                     props.onSaveDeck()
@@ -271,7 +282,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                       {props.cardValidation}
                     </p>
                   ) : null}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button type="submit" disabled={props.busy}>
                       Lưu thẻ
                     </Button>
@@ -285,6 +296,6 @@ export function DeckDetailView(props: DeckDetailViewProps) {
           </>
         ) : null)}
       {props.confirmation}
-    </div>
+    </main>
   )
 }

@@ -1,10 +1,17 @@
-import { Volume2 } from 'lucide-react'
+import { ArrowLeft, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { ApiError } from '@/shared/api'
-import { Button, ErrorState, HanziText, PageHeader, Skeleton } from '@/shared/ui'
-import type { PageStateValue } from '@/shared/ui'
+import {
+  Button,
+  Card,
+  ErrorState,
+  HanziText,
+  PageHeader,
+  Skeleton,
+  type PageStateValue,
+} from '@/shared/ui'
 
 import { dictionaryDetailHref } from '../dictionarySearch'
 import type { LexemeDetail, LexemeRef } from '../types'
@@ -45,8 +52,10 @@ function LexemeAudio({ url }: { url: string }) {
           })
         }}
       >
-        <Volume2 aria-hidden="true" className="size-4" />
-        Nghe phát âm
+        <span className="inline-flex items-center gap-2">
+          <Volume2 aria-hidden="true" className="size-4 shrink-0" />
+          Nghe phát âm
+        </span>
       </Button>
       {failed ? (
         <p className="text-body-sm text-danger" role="alert">
@@ -74,14 +83,18 @@ function RelatedLexemes({
         {entries.map((entry) => (
           <li key={entry.id}>
             <Link
-              className="block rounded-md border border-line bg-surface p-4 no-underline hover:border-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              className="block h-full rounded-md no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
               to={dictionaryDetailHref(entry.id, backTo)}
             >
-              <HanziText size="sm">{entry.text}</HanziText>
-              {entry.pinyin ? (
-                <p className="mt-1 text-body-sm text-brand-700">{entry.pinyin}</p>
-              ) : null}
-              <p className="mt-1 text-body-sm text-ink-secondary">{entry.meaningVi}</p>
+              <Card className="h-full space-y-1 p-4" variant="interactive">
+                <HanziText className="text-ink" size="sm">
+                  {entry.text}
+                </HanziText>
+                {entry.pinyin ? (
+                  <p className="text-body-sm font-medium text-brand-700">{entry.pinyin}</p>
+                ) : null}
+                <p className="text-body-sm text-ink-secondary">{entry.meaningVi}</p>
+              </Card>
             </Link>
           </li>
         ))}
@@ -108,14 +121,18 @@ export function LexemeDetailView({
   saveActions,
 }: LexemeDetailViewProps) {
   return (
-    <div className="mx-auto max-w-reading space-y-6">
-      <Link
-        className="inline-flex min-h-touch items-center text-body-sm text-brand-700 underline"
-        to={backTo}
-      >
-        Về kết quả tra cứu
-      </Link>
+    <main className="mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-6 pb-20 sm:px-6">
+      <div>
+        <Link
+          className="inline-flex min-h-touch items-center gap-1.5 text-label text-brand-700 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          to={backTo}
+        >
+          <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
+          Về kết quả tra cứu
+        </Link>
+      </div>
       <PageHeader
+        className="mb-0"
         title={
           state === 'ready' && entry ? (
             <HanziText size="lg">{entry.text}</HanziText>
@@ -126,7 +143,7 @@ export function LexemeDetailView({
         subtitle={state === 'ready' && entry ? kindLabels[entry.kind] : undefined}
       />
       {state === 'loading' ? (
-        <div aria-label="Đang tải mục từ" className="space-y-3">
+        <div aria-label="Đang tải mục từ" className="space-y-3" role="status">
           <Skeleton className="h-32" />
           <Skeleton className="h-24" />
         </div>
@@ -143,28 +160,38 @@ export function LexemeDetailView({
         <>
           <section
             aria-label="Thông tin mục từ"
-            className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-6"
+            className="space-y-4 rounded-md border border-line bg-surface p-5 sm:p-6"
           >
             {entry.pinyin ? <p className="text-h3 text-brand-700">{entry.pinyin}</p> : null}
-            <p className="whitespace-pre-wrap text-body text-ink">{entry.meaningVi}</p>
-            <dl className="grid grid-cols-2 gap-3 text-body-sm sm:grid-cols-4">
+            <p className="whitespace-pre-wrap break-words text-body text-ink">{entry.meaningVi}</p>
+            <dl className="grid grid-cols-2 gap-3 rounded-sm bg-canvas p-4 text-body-sm sm:grid-cols-4">
               <div>
                 <dt className="text-ink-muted">Hán Việt</dt>
-                <dd className="text-ink">{entry.sinoViet || 'Chưa có'}</dd>
+                <dd className="mt-0.5 font-medium text-ink">{entry.sinoViet || 'Chưa có'}</dd>
               </div>
               <div>
                 <dt className="text-ink-muted">Cấp HSK</dt>
-                <dd className="text-ink">
+                <dd className="mt-0.5 font-medium text-ink">
                   {entry.hskLevel != null ? `HSK ${entry.hskLevel}` : 'Chưa phân cấp'}
                 </dd>
               </div>
               <div>
                 <dt className="text-ink-muted">Bộ thủ</dt>
-                <dd className="text-ink">{entry.radical || 'Chưa có'}</dd>
+                <dd className="mt-0.5 font-medium text-ink">
+                  {entry.radical ? (
+                    <span className="font-hanzi" lang="zh-CN">
+                      {entry.radical}
+                    </span>
+                  ) : (
+                    'Chưa có'
+                  )}
+                </dd>
               </div>
               <div>
                 <dt className="text-ink-muted">Số nét</dt>
-                <dd className="text-ink">{entry.strokeCount ?? 'Chưa có'}</dd>
+                <dd className="mt-0.5 font-medium tabular-nums text-ink">
+                  {entry.strokeCount ?? 'Chưa có'}
+                </dd>
               </div>
             </dl>
             {entry.audioUrl ? <LexemeAudio key={entry.audioUrl} url={entry.audioUrl} /> : null}
@@ -175,7 +202,7 @@ export function LexemeDetailView({
           {entry.structure ? (
             <section className="space-y-2">
               <h2 className="text-h3 text-ink">Cấu trúc</h2>
-              <p className="whitespace-pre-wrap rounded-md bg-brand-50 p-4 text-body text-ink">
+              <p className="whitespace-pre-wrap break-words rounded-md border border-brand-100 bg-brand-50 p-4 font-hanzi text-body text-ink">
                 {entry.structure}
               </p>
             </section>
@@ -186,19 +213,24 @@ export function LexemeDetailView({
               <ul className="space-y-3">
                 {entry.examples.map((example, index) => (
                   <li
-                    className="space-y-1 rounded-md border border-line bg-surface p-4"
+                    className="space-y-1 rounded-md border border-line bg-surface p-4 sm:p-5"
                     key={index}
                   >
                     {example.cn ? (
-                      <p className="whitespace-pre-wrap font-hanzi text-h3 text-ink" lang="zh-CN">
+                      <p
+                        className="whitespace-pre-wrap break-words font-hanzi text-h3 text-ink"
+                        lang="zh-CN"
+                      >
                         {example.cn}
                       </p>
                     ) : null}
                     {example.pinyin ? (
-                      <p className="text-body-sm text-brand-700">{example.pinyin}</p>
+                      <p className="break-words text-body-sm font-medium text-brand-700">
+                        {example.pinyin}
+                      </p>
                     ) : null}
                     {example.vi ? (
-                      <p className="whitespace-pre-wrap text-body text-ink-secondary">
+                      <p className="whitespace-pre-wrap break-words text-body text-ink-secondary">
                         {example.vi}
                       </p>
                     ) : null}
@@ -215,6 +247,6 @@ export function LexemeDetailView({
           {saveActions}
         </>
       ) : null}
-    </div>
+    </main>
   )
 }

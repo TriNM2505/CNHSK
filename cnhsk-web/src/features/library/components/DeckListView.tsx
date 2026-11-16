@@ -44,19 +44,19 @@ export interface DeckListViewProps {
 export function DeckListView(props: DeckListViewProps) {
   const page = clientPage(props.page, props.decks.length)
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-20 sm:px-6">
       <PageHeader
         title="Bộ thẻ của tôi"
         subtitle="Tạo bộ thẻ riêng và ôn lại những điều muốn nhớ."
       />
-      <p className="text-body-sm text-ink-secondary">
+      <p className="rounded-md border border-brand-100 bg-brand-50 p-4 text-body-sm text-ink">
         Giới hạn: 50 bộ thẻ, tối đa 500 thẻ trong mỗi bộ.
       </p>
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <section aria-label="Danh sách bộ thẻ" className="space-y-4">
+      <div className="grid min-w-0 items-start gap-6 lg:grid-cols-2">
+        <section aria-label="Danh sách bộ thẻ" className="min-w-0 space-y-4">
           {props.state === 'loading' ? (
-            <div aria-label="Đang tải bộ thẻ">
-              <Skeleton className="h-32" />
+            <div aria-label="Đang tải bộ thẻ" role="status">
+              <Skeleton variant="card" />
             </div>
           ) : null}
           {props.state === 'error' ? (
@@ -81,7 +81,7 @@ export function DeckListView(props: DeckListViewProps) {
                   .map((deck) => (
                     <li
                       key={deck.id}
-                      className="space-y-2 rounded-md border border-line bg-surface p-4"
+                      className="space-y-3 rounded-md border border-line bg-surface p-5"
                     >
                       <h2 className="break-words text-h3 text-ink">{deck.name}</h2>
                       {deck.description ? (
@@ -89,12 +89,14 @@ export function DeckListView(props: DeckListViewProps) {
                           {deck.description}
                         </p>
                       ) : null}
-                      <p className="text-body-sm text-ink-secondary">
-                        {deck.cardCount} thẻ · {deck.dueCount} đến hạn
-                      </p>
-                      <Button to={`/library/decks/${deck.id}`} variant="outline">
-                        Mở bộ thẻ
-                      </Button>
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                        <p className="text-body-sm font-medium text-ink-secondary">
+                          {deck.cardCount} thẻ · {deck.dueCount} đến hạn
+                        </p>
+                        <Button to={`/library/decks/${deck.id}`} variant="outline">
+                          Mở bộ thẻ
+                        </Button>
+                      </div>
                     </li>
                   ))}
               </ul>
@@ -110,7 +112,7 @@ export function DeckListView(props: DeckListViewProps) {
         <form
           aria-label="Tạo bộ thẻ"
           noValidate
-          className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-6"
+          className="min-w-0 space-y-4 rounded-md border border-line bg-surface p-5 sm:p-6"
           onSubmit={(event) => {
             event.preventDefault()
             props.onCreate()
@@ -216,6 +218,6 @@ export function DeckListView(props: DeckListViewProps) {
           </Button>
         </form>
       </div>
-    </div>
+    </main>
   )
 }

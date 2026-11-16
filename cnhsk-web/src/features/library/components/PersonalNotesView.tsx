@@ -63,39 +63,41 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
       {!trash ? (
         <form
           noValidate
-          className="rounded-md border border-line bg-surface p-4"
+          className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-5"
           onSubmit={(event) => {
             event.preventDefault()
             props.onSearch()
           }}
         >
-          <FormField
-            htmlFor="notes-query"
-            label="Từ khoá tìm kiếm"
-            hint="Từ 2 đến 100 ký tự; để trống để xem tất cả."
-          >
-            <Input
-              type="search"
-              value={filters.q}
-              onChange={(event) => props.onFiltersChange({ ...filters, q: event.target.value })}
-            />
-          </FormField>
-          <FormField
-            htmlFor="notes-tag-filter"
-            label="Lọc theo thẻ"
-            hint="Nhập chính xác thẻ cần lọc."
-          >
-            <Input
-              value={filters.tag}
-              onChange={(event) => props.onFiltersChange({ ...filters, tag: event.target.value })}
-            />
-          </FormField>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              htmlFor="notes-query"
+              label="Từ khoá tìm kiếm"
+              hint="Từ 2 đến 100 ký tự; để trống để xem tất cả."
+            >
+              <Input
+                type="search"
+                value={filters.q}
+                onChange={(event) => props.onFiltersChange({ ...filters, q: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              htmlFor="notes-tag-filter"
+              label="Lọc theo thẻ"
+              hint="Nhập chính xác thẻ cần lọc."
+            >
+              <Input
+                value={filters.tag}
+                onChange={(event) => props.onFiltersChange({ ...filters, tag: event.target.value })}
+              />
+            </FormField>
+          </div>
           {props.filterError ? (
-            <p role="alert" className="mb-3 text-body-sm text-danger">
+            <p role="alert" className="text-body-sm text-danger">
               {props.filterError}
             </p>
           ) : null}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button type="submit">Tìm ghi chú</Button>
             <Button variant="outline" onClick={props.onClear}>
               Xoá bộ lọc
@@ -103,7 +105,7 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
           </div>
         </form>
       ) : (
-        <p className="text-body-sm text-ink-secondary">
+        <p className="rounded-md border border-line bg-surface-subtle p-4 text-body-sm text-ink-secondary">
           Có thể khôi phục trong 30 ngày. Ghi chú quá hạn được ẩn khỏi thùng rác.
         </p>
       )}
@@ -224,7 +226,7 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
     </section>
   )
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-20 sm:px-6">
       <PageHeader
         title="Sổ tay cá nhân"
         subtitle="Ghi lại điều muốn nhớ, tìm theo nội dung và thẻ."
@@ -235,7 +237,10 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
         }
       />
       {props.notice ? (
-        <p role="status" className="text-body text-success">
+        <p
+          role="status"
+          className="rounded-md border border-success bg-success-bg p-4 text-body-sm text-success"
+        >
           {props.notice}
         </p>
       ) : null}
@@ -258,17 +263,19 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
           ) : null}
         </div>
       ) : null}
-      <div className="grid items-start gap-6 lg:grid-cols-2">
-        <Tabs
-          label="Sổ tay"
-          value={search.tab}
-          onChange={(tab) => props.onTabChange(tab === 'trash' ? 'trash' : 'active')}
-          items={[
-            { id: 'active', label: 'Ghi chú', panel: list },
-            { id: 'trash', label: 'Thùng rác', panel: list },
-          ]}
-        />
-        <section aria-label="Chỉnh sửa ghi chú" className="space-y-4">
+      <div className="grid min-w-0 items-start gap-6 lg:grid-cols-2">
+        <div className="min-w-0">
+          <Tabs
+            label="Sổ tay"
+            value={search.tab}
+            onChange={(tab) => props.onTabChange(tab === 'trash' ? 'trash' : 'active')}
+            items={[
+              { id: 'active', label: 'Ghi chú', panel: list },
+              { id: 'trash', label: 'Thùng rác', panel: list },
+            ]}
+          />
+        </div>
+        <section aria-label="Chỉnh sửa ghi chú" className="min-w-0 space-y-4">
           {props.opening ? (
             <p role="status" className="text-body text-ink-secondary">
               Đang mở ghi chú…
@@ -292,6 +299,6 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
         </section>
       </div>
       {props.confirmation}
-    </div>
+    </main>
   )
 }

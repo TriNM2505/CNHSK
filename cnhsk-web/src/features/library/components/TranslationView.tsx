@@ -44,12 +44,12 @@ export function TranslationView({
   const insufficient = error?.status === 402 && error.errorCode === 'INSUFFICIENT_CREDITS'
   const unavailable = error?.status === 503 && error.errorCode === 'TRANSLATE_UNAVAILABLE'
   return (
-    <div className="mx-auto max-w-reading space-y-6">
+    <main className="mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-6 pb-20 sm:px-6">
       <PageHeader title="Dịch câu" subtitle="Dịch giữa tiếng Trung và tiếng Việt" />
       <form
         aria-label="Dịch câu"
         aria-busy={pending}
-        className="space-y-4"
+        className="space-y-4 rounded-md border border-line bg-surface p-5 sm:p-6"
         noValidate
         onSubmit={(event) => {
           event.preventDefault()
@@ -70,40 +70,59 @@ export function TranslationView({
             onChange={(event) => onTextChange(event.target.value)}
           />
         </FormField>
-        <div className="flex flex-wrap items-end gap-3">
-          <FormField htmlFor="translation-direction" label="Hướng dịch">
-            <Select
-              value={draft.from}
+        <div className="flex flex-wrap items-end justify-between gap-3 pt-1">
+          <div className="flex flex-wrap items-end gap-3">
+            <FormField className="mb-0" htmlFor="translation-direction" label="Hướng dịch">
+              <Select
+                value={draft.from}
+                disabled={pending}
+                onChange={(event) => onDirectionChange(event.target.value === 'VI' ? 'VI' : 'ZH')}
+              >
+                <option value="ZH">Tiếng Trung → Tiếng Việt</option>
+                <option value="VI">Tiếng Việt → Tiếng Trung</option>
+              </Select>
+            </FormField>
+            <Button
               disabled={pending}
-              onChange={(event) => onDirectionChange(event.target.value === 'VI' ? 'VI' : 'ZH')}
+              variant="outline"
+              onClick={() => onDirectionChange(draft.to)}
             >
-              <option value="ZH">Tiếng Trung → Tiếng Việt</option>
-              <option value="VI">Tiếng Việt → Tiếng Trung</option>
-            </Select>
-          </FormField>
-          <Button disabled={pending} variant="outline" onClick={() => onDirectionChange(draft.to)}>
-            Đổi hướng
-          </Button>
+              Đổi hướng
+            </Button>
+          </div>
           <Button type="submit" disabled={invalid || pending} loading={pending}>
             {pending ? 'Đang dịch…' : 'Dịch'}
           </Button>
         </div>
       </form>
       {insufficient ? (
-        <div role="alert" className="space-y-3 rounded-md border border-line bg-surface p-4">
-          <p>Bạn đã hết lượt dịch và không đủ điểm.</p>
+        <div
+          role="alert"
+          className="space-y-3 rounded-md border border-warning bg-warning-bg p-5 text-ink"
+        >
+          <p className="font-medium text-warning">Bạn đã hết lượt dịch và không đủ điểm.</p>
           <Button to="/account/credits" variant="outline">
             Xem gói dịch vụ và điểm
           </Button>
         </div>
       ) : unavailable ? (
-        <p role="alert" className="text-body text-danger">
+        <p
+          role="alert"
+          className="rounded-md border border-danger bg-danger-bg p-4 text-body text-danger"
+        >
           Dịch tạm thời lỗi — lượt đã được hoàn
         </p>
       ) : error && error.status !== 422 ? (
         <ErrorState message={error.message} requestId={error.requestId} />
       ) : null}
-      {pending ? <p role="status">Đang dịch nội dung…</p> : null}
+      {pending ? (
+        <p
+          className="rounded-md border border-line bg-surface p-4 text-body-sm text-ink-secondary"
+          role="status"
+        >
+          Đang dịch nội dung…
+        </p>
+      ) : null}
       {!pending && !result && !error ? (
         <EmptyState
           title="Chưa có bản dịch"
@@ -113,35 +132,40 @@ export function TranslationView({
       {result ? (
         <section
           aria-label="Kết quả dịch"
-          className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-6"
+          className="space-y-4 rounded-md border border-line bg-surface p-5 sm:p-6"
         >
           <h2 className="text-h3 text-ink">Bản dịch</h2>
           <p
-            className="whitespace-pre-wrap text-body text-ink"
+            className="whitespace-pre-wrap break-words rounded-sm bg-canvas p-4 text-body text-ink"
             lang={draft.to === 'ZH' ? 'zh-CN' : 'vi'}
           >
             {result.translated}
           </p>
           {result.pinyin ? (
-            <div>
+            <div className="space-y-1">
               <h3 className="text-label text-ink">Pinyin của nội dung tiếng Trung</h3>
-              <p className="whitespace-pre-wrap text-body text-brand-700">{result.pinyin}</p>
+              <p className="whitespace-pre-wrap break-words text-body text-brand-700">
+                {result.pinyin}
+              </p>
             </div>
           ) : null}
           {result.segments.length ? (
-            <div>
+            <div className="space-y-1">
               <h3 className="text-label text-ink">
                 {draft.from === 'ZH'
                   ? 'Tra từ trong nội dung tiếng Trung'
                   : 'Tra từ trong bản dịch tiếng Trung'}
               </h3>
-              <p className="whitespace-pre-wrap font-hanzi text-h3 text-ink" lang="zh-CN">
+              <p
+                className="whitespace-pre-wrap break-words font-hanzi text-h3 text-ink"
+                lang="zh-CN"
+              >
                 {result.segments.map((segment, index) =>
                   segment.lexemeId != null ? (
                     <button
                       key={index}
                       type="button"
-                      className="rounded-sm text-brand-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                      className="rounded-sm px-0.5 text-brand-700 underline underline-offset-2 transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1"
                       aria-label={`Tra từ ${segment.text}`}
                       onClick={() => onOpenLexeme(segment.lexemeId!)}
                     >
@@ -155,15 +179,21 @@ export function TranslationView({
             </div>
           ) : null}
           {result.cached ? (
-            <p role="status">Từ bộ nhớ đệm — không trừ lượt</p>
+            <p className="text-body-sm text-ink-secondary" role="status">
+              Từ bộ nhớ đệm — không trừ lượt
+            </p>
           ) : result.consumption === 'QUOTA' ? (
-            <p role="status">Đã dùng 1 lượt miễn phí.</p>
+            <p className="text-body-sm text-ink-secondary" role="status">
+              Đã dùng 1 lượt miễn phí.
+            </p>
           ) : result.consumption === 'CREDIT' ? (
-            <p role="status">Đã dùng điểm.</p>
+            <p className="text-body-sm text-ink-secondary" role="status">
+              Đã dùng điểm.
+            </p>
           ) : null}
         </section>
       ) : null}
       {popup}
-    </div>
+    </main>
   )
 }

@@ -2,6 +2,9 @@ import { createElement, useState } from 'react'
 
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
 import { ApiError } from '@/shared/api'
+import { AuthContext, type AuthContextValue } from '@/shared/auth'
+import { LearnerLayout, PublicLayout } from '@/shared/layout'
+import { previewContentEditor, previewLearner } from '@/shared/layout/Layout.preview'
 
 import { DictionarySearchView } from './components/DictionarySearchView'
 import { LexemeDetailView } from './components/LexemeDetailView'
@@ -589,94 +592,165 @@ function DeckDetailPreview({
   })
 }
 
+const guestAuth: AuthContextValue = {
+  error: null,
+  reloadCurrentUser: async () => undefined,
+  setAuthenticatedUser: () => undefined,
+  signOut: async () => undefined,
+  status: 'guest',
+  user: null,
+}
+
+const learnerAuth: AuthContextValue = {
+  error: null,
+  reloadCurrentUser: async () => undefined,
+  setAuthenticatedUser: () => undefined,
+  signOut: async () => undefined,
+  status: 'authenticated',
+  user: previewLearner,
+}
+
+const otherRoleAuth: AuthContextValue = {
+  error: null,
+  reloadCurrentUser: async () => undefined,
+  setAuthenticatedUser: () => undefined,
+  signOut: async () => undefined,
+  status: 'authenticated',
+  user: previewContentEditor,
+}
+
+function inPublicGuest(element: ReturnType<typeof createElement>) {
+  return createElement(
+    AuthContext.Provider,
+    { value: guestAuth },
+    createElement(PublicLayout, null, element),
+  )
+}
+
+function inPublicOther(element: ReturnType<typeof createElement>) {
+  return createElement(
+    AuthContext.Provider,
+    { value: otherRoleAuth },
+    createElement(PublicLayout, null, element),
+  )
+}
+
+function inLearnerLayout(element: ReturnType<typeof createElement>) {
+  return createElement(
+    AuthContext.Provider,
+    { value: learnerAuth },
+    createElement(LearnerLayout, null, element),
+  )
+}
+
 export const previews = [
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-dictionary-samples',
     scr: 'SCR-024',
     title: 'Tra từ điển — Khách',
-    render: (state) => createElement(DictionaryPreview, { state }),
+    render: (state) => inPublicGuest(createElement(DictionaryPreview, { state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-detail-samples',
     scr: 'SCR-025',
     title: 'Chi tiết chữ Hán — Khách',
     render: (state) =>
-      createElement(DetailPreview, { state, entry: sampleDetail(101), access: 'guest' }),
+      inPublicGuest(
+        createElement(DetailPreview, { state, entry: sampleDetail(101), access: 'guest' }),
+      ),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-dictionary-learner',
     scr: 'SCR-024',
     title: 'Tra từ điển — Học viên',
-    render: (state) => createElement(DictionaryPreview, { state, learner: true }),
+    render: (state) => inLearnerLayout(createElement(DictionaryPreview, { state, learner: true })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-dictionary-rate-limited',
     scr: 'SCR-024',
     title: 'Tra từ điển — Khách hết lượt tra',
     states: ['error'],
-    render: (state) => createElement(DictionaryPreview, { state, rateLimited: true }),
+    render: (state) =>
+      inPublicGuest(createElement(DictionaryPreview, { state, rateLimited: true })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-detail-learner',
     scr: 'SCR-025',
     title: 'Chi tiết từ vựng — Học viên',
     render: (state) =>
-      createElement(DetailPreview, { state, entry: sampleDetail(212), access: 'learner' }),
+      inLearnerLayout(
+        createElement(DetailPreview, { state, entry: sampleDetail(212), access: 'learner' }),
+      ),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-detail-grammar',
     scr: 'SCR-025',
     title: 'Chi tiết ngữ pháp — Tài khoản không có LEARNER',
     render: (state) =>
-      createElement(DetailPreview, { state, entry: sampleDetail(301), access: 'other' }),
+      inPublicOther(
+        createElement(DetailPreview, { state, entry: sampleDetail(301), access: 'other' }),
+      ),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-translation-samples',
     scr: 'SCR-026',
     title: 'Dịch câu — Dữ liệu mẫu',
     states: ['ready', 'loading', 'empty', 'error'],
-    render: (state) => createElement(TranslationPreview, { state }),
+    render: (state) => inLearnerLayout(createElement(TranslationPreview, { state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-note-samples',
     scr: 'SCR-027',
     title: 'Sổ tay — Dữ liệu mẫu',
-    render: (state) => createElement(NotesPreview, { state }),
+    render: (state) => inLearnerLayout(createElement(NotesPreview, { state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-note-trash',
     scr: 'SCR-027',
     title: 'Sổ tay — Thùng rác',
-    render: (state) => createElement(NotesPreview, { state, trash: true }),
+    render: (state) => inLearnerLayout(createElement(NotesPreview, { state, trash: true })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-deck-samples',
     scr: 'SCR-028',
     title: 'Bộ thẻ — Dữ liệu mẫu',
-    render: (state) => createElement(DeckListPreview, { state }),
+    render: (state) => inLearnerLayout(createElement(DeckListPreview, { state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-card-samples',
     scr: 'SCR-029',
     title: 'Thẻ — Dữ liệu mẫu',
-    render: (state) => createElement(DeckDetailPreview, { state }),
+    render: (state) => inLearnerLayout(createElement(DeckDetailPreview, { state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'library-review-samples',
     scr: 'SCR-029',
     title: 'Ôn bộ thẻ — Dữ liệu mẫu',
-    render: (state) => createElement(DeckDetailPreview, { state, reviewing: true }),
+    render: (state) =>
+      inLearnerLayout(createElement(DeckDetailPreview, { state, reviewing: true })),
   },
 ] satisfies readonly PreviewEntry[]
