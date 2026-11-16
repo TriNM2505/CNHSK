@@ -12,6 +12,7 @@ import {
   Pagination,
   Select,
   Skeleton,
+  StatusBadge,
   SUPPORTED_HSK_LEVELS,
 } from '@/shared/ui'
 
@@ -43,7 +44,7 @@ function actionMessage(error: ApiError): string {
 export function QuizListView(props: QuizListViewProps) {
   const { state, result, hsk, pendingTopic, error, actionError } = props
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 p-4 sm:p-6">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-20 sm:px-6">
       <PageHeader
         title="Quiz theo chủ đề"
         subtitle="Chọn chủ đề để thử sức với những câu hỏi ngắn."
@@ -83,7 +84,7 @@ export function QuizListView(props: QuizListViewProps) {
         <section
           aria-label="Đang tải quiz"
           aria-busy="true"
-          className="grid min-w-0 grid-cols-1 gap-4 min-[641px]:grid-cols-2 lg:grid-cols-3"
+          className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           {[1, 2, 3].map((id) => (
             <Skeleton key={id} variant="card" />
@@ -118,14 +119,14 @@ export function QuizListView(props: QuizListViewProps) {
       {state === 'ready' && result ? (
         <section
           aria-label="Các chủ đề quiz"
-          className="grid min-w-0 grid-cols-1 gap-4 min-[641px]:grid-cols-2 lg:grid-cols-3"
+          className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           {result.items.map((quiz) => {
             const retry = quiz.myFirstAttempt !== null
             return (
               <Card
                 key={quiz.topicId}
-                className="flex min-w-0 flex-col gap-4 break-words [overflow-wrap:anywhere]"
+                className="flex min-w-0 flex-col gap-4 break-words p-5 [overflow-wrap:anywhere]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-700">
@@ -133,27 +134,35 @@ export function QuizListView(props: QuizListViewProps) {
                   </div>
                   <LevelBadge level={quiz.hskLevel} />
                 </div>
-                <h2 className="min-w-0 text-h3 text-ink">{quiz.topicName}</h2>
-                <p className="text-body-sm text-ink-secondary">{quiz.questionCount} câu hỏi</p>
-                <div className="space-y-1 text-body-sm text-ink-secondary">
-                  <p>
+                <div className="min-w-0 space-y-1">
+                  <h2 className="min-w-0 text-h3 text-ink">{quiz.topicName}</h2>
+                  <p className="text-body-sm text-ink-secondary">{quiz.questionCount} câu hỏi</p>
+                </div>
+                <div className="space-y-1 rounded-sm bg-canvas p-3 text-body-sm text-ink-secondary">
+                  <p className="font-medium text-ink">
                     {quiz.myFirstAttempt
                       ? `Đã làm lần đầu: ${quiz.myFirstAttempt.score} điểm`
                       : 'Chưa làm lần đầu'}
                   </p>
-                  {quiz.myFirstAttempt?.suspicious ? <p>Lượt đầu bị đánh dấu nghi vấn.</p> : null}
+                  {quiz.myFirstAttempt?.suspicious ? (
+                    <p className="text-warning">Lượt đầu bị đánh dấu nghi vấn.</p>
+                  ) : null}
                   {quiz.myBestRetryScore !== null ? (
                     <p>Điểm làm lại tốt nhất: {quiz.myBestRetryScore}</p>
                   ) : null}
                 </div>
-                <p className="mt-auto flex items-center gap-2 text-body-sm font-semibold text-ink">
-                  {retry ? (
-                    <RotateCcw aria-hidden="true" className="size-4 shrink-0" />
-                  ) : (
-                    <Flag aria-hidden="true" className="size-4 shrink-0" />
-                  )}
-                  {retry ? 'Làm lại — không tính hạng' : 'Lượt đầu tính hạng'}
-                </p>
+                <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+                  <StatusBadge tone={retry ? 'neutral' : 'info'}>
+                    <span className="inline-flex items-center gap-1.5">
+                      {retry ? (
+                        <RotateCcw aria-hidden="true" className="size-3.5 shrink-0" />
+                      ) : (
+                        <Flag aria-hidden="true" className="size-3.5 shrink-0" />
+                      )}
+                      {retry ? 'Làm lại — không tính hạng' : 'Lượt đầu tính hạng'}
+                    </span>
+                  </StatusBadge>
+                </div>
                 <Button
                   aria-label={`${retry ? 'Làm lại' : 'Bắt đầu'} quiz ${quiz.topicName}`}
                   disabled={pendingTopic !== undefined}

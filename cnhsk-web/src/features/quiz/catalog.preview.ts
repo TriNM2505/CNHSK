@@ -11,18 +11,24 @@ import { QuizResultView } from './components/QuizResultView'
 import { quizEngineSession, quizPage, quizResult } from './test-fixtures'
 
 function previewState(state: PreviewState) {
-  if (state === 'loading') return createElement(Skeleton, { variant: 'card' })
-  if (state === 'empty')
-    return createElement(EmptyState, {
-      title: 'Chưa có nội dung quiz',
-      description: 'Quay lại danh sách để chọn một chủ đề khác.',
-    })
-  if (state === 'error')
-    return createElement(ErrorState, {
-      message: 'Không thể tải quiz. Vui lòng thử lại.',
-      onRetry: () => undefined,
-    })
-  return null
+  if (state === 'ready') return null
+  const content =
+    state === 'loading'
+      ? createElement(Skeleton, { variant: 'card' })
+      : state === 'empty'
+        ? createElement(EmptyState, {
+            title: 'Chưa có nội dung quiz',
+            description: 'Quay lại danh sách để chọn một chủ đề khác.',
+          })
+        : createElement(ErrorState, {
+            message: 'Không thể tải quiz. Vui lòng thử lại.',
+            onRetry: () => undefined,
+          })
+  return createElement(
+    'main',
+    { className: 'mx-auto w-full min-w-0 max-w-reading px-4 py-6 pb-20 sm:px-6' },
+    content,
+  )
 }
 
 function AttemptPreview({ state }: { state: PreviewState }) {
@@ -54,31 +60,47 @@ function AttemptPreview({ state }: { state: PreviewState }) {
 function ResultPreview({ state }: { state: PreviewState }) {
   return (
     previewState(state) ??
-    createElement(QuizResultView, {
-      result: quizResult,
-      pending: false,
-      leaderboardAvailable: false,
-      onRetry: () => undefined,
-    })
+    createElement(
+      'main',
+      {
+        className:
+          'mx-auto w-full min-w-0 max-w-content space-y-6 break-words px-4 py-6 pb-20 [overflow-wrap:anywhere] sm:px-6',
+      },
+      createElement(QuizResultView, {
+        result: quizResult,
+        pending: false,
+        leaderboardAvailable: false,
+        onRetry: () => undefined,
+      }),
+    )
+  )
+}
+
+const previewAuth: AuthContextValue = {
+  user: {
+    id: 1,
+    displayName: 'Học viên xem trước',
+    email: 'quiz-preview@example.test',
+    emailVerified: true,
+    roles: ['LEARNER'],
+  },
+  status: 'authenticated',
+  error: null,
+  reloadCurrentUser: async () => undefined,
+  setAuthenticatedUser: () => undefined,
+  signOut: async () => undefined,
+}
+
+function inLearnerLayout(children: ReturnType<typeof createElement>) {
+  return createElement(
+    AuthContext.Provider,
+    { value: previewAuth },
+    createElement(LearnerLayout, { gameOrigin: 'http://localhost:5174', children }),
   )
 }
 
 function QuizPreview({ state }: { state: PreviewState }) {
   const [hsk, setHsk] = useState('')
-  const auth: AuthContextValue = {
-    user: {
-      id: 1,
-      displayName: 'Học viên xem trước',
-      email: 'quiz-preview@example.test',
-      emailVerified: true,
-      roles: ['LEARNER'],
-    },
-    status: 'authenticated',
-    error: null,
-    reloadCurrentUser: async () => undefined,
-    setAuthenticatedUser: () => undefined,
-    signOut: async () => undefined,
-  }
   const content = createElement(QuizListView, {
     state,
     hsk,
@@ -93,11 +115,7 @@ function QuizPreview({ state }: { state: PreviewState }) {
     onRetry: () => undefined,
     onStart: () => undefined,
   })
-  return createElement(
-    AuthContext.Provider,
-    { value: auth },
-    createElement(LearnerLayout, { gameOrigin: 'http://localhost:5174', children: content }),
-  )
+  return inLearnerLayout(content)
 }
 
 export const previews = [
@@ -112,18 +130,20 @@ export const previews = [
   },
   {
     group: 'screen',
+    fullFrame: true,
     id: 'quiz-attempt',
     scr: 'SCR-044',
     title: 'Làm quiz theo chủ đề',
     states: ['loading', 'empty', 'error', 'ready'],
-    render: (state) => createElement(AttemptPreview, { state }),
+    render: (state) => inLearnerLayout(createElement(AttemptPreview, { state })),
   },
   {
     group: 'screen',
+    fullFrame: true,
     id: 'quiz-result',
     scr: 'SCR-045',
     title: 'Kết quả quiz theo chủ đề',
     states: ['loading', 'empty', 'error', 'ready'],
-    render: (state) => createElement(ResultPreview, { state }),
+    render: (state) => inLearnerLayout(createElement(ResultPreview, { state })),
   },
 ] satisfies readonly PreviewEntry[]

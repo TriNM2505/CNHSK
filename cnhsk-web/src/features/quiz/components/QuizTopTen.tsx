@@ -32,11 +32,11 @@ export function QuizTopTen({ topicId }: { topicId: number }) {
         <ol className="space-y-3">
           {query.data?.entries.slice(0, 10).map((entry) => (
             <li key={entry.userId}>
-              <Card className="flex min-w-0 flex-wrap items-center justify-between gap-3 break-words [overflow-wrap:anywhere]">
-                <p className="min-w-0 flex-1">
+              <Card className="flex min-w-0 flex-wrap items-center justify-between gap-3 break-words p-4 [overflow-wrap:anywhere]">
+                <p className="min-w-0 flex-1 font-medium text-ink">
                   #{entry.rank} · {entry.displayName}
                 </p>
-                <p>
+                <p className="text-body-sm font-semibold tabular-nums text-brand-700">
                   {entry.score} điểm
                   {entry.durationMs === null ? '' : ` · ${quizDuration(entry.durationMs)}`}
                 </p>
