@@ -4,10 +4,10 @@
 | --- | --- |
 | **Trạng thái** | Khung giao diện đã khoá cho đợt làm lại giao diện; inventory 79 màn FINAL |
 | **Status** | APPROVED |
-| **Version** | 1.1 |
+| **Version** | 1.2 |
 | **Owner** | Nhóm CNHSK |
 | **Approved by** | Leader nhóm |
-| **Locked on** | 2026-11-16 |
+| **Locked on** | 2026-11-17 |
 | **Sprint** | Làm lại giao diện cnhsk-web |
 
 ---
@@ -30,12 +30,13 @@ cục trong các màn mình phụ trách, trong giới hạn dưới đây.
 | --- | --- |
 | RD-01 | Không đổi route, `api/`, `pages/`, kiểu dữ liệu API hoặc backend. Chỉ sửa `features/<feature>/components/*View.tsx`, component riêng của feature và test tương ứng. |
 | RD-02 | Mỗi màn SHALL dựng theo đúng một khuôn trang ở §8.1 và giữ đủ vùng bắt buộc của khuôn đó; vùng tự do được bố cục tuỳ ý. |
-| RD-03 | Chỉ dùng component `shared/ui` (§7.1) và token §6. Không viết mã màu hex; không thêm `<button>`, `<input>`, `<select>`, `<textarea>` thô; không thêm class Tailwind giá trị tuỳ ý (`text-[…]`, `w-[…]`…) trừ khi ghi lý do trong PR. |
+| RD-03 | Chỉ dùng component `shared/ui` (§7.1) và token §6. Không viết mã màu hex; không thêm `<button>`, `<input>`, `<select>`, `<textarea>` thô; không thêm class Tailwind giá trị tuỳ ý (`text-[…]`, `w-[…]`…) trừ khi ghi lý do trong PR. Breakpoint chỉ dùng `sm:` (640px), `lg:` (1024px), `xl:` (1440px); preset không có `md`, nên class `md:` không sinh CSS và không được dùng. |
 | RD-04 | `shared/ui`, `shared/layout` và `tailwind.preset.cjs` chỉ người giữ nền chung sửa. Cần component mới dùng từ hai feature trở lên thì đề xuất để thêm vào `shared/ui`, không tự tạo bản sao trong feature. |
 | RD-05 | Sửa test chỉ ở phần tìm phần tử (chữ hiển thị, role, nhãn). Không xoá hoặc nới assertion về hành vi, dữ liệu gửi đi, quyền hay trạng thái. |
 | RD-06 | Giữ đủ trạng thái §9 (đang tải, rỗng, lỗi, không có quyền, đang gửi) và accessibility §10. |
-| RD-07 | Gate FE xanh (lint, typecheck, test, build); không tràn ngang ở năm viewport §11; PR kèm ảnh trước/sau ở 375px và 1280px. |
+| RD-07 | Gate FE xanh (lint, typecheck, test, build); không tràn ngang ở năm viewport §11; PR kèm ảnh trước/sau ở 375px và 1280px, đính kèm trong mô tả PR (không commit ảnh vào repo). |
 | RD-08 | Mỗi PR một feature, nhánh `redesign/<feature>` tạo từ main mới nhất. |
+| RD-09 | Thẩm mỹ trong vùng tự do (bố cục, cách phối token, hình minh hoạ, linh vật) do thành viên tự quyết; review không chặn merge vì lý do thẩm mỹ. Linh vật gấu trúc và nền tre chỉ dùng ở các màn xác thực SCR-002–SCR-006 và SCR-079. |
 
 ### 0.2. Checklist review PR giao diện
 
@@ -43,7 +44,7 @@ Reviewer đánh dấu từng mục; một mục "Không" là chưa merge.
 
 - [ ] Chỉ có file trong phạm vi RD-01; không có file `api/`, `pages/`, route, backend.
 - [ ] Mỗi màn trong PR khớp khuôn ghi ở §8.2 và đủ vùng bắt buộc.
-- [ ] Không có hex, không có control HTML thô mới, class tuỳ ý (nếu có) đã ghi lý do.
+- [ ] Không có hex, không có control HTML thô mới, không có `md:`, class tuỳ ý (nếu có) đã ghi lý do.
 - [ ] Không sửa `shared/ui`, `shared/layout`, `tailwind.preset.cjs` (trừ PR nền chung).
 - [ ] Diff test chỉ đổi cách tìm phần tử; số assertion hành vi không giảm.
 - [ ] Đủ trạng thái đang tải/rỗng/lỗi; chữ Hán dùng `font.hanzi`; focus nhìn thấy được.
@@ -53,6 +54,8 @@ Tài liệu tham khảo:
 
 - [Học Bá Education](https://hoc-ba.edu.vn/): nguồn tham khảo cho nhận diện đỏ
   Trung Hoa, màu nhấn vàng, độ tương phản và cảm giác giáo dục chuyên nghiệp.
+  Nhóm đã được Học Bá cho phép dùng hình ảnh và asset của họ (leader xác nhận
+  2026-11-17).
 - [Hanzi Cozy Diary](https://CNHSK.today/): nguồn tham khảo cho cách nhóm
   công cụ theo kỹ năng, card tính năng, lộ trình học và phân cấp nội dung.
 - [feature-tree.md](feature-tree.md): nguồn sự thật về tính năng và phạm vi.
@@ -306,7 +309,8 @@ Màu vàng SHALL không dùng làm chữ nhỏ trên nền trắng. Màu đỏ b
 | `text.hanzi-lg` | 56/68, 500 | Chữ Hán trọng tâm trên desktop |
 | `text.hanzi-md` | 40/52, 500 | Chữ Hán trong card/mobile |
 
-Không dùng font Gilroy của Học Bá vì quyền sử dụng chưa được xác nhận.
+Bản này giữ bộ font hiện có trong preset; đổi font (kể cả Gilroy như Học Bá) là
+thay đổi nền chung theo RD-04, ảnh hưởng mọi màn.
 
 ### 6.3. Spacing, bo góc, đổ bóng, z-index
 
@@ -411,11 +415,11 @@ và cách nhóm nội dung, miễn dùng §6 và §7.1.
 | Mã | Khuôn | Vùng bắt buộc (thứ tự) | Vùng tự do | Bề rộng |
 | --- | --- | --- | --- | --- |
 | K1 | Danh sách / catalog | `PageHeader` → thanh tìm kiếm/bộ lọc (nếu màn có lọc) → danh sách hoặc lưới card → `Pagination` (nếu phân trang) · trạng thái §9 qua `PageState`/`EmptyState` | Kiểu card, số cột, khối gợi ý/nổi bật phía trên danh sách | `content.max` 1280px |
-| K2 | Chi tiết | `PageHeader` (tiêu đề + hành động chính) → nội dung chính → khối liên quan/hành động phụ · liên kết quay lại danh sách | Chia cột nội dung/phụ, cách trình bày metadata | Nội dung đọc 720px; trang có cột phụ tối đa 1280px |
+| K2 | Chi tiết | `PageHeader` (tiêu đề + hành động chính) → nội dung chính → khối liên quan/hành động phụ · liên kết quay lại danh sách | Chia cột nội dung/phụ, cách trình bày metadata | Nội dung đọc 720px; trang có cột phụ hoặc bảng dữ liệu tối đa 1280px |
 | K3 | Form / cài đặt / xác thực | `PageHeader` → các nhóm `FormField` có nhãn → vùng hành động (primary cuối form) · lỗi cạnh field (§12) | Chia nhóm field, minh hoạ bên cạnh trên desktop | 720px; màn xác thực (SCR-002–SCR-006) căn giữa |
-| K4 | Phiên làm bài / học từng bước | Thanh phiên (tiến độ câu, thời gian nếu có, nút thoát có xác nhận) → vùng câu hỏi/nội dung trọng tâm → vùng trả lời và hành động chính · phản hồi đúng/sai bằng text + màu | Hiệu ứng chuyển câu, bố cục vùng trả lời, panel điều hướng câu (thu gọn được) | 720px vùng trọng tâm; không sidebar che câu hỏi |
+| K4 | Phiên làm bài / học từng bước | Thanh phiên (tiến độ câu, thời gian nếu có, nút thoát; hỏi xác nhận khi rời phiên làm mất dữ liệu chưa lưu/chưa nộp) → vùng câu hỏi/nội dung trọng tâm → vùng trả lời và hành động chính · phản hồi đúng/sai bằng text + màu | Hiệu ứng chuyển câu, bố cục vùng trả lời, panel điều hướng câu (thu gọn được) | 720px vùng trọng tâm; không sidebar che câu hỏi |
 | K5 | Tổng quan / kết quả | `PageHeader` → khối số liệu chính (`StatTile`/`Progress`, giá trị server xác nhận) → hành động tiếp theo → các `Section` chi tiết | Thứ tự và bố cục các `Section`, biểu đồ, minh hoạ | 1280px |
-| K6 | Bảng quản trị | `PageHeader` (+ hành động tạo/nhập) → bộ lọc → `DataTable` → `Pagination` · hành động dòng có xác nhận khi phá huỷ | Cột phụ, nhóm bộ lọc, thẻ tóm tắt phía trên bảng | 1280px; mobile đổi bảng thành list/card |
+| K6 | Bảng quản trị | `PageHeader` (+ hành động tạo/nhập nếu màn có) → bộ lọc (nếu màn có lọc) → `DataTable` → `Pagination` (nếu phân trang) · hành động dòng có xác nhận khi phá huỷ | Cột phụ, nhóm bộ lọc, thẻ tóm tắt phía trên bảng | 1280px; mobile đổi bảng thành list/card |
 
 Landing SCR-001 dùng K5 và là màn duy nhất được dùng `text.display` (hero).
 
@@ -586,9 +590,8 @@ Tỷ lệ Unwanted: 12/27 luật = 44,4%.
 
 ## 14. Out of Scope
 
-- File này không định nghĩa logo cuối cùng, mascot, ảnh minh họa hoặc bộ icon
-  độc quyền của thương hiệu.
-- Không sao chép asset, nội dung hay font Gilroy từ Học Bá.
+- File này không định nghĩa logo cuối cùng, ảnh minh họa hoặc bộ icon độc quyền
+  của thương hiệu; linh vật chỉ giới hạn phạm vi dùng theo RD-09.
 - Không quy định thuật toán FSRS, chấm điểm, chống gian lận hoặc business rule
   phía server ngoài cách thể hiện trạng thái.
 - Không thiết kế lại website marketing `CNHSK.today` theo từng pixel.
@@ -609,7 +612,7 @@ Không còn câu hỏi mở. Các câu bản 0.1 đã chốt:
 | # | Câu hỏi | Chốt (2026-11-16) |
 | --- | --- | --- |
 | 1 | Trình duyệt tối thiểu? | Chrome, Edge, Firefox hai bản mới nhất; Safari 16+ (macOS, iOS); Chrome Android hai bản mới nhất (§2) |
-| 2 | Logo wordmark hay biểu tượng? | Tạm dùng wordmark chữ "CNHSK" như header hiện tại. Logo chính thức làm sau, là logo riêng của CNHSK theo phong cách đỏ–vàng tham khảo ở §0, không dùng logo của website tham khảo (§14) |
+| 2 | Logo wordmark hay biểu tượng? | Tạm dùng wordmark chữ "CNHSK" như header hiện tại. Logo chính thức làm sau, theo phong cách đỏ–vàng của Học Bá; được dùng hình ảnh/asset Học Bá theo sự cho phép ghi ở §0 (cập nhật 2026-11-17) |
 | 3 | Dark mode trong MVP? | Không (§14) |
 | 4 | Web game dùng Phaser 3 hay Canvas? | React + DOM/SVG, không Phaser (§2) |
 | 5 | Thư viện biểu đồ React Native? | Không áp dụng — đã bỏ mobile |
@@ -622,6 +625,7 @@ Không còn câu hỏi mở. Các câu bản 0.1 đã chốt:
 | --- | --- | --- | --- |
 | 0.1 | 2026-09-28 | Bản đầu; hợp nhất web chính, web game và React Native | Chưa duyệt |
 | 1.1 | 2026-11-16 | Bỏ React Native/WebView; thêm luật làm lại giao diện (§0.1) và checklist review (§0.2); trạng thái triển khai 72 màn (§5.6); đồng bộ §7 với `shared/ui` thật; thêm 6 khuôn trang và bảng gán màn (§8.1, §8.2); chốt Open Questions; khoá tài liệu | Leader nhóm |
+| 1.2 | 2026-11-17 | Được dùng hình ảnh/asset Học Bá (§0, §14, §15); thêm RD-09 tự do thẩm mỹ, linh vật chỉ ở màn xác thực; cấm `md:` (RD-03, §0.2); ảnh PR đính kèm, không commit (RD-07); K2 rộng 1280px khi có bảng; K4 chỉ xác nhận thoát khi mất dữ liệu; K6 bộ lọc/phân trang khi màn có | Leader nhóm |
 
 ---
 
