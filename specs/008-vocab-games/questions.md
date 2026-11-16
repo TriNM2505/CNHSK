@@ -20,3 +20,11 @@ Targeted và toàn bộ hồi quy learning.practice: 526 test, 0 failure/error/s
 - Game giữ PASS trong snapshot. Engine chấm và giữ kỷ lục cũ khi ván bị đánh dấu suspicious.
 
 Targeted CharRain, community.game, ContentLookup và ModuleBoundaryTest: 193 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6834 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1604% (16492 dòng covered, 482 dòng missed).
+
+## T-04 — Ghép Bộ thủ
+
+- Q-T04-01 (ANSWERED): bỏ khoảng trắng hai đầu radical trước khi đếm, tra cặp và hiển thị. Giữ nguyên các dạng phân biệt như 讠/言 và 钅/金. Không thay đổi dữ liệu đã lưu.
+- Dùng chung ngưỡng tám chữ theo ID duy nhất và bốn bộ phân biệt cho isAvailable và buildRound. Ưu tiên cặp dễ nhầm theo cả hai chiều nếu có trong pool, rồi lấy các bộ còn lại ngẫu nhiên.
+- RadicalMatchGame chỉ đăng ký trong test. Đăng ký production thuộc T-06 theo Q-T01-01.
+
+Targeted RadicalMatch, community.game, ContentLookup và ModuleBoundaryTest: 212 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6853 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1516% (16542 dòng covered, 485 dòng missed).
