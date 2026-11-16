@@ -24,7 +24,7 @@ Mỗi game giao độc lập được (BE trước, FE sau). Nguồn FE: app 6 g
 |---|---|---|---|---|
 | T-07 | Engine dùng chung: chuyển `engine/{arcade,strokeScore,path,pinyin}.ts` + test từ `feat/dat-six-games`; dữ liệu nét từ gói `hanzi-writer-data` (không commit file dữ liệu tự sinh); bỏ thưởng chuỗi/tốc độ khỏi hiển thị điểm | `game/engine/**`, `cnhsk-game/package.json` | GM-2, GM-8, FR-006 | ✅ MERGED — PR #237 / 8656cad |
 | T-08 | FE Mưa chữ (tô nét) + Ghép Bộ thủ | `game/games/char-rain/**`, `radical-match/**` | FR-004…FR-006, FR-018, FR-026…FR-028 · AT-04 | ✅ MERGED — PR #238 |
-| T-09 | FE Ghép Pinyin | `game/games/pinyin-match/**` | FR-012, FR-013 · AT-18 | ⬜ |
+| T-09 | FE Ghép Pinyin | `game/games/pinyin-match/**` | FR-012, FR-013 · AT-18 | 🔄 chờ review — FE 124/124; lint, typecheck, build PASS |
 | T-10 | FE Bắt Chữ | `game/games/char-catch/**` | FR-025, FR-028 · AT-19 | ⬜ |
 | T-11 | FE Thần Bút + Phi Đao (chỉ chế độ 60 s, ẩn chế độ màn — Q8); route `/play/brush-stroke`, `/play/flying-dart`, chuyển hướng `/arcade/*` | `game/games/{brush-stroke,flying-dart}/**`, router | FR-033, FR-034, FR-039, FR-040 · AT-17, AT-22 | ⬜ |
 
