@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Button, Card } from '@/shared/ui'
+import { Button, Card, Skeleton } from '@/shared/ui'
 import { duration, errorMessage, isConflict } from '../contestActions'
 import type { Winner } from '../types'
 
@@ -51,8 +51,8 @@ export function ContestWinnersPanel({
       })
   }
   return (
-    <Card className="min-w-0 space-y-4">
-      <h2 className="text-h3">Liên hệ người đạt giải</h2>
+    <Card className="min-w-0 space-y-6 p-6">
+      <h2 className="text-h2">Liên hệ người đạt giải</h2>
       <p className="text-body-sm text-ink-secondary">
         Mỗi lần hiện email đều được ghi nhật ký. Dùng thông tin này để liên hệ trao giải ngoài hệ
         thống.
@@ -63,7 +63,12 @@ export function ContestWinnersPanel({
           Ẩn email
         </Button>
       )}
-      {pending && <p role="status">Đang tải liên hệ…</p>}
+      {pending && (
+        <div>
+          <p role="status">Đang tải liên hệ…</p>
+          <Skeleton variant="card" />
+        </div>
+      )}
       {error && <p role="alert">{error}</p>}
       {winners?.length === 0 && <p>Không có người đạt giải trong các khoảng hạng đã đặt.</p>}
       {winners && (
@@ -71,7 +76,7 @@ export function ContestWinnersPanel({
           {winners.map((winner) => (
             <li
               key={winner.userId}
-              className="min-w-0 space-y-1 rounded-md border border-line p-4 [overflow-wrap:anywhere]"
+              className="min-w-0 space-y-3 break-words rounded-md border border-line bg-canvas p-4"
             >
               <p className="font-semibold">
                 Hạng {winner.rank} · {winner.displayName ?? `Người dùng #${winner.userId}`}
@@ -82,7 +87,10 @@ export function ContestWinnersPanel({
               </p>
               <p>
                 Email:{' '}
-                <a className="text-brand-700 underline" href={`mailto:${winner.email}`}>
+                <a
+                  className="inline-flex min-h-touch items-center break-all text-brand-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                  href={`mailto:${winner.email}`}
+                >
                   {winner.email}
                 </a>
               </p>

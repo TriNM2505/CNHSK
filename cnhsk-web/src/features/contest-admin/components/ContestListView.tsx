@@ -1,6 +1,16 @@
 import { Link, useLocation } from 'react-router-dom'
 import type { ApiQueryState } from '@/shared/api'
-import { Button, DataTable, FormField, PageHeader, Pagination, Select } from '@/shared/ui'
+import {
+  Button,
+  Card,
+  DataTable,
+  FormField,
+  PageHeader,
+  Pagination,
+  Select,
+  Skeleton,
+  StatusBadge,
+} from '@/shared/ui'
 import {
   actionLabels,
   actionReason,
@@ -38,43 +48,49 @@ export function ContestListView({
   const location = useLocation()
   const returnState = { contestListSearch: location.search }
   return (
-    <main className="min-w-0 space-y-6">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6">
       <PageHeader
         title="Quản lý cuộc thi"
         subtitle="Lịch thi hiển thị theo giờ Việt Nam (UTC+7)."
+        actions={
+          <Button to="/content/contests/new" state={returnState}>
+            Tạo cuộc thi
+          </Button>
+        }
       />
-      <Link
-        className="inline-flex min-h-touch items-center rounded-sm bg-brand-600 px-4 font-semibold text-white"
-        to="/content/contests/new"
-        state={returnState}
-      >
-        Tạo cuộc thi
-      </Link>
-      <FormField htmlFor="contest-status" label="Lọc trạng thái">
-        <Select
-          disabled={busy}
-          value={status}
-          onChange={(event) => onFilter(event.target.value as ContestStatus | '')}
-        >
-          <option value="">Tất cả trạng thái</option>
-          {Object.entries(statusLabels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </Select>
-      </FormField>
-      {state === 'loading' && <p role="status">Đang tải cuộc thi…</p>}
+
+      <Card className="p-6">
+        <FormField htmlFor="contest-status" label="Lọc trạng thái">
+          <Select
+            disabled={busy}
+            value={status}
+            onChange={(event) => onFilter(event.target.value as ContestStatus | '')}
+          >
+            <option value="">Tất cả trạng thái</option>
+            {Object.entries(statusLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </FormField>
+      </Card>
+      {state === 'loading' && (
+        <div>
+          <p role="status">Đang tải cuộc thi…</p>
+          <Skeleton variant="table" />
+        </div>
+      )}
       {state === 'error' && (
-        <div role="alert">
+        <Card role="alert" className="space-y-3 border-danger bg-danger-bg">
           <p>{error}</p>
           <Button onClick={onRetry} variant="outline">
             Thử tải lại
           </Button>
-        </div>
+        </Card>
       )}
       {state === 'empty' && (
-        <div>
+        <Card className="space-y-3 p-6">
           <p>
             {data && data.totalElements > 0
               ? 'Trang này không có cuộc thi.'
@@ -85,11 +101,12 @@ export function ContestListView({
           <Button onClick={() => onPage(0)} variant="ghost">
             Về trang đầu
           </Button>
-        </div>
+        </Card>
       )}
       {state === 'ready' && data && (
         <DataTable
           caption="Danh sách cuộc thi quản trị"
+          captionVisible
           rows={data.items}
           rowKey={(item) => item.id}
           columns={[
@@ -99,7 +116,7 @@ export function ContestListView({
               render: (item) => (
                 <div className="space-y-1 break-words">
                   <Link
-                    className="font-semibold text-brand-700 underline"
+                    className="inline-flex min-h-touch items-center font-semibold text-brand-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                     to={`/content/contests/${item.id}`}
                     state={returnState}
                   >
@@ -124,7 +141,17 @@ export function ContestListView({
               header: 'Trạng thái',
               render: (item) => (
                 <div>
-                  <p>{statusLabels[item.status]}</p>
+                  <StatusBadge
+                    tone={
+                      item.status === 'PUBLISHED'
+                        ? 'success'
+                        : item.status === 'DRAFT'
+                          ? 'warning'
+                          : 'neutral'
+                    }
+                  >
+                    {statusLabels[item.status]}
+                  </StatusBadge>
                   <p>{stateLabels[item.state]}</p>
                   <p>{item.participantCount} lượt thi</p>
                   <p>Kết quả: {vietnamTime(item.rankingPublishedAt)}</p>
@@ -144,13 +171,14 @@ export function ContestListView({
                       <p className="text-caption text-ink-secondary">{editReason(item)}</p>
                     </div>
                   ) : (
-                    <Link
-                      className="inline-flex min-h-touch items-center text-brand-700 underline"
+                    <Button
+                      variant="outline"
+                      size="sm"
                       to={`/content/contests/${item.id}`}
                       state={returnState}
                     >
                       Sửa
-                    </Link>
+                    </Button>
                   )}
                   {(['cancel', 'ranking'] as const).map((action) => {
                     const reason = actionReason(item, action, now)

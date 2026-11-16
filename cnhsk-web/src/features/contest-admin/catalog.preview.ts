@@ -1,6 +1,6 @@
 import { createElement as h, useState } from 'react'
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
-import { Button, Card, PageHeader, Select } from '@/shared/ui'
+import { Button, Card, ErrorState, PageHeader, Select, Skeleton } from '@/shared/ui'
 import { ContestListView } from './components/ContestListView'
 import { ContestEditorForm } from './components/ContestEditorForm'
 import { ContestParticipantsPanel } from './components/ContestParticipantsPanel'
@@ -65,17 +65,24 @@ function EditorPreview({ state }: { state: PreviewState }) {
           : mode === 'locked'
             ? { ...contestFixture, status: 'PUBLISHED', state: 'ONGOING' }
             : contestFixture
-  if (state === 'loading') return h('main', null, h('p', { role: 'status' }, 'Đang tải cuộc thi…'))
+  if (state === 'loading')
+    return h(
+      'main',
+      { className: 'mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-6 sm:px-6' },
+      h(PageHeader, { title: 'Chi tiết cuộc thi' }),
+      h('p', { role: 'status' }, 'Đang tải cuộc thi…'),
+      h(Skeleton, { variant: 'card' }),
+    )
   if (state === 'error')
     return h(
       'main',
-      null,
-      h('p', { role: 'alert' }, 'Không tải được cuộc thi.'),
-      h(Button, null, 'Thử tải lại'),
+      { className: 'mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-6 sm:px-6' },
+      h(PageHeader, { title: 'Chi tiết cuộc thi' }),
+      h(ErrorState, { message: 'Không tải được cuộc thi.', onRetry: () => undefined }),
     )
   return h(
     'main',
-    { className: 'min-w-0 space-y-6' },
+    { className: 'mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6' },
     h(PageHeader, {
       title: contest ? 'Chi tiết cuộc thi' : 'Tạo cuộc thi',
       subtitle: contest?.name,
