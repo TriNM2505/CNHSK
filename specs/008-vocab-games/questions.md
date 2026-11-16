@@ -44,3 +44,24 @@ Targeted RadicalMatch, community.game, ContentLookup và ModuleBoundaryTest: 212
 - PINYIN và AUDIO so pinyinKey gồm thanh, MEANING so meaningKeys. Đăng ký production thuộc T-06 theo Q-T01-01.
 
 Targeted CharCatch, community.game, ContentLookup và ModuleBoundaryTest: 215 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6856 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1517% (16611 dòng covered, 487 dòng missed).
+
+## T-06 — Thần Bút, Phi Đao và đăng ký sáu game
+
+- Q-T06-01 (ANSWERED): dùng learning.api.GamePinyin để đếm các âm tiết do PinyinUtils.toNumbered tách và lấy dạng bỏ thanh qua normalize. Pinyin thiếu, sai hoặc không tách được thì loại khỏi pool. Một âm tiết = 550 ms, hai âm tiết = 700 ms. Chấm dùng PinyinGrader hiện có.
+- Q-T06-02 (ANSWERED): tối đa 200 thẻ WORD/CHAR chung, chọn WORD trước trong pool đã trả rồi bổ sung CHAR. Không bảo đảm ưu tiên WORD trên toàn ngân hàng.
+- Q-T06-03 (ANSWERED): sáu bean đăng ký tại GameDefinitionConfiguration. GameRoundControllerIntegrationTest giữ fixture CHAR_RAIN/PINYIN_MATCH qua spy registry.find; deadline 33 s, TTL 48 s, khoá A và mọi assertion engine giữ nguyên. Các integration test từng game dùng bean thật. PracticeFinishIntegrationTest bỏ bean trùng mã, giữ event probe và snapshot.
+- Catalog AT-02: description và howToPlay đổi từ chuỗi fixture sang đúng chuỗi của từng game thật. Skill đổi từ VOCAB cho cả sáu sang WRITING / VOCAB / CHARACTER / LISTENING / WRITING / VOCAB theo enum. Thời gian đổi từ 30 s cho cả sáu sang 180 / 90 / 90 / 75 / 60 / 60 s. Pool mở rộng từ một từ mẫu sang các chữ/từ có đủ dữ liệu để giữ assert cả sáu game khả dụng và giữ số lần truy vấn.
+
+  | Game | description thật | howToPlay thật |
+  |---|---|---|
+  | CHAR_RAIN | Tô từng nét của các chữ Hán lần lượt xuất hiện. | Tô mọi nét theo thứ tự. Nếu sai, hãy thử lại nét đó. |
+  | PINYIN_MATCH | Ghép từng từ tiếng Trung với thẻ pinyin của từ đó. | Chọn một từ, rồi chọn thẻ pinyin tương ứng. |
+  | RADICAL_MATCH | Nhận diện bộ thủ của từng chữ Hán. | Nhìn chữ và chọn bộ thủ đúng trong bốn phương án. |
+  | CHAR_CATCH | Chọn chữ hoặc từ khớp với nghĩa, pinyin hoặc âm thanh. | Đọc hoặc nghe gợi ý rồi chọn một trong sáu phương án. |
+  | BRUSH_STROKE | Tô nét đầu tiên của chữ Hán đang rơi. | Tô đúng nét đầu tiên trước khi chữ chạm đất. |
+  | FLYING_DART | Gõ pinyin của chữ hoặc từ đang rơi. | Gõ pinyin rồi nhấn Enter trước khi chữ chạm đất. |
+
+- SharedLogin AT-18: payload trả lời CharRain đổi A thành PASS do câu thật là TRACE_CHAR. Pool thêm chữ đủ số nét và bộ thủ cùng từ có pinyin để ba ván độc lập tạo được. Giữ nguyên assertion HTTP/CORS/XSRF, trạng thái và số câu đã lưu.
+- GameRegistry giữ hành vi context 0 game và chặn tập thiếu hoặc trùng mã. AT-23 đọc xếp hạng từ test; API ván nhân 10 khi trả điểm, cột score và repository giữ số câu đúng.
+
+Targeted Thần Bút, Phi Đao, đăng ký sáu game và hồi quy: 636 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6930 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1370% (16964 dòng covered, 500 dòng missed).

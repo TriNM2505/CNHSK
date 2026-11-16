@@ -76,6 +76,10 @@ class GameRoundControllerIntegrationTest extends AbstractIntegrationTest {
         var card = new ContentLookup.LexemeCard(lexeme, "WORD", "你好", "nǐ hǎo", "ni3hao3", "xin chào",
                 Set.of("xin chào"), null, null, null, 1);
         doReturn(List.of(card)).when(content).pool(any());
+        // Preserve the small snapshots used by these engine tests without registering duplicate game codes.
+        for (GameCode code : List.of(GameCode.CHAR_RAIN, GameCode.PINYIN_MATCH)) {
+            doReturn(java.util.Optional.of(new GameDefinitionFixtures.Definition(code))).when(registry).find(code);
+        }
         clearInvocations(content, stats, practice);
     }
 
@@ -533,12 +537,6 @@ class GameRoundControllerIntegrationTest extends AbstractIntegrationTest {
     @TestConfiguration(proxyBeanMethods = false)
     static class Fixtures {
         @Bean @Primary MutableGameClock gameStartClock() { return new MutableGameClock(); }
-        @Bean GameDefinition startCharRain() { return new GameDefinitionFixtures.Definition(GameCode.CHAR_RAIN); }
-        @Bean GameDefinition startPinyinMatch() { return new GameDefinitionFixtures.Definition(GameCode.PINYIN_MATCH); }
-        @Bean GameDefinition startRadicalMatch() { return new GameDefinitionFixtures.Definition(GameCode.RADICAL_MATCH); }
-        @Bean GameDefinition startCharCatch() { return new GameDefinitionFixtures.Definition(GameCode.CHAR_CATCH); }
-        @Bean GameDefinition startBrushStroke() { return new GameDefinitionFixtures.Definition(GameCode.BRUSH_STROKE); }
-        @Bean GameDefinition startFlyingDart() { return new GameDefinitionFixtures.Definition(GameCode.FLYING_DART); }
     }
 
     static class MutableGameClock extends Clock {

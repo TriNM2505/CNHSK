@@ -5,10 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.cnhsk.community.game.GameContext;
-import com.cnhsk.community.game.GameDefinition;
-import com.cnhsk.learning.api.GameCode;
-import com.cnhsk.learning.api.PracticeApi;
 import com.cnhsk.shared.security.JwtService;
 import com.cnhsk.support.AbstractIntegrationTest;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -18,9 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -33,7 +26,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc
-@Import(CharRainGameIntegrationTest.Definitions.class)
 class CharRainGameIntegrationTest extends AbstractIntegrationTest {
     private static final String BASE = "/api/community/games/";
     private static final String HASH = new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
@@ -154,27 +146,5 @@ class CharRainGameIntegrationTest extends AbstractIntegrationTest {
             assertThat(item.path("options").isMissingNode() || item.path("options").isNull()).isTrue();
             assertThat(item.toString()).doesNotContain("\"answer\"", "\"accept\"", "\"correctAnswer\"", "\"PASS\"");
         });
-    }
-
-    @TestConfiguration(proxyBeanMethods = false)
-    static class Definitions {
-        @Bean GameDefinition charRain() { return new CharRainGame(); }
-        @Bean GameDefinition pinyinMatch() { return new UnavailableDefinition(GameCode.PINYIN_MATCH); }
-        @Bean GameDefinition radicalMatch() { return new UnavailableDefinition(GameCode.RADICAL_MATCH); }
-        @Bean GameDefinition charCatch() { return new UnavailableDefinition(GameCode.CHAR_CATCH); }
-        @Bean GameDefinition brushStroke() { return new UnavailableDefinition(GameCode.BRUSH_STROKE); }
-        @Bean GameDefinition flyingDart() { return new UnavailableDefinition(GameCode.FLYING_DART); }
-    }
-
-    private record UnavailableDefinition(GameCode code) implements GameDefinition {
-        @Override public String description() { return "Game giả dùng cho test."; }
-        @Override public PracticeApi.Skill skill() { return PracticeApi.Skill.VOCAB; }
-        @Override public String howToPlay() { return "Game giả dùng cho test."; }
-        @Override public int timeLimitSeconds() { return 30; }
-        @Override public int pointsPerCorrect() { return 10; }
-        @Override public boolean isAvailable(GameContext context) { return false; }
-        @Override public List<PracticeApi.ServedItem> buildRound(GameContext context) { return List.of(); }
-        @Override public void validateAnswer(PracticeApi.ServedItem item, String answer, int elapsedMs) { }
-        @Override public Map<String, Object> uiConfig() { return Map.of(); }
     }
 }

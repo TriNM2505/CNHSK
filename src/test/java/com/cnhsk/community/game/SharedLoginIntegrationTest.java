@@ -8,6 +8,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,9 +20,6 @@ import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -29,7 +28,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 @AutoConfigureMockMvc
-@Import(SharedLoginIntegrationTest.GameFixtures.class)
 class SharedLoginIntegrationTest extends AbstractIntegrationTest {
     private static final String WEB = "http://localhost:5173";
     private static final String GAME = "http://localhost:5174";
@@ -51,12 +49,20 @@ class SharedLoginIntegrationTest extends AbstractIntegrationTest {
                         + "VALUES (?,?,'Shared login fixture',CURRENT_TIMESTAMP) RETURNING id",
                 Long.class, email, new BCryptPasswordEncoder(12).encode(password));
         jdbc.update("INSERT INTO auth.user_roles(user_id,role_code) VALUES (?,'LEARNER')", userId);
-        long lexeme = jdbc.queryForObject(
-                "INSERT INTO learning.lexemes(kind,text,pinyin,pinyin_norm,meaning_vi,hsk_level) "
-                        + "VALUES ('WORD',?,'nǐ hǎo','ni3hao3','xin chào',1) RETURNING id",
-                Long.class, "shared-login-" + id);
-
+        List<Long> lexemes = new ArrayList<>();
         try {
+            var radicals = List.of("氵", "冫", "木", "日");
+            for (int index = 0; index < 8; index++) {
+                lexemes.add(jdbc.queryForObject("INSERT INTO learning.lexemes(kind,text,pinyin,meaning_vi,hsk_level,"
+                                + "stroke_count,radical) VALUES ('CHAR',?,'zì','chữ mẫu',1,4,?) RETURNING id",
+                        Long.class, "字" + id + index, radicals.get(index % radicals.size())));
+            }
+            var pronunciations = List.of("nǐ hǎo", "xué xí", "zǎo ān", "hē shuǐ", "kàn shū", "chī fàn");
+            for (String pinyin : pronunciations) {
+                lexemes.add(jdbc.queryForObject("INSERT INTO learning.lexemes(kind,text,pinyin,meaning_vi,hsk_level) "
+                                + "VALUES ('WORD',?,?,'từ mẫu',1) RETURNING id",
+                        Long.class, "詞組" + UUID.randomUUID(), pinyin));
+            }
             MvcResult login = mvc.perform(post("/api/auth/login")
                             .header("Origin", WEB)
                             .header("X-Client-Type", "WEB")
@@ -100,7 +106,7 @@ class SharedLoginIntegrationTest extends AbstractIntegrationTest {
             long answerRound = startRound(GameCode.CHAR_RAIN, access, xsrf);
             long finishRound = startRound(GameCode.PINYIN_MATCH, access, xsrf);
             long abandonRound = startRound(GameCode.RADICAL_MATCH, access, xsrf);
-            String answer = mapper.writeValueAsString(Map.of("no", 1, "answer", "A", "durationMs", 1500));
+            String answer = mapper.writeValueAsString(Map.of("no", 1, "answer", "PASS", "durationMs", 1500));
             assertMutation(answerRound, "answers", answer, 200, "IN_PROGRESS", 1, access, xsrf);
             assertMutation(finishRound, "finish", "{}", 200, "SUBMITTED", 0, access, xsrf);
             assertMutation(abandonRound, "abandon", "{}", 204, "ABANDONED", 0, access, xsrf);
@@ -110,7 +116,9 @@ class SharedLoginIntegrationTest extends AbstractIntegrationTest {
             jdbc.update("DELETE FROM learning.attempt_items WHERE attempt_id IN "
                     + "(SELECT id FROM learning.attempts WHERE user_id=?)", userId);
             jdbc.update("DELETE FROM learning.attempts WHERE user_id=?", userId);
-            jdbc.update("DELETE FROM learning.lexemes WHERE id=?", lexeme);
+            for (long lexeme : lexemes) {
+                jdbc.update("DELETE FROM learning.lexemes WHERE id=?", lexeme);
+            }
             jdbc.update("DELETE FROM shared.audit_logs WHERE actor_id=?", userId);
             jdbc.update("DELETE FROM auth.auth_tokens WHERE user_id=?", userId);
             jdbc.update("DELETE FROM auth.user_roles WHERE user_id=?", userId);
@@ -161,15 +169,5 @@ class SharedLoginIntegrationTest extends AbstractIntegrationTest {
         Cookie cookie = result.getResponse().getCookie(name);
         assertThat(cookie).as("web login sets %s", name).isNotNull();
         return cookie;
-    }
-
-    @TestConfiguration(proxyBeanMethods = false)
-    static class GameFixtures {
-        @Bean GameDefinition sharedLoginCharRain() { return new GameDefinitionFixtures.Definition(GameCode.CHAR_RAIN); }
-        @Bean GameDefinition sharedLoginPinyinMatch() { return new GameDefinitionFixtures.Definition(GameCode.PINYIN_MATCH); }
-        @Bean GameDefinition sharedLoginRadicalMatch() { return new GameDefinitionFixtures.Definition(GameCode.RADICAL_MATCH); }
-        @Bean GameDefinition sharedLoginCharCatch() { return new GameDefinitionFixtures.Definition(GameCode.CHAR_CATCH); }
-        @Bean GameDefinition sharedLoginBrushStroke() { return new GameDefinitionFixtures.Definition(GameCode.BRUSH_STROKE); }
-        @Bean GameDefinition sharedLoginFlyingDart() { return new GameDefinitionFixtures.Definition(GameCode.FLYING_DART); }
     }
 }
