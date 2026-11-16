@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.IntStream;
 
 import com.cnhsk.learning.api.ContentLookup;
 import com.cnhsk.learning.api.GameCode;
@@ -48,8 +49,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GameCatalogControllerIntegrationTest extends AbstractIntegrationTest {
     private static final String BASE = "/api/community/games";
     private static final String HASH = new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
-    private static final ContentLookup.LexemeCard CARD = new ContentLookup.LexemeCard(1, "WORD", "你好", "nǐ hǎo",
-            "ni3hao3", "xin chào", Set.of("xin chào"), null, null, null, 1);
+    private static final List<ExpectedMetadata> METADATA = List.of(
+            new ExpectedMetadata("Tô từng nét của các chữ Hán lần lượt xuất hiện.", "WRITING",
+                    "Tô mọi nét theo thứ tự. Nếu sai, hãy thử lại nét đó.", 180),
+            new ExpectedMetadata("Ghép từng từ tiếng Trung với thẻ pinyin của từ đó.", "VOCAB",
+                    "Chọn một từ, rồi chọn thẻ pinyin tương ứng.", 90),
+            new ExpectedMetadata("Nhận diện bộ thủ của từng chữ Hán.", "CHARACTER",
+                    "Nhìn chữ và chọn bộ thủ đúng trong bốn phương án.", 90),
+            new ExpectedMetadata("Chọn chữ hoặc từ khớp với nghĩa, pinyin hoặc âm thanh.", "LISTENING",
+                    "Đọc hoặc nghe gợi ý rồi chọn một trong sáu phương án.", 75),
+            new ExpectedMetadata("Tô nét đầu tiên của chữ Hán đang rơi.", "WRITING",
+                    "Tô đúng nét đầu tiên trước khi chữ chạm đất.", 60),
+            new ExpectedMetadata("Gõ pinyin của chữ hoặc từ đang rơi.", "VOCAB",
+                    "Gõ pinyin rồi nhấn Enter trước khi chữ chạm đất.", 60));
     @Autowired private MockMvc mvc;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper mapper;
@@ -62,7 +74,7 @@ class GameCatalogControllerIntegrationTest extends AbstractIntegrationTest {
 
     @BeforeEach void fixture() {
         clock.advance(120);
-        doReturn(List.of(CARD)).when(content).pool(any());
+        doReturn(playablePool()).when(content).pool(any());
         owner = user(); other = user();
         clearInvocations(stats, content);
     }
@@ -72,12 +84,13 @@ class GameCatalogControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(games).hasSize(6);
         for (int index = 0; index < GameCode.values().length; index++) {
             var game = games.get(index); var code = GameCode.values()[index];
+            var metadata = METADATA.get(index);
             assertThat(game.path("code").asText()).isEqualTo(code.name());
             assertThat(game.path("name").asText()).isEqualTo(code.displayName());
-            assertThat(game.path("description").asText()).isEqualTo("Mô tả tự soạn cho test registry.");
-            assertThat(game.path("skill").asText()).isEqualTo("VOCAB");
-            assertThat(game.path("howToPlay").asText()).isEqualTo("Chọn nghĩa của mục mẫu.");
-            assertThat(game.path("timeLimitSeconds").asInt()).isEqualTo(30);
+            assertThat(game.path("description").asText()).isEqualTo(metadata.description());
+            assertThat(game.path("skill").asText()).isEqualTo(metadata.skill());
+            assertThat(game.path("howToPlay").asText()).isEqualTo(metadata.howToPlay());
+            assertThat(game.path("timeLimitSeconds").asInt()).isEqualTo(metadata.timeLimitSeconds());
             assertThat(game.path("playable").asBoolean()).isTrue();
             assertThat(game.path("unavailableReason").isNull()).isTrue();
             assertThat(game.path("myStats").isNull()).isTrue();
@@ -187,15 +200,24 @@ class GameCatalogControllerIntegrationTest extends AbstractIntegrationTest {
                 Timestamp.from(served), state.equals("SUBMITTED") ? Timestamp.from(served.plusSeconds(1)) : null, correct, suspicious);
     }
 
+    private static List<ContentLookup.LexemeCard> playablePool() {
+        var initials = List.of("bā", "bá", "bǎ", "bà", "mā", "má");
+        var finals = List.of("ní", "shí", "bó", "tí");
+        var radicals = List.of("氵", "冫", "木", "日");
+        return IntStream.range(0, 48).mapToObj(index -> {
+            String pinyin = initials.get(index % 6) + " " + finals.get((index % 24) / 6);
+            String kind = index < 24 ? "CHAR" : "WORD";
+            return new ContentLookup.LexemeCard(index + 1L, kind, "字組" + index, pinyin,
+                    "pinyin-" + index % 24, "nghĩa mẫu " + index, Set.of("nghĩa mẫu " + index),
+                    radicals.get(index % radicals.size()), 4, null, 1);
+        }).toList();
+    }
+
+    private record ExpectedMetadata(String description, String skill, String howToPlay, int timeLimitSeconds) { }
+
     @TestConfiguration(proxyBeanMethods = false)
     static class Fixtures {
         @Bean @Primary TestClock gameCatalogClock() { return new TestClock(); }
-        @Bean GameDefinition charRain() { return new GameDefinitionFixtures.Definition(GameCode.CHAR_RAIN); }
-        @Bean GameDefinition pinyinMatch() { return new GameDefinitionFixtures.Definition(GameCode.PINYIN_MATCH); }
-        @Bean GameDefinition radicalMatch() { return new GameDefinitionFixtures.Definition(GameCode.RADICAL_MATCH); }
-        @Bean GameDefinition charCatch() { return new GameDefinitionFixtures.Definition(GameCode.CHAR_CATCH); }
-        @Bean GameDefinition brushStroke() { return new GameDefinitionFixtures.Definition(GameCode.BRUSH_STROKE); }
-        @Bean GameDefinition flyingDart() { return new GameDefinitionFixtures.Definition(GameCode.FLYING_DART); }
     }
 
     static final class TestClock extends Clock {

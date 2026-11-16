@@ -624,27 +624,6 @@ class PracticeFinishIntegrationTest extends AbstractIntegrationTest {
 
     @TestConfiguration(proxyBeanMethods = false)
     static class EventConfiguration {
-        @Bean com.cnhsk.community.game.GameDefinition finishCharRain() { return game(com.cnhsk.learning.api.GameCode.CHAR_RAIN); }
-        @Bean com.cnhsk.community.game.GameDefinition finishPinyinMatch() { return game(com.cnhsk.learning.api.GameCode.PINYIN_MATCH); }
-        @Bean com.cnhsk.community.game.GameDefinition finishRadicalMatch() { return game(com.cnhsk.learning.api.GameCode.RADICAL_MATCH); }
-        @Bean com.cnhsk.community.game.GameDefinition finishCharCatch() { return game(com.cnhsk.learning.api.GameCode.CHAR_CATCH); }
-        @Bean com.cnhsk.community.game.GameDefinition finishBrushStroke() { return game(com.cnhsk.learning.api.GameCode.BRUSH_STROKE); }
-        @Bean com.cnhsk.community.game.GameDefinition finishFlyingDart() { return game(com.cnhsk.learning.api.GameCode.FLYING_DART); }
-
-        private static com.cnhsk.community.game.GameDefinition game(com.cnhsk.learning.api.GameCode code) {
-            return new com.cnhsk.community.game.GameDefinition() {
-                public com.cnhsk.learning.api.GameCode code() { return code; }
-                public String description() { return "Engine fixture"; }
-                public com.cnhsk.learning.api.PracticeApi.Skill skill() { return com.cnhsk.learning.api.PracticeApi.Skill.VOCAB; }
-                public String howToPlay() { return "Engine fixture"; }
-                public int timeLimitSeconds() { return 282; }
-                public int pointsPerCorrect() { return 10; }
-                public boolean isAvailable(com.cnhsk.community.game.GameContext context) { return true; }
-                public List<com.cnhsk.learning.api.PracticeApi.ServedItem> buildRound(com.cnhsk.community.game.GameContext context) { return List.of(); }
-                public void validateAnswer(com.cnhsk.learning.api.PracticeApi.ServedItem item, String answer, int elapsedMs) { }
-                public Map<String, Object> uiConfig() { return Map.of(); }
-            };
-        }
         @Bean
         EventProbe finishEventProbe() {
             return new EventProbe();
