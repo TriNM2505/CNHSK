@@ -3,6 +3,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
   Button,
+  Card,
   DataTable,
   EmptyState,
   ErrorState,
@@ -13,6 +14,7 @@ import {
   Section,
   Select,
   Skeleton,
+  StatTile,
   type DataTableColumn,
 } from '@/shared/ui'
 
@@ -81,13 +83,21 @@ function calendarDay(value: string) {
 
 const columns: readonly DataTableColumn<LedgerRow>[] = [
   { id: 'id', header: 'Mã giao dịch', render: (row) => row.id },
-  { id: 'email', header: 'Email đã che', render: (row) => row.maskedEmail },
+  {
+    id: 'email',
+    header: 'Email đã che',
+    render: (row) => <span className="break-all">{row.maskedEmail}</span>,
+  },
   { id: 'seq', header: 'Thứ tự', numeric: true, render: (row) => row.seq },
   { id: 'type', header: 'Loại giao dịch', render: (row) => transactionNames[row.type] },
   { id: 'amount', header: 'Số điểm', numeric: true, render: (row) => signed(row.amount) },
   { id: 'before', header: 'Số dư trước', numeric: true, render: (row) => row.balanceBefore },
   { id: 'after', header: 'Số dư sau', numeric: true, render: (row) => row.balanceAfter },
-  { id: 'reason', header: 'Nội dung', render: (row) => row.reason || '—' },
+  {
+    id: 'reason',
+    header: 'Nội dung',
+    render: (row) => <span className="break-words">{row.reason || '—'}</span>,
+  },
   {
     id: 'created',
     header: 'Thời gian (giờ Việt Nam)',
@@ -162,57 +172,63 @@ export function CreditLedgerView({
   }
 
   return (
-    <div className="mx-auto max-w-content space-y-6">
-      <PageHeader title="Sổ cái điểm" />
+    <div className="mx-auto min-w-0 max-w-content space-y-6">
+      <PageHeader
+        title="Sổ cái điểm"
+        subtitle="Tra cứu giao dịch theo ngày và đối chiếu số dư từ máy chủ."
+      />
       <Section title="Bộ lọc sổ cái">
-        <form ref={form} aria-label="Lọc sổ cái" noValidate onSubmit={apply}>
-          <div className="grid gap-x-4 md:grid-cols-3">
-            <FormField
-              htmlFor="ledger-from"
-              label="Từ ngày (giờ Việt Nam)"
-              required
-              error={validation.from}
-            >
-              <Input
-                name="from"
-                type="date"
-                value={draft.from}
-                onChange={(event) => change('from', event.target.value)}
-              />
-            </FormField>
-            <FormField
-              htmlFor="ledger-to"
-              label="Đến ngày (giờ Việt Nam)"
-              required
-              error={validation.to}
-            >
-              <Input
-                name="to"
-                type="date"
-                value={draft.to}
-                onChange={(event) => change('to', event.target.value)}
-              />
-            </FormField>
-            <FormField htmlFor="ledger-type" label="Loại giao dịch">
-              <Select
-                name="type"
-                value={draft.type}
-                onChange={(event) => change('type', event.target.value)}
+        <Card>
+          <form ref={form} aria-label="Lọc sổ cái" noValidate onSubmit={apply}>
+            <div className="grid gap-x-4 md:grid-cols-3">
+              <FormField
+                htmlFor="ledger-from"
+                label="Từ ngày (giờ Việt Nam)"
+                required
+                error={validation.from}
               >
-                <option value="">Tất cả loại giao dịch</option>
-                {Object.entries(transactionNames).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
-          </div>
-          <p className="mb-3 text-body-sm text-ink-secondary">
-            Bao gồm cả ngày kết thúc theo giờ Việt Nam. Hai ngày được chọn cách nhau tối đa 92 ngày.
-          </p>
-          <Button type="submit">Lọc sổ cái</Button>
-        </form>
+                <Input
+                  name="from"
+                  type="date"
+                  value={draft.from}
+                  onChange={(event) => change('from', event.target.value)}
+                />
+              </FormField>
+              <FormField
+                htmlFor="ledger-to"
+                label="Đến ngày (giờ Việt Nam)"
+                required
+                error={validation.to}
+              >
+                <Input
+                  name="to"
+                  type="date"
+                  value={draft.to}
+                  onChange={(event) => change('to', event.target.value)}
+                />
+              </FormField>
+              <FormField htmlFor="ledger-type" label="Loại giao dịch">
+                <Select
+                  name="type"
+                  value={draft.type}
+                  onChange={(event) => change('type', event.target.value)}
+                >
+                  <option value="">Tất cả loại giao dịch</option>
+                  {Object.entries(transactionNames).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+            </div>
+            <p className="mb-3 text-body-sm text-ink-secondary">
+              Bao gồm cả ngày kết thúc theo giờ Việt Nam. Hai ngày được chọn cách nhau tối đa 92
+              ngày.
+            </p>
+            <Button type="submit">Lọc sổ cái</Button>
+          </form>
+        </Card>
       </Section>
 
       <Section
@@ -287,20 +303,11 @@ export function CreditLedgerView({
             title="Tổng điểm"
             subtitle="Số liệu server trả cho toàn bộ bộ lọc, gồm mọi trang."
           >
-            <dl className="grid gap-4 text-body text-ink md:grid-cols-3">
-              <div>
-                <dt>Số giao dịch</dt>
-                <dd>{data.totals.count}</dd>
-              </div>
-              <div>
-                <dt>Tổng điểm cộng</dt>
-                <dd>{signed(data.totals.credited)}</dd>
-              </div>
-              <div>
-                <dt>Tổng điểm trừ</dt>
-                <dd>{signed(data.totals.debited)}</dd>
-              </div>
-            </dl>
+            <div className="grid min-w-0 gap-3 md:grid-cols-3">
+              <StatTile label="Số giao dịch" value={data.totals.count} />
+              <StatTile label="Tổng điểm cộng" value={signed(data.totals.credited)} />
+              <StatTile label="Tổng điểm trừ" value={signed(data.totals.debited)} />
+            </div>
           </Section>
         ) : null}
         {data && data.total > 0 ? (

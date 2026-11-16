@@ -4,13 +4,17 @@ import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
   Button,
   Card,
+  DataTable,
+  EmptyState,
   ErrorState,
   FormField,
   Input,
   PageHeader,
   Section,
   Skeleton,
+  StatusBadge,
   Textarea,
+  type DataTableColumn,
 } from '@/shared/ui'
 
 import type { Benefits, PaidFeature, PlanCode, PlanUpdateRequest, PlanView } from '../types'
@@ -27,6 +31,39 @@ export interface PlanManagementViewProps {
 }
 
 const features: readonly PaidFeature[] = ['AI_GENERATE', 'TRANSLATE', 'ASSISTANT', 'GRADING']
+const planOrder: readonly PlanCode[] = ['FREE', 'PREMIUM', 'PREMIUM_PLUS']
+const planColumns: readonly DataTableColumn<PlanView>[] = [
+  {
+    id: 'code',
+    header: 'Mã gói',
+    render: ({ code }) => <strong className="break-words">{code}</strong>,
+  },
+  {
+    id: 'name',
+    header: 'Tên gói',
+    render: ({ name }) => <span className="break-words">{name || '—'}</span>,
+  },
+  {
+    id: 'users',
+    header: 'Người đang dùng',
+    numeric: true,
+    render: ({ activeUsers }) => activeUsers,
+  },
+  {
+    id: 'status',
+    header: 'Trạng thái',
+    render: ({ code, exists, isActive }) =>
+      code === 'PREMIUM_PLUS' ? (
+        <StatusBadge tone="neutral">Chưa hỗ trợ</StatusBadge>
+      ) : !exists ? (
+        <StatusBadge tone="warning">Chưa cấu hình</StatusBadge>
+      ) : isActive ? (
+        <StatusBadge tone="success">Đang hoạt động</StatusBadge>
+      ) : (
+        <StatusBadge tone="neutral">Đã tắt</StatusBadge>
+      ),
+  },
+]
 const featureNames: Record<PaidFeature, string> = {
   AI_GENERATE: 'Tạo câu AI',
   TRANSLATE: 'Dịch',
@@ -355,11 +392,15 @@ export function PlanManagementView({
   onSave,
   onRetry,
 }: PlanManagementViewProps) {
+  const plans = planOrder.flatMap((code) => data?.find((plan) => plan.code === code) ?? [])
   return (
-    <div className="mx-auto max-w-content space-y-6">
-      <PageHeader title="Quản lý gói dịch vụ" />
+    <div className="mx-auto min-w-0 max-w-content space-y-6">
+      <PageHeader
+        title="Quản lý gói dịch vụ"
+        subtitle="Xem tình trạng gói và cập nhật cấu hình bên dưới."
+      />
       {saved ? (
-        <p role="status" className="text-body text-ink">
+        <p role="status" className="rounded-md bg-success-bg p-4 text-body text-success">
           Đã lưu gói {saved.code}: {saved.name}.
         </p>
       ) : null}
@@ -374,38 +415,50 @@ export function PlanManagementView({
           requestId={error?.requestId}
           onRetry={onRetry}
         />
+      ) : plans.length === 0 ? (
+        <EmptyState
+          title="Chưa có dữ liệu gói"
+          description="Tải lại để kiểm tra danh sách gói."
+          action={<Button onClick={onRetry}>Tải lại</Button>}
+        />
       ) : (
-        (['FREE', 'PREMIUM', 'PREMIUM_PLUS'] as const).map((code) => {
-          const plan = data?.find((item) => item.code === code)
-          if (!plan) return null
-          return (
-            <Section key={code} title={code}>
+        <>
+          <Section title="Danh sách gói">
+            <DataTable
+              caption="Các gói dịch vụ"
+              columns={planColumns}
+              rows={plans}
+              rowKey={({ code }) => code}
+            />
+          </Section>
+          {plans.map((plan) => (
+            <Section key={plan.code} title={plan.code}>
               <Card>
                 <p className="mb-3 text-body-sm text-ink-secondary">
                   Số người đang dùng: {plan.activeUsers}
                 </p>
-                {code === 'PREMIUM_PLUS' ? (
+                {plan.code === 'PREMIUM_PLUS' ? (
                   <p className="text-body text-ink">Chưa hỗ trợ đợt này</p>
                 ) : (
                   <>
                     {!plan.exists ? (
                       <p className="mb-3 text-body-sm text-ink-secondary">
-                        Chưa có cấu hình gói. Nhập cấu hình để tạo {code}.
+                        Chưa có cấu hình gói. Nhập cấu hình để tạo {plan.code}.
                       </p>
                     ) : null}
                     <PlanForm
                       key={JSON.stringify(plan)}
                       plan={plan}
                       pending={Boolean(pending)}
-                      error={failure?.code === code ? failure.error : undefined}
+                      error={failure?.code === plan.code ? failure.error : undefined}
                       onSave={onSave}
                     />
                   </>
                 )}
               </Card>
             </Section>
-          )
-        })
+          ))}
+        </>
       )}
     </div>
   )

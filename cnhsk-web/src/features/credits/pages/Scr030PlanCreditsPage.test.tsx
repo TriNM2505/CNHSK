@@ -113,7 +113,7 @@ describe('SCR-030 plan and credits (FR-024, AT-22)', () => {
     await ready()
     const rows = within(screen.getByRole('table')).getAllByRole('row')
     expect(rows).toHaveLength(5)
-    expect(rows.slice(1).map((row) => within(row).getByRole('rowheader').textContent)).toEqual([
+    expect(rows.slice(1).map((row) => within(row).getAllByRole('cell')[0]!.textContent)).toEqual([
       'Tạo câu hỏi',
       'Dịch văn bản',
       'Trợ lý',
@@ -122,6 +122,7 @@ describe('SCR-030 plan and credits (FR-024, AT-22)', () => {
     expect(
       within(rows[1]!)
         .getAllByRole('cell')
+        .slice(1)
         .map((cell) => cell.textContent),
     ).toEqual(['10', '3', '7'])
   })
