@@ -18,7 +18,7 @@ export function ExamSectionsEditor({
     else onChange(removeSection(form, key))
   }
   return (
-    <section aria-label="Các phần thi" className="space-y-4">
+    <section aria-label="Các phần thi" className="min-w-0 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-h2">Các phần thi</h2>
         <Button
@@ -44,10 +44,12 @@ export function ExamSectionsEditor({
             if (!disabled && /^\d+$/.test(value))
               onChange({ ...form, sections: move(form.sections, Number(value), index) })
           }}
-          className="min-w-0 rounded-md border border-line bg-surface p-4"
+          className="min-w-0 rounded-md border border-line bg-surface p-6"
         >
-          <legend className="px-2 text-label">Phần {index + 1}</legend>
-          <div className="grid min-w-0 gap-x-4 sm:grid-cols-3">
+          <legend className="rounded-sm bg-brand-50 px-3 py-1 text-label text-brand-700">
+            Phần {index + 1}
+          </legend>
+          <div className="grid min-w-0 gap-x-4 md:grid-cols-3">
             <FormField
               htmlFor={`section-name-${section.key}`}
               label={`Tên phần ${index + 1}`}
@@ -116,7 +118,7 @@ export function ExamSectionsEditor({
               Bổ sung loại và thời lượng còn thiếu trước khi lưu; không tự điền dữ liệu đề nhập cũ.
             </p>
           )}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 border-t border-line pt-4">
             <Button
               size="sm"
               variant="ghost"

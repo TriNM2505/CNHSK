@@ -2,6 +2,9 @@ import { Link, useLocation } from 'react-router-dom'
 import type { ApiQueryState } from '@/shared/api'
 import {
   Button,
+  Card,
+  Skeleton,
+  StatusBadge,
   DataTable,
   FormField,
   Input,
@@ -36,7 +39,7 @@ export function ExamListView({
   const location = useLocation()
   const returnState = { examListSearch: location.search }
   return (
-    <main className="min-w-0 space-y-6 px-4 py-6 [overflow-wrap:anywhere] sm:px-6">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 break-words px-4 py-6 pb-16 sm:px-6">
       <PageHeader
         title="Quản lý đề thi"
         subtitle="Tổ chức phần thi, chọn câu từ ngân hàng và công bố sau khi kiểm tra."
@@ -47,7 +50,7 @@ export function ExamListView({
         }
       />
       <form
-        className="grid items-end gap-x-4 rounded-md border border-line bg-surface p-4 sm:grid-cols-3"
+        className="grid min-w-0 items-end gap-x-4 rounded-md border border-line bg-surface p-6 md:grid-cols-2 xl:grid-cols-3"
         onSubmit={(event) => {
           event.preventDefault()
           const values = new FormData(event.currentTarget)
@@ -100,27 +103,33 @@ export function ExamListView({
           Tìm đề thi
         </Button>
       </form>
-      {state === 'loading' && <p role="status">Đang tải đề thi…</p>}
+      {state === 'loading' && (
+        <div>
+          <p role="status">Đang tải đề thi…</p>
+          <Skeleton variant="table" />
+        </div>
+      )}
       {state === 'error' && (
-        <div role="alert">
+        <Card role="alert" className="space-y-3 border-danger bg-danger-bg">
           <p>{error}</p>
           <Button variant="outline" onClick={onRetry}>
             Thử tải danh sách lại
           </Button>
-        </div>
+        </Card>
       )}
       {state === 'empty' && (
-        <div className="rounded-md border border-line p-6">
+        <Card className="p-6">
           <h2 className="text-h2">Không có đề thi phù hợp</h2>
           <p className="my-3 text-ink-secondary">Thử đổi bộ lọc hoặc tạo một đề nháp.</p>
           <Button variant="outline" onClick={() => onFilter({ page: 0 })}>
             Xoá bộ lọc
           </Button>
-        </div>
+        </Card>
       )}
       {state === 'ready' && data && (
         <DataTable
           caption="Danh sách đề thi quản trị"
+          captionVisible
           rows={data.items}
           rowKey={(row) => row.id}
           columns={[
@@ -130,7 +139,7 @@ export function ExamListView({
               render: (row) => (
                 <div className="min-w-0 break-words">
                   <Link
-                    className="font-semibold text-brand-700 underline"
+                    className="inline-flex min-h-touch items-center font-semibold text-brand-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                     to={`/content/exams/${row.id}`}
                     state={returnState}
                   >
@@ -145,9 +154,17 @@ export function ExamListView({
               header: 'Trạng thái',
               render: (row) => (
                 <div>
-                  <span className="rounded-sm bg-brand-50 px-2 py-1 text-body-sm">
+                  <StatusBadge
+                    tone={
+                      row.status === 'PUBLISHED'
+                        ? 'success'
+                        : row.status === 'DRAFT'
+                          ? 'warning'
+                          : 'neutral'
+                    }
+                  >
                     {statusLabels[row.status]}
-                  </span>
+                  </StatusBadge>
                   {row.inUse && (
                     <p className="mt-2 text-body-sm text-ink-secondary">Cuộc thi đang sử dụng</p>
                   )}

@@ -16,7 +16,7 @@ export function ExamQuestionsEditor({
   onChange: (form: ExamForm) => void
 }) {
   return (
-    <section aria-label="Câu hỏi đã chọn" className="space-y-4">
+    <section aria-label="Câu hỏi đã chọn" className="min-w-0 space-y-4">
       <h2 className="text-h2">Câu hỏi đã chọn ({form.questions.length}/300)</h2>
       {!form.questions.length && (
         <p className="text-ink-secondary">Chưa có câu hỏi. Có thể lưu nháp trước khi chọn câu.</p>
@@ -26,7 +26,7 @@ export function ExamQuestionsEditor({
         return (
           <div
             key={section.key}
-            className="min-w-0 space-y-3"
+            className="min-w-0 space-y-4"
             onDragOver={(event) => {
               if (!disabled) event.preventDefault()
             }}
@@ -57,9 +57,9 @@ export function ExamQuestionsEditor({
                   if (!disabled && /^\d+$/.test(raw))
                     onChange(moveQuestion(form, Number(raw), section.key, q.questionId))
                 }}
-                className="min-w-0 rounded-md border border-line bg-surface p-4"
+                className="min-w-0 rounded-md border border-line bg-surface p-6"
               >
-                <p className="break-words font-semibold">
+                <p className="break-words text-h3 text-ink">
                   {index + 1}. {q.code || `Câu #${q.questionId}`}
                 </p>
                 <p className="my-2 break-words text-body-sm text-ink-secondary">
@@ -110,7 +110,7 @@ export function ExamQuestionsEditor({
                     </Select>
                   </FormField>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 border-t border-line pt-4">
                   <Button
                     size="sm"
                     variant="ghost"

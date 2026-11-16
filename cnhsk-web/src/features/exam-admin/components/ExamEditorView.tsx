@@ -45,7 +45,7 @@ export function ExamEditorView({
   const sum = pointsTotal(form)
   const level = Number(form.hskLevel)
   return (
-    <main className="min-w-0 space-y-6 px-4 py-6 [overflow-wrap:anywhere] sm:px-6">
+    <main className="mx-auto w-full min-w-0 max-w-reading space-y-8 break-words px-4 py-6 pb-16 sm:px-6">
       <PageHeader
         title={saved ? `Đề thi · ${saved.code}` : 'Tạo đề nháp'}
         subtitle={
@@ -65,13 +65,13 @@ export function ExamEditorView({
         </p>
       )}
       {readonly && (
-        <p className="rounded-md border border-line p-4">
+        <p className="rounded-md border border-info bg-info-bg p-4">
           Đề {statusLabels[saved.status].toLowerCase()} chỉ đọc cấu trúc. Nhân bản để tạo bản nháp
           mới.
         </p>
       )}
       {locked && (
-        <div role="alert" className="rounded-md border border-danger p-4">
+        <div role="alert" className="space-y-3 rounded-md border border-danger bg-danger-bg p-4">
           <p>
             Dữ liệu cần được đọc lại trước khi tiếp tục ghi. Bản nháp đang được giữ trên màn hình.
           </p>
@@ -81,18 +81,21 @@ export function ExamEditorView({
         </div>
       )}
       {!!errors.length && (
-        <ul role="alert" className="list-inside list-disc rounded-md border border-danger p-4">
+        <ul
+          role="alert"
+          className="list-inside list-disc rounded-md border border-danger bg-danger-bg p-4"
+        >
           {errors.map((error, index) => (
             <li key={index}>{error}</li>
           ))}
         </ul>
       )}
       <section
-        className="min-w-0 rounded-md border border-line bg-surface p-4 sm:p-6"
+        className="min-w-0 rounded-md border border-line bg-surface p-6"
         aria-label="Thông tin đề"
       >
         <h2 className="mb-4 text-h2">Thông tin đề</h2>
-        <div className="grid gap-x-4 sm:grid-cols-2">
+        <div className="grid min-w-0 gap-x-6 sm:grid-cols-2">
           <FormField htmlFor="exam-code" label="Mã đề" required>
             <Input
               disabled={disabled}
@@ -153,7 +156,7 @@ export function ExamEditorView({
         </p>
       </section>
       <ExamSectionsEditor form={form} disabled={disabled} onChange={onChange} />
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-brand-100 bg-brand-50 p-6">
         <h2 className="text-h2">Ngân hàng câu hỏi</h2>
         <Button
           variant="outline"
@@ -166,7 +169,7 @@ export function ExamEditorView({
       <ExamQuestionsEditor form={form} disabled={disabled} onChange={onChange} />
       <section
         aria-label="Lỗi chặn công bố"
-        className="rounded-md border border-line bg-surface p-4 sm:p-6"
+        className="space-y-4 rounded-md border border-line bg-surface p-6"
       >
         <h2 className="text-h2">Lỗi chặn công bố</h2>
         {dirty && (
@@ -192,9 +195,9 @@ export function ExamEditorView({
           </p>
         )}
       </section>
-      <div className="flex flex-wrap gap-3 rounded-md border border-line bg-surface p-4">
+      <div className="flex flex-wrap gap-3 rounded-md border border-brand-100 bg-brand-50 p-6">
         {!readonly && (
-          <Button loading={busy} disabled={disabled} onClick={onSave}>
+          <Button className="w-full sm:w-auto" loading={busy} disabled={disabled} onClick={onSave}>
             Lưu nháp
           </Button>
         )}
