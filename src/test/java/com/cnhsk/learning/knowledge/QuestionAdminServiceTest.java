@@ -43,6 +43,77 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionAdminServiceTest {
+    @org.junit.jupiter.api.BeforeEach
+    void authenticatedTeacherForLegacyUpdateEntryPoints() {
+        lenient().when(auth.currentUser()).thenReturn(new CurrentUser(12, Set.of(RoleCode.TEACHER), true));
+    }
+
+    @Test
+    void editorTargetGuardPrecedesBodyAndArchiveInTheExplicitCallerEntryPoint() {
+        CurrentUser editor = new CurrentUser(12, Set.of(RoleCode.CONTENT_EDITOR), true);
+        for (QuestionStatus status : QuestionStatus.values()) {
+            Question question = editable();
+            question.setSource(com.cnhsk.learning.knowledge.entity.QuestionSource.AI);
+            question.setStatus(status);
+            when(questions.findByIdForUpdate(9)).thenReturn(Optional.of(question));
+            java.util.function.Supplier<QuestionUpdate> body = () -> { throw new AssertionError("Body read before permission guard"); };
+            if (status != QuestionStatus.PENDING_REVIEW) {
+                assertError(() -> service.updateFrom("9", editor, body), ErrorCode.FORBIDDEN, 403);
+            }
+        }
+        Question ordinary = editable();
+        ordinary.setStatus(QuestionStatus.PENDING_REVIEW);
+        when(questions.findByIdForUpdate(9)).thenReturn(Optional.of(ordinary));
+        assertError(() -> service.updateFrom("9", editor, () -> null), ErrorCode.FORBIDDEN, 403);
+        verifyNoInteractions(auth, points, labels, entities, audit);
+    }
+
+    @Test
+    void editorInvalidAndMissingIdsAreForbiddenBeforeBodyReads() {
+        CurrentUser editor = new CurrentUser(12, Set.of(RoleCode.CONTENT_EDITOR), true);
+        for (String id : List.of("abc", "0", "-1", "9223372036854775808")) {
+            assertError(() -> service.updateFrom(id, editor, () -> { throw new AssertionError("Body was read"); }), ErrorCode.FORBIDDEN, 403);
+        }
+        verifyNoInteractions(questions);
+        when(questions.findByIdForUpdate(99)).thenReturn(Optional.empty());
+        assertError(() -> service.updateFrom("99", editor, () -> null), ErrorCode.FORBIDDEN, 403);
+        verifyNoInteractions(auth, points, labels, entities, audit);
+    }
+
+    @Test
+    void explicitCallerGuardRejectsOtherRolesBeforeLookingUpTheQuestion() {
+        for (RoleCode role : Set.of(RoleCode.ADMIN, RoleCode.LEARNER, RoleCode.MODERATOR, RoleCode.ACCOUNTANT)) {
+            CurrentUser caller = new CurrentUser(12, Set.of(role), true);
+            assertError(() -> service.updateFrom("9", caller, () -> null), ErrorCode.FORBIDDEN, 403);
+            assertError(() -> service.detail(9, caller), ErrorCode.FORBIDDEN, 403);
+        }
+        verifyNoInteractions(questions, queries, points, labels, entities, audit, auth);
+    }
+
+    @Test
+    void validLegacyRowsStillEnforceRolesBeforeReadingTheBody() {
+        when(questions.findByIdForUpdate(9)).thenReturn(Optional.of(editable()));
+        when(auth.currentUser()).thenReturn(new CurrentUser(12, Set.of(RoleCode.ADMIN), true));
+        assertError(() -> service.updateFrom(9, () -> { throw new AssertionError("Body was read"); }), ErrorCode.FORBIDDEN, 403);
+        when(auth.currentUser()).thenReturn(new CurrentUser(12, Set.of(RoleCode.CONTENT_EDITOR), true));
+        assertError(() -> service.update(9, null), ErrorCode.FORBIDDEN, 403);
+        verifyNoInteractions(points, labels, entities, audit, queries);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"CONTENT_EDITOR", "TEACHER"})
+    void pendingAiMultipleChoiceUpdateDerivesStoredCorrectKeyOnlyAfterExistingValidation(String role) {
+        Question question = editable();
+        question.setSource(com.cnhsk.learning.knowledge.entity.QuestionSource.AI);
+        question.setStatus(QuestionStatus.PENDING_REVIEW);
+        when(questions.findByIdForUpdate(9)).thenReturn(Optional.of(question));
+        stubPoint();
+        service.updateFrom("9", new CurrentUser(12, Set.of(RoleCode.valueOf(role)), true), () -> input(false));
+        assertThat(question.getCorrectKey()).isEqualTo("B");
+        verify(audit).record(eq(12L), eq("QUESTION_UPDATE"), eq("question:9"), any(), any());
+        verifyNoInteractions(auth);
+    }
+
     @Mock private QuestionRepository questions;
     @Mock private QuestionAdminQueryRepository queries;
     @Mock private KnowledgePointRepository points;

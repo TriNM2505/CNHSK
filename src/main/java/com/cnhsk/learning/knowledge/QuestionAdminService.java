@@ -1,10 +1,14 @@
 package com.cnhsk.learning.knowledge;
 
 import com.cnhsk.auth.api.AuthApi;
+import com.cnhsk.auth.api.CurrentUser;
+import com.cnhsk.auth.api.RoleCode;
+import com.cnhsk.learning.aigen.AiReviewViewedStore;
 import com.cnhsk.learning.knowledge.entity.KnowledgeLabelRole;
 import com.cnhsk.learning.knowledge.entity.Question;
 import com.cnhsk.learning.knowledge.entity.QuestionKnowledgePoint;
 import com.cnhsk.learning.knowledge.entity.QuestionOption;
+import com.cnhsk.learning.knowledge.entity.QuestionSource;
 import com.cnhsk.learning.knowledge.entity.QuestionStatus;
 import com.cnhsk.learning.knowledge.entity.QuestionType;
 import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
@@ -31,6 +35,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,10 +48,18 @@ public class QuestionAdminService {
     private final EntityManager entities;
     private final AuditService audit;
     private final AuthApi auth;
+    private final AiReviewViewedStore viewed;
 
     public QuestionAdminService(QuestionRepository questions, QuestionAdminQueryRepository queries,
             KnowledgePointRepository points, QuestionKnowledgePointRepository labels, EntityManager entities,
             AuditService audit, AuthApi auth) {
+        this(questions, queries, points, labels, entities, audit, auth, null);
+    }
+
+    @Autowired
+    public QuestionAdminService(QuestionRepository questions, QuestionAdminQueryRepository queries,
+            KnowledgePointRepository points, QuestionKnowledgePointRepository labels, EntityManager entities,
+            AuditService audit, AuthApi auth, AiReviewViewedStore viewed) {
         this.questions = questions;
         this.queries = queries;
         this.points = points;
@@ -54,6 +67,7 @@ public class QuestionAdminService {
         this.entities = entities;
         this.audit = audit;
         this.auth = auth;
+        this.viewed = viewed;
     }
 
     @Transactional(readOnly = true)
@@ -68,6 +82,14 @@ public class QuestionAdminService {
         return views(List.of(question)).get(0);
     }
 
+    @Transactional(readOnly = true)
+    public QuestionView detail(long id, CurrentUser caller) {
+        requireReviewer(caller);
+        QuestionView result = detail(id);
+        if (pendingAi(result.question()) && viewed != null) viewed.markViewed(caller.userId(), id);
+        return result;
+    }
+
     @Transactional
     public QuestionView update(long id, QuestionUpdate input) {
         return updateFrom(id, () -> input);
@@ -76,9 +98,38 @@ public class QuestionAdminService {
     @Transactional
     public QuestionView updateFrom(long id, Supplier<QuestionUpdate> readBody) {
         Question question = questions.findByIdForUpdate(id).orElseThrow(QuestionAdminService::notFound);
+        requireUnarchived(question);
+        CurrentUser caller = auth.currentUser();
+        requireEditable(question, caller);
+        return updateLocked(question, caller, readBody);
+    }
+
+    @Transactional
+    public QuestionView updateFrom(String rawId, CurrentUser caller, Supplier<QuestionUpdate> readBody) {
+        requireReviewer(caller);
+        boolean teacher = caller.roles().contains(RoleCode.TEACHER);
+        long id;
+        try {
+            id = Long.parseLong(rawId);
+            if (id <= 0) throw new NumberFormatException();
+        } catch (NumberFormatException exception) {
+            throw teacher ? notFound() : forbidden();
+        }
+        Question question = questions.findByIdForUpdate(id)
+                .orElseThrow(() -> teacher ? notFound() : forbidden());
+        requireEditable(question, caller);
+        requireUnarchived(question);
+        return updateLocked(question, caller, readBody);
+    }
+
+    private static void requireUnarchived(Question question) {
         if (question.getStatus() == QuestionStatus.ARCHIVED) {
             throw new ApiException(ErrorCode.QUESTION_ARCHIVED, HttpStatus.CONFLICT, "Câu hỏi đã được lưu trữ.", Map.of());
         }
+    }
+
+    private QuestionView updateLocked(Question question, CurrentUser caller, Supplier<QuestionUpdate> readBody) {
+        long id = question.getId();
         QuestionUpdate input = readBody.get();
         if (input == null) throw malformed(List.of(Map.of("field", "body", "message", "Thiếu nội dung câu hỏi.")));
         var candidate = draft(question.getQtype(), input);
@@ -118,7 +169,10 @@ public class QuestionAdminService {
         }
         var before = snapshot(question, queries.labels(Set.of(id)));
         question.setStem(value.stem()); question.setHskLevel((short) value.hskLevel()); question.setDifficulty((short) value.difficulty());
-        question.setExplanation(value.explanation()); question.setCorrectKey(value.correctKey());
+        question.setExplanation(value.explanation());
+        question.setCorrectKey(pendingAi(question) && question.getQtype() == QuestionType.MULTIPLE_CHOICE
+                ? value.options().stream().filter(QuestionRules.Option::isCorrect).findFirst().orElseThrow().key()
+                : value.correctKey());
         question.setAudioUrl(value.audioUrl()); question.setImageUrl(value.imageUrl());
         question.setOptions(value.options().stream().map(option -> new QuestionOption(option.key(), option.text(), option.isCorrect(),
                 option.errorKid(), option.errorNote())).toList());
@@ -128,8 +182,26 @@ public class QuestionAdminService {
         value.secondaryKids().forEach(label -> entities.persist(new QuestionKnowledgePoint(id, pointIds.get(label), KnowledgeLabelRole.SECONDARY)));
         entities.flush();
         var afterLabels = queries.labels(Set.of(id));
-        audit.record(auth.currentUser().userId(), "QUESTION_UPDATE", "question:" + id, before, snapshot(question, afterLabels));
+        audit.record(caller.userId(), "QUESTION_UPDATE", "question:" + id, before, snapshot(question, afterLabels));
         return new QuestionView(question, afterLabels, used == null ? !questions.usedQuestionIds(Set.of(id)).isEmpty() : used);
+    }
+
+    private static boolean pendingAi(Question question) {
+        return question.getSource() == QuestionSource.AI && question.getStatus() == QuestionStatus.PENDING_REVIEW;
+    }
+
+    private static void requireReviewer(CurrentUser caller) {
+        if (caller == null || (!caller.roles().contains(RoleCode.TEACHER)
+                && !caller.roles().contains(RoleCode.CONTENT_EDITOR))) throw forbidden();
+    }
+
+    private static void requireEditable(Question question, CurrentUser caller) {
+        requireReviewer(caller);
+        if (!caller.roles().contains(RoleCode.TEACHER) && !pendingAi(question)) throw forbidden();
+    }
+
+    private static ApiException forbidden() {
+        return new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "Không có quyền sửa câu hỏi này.", Map.of());
     }
 
     @Transactional
