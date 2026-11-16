@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Button } from '@/shared/ui/Button'
+import { Button, PageHeader, StatTile } from '@/shared/ui'
 import type { ExamResult, ResultItem, WeakPoint } from '../types'
 
 const filters = { ALL: 'Tất cả', WRONG: 'Sai', BLANK: 'Bỏ trống' } as const
@@ -28,15 +28,36 @@ export function ExamResultView({
 }) {
   const items = result.items.filter((item) => filter === 'ALL' || item.result === filter)
   return (
-    <main className="mx-auto max-w-content space-y-6 p-4 sm:p-6">
-      <h1 className="text-h1-sm sm:text-h1">Kết quả · {result.exam.title}</h1>
-      <p>
-        Điểm trọng số: {result.score}/{result.maxScore} ({result.percent}%)
-      </p>
-      <p>
-        Số câu đúng: {result.correctCount}/{result.totalCount}
-      </p>
-      <section aria-label="Điểm theo phần">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6">
+      <PageHeader title={`Kết quả · ${result.exam.title}`} />
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+        <StatTile
+          label="Điểm bài làm"
+          value={
+            <span className="block text-h3">
+              Điểm trọng số: {result.score}/{result.maxScore} ({result.percent}%)
+            </span>
+          }
+        />
+        <StatTile
+          label="Câu trả lời"
+          value={
+            <span className="block text-h3">
+              Số câu đúng: {result.correctCount}/{result.totalCount}
+            </span>
+          }
+        />
+      </div>
+      <nav aria-label="Học tiếp" className="flex flex-wrap gap-3">
+        <Button to="/learn/exams">Chọn đề tiếp theo</Button>
+        <Button to="/learn/progress" variant="outline">
+          Xem tiến độ
+        </Button>
+      </nav>
+      <section
+        aria-label="Điểm theo phần"
+        className="space-y-4 rounded-md border border-line bg-surface p-6"
+      >
         <h2 className="text-h2">Điểm theo phần</h2>
         <ul>
           {result.bySection.map((part) => (
@@ -53,7 +74,7 @@ export function ExamResultView({
       )}
       <section aria-label="Danh sách câu hỏi" className="space-y-4">
         <h2 className="text-h2">Xem lại câu hỏi</h2>
-        <div className="flex gap-2" role="group" aria-label="Lọc câu hỏi">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Lọc câu hỏi">
           {(Object.keys(filters) as ResultFilter[]).map((value) => (
             <Button
               key={value}
@@ -70,12 +91,14 @@ export function ExamResultView({
           <article
             key={item.no}
             aria-label={'Câu ' + item.no}
-            className="space-y-2 rounded-md border border-line p-4"
+            className="min-w-0 space-y-3 rounded-md border border-line bg-surface p-6"
           >
             <h3 className="text-h3">
               Câu {item.no} · {labels[item.result]}
             </h3>
-            <p>{item.stem}</p>
+            <p className="break-words font-hanzi text-h3" lang="zh-CN">
+              {item.stem}
+            </p>
             <p>
               Câu trả lời của bạn:{' '}
               {item.yourAnswer ? answerText(item, item.yourAnswer) : 'Bỏ trống'}
@@ -84,7 +107,7 @@ export function ExamResultView({
             <p>{item.explanation?.trim() || 'Lời giải đang được cập nhật'}</p>
             {item.result !== 'CORRECT' && item.primaryKid && (
               <Link
-                className="text-brand-700 underline"
+                className="inline-flex min-h-touch items-center text-label text-brand-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                 to={'/learn/practice/targeted?kid=' + encodeURIComponent(item.primaryKid)}
               >
                 Luyện nút này
@@ -94,14 +117,17 @@ export function ExamResultView({
         ))}
       </section>
       {result.wrongByKid.length > 0 && (
-        <section aria-label="Câu sai theo KID">
+        <section
+          aria-label="Câu sai theo KID"
+          className="space-y-4 rounded-md border border-line bg-surface p-6"
+        >
           <h2 className="text-h2">Câu sai theo KID</h2>
           <ul className="space-y-2">
             {result.wrongByKid.map(({ kid, nameVi, wrong, total }) => (
               <li key={kid}>
                 {nameVi} ({kid}) · {wrong}/{total} câu sai hoặc bỏ trống{' '}
                 <Link
-                  className="text-brand-700 underline"
+                  className="inline-flex min-h-touch items-center text-label text-brand-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                   to={'/learn/practice/targeted?kid=' + encodeURIComponent(kid)}
                 >
                   Luyện nút này
@@ -112,7 +138,10 @@ export function ExamResultView({
         </section>
       )}
       {weakPoints && (weakPoints.state !== 'ready' || weakPoints.points.length > 0) && (
-        <section aria-label="Điểm yếu cần luyện">
+        <section
+          aria-label="Điểm yếu cần luyện"
+          className="space-y-4 rounded-md border border-line bg-surface p-6"
+        >
           <h2 className="text-h2">Điểm yếu cần luyện</h2>
           {weakPoints.state === 'loading' && <p role="status">Đang tải điểm yếu…</p>}
           {weakPoints.state === 'error' && (
@@ -126,8 +155,10 @@ export function ExamResultView({
               {weakPoints.points.map(({ kid, nameVi, mastery }) => (
                 <li key={kid}>
                   {nameVi} ({kid}) · {mastery}%{' '}
-                  <Link className="text-brand-700 underline"
-                    to={'/learn/practice/targeted?kid=' + encodeURIComponent(kid)}>
+                  <Link
+                    className="inline-flex min-h-touch items-center text-label text-brand-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                    to={'/learn/practice/targeted?kid=' + encodeURIComponent(kid)}
+                  >
                     Luyện nút này
                   </Link>
                 </li>

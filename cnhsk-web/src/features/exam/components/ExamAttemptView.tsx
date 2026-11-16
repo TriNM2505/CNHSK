@@ -1,4 +1,6 @@
-import { Button } from '@/shared/ui/Button'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Button, Card, ConfirmPanel, PageHeader, Progress } from '@/shared/ui'
 
 export type AttemptQuestion = { no: number; text: string; options: { key: string; text: string }[] }
 export type AttemptSection = { index: number; name: string; questions: AttemptQuestion[] }
@@ -26,6 +28,8 @@ type Props = {
 }
 
 export function ExamAttemptView(props: Props) {
+  const navigate = useNavigate()
+  const [leaving, setLeaving] = useState(false)
   const { sections, currentNo, choices, marks, placement, pending, readOnly } = props
   const questions = sections.flatMap((section) => section.questions)
   const index = questions.findIndex((question) => question.no === currentNo)
@@ -33,52 +37,82 @@ export function ExamAttemptView(props: Props) {
   const answered = questions.filter(({ no }) => choices[no] != null).length
   const remaining = questions.length - answered
   return (
-    <main className="mx-auto max-w-content space-y-5 p-4 sm:p-6">
-      <h1 className="text-h1-sm sm:text-h1">{props.title}</h1>
-      <p>
-        Đã làm {answered}/{questions.length} câu · Còn lại {remaining} câu
-      </p>
+    <main className="mx-auto w-full min-w-0 max-w-reading space-y-5 px-4 py-6 pb-16 sm:px-6">
+      <PageHeader title={props.title} />
+      <Card className="space-y-3 border-brand-100 bg-brand-50">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p>
+            Đã làm {answered}/{questions.length} câu · Còn lại {remaining} câu
+          </p>
+          <Button
+            to="/learn/exams"
+            disabled={pending}
+            variant="outline"
+            onClick={(event) => {
+              if (!readOnly) {
+                event.preventDefault()
+                setLeaving(true)
+              }
+            }}
+          >
+            Thoát
+          </Button>
+        </div>
+        <Progress
+          value={answered}
+          max={questions.length}
+          label={`${answered}/${questions.length}`}
+        />
+      </Card>
       {props.error && (
         <p role="alert" className="text-danger">
           {props.error}
         </p>
       )}
       {!placement && (
-        <nav aria-label="Các phần của đề" className="space-y-3">
-          {sections.map((section) => (
-            <div key={section.index} role="group" aria-label={section.name}>
-              <h2 className="text-h3">{section.name}</h2>
-              <div className="flex flex-wrap gap-2">
-                {section.questions.map(({ no }) => (
-                  <Button
-                    key={no}
-                    variant="outline"
-                    aria-current={no === currentNo ? 'step' : undefined}
-                    onClick={() => props.onNavigate(no)}
-                  >
-                    Câu {no}
-                    {marks.includes(no) ? ' · Đã đánh dấu' : ''}
-                  </Button>
-                ))}
+        <details open className="rounded-md border border-line bg-surface p-4">
+          <summary className="min-h-touch cursor-pointer text-label text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+            Điều hướng câu hỏi
+          </summary>
+          <nav aria-label="Các phần của đề" className="space-y-3">
+            {sections.map((section) => (
+              <div key={section.index} role="group" aria-label={section.name}>
+                <h2 className="text-h3">{section.name}</h2>
+                <div className="flex flex-wrap gap-2">
+                  {section.questions.map(({ no }) => (
+                    <Button
+                      key={no}
+                      variant="outline"
+                      aria-current={no === currentNo ? 'step' : undefined}
+                      onClick={() => props.onNavigate(no)}
+                    >
+                      Câu {no}
+                      {marks.includes(no) ? ' · Đã đánh dấu' : ''}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </nav>
+            ))}
+          </nav>
+        </details>
       )}
       {question && (
-        <section className="space-y-3 rounded-md border border-line bg-surface p-5">
+        <section className="min-w-0 space-y-5 rounded-md border border-line bg-surface p-6 sm:p-8">
           <h2 className="text-h3">Câu {question.no}</h2>
-          <p>{question.text}</p>
-          <div className="grid gap-2" role="group" aria-label="Phương án">
+          <p className="break-words font-hanzi text-h3" lang="zh-CN">
+            {question.text}
+          </p>
+          <div className="grid gap-3" role="group" aria-label="Phương án">
             {question.options.map(({ key, text }) => (
               <Button
                 key={key}
                 variant="outline"
+                className={`h-auto min-h-touch justify-start whitespace-normal p-4 text-left ${choices[question.no] === key ? 'border-brand-600 bg-brand-50' : ''}`}
                 aria-pressed={choices[question.no] === key}
                 disabled={pending || readOnly}
                 onClick={() => props.onChoose(key)}
               >
-                {key}. {text}
+                {key}. <span className="font-hanzi">{text}</span>
               </Button>
             ))}
           </div>
@@ -145,6 +179,16 @@ export function ExamAttemptView(props: Props) {
           </Button>
         </section>
       )}
+      <ConfirmPanel
+        open={leaving}
+        title="Rời bài làm?"
+        message="Đáp án chưa lưu có thể bị mất. Bạn muốn rời bài làm?"
+        confirmLabel="Rời bài làm"
+        cancelLabel="Tiếp tục làm bài"
+        pending={pending}
+        onCancel={() => setLeaving(false)}
+        onConfirm={() => navigate('/learn/exams')}
+      />
     </main>
   )
 }

@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom'
-import { Button } from '@/shared/ui/Button'
+import { Button, Card, EmptyState, PageHeader, Skeleton } from '@/shared/ui'
 import { SUPPORTED_HSK_LEVELS, type HskLevel } from '@/shared/ui/LevelBadge'
 import { PageState, type PageStateValue } from '@/shared/ui/PageState'
 import type { ExamSummary, PlacementLevel, PlacementSummary } from '../types'
@@ -38,23 +37,40 @@ export function ExamListView({
   onStartPlacement,
 }: ExamListViewProps) {
   return (
-    <main className="mx-auto max-w-content space-y-6 p-4 sm:p-6">
-      <h1 className="text-h1-sm text-ink sm:text-h1">Đề thi thử</h1>
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6">
+      <PageHeader
+        title="Đề thi thử"
+        subtitle="Chọn một đề để luyện tập, hoặc tìm cấp độ phù hợp với bạn."
+      />
       {actionError ? (
         <p role="alert" className="text-danger">
           {actionError}
         </p>
       ) : null}
+      <div aria-label="Chọn cấp HSK" role="group" className="flex flex-wrap gap-3">
+        {SUPPORTED_HSK_LEVELS.map((value) => (
+          <Button
+            key={value}
+            aria-pressed={value === level}
+            onClick={() => onLevelChange(value)}
+            variant={value === level ? 'primary' : 'outline'}
+          >
+            HSK {value}
+          </Button>
+        ))}
+      </div>
+
       <PageState
         state={state}
-        empty={null}
+        empty={
+          <EmptyState
+            title={`Đề HSK ${level} đang được cập nhật`}
+            description="Bạn có thể chọn cấp HSK khác."
+          />
+        }
         loading={
-          <div
-            role="status"
-            aria-label="Đang tải đề thi"
-            className="animate-pulse rounded-md bg-canvas p-8"
-          >
-            Đang tải đề thi…
+          <div role="status" aria-label="Đang tải đề thi">
+            <Skeleton variant="card" />
           </div>
         }
         error={
@@ -66,26 +82,31 @@ export function ExamListView({
       >
         <section
           aria-label="Kiểm tra trình độ"
-          className="rounded-md border border-line bg-surface p-6"
+          className="space-y-4 rounded-md border border-brand-100 bg-brand-50 p-6"
         >
           <h2 className="text-h2">Kiểm tra trình độ</h2>
           <p className="my-3 text-ink-secondary">Tìm cấp độ phù hợp qua bài xếp trình độ.</p>
           {placement?.active ? (
-            <Link
-              className="font-bold text-brand-700"
+            <Button
+              variant="outline"
+              className="mt-auto self-start"
               to={`/learn/exams/sessions/${placement.active.sessionId}`}
             >
               Tiếp tục
-            </Link>
+            </Button>
           ) : placement?.last ? (
             <>
               <p>
                 Kết quả gần nhất: {placementLabels[placement.last.level]}
                 {placement.last.confidence === 'TENTATIVE' ? ' — Kết quả tạm' : ''}
               </p>
-              <Link className="mr-4 text-brand-700" to={`/learn/placement/${placement.last.runId}`}>
+              <Button
+                variant="outline"
+                className="mr-4"
+                to={`/learn/placement/${placement.last.runId}`}
+              >
                 Xem kết quả
-              </Link>
+              </Button>
               <Button disabled={pending} onClick={onStartPlacement}>
                 Làm lại
               </Button>
@@ -96,32 +117,21 @@ export function ExamListView({
             </Button>
           )}
         </section>
-        <div aria-label="Chọn cấp HSK" role="group" className="my-6 flex gap-3">
-          {SUPPORTED_HSK_LEVELS.map((value) => (
-            <Button
-              key={value}
-              aria-pressed={value === level}
-              onClick={() => onLevelChange(value)}
-              variant={value === level ? 'primary' : 'outline'}
-            >
-              HSK {value}
-            </Button>
-          ))}
-        </div>
         <section aria-label={`Đề HSK ${level}`}>
           <h2 className="mb-4 text-h2">HSK {level}</h2>
           {exams.length === 0 ? (
             <p>Đề HSK {level} đang được cập nhật</p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3">
               {exams.map((exam) => (
-                <article
+                <Card
+                  role="article"
                   key={exam.id}
                   aria-label={exam.title}
-                  className="rounded-md border border-line bg-surface p-5"
+                  className="flex min-w-0 flex-col p-6"
                 >
-                  <h3 className="text-h3">{exam.title}</h3>
-                  <dl className="my-4 space-y-2 text-body-sm">
+                  <h3 className="break-words text-h3">{exam.title}</h3>
+                  <dl className="my-4 grid flex-1 grid-cols-2 gap-4 text-body-sm text-ink-secondary">
                     <div>
                       <dt>Số câu</dt>
                       <dd>{exam.questionCount}</dd>
@@ -140,18 +150,19 @@ export function ExamListView({
                     </div>
                   </dl>
                   {exam.activeSessionId !== null ? (
-                    <Link
+                    <Button
+                      variant="outline"
                       className="font-bold text-brand-700"
                       to={`/learn/exams/sessions/${exam.activeSessionId}`}
                     >
                       Tiếp tục
-                    </Link>
+                    </Button>
                   ) : (
                     <Button disabled={pending} onClick={() => onStartExam(exam.id)}>
                       Bắt đầu
                     </Button>
                   )}
-                </article>
+                </Card>
               ))}
             </div>
           )}

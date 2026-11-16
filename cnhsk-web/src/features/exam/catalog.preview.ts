@@ -1,11 +1,13 @@
-import { createElement } from 'react'
+import { createElement, useState, type ReactNode } from 'react'
+import { EmptyState, ErrorState, PageHeader, PageState, Skeleton } from '@/shared/ui'
+import type { PreviewState } from '@/app/preview/types'
 import type { PreviewEntry } from '@/app/preview/types'
 import type { SessionView } from '@/features/practice'
 
 import type { ExamResult, ExamSummary, PlacementResult, PlacementStep } from './types'
 import { ExamListView } from './components/ExamListView'
 import { ExamAttemptView } from './components/ExamAttemptView'
-import { ExamResultView } from './components/ExamResultView'
+import { ExamResultView, type ResultFilter } from './components/ExamResultView'
 import { PlacementResultView } from './components/PlacementResultView'
 import { TargetedPracticeView } from './components/TargetedPracticeView'
 import {
@@ -166,6 +168,113 @@ const listPreviews = (['new', 'active', 'result'] as const).map((mode): PreviewE
     }),
 })) satisfies readonly PreviewEntry[]
 
+function statePreview(state: PreviewState, title: string, content: ReactNode) {
+  if (state === 'ready') return content
+  return createElement(
+    'main',
+    { className: 'mx-auto w-full min-w-0 max-w-reading space-y-5 px-4 py-6 pb-16 sm:px-6' },
+    createElement(PageHeader, { title }),
+    createElement(PageState, {
+      state,
+      loading: createElement(Skeleton, { variant: 'card' }),
+      empty: createElement(EmptyState, {
+        title: 'Chưa có dữ liệu',
+        description: 'Không có lượt làm bài hoặc kết quả để hiển thị.',
+      }),
+      error: createElement(ErrorState, {
+        message: 'Không thể tải dữ liệu.',
+        onRetry: () => undefined,
+      }),
+      children: null,
+    }),
+  )
+}
+
+function AttemptPreview({ session }: { session: SessionView }) {
+  const placement = session.source === 'PLACEMENT'
+  const [currentNo, setCurrentNo] = useState(1)
+  const [choices, setChoices] = useState<Record<number, string>>({ 1: 'A' })
+  const [marks, setMarks] = useState<number[]>([1])
+  const [confirming, setConfirming] = useState(false)
+  const [readOnly, setReadOnly] = useState(false)
+  return createElement(ExamAttemptView, {
+    title: placement ? 'Khối 1' : 'Đề thi tự soạn',
+    placement,
+    sections: [
+      {
+        index: 1,
+        name: 'Đọc hiểu',
+        questions: session.items.map(({ no, prompt, options }) => ({
+          no,
+          text: prompt.text ?? '',
+          options: options ?? [],
+        })),
+      },
+    ],
+    currentNo,
+    choices,
+    marks,
+    pending: false,
+    readOnly,
+    confirming,
+    saveState: 'saved',
+    onNavigate: setCurrentNo,
+    onChoose: (key) => setChoices((current) => ({ ...current, [currentNo]: key })),
+    onSkip: () => setCurrentNo((current) => Math.min(current + 1, session.items.length)),
+    onMark: () =>
+      setMarks((current) =>
+        current.includes(currentNo)
+          ? current.filter((no) => no !== currentNo)
+          : [...current, currentNo],
+      ),
+    onConfirmChange: setConfirming,
+    onSubmit: () => {
+      setReadOnly(true)
+      setConfirming(false)
+    },
+    onContinue: () => undefined,
+  })
+}
+
+function ResultPreview() {
+  const [filter, setFilter] = useState<ResultFilter>('ALL')
+  return createElement(ExamResultView, {
+    result: examReviewFixture,
+    filter,
+    onFilter: setFilter,
+    weakPoints: {
+      state: 'ready',
+      points: [{ kid: 'NP1-101', nameVi: 'Trật tự từ', mastery: 20, state: null }],
+    },
+  })
+}
+
+function TargetedPreview({ state }: { state: PreviewState }) {
+  const [position, setPosition] = useState(0)
+  const [answered, setAnswered] = useState(false)
+  const item = targetedSessionFixture.items[position]
+  return createElement(TargetedPracticeView, {
+    kid: targetedNodeFixture.kid,
+    name: targetedNodeFixture.nameVi,
+    state: state !== 'ready' ? state : item ? 'ready' : 'finished',
+    question: item
+      ? { text: item.prompt.text ?? '', options: item.options ?? [], repeated: true }
+      : undefined,
+    position: position + 1,
+    total: targetedSessionFixture.items.length,
+    feedback: answered
+      ? { correct: true, correctAnswer: 'A', explanation: 'Phản hồi mẫu cho phiên xem trước.' }
+      : undefined,
+    error: state === 'error' ? 'Không thể tải bài luyện.' : undefined,
+    onAnswer: () => setAnswered(true),
+    onContinue: () => {
+      setPosition((current) => current + 1)
+      setAnswered(false)
+    },
+    onRetry: () => undefined,
+  })
+}
+
 export const previews = [
   ...listPreviews,
   {
@@ -173,84 +282,39 @@ export const previews = [
     id: 'scr-022-exam',
     scr: 'SCR-022',
     title: 'Kết quả đề thi',
-    render: () =>
-      createElement(ExamResultView, {
-        result: examReviewFixture,
-        filter: 'ALL',
-        onFilter: () => undefined,
-        weakPoints: { state: 'ready', points: [
-          { kid: 'NP1-101', nameVi: 'Trật tự từ', mastery: 20, state: null },
-        ] },
-      }),
+    states: ['ready', 'loading', 'empty', 'error'],
+    render: (state) => statePreview(state, 'Kết quả đề thi', createElement(ResultPreview)),
   },
   {
     group: 'screen',
     id: 'scr-022-placement',
     scr: 'SCR-022',
     title: 'Kết quả xếp trình độ',
-    render: () =>
-      createElement(PlacementResultView, {
-        result: placementReviewFixture,
-        onRetake: () => undefined,
-      }),
-  },
-  ...[mockAttemptFixture, placementAttemptFixture].map((session): PreviewEntry => {
-    const placement = session.source === 'PLACEMENT'
-    return {
-      group: 'screen',
-      id: 'scr-021-' + session.source.toLowerCase(),
-      scr: 'SCR-021',
-      title: placement ? 'Bài xếp trình độ' : 'Làm đề thi thử',
-      render: () =>
-        createElement(ExamAttemptView, {
-          title: placement ? 'Khối 1' : 'Đề thi tự soạn',
-          placement,
-          sections: [
-            {
-              index: 1,
-              name: 'Đọc hiểu',
-              questions: session.items.map(({ no, prompt, options }) => ({
-                no,
-                text: prompt.text ?? '',
-                options: options ?? [],
-              })),
-            },
-          ],
-          currentNo: 1,
-          choices: { 1: 'A' },
-          marks: [1],
-          pending: false,
-          readOnly: false,
-          confirming: false,
-          saveState: 'saved',
-          onNavigate: () => undefined,
-          onChoose: () => undefined,
-          onSkip: () => undefined,
-          onMark: () => undefined,
-          onConfirmChange: () => undefined,
-          onSubmit: () => undefined,
-          onContinue: () => undefined,
+    states: ['ready', 'loading', 'empty', 'error'],
+    render: (state) =>
+      statePreview(
+        state,
+        'Kết quả xếp trình độ',
+        createElement(PlacementResultView, {
+          result: placementReviewFixture,
+          onRetake: () => undefined,
         }),
-    }
-  }),
+      ),
+  },
+  ...[mockAttemptFixture, placementAttemptFixture].map((session): PreviewEntry => ({
+    group: 'screen',
+    id: 'scr-021-' + session.source.toLowerCase(),
+    scr: 'SCR-021',
+    title: session.source === 'PLACEMENT' ? 'Bài xếp trình độ' : 'Làm đề thi thử',
+    states: ['ready', 'loading', 'empty', 'error'],
+    render: (state) => statePreview(state, 'Làm bài', createElement(AttemptPreview, { session })),
+  })),
   {
     group: 'screen',
     id: 'scr-023-targeted-practice',
     scr: 'SCR-023',
     title: 'Luyện theo nút',
     states: ['ready', 'loading', 'empty', 'error'],
-    render: (state) => {
-      const item = targetedSessionFixture.items[0]!
-      return createElement(TargetedPracticeView, {
-        kid: targetedNodeFixture.kid,
-        name: targetedNodeFixture.nameVi,
-        state: state === 'loading' || state === 'empty' || state === 'error' ? state : 'ready',
-        question: { text: item.prompt.text ?? '', options: item.options ?? [], repeated: true },
-        position: 1,
-        total: targetedSessionFixture.items.length,
-        error: state === 'error' ? 'Không thể tải bài luyện.' : undefined,
-        onRetry: () => undefined,
-      })
-    },
+    render: (state) => createElement(TargetedPreview, { state }),
   },
 ] satisfies readonly PreviewEntry[]

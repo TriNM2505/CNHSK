@@ -1,5 +1,5 @@
 import type { Option } from '@/features/practice'
-import { Button } from '@/shared/ui/Button'
+import { Button, PageHeader, Progress, Skeleton } from '@/shared/ui'
 
 export type TargetedQuestion = {
   text: string
@@ -43,13 +43,21 @@ export function TargetedPracticeView({
   onRetry,
 }: Props) {
   return (
-    <main className="mx-auto max-w-content space-y-5 p-4 sm:p-6">
-      <h1 className="text-h1-sm sm:text-h1">Luyện theo nút</h1>
-      <p>
-        {kid}
-        {name ? ' · ' + name : ''}
-      </p>
-      {state === 'loading' && <p role="status">Đang tải bài luyện…</p>}
+    <main className="mx-auto w-full min-w-0 max-w-reading space-y-5 px-4 py-6 pb-16 sm:px-6">
+      <PageHeader title="Luyện theo nút" />
+      <div className="space-y-3 rounded-md border border-brand-100 bg-brand-50 p-4">
+        <p className="break-words text-label text-ink">
+          {kid}
+          {name ? ' · ' + name : ''}
+        </p>
+        {state === 'ready' && total ? (
+          <Progress value={position ?? 0} max={total} label={`${position}/${total}`} />
+        ) : null}
+        <Button to="/learn/progress" disabled={pending} variant="outline">
+          Về tiến độ
+        </Button>
+      </div>
+      {state === 'loading' && <Skeleton variant="card" />}
       {state === 'empty' && <p>Chưa có bài luyện cho nút này</p>}
       {state === 'finished' && <p role="status">Đã hoàn thành bài luyện</p>}
       {error && (
@@ -59,21 +67,24 @@ export function TargetedPracticeView({
       )}
       {state === 'error' && onRetry && <Button onClick={onRetry}>Thử lại</Button>}
       {state === 'ready' && question && (
-        <section className="space-y-3 rounded-md border border-line bg-surface p-5">
+        <section className="min-w-0 space-y-5 rounded-md border border-line bg-surface p-6 sm:p-8">
           <h2 className="text-h3">
             Câu {position}/{total}
           </h2>
           {question.repeated && <p>Câu bạn vừa làm sai</p>}
-          <p>{question.text}</p>
-          <div className="grid gap-2" role="group" aria-label="Phương án">
+          <p className="break-words font-hanzi text-h3" lang="zh-CN">
+            {question.text}
+          </p>
+          <div className="grid gap-3" role="group" aria-label="Phương án">
             {question.options.map(({ key, text }) => (
               <Button
                 key={key}
                 variant="outline"
+                className="h-auto min-h-touch justify-start whitespace-normal p-4 text-left"
                 disabled={pending || !!feedback}
                 onClick={() => onAnswer?.(key)}
               >
-                {key}. {text}
+                {key}. <span className="font-hanzi">{text}</span>
               </Button>
             ))}
           </div>
