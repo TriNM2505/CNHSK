@@ -1,7 +1,7 @@
 import type { FormEvent } from 'react'
 
 import { NEW_PASSWORD_REQUIREMENT } from '@/features/auth/passwordValidation'
-import { Button, Card, FormField, PageHeader, PasswordInput } from '@/shared/ui'
+import { Button, Card, FormField, PageHeader, PasswordInput, StatusBadge } from '@/shared/ui'
 
 import type { PasswordFieldErrors } from '../accountForms'
 import type { ChangePasswordRequest } from '../types'
@@ -35,11 +35,21 @@ export function ChangePasswordView({
   }
 
   return (
-    <div className="mx-auto w-full max-w-reading">
+    <div className="mx-auto w-full min-w-0 max-w-reading space-y-6 pb-16">
       <PageHeader
-        subtitle="Nhập mật khẩu hiện tại để xác nhận, rồi đặt mật khẩu mới. Các thiết bị khác sẽ bị đăng xuất."
+        subtitle="Nhập mật khẩu hiện tại để xác nhận, rồi đặt mật khẩu mới cho tài khoản."
         title="Đổi mật khẩu"
       />
+
+      <Card className="bg-surface-subtle p-4 sm:px-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <StatusBadge tone="info">Bảo mật phiên đăng nhập</StatusBadge>
+        </div>
+        <p className="mt-2 text-body-sm text-ink-secondary">
+          Đổi mật khẩu thành công sẽ đăng xuất các thiết bị khác; phiên đang dùng vẫn giữ nguyên.
+        </p>
+      </Card>
+
       <Card className="p-4 sm:p-6">
         {notice ? <FormNotice notice={notice} /> : null}
 
@@ -91,11 +101,11 @@ export function ChangePasswordView({
             />
           </FormField>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-5">
             <Button loading={submitting} type="submit">
               {submitting ? 'Đang đổi mật khẩu' : 'Đổi mật khẩu'}
             </Button>
-            <Button to={cancelTo} variant="ghost">
+            <Button to={cancelTo} variant="outline">
               Huỷ
             </Button>
           </div>
