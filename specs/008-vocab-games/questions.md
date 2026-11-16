@@ -36,3 +36,11 @@ Targeted PinyinMatch, community.game, ContentLookup và ModuleBoundaryTest: 195 
 - RadicalMatchGame chỉ đăng ký trong test. Đăng ký production thuộc T-06 theo Q-T01-01.
 
 Targeted RadicalMatch, community.game, ContentLookup và ModuleBoundaryTest: 212 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6853 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1516% (16542 dòng covered, 485 dòng missed).
+
+## T-05 — Bắt Chữ
+
+- Q-T05-01 (ANSWERED): thử ứng viên khác cho cùng vị trí nếu thiếu prompt hoặc không đủ năm nhiễu. Ứng viên vẫn có thể dùng ở dạng khác, mỗi ID chỉ làm đề một lần. Hết ứng viên hợp lệ thì dừng chu kỳ tại vị trí đó. Chỉ AUDIO thiếu URL mới đổi sang MEANING.
+- Kiểm khả dụng và dựng ván dùng cùng bộ dựng. Kết quả dựng thực tế dưới tám lượt trả rỗng để engine trả GAME_UNAVAILABLE. Unit test dùng hai lượt rút với seed cố định để kiểm trường hợp khả dụng nhưng lần dựng sau dưới ngưỡng.
+- PINYIN và AUDIO so pinyinKey gồm thanh, MEANING so meaningKeys. Đăng ký production thuộc T-06 theo Q-T01-01.
+
+Targeted CharCatch, community.game, ContentLookup và ModuleBoundaryTest: 215 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6856 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1517% (16611 dòng covered, 487 dòng missed).
