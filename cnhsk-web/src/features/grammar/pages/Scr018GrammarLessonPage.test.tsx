@@ -324,6 +324,10 @@ describe('SCR-018 Grammar Lesson', () => {
       expect(screen.getByText('Wǒ shì zuótiān lái de.')).toBeVisible()
       expect(screen.getByText('Tôi đến hôm qua.')).toBeVisible()
       expect(screen.queryByRole('heading', { name: 'Lỗi thường gặp' })).not.toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Quay lại danh sách' })).toHaveAttribute(
+        'href',
+        '/learn/grammar?level=2',
+      )
       expect(screen.getByRole('button', { name: 'Đã hiểu' })).toBeVisible()
     },
   )

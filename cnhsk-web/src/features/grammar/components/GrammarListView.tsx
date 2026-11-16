@@ -2,6 +2,8 @@ import { BookOpenText, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import {
+  Card,
+  EmptyState,
   ErrorState,
   HanziText,
   LevelBadge,
@@ -29,41 +31,56 @@ export interface GrammarListViewProps {
 function GrammarRows({ points }: { points: readonly GrammarSummary[] }) {
   if (!points.length) {
     return (
-      <div className="rounded-md border border-dashed border-line bg-surface px-5 py-10 text-center">
-        <BookOpenText aria-hidden="true" className="mx-auto size-6 text-ink-muted" />
-        <p className="mt-3 text-h3 text-ink">Chưa có điểm ngữ pháp cho cấp này</p>
-      </div>
+      <EmptyState
+        description="Hãy chọn cấp HSK khác trên thanh tab để xem các cấu trúc ngữ pháp hiện có."
+        icon={<BookOpenText aria-hidden="true" className="size-5" />}
+        title="Chưa có điểm ngữ pháp cho cấp này"
+      />
     )
   }
 
   return (
     <div
       aria-label="Danh sách điểm ngữ pháp"
-      className="divide-y divide-line rounded-md border border-line bg-surface"
+      className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
     >
       {points.map((point) => (
         <Link
-          className="group flex min-h-touch items-center gap-4 p-4 no-underline transition-colors hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus sm:p-5"
+          className="group block min-w-0 rounded-md no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
           key={point.id}
           to={`/learn/grammar/${point.id}`}
         >
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <HanziText size="sm">{point.text}</HanziText>
-              <LevelBadge exact level={point.hskLevel} />
+          <Card
+            className="flex h-full min-w-0 flex-col justify-between gap-4 p-5"
+            variant="interactive"
+          >
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <LevelBadge exact level={point.hskLevel} />
+                {point.learned ? <StatusBadge tone="success">Đã học</StatusBadge> : null}
+              </div>
+              <div className="min-w-0 break-words pt-1">
+                <HanziText className="block break-words text-ink" size="sm">
+                  {point.text}
+                </HanziText>
+              </div>
+              <p className="break-words text-body text-ink-secondary">{point.titleVi}</p>
             </div>
-            <p className="mt-1 text-body text-ink-secondary">{point.titleVi}</p>
-            {point.bestPercent !== null && point.bestPercent !== undefined ? (
-              <p className="mt-1 text-caption text-ink-muted">
-                Điểm cao nhất: {point.bestPercent}%
-              </p>
-            ) : null}
-          </div>
-          {point.learned ? <StatusBadge tone="success">Đã học</StatusBadge> : null}
-          <ChevronRight
-            aria-hidden="true"
-            className="size-5 shrink-0 text-ink-muted group-hover:text-brand-700"
-          />
+
+            <div className="flex items-center justify-between gap-2 border-t border-line pt-3">
+              {point.bestPercent !== null && point.bestPercent !== undefined ? (
+                <p className="text-caption text-ink-muted">Điểm cao nhất: {point.bestPercent}%</p>
+              ) : (
+                <p className="text-caption text-ink-muted">
+                  {point.exerciseCount ? `${point.exerciseCount} câu luyện tập` : 'Xem bài học'}
+                </p>
+              )}
+              <ChevronRight
+                aria-hidden="true"
+                className="size-5 shrink-0 text-ink-muted transition-colors group-hover:text-brand-700"
+              />
+            </div>
+          </Card>
         </Link>
       ))}
     </div>
@@ -72,11 +89,13 @@ function GrammarRows({ points }: { points: readonly GrammarSummary[] }) {
 
 function LoadingList() {
   return (
-    <div aria-label="Đang tải danh sách ngữ pháp" className="space-y-3">
+    <div aria-label="Đang tải danh sách ngữ pháp" className="space-y-4" role="status">
       <Skeleton className="h-12" />
-      {[0, 1, 2].map((item) => (
-        <Skeleton className="h-24" key={item} />
-      ))}
+      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2].map((item) => (
+          <Skeleton key={item} variant="card" />
+        ))}
+      </div>
     </div>
   )
 }
@@ -90,7 +109,7 @@ export function GrammarListView({
   state,
 }: GrammarListViewProps) {
   return (
-    <div>
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-20 sm:px-6">
       <PageHeader
         subtitle="Chọn một điểm ngữ pháp để đọc bài và luyện tập ngắn."
         title="Ngữ pháp HSK"
@@ -117,6 +136,6 @@ export function GrammarListView({
           value={selectedLevel}
         />
       ) : null}
-    </div>
+    </main>
   )
 }
