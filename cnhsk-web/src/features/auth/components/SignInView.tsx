@@ -7,6 +7,7 @@ import { Button, FormField, Input, PageHeader, PasswordInput, StatusBadge } from
 import type { SignInFieldErrors, SignInNotice } from '../signInForm'
 import type { LoginRequest } from '../types'
 import { AuthSplitLayout } from './AuthSplitLayout'
+import { CardCornerPandas, LoginBambooBackdrop, RightGiantPandaScene } from './PandaBambooScene'
 
 export type SignInViewState = 'ready' | 'submitting' | 'error'
 
@@ -26,6 +27,8 @@ const SIGN_IN_ASIDE = {
   badge: 'Một tài khoản CNHSK',
   body: 'Tiếp tục bài học, luyện đề và trò chơi chữ Hán bằng cùng một tài khoản trên web chính và trang game.',
   hanzi: '学习',
+  meaning: 'Học tập và rèn luyện mỗi ngày',
+  pinyin: 'xuéxí',
   title: 'Học tiếng Trung trong một không gian thống nhất',
 }
 
@@ -130,64 +133,77 @@ export function SignInView({
   }
 
   return (
-    <AuthSplitLayout aside={SIGN_IN_ASIDE}>
-      <div className="mb-3">
-        <StatusBadge tone="neutral">Xác thực tài khoản</StatusBadge>
-      </div>
-      <PageHeader
-        subtitle="Dùng chung tài khoản cho web chính và trang game CNHSK."
-        title="Đăng nhập"
-      />
+    <div className="relative isolate overflow-hidden">
+      <LoginBambooBackdrop />
+      <AuthSplitLayout
+        aside={SIGN_IN_ASIDE}
+        cardDecorator={<CardCornerPandas />}
+        customAside={<RightGiantPandaScene />}
+        hideMobileBanner
+      >
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
+          <p className="text-label text-brand-700">Chào mừng trở lại</p>
+          <StatusBadge tone="neutral">Xác thực tài khoản</StatusBadge>
+        </div>
+        <PageHeader
+          subtitle="Dùng chung tài khoản cho web chính và trang game CNHSK."
+          title="Đăng nhập"
+        />
 
-      {notice ? <NoticeBanner notice={notice} /> : null}
+        {notice ? <NoticeBanner notice={notice} /> : null}
 
-      <form noValidate onSubmit={handleSubmit}>
-        <FormField error={fieldErrors.email} htmlFor="sign-in-email" label="Email" required>
-          <Input
-            autoComplete="username"
-            disabled={submitting}
-            inputMode="email"
-            maxLength={256}
-            name="email"
-            onChange={(event) => onEmailChange(event.target.value)}
-            type="email"
-            value={values.email}
-          />
-        </FormField>
+        <form className="space-y-4" noValidate onSubmit={handleSubmit}>
+          <div className="rounded-md border border-line bg-canvas p-4">
+            <FormField error={fieldErrors.email} htmlFor="sign-in-email" label="Email" required>
+              <Input
+                autoComplete="username"
+                disabled={submitting}
+                inputMode="email"
+                maxLength={256}
+                name="email"
+                onChange={(event) => onEmailChange(event.target.value)}
+                type="email"
+                value={values.email}
+              />
+            </FormField>
 
-        <FormField
-          error={fieldErrors.password}
-          htmlFor="sign-in-password"
-          label="Mật khẩu"
-          required
-        >
-          <PasswordInput
-            autoComplete="current-password"
-            disabled={submitting}
-            maxLength={73}
-            name="password"
-            onChange={(event) => onPasswordChange(event.target.value)}
-            value={values.password}
-          />
-        </FormField>
+            <FormField
+              className="mb-0"
+              error={fieldErrors.password}
+              htmlFor="sign-in-password"
+              label="Mật khẩu"
+              required
+            >
+              <PasswordInput
+                autoComplete="current-password"
+                disabled={submitting}
+                maxLength={73}
+                name="password"
+                onChange={(event) => onPasswordChange(event.target.value)}
+                value={values.password}
+              />
+            </FormField>
+          </div>
 
-        <div className="mb-5 flex justify-end">
-          <Button size="sm" to="/forgot-password" variant="ghost">
-            Quên mật khẩu?
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-caption text-ink-muted">Phiên đăng nhập tự động bảo mật</span>
+            <Button className="shrink-0" size="sm" to="/forgot-password" variant="ghost">
+              Quên mật khẩu?
+            </Button>
+          </div>
+
+          <Button className="w-full" disabled={submitDisabled} loading={submitting} type="submit">
+            {submitting ? 'Đang đăng nhập' : 'Đăng nhập'}
+          </Button>
+        </form>
+
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-brand-100 bg-surface-subtle p-4 text-body-sm text-ink-secondary">
+          <span>Chưa có tài khoản học tập?</span>
+          <Button size="sm" to={registerTo} variant="outline">
+            Đăng ký
           </Button>
         </div>
-
-        <Button className="w-full" disabled={submitDisabled} loading={submitting} type="submit">
-          {submitting ? 'Đang đăng nhập' : 'Đăng nhập'}
-        </Button>
-      </form>
-
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4 text-body-sm text-ink-secondary">
-        <span>Chưa có tài khoản?</span>
-        <Button size="sm" to={registerTo} variant="outline">
-          Đăng ký
-        </Button>
-      </div>
-    </AuthSplitLayout>
+      </AuthSplitLayout>
+    </div>
   )
 }
