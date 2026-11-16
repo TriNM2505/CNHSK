@@ -17,6 +17,10 @@ import com.cnhsk.shared.exception.ErrorCode;
 import com.cnhsk.support.AbstractIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import java.time.Clock;
+import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -33,6 +37,15 @@ import java.util.UUID;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect")
 class AuthApiIntegrationTest extends AbstractIntegrationTest {
+
+    private static final Instant ADMIN_NOW = Instant.parse("2026-11-16T06:00:00Z");
+    @MockitoBean Clock clock;
+
+    @BeforeEach
+    void fixedAdminClock() {
+        when(clock.instant()).thenReturn(ADMIN_NOW);
+        when(clock.millis()).thenReturn(ADMIN_NOW.toEpochMilli());
+    }
 
     private static final String PASSWORD = "UnverifiedPass123";
 
@@ -112,6 +125,61 @@ class AuthApiIntegrationTest extends AbstractIntegrationTest {
                 .containsOnly(java.util.Map.entry(first.getId(), first.getEmail()), java.util.Map.entry(other.getId(), other.getEmail()));
         assertThat(authApi.contactEmails(java.util.Set.of())).isEmpty();
         assertThatThrownBy(() -> emails.clear()).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void activeAdminRequiresAnExistingPositiveIdWithTheAdminRole() {
+        User admin = admin();
+        User learner = userRepository.saveAndFlush(new User(uniqueEmail(), "hash", "Learner"));
+        userRoleRepository.saveAndFlush(new UserRole(learner.getId(), RoleCode.LEARNER, null));
+        User noRole = userRepository.saveAndFlush(new User(uniqueEmail(), "hash", "No role"));
+
+        assertThat(authApi.isActiveAdmin(admin.getId())).isTrue();
+        for (long id : java.util.List.of(0L, -1L, Long.MAX_VALUE, learner.getId(), noRole.getId()))
+            assertThat(authApi.isActiveAdmin(id)).as("id %s", id).isFalse();
+    }
+
+    @Test
+    void bannedOrCurrentlySuspendedAdminsAreInactive() {
+        User banned = admin();
+        banned.setBannedAt(ADMIN_NOW.minusSeconds(1));
+        banned.setBanReason("Fixture ban");
+        userRepository.saveAndFlush(banned);
+        User suspended = admin();
+        suspended.setSuspendedAt(ADMIN_NOW.minusSeconds(60));
+        suspended.setSuspendedUntil(ADMIN_NOW.plusSeconds(1));
+        userRepository.saveAndFlush(suspended);
+
+        assertThat(authApi.isActiveAdmin(banned.getId())).isFalse();
+        assertThat(authApi.isActiveAdmin(suspended.getId())).isFalse();
+    }
+
+    @Test
+    void suspensionExpiryIsInclusiveAndHistoricalSuspensionDoesNotDisableAdmin() {
+        for (Instant expiry : java.util.List.of(ADMIN_NOW, ADMIN_NOW.minusSeconds(1))) {
+            User admin = admin();
+            admin.setSuspendedAt(ADMIN_NOW.minusSeconds(60));
+            admin.setSuspendedUntil(expiry);
+            userRepository.saveAndFlush(admin);
+            assertThat(authApi.isActiveAdmin(admin.getId())).as("expiry %s", expiry).isTrue();
+        }
+        User historical = admin();
+        historical.setSuspendedAt(ADMIN_NOW.minusSeconds(60));
+        userRepository.saveAndFlush(historical);
+        assertThat(authApi.isActiveAdmin(historical.getId())).isTrue();
+    }
+
+    @Test
+    void activeAdminDoesNotRequireEmailVerification() {
+        User admin = admin();
+        assertThat(admin.getEmailVerifiedAt()).isNull();
+        assertThat(authApi.isActiveAdmin(admin.getId())).isTrue();
+    }
+
+    private User admin() {
+        User user = userRepository.saveAndFlush(new User(uniqueEmail(), "hash", "Admin fixture"));
+        userRoleRepository.saveAndFlush(new UserRole(user.getId(), RoleCode.ADMIN, null));
+        return user;
     }
 
     private static String uniqueEmail() {

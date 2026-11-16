@@ -127,6 +127,19 @@ public class AuthApiService implements AuthApi {
 
     @Override
     @Transactional(readOnly = true)
+    public boolean isActiveAdmin(long userId) {
+        if (userId <= 0) return false;
+        return Boolean.TRUE.equals(jdbc.queryForObject("""
+                SELECT EXISTS (
+                    SELECT 1 FROM auth.users u
+                    JOIN auth.user_roles role ON role.user_id = u.id
+                    WHERE u.id = :id AND role.role_code = 'ADMIN' AND u.banned_at IS NULL
+                      AND (u.suspended_until IS NULL OR u.suspended_until <= :now))
+                """, Map.of("id", userId, "now", Timestamp.from(clock.instant())), Boolean.class));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Map<Long, String> displayNames(Set<Long> userIds) {
         Objects.requireNonNull(userIds, "userIds must not be null.");
         if (userIds.isEmpty()) {
