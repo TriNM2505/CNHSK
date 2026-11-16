@@ -15,7 +15,7 @@ Mỗi game giao độc lập được (BE trước, FE sau). Nguồn FE: app 6 g
 | T-02 | `CharRainGame` (tô nét) | `…/community/game/rain/*` + test | FR-001…FR-004 · AT-01…AT-03 | ✅ MERGED — PR #231 / ce4732f |
 | T-03 | `PinyinMatchGame` | `…/community/game/pinyin/*` + test | FR-007…FR-011 · AT-05…AT-08 | ✅ MERGED — PR #232 |
 | T-04 | `RadicalMatchGame` + `RadicalLookalikes` | `…/community/game/radical/*` + test | FR-014…FR-017 · AT-09…AT-11 | ⬜ |
-| T-05 | `CharCatchGame` | `…/community/game/catchgame/*` + test | FR-019…FR-024 · AT-12…AT-15 | ⬜ |
+| T-05 | `CharCatchGame` | `…/community/game/catchgame/*` + test | FR-019…FR-024 · AT-12…AT-15 | 🔄 chờ review — targeted 215; full verify 6856 F0/E0/S0, LINE 97.1517% |
 | T-06 | `BrushStrokeGame` + `FlyingDartGame` (`accept` có/không thanh, `minDurationMs` theo âm tiết); test xếp hạng 6 game qua `LeaderboardRepository` | `…/community/game/{brush,dart}/*` + test | FR-029…FR-032, FR-035…FR-038, FR-041 · AT-20, AT-21, AT-23, AT-24 | ⬜ |
 
 ## Đợt 2 · Frontend (`cnhsk-game`)
