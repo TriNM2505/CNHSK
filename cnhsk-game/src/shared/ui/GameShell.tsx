@@ -6,10 +6,15 @@ import { ApiError } from '../api/client'
 import { abandonRound, answerRound, finishRound, readRound, startRound } from '../api/rounds'
 import type { RoundResult, RoundStart, RoundView, ServedItem } from '../api/rounds'
 
+export type GameAnswer = { correct: boolean; correctAnswer: string }
+
 export type GameProps = {
   items: readonly ServedItem[]
   uiConfig: Readonly<Record<string, unknown>>
-  submitAnswer: (no: number, answer: string) => void
+  submitAnswer: (no: number, answer: string) => Promise<GameAnswer>
+  onMissed: (no: number) => void
+  disabled: boolean
+  onItemShown?: (no: number) => void
 }
 
 type Props = { code: string; hskLevel?: number; Game: ComponentType<GameProps> }
@@ -28,12 +33,21 @@ type Screen =
       pending: number
       confirming: boolean
       blocked: boolean
+      disabled: boolean
       message?: string
     }
   | { mode: 'result'; result: RoundResult }
   | { mode: 'finish-error' | 'leave-error'; message: string }
 
-type Pending = { no: number; answer: string; durationMs: number; uncertain: boolean }
+type Pending = { no: number; answer: string; durationMs: number; uncertain: boolean; resolve: (value: GameAnswer) => void; reject: (error: Error) => void }
+const feedbackMs = 800
+
+function feedbackPromise(executor: ConstructorParameters<typeof Promise<GameAnswer>>[0]) {
+  const promise = new Promise<GameAnswer>(executor)
+  // Legacy games can ignore the feedback promise.
+  void promise.catch(() => {})
+  return promise
+}
 const control =
   'inline-flex min-h-touch items-center justify-center rounded-sm border border-line bg-surface px-4 font-semibold'
 const primary =
@@ -62,7 +76,10 @@ function createRoundController(
   let points = 0
   let queue: Pending[] = []
   const accepted = new Set<number>()
-  const answered = new Set<number>()
+  const answered = new Map<number, { correct: boolean | null; correctAnswer: string | null }>()
+  const missed = new Set<number>()
+  const shown = new Map<number, number>()
+  let finishTimer: number | undefined
   let busy = false
   let blocked = false
   let closing = false
@@ -96,6 +113,7 @@ function createRoundController(
       pending: queue.length,
       confirming,
       blocked,
+      disabled: closing || confirming || blocked || leaveRequested || finishTimer !== undefined,
       message,
     })
   }
@@ -113,6 +131,8 @@ function createRoundController(
       queue = []
       accepted.clear()
       answered.clear()
+      missed.clear()
+      shown.clear()
       busy = blocked = closing = leaveRequested = confirming = false
       message = undefined
       mode = 'round'
@@ -133,8 +153,16 @@ function createRoundController(
     return view.status === 'IN_PROGRESS'
   }
 
+  function stopPending() {
+    window.clearTimeout(finishTimer)
+    finishTimer = undefined
+    for (const item of queue) item.reject(new Error('Ván không còn nhận câu trả lời.'))
+    queue = []
+  }
+
   async function finish() {
     if (!round || (mode !== 'round' && mode !== 'finish-error')) return
+    stopPending()
     setScreen({ mode: 'finishing' })
     try {
       const result = await finishRound(round.roundId, signal)
@@ -162,6 +190,7 @@ function createRoundController(
 
   async function abandon() {
     if (!round || (mode !== 'round' && mode !== 'leave-error')) return
+    stopPending()
     setScreen({ mode: 'leaving' })
     try {
       await abandonRound(round.roundId, signal)
@@ -188,13 +217,18 @@ function createRoundController(
         try {
           if (next.uncertain) {
             const view = await readRound(round.roundId, signal)
-            if (signal.aborted || !applyRoundStatus(view)) return
+            if (signal.aborted) return
+            if (!applyRoundStatus(view)) {
+              stopPending()
+              return
+            }
             round = view
             syncClock(view)
             points = view.totalPoints
             for (const item of view.answered) {
               accepted.add(item.no)
-              answered.add(item.no)
+              answered.set(item.no, item)
+              missed.delete(item.no)
             }
           }
           if (!answered.has(next.no)) {
@@ -208,28 +242,36 @@ function createRoundController(
               signal,
             )
             if (signal.aborted) return
-            answered.add(next.no)
+            answered.set(next.no, response)
             points = response.totalPoints
+          }
+          const feedback = answered.get(next.no)
+          if (feedback?.correct != null && feedback.correctAnswer != null) {
+            next.resolve({ correct: feedback.correct, correctAnswer: feedback.correctAnswer })
+          } else {
+            next.reject(new Error('Không có phản hồi chấm của câu này.'))
           }
           queue.shift()
         } catch (error) {
           if (signal.aborted) return
           if (hasCode(error, 'ROUND_EXPIRED')) {
+            stopPending()
             setScreen({ mode: 'expired' })
             return
           }
           if (hasCode(error, 'ROUND_ALREADY_SUBMITTED')) {
+            stopPending()
             setScreen({ mode: 'finished' })
             return
           }
           if (hasCode(error, 'ROUND_TIME_OVER')) {
             closing = true
-            queue = []
+            stopPending()
             break
           }
           next.uncertain = true
           blocked = true
-          message = 'Chưa gửi được đáp án. Các đáp án đang chờ sẽ được kiểm tra khi kết nối lại.'
+          message = 'Mất kết nối, đang thử lại. Các đáp án đang chờ sẽ được kiểm tra khi kết nối lại.'
           break
         }
         renderRound()
@@ -240,28 +282,51 @@ function createRoundController(
     }
     if (signal.aborted || mode !== 'round') return
     if (leaveRequested) await abandon()
-    else if (!blocked && (closing || answered.size >= round.items.length)) await finish()
+    else if (!blocked && closing) await finish()
+    else if (!blocked && answered.size + missed.size >= round.items.length && finishTimer === undefined) {
+      const delay = Math.max(0, Math.min(feedbackMs, deadline() - serverNow()))
+      finishTimer = window.setTimeout(() => void finish(), delay)
+      renderRound()
+    }
+  }
+
+  function canProcess(no: number, now: number) {
+    return round && mode === 'round' && !closing && !confirming && !leaveRequested
+      && !accepted.has(no) && now >= countdownUntil() && now < deadline()
+      && round.items.some((item) => item.no === no)
+  }
+
+  function onItemShown(no: number) {
+    const now = serverNow()
+    if (canProcess(no, now) && !shown.has(no)) shown.set(no, now)
+  }
+
+  function onMissed(no: number) {
+    const now = serverNow()
+    if (!canProcess(no, now)) return
+    accepted.add(no)
+    missed.add(no)
+    shown.delete(no)
+    lastAnswerAt = now
+    void drain()
   }
 
   function submitAnswer(no: number, answer: string) {
-    if (!round || mode !== 'round' || closing || confirming || leaveRequested || accepted.has(no))
-      return
     const now = serverNow()
-    if (now < countdownUntil() || !round.items.some((item) => item.no === no)) return
-    if (now >= deadline()) {
-      tick()
-      return
+    if (!canProcess(no, now)) {
+      if (mode === 'round' && now >= deadline()) tick()
+      return feedbackPromise((_resolve, reject) => reject(new Error('Ván không nhận câu trả lời này.')))
     }
     accepted.add(no)
-    queue.push({
-      no,
-      answer,
-      durationMs: Math.max(0, Math.min(600000, now - lastAnswerAt)),
-      uncertain: false,
-    })
+    const durationMs = Math.max(0, Math.min(600000, now - (shown.get(no) ?? lastAnswerAt)))
+    shown.delete(no)
     lastAnswerAt = now
+    const feedback = feedbackPromise((resolve, reject) => {
+      queue.push({ no, answer, durationMs, uncertain: false, resolve, reject })
+    })
     renderRound()
     void drain()
+    return feedback
   }
 
   function tick() {
@@ -298,11 +363,16 @@ function createRoundController(
     start,
     tick,
     submitAnswer,
+    onMissed,
+    onItemShown,
     retryAnswers,
     confirmExit,
     retryFinish,
     abandon,
-    dispose: () => abort.abort(),
+    dispose: () => {
+      abort.abort()
+      stopPending()
+    },
   }
 }
 
@@ -411,7 +481,10 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
               <Game
                 items={screen.round.items}
                 uiConfig={screen.round.uiConfig}
-                submitAnswer={(no, answer) => controller.current?.submitAnswer(no, answer)}
+                disabled={screen.disabled}
+                submitAnswer={(no, answer) => controller.current!.submitAnswer(no, answer)}
+                onMissed={(no) => controller.current?.onMissed(no)}
+                onItemShown={(no) => controller.current?.onItemShown(no)}
               />
             )
           )}
