@@ -2,7 +2,7 @@ import { Clock3 } from 'lucide-react'
 import { useState } from 'react'
 
 import { ChoiceQuestion } from '@/features/practice/components/ChoiceQuestion'
-import { Button, Card, PageHeader } from '@/shared/ui'
+import { Button, Card, PageHeader, Progress, Skeleton } from '@/shared/ui'
 
 import { formatCountdown } from '../countdown'
 import type { ContestSession } from '../types'
@@ -40,9 +40,14 @@ export function ContestAttemptView(props: Props) {
     setCurrentNo(no)
   }
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content space-y-5 px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full min-w-0 max-w-reading space-y-5 px-4 py-6 pb-16 sm:px-6">
       <PageHeader title={props.name} subtitle="Làm bài cuộc thi" />
-      {props.state === 'loading' ? <p role="status">Đang mở lượt thi…</p> : null}
+      {props.state === 'loading' ? (
+        <div>
+          <p role="status">Đang mở lượt thi…</p>
+          <Skeleton variant="card" />
+        </div>
+      ) : null}
       {props.state === 'error' ? (
         <Card role="alert" className="space-y-3">
           <p>{props.error ?? 'Không mở được lượt thi.'}</p>
@@ -56,7 +61,7 @@ export function ContestAttemptView(props: Props) {
       ) : null}
       {props.state === 'ready' && props.session && item ? (
         <>
-          <Card className="flex flex-wrap items-center justify-between gap-3">
+          <Card className="flex flex-wrap items-center justify-between gap-3 border-brand-100 bg-brand-50">
             <div>
               <p className="text-body-sm text-ink-secondary">Thời gian còn lại</p>
               <p
@@ -74,22 +79,36 @@ export function ContestAttemptView(props: Props) {
             <p className="text-body-sm text-ink-secondary">
               Đã chọn {selected}/{items.length} câu
             </p>
+            <Button variant="ghost" disabled={props.submitting} onClick={() => setLeaving(true)}>
+              Thoát
+            </Button>
+            <Progress
+              className="w-full"
+              value={selected}
+              max={items.length}
+              label={`${selected}/${items.length}`}
+            />
           </Card>
-          <nav aria-label="Các câu hỏi" className="flex flex-wrap gap-2">
-            {items.map(({ no }) => (
-              <Button
-                key={no}
-                size="sm"
-                variant={item.no === no ? 'secondary' : 'outline'}
-                aria-current={item.no === no ? 'step' : undefined}
-                onClick={() => select(no)}
-              >
-                Câu {no}
-                {props.choices[no] !== undefined ? ' ✓' : ''}
-              </Button>
-            ))}
-          </nav>
-          <Card className="min-w-0 space-y-4 break-words [overflow-wrap:anywhere]">
+          <details open className="rounded-md border border-line bg-surface p-4">
+            <summary className="min-h-touch cursor-pointer text-label focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
+              Điều hướng câu hỏi
+            </summary>
+            <nav aria-label="Các câu hỏi" className="flex flex-wrap gap-2">
+              {items.map(({ no }) => (
+                <Button
+                  key={no}
+                  size="sm"
+                  variant={item.no === no ? 'secondary' : 'outline'}
+                  aria-current={item.no === no ? 'step' : undefined}
+                  onClick={() => select(no)}
+                >
+                  Câu {no}
+                  {props.choices[no] !== undefined ? ' ✓' : ''}
+                </Button>
+              ))}
+            </nav>
+          </details>
+          <Card className="min-w-0 space-y-5 break-words p-6 sm:p-8">
             <h2 className="text-h3">Câu {item.no}</h2>
             <div className="[&_.text-hanzi-lg]:text-h3 [&_.text-hanzi-lg]:leading-relaxed">
               <ChoiceQuestion
@@ -138,9 +157,6 @@ export function ContestAttemptView(props: Props) {
             </Button>
             <Button disabled={props.locked} onClick={() => setConfirming(true)}>
               Nộp bài
-            </Button>
-            <Button variant="ghost" disabled={props.submitting} onClick={() => setLeaving(true)}>
-              Thoát
             </Button>
           </div>
           {confirming && !props.locked ? (

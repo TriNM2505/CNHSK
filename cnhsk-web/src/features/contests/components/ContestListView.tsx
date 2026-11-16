@@ -2,7 +2,15 @@ import { ArrowRight, CalendarDays, Trophy, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { ApiQueryState } from '@/shared/api'
-import { Button, Card, PageHeader, Pagination } from '@/shared/ui'
+import {
+  Button,
+  Card,
+  EmptyState,
+  PageHeader,
+  Pagination,
+  Skeleton,
+  StatusBadge,
+} from '@/shared/ui'
 
 import { formatVietnamDate } from '../countdown'
 import type { ContestPage, ScheduleState } from '../types'
@@ -12,21 +20,13 @@ const stateLabels: Record<ScheduleState, string> = {
   UPCOMING: 'Sắp diễn ra',
   ENDED: 'Đã kết thúc',
 }
-const stateClasses: Record<ScheduleState, string> = {
-  ONGOING: 'bg-success-bg text-success',
-  UPCOMING: 'bg-brand-50 text-brand-700',
-  ENDED: 'bg-canvas text-ink-secondary',
-}
-
 export function ScheduleBadge({ state }: { state: ScheduleState }) {
   return (
-    <span
-      className={
-        'inline-flex rounded-pill px-3 py-1 text-caption font-semibold ' + stateClasses[state]
-      }
+    <StatusBadge
+      tone={state === 'ONGOING' ? 'success' : state === 'UPCOMING' ? 'warning' : 'neutral'}
     >
       {stateLabels[state]}
-    </span>
+    </StatusBadge>
   )
 }
 
@@ -42,7 +42,7 @@ type Props = {
 
 export function ContestListView(props: Props) {
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6">
       <PageHeader
         title="Cuộc thi"
         subtitle="Cùng thử sức, cùng tiến bộ với cộng đồng học tiếng Trung."
@@ -60,7 +60,12 @@ export function ContestListView(props: Props) {
           </Button>
         ))}
       </div>
-      {props.state === 'loading' ? <p role="status">Đang tải cuộc thi…</p> : null}
+      {props.state === 'loading' ? (
+        <div>
+          <p role="status">Đang tải cuộc thi…</p>
+          <Skeleton variant="card" />
+        </div>
+      ) : null}
       {props.state === 'error' ? (
         <Card role="alert" className="space-y-3">
           <p>{props.error ?? 'Không tải được danh sách cuộc thi.'}</p>
@@ -70,7 +75,14 @@ export function ContestListView(props: Props) {
         </Card>
       ) : null}
       {props.state === 'empty' ? (
-        <Card role="status">Chưa có cuộc thi trong giai đoạn này.</Card>
+        <EmptyState
+          title="Chưa có cuộc thi trong giai đoạn này."
+          description={
+            props.filter
+              ? 'Thử chọn giai đoạn khác để xem cuộc thi.'
+              : 'Danh sách cuộc thi hiện đang trống.'
+          }
+        />
       ) : null}
       {props.state === 'ready' && props.result
         ? (['ONGOING', 'UPCOMING', 'ENDED'] as const).map((state) => {
@@ -79,17 +91,22 @@ export function ContestListView(props: Props) {
             return (
               <section key={state} aria-label={stateLabels[state]} className="space-y-3">
                 <h2 className="text-h2 text-ink">{stateLabels[state]}</h2>
-                <div className="grid min-w-0 gap-4 min-[641px]:grid-cols-2">
+                <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {items.map((contest) => (
                     <Card
                       role="article"
                       aria-label={contest.name}
                       key={contest.id}
-                      className="flex min-w-0 flex-col gap-4 break-words [overflow-wrap:anywhere]"
+                      className="flex min-w-0 flex-col gap-4 break-words p-6"
                     >
                       <ScheduleBadge state={contest.state} />
                       <h3 className="text-h3 text-ink">
-                        <Link to={'/contests/' + contest.id}>{contest.name}</Link>
+                        <Link
+                          className="inline-flex min-h-touch items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                          to={'/contests/' + contest.id}
+                        >
+                          {contest.name}
+                        </Link>
                       </h3>
                       <div className="space-y-2 text-body-sm text-ink-secondary">
                         <p className="flex items-start gap-2">

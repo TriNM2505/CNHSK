@@ -2,7 +2,7 @@ import { Medal, Trophy } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { ApiQueryState } from '@/shared/api'
-import { Button, Card, PageHeader } from '@/shared/ui'
+import { Button, Card, EmptyState, PageHeader, Skeleton, StatTile } from '@/shared/ui'
 
 import { formatCountdown, formatVietnamDate } from '../countdown'
 import type { ContestResults } from '../types'
@@ -16,11 +16,26 @@ const statusLabels = {
 }
 
 export function ContestResultsView({ state, result, error, onRetry }: Props) {
+  const navigation = result ? (
+    <nav aria-label="Điều hướng kết quả" className="flex flex-wrap gap-3">
+      <Button to={'/contests/' + result.contest.id} variant="outline">
+        Thông tin cuộc thi
+      </Button>
+      <Link to="/contests" className="inline-flex min-h-touch items-center">
+        Cuộc thi khác
+      </Link>
+    </nav>
+  ) : null
   const mine = result?.mine
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content space-y-5 px-4 py-6 sm:px-6">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-5 px-4 py-6 pb-16 sm:px-6">
       <PageHeader title="Kết quả cuộc thi" subtitle={result?.contest.name} />
-      {state === 'loading' ? <p role="status">Đang tải kết quả…</p> : null}
+      {state === 'loading' ? (
+        <div>
+          <p role="status">Đang tải kết quả…</p>
+          <Skeleton variant="card" />
+        </div>
+      ) : null}
       {state === 'error' ? (
         <Card role="alert" className="space-y-3">
           <p>{error ?? 'Không tải được kết quả.'}</p>
@@ -29,27 +44,36 @@ export function ContestResultsView({ state, result, error, onRetry }: Props) {
           </Button>
         </Card>
       ) : null}
+      {state === 'empty' && !result ? (
+        <EmptyState
+          title="Chưa có kết quả cuộc thi"
+          description="Quay lại danh sách để xem các cuộc thi."
+        />
+      ) : null}
       {(state === 'ready' || state === 'empty') && result ? (
         <>
           {!result.published ? (
-            <Card className="space-y-3 border-brand-100 bg-brand-50">
-              <h2 className="text-h2 text-brand-700">Đang chờ công bố kết quả</h2>
-              <p>
-                Ban tổ chức sẽ công bố bảng xếp hạng sau khi cuộc thi kết thúc và hoàn tất xét kết
-                quả.
-              </p>
-              <p className="text-body-sm">
-                {mine ? statusLabels[mine.status] : 'Bạn chưa tham gia cuộc thi này.'}
-              </p>
-              {mine?.submittedAt ? (
-                <p className="text-body-sm">
-                  Nộp lúc {formatVietnamDate(mine.submittedAt)} · giờ Việt Nam
+            <>
+              <Card className="space-y-3 border-brand-100 bg-brand-50">
+                <h2 className="text-h2 text-brand-700">Đang chờ công bố kết quả</h2>
+                <p>
+                  Ban tổ chức sẽ công bố bảng xếp hạng sau khi cuộc thi kết thúc và hoàn tất xét kết
+                  quả.
                 </p>
-              ) : null}
-              <Button onClick={onRetry} variant="outline">
-                Tải lại kết quả
-              </Button>
-            </Card>
+                <p className="text-body-sm">
+                  {mine ? statusLabels[mine.status] : 'Bạn chưa tham gia cuộc thi này.'}
+                </p>
+                {mine?.submittedAt ? (
+                  <p className="text-body-sm">
+                    Nộp lúc {formatVietnamDate(mine.submittedAt)} · giờ Việt Nam
+                  </p>
+                ) : null}
+                <Button onClick={onRetry} variant="outline">
+                  Tải lại kết quả
+                </Button>
+              </Card>
+              {navigation}
+            </>
           ) : (
             <>
               <Card className="space-y-4 border-brand-100 bg-brand-50">
@@ -60,28 +84,36 @@ export function ContestResultsView({ state, result, error, onRetry }: Props) {
                 {mine ? (
                   <>
                     <p>{statusLabels[mine.status]}</p>
-                    <dl className="grid grid-cols-1 gap-3 min-[640px]:grid-cols-3">
-                      <div className="flex items-end justify-between gap-3 min-[640px]:block">
-                        <dt className="text-body-sm text-ink-secondary">Điểm của bạn</dt>
-                        <dd className="whitespace-nowrap text-h2">
-                          {mine.score === null
-                            ? 'Chưa có điểm'
-                            : mine.score + (mine.maxScore === null ? '' : ' / ' + mine.maxScore)}
-                        </dd>
-                      </div>
-                      <div className="flex items-end justify-between gap-3 min-[640px]:block">
-                        <dt className="text-body-sm text-ink-secondary">Thời gian làm bài</dt>
-                        <dd className="whitespace-nowrap text-h2">
-                          {mine.durationMs === null ? 'Chưa có' : formatCountdown(mine.durationMs)}
-                        </dd>
-                      </div>
-                      <div className="flex items-end justify-between gap-3 min-[640px]:block">
-                        <dt className="text-body-sm text-ink-secondary">Hạng của bạn</dt>
-                        <dd className="whitespace-nowrap text-h2">
-                          {mine.rank === null ? 'Không có hạng' : '#' + mine.rank}
-                        </dd>
-                      </div>
-                    </dl>
+                    <div className="grid min-w-0 gap-3 sm:grid-cols-3">
+                      <StatTile
+                        label="Điểm của bạn"
+                        value={
+                          <span className="block break-words text-h3">
+                            {mine.score === null
+                              ? 'Chưa có điểm'
+                              : mine.score + (mine.maxScore === null ? '' : ' / ' + mine.maxScore)}
+                          </span>
+                        }
+                      />
+                      <StatTile
+                        label="Thời gian làm bài"
+                        value={
+                          <span className="block text-h3">
+                            {mine.durationMs === null
+                              ? 'Chưa có'
+                              : formatCountdown(mine.durationMs)}
+                          </span>
+                        }
+                      />
+                      <StatTile
+                        label="Hạng của bạn"
+                        value={
+                          <span className="block text-h3">
+                            {mine.rank === null ? 'Không có hạng' : '#' + mine.rank}
+                          </span>
+                        }
+                      />
+                    </div>
                     {mine.excluded ? <p>Lượt của bạn không được tính vào bảng xếp hạng.</p> : null}
                   </>
                 ) : (
@@ -91,6 +123,7 @@ export function ContestResultsView({ state, result, error, onRetry }: Props) {
                   Ban tổ chức sẽ liên hệ người đạt giải qua email đăng ký.
                 </p>
               </Card>
+              {navigation}
               <section aria-labelledby="contest-ranking-title" className="space-y-3">
                 <h2 id="contest-ranking-title" className="flex items-center gap-2 text-h2">
                   <Medal aria-hidden="true" className="size-5 text-brand-700" />
@@ -102,19 +135,19 @@ export function ContestResultsView({ state, result, error, onRetry }: Props) {
                       {result.ranking.items.map((row) => (
                         <li
                           key={row.userId}
-                          className="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-3 rounded-md border border-line bg-surface p-4 min-[641px]:grid-cols-[2.5rem_minmax(0,1fr)_6rem_6rem]"
+                          className="flex min-w-0 flex-wrap items-center gap-3 rounded-md border border-line bg-surface p-4"
                         >
                           <span className="flex size-10 items-center justify-center rounded-pill bg-brand-50 font-semibold text-brand-700">
                             {row.rank}
                           </span>
-                          <p className="min-w-0 self-center break-words font-semibold [overflow-wrap:anywhere]">
+                          <p className="min-w-0 flex-1 self-center break-words font-semibold">
                             {row.displayName ?? 'Người học'}
                           </p>
-                          <p className="col-start-2 text-body-sm min-[641px]:col-start-auto">
+                          <p className="w-full pl-12 text-body-sm sm:w-auto sm:pl-0">
                             <span className="text-ink-secondary">Điểm: </span>
                             {row.score} / {row.maxScore}
                           </p>
-                          <p className="col-start-2 text-body-sm min-[641px]:col-start-auto">
+                          <p className="w-full pl-12 text-body-sm sm:w-auto sm:pl-0">
                             <span className="text-ink-secondary">Thời gian: </span>
                             {row.durationMs === null ? 'Chưa có' : formatCountdown(row.durationMs)}
                           </p>
@@ -132,14 +165,6 @@ export function ContestResultsView({ state, result, error, onRetry }: Props) {
               </section>
             </>
           )}
-          <nav aria-label="Điều hướng kết quả" className="flex flex-wrap gap-3">
-            <Button to={'/contests/' + result.contest.id} variant="outline">
-              Thông tin cuộc thi
-            </Button>
-            <Link to="/contests" className="inline-flex min-h-touch items-center">
-              Cuộc thi khác
-            </Link>
-          </nav>
         </>
       ) : null}
     </main>
