@@ -81,7 +81,7 @@ class GameCatalogServiceTest {
         assertThat(service.list(71L).get(0).myStats()).isEqualTo(new MyStats(0, 3, NOW));
     }
 
-    @Test void Q_T03_01_emptyRegistryReturnsEmptyWithoutReadingStats() {
+    @Test void emptySnapshotReturnsEmptyWithoutReadingStats() {
         when(cache.snapshot()).thenReturn(List.of());
         assertThat(service.list(null)).isEmpty(); assertThat(service.list(71L)).isEmpty();
         verifyNoInteractions(stats);

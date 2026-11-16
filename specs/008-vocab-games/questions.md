@@ -97,3 +97,13 @@ Targeted Thần Bút, Phi Đao, đăng ký sáu game và hồi quy: 636 test, 0 
 - AT-19: kiểm đúng mốc 4.000 ms, khoá khi chạm, hiệu ứng **Đang chấm…** tối đa 300 ms và màu theo kết quả server trong 500 ms. Promise bị từ chối thì sang câu tiếp theo. Test qua GameShell kiểm audio chỉ khởi động sau **Bắt đầu** và bỏ lỡ không gửi `/answers`.
 - Gate FE tại `94857a7`: `npm ci`, lint, typecheck, Vitest 133/133 (14 file, gồm 9 test Bắt Chữ) và build đạt. JS entry 71,67 kB gzip so với mốc 250 kB. Route thật thuộc T-11. Chrome fixture 320/375/640 px: lưới 3×2, không tràn ngang, các ô ít nhất 44 px, kiểm chuyển câu và phản hồi theo server.
 - Sau sửa lỗi tải audio của PR #240: `npm ci`, lint, typecheck, Vitest 135/135 (14 file, gồm 11 test Bắt Chữ) và build đạt trên bản sao ổ D:. JS entry 71,67 kB gzip.
+
+## T-11 — Thần Bút, Phi Đao và route sáu game
+
+- Q-T11-01 (ANSWERED): Phi Đao đã gửi dùng `correctAnswer` từ server. Với lượt chưa gửi, chạm đất mới tra chi tiết mục từ công khai theo `lexemeId`. Hiện chữ ngay, thêm pinyin nếu về trong cửa sổ 600 ms. Thiếu ID, lỗi hoặc hết 600 ms thì chuyển lượt bình thường. Huỷ lookup khi đổi lượt hoặc unmount. Pinyin từ từ điển là dữ liệu hiện tại, có thể khác snapshot và chỉ dùng để hiển thị. Lookup không làm mới phiên và không gửi lại khi thất bại.
+- Q-T11-02 (ANSWERED): Phi Đao chỉ gửi lần Enter hợp lệ đầu tiên. Nếu sai, xoá ô, rung và hiện pinyin đúng. Người chơi vẫn gõ lại khi từ còn rơi, Enter chỉ kiểm định dạng. Đã gửi thì không ghi thêm lượt bỏ lỡ. Lượt cuối dùng thời gian giữ 800 ms của GameShell và vẫn theo hạn ván của server (E10).
+- Hub dùng slug kebab-case. Sáu đường dẫn chữ hoa cũ và hai đường dẫn `/arcade/brush`, `/arcade/dart` chuyển hướng sang slug mới, giữ query/hash. GameShell gửi mã enum chữ hoa và HSK tùy chọn.
+- GameRegistry yêu cầu đủ sáu mã duy nhất, kể cả lúc cấu hình không cung cấp định nghĩa nào. Catalog vẫn hiện đủ sáu mục khi ngân hàng rỗng. Ca service dùng snapshot rỗng giả lập giữ assertion và đổi tên cho đúng fixture.
+- FE trên base `e793e6c`: npm ci, lint, typecheck, Vitest 158/158 (16 file) và build đạt. Gzip theo báo cáo Vite (kB): entry 75,72; Mưa Chữ 1,14; Ghép Pinyin 1,64; Ghép Bộ Thủ 1,07; Bắt Chữ 2,02; Thần Bút 1,24; Phi Đao 2,62; chunk đồng hồ/hiển thị 1,19; canvas/động cơ nét 2,57.
+- Kiểm BE cục bộ với Java 17: GameRegistryTest 11/11, ModuleBoundaryTest 10/10, CommunityArchitectureTest 5/5 (không fork JVM).
+- Gate cuối: FE 158/158, npm ci, lint, typecheck, build và Chrome 320/375/640 px đạt (tô, gõ và reduced motion). Maven targeted: Tests run: 222, Failures: 0, Errors: 0, Skipped: 0. Full verify: Tests run: 6930, Failures: 0, Errors: 0, Skipped: 0. JaCoCo LINE 97.1365%.

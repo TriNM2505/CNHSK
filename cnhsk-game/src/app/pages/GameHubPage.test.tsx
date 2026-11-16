@@ -69,7 +69,7 @@ it('expands instructions and only creates links for the default or HSK 1–9', a
   const user = userEvent.setup()
   renderHub(Response.json(games))
   const play = await screen.findByRole('link', { name: 'Chơi Mưa chữ' })
-  expect(play).toHaveAttribute('href', '/play/CHAR_RAIN')
+    expect(play).toHaveAttribute('href', '/play/char-rain')
   const select = screen.getByRole('combobox', { name: 'Cấp HSK' })
   expect(
     within(select)
@@ -77,9 +77,9 @@ it('expands instructions and only creates links for the default or HSK 1–9', a
       .map((option) => option.getAttribute('value')),
   ).toEqual(['', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
   await user.selectOptions(select, '9')
-  expect(play).toHaveAttribute('href', '/play/CHAR_RAIN?hskLevel=9')
+    expect(play).toHaveAttribute('href', '/play/char-rain?hskLevel=9')
   await user.selectOptions(select, '')
-  expect(play).toHaveAttribute('href', '/play/CHAR_RAIN')
+    expect(play).toHaveAttribute('href', '/play/char-rain')
   const summary = screen.getAllByText('Cách chơi')[0]
   if (!summary) throw new Error('Missing game instructions')
   await user.click(summary)

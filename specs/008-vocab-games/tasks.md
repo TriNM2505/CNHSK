@@ -26,7 +26,7 @@ Mỗi game giao độc lập được (BE trước, FE sau). Nguồn FE: app 6 g
 | T-08 | FE Mưa chữ (tô nét) + Ghép Bộ thủ | `game/games/char-rain/**`, `radical-match/**` | FR-004…FR-006, FR-018, FR-026…FR-028 · AT-04 | ✅ MERGED — PR #238 / 3ea9d9d |
 | T-09 | FE Ghép Pinyin | `game/games/pinyin-match/**` | FR-012, FR-013 · AT-18 | ✅ MERGED — PR #239 / d6b791c |
 | T-10 | FE Bắt Chữ | `game/games/char-catch/**` | FR-025, FR-028 · AT-19 | ✅ MERGED — PR #240 |
-| T-11 | FE Thần Bút + Phi Đao (chỉ chế độ 60 s, ẩn chế độ màn — Q8); route `/play/brush-stroke`, `/play/flying-dart`, chuyển hướng `/arcade/*` | `game/games/{brush-stroke,flying-dart}/**`, router | FR-033, FR-034, FR-039, FR-040 · AT-17, AT-22 | ⬜ |
+| T-11 | FE Thần Bút + Phi Đao (chỉ chế độ 60 s, ẩn chế độ màn — Q8); route `/play/brush-stroke`, `/play/flying-dart`, chuyển hướng `/arcade/*` | `game/games/{brush-stroke,flying-dart}/**`, router | FR-033, FR-034, FR-039, FR-040 · AT-17, AT-22 | 🔄 chờ review |
 
 **Chốt cho T-11 (task cuối):** siết GameRegistry: 0 định nghĩa cũng không khởi động.
 

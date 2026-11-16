@@ -4,15 +4,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import com.cnhsk.learning.api.GameCode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.yaml.snakeyaml.Yaml;
 
@@ -55,21 +50,12 @@ class GameRegistryTest {
         assertThatIllegalStateException().isThrownBy(() -> new GameRegistry(List.of(new GameDefinitionFixtures.Definition(null))));
     }
 
-    @Test void Q_T03_01_emptyRegistryStartsAndWarnsExactlyOnceWithoutFakeProductionBeans() {
-        Logger logger = (Logger) LoggerFactory.getLogger(GameRegistry.class);
-        var appender = new ListAppender<ILoggingEvent>(); appender.start(); logger.addAppender(appender);
-        try {
-            new ApplicationContextRunner().withUserConfiguration(GameRegistry.class).run(context -> {
-                assertThat(context).hasNotFailed().hasSingleBean(GameRegistry.class);
-                assertThat(context.getBeansOfType(GameDefinition.class)).isEmpty();
-                var registry = context.getBean(GameRegistry.class);
-                assertThat(registry.all()).isEmpty();
-                for (GameCode code : GameCode.values()) assertThat(registry.find(code)).isEmpty();
-                registry.all(); registry.all();
-            });
-            assertThat(appender.list).filteredOn(event -> event.getLevel() == Level.WARN)
-                    .extracting(ILoggingEvent::getFormattedMessage).containsExactly("chưa có GameDefinition nào");
-        } finally { logger.detachAppender(appender); appender.stop(); }
+    @Test void zeroDefinitionsPreventStartup() {
+        context(List.of()).run(context -> {
+            assertThat(context).hasFailed();
+            assertThat(context.getStartupFailure()).hasRootCauseInstanceOf(IllegalStateException.class)
+                    .hasRootCauseMessage("Game definitions must cover all six game codes.");
+        });
     }
 
     @Test void FR001_openApiUsesExactlyTheSharedSixCodes() throws Exception {
