@@ -90,6 +90,7 @@ class GameRoundServiceTest {
         when(definition.timeLimitSeconds()).thenReturn(45);
         when(definition.pointsPerCorrect()).thenReturn(2);
         when(definition.uiConfig()).thenReturn(Map.of("rows", 3));
+        when(definition.uiConfig(List.of(item))).thenCallRealMethod();
         var publicItem = new PracticeApi.ServedItemView(1, item.type(), item.skill(), item.lexemeId(), item.prompt(), item.options(), item.rules());
         when(practice.start(any())).thenReturn(new PracticeApi.SessionView(99, PracticeApi.PracticeSource.GAME_ROUND,
                 null, PracticeApi.FeedbackMode.IMMEDIATE, "IN_PROGRESS", NOW, NOW.plusSeconds(63), List.of(publicItem), List.of(), Map.of()));

@@ -20,3 +20,11 @@ Targeted và toàn bộ hồi quy learning.practice: 526 test, 0 failure/error/s
 - Game giữ PASS trong snapshot. Engine chấm và giữ kỷ lục cũ khi ván bị đánh dấu suspicious.
 
 Targeted CharRain, community.game, ContentLookup và ModuleBoundaryTest: 193 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6834 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1604% (16492 dòng covered, 482 dòng missed).
+## T-03 — Ghép Pinyin
+
+- Q-T03-01 (ANSWERED): thêm overload mặc định uiConfig(items) trả về uiConfig() hiện có. Khi bắt đầu ván, GameRoundService truyền danh sách đã dựng. PinyinMatch tính boards theo đúng số câu phát. Khôi phục ván đọc uiConfig trong snapshot.
+- Một bảng có sáu từ và sáu cách đọc phân biệt theo pinyinKey. Dữ liệu WORD trùng text chỉ tính một lần, khớp khoá duy nhất (kind, text) trong DB. Nhiều từ đồng âm có thể xuất hiện ở các bảng khác nhau.
+- Seed AT-06 là 810603. Một nghìn ván kiểm tính duy nhất của từ và pinyinKey trong bảng, cùng ID trong cả ván. PinyinMatch chỉ đăng ký trong test; đăng ký production thuộc T-06.
+- Bổ sung allowlist: mock interface không gọi default method, nên fixture AT-08 dùng thenCallRealMethod để chứng minh game không override vẫn giữ uiConfig cũ. Giữ mọi assertion.
+
+Targeted PinyinMatch, community.game, ContentLookup và ModuleBoundaryTest: 195 test, 0 failure/error/skip. Full Maven verify với Java 17 và Docker: 6836 test, 0 failure/error/skip, BUILD SUCCESS. JaCoCo LINE 97.1622% (16537 dòng covered, 483 dòng missed).
