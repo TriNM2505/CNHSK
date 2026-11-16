@@ -93,10 +93,18 @@ class GameCatalogCacheIntegrationTest {
         assertThat(cache.snapshot()).isNotSameAs(initial).allSatisfy(game -> assertThat(game.playable()).isFalse());
     }
 
-    @Test void Q_T03_01_emptyRegistryCanBeCachedWithoutCallingContent() {
-        var empty = new GameCatalogCache(new GameRegistry(List.of()), content, clock);
-        assertThat(empty.snapshot()).isEmpty(); now.set(NOW.plusSeconds(60));
-        assertThat(empty.snapshot()).isEmpty(); verifyNoInteractions(content);
+    @Test void emptyContentStillKeepsAllSixGamesInTheCachedCatalog() {
+        when(content.pool(any())).thenReturn(List.of());
+        var first = cache.snapshot();
+        now.set(NOW.plusSeconds(60));
+        for (var catalog : List.of(first, cache.snapshot())) {
+            assertThat(catalog).extracting(game -> game.code()).containsExactly(GameCode.values());
+            assertThat(catalog).allSatisfy(game -> {
+                assertThat(game.playable()).isFalse();
+                assertThat(game.unavailableReason()).isEqualTo("NOT_ENOUGH_CONTENT");
+            });
+        }
+        verify(content, times(12)).pool(any());
     }
 
     private void concurrentSnapshots() throws Exception {

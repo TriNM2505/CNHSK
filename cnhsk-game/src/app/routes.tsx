@@ -2,7 +2,7 @@ import type { RouteObject } from 'react-router-dom'
 
 import App from './App'
 import GameHubPage from './pages/GameHubPage'
-import GameSessionPage from './pages/GameSessionPage'
+import GameSessionPage, { LegacyGameRedirect } from './pages/GameSessionPage'
 import NotFoundPage from './pages/NotFoundPage'
 
 export const appRoutes = [
@@ -11,6 +11,8 @@ export const appRoutes = [
     children: [
       { index: true, element: <GameHubPage /> },
       { path: 'play/:code', element: <GameSessionPage /> },
+      { path: 'arcade/brush', element: <LegacyGameRedirect slug="brush-stroke" /> },
+      { path: 'arcade/dart', element: <LegacyGameRedirect slug="flying-dart" /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

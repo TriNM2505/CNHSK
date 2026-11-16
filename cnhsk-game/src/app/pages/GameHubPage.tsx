@@ -28,7 +28,8 @@ const skillLabels: Record<string, string> = {
 }
 
 function GameCard({ game, level }: { game: GameInfo; level: string }) {
-  const path = '/play/' + encodeURIComponent(game.code) + (level ? '?hskLevel=' + level : '')
+  const path = '/play/' + encodeURIComponent(game.code.toLowerCase().replace(/_/g, '-')) +
+    (level ? '?hskLevel=' + level : '')
   const action = 'inline-flex min-h-touch items-center justify-center rounded-sm px-4 font-semibold'
   const stats = game.myStats
   return (
