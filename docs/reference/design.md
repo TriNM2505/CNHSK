@@ -2,20 +2,52 @@
 
 | | |
 | --- | --- |
-| **Trạng thái** | Quy tắc thiết kế đang rà soát; inventory 79 màn đã FINAL |
-| **Status** | DRAFT |
+| **Trạng thái** | Khung giao diện đã khoá cho đợt làm lại giao diện; inventory 79 màn FINAL |
+| **Status** | APPROVED |
+| **Version** | 1.1 |
 | **Owner** | Nhóm CNHSK |
-| **Approved by** | Chưa duyệt |
-| **Locked on** | Chưa khóa |
-| **Sprint** | Khung giao diện ban đầu |
+| **Approved by** | Leader nhóm |
+| **Locked on** | 2026-11-16 |
+| **Sprint** | Làm lại giao diện cnhsk-web |
 
 ---
 
 ## 0. Phạm vi và cách dùng tài liệu
 
-Đây là nguồn quy định thiết kế dùng chung cho web chính, web game và ứng dụng
-React Native. Khi tài liệu này khác với một mockup hoặc quyết định miệng, nhóm
-SHALL cập nhật và duyệt tài liệu trước khi triển khai khác đi.
+Đây là nguồn quy định thiết kế dùng chung cho web chính (`cnhsk-web`) và web
+game (`cnhsk-game`). Ứng dụng mobile đã bỏ khỏi phạm vi từ 2026-11-13. Khi tài
+liệu này khác với một mockup hoặc quyết định miệng, nhóm SHALL cập nhật và duyệt
+tài liệu trước khi triển khai khác đi. Tài liệu đã khoá: mọi thay đổi SHALL đi
+qua PR sửa file này, được leader duyệt và ghi Changelog (§16) trước khi code
+theo thay đổi đó.
+
+### 0.1. Luật làm lại giao diện
+
+Áp dụng cho mọi PR chỉ đổi giao diện (redesign). Mỗi thành viên được tự do bố
+cục trong các màn mình phụ trách, trong giới hạn dưới đây.
+
+| Mã | Luật |
+| --- | --- |
+| RD-01 | Không đổi route, `api/`, `pages/`, kiểu dữ liệu API hoặc backend. Chỉ sửa `features/<feature>/components/*View.tsx`, component riêng của feature và test tương ứng. |
+| RD-02 | Mỗi màn SHALL dựng theo đúng một khuôn trang ở §8.1 và giữ đủ vùng bắt buộc của khuôn đó; vùng tự do được bố cục tuỳ ý. |
+| RD-03 | Chỉ dùng component `shared/ui` (§7.1) và token §6. Không viết mã màu hex; không thêm `<button>`, `<input>`, `<select>`, `<textarea>` thô; không thêm class Tailwind giá trị tuỳ ý (`text-[…]`, `w-[…]`…) trừ khi ghi lý do trong PR. |
+| RD-04 | `shared/ui`, `shared/layout` và `tailwind.preset.cjs` chỉ người giữ nền chung sửa. Cần component mới dùng từ hai feature trở lên thì đề xuất để thêm vào `shared/ui`, không tự tạo bản sao trong feature. |
+| RD-05 | Sửa test chỉ ở phần tìm phần tử (chữ hiển thị, role, nhãn). Không xoá hoặc nới assertion về hành vi, dữ liệu gửi đi, quyền hay trạng thái. |
+| RD-06 | Giữ đủ trạng thái §9 (đang tải, rỗng, lỗi, không có quyền, đang gửi) và accessibility §10. |
+| RD-07 | Gate FE xanh (lint, typecheck, test, build); không tràn ngang ở năm viewport §11; PR kèm ảnh trước/sau ở 375px và 1280px. |
+| RD-08 | Mỗi PR một feature, nhánh `redesign/<feature>` tạo từ main mới nhất. |
+
+### 0.2. Checklist review PR giao diện
+
+Reviewer đánh dấu từng mục; một mục "Không" là chưa merge.
+
+- [ ] Chỉ có file trong phạm vi RD-01; không có file `api/`, `pages/`, route, backend.
+- [ ] Mỗi màn trong PR khớp khuôn ghi ở §8.2 và đủ vùng bắt buộc.
+- [ ] Không có hex, không có control HTML thô mới, class tuỳ ý (nếu có) đã ghi lý do.
+- [ ] Không sửa `shared/ui`, `shared/layout`, `tailwind.preset.cjs` (trừ PR nền chung).
+- [ ] Diff test chỉ đổi cách tìm phần tử; số assertion hành vi không giảm.
+- [ ] Đủ trạng thái đang tải/rỗng/lỗi; chữ Hán dùng `font.hanzi`; focus nhìn thấy được.
+- [ ] Gate FE xanh; ảnh 375px và 1280px không tràn ngang.
 
 Tài liệu tham khảo:
 
@@ -24,7 +56,7 @@ Tài liệu tham khảo:
 - [Hanzi Cozy Diary](https://CNHSK.today/): nguồn tham khảo cho cách nhóm
   công cụ theo kỹ năng, card tính năng, lộ trình học và phân cấp nội dung.
 - [feature-tree.md](feature-tree.md): nguồn sự thật về tính năng và phạm vi.
-- [kien-truc.md](kien-truc.md): nguồn sự thật về ba client và xác thực.
+- [kien-truc.md](kien-truc.md): nguồn sự thật về client và xác thực.
 - Screen List (`docs/generated/cnhsk-screen-list.docx`) và Screen Flow (`docs/generated/cnhsk-screen-flow.png`): cấu trúc UI FINAL, 79 màn; tình trạng file nguồn xem §5.
 - [screen-fields.md](screen-fields.md): đặc tả UI chi tiết duy nhất cho SCR-001–SCR-079.
 
@@ -35,10 +67,10 @@ Chỉ học nguyên tắc thiết kế; không sao chép logo, ảnh, minh họa
 
 ## 1. Context & Goal
 
-**Vì sao file này tồn tại:** CNHSK có ba client do nhiều thành viên phát
+**Vì sao file này tồn tại:** CNHSK có hai client web do nhiều thành viên phát
 triển song song. File này giữ một ngôn ngữ thị giác thống nhất, giảm quyết định
-tùy ý và giúp người học nhận ra cùng một sản phẩm khi chuyển giữa web, game và
-mobile.
+tùy ý và giúp người học nhận ra cùng một sản phẩm khi chuyển giữa web chính và
+web game, kể cả khi mỗi thành viên tự bố cục màn mình phụ trách.
 
 **Nguyên tắc thiết kế, xếp theo thứ tự ưu tiên:**
 
@@ -60,16 +92,14 @@ mobile.
 | Hạng mục | Giá trị |
 | --- | --- |
 | Web chính | React 18.3.x + TypeScript 5.7 + Vite 5.x |
-| Web game | React 18.3.x + TypeScript 5.7 + Vite 5.x; Phaser 3 hoặc Canvas chỉ nằm trong vùng game |
-| Mobile | React Native + Expo + TypeScript; phiên bản chốt khi bắt đầu giai đoạn mobile |
+| Web game | React 18.3.x + TypeScript 5.7 + Vite 5.x; vùng chơi dựng bằng DOM/SVG, không dùng Phaser |
 | Runtime web | Node.js 22 LTS hoặc Node.js 24 theo môi trường đã chốt |
-| Design system web | Tailwind CSS 3.4 + component sở hữu trong source; chỉ dùng package đã duyệt ở ES-02 |
-| Design system mobile | React Native core; ánh xạ semantic tokens với web; package thêm cần duyệt |
-| Icon | Lucide React / Lucide React Native; nét 1.75–2 px |
-| Biểu đồ | Dùng biểu đồ theo yêu cầu SCR-019; thư viện web/mobile chưa được ES-02 duyệt thì phải xin duyệt |
+| Design system web | Tailwind CSS 3.4 + preset `cnhsk-web/tailwind.preset.cjs` + component sở hữu trong source; chỉ dùng package đã duyệt ở ES-02 |
+| Icon | Lucide React; nét 1.75–2 px |
+| Biểu đồ | Dùng biểu đồ theo yêu cầu SCR-019; thư viện chưa được ES-02 duyệt thì phải xin duyệt |
 | Thư viện bị cấm | Không trộn thêm Material UI, Ant Design, Bootstrap hoặc UI kit toàn cục khác |
-| Nền tảng phải hỗ trợ | Desktop web, mobile web, Android và iOS qua React Native |
-| Trình duyệt / OS tối thiểu | Xem Open Questions #1 |
+| Nền tảng phải hỗ trợ | Desktop web và mobile web (trình duyệt) |
+| Trình duyệt tối thiểu | Chrome, Edge, Firefox hai bản mới nhất; Safari 16+ trên macOS và iOS; Chrome Android hai bản mới nhất |
 
 THE system SHALL dùng component semantic như `Button`, `Card`, `Progress`,
 `Dialog`, `FormField`; không tạo bản sao theo từng trang.
@@ -80,8 +110,8 @@ THE system SHALL dùng component semantic như `Button`, `Card`, `Progress`,
 
 | Actor | Quyền | Thiết bị chính | Nhóm màn hình được dùng |
 | --- | --- | --- | --- |
-| Khách | Xem giới thiệu và trang công khai, tra từ điển, đăng ký/đăng nhập — không dùng thử tính năng (mục 5.2) | Web, mobile | Public, auth |
-| LEARNER | Học, luyện, thi, chơi, dùng thư viện và cộng đồng | Web, mobile | Toàn bộ màn học viên |
+| Khách | Xem giới thiệu và trang công khai, tra từ điển, đăng ký/đăng nhập — không dùng thử tính năng (mục 5.2) | Desktop web, mobile web | Public, auth |
+| LEARNER | Học, luyện, thi, chơi, dùng thư viện và cộng đồng | Desktop web, mobile web | Toàn bộ màn học viên |
 | TEACHER | Duyệt câu hỏi AI, chấm bài thuê | Desktop web | SCR-056–SCR-059; học viên chỉ khi có LEARNER |
 | MODERATOR | Kiểm duyệt cộng đồng | Desktop web | SCR-060–SCR-063; học viên chỉ khi có LEARNER |
 | CONTENT_EDITOR | Nhập dữ liệu, quản lý đề, kho câu hỏi, cuộc thi, tài liệu | Desktop web | SCR-064–SCR-072; học viên chỉ khi có LEARNER |
@@ -97,21 +127,21 @@ THE system SHALL dùng component semantic như `Button`, `Card`, `Progress`,
 
 **Ranh giới giữa các nền tảng:**
 
-| Tính năng | Web chính | Web game | React Native |
-| --- | --- | --- | --- |
-| Tài khoản, học tập, thi, tra cứu | Có | Không | Có |
-| Game | Điều hướng sang web game | Có | WebView tải chính web game |
-| Blog, quiz, xếp hạng | Có | Chỉ bảng hạng game | Có |
-| Quản trị và duyệt nội dung | Có, tối ưu desktop | Không | Không trong MVP |
-| Thanh toán/điểm | Có | Không | Có |
+| Tính năng | Web chính (`cnhsk-web`) | Web game (`cnhsk-game`) |
+| --- | --- | --- |
+| Tài khoản, học tập, thi, tra cứu | Có | Không |
+| Game | Điều hướng sang web game | Có |
+| Blog, quiz, xếp hạng | Có | Chỉ bảng hạng game |
+| Quản trị và duyệt nội dung | Có, tối ưu desktop | Không |
+| Thanh toán/điểm | Có | Không |
 
 ---
 
 ## 4. User flow
 
 ★ **Xác thực và vào hệ thống:** Landing → Đăng ký (nhận email xác thực) hoặc
-Đăng nhập → xác thực theo client (web cookie · mobile header ·
-WebView tiêm token, xử lý nội bộ không có control cho người dùng chọn) → khu được phép theo role được gán (LEARNER vào SCR-010).
+Đăng nhập → xác thực bằng cookie dùng chung cho web chính và web game → khu
+được phép theo role được gán (LEARNER vào SCR-010).
 Cơ chế chặn đăng nhập theo nguồn và lỗi tương ứng xem SCR-002; không suy ra quyền kế thừa từ việc đăng nhập.
 Đặt lại mật khẩu → thu hồi **toàn bộ** refresh token.
 
@@ -130,9 +160,6 @@ LEARNER có thể lưu vào SCR-027/SCR-029 theo quyền; khách chỉ đọc pu
 **Chơi game trên web:** Web chính → Web game → `/api/auth/me` → Game Hub
 SCR-035 → Game Session SCR-036 → kết quả cá nhân được server xác nhận ngay trong
 SCR-036 → về hub/trang chính. Game Leaderboard SCR-047 là màn xếp hạng V2 riêng.
-
-**Chơi game trên mobile:** Mobile làm mới token → Mở WebView → Tiêm token →
-Chơi → Gửi điểm → WebView báo hoàn tất → Mobile cập nhật tiến độ.
 
 **Duyệt nội dung:** Đăng nhập bằng role phù hợp → Mở hàng đợi → Xem chi tiết →
 Chấp nhận/từ chối kèm lý do → Chuyển mục tiếp theo.
@@ -206,13 +233,22 @@ Question Edit SCR-059 là một màn chung cho TEACHER/CONTENT_EDITOR và nguồ
 
 **Shared utilities:** SCR-079 giải thích thiếu quyền và cho về khu được phép. Thiếu phiên đưa SCR-002; thiếu entitlement đưa SCR-030; không tạo thêm trang lỗi hoặc billing redirect screen. AI Assistant là panel có ngữ cảnh, không là màn riêng; điều kiện hiện trong exam/contest phải theo source và Open Issues, không tự cung cấp lời giải khi đang làm bài.
 
-**Frontend evidence:** chưa có cnhsk-web, route, sidebar/menu config, page component hoặc role guard trong repository. Các pathname ghi trong tài liệu cũ là bằng chứng đề xuất, không phải Existing Route đã xác nhận. Khi dựng cnhsk-web, map từng canonical screen vào page/component và lazy-load theo nhóm; route implementation cần review trước, không được dùng pathname cũ để gộp màn đã tách.
+**Frontend evidence (2026-11-16, main `e793e6c`):** route và quyền nằm ở `cnhsk-web/src/app/routeAccess.ts`; mỗi màn đăng ký trong `features/<feature>/screens.ts`; menu ở `cnhsk-web/src/shared/layout/navigation.ts`. Route là hợp đồng đã phát hành (email, liên kết chia sẻ dùng chúng) — đợt làm lại giao diện không đổi route (RD-01).
 
 ### 5.5. Mockup requirements và scope
 
 Mỗi mockup dùng đúng SCR ID và Screen Name; designer lấy field/control/list column/action/validation/empty/error/role difference từ 23 mục của màn trong screen-fields.md. Mỗi màn có đúng một readiness: READY FOR MOCKUP, READY WITH PLACEHOLDERS hoặc BLOCKED FOR FINAL MOCKUP. Placeholder chỉ thể hiện vấn đề thật chưa chốt; không dựng giá trị business, số liệu hoặc quyền giả. Modal không thay thế một detail screen đã được inventory duyệt.
 
 Không thêm checkout tiền thật, schema import chưa duyệt, grading policy chưa duyệt, setting catalogue chưa duyệt, role inheritance hoặc màn hiển thị secret. Scope tính năng theo feature-tree.md; Feature không đồng nhất Screen. Mockup HTML nằm ngoài repo chỉ là tham khảo lịch sử, phải đối chiếu 79 màn trước khi dùng và phải viết lại bằng React khi triển khai.
+
+### 5.6. Trạng thái triển khai (2026-11-16)
+
+| Nhóm | Màn | Ghi chú |
+|---|---|---|
+| Đã có route trong `cnhsk-web` | 72 màn | Toàn bộ SCR-001–SCR-079 trừ bảy màn bên dưới; gán khuôn ở §8.2 |
+| Thuộc `cnhsk-game` | SCR-035, SCR-036 | Game Hub và Game Session; dùng `GameShell` của web game |
+| Gác (spec 016 video) | SCR-037, SCR-038 | Ngoài phạm vi đợt làm lại giao diện |
+| Chưa làm (task spec đang mở) | SCR-042, SCR-052, SCR-058 | Phụ lục 009, phụ lục 014, spec 024; khi làm dùng khuôn ghi ở §8.2 |
 
 ---
 
@@ -294,26 +330,48 @@ Không dùng font Gilroy của Học Bá vì quyền sử dụng chưa được 
 
 ## 7. Component inventory
 
-| Component | Biến thể | Dùng ở màn hình nào | Ghi chú |
+Bảng dưới phản ánh code trên main ngày 2026-11-16. Component chưa có trong bảng
+SHALL được đề xuất theo RD-04 trước khi dùng.
+
+### 7.1. Component dùng chung — `cnhsk-web/src/shared/ui`
+
+| Component | Biến thể / prop chính | Dùng cho | Ghi chú |
 | --- | --- | --- | --- |
-| `AppShell` | learner, admin, game | Mọi màn authenticated | Điều phối header/sidebar/bottom nav |
-| `Button` | primary, secondary, outline, ghost, danger | Toàn hệ thống | Một primary CTA mỗi vùng |
-| `IconButton` | default, danger | Header, table, card | Luôn có accessible label |
-| `Card` | default, interactive, selected, locked | Dashboard, chủ đề, game | Toàn card chỉ clickable khi có affordance |
+| `Button` | variant: primary, secondary, outline, ghost, danger · size: sm, md · dạng nút, link nội bộ, link ngoài | Mọi hành động | Một primary CTA mỗi vùng |
+| `IconButton` | default, danger | Header, bảng, card | Luôn có accessible label |
+| `Card` | default, interactive, selected | Chủ đề, bộ thẻ, game, dashboard | Toàn card chỉ clickable khi có affordance; trạng thái khoá thể hiện bằng nội dung + `StatusBadge` |
 | `StatusBadge` | success, warning, danger, info, neutral | Mọi màn | Icon + text, không chỉ màu |
-| `Progress` | linear, circular, mastery | Dashboard, học, tiến độ | Luôn có giá trị dạng text |
+| `Progress` | tone: brand, success, accent | Dashboard, học, tiến độ | Luôn có giá trị dạng text |
 | `LevelBadge` | HSK1–HSK7-9 | Tra cứu, chủ đề, đề thi | Không gán màu ngẫu nhiên theo trang |
-| `FormField` | text, password, search, select, textarea | Auth, search, admin | Label tồn tại độc lập placeholder |
-| `QuestionRenderer` | 7 loại câu hỏi | Thi, luyện, quiz | Một API component chung |
-| `LearningCard` | word, character, grammar | Chủ đề, tra cứu, flashcard | Chữ Hán dùng `font.hanzi` |
-| `MasteryIndicator` | compact, detailed | Chủ đề, kết quả, tiến độ | Màu + nhãn mức thành thạo |
-| `DataTable` | default, selectable | Admin | Desktop; mobile dùng list/card |
-| `Dialog/Sheet` | confirm, form, detail | Toàn hệ thống | Sheet ưu tiên trên mobile |
-| `Toast` | success, error, info | Toàn hệ thống | Không dùng cho lỗi cần người dùng sửa form |
-| `EmptyState` | first-use, no-result, completed | List/dashboard | Có hành động tiếp theo nếu tồn tại |
-| `ErrorState` | inline, section, page | Toàn hệ thống | Có retry khi an toàn |
-| `Skeleton` | text, card, table | Toàn hệ thống | Khớp gần đúng layout thật |
-| `AIChatPanel` | collapsed, expanded, full-screen mobile | Ngữ cảnh LEARNER được phép theo screen-fields.md | Panel nội tuyến; không che CTA/câu hỏi, không là screen riêng |
+| `FormField` | label, hint, error; bọc text, password, search, select, textarea | Mọi form | Label tồn tại độc lập placeholder |
+| `HanziText` | size: lg, md, sm | Mọi chữ Hán được học | Dùng `font.hanzi`; không tự đặt font chữ Hán |
+| `PageHeader` | title, mô tả, actions | Đầu mọi màn | Vùng bắt buộc của mọi khuôn §8.1 |
+| `Section` | title, actions | Chia khối trong màn | Tiêu đề `text.h2` |
+| `StatTile` | label, giá trị | Dashboard, kết quả, tiến độ | Số liệu kèm nhãn |
+| `Tabs` | danh sách tab có nhãn | Chuyển nhóm nội dung trong một màn | Không thay cho điều hướng giữa màn |
+| `DataTable` | tĩnh, có tương tác (chọn/hành động dòng) | Bảng admin, lịch sử | Mobile chuyển list/card theo §8 |
+| `Pagination` | số trang, cỡ trang | Danh sách, bảng | Giữ bộ lọc khi đổi trang |
+| `PageState` | loading, empty, error, ready | Bọc nội dung màn | Một cách hiện trạng thái §9 thống nhất |
+| `EmptyState` | title, mô tả, hành động | Danh sách/dashboard rỗng | Phân biệt "chưa có dữ liệu" với "bộ lọc không khớp" |
+| `ErrorState` | title, retry | Lỗi section hoặc trang | Có retry khi an toàn |
+| `Skeleton` | text, card, table | Đang tải | Khớp gần đúng bố cục thật |
+| `ConfirmPanel` | xác nhận nội tuyến | Thao tác phá huỷ, nộp bài, rời phiên | Thay cho dialog; tuân luật focus overlay ở §12 |
+| `Toast` / `useToast` | success, error, info | Thông báo ngắn | Không dùng cho lỗi cần sửa form |
+
+Layout dùng chung ở `cnhsk-web/src/shared/layout`: `AppShell`, `PublicLayout`,
+`LearnerLayout`, `AdminLayout`, `RoleLayout`, `AccountMenu`, `navigation.ts`.
+
+### 7.2. Component theo domain (không đưa vào `shared/ui` khi chưa có feature thứ hai dùng)
+
+| Vai trò trong bản 0.1 | Component thật | Vị trí |
+| --- | --- | --- |
+| Câu hỏi luyện/thi (`QuestionRenderer`) | `ChoiceQuestion` | `features/practice/components` |
+| Trợ lý AI (`AIChatPanel`) | `AssistantPanel`, `AssistantHost` | `features/assistant/components` |
+| Ôn flashcard | `FlashcardReviewView` | `features/library/components` |
+| Mức thành thạo (`MasteryIndicator`) | `MasteryDashboardView`, `MasteryProgressView` | `features/mastery/components` |
+
+Chưa có và chưa cần tạo trong đợt làm lại giao diện: `LearningCard`,
+`Dialog/Sheet` dạng overlay. Nếu nhiều feature cần, đề xuất theo RD-04.
 
 **Quy ước đặt tên:** component dùng `PascalCase`; token và prop dùng semantic
 English; route label và nội dung người dùng dùng tiếng Việt. Component theo
@@ -343,7 +401,38 @@ domain nằm trong feature tương ứng; component dùng từ hai feature trở
   không ép người dùng cuộn ngang cho tác vụ chính.
 - Web game SHALL dùng full viewport cho vùng chơi nhưng vẫn giữ nút thoát,
   trạng thái mạng và thông tin phiên ở safe area.
-- React Native SHALL tôn trọng safe-area inset và font scaling của hệ điều hành.
+
+### 8.1. Khuôn trang
+
+Mỗi màn SHALL dựng theo đúng một khuôn (RD-02). **Vùng bắt buộc** phải có và giữ
+thứ tự từ trên xuống; **vùng tự do** do người làm màn quyết định bố cục, minh hoạ
+và cách nhóm nội dung, miễn dùng §6 và §7.1.
+
+| Mã | Khuôn | Vùng bắt buộc (thứ tự) | Vùng tự do | Bề rộng |
+| --- | --- | --- | --- | --- |
+| K1 | Danh sách / catalog | `PageHeader` → thanh tìm kiếm/bộ lọc (nếu màn có lọc) → danh sách hoặc lưới card → `Pagination` (nếu phân trang) · trạng thái §9 qua `PageState`/`EmptyState` | Kiểu card, số cột, khối gợi ý/nổi bật phía trên danh sách | `content.max` 1280px |
+| K2 | Chi tiết | `PageHeader` (tiêu đề + hành động chính) → nội dung chính → khối liên quan/hành động phụ · liên kết quay lại danh sách | Chia cột nội dung/phụ, cách trình bày metadata | Nội dung đọc 720px; trang có cột phụ tối đa 1280px |
+| K3 | Form / cài đặt / xác thực | `PageHeader` → các nhóm `FormField` có nhãn → vùng hành động (primary cuối form) · lỗi cạnh field (§12) | Chia nhóm field, minh hoạ bên cạnh trên desktop | 720px; màn xác thực (SCR-002–SCR-006) căn giữa |
+| K4 | Phiên làm bài / học từng bước | Thanh phiên (tiến độ câu, thời gian nếu có, nút thoát có xác nhận) → vùng câu hỏi/nội dung trọng tâm → vùng trả lời và hành động chính · phản hồi đúng/sai bằng text + màu | Hiệu ứng chuyển câu, bố cục vùng trả lời, panel điều hướng câu (thu gọn được) | 720px vùng trọng tâm; không sidebar che câu hỏi |
+| K5 | Tổng quan / kết quả | `PageHeader` → khối số liệu chính (`StatTile`/`Progress`, giá trị server xác nhận) → hành động tiếp theo → các `Section` chi tiết | Thứ tự và bố cục các `Section`, biểu đồ, minh hoạ | 1280px |
+| K6 | Bảng quản trị | `PageHeader` (+ hành động tạo/nhập) → bộ lọc → `DataTable` → `Pagination` · hành động dòng có xác nhận khi phá huỷ | Cột phụ, nhóm bộ lọc, thẻ tóm tắt phía trên bảng | 1280px; mobile đổi bảng thành list/card |
+
+Landing SCR-001 dùng K5 và là màn duy nhất được dùng `text.display` (hero).
+
+### 8.2. Gán màn vào khuôn
+
+| Khuôn | Màn |
+| --- | --- |
+| K1 | SCR-011, 017, 020, 024, 027, 028, 031, 033, 039, 043, 046, 047, 048, 053, 054 · chưa làm: 052 · `cnhsk-game`: 035 |
+| K2 | SCR-004, 018, 025, 029, 034, 040, 049, 055, 057, 061, 063, 069, 077, 079 · chưa làm: 042 |
+| K3 | SCR-002, 003, 005, 006, 007, 008, 009, 026, 032, 041, 059, 066, 071, 078 |
+| K4 | SCR-012, 013, 014, 015, 016, 021, 023, 044, 050 · `cnhsk-game`: 036 (theo `GameShell`) |
+| K5 | SCR-001, 010, 019, 022, 030, 045, 051 |
+| K6 | SCR-056, 060, 062, 064, 065, 067, 068, 070, 072, 073, 074, 075, 076 · chưa làm: 058 |
+
+Màn có nhiều route (ví dụ SCR-014 luyện viết và thử thách, SCR-022 kết quả thi
+và kiểm tra xếp lớp) dùng cùng khuôn cho mọi route của màn đó. Muốn đổi khuôn của
+một màn phải sửa bảng này theo §0.
 
 ---
 
@@ -408,7 +497,7 @@ domain nằm trong feature tương ứng; component dùng từ hai feature trở
 - THE system SHALL dùng semantic token của mục 6 cho mọi màu, chữ, khoảng cách,
   radius và shadow.
 - THE system SHALL hiển thị điều hướng, tên gọi và trạng thái nhất quán giữa web
-  chính, web game và React Native.
+  chính và web game.
 - THE system SHALL trình bày chữ Hán bằng `font.hanzi` và UI tiếng Việt bằng
   `font.sans`.
 - THE system SHALL đặt nội dung học và hành động tiếp theo trước nội dung quảng
@@ -477,7 +566,9 @@ Tỷ lệ Unwanted: 12/27 luật = 44,4%.
 
 ## 13. Acceptance Criteria
 
-- [ ] Web chính, web game và React Native dùng cùng tên semantic color token.
+- [ ] Web chính và web game dùng cùng tên semantic color token.
+- [ ] Mọi màn trong §8.2 dựng theo đúng khuôn được gán và đủ vùng bắt buộc §8.1.
+- [ ] Mọi PR làm lại giao diện qua đủ checklist §0.2.
 - [ ] Không component nào chứa màu brand dạng hex trực tiếp ngoài file token.
 - [ ] Sidebar desktop chuyển thành bottom navigation ở viewport dưới 640px.
 - [ ] Các route chính hiển thị đủ loading, empty, error và unauthorized state.
@@ -486,7 +577,7 @@ Tỷ lệ Unwanted: 12/27 luật = 44,4%.
 - [ ] Màn cây chủ đề hiển thị khóa, ngưỡng 90% và tiến độ hiện tại bằng cả text
   lẫn hình ảnh.
 - [ ] Màn thi cảnh báo khi rời bài chưa nộp và không cho sửa sau khi nộp thành công.
-- [ ] Trang game xác minh `/api/auth/me`; WebView không nhận token qua URL.
+- [ ] Trang game xác minh `/api/auth/me`; không nhận token qua URL.
 - [ ] Role LEARNER không nhìn thấy chớp nội dung admin trước khi kiểm quyền hoàn tất.
 - [ ] Lighthouse và Web Vitals đạt các ngưỡng ở mục 11 trên build production.
 - [ ] Không có horizontal overflow tại năm viewport kiểm thử đã quy định.
@@ -501,7 +592,9 @@ Tỷ lệ Unwanted: 12/27 luật = 44,4%.
 - Không quy định thuật toán FSRS, chấm điểm, chống gian lận hoặc business rule
   phía server ngoài cách thể hiện trạng thái.
 - Không thiết kế lại website marketing `CNHSK.today` theo từng pixel.
-- Dark mode chưa thuộc phạm vi bản 0.1.
+- Dark mode không thuộc phạm vi bản 1.1.
+- Ứng dụng mobile (React Native, WebView) đã bỏ từ 2026-11-13.
+- Đổi điều hướng/menu hoặc route trong đợt làm lại giao diện (RD-01).
 - Thi mô phỏng nghiêm ngặt, gia sư marketplace và game đấu tay đôi không thuộc
   phạm vi MVP hiện tại.
 
@@ -511,13 +604,15 @@ Tỷ lệ Unwanted: 12/27 luật = 44,4%.
 
 Phải rỗng trước khi chuyển Status sang APPROVED.
 
-| # | Câu hỏi | Ảnh hưởng nếu trả lời sai | Ai trả lời | Hạn |
-| --- | --- | --- | --- | --- |
-| 1 | Trình duyệt web, Android và iOS tối thiểu cần hỗ trợ phiên bản nào? | Quyết định polyfill, khả năng CSS và chi phí kiểm thử | Nhóm | Trước khi code khung |
-| 2 | Logo CNHSK sẽ dùng wordmark hay biểu tượng riêng? | Ảnh hưởng header, app icon, splash và khoảng trống brand | Nhóm | Trước khi hoàn thiện shell |
-| 3 | Có dark mode trong MVP không? | Cần thêm toàn bộ bộ token và test tương phản | Nhóm | Trước sprint UI thứ hai |
-| 4 | Web game dùng Phaser 3 hay Canvas thuần? | Ảnh hưởng component shell và ngân sách bundle web game | Đạt | Trước khi dựng web game |
-| 5 | Thư viện biểu đồ React Native nào được chấp nhận? | Ảnh hưởng màn tiến độ và tính nhất quán biểu đồ | Nhóm mobile | Trước màn thống kê |
+Không còn câu hỏi mở. Các câu bản 0.1 đã chốt:
+
+| # | Câu hỏi | Chốt (2026-11-16) |
+| --- | --- | --- |
+| 1 | Trình duyệt tối thiểu? | Chrome, Edge, Firefox hai bản mới nhất; Safari 16+ (macOS, iOS); Chrome Android hai bản mới nhất (§2) |
+| 2 | Logo wordmark hay biểu tượng? | Tạm dùng wordmark chữ "CNHSK" như header hiện tại. Logo chính thức làm sau, là logo riêng của CNHSK theo phong cách đỏ–vàng tham khảo ở §0, không dùng logo của website tham khảo (§14) |
+| 3 | Dark mode trong MVP? | Không (§14) |
+| 4 | Web game dùng Phaser 3 hay Canvas? | React + DOM/SVG, không Phaser (§2) |
+| 5 | Thư viện biểu đồ React Native? | Không áp dụng — đã bỏ mobile |
 
 ---
 
@@ -526,6 +621,7 @@ Phải rỗng trước khi chuyển Status sang APPROVED.
 | Version | Ngày | Thay đổi | Người duyệt |
 | --- | --- | --- | --- |
 | 0.1 | 2026-09-28 | Bản đầu; hợp nhất web chính, web game và React Native | Chưa duyệt |
+| 1.1 | 2026-11-16 | Bỏ React Native/WebView; thêm luật làm lại giao diện (§0.1) và checklist review (§0.2); trạng thái triển khai 72 màn (§5.6); đồng bộ §7 với `shared/ui` thật; thêm 6 khuôn trang và bảng gán màn (§8.1, §8.2); chốt Open Questions; khoá tài liệu | Leader nhóm |
 
 ---
 
@@ -539,5 +635,5 @@ Phải rỗng trước khi chuyển Status sang APPROVED.
 - [x] Tên gọi khớp tài liệu và codebase
 - [x] Đã nêu ràng buộc tech stack
 - [x] Out of Scope rõ ràng
-- [ ] Mọi Open Question đã được trả lời
+- [x] Mọi Open Question đã được trả lời
 - [x] Tỷ lệ câu Unwanted ≥ 30%
