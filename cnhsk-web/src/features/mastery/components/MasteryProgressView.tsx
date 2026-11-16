@@ -257,7 +257,7 @@ export function MasteryProgressView({
                 Bạn chưa có minh chứng — hãy làm bài kiểm tra trình độ hoặc luyện một chủ đề
               </p>
               <Link
-                className="mt-2 inline-block text-label text-brand-700 underline"
+                className="mt-2 inline-flex min-h-touch items-center text-label text-brand-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
                 to="/learn/exams"
               >
                 Làm bài kiểm tra trình độ
