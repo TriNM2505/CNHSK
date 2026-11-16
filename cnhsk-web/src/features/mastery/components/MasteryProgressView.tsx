@@ -9,6 +9,7 @@ import {
   ErrorState,
   PageHeader,
   Skeleton,
+  StatTile,
   type PageStateValue,
 } from '@/shared/ui'
 
@@ -108,7 +109,10 @@ function NodeDetail({
   detail: MasteryNodeDetail
   knowledgeNodes: readonly KnowledgeNode[]
 }) {
-  const nameByKid = useMemo(() => new Map(knowledgeNodes.map((node) => [node.kid, node.nameVi])), [knowledgeNodes])
+  const nameByKid = useMemo(
+    () => new Map(knowledgeNodes.map((node) => [node.kid, node.nameVi])),
+    [knowledgeNodes],
+  )
 
   return (
     <Card aria-labelledby="mastery-detail-title" className="space-y-4" data-testid="mastery-detail">
@@ -135,7 +139,9 @@ function NodeDetail({
       </dl>
 
       <section aria-labelledby="mastery-evidence-title">
-        <h3 className="text-label text-ink" id="mastery-evidence-title">Minh chứng</h3>
+        <h3 className="text-label text-ink" id="mastery-evidence-title">
+          Minh chứng
+        </h3>
         {detail.evidence.length ? (
           <ol aria-label="Danh sách minh chứng" className="mt-2 divide-y divide-line">
             {detail.evidence.map((evidence, index) => (
@@ -148,7 +154,9 @@ function NodeDetail({
       </section>
 
       <section aria-labelledby="mastery-prereqs-title">
-        <h3 className="text-label text-ink" id="mastery-prereqs-title">Tiên quyết</h3>
+        <h3 className="text-label text-ink" id="mastery-prereqs-title">
+          Tiên quyết
+        </h3>
         {detail.prereqs.length ? (
           <ul className="mt-2 space-y-2">
             {detail.prereqs.map((prereq) => (
@@ -197,10 +205,13 @@ export function MasteryProgressView({
   selectedKid,
   state,
 }: MasteryProgressViewProps) {
-  const masteryByKid = useMemo(() => new Map(masteryNodes.map((node) => [node.kid, node])), [masteryNodes])
+  const masteryByKid = useMemo(
+    () => new Map(masteryNodes.map((node) => [node.kid, node])),
+    [masteryNodes],
+  )
 
   return (
-    <main className="mx-auto w-full max-w-screen-xl px-4 py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
       <PageHeader
         subtitle="Theo dõi mức độ thành thạo theo miền và cấp HSK."
         title="Tiến độ học tập"
@@ -221,23 +232,53 @@ export function MasteryProgressView({
 
       {state === 'ready' ? (
         <div className="space-y-6">
+          <div className="grid min-w-0 gap-3 sm:grid-cols-3">
+            <StatTile label="Nút năng lực" value={knowledgeNodes.length} />
+            <StatTile
+              label="Vững"
+              value={masteryNodes.filter((node) => node.state === 'extend').length}
+            />
+            <StatTile
+              label="Cần ôn"
+              value={masteryNodes.filter((node) => node.state === 'review').length}
+            />
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button to="/learn/review" variant="outline">
+              Ôn tập đến hạn
+            </Button>
+            <Button to="/learn" variant="ghost">
+              Về trang học tập
+            </Button>
+          </div>
           {isNewLearner ? (
             <Card className="border-info bg-info-bg" role="status">
               <p className="text-body text-ink">
                 Bạn chưa có minh chứng — hãy làm bài kiểm tra trình độ hoặc luyện một chủ đề
               </p>
-              <Link className="mt-2 inline-block text-label text-brand-700 underline" to="/learn/exams">
+              <Link
+                className="mt-2 inline-block text-label text-brand-700 underline"
+                to="/learn/exams"
+              >
                 Làm bài kiểm tra trình độ
               </Link>
             </Card>
           ) : null}
 
-          <section aria-label="Lưới tiến độ theo miền và cấp HSK" className="overflow-x-auto">
-            <table className="min-w-[58rem] border-separate border-spacing-2">
+          <section
+            aria-label="Lưới tiến độ theo miền và cấp HSK"
+            className="min-w-0 rounded-md border border-line bg-surface p-4 sm:p-6"
+          >
+            <table
+              className="block w-full border-separate border-spacing-2 lg:table lg:table-fixed"
+              role="table"
+            >
               <caption className="sr-only">Tiến độ năng lực theo sáu miền và ba cấp HSK</caption>
-              <thead>
+              <thead className="sr-only lg:not-sr-only lg:table-header-group">
                 <tr>
-                  <th className="p-2 text-left text-label text-ink" scope="col">HSK</th>
+                  <th className="p-2 text-left text-label text-ink" scope="col">
+                    HSK
+                  </th>
                   {DOMAINS.map((domain) => (
                     <th className="p-2 text-center text-label text-ink" key={domain} scope="col">
                       {domain}
@@ -245,25 +286,38 @@ export function MasteryProgressView({
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="block space-y-6 lg:table-row-group lg:space-y-0">
                 {LEVELS.map((level) => (
-                  <tr key={level}>
-                    <th className="p-2 text-left text-label text-ink" scope="row">{level}</th>
+                  <tr className="grid min-w-0 gap-4 sm:grid-cols-2 lg:table-row" key={level}>
+                    <th
+                      className="p-2 text-left text-label text-ink sm:col-span-2 lg:table-cell"
+                      scope="row"
+                    >
+                      <span className="lg:hidden">HSK </span>
+                      {level}
+                    </th>
                     {DOMAINS.map((domain) => {
                       const cellNodes = knowledgeNodes.filter(
                         (node) => node.domain === domain && node.hskLevel === level,
                       )
                       return (
-                        <td className="min-w-36 align-top" key={`${domain}-${level}`}>
+                        <td
+                          className="block min-w-0 space-y-3 rounded-md bg-canvas p-3 align-top lg:table-cell lg:rounded-none lg:bg-transparent lg:p-0"
+                          key={`${domain}-${level}`}
+                        >
+                          <p aria-hidden="true" className="text-label text-ink-secondary lg:hidden">
+                            {domain}
+                          </p>
                           <ul className="space-y-2">
                             {cellNodes.map((node) => {
                               const mastery = masteryByKid.get(node.kid)!
                               const isSelected = selectedKid === node.kid
                               return (
                                 <li key={node.kid}>
-                                  <button
+                                  <Button
+                                    variant="outline"
                                     aria-pressed={isSelected}
-                                    className={`w-full rounded-md border p-3 text-left text-body-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${STATE_CLASSES[mastery.state]} ${mastery.frontier ? 'border-2' : ''} ${isSelected ? 'shadow-sm' : ''}`}
+                                    className={`h-auto w-full justify-start whitespace-normal rounded-md border p-3 text-left text-body-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${STATE_CLASSES[mastery.state]} ${mastery.frontier ? 'border-2' : ''} ${isSelected ? 'shadow-sm' : ''}`}
                                     data-frontier={String(mastery.frontier)}
                                     data-kid={node.kid}
                                     data-state={mastery.state}
@@ -272,8 +326,10 @@ export function MasteryProgressView({
                                   >
                                     <span className="block font-medium">{node.nameVi}</span>
                                     <span className="mt-1 block text-caption">{node.kid}</span>
-                                    <span className="mt-1 block text-caption">{STATE_LABELS[mastery.state]}</span>
-                                  </button>
+                                    <span className="mt-1 block text-caption">
+                                      {STATE_LABELS[mastery.state]}
+                                    </span>
+                                  </Button>
                                 </li>
                               )
                             })}
@@ -303,9 +359,7 @@ export function MasteryProgressView({
           {selectedKid ? (
             <section aria-label="Chi tiết nút năng lực" aria-live="polite">
               {detailLoading ? <Skeleton variant="card" /> : null}
-              {detailError ? (
-                <ErrorState message={detailError} onRetry={onRetryDetail} />
-              ) : null}
+              {detailError ? <ErrorState message={detailError} onRetry={onRetryDetail} /> : null}
               {detail && detail.kid === selectedKid ? (
                 <NodeDetail detail={detail} knowledgeNodes={knowledgeNodes} />
               ) : null}

@@ -174,6 +174,10 @@ describe('mastery preview foundation (T-01 data for AT-24–26)', () => {
       ['scr-019-loading', 'SCR-019'],
       ['scr-019-empty', 'SCR-019'],
       ['scr-019-error', 'SCR-019'],
+      ['scr-013-ready', 'SCR-013'],
+      ['scr-013-loading', 'SCR-013'],
+      ['scr-013-empty', 'SCR-013'],
+      ['scr-013-error', 'SCR-013'],
     ])
   })
 })
