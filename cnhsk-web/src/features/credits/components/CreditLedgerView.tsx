@@ -180,7 +180,7 @@ export function CreditLedgerView({
       <Section title="Bộ lọc sổ cái">
         <Card>
           <form ref={form} aria-label="Lọc sổ cái" noValidate onSubmit={apply}>
-            <div className="grid gap-x-4 md:grid-cols-3">
+            <div className="grid gap-x-4 lg:grid-cols-3">
               <FormField
                 htmlFor="ledger-from"
                 label="Từ ngày (giờ Việt Nam)"
@@ -303,7 +303,7 @@ export function CreditLedgerView({
             title="Tổng điểm"
             subtitle="Số liệu server trả cho toàn bộ bộ lọc, gồm mọi trang."
           >
-            <div className="grid min-w-0 gap-3 md:grid-cols-3">
+            <div className="grid min-w-0 gap-3 sm:grid-cols-3">
               <StatTile label="Số giao dịch" value={data.totals.count} />
               <StatTile label="Tổng điểm cộng" value={signed(data.totals.credited)} />
               <StatTile label="Tổng điểm trừ" value={signed(data.totals.debited)} />
@@ -350,7 +350,7 @@ export function CreditLedgerView({
           />
         ) : reconciliation ? (
           <section aria-label="Kết quả đối chiếu toàn sổ" className="space-y-4">
-            <dl className="grid gap-4 text-body text-ink md:grid-cols-2">
+            <dl className="grid gap-4 text-body text-ink sm:grid-cols-2">
               <div>
                 <dt>Số tài khoản</dt>
                 <dd>{reconciliation.users}</dd>

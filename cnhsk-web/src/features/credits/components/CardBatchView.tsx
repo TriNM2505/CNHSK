@@ -468,7 +468,7 @@ export function CardBatchView({
           noValidate
           onSubmit={prepare}
         >
-          <div className="grid gap-x-4 md:grid-cols-2">
+          <div className="grid gap-x-4 sm:grid-cols-2">
             <FormField
               htmlFor="batch-cardType"
               label="Loại thẻ"

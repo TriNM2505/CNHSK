@@ -208,7 +208,7 @@ export function PlanCreditsView({
       ) : wallet ? (
         <div className="space-y-6">
           <Section title="Gói hiện tại">
-            <div className="grid min-w-0 gap-4 md:grid-cols-2">
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
               <StatTile
                 className="border-brand-100 bg-brand-50"
                 label="Số dư điểm"

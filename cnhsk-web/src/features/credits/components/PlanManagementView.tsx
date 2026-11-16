@@ -212,7 +212,7 @@ function PlanForm({
         </FormField>
         {plan.code === 'PREMIUM' ? (
           <>
-            <div className="grid gap-x-4 md:grid-cols-2">
+            <div className="grid gap-x-4 sm:grid-cols-2">
               <FormField
                 htmlFor={`${prefix}-days`}
                 label="Số ngày hiệu lực"
@@ -251,7 +251,7 @@ function PlanForm({
                   Có người đang dùng gói; thay đổi hạn mức sẽ bị máy chủ từ chối.
                 </p>
               ) : null}
-              <div className="grid gap-x-4 md:grid-cols-2">
+              <div className="grid gap-x-4 sm:grid-cols-2">
                 {features.map((feature) => (
                   <FormField
                     key={feature}
