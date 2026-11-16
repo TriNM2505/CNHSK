@@ -11,6 +11,37 @@
 - JaCoCo LINE BUNDLE từ đúng Full exec: **16684 covered/499 missed=97.095966944%≥80%**, report/check-only `20261116-074013213-coverage` BUILD SUCCESS/native0. Exec gốc1357200bytes, SHA256 `6502B3A2AF9E320C52642D35B50B146806F3A25D92B8DC7AC6AF321BB1DEF0D2`; original/preserved bytes trước/sau không đổi, một session khớp interval Full và classes. Không Maven test sau Full, không benchmark riêng; tasks.md và evidence Full T-03 không đổi. Evidence cục bộ trong `plans/261116-0613-spec024-t04-shadow-plan/reports/`, không commit.
 - G2 đủ điều kiện ngoại lệ Leader đã duyệt, chuyển G3 Draft PR; không Ready/merge/rebase/main push. Bằng chứng T-01/T-02/T-03 bên dưới là lịch sử, giữ nguyên.
 
+## 2026-11-16 · Kết quả Full duy nhất của duyệt câu chờ
+
+- Full `20261116-095421541-full`: đủ445 suite, **6978/F3/E0/S0, BUILD FAILURE/FAILED/native1**, kết thúc17:42:40.668 trước deadline17:54:36.821 giờ Việt Nam. Reconciliation XML/native/case counts khớp, source/classes giữ nguyên, thiếu/thừa suite0 và lỗi ngoài exact5 whitelist0. Không chạy lại Full, không ghi toàn bộ test PASS.
+- Ba failure đúng assertion đã duyệt: LoginAttemptServiceIntegrationTest dòng133 Redis PEXPIRETIME `1794824101533` thấp hơn cận dưới `1794824101653` đúng120ms (cận trên1794824102501); cùng lớp dòng313 captured output chứa email fixture tổng hợp, không chứa IP/outage message; QuestionImportIntegrationTest dòng304 p95 **47734ms >30000ms**. Hai vị trí whitelist còn lại không fail ở lần này.
+- Đúng exec Full1358261bytes, SHA256 `06A35A3B288BEBC2D4D00DD70C57E1338CE7EA701221A9AF16A92BCC3377F20A`, một session trong khoảng native và source/classes gốc đã bảo toàn. Report/check riêng `20261116-144737202-coverage` **BUILD SUCCESS/native0**, LINE BUNDLE **16787 covered/492 missed =97.1526129984% ≥80%**. Reconciliation xác nhận exec nguyên vẹn, source/classes khớp, continuationEligible=true; không chạy test sau Full. G2 đạt điều kiện ngoại lệ Leader duyệt, Full vẫn FAILED/native1.
+
+## 2026-11-16 · Leader duyệt hàng chờ câu sinh tự động, Q1-A
+
+- Base cố định `8c6e2269a4996c6fa4eb782412e37b1333c40d72`, branch `spec/024-t05`; exact14 (9 ADD/5 MODIFY), gồm phụ lục `contracts/openapi-ai-practice-v1-1.yaml` và tài liệu này. Không sửa tasks.md, ErrorCode, GlobalExceptionHandler, OpenAPI locked, migration hoặc engine. Leader xử lý conflict spec khi merge, không rebase theo main mới.
+- Leader xác nhận đã thông báo Tường. Phạm vi010: controller chỉ truyền caller xuống service, không đổi generated OpenAPI; service mở PUT cho CONTENT_EDITOR duy nhất AI PENDING_REVIEW, câu khác403; TEACHER giữ hành vi cũ. Giữ nguyên toàn bộ assertions/fixtures cũ trong QuestionAdminServiceTest, @ValueSource cũ và locked tests010; chỉ thêm test. Hai mã MALFORMED_QUESTION422/QUESTION_NOT_PENDING409 đã có, tái sử dụng.
+- Q1-A: bulk có bốn outcome APPROVED/NOT_VIEWED/NOT_PENDING/MALFORMED; mỗi ID một transaction độc lập. Lỗi DB/audit bất ngờ rollback riêng ID lỗi, trả500 và dừng; các ID trước đã APPROVED giữ nguyên với đúng một audit mỗi câu. Không thêm outcome FAILED hoặc đổi lỗi hạ tầng thành MALFORMED.
+- Redis viewed theo user/question TTL24h, chỉ GET detail AIpending ghi marker; Redis lỗi GET vẫn200/response không đổi. Danh sách không ghi marker; bulk mất marker trả NOT_VIEWED. Quyền luôn kiểm ở service bên cạnh filter; ADMIN không có quyền duyệt.
+- MC AIpending sau chỉnh sửa lưu correct_key từ phương án đúng duy nhất sau validation010; không đổi QuestionRules, IMPORT/MANUAL hoặc luật câu đã dùng. Approve/reject giữ row lock, conditional UPDATE và audit cùng transaction.
+- Giữ precedence lỗi của entry long-ID cũ khi missing/archive để không sửa assertion no-auth-interaction đã khóa. Mọi HTTP PUT đi qua overload raw-ID/caller kiểm quyền trước target/body/archive; entry cũ kiểm role trước body/persistence khi đã có câu hợp lệ. Đây là quyết định tương thích đã duyệt, không phải bỏ kiểm quyền ghi.
+- Phụ lục `contracts/openapi-ai-practice-v1-1.yaml` đã được thành viên khác duyệt trước khi code endpoint; mô tả đúng delta GET/PUT010 và500 bulk, không định nghĩa lại schema/parameters/status010. Kiểm marker trước lookup bulk: thiếu marker → NOT_VIEWED; ID đã xem nhưng câu không còn tồn tại → NOT_PENDING. Implementation và source review đã xong; chưa khẳng định G2 PASS.
+- Gates được duyệt: bỏ DEBUG trong đúng PowerShell Maven → targeted (gồm compile/test-compile) → regression aigen+learning.knowledge+contract+ModuleBoundaryTest → Full verify một lần → đúng Full exec JaCoCo LINE≥80%. Chỉ exact5 environmental whitelist; native1 vẫn FAILED. Focused đã recovery và regression đã đạt theo evidence bên dưới; Full đang chạy, coverage chờ đúng exec Full. Không dùng lịch sử T-01…T-04 bên dưới để tuyên bố gate T-05 đã đạt.
+
+## 2026-11-16 · T-05 compile đạt, targeted có lỗi fixture được giữ nguyên evidence
+
+- Compile **BUILD SUCCESS/native0**. Targeted đầu đủ5 suite: **128/F0/E3/S0, BUILD FAILURE/FAILED/native1**. Cả3 error thuộc fixture mới của `AiReviewKnowledgeIntegrationTest`, vi phạm constraint `ck_q_ai_review`/`ck_q_reject` khi dựng dữ liệu trước HTTP; không phải assertion HTTP đã chạy rồi fail.
+- Sửa đúng5 dòng thêm mới trong fixture của suite bridge; không đổi assertion, production hoặc test/fixture cũ. Giữ lại4 suite PASS/110 case của attempt đầu, không chạy lại để chọn PASS. Recovery riêng18 case bridge đã bắt đầu với run `20261116-094404507-targeted-launch`; tại snapshot này **chưa có kết quả**. Không tuyên bố fresh128PASS hoặc cộng một recovery chưa kết thúc vào tổng PASS.
+- Benchmark queue500 câu của suite controller đã PASS về chức năng. Raw samples (ms): `49.6755,52.7398,52.7472,40.2571,35.1464,33.2594,32.7119,34.2161,31.5673,34.6553`; **p95=52.7472ms**, dưới mục tiêu300ms. Đây là số đo/log, không có assertion latency; không thay thế kết quả gate targeted.
+- **Regression, Full và coverage chưa chạy** tại snapshot này; chưa đủ điều kiện kết luận G2. Native1 và3 fixture error của attempt đầu được giữ nguyên lịch sử.
+
+## 2026-11-16 · T-05 recovery và regression đạt, Full duy nhất đang chạy
+
+- Recovery `20261116-094404507-targeted-launch`: **18/F0/E0/S0, BUILD SUCCESS/native0**. Cùng4 suite/110 case PASS giữ lại từ attempt đầu, xác minh đủ **128 case logic qua2 attempt,146 lượt thực thi native**; không phải fresh128PASS. Attempt128/F0/E3/S0 FAILED/native1 ở trên giữ nguyên lịch sử.
+- Regression **41 suite,494/F0/E0/S0, BUILD SUCCESS/native0**; native totals, XML/case inventories và source/classes đã đối chiếu khớp, không thiếu/thừa suite. Không chạy lại các gate đã đạt.
+- Full duy nhất `20261116-095421541-full` đang chạy: PID30576, helper38040; bắt đầu thực tế **16:54:36.821 giờ Việt Nam**, deadline cố định **17:54:36.821**. Expected445 suite; **chưa có kết quả/native exit cuối**, không tuyên bố Full PASS hoặc G2 đạt.
+- Coverage chờ exec gốc `tmp/cnhsk-api-jacoco.exec` của đúng attempt Full và snapshot `full-original.exec` sau khi kết thúc. Chưa có hash/session/LINE counters cuối để xác minh; không lấy exec targeted/regression hoặc coverage lịch sử thay thế.
+
 ## 2026-11-16 · Leader yêu cầu sample chỉ dạng 4 phương án
 
 - Sample chỉ lấy APPROVED + PRIMARY có đúng4 options và đúng1 is_correct=true. FILL_BLANK options=[], câu3 options hoặc2 đáp án đúng không làm sample; options hợp lệ của các câu đó vẫn góp error_patterns như cũ. Ba sample là ba câu hợp lệ đầu tiên sau lọc, không N+1; malformed options vẫn skip riêng câu/WARN chỉ question ID.

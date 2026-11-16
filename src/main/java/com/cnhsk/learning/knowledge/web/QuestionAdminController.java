@@ -1,5 +1,6 @@
 package com.cnhsk.learning.knowledge.web;
 
+import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.learning.knowledge.entity.KnowledgeLabelRole;
 import com.cnhsk.learning.knowledge.entity.Question;
 import com.cnhsk.learning.knowledge.entity.QuestionSource;
@@ -37,10 +38,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class QuestionAdminController {
     private final QuestionAdminService questions;
     private final ObjectMapper mapper;
+    private final AuthApi auth;
 
-    public QuestionAdminController(QuestionAdminService questions, ObjectMapper mapper) {
+    public QuestionAdminController(QuestionAdminService questions, ObjectMapper mapper, AuthApi auth) {
         this.questions = questions;
         this.mapper = mapper;
+        this.auth = auth;
     }
 
     @GetMapping
@@ -77,7 +80,7 @@ public class QuestionAdminController {
             @ApiResponse(responseCode = "404", description = "QUESTION_NOT_FOUND")
     })
     public QuestionDetail detail(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
-        return detail(questions.detail(questionId(id)));
+        return detail(questions.detail(questionId(id), auth.currentUser()));
     }
 
     @PutMapping("/{id}")
@@ -96,7 +99,7 @@ public class QuestionAdminController {
             HttpServletRequest request,
             @RequestHeader(name = "X-XSRF-TOKEN", required = false) String xsrfToken) {
         // Read the body after ID lookup, row locking and the archived guard, including malformed JSON.
-        return detail(questions.updateFrom(questionId(id), () -> readUpdate(request)));
+        return detail(questions.updateFrom(id, auth.currentUser(), () -> readUpdate(request)));
     }
 
     @PatchMapping("/{id}/archive")
