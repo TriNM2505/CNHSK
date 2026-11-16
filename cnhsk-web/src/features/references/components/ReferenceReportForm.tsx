@@ -21,7 +21,7 @@ export function ReferenceReportForm({ pending, sent, error, onSubmit, onCancel }
 
   if (sent)
     return (
-      <p role="status" className="text-body-sm text-ink">
+      <p role="status" className="rounded-sm bg-success-bg p-3 text-body-sm text-success">
         Đã ghi nhận báo lỗi.
       </p>
     )
@@ -29,7 +29,7 @@ export function ReferenceReportForm({ pending, sent, error, onSubmit, onCancel }
   return (
     <form
       aria-label="Báo lỗi tài liệu"
-      className="mt-3 min-w-0 border-t border-line pt-3"
+      className="mt-3 min-w-0 rounded-md border border-line bg-surface-subtle p-4"
       onSubmit={(event) => {
         event.preventDefault()
         if (!pending && count <= 300) onSubmit({ reason, note: note || null })
@@ -60,7 +60,7 @@ export function ReferenceReportForm({ pending, sent, error, onSubmit, onCancel }
         />
       </FormField>
       {error ? (
-        <p role="alert" className="mb-3 text-body-sm text-danger">
+        <p role="alert" className="mb-3 rounded-sm bg-danger-bg p-3 text-body-sm text-danger">
           {error.errorCode === 'RATE_LIMITED'
             ? 'Bạn đã báo lỗi tài liệu này hôm nay. Vui lòng quay lại vào ngày mai.'
             : error.message}
