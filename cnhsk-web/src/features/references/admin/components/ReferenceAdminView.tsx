@@ -106,7 +106,7 @@ export function ReferenceAdminView(props: ReferenceAdminViewProps) {
         </Card>
       ) : null}
       <Card>
-        <div className="grid min-w-0 grid-cols-1 gap-x-4 md:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-3">
           <FormField htmlFor="admin-ref-kind" label="Loại">
             <Select
               value={filters.kind ?? ''}
@@ -147,7 +147,7 @@ export function ReferenceAdminView(props: ReferenceAdminViewProps) {
               ))}
             </Select>
           </FormField>
-          <label className="mb-4 flex min-h-touch items-center gap-2 text-body-sm md:mt-7">
+          <label className="mb-4 flex min-h-touch items-center gap-2 text-body-sm sm:mt-7">
             <input
               type="checkbox"
               checked={filters.reported === true}

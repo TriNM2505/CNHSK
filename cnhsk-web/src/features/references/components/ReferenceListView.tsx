@@ -78,7 +78,7 @@ export function ReferenceListView(props: ReferenceListViewProps) {
         loading={
           <div role="status">
             <span className="sr-only">Đang tải tài liệu…</span>
-            <div aria-hidden="true" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Skeleton variant="card" />
               <Skeleton variant="card" />
             </div>
@@ -101,7 +101,7 @@ export function ReferenceListView(props: ReferenceListViewProps) {
           />
         }
       >
-        <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {result?.items.map((item) => (
             <Card key={item.id} className="flex min-w-0 flex-col gap-3 break-words">
               {item.thumbnailUrl ? (
