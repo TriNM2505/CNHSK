@@ -159,7 +159,7 @@ function TemplateGuide({
   template: ImportTemplate
 }) {
   return (
-    <div className="mt-4 rounded-md border border-line bg-canvas p-4">
+    <div className="mt-4 rounded-md border border-brand-100 bg-surface-subtle p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-h3 text-ink">
@@ -182,8 +182,10 @@ function TemplateGuide({
           size="sm"
           variant="outline"
         >
-          <Download aria-hidden="true" className="size-4" />
-          Tải mẫu
+          <span className="inline-flex items-center gap-2">
+            <Download aria-hidden="true" className="size-4 shrink-0" />
+            Tải mẫu
+          </span>
         </Button>
       </div>
       {downloadError ? (
@@ -319,8 +321,8 @@ function PreviewResult({
           </p>
         </div>
         {blockedMessage ? null : (
-          <p className="flex items-center gap-2 text-body-sm text-ink-secondary">
-            <Clock3 aria-hidden="true" className="size-4" />
+          <p className="inline-flex items-center gap-2 rounded-pill border border-brand-100 bg-brand-50 px-3 py-1 text-body-sm text-ink-secondary">
+            <Clock3 aria-hidden="true" className="size-4 shrink-0 text-brand-700" />
             Còn hiệu lực{' '}
             <span className="font-semibold tabular-nums text-ink">
               {formatImportCountdown(remainingSeconds)}
@@ -392,7 +394,7 @@ function PreviewResult({
           <label className="mt-2 flex min-h-touch cursor-pointer items-center gap-3 text-ink">
             <input
               checked={acknowledgeRerun}
-              className="size-5 shrink-0 accent-brand-700"
+              className="size-5 shrink-0 accent-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
               disabled={busy || Boolean(blockedMessage)}
               onChange={(event) => onAcknowledgeChange(event.target.checked)}
               type="checkbox"
@@ -473,11 +475,19 @@ function HistorySection({
   ]
 
   return (
-    <section aria-labelledby="import-history-title" className="mt-8">
-      <h2 className="mb-3 flex items-center gap-2 text-h2 text-ink" id="import-history-title">
-        <History aria-hidden="true" className="size-5" />
-        Lịch sử nhập
-      </h2>
+    <section
+      aria-labelledby="import-history-title"
+      className="mt-8 rounded-md border border-line bg-surface p-5 sm:p-6"
+    >
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-h2 text-ink" id="import-history-title">
+          <History aria-hidden="true" className="size-5 text-brand-700" />
+          Lịch sử nhập
+        </h2>
+        {state === 'ready' && data ? (
+          <StatusBadge tone="neutral">{data.totalElements} lần nhập</StatusBadge>
+        ) : null}
+      </div>
       {state === 'loading' ? <Skeleton variant="table" /> : null}
       {state === 'error' ? (
         <ErrorState
@@ -560,7 +570,7 @@ export function LearningDataImportView({
   }
 
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content p-4 sm:p-6">
+    <main className="mx-auto w-full min-w-0 max-w-content px-4 py-6 pb-20 sm:px-6">
       <PageHeader
         subtitle="Tải file CSV theo mẫu, kiểm tra trước rồi mới ghi vào kho dữ liệu học."
         title="Nhập dữ liệu học tập"
@@ -639,8 +649,10 @@ export function LearningDataImportView({
                   Mẫu nhập này chưa sẵn sàng trên máy chủ
                 </p>
                 <Button disabled size="sm" variant="outline">
-                  <Download aria-hidden="true" className="size-4" />
-                  Tải mẫu
+                  <span className="inline-flex items-center gap-2">
+                    <Download aria-hidden="true" className="size-4 shrink-0" />
+                    Tải mẫu
+                  </span>
                 </Button>
               </div>
             ) : selectedTemplate ? (
@@ -659,8 +671,10 @@ export function LearningDataImportView({
 
             <div className="mt-4">
               <Button disabled={busy || templateUnavailable} loading={uploading} type="submit">
-                <FileUp aria-hidden="true" className="size-4" />
-                {uploading ? 'Đang kiểm tra' : 'Tải lên và kiểm tra'}
+                <span className="inline-flex items-center gap-2">
+                  <FileUp aria-hidden="true" className="size-4 shrink-0" />
+                  {uploading ? 'Đang kiểm tra' : 'Tải lên và kiểm tra'}
+                </span>
               </Button>
             </div>
           </form>

@@ -1,4 +1,5 @@
-import { Download, FilePenLine, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Download, FilePenLine, RefreshCw } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import {
   Button,
@@ -127,24 +128,24 @@ function RunSummary({ run }: { run: ImportRun }) {
           </StatusBadge>
         </div>
 
-        <dl className="mt-5 grid gap-4 text-body-sm sm:grid-cols-2 lg:grid-cols-3">
-          <div>
+        <dl className="mt-5 grid gap-3 text-body-sm sm:grid-cols-2 lg:grid-cols-5">
+          <div className="rounded-sm bg-canvas p-3">
             <dt className="text-ink-muted">Loại dữ liệu</dt>
             <dd className="mt-1 font-semibold text-ink">
               {run.dataType === null ? '—' : IMPORT_DATA_TYPE_LABELS[run.dataType]}
             </dd>
           </div>
-          <div>
+          <div className="rounded-sm bg-canvas p-3">
             <dt className="text-ink-muted">Người nhập</dt>
             <dd className="mt-1 font-semibold text-ink">{run.createdBy.displayName}</dd>
           </div>
-          <div>
+          <div className="rounded-sm bg-canvas p-3">
             <dt className="text-ink-muted">Thời điểm tạo</dt>
             <dd className="mt-1 font-semibold text-ink">
               <time dateTime={run.createdAt}>{formatImportDate(run.createdAt)}</time>
             </dd>
           </div>
-          <div>
+          <div className="rounded-sm bg-canvas p-3">
             <dt className="text-ink-muted">Thời điểm hoàn thành</dt>
             <dd className="mt-1 font-semibold text-ink">
               {run.completedAt ? (
@@ -154,7 +155,7 @@ function RunSummary({ run }: { run: ImportRun }) {
               )}
             </dd>
           </div>
-          <div>
+          <div className="rounded-sm bg-canvas p-3">
             <dt className="text-ink-muted">Số lỗi</dt>
             <dd className="mt-1 font-semibold tabular-nums text-ink">{run.errorCount}</dd>
           </div>
@@ -256,8 +257,20 @@ export function ImportReportView({
   state,
 }: ImportReportViewProps) {
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content p-4 sm:p-6">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-20 sm:px-6">
+      {state !== 'empty' ? (
+        <div>
+          <Link
+            className="inline-flex min-h-touch items-center gap-1.5 text-label text-brand-700 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            to="/content/imports"
+          >
+            <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
+            Về danh sách nhập
+          </Link>
+        </div>
+      ) : null}
       <PageHeader
+        className="mb-0"
         subtitle="Xem kết quả đã ghi và các dòng cần sửa trong file nguồn."
         title="Báo cáo nhập dữ liệu"
       />
@@ -289,8 +302,10 @@ export function ImportReportView({
           <div className="mt-6 flex flex-wrap gap-3">
             {run.errorCount > 0 ? (
               <Button loading={downloadPending} onClick={onDownloadErrors}>
-                <Download aria-hidden="true" className="size-4" />
-                {downloadPending ? 'Đang tải' : 'Tải danh sách lỗi'}
+                <span className="inline-flex items-center gap-2">
+                  <Download aria-hidden="true" className="size-4 shrink-0" />
+                  {downloadPending ? 'Đang tải' : 'Tải danh sách lỗi'}
+                </span>
               </Button>
             ) : null}
             <Button
@@ -301,13 +316,17 @@ export function ImportReportView({
               }
               variant="outline"
             >
-              <FilePenLine aria-hidden="true" className="size-4" />
-              Sửa file và nhập lại
+              <span className="inline-flex items-center gap-2">
+                <FilePenLine aria-hidden="true" className="size-4 shrink-0" />
+                Sửa file và nhập lại
+              </span>
             </Button>
             {run.status === 'RUNNING' ? (
               <Button onClick={onReload} variant="outline">
-                <RefreshCw aria-hidden="true" className="size-4" />
-                Tải lại
+                <span className="inline-flex items-center gap-2">
+                  <RefreshCw aria-hidden="true" className="size-4 shrink-0" />
+                  Tải lại
+                </span>
               </Button>
             ) : null}
           </div>
