@@ -26,6 +26,7 @@ export type NavigationItem = {
   icon: ComponentType<SVGProps<SVGSVGElement>>
   label: string
   mobileLabel?: string
+  roles?: readonly RoleCode[]
   role?: RoleCode
   mobilePlacement?: 'more'
   to: string
@@ -101,6 +102,14 @@ export const gameNavigationItem = {
 } as const
 
 export const adminNavigation: readonly NavigationItem[] = [
+  {
+    activePrefixes: ['/content/ai-review'],
+    icon: ListChecks,
+    label: 'Duyệt câu hỏi AI',
+    mobileLabel: 'Duyệt AI',
+    roles: ['TEACHER', 'CONTENT_EDITOR'],
+    to: '/content/ai-review',
+  },
   {
     activePrefixes: ['/content/exams'],
     icon: FileText,

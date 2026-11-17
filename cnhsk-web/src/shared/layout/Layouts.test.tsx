@@ -305,7 +305,11 @@ describe('AdminLayout', () => {
     })
     for (const label of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const nav = screen.getByRole('navigation', { name: label })
-      expect(within(nav).getAllByRole('link')).toHaveLength(1)
+      expect(within(nav).getAllByRole('link')).toHaveLength(2)
+      expect(within(nav).getByRole('link', { name: 'Duyệt câu hỏi AI' })).toHaveAttribute(
+        'href',
+        '/content/ai-review',
+      )
       expect(within(nav).getByRole('link', { name: 'Chấm bài viết' })).toHaveAttribute(
         'aria-current',
         'page',
@@ -361,8 +365,9 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(12)
+      expect(within(navigation).getAllByRole('link')).toHaveLength(13)
       for (const label of [
+        'Duyệt câu hỏi AI',
         'Quản lý đề thi',
         'Nhập dữ liệu',
         'Tiên quyết chủ đề',
@@ -389,6 +394,32 @@ describe('AdminLayout', () => {
       })
       expect(screen.queryByRole('link', { name: 'Bài chờ duyệt' })).not.toBeInTheDocument()
       expect(screen.queryByRole('link', { name: 'Báo cáo vi phạm' })).not.toBeInTheDocument()
+    },
+  )
+  it.each([
+    ['TEACHER'],
+    ['CONTENT_EDITOR'],
+    ['TEACHER', 'CONTENT_EDITOR'],
+    ['ADMIN', 'TEACHER'],
+  ] as const)('shows one AI review link on each surface for explicit roles %j', (...roles) => {
+    renderLayout(<AdminLayout>Duyệt</AdminLayout>, {
+      initialPath: '/content/ai-review',
+      user: { ...learner, roles: [...roles] },
+    })
+    for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
+      const nav = within(screen.getByRole('navigation', { name }))
+      expect(nav.getAllByRole('link', { name: 'Duyệt câu hỏi AI' })).toHaveLength(1)
+      expect(nav.getByRole('link', { name: 'Duyệt câu hỏi AI' })).toHaveAttribute(
+        'aria-current',
+        'page',
+      )
+    }
+  })
+  it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT'] as const)(
+    'hides AI review from %s alone',
+    (role) => {
+      renderLayout(<AdminLayout>Duyệt</AdminLayout>, { user: { ...learner, roles: [role] } })
+      expect(screen.queryByRole('link', { name: 'Duyệt câu hỏi AI' })).not.toBeInTheDocument()
     },
   )
   it.each([

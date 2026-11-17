@@ -1,3 +1,4 @@
+import { previews as aiReviewPreviews } from '@/features/ai-review/catalog.preview'
 import { createElement } from 'react'
 import { previews as adminSettingsPreviews } from '@/features/admin-settings/catalog.preview'
 
@@ -227,6 +228,7 @@ export const previewRegistry: readonly PreviewEntry[] = [
     render: () => createElement(AdminLayoutGallery),
     title: 'AdminLayout',
   },
+  ...aiReviewPreviews,
   ...authPreviews,
   ...adminSettingsPreviews,
   ...communityPreviews,

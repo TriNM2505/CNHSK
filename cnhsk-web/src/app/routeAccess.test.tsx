@@ -4,6 +4,19 @@ import { appRouteDefinitions, canUserAccessRoute, findKnownRoute } from '@/app/r
 import { appRoutes } from '@/app/routes'
 
 describe('route access table', () => {
+  it('grants SCR-058 only to explicit Teacher or Content Editor roles', () => {
+    const route = findKnownRoute('/content/ai-review')!
+    expect(route).toMatchObject({
+      scr: 'SCR-058',
+      access: ['TEACHER', 'CONTENT_EDITOR'],
+      layout: 'admin',
+    })
+    const user = { id: 1, displayName: 'Test', email: 'test@example.invalid', emailVerified: true }
+    for (const role of ['TEACHER', 'CONTENT_EDITOR'] as const)
+      expect(canUserAccessRoute({ ...user, roles: [role] }, route.access)).toBe(true)
+    for (const role of ['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT'] as const)
+      expect(canUserAccessRoute({ ...user, roles: [role] }, route.access)).toBe(false)
+  })
   it('assigns all exam management paths only to CONTENT_EDITOR and keeps new static', () => {
     for (const path of ['/content/exams', '/content/exams/new', '/content/exams/2301']) {
       const route = findKnownRoute(path)!
