@@ -1,3 +1,4 @@
+import { ArrowLeft, Layers, Play, Trash2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
@@ -60,7 +61,10 @@ export function DeckDetailView(props: DeckDetailViewProps) {
         title={props.deck?.name ?? 'Chi tiết bộ thẻ'}
         actions={
           <Button to="/library/decks" variant="outline">
-            Về danh sách bộ thẻ
+            <span className="inline-flex items-center gap-2">
+              <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
+              <span>Về danh sách bộ thẻ</span>
+            </span>
           </Button>
         }
       />
@@ -98,24 +102,33 @@ export function DeckDetailView(props: DeckDetailViewProps) {
       {props.review ??
         (props.deck ? (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-brand-100 bg-brand-50 p-5">
-              <div className="min-w-0 space-y-1">
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-brand-100 bg-surface-subtle p-5 shadow-sm">
+              <div className="min-w-0 space-y-1.5">
                 {props.deck.description ? (
                   <p className="whitespace-pre-wrap break-words text-body text-ink">
                     {props.deck.description}
                   </p>
                 ) : null}
-                <p className="text-body-sm font-medium text-ink-secondary">
-                  {props.deck.cardCount} thẻ · {props.deck.dueCount} đến hạn · Tối đa 500 thẻ trong
-                  bộ
+                <p className="inline-flex items-center gap-1.5 text-body-sm font-medium text-ink-secondary">
+                  <Layers aria-hidden="true" className="size-4 shrink-0 text-brand-700" />
+                  <span>
+                    {props.deck.cardCount} thẻ · {props.deck.dueCount} đến hạn · Tối đa 500 thẻ
+                    trong bộ
+                  </span>
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button disabled={props.busy} onClick={props.onReview}>
-                  Ôn bộ này
+                  <span className="inline-flex items-center gap-2">
+                    <Play aria-hidden="true" className="size-4 shrink-0" />
+                    <span>Ôn bộ này</span>
+                  </span>
                 </Button>
                 <Button disabled={props.busy} variant="danger" onClick={props.onDeleteDeck}>
-                  Xoá bộ thẻ
+                  <span className="inline-flex items-center gap-2">
+                    <Trash2 aria-hidden="true" className="size-4 shrink-0" />
+                    <span>Xoá bộ thẻ</span>
+                  </span>
                 </Button>
               </div>
             </div>
@@ -135,15 +148,17 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                         .map((card) => (
                           <li
                             key={card.id}
-                            className="space-y-3 rounded-md border border-line bg-surface p-5"
+                            className="space-y-3 rounded-md border border-line bg-surface p-5 shadow-sm"
                           >
-                            <p
-                              className="whitespace-pre-wrap break-words font-hanzi text-h3 text-ink"
-                              lang="zh-CN"
-                            >
-                              {card.front}
-                            </p>
-                            <p className="whitespace-pre-wrap break-words text-body text-ink-secondary">
+                            <div className="rounded-sm border border-brand-100 bg-surface-subtle p-3.5">
+                              <p
+                                className="whitespace-pre-wrap break-words font-hanzi text-h3 text-brand-800"
+                                lang="zh-CN"
+                              >
+                                {card.front}
+                              </p>
+                            </div>
+                            <p className="whitespace-pre-wrap break-words border-l-2 border-brand-100 pl-3 text-body text-ink-secondary">
                               {card.back}
                             </p>
                             <p className="text-caption text-ink-secondary">
@@ -189,7 +204,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                 <form
                   aria-label="Sửa bộ thẻ"
                   noValidate
-                  className="space-y-3 rounded-md border border-line bg-surface p-5"
+                  className="space-y-3 rounded-md border border-line bg-surface p-5 shadow-sm"
                   onSubmit={(event) => {
                     event.preventDefault()
                     props.onSaveDeck()
@@ -239,7 +254,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                 <form
                   aria-label="Soạn thẻ"
                   noValidate
-                  className="space-y-3 rounded-md border border-line bg-surface p-4"
+                  className="space-y-3 rounded-md border border-brand-100 bg-surface-subtle p-5 shadow-sm"
                   onSubmit={(event) => {
                     event.preventDefault()
                     props.onSaveCard()
@@ -248,47 +263,49 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                   <h2 className="text-h3 text-ink">
                     {props.cardDraft.id === undefined ? 'Thẻ mới' : 'Sửa thẻ'}
                   </h2>
-                  <fieldset disabled={props.busy}>
-                    <legend className="sr-only">Hai mặt của thẻ</legend>
-                    <FormField
-                      htmlFor="card-front"
-                      label="Mặt trước"
-                      required
-                      hint={`${characterCount(props.cardDraft.front)}/200 ký tự`}
-                    >
-                      <Textarea
-                        value={props.cardDraft.front}
-                        onChange={(event) =>
-                          props.onCardChange({ ...props.cardDraft, front: event.target.value })
-                        }
-                      />
-                    </FormField>
-                    <FormField
-                      htmlFor="card-back"
-                      label="Mặt sau"
-                      required
-                      hint={`${characterCount(props.cardDraft.back)}/2.000 ký tự`}
-                    >
-                      <Textarea
-                        value={props.cardDraft.back}
-                        onChange={(event) =>
-                          props.onCardChange({ ...props.cardDraft, back: event.target.value })
-                        }
-                      />
-                    </FormField>
-                  </fieldset>
-                  {props.cardValidation ? (
-                    <p role="alert" className="text-body-sm text-danger">
-                      {props.cardValidation}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="submit" disabled={props.busy}>
-                      Lưu thẻ
-                    </Button>
-                    <Button disabled={props.busy} variant="outline" onClick={props.onNewCard}>
-                      Nhập thẻ mới
-                    </Button>
+                  <div className="space-y-3 rounded-md border border-line bg-surface p-4">
+                    <fieldset disabled={props.busy}>
+                      <legend className="sr-only">Hai mặt của thẻ</legend>
+                      <FormField
+                        htmlFor="card-front"
+                        label="Mặt trước"
+                        required
+                        hint={`${characterCount(props.cardDraft.front)}/200 ký tự`}
+                      >
+                        <Textarea
+                          value={props.cardDraft.front}
+                          onChange={(event) =>
+                            props.onCardChange({ ...props.cardDraft, front: event.target.value })
+                          }
+                        />
+                      </FormField>
+                      <FormField
+                        htmlFor="card-back"
+                        label="Mặt sau"
+                        required
+                        hint={`${characterCount(props.cardDraft.back)}/2.000 ký tự`}
+                      >
+                        <Textarea
+                          value={props.cardDraft.back}
+                          onChange={(event) =>
+                            props.onCardChange({ ...props.cardDraft, back: event.target.value })
+                          }
+                        />
+                      </FormField>
+                    </fieldset>
+                    {props.cardValidation ? (
+                      <p role="alert" className="text-body-sm text-danger">
+                        {props.cardValidation}
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="submit" disabled={props.busy}>
+                        Lưu thẻ
+                      </Button>
+                      <Button disabled={props.busy} variant="outline" onClick={props.onNewCard}>
+                        Nhập thẻ mới
+                      </Button>
+                    </div>
                   </div>
                 </form>
               </div>

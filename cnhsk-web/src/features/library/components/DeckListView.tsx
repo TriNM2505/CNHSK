@@ -1,6 +1,9 @@
+import { ArrowRight, Layers, PlusCircle } from 'lucide-react'
+
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
   Button,
+  Card,
   EmptyState,
   ErrorState,
   FormField,
@@ -49,9 +52,19 @@ export function DeckListView(props: DeckListViewProps) {
         title="Bộ thẻ của tôi"
         subtitle="Tạo bộ thẻ riêng và ôn lại những điều muốn nhớ."
       />
-      <p className="rounded-md border border-brand-100 bg-brand-50 p-4 text-body-sm text-ink">
-        Giới hạn: 50 bộ thẻ, tối đa 500 thẻ trong mỗi bộ.
-      </p>
+
+      <Card className="flex flex-wrap items-center justify-between gap-3 border-brand-100 bg-surface-subtle p-4 sm:px-5">
+        <div className="flex items-center gap-2 text-body-sm text-ink">
+          <Layers aria-hidden="true" className="size-4 shrink-0 text-brand-700" />
+          <p>Giới hạn: 50 bộ thẻ, tối đa 500 thẻ trong mỗi bộ.</p>
+        </div>
+        {props.state === 'ready' ? (
+          <span className="rounded-pill border border-brand-100 bg-surface px-3 py-0.5 text-caption font-semibold text-brand-700">
+            Tổng cộng {props.decks.length} bộ
+          </span>
+        ) : null}
+      </Card>
+
       <div className="grid min-w-0 items-start gap-6 lg:grid-cols-2">
         <section aria-label="Danh sách bộ thẻ" className="min-w-0 space-y-4">
           {props.state === 'loading' ? (
@@ -81,20 +94,30 @@ export function DeckListView(props: DeckListViewProps) {
                   .map((deck) => (
                     <li
                       key={deck.id}
-                      className="space-y-3 rounded-md border border-line bg-surface p-5"
+                      className="space-y-3 rounded-md border border-line border-b-4 border-b-brand-100 bg-surface p-5 shadow-sm"
                     >
-                      <h2 className="break-words text-h3 text-ink">{deck.name}</h2>
-                      {deck.description ? (
-                        <p className="whitespace-pre-wrap break-words text-body text-ink-secondary">
-                          {deck.description}
-                        </p>
-                      ) : null}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 space-y-1">
+                          <h2 className="break-words text-h3 text-ink">{deck.name}</h2>
+                          {deck.description ? (
+                            <p className="whitespace-pre-wrap break-words text-body text-ink-secondary">
+                              {deck.description}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-brand-100 bg-brand-50 font-hanzi text-body font-semibold text-brand-700">
+                          卡
+                        </div>
+                      </div>
                       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-                        <p className="text-body-sm font-medium text-ink-secondary">
+                        <p className="rounded-pill border border-line bg-canvas px-3 py-1 text-body-sm font-medium text-ink-secondary">
                           {deck.cardCount} thẻ · {deck.dueCount} đến hạn
                         </p>
                         <Button to={`/library/decks/${deck.id}`} variant="outline">
-                          Mở bộ thẻ
+                          <span className="inline-flex items-center gap-2">
+                            <span>Mở bộ thẻ</span>
+                            <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+                          </span>
                         </Button>
                       </div>
                     </li>
@@ -112,110 +135,115 @@ export function DeckListView(props: DeckListViewProps) {
         <form
           aria-label="Tạo bộ thẻ"
           noValidate
-          className="min-w-0 space-y-4 rounded-md border border-line bg-surface p-5 sm:p-6"
+          className="min-w-0 space-y-4 rounded-md border border-brand-100 bg-surface-subtle p-5 shadow-sm sm:p-6"
           onSubmit={(event) => {
             event.preventDefault()
             props.onCreate()
           }}
         >
-          <h2 className="text-h3 text-ink">Tạo bộ thẻ</h2>
-          <fieldset disabled={props.pending}>
-            <legend className="sr-only">Thông tin bộ mới</legend>
-            <FormField
-              htmlFor="deck-name"
-              label="Tên bộ thẻ"
-              hint={`${characterCount(props.draft.name)}/100 ký tự`}
-              required
-            >
-              <Input
-                value={props.draft.name}
-                onChange={(event) => props.onChange({ ...props.draft, name: event.target.value })}
-              />
-            </FormField>
-            <FormField
-              htmlFor="deck-description"
-              label="Mô tả"
-              hint={`${characterCount(props.draft.description)}/500 ký tự`}
-            >
-              <Textarea
-                value={props.draft.description}
-                onChange={(event) =>
-                  props.onChange({ ...props.draft, description: event.target.value })
-                }
-              />
-            </FormField>
-            <FormField htmlFor="deck-source" label="Nguồn tạo bộ thẻ">
-              <Select
-                value={props.draft.source}
-                onChange={(event) =>
-                  props.onChange({
-                    ...props.draft,
-                    source: event.target.value === 'topic' ? 'topic' : 'empty',
-                  })
-                }
+          <div className="flex items-center gap-2">
+            <PlusCircle aria-hidden="true" className="size-5 shrink-0 text-brand-700" />
+            <h2 className="text-h3 text-ink">Tạo bộ thẻ</h2>
+          </div>
+          <div className="space-y-4 rounded-md border border-line bg-surface p-4">
+            <fieldset disabled={props.pending}>
+              <legend className="sr-only">Thông tin bộ mới</legend>
+              <FormField
+                htmlFor="deck-name"
+                label="Tên bộ thẻ"
+                hint={`${characterCount(props.draft.name)}/100 ký tự`}
+                required
               >
-                <option value="empty">Bộ trống</option>
-                <option value="topic">Từ chủ đề</option>
-              </Select>
-            </FormField>
-            {props.draft.source === 'topic' ? (
-              <>
-                {props.topicsState === 'loading' ? <p role="status">Đang tải chủ đề…</p> : null}
-                {props.topicsState === 'error' ? (
-                  <ErrorState
-                    title="Chưa tải được chủ đề"
-                    message={
-                      props.topicsError ? flashcardError(props.topicsError) : 'Vui lòng thử lại.'
-                    }
-                    onRetry={props.onTopicsRetry}
-                  />
-                ) : null}
-                {props.topicsState === 'empty' ? (
-                  <p className="text-body-sm text-ink-secondary">
-                    Chưa có chủ đề để tạo bộ. Bạn vẫn có thể tạo bộ trống.
-                  </p>
-                ) : null}
-                {props.topicsState === 'ready' ? (
-                  <FormField htmlFor="deck-topic" label="Chủ đề" required>
-                    <Select
-                      value={props.draft.topicId}
-                      onChange={(event) =>
-                        props.onChange({ ...props.draft, topicId: event.target.value })
+                <Input
+                  value={props.draft.name}
+                  onChange={(event) => props.onChange({ ...props.draft, name: event.target.value })}
+                />
+              </FormField>
+              <FormField
+                htmlFor="deck-description"
+                label="Mô tả"
+                hint={`${characterCount(props.draft.description)}/500 ký tự`}
+              >
+                <Textarea
+                  value={props.draft.description}
+                  onChange={(event) =>
+                    props.onChange({ ...props.draft, description: event.target.value })
+                  }
+                />
+              </FormField>
+              <FormField htmlFor="deck-source" label="Nguồn tạo bộ thẻ">
+                <Select
+                  value={props.draft.source}
+                  onChange={(event) =>
+                    props.onChange({
+                      ...props.draft,
+                      source: event.target.value === 'topic' ? 'topic' : 'empty',
+                    })
+                  }
+                >
+                  <option value="empty">Bộ trống</option>
+                  <option value="topic">Từ chủ đề</option>
+                </Select>
+              </FormField>
+              {props.draft.source === 'topic' ? (
+                <>
+                  {props.topicsState === 'loading' ? <p role="status">Đang tải chủ đề…</p> : null}
+                  {props.topicsState === 'error' ? (
+                    <ErrorState
+                      title="Chưa tải được chủ đề"
+                      message={
+                        props.topicsError ? flashcardError(props.topicsError) : 'Vui lòng thử lại.'
                       }
-                    >
-                      <option value="">Chọn chủ đề</option>
-                      {props.topics.map((topic) => (
-                        <option key={topic.id} value={topic.id}>
-                          {topic.name} ({topic.totalWords} từ)
-                        </option>
-                      ))}
-                    </Select>
-                  </FormField>
-                ) : null}
-              </>
+                      onRetry={props.onTopicsRetry}
+                    />
+                  ) : null}
+                  {props.topicsState === 'empty' ? (
+                    <p className="text-body-sm text-ink-secondary">
+                      Chưa có chủ đề để tạo bộ. Bạn vẫn có thể tạo bộ trống.
+                    </p>
+                  ) : null}
+                  {props.topicsState === 'ready' ? (
+                    <FormField htmlFor="deck-topic" label="Chủ đề" required>
+                      <Select
+                        value={props.draft.topicId}
+                        onChange={(event) =>
+                          props.onChange({ ...props.draft, topicId: event.target.value })
+                        }
+                      >
+                        <option value="">Chọn chủ đề</option>
+                        {props.topics.map((topic) => (
+                          <option key={topic.id} value={topic.id}>
+                            {topic.name} ({topic.totalWords} từ)
+                          </option>
+                        ))}
+                      </Select>
+                    </FormField>
+                  ) : null}
+                </>
+              ) : null}
+            </fieldset>
+            {props.validation ? (
+              <p role="alert" className="text-body-sm text-danger">
+                {props.validation}
+              </p>
             ) : null}
-          </fieldset>
-          {props.validation ? (
-            <p role="alert" className="text-body-sm text-danger">
-              {props.validation}
-            </p>
-          ) : null}
-          {props.createError ? (
-            <div role="alert">
-              <ErrorState
-                title="Chưa tạo được bộ thẻ"
-                message={flashcardError(props.createError)}
-                requestId={props.createError.requestId}
-              />
-            </div>
-          ) : null}
-          <Button
-            type="submit"
-            loading={props.pending}
-            disabled={props.draft.source === 'topic' && props.topicsState !== 'ready'}
-          >
-            Tạo bộ thẻ
-          </Button>
+            {props.createError ? (
+              <div role="alert">
+                <ErrorState
+                  title="Chưa tạo được bộ thẻ"
+                  message={flashcardError(props.createError)}
+                  requestId={props.createError.requestId}
+                />
+              </div>
+            ) : null}
+            <Button
+              type="submit"
+              loading={props.pending}
+              disabled={props.draft.source === 'topic' && props.topicsState !== 'ready'}
+            >
+              Tạo bộ thẻ
+            </Button>
+          </div>
         </form>
       </div>
     </main>

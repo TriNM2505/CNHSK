@@ -1,3 +1,5 @@
+import { RotateCw, Sparkles } from 'lucide-react'
+
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import { Button, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 
@@ -26,12 +28,28 @@ export function FlashcardReviewView(props: FlashcardReviewViewProps) {
   return (
     <section
       aria-label="Ôn bộ thẻ"
-      className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-6"
+      className="space-y-4 rounded-md border border-brand-100 bg-surface p-5 shadow-sm sm:p-6"
     >
-      <h2 className="text-h3 text-ink">{props.ahead ? 'Ôn trước' : 'Ôn bộ này'}</h2>
-      <p className="text-body-sm text-ink-secondary">
-        Ôn thẻ chỉ đổi lịch của thẻ, không đổi mức thành thạo
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="space-y-1">
+          <div className="inline-flex items-center gap-1.5 text-brand-700">
+            <Sparkles aria-hidden="true" className="size-4 shrink-0" />
+            <h2 className="text-h3 text-ink">{props.ahead ? 'Ôn trước' : 'Ôn bộ này'}</h2>
+          </div>
+          <p className="text-body-sm text-ink-secondary">
+            Ôn thẻ chỉ đổi lịch của thẻ, không đổi mức thành thạo
+          </p>
+        </div>
+        {props.state === 'ready' ? (
+          <p
+            role="status"
+            className="rounded-pill border border-brand-100 bg-brand-50 px-3 py-1 text-caption font-semibold text-brand-700"
+          >
+            Còn {props.remaining} thẻ trong lượt ôn
+          </p>
+        ) : null}
+      </div>
+
       {props.state === 'loading' ? (
         <div aria-label="Đang tải thẻ ôn">
           <Skeleton className="h-40" />
@@ -53,37 +71,42 @@ export function FlashcardReviewView(props: FlashcardReviewViewProps) {
         />
       ) : null}
       {props.completed ? (
-        <p role="status" className="text-body text-success">
+        <p
+          role="status"
+          className="rounded-md border border-success bg-success-bg p-4 text-body font-medium text-success"
+        >
           Đã ôn xong lượt này.
-        </p>
-      ) : null}
-      {props.state === 'ready' ? (
-        <p role="status" className="text-body-sm text-ink-secondary">
-          Còn {props.remaining} thẻ trong lượt ôn
         </p>
       ) : null}
       {props.state === 'ready' && props.card ? (
         <>
-          <div className="space-y-4 rounded-md border border-line bg-canvas p-6">
-            <div className="space-y-1">
-              <h3 className="text-label text-ink-secondary">Mặt trước</h3>
+          <div className="space-y-4 rounded-md border border-brand-100 bg-surface-subtle p-6 shadow-sm">
+            <div className="space-y-2">
+              <h3 className="text-caption font-semibold uppercase tracking-wide text-brand-700">
+                Mặt trước
+              </h3>
               <p
-                className="whitespace-pre-wrap break-words font-hanzi text-h2 text-ink"
+                className="whitespace-pre-wrap break-words rounded-md border border-line bg-surface p-4 font-hanzi text-h2 text-ink"
                 lang="zh-CN"
               >
                 {props.card.front}
               </p>
             </div>
             {props.flipped ? (
-              <div className="space-y-1 border-t border-line pt-4">
-                <h3 className="text-label text-ink-secondary">Mặt sau</h3>
-                <p className="whitespace-pre-wrap break-words text-body text-ink">
+              <div className="space-y-2 border-t border-brand-100 pt-4">
+                <h3 className="text-caption font-semibold uppercase tracking-wide text-ink-secondary">
+                  Mặt sau
+                </h3>
+                <p className="whitespace-pre-wrap break-words rounded-md border border-line bg-surface p-4 text-body text-ink">
                   {props.card.back}
                 </p>
               </div>
             ) : (
               <Button disabled={props.pending} onClick={props.onFlip}>
-                Lật thẻ
+                <span className="inline-flex items-center gap-2">
+                  <RotateCw aria-hidden="true" className="size-4 shrink-0" />
+                  <span>Lật thẻ</span>
+                </span>
               </Button>
             )}
           </div>
@@ -114,7 +137,7 @@ export function FlashcardReviewView(props: FlashcardReviewViewProps) {
         </div>
       ) : null}
       {props.result ? (
-        <p role="status" className="text-body-sm text-success">
+        <p role="status" className="text-body-sm font-medium text-success">
           Lần ôn kế tiếp:{' '}
           <time dateTime={props.result.nextReviewAt}>
             {flashcardDate(props.result.nextReviewAt)}

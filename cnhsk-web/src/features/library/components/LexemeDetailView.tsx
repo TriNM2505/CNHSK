@@ -1,4 +1,4 @@
-import { ArrowLeft, Volume2 } from 'lucide-react'
+import { ArrowLeft, BookOpenText, Quote, Sparkles, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -86,14 +86,18 @@ function RelatedLexemes({
               className="block h-full rounded-md no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
               to={dictionaryDetailHref(entry.id, backTo)}
             >
-              <Card className="h-full space-y-1 p-4" variant="interactive">
-                <HanziText className="text-ink" size="sm">
-                  {entry.text}
-                </HanziText>
-                {entry.pinyin ? (
-                  <p className="text-body-sm font-medium text-brand-700">{entry.pinyin}</p>
-                ) : null}
-                <p className="text-body-sm text-ink-secondary">{entry.meaningVi}</p>
+              <Card className="flex h-full items-start gap-3 p-4" variant="interactive">
+                <div className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-sm border border-brand-100 bg-surface-subtle px-2 py-1">
+                  <HanziText className="text-brand-800" size="sm">
+                    {entry.text}
+                  </HanziText>
+                </div>
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  {entry.pinyin ? (
+                    <p className="text-body-sm font-semibold text-brand-700">{entry.pinyin}</p>
+                  ) : null}
+                  <p className="text-body-sm text-ink-secondary">{entry.meaningVi}</p>
+                </div>
               </Card>
             </Link>
           </li>
@@ -160,24 +164,41 @@ export function LexemeDetailView({
         <>
           <section
             aria-label="Thông tin mục từ"
-            className="space-y-4 rounded-md border border-line bg-surface p-5 sm:p-6"
+            className="space-y-4 rounded-md border border-brand-100 bg-surface-subtle p-5 shadow-sm sm:p-6"
           >
-            {entry.pinyin ? <p className="text-h3 text-brand-700">{entry.pinyin}</p> : null}
-            <p className="whitespace-pre-wrap break-words text-body text-ink">{entry.meaningVi}</p>
-            <dl className="grid grid-cols-2 gap-3 rounded-sm bg-canvas p-4 text-body-sm sm:grid-cols-4">
-              <div>
-                <dt className="text-ink-muted">Hán Việt</dt>
-                <dd className="mt-0.5 font-medium text-ink">{entry.sinoViet || 'Chưa có'}</dd>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="space-y-1">
+                {entry.pinyin ? (
+                  <p className="text-h3 font-semibold text-brand-700">{entry.pinyin}</p>
+                ) : null}
               </div>
-              <div>
-                <dt className="text-ink-muted">Cấp HSK</dt>
-                <dd className="mt-0.5 font-medium text-ink">
+              {entry.audioUrl ? <LexemeAudio key={entry.audioUrl} url={entry.audioUrl} /> : null}
+            </div>
+
+            <div className="rounded-md border border-line bg-surface p-4">
+              <div className="mb-1.5 flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wide text-brand-700">
+                <BookOpenText aria-hidden="true" className="size-3.5 shrink-0" />
+                <span>Nghĩa tiếng Việt</span>
+              </div>
+              <p className="whitespace-pre-wrap break-words text-body text-ink">
+                {entry.meaningVi}
+              </p>
+            </div>
+
+            <dl className="grid grid-cols-2 gap-3 text-body-sm sm:grid-cols-4">
+              <div className="rounded-sm border border-line bg-surface p-3.5 shadow-sm">
+                <dt className="text-caption text-ink-muted">Hán Việt</dt>
+                <dd className="mt-1 font-semibold text-ink">{entry.sinoViet || 'Chưa có'}</dd>
+              </div>
+              <div className="rounded-sm border border-line bg-surface p-3.5 shadow-sm">
+                <dt className="text-caption text-ink-muted">Cấp HSK</dt>
+                <dd className="mt-1 font-semibold text-brand-700">
                   {entry.hskLevel != null ? `HSK ${entry.hskLevel}` : 'Chưa phân cấp'}
                 </dd>
               </div>
-              <div>
-                <dt className="text-ink-muted">Bộ thủ</dt>
-                <dd className="mt-0.5 font-medium text-ink">
+              <div className="rounded-sm border border-line bg-surface p-3.5 shadow-sm">
+                <dt className="text-caption text-ink-muted">Bộ thủ</dt>
+                <dd className="mt-1 font-semibold text-ink">
                   {entry.radical ? (
                     <span className="font-hanzi" lang="zh-CN">
                       {entry.radical}
@@ -187,53 +208,68 @@ export function LexemeDetailView({
                   )}
                 </dd>
               </div>
-              <div>
-                <dt className="text-ink-muted">Số nét</dt>
-                <dd className="mt-0.5 font-medium tabular-nums text-ink">
+              <div className="rounded-sm border border-line bg-surface p-3.5 shadow-sm">
+                <dt className="text-caption text-ink-muted">Số nét</dt>
+                <dd className="mt-1 font-semibold tabular-nums text-ink">
                   {entry.strokeCount ?? 'Chưa có'}
                 </dd>
               </div>
             </dl>
-            {entry.audioUrl ? <LexemeAudio key={entry.audioUrl} url={entry.audioUrl} /> : null}
           </section>
+
           {entry.kind === 'CHAR' && entry.strokeData != null ? (
             <LexemeStrokeAnimation character={entry.text} key={entry.id} />
           ) : null}
+
           {entry.structure ? (
             <section className="space-y-2">
-              <h2 className="text-h3 text-ink">Cấu trúc</h2>
+              <div className="flex items-center gap-2">
+                <Sparkles aria-hidden="true" className="size-4 shrink-0 text-brand-700" />
+                <h2 className="text-h3 text-ink">Cấu trúc</h2>
+              </div>
               <p className="whitespace-pre-wrap break-words rounded-md border border-brand-100 bg-brand-50 p-4 font-hanzi text-body text-ink">
                 {entry.structure}
               </p>
             </section>
           ) : null}
+
           <section className="space-y-3">
-            <h2 className="text-h3 text-ink">Ví dụ</h2>
+            <div className="flex items-center gap-2">
+              <Quote aria-hidden="true" className="size-4 shrink-0 text-brand-700" />
+              <h2 className="text-h3 text-ink">Ví dụ</h2>
+            </div>
             {entry.examples.length ? (
               <ul className="space-y-3">
                 {entry.examples.map((example, index) => (
                   <li
-                    className="space-y-1 rounded-md border border-line bg-surface p-4 sm:p-5"
+                    className="rounded-md border border-line bg-surface p-4 shadow-sm sm:p-5"
                     key={index}
                   >
-                    {example.cn ? (
-                      <p
-                        className="whitespace-pre-wrap break-words font-hanzi text-h3 text-ink"
-                        lang="zh-CN"
-                      >
-                        {example.cn}
-                      </p>
-                    ) : null}
-                    {example.pinyin ? (
-                      <p className="break-words text-body-sm font-medium text-brand-700">
-                        {example.pinyin}
-                      </p>
-                    ) : null}
-                    {example.vi ? (
-                      <p className="whitespace-pre-wrap break-words text-body text-ink-secondary">
-                        {example.vi}
-                      </p>
-                    ) : null}
+                    <div className="flex items-start gap-3">
+                      <span className="inline-flex size-6 shrink-0 items-center justify-center rounded-pill border border-brand-100 bg-brand-50 text-caption font-semibold text-brand-700">
+                        {index + 1}
+                      </span>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        {example.cn ? (
+                          <p
+                            className="whitespace-pre-wrap break-words font-hanzi text-h3 text-ink"
+                            lang="zh-CN"
+                          >
+                            {example.cn}
+                          </p>
+                        ) : null}
+                        {example.pinyin ? (
+                          <p className="break-words text-body-sm font-medium text-brand-700">
+                            {example.pinyin}
+                          </p>
+                        ) : null}
+                        {example.vi ? (
+                          <p className="whitespace-pre-wrap break-words border-l-2 border-brand-100 pl-3 text-body text-ink-secondary">
+                            {example.vi}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -241,6 +277,7 @@ export function LexemeDetailView({
               <p className="text-body-sm text-ink-secondary">Chưa có ví dụ cho mục từ này.</p>
             )}
           </section>
+
           <RelatedLexemes backTo={backTo} entries={entry.components} title="Chữ thành phần" />
           <RelatedLexemes backTo={backTo} entries={entry.containedIn} title="Từ chứa chữ này" />
           <RelatedLexemes backTo={backTo} entries={entry.related} title="Mục từ liên quan" />

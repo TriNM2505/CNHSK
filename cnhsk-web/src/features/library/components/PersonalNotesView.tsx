@@ -1,8 +1,10 @@
+import { BookMarked, Plus, RotateCcw, Search, Sparkles, Tag, Trash2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import type { ApiError } from '@/shared/api'
 import {
   Button,
+  Card,
   EmptyState,
   ErrorState,
   FormField,
@@ -63,7 +65,7 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
       {!trash ? (
         <form
           noValidate
-          className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-5"
+          className="space-y-4 rounded-md border border-brand-100 bg-surface-subtle p-4 shadow-sm sm:p-5"
           onSubmit={(event) => {
             event.preventDefault()
             props.onSearch()
@@ -98,14 +100,19 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
             </p>
           ) : null}
           <div className="flex flex-wrap gap-2">
-            <Button type="submit">Tìm ghi chú</Button>
+            <Button type="submit">
+              <span className="inline-flex items-center gap-2">
+                <Search aria-hidden="true" className="size-4 shrink-0" />
+                <span>Tìm ghi chú</span>
+              </span>
+            </Button>
             <Button variant="outline" onClick={props.onClear}>
               Xoá bộ lọc
             </Button>
           </div>
         </form>
       ) : (
-        <p className="rounded-md border border-line bg-surface-subtle p-4 text-body-sm text-ink-secondary">
+        <p className="rounded-md border border-brand-100 bg-surface-subtle p-4 text-body-sm text-ink-secondary">
           Có thể khôi phục trong 30 ngày. Ghi chú quá hạn được ẩn khỏi thùng rác.
         </p>
       )}
@@ -152,11 +159,17 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
         <>
           <ul className="space-y-3">
             {items.map((note) => (
-              <li key={note.id} className="space-y-3 rounded-md border border-line bg-surface p-4">
-                <h2 className="break-words text-h3 text-ink">
-                  {note.title || 'Ghi chú không có tiêu đề'}
-                </h2>
-                <p className="whitespace-pre-wrap break-words text-body text-ink">
+              <li
+                key={note.id}
+                className="space-y-3 rounded-md border border-line border-l-4 border-l-brand-600 bg-surface p-4 shadow-sm sm:p-5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="break-words text-h3 text-ink">
+                    {note.title || 'Ghi chú không có tiêu đề'}
+                  </h2>
+                  <BookMarked aria-hidden="true" className="mt-1 size-4 shrink-0 text-brand-700" />
+                </div>
+                <p className="whitespace-pre-wrap break-words rounded-sm bg-canvas p-3 text-body text-ink">
                   {snippetParts(note.snippet, trash ? '' : search.q).map((part, index) =>
                     part.match ? <mark key={index}>{part.text}</mark> : part.text,
                   )}
@@ -166,50 +179,68 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
                   className="flex flex-wrap gap-2 text-body-sm text-ink-secondary"
                 >
                   {note.tags.map((tag, index) => (
-                    <li key={index} className="rounded-sm bg-brand-50 px-2 py-1">
-                      {tag}
+                    <li
+                      key={index}
+                      className="inline-flex items-center gap-1 rounded-pill border border-brand-100 bg-brand-50 px-2.5 py-0.5 text-caption font-medium text-brand-700"
+                    >
+                      <Tag aria-hidden="true" className="size-3 shrink-0" />
+                      <span>{tag}</span>
                     </li>
                   ))}
                 </ul>
-                <p className="text-caption text-ink-secondary">
-                  Cập nhật: <time dateTime={note.updatedAt}>{noteDate(note.updatedAt)}</time>
-                </p>
-                {trash && 'restorableUntil' in note ? (
-                  <>
-                    <p className="text-caption text-ink-secondary">
-                      Đã xoá: <time dateTime={note.deletedAt}>{noteDate(note.deletedAt)}</time>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                  <div className="space-y-0.5 text-caption text-ink-secondary">
+                    <p>
+                      Cập nhật: <time dateTime={note.updatedAt}>{noteDate(note.updatedAt)}</time>
                     </p>
-                    <p className="text-caption text-ink-secondary">
-                      Khôi phục đến:{' '}
-                      <time dateTime={note.restorableUntil}>{noteDate(note.restorableUntil)}</time>
-                    </p>
+                    {trash && 'restorableUntil' in note ? (
+                      <>
+                        <p>
+                          Đã xoá: <time dateTime={note.deletedAt}>{noteDate(note.deletedAt)}</time>
+                        </p>
+                        <p>
+                          Khôi phục đến:{' '}
+                          <time dateTime={note.restorableUntil}>
+                            {noteDate(note.restorableUntil)}
+                          </time>
+                        </p>
+                      </>
+                    ) : null}
+                  </div>
+                  {trash && 'restorableUntil' in note ? (
                     <Button
                       variant="outline"
                       loading={props.restoringId === note.id}
                       disabled={props.busy}
                       onClick={() => props.onRestore(note.id)}
                     >
-                      Khôi phục
+                      <span className="inline-flex items-center gap-2">
+                        <RotateCcw aria-hidden="true" className="size-4 shrink-0" />
+                        <span>Khôi phục</span>
+                      </span>
                     </Button>
-                  </>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      disabled={props.busy}
-                      onClick={() => props.onOpenNote(note.id)}
-                    >
-                      Mở ghi chú
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      disabled={props.busy}
-                      onClick={() => props.onDelete(note.id)}
-                    >
-                      Xoá ghi chú
-                    </Button>
-                  </div>
-                )}
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        disabled={props.busy}
+                        onClick={() => props.onOpenNote(note.id)}
+                      >
+                        Mở ghi chú
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        disabled={props.busy}
+                        onClick={() => props.onDelete(note.id)}
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <Trash2 aria-hidden="true" className="size-4 shrink-0" />
+                          <span>Xoá ghi chú</span>
+                        </span>
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -232,10 +263,29 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
         subtitle="Ghi lại điều muốn nhớ, tìm theo nội dung và thẻ."
         actions={
           <Button disabled={props.busy} onClick={props.onNew}>
-            Tạo ghi chú
+            <span className="inline-flex items-center gap-2">
+              <Plus aria-hidden="true" className="size-4 shrink-0" />
+              <span>Tạo ghi chú</span>
+            </span>
           </Button>
         }
       />
+
+      <Card className="flex flex-wrap items-center justify-between gap-3 border-brand-100 bg-surface-subtle p-4 sm:px-5">
+        <div className="flex items-center gap-2 text-body-sm text-ink">
+          <Sparkles aria-hidden="true" className="size-4 shrink-0 text-brand-700" />
+          <span>
+            Sổ tay học tập cá nhân giúp lưu mẹo nhớ chữ Hán, phân biệt từ cận nghĩa và ví dụ ngữ
+            cảnh.
+          </span>
+        </div>
+        {props.total !== undefined ? (
+          <span className="rounded-pill border border-brand-100 bg-surface px-3 py-0.5 text-caption font-semibold text-brand-700">
+            {props.total} mục
+          </span>
+        ) : null}
+      </Card>
+
       {props.notice ? (
         <p
           role="status"
