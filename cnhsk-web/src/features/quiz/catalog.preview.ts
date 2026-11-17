@@ -1,14 +1,15 @@
-import { createElement, useState } from 'react'
+import { createElement, Fragment, useState } from 'react'
 
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
 import { ApiError } from '@/shared/api'
 import { AuthContext, type AuthContextValue } from '@/shared/auth/AuthContext'
 import { LearnerLayout } from '@/shared/layout'
-import { EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import { Button, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 import { QuizListView } from './components/QuizListView'
 import { QuizAttemptView } from './components/QuizAttemptView'
 import { QuizResultView } from './components/QuizResultView'
 import { quizEngineSession, quizPage, quizResult } from './test-fixtures'
+import type { QuizListing } from './types'
 
 function previewState(state: PreviewState) {
   if (state === 'loading') return createElement(Skeleton, { variant: 'card' })
@@ -63,13 +64,60 @@ function ResultPreview({ state }: { state: PreviewState }) {
   )
 }
 
-function QuizPreview({ state }: { state: PreviewState }) {
+const quizSamples: QuizListing[] = [
+  quizPage.items[0]!,
+  quizPage.items[1]!,
+  { ...quizPage.items[2]!, topicName: 'Thời gian và sinh hoạt' },
+  {
+    topicId: 46,
+    topicName: 'Một chuyến đi nhỏ',
+    hskLevel: 2,
+    questionCount: 10,
+    availableQuestions: 15,
+    myFirstAttempt: null,
+    myBestRetryScore: null,
+  },
+  {
+    topicId: 47,
+    topicName: '学习中文 · Học mỗi ngày',
+    hskLevel: 1,
+    questionCount: 10,
+    availableQuestions: 18,
+    myFirstAttempt: { score: 70, submittedAt: '2026-11-17T03:00:00Z', suspicious: false },
+    myBestRetryScore: 90,
+  },
+  {
+    topicId: 48,
+    topicName: 'Món ăn và khẩu vị',
+    hskLevel: 3,
+    questionCount: 12,
+    availableQuestions: 20,
+    myFirstAttempt: null,
+    myBestRetryScore: null,
+  },
+]
+
+function QuizPreview({
+  state,
+  pending = false,
+  actionCode,
+  paginated = false,
+}: {
+  state: PreviewState
+  pending?: boolean
+  actionCode?: 'QUIZ_NOT_AVAILABLE' | 'RATE_LIMITED'
+  paginated?: boolean
+}) {
   const [hsk, setHsk] = useState('')
+  const [page, setPage] = useState(0)
+  const [selectedTopic, setSelectedTopic] = useState<number>()
+  const matches = quizSamples.filter((quiz) => !hsk || String(quiz.hskLevel) === hsk)
+  const size = paginated ? 3 : 20
   const auth: AuthContextValue = {
     user: {
       id: 1,
       displayName: 'Học viên xem trước',
-      email: 'quiz-preview@example.test',
+      email: '',
       emailVerified: true,
       roles: ['LEARNER'],
     },
@@ -82,25 +130,110 @@ function QuizPreview({ state }: { state: PreviewState }) {
   const content = createElement(QuizListView, {
     state,
     hsk,
-    result: state === 'empty' ? { ...quizPage, items: [], total: 0 } : quizPage,
+    result: {
+      items: state === 'empty' ? [] : matches.slice(page * size, (page + 1) * size),
+      page,
+      size,
+      total: state === 'empty' ? 0 : matches.length,
+    },
+    pendingTopic: pending ? matches[0]?.topicId : undefined,
+    actionError: actionCode
+      ? new ApiError({
+          status: actionCode === 'RATE_LIMITED' ? 429 : 422,
+          errorCode: actionCode,
+          message: 'Lỗi bắt đầu quiz mẫu.',
+        })
+      : undefined,
     error: new ApiError({
       status: 0,
       errorCode: 'NETWORK_ERROR',
       message: 'Không thể tải danh sách quiz. Vui lòng thử lại.',
     }),
-    onHskChange: setHsk,
-    onPageChange: () => undefined,
-    onRetry: () => undefined,
-    onStart: () => undefined,
+    onHskChange: (value) => {
+      setHsk(value)
+      setPage(0)
+      setSelectedTopic(undefined)
+    },
+    onPageChange: setPage,
+    onRetry: () => setSelectedTopic(undefined),
+    onStart: setSelectedTopic,
   })
   return createElement(
     AuthContext.Provider,
     { value: auth },
-    createElement(LearnerLayout, { gameOrigin: 'http://localhost:5174', children: content }),
+    createElement(LearnerLayout, {
+      gameOrigin: 'http://localhost:5174',
+      children: createElement(
+        Fragment,
+        null,
+        selectedTopic !== undefined
+          ? createElement(
+              'div',
+              {
+                className:
+                  'mx-4 mt-4 flex flex-wrap items-center gap-3 rounded-md border border-brand-100 bg-brand-50 p-3 text-body-sm text-ink-secondary sm:mx-6 lg:mx-8',
+                role: 'status',
+              },
+              'Đã chọn quiz mẫu. Bản xem trước không tạo lượt hoặc gửi câu trả lời.',
+              createElement(Button, {
+                to: '/__preview/frame/quiz-attempt/ready',
+                variant: 'outline',
+                children: 'Xem mẫu màn làm quiz',
+              }),
+            )
+          : null,
+        content,
+      ),
+    }),
   )
 }
 
 export const previews = [
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-043-ready',
+    scr: 'SCR-043',
+    title: 'Danh sách quiz — Redesign',
+    states: ['loading', 'empty', 'error', 'ready'],
+    render: (state) => createElement(QuizPreview, { state }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-043-pending',
+    scr: 'SCR-043',
+    title: 'Danh sách quiz — Đang bắt đầu',
+    states: ['ready'],
+    render: (state) => createElement(QuizPreview, { state, pending: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-043-rate-limited',
+    scr: 'SCR-043',
+    title: 'Danh sách quiz — Hạn mức bắt đầu',
+    states: ['ready'],
+    render: (state) => createElement(QuizPreview, { state, actionCode: 'RATE_LIMITED' }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-043-unavailable',
+    scr: 'SCR-043',
+    title: 'Danh sách quiz — Chủ đề chưa đủ câu hỏi',
+    states: ['ready'],
+    render: (state) => createElement(QuizPreview, { state, actionCode: 'QUIZ_NOT_AVAILABLE' }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-043-pagination',
+    scr: 'SCR-043',
+    title: 'Danh sách quiz — Phân trang mẫu',
+    states: ['ready'],
+    render: (state) => createElement(QuizPreview, { state, paginated: true }),
+  },
   {
     group: 'screen',
     fullFrame: true,

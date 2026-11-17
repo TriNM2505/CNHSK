@@ -1,4 +1,12 @@
-import { BookOpen, Flag, RotateCcw } from 'lucide-react'
+import {
+  ArrowRight,
+  BookOpen,
+  Flag,
+  ListChecks,
+  RotateCcw,
+  SlidersHorizontal,
+  Trophy,
+} from 'lucide-react'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
@@ -7,6 +15,7 @@ import {
   EmptyState,
   ErrorState,
   FormField,
+  HanziText,
   LevelBadge,
   PageHeader,
   Pagination,
@@ -16,6 +25,21 @@ import {
 } from '@/shared/ui'
 
 import type { QuizListingPage } from '../types'
+import { QuizHeaderArt } from './QuizHeaderArt'
+import { QuizLandscapeArt } from './QuizLandscapeArt'
+import './QuizListView.css'
+
+function QuizTopicText({ text }: { text: string }) {
+  return text.split(/([\p{Script=Han}\u3000-\u303f\uff00-\uffef]+)/u).map((part, index) =>
+    /[\p{Script=Han}\u3000-\u303f\uff00-\uffef]/u.test(part) ? (
+      <HanziText className="quiz-text" key={index} size="sm">
+        {part}
+      </HanziText>
+    ) : (
+      part
+    ),
+  )
+}
 
 type QuizListViewProps = {
   state: ApiQueryState
@@ -43,29 +67,50 @@ function actionMessage(error: ApiError): string {
 export function QuizListView(props: QuizListViewProps) {
   const { state, result, hsk, pendingTopic, error, actionError } = props
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 p-4 sm:p-6">
-      <PageHeader
-        title="Quiz theo chủ đề"
-        subtitle="Chọn chủ đề để thử sức với những câu hỏi ngắn."
-      />
-      <aside className="rounded-md border border-brand-100 bg-brand-50 p-4 text-body-sm text-ink">
+    <main className="quiz-catalog mx-auto w-full min-w-0 max-w-content space-y-4 px-4 py-6 pb-24 sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden rounded-md border border-brand-100 bg-brand-50 px-5 py-5 sm:px-6">
+        <PageHeader
+          className="relative z-nav mb-0"
+          title={
+            <span className="inline-flex items-center gap-3">
+              <span aria-hidden="true" className="h-7 w-1.5 shrink-0 rounded-pill bg-brand-600" />
+              Quiz theo chủ đề
+            </span>
+          }
+          subtitle="Chọn chủ đề để thử sức với những câu hỏi ngắn."
+        />
+        <QuizHeaderArt />
+      </div>
+      <aside className="flex items-start gap-3 rounded-md border border-brand-100 bg-brand-50 p-4 text-body-sm text-ink">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface text-brand-600">
+          <Trophy aria-hidden="true" className="size-5" />
+        </span>
         <p>
           Quiz là thi đua. Chỉ lần làm đầu tiên được tính xếp hạng. Quiz không ảnh hưởng tiến độ
           học.
         </p>
       </aside>
-      <div className="max-w-xs">
-        <FormField htmlFor="quiz-hsk" label="Cấp HSK">
-          <Select value={hsk} onChange={(event) => props.onHskChange(event.target.value)}>
-            <option value="">Mọi cấp</option>
-            {SUPPORTED_HSK_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                HSK {level}
-              </option>
-            ))}
-          </Select>
-        </FormField>
-      </div>
+      <Card className="flex min-w-0 flex-col gap-3 border-brand-100 p-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3 sm:w-72">
+          <SlidersHorizontal aria-hidden="true" className="size-5 shrink-0 text-brand-600" />
+          <FormField className="mb-0 min-w-0 flex-1" htmlFor="quiz-hsk" label="Cấp HSK">
+            <Select value={hsk} onChange={(event) => props.onHskChange(event.target.value)}>
+              <option value="">Mọi cấp</option>
+              {SUPPORTED_HSK_LEVELS.map((level) => (
+                <option key={level} value={level}>
+                  HSK {level}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+        </div>
+        {state === 'ready' && result ? (
+          <p className="inline-flex items-center gap-2 text-body-sm text-ink-secondary">
+            <ListChecks aria-hidden="true" className="size-4 text-brand-600" />
+            {result.total} chủ đề quiz
+          </p>
+        ) : null}
+      </Card>
       {actionError ? (
         <div
           role="alert"
@@ -83,7 +128,7 @@ export function QuizListView(props: QuizListViewProps) {
         <section
           aria-label="Đang tải quiz"
           aria-busy="true"
-          className="grid min-w-0 grid-cols-1 gap-4 min-[641px]:grid-cols-2 lg:grid-cols-3"
+          className="quiz-topic-grid grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           {[1, 2, 3].map((id) => (
             <Skeleton key={id} variant="card" />
@@ -103,6 +148,8 @@ export function QuizListView(props: QuizListViewProps) {
       ) : null}
       {state === 'empty' ? (
         <EmptyState
+          className="border-brand-100 py-6"
+          icon={<BookOpen aria-hidden="true" className="size-5" />}
           title="Chưa có quiz phù hợp"
           description="Các chủ đề cần đủ câu hỏi đã duyệt để mở quiz. Hãy chọn cấp HSK khác hoặc quay lại sau."
           action={
@@ -118,50 +165,65 @@ export function QuizListView(props: QuizListViewProps) {
       {state === 'ready' && result ? (
         <section
           aria-label="Các chủ đề quiz"
-          className="grid min-w-0 grid-cols-1 gap-4 min-[641px]:grid-cols-2 lg:grid-cols-3"
+          className="quiz-topic-grid quiz-catalog-enter grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           {result.items.map((quiz) => {
             const retry = quiz.myFirstAttempt !== null
             return (
               <Card
                 key={quiz.topicId}
-                className="flex min-w-0 flex-col gap-4 break-words [overflow-wrap:anywhere]"
+                className="group relative isolate min-w-0 overflow-hidden border-brand-100 p-4 shadow-sm transition duration-200 hover:border-brand-600 hover:shadow-md focus-within:border-brand-600 motion-safe:hover:-translate-y-0.5 sm:p-5"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-700">
-                    <BookOpen aria-hidden="true" className="size-5" />
+                <QuizLandscapeArt bridge={quiz.topicId % 2 === 0} />
+                <div className="relative z-base flex h-full min-w-0 flex-col gap-3 break-words">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-md border border-brand-100 bg-brand-50 text-brand-700 transition-transform duration-200 motion-safe:group-hover:-rotate-6">
+                      <BookOpen aria-hidden="true" className="size-5" />
+                    </div>
+                    <LevelBadge level={quiz.hskLevel} />
                   </div>
-                  <LevelBadge level={quiz.hskLevel} />
-                </div>
-                <h2 className="min-w-0 text-h3 text-ink">{quiz.topicName}</h2>
-                <p className="text-body-sm text-ink-secondary">{quiz.questionCount} câu hỏi</p>
-                <div className="space-y-1 text-body-sm text-ink-secondary">
-                  <p>
-                    {quiz.myFirstAttempt
-                      ? `Đã làm lần đầu: ${quiz.myFirstAttempt.score} điểm`
-                      : 'Chưa làm lần đầu'}
+                  <h2 className="quiz-topic-title min-w-0 text-h3 text-ink">
+                    <QuizTopicText text={quiz.topicName} />
+                  </h2>
+                  <p className="inline-flex items-center gap-2 text-body-sm text-ink-secondary">
+                    <ListChecks aria-hidden="true" className="size-4 shrink-0 text-brand-600" />
+                    {quiz.questionCount} câu hỏi
                   </p>
-                  {quiz.myFirstAttempt?.suspicious ? <p>Lượt đầu bị đánh dấu nghi vấn.</p> : null}
-                  {quiz.myBestRetryScore !== null ? (
-                    <p>Điểm làm lại tốt nhất: {quiz.myBestRetryScore}</p>
-                  ) : null}
+                  <div className="space-y-1 rounded-md border border-brand-100 bg-surface p-3 text-body-sm text-ink-secondary">
+                    <p>
+                      {quiz.myFirstAttempt
+                        ? `Đã làm lần đầu: ${quiz.myFirstAttempt.score} điểm`
+                        : 'Chưa làm lần đầu'}
+                    </p>
+                    {quiz.myFirstAttempt?.suspicious ? (
+                      <p className="text-warning">Lượt đầu bị đánh dấu nghi vấn.</p>
+                    ) : null}
+                    {quiz.myBestRetryScore !== null ? (
+                      <p>Điểm làm lại tốt nhất: {quiz.myBestRetryScore}</p>
+                    ) : null}
+                  </div>
+                  <p className="mt-auto flex items-center gap-2 text-body-sm font-semibold text-ink">
+                    {retry ? (
+                      <RotateCcw aria-hidden="true" className="size-4 shrink-0" />
+                    ) : (
+                      <Flag aria-hidden="true" className="size-4 shrink-0" />
+                    )}
+                    {retry ? 'Làm lại — không tính hạng' : 'Lượt đầu tính hạng'}
+                  </p>
+                  <Button
+                    className="w-full rounded-pill"
+                    aria-label={`${retry ? 'Làm lại' : 'Bắt đầu'} quiz ${quiz.topicName}`}
+                    disabled={pendingTopic !== undefined}
+                    loading={pendingTopic === quiz.topicId}
+                    onClick={() => props.onStart(quiz.topicId)}
+                  >
+                    {retry ? 'Làm lại' : 'Bắt đầu'}
+                    <ArrowRight
+                      aria-hidden="true"
+                      className="ml-2 inline-block size-4 align-middle transition-transform duration-200 motion-safe:group-hover:translate-x-1"
+                    />
+                  </Button>
                 </div>
-                <p className="mt-auto flex items-center gap-2 text-body-sm font-semibold text-ink">
-                  {retry ? (
-                    <RotateCcw aria-hidden="true" className="size-4 shrink-0" />
-                  ) : (
-                    <Flag aria-hidden="true" className="size-4 shrink-0" />
-                  )}
-                  {retry ? 'Làm lại — không tính hạng' : 'Lượt đầu tính hạng'}
-                </p>
-                <Button
-                  aria-label={`${retry ? 'Làm lại' : 'Bắt đầu'} quiz ${quiz.topicName}`}
-                  disabled={pendingTopic !== undefined}
-                  loading={pendingTopic === quiz.topicId}
-                  onClick={() => props.onStart(quiz.topicId)}
-                >
-                  {retry ? 'Làm lại' : 'Bắt đầu'}
-                </Button>
               </Card>
             )
           })}
