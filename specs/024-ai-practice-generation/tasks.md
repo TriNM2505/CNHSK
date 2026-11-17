@@ -17,7 +17,7 @@ Khoá §0.1 đọc qua `SettingsApi` nếu 023/T-01 đã merge (T-01 thêm vào 
 | T-03 | `AiPromptBuilder` (khối cố định + khối nút từ DB, không dữ liệu người học) + `AiQuestionValidator` | `…/learning/aigen/{AiPromptBuilder,AiQuestionValidator}.java` + test | §0.3, FR-007 · AT-09, AT-10 | ✅ MERGED (#226, da863ad) |
 | T-04 | `AiGenerationService` + `AiGenerationJob`: kiểm tài khoản đứng tên, tạo lô, gọi Claude ngoài transaction qua `TokenBudget`, lưu câu `PENDING_REVIEW` + KID, log | `…/learning/aigen/{AiGenerationService,AiGenerationJob}.java` + test | FR-001, FR-005, FR-006, FR-008…FR-010 · AT-01, AT-02, AT-07, AT-08 | ✅ MERGED (#234, 9ce518f) |
 | T-05 | Duyệt: hàng chờ, duyệt/từ chối, duyệt hàng loạt có dấu "đã xem"; dấu "đã xem" khi mở `GET /api/admin/questions/{id}`; `PUT` câu AI chờ duyệt cho `CONTENT_EDITOR` (**báo người giữ 010**); `SecurityConfig` | `…/learning/aigen/AiReviewService.java`, `…/aigen/web/AiReviewController.java`, `…/learning/knowledge/QuestionAdminService.java`, `SecurityConfig.java` + test | FR-011…FR-016 · AT-11…AT-15 | ✅ MERGED — PR #241 |
-| T-06 | Lịch sử lô + chạy thử (`ADMIN`); AT câu chưa duyệt không tới người học ở 011/012/019 | `…/learning/aigen/web/AiRunController.java`, `SecurityConfig.java` + test | FR-017…FR-019 · AT-16, AT-17 | ⬜ |
+| T-06 | Lịch sử lô + chạy thử (`ADMIN`); AT câu chưa duyệt không tới người học ở 011/012/019 | `…/learning/aigen/web/AiRunController.java`, `SecurityConfig.java` + test | FR-017…FR-019 · AT-16, AT-17 | ✅ MERGED — PR #255 |
 
 ## Đợt 2 · Frontend + hợp đồng
 
