@@ -10,7 +10,7 @@ import type {
 } from '../passwordResetForm'
 import { NEW_PASSWORD_REQUIREMENT } from '../passwordValidation'
 import { AuthSplitLayout } from './AuthSplitLayout'
-import { AuthBambooShell, CardCornerPandas, RightGiantPandaScene } from './PandaBambooScene'
+import { CardCornerPandas, LoginBambooBackdrop, RightGiantPandaScene } from './PandaBambooScene'
 
 export type ResetPasswordViewState = 'ready' | 'submitting' | 'error'
 
@@ -55,7 +55,8 @@ export function ResetPasswordView({
 
   if (!linkUsable || notice?.kind === 'invalid-token') {
     return (
-      <AuthBambooShell>
+      <div className="relative isolate overflow-hidden">
+        <LoginBambooBackdrop />
         <AuthSplitLayout
           aside={ASIDE}
           cardDecorator={<CardCornerPandas />}
@@ -82,12 +83,13 @@ export function ResetPasswordView({
           </div>
           <Button to={forgotTo}>Gửi liên kết mới</Button>
         </AuthSplitLayout>
-      </AuthBambooShell>
+      </div>
     )
   }
 
   return (
-    <AuthBambooShell>
+    <div className="relative isolate overflow-hidden">
+      <LoginBambooBackdrop />
       <AuthSplitLayout
         aside={ASIDE}
         cardDecorator={<CardCornerPandas />}
@@ -169,6 +171,6 @@ export function ResetPasswordView({
           </Button>
         </form>
       </AuthSplitLayout>
-    </AuthBambooShell>
+    </div>
   )
 }

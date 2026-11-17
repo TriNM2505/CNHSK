@@ -4,7 +4,7 @@ import type { FormEvent } from 'react'
 import { Button, FormField, Input, PageHeader, StatusBadge } from '@/shared/ui'
 
 import { AuthSplitLayout } from './AuthSplitLayout'
-import { AuthBambooShell, CardCornerPandas, RightGiantPandaScene } from './PandaBambooScene'
+import { CardCornerPandas, LoginBambooBackdrop, RightGiantPandaScene } from './PandaBambooScene'
 
 export type ForgotPasswordState = 'ready' | 'submitting' | 'sent' | 'error'
 
@@ -49,7 +49,8 @@ export function ForgotPasswordView({
 
   if (state === 'sent') {
     return (
-      <AuthBambooShell>
+      <div className="relative isolate overflow-hidden">
+        <LoginBambooBackdrop />
         <AuthSplitLayout
           aside={ASIDE}
           cardDecorator={<CardCornerPandas />}
@@ -82,12 +83,13 @@ export function ForgotPasswordView({
             </Button>
           </div>
         </AuthSplitLayout>
-      </AuthBambooShell>
+      </div>
     )
   }
 
   return (
-    <AuthBambooShell>
+    <div className="relative isolate overflow-hidden">
+      <LoginBambooBackdrop />
       <AuthSplitLayout
         aside={ASIDE}
         cardDecorator={<CardCornerPandas />}
@@ -159,6 +161,6 @@ export function ForgotPasswordView({
           </Button>
         </div>
       </AuthSplitLayout>
-    </AuthBambooShell>
+    </div>
   )
 }
