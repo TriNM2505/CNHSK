@@ -11,12 +11,14 @@ import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
   Button,
   Card,
+  EmptyState,
   ErrorState,
   FormField,
   Input,
   PageHeader,
   Section,
   Skeleton,
+  StatTile,
 } from '@/shared/ui'
 
 import type { PaidFeature, RedeemRequest, RedeemResult, Wallet } from '../types'
@@ -175,9 +177,10 @@ export function PlanCreditsView({
   }
 
   return (
-    <div className="mx-auto max-w-content">
+    <div className="mx-auto min-w-0 max-w-content">
       <PageHeader
         title="Gói dịch vụ và điểm"
+        subtitle="Theo dõi số dư và hạn mức của gói đang dùng."
         actions={
           <Button to="/account/credits/history" variant="outline">
             Lịch sử giao dịch
@@ -185,10 +188,7 @@ export function PlanCreditsView({
         }
       />
       {result ? (
-        <div
-          role="status"
-          className="mb-6 rounded-md border border-brand-100 bg-brand-50 p-4 text-body text-ink"
-        >
+        <div role="status" className="mb-6 rounded-md bg-success-bg p-4 text-body text-success">
           {result.cardType === 'CREDIT'
             ? `Đã nạp +${result.amount} điểm. Số dư: ${result.balance} điểm.`
             : `Đã cập nhật gói ${result.plan.name}.`}
@@ -208,65 +208,24 @@ export function PlanCreditsView({
       ) : wallet ? (
         <div className="space-y-6">
           <Section title="Gói hiện tại">
-            <Card>
-              <dl className="grid gap-4 sm:grid-cols-3">
-                <div>
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+              <StatTile
+                className="border-brand-100 bg-brand-50"
+                label="Số dư điểm"
+                value={`${wallet.balance} điểm`}
+              />
+              <Card>
+                <dl>
                   <dt className="text-label text-ink-secondary">Tên gói</dt>
-                  <dd className="mt-1 text-h3 text-ink">{wallet.plan.name}</dd>
-                </div>
-                <div>
-                  <dt className="text-label text-ink-secondary">Ngày hết hạn</dt>
-                  <dd className="mt-1 text-body text-ink">
+                  <dd className="mt-1 break-words text-h3 text-ink">{wallet.plan.name}</dd>
+                  <dt className="mt-3 text-label text-ink-secondary">Ngày hết hạn</dt>
+                  <dd className="mt-1 text-body-sm text-ink">
                     {wallet.plan.expiresAt
                       ? `${vietnamTime.format(new Date(wallet.plan.expiresAt))} (giờ Việt Nam)`
                       : 'Không có ngày hết hạn'}
                   </dd>
-                </div>
-                <div>
-                  <dt className="text-label text-ink-secondary">Số dư điểm</dt>
-                  <dd className="mt-1 text-h3 tabular-nums text-brand-700">
-                    {wallet.balance} điểm
-                  </dd>
-                </div>
-              </dl>
-            </Card>
-          </Section>
-          <Section
-            title="Hạn mức theo tính năng"
-            subtitle={`Đặt lại lúc ${vietnamTime.format(new Date(wallet.resetAt))} (giờ Việt Nam)`}
-          >
-            <div className="overflow-x-auto rounded-md border border-line bg-surface">
-              <table className="w-full text-body-sm">
-                <caption className="sr-only">Lượt sử dụng theo tính năng</caption>
-                <thead>
-                  <tr className="border-b border-line bg-surface-subtle text-left">
-                    <th scope="col" className="p-3">
-                      Tính năng
-                    </th>
-                    <th scope="col" className="p-3">
-                      Hạn mức
-                    </th>
-                    <th scope="col" className="p-3">
-                      Đã dùng
-                    </th>
-                    <th scope="col" className="p-3">
-                      Còn lại
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {wallet.quota.map((line) => (
-                    <tr key={line.feature} className="border-b border-line last:border-b-0">
-                      <th scope="row" className="p-3 text-left font-medium">
-                        {featureNames[line.feature]}
-                      </th>
-                      <td className="p-3 tabular-nums">{line.limit}</td>
-                      <td className="p-3 tabular-nums">{line.used}</td>
-                      <td className="p-3 font-semibold tabular-nums">{line.remaining}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                </dl>
+              </Card>
             </div>
           </Section>
           <Section title="Nạp mã thẻ">
@@ -350,8 +309,54 @@ export function PlanCreditsView({
               ) : null}
             </Card>
           </Section>
+          <Section
+            title="Hạn mức theo tính năng"
+            subtitle={`Đặt lại lúc ${vietnamTime.format(new Date(wallet.resetAt))} (giờ Việt Nam)`}
+          >
+            <div className="rounded-md border border-line bg-surface">
+              <table className="w-full table-fixed border-collapse text-body-sm">
+                <caption className="sr-only">Lượt sử dụng theo tính năng</caption>
+                <thead>
+                  <tr className="border-b border-line bg-surface-subtle text-ink">
+                    <th scope="col" className="w-2/5 break-words p-2 text-left sm:p-3">
+                      Tính năng
+                    </th>
+                    <th scope="col" className="break-words p-2 text-right sm:p-3">
+                      Hạn mức
+                    </th>
+                    <th scope="col" className="break-words p-2 text-right sm:p-3">
+                      Đã dùng
+                    </th>
+                    <th scope="col" className="break-words p-2 text-right sm:p-3">
+                      Còn lại
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {wallet.quota.map((line) => (
+                    <tr key={line.feature} className="border-b border-line last:border-b-0">
+                      <th scope="row" className="break-words p-2 text-left font-semibold sm:p-3">
+                        {featureNames[line.feature]}
+                      </th>
+                      <td className="break-words p-2 text-right tabular-nums sm:p-3">{line.limit}</td>
+                      <td className="break-words p-2 text-right tabular-nums sm:p-3">{line.used}</td>
+                      <td className="break-words p-2 text-right font-semibold tabular-nums sm:p-3">
+                        {line.remaining}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Section>
         </div>
-      ) : null}
+      ) : (
+        <EmptyState
+          title="Chưa có dữ liệu ví điểm"
+          description="Tải lại để kiểm tra gói và số dư."
+          action={<Button onClick={onRetry}>Thử lại</Button>}
+        />
+      )}
       <p className="mt-6 text-body-sm text-ink-secondary">
         Mã thẻ do hệ sinh thái phát hành; CNHSK không thu tiền
       </p>

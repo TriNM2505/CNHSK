@@ -233,7 +233,11 @@ export function CardBatchView({
   }
 
   const columns: readonly DataTableColumn<BatchSummary>[] = [
-    { id: 'id', header: 'Mã lô', render: (batch) => batch.batchId },
+    {
+      id: 'id',
+      header: 'Mã lô',
+      render: (batch) => <span className="break-all">{batch.batchId}</span>,
+    },
     {
       id: 'kind',
       header: 'Loại / Giá trị',
@@ -250,7 +254,7 @@ export function CardBatchView({
       id: 'channel',
       header: 'Kênh / Chiến dịch',
       render: (batch) => (
-        <span>
+        <span className="break-words">
           {channelNames[batch.channel]}
           {batch.campaign ? ` · ${batch.campaign}` : ''}
         </span>
@@ -310,14 +314,161 @@ export function CardBatchView({
   ]
 
   return (
-    <div className="mx-auto max-w-content space-y-6">
-      <PageHeader title="Lô mã thẻ" />
+    <div className="mx-auto min-w-0 max-w-content space-y-6">
+      <PageHeader
+        title="Lô mã thẻ"
+        subtitle="Xem tình trạng các lô và phát hành mã điểm hoặc mã gói."
+        actions={<Button href="#batch-issue">Phát hành lô mã</Button>}
+      />
+      {created ? (
+        <Section title="Mã thẻ vừa phát hành">
+          <div
+            role="status"
+            className="space-y-3 rounded-md border border-brand-100 bg-warning-bg p-4"
+          >
+            <p className="text-label text-ink">Đã phát hành lô {created.batchId}</p>
+            <p className="font-semibold text-danger">Mã chỉ hiện một lần — tải ngay</p>
+            <p className="text-body-sm text-ink-secondary">
+              Rời hoặc tải lại trang sẽ mất mã. Không thể lấy lại mã từ bảng lô.
+            </p>
+            <ul aria-label="Mã vừa phát hành" className="space-y-2 font-mono text-body text-ink">
+              {created.codes.map((code) => (
+                <li key={code} className="break-words">
+                  {code}
+                </li>
+              ))}
+            </ul>
+            <Button variant="outline" onClick={download}>
+              Tải CSV
+            </Button>
+            {downloadError ? (
+              <p role="alert" className="text-body-sm text-danger">
+                {downloadError}
+              </p>
+            ) : null}
+          </div>
+        </Section>
+      ) : null}
+
+      <Section
+        title="Danh sách lô"
+        subtitle="Lô mới nhất trước · Chỉ hiển thị số liệu lô, không lưu mã thẻ."
+        actions={
+          <Button
+            variant="outline"
+            disabled={Boolean(pending) || state === 'loading'}
+            onClick={onRetry}
+          >
+            Tải lại danh sách
+          </Button>
+        }
+      >
+        {selected ? (
+          <section
+            aria-label="Xác nhận khoá lô"
+            className="mb-4 space-y-3 rounded-md border border-line bg-surface-subtle p-4"
+          >
+            <h3 className="text-label text-ink">Khoá lô {selected.batchId}?</h3>
+            <p className="text-body-sm text-ink">
+              Chỉ khoá mã chưa dùng. Hiện có {selected.unused} mã chưa dùng; {selected.used} mã đã
+              dùng được giữ nguyên. Số mã khoá thực tế do máy chủ xác nhận.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="danger"
+                disabled={Boolean(pending)}
+                onClick={() => {
+                  setSelected(undefined)
+                  void onVoid(selected.batchId)
+                }}
+              >
+                Xác nhận khoá lô
+              </Button>
+              <Button
+                variant="outline"
+                disabled={Boolean(pending)}
+                onClick={() => setSelected(undefined)}
+              >
+                Huỷ khoá lô
+              </Button>
+            </div>
+          </section>
+        ) : null}
+        {pending === 'void' ? (
+          <p role="status" className="mb-3 text-body-sm text-ink-secondary">
+            Đang khoá mã chưa dùng…
+          </p>
+        ) : null}
+        {voided ? (
+          <p role="status" className="mb-3 text-body-sm text-ink">
+            Lô {voided.batchId}: đã khoá {voided.voided} mã chưa dùng.
+          </p>
+        ) : null}
+        {voidError ? (
+          <div role="alert" className="mb-4">
+            <ErrorState
+              title="Chưa khoá được lô"
+              message={
+                voidError.errorCode === 'CARD_BATCH_NOT_FOUND'
+                  ? 'Không tìm thấy lô mã. Tải lại danh sách để kiểm tra.'
+                  : 'Chưa thể khoá lô mã. Tải lại danh sách để kiểm tra trước khi thử lại.'
+              }
+              requestId={voidError.requestId}
+            />
+          </div>
+        ) : null}
+        {state === 'loading' ? (
+          <div role="status" aria-label="Đang tải danh sách lô">
+            <Skeleton variant="table" />
+          </div>
+        ) : state === 'error' ? (
+          <ErrorState
+            title="Chưa tải được danh sách lô"
+            message="Vui lòng thử lại để xem danh sách lô."
+            requestId={error?.requestId}
+            onRetry={onRetry}
+          />
+        ) : state === 'empty' ? (
+          <EmptyState
+            title="Chưa có lô mã"
+            description="Bạn có thể phát hành lô mã bằng biểu mẫu phía trên."
+          />
+        ) : (
+          <DataTable
+            caption="Lô mã thẻ"
+            columns={columns}
+            rowKey={(batch) => batch.batchId}
+            rows={data?.items ?? []}
+          />
+        )}
+        {data && data.total > 0 ? (
+          <Pagination
+            page={page + 1}
+            size={20}
+            total={data.total}
+            onChange={(next) => {
+              if (pending) return
+              setSelected(undefined)
+              onPageChange(next - 1)
+            }}
+          />
+        ) : null}
+      </Section>
+
       <Section
         title="Phát hành lô mã"
         subtitle="Tối đa 100 mã mỗi lô. Thẻ gói chỉ kích hoạt PREMIUM."
       >
-        <form ref={form} aria-label="Phát hành lô mã" noValidate onSubmit={prepare}>
-          <div className="grid gap-x-4 md:grid-cols-2">
+        <form
+          id="batch-issue"
+          tabIndex={-1}
+          ref={form}
+          className="min-w-0 scroll-mt-6 rounded-md border border-line bg-surface p-4 sm:p-6"
+          aria-label="Phát hành lô mã"
+          noValidate
+          onSubmit={prepare}
+        >
+          <div className="grid gap-x-4 sm:grid-cols-2">
             <FormField
               htmlFor="batch-cardType"
               label="Loại thẻ"
@@ -566,136 +717,6 @@ export function CardBatchView({
               requestId={createError.requestId}
             />
           </div>
-        ) : null}
-      </Section>
-
-      {created ? (
-        <Section title="Mã thẻ vừa phát hành">
-          <div role="status" className="space-y-3 rounded-md border border-line bg-surface p-4">
-            <p className="text-label text-ink">Đã phát hành lô {created.batchId}</p>
-            <p className="font-semibold text-danger">Mã chỉ hiện một lần — tải ngay</p>
-            <p className="text-body-sm text-ink-secondary">
-              Rời hoặc tải lại trang sẽ mất mã. Không thể lấy lại mã từ bảng lô.
-            </p>
-            <ul aria-label="Mã vừa phát hành" className="space-y-2 font-mono text-body text-ink">
-              {created.codes.map((code) => (
-                <li key={code}>{code}</li>
-              ))}
-            </ul>
-            <Button variant="outline" onClick={download}>
-              Tải CSV
-            </Button>
-            {downloadError ? (
-              <p role="alert" className="text-body-sm text-danger">
-                {downloadError}
-              </p>
-            ) : null}
-          </div>
-        </Section>
-      ) : null}
-
-      <Section
-        title="Danh sách lô"
-        subtitle="Lô mới nhất trước · Chỉ hiển thị số liệu lô, không lưu mã thẻ."
-        actions={
-          <Button
-            variant="outline"
-            disabled={Boolean(pending) || state === 'loading'}
-            onClick={onRetry}
-          >
-            Tải lại danh sách
-          </Button>
-        }
-      >
-        {selected ? (
-          <section
-            aria-label="Xác nhận khoá lô"
-            className="mb-4 space-y-3 rounded-md border border-line bg-surface-subtle p-4"
-          >
-            <h3 className="text-label text-ink">Khoá lô {selected.batchId}?</h3>
-            <p className="text-body-sm text-ink">
-              Chỉ khoá mã chưa dùng. Hiện có {selected.unused} mã chưa dùng; {selected.used} mã đã
-              dùng được giữ nguyên. Số mã khoá thực tế do máy chủ xác nhận.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="danger"
-                disabled={Boolean(pending)}
-                onClick={() => {
-                  setSelected(undefined)
-                  void onVoid(selected.batchId)
-                }}
-              >
-                Xác nhận khoá lô
-              </Button>
-              <Button
-                variant="outline"
-                disabled={Boolean(pending)}
-                onClick={() => setSelected(undefined)}
-              >
-                Huỷ khoá lô
-              </Button>
-            </div>
-          </section>
-        ) : null}
-        {pending === 'void' ? (
-          <p role="status" className="mb-3 text-body-sm text-ink-secondary">
-            Đang khoá mã chưa dùng…
-          </p>
-        ) : null}
-        {voided ? (
-          <p role="status" className="mb-3 text-body-sm text-ink">
-            Lô {voided.batchId}: đã khoá {voided.voided} mã chưa dùng.
-          </p>
-        ) : null}
-        {voidError ? (
-          <div role="alert" className="mb-4">
-            <ErrorState
-              title="Chưa khoá được lô"
-              message={
-                voidError.errorCode === 'CARD_BATCH_NOT_FOUND'
-                  ? 'Không tìm thấy lô mã. Tải lại danh sách để kiểm tra.'
-                  : 'Chưa thể khoá lô mã. Tải lại danh sách để kiểm tra trước khi thử lại.'
-              }
-              requestId={voidError.requestId}
-            />
-          </div>
-        ) : null}
-        {state === 'loading' ? (
-          <div role="status" aria-label="Đang tải danh sách lô">
-            <Skeleton variant="table" />
-          </div>
-        ) : state === 'error' ? (
-          <ErrorState
-            title="Chưa tải được danh sách lô"
-            message="Vui lòng thử lại để xem danh sách lô."
-            requestId={error?.requestId}
-            onRetry={onRetry}
-          />
-        ) : state === 'empty' ? (
-          <EmptyState
-            title="Chưa có lô mã"
-            description="Bạn có thể phát hành lô mã bằng biểu mẫu phía trên."
-          />
-        ) : (
-          <DataTable
-            caption="Lô mã thẻ"
-            columns={columns}
-            rowKey={(batch) => batch.batchId}
-            rows={data?.items ?? []}
-          />
-        )}
-        {data && data.total > 0 ? (
-          <Pagination
-            page={page + 1}
-            size={20}
-            total={data.total}
-            onChange={(next) => {
-              if (pending) return
-              setSelected(undefined)
-              onPageChange(next - 1)
-            }}
-          />
         ) : null}
       </Section>
     </div>

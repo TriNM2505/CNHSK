@@ -3,7 +3,7 @@ import { createElement, useRef, useState } from 'react'
 import { ApiError, toApiError } from '@/shared/api'
 import { downloadBlob } from '@/shared/lib/downloadBlob'
 
-import type { PreviewEntry } from '@/app/preview/types'
+import type { PreviewEntry, PreviewState } from '@/app/preview/types'
 
 import { PlanCreditsView } from './components/PlanCreditsView'
 import { TransactionHistoryView } from './components/TransactionHistoryView'
@@ -261,7 +261,14 @@ export const creditsReconciliationWithIssue: Reconciliation = {
   issues: [{ userId: 7, maskedEmail: 'ma***@example.test', seq: 4, kind: 'BALANCE_CHAIN_BROKEN' }],
 }
 
-function PlanCreditsPreview() {
+const previewStates = ['loading', 'empty', 'error', 'ready'] as const
+const sampleLoadError = new ApiError({
+  status: 500,
+  errorCode: 'INTERNAL_ERROR',
+  message: 'Không thể tải dữ liệu mẫu. Vui lòng thử lại.',
+})
+
+function PlanCreditsPreview({ state }: { state: PreviewState }) {
   const [wallet, setWallet] = useState(() => structuredClone(creditsWallet))
   const [pending, setPending] = useState(false)
   const [redeemError, setRedeemError] = useState<ApiError>()
@@ -300,8 +307,9 @@ function PlanCreditsPreview() {
     }
   }
   return createElement(PlanCreditsView, {
-    state: 'ready',
-    wallet,
+    state,
+    wallet: state === 'ready' ? wallet : undefined,
+    error: state === 'error' ? sampleLoadError : undefined,
     pending,
     redeemError,
     result,
@@ -310,18 +318,24 @@ function PlanCreditsPreview() {
   })
 }
 
-function TransactionHistoryPreview() {
+function TransactionHistoryPreview({ state }: { state: PreviewState }) {
   const [page, setPage] = useState(0)
   return createElement(TransactionHistoryView, {
-    state: 'ready',
-    data: page === 0 ? creditsTransactionPage : creditsTransactionLastPage,
+    state,
+    data:
+      state === 'ready'
+        ? page === 0
+          ? creditsTransactionPage
+          : creditsTransactionLastPage
+        : undefined,
+    error: state === 'error' ? sampleLoadError : undefined,
     page,
     onPageChange: setPage,
     onRetry: () => undefined,
   })
 }
 
-function CardBatchPreview() {
+function CardBatchPreview({ state }: { state: PreviewState }) {
   const [items, setItems] = useState(() => structuredClone(creditsBatchPage.items))
   const [page, setPage] = useState(0)
   const [created, setCreated] = useState<CreatedBatch>()
@@ -366,8 +380,12 @@ function CardBatchPreview() {
   }
 
   return createElement(CardBatchView, {
-    state: items.length ? 'ready' : 'empty',
-    data: { items: items.slice(page * 20, (page + 1) * 20), page, size: 20, total: items.length },
+    state: state === 'ready' && !items.length ? 'empty' : state,
+    data:
+      state === 'ready'
+        ? { items: items.slice(page * 20, (page + 1) * 20), page, size: 20, total: items.length }
+        : undefined,
+    error: state === 'error' ? sampleLoadError : undefined,
     page,
     created,
     voided,
@@ -378,7 +396,7 @@ function CardBatchPreview() {
   })
 }
 
-function PlanManagementPreview() {
+function PlanManagementPreview({ state }: { state: PreviewState }) {
   const [plans, setPlans] = useState(() => structuredClone(creditsPlans))
   const [saved, setSaved] = useState<PlanView>()
   const [failure, setFailure] = useState<{ code: PlanCode; error: ApiError }>()
@@ -410,8 +428,9 @@ function PlanManagementPreview() {
     setSaved(result)
   }
   return createElement(PlanManagementView, {
-    state: 'ready',
-    data: plans,
+    state,
+    data: state === 'ready' ? plans : undefined,
+    error: state === 'error' ? sampleLoadError : undefined,
     saved,
     failure,
     onSave: save,
@@ -419,7 +438,7 @@ function PlanManagementPreview() {
   })
 }
 
-function CreditLedgerPreview() {
+function CreditLedgerPreview({ state }: { state: PreviewState }) {
   const [filter, setFilter] = useState<LedgerFilter>()
   const [page, setPage] = useState(0)
   const [reconciliation, setReconciliation] = useState<Reconciliation>()
@@ -443,8 +462,9 @@ function CreditLedgerPreview() {
     },
   }
   return createElement(CreditLedgerView, {
-    state: !filter ? 'idle' : rows.length ? 'ready' : 'empty',
-    data: filter ? data : undefined,
+    state: state === 'ready' ? (!filter ? 'idle' : rows.length ? 'ready' : 'empty') : state,
+    data: state === 'ready' && filter ? data : undefined,
+    error: state === 'error' ? sampleLoadError : undefined,
     filter,
     page,
     reconciliation,
@@ -495,34 +515,39 @@ export const previews = [
     id: 'credits-wallet-samples',
     scr: 'SCR-030',
     title: 'Ví điểm — Dữ liệu mẫu',
-    render: () => createElement(PlanCreditsPreview),
+    states: previewStates,
+    render: (state) => createElement(PlanCreditsPreview, { key: state, state }),
   },
   {
     group: 'screen',
     id: 'credits-history-samples',
     scr: 'SCR-031',
     title: 'Lịch sử — Dữ liệu mẫu',
-    render: () => createElement(TransactionHistoryPreview),
+    states: previewStates,
+    render: (state) => createElement(TransactionHistoryPreview, { key: state, state }),
   },
   {
     group: 'screen',
     id: 'credits-batch-samples',
     scr: 'SCR-073',
     title: 'Lô mã thẻ — Dữ liệu mẫu',
-    render: () => createElement(CardBatchPreview),
+    states: previewStates,
+    render: (state) => createElement(CardBatchPreview, { key: state, state }),
   },
   {
     group: 'screen',
     id: 'credits-plan-samples',
     scr: 'SCR-074',
     title: 'Gói dịch vụ — Dữ liệu mẫu',
-    render: () => createElement(PlanManagementPreview),
+    states: previewStates,
+    render: (state) => createElement(PlanManagementPreview, { key: state, state }),
   },
   {
     group: 'screen',
     id: 'credits-ledger-samples',
     scr: 'SCR-075',
     title: 'Sổ cái — Dữ liệu mẫu',
-    render: () => createElement(CreditLedgerPreview),
+    states: previewStates,
+    render: (state) => createElement(CreditLedgerPreview, { key: state, state }),
   },
 ] satisfies readonly PreviewEntry[]
