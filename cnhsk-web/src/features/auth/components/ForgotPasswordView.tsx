@@ -4,7 +4,6 @@ import type { FormEvent } from 'react'
 import { Button, FormField, Input, PageHeader, StatusBadge } from '@/shared/ui'
 
 import { AuthSplitLayout } from './AuthSplitLayout'
-import { CardCornerPandas, LoginBambooBackdrop, RightGiantPandaScene } from './PandaBambooScene'
 
 export type ForgotPasswordState = 'ready' | 'submitting' | 'sent' | 'error'
 
@@ -49,15 +48,8 @@ export function ForgotPasswordView({
 
   if (state === 'sent') {
     return (
-      <div className="relative isolate overflow-hidden">
-        <LoginBambooBackdrop />
-        <AuthSplitLayout
-          aside={ASIDE}
-          cardDecorator={<CardCornerPandas />}
-          customAside={<RightGiantPandaScene mood="question" />}
-          hideMobileBanner
-        >
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
+      <AuthSplitLayout aside={ASIDE} backgroundVariant="005" hideMobileBanner>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
             <p className="text-label text-brand-700">Khôi phục mật khẩu</p>
             <StatusBadge tone="success">Đã nhận yêu cầu</StatusBadge>
           </div>
@@ -83,20 +75,12 @@ export function ForgotPasswordView({
             </Button>
           </div>
         </AuthSplitLayout>
-      </div>
     )
   }
 
   return (
-    <div className="relative isolate overflow-hidden">
-      <LoginBambooBackdrop />
-      <AuthSplitLayout
-        aside={ASIDE}
-        cardDecorator={<CardCornerPandas />}
-        customAside={<RightGiantPandaScene mood="question" />}
-        hideMobileBanner
-      >
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
+    <AuthSplitLayout aside={ASIDE} backgroundVariant="005" hideMobileBanner>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
           <p className="text-label text-brand-700">Hỗ trợ đăng nhập</p>
           <StatusBadge tone="neutral">Khôi phục mật khẩu</StatusBadge>
         </div>
@@ -161,6 +145,5 @@ export function ForgotPasswordView({
           </Button>
         </div>
       </AuthSplitLayout>
-    </div>
   )
 }
