@@ -1,4 +1,5 @@
 import { Button, FormField, Input, Select } from '@/shared/ui'
+import { ClipboardList, FileQuestion, ListChecks, Plus } from 'lucide-react'
 import {
   QUESTION_STATUS_LABELS,
   QUESTION_TYPE_LABELS,
@@ -10,16 +11,43 @@ export function ExamQuestionsEditor({
   form,
   disabled,
   onChange,
+  onPicker,
 }: {
   form: ExamForm
   disabled: boolean
   onChange: (form: ExamForm) => void
+  onPicker?: () => void
 }) {
   return (
-    <section aria-label="Câu hỏi đã chọn" className="min-w-0 space-y-4">
-      <h2 className="text-h2">Câu hỏi đã chọn ({form.questions.length}/300)</h2>
+    <section
+      aria-label="Câu hỏi đã chọn"
+      className="min-w-0 space-y-4 rounded-md border border-brand-100 bg-brand-50/30 p-5"
+    >
+      <h2 className="flex items-center gap-2 text-h3 font-bold">
+        <ListChecks aria-hidden="true" className="size-5 text-brand-700" />
+        Câu hỏi đã chọn ({form.questions.length}/300)
+      </h2>
       {!form.questions.length && (
-        <p className="text-ink-secondary">Chưa có câu hỏi. Có thể lưu nháp trước khi chọn câu.</p>
+        <div className="space-y-3 rounded-md border border-brand-100 bg-surface px-4 py-6 text-center">
+          <ClipboardList aria-hidden="true" className="mx-auto size-10 text-ink-muted" />
+          <p className="font-semibold">Chưa có câu hỏi nào</p>
+          <p className="text-body-sm text-ink-secondary">
+            Chưa có câu hỏi. Có thể lưu nháp trước khi chọn câu.
+          </p>
+          {onPicker && (
+            <Button
+              aria-label="Chọn câu hỏi từ ngân hàng"
+              variant="outline"
+              disabled={disabled}
+              onClick={onPicker}
+            >
+              <span className="inline-flex items-center gap-2">
+                <Plus aria-hidden="true" className="size-4" />
+                Chọn câu hỏi
+              </span>
+            </Button>
+          )}
+        </div>
       )}
       {form.sections.map((section, sectionIndex) => {
         const questions = form.questions.filter((q) => q.sectionKey === section.key)
@@ -57,9 +85,13 @@ export function ExamQuestionsEditor({
                   if (!disabled && /^\d+$/.test(raw))
                     onChange(moveQuestion(form, Number(raw), section.key, q.questionId))
                 }}
-                className="min-w-0 rounded-md border border-line bg-surface p-6"
+                className="min-w-0 rounded-md border border-brand-100 bg-surface p-4"
               >
-                <p className="break-words text-h3 text-ink">
+                <p className="flex items-start gap-2 break-words text-label font-semibold text-ink">
+                  <FileQuestion
+                    aria-hidden="true"
+                    className="mt-0.5 size-4 shrink-0 text-brand-700"
+                  />
                   {index + 1}. {q.code || `Câu #${q.questionId}`}
                 </p>
                 <p className="my-2 break-words text-body-sm text-ink-secondary">
