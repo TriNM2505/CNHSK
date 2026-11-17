@@ -1,0 +1,75 @@
+/* Responsive layout & scaling for Auth Ink-Wash screens using project tokens and breakpoints. */
+
+.auth-inkwash-stage {
+  @apply bg-canvas;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: left top;
+}
+
+.auth-inkwash-card {
+  @apply rounded-lg border border-line bg-surface shadow-md;
+  width: 100%;
+  max-width: 640px;
+}
+
+@screen lg {
+  .auth-inkwash-stage {
+    background-position: right bottom;
+    padding: 36px 5.47%;
+  }
+
+  .auth-inkwash-card {
+    margin-left: 0;
+    margin-right: 0;
+    width: clamp(500px, 50vw, 780px);
+    max-width: none;
+    padding: 24px 36px 26px;
+  }
+
+  .auth-inkwash-card--compact {
+    width: clamp(480px, 46vw, 720px);
+    padding: 18px 30px 20px;
+  }
+
+  .auth-inkwash-card--compact header {
+    margin-bottom: 0.75rem;
+  }
+
+  .auth-inkwash-card--compact form {
+    --tw-space-y-reverse: 0;
+  }
+
+  .auth-inkwash-card--compact form > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.625rem;
+  }
+
+  .auth-inkwash-card--compact form .rounded-md {
+    padding: 0.65rem 0.9rem;
+  }
+
+  .auth-inkwash-card--compact form .mb-4 {
+    margin-bottom: 0.55rem;
+  }
+
+  .auth-inkwash-card--compact .mt-6 {
+    margin-top: 0.75rem;
+    padding: 0.65rem 0.9rem;
+  }
+}
+
+@screen xl {
+  .auth-inkwash-stage {
+    padding: 48px 5.5%;
+  }
+
+  .auth-inkwash-card {
+    width: 47vw;
+    max-width: 1180px;
+    padding: 30px 44px 32px;
+  }
+
+  .auth-inkwash-card--compact {
+    padding: 24px 40px 26px;
+  }
+}
