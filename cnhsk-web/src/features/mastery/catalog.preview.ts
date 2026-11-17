@@ -206,6 +206,7 @@ export const newLearnerRecommendationsPreview: Recommendation[] = knowledgeTreeP
   }))
 
 const words = ['今天', '明天', '学校', '朋友', '水', '书', '猫', '桌子']
+const wordPinyins = ['jīntiān', 'míngtiān', 'xuéxiào', 'péngyou', 'shuǐ', 'shū', 'māo', 'zhuōzi']
 const meanings = ['hôm nay', 'ngày mai', 'trường học', 'bạn', 'nước', 'sách', 'mèo', 'cái bàn']
 const grammarCards = [
   { text: '我是学生。', meaning: 'Tôi là học sinh.', pinyin: 'Wǒ shì xuésheng.' },
@@ -261,12 +262,13 @@ export const nothingDuePreview: NothingDue = { session: null, reason: 'NOTHING_D
 function DueReviewPreview({ state }: { state: 'loading' | 'empty' | 'error' | 'ready' }) {
   const [position, setPosition] = useState(0)
   const [revealed, setRevealed] = useState(false)
-  const [answered, setAnswered] = useState(false)
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
   const item = dueReviewSessionPreview.items[position]
+  const answered = selectedAnswer !== null
   const advance = () => {
     setPosition((current) => current + 1)
     setRevealed(false)
-    setAnswered(false)
+    setSelectedAnswer(null)
   }
   if (state === 'loading') return createElement(DueReviewView, { state })
   if (state === 'error')
@@ -288,6 +290,9 @@ function DueReviewPreview({ state }: { state: 'loading' | 'empty' | 'error' | 'r
       nextDueAt: reviewSummaryPreview.nextDueAt,
       onRetrySummary: () => undefined,
     })
+  const correctKey = (['A', 'B', 'C', 'D'] as const)[position % 4] ?? 'A'
+  const correctMeaning = meanings[position % meanings.length] ?? ''
+  const pinyin = wordPinyins[position % wordPinyins.length] ?? ''
   return createElement(DueReviewView, {
     state: 'ready',
     session: dueReviewSessionPreview,
@@ -295,18 +300,19 @@ function DueReviewPreview({ state }: { state: 'loading' | 'empty' | 'error' | 'r
     remaining: dueReviewSessionPreview.items.length - position - Number(answered),
     pending: false,
     currentItemAnswered: answered,
+    selectedAnswer,
     isChoice: item.type === 'MEANING_CHOICE',
     revealed,
     result: answered
       ? {
           no: item.no,
-          correct: true,
-          correctAnswer: 'A',
-          explanation: 'Phản hồi mẫu cho phiên xem trước.',
+          correct: selectedAnswer === correctKey,
+          correctAnswer: correctKey,
+          explanation: `「${item.prompt.text ?? ''}」 (${pinyin}) có nghĩa là "${correctMeaning}".`,
         }
       : undefined,
-    onAnswer: async () => {
-      setAnswered(true)
+    onAnswer: async (answer: string) => {
+      setSelectedAnswer(answer)
     },
     onRating: advance,
     onReveal: () => setRevealed(true),
