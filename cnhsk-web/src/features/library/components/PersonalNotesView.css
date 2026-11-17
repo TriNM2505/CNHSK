@@ -1,0 +1,55 @@
+.personal-notes .notes-hanzi {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.personal-notes [role='tablist'] {
+  @apply flex-wrap gap-2 overflow-visible rounded-md border border-brand-100 bg-brand-50 p-2;
+}
+
+.personal-notes [role='tab'] {
+  @apply flex-1 rounded-sm border border-line bg-surface text-ink-secondary shadow-sm;
+}
+
+.personal-notes [role='tab'][aria-selected='true'] {
+  @apply border-brand-600 bg-brand-600 text-surface;
+}
+
+.personal-notes [role='tab'][aria-selected='true']:hover {
+  @apply bg-brand-700 text-surface;
+}
+
+.personal-notes [role='tabpanel'] {
+  @apply pb-0 pt-4;
+}
+
+.notes-workspace[data-editor-open='true'] .notes-grid {
+  @apply grid-cols-1;
+}
+
+[data-assistant-open='true'] .notes-workspace {
+  @apply grid-cols-1;
+}
+
+[data-assistant-open='true'] .notes-editor-panel {
+  @apply static;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .notes-enter {
+    animation: notes-reveal 200ms ease-out both;
+  }
+
+  @keyframes notes-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(theme('spacing.2'));
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

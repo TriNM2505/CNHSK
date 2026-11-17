@@ -1,0 +1,71 @@
+.detail-deck-hanzi {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.deck-flip-trigger > span {
+  @apply block w-full;
+}
+
+.deck-study-card .deck-flip-trigger {
+  @apply min-h-72 text-center;
+}
+
+.deck-study-card .deck-flip-face {
+  @apply flex min-h-64 flex-col items-center justify-center;
+}
+
+.deck-study-card .deck-flip-face > span {
+  @apply justify-center;
+}
+
+.deck-study-card .deck-card-front {
+  @apply text-hanzi-md;
+}
+
+[data-assistant-open='true'] .deck-detail-workspace {
+  @apply grid-cols-1;
+}
+
+[data-assistant-open='true'] .deck-detail-cards {
+  @apply col-span-1;
+}
+
+[data-assistant-open='true'] .deck-detail-editors {
+  @apply static;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .deck-flip-face {
+    animation: deck-face-turn 200ms ease-out both;
+  }
+
+  @keyframes deck-face-turn {
+    from {
+      opacity: 0;
+      transform: rotateY(-12deg);
+    }
+
+    to {
+      opacity: 1;
+      transform: rotateY(0);
+    }
+  }
+
+  .deck-detail-enter {
+    animation: deck-detail-reveal 200ms ease-out both;
+  }
+
+  @keyframes deck-detail-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(theme('spacing.2'));
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

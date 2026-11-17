@@ -2,18 +2,28 @@ import { createElement, useState } from 'react'
 
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
 import { ApiError } from '@/shared/api'
+import { AuthContext, type AuthContextValue } from '@/shared/auth'
+import { LearnerLayout, PublicLayout } from '@/shared/layout'
+import { previewLearner } from '@/shared/layout/Layout.preview'
 
 import { DictionarySearchView } from './components/DictionarySearchView'
 import { LexemeDetailView } from './components/LexemeDetailView'
 import { LexemeSaveActions, type LexemeSaveActionsProps } from './components/LexemeSaveActions'
 import { NoteEditor } from './components/NoteEditor'
 import { PersonalNotesView } from './components/PersonalNotesView'
+import { PersonalNotesScreenPreview } from './components/PersonalNotesScreen.preview'
 import { DeckListView } from './components/DeckListView'
+import { DeckListScreenPreview } from './components/DeckListScreen.preview'
 import { DeckDetailView } from './components/DeckDetailView'
+import { DeckDetailScreenPreview } from './components/DeckDetailScreen.preview'
 import { FlashcardReviewView } from './components/FlashcardReviewView'
 import { TranslationView } from './components/TranslationView'
 import { TranslationLexemePopup } from './components/TranslationLexemePopup'
-import { dictionarySearchParams, type DictionarySearch } from './dictionarySearch'
+import {
+  dictionarySearchParams,
+  validateDictionarySearch,
+  type DictionarySearch,
+} from './dictionarySearch'
 import { newNoteDraft, noteDraft, type NoteDraft } from './personalNotes'
 import { emptyCardDraft, emptyDeckDraft, type CardDraft } from './flashcardForms'
 
@@ -306,13 +316,25 @@ export const libraryCachedTranslation: TranslateResult = {
   consumption: null,
 }
 
-function TranslationPreview({ state }: { state: PreviewState }) {
+function TranslationPreview({
+  state,
+  cached = false,
+  insufficient = false,
+  from = 'VI',
+}: {
+  state: PreviewState
+  cached?: boolean
+  insufficient?: boolean
+  from?: TranslateRequest['from']
+}) {
   const [draft, setDraft] = useState<TranslateRequest>({
-    text: state === 'empty' ? '' : 'Hôm nay tôi học tiếng Trung.',
-    from: 'VI',
-    to: 'ZH',
+    text:
+      state === 'empty' ? '' : from === 'VI' ? 'Hôm nay tôi học tiếng Trung.' : '今天我学习中文。',
+    from,
+    to: from === 'VI' ? 'ZH' : 'VI',
   })
   const [changed, setChanged] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
   const [lexemeId, setLexemeId] = useState<number>()
   const entry = libraryLexemeDetails.find(({ id }) => id === lexemeId)
   const change = (next: TranslateRequest) => {
@@ -323,18 +345,28 @@ function TranslationPreview({ state }: { state: PreviewState }) {
   return createElement(TranslationView, {
     draft,
     pending: state === 'loading',
-    result: state === 'ready' && !changed ? libraryTranslation : undefined,
+    result:
+      (state === 'ready' || (state === 'empty' && submitted)) && !changed
+        ? {
+            ...(cached ? libraryCachedTranslation : libraryTranslation),
+            translated:
+              draft.to === 'ZH' ? libraryTranslation.translated : 'Hôm nay tôi học tiếng Trung.',
+          }
+        : undefined,
     error:
       state === 'error'
         ? new ApiError({
-            status: 503,
-            errorCode: 'TRANSLATE_UNAVAILABLE',
-            message: 'Chưa thể dịch.',
+            status: insufficient ? 402 : 503,
+            errorCode: insufficient ? 'INSUFFICIENT_CREDITS' : 'TRANSLATE_UNAVAILABLE',
+            message: insufficient ? 'Bạn đã hết lượt dịch và không đủ điểm.' : 'Chưa thể dịch.',
           })
         : undefined,
     onTextChange: (text) => change({ ...draft, text }),
     onDirectionChange: (from) => change({ ...draft, from, to: from === 'ZH' ? 'VI' : 'ZH' }),
-    onSubmit: () => setChanged(false),
+    onSubmit: () => {
+      setChanged(false)
+      setSubmitted(true)
+    },
     onOpenLexeme: setLexemeId,
     popup: entry
       ? createElement(TranslationLexemePopup, {
@@ -357,36 +389,108 @@ function TranslationPreview({ state }: { state: PreviewState }) {
   })
 }
 
+function TranslationScreenPreview(props: Parameters<typeof TranslationPreview>[0]) {
+  const auth: AuthContextValue = {
+    error: null,
+    reloadCurrentUser: async () => undefined,
+    setAuthenticatedUser: () => undefined,
+    signOut: async () => undefined,
+    status: 'authenticated',
+    user: { ...previewLearner, displayName: 'Bạn học CNHSK', email: '', hskLevel: 1 },
+  }
+  return createElement(
+    AuthContext.Provider,
+    { value: auth },
+    createElement(
+      LearnerLayout,
+      null,
+      createElement(
+        'div',
+        {
+          className:
+            'mx-auto max-w-content px-4 pt-4 text-body-sm text-ink-secondary sm:px-6 lg:px-8',
+        },
+        'Bản xem trước dùng câu dịch mẫu, không gọi dịch vụ và không trừ lượt.',
+      ),
+      createElement(TranslationPreview, props),
+    ),
+  )
+}
+
 function DictionaryPreview({
   state,
   learner = false,
   rateLimited = false,
+  initial = false,
+  radical = false,
+  screen = false,
 }: {
   state: PreviewState
   learner?: boolean
   rateLimited?: boolean
+  initial?: boolean
+  radical?: boolean
+  screen?: boolean
 }) {
   const [draft, setDraft] = useState<DictionarySearch>({
-    type: 'HANZI',
-    q: '日',
+    type: radical ? 'RADICAL' : 'HANZI',
+    q: initial ? '' : '日',
     radical: '',
-    strokes: '',
+    strokes: radical ? '4' : '',
     page: 0,
   })
+  const [submitted, setSubmitted] = useState(draft)
+  const [searched, setSearched] = useState(!initial)
+  const [formError, setFormError] = useState<string>()
   const [page, setPage] = useState(0)
+  // Filtering is confined to this original, local preview dataset.
+  const matches = screen
+    ? libraryLexemes.filter((entry) => {
+        if (submitted.type === 'RADICAL') {
+          const detail = libraryLexemeDetails.find(({ id }) => id === entry.id)
+          return (
+            entry.kind === 'CHAR' &&
+            (!submitted.radical || detail?.radical === submitted.radical) &&
+            (!submitted.strokes || detail?.strokeCount === Number(submitted.strokes))
+          )
+        }
+        const value =
+          submitted.type === 'HANZI'
+            ? entry.text
+            : submitted.type === 'PINYIN'
+              ? entry.pinyin
+              : entry.meaningVi
+        return value?.toLocaleLowerCase().includes(submitted.q.trim().toLocaleLowerCase())
+      })
+    : libraryLexemes
   const result =
     state === 'empty'
       ? libraryTranslationHint
-      : { ...librarySearchResult, items: libraryLexemes.slice(page * 20, (page + 1) * 20) }
+      : {
+          ...librarySearchResult,
+          items: matches.slice(page * 20, (page + 1) * 20),
+          total: matches.length,
+        }
   return createElement(DictionarySearchView, {
     draft,
-    onChange: setDraft,
-    onSubmit: () => setPage(0),
+    onChange: (next) => {
+      setDraft(next)
+      setFormError(undefined)
+    },
+    onSubmit: () => {
+      const error = validateDictionarySearch(draft)
+      setFormError(error)
+      if (error) return
+      setSubmitted(draft)
+      setSearched(true)
+      setPage(0)
+    },
     onPageChange: setPage,
     onRetry: () => undefined,
     onRadicalsRetry: () => undefined,
     state,
     result,
+    formError,
     error: new ApiError({
       status: rateLimited ? 429 : 503,
       errorCode: rateLimited ? 'RATE_LIMITED' : 'NETWORK_ERROR',
@@ -394,13 +498,31 @@ function DictionaryPreview({
       extra: { retryAfterSeconds: 60 },
     }),
     radicals: libraryRadicals,
-    searched: true,
+    searched,
     page,
-    returnTo: `/dictionary?${dictionarySearchParams({ ...draft, page })}`,
+    returnTo: `/dictionary?${dictionarySearchParams({ ...(screen ? submitted : draft), page })}`,
     loginTo: '/login?redirect=%2Fdictionary',
     canTranslate: learner,
     guest: !learner,
   })
+}
+
+function DictionaryScreenPreview(props: Parameters<typeof DictionaryPreview>[0]) {
+  const auth: AuthContextValue = {
+    error: null,
+    reloadCurrentUser: async () => undefined,
+    setAuthenticatedUser: () => undefined,
+    signOut: async () => undefined,
+    status: props.learner ? 'authenticated' : 'guest',
+    user: props.learner
+      ? { ...previewLearner, displayName: 'Bạn học CNHSK', email: '', hskLevel: 1 }
+      : null,
+  }
+  return createElement(
+    AuthContext.Provider,
+    { value: auth },
+    createElement(PublicLayout, null, createElement(DictionaryPreview, { ...props, screen: true })),
+  )
 }
 
 function DetailPreview({
@@ -440,6 +562,80 @@ function sampleDetail(id: number): LexemeDetail {
   if (!entry) throw new Error(`Missing original dictionary sample ${id}`)
   return entry
 }
+
+function DetailScreenPreview(props: Parameters<typeof DetailPreview>[0]) {
+  const auth: AuthContextValue = {
+    error: null,
+    reloadCurrentUser: async () => undefined,
+    setAuthenticatedUser: () => undefined,
+    signOut: async () => undefined,
+    status: props.access === 'guest' ? 'guest' : 'authenticated',
+    user:
+      props.access === 'guest'
+        ? null
+        : {
+            ...previewLearner,
+            displayName: 'Bạn học CNHSK',
+            email: '',
+            hskLevel: 1,
+            roles: props.access === 'learner' ? ['LEARNER'] : ['ADMIN'],
+          },
+  }
+  return createElement(
+    AuthContext.Provider,
+    { value: auth },
+    createElement(PublicLayout, null, createElement(DetailPreview, props)),
+  )
+}
+
+const detailCharacterSample: LexemeDetail = {
+  ...sampleDetail(101),
+  sinoViet: 'nhật',
+  examples: [{ cn: '今天有日光。', pinyin: 'Jīntiān yǒu rìguāng.', vi: 'Hôm nay có ánh nắng.' }],
+  related: [{ id: 102, text: '月', pinyin: 'yuè', meaningVi: 'tháng; mặt trăng' }],
+}
+
+const detailWordSample: LexemeDetail = {
+  ...sampleDetail(212),
+  sinoViet: 'sinh nhật',
+  examples: [
+    {
+      cn: '今天是我的生日。',
+      pinyin: 'Jīntiān shì wǒ de shēngrì.',
+      vi: 'Hôm nay là sinh nhật của tôi.',
+    },
+    { cn: '祝你生日快乐。', pinyin: 'Zhù nǐ shēngrì kuàilè.', vi: 'Chúc bạn sinh nhật vui vẻ.' },
+  ],
+}
+
+const detailScreenEntries = (
+  [
+    ['scr-025-ready', 'Chi tiết từ — Redesign, học viên', detailCharacterSample, 'learner'],
+    ['scr-025-guest', 'Chi tiết từ — Redesign, khách', detailCharacterSample, 'guest'],
+    ['scr-025-word', 'Chi tiết từ — Từ ghép', detailWordSample, 'learner'],
+    ['scr-025-grammar', 'Chi tiết từ — Ngữ pháp', sampleDetail(301), 'learner'],
+    [
+      'scr-025-readonly',
+      'Chi tiết từ — Tài khoản không có quyền học viên',
+      detailCharacterSample,
+      'other',
+    ],
+    // Invalid media is local and intentional: exercise fallback copy without a remote request.
+    [
+      'scr-025-audio-error',
+      'Chi tiết từ — Audio lỗi, bấm Nghe phát âm',
+      { ...detailCharacterSample, audioUrl: 'data:audio/wav;base64,AA==' },
+      'guest',
+    ],
+  ] as const
+).map(([id, title, entry, access]) => ({
+  fullFrame: true,
+  group: 'screen' as const,
+  id,
+  scr: 'SCR-025',
+  title,
+  render: (state: PreviewState) => createElement(DetailScreenPreview, { state, entry, access }),
+})) satisfies readonly PreviewEntry[]
 
 function NotesPreview({ state, trash = false }: { state: PreviewState; trash?: boolean }) {
   const [filters, setFilters] = useState({ q: '', tag: '' })
@@ -590,6 +786,216 @@ function DeckDetailPreview({
 }
 
 export const previews = [
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-029-ready',
+    scr: 'SCR-029',
+    title: 'Chi tiết bộ thẻ — Chủ sở hữu',
+    render: (state) => createElement(DeckDetailScreenPreview, { state }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-029-public',
+    scr: 'SCR-029',
+    title: 'Chi tiết bộ thẻ — Preview khách chỉ đọc',
+    render: (state) => createElement(DeckDetailScreenPreview, { state, guest: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-029-editing',
+    scr: 'SCR-029',
+    title: 'Chi tiết bộ thẻ — Sửa thẻ',
+    states: ['ready'],
+    render: (state) => createElement(DeckDetailScreenPreview, { state, editing: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-029-review',
+    scr: 'SCR-029',
+    title: 'Chi tiết bộ thẻ — Ôn thẻ',
+    states: ['ready'],
+    render: (state) => createElement(DeckDetailScreenPreview, { state, review: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-029-flipped',
+    scr: 'SCR-029',
+    title: 'Chi tiết bộ thẻ — Đã lật',
+    states: ['ready'],
+    render: (state) =>
+      createElement(DeckDetailScreenPreview, { state, review: true, flipped: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-028-ready',
+    scr: 'SCR-028',
+    title: 'Bộ thẻ của tôi — Redesign',
+    render: (state) => createElement(DeckListScreenPreview, { state }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-028-topic',
+    scr: 'SCR-028',
+    title: 'Bộ thẻ của tôi — Tạo từ chủ đề',
+    states: ['ready'],
+    render: (state) => createElement(DeckListScreenPreview, { state, source: 'topic' }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-028-topic-error',
+    scr: 'SCR-028',
+    title: 'Bộ thẻ của tôi — Lỗi tải chủ đề',
+    states: ['ready'],
+    render: (state) =>
+      createElement(DeckListScreenPreview, { state, source: 'topic', topicState: 'error' }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-028-pending',
+    scr: 'SCR-028',
+    title: 'Bộ thẻ của tôi — Đang tạo',
+    states: ['ready'],
+    render: (state) => createElement(DeckListScreenPreview, { state, pending: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-028-limit',
+    scr: 'SCR-028',
+    title: 'Bộ thẻ của tôi — Bấm Tạo để xem lỗi giới hạn',
+    states: ['ready'],
+    render: (state) => createElement(DeckListScreenPreview, { state, limited: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-027-ready',
+    scr: 'SCR-027',
+    title: 'Sổ tay cá nhân — Redesign',
+    render: (state) => createElement(PersonalNotesScreenPreview, { state }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-027-editing',
+    scr: 'SCR-027',
+    title: 'Sổ tay cá nhân — Mở ghi chú mẫu',
+    states: ['ready'],
+    render: (state) => createElement(PersonalNotesScreenPreview, { state, editing: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-027-new',
+    scr: 'SCR-027',
+    title: 'Sổ tay cá nhân — Soạn ghi chú',
+    states: ['ready'],
+    render: (state) => createElement(PersonalNotesScreenPreview, { state, creating: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-027-trash',
+    scr: 'SCR-027',
+    title: 'Sổ tay cá nhân — Thùng rác',
+    render: (state) => createElement(PersonalNotesScreenPreview, { state, trash: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-026-ready',
+    scr: 'SCR-026',
+    title: 'Dịch câu — Redesign',
+    render: (state) => createElement(TranslationScreenPreview, { state }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-026-zh-vi',
+    scr: 'SCR-026',
+    title: 'Dịch câu — Trung sang Việt',
+    render: (state) => createElement(TranslationScreenPreview, { state, from: 'ZH' }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-026-cached',
+    scr: 'SCR-026',
+    title: 'Dịch câu — Bản dịch từ bộ nhớ đệm',
+    states: ['ready'],
+    render: (state) => createElement(TranslationScreenPreview, { state, cached: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-026-insufficient',
+    scr: 'SCR-026',
+    title: 'Dịch câu — Hết lượt và điểm',
+    states: ['error'],
+    render: (state) => createElement(TranslationScreenPreview, { state, insufficient: true }),
+  },
+  ...detailScreenEntries,
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-024-ready',
+    scr: 'SCR-024',
+    title: 'Tra từ điển — Redesign, khách',
+    render: (state) => createElement(DictionaryScreenPreview, { state }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-024-initial',
+    scr: 'SCR-024',
+    title: 'Tra từ điển — Chưa tìm kiếm',
+    states: ['ready'],
+    render: (state) => createElement(DictionaryScreenPreview, { state, initial: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-024-learner',
+    scr: 'SCR-024',
+    title: 'Tra từ điển — Redesign, học viên',
+    render: (state) => createElement(DictionaryScreenPreview, { state, learner: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-024-radical',
+    scr: 'SCR-024',
+    title: 'Tra từ điển — Bộ thủ và số nét',
+    render: (state) => createElement(DictionaryScreenPreview, { state, radical: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-024-rate-limited',
+    scr: 'SCR-024',
+    title: 'Tra từ điển — Khách chạm hạn mức',
+    states: ['error'],
+    render: (state) => createElement(DictionaryScreenPreview, { state, rateLimited: true }),
+  },
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-024-learner-rate-limited',
+    scr: 'SCR-024',
+    title: 'Tra từ điển — Học viên chạm hạn mức',
+    states: ['error'],
+    render: (state) =>
+      createElement(DictionaryScreenPreview, { state, rateLimited: true, learner: true }),
+  },
   {
     group: 'screen',
     id: 'library-dictionary-samples',

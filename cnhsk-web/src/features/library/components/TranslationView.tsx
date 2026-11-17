@@ -1,17 +1,30 @@
+import {
+  ArrowRight,
+  ArrowRightLeft,
+  BookOpenText,
+  CheckCircle2,
+  Languages,
+  Search,
+  Sparkles,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import type { ApiError } from '@/shared/api'
 import {
   Button,
+  Card,
   EmptyState,
   ErrorState,
   FormField,
   PageHeader,
   Select,
+  Skeleton,
   Textarea,
 } from '@/shared/ui'
 
 import type { TranslateRequest, TranslateResult } from '../types'
+import { LibraryHeaderArt } from './LibraryHeaderArt'
+import { TranslationLandscapeArt } from './TranslationLandscapeArt'
 
 export interface TranslationViewProps {
   draft: TranslateRequest
@@ -44,126 +57,232 @@ export function TranslationView({
   const insufficient = error?.status === 402 && error.errorCode === 'INSUFFICIENT_CREDITS'
   const unavailable = error?.status === 503 && error.errorCode === 'TRANSLATE_UNAVAILABLE'
   return (
-    <div className="mx-auto max-w-reading space-y-6">
-      <PageHeader title="Dịch câu" subtitle="Dịch giữa tiếng Trung và tiếng Việt" />
-      <form
-        aria-label="Dịch câu"
-        aria-busy={pending}
-        className="space-y-4"
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault()
-          onSubmit()
-        }}
-      >
-        <FormField
-          htmlFor="translation-text"
-          label="Nội dung cần dịch"
-          required
-          hint={`${count}/2.000 ký tự`}
-          error={inputError}
-        >
-          <Textarea
-            value={draft.text}
-            disabled={pending}
-            rows={6}
-            onChange={(event) => onTextChange(event.target.value)}
-          />
-        </FormField>
-        <div className="flex flex-wrap items-end gap-3">
-          <FormField htmlFor="translation-direction" label="Hướng dịch">
-            <Select
-              value={draft.from}
-              disabled={pending}
-              onChange={(event) => onDirectionChange(event.target.value === 'VI' ? 'VI' : 'ZH')}
-            >
-              <option value="ZH">Tiếng Trung → Tiếng Việt</option>
-              <option value="VI">Tiếng Việt → Tiếng Trung</option>
-            </Select>
-          </FormField>
-          <Button disabled={pending} variant="outline" onClick={() => onDirectionChange(draft.to)}>
-            Đổi hướng
-          </Button>
-          <Button type="submit" disabled={invalid || pending} loading={pending}>
-            {pending ? 'Đang dịch…' : 'Dịch'}
-          </Button>
-        </div>
-      </form>
-      {insufficient ? (
-        <div role="alert" className="space-y-3 rounded-md border border-line bg-surface p-4">
-          <p>Bạn đã hết lượt dịch và không đủ điểm.</p>
-          <Button to="/account/credits" variant="outline">
-            Xem gói dịch vụ và điểm
-          </Button>
-        </div>
-      ) : unavailable ? (
-        <p role="alert" className="text-body text-danger">
-          Dịch tạm thời lỗi — lượt đã được hoàn
-        </p>
-      ) : error && error.status !== 422 ? (
-        <ErrorState message={error.message} requestId={error.requestId} />
-      ) : null}
-      {pending ? <p role="status">Đang dịch nội dung…</p> : null}
-      {!pending && !result && !error ? (
-        <EmptyState
-          title="Chưa có bản dịch"
-          description="Nhập nội dung và bấm Dịch để xem kết quả."
+    <div className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-24 sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden rounded-md border border-brand-100 bg-brand-50 px-5 py-5 sm:px-6">
+        <PageHeader
+          className="relative z-nav mb-0"
+          title={
+            <span className="inline-flex items-center gap-3">
+              <span aria-hidden="true" className="h-7 w-1.5 shrink-0 rounded-pill bg-brand-600" />
+              Dịch câu
+            </span>
+          }
+          subtitle="Dịch giữa tiếng Trung và tiếng Việt"
         />
-      ) : null}
-      {result ? (
-        <section
-          aria-label="Kết quả dịch"
-          className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-6"
-        >
-          <h2 className="text-h3 text-ink">Bản dịch</h2>
-          <p
-            className="whitespace-pre-wrap text-body text-ink"
-            lang={draft.to === 'ZH' ? 'zh-CN' : 'vi'}
+        <LibraryHeaderArt />
+      </div>
+      <div className="mx-auto w-full min-w-0 max-w-reading space-y-6">
+        <Card className="overflow-hidden border-brand-100 p-0">
+          <div className="relative isolate overflow-hidden bg-brand-50 px-5 py-6 sm:px-6">
+            <TranslationLandscapeArt />
+            <div className="relative z-base flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-md border border-brand-100 bg-surface text-brand-600">
+                <Languages aria-hidden="true" className="size-5" />
+              </span>
+              <div className="min-w-0 space-y-1">
+                <h2 className="text-h3 text-brand-800">Hiểu câu chữ, nối nhịp ngôn ngữ</h2>
+                <p className="text-body-sm text-ink-secondary">
+                  Dịch nội dung, đọc pinyin và tra từng từ trong ngữ cảnh.
+                </p>
+              </div>
+            </div>
+          </div>
+          <form
+            aria-label="Dịch câu"
+            aria-busy={pending}
+            className="min-w-0 space-y-5 p-5 sm:p-6"
+            noValidate
+            onSubmit={(event) => {
+              event.preventDefault()
+              onSubmit()
+            }}
           >
-            {result.translated}
-          </p>
-          {result.pinyin ? (
-            <div>
-              <h3 className="text-label text-ink">Pinyin của nội dung tiếng Trung</h3>
-              <p className="whitespace-pre-wrap text-body text-brand-700">{result.pinyin}</p>
+            <FormField
+              htmlFor="translation-text"
+              label="Nội dung cần dịch"
+              required
+              hint={`${count}/2.000 ký tự`}
+              error={inputError}
+            >
+              <Textarea
+                className={
+                  draft.from === 'ZH' ? 'min-h-48 resize-y font-hanzi' : 'min-h-48 resize-y'
+                }
+                value={draft.text}
+                disabled={pending}
+                rows={6}
+                onChange={(event) => onTextChange(event.target.value)}
+              />
+            </FormField>
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
+              <FormField
+                className="mb-0 min-w-0 flex-1"
+                htmlFor="translation-direction"
+                label="Hướng dịch"
+              >
+                <Select
+                  value={draft.from}
+                  disabled={pending}
+                  onChange={(event) => onDirectionChange(event.target.value === 'VI' ? 'VI' : 'ZH')}
+                >
+                  <option value="ZH">Tiếng Trung → Tiếng Việt</option>
+                  <option value="VI">Tiếng Việt → Tiếng Trung</option>
+                </Select>
+              </FormField>
+              <Button
+                disabled={pending}
+                variant="outline"
+                onClick={() => onDirectionChange(draft.to)}
+              >
+                <ArrowRightLeft
+                  aria-hidden="true"
+                  className="mr-2 inline-block size-4 align-middle"
+                />
+                Đổi hướng
+              </Button>
             </div>
-          ) : null}
-          {result.segments.length ? (
-            <div>
-              <h3 className="text-label text-ink">
-                {draft.from === 'ZH'
-                  ? 'Tra từ trong nội dung tiếng Trung'
-                  : 'Tra từ trong bản dịch tiếng Trung'}
-              </h3>
-              <p className="whitespace-pre-wrap font-hanzi text-h3 text-ink" lang="zh-CN">
-                {result.segments.map((segment, index) =>
-                  segment.lexemeId != null ? (
-                    <button
-                      key={index}
-                      type="button"
-                      className="rounded-sm text-brand-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                      aria-label={`Tra từ ${segment.text}`}
-                      onClick={() => onOpenLexeme(segment.lexemeId!)}
-                    >
-                      {segment.text}
-                    </button>
-                  ) : (
-                    <span key={index}>{segment.text}</span>
-                  ),
-                )}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-5">
+              <p className="inline-flex items-center gap-2 text-body-sm text-ink-secondary">
+                <BookOpenText aria-hidden="true" className="size-4 shrink-0 text-brand-600" />
+                Tối đa 2.000 ký tự mỗi lần dịch.
               </p>
+              <Button
+                className="w-full rounded-pill sm:w-auto sm:min-w-40"
+                type="submit"
+                disabled={invalid || pending}
+                loading={pending}
+              >
+                {pending ? 'Đang dịch…' : 'Dịch'}
+                {!pending ? (
+                  <ArrowRight
+                    aria-hidden="true"
+                    className="ml-2 inline-block size-4 align-middle"
+                  />
+                ) : null}
+              </Button>
             </div>
-          ) : null}
-          {result.cached ? (
-            <p role="status">Từ bộ nhớ đệm — không trừ lượt</p>
-          ) : result.consumption === 'QUOTA' ? (
-            <p role="status">Đã dùng 1 lượt miễn phí.</p>
-          ) : result.consumption === 'CREDIT' ? (
-            <p role="status">Đã dùng điểm.</p>
-          ) : null}
-        </section>
-      ) : null}
-      {popup}
+          </form>
+        </Card>
+        {insufficient ? (
+          <div
+            role="alert"
+            className="space-y-3 rounded-md border border-warning bg-warning-bg p-5 text-ink"
+          >
+            <p>Bạn đã hết lượt dịch và không đủ điểm.</p>
+            <Button to="/account/credits" variant="outline">
+              Xem gói dịch vụ và điểm
+            </Button>
+          </div>
+        ) : unavailable ? (
+          <p
+            role="alert"
+            className="rounded-md border border-danger bg-danger-bg p-5 text-body text-danger"
+          >
+            Dịch tạm thời lỗi — lượt đã được hoàn
+          </p>
+        ) : error && error.status !== 422 ? (
+          <ErrorState message={error.message} requestId={error.requestId} />
+        ) : null}
+        {pending ? (
+          <Card className="space-y-4 border-brand-100 p-5 sm:p-6">
+            <p className="flex items-center gap-2 text-body text-ink" role="status">
+              <Languages aria-hidden="true" className="size-5 text-brand-600" />
+              Đang dịch nội dung…
+            </p>
+            <div aria-hidden="true" className="space-y-3">
+              <Skeleton className="w-full" />
+              <Skeleton className="w-4/5" />
+              <Skeleton className="w-3/5" />
+            </div>
+          </Card>
+        ) : null}
+        {!pending && !result && !error ? (
+          <EmptyState
+            className="border-brand-100"
+            icon={<Languages aria-hidden="true" className="size-5" />}
+            title="Chưa có bản dịch"
+            description="Nhập nội dung và bấm Dịch để xem kết quả."
+          />
+        ) : null}
+        {result ? (
+          <section
+            aria-label="Kết quả dịch"
+            className="relative isolate overflow-hidden rounded-md border border-brand-100 bg-surface p-5 sm:p-6"
+          >
+            <TranslationLandscapeArt />
+            <div className="relative z-base space-y-5">
+              <h2 className="inline-flex items-center gap-2 text-h3 text-ink">
+                <Sparkles aria-hidden="true" className="size-5 text-brand-600" />
+                Bản dịch
+              </h2>
+              <p
+                className={
+                  draft.to === 'ZH'
+                    ? 'whitespace-pre-wrap break-words font-hanzi text-h3 text-ink'
+                    : 'whitespace-pre-wrap break-words text-body text-ink'
+                }
+                lang={draft.to === 'ZH' ? 'zh-CN' : 'vi'}
+              >
+                {result.translated}
+              </p>
+              {result.pinyin ? (
+                <div>
+                  <h3 className="text-label text-ink">Pinyin của nội dung tiếng Trung</h3>
+                  <p className="mt-2 whitespace-pre-wrap break-words text-body text-brand-700">
+                    {result.pinyin}
+                  </p>
+                </div>
+              ) : null}
+              {result.segments.length ? (
+                <div className="space-y-3 border-t border-brand-100 pt-5">
+                  <h3 className="inline-flex items-center gap-2 text-label text-ink">
+                    <Search aria-hidden="true" className="size-4 shrink-0 text-brand-600" />
+                    {draft.from === 'ZH'
+                      ? 'Tra từ trong nội dung tiếng Trung'
+                      : 'Tra từ trong bản dịch tiếng Trung'}
+                  </h3>
+                  <p
+                    className="whitespace-pre-wrap break-words font-hanzi text-h3 text-ink"
+                    lang="zh-CN"
+                  >
+                    {result.segments.map((segment, index) =>
+                      segment.lexemeId != null ? (
+                        <Button
+                          key={index}
+                          type="button"
+                          className="min-h-touch min-w-touch rounded-sm px-1 align-baseline font-hanzi text-h3 text-brand-700 underline"
+                          variant="ghost"
+                          aria-label={`Tra từ ${segment.text}`}
+                          onClick={() => onOpenLexeme(segment.lexemeId!)}
+                        >
+                          {segment.text}
+                        </Button>
+                      ) : (
+                        <span key={index}>{segment.text}</span>
+                      ),
+                    )}
+                  </p>
+                </div>
+              ) : null}
+              {result.cached ? (
+                <p className="flex items-start gap-2 text-body-sm text-success" role="status">
+                  <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+                  Từ bộ nhớ đệm — không trừ lượt
+                </p>
+              ) : result.consumption === 'QUOTA' ? (
+                <p className="text-body-sm text-ink-secondary" role="status">
+                  Đã dùng 1 lượt miễn phí.
+                </p>
+              ) : result.consumption === 'CREDIT' ? (
+                <p className="text-body-sm text-ink-secondary" role="status">
+                  Đã dùng điểm.
+                </p>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+        {popup}
+      </div>
     </div>
   )
 }

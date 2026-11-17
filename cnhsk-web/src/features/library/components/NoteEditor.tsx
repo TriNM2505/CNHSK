@@ -1,3 +1,4 @@
+import { FilePenLine, Save, Tag } from 'lucide-react'
 import type { ApiError } from '@/shared/api'
 import { Button, ErrorState, FormField, Input, Textarea } from '@/shared/ui'
 
@@ -28,14 +29,17 @@ export function NoteEditor({
   return (
     <form
       aria-label="Soạn ghi chú"
-      className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-6"
+      className="space-y-4 rounded-md border border-brand-100 bg-surface p-4 shadow-sm sm:p-5"
       noValidate
       onSubmit={(event) => {
         event.preventDefault()
         onSubmit()
       }}
     >
-      <h2 className="text-h3 text-ink">{draft.id ? 'Sửa ghi chú' : 'Ghi chú mới'}</h2>
+      <h2 className="inline-flex items-center gap-2 text-h3 text-ink">
+        <FilePenLine aria-hidden="true" className="size-5 text-brand-600" />
+        {draft.id ? 'Sửa ghi chú' : 'Ghi chú mới'}
+      </h2>
       <fieldset disabled={pending || opening}>
         <legend className="sr-only">Nội dung và thẻ</legend>
         <FormField
@@ -44,6 +48,7 @@ export function NoteEditor({
           hint={`${draft.title.length}/200 ký tự · Tuỳ chọn`}
         >
           <Input
+            className="font-hanzi"
             value={draft.title}
             onChange={(event) => onChange({ ...draft, title: event.target.value })}
           />
@@ -55,6 +60,7 @@ export function NoteEditor({
           required
         >
           <Textarea
+            className="min-h-40 font-hanzi"
             value={draft.content}
             onChange={(event) => onChange({ ...draft, content: event.target.value })}
           />
@@ -63,7 +69,7 @@ export function NoteEditor({
           {draft.tags.map((tag, index) => (
             <li
               key={index}
-              className="flex items-center gap-1 rounded-sm bg-brand-50 px-2 py-1 text-body-sm text-ink"
+              className="flex items-center gap-1 rounded-pill border border-brand-100 bg-brand-50 px-2 py-1 font-hanzi text-body-sm text-ink"
             >
               {tag}
               <Button
@@ -88,6 +94,7 @@ export function NoteEditor({
           hint={`${draft.tags.length}/10 thẻ · Mỗi thẻ tối đa 50 ký tự; thẻ đang nhập cũng được lưu khi bấm Lưu.`}
         >
           <Input
+            className="font-hanzi"
             value={draft.tagInput}
             onChange={(event) => onChange({ ...draft, tagInput: event.target.value })}
           />
@@ -101,6 +108,7 @@ export function NoteEditor({
             onChange({ ...draft, tags: [...draft.tags, draft.tagInput.trim()], tagInput: '' })
           }
         >
+          <Tag aria-hidden="true" className="mr-2 inline-block size-4 align-middle" />
           Thêm thẻ
         </Button>
       </fieldset>
@@ -127,7 +135,8 @@ export function NoteEditor({
           ) : null}
         </div>
       ) : null}
-      <Button type="submit" loading={pending} disabled={opening}>
+      <Button className="w-full rounded-pill" type="submit" loading={pending} disabled={opening}>
+        <Save aria-hidden="true" className="mr-2 inline-block size-4 align-middle" />
         Lưu ghi chú
       </Button>
     </form>
