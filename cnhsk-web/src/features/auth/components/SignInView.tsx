@@ -2,10 +2,12 @@ import { CircleAlert, CircleCheck, Clock3, ShieldAlert } from 'lucide-react'
 import type { FormEvent } from 'react'
 
 import { cn } from '@/shared/lib/cn'
-import { Button, FormField, Input, PasswordInput } from '@/shared/ui'
+import { Button, FormField, Input, PageHeader, PasswordInput, StatusBadge } from '@/shared/ui'
 
-import type { LoginRequest } from '../types'
 import type { SignInFieldErrors, SignInNotice } from '../signInForm'
+import type { LoginRequest } from '../types'
+import { AuthSplitLayout } from './AuthSplitLayout'
+import { CardCornerPandas, LoginBambooBackdrop, RightGiantPandaScene } from './PandaBambooScene'
 
 export type SignInViewState = 'ready' | 'submitting' | 'error'
 
@@ -19,6 +21,15 @@ export interface SignInViewProps {
   state: SignInViewState
   submitDisabled?: boolean
   values: LoginRequest
+}
+
+const SIGN_IN_ASIDE = {
+  badge: 'Một tài khoản CNHSK',
+  body: 'Tiếp tục bài học, luyện đề và trò chơi chữ Hán bằng cùng một tài khoản trên web chính và trang game.',
+  hanzi: '学习',
+  meaning: 'Học tập và rèn luyện mỗi ngày',
+  pinyin: 'xuéxí',
+  title: 'Học tiếng Trung trong một không gian thống nhất',
 }
 
 function formatDateTime(value: string): string {
@@ -122,18 +133,27 @@ export function SignInView({
   }
 
   return (
-    <main className="grid min-h-[calc(100vh-4rem)] min-w-0 bg-surface lg:grid-cols-[minmax(0,3fr)_minmax(20rem,2fr)]">
-      <section className="flex min-w-0 items-center justify-center px-4 py-10 sm:px-6 lg:px-10">
-        <div className="w-full max-w-md">
-          <p className="mb-2 text-label text-brand-700">Một tài khoản CNHSK</p>
-          <h1 className="text-h1-sm text-ink sm:text-h1">Đăng nhập</h1>
-          <p className="mb-6 mt-2 text-body text-ink-secondary">
-            Dùng chung tài khoản cho web, trang game và ứng dụng điện thoại.
-          </p>
+    <div className="relative isolate overflow-hidden">
+      <LoginBambooBackdrop />
+      <AuthSplitLayout
+        aside={SIGN_IN_ASIDE}
+        cardDecorator={<CardCornerPandas />}
+        customAside={<RightGiantPandaScene />}
+        hideMobileBanner
+      >
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
+          <p className="text-label text-brand-700">Chào mừng trở lại</p>
+          <StatusBadge tone="neutral">Xác thực tài khoản</StatusBadge>
+        </div>
+        <PageHeader
+          subtitle="Dùng chung tài khoản cho web chính và trang game CNHSK."
+          title="Đăng nhập"
+        />
 
-          {notice ? <NoticeBanner notice={notice} /> : null}
+        {notice ? <NoticeBanner notice={notice} /> : null}
 
-          <form noValidate onSubmit={handleSubmit}>
+        <form className="space-y-4" noValidate onSubmit={handleSubmit}>
+          <div className="rounded-md border border-line bg-canvas p-4">
             <FormField error={fieldErrors.email} htmlFor="sign-in-email" label="Email" required>
               <Input
                 autoComplete="username"
@@ -148,6 +168,7 @@ export function SignInView({
             </FormField>
 
             <FormField
+              className="mb-0"
               error={fieldErrors.password}
               htmlFor="sign-in-password"
               label="Mật khẩu"
@@ -162,36 +183,27 @@ export function SignInView({
                 value={values.password}
               />
             </FormField>
+          </div>
 
-            <div className="mb-5 flex justify-end">
-              <Button size="sm" to="/forgot-password" variant="ghost">
-                Quên mật khẩu?
-              </Button>
-            </div>
-
-            <Button className="w-full" disabled={submitDisabled} loading={submitting} type="submit">
-              {submitting ? 'Đang đăng nhập' : 'Đăng nhập'}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-caption text-ink-muted">Phiên đăng nhập tự động bảo mật</span>
+            <Button className="shrink-0" size="sm" to="/forgot-password" variant="ghost">
+              Quên mật khẩu?
             </Button>
-          </form>
+          </div>
 
-          <p className="mt-6 flex flex-wrap items-center justify-center gap-1 text-body-sm text-ink-secondary">
-            <span>Chưa có tài khoản?</span>
-            <Button size="sm" to={registerTo} variant="ghost">
-              Đăng ký
-            </Button>
-          </p>
-        </div>
-      </section>
+          <Button className="w-full" disabled={submitDisabled} loading={submitting} type="submit">
+            {submitting ? 'Đang đăng nhập' : 'Đăng nhập'}
+          </Button>
+        </form>
 
-      <aside className="hidden min-w-0 items-center bg-brand-800 px-10 py-12 text-surface lg:flex">
-        <div className="mx-auto max-w-md">
-          <h2 className="text-h2">Học tiếng Trung trong một không gian thống nhất</h2>
-          <p className="mt-4 text-body">
-            Tiếp tục bài học, luyện tập và trò chơi bằng cùng một tài khoản trên các thiết bị của
-            bạn.
-          </p>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-brand-100 bg-surface-subtle p-4 text-body-sm text-ink-secondary">
+          <span>Chưa có tài khoản học tập?</span>
+          <Button size="sm" to={registerTo} variant="outline">
+            Đăng ký
+          </Button>
         </div>
-      </aside>
-    </main>
+      </AuthSplitLayout>
+    </div>
   )
 }

@@ -1,6 +1,6 @@
-import { Construction, LockKeyhole } from 'lucide-react'
+import { Button, Card, PageHeader, Skeleton, StatusBadge } from '@/shared/ui'
 
-import { Button, Skeleton } from '@/shared/ui'
+import { LoginBambooBackdrop, PandaIllustration } from './PandaBambooScene'
 
 export type AccessDeniedViewState = 'loading' | 'empty' | 'error' | 'ready'
 export type AccessDeniedMode = 'guest' | 'forbidden' | 'under-construction'
@@ -16,7 +16,7 @@ export type AccessDeniedViewProps = {
 
 function GuestActions() {
   return (
-    <div className="flex flex-col justify-center gap-3 sm:flex-row">
+    <div className="flex flex-wrap items-center gap-3">
       <Button to="/login">Đăng nhập</Button>
       <Button to="/" variant="outline">
         Về trang chủ
@@ -40,9 +40,12 @@ export function AccessDeniedView({
 }: AccessDeniedViewProps) {
   if (state === 'loading') {
     return (
-      <main className="mx-auto min-h-[calc(100vh-4rem)] max-w-reading px-4 py-12 sm:py-16">
-        <Skeleton className="min-h-72" variant="card" />
-      </main>
+      <div className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden">
+        <LoginBambooBackdrop />
+        <main className="relative z-10 mx-auto w-full min-w-0 max-w-reading px-4 py-10 sm:px-6 sm:py-16">
+          <Skeleton className="min-h-72" variant="card" />
+        </main>
+      </div>
     )
   }
 
@@ -51,59 +54,70 @@ export function AccessDeniedView({
   const title = isUnderConstruction
     ? `Khu vực ${joinAreaLabels(areaLabels)} đang được xây dựng`
     : 'Không có quyền truy cập'
+  const description = isUnderConstruction
+    ? 'Khu vực dành cho vai trò của bạn chưa có trong phiên bản hiện tại.'
+    : isGuest
+      ? 'Bạn cần đăng nhập bằng tài khoản có quyền phù hợp để mở khu vực này.'
+      : 'Tài khoản hiện tại không có quyền mở khu vực vừa yêu cầu. Không có dữ liệu riêng tư nào được hiển thị.'
 
   return (
-    <main className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-reading items-center px-4 py-12 sm:py-16">
-      <section
-        aria-labelledby="access-denied-title"
-        className="w-full rounded-lg border border-line bg-surface px-5 py-10 text-center shadow-md sm:px-10 sm:py-12"
-      >
-        <div className="mx-auto flex size-14 items-center justify-center rounded-pill bg-info-bg text-info">
-          {isUnderConstruction ? (
-            <Construction aria-hidden="true" className="size-7" />
-          ) : (
-            <LockKeyhole aria-hidden="true" className="size-7" />
-          )}
-        </div>
-        <h1 className="mt-5 text-h1-sm text-ink sm:text-h1" id="access-denied-title" tabIndex={-1}>
-          {title}
-        </h1>
-        <p className="mx-auto mt-3 max-w-reading text-body text-ink-secondary">
-          {isUnderConstruction
-            ? 'Khu vực dành cho vai trò của bạn chưa có trong phiên bản hiện tại.'
-            : isGuest
-              ? 'Bạn cần đăng nhập bằng tài khoản có quyền phù hợp để mở khu vực này.'
-              : 'Tài khoản hiện tại không có quyền mở khu vực vừa yêu cầu. Không có dữ liệu riêng tư nào được hiển thị.'}
-        </p>
-
-        <div className="mt-7">
-          {isGuest ? (
-            <GuestActions />
-          ) : isUnderConstruction ? (
-            <Button to="/">Về trang chủ</Button>
-          ) : (
-            <Button to={returnTo}>{returnLabel}</Button>
-          )}
+    <div className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden">
+      <LoginBambooBackdrop />
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full min-w-0 max-w-reading flex-col justify-center px-4 py-8 sm:px-6 sm:py-12">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none relative z-20 -mb-6 flex justify-center"
+        >
+          <PandaIllustration className="w-36 drop-shadow-sm sm:w-40" mood="sad" />
         </div>
 
-        {state === 'error' ? (
-          <div
-            className="mt-5 flex flex-wrap items-center justify-center gap-2 text-body-sm text-ink-secondary"
-            role="status"
-          >
-            <span>Chưa kiểm tra được phiên đăng nhập.</span>
-            <Button onClick={onRetry} size="sm" variant="ghost">
-              Thử lại
-            </Button>
+        <Card className="relative z-10 space-y-5 border-line bg-surface p-6 pt-8 shadow-md sm:p-8 sm:pt-9">
+          <div>
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              {isUnderConstruction ? (
+                <StatusBadge tone="info">Đang phát triển</StatusBadge>
+              ) : isGuest ? (
+                <StatusBadge tone="warning">Yêu cầu đăng nhập</StatusBadge>
+              ) : (
+                <StatusBadge tone="danger">403 · Hạn chế quyền</StatusBadge>
+              )}
+              <span className="text-caption text-brand-700">Kiểm soát truy cập CNHSK</span>
+            </div>
+            <PageHeader className="mb-0" subtitle={description} title={title} />
           </div>
-        ) : null}
 
-        {state === 'empty' ? (
-          <p className="mt-5 text-body-sm text-ink-secondary" role="status">
-            Tài khoản chưa có khu vực riêng. Bạn có thể trở về trang chủ.
-          </p>
-        ) : null}
-      </section>
-    </main>
+          {state === 'error' ? (
+            <div
+              className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-line bg-surface-subtle p-3 text-body-sm text-ink-secondary"
+              role="status"
+            >
+              <span>Chưa kiểm tra được phiên đăng nhập.</span>
+              <Button onClick={onRetry} size="sm" variant="outline">
+                Thử lại
+              </Button>
+            </div>
+          ) : null}
+
+          {state === 'empty' ? (
+            <p
+              className="rounded-sm border border-line bg-canvas p-3 text-body-sm text-ink-secondary"
+              role="status"
+            >
+              Tài khoản chưa có khu vực riêng. Bạn có thể trở về trang chủ.
+            </p>
+          ) : null}
+
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-4">
+            {isGuest ? (
+              <GuestActions />
+            ) : isUnderConstruction ? (
+              <Button to="/">Về trang chủ</Button>
+            ) : (
+              <Button to={returnTo}>{returnLabel}</Button>
+            )}
+          </div>
+        </Card>
+      </main>
+    </div>
   )
 }
