@@ -46,9 +46,27 @@ public class AiGenerationService {
                 config.maxBatchesPerRun(), config.minBank(), config.getTimeout());
         var acquired = guard.tryAcquire();
         if (acquired.isEmpty()) return empty(Outcome.BUSY);
+        RunResult result = empty(Outcome.EXECUTED);
+        try (var lease = acquired.get()) {
+            result = runCore(lease, settings);
+        } catch (RuntimeException exception) {
+            log.warn("Generation stopped: database or lock unavailable");
+        }
+        return result;
+    }
+
+    /** Uses an already reserved session; the worker that accepted it retains close ownership. */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public RunResult runReserved(AiGenerationGuard.Lease lease, Settings settings) {
+        if (settings.userId() == 0 || !auth.isActiveAdmin(settings.userId())) return empty(Outcome.DISABLED);
+        return runCore(lease, settings);
+    }
+
+    private RunResult runCore(AiGenerationGuard.Lease lease, Settings settings) {
+        long userId = settings.userId();
         Counters counts = new Counters();
         Outcome outcome = Outcome.EXECUTED;
-        try (var lease = acquired.get()) {
+        try {
             lease.assertOwned();
             List<Candidate> candidates = selector.selectForGeneration();
             counts.candidates = candidates.size();

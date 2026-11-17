@@ -104,6 +104,38 @@ class AiGenerationGuardIntegrationTest extends AbstractIntegrationTest {
                 + "AND classid=CAST((hashtextextended('ai-generate:job',0) >> 32) & 4294967295 AS oid) "
                 + "AND objid=CAST(hashtextextended('ai-generate:job',0) & 4294967295 AS oid) AND objsubid=1", Long.class);
     }
+
+    @Test
+    void requestThreadCanTransferAnOwnedConnectionLeaseToOneWorkerAndReleaseItThere() throws Exception {
+        var owner = new AiGenerationGuard(dataSource);
+        var contender = new AiGenerationGuard(dataSource);
+        long requestThread = Thread.currentThread().getId();
+        var lease = owner.tryAcquire().orElseThrow();
+        lease.assertOwned();
+        var worker = Executors.newSingleThreadExecutor();
+        CountDownLatch asserted = new CountDownLatch(1), release = new CountDownLatch(1);
+        try {
+            var completion = worker.submit(() -> {
+                assertThat(Thread.currentThread().getId()).isNotEqualTo(requestThread);
+                try (lease) {
+                    lease.assertOwned(); asserted.countDown(); await(release);
+                    lease.assertOwned();
+                    assertThat(jdbc.queryForObject("SELECT 1", Integer.class)).isEqualTo(1);
+                }
+            });
+            await(asserted);
+            assertThat(lockCount()).isEqualTo(1);
+            assertThat(contender.tryAcquire()).isEmpty();
+            release.countDown(); completion.get(25, TimeUnit.SECONDS);
+            assertThat(lockCount()).isZero();
+            assertThatThrownBy(lease::assertOwned).isInstanceOf(AiGenerationGuard.GuardException.class);
+            try (var next = owner.tryAcquire().orElseThrow()) { next.assertOwned(); }
+            assertThat(lockCount()).isZero();
+        } finally {
+            release.countDown(); lease.close(); worker.shutdown();
+            assertThat(worker.awaitTermination(25, TimeUnit.SECONDS)).isTrue();
+        }
+    }
     private static void await(CountDownLatch latch) {
         try { assertThat(latch.await(20, TimeUnit.SECONDS)).isTrue(); }
         catch (InterruptedException exception) { Thread.currentThread().interrupt(); throw new AssertionError(exception); }

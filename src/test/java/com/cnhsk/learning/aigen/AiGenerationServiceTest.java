@@ -165,4 +165,61 @@ class AiGenerationServiceTest {
     private static WeakKnowledgeSelector.Candidate candidate(long id) {
         return new WeakKnowledgeSelector.Candidate(id, "NP1-00" + id, 20, 0, 0);
     }
+
+    @Test
+    void reservedEntryUsesTheAcceptedLeaseAndSnapshotWithoutAcquiringAnother() {
+        var settings = new AiGenerationService.Settings(7, "accepted-model", 2, 1, 4, Duration.ofSeconds(9));
+        var result = service.runReserved(lease, settings);
+        assertThat(result.outcome()).isEqualTo(AiGenerationService.Outcome.EXECUTED);
+        assertThat(result.candidates()).isZero();
+        verify(auth, atLeastOnce()).isActiveAdmin(7);
+        verify(selector).selectForGeneration();
+        verify(lease, atLeastOnce()).assertOwned();
+        verify(lease, never()).close();
+        verifyNoInteractions(config, guard, store, builder, budget);
+    }
+
+    @Test
+    void reservedEntryRechecksTheSystemAccountBeforeSelectingAndLeavesLeaseOwnershipWithWorker() {
+        when(auth.isActiveAdmin(7)).thenReturn(false);
+        var settings = new AiGenerationService.Settings(7, "accepted-model", 2, 1, 4, Duration.ofSeconds(9));
+        assertThat(service.runReserved(lease, settings).outcome()).isEqualTo(AiGenerationService.Outcome.DISABLED);
+        verifyNoInteractions(config, guard, selector, store, builder, budget);
+        verify(lease, never()).close();
+        assertThat(provider.callCount()).isZero();
+    }
+
+    @Test
+    void reservedEntryIsASeparatePublicTransactionSuspendingBoundary() throws Exception {
+        Transactional transaction = AiGenerationService.class.getMethod("runReserved", AiGenerationGuard.Lease.class,
+                AiGenerationService.Settings.class).getAnnotation(Transactional.class);
+        assertThat(transaction).isNotNull();
+        assertThat(transaction.propagation()).isEqualTo(Propagation.NOT_SUPPORTED);
+    }
+
+    @Test
+    void reservedEntryUsesSnapshotValuesForClaimPromptAndProviderRatherThanCurrentConfig() {
+        var selected = candidate(1);
+        var settings = new AiGenerationService.Settings(7, "accepted-model", 2, 1, 4, Duration.ofSeconds(9));
+        var claim = new AiGenerationStore.Claim(21, selected, settings);
+        var prompt = new AiPromptBuilder.Prompt(1, selected.kid(), 1, List.of(), List.of());
+        var completion = new ClaudeClient.Completion("{\"questions\":[]}", 6, 8);
+        when(selector.selectForGeneration()).thenReturn(List.of(selected, candidate(2)));
+        when(store.claim(selected, settings, lease)).thenReturn(Optional.of(claim));
+        when(builder.build(1, 2)).thenReturn(prompt);
+        when(budget.execute(any())).thenAnswer(invocation -> {
+            java.util.function.Supplier<ClaudeClient.Completion> action = invocation.getArgument(0); return action.get();
+        });
+        provider.enqueue(completion);
+        when(store.finish(claim, prompt, completion, lease)).thenReturn(new AiGenerationStore.Finish(2, true));
+        var result = service.runReserved(lease, settings);
+        assertThat(result.batches()).isEqualTo(1);
+        assertThat(result.questions()).isEqualTo(2);
+        assertThat(result.inputTokens()).isEqualTo(6);
+        assertThat(result.outputTokens()).isEqualTo(8);
+        verify(store, times(1)).claim(any(), eq(settings), eq(lease));
+        verify(builder).build(1, 2);
+        verifyNoInteractions(config, guard);
+        verify(lease, never()).close();
+    }
 }
