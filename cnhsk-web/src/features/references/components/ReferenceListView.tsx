@@ -5,11 +5,15 @@ import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
   Button,
   Card,
+  EmptyState,
+  ErrorState,
   FormField,
   Input,
   PageHeader,
+  PageState,
   Pagination,
   Select,
+  Skeleton,
   SUPPORTED_HSK_LEVELS,
   Tabs,
 } from '@/shared/ui'
@@ -42,7 +46,7 @@ export function ReferenceListView(props: ReferenceListViewProps) {
     <>
       <form
         aria-label="Lọc tài liệu"
-        className="my-4 grid min-w-0 gap-x-4 sm:grid-cols-[10rem_minmax(0,1fr)_auto] sm:items-start"
+        className="my-4 grid min-w-0 gap-x-4 rounded-md border border-line bg-surface p-4 sm:grid-cols-2 lg:grid-cols-3"
         onSubmit={(event) => {
           event.preventDefault()
           props.onApply()
@@ -65,34 +69,60 @@ export function ReferenceListView(props: ReferenceListViewProps) {
             onChange={(event) => props.onTagChange(event.target.value)}
           />
         </FormField>
-        <Button type="submit" className="mb-4 sm:mt-7">
+        <Button type="submit" className="justify-self-start sm:col-span-2 lg:col-span-1 lg:mt-7">
           Áp dụng
         </Button>
       </form>
-      {state === 'loading' ? <p role="status">Đang tải tài liệu…</p> : null}
-      {state === 'error' ? (
-        <div role="alert" className="space-y-3">
-          <p>{error?.message ?? 'Không tải được tài liệu.'}</p>
-          <Button onClick={props.onRetry} variant="outline">
-            Thử lại
-          </Button>
-        </div>
-      ) : null}
-      {state === 'empty' ? <p role="status">Chưa có tài liệu phù hợp.</p> : null}
-      {state === 'ready' && result ? (
-        <div className="grid min-w-0 grid-cols-1 gap-4 min-[641px]:grid-cols-2 lg:grid-cols-3">
-          {result.items.map((item) => (
-            <Card key={item.id} className="min-w-0 break-words [overflow-wrap:anywhere]">
+      <PageState
+        state={state}
+        loading={
+          <div role="status">
+            <span className="sr-only">Đang tải tài liệu…</span>
+            <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <Skeleton variant="card" />
+              <Skeleton variant="card" />
+            </div>
+          </div>
+        }
+        error={
+          <div role="alert">
+            <ErrorState
+              title="Chưa tải được danh mục"
+              message={error?.message ?? 'Không tải được tài liệu.'}
+              requestId={error?.requestId}
+              onRetry={props.onRetry}
+            />
+          </div>
+        }
+        empty={
+          <EmptyState
+            title="Chưa có tài liệu phù hợp."
+            description="Thử chọn cấp HSK khác hoặc xoá tag để mở rộng danh mục."
+          />
+        }
+      >
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {result?.items.map((item) => (
+            <Card key={item.id} className="flex min-w-0 flex-col gap-3 break-words">
               {item.thumbnailUrl ? (
                 <img
                   alt=""
                   loading="lazy"
-                  className="mb-3 aspect-video w-full rounded-sm object-cover"
+                  className="aspect-video w-full rounded-sm object-cover"
                   src={item.thumbnailUrl}
                 />
               ) : null}
               <h2 className="text-h3 text-ink">
-                {books ? <Link to={`/references/books/${item.id}`}>{item.title}</Link> : item.title}
+                {books ? (
+                  <Link
+                    className="rounded-sm text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    to={`/references/books/${item.id}`}
+                  >
+                    {item.title}
+                  </Link>
+                ) : (
+                  item.title
+                )}
               </h2>
               {books && item.author ? (
                 <p className="mt-1 text-body-sm text-ink-secondary">{item.author}</p>
@@ -102,7 +132,7 @@ export function ReferenceListView(props: ReferenceListViewProps) {
                   {item.description}
                 </p>
               ) : null}
-              <p className="my-2 text-body-sm">
+              <p className="w-fit rounded-pill bg-brand-50 px-3 py-1 text-label text-brand-800">
                 {item.hskMin === null && item.hskMax === null
                   ? 'Mọi cấp HSK'
                   : item.hskMin === null
@@ -121,7 +151,7 @@ export function ReferenceListView(props: ReferenceListViewProps) {
                   </li>
                 ))}
               </ul>
-              <div className="flex flex-wrap gap-2">
+              <div className="mt-auto flex flex-wrap gap-2 border-t border-line pt-3">
                 {books ? (
                   <Button to={`/references/books/${item.id}`} size="sm" variant="outline">
                     Xem chi tiết
@@ -146,7 +176,7 @@ export function ReferenceListView(props: ReferenceListViewProps) {
             </Card>
           ))}
         </div>
-      ) : null}
+      </PageState>
       {(state === 'ready' || state === 'empty') && result ? (
         <div className="mt-6">
           <Pagination
@@ -166,8 +196,20 @@ export function ReferenceListView(props: ReferenceListViewProps) {
         subtitle="Nguồn tham khảo bên ngoài, mở ở tab mới."
       />
       <nav aria-label="Loại tài liệu" className="mb-4 flex flex-wrap gap-4 text-body-sm">
-        <Link to="/references/media">YouTube & Podcast</Link>
-        <Link to="/references/books">Sách tham khảo</Link>
+        <Button
+          to="/references/media"
+          variant={books ? 'outline' : 'secondary'}
+          aria-current={books ? undefined : 'page'}
+        >
+          YouTube & Podcast
+        </Button>
+        <Button
+          to="/references/books"
+          variant={books ? 'secondary' : 'outline'}
+          aria-current={books ? 'page' : undefined}
+        >
+          Sách tham khảo
+        </Button>
       </nav>
       {books ? (
         content

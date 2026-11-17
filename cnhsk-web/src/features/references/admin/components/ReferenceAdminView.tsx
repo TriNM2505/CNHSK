@@ -1,7 +1,18 @@
 import type { ReactNode } from 'react'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
-import { Button, Card, FormField, PageHeader, Pagination, Select, StatusBadge } from '@/shared/ui'
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  FormField,
+  PageHeader,
+  Pagination,
+  Select,
+  Skeleton,
+  StatusBadge,
+} from '@/shared/ui'
 
 import {
   actionLabels,
@@ -35,16 +46,21 @@ export type ReferenceAdminViewProps = {
 export function ReferenceAdminView(props: ReferenceAdminViewProps) {
   const { state, data, error, filters, editor, busy, notice, confirmation, actionError } = props
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content space-y-5 px-4 py-6 text-ink [overflow-wrap:anywhere]">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-5 break-words px-4 py-6 text-ink">
       <PageHeader
         title="Tài nguyên tham khảo"
+        subtitle="Lọc tài nguyên, xem báo lỗi và quản lý trạng thái công bố."
         actions={
           <Button disabled={busy} onClick={props.onCreate}>
             Tạo tài nguyên
           </Button>
         }
       />
-      {notice ? <p role="status">{notice}</p> : null}
+      {notice ? (
+        <p role="status" className="rounded-md bg-success-bg p-4 text-body-sm text-success">
+          {notice}
+        </p>
+      ) : null}
       {editor}
       {confirmation ? (
         <Card role="region" aria-label="Xác nhận thay đổi trạng thái" className="space-y-3">
@@ -90,7 +106,7 @@ export function ReferenceAdminView(props: ReferenceAdminViewProps) {
         </Card>
       ) : null}
       <Card>
-        <div className="grid min-w-0 grid-cols-1 gap-x-4 min-[641px]:grid-cols-3">
+        <div className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-3">
           <FormField htmlFor="admin-ref-kind" label="Loại">
             <Select
               value={filters.kind ?? ''}
@@ -131,7 +147,7 @@ export function ReferenceAdminView(props: ReferenceAdminViewProps) {
               ))}
             </Select>
           </FormField>
-          <label className="mb-4 flex min-h-touch items-center gap-2 text-body-sm min-[641px]:mt-7">
+          <label className="mb-4 flex min-h-touch items-center gap-2 text-body-sm sm:mt-7">
             <input
               type="checkbox"
               checked={filters.reported === true}
@@ -142,57 +158,79 @@ export function ReferenceAdminView(props: ReferenceAdminViewProps) {
             Có báo lỗi
           </label>
         </div>
-        {state === 'loading' ? <p role="status">Đang tải tài nguyên…</p> : null}
-        {state === 'error' ? (
-          <div role="alert" className="space-y-3">
-            <p>{error?.message ?? 'Không tải được tài nguyên.'}</p>
-            <Button onClick={props.onRetry} variant="outline">
-              Thử lại
-            </Button>
+        {state === 'loading' ? (
+          <div role="status">
+            <span className="sr-only">Đang tải tài nguyên…</span>
+            <div aria-hidden="true">
+              <Skeleton variant="table" />
+            </div>
           </div>
         ) : null}
-        {state === 'empty' ? <p role="status">Chưa có tài nguyên phù hợp.</p> : null}
+        {state === 'error' ? (
+          <div role="alert">
+            <ErrorState
+              title="Chưa tải được danh sách"
+              message={error?.message ?? 'Không tải được tài nguyên.'}
+              requestId={error?.requestId}
+              onRetry={props.onRetry}
+            />
+          </div>
+        ) : null}
+        {state === 'empty' ? (
+          <EmptyState
+            title="Chưa có tài nguyên phù hợp."
+            description="Thử đổi bộ lọc để tìm tài nguyên."
+          />
+        ) : null}
         {state === 'ready' && data ? (
           <div
             role="region"
             aria-label="Bảng tài nguyên tham khảo"
             tabIndex={0}
-            className="max-w-full overflow-x-auto rounded-sm border border-line"
+            className="max-w-full rounded-sm border border-line"
           >
-            <table className="w-full min-w-[760px] border-collapse text-left text-body-sm">
+            <table role="table" className="block w-full border-collapse text-left text-body-sm lg:table lg:table-fixed">
               <caption className="sr-only">Danh sách tài nguyên tham khảo</caption>
-              <thead>
-                <tr className="bg-canvas">
+              <thead role="rowgroup" className="sr-only lg:not-sr-only lg:table-header-group">
+                <tr role="row" className="bg-canvas">
                   {['Tên', 'Loại', 'Trạng thái', 'Số lần báo lỗi', 'Báo gần nhất', 'Thao tác'].map(
                     (label) => (
-                      <th key={label} scope="col" className="border-b border-line p-3">
+                      <th key={label} role="columnheader" scope="col" className="border-b border-line p-3">
                         {label}
                       </th>
                     ),
                   )}
                 </tr>
               </thead>
-              <tbody>
+              <tbody role="rowgroup" className="block lg:table-row-group">
                 {data.items.map((item) => (
-                  <tr key={item.id} className="border-b border-line last:border-0">
-                    <th scope="row" className="max-w-xs p-3 font-medium">
+                  <tr key={item.id} role="row" className="block border-b border-line p-3 last:border-0 lg:table-row lg:p-0">
+                    <th role="rowheader" scope="row" className="block pb-2 font-medium lg:table-cell lg:p-3">
                       {item.title}
                     </th>
-                    <td className="p-3">{kindLabels[item.kind]}</td>
-                    <td className="p-3">
+                    <td role="cell" className="block py-1 lg:table-cell lg:p-3">
+                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">Loại</span>
+                      {kindLabels[item.kind]}
+                    </td>
+                    <td role="cell" className="block py-1 lg:table-cell lg:p-3">
+                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">Trạng thái</span>
                       <StatusBadge tone={item.status === 'PUBLISHED' ? 'success' : 'neutral'}>
                         {statusLabels[item.status]}
                       </StatusBadge>
                     </td>
-                    <td className="p-3 tabular-nums">{item.reportCount}</td>
-                    <td className="p-3">
+                    <td role="cell" className="block py-1 tabular-nums lg:table-cell lg:p-3">
+                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">Số lần báo lỗi</span>
+                      {item.reportCount}
+                    </td>
+                    <td role="cell" className="block py-1 lg:table-cell lg:p-3">
+                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">Báo gần nhất</span>
                       {item.lastReportedAt
                         ? new Date(item.lastReportedAt).toLocaleString('vi-VN', {
                             timeZone: 'Asia/Ho_Chi_Minh',
                           })
                         : 'Chưa có'}
                     </td>
-                    <td className="p-3">
+                    <td role="cell" className="block pt-2 lg:table-cell lg:p-3">
                       <div className="flex flex-wrap gap-2">
                         <Button
                           size="sm"

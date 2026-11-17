@@ -88,10 +88,7 @@ export function ReferenceEditorForm({
           if (tag) setTagError('Bấm Thêm tag trước khi lưu, hoặc xoá ô tag đang nhập.')
         }}
       >
-        <fieldset
-          disabled={pending}
-          className="grid min-w-0 grid-cols-1 gap-x-4 min-[641px]:grid-cols-2"
-        >
+        <fieldset disabled={pending} className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-2">
           <FormField htmlFor={`${id}-kind`} label="Loại" error={errors.kind}>
             <Select
               value={draft.kind}
@@ -179,7 +176,7 @@ export function ReferenceEditorForm({
               ))}
             </ul>
           </div>
-          <div className="min-w-0 min-[641px]:col-span-2">
+          <div className="min-w-0 sm:col-span-2">
             {textField('description', 'Mô tả (không bắt buộc)', true)}
           </div>
           {draft.kind === 'BOOK' ? (
@@ -202,11 +199,11 @@ export function ReferenceEditorForm({
           ) : null}
         </fieldset>
         {error ? (
-          <p role="alert" className="mb-4 text-danger">
+          <p role="alert" className="mb-4 rounded-sm bg-danger-bg p-3 text-body-sm text-danger">
             {error.message}
           </p>
         ) : null}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 border-t border-line pt-4">
           <Button type="submit" loading={pending}>
             Lưu
           </Button>
