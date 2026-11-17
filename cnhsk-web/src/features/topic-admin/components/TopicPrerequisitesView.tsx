@@ -1,7 +1,9 @@
-import { AlertTriangle, GitBranch, X } from 'lucide-react'
+import { AlertTriangle, BookOpen, Check, GitBranch, Info, X } from 'lucide-react'
 
 import {
   Button,
+  Card,
+  DataTable,
   EmptyState,
   ErrorState,
   FormField,
@@ -11,11 +13,16 @@ import {
   Pagination,
   Select,
   Skeleton,
+  StatusBadge,
   SUPPORTED_HSK_LEVELS,
 } from '@/shared/ui'
 import type { ApiQueryState } from '@/shared/api/useApiQuery'
 
 import type { AdminTopic, AdminTopicPage, TopicFilters, TopicRef } from '../types'
+import { cn } from '@/shared/lib/cn'
+import { TopicHeaderArt } from './TopicHeaderArt'
+import { TopicLandscapeArt, TopicText } from './TopicPrerequisiteParts'
+import './TopicPrerequisitesView.css'
 
 type TopicListProps = {
   candidates?: boolean
@@ -48,11 +55,20 @@ function TopicPicker({
   return (
     <section
       aria-label={candidates ? 'Chọn tiên quyết' : 'Chọn chủ đề'}
-      className="min-w-0 space-y-4 rounded-md border border-line bg-surface p-4"
+      className="topic-picker min-w-0 space-y-4 rounded-md border border-brand-100 bg-surface p-4 sm:p-5"
     >
-      <h2 className="text-h2">{candidates ? 'Thêm chủ đề tiên quyết' : 'Chủ đề cần sửa'}</h2>
+      <div className="flex items-center gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
+          {candidates ? (
+            <GitBranch aria-hidden="true" className="size-5" />
+          ) : (
+            <BookOpen aria-hidden="true" className="size-5" />
+          )}
+        </span>
+        <h2 className="text-h3">{candidates ? 'Thêm chủ đề tiên quyết' : 'Chủ đề cần sửa'}</h2>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <FormField htmlFor={`${prefix}-search`} label="Tìm theo tên">
+        <FormField className="mb-0" htmlFor={`${prefix}-search`} label="Tìm theo tên">
           <Input
             disabled={pending}
             maxLength={100}
@@ -61,7 +77,7 @@ function TopicPicker({
             value={filters.q}
           />
         </FormField>
-        <FormField htmlFor={`${prefix}-hsk`} label="Cấp HSK">
+        <FormField className="mb-0" htmlFor={`${prefix}-hsk`} label="Cấp HSK">
           <Select
             disabled={pending}
             onChange={(e) =>
@@ -92,50 +108,87 @@ function TopicPicker({
         />
       ) : !data?.items.length ? (
         <EmptyState title="Không có chủ đề phù hợp" description="Thử thay đổi tên hoặc cấp HSK." />
+      ) : !candidates ? (
+        <DataTable
+          caption="Danh sách chủ đề"
+          rowKey={(topic) => topic.id}
+          rows={data.items}
+          columns={[
+            {
+              id: 'name',
+              header: 'Chủ đề',
+              render: (topic) => (
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    'w-full min-w-0 justify-start whitespace-normal px-2 py-2 text-left',
+                    selected?.id === topic.id && 'bg-brand-50 text-brand-700 ring-1 ring-brand-600',
+                  )}
+                  aria-pressed={selected?.id === topic.id}
+                  disabled={pending}
+                  onClick={() => onSelect(topic)}
+                >
+                  <span className="min-w-0">
+                    <TopicText text={topic.name} />
+                  </span>
+                </Button>
+              ),
+            },
+            {
+              id: 'hsk',
+              header: 'Cấp HSK',
+              render: (topic) => <LevelBadge exact level={topic.hskLevel} />,
+            },
+            {
+              id: 'prereqs',
+              header: 'Tiên quyết',
+              render: (topic) => (
+                <span
+                  className={cn(
+                    'text-body-sm',
+                    topic.isRoot ? 'text-success' : 'text-ink-secondary',
+                  )}
+                >
+                  {topic.isRoot ? 'Chủ đề gốc' : `${topic.prereqs.length} tiên quyết`}
+                </span>
+              ),
+            },
+          ]}
+        />
       ) : (
         <ul className="space-y-2">
           {data.items.map((topic) => {
             const checked = selectedIds.includes(topic.id)
             return (
               <li key={topic.id}>
-                {candidates ? (
-                  <label className="flex min-h-touch items-start gap-3 rounded-sm border border-line p-3">
-                    <input
-                      checked={checked}
-                      className="mt-1 size-4 shrink-0"
-                      disabled={
-                        pending ||
-                        topic.id === selected?.id ||
-                        (!checked && selectedIds.length >= 10)
-                      }
-                      onChange={() => onSelect(topic)}
-                      type="checkbox"
-                    />
-                    <span className="min-w-0 flex-1 break-words">
-                      {topic.name}
-                      <span className="block text-caption text-ink-muted">
-                        HSK {topic.hskLevel}
-                        {topic.id === selected?.id ? ' · Chủ đề đang sửa' : ''}
-                      </span>
+                <label
+                  className={cn(
+                    'flex min-h-touch items-start gap-3 rounded-md border p-3 transition-colors motion-reduce:transition-none',
+                    checked
+                      ? 'border-brand-600 bg-brand-50'
+                      : 'border-line hover:border-brand-600 hover:bg-surface-subtle',
+                  )}
+                >
+                  <Input
+                    checked={checked}
+                    className="mt-1 size-5 min-h-0 w-5 shrink-0 p-0 accent-brand-600"
+                    disabled={
+                      pending || topic.id === selected?.id || (!checked && selectedIds.length >= 10)
+                    }
+                    onChange={() => onSelect(topic)}
+                    type="checkbox"
+                  />
+                  <span className="min-w-0 flex-1 break-words">
+                    <TopicText text={topic.name} />
+                    <span className="mt-1 block text-caption text-ink-secondary">
+                      HSK {topic.hskLevel}
+                      {topic.id === selected?.id ? ' · Chủ đề đang sửa' : ''}
                     </span>
-                  </label>
-                ) : (
-                  <button
-                    aria-pressed={selected?.id === topic.id}
-                    className="flex min-h-touch w-full items-start justify-between gap-3 rounded-sm border border-line p-3 text-left hover:bg-brand-50 aria-pressed:border-brand-600 aria-pressed:bg-brand-50"
-                    disabled={pending}
-                    onClick={() => onSelect(topic)}
-                    type="button"
-                  >
-                    <span className="min-w-0 break-words">
-                      {topic.name}
-                      <span className="block text-caption text-ink-muted">
-                        {topic.isRoot ? 'Chủ đề gốc' : `${topic.prereqs.length} tiên quyết`}
-                      </span>
-                    </span>
-                    <LevelBadge exact level={topic.hskLevel} />
-                  </button>
-                )}
+                  </span>
+                  {checked ? (
+                    <Check aria-hidden="true" className="mt-1 size-4 shrink-0 text-brand-600" />
+                  ) : null}
+                </label>
               </li>
             )
           })}
@@ -186,99 +239,132 @@ export function TopicPrerequisitesView({
   warnings,
 }: TopicPrerequisitesViewProps) {
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content space-y-5 px-4 py-6 text-ink [overflow-wrap:anywhere]">
-      <PageHeader
-        title="Tiên quyết chủ đề"
-        subtitle="Thiết lập điều kiện mở chủ đề cho người học."
-      />
-      <p className="rounded-md border border-line bg-surface p-4 text-body-sm">
-        Đây là tiên quyết chủ đề (cổng 90%), khác tiên quyết KID của cây tri thức
-      </p>
+    <main className="topic-prerequisites mx-auto w-full min-w-0 max-w-content space-y-4 px-4 py-6 pb-24 text-ink sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden rounded-md border border-brand-100 bg-brand-50 px-5 py-5 sm:px-6">
+        <PageHeader
+          className="relative z-nav mb-0"
+          title={
+            <span className="inline-flex items-center gap-3">
+              <span aria-hidden="true" className="h-7 w-1.5 shrink-0 rounded-pill bg-brand-600" />
+              Tiên quyết chủ đề
+            </span>
+          }
+          subtitle="Thiết lập điều kiện mở chủ đề cho người học."
+        />
+        <TopicHeaderArt />
+      </div>
+      <div className="flex items-start gap-3 rounded-md border border-brand-100 bg-surface p-4 text-body-sm">
+        <Info aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-brand-600" />
+        <p>Đây là tiên quyết chủ đề (cổng 90%), khác tiên quyết KID của cây tri thức</p>
+      </div>
       {!selected && error ? (
         <p className="break-words text-danger" role="alert">
-          {error.message}
+          <TopicText text={error.message} />
         </p>
       ) : null}
-      <div className="grid min-w-0 gap-5 xl:grid-cols-2">
+      <div className="grid min-w-0 items-start gap-4 lg:grid-cols-2">
         <TopicPicker {...topics} />
         {selected ? (
           <div className="min-w-0 space-y-4">
             <section
               aria-label="Tiên quyết đã chọn"
-              className="space-y-3 rounded-md border border-line bg-surface p-4"
+              className="topic-selection relative isolate space-y-4 overflow-hidden rounded-md border border-brand-100 bg-surface p-4 shadow-sm sm:p-5"
             >
-              <h2 className="break-words text-h2">{selected.name}</h2>
-              <p className="text-body-sm text-ink-secondary">
-                {chosen.length}/10 tiên quyết ·{' '}
-                {selected.isRoot ? 'Hiện là chủ đề gốc' : 'Hiện có tiên quyết'}
-              </p>
-              {chosen.length ? (
-                <ul className="space-y-2">
-                  {chosen.map((topic) => (
-                    <li className="flex min-w-0 items-center justify-between gap-2" key={topic.id}>
-                      <span className="min-w-0 break-words">
-                        {topic.name} <span className="text-caption">(HSK {topic.hskLevel})</span>
-                      </span>
-                      <Button
-                        aria-label={`Bỏ tiên quyết ${topic.name}`}
-                        disabled={saving}
-                        onClick={() => onRemove(topic.id)}
-                        size="sm"
-                        variant="outline"
-                      >
-                        <X aria-hidden="true" className="size-4" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-body-sm text-ink-secondary">
-                  Không có tiên quyết. Lưu để đặt thành chủ đề gốc.
-                </p>
-              )}
-              <Button disabled={saving || saveDisabled} onClick={onSave}>
-                <span className="flex items-center gap-2">
-                  <GitBranch aria-hidden="true" className="size-4 shrink-0" />
-                  {saving ? 'Đang lưu…' : 'Lưu tiên quyết'}
-                </span>
-              </Button>
-              {error ? (
-                <div className="break-words text-danger" role="alert">
-                  <p>{error.message}</p>
-                  {cycleNames?.length ? (
-                    <p className="mt-2">Đường vòng: {cycleNames.join(' → ')}</p>
-                  ) : null}
-                  {error.requestId ? (
-                    <p className="text-caption">Mã yêu cầu: {error.requestId}</p>
-                  ) : null}
-                </div>
-              ) : null}
-              {message ? (
-                <p className="break-words text-success" role="status">
-                  {message}
-                </p>
-              ) : null}
-              {warnings.length ? (
-                <div className="rounded-sm bg-warning-bg p-3" role="status">
-                  <p className="flex items-center gap-2 font-semibold">
-                    <AlertTriangle aria-hidden="true" className="size-4 shrink-0" />
-                    Cảnh báo cấp HSK
+              <TopicLandscapeArt />
+              <div className="relative space-y-4">
+                <div className="space-y-2">
+                  <StatusBadge tone="info">Đang chỉnh sửa</StatusBadge>
+                  <h2 className="break-words text-h3">
+                    <TopicText text={selected.name} />
+                  </h2>
+                  <p className="text-body-sm text-ink-secondary">
+                    {chosen.length}/10 tiên quyết ·{' '}
+                    {selected.isRoot ? 'Hiện là chủ đề gốc' : 'Hiện có tiên quyết'}
                   </p>
-                  <ul className="mt-2 list-inside list-disc break-words">
-                    {warnings.map((warning, index) => (
-                      <li key={index}>{warning}</li>
+                </div>
+                {chosen.length ? (
+                  <ul className="space-y-2">
+                    {chosen.map((topic) => (
+                      <li
+                        className="flex min-w-0 items-center justify-between gap-3 rounded-md border border-brand-100 bg-surface/90 p-3"
+                        key={topic.id}
+                      >
+                        <span className="min-w-0 break-words">
+                          <TopicText text={topic.name} />{' '}
+                          <span className="text-caption">(HSK {topic.hskLevel})</span>
+                        </span>
+                        <Button
+                          aria-label={`Bỏ tiên quyết ${topic.name}`}
+                          disabled={saving}
+                          onClick={() => onRemove(topic.id)}
+                          size="sm"
+                          variant="outline"
+                        >
+                          <X aria-hidden="true" className="size-4" />
+                        </Button>
+                      </li>
                     ))}
                   </ul>
-                </div>
-              ) : null}
+                ) : (
+                  <p className="text-body-sm text-ink-secondary">
+                    Không có tiên quyết. Lưu để đặt thành chủ đề gốc.
+                  </p>
+                )}
+                <Button className="w-full" disabled={saving || saveDisabled} onClick={onSave}>
+                  <span className="flex items-center gap-2">
+                    <GitBranch aria-hidden="true" className="size-4 shrink-0" />
+                    {saving ? 'Đang lưu…' : 'Lưu tiên quyết'}
+                  </span>
+                </Button>
+                {error ? (
+                  <div className="break-words text-danger" role="alert">
+                    <p>
+                      <TopicText text={error.message} />
+                    </p>
+                    {cycleNames?.length ? (
+                      <p className="mt-2">
+                        Đường vòng: <TopicText text={cycleNames.join(' → ')} />
+                      </p>
+                    ) : null}
+                    {error.requestId ? (
+                      <p className="text-caption">Mã yêu cầu: {error.requestId}</p>
+                    ) : null}
+                  </div>
+                ) : null}
+                {message ? (
+                  <p className="break-words text-success" role="status">
+                    {message}
+                  </p>
+                ) : null}
+                {warnings.length ? (
+                  <div className="rounded-sm bg-warning-bg p-3" role="status">
+                    <p className="flex items-center gap-2 font-semibold">
+                      <AlertTriangle aria-hidden="true" className="size-4 shrink-0" />
+                      Cảnh báo cấp HSK
+                    </p>
+                    <ul className="mt-2 list-inside list-disc break-words">
+                      {warnings.map((warning, index) => (
+                        <li key={index}>
+                          <TopicText text={warning} />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
             </section>
             <TopicPicker {...candidates} candidates />
           </div>
         ) : (
-          <EmptyState
-            title="Chọn chủ đề cần sửa"
-            description="Chọn một chủ đề trong danh sách để xem và sửa tiên quyết."
-          />
+          <Card className="relative isolate overflow-hidden border-brand-100 p-5 sm:p-6">
+            <TopicLandscapeArt />
+            <div className="relative">
+              <EmptyState
+                title="Chọn chủ đề cần sửa"
+                description="Chọn một chủ đề trong danh sách để xem và sửa tiên quyết."
+              />
+            </div>
+          </Card>
         )}
       </div>
     </main>

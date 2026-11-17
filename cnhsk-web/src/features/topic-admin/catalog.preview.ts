@@ -5,12 +5,15 @@ import { AuthContext, type AuthContextValue } from '@/shared/auth'
 import { AdminLayout } from '@/shared/layout'
 import { previewContentEditor } from '@/shared/layout/Layout.preview'
 
-import { TopicPrerequisitesView } from './components/TopicPrerequisitesView'
+import {
+  TopicPrerequisitesScreenPreview,
+  type TopicPrerequisitePreset,
+} from './components/TopicPrerequisitesScreen.preview'
 import { topicPrerequisitePreviews } from './components/TopicPrerequisitesView.preview'
 
 const auth: AuthContextValue = {
   status: 'authenticated',
-  user: previewContentEditor,
+  user: { ...previewContentEditor, email: '' },
   error: null,
   reloadCurrentUser: async () => undefined,
   setAuthenticatedUser: () => undefined,
@@ -23,17 +26,41 @@ const titles = {
   loading: 'Đang tải',
   empty: 'Không có chủ đề',
   error: 'Lỗi tải',
+  unselected: 'Chưa chọn chủ đề',
+  saving: 'Đang lưu',
+  limit: 'Đủ mười tiên quyết',
+  'candidate-loading': 'Đang tải ứng viên',
+  'candidate-error': 'Lỗi tải ứng viên',
+  pagination: 'Phân trang mẫu',
 }
-export const previews = Object.entries(topicPrerequisitePreviews).map(([state, props]) => ({
-  id: `scr-067-${state}`,
+const presets: TopicPrerequisitePreset[] = [
+  ...(Object.keys(topicPrerequisitePreviews) as (keyof typeof topicPrerequisitePreviews)[]),
+  'unselected',
+  'saving',
+  'limit',
+  'candidate-loading',
+  'candidate-error',
+  'pagination',
+]
+export const previews = presets.map((preset) => ({
+  id: `scr-067-${preset}`,
   scr: 'SCR-067',
-  title: `Tiên quyết chủ đề — ${titles[state as keyof typeof titles]}`,
+  title: `Tiên quyết chủ đề — ${titles[preset]}`,
   group: 'screen',
   fullFrame: true,
-  render: () =>
+  states: preset === 'ready' ? ['loading', 'empty', 'error', 'ready'] : ['ready'],
+  render: (state) =>
     createElement(
       AuthContext.Provider,
       { value: auth },
-      createElement(AdminLayout, null, createElement(TopicPrerequisitesView, props)),
+      createElement(
+        AdminLayout,
+        null,
+        createElement(TopicPrerequisitesScreenPreview, {
+          key: `${preset}:${state}`,
+          examples: topicPrerequisitePreviews,
+          preset: preset === 'ready' && state !== 'ready' ? state : preset,
+        }),
+      ),
     ),
 })) satisfies readonly PreviewEntry[]

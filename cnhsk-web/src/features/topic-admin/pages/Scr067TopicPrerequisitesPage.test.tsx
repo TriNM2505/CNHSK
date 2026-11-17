@@ -32,10 +32,14 @@ const page = (items = all): AdminTopicPage => ({
 const picker = () => within(screen.getByRole('region', { name: 'Chọn tiên quyết' }))
 const chosen = () => within(screen.getByRole('region', { name: 'Tiên quyết đã chọn' }))
 const saveButton = () => screen.getByRole('button', { name: 'Lưu tiên quyết' })
+const targetButton = async () =>
+  within(await screen.findByRole('table', { name: 'Danh sách chủ đề' })).findByRole('button', {
+    name: /Giao tiếp/,
+  })
 async function openTarget() {
   const user = userEvent.setup()
   render(<Scr067TopicPrerequisitesPage />)
-  await user.click(await screen.findByRole('button', { name: /Giao tiếp/ }))
+  await user.click(await targetButton())
   await picker().findByRole('checkbox', { name: /Chào hỏi/ })
   return user
 }
@@ -223,14 +227,14 @@ describe('SCR-067 topic prerequisites', () => {
     const user = userEvent.setup()
     render(<Scr067TopicPrerequisitesPage />)
     await user.click(await screen.findByRole('button', { name: /Thử lại/ }))
-    expect(await screen.findByRole('button', { name: /Giao tiếp/ })).toBeVisible()
+    expect(await targetButton()).toBeVisible()
   })
 })
 
 async function openTargetWithMany() {
   const user = userEvent.setup()
   render(<Scr067TopicPrerequisitesPage />)
-  await user.click(await screen.findByRole('button', { name: /Giao tiếp/ }))
+  await user.click(await targetButton())
   await picker().findByRole('checkbox', { name: /Gia đình/ })
   return user
 }
