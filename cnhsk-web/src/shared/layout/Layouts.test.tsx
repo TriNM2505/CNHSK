@@ -365,9 +365,10 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(13)
+      expect(within(navigation).getAllByRole('link')).toHaveLength(14)
       for (const label of [
         'Duyệt câu hỏi AI',
+        'Lô AI',
         'Quản lý đề thi',
         'Nhập dữ liệu',
         'Tiên quyết chủ đề',
