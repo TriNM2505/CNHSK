@@ -53,3 +53,19 @@ describe('route access table', () => {
     expect(passwordRoute).toMatchObject({ access: 'authenticated', layout: 'by-role' })
   })
 })
+
+it('keeps AI runs ADMIN-only without assigning an inventory screen', () => {
+  const route = findKnownRoute('/admin/ai-runs')!
+  expect(route).toEqual({
+    access: ['ADMIN'],
+    kind: 'ai-runs',
+    layout: 'admin',
+    path: '/admin/ai-runs',
+  })
+  expect(route).not.toHaveProperty('scr')
+  expect(findKnownRoute('/admin/ai-runs/12')).toBeUndefined()
+  const user = { id: 1, displayName: 'Test', email: 'test@example.test', emailVerified: true }
+  expect(canUserAccessRoute({ ...user, roles: ['ADMIN', 'LEARNER'] }, route.access)).toBe(true)
+  for (const role of ['CONTENT_EDITOR', 'LEARNER', 'TEACHER', 'MODERATOR', 'ACCOUNTANT'] as const)
+    expect(canUserAccessRoute({ ...user, roles: [role] }, route.access)).toBe(false)
+})

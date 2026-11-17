@@ -102,6 +102,13 @@ export const gameNavigationItem = {
 
 export const adminNavigation: readonly NavigationItem[] = [
   {
+    activePrefixes: ['/admin/ai-runs'],
+    icon: ListChecks,
+    label: 'Lô AI',
+    role: 'ADMIN',
+    to: '/admin/ai-runs',
+  },
+  {
     activePrefixes: ['/content/exams'],
     icon: FileText,
     label: 'Quản lý đề thi',

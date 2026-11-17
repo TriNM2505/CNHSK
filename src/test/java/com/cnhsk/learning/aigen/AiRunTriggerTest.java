@@ -162,6 +162,48 @@ class AiRunTriggerTest {
         assertThat(boundary).isNotNull(); assertThat(boundary.propagation()).isEqualTo(Propagation.NOT_SUPPORTED);
     }
 
+    @Test
+    void managedExecutorAcceptsAfterLeaseReleaseWhilePriorWorkerExitsAndRejectsSaturationSafely() {
+        var occupied = new java.util.concurrent.atomic.AtomicBoolean();
+        var acquired = new java.util.concurrent.atomic.AtomicInteger();
+        var running = new java.util.concurrent.atomic.AtomicInteger();
+        CountDownLatch firstClosed = new CountDownLatch(1), secondEntered = new CountDownLatch(1);
+        CountDownLatch secondRelease = new CountDownLatch(1), secondClosed = new CountDownLatch(1);
+        CountDownLatch tailsRelease = new CountDownLatch(1);
+        AiGenerationGuard.Lease first = mock(AiGenerationGuard.Lease.class);
+        AiGenerationGuard.Lease second = mock(AiGenerationGuard.Lease.class);
+        AiGenerationGuard.Lease rejected = mock(AiGenerationGuard.Lease.class);
+        when(guard.tryAcquire()).thenAnswer(invocation -> {
+            if (!occupied.compareAndSet(false, true)) return Optional.empty();
+            return Optional.of(switch (acquired.incrementAndGet()) { case 1 -> first; case 2 -> second; default -> rejected; });
+        });
+        doAnswer(invocation -> { occupied.set(false); firstClosed.countDown(); await(tailsRelease); return null; }).when(first).close();
+        doAnswer(invocation -> { occupied.set(false); secondClosed.countDown(); await(tailsRelease); return null; }).when(second).close();
+        doAnswer(invocation -> { occupied.set(false); return null; }).when(rejected).close();
+        doAnswer(invocation -> {
+            assertThat(running.incrementAndGet()).isEqualTo(1);
+            try {
+                assertThat(invocation.<AiGenerationService.Settings>getArgument(1)).isEqualTo(
+                        new AiGenerationService.Settings(7, "accepted-model", 2, 3, 10, Duration.ofSeconds(9)));
+                if (invocation.getArgument(0) == second) { secondEntered.countDown(); await(secondRelease); }
+                return null;
+            } finally { running.decrementAndGet(); }
+        }).when(generation).runReserved(any(), any());
+        trigger = new AiRunTrigger(auth, config, guard, generation);
+        try {
+            trigger.trigger(); await(firstClosed);
+            trigger.trigger(); await(secondEntered);
+            error(trigger::trigger, ErrorCode.AI_GENERATION_BUSY);
+            verify(generation).runReserved(eq(first), any()); verify(generation).runReserved(eq(second), any());
+            verify(second, never()).close();
+            secondRelease.countDown(); await(secondClosed);
+            error(trigger::trigger, ErrorCode.INTERNAL_ERROR);
+            verify(rejected, times(1)).close();
+            verify(generation, times(2)).runReserved(any(), any());
+        } finally { secondRelease.countDown(); tailsRelease.countDown(); trigger.shutdown(); }
+        assertThat(occupied).isFalse();
+    }
+
     private static void error(Runnable action, ErrorCode code) {
         assertThatThrownBy(action::run).isInstanceOfSatisfying(ApiException.class, failure -> {
             assertThat(failure.getCode()).isEqualTo(code);

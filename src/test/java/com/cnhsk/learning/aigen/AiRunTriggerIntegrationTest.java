@@ -236,6 +236,56 @@ class AiRunTriggerIntegrationTest extends AbstractIntegrationTest {
     private void candidate() {
         long node = fixtures.node(); fixtures.wrong(admin, node, 20);
     }
+
+    @Test
+    void managedHandoffUsesTheSharedRealGuardAndSeparateReservedSessionsWithoutProviderOverlap() {
+        candidate(); completion(); completion();
+        CountDownLatch firstClosed = new CountDownLatch(1), releaseTail = new CountDownLatch(1);
+        CountDownLatch secondProvider = new CountDownLatch(1), releaseProvider = new CountDownLatch(1);
+        var leases = new java.util.concurrent.CopyOnWriteArrayList<AiGenerationGuard.Lease>();
+        var activeProviders = new java.util.concurrent.atomic.AtomicInteger();
+        var providerEntries = new java.util.concurrent.atomic.AtomicInteger();
+        AiGenerationGuard sharedGuard = mock(AiGenerationGuard.class);
+        when(sharedGuard.tryAcquire()).thenAnswer(invocation -> guard.tryAcquire().map(real -> {
+            AiGenerationGuard.Lease reserved = spy(real);
+            leases.add(reserved);
+            if (leases.size() == 1) doAnswer(close -> {
+                close.callRealMethod();
+                firstClosed.countDown(); await(releaseTail); return null;
+            }).when(reserved).close();
+            return reserved;
+        }));
+        AiGenerationService observedService = mock(AiGenerationService.class);
+        doAnswer(invocation -> {
+            AiGenerationGuard.Lease reserved = invocation.getArgument(0);
+            assertThat(leases).contains(reserved); reserved.assertOwned();
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+            return service.runReserved(reserved, invocation.getArgument(1));
+        }).when(observedService).runReserved(any(), any());
+        doAnswer(invocation -> {
+            assertThat(activeProviders.incrementAndGet()).isEqualTo(1);
+            try {
+                assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
+                if (providerEntries.incrementAndGet() == 2) { secondProvider.countDown(); await(releaseProvider); }
+                return invocation.callRealMethod();
+            } finally { activeProviders.decrementAndGet(); }
+        }).when(provider).complete(anyString(), anyList(), anyList(), anyInt(), any());
+        AiRunTrigger managed = new AiRunTrigger(auth, config, sharedGuard, observedService);
+        try {
+            asAdmin(managed::trigger); await(firstClosed);
+            assertThat(lockCount()).isZero();
+            candidate(); advanceClock();
+            asAdmin(managed::trigger); await(secondProvider);
+            assertThat(leases).hasSize(2); assertThat(leases.get(1)).isNotSameAs(leases.get(0));
+            leases.get(1).assertOwned(); assertThat(lockCount()).isEqualTo(1);
+            error(() -> asAdmin(managed::trigger), ErrorCode.AI_GENERATION_BUSY);
+            assertThat(service.runOnce().outcome()).isEqualTo(AiGenerationService.Outcome.BUSY);
+            verify(observedService, times(2)).runReserved(any(), any());
+        } finally { releaseProvider.countDown(); releaseTail.countDown(); managed.shutdown(); }
+        assertThat(provider.callCount() - calls).isEqualTo(2);
+        assertThat(lockCount()).isZero();
+        verify(leases.get(0), times(1)).close(); verify(leases.get(1), times(1)).close();
+    }
     private void completion() {
         provider.enqueue(new ClaudeClient.Completion("{\"questions\":[{\"stem\":\"Self-authored asynchronous example\",\"explanation\":\"Self-authored explanation\",\"difficulty\":2,"
                 + "\"options\":[{\"key\":\"A\",\"text\":\"Choice A\",\"isCorrect\":true},{\"key\":\"B\",\"text\":\"Choice B\",\"isCorrect\":false},"

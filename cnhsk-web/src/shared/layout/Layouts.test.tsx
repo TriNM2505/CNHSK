@@ -361,7 +361,7 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(12)
+      expect(within(navigation).getAllByRole('link')).toHaveLength(13)
       for (const label of [
         'Quản lý đề thi',
         'Nhập dữ liệu',
@@ -553,4 +553,30 @@ describe('AccountMenu area switching', () => {
     renderLayout(<PublicLayout>Nội dung</PublicLayout>)
     expect(screen.queryByText('Khu vực của bạn')).not.toBeInTheDocument()
   })
+})
+
+describe('AI run navigation', () => {
+  it.each([['ADMIN'], ['ADMIN', 'LEARNER', 'CONTENT_EDITOR']] as const)(
+    'shows ADMIN destination for %j',
+    (...groups) => {
+      renderLayout(<AdminLayout>Nội dung</AdminLayout>, {
+        initialPath: '/admin/ai-runs',
+        user: { ...learner, roles: [...groups.flat()] },
+      })
+      for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
+        const link = within(screen.getByRole('navigation', { name })).getByRole('link', {
+          name: 'Lô AI',
+        })
+        expect(link).toHaveAttribute('href', '/admin/ai-runs')
+        expect(link).toHaveAttribute('aria-current', 'page')
+      }
+    },
+  )
+  it.each(['CONTENT_EDITOR', 'LEARNER', 'TEACHER', 'MODERATOR', 'ACCOUNTANT'] as const)(
+    'hides from %s',
+    (role) => {
+      renderLayout(<AdminLayout>Nội dung</AdminLayout>, { user: { ...learner, roles: [role] } })
+      expect(screen.queryByRole('link', { name: 'Lô AI' })).not.toBeInTheDocument()
+    },
+  )
 })
