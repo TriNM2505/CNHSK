@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 
 import { Card } from '@/shared/ui'
 
-import prizePanda from '../assets/contest-prizes-panda.png'
+import prizePanda from '../assets/contest-prizes-panda.webp'
 import { formatVietnamDate } from '../countdown'
 import type { ContestDetail } from '../types'
 import { ContestBambooArt, ContestPrizeBackdrop, ContestPrizeMedal } from './ContestDetailArt'

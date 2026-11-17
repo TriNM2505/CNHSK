@@ -1,8 +1,18 @@
-import { ArrowLeft, ArrowRight, Bookmark, Clock3, FileText, LogOut, Send } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bookmark,
+  CheckCircle2,
+  Circle,
+  Clock3,
+  FileText,
+  LogOut,
+  Send,
+} from 'lucide-react'
 import { useState } from 'react'
 
-import { ChoiceQuestion } from '@/features/practice/components/ChoiceQuestion'
-import { Button, Card, PageHeader, Progress, Skeleton } from '@/shared/ui'
+import { cn } from '@/shared/lib/cn'
+import { Button, Card, HanziText, PageHeader, Progress, Skeleton } from '@/shared/ui'
 
 import { formatCountdown } from '../countdown'
 import type { ContestSession } from '../types'
@@ -304,18 +314,73 @@ export function ContestAttemptView(props: Props) {
               </span>
               Câu {item.no}
             </h2>
-            <div className="contest-attempt-question relative z-nav min-w-0">
-              <ChoiceQuestion
-                item={item}
-                feedbackMode="DEFERRED"
-                selectedAnswer={props.choices[item.no]}
-                pending={props.locked}
-                onAnswer={async (answer) => {
-                  const accepted = await props.onChoose(item.no, answer)
-                  if (accepted === false) throw new Error('The answer was not accepted.')
-                }}
-              />
-            </div>
+            <section
+              aria-labelledby={`contest-question-${item.no}`}
+              className="relative z-nav min-w-0 space-y-5"
+            >
+              <div className="text-center">
+                {item.prompt.text ? (
+                  <HanziText
+                    className="contest-question-prompt block break-words text-h3 leading-relaxed"
+                    id={`contest-question-${item.no}`}
+                    size="sm"
+                  >
+                    {item.prompt.text}
+                  </HanziText>
+                ) : (
+                  <h3 className="text-h3 text-ink" id={`contest-question-${item.no}`}>
+                    Chọn đáp án phù hợp
+                  </h3>
+                )}
+                {item.prompt.sentence ? (
+                  <p className="mt-3 break-words font-hanzi text-h2 text-ink" lang="zh-CN">
+                    {item.prompt.sentence}
+                  </p>
+                ) : null}
+                {item.prompt.hint ? (
+                  <p className="mt-2 text-body-sm text-ink-secondary">Gợi ý: {item.prompt.hint}</p>
+                ) : null}
+              </div>
+              <div
+                aria-label="Các phương án"
+                className="contest-answer-grid grid gap-3"
+                role="group"
+              >
+                {(item.options ?? []).map((option) => {
+                  const selected = props.choices[item.no] === option.key
+                  return (
+                    <Button
+                      aria-pressed={selected}
+                      className={cn(
+                        'grid min-w-0 grid-cols-1 justify-stretch rounded-md p-3 text-left font-normal',
+                        selected && 'border-brand-600 bg-brand-50',
+                      )}
+                      disabled={props.locked}
+                      key={option.key}
+                      onClick={() => void props.onChoose(item.no, option.key)}
+                      variant="outline"
+                    >
+                      <span className="flex w-full items-center gap-2">
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-pill border border-line text-label text-ink-secondary">
+                          {option.key}
+                        </span>
+                        <HanziText className="contest-answer-text min-w-0 flex-1 break-words text-body-sm font-semibold leading-relaxed">
+                          {option.text}
+                        </HanziText>
+                        {selected ? (
+                          <CheckCircle2
+                            aria-hidden="true"
+                            className="size-5 shrink-0 text-brand-700"
+                          />
+                        ) : (
+                          <Circle aria-hidden="true" className="size-5 shrink-0 text-ink-muted" />
+                        )}
+                      </span>
+                    </Button>
+                  )
+                })}
+              </div>
+            </section>
             {props.saveStates[item.no] ? (
               <p
                 role="status"
