@@ -17,16 +17,16 @@ interface AuthSplitLayoutProps {
   }
   /** Phiên bản nền tranh thủy mặc đỏ và gấu trúc đã duyệt cho màn Auth. */
   backgroundVariant?: AuthInkWashVariant
-  /** Trang trí bám quanh 4 góc Card form (bản thử SCR-002). */
+  /** Trang trí bám quanh 4 góc Card form. */
   cardDecorator?: ReactNode
   children: ReactNode
   /** Thu gọn padding dọc cho form dài như SCR-003. */
   compact?: boolean
-  /** Thay toàn bộ cột giới thiệu bên phải bằng minh họa riêng (bản thử SCR-002). */
+  /** Thay toàn bộ cột giới thiệu bên phải bằng minh họa riêng. */
   customAside?: ReactNode
   /** Ẩn banner tóm tắt trên mobile khi dùng minh họa riêng. */
   hideMobileBanner?: boolean
-  /** Thay thẻ chữ Hán mặc định ở cột phải (bản thử trang trí SCR-002). */
+  /** Thay thẻ chữ Hán mặc định ở cột phải. */
   illustration?: ReactNode
 }
 
