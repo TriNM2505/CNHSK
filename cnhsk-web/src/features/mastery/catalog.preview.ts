@@ -1,9 +1,10 @@
-import { createElement } from 'react'
+import { createElement, useState } from 'react'
 
 import type { PreviewEntry } from '@/app/preview/types'
 import type { ServedItemView, SessionView } from '@/features/practice/types'
 import type { KnowledgeDomain, KnowledgeTree } from '@/features/question-bank/types'
 
+import { DueReviewView } from './components/DueReviewView'
 import { MasteryDashboardView } from './components/MasteryDashboardView'
 import { MasteryProgressView } from './components/MasteryProgressView'
 import type {
@@ -205,6 +206,7 @@ export const newLearnerRecommendationsPreview: Recommendation[] = knowledgeTreeP
   }))
 
 const words = ['今天', '明天', '学校', '朋友', '水', '书', '猫', '桌子']
+const wordPinyins = ['jīntiān', 'míngtiān', 'xuéxiào', 'péngyou', 'shuǐ', 'shū', 'māo', 'zhuōzi']
 const meanings = ['hôm nay', 'ngày mai', 'trường học', 'bạn', 'nước', 'sách', 'mèo', 'cái bàn']
 const grammarCards = [
   { text: '我是学生。', meaning: 'Tôi là học sinh.', pinyin: 'Wǒ shì xuésheng.' },
@@ -257,25 +259,96 @@ export const reviewAheadSummaryPreview: ReviewSummary = {
 export const emptyReviewSummaryPreview: ReviewSummary = { dueCount: 0, nextDueAt: null }
 export const nothingDuePreview: NothingDue = { session: null, reason: 'NOTHING_DUE' }
 
+function DueReviewPreview({ state }: { state: 'loading' | 'empty' | 'error' | 'ready' }) {
+  const [position, setPosition] = useState(0)
+  const [revealed, setRevealed] = useState(false)
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
+  const item = dueReviewSessionPreview.items[position]
+  const answered = selectedAnswer !== null
+  const advance = () => {
+    setPosition((current) => current + 1)
+    setRevealed(false)
+    setSelectedAnswer(null)
+  }
+  if (state === 'loading') return createElement(DueReviewView, { state })
+  if (state === 'error')
+    return createElement(DueReviewView, {
+      state,
+      error: 'Không tải được phiên ôn tập.',
+      onRetry: () => undefined,
+    })
+  if (state === 'empty')
+    return createElement(DueReviewView, { state, onStartAhead: () => undefined })
+  if (!item)
+    return createElement(DueReviewView, {
+      state: 'finished',
+      answeredCount: 12,
+      correctChoices: 8,
+      gradedCount: 8,
+      summaryLoading: false,
+      summaryError: false,
+      nextDueAt: reviewSummaryPreview.nextDueAt,
+      onRetrySummary: () => undefined,
+    })
+  const correctKey = (['A', 'B', 'C', 'D'] as const)[position % 4] ?? 'A'
+  const correctMeaning = meanings[position % meanings.length] ?? ''
+  const pinyin = wordPinyins[position % wordPinyins.length] ?? ''
+  return createElement(DueReviewView, {
+    state: 'ready',
+    session: dueReviewSessionPreview,
+    currentItem: item,
+    remaining: dueReviewSessionPreview.items.length - position - Number(answered),
+    pending: false,
+    currentItemAnswered: answered,
+    selectedAnswer,
+    isChoice: item.type === 'MEANING_CHOICE',
+    revealed,
+    result: answered
+      ? {
+          no: item.no,
+          correct: selectedAnswer === correctKey,
+          correctAnswer: correctKey,
+          explanation: `「${item.prompt.text ?? ''}」 (${pinyin}) có nghĩa là "${correctMeaning}".`,
+        }
+      : undefined,
+    onAnswer: async (answer: string) => {
+      setSelectedAnswer(answer)
+    },
+    onRating: advance,
+    onReveal: () => setRevealed(true),
+    onAdvance: advance,
+    onSkip: advance,
+    onPause: () => undefined,
+    onSync: () => undefined,
+  })
+}
+
+function ProgressPreview({ state }: { state: 'ready' | 'loading' | 'empty' | 'error' }) {
+  const [kid, setKid] = useState(masteryNodeDetailsPreview[0]!.kid)
+  return createElement(MasteryProgressView, {
+    detail:
+      state === 'ready' ? masteryNodeDetailsPreview.find((item) => item.kid === kid) : undefined,
+    detailLoading: false,
+    isNewLearner: false,
+    knowledgeNodes: state === 'empty' ? [] : knowledgeTreePreview.nodes,
+    masteryNodes: masteryTreePreview.nodes,
+    onRetry: () => undefined,
+    onRetryDetail: () => undefined,
+    onSelectKid: setKid,
+    selectedKid: state === 'ready' ? kid : undefined,
+    state,
+  })
+}
+
 const progressPreviewStates = ['ready', 'loading', 'empty', 'error'] as const
 
 const progressPreviews = progressPreviewStates.map((state) => ({
   fullFrame: true,
   group: 'screen' as const,
   id: `scr-019-${state}`,
-  render: () =>
-    createElement(MasteryProgressView, {
-      detail: state === 'ready' ? masteryNodeDetailsPreview[0] : undefined,
-      detailLoading: false,
-      isNewLearner: false,
-      knowledgeNodes: state === 'empty' ? [] : knowledgeTreePreview.nodes,
-      masteryNodes: masteryTreePreview.nodes,
-      onRetry: () => undefined,
-      onRetryDetail: () => undefined,
-      onSelectKid: () => undefined,
-      selectedKid: state === 'ready' ? masteryNodeDetailsPreview[0]!.kid : undefined,
-      state,
-    }),
+  states: ['ready', 'loading', 'empty', 'error'] as const,
+  render: (selectedState: 'ready' | 'loading' | 'empty' | 'error') =>
+    createElement(ProgressPreview, { state: selectedState === 'ready' ? state : selectedState }),
   scr: 'SCR-019',
   title: `Tiến độ học tập — ${state}`,
 }))
@@ -335,17 +408,34 @@ const dashboardPreviewEntries = dashboardPreviews.map((preview) => ({
   fullFrame: true,
   group: 'screen' as const,
   id: preview.id,
-  render: () =>
+  states: ['ready', 'loading', 'empty', 'error'] as const,
+  render: (state: 'ready' | 'loading' | 'empty' | 'error') =>
     createElement(MasteryDashboardView, {
       onRetryRecommendations: () => undefined,
       onRetryReview: () => undefined,
-      recommendations: preview.recommendations,
-      recommendationsState: preview.recommendationsState,
-      reviewState: preview.reviewState,
-      reviewSummary: preview.reviewSummary,
+      recommendations: state === 'empty' ? [] : preview.recommendations,
+      recommendationsState:
+        state === 'ready' || state === 'empty' ? preview.recommendationsState : state,
+      reviewState: state === 'ready' || state === 'empty' ? preview.reviewState : state,
+      reviewSummary: state === 'empty' ? emptyReviewSummaryPreview : preview.reviewSummary,
     }),
   scr: 'SCR-010',
   title: preview.title,
 }))
 
-export const previews = [...dashboardPreviewEntries, ...progressPreviews] satisfies readonly PreviewEntry[]
+const dueReviewPreviews = progressPreviewStates.map((state) => ({
+  fullFrame: true,
+  group: 'screen' as const,
+  id: `scr-013-${state}`,
+  scr: 'SCR-013',
+  title: `Ôn tập đến hạn — ${state}`,
+  states: ['ready', 'loading', 'empty', 'error'] as const,
+  render: (selectedState: 'ready' | 'loading' | 'empty' | 'error') =>
+    createElement(DueReviewPreview, { state: selectedState === 'ready' ? state : selectedState }),
+}))
+
+export const previews = [
+  ...dashboardPreviewEntries,
+  ...progressPreviews,
+  ...dueReviewPreviews,
+] satisfies readonly PreviewEntry[]
