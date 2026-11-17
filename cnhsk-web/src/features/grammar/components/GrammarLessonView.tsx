@@ -1,4 +1,12 @@
-import { AlertTriangle, ArrowLeft, ArrowRight, BookCheck, BookOpenText } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ArrowRight,
+  BookCheck,
+  BookOpenText,
+  Quote,
+  Sparkles,
+} from 'lucide-react'
 
 import type { AnswerResult, FinishResult, ServedItemView } from '@/features/practice'
 import { ChoiceQuestion, SessionProgress, SessionSummary } from '@/features/practice'
@@ -56,37 +64,69 @@ function numberFromExtra(result: FinishResult, key: string) {
 function LessonContent({ lesson }: { lesson: GrammarLesson }) {
   return (
     <div className="space-y-5">
-      <Card className="border-brand-100 bg-brand-50 p-5 sm:p-6">
-        <h2 className="text-h3 text-brand-800">Cấu trúc</h2>
-        <p className="mt-3 break-words font-hanzi text-h2 leading-relaxed text-ink" lang="zh-CN">
-          {lesson.structure || lesson.text}
-        </p>
+      <Card className="border-brand-100 bg-surface-subtle p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="inline-flex items-center gap-2 text-brand-800">
+            <Sparkles aria-hidden="true" className="size-4 shrink-0 text-brand-700" />
+            <h2 className="text-h3 text-brand-800">Cấu trúc</h2>
+          </div>
+          <span className="rounded-pill border border-brand-100 bg-surface px-3 py-0.5 font-hanzi text-caption font-semibold text-brand-700">
+            语法公式
+          </span>
+        </div>
+
+        <div className="mt-3 rounded-md border border-brand-100 bg-surface px-4 py-4 shadow-sm sm:px-5">
+          <p className="break-words font-hanzi text-h2 leading-relaxed text-brand-800" lang="zh-CN">
+            {lesson.structure || lesson.text}
+          </p>
+        </div>
       </Card>
 
       <Card className="p-5 sm:p-6">
-        <h2 className="text-h3 text-ink">Giải thích</h2>
+        <div className="flex items-center gap-2">
+          <BookOpenText aria-hidden="true" className="size-5 shrink-0 text-brand-700" />
+          <h2 className="text-h3 text-ink">Giải thích</h2>
+        </div>
         <p className="mt-3 whitespace-pre-line break-words text-body leading-relaxed text-ink-secondary">
           {lesson.explanation}
         </p>
       </Card>
 
       <section aria-labelledby="grammar-examples-title" className="space-y-3">
-        <h2 className="text-h3 text-ink" id="grammar-examples-title">
-          Ví dụ
-        </h2>
-        <div className="divide-y divide-line rounded-md border border-line bg-surface px-4 sm:px-6">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Quote aria-hidden="true" className="size-5 shrink-0 text-brand-700" />
+            <h2 className="text-h3 text-ink" id="grammar-examples-title">
+              Ví dụ
+            </h2>
+          </div>
+          <span className="text-caption font-medium text-ink-muted">
+            {lesson.examples.length} câu mẫu song ngữ
+          </span>
+        </div>
+
+        <div className="space-y-3">
           {lesson.examples.map((example, index) => (
-            <div className="space-y-1 py-4" key={`${example.cn}-${index}`}>
-              <HanziText className="block break-words text-ink" size="sm">
-                {example.cn}
-              </HanziText>
-              {example.pinyin ? (
-                <p className="break-words text-body-sm font-medium text-brand-700">
-                  {example.pinyin}
-                </p>
-              ) : null}
-              <p className="break-words text-body text-ink">{example.vi}</p>
-            </div>
+            <Card className="p-4 sm:p-5" key={`${example.cn}-${index}`}>
+              <div className="flex items-start gap-3.5">
+                <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-pill border border-brand-100 bg-brand-50 text-caption font-semibold text-brand-700">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <HanziText className="block break-words text-ink" size="sm">
+                    {example.cn}
+                  </HanziText>
+                  {example.pinyin ? (
+                    <p className="break-words text-body-sm font-medium text-brand-700">
+                      {example.pinyin}
+                    </p>
+                  ) : null}
+                  <p className="break-words border-l-2 border-brand-100 pl-3 text-body text-ink-secondary">
+                    {example.vi}
+                  </p>
+                </div>
+              </div>
+            </Card>
           ))}
         </div>
       </section>
