@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { AlertTriangle, BookOpen, CheckCircle2, Plus } from 'lucide-react'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
@@ -7,13 +8,13 @@ import {
   EmptyState,
   ErrorState,
   FormField,
-  PageHeader,
   Pagination,
   Select,
   Skeleton,
   StatusBadge,
 } from '@/shared/ui'
 
+import { InkLandscapeBanner } from '../../components/InkLandscapeBanner'
 import {
   actionLabels,
   availableActions,
@@ -45,17 +46,56 @@ export type ReferenceAdminViewProps = {
 
 export function ReferenceAdminView(props: ReferenceAdminViewProps) {
   const { state, data, error, filters, editor, busy, notice, confirmation, actionError } = props
+  const totalItems = data?.total ?? 0
+  const publishedItems = data?.items.filter((item) => item.status === 'PUBLISHED').length ?? 0
+  const reportedItems = data?.items.filter((item) => item.reportCount > 0).length ?? 0
+
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content space-y-5 break-words px-4 py-6 text-ink">
-      <PageHeader
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 break-words px-4 py-6 pb-16 text-ink sm:px-6 lg:px-8">
+      <InkLandscapeBanner
+        className="mb-0"
         title="Tài nguyên tham khảo"
         subtitle="Lọc tài nguyên, xem báo lỗi và quản lý trạng thái công bố."
-        actions={
-          <Button disabled={busy} onClick={props.onCreate}>
-            Tạo tài nguyên
-          </Button>
-        }
       />
+
+      <div className="grid min-w-0 gap-4 sm:grid-cols-3">
+        <Card className="flex min-w-0 items-start justify-between gap-3 border-brand-100 bg-brand-50 p-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-brand-100 bg-surface text-brand-600">
+              <BookOpen aria-hidden="true" className="size-5" />
+            </div>
+            <div>
+              <p className="text-h2 tabular-nums text-ink">{totalItems} mục</p>
+              <p className="text-label text-ink">Tổng tài nguyên</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="flex min-w-0 items-start justify-between gap-3 border-brand-100 bg-brand-50 p-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-brand-100 bg-surface text-success">
+              <CheckCircle2 aria-hidden="true" className="size-5" />
+            </div>
+            <div>
+              <p className="text-h2 tabular-nums text-ink">{publishedItems} mục</p>
+              <p className="text-label text-ink">Đang công bố</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="flex min-w-0 items-start justify-between gap-3 border-brand-100 bg-brand-50 p-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-brand-100 bg-surface text-warning">
+              <AlertTriangle aria-hidden="true" className="size-5" />
+            </div>
+            <div>
+              <p className="text-h2 tabular-nums text-ink">{reportedItems} mục</p>
+              <p className="text-label text-ink">Có báo lỗi trang này</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       {notice ? (
         <p role="status" className="rounded-md bg-success-bg p-4 text-body-sm text-success">
           {notice}
@@ -105,7 +145,20 @@ export function ReferenceAdminView(props: ReferenceAdminViewProps) {
           </div>
         </Card>
       ) : null}
-      <Card>
+      <Card className="space-y-4 border-brand-100">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
+          <div>
+            <h2 className="text-h3 text-ink">Bộ lọc & Danh sách tài nguyên</h2>
+            <p className="text-body-sm text-ink-secondary">
+              Kiểm tra trạng thái công bố và phản hồi báo lỗi từ người học
+            </p>
+          </div>
+          <Button disabled={busy} onClick={props.onCreate}>
+            <Plus aria-hidden="true" className="mr-1 inline-block size-4 align-middle" />
+            Tạo tài nguyên
+          </Button>
+        </div>
+
         <div className="grid min-w-0 grid-cols-1 gap-x-4 sm:grid-cols-3">
           <FormField htmlFor="admin-ref-kind" label="Loại">
             <Select
@@ -187,15 +240,23 @@ export function ReferenceAdminView(props: ReferenceAdminViewProps) {
             role="region"
             aria-label="Bảng tài nguyên tham khảo"
             tabIndex={0}
-            className="max-w-full rounded-sm border border-line"
+            className="max-w-full overflow-hidden rounded-md border border-brand-100"
           >
-            <table role="table" className="block w-full border-collapse text-left text-body-sm lg:table lg:table-fixed">
+            <table
+              role="table"
+              className="block w-full border-collapse text-left text-body-sm lg:table lg:table-fixed"
+            >
               <caption className="sr-only">Danh sách tài nguyên tham khảo</caption>
               <thead role="rowgroup" className="sr-only lg:not-sr-only lg:table-header-group">
-                <tr role="row" className="bg-canvas">
+                <tr role="row" className="bg-brand-50 text-ink">
                   {['Tên', 'Loại', 'Trạng thái', 'Số lần báo lỗi', 'Báo gần nhất', 'Thao tác'].map(
                     (label) => (
-                      <th key={label} role="columnheader" scope="col" className="border-b border-line p-3">
+                      <th
+                        key={label}
+                        role="columnheader"
+                        scope="col"
+                        className="border-b border-brand-100 p-3"
+                      >
                         {label}
                       </th>
                     ),
@@ -204,26 +265,42 @@ export function ReferenceAdminView(props: ReferenceAdminViewProps) {
               </thead>
               <tbody role="rowgroup" className="block lg:table-row-group">
                 {data.items.map((item) => (
-                  <tr key={item.id} role="row" className="block border-b border-line p-3 last:border-0 lg:table-row lg:p-0">
-                    <th role="rowheader" scope="row" className="block pb-2 font-medium lg:table-cell lg:p-3">
+                  <tr
+                    key={item.id}
+                    role="row"
+                    className="block border-b border-line p-3 last:border-0 lg:table-row lg:p-0"
+                  >
+                    <th
+                      role="rowheader"
+                      scope="row"
+                      className="block pb-2 font-medium lg:table-cell lg:p-3"
+                    >
                       {item.title}
                     </th>
                     <td role="cell" className="block py-1 lg:table-cell lg:p-3">
-                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">Loại</span>
+                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">
+                        Loại
+                      </span>
                       {kindLabels[item.kind]}
                     </td>
                     <td role="cell" className="block py-1 lg:table-cell lg:p-3">
-                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">Trạng thái</span>
+                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">
+                        Trạng thái
+                      </span>
                       <StatusBadge tone={item.status === 'PUBLISHED' ? 'success' : 'neutral'}>
                         {statusLabels[item.status]}
                       </StatusBadge>
                     </td>
                     <td role="cell" className="block py-1 tabular-nums lg:table-cell lg:p-3">
-                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">Số lần báo lỗi</span>
+                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">
+                        Số lần báo lỗi
+                      </span>
                       {item.reportCount}
                     </td>
                     <td role="cell" className="block py-1 lg:table-cell lg:p-3">
-                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">Báo gần nhất</span>
+                      <span aria-hidden="true" className="mr-2 text-ink-muted lg:hidden">
+                        Báo gần nhất
+                      </span>
                       {item.lastReportedAt
                         ? new Date(item.lastReportedAt).toLocaleString('vi-VN', {
                             timeZone: 'Asia/Ho_Chi_Minh',
