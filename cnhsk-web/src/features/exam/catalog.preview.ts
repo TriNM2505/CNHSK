@@ -27,7 +27,7 @@ const optionSet = [
 
 export const examPreviews = [
   {
-    activeSessionId: null,
+    activeSessionId: 2201,
     code: 'DEMO-HSK-1',
     hskLevel: 1,
     id: 1201,
@@ -36,6 +36,28 @@ export const examPreviews = [
     questionCount: 10,
     sections: [{ index: 1, name: 'Từ và mẫu câu', questionCount: 10 }],
     title: 'Đề luyện HSK 1 — Mẫu nội bộ',
+  },
+  {
+    activeSessionId: null,
+    code: 'DEMO-HSK-1-02',
+    hskLevel: 1,
+    id: 1204,
+    myAttempts: 0,
+    myBest: null,
+    questionCount: 10,
+    sections: [{ index: 1, name: 'Từ và mẫu câu', questionCount: 10 }],
+    title: 'Đề luyện HSK 1 — Đề số 02',
+  },
+  {
+    activeSessionId: null,
+    code: 'DEMO-HSK-1-03',
+    hskLevel: 1,
+    id: 1205,
+    myAttempts: 0,
+    myBest: null,
+    questionCount: 10,
+    sections: [{ index: 1, name: 'Từ và mẫu câu', questionCount: 10 }],
+    title: 'Đề luyện HSK 1 — Đề số 03',
   },
   {
     activeSessionId: 2202,
@@ -194,7 +216,7 @@ function AttemptPreview({ session }: { session: SessionView }) {
   const placement = session.source === 'PLACEMENT'
   const [currentNo, setCurrentNo] = useState(1)
   const [choices, setChoices] = useState<Record<number, string>>({ 1: 'A' })
-  const [marks, setMarks] = useState<number[]>([1])
+  const [marks, setMarks] = useState<number[]>([])
   const [confirming, setConfirming] = useState(false)
   const [readOnly, setReadOnly] = useState(false)
   return createElement(ExamAttemptView, {
@@ -251,7 +273,7 @@ function ResultPreview() {
 
 function TargetedPreview({ state }: { state: PreviewState }) {
   const [position, setPosition] = useState(0)
-  const [answered, setAnswered] = useState(false)
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const item = targetedSessionFixture.items[position]
   return createElement(TargetedPracticeView, {
     kid: targetedNodeFixture.kid,
@@ -262,14 +284,18 @@ function TargetedPreview({ state }: { state: PreviewState }) {
       : undefined,
     position: position + 1,
     total: targetedSessionFixture.items.length,
-    feedback: answered
-      ? { correct: true, correctAnswer: 'A', explanation: 'Phản hồi mẫu cho phiên xem trước.' }
+    feedback: selectedKey
+      ? {
+          correct: selectedKey === 'A',
+          correctAnswer: 'A',
+          explanation: 'Trật tự câu cơ bản trong tiếng Trung là Chủ ngữ + Động từ + Tân ngữ.',
+        }
       : undefined,
     error: state === 'error' ? 'Không thể tải bài luyện.' : undefined,
-    onAnswer: () => setAnswered(true),
+    onAnswer: (key) => setSelectedKey(key),
     onContinue: () => {
       setPosition((current) => current + 1)
-      setAnswered(false)
+      setSelectedKey(null)
     },
     onRetry: () => undefined,
   })
