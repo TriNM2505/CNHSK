@@ -1,0 +1,39 @@
+.import-report {
+  overflow-wrap: anywhere;
+}
+
+.import-report table {
+  table-layout: fixed;
+}
+
+.import-report th,
+.import-report td {
+  overflow-wrap: anywhere;
+}
+
+.import-error-list th:first-child,
+.import-error-list td:first-child {
+  width: theme('spacing.16');
+}
+
+.import-error-list th:nth-child(2),
+.import-error-list td:nth-child(2) {
+  width: theme('spacing.32');
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .import-run-summary {
+    animation: import-report-reveal 200ms ease-out both;
+  }
+
+  @keyframes import-report-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(theme('spacing.2'));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

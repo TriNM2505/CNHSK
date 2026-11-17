@@ -1,4 +1,12 @@
-import { Download, FilePenLine, RefreshCw } from 'lucide-react'
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Download,
+  FilePenLine,
+  FileSpreadsheet,
+  ListChecks,
+  RefreshCw,
+} from 'lucide-react'
 
 import {
   Button,
@@ -21,6 +29,10 @@ import { IMPORT_DATA_TYPE_LABELS, IMPORT_RUN_STATUS_LABELS } from '../labels'
 import type { ImportErrorPage, ImportRowError, ImportRun, ImportRunStatus } from '../types'
 import { CellText } from './CellText'
 import type { ImportSectionState, ImportLoadError } from './LearningDataImportView'
+import { cn } from '@/shared/lib/cn'
+import { ImportHeaderArt } from './ImportHeaderArt'
+import { ImportReportArt } from './ImportReportArt'
+import './ImportReportView.css'
 
 const STATUS_TONES: Record<ImportRunStatus, StatusTone> = {
   COMPLETED: 'success',
@@ -60,7 +72,8 @@ function RunOutcome({ run }: { run: ImportRun }) {
   if (run.status === 'COMPLETED' && run.errorCount === 0 && run.result) {
     const imported = run.result.created + run.result.updated + run.result.unchanged
     return (
-      <p className="rounded-md border border-success bg-success-bg p-4 text-body-sm text-success">
+      <p className="flex items-start gap-2 rounded-md border border-success bg-success-bg p-4 text-body-sm text-success">
+        <CheckCircle2 aria-hidden="true" className="size-5 shrink-0" />
         Nhập thành công {imported} dòng
       </p>
     )
@@ -95,11 +108,28 @@ function RunCounts({
   counts: readonly (readonly [string, number])[]
 }) {
   return (
-    <section aria-label={title} className="mt-5">
-      <h3 className="text-h3 text-ink">{title}</h3>
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <section
+      aria-label={title}
+      className="min-w-0 rounded-md border border-brand-100 bg-surface p-4 sm:p-5"
+    >
+      <h3 className="flex items-center gap-2 text-h3 text-ink">
+        <ListChecks aria-hidden="true" className="size-5 shrink-0 text-brand-600" />
+        {title}
+      </h3>
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {counts.map(([label, value]) => (
-          <StatTile key={label} label={label} value={value} />
+          <StatTile
+            className={cn(
+              'min-w-0 border-brand-100 p-3',
+              label === 'Hợp lệ' && 'border-success bg-success-bg',
+              (label === 'Lỗi ghi' || label === 'Không hợp lệ') &&
+                value > 0 &&
+                'border-danger bg-danger-bg',
+            )}
+            key={label}
+            label={label}
+            value={value}
+          />
         ))}
       </div>
     </section>
@@ -111,96 +141,110 @@ function RunSummary({ run }: { run: ImportRun }) {
     <>
       <section
         aria-labelledby="import-run-summary-title"
-        className="rounded-md border border-line bg-surface p-4 sm:p-6"
+        className="import-run-summary relative isolate overflow-hidden rounded-md border border-brand-100 bg-surface p-4 shadow-sm sm:p-6"
       >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="text-h2 text-ink" id="import-run-summary-title">
-              Tóm tắt lần nhập #{run.runId}
-            </h2>
-            <p className="mt-1 break-all text-body-sm text-ink-secondary">
-              {run.fileName ?? 'Không đọc được tên tệp'}
-            </p>
+        <ImportReportArt />
+        <div className="relative">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-h2 text-ink" id="import-run-summary-title">
+                <span className="inline-flex items-center gap-2">
+                  <FileSpreadsheet aria-hidden="true" className="size-5 shrink-0 text-brand-600" />
+                  Tóm tắt lần nhập #{run.runId}
+                </span>
+              </h2>
+              <p className="mt-1 break-all text-body-sm text-ink-secondary">
+                <CellText value={run.fileName ?? 'Không đọc được tên tệp'} />
+              </p>
+            </div>
+            <StatusBadge tone={STATUS_TONES[run.status]}>
+              {IMPORT_RUN_STATUS_LABELS[run.status]}
+            </StatusBadge>
           </div>
-          <StatusBadge tone={STATUS_TONES[run.status]}>
-            {IMPORT_RUN_STATUS_LABELS[run.status]}
-          </StatusBadge>
+
+          <dl className="mt-5 grid gap-4 text-body-sm sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <dt className="text-ink-muted">Loại dữ liệu</dt>
+              <dd className="mt-1 font-semibold text-ink">
+                {run.dataType === null ? '—' : IMPORT_DATA_TYPE_LABELS[run.dataType]}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Người nhập</dt>
+              <dd className="mt-1 font-semibold text-ink">
+                <CellText value={run.createdBy.displayName} />
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Thời điểm tạo</dt>
+              <dd className="mt-1 font-semibold text-ink">
+                <time dateTime={run.createdAt}>{formatImportDate(run.createdAt)}</time>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Thời điểm hoàn thành</dt>
+              <dd className="mt-1 font-semibold text-ink">
+                {run.completedAt ? (
+                  <time dateTime={run.completedAt}>{formatImportDate(run.completedAt)}</time>
+                ) : (
+                  '—'
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted">Số lỗi</dt>
+              <dd className="mt-1 font-semibold tabular-nums text-ink">{run.errorCount}</dd>
+            </div>
+          </dl>
         </div>
-
-        <dl className="mt-5 grid gap-4 text-body-sm sm:grid-cols-2 lg:grid-cols-3">
-          <div>
-            <dt className="text-ink-muted">Loại dữ liệu</dt>
-            <dd className="mt-1 font-semibold text-ink">
-              {run.dataType === null ? '—' : IMPORT_DATA_TYPE_LABELS[run.dataType]}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Người nhập</dt>
-            <dd className="mt-1 font-semibold text-ink">{run.createdBy.displayName}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Thời điểm tạo</dt>
-            <dd className="mt-1 font-semibold text-ink">
-              <time dateTime={run.createdAt}>{formatImportDate(run.createdAt)}</time>
-            </dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Thời điểm hoàn thành</dt>
-            <dd className="mt-1 font-semibold text-ink">
-              {run.completedAt ? (
-                <time dateTime={run.completedAt}>{formatImportDate(run.completedAt)}</time>
-              ) : (
-                '—'
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted">Số lỗi</dt>
-            <dd className="mt-1 font-semibold tabular-nums text-ink">{run.errorCount}</dd>
-          </div>
-        </dl>
-
-        {run.totals ? (
-          <RunCounts
-            title="Số liệu lúc kiểm tra file"
-            counts={[
-              ['Tổng số dòng', run.totals.total],
-              ['Hợp lệ', run.totals.valid],
-              ['Không hợp lệ', run.totals.invalid],
-              ['Tạo mới', run.totals.create],
-              ['Cập nhật', run.totals.update],
-              ['Không đổi', run.totals.unchanged],
-            ]}
-          />
-        ) : null}
-        {run.result ? (
-          <RunCounts
-            title="Kết quả ghi"
-            counts={[
-              ['Tổng số dòng', run.result.total],
-              ['Hợp lệ', run.result.valid],
-              ['Không hợp lệ', run.result.invalid],
-              ['Tạo mới', run.result.created],
-              ['Cập nhật', run.result.updated],
-              ['Không đổi', run.result.unchanged],
-              ['Lỗi ghi', run.result.failed],
-            ]}
-          />
-        ) : null}
       </section>
-
-      <div className="mt-4">
-        <RunOutcome run={run} />
-      </div>
+      <RunOutcome run={run} />
+      {run.totals || run.result ? (
+        <div className={cn('grid min-w-0 gap-4', run.totals && run.result && 'lg:grid-cols-2')}>
+          {run.totals ? (
+            <RunCounts
+              title="Số liệu lúc kiểm tra file"
+              counts={[
+                ['Tổng số dòng', run.totals.total],
+                ['Hợp lệ', run.totals.valid],
+                ['Không hợp lệ', run.totals.invalid],
+                ['Tạo mới', run.totals.create],
+                ['Cập nhật', run.totals.update],
+                ['Không đổi', run.totals.unchanged],
+              ]}
+            />
+          ) : null}
+          {run.result ? (
+            <RunCounts
+              title="Kết quả ghi"
+              counts={[
+                ['Tổng số dòng', run.result.total],
+                ['Hợp lệ', run.result.valid],
+                ['Không hợp lệ', run.result.invalid],
+                ['Tạo mới', run.result.created],
+                ['Cập nhật', run.result.updated],
+                ['Không đổi', run.result.unchanged],
+                ['Lỗi ghi', run.result.failed],
+              ]}
+            />
+          ) : null}
+        </div>
+      ) : null}
     </>
   )
 }
 
 function ErrorList({ errors }: Pick<ImportReportViewProps, 'errors'>) {
   return (
-    <section aria-labelledby="import-errors-title" className="mt-8">
+    <section
+      aria-labelledby="import-errors-title"
+      className="import-error-list min-w-0 rounded-md border border-brand-100 bg-surface p-4 sm:p-6"
+    >
       <h2 className="mb-3 text-h2 text-ink" id="import-errors-title">
-        Chi tiết dòng lỗi
+        <span className="inline-flex items-center gap-2">
+          <ListChecks aria-hidden="true" className="size-5 text-brand-600" />
+          Chi tiết dòng lỗi
+        </span>
       </h2>
 
       {errors.state === 'loading' ? <Skeleton variant="table" /> : null}
@@ -256,11 +300,58 @@ export function ImportReportView({
   state,
 }: ImportReportViewProps) {
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content p-4 sm:p-6">
-      <PageHeader
-        subtitle="Xem kết quả đã ghi và các dòng cần sửa trong file nguồn."
-        title="Báo cáo nhập dữ liệu"
-      />
+    <main className="import-report mx-auto w-full min-w-0 max-w-content space-y-4 px-4 py-6 pb-24 sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden rounded-md border border-brand-100 bg-brand-50 px-5 py-5 sm:px-6">
+        <PageHeader
+          className="relative z-nav mb-0"
+          subtitle="Xem kết quả đã ghi và các dòng cần sửa trong file nguồn."
+          title={
+            <span className="inline-flex items-center gap-3">
+              <span aria-hidden="true" className="h-7 w-1.5 shrink-0 rounded-pill bg-brand-600" />
+              Báo cáo nhập dữ liệu
+            </span>
+          }
+          actions={
+            state === 'ready' && run ? (
+              <>
+                {run.errorCount > 0 ? (
+                  <Button loading={downloadPending} onClick={onDownloadErrors}>
+                    <Download aria-hidden="true" className="size-4" />
+                    {downloadPending ? 'Đang tải' : 'Tải danh sách lỗi'}
+                  </Button>
+                ) : null}
+                <Button
+                  to={
+                    run.dataType === null
+                      ? '/content/imports'
+                      : `/content/imports?dataType=${run.dataType}`
+                  }
+                  variant="outline"
+                >
+                  <FilePenLine aria-hidden="true" className="size-4" />
+                  Sửa file và nhập lại
+                </Button>
+                {run.status === 'RUNNING' ? (
+                  <Button onClick={onReload} variant="outline">
+                    <RefreshCw aria-hidden="true" className="size-4" />
+                    Tải lại
+                  </Button>
+                ) : null}
+              </>
+            ) : undefined
+          }
+        />
+        <ImportHeaderArt />
+      </div>
+      {downloadError && state === 'ready' && run ? (
+        <p
+          className="rounded-md border border-danger bg-danger-bg p-3 text-body-sm text-danger"
+          role="alert"
+        >
+          {downloadError.message}
+          {downloadError.requestId ? ` Mã lỗi: ${downloadError.requestId}` : ''}
+        </p>
+      ) : null}
 
       {state === 'loading' ? <Skeleton variant="card" /> : null}
       {state === 'error' ? (
@@ -286,40 +377,13 @@ export function ImportReportView({
         <>
           <RunSummary run={run} />
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            {run.errorCount > 0 ? (
-              <Button loading={downloadPending} onClick={onDownloadErrors}>
-                <Download aria-hidden="true" className="size-4" />
-                {downloadPending ? 'Đang tải' : 'Tải danh sách lỗi'}
-              </Button>
-            ) : null}
-            <Button
-              to={
-                run.dataType === null
-                  ? '/content/imports'
-                  : `/content/imports?dataType=${run.dataType}`
-              }
-              variant="outline"
-            >
-              <FilePenLine aria-hidden="true" className="size-4" />
-              Sửa file và nhập lại
-            </Button>
-            {run.status === 'RUNNING' ? (
-              <Button onClick={onReload} variant="outline">
-                <RefreshCw aria-hidden="true" className="size-4" />
-                Tải lại
-              </Button>
-            ) : null}
-          </div>
-
-          {downloadError ? (
-            <p className="mt-3 text-body-sm text-danger" role="alert">
-              {downloadError.message}
-              {downloadError.requestId ? ` Mã lỗi: ${downloadError.requestId}` : ''}
-            </p>
-          ) : null}
-
           <ErrorList errors={errors} />
+          <div className="flex flex-wrap gap-3">
+            <Button variant="ghost" to="/content/imports">
+              <ArrowLeft aria-hidden="true" className="size-4" />
+              Về lịch sử nhập
+            </Button>
+          </div>
         </>
       ) : null}
     </main>

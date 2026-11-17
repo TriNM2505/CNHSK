@@ -1,5 +1,15 @@
-import { Clock3, Download, FileUp, History, TriangleAlert } from 'lucide-react'
-import type { FormEvent } from 'react'
+import {
+  ChevronDown,
+  Clock3,
+  Download,
+  FileSpreadsheet,
+  FileUp,
+  History,
+  ListChecks,
+  ShieldCheck,
+  TriangleAlert,
+} from 'lucide-react'
+import { useId, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 
 import {
@@ -43,6 +53,10 @@ import type {
   ImportTemplate,
 } from '../types'
 import { CellText } from './CellText'
+import { cn } from '@/shared/lib/cn'
+import { ImportHeaderArt } from './ImportHeaderArt'
+import { ImportFlowArt, ImportFlowSteps } from './ImportFlowArt'
+import './LearningDataImportView.css'
 
 export type ImportSectionState = 'loading' | 'empty' | 'error' | 'ready'
 
@@ -158,8 +172,10 @@ function TemplateGuide({
   onDownloadTemplate: () => void
   template: ImportTemplate
 }) {
+  const [expanded, setExpanded] = useState(true)
+  const columnsId = useId()
   return (
-    <div className="mt-4 rounded-md border border-line bg-canvas p-4">
+    <div className="mt-4 min-w-0 rounded-md border border-brand-100 bg-surface p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-h3 text-ink">
@@ -191,42 +207,64 @@ function TemplateGuide({
           {downloadError}
         </p>
       ) : null}
-      <DataTable
-        caption={`Danh sách cột mẫu ${IMPORT_DATA_TYPE_LABELS[template.dataType]}`}
-        className="mt-4"
-        columns={[
-          {
-            header: 'Tên cột',
-            id: 'name',
-            render: (column) => <code className="break-all text-body-sm">{column.name}</code>,
-          },
-          {
-            header: 'Bắt buộc',
-            id: 'required',
-            render: (column) => (column.required ? 'Có' : 'Không'),
-          },
-          {
-            header: 'Tối đa',
-            hideOnMobile: true,
-            id: 'maxLength',
-            numeric: true,
-            render: (column) => (column.maxLength ? `${column.maxLength} ký tự` : '—'),
-          },
-          {
-            header: 'Mô tả',
-            id: 'description',
-            render: (column) => <CellText value={column.description} />,
-          },
-          {
-            header: 'Ví dụ',
-            hideOnMobile: true,
-            id: 'example',
-            render: (column) => <CellText value={column.example} />,
-          },
-        ]}
-        rowKey={(column) => column.name}
-        rows={template.columns}
-      />
+      <Button
+        className="mt-3 w-full justify-between px-0"
+        variant="ghost"
+        disabled={disabled}
+        aria-expanded={expanded}
+        aria-controls={columnsId}
+        onClick={() => setExpanded((value) => !value)}
+      >
+        <span className="inline-flex items-center gap-2">
+          <ListChecks aria-hidden="true" className="size-4" />
+          Cột và hướng dẫn
+        </span>
+        <ChevronDown
+          aria-hidden="true"
+          className={cn(
+            'size-4 transition-transform motion-reduce:transition-none',
+            expanded && 'rotate-180',
+          )}
+        />
+      </Button>
+      <div id={columnsId} hidden={!expanded}>
+        <DataTable
+          caption={`Danh sách cột mẫu ${IMPORT_DATA_TYPE_LABELS[template.dataType]}`}
+          className="mt-4"
+          columns={[
+            {
+              header: 'Tên cột',
+              id: 'name',
+              render: (column) => <code className="break-all text-body-sm">{column.name}</code>,
+            },
+            {
+              header: 'Bắt buộc',
+              id: 'required',
+              render: (column) => (column.required ? 'Có' : 'Không'),
+            },
+            {
+              header: 'Tối đa',
+              hideOnMobile: true,
+              id: 'maxLength',
+              numeric: true,
+              render: (column) => (column.maxLength ? `${column.maxLength} ký tự` : '—'),
+            },
+            {
+              header: 'Mô tả',
+              id: 'description',
+              render: (column) => <CellText value={column.description} />,
+            },
+            {
+              header: 'Ví dụ',
+              hideOnMobile: true,
+              id: 'example',
+              render: (column) => <CellText value={column.example} />,
+            },
+          ]}
+          rowKey={(column) => column.name}
+          rows={template.columns}
+        />
+      </div>
     </div>
   )
 }
@@ -307,15 +345,18 @@ function PreviewResult({
   return (
     <section
       aria-labelledby="import-preview-title"
-      className="mt-6 rounded-md border border-line bg-surface p-4 sm:p-6"
+      className="import-check-result mt-4 min-w-0 rounded-md border border-brand-100 bg-surface p-4 shadow-sm sm:p-6"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-h2 text-ink" id="import-preview-title">
-            Kết quả kiểm tra
+            <span className="inline-flex items-center gap-2">
+              <ListChecks aria-hidden="true" className="size-5 text-brand-600" />
+              Kết quả kiểm tra
+            </span>
           </h2>
           <p className="mt-1 break-all text-body-sm text-ink-secondary">
-            {IMPORT_DATA_TYPE_LABELS[preview.dataType]} · {preview.fileName}
+            {IMPORT_DATA_TYPE_LABELS[preview.dataType]} · <CellText value={preview.fileName} />
           </p>
         </div>
         {blockedMessage ? null : (
@@ -331,7 +372,16 @@ function PreviewResult({
 
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {totals.map(([label, value]) => (
-          <StatTile key={label} label={label} value={value} />
+          <StatTile
+            className={cn(
+              'min-w-0 border-brand-100',
+              label === 'Hợp lệ' && 'border-success bg-success-bg',
+              label === 'Không hợp lệ' && value > 0 && 'border-danger bg-danger-bg',
+            )}
+            key={label}
+            label={label}
+            value={value}
+          />
         ))}
       </div>
 
@@ -349,7 +399,7 @@ function PreviewResult({
       {preview.preview.length ? (
         <DataTable
           caption="Xem trước các dòng hợp lệ đầu tiên"
-          className="mt-3"
+          className={cn('mt-3', (template?.columns.length ?? 0) > 6 && 'import-wide-preview')}
           columns={previewColumns(template)}
           rowKey={(row) => row.line}
           rows={preview.preview}
@@ -390,9 +440,9 @@ function PreviewResult({
             File này đã được nhập thành công trước đó.
           </p>
           <label className="mt-2 flex min-h-touch cursor-pointer items-center gap-3 text-ink">
-            <input
+            <Input
               checked={acknowledgeRerun}
-              className="size-5 shrink-0 accent-brand-700"
+              className="size-5 min-h-0 w-5 shrink-0 p-0 accent-brand-700"
               disabled={busy || Boolean(blockedMessage)}
               onChange={(event) => onAcknowledgeChange(event.target.checked)}
               type="checkbox"
@@ -439,14 +489,16 @@ function HistorySection({
       header: 'Tên file',
       id: 'fileName',
       render: (run) => (
-        <span className="break-all">{run.fileName ?? 'Không đọc được tên tệp'}</span>
+        <span className="break-all">
+          <CellText value={run.fileName ?? 'Không đọc được tên tệp'} />
+        </span>
       ),
     },
     {
       header: 'Người nhập',
       hideOnMobile: true,
       id: 'createdBy',
-      render: (run) => run.createdBy.displayName,
+      render: (run) => <CellText value={run.createdBy.displayName} />,
     },
     {
       header: 'Thời gian',
@@ -473,9 +525,12 @@ function HistorySection({
   ]
 
   return (
-    <section aria-labelledby="import-history-title" className="mt-8">
+    <section
+      aria-labelledby="import-history-title"
+      className="mt-4 min-w-0 rounded-md border border-brand-100 bg-surface p-4 sm:p-6"
+    >
       <h2 className="mb-3 flex items-center gap-2 text-h2 text-ink" id="import-history-title">
-        <History aria-hidden="true" className="size-5" />
+        <History aria-hidden="true" className="size-5 text-brand-600" />
         Lịch sử nhập
       </h2>
       {state === 'loading' ? <Skeleton variant="table" /> : null}
@@ -560,11 +615,21 @@ export function LearningDataImportView({
   }
 
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content p-4 sm:p-6">
-      <PageHeader
-        subtitle="Tải file CSV theo mẫu, kiểm tra trước rồi mới ghi vào kho dữ liệu học."
-        title="Nhập dữ liệu học tập"
-      />
+    <main className="learning-import mx-auto w-full min-w-0 max-w-content space-y-4 px-4 py-6 pb-24 sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden rounded-md border border-brand-100 bg-brand-50 px-5 py-5 sm:px-6">
+        <PageHeader
+          className="relative z-nav mb-0"
+          subtitle="Tải file CSV theo mẫu, kiểm tra trước rồi mới ghi vào kho dữ liệu học."
+          title={
+            <span className="inline-flex items-center gap-3">
+              <span aria-hidden="true" className="h-7 w-1.5 shrink-0 rounded-pill bg-brand-600" />
+              Nhập dữ liệu học tập
+            </span>
+          }
+        />
+        <ImportHeaderArt />
+      </div>
+      <ImportFlowSteps step={confirmOpen ? 3 : preview ? 2 : 1} />
 
       {state === 'loading' ? <Skeleton variant="card" /> : null}
       {state === 'error' ? (
@@ -584,9 +649,21 @@ export function LearningDataImportView({
       {state === 'ready' ? (
         <section
           aria-label="Tải file lên"
-          className="rounded-md border border-line bg-surface p-4 sm:p-6"
+          className="relative isolate min-w-0 overflow-hidden rounded-md border border-brand-100 bg-surface p-4 shadow-sm sm:p-6"
         >
-          <form noValidate onSubmit={handleSubmit}>
+          <ImportFlowArt />
+          <form className="relative min-w-0" noValidate onSubmit={handleSubmit}>
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
+                <FileSpreadsheet aria-hidden="true" className="size-5" />
+              </span>
+              <div>
+                <h2 className="text-h3">Chọn file và kiểm tra</h2>
+                <p className="text-body-sm text-ink-secondary">
+                  Chọn đúng mẫu để đối chiếu nội dung trước khi nhập.
+                </p>
+              </div>
+            </div>
             <div className="grid gap-x-4 sm:grid-cols-2">
               <FormField
                 error={selectionErrors.dataType}
@@ -618,6 +695,7 @@ export function LearningDataImportView({
                 >
                   <Input
                     accept=".csv"
+                    className="h-auto min-h-control min-w-0 py-2 text-body-sm file:mr-3 file:rounded-sm file:border-0 file:bg-brand-50 file:px-3 file:py-2 file:text-label file:text-brand-700"
                     aria-describedby={uploadError ? 'import-upload-error' : undefined}
                     disabled={busy}
                     key={fileInputKey}
@@ -645,6 +723,7 @@ export function LearningDataImportView({
               </div>
             ) : selectedTemplate ? (
               <TemplateGuide
+                key={selectedTemplate.dataType}
                 disabled={busy}
                 downloadError={downloadError}
                 downloadPending={downloadPending}
@@ -653,7 +732,8 @@ export function LearningDataImportView({
               />
             ) : null}
 
-            <p className="mt-4 text-caption text-ink-muted">
+            <p className="mt-4 flex items-start gap-2 text-body-sm text-ink-secondary">
+              <ShieldCheck aria-hidden="true" className="size-4 shrink-0 text-brand-600" />
               Chỉ tải lên dữ liệu bạn có quyền sử dụng. Hệ thống không lưu lại file gốc.
             </p>
 

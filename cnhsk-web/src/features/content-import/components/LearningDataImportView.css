@@ -1,0 +1,46 @@
+.learning-import {
+  overflow-wrap: anywhere;
+}
+
+.learning-import table {
+  table-layout: fixed;
+}
+
+.learning-import th,
+.learning-import td {
+  overflow-wrap: anywhere;
+}
+
+.learning-import td .rounded-pill {
+  @apply max-w-full whitespace-normal;
+}
+
+.learning-import td .rounded-pill > span {
+  @apply min-w-0;
+}
+
+.learning-import .import-wide-preview > div {
+  @apply overflow-x-auto;
+}
+
+.learning-import .import-wide-preview table {
+  min-width: theme('maxWidth.content');
+  table-layout: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .import-check-result {
+    animation: import-check-reveal 200ms ease-out both;
+  }
+
+  @keyframes import-check-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(theme('spacing.2'));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
