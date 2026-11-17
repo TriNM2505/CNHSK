@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ApiError } from '@/shared/api'
 import {
   Button,
+  ConfirmPanel,
   EmptyState,
   ErrorState,
   FormField,
@@ -52,6 +53,19 @@ export type QuestionEditViewProps = {
   onSave: (body: QuestionUpdate) => void
   pending: boolean
   state: PageStateValue
+  review?: {
+    allowed: boolean
+    locked: boolean
+    action?: 'approve' | 'reject'
+    reason: string
+    reasonError?: string
+    error?: ApiError
+    pending: boolean
+    onReasonChange: (reason: string) => void
+    onRequest: (action: 'approve' | 'reject') => void
+    onConfirm: () => void
+    onCancel: () => void
+  }
 }
 
 function QuestionContent({ data }: { data: QuestionDetail }) {
@@ -126,6 +140,7 @@ export function QuestionEditView({
   onSave,
   pending,
   state,
+  review,
 }: QuestionEditViewProps) {
   const [values, setValues] = useState<QuestionUpdate>(() =>
     data
@@ -155,7 +170,11 @@ export function QuestionEditView({
       if (trigger instanceof HTMLElement && trigger.isConnected) trigger.focus()
     }
   }, [action])
-  const serverErrors = questionEditServerErrors(actionError?.details)
+  useEffect(() => {
+    if (!review?.error) return
+    requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
+  }, [review?.error])
+  const serverErrors = questionEditServerErrors(actionError?.details ?? review?.error?.details)
   const errors = { ...localErrors, ...serverErrors }
   const change = <K extends keyof QuestionUpdate>(field: K, value: QuestionUpdate[K]) => {
     setValues((current) => ({ ...current, [field]: value }))
@@ -180,11 +199,15 @@ export function QuestionEditView({
       'options',
       values.options.map((option, at) => (at === index ? { ...option, ...patch } : option)),
     )
-  const blocked = pending || Boolean(action)
+  const blocked = pending || Boolean(action) || Boolean(review?.pending) || Boolean(review?.action)
+  const dirty =
+    data !== undefined && JSON.stringify(values) !== JSON.stringify(questionEditValues(data))
+  const [discard, setDiscard] = useState(false)
   const ready = state === 'ready' && data !== undefined
   const editable = canEdit && data?.status !== 'ARCHIVED' && data?.qtype !== 'ESSAY'
   const choice = data && ['MULTIPLE_CHOICE', 'IMAGE_MATCH', 'SENTENCE_MATCH'].includes(data.qtype)
   const visibleFields = new Set<string>()
+  if (review?.allowed) visibleFields.add('reason')
   if (editable) {
     for (const field of [
       'stem',
@@ -215,7 +238,7 @@ export function QuestionEditView({
   return (
     <div className="mx-auto max-w-reading space-y-6">
       <Button to={backTo} variant="ghost">
-        Về kho câu hỏi
+        {backTo.startsWith('/content/ai-review') ? 'Về hàng đợi duyệt AI' : 'Về kho câu hỏi'}
       </Button>
       <PageHeader
         title="Chi tiết câu hỏi"
@@ -335,6 +358,21 @@ export function QuestionEditView({
                   {message}
                 </p>
               ))}
+            </section>
+          ) : null}
+          {review?.error ? (
+            <section aria-label="Lỗi kiểm duyệt" className="space-y-2" role="alert">
+              <p>{review.error.message}</p>
+              {review.error.errorCode === 'QUESTION_NOT_PENDING' ? (
+                <p>Câu hỏi không còn chờ duyệt. Đã yêu cầu tải lại dữ liệu mới nhất.</p>
+              ) : null}
+              {review.error.requestId ? <p>Mã yêu cầu: {review.error.requestId}</p> : null}
+              {generalErrors.map(([field, message]) => (
+                <p key={field}>{message}</p>
+              ))}
+              <Button disabled={blocked} onClick={onRetry} variant="outline">
+                Tải lại câu hỏi
+              </Button>
             </section>
           ) : null}
           {editable ? (
@@ -644,6 +682,79 @@ export function QuestionEditView({
             <Button disabled={blocked} onClick={onArchive} variant="danger">
               Lưu trữ câu hỏi
             </Button>
+          ) : null}
+          {review?.allowed ? (
+            <section
+              aria-label="Kiểm duyệt câu hỏi AI"
+              className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-6"
+            >
+              <h2 className="text-h3">Kiểm duyệt câu hỏi AI</h2>
+              <p>Duyệt hoặc từ chối nội dung đã lưu. Lưu thay đổi không tự duyệt câu hỏi.</p>
+              {dirty ? (
+                <div className="space-y-3">
+                  <p role="status">
+                    Có thay đổi chưa lưu. Lưu hoặc bỏ thay đổi trước khi kiểm duyệt.
+                  </p>
+                  <Button disabled={blocked} onClick={() => setDiscard(true)} variant="outline">
+                    Bỏ thay đổi chưa lưu
+                  </Button>
+                </div>
+              ) : null}
+              <FormField
+                htmlFor="review-reason"
+                label="Lý do từ chối"
+                hint="Bắt buộc khi từ chối; từ 1 đến 1000 ký tự."
+                error={review.reasonError ?? serverErrors.reason}
+              >
+                <Textarea
+                  disabled={blocked || review.locked}
+                  value={review.reason}
+                  onChange={(event) => review.onReasonChange(event.target.value)}
+                />
+              </FormField>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  disabled={blocked || dirty || review.locked}
+                  onClick={() => review.onRequest('approve')}
+                >
+                  Duyệt câu hỏi
+                </Button>
+                <Button
+                  disabled={blocked || dirty || review.locked}
+                  onClick={() => review.onRequest('reject')}
+                  variant="danger"
+                >
+                  Từ chối câu hỏi
+                </Button>
+              </div>
+              <ConfirmPanel
+                open={Boolean(review.action)}
+                pending={review.pending}
+                title={review.action === 'reject' ? 'Từ chối câu hỏi?' : 'Duyệt câu hỏi?'}
+                message={
+                  review.action === 'reject'
+                    ? review.reason.trim()
+                    : 'Câu hỏi đã lưu sẽ được đưa vào nội dung đã duyệt.'
+                }
+                confirmLabel={review.action === 'reject' ? 'Xác nhận từ chối' : 'Xác nhận duyệt'}
+                danger={review.action === 'reject'}
+                onCancel={review.onCancel}
+                onConfirm={review.onConfirm}
+              />
+              <ConfirmPanel
+                open={discard}
+                title="Bỏ thay đổi chưa lưu?"
+                message="Nội dung sẽ trở về bản đã lưu trên máy chủ."
+                confirmLabel="Xác nhận bỏ thay đổi"
+                onCancel={() => setDiscard(false)}
+                onConfirm={() => {
+                  setValues(questionEditValues(data))
+                  setLocalErrors({})
+                  setDiscard(false)
+                  onDismissError()
+                }}
+              />
+            </section>
           ) : null}
           {action ? (
             <section

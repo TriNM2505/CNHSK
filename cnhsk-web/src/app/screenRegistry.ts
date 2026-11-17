@@ -1,3 +1,4 @@
+import { screens as aiReviewScreens } from '@/features/ai-review/screens'
 import type { ComponentType, LazyExoticComponent } from 'react'
 
 import { screens as accountScreens } from '@/features/account/screens'
@@ -57,6 +58,7 @@ export function createScreenRegistry(catalogs: readonly FeatureScreenCatalog[]):
 }
 
 export const screenRegistry = createScreenRegistry([
+  { feature: 'ai-review', screens: aiReviewScreens },
   { feature: 'exam-admin', screens: examAdminScreens },
   { feature: 'admin-settings', screens: adminSettingsScreens },
   { feature: 'topic-admin', screens: topicAdminScreens },

@@ -4,6 +4,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { RoleCode } from '@/features/auth/types'
+import { approveReview, rejectReview } from '@/features/ai-review/api/reviews'
 import { ApiError } from '@/shared/api'
 import { AuthContext, type AuthContextValue } from '@/shared/auth'
 
@@ -13,6 +14,10 @@ import type { KnowledgeTree, QuestionDetail, QuestionType } from '../types'
 import Scr059QuestionEditPage from './Scr059QuestionEditPage'
 
 vi.mock('../api/knowledge', () => ({ getKnowledgeTree: vi.fn() }))
+vi.mock('@/features/ai-review/api/reviews', () => ({
+  approveReview: vi.fn(),
+  rejectReview: vi.fn(),
+}))
 vi.mock('../api/questions', () => ({
   getQuestion: vi.fn(),
   updateQuestion: vi.fn(),
@@ -116,6 +121,7 @@ function renderPage({
     [
       { path: '/content/questions/:id', element: <Scr059QuestionEditPage /> },
       { path: '/content/questions', element: <h1>Kho câu hỏi</h1> },
+      { path: '/content/ai-review', element: <h1>Hàng đợi đã làm mới khi mở</h1> },
     ],
     { initialEntries: [entry] },
   )
@@ -180,8 +186,209 @@ beforeEach(() => {
   }))
   archiveMock.mockReset().mockResolvedValue({ ...question(), status: 'ARCHIVED' })
   fetchMock.mockReset()
+  vi.mocked(approveReview)
+    .mockReset()
+    .mockResolvedValue({ id: 901, status: 'APPROVED', reviewedAt: '2026-11-17T00:00:00Z' })
+  vi.mocked(rejectReview)
+    .mockReset()
+    .mockResolvedValue({ id: 901, status: 'REJECTED', reviewedAt: '2026-11-17T00:00:00Z' })
   vi.stubGlobal('fetch', fetchMock)
   vi.spyOn(window, 'confirm').mockReturnValue(false)
+})
+
+describe('AI pending review in the existing editor', () => {
+  const pendingQuestion = (): QuestionDetail => ({
+    ...question(),
+    source: 'AI',
+    status: 'PENDING_REVIEW',
+  })
+  it.each(['TEACHER', 'CONTENT_EDITOR'] as const)(
+    '%s can edit and separately review AI pending questions',
+    async (role) => {
+      getMock.mockResolvedValue(pendingQuestion())
+      renderPage({ roles: [role] })
+      await form()
+      expect(screen.getByRole('button', { name: 'Duyệt câu hỏi' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'Từ chối câu hỏi' })).toBeEnabled()
+      await requestSave()
+      fireEvent.click(screen.getByRole('button', { name: 'Xác nhận lưu thay đổi' }))
+      await waitFor(() => expect(updateMock).toHaveBeenCalledTimes(1))
+      expect(approveReview).not.toHaveBeenCalled()
+      expect(rejectReview).not.toHaveBeenCalled()
+    },
+  )
+  it.each([
+    ['IMPORT', 'PENDING_REVIEW'],
+    ['MANUAL', 'PENDING_REVIEW'],
+    ['AI', 'APPROVED'],
+    ['AI', 'REJECTED'],
+    ['AI', 'ARCHIVED'],
+  ] as const)('Editor cannot edit or review %s/%s', async (source, status) => {
+    getMock.mockResolvedValue({ ...question(), source, status })
+    renderPage({ roles: ['CONTENT_EDITOR'] })
+    expect(await screen.findByRole('heading', { name: 'Chi tiết câu hỏi' })).toBeVisible()
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(1))
+    expect(screen.queryByRole('form', { name: 'Sửa câu hỏi' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Duyệt câu hỏi' })).not.toBeInTheDocument()
+  })
+  it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT'] as const)(
+    '%s alone has no AI review actions',
+    async (role) => {
+      getMock.mockResolvedValue(pendingQuestion())
+      renderPage({ roles: [role] })
+      expect(await screen.findByRole('heading', { name: 'Chi tiết câu hỏi' })).toBeVisible()
+      await waitFor(() => expect(screen.getByText('Chờ duyệt')).toBeVisible())
+      expect(screen.queryByRole('button', { name: 'Duyệt câu hỏi' })).not.toBeInTheDocument()
+    },
+  )
+  it('blocks dirty decisions until a confirmed discard restores persisted data', async () => {
+    getMock.mockResolvedValue(pendingQuestion())
+    renderPage()
+    await form()
+    fireEvent.change(field('Lời giải'), { target: { value: 'Bản nháp chưa lưu.' } })
+    expect(screen.getByRole('button', { name: 'Duyệt câu hỏi' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Từ chối câu hỏi' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Bỏ thay đổi chưa lưu' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận bỏ thay đổi' }))
+    expect(field('Lời giải')).toHaveValue(pendingQuestion().explanation)
+    expect(screen.getByRole('button', { name: 'Duyệt câu hỏi' })).toBeEnabled()
+    expect(updateMock).not.toHaveBeenCalled()
+    expect(approveReview).not.toHaveBeenCalled()
+  })
+  it('confirms approval, reloads actual detail and safely returns to originating queue', async () => {
+    getMock
+      .mockResolvedValueOnce(pendingQuestion())
+      .mockResolvedValueOnce({ ...pendingQuestion(), status: 'APPROVED' })
+    const router = renderPage({
+      entry: '/content/questions/901?reviewQueue=1&hsk=2&page=3&returnTo=https://evil.test',
+    })
+    await form()
+    fireEvent.click(screen.getByRole('button', { name: 'Duyệt câu hỏi' }))
+    expect(approveReview).not.toHaveBeenCalled()
+    fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận duyệt' }))
+    expect(await screen.findByRole('heading', { name: 'Hàng đợi đã làm mới khi mở' })).toBeVisible()
+    expect(approveReview).toHaveBeenCalledWith(901, expect.any(AbortSignal))
+    expect(getMock).toHaveBeenCalledTimes(2)
+    expect(router.state.location.pathname).toBe('/content/ai-review')
+    expect(router.state.location.search).not.toContain('evil')
+    expect(updateMock).not.toHaveBeenCalled()
+  })
+  it.each(['', ' \u2003 ', '词'.repeat(1001)])(
+    'requires a valid reason before opening rejection confirmation',
+    async (reason) => {
+      getMock.mockResolvedValue(pendingQuestion())
+      renderPage()
+      await form()
+      fireEvent.change(screen.getByLabelText('Lý do từ chối'), { target: { value: reason } })
+      fireEvent.click(screen.getByRole('button', { name: 'Từ chối câu hỏi' }))
+      expect(await screen.findByText('Nhập lý do từ 1 đến 1000 ký tự.')).toBeVisible()
+      await waitFor(() => expect(screen.getByLabelText('Lý do từ chối')).toHaveFocus())
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(rejectReview).not.toHaveBeenCalled()
+    },
+  )
+  it.each([' 词 ', '😀'.repeat(1000)])(
+    'sends trimmed Unicode reason and reloads without injecting review metadata into PUT',
+    async (reason) => {
+      getMock
+        .mockResolvedValueOnce(pendingQuestion())
+        .mockResolvedValueOnce({ ...pendingQuestion(), status: 'REJECTED' })
+      renderPage()
+      await form()
+      fireEvent.change(screen.getByLabelText('Lý do từ chối'), { target: { value: reason } })
+      fireEvent.click(screen.getByRole('button', { name: 'Từ chối câu hỏi' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận từ chối' }))
+      expect(await screen.findByText('Đã từ chối câu hỏi.')).toBeVisible()
+      expect(rejectReview).toHaveBeenCalledWith(901, reason.trim(), expect.any(AbortSignal))
+      expect(getMock).toHaveBeenCalledTimes(2)
+      expect(screen.queryByRole('button', { name: 'Duyệt câu hỏi' })).not.toBeInTheDocument()
+      expect(updateMock).not.toHaveBeenCalled()
+    },
+  )
+  it('keeps the reason on failed rejection and disables duplicate decisions while pending', async () => {
+    const response = deferred<{ id: number; status: 'REJECTED'; reviewedAt: string }>()
+    getMock.mockResolvedValue(pendingQuestion())
+    vi.mocked(rejectReview).mockReturnValue(response.promise)
+    renderPage()
+    await form()
+    fireEvent.change(screen.getByLabelText('Lý do từ chối'), {
+      target: { value: 'Cần sửa lời giải.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Từ chối câu hỏi' }))
+    const confirm = await screen.findByRole('button', { name: 'Xác nhận từ chối' })
+    fireEvent.click(confirm)
+    fireEvent.click(confirm)
+    await waitFor(() => expect(rejectReview).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole('button', { name: 'Duyệt câu hỏi' })).toBeDisabled()
+    expect(field('Lời giải')).toBeDisabled()
+    await act(async () =>
+      response.resolve({ id: 901, status: 'REJECTED', reviewedAt: '2026-11-17T00:00:00Z' }),
+    )
+  })
+  it.each(['approve', 'reject'] as const)(
+    'reloads authoritative data on %s 409 and removes stale decisions',
+    async (action) => {
+      getMock
+        .mockResolvedValueOnce(pendingQuestion())
+        .mockResolvedValueOnce({ ...pendingQuestion(), status: 'APPROVED' })
+      const mutation = action === 'approve' ? vi.mocked(approveReview) : vi.mocked(rejectReview)
+      mutation.mockRejectedValue(apiError(409, 'QUESTION_NOT_PENDING', 'Câu không còn chờ duyệt.'))
+      renderPage()
+      await form()
+      if (action === 'reject')
+        fireEvent.change(screen.getByLabelText('Lý do từ chối'), { target: { value: 'Cần sửa.' } })
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: action === 'approve' ? 'Duyệt câu hỏi' : 'Từ chối câu hỏi',
+        }),
+      )
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: action === 'approve' ? 'Xác nhận duyệt' : 'Xác nhận từ chối',
+        }),
+      )
+      expect(await screen.findByText('Câu không còn chờ duyệt.')).toBeVisible()
+      expect(getMock).toHaveBeenCalledTimes(2)
+      expect(screen.queryByRole('button', { name: 'Duyệt câu hỏi' })).not.toBeInTheDocument()
+      expect(updateMock).not.toHaveBeenCalled()
+    },
+  )
+  it('keeps stale review writes blocked when a conflict reload fails, then revokes Editor edit on retry', async () => {
+    getMock
+      .mockResolvedValueOnce(pendingQuestion())
+      .mockRejectedValueOnce(apiError(503, 'NETWORK_ERROR'))
+      .mockResolvedValueOnce({ ...question(), source: 'MANUAL' })
+    vi.mocked(approveReview).mockRejectedValue(apiError(409, 'QUESTION_NOT_PENDING'))
+    renderPage({ roles: ['CONTENT_EDITOR'] })
+    await form()
+    fireEvent.click(screen.getByRole('button', { name: 'Duyệt câu hỏi' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận duyệt' }))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Duyệt câu hỏi' })).toBeDisabled(),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Tải lại câu hỏi' }))
+    await waitFor(() => expect(getMock).toHaveBeenCalledTimes(3))
+    await waitFor(() =>
+      expect(screen.queryByRole('form', { name: 'Sửa câu hỏi' })).not.toBeInTheDocument(),
+    )
+  })
+  it('renders malformed field details and preserves draft for a separate correction/save', async () => {
+    getMock.mockResolvedValue(pendingQuestion())
+    vi.mocked(approveReview).mockRejectedValue(
+      apiError(422, 'MALFORMED_QUESTION', 'Cần sửa nội dung.', [
+        { field: 'stem', message: 'Nội dung thiếu thông tin.' },
+      ]),
+    )
+    renderPage()
+    await form()
+    fireEvent.click(screen.getByRole('button', { name: 'Duyệt câu hỏi' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận duyệt' }))
+    expect(await screen.findByText('Nội dung thiếu thông tin.')).toBeVisible()
+    expect(field('Nội dung câu hỏi')).toHaveValue(pendingQuestion().stem)
+    expect(field('Nội dung câu hỏi')).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText('Mã yêu cầu: req-question')).toBeVisible()
+    expect(updateMock).not.toHaveBeenCalled()
+  })
 })
 afterEach(() => {
   vi.unstubAllGlobals()

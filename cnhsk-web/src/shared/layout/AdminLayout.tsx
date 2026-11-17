@@ -14,7 +14,12 @@ type AdminLayoutProps = {
 export function AdminLayout({ children }: AdminLayoutProps) {
   const location = useLocation()
   const { user } = useCurrentUser()
-  const items = adminNavigation.filter(({ role }) => role && user?.roles.includes(role))
+  const items = adminNavigation.filter(({ role, roles }) =>
+    Boolean(
+      (role && user?.roles.includes(role)) ||
+      roles?.some((allowed) => user?.roles.includes(allowed)),
+    ),
+  )
 
   const sidebar = (
     <aside className="hidden shrink-0 border-r border-line bg-surface sm:block sm:w-16 lg:w-60">
