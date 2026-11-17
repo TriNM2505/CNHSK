@@ -81,7 +81,7 @@ describe('SCR-062 violation report queue', () => {
       totalElements: 2,
     })
     const { container } = renderQueue()
-    const rows = await screen.findAllByRole('listitem')
+    const rows = (await screen.findAllByRole('row')).slice(1)
     const [first, second] = rows
     if (!first || !second) throw new Error('Expected both report case rows.')
     expect(within(first).getByText('Hồ sơ #90')).toBeVisible()

@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { Button } from '@/shared/ui/Button'
-import { FormField } from '@/shared/ui/FormField'
+import { FormField, Select, Textarea } from '@/shared/ui/FormField'
 import { REPORT_REASON_LABELS } from '../labels'
 import { makeReport } from '../interaction-validation'
 import type { ReportWrite } from '../types'
@@ -18,22 +18,24 @@ export function ReportForm({ targetType, targetId, disabled, onSubmit, onCancel,
   const { reason, detail } = draft ?? localDraft
   const updateDraft = onDraftChange ?? setLocalDraft
   const [invalid, setInvalid] = useState(false)
-  return <form aria-label="Báo cáo nội dung" className="my-4 rounded-md border border-line p-4" onSubmit={(event) => {
+  return <form aria-label="Báo cáo nội dung" className="my-4 space-y-4 rounded-md border border-line bg-surface p-4 shadow-sm" onSubmit={(event) => {
     event.preventDefault()
     const body = makeReport(targetType, targetId, reason, detail)
     setInvalid(!body)
     if (body && !disabled) onSubmit(body)
   }}>
     <FormField htmlFor={reasonId} label="Lý do báo cáo" required>
-      <select id={reasonId} disabled={disabled} value={reason} onChange={(event) => updateDraft({ reason: event.target.value, detail })}>
+      <Select id={reasonId} disabled={disabled} value={reason} onChange={(event) => updateDraft({ reason: event.target.value, detail })}>
         <option value="">Chọn lý do báo cáo</option>
         {Object.entries(REPORT_REASON_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-      </select>
+      </Select>
     </FormField>
     <FormField htmlFor={detailId} label="Thông tin bổ sung" required={reason === 'OTHER'} hint={`${detail.trim().length}/1.000`} error={invalid ? 'Chọn lý do hợp lệ; chi tiết tối đa 1.000 ký tự và bắt buộc khi chọn Khác.' : undefined}>
-      <textarea className="min-h-32 w-full border border-line p-3" id={detailId} disabled={disabled} value={detail} onChange={(event) => updateDraft({ reason, detail: event.target.value })} />
+      <Textarea className="min-h-32" id={detailId} disabled={disabled} value={detail} onChange={(event) => updateDraft({ reason, detail: event.target.value })} />
     </FormField>
-    <Button disabled={disabled} type="submit">Gửi báo cáo</Button>
-    <Button className="ml-3" type="button" variant="outline" onClick={onCancel}>Đóng</Button>
+    <div className="flex flex-wrap gap-3">
+      <Button disabled={disabled} type="submit">Gửi báo cáo</Button>
+      <Button type="button" variant="outline" onClick={onCancel}>Đóng</Button>
+    </div>
   </form>
 }
