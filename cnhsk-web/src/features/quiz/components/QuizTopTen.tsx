@@ -1,15 +1,20 @@
 import { useApiQuery } from '@/shared/api'
-import { Button, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import { Trophy } from 'lucide-react'
+import { Button, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 import { getQuizTopTen } from '../api/leaderboards'
-import { quizDuration } from '../types'
+import { QuizRankingList } from './QuizResultParts'
+import './QuizResultView.css'
 
 export function QuizTopTen({ topicId }: { topicId: number }) {
   const query = useApiQuery((signal) => getQuizTopTen(topicId, signal), [topicId], {
     isEmpty: (data) => data.entries.length === 0,
   })
   return (
-    <section aria-label="Top 10 chủ đề" className="min-w-0 space-y-4">
-      <h2 className="text-h2">Top 10 chủ đề</h2>
+    <section aria-label="Top 10 chủ đề" className="quiz-top-ten min-w-0 space-y-4 pb-24">
+      <h2 className="flex items-center gap-2 text-h2">
+        <Trophy aria-hidden="true" className="size-5 text-brand-600" />
+        Top 10 chủ đề
+      </h2>
       {query.state === 'loading' ? (
         <div aria-label="Đang tải bảng xếp hạng" aria-busy="true">
           <Skeleton variant="card" />
@@ -28,23 +33,7 @@ export function QuizTopTen({ topicId }: { topicId: number }) {
           description="Bảng xếp hạng sẽ hiển thị khi có lượt hợp lệ."
         />
       ) : null}
-      {query.state === 'ready' ? (
-        <ol className="space-y-3">
-          {query.data?.entries.slice(0, 10).map((entry) => (
-            <li key={entry.userId}>
-              <Card className="flex min-w-0 flex-wrap items-center justify-between gap-3 break-words [overflow-wrap:anywhere]">
-                <p className="min-w-0 flex-1">
-                  #{entry.rank} · {entry.displayName}
-                </p>
-                <p>
-                  {entry.score} điểm
-                  {entry.durationMs === null ? '' : ` · ${quizDuration(entry.durationMs)}`}
-                </p>
-              </Card>
-            </li>
-          ))}
-        </ol>
-      ) : null}
+      {query.state === 'ready' ? <QuizRankingList entries={query.data?.entries ?? []} /> : null}
       {query.state === 'ready' ? (
         <Button variant="outline" onClick={query.reload}>
           Tải lại bảng xếp hạng

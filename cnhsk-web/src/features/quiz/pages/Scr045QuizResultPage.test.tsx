@@ -79,7 +79,12 @@ describe('SCR-045 owned quiz result', () => {
     expect(within(answers).getByText('Đúng', { exact: true })).toBeVisible()
     expect(within(answers).getByText('Bỏ trống — Sai')).toBeVisible()
     expect(within(answers).getByText(/A. nước — Đã chọn — Đáp án đúng/)).toBeVisible()
-    expect(within(answers).getByText('Giải thích: 水 chỉ nước.')).toBeVisible()
+    expect(
+      within(answers).getByText(
+        (_, element) =>
+          element?.tagName === 'P' && element.textContent === 'Giải thích: 水 chỉ nước.',
+      ),
+    ).toBeVisible()
     const top = screen.getByRole('region', { name: 'Top 10 chủ đề' })
     await waitFor(() => expect(within(top).getAllByRole('listitem')).toHaveLength(10))
     expect(screen.queryByText(/Học viên mẫu 11/)).not.toBeInTheDocument()

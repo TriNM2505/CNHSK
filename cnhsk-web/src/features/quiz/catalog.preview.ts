@@ -7,7 +7,12 @@ import { LearnerLayout } from '@/shared/layout'
 import { Button, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 import { QuizListView } from './components/QuizListView'
 import { QuizAttemptView } from './components/QuizAttemptView'
+import { QuizAttemptScreenPreview } from './components/QuizAttemptScreen.preview'
 import { QuizResultView } from './components/QuizResultView'
+import {
+  QuizResultScreenPreview,
+  type QuizResultPreviewVariant,
+} from './components/QuizResultScreen.preview'
 import { quizEngineSession, quizPage, quizResult } from './test-fixtures'
 import type { QuizListing } from './types'
 
@@ -189,6 +194,52 @@ function QuizPreview({
 }
 
 export const previews = [
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-045-ready',
+    scr: 'SCR-045',
+    title: 'Kết quả quiz — Redesign',
+    states: ['loading', 'empty', 'error', 'ready'],
+    render: (state) => createElement(QuizResultScreenPreview, { state }),
+  },
+  ...(
+    [
+      ['retry', 'Lượt làm lại'],
+      ['suspicious', 'Lượt nghi vấn'],
+      ['zero', 'Điểm và thời gian bằng không'],
+      ['no-first', 'Chưa có lượt đầu'],
+      ['pending', 'Đang bắt đầu làm lại'],
+      ['retry-error', 'Lỗi bắt đầu làm lại'],
+      ['no-answers', 'Không có đáp án'],
+    ] satisfies [QuizResultPreviewVariant, string][]
+  ).map(([variant, title]) => ({
+    fullFrame: true,
+    group: 'screen' as const,
+    id: `scr-045-${variant}`,
+    scr: 'SCR-045',
+    title: `Kết quả quiz — ${title}`,
+    states: ['ready'] as const,
+    render: (state: PreviewState) => createElement(QuizResultScreenPreview, { state, variant }),
+  })),
+  {
+    fullFrame: true,
+    group: 'screen',
+    id: 'scr-044-ready',
+    scr: 'SCR-044',
+    title: 'Làm quiz — Redesign',
+    states: ['loading', 'empty', 'error', 'ready'],
+    render: (state) => createElement(QuizAttemptScreenPreview, { state }),
+  },
+  ...(['retry', 'save-failed', 'pending', 'submit', 'exit'] as const).map((variant) => ({
+    fullFrame: true,
+    group: 'screen' as const,
+    id: `scr-044-${variant}`,
+    scr: 'SCR-044',
+    title: `Làm quiz — ${variant === 'retry' ? 'Lượt làm lại' : variant === 'save-failed' ? 'Lỗi lưu lựa chọn' : variant === 'pending' ? 'Đang lưu' : variant === 'submit' ? 'Xác nhận nộp bài' : 'Xác nhận thoát'}`,
+    states: ['ready'] as const,
+    render: (state: PreviewState) => createElement(QuizAttemptScreenPreview, { state, variant }),
+  })),
   {
     fullFrame: true,
     group: 'screen',

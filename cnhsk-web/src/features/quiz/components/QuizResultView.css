@@ -1,0 +1,41 @@
+.quiz-result,
+.quiz-top-ten {
+  overflow-wrap: anywhere;
+}
+
+.quiz-result-text {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+[data-assistant-open='false'] .quiz-result-content,
+[data-assistant-open='false'] .quiz-top-ten {
+  @apply pr-16;
+}
+
+[data-assistant-open='true'] .quiz-result-actions {
+  @apply flex-col;
+}
+
+[data-assistant-open='true'] .quiz-result-answer ul,
+[data-assistant-open='true'] .quiz-top-ten ol {
+  @apply grid-cols-1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .quiz-result-answer {
+    animation: quiz-result-reveal 200ms ease-out both;
+  }
+
+  @keyframes quiz-result-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(theme('spacing.2'));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
