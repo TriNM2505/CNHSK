@@ -31,31 +31,6 @@
     width: clamp(480px, 46vw, 720px);
     padding: 18px 30px 20px;
   }
-
-  .auth-inkwash-card--compact header {
-    margin-bottom: 0.75rem;
-  }
-
-  .auth-inkwash-card--compact form {
-    --tw-space-y-reverse: 0;
-  }
-
-  .auth-inkwash-card--compact form > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 0.625rem;
-  }
-
-  .auth-inkwash-card--compact form .rounded-md {
-    padding: 0.65rem 0.9rem;
-  }
-
-  .auth-inkwash-card--compact form .mb-4 {
-    margin-bottom: 0.55rem;
-  }
-
-  .auth-inkwash-card--compact .mt-6 {
-    margin-top: 0.75rem;
-    padding: 0.65rem 0.9rem;
-  }
 }
 
 @screen xl {

@@ -6,6 +6,7 @@ import {
   Card,
   ErrorState,
   FormField,
+  type HskLevel,
   Input,
   LevelBadge,
   PageHeader,
@@ -41,10 +42,10 @@ function hskLevelOptions(current: string) {
   return levels
 }
 
-function toHskBadgeLevel(current: string): 1 | 2 | 3 | 4 | 5 | 6 | 7 | null {
+function toHskBadgeLevel(current: string): HskLevel | null {
   const numeric = Number(current)
   if (!Number.isInteger(numeric) || numeric < 1 || numeric > 9) return null
-  return (numeric >= 7 ? 7 : numeric) as 1 | 2 | 3 | 4 | 5 | 6 | 7
+  return numeric as HskLevel
 }
 
 /** Ảnh đại diện từ URL; ảnh hỏng thì hiện chữ cái đầu của tên. */
@@ -120,7 +121,7 @@ export function ProfileView({
                     <p className="break-words text-h3 text-ink">
                       {values.displayName || 'Chưa có tên'}
                     </p>
-                    {badgeLevel ? <LevelBadge level={badgeLevel} /> : null}
+                    {badgeLevel ? <LevelBadge exact level={badgeLevel} /> : null}
                   </div>
                   <p className="break-all text-body-sm text-ink-secondary">{email}</p>
                   <div className="pt-1 flex flex-wrap items-center gap-2">
