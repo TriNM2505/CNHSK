@@ -1,4 +1,4 @@
-import { Clock3, ListOrdered } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Clock3, ListOrdered, Send } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { ChoiceQuestion } from '@/features/practice/components/ChoiceQuestion'
 import type { ServedItemView } from '@/features/practice/types'
@@ -50,14 +50,14 @@ export function QuizAttemptView(props: QuizAttemptViewProps) {
 
       <section
         aria-label="Thông tin phiên quiz"
-        className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-5"
+        className="space-y-4 rounded-md border border-brand-100 bg-surface-subtle p-4 shadow-sm sm:p-5"
       >
         <div className="flex flex-wrap items-center justify-between gap-3 text-body-sm text-ink">
           <StatusBadge tone={props.rankingEligible ? 'info' : 'neutral'}>
             {props.rankingEligible ? 'Lượt tính hạng' : 'Làm lại — không tính hạng'}
           </StatusBadge>
-          <p className="inline-flex items-center gap-1.5 font-medium text-ink-secondary">
-            <Clock3 aria-hidden="true" className="size-4 shrink-0" />
+          <p className="inline-flex items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1 font-medium text-ink-secondary">
+            <Clock3 aria-hidden="true" className="size-4 shrink-0 text-brand-700" />
             Thời gian đã làm:{' '}
             <span className="font-semibold tabular-nums text-ink">
               {quizDuration(props.elapsedMs)}
@@ -74,10 +74,10 @@ export function QuizAttemptView(props: QuizAttemptViewProps) {
         />
 
         {props.items.length > 0 ? (
-          <div className="space-y-3 border-t border-line pt-3">
+          <div className="space-y-3 rounded-sm border border-line bg-surface p-3.5">
             <div className="flex items-center justify-between gap-2">
               <span className="inline-flex items-center gap-1.5 text-label text-ink">
-                <ListOrdered aria-hidden="true" className="size-4 shrink-0 text-ink-secondary" />
+                <ListOrdered aria-hidden="true" className="size-4 shrink-0 text-brand-700" />
                 Danh sách câu hỏi
               </span>
               <Button
@@ -122,8 +122,8 @@ export function QuizAttemptView(props: QuizAttemptViewProps) {
 
       {current ? (
         <Card className="min-w-0 space-y-5 break-words p-5 [overflow-wrap:anywhere] sm:p-6">
-          <div className="flex items-center justify-between gap-2 border-b border-line pb-3">
-            <p className="text-label text-brand-700">Câu {current.no}</p>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-brand-100 bg-surface-subtle px-3.5 py-2.5">
+            <p className="text-label text-brand-800">Câu {current.no}</p>
             {props.saveState ? (
               <p
                 role="status"
@@ -171,7 +171,10 @@ export function QuizAttemptView(props: QuizAttemptViewProps) {
               if (previous) props.onNavigate(previous.no)
             }}
           >
-            Câu trước
+            <span className="inline-flex items-center gap-2">
+              <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
+              <span>Câu trước</span>
+            </span>
           </Button>
           <Button
             variant="outline"
@@ -181,7 +184,10 @@ export function QuizAttemptView(props: QuizAttemptViewProps) {
               if (next) props.onNavigate(next.no)
             }}
           >
-            Câu tiếp theo
+            <span className="inline-flex items-center gap-2">
+              <span>Câu tiếp theo</span>
+              <ArrowRight aria-hidden="true" className="size-4 shrink-0" />
+            </span>
           </Button>
         </div>
         <div className="flex flex-wrap gap-3">
@@ -189,7 +195,10 @@ export function QuizAttemptView(props: QuizAttemptViewProps) {
             Thoát
           </Button>
           <Button disabled={disabled || !current} onClick={props.onSubmit}>
-            Nộp bài
+            <span className="inline-flex items-center gap-2">
+              <Send aria-hidden="true" className="size-4 shrink-0" />
+              <span>Nộp bài</span>
+            </span>
           </Button>
         </div>
       </div>

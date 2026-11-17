@@ -1,5 +1,6 @@
 import { cn } from '@/shared/lib/cn'
 import { Button, Card, EmptyState, PageHeader, StatTile, StatusBadge } from '@/shared/ui'
+import { Award, CheckCircle2, RotateCcw, Trophy, XCircle } from 'lucide-react'
 import type { QuizResult } from '../types'
 import { quizDuration } from '../types'
 
@@ -33,36 +34,44 @@ export function QuizResultView({
       />
 
       <section aria-label="Số liệu kết quả" className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <StatTile label="Tổng điểm" value={`${result.score}/100 điểm`} />
-          <StatTile
-            label="Độ chính xác"
-            value={
-              <span className="block text-h3">
-                Đúng: {result.correctCount} câu · Sai: {result.wrongCount} câu
-              </span>
-            }
-          />
-          <StatTile
-            label="Thời gian làm bài"
-            value={
-              <span className="block text-h3">Thời gian: {quizDuration(result.durationMs)}</span>
-            }
-          />
-        </div>
-        <p className="text-body-sm text-ink-secondary">Quiz không ảnh hưởng tiến độ học.</p>
+        <Card className="space-y-4 border-brand-100 bg-surface-subtle p-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatTile label="Tổng điểm" value={`${result.score}/100 điểm`} />
+            <StatTile
+              label="Độ chính xác"
+              value={
+                <span className="block text-h3">
+                  Đúng: {result.correctCount} câu · Sai: {result.wrongCount} câu
+                </span>
+              }
+            />
+            <StatTile
+              label="Thời gian làm bài"
+              value={
+                <span className="block text-h3">Thời gian: {quizDuration(result.durationMs)}</span>
+              }
+            />
+          </div>
+          <p className="text-body-sm text-ink-secondary">Quiz không ảnh hưởng tiến độ học.</p>
+        </Card>
 
         {first ? (
           <Card className="space-y-2 border-brand-100 bg-brand-50 p-5">
-            <h2 className="text-h3 text-brand-800">Lượt đầu tiên</h2>
+            <div className="flex items-center gap-2 text-brand-800">
+              <Trophy aria-hidden="true" className="size-5 shrink-0 text-brand-700" />
+              <h2 className="text-h3 text-brand-800">Lượt đầu tiên</h2>
+            </div>
             <div className="flex flex-wrap gap-x-6 gap-y-2 text-body-sm text-ink">
               <p>Điểm lượt đầu: {first.score}</p>
               {first.durationMs !== null ? (
                 <p>Thời gian lượt đầu: {quizDuration(first.durationMs)}</p>
               ) : null}
               {first.rank !== null && first.total !== null ? (
-                <p className="font-semibold text-brand-700">
-                  Hạng lần đầu: #{first.rank}/{first.total}
+                <p className="inline-flex items-center gap-1 font-semibold text-brand-700">
+                  <Award aria-hidden="true" className="size-4 shrink-0" />
+                  <span>
+                    Hạng lần đầu: #{first.rank}/{first.total}
+                  </span>
                 </p>
               ) : null}
             </div>
@@ -78,7 +87,10 @@ export function QuizResultView({
 
       <div className="flex flex-wrap gap-3">
         <Button loading={pending} onClick={onRetry}>
-          Làm lại
+          <span className="inline-flex items-center gap-2">
+            <RotateCcw aria-hidden="true" className="size-4 shrink-0" />
+            <span>Làm lại</span>
+          </span>
         </Button>
         <Button variant="outline" to="/community/quizzes">
           Quiz khác
@@ -91,7 +103,12 @@ export function QuizResultView({
       </div>
 
       <section aria-label="Đáp án quiz" className="min-w-0 space-y-4">
-        <h2 className="text-h2 text-ink">Đáp án từng câu</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-h2 text-ink">Đáp án từng câu</h2>
+          <span className="text-caption font-medium text-ink-muted">
+            {result.items.length} câu hỏi
+          </span>
+        </div>
         {result.items.length === 0 ? (
           <EmptyState
             title="Chưa có nội dung đáp án"
@@ -105,10 +122,20 @@ export function QuizResultView({
               key={item.itemId}
               className="min-w-0 space-y-3 break-words p-5 [overflow-wrap:anywhere] sm:p-6"
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <h3 className="text-h3 text-ink">
-                  Câu {item.itemId}: {item.prompt}
-                </h3>
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-3">
+                <div className="flex items-start gap-2.5">
+                  {isCorrect ? (
+                    <CheckCircle2
+                      aria-hidden="true"
+                      className="mt-1 size-5 shrink-0 text-success"
+                    />
+                  ) : (
+                    <XCircle aria-hidden="true" className="mt-1 size-5 shrink-0 text-danger" />
+                  )}
+                  <h3 className="text-h3 text-ink">
+                    Câu {item.itemId}: {item.prompt}
+                  </h3>
+                </div>
                 <StatusBadge tone={isCorrect ? 'success' : 'danger'}>
                   {item.chosen === null ? 'Bỏ trống — Sai' : isCorrect ? 'Đúng' : 'Sai'}
                 </StatusBadge>
@@ -140,7 +167,7 @@ export function QuizResultView({
                 <p className="text-body-sm text-ink-secondary">Bạn chưa chọn đáp án.</p>
               ) : null}
               {item.explanation ? (
-                <p className="rounded-sm bg-canvas p-3 text-body-sm text-ink-secondary">
+                <p className="rounded-sm border border-brand-100 bg-surface-subtle p-3.5 text-body-sm text-ink-secondary">
                   Giải thích: {item.explanation}
                 </p>
               ) : null}
