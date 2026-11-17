@@ -28,7 +28,7 @@
   }
 
   .auth-inkwash-card--compact {
-    width: clamp(480px, 46vw, 720px);
+    width: clamp(460px, 43vw, 680px);
     padding: 18px 30px 20px;
   }
 }

@@ -1,4 +1,4 @@
-import { UserRound } from 'lucide-react'
+import { Lock, UserRound } from 'lucide-react'
 import { type FormEvent, useEffect, useState } from 'react'
 
 import {
@@ -9,7 +9,6 @@ import {
   type HskLevel,
   Input,
   LevelBadge,
-  PageHeader,
   Select,
   Skeleton,
   StatusBadge,
@@ -17,6 +16,7 @@ import {
 } from '@/shared/ui'
 
 import type { ProfileFieldErrors, ProfileFormValues } from '../accountForms'
+import { AccountPageBanner } from './AccountPageBanner'
 import { FormNotice, type FormNoticeValue } from './FormNotice'
 
 export type ProfileViewState = 'loading' | 'error' | 'ready' | 'saving'
@@ -94,8 +94,8 @@ export function ProfileView({
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-reading space-y-6 pb-16">
-      <PageHeader
+    <div className="mx-auto w-full min-w-0 max-w-4xl space-y-6 pb-16">
+      <AccountPageBanner
         subtitle="Cập nhật tên hiển thị, ảnh đại diện và cấp HSK mục tiêu."
         title="Thông tin cá nhân"
       />
@@ -112,8 +112,8 @@ export function ProfileView({
 
       {state === 'ready' || state === 'saving' ? (
         <>
-          <Card className="bg-surface-subtle p-4 sm:p-6">
-            <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <Card className="flex min-w-0 flex-wrap items-center justify-between gap-4 border-brand-100 bg-surface-subtle p-5">
               <div className="flex min-w-0 items-center gap-4">
                 <Avatar name={values.displayName} url={values.avatarUrl.trim()} />
                 <div className="min-w-0 space-y-1">
@@ -124,47 +124,89 @@ export function ProfileView({
                     {badgeLevel ? <LevelBadge exact level={badgeLevel} /> : null}
                   </div>
                   <p className="break-all text-body-sm text-ink-secondary">{email}</p>
-                  <div className="pt-1 flex flex-wrap items-center gap-2">
-                    {emailVerified ? (
-                      <StatusBadge tone="success">Đã xác thực email</StatusBadge>
-                    ) : (
-                      <>
-                        <StatusBadge tone="warning">Chưa xác thực email</StatusBadge>
-                        <Button size="sm" to="/verify-email" variant="outline">
-                          Xác thực ngay
-                        </Button>
-                      </>
-                    )}
-                  </div>
                 </div>
               </div>
-            </div>
-            <p className="mt-4 border-t border-brand-100 pt-3 text-caption text-ink-muted">
-              Email đăng nhập là định danh cố định của tài khoản và không thay đổi tại đây.
-            </p>
-          </Card>
+              <div className="flex flex-wrap items-center gap-2">
+                {emailVerified ? (
+                  <StatusBadge tone="success">Đã xác thực email</StatusBadge>
+                ) : (
+                  <>
+                    <StatusBadge tone="warning">Chưa xác thực email</StatusBadge>
+                    <Button size="sm" to="/verify-email" variant="outline">
+                      Xác thực ngay
+                    </Button>
+                  </>
+                )}
+              </div>
+            </Card>
 
-          <Card className="p-4 sm:p-6">
+            <Card className="flex min-w-0 items-start gap-3.5 border-brand-100 bg-surface-subtle p-5">
+              <span
+                aria-hidden="true"
+                className="flex size-11 shrink-0 items-center justify-center rounded-pill bg-brand-50 text-brand-600"
+              >
+                <Lock className="size-5" />
+              </span>
+              <div className="min-w-0 space-y-1">
+                <p className="text-label text-ink">Định danh cố định</p>
+                <p className="text-body-sm text-ink-secondary">
+                  Email đăng nhập là định danh cố định của tài khoản và không thay đổi tại đây.
+                </p>
+              </div>
+            </Card>
+          </div>
+
+          <Card className="p-5 shadow-sm sm:p-7">
+            <div className="mb-5 flex items-center gap-2.5 border-b border-line pb-4">
+              <UserRound aria-hidden="true" className="size-5 shrink-0 text-brand-600" />
+              <h2 className="text-h3 text-ink">Hồ sơ học tập</h2>
+            </div>
+
             {notice ? <FormNotice notice={notice} /> : null}
 
-            <form noValidate onSubmit={handleSubmit}>
-              <FormField
-                error={fieldErrors.displayName}
-                htmlFor="profile-display-name"
-                label="Tên hiển thị"
-                required
-              >
-                <Input
-                  autoComplete="name"
-                  disabled={saving}
-                  maxLength={101}
-                  name="displayName"
-                  onChange={(event) => onChange('displayName', event.target.value)}
-                  value={values.displayName}
-                />
-              </FormField>
+            <form className="space-y-4" noValidate onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <FormField
+                  className="mb-0"
+                  error={fieldErrors.displayName}
+                  htmlFor="profile-display-name"
+                  label="Tên hiển thị"
+                  required
+                >
+                  <Input
+                    autoComplete="name"
+                    disabled={saving}
+                    maxLength={101}
+                    name="displayName"
+                    onChange={(event) => onChange('displayName', event.target.value)}
+                    value={values.displayName}
+                  />
+                </FormField>
+
+                <FormField
+                  className="mb-0"
+                  error={fieldErrors.hskLevel}
+                  htmlFor="profile-hsk-level"
+                  label="Cấp HSK mục tiêu"
+                >
+                  <Select
+                    disabled={saving}
+                    name="hskLevel"
+                    onChange={(event) => onChange('hskLevel', event.target.value)}
+                    value={values.hskLevel}
+                  >
+                    <option value="">Chưa chọn</option>
+                    {hskLevelOptions(values.hskLevel).map((level) => (
+                      <option key={level} value={String(level)}>
+                        HSK {level}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+              </div>
 
               <FormField
+                className="mb-0"
                 error={fieldErrors.avatarUrl}
                 hint="Dán đường dẫn ảnh bắt đầu bằng https://. Để trống nếu không dùng ảnh."
                 htmlFor="profile-avatar-url"
@@ -180,26 +222,6 @@ export function ProfileView({
                   type="url"
                   value={values.avatarUrl}
                 />
-              </FormField>
-
-              <FormField
-                error={fieldErrors.hskLevel}
-                htmlFor="profile-hsk-level"
-                label="Cấp HSK mục tiêu"
-              >
-                <Select
-                  disabled={saving}
-                  name="hskLevel"
-                  onChange={(event) => onChange('hskLevel', event.target.value)}
-                  value={values.hskLevel}
-                >
-                  <option value="">Chưa chọn</option>
-                  {hskLevelOptions(values.hskLevel).map((level) => (
-                    <option key={level} value={String(level)}>
-                      HSK {level}
-                    </option>
-                  ))}
-                </Select>
               </FormField>
 
               <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-5">
