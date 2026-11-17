@@ -1,0 +1,11 @@
+[data-assistant-open='true'] .grammar-lesson-layout {
+  @apply grid-cols-1;
+}
+
+[data-assistant-open='true'] .grammar-lesson-article {
+  @apply col-span-1 w-full;
+}
+
+[data-assistant-open='true'] .grammar-lesson-sidebar {
+  @apply static w-full max-w-reading;
+}

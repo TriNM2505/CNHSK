@@ -324,6 +324,10 @@ describe('SCR-018 Grammar Lesson', () => {
       expect(screen.getByText('Wǒ shì zuótiān lái de.')).toBeVisible()
       expect(screen.getByText('Tôi đến hôm qua.')).toBeVisible()
       expect(screen.queryByRole('heading', { name: 'Lỗi thường gặp' })).not.toBeInTheDocument()
+      expect(screen.getByRole('link', { name: 'Quay lại danh sách' })).toHaveAttribute(
+        'href',
+        '/learn/grammar?level=2',
+      )
       expect(screen.getByRole('button', { name: 'Đã hiểu' })).toBeVisible()
     },
   )
@@ -333,7 +337,12 @@ describe('SCR-018 Grammar Lesson', () => {
     renderPage()
 
     expect(await screen.findByRole('heading', { name: 'Lỗi thường gặp' })).toBeVisible()
-    expect(screen.getByText('Không bỏ 的 ở cuối câu.')).toBeVisible()
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'P' && element.textContent === 'Không bỏ 的 ở cuối câu.',
+      ),
+    ).toBeVisible()
   })
 
   it('FR-008 không hiện Lần ôn tiếp theo khi đọc và khi kết thúc', async () => {
