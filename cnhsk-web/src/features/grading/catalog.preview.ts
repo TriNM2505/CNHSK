@@ -1,11 +1,31 @@
 import { createElement, useState } from 'react'
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
 import { ApiError } from '@/shared/api'
+import { AuthContext, type AuthContextValue } from '@/shared/auth'
+import { LearnerLayout } from '@/shared/layout'
+import { previewLearner } from '@/shared/layout/Layout.preview'
 import { GradingSubmissionView } from './components/GradingSubmissionView'
 import { MyGradingRequestsView } from './components/MyGradingRequestsView'
 import { GradingRequestDetailView } from './components/GradingRequestDetailView'
 import { completedRequest, essay, pendingRequest, policy, requestPage } from './test-fixtures'
 import type { RequestStatus } from './types'
+
+const learnerAuth: AuthContextValue = {
+  error: null,
+  reloadCurrentUser: async () => undefined,
+  setAuthenticatedUser: () => undefined,
+  signOut: async () => undefined,
+  status: 'authenticated',
+  user: previewLearner,
+}
+
+function inLearnerLayout(element: ReturnType<typeof createElement>) {
+  return createElement(
+    AuthContext.Provider,
+    { value: learnerAuth },
+    createElement(LearnerLayout, null, element),
+  )
+}
 
 const error = new ApiError({
   status: 0,
@@ -64,27 +84,30 @@ function DetailPreview({ state }: { state: PreviewState }) {
 }
 export const previews = [
   {
+    fullFrame: true,
     group: 'screen',
     id: 'grading-submission',
     scr: 'SCR-032',
     title: 'Gửi bài chấm',
     states: ['loading', 'empty', 'error', 'ready'],
-    render: (state) => createElement(SubmissionPreview, { state }),
+    render: (state) => inLearnerLayout(createElement(SubmissionPreview, { state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'grading-requests',
     scr: 'SCR-033',
     title: 'Yêu cầu chấm bài của tôi',
     states: ['loading', 'empty', 'error', 'ready'],
-    render: (state) => createElement(ListPreview, { state }),
+    render: (state) => inLearnerLayout(createElement(ListPreview, { state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'grading-detail',
     scr: 'SCR-034',
     title: 'Chi tiết yêu cầu chấm bài',
     states: ['loading', 'empty', 'error', 'ready'],
-    render: (state) => createElement(DetailPreview, { state }),
+    render: (state) => inLearnerLayout(createElement(DetailPreview, { state })),
   },
 ] satisfies readonly PreviewEntry[]
