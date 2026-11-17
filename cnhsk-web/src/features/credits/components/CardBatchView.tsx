@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Sparkles } from 'lucide-react'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import { downloadBlob } from '@/shared/lib/downloadBlob'
 import {
   Button,
+  Card,
   DataTable,
   EmptyState,
   ErrorState,
   FormField,
   Input,
-  PageHeader,
   Pagination,
   Section,
   Select,
@@ -26,6 +27,7 @@ import type {
   CreatedBatch,
   VoidResult,
 } from '../types'
+import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 export interface CardBatchViewProps {
   state: ApiQueryState
@@ -314,12 +316,26 @@ export function CardBatchView({
   ]
 
   return (
-    <div className="mx-auto min-w-0 max-w-content space-y-6">
-      <PageHeader
+    <div className="mx-auto min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
+      <InkLandscapeBanner
+        className="mb-0"
         title="Lô mã thẻ"
         subtitle="Xem tình trạng các lô và phát hành mã điểm hoặc mã gói."
-        actions={<Button href="#batch-issue">Phát hành lô mã</Button>}
       />
+      <Card className="flex flex-wrap items-center justify-between gap-3 border-brand-100 bg-brand-50 p-4 sm:px-5">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-pill bg-brand-100 text-brand-700">
+            <Sparkles aria-hidden="true" className="size-5" />
+          </div>
+          <div>
+            <p className="text-label text-ink">Phát hành & Quản lý lô mã thẻ</p>
+            <p className="text-body-sm text-ink-secondary">
+              Tạo lô mã điểm hoặc mã gói dịch vụ mới, xuất tệp CSV một lần duy nhất.
+            </p>
+          </div>
+        </div>
+        <Button href="#batch-issue">Phát hành lô mã</Button>
+      </Card>
       {created ? (
         <Section title="Mã thẻ vừa phát hành">
           <div
@@ -463,12 +479,12 @@ export function CardBatchView({
           id="batch-issue"
           tabIndex={-1}
           ref={form}
-          className="min-w-0 scroll-mt-6 rounded-md border border-line bg-surface p-4 sm:p-6"
+          className="min-w-0 scroll-mt-6 rounded-md border border-brand-100 bg-surface p-5 sm:p-6"
           aria-label="Phát hành lô mã"
           noValidate
           onSubmit={prepare}
         >
-          <div className="grid gap-x-4 sm:grid-cols-2">
+          <div className="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-3">
             <FormField
               htmlFor="batch-cardType"
               label="Loại thẻ"

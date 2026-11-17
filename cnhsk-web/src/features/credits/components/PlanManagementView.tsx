@@ -9,7 +9,6 @@ import {
   ErrorState,
   FormField,
   Input,
-  PageHeader,
   Section,
   Skeleton,
   StatusBadge,
@@ -18,6 +17,7 @@ import {
 } from '@/shared/ui'
 
 import type { Benefits, PaidFeature, PlanCode, PlanUpdateRequest, PlanView } from '../types'
+import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 export interface PlanManagementViewProps {
   state: ApiQueryState
@@ -294,7 +294,12 @@ function PlanForm({
             </p>
           </>
         ) : (
-          <p className="mb-4 text-body text-ink">10 lượt/tính năng/tháng</p>
+          <div className="mb-4 rounded-md border border-brand-100 bg-brand-50 p-3.5">
+            <p className="text-body font-medium text-ink">10 lượt/tính năng/tháng</p>
+            <p className="mt-1 text-caption text-ink-secondary">
+              Tự động đặt lại hạn mức vào 00:00 ngày 01 hàng tháng theo giờ Việt Nam.
+            </p>
+          </div>
         )}
         <Button type="submit" loading={pending}>
           Lưu {plan.code}
@@ -394,8 +399,9 @@ export function PlanManagementView({
 }: PlanManagementViewProps) {
   const plans = planOrder.flatMap((code) => data?.find((plan) => plan.code === code) ?? [])
   return (
-    <div className="mx-auto min-w-0 max-w-content space-y-6">
-      <PageHeader
+    <div className="mx-auto min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
+      <InkLandscapeBanner
+        className="mb-0"
         title="Quản lý gói dịch vụ"
         subtitle="Xem tình trạng gói và cập nhật cấu hình bên dưới."
       />
@@ -431,33 +437,50 @@ export function PlanManagementView({
               rowKey={({ code }) => code}
             />
           </Section>
-          {plans.map((plan) => (
-            <Section key={plan.code} title={plan.code}>
-              <Card>
-                <p className="mb-3 text-body-sm text-ink-secondary">
-                  Số người đang dùng: {plan.activeUsers}
-                </p>
-                {plan.code === 'PREMIUM_PLUS' ? (
-                  <p className="text-body text-ink">Chưa hỗ trợ đợt này</p>
-                ) : (
-                  <>
-                    {!plan.exists ? (
-                      <p className="mb-3 text-body-sm text-ink-secondary">
-                        Chưa có cấu hình gói. Nhập cấu hình để tạo {plan.code}.
-                      </p>
-                    ) : null}
-                    <PlanForm
-                      key={JSON.stringify(plan)}
-                      plan={plan}
-                      pending={Boolean(pending)}
-                      error={failure?.code === plan.code ? failure.error : undefined}
-                      onSave={onSave}
-                    />
-                  </>
-                )}
-              </Card>
-            </Section>
-          ))}
+          <div className="grid min-w-0 items-start gap-6 lg:grid-cols-12">
+            {plans.map((plan) => (
+              <div
+                className={
+                  plan.code === 'FREE'
+                    ? 'min-w-0 lg:col-span-5'
+                    : plan.code === 'PREMIUM'
+                      ? 'min-w-0 lg:col-span-7'
+                      : 'min-w-0 lg:col-span-12'
+                }
+                key={plan.code}
+              >
+                <Section title={plan.code}>
+                  <Card
+                    className={
+                      plan.code === 'PREMIUM_PLUS' ? 'border-brand-100 bg-brand-50' : undefined
+                    }
+                  >
+                    <p className="mb-3 text-body-sm text-ink-secondary">
+                      Số người đang dùng: {plan.activeUsers}
+                    </p>
+                    {plan.code === 'PREMIUM_PLUS' ? (
+                      <p className="text-body text-ink">Chưa hỗ trợ đợt này</p>
+                    ) : (
+                      <>
+                        {!plan.exists ? (
+                          <p className="mb-3 text-body-sm text-ink-secondary">
+                            Chưa có cấu hình gói. Nhập cấu hình để tạo {plan.code}.
+                          </p>
+                        ) : null}
+                        <PlanForm
+                          key={JSON.stringify(plan)}
+                          plan={plan}
+                          pending={Boolean(pending)}
+                          error={failure?.code === plan.code ? failure.error : undefined}
+                          onSave={onSave}
+                        />
+                      </>
+                    )}
+                  </Card>
+                </Section>
+              </div>
+            ))}
+          </div>
         </>
       )}
     </div>

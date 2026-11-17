@@ -9,7 +9,6 @@ import {
   ErrorState,
   FormField,
   Input,
-  PageHeader,
   Pagination,
   Section,
   Select,
@@ -26,6 +25,7 @@ import type {
   ReconciliationIssue,
   TransactionType,
 } from '../types'
+import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 export interface CreditLedgerViewProps {
   state: ApiQueryState | 'idle'
@@ -172,8 +172,9 @@ export function CreditLedgerView({
   }
 
   return (
-    <div className="mx-auto min-w-0 max-w-content space-y-6">
-      <PageHeader
+    <div className="mx-auto min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
+      <InkLandscapeBanner
+        className="mb-0"
         title="Sổ cái điểm"
         subtitle="Tra cứu giao dịch theo ngày và đối chiếu số dư từ máy chủ."
       />
@@ -231,168 +232,210 @@ export function CreditLedgerView({
         </Card>
       </Section>
 
-      <Section
-        title="Giao dịch điểm"
-        actions={
-          <Button
-            variant="outline"
-            loading={exportPending}
-            disabled={!matches || state === 'loading' || state === 'error'}
-            onClick={() => {
-              void onExport()
-            }}
-          >
-            Xuất CSV
-          </Button>
+      <div
+        className={
+          state === 'idle' && !reconciliation
+            ? 'grid min-w-0 items-start gap-6 lg:grid-cols-2'
+            : 'space-y-6'
         }
       >
-        {filter ? (
-          <p className="mb-3 text-body-sm text-ink-secondary">
-            Đang xem từ {filter.from} đến hết {filter.to} (giờ Việt Nam)
-            {filter.type ? ` · ${transactionNames[filter.type]}` : ''}.
-          </p>
-        ) : null}
-        {filter && !matches ? (
-          <p className="mb-3 text-body-sm text-ink-secondary">
-            Bấm Lọc sổ cái để áp dụng thay đổi trước khi xuất CSV.
-          </p>
-        ) : null}
-        {exportError ? (
-          <div role="alert" className="mb-4">
-            <ErrorState
-              title="Chưa xuất được CSV"
-              requestId={exportError.requestId}
-              message={
-                exportError.errorCode === 'EXPORT_TOO_LARGE'
-                  ? 'Phạm vi có hơn 10.000 giao dịch. Thu hẹp khoảng ngày hoặc chọn loại giao dịch rồi xuất lại.'
-                  : 'Chưa tải được file CSV. Kiểm tra kết nối, quyền truy cập và bộ lọc trước khi thử lại.'
-              }
-            />
-          </div>
-        ) : null}
-        {state === 'idle' ? (
-          <p className="text-body text-ink-secondary">
-            Chọn ngày bắt đầu và ngày kết thúc để xem sổ cái.
-          </p>
-        ) : state === 'loading' ? (
-          <div role="status" aria-label="Đang tải sổ cái">
-            <Skeleton variant="table" />
-          </div>
-        ) : state === 'error' ? (
-          <ErrorState
-            title="Chưa tải được sổ cái"
-            message="Vui lòng thử lại với phạm vi đã chọn."
-            requestId={error?.requestId}
-            onRetry={onRetry}
-          />
-        ) : state === 'empty' ? (
-          <EmptyState
-            title="Không có giao dịch trong khoảng đã chọn"
-            description="Hãy thử một khoảng ngày hoặc loại giao dịch khác."
-          />
-        ) : (
-          <DataTable
-            caption="Sổ cái điểm"
-            columns={columns}
-            rows={data?.items ?? []}
-            rowKey={(row) => row.id}
-          />
-        )}
-        {data && (state === 'ready' || state === 'empty') ? (
-          <Section
-            title="Tổng điểm"
-            subtitle="Số liệu server trả cho toàn bộ bộ lọc, gồm mọi trang."
-          >
-            <div className="grid min-w-0 gap-3 sm:grid-cols-3">
-              <StatTile label="Số giao dịch" value={data.totals.count} />
-              <StatTile label="Tổng điểm cộng" value={signed(data.totals.credited)} />
-              <StatTile label="Tổng điểm trừ" value={signed(data.totals.debited)} />
+        <Section
+          title="Giao dịch điểm"
+          actions={
+            <Button
+              variant="outline"
+              loading={exportPending}
+              disabled={!matches || state === 'loading' || state === 'error'}
+              onClick={() => {
+                void onExport()
+              }}
+            >
+              Xuất CSV
+            </Button>
+          }
+        >
+          {filter ? (
+            <p className="mb-3 text-body-sm text-ink-secondary">
+              Đang xem từ {filter.from} đến hết {filter.to} (giờ Việt Nam)
+              {filter.type ? ` · ${transactionNames[filter.type]}` : ''}.
+            </p>
+          ) : null}
+          {filter && !matches ? (
+            <p className="mb-3 text-body-sm text-ink-secondary">
+              Bấm Lọc sổ cái để áp dụng thay đổi trước khi xuất CSV.
+            </p>
+          ) : null}
+          {exportError ? (
+            <div role="alert" className="mb-4">
+              <ErrorState
+                title="Chưa xuất được CSV"
+                requestId={exportError.requestId}
+                message={
+                  exportError.errorCode === 'EXPORT_TOO_LARGE'
+                    ? 'Phạm vi có hơn 10.000 giao dịch. Thu hẹp khoảng ngày hoặc chọn loại giao dịch rồi xuất lại.'
+                    : 'Chưa tải được file CSV. Kiểm tra kết nối, quyền truy cập và bộ lọc trước khi thử lại.'
+                }
+              />
             </div>
-          </Section>
-        ) : null}
-        {data && data.total > 0 ? (
-          <Pagination
-            page={page + 1}
-            size={20}
-            total={data.total}
-            onChange={(next) => onPageChange(next - 1)}
-          />
-        ) : null}
-      </Section>
-
-      <Section
-        title="Đối chiếu toàn sổ"
-        subtitle="Kiểm tra toàn bộ sổ cái, không phụ thuộc bộ lọc ngày hoặc loại giao dịch."
-        actions={
-          <Button
-            variant="outline"
-            loading={reconcilePending}
-            onClick={() => {
-              void onReconcile()
-            }}
-          >
-            Đối chiếu
-          </Button>
-        }
-      >
-        {reconcilePending ? (
-          <p role="status" className="text-body-sm text-ink-secondary">
-            Đang đối chiếu toàn sổ…
-          </p>
-        ) : reconcileError ? (
-          <ErrorState
-            title="Chưa đối chiếu được sổ cái"
-            message="Vui lòng thử lại để nhận kết quả từ máy chủ."
-            requestId={reconcileError.requestId}
-            onRetry={() => {
-              void onReconcile()
-            }}
-          />
-        ) : reconciliation ? (
-          <section aria-label="Kết quả đối chiếu toàn sổ" className="space-y-4">
-            <dl className="grid gap-4 text-body text-ink sm:grid-cols-2">
-              <div>
-                <dt>Số tài khoản</dt>
-                <dd>{reconciliation.users}</dd>
-              </div>
-              <div>
-                <dt>Số dòng giao dịch</dt>
-                <dd>{reconciliation.rows}</dd>
-              </div>
-              <div>
-                <dt>Tổng số dư cuối</dt>
-                <dd>{reconciliation.totalBalance}</dd>
-              </div>
-              <div>
-                <dt>Tổng điểm giao dịch</dt>
-                <dd>{signed(reconciliation.totalAmount)}</dd>
-              </div>
-            </dl>
-            {reconciliation.issues.length ? (
-              <>
-                <p role="status" className="text-body text-danger">
-                  Phát hiện {reconciliation.issues.length} lỗi cần kiểm tra. Không có giao dịch nào
-                  được tự sửa.
-                </p>
-                <DataTable
-                  caption="Lỗi đối chiếu toàn sổ"
-                  columns={issueColumns}
-                  rows={reconciliation.issues}
-                  rowKey={(issue) => `${issue.userId}-${issue.seq}-${issue.kind}`}
-                />
-              </>
-            ) : (
-              <p role="status" className="text-body text-ink">
-                Không phát hiện lỗi đối chiếu trong toàn sổ.
+          ) : null}
+          {state === 'idle' ? (
+            <Card className="space-y-4 border-brand-100 bg-brand-50 p-5">
+              <p className="text-body text-ink-secondary">
+                Chọn ngày bắt đầu và ngày kết thúc để xem sổ cái.
               </p>
-            )}
-          </section>
-        ) : (
-          <p className="text-body-sm text-ink-secondary">
-            Bấm Đối chiếu để kiểm tra chuỗi giao dịch từ máy chủ.
-          </p>
-        )}
-      </Section>
+              <div className="grid grid-cols-3 gap-2.5 border-t border-brand-100 pt-3">
+                <div className="rounded-md border border-brand-100 bg-surface p-3">
+                  <p className="text-caption text-ink-secondary">Phạm vi tối đa</p>
+                  <p className="mt-0.5 text-label text-ink">92 ngày / lần</p>
+                </div>
+                <div className="rounded-md border border-brand-100 bg-surface p-3">
+                  <p className="text-caption text-ink-secondary">Múi giờ chuẩn</p>
+                  <p className="mt-0.5 text-label text-ink">UTC+07:00</p>
+                </div>
+                <div className="rounded-md border border-brand-100 bg-surface p-3">
+                  <p className="text-caption text-ink-secondary">Định dạng xuất</p>
+                  <p className="mt-0.5 text-label text-ink">CSV UTF-8</p>
+                </div>
+              </div>
+            </Card>
+          ) : state === 'loading' ? (
+            <div role="status" aria-label="Đang tải sổ cái">
+              <Skeleton variant="table" />
+            </div>
+          ) : state === 'error' ? (
+            <ErrorState
+              title="Chưa tải được sổ cái"
+              message="Vui lòng thử lại với phạm vi đã chọn."
+              requestId={error?.requestId}
+              onRetry={onRetry}
+            />
+          ) : state === 'empty' ? (
+            <EmptyState
+              title="Không có giao dịch trong khoảng đã chọn"
+              description="Hãy thử một khoảng ngày hoặc loại giao dịch khác."
+            />
+          ) : (
+            <DataTable
+              caption="Sổ cái điểm"
+              columns={columns}
+              rows={data?.items ?? []}
+              rowKey={(row) => row.id}
+            />
+          )}
+          {data && (state === 'ready' || state === 'empty') ? (
+            <Section
+              title="Tổng điểm"
+              subtitle="Số liệu server trả cho toàn bộ bộ lọc, gồm mọi trang."
+            >
+              <div className="grid min-w-0 gap-3 sm:grid-cols-3">
+                <StatTile label="Số giao dịch" value={data.totals.count} />
+                <StatTile label="Tổng điểm cộng" value={signed(data.totals.credited)} />
+                <StatTile label="Tổng điểm trừ" value={signed(data.totals.debited)} />
+              </div>
+            </Section>
+          ) : null}
+          {data && data.total > 0 ? (
+            <Pagination
+              page={page + 1}
+              size={20}
+              total={data.total}
+              onChange={(next) => onPageChange(next - 1)}
+            />
+          ) : null}
+        </Section>
+
+        <Section
+          title="Đối chiếu toàn sổ"
+          subtitle="Kiểm tra toàn bộ sổ cái, không phụ thuộc bộ lọc ngày hoặc loại giao dịch."
+          actions={
+            <Button
+              variant="outline"
+              loading={reconcilePending}
+              onClick={() => {
+                void onReconcile()
+              }}
+            >
+              Đối chiếu
+            </Button>
+          }
+        >
+          {reconcilePending ? (
+            <p role="status" className="text-body-sm text-ink-secondary">
+              Đang đối chiếu toàn sổ…
+            </p>
+          ) : reconcileError ? (
+            <ErrorState
+              title="Chưa đối chiếu được sổ cái"
+              message="Vui lòng thử lại để nhận kết quả từ máy chủ."
+              requestId={reconcileError.requestId}
+              onRetry={() => {
+                void onReconcile()
+              }}
+            />
+          ) : reconciliation ? (
+            <section aria-label="Kết quả đối chiếu toàn sổ" className="space-y-4">
+              <dl className="grid gap-4 text-body text-ink sm:grid-cols-2">
+                <div className="rounded-md border border-brand-100 bg-brand-50 p-4">
+                  <dt className="text-caption text-ink-secondary">Số tài khoản</dt>
+                  <dd className="mt-1 text-h3 font-semibold tabular-nums">
+                    {reconciliation.users}
+                  </dd>
+                </div>
+                <div className="rounded-md border border-brand-100 bg-brand-50 p-4">
+                  <dt className="text-caption text-ink-secondary">Số dòng giao dịch</dt>
+                  <dd className="mt-1 text-h3 font-semibold tabular-nums">{reconciliation.rows}</dd>
+                </div>
+                <div className="rounded-md border border-brand-100 bg-brand-50 p-4">
+                  <dt className="text-caption text-ink-secondary">Tổng số dư cuối</dt>
+                  <dd className="mt-1 text-h3 font-semibold tabular-nums">
+                    {reconciliation.totalBalance}
+                  </dd>
+                </div>
+                <div className="rounded-md border border-brand-100 bg-brand-50 p-4">
+                  <dt className="text-caption text-ink-secondary">Tổng điểm giao dịch</dt>
+                  <dd className="mt-1 text-h3 font-semibold tabular-nums">
+                    {signed(reconciliation.totalAmount)}
+                  </dd>
+                </div>
+              </dl>
+              {reconciliation.issues.length ? (
+                <>
+                  <p role="status" className="text-body text-danger">
+                    Phát hiện {reconciliation.issues.length} lỗi cần kiểm tra. Không có giao dịch
+                    nào được tự sửa.
+                  </p>
+                  <DataTable
+                    caption="Lỗi đối chiếu toàn sổ"
+                    columns={issueColumns}
+                    rows={reconciliation.issues}
+                    rowKey={(issue) => `${issue.userId}-${issue.seq}-${issue.kind}`}
+                  />
+                </>
+              ) : (
+                <p role="status" className="text-body text-ink">
+                  Không phát hiện lỗi đối chiếu trong toàn sổ.
+                </p>
+              )}
+            </section>
+          ) : (
+            <Card className="space-y-4 border-brand-100 bg-brand-50 p-5">
+              <p className="text-body-sm text-ink-secondary">
+                Bấm Đối chiếu để kiểm tra chuỗi giao dịch từ máy chủ.
+              </p>
+              <div className="grid grid-cols-2 gap-2.5 border-t border-brand-100 pt-3">
+                <div className="rounded-md border border-brand-100 bg-surface p-3">
+                  <p className="text-caption text-ink-secondary">Chuỗi số dư</p>
+                  <p className="mt-0.5 text-label text-ink">Kiểm tra toàn vẹn</p>
+                </div>
+                <div className="rounded-md border border-brand-100 bg-surface p-3">
+                  <p className="text-caption text-ink-secondary">Chế độ an toàn</p>
+                  <p className="mt-0.5 text-label text-ink">Chỉ đọc · Không tự sửa</p>
+                </div>
+              </div>
+            </Card>
+          )}
+        </Section>
+      </div>
     </div>
   )
 }
