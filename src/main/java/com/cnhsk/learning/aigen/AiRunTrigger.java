@@ -98,7 +98,7 @@ public class AiRunTrigger {
     }
 
     private static ThreadPoolExecutor newExecutor() {
-        return new ThreadPoolExecutor(0, 1, 30, TimeUnit.SECONDS, new SynchronousQueue<>(), task -> {
+        return new ThreadPoolExecutor(0, 2, 30, TimeUnit.SECONDS, new SynchronousQueue<>(), task -> {
             Thread thread = new Thread(task, "generation-worker");
             thread.setDaemon(false);
             return thread;

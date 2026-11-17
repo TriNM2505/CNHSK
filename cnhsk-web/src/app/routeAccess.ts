@@ -27,10 +27,18 @@ type UtilityRouteDefinition = {
   path: '/reminder/unsubscribe'
 }
 
+type AiRunsRouteDefinition = {
+  access: readonly ['ADMIN']
+  kind: 'ai-runs'
+  layout: 'admin'
+  path: '/admin/ai-runs'
+}
+
 export type AppRouteDefinition =
-  ScreenRouteDefinition | UtilityRouteDefinition | NotFoundRouteDefinition
+  ScreenRouteDefinition | UtilityRouteDefinition | NotFoundRouteDefinition | AiRunsRouteDefinition
 
 export const appRouteDefinitions = [
+  { access: ['ADMIN'], kind: 'ai-runs', layout: 'admin', path: '/admin/ai-runs' },
   { access: ['ADMIN'], kind: 'screen', layout: 'admin', path: '/admin/settings', scr: 'SCR-078' },
   {
     access: ['CONTENT_EDITOR'],

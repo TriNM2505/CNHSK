@@ -357,3 +357,11 @@ describe('application routes', () => {
     expect(router.state.location.search).toBe('')
   })
 })
+
+it('marks the AI runs route as authenticated while preserving the settings screen', () => {
+  const children = appRoutes.find((route) => route.children)!.children!
+  expect(children.find((route) => route.path === '/admin/ai-runs')?.handle).toEqual({
+    requiresAuthentication: true,
+  })
+  expect(children.find((route) => route.path === '/admin/settings')).toBeDefined()
+})

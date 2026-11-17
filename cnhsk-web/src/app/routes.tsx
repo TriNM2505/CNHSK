@@ -1,10 +1,15 @@
+import { lazy, Suspense } from 'react'
 import type { RouteObject } from 'react-router-dom'
 import { createBrowserRouter } from 'react-router-dom'
 
 import { NotFoundPage } from '@/app/NotFoundPage'
 import { appRouteDefinitions, routeRequiresAuthentication } from '@/app/routeAccess'
 import { AuthenticatedApplication, ScreenRoute } from '@/app/RouteScaffolding'
-import { PublicLayout } from '@/shared/layout'
+import { AdminLayout, PublicLayout } from '@/shared/layout'
+import { RequireRole } from '@/shared/auth'
+import { Skeleton } from '@/shared/ui'
+
+const AiRunsPage = lazy(() => import('@/features/ai-runs/pages/AiRunsPage'))
 
 const previewRoutes: RouteObject[] = import.meta.env.DEV
   ? [
@@ -28,6 +33,22 @@ const applicationRoutes: RouteObject[] = appRouteDefinitions.map((route) => {
         </PublicLayout>
       ),
       path: route.path,
+    }
+  }
+
+  if (route.kind === 'ai-runs') {
+    return {
+      path: route.path,
+      handle: { requiresAuthentication: true },
+      element: (
+        <RequireRole roles={route.access}>
+          <AdminLayout>
+            <Suspense fallback={<Skeleton variant="table" />}>
+              <AiRunsPage />
+            </Suspense>
+          </AdminLayout>
+        </RequireRole>
+      ),
     }
   }
 
