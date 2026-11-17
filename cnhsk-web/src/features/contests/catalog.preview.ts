@@ -122,6 +122,7 @@ export const previews = [
   {
     group: 'screen',
     id: 'contests-list',
+    fullFrame: true,
     scr: 'SCR-048',
     title: 'Danh sách cuộc thi',
     states: ['loading', 'empty', 'error', 'ready'],
@@ -130,6 +131,7 @@ export const previews = [
   {
     group: 'screen',
     id: 'contests-detail',
+    fullFrame: true,
     scr: 'SCR-049',
     title: 'Chi tiết cuộc thi',
     states: ['loading', 'empty', 'error', 'ready'],
@@ -138,6 +140,7 @@ export const previews = [
   {
     group: 'screen',
     id: 'contests-attempt',
+    fullFrame: true,
     scr: 'SCR-050',
     title: 'Làm bài cuộc thi',
     states: ['loading', 'empty', 'error', 'ready'],
@@ -146,6 +149,7 @@ export const previews = [
   {
     group: 'screen',
     id: 'contests-results',
+    fullFrame: true,
     scr: 'SCR-051',
     title: 'Kết quả cuộc thi',
     states: ['loading', 'empty', 'error', 'ready'],
@@ -154,6 +158,7 @@ export const previews = [
   {
     group: 'screen',
     id: 'contests-results-unpublished',
+    fullFrame: true,
     scr: 'SCR-051',
     title: 'Cuộc thi — chờ công bố',
     states: ['ready'],

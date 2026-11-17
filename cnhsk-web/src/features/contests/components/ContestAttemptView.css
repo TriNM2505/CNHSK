@@ -1,0 +1,24 @@
+.contest-attempt-question .text-hanzi-lg {
+  @apply break-words text-h3 leading-relaxed;
+  overflow-wrap: anywhere;
+}
+
+.contest-attempt-question [aria-label='Các phương án'] {
+  /* Fit two options whenever their container has room, without adding a breakpoint. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  @apply gap-3;
+}
+
+@screen sm {
+  .contest-attempt-question [aria-label='Các phương án'] {
+    @apply grid-cols-2;
+  }
+}
+
+.contest-attempt-question [aria-label='Các phương án'] button {
+  @apply items-center gap-2 p-3;
+}
+
+.contest-attempt-question [aria-label='Các phương án'] button > span:nth-of-type(2) {
+  @apply font-hanzi text-body-sm font-semibold leading-relaxed;
+}
