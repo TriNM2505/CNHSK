@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import type { ApiError } from '@/shared/api'
-import { Button, Card, FormField, PageHeader, Select, Skeleton } from '@/shared/ui'
+import { Button, Card, FormField, PageBanner, Select, Skeleton, StatTile } from '@/shared/ui'
 
 import { formatDuration, formatPeriodRange } from '../formatters'
 import { LEADERBOARD_PERIODS } from '../query'
@@ -36,9 +36,28 @@ function errorMessage(error?: ApiError, topicMissing = false): string {
 }
 
 function RankLabel({ rank }: { rank: number }) {
-  const medal =
-    rank === 1 ? '🥇 Hạng 1' : rank === 2 ? '🥈 Hạng 2' : rank === 3 ? '🥉 Hạng 3' : `Hạng ${rank}`
-  return <span className="font-semibold tabular-nums">{medal}</span>
+  if (rank === 1) {
+    return (
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border border-accent-500 bg-warning-bg px-2.5 py-0.5 text-label text-accent-700 tabular-nums">
+        🥇 Hạng 1
+      </span>
+    )
+  }
+  if (rank === 2) {
+    return (
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border border-brand-100 bg-surface-subtle px-2.5 py-0.5 text-label text-brand-700 tabular-nums">
+        🥈 Hạng 2
+      </span>
+    )
+  }
+  if (rank === 3) {
+    return (
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border border-line bg-canvas px-2.5 py-0.5 text-label text-ink tabular-nums">
+        🥉 Hạng 3
+      </span>
+    )
+  }
+  return <span className="whitespace-nowrap font-semibold text-ink-secondary tabular-nums">Hạng {rank}</span>
 }
 
 function PlayerName({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
@@ -87,13 +106,13 @@ export function LeaderboardView({
   const selectedGame = games.find((game) => game.code === selectedId)
 
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 break-words p-4 [overflow-wrap:anywhere] sm:p-6">
-      <PageHeader title={title} subtitle="Xem thành tích học tập và trò chơi của cộng đồng." />
-      <Card className="space-y-5">
-        <div className="grid gap-4 sm:grid-cols-2">
-          {kind === 'topic' ? (
-            <>
-              <FormField htmlFor="leaderboard-hsk" label="Cấp độ HSK">
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 break-words p-4 [overflow-wrap:anywhere] sm:p-6 xl:max-w-screen-xl">
+      <PageBanner title={title} subtitle="Xem thành tích học tập và trò chơi của cộng đồng." />
+      <Card className="space-y-4 p-5 shadow-sm sm:p-6">
+        {kind === 'topic' ? (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField className="mb-0" htmlFor="leaderboard-hsk" label="Cấp độ HSK">
                 <Select
                   onChange={(event) => {
                     setExpanded(false)
@@ -109,7 +128,7 @@ export function LeaderboardView({
                   ))}
                 </Select>
               </FormField>
-              <FormField htmlFor="leaderboard-topic" label="Chủ đề">
+              <FormField className="mb-0" htmlFor="leaderboard-topic" label="Chủ đề">
                 <Select
                   onChange={(event) => {
                     setExpanded(false)
@@ -128,50 +147,79 @@ export function LeaderboardView({
                   ))}
                 </Select>
               </FormField>
-            </>
-          ) : (
-            <FormField className="sm:col-span-2" htmlFor="leaderboard-game" label="Trò chơi">
-              <Select
-                onChange={(event) => {
-                  setExpanded(false)
-                  onSelect(event.target.value)
-                }}
-                value={selectedId}
-              >
-                {!selectedId ? <option value="">Chọn trò chơi</option> : null}
-                {selectedId && !selectedGame ? (
-                  <option value={selectedId}>Trò chơi đã chọn</option>
-                ) : null}
-                {games.map((game) => (
-                  <option key={game.code} value={game.code}>
-                    {game.name}
-                  </option>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+              <div aria-label="Kỳ xếp hạng" className="flex flex-wrap gap-2" role="group">
+                {LEADERBOARD_PERIODS.map((option) => (
+                  <Button
+                    aria-pressed={period === option.value}
+                    key={option.value}
+                    onClick={() => {
+                      setExpanded(false)
+                      onPeriodChange(option.value)
+                    }}
+                    size="sm"
+                    variant={period === option.value ? 'primary' : 'outline'}
+                  >
+                    {option.label}
+                  </Button>
                 ))}
-              </Select>
-            </FormField>
-          )}
-        </div>
-        <div aria-label="Kỳ xếp hạng" className="flex flex-wrap gap-2" role="group">
-          {LEADERBOARD_PERIODS.map((option) => (
-            <Button
-              aria-pressed={period === option.value}
-              key={option.value}
-              onClick={() => {
-                setExpanded(false)
-                onPeriodChange(option.value)
-              }}
-              size="sm"
-              variant={period === option.value ? 'primary' : 'outline'}
-            >
-              {option.label}
-            </Button>
-          ))}
-        </div>
-        {data ? (
-          <p className="text-body-sm text-ink-secondary">
-            {formatPeriodRange(data.periodStart, data.periodEnd)}
-          </p>
-        ) : null}
+              </div>
+              {data ? (
+                <p className="text-body-sm text-ink-secondary">
+                  {formatPeriodRange(data.periodStart, data.periodEnd)}
+                </p>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="min-w-0 flex-1">
+                <FormField className="mb-0" htmlFor="leaderboard-game" label="Trò chơi">
+                  <Select
+                    onChange={(event) => {
+                      setExpanded(false)
+                      onSelect(event.target.value)
+                    }}
+                    value={selectedId}
+                  >
+                    {!selectedId ? <option value="">Chọn trò chơi</option> : null}
+                    {selectedId && !selectedGame ? (
+                      <option value={selectedId}>Trò chơi đã chọn</option>
+                    ) : null}
+                    {games.map((game) => (
+                      <option key={game.code} value={game.code}>
+                        {game.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+              </div>
+              <div aria-label="Kỳ xếp hạng" className="flex flex-wrap gap-2" role="group">
+                {LEADERBOARD_PERIODS.map((option) => (
+                  <Button
+                    aria-pressed={period === option.value}
+                    key={option.value}
+                    onClick={() => {
+                      setExpanded(false)
+                      onPeriodChange(option.value)
+                    }}
+                    size="sm"
+                    variant={period === option.value ? 'primary' : 'outline'}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            {data ? (
+              <p className="border-t border-line pt-3 text-body-sm text-ink-secondary lg:text-right">
+                {formatPeriodRange(data.periodStart, data.periodEnd)}
+              </p>
+            ) : null}
+          </>
+        )}
       </Card>
 
       {state === 'loading' ? (
@@ -208,43 +256,52 @@ export function LeaderboardView({
           )}
         </div>
       ) : (
-        <Card className="space-y-4">
-          <div className="hidden overflow-hidden min-[641px]:block">
-            <table className="w-full table-fixed text-left text-body-sm">
-              <thead>
-                <tr className="border-b border-line text-ink-secondary">
-                  <th className="w-24 px-3 py-3">Hạng</th>
-                  <th className="px-3 py-3">Người chơi</th>
-                  <th className="w-28 px-3 py-3 text-right">Điểm</th>
-                  <th className="w-28 px-3 py-3 text-right">Thời gian</th>
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((entry) => (
-                  <tr
-                    className={`border-b border-line last:border-0 ${myEntry?.userId === entry.userId ? 'bg-brand-50' : ''}`}
-                    key={entry.userId}
-                  >
-                    <td className="px-3 py-3">
-                      <RankLabel rank={entry.rank} />
-                    </td>
-                    <td className="px-3 py-3">
-                      <PlayerName name={entry.displayName} avatarUrl={entry.avatarUrl} />
-                      {myEntry?.userId === entry.userId ? (
-                        <span className="sr-only"> Của bạn</span>
-                      ) : null}
-                    </td>
-                    <td className="px-3 py-3 text-right font-semibold tabular-nums">
-                      {entry.score}
-                    </td>
-                    <td className="px-3 py-3 text-right tabular-nums">
-                      {formatDuration(entry.durationMs)}
-                    </td>
+        <>
+          <section aria-label="Tóm tắt bảng xếp hạng" className="grid gap-3 sm:grid-cols-3">
+            <StatTile label="Số người tham gia" value={entries.length} />
+            <StatTile label="Điểm cao nhất" value={entries[0]?.score ?? 0} />
+            <StatTile
+              label="Hạng của bạn"
+              value={myEntry ? `#${myEntry.rank}` : guest ? 'Khách' : 'Chưa có'}
+            />
+          </section>
+          <Card className="space-y-4 p-5 shadow-sm sm:p-6">
+            <div className="hidden overflow-hidden min-[641px]:block">
+              <table className="w-full table-fixed text-left text-body-sm">
+                <thead>
+                  <tr className="border-b border-line text-ink-secondary">
+                    <th className="w-36 px-4 py-3">Hạng</th>
+                    <th className="px-4 py-3">Người chơi</th>
+                    <th className="w-28 px-4 py-3 text-right">Điểm</th>
+                    <th className="w-32 px-4 py-3 text-right">Thời gian</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {shown.map((entry) => (
+                    <tr
+                      className={`border-b border-line last:border-0 ${myEntry?.userId === entry.userId ? 'bg-brand-50' : ''}`}
+                      key={entry.userId}
+                    >
+                      <td className="px-4 py-3.5">
+                        <RankLabel rank={entry.rank} />
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <PlayerName name={entry.displayName} avatarUrl={entry.avatarUrl} />
+                        {myEntry?.userId === entry.userId ? (
+                          <span className="sr-only"> Của bạn</span>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3.5 text-right font-semibold tabular-nums">
+                        {entry.score}
+                      </td>
+                      <td className="px-4 py-3.5 text-right tabular-nums">
+                        {formatDuration(entry.durationMs)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           <ol aria-label="Bảng xếp hạng" className="space-y-3 min-[641px]:hidden">
             {shown.map((entry) => (
               <li key={entry.userId}>
@@ -298,7 +355,8 @@ export function LeaderboardView({
               <p className="text-body text-ink-secondary">Bạn chưa có lượt hợp lệ trong kỳ này.</p>
             </Card>
           ) : null}
-        </Card>
+          </Card>
+        </>
       )}
     </main>
   )
