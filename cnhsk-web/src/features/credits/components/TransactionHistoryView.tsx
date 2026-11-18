@@ -1,10 +1,13 @@
+import { Coins } from 'lucide-react'
+
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
+  PageBanner,
   Button,
+  Card,
   DataTable,
   EmptyState,
   ErrorState,
-  PageHeader,
   PageState,
   Pagination,
   Section,
@@ -83,16 +86,28 @@ export function TransactionHistoryView({
   onRetry,
 }: TransactionHistoryViewProps) {
   return (
-    <div className="mx-auto min-w-0 max-w-content space-y-6">
-      <PageHeader
+    <div className="mx-auto min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
+      <PageBanner
+        className="mb-0"
         title="Lịch sử giao dịch"
         subtitle="Giao dịch mới nhất trước · Thời gian theo giờ Việt Nam"
-        actions={
-          <Button to="/account/credits" variant="outline">
-            Về gói dịch vụ và điểm
-          </Button>
-        }
       />
+      <Card className="flex flex-wrap items-center justify-between gap-3 border-brand-100 bg-brand-50 p-4 sm:px-5">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-pill bg-brand-100 text-brand-700">
+            <Coins aria-hidden="true" className="size-5" />
+          </div>
+          <div>
+            <p className="text-label text-ink">Quản lý ví điểm & Gói dịch vụ</p>
+            <p className="text-body-sm text-ink-secondary">
+              Kiểm tra hạn mức sử dụng trong tháng hoặc nạp thêm mã thẻ mới.
+            </p>
+          </div>
+        </div>
+        <Button to="/account/credits" variant="outline">
+          Về gói dịch vụ và điểm
+        </Button>
+      </Card>
       <Section title="Chi tiết giao dịch">
         <PageState
           state={state}

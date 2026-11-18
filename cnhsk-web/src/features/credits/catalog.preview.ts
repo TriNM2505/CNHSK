@@ -1,6 +1,9 @@
 import { createElement, useRef, useState } from 'react'
 
 import { ApiError, toApiError } from '@/shared/api'
+import { AuthContext, type AuthContextValue } from '@/shared/auth'
+import { AdminLayout, LearnerLayout } from '@/shared/layout'
+import { previewLearner } from '@/shared/layout/Layout.preview'
 import { downloadBlob } from '@/shared/lib/downloadBlob'
 
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
@@ -29,6 +32,46 @@ import type {
   Wallet,
   VoidResult,
 } from './types'
+
+const learnerAuth: AuthContextValue = {
+  error: null,
+  reloadCurrentUser: async () => undefined,
+  setAuthenticatedUser: () => undefined,
+  signOut: async () => undefined,
+  status: 'authenticated',
+  user: previewLearner,
+}
+
+const adminAuth: AuthContextValue = {
+  error: null,
+  reloadCurrentUser: async () => undefined,
+  setAuthenticatedUser: () => undefined,
+  signOut: async () => undefined,
+  status: 'authenticated',
+  user: {
+    id: 7,
+    displayName: 'Quản trị mẫu',
+    email: 'admin@cnhsk.vn',
+    emailVerified: true,
+    roles: ['ADMIN'],
+  },
+}
+
+function inLearnerLayout(element: ReturnType<typeof createElement>) {
+  return createElement(
+    AuthContext.Provider,
+    { value: learnerAuth },
+    createElement(LearnerLayout, null, element),
+  )
+}
+
+function inAdminLayout(element: ReturnType<typeof createElement>) {
+  return createElement(
+    AuthContext.Provider,
+    { value: adminAuth },
+    createElement(AdminLayout, null, element),
+  )
+}
 
 // Original, offline fixtures. U is outside the card-code alphabet, so these codes cannot be redeemed.
 export const creditsCreatedBatch: CreatedBatch = {
@@ -511,43 +554,49 @@ function CreditLedgerPreview({ state }: { state: PreviewState }) {
 
 export const previews = [
   {
+    fullFrame: true,
     group: 'screen',
     id: 'credits-wallet-samples',
     scr: 'SCR-030',
     title: 'Ví điểm — Dữ liệu mẫu',
     states: previewStates,
-    render: (state) => createElement(PlanCreditsPreview, { key: state, state }),
+    render: (state) => inLearnerLayout(createElement(PlanCreditsPreview, { key: state, state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'credits-history-samples',
     scr: 'SCR-031',
     title: 'Lịch sử — Dữ liệu mẫu',
     states: previewStates,
-    render: (state) => createElement(TransactionHistoryPreview, { key: state, state }),
+    render: (state) =>
+      inLearnerLayout(createElement(TransactionHistoryPreview, { key: state, state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'credits-batch-samples',
     scr: 'SCR-073',
     title: 'Lô mã thẻ — Dữ liệu mẫu',
     states: previewStates,
-    render: (state) => createElement(CardBatchPreview, { key: state, state }),
+    render: (state) => inAdminLayout(createElement(CardBatchPreview, { key: state, state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'credits-plan-samples',
     scr: 'SCR-074',
     title: 'Gói dịch vụ — Dữ liệu mẫu',
     states: previewStates,
-    render: (state) => createElement(PlanManagementPreview, { key: state, state }),
+    render: (state) => inAdminLayout(createElement(PlanManagementPreview, { key: state, state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'credits-ledger-samples',
     scr: 'SCR-075',
     title: 'Sổ cái — Dữ liệu mẫu',
     states: previewStates,
-    render: (state) => createElement(CreditLedgerPreview, { key: state, state }),
+    render: (state) => inAdminLayout(createElement(CreditLedgerPreview, { key: state, state })),
   },
 ] satisfies readonly PreviewEntry[]

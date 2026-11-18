@@ -6,16 +6,17 @@ import {
   type ChangeEvent,
   type KeyboardEvent,
 } from 'react'
+import { History } from 'lucide-react'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
+  PageBanner,
   Button,
   Card,
   EmptyState,
   ErrorState,
   FormField,
   Input,
-  PageHeader,
   Section,
   Skeleton,
   StatTile,
@@ -177,18 +178,30 @@ export function PlanCreditsView({
   }
 
   return (
-    <div className="mx-auto min-w-0 max-w-content">
-      <PageHeader
+    <div className="mx-auto min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
+      <PageBanner
+        className="mb-0"
         title="Gói dịch vụ và điểm"
         subtitle="Theo dõi số dư và hạn mức của gói đang dùng."
-        actions={
-          <Button to="/account/credits/history" variant="outline">
-            Lịch sử giao dịch
-          </Button>
-        }
       />
+      <Card className="flex flex-wrap items-center justify-between gap-3 border-brand-100 bg-brand-50 p-4 sm:px-5">
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-pill bg-brand-100 text-brand-700">
+            <History aria-hidden="true" className="size-5" />
+          </div>
+          <div>
+            <p className="text-label text-ink">Biến động số dư & Lịch sử sử dụng</p>
+            <p className="text-body-sm text-ink-secondary">
+              Xem chi tiết từng giao dịch nạp điểm, trừ lượt và hoàn điểm theo thời gian thực.
+            </p>
+          </div>
+        </div>
+        <Button to="/account/credits/history" variant="outline">
+          Lịch sử giao dịch
+        </Button>
+      </Card>
       {result ? (
-        <div role="status" className="mb-6 rounded-md bg-success-bg p-4 text-body text-success">
+        <div role="status" className="rounded-md bg-success-bg p-4 text-body text-success">
           {result.cardType === 'CREDIT'
             ? `Đã nạp +${result.amount} điểm. Số dư: ${result.balance} điểm.`
             : `Đã cập nhật gói ${result.plan.name}.`}
@@ -207,127 +220,135 @@ export function PlanCreditsView({
         />
       ) : wallet ? (
         <div className="space-y-6">
-          <Section title="Gói hiện tại">
-            <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-              <StatTile
-                className="border-brand-100 bg-brand-50"
-                label="Số dư điểm"
-                value={`${wallet.balance} điểm`}
-              />
-              <Card>
-                <dl>
-                  <dt className="text-label text-ink-secondary">Tên gói</dt>
-                  <dd className="mt-1 break-words text-h3 text-ink">{wallet.plan.name}</dd>
-                  <dt className="mt-3 text-label text-ink-secondary">Ngày hết hạn</dt>
-                  <dd className="mt-1 text-body-sm text-ink">
-                    {wallet.plan.expiresAt
-                      ? `${vietnamTime.format(new Date(wallet.plan.expiresAt))} (giờ Việt Nam)`
-                      : 'Không có ngày hết hạn'}
-                  </dd>
-                </dl>
-              </Card>
-            </div>
-          </Section>
-          <Section title="Nạp mã thẻ">
-            <Card>
-              <form
-                aria-label="Nạp mã thẻ"
-                noValidate
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (blocked || (retryAt ?? 0) > Date.now()) return
-                  if (!/^[A-Z0-9]{16}$/.test(rawCode(code)) || formatError) {
-                    setFormatError(formatHint)
-                    return
-                  }
-                  setConfirmation(true)
-                }}
-              >
-                <FormField
-                  htmlFor="credit-code"
-                  label="Mã thẻ"
-                  required
-                  hint={formatHint}
-                  error={formatError}
-                >
-                  <Input
-                    ref={input}
-                    autoComplete="off"
-                    spellCheck={false}
-                    autoCapitalize="characters"
-                    placeholder="XXXX-XXXX-XXXX-XXXX"
-                    value={code}
-                    disabled={blocked}
-                    onChange={changeCode}
-                    onKeyDown={deleteAcrossSeparator}
+          <div className="grid min-w-0 items-start gap-6 lg:grid-cols-12">
+            <div className="min-w-0 lg:col-span-7">
+              <Section title="Gói hiện tại">
+                <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+                  <StatTile
+                    className="border-brand-100 bg-brand-50"
+                    label="Số dư điểm"
+                    value={`${wallet.balance} điểm`}
                   />
-                </FormField>
-                <Button type="submit" disabled={blocked}>
-                  Nạp mã
-                </Button>
-              </form>
-              {confirmation ? (
-                <section
-                  aria-labelledby="redeem-confirm-title"
-                  className="mt-4 rounded-md border border-brand-100 bg-brand-50 p-4"
-                >
-                  <h3 id="redeem-confirm-title" className="text-label text-ink">
-                    Xác nhận nạp mã thẻ?
-                  </h3>
-                  <p className="mt-2 text-body-sm text-ink-secondary">
-                    Mã sẽ được sử dụng để cập nhật điểm hoặc gói của bạn.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button
-                      disabled={blocked}
-                      loading={pending}
-                      onClick={() => {
-                        void redeem()
-                      }}
+                  <Card className="border-brand-100 bg-brand-50">
+                    <dl>
+                      <dt className="text-label text-ink-secondary">Tên gói</dt>
+                      <dd className="mt-1 break-words text-h3 text-ink">{wallet.plan.name}</dd>
+                      <dt className="mt-3 text-label text-ink-secondary">Ngày hết hạn</dt>
+                      <dd className="mt-1 text-body-sm text-ink">
+                        {wallet.plan.expiresAt
+                          ? `${vietnamTime.format(new Date(wallet.plan.expiresAt))} (giờ Việt Nam)`
+                          : 'Không có ngày hết hạn'}
+                      </dd>
+                    </dl>
+                  </Card>
+                </div>
+              </Section>
+            </div>
+
+            <div className="min-w-0 lg:col-span-5">
+              <Section title="Nạp mã thẻ">
+                <Card>
+                  <form
+                    aria-label="Nạp mã thẻ"
+                    noValidate
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      if (blocked || (retryAt ?? 0) > Date.now()) return
+                      if (!/^[A-Z0-9]{16}$/.test(rawCode(code)) || formatError) {
+                        setFormatError(formatHint)
+                        return
+                      }
+                      setConfirmation(true)
+                    }}
+                  >
+                    <FormField
+                      htmlFor="credit-code"
+                      label="Mã thẻ"
+                      required
+                      hint={formatHint}
+                      error={formatError}
                     >
-                      Xác nhận nạp
+                      <Input
+                        ref={input}
+                        autoComplete="off"
+                        spellCheck={false}
+                        autoCapitalize="characters"
+                        placeholder="XXXX-XXXX-XXXX-XXXX"
+                        value={code}
+                        disabled={blocked}
+                        onChange={changeCode}
+                        onKeyDown={deleteAcrossSeparator}
+                      />
+                    </FormField>
+                    <Button type="submit" disabled={blocked}>
+                      Nạp mã
                     </Button>
-                    <Button
-                      disabled={pending}
-                      variant="outline"
-                      onClick={() => setConfirmation(false)}
+                  </form>
+                  {confirmation ? (
+                    <section
+                      aria-labelledby="redeem-confirm-title"
+                      className="mt-4 rounded-md border border-brand-100 bg-brand-50 p-4"
                     >
-                      Huỷ
-                    </Button>
-                  </div>
-                </section>
-              ) : null}
-              {message ? (
-                <p role="alert" className="mt-4 text-body-sm text-danger">
-                  {message}
-                </p>
-              ) : null}
-              {remaining > 0 ? (
-                <p role="status" className="mt-2 text-body-sm text-ink-secondary">
-                  Thử lại sau {remaining} giây.
-                </p>
-              ) : null}
-            </Card>
-          </Section>
+                      <h3 id="redeem-confirm-title" className="text-label text-ink">
+                        Xác nhận nạp mã thẻ?
+                      </h3>
+                      <p className="mt-2 text-body-sm text-ink-secondary">
+                        Mã sẽ được sử dụng để cập nhật điểm hoặc gói của bạn.
+                      </p>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button
+                          disabled={blocked}
+                          loading={pending}
+                          onClick={() => {
+                            void redeem()
+                          }}
+                        >
+                          Xác nhận nạp
+                        </Button>
+                        <Button
+                          disabled={pending}
+                          variant="outline"
+                          onClick={() => setConfirmation(false)}
+                        >
+                          Huỷ
+                        </Button>
+                      </div>
+                    </section>
+                  ) : null}
+                  {message ? (
+                    <p role="alert" className="mt-4 text-body-sm text-danger">
+                      {message}
+                    </p>
+                  ) : null}
+                  {remaining > 0 ? (
+                    <p role="status" className="mt-2 text-body-sm text-ink-secondary">
+                      Thử lại sau {remaining} giây.
+                    </p>
+                  ) : null}
+                </Card>
+              </Section>
+            </div>
+          </div>
+
           <Section
             title="Hạn mức theo tính năng"
             subtitle={`Đặt lại lúc ${vietnamTime.format(new Date(wallet.resetAt))} (giờ Việt Nam)`}
           >
-            <div className="rounded-md border border-line bg-surface">
+            <div className="overflow-hidden rounded-md border border-brand-100 bg-surface">
               <table className="w-full table-fixed border-collapse text-body-sm">
                 <caption className="sr-only">Lượt sử dụng theo tính năng</caption>
                 <thead>
-                  <tr className="border-b border-line bg-surface-subtle text-ink">
-                    <th scope="col" className="w-2/5 break-words p-2 text-left sm:p-3">
+                  <tr className="border-b border-brand-100 bg-brand-50 text-ink">
+                    <th scope="col" className="w-2/5 break-words p-2.5 text-left sm:p-3.5">
                       Tính năng
                     </th>
-                    <th scope="col" className="break-words p-2 text-right sm:p-3">
+                    <th scope="col" className="break-words p-2.5 text-right sm:p-3.5">
                       Hạn mức
                     </th>
-                    <th scope="col" className="break-words p-2 text-right sm:p-3">
+                    <th scope="col" className="break-words p-2.5 text-right sm:p-3.5">
                       Đã dùng
                     </th>
-                    <th scope="col" className="break-words p-2 text-right sm:p-3">
+                    <th scope="col" className="break-words p-2.5 text-right sm:p-3.5">
                       Còn lại
                     </th>
                   </tr>
@@ -335,12 +356,16 @@ export function PlanCreditsView({
                 <tbody>
                   {wallet.quota.map((line) => (
                     <tr key={line.feature} className="border-b border-line last:border-b-0">
-                      <th scope="row" className="break-words p-2 text-left font-semibold sm:p-3">
+                      <th scope="row" className="break-words p-2.5 text-left font-semibold sm:p-3.5">
                         {featureNames[line.feature]}
                       </th>
-                      <td className="break-words p-2 text-right tabular-nums sm:p-3">{line.limit}</td>
-                      <td className="break-words p-2 text-right tabular-nums sm:p-3">{line.used}</td>
-                      <td className="break-words p-2 text-right font-semibold tabular-nums sm:p-3">
+                      <td className="break-words p-2.5 text-right tabular-nums sm:p-3.5">
+                        {line.limit}
+                      </td>
+                      <td className="break-words p-2.5 text-right tabular-nums sm:p-3.5">
+                        {line.used}
+                      </td>
+                      <td className="break-words p-2.5 text-right font-semibold tabular-nums sm:p-3.5">
                         {line.remaining}
                       </td>
                     </tr>
@@ -357,7 +382,7 @@ export function PlanCreditsView({
           action={<Button onClick={onRetry}>Thử lại</Button>}
         />
       )}
-      <p className="mt-6 text-body-sm text-ink-secondary">
+      <p className="text-body-sm text-ink-secondary">
         Mã thẻ do hệ sinh thái phát hành; CNHSK không thu tiền
       </p>
     </div>
