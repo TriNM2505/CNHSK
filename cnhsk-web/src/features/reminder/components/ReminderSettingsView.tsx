@@ -8,13 +8,13 @@ import {
   EmptyState,
   ErrorState,
   FormField,
+  PageBanner,
   Select,
   Skeleton,
   StatusBadge,
 } from '@/shared/ui'
 
 import type { ReminderUpdate } from '../types'
-import { ReminderPageBanner } from './ReminderPageBanner'
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => `${String(hour).padStart(2, '0')}:00`)
 
@@ -59,7 +59,7 @@ export function ReminderSettingsView({
 
   return (
     <main className="mx-auto w-full min-w-0 max-w-4xl space-y-6 px-4 py-6 pb-16 sm:px-6">
-      <ReminderPageBanner
+      <PageBanner
         subtitle="Chọn giờ và kênh nhắc để quay lại ôn tập đều đặn."
         title="Cài đặt nhắc học"
       />

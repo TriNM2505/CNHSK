@@ -2,11 +2,10 @@ import { KeyRound, ShieldCheck } from 'lucide-react'
 import type { FormEvent } from 'react'
 
 import { NEW_PASSWORD_REQUIREMENT } from '@/features/auth/passwordValidation'
-import { Button, Card, FormField, PasswordInput, StatusBadge } from '@/shared/ui'
+import { Button, Card, FormField, PageBanner, PasswordInput, StatusBadge } from '@/shared/ui'
 
 import type { PasswordFieldErrors } from '../accountForms'
 import type { ChangePasswordRequest } from '../types'
-import { AccountPageBanner } from './AccountPageBanner'
 import { FormNotice, type FormNoticeValue } from './FormNotice'
 
 export type ChangePasswordViewState = 'ready' | 'submitting'
@@ -38,7 +37,7 @@ export function ChangePasswordView({
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-4xl space-y-6 pb-16">
-      <AccountPageBanner
+      <PageBanner
         subtitle="Nhập mật khẩu hiện tại để xác nhận, rồi đặt mật khẩu mới cho tài khoản."
         title="Đổi mật khẩu"
       />
