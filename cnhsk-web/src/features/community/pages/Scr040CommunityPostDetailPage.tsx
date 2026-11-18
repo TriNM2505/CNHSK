@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import type { CurrentUser } from '@/features/auth/types'
 import { ApiError, useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
+import { Button } from '@/shared/ui/Button'
 import { ToastProvider } from '@/shared/ui/Toast'
 import { useToast } from '@/shared/ui/useToast'
 import { createComment, deleteComment, listPostComments, replyToComment, updateComment } from '../api/comments'
@@ -100,14 +101,14 @@ function DiscussionController({ postId, user, active, refreshPost, comments, rec
   }
   return <section aria-label="Thảo luận" className="mt-6">
     <h2 className="text-h2">Bình luận</h2>
-    {!user ? <Link to="/login">Đăng nhập để bình luận</Link> : learner && !verified ? <p>Xác minh email để bình luận và báo cáo. <Link to="/verify-email">Xác minh email</Link></p> : learner ? <button disabled={disabled} onClick={() => choose({ kind: 'new' })} type="button">Viết bình luận</button> : null}
-    {!active || state === 'loading' ? <p role="status">Đang tải bình luận…</p> : state === 'error' ? <><InteractionError error={queryError} /><button type="button" onClick={reload}>Thử lại bình luận</button></> : <CommentTree postId={postId} comments={comments} actions={{ userId: user?.id, learner, verified, moderator, guest: !user, disabled, now, lockedEdits, onSelect: choose }} onRetry={reload} />}
+    {!user ? <Link to="/login">Đăng nhập để bình luận</Link> : learner && !verified ? <p>Xác minh email để bình luận và báo cáo. <Link to="/verify-email">Xác minh email</Link></p> : learner ? <Button disabled={disabled} onClick={() => choose({ kind: 'new' })} type="button" variant="outline">Viết bình luận</Button> : null}
+    {!active || state === 'loading' ? <p role="status">Đang tải bình luận…</p> : state === 'error' ? <><InteractionError error={queryError} /><Button type="button" variant="outline" onClick={reload}>Thử lại bình luận</Button></> : <CommentTree postId={postId} comments={comments} actions={{ userId: user?.id, learner, verified, moderator, guest: !user, disabled, now, lockedEdits, onSelect: choose }} onRetry={reload} />}
     <InteractionError error={error} />
     {selection && ['new', 'reply', 'edit'].includes(selection.kind) ? <>
       {selection.kind === 'edit' && !editAllowed ? <p role="status">Bình luận không còn có thể sửa. Nội dung đang nhập được giữ lại.</p> : null}
       <CommentForm value={drafts[draftKey] ?? ''} onChange={(value) => setDrafts((current) => ({ ...current, [draftKey]: value }))} onSubmit={submitComment} onCancel={() => setSelection(undefined)} disabled={!commentAllowed} label={selection.kind === 'edit' ? 'Sửa bình luận' : selection.kind === 'reply' ? 'Trả lời bình luận' : 'Nội dung bình luận'} validation={validation} />
     </> : null}
-    {selection?.kind === 'delete' ? <section aria-label="Xác nhận xoá bình luận"><p>Xoá bình luận này? Các trả lời được giữ nguyên.</p><button disabled={disabled || !verified || !learner || selected?.author?.id !== user?.id} type="button" onClick={() => action.run(() => deleteComment(selection.comment.id), () => succeed('Đã xoá bình luận'), fail)}>Xác nhận xoá</button><button disabled={action.busy} type="button" onClick={() => setSelection(undefined)}>Huỷ</button></section> : null}
+    {selection?.kind === 'delete' ? <section aria-label="Xác nhận xoá bình luận"><p>Xoá bình luận này? Các trả lời được giữ nguyên.</p><Button disabled={disabled || !verified || !learner || selected?.author?.id !== user?.id} type="button" variant="danger" onClick={() => action.run(() => deleteComment(selection.comment.id), () => succeed('Đã xoá bình luận'), fail)}>Xác nhận xoá</Button><Button disabled={action.busy} type="button" variant="outline" onClick={() => setSelection(undefined)}>Huỷ</Button></section> : null}
     {selection?.kind === 'report' ? <ReportForm key={draftKey} targetType="COMMENT" targetId={selection.comment.id} draft={reportDraft} onDraftChange={setReportDraft} disabled={disabled || !learner || !verified || selected?.status !== 'VISIBLE' || selected.author?.id === user?.id} onSubmit={(body) => action.run(() => reportContent(body), () => succeed('Đã nhận báo cáo'), fail)} onCancel={() => setSelection(undefined)} /> : null}
     {selection?.kind === 'moderate' ? <CommentModerationForm key={`${draftKey}:${selection.action}`} action={selection.action} draft={moderationDraft} onDraftChange={setModerationDraft} disabled={disabled || !moderator || !selected || !('moderationReason' in selected) || !canModerateComment(selected, user?.id ?? -1, selection.action)} onSubmit={(body) => action.run(() => moderateComment(selection.comment.id, body), () => succeed('Đã kiểm duyệt bình luận'), fail)} onCancel={() => setSelection(undefined)} /> : null}
   </section>
@@ -151,10 +152,10 @@ function LearnerInteractions({ post, user, active, onCount, refreshPost }: { pos
     const liked = confirmed?.liked ?? query.data?.liked
     const trusted = Boolean(confirmed) || query.state === 'ready'
     return <section aria-label="Tương tác bài viết">
-    <button type="button" disabled={!active || !trusted || like.busy} aria-pressed={trusted ? liked : undefined} onClick={() => like.run(() => liked ? unlikePost(post.id) : likePost(post.id), (result) => { setConfirmed(result); onCount(result.likeCount); setError(undefined) }, fail)}>{liked ? 'Bỏ thích' : 'Thích'}</button>
+    <Button type="button" variant="outline" disabled={!active || !trusted || like.busy} aria-pressed={trusted ? liked : undefined} onClick={() => like.run(() => liked ? unlikePost(post.id) : likePost(post.id), (result) => { setConfirmed(result); onCount(result.likeCount); setError(undefined) }, fail)}>{liked ? 'Bỏ thích' : 'Thích'}</Button>
     {query.state === 'loading' ? <p role="status">Đang tải trạng thái người xem…</p> : null}
-    {query.state === 'error' ? <><InteractionError error={query.error} /><button type="button" onClick={refreshViewer}>Thử lại trạng thái người xem</button></> : null}
-    {reported || query.data?.reported ? <p>Đã báo cáo bài viết</p> : user.emailVerified && post.author.id !== user.id ? <button disabled={!active || query.state !== 'ready' || report.busy} type="button" onClick={() => setReportOpen(true)}>Báo cáo bài viết</button> : null}
+    {query.state === 'error' ? <><InteractionError error={query.error} /><Button type="button" variant="outline" onClick={refreshViewer}>Thử lại trạng thái người xem</Button></> : null}
+    {reported || query.data?.reported ? <p>Đã báo cáo bài viết</p> : user.emailVerified && post.author.id !== user.id ? <Button disabled={!active || query.state !== 'ready' || report.busy} type="button" variant="ghost" onClick={() => setReportOpen(true)}>Báo cáo bài viết</Button> : null}
     <InteractionError error={error} />
     {reportOpen ? <ReportForm targetType="POST" targetId={post.id} draft={reportDraft} onDraftChange={setReportDraft} disabled={!active || report.busy || !user.emailVerified} onCancel={() => setReportOpen(false)} onSubmit={(body) => report.run(() => reportContent(body), () => { setReported(true); setReportOpen(false); showToast({ message: 'Đã nhận báo cáo', tone: 'success' }); refreshViewer() }, failReport)} /> : null}
   </section>
@@ -182,9 +183,9 @@ function PublishedPost({ id }: { id: number }) {
   const active = Boolean(post)
   return <main className="mx-auto max-w-reading p-4 sm:p-6">
     <Link to="/community">Về cộng đồng</Link>
-    {query.state !== 'error' && !post ? <p role="status">Đang tải bài viết…</p> : query.state === 'error' ? <><InteractionError error={query.error} /><button type="button" onClick={refreshPost}>Thử lại bài viết</button></> : post ? <CommunityPostDetailView post={post} likeCount={count?.scope === scope ? count.value : post.likeCount} canEdit={Boolean(user?.roles.includes('LEARNER') && user.id === post.author.id)} /> : null}
+    {query.state !== 'error' && !post ? <p role="status">Đang tải bài viết…</p> : query.state === 'error' ? <><InteractionError error={query.error} /><Button type="button" variant="outline" onClick={refreshPost}>Thử lại bài viết</Button></> : post ? <CommunityPostDetailView post={post} likeCount={count?.scope === scope ? count.value : post.likeCount} canEdit={Boolean(user?.roles.includes('LEARNER') && user.id === post.author.id)} /> : null}
     {sessionPost ? <div key={scope}>
-      {auth.status === 'loading' ? <p role="status">Đang kiểm tra phiên đăng nhập…</p> : auth.status === 'error' ? <><InteractionError error={auth.error} /><button type="button" onClick={() => void auth.reloadCurrentUser()}>Thử lại phiên đăng nhập</button></> : <>
+      {auth.status === 'loading' ? <p role="status">Đang kiểm tra phiên đăng nhập…</p> : auth.status === 'error' ? <><InteractionError error={auth.error} /><Button type="button" variant="outline" onClick={() => void auth.reloadCurrentUser()}>Thử lại phiên đăng nhập</Button></> : <>
         {user?.roles.includes('LEARNER') ? <LearnerInteractions post={sessionPost} user={user} active={active} onCount={(value) => setCount({ scope, value })} refreshPost={refreshPost} /> : !user && active ? <><Link to="/login">Thích</Link> · <Link to="/login">Báo cáo bài viết</Link></> : null}
         <DiscussionSession postId={id} user={user} active={active} refreshPost={refreshPost} moderator={Boolean(user?.roles.includes('MODERATOR'))} />
       </>}

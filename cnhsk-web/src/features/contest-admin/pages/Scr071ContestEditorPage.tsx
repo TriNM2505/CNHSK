@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { ApiError, useApiMutation, useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
-import { Button, Card, ConfirmPanel, PageHeader } from '@/shared/ui'
+import { Button, Card, ConfirmPanel } from '@/shared/ui'
 import {
   decideParticipant,
   findAttachedExam,
@@ -14,6 +14,7 @@ import {
   transitionContest,
 } from '../api/contests'
 import { ContestEditorForm } from '../components/ContestEditorForm'
+import { ContestEditorView } from '../components/ContestEditorView'
 import { ContestParticipantsPanel } from '../components/ContestParticipantsPanel'
 import { ContestWinnersPanel } from '../components/ContestWinnersPanel'
 import {
@@ -188,18 +189,15 @@ function Editor({ id }: { id: number | null }) {
               ? 'Đề chưa có câu hỏi hợp lệ để công bố.'
               : undefined
   return (
-    <main className="min-w-0 space-y-6">
-      <Link className="inline-flex min-h-touch items-center text-brand-700 underline" to={listPath}>
-        Về danh sách cuộc thi
-      </Link>
-      <PageHeader
-        title={contest ? 'Chi tiết cuộc thi' : 'Tạo cuộc thi'}
-        subtitle={contest?.name ?? 'Lưu nháp trước khi công bố cuộc thi.'}
-      />
+    <ContestEditorView
+      listPath={listPath}
+      title={contest ? 'Chi tiết cuộc thi' : 'Tạo cuộc thi'}
+      subtitle={contest?.name ?? 'Lưu nháp trước khi công bố cuộc thi.'}
+    >
       {notice && <p role="status">{notice}</p>}
       {mutation.error && !confirmation && <p role="alert">{errorMessage(mutation.error)}</p>}
       {contest && (
-        <Card>
+        <Card className="space-y-1 border-brand-100 bg-brand-50/40">
           <p>
             {statusLabels[contest.status]} · {stateLabels[contest.state]}
           </p>
@@ -230,7 +228,7 @@ function Editor({ id }: { id: number | null }) {
       />
       {attached.state === 'error' && <p role="alert">{attached.error?.message}</p>}
       {contest && (
-        <Card className="space-y-4">
+        <Card className="space-y-4 border-brand-100 bg-brand-50/30">
           <h2 className="text-h3">Công bố và huỷ cuộc thi</h2>
           {(['publish', 'cancel', 'ranking'] as const).map((action) => {
             const reason =
@@ -305,7 +303,7 @@ function Editor({ id }: { id: number | null }) {
           if (confirmation) perform({ type: confirmation })
         }}
       />
-    </main>
+    </ContestEditorView>
   )
 }
 export default function Scr071ContestEditorPage() {

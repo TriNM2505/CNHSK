@@ -10,7 +10,7 @@ import {
   EmptyState,
   ErrorState,
   FormField,
-  PageHeader,
+  PageBanner,
   Select,
   Skeleton,
   StatusBadge,
@@ -241,13 +241,17 @@ export function UserDetailView({
 
   return (
     <main className="mx-auto w-full max-w-content p-4 sm:p-6">
-      <PageHeader
-        actions={
-          <Button to="/admin/users" variant="outline">
-            <ArrowLeft aria-hidden="true" className="size-4" />
-            Danh sách tài khoản
-          </Button>
-        }
+      <div className="mb-6 flex justify-end">
+        <Button to="/admin/users" variant="outline">
+          <span className="inline-flex items-center gap-2">
+            <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
+            <span>Danh sách tài khoản</span>
+          </span>
+        </Button>
+      </div>
+
+      <PageBanner
+        className="mb-6"
         subtitle="Xem thông tin định danh, vai trò và trạng thái truy cập của tài khoản."
         title="Chi tiết tài khoản"
       />
