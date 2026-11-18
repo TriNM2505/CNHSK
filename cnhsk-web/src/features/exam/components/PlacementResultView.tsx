@@ -229,32 +229,63 @@ function GoldLaurelBranch() {
   return (
     <svg
       aria-hidden="true"
-      className="pointer-events-none h-14 w-14 shrink-0"
-      fill="#E5954B"
+      className="pointer-events-none h-14 w-14 shrink-0 text-accent-500"
+      fill="currentColor"
       viewBox="0 0 56 56"
     >
       {/* Cuống nhánh nguyệt quế mảnh uốn cong */}
       <path
         d="M14 48 C30 43, 41 29, 36 11"
         fill="none"
-        stroke="#DC873B"
+        className="text-accent-700"
+        stroke="currentColor"
         strokeLinecap="round"
         strokeWidth="1.35"
       />
       {/* Hàng lá bên trong (hướng lên trái) */}
-      <path d={leafPath} fill="#EB9E58" transform="translate(20, 45) rotate(22)" />
-      <path d={leafPath} fill="#EB9E58" transform="translate(26.5, 40.5) rotate(10)" />
-      <path d={leafPath} fill="#EB9E58" transform="translate(31.5, 34.5) rotate(-4)" />
-      <path d={leafPath} fill="#EB9E58" transform="translate(35, 27.5) rotate(-18)" />
-      <path d={leafPath} fill="#EB9E58" transform="translate(36.5, 20) rotate(-30)" />
+      <path d={leafPath} fill="currentColor" transform="translate(20, 45) rotate(22)" />
+      <path d={leafPath} fill="currentColor" transform="translate(26.5, 40.5) rotate(10)" />
+      <path d={leafPath} fill="currentColor" transform="translate(31.5, 34.5) rotate(-4)" />
+      <path d={leafPath} fill="currentColor" transform="translate(35, 27.5) rotate(-18)" />
+      <path d={leafPath} fill="currentColor" transform="translate(36.5, 20) rotate(-30)" />
       {/* Hàng lá bên ngoài (xoè sang phải) */}
-      <path d={leafPath} fill="#E08B3E" transform="translate(20, 45.5) rotate(102)" />
-      <path d={leafPath} fill="#E08B3E" transform="translate(26.5, 41) rotate(84)" />
-      <path d={leafPath} fill="#E08B3E" transform="translate(32, 35) rotate(66)" />
-      <path d={leafPath} fill="#E08B3E" transform="translate(35.5, 28) rotate(48)" />
-      <path d={leafPath} fill="#E08B3E" transform="translate(37, 20.5) rotate(30)" />
+      <path
+        className="text-accent-700"
+        d={leafPath}
+        fill="currentColor"
+        opacity=".55"
+        transform="translate(20, 45.5) rotate(102)"
+      />
+      <path
+        className="text-accent-700"
+        d={leafPath}
+        fill="currentColor"
+        opacity=".55"
+        transform="translate(26.5, 41) rotate(84)"
+      />
+      <path
+        className="text-accent-700"
+        d={leafPath}
+        fill="currentColor"
+        opacity=".55"
+        transform="translate(32, 35) rotate(66)"
+      />
+      <path
+        className="text-accent-700"
+        d={leafPath}
+        fill="currentColor"
+        opacity=".55"
+        transform="translate(35.5, 28) rotate(48)"
+      />
+      <path
+        className="text-accent-700"
+        d={leafPath}
+        fill="currentColor"
+        opacity=".55"
+        transform="translate(37, 20.5) rotate(30)"
+      />
       {/* Lá đỉnh ngọn */}
-      <path d={leafPath} fill="#E5954B" transform="translate(36, 12.5) rotate(-18)" />
+      <path d={leafPath} fill="currentColor" transform="translate(36, 12.5) rotate(-18)" />
     </svg>
   )
 }
@@ -275,18 +306,51 @@ function GreenBambooCornerArt() {
         strokeLinecap="round"
         strokeWidth="4.2"
       />
-      <line stroke="#FFF1F2" strokeWidth="1.8" x1="117" x2="124" y1="30" y2="27" />
-      <line stroke="#FFF1F2" strokeWidth="1.8" x1="131" x2="138" y1="60" y2="57" />
+      <line
+        className="text-brand-50"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        x1="117"
+        x2="124"
+        y1="30"
+        y2="27"
+      />
+      <line
+        className="text-brand-50"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        x1="131"
+        x2="138"
+        y1="60"
+        y2="57"
+      />
 
       <path
         d="M122 -4 L158 72"
         fill="none"
-        stroke="#DC2626"
+        className="text-brand-600"
+        stroke="currentColor"
         strokeLinecap="round"
         strokeWidth="3.4"
       />
-      <line stroke="#FFF1F2" strokeWidth="1.6" x1="133" x2="139" y1="24" y2="21" />
-      <line stroke="#FFF1F2" strokeWidth="1.6" x1="145" x2="151" y1="50" y2="47" />
+      <line
+        className="text-brand-50"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        x1="133"
+        x2="139"
+        y1="24"
+        y2="21"
+      />
+      <line
+        className="text-brand-50"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        x1="145"
+        x2="151"
+        y1="50"
+        y2="47"
+      />
 
       {/* Nhánh trúc vươn sang trái */}
       <path
@@ -298,13 +362,25 @@ function GreenBambooCornerArt() {
       />
 
       {/* Các phiến lá trúc tông đỏ đồng bộ */}
-      <path d="M84 14 Q52 4 22 6 Q54 16 84 14 Z" fill="#DC2626" />
+      <path className="text-brand-600" d="M84 14 Q52 4 22 6 Q54 16 84 14 Z" fill="currentColor" />
       <path d="M82 16 Q50 20 26 36 Q58 28 82 16 Z" fill="currentColor" />
-      <path d="M98 22 Q74 24 54 36 Q78 34 98 22 Z" fill="#DC2626" />
+      <path className="text-brand-600" d="M98 22 Q74 24 54 36 Q78 34 98 22 Z" fill="currentColor" />
       <path d="M98 24 Q76 40 58 60 Q84 44 98 24 Z" fill="currentColor" />
-      <path d="M102 26 Q106 44 114 62 Q112 42 102 26 Z" fill="#DC2626" />
-      <path d="M116 8 Q122 26 130 42 Q128 22 116 8 Z" fill="#991B1B" />
-      <path d="M134 4 Q142 16 148 28 Q144 12 134 4 Z" fill="#DC2626" />
+      <path
+        className="text-brand-600"
+        d="M102 26 Q106 44 114 62 Q112 42 102 26 Z"
+        fill="currentColor"
+      />
+      <path
+        className="text-brand-700"
+        d="M116 8 Q122 26 130 42 Q128 22 116 8 Z"
+        fill="currentColor"
+      />
+      <path
+        className="text-brand-600"
+        d="M134 4 Q142 16 148 28 Q144 12 134 4 Z"
+        fill="currentColor"
+      />
     </svg>
   )
 }
