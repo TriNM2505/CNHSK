@@ -95,6 +95,9 @@ module.exports = {
         control: '44px',
         touch: '44px',
       },
+      minWidth: {
+        touch: '44px',
+      },
       zIndex: {
         base: '0',
         nav: '20',

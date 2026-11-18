@@ -129,7 +129,7 @@ export function LearnerLayout({
             <h2 className="text-h3 text-ink">Thêm</h2>
             <button
               aria-label="Đóng menu bổ sung"
-              className="flex min-h-touch min-w-11 items-center justify-center rounded-sm text-ink focus-visible:ring-2 focus-visible:ring-focus"
+              className="flex min-h-touch min-w-touch items-center justify-center rounded-sm text-ink focus-visible:ring-2 focus-visible:ring-focus"
               onClick={() => {
                 setMoreOpen(false)
                 moreButton.current?.focus()

@@ -57,4 +57,15 @@ describe('FormField and controls', () => {
     expect(input).toHaveAttribute('type', 'text')
     expect(screen.getByRole('button', { name: 'Ẩn mật khẩu' })).toBeVisible()
   })
+
+  it('gives the password visibility toggle button min-h-touch and min-w-touch', () => {
+    render(
+      <FormField htmlFor="password-touch" label="Mật khẩu">
+        <PasswordInput />
+      </FormField>,
+    )
+
+    const toggle = screen.getByRole('button', { name: 'Hiện mật khẩu' })
+    expect(toggle).toHaveClass('min-h-touch', 'min-w-touch')
+  })
 })
