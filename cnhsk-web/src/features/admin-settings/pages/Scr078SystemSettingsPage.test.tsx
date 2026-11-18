@@ -255,4 +255,19 @@ describe('SCR-078 settings page', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tải lại cài đặt' }))
     expect(await screen.findByText('Chưa có cài đặt')).toBeVisible()
   })
+  it('renders shared PageBanner, reload button outside banner, and read-only token badge', async () => {
+    render(<Scr078SystemSettingsPage />)
+    const heading = await screen.findByRole('heading', { name: 'Cài đặt hệ thống' })
+    const banner = heading.closest('.isolate')
+    const reloadButton = screen.getByRole('button', { name: 'Tải lại cài đặt' })
+    expect(banner).not.toBeNull()
+    expect(banner!.contains(reloadButton)).toBe(false)
+    expect(
+      banner!.compareDocumentPosition(reloadButton) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      within(screen.getByRole('contentinfo', { name: 'Số liệu token' })).getByText('Chỉ đọc'),
+    ).toBeVisible()
+    expect(row('ai-generate.max-batches-per-run').getByText('Đang ghi đè')).toBeVisible()
+  })
 })
