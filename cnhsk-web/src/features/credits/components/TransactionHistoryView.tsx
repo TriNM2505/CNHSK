@@ -2,6 +2,7 @@ import { Coins } from 'lucide-react'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
+  PageBanner,
   Button,
   Card,
   DataTable,
@@ -15,7 +16,6 @@ import {
 } from '@/shared/ui'
 
 import type { Transaction, TransactionPage, TransactionType } from '../types'
-import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 export interface TransactionHistoryViewProps {
   state: ApiQueryState
@@ -87,7 +87,7 @@ export function TransactionHistoryView({
 }: TransactionHistoryViewProps) {
   return (
     <div className="mx-auto min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
-      <InkLandscapeBanner
+      <PageBanner
         className="mb-0"
         title="Lịch sử giao dịch"
         subtitle="Giao dịch mới nhất trước · Thời gian theo giờ Việt Nam"

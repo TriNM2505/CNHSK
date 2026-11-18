@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
+  PageBanner,
   Button,
   Card,
   DataTable,
@@ -17,7 +18,6 @@ import {
 } from '@/shared/ui'
 
 import type { Benefits, PaidFeature, PlanCode, PlanUpdateRequest, PlanView } from '../types'
-import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 export interface PlanManagementViewProps {
   state: ApiQueryState
@@ -400,7 +400,7 @@ export function PlanManagementView({
   const plans = planOrder.flatMap((code) => data?.find((plan) => plan.code === code) ?? [])
   return (
     <div className="mx-auto min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
-      <InkLandscapeBanner
+      <PageBanner
         className="mb-0"
         title="Quản lý gói dịch vụ"
         subtitle="Xem tình trạng gói và cập nhật cấu hình bên dưới."

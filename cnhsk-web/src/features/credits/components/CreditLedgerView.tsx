@@ -2,6 +2,7 @@ import { useRef, useState, type FormEvent } from 'react'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
+  PageBanner,
   Button,
   Card,
   DataTable,
@@ -25,7 +26,6 @@ import type {
   ReconciliationIssue,
   TransactionType,
 } from '../types'
-import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 export interface CreditLedgerViewProps {
   state: ApiQueryState | 'idle'
@@ -173,7 +173,7 @@ export function CreditLedgerView({
 
   return (
     <div className="mx-auto min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
-      <InkLandscapeBanner
+      <PageBanner
         className="mb-0"
         title="Sổ cái điểm"
         subtitle="Tra cứu giao dịch theo ngày và đối chiếu số dư từ máy chủ."

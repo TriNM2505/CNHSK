@@ -4,6 +4,7 @@ import { Sparkles } from 'lucide-react'
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import { downloadBlob } from '@/shared/lib/downloadBlob'
 import {
+  PageBanner,
   Button,
   Card,
   DataTable,
@@ -27,7 +28,6 @@ import type {
   CreatedBatch,
   VoidResult,
 } from '../types'
-import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 export interface CardBatchViewProps {
   state: ApiQueryState
@@ -317,7 +317,7 @@ export function CardBatchView({
 
   return (
     <div className="mx-auto min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
-      <InkLandscapeBanner
+      <PageBanner
         className="mb-0"
         title="Lô mã thẻ"
         subtitle="Xem tình trạng các lô và phát hành mã điểm hoặc mã gói."
