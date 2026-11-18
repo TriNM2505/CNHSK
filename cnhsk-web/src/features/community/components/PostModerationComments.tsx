@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ApiError, useApiQuery } from '@/shared/api'
+import { Button } from '@/shared/ui/Button'
 import { useToast } from '@/shared/ui/useToast'
 import { listPostCommentsForModeration, moderateComment } from '../api/moderation'
 import { canModerateComment } from '../comment-permissions'
@@ -50,10 +51,12 @@ export function ModeratorComments({ postId, userId, screenId, resourceId, onChan
   const renderComments: ModerationComment[] = targetId === undefined ? comments : target ? [target] : []
   const select = (comment: ModerationComment, nextAction: CommentModeration['action']) => { setSelection({ id: comment.id, action: nextAction }); setError(undefined) }
   return <section aria-label="Bình luận kiểm duyệt" className="mt-5 space-y-4">
-    {!ready && query.state !== 'error' ? <p role="status">Đang tải bình luận kiểm duyệt…</p> : query.state === 'error' ? <><InteractionError error={query.error} /><button type="button" onClick={refresh}>Thử lại bình luận</button></> : !valid ? <><p role="alert">Dữ liệu bình luận không hợp lệ.</p><button type="button" onClick={refresh}>Thử lại bình luận</button></> : targetId !== undefined && !target ? <><p role="alert">Không tìm thấy metadata bình luận. Không thể kiểm duyệt.</p><button type="button" onClick={refresh}>Thử lại bình luận</button></> : targetId === undefined ? <CommentTree comments={renderComments} postId={postId} onRetry={refresh} actions={{ userId, learner: false, verified: false, guest: false, moderator: true, disabled: action.busy, now: Date.now(), lockedEdits: new Set<number>(), onSelect: (next) => { if (next.kind === 'moderate') select(next.comment, next.action) } }} /> : target ? <article aria-label={`Bình luận ${target.id}`} className="rounded-md border border-line p-4">
-      <p>{target.author.displayName ?? 'Người dùng đã rời'}</p><p className="whitespace-pre-wrap">{target.content}</p><p>Trạng thái: {target.status}</p>
-      {target.moderationReason ? <p className="whitespace-pre-wrap">Lý do kiểm duyệt: {target.moderationReason}</p> : null}
-      {(['HIDE', 'DELETE', 'RESTORE'] as const).filter((item) => canModerateComment(target, userId, item)).map((item) => <button className="mr-4 underline" key={item} type="button" disabled={action.busy} onClick={() => select(target, item)}>{item === 'HIDE' ? 'Ẩn' : item === 'DELETE' ? 'Xoá kiểm duyệt' : 'Khôi phục'}</button>)}
+    {!ready && query.state !== 'error' ? <p role="status">Đang tải bình luận kiểm duyệt…</p> : query.state === 'error' ? <><InteractionError error={query.error} /><Button type="button" variant="outline" onClick={refresh}>Thử lại bình luận</Button></> : !valid ? <><p role="alert">Dữ liệu bình luận không hợp lệ.</p><Button type="button" variant="outline" onClick={refresh}>Thử lại bình luận</Button></> : targetId !== undefined && !target ? <><p role="alert">Không tìm thấy metadata bình luận. Không thể kiểm duyệt.</p><Button type="button" variant="outline" onClick={refresh}>Thử lại bình luận</Button></> : targetId === undefined ? <CommentTree comments={renderComments} postId={postId} onRetry={refresh} actions={{ userId, learner: false, verified: false, guest: false, moderator: true, disabled: action.busy, now: Date.now(), lockedEdits: new Set<number>(), onSelect: (next) => { if (next.kind === 'moderate') select(next.comment, next.action) } }} /> : target ? <article aria-label={`Bình luận ${target.id}`} className="rounded-md border border-line bg-surface p-4 shadow-sm">
+      <p className="font-semibold text-ink">{target.author.displayName ?? 'Người dùng đã rời'}</p><p className="mt-1 whitespace-pre-wrap text-ink">{target.content}</p><p className="mt-2 text-body-sm text-ink-secondary">Trạng thái: {target.status}</p>
+      {target.moderationReason ? <p className="mt-1 whitespace-pre-wrap text-body-sm text-ink-secondary">Lý do kiểm duyệt: {target.moderationReason}</p> : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(['HIDE', 'DELETE', 'RESTORE'] as const).filter((item) => canModerateComment(target, userId, item)).map((item) => <Button key={item} size="sm" type="button" variant="outline" disabled={action.busy} onClick={() => select(target, item)}>{item === 'HIDE' ? 'Ẩn' : item === 'DELETE' ? 'Xoá kiểm duyệt' : 'Khôi phục'}</Button>)}
+      </div>
     </article> : null}
     <InteractionError error={error} />
     {selection ? <div hidden={!ready}>

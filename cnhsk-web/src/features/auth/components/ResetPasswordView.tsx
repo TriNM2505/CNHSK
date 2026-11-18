@@ -10,7 +10,6 @@ import type {
 } from '../passwordResetForm'
 import { NEW_PASSWORD_REQUIREMENT } from '../passwordValidation'
 import { AuthSplitLayout } from './AuthSplitLayout'
-import { CardCornerPandas, LoginBambooBackdrop, RightGiantPandaScene } from './PandaBambooScene'
 
 export type ResetPasswordViewState = 'ready' | 'submitting' | 'error'
 
@@ -55,15 +54,8 @@ export function ResetPasswordView({
 
   if (!linkUsable || notice?.kind === 'invalid-token') {
     return (
-      <div className="relative isolate overflow-hidden">
-        <LoginBambooBackdrop />
-        <AuthSplitLayout
-          aside={ASIDE}
-          cardDecorator={<CardCornerPandas />}
-          customAside={<RightGiantPandaScene mood="thumbs-up" />}
-          hideMobileBanner
-        >
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
+      <AuthSplitLayout aside={ASIDE} backgroundVariant="006" hideMobileBanner>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
             <p className="text-label text-brand-700">Khôi phục mật khẩu</p>
             <StatusBadge tone="warning">Liên kết không dùng được</StatusBadge>
           </div>
@@ -83,20 +75,12 @@ export function ResetPasswordView({
           </div>
           <Button to={forgotTo}>Gửi liên kết mới</Button>
         </AuthSplitLayout>
-      </div>
     )
   }
 
   return (
-    <div className="relative isolate overflow-hidden">
-      <LoginBambooBackdrop />
-      <AuthSplitLayout
-        aside={ASIDE}
-        cardDecorator={<CardCornerPandas />}
-        customAside={<RightGiantPandaScene mood="thumbs-up" />}
-        hideMobileBanner
-      >
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
+    <AuthSplitLayout aside={ASIDE} backgroundVariant="006" hideMobileBanner>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
           <p className="text-label text-brand-700">Thiết lập mật khẩu mới</p>
           <StatusBadge tone="neutral">Cập nhật mật khẩu</StatusBadge>
         </div>
@@ -171,6 +155,5 @@ export function ResetPasswordView({
           </Button>
         </form>
       </AuthSplitLayout>
-    </div>
   )
 }

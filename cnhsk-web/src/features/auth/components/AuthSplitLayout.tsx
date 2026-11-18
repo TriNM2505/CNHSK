@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 
 import { Card, HanziText, StatusBadge } from '@/shared/ui'
 
+import { AuthInkWashStage, type AuthInkWashVariant } from './AuthInkWashStage'
+
 interface AuthSplitLayoutProps {
   aside: {
     badge?: string
@@ -13,14 +15,18 @@ interface AuthSplitLayoutProps {
     pinyin?: string
     title: string
   }
-  /** Trang trí bám quanh 4 góc Card form (bản thử SCR-002). */
+  /** Phiên bản nền tranh thủy mặc đỏ và gấu trúc đã duyệt cho màn Auth. */
+  backgroundVariant?: AuthInkWashVariant
+  /** Trang trí bám quanh 4 góc Card form. */
   cardDecorator?: ReactNode
   children: ReactNode
-  /** Thay toàn bộ cột giới thiệu bên phải bằng minh họa riêng (bản thử SCR-002). */
+  /** Thu gọn padding dọc cho form dài như SCR-003. */
+  compact?: boolean
+  /** Thay toàn bộ cột giới thiệu bên phải bằng minh họa riêng. */
   customAside?: ReactNode
   /** Ẩn banner tóm tắt trên mobile khi dùng minh họa riêng. */
   hideMobileBanner?: boolean
-  /** Thay thẻ chữ Hán mặc định ở cột phải (bản thử trang trí SCR-002). */
+  /** Thay thẻ chữ Hán mặc định ở cột phải. */
   illustration?: ReactNode
 }
 
@@ -35,12 +41,22 @@ const HIGHLIGHT_ICONS = [BookOpenText, CheckCircle2, Gamepad2] as const
 /** Khung chung các màn xác thực K3: căn giữa, cột form + cột thẻ từ vựng giới thiệu. */
 export function AuthSplitLayout({
   aside,
+  backgroundVariant,
   cardDecorator,
   children,
+  compact = false,
   customAside,
   hideMobileBanner = false,
   illustration,
 }: AuthSplitLayoutProps) {
+  if (backgroundVariant) {
+    return (
+      <AuthInkWashStage compact={compact} variant={backgroundVariant}>
+        {children}
+      </AuthInkWashStage>
+    )
+  }
+
   const highlights = aside.highlights ?? DEFAULT_HIGHLIGHTS
   const hanzi = aside.hanzi ?? '汉语'
   const pinyin = aside.pinyin ?? 'hànyǔ'

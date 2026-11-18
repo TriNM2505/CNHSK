@@ -4,7 +4,7 @@
 | --- | --- |
 | **Trạng thái** | Khung giao diện đã khoá cho đợt làm lại giao diện; inventory 79 màn FINAL |
 | **Status** | APPROVED |
-| **Version** | 1.3 |
+| **Version** | 1.4 |
 | **Owner** | Nhóm CNHSK |
 | **Approved by** | Leader nhóm |
 | **Locked on** | 2026-11-17 |
@@ -36,7 +36,7 @@ cục trong các màn mình phụ trách, trong giới hạn dưới đây.
 | RD-06 | Giữ đủ trạng thái §9 (đang tải, rỗng, lỗi, không có quyền, đang gửi) và accessibility §10. |
 | RD-07 | Gate FE xanh (lint, typecheck, test, build); không tràn ngang ở năm viewport §11; PR kèm ảnh trước/sau ở 375px và 1280px, đính kèm trong mô tả PR (không commit ảnh vào repo). |
 | RD-08 | Mỗi PR một feature, nhánh `redesign/<feature>` tạo từ main mới nhất. |
-| RD-09 | Thẩm mỹ trong vùng tự do (bố cục, cách phối token, hình minh hoạ, linh vật) do thành viên tự quyết; review không chặn merge vì lý do thẩm mỹ. Hình minh hoạ tre/trúc dùng được ở mọi màn; linh vật gấu trúc chỉ dùng ở các màn xác thực SCR-002–SCR-006 và SCR-079. |
+| RD-09 | Thẩm mỹ trong vùng tự do (bố cục, cách phối token, hình minh hoạ, linh vật) do thành viên tự quyết; review không chặn merge vì lý do thẩm mỹ. Hình minh hoạ tre/trúc và linh vật gấu trúc dùng được ở mọi màn. |
 
 ### 0.2. Checklist review PR giao diện
 
@@ -591,7 +591,7 @@ Tỷ lệ Unwanted: 12/27 luật = 44,4%.
 ## 14. Out of Scope
 
 - File này không định nghĩa logo cuối cùng, ảnh minh họa hoặc bộ icon độc quyền
-  của thương hiệu; linh vật chỉ giới hạn phạm vi dùng theo RD-09.
+  của thương hiệu; linh vật dùng theo RD-09.
 - Không quy định thuật toán FSRS, chấm điểm, chống gian lận hoặc business rule
   phía server ngoài cách thể hiện trạng thái.
 - Không thiết kế lại website marketing `CNHSK.today` theo từng pixel.
@@ -627,6 +627,7 @@ Không còn câu hỏi mở. Các câu bản 0.1 đã chốt:
 | 1.1 | 2026-11-16 | Bỏ React Native/WebView; thêm luật làm lại giao diện (§0.1) và checklist review (§0.2); trạng thái triển khai 72 màn (§5.6); đồng bộ §7 với `shared/ui` thật; thêm 6 khuôn trang và bảng gán màn (§8.1, §8.2); chốt Open Questions; khoá tài liệu | Leader nhóm |
 | 1.2 | 2026-11-17 | Được dùng hình ảnh/asset Học Bá (§0, §14, §15); thêm RD-09 tự do thẩm mỹ, linh vật chỉ ở màn xác thực; cấm `md:` (RD-03, §0.2); ảnh PR đính kèm, không commit (RD-07); K2 rộng 1280px khi có bảng; K4 chỉ xác nhận thoát khi mất dữ liệu; K6 bộ lọc/phân trang khi màn có | Leader nhóm |
 | 1.3 | 2026-11-17 | RD-09: hình minh hoạ tre/trúc dùng được ở mọi màn; linh vật gấu trúc vẫn chỉ ở màn xác thực | Leader nhóm |
+| 1.4 | 2026-11-17 | RD-09: linh vật gấu trúc dùng được ở mọi màn | Leader nhóm |
 
 ---
 

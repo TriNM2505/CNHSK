@@ -1,8 +1,9 @@
 import { createElement as h, useState } from 'react'
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
-import { Button, Card, PageHeader, Select } from '@/shared/ui'
+import { Button, Card, ErrorState, PageHeader, Select, Skeleton } from '@/shared/ui'
 import { ContestListView } from './components/ContestListView'
 import { ContestEditorForm } from './components/ContestEditorForm'
+import { ContestEditorView } from './components/ContestEditorView'
 import { ContestParticipantsPanel } from './components/ContestParticipantsPanel'
 import { ContestWinnersPanel } from './components/ContestWinnersPanel'
 import { editReason } from './contestActions'
@@ -50,7 +51,7 @@ function ListPreview({ state }: { state: PreviewState }) {
   )
 }
 function EditorPreview({ state }: { state: PreviewState }) {
-  const [mode, setMode] = useState('ended')
+  const [mode, setMode] = useState('new')
   const [revision, setRevision] = useState(0)
   const [saved, setSaved] = useState(false)
   const [filters, setFilters] = useState<ExamListParams>({ page: 0 })
@@ -65,21 +66,28 @@ function EditorPreview({ state }: { state: PreviewState }) {
           : mode === 'locked'
             ? { ...contestFixture, status: 'PUBLISHED', state: 'ONGOING' }
             : contestFixture
-  if (state === 'loading') return h('main', null, h('p', { role: 'status' }, 'Đang tải cuộc thi…'))
+  if (state === 'loading')
+    return h(
+      'main',
+      { className: 'mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-6 sm:px-6' },
+      h(PageHeader, { title: 'Chi tiết cuộc thi' }),
+      h('p', { role: 'status' }, 'Đang tải cuộc thi…'),
+      h(Skeleton, { variant: 'card' }),
+    )
   if (state === 'error')
     return h(
       'main',
-      null,
-      h('p', { role: 'alert' }, 'Không tải được cuộc thi.'),
-      h(Button, null, 'Thử tải lại'),
+      { className: 'mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-6 sm:px-6' },
+      h(PageHeader, { title: 'Chi tiết cuộc thi' }),
+      h(ErrorState, { message: 'Không tải được cuộc thi.', onRetry: () => undefined }),
     )
   return h(
-    'main',
-    { className: 'min-w-0 space-y-6' },
-    h(PageHeader, {
+    ContestEditorView,
+    {
+      listPath: '/content/contests',
       title: contest ? 'Chi tiết cuộc thi' : 'Tạo cuộc thi',
       subtitle: contest?.name,
-    }),
+    },
     h(
       'label',
       { htmlFor: 'preview-mode', className: 'block font-semibold' },
@@ -162,9 +170,25 @@ export const previews = [
   },
   {
     group: 'screen',
+    id: 'scr-070',
+    scr: 'SCR-070',
+    title: 'Quản lý cuộc thi (SCR-070)',
+    states: ['loading', 'empty', 'error', 'ready'],
+    render: (state) => h(ListPreview, { state }),
+  },
+  {
+    group: 'screen',
     id: 'contest-admin-editor',
     scr: 'SCR-071',
     title: 'Tạo / sửa và tổ chức cuộc thi',
+    states: ['loading', 'empty', 'error', 'ready'],
+    render: (state) => h(EditorPreview, { state }),
+  },
+  {
+    group: 'screen',
+    id: 'scr-071',
+    scr: 'SCR-071',
+    title: 'Tạo / sửa và tổ chức cuộc thi (SCR-071)',
     states: ['loading', 'empty', 'error', 'ready'],
     render: (state) => h(EditorPreview, { state }),
   },

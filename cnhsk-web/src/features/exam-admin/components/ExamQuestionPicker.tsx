@@ -3,7 +3,15 @@ import { getQuestion, listQuestions } from '@/features/question-bank/api/questio
 import { QUESTION_TYPE_LABELS } from '@/features/question-bank/questionListQuery'
 import type { QuestionListParams, QuestionType } from '@/features/question-bank/types'
 import { useApiQuery } from '@/shared/api'
-import { Button, FormField, Input, Pagination, Select, SUPPORTED_HSK_LEVELS } from '@/shared/ui'
+import {
+  Button,
+  FormField,
+  Input,
+  Pagination,
+  Select,
+  Skeleton,
+  SUPPORTED_HSK_LEVELS,
+} from '@/shared/ui'
 import { failureMessage } from '../examForm'
 import type { DraftQuestion, DraftSection } from '../types'
 
@@ -90,7 +98,7 @@ export function ExamQuestionPicker({
   return (
     <section
       aria-label="Chọn câu từ ngân hàng"
-      className="min-w-0 space-y-4 rounded-md border border-brand-200 bg-brand-50 p-4 [overflow-wrap:anywhere] sm:p-6"
+      className="mx-auto w-full min-w-0 max-w-reading space-y-6 break-words rounded-md border border-brand-100 bg-brand-50 p-6"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -117,7 +125,7 @@ export function ExamQuestionPicker({
         </Select>
       </FormField>
       <form
-        className="grid gap-x-4 sm:grid-cols-2"
+        className="grid min-w-0 gap-x-4 sm:grid-cols-2"
         onSubmit={(event) => {
           event.preventDefault()
           if (q.trim() && (Array.from(q.trim()).length < 2 || Array.from(q.trim()).length > 100)) {
@@ -190,7 +198,12 @@ export function ExamQuestionPicker({
       {selectedIds.length >= 300 && (
         <p role="status">Đã đạt tối đa 300 câu. Bỏ câu khỏi nháp trước khi thêm.</p>
       )}
-      {result.state === 'loading' && <p role="status">Đang tải câu hỏi…</p>}
+      {result.state === 'loading' && (
+        <div>
+          <p role="status">Đang tải câu hỏi…</p>
+          <Skeleton variant="card" />
+        </div>
+      )}
       {result.state === 'error' && (
         <div role="alert">
           <p>{result.error?.message}</p>
@@ -203,9 +216,12 @@ export function ExamQuestionPicker({
       {result.state === 'ready' && (
         <ul className="space-y-3">
           {result.data?.items.map((row) => (
-            <li key={row.id} className="min-w-0 rounded-md border border-line bg-surface p-4">
+            <li
+              key={row.id}
+              className="min-w-0 space-y-3 rounded-md border border-line bg-surface p-6"
+            >
               <p className="break-words font-semibold">{row.code || `Câu #${row.id}`}</p>
-              <p className="my-2 break-words">{row.stemSummary}</p>
+              <p className="my-2 break-words font-hanzi text-h3">{row.stemSummary}</p>
               <p className="mb-3 break-words text-body-sm text-ink-secondary">
                 {QUESTION_TYPE_LABELS[row.qtype]} · HSK {row.hskLevel} ·{' '}
                 {row.primaryKid || 'Chưa có KID chính'}

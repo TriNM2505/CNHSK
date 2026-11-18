@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
+import { FileText, Save, Search, Trophy } from 'lucide-react'
 import type { ApiError, ApiQueryState } from '@/shared/api'
-import { Button, Card, FormField, Input, Pagination, Select, Textarea } from '@/shared/ui'
+import { Button, Card, FormField, Input, Pagination, Select, Skeleton, Textarea } from '@/shared/ui'
+import { ContestAdminBannerArt } from './ContestAdminArt'
 import { draftOf, validateDraft, writeOf, type ContestDraft } from '../contestForm'
 import type { AdminContest, AdminExamSummary, ContestWrite, ExamListParams, Page } from '../types'
 
@@ -21,6 +23,7 @@ type Props = {
   onDirty: () => void
   onSubmit: (input: ContestWrite) => void
 }
+
 export function ContestEditorForm(props: Props) {
   const {
     contest,
@@ -70,15 +73,24 @@ export function ContestEditorForm(props: Props) {
   const choices = exams?.items.filter((exam) => exam.status !== 'ARCHIVED') ?? []
   const selectedOnPage = choices.some((exam) => String(exam.id) === draft.examId)
   return (
-    <Card className="min-w-0">
+    <Card className="w-full min-w-0 max-w-reading border-brand-100 bg-brand-50/20 p-4 sm:p-5">
       <form aria-label="Thông tin cuộc thi" noValidate onSubmit={submit}>
-        <h2 className="mb-4 text-h3">Thông tin cuộc thi</h2>
+        <div className="relative mb-6 overflow-hidden rounded-md border border-brand-100 bg-brand-50 px-5 py-4">
+          <h2 className="relative z-nav inline-flex items-center gap-2 text-h3 font-bold text-ink">
+            <FileText aria-hidden="true" className="size-5 shrink-0 text-brand-700" />
+            <span>Thông tin cuộc thi</span>
+          </h2>
+          <ContestAdminBannerArt />
+        </div>
         {lockedReason && (
-          <p className="mb-4 text-body-sm" role="status">
+          <p
+            className="mb-4 rounded-md border border-brand-100 bg-brand-50 p-4 text-body-sm"
+            role="status"
+          >
             {lockedReason}
           </p>
         )}
-        <fieldset disabled={disabled} className="min-w-0">
+        <fieldset disabled={disabled} className="min-w-0 space-y-4">
           <FormField
             htmlFor="contest-name"
             label="Tên cuộc thi"
@@ -87,12 +99,14 @@ export function ContestEditorForm(props: Props) {
           >
             <Input
               value={draft.name}
+              placeholder="Nhập tên cuộc thi…"
               maxLength={200}
               onChange={(e) => change('name', e.target.value)}
             />
           </FormField>
           <FormField htmlFor="contest-description" label="Mô tả" error={fieldError('description')}>
             <Textarea
+              className="min-h-24 bg-surface"
               value={draft.description}
               maxLength={5000}
               onChange={(e) => change('description', e.target.value)}
@@ -101,26 +115,28 @@ export function ContestEditorForm(props: Props) {
           <div className="grid min-w-0 gap-x-4 sm:grid-cols-2">
             <FormField
               htmlFor="contest-start"
+              className="min-w-0 max-w-full"
               label="Bắt đầu (giờ Việt Nam)"
               required
               error={fieldError('startsAt')}
             >
               <Input
                 type="datetime-local"
-                className="min-w-0"
+                className="min-w-0 max-w-full"
                 value={draft.startsAt}
                 onChange={(e) => change('startsAt', e.target.value)}
               />
             </FormField>
             <FormField
               htmlFor="contest-end"
+              className="min-w-0 max-w-full"
               label="Kết thúc (giờ Việt Nam)"
               required
               error={fieldError('endsAt')}
             >
               <Input
                 type="datetime-local"
-                className="min-w-0"
+                className="min-w-0 max-w-full"
                 value={draft.endsAt}
                 onChange={(e) => change('endsAt', e.target.value)}
               />
@@ -143,8 +159,11 @@ export function ContestEditorForm(props: Props) {
               onChange={(e) => change('maxParticipants', e.target.value)}
             />
           </FormField>
-          <div className="mb-4 space-y-3 rounded-md border border-line p-3">
-            <h3 className="font-semibold">Đề thi</h3>
+          <div className="mb-4 min-w-0 space-y-3 rounded-md border border-brand-100 bg-brand-50 p-4">
+            <h3 className="flex items-center gap-2 text-h3 font-bold text-ink">
+              <FileText aria-hidden="true" className="size-5 text-brand-700" />
+              Đề thi
+            </h3>
             <FormField htmlFor="exam-search" label="Tìm đề theo tên hoặc mã">
               <Input value={search} maxLength={100} onChange={(e) => setSearch(e.target.value)} />
             </FormField>
@@ -153,9 +172,17 @@ export function ContestEditorForm(props: Props) {
               variant="outline"
               onClick={() => onExamFilter({ q: search.trim() || undefined, page: 0 })}
             >
-              Tìm đề
+              <span className="inline-flex items-center gap-2">
+                <Search aria-hidden="true" className="size-4" />
+                Tìm đề
+              </span>
             </Button>
-            {examState === 'loading' && <p role="status">Đang tải danh sách đề…</p>}
+            {examState === 'loading' && (
+              <div>
+                <p role="status">Đang tải danh sách đề…</p>
+                <Skeleton variant="card" />
+              </div>
+            )}
             {examState === 'error' && (
               <div role="alert">
                 <p>{examError}</p>
@@ -208,15 +235,21 @@ export function ContestEditorForm(props: Props) {
               />
             )}
           </div>
-          <div className="space-y-3">
-            <h3 className="font-semibold">Giải thưởng</h3>
+          <div className="min-w-0 space-y-4 rounded-md border border-brand-100 bg-brand-50 p-4">
+            <h3 className="flex items-center gap-2 text-h3 font-bold">
+              <Trophy aria-hidden="true" className="size-5 text-brand-700" />
+              Giải thưởng
+            </h3>
             <p className="text-body-sm text-ink-secondary">
               Tối đa 10 mục, chỉ mô tả giải. Ban tổ chức liên hệ ngoài hệ thống.
             </p>
             {errors.prizes && <p role="alert">{errors.prizes}</p>}
             {draft.prizes.map((prize, index) => (
-              <fieldset key={index} className="min-w-0 rounded-md border border-line p-3">
-                <legend className="px-1 font-semibold">Giải {index + 1}</legend>
+              <fieldset
+                key={index}
+                className="min-w-0 rounded-md border border-brand-100 bg-surface p-4"
+              >
+                <legend className="px-2 text-label text-brand-700">Giải {index + 1}</legend>
                 <div className="grid grid-cols-2 gap-3">
                   <FormField htmlFor={`prize-from-${index}`} label="Từ hạng">
                     <Input
@@ -292,9 +325,12 @@ export function ContestEditorForm(props: Props) {
               Thêm giải thưởng
             </Button>
           </div>
-          <div className="mt-6">
-            <Button type="submit" loading={pending}>
-              {contest?.status === 'PUBLISHED' ? 'Lưu thay đổi' : 'Lưu nháp'}
+          <div className="mt-6 rounded-md border border-brand-100 bg-brand-50 p-4">
+            <Button className="w-full sm:w-auto" type="submit" loading={pending}>
+              <span className="inline-flex items-center gap-2">
+                <Save aria-hidden="true" className="size-4" />
+                {contest?.status === 'PUBLISHED' ? 'Lưu thay đổi' : 'Lưu nháp'}
+              </span>
             </Button>
           </div>
         </fieldset>

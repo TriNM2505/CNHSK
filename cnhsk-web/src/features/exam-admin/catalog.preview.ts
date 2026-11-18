@@ -1,22 +1,11 @@
 import { createElement as h, useState } from 'react'
-import type { PreviewEntry } from '@/app/preview/types'
-import { AuthContext, type AuthContextValue } from '@/shared/auth'
-import { AdminLayout } from '@/shared/layout'
-import { previewContentEditor } from '@/shared/layout/Layout.preview'
-import { Button } from '@/shared/ui'
+import type { PreviewEntry, PreviewState } from '@/app/preview/types'
+import { ErrorState, PageHeader, PageState, Skeleton } from '@/shared/ui'
 import { ExamListView } from './components/ExamListView'
 import { listPreviews } from './components/ExamListView.preview'
 import { ExamEditorView } from './components/ExamEditorView'
 import { editorPreviews } from './components/ExamEditorView.preview'
 import { validateForm } from './examForm'
-const auth: AuthContextValue = {
-  status: 'authenticated',
-  user: previewContentEditor,
-  error: null,
-  reloadCurrentUser: async () => undefined,
-  setAuthenticatedUser: () => undefined,
-  signOut: async () => undefined,
-}
 function EditorPreview({ mode }: { mode: string }) {
   const props = editorPreviews[mode]!
   const [form, setForm] = useState(props.form)
@@ -51,9 +40,23 @@ function EditorPreview({ mode }: { mode: string }) {
     },
   })
 }
-function frame(content: ReturnType<typeof h>) {
-  return h(AuthContext.Provider, { value: auth }, h(AdminLayout, null, content))
+function editorState(mode: string, state: PreviewState) {
+  if (state === 'ready' || state === 'empty')
+    return h(EditorPreview, { key: state + mode, mode: state === 'empty' ? 'new' : mode })
+  return h(
+    'main',
+    { className: 'mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-6 sm:px-6' },
+    h(PageHeader, { title: 'Sửa đề thi' }),
+    h(PageState, {
+      state,
+      children: null,
+      empty: null,
+      loading: h(Skeleton, { variant: 'card' }),
+      error: h(ErrorState, { message: 'Không tải được đề thi.', onRetry: () => undefined }),
+    }),
+  )
 }
+
 export const previews: readonly PreviewEntry[] = [
   ...Object.entries(listPreviews).map(([state, props]) => ({
     id: `scr-065-${state}`,
@@ -61,7 +64,9 @@ export const previews: readonly PreviewEntry[] = [
     title: `Quản lý đề thi — ${state}`,
     group: 'screen' as const,
     fullFrame: true,
-    render: () => frame(h(ExamListView, props)),
+    states: ['ready', 'loading', 'empty', 'error'] as const,
+    render: (selectedState: PreviewState) =>
+      h(ExamListView, selectedState === 'ready' ? props : listPreviews[selectedState]!),
   })),
   ...Object.keys(editorPreviews).map((mode) => ({
     id: `scr-066-${mode}`,
@@ -69,7 +74,8 @@ export const previews: readonly PreviewEntry[] = [
     title: `Sửa đề thi — ${mode}`,
     group: 'screen' as const,
     fullFrame: true,
-    render: () => frame(h(EditorPreview, { mode })),
+    states: ['ready', 'loading', 'empty', 'error'] as const,
+    render: (state: PreviewState) => editorState(mode, state),
   })),
   {
     id: 'scr-066-loading',
@@ -77,7 +83,7 @@ export const previews: readonly PreviewEntry[] = [
     title: 'Sửa đề — đang tải',
     group: 'screen',
     fullFrame: true,
-    render: () => frame(h('main', null, h('p', { role: 'status' }, 'Đang tải đề thi…'))),
+    render: () => editorState('draft', 'loading'),
   },
   {
     id: 'scr-066-error',
@@ -85,14 +91,6 @@ export const previews: readonly PreviewEntry[] = [
     title: 'Sửa đề — lỗi tải',
     group: 'screen',
     fullFrame: true,
-    render: () =>
-      frame(
-        h(
-          'main',
-          null,
-          h('p', { role: 'alert' }, 'Không tải được đề thi.'),
-          h(Button, { variant: 'outline', children: 'Thử tải đề lại' }),
-        ),
-      ),
+    render: () => editorState('draft', 'error'),
   },
 ]
