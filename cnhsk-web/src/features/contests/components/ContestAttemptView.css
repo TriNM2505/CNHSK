@@ -1,0 +1,15 @@
+.contest-question-prompt,
+.contest-answer-text {
+  overflow-wrap: anywhere;
+}
+
+.contest-answer-grid {
+  /* Fit two options whenever their container has room, without adding a breakpoint. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+
+@screen sm {
+  .contest-answer-grid {
+    @apply grid-cols-2;
+  }
+}

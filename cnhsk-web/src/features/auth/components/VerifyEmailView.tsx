@@ -1,10 +1,10 @@
 import { CircleAlert, CircleCheck, LoaderCircle, MailCheck } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-import { Button, Card, PageHeader, Skeleton, StatusBadge } from '@/shared/ui'
+import { Button, PageHeader, Skeleton, StatusBadge } from '@/shared/ui'
 
 import { formatCountdown } from '../verifyEmailFlow'
-import { LoginBambooBackdrop, PandaIllustration } from './PandaBambooScene'
+import { AuthInkWashStage } from './AuthInkWashStage'
 
 export type VerifyEmailMode = 'loading' | 'guide' | 'verifying' | 'verified' | 'invalid' | 'error'
 
@@ -168,39 +168,33 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
   const header = headerInfo(mode)
 
   return (
-    <div className="relative isolate min-h-[calc(100vh-4rem)] overflow-hidden">
-      <LoginBambooBackdrop />
-      <main className="relative z-10 mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-8 sm:px-6 sm:py-12">
-        <Card className="border-brand-100 bg-surface-subtle p-5 shadow-sm sm:p-6">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
+    <AuthInkWashStage variant="004">
+      <div className="space-y-5">
+        <div className="border-b border-line pb-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             {header.badge}
             <span className="text-caption text-brand-700">Bảo mật tài khoản CNHSK</span>
           </div>
           <PageHeader className="mb-0" subtitle={header.subtitle} title={header.title} />
-        </Card>
+        </div>
 
         {mode === 'loading' ? <Skeleton variant="card" /> : null}
 
         {mode === 'verifying' ? (
-          <Card className="p-5 shadow-sm sm:p-6">
-            <p className="flex items-center gap-3 text-body text-ink" role="status">
-              <LoaderCircle aria-hidden="true" className="size-5 motion-safe:animate-spin" />
-              <span>Đang kiểm tra liên kết xác thực…</span>
-            </p>
-          </Card>
+          <p className="flex items-center gap-3 py-2 text-body text-ink" role="status">
+            <LoaderCircle aria-hidden="true" className="size-5 motion-safe:animate-spin" />
+            <span>Đang kiểm tra liên kết xác thực…</span>
+          </p>
         ) : null}
 
         {mode === 'verified' ? (
-          <Card className="space-y-5 p-5 shadow-md sm:p-6">
-            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 flex-1 items-start gap-3 rounded-md border border-success bg-success-bg p-4 text-body-sm text-success">
-                <CircleCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-                <p>
-                  Địa chỉ email của bạn đã được xác nhận. Bạn có thể sử dụng đầy đủ tính năng khôi
-                  phục mật khẩu và nhận nhắc lịch học qua email.
-                </p>
-              </div>
-              <PandaIllustration className="w-32 shrink-0 sm:w-36" mood="mail" />
+          <div className="space-y-5">
+            <div className="flex items-start gap-3 rounded-md border border-success bg-success-bg p-4 text-body-sm text-success">
+              <CircleCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+              <p>
+                Địa chỉ email của bạn đã được xác nhận. Bạn có thể sử dụng đầy đủ tính năng khôi
+                phục mật khẩu và nhận nhắc lịch học qua email.
+              </p>
             </div>
             <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
               {authenticated ? (
@@ -209,38 +203,34 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
                 <Button to={loginTo}>Đăng nhập để tiếp tục</Button>
               )}
             </div>
-          </Card>
+          </div>
         ) : null}
 
         {mode === 'guide' ? (
-          <Card className="space-y-5 p-5 shadow-md sm:p-6">
-            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 flex-1 space-y-3 rounded-md border border-brand-100 bg-brand-50 p-4">
-                <div className="flex items-center gap-2.5">
-                  <span
-                    aria-hidden="true"
-                    className="flex size-8 shrink-0 items-center justify-center rounded-pill bg-surface text-brand-700 shadow-sm"
-                  >
-                    <MailCheck className="size-4" />
-                  </span>
-                  <p className="text-label text-brand-800">Thư xác thực đã được gửi</p>
-                </div>
-                <p className="min-w-0 break-words text-body text-ink">
-                  {email ? (
-                    <>
-                      Liên kết xác thực đã gửi tới <strong>{email}</strong>. Mở email và bấm vào
-                      liên kết để xác thực tài khoản.
-                    </>
-                  ) : (
-                    'Mở email chúng tôi đã gửi và bấm vào liên kết để xác thực tài khoản.'
-                  )}
-                </p>
-                <p className="text-body-sm text-ink-secondary">
-                  Không thấy thư? Hãy kiểm tra thêm mục spam hoặc quảng cáo.
-                </p>
+          <div className="space-y-5">
+            <div className="space-y-3 rounded-md border border-brand-100 bg-brand-50 p-4">
+              <div className="flex items-center gap-2.5">
+                <span
+                  aria-hidden="true"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-pill bg-surface text-brand-700 shadow-sm"
+                >
+                  <MailCheck className="size-4" />
+                </span>
+                <p className="text-label text-brand-800">Thư xác thực đã được gửi</p>
               </div>
-
-              <PandaIllustration className="w-36 shrink-0 sm:w-44" mood="mail" />
+              <p className="min-w-0 break-words text-body text-ink">
+                {email ? (
+                  <>
+                    Liên kết xác thực đã gửi tới <strong>{email}</strong>. Mở email và bấm vào liên
+                    kết để xác thực tài khoản.
+                  </>
+                ) : (
+                  'Mở email chúng tôi đã gửi và bấm vào liên kết để xác thực tài khoản.'
+                )}
+              </p>
+              <p className="text-body-sm text-ink-secondary">
+                Không thấy thư? Hãy kiểm tra thêm mục spam hoặc quảng cáo.
+              </p>
             </div>
 
             <ResendSection {...props} />
@@ -263,23 +253,14 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
                 </Button>
               </p>
             </div>
-          </Card>
+          </div>
         ) : null}
 
-        {mode === 'invalid' ? (
-          <Card className="space-y-5 p-5 shadow-md sm:p-6">
-            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 flex-1">
-                <ResendSection {...props} />
-              </div>
-              <PandaIllustration className="w-32 shrink-0 sm:w-36" mood="mail" />
-            </div>
-          </Card>
-        ) : null}
+        {mode === 'invalid' ? <ResendSection {...props} /> : null}
 
         {mode === 'error' ? (
-          <Card
-            className="flex items-start gap-3 border-danger bg-danger-bg p-5 text-body-sm text-danger shadow-sm sm:p-6"
+          <div
+            className="flex items-start gap-3 rounded-md border border-danger bg-danger-bg p-4 text-body-sm text-danger"
             role="alert"
           >
             <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
@@ -293,9 +274,9 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
                 Thử lại
               </Button>
             </div>
-          </Card>
+          </div>
         ) : null}
-      </main>
-    </div>
+      </div>
+    </AuthInkWashStage>
   )
 }

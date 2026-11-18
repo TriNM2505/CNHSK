@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
+import { Button } from '@/shared/ui/Button'
 import { ToastProvider } from '@/shared/ui/Toast'
 import { useToast } from '@/shared/ui/useToast'
 
@@ -100,7 +101,7 @@ function CommunityPostListContent() {
     return <main aria-label="Đang kiểm tra phiên đăng nhập" className="mx-auto max-w-content p-6" role="status">Đang kiểm tra phiên đăng nhập…</main>
   }
   if (requestedMine && authStatus === 'error') {
-    return <main className="mx-auto max-w-content p-6"><p role="alert">{authError?.message ?? 'Không thể kiểm tra phiên đăng nhập.'}</p><button className="mt-3 underline" onClick={() => void reloadCurrentUser()} type="button">Thử lại</button></main>
+    return <main className="mx-auto max-w-content p-6"><p role="alert">{authError?.message ?? 'Không thể kiểm tra phiên đăng nhập.'}</p><Button className="mt-3" onClick={() => void reloadCurrentUser()} type="button" variant="outline">Thử lại</Button></main>
   }
 
   const feedProps: FeedProps = {

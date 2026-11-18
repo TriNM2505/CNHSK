@@ -102,7 +102,7 @@ describe('SCR-060 post moderation queue', () => {
       totalElements: 2,
     })
     renderQueue()
-    const rows = await screen.findAllByRole('listitem')
+    const rows = (await screen.findAllByRole('row')).slice(1)
     const [first, second] = rows
     if (!first || !second) throw new Error('Expected both pending post rows.')
     expect(within(first).getByText('Đầu từ máy chủ')).toBeVisible()
