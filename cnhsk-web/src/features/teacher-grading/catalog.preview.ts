@@ -1,11 +1,62 @@
 import { createElement, useState } from 'react'
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
 import { ApiError } from '@/shared/api'
+import { AuthContext, type AuthContextValue } from '@/shared/auth'
+import { AdminLayout } from '@/shared/layout'
 import { TeacherGradingQueueView } from './components/TeacherGradingQueueView'
 import { TeacherGradingWorkspaceView } from './components/TeacherGradingWorkspaceView'
 import { emptyDraft, resultPayload, totalScore } from './gradingRules'
 import { assigned, draft as sampleDraft, mine, queue } from './test-fixtures'
-import type { TeacherGradingDetail } from './types'
+import type { QueuePage, TeacherGradingDetail } from './types'
+
+const teacherAuth: AuthContextValue = {
+  error: null,
+  reloadCurrentUser: async () => undefined,
+  setAuthenticatedUser: () => undefined,
+  signOut: async () => undefined,
+  status: 'authenticated',
+  user: {
+    id: 105,
+    displayName: 'Giáo viên',
+    email: 'gv•••@example.com',
+    emailVerified: true,
+    roles: ['TEACHER'],
+  },
+}
+
+function inTeacherAdminLayout(element: ReturnType<typeof createElement>) {
+  return createElement(
+    AuthContext.Provider,
+    { value: teacherAuth },
+    createElement(AdminLayout, null, element),
+  )
+}
+
+const previewQueue: QueuePage = {
+  ...queue,
+  totalElements: 3,
+  items: [
+    ...queue.items,
+    {
+      id: 44,
+      reference: 'GR-000044',
+      hanziCount: 168,
+      hskLevel: 2,
+      sentAt: '2035-11-15T01:30:00Z',
+      claimDeadline: '2035-11-17T01:30:00Z',
+      payoutCredits: 5,
+    },
+    {
+      id: 45,
+      reference: 'GR-000045',
+      hanziCount: 215,
+      hskLevel: 3,
+      sentAt: '2035-11-15T02:15:00Z',
+      claimDeadline: '2035-11-17T02:15:00Z',
+      payoutCredits: 5,
+    },
+  ],
+}
 
 const error = new ApiError({
   status: 0,
@@ -15,7 +66,7 @@ const error = new ApiError({
 function QueuePreview({ state }: { state: PreviewState }) {
   return createElement(TeacherGradingQueueView, {
     state,
-    queue,
+    queue: previewQueue,
     error,
     mineState: state,
     mine,
@@ -59,19 +110,21 @@ function WorkspacePreview({ state }: { state: PreviewState }) {
 }
 export const previews = [
   {
+    fullFrame: true,
     group: 'screen',
     id: 'teacher-grading-queue',
     scr: 'SCR-056',
     title: 'Hàng đợi chấm bài',
     states: ['loading', 'empty', 'error', 'ready'],
-    render: (state) => createElement(QueuePreview, { state }),
+    render: (state) => inTeacherAdminLayout(createElement(QueuePreview, { state })),
   },
   {
+    fullFrame: true,
     group: 'screen',
     id: 'teacher-grading-workspace',
     scr: 'SCR-057',
     title: 'Chấm bài viết',
     states: ['loading', 'empty', 'error', 'ready'],
-    render: (state) => createElement(WorkspacePreview, { state }),
+    render: (state) => inTeacherAdminLayout(createElement(WorkspacePreview, { state })),
   },
 ] satisfies readonly PreviewEntry[]
