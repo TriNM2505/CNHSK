@@ -3,6 +3,7 @@ import { BookOpen, ExternalLink } from 'lucide-react'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
+  PageBanner,
   Button,
   Card,
   EmptyState,
@@ -13,7 +14,6 @@ import {
 } from '@/shared/ui'
 
 import type { PublicReference } from '../types'
-import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 export type BookDetailViewProps = {
   state: ApiQueryState
@@ -36,7 +36,7 @@ export function BookDetailView({
 }: BookDetailViewProps) {
   return (
     <main className="mx-auto w-full min-w-0 max-w-content space-y-6 break-words px-4 py-6 pb-16 text-ink sm:px-6 lg:px-8">
-      <InkLandscapeBanner
+      <PageBanner
         className="mb-0"
         title="Chi tiết sách tham khảo"
         subtitle="Thông tin xuất bản, cấp HSK khuyến nghị và liên kết tham khảo."

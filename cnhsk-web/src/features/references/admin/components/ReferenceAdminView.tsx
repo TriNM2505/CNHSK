@@ -8,13 +8,13 @@ import {
   EmptyState,
   ErrorState,
   FormField,
+  PageBanner,
   Pagination,
   Select,
   Skeleton,
   StatusBadge,
 } from '@/shared/ui'
 
-import { InkLandscapeBanner } from '../../components/InkLandscapeBanner'
 import {
   actionLabels,
   availableActions,
@@ -52,7 +52,7 @@ export function ReferenceAdminView(props: ReferenceAdminViewProps) {
 
   return (
     <main className="mx-auto w-full min-w-0 max-w-content space-y-6 break-words px-4 py-6 pb-16 text-ink sm:px-6 lg:px-8">
-      <InkLandscapeBanner
+      <PageBanner
         className="mb-0"
         title="Tài nguyên tham khảo"
         subtitle="Lọc tài nguyên, xem báo lỗi và quản lý trạng thái công bố."

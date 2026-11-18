@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
+  PageBanner,
   Button,
   Card,
   EmptyState,
@@ -19,7 +20,6 @@ import {
 } from '@/shared/ui'
 
 import type { PublicReferencePage, ReferenceKind } from '../types'
-import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 export type ReferenceListViewProps = {
   kind: ReferenceKind
@@ -204,7 +204,7 @@ export function ReferenceListView(props: ReferenceListViewProps) {
   )
   return (
     <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 text-ink sm:px-6 lg:px-8">
-      <InkLandscapeBanner
+      <PageBanner
         className="mb-0"
         title={books ? 'Danh mục sách tham khảo' : 'Tài liệu nghe nhìn'}
         subtitle="Nguồn tham khảo bên ngoài, mở ở tab mới."
