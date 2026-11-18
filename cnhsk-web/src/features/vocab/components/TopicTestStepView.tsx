@@ -84,32 +84,34 @@ function QuestionNavigator({
 }) {
   return (
     <nav aria-label="Danh sách câu hỏi">
-      <ol className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-10">
+      <ol className="flex flex-wrap gap-2">
         {items.map((item, index) => {
           const done = isAnswered(drafts[item.no])
           const active = item.no === activeNo
           return (
             <li key={item.no}>
-              <button
+              <Button
                 aria-current={active ? 'step' : undefined}
                 aria-label={`Câu ${index + 1}, ${done ? 'đã làm' : 'chưa làm'}`}
                 className={cn(
-                  'flex min-h-touch w-full items-center justify-center gap-1 rounded-md border text-body-sm font-semibold',
+                  'size-12 shrink-0 gap-1 px-1 text-body-sm font-semibold',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2',
                   active
                     ? 'border-brand-700 bg-brand-50 text-brand-700'
                     : 'border-line bg-surface text-ink',
                 )}
                 onClick={() => onSelectQuestion(item.no)}
-                type="button"
+                variant="outline"
               >
-                {done ? (
-                  <CircleCheck aria-hidden="true" className="size-4 text-success" />
-                ) : (
-                  <CircleDashed aria-hidden="true" className="size-4 text-ink-muted" />
-                )}
-                {index + 1}
-              </button>
+                <span className="flex items-center justify-center gap-1">
+                  {done ? (
+                    <CircleCheck aria-hidden="true" className="size-4 text-success" />
+                  ) : (
+                    <CircleDashed aria-hidden="true" className="size-4 text-ink-muted" />
+                  )}
+                  {index + 1}
+                </span>
+              </Button>
             </li>
           )
         })}
@@ -196,8 +198,11 @@ function TestResultView({
         : String(result.score)
 
   return (
-    <section aria-labelledby="topic-test-result-title" className="space-y-5">
-      <Card className="space-y-4">
+    <section
+      aria-labelledby="topic-test-result-title"
+      className="mx-auto min-w-0 max-w-reading space-y-5"
+    >
+      <Card className="space-y-5 rounded-lg border-brand-100 border-t-4 border-t-brand-600 p-5 shadow-md sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-h2 text-ink" id="topic-test-result-title">
             Kết quả kiểm tra
@@ -209,11 +214,11 @@ function TestResultView({
           )}
         </div>
         <dl className="grid grid-cols-2 gap-3">
-          <div className="rounded-md border border-line p-4">
+          <div className="rounded-md border border-brand-100 bg-brand-50 p-4">
             <dt className="text-body-sm text-ink-secondary">Số câu đúng</dt>
             <dd className="text-h1 tabular-nums text-ink">{scoreText}</dd>
           </div>
-          <div className="rounded-md border border-line p-4">
+          <div className="rounded-md border border-brand-100 bg-brand-50 p-4">
             <dt className="text-body-sm text-ink-secondary">Tỉ lệ đúng</dt>
             <dd className="text-h1 tabular-nums text-ink">
               {result.percent === null || result.percent === undefined ? '—' : `${result.percent}%`}
@@ -232,7 +237,7 @@ function TestResultView({
       </Card>
 
       {result.wrongWords.length ? (
-        <Card className="space-y-3">
+        <Card className="space-y-3 p-5 sm:p-6">
           <h3 className="text-h3 text-ink">Từ làm sai ({result.wrongWords.length})</h3>
           <ul className="divide-y divide-line">
             {result.wrongWords.map((word) => (
@@ -293,7 +298,7 @@ export function TopicTestStepView({
 }: TopicTestStepViewProps) {
   if (state === 'loading') {
     return (
-      <div aria-label="Đang tải bài kiểm tra" className="space-y-4">
+      <div aria-label="Đang tải bài kiểm tra" className="mx-auto min-w-0 max-w-reading space-y-4">
         <Skeleton variant="card" />
         <Skeleton variant="card" />
       </div>
@@ -399,7 +404,7 @@ export function TopicTestStepView({
   const next = items[index + 1]
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto min-w-0 max-w-reading space-y-5 pr-10">
       {error ? (
         <div
           className="rounded-md border border-danger bg-danger-bg p-3 text-body-sm text-danger"
@@ -422,8 +427,8 @@ export function TopicTestStepView({
         items={items}
         onSelectQuestion={onSelectQuestion}
       />
-      <Card className="space-y-5">
-        <p className="text-label text-ink-secondary">
+      <Card className="min-w-0 space-y-5 rounded-lg border-brand-100 border-t-4 border-t-brand-600 p-5 shadow-md sm:p-6">
+        <p className="border-b border-line pb-4 text-label text-brand-700">
           Câu {index + 1}/{items.length}
         </p>
         <TestQuestion
@@ -435,23 +440,27 @@ export function TopicTestStepView({
           onReplayCountChange={onReplayCountChange}
         />
       </Card>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-surface p-3">
+        <div className="flex flex-wrap gap-2">
           <Button
             disabled={!previous}
             onClick={() => previous && onSelectQuestion(previous.no)}
             variant="outline"
           >
-            <ArrowLeft aria-hidden="true" className="size-5" />
-            Câu trước
+            <span className="flex items-center gap-2">
+              <ArrowLeft aria-hidden="true" className="size-5" />
+              Câu trước
+            </span>
           </Button>
           <Button
             disabled={!next}
             onClick={() => next && onSelectQuestion(next.no)}
             variant="outline"
           >
-            Câu sau
-            <ArrowRight aria-hidden="true" className="size-5" />
+            <span className="flex items-center gap-2">
+              Câu sau
+              <ArrowRight aria-hidden="true" className="size-5" />
+            </span>
           </Button>
         </div>
         <Button onClick={onRequestSubmit}>Nộp bài</Button>

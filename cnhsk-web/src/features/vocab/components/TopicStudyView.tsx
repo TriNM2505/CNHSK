@@ -2,6 +2,7 @@ import { BookOpenText, LockKeyhole } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
+import landscape from '@/features/auth/assets/auth-bg-002.webp'
 import type { FinishResult, ServedItemView } from '@/features/practice'
 import { SessionProgress, SessionSummary, StudyCard } from '@/features/practice'
 import { cn } from '@/shared/lib/cn'
@@ -37,7 +38,12 @@ function containsHanzi(value: string) {
 }
 
 function TopicTitle({ name }: { name: string }) {
-  if (containsHanzi(name)) return <HanziText size="md">{name}</HanziText>
+  if (containsHanzi(name))
+    return (
+      <HanziText className="break-keep text-h1-sm text-brand-800 sm:text-h1" size="md">
+        {name}
+      </HanziText>
+    )
   return <span>{name}</span>
 }
 
@@ -133,17 +139,19 @@ export function StudyStepView({
 
   if (state === 'ready' && item && onAudioFailed && onContinue && onKnown) {
     return (
-      <div className="space-y-5">
+      <div className="mx-auto min-w-0 max-w-reading space-y-5 pr-8">
         <SessionProgress current={current} total={total} />
-        <StudyCard
-          item={item}
-          key={item.no}
-          onAudioFailed={onAudioFailed}
-          onContinue={onContinue}
-          onKnown={onKnown}
-          onReplayCountChange={onReplayCountChange}
-          pending={pending}
-        />
+        <div className="rounded-lg border border-brand-100 border-t-4 border-t-brand-600 bg-gradient-to-b from-brand-50 to-surface p-2 shadow-md sm:p-3">
+          <StudyCard
+            item={item}
+            key={item.no}
+            onAudioFailed={onAudioFailed}
+            onContinue={onContinue}
+            onKnown={onKnown}
+            onReplayCountChange={onReplayCountChange}
+            pending={pending}
+          />
+        </div>
       </div>
     )
   }
@@ -173,128 +181,157 @@ export function TopicStudyView({
   topic,
 }: TopicStudyViewProps) {
   return (
-    <PageState
-      empty={
-        <EmptyState
-          action={
-            <Button to="/learn/topics" variant="outline">
-              Về danh sách chủ đề
-            </Button>
-          }
-          description="Chủ đề này không tồn tại hoặc chưa có dữ liệu học."
-          title="Không tìm thấy chủ đề"
-        />
-      }
-      error={
-        <ErrorState
-          message={error?.message ?? 'Vui lòng thử lại sau.'}
-          onRetry={onRetry}
-          requestId={error?.requestId}
-        />
-      }
-      loading={
-        <div aria-label="Đang tải chủ đề" className="space-y-4">
-          <Skeleton variant="card" />
-          <Skeleton variant="card" />
-        </div>
-      }
-      state={state}
-    >
-      {topic ? (
-        <div>
-          <Link className="text-label text-brand-700 hover:underline" to="/learn/topics">
-            ← Danh sách chủ đề
-          </Link>
+    <div className="mx-auto min-w-0 max-w-content p-4 sm:p-6 lg:p-8">
+      <PageState
+        empty={
+          <EmptyState
+            action={
+              <Button to="/learn/topics" variant="outline">
+                Về danh sách chủ đề
+              </Button>
+            }
+            description="Chủ đề này không tồn tại hoặc chưa có dữ liệu học."
+            title="Không tìm thấy chủ đề"
+          />
+        }
+        error={
+          <ErrorState
+            message={error?.message ?? 'Vui lòng thử lại sau.'}
+            onRetry={onRetry}
+            requestId={error?.requestId}
+          />
+        }
+        loading={
+          <div aria-label="Đang tải chủ đề" className="space-y-4">
+            <Skeleton variant="card" />
+            <Skeleton variant="card" />
+          </div>
+        }
+        state={state}
+      >
+        {topic ? (
+          <div className="min-w-0">
+            <Link
+              className="inline-flex min-h-touch items-center rounded-sm text-label text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+              to="/learn/topics"
+            >
+              ← Danh sách chủ đề
+            </Link>
 
-          <header className="mt-4 rounded-md border border-line bg-surface p-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <h1 className="text-h1-sm text-ink sm:text-h1">
-                <TopicTitle name={topic.name} />
-              </h1>
-              <LevelBadge exact level={topic.hskLevel} />
-            </div>
-            <p className="mt-3 text-body-sm text-ink-secondary">
-              Đã học {topic.learnedWords}/{topic.totalWords} từ
-            </p>
-            <Progress className="mt-2" label={`${topic.percent}%`} value={topic.percent} />
-            {topic.status === 'LOCKED' ? <TopicLockNotice lockedBy={topic.lockedBy} /> : null}
-          </header>
-
-          {topic.status !== 'LOCKED' ? (
-            <nav aria-label="Các bước học chủ đề" className="mt-6">
-              <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                {STEPS.map((step, index) => {
-                  const blockedReason =
-                    step === 'study' && canResumeStudy
-                      ? undefined
-                      : getTopicStepBlockedReason(topic, step)
-                  const active = step === activeStep
-                  const classes = cn(
-                    'flex min-h-touch items-start gap-2 rounded-sm border px-3 py-2 text-label no-underline',
-                    active
-                      ? 'border-brand-600 bg-brand-50 text-brand-700'
-                      : 'border-line bg-surface text-ink-secondary',
-                    blockedReason && 'cursor-not-allowed text-ink-muted',
-                  )
-                  const content = (
-                    <>
-                      <span>{index + 1}.</span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block">{STEP_LABELS[step]}</span>
-                        {blockedReason ? (
-                          <span className="mt-1 block text-caption font-normal">
-                            {blockedReason}
-                          </span>
-                        ) : null}
-                      </span>
-                      {blockedReason ? (
-                        <LockKeyhole aria-hidden="true" className="size-4 shrink-0" />
-                      ) : null}
-                    </>
-                  )
-
-                  return (
-                    <li key={step}>
-                      {blockedReason ? (
-                        <span
-                          aria-current={active ? 'step' : undefined}
-                          aria-disabled="true"
-                          className={classes}
-                          title={blockedReason}
-                        >
-                          {content}
-                        </span>
-                      ) : (
-                        <Link
-                          aria-current={active ? 'step' : undefined}
-                          className={classes}
-                          to={topicStepPath(topic.id, step)}
-                        >
-                          {content}
-                        </Link>
-                      )}
-                    </li>
-                  )
-                })}
-              </ol>
-            </nav>
-          ) : null}
-
-          <section aria-labelledby="topic-step-title" className="mt-6">
-            <h2 className="mb-4 text-h2 text-ink" id="topic-step-title">
-              {STEP_LABELS[activeStep]}
-            </h2>
-            {(activeStep === 'study' ? studyPanel : stepPanel) ??
-              (topic.status !== 'LOCKED' && getTopicStepBlockedReason(topic, activeStep) ? (
-                <EmptyState
-                  description={getTopicStepBlockedReason(topic, activeStep)}
-                  icon={<LockKeyhole aria-hidden="true" className="size-5" />}
-                  title="Bước này đang bị khoá"
+            <header className="relative mt-2 overflow-hidden rounded-lg border border-brand-100 bg-surface p-4 shadow-sm sm:p-5">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-0 h-32 w-32 overflow-hidden opacity-20"
+              >
+                <img
+                  alt=""
+                  className="h-80 w-full object-cover object-right-top"
+                  height="1040"
+                  src={landscape}
+                  width="2048"
                 />
-              ) : null)}
-          </section>
-        </div>
-      ) : null}
-    </PageState>
+              </div>
+              <div className="relative">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <h1 className="min-w-0 break-words border-l-4 border-brand-600 pl-4 text-h1-sm text-ink sm:text-h1">
+                    <TopicTitle name={topic.name} />
+                  </h1>
+                  <LevelBadge exact level={topic.hskLevel} />
+                </div>
+                <p className="mt-4 text-body-sm text-ink-secondary">
+                  Đã học {topic.learnedWords}/{topic.totalWords} từ
+                </p>
+                <Progress className="mt-2" label={`${topic.percent}%`} value={topic.percent} />
+                {topic.status === 'LOCKED' ? <TopicLockNotice lockedBy={topic.lockedBy} /> : null}
+              </div>
+            </header>
+
+            {topic.status !== 'LOCKED' ? (
+              <nav aria-label="Các bước học chủ đề" className="mt-4">
+                <ol className="flex flex-wrap gap-3">
+                  {STEPS.map((step, index) => {
+                    const blockedReason =
+                      step === 'study' && canResumeStudy
+                        ? undefined
+                        : getTopicStepBlockedReason(topic, step)
+                    const active = step === activeStep
+                    const classes = cn(
+                      'flex h-full min-h-touch items-start gap-2 rounded-md border p-3 text-label no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2',
+                      active
+                        ? 'border-brand-600 bg-brand-100/70 text-brand-800 shadow-sm'
+                        : 'border-brand-100 bg-surface text-ink-secondary',
+                      blockedReason && 'cursor-not-allowed text-ink-secondary',
+                    )
+                    const content = (
+                      <>
+                        <span
+                          className={cn(
+                            'flex size-6 shrink-0 items-center justify-center rounded-pill text-caption',
+                            active ? 'bg-brand-600 text-surface' : 'bg-canvas text-ink-secondary',
+                          )}
+                        >
+                          {index + 1}.
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block">{STEP_LABELS[step]}</span>
+                          {blockedReason ? (
+                            <span className="mt-1 block text-caption font-normal">
+                              {blockedReason}
+                            </span>
+                          ) : null}
+                        </span>
+                        {blockedReason ? (
+                          <LockKeyhole aria-hidden="true" className="size-4 shrink-0" />
+                        ) : null}
+                      </>
+                    )
+
+                    return (
+                      <li className="min-w-0 basis-36 grow" key={step}>
+                        {blockedReason ? (
+                          <span
+                            aria-current={active ? 'step' : undefined}
+                            aria-disabled="true"
+                            className={classes}
+                            title={blockedReason}
+                          >
+                            {content}
+                          </span>
+                        ) : (
+                          <Link
+                            aria-current={active ? 'step' : undefined}
+                            className={classes}
+                            to={topicStepPath(topic.id, step)}
+                          >
+                            {content}
+                          </Link>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ol>
+              </nav>
+            ) : null}
+
+            <section
+              aria-labelledby="topic-step-title"
+              className="mx-auto mt-6 min-w-0 max-w-reading"
+            >
+              <h2 className="mb-4 text-h2 text-ink" id="topic-step-title">
+                {STEP_LABELS[activeStep]}
+              </h2>
+              {(activeStep === 'study' ? studyPanel : stepPanel) ??
+                (topic.status !== 'LOCKED' && getTopicStepBlockedReason(topic, activeStep) ? (
+                  <EmptyState
+                    description={getTopicStepBlockedReason(topic, activeStep)}
+                    icon={<LockKeyhole aria-hidden="true" className="size-5" />}
+                    title="Bước này đang bị khoá"
+                  />
+                ) : null)}
+            </section>
+          </div>
+        ) : null}
+      </PageState>
+    </div>
   )
 }

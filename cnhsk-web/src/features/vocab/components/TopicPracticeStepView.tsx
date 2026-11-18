@@ -73,7 +73,7 @@ export function TopicPracticeStepView({
 }: TopicPracticeStepViewProps) {
   if (state === 'loading' || state === 'finishing') {
     return (
-      <div aria-label="Đang tải lượt luyện" className="space-y-4">
+      <div aria-label="Đang tải lượt luyện" className="mx-auto min-w-0 max-w-reading space-y-4">
         {state === 'finishing' ? <p role="status">Đang hoàn tất lượt luyện</p> : null}
         <Skeleton variant="card" />
         <Skeleton variant="card" />
@@ -170,9 +170,9 @@ export function TopicPracticeStepView({
   if (state === 'ready' && item && onAnswer) {
     const audioUrl = typeof item.prompt.audioUrl === 'string' ? item.prompt.audioUrl : undefined
     return (
-      <div className="space-y-5">
+      <div className="mx-auto min-w-0 max-w-reading space-y-5 pr-10">
         <SessionProgress current={current} total={total} />
-        <Card className="space-y-5">
+        <Card className="min-w-0 space-y-6 rounded-lg border-brand-100 border-t-4 border-t-brand-600 p-5 shadow-md sm:p-6">
           {mode === 'LISTENING' && audioUrl && onAudioFailed ? (
             <AudioButton
               audioUrl={audioUrl}
@@ -196,15 +196,17 @@ export function TopicPracticeStepView({
               Câu này không tính điểm.
             </p>
           ) : null}
-          <div className="flex flex-wrap justify-end gap-3">
+          <div className="flex flex-wrap justify-end gap-3 border-t border-line pt-5">
             {!result ? (
               <Button disabled={pending} onClick={onSkip} variant="ghost">
                 Bỏ qua
               </Button>
             ) : (
               <Button disabled={pending} onClick={onNext}>
-                Câu tiếp
-                <ArrowRight aria-hidden="true" className="size-5" />
+                <span className="flex items-center gap-2">
+                  Câu tiếp
+                  <ArrowRight aria-hidden="true" className="size-5" />
+                </span>
               </Button>
             )}
           </div>
