@@ -1,0 +1,11 @@
+.exam-admin-table table th {
+  @apply border-brand-100 bg-brand-50 text-brand-700;
+}
+
+.exam-admin-table table tr {
+  @apply border-brand-100;
+}
+
+.exam-admin-table > div {
+  @apply rounded-none border-0;
+}
