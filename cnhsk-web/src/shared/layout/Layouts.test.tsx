@@ -273,7 +273,7 @@ describe('LearnerLayout', () => {
     await event.click(moreButton)
 
     const closeButton = screen.getByRole('button', { name: 'Đóng menu bổ sung' })
-    expect(closeButton).toHaveClass('min-h-touch', 'min-w-11')
+    expect(closeButton).toHaveClass('min-h-touch', 'min-w-touch')
     expect(closeButton).not.toHaveClass('size-touch')
 
     await event.click(closeButton)

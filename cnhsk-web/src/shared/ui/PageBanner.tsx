@@ -19,7 +19,7 @@ function LandscapeBannerArt() {
   return (
     <svg
       aria-hidden="true"
-      className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-3/5 text-brand-600 sm:block"
+      className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-3/5 text-brand-600 lg:block"
       fill="none"
       preserveAspectRatio="xMaxYMid slice"
       viewBox="0 0 680 132"

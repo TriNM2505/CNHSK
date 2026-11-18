@@ -25,4 +25,23 @@ describe('PageBanner', () => {
 
     expect(container.firstElementChild).toHaveClass('isolate')
   })
+
+  it('hides decorative SVG below lg so 200% zoom viewports keep text clear, while rendering actions', () => {
+    const { container } = render(
+      <PageBanner
+        actions={<button type="button">Thao tác</button>}
+        subtitle="Mô tả ngắn gọn."
+        title="Tiêu đề"
+      />,
+    )
+
+    const svg = container.querySelector('svg')
+    expect(svg).not.toBeNull()
+    expect(svg).toHaveClass('hidden', 'lg:block')
+    expect(svg).not.toHaveClass('sm:block')
+    expect(container.firstElementChild).toHaveClass('isolate')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Tiêu đề')
+    expect(screen.getByText('Mô tả ngắn gọn.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Thao tác' })).toBeInTheDocument()
+  })
 })
