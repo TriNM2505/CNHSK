@@ -45,10 +45,15 @@ export function SettingsView({
     <main className="mx-auto w-full min-w-0 max-w-content space-y-6 p-4 sm:p-6">
       <PageBanner
         title="Cài đặt hệ thống"
-        subtitle="Điều chỉnh các tham số nghiệp vụ trong phạm vi được phép. Mọi thay đổi đều cần lý do và được lưu lịch sử."
+        subtitle={
+          <span className="block max-w-md">
+            Điều chỉnh các tham số nghiệp vụ trong phạm vi được phép. Mọi thay đổi đều cần lý do và
+            được lưu lịch sử.
+          </span>
+        }
       />
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line bg-surface p-4 sm:px-5">
-        <p className="max-w-3xl text-body-sm text-ink-secondary">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-line bg-surface p-4 sm:px-5">
+        <p className="max-w-xl text-body-sm text-ink-secondary">
           Thay đổi có hiệu lực trên máy chủ vừa lưu; các máy chủ khác cập nhật trong tối đa 30 giây.
           Đổi hạn mức không đặt lại số lượt hoặc token đã dùng.
         </p>
@@ -110,16 +115,16 @@ export function SettingsView({
                       <p className="text-body-sm text-ink-secondary">
                         Số nguyên · Từ {formatNumber(item.min)} đến {formatNumber(item.max)}
                       </p>
-                      <dl className="mt-3 flex flex-wrap gap-x-6 gap-y-2 rounded-sm border border-line bg-canvas px-4 py-3">
+                      <dl className="mt-3 flex w-full flex-wrap gap-x-8 gap-y-2 rounded-sm border border-line bg-canvas px-4 py-3 sm:w-fit sm:min-w-64">
                         <div>
                           <dt className="text-caption font-semibold text-ink-muted">Hiện tại</dt>
-                          <dd className="text-h3 tabular-nums text-ink">
+                          <dd className="mt-0.5 text-h3 tabular-nums text-ink">
                             {formatNumber(item.currentValue)}
                           </dd>
                         </div>
                         <div>
                           <dt className="text-caption font-semibold text-ink-muted">Mặc định</dt>
-                          <dd className="font-semibold tabular-nums text-ink-secondary">
+                          <dd className="mt-0.5 text-body font-semibold tabular-nums text-ink-secondary">
                             {formatNumber(item.defaultValue)}
                           </dd>
                         </div>
