@@ -8,10 +8,11 @@ import {
   ErrorState,
   FormField,
   Input,
-  PageHeader,
+  PageBanner,
   Pagination,
   Select,
   Skeleton,
+  StatTile,
   StatusBadge,
 } from '@/shared/ui'
 
@@ -150,14 +151,15 @@ export function UserListView({
 
   return (
     <main className="mx-auto w-full max-w-content p-4 sm:p-6">
-      <PageHeader
+      <PageBanner
+        className="mb-6"
         subtitle="Tìm kiếm và xem thông tin tóm tắt của các tài khoản trong hệ thống."
         title="Quản lý tài khoản"
       />
 
       <section
         aria-label="Bộ lọc tài khoản"
-        className="mb-6 rounded-md border border-line bg-surface p-4"
+        className="mb-6 rounded-md border border-line bg-surface p-4 sm:p-5"
       >
         <div className="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-3">
           <FormField
@@ -231,28 +233,42 @@ export function UserListView({
         ) : null}
 
         {state === 'ready' && data ? (
-          <section aria-label="Danh sách tài khoản">
-            <p className="mb-3 text-body-sm text-ink-secondary">
-              Có {data.totalElements} tài khoản
-            </p>
-            <DataTable
-              caption="Danh sách tài khoản"
-              columns={columns}
-              getRowLabel={(user) => `Mở tài khoản ${user.displayName}`}
-              onRowClick={(user) => onOpenUser(user.id)}
-              rowKey={(user) => user.id}
-              rows={data.items}
-            />
-            <div className="mt-6">
-              <Pagination
-                label="Phân trang danh sách tài khoản"
-                onChange={onPageChange}
-                page={data.page + 1}
-                size={data.size || ADMIN_USER_PAGE_SIZE}
-                total={data.totalElements}
+          <div className="space-y-6">
+            <section aria-label="Thống kê kết quả" className="grid gap-4 sm:grid-cols-3">
+              <StatTile
+                label="Tổng tài khoản khớp"
+                value={`Có ${data.totalElements} tài khoản`}
               />
-            </div>
-          </section>
+              <StatTile label="Đang hiển thị trên trang" value={`${data.items.length} dòng`} />
+              <StatTile
+                label="Kích thước trang"
+                value={`${data.size || ADMIN_USER_PAGE_SIZE} mục`}
+              />
+            </section>
+
+            <section
+              aria-label="Danh sách tài khoản"
+              className="rounded-md border border-line bg-surface p-4 sm:p-5"
+            >
+              <DataTable
+                caption="Danh sách tài khoản"
+                columns={columns}
+                getRowLabel={(user) => `Mở tài khoản ${user.displayName}`}
+                onRowClick={(user) => onOpenUser(user.id)}
+                rowKey={(user) => user.id}
+                rows={data.items}
+              />
+              <div className="mt-5">
+                <Pagination
+                  label="Phân trang danh sách tài khoản"
+                  onChange={onPageChange}
+                  page={data.page + 1}
+                  size={data.size || ADMIN_USER_PAGE_SIZE}
+                  total={data.totalElements}
+                />
+              </div>
+            </section>
+          </div>
         ) : null}
       </div>
     </main>
