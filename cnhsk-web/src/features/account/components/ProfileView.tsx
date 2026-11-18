@@ -9,6 +9,7 @@ import {
   type HskLevel,
   Input,
   LevelBadge,
+  PageBanner,
   Select,
   Skeleton,
   StatusBadge,
@@ -16,7 +17,6 @@ import {
 } from '@/shared/ui'
 
 import type { ProfileFieldErrors, ProfileFormValues } from '../accountForms'
-import { AccountPageBanner } from './AccountPageBanner'
 import { FormNotice, type FormNoticeValue } from './FormNotice'
 
 export type ProfileViewState = 'loading' | 'error' | 'ready' | 'saving'
@@ -95,7 +95,7 @@ export function ProfileView({
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-4xl space-y-6 pb-16">
-      <AccountPageBanner
+      <PageBanner
         subtitle="Cập nhật tên hiển thị, ảnh đại diện và cấp HSK mục tiêu."
         title="Thông tin cá nhân"
       />
