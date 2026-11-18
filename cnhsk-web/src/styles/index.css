@@ -9,6 +9,16 @@
     box-sizing: border-box;
   }
 
+  html {
+    scroll-padding-top: 4rem;
+  }
+
+  @media (max-width: 639px) {
+    html {
+      scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
   html,
   body {
     margin: 0;

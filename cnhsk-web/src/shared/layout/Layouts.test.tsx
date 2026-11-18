@@ -255,6 +255,31 @@ describe('LearnerLayout', () => {
 
     expect(signOut).toHaveBeenCalledOnce()
   })
+
+  it('keeps the desktop sidebar bounded and scrollable for zoom and uses min-h-touch min-w-touch on the More close button', async () => {
+    const event = userEvent.setup()
+    renderLayout(<LearnerLayout>Nội dung học tập</LearnerLayout>)
+
+    const learningNav = screen.getByRole('navigation', { name: 'Học tập' })
+    const stickySidebarContainer = learningNav.parentElement
+    expect(stickySidebarContainer).toHaveClass(
+      'sticky',
+      'top-16',
+      'max-h-[calc(100dvh-4rem)]',
+      'overflow-y-auto',
+    )
+
+    const moreButton = screen.getByRole('button', { name: 'Thêm' })
+    await event.click(moreButton)
+
+    const closeButton = screen.getByRole('button', { name: 'Đóng menu bổ sung' })
+    expect(closeButton).toHaveClass('min-h-touch', 'min-w-11')
+    expect(closeButton).not.toHaveClass('size-touch')
+
+    await event.click(closeButton)
+    expect(screen.queryByRole('navigation', { name: 'Điều hướng bổ sung' })).not.toBeInTheDocument()
+    expect(moreButton).toHaveFocus()
+  })
 })
 
 describe('AdminLayout', () => {
@@ -270,6 +295,20 @@ describe('AdminLayout', () => {
       expect(link).toHaveAttribute('href', '/admin/settings')
       expect(link).toHaveAttribute('aria-current', 'page')
     }
+  })
+
+  it('keeps the AdminLayout desktop sidebar bounded and scrollable for zoom', () => {
+    renderLayout(<AdminLayout>Cài đặt</AdminLayout>, {
+      initialPath: '/admin/settings',
+      user: { ...learner, roles: ['ADMIN'] },
+    })
+    const adminNav = screen.getByRole('navigation', { name: 'Quản trị' })
+    expect(adminNav).toHaveClass(
+      'sticky',
+      'top-16',
+      'max-h-[calc(100dvh-4rem)]',
+      'overflow-y-auto',
+    )
   })
   it.each(['CONTENT_EDITOR', 'LEARNER', 'TEACHER', 'MODERATOR', 'ACCOUNTANT'] as const)(
     'hides settings from %s',

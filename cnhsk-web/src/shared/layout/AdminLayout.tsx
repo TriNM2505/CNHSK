@@ -23,7 +23,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   const sidebar = (
     <aside className="hidden shrink-0 border-r border-line bg-surface sm:block sm:w-16 lg:w-60">
-      <nav aria-label="Quản trị" className="sticky top-16 space-y-1 p-2 lg:p-3">
+      <nav
+        aria-label="Quản trị"
+        className="sticky top-16 max-h-[calc(100dvh-4rem)] space-y-1 overflow-y-auto p-2 lg:p-3"
+      >
         {items.map((item) => {
           const Icon = item.icon
           return (
