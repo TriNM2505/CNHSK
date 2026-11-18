@@ -13,11 +13,10 @@ import {
 
 import type { AnswerResult, ServedItemView } from '@/features/practice'
 import { AudioButton, ChoiceQuestion, SessionProgress } from '@/features/practice'
-import { Button, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
+import { PageBanner, Button, Card, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
 
 import { formatPercentage } from '../formatters'
 import type { PronunciationFinishExtra, PronunciationStageSummary } from '../types'
-import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 type LoadError = { message: string; requestId?: string }
 
@@ -218,7 +217,7 @@ export function PronunciationPracticeView({
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
-      <InkLandscapeBanner
+      <PageBanner
         subtitle={stage.description ?? 'Nghe âm và chọn đáp án phù hợp.'}
         title={`Tầng ${stage.stageIndex}: ${stage.name}`}
       />
@@ -333,7 +332,7 @@ export function PronunciationPracticeView({
               </div>
               <Button size="sm" to="/learn/pronunciation" variant="outline">
                 <ArrowLeft aria-hidden="true" className="mr-1 inline-block size-4 align-middle" />
-                Lộ trình tầng
+                Về danh sách tầng
               </Button>
             </div>
             <SessionProgress current={answered} total={total} />

@@ -1,6 +1,7 @@
 import { ArrowRight, CheckCircle2, Headphones, LockKeyhole, Sparkles } from 'lucide-react'
 
 import {
+  PageBanner,
   Button,
   Card,
   EmptyState,
@@ -12,7 +13,6 @@ import {
 
 import { formatPercentage } from '../formatters'
 import type { PronunciationStageSummary } from '../types'
-import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 type LoadError = { message: string; requestId?: string }
 
@@ -147,7 +147,7 @@ export function PronunciationStageListView({
 
   return (
     <div className="mx-auto w-full min-w-0 max-w-content space-y-6 pb-16">
-      <InkLandscapeBanner
+      <PageBanner
         subtitle="Luyện nghe và phân biệt âm theo tám tầng, từ thanh mẫu đến biến điệu."
         title="Luyện phát âm"
       />
