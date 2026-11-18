@@ -1,5 +1,6 @@
 import { createElement, useEffect, useState } from 'react'
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
+import { Button } from '@/shared/ui'
 import { ContestListView } from './components/ContestListView'
 import { ContestDetailView } from './components/ContestDetailView'
 import { ContestAttemptView } from './components/ContestAttemptView'
@@ -47,19 +48,19 @@ function DetailPreview({ state }: { state: PreviewState }) {
         'aria-label': 'Vai trò xem trước',
       },
       ...(['learner', 'guest', 'unverified'] as const).map((role) =>
-        createElement(
-          'button',
-          {
-            key: role,
-            onClick: () => setEligibility(role),
-            className: 'min-h-touch rounded-sm border border-line px-3',
-          },
-          role === 'learner' ? 'Người học' : role === 'guest' ? 'Khách' : 'Chưa xác thực email',
-        ),
+        createElement(Button, {
+          key: role,
+          variant: eligibility === role ? 'secondary' : 'outline',
+          'aria-pressed': eligibility === role,
+          onClick: () => setEligibility(role),
+          className: 'min-h-touch rounded-sm border border-line px-3',
+          children:
+            role === 'learner' ? 'Người học' : role === 'guest' ? 'Khách' : 'Chưa xác thực email',
+        }),
       ),
     ),
     createElement(ContestDetailView, {
-      state: state === 'empty' ? 'error' : state,
+      state,
       contest: state === 'empty' ? undefined : contestFixture,
       eligibility,
       now: Date.parse('2026-11-14T12:08:00Z'),
@@ -121,6 +122,7 @@ export const previews = [
   {
     group: 'screen',
     id: 'contests-list',
+    fullFrame: true,
     scr: 'SCR-048',
     title: 'Danh sách cuộc thi',
     states: ['loading', 'empty', 'error', 'ready'],
@@ -129,6 +131,7 @@ export const previews = [
   {
     group: 'screen',
     id: 'contests-detail',
+    fullFrame: true,
     scr: 'SCR-049',
     title: 'Chi tiết cuộc thi',
     states: ['loading', 'empty', 'error', 'ready'],
@@ -137,6 +140,7 @@ export const previews = [
   {
     group: 'screen',
     id: 'contests-attempt',
+    fullFrame: true,
     scr: 'SCR-050',
     title: 'Làm bài cuộc thi',
     states: ['loading', 'empty', 'error', 'ready'],
@@ -145,6 +149,7 @@ export const previews = [
   {
     group: 'screen',
     id: 'contests-results',
+    fullFrame: true,
     scr: 'SCR-051',
     title: 'Kết quả cuộc thi',
     states: ['loading', 'empty', 'error', 'ready'],
@@ -153,6 +158,7 @@ export const previews = [
   {
     group: 'screen',
     id: 'contests-results-unpublished',
+    fullFrame: true,
     scr: 'SCR-051',
     title: 'Cuộc thi — chờ công bố',
     states: ['ready'],

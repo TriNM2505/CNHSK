@@ -177,4 +177,23 @@ describe('Scr076UserListPage', () => {
     expect(await screen.findByText('Chưa có tài khoản nào')).toBeVisible()
     expect(getAdminUsersMock).toHaveBeenCalledTimes(2)
   })
+
+  it('hiển thị PageBanner dùng chung và 3 StatTile thống kê đúng theo contract', async () => {
+    getAdminUsersMock.mockResolvedValue(readyPage)
+    renderPage()
+
+    const heading = await screen.findByRole('heading', { name: 'Quản lý tài khoản' })
+    expect(heading.closest('.isolate')).not.toBeNull()
+    expect(
+      screen.getByText('Tìm kiếm và xem thông tin tóm tắt của các tài khoản trong hệ thống.'),
+    ).toBeVisible()
+
+    const statsSection = screen.getByRole('region', { name: 'Thống kê kết quả' })
+    expect(statsSection).toHaveTextContent('Tổng tài khoản khớp')
+    expect(statsSection).toHaveTextContent('Có 21 tài khoản')
+    expect(statsSection).toHaveTextContent('Đang hiển thị trên trang')
+    expect(statsSection).toHaveTextContent('1 dòng')
+    expect(statsSection).toHaveTextContent('Kích thước trang')
+    expect(statsSection).toHaveTextContent('20 mục')
+  })
 })

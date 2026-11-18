@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { ApiError, useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
+import { Button } from '@/shared/ui/Button'
 
 import { createPost, getMyPost, updatePost } from '../api/posts'
 import { PostEditorView } from '../components/PostEditorView'
@@ -85,7 +86,7 @@ function InvalidPostId() {
 function EditPostEditor({ id, userId }: { id: number; userId: number }) {
   const query = useApiQuery((signal) => getMyPost(id, signal), [id])
 
-  if (query.state === 'error') return <main className="mx-auto max-w-reading p-6"><p role="alert">{query.error?.message ?? 'Không thể tải bài viết.'}</p><button className="mt-3 underline" onClick={query.reload} type="button">Thử lại</button><Link className="ml-4 underline" to="/community?tab=mine">Về Bài viết của tôi</Link></main>
+  if (query.state === 'error') return <main className="mx-auto max-w-reading p-6"><p role="alert">{query.error?.message ?? 'Không thể tải bài viết.'}</p><Button className="mt-3" onClick={query.reload} type="button" variant="outline">Thử lại</Button><Link className="ml-4 underline" to="/community?tab=mine">Về Bài viết của tôi</Link></main>
   if (query.state !== 'ready' || !query.data) return <main aria-label="Đang tải bài viết" className="mx-auto max-w-reading p-6" role="status">Đang tải bài viết…</main>
 
   return <PostEditor id={id} post={query.data} userId={userId} />
@@ -95,7 +96,7 @@ export default function Scr041CommunityPostEditorPage() {
   const { id: rawId } = useParams()
   const auth = useCurrentUser()
   if (auth.status === 'loading') return <main className="mx-auto max-w-reading p-6" role="status">Đang kiểm tra phiên đăng nhập…</main>
-  if (auth.status === 'error') return <main className="mx-auto max-w-reading p-6"><p role="alert">{auth.error?.message ?? 'Không thể kiểm tra phiên đăng nhập.'}</p><button onClick={() => void auth.reloadCurrentUser()} type="button">Thử lại</button></main>
+  if (auth.status === 'error') return <main className="mx-auto max-w-reading p-6"><p role="alert">{auth.error?.message ?? 'Không thể kiểm tra phiên đăng nhập.'}</p><Button onClick={() => void auth.reloadCurrentUser()} type="button" variant="outline">Thử lại</Button></main>
   if (auth.status !== 'authenticated' || !auth.user?.roles.includes('LEARNER')) return null
   const session = `${auth.user.id}:${[...auth.user.roles].sort().join(',')}`
   if (rawId === undefined) return <PostEditor key={`${session}:new`} userId={auth.user.id} />
