@@ -14,6 +14,7 @@ import { codePointLength } from '@/features/grading/essayRules'
 import { displayTime } from '@/features/grading/types'
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
+  PageBanner,
   Button,
   Card,
   ConfirmPanel,
@@ -30,7 +31,6 @@ import {
 import { criterionLabels, resultErrors, totalScore } from '../gradingRules'
 import type { Criteria, ResultDraft, TeacherGradingDetail } from '../types'
 import { deadlineLabel } from '../useGradingDeadline'
-import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 type Props = {
   state: ApiQueryState
@@ -61,7 +61,7 @@ export function TeacherGradingWorkspaceView(props: Props) {
 
   return (
     <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
-      <InkLandscapeBanner
+      <PageBanner
         subtitle="Đọc bài viết, chấm theo bốn tiêu chí và gửi nhận xét chi tiết."
         title="Chấm bài viết"
       />

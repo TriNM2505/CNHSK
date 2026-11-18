@@ -12,6 +12,7 @@ import {
 import { displayTime } from '@/features/grading/types'
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
+  PageBanner,
   Button,
   Card,
   EmptyState,
@@ -22,7 +23,6 @@ import {
   type HskLevel,
 } from '@/shared/ui'
 import type { AssignedItem, QueuePage } from '../types'
-import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 type Props = {
   state: ApiQueryState
@@ -51,7 +51,7 @@ export function TeacherGradingQueueView(props: Props) {
 
   return (
     <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
-      <InkLandscapeBanner
+      <PageBanner
         subtitle="Nhận bài viết và theo dõi các bài bạn đang chấm."
         title="Hàng đợi chấm bài"
       />
