@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { ApiQueryState } from '@/shared/api'
 import { useApiMutation } from '@/shared/api'
-import { Button, Card, DataTable, FormField, Textarea } from '@/shared/ui'
+import { Button, Card, DataTable, FormField, Skeleton, StatusBadge, Textarea } from '@/shared/ui'
 import { duration, errorMessage, isConflict, vietnamTime } from '../contestActions'
 import type { Participant, ParticipantDecision } from '../types'
 
@@ -64,8 +64,8 @@ export function ContestParticipantsPanel({
       })
   }
   return (
-    <Card className="min-w-0 space-y-4">
-      <h2 className="text-h3">Thí sinh</h2>
+    <Card className="min-w-0 space-y-6 p-6">
+      <h2 className="text-h2">Thí sinh</h2>
       <p className="text-body-sm text-ink-secondary">
         Chuyển tab chỉ là thông tin để xét. Cờ đáng ngờ loại lượt khỏi bảng xếp hạng cho tới khi ban
         tổ chức chọn Giữ.
@@ -73,7 +73,12 @@ export function ContestParticipantsPanel({
       {published && <p role="status">Kết quả đã công bố, không thể thay đổi quyết định.</p>}
       {notice && <p role="status">{notice}</p>}
       {mutation.error && <p role="alert">{errorMessage(mutation.error)}</p>}
-      {state === 'loading' && <p role="status">Đang tải thí sinh…</p>}
+      {state === 'loading' && (
+        <div>
+          <p role="status">Đang tải thí sinh…</p>
+          <Skeleton variant="table" />
+        </div>
+      )}
       {state === 'error' && (
         <div role="alert">
           <p>{error}</p>
@@ -95,7 +100,9 @@ export function ContestParticipantsPanel({
               render: (row) => (
                 <div className="break-words">
                   <p>{row.displayName ?? `Người dùng #${row.userId}`}</p>
-                  <p>{attemptStatusLabels[row.status] ?? 'Trạng thái lượt chưa được hỗ trợ'}</p>
+                  <StatusBadge tone={row.status === 'SUBMITTED' ? 'success' : 'neutral'}>
+                    {attemptStatusLabels[row.status] ?? 'Trạng thái lượt chưa được hỗ trợ'}
+                  </StatusBadge>
                 </div>
               ),
             },
@@ -119,7 +126,12 @@ export function ContestParticipantsPanel({
               header: 'Ghi nhận',
               render: (row) => (
                 <div>
-                  <p>{row.suspicious ? 'Đáng ngờ / đang bị loại' : 'Không bị loại'}</p>
+                  <StatusBadge
+                    className="max-w-full whitespace-normal"
+                    tone={row.suspicious ? 'warning' : 'neutral'}
+                  >
+                    {row.suspicious ? 'Đáng ngờ / đang bị loại' : 'Không bị loại'}
+                  </StatusBadge>
                   <p>Chuyển tab: {row.cheatEventCount} lần</p>
                 </div>
               ),
@@ -164,7 +176,7 @@ export function ContestParticipantsPanel({
       {decision && !published && (
         <form
           aria-label="Xác nhận xét thí sinh"
-          className="space-y-3 rounded-md border border-line p-4"
+          className="space-y-4 rounded-md border border-warning bg-warning-bg p-6"
           onSubmit={(e) => {
             e.preventDefault()
             confirm()
