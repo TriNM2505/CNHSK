@@ -12,10 +12,10 @@ export function TopicLockNotice({
 }) {
   return (
     <div
-      className="mt-4 min-w-0 space-y-2 rounded-sm border border-line bg-canvas p-3 text-body-sm"
+      className="mt-4 min-w-0 space-y-2 rounded-md border border-brand-100 border-l-4 border-l-brand-600 bg-brand-50 p-3 text-body-sm text-ink-secondary"
       role="status"
     >
-      <p className="flex items-center gap-2 font-semibold">
+      <p className="flex items-center gap-2 font-semibold text-brand-700">
         <LockKeyhole aria-hidden="true" className="size-4 shrink-0" />
         Đang khoá
       </p>
@@ -24,7 +24,10 @@ export function TopicLockNotice({
         {lockedBy.map((topic, index) => (
           <span key={topic.id}>
             {index > 0 ? ', ' : ''}
-            <Link className="text-brand-700 underline" to={`/learn/topics/${topic.id}`}>
+            <Link
+              className="rounded-sm text-brand-700 underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              to={`/learn/topics/${topic.id}`}
+            >
               {topic.name}
             </Link>
           </span>
