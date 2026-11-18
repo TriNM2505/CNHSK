@@ -67,7 +67,7 @@ export function LearnerLayout({
 
   const sidebar = (
     <aside className="hidden shrink-0 border-r border-line bg-surface sm:block sm:w-16 lg:w-60">
-      <div className="sticky top-16">
+      <div className="sticky top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto">
         <nav aria-label="Học tập" className="space-y-1 p-2 lg:p-3">
           {learnerNavigation.map((item) => {
             const Icon = item.icon
@@ -129,7 +129,7 @@ export function LearnerLayout({
             <h2 className="text-h3 text-ink">Thêm</h2>
             <button
               aria-label="Đóng menu bổ sung"
-              className="flex size-touch items-center justify-center rounded-sm text-ink focus-visible:ring-2 focus-visible:ring-focus"
+              className="flex min-h-touch min-w-11 items-center justify-center rounded-sm text-ink focus-visible:ring-2 focus-visible:ring-focus"
               onClick={() => {
                 setMoreOpen(false)
                 moreButton.current?.focus()
