@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { answerItem, findActiveSession, finishSession, getSession } from '@/features/practice/api'
+import { abandonSession, answerItem, findActiveSession, finishSession, getSession } from '@/features/practice/api'
 import type { FinishResult, SessionView } from '@/features/practice'
 import { ApiError } from '@/shared/api'
 
@@ -232,6 +232,28 @@ describe('SCR-016 Pronunciation Practice', () => {
     expect(findActiveSessionMock).toHaveBeenCalledWith('PRON_STAGE', 701, expect.any(AbortSignal))
     expect(startSessionMock).not.toHaveBeenCalled()
     expect(screen.getByText('Câu 1/2')).toBeVisible()
+  })
+
+  it('về danh sách tầng từ phiên đang luyện mà không ghi thêm dữ liệu', async () => {
+    const user = userEvent.setup()
+    const activeSession = session({ answered: [{ answer: 'A', correct: true, no: 1 }] })
+    findActiveSessionMock.mockResolvedValue(activeSession)
+    getSessionMock.mockResolvedValue(activeSession)
+    const abandonSessionMock = vi.mocked(abandonSession)
+    abandonSessionMock.mockClear()
+    renderPage()
+
+    expect(await screen.findByText('Nghe câu 2')).toBeVisible()
+    const backLink = screen.getByRole('link', { name: 'Về danh sách tầng' })
+    expect(backLink).toHaveAttribute('href', '/learn/pronunciation')
+    await user.click(backLink)
+
+    expect(await screen.findByText('Thanh mẫu môi')).toBeVisible()
+    expect(screen.queryByText('Nghe câu 2')).not.toBeInTheDocument()
+    expect(startSessionMock).not.toHaveBeenCalled()
+    expect(answerItemMock).not.toHaveBeenCalled()
+    expect(finishSessionMock).not.toHaveBeenCalled()
+    expect(abandonSessionMock).not.toHaveBeenCalled()
   })
 
   it('FR018_không có nút Bỏ qua và giới hạn nghe tối đa ba lần', async () => {
