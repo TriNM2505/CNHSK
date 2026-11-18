@@ -1,11 +1,13 @@
 import type { ReactNode } from 'react'
+import { BookOpen, ExternalLink } from 'lucide-react'
+
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
+  PageBanner,
   Button,
   Card,
   EmptyState,
   ErrorState,
-  PageHeader,
   Section,
   Skeleton,
   StatusBadge,
@@ -33,21 +35,11 @@ export function BookDetailView({
   onRetry,
 }: BookDetailViewProps) {
   return (
-    <main className="mx-auto w-full min-w-0 max-w-reading break-words px-4 py-6 text-ink">
-      <PageHeader
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 break-words px-4 py-6 pb-16 text-ink sm:px-6 lg:px-8">
+      <PageBanner
+        className="mb-0"
         title="Chi tiết sách tham khảo"
-        actions={
-          state === 'ready' && book ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <Button href={book.url} target="_blank" rel="noopener noreferrer">
-                Mua / tham khảo
-              </Button>
-              {book.isAffiliate ? (
-                <StatusBadge tone="info">Link tiếp thị liên kết</StatusBadge>
-              ) : null}
-            </div>
-          ) : undefined
-        }
+        subtitle="Thông tin xuất bản, cấp HSK khuyến nghị và liên kết tham khảo."
       />
       {state === 'loading' ? (
         <div role="status">
@@ -74,73 +66,122 @@ export function BookDetailView({
         />
       ) : null}
       {state === 'ready' && book ? (
-        <>
-          <Card className="min-w-0 space-y-4">
-            <div className={book.thumbnailUrl ? 'grid gap-4 sm:grid-cols-2' : undefined}>
-              {book.thumbnailUrl ? (
-                <img
-                  alt=""
-                  src={book.thumbnailUrl}
-                  className="max-h-80 w-full rounded-sm bg-surface-subtle object-contain"
-                />
-              ) : null}
-              <div className="min-w-0 space-y-3">
-                <h2 className="text-h2 text-brand-800">{book.title}</h2>
-                <dl className="grid gap-3 rounded-sm bg-surface-subtle p-4 text-body-sm">
-                  <div>
-                    <dt className="font-semibold">Tác giả</dt>
-                    <dd>{book.author ?? 'Đang cập nhật'}</dd>
+        <div className="grid min-w-0 items-start gap-6 lg:grid-cols-12">
+          <div className="min-w-0 space-y-6 lg:col-span-8">
+            <Card className="min-w-0 space-y-5 border-brand-100 p-6">
+              <div className={book.thumbnailUrl ? 'grid gap-5 sm:grid-cols-2' : undefined}>
+                {book.thumbnailUrl ? (
+                  <img
+                    alt=""
+                    src={book.thumbnailUrl}
+                    className="max-h-80 w-full rounded-sm bg-surface-subtle object-contain"
+                  />
+                ) : null}
+                <div className="min-w-0 space-y-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-11 shrink-0 items-center justify-center rounded-pill bg-brand-50 text-brand-700">
+                        <BookOpen aria-hidden="true" className="size-5" />
+                      </div>
+                      <h2 className="text-h2 text-brand-800">{book.title}</h2>
+                    </div>
+                    <p className="w-fit rounded-pill bg-brand-50 px-3 py-1 text-label text-brand-800">
+                      {book.hskMin === null && book.hskMax === null
+                        ? 'Mọi cấp HSK'
+                        : `Cấp HSK: ${book.hskMin ?? 'không giới hạn'} – ${book.hskMax ?? 'không giới hạn'}`}
+                    </p>
                   </div>
-                  <div>
-                    <dt className="font-semibold">Nhà xuất bản</dt>
-                    <dd>{book.publisher ?? 'Đang cập nhật'}</dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold">Năm xuất bản</dt>
-                    <dd>{book.publishedYear ?? 'Đang cập nhật'}</dd>
-                  </div>
-                </dl>
-                <p className="w-fit rounded-pill bg-brand-50 px-3 py-1 text-label text-brand-800">
-                  {book.hskMin === null && book.hskMax === null
-                    ? 'Mọi cấp HSK'
-                    : `Cấp HSK: ${book.hskMin ?? 'không giới hạn'} – ${book.hskMax ?? 'không giới hạn'}`}
-                </p>
-                <ul aria-label="Tag tài liệu" className="flex flex-wrap gap-2 text-caption">
-                  {book.tags.map((tag, index) => (
-                    <li
-                      key={`${tag}-${index}`}
-                      className="rounded-sm bg-canvas px-2 py-1 text-ink-secondary"
-                    >
-                      {tag}
-                    </li>
-                  ))}
-                </ul>
+
+                  <dl className="grid gap-3 rounded-md border border-brand-100 bg-brand-50 p-4 text-body-sm sm:grid-cols-3">
+                    <div>
+                      <dt className="font-semibold text-ink-secondary">Tác giả</dt>
+                      <dd className="mt-1 font-medium text-ink">{book.author ?? 'Đang cập nhật'}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold text-ink-secondary">Nhà xuất bản</dt>
+                      <dd className="mt-1 font-medium text-ink">
+                        {book.publisher ?? 'Đang cập nhật'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold text-ink-secondary">Năm xuất bản</dt>
+                      <dd className="mt-1 font-medium text-ink">
+                        {book.publishedYear ?? 'Đang cập nhật'}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <ul aria-label="Tag tài liệu" className="flex flex-wrap gap-2 text-caption">
+                    {book.tags.map((tag, index) => (
+                      <li
+                        key={`${tag}-${index}`}
+                        className="rounded-sm bg-canvas px-2.5 py-1 text-ink-secondary"
+                      >
+                        {tag}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
-            {book.description ? (
-              <p className="whitespace-pre-wrap border-t border-line pt-4 text-body">
-                {book.description}
-              </p>
+              {book.description ? (
+                <p className="whitespace-pre-wrap border-t border-line pt-4 text-body">
+                  {book.description}
+                </p>
+              ) : null}
+            </Card>
+
+            {canReport ? (
+              <Section
+                title="Báo lỗi tài liệu"
+                actions={
+                  <Button onClick={onReport} variant="outline">
+                    Báo lỗi
+                  </Button>
+                }
+              >
+                {report}
+              </Section>
             ) : null}
-          </Card>
-          {canReport ? (
-            <Section
-              className="mt-6"
-              title="Báo lỗi tài liệu"
-              actions={
-                <Button onClick={onReport} variant="outline">
-                  Báo lỗi
+          </div>
+
+          <div className="min-w-0 space-y-5 lg:col-span-4">
+            <Card className="min-w-0 space-y-4 border-brand-100 bg-brand-50 p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-pill bg-brand-100 text-brand-700">
+                  <ExternalLink aria-hidden="true" className="size-5" />
+                </div>
+                <div>
+                  <h3 className="text-h3 text-ink">Liên kết tham khảo</h3>
+                  <p className="text-caption text-ink-secondary">
+                    Mở trang giới thiệu hoặc phát hành sách ở tab mới
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 border-t border-brand-100 pt-3">
+                <Button href={book.url} target="_blank" rel="noopener noreferrer">
+                  Mua / tham khảo
                 </Button>
-              }
-            >
-              {report}
-            </Section>
-          ) : null}
-        </>
-      ) : null}
-      <Button className="mt-6" to="/references/books" variant="outline">
-        ← Danh mục sách tham khảo
-      </Button>
+                {book.isAffiliate ? (
+                  <StatusBadge tone="info">Link tiếp thị liên kết</StatusBadge>
+                ) : null}
+              </div>
+
+              <div className="border-t border-brand-100 pt-3">
+                <Button to="/references/books" variant="outline">
+                  ← Danh mục sách tham khảo
+                </Button>
+              </div>
+            </Card>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <Button to="/references/books" variant="outline">
+            ← Danh mục sách tham khảo
+          </Button>
+        </div>
+      )}
     </main>
   )
 }
