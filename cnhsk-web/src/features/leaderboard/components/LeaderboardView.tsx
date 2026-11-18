@@ -78,6 +78,30 @@ function PlayerName({ name, avatarUrl }: { name: string; avatarUrl: string | nul
   )
 }
 
+function PeriodSelector({
+  onSelectPeriod,
+  period,
+}: {
+  onSelectPeriod: (period: LeaderboardPeriod) => void
+  period: LeaderboardPeriod
+}) {
+  return (
+    <div aria-label="Kỳ xếp hạng" className="flex flex-wrap gap-2" role="group">
+      {LEADERBOARD_PERIODS.map((option) => (
+        <Button
+          aria-pressed={period === option.value}
+          key={option.value}
+          onClick={() => onSelectPeriod(option.value)}
+          size="sm"
+          variant={period === option.value ? 'primary' : 'outline'}
+        >
+          {option.label}
+        </Button>
+      ))}
+    </div>
+  )
+}
+
 export function LeaderboardView({
   kind,
   title,
@@ -104,6 +128,11 @@ export function LeaderboardView({
   const hasMore = entries.length > 5 && !expanded
   const selectedTopic = topics.find((topic) => String(topic.id) === selectedId)
   const selectedGame = games.find((game) => game.code === selectedId)
+
+  function selectPeriod(nextPeriod: LeaderboardPeriod) {
+    setExpanded(false)
+    onPeriodChange(nextPeriod)
+  }
 
   return (
     <main className="mx-auto w-full min-w-0 max-w-content space-y-6 break-words p-4 [overflow-wrap:anywhere] sm:p-6 xl:max-w-screen-xl">
@@ -149,22 +178,7 @@ export function LeaderboardView({
               </FormField>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
-              <div aria-label="Kỳ xếp hạng" className="flex flex-wrap gap-2" role="group">
-                {LEADERBOARD_PERIODS.map((option) => (
-                  <Button
-                    aria-pressed={period === option.value}
-                    key={option.value}
-                    onClick={() => {
-                      setExpanded(false)
-                      onPeriodChange(option.value)
-                    }}
-                    size="sm"
-                    variant={period === option.value ? 'primary' : 'outline'}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
+              <PeriodSelector onSelectPeriod={selectPeriod} period={period} />
               {data ? (
                 <p className="text-body-sm text-ink-secondary">
                   {formatPeriodRange(data.periodStart, data.periodEnd)}
@@ -196,22 +210,7 @@ export function LeaderboardView({
                   </Select>
                 </FormField>
               </div>
-              <div aria-label="Kỳ xếp hạng" className="flex flex-wrap gap-2" role="group">
-                {LEADERBOARD_PERIODS.map((option) => (
-                  <Button
-                    aria-pressed={period === option.value}
-                    key={option.value}
-                    onClick={() => {
-                      setExpanded(false)
-                      onPeriodChange(option.value)
-                    }}
-                    size="sm"
-                    variant={period === option.value ? 'primary' : 'outline'}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
+              <PeriodSelector onSelectPeriod={selectPeriod} period={period} />
             </div>
             {data ? (
               <p className="border-t border-line pt-3 text-body-sm text-ink-secondary lg:text-right">
@@ -258,7 +257,7 @@ export function LeaderboardView({
       ) : (
         <>
           <section aria-label="Tóm tắt bảng xếp hạng" className="grid gap-3 sm:grid-cols-3">
-            <StatTile label="Số người tham gia" value={entries.length} />
+            <StatTile label="Trong bảng xếp hạng" value={entries.length} />
             <StatTile label="Điểm cao nhất" value={entries[0]?.score ?? 0} />
             <StatTile
               label="Hạng của bạn"
@@ -302,59 +301,63 @@ export function LeaderboardView({
                 </tbody>
               </table>
             </div>
-          <ol aria-label="Bảng xếp hạng" className="space-y-3 min-[641px]:hidden">
-            {shown.map((entry) => (
-              <li key={entry.userId}>
-                <Card
-                  className={myEntry?.userId === entry.userId ? 'border-brand-600 bg-brand-50' : ''}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <RankLabel rank={entry.rank} />
-                    <span className="font-bold tabular-nums">{entry.score} điểm</span>
-                  </div>
-                  <div className="mt-3">
-                    <PlayerName name={entry.displayName} avatarUrl={entry.avatarUrl} />
-                  </div>
-                  <p className="mt-2 text-body-sm text-ink-secondary">
-                    Thời gian: {formatDuration(entry.durationMs)}
-                  </p>
-                  {myEntry?.userId === entry.userId ? (
-                    <p className="mt-2 font-semibold text-brand-700">Của bạn</p>
-                  ) : null}
-                </Card>
-              </li>
-            ))}
-          </ol>
-          {hasMore ? (
-            <Button onClick={() => setExpanded(true)} variant="outline">
-              Xem thêm
-            </Button>
-          ) : null}
-          {expanded && entries.length > 5 ? (
-            <Button onClick={() => setExpanded(false)} variant="outline">
-              Thu gọn
-            </Button>
-          ) : null}
-          {!guest && myEntry && !myEntryVisible ? (
-            <Card aria-label="Hạng của bạn" className="border-brand-600 bg-brand-50">
-              <p className="font-semibold text-brand-800">Hạng của bạn: #{myEntry.rank}</p>
-              <p className="mt-1 text-body-sm">
-                {myEntry.score} điểm · {formatDuration(myEntry.durationMs)}
-              </p>
-            </Card>
-          ) : null}
-          {guest ? (
-            <Card>
-              <p className="text-body text-ink-secondary">Đăng nhập để xem hạng của bạn.</p>
-              <Button className="mt-3" to="/login" variant="outline">
-                Đăng nhập
+            <ol aria-label="Bảng xếp hạng" className="space-y-3 min-[641px]:hidden">
+              {shown.map((entry) => (
+                <li key={entry.userId}>
+                  <Card
+                    className={
+                      myEntry?.userId === entry.userId ? 'border-brand-600 bg-brand-50' : ''
+                    }
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <RankLabel rank={entry.rank} />
+                      <span className="font-bold tabular-nums">{entry.score} điểm</span>
+                    </div>
+                    <div className="mt-3">
+                      <PlayerName name={entry.displayName} avatarUrl={entry.avatarUrl} />
+                    </div>
+                    <p className="mt-2 text-body-sm text-ink-secondary">
+                      Thời gian: {formatDuration(entry.durationMs)}
+                    </p>
+                    {myEntry?.userId === entry.userId ? (
+                      <p className="mt-2 font-semibold text-brand-700">Của bạn</p>
+                    ) : null}
+                  </Card>
+                </li>
+              ))}
+            </ol>
+            {hasMore ? (
+              <Button onClick={() => setExpanded(true)} variant="outline">
+                Xem thêm
               </Button>
-            </Card>
-          ) : !myEntry ? (
-            <Card>
-              <p className="text-body text-ink-secondary">Bạn chưa có lượt hợp lệ trong kỳ này.</p>
-            </Card>
-          ) : null}
+            ) : null}
+            {expanded && entries.length > 5 ? (
+              <Button onClick={() => setExpanded(false)} variant="outline">
+                Thu gọn
+              </Button>
+            ) : null}
+            {!guest && myEntry && !myEntryVisible ? (
+              <Card aria-label="Hạng của bạn" className="border-brand-600 bg-brand-50">
+                <p className="font-semibold text-brand-800">Hạng của bạn: #{myEntry.rank}</p>
+                <p className="mt-1 text-body-sm">
+                  {myEntry.score} điểm · {formatDuration(myEntry.durationMs)}
+                </p>
+              </Card>
+            ) : null}
+            {guest ? (
+              <Card>
+                <p className="text-body text-ink-secondary">Đăng nhập để xem hạng của bạn.</p>
+                <Button className="mt-3" to="/login" variant="outline">
+                  Đăng nhập
+                </Button>
+              </Card>
+            ) : !myEntry ? (
+              <Card>
+                <p className="text-body text-ink-secondary">
+                  Bạn chưa có lượt hợp lệ trong kỳ này.
+                </p>
+              </Card>
+            ) : null}
           </Card>
         </>
       )}
