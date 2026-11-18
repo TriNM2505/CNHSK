@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { toApiError, useApiMutation, useApiQuery, type ApiQueryState } from '@/shared/api'
+import { toApiError, useApiMutation, useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
 
 import { getReminderSettings, updateReminderSettings } from '../api/reminder'
@@ -11,22 +11,23 @@ function formValues(settings: ReminderSettings): ReminderUpdate {
   return { reminderTime: settings.reminderTime, ...settings.channels }
 }
 
-function SettingsForm({
-  initial,
-  onRetryQuery,
-  queryState,
-}: {
-  initial: ReminderSettings
-  onRetryQuery: () => void
-  queryState: ApiQueryState
-}) {
+function SettingsContent() {
+  const query = useApiQuery(getReminderSettings, [], { isEmpty: (settings) => !settings })
   const mutation = useApiMutation(updateReminderSettings)
-  const [saved, setSaved] = useState(initial)
-  const [values, setValues] = useState(() => formValues(initial))
+  const [saved, setSaved] = useState<ReminderSettings>()
+  const [values, setValues] = useState<ReminderUpdate>()
   const [emailError, setEmailError] = useState<string>()
   const [timeError, setTimeError] = useState<string>()
   const [success, setSuccess] = useState<string>()
   const [failure, setFailure] = useState<{ message: string; requestId?: string }>()
+
+  useEffect(() => {
+    setSaved(undefined)
+    setValues(undefined)
+  }, [query.data])
+
+  const currentSaved = saved ?? query.data
+  const currentValues = values ?? (currentSaved ? formValues(currentSaved) : undefined)
 
   function clearNotice() {
     setEmailError(undefined)
@@ -37,15 +38,16 @@ function SettingsForm({
   }
 
   function change<K extends keyof ReminderUpdate>(field: K, value: ReminderUpdate[K]) {
-    setValues((current) => ({ ...current, [field]: value }))
+    if (!currentSaved) return
+    setValues((current) => ({ ...(current ?? formValues(currentSaved)), [field]: value }))
     clearNotice()
   }
 
   async function submit() {
-    if (mutation.pending) return
+    if (mutation.pending || !currentValues) return
     clearNotice()
     try {
-      const result = await mutation.run(values)
+      const result = await mutation.run(currentValues)
       setSaved(result)
       setValues(formValues(result))
       setSuccess(
@@ -57,8 +59,14 @@ function SettingsForm({
       const apiError = toApiError(error)
       if (apiError.errorCode === 'EMAIL_NOT_VERIFIED') {
         setEmailError('Vui lòng xác thực email trước khi bật nhắc qua email.')
-        setSaved((current) => ({ ...current, emailVerified: false }))
-        setValues((current) => ({ ...current, email: false }))
+        setSaved((current) => {
+          const base = current ?? currentSaved
+          return base ? { ...base, emailVerified: false } : undefined
+        })
+        setValues((current) => {
+          const base = current ?? currentValues
+          return base ? { ...base, email: false } : undefined
+        })
       } else if (apiError.errorCode === 'VALIDATION_FAILED') {
         setTimeError('Vui lòng chọn giờ tròn từ 00:00 đến 23:00.')
       } else {
@@ -68,53 +76,27 @@ function SettingsForm({
   }
 
   function cancel() {
-    setValues(formValues(saved))
+    if (!currentSaved) return
+    setValues(formValues(currentSaved))
     clearNotice()
   }
 
   return (
     <ReminderSettingsView
-      configured={saved.configured}
+      configured={currentSaved?.configured ?? false}
       emailError={emailError}
-      emailVerified={saved.emailVerified}
+      emailVerified={currentSaved?.emailVerified ?? false}
       failure={failure}
       onCancel={cancel}
       onChange={change}
-      onRetryQuery={onRetryQuery}
+      onRetryQuery={query.reload}
       onSubmit={() => void submit()}
-      queryState={queryState}
+      queryError={query.error}
+      queryState={query.state}
       saving={mutation.pending}
       success={success}
       timeError={timeError}
-      values={values}
-    />
-  )
-}
-
-function SettingsContent() {
-  const query = useApiQuery(getReminderSettings, [], { isEmpty: (settings) => !settings })
-
-  if (query.state === 'ready' && query.data) {
-    return (
-      <SettingsForm
-        initial={query.data}
-        onRetryQuery={query.reload}
-        queryState={query.state}
-      />
-    )
-  }
-
-  return (
-    <ReminderSettingsView
-      configured={false}
-      emailVerified={false}
-      onCancel={() => {}}
-      onChange={() => {}}
-      onRetryQuery={query.reload}
-      onSubmit={() => {}}
-      queryError={query.error}
-      queryState={query.state}
-      saving={false}
+      values={currentValues}
     />
   )
 }
