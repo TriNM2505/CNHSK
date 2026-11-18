@@ -1,22 +1,11 @@
 import { createElement as h, useState } from 'react'
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
-import { AuthContext, type AuthContextValue } from '@/shared/auth'
-import { AdminLayout } from '@/shared/layout'
-import { previewContentEditor } from '@/shared/layout/Layout.preview'
 import { ErrorState, PageHeader, PageState, Skeleton } from '@/shared/ui'
 import { ExamListView } from './components/ExamListView'
 import { listPreviews } from './components/ExamListView.preview'
 import { ExamEditorView } from './components/ExamEditorView'
 import { editorPreviews } from './components/ExamEditorView.preview'
 import { validateForm } from './examForm'
-const auth: AuthContextValue = {
-  status: 'authenticated',
-  user: previewContentEditor,
-  error: null,
-  reloadCurrentUser: async () => undefined,
-  setAuthenticatedUser: () => undefined,
-  signOut: async () => undefined,
-}
 function EditorPreview({ mode }: { mode: string }) {
   const props = editorPreviews[mode]!
   const [form, setForm] = useState(props.form)
@@ -51,25 +40,20 @@ function EditorPreview({ mode }: { mode: string }) {
     },
   })
 }
-function frame(content: ReturnType<typeof h>) {
-  return h(AuthContext.Provider, { value: auth }, h(AdminLayout, null, content))
-}
 function editorState(mode: string, state: PreviewState) {
   if (state === 'ready' || state === 'empty')
-    return frame(h(EditorPreview, { key: state + mode, mode: state === 'empty' ? 'new' : mode }))
-  return frame(
-    h(
-      'main',
-      { className: 'mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-6 sm:px-6' },
-      h(PageHeader, { title: 'Sửa đề thi' }),
-      h(PageState, {
-        state,
-        children: null,
-        empty: null,
-        loading: h(Skeleton, { variant: 'card' }),
-        error: h(ErrorState, { message: 'Không tải được đề thi.', onRetry: () => undefined }),
-      }),
-    ),
+    return h(EditorPreview, { key: state + mode, mode: state === 'empty' ? 'new' : mode })
+  return h(
+    'main',
+    { className: 'mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-6 sm:px-6' },
+    h(PageHeader, { title: 'Sửa đề thi' }),
+    h(PageState, {
+      state,
+      children: null,
+      empty: null,
+      loading: h(Skeleton, { variant: 'card' }),
+      error: h(ErrorState, { message: 'Không tải được đề thi.', onRetry: () => undefined }),
+    }),
   )
 }
 
@@ -82,7 +66,7 @@ export const previews: readonly PreviewEntry[] = [
     fullFrame: true,
     states: ['ready', 'loading', 'empty', 'error'] as const,
     render: (selectedState: PreviewState) =>
-      frame(h(ExamListView, selectedState === 'ready' ? props : listPreviews[selectedState]!)),
+      h(ExamListView, selectedState === 'ready' ? props : listPreviews[selectedState]!),
   })),
   ...Object.keys(editorPreviews).map((mode) => ({
     id: `scr-066-${mode}`,
