@@ -267,4 +267,18 @@ describe('Scr077UserDetailPage', () => {
     expect(revokeAdminUserRoleMock).toHaveBeenCalledWith(103, 'LEARNER')
     expect(getAdminUserDetailMock).toHaveBeenCalledTimes(2)
   })
+
+  it('đặt nút quay lại ở hàng căn phải phía trên PageBanner và không nằm trong banner', async () => {
+    renderPage()
+
+    const backLink = await screen.findByRole('link', { name: 'Danh sách tài khoản' })
+    const heading = screen.getByRole('heading', { name: 'Chi tiết tài khoản' })
+    const banner = heading.closest('.isolate')
+
+    expect(backLink).toHaveAttribute('href', '/admin/users')
+    expect(backLink.parentElement).toHaveClass('flex', 'justify-end')
+    expect(banner).not.toBeNull()
+    expect(banner!.contains(backLink)).toBe(false)
+    expect(backLink.compareDocumentPosition(banner!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
 })
