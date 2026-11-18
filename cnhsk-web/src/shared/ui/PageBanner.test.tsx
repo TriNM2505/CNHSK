@@ -22,5 +22,7 @@ describe('PageBanner', () => {
     const svg = container.querySelector('svg')
     expect(svg).not.toBeNull()
     expect(svg).toHaveAttribute('aria-hidden', 'true')
+
+    expect(container.firstElementChild).toHaveClass('isolate')
   })
 })

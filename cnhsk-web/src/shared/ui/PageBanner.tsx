@@ -175,7 +175,7 @@ export function PageBanner({ actions, className, subtitle, title }: PageBannerPr
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-md border border-brand-100 bg-brand-50 px-5 py-5 sm:px-6',
+        'relative isolate overflow-hidden rounded-md border border-brand-100 bg-brand-50 px-5 py-5 sm:px-6',
         className,
       )}
     >
