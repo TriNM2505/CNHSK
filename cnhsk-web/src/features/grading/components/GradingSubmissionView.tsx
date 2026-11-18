@@ -2,6 +2,7 @@ import { Award, BookOpen, Clock, Coins, FilePenLine, ShieldCheck, Sparkles } fro
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
+  PageBanner,
   Button,
   Card,
   ConfirmPanel,
@@ -14,7 +15,6 @@ import {
 } from '@/shared/ui'
 import { codePointLength, countHanzi, trimmedEssay, validSubmission } from '../essayRules'
 import type { GradingPolicy } from '../types'
-import { InkLandscapeBanner } from './InkLandscapeBanner'
 
 type Props = {
   state: ApiQueryState
@@ -63,7 +63,7 @@ export function GradingSubmissionView(props: Props) {
       : undefined
   return (
     <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
-      <InkLandscapeBanner
+      <PageBanner
         subtitle="Nhận góp ý từ giáo viên cho bài viết tiếng Trung của bạn."
         title="Gửi bài chấm"
       />
