@@ -11,7 +11,7 @@ import {
   ErrorState,
   FormField,
   HanziText,
-  PageHeader,
+  PageBanner,
   Select,
   Skeleton,
   SUPPORTED_HSK_LEVELS,
@@ -61,8 +61,9 @@ const MODE_HANZI: Record<RecognitionMode, string> = {
 
 export function RecognitionView(props: RecognitionViewProps) {
   return (
-    <div className="mx-auto w-full max-w-reading space-y-6">
-      <PageHeader
+    <div className="mx-auto w-full min-w-0 max-w-reading space-y-6 px-3 py-6 sm:px-6">
+      <PageBanner
+        className="px-4 py-4 sm:px-5"
         subtitle="Luyện nhận mặt chữ: nhìn chữ chọn nghĩa hoặc nghe rồi chọn chữ."
         title="Nhận diện chữ Hán"
       />
@@ -142,14 +143,18 @@ function RecognitionBody({
   if (state === 'ready' && !item) {
     return (
       <Card className="space-y-4">
-        <p className="text-body-sm text-ink-secondary">Các câu đã trả lời. Hãy hoàn tất lượt để xem kết quả.</p>
+        <p className="text-body-sm text-ink-secondary">
+          Các câu đã trả lời. Hãy hoàn tất lượt để xem kết quả.
+        </p>
         {error ? (
           <p className="rounded-md bg-danger-bg p-3 text-body-sm text-danger" role="alert">
             {error.message}
           </p>
         ) : null}
         <div className="flex justify-end">
-          <Button disabled={pending} onClick={onFinishRetry}>Thử kết thúc lại</Button>
+          <Button disabled={pending} onClick={onFinishRetry}>
+            Thử kết thúc lại
+          </Button>
         </div>
       </Card>
     )
@@ -160,7 +165,7 @@ function RecognitionBody({
     return (
       <div className="space-y-5">
         <SessionProgress current={current} total={total} />
-        <Card className="space-y-5">
+        <Card className="min-w-0 space-y-5 border-brand-100 border-t-4 border-t-brand-600 p-4 shadow-sm sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-label text-ink-secondary">{RECOGNITION_MODE_LABELS[mode].title}</p>
             {hskLevel !== undefined ? (
@@ -195,7 +200,7 @@ function RecognitionBody({
               Câu này không tính điểm.
             </p>
           ) : null}
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pr-14 pt-4 sm:pr-0">
             <Button disabled={pending} onClick={onFinishRequest} variant="ghost">
               Kết thúc luyện tập
             </Button>
@@ -205,8 +210,10 @@ function RecognitionBody({
               </Button>
             ) : (
               <Button disabled={pending} onClick={onNext}>
-                Câu tiếp
-                <ArrowRight aria-hidden="true" className="size-5" />
+                <span className="flex items-center gap-2">
+                  Câu tiếp
+                  <ArrowRight aria-hidden="true" className="size-5" />
+                </span>
               </Button>
             )}
           </div>
@@ -225,17 +232,17 @@ function RecognitionBody({
   }
 
   return (
-    <Card className="space-y-6">
+    <Card className="space-y-6 border-brand-100 p-4 shadow-sm sm:p-6">
       <fieldset className="space-y-3">
         <legend className="text-h3 text-ink">Chọn chế độ</legend>
         <div className="grid gap-3 sm:grid-cols-2">
           {RECOGNITION_MODES.map((option) => {
             const selected = option === mode
             return (
-              <button
+              <Button
                 aria-pressed={selected}
                 className={cn(
-                  'flex min-h-touch flex-col items-start gap-2 rounded-md border bg-surface p-4 text-left transition-colors',
+                  'flex h-full min-h-touch items-start justify-start rounded-md border p-4 text-left font-normal shadow-sm',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2',
                   selected ? 'border-brand-600 bg-brand-50' : 'border-line hover:border-brand-600',
                 )}
@@ -243,19 +250,24 @@ function RecognitionBody({
                 key={option}
                 onClick={() => onModeChange?.(option)}
                 type="button"
+                variant="outline"
               >
-                <HanziText aria-hidden="true" className="text-brand-700" size="md">
-                  {MODE_HANZI[option]}
-                </HanziText>
-                <span className="space-y-1">
-                  <span className="block text-body font-semibold text-ink">
-                    {RECOGNITION_MODE_LABELS[option].title}
+                <span className="flex flex-col items-start gap-3">
+                  <span className="flex size-14 items-center justify-center rounded-md border border-brand-100 bg-brand-50">
+                    <HanziText aria-hidden="true" className="text-brand-700" size="md">
+                      {MODE_HANZI[option]}
+                    </HanziText>
                   </span>
-                  <span className="block text-body-sm text-ink-secondary">
-                    {RECOGNITION_MODE_LABELS[option].description}
+                  <span className="space-y-1">
+                    <span className="block text-body font-semibold text-ink">
+                      {RECOGNITION_MODE_LABELS[option].title}
+                    </span>
+                    <span className="block text-body-sm text-ink-secondary">
+                      {RECOGNITION_MODE_LABELS[option].description}
+                    </span>
                   </span>
                 </span>
-              </button>
+              </Button>
             )
           })}
         </div>
@@ -287,10 +299,12 @@ function RecognitionBody({
         </p>
       ) : null}
 
-      <div className="flex justify-end">
+      <div className="flex justify-end pr-14 sm:pr-0">
         <Button disabled={pending} onClick={onStart}>
-          Bắt đầu luyện
-          <ArrowRight aria-hidden="true" className="size-5" />
+          <span className="flex items-center gap-2">
+            Bắt đầu luyện
+            <ArrowRight aria-hidden="true" className="size-5 shrink-0" />
+          </span>
         </Button>
       </div>
     </Card>

@@ -3,7 +3,7 @@ import type { RefObject } from 'react'
 
 import type { FinishResult, ServedItemView } from '@/features/practice'
 import { SessionProgress } from '@/features/practice'
-import { Button, Card, EmptyState, ErrorState, Skeleton, StatTile } from '@/shared/ui'
+import { Button, Card, EmptyState, ErrorState, PageBanner, Skeleton, StatTile } from '@/shared/ui'
 
 import { HanziCanvas, type HanziCanvasHandle } from './HanziCanvas'
 
@@ -56,7 +56,20 @@ function reasonFromResult(result: FinishResult): string {
   return 'Thời gian thử thách đã hết.'
 }
 
-export function WritingChallengeView({
+export function WritingChallengeView(props: WritingChallengeViewProps) {
+  return (
+    <div className="mx-auto w-full min-w-0 max-w-reading space-y-6 px-3 py-6 sm:px-6">
+      <PageBanner
+        className="px-4 py-4 sm:px-5"
+        subtitle="Tập trung từng nét, chinh phục từng chữ."
+        title="Thử thách viết"
+      />
+      <WritingChallengeBody {...props} />
+    </div>
+  )
+}
+
+function WritingChallengeBody({
   canvasRef,
   completed = 0,
   current = 1,
@@ -85,8 +98,10 @@ export function WritingChallengeView({
   const processedCount = processed ?? completed + failed
   const back = (
     <Button to={BACK_PATH} variant="ghost">
-      <ArrowLeft aria-hidden="true" className="size-5" />
-      Danh sách chữ
+      <span className="flex items-center gap-2">
+        <ArrowLeft aria-hidden="true" className="size-5 shrink-0" />
+        Danh sách chữ
+      </span>
     </Button>
   )
 
@@ -114,7 +129,10 @@ export function WritingChallengeView({
     return (
       <div className="space-y-5">
         {back}
-        <EmptyState description="Lượt thử thách đã hết hạn. Hãy bắt đầu lượt mới." title="Đã hết hạn" />
+        <EmptyState
+          description="Lượt thử thách đã hết hạn. Hãy bắt đầu lượt mới."
+          title="Đã hết hạn"
+        />
       </div>
     )
   }
@@ -123,13 +141,18 @@ export function WritingChallengeView({
     return (
       <section aria-labelledby="challenge-summary-title" className="space-y-5">
         {back}
-        <Card className="space-y-5 text-center">
-          <h1 className="text-h2 text-ink" id="challenge-summary-title">Kết quả thử thách</h1>
+        <Card className="space-y-5 border-brand-100 p-4 text-center shadow-sm sm:p-6">
+          <h2 className="text-h2 text-ink" id="challenge-summary-title">
+            Kết quả thử thách
+          </h2>
           <p className="text-body text-ink-secondary">{reasonFromResult(finishResult)}</p>
           <div className="grid gap-3 sm:grid-cols-3">
             <StatTile label="Hoàn thành" value={countFromResult(finishResult, 'completedChars')} />
             <StatTile label="Chữ trượt" value={countFromResult(finishResult, 'failedChars')} />
-            <StatTile label="Chưa hoàn thành" value={countFromResult(finishResult, 'incompleteChars')} />
+            <StatTile
+              label="Chưa hoàn thành"
+              value={countFromResult(finishResult, 'incompleteChars')}
+            />
           </div>
           <Button to={BACK_PATH}>Luyện lượt mới</Button>
         </Card>
@@ -142,14 +165,24 @@ export function WritingChallengeView({
       <div className="space-y-5">
         {back}
         <Card className="space-y-4">
-          <h1 className="text-h2 text-ink">{error?.errorCode === 'RATE_LIMITED' ? 'Kết quả đang chờ gửi lại' : 'Chưa xác nhận được kết quả'}</h1>
+          <h2 className="text-h2 text-ink">
+            {error?.errorCode === 'RATE_LIMITED'
+              ? 'Kết quả đang chờ gửi lại'
+              : 'Chưa xác nhận được kết quả'}
+          </h2>
           <p className="text-body text-ink-secondary">
             {error?.errorCode === 'RATE_LIMITED'
               ? `Máy chủ giới hạn lượt gửi. Thử lại thủ công${retryAfterSeconds ? ` sau ${retryAfterSeconds} giây` : ''}.`
               : 'Máy chủ có thể đã nhận lượt nộp. Kiểm tra trạng thái trước khi gửi lại.'}
           </p>
-          {error ? <p role="alert" className="text-body-sm text-danger">{error.message}</p> : null}
-          <Button disabled={pending} onClick={onRetryFinish}>{pending ? 'Đang kiểm tra…' : 'Kiểm tra / gửi lại'}</Button>
+          {error ? (
+            <p role="alert" className="text-body-sm text-danger">
+              {error.message}
+            </p>
+          ) : null}
+          <Button disabled={pending} onClick={onRetryFinish}>
+            {pending ? 'Đang kiểm tra…' : 'Kiểm tra / gửi lại'}
+          </Button>
         </Card>
       </div>
     )
@@ -159,12 +192,15 @@ export function WritingChallengeView({
     return (
       <div className="space-y-6">
         {back}
-        <Card className="space-y-4">
-          <h1 className="text-h2 text-ink">Thử thách viết chữ</h1>
+        <Card className="space-y-4 border-brand-100 p-4 shadow-sm sm:p-6">
+          <h2 className="text-h2 text-ink">Thử thách viết chữ</h2>
           <ul className="list-disc space-y-1 pl-5 text-body text-ink-secondary">
             <li>{CHALLENGE_SIZE} chữ do hệ thống chọn từ những chữ bạn đã viết theo nét.</li>
             <li>{CHALLENGE_TIME_LIMIT_SECONDS} giây cho cả lượt, chỉ hiện pinyin và nghĩa.</li>
-            <li>Sai từ 3 nét ở một chữ là trượt chữ đó; trượt {CHALLENGE_MAX_MISTAKES} chữ thì kết thúc.</li>
+            <li>
+              Sai từ 3 nét ở một chữ là trượt chữ đó; trượt {CHALLENGE_MAX_MISTAKES} chữ thì kết
+              thúc.
+            </li>
           </ul>
           <p className="text-body-sm text-ink-muted">Đồng hồ vẫn chạy khi bạn rời trang.</p>
           {notEnough ? (
@@ -172,11 +208,17 @@ export function WritingChallengeView({
               Bạn cần viết theo nét xong ít nhất {notEnough.need} chữ (hiện có {notEnough.have}).
             </p>
           ) : null}
-          {error ? <p className="rounded-md bg-danger-bg p-3 text-body-sm text-danger" role="alert">{error.message}</p> : null}
-          <div className="flex justify-end">
+          {error ? (
+            <p className="rounded-md bg-danger-bg p-3 text-body-sm text-danger" role="alert">
+              {error.message}
+            </p>
+          ) : null}
+          <div className="flex justify-end pr-14 sm:pr-0">
             <Button disabled={pending || Boolean(notEnough)} onClick={onStart}>
-              <Timer aria-hidden="true" className="size-5" />
-              Bắt đầu thử thách
+              <span className="flex items-center gap-2">
+                <Timer aria-hidden="true" className="size-5 shrink-0" />
+                Bắt đầu thử thách
+              </span>
             </Button>
           </div>
         </Card>
@@ -195,22 +237,33 @@ export function WritingChallengeView({
   const character = typeof promptText === 'string' ? promptText : undefined
   const pinyin = typeof item?.prompt.pinyin === 'string' ? item.prompt.pinyin : undefined
   const meaning = typeof item?.prompt.meaning === 'string' ? item.prompt.meaning : undefined
-  const strokeCount = typeof item?.prompt.strokeCount === 'number' ? item.prompt.strokeCount : undefined
+  const strokeCount =
+    typeof item?.prompt.strokeCount === 'number' ? item.prompt.strokeCount : undefined
 
   return (
     <div className="space-y-5">
       {back}
       <p className="text-body-sm text-ink-muted">Đồng hồ vẫn chạy khi bạn rời trang.</p>
-      {error ? <p role="alert" className="rounded-md bg-danger-bg p-3 text-body-sm text-danger">{error.message}</p> : null}
-      {notice ? <p role="status" className="rounded-md bg-info-bg p-3 text-body-sm text-info">{notice}</p> : null}
+      {error ? (
+        <p role="alert" className="rounded-md bg-danger-bg p-3 text-body-sm text-danger">
+          {error.message}
+        </p>
+      ) : null}
+      {notice ? (
+        <p role="status" className="rounded-md bg-info-bg p-3 text-body-sm text-info">
+          {notice}
+        </p>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-3">
         <StatTile label="Thời gian còn lại" value={formatSeconds(remainingSeconds)} />
         <StatTile label="Chữ trượt" value={`${failed}/${CHALLENGE_MAX_MISTAKES}`} />
         <StatTile label="Chữ" value={`${current}/${total}`} />
       </div>
-      <p className="text-body-sm text-ink-secondary">Đã xử lý {processedCount} / {total} chữ · Lỗi nét chữ này: {currentMistakes}/3</p>
+      <p className="text-body-sm text-ink-secondary">
+        Đã xử lý {processedCount} / {total} chữ · Lỗi nét chữ này: {currentMistakes}/3
+      </p>
       <SessionProgress current={current} total={total} />
-      <Card className="space-y-5">
+      <Card className="min-w-0 space-y-5 border-brand-100 border-t-4 border-t-brand-600 p-3 shadow-sm sm:p-6">
         <div className="text-center">
           <p className="text-h2 text-ink">{pinyin ?? '—'}</p>
           <p className="text-body text-ink-secondary">{meaning}</p>
@@ -227,10 +280,20 @@ export function WritingChallengeView({
             showOutline={false}
           />
         ) : item ? (
-          <p role="alert" className="text-body-sm text-danger">Không thể tải câu hỏi thử thách.</p>
+          <p role="alert" className="text-body-sm text-danger">
+            Không thể tải câu hỏi thử thách.
+          </p>
         ) : null}
-        {dataError ? <p role="status" className="text-body-sm text-danger">Chữ này chưa có dữ liệu nét</p> : null}
-        {pending ? <p role="status" className="text-body-sm text-ink-secondary">Đang gửi kết quả…</p> : null}
+        {dataError ? (
+          <p role="status" className="text-body-sm text-danger">
+            Chữ này chưa có dữ liệu nét
+          </p>
+        ) : null}
+        {pending ? (
+          <p role="status" className="text-body-sm text-ink-secondary">
+            Đang gửi kết quả…
+          </p>
+        ) : null}
       </Card>
     </div>
   )

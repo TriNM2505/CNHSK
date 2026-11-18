@@ -1,4 +1,4 @@
-import { Search, Timer } from 'lucide-react'
+import { ArrowUpRight, Search, Timer } from 'lucide-react'
 import { type FormEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
@@ -11,7 +11,7 @@ import {
   HanziText,
   Input,
   LevelBadge,
-  PageHeader,
+  PageBanner,
   PageState,
   Pagination,
   Select,
@@ -64,20 +64,26 @@ export function CharacterListView({
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
+    <div className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <PageBanner
         actions={
           <Button to="/learn/characters/writing/challenge" variant="outline">
-            <Timer aria-hidden="true" className="size-5" />
-            Thử thách viết
+            <span className="flex items-center gap-2">
+              <Timer aria-hidden="true" className="size-5 shrink-0" />
+              Thử thách viết
+            </span>
           </Button>
         }
         subtitle="Chọn một chữ để luyện viết theo nét, nhớ rồi viết hoặc nghe chép."
         title="Luyện viết chữ Hán"
       />
 
-      <Card>
-        <form className="flex flex-wrap items-end gap-4" onSubmit={submit} role="search">
+      <Card className="border-brand-100 p-4 shadow-sm sm:p-5">
+        <form
+          className="grid gap-4 sm:grid-cols-2 sm:items-end lg:grid-cols-3"
+          onSubmit={submit}
+          role="search"
+        >
           <FormField className="min-w-0 flex-1" htmlFor="character-search" label="Tìm chữ">
             <Input
               id="character-search"
@@ -106,8 +112,10 @@ export function CharacterListView({
             </Select>
           </FormField>
           <Button type="submit">
-            <Search aria-hidden="true" className="size-5" />
-            Tìm
+            <span className="flex items-center gap-2">
+              <Search aria-hidden="true" className="size-5 shrink-0" />
+              Tìm
+            </span>
           </Button>
         </form>
       </Card>
@@ -115,7 +123,11 @@ export function CharacterListView({
       <PageState
         empty={
           <EmptyState
-            description={q || hskLevel ? 'Không có chữ khớp bộ lọc. Hãy thử từ khoá khác.' : 'Chưa có chữ nào để luyện.'}
+            description={
+              q || hskLevel
+                ? 'Không có chữ khớp bộ lọc. Hãy thử từ khoá khác.'
+                : 'Chưa có chữ nào để luyện.'
+            }
             title="Không tìm thấy chữ"
           />
         }
@@ -128,7 +140,10 @@ export function CharacterListView({
           />
         }
         loading={
-          <div aria-label="Đang tải danh sách chữ" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            aria-label="Đang tải danh sách chữ"
+            className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+          >
             <Skeleton variant="card" />
             <Skeleton variant="card" />
             <Skeleton variant="card" />
@@ -138,28 +153,29 @@ export function CharacterListView({
       >
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {characters.map((character) => (
-            <li key={character.id}>
+            <li className="min-w-0" key={character.id}>
               <Link
-                className="flex min-h-touch items-center gap-4 rounded-md border border-line bg-surface p-4 transition-colors hover:border-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
+                className="group flex h-full min-h-touch min-w-0 items-center gap-4 rounded-md border border-line bg-surface p-4 shadow-sm transition-colors hover:border-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 sm:p-5"
                 to={`/learn/characters/writing/${character.id}`}
               >
-                <HanziText className="shrink-0" size="lg">
-                  {character.text}
-                </HanziText>
+                <span className="flex size-20 shrink-0 items-center justify-center rounded-md border border-brand-100 bg-brand-50">
+                  <HanziText className="text-brand-700" size="lg">
+                    {character.text}
+                  </HanziText>
+                </span>
                 <span className="min-w-0 flex-1 space-y-1">
                   <span className="block text-body font-semibold text-ink">
                     {character.pinyin ?? '—'}
                   </span>
-                  <span className="block truncate text-body-sm text-ink-secondary">
+                  <span className="block break-words text-body-sm text-ink-secondary">
                     {character.meaning}
                   </span>
-                  <span className="flex flex-wrap items-center gap-2 text-caption text-ink-muted">
+                  <span className="flex flex-wrap items-center gap-2 pt-1 text-caption text-ink-secondary">
                     {character.hskLevel ? <LevelBadge exact level={character.hskLevel} /> : null}
-                    {character.strokeCount
-                      ? `${character.strokeCount} nét`
-                      : 'Chưa có dữ liệu nét'}
+                    {character.strokeCount ? `${character.strokeCount} nét` : 'Chưa có dữ liệu nét'}
                   </span>
                 </span>
+                <ArrowUpRight aria-hidden="true" className="size-4 shrink-0 text-brand-600" />
               </Link>
             </li>
           ))}
