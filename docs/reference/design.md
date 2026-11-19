@@ -4,7 +4,7 @@
 | --- | --- |
 | **Trạng thái** | Khung giao diện đã khoá cho đợt làm lại giao diện; inventory 79 màn FINAL |
 | **Status** | APPROVED |
-| **Version** | 1.4 |
+| **Version** | 1.5 |
 | **Owner** | Nhóm CNHSK |
 | **Approved by** | Leader nhóm |
 | **Locked on** | 2026-11-17 |
@@ -117,15 +117,14 @@ THE system SHALL dùng component semantic như `Button`, `Card`, `Progress`,
 | LEARNER | Học, luyện, thi, chơi, dùng thư viện và cộng đồng | Desktop web, mobile web | Toàn bộ màn học viên |
 | TEACHER | Duyệt câu hỏi AI, chấm bài thuê | Desktop web | SCR-056–SCR-059; học viên chỉ khi có LEARNER |
 | MODERATOR | Kiểm duyệt cộng đồng | Desktop web | SCR-060–SCR-063; học viên chỉ khi có LEARNER |
-| CONTENT_EDITOR | Nhập dữ liệu, quản lý đề, kho câu hỏi, cuộc thi, tài liệu | Desktop web | SCR-064–SCR-072; học viên chỉ khi có LEARNER |
-| ACCOUNTANT | Sổ cái, mã thẻ, gói dịch vụ | Desktop web | SCR-073–SCR-075; học viên chỉ khi có LEARNER |
-| ADMIN | Người dùng, phân quyền, cấu hình được phép | Desktop web | SCR-076–SCR-078; học viên chỉ khi có LEARNER |
+| CONTENT_EDITOR | Nhập dữ liệu, quản lý đề, kho câu hỏi, cuộc thi, tài liệu; duyệt câu hỏi AI | Desktop web | SCR-058/SCR-059, SCR-064–SCR-072; học viên chỉ khi có LEARNER |
+| ADMIN | Người dùng, phân quyền, cấu hình được phép, lô AI; tài chính: mã thẻ, gói dịch vụ, sổ cái | Desktop web | SCR-073–SCR-078; học viên chỉ khi có LEARNER |
 
-> **Bảy actor**, khớp Hiến pháp mục *Bảy actor*. Job định kỳ không phải actor. Quyền quản trị
-> tách thành ba role (`CONTENT_EDITOR`, `ACCOUNTANT`, `ADMIN`) theo nguyên tắc phân tách nhiệm vụ — xem mục 5.3.
-> Chỉ `ADMIN` mang chữ "Admin".
+> **Sáu actor**, khớp Hiến pháp mục *Sáu actor* (v1.6.0). Job định kỳ không phải actor. Quyền quản trị
+> tách thành `CONTENT_EDITOR` (nội dung) và `ADMIN` (tài khoản, hệ thống, tài chính — RFC R9); mã `ACCOUNTANT`
+> còn trong DB là mã dự phòng, không phải actor — xem mục 5.3. Chỉ `ADMIN` mang chữ "Admin".
 >
-> **Chỉ `TEACHER`** duyệt câu hỏi AI và sửa nội dung câu hỏi (SCR-058/SCR-059), theo `BUS-07`.
+> **`TEACHER` hoặc `CONTENT_EDITOR`** duyệt câu hỏi AI và sửa nội dung câu hỏi (SCR-058/SCR-059), theo `BUS-07`.
 > Cả hai dùng chung AI Review Queue SCR-058 và Question Edit SCR-059 theo quyền được gán; không kế thừa LEARNER.
 
 **Ranh giới giữa các nền tảng:**
@@ -215,8 +214,7 @@ Từ tài nguyên công khai, action cần LEARNER dẫn tới SCR-002 với đ�
 | TEACHER | SCR-056/SCR-057; SCR-058/SCR-059 với quyền review nội dung |
 | MODERATOR | SCR-060–SCR-063 |
 | CONTENT_EDITOR | SCR-058/SCR-059; SCR-064–SCR-072 |
-| ACCOUNTANT | SCR-073–SCR-075 |
-| ADMIN | SCR-076–SCR-078 |
+| ADMIN | SCR-073–SCR-078 |
 
 Không kế thừa role: TEACHER không mặc nhiên có LEARNER; ADMIN không mặc nhiên có quyền tài chính, nội dung hoặc kiểm duyệt. Một người có nhiều role nhìn thấy hợp các menu được gán. Role Navigation trong ảnh là điểm điều phối, không phải một trang dashboard mới. Với nhiều role, dùng đích được phép người dùng chọn hoặc đích an toàn đã kiểm quyền; chưa có quyết định xếp thứ tự ưu tiên role.
 
@@ -628,6 +626,7 @@ Không còn câu hỏi mở. Các câu bản 0.1 đã chốt:
 | 1.2 | 2026-11-17 | Được dùng hình ảnh/asset Học Bá (§0, §14, §15); thêm RD-09 tự do thẩm mỹ, linh vật chỉ ở màn xác thực; cấm `md:` (RD-03, §0.2); ảnh PR đính kèm, không commit (RD-07); K2 rộng 1280px khi có bảng; K4 chỉ xác nhận thoát khi mất dữ liệu; K6 bộ lọc/phân trang khi màn có | Leader nhóm |
 | 1.3 | 2026-11-17 | RD-09: hình minh hoạ tre/trúc dùng được ở mọi màn; linh vật gấu trúc vẫn chỉ ở màn xác thực | Leader nhóm |
 | 1.4 | 2026-11-17 | RD-09: linh vật gấu trúc dùng được ở mọi màn | Leader nhóm |
+| 1.5 | 2026-11-20 | §3, §5.3: sáu actor theo Hiến pháp v1.6.0 — tài chính SCR-073–075 thuộc `ADMIN`, `ACCOUNTANT` là mã dự phòng; `TEACHER` hoặc `CONTENT_EDITOR` duyệt câu hỏi AI | Leader nhóm |
 
 ---
 

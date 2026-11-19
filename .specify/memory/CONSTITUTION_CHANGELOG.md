@@ -23,6 +23,22 @@ Mỗi lần sửa hiến pháp PHẢI thêm một mục vào đầu file này, g
 
 ---
 
+## v1.6.0 — 2026-11-20
+
+**Loại bump:** MINOR — đổi cách đếm actor và mở rộng một quy tắc nghiệp vụ cho khớp phần đã code; không bỏ nguyên tắc nào.
+
+**Nguồn:** leader chốt 2026-11-20 khi rà actor cho báo cáo. Từ RFC R9 `ACCOUNTANT` không còn quyền nào, nên không tính là actor. Spec 024 (APPROVED 2026-11-14) và `SecurityConfig` cho cả `TEACHER` lẫn `CONTENT_EDITOR` duyệt câu hỏi AI (`/api/admin/ai-questions`) và sửa câu hỏi (`PUT /api/admin/questions/{id}`), khác câu chữ cũ của BUS-07.
+
+| Mã | Thay đổi |
+|---|---|
+| §Bảy actor → §Sáu actor | **SỬA** — 6 actor = 5 role được cấp quyền + `GUEST`; `ACCOUNTANT` là mã dự phòng trong DB/enum, không phải actor |
+| §Vì sao tách quyền | **SỬA** — `TEACHER` và `CONTENT_EDITOR` duyệt, sửa nội dung câu hỏi; `ADMIN` vẫn không |
+| **BUS-07** | **SỬA** — "chỉ `TEACHER` duyệt" → "chỉ `TEACHER` hoặc `CONTENT_EDITOR` duyệt" |
+
+Số rule: HR 9 → 9 · AC 10 → 10 · BUS 15 → 15 · ES 8 → 8.
+
+---
+
 ## v1.5.0 — 2026-11-03
 
 **Loại bump:** MINOR — định nghĩa lại phạm vi quyền của hai role quản trị và thêm một ngoại lệ có tên; không bỏ nguyên tắc nào.

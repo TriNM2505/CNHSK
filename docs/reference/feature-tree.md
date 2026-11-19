@@ -537,9 +537,10 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 | **LEARNER** | Học, thi, chơi game, đăng bài (chờ duyệt) | Người dùng cuối |
 | **TEACHER** | Duyệt câu hỏi AI (cùng CONTENT_EDITOR), sửa nội dung học, nhận và chấm bài viết | Học tập |
 | **MODERATOR** | Duyệt bài đăng, xử lý báo cáo và kiểm duyệt bình luận | Cộng đồng |
-| **CONTENT_EDITOR** | Quản lý đề thi, kho câu hỏi, nhập dữ liệu và cuộc thi | Nội dung |
-| **ACCOUNTANT** | Giữ mã, **không có quyền** từ 2026-11-03 — tài chính chuyển sang `ADMIN` (RFC R9) | — |
-| **ADMIN** | Quản lý người dùng, cấp/thu hồi role và cấu hình hệ thống | Hệ thống |
+| **CONTENT_EDITOR** | Quản lý đề thi, kho câu hỏi, nhập dữ liệu và cuộc thi; duyệt câu hỏi AI (cùng TEACHER) | Nội dung |
+| **ADMIN** | Quản lý người dùng, cấp/thu hồi role, cấu hình hệ thống; tài chính: mã thẻ, gói dịch vụ, sổ cái (RFC R9) | Hệ thống |
+
+> Mã `ACCOUNTANT` còn trong DB là mã dự phòng, không phải actor (Hiến pháp v1.6.0).
 
 ### Teacher chấm bài thuê
 
@@ -595,7 +596,7 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 
 | | |
 |---|---|
-| **Mô tả** | Nơi `TEACHER`, `MODERATOR`, `CONTENT_EDITOR`, `ACCOUNTANT` và `ADMIN` thực hiện chức năng quản trị theo đúng quyền riêng |
+| **Mô tả** | Nơi `TEACHER`, `MODERATOR`, `CONTENT_EDITOR` và `ADMIN` thực hiện chức năng quản trị theo đúng quyền riêng |
 | **Client** | Admin |
 | **Phạm vi** | MVP |
 | **Gồm** | `TEACHER`: hàng đợi câu hỏi AI, sửa nội dung học · `MODERATOR`: duyệt bài đăng và xử lý báo cáo · `CONTENT_EDITOR`: đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi · `ADMIN`: người dùng, role, cấu hình **và** gói dịch vụ, thẻ nạp, sổ cái (RFC R9) |

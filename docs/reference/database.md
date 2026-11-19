@@ -72,7 +72,7 @@ CREATE SCHEMA IF NOT EXISTS community;
 CREATE SCHEMA IF NOT EXISTS shared;
 ```
 
-### 2.1 · Bảy actor — sáu trong DB, một không
+### 2.1 · Sáu actor — năm role trong DB, một không
 
 | Actor | Tên | Số UC | Có trong `user_roles`? |
 |---|---|---|---|
@@ -80,11 +80,10 @@ CREATE SCHEMA IF NOT EXISTS shared;
 | `GUEST` | Khách | 16 | ❌ **không có tài khoản** |
 | `CONTENT_EDITOR` | Biên tập viên nội dung | 6 | ✅ |
 | `MODERATOR` | Kiểm duyệt viên | 4 | ✅ |
-| `ACCOUNTANT` | Kế toán | 0 — giữ mã, **không có quyền** (RFC R9) | ✅ |
 | `TEACHER` | Giáo viên | 4 | ✅ |
 | `ADMIN` | Quản trị viên | 7 — gồm tài chính (RFC R9) | ✅ |
 
-**7 actor = 6 role trong DB + `GUEST`.** Mã `ACCOUNTANT` vẫn trong CHECK `user_roles` để không phải migration (Hiến pháp v1.5.0).
+**6 actor = 5 role được cấp quyền + `GUEST`.** Mã `ACCOUNTANT` vẫn trong CHECK `user_roles` để không phải migration, nhưng là **mã dự phòng, không phải actor** — không role nào được cấp quyền qua nó (Hiến pháp v1.6.0).
 
 - `GUEST` — khách chưa đăng nhập, **không có dòng** trong `auth.users`. Kiểm bằng *"không có
   JWT"*, không bằng `role_code`.

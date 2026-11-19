@@ -4,7 +4,7 @@
 > **Bản final** · cập nhật 2026-10-01
 > **Tám file đặc tả:** `use-cases-01-xac-thuc` → `use-cases-08-quan-tri-he-thong`
 > (file catalog riêng đã bỏ — mỗi file tự liệt UC của nhóm mình)
-> **Role:** theo Hiến pháp §Bảy actor — 6 role trong DB + `GUEST`
+> **Role:** theo Hiến pháp §Sáu actor — 5 role được cấp quyền + `GUEST`
 
 ---
 

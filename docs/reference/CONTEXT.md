@@ -170,15 +170,15 @@ Ghi rõ để tránh phình scope:
 | **DK-17** | `GUEST` là **actor nhưng không phải role**; job định kỳ **không phải actor** | Thêm `GUEST` vào `user_roles` là sai vì `GUEST` không có tài khoản. Job `@Scheduled` nằm ở danh mục Background Job |
 | **DK-18** | Quyền quản trị: `CONTENT_EDITOR` (nội dung) và `ADMIN` (tài khoản, hệ thống **và tài chính**); `ACCOUNTANT` giữ mã, không có quyền (RFC R9, Hiến pháp v1.5.0) | Mã thẻ có giá trị tiền thật → bù tách quyền: không ai nạp mã do mình tạo; `NFR-S08` audit cả đọc sổ cái; `ADMIN` không tự cấp role |
 
-### 3.5 · Bảy actor
+### 3.5 · Sáu actor
 
 | Actor | Số UC | Trong `user_roles`? |
 |---|---|---|
 `LEARNER` | 79 | ✅ |
 `GUEST` | 16 | ❌ chưa đăng nhập |
-`CONTENT_EDITOR` · `MODERATOR` · `ACCOUNTANT` · `TEACHER` · `ADMIN` | 6 · 4 · 0 (không dùng) · 4 · 7 | ✅ |
+`CONTENT_EDITOR` · `MODERATOR` · `TEACHER` · `ADMIN` | 6 · 4 · 4 · 7 | ✅ |
 
-**7 actor = 6 role trong DB + `GUEST`.** Chi tiết quyền: Hiến pháp §Bảy actor.
+**6 actor = 5 role được cấp quyền + `GUEST`.** Mã `ACCOUNTANT` còn trong DB nhưng là mã dự phòng, không phải actor (Hiến pháp v1.6.0). Chi tiết quyền: Hiến pháp §Sáu actor.
 
 ---
 

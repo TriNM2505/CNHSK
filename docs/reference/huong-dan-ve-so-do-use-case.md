@@ -1,33 +1,33 @@
 # Hướng dẫn vẽ sơ đồ use case
 
 > Dành cho người vẽ sơ đồ use case đưa vào báo cáo. Bản này theo **133 use case**,
-> cập nhật 2026-10-19 (đổi tên actor, bỏ `SYSTEM`). Sơ đồ vẽ theo bản cũ cần vẽ lại.
+> cập nhật 2026-10-19 (đổi tên actor, bỏ `SYSTEM`); 2026-11-20 chốt **6 actor** theo Hiến pháp v1.6.0 (tài chính về `ADMIN`, bỏ `ACCOUNTANT`). Sơ đồ vẽ theo bản cũ cần vẽ lại.
 
 ## Bốn quyết định đã chốt
 
 | # | Vấn đề | Chốt |
 |---|---|---|
-| 1 | Tên actor | `GUEST` · `LEARNER` · `TEACHER` · `MODERATOR` · `CONTENT_EDITOR` · `ACCOUNTANT` · `ADMIN`. Chỉ actor quản trị tổng mang chữ "Admin" |
-| 2 | Ai duyệt câu hỏi AI ở UC-108, sửa câu hỏi ở UC-109 | **Chỉ `TEACHER`** |
+| 1 | Tên actor | `GUEST` · `LEARNER` · `TEACHER` · `MODERATOR` · `CONTENT_EDITOR` · `ADMIN`. Chỉ actor quản trị tổng mang chữ "Admin". `ACCOUNTANT` **không vẽ** — mã dự phòng trong DB, không phải actor |
+| 2 | Ai duyệt câu hỏi AI ở UC-108, sửa câu hỏi ở UC-109 | **`TEACHER` hoặc `CONTENT_EDITOR`** (BUS-07, spec 024) |
 | 3 | Có vẽ `SYSTEM` thành actor không | **Không.** 14 UC trước đây gán `SYSTEM` được xếp lại — mục 2 |
 | 4 | Số use case | **133** (137 − 4 UC rời danh sách ở mục 2) |
 
 ---
 
-## 1 · Bảy actor và phần việc riêng
+## 1 · Sáu actor và phần việc riêng
 
 | Actor | Tên | Chỉ actor này làm được |
 |---|---|---|
 | `GUEST` | Khách | Đăng ký, đăng nhập, tra từ giới hạn, xem nội dung công khai |
 | `LEARNER` | Người học | Học, luyện, thi, ôn, thư viện, game, cộng đồng, đổi mã thẻ |
-| `TEACHER` | Giáo viên | Duyệt câu hỏi AI, sửa nội dung câu hỏi — UC-108, UC-109 · chấm bài viết thuê — UC-104, UC-105 |
+| `TEACHER` | Giáo viên | Duyệt câu hỏi AI, sửa nội dung câu hỏi — UC-108, UC-109 (cùng `CONTENT_EDITOR`) · chấm bài viết thuê — UC-104, UC-105 |
 | `MODERATOR` | Kiểm duyệt viên | Duyệt bài đăng, xử lý báo cáo vi phạm |
-| `CONTENT_EDITOR` | Biên tập viên nội dung | Nhập dữ liệu, quản lý đề thi, cuộc thi — UC-110 → UC-113 |
-| `ACCOUNTANT` | Kế toán | Sổ cái, mã thẻ, gói dịch vụ — UC-099 → UC-102 |
-| `ADMIN` | Quản trị viên | Người dùng và phân quyền — UC-114 → UC-116 |
+| `CONTENT_EDITOR` | Biên tập viên nội dung | Nhập dữ liệu, quản lý đề thi, cuộc thi — UC-110 → UC-113 · duyệt, sửa câu hỏi AI — UC-108, UC-109 |
+| `ADMIN` | Quản trị viên | Người dùng và phân quyền — UC-114 → UC-116 · tài chính: sổ cái, mã thẻ, gói dịch vụ — UC-099 → UC-102 (RFC R9) |
 
-Nguyên tắc *phân tách nhiệm vụ* vẫn giữ: `CONTENT_EDITOR` không vào sổ cái, không sửa nội
-dung câu hỏi; `ACCOUNTANT` không nhập dữ liệu học; `ADMIN` không đụng sổ cái.
+Nguyên tắc *phân tách nhiệm vụ* giữ ở mức nội dung và quản trị: `CONTENT_EDITOR` không vào sổ
+cái; `ADMIN` không duyệt hay sửa nội dung câu hỏi, không duyệt bài cộng đồng. Tài chính gộp vào
+`ADMIN` có ba lớp bù: không nạp mã do chính mình tạo, audit cả thao tác đọc sổ cái, không tự cấp role.
 
 ---
 
@@ -63,7 +63,7 @@ của các use case đó.
 
 ---
 
-## 3 · Bảy sơ đồ nên vẽ
+## 3 · Bảy sơ đồ nên vẽ (6 actor)
 
 Một sơ đồ cho mỗi actor, trừ `LEARNER` phải chia nhỏ vì có 69 use case.
 
@@ -74,7 +74,7 @@ Một sơ đồ cho mỗi actor, trừ `LEARNER` phải chia nhỏ vì có 69 us
 | 3 | Người học — thi và tiến độ | `LEARNER` | ~20 | Gồm UC-130, UC-131 |
 | 4 | Người học — thư viện, cộng đồng, điểm | `LEARNER` | ~24 | Gồm UC-132 → UC-134, UC-136 |
 | 5 | Kiểm duyệt nội dung | `TEACHER` · `CONTENT_EDITOR` · `MODERATOR` | ~20 | Gồm UC-135, UC-137 |
-| 6 | Quản trị tài chính | `ACCOUNTANT` | 4 | |
+| 6 | Quản trị tài chính | `ADMIN` | 4 | UC-099 → UC-102 |
 | 7 | Quản trị hệ thống | `ADMIN` | 3 | |
 
 **Giới hạn 30 use case mỗi sơ đồ.** Vượt mức đó thì sơ đồ không đọc được khi in
@@ -176,9 +176,9 @@ dùng lại.
 |---|---|
 | Vẽ `SYSTEM`, `Worker`, `Scheduler`, `Caller` thành actor | Không phải actor. Bước tự động là «include»/«extend» của UC người dùng; việc chạy theo giờ là Background Job |
 | Vẽ tên module Java thành actor | `community` và `learning` là package, không phải actor |
-| Vẽ `ADMIN` gộp | Đã tách thành `CONTENT_EDITOR`, `ACCOUNTANT`, `ADMIN` |
+| Vẽ `ADMIN` gộp nội dung | Đã tách thành `CONTENT_EDITOR` (nội dung) và `ADMIN` (tài khoản, hệ thống, tài chính) |
 | Để `GUEST` trong danh sách gán role | `GUEST` là actor nhưng **không phải role**, không gán cho tài khoản được |
-| Ghi "Super Admin", "Content Admin", "Finance Admin", "Manager", "User" | Dùng `ADMIN`, `CONTENT_EDITOR`, `ACCOUNTANT`, `MODERATOR`, `LEARNER` |
+| Ghi "Super Admin", "Content Admin", "Finance Admin", "Manager", "User" | Dùng `ADMIN`, `CONTENT_EDITOR`, `MODERATOR`, `TEACHER`, `LEARNER` |
 | Vẽ mũi tên `«extend»` sai hướng | Trỏ từ use case chi tiết tới use case tổng quát |
 | Gộp 69 use case của `LEARNER` vào một sơ đồ | Chia ba sơ đồ theo nhóm chức năng |
 
@@ -188,7 +188,7 @@ dùng lại.
 
 | Cần gì | Xem ở đâu |
 |---|---|
-| Danh sách bảy actor và quyền | Hiến pháp, mục *Bảy actor* |
+| Danh sách sáu actor và quyền | Hiến pháp, mục *Sáu actor* |
 | Use case nào thuộc actor nào | Bảng tra nhanh đầu mỗi file `use-cases-*.md` |
 | Quan hệ của một use case tổng quát | Mục *Quan hệ use case* trong chính use case đó |
 | Màn hình nào cho actor nào | `design.md` mục 3 và mục 5.3 |

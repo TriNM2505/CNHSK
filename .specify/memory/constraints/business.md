@@ -22,8 +22,8 @@
   `sameSite=Lax` · `maxAge`. Bỏ `domain` thì `game.cnhsk.com` không nhận được cookie
 - **Header cho mobile:** React Native không có cookie như trình duyệt → dùng
   `Authorization: Bearer`. WebView chơi game: app tiêm token vào header
-- **RBAC 6 role trong DB:** `LEARNER` · `TEACHER` · `MODERATOR` · `CONTENT_EDITOR` ·
-  `ACCOUNTANT` · `ADMIN`. Từ 2026-11-03 `ACCOUNTANT` **giữ mã nhưng không có quyền** (RFC R9).
+- **RBAC 5 role được cấp quyền:** `LEARNER` · `TEACHER` · `MODERATOR` · `CONTENT_EDITOR` ·
+  `ADMIN`. Mã `ACCOUNTANT` còn trong DB/enum làm **mã dự phòng, không phải actor** (RFC R9; hiến pháp v1.6.0).
   Kiểm role từ JWT; trái quyền → **403** (không trả 401/404 để giấu endpoint)
 - **Một người có nhiều role được** — bảng nối `user_roles` đã thiết kế cho việc này
 - **Cộng 1 actor KHÔNG phải role trong DB:** `GUEST` — xem §1.1
@@ -31,10 +31,9 @@
 | Role | Tên | Quyền | Phạm vi |
 |---|---|---|---|
 | `LEARNER` | Người học | Học, thi, chơi game, đăng bài (chờ duyệt) | người dùng cuối |
-| `TEACHER` | Giáo viên | **Duy nhất** duyệt câu hỏi AI sinh và sửa nội dung câu hỏi; **chấm bài thuê** | chất lượng học thuật |
+| `TEACHER` | Giáo viên | Duyệt câu hỏi AI sinh và sửa nội dung câu hỏi (cùng `CONTENT_EDITOR`); **chấm bài thuê** | chất lượng học thuật |
 | `MODERATOR` | Kiểm duyệt viên | Duyệt bài đăng, xử lý báo cáo vi phạm | Community |
-| `CONTENT_EDITOR` | Biên tập viên nội dung | Nhập dữ liệu, quản lý đề thi và kho câu hỏi (trạng thái, xếp vào đề — **không** sửa nội dung câu), cuộc thi, tài liệu tham khảo | vận hành nội dung |
-| `ACCOUNTANT` | Kế toán | Không có quyền (giữ mã trong DB, RFC R9) | — |
+| `CONTENT_EDITOR` | Biên tập viên nội dung | Nhập dữ liệu, quản lý đề thi và kho câu hỏi, cuộc thi, tài liệu tham khảo; duyệt và sửa câu hỏi AI (cùng `TEACHER`) | vận hành nội dung |
 | `ADMIN` | Quản trị viên | Quản lý người dùng, gán role, cấu hình hệ thống, xem lịch sử đăng nhập · 🔴 **tài chính**: sinh/khoá lô mã thẻ, quản lý gói, xem/xuất/đối chiếu sổ cái | quản trị tổng + **tiền thật** |
 
 > 🔴 **Vì sao gộp tài chính vào `ADMIN` (RFC R9, 2026-11-03).** CNHSK là sản phẩm phễu, không quản lý
@@ -51,7 +50,7 @@
 |---|---|---|---|
 | `GUEST` | 16 | Khách chưa đăng nhập, **không có dòng** trong `users` | **Không có JWT** — không phải `role_code` |
 
-**Tổng: 7 actor = 6 role trong DB + `GUEST`.**
+**Tổng: 6 actor = 5 role được cấp quyền + `GUEST`.** `ACCOUNTANT` là mã dự phòng, không phải actor.
 
 > ⚠️ Đừng thêm `GUEST` vào bảng `user_roles` — `GUEST` không có tài khoản.
 >
@@ -135,9 +134,9 @@ Server PHẢI kiểm **ba điều kiện** trước khi lưu điểm:
 
 - Câu hỏi AI sinh vào DB với trạng thái **`PENDING_REVIEW`**
 - **KHÔNG BAO GIỜ** hiện câu `PENDING_REVIEW` cho người học
-- **Chỉ `TEACHER`** được duyệt và sửa nội dung câu hỏi. `CONTENT_EDITOR` và `ADMIN`
-  **không** duyệt nội dung — duyệt cần chuyên môn kiến thức, và một người chịu trách nhiệm
-  thì khi câu sai mới rõ ai sửa
+- **Chỉ `TEACHER` hoặc `CONTENT_EDITOR`** được duyệt và sửa nội dung câu hỏi (spec 024,
+  hiến pháp v1.6.0). `ADMIN` **không** duyệt nội dung — duyệt cần chuyên môn kiến thức; mỗi lần
+  duyệt ghi audit người duyệt nên khi câu sai vẫn rõ ai chịu trách nhiệm
 - AI lỗi hoặc timeout → dùng ngân hàng câu hỏi có sẵn và ghi log, **không** để người học thấy lỗi
 
 > Đây là điều nhóm đã chốt rõ: *"AI TỰ SINH, CÓ KIỂM DUYỆT"*.

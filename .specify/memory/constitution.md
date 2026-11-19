@@ -1,8 +1,8 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.4.1 → 1.5.0
-Bump rationale: MINOR — RFC đợt cuối (2026-11-03, R9, R10): nghiệp vụ tài chính chuyển từ ACCOUNTANT sang ADMIN (giữ mã role trong DB, không dùng); AC-09 thêm một ngoại lệ có tên cho users.free_usage. Không bỏ nguyên tắc nào.
+Version change: 1.5.0 → 1.6.0
+Bump rationale: MINOR — leader chốt 2026-11-20: đếm 6 actor (ACCOUNTANT là mã dự phòng, không phải actor); BUS-07 cho TEACHER hoặc CONTENT_EDITOR duyệt/sửa câu hỏi AI, khớp spec 024 và SecurityConfig. Không bỏ nguyên tắc nào.
 Lịch sử đầy đủ: CONSTITUTION_CHANGELOG.md
 
 Nguyên tắc được định nghĩa (5):
@@ -135,7 +135,7 @@ tin. Server luôn là nơi quyết định cuối cùng về tính hợp lệ, q
 Ba client (web chính, trang game, mobile) dùng chung một backend. Không client nào được
 coi là "đáng tin hơn" client khác.
 
-## Bảy actor
+## Sáu actor
 
 Đọc trước khi thiết kế bất cứ thứ gì liên quan quyền. Sai mục này dẫn tới thêm role không
 cần thiết vào DB, hoặc chặn mất role thật sự cần.
@@ -144,14 +144,14 @@ cần thiết vào DB, hoặc chặn mất role thật sự cần.
 |---|---|---|---|---|
 | `LEARNER` | Người học | 79 | ✅ | Học, thi, chơi game, đăng bài (chờ duyệt) |
 | `GUEST` | Khách | 16 | ❌ | Xem trang công khai, tra từ điển, đăng ký |
-| `CONTENT_EDITOR` | Biên tập viên nội dung | 6 | ✅ | Đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi |
+| `CONTENT_EDITOR` | Biên tập viên nội dung | 6 | ✅ | Đề thi, kho câu hỏi, nhập dữ liệu, cuộc thi, tài liệu tham khảo; duyệt và sửa câu hỏi AI (cùng `TEACHER`) |
 | `MODERATOR` | Kiểm duyệt viên | 4 | ✅ | Duyệt bài đăng, xử lý báo cáo — Community |
-| `ACCOUNTANT` | Kế toán | 0 | ✅ (giữ mã, **không dùng**) | Từ 2026-11-03 không có quyền nào — nghiệp vụ chuyển sang `ADMIN` (RFC R9) |
-| `TEACHER` | Giáo viên | 4 | ✅ | **Duy nhất** duyệt câu hỏi AI và sửa nội dung câu hỏi; chấm bài thuê |
+| `TEACHER` | Giáo viên | 4 | ✅ | Duyệt câu hỏi AI và sửa nội dung câu hỏi (cùng `CONTENT_EDITOR`); chấm bài thuê |
 | `ADMIN` | Quản trị viên | 7 | ✅ | Người dùng, gán role, cấu hình · 🔴 **tài chính**: sinh/khoá mã thẻ, gói dịch vụ, sổ cái — **tiền thật** |
 
-**7 actor = 6 role trong DB + `GUEST`.** Chỉ actor quản trị tổng mang chữ "Admin". Mã `ACCOUNTANT`
-vẫn nằm trong CHECK `user_roles` và enum `RoleCode` để không phải migration; không endpoint nào cấp quyền cho nó.
+**6 actor = 5 role được cấp quyền + `GUEST`.** Chỉ actor quản trị tổng mang chữ "Admin". Mã `ACCOUNTANT`
+vẫn nằm trong CHECK `user_roles` và enum `RoleCode` để không phải migration, nhưng là **mã dự phòng,
+không phải actor**: không endpoint nào cấp quyền cho nó; nghiệp vụ tài chính thuộc `ADMIN` (RFC R9, 2026-11-03).
 
 ### Actor không phải role
 
@@ -169,7 +169,7 @@ vẫn nằm trong CHECK `user_roles` và enum `RoleCode` để không phải mig
 ### Vì sao tách quyền quản trị
 
 - `CONTENT_EDITOR` vận hành nội dung → **không** có quyền tài chính
-- `TEACHER` duy nhất sửa nội dung câu hỏi → `ADMIN` **không** sửa nội dung câu hỏi
+- `TEACHER` và `CONTENT_EDITOR` duyệt, sửa nội dung câu hỏi → `ADMIN` **không** sửa nội dung câu hỏi
 - `ADMIN` quản trị tài khoản, hệ thống **và tài chính** (RFC R9, 2026-11-03). CNHSK là sản
   phẩm phễu, không quản lý doanh thu (xem *Mô hình kinh doanh*), nên không cần role kế toán riêng.
 
@@ -238,7 +238,7 @@ Vi phạm `BUS-*`: xử lý như `AC-*` — báo cáo và xin duyệt, cần RFC
 | **BUS-04** | Lịch ôn tập dùng **FSRS**, không dùng khoảng cố định kiểu Leitner | 41 | `business.md` §4 |
 | **BUS-05** | Ngưỡng hoàn thành chủ đề: **90%**. Đạt thì mở chủ đề tiếp theo | 33 | `business.md` §4, §9 |
 | **BUS-06** | Không lộ PII: email và số điện thoại PHẢI mask ở danh sách và log | 28 | `business.md` §8 |
-| **BUS-07** | Nội dung AI sinh LUÔN vào `PENDING_REVIEW`, chỉ `TEACHER` duyệt | 27 | `business.md` §6 |
+| **BUS-07** | Nội dung AI sinh LUÔN vào `PENDING_REVIEW`, chỉ `TEACHER` hoặc `CONTENT_EDITOR` duyệt | 27 | `business.md` §6 |
 | **BUS-08** | Ngày học, streak, nhắc lịch, reset bảng xếp hạng tính theo **giờ Việt Nam**. Riêng FSRS tính bằng **UTC** | 25 | `business.md` §3 · `AC-08` |
 | **BUS-09** | Chấm điểm PHẢI ở server. Kết quả client gửi lên là dữ liệu chưa đáng tin. Chấm bằng dịch vụ ngoài: xem mục chi tiết dưới | 19 | `HR-06` · Nguyên tắc V |
 | **BUS-10** | Xoá nội dung do người dùng tạo là **soft delete**. Truy vấn đọc PHẢI lọc bản ghi đã xoá | 14 | mới — xem dưới |
@@ -426,4 +426,4 @@ Những mục dưới đây nhóm chưa chốt. Ghi rõ ở đây thay vì giả
   🔴 **Đây là TODO duy nhất còn treo.** Chưa phê chuẩn thì các `HR-*` về hình thức chưa có
   hiệu lực ràng buộc.
 
-**Version**: 1.5.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-03
+**Version**: 1.6.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-20
