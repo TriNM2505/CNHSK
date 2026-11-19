@@ -1,0 +1,23 @@
+[data-assistant-open='false'] .grammar-catalog-content {
+  @apply pr-16;
+}
+
+.grammar-catalog [role='tablist'] {
+  @apply flex-wrap gap-2 overflow-visible rounded-md border border-brand-100 bg-brand-50 p-2 sm:p-3;
+}
+
+.grammar-catalog [role='tab'] {
+  @apply min-w-20 flex-1 rounded-sm border border-line bg-surface px-4 py-2 text-ink-secondary shadow-sm;
+}
+
+.grammar-catalog [role='tab'][aria-selected='true'] {
+  @apply border-brand-600 bg-brand-600 text-surface;
+}
+
+.grammar-catalog [role='tab']:hover {
+  @apply border-brand-600 bg-brand-50 text-brand-700;
+}
+
+.grammar-catalog [role='tab'][aria-selected='true']:hover {
+  @apply bg-brand-700 text-surface;
+}
