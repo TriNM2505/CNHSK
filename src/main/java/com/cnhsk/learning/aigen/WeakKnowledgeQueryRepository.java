@@ -160,13 +160,18 @@ public class WeakKnowledgeQueryRepository {
         }).toList();
     }
 
-    public List<String> existingStems(long knowledgePointId) {
+    /** Every linked stem in any status, with its raw options for the near-duplicate rule. */
+    public List<ExistingStem> existingStems(long knowledgePointId) {
         List<?> rows = entityManager.createNativeQuery("""
-                SELECT q.stem FROM learning.questions q
+                SELECT q.stem, q.options::text
+                FROM learning.questions q
                 JOIN learning.question_knowledge_points label ON label.question_id = q.id
                 WHERE label.knowledge_point_id = :id
-                """, String.class).setParameter("id", knowledgePointId).getResultList();
-        return rows.stream().map(String.class::cast).toList();
+                """).setParameter("id", knowledgePointId).getResultList();
+        return rows.stream().map(value -> {
+            Object[] row = (Object[]) value;
+            return new ExistingStem((String) row[0], (String) row[1]);
+        }).toList();
     }
 
     public Set<String> existingKidCodes(Set<String> kids) {
@@ -200,6 +205,8 @@ public class WeakKnowledgeQueryRepository {
     public record PromptLexeme(String text, String pinyin, String meaningVi) { }
     public record PromptQuestion(long id, String stem, String optionsJson, String explanation,
             boolean approvedPrimary) { }
+    /** {@code optionsJson} is the stored options array as text; it may be empty or legacy-shaped. */
+    public record ExistingStem(String stem, String optionsJson) { }
 
     private static long number(Object value) {
         if (value instanceof Number number) return number.longValue();

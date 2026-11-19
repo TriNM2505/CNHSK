@@ -8,8 +8,8 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.0.0 |
-| **Status** | APPROVED — leader duyệt 2026-11-14, được code theo `tasks.md` |
+| **Version** | 1.1.0 |
+| **Status** | APPROVED — leader duyệt 2026-11-14, được code theo `tasks.md` · v1.1.0 leader duyệt 2026-11-19: chống câu gần trùng (§0.3 chỉ dẫn không lặp mẫu, FR-007 `NEAR_DUPLICATE_STEM`, AT-09) |
 | **Phụ thuộc** | 010 (cây KID, `question_knowledge_points`, `/api/admin/questions`, SCR-059) · 011 (`MasteryReader`) · 015 (`ClaudeClient`, `TokenBudget`, `StubClaudeClient`) · 023 (`SettingsApi`, ⚿K7) · 001 (`AuthApi`, `AuditService`) |
 | **Quyết định chung** | Leader validate 2026-11-13: hệ thống tự sinh từ câu sai + dữ liệu cây tri thức, không học viên bấm, không thu phí; phải duyệt và gắn KID trước khi tới học viên · leader chốt 2026-11-14 (§9) |
 | **Người code** | Quốc Huy |
@@ -58,7 +58,7 @@ Câu (questions source='AI'):  PENDING_REVIEW ──approve──► APPROVED �
 
 - **Không có dữ liệu người học trong prompt** — chỉ số đếm tổng hợp nằm ở `payload`, không gửi Claude. Không cần `PiiMasker`.
 - Khối hệ thống 1 (cố định, `cache=true`): vai trò "giáo viên tiếng Trung soạn câu luyện cho người Việt"; câu hỏi bằng tiếng Trung giản thể, lời giải tiếng Việt; chỉ dùng từ/chữ trong danh sách cho phép; không chép đề thi có bản quyền; chỉ trả JSON đúng lược đồ.
-- Khối hệ thống 2 (theo nút, `cache=true`): `code`, `title`, `name_zh`, `can_do`, cấp HSK, tiêu đề các nút tiên quyết, danh sách từ/chữ gắn nút (`lexemes.knowledge_point_id`, ≤ 80 mục: `text`, `pinyin`, nghĩa), tối đa 3 câu `APPROVED` của nút làm ví dụ (stem + phương án + lời giải), các `error_kid`/`error_note` đã gặp ở nút.
+- Khối hệ thống 2 (theo nút, `cache=true`): `code`, `title`, `name_zh`, `can_do`, cấp HSK, tiêu đề các nút tiên quyết, danh sách từ/chữ gắn nút (`lexemes.knowledge_point_id`, ≤ 80 mục: `text`, `pinyin`, nghĩa), tối đa 3 câu `APPROVED` của nút làm ví dụ (stem + phương án + lời giải), các `error_kid`/`error_note` đã gặp ở nút. Khối 1 có thêm chỉ dẫn (v1.1): không lặp/viết lại gần giống câu trong `samples`; các câu trong lô khác ngữ cảnh và khía cạnh kiểm tra. Không gửi thêm câu nào ngoài 3 mẫu — chặn trùng với toàn bộ ngân hàng do FR-007 đảm nhiệm.
 - Tin nhắn người dùng: "Soạn {batch-size} câu trắc nghiệm 4 phương án cho nút {code}, mỗi phương án nhiễu kèm error_kid nếu phù hợp".
 - Đầu ra bắt buộc:
 
@@ -128,7 +128,7 @@ Câu (questions source='AI'):  PENDING_REVIEW ──approve──► APPROVED �
 |---|---|
 | **FR-005** | Với từng ứng viên, tuần tự: chèn `service_requests` `AI_GENERATE` `RUNNING`, `user_id = system-user-id`, `payload` §0.2 (transaction ngắn); dựng prompt §0.3 từ DB; gọi `ClaudeClient.complete(generate-model, …, maxTokens 4 000, timeout)` qua `TokenBudget.execute` **ngoài transaction** |
 | **FR-006** | Phân tích JSON đầu ra; hỏng → lô `FAILED` `INVALID_OUTPUT` (E2); ngân sách → `FAILED` `BUDGET_EXCEEDED` và dừng lần chạy (E3); timeout/lỗi mạng → `FAILED` `PROVIDER_ERROR`, `retry_count+1` (lần chạy sau có thể chọn lại KID) |
-| **FR-007** | `AiQuestionValidator` SHALL bỏ câu (ghi `dropped{index, reason}`) khi: `stem` không 1–500 ký tự; không đúng 4 phương án khoá `A`–`D` khác nhau, `text` 1–200 khác nhau; không đúng 1 `isCorrect`; `explanation` không 1–1 000; `difficulty` ngoài 1–3; `errorKid` có nhưng không tồn tại trong `knowledge_points`; `stem` (chuẩn hoá khoảng trắng) trùng câu có sẵn cùng KID hoặc trùng câu khác trong lô; có chữ Hán trong `stem`/phương án mà không có mục `CHAR` nào cấp ≤ cấp nút (E5) |
+| **FR-007** | `AiQuestionValidator` SHALL bỏ câu (ghi `dropped{index, reason}`) khi: `stem` không 1–500 ký tự; không đúng 4 phương án khoá `A`–`D` khác nhau, `text` 1–200 khác nhau; không đúng 1 `isCorrect`; `explanation` không 1–1 000; `difficulty` ngoài 1–3; `errorKid` có nhưng không tồn tại trong `knowledge_points`; `stem` (chuẩn hoá khoảng trắng) trùng câu có sẵn cùng KID hoặc trùng câu khác trong lô (`DUPLICATE_STEM`); `stem` gần trùng (`NEAR_DUPLICATE_STEM`) với câu có sẵn cùng KID (mọi trạng thái) hoặc câu đã nhận trước trong lô — sau khi bỏ dấu câu và khoảng trắng (giữ hoa/thường): bằng nhau; hoặc cùng ≥ 8 code point, cùng văn bản đáp án đúng (đã bỏ dấu câu/khoảng trắng), cùng dãy chữ số và Jaccard bigram code point ≥ 0,8; có chữ Hán trong `stem`/phương án mà không có mục `CHAR` nào cấp ≤ cấp nút (E5) |
 | **FR-008** | Trong **một transaction**: chèn câu hợp lệ `questions` (`qtype='MULTIPLE_CHOICE'`, `source='AI'`, `status='PENDING_REVIEW'`, `hsk_level` = cấp nút, `options` = `[{key, text, is_correct, error_kid?, error_note?}]`, `correct_key`, `explanation`, `difficulty`, `reusable=true`, `created_by_request_id` = id lô, `code = null`) + `question_knowledge_points` `PRIMARY` = KID; lô `COMPLETED`, `result` §0.2, `completed_at`. 0 câu hợp lệ → `FAILED` `NO_VALID_QUESTION` |
 | **FR-009** | Log mỗi lần chạy `INFO {candidates, batches, completed, failed, questions, inputTokens, outputTokens}`; không log prompt, nội dung câu |
 | **FR-010** | Test SHALL chỉ dùng `StubClaudeClient` + `Clock` cố định; không gọi Claude thật trong `verify` |
@@ -294,7 +294,7 @@ Lỗi gọi Claude chỉ ghi `service_requests.error_message`, không trả cho 
 | AT-06 | FR-004, E7 | Lô `RUNNING` 11 phút trước · T thành `FAILED` `STALE` trước khi chọn |
 | AT-07 | FR-005, FR-008 | Stub trả 5 câu hợp lệ · T 5 câu `source='AI'`, `PENDING_REVIEW`, KID `PRIMARY`, `created_by_request_id`, lô `COMPLETED` có token |
 | AT-08 | FR-006, E2, E3 | Stub trả chuỗi không phải JSON · T `FAILED INVALID_OUTPUT`, 0 câu; ngân sách hết · T `FAILED BUDGET_EXCEEDED`, lô sau không chạy |
-| AT-09 | FR-007, E5 | Lô có câu 2 đáp án đúng, câu trùng stem có sẵn, câu chữ vượt cấp, `errorKid` không tồn tại · T các câu đó ở `dropped` đúng lý do, câu còn lại lưu |
+| AT-09 | FR-007, E5 | Lô có câu 2 đáp án đúng, câu trùng stem có sẵn, câu chữ vượt cấp, `errorKid` không tồn tại · T các câu đó ở `dropped` đúng lý do, câu còn lại lưu · v1.1: câu chỉ khác dấu câu/khoảng trắng, câu gần giống ≥ 0,8 cùng đáp án đúng · T `NEAR_DUPLICATE_STEM`; cùng mức giống nhưng khác đáp án, khác dãy số hoặc < 8 code point · T giữ; vẫn đúng một lượt đọc nội dung khi không có `errorKid`/chữ Hán |
 | AT-10 | §0.3 | Prompt dựng ra không chứa id/tên/email người học; chứa `can_do`, `name_zh`, danh sách từ của nút |
 | AT-11 | FR-011 | Hàng chờ chỉ có câu AI `PENDING_REVIEW`, cũ nhất trước; `ADMIN` gọi · T 403 |
 | AT-12 | FR-014, E1 | Câu thiếu KID `PRIMARY` · T 422 `MALFORMED_QUESTION`; hợp lệ · T `APPROVED`, `reviewed_by`; hai người duyệt song song · T 200 + 409 |

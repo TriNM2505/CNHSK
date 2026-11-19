@@ -40,6 +40,8 @@ public class AiPromptBuilder {
             Mỗi câu có stem 1–500 ký tự, đúng bốn phương án A–D khác nội dung, mỗi text 1–200 ký tự,
             đúng một isCorrect=true, explanation 1–1000 ký tự, difficulty là số nguyên từ 1 đến 3.
             Chỉ phương án sai mới có errorKid/errorNote; bỏ trường đó khi không phù hợp.
+            Không lặp lại hoặc viết lại gần giống câu nào trong samples.
+            Các câu trong cùng lô phải khác ngữ cảnh và kiểm tra khía cạnh khác nhau của nút.
             """;
 
     private final WeakKnowledgeQueryRepository repository;

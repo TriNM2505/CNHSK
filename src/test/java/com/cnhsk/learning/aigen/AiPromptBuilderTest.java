@@ -80,6 +80,16 @@ class AiPromptBuilderTest {
     }
 
     @Test
+    void instructsTheModelNotToRepeatSamplesOrItselfWithoutSendingMoreContent() throws Exception {
+        content(17, "NP1-001", "title", "Can do");
+        var prompt = builder.build(17, 5);
+        assertThat(prompt.systemBlocks().get(0).text())
+                .contains("Không lặp lại hoặc viết lại gần giống câu nào trong samples.")
+                .contains("Các câu trong cùng lô phải khác ngữ cảnh");
+        assertThat(mapper.readTree(prompt.systemBlocks().get(1).text()).has("existing_stems")).isFalse();
+    }
+
+    @Test
     void refusesMissingOrIncompleteContentInsteadOfInventingAPrompt() {
         when(repository.promptNode(17)).thenReturn(Optional.empty());
         assertThatThrownBy(() -> builder.build(17, 5)).isInstanceOf(AiPromptBuilder.PromptContextException.class).hasMessage("MISSING_NODE").hasNoCause();
