@@ -4,7 +4,7 @@
 | --- | --- |
 | **Trạng thái** | Khung giao diện đã khoá cho đợt làm lại giao diện; inventory 79 màn FINAL |
 | **Status** | APPROVED |
-| **Version** | 1.6 |
+| **Version** | 1.7 |
 | **Owner** | Nhóm CNHSK |
 | **Approved by** | Leader nhóm |
 | **Locked on** | 2026-11-17 |
@@ -63,8 +63,12 @@ Tài liệu tham khảo:
 - Screen List (`docs/generated/cnhsk-screen-list.docx`) và Screen Flow (`docs/generated/cnhsk-screen-flow.png`): cấu trúc UI FINAL, 79 màn; tình trạng file nguồn xem §5.
 - [screen-fields.md](screen-fields.md): đặc tả UI chi tiết duy nhất cho SCR-001–SCR-079.
 
-Chỉ học nguyên tắc thiết kế; không sao chép logo, ảnh, minh họa, nội dung, font
-độc quyền hoặc bố cục nguyên bản của website tham khảo.
+Với Học Bá (leader chốt 2026-11-20, công ty Học Bá đã duyệt): logo Học Bá là logo của
+sản phẩm ở mọi header, màn đang dựng và favicon (`shared/brand/HocBaLogo`); Landing
+SCR-001 dựng theo bố cục, ảnh minh hoạ và nội dung giới thiệu của trang chủ Học Bá,
+kèm một khối tính năng CNHSK. **Không** dùng ảnh, tên hay lời nhận xét của học viên
+thật; không đưa font Gilroy vào repo. Các website tham khảo khác: chỉ học nguyên tắc
+thiết kế, không sao chép logo, ảnh, nội dung hay bố cục.
 
 ---
 
@@ -588,8 +592,8 @@ Tỷ lệ Unwanted: 12/27 luật = 44,4%.
 
 ## 14. Out of Scope
 
-- File này không định nghĩa logo cuối cùng, ảnh minh họa hoặc bộ icon độc quyền
-  của thương hiệu; linh vật dùng theo RD-09.
+- Logo sản phẩm là logo Học Bá (§0, v1.7); file này không định nghĩa ảnh minh họa
+  hay bộ icon độc quyền; linh vật dùng theo RD-09.
 - Không quy định thuật toán FSRS, chấm điểm, chống gian lận hoặc business rule
   phía server ngoài cách thể hiện trạng thái.
 - Không thiết kế lại website marketing `CNHSK.today` theo từng pixel.
@@ -610,7 +614,7 @@ Không còn câu hỏi mở. Các câu bản 0.1 đã chốt:
 | # | Câu hỏi | Chốt (2026-11-16) |
 | --- | --- | --- |
 | 1 | Trình duyệt tối thiểu? | Chrome, Edge, Firefox hai bản mới nhất; Safari 16+ (macOS, iOS); Chrome Android hai bản mới nhất (§2) |
-| 2 | Logo wordmark hay biểu tượng? | Tạm dùng wordmark chữ "CNHSK" như header hiện tại. Logo chính thức làm sau, theo phong cách đỏ–vàng của Học Bá; được dùng hình ảnh/asset Học Bá theo sự cho phép ghi ở §0 (cập nhật 2026-11-17) |
+| 2 | Logo wordmark hay biểu tượng? | Dùng logo Học Bá ở mọi header, màn đang dựng và favicon; bản trắng trên nền đỏ (cập nhật 2026-11-20, §0) |
 | 3 | Dark mode trong MVP? | Không (§14) |
 | 4 | Web game dùng Phaser 3 hay Canvas? | React + DOM/SVG, không Phaser (§2) |
 | 5 | Thư viện biểu đồ React Native? | Không áp dụng — đã bỏ mobile |
@@ -628,6 +632,7 @@ Không còn câu hỏi mở. Các câu bản 0.1 đã chốt:
 | 1.4 | 2026-11-17 | RD-09: linh vật gấu trúc dùng được ở mọi màn | Leader nhóm |
 | 1.5 | 2026-11-20 | §3, §5.3: sáu actor theo Hiến pháp v1.6.0 — tài chính SCR-073–075 thuộc `ADMIN`, `ACCOUNTANT` là mã dự phòng; `TEACHER` hoặc `CONTENT_EDITOR` duyệt câu hỏi AI | Leader nhóm |
 | 1.6 | 2026-11-20 | §3, §5.3: chỉ `TEACHER` duyệt và sửa câu hỏi AI (SCR-058, nút sửa/duyệt SCR-059) theo Hiến pháp v1.7.0; `CONTENT_EDITOR` chỉ xem, lưu trữ | Leader nhóm |
+| 1.7 | 2026-11-20 | §0, Open Questions: logo Học Bá thay wordmark CNHSK; Landing SCR-001 theo bố cục và nội dung trang chủ Học Bá (công ty Học Bá đã duyệt), không dùng ảnh/nhận xét học viên thật | Leader nhóm |
 
 ---
 
