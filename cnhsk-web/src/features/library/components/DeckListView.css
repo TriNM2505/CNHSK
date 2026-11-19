@@ -1,0 +1,35 @@
+.deck-library .deck-text {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+[data-assistant-open='true'] .deck-workspace {
+  @apply grid-cols-1;
+}
+
+[data-assistant-open='true'] .deck-catalog {
+  @apply col-span-1;
+}
+
+[data-assistant-open='true'] .deck-create-panel {
+  @apply static;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .deck-enter {
+    animation: deck-reveal 200ms ease-out both;
+  }
+
+  @keyframes deck-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(theme('spacing.2'));
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

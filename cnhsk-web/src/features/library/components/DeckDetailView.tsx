@@ -7,7 +7,6 @@ import {
   ErrorState,
   FormField,
   Input,
-  PageHeader,
   Pagination,
   Skeleton,
   Textarea,
@@ -23,6 +22,8 @@ import {
   type DeckDraft,
 } from '../flashcardForms'
 import type { Card, DeckDetail } from '../types'
+import { DeckDetailBanner, DeckDetailText } from './DeckDetailParts'
+import './LibraryView.css'
 
 export interface DeckDetailViewProps {
   state: ApiQueryState
@@ -55,15 +56,8 @@ export interface DeckDetailViewProps {
 export function DeckDetailView(props: DeckDetailViewProps) {
   const page = clientPage(props.page, props.deck?.cards.length ?? 0)
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <PageHeader
-        title={props.deck?.name ?? 'Chi tiết bộ thẻ'}
-        actions={
-          <Button to="/library/decks" variant="outline">
-            Về danh sách bộ thẻ
-          </Button>
-        }
-      />
+    <div className="library-screen mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-24 sm:px-6 lg:px-8">
+      <DeckDetailBanner name={props.deck?.name} />
       {props.notice ? (
         <p role="status" className="text-body text-success">
           {props.notice}
@@ -97,7 +91,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
           <>
             {props.deck.description ? (
               <p className="whitespace-pre-wrap break-words text-body text-ink-secondary">
-                {props.deck.description}
+                <DeckDetailText text={props.deck.description} />
               </p>
             ) : null}
             <p className="text-body-sm text-ink-secondary">
@@ -111,8 +105,8 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                 Xoá bộ thẻ
               </Button>
             </div>
-            <div className="grid items-start gap-6 lg:grid-cols-2">
-              <section aria-label="Thẻ trong bộ" className="space-y-4">
+            <div className="deck-detail-workspace grid min-w-0 items-start gap-6 lg:grid-cols-2">
+              <section aria-label="Thẻ trong bộ" className="min-w-0 space-y-4">
                 {props.state === 'ready' && props.deck.cards.length === 0 ? (
                   <EmptyState
                     title="Bộ thẻ trống"
@@ -127,13 +121,13 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                         .map((card) => (
                           <li
                             key={card.id}
-                            className="space-y-3 rounded-md border border-line bg-surface p-4"
+                            className="space-y-3 rounded-md border border-brand-100 bg-surface p-4 shadow-sm"
                           >
                             <p className="whitespace-pre-wrap break-words text-h3 text-ink">
-                              {card.front}
+                              <DeckDetailText text={card.front} />
                             </p>
                             <p className="whitespace-pre-wrap break-words text-body text-ink-secondary">
-                              {card.back}
+                              <DeckDetailText text={card.back} />
                             </p>
                             <p className="text-caption text-ink-secondary">
                               {card.dueAt ? (
@@ -146,7 +140,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                               )}{' '}
                               · {card.reviewCount} lượt ôn · {card.lapseCount} lần quên
                             </p>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <Button
                                 disabled={props.busy}
                                 variant="outline"
@@ -174,11 +168,11 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                   </>
                 ) : null}
               </section>
-              <div className="space-y-6">
+              <div className="deck-detail-editors min-w-0 space-y-6 lg:sticky lg:top-20">
                 <form
                   aria-label="Sửa bộ thẻ"
                   noValidate
-                  className="space-y-3 rounded-md border border-line bg-surface p-4"
+                  className="space-y-3 rounded-md border border-brand-100 bg-surface p-4 shadow-sm"
                   onSubmit={(event) => {
                     event.preventDefault()
                     props.onSaveDeck()
@@ -194,6 +188,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                       hint={`${characterCount(props.deckDraft.name)}/100 ký tự`}
                     >
                       <Input
+                        className="font-hanzi"
                         value={props.deckDraft.name}
                         onChange={(event) =>
                           props.onDeckChange({ ...props.deckDraft, name: event.target.value })
@@ -206,6 +201,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                       hint={`${characterCount(props.deckDraft.description)}/500 ký tự`}
                     >
                       <Textarea
+                        className="min-h-24 font-hanzi"
                         value={props.deckDraft.description}
                         onChange={(event) =>
                           props.onDeckChange({
@@ -228,7 +224,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                 <form
                   aria-label="Soạn thẻ"
                   noValidate
-                  className="space-y-3 rounded-md border border-line bg-surface p-4"
+                  className="space-y-3 rounded-md border border-brand-100 bg-surface p-4 shadow-sm"
                   onSubmit={(event) => {
                     event.preventDefault()
                     props.onSaveCard()
@@ -246,6 +242,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                       hint={`${characterCount(props.cardDraft.front)}/200 ký tự`}
                     >
                       <Textarea
+                        className="min-h-24 font-hanzi"
                         value={props.cardDraft.front}
                         onChange={(event) =>
                           props.onCardChange({ ...props.cardDraft, front: event.target.value })
@@ -259,6 +256,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                       hint={`${characterCount(props.cardDraft.back)}/2.000 ký tự`}
                     >
                       <Textarea
+                        className="min-h-24 font-hanzi"
                         value={props.cardDraft.back}
                         onChange={(event) =>
                           props.onCardChange({ ...props.cardDraft, back: event.target.value })
@@ -271,7 +269,7 @@ export function DeckDetailView(props: DeckDetailViewProps) {
                       {props.cardValidation}
                     </p>
                   ) : null}
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button type="submit" disabled={props.busy}>
                       Lưu thẻ
                     </Button>

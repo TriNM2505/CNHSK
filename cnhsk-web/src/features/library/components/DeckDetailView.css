@@ -1,0 +1,7 @@
+[data-assistant-open='true'] .deck-detail-workspace {
+  @apply grid-cols-1;
+}
+
+[data-assistant-open='true'] .deck-detail-editors {
+  @apply static;
+}
