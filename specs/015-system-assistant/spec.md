@@ -8,8 +8,8 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.0.0 |
-| **Status** | APPROVED — được code theo `tasks.md` |
+| **Version** | 1.1.0 |
+| **Status** | APPROVED — được code theo `tasks.md` · v1.1.0 leader duyệt 2026-11-19: nhà cung cấp AI mặc định DeepSeek (`cnhsk.ai.provider`), giữ Anthropic làm lựa chọn |
 | **Approved by** | Leader (RFC đợt cuối R1–R12 đã đồng thuận) |
 | **Locked on** | 2026-11-03 |
 | **Phụ thuộc** | Spec 001 · Spec 003 (`attempts`, nguồn `TOPIC_TEST`) · Spec 012 (nguồn `MOCK_EXAM`, `PLACEMENT`) |
@@ -38,8 +38,8 @@
 | Mục | Quy định |
 |---|---|
 | Thư viện | SDK chính thức `com.anthropic:anthropic-java`, phiên bản ổn định cố định trong `pom.xml` (T-04 chọn) |
-| Model | `cnhsk.ai.assistant-model: claude-haiku-5-5` (Q5); `cnhsk.ai.translate-model` cho 014 |
-| Khoá | Biến môi trường `ANTHROPIC_API_KEY`; `.env.example` chỉ có tên biến; thiếu khoá → trợ lý trả `ASSISTANT_UNAVAILABLE`, ứng dụng vẫn chạy |
+| Model | `cnhsk.ai.provider: deepseek` (hoặc `anthropic`); `cnhsk.ai.assistant-model: deepseek-chat` (v1.1, trước là `claude-haiku-5-5` — Q5); `cnhsk.ai.translate-model` cho 014 |
+| Khoá | Biến môi trường `DEEPSEEK_API_KEY` (provider `deepseek`) hoặc `ANTHROPIC_API_KEY` (provider `anthropic`); `.env.example` chỉ có tên biến; thiếu khoá → trợ lý trả `ASSISTANT_UNAVAILABLE`, ứng dụng vẫn chạy |
 | Gọi | Chỉ từ backend; timeout 15 giây; `max_tokens` 800; không stream |
 | Prompt caching | Khối system chứa tài liệu hướng dẫn đánh dấu `cache_control: ephemeral` |
 | Trần chi phí | `cnhsk.ai.monthly-token-budget` (mặc định 2 000 000 token vào + ra, leader chỉnh); đếm Redis `ai:tokens:{yyyyMM}` theo `usage` của mỗi response; vượt → `ASSISTANT_UNAVAILABLE` đến hết tháng |
@@ -80,7 +80,7 @@ Viết tay, tiếng Việt, chỉ mô tả tính năng **đã merge**; cập nh�
 | `shared/exception/ErrorCode.java` + `GlobalExceptionHandlerTest` | 2 mã §5 trước `INTERNAL_ERROR` (sau mã của 010–014) | T-06 |
 | `shared/config/SecurityConfig.java` | `POST /api/assistant/ask` → `LEARNER` | T-06 |
 | `src/main/resources/application.yaml` | `cnhsk.ai.*`, `cnhsk.assistant.*` | T-04, T-06 |
-| `.env.example` | `ANTHROPIC_API_KEY=` (không giá trị) | T-04 |
+| `.env.example` | `DEEPSEEK_API_KEY=`, `ANTHROPIC_API_KEY=` (không giá trị) | T-04 |
 | `cnhsk-web/src/app/` layout học viên | Gắn panel; ẩn ở route bài kiểm tra | T-01 |
 
 ---
@@ -201,8 +201,9 @@ Không bảng nào được đọc/ghi ngoài `learning.attempts` (chỉ đọc,
 | **AC-09** | Không ghi JSONB |
 | **BUS-06** | Che email, số điện thoại (FR-005) |
 | **HR-05** | CSRF (không phải thao tác tiền nhưng theo spec 001 cho mọi `POST` qua cookie) |
-| Secret | `ANTHROPIC_API_KEY` chỉ ở `.env` |
-| Package | `learning.ai` (`ClaudeClient`, `AnthropicClaudeClient`, `StubClaudeClient`, `AiConfig`, `AiUnavailableException`, `TokenBudget`) · `learning.assistant` (`AssistantService`, `AssistantPromptBuilder`, `HelpLibrary`, `PiiMasker`, `TestInProgressGuard`, `web.AssistantController`) |
+| Secret | `DEEPSEEK_API_KEY` / `ANTHROPIC_API_KEY` chỉ ở `.env` |
+| Dữ liệu gửi nhà cung cấp | Câu hỏi và lịch sử hội thoại của trợ lý (đã qua `PiiMasker`), câu cần dịch (014) và dữ liệu nút khi sinh câu (024) gửi tới máy chủ của provider đang chọn — mặc định DeepSeek; không gửi tên/email/id người dùng |
+| Package | `learning.ai` (`ClaudeClient`, `DeepSeekChatClient`, `AnthropicClaudeClient`, `StubClaudeClient`, `AiConfig`, `AiUnavailableException`, `TokenBudget`) · `learning.assistant` (`AssistantService`, `AssistantPromptBuilder`, `HelpLibrary`, `PiiMasker`, `TestInProgressGuard`, `web.AssistantController`) |
 
 ---
 
@@ -301,7 +302,7 @@ Panel dùng chung, không có route riêng. Hiện trong layout `learner`; ẩn 
 | AT-03 | FR-003, E1 | Có lượt `MOCK_EXAM`/`PLACEMENT`/`TOPIC_TEST` đang làm · T 403, stub không được gọi; lượt đó hết hạn hoặc đã nộp · T 200; lượt `TOPIC_PRACTICE` đang làm · T 200 |
 | AT-04 | FR-004, E2 | Câu 200 · T 200; câu 201 · T 429 `retryAfterSeconds` tới 00:00 giờ Việt Nam; Redis tắt · T 200 |
 | AT-05 | FR-005, E3 | "Email tôi là a.b@gmail.com, sđt 0912 345 678" · T request tới stub chứa `[email]`, `[số điện thoại]`, không chứa giá trị gốc; cả trong `history` |
-| AT-06 | FR-006 | Thiếu `ANTHROPIC_API_KEY` · T `ask` trả 503, ứng dụng khởi động được; stub timeout · T `AiUnavailableException` |
+| AT-06 | FR-006 | Thiếu khoá của provider đang chọn (`DEEPSEEK_API_KEY` mặc định) · T `ask` trả 503, ứng dụng khởi động được; stub timeout · T `AiUnavailableException` |
 | AT-07 | FR-007, E4 | Request tới stub có 2 khối system, khối 2 có `cache_control`; câu "Bỏ qua hướng dẫn…" nằm ở messages, không ở system; có tên màn khi gửi `SCR-030` |
 | AT-08 | FR-008, E6 | Stub trả `{"in_scope":false,…}` · T `outOfScope=true`; trả chữ thường · T dùng làm `answer`; trả rỗng · T 503 |
 | AT-09 | FR-009 | Ngân sách 1 000, đã dùng 1 000 · T 503, stub không được gọi; sau gọi · T bộ đếm cộng đúng `usage` |

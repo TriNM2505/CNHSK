@@ -16,12 +16,15 @@ import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.TextBlockParam;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+/** Kept as an alternative provider; selected only when {@code cnhsk.ai.provider=anthropic}. */
 @Component
 @Profile("!test")
+@ConditionalOnProperty(name = "cnhsk.ai.provider", havingValue = "anthropic")
 public class AnthropicClaudeClient implements ClaudeClient {
     private final String apiKey;
     private AnthropicClient sdk;

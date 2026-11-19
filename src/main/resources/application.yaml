@@ -96,9 +96,12 @@ cnhsk:
     free-monthly-limit: 10
     downgrade-cron: "0 10 0 * * *"
   ai:
-    assistant-model: claude-haiku-5-5
-    translate-model: claude-haiku-5-5
-    generate-model: claude-sonnet-5-5
+    # deepseek (DEEPSEEK_API_KEY) or anthropic (ANTHROPIC_API_KEY); model names below must match the provider.
+    provider: deepseek
+    deepseek-base-url: https://api.deepseek.com
+    assistant-model: deepseek-chat
+    translate-model: deepseek-chat
+    generate-model: deepseek-chat
     timeout: 15s
     monthly-token-budget: 2000000
   ai-generate:

@@ -80,7 +80,7 @@ class AssistantControllerIntegrationTest extends AbstractIntegrationTest {
 
             var messages = org.mockito.ArgumentCaptor.forClass(List.class);
             var systems = org.mockito.ArgumentCaptor.forClass(List.class);
-            org.mockito.Mockito.verify(stub).complete(org.mockito.ArgumentMatchers.eq("claude-haiku-5-5"),
+            org.mockito.Mockito.verify(stub).complete(org.mockito.ArgumentMatchers.eq("deepseek-chat"),
                     systems.capture(), messages.capture(), org.mockito.ArgumentMatchers.eq(800),
                     org.mockito.ArgumentMatchers.any());
             List<ClaudeClient.SystemBlock> systemBlocks = systems.getValue();

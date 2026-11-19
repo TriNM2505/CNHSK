@@ -12,6 +12,7 @@ import java.util.function.ToIntFunction;
 
 import com.cnhsk.learning.ai.AnthropicClaudeClient;
 import com.cnhsk.learning.ai.ClaudeClient;
+import com.cnhsk.learning.ai.DeepSeekChatClient;
 import com.cnhsk.learning.ai.StubClaudeClient;
 import com.cnhsk.shared.settings.SettingKey;
 import com.cnhsk.shared.settings.SettingsAdminModels.SettingReset;
@@ -133,9 +134,10 @@ class AiGenerateConfigIntegrationTest extends AbstractIntegrationTest {
     private void assertOfflineConfiguration() {
         assertThat(context.getBeansOfType(ClaudeClient.class)).hasSize(1).containsValue(stub);
         assertThat(context.getBeansOfType(AnthropicClaudeClient.class)).isEmpty();
+        assertThat(context.getBeansOfType(DeepSeekChatClient.class)).isEmpty();
         assertThat(stub.callCount()).isEqualTo(callsBefore);
         assertThat(config.getCron()).isEqualTo("-");
-        assertThat(config.getGenerateModel()).isEqualTo("claude-sonnet-5-5");
+        assertThat(config.getGenerateModel()).isEqualTo("deepseek-chat");
         assertThat(config.getTimeout()).isEqualTo(Duration.ofSeconds(60));
         assertThat(Arrays.stream(AiGenerateConfig.class.getDeclaredMethods())
                 .map(method -> method.getAnnotation(Scheduled.class))).allMatch(annotation -> annotation == null);
