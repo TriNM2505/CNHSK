@@ -166,7 +166,7 @@ describe('application routes', () => {
     renderRoute('/')
 
     expect(
-      await screen.findByRole('heading', { name: 'Học tiếng Trung rõ ràng, từng bước một' }),
+      await screen.findByRole('heading', { name: 'Chương trình đào tạo toàn diện' }),
     ).toBeVisible()
   })
 
@@ -341,7 +341,7 @@ describe('application routes', () => {
   it('always moves a banned account to login with a safe notice', async () => {
     getCurrentUserMock.mockResolvedValue(learner)
     const { router } = renderRoute('/')
-    await screen.findByRole('heading', { name: 'Học tiếng Trung rõ ràng, từng bước một' })
+    await screen.findByRole('heading', { name: 'Chương trình đào tạo toàn diện' })
 
     act(() =>
       window.dispatchEvent(

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
+import { HocBaLogo } from '@/shared/brand'
 import { AccountMenu } from '@/shared/layout/AccountMenu'
 import { cn } from '@/shared/lib/cn'
 import { useCurrentUser } from '@/shared/auth'
@@ -17,15 +18,11 @@ export function BrandLink({ inverse = false }: { inverse?: boolean }) {
     <Link
       aria-label="CNHSK - Trang chủ"
       className={cn(
-        'inline-flex min-h-touch items-center gap-2 rounded-sm text-h3 no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
-        inverse ? 'text-surface' : 'text-brand-700',
+        'inline-flex min-h-touch items-center rounded-sm no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
       )}
       to="/"
     >
-      <span aria-hidden="true" className="font-hanzi text-h2">
-        汉
-      </span>
-      <span>CNHSK</span>
+      <HocBaLogo alt="" inverse={inverse} />
     </Link>
   )
 }

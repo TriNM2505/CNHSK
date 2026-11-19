@@ -2,6 +2,7 @@ import { CircleAlert } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 
 import type { AuthNavigationState } from '@/shared/auth'
+import { HocBaLogo } from '@/shared/brand'
 
 type ScreenUnderConstructionPageProps = {
   scr: `SCR-${string}`
@@ -35,7 +36,7 @@ export function ScreenUnderConstructionPage({
             </div>
           </section>
         ) : null}
-        <p className="text-label text-brand-600">CNHSK</p>
+        <HocBaLogo className="mx-auto h-12" />
         <h1 className="mt-2 text-h1-sm text-ink sm:text-h1">Màn {scr} đang dựng</h1>
         <p className="mt-3 text-body text-ink-secondary">
           Nội dung màn hình sẽ được hoàn thiện ở task chuyên biệt.

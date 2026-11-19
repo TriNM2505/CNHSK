@@ -51,9 +51,7 @@ describe('Scr001LandingPage', () => {
   it('hiện hero và phần giới thiệu trong lúc kiểm tra phiên', () => {
     renderPage({ status: 'loading' })
 
-    expect(
-      screen.getByRole('heading', { name: 'Học tiếng Trung rõ ràng, từng bước một' }),
-    ).toBeVisible()
+    expect(screen.getByRole('heading', { name: 'Chương trình đào tạo toàn diện' })).toBeVisible()
     expect(screen.getByRole('heading', { name: 'Học theo cách phù hợp với bạn' })).toBeVisible()
     expect(screen.getByLabelText('Đang kiểm tra phiên đăng nhập')).toBeVisible()
   })
@@ -93,11 +91,51 @@ describe('Scr001LandingPage', () => {
   it('các khối giới thiệu không phải liên kết', () => {
     renderPage()
 
-    for (const name of ['Chủ đề', 'Ngữ pháp', 'Phát âm', 'Chữ Hán', 'Game']) {
+    for (const name of ['Chủ đề', 'Ngữ pháp', 'Phát âm', 'Chữ Hán', 'Thi thử HSK', 'Game']) {
       expect(screen.getByRole('heading', { name })).toBeVisible()
       expect(screen.queryByRole('link', { name })).not.toBeInTheDocument()
     }
     expect(screen.queryByText(/mức thành thạo/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/bảng xếp hạng/i)).not.toBeInTheDocument()
+  })
+
+  it('giới thiệu Học Bá với logo, khoá học, cố vấn và mở trang Học Bá ở tab mới', () => {
+    renderPage()
+
+    expect(screen.getByRole('img', { name: 'Học Bá Education' })).toBeVisible()
+    for (const name of [
+      'Học Bá Education',
+      'Khám phá khoá học của Học Bá',
+      'Học Bá HSK 3.0',
+      'Học Bá Chinese',
+      'Lấy chất lượng làm giá trị cốt lõi',
+      'Cố vấn chuyên môn quốc tế độc quyền',
+    ]) {
+      expect(screen.getByRole('heading', { name })).toBeVisible()
+    }
+
+    for (const name of [
+      'Xem thêm về Học Bá',
+      'Xem chi tiết khoá Học Bá HSK 3.0',
+      'Xem chi tiết khoá Học Bá Chinese',
+      'Xem hồ sơ chuyên gia',
+      'Đăng ký tư vấn Học Bá',
+    ]) {
+      const link = screen.getByRole('link', { name })
+      expect(link).toHaveAttribute('href', 'https://hoc-ba.edu.vn/')
+      expect(link).toHaveAttribute('target', '_blank')
+      expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
+    }
+    expect(screen.getByRole('link', { name: 'Tạo tài khoản CNHSK' })).toHaveAttribute(
+      'href',
+      '/register',
+    )
+  })
+
+  it('người đã đăng nhập không thấy khối kêu gọi đăng ký', () => {
+    renderPage({ status: 'authenticated', user: multiAreaUser })
+
+    expect(screen.queryByRole('link', { name: 'Tạo tài khoản CNHSK' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Bắt đầu học' })).not.toBeInTheDocument()
   })
 })
