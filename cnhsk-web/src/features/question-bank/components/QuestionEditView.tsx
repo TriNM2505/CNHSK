@@ -1,3 +1,4 @@
+import { ArrowLeft } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
 import type { ApiError } from '@/shared/api'
@@ -8,9 +9,10 @@ import {
   ErrorState,
   FormField,
   Input,
-  PageHeader,
+  PageBanner,
   Select,
   Skeleton,
+  StatusBadge,
   SUPPORTED_HSK_LEVELS,
   Textarea,
   type PageStateValue,
@@ -31,6 +33,13 @@ import {
   QUESTION_TYPE_LABELS,
 } from '../questionListQuery'
 import type { KnowledgeNode, QuestionDetail, QuestionUpdate } from '../types'
+
+const questionStatusTones = {
+  APPROVED: 'success',
+  PENDING_REVIEW: 'warning',
+  REJECTED: 'danger',
+  ARCHIVED: 'neutral',
+} as const
 
 export type QuestionEditViewProps = {
   action?: 'save' | 'archive'
@@ -72,13 +81,13 @@ function QuestionContent({ data }: { data: QuestionDetail }) {
   return (
     <section
       aria-label="Nội dung và đáp án"
-      className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-6"
+      className="min-w-0 space-y-4 rounded-md border border-brand-100 bg-surface p-4 shadow-sm sm:p-6"
     >
-      <h2 className="text-h3">Nội dung và đáp án</h2>
+      <h2 className="border-l-4 border-brand-600 pl-3 text-h3 text-ink">Nội dung và đáp án</h2>
       <p className="whitespace-pre-wrap break-words">{data.stem}</p>
       <ul className="space-y-3">
         {data.options.map((option) => (
-          <li className="rounded-sm border border-line p-3" key={option.key}>
+          <li className="rounded-sm border border-line bg-canvas p-3" key={option.key}>
             <p className="whitespace-pre-wrap break-words">
               {option.key}. {option.text} {option.isCorrect ? <strong>— Đáp án đúng</strong> : null}
             </p>
@@ -172,7 +181,9 @@ export function QuestionEditView({
   }, [action])
   useEffect(() => {
     if (!review?.error) return
-    requestAnimationFrame(() => document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus())
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(),
+    )
   }, [review?.error])
   const serverErrors = questionEditServerErrors(actionError?.details ?? review?.error?.details)
   const errors = { ...localErrors, ...serverErrors }
@@ -236,11 +247,15 @@ export function QuestionEditView({
   const generalErrors = Object.entries(serverErrors).filter(([field]) => !visibleFields.has(field))
 
   return (
-    <div className="mx-auto max-w-reading space-y-6">
+    <div className="mx-auto w-full min-w-0 max-w-reading space-y-6 px-4 py-6 sm:px-6">
       <Button to={backTo} variant="ghost">
-        {backTo.startsWith('/content/ai-review') ? 'Về hàng đợi duyệt AI' : 'Về kho câu hỏi'}
+        <span className="flex items-center gap-2">
+          <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
+          {backTo.startsWith('/content/ai-review') ? 'Về hàng đợi duyệt AI' : 'Về kho câu hỏi'}
+        </span>
       </Button>
-      <PageHeader
+      <PageBanner
+        className="px-4 py-4 sm:px-5"
         title="Chi tiết câu hỏi"
         subtitle="Xem nội dung, đáp án và nhãn năng lực của câu hỏi."
       />
@@ -268,36 +283,46 @@ export function QuestionEditView({
         <>
           <section
             aria-label="Thông tin câu hỏi"
-            className="rounded-md border border-line bg-surface p-4 sm:p-6"
+            className="rounded-md border border-brand-100 bg-brand-50 p-4 shadow-sm sm:p-5"
           >
-            <dl className="grid gap-3 text-body-sm sm:grid-cols-2">
+            <dl className="grid grid-cols-2 gap-3 text-body-sm">
               <div>
-                <dt className="font-semibold">Mã câu hỏi</dt>
-                <dd>{data.code ?? `#${data.id}`}</dd>
+                <dt className="text-caption text-ink-secondary">Mã câu hỏi</dt>
+                <dd className="mt-1 break-words font-semibold text-ink">
+                  {data.code ?? `#${data.id}`}
+                </dd>
               </div>
               <div>
-                <dt className="font-semibold">Loại câu hỏi</dt>
-                <dd>{QUESTION_TYPE_LABELS[data.qtype]}</dd>
+                <dt className="text-caption text-ink-secondary">Loại câu hỏi</dt>
+                <dd className="mt-1 font-semibold text-ink">{QUESTION_TYPE_LABELS[data.qtype]}</dd>
               </div>
               <div>
-                <dt className="font-semibold">Nguồn</dt>
-                <dd>{QUESTION_SOURCE_LABELS[data.source]}</dd>
+                <dt className="text-caption text-ink-secondary">Nguồn</dt>
+                <dd className="mt-1 font-semibold text-ink">
+                  {QUESTION_SOURCE_LABELS[data.source]}
+                </dd>
               </div>
               <div>
-                <dt className="font-semibold">Trạng thái</dt>
-                <dd>{QUESTION_STATUS_LABELS[data.status]}</dd>
+                <dt className="text-caption text-ink-secondary">Trạng thái</dt>
+                <dd className="mt-1">
+                  <StatusBadge tone={questionStatusTones[data.status]}>
+                    {QUESTION_STATUS_LABELS[data.status]}
+                  </StatusBadge>
+                </dd>
               </div>
               <div>
-                <dt className="font-semibold">Cấp HSK hiện tại</dt>
-                <dd>HSK {data.hskLevel}</dd>
+                <dt className="text-caption text-ink-secondary">Cấp HSK hiện tại</dt>
+                <dd className="mt-1 font-semibold text-ink">HSK {data.hskLevel}</dd>
               </div>
               <div>
-                <dt className="font-semibold">Độ khó hiện tại</dt>
-                <dd>{data.difficulty}</dd>
+                <dt className="text-caption text-ink-secondary">Độ khó hiện tại</dt>
+                <dd className="mt-1 font-semibold text-ink">{data.difficulty}</dd>
               </div>
               <div>
-                <dt className="font-semibold">Sử dụng</dt>
-                <dd>{data.used ? 'Đã dùng' : 'Chưa dùng'}</dd>
+                <dt className="text-caption text-ink-secondary">Sử dụng</dt>
+                <dd className="mt-1 font-semibold text-ink">
+                  {data.used ? 'Đã dùng' : 'Chưa dùng'}
+                </dd>
               </div>
             </dl>
             {data.reviewReason ? (
@@ -324,7 +349,10 @@ export function QuestionEditView({
             ) : null}
           </section>
           {data.used ? (
-            <p className="rounded-md border border-line bg-canvas p-4" role="note">
+            <p
+              className="rounded-md border border-line bg-canvas p-4 text-body-sm text-ink-secondary"
+              role="note"
+            >
               Câu đã có người làm — không đổi được đáp án; tạo câu mới thay thế
             </p>
           ) : null}
@@ -337,12 +365,19 @@ export function QuestionEditView({
             </p>
           ) : null}
           {notice ? (
-            <p className="font-semibold text-success" role="status">
+            <p
+              className="rounded-md border border-success bg-success-bg p-4 font-semibold text-success"
+              role="status"
+            >
               {notice}
             </p>
           ) : null}
           {actionError ? (
-            <section aria-label="Lỗi thao tác" className="space-y-2" role="alert">
+            <section
+              aria-label="Lỗi thao tác"
+              className="space-y-2 rounded-md border border-danger bg-danger-bg p-4 text-danger"
+              role="alert"
+            >
               <p>{questionEditErrorMessage(actionError)}</p>
               {actionError.requestId ? (
                 <p className="text-body-sm">Mã yêu cầu: {actionError.requestId}</p>
@@ -361,7 +396,11 @@ export function QuestionEditView({
             </section>
           ) : null}
           {review?.error ? (
-            <section aria-label="Lỗi kiểm duyệt" className="space-y-2" role="alert">
+            <section
+              aria-label="Lỗi kiểm duyệt"
+              className="space-y-2 rounded-md border border-danger bg-danger-bg p-4 text-danger"
+              role="alert"
+            >
               <p>{review.error.message}</p>
               {review.error.errorCode === 'QUESTION_NOT_PENDING' ? (
                 <p>Câu hỏi không còn chờ duyệt. Đã yêu cầu tải lại dữ liệu mới nhất.</p>
@@ -378,7 +417,7 @@ export function QuestionEditView({
           {editable ? (
             <form
               aria-label="Sửa câu hỏi"
-              className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-6"
+              className="min-w-0 space-y-4 rounded-md border border-brand-100 border-t-4 border-t-brand-600 bg-surface p-4 shadow-sm sm:p-6"
               noValidate
               ref={formRef}
               onSubmit={(event) => {
@@ -395,7 +434,7 @@ export function QuestionEditView({
                 onSave(toQuestionUpdate(values))
               }}
             >
-              <h2 className="text-h3">Sửa câu hỏi</h2>
+              <h2 className="text-h3 text-ink">Sửa câu hỏi</h2>
               <fieldset disabled={blocked}>
                 <legend className="sr-only">Nội dung và nhãn câu hỏi</legend>
                 <FormField
@@ -456,7 +495,10 @@ export function QuestionEditView({
                       </p>
                     ) : null}
                     {values.options.map((option, index) => (
-                      <div className="rounded-sm border border-line p-3" key={option.key}>
+                      <div
+                        className="min-w-0 rounded-md border border-line bg-canvas p-3 sm:p-4"
+                        key={option.key}
+                      >
                         <FormField
                           htmlFor={`edit-option-${option.key}`}
                           label={`Phương án ${option.key}`}
@@ -669,6 +711,7 @@ export function QuestionEditView({
                 </div>
               </fieldset>
               <Button
+                className="w-full sm:w-auto"
                 disabled={blocked || nodesState !== 'ready' || nodes.length === 0}
                 type="submit"
               >
@@ -679,14 +722,19 @@ export function QuestionEditView({
             <QuestionContent data={data} />
           )}
           {canArchive && data.status !== 'ARCHIVED' ? (
-            <Button disabled={blocked} onClick={onArchive} variant="danger">
+            <Button
+              className="w-full sm:w-auto"
+              disabled={blocked}
+              onClick={onArchive}
+              variant="danger"
+            >
               Lưu trữ câu hỏi
             </Button>
           ) : null}
           {review?.allowed ? (
             <section
               aria-label="Kiểm duyệt câu hỏi AI"
-              className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-6"
+              className="space-y-4 rounded-md border border-brand-100 bg-brand-50 p-4 shadow-sm sm:p-6"
             >
               <h2 className="text-h3">Kiểm duyệt câu hỏi AI</h2>
               <p>Duyệt hoặc từ chối nội dung đã lưu. Lưu thay đổi không tự duyệt câu hỏi.</p>
@@ -714,12 +762,14 @@ export function QuestionEditView({
               </FormField>
               <div className="flex flex-wrap gap-3">
                 <Button
+                  className="w-full sm:w-auto"
                   disabled={blocked || dirty || review.locked}
                   onClick={() => review.onRequest('approve')}
                 >
                   Duyệt câu hỏi
                 </Button>
                 <Button
+                  className="w-full sm:w-auto"
                   disabled={blocked || dirty || review.locked}
                   onClick={() => review.onRequest('reject')}
                   variant="danger"
@@ -759,7 +809,7 @@ export function QuestionEditView({
           {action ? (
             <section
               aria-label={action === 'save' ? 'Xác nhận lưu thay đổi' : 'Xác nhận lưu trữ'}
-              className="space-y-4 rounded-md border border-line bg-surface p-4 sm:p-6"
+              className="space-y-4 rounded-md border border-brand-100 bg-surface p-4 shadow-sm sm:p-6"
             >
               <h2 className="text-h3">
                 {action === 'save' ? 'Lưu thay đổi câu hỏi?' : 'Lưu trữ câu hỏi?'}
