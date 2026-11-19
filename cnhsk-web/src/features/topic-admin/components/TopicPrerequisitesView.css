@@ -1,0 +1,30 @@
+.topic-prerequisites {
+  overflow-wrap: anywhere;
+}
+
+.topic-prerequisites .topic-text {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.topic-picker table td {
+  @apply align-middle;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .topic-selection {
+    animation: topic-selection-reveal 200ms ease-out both;
+  }
+
+  @keyframes topic-selection-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(theme('spacing.2'));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
