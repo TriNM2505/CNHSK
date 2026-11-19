@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 
-import { PageHeader } from '@/shared/ui'
+import { PageBanner } from '@/shared/ui'
 
 import { POST_CATEGORY_LABELS } from '../labels'
 import type { PostDetail } from '../types'
@@ -20,7 +20,7 @@ export function CommunityPostDetailView({
       aria-label="Nội dung bài viết"
       className="my-5 rounded-md border border-line bg-surface p-5 shadow-sm sm:p-6"
     >
-      <PageHeader
+      <PageBanner
         actions={
           canEdit ? (
             <Link
@@ -32,7 +32,7 @@ export function CommunityPostDetailView({
             </Link>
           ) : undefined
         }
-        className="mb-3"
+        className="mb-4 px-4 pt-4 pb-20 shadow-sm sm:px-5 [&>svg]:inset-y-auto [&>svg]:bottom-0 [&>svg]:block [&>svg]:h-16 [&>svg]:w-80 [&>svg]:max-w-full lg:pb-4 lg:pr-80 lg:[&>svg]:h-full"
         title={<span className="whitespace-pre-wrap break-words">{post.title}</span>}
       />
       <p className="text-body-sm font-medium text-ink-secondary">

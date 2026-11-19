@@ -1,6 +1,15 @@
 import type { FormEvent } from 'react'
 
-import { Button, Card, FormField, Input, PageHeader, Select, StatusBadge, Textarea } from '@/shared/ui'
+import {
+  Button,
+  Card,
+  FormField,
+  Input,
+  PageBanner,
+  Select,
+  StatusBadge,
+  Textarea,
+} from '@/shared/ui'
 
 import { POST_CATEGORIES, POST_CATEGORY_LABELS, POST_STATUS_LABELS } from '../labels'
 import type { PostFormErrors, PostFormValues } from '../postForm'
@@ -54,8 +63,8 @@ export function PostEditorView({
 
   return (
     <main className="mx-auto w-full min-w-0 max-w-reading space-y-5 p-4 pb-16 sm:p-6">
-      <PageHeader
-        className="mb-0"
+      <PageBanner
+        className="px-4 pt-4 pb-20 shadow-sm sm:px-5 [&>svg]:inset-y-auto [&>svg]:bottom-0 [&>svg]:block [&>svg]:h-16 [&>svg]:w-80 [&>svg]:max-w-full lg:pb-4 lg:pr-80 lg:[&>svg]:h-full"
         subtitle="Chia sẻ kinh nghiệm học tập, câu hỏi hoặc văn hoá Trung Hoa cùng cộng đồng."
         title={mode === 'create' ? 'Viết bài cộng đồng' : 'Chỉnh sửa bài viết'}
       />

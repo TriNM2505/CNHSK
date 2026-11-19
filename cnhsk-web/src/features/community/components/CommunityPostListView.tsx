@@ -1,3 +1,4 @@
+import communityPanda from '@/features/contests/assets/contest-ongoing-panda.webp'
 import { Link, useLocation } from 'react-router-dom'
 
 import { cn } from '@/shared/lib/cn'
@@ -7,7 +8,7 @@ import {
   EmptyState,
   ErrorState,
   FormField,
-  PageHeader,
+  PageBanner,
   PageState,
   Pagination,
   Select,
@@ -112,16 +113,24 @@ export function CommunityPostListView({
 
   return (
     <main className="mx-auto w-full min-w-0 max-w-content space-y-6 p-4 pb-16 sm:p-6">
-      <PageHeader
-        actions={
-          <Button onClick={onWrite} type="button">
-            Viết bài
-          </Button>
-        }
-        className="mb-0"
-        subtitle="Chia sẻ và học hỏi cùng cộng đồng."
-        title="Cộng đồng"
-      />
+      <div className="relative">
+        <PageBanner
+          actions={
+            <Button onClick={onWrite} type="button">
+              Viết bài
+            </Button>
+          }
+          className="px-4 pt-4 pb-20 shadow-sm sm:px-5 [&>svg]:inset-y-auto [&>svg]:bottom-0 [&>svg]:block [&>svg]:h-16 [&>svg]:w-80 [&>svg]:max-w-full lg:[&>svg]:h-full lg:[&>svg]:w-3/5"
+          subtitle="Chia sẻ và học hỏi cùng cộng đồng."
+          title="Cộng đồng"
+        />
+        <img
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-1 left-5 hidden h-20 w-20 object-contain sm:block"
+          src={communityPanda}
+        />
+      </div>
 
       <nav
         aria-label="Bài viết cộng đồng"
