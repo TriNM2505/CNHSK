@@ -27,7 +27,7 @@
 
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
-| T-07 | FE panel gọi backend thật; test hợp đồng `/v3/api-docs` so `openapi-assistant.yaml`; chạy bộ 20 câu với Claude thật trên máy leader (khoá do leader đặt), ghi kết quả | `web/features/assistant/**`, `t/contract/AssistantContractTest.java`, `specs/015-…/questions.md` | §13, SC-002 · AT-12…AT-16 | 🔄 2026-11-13: phần code xong, chờ leader chạy Claude thật (AT-12/SC-002) |
+| T-07 | FE panel gọi backend thật; test hợp đồng `/v3/api-docs` so `openapi-assistant.yaml`; chạy bộ 20 câu với Claude thật trên máy leader (khoá do leader đặt), ghi kết quả | `web/features/assistant/**`, `t/contract/AssistantContractTest.java`, `specs/015-…/questions.md` | §13, SC-002 · AT-12…AT-16 | ✅ 2026-11-19: leader chạy bộ 20 câu với model thật (DeepSeek `deepseek-v4.1-flash` qua cổng tương thích Anthropic) — cách dùng 10/10, kiến thức 10/10, SC-002 ĐẠT; chi tiết `docs/demo-data/assistant-eval.md` |
 
 ## Thứ tự thực thi
 
