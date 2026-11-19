@@ -13,8 +13,8 @@
 
 | UC-ID | Use Case | Actor chính | Pri | Scope | FT | Trạng thái triển khai |
 | --- | --- | --- | --- | --- | --- | --- |
-| UC-108 | Duyệt câu hỏi AI sinh | `TEACHER`, `CONTENT_EDITOR` | P1 | MVP | 6.6 | READY |
-| UC-109 | Sửa nội dung câu hỏi | `TEACHER`, `CONTENT_EDITOR` | P1 | MVP | 6.5 · 6.6 | READY |
+| UC-108 | Duyệt câu hỏi AI sinh | `TEACHER` | P1 | MVP | 6.6 | READY |
+| UC-109 | Sửa nội dung câu hỏi | `TEACHER` | P1 | MVP | 6.5 · 6.6 | READY |
 | UC-110 | Nhập dữ liệu đề thi/từ vựng/ngữ pháp từ file | `CONTENT_EDITOR` | **P0** | MVP | 6.2 | **BLOCKED** — cần file mẫu thật, định dạng và khóa tự nhiên |
 | UC-111 | Xem báo cáo lỗi sau khi nhập | `CONTENT_EDITOR` | **P0** | MVP | 6.2 | **PARTIALLY BLOCKED** — cần nơi lưu chi tiết lỗi import |
 | UC-112 | Quản lý đề thi và kho câu hỏi | `CONTENT_EDITOR` | P1 | MVP | 6.3 · 6.5 | READY |
@@ -36,7 +36,7 @@
 | | |
 | --- | --- |
 | **UC-ID** | UC-108 |
-| **Actor chính** | `TEACHER`, `CONTENT_EDITOR` |
+| **Actor chính** | `TEACHER` |
 | **Loại** | User Goal |
 | **Pri** | P1 |
 | **Scope** | MVP |
@@ -49,8 +49,8 @@ Người duyệt xem các câu hỏi do AI sinh đang chờ kiểm duyệt, đ�
 
 Mục tiêu của Use Case là bảo đảm câu hỏi AI chỉ được đưa vào kho dùng chung sau khi có người đủ chuyên môn kiểm tra. Câu hỏi chưa duyệt hoặc bị từ chối không được xuất hiện ở bất kỳ luồng học nào của người học.
 
-> Cả `TEACHER` và `CONTENT_EDITOR` đều duyệt được, theo `BUS-07`. Hai role cùng
-> chịu trách nhiệm đánh giá nội dung tiếng Trung, không chia theo loại câu hỏi.
+> Chỉ `TEACHER` duyệt, theo `BUS-07` (leader chốt 2026-11-20). `CONTENT_EDITOR`
+> không duyệt hay sửa nội dung câu hỏi; đánh giá tiếng Trung cần chuyên môn giáo viên.
 
 ## Kích hoạt
 
@@ -58,7 +58,7 @@ Người duyệt mở màn hình “Hàng đợi duyệt câu hỏi AI” hoặc
 
 ## Tiền điều kiện
 
-1. Người dùng đã đăng nhập và có role `TEACHER` hoặc `CONTENT_EDITOR`.
+1. Người dùng đã đăng nhập và có role `TEACHER`.
 2. Câu hỏi cần xử lý tồn tại, có `source = AI` và đang ở trạng thái `PENDING_REVIEW`.
 3. Hệ thống có đủ dữ liệu cần thiết để đánh giá câu hỏi: nội dung, đáp án, lời giải, cấp HSK và nhãn kiến thức.
 
@@ -153,7 +153,7 @@ Người duyệt mở màn hình “Hàng đợi duyệt câu hỏi AI” hoặc
 
 | # | Rule |
 | --- | --- |
-| BR-108-1 | Chỉ `TEACHER` hoặc `CONTENT_EDITOR` được duyệt hoặc từ chối câu hỏi do AI sinh. `ACCOUNTANT` và `ADMIN` không có quyền này. Việc kiểm tra quyền phải thực hiện ở server. |
+| BR-108-1 | Chỉ `TEACHER` được duyệt hoặc từ chối câu hỏi do AI sinh. `CONTENT_EDITOR`, `ACCOUNTANT` và `ADMIN` không có quyền này. Việc kiểm tra quyền phải thực hiện ở server. |
 | BR-108-2 | Chỉ câu hỏi có `status = PENDING_REVIEW` và `source = AI` mới được đưa vào hàng đợi duyệt. |
 | BR-108-3 | Câu hỏi `PENDING_REVIEW` hoặc `REJECTED` không được xuất hiện trong bất kỳ bài học, bài luyện, quiz hoặc đề thi nào của người học. |
 | BR-108-4 | Khi duyệt, hệ thống chuyển câu hỏi sang `APPROVED`, ghi người duyệt và thời điểm duyệt. |
@@ -193,7 +193,7 @@ Dữ liệu liên quan: `questions`, `question_options`, `question_knowledge_poi
 | | |
 | --- | --- |
 | **UC-ID** | UC-109 |
-| **Actor chính** | `TEACHER`, `CONTENT_EDITOR` |
+| **Actor chính** | `TEACHER` |
 | **Loại** | User Goal |
 | **Pri** | P1 |
 | **Scope** | MVP |
@@ -202,7 +202,7 @@ Dữ liệu liên quan: `questions`, `question_options`, `question_knowledge_poi
 
 ## Mô tả
 
-`TEACHER` hoặc `CONTENT_EDITOR` sửa nội dung câu hỏi khi phát hiện lỗi trong quá trình review, quản lý kho câu hỏi hoặc xử lý phản hồi.
+`TEACHER` sửa nội dung câu hỏi khi phát hiện lỗi trong quá trình review, quản lý kho câu hỏi hoặc xử lý phản hồi.
 
 Use Case cho phép sửa đề bài, đáp án, lời giải và nhãn kiến thức trong phạm vi không làm sai nghĩa của lịch sử bài làm đã tồn tại. Nếu một câu đã được người học trả lời, hệ thống không cho sửa đáp án đúng hoặc thay đổi nội dung theo cách làm thay đổi kết quả chấm cũ.
 
@@ -212,7 +212,7 @@ Actor mở một câu hỏi trong màn quản trị hoặc chọn **Sửa** từ
 
 ## Tiền điều kiện
 
-1. Người dùng đã đăng nhập và có role `TEACHER` hoặc `CONTENT_EDITOR`.
+1. Người dùng đã đăng nhập và có role `TEACHER`.
 2. Câu hỏi cần sửa tồn tại.
 3. Câu hỏi không thuộc một cuộc thi đang diễn ra.
 
@@ -240,10 +240,10 @@ Actor mở một câu hỏi trong màn quản trị hoặc chọn **Sửa** từ
 
 | # | Actor | Hành động |
 | --- | --- | --- |
-| 1 | `CONTENT_EDITOR` | Mở câu hỏi cần sửa. |
+| 1 | `TEACHER` | Mở câu hỏi cần sửa. |
 | 2 | System | Kiểm tra quyền và tải nội dung hiện tại của câu hỏi. |
-| 3 | `CONTENT_EDITOR` | Thay đổi đề bài, đáp án, lời giải hoặc nhãn kiến thức. |
-| 4 | `CONTENT_EDITOR` | Bấm lưu. |
+| 3 | `TEACHER` | Thay đổi đề bài, đáp án, lời giải hoặc nhãn kiến thức. |
+| 4 | `TEACHER` | Bấm lưu. |
 | 5 | System | Kiểm tra cấu trúc câu hỏi, đáp án đúng và nhãn kiến thức. |
 | 6 | System | Kiểm tra câu đã từng được sử dụng trong bài làm hay chưa. |
 | 7 | System | Nếu câu đã được sử dụng, xác định thay đổi có làm thay đổi cách chấm hay không. |
@@ -291,7 +291,7 @@ Actor mở một câu hỏi trong màn quản trị hoặc chọn **Sửa** từ
 
 | # | Rule |
 | --- | --- |
-| BR-109-1 | Chỉ `TEACHER` hoặc `CONTENT_EDITOR` được sửa câu hỏi. |
+| BR-109-1 | Chỉ `TEACHER` được sửa câu hỏi; `CONTENT_EDITOR` chỉ xem và lưu trữ. |
 | BR-109-2 | Mỗi câu hỏi phải luôn có ít nhất một nhãn kiến thức. Không được lưu câu hỏi không gắn với điểm kiến thức nào. |
 | BR-109-3 | Câu hỏi trắc nghiệm phải có đúng một đáp án đúng. Không được lưu câu có nhiều đáp án đúng hoặc không có đáp án đúng. |
 | BR-109-4 | Câu hỏi đã có người làm không được sửa đáp án đúng hoặc nội dung làm thay đổi cách chấm. Nếu cần sửa, tạo câu hỏi mới và lưu trữ câu cũ. |

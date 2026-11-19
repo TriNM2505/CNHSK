@@ -68,7 +68,7 @@ Detailed screen requirements for UI/UX mockup and frontend implementation.
 | SCR-055 | Book Detail | Reference Resources | GUEST, LEARNER | V2 |
 | SCR-056 | Teacher Grading Queue | Teacher Grading | TEACHER | MVP |
 | SCR-057 | Teacher Grading Workspace | Teacher Grading | TEACHER | MVP |
-| SCR-058 | AI Review Queue | Content Management | TEACHER, CONTENT_EDITOR | MVP |
+| SCR-058 | AI Review Queue | Content Management | TEACHER | MVP |
 | SCR-059 | Question Edit | Content Management | TEACHER, CONTENT_EDITOR | MVP |
 | SCR-060 | Post Moderation Queue | Community Moderation | MODERATOR | V2 |
 | SCR-061 | Post Moderation Detail | Community Moderation | MODERATOR | V2 |

@@ -31,9 +31,9 @@
 | Role | Tên | Quyền | Phạm vi |
 |---|---|---|---|
 | `LEARNER` | Người học | Học, thi, chơi game, đăng bài (chờ duyệt) | người dùng cuối |
-| `TEACHER` | Giáo viên | Duyệt câu hỏi AI sinh và sửa nội dung câu hỏi (cùng `CONTENT_EDITOR`); **chấm bài thuê** | chất lượng học thuật |
+| `TEACHER` | Giáo viên | **Duy nhất** duyệt câu hỏi AI sinh và sửa nội dung câu hỏi; **chấm bài thuê** | chất lượng học thuật |
 | `MODERATOR` | Kiểm duyệt viên | Duyệt bài đăng, xử lý báo cáo vi phạm | Community |
-| `CONTENT_EDITOR` | Biên tập viên nội dung | Nhập dữ liệu, quản lý đề thi và kho câu hỏi, cuộc thi, tài liệu tham khảo; duyệt và sửa câu hỏi AI (cùng `TEACHER`) | vận hành nội dung |
+| `CONTENT_EDITOR` | Biên tập viên nội dung | Nhập dữ liệu, quản lý đề thi và kho câu hỏi (xem, lưu trữ, xếp vào đề — **không** duyệt hay sửa nội dung câu), cuộc thi, tài liệu tham khảo | vận hành nội dung |
 | `ADMIN` | Quản trị viên | Quản lý người dùng, gán role, cấu hình hệ thống, xem lịch sử đăng nhập · 🔴 **tài chính**: sinh/khoá lô mã thẻ, quản lý gói, xem/xuất/đối chiếu sổ cái | quản trị tổng + **tiền thật** |
 
 > 🔴 **Vì sao gộp tài chính vào `ADMIN` (RFC R9, 2026-11-03).** CNHSK là sản phẩm phễu, không quản lý
@@ -134,8 +134,8 @@ Server PHẢI kiểm **ba điều kiện** trước khi lưu điểm:
 
 - Câu hỏi AI sinh vào DB với trạng thái **`PENDING_REVIEW`**
 - **KHÔNG BAO GIỜ** hiện câu `PENDING_REVIEW` cho người học
-- **Chỉ `TEACHER` hoặc `CONTENT_EDITOR`** được duyệt và sửa nội dung câu hỏi (spec 024,
-  hiến pháp v1.6.0). `ADMIN` **không** duyệt nội dung — duyệt cần chuyên môn kiến thức; mỗi lần
+- **Chỉ `TEACHER`** được duyệt và sửa nội dung câu hỏi (spec 024 v1.2,
+  hiến pháp v1.7.0). `CONTENT_EDITOR` và `ADMIN` **không** duyệt nội dung — duyệt cần chuyên môn kiến thức; mỗi lần
   duyệt ghi audit người duyệt nên khi câu sai vẫn rõ ai chịu trách nhiệm
 - AI lỗi hoặc timeout → dùng ngân hàng câu hỏi có sẵn và ghi log, **không** để người học thấy lỗi
 

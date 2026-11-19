@@ -535,9 +535,9 @@ giữa service** — `SecurityConfig` ở module `shared` kiểm JWT một lần
 | Role | Quyền | Phạm vi |
 |---|---|---|
 | **LEARNER** | Học, thi, chơi game, đăng bài (chờ duyệt) | Người dùng cuối |
-| **TEACHER** | Duyệt câu hỏi AI (cùng CONTENT_EDITOR), sửa nội dung học, nhận và chấm bài viết | Học tập |
+| **TEACHER** | Duy nhất duyệt câu hỏi AI và sửa nội dung câu hỏi, nhận và chấm bài viết | Học tập |
 | **MODERATOR** | Duyệt bài đăng, xử lý báo cáo và kiểm duyệt bình luận | Cộng đồng |
-| **CONTENT_EDITOR** | Quản lý đề thi, kho câu hỏi, nhập dữ liệu và cuộc thi; duyệt câu hỏi AI (cùng TEACHER) | Nội dung |
+| **CONTENT_EDITOR** | Quản lý đề thi, kho câu hỏi (xem, lưu trữ), nhập dữ liệu và cuộc thi; không duyệt câu hỏi AI | Nội dung |
 | **ADMIN** | Quản lý người dùng, cấp/thu hồi role, cấu hình hệ thống; tài chính: mã thẻ, gói dịch vụ, sổ cái (RFC R9) | Hệ thống |
 
 > Mã `ACCOUNTANT` còn trong DB là mã dự phòng, không phải actor (Hiến pháp v1.6.0).

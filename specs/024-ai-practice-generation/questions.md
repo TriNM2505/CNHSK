@@ -184,7 +184,7 @@
 |---|---|---|---|
 | Q1 | `service_requests.user_id` bắt buộc mà job không có người yêu cầu (câu mở #6 của plan) | Khoá `ai-generate.system-user-id` ở 078, mặc định 0 = job tắt; phải là `ADMIN` hợp lệ | ✅ Chốt |
 | Q2 | Ngưỡng, nhịp, dạng câu | 02:00 hằng ngày; cửa sổ 14 ngày; ≥ 20 lượt sai; < 10 câu `APPROVED`; lô 5 câu trắc nghiệm 4 phương án chỉ chữ; ≤ 3 lô/lần; model Sonnet riêng (`cnhsk.ai.generate-model`) | ✅ Chốt |
-| Q3 | Ai duyệt/sửa | `TEACHER` hoặc `CONTENT_EDITOR` (BR-108-1, BR-109-1); `ADMIN` không duyệt | ✅ Theo UC |
+| Q3 | Ai duyệt/sửa | ~~`TEACHER` hoặc `CONTENT_EDITOR`~~ → chỉ `TEACHER` (leader chốt lại 2026-11-20, spec v1.2.0); `CONTENT_EDITOR`, `ADMIN` không duyệt | ✅ |
 | Q4 | Duyệt hàng loạt | Chỉ câu người đó đã mở (dấu Redis 24 giờ, BR-108-7) | ✅ Chốt |
 
 ## Dữ kiện đã kiểm trên main `f02fc0a`

@@ -8,7 +8,7 @@
 | # | Vấn đề | Chốt |
 |---|---|---|
 | 1 | Tên actor | `GUEST` · `LEARNER` · `TEACHER` · `MODERATOR` · `CONTENT_EDITOR` · `ADMIN`. Chỉ actor quản trị tổng mang chữ "Admin". `ACCOUNTANT` **không vẽ** — mã dự phòng trong DB, không phải actor |
-| 2 | Ai duyệt câu hỏi AI ở UC-108, sửa câu hỏi ở UC-109 | **`TEACHER` hoặc `CONTENT_EDITOR`** (BUS-07, spec 024) |
+| 2 | Ai duyệt câu hỏi AI ở UC-108, sửa câu hỏi ở UC-109 | **Chỉ `TEACHER`** (BUS-07, spec 024 v1.2) |
 | 3 | Có vẽ `SYSTEM` thành actor không | **Không.** 14 UC trước đây gán `SYSTEM` được xếp lại — mục 2 |
 | 4 | Số use case | **133** (137 − 4 UC rời danh sách ở mục 2) |
 
@@ -20,9 +20,9 @@
 |---|---|---|
 | `GUEST` | Khách | Đăng ký, đăng nhập, tra từ giới hạn, xem nội dung công khai |
 | `LEARNER` | Người học | Học, luyện, thi, ôn, thư viện, game, cộng đồng, đổi mã thẻ |
-| `TEACHER` | Giáo viên | Duyệt câu hỏi AI, sửa nội dung câu hỏi — UC-108, UC-109 (cùng `CONTENT_EDITOR`) · chấm bài viết thuê — UC-104, UC-105 |
+| `TEACHER` | Giáo viên | Duyệt câu hỏi AI, sửa nội dung câu hỏi — UC-108, UC-109 (duy nhất) · chấm bài viết thuê — UC-104, UC-105 |
 | `MODERATOR` | Kiểm duyệt viên | Duyệt bài đăng, xử lý báo cáo vi phạm |
-| `CONTENT_EDITOR` | Biên tập viên nội dung | Nhập dữ liệu, quản lý đề thi, cuộc thi — UC-110 → UC-113 · duyệt, sửa câu hỏi AI — UC-108, UC-109 |
+| `CONTENT_EDITOR` | Biên tập viên nội dung | Nhập dữ liệu, quản lý đề thi, cuộc thi — UC-110 → UC-113 · **không** duyệt, sửa câu hỏi |
 | `ADMIN` | Quản trị viên | Người dùng và phân quyền — UC-114 → UC-116 · tài chính: sổ cái, mã thẻ, gói dịch vụ — UC-099 → UC-102 (RFC R9) |
 
 Nguyên tắc *phân tách nhiệm vụ* giữ ở mức nội dung và quản trị: `CONTENT_EDITOR` không vào sổ

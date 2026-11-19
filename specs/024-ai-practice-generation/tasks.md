@@ -3,7 +3,7 @@
 > Nguồn: [`spec.md`](spec.md) v1.0.0 · [`contracts/openapi-ai-practice.yaml`](contracts/openapi-ai-practice.yaml)
 > ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸ hoãn · 🔴 chặn
 
-**Tổng: 9 task**, ≤ 4 giờ/task, một task một nhánh `spec/024-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
+**Tổng: 11 task**, ≤ 4 giờ/task, một task một nhánh `spec/024-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
 Đường dẫn: `…/` = `src/main/java/com/cnhsk/`; `t/` = `src/test/java/com/cnhsk/`; `web/` = `cnhsk-web/src/`.
 **Điều kiện bắt đầu:** spec 024 `APPROVED`. Người code: Quốc Huy. **Không migration.** Test chỉ dùng `StubClaudeClient`; **không commit `ANTHROPIC_API_KEY`**; chạy thật chỉ trên máy leader.
 Khoá §0.1 đọc qua `SettingsApi` nếu 023/T-01 đã merge (T-01 thêm vào `SettingKey`), nếu chưa thì đọc yaml `cnhsk.ai-generate.*`.
@@ -27,6 +27,7 @@ Khoá §0.1 đọc qua `SettingsApi` nếu 023/T-01 đã merge (T-01 thêm vào 
 | T-08 | FE trang "Lô AI" (`ADMIN`): lịch sử, token tháng, trạng thái bật/tắt, "Chạy thử" | `web/features/ai-runs/**`, `routeAccess.ts`, `screenRegistry.ts` + test | FR-018, FR-019 | ✅ MERGED — PR #258 |
 | T-09 | Test hợp đồng `/v3/api-docs` so `openapi-ai-practice.yaml` (hai chiều path + method + status) | `t/contract/AiPracticeContractTest.java` | §13 · AT-19 | ✅ MERGED — PR #260 |
 | T-10 | v1.1 chống gần trùng: chỉ dẫn prompt không lặp `samples`, câu trong lô khác nhau (không gửi thêm nội dung); `NEAR_DUPLICATE_STEM` (bỏ dấu câu/khoảng trắng, cùng đáp án đúng, cùng dãy số, Jaccard bigram ≥ 0,8, ≥ 8 code point); `existingStems` trả kèm `options` dạng text trong cùng một truy vấn, đáp án đúng đọc bằng Java | `…/aigen/AiPromptBuilder.java`, `AiQuestionValidator.java`, `WeakKnowledgeQueryRepository.java` + test | §0.3, FR-007 · AT-09 | ✅ MERGED (#285, 176dda1) — verify 7158 F0/E0/S0 |
+| T-11 | v1.2 chỉ `TEACHER` duyệt/sửa: `SecurityConfig` (`/api/admin/ai-questions/**` và `PUT /api/admin/questions/{id}` → `TEACHER`), `AiReviewService`, `QuestionAdminService.requireEditable`; FE route/menu SCR-058 và nút sửa/duyệt SCR-059 chỉ `TEACHER`; mô tả hợp đồng | `SecurityConfig.java`, `…/aigen/AiReviewService.java`, `…/knowledge/QuestionAdminService.java`, `contracts/*.yaml`, `web/app/routeAccess.ts`, `web/shared/layout/navigation.ts`, `Scr059QuestionEditPage.tsx` + test | FR-011, FR-013, FR-020 · AT-15 | 🔄 leader làm |
 
 ## Thứ tự
 
