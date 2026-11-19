@@ -1,18 +1,34 @@
+import {
+  ArrowRight,
+  BookOpenText,
+  CheckCircle2,
+  Clock3,
+  FilePenLine,
+  FolderOpen,
+  Plus,
+  RotateCcw,
+  Search,
+  Tag,
+  Trash2,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import type { ApiError } from '@/shared/api'
 import {
   Button,
+  Card,
   EmptyState,
   ErrorState,
   FormField,
+  HanziText,
   Input,
-  PageHeader,
+  PageBanner,
   Pagination,
   Skeleton,
   Tabs,
   type PageStateValue,
 } from '@/shared/ui'
+import './LibraryView.css'
 
 import {
   duplicateNoteId,
@@ -23,6 +39,19 @@ import {
   type NotesSearch,
 } from '../personalNotes'
 import type { NoteListItem, TrashNote } from '../types'
+import './PersonalNotesView.css'
+
+function NoteText({ text }: { text: string }) {
+  return text.split(/([\p{Script=Han}\u3000-\u303f\uff00-\uffef]+)/u).map((part, index) =>
+    /[\p{Script=Han}\u3000-\u303f\uff00-\uffef]/u.test(part) ? (
+      <HanziText className="notes-hanzi" key={index} size="sm">
+        {part}
+      </HanziText>
+    ) : (
+      part
+    ),
+  )
+}
 
 export interface PersonalNotesViewProps {
   search: NotesSearch
@@ -58,52 +87,63 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
   const { search, filters, state, items } = props
   const trash = search.tab === 'trash'
   const duplicateId = duplicateNoteId(props.actionError)
+  const editorOpen = Boolean(props.editor || props.opening || props.openError)
   const list = (
-    <section aria-label={trash ? 'Ghi chú đã xoá' : 'Danh sách ghi chú'} className="space-y-4">
+    <section
+      key={search.tab}
+      aria-label={trash ? 'Ghi chú đã xoá' : 'Danh sách ghi chú'}
+      className="notes-enter min-w-0 space-y-4"
+    >
       {!trash ? (
         <form
           noValidate
-          className="rounded-md border border-line bg-surface p-4"
+          className="rounded-md border border-brand-100 bg-surface p-4"
           onSubmit={(event) => {
             event.preventDefault()
             props.onSearch()
           }}
         >
-          <FormField
-            htmlFor="notes-query"
-            label="Từ khoá tìm kiếm"
-            hint="Từ 2 đến 100 ký tự; để trống để xem tất cả."
-          >
-            <Input
-              type="search"
-              value={filters.q}
-              onChange={(event) => props.onFiltersChange({ ...filters, q: event.target.value })}
-            />
-          </FormField>
-          <FormField
-            htmlFor="notes-tag-filter"
-            label="Lọc theo thẻ"
-            hint="Nhập chính xác thẻ cần lọc."
-          >
-            <Input
-              value={filters.tag}
-              onChange={(event) => props.onFiltersChange({ ...filters, tag: event.target.value })}
-            />
-          </FormField>
+          <div className="grid min-w-0 gap-x-4 sm:grid-cols-2">
+            <FormField
+              htmlFor="notes-query"
+              label="Từ khoá tìm kiếm"
+              hint="Từ 2 đến 100 ký tự; để trống để xem tất cả."
+            >
+              <Input
+                className="min-w-0"
+                type="search"
+                value={filters.q}
+                onChange={(event) => props.onFiltersChange({ ...filters, q: event.target.value })}
+              />
+            </FormField>
+            <FormField
+              htmlFor="notes-tag-filter"
+              label="Lọc theo thẻ"
+              hint="Nhập chính xác thẻ cần lọc."
+            >
+              <Input
+                value={filters.tag}
+                onChange={(event) => props.onFiltersChange({ ...filters, tag: event.target.value })}
+              />
+            </FormField>
+          </div>
           {props.filterError ? (
             <p role="alert" className="mb-3 text-body-sm text-danger">
               {props.filterError}
             </p>
           ) : null}
-          <div className="flex gap-2">
-            <Button type="submit">Tìm ghi chú</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button className="rounded-pill" type="submit">
+              <Search aria-hidden="true" className="mr-2 inline-block size-4 align-middle" />
+              Tìm ghi chú
+            </Button>
             <Button variant="outline" onClick={props.onClear}>
               Xoá bộ lọc
             </Button>
           </div>
         </form>
       ) : (
-        <p className="text-body-sm text-ink-secondary">
+        <p className="rounded-md border border-brand-100 bg-brand-50 p-4 text-body-sm text-ink-secondary">
           Có thể khôi phục trong 30 ngày. Ghi chú quá hạn được ẩn khỏi thùng rác.
         </p>
       )}
@@ -148,66 +188,113 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
       ) : null}
       {state === 'ready' ? (
         <>
-          <ul className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="inline-flex items-center gap-2 text-label text-ink">
+              <FolderOpen aria-hidden="true" className="size-4 text-brand-600" />
+              {trash ? 'Ghi chú trong thùng rác' : 'Những điều muốn nhớ'}
+            </h2>
+            {props.total !== undefined ? (
+              <span className="text-body-sm text-ink-secondary">{props.total} ghi chú</span>
+            ) : null}
+          </div>
+          <ul className="notes-grid grid min-w-0 items-start gap-4 sm:grid-cols-2">
             {items.map((note) => (
-              <li key={note.id} className="space-y-3 rounded-md border border-line bg-surface p-4">
-                <h2 className="break-words text-h3 text-ink">
-                  {note.title || 'Ghi chú không có tiêu đề'}
-                </h2>
-                <p className="whitespace-pre-wrap break-words text-body text-ink">
-                  {snippetParts(note.snippet, trash ? '' : search.q).map((part, index) =>
-                    part.match ? <mark key={index}>{part.text}</mark> : part.text,
-                  )}
-                </p>
-                <ul
-                  aria-label="Thẻ"
-                  className="flex flex-wrap gap-2 text-body-sm text-ink-secondary"
-                >
-                  {note.tags.map((tag, index) => (
-                    <li key={index} className="rounded-sm bg-brand-50 px-2 py-1">
-                      {tag}
-                    </li>
-                  ))}
-                </ul>
-                <p className="text-caption text-ink-secondary">
-                  Cập nhật: <time dateTime={note.updatedAt}>{noteDate(note.updatedAt)}</time>
-                </p>
-                {trash && 'restorableUntil' in note ? (
-                  <>
-                    <p className="text-caption text-ink-secondary">
-                      Đã xoá: <time dateTime={note.deletedAt}>{noteDate(note.deletedAt)}</time>
-                    </p>
-                    <p className="text-caption text-ink-secondary">
-                      Khôi phục đến:{' '}
-                      <time dateTime={note.restorableUntil}>{noteDate(note.restorableUntil)}</time>
-                    </p>
-                    <Button
-                      variant="outline"
-                      loading={props.restoringId === note.id}
-                      disabled={props.busy}
-                      onClick={() => props.onRestore(note.id)}
-                    >
-                      Khôi phục
-                    </Button>
-                  </>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      disabled={props.busy}
-                      onClick={() => props.onOpenNote(note.id)}
-                    >
-                      Mở ghi chú
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      disabled={props.busy}
-                      onClick={() => props.onDelete(note.id)}
-                    >
-                      Xoá ghi chú
-                    </Button>
+              <li
+                key={note.id}
+                className="group relative isolate min-w-0 overflow-hidden rounded-md border border-brand-100 bg-surface p-4 shadow-sm transition duration-200 hover:border-brand-600 hover:shadow-md focus-within:border-brand-600 motion-safe:hover:-translate-y-0.5"
+              >
+                <div className="relative z-base space-y-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600 transition duration-200 motion-safe:group-hover:-rotate-6">
+                      <FilePenLine aria-hidden="true" className="size-4" />
+                    </span>
+                    <h2 className="min-w-0 break-words text-h3 text-ink">
+                      <NoteText text={note.title || 'Ghi chú không có tiêu đề'} />
+                    </h2>
                   </div>
-                )}
+                  <p className="whitespace-pre-wrap break-words text-body text-ink">
+                    {snippetParts(note.snippet, trash ? '' : search.q).map((part, index) =>
+                      part.match ? (
+                        <mark className="rounded-sm bg-warning-bg text-ink" key={index}>
+                          <NoteText text={part.text} />
+                        </mark>
+                      ) : (
+                        <NoteText key={index} text={part.text} />
+                      ),
+                    )}
+                  </p>
+                  <ul
+                    aria-label="Thẻ"
+                    className="flex flex-wrap gap-2 text-body-sm text-ink-secondary"
+                  >
+                    {note.tags.map((tag, index) => (
+                      <li
+                        key={index}
+                        className="inline-flex items-center gap-1 rounded-pill border border-brand-100 bg-brand-50 px-2 py-1 text-caption text-brand-700 transition-colors hover:bg-brand-100"
+                      >
+                        <Tag aria-hidden="true" className="size-3 shrink-0" />
+                        <NoteText text={tag} />
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-caption text-ink-secondary">
+                    <Clock3
+                      aria-hidden="true"
+                      className="mr-1 inline-block size-3.5 align-middle"
+                    />
+                    Cập nhật: <time dateTime={note.updatedAt}>{noteDate(note.updatedAt)}</time>
+                  </p>
+                  {trash && 'restorableUntil' in note ? (
+                    <>
+                      <p className="text-caption text-ink-secondary">
+                        Đã xoá: <time dateTime={note.deletedAt}>{noteDate(note.deletedAt)}</time>
+                      </p>
+                      <p className="text-caption text-ink-secondary">
+                        Khôi phục đến:{' '}
+                        <time dateTime={note.restorableUntil}>
+                          {noteDate(note.restorableUntil)}
+                        </time>
+                      </p>
+                      <Button
+                        variant="outline"
+                        loading={props.restoringId === note.id}
+                        disabled={props.busy}
+                        onClick={() => props.onRestore(note.id)}
+                      >
+                        <RotateCcw
+                          aria-hidden="true"
+                          className="mr-2 inline-block size-4 align-middle"
+                        />
+                        Khôi phục
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        disabled={props.busy}
+                        onClick={() => props.onOpenNote(note.id)}
+                      >
+                        Mở ghi chú
+                        <ArrowRight
+                          aria-hidden="true"
+                          className="ml-2 inline-block size-4 align-middle transition-transform duration-200 motion-safe:group-hover:translate-x-1"
+                        />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        disabled={props.busy}
+                        onClick={() => props.onDelete(note.id)}
+                      >
+                        <Trash2
+                          aria-hidden="true"
+                          className="mr-2 inline-block size-4 align-middle"
+                        />
+                        Xoá ghi chú
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </li>
             ))}
           </ul>
@@ -224,18 +311,23 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
     </section>
   )
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <PageHeader
+    <div className="library-screen personal-notes mx-auto w-full min-w-0 max-w-content space-y-4 px-4 py-6 pb-24 sm:px-6 lg:px-8">
+      <PageBanner
         title="Sổ tay cá nhân"
         subtitle="Ghi lại điều muốn nhớ, tìm theo nội dung và thẻ."
         actions={
-          <Button disabled={props.busy} onClick={props.onNew}>
+          <Button className="rounded-pill shadow-sm" disabled={props.busy} onClick={props.onNew}>
+            <Plus aria-hidden="true" className="mr-2 inline-block size-4 align-middle" />
             Tạo ghi chú
           </Button>
         }
       />
       {props.notice ? (
-        <p role="status" className="text-body text-success">
+        <p
+          role="status"
+          className="notes-enter flex items-start gap-2 rounded-md bg-success-bg p-3 text-body text-success"
+        >
+          <CheckCircle2 aria-hidden="true" className="mt-1 size-4 shrink-0" />
           {props.notice}
         </p>
       ) : null}
@@ -258,17 +350,49 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
           ) : null}
         </div>
       ) : null}
-      <div className="grid items-start gap-6 lg:grid-cols-2">
+      <div
+        className={
+          editorOpen
+            ? 'notes-workspace grid min-w-0 items-start gap-4 lg:grid-cols-2'
+            : 'notes-workspace min-w-0 space-y-4'
+        }
+        data-editor-open={editorOpen}
+      >
         <Tabs
           label="Sổ tay"
           value={search.tab}
           onChange={(tab) => props.onTabChange(tab === 'trash' ? 'trash' : 'active')}
           items={[
-            { id: 'active', label: 'Ghi chú', panel: list },
-            { id: 'trash', label: 'Thùng rác', panel: list },
+            {
+              id: 'active',
+              label: (
+                <span className="inline-flex items-center gap-2">
+                  <BookOpenText aria-hidden="true" className="size-4" />
+                  Ghi chú
+                </span>
+              ),
+              panel: list,
+            },
+            {
+              id: 'trash',
+              label: (
+                <span className="inline-flex items-center gap-2">
+                  <Trash2 aria-hidden="true" className="size-4" />
+                  Thùng rác
+                </span>
+              ),
+              panel: list,
+            },
           ]}
         />
-        <section aria-label="Chỉnh sửa ghi chú" className="space-y-4">
+        <section
+          aria-label="Chỉnh sửa ghi chú"
+          className={
+            editorOpen
+              ? 'notes-editor-panel notes-enter min-w-0 space-y-4 lg:sticky lg:top-20'
+              : 'min-w-0'
+          }
+        >
           {props.opening ? (
             <p role="status" className="text-body text-ink-secondary">
               Đang mở ghi chú…
@@ -284,10 +408,19 @@ export function PersonalNotesView(props: PersonalNotesViewProps) {
           ) : null}
           {props.editor ??
             (!props.opening && !props.openError ? (
-              <EmptyState
-                title="Chọn một ghi chú"
-                description="Mở ghi chú để sửa hoặc tạo ghi chú mới."
-              />
+              <Card className="relative isolate overflow-hidden border-brand-100 bg-brand-50 p-4">
+                <div className="relative z-base flex items-center gap-3">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface text-brand-600">
+                    <FilePenLine aria-hidden="true" className="size-4" />
+                  </span>
+                  <div>
+                    <h2 className="text-label text-brand-800">Chọn một ghi chú</h2>
+                    <p className="text-body-sm text-ink-secondary">
+                      Mở ghi chú để sửa hoặc tạo ghi chú mới.
+                    </p>
+                  </div>
+                </div>
+              </Card>
             ) : null)}
         </section>
       </div>
