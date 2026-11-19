@@ -4,17 +4,15 @@ info:
   version: 1.1.0
   description: >
     Additive T-05 appendix to openapi-ai-practice.yaml, FR-011 through FR-016.
-    Review routes require TEACHER or CONTENT_EDITOR; ADMIN alone is forbidden.
-    Request mutations authenticated by cookie require X-XSRF-TOKEN.
+    Review routes require TEACHER; CONTENT_EDITOR and ADMIN alone are forbidden (403)
+    since v1.2 (BUS-07). Request mutations authenticated by cookie require X-XSRF-TOKEN.
     Original 010 and 024 contracts remain unchanged. Existing 010 GET detail adds
     an actor-specific Redis viewed marker only for AI PENDING_REVIEW questions,
     expiring after 24 hours; marker failure does not fail the detail response.
-    Existing 010 PUT additionally permits CONTENT_EDITOR only for AI PENDING_REVIEW;
-    TEACHER behavior and all 010 parameters, fields, statuses and validation remain
-    unchanged. An editor's invalid, missing or ineligible target gives 403 before
-    parsing the body. Both roles retain 010 validation and audit rules. An edited
-    pending AI multiple-choice question stores the sole correct option key so it
-    remains eligible for FR-014 approval.
+    Existing 010 PUT stays TEACHER only; CONTENT_EDITOR gets 403 before parsing the
+    body, including for AI PENDING_REVIEW. TEACHER keeps all 010 parameters, fields,
+    statuses, validation and audit rules. An edited pending AI multiple-choice question
+    stores the sole correct option key so it remains eligible for FR-014 approval.
   x-original-contract: ./openapi-ai-practice.yaml
   x-existing-operations:
     - method: GET

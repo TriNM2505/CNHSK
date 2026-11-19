@@ -195,7 +195,7 @@ public class AiReviewService {
 
     private CurrentUser reviewer() {
         CurrentUser caller = auth.currentUser();
-        if (!caller.roles().contains(RoleCode.TEACHER) && !caller.roles().contains(RoleCode.CONTENT_EDITOR)) {
+        if (!caller.roles().contains(RoleCode.TEACHER)) {
             throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "Không có quyền duyệt câu hỏi.", Map.of());
         }
         return caller;

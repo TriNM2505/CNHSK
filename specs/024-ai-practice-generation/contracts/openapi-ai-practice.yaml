@@ -3,7 +3,7 @@ info:
   title: CNHSK AI Practice Generation — admin API
   version: 1.0.0
   description: >
-    Hợp đồng spec 024. /api/admin/ai-questions/** cần TEACHER hoặc CONTENT_EDITOR;
+    Hợp đồng spec 024. /api/admin/ai-questions/** chỉ TEACHER (v1.2, BUS-07);
     /api/admin/ai-generation-runs/** cần ADMIN. Xem/sửa từng câu dùng /api/admin/questions/{id} của spec 010.
     Request đổi trạng thái qua cookie cần X-XSRF-TOKEN. Người học không có endpoint mới.
 

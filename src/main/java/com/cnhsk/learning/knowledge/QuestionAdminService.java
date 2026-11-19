@@ -195,9 +195,10 @@ public class QuestionAdminService {
                 && !caller.roles().contains(RoleCode.CONTENT_EDITOR))) throw forbidden();
     }
 
+    /** Content editors may read and archive questions, but only teachers edit content (BUS-07). */
     private static void requireEditable(Question question, CurrentUser caller) {
         requireReviewer(caller);
-        if (!caller.roles().contains(RoleCode.TEACHER) && !pendingAi(question)) throw forbidden();
+        if (!caller.roles().contains(RoleCode.TEACHER)) throw forbidden();
     }
 
     private static ApiException forbidden() {

@@ -70,9 +70,19 @@ class AiReviewKnowledgeIntegrationTest extends AbstractIntegrationTest {
     @MockitoSpyBean private StringRedisTemplate redis;
 
     @Test
-    void editorCanEditPendingAiThenApproveTheStoredCorrectOption() throws Exception {
+    void editorCannotEditOrApprovePendingAi() throws Exception {
         Question question = question(QuestionSource.AI, QuestionStatus.PENDING_REVIEW);
-        Actor editor = actor("CONTENT_EDITOR");
+        for (String content : List.of("", "{}", "{bad-json")) assertEditorForbidden(question.getId().toString(), content);
+        mvc.perform(post(REVIEW + "/{id}/approve", question.getId()).header("Authorization", actor("CONTENT_EDITOR").bearer()))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("FORBIDDEN"));
+        assertThat(jdbc.queryForObject("SELECT status FROM learning.questions WHERE id=?", String.class, question.getId()))
+                .isEqualTo("PENDING_REVIEW");
+    }
+
+    @Test
+    void teacherCanEditPendingAiThenApproveTheStoredCorrectOption() throws Exception {
+        Question question = question(QuestionSource.AI, QuestionStatus.PENDING_REVIEW);
+        Actor editor = actor("TEACHER");
         mvc.perform(put(QUESTIONS + "/{id}", question.getId()).header("Authorization", editor.bearer())
                         .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsBytes(body())))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.correctKey").value("B"))
@@ -157,7 +167,7 @@ class AiReviewKnowledgeIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void listAndNonpendingOrOrdinaryDetailNeverCreateViewedMarkers() throws Exception {
-        Actor editor = actor("CONTENT_EDITOR");
+        Actor editor = actor("TEACHER");
         Question pending = question(QuestionSource.AI, QuestionStatus.PENDING_REVIEW);
         mvc.perform(get(REVIEW).header("Authorization", editor.bearer())).andExpect(status().isOk());
         mvc.perform(get(QUESTIONS).header("Authorization", editor.bearer())).andExpect(status().isOk());

@@ -102,7 +102,7 @@ class AiReviewConcurrencyIntegrationTest extends AbstractIntegrationTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    void editorEditAndReviewSerializeWithoutOverwritingReviewOrLosingTheEditedContent(boolean editFirst) throws Exception {
+    void teacherEditAndReviewSerializeWithoutOverwritingReviewOrLosingTheEditedContent(boolean editFirst) throws Exception {
         long id = pending();
         var pool = Executors.newFixedThreadPool(2);
         CountDownLatch firstHasWritten = new CountDownLatch(1);
@@ -127,15 +127,12 @@ class AiReviewConcurrencyIntegrationTest extends AbstractIntegrationTest {
             await(secondReady); releaseFirst.countDown();
             first.get(25, TimeUnit.SECONDS);
             Object secondResult = second.get(25, TimeUnit.SECONDS);
-            if (editFirst) {
-                assertThat(secondResult).isInstanceOf(AiReviewService.ReviewResult.class);
-                assertThat(jdbc.queryForObject("SELECT explanation FROM learning.questions WHERE id=?", String.class, id)).isEqualTo("Lời giải sau sửa");
-                assertThat(fixture.audits(id, "QUESTION_UPDATE")).isEqualTo(1);
-            } else {
-                assertThat(secondResult).isEqualTo(ErrorCode.FORBIDDEN);
-                assertThat(jdbc.queryForObject("SELECT explanation FROM learning.questions WHERE id=?", String.class, id)).isEqualTo("Lời giải tự soạn");
-                assertThat(fixture.audits(id, "QUESTION_UPDATE")).isZero();
-            }
+            // Teachers may edit both pending and approved questions, so whichever runs second still
+            // succeeds after waiting for the first lock: neither the edit nor the approval is lost.
+            if (editFirst) assertThat(secondResult).isInstanceOf(AiReviewService.ReviewResult.class);
+            else assertThat(secondResult).isNotInstanceOf(ErrorCode.class);
+            assertThat(jdbc.queryForObject("SELECT explanation FROM learning.questions WHERE id=?", String.class, id)).isEqualTo("Lời giải sau sửa");
+            assertThat(fixture.audits(id, "QUESTION_UPDATE")).isEqualTo(1);
             assertThat(fixture.status(id)).isEqualTo("APPROVED");
             assertThat(fixture.audits(id, "AI_QUESTION_APPROVE")).isEqualTo(1);
         } finally {
@@ -177,7 +174,7 @@ class AiReviewConcurrencyIntegrationTest extends AbstractIntegrationTest {
         long first = pending(); long failing = pending(); long untouched = pending();
         for (long id : List.of(first, failing, untouched)) viewed(actor, id);
         failAuditInsertFor(failing);
-        String token = jwt.issueAccessToken(actor, List.of("CONTENT_EDITOR"), true, UUID.randomUUID());
+        String token = jwt.issueAccessToken(actor, List.of("TEACHER"), true, UUID.randomUUID());
         mvc.perform(post(ROOT + "/bulk-approve").header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(Map.of("ids", List.of(first, failing, untouched)))))
                 .andExpect(status().isInternalServerError()).andExpect(jsonPath("$.error_code").value("INTERNAL_ERROR"))
@@ -211,7 +208,7 @@ class AiReviewConcurrencyIntegrationTest extends AbstractIntegrationTest {
     }
     private <T> T asEditor(Supplier<T> action) {
         SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
-                new AuthenticatedUser(actor, Set.of("CONTENT_EDITOR"), true, UUID.randomUUID().toString(), UUID.randomUUID(), Instant.now()), null, List.of()));
+                new AuthenticatedUser(actor, Set.of("TEACHER"), true, UUID.randomUUID().toString(), UUID.randomUUID(), Instant.now()), null, List.of()));
         try { return action.get(); } finally { SecurityContextHolder.clearContext(); }
     }
     private static void await(CountDownLatch latch) {

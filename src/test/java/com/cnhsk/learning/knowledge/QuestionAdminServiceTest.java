@@ -57,9 +57,8 @@ class QuestionAdminServiceTest {
             question.setStatus(status);
             when(questions.findByIdForUpdate(9)).thenReturn(Optional.of(question));
             java.util.function.Supplier<QuestionUpdate> body = () -> { throw new AssertionError("Body read before permission guard"); };
-            if (status != QuestionStatus.PENDING_REVIEW) {
-                assertError(() -> service.updateFrom("9", editor, body), ErrorCode.FORBIDDEN, 403);
-            }
+            // Content editors never edit content, not even pending AI questions (BUS-07).
+            assertError(() -> service.updateFrom("9", editor, body), ErrorCode.FORBIDDEN, 403);
         }
         Question ordinary = editable();
         ordinary.setStatus(QuestionStatus.PENDING_REVIEW);
@@ -100,15 +99,14 @@ class QuestionAdminServiceTest {
         verifyNoInteractions(points, labels, entities, audit, queries);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"CONTENT_EDITOR", "TEACHER"})
-    void pendingAiMultipleChoiceUpdateDerivesStoredCorrectKeyOnlyAfterExistingValidation(String role) {
+    @Test
+    void pendingAiMultipleChoiceUpdateDerivesStoredCorrectKeyOnlyAfterExistingValidation() {
         Question question = editable();
         question.setSource(com.cnhsk.learning.knowledge.entity.QuestionSource.AI);
         question.setStatus(QuestionStatus.PENDING_REVIEW);
         when(questions.findByIdForUpdate(9)).thenReturn(Optional.of(question));
         stubPoint();
-        service.updateFrom("9", new CurrentUser(12, Set.of(RoleCode.valueOf(role)), true), () -> input(false));
+        service.updateFrom("9", new CurrentUser(12, Set.of(RoleCode.TEACHER), true), () -> input(false));
         assertThat(question.getCorrectKey()).isEqualTo("B");
         verify(audit).record(eq(12L), eq("QUESTION_UPDATE"), eq("question:9"), any(), any());
         verifyNoInteractions(auth);

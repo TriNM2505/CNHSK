@@ -63,7 +63,7 @@ class AiReviewControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"TEACHER", "CONTENT_EDITOR"})
+    @ValueSource(strings = {"TEACHER"})
     void allowedReviewersCanListWithEitherCredentialAndApproveWithoutAViewedMarker(String role) throws Exception {
         long id = fixture.question("AI", "PENDING_REVIEW", 1, NOW, true);
         for (boolean cookie : List.of(false, true)) {
@@ -83,7 +83,7 @@ class AiReviewControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"ADMIN", "LEARNER", "MODERATOR", "ACCOUNTANT"})
+    @ValueSource(strings = {"ADMIN", "LEARNER", "MODERATOR", "ACCOUNTANT", "CONTENT_EDITOR"})
     void otherRolesAreForbiddenBeforeInputValidationOnEveryOperation(String role) throws Exception {
         mvc.perform(get(ROOT).param("hsk", "bad").header("Authorization", bearer(role)))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("FORBIDDEN"));
@@ -256,10 +256,10 @@ class AiReviewControllerIntegrationTest extends AbstractIntegrationTest {
     void rejectTrimsAndCountsUnicodeCodePointsRecordsAuditAndRejectsReplay() throws Exception {
         long id = fixture.question("AI", "PENDING_REVIEW", 1, NOW, true);
         String reason = "𠀀".repeat(1000);
-        mvc.perform(post(ROOT + "/{id}/reject", id).header("Authorization", bearer("CONTENT_EDITOR"))
+        mvc.perform(post(ROOT + "/{id}/reject", id).header("Authorization", bearer("TEACHER"))
                         .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(java.util.Map.of("reason", reason + "𠀀"))))
                 .andExpect(status().isUnprocessableEntity());
-        mvc.perform(post(ROOT + "/{id}/reject", id).header("Authorization", bearer("CONTENT_EDITOR"))
+        mvc.perform(post(ROOT + "/{id}/reject", id).header("Authorization", bearer("TEACHER"))
                         .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(java.util.Map.of("reason", "  " + reason + "  "))))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REJECTED"))
                 .andExpect(jsonPath("$.reviewedAt").value(NOW.toString()));

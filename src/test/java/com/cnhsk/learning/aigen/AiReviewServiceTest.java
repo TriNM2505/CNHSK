@@ -76,8 +76,15 @@ class AiReviewServiceTest {
         verifyNoInteractions(jdbc, viewed, audit, transactions);
     }
 
+    @Test
+    void contentEditorCannotReachTheQueueEvenWithAdmin() {
+        when(auth.currentUser()).thenReturn(new CurrentUser(51, Set.of(RoleCode.CONTENT_EDITOR, RoleCode.ADMIN), true));
+        assertError(() -> service.list(null, null, null, null, 0, 20), ErrorCode.FORBIDDEN);
+        verifyNoInteractions(jdbc, viewed, audit, transactions);
+    }
+
     @ParameterizedTest
-    @EnumSource(value = RoleCode.class, names = {"TEACHER", "CONTENT_EDITOR"})
+    @EnumSource(value = RoleCode.class, names = {"TEACHER"})
     void allowedRolesCanReachTheQueueWithoutAnEmailVerificationRequirement(RoleCode role) throws Exception {
         when(auth.currentUser()).thenReturn(new CurrentUser(51, Set.of(role, RoleCode.ADMIN), false));
         when(jdbc.queryForObject(anyString(), any(SqlParameterSource.class), eq(Long.class))).thenReturn(0L);
