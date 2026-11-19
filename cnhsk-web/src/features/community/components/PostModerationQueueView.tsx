@@ -4,7 +4,7 @@ import { Button } from '@/shared/ui/Button'
 import { DataTable, type DataTableColumn } from '@/shared/ui/DataTable'
 import { EmptyState } from '@/shared/ui/EmptyState'
 import { ErrorState } from '@/shared/ui/ErrorState'
-import { PageHeader } from '@/shared/ui/PageHeader'
+import { PageBanner } from '@/shared/ui/PageBanner'
 import { PageState, type PageStateValue } from '@/shared/ui/PageState'
 import { Pagination } from '@/shared/ui/Pagination'
 import { Skeleton } from '@/shared/ui/Skeleton'
@@ -106,7 +106,8 @@ export function PostModerationQueueView({
   return (
     <main className="mx-auto max-w-content space-y-6 p-4 sm:p-6">
       <ModerationNavigation active="posts" />
-      <PageHeader
+      <PageBanner
+        className="px-4 pt-4 pb-20 shadow-sm sm:px-5 [&>svg]:inset-y-auto [&>svg]:bottom-0 [&>svg]:block [&>svg]:h-16 [&>svg]:w-80 [&>svg]:max-w-full lg:pb-4 lg:pr-80 lg:[&>svg]:h-full"
         actions={
           <Button disabled={state === 'loading'} onClick={onRetry} variant="outline">
             Tải lại hàng đợi
@@ -131,10 +132,7 @@ export function PostModerationQueueView({
         }
         error={
           <div role="alert">
-            <ErrorState
-              message={error ?? 'Không thể tải bài chờ duyệt.'}
-              onRetry={onRetry}
-            />
+            <ErrorState message={error ?? 'Không thể tải bài chờ duyệt.'} onRetry={onRetry} />
           </div>
         }
         loading={
