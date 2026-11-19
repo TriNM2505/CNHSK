@@ -26,6 +26,7 @@ Khoá §0.1 đọc qua `SettingsApi` nếu 023/T-01 đã merge (T-01 thêm vào 
 | T-07 | FE SCR-058 + nút Duyệt/Từ chối trong SCR-059 khi câu là AI chờ duyệt; route `['TEACHER','CONTENT_EDITOR']`; menu quản trị | `web/features/ai-review/**`, `web/features/question-admin/**` (SCR-059), `routeAccess.ts`, `screenRegistry.ts` + test | FR-020 · AT-18 | ✅ MERGED — PR #256 |
 | T-08 | FE trang "Lô AI" (`ADMIN`): lịch sử, token tháng, trạng thái bật/tắt, "Chạy thử" | `web/features/ai-runs/**`, `routeAccess.ts`, `screenRegistry.ts` + test | FR-018, FR-019 | ✅ MERGED — PR #258 |
 | T-09 | Test hợp đồng `/v3/api-docs` so `openapi-ai-practice.yaml` (hai chiều path + method + status) | `t/contract/AiPracticeContractTest.java` | §13 · AT-19 | ✅ MERGED — PR #260 |
+| T-10 | v1.1 chống gần trùng: chỉ dẫn prompt không lặp `samples`, câu trong lô khác nhau (không gửi thêm nội dung); `NEAR_DUPLICATE_STEM` (bỏ dấu câu/khoảng trắng, cùng đáp án đúng, cùng dãy số, Jaccard bigram ≥ 0,8, ≥ 8 code point); `existingStems` trả kèm `options` dạng text trong cùng một truy vấn, đáp án đúng đọc bằng Java | `…/aigen/AiPromptBuilder.java`, `AiQuestionValidator.java`, `WeakKnowledgeQueryRepository.java` + test | §0.3, FR-007 · AT-09 | 🔄 PR — leader |
 
 ## Thứ tự
 

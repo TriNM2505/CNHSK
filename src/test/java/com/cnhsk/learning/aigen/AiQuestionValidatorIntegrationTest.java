@@ -117,6 +117,21 @@ class AiQuestionValidatorIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void nearDuplicateUsesTheStoredCorrectAnswerInTheSameSingleRead() {
+        fixtures.question(prompt.knowledgePointId(), "PRIMARY", "APPROVED", "MANUAL", "Weekend library visit planned",
+                AiPromptBuilderIntegrationTest.fixtureOptions(null));
+        ObjectNode otherAnswer = question("Weekend library visit plannef");
+        ((ObjectNode) otherAnswer.withArray("options").get(0)).put("text", "another answer");
+        sql.clear();
+        var result = validate(mapper.createArrayNode().add(question("Weekend library visit plannee")).add(otherAnswer));
+        assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::stem)
+                .containsExactly("Weekend library visit plannef");
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(0, "NEAR_DUPLICATE_STEM"));
+        sql.assertContentReads(1);
+        assertThat(sql.statements).hasSize(1);
+    }
+
+    @Test
     void batchesReferencesAcrossManyRowsAndSkipsEmptyReferenceSets() {
         long errorNode = fixtures.node("Error", "Can do");
         fixtures.lexeme(null, "CHAR", "𠀁", 1);

@@ -173,12 +173,70 @@ class AiQuestionValidatorTest {
         ObjectNode invalid = question("e\u0301 \u2003 text"); invalid.put("difficulty", 0);
         ArrayNode rows = mapper.createArrayNode().add(invalid).add(question("é text")).add(question(" é\ntext "))
                 .add(question("É text")).add(question("other"));
-        when(repository.existingStems(17)).thenReturn(List.of(" other\u00a0 "));
+        when(repository.existingStems(17)).thenReturn(List.of(new WeakKnowledgeQueryRepository.ExistingStem(" other\u00a0 ", options("first"))));
         var result = validate(rows);
         assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::stem).containsExactly("é text", "É text");
         assertThat(result.dropped()).extracting(AiQuestionValidator.Dropped::index).containsExactly(0, 2, 4);
         assertThat(result.dropped().get(1).reason()).isEqualTo("DUPLICATE_STEM");
         assertThat(result.dropped().get(2).reason()).isEqualTo("DUPLICATE_STEM");
+    }
+
+    @Test
+    void stemsDifferingOnlyInPunctuationOrSpacesAreNearDuplicatesOfExistingAndEarlierRows() {
+        when(repository.existingStems(17)).thenReturn(List.of(
+                new WeakKnowledgeQueryRepository.ExistingStem("我每天七点起床。", options("right"))));
+        ArrayNode rows = mapper.createArrayNode().add(question("我 每天 七点 起床"))
+                .add(question("Self-authored, sentence one!")).add(question("Self-authored sentence one"));
+        var result = validate(rows);
+        assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::stem)
+                .containsExactly("Self-authored, sentence one!");
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(0, "NEAR_DUPLICATE_STEM"),
+                new AiQuestionValidator.Dropped(2, "NEAR_DUPLICATE_STEM"));
+    }
+
+    @Test
+    void similarLongStemsAreDuplicatesOnlyWithTheSameCorrectAnswer() {
+        when(repository.existingStems(17)).thenReturn(List.of(
+                new WeakKnowledgeQueryRepository.ExistingStem("我们明天下午去学校图书馆看书", options("first"))));
+        // Only the last character differs: 12 of 14 bigrams are shared (0.857), so the correct answer decides.
+        ObjectNode sameAnswer = question("我们明天下午去学校图书馆看报");
+        ObjectNode otherAnswer = question("我们明天下午去学校图书馆看画");
+        ((ObjectNode) otherAnswer.withArray("options").get(0)).put("text", "another answer");
+        var result = validate(mapper.createArrayNode().add(sameAnswer).add(otherAnswer));
+        assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::stem)
+                .containsExactly("我们明天下午去学校图书馆看画");
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(0, "NEAR_DUPLICATE_STEM"));
+    }
+
+    @Test
+    void shortDifferentOrDifferentlyNumberedStemsWithTheSameAnswerStayAccepted() {
+        when(repository.existingStems(17)).thenReturn(List.of(
+                new WeakKnowledgeQueryRepository.ExistingStem("我有一本书", options("first")),
+                new WeakKnowledgeQueryRepository.ExistingStem("他昨天晚上在家里看电视", options("first"))));
+        var result = validate(mapper.createArrayNode().add(question("我有一本笔")).add(question("妈妈周末带我们去公园散步"))
+                .add(question("Practice item number 1")).add(question("Practice item number 11")));
+        assertThat(result.accepted()).hasSize(4);
+        assertThat(result.dropped()).isEmpty();
+    }
+
+    @Test
+    void storedOptionsWithoutAReadableCorrectAnswerNeverMatchBySimilarity() {
+        String stem = "我们明天下午去学校图书馆看书";
+        when(repository.existingStems(17)).thenReturn(List.of(
+                new WeakKnowledgeQueryRepository.ExistingStem(stem, "[]"),
+                new WeakKnowledgeQueryRepository.ExistingStem(stem, "{not json"),
+                new WeakKnowledgeQueryRepository.ExistingStem(stem, null)));
+        var result = validate(mapper.createArrayNode().add(question("我们明天下午去学校图书馆看报")));
+        assertThat(result.accepted()).hasSize(1);
+        assertThat(result.dropped()).isEmpty();
+    }
+
+    @Test
+    void similarityIsJaccardOverCodePointBigrams() {
+        assertThat(AiQuestionValidator.similarity("abcd", "abcd")).isEqualTo(1.0);
+        assertThat(AiQuestionValidator.similarity("abcd", "abce")).isEqualTo(0.5);
+        assertThat(AiQuestionValidator.similarity("ab", "cd")).isZero();
+        assertThat(AiQuestionValidator.similarity("𠀀𠀁𠀂", "𠀀𠀁𠀂")).isEqualTo(1.0);
     }
 
     @Test
@@ -214,6 +272,11 @@ class AiQuestionValidatorTest {
         row.set("options", mapper.createArrayNode().add(option("A", "first", true)).add(option("B", "second", false))
                 .add(option("C", "third", false)).add(option("D", "fourth", false)));
         return row;
+    }
+    /** Stored options JSON as the database keeps it (snake_case), with {@code correct} as the right answer. */
+    private static String options(String correct) {
+        return "[{\"key\":\"A\",\"text\":\"" + correct + "\",\"is_correct\":true},"
+                + "{\"key\":\"B\",\"text\":\"second\",\"is_correct\":false}]";
     }
     private ObjectNode option(String key, String text, boolean correct) {
         return mapper.createObjectNode().put("key", key).put("text", text).put("isCorrect", correct);

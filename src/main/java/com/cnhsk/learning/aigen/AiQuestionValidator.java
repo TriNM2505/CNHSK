@@ -24,6 +24,13 @@ public class AiQuestionValidator {
     private static final Pattern EDGE_SPACE = Pattern.compile("^[\\s\\p{Z}]+|[\\s\\p{Z}]+$",
             Pattern.UNICODE_CHARACTER_CLASS);
     private static final Pattern SPACE = Pattern.compile("[\\s\\p{Z}]+", Pattern.UNICODE_CHARACTER_CLASS);
+    /** Vietnamese/Chinese punctuation and every kind of space are ignored when looking for near duplicates. */
+    private static final Pattern PUNCTUATION_OR_SPACE = Pattern.compile("[\\p{P}\\s\\p{Z}]+",
+            Pattern.UNICODE_CHARACTER_CLASS);
+    /** Jaccard similarity over character bigrams at or above this value counts as the same stem. */
+    static final double NEAR_DUPLICATE_THRESHOLD = 0.8;
+    /** Short stems share bigrams by chance, so only stems this long (code points, after loosening) are compared. */
+    static final int NEAR_DUPLICATE_MIN_LENGTH = 8;
     private static final Set<String> KEYS = Set.of("A", "B", "C", "D");
     private final WeakKnowledgeQueryRepository repository;
     private final ObjectMapper mapper;
@@ -68,7 +75,11 @@ public class AiQuestionValidator {
             hanzi(candidate.value().stem(), characters);
         }
         Set<String> stems = new HashSet<>();
-        repository.existingStems(prompt.knowledgePointId()).forEach(stem -> stems.add(fingerprint(stem)));
+        List<LooseStem> looseStems = new ArrayList<>();
+        repository.existingStems(prompt.knowledgePointId()).forEach(existing -> {
+            stems.add(fingerprint(existing.stem()));
+            looseStems.add(new LooseStem(loose(existing.stem()), loose(storedCorrectText(existing.optionsJson()))));
+        });
         Set<String> existingKids = errorKids.isEmpty() ? Set.of() : repository.existingKidCodes(errorKids);
         Set<String> allowed = characters.isEmpty() ? Set.of() : repository.allowedCharacters(characters, prompt.hskLevel());
         List<ValidatedQuestion> accepted = new ArrayList<>();
@@ -79,12 +90,15 @@ public class AiQuestionValidator {
                     && !existingKids.contains(option.errorKid()))) reason = "UNKNOWN_ERROR_KID";
             String stem = fingerprint(value.stem());
             if (reason == null && stems.contains(stem)) reason = "DUPLICATE_STEM";
+            LooseStem looseStem = new LooseStem(loose(value.stem()), loose(correctText(value)));
+            if (reason == null && nearDuplicate(looseStem, looseStems)) reason = "NEAR_DUPLICATE_STEM";
             Set<String> used = new HashSet<>();
             hanzi(value.stem(), used);
             value.options().forEach(option -> hanzi(option.text(), used));
             if (reason == null && !allowed.containsAll(used)) reason = "HANZI_ABOVE_LEVEL";
             if (reason == null) {
                 stems.add(stem);
+                looseStems.add(looseStem);
                 accepted.add(value);
             } else dropped.add(new Dropped(candidate.index(), reason));
         }
@@ -149,6 +163,73 @@ public class AiQuestionValidator {
         return value == null ? "" : EDGE_SPACE.matcher(Normalizer.normalize(value, Normalizer.Form.NFC)).replaceAll("");
     }
     private static String fingerprint(String value) { return SPACE.matcher(text(value)).replaceAll(" "); }
+    /** Drops punctuation and spaces but keeps letter case, matching the exact-duplicate rule. */
+    private static String loose(String value) { return PUNCTUATION_OR_SPACE.matcher(text(value)).replaceAll(""); }
+
+    /** Correct option text of a stored question, or null when the options are absent or legacy-shaped. */
+    private String storedCorrectText(String optionsJson) {
+        if (optionsJson == null || optionsJson.isBlank()) return null;
+        try {
+            JsonNode options = mapper.readTree(optionsJson);
+            if (options == null || !options.isArray()) return null;
+            for (JsonNode option : options) {
+                if (option.path("is_correct").asBoolean(false) && option.path("text").isTextual()) {
+                    return option.get("text").textValue();
+                }
+            }
+        } catch (JsonProcessingException exception) {
+            return null;
+        }
+        return null;
+    }
+
+    private static String correctText(ValidatedQuestion question) {
+        return question.options().stream().filter(QuestionOption::isCorrect).findFirst().orElseThrow().text();
+    }
+
+    /**
+     * Stems equal once punctuation and spaces are ignored are always duplicates. Merely similar stems are
+     * duplicates only with the same correct answer, so drills that change just the tested word stay apart.
+     */
+    private static boolean nearDuplicate(LooseStem candidate, List<LooseStem> others) {
+        if (candidate.stem().isEmpty()) return false;
+        boolean comparable = length(candidate.stem()) >= NEAR_DUPLICATE_MIN_LENGTH && !candidate.answer().isEmpty();
+        for (LooseStem other : others) {
+            if (candidate.stem().equals(other.stem())) return true;
+            if (comparable && candidate.answer().equals(other.answer())
+                    && length(other.stem()) >= NEAR_DUPLICATE_MIN_LENGTH
+                    && digits(candidate.stem()).equals(digits(other.stem()))
+                    && similarity(candidate.stem(), other.stem()) >= NEAR_DUPLICATE_THRESHOLD) return true;
+        }
+        return false;
+    }
+
+    /** Numbers usually carry meaning (7点 vs 8点), so stems with different digit runs are never merged. */
+    private static String digits(String value) {
+        StringBuilder result = new StringBuilder();
+        value.codePoints().filter(Character::isDigit).forEach(result::appendCodePoint);
+        return result.toString();
+    }
+
+    private record LooseStem(String stem, String answer) { }
+
+    /** Jaccard similarity of the two strings' sets of adjacent code-point pairs. */
+    static double similarity(String first, String second) {
+        Set<String> left = bigrams(first);
+        Set<String> right = bigrams(second);
+        if (left.isEmpty() || right.isEmpty()) return first.equals(second) ? 1 : 0;
+        Set<String> union = new HashSet<>(left);
+        union.addAll(right);
+        left.retainAll(right);
+        return (double) left.size() / union.size();
+    }
+
+    private static Set<String> bigrams(String value) {
+        int[] points = value.codePoints().toArray();
+        Set<String> result = new HashSet<>();
+        for (int i = 0; i + 1 < points.length; i++) result.add(new String(points, i, 2));
+        return result;
+    }
     private static int length(String value) { return value.codePointCount(0, value.length()); }
     private static void hanzi(String text, Set<String> result) {
         text.codePoints().filter(code -> Character.UnicodeScript.of(code) == Character.UnicodeScript.HAN)
