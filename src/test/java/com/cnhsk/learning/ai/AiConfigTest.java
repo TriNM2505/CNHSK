@@ -20,8 +20,9 @@ class AiConfigTest {
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(ConfigurationPropertiesAutoConfiguration.class,
                     ValidationAutoConfiguration.class))
-            .withUserConfiguration(AiConfig.class, AnthropicClaudeClient.class, StubClaudeClient.class)
-            .withPropertyValues("ANTHROPIC_API_KEY=")
+            .withUserConfiguration(AiConfig.class, DeepSeekChatClient.class, AnthropicClaudeClient.class,
+                    StubClaudeClient.class)
+            .withPropertyValues("DEEPSEEK_API_KEY=", "ANTHROPIC_API_KEY=")
             .withInitializer(context -> {
                 try {
                     new YamlPropertySourceLoader().load("application", new ClassPathResource("application.yaml"))
@@ -36,18 +37,23 @@ class AiConfigTest {
         runner.run(context -> {
             assertThat(context).hasNotFailed().hasSingleBean(ClaudeClient.class);
             AiConfig config = context.getBean(AiConfig.class);
-            assertThat(config.getAssistantModel()).isEqualTo("claude-haiku-5-5");
-            assertThat(config.getTranslateModel()).isEqualTo("claude-haiku-5-5");
+            assertThat(config.getProvider()).isEqualTo("deepseek");
+            assertThat(config.getAssistantModel()).isEqualTo("deepseek-chat");
+            assertThat(config.getTranslateModel()).isEqualTo("deepseek-chat");
             assertThat(config.getTimeout()).isEqualTo(Duration.ofSeconds(15));
             assertThat(config.getMonthlyTokenBudget()).isEqualTo(2_000_000L);
             ClaudeClient client = context.getBean(ClaudeClient.class);
-            assertThat(client).isInstanceOf(AnthropicClaudeClient.class);
-            assertThatThrownBy(() -> client.complete(config.getAssistantModel(), List.of(), List.of(),
-                    800, config.getTimeout())).isInstanceOfSatisfying(AiUnavailableException.class,
-                            error -> {
-                                assertThat(error.getReason()).isEqualTo(AiUnavailableException.Reason.NOT_CONFIGURED);
-                                assertThat(error.getCause()).isNull();
-                            });
+            assertThat(client).isInstanceOf(DeepSeekChatClient.class);
+            assertNotConfigured(client, config);
+        });
+    }
+
+    @Test
+    void FR006_AT06_anthropicProviderStillSelectsTheAnthropicClient() {
+        runner.withPropertyValues("cnhsk.ai.provider=anthropic").run(context -> {
+            assertThat(context).hasNotFailed().hasSingleBean(ClaudeClient.class);
+            assertThat(context.getBean(ClaudeClient.class)).isInstanceOf(AnthropicClaudeClient.class);
+            assertNotConfigured(context.getBean(ClaudeClient.class), context.getBean(AiConfig.class));
         });
     }
 
@@ -56,13 +62,22 @@ class AiConfigTest {
         runner.withInitializer(context -> context.getEnvironment().setActiveProfiles("test")).run(context -> {
             assertThat(context).hasNotFailed().hasSingleBean(ClaudeClient.class);
             assertThat(context.getBean(ClaudeClient.class)).isInstanceOf(StubClaudeClient.class);
-            assertThat(context).doesNotHaveBean(AnthropicClaudeClient.class);
+            assertThat(context).doesNotHaveBean(AnthropicClaudeClient.class).doesNotHaveBean(DeepSeekChatClient.class);
         });
+    }
+
+    private static void assertNotConfigured(ClaudeClient client, AiConfig config) {
+        assertThatThrownBy(() -> client.complete(config.getAssistantModel(), List.of(), List.of(),
+                800, config.getTimeout())).isInstanceOfSatisfying(AiUnavailableException.class,
+                        error -> {
+                            assertThat(error.getReason()).isEqualTo(AiUnavailableException.Reason.NOT_CONFIGURED);
+                            assertThat(error.getCause()).isNull();
+                        });
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"assistant-model=", "translate-model=", "timeout=", "timeout=0s",
-            "timeout=-1s", "monthly-token-budget=0", "monthly-token-budget=-1"})
+            "timeout=-1s", "monthly-token-budget=0", "monthly-token-budget=-1", "provider=", "provider=openai"})
     void FR006_invalidConfigurationPreventsStartup(String property) {
         runner.withPropertyValues("cnhsk.ai." + property).run(context -> assertThat(context).hasFailed());
     }

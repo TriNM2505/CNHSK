@@ -41,7 +41,7 @@
 | `ai-generate.batch-size` | 5 | 1–10 | Số câu mỗi lô |
 | `ai-generate.max-batches-per-run` | 3 | 0–20 | Số lô tối đa mỗi lần chạy |
 
-Khoá kỹ thuật ở yaml (không ở 078): `cnhsk.ai-generate.cron` = `0 0 2 * * *` (giờ VN), `cnhsk.ai.generate-model` = `claude-sonnet-5-5`, `cnhsk.ai-generate.timeout` = `60s`. Nếu 023/T-01 chưa merge, đọc các khoá §0.1 từ yaml `cnhsk.ai-generate.*` với cùng mặc định; 023/T-04 chuyển sau.
+Khoá kỹ thuật ở yaml (không ở 078): `cnhsk.ai-generate.cron` = `0 0 2 * * *` (giờ VN), `cnhsk.ai.generate-model` = `deepseek-chat` (2026-11-19, provider DeepSeek theo 015 v1.1; trước là `claude-sonnet-5-5`), `cnhsk.ai-generate.timeout` = `60s`. Nếu 023/T-01 chưa merge, đọc các khoá §0.1 từ yaml `cnhsk.ai-generate.*` với cùng mặc định; 023/T-04 chuyển sau.
 
 ### 0.2 · Vòng đời lô và câu
 
@@ -161,7 +161,7 @@ Không migration. Ví dụ một lô:
 
 ```json
 { "id": 310, "kind": "AI_GENERATE", "status": "COMPLETED", "user_id": 1,
-  "payload": { "kid": "NP2-004", "knowledgePointId": 88, "model": "claude-sonnet-5-5", "wrongCount": 37, "bankCount": 6 },
+  "payload": { "kid": "NP2-004", "knowledgePointId": 88, "model": "deepseek-chat", "wrongCount": 37, "bankCount": 6 },
   "result": { "questionIds": [9001, 9002, 9003, 9004], "dropped": [ {"index": 2, "reason": "HANZI_ABOVE_LEVEL"} ],
               "inputTokens": 3120, "outputTokens": 1480 } }
 ```

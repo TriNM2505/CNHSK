@@ -6,6 +6,7 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
@@ -14,6 +15,11 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "cnhsk.ai")
 public class AiConfig {
+    /** Which client calls the model; a typo must stop startup instead of silently disabling AI. */
+    @NotBlank
+    @Pattern(regexp = "deepseek|anthropic")
+    private String provider = "deepseek";
+
     @NotBlank
     private String assistantModel;
 
@@ -27,6 +33,8 @@ public class AiConfig {
     @Min(1)
     private Long monthlyTokenBudget;
 
+    public String getProvider() { return provider; }
+    public void setProvider(String provider) { this.provider = provider; }
     public String getAssistantModel() { return assistantModel; }
     public void setAssistantModel(String assistantModel) { this.assistantModel = assistantModel; }
     public String getTranslateModel() { return translateModel; }

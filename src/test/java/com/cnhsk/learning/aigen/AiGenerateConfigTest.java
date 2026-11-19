@@ -56,7 +56,7 @@ class AiGenerateConfigTest {
             assertThat(context).hasNotFailed().hasSingleBean(SettingsApi.class).hasSingleBean(ClaudeClient.class);
             assertThat(context.getBean(SettingsApi.class)).isSameAs(context.getBean(SettingsService.class));
             AiGenerateConfig config = context.getBean(AiGenerateConfig.class);
-            assertThat(config.getGenerateModel()).isEqualTo("claude-sonnet-5-5");
+            assertThat(config.getGenerateModel()).isEqualTo("deepseek-chat");
             assertThat(config.getTimeout()).isEqualTo(Duration.ofSeconds(60));
             assertThat(config.getCron()).isEqualTo("0 0 2 * * *");
             for (BusinessValue value : BUSINESS_VALUES) {
@@ -65,8 +65,8 @@ class AiGenerateConfigTest {
                 assertThat(value.read().applyAsInt(config)).isEqualTo(value.defaultValue());
                 verify(context.getBean(SettingsService.class)).getInt(value.key());
             }
-            assertThat(context.getEnvironment().getProperty("cnhsk.ai.assistant-model")).isEqualTo("claude-haiku-5-5");
-            assertThat(context.getEnvironment().getProperty("cnhsk.ai.translate-model")).isEqualTo("claude-haiku-5-5");
+            assertThat(context.getEnvironment().getProperty("cnhsk.ai.assistant-model")).isEqualTo("deepseek-chat");
+            assertThat(context.getEnvironment().getProperty("cnhsk.ai.translate-model")).isEqualTo("deepseek-chat");
             assertThat(context.getEnvironment().getProperty("cnhsk.ai.timeout")).isEqualTo("15s");
             assertThat(context.getBean(ClaudeClient.class)).isInstanceOf(StubClaudeClient.class);
             assertThat(context).doesNotHaveBean(AnthropicClaudeClient.class);
@@ -81,7 +81,7 @@ class AiGenerateConfigTest {
             AiGenerateConfig config = context.getBean(AiGenerateConfig.class);
             assertThat(config.getCron()).isEqualTo("-");
             assertThat(config.getTimeout()).isEqualTo(Duration.ofSeconds(60));
-            assertThat(config.getGenerateModel()).isEqualTo("claude-sonnet-5-5");
+            assertThat(config.getGenerateModel()).isEqualTo("deepseek-chat");
             assertThat(context.getBean(StubClaudeClient.class).callCount()).isZero();
         });
     }
