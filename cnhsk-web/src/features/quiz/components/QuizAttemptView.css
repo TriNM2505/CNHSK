@@ -1,0 +1,67 @@
+.quiz-attempt {
+  overflow-wrap: anywhere;
+}
+
+.quiz-attempt button > span {
+  @apply inline-flex items-center justify-center gap-2;
+}
+
+.quiz-attempt [aria-controls='quiz-question-navigation'] > span {
+  @apply flex w-full justify-between;
+}
+
+.quiz-question-card [id^='practice-question-'] {
+  @apply text-h2;
+}
+
+.quiz-question-card.quiz-short-prompt [id^='practice-question-'] {
+  @apply text-hanzi-md;
+}
+
+.quiz-question-card [role='group'] button {
+  @apply min-h-16 rounded-md shadow-sm;
+}
+
+.quiz-question-card [role='group'] button[aria-pressed='true'] {
+  @apply border-brand-600 bg-brand-50 ring-1 ring-brand-600;
+}
+
+.quiz-question-card.quiz-hanzi-options [role='group'] button > span:nth-child(2) {
+  @apply font-hanzi;
+}
+
+[data-assistant-open='false'] .quiz-attempt-content {
+  @apply pr-16;
+}
+
+[data-assistant-open='true'] .quiz-attempt-actions {
+  @apply grid-cols-1;
+}
+
+[data-assistant-open='true'] .quiz-attempt-actions > button {
+  @apply col-span-1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .quiz-question-enter {
+    animation: quiz-question-reveal 200ms ease-out both;
+  }
+
+  .quiz-question-card [role='group'] button {
+    transition:
+      background-color 200ms,
+      border-color 200ms,
+      box-shadow 200ms;
+  }
+
+  @keyframes quiz-question-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(theme('spacing.2'));
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
