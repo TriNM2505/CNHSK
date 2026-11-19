@@ -13,6 +13,24 @@ const points: GrammarSummary[] = [
     titleVi: 'Nhấn mạnh thời gian hoặc cách thức',
   },
   {
+    bestPercent: 100,
+    exerciseCount: 3,
+    hskLevel: 1,
+    id: 14,
+    learned: true,
+    text: '在 + địa điểm + V',
+    titleVi: 'Diễn đạt nơi diễn ra hành động',
+  },
+  {
+    bestPercent: null,
+    exerciseCount: 4,
+    hskLevel: 1,
+    id: 15,
+    learned: false,
+    text: '会 + động từ',
+    titleVi: 'Diễn đạt kỹ năng học được hoặc khả năng xảy ra',
+  },
+  {
     bestPercent: null,
     exerciseCount: 3,
     hskLevel: 2,
@@ -20,15 +38,6 @@ const points: GrammarSummary[] = [
     learned: false,
     text: '虽然……但是……',
     titleVi: 'Quan hệ nhượng bộ',
-  },
-  {
-    bestPercent: 100,
-    exerciseCount: 5,
-    hskLevel: 7,
-    id: 13,
-    learned: true,
-    text: '与其……不如……',
-    titleVi: 'So sánh lựa chọn',
   },
 ]
 
