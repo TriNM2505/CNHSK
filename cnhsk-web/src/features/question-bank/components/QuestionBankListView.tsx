@@ -1,3 +1,5 @@
+import { Search } from 'lucide-react'
+
 import type { ApiError } from '@/shared/api'
 import {
   Button,
@@ -7,7 +9,7 @@ import {
   FormField,
   Input,
   LevelBadge,
-  PageHeader,
+  PageBanner,
   PageState,
   Pagination,
   Select,
@@ -120,20 +122,21 @@ export function QuestionBankListView({
   state,
 }: QuestionBankListViewProps) {
   return (
-    <div className="mx-auto max-w-content space-y-6">
-      <PageHeader
+    <div className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <PageBanner
+        className="px-4 py-4 sm:px-5"
         title="Kho câu hỏi"
         subtitle="Tra cứu câu hỏi theo cấp HSK, loại và nút năng lực."
       />
       <form
-        className="rounded-md border border-line bg-surface p-4 sm:p-6"
+        className="min-w-0 rounded-md border border-brand-100 bg-surface p-4 shadow-sm sm:p-5"
         noValidate
         onSubmit={(event) => {
           event.preventDefault()
           onSearchSubmit()
         }}
       >
-        <div className="grid gap-x-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
           <FormField htmlFor="question-level" label="Cấp HSK">
             <Select
               value={query.hskLevel}
@@ -214,9 +217,9 @@ export function QuestionBankListView({
             requestId={nodesError?.requestId}
           />
         ) : null}
-        <div className="flex flex-wrap items-start gap-3">
+        <div className="grid gap-3 border-t border-line pt-4 lg:grid-cols-3">
           <FormField
-            className="mb-0 min-w-0 flex-1"
+            className="mb-0 min-w-0 lg:col-span-2"
             htmlFor="question-search"
             label="Tìm câu hỏi"
             error={searchError}
@@ -228,8 +231,13 @@ export function QuestionBankListView({
               value={searchDraft}
             />
           </FormField>
-          <div className="flex gap-3 pt-7">
-            <Button type="submit">Tìm kiếm</Button>
+          <div className="flex flex-wrap items-start gap-3 lg:pt-7">
+            <Button type="submit">
+              <span className="flex items-center gap-2">
+                <Search aria-hidden="true" className="size-4 shrink-0" />
+                Tìm kiếm
+              </span>
+            </Button>
             <Button onClick={onClearFilters} type="button" variant="outline">
               Xoá bộ lọc
             </Button>
@@ -271,11 +279,12 @@ export function QuestionBankListView({
         }
         state={state}
       >
-        <section aria-label="Kết quả tìm câu hỏi" className="space-y-4">
-          <p className="text-body-sm text-ink-secondary">
+        <section aria-label="Kết quả tìm câu hỏi" className="min-w-0 space-y-4">
+          <p className="border-l-4 border-brand-600 pl-3 text-body-sm font-semibold text-ink">
             Tổng cộng {data?.totalElements ?? 0} câu hỏi
           </p>
           <DataTable
+            className="border-brand-100 shadow-sm"
             caption="Danh sách câu hỏi"
             columns={columns}
             getRowLabel={(row) => `Mở câu hỏi ${row.code ?? row.id}`}
