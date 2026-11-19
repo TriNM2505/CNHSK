@@ -521,7 +521,7 @@ export const appRouteDefinitions = [
     scr: 'SCR-071',
   },
   {
-    access: ['TEACHER', 'CONTENT_EDITOR'],
+    access: ['TEACHER'],
     kind: 'screen',
     layout: 'admin',
     path: '/content/ai-review',

@@ -404,9 +404,10 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(14)
+      expect(within(navigation).getAllByRole('link')).toHaveLength(13)
+      // AI review belongs to TEACHER only; CONTENT_EDITOR and ADMIN do not get it.
+      expect(within(navigation).queryByRole('link', { name: 'Duyệt câu hỏi AI' })).not.toBeInTheDocument()
       for (const label of [
-        'Duyệt câu hỏi AI',
         'Lô AI',
         'Quản lý đề thi',
         'Nhập dữ liệu',
@@ -438,7 +439,6 @@ describe('AdminLayout', () => {
   )
   it.each([
     ['TEACHER'],
-    ['CONTENT_EDITOR'],
     ['TEACHER', 'CONTENT_EDITOR'],
     ['ADMIN', 'TEACHER'],
   ] as const)('shows one AI review link on each surface for explicit roles %j', (...roles) => {
@@ -455,7 +455,7 @@ describe('AdminLayout', () => {
       )
     }
   })
-  it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT'] as const)(
+  it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT', 'CONTENT_EDITOR'] as const)(
     'hides AI review from %s alone',
     (role) => {
       renderLayout(<AdminLayout>Duyệt</AdminLayout>, { user: { ...learner, roles: [role] } })

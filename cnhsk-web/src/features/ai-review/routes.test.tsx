@@ -83,7 +83,6 @@ beforeEach(() => {
 describe('AI review route integration', () => {
   it.each([
     ['TEACHER'],
-    ['CONTENT_EDITOR'],
     ['ADMIN', 'TEACHER'],
     ['CONTENT_EDITOR', 'TEACHER'],
   ] as RoleCode[][])(
@@ -101,7 +100,7 @@ describe('AI review route integration', () => {
       }
     },
   )
-  it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT'] as const)(
+  it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT', 'CONTENT_EDITOR'] as const)(
     'denies %s alone without loading protected queue',
     async (role) => {
       const router = renderRoute([role])
@@ -118,7 +117,7 @@ describe('AI review route integration', () => {
     )
   })
   it('opens the existing detail GET and returns to the safe original queue with a fresh list', async () => {
-    const router = renderRoute(['CONTENT_EDITOR'], '/content/ai-review?hsk=2&kid=TV1-901')
+    const router = renderRoute(['TEACHER'], '/content/ai-review?hsk=2&kid=TV1-901')
     fireEvent.click((await screen.findAllByRole('button', { name: 'Mở câu #901' }))[0]!)
     expect(await screen.findByRole('heading', { name: 'Chi tiết câu hỏi' })).toBeVisible()
     expect(getQuestion).toHaveBeenCalledWith(901, expect.any(AbortSignal))

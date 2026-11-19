@@ -63,10 +63,8 @@ function QuestionEditor({
     return data
   })
   const data = accepted ?? query.data
-  const canReview =
-    roles.some((role) => role === 'TEACHER' || role === 'CONTENT_EDITOR') &&
-    data?.source === 'AI' &&
-    data.status === 'PENDING_REVIEW'
+  // Only teachers review AI questions and edit content; content editors read and archive (BUS-07).
+  const canReview = roles.includes('TEACHER') && data?.source === 'AI' && data.status === 'PENDING_REVIEW'
   const reviewMutation = useApiMutation(async (decision: 'approve' | 'reject') => {
     const signal = controllerRef.current.signal
     try {
@@ -103,7 +101,7 @@ function QuestionEditor({
   })
   const canEdit =
     !reviewLocked &&
-    (roles.includes('TEACHER') || (roles.includes('CONTENT_EDITOR') && canReview)) &&
+    roles.includes('TEACHER') &&
     data?.status !== 'ARCHIVED' &&
     data?.qtype !== 'ESSAY'
   const canArchive = roles.includes('CONTENT_EDITOR') && data?.status !== 'ARCHIVED'

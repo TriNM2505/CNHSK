@@ -202,7 +202,7 @@ describe('AI pending review in the existing editor', () => {
     source: 'AI',
     status: 'PENDING_REVIEW',
   })
-  it.each(['TEACHER', 'CONTENT_EDITOR'] as const)(
+  it.each(['TEACHER'] as const)(
     '%s can edit and separately review AI pending questions',
     async (role) => {
       getMock.mockResolvedValue(pendingQuestion())
@@ -218,6 +218,7 @@ describe('AI pending review in the existing editor', () => {
     },
   )
   it.each([
+    ['AI', 'PENDING_REVIEW'],
     ['IMPORT', 'PENDING_REVIEW'],
     ['MANUAL', 'PENDING_REVIEW'],
     ['AI', 'APPROVED'],
@@ -353,13 +354,13 @@ describe('AI pending review in the existing editor', () => {
       expect(updateMock).not.toHaveBeenCalled()
     },
   )
-  it('keeps stale review writes blocked when a conflict reload fails, then revokes Editor edit on retry', async () => {
+  it('keeps stale review writes blocked when a conflict reload fails, then drops review actions on retry', async () => {
     getMock
       .mockResolvedValueOnce(pendingQuestion())
       .mockRejectedValueOnce(apiError(503, 'NETWORK_ERROR'))
       .mockResolvedValueOnce({ ...question(), source: 'MANUAL' })
     vi.mocked(approveReview).mockRejectedValue(apiError(409, 'QUESTION_NOT_PENDING'))
-    renderPage({ roles: ['CONTENT_EDITOR'] })
+    renderPage({ roles: ['TEACHER'] })
     await form()
     fireEvent.click(screen.getByRole('button', { name: 'Duyệt câu hỏi' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận duyệt' }))
@@ -368,9 +369,11 @@ describe('AI pending review in the existing editor', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'Tải lại câu hỏi' }))
     await waitFor(() => expect(getMock).toHaveBeenCalledTimes(3))
+    // The reloaded question is no longer a pending AI question, so no review action remains.
     await waitFor(() =>
-      expect(screen.queryByRole('form', { name: 'Sửa câu hỏi' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('button', { name: 'Duyệt câu hỏi' })).not.toBeInTheDocument(),
     )
+    expect(approveReview).toHaveBeenCalledTimes(1)
   })
   it('renders malformed field details and preserves draft for a separate correction/save', async () => {
     getMock.mockResolvedValue(pendingQuestion())
