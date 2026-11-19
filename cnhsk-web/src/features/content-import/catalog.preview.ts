@@ -5,9 +5,9 @@ import { AuthContext, type AuthContextValue } from '@/shared/auth'
 import { AdminLayout } from '@/shared/layout'
 import { previewContentEditor } from '@/shared/layout/Layout.preview'
 
-import { LearningDataImportView } from './components/LearningDataImportView'
+import { LearningImportScreenPreview } from './components/LearningImportScreen.preview'
 import { learningDataImportPreviews } from './components/LearningDataImportView.preview'
-import { ImportReportView } from './components/ImportReportView'
+import { ImportReportScreenPreview } from './components/ImportReportScreen.preview'
 import { importReportPreviews } from './components/ImportReportView.preview'
 
 const importEntries = [
@@ -70,18 +70,28 @@ const editorAuth: AuthContextValue = {
   setAuthenticatedUser: () => undefined,
   signOut: async () => undefined,
   status: 'authenticated',
-  user: previewContentEditor,
+  user: { ...previewContentEditor, email: '' },
 }
 
 const learningDataImportEntries = importEntries.map(([id, title, props]) => ({
   fullFrame: true,
   group: 'screen' as const,
   id,
-  render: () =>
+  states: id === 'scr-068-ready' ? ['loading', 'empty', 'error', 'ready'] : ['ready'],
+  render: (state) =>
     createElement(
       AuthContext.Provider,
       { value: editorAuth },
-      createElement(AdminLayout, null, createElement(LearningDataImportView, props)),
+      createElement(
+        AdminLayout,
+        null,
+        createElement(LearningImportScreenPreview, {
+          key: `${id}:${state}`,
+          example: id === 'scr-068-ready' && state !== 'ready' ? { ...props, state } : props,
+          samplePreview: learningDataImportPreviews.preview.preview,
+          fallbackHistory: learningDataImportPreviews.ready.history,
+        }),
+      ),
     ),
   scr: 'SCR-068',
   title,
@@ -118,11 +128,23 @@ const importReportEntries = reportEntries.map(([id, title, props]) => ({
   fullFrame: true,
   group: 'screen' as const,
   id,
-  render: () =>
+  states: id === 'scr-069-ready' ? ['loading', 'empty', 'error', 'ready'] : ['ready'],
+  render: (state) =>
     createElement(
       AuthContext.Provider,
       { value: editorAuth },
-      createElement(AdminLayout, null, createElement(ImportReportView, props)),
+      createElement(
+        AdminLayout,
+        null,
+        createElement(ImportReportScreenPreview, {
+          key: `${id}:${state}`,
+          example:
+            id === 'scr-069-ready' && state !== 'ready'
+              ? { ...props, state, run: undefined }
+              : props,
+          fallback: importReportPreviews.ready,
+        }),
+      ),
     ),
   scr: 'SCR-069',
   title,
