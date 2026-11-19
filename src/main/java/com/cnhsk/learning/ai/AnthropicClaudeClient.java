@@ -21,22 +21,42 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-/** Kept as an alternative provider; selected only when {@code cnhsk.ai.provider=anthropic}. */
+/**
+ * Anthropic Messages API client, selected only when {@code cnhsk.ai.provider=anthropic}. With
+ * {@code cnhsk.ai.anthropic-base-url} it can call any Anthropic-compatible gateway instead of Anthropic.
+ */
 @Component
 @Profile("!test")
 @ConditionalOnProperty(name = "cnhsk.ai.provider", havingValue = "anthropic")
 public class AnthropicClaudeClient implements ClaudeClient {
     private final String apiKey;
+    /** Empty means the SDK default host; otherwise an Anthropic-compatible gateway root. */
+    private final String baseUrl;
     private AnthropicClient sdk;
 
     @Autowired
     public AnthropicClaudeClient(Environment environment) {
-        apiKey = environment.getProperty("ANTHROPIC_API_KEY", "").trim();
+        this(environment.getProperty("ANTHROPIC_API_KEY", ""),
+                environment.getProperty("cnhsk.ai.anthropic-base-url", ""));
+    }
+
+    AnthropicClaudeClient(String apiKey, String baseUrl) {
+        this.apiKey = apiKey == null ? "" : apiKey.trim();
+        this.baseUrl = normalizeBaseUrl(baseUrl);
     }
 
     AnthropicClaudeClient(AnthropicClient sdk) {
         this.apiKey = "";
+        this.baseUrl = "";
         this.sdk = Objects.requireNonNull(sdk);
+    }
+
+    /** The SDK appends {@code /v1/messages}, so a configured root ending in {@code /v1} is trimmed. */
+    static String normalizeBaseUrl(String value) {
+        String result = value == null ? "" : value.trim();
+        while (result.endsWith("/")) result = result.substring(0, result.length() - 1);
+        if (result.endsWith("/v1")) result = result.substring(0, result.length() - 3);
+        return result;
     }
 
     private synchronized AnthropicClient client() {
@@ -44,7 +64,11 @@ public class AnthropicClaudeClient implements ClaudeClient {
             if (apiKey.isEmpty()) {
                 throw new AiUnavailableException(AiUnavailableException.Reason.NOT_CONFIGURED);
             }
-            sdk = AnthropicOkHttpClient.builder().apiKey(apiKey).build();
+            // The SDK sends the key as a bearer token; gateways that follow the Messages API often read only
+            // x-api-key, so send both.
+            var builder = AnthropicOkHttpClient.builder().apiKey(apiKey).putHeader("x-api-key", apiKey);
+            if (!baseUrl.isEmpty()) builder.baseUrl(baseUrl);
+            sdk = builder.build();
         }
         return sdk;
     }

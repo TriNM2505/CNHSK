@@ -39,7 +39,7 @@
 |---|---|
 | Thư viện | SDK chính thức `com.anthropic:anthropic-java`, phiên bản ổn định cố định trong `pom.xml` (T-04 chọn) |
 | Model | `cnhsk.ai.provider: deepseek` (hoặc `anthropic`); `cnhsk.ai.assistant-model: deepseek-chat` (v1.1, trước là `claude-haiku-5-5` — Q5); `cnhsk.ai.translate-model` cho 014 |
-| Khoá | Biến môi trường `DEEPSEEK_API_KEY` (provider `deepseek`) hoặc `ANTHROPIC_API_KEY` (provider `anthropic`); `.env.example` chỉ có tên biến; thiếu khoá → trợ lý trả `ASSISTANT_UNAVAILABLE`, ứng dụng vẫn chạy |
+| Khoá | Biến môi trường `DEEPSEEK_API_KEY` (provider `deepseek`) hoặc `ANTHROPIC_API_KEY` (provider `anthropic`; `cnhsk.ai.anthropic-base-url` tuỳ chọn để gọi cổng tương thích Anthropic Messages API, gửi khoá qua `x-api-key`); `.env.example` chỉ có tên biến; thiếu khoá → trợ lý trả `ASSISTANT_UNAVAILABLE`, ứng dụng vẫn chạy |
 | Gọi | Chỉ từ backend; timeout 15 giây; `max_tokens` 800; không stream |
 | Prompt caching | Khối system chứa tài liệu hướng dẫn đánh dấu `cache_control: ephemeral` |
 | Trần chi phí | `cnhsk.ai.monthly-token-budget` (mặc định 2 000 000 token vào + ra, leader chỉnh); đếm Redis `ai:tokens:{yyyyMM}` theo `usage` của mỗi response; vượt → `ASSISTANT_UNAVAILABLE` đến hết tháng |
