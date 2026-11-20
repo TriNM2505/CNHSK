@@ -4,15 +4,42 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '@/shared/api'
+import { AuthContext, type AuthContextValue } from '@/shared/auth'
+import type { RoleCode } from '@/features/auth/types'
 
-import { getKnowledgeTree } from '../api/knowledge'
+import { getKnowledgeQuestionCounts, getKnowledgeTree } from '../api/knowledge'
 import { listQuestions } from '../api/questions'
 import { questionSearchError } from '../questionListQuery'
 import type { KnowledgeTree, QuestionPage, QuestionSummary } from '../types'
 import Scr064QuestionBankPage from './Scr064QuestionBankPage'
 
 vi.mock('../api/questions', () => ({ listQuestions: vi.fn() }))
-vi.mock('../api/knowledge', () => ({ getKnowledgeTree: vi.fn() }))
+vi.mock('../api/knowledge', () => ({
+  getKnowledgeQuestionCounts: vi.fn(),
+  getKnowledgeTree: vi.fn(),
+}))
+// The graph itself is tested in features/knowledge-graph; here a stub exposes the props the page passes.
+vi.mock('@/features/knowledge-graph', () => ({
+  KnowledgeGraphLazy: ({
+    nodes,
+    onSelectKid,
+    questionCounts,
+  }: {
+    nodes: readonly { kid: string }[]
+    onSelectKid?: (kid: string) => void
+    questionCounts?: ReadonlyMap<string, number>
+  }) => (
+    <ul aria-label="Sơ đồ giả lập">
+      {nodes.map((node) => (
+        <li key={node.kid}>
+          <button onClick={() => onSelectKid?.(node.kid)} type="button">
+            Nút {node.kid} · {questionCounts?.get(node.kid) ?? 'không rõ'} câu
+          </button>
+        </li>
+      ))}
+    </ul>
+  ),
+}))
 
 // Original response fixtures; no preview module or real service is used by these tests.
 function question(id: number): QuestionSummary {
@@ -67,9 +94,11 @@ const tree: KnowledgeTree = {
 }
 const listMock = vi.mocked(listQuestions)
 const treeMock = vi.mocked(getKnowledgeTree)
+const countsMock = vi.mocked(getKnowledgeQuestionCounts)
 const fetchMock = vi.fn<typeof fetch>()
 
-function renderPage(entry = '/content/questions') {
+// Teachers see the plain list exactly as before; the tree tab is covered separately for editors.
+function renderPage(entry = '/content/questions', roles: RoleCode[] = ['TEACHER']) {
   const router = createMemoryRouter(
     [
       { path: '/content/questions', element: <Scr064QuestionBankPage /> },
@@ -77,7 +106,28 @@ function renderPage(entry = '/content/questions') {
     ],
     { initialEntries: [entry] },
   )
-  return { router, ...render(<RouterProvider router={router} />) }
+  const auth: AuthContextValue = {
+    error: null,
+    reloadCurrentUser: vi.fn().mockResolvedValue(undefined),
+    setAuthenticatedUser: vi.fn(),
+    signOut: vi.fn().mockResolvedValue(undefined),
+    status: 'authenticated',
+    user: {
+      displayName: 'Người dùng test',
+      email: 'staff@example.invalid',
+      emailVerified: true,
+      id: 1,
+      roles,
+    },
+  }
+  return {
+    router,
+    ...render(
+      <AuthContext.Provider value={auth}>
+        <RouterProvider router={router} />
+      </AuthContext.Provider>,
+    ),
+  }
 }
 
 function params(router: ReturnType<typeof renderPage>['router']) {
@@ -91,6 +141,12 @@ async function table() {
 beforeEach(() => {
   listMock.mockReset().mockResolvedValue(firstPage)
   treeMock.mockReset().mockResolvedValue(tree)
+  countsMock.mockReset().mockResolvedValue({
+    counts: [
+      { kid: 'NP1-901', total: 3, approved: 2 },
+      { kid: 'TV2-901', total: 0, approved: 0 },
+    ],
+  })
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
 })
@@ -532,5 +588,60 @@ describe('SCR-064 question bank (FR-017, FR-018, FR-026 · AT-26)', () => {
     )
     expect(treeMock).toHaveBeenCalledTimes(2)
     expect(listMock).toHaveBeenCalledTimes(1)
+  })
+
+  describe('tree review tab (content editors only)', () => {
+    it('FR030_AT32_is not offered to teachers, who never request question counts', async () => {
+      renderPage('/content/questions', ['TEACHER'])
+
+      await table()
+      expect(screen.queryByRole('tab', { name: 'Sơ đồ cây' })).not.toBeInTheDocument()
+      expect(countsMock).not.toHaveBeenCalled()
+    })
+
+    it('FR030_AT32_shows the tree with counts for content editors and loads counts only when opened', async () => {
+      const user = userEvent.setup()
+      renderPage('/content/questions', ['CONTENT_EDITOR'])
+
+      await table()
+      expect(countsMock).not.toHaveBeenCalled()
+      await user.click(screen.getByRole('tab', { name: 'Sơ đồ cây' }))
+
+      expect(await screen.findByRole('button', { name: 'Nút NP1-901 · 2 câu' })).toBeVisible()
+      expect(await screen.findByRole('button', { name: 'Nút TV2-901 · 0 câu' })).toBeVisible()
+      expect(countsMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('FR030_AT32_filters the question list by the clicked node and returns to the list tab', async () => {
+      const user = userEvent.setup()
+      const { router } = renderPage('/content/questions?page=1', ['CONTENT_EDITOR'])
+
+      await table()
+      await user.click(screen.getByRole('tab', { name: 'Sơ đồ cây' }))
+      await user.click(await screen.findByRole('button', { name: /Nút TV2-901/ }))
+
+      expect(screen.getByRole('tab', { name: 'Câu hỏi' })).toHaveAttribute('aria-selected', 'true')
+      await waitFor(() => expect(params(router).get('kid')).toBe('TV2-901'))
+      expect(params(router).get('page')).toBe('0')
+    })
+
+    it('FR030_AT32_still shows the tree when counts fail to load', async () => {
+      const user = userEvent.setup()
+      countsMock.mockRejectedValueOnce(
+        new ApiError({
+          errorCode: 'INTERNAL',
+          message: 'Lỗi',
+          requestId: 'req-counts',
+          status: 500,
+        }),
+      )
+      renderPage('/content/questions', ['CONTENT_EDITOR'])
+
+      await table()
+      await user.click(screen.getByRole('tab', { name: 'Sơ đồ cây' }))
+
+      expect(await screen.findByText(/Chưa tải được số câu theo nút/)).toBeVisible()
+      expect(screen.getByRole('button', { name: 'Nút NP1-901 · không rõ câu' })).toBeVisible()
+    })
   })
 })

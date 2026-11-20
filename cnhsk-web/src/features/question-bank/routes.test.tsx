@@ -159,10 +159,10 @@ describe('question-bank route foundation (FR-001 FE, §12)', () => {
     },
   )
 
-  it('registers the list, second page and detail previews under the existing SCR ids', () => {
+  it('registers the tree review, list, second page and detail previews under the existing SCR ids', () => {
     expect(
       previewRegistry.filter(({ id }) => id.startsWith('question-bank-')).map(({ scr }) => scr),
-    ).toEqual(['SCR-064', 'SCR-064', ...Array<string>(9).fill('SCR-059')])
+    ).toEqual(['SCR-064', 'SCR-064', 'SCR-064', ...Array<string>(9).fill('SCR-059')])
   })
 
   it('renders the first ten original samples through the preview route without an API call', async () => {

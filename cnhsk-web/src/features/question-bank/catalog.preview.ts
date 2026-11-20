@@ -3,6 +3,7 @@ import { createElement, useState } from 'react'
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
 import { ApiError } from '@/shared/api'
 
+import { KnowledgeTreeReviewPanel } from './components/KnowledgeTreeReviewPanel'
 import { QuestionBankListView } from './components/QuestionBankListView'
 import { QuestionEditView } from './components/QuestionEditView'
 import { questionSearchError, type QuestionListQuery } from './questionListQuery'
@@ -359,6 +360,26 @@ function QuestionEditPreview({
 }
 
 export const previews = [
+  {
+    group: 'screen',
+    id: 'question-bank-tree-review',
+    scr: 'SCR-064',
+    title: 'Kho câu hỏi — Sơ đồ cây (biên tập viên)',
+    states: ['ready'],
+    render: () =>
+      createElement(KnowledgeTreeReviewPanel, {
+        // Every other node has no approved question so the review flag is visible.
+        counts: knowledgeTreeSample.nodes.map(({ kid }, index) => ({
+          kid,
+          total: index % 2 === 0 ? 3 : 0,
+          approved: index % 2 === 0 ? 2 : 0,
+        })),
+        nodes: knowledgeTreeSample.nodes,
+        nodesState: 'ready',
+        onNodesRetry: () => undefined,
+        onSelectKid: () => undefined,
+      }),
+  },
   {
     group: 'screen',
     id: 'question-bank-samples',

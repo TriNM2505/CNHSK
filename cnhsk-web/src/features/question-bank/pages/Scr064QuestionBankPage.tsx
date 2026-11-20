@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useApiQuery } from '@/shared/api'
+import { useCurrentUser } from '@/shared/auth'
 
-import { getKnowledgeTree } from '../api/knowledge'
+import { getKnowledgeQuestionCounts, getKnowledgeTree } from '../api/knowledge'
 import { listQuestions } from '../api/questions'
-import { QuestionBankListView } from '../components/QuestionBankListView'
+import { KnowledgeTreeReviewPanel } from '../components/KnowledgeTreeReviewPanel'
+import { QuestionBankListView, type QuestionBankView } from '../components/QuestionBankListView'
 import {
   parseQuestionListSearchParams,
   QUESTION_PAGE_SIZE,
@@ -53,6 +55,17 @@ export default function Scr064QuestionBankPage() {
     setSearchParams(questionListSearchParams(next, searchParams))
   }
 
+  // The tree review tab is for content editors only; teachers keep the plain question list.
+  const { user } = useCurrentUser()
+  const isEditor = user?.roles.includes('CONTENT_EDITOR') ?? false
+  const [view, setView] = useState<QuestionBankView>('list')
+  const showTree = isEditor && view === 'tree'
+  // Null while the tab is closed, so a stale local result is never mistaken for "every node has 0 questions".
+  const counts = useApiQuery(
+    (signal) => (showTree ? getKnowledgeQuestionCounts(signal) : Promise.resolve(null)),
+    [showTree],
+  )
+
   return (
     <QuestionBankListView
       data={questions.data}
@@ -89,6 +102,29 @@ export default function Scr064QuestionBankPage() {
       searchDraft={searchDraft}
       searchError={searchError}
       state={questions.state}
+      treeView={
+        isEditor
+          ? {
+              onViewChange: setView,
+              panel: showTree ? (
+                <KnowledgeTreeReviewPanel
+                  counts={counts.state === 'ready' ? (counts.data?.counts ?? undefined) : undefined}
+                  countsError={counts.error}
+                  nodes={tree.data?.nodes ?? []}
+                  nodesError={tree.error}
+                  nodesState={tree.state}
+                  onNodesRetry={tree.reload}
+                  selectedKid={query.kid || undefined}
+                  onSelectKid={(kid) => {
+                    updateQuery({ ...query, kid, page: 0 })
+                    setView('list')
+                  }}
+                />
+              ) : null,
+              view,
+            }
+          : undefined
+      }
     />
   )
 }

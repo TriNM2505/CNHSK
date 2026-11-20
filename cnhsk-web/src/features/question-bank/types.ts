@@ -33,6 +33,17 @@ export type KnowledgeTree = {
   nodes: KnowledgeNode[]
 }
 
+/** Non-archived questions whose PRIMARY label is the node, and how many of them are approved. */
+export type KnowledgeQuestionCount = {
+  approved: number
+  kid: string
+  total: number
+}
+
+export type KnowledgeQuestionCounts = {
+  counts: KnowledgeQuestionCount[]
+}
+
 export type KnowledgeNodeDetail = KnowledgeNode & {
   dependentKids: string[]
   topics: { id: number; code: string; name: string }[]

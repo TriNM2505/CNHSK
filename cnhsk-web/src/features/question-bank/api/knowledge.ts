@@ -1,6 +1,11 @@
 import { apiRequest } from '@/shared/api'
 
-import type { KnowledgeNodeDetail, KnowledgeTree, KnowledgeTreeParams } from '../types'
+import type {
+  KnowledgeNodeDetail,
+  KnowledgeQuestionCounts,
+  KnowledgeTree,
+  KnowledgeTreeParams,
+} from '../types'
 
 const knowledgePath = '/api/knowledge-tree'
 
@@ -13,6 +18,13 @@ export function getKnowledgeTree(
   if (hskLevel !== undefined) query.set('hskLevel', String(hskLevel))
   const suffix = query.size ? `?${query.toString()}` : ''
   return apiRequest<KnowledgeTree>(`${knowledgePath}${suffix}`, { signal })
+}
+
+/** CONTENT_EDITOR only: question counts for every node, zeros included. */
+export function getKnowledgeQuestionCounts(signal?: AbortSignal): Promise<KnowledgeQuestionCounts> {
+  return apiRequest<KnowledgeQuestionCounts>('/api/admin/knowledge-tree/question-counts', {
+    signal,
+  })
 }
 
 export function getKnowledgeNode(kid: string, signal?: AbortSignal): Promise<KnowledgeNodeDetail> {
