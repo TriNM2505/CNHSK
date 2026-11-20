@@ -40,8 +40,8 @@ export function KnowledgeTreeReviewPanel({
   return (
     <div className="space-y-3">
       <p className="text-body-sm text-ink-secondary">
-        Bấm một nút để xem các câu hỏi gắn nút đó. Nút viền vàng cần xem lại: mồ côi (không có tiên
-        quyết) hoặc chưa có câu hỏi đã duyệt.
+        Bấm một nút để chọn, rồi xem câu hỏi gắn nút đó hoặc chuỗi tiên quyết của nó. Nút viền vàng
+        cần xem lại: mồ côi (không có tiên quyết) hoặc chưa có câu hỏi đã duyệt.
       </p>
       {countsError ? (
         <p className="text-body-sm text-warning" role="status">

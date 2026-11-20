@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { SAMPLE_TREE } from '../fixtures'
+import { elkEdgePath } from '../elkEdgePath'
 import KnowledgeGraph from './KnowledgeGraph'
 import type { KnowledgeNode } from '@/features/question-bank/types'
 
@@ -49,13 +50,34 @@ describe('KnowledgeGraph', () => {
     expect(screen.getByText(/1 nút chưa có câu/)).toBeVisible()
   })
 
-  it('FR030_AT32_reports the clicked node', async () => {
+  it('FR030_AT32_picks the clicked node and reports it only when its questions are requested', async () => {
     const onSelectKid = vi.fn()
     render(<KnowledgeGraph nodes={SAMPLE_TREE} onSelectKid={onSelectKid} selectedKid="NP2-906" />)
 
     expect(await nodeButton(/\(NP2-906\)/)).toHaveAttribute('aria-current', 'true')
+    // The list filter's node starts picked, so its actions are offered straight away.
+    expect(screen.getByRole('button', { name: 'Xem câu hỏi của NP2-906' })).toBeVisible()
     // fireEvent instead of userEvent: d3-zoom's mousedown handler needs a real window view jsdom lacks.
     fireEvent.click(await nodeButton(/\(NP2-913\)/))
+    expect(onSelectKid).not.toHaveBeenCalled()
+    expect(await nodeButton(/\(NP2-913\)/)).toHaveAttribute('aria-pressed', 'true')
+    expect(
+      within(screen.getByRole('group', { name: 'Nút đang chọn' })).getByText('NP2-913'),
+    ).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Xem câu hỏi của NP2-913' }))
+    expect(onSelectKid).toHaveBeenCalledWith('NP2-913')
+  })
+
+  it('FR030_AT32_picks a node and opens its questions from the keyboard', async () => {
+    const user = userEvent.setup()
+    const onSelectKid = vi.fn()
+    render(<KnowledgeGraph nodes={SAMPLE_TREE} onSelectKid={onSelectKid} />)
+
+    ;(await nodeButton(/\(NP2-913\)/)).focus()
+    await user.keyboard('{Enter}')
+    screen.getByRole('button', { name: 'Xem câu hỏi của NP2-913' }).focus()
+    await user.keyboard('{Enter}')
     expect(onSelectKid).toHaveBeenCalledWith('NP2-913')
   })
 
@@ -90,10 +112,69 @@ describe('KnowledgeGraph', () => {
     expect(await screen.findByText(/^31 nút/)).toBeVisible()
   })
 
+  it('FR031_AT33_shows only the prerequisite chain of the selected node and restores the filters', async () => {
+    const user = userEvent.setup()
+    render(<KnowledgeGraph nodes={SAMPLE_TREE} />)
+    await nodeButton(/\(NP3-904\)/)
+    expect(screen.queryByRole('button', { name: /Xem chuỗi/ })).not.toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Cấp HSK'), '2')
+    fireEvent.click(await nodeButton(/\(NP2-913\)/))
+    await user.click(screen.getByRole('button', { name: 'Xem chuỗi của NP2-913' }))
+
+    expect(await screen.findByText(/^Đang xem chuỗi NP2-913 · 5 nút/)).toBeVisible()
+    expect(await nodeButton(/\(NP1-914\)/)).toBeVisible()
+    expect(await nodeButton(/\(NP3-904\)/)).toBeVisible()
+    expect(screen.queryByRole('button', { name: /\(TV2-907\)/ })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Cấp HSK')).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Quay lại toàn sơ đồ' })).toHaveFocus()
+
+    // Picking another chain node lets the editor walk further back.
+    fireEvent.click(await nodeButton(/\(NP2-906\)/))
+    await user.click(screen.getByRole('button', { name: 'Xem chuỗi của NP2-906' }))
+    expect(await screen.findByText(/^Đang xem chuỗi NP2-906 · /)).toBeVisible()
+
+    await user.click(screen.getByRole('button', { name: 'Quay lại toàn sơ đồ' }))
+    expect(screen.getByLabelText('Cấp HSK')).toHaveValue('2')
+    expect(await nodeButton(/\(TV2-907\)/)).toBeVisible()
+    expect(screen.queryByRole('button', { name: /\(NP1-914\)/ })).not.toBeInTheDocument()
+  })
+
+  it('FR031_AT33_dims nodes that are not linked to the hovered node', async () => {
+    render(<KnowledgeGraph nodes={SAMPLE_TREE} />)
+    const hovered = await nodeButton(/\(NP2-913\)/)
+
+    fireEvent.mouseEnter(hovered.closest('.react-flow__node')!)
+    expect(await nodeButton(/\(TV2-907\)/)).toHaveClass('opacity-30')
+    expect(await nodeButton(/\(NP3-904\)/)).not.toHaveClass('opacity-30')
+    expect(hovered).not.toHaveClass('opacity-30')
+
+    fireEvent.mouseLeave(hovered.closest('.react-flow__node')!)
+    expect(await nodeButton(/\(TV2-907\)/)).not.toHaveClass('opacity-30')
+  })
+
   it('FR030_AT32_shows empty states for an empty tree', () => {
     render(<KnowledgeGraph nodes={[]} />)
 
     const empty = screen.getByRole('heading', { name: 'Cây năng lực chưa có nút nào' })
     expect(within(empty.parentElement!).getByText(/Nhập nút và cạnh/)).toBeVisible()
+  })
+})
+
+describe('elkEdgePath', () => {
+  it('draws straight segments through the routed points', () => {
+    expect(
+      elkEdgePath([
+        { x: 0, y: 10 },
+        { x: 40, y: 10 },
+        { x: 40, y: 60 },
+        { x: 80, y: 60 },
+      ]),
+    ).toBe('M 0 10 L 40 10 L 40 60 L 80 60')
+  })
+
+  it('returns nothing when the route is missing so the caller can fall back', () => {
+    expect(elkEdgePath(undefined)).toBeUndefined()
+    expect(elkEdgePath([{ x: 0, y: 0 }])).toBeUndefined()
   })
 })

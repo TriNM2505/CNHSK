@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { SAMPLE_TREE } from './fixtures'
-import { buildGraphModel } from './graphModel'
+import { buildChainModel, buildGraphModel, linkedKids } from './graphModel'
+import type { KnowledgeNode } from '@/features/question-bank/types'
 
 describe('buildGraphModel', () => {
   it('turns prerequisite and support links into edges pointing from the required node', () => {
@@ -55,5 +56,73 @@ describe('buildGraphModel', () => {
     const { orphanKids } = buildGraphModel(SAMPLE_TREE, { hskLevel: 3 })
 
     expect(orphanKids.has('NP3-904')).toBe(false)
+  })
+})
+
+function chainNode(
+  kid: string,
+  prereqKids: string[] = [],
+  supportKids: string[] = [],
+): KnowledgeNode {
+  return {
+    domain: kid.slice(0, 2) as KnowledgeNode['domain'],
+    hskLevel: Number(kid[2]),
+    kid,
+    nameVi: kid,
+    nameZh: '示例',
+    prereqKids,
+    supportKids,
+  }
+}
+
+describe('buildChainModel', () => {
+  it('keeps every prerequisite ancestor across domains and the focus node itself', () => {
+    const model = buildChainModel(SAMPLE_TREE, 'NP3-904')
+
+    expect(model.nodes.map((node) => node.kid).sort()).toEqual([
+      'NP1-914',
+      'NP1-918',
+      'NP2-906',
+      'NP2-913',
+      'NP3-904',
+    ])
+    // NL3-906 only hangs off the focus by a support link, so it is outside the chain.
+    expect(model.edges.some((edge) => edge.kind === 'support')).toBe(false)
+    expect(model.stats).toEqual({ nodes: 5, prereqEdges: 5, supportEdges: 0 })
+  })
+
+  it('follows dependants two steps forward only', () => {
+    const tree = [
+      chainNode('NA1-001'),
+      chainNode('CH2-001', ['NA1-001']),
+      chainNode('TV3-001', ['CH2-001']),
+      chainNode('NP4-001', ['TV3-001']),
+    ]
+
+    expect(buildChainModel(tree, 'NA1-001').nodes.map((node) => node.kid)).toEqual([
+      'NA1-001',
+      'CH2-001',
+      'TV3-001',
+    ])
+  })
+
+  it('keeps support links between chain nodes and survives prerequisite cycles', () => {
+    const tree = [chainNode('NP1-001', ['NP1-002']), chainNode('NP1-002', ['NP1-001'], ['NP1-001'])]
+    const model = buildChainModel(tree, 'NP1-001')
+
+    expect(model.nodes).toHaveLength(2)
+    expect(model.stats).toEqual({ nodes: 2, prereqEdges: 2, supportEdges: 1 })
+  })
+
+  it('returns an empty chain for an unknown node', () => {
+    expect(buildChainModel(SAMPLE_TREE, 'XX9-999').nodes).toEqual([])
+  })
+})
+
+describe('linkedKids', () => {
+  it('returns the node and every node it shares an edge with', () => {
+    const { edges } = buildGraphModel(SAMPLE_TREE)
+
+    expect([...linkedKids(edges, 'NP2-913')].sort()).toEqual(['NP2-906', 'NP2-913', 'NP3-904'])
   })
 })

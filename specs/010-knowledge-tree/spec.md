@@ -499,9 +499,11 @@ Hợp đồng: [`contracts/openapi-knowledge-v1-1.yaml`](contracts/openapi-knowl
 | ID | Yêu cầu |
 |---|---|
 | **FR-029** | `GET /api/admin/knowledge-tree/question-counts` (chỉ `CONTENT_EDITOR`; vai trò khác 403, chưa đăng nhập 401) SHALL trả `{counts: [{kid, total, approved}]}` cho **mọi** nút kể cả 0 câu, sắp theo `kid`; chỉ đếm nhãn `PRIMARY` (mỗi câu thuộc đúng một nút); `total` = câu chưa `ARCHIVED`, `approved` = trong đó `APPROVED`; một truy vấn gom nhóm, không N+1 |
-| **FR-030** | Tab "Sơ đồ cây" SHALL vẽ cây từ `GET /api/knowledge-tree` (cột theo cấp HSK, mũi tên tiên quyết liền, hỗ trợ đứt, viền trái màu theo miền), lọc miền/cấp (mặc định một miền khi > 60 nút), đếm nút/cạnh, đánh dấu "cần xem lại" cho nút mồ côi (cấp > 1, không có cạnh tiên quyết vào/ra) và nút `approved = 0`; bấm nút → về tab danh sách lọc `kid` đó; số câu chỉ tải khi mở tab; lỗi tải số câu vẫn hiện sơ đồ |
+| **FR-030** | Tab "Sơ đồ cây" SHALL vẽ cây từ `GET /api/knowledge-tree` (cột theo cấp HSK, mũi tên tiên quyết liền, hỗ trợ đứt, viền trái màu theo miền), lọc miền/cấp (mặc định một miền khi > 60 nút), đếm nút/cạnh, đánh dấu "cần xem lại" cho nút mồ côi (cấp > 1, không có cạnh tiên quyết vào/ra) và nút `approved = 0`; bấm nút (chuột hoặc Enter) → chọn nút, hiện thao tác "Xem câu hỏi của {KID}" → về tab danh sách lọc `kid` đó; số câu chỉ tải khi mở tab; lỗi tải số câu vẫn hiện sơ đồ |
+| **FR-031** | Sơ đồ SHALL dễ đọc với cây thật (~190 nút): "Xem chuỗi của {KID}" chỉ hiện nút đã chọn + mọi nút tiên quyết của nó (mọi miền, mọi cấp) + nút học sau trong 2 bậc, khoá bộ lọc miền/cấp, "Quay lại toàn sơ đồ" giữ bộ lọc cũ; rê chuột vào nút làm mờ nút/cạnh không nối với nó; zoom < 60% nút chỉ hiện KID chữ lớn (nhãn truy cập giữ đủ tên); cạnh vẽ theo đường ELK, không xuyên nút; > 60 nút chỉ vẽ phần trong khung nhìn, dựng sơ đồ ≤ 1 s |
 
 | ID | Liên quan | Kịch bản |
 |---|---|---|
 | AT-31 | FR-029 | G nút có câu `APPROVED`×2, `PENDING_REVIEW`, `REJECTED`, `ARCHIVED` + nút chỉ có nhãn `SECONDARY` + nút trống · W `CONTENT_EDITOR` gọi · T `total=4, approved=2` / `0,0` / `0,0`, một câu SQL; `TEACHER`/`LEARNER`/`ADMIN`/`MODERATOR`/`ACCOUNTANT` 403; không token 401 |
-| AT-32 | FR-030 | `CONTENT_EDITOR` thấy tab, `TEACHER` không thấy và không gọi API số câu; bấm nút lọc danh sách `kid`, `page=0`; lỗi số câu vẫn hiện sơ đồ |
+| AT-32 | FR-030 | `CONTENT_EDITOR` thấy tab, `TEACHER` không thấy và không gọi API số câu; chọn nút rồi "Xem câu hỏi" lọc danh sách `kid`, `page=0`; lỗi số câu vẫn hiện sơ đồ |
+| AT-33 | FR-031 | G cây mẫu `NP1-914, NP1-918 → NP2-906 → NP2-913 → NP3-904`, `TV2-907` rời · W chọn `NP2-913`, "Xem chuỗi" · T còn 5 nút, không có `TV2-907`, bộ lọc khoá; "Quay lại" khôi phục cấp đã chọn; rê vào `NP2-913` làm mờ `TV2-907`, không mờ `NP3-904` |
