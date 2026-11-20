@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { DOMAIN_LABELS } from '@/features/knowledge-graph/graphModel'
 import type { KnowledgeDomain } from '@/features/question-bank/types'
 import { Button, Card, PageHeader } from '@/shared/ui'
 import type { PlacementLevel, PlacementResult } from '../types'
@@ -27,22 +28,14 @@ const levels: Record<PlacementLevel, string> = {
   ABOVE_3: 'HSK 3 trở lên',
 }
 
+// Icons follow the six competency domains (spec v2.0); labels come from the shared DOMAIN_LABELS.
 const DOMAIN_ICONS: Record<KnowledgeDomain, LucideIcon> = {
   NA: Headphones,
-  CH: BookOpen,
-  TV: Mic,
-  NP: Pencil,
-  NL: Languages,
+  CH: Pencil,
+  TV: BookOpen,
+  NP: Languages,
+  NL: Mic,
   VB: LayoutGrid,
-}
-
-const DOMAIN_LABELS: Record<KnowledgeDomain, string> = {
-  NA: 'Nghe',
-  CH: 'Đọc hiểu',
-  TV: 'Nói',
-  NP: 'Viết',
-  NL: 'Ngữ pháp',
-  VB: 'Từ vựng',
 }
 
 function ChineseLandscapeBannerArt() {

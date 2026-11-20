@@ -54,6 +54,24 @@ describe('SCR-022 placement result FR-026 / AT-27', () => {
     expect(screen.queryByText(/đỗ|trượt/i)).not.toBeInTheDocument()
     expect(getPlacementResult).toHaveBeenCalledWith(5201, expect.any(AbortSignal))
   })
+  it('FR026_AT27_names the six domains as in the competency tree', async () => {
+    open()
+    const profile = await screen.findByRole('region', { name: 'Hồ sơ sáu miền' })
+    for (const label of [
+      'Ngữ âm',
+      'Chữ Hán',
+      'Từ vựng',
+      'Ngữ pháp',
+      'Năng lực giao tiếp',
+      'Văn bản',
+    ]) {
+      expect(within(profile).getByText(label)).toBeInTheDocument()
+    }
+    // Skill names are attributes of a node, not domains.
+    for (const skill of ['Nghe', 'Đọc hiểu', 'Nói', 'Viết']) {
+      expect(within(profile).queryByText(skill)).not.toBeInTheDocument()
+    }
+  })
   it('shows sure confidence and opens the returned session on retake', async () => {
     vi.mocked(getPlacementResult).mockResolvedValue({
       ...placementReviewFixture,
