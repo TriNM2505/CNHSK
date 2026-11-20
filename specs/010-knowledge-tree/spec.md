@@ -8,8 +8,8 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.0.0 |
-| **Status** | APPROVED — được code theo `tasks.md` |
+| **Version** | 1.1.0 |
+| **Status** | APPROVED — được code theo `tasks.md` · v1.1.0 leader chốt 2026-11-20: phụ lục §16 sơ đồ cây cho `CONTENT_EDITOR` (FR-029, AT-31) |
 | **Approved by** | Leader (RFC đợt cuối R1–R12 đã đồng thuận) |
 | **Locked on** | 2026-11-03 |
 | **Phụ thuộc** | Spec 001 (đăng nhập, lỗi, CSRF, `AuditService`) · Spec 002 (luồng nhập §3, §4) · Spec 003 §0.9 (sự kiện, spec 011 dùng) |
@@ -487,3 +487,21 @@ Trạng thái mỗi màn: Loading (skeleton bảng/form) · Empty (FR-026) · Er
 ## 15 · Gói việc
 
 [`tasks.md`](tasks.md)
+
+---
+
+## 16 · Phụ lục v1.1 — Sơ đồ cây cho biên tập viên (SCR-064)
+
+Mục đích: `CONTENT_EDITOR` nhìn toàn cây (nút, cạnh tiên quyết/hỗ trợ) để review cấu trúc và phát hiện nút thiếu câu hỏi.
+Không thêm màn: tab "Sơ đồ cây" trong SCR-064, **chỉ hiện với `CONTENT_EDITOR`** (`TEACHER` vẫn vào SCR-064, chỉ thấy danh sách). Học viên (SCR-019) không đổi.
+Hợp đồng: [`contracts/openapi-knowledge-v1-1.yaml`](contracts/openapi-knowledge-v1-1.yaml) (tách file, không đổi hợp đồng gốc đã khoá).
+
+| ID | Yêu cầu |
+|---|---|
+| **FR-029** | `GET /api/admin/knowledge-tree/question-counts` (chỉ `CONTENT_EDITOR`; vai trò khác 403, chưa đăng nhập 401) SHALL trả `{counts: [{kid, total, approved}]}` cho **mọi** nút kể cả 0 câu, sắp theo `kid`; chỉ đếm nhãn `PRIMARY` (mỗi câu thuộc đúng một nút); `total` = câu chưa `ARCHIVED`, `approved` = trong đó `APPROVED`; một truy vấn gom nhóm, không N+1 |
+| **FR-030** | Tab "Sơ đồ cây" SHALL vẽ cây từ `GET /api/knowledge-tree` (cột theo cấp HSK, mũi tên tiên quyết liền, hỗ trợ đứt, viền trái màu theo miền), lọc miền/cấp (mặc định một miền khi > 60 nút), đếm nút/cạnh, đánh dấu "cần xem lại" cho nút mồ côi (cấp > 1, không có cạnh tiên quyết vào/ra) và nút `approved = 0`; bấm nút → về tab danh sách lọc `kid` đó; số câu chỉ tải khi mở tab; lỗi tải số câu vẫn hiện sơ đồ |
+
+| ID | Liên quan | Kịch bản |
+|---|---|---|
+| AT-31 | FR-029 | G nút có câu `APPROVED`×2, `PENDING_REVIEW`, `REJECTED`, `ARCHIVED` + nút chỉ có nhãn `SECONDARY` + nút trống · W `CONTENT_EDITOR` gọi · T `total=4, approved=2` / `0,0` / `0,0`, một câu SQL; `TEACHER`/`LEARNER`/`ADMIN`/`MODERATOR`/`ACCOUNTANT` 403; không token 401 |
+| AT-32 | FR-030 | `CONTENT_EDITOR` thấy tab, `TEACHER` không thấy và không gọi API số câu; bấm nút lọc danh sách `kid`, `page=0`; lỗi số câu vẫn hiện sơ đồ |

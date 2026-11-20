@@ -3,7 +3,7 @@
 > Nguồn: [`spec.md`](spec.md) v1.0.0 · [`contracts/openapi-knowledge.yaml`](contracts/openapi-knowledge.yaml)
 > ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸ hoãn · 🔴 chặn
 
-**Tổng: 13 task**, ≤ 4 giờ/task, một task một nhánh `spec/010-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
+**Tổng: 14 task**, ≤ 4 giờ/task, một task một nhánh `spec/010-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
 Đường dẫn: `…/` = `src/main/java/com/cnhsk/`; `t/` = `src/test/java/com/cnhsk/`; `web/` = `cnhsk-web/src/`.
 **Điều kiện bắt đầu:** spec 010 đã `APPROVED` 2026-11-03 — theo thứ tự luồng trong `workflow-phu-thuoc-task-010-015.md` (plan `261102-2104`). **Thứ tự: FE trước, BE sau** (Q14).
 File dùng chung (spec §0.3) phải nêu trong Shadow Plan từng task.
@@ -35,6 +35,7 @@ File dùng chung (spec §0.3) phải nêu trong Shadow Plan từng task.
 | ID | Task | File | Spec · AT | TT |
 |---|---|---|---|---|
 | T-13 | FE SCR-064/059/068 gọi backend thật; sửa lệch contract (không đổi contract — lệch thì dừng báo leader); dùng test hợp đồng `/v3/api-docs` do T-12 bổ sung | `web/features/question-bank/**`, `web/features/content-import/**`, `questions.md`, `tasks.md` (đúng allowlist 13 file); không sửa `KnowledgeContractTest.java` (T-12 sở hữu) | §13 · AT-26…AT-28 | ✅ 2026-11-05 theo leader duyệt: giữ base cd7d1cb, fetch main bdccaac sau PR #92/#93; sáu DTO, mã lỗi và details.field của T-12 khớp FE/contract. Chuẩn hoá NFC/code point/KID/URL, giữ URL/bản nháp khi lỗi 404/409/422 và mọi details/request ID. 13 mẫu đều có metadata và bộ xử lý sau 012/T-09; giữ ca giả lập VALIDATION_FAILED field=dataType để kiểm cơ chế lỗi chung, đổi tên khỏi EXAM_QUESTION. Gate FE chạy lại: 1.826/1.826 test / 144 file, 0 fail/skip; riêng content-import 167/167 test; lint 0 lỗi (1 warning LevelBadge có sẵn), TypeScript/Vite build pass. Diff/BOM/self-check sạch, đúng 13 file; không rebase/merge main. Một conventional commit, push nhánh và Draft PR, leader review/merge. Chi tiết tại questions.md. |
+| T-14 | v1.1 §16: `GET /api/admin/knowledge-tree/question-counts` (CE only) + tab "Sơ đồ cây" SCR-064 (React Flow + ELK, component dùng chung `web/features/knowledge-graph`) | `KnowledgeTreeQueryRepository`, `KnowledgeTreeService`, `KnowledgeTreeAdminController`, `SecurityConfig`, `contracts/openapi-knowledge-v1-1.yaml`, `KnowledgeQuestionCountContractTest`, `KnowledgeQuestionCountIntegrationTest`; `web/features/knowledge-graph/**`, `web/features/question-bank/**` | FR-029, FR-030 · AT-31, AT-32 | 🔄 leader làm |
 
 ## Thứ tự thực thi
 
