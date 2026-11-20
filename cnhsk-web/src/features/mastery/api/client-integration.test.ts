@@ -196,7 +196,10 @@ describe('mastery API contract (§13; FR-001 and AT-01 transport only)', () => {
     await expect(result).rejects.toMatchObject({ status, errorCode, requestId: 'req-mastery' })
     if (status === 429)
       await expect(result).rejects.toMatchObject({ extra: { retryAfterSeconds: 60 } })
-    expect(fetchMock).toHaveBeenCalledOnce()
+    // Without a token the shared client probes the refresh cookie once; the caller still gets this error.
+    expect(fetchMock).toHaveBeenCalledTimes(errorCode === 'UNAUTHENTICATED' ? 2 : 1)
+    if (errorCode === 'UNAUTHENTICATED')
+      expect(String(fetchMock.mock.calls[1]?.[0])).toMatch(/\/api\/auth\/refresh$/)
   })
 
   it('surfaces CSRF_TOKEN_INVALID after the shared client retries once', async () => {

@@ -246,6 +246,120 @@ describe('apiRequest', () => {
     ).toHaveLength(1)
   })
 
+  it('làm mới phiên rồi gửi lại khi cookie truy cập đã hết hạn và bị trình duyệt xoá', async () => {
+    let refreshed = false
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
+      if (String(input).endsWith('/api/auth/refresh')) {
+        refreshed = true
+        return new Response(null, { status: 204 })
+      }
+      return refreshed ? jsonResponse({ ok: true }) : apiErrorResponse(401, 'UNAUTHENTICATED')
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { apiRequest, AUTH_EXPIRED_EVENT } = await loadClient()
+    const listener = vi.fn()
+    window.addEventListener(AUTH_EXPIRED_EVENT, listener)
+
+    await expect(apiRequest('/api/profile')).resolves.toEqual({ ok: true })
+
+    expect(fetchMock.mock.calls.map(([url]) => new URL(String(url)).pathname)).toEqual([
+      '/api/profile',
+      '/api/auth/refresh',
+      '/api/profile',
+    ])
+    expect(listener).not.toHaveBeenCalled()
+    window.removeEventListener(AUTH_EXPIRED_EVENT, listener)
+  })
+
+  it('giữ lỗi chưa đăng nhập và không báo hết phiên khi không làm mới được', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async (input) =>
+      String(input).endsWith('/api/auth/refresh')
+        ? apiErrorResponse(401, 'INVALID_REFRESH_TOKEN')
+        : apiErrorResponse(401, 'UNAUTHENTICATED'),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { apiRequest, AUTH_EXPIRED_EVENT } = await loadClient()
+    const listener = vi.fn()
+    window.addEventListener(AUTH_EXPIRED_EVENT, listener)
+
+    await expect(apiRequest('/api/auth/me')).rejects.toMatchObject({
+      status: 401,
+      errorCode: 'UNAUTHENTICATED',
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(listener).not.toHaveBeenCalled()
+    window.removeEventListener(AUTH_EXPIRED_EVENT, listener)
+  })
+
+  it('chỉ làm mới một lần khi request gửi lại vẫn chưa đăng nhập', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async (input) =>
+      String(input).endsWith('/api/auth/refresh')
+        ? new Response(null, { status: 204 })
+        : apiErrorResponse(401, 'UNAUTHENTICATED'),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const { apiRequest } = await loadClient()
+
+    await expect(apiRequest('/api/profile')).rejects.toMatchObject({ errorCode: 'UNAUTHENTICATED' })
+
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/auth/refresh')),
+    ).toHaveLength(1)
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/profile')),
+    ).toHaveLength(2)
+  })
+
+  it('gửi lại nguyên file tải lên sau khi làm mới phiên', async () => {
+    document.cookie = 'XSRF-TOKEN=csrf-token; path=/'
+    let refreshed = false
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
+      if (String(input).endsWith('/api/auth/refresh')) {
+        refreshed = true
+        return new Response(null, { status: 204 })
+      }
+      return refreshed ? jsonResponse({ runId: 7 }, 201) : apiErrorResponse(401, 'UNAUTHENTICATED')
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { apiRequest } = await loadClient()
+    const body = new FormData()
+    body.append('file', new Blob(['kid\n'], { type: 'text/csv' }), 'nodes.csv')
+
+    await expect(apiRequest('/api/admin/imports', { method: 'POST', body })).resolves.toEqual({
+      runId: 7,
+    })
+
+    const uploads = fetchMock.mock.calls.filter(([url]) =>
+      String(url).endsWith('/api/admin/imports'),
+    )
+    expect(uploads).toHaveLength(2)
+    expect(uploads[1]?.[1]?.body).toBe(body)
+  })
+
+  it('báo hết phiên một lần khi lần làm mới chung thất bại cho request còn token hết hạn', async () => {
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
+      const path = new URL(String(input)).pathname
+      if (path === '/api/auth/refresh') return apiErrorResponse(401, 'SESSION_REVOKED')
+      return path === '/api/a'
+        ? apiErrorResponse(401, 'UNAUTHENTICATED')
+        : apiErrorResponse(401, 'TOKEN_EXPIRED')
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { apiRequest, AUTH_EXPIRED_EVENT } = await loadClient()
+    const listener = vi.fn()
+    window.addEventListener(AUTH_EXPIRED_EVENT, listener)
+
+    const results = await Promise.allSettled([apiRequest('/api/a'), apiRequest('/api/b')])
+
+    expect(results.map((result) => result.status)).toEqual(['rejected', 'rejected'])
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/auth/refresh')),
+    ).toHaveLength(1)
+    expect(listener).toHaveBeenCalledTimes(1)
+    window.removeEventListener(AUTH_EXPIRED_EVENT, listener)
+  })
+
   it('phát lý do cấm tài khoản và không retry', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()

@@ -200,7 +200,12 @@ async function fetchCsrfToken(force: boolean): Promise<void> {
   return csrfPromise
 }
 
-async function refreshSession(): Promise<void> {
+// A shared refresh announces an expired session only when a caller knew it had one; a silent probe
+// for a missing access cookie fails quietly, so guests never see a session-expired notice.
+let refreshNotifiesFailure = false
+
+async function refreshSession(notifyOnFailure: boolean): Promise<void> {
+  if (notifyOnFailure) refreshNotifiesFailure = true
   if (refreshPromise) return refreshPromise
 
   refreshPromise = requestInternal<void>(
@@ -212,13 +217,17 @@ async function refreshSession(): Promise<void> {
       authGeneration += 1
     })
     .catch((error: unknown) => {
-      if (!(error instanceof ApiError && error.errorCode === 'ACCOUNT_BANNED')) {
+      if (
+        refreshNotifiesFailure &&
+        !(error instanceof ApiError && error.errorCode === 'ACCOUNT_BANNED')
+      ) {
         dispatchAuthExpired()
       }
       throw error
     })
     .finally(() => {
       refreshPromise = null
+      refreshNotifiesFailure = false
     })
 
   return refreshPromise
@@ -229,6 +238,12 @@ function isExpiredSession(error: ApiError): boolean {
     error.status === 401 &&
     (error.errorCode === 'TOKEN_EXPIRED' || error.errorCode === 'SESSION_REVOKED')
   )
+}
+
+// The access cookie's Max-Age equals the token lifetime, so once the token expires the browser drops
+// the cookie and the server sees no token at all. The refresh cookie may still be valid.
+function isMissingSession(error: ApiError): boolean {
+  return error.status === 401 && error.errorCode === 'UNAUTHENTICATED'
 }
 
 async function requestInternal<T>(
@@ -285,7 +300,17 @@ async function requestInternal<T>(
         throw error
       }
 
-      if (authGeneration === authGenerationAtSend) await refreshSession()
+      if (authGeneration === authGenerationAtSend) await refreshSession(true)
+      return requestInternal<T>(path, init, { ...retry, auth: true })
+    }
+
+    if (isMissingSession(error) && !retry.auth && !AUTH_EXCLUDED_PATHS.has(getPathname(path))) {
+      try {
+        if (authGeneration === authGenerationAtSend) await refreshSession(false)
+      } catch {
+        // No usable refresh cookie either: the caller gets the original "not signed in" error.
+        throw error
+      }
       return requestInternal<T>(path, init, { ...retry, auth: true })
     }
 

@@ -343,7 +343,10 @@ describe('credits API with the real shared client (FR-001 transport, §13)', () 
         extra: { retryAfterSeconds: 60 },
         details: [{ field: 'name', message: 'Tên chưa hợp lệ' }],
       })
-      expect(fetchMock).toHaveBeenCalledOnce()
+      // Without a token the shared client probes the refresh cookie once; the caller still gets this error.
+      expect(fetchMock).toHaveBeenCalledTimes(errorCode === 'UNAUTHENTICATED' ? 2 : 1)
+      if (errorCode === 'UNAUTHENTICATED')
+        expect(String(fetchMock.mock.calls[1]?.[0])).toMatch(/\/api\/auth\/refresh$/)
     },
   )
 

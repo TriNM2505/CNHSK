@@ -391,7 +391,10 @@ describe('library API with the real shared client (§13; AT-01 transport only)',
         extra: { retryAfterSeconds: 60, loginSuggested: true },
         details: { kind: 'CARDS', limit: 500 },
       })
-      expect(fetchMock).toHaveBeenCalledOnce()
+      // Without a token the shared client probes the refresh cookie once; the caller still gets this error.
+      expect(fetchMock).toHaveBeenCalledTimes(errorCode === 'UNAUTHENTICATED' ? 2 : 1)
+      if (errorCode === 'UNAUTHENTICATED')
+        expect(String(fetchMock.mock.calls[1]?.[0])).toMatch(/\/api\/auth\/refresh$/)
     },
   )
 
