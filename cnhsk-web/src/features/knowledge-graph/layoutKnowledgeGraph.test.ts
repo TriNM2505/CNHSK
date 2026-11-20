@@ -39,6 +39,38 @@ describe('layoutKnowledgeGraph', () => {
     }
   })
 
+  it('lays each domain out as its own block, side by side in domain order', async () => {
+    const model = buildGraphModel(SAMPLE_TREE)
+    const { edgePoints, groups, positions } = await layoutKnowledgeGraph(model, {
+      groupByDomain: true,
+    })
+
+    expect(groups.map((group) => group.domain)).toEqual(['TV', 'NP', 'NL'])
+    for (let index = 1; index < groups.length; index++) {
+      const previous = groups[index - 1]!
+      expect(groups[index]!.x).toBeGreaterThan(previous.x + previous.width)
+    }
+    for (const node of SAMPLE_TREE) {
+      const group = groups.find((candidate) => candidate.domain === node.domain)!
+      const position = positions.get(node.kid)!
+      expect(position.x).toBeGreaterThanOrEqual(group.x)
+      expect(position.x + NODE_WIDTH).toBeLessThanOrEqual(group.x + group.width)
+      expect(position.y + NODE_HEIGHT).toBeLessThanOrEqual(group.y + group.height)
+    }
+    // Links inside a domain keep their routed path; links between domains have none and fall back.
+    expect(edgePoints.get('prereq:NP2-913->NP3-904')![0]!.x).toBeCloseTo(
+      positions.get('NP2-913')!.x + NODE_WIDTH,
+      0,
+    )
+    expect(edgePoints.has('support:NP3-904->NL3-906')).toBe(false)
+  })
+
+  it('keeps a single layout when grouping is not asked for or only one domain is shown', async () => {
+    expect((await layoutKnowledgeGraph(buildGraphModel(SAMPLE_TREE))).groups).toEqual([])
+    const npOnly = buildGraphModel(SAMPLE_TREE, { domain: 'NP' })
+    expect((await layoutKnowledgeGraph(npOnly, { groupByDomain: true })).groups).toEqual([])
+  })
+
   it('returns an empty layout for an empty graph', async () => {
     const layout = await layoutKnowledgeGraph({ edges: [], nodes: [] })
     expect(layout.positions.size).toBe(0)

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -151,6 +151,34 @@ describe('KnowledgeGraph', () => {
 
     fireEvent.mouseLeave(hovered.closest('.react-flow__node')!)
     expect(await nodeButton(/\(TV2-907\)/)).not.toHaveClass('opacity-30')
+  })
+
+  it('FR031_AT33_labels each domain block when every domain is shown', async () => {
+    const { container } = render(<KnowledgeGraph nodes={SAMPLE_TREE} />)
+    await nodeButton(/\(NP3-904\)/)
+
+    await waitFor(() =>
+      expect(
+        [...container.querySelectorAll('[data-domain-group]')].map((block) =>
+          block.getAttribute('data-domain-group'),
+        ),
+      ).toEqual(['TV', 'NP', 'NL']),
+    )
+  })
+
+  it('FR031_AT33_opens and closes the full-screen view', async () => {
+    const user = userEvent.setup()
+    render(<KnowledgeGraph nodes={SAMPLE_TREE} />)
+    await nodeButton(/\(NP3-904\)/)
+    const section = screen.getByRole('region', { name: 'Sơ đồ cây năng lực' })
+
+    await user.click(screen.getByRole('button', { name: 'Toàn màn hình' }))
+    expect(section).toHaveClass('fixed')
+    expect(screen.getByRole('button', { name: 'Thoát toàn màn hình' })).toBeVisible()
+
+    await user.keyboard('{Escape}')
+    expect(section).not.toHaveClass('fixed')
+    expect(screen.getByRole('button', { name: 'Toàn màn hình' })).toBeVisible()
   })
 
   it('FR030_AT32_shows empty states for an empty tree', () => {

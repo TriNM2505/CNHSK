@@ -17,6 +17,7 @@ import {
   type NodeHandle,
   type NodeMouseHandler,
   type NodeProps,
+  type ReactFlowInstance,
   type ReactFlowState,
 } from '@xyflow/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -156,7 +157,27 @@ function ElkEdgeView({
   return <BaseEdge markerEnd={markerEnd} path={path} style={style} />
 }
 
-const nodeTypes = { kid: KidNodeView }
+type DomainGroupFlowNode = Node<{ domain: KnowledgeDomain }, 'domainGroup'>
+
+/** Background frame and title of one domain block; decorative, the legend names domains for AT. */
+function DomainGroupView({ data }: NodeProps<DomainGroupFlowNode>) {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none h-full w-full rounded-md border-2 border-dashed border-line bg-surface/40"
+      data-domain-group={data.domain}
+    >
+      <p className="px-6 pt-3 text-[32px] font-semibold leading-tight text-ink-secondary">
+        {data.domain} · {DOMAIN_LABELS[data.domain]}
+      </p>
+    </div>
+  )
+}
+
+const GROUP_PREFIX = 'domain:'
+const isGroupId = (id: string) => id.startsWith(GROUP_PREFIX)
+
+const nodeTypes = { domainGroup: DomainGroupView, kid: KidNodeView }
 const NODE_HANDLES: NodeHandle[] = [
   { height: 1, position: Position.Left, type: 'target', width: 1, x: 0, y: NODE_HEIGHT / 2 },
   {
@@ -175,6 +196,7 @@ function gridLayout(model: Pick<KnowledgeGraphModel, 'nodes'>): GraphLayout {
   const rowByLevel = new Map<number, number>()
   return {
     edgePoints: new Map(),
+    groups: [],
     positions: new Map(
       model.nodes.map((node) => {
         const row = rowByLevel.get(node.hskLevel) ?? 0
@@ -258,9 +280,11 @@ export default function KnowledgeGraph({
     null,
   )
   const layout = built?.model === model ? built.layout : null
+  // Every domain at once is laid out as side-by-side domain blocks; one domain or a chain is not.
+  const groupByDomain = chainKid === null && domain === 'ALL'
   useEffect(() => {
     let cancelled = false
-    layoutKnowledgeGraph(model)
+    layoutKnowledgeGraph(model, { groupByDomain })
       .then((result) => {
         if (!cancelled) setBuilt({ layout: result, model })
       })
@@ -270,7 +294,7 @@ export default function KnowledgeGraph({
     return () => {
       cancelled = true
     }
-  }, [model])
+  }, [groupByDomain, model])
 
   // A hover left over from a node that unmounted (reload, chain switch) never dims the new view.
   const hovered =
@@ -281,7 +305,24 @@ export default function KnowledgeGraph({
     [hovered, model.edges],
   )
 
-  const flowNodes = useMemo<KidFlowNode[]>(
+  const groupNodes = useMemo<DomainGroupFlowNode[]>(
+    () =>
+      (layout?.groups ?? []).map((group) => ({
+        data: { domain: group.domain },
+        draggable: false,
+        focusable: false,
+        height: group.height,
+        id: `${GROUP_PREFIX}${group.domain}`,
+        measured: { height: group.height, width: group.width },
+        position: { x: group.x, y: group.y },
+        selectable: false,
+        type: 'domainGroup',
+        width: group.width,
+      })),
+    [layout],
+  )
+
+  const kidNodes = useMemo<KidFlowNode[]>(
     () =>
       model.nodes.map((node) => ({
         connectable: false,
@@ -308,18 +349,26 @@ export default function KnowledgeGraph({
     [activeKid, chainKid, highlighted, layout, model, questionCounts, selectedKid],
   )
 
+  // Group frames come first so they paint underneath the nodes of their block.
+  const flowNodes = useMemo(() => [...groupNodes, ...kidNodes], [groupNodes, kidNodes])
+
   const flowEdges = useMemo<ElkFlowEdge[]>(
     () =>
       model.edges.map((edge) => {
         const stroke = edge.kind === 'prereq' ? PREREQ_STROKE : SUPPORT_STROKE
-        const faded = hovered !== null && edge.source !== hovered && edge.target !== hovered
+        const touchesHover =
+          hovered !== null && (edge.source === hovered || edge.target === hovered)
+        // Links between domain blocks cross the whole canvas; keep them faint until hovered.
+        const crossesBlocks =
+          (layout?.groups.length ?? 0) > 0 && edge.source.slice(0, 2) !== edge.target.slice(0, 2)
+        const opacity = hovered !== null ? (touchesHover ? 1 : 0.15) : crossesBlocks ? 0.35 : 1
         return {
           data: { points: layout?.edgePoints.get(edge.id) },
           id: edge.id,
           markerEnd: { color: stroke, type: MarkerType.ArrowClosed },
           source: edge.source,
           style: {
-            opacity: faded ? 0.15 : 1,
+            opacity,
             stroke,
             strokeDasharray: edge.kind === 'support' ? '6 4' : undefined,
           },
@@ -330,9 +379,59 @@ export default function KnowledgeGraph({
     [hovered, layout, model],
   )
 
-  const handleNodeClick = useCallback<NodeMouseHandler>((_, node) => setActiveKid(node.id), [])
-  const handleNodeEnter = useCallback<NodeMouseHandler>((_, node) => setHoveredKid(node.id), [])
+  const handleNodeClick = useCallback<NodeMouseHandler>((_, node) => {
+    if (!isGroupId(node.id)) setActiveKid(node.id)
+  }, [])
+  const handleNodeEnter = useCallback<NodeMouseHandler>((_, node) => {
+    if (!isGroupId(node.id)) setHoveredKid(node.id)
+  }, [])
   const handleNodeLeave = useCallback<NodeMouseHandler>(() => setHoveredKid(null), [])
+
+  // Full screen uses the Fullscreen API when the browser allows it, else a fixed overlay.
+  const sectionRef = useRef<HTMLElement>(null)
+  const flowRef = useRef<ReactFlowInstance<KidFlowNode | DomainGroupFlowNode, ElkFlowEdge> | null>(
+    null,
+  )
+  const [fullScreen, setFullScreen] = useState<'off' | 'native' | 'overlay'>('off')
+  useEffect(() => {
+    const sync = () => {
+      if (!document.fullscreenElement) setFullScreen((mode) => (mode === 'native' ? 'off' : mode))
+    }
+    document.addEventListener('fullscreenchange', sync)
+    return () => document.removeEventListener('fullscreenchange', sync)
+  }, [])
+  useEffect(() => {
+    if (fullScreen !== 'overlay') return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFullScreen('off')
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [fullScreen])
+  // The canvas changes size with the mode; refit once the browser has applied it.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => void flowRef.current?.fitView())
+    return () => cancelAnimationFrame(frame)
+  }, [fullScreen])
+  const toggleFullScreen = () => {
+    if (fullScreen === 'native') {
+      void document.exitFullscreen?.()
+      return
+    }
+    if (fullScreen === 'overlay') {
+      setFullScreen('off')
+      return
+    }
+    const section = sectionRef.current
+    if (section?.requestFullscreen) {
+      section
+        .requestFullscreen()
+        .then(() => setFullScreen('native'))
+        .catch(() => setFullScreen('overlay'))
+    } else {
+      setFullScreen('overlay')
+    }
+  }
 
   const active = activeKid ? nodes.find((node) => node.kid === activeKid) : undefined
 
@@ -345,13 +444,23 @@ export default function KnowledgeGraph({
     )
   }
 
+  // Full screen gives the canvas all the room left under the controls; otherwise most of the window.
+  const canvasHeight = fullScreen === 'off' ? 'h-[70vh] min-h-[480px]' : 'min-h-[480px] flex-1'
   const orphanCount = model.nodes.filter((node) => model.orphanKids.has(node.kid)).length
   const noQuestionCount = questionCounts
     ? model.nodes.filter((node) => questionCounts.get(node.kid) === 0).length
     : undefined
 
   return (
-    <section aria-label="Sơ đồ cây năng lực" className="min-w-0 space-y-3">
+    <section
+      aria-label="Sơ đồ cây năng lực"
+      className={cn(
+        'min-w-0 space-y-3',
+        fullScreen !== 'off' && 'flex flex-col overflow-auto bg-canvas p-4',
+        fullScreen === 'overlay' && 'fixed inset-0 z-50',
+      )}
+      ref={sectionRef}
+    >
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1 text-label text-ink">
           Miền
@@ -398,6 +507,13 @@ export default function KnowledgeGraph({
             Quay lại toàn sơ đồ
           </button>
         ) : null}
+        <button
+          className={cn(chainButtonClass, 'ml-auto')}
+          onClick={toggleFullScreen}
+          type="button"
+        >
+          {fullScreen === 'off' ? 'Toàn màn hình' : 'Thoát toàn màn hình'}
+        </button>
       </div>
 
       {active ? (
@@ -476,9 +592,14 @@ export default function KnowledgeGraph({
           title="Không có nút phù hợp bộ lọc"
         />
       ) : layout === null ? (
-        <Skeleton aria-label="Đang dựng sơ đồ" className="h-[560px]" variant="card" />
+        <Skeleton aria-label="Đang dựng sơ đồ" className={canvasHeight} variant="card" />
       ) : (
-        <div className="h-[560px] min-w-0 overflow-hidden rounded-md border border-line bg-canvas">
+        <div
+          className={cn(
+            'min-w-0 overflow-hidden rounded-md border border-line bg-canvas',
+            canvasHeight,
+          )}
+        >
           <ReactFlow
             edgeTypes={edgeTypes}
             edges={flowEdges}
@@ -498,6 +619,9 @@ export default function KnowledgeGraph({
             onNodeClick={handleNodeClick}
             onNodeMouseEnter={handleNodeEnter}
             onNodeMouseLeave={handleNodeLeave}
+            onInit={(instance) => {
+              flowRef.current = instance
+            }}
             // No viewport culling: it drops edges whose ELK route crosses the screen while both ends
             // are off it. Lightweight nodes keep the full ~190-node tree smooth without it.
           >
