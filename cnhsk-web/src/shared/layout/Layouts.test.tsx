@@ -344,7 +344,11 @@ describe('AdminLayout', () => {
     })
     for (const label of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const nav = screen.getByRole('navigation', { name: label })
-      expect(within(nav).getAllByRole('link')).toHaveLength(2)
+      expect(within(nav).getAllByRole('link')).toHaveLength(3)
+      expect(within(nav).getByRole('link', { name: 'Kho câu hỏi' })).toHaveAttribute(
+        'href',
+        '/content/questions',
+      )
       expect(within(nav).getByRole('link', { name: 'Duyệt câu hỏi AI' })).toHaveAttribute(
         'href',
         '/content/ai-review',
@@ -404,11 +408,12 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(13)
+      expect(within(navigation).getAllByRole('link')).toHaveLength(14)
       // AI review belongs to TEACHER only; CONTENT_EDITOR and ADMIN do not get it.
       expect(within(navigation).queryByRole('link', { name: 'Duyệt câu hỏi AI' })).not.toBeInTheDocument()
       for (const label of [
         'Lô AI',
+        'Kho câu hỏi',
         'Quản lý đề thi',
         'Nhập dữ liệu',
         'Tiên quyết chủ đề',
@@ -465,18 +470,36 @@ describe('AdminLayout', () => {
   it.each([
     [
       ['CONTENT_EDITOR'],
-      ['Nhập dữ liệu', 'Tài nguyên tham khảo', 'Tiên quyết chủ đề', 'Cuộc thi', 'Quản lý đề thi'],
+      [
+        'Kho câu hỏi',
+        'Nhập dữ liệu',
+        'Tài nguyên tham khảo',
+        'Tiên quyết chủ đề',
+        'Cuộc thi',
+        'Quản lý đề thi',
+      ],
       ['Người dùng', ...financialLabels],
     ],
     [
       ['ADMIN'],
       ['Người dùng', ...financialLabels],
-      ['Nhập dữ liệu', 'Tài nguyên tham khảo', 'Tiên quyết chủ đề', 'Cuộc thi', 'Quản lý đề thi'],
+      [
+        'Kho câu hỏi',
+        'Nhập dữ liệu',
+        'Tài nguyên tham khảo',
+        'Tiên quyết chủ đề',
+        'Cuộc thi',
+        'Quản lý đề thi',
+      ],
     ],
-    [['MODERATOR'], ['Bài chờ duyệt', 'Báo cáo vi phạm'], ['Người dùng', ...financialLabels]],
-    [['TEACHER'], [], ['Người dùng', ...financialLabels]],
-    [['LEARNER'], [], ['Người dùng', ...financialLabels]],
-    [['ACCOUNTANT'], [], ['Người dùng', ...financialLabels]],
+    [
+      ['MODERATOR'],
+      ['Bài chờ duyệt', 'Báo cáo vi phạm'],
+      ['Kho câu hỏi', 'Người dùng', ...financialLabels],
+    ],
+    [['TEACHER'], ['Kho câu hỏi'], ['Người dùng', ...financialLabels]],
+    [['LEARNER'], [], ['Kho câu hỏi', 'Người dùng', ...financialLabels]],
+    [['ACCOUNTANT'], [], ['Kho câu hỏi', 'Người dùng', ...financialLabels]],
     [
       ['CONTENT_EDITOR', 'ADMIN'],
       [

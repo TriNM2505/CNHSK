@@ -5,6 +5,7 @@ import {
   CreditCard,
   Flag,
   Layers,
+  Library,
   ListChecks,
   Gamepad2,
   Languages,
@@ -116,6 +117,14 @@ export const adminNavigation: readonly NavigationItem[] = [
     label: 'Lô AI',
     role: 'ADMIN',
     to: '/admin/ai-runs',
+  },
+  {
+    activePrefixes: ['/content/questions'],
+    icon: Library,
+    label: 'Kho câu hỏi',
+    mobileLabel: 'Câu hỏi',
+    roles: ['CONTENT_EDITOR', 'TEACHER'],
+    to: '/content/questions',
   },
   {
     activePrefixes: ['/content/exams'],
