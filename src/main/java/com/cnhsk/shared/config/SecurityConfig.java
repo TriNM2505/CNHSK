@@ -178,6 +178,8 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.POST, "/api/reviews/sessions").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/admin/questions", "/api/admin/questions/**")
                             .hasAnyRole("CONTENT_EDITOR", "TEACHER");
+                    // Tree review (question counts per node) is for content editors only.
+                    authorize.requestMatchers(HttpMethod.GET, "/api/admin/knowledge-tree/**").hasRole("CONTENT_EDITOR");
                     // Only teachers review AI questions and edit question content (BUS-07).
                     authorize.requestMatchers("/api/admin/ai-questions", "/api/admin/ai-questions/**")
                             .hasRole("TEACHER");

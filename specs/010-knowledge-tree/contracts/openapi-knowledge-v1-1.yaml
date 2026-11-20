@@ -1,0 +1,52 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Knowledge Tree — appendix v1.1 (tree review)
+  version: 1.1.0
+  description: >
+    Phụ lục spec 010 v1.1 §16. Số câu hỏi theo từng nút cho màn xem sơ đồ cây của CONTENT_EDITOR
+    (tab trong SCR-064). Tách file để không đổi hợp đồng gốc openapi-knowledge.yaml đã có test khoá.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: knowledge-tree
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+paths:
+  /api/admin/knowledge-tree/question-counts:
+    get:
+      operationId: getKnowledgeQuestionCounts
+      tags: [knowledge-tree]
+      summary: Số câu hỏi theo từng nút (chỉ CONTENT_EDITOR)
+      description: >
+        Mỗi nút một dòng, kể cả nút 0 câu. Chỉ đếm nhãn PRIMARY nên mỗi câu thuộc đúng một nút.
+        total = câu chưa ARCHIVED; approved = trong đó đã APPROVED. TEACHER, LEARNER, ADMIN → 403.
+      responses:
+        '200':
+          description: Số câu hỏi theo từng nút
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/KnowledgeQuestionCounts' }
+        '401': { description: Chưa đăng nhập }
+        '403': { description: Chỉ CONTENT_EDITOR }
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    KnowledgeQuestionCounts:
+      type: object
+      required: [counts]
+      properties:
+        counts:
+          type: array
+          items: { $ref: '#/components/schemas/KnowledgeQuestionCount' }
+    KnowledgeQuestionCount:
+      type: object
+      required: [kid, total, approved]
+      properties:
+        kid: { type: string, pattern: '^(NA|CH|TV|NP|NL|VB)[1-7]-[0-9]{3}$' }
+        total: { type: integer, format: int64, minimum: 0 }
+        approved: { type: integer, format: int64, minimum: 0 }

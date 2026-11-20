@@ -99,6 +99,31 @@ public class KnowledgeTreeQueryRepository {
                 """, Long.class).setParameter("nodeId", nodeId).getSingleResult();
     }
 
+    /**
+     * One row per node, zero counts included, in a single grouped query. Only PRIMARY labels count,
+     * so each question belongs to exactly one node; archived questions are left out of both totals.
+     */
+    public List<QuestionCountRow> questionCountsByKid() {
+        List<?> rows = entityManager.createNativeQuery("""
+                SELECT kp.code AS kid,
+                       count(q.id) FILTER (WHERE q.status <> 'ARCHIVED') AS total,
+                       count(q.id) FILTER (WHERE q.status = 'APPROVED') AS approved
+                FROM learning.knowledge_points kp
+                LEFT JOIN learning.question_knowledge_points label
+                       ON label.knowledge_point_id = kp.id AND label.role = 'PRIMARY'
+                LEFT JOIN learning.questions q ON q.id = label.question_id
+                GROUP BY kp.code
+                ORDER BY kp.code
+                """, Tuple.class).getResultList();
+        return rows.stream().map(value -> {
+            Tuple row = (Tuple) value;
+            return new QuestionCountRow(row.get("kid", String.class),
+                    ((Number) row.get("total")).longValue(), ((Number) row.get("approved")).longValue());
+        }).toList();
+    }
+
+    public record QuestionCountRow(String kid, long total, long approved) { }
+
     public record QuestionLabelRow(Question question, String kid, KnowledgeLabelRole role) { }
 
     public record TopicRow(long id, String code, String name) { }

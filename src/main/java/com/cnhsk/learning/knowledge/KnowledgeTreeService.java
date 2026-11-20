@@ -108,6 +108,12 @@ public class KnowledgeTreeService {
                 queries.lexemeCount(current.id()), queries.approvedQuestionCount(current.id()));
     }
 
+    /** Question counts per node for the content editor's tree review; every node is listed, zeros included. */
+    public List<NodeQuestionCount> questionCounts() {
+        return queries.questionCountsByKid().stream()
+                .map(row -> new NodeQuestionCount(row.kid(), row.total(), row.approved())).toList();
+    }
+
     private static List<String> kids(Long[] ids, Map<Long, String> codes) {
         return Arrays.stream(ids).map(codes::get).sorted().toList();
     }
@@ -150,4 +156,6 @@ public class KnowledgeTreeService {
                                       long lexemeCount, long approvedQuestionCount) { }
 
     public record LinkedTopic(long id, String code, String name) { }
+
+    public record NodeQuestionCount(String kid, long total, long approved) { }
 }
