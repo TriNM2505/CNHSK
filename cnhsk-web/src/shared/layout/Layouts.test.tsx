@@ -109,11 +109,15 @@ describe('LearnerLayout', () => {
     renderLayout(<LearnerLayout gameOrigin="http://localhost:5174">Nội dung học tập</LearnerLayout>)
 
     const desktopNavigation = screen.getByRole('navigation', { name: 'Học tập' })
-    expect(within(desktopNavigation).getAllByRole('link')).toHaveLength(7)
+    expect(within(desktopNavigation).getAllByRole('link')).toHaveLength(8)
     expect(within(desktopNavigation).getByRole('link', { name: 'Chủ đề' })).toHaveAttribute(
       'aria-current',
       'page',
     )
+    // The dashboard sits at /learn, the parent of every study route, so it must not light up there.
+    const dashboard = within(desktopNavigation).getByRole('link', { name: 'Bảng học tập' })
+    expect(dashboard).toHaveAttribute('href', '/learn')
+    expect(dashboard).not.toHaveAttribute('aria-current')
     const gameLink = within(desktopNavigation).getByRole('link', { name: 'Game' })
     expect(gameLink).toHaveAttribute('href', 'http://localhost:5174')
     expect(gameLink).not.toHaveAttribute('target')
@@ -133,6 +137,10 @@ describe('LearnerLayout', () => {
     expect(within(supplemental).getByRole('link', { name: 'Tài liệu tham khảo' })).toHaveAttribute(
       'href',
       '/references/media',
+    )
+    expect(within(supplemental).getByRole('link', { name: 'Chữ Hán' })).toHaveAttribute(
+      'href',
+      '/learn/characters/recognition',
     )
     expect(within(supplemental).getByRole('link', { name: 'Game' })).toHaveAttribute(
       'href',

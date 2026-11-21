@@ -9,6 +9,7 @@ import {
   ListChecks,
   Gamepad2,
   Languages,
+  LayoutDashboard,
   Mic2,
   PenTool,
   ReceiptText,
@@ -24,6 +25,8 @@ import type { RoleCode } from '@/features/auth/types'
 
 export type NavigationItem = {
   activePrefixes: readonly string[]
+  /** Active only on the listed paths themselves, for a parent path whose children have their own items. */
+  activeExact?: boolean
   icon: ComponentType<SVGProps<SVGSVGElement>>
   label: string
   mobileLabel?: string
@@ -34,6 +37,14 @@ export type NavigationItem = {
 }
 
 export const learnerNavigation: readonly NavigationItem[] = [
+  {
+    activeExact: true,
+    activePrefixes: ['/learn'],
+    icon: LayoutDashboard,
+    label: 'Bảng học tập',
+    mobileLabel: 'Bảng học',
+    to: '/learn',
+  },
   {
     activePrefixes: ['/learn/topics'],
     icon: BookOpen,
@@ -56,6 +67,7 @@ export const learnerNavigation: readonly NavigationItem[] = [
     activePrefixes: ['/learn/characters'],
     icon: PenTool,
     label: 'Chữ Hán',
+    mobilePlacement: 'more',
     to: '/learn/characters/recognition',
   },
   {
@@ -228,6 +240,6 @@ export const adminNavigation: readonly NavigationItem[] = [
 
 export function isNavigationItemActive(pathname: string, item: NavigationItem): boolean {
   return item.activePrefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    (prefix) => pathname === prefix || (!item.activeExact && pathname.startsWith(`${prefix}/`)),
   )
 }
