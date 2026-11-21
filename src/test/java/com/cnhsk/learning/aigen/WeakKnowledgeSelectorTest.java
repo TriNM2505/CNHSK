@@ -353,6 +353,46 @@ class WeakKnowledgeSelectorTest {
         verify(repository, never()).nodes(any());
     }
 
+    @Test
+    void sharedPrerequisiteBelowThresholdBecomesFirstCandidateAndWeakNodesStay() {
+        String ba = "NP3-901", bei = "NP3-902", root = "NP2-901";
+        wrong(row(1, ba, 30), row(2, bei, 25), row(3, root, 5));
+        when(repository.prerequisiteLinks()).thenReturn(List.of(
+                new WeakKnowledgeQueryRepository.PrerequisiteLink(ba, root, false),
+                new WeakKnowledgeQueryRepository.PrerequisiteLink(bei, root, false)));
+        nodes(node(1, ba, 0), node(2, bei, 0), node(3, root, 0));
+
+        List<Candidate> result = selector.select();
+
+        assertThat(result).extracting(Candidate::kid).containsExactly(root, ba, bei);
+        // The candidate keeps its own raw count; the root score only orders and admits it.
+        assertThat(result.get(0).wrongCount()).isEqualTo(5);
+        verify(repository).nodes(Set.of(ba, bei, root));
+        verify(repository, times(1)).prerequisiteLinks();
+    }
+
+    @Test
+    void prerequisiteWithoutAnyWrongAnswerIsAdmittedByItsRootScore() {
+        String weak = "NP3-901", root = "NP2-901";
+        // One dependant passes 85 % of its mass on: 60 wrong answers give the root about 28.
+        wrong(row(1, weak, 60));
+        when(repository.prerequisiteLinks()).thenReturn(List.of(
+                new WeakKnowledgeQueryRepository.PrerequisiteLink(weak, root, false)));
+        nodes(node(1, weak, 0), node(2, root, 0));
+
+        assertThat(selector.select()).extracting(Candidate::kid, Candidate::wrongCount)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(weak, 60L),
+                        org.assertj.core.groups.Tuple.tuple(root, 0L));
+    }
+
+    @Test
+    void emptyWrongHistorySkipsTheLinkRead() {
+        wrong();
+
+        assertThat(selector.select()).isEmpty();
+        verify(repository, never()).prerequisiteLinks();
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"{", "null", "[null]", "[{\"key\":\"B\"},{\"key\":\"B\"}]"})
     void legacyOptionsDropTheWholeQuestionAndWarnOnceAcrossGroupedUsers(String json,

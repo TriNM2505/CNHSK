@@ -8,8 +8,8 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.2.0 |
-| **Status** | APPROVED — leader duyệt 2026-11-14, được code theo `tasks.md` · v1.1.0 leader duyệt 2026-11-19: chống câu gần trùng (§0.3 chỉ dẫn không lặp mẫu, FR-007 `NEAR_DUPLICATE_STEM`, AT-09) · v1.2.0 leader chốt 2026-11-20: chỉ `TEACHER` duyệt và sửa câu hỏi (BUS-07, Hiến pháp v1.7.0); `CONTENT_EDITOR` chỉ xem, lưu trữ (FR-011, FR-013, FR-020, Q3, AT-15) |
+| **Version** | 1.3.0 |
+| **Status** | APPROVED — leader duyệt 2026-11-14, được code theo `tasks.md` · v1.1.0 leader duyệt 2026-11-19: chống câu gần trùng (§0.3 chỉ dẫn không lặp mẫu, FR-007 `NEAR_DUPLICATE_STEM`, AT-09) · v1.2.0 leader chốt 2026-11-20: chỉ `TEACHER` duyệt và sửa câu hỏi (BUS-07, Hiến pháp v1.7.0); `CONTENT_EDITOR` chỉ xem, lưu trữ (FR-011, FR-013, FR-020, Q3, AT-15) · v1.3.0 leader chốt 2026-11-21: tìm nút gốc bằng PageRank cá nhân hoá ngược cạnh tiên quyết (FR-003a, AT-20) |
 | **Phụ thuộc** | 010 (cây KID, `question_knowledge_points`, `/api/admin/questions`, SCR-059) · 011 (`MasteryReader`) · 015 (`ClaudeClient`, `TokenBudget`, `StubClaudeClient`) · 023 (`SettingsApi`, ⚿K7) · 001 (`AuthApi`, `AuditService`) |
 | **Quyết định chung** | Leader validate 2026-11-13: hệ thống tự sinh từ câu sai + dữ liệu cây tri thức, không học viên bấm, không thu phí; phải duyệt và gắn KID trước khi tới học viên · leader chốt 2026-11-14 (§9) |
 | **Người code** | Quốc Huy |
@@ -120,6 +120,7 @@ Câu (questions source='AI'):  PENDING_REVIEW ──approve──► APPROVED �
 | **FR-001** | `AiGenerationJob` (cron `cnhsk.ai-generate.cron`) SHALL chạy dưới khoá tư vấn `ai-generate:job`; `system-user-id = 0` → thoát ngay không gọi gì (SC-004); tài khoản không tồn tại/không `ADMIN`/bị khoá (`AuthApi`) → thoát + `WARN` (E6) |
 | **FR-002** | Đếm lượt sai trong `window-days` theo KID: (a) KID `PRIMARY` của câu ở `attempt_items` có `correct=false`; (b) `error_kid` của phương án người học đã chọn (đọc `options` trong Java, 010 AC-09). Mỗi lượt sai cộng 1 cho (a) và 1 cho (b) nếu có. Một truy vấn gom + xử lý Java, không N+1 |
 | **FR-003** | Ứng viên = KID có `wrongCount ≥ min-wrong` **và** số câu `APPROVED` có KID đó là `PRIMARY` < `min-bank` **và** không có câu `source='AI'` `PENDING_REVIEW` gắn KID đó (SC-003) **và** không có lô `RUNNING` cho KID đó; bỏ nút thiếu `can_do`/không có từ gắn nút (E4). Sắp `wrongCount` giảm, lấy tối đa `max-batches-per-run`. Các nút yếu từ `MasteryReader` (011) được cộng thêm `min-wrong` để ưu tiên khi số lượt sai bằng nhau |
+| **FR-003a** | (v1.3) **Nút gốc.** Đọc toàn bộ cạnh `prereq_ids` (trọng số 1) và `support_ids` (trọng số 0,3) **một truy vấn**. Chạy PageRank cá nhân hoá trên đồ thị ngược (nút phụ thuộc → nút nó cần): hạt giống = `wrongCount` từng KID, hệ số 0,85, tối đa 50 vòng hoặc chênh lệch < 1e-6; khối lượng của nút không có cạnh đi ra quay về phân bố hạt giống. `rootScore` = điểm × tổng lượt sai, làm tròn. Ứng viên = KID có `wrongCount ≥ min-wrong` **hoặc** `rootScore ≥ min-wrong`, rồi qua đủ bộ lọc FR-003; sắp `rootScore` giảm, rồi `wrongCount` giảm, rồi số người học yếu, rồi KID. Không nút hạt giống nào có cạnh đi ra → `rootScore = wrongCount`, kết quả trùng v1.2 |
 | **FR-004** | Trước khi chọn, đánh `FAILED` (`error_message='STALE'`) mọi lô `AI_GENERATE` `RUNNING` có `created_at < now − 10 phút` (E7) |
 
 ### Nhóm 2 — Sinh và kiểm (FR-005…FR-010) · UC-049
@@ -305,6 +306,7 @@ Lỗi gọi Claude chỉ ghi `service_requests.error_message`, không trả cho 
 | AT-17 | FR-018, FR-019 | Lịch sử lô đúng thứ tự, có token; trigger khi đang chạy · T 409 `AI_GENERATION_BUSY`; hợp lệ · T 202 |
 | AT-18 | FR-020 (FE) | Vitest: ô chọn chỉ bật cho câu đã xem; kết quả trộn hiện từng câu; từ chối bắt buộc lý do; 409 tải lại |
 | AT-19 | §13 | Test hợp đồng `/v3/api-docs` so `openapi-ai-practice.yaml` (hai chiều path + method + status) |
+| AT-20 | FR-003a | `NP3-901` 30 lượt sai và `NP3-902` 25 lượt sai cùng cần `NP2-901` (5 lượt sai), kho cả ba < `min-bank` · T `NP2-901` là ứng viên đầu tiên dù < `min-wrong`, hai nút kia vẫn là ứng viên; xoá cạnh · T thứ tự và tập ứng viên như v1.2 |
 
 ---
 

@@ -98,6 +98,26 @@ public class WeakKnowledgeQueryRepository {
         }).toList();
     }
 
+    /** Every prerequisite and support link of the tree, as dependent → required KID, in one read. */
+    public List<PrerequisiteLink> prerequisiteLinks() {
+        List<?> rows = entityManager.createNativeQuery("""
+                SELECT dependent.code, required.code, false
+                FROM learning.knowledge_points dependent
+                CROSS JOIN LATERAL unnest(dependent.prereq_ids) link(id)
+                JOIN learning.knowledge_points required ON required.id = link.id
+                UNION ALL
+                SELECT dependent.code, required.code, true
+                FROM learning.knowledge_points dependent
+                CROSS JOIN LATERAL unnest(dependent.support_ids) link(id)
+                JOIN learning.knowledge_points required ON required.id = link.id
+                ORDER BY 1, 2, 3
+                """).getResultList();
+        return rows.stream().map(value -> {
+            Object[] row = (Object[]) value;
+            return new PrerequisiteLink((String) row[0], (String) row[1], (Boolean) row[2]);
+        }).toList();
+    }
+
     public List<ActiveRun> activeRuns() {
         List<?> rows = entityManager.createNativeQuery("""
                 SELECT id, payload::text FROM learning.service_requests
@@ -218,4 +238,6 @@ public class WeakKnowledgeQueryRepository {
     public record NodeSummary(long knowledgePointId, String kid, String canDo, long bankCount,
             boolean hasLexemes, boolean hasPending) { }
     public record ActiveRun(long id, String payloadJson) { }
+    /** {@code support} links count less than prerequisites when tracing a weakness back. */
+    public record PrerequisiteLink(String dependentKid, String requiredKid, boolean support) { }
 }

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -160,6 +161,22 @@ class WeakKnowledgeSelectorIntegrationTest extends AbstractIntegrationTest {
         fixtures.run(fixtures.user(), "AI_GENERATE", "PENDING", fixtures.payload(b), NOW);
         fixtures.run(fixtures.user(), "TRANSLATE", "RUNNING", fixtures.payload(b), NOW);
         assertThat(selector.select()).extracting(WeakKnowledgeSelector.Candidate::knowledgePointId).containsExactly(b);
+    }
+
+    @Test
+    void sharedPrerequisiteReadFromTheTreeIsSelectedFirstBelowTheWrongThreshold() {
+        long user = fixtures.user(), ba = fixtures.node(), bei = fixtures.node(), root = fixtures.node();
+        fixtures.wrong(user, ba, 30); fixtures.wrong(user, bei, 25); fixtures.wrong(user, root, 5);
+        jdbc.update("UPDATE learning.knowledge_points SET prereq_ids = ARRAY[?]::bigint[] WHERE id IN (?, ?)",
+                root, ba, bei);
+
+        assertThat(selector.select()).extracting(WeakKnowledgeSelector.Candidate::knowledgePointId)
+                .containsExactly(root, ba, bei);
+        verify(repository, times(1)).prerequisiteLinks();
+
+        jdbc.update("UPDATE learning.knowledge_points SET prereq_ids = '{}' WHERE id IN (?, ?)", ba, bei);
+        assertThat(selector.select()).extracting(WeakKnowledgeSelector.Candidate::knowledgePointId)
+                .containsExactly(ba, bei);
     }
 
     @Test

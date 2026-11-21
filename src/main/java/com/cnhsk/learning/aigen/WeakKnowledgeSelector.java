@@ -104,8 +104,14 @@ public class WeakKnowledgeSelector {
             contribute(wrongCounts, errorKid, answer.count());
             contributions.add(new Contribution(answer.userId(), answer.primaryKid(), errorKid, answer.count()));
         }
-        Set<String> kids = wrongCounts.entrySet().stream().filter(entry -> entry.getValue() >= settings.minWrong())
-                .map(Map.Entry::getKey).collect(Collectors.toSet());
+        if (wrongCounts.isEmpty()) return List.of();
+        // Wrong answers flow back along prerequisite links, so a shared prerequisite of several weak
+        // nodes can qualify by its root score; without links the score is the raw count.
+        Map<String, Long> rootScores = RootCauseRanker.scores(wrongCounts, repository.prerequisiteLinks());
+        Set<String> kids = rootScores.keySet().stream()
+                .filter(kid -> wrongCounts.getOrDefault(kid, 0L) >= settings.minWrong()
+                        || rootScores.get(kid) >= settings.minWrong())
+                .collect(Collectors.toSet());
         if (kids.isEmpty()) return List.of();
         List<NodeSummary> nodes = repository.nodes(kids);
         Set<String> running = runningKids(nodes);
@@ -116,20 +122,23 @@ public class WeakKnowledgeSelector {
                 continue;
             }
             if (node.bankCount() < settings.minBank() && !node.hasPending() && !running.contains(node.kid())) {
-                candidates.add(new Candidate(node.knowledgePointId(), node.kid(), wrongCounts.get(node.kid()),
-                        node.bankCount(), 0));
+                candidates.add(new Candidate(node.knowledgePointId(), node.kid(),
+                        wrongCounts.getOrDefault(node.kid(), 0L), node.bankCount(), 0));
             }
         }
-        candidates.sort(ORDER);
+        Comparator<Candidate> rank = Comparator.<Candidate>comparingLong(candidate -> rootScores.get(candidate.kid()))
+                .reversed().thenComparing(Comparator.comparingLong(Candidate::wrongCount).reversed());
+        Comparator<Candidate> order = rank.thenComparing(ORDER);
+        candidates.sort(order);
         if (candidates.size() > settings.max()
-                && candidates.get(settings.max() - 1).wrongCount() == candidates.get(settings.max()).wrongCount()) {
-            long boundary = candidates.get(settings.max()).wrongCount();
-            Set<String> tiedKids = candidates.stream().filter(candidate -> candidate.wrongCount() == boundary)
+                && rank.compare(candidates.get(settings.max() - 1), candidates.get(settings.max())) == 0) {
+            Candidate boundary = candidates.get(settings.max());
+            Set<String> tiedKids = candidates.stream().filter(candidate -> rank.compare(candidate, boundary) == 0)
                     .map(Candidate::kid).collect(Collectors.toCollection(LinkedHashSet::new));
             Map<String, Integer> weakUsers = weakUsers(tiedKids, contributions);
             candidates.replaceAll(candidate -> new Candidate(candidate.knowledgePointId(), candidate.kid(),
                     candidate.wrongCount(), candidate.bankCount(), weakUsers.getOrDefault(candidate.kid(), 0)));
-            candidates.sort(ORDER);
+            candidates.sort(order);
         }
         return List.copyOf(candidates.subList(0, Math.min(settings.max(), candidates.size())));
     }

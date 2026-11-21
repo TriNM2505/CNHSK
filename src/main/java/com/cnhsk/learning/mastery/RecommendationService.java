@@ -5,10 +5,12 @@ import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 
 import com.cnhsk.learning.knowledge.KnowledgeTreeService;
 import com.cnhsk.learning.knowledge.KnowledgeTreeService.KnowledgeNode;
+import com.cnhsk.learning.knowledge.PersonalizedPageRank;
 import com.cnhsk.learning.mastery.MasteryQueryService.MasteryNode;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -58,6 +61,7 @@ public class RecommendationService {
 
         List<Recommendation> result = new ArrayList<>(MAX_RECOMMENDATIONS);
         Set<String> includedKids = new HashSet<>();
+        Map<String, Double> rootScores = rootScores(masteryNodes, knowledgeNodes);
 
         masteryNodes.stream()
                 .filter(node -> "review".equals(node.state()))
@@ -70,11 +74,14 @@ public class RecommendationService {
                     if (knowledgeNode == null || !kidsWithQuestions.contains(node.kid())) {
                         return;
                     }
-                    knowledgeNode.prereqKids().stream()
+                    // Every weak prerequisite behind this node, at any depth, strongest root first.
+                    ancestors(knowledgeNode, knowledgeByKid).stream()
                             .map(masteryByKid::get)
                             .filter(prerequisite -> prerequisite != null && "review".equals(prerequisite.state()))
                             .filter(prerequisite -> kidsWithQuestions.contains(prerequisite.kid()))
-                            .sorted(Comparator.comparing(MasteryNode::kid))
+                            .sorted(Comparator.comparingDouble(
+                                    (MasteryNode prerequisite) -> rootScores.getOrDefault(prerequisite.kid(), 0.0))
+                                    .reversed().thenComparing(MasteryNode::kid))
                             .forEach(prerequisite -> addPrerequisite(result, includedKids, prerequisite,
                                     knowledgeByKid, knowledgeNode));
                     add(result, includedKids, node, knowledgeNode, "REVIEW",
@@ -113,12 +120,47 @@ public class RecommendationService {
         return List.copyOf(result);
     }
 
+    /**
+     * This learner's weak nodes, weighted by how far they are below full mastery, traced back along
+     * prerequisite links: a prerequisite holding up several weak nodes scores highest.
+     */
+    private static Map<String, Double> rootScores(List<MasteryNode> masteryNodes, List<KnowledgeNode> knowledgeNodes) {
+        Map<String, Double> seeds = new HashMap<>();
+        for (MasteryNode node : masteryNodes) {
+            if ("review".equals(node.state()) && node.value() != null) {
+                seeds.put(node.kid(), Math.max(1.0, 100.0 - node.value().doubleValue()));
+            }
+        }
+        Map<String, Map<String, Double>> links = new HashMap<>();
+        for (KnowledgeNode node : knowledgeNodes) {
+            for (String prerequisite : node.prereqKids()) {
+                links.computeIfAbsent(node.kid(), ignored -> new HashMap<>()).put(prerequisite, 1.0);
+            }
+        }
+        return PersonalizedPageRank.rank(seeds, links);
+    }
+
+    /** Every prerequisite reachable from the node, nearest first; the tree has no cycles but is guarded anyway. */
+    private static List<String> ancestors(KnowledgeNode node, Map<String, KnowledgeNode> knowledgeByKid) {
+        Set<String> seen = new LinkedHashSet<>();
+        ArrayDeque<String> pending = new ArrayDeque<>(node.prereqKids());
+        while (!pending.isEmpty()) {
+            String kid = pending.removeFirst();
+            if (kid.equals(node.kid()) || !seen.add(kid)) continue;
+            KnowledgeNode prerequisite = knowledgeByKid.get(kid);
+            if (prerequisite != null) pending.addAll(prerequisite.prereqKids());
+        }
+        return List.copyOf(seen);
+    }
+
     private static void addPrerequisite(List<Recommendation> result, Set<String> includedKids,
             MasteryNode prerequisite, Map<String, KnowledgeNode> knowledgeByKid, KnowledgeNode target) {
         KnowledgeNode prerequisiteNode = knowledgeByKid.get(prerequisite.kid());
         if (prerequisiteNode != null) {
-            add(result, includedKids, prerequisite, prerequisiteNode, "PREREQ",
-                    "Ôn " + prerequisiteNode.nameVi() + " trước khi ôn " + target.nameVi() + ".");
+            String reason = target.prereqKids().contains(prerequisite.kid())
+                    ? "Ôn " + prerequisiteNode.nameVi() + " trước khi ôn " + target.nameVi() + "."
+                    : "Ôn " + prerequisiteNode.nameVi() + " trước: đây là phần gốc của " + target.nameVi() + ".";
+            add(result, includedKids, prerequisite, prerequisiteNode, "PREREQ", reason);
         }
     }
 

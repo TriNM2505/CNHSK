@@ -135,6 +135,61 @@ class RecommendationServiceTest {
         assertThat(service.recommendations(42L)).isEmpty();
     }
 
+    @Test
+    void AT15_weakRootTwoLevelsBackIsRecommendedBeforeTheNodeItHolds() {
+        KnowledgeTreeService tree = mock(KnowledgeTreeService.class);
+        MasteryQueryService mastery = mock(MasteryQueryService.class);
+        MasteryQueryRepository queries = mock(MasteryQueryRepository.class);
+        // Câu chữ 把 needs bổ ngữ kết quả, which needs 了; the learner is solid on the middle node only.
+        KnowledgeNode root = node("NP2-041", "了 sau động từ", 2, List.of());
+        KnowledgeNode middle = node("NP2-042", "Bổ ngữ kết quả", 2, List.of(root.kid()));
+        KnowledgeNode target = node("NP3-043", "Câu chữ 把", 3, List.of(middle.kid()));
+        List<KnowledgeNode> nodes = List.of(root, middle, target);
+        when(tree.nodes()).thenReturn(nodes);
+        when(mastery.mastery(42L)).thenReturn(new MasteryTree(List.of(
+                mastery(root, "review", "45.0", false, null),
+                mastery(middle, "consolidate", "70.0", false, NOW.plusSeconds(60)),
+                mastery(target, "review", "20.0", false, null))));
+        when(queries.kidsWithApprovedQuestions(anySet())).thenReturn(Set.of(root.kid(), middle.kid(), target.kid()));
+
+        List<RecommendationService.Recommendation> result = new RecommendationService(mastery, tree, queries,
+                Clock.fixed(NOW, ZoneOffset.UTC)).recommendations(42L);
+
+        assertThat(result).extracting(RecommendationService.Recommendation::kid)
+                .containsExactly(root.kid(), target.kid());
+        assertThat(result).extracting(RecommendationService.Recommendation::kind)
+                .containsExactly("PREREQ", "REVIEW");
+        assertThat(result.get(0).reason()).isEqualTo("Ôn 了 sau động từ trước: đây là phần gốc của Câu chữ 把.");
+    }
+
+    @Test
+    void AT15_weakPrerequisiteSharedByMoreWeakNodesComesFirst() {
+        KnowledgeTreeService tree = mock(KnowledgeTreeService.class);
+        MasteryQueryService mastery = mock(MasteryQueryService.class);
+        MasteryQueryRepository queries = mock(MasteryQueryRepository.class);
+        KnowledgeNode own = node("VB3-051", "Riêng một nút", 3, List.of());
+        KnowledgeNode shared = node("VB3-052", "Dùng chung", 3, List.of());
+        KnowledgeNode target = node("VB3-053", "Nút yếu nhất", 3, List.of(own.kid(), shared.kid()));
+        KnowledgeNode other = node("VB3-054", "Nút yếu khác", 3, List.of(shared.kid()));
+        List<KnowledgeNode> nodes = List.of(own, shared, target, other);
+        when(tree.nodes()).thenReturn(nodes);
+        when(mastery.mastery(42L)).thenReturn(new MasteryTree(List.of(
+                mastery(own, "review", "40.0", false, null),
+                mastery(shared, "review", "40.0", false, null),
+                mastery(target, "review", "10.0", false, null),
+                mastery(other, "review", "15.0", false, null))));
+        when(queries.kidsWithApprovedQuestions(anySet())).thenReturn(Set.of(
+                own.kid(), shared.kid(), target.kid(), other.kid()));
+
+        List<RecommendationService.Recommendation> result = new RecommendationService(mastery, tree, queries,
+                Clock.fixed(NOW, ZoneOffset.UTC)).recommendations(42L);
+
+        // Ordering by KID alone would put VB3-051 first; the shared root carries two weak nodes.
+        assertThat(result).extracting(RecommendationService.Recommendation::kid)
+                .containsExactly(shared.kid(), own.kid(), target.kid(), other.kid());
+        assertThat(result.get(0).reason()).isEqualTo("Ôn Dùng chung trước khi ôn Nút yếu nhất.");
+    }
+
     private static KnowledgeNode node(String kid, String name, int level, List<String> prereqs) {
         return new KnowledgeNode(1L, kid, null, level, name, null, null, null, prereqs, List.of());
     }
