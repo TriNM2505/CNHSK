@@ -54,28 +54,28 @@ export function StrokeCanvas({ data, index, accepted, disabled, onStroke }: {
 
   return (
     <svg aria-label="Khung tô nét" role="img" viewBox="0 0 1000 1000"
-      className="mx-auto block aspect-square w-full max-w-sm touch-none rounded-md border border-line"
+      className="stroke-board mx-auto max-w-sm"
       onPointerDown={start} onPointerMove={move} onPointerUp={end}
       onPointerCancel={(event) => { if (active.current?.id === event.pointerId) clear() }}
       onLostPointerCapture={(event) => { if (active.current?.id === event.pointerId) clear() }}
     >
+      <path className="board-guide" d="M500 0V1000 M0 500H1000 M0 0L1000 1000 M1000 0L0 1000" />
       <g transform="translate(0 900) scale(1 -1)">
         {data.strokes.map((stroke, no) => (
-          <path key={no} d={stroke} className="fill-current text-ink opacity-15" />
+          <path key={no} d={stroke}
+            className={no < index ? 'stroke-fill-done' : no === index ? 'stroke-fill-next' : 'stroke-fill-future'} />
         ))}
-        {first && <circle cx={first[0]} cy={first[1]} r={20} className="fill-current text-brand-700" />}
+        {first && <circle cx={first[0]} cy={first[1]} r={22} className="stroke-start" />}
         {first && next && (
           <path d="M 24 -12 L 48 0 L 24 12"
             transform={`translate(${first[0]} ${first[1]}) rotate(${Math.atan2(next[1] - first[1], next[0] - first[0]) * 180 / Math.PI})`}
-            fill="none" stroke="currentColor" strokeWidth={12} strokeLinecap="round"
-            className="text-brand-700"
+            fill="none" strokeWidth={12} strokeLinecap="round" className="stroke-arrow"
           />
         )}
       </g>
       {[...accepted, draft].map((points, no) => (
         <polyline key={no} points={points.map(({ x, y }) => `${x},${y}`).join(' ')}
-          fill="none" stroke="currentColor" strokeWidth={20} strokeLinecap="round" strokeLinejoin="round"
-          className="text-brand-800"
+          fill="none" strokeWidth={20} strokeLinecap="round" strokeLinejoin="round" className="stroke-ink"
         />
       ))}
     </svg>

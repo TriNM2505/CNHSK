@@ -8,7 +8,8 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
+| **Thay đổi 1.1.0** | Giao diện Game Box theo bản arcade của nhóm (nhánh demo 6 game); SCR-035 và kết quả ván có link sang bảng xếp hạng game SCR-047 của spec 017 (đã có) |
 | **Status** | APPROVED — hợp đồng API đã duyệt, được code |
 | **Approved by** | Leader (2026-10-30) |
 | **Locked on** | 2026-10-30 — đổi hợp đồng phải sửa OpenAPI + spec trước, leader duyệt lại |
@@ -145,7 +146,7 @@ game chạm/chuột nhịp vừa.
 | **FR-025** | `shared/auth/useCurrentUser` SHALL gọi `GET /api/auth/me` khi tải; 401 sau khi đã thử refresh → trạng thái khách |
 | **FR-026** | Khách bấm "Đăng nhập để chơi": web → `window.location = {VITE_WEB_ORIGIN}/login?redirect={encodeURIComponent(location.href)}` (spec 001 FR-090 đã cho phép origin game); WebView → `postMessage({type:'AUTH_REQUIRED'})` |
 | **FR-027** | Route: `/` = SCR-035 Game Hub; `/play/:code` = SCR-036 Game Session; khác → trang 404 có nút về Hub |
-| **FR-028** | SCR-035 SHALL hiện 6 thẻ game (tên, mô tả, kỹ năng luyện, thời lượng, "Cách chơi" mở rộng được, thành tích cá nhân khi đăng nhập), nút "Chơi" (khoá khi `playable=false` kèm "Chưa đủ dữ liệu"), bộ chọn cấp HSK tuỳ chọn ("Từ tôi đang học" mặc định). **Không** có nút bảng xếp hạng (V2) |
+| **FR-028** | SCR-035 SHALL hiện 6 thẻ game (tên, mô tả, kỹ năng luyện, thời lượng, "Cách chơi" mở rộng được, thành tích cá nhân khi đăng nhập), nút "Chơi" (khoá khi `playable=false` kèm "Chưa đủ dữ liệu"), bộ chọn cấp HSK tuỳ chọn ("Từ tôi đang học" mặc định). mỗi thẻ có link "Xếp hạng" sang SCR-047 `/leaderboards/games?game={code}` của web (v1.1.0) |
 | **FR-029** | `GameShell` (SCR-036 khung) SHALL lo: màn sẵn sàng ("Bắt đầu" → tạo ván), đếm ngược 3 s trước khi hiện lượt đầu (server đã cộng 3 s vào `deadline`, FR-011), đồng hồ theo `deadline`, điểm hiện tại, hàng đợi gửi lượt tuần tự (E6), tự `finish` khi hết giờ hoặc hết lượt, nút "Thoát" (xác nhận trong trang → `abandon`), màn kết quả (FR-017: điểm, đúng/sai/bỏ lỡ, độ chính xác, thời gian, "Kỷ lục mới!", "Chơi lại", "Về danh sách"). Game cụ thể chỉ nhận `items`, `uiConfig`, `submitAnswer(no, answer)` |
 | **FR-030** | Hợp đồng WebView SHALL: đọc `window.__CNHSK_TOKEN__`, `window.__CNHSK_PLATFORM__ === 'mobile'`; gửi qua `window.ReactNativeWebView?.postMessage(JSON)`: `{type:'AUTH_REQUIRED'}`, `{type:'TOKEN_EXPIRED'}`, `{type:'ROUND_FINISHED', gameCode, points}`, `{type:'EXIT'}`; nhận `message` `{type:'TOKEN_REFRESHED', token}`. Có `public/webview-harness.html` mô phỏng app (iframe + tiêm token + log message) để kiểm tay. Token **không bao giờ** qua URL |
 | **FR-031** | Giao diện game SHALL dùng được bằng cảm ứng (vùng chạm ≥ 44 px), màn 360 px trở lên, tôn trọng `prefers-reduced-motion` (giảm chuyển động, game vẫn chơi được) |
@@ -264,7 +265,7 @@ Bộ máy trả mã `SESSION_*`; lớp `community.game` **dịch** sang mã `ROU
 |---|---|
 | SCR-036: hằng số điểm, thời gian tối thiểu, hạn ván | `pointsPerCorrect`, `timeLimitSeconds` khai trong `GameDefinition`; minDurationMs đặt theo từng lượt trong ServedItem.rules (giá trị ở spec 008). Lượt quá nhanh xử lý theo suspicious ở T-06; hạn = 3 s + thời gian + 15 s |
 | SCR-036: tạm dừng | Không có (Q2) |
-| SCR-035/036: nút bảng xếp hạng | Ẩn (V2) |
+| SCR-035/036: nút bảng xếp hạng | Hiện, dẫn sang SCR-047 của web (spec 017), v1.1.0 |
 
 ---
 

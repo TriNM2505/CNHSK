@@ -43,7 +43,7 @@ describe('game application routes (FR-027)', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Luyện tiếng Trung qua trò chơi' }),
     ).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Danh sách trò chơi' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Chọn game' })).toHaveAttribute(
       'aria-current',
       'page',
     )

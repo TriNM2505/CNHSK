@@ -8,7 +8,7 @@ import { gradeStroke } from '../../engine/strokeScore'
 import type { ServedItem } from '../../shared/api/rounds'
 import type { GameProps } from '../../shared/ui/GameShell'
 import { StrokeCanvas } from '../char-rain/StrokeCanvas'
-import { FallingTarget, MissedTarget } from '../shared/FallingTarget'
+import { ArenaLayout, FallingTarget, MissedTarget } from '../shared/FallingTarget'
 import type { ReadPinyin } from '../shared/FallingTarget'
 import { itemFallDuration, useFallTimer } from '../shared/useFallTimer'
 
@@ -21,17 +21,22 @@ export function BrushStrokeGame({ items, uiConfig, readPinyin, ...controls }: Ga
   }, [])
   const item = items[index]
   return (
-    <section aria-label="Thần Bút" className="min-w-0 space-y-3 text-center">
-      <p>Số chữ đã hạ: {hits}</p>
+    <section aria-label="Thần Bút" className="min-w-0">
       {item ? (
         <BrushItem key={item.no} {...controls} item={item} duration={itemFallDuration(index, uiConfig)}
-          readPinyin={readPinyin} onAdvance={next} />
-      ) : <p role="status">Đã đi qua tất cả các chữ.</p>}
+          readPinyin={readPinyin} onAdvance={next} hits={hits} />
+      ) : (
+        <>
+          <p className="core-feedback">Số chữ đã hạ: {hits}</p>
+          <p role="status" className="core-feedback">Đã đi qua tất cả các chữ.</p>
+        </>
+      )}
     </section>
   )
 }
 
-function BrushItem({ item, duration, disabled, submitAnswer, onMissed, onItemShown, readPinyin, onAdvance }: Omit<GameProps, 'items' | 'uiConfig'> & {
+function BrushItem({ item, duration, hits, disabled, submitAnswer, onMissed, onItemShown, readPinyin, onAdvance }: Omit<GameProps, 'items' | 'uiConfig'> & {
+  hits: number
   item: ServedItem
   duration: number
   readPinyin?: ReadPinyin
@@ -105,16 +110,26 @@ function BrushItem({ item, duration, disabled, submitAnswer, onMissed, onItemSho
     }
   }
 
-  if (feedback === 'miss') return <MissedTarget text={text} lexemeId={item.lexemeId} readPinyin={readPinyin} />
+  const arena = feedback === 'miss'
+    ? <MissedTarget text={text} lexemeId={item.lexemeId} readPinyin={readPinyin} />
+    : <FallingTarget text={text} remaining={fall.remaining} duration={duration} hit={feedback === 'hit'} />
   return (
-    <>
-      <FallingTarget text={text} remaining={fall.remaining} duration={duration} hit={feedback === 'hit'} />
-      {data ? <StrokeCanvas data={data} index={0} accepted={stroke ? [stroke] : []}
-        disabled={disabled || Boolean(feedback)} onStroke={(points) => void checkStroke(points)} />
-        : <p role="status">Đang tải dữ liệu nét…</p>}
-      {hint && <p role="status">{hint}</p>}
-      {feedback === 'submitting' && <p role="status">Đang chấm…</p>}
-      {feedback === 'hit' && <p role="status">Đã hạ chữ {text}</p>}
-    </>
+    <ArenaLayout arena={arena}>
+      <div className="prompt-label">TÔ NÉT ĐẦU CỦA CHỮ ĐANG RƠI</div>
+      <p className="brush-hits">Số chữ đã hạ: {hits}</p>
+      {feedback !== 'miss' && (
+        <div className="board-shell">
+          {data ? <StrokeCanvas data={data} index={0} accepted={stroke ? [stroke] : []}
+            disabled={disabled || Boolean(feedback)} onStroke={(points) => void checkStroke(points)} />
+            : <p role="status">Đang tải dữ liệu nét…</p>}
+          <div className="board-hint">
+            {hint && <p role="status">{hint}</p>}
+            {feedback === 'submitting' && <p role="status">Đang chấm…</p>}
+            {feedback === 'hit' && <p role="status">Đã hạ chữ {text}</p>}
+            {!hint && !feedback && <p>Tô nét đầu tiên từ điểm tròn để hạ chữ.</p>}
+          </div>
+        </div>
+      )}
+    </ArenaLayout>
   )
 }

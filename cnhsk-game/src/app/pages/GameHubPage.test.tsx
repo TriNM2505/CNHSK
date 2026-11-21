@@ -58,7 +58,11 @@ it('shows six cards, zero personal stats and a disabled game', async () => {
   expect(screen.getAllByText('Điểm cao nhất')).toHaveLength(1)
   expect(screen.getByRole('button', { name: 'Chơi Ghép Pinyin' })).toBeDisabled()
   expect(screen.getByText('Chưa đủ dữ liệu')).toBeVisible()
-  expect(screen.queryByRole('link', { name: /bảng xếp hạng/i })).not.toBeInTheDocument()
+  expect(screen.getAllByRole('link', { name: /^Bảng xếp hạng / })).toHaveLength(6)
+  expect(screen.getByRole('link', { name: 'Bảng xếp hạng Mưa chữ' })).toHaveAttribute(
+    'href',
+    'http://localhost:5173/leaderboards/games?game=CHAR_RAIN',
+  )
   expect(fetch).toHaveBeenCalledWith(
     '/api/community/games',
     expect.objectContaining({ credentials: 'include' }),

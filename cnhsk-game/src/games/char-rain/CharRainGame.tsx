@@ -15,20 +15,27 @@ export function CharRainGame({ items, ...controls }: GameProps) {
   const item = items[position]
 
   return (
-    <section aria-label="Mưa Chữ" className="min-w-0 space-y-3">
-      {stars !== undefined && <p role="status">{stars}/3 sao cho chữ vừa tô</p>}
+    <section aria-label="Mưa Chữ" className="min-w-0">
+      {stars !== undefined && (
+        <p role="status" className="core-feedback">
+          <span aria-hidden="true">{'✦'.repeat(stars)} </span>{stars}/3 sao cho chữ vừa tô
+        </p>
+      )}
       {item ? (
-        <Character key={item.no} {...controls} item={item} onNext={(award) => {
-          if (award !== undefined) setStars(award)
-          setPosition(position + 1)
-        }} />
-      ) : <p role="status">Đã đi qua tất cả các chữ.</p>}
+        <Character key={item.no} {...controls} item={item} position={position} total={items.length}
+          onNext={(award) => {
+            if (award !== undefined) setStars(award)
+            setPosition(position + 1)
+          }} />
+      ) : <p role="status" className="core-feedback">Đã đi qua tất cả các chữ.</p>}
     </section>
   )
 }
 
-function Character({ item, disabled, submitAnswer, onMissed, onItemShown, onNext }: Omit<GameProps, 'items'> & {
+function Character({ item, position, total, disabled, submitAnswer, onMissed, onItemShown, onNext }: Omit<GameProps, 'items'> & {
   item: ServedItem
+  position: number
+  total: number
   onNext: (stars?: number) => void
 }) {
   const text = typeof item.prompt.text === 'string' ? item.prompt.text : ''
@@ -86,19 +93,39 @@ function Character({ item, disabled, submitAnswer, onMissed, onItemShown, onNext
     }
   }
 
+  const filled = total ? position / total * 100 : 0
   return (
-    <div className="min-w-0 space-y-2 text-center">
-      <h2 className="text-h2">{text}</h2>
-      <p className="break-words text-ink-secondary">{String(item.prompt.hint ?? '')}</p>
-      {data ? (
-        <>
-          <p>Nét {Math.min(accepted.length + 1, data.strokes.length)}/{data.strokes.length}</p>
-          <StrokeCanvas data={data} index={accepted.length} accepted={accepted}
-            disabled={disabled || pending} onStroke={(points) => void checkStroke(points)} />
-        </>
-      ) : <p role="status">Đang tải dữ liệu nét…</p>}
-      {hint && <p role="status">{hint}</p>}
-      {pending && <p role="status">Đã tô xong, đang gửi câu trả lời…</p>}
+    <div className="rain-layout">
+      <div className="rain-side">
+        <div className="rain-progress">
+          <span>CHỮ {position + 1}/{total}</span>
+          <div><i style={{ width: `${filled}%` }} /></div>
+        </div>
+        <h2 className="rain-char">{text}</h2>
+        <p className="rain-meaning break-words">{String(item.prompt.hint ?? '')}</p>
+        <p className="rain-tip">
+          {data ? `Chữ này có ${data.strokes.length} nét. ` : ''}Tô đúng từng nét từ điểm tròn theo hướng mũi tên. Viết sai có thể thử lại ngay.
+        </p>
+        <div className="jar" aria-hidden="true"><span>✦</span><div className="jar-fill" style={{ height: `${filled}%` }} /></div>
+        <span className="jar-caption" aria-hidden="true">LỌ MỰC CỦA BẠN</span>
+      </div>
+      <div className="board-shell">
+        {data ? (
+          <>
+            <div className="board-top">
+              <p>Nét {Math.min(accepted.length + 1, data.strokes.length)}/{data.strokes.length}</p>
+              <span aria-hidden="true">✦ Theo thứ tự nét</span>
+            </div>
+            <StrokeCanvas data={data} index={accepted.length} accepted={accepted}
+              disabled={disabled || pending} onStroke={(points) => void checkStroke(points)} />
+          </>
+        ) : <p role="status">Đang tải dữ liệu nét…</p>}
+        <div className="board-hint">
+          {hint && <p role="status">{hint}</p>}
+          {pending && <p role="status">Đã tô xong, đang gửi câu trả lời…</p>}
+          {!hint && !pending && <p>Đi theo nét đậm, bắt đầu từ điểm tròn.</p>}
+        </div>
+      </div>
     </div>
   )
 }

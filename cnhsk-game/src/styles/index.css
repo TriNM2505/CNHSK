@@ -16,7 +16,8 @@
   }
 
   body {
-    @apply bg-canvas font-sans text-body text-ink antialiased;
+    /* Colours and type come from the arcade theme in arcade.css. */
+    @apply antialiased;
     min-height: 100vh;
     -webkit-text-size-adjust: 100%;
   }

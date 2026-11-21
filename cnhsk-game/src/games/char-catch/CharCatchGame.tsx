@@ -210,39 +210,46 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
 
   const instruction = item.prompt.hint ?? item.prompt.pinyin
   return (
-    <section aria-label="Bắt Chữ" className="min-w-0 space-y-3 text-center">
-      {audioUrl ? (
-        <>
-          <audio ref={audio} src={audioUrl} preload="auto" onCanPlay={() => setAudioReady(true)}
-            onError={() => setAudioFailed(true)} onEnded={() => setPlaying(false)} />
-          <button type="button" onClick={listen} disabled={!canChoose || playing || (!needsTap && replays >= item.rules.maxReplays)}
-            className={'min-h-touch rounded-sm border px-4 ' + (needsTap ? 'border-brand-800 bg-brand-800 text-white' : 'border-line')}>
-            {needsTap ? 'Chạm để nghe' : 'Nghe lại'}
-          </button>
-          {!ready && <p role="status">Đang tải âm thanh…</p>}
-        </>
-      ) : (
-        <h2 className="break-words text-2xl font-bold">{String(instruction ?? '')}</h2>
-      )}
-      <progress aria-label="Thời gian còn lại" className="block w-full" max={perItemMs} value={Math.ceil(remaining)} />
-      <div role="group" aria-label="Phương án" className="grid gap-2"
-        style={{ gridTemplateColumns: 'repeat(' + columns + ', minmax(0, 1fr))' }}>
-        {options.map(({ key, text }) => {
-          const correct = feedback?.correctAnswer === key
-          const wrong = feedback && !feedback.correct && key === selected
-          const color = correct ? 'border-green-700 bg-green-700 text-white'
-            : wrong ? 'border-red-700 bg-red-700 text-white'
-            : key === selected ? 'border-brand-800 font-bold' : 'border-line'
-          return (
-            <button type="button" key={key} disabled={!canChoose} onClick={() => void choose(key)}
-              className={'min-h-touch min-w-0 break-words rounded-sm border px-1 py-2 text-2xl ' + color}>
-              {text}
-            </button>
-          )
-        })}
+    <section aria-label="Bắt Chữ" className="min-w-0">
+      <div className="core-panel core-center core-game-panel catch-panel">
+        <span className="question-kicker">{audioUrl ? 'NGHE · BẮT ĐÚNG CHỮ' : 'NHÌN GỢI Ý · BẮT ĐÚNG CHỮ'}</span>
+        <div className="catch-prompt">
+          <span className="catch-target" aria-hidden="true">◎</span>
+          {audioUrl ? (
+            <div>
+              <audio ref={audio} src={audioUrl} preload="auto" onCanPlay={() => setAudioReady(true)}
+                onError={() => setAudioFailed(true)} onEnded={() => setPlaying(false)} />
+              <button type="button" onClick={listen} disabled={!canChoose || playing || (!needsTap && replays >= item.rules.maxReplays)}
+                className={needsTap ? 'primary-button' : 'secondary-button'}>
+                {needsTap ? 'Chạm để nghe' : 'Nghe lại'}
+              </button>
+              {!ready && <small role="status">Đang tải âm thanh…</small>}
+            </div>
+          ) : (
+            <div><h2 className="break-words"><strong>{String(instruction ?? '')}</strong></h2></div>
+          )}
+          <span className="catch-clock" aria-hidden="true">{Math.ceil(remaining / 1000)}s</span>
+        </div>
+        <progress aria-label="Thời gian còn lại" className="catch-progress block w-full" max={perItemMs} value={Math.ceil(remaining)} />
+        <div role="group" aria-label="Phương án" className="answer-grid catch-grid"
+          style={{ gridTemplateColumns: 'repeat(' + columns + ', minmax(0, 1fr))' }}>
+          {options.map(({ key, text }, index) => {
+            const correct = feedback?.correctAnswer === key
+            const wrong = feedback && !feedback.correct && key === selected
+            return (
+              <button type="button" key={key} disabled={!canChoose} onClick={() => void choose(key)}
+                className={correct ? 'answer-correct' : wrong ? 'answer-wrong' : ''}>
+                <span className="answer-index" aria-hidden="true">{index + 1}</span>
+                <b className="break-words">{text}</b>
+              </button>
+            )
+          })}
+        </div>
       </div>
-      {selected && !feedback && <p role="status">{grading && !disabled && performance.now() < gradingDeadline.current ? 'Đang chấm…' : 'Đã gửi câu trả lời.'}</p>}
-      {feedback && <p role="status">{feedback.correct ? 'Chính xác' : 'Chưa đúng'}</p>}
+      <div className="core-feedback">
+        {selected && !feedback && <p role="status">{grading && !disabled && performance.now() < gradingDeadline.current ? 'Đang chấm…' : 'Đã gửi câu trả lời.'}</p>}
+        {feedback && <p role="status">{feedback.correct ? 'Chính xác' : 'Chưa đúng'}</p>}
+      </div>
     </section>
   )
 }

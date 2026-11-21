@@ -71,7 +71,7 @@ it('E6 shows the right pair for 800 ms and keeps the mistakenly chosen card', as
   await click('lín')
   expect(submitAnswer).toHaveBeenCalledWith(1, 'B')
   expect(screen.getByText('Cặp đúng: 河 — hé')).toBeVisible()
-  expect(button('hé')).toHaveClass('bg-brand-800')
+  expect(button('hé')).toHaveClass('answer-correct')
   await advance(799)
   expect(button('hé')).toBeDisabled()
   expect(button('河')).toBeVisible()

@@ -11,7 +11,7 @@ type BoardProps = Pick<GameProps, 'disabled' | 'submitAnswer'> & {
 type Selection = { no: number; key: string }
 type Feedback = GameAnswer & Selection
 
-const tile = 'min-h-touch min-w-0 break-words rounded-sm border px-1.5 py-2 text-center sm:px-3'
+const tile = 'min-w-0 break-words'
 
 function readBoards(config: GameProps['uiConfig'], items: GameProps['items']) {
   if (!Array.isArray(config.boards)) return []
@@ -37,10 +37,18 @@ export function PinyinMatchGame({ items, uiConfig, submitAnswer, disabled }: Gam
   if (!words) return <p role="status">Đã ghép xong các bảng.</p>
 
   return (
-    <section aria-label="Ghép Pinyin" className="min-w-0 space-y-3">
-      <h2 className="text-h2">Bảng {index + 1}/{boards.length}</h2>
-      <PinyinBoard key={index} words={words} disabled={disabled} submitAnswer={submitAnswer}
-        onComplete={() => setIndex((previous) => previous + 1)} />
+    <section aria-label="Ghép Pinyin" className="min-w-0">
+      <div className="core-panel core-game-panel match-panel">
+        <div className="core-panel-heading">
+          <div>
+            <span className="core-progress">BẢNG {index + 1} / {boards.length}</span>
+            <h2>Bảng {index + 1}/{boards.length}</h2>
+            <p>Chọn một thẻ chữ Hán, rồi chọn pinyin tương ứng.</p>
+          </div>
+        </div>
+        <PinyinBoard key={index} words={words} disabled={disabled} submitAnswer={submitAnswer}
+          onComplete={() => setIndex((previous) => previous + 1)} />
+      </div>
     </section>
   )
 }
@@ -112,46 +120,44 @@ function PinyinBoard({ words, disabled, submitAnswer, onComplete }: BoardProps) 
   const locked = disabled || submission !== undefined
   const correctCard = options.find((option) => option.key === feedback?.correctAnswer)
   const matchedWord = words.find((word) => word.no === feedback?.no)
+  const fade = 'opacity-0 transition-opacity duration-[250ms] motion-reduce:transition-none'
   const cardClass = (key: string) => {
-    if (key === feedback?.correctAnswer) {
-      return feedback.correct
-        ? 'border-brand-800 opacity-0 transition-opacity duration-[250ms] motion-reduce:transition-none'
-        : 'border-brand-800 bg-brand-800 text-white'
-    }
-    return key === submission?.key ? 'border-brand-800 font-bold' : 'border-line'
+    if (key === feedback?.correctAnswer) return feedback.correct ? fade : 'answer-correct'
+    return key === submission?.key ? 'active' : ''
   }
 
   return (
     <>
-      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="min-w-0 space-y-2">
-          <h3 className="font-semibold">Từ tiếng Trung</h3>
-          <div role="group" aria-label="Từ tiếng Trung" className="grid grid-cols-3 gap-2 sm:grid-cols-1">
+      <div className="pair-progress" aria-hidden="true">
+        {words.map((word, i) => <span key={word.no} className={i < removedWords.length ? 'filled' : ''} />)}
+      </div>
+      <div className="match-columns">
+        <div className="min-w-0">
+          <h3 className="match-heading">Từ tiếng Trung</h3>
+          <div role="group" aria-label="Từ tiếng Trung" className="match-stack">
             {words.filter((word) => !removedWords.includes(word.no)).map((word) => (
               <button type="button" key={word.no} aria-pressed={selected === word.no} disabled={locked}
-                className={`${tile} text-lg ${selected === word.no ? 'border-brand-800 ring-2 ring-brand-700' : 'border-line'} ${
-                  feedback?.correct && feedback.no === word.no
-                    ? 'opacity-0 transition-opacity duration-[250ms] motion-reduce:transition-none'
-                    : ''
+                className={`match-tile ${tile} ${selected === word.no ? 'active' : ''} ${
+                  feedback?.correct && feedback.no === word.no ? fade : ''
                 }`}
                 onClick={() => setSelected(word.no)}
               >{String(word.prompt.text ?? '')}</button>
             ))}
           </div>
         </div>
-        <div className="min-w-0 space-y-2">
-          <h3 className="font-semibold">Pinyin</h3>
-          <div role="group" aria-label="Pinyin" className="grid grid-cols-3 gap-2 sm:grid-cols-1">
+        <div className="min-w-0">
+          <h3 className="match-heading">Pinyin</h3>
+          <div role="group" aria-label="Pinyin" className="match-stack">
             {options.filter((option) => !removedKeys.includes(option.key)).map((option) => (
               <button type="button" key={option.key} disabled={locked || selected === undefined}
-                className={`${tile} ${cardClass(option.key)}`}
+                className={`match-tile ${tile} ${cardClass(option.key)}`}
                 onClick={() => void chooseCard(option.key)}
               >{option.text}</button>
             ))}
           </div>
         </div>
       </div>
-      <p role="status">
+      <p role="status" className="core-feedback">
         {feedback
           ? feedback.correct
             ? 'Chính xác'

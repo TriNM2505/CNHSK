@@ -4,7 +4,7 @@ import type { KeyboardEvent } from 'react'
 import { validatePinyinInput } from '../../engine/pinyin'
 import type { ServedItem } from '../../shared/api/rounds'
 import type { GameProps } from '../../shared/ui/GameShell'
-import { FallingTarget, MissedTarget } from '../shared/FallingTarget'
+import { ArenaLayout, FallingTarget, MissedTarget } from '../shared/FallingTarget'
 import type { ReadPinyin } from '../shared/FallingTarget'
 import { itemFallDuration, useFallTimer } from '../shared/useFallTimer'
 
@@ -14,10 +14,10 @@ export function FlyingDartGame({ items, uiConfig, readPinyin, ...controls }: Gam
   const item = items[index]
   const maxLength = typeof uiConfig.maxInputLength === 'number' ? uiConfig.maxInputLength : 40
   return (
-    <section aria-label="Phi Đao" className="min-w-0 space-y-3 text-center">
+    <section aria-label="Phi Đao" className="min-w-0">
       {item ? <DartItem key={item.no} {...controls} item={item} duration={itemFallDuration(index, uiConfig)}
         maxLength={maxLength} readPinyin={readPinyin} onAdvance={next} />
-        : <p role="status">Đã đi qua tất cả các từ.</p>}
+        : <p role="status" className="core-feedback">Đã đi qua tất cả các từ.</p>}
     </section>
   )
 }
@@ -94,27 +94,31 @@ function DartItem({ item, duration, maxLength, readPinyin, disabled, submitAnswe
     }
   }
 
-  if (phase === 'miss') {
-    return <MissedTarget text={text} pinyin={pinyin} lexemeId={sent.current ? undefined : item.lexemeId}
-      readPinyin={readPinyin} />
-  }
-  return (
-    <>
-      <FallingTarget text={text} hint={String(item.prompt.hint ?? '')} remaining={fall.remaining}
+  const arena = phase === 'miss'
+    ? <MissedTarget text={text} pinyin={pinyin} lexemeId={sent.current ? undefined : item.lexemeId}
+        readPinyin={readPinyin} projectile />
+    : <FallingTarget text={text} hint={String(item.prompt.hint ?? '')} remaining={fall.remaining}
         duration={duration} hit={phase === 'hit'} projectile />
-      {pinyin && <p role="status">Pinyin đúng: {pinyin}</p>}
-      <label className="block">
-        <span>Gõ pinyin</span>
-        <input ref={field} type="text" value={input} maxLength={maxLength} disabled={disabled} readOnly={!canType}
-          autoComplete="off" autoCapitalize="off" spellCheck={false} onKeyDown={(event) => void enter(event)}
-          onChange={(event) => { setInput(event.target.value); setMessage(undefined) }}
-          className={'mx-auto mt-1 block min-h-touch w-full max-w-sm rounded-sm border px-3 ' +
-            (phase === 'wrong' ? 'border-red-700 motion-safe:animate-[dart-shake_240ms_ease-in-out]' : 'border-line')} />
-      </label>
+  return (
+    <ArenaLayout arena={arena}>
+      <div className="prompt-label">GÕ PINYIN ĐỂ PHÓNG ĐAO</div>
+      {item.prompt.hint ? <h2 className="break-words">{String(item.prompt.hint)}</h2> : null}
+      {pinyin && phase !== 'miss' && <p role="status">Pinyin đúng: {pinyin}</p>}
+      {phase !== 'miss' && (
+        <label className="block">
+          <span className="sr-only">Gõ pinyin</span>
+          <input ref={field} type="text" value={input} maxLength={maxLength} disabled={disabled} readOnly={!canType}
+            autoComplete="off" autoCapitalize="off" spellCheck={false} onKeyDown={(event) => void enter(event)}
+            onChange={(event) => { setInput(event.target.value); setMessage(undefined) }}
+            placeholder="Ví dụ: ni3hao3 rồi nhấn Enter"
+            className={phase === 'wrong' ? 'input-wrong motion-safe:animate-[dart-shake_240ms_ease-in-out]' : ''} />
+        </label>
+      )}
+      <p className="input-hint">Không dấu cũng được. Nếu nhập số thanh, hãy nhập đủ cho từng âm tiết.</p>
       {phase === 'wrong' && <style>{'@keyframes dart-shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}'}</style>}
-      {phase === 'sending' && <p role="status">Đang chấm…</p>}
-      {phase === 'hit' && <p role="status">Đã hạ từ {text}</p>}
-      {message && <p role="alert">{message}</p>}
-    </>
+      {phase === 'sending' && <p role="status" className="feedback">Đang chấm…</p>}
+      {phase === 'hit' && <p role="status" className="feedback">Đã hạ từ {text}</p>}
+      {message && <p role="alert" className="feedback">{message}</p>}
+    </ArenaLayout>
   )
 }

@@ -4,6 +4,8 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 
 import { appRoutes } from './app/routes'
 import './styles/index.css'
+import './styles/arcade.css'
+import './styles/arcade-system.css'
 
 const root = document.getElementById('root')
 if (!root) throw new Error('Application root is missing.')

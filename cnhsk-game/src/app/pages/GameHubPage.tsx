@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { apiRequest } from '../../shared/api/client'
+import { Scene } from '../../shared/ui/arcade'
+import { gameMeta, webHref } from '../../shared/ui/gameMeta'
 
 type GameInfo = {
   code: string
@@ -27,61 +29,54 @@ const skillLabels: Record<string, string> = {
   PRONUNCIATION: 'Phát âm',
 }
 
-function GameCard({ game, level }: { game: GameInfo; level: string }) {
-  const path = '/play/' + encodeURIComponent(game.code.toLowerCase().replace(/_/g, '-')) +
-    (level ? '?hskLevel=' + level : '')
-  const action = 'inline-flex min-h-touch items-center justify-center rounded-sm px-4 font-semibold'
+function GameCard({ game, level, position, total }: { game: GameInfo; level: string; position: number; total: number }) {
+  const meta = gameMeta(game.code)
+  const path = '/play/' + encodeURIComponent(meta.slug) + (level ? '?hskLevel=' + level : '')
   const stats = game.myStats
+  const pad = (value: number) => String(value).padStart(2, '0')
   return (
-    <li>
-      <article className="flex h-full min-w-0 flex-col gap-4 rounded-md border border-line bg-surface p-5">
-        <div>
-          <h2 className="break-words text-h3">{game.name}</h2>
-          <p className="mt-1 break-words text-ink-secondary">{game.description}</p>
-        </div>
-        <p className="text-body-sm text-ink-secondary">
+    <li className="flex min-w-0">
+      <article className={`game-card game-${position} min-w-0 flex-1`}>
+        <div className="card-number">{pad(position + 1)} / {pad(total)}</div>
+        <div className="card-symbol" aria-hidden="true">{meta.symbol}</div>
+        <span className="eyebrow">{meta.eyebrow}</span>
+        <h3 className="break-words">{game.name}</h3>
+        <p className="break-words">{game.description}</p>
+        <p className="game-card-meta">
           {skillLabels[game.skill] ?? game.skill} · {game.timeLimitSeconds} giây
         </p>
         {stats && (
-          <dl className="grid grid-cols-2 gap-3 rounded-sm bg-surface-subtle p-3">
+          <dl className="game-card-stats">
             <div>
-              <dt className="text-body-sm">Điểm cao nhất</dt>
-              <dd className="font-bold">{stats.bestPoints}</dd>
+              <dt>Điểm cao nhất</dt>
+              <dd>{stats.bestPoints}</dd>
             </div>
             <div>
-              <dt className="text-body-sm">Số ván đã chơi</dt>
-              <dd className="font-bold">{stats.roundsPlayed}</dd>
+              <dt>Số ván đã chơi</dt>
+              <dd>{stats.roundsPlayed}</dd>
             </div>
           </dl>
         )}
-        <details className="break-words">
-          <summary className="min-h-touch cursor-pointer rounded-sm py-3 font-semibold">
-            Cách chơi
-          </summary>
-          <p className="pb-2 text-ink-secondary">{game.howToPlay}</p>
+        <details className="game-card-howto break-words">
+          <summary>Cách chơi</summary>
+          <p>{game.howToPlay}</p>
         </details>
-        <div className="mt-auto">
+        <div className="card-link">
           {game.playable ? (
-            <Link
-              aria-label={'Chơi ' + game.name}
-              to={path}
-              className={action + ' bg-brand-800 text-surface hover:bg-brand-700'}
-            >
-              Chơi
+            <Link aria-label={'Chơi ' + game.name} to={path}>
+              Vào chơi <b aria-hidden="true">→</b>
             </Link>
           ) : (
-            <>
-              <button
-                type="button"
-                disabled
-                aria-label={'Chơi ' + game.name}
-                className={action + ' bg-surface-subtle text-ink-secondary'}
-              >
-                Chơi
+            <span>
+              <button type="button" disabled aria-label={'Chơi ' + game.name} className="game-card-locked">
+                Vào chơi
               </button>
-              <p className="mt-2 text-body-sm text-ink-secondary">Chưa đủ dữ liệu</p>
-            </>
+              <small>Chưa đủ dữ liệu</small>
+            </span>
           )}
+          <a aria-label={'Bảng xếp hạng ' + game.name} href={webHref('/leaderboards/games?game=' + game.code)}>
+            Xếp hạng
+          </a>
         </div>
       </article>
     </li>
@@ -104,58 +99,75 @@ export default function GameHubPage() {
     return () => controller.abort()
   }, [attempt])
 
+  const count = catalog.status === 'loaded' ? catalog.games.length : 6
   return (
-    <section aria-labelledby="hub-title" className="space-y-6">
-      <h1 id="hub-title" className="text-h1-sm sm:text-h1">
-        Luyện tiếng Trung qua trò chơi
-      </h1>
-      <label className="flex w-full max-w-xs flex-col gap-2 font-semibold">
-        Cấp HSK
-        <select
-          className="min-h-touch rounded-sm border border-line bg-surface px-3 text-ink"
-          value={level}
-          onChange={(event) => {
-            const next = event.currentTarget.value
-            if (next === '' || levels.includes(next)) setLevel(next)
-          }}
-        >
-          <option value="">Từ tôi đang học</option>
-          {levels.map((value) => (
-            <option key={value} value={value}>
-              HSK {value}
-            </option>
-          ))}
-        </select>
-      </label>
-      {catalog.status === 'loading' && <p role="status">Đang tải trò chơi…</p>}
-      {catalog.status === 'error' && (
-        <div>
-          <p role="alert">Chưa tải được danh mục trò chơi.</p>
-          <button
-            type="button"
-            className="mt-2 min-h-touch rounded-sm border border-line px-4"
-            onClick={() => {
-              setCatalog({ status: 'loading' })
-              setAttempt((value) => value + 1)
-            }}
-          >
-            Thử lại
-          </button>
+    <div className="home">
+      <section className="hero" aria-labelledby="hub-title">
+        <Scene />
+        <div className="hero-copy">
+          <span className="eyebrow">CHƠI ĐỂ NHỚ · HỌC ĐỂ VUI</span>
+          <h1 id="hub-title">
+            Luyện tiếng Trung{' '}<br /><em>qua trò chơi</em>
+          </h1>
+          <p>Sáu trò chơi luyện chữ Hán, pinyin, bộ thủ và từ vựng. Điểm của bạn được lưu và xếp hạng cùng mọi người.</p>
+          <a href="#games" className="primary-button">Khám phá trò chơi <span aria-hidden="true">↗</span></a>
         </div>
-      )}
-      {catalog.status === 'loaded' &&
-        (catalog.games.length ? (
-          <ul
-            aria-label="Các trò chơi"
-            className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {catalog.games.map((game) => (
-              <GameCard key={game.code} game={game} level={level} />
-            ))}
-          </ul>
-        ) : (
-          <p role="status">Chưa có trò chơi.</p>
-        ))}
-    </section>
+        <div className="hero-count" aria-hidden="true">
+          <b>{String(count).padStart(2, '0')}</b><span>TRÒ CHƠI<br />ĐANG MỞ</span>
+        </div>
+      </section>
+      <section id="games" className="games-section" aria-label="Góc luyện tập">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">GÓC LUYỆN TẬP</span>
+            <h2>Chọn cuộc hành trình</h2>
+          </div>
+          <label className="hub-level">
+            Cấp HSK
+            <select
+              value={level}
+              onChange={(event) => {
+                const next = event.currentTarget.value
+                if (next === '' || levels.includes(next)) setLevel(next)
+              }}
+            >
+              <option value="">Từ tôi đang học</option>
+              {levels.map((value) => (
+                <option key={value} value={value}>
+                  HSK {value}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        {catalog.status === 'loading' && <p role="status">Đang tải trò chơi…</p>}
+        {catalog.status === 'error' && (
+          <div>
+            <p role="alert">Chưa tải được danh mục trò chơi.</p>
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {
+                setCatalog({ status: 'loading' })
+                setAttempt((value) => value + 1)
+              }}
+            >
+              Thử lại
+            </button>
+          </div>
+        )}
+        {catalog.status === 'loaded' &&
+          (catalog.games.length ? (
+            <ul aria-label="Các trò chơi" className="game-grid">
+              {catalog.games.map((game, index) => (
+                <GameCard key={game.code} game={game} level={level} position={index} total={catalog.games.length} />
+              ))}
+            </ul>
+          ) : (
+            <p role="status">Chưa có trò chơi.</p>
+          ))}
+      </section>
+      <footer>CNHSK · Học đều một chút mỗi ngày</footer>
+    </div>
   )
 }

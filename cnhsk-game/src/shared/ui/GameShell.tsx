@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { ApiError } from '../api/client'
 import { abandonRound, answerRound, finishRound, readRound, startRound } from '../api/rounds'
 import type { RoundResult, RoundStart, RoundView, ServedItem } from '../api/rounds'
+import { GameArtwork } from './arcade'
+import { gameMeta, webHref } from './gameMeta'
 
 export type GameAnswer = { correct: boolean; correctAnswer: string }
 
@@ -48,12 +50,8 @@ function feedbackPromise(executor: ConstructorParameters<typeof Promise<GameAnsw
   void promise.catch(() => {})
   return promise
 }
-const control =
-  'inline-flex min-h-touch items-center justify-center rounded-sm border border-line bg-surface px-4 font-semibold'
-const primary =
-  'inline-flex min-h-touch items-center justify-center rounded-sm bg-brand-800 px-4 font-semibold text-surface'
 const hubLink = (
-  <Link to="/" className={control}>
+  <Link to="/" className="secondary-button">
     Về danh sách trò chơi
   </Link>
 )
@@ -380,6 +378,25 @@ export function GameShell(props: Props) {
   return <RoundScreen key={JSON.stringify([props.code, props.hskLevel])} {...props} />
 }
 
+/** The arcade page frame shared by every game: back link, title and the round panel. */
+export function ArcadePage({ code, playing, children }: { code: string; playing?: boolean; children: ReactNode }) {
+  const meta = gameMeta(code)
+  return (
+    <div className={`core-page core-page-${meta.slug} ${playing ? 'core-page-playing' : ''}`}>
+      <div className="core-header">
+        <Link to="/" className="text-button">← CNHSK Arcade</Link>
+        <span className="demo-pill">{meta.eyebrow}</span>
+      </div>
+      <div className="core-title">
+        <span className="eyebrow">GAME BOX / {meta.name.toUpperCase()}</span>
+        <h1>{meta.name}</h1>
+        <p>{meta.detail}</p>
+      </div>
+      {children}
+    </div>
+  )
+}
+
 function RoundScreen({ code, hskLevel, Game }: Props) {
   const [screen, setScreen] = useState<Screen>({ mode: 'ready' })
   const controller = useRef<ReturnType<typeof createRoundController>>()
@@ -397,185 +414,161 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
   }, [code, hskLevel])
 
   const result = screen.mode === 'result' ? screen.result : null
+  const total = screen.mode === 'round' ? screen.round.timeLimitSeconds : 0
   return (
-    <section
-      aria-label="Ván chơi"
-      className="mx-auto max-w-reading space-y-5 rounded-md border border-line bg-surface p-4 sm:p-6"
-    >
-      {screen.mode === 'ready' && (
-        <>
-          <h1 className="text-h2">Sẵn sàng?</h1>
-          {screen.message && <p role="alert">{screen.message}</p>}
-          <button
-            type="button"
-            className={primary}
-            onClick={() => void controller.current?.start()}
-          >
-            Bắt đầu
-          </button>
-        </>
-      )}
-      {screen.mode === 'starting' && <p role="status">Đang tạo ván…</p>}
-      {screen.mode === 'round' && (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p>
-              Thời gian còn lại: <span className="tabular-nums">{screen.seconds} giây</span>
-            </p>
-            <p>
-              Điểm: <strong>{screen.points}</strong>
-            </p>
-            {screen.seconds > 0 && (
-              <button
-                type="button"
-                className={control}
-                onClick={() => controller.current?.confirmExit(false)}
-              >
-                Thoát
+    <ArcadePage code={code} playing={screen.mode === 'round'}>
+      <section aria-label="Ván chơi" className="min-w-0">
+        {screen.mode === 'ready' && (
+          <div className="core-panel core-setup">
+            <div className="core-setup-copy">
+              <span className="core-kicker">✦ MỘT VÁN NHANH · MỘT KỸ NĂNG MỚI</span>
+              <h2>Sẵn sàng?<br /><em>Vào trận thôi.</em></h2>
+              <p>Câu hỏi lấy từ ngân hàng của hệ thống{hskLevel ? ` (HSK ${hskLevel})` : ' theo trình độ bạn đang học'}. Máy chủ chấm từng lượt, điểm được lưu và xếp hạng.</p>
+              {screen.message && <p role="alert">{screen.message}</p>}
+              <button type="button" className="primary-button" onClick={() => void controller.current?.start()}>
+                Bắt đầu <span aria-hidden="true">↗</span>
               </button>
+            </div>
+            <GameArtwork code={code} />
+          </div>
+        )}
+        {screen.mode === 'starting' && <p role="status" className="core-feedback">Đang tạo ván…</p>}
+        {screen.mode === 'round' && (
+          <div className="core-play">
+            <div className="core-stats">
+              <span className="stat-level">{hskLevel ? `HSK ${hskLevel}` : 'HSK của bạn'}</span>
+              <span className={screen.seconds <= 10 ? 'stat-time urgent' : 'stat-time'}>
+                Thời gian còn lại: <span className="tabular-nums">{screen.seconds} giây</span>
+              </span>
+              <span className="stat-score">Điểm: <strong>{screen.points}</strong></span>
+              {screen.seconds > 0 && (
+                <button type="button" className="round-exit" onClick={() => controller.current?.confirmExit(false)}>
+                  Thoát
+                </button>
+              )}
+            </div>
+            <div className="core-timebar">
+              <span style={{ width: `${total ? Math.min(100, screen.seconds / total * 100) : 0}%` }} />
+            </div>
+            {screen.confirming && (
+              <div role="group" aria-label="Xác nhận thoát" className="round-notice">
+                <p className="w-full">Bạn có muốn bỏ ván này?</p>
+                <button type="button" className="primary-button" onClick={() => controller.current?.confirmExit(false)}>
+                  Chơi tiếp
+                </button>
+                <button type="button" className="secondary-button" onClick={() => controller.current?.confirmExit(true)}>
+                  Bỏ ván
+                </button>
+              </div>
+            )}
+            {screen.blocked && (
+              <div className="round-notice">
+                <p role="status">
+                  {screen.message} ({screen.pending} đang chờ)
+                </p>
+                <button type="button" className="secondary-button" onClick={() => controller.current?.retryAnswers()}>
+                  Thử gửi lại
+                </button>
+              </div>
+            )}
+            {screen.countdown > 0 ? (
+              <p role="status" className="round-countdown">
+                Bắt đầu sau {screen.countdown}
+              </p>
+            ) : (
+              screen.seconds > 0 && (
+                <Game
+                  items={screen.round.items}
+                  uiConfig={screen.round.uiConfig}
+                  disabled={screen.disabled}
+                  submitAnswer={(no, answer) => controller.current!.submitAnswer(no, answer)}
+                  onMissed={(no) => controller.current?.onMissed(no)}
+                  onItemShown={(no) => controller.current?.onItemShown(no)}
+                />
+              )
             )}
           </div>
-          {screen.confirming && (
-            <div
-              role="group"
-              aria-label="Xác nhận thoát"
-              className="flex flex-wrap gap-3 rounded-sm border border-line p-3"
-            >
-              <p className="w-full">Bạn có muốn bỏ ván này?</p>
-              <button
-                type="button"
-                className={control}
-                onClick={() => controller.current?.confirmExit(false)}
-              >
-                Chơi tiếp
-              </button>
-              <button
-                type="button"
-                className={control}
-                onClick={() => controller.current?.confirmExit(true)}
-              >
-                Bỏ ván
-              </button>
-            </div>
-          )}
-          {screen.blocked && (
-            <div>
-              <p role="status">
-                {screen.message} ({screen.pending} đang chờ)
-              </p>
-              <button
-                type="button"
-                className={control}
-                onClick={() => controller.current?.retryAnswers()}
-              >
-                Thử gửi lại
-              </button>
-            </div>
-          )}
-          {screen.countdown > 0 ? (
-            <p role="status" className="text-h2">
-              Bắt đầu sau {screen.countdown}
-            </p>
-          ) : (
-            screen.seconds > 0 && (
-              <Game
-                items={screen.round.items}
-                uiConfig={screen.round.uiConfig}
-                disabled={screen.disabled}
-                submitAnswer={(no, answer) => controller.current!.submitAnswer(no, answer)}
-                onMissed={(no) => controller.current?.onMissed(no)}
-                onItemShown={(no) => controller.current?.onItemShown(no)}
-              />
-            )
-          )}
-        </>
-      )}
-      {screen.mode === 'finishing' && <p role="status">Đang kết thúc ván…</p>}
-      {screen.mode === 'leaving' && <p role="status">Đang rời ván…</p>}
-      {screen.mode === 'finish-error' && (
-        <div className="space-y-3">
-          <p role="alert">{screen.message}</p>
-          <button
-            type="button"
-            className={control}
-            onClick={() => void controller.current?.retryFinish()}
-          >
-            Kiểm tra lại
-          </button>
-        </div>
-      )}
-      {screen.mode === 'leave-error' && (
-        <div className="space-y-3">
-          <p role="alert">{screen.message}</p>
-          <button
-            type="button"
-            className={control}
-            onClick={() => void controller.current?.abandon()}
-          >
-            Thử lại
-          </button>
-        </div>
-      )}
-      {(screen.mode === 'finished' || screen.mode === 'expired' || screen.mode === 'abandoned') && (
-        <>
-          <h1 className="text-h2">
-            {screen.mode === 'finished'
-              ? 'Ván đã kết thúc'
-              : screen.mode === 'expired'
-                ? 'Ván đã hết hạn'
-                : 'Đã bỏ ván'}
-          </h1>
-          {hubLink}
-        </>
-      )}
-      {result && (
-        <>
-          <h1 className="text-h2">Kết quả ván chơi</h1>
-          {result.newBest && (
-            <p role="status" className="font-bold text-brand-800">
-              Kỷ lục mới!
-            </p>
-          )}
-          <dl className="grid grid-cols-2 gap-3 break-words">
-            <div>
-              <dt>Điểm</dt>
-              <dd>
-                {result.points} / {result.maxPoints}
-              </dd>
-            </div>
-            <div>
-              <dt>Đúng</dt>
-              <dd>{result.correct}</dd>
-            </div>
-            <div>
-              <dt>Sai</dt>
-              <dd>{result.wrong}</dd>
-            </div>
-            <div>
-              <dt>Bỏ lỡ</dt>
-              <dd>{result.missed}</dd>
-            </div>
-            <div>
-              <dt>Độ chính xác</dt>
-              <dd>{result.accuracy === null ? '—' : result.accuracy + '%'}</dd>
-            </div>
-            <div>
-              <dt>Thời gian</dt>
-              <dd>{Math.ceil(result.durationMs / 1000)} giây</dd>
-            </div>
-          </dl>
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              className={primary}
-              onClick={() => void controller.current?.start()}
-            >
-              Chơi lại
+        )}
+        {screen.mode === 'finishing' && <p role="status" className="core-feedback">Đang kết thúc ván…</p>}
+        {screen.mode === 'leaving' && <p role="status" className="core-feedback">Đang rời ván…</p>}
+        {screen.mode === 'finish-error' && (
+          <div className="core-panel core-center">
+            <p role="alert">{screen.message}</p>
+            <button type="button" className="secondary-button" onClick={() => void controller.current?.retryFinish()}>
+              Kiểm tra lại
             </button>
-            {hubLink}
           </div>
-        </>
-      )}
-    </section>
+        )}
+        {screen.mode === 'leave-error' && (
+          <div className="core-panel core-center">
+            <p role="alert">{screen.message}</p>
+            <button type="button" className="secondary-button" onClick={() => void controller.current?.abandon()}>
+              Thử lại
+            </button>
+          </div>
+        )}
+        {(screen.mode === 'finished' || screen.mode === 'expired' || screen.mode === 'abandoned') && (
+          <div className="core-panel core-center core-result">
+            <h1>
+              {screen.mode === 'finished'
+                ? 'Ván đã kết thúc'
+                : screen.mode === 'expired'
+                  ? 'Ván đã hết hạn'
+                  : 'Đã bỏ ván'}
+            </h1>
+            <div className="button-row">{hubLink}</div>
+          </div>
+        )}
+        {result && (
+          <div className="core-panel core-center core-result">
+            <span className="result-star" aria-hidden="true">✦ ✦ ✦</span>
+            <span className="eyebrow">KẾT THÚC VÁN</span>
+            <h1>Kết quả ván chơi</h1>
+            {result.newBest && (
+              <p role="status" className="round-new-best">
+                Kỷ lục mới!
+              </p>
+            )}
+            <dl className="round-result-grid break-words">
+              <div>
+                <dt>Điểm</dt>
+                <dd>
+                  {result.points} / {result.maxPoints}
+                </dd>
+              </div>
+              <div>
+                <dt>Đúng</dt>
+                <dd>{result.correct}</dd>
+              </div>
+              <div>
+                <dt>Sai</dt>
+                <dd>{result.wrong}</dd>
+              </div>
+              <div>
+                <dt>Bỏ lỡ</dt>
+                <dd>{result.missed}</dd>
+              </div>
+              <div>
+                <dt>Độ chính xác</dt>
+                <dd>{result.accuracy === null ? '—' : result.accuracy + '%'}</dd>
+              </div>
+              <div>
+                <dt>Thời gian</dt>
+                <dd>{Math.ceil(result.durationMs / 1000)} giây</dd>
+              </div>
+            </dl>
+            <div className="button-row">
+              <button type="button" className="primary-button" onClick={() => void controller.current?.start()}>
+                Chơi lại
+              </button>
+              {hubLink}
+              <a className="secondary-button" href={webHref('/leaderboards/games?game=' + code)}>
+                Xem bảng xếp hạng
+              </a>
+            </div>
+          </div>
+        )}
+      </section>
+    </ArcadePage>
   )
 }

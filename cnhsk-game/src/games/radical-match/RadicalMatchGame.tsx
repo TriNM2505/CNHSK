@@ -51,34 +51,50 @@ export function RadicalMatchGame({ items, disabled, submitAnswer, onMissed, onIt
     }
   }
 
-  if (!item) return <p role="status">Đã đi qua tất cả các chữ.</p>
+  if (!item) return <p role="status" className="core-feedback">Đã đi qua tất cả các chữ.</p>
   const correctLabel = options.find((option) => option.key === feedback?.correctAnswer)?.text
+  const answerClass = (key: string) => {
+    if (!feedback) return ''
+    if (key === feedback.correctAnswer) return 'answer-correct'
+    return key === selected ? 'answer-wrong' : ''
+  }
   return (
-    <section aria-label="Ghép Bộ Thủ" className="min-w-0 space-y-3 text-center">
-      <h2 className="break-words text-[96px] leading-none">{String(item.prompt.text ?? '')}</h2>
-      <p className="break-words text-ink-secondary">{String(item.prompt.hint ?? '')}</p>
-      {options.length > 0 ? (
-        <div className="grid grid-cols-2 gap-2" aria-label="Phương án" role="group">
-          {options.map((option) => (
-            <button type="button" key={option.key} disabled={disabled || selected !== undefined}
-              className={`min-w-0 rounded-sm border px-1 text-[64px] leading-tight ${
-                feedback?.correctAnswer === option.key ? 'border-brand-800 bg-brand-800 text-white'
-                : selected === option.key ? 'border-brand-800 font-bold' : 'border-line'
-              }`}
-              onClick={() => void choose(option.key)}
-            >{option.text}</button>
-          ))}
+    <section aria-label="Ghép Bộ Thủ" className="min-w-0">
+      <div className="core-panel core-center core-game-panel radical-panel">
+        <div className="core-progress">CHỮ {position + 1} / {items.length}</div>
+        <div className="question-progress"><span style={{ width: `${(position + 1) / items.length * 100}%` }} /></div>
+        <span className="question-kicker">CHỌN BỘ THỦ ĐÚNG</span>
+        <div className="radical-orbit">
+          <span className="orbit-mark orbit-a" aria-hidden="true">✦</span>
+          <h2 className="core-hanzi break-words">{String(item.prompt.text ?? '')}</h2>
+          <span className="orbit-mark orbit-b" aria-hidden="true">✧</span>
         </div>
-      ) : (
-        <button type="button" disabled={disabled} className="min-h-touch rounded-sm border border-line px-4"
-          onClick={() => {
-            onMissed(item.no)
-            setPosition(position + 1)
-          }}
-        >Bỏ qua câu thiếu phương án</button>
-      )}
-      {selected && !feedback && <p role="status">{showGrading ? 'Đang chấm…' : 'Đã gửi câu trả lời.'}</p>}
-      {feedback && <p role="status">{feedback.correct ? 'Chính xác' : `Bộ thủ đúng: ${correctLabel ?? ''}`}</p>}
+        <p className="character-meta break-words">{String(item.prompt.hint ?? '')}</p>
+        {options.length > 0 ? (
+          <div className="answer-grid radical-grid" aria-label="Phương án" role="group">
+            {options.map((option, index) => (
+              <button type="button" key={option.key} disabled={disabled || selected !== undefined}
+                className={answerClass(option.key)} onClick={() => void choose(option.key)}
+              >
+                <span className="answer-index" aria-hidden="true">{String.fromCharCode(65 + index)}</span>
+                <b>{option.text}</b>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <button type="button" disabled={disabled} className="secondary-button"
+            onClick={() => {
+              onMissed(item.no)
+              setPosition(position + 1)
+            }}
+          >Bỏ qua câu thiếu phương án</button>
+        )}
+      </div>
+      <div className="core-feedback">
+        {selected && !feedback && <p role="status">{showGrading ? 'Đang chấm…' : 'Đã gửi câu trả lời.'}</p>}
+        {feedback && <p role="status">{feedback.correct ? 'Chính xác' : `Bộ thủ đúng: ${correctLabel ?? ''}`}</p>}
+        {!selected && !feedback && <p>Chọn đáp án để ghi điểm.</p>}
+      </div>
     </section>
   )
 }

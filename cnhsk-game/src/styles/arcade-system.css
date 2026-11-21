@@ -1,0 +1,70 @@
+/* Additions to the arcade theme for parts the standalone demo did not have:
+   catalog stats, how-to-play, HSK picker, leaderboard links and the server round HUD. */
+
+.game-card h3 { margin: 10px 0 8px; font-size: 26px; color: #273341; }
+.game-card p { color: #6d6f72; line-height: 1.55; margin: 0; }
+.game-card-meta { margin-top: 10px !important; font-size: 13px; font-weight: 700; color: #a0877a !important; }
+.game-card-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0 0; padding: 12px 14px; border-radius: 12px; background: #fbf4ea; }
+.game-card-stats dt { font-size: 11px; letter-spacing: .12em; font-weight: 800; color: #a3a9aa; text-transform: uppercase; }
+.game-card-stats dd { margin: 2px 0 0; font-size: 22px; font-weight: 800; color: #d7634c; }
+.game-card-howto { margin-top: 14px; color: #6d6f72; }
+.game-card-howto summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 800; color: #273341; }
+.card-link { align-items: center; gap: 12px; }
+.card-link a { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; }
+.card-link a:last-child { font-size: 13px; color: #8b6e5c; border: 1px solid #e9dfd0; border-radius: 999px; padding: 0 14px; }
+.card-link small { display: block; font-size: 12px; color: #a3a9aa; }
+.game-card-locked { border: 0; background: none; padding: 0; font-weight: 800; color: #d7634c; }
+.hub-level { display: flex; flex-direction: column; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: .18em; color: #a0877a; text-transform: uppercase; }
+.hub-level select { min-height: 48px; min-width: 220px; padding: 0 14px; border: 1px solid #e2d7ca; border-radius: 12px; background: #fffcf7; color: #273341; font-size: 15px; letter-spacing: 0; text-transform: none; }
+.games-section [role='status'], .games-section [role='alert'] { color: #6d6f72; }
+
+/* Server round HUD inside the arcade pages. */
+.round-exit { border: 1px solid #ffffff40; background: none; color: inherit; border-radius: 10px; padding: 8px 14px; font-weight: 800; }
+.round-notice { max-width: 950px; margin: 0 auto 14px; padding: 14px 18px; border-radius: 14px; background: #f4e7cf1f; color: #f7f0e5; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.round-countdown { font: 900 96px 'Noto Serif SC', serif; text-align: center; margin: 60px 0; color: #f3ba6f; }
+.round-result-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; max-width: 560px; margin: 26px auto 0; }
+.round-result-grid div { padding: 14px; border-radius: 14px; background: #f4e7cf14; }
+.round-result-grid dt { font-size: 11px; letter-spacing: .14em; font-weight: 800; color: #f0b46b; text-transform: uppercase; }
+.round-result-grid dd { margin: 4px 0 0; font-size: 22px; font-weight: 800; }
+.round-new-best { color: #f3ba6f; font-weight: 800; letter-spacing: .14em; }
+.game-login { max-width: 640px; margin: 8vh auto; }
+
+/* Falling target used by Thần Bút and Phi Đao inside the arena. */
+.falling-word strong { font: 900 64px 'Noto Serif SC', serif; color: #fff; text-shadow: 0 6px 0 #0005; }
+.falling-word small { color: #f1cf9f; font-weight: 700; }
+.falling-hit { font-size: 48px; color: #f3ba6f; }
+.arena-missed { position: absolute; z-index: 6; left: 50%; bottom: 18%; transform: translateX(-50%); padding: 10px 18px; border-radius: 12px; background: #14202bd9; color: #fff; font-weight: 700; }
+.control-card input { width: 100%; min-height: 52px; margin: 14px 0 10px; padding: 0 16px; border: 1px solid #e2d4bf; border-radius: 12px; background: #fff; color: #263747; font-size: 20px; }
+.control-card input.input-wrong { border-color: #ec6d47; }
+.control-card h2 { color: #263747; }
+.control-card [role='status'], .control-card [role='alert'] { color: #8b6140; }
+.board-shell [role='status'] { color: #8b6140; }
+
+@media (max-width: 900px) {
+  .round-result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hub-level select { min-width: 0; width: 100%; }
+}
+
+/* Pinyin board columns with a heading above each stack. */
+.match-columns > div { align-content: start; }
+.match-stack { display: grid; gap: 9px; }
+.match-heading { margin: 0 0 4px; color: #eb9b83; font-size: 11px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+.match-tile.answer-correct { background: #b8f3d1; border-color: #43b578; }
+.catch-progress { height: 6px; margin: 0 auto; max-width: 520px; accent-color: #ff7e57; }
+.catch-prompt h2 { margin: 0; font-size: 22px; }
+
+/* Stroke outlines from hanzi-writer-data on the arcade board. */
+.stroke-fill-future { fill: #a9c4cc; opacity: .35; }
+.stroke-fill-next { fill: #e7b251; opacity: .8; }
+.stroke-fill-done { fill: #4f8992; }
+.stroke-arrow { stroke: #db674f; }
+.brush-hits { margin: 6px 0 12px; font-weight: 800; color: #263747; }
+.arena-progress { position: absolute; left: 16px; right: 16px; bottom: 16px; width: auto; z-index: 6; }
+.board-top p { margin: 0; }
+.board-hint p { margin: 0; }
+
+/* Headings of the login, result and not-found panels. */
+.game-login h1, .core-result h1 { margin: 12px 0; font-size: clamp(36px, 5vw, 56px); line-height: 1.1; color: #f8dfb4; letter-spacing: -.03em; }
+.game-login p, .core-result p { color: #cbd5da; }
+.round-notice { background: #20282e; border: 1px solid #efe0c72d; }
+.round-countdown { color: #ff8762; }
