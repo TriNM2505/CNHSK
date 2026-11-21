@@ -13,7 +13,7 @@
 | **Status** | DRAFT — chờ cả nhóm duyệt rồi mới `APPROVED` |
 | **Approved by** | — |
 | **Locked on** | — |
-| **Thay đổi 1.1.1** | Màn mặc định của `LEARNER` là SCR-010 `/learn` (Bảng học tập) vì SCR-010 đã có |
+| **Thay đổi 1.1.1** | Màn mặc định của `LEARNER` là SCR-010 `/learn` (Bảng học tập) vì SCR-010 đã có · client web và game refresh im lặng khi 401 `UNAUTHENTICATED` (§12.2 `client.ts`) |
 | **Thay đổi so với 1.0** | Đổi tên actor (18/10) · tách gói, lượt free, mã thẻ sang spec gói dịch vụ (credits-plans) · tách hạn mức khách sang spec từ điển · chốt 4 câu hỏi mở · chốt 8 mâu thuẫn tài liệu (Nhóm 14) · thêm §0 nền tảng và §12–§15 |
 
 > **Codex đọc theo thứ tự:** `AGENTS.md` → file này → `contracts/openapi-auth.yaml` → `tasks.md`.
@@ -577,7 +577,7 @@ SCR-007 chỉ có 3 field của FR-051/FR-095; nút "Cài đặt nhắc học" d
 
 | Thành phần | Hành vi |
 |---|---|
-| `shared/api/client.ts` | `fetch` với `credentials: 'include'`, header `X-Client-Type: WEB`, `X-XSRF-TOKEN` lấy từ cookie `XSRF-TOKEN` cho request đổi trạng thái. Nhận 401 `TOKEN_EXPIRED`/`SESSION_REVOKED` → gọi `POST /api/auth/refresh` **một lần** (gộp các request song song chờ chung một lần refresh) rồi gửi lại; refresh lỗi → xoá trạng thái, chuyển `/login?redirect=` |
+| `shared/api/client.ts` | `fetch` với `credentials: 'include'`, header `X-Client-Type: WEB`, `X-XSRF-TOKEN` lấy từ cookie `XSRF-TOKEN` cho request đổi trạng thái. Nhận 401 `TOKEN_EXPIRED`/`SESSION_REVOKED` → gọi `POST /api/auth/refresh` **một lần** (gộp các request song song chờ chung một lần refresh) rồi gửi lại; refresh lỗi → xoá trạng thái, chuyển `/login?redirect=`. Nhận 401 `UNAUTHENTICATED` (cookie access có `Max-Age` bằng vòng đời token nên hết hạn là trình duyệt xoá) → thử refresh **im lặng** một lần rồi gửi lại; refresh lỗi → trả lỗi gốc, không báo hết phiên, khách không thấy khác (v1.1.1; `cnhsk-game/src/shared/api/client.ts` làm giống) |
 | `AuthProvider` | Khởi động gọi `GET /api/auth/me`; giữ `user {id, email, displayName, emailVerified, roles}` trong context; không lưu token ở `localStorage` |
 | `RequireRole roles={[...]}` | Chưa đăng nhập → `/login?redirect=`; thiếu role → SCR-079 |
 | Banner chưa xác thực | Mọi trang khu vực người học hiện banner "Xác minh email để dùng đầy đủ" khi `emailVerified=false`, có nút sang SCR-004 |

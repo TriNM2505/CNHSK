@@ -126,9 +126,44 @@ describe('AT-19 cookie web', () => {
     expect(calls(catalog).map((init) => init.credentials)).toEqual(['include', 'include'])
   })
 
-  it('does not refresh on an ordinary unauthenticated response', async () => {
+  it('refreshes silently once when the access cookie has expired and been dropped', async () => {
+    const { GAME_SESSION_EXPIRED_EVENT } = await import('./client')
+    const onExpired = vi.fn()
+    window.addEventListener(GAME_SESSION_EXPIRED_EVENT, onExpired)
+    fetchMock
+      .mockResolvedValueOnce(failure(401, 'UNAUTHENTICATED'))
+      .mockResolvedValueOnce(noContent())
+      .mockResolvedValueOnce(ok())
+    await expect(request('/api/auth/me')).resolves.toEqual({ ok: true })
+
+    expect(fetchMock.mock.calls.map(([path]) => path)).toEqual([
+      '/api/auth/me',
+      refresh,
+      '/api/auth/me',
+    ])
+    expect(onExpired).not.toHaveBeenCalled()
+    window.removeEventListener(GAME_SESSION_EXPIRED_EVENT, onExpired)
+  })
+
+  it('keeps a guest a guest when the silent refresh is rejected', async () => {
+    const { GAME_SESSION_EXPIRED_EVENT } = await import('./client')
+    const onExpired = vi.fn()
+    window.addEventListener(GAME_SESSION_EXPIRED_EVENT, onExpired)
+    fetchMock
+      .mockResolvedValueOnce(failure(401, 'UNAUTHENTICATED'))
+      .mockResolvedValueOnce(failure(401, 'INVALID_REFRESH_TOKEN'))
+    await expect(request('/api/auth/me')).rejects.toMatchObject({ errorCode: 'UNAUTHENTICATED' })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(onExpired).not.toHaveBeenCalled()
+    window.removeEventListener(GAME_SESSION_EXPIRED_EVENT, onExpired)
+  })
+
+  it('does not refresh when the refresh endpoint itself is unauthenticated', async () => {
     fetchMock.mockResolvedValueOnce(failure(401, 'UNAUTHENTICATED'))
-    await expect(request(catalog)).rejects.toMatchObject({ errorCode: 'UNAUTHENTICATED' })
+    await expect(request(refresh, { method: 'POST' })).rejects.toMatchObject({
+      errorCode: 'UNAUTHENTICATED',
+    })
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

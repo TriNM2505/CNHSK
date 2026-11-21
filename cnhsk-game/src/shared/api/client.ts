@@ -32,7 +32,7 @@ type ApiRequestInit = Pick<RequestInit, 'method' | 'headers' | 'signal'> & { bod
 
 let csrfRequest: Promise<void> | undefined
 let authGeneration = 0
-let refreshAttempt: { generation: number; result: Promise<void> } | undefined
+let refreshAttempt: { generation: number; notify: boolean; result: Promise<void> } | undefined
 
 function readCsrfCookie(): string | undefined {
   const prefix = CSRF_COOKIE + '='
@@ -91,24 +91,36 @@ function expired(error: unknown): error is ApiError {
   )
 }
 
+// The access cookie's Max-Age equals the token lifetime, so once the token expires the browser drops
+// the cookie and the server sees no token at all. The refresh cookie may still be valid.
+function missing(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 401 && error.errorCode === 'UNAUTHENTICATED'
+}
+
 function notifyExpired() {
   window.dispatchEvent(new Event(GAME_SESSION_EXPIRED_EVENT))
 }
 
-function refreshSession(generation: number): Promise<void> {
-  if (refreshAttempt && refreshAttempt.generation >= generation) return refreshAttempt.result
+// A failed refresh announces an expired session only when a caller knew it had one; a silent probe
+// for a missing access cookie fails quietly, so guests never see a session-expired notice.
+function refreshSession(generation: number, notify: boolean): Promise<void> {
+  if (refreshAttempt && refreshAttempt.generation >= generation) {
+    if (notify) refreshAttempt.notify = true
+    return refreshAttempt.result
+  }
 
   // Requests sent before this attempt share its result even if their 401 arrives later.
-  const result = send<void>(AUTH_REFRESH, { method: 'POST', credentials: 'include' })
+  const attempt = { generation, notify, result: Promise.resolve() }
+  attempt.result = send<void>(AUTH_REFRESH, { method: 'POST', credentials: 'include' })
     .catch((error: unknown) => {
-      if (error instanceof ApiError && error.status === 401) notifyExpired()
+      if (attempt.notify && error instanceof ApiError && error.status === 401) notifyExpired()
       throw error
     })
     .finally(() => {
       authGeneration += 1
     })
-  refreshAttempt = { generation, result }
-  return result
+  refreshAttempt = attempt
+  return attempt.result
 }
 
 export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
@@ -137,10 +149,21 @@ export async function apiRequest<T>(path: string, init: ApiRequestInit = {}): Pr
   try {
     return await request()
   } catch (error) {
-    if (!expired(error) || AUTH_RETRY_EXCLUDED.has(pathname)) throw error
+    if (AUTH_RETRY_EXCLUDED.has(pathname)) throw error
+    if (missing(error)) {
+      init.signal?.throwIfAborted()
+      try {
+        await refreshSession(generation, false)
+      } catch {
+        // No usable refresh cookie either: the caller gets the original "not signed in" error.
+        throw error
+      }
+      return request()
+    }
+    if (!expired(error)) throw error
     init.signal?.throwIfAborted()
     try {
-      await refreshSession(generation)
+      await refreshSession(generation, true)
     } catch (refreshError) {
       if (
         method === 'GET' &&
