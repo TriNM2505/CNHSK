@@ -68,3 +68,36 @@
 .game-login p, .core-result p { color: #cbd5da; }
 .round-notice { background: #20282e; border: 1px solid #efe0c72d; }
 .round-countdown { color: #ff8762; }
+
+/* Top bar: Học Bá product mark + Game Box, a segmented in-app nav and a separate exit to the learning app. */
+.game-topbar { position: sticky; top: 0; z-index: 30; height: 72px; padding: 0 clamp(16px, 4vw, 64px); background: #0f1a26f2; border-bottom: 1px solid #ffffff12; backdrop-filter: saturate(140%) blur(10px); }
+.game-brand { display: inline-flex; align-items: center; gap: 14px; min-height: 44px; border-radius: 10px; color: #f5f0e8; }
+.game-brand:focus-visible, .game-nav-item:focus-visible, .game-exit:focus-visible { outline: 2px solid #f3ba6f; outline-offset: 3px; }
+.game-brand-logo { height: 38px; width: auto; display: block; }
+.game-brand-divider { width: 1px; height: 26px; background: #ffffff2e; }
+.game-brand-label { font-size: 11px; font-weight: 800; letter-spacing: .24em; text-transform: uppercase; color: #f3ba6f; white-space: nowrap; }
+.game-topbar-actions { display: flex; align-items: center; gap: 12px; }
+.topbar .game-nav { display: flex; align-items: center; gap: 2px; padding: 4px; border: 1px solid #ffffff14; border-radius: 999px; background: #ffffff08; font-size: 14px; color: #c9d1d6; }
+.game-nav-item, .game-exit { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 999px; font-size: 14px; font-weight: 600; letter-spacing: .01em; white-space: nowrap; transition: background-color .18s ease, color .18s ease, border-color .18s ease; }
+.game-nav-item svg, .game-exit svg { width: 18px; height: 18px; flex: none; }
+.game-nav-item { color: #c9d1d6; }
+.game-nav-item:hover { background: #ffffff10; color: #fff; }
+.game-nav-item.active { background: #f6e7cc; color: #1a2633; box-shadow: 0 1px 0 #ffffff40 inset, 0 6px 16px #00000033; }
+.game-nav-item.active svg { color: #c4553a; }
+.game-exit { border: 1px solid #ffffff26; color: #f5f0e8; }
+.game-exit:hover { border-color: #f3ba6f; color: #f3ba6f; }
+
+@media (max-width: 760px) {
+  .game-topbar { height: 64px; }
+  .game-brand-logo { height: 28px; }
+  .game-brand { gap: 10px; }
+  .game-nav-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .game-nav-item, .game-exit { width: 44px; height: 44px; padding: 0; justify-content: center; }
+  .game-topbar-actions { gap: 8px; }
+}
+@media (max-width: 650px) {
+  .topbar .game-nav { display: flex; }
+}
+@media (max-width: 380px) {
+  .game-brand-divider, .game-brand-label { display: none; }
+}
