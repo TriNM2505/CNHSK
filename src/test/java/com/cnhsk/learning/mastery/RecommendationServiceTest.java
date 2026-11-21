@@ -85,8 +85,41 @@ class RecommendationServiceTest {
 
         assertThat(result).extracting(RecommendationService.Recommendation::kid)
                 .containsExactly(prerequisite.kid(), target.kid());
+        // Weaker than the node it holds, so it already leads; it still says what it is the root of.
         assertThat(result).extracting(RecommendationService.Recommendation::kind)
-                .containsExactly("REVIEW", "REVIEW");
+                .containsExactly("PREREQ", "REVIEW");
+        assertThat(result.get(0).reason()).isEqualTo("Ôn Tiên quyết trước khi ôn Nút đích.");
+    }
+
+    @Test
+    void AT15_weakRootSortedFirstStillNamesTheWeakNodeItHolds() {
+        KnowledgeTreeService tree = mock(KnowledgeTreeService.class);
+        MasteryQueryService mastery = mock(MasteryQueryService.class);
+        MasteryQueryRepository queries = mock(MasteryQueryRepository.class);
+        // Equal values: the root's KID sorts first, as with four tones before third-tone sandhi.
+        KnowledgeNode root = node("NA1-006", "Bốn thanh điệu", 1, List.of());
+        KnowledgeNode stronger = node("NA1-007", "Thanh nhẹ", 1, List.of(root.kid()));
+        KnowledgeNode weakest = node("NA1-008", "Biến điệu thanh 3", 1, List.of(root.kid()));
+        KnowledgeNode unrelated = node("VB1-001", "Nút riêng", 1, List.of());
+        List<KnowledgeNode> nodes = List.of(root, stronger, weakest, unrelated);
+        when(tree.nodes()).thenReturn(nodes);
+        when(mastery.mastery(42L)).thenReturn(new MasteryTree(List.of(
+                mastery(root, "review", "33.3", false, null),
+                mastery(stronger, "review", "50.0", false, null),
+                mastery(weakest, "review", "33.3", false, null),
+                mastery(unrelated, "review", "20.0", false, null))));
+        when(queries.kidsWithApprovedQuestions(anySet())).thenReturn(Set.of(
+                root.kid(), stronger.kid(), weakest.kid(), unrelated.kid()));
+
+        List<RecommendationService.Recommendation> result = new RecommendationService(mastery, tree, queries,
+                Clock.fixed(NOW, ZoneOffset.UTC)).recommendations(42L);
+
+        assertThat(result).extracting(RecommendationService.Recommendation::kid)
+                .containsExactly(unrelated.kid(), root.kid(), weakest.kid(), stronger.kid());
+        assertThat(result).extracting(RecommendationService.Recommendation::kind)
+                .containsExactly("REVIEW", "PREREQ", "REVIEW", "REVIEW");
+        // Of the weak nodes it holds, the root names the weakest one.
+        assertThat(result.get(1).reason()).isEqualTo("Ôn Bốn thanh điệu trước khi ôn Biến điệu thanh 3.");
     }
 
     @Test

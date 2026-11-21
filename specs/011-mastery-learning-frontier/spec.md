@@ -8,7 +8,7 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.1.0 |
+| **Version** | 1.1.1 |
 | **Status** | APPROVED — được code theo `tasks.md` · v1.1.0 leader chốt 2026-11-21: gợi ý nút gốc nhiều bậc bằng PageRank cá nhân hoá (FR-015, AT-15) |
 | **Approved by** | Leader (RFC đợt cuối R1–R12 đã đồng thuận) |
 | **Locked on** | 2026-11-03 |
@@ -218,7 +218,7 @@ SCR-010 hiện "12 mục đến hạn"; SCR-013 cho ôn tối đa 50 mục, mụ
 | Mã | Yêu cầu |
 |---|---|
 | **FR-014** | Nút **trên biên học tập** khi trạng thái (FR-011) ∉ {`extend`, `inferred`} **và** mọi tiên quyết trực tiếp (`PREREQ`) ở `consolidate`, `extend` hoặc `inferred` (Q3); nút không có tiên quyết luôn đủ điều kiện. Biên chỉ dùng để gợi ý và tô màu — **không** chặn truy cập nội dung |
-| **FR-015** | `GET /api/mastery/recommendations` SHALL trả ≤ 5 nút, mỗi nút `{kid, nameVi, kind, reason, value}`, chỉ gồm nút có ≥ 1 câu dùng được (`approvedQuestionIds`): (1) `REVIEW` — nút `review`, giá trị tăng dần; trước mỗi nút này chèn **mọi tiên quyết ở mọi bậc** đang `review` của nó (`kind = PREREQ`), xếp theo điểm gốc giảm dần rồi `kid` (v1.1: PageRank cá nhân hoá trên cạnh tiên quyết, hạt giống = nút `review` của chính học viên với trọng số `100 − value`, hệ số 0,85; chỉ nút có bằng chứng yếu, không gợi ý nút chưa học); lý do tiên quyết trực tiếp "Ôn X trước khi ôn Y.", bậc xa hơn "Ôn X trước: đây là phần gốc của Y."; (2) `CONSOLIDATE` — nút `consolidate` có `next_review_at ≤ now`; (3) `NEW` — nút trên biên đang `notyet`/`insufficient`, cấp HSK thấp trước rồi `kid`. Không trùng nút. `reason` sinh từ mẫu câu (không gọi AI). Người mới → chỉ có `NEW` |
+| **FR-015** | `GET /api/mastery/recommendations` SHALL trả ≤ 5 nút, mỗi nút `{kid, nameVi, kind, reason, value}`, chỉ gồm nút có ≥ 1 câu dùng được (`approvedQuestionIds`): (1) `REVIEW` — nút `review`, giá trị tăng dần; trước mỗi nút này chèn **mọi tiên quyết ở mọi bậc** đang `review` của nó (`kind = PREREQ`), xếp theo điểm gốc giảm dần rồi `kid` (v1.1: PageRank cá nhân hoá trên cạnh tiên quyết, hạt giống = nút `review` của chính học viên với trọng số `100 − value`, hệ số 0,85; chỉ nút có bằng chứng yếu, không gợi ý nút chưa học); lý do tiên quyết trực tiếp "Ôn X trước khi ôn Y.", bậc xa hơn "Ôn X trước: đây là phần gốc của Y."; nút `review` là tiên quyết (mọi bậc) của nút `review` khác có câu thì vẫn giữ vị trí theo giá trị nhưng là `PREREQ`, Y = nút phụ thuộc yếu nhất (v1.1.1); (2) `CONSOLIDATE` — nút `consolidate` có `next_review_at ≤ now`; (3) `NEW` — nút trên biên đang `notyet`/`insufficient`, cấp HSK thấp trước rồi `kid`. Không trùng nút. `reason` sinh từ mẫu câu (không gọi AI). Người mới → chỉ có `NEW` |
 
 ### Nhóm 6 — API đọc (FR-016…FR-018)
 
@@ -450,7 +450,7 @@ Trạng thái mỗi màn: Loading (skeleton) · Empty (FR-024, FR-026) · Error 
 | AT-12 | FR-012, E7 | Hai `finish` song song cùng KID (2 luồng) · T `evidence_item_ids` có minh chứng của cả hai; cửa sổ đầy 8 · T minh chứng cũ nhất ra |
 | AT-13 | FR-013, SC-002 | Người học có 40 lượt trộn nguồn · T `rebuild` cho `mastery`, `confidence`, `mp_state`, `evidence_item_ids` trùng trạng thái tăng dần |
 | AT-14 | FR-014 | Nút C tiên quyết A (`consolidate`), B (`review`) · T C không trên biên; B lên `consolidate` · T C trên biên; nút không tiên quyết · T trên biên; nút `extend` · T không trên biên; nội dung chủ đề của nút ngoài biên vẫn mở (003 không đổi) |
-| AT-15 | FR-015, SC-003 | Người mới · T chỉ `NEW`, ≤ 5, cấp thấp trước, không nút "cần ôn"; có 2 `review` (một có tiên quyết `review`), 1 `consolidate` đến hạn · T thứ tự `PREREQ`, `REVIEW`, `REVIEW`, `CONSOLIDATE`, `NEW`; nút không có câu dùng được · T không xuất hiện; `reason` không rỗng · v1.1: chuỗi 把 → bổ ngữ kết quả (`consolidate`) → 了 (`review`) · T `了` là `PREREQ` trước 把 với lý do "phần gốc"; tiên quyết `review` dùng chung cho 2 nút yếu · T đứng trước tiên quyết chỉ của 1 nút dù `kid` lớn hơn |
+| AT-15 | FR-015, SC-003 | Người mới · T chỉ `NEW`, ≤ 5, cấp thấp trước, không nút "cần ôn"; có 2 `review` (một có tiên quyết `review`), 1 `consolidate` đến hạn · T thứ tự `PREREQ`, `REVIEW`, `REVIEW`, `CONSOLIDATE`, `NEW`; nút không có câu dùng được · T không xuất hiện; `reason` không rỗng · v1.1: chuỗi 把 → bổ ngữ kết quả (`consolidate`) → 了 (`review`) · T `了` là `PREREQ` trước 把 với lý do "phần gốc"; tiên quyết `review` dùng chung cho 2 nút yếu · T đứng trước tiên quyết chỉ của 1 nút dù `kid` lớn hơn · v1.1.1: nút gốc `review` bằng giá trị và `kid` nhỏ hơn nút nó giữ · T `PREREQ` "Ôn X trước khi ôn Y." với Y yếu nhất |
 | AT-16 | FR-016 | Cây 60 nút, người học có 5 dòng · T 60 phần tử, 55 `notyet` `value=null`; ≤ 3 truy vấn (`StatementInspector`) |
 | AT-17 | FR-017 | Nút có 5 minh chứng · T `evidence` 5 dòng mới nhất trước, `weight` khớp FR-009; KID không có · T 404 |
 | AT-18 | FR-018 | `valuesOf` 3 KID (1 có dòng) · T đủ 3 khoá, 2 `null`/`notyet`, giá trị làm tròn |

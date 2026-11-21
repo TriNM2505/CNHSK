@@ -62,18 +62,25 @@ public class RecommendationService {
         List<Recommendation> result = new ArrayList<>(MAX_RECOMMENDATIONS);
         Set<String> includedKids = new HashSet<>();
         Map<String, Double> rootScores = rootScores(masteryNodes, knowledgeNodes);
-
-        masteryNodes.stream()
+        List<MasteryNode> reviewNodes = masteryNodes.stream()
                 .filter(node -> "review".equals(node.state()))
+                .filter(node -> knowledgeByKid.containsKey(node.kid()) && kidsWithQuestions.contains(node.kid()))
                 .sorted(REVIEW_ORDER)
-                .forEach(node -> {
+                .toList();
+        // For each weak node that other weak nodes depend on, the weakest of those dependents.
+        Map<String, KnowledgeNode> heldBy = new HashMap<>();
+        for (MasteryNode node : reviewNodes) {
+            KnowledgeNode knowledgeNode = knowledgeByKid.get(node.kid());
+            for (String ancestor : ancestors(knowledgeNode, knowledgeByKid)) {
+                heldBy.putIfAbsent(ancestor, knowledgeNode);
+            }
+        }
+
+        reviewNodes.forEach(node -> {
                     if (result.size() >= MAX_RECOMMENDATIONS) {
                         return;
                     }
                     KnowledgeNode knowledgeNode = knowledgeByKid.get(node.kid());
-                    if (knowledgeNode == null || !kidsWithQuestions.contains(node.kid())) {
-                        return;
-                    }
                     // Every weak prerequisite behind this node, at any depth, strongest root first.
                     ancestors(knowledgeNode, knowledgeByKid).stream()
                             .map(masteryByKid::get)
@@ -84,8 +91,13 @@ public class RecommendationService {
                                     .reversed().thenComparing(MasteryNode::kid))
                             .forEach(prerequisite -> addPrerequisite(result, includedKids, prerequisite,
                                     knowledgeByKid, knowledgeNode));
-                    add(result, includedKids, node, knowledgeNode, "REVIEW",
-                            "Cần ôn: " + formatValue(node.value()) + "/100.");
+                    KnowledgeNode held = heldBy.get(node.kid());
+                    if (held != null) {
+                        addPrerequisite(result, includedKids, node, knowledgeByKid, held);
+                    } else {
+                        add(result, includedKids, node, knowledgeNode, "REVIEW",
+                                "Cần ôn: " + formatValue(node.value()) + "/100.");
+                    }
                 });
 
         masteryNodes.stream()
