@@ -96,7 +96,7 @@ describe('Scr004VerifyEmailPage', () => {
     renderPage('/verify-email?token=abc123', auth)
 
     await waitFor(() => expect(auth.reloadCurrentUser).toHaveBeenCalledTimes(1))
-    expect(screen.getByRole('link', { name: 'Tiếp tục' })).toHaveAttribute('href', '/learn/topics')
+    expect(screen.getByRole('link', { name: 'Tiếp tục' })).toHaveAttribute('href', '/learn')
   })
 
   it('FR-011: token hỏng hiện thông báo hết hạn và mời khách đăng nhập để gửi lại', async () => {

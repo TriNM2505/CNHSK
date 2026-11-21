@@ -9,10 +9,11 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.1.0 |
+| **Version** | 1.1.1 |
 | **Status** | DRAFT — chờ cả nhóm duyệt rồi mới `APPROVED` |
 | **Approved by** | — |
 | **Locked on** | — |
+| **Thay đổi 1.1.1** | Màn mặc định của `LEARNER` là SCR-010 `/learn` (Bảng học tập) vì SCR-010 đã có |
 | **Thay đổi so với 1.0** | Đổi tên actor (18/10) · tách gói, lượt free, mã thẻ sang spec gói dịch vụ (credits-plans) · tách hạn mức khách sang spec từ điển · chốt 4 câu hỏi mở · chốt 8 mâu thuẫn tài liệu (Nhóm 14) · thêm §0 nền tảng và §12–§15 |
 
 > **Codex đọc theo thứ tự:** `AGENTS.md` → file này → `contracts/openapi-auth.yaml` → `tasks.md`.
@@ -586,7 +587,7 @@ SCR-007 chỉ có 3 field của FR-051/FR-095; nút "Cài đặt nhắc học" d
 
 | Role | Khu vực | Màn mặc định |
 |---|---|---|
-| `LEARNER` | Học tập | SCR-010 (chưa có ở đợt này → tạm SCR-011 `/learn/topics`) |
+| `LEARNER` | Học tập | SCR-010 `/learn` (v1.1.1; trước khi có SCR-010 tạm dùng SCR-011 `/learn/topics`) |
 | `TEACHER` | Giáo viên | SCR-056 (chưa có → SCR-079 với thông báo "đang xây dựng") |
 | `MODERATOR` | Kiểm duyệt | SCR-060 (V2) |
 | `CONTENT_EDITOR` | Nội dung | SCR-068 (spec nhập dữ liệu) |

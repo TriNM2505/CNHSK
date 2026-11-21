@@ -16,7 +16,7 @@ type UserArea = {
 }
 
 const userAreas: readonly UserArea[] = [
-  { label: 'Học tập', role: 'LEARNER', to: '/learn/topics' },
+  { label: 'Học tập', role: 'LEARNER', to: '/learn' },
   { label: 'Chấm bài viết', role: 'TEACHER', to: '/teacher/grading' },
   { label: 'Nhập dữ liệu', role: 'CONTENT_EDITOR', to: '/content/imports' },
   { label: 'Quản trị người dùng', role: 'ADMIN', to: '/admin/users' },

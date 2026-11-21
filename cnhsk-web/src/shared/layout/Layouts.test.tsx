@@ -635,7 +635,7 @@ describe('AccountMenu area switching', () => {
     expect(summary).not.toBeNull()
     await event.click(summary!)
     expect(screen.getByText('Khu vực của bạn')).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Học tập' })).toHaveAttribute('href', '/learn/topics')
+    expect(screen.getByRole('link', { name: 'Học tập' })).toHaveAttribute('href', '/learn')
     expect(screen.getByRole('link', { name: 'Quản trị người dùng' })).toHaveAttribute(
       'href',
       '/admin/users',
@@ -647,7 +647,7 @@ describe('AccountMenu area switching', () => {
     )
     await event.click(screen.getByRole('link', { name: 'Học tập' }))
     expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent(
-      '/learn/topics',
+      '/learn',
     )
   })
 

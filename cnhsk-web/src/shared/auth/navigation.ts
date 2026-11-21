@@ -50,7 +50,7 @@ function getDefaultDestination(user: CurrentUser): AuthDestination {
 
   switch (uniqueRoles[0]) {
     case 'LEARNER':
-      return { type: 'internal', to: '/learn/topics' }
+      return { type: 'internal', to: '/learn' }
     case 'CONTENT_EDITOR':
       return { type: 'internal', to: '/content/imports' }
     case 'ADMIN':

@@ -12,7 +12,7 @@ const ROLE_AREAS: Readonly<Record<RoleCode, RoleArea>> = {
     label: 'Học tập',
     role: 'LEARNER',
     status: 'available',
-    to: '/learn/topics',
+    to: '/learn',
   },
   TEACHER: {
     label: 'Giáo viên',

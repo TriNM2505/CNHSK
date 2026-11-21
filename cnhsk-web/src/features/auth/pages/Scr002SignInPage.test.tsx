@@ -37,7 +37,7 @@ function renderPage(initialEntry: string | { pathname: string; state?: unknown }
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route element={<Scr002SignInPage />} path="/login" />
-          <Route element={<h1>Danh sách chủ đề</h1>} path="/learn/topics" />
+          <Route element={<h1>Bảng học tập</h1>} path="/learn" />
         </Routes>
       </MemoryRouter>
     </AuthContext.Provider>,
@@ -65,7 +65,7 @@ function renderSignInFlow(initialEntry = '/login') {
             <Route element={<Scr002SignInPage />} path="/login" />
             <Route element={<Scr001LandingPage />} path="/" />
             <Route element={<h1>Khu vực quản trị</h1>} path="/admin/users" />
-            <Route element={<h1>Danh sách chủ đề</h1>} path="/learn/topics" />
+            <Route element={<h1>Bảng học tập</h1>} path="/learn" />
           </Routes>
         </MemoryRouter>
       </AuthContext.Provider>
@@ -122,7 +122,7 @@ describe('Scr002SignInPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Đăng nhập' }))
 
-    expect(await screen.findByRole('heading', { name: 'Danh sách chủ đề' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Bảng học tập' })).toBeVisible()
     expect(signIn).toHaveBeenCalledWith({ email: 'learner@example.com', password: 'abc' })
     expect(auth.setAuthenticatedUser).toHaveBeenCalledWith(learner)
   })
@@ -156,7 +156,7 @@ describe('Scr002SignInPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Đăng nhập' }))
 
-    expect(await screen.findByRole('heading', { name: 'Danh sách chủ đề' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Bảng học tập' })).toBeVisible()
   })
 
   it('hiện thông báo chung khi API trả 401', async () => {

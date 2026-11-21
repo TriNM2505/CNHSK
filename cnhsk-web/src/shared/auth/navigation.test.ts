@@ -17,10 +17,10 @@ afterEach(() => {
 })
 
 describe('getAuthenticatedDestination', () => {
-  it('uses the topic list as the learner default destination', () => {
+  it('uses the learning dashboard as the learner default destination', () => {
     expect(getAuthenticatedDestination(learner)).toEqual({
       type: 'internal',
-      to: '/learn/topics',
+      to: '/learn',
     })
   })
 
@@ -45,7 +45,7 @@ describe('getAuthenticatedDestination', () => {
     })
     expect(getAuthenticatedDestination(learner, '/admin/users')).toEqual({
       type: 'internal',
-      to: '/learn/topics',
+      to: '/learn',
     })
   })
 
@@ -54,11 +54,11 @@ describe('getAuthenticatedDestination', () => {
 
     expect(getAuthenticatedDestination(learner, '//evil.example/path')).toEqual({
       type: 'internal',
-      to: '/learn/topics',
+      to: '/learn',
     })
     expect(getAuthenticatedDestination(learner, 'https://evil.example/path')).toEqual({
       type: 'internal',
-      to: '/learn/topics',
+      to: '/learn',
     })
   })
 

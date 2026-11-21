@@ -65,7 +65,7 @@ describe('Scr079AccessDeniedPage', () => {
     expect(screen.getByRole('heading', { name: 'Không có quyền truy cập' })).toBeVisible()
     expect(screen.getByRole('link', { name: 'Về khu vực học tập' })).toHaveAttribute(
       'href',
-      '/learn/topics',
+      '/learn',
     )
   })
 

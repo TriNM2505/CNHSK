@@ -84,7 +84,7 @@ describe('Scr001LandingPage', () => {
     expect(screen.getByRole('heading', { name: 'Quản trị' })).toBeVisible()
     expect(screen.getByRole('link', { name: 'Mở học tập' })).toHaveAttribute(
       'href',
-      '/learn/topics',
+      '/learn',
     )
   })
 

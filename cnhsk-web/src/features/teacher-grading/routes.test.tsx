@@ -98,6 +98,6 @@ describe('teacher grading route catalogs and access', () => {
     await userEvent.click(document.querySelector('summary')!)
     const links = screen.getAllByRole('link', { name: 'Chấm bài viết' })
     expect(links.some((link) => link.closest('details'))).toBe(true)
-    expect(screen.getByRole('link', { name: 'Học tập' })).toHaveAttribute('href', '/learn/topics')
+    expect(screen.getByRole('link', { name: 'Học tập' })).toHaveAttribute('href', '/learn')
   })
 })
