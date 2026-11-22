@@ -23,7 +23,7 @@
 | **Ghép Pinyin** | 5 bảng × 6, `maxLives=3`, trần 600 s | Số cặp đúng, rồi nhanh nhất |
 | **Ghép Bộ Thủ** | 15 câu (cần ≥ 15 chữ), `maxLives=3`, trần 600 s | Số câu đúng, rồi nhanh nhất |
 | **Bắt Chữ** | 60 s, tối đa 100 câu, không đồng hồ từng câu (`uiConfig` không có `perItemMs`) | Số câu đúng |
-| **Mưa Chữ** (`BRUSH_STROKE`, tên cũ Thần Bút) | Ô viết trống, viết cả chữ không cần thứ tự/chiều nét; rơi `max(4000, 13000 − 100·i)` ms; chạm đất → bỏ lỡ (GM-5), **không có mạng**; 100 chữ, trần 600 s. Nhận chữ bằng ghép một–một các điểm mực, nhận cả chữ viết nối, lệch, nghiêng, vết lỡ tay; ít nét hơn chữ mẫu thì chờ 450 ms rồi mới nhận (`engine/freeformMatch.ts`). Chữ vỡ ngay khi nhận, điểm gửi ở nền | Số chữ, rồi thời gian |
+| **Mưa Chữ** (`BRUSH_STROKE`, tên cũ Thần Bút) | Ô viết trống, viết cả chữ không cần thứ tự/chiều nét; rơi `max(4000, 13000 − 100·i)` ms; chạm đất → bỏ lỡ (GM-5), **không có mạng**; 100 chữ, trần 600 s. Nhận chữ bằng ghép một–một các điểm mực, nhận cả chữ viết nối, lệch, nghiêng, vết lỡ tay; hoặc đủ số nét và mỗi nét đúng chỗ, đúng hướng (dài ngắn, móc cuối nét không tính); ít nét hơn chữ mẫu thì chờ 450 ms rồi mới nhận (`engine/freeformMatch.ts`). Chữ vỡ ngay khi nhận, điểm gửi ở nền | Số chữ, rồi thời gian |
 | **Phi Đao** (`FLYING_DART`) | Gõ âm Hán Việt của một chữ (`SINO_VIET_INPUT`), có dấu hay không dấu đều nhận, chữ đa âm nhận mọi âm; chữ không rơi; `maxLives=3`, 60 s, 60 chữ; kỹ năng `CHARACTER`; chỉ dùng chữ có `sino_viet`, cần ≥ 20 chữ; không gửi nghĩa (nghĩa nhiều chữ trùng âm Hán Việt, lộ đáp án) | Số chữ trúng |
 
 Điểm/lượt vẫn 10. Kho mỗi game mỗi cấp ≥ 100 mục từ, ván rút ngẫu nhiên. Rủi ro chấp nhận thêm: lọ mực đếm ở client (như mô hình `PASS` của GM-8).

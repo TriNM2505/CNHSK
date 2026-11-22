@@ -5,6 +5,7 @@ import kou from 'hanzi-writer-data/口.json'
 import mu from 'hanzi-writer-data/木.json'
 import ren from 'hanzi-writer-data/人.json'
 import ri from 'hanzi-writer-data/日.json'
+import shi from 'hanzi-writer-data/士.json'
 import yi from 'hanzi-writer-data/一.json'
 
 import { readCharacter } from './freeformMatch'
@@ -39,6 +40,18 @@ describe('free writing check', () => {
     const slip = [{ x: 400, y: 400 }, { x: 404, y: 403 }]
     expect(readCharacter([slip, ...drawn(mu)], medians(mu))).toBe('complete')
     expect(readCharacter([...drawn(kou), ...drawn(kou), ...drawn(mu)], medians(mu))).toBe('complete')
+  })
+
+  it('accepts strokes of the wrong length that end in a hook, as people really write them', () => {
+    // Traced from a learner's 士: short top line, short stem, a hook at the end of both lines.
+    const written = [
+      [[129, 121], [169, 120], [209, 120], [249, 123], [278, 123], [271, 115], [276, 106]],
+      [[171, 83], [171, 121], [173, 146], [173, 181], [171, 197]],
+      [[103, 198], [149, 198], [199, 205], [249, 211], [285, 213], [280, 203], [284, 191]],
+    ].map((stroke) => stroke.map(([x = 0, y = 0]) => ({ x, y })))
+    expect(readCharacter(written, medians(shi))).toBe('complete')
+    expect(readCharacter(written, medians(kou))).toBe('none')
+    expect(readCharacter(written, medians(ren))).toBe('none')
   })
 
   it('rejects a scribble', () => {
