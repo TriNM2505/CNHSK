@@ -80,7 +80,7 @@ export function FormField({
 }
 
 const controlClasses =
-  'min-h-control w-full rounded-sm border border-line bg-surface px-3 font-sans text-body text-ink placeholder:text-ink-muted focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-focus focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-muted aria-invalid:border-danger'
+  'min-h-control w-full rounded-sm border border-line bg-surface px-3 font-sans text-body text-ink placeholder:text-ink-muted focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-focus focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-muted aria-[invalid=true]:border-danger'
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className, ...props }, ref) {
