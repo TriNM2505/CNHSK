@@ -38,6 +38,9 @@ springdoc:
     enabled: false
 
 cnhsk:
+  # Tests read the mailbox right after the request that caused the email.
+  mail:
+    background: false
   grading:
     expiry-job-cron: "-"
   reminder:

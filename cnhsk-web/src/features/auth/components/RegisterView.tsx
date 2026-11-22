@@ -1,5 +1,6 @@
 import { CircleAlert } from 'lucide-react'
 import type { FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 
 import { Button, FormField, Input, PageHeader, PasswordInput, StatusBadge } from '@/shared/ui'
 
@@ -190,7 +191,18 @@ export function RegisterView({
                 onChange={(event) => onAcceptTermsChange(event.target.checked)}
                 type="checkbox"
               />
-              <span>Tôi đồng ý với điều khoản sử dụng và chính sách dữ liệu.</span>
+              <span>
+                Tôi đồng ý với{' '}
+                <Link
+                  className="font-semibold text-brand-700 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  rel="noopener"
+                  target="_blank"
+                  to="/terms"
+                >
+                  điều khoản sử dụng và chính sách dữ liệu
+                </Link>
+                .
+              </span>
             </label>
             {fieldErrors.acceptTerms ? (
               <p

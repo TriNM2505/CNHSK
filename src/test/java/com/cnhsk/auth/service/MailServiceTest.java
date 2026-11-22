@@ -93,6 +93,52 @@ class MailServiceTest {
     }
 
     @Test
+    void backgroundSendingReturnsBeforeASlowMailServerAnswersAndFinishesOnShutdown() throws Exception {
+        java.util.concurrent.CountDownLatch slowServer = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicReference<Thread> sender = new java.util.concurrent.atomic.AtomicReference<>();
+        when(mailSender.createMimeMessage()).thenReturn(newMimeMessage());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            sender.set(Thread.currentThread());
+            slowServer.await(20, java.util.concurrent.TimeUnit.SECONDS);
+            return null;
+        }).when(mailSender).send(any(MimeMessage.class));
+        CnhskProperties properties = new CnhskProperties();
+        properties.getApp().setWebBaseUrl(java.net.URI.create("https://cnhsk.test/"));
+        properties.getApp().setApiBaseUrl(java.net.URI.create("https://api.cnhsk.test/"));
+        MailService background = new MailService(mailSender, properties, "noreply@cnhsk.test", true);
+
+        background.sendVerificationEmail(new EmailVerificationRequestedEvent("learner@cnhsk.test", "verify-token"));
+
+        org.assertj.core.api.Assertions.assertThat(slowServer.getCount()).isEqualTo(1);
+        verify(mailSender, org.mockito.Mockito.timeout(5000)).send(any(MimeMessage.class));
+        org.assertj.core.api.Assertions.assertThat(sender.get()).isNotNull().isNotSameAs(Thread.currentThread());
+        slowServer.countDown();
+        background.stop();
+    }
+
+    @Test
+    void fullBackgroundQueueDropsTheEmailInsteadOfFailingTheRequest() throws Exception {
+        java.util.concurrent.CountDownLatch stuckServer = new java.util.concurrent.CountDownLatch(1);
+        when(mailSender.createMimeMessage()).thenAnswer(invocation -> newMimeMessage());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            stuckServer.await(20, java.util.concurrent.TimeUnit.SECONDS);
+            return null;
+        }).when(mailSender).send(any(MimeMessage.class));
+        CnhskProperties properties = new CnhskProperties();
+        properties.getApp().setWebBaseUrl(java.net.URI.create("https://cnhsk.test/"));
+        properties.getApp().setApiBaseUrl(java.net.URI.create("https://api.cnhsk.test/"));
+        MailService background = new MailService(mailSender, properties, "noreply@cnhsk.test", true);
+        try {
+            for (int index = 0; index < 210; index++) {
+                background.sendPasswordResetEmail(new PasswordResetRequestedEvent("learner@cnhsk.test", "reset-token"));
+            }
+        } finally {
+            stuckServer.countDown();
+            background.stop();
+        }
+    }
+
+    @Test
     void buildsMultipartStudyReminderAndEscapesDisplayName() throws Exception {
         when(mailSender.createMimeMessage()).thenReturn(newMimeMessage());
 

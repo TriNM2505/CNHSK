@@ -15,7 +15,14 @@ const itemClass =
   'inline-flex min-h-touch items-center gap-2 rounded-sm px-2 text-lg font-semibold text-ink no-underline transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus xl:px-3'
 
 /** Public pages that are not worth returning to after signing in; some carry a one-time token. */
-const noReturnPaths = new Set(['/', '/403', '/reminder/unsubscribe', '/reset-password', '/verify-email'])
+const noReturnPaths = new Set([
+  '/',
+  '/403',
+  '/reminder/unsubscribe',
+  '/reset-password',
+  '/terms',
+  '/verify-email',
+])
 
 function authQuery({ hash, pathname, search }: Location): string {
   const carried = new URLSearchParams(search).get('redirect')

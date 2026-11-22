@@ -24,7 +24,7 @@ type UtilityRouteDefinition = {
   access: 'public'
   kind: 'utility'
   layout: 'public'
-  path: '/reminder/unsubscribe'
+  path: '/reminder/unsubscribe' | '/terms'
 }
 
 type AiRunsRouteDefinition = {
@@ -119,6 +119,7 @@ export const appRouteDefinitions = [
     layout: 'public',
     path: '/reminder/unsubscribe',
   },
+  { access: 'public', kind: 'utility', layout: 'public', path: '/terms' },
   {
     access: ['ADMIN'],
     kind: 'screen',

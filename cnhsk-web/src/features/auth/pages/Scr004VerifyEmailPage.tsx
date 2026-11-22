@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useLocation, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 
 import { getAuthenticatedDestination, useCurrentUser } from '@/shared/auth'
 
@@ -18,30 +18,14 @@ import {
   type VerifyLinkStatus,
 } from '../verifyEmailFlow'
 
-/** State do màn đăng ký (FE-15) gửi sang khi chuyển tới đây. */
-interface VerifyEmailNavigationState {
-  email?: unknown
-  redirect?: unknown
-}
-
-function readNavigationState(state: unknown): { email?: string; redirect?: string } {
-  const value = (state ?? {}) as VerifyEmailNavigationState
-  return {
-    email: typeof value.email === 'string' ? value.email : undefined,
-    redirect: typeof value.redirect === 'string' ? value.redirect : undefined,
-  }
-}
-
 function loginPath(redirect: string | null | undefined): string {
   return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login'
 }
 
 export default function Scr004VerifyEmailPage() {
-  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const { reloadCurrentUser, status, user } = useCurrentUser()
-  const navigationState = readNavigationState(location.state)
-  const redirect = navigationState.redirect ?? searchParams.get('redirect')
+  const redirect = searchParams.get('redirect')
 
   // Token chỉ đọc lần đầu: sau khi gửi đi sẽ bị xoá khỏi thanh địa chỉ (không lưu trong lịch sử).
   const tokenRef = useRef(searchParams.get('token'))
@@ -144,7 +128,7 @@ export default function Scr004VerifyEmailPage() {
     <VerifyEmailView
       authenticated={status === 'authenticated' && Boolean(user)}
       continueTarget={continueTarget}
-      email={navigationState.email ?? user?.email}
+      email={user?.email}
       errorRequestId={linkRequestId}
       loginTo={loginPath(redirect)}
       loginToResend={loginPath('/verify-email')}

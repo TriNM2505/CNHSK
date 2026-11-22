@@ -9,10 +9,11 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.1.2 |
+| **Version** | 1.1.3 |
 | **Status** | DRAFT — chờ cả nhóm duyệt rồi mới `APPROVED` |
 | **Approved by** | — |
 | **Locked on** | — |
+| **Thay đổi 1.1.3** | Đăng ký xong đăng nhập luôn và vào đích FR-090 (FR-087, AT-71) · email xác thực và đặt lại mật khẩu gửi ở luồng nền (FR-006, FR-007) · trang `/terms` (§12.1) |
 | **Thay đổi 1.1.2** | Khoảng chờ 10 giây sau khi xoay vòng refresh token để nhiều tab không tự đăng xuất nhau (FR-032, AT-35b) · đăng xuất lỗi thì giữ trạng thái đăng nhập và báo rõ (§12.2) · màn mặc định của `TEACHER`, `MODERATOR` đã có (§12.3) |
 | **Thay đổi 1.1.1** | Màn mặc định của `LEARNER` là SCR-010 `/learn` (Bảng học tập) vì SCR-010 đã có · client web và game refresh im lặng khi 401 `UNAUTHENTICATED` (§12.2 `client.ts`) |
 | **Thay đổi so với 1.0** | Đổi tên actor (18/10) · tách gói, lượt free, mã thẻ sang spec gói dịch vụ (credits-plans) · tách hạn mức khách sang spec từ điển · chốt 4 câu hỏi mở · chốt 8 mâu thuẫn tài liệu (Nhóm 14) · thêm §0 nền tảng và §12–§15 |
@@ -199,8 +200,8 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 | **FR-003** | THE system SHALL hash mật khẩu bằng bcrypt cost 12 trước khi ghi (`HR-01`, `NFR-S01`) |
 | **FR-004** | WHEN email (đã chuẩn hoá, FR-095) đã tồn tại, THE system SHALL trả **409** `EMAIL_ALREADY_EXISTS` |
 | **FR-005** | THE system SHALL validate theo FR-091 (mật khẩu), FR-095 (email), `displayName` 2–100 ký tự sau khi bỏ khoảng trắng hai đầu, `acceptTerms = true`, hai lần nhập mật khẩu khớp. Vi phạm → **422** `VALIDATION_FAILED` kèm `details` từng field |
-| **FR-006** | WHEN tạo user thành công, THE system SHALL sinh token `EMAIL_VERIFY` trong `auth_tokens` hết hạn sau **24 giờ** và gửi email chứa link `{APP_WEB_BASE_URL}/verify-email?token=...` **sau khi transaction commit** |
-| **FR-007** | WHERE SMTP lỗi, THE system SHALL **vẫn trả 201** và ghi log lỗi (không ghi email), KHÔNG rollback việc tạo tài khoản (`NFR-A01`) |
+| **FR-006** | WHEN tạo user thành công, THE system SHALL sinh token `EMAIL_VERIFY` trong `auth_tokens` hết hạn sau **24 giờ** và gửi email chứa link `{APP_WEB_BASE_URL}/verify-email?token=...` **sau khi transaction commit**, ở luồng nền: response không chờ SMTP và không giữ kết nối DB (`cnhsk.mail.background`) |
+| **FR-007** | WHERE SMTP lỗi hoặc hàng đợi gửi đầy, THE system SHALL **vẫn trả 201** và ghi log lỗi (không ghi email), KHÔNG rollback việc tạo tài khoản (`NFR-A01`) |
 | **FR-008** | THE system SHALL KHÔNG bao giờ ghi mật khẩu thô hoặc token thô vào log (`NFR-S07`) |
 
 ### Nhóm 2 — Xác thực email (FR-009…FR-013) · UC-002
@@ -323,7 +324,7 @@ Nếu vừa bị cấm vừa bị treo, trả ACCOUNT_BANNED.
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-087** | WHEN đăng ký thành công, THE frontend SHALL chuyển sang SCR-004 hiện email đã gửi tới và cho **gửi lại** theo FR-012 |
+| **FR-087** | WHEN đăng ký thành công, THE frontend SHALL đăng nhập ngay bằng email và mật khẩu vừa nhập (`POST /api/auth/login`) rồi chuyển tới đích FR-090; banner §12.2 nhắc xác thực và dẫn sang SCR-004 để **gửi lại** theo FR-012. Đăng nhập tự động lỗi → SCR-002 với thông báo đã tạo tài khoản, giữ `redirect` |
 | **FR-088** | WHERE người dùng mở `/verify-email?token=`, THE frontend SHALL gọi FR-009 tự động một lần. Màn này **không chặn** việc dùng hệ thống (FR-010) |
 
 ### Nhóm 14 — Chốt mâu thuẫn tài liệu (FR-089…FR-097)
@@ -562,6 +563,7 @@ Mockup tham khảo giao diện: `C:\CLHSK\cnhsk-mockup-79\screens\scr-0xx-*.html
 | SCR-001 | Landing (phần tài khoản) | `/` | Không | `GET /api/auth/me` (biết đã đăng nhập) | `screen-fields.md` dòng 118 |
 | SCR-002 | Sign In | `/login?redirect=` | Chỉ khách; đã đăng nhập → FR-090 | `POST /api/auth/login` | dòng 475 |
 | SCR-003 | Register | `/register` | Chỉ khách | `POST /api/auth/register` | dòng 944 |
+| — | Điều khoản sử dụng và chính sách dữ liệu | `/terms` | Không | — | — (trang tiện ích, liên kết từ SCR-003 và chân SCR-001) |
 | SCR-004 | Verify Email | `/verify-email?token=` | Không | `POST /api/auth/verify-email`, `POST /api/auth/verify-email/resend` | dòng 1450 |
 | SCR-005 | Forgot Password | `/forgot-password` | Chỉ khách | `POST /api/auth/forgot-password` | dòng 1843 |
 | SCR-006 | Reset Password | `/reset-password?token=` | Không | `POST /api/auth/reset-password` | dòng 2164 |
@@ -710,7 +712,7 @@ Không có AT: FR-055 (đã chuyển), FR-056 (V2), FR-058c (spec này không c�
 | AT-68 | FR-065, FR-092 | G user B đang có access token chứa `TEACHER` · W admin thu hồi `TEACHER` · T request kế tiếp của B → 401 `SESSION_REVOKED`; B refresh → JWT mới không có `TEACHER` |
 | AT-69 | FR-066 | G chỉ còn 1 `ADMIN` hoạt động · W thu hồi `ADMIN` của người đó (bởi admin khác bị cấm/không có) · T 409 `REVOKE_LAST_ADMIN`; tự thu hồi → 403 `SELF_ROLE_REVOKE` |
 | AT-70 | FR-066 | G `CONTENT_EDITOR` · W gọi gán role · T 403 |
-| AT-71 | FR-087, FR-088 (FE) | W đăng ký trên SCR-003 · T chuyển SCR-004 hiện email; mở `/verify-email?token=` → gọi verify đúng 1 lần |
+| AT-71 | FR-087, FR-088 (FE) | W đăng ký trên SCR-003 · T gọi đăng nhập và vào `redirect` hoặc `/learn`, banner nhắc xác thực hiện email; đăng nhập tự động lỗi · T về `/login` báo đã tạo tài khoản; mở `/verify-email?token=` → gọi verify đúng 1 lần |
 | AT-72 | FR-090 (FE) | G user chỉ `ADMIN` → SCR-076; user `LEARNER`+`TEACHER` → SCR-001 có "Khu vực của bạn"; có `redirect=/admin/users` nhưng không phải `ADMIN` → bỏ qua redirect; `redirect=http://localhost:5174/play` (origin game) → chuyển đúng URL đó; `redirect=https://evil.com` → bỏ qua |
 | AT-73 | FR-096, E5 | G B có phiên · W admin cấm B lý do "spam" · T request kế tiếp của B 403 `ACCOUNT_BANNED`; refresh của B bị thu hồi; có `audit_logs USER_BAN`; gỡ cấm → B đăng nhập được |
 | AT-74 | FR-096 | W admin tự cấm mình · T 403 `SELF_BAN`; cấm `ADMIN` cuối cùng → 409 `BAN_LAST_ADMIN`; `reason` 3 ký tự → 422 |

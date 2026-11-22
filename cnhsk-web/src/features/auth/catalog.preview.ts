@@ -46,7 +46,7 @@ const verifyEmailEntries = [
   [
     'scr-004-after-register',
     'Xác thực email — Sau đăng ký (khách)',
-    verifyEmailPreviews.afterRegister,
+    verifyEmailPreviews.guest,
   ],
   [
     'scr-004-signed-in',

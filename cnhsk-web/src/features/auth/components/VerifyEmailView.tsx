@@ -132,8 +132,9 @@ function headerInfo(mode: VerifyEmailMode) {
         badge: <StatusBadge tone="info">Xác thực email</StatusBadge>,
         hanzi: '邮箱',
         pinyin: 'yǒuxiāng',
-        subtitle: 'Email đã xác thực giúp khôi phục mật khẩu và bật thông báo học tập khi cần.',
-        title: 'Kiểm tra hộp thư của bạn',
+        subtitle:
+          'Cần xác thực để đăng bài, bình luận, đăng ký cuộc thi và nhận nhắc học qua email.',
+        title: 'Xác thực email của bạn',
       }
     case 'error':
       return {
@@ -216,16 +217,16 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
                 >
                   <MailCheck className="size-4" />
                 </span>
-                <p className="text-label text-brand-800">Thư xác thực đã được gửi</p>
+                <p className="text-label text-brand-800">Mở thư xác thực trong hộp thư</p>
               </div>
               <p className="min-w-0 break-words text-body text-ink">
                 {email ? (
                   <>
-                    Liên kết xác thực đã gửi tới <strong>{email}</strong>. Mở email và bấm vào liên
-                    kết để xác thực tài khoản.
+                    Bấm liên kết trong thư CNHSK gửi tới <strong>{email}</strong>. Liên kết có hiệu
+                    lực trong 24 giờ.
                   </>
                 ) : (
-                  'Mở email chúng tôi đã gửi và bấm vào liên kết để xác thực tài khoản.'
+                  'Bấm liên kết trong thư CNHSK gửi tới email bạn đã đăng ký. Liên kết có hiệu lực trong 24 giờ.'
                 )}
               </p>
               <p className="text-body-sm text-ink-secondary">
@@ -235,23 +236,17 @@ export function VerifyEmailView(props: VerifyEmailViewProps) {
 
             <ResendSection {...props} />
 
-            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-4">
-              <div>
-                {authenticated ? (
-                  <ContinueButton target={continueTarget}>Bỏ qua, vào học</ContinueButton>
-                ) : (
-                  <Button to={loginTo} variant="outline">
-                    Bỏ qua, vào học
+            <div className="border-t border-line pt-4">
+              {authenticated ? (
+                <ContinueButton target={continueTarget}>Để sau, vào học</ContinueButton>
+              ) : (
+                <p className="flex flex-wrap items-center gap-1 text-body-sm text-ink-secondary">
+                  <span>Chưa có tài khoản?</span>
+                  <Button size="sm" to={registerTo} variant="ghost">
+                    Đăng ký
                   </Button>
-                )}
-              </div>
-
-              <p className="flex flex-wrap items-center gap-1 text-body-sm text-ink-secondary">
-                <span>Sai địa chỉ email?</span>
-                <Button size="sm" to={registerTo} variant="ghost">
-                  Đăng ký lại
-                </Button>
-              </p>
+                </p>
+              )}
             </div>
           </div>
         ) : null}

@@ -12,6 +12,7 @@ import {
   UserRoundCheck,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
 import advisorImage from '../assets/landing/advisor.webp'
 import courseChineseImage from '../assets/landing/course-chinese.webp'
@@ -567,6 +568,12 @@ export function LandingView(props: LandingViewProps) {
             <p className="text-label text-accent-500">Thông tin pháp lý</p>
             <p>Công ty Cổ phần GD & ĐT Học Bá</p>
             <p>Mã số thuế: 0110883975</p>
+            <Link
+              className="inline-flex min-h-touch items-center text-surface underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+              to="/terms"
+            >
+              Điều khoản và chính sách dữ liệu
+            </Link>
           </div>
         </div>
       </footer>

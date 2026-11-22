@@ -24,6 +24,11 @@ const previewRoutes: RouteObject[] = import.meta.env.DEV
     ]
   : []
 
+const utilityPages = {
+  '/reminder/unsubscribe': () => import('@/features/reminder/pages/ReminderUnsubscribePage'),
+  '/terms': () => import('@/features/auth/pages/TermsPage'),
+}
+
 const applicationRoutes: RouteObject[] = appRouteDefinitions.map((route) => {
   if (route.kind === 'not-found') {
     return {
@@ -57,12 +62,11 @@ const applicationRoutes: RouteObject[] = appRouteDefinitions.map((route) => {
       path: route.path,
       handle: { requiresAuthentication: false },
       lazy: async () => {
-        const { default: ReminderUnsubscribePage } =
-          await import('@/features/reminder/pages/ReminderUnsubscribePage')
+        const { default: UtilityPage } = await utilityPages[route.path]()
         return {
           element: (
             <PublicLayout>
-              <ReminderUnsubscribePage />
+              <UtilityPage />
             </PublicLayout>
           ),
         }

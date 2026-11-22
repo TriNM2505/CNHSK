@@ -16,7 +16,7 @@ const base = {
 const signedIn = { ...base, authenticated: true, email: 'nguyen.an@example.com' }
 
 export const verifyEmailPreviews = {
-  afterRegister: { ...base, email: 'nguyen.an@example.com' },
+  guest: base,
   signedInUnverified: signedIn,
   resendSending: { ...signedIn, resend: { kind: 'sending' } },
   resendSent: { ...signedIn, resend: { kind: 'sent' } },

@@ -2,9 +2,12 @@ import { useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useApiMutation } from '@/shared/api'
+import { useCurrentUser } from '@/shared/auth'
 
 import { register } from '../api/register'
+import { signIn } from '../api/signIn'
 import { RegisterView } from '../components/RegisterView'
+import { navigateAfterSignIn } from '../navigateAfterSignIn'
 import {
   getRegisterFailure,
   normalizeRegisterRequest,
@@ -12,6 +15,7 @@ import {
   type RegisterNotice,
   validateRegister,
 } from '../registerForm'
+import type { SignInNavigationState } from '../signInForm'
 import type { RegisterRequest } from '../types'
 
 const EMPTY_VALUES: RegisterRequest = {
@@ -31,12 +35,15 @@ export default function Scr003RegisterPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const redirect = searchParams.get('redirect')
+  const { setAuthenticatedUser } = useCurrentUser()
   const mutation = useApiMutation(register)
+  const [signingIn, setSigningIn] = useState(false)
   const [values, setValues] = useState<RegisterRequest>(EMPTY_VALUES)
   const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({})
   const [notice, setNotice] = useState<RegisterNotice>()
   const destinationToLogin = useMemo(() => loginPath(redirect), [redirect])
-  const state = mutation.pending
+  const submitting = mutation.pending || signingIn
+  const state = submitting
     ? ('submitting' as const)
     : notice || Object.keys(fieldErrors).length
       ? ('error' as const)
@@ -52,7 +59,7 @@ export default function Scr003RegisterPage() {
   }
 
   const submit = async () => {
-    if (mutation.pending) return
+    if (submitting) return
 
     const validationErrors = validateRegister(values)
     if (Object.keys(validationErrors).length) {
@@ -64,16 +71,25 @@ export default function Scr003RegisterPage() {
     setFieldErrors({})
     setNotice(undefined)
 
+    const request = normalizeRegisterRequest(values)
+    setSigningIn(true)
     try {
-      const response = await mutation.run(normalizeRegisterRequest(values))
-      navigate('/verify-email', {
-        replace: true,
-        state: { email: response.email, redirect },
-      })
+      await mutation.run(request)
     } catch (error) {
       const failure = getRegisterFailure(error)
       setFieldErrors(failure.fieldErrors)
       setNotice(failure.notice)
+      setSigningIn(false)
+      return
+    }
+
+    try {
+      const { user } = await signIn({ email: request.email, password: request.password })
+      navigateAfterSignIn({ navigate, redirect, setAuthenticatedUser, user })
+    } catch {
+      // The account exists; only the automatic sign-in failed, so registering again would be wrong.
+      const loginState: SignInNavigationState = { registered: true }
+      navigate(destinationToLogin, { replace: true, state: loginState })
     }
   }
 

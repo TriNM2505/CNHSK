@@ -7,6 +7,7 @@ export type SignInFieldErrors = Partial<Record<keyof LoginRequest, string>>
 
 export type SignInNotice =
   | { kind: 'password-reset' }
+  | { kind: 'registered' }
   | { kind: 'invalid-credentials' }
   | { blockedUntil: string; kind: 'blocked' }
   | { banReason?: string; kind: 'banned' }
@@ -14,9 +15,10 @@ export type SignInNotice =
   | { kind: 'validation' }
   | { kind: 'generic'; message: string; requestId?: string }
 
-/** SCR-006 đặt cờ này khi chuyển về /login sau khi đặt lại mật khẩu thành công (FR-042). */
-export interface PasswordResetNavigationState {
+/** Cờ do màn khác đặt khi chuyển về /login sau một việc đã thành công. */
+export interface SignInNavigationState {
   passwordReset?: boolean
+  registered?: boolean
 }
 
 export interface SignInFailure {

@@ -12,7 +12,7 @@ import {
   type ResetPasswordValues,
   validateResetPassword,
 } from '../passwordResetForm'
-import type { PasswordResetNavigationState } from '../signInForm'
+import type { SignInNavigationState } from '../signInForm'
 
 const EMPTY_VALUES: ResetPasswordValues = { confirmPassword: '', newPassword: '' }
 
@@ -65,7 +65,7 @@ export default function Scr006ResetPasswordPage() {
     setNotice(undefined)
     try {
       await mutation.run({ ...values, token })
-      const state: PasswordResetNavigationState = { passwordReset: true }
+      const state: SignInNavigationState = { passwordReset: true }
       navigate('/login', { replace: true, state })
     } catch (error) {
       const failure = getResetPasswordFailure(error)

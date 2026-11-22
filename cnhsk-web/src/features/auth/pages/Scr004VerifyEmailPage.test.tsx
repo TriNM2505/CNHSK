@@ -41,10 +41,7 @@ function LocationProbe() {
   return <output data-testid="location">{`${location.pathname}${location.search}`}</output>
 }
 
-function renderPage(
-  entry: string | { pathname: string; state: unknown },
-  auth: AuthContextValue = authValue(),
-) {
+function renderPage(entry: string, auth: AuthContextValue = authValue()) {
   return render(
     <StrictMode>
       <AuthContext.Provider value={auth}>
@@ -132,19 +129,24 @@ describe('Scr004VerifyEmailPage', () => {
     expect(verifyEmail).toHaveBeenCalledTimes(2)
   })
 
-  it('FR-087: sau đăng ký hiện email đã gửi; khách không có nút gửi lại', async () => {
-    renderPage({
-      pathname: '/verify-email',
-      state: { email: 'moi@example.com', redirect: '/learn/grammar' },
-    })
+  it('khách mở thẳng màn này được hướng dẫn mà không bị báo là vừa có thư', async () => {
+    renderPage('/verify-email')
 
-    expect(await screen.findByText('moi@example.com')).toBeVisible()
+    expect(await screen.findByText('Xác thực email của bạn')).toBeVisible()
+    expect(screen.queryByText(/đã được gửi|đã gửi/)).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Gửi lại email xác thực' })).toBeNull()
-    expect(screen.getByRole('link', { name: 'Bỏ qua, vào học' })).toHaveAttribute(
-      'href',
-      '/login?redirect=%2Flearn%2Fgrammar',
-    )
+    expect(screen.getByRole('link', { name: 'Đăng nhập để gửi lại' })).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Đăng ký' })).toHaveAttribute('href', '/register')
     expect(verifyEmail).not.toHaveBeenCalled()
+  })
+
+  it('người vừa đăng ký thấy email của mình, gửi lại được và vào học ngay', async () => {
+    renderPage('/verify-email', authValue({ status: 'authenticated', user: learner }))
+
+    expect(screen.getByText('learner@example.com')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Gửi lại email xác thực' })).toBeEnabled()
+    expect(screen.getByRole('link', { name: 'Để sau, vào học' })).toHaveAttribute('href', '/learn')
+    expect(screen.queryByRole('link', { name: /Đăng ký/ })).not.toBeInTheDocument()
   })
 
   it('FR-012: người đã đăng nhập gửi lại thành công', async () => {

@@ -4,12 +4,18 @@ import java.net.URI;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import com.cnhsk.auth.event.EmailVerificationRequestedEvent;
 import com.cnhsk.auth.event.PasswordResetRequestedEvent;
 import com.cnhsk.shared.config.CnhskProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -19,25 +25,40 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.HtmlUtils;
+import jakarta.annotation.PreDestroy;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
-/** Sends authentication emails after commit and study reminders synchronously for job retries. */
+/**
+ * Sends authentication emails after commit on background threads, so a slow mail server neither delays the
+ * response nor holds its database connection. Study reminders stay synchronous for job retries.
+ */
 @Service
 public class MailService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MailService.class);
     private static final String VERIFY_PATH = "/verify-email";
     private static final String RESET_PATH = "/reset-password";
+    private static final int SENDER_THREADS = 2;
+    private static final int QUEUE_CAPACITY = 200;
+    private static final long SHUTDOWN_SECONDS = 30;
 
     private final JavaMailSender mailSender;
     private final URI webBaseUrl;
     private final URI apiBaseUrl;
     private final String fromAddress;
+    private final ExecutorService senders;
 
+    /** Sends on the calling thread. */
+    public MailService(JavaMailSender mailSender, CnhskProperties properties, String fromAddress) {
+        this(mailSender, properties, fromAddress, false);
+    }
+
+    @Autowired
     public MailService(JavaMailSender mailSender, CnhskProperties properties,
-            @Value("${MAIL_FROM:noreply@cnhsk.com}") String fromAddress) {
+            @Value("${MAIL_FROM:noreply@cnhsk.com}") String fromAddress,
+            @Value("${cnhsk.mail.background:true}") boolean background) {
         this.mailSender = Objects.requireNonNull(mailSender, "mailSender must not be null.");
         this.webBaseUrl = Objects.requireNonNull(properties, "properties must not be null.")
                 .getApp().getWebBaseUrl();
@@ -52,11 +73,24 @@ public class MailService {
             throw new IllegalArgumentException("MAIL_FROM must not be blank.");
         }
         this.fromAddress = fromAddress;
+        this.senders = background ? new ThreadPoolExecutor(SENDER_THREADS, SENDER_THREADS, 0, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(QUEUE_CAPACITY), task -> new Thread(task, "auth-mail")) : null;
+    }
+
+    /** Lets queued emails leave before the application stops. */
+    @PreDestroy
+    void stop() throws InterruptedException {
+        if (senders != null) {
+            senders.shutdown();
+            if (!senders.awaitTermination(SHUTDOWN_SECONDS, TimeUnit.SECONDS)) {
+                senders.shutdownNow();
+            }
+        }
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void sendVerificationEmail(EmailVerificationRequestedEvent event) {
-        send(event.getRecipient(), "Xác thực email CNHSK",
+        dispatch(event.getRecipient(), "Xác thực email CNHSK",
                 "Xin chào,\n\n"
                         + "Vui lòng xác thực địa chỉ email cho tài khoản CNHSK bằng liên kết sau:\n"
                         + link(VERIFY_PATH, event.getToken()) + "\n\n"
@@ -66,7 +100,7 @@ public class MailService {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void sendPasswordResetEmail(PasswordResetRequestedEvent event) {
-        send(event.getRecipient(), "Đặt lại mật khẩu CNHSK",
+        dispatch(event.getRecipient(), "Đặt lại mật khẩu CNHSK",
                 "Xin chào,\n\n"
                         + "Chúng tôi nhận được yêu cầu đặt lại mật khẩu tài khoản CNHSK. Mở liên kết sau để tiếp tục:\n"
                         + link(RESET_PATH, event.getToken()) + "\n\n"
@@ -101,6 +135,18 @@ public class MailService {
         }
         // Let SMTP failures reach the caller so the reminder job can retry delivery.
         mailSender.send(message);
+    }
+
+    private void dispatch(String recipient, String subject, String text) {
+        if (senders == null) {
+            send(recipient, subject, text);
+            return;
+        }
+        try {
+            senders.execute(() -> send(recipient, subject, text));
+        } catch (RejectedExecutionException exception) {
+            LOGGER.warn("Authentication email queue is full; recipient={}", maskEmail(recipient));
+        }
     }
 
     private void send(String recipient, String subject, String text) {

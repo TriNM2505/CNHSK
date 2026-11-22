@@ -42,7 +42,8 @@ function formatDateTime(value: string): string {
 }
 
 function NoticeBanner({ notice }: { notice: SignInNotice }) {
-  if (notice.kind === 'password-reset') {
+  if (notice.kind === 'password-reset' || notice.kind === 'registered') {
+    const registered = notice.kind === 'registered'
     return (
       <div
         className="mb-5 flex items-start gap-3 rounded-md border border-success bg-success-bg p-4 text-body-sm text-success"
@@ -50,8 +51,14 @@ function NoticeBanner({ notice }: { notice: SignInNotice }) {
       >
         <CircleCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
         <div className="min-w-0">
-          <p className="font-semibold">Đã đặt lại mật khẩu</p>
-          <p className="mt-1">Hãy đăng nhập bằng mật khẩu mới.</p>
+          <p className="font-semibold">
+            {registered ? 'Đã tạo tài khoản' : 'Đã đặt lại mật khẩu'}
+          </p>
+          <p className="mt-1">
+            {registered
+              ? 'Hãy đăng nhập bằng email và mật khẩu vừa đăng ký.'
+              : 'Hãy đăng nhập bằng mật khẩu mới.'}
+          </p>
         </div>
       </div>
     )

@@ -7,33 +7,29 @@ import { ApiError } from '@/shared/api'
 import { AuthContext, type AuthContextValue } from '@/shared/auth'
 
 import { register } from '../api/register'
-import { resendVerificationEmail, verifyEmail } from '../api/verifyEmail'
-import Scr004VerifyEmailPage from './Scr004VerifyEmailPage'
+import { signIn } from '../api/signIn'
+import type { CurrentUser } from '../types'
 import Scr003RegisterPage from './Scr003RegisterPage'
 
 vi.mock('../api/register', () => ({ register: vi.fn() }))
-vi.mock('../api/verifyEmail', () => ({
-  resendVerificationEmail: vi.fn(),
-  verifyEmail: vi.fn(),
-}))
+vi.mock('../api/signIn', () => ({ signIn: vi.fn() }))
 
-function VerifyEmailProbe() {
-  const location = useLocation()
-  return <output>{JSON.stringify(location.state)}</output>
+const learner: CurrentUser = {
+  displayName: 'Nguyễn An',
+  email: 'learner@example.com',
+  emailVerified: false,
+  id: 12,
+  roles: ['LEARNER'],
 }
 
-function renderPage(path = '/register') {
-  render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route element={<Scr003RegisterPage />} path="/register" />
-        <Route element={<VerifyEmailProbe />} path="/verify-email" />
-      </Routes>
-    </MemoryRouter>,
+function LocationProbe() {
+  const location = useLocation()
+  return (
+    <output>{`${location.pathname}${location.search} ${JSON.stringify(location.state)}`}</output>
   )
 }
 
-function renderRegistrationFlow(path = '/register') {
+function renderPage(path = '/register') {
   const auth: AuthContextValue = {
     error: null,
     reloadCurrentUser: vi.fn(async () => undefined),
@@ -48,11 +44,12 @@ function renderRegistrationFlow(path = '/register') {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route element={<Scr003RegisterPage />} path="/register" />
-          <Route element={<Scr004VerifyEmailPage />} path="/verify-email" />
+          <Route element={<LocationProbe />} path="*" />
         </Routes>
       </MemoryRouter>
     </AuthContext.Provider>,
   )
+  return auth
 }
 
 async function enterValidRegistration() {
@@ -68,8 +65,7 @@ async function enterValidRegistration() {
 describe('Scr003RegisterPage', () => {
   beforeEach(() => {
     vi.mocked(register).mockReset()
-    vi.mocked(resendVerificationEmail).mockReset()
-    vi.mocked(verifyEmail).mockReset()
+    vi.mocked(signIn).mockReset().mockResolvedValue({ user: learner })
   })
 
   it('validate phía client và không gọi API khi form chưa hợp lệ', async () => {
@@ -85,49 +81,80 @@ describe('Scr003RegisterPage', () => {
     expect(register).not.toHaveBeenCalled()
   })
 
-  it('gửi đủ dữ liệu đã chuẩn hoá và chuyển sang xác thực email', async () => {
+  it.each([
+    ['/register', '/learn null'],
+    ['/register?redirect=%2Flearn%2Ftopics', '/learn/topics null'],
+  ])('đăng ký từ %s thì đăng nhập luôn và vào thẳng đích', async (path, destination) => {
     vi.mocked(register).mockResolvedValue({
       email: 'learner@example.com',
       emailVerified: false,
       userId: 12,
     })
+    const auth = renderPage(path)
+    const user = await enterValidRegistration()
+
+    await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
+
+    expect(await screen.findByText(destination)).toBeVisible()
+    expect(register).toHaveBeenCalledWith({
+      acceptTerms: true,
+      confirmPassword: 'HocTieng1',
+      displayName: 'Nguyễn An',
+      email: 'learner@example.com',
+      password: 'HocTieng1',
+    })
+    expect(signIn).toHaveBeenCalledWith({ email: 'learner@example.com', password: 'HocTieng1' })
+    expect(auth.setAuthenticatedUser).toHaveBeenCalledWith(learner)
+  })
+
+  it('khoá nút trong lúc đăng ký và đăng nhập, không gửi hai lần', async () => {
+    let finishSignIn!: () => void
+    vi.mocked(register).mockResolvedValue({
+      email: 'learner@example.com',
+      emailVerified: false,
+      userId: 12,
+    })
+    vi.mocked(signIn).mockReturnValue(
+      new Promise((resolve) => {
+        finishSignIn = () => resolve({ user: learner })
+      }),
+    )
+    renderPage()
+    const user = await enterValidRegistration()
+
+    await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
+    await waitFor(() => expect(signIn).toHaveBeenCalledOnce())
+    expect(screen.getByRole('button', { name: /Đang đăng ký/ })).toBeDisabled()
+
+    finishSignIn()
+    expect(await screen.findByText('/learn null')).toBeVisible()
+    expect(register).toHaveBeenCalledOnce()
+  })
+
+  it('tài khoản đã tạo nhưng chưa đăng nhập được thì mời đăng nhập, không báo lỗi đăng ký', async () => {
+    vi.mocked(register).mockResolvedValue({
+      email: 'learner@example.com',
+      emailVerified: false,
+      userId: 12,
+    })
+    vi.mocked(signIn).mockRejectedValue(
+      new ApiError({ errorCode: 'LOGIN_SOURCE_BLOCKED', message: 'x', status: 423 }),
+    )
     renderPage('/register?redirect=%2Flearn%2Ftopics')
     const user = await enterValidRegistration()
 
     await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
 
-    await waitFor(() =>
-      expect(register).toHaveBeenCalledWith({
-        acceptTerms: true,
-        confirmPassword: 'HocTieng1',
-        displayName: 'Nguyễn An',
-        email: 'learner@example.com',
-        password: 'HocTieng1',
-      }),
-    )
-    expect(await screen.findByText(/"email":"learner@example.com"/)).toHaveTextContent(
-      '"redirect":"/learn/topics"',
-    )
+    expect(
+      await screen.findByText('/login?redirect=%2Flearn%2Ftopics {"registered":true}'),
+    ).toBeVisible()
   })
 
-  it('AT-71 / FR-087: đăng ký thành công chuyển tới SCR-004 với email và redirect, chưa tự gửi lại', async () => {
-    vi.mocked(register).mockResolvedValue({
-      email: 'learner@example.com',
-      emailVerified: false,
-      userId: 12,
-    })
-    renderRegistrationFlow('/register?redirect=%2Flearn%2Ftopics')
-    const user = await enterValidRegistration()
-
-    await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
-
-    expect(await screen.findByText('learner@example.com')).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Bỏ qua, vào học' })).toHaveAttribute(
-      'href',
-      '/login?redirect=%2Flearn%2Ftopics',
-    )
-    expect(verifyEmail).not.toHaveBeenCalled()
-    expect(resendVerificationEmail).not.toHaveBeenCalled()
+  it('mở điều khoản ở tab khác để không mất nội dung đã nhập', () => {
+    renderPage()
+    const terms = screen.getByRole('link', { name: 'điều khoản sử dụng và chính sách dữ liệu' })
+    expect(terms).toHaveAttribute('href', '/terms')
+    expect(terms).toHaveAttribute('target', '_blank')
   })
 
   it('gắn lỗi 409 vào email và giữ redirect trên link đăng nhập', async () => {

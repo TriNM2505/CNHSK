@@ -213,10 +213,16 @@ export function LearnerLayout({
       {user && !user.emailVerified ? (
         <aside className="border-b border-warning bg-warning-bg px-4 py-3" role="status">
           <div className="mx-auto flex max-w-content flex-wrap items-center justify-center gap-3 sm:justify-between">
-            <p className="flex items-center gap-2 text-body-sm text-ink">
+            <div className="flex min-w-0 items-start gap-2 text-body-sm text-ink">
               <CircleAlert aria-hidden="true" className="size-5 shrink-0 text-warning" />
-              Xác minh email để dùng đầy đủ
-            </p>
+              <div className="min-w-0">
+                <p className="font-semibold">Xác minh email để dùng đầy đủ</p>
+                <p className="break-words">
+                  Bấm liên kết trong thư CNHSK gửi tới {user.email} để đăng bài, bình luận và nhận
+                  nhắc học.
+                </p>
+              </div>
+            </div>
             <Button size="sm" to="/verify-email" variant="outline">
               Xác minh email
             </Button>

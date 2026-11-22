@@ -87,6 +87,12 @@ describe('Scr002SignInPage', () => {
     vi.mocked(signIn).mockReset()
   })
 
+  it('báo đã tạo tài khoản khi đăng ký xong nhưng chưa tự đăng nhập được', async () => {
+    renderPage({ pathname: '/login', state: { registered: true } })
+    expect(screen.getByRole('status')).toHaveTextContent('Đã tạo tài khoản')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('hiện thông báo thành công khi vừa đặt lại mật khẩu (từ SCR-006)', () => {
     renderPage({ pathname: '/login', state: { passwordReset: true } })
 
