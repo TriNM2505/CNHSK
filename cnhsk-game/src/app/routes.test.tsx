@@ -6,11 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { appRoutes } from './routes'
 
 const games = [
-  ['char-rain', 'CHAR_RAIN', 'Mưa Chữ'],
+  ['char-rain', 'CHAR_RAIN', 'Lọ Mực'],
   ['pinyin-match', 'PINYIN_MATCH', 'Ghép Pinyin'],
   ['radical-match', 'RADICAL_MATCH', 'Ghép Bộ Thủ'],
   ['char-catch', 'CHAR_CATCH', 'Bắt Chữ'],
-  ['brush-stroke', 'BRUSH_STROKE', 'Thần Bút'],
+  ['brush-stroke', 'BRUSH_STROKE', 'Mưa Chữ'],
   ['flying-dart', 'FLYING_DART', 'Phi Đao'],
 ] as const
 
@@ -82,11 +82,11 @@ describe('game application routes (FR-027)', () => {
       }
       throw new Error('Unexpected request ' + url)
     })
-    open(`/play/${slug}?hskLevel=9`)
+    open(`/play/${slug}?hskLevel=2`)
     await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
     expect(await screen.findByRole('region', { name })).toBeVisible()
     expect(fetchMock).toHaveBeenCalledWith('/api/community/games/' + code + '/rounds',
-      expect.objectContaining({ method: 'POST', body: '{"hskLevel":9}' }))
+      expect.objectContaining({ method: 'POST', body: '{"hskLevel":2}' }))
   })
 
   it.each([
@@ -107,24 +107,31 @@ describe('game application routes (FR-027)', () => {
       const url = String(input)
       if (url === '/api/auth/me') return Response.json({ id: 1, roles: ['LEARNER'] })
       if (url === lexeme) return Response.json({ pinyin: 'yī' })
-      if (url === '/api/community/games/FLYING_DART/rounds') {
+      if (url.startsWith('/stroke-data/')) {
+        return Response.json({ strokes: ['M 20 50 L 300 50'], medians: [[[20, 50], [300, 50]]] })
+      }
+      if (url.endsWith('/answers')) {
+        return Response.json({ no: 1, correct: false, correctAnswer: 'PASS', pointsAwarded: 0, totalPoints: 0,
+          answeredCount: 1, livesLeft: 2 })
+      }
+      if (url === '/api/community/games/BRUSH_STROKE/rounds') {
         const now = Date.now()
         return Response.json({
-          roundId: 5, gameCode: 'FLYING_DART', startedAt: new Date(now - 3000).toISOString(),
+          roundId: 5, gameCode: 'BRUSH_STROKE', startedAt: new Date(now - 3000).toISOString(),
           serverTime: new Date(now).toISOString(), deadline: new Date(now + 60000).toISOString(),
           timeLimitSeconds: 60, pointsPerCorrect: 10,
-          uiConfig: { fallStartMs: 500, fallStepMs: 0, fallMinMs: 500 },
+          uiConfig: { fallStartMs: 500, fallStepMs: 0, fallMinMs: 500, maxLives: 3 },
           items: [1, 2].map((no) => ({
-            no, type: 'PINYIN_INPUT', lexemeId: 11, prompt: { text: '一', hint: 'một' },
+            no, type: 'TRACE_CHAR', lexemeId: 11, prompt: { text: '一', hint: 'một' },
             rules: { minDurationMs: 300, maxReplays: 0, hasAudio: false },
           })),
         })
       }
       throw new Error('Unexpected request ' + url)
     })
-    open('/play/flying-dart')
+    open('/play/brush-stroke?hskLevel=1')
     await userEvent.click(await screen.findByRole('button', { name: 'Bắt đầu' }))
-    await screen.findByRole('textbox', { name: 'Gõ pinyin' })
+    await screen.findByRole('img', { name: 'Ô viết chữ' })
     expect(fetchMock.mock.calls.filter(([url]) => url === lexeme)).toHaveLength(0)
     expect(await screen.findByText('Bỏ lỡ: 一 · yī')).toBeVisible()
     expect(fetchMock.mock.calls.filter(([url]) => url === lexeme)).toEqual([

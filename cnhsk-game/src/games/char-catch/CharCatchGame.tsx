@@ -16,7 +16,8 @@ export function CharCatchGame(props: GameProps) {
     <CatchItem
       key={item.no}
       item={item}
-      perItemMs={typeof perItemMs === 'number' && perItemMs > 0 ? perItemMs : fallbackItemMs}
+      // Without a per-question limit only the round clock counts; answering faster scores more.
+      perItemMs={typeof perItemMs === 'number' && perItemMs > 0 ? perItemMs : null}
       columns={typeof gridColumns === 'number' && Number.isInteger(gridColumns) && gridColumns > 0 ? gridColumns : 3}
       disabled={props.disabled}
       submitAnswer={props.submitAnswer}
@@ -29,7 +30,7 @@ export function CharCatchGame(props: GameProps) {
 
 type ItemProps = Pick<GameProps, 'disabled' | 'submitAnswer' | 'onMissed' | 'onItemShown'> & {
   item: ServedItem
-  perItemMs: number
+  perItemMs: number | null
   columns: number
   onAdvance: () => void
 }
@@ -41,7 +42,8 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
   const [needsTap, setNeedsTap] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [replays, setReplays] = useState(0)
-  const [remaining, setRemaining] = useState(perItemMs)
+  const timed = perItemMs !== null
+  const [remaining, setRemaining] = useState(perItemMs ?? 0)
   const [selected, setSelected] = useState<string>()
   const [grading, setGrading] = useState(false)
   const [feedback, setFeedback] = useState<GameAnswer>()
@@ -51,8 +53,9 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
   const active = useRef(false)
   const resolved = useRef(false)
   const announced = useRef(false)
-  const loadTimeLeft = useRef(perItemMs)
-  const timeLeft = useRef(perItemMs)
+  // Audio still has to load in reasonable time even when questions are not timed.
+  const loadTimeLeft = useRef(perItemMs ?? fallbackItemMs)
+  const timeLeft = useRef(perItemMs ?? 0)
   const answerDeadline = useRef<number>()
   const gradingDeadline = useRef(0)
   const options = item.options ?? []
@@ -120,7 +123,7 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
         loadTimeLeft.current = Math.max(0, deadline - performance.now())
       }
     }
-    if (selected !== undefined) return
+    if (selected !== undefined || !timed) return
     const deadline = performance.now() + timeLeft.current
     answerDeadline.current = deadline
     let timeout: number
@@ -137,7 +140,7 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
       answerDeadline.current = undefined
       timeLeft.current = Math.max(0, deadline - performance.now())
     }
-  }, [audioFailed, disabled, miss, ready, selected])
+  }, [audioFailed, disabled, miss, ready, selected, timed])
 
   useEffect(() => {
     if (disabled || !grading) return
@@ -228,9 +231,9 @@ function CatchItem({ item, perItemMs, columns, disabled, submitAnswer, onMissed,
           ) : (
             <div><h2 className="break-words"><strong>{String(instruction ?? '')}</strong></h2></div>
           )}
-          <span className="catch-clock" aria-hidden="true">{Math.ceil(remaining / 1000)}s</span>
+          {timed && <span className="catch-clock" aria-hidden="true">{Math.ceil(remaining / 1000)}s</span>}
         </div>
-        <progress aria-label="Thời gian còn lại" className="catch-progress block w-full" max={perItemMs} value={Math.ceil(remaining)} />
+        {timed && <progress aria-label="Thời gian còn lại" className="catch-progress block w-full" max={perItemMs} value={Math.ceil(remaining)} />}
         <div role="group" aria-label="Phương án" className="answer-grid catch-grid"
           style={{ gridTemplateColumns: 'repeat(' + columns + ', minmax(0, 1fr))' }}>
           {options.map(({ key, text }, index) => {

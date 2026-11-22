@@ -28,7 +28,7 @@ const games = new Map<string, { code: string; Game: ComponentType<GameProps> }>(
   ['brush-stroke', { code: 'BRUSH_STROKE', Game: lazy(() => import('../../games/brush-stroke/BrushStrokeGame').then(
     ({ BrushStrokeGame }) => ({ default: (props: GameProps) => <BrushStrokeGame {...props} readPinyin={readPinyin} /> }))) }],
   ['flying-dart', { code: 'FLYING_DART', Game: lazy(() => import('../../games/flying-dart/FlyingDartGame').then(
-    ({ FlyingDartGame }) => ({ default: (props: GameProps) => <FlyingDartGame {...props} readPinyin={readPinyin} /> }))) }],
+    ({ FlyingDartGame }) => ({ default: FlyingDartGame }))) }],
 ])
 
 export default function GameSessionPage() {
@@ -52,7 +52,7 @@ function GameSession({ code, Game }: { code: string; Game: ComponentType<GamePro
   if (session.status === 'authenticated') {
     return (
       <Suspense fallback={<p role="status">Đang tải trò chơi…</p>}>
-        <GameShell code={code} Game={Game} hskLevel={level && /^[1-9]$/.test(level) ? Number(level) : undefined} />
+        <GameShell code={code} Game={Game} hskLevel={level && /^[1-3]$/.test(level) ? Number(level) : undefined} />
       </Suspense>
     )
   }

@@ -1,47 +1,50 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { KeyboardEvent } from 'react'
+import type { FormEvent } from 'react'
 
-import { validatePinyinInput } from '../../engine/pinyin'
 import type { ServedItem } from '../../shared/api/rounds'
 import type { GameProps } from '../../shared/ui/GameShell'
-import { ArenaLayout, FallingTarget, MissedTarget } from '../shared/FallingTarget'
-import type { ReadPinyin } from '../shared/FallingTarget'
-import { itemFallDuration, useFallTimer } from '../shared/useFallTimer'
+import { ArenaLayout } from '../shared/FallingTarget'
+import { DartArena } from './DartArena'
 
-export function FlyingDartGame({ items, uiConfig, readPinyin, ...controls }: GameProps & { readPinyin?: ReadPinyin }) {
+/** Long enough for the dart to fly and the character to break, short enough not to eat the 60 seconds. */
+const hitMs = 550
+const wrongMs = 900
+
+export function FlyingDartGame({ items, uiConfig, ...controls }: GameProps) {
   const [index, setIndex] = useState(0)
-  const next = useCallback(() => setIndex((position) => position + 1), [])
+  const [hits, setHits] = useState(0)
+  const next = useCallback((hit: boolean) => {
+    if (hit) setHits((count) => count + 1)
+    setIndex((position) => position + 1)
+  }, [])
   const item = items[index]
-  const maxLength = typeof uiConfig.maxInputLength === 'number' ? uiConfig.maxInputLength : 40
+  const maxLength = typeof uiConfig.maxInputLength === 'number' ? uiConfig.maxInputLength : 20
   return (
     <section aria-label="Phi Đao" className="min-w-0">
-      {item ? <DartItem key={item.no} {...controls} item={item} duration={itemFallDuration(index, uiConfig)}
-        maxLength={maxLength} readPinyin={readPinyin} onAdvance={next} />
-        : <p role="status" className="core-feedback">Đã đi qua tất cả các từ.</p>}
+      {item
+        ? <DartItem key={item.no} {...controls} item={item} hits={hits} maxLength={maxLength} onAdvance={next} />
+        : <p role="status" className="core-feedback">Đã đi qua tất cả các chữ.</p>}
     </section>
   )
 }
 
-function DartItem({ item, duration, maxLength, readPinyin, disabled, submitAnswer, onItemShown, onMissed, onAdvance }: Omit<GameProps, 'items' | 'uiConfig'> & {
+function DartItem({ item, hits, maxLength, disabled, submitAnswer, onItemShown, onAdvance }:
+Omit<GameProps, 'items' | 'uiConfig'> & {
   item: ServedItem
-  duration: number
+  hits: number
   maxLength: number
-  readPinyin?: ReadPinyin
-  onAdvance: () => void
+  onAdvance: (hit: boolean) => void
 }) {
   const text = String(item.prompt.text ?? '')
   const [input, setInput] = useState('')
-  const [message, setMessage] = useState<string>()
-  const [pinyin, setPinyin] = useState<string>()
-  const [phase, setPhase] = useState<'falling' | 'sending' | 'wrong' | 'hit' | 'miss'>('falling')
+  const [reading, setReading] = useState<string>()
+  const [phase, setPhase] = useState<'aim' | 'sending' | 'hit' | 'wrong'>('aim')
   const field = useRef<HTMLInputElement>(null)
   const shown = useRef(false)
   const sent = useRef(false)
-  const grounded = useRef(false)
+  const composing = useRef(false)
   const live = useRef(false)
-  const falling = phase !== 'hit' && phase !== 'miss'
-  const fall = useFallTimer(duration, falling && !disabled, ground)
-  const canType = !disabled && (phase === 'falling' || phase === 'wrong')
+  const canType = !disabled && phase === 'aim'
 
   useEffect(() => { live.current = true; return () => { live.current = false } }, [])
   useEffect(() => {
@@ -53,72 +56,47 @@ function DartItem({ item, duration, maxLength, readPinyin, disabled, submitAnswe
     if (canType) field.current?.focus()
   }, [canType])
   useEffect(() => {
-    if (falling) return
-    const timeout = window.setTimeout(onAdvance, phase === 'hit' ? 200 : 600)
+    if (phase !== 'hit' && phase !== 'wrong') return
+    const timeout = window.setTimeout(() => onAdvance(phase === 'hit'), phase === 'hit' ? hitMs : wrongMs)
     return () => window.clearTimeout(timeout)
-  }, [falling, onAdvance, phase])
+  }, [onAdvance, phase])
 
-  function ground() {
-    if (grounded.current) return
-    grounded.current = true
-    if (!sent.current) onMissed(item.no)
-    if (phase !== 'sending') setPhase('miss')
-  }
-
-  async function enter(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== 'Enter' || event.nativeEvent.isComposing || event.keyCode === 229 || !canType) return
+  async function shoot(event: FormEvent) {
     event.preventDefault()
-    if (fall.expired()) { ground(); return }
-    const format = validatePinyinInput(input)
-    if (format !== 'ok') {
-      if (format === 'partial-tones') setMessage('Gõ đủ thanh cho mọi âm tiết hoặc bỏ hết thanh')
-      else if (format === 'invalid') setMessage('Kiểm tra định dạng pinyin.')
-      return
-    }
-    setMessage(undefined)
-    if (sent.current) return
+    const answer = input.trim()
+    if (!canType || sent.current || composing.current || !answer) return
     sent.current = true
     setPhase('sending')
     try {
-      const result = await submitAnswer(item.no, input.trim())
+      const result = await submitAnswer(item.no, answer)
       if (!live.current) return
-      if (result.correct) {
-        setPhase('hit')
-      } else {
-        setInput('')
-        setPinyin(result.correctAnswer)
-        setPhase(grounded.current || fall.expired() ? 'miss' : 'wrong')
-      }
+      setReading(result.correctAnswer)
+      setPhase(result.correct ? 'hit' : 'wrong')
     } catch {
-      if (live.current) onAdvance()
+      if (live.current) onAdvance(false)
     }
   }
 
-  const arena = phase === 'miss'
-    ? <MissedTarget text={text} pinyin={pinyin} lexemeId={sent.current ? undefined : item.lexemeId}
-        readPinyin={readPinyin} projectile />
-    : <FallingTarget text={text} hint={String(item.prompt.hint ?? '')} remaining={fall.remaining}
-        duration={duration} hit={phase === 'hit'} projectile />
   return (
-    <ArenaLayout arena={arena}>
-      <div className="prompt-label">GÕ PINYIN ĐỂ PHÓNG ĐAO</div>
-      {item.prompt.hint ? <h2 className="break-words">{String(item.prompt.hint)}</h2> : null}
-      {pinyin && phase !== 'miss' && <p role="status">Pinyin đúng: {pinyin}</p>}
-      {phase !== 'miss' && (
+    <ArenaLayout arena={<DartArena text={text} state={phase === 'sending' ? 'aim' : phase} />}>
+      <div className="prompt-label">GÕ ÂM HÁN VIỆT ĐỂ PHÓNG DAO</div>
+      <p className="brush-hits">Số chữ đã hạ: {hits}</p>
+      <form className="dart-form" onSubmit={(event) => void shoot(event)}>
         <label className="block">
-          <span className="sr-only">Gõ pinyin</span>
+          <span className="sr-only">Gõ âm Hán Việt</span>
           <input ref={field} type="text" value={input} maxLength={maxLength} disabled={disabled} readOnly={!canType}
-            autoComplete="off" autoCapitalize="off" spellCheck={false} onKeyDown={(event) => void enter(event)}
-            onChange={(event) => { setInput(event.target.value); setMessage(undefined) }}
-            placeholder="Ví dụ: ni3hao3 rồi nhấn Enter"
-            className={phase === 'wrong' ? 'input-wrong motion-safe:animate-[dart-shake_240ms_ease-in-out]' : ''} />
+            autoComplete="off" autoCapitalize="off" spellCheck={false} placeholder="Ví dụ: 人 → nhân"
+            onChange={(event) => setInput(event.target.value)}
+            onCompositionStart={() => { composing.current = true }}
+            onCompositionEnd={() => { composing.current = false }}
+            className={phase === 'wrong' ? 'input-wrong' : ''} />
         </label>
-      )}
-      <p className="input-hint">Không dấu cũng được. Nếu nhập số thanh, hãy nhập đủ cho từng âm tiết.</p>
-      {phase === 'wrong' && <style>{'@keyframes dart-shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}'}</style>}
+        <button type="submit" className="primary-button" disabled={!canType || !input.trim()}>Phóng dao</button>
+      </form>
+      <p className="input-hint">Có dấu hay không dấu đều được.</p>
       {phase === 'sending' && <p role="status" className="feedback">Đang chấm…</p>}
-      {phase === 'hit' && <p role="status" className="feedback">Đã hạ từ {text}</p>}
-      {message && <p role="alert" className="feedback">{message}</p>}
+      {phase === 'hit' && <p role="status" className="feedback">Đã hạ chữ {text} · {reading}</p>}
+      {phase === 'wrong' && <p role="status" className="feedback">Chưa đúng: {text} đọc là {reading}</p>}
     </ArenaLayout>
   )
 }

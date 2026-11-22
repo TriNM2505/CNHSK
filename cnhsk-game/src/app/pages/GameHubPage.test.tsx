@@ -69,21 +69,12 @@ it('shows six cards, zero personal stats and a disabled game', async () => {
   )
 })
 
-it('expands instructions and only creates links for the default or HSK 1–9', async () => {
+it('expands instructions and leaves the HSK level to each game', async () => {
   const user = userEvent.setup()
   renderHub(Response.json(games))
   const play = await screen.findByRole('link', { name: 'Chơi Mưa chữ' })
-    expect(play).toHaveAttribute('href', '/play/char-rain')
-  const select = screen.getByRole('combobox', { name: 'Cấp HSK' })
-  expect(
-    within(select)
-      .getAllByRole('option')
-      .map((option) => option.getAttribute('value')),
-  ).toEqual(['', '1', '2', '3', '4', '5', '6', '7', '8', '9'])
-  await user.selectOptions(select, '9')
-    expect(play).toHaveAttribute('href', '/play/char-rain?hskLevel=9')
-  await user.selectOptions(select, '')
-    expect(play).toHaveAttribute('href', '/play/char-rain')
+  expect(play).toHaveAttribute('href', '/play/char-rain')
+  expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
   const summary = screen.getAllByText('Cách chơi')[0]
   if (!summary) throw new Error('Missing game instructions')
   await user.click(summary)

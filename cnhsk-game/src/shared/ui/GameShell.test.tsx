@@ -7,6 +7,7 @@ import { CharRainGame } from '../../games/char-rain/CharRainGame'
 import { RadicalMatchGame } from '../../games/radical-match/RadicalMatchGame'
 import type { RoundStart } from '../api/rounds'
 import { GameShell } from './GameShell'
+import type { GameProps } from './GameShell'
 
 const base = '/api/community/games'
 const round = base + '/rounds/42'
@@ -60,6 +61,7 @@ beforeEach(() => {
   fetchMock.mockReset()
   vi.stubGlobal('fetch', fetchMock)
   document.cookie = 'XSRF-TOKEN=fixture; Path=/'
+  window.localStorage.clear()
 })
 afterEach(() => {
   cleanup()
@@ -72,10 +74,10 @@ const json = (payload: unknown) => Response.json(payload)
 const error = (status: number, error_code: string) => Response.json({ error_code }, { status })
 const score = (no: number) => json({ no, totalPoints: no * 10, answeredCount: no })
 
-function show(hskLevel?: number) {
+function show(hskLevel: number | null = 1, Game: (props: GameProps) => JSX.Element = DemoGame) {
   render(
     <MemoryRouter>
-      <GameShell code="CHAR_RAIN" hskLevel={hskLevel} Game={DemoGame} />
+      <GameShell code="CHAR_RAIN" hskLevel={hskLevel ?? undefined} Game={Game} />
     </MemoryRouter>,
   )
 }
@@ -116,19 +118,76 @@ it('passes the server option text and key through to the game', async () => {
   )
 })
 
-it.each([undefined, 9])('uses the route HSK level %s on round creation', async (level) => {
+it('creates the round at the HSK level given in the link', async () => {
   fetchMock.mockResolvedValueOnce(json(fixture))
-  show(level)
+  show(2)
   expect(fetchMock).not.toHaveBeenCalled()
+  expect(screen.getByRole('button', { name: 'HSK 2' })).toHaveAttribute('aria-pressed', 'true')
   await press('Bắt đầu')
-  expect(fetchMock).toHaveBeenCalledTimes(1)
-  expect(fetchMock).toHaveBeenCalledWith(
-    start,
-    expect.objectContaining({
-      method: 'POST',
-      body: level === undefined ? undefined : '{"hskLevel":9}',
-    }),
-  )
+  expect(fetchMock).toHaveBeenCalledWith(start, expect.objectContaining({ method: 'POST', body: '{"hskLevel":2}' }))
+})
+
+it('needs a level before starting and remembers the one picked', async () => {
+  fetchMock.mockResolvedValueOnce(json(fixture))
+  show(null)
+  expect(screen.getByRole('button', { name: 'Bắt đầu' })).toBeDisabled()
+  expect(screen.getByText('Chọn một cấp HSK để bắt đầu.')).toBeVisible()
+  fireEvent.click(screen.getByRole('button', { name: 'HSK 3' }))
+  await press('Bắt đầu')
+  expect(fetchMock).toHaveBeenCalledWith(start, expect.objectContaining({ body: '{"hskLevel":3}' }))
+  cleanup()
+  show(null)
+  expect(screen.getByRole('button', { name: 'HSK 3' })).toHaveAttribute('aria-pressed', 'true')
+})
+
+it('shows the lives left and ends the round when the last one is lost', async () => {
+  fetchMock
+    .mockResolvedValueOnce(json({ ...fixture, uiConfig: { ...fixture.uiConfig, maxLives: 3 } }))
+    .mockResolvedValueOnce(json({ no: 1, correct: false, correctAnswer: 'B', totalPoints: 0, answeredCount: 1, livesLeft: 0 }))
+    .mockResolvedValueOnce(json({ ...result, points: 0, correct: 0, wrong: 1 }))
+  show()
+  await press('Bắt đầu')
+  await advance(3200)
+  expect(screen.getByText('Còn 3 mạng')).toBeVisible()
+  await press('Trả lời 1')
+  await advance(799)
+  expect(screen.getByText('Còn 0 mạng')).toBeVisible()
+  expect(paths()).toEqual([start, round + '/answers'])
+  await advance(1)
+  expect(paths()).toEqual([start, round + '/answers', round + '/finish'])
+  expect(screen.getByText('HẾT MẠNG')).toBeVisible()
+})
+
+it('recovers the lives left from the recorded answers after a lost response', async () => {
+  const uiConfig = { ...fixture.uiConfig, maxLives: 1 }
+  fetchMock
+    .mockResolvedValueOnce(json({ ...fixture, uiConfig }))
+    .mockRejectedValueOnce(new TypeError('Offline'))
+    .mockResolvedValueOnce(json({ ...view([]), uiConfig, answered: [{ no: 1, correct: false, correctAnswer: 'B' }] }))
+    .mockResolvedValueOnce(json(result))
+  show()
+  await press('Bắt đầu')
+  await advance(3200)
+  await press('Trả lời 1')
+  await act(async () => { window.dispatchEvent(new Event('online')) })
+  await advance(800)
+  expect(paths()).toEqual([start, round + '/answers', round, round + '/finish'])
+  expect(screen.getByText('HẾT MẠNG')).toBeVisible()
+})
+
+function EndingGame({ endRound }: GameProps) {
+  return <button type="button" onClick={endRound}>Hết mực</button>
+}
+
+it('lets a game end the round early and keep its score', async () => {
+  fetchMock.mockResolvedValueOnce(json(fixture)).mockResolvedValueOnce(json(result))
+  show(1, EndingGame)
+  await press('Bắt đầu')
+  await advance(3200)
+  await press('Hết mực')
+  await advance(100)
+  expect(paths()).toEqual([start, round + '/finish'])
+  expect(screen.getByRole('heading', { name: 'Kết quả ván chơi' })).toBeVisible()
 })
 
 it.each([-5, 5])(
@@ -201,7 +260,7 @@ it.each([true, false])(
     await advance(800)
     const calls = fetchMock.mock.calls.map(([path, options]) => [
       path,
-      options.body ? JSON.parse(String(options.body)).no : null,
+      options.body ? (JSON.parse(String(options.body)).no ?? null) : null,
     ])
     expect(calls).toEqual([
       [start, null],
@@ -215,10 +274,13 @@ it.each([true, false])(
   },
 )
 
-it('stops accepting answers after ROUND_TIME_OVER and finishes once', async () => {
+it.each([
+  ['ROUND_TIME_OVER', 422],
+  ['RATE_LIMITED', 429],
+] as const)('stops accepting answers after %s and finishes once', async (code, status) => {
   fetchMock
     .mockResolvedValueOnce(json(fixture))
-    .mockResolvedValueOnce(error(422, 'ROUND_TIME_OVER'))
+    .mockResolvedValueOnce(error(status, code))
     .mockResolvedValueOnce(json(result))
   show()
   await press('Bắt đầu')
@@ -283,7 +345,7 @@ it.each([false, true])('measures duration from the first onItemShown when suppli
     </>
   }
 
-  render(<MemoryRouter><GameShell code="CHAR_RAIN" Game={TimedGame} /></MemoryRouter>)
+  render(<MemoryRouter><GameShell code="CHAR_RAIN" hskLevel={1} Game={TimedGame} /></MemoryRouter>)
   await press('Bắt đầu')
   await advance(3100)
   await press('Bỏ lỡ')
@@ -315,7 +377,7 @@ it('reports recovered server feedback to the actual radical game without reposti
       ...view([1]), items: radicalItems,
       answered: [{ no: 1, correct: false, correctAnswer: 'B' }],
     }))
-  render(<MemoryRouter><GameShell code="RADICAL_MATCH" Game={RadicalMatchGame} /></MemoryRouter>)
+  render(<MemoryRouter><GameShell code="RADICAL_MATCH" hskLevel={1} Game={RadicalMatchGame} /></MemoryRouter>)
   await press('Bắt đầu')
   await advance(3200)
   await press('氵')
@@ -327,12 +389,12 @@ it('reports recovered server feedback to the actual radical game without reposti
   expect(screen.getByRole('heading', { name: '林' })).toBeVisible()
 })
 
-it('finishes a real Mưa Chữ view when its only character is missing, without posting an answer', async () => {
+it('finishes a real Lọ Mực view when its only character is missing, without posting an answer', async () => {
   const missing = { ...fixture.items[0], prompt: { text: '𠀀', hint: 'Chữ mẫu' } }
   fetchMock.mockResolvedValueOnce(json({ ...fixture, items: [missing] }))
     .mockResolvedValueOnce(Response.json({}, { status: 404 }))
     .mockResolvedValueOnce(json(result))
-  render(<MemoryRouter><GameShell code="CHAR_RAIN" Game={CharRainGame} /></MemoryRouter>)
+  render(<MemoryRouter><GameShell code="CHAR_RAIN" hskLevel={1} Game={CharRainGame} /></MemoryRouter>)
   await press('Bắt đầu')
   await advance(3200)
   expect(paths()).toEqual([start, '/stroke-data/%F0%A0%80%80.json'])

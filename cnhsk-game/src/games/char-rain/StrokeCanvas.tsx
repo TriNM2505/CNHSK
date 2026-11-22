@@ -4,17 +4,19 @@ import type { PointerEvent } from 'react'
 import type { Point } from '../../engine/path'
 import type { StrokeData } from '../../engine/strokeData'
 
-export function StrokeCanvas({ data, index, accepted, disabled, onStroke }: {
+export function StrokeCanvas({ data, index, accepted, disabled, onStroke, guide = true }: {
   data: StrokeData
   index: number
   accepted: readonly Point[][]
   disabled: boolean
   onStroke: (points: Point[]) => void
+  /** Without the guide the learner sees only the faint outline: no start point, arrow or next-stroke highlight. */
+  guide?: boolean
 }) {
   const active = useRef<{ id: number; points: Point[] }>()
   const [draft, setDraft] = useState<Point[]>([])
   const median = data.medians[index]
-  const first = median?.[0]
+  const first = guide ? median?.[0] : undefined
   const next = median?.find(([x, y]) => first && (x !== first[0] || y !== first[1]))
 
   function point(event: PointerEvent<SVGSVGElement>): Point {
@@ -63,7 +65,7 @@ export function StrokeCanvas({ data, index, accepted, disabled, onStroke }: {
       <g transform="translate(0 900) scale(1 -1)">
         {data.strokes.map((stroke, no) => (
           <path key={no} d={stroke}
-            className={no < index ? 'stroke-fill-done' : no === index ? 'stroke-fill-next' : 'stroke-fill-future'} />
+            className={no < index ? 'stroke-fill-done' : no === index && guide ? 'stroke-fill-next' : 'stroke-fill-future'} />
         ))}
         {first && <circle cx={first[0]} cy={first[1]} r={22} className="stroke-start" />}
         {first && next && (

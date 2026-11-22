@@ -23,10 +23,10 @@ const audioItem: ServedItem = {
 }
 const uiConfig = { gridColumns: 3, perItemMs: 4000 }
 
-function show(items = [meaning, pinyin]) {
+function show(items = [meaning, pinyin], config: GameProps['uiConfig'] = uiConfig) {
   const submitAnswer = vi.fn<GameProps['submitAnswer']>()
     .mockResolvedValue({ correct: true, correctAnswer: 'A' })
-  const props = { items, uiConfig, submitAnswer, onMissed: vi.fn(), onItemShown: vi.fn(), disabled: false }
+  const props = { items, uiConfig: config, submitAnswer, onMissed: vi.fn(), onItemShown: vi.fn(), disabled: false }
   const view = render(<CharCatchGame {...props} />)
   return {
     ...view, ...props,
@@ -64,6 +64,43 @@ it('AT-19 shows six options and misses exactly once at 4000 ms', async () => {
   expect(screen.getByRole('heading', { name: 'shuǐ' })).toBeVisible()
   expect(onMissed.mock.calls).toEqual([[1]])
   expect(submitAnswer).not.toHaveBeenCalled()
+})
+
+it('without a per-question limit only the round clock counts: no question timer, no automatic miss', async () => {
+  const { onMissed, submitAnswer } = show([meaning, pinyin], { gridColumns: 3 })
+  expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+  await advance(30000)
+  expect(onMissed).not.toHaveBeenCalled()
+  expect(screen.getByRole('heading', { name: 'núi' })).toBeVisible()
+  await click('山')
+  expect(submitAnswer.mock.calls).toEqual([[1, 'A']])
+  expect(button('山')).toHaveClass('answer-correct')
+  await advance(500)
+  expect(screen.getByRole('heading', { name: 'shuǐ' })).toBeVisible()
+})
+
+it('without a per-question limit a blocked audio item waits for the learner and survives a pause', async () => {
+  const play = vi.spyOn(HTMLMediaElement.prototype, 'play')
+    .mockRejectedValueOnce(new DOMException('Autoplay denied', 'NotAllowedError'))
+    .mockResolvedValue()
+  vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {})
+  const { container, onItemShown, onMissed, submitAnswer, setDisabled } = show([audioItem, meaning], { gridColumns: 3 })
+  await advance(0)
+  await advance(20000)
+  expect(onItemShown.mock.calls).toEqual([[3]])
+  expect(onMissed).not.toHaveBeenCalled()
+  await click('Chạm để nghe')
+  fireEvent.ended(media(container))
+  setDisabled(true)
+  await advance(5000)
+  setDisabled(false)
+  await click('Nghe lại')
+  expect(play).toHaveBeenCalledTimes(3)
+  await click('水')
+  expect(submitAnswer.mock.calls).toEqual([[3, 'B']])
+  await advance(500)
+  expect(screen.getByRole('heading', { name: 'núi' })).toBeVisible()
+  expect(onMissed).not.toHaveBeenCalled()
 })
 
 it('pauses time while disabled and announces the same item only once', async () => {
@@ -258,7 +295,7 @@ it('starts audio after the shell countdown and misses a hung load at 4000 ms wit
   }
   const { container } = render(
     <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <GameShell code="CHAR_CATCH" Game={TestGame} />
+      <GameShell code="CHAR_CATCH" hskLevel={1} Game={TestGame} />
     </MemoryRouter>,
   )
   await advance(5000)

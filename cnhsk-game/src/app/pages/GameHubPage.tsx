@@ -18,7 +18,9 @@ type GameInfo = {
 
 type Catalog = { status: 'loading' | 'error' } | { status: 'loaded'; games: GameInfo[] }
 
-const levels = Array.from({ length: 9 }, (_, index) => String(index + 1))
+/** Rounds that end on lives only carry this long safety cap. */
+const UNTIMED_SECONDS = 600
+
 const skillLabels: Record<string, string> = {
   VOCAB: 'Từ vựng',
   LISTENING: 'Nghe',
@@ -29,9 +31,9 @@ const skillLabels: Record<string, string> = {
   PRONUNCIATION: 'Phát âm',
 }
 
-function GameCard({ game, level, position, total }: { game: GameInfo; level: string; position: number; total: number }) {
+function GameCard({ game, position, total }: { game: GameInfo; position: number; total: number }) {
   const meta = gameMeta(game.code)
-  const path = '/play/' + encodeURIComponent(meta.slug) + (level ? '?hskLevel=' + level : '')
+  const path = '/play/' + encodeURIComponent(meta.slug)
   const stats = game.myStats
   const pad = (value: number) => String(value).padStart(2, '0')
   return (
@@ -43,7 +45,7 @@ function GameCard({ game, level, position, total }: { game: GameInfo; level: str
         <h3 className="break-words">{game.name}</h3>
         <p className="break-words">{game.description}</p>
         <p className="game-card-meta">
-          {skillLabels[game.skill] ?? game.skill} · {game.timeLimitSeconds} giây
+          {skillLabels[game.skill] ?? game.skill} · {game.timeLimitSeconds >= UNTIMED_SECONDS ? 'Không tính giờ' : game.timeLimitSeconds + ' giây'}
         </p>
         {stats && (
           <dl className="game-card-stats">
@@ -86,7 +88,6 @@ function GameCard({ game, level, position, total }: { game: GameInfo; level: str
 export default function GameHubPage() {
   const [catalog, setCatalog] = useState<Catalog>({ status: 'loading' })
   const [attempt, setAttempt] = useState(0)
-  const [level, setLevel] = useState('')
   useEffect(() => {
     const controller = new AbortController()
     void apiRequest<GameInfo[]>('/api/community/games', { signal: controller.signal })
@@ -122,23 +123,7 @@ export default function GameHubPage() {
             <span className="eyebrow">GÓC LUYỆN TẬP</span>
             <h2>Chọn cuộc hành trình</h2>
           </div>
-          <label className="hub-level">
-            Cấp HSK
-            <select
-              value={level}
-              onChange={(event) => {
-                const next = event.currentTarget.value
-                if (next === '' || levels.includes(next)) setLevel(next)
-              }}
-            >
-              <option value="">Từ tôi đang học</option>
-              {levels.map((value) => (
-                <option key={value} value={value}>
-                  HSK {value}
-                </option>
-              ))}
-            </select>
-          </label>
+          <p>Chọn cấp HSK ngay trong từng trò chơi. Điểm được xếp hạng riêng theo cấp.</p>
         </div>
         {catalog.status === 'loading' && <p role="status">Đang tải trò chơi…</p>}
         {catalog.status === 'error' && (
@@ -160,7 +145,7 @@ export default function GameHubPage() {
           (catalog.games.length ? (
             <ul aria-label="Các trò chơi" className="game-grid">
               {catalog.games.map((game, index) => (
-                <GameCard key={game.code} game={game} level={level} position={index} total={catalog.games.length} />
+                <GameCard key={game.code} game={game} position={index} total={catalog.games.length} />
               ))}
             </ul>
           ) : (

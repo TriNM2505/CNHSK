@@ -56,6 +56,31 @@ it('AT-04 keeps a rejected stroke and sends PASS once after the final accepted s
   expect(submitAnswer).toHaveBeenCalledWith(1, 'PASS')
 })
 
+it('spends ink on each wrong stroke, stays on the character and ends the round when the jar is empty', async () => {
+  const submitAnswer = vi.fn()
+  const endRound = vi.fn()
+  render(<CharRainGame items={[item(1, '二')]} uiConfig={{ inkLives: 3, startGuide: false }} disabled={false}
+    submitAnswer={submitAnswer} onMissed={vi.fn()} endRound={endRound} />)
+  const canvas = await screen.findByRole('img', { name: 'Khung tô nét' })
+  vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 1000, 1000))
+  expect(canvas.querySelector('.stroke-start')).toBeNull()
+  expect(screen.getByRole('img', { name: 'Còn 3/3 mực' })).toBeVisible()
+
+  draw(canvas, 900, 'pointerup', 100, 100)
+  draw(canvas, 900, 'pointerup', 100, 120)
+  expect(screen.getByRole('img', { name: 'Còn 3/3 mực' })).toBeVisible()
+
+  draw(canvas, 900)
+  expect(screen.getByRole('img', { name: 'Còn 2/3 mực' })).toBeVisible()
+  expect(screen.getByText('Nét 1/2')).toBeVisible()
+  draw(canvas, 900)
+  expect(endRound).not.toHaveBeenCalled()
+  draw(canvas, 900)
+  expect(screen.getByRole('img', { name: 'Còn 0/3 mực' })).toBeVisible()
+  expect(endRound).toHaveBeenCalledTimes(1)
+  expect(submitAnswer).not.toHaveBeenCalled()
+})
+
 it('reports a missing character once without reporting shown or sending an answer', async () => {
   vi.mocked(loadStrokeData).mockResolvedValueOnce(null)
   const onMissed = vi.fn()

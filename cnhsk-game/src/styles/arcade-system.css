@@ -14,8 +14,6 @@
 .card-link a:last-child { font-size: 13px; color: #8b6e5c; border: 1px solid #e9dfd0; border-radius: 999px; padding: 0 14px; }
 .card-link small { display: block; font-size: 12px; color: #a3a9aa; }
 .game-card-locked { border: 0; background: none; padding: 0; font-weight: 800; color: #d7634c; }
-.hub-level { display: flex; flex-direction: column; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: .18em; color: #a0877a; text-transform: uppercase; }
-.hub-level select { min-height: 48px; min-width: 220px; padding: 0 14px; border: 1px solid #e2d7ca; border-radius: 12px; background: #fffcf7; color: #273341; font-size: 15px; letter-spacing: 0; text-transform: none; }
 .games-section [role='status'], .games-section [role='alert'] { color: #6d6f72; }
 
 /* Server round HUD inside the arcade pages. */
@@ -42,7 +40,6 @@
 
 @media (max-width: 900px) {
   .round-result-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hub-level select { min-width: 0; width: 100%; }
 }
 
 /* Pinyin board columns with a heading above each stack. */
@@ -100,4 +97,84 @@
 }
 @media (max-width: 380px) {
   .game-brand-divider, .game-brand-label { display: none; }
+}
+
+/* In-game HSK picker and lives on the round HUD. */
+.core-setup .core-field-label { margin-top: 6px; }
+.core-hint { margin: 10px 0 0; font-size: 13px; color: #c4ccd2; }
+.core-stats .stat-lives { color: #ff6b6b; font-size: 20px; letter-spacing: .12em; }
+.core-stats .stat-lives .lost { color: #ffffff2e; }
+.choice-row button[aria-pressed] { min-height: 44px; padding: 0 18px; border: 1px solid #eddcc144; border-radius: 10px; background: #ffffff0b; color: #f8f2e9; font-weight: 800; }
+.choice-row button[aria-pressed].selected { background: #ff7348; border-color: #ff7348; color: #fff; box-shadow: 0 9px 25px #ff5c2a4d; }
+
+.pad-clear { display: block; min-height: 44px; margin: 6px auto 0; padding: 0 18px; border: 1px solid #d8c6ad; border-radius: 10px; background: #fff; color: #8b6140; font-weight: 800; }
+
+/* Phi Dao: the bear stands still, its dart flies to the character, the character breaks. */
+.dart-target { position: absolute; z-index: 5; left: 32%; top: 34%; transform: translate(-50%, -50%); }
+.dart-target strong { display: block; font: 900 clamp(84px, 12vw, 132px) 'Noto Serif SC', serif; color: #fff3df; text-shadow: 0 8px 0 #0006; animation: dart-appear .2s ease-out; }
+.dart-wrong .dart-target strong { color: #ff9d86; animation: dart-shake .3s ease-in-out; }
+.scene-dart .panda-brush { width: 7px; height: 64px; background: #d9e2e8; }
+.dart-hit .panda-brush { visibility: hidden; }
+.dart-hit .panda { animation: dart-throw .25s ease-out; }
+.dart-blade { position: absolute; z-index: 6; width: 74px; left: 32%; top: 34%; transform: translate(-50%, -50%) rotate(14deg); opacity: 0; animation: dart-fly .25s cubic-bezier(.3, .1, .6, 1); }
+.dart-steel { fill: #e8f0f4; } .dart-grip { fill: #8a4b32; } .dart-tail { fill: #df6a4f; }
+.dart-shard { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); font: 900 clamp(84px, 12vw, 132px) 'Noto Serif SC', serif; color: #fff3df; opacity: 0; animation: .55s ease-out both; }
+.dart-shard-nw { clip-path: polygon(0 0, 55% 0, 45% 48%, 0 52%); animation-name: dart-shard-nw; }
+.dart-shard-ne { clip-path: polygon(55% 0, 100% 0, 100% 55%, 45% 48%); animation-name: dart-shard-ne; }
+.dart-shard-sw { clip-path: polygon(0 52%, 45% 48%, 52% 100%, 0 100%); animation-name: dart-shard-sw; }
+.dart-shard-se { clip-path: polygon(45% 48%, 100% 55%, 100% 100%, 52% 100%); animation-name: dart-shard-se; }
+.dart-form { display: grid; gap: 8px; }
+@keyframes dart-appear { from { opacity: 0; transform: scale(.6); } }
+@keyframes dart-shake { 25% { transform: translateX(-8px); } 50% { transform: translateX(8px); } 75% { transform: translateX(-5px); } }
+@keyframes dart-throw { 40% { transform: scale(.68) rotate(-9deg); } }
+@keyframes dart-fly { from { left: 78%; top: 70%; opacity: 1; } to { left: 32%; top: 34%; opacity: 1; } }
+@keyframes dart-shard-nw { 0%, 42% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; transform: translate(-105%, -100%) rotate(-38deg); } }
+@keyframes dart-shard-ne { 0%, 42% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; transform: translate(10%, -105%) rotate(32deg); } }
+@keyframes dart-shard-sw { 0%, 42% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; transform: translate(-100%, 20%) rotate(-26deg); } }
+@keyframes dart-shard-se { 0%, 42% { opacity: 1; transform: translate(-50%, -50%); } 100% { opacity: 0; transform: translate(5%, 25%) rotate(40deg); } }
+
+/* Start panel: games without a drawn illustration show their character. */
+.core-setup .game-art { font: 900 clamp(110px, 16vw, 210px) 'Noto Serif SC', serif; color: #fff2e8; text-shadow: 0 12px 0 #9a543f8c; }
+.core-setup .game-art small { font: 700 13px 'DM Sans', sans-serif; text-shadow: none; }
+
+/* While playing, what falls and where you answer must be on screen together. */
+.core-page-playing .core-title p { display: none; }
+.core-page-playing .core-title { justify-content: flex-start; margin: 4px auto 12px; }
+.core-page-playing { padding-top: 14px; padding-bottom: 24px; }
+.core-page-playing .arena { min-height: clamp(300px, calc(100dvh - 330px), 600px); }
+.core-page-playing .stroke-board { max-width: min(100%, 24rem, calc(100dvh - 430px)); min-width: 220px; }
+.dart-form { display: flex; flex-wrap: wrap; align-items: stretch; gap: 10px; margin: 8px 0; }
+.dart-form label { flex: 1 1 160px; }
+.dart-form input { margin: 0; }
+
+@media (max-width: 720px) {
+  .core-page-playing { padding: 8px 12px 12px; }
+  .core-page-playing .core-header, .core-page-playing .core-title { display: none; }
+  .core-page-playing .core-stats { flex-wrap: nowrap; gap: 8px; margin-bottom: 8px; padding: 6px 10px; }
+  .core-page-playing .core-stats .stat-time, .core-page-playing .core-stats .stat-score { font-size: 13px; }
+  .core-page-playing .core-stats .stat-lives { font-size: 15px; letter-spacing: 0; }
+  .core-page-playing .core-timebar { margin: 0 4px 8px; }
+  .core-page-playing .arena { min-height: 0; height: 150px; margin-bottom: 8px; }
+  .core-page-playing .arena .house { display: none; }
+  .core-page-playing .arena .panda { transform: scale(.42); right: -4%; bottom: 4%; }
+  .core-page-playing .falling-word strong { font-size: 46px; }
+  .core-page-playing .dart-target strong, .core-page-playing .dart-shard { font-size: 84px; }
+  .core-page-playing .dart-target, .core-page-playing .dart-blade { top: 46%; }
+  .control-card .dart-form label { flex: none; }
+  .core-page-playing .core-stats .stat-level { padding: 6px 8px; font-size: 12px; white-space: nowrap; }
+  .core-page-playing .control-card { padding: 10px 12px; }
+  .core-page-playing .control-card .prompt-label, .core-page-playing .input-hint { display: none; }
+  .core-page-playing .brush-hits { margin: 0 0 6px; }
+  .core-page-playing .board-shell { padding: 6px; }
+  .core-page-playing .board-top { padding: 2px 4px 6px; }
+  .core-page-playing .board-hint { min-height: 0; padding: 6px 0 0; }
+  .core-page-playing .stroke-board { max-width: min(100%, calc(100dvh - 380px)); min-width: 200px; }
+  .core-page-playing .rain-layout { gap: 8px; margin: 0 auto; }
+  .core-page-playing .rain-side { order: 1; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px; padding: 8px 14px; text-align: left; }
+  .core-page-playing .rain-layout .board-shell { order: 2; }
+  .core-page-playing .rain-side .rain-progress { grid-column: 1 / -1; margin: 0; }
+  .core-page-playing .rain-side .rain-tip, .core-page-playing .rain-side .jar-caption { display: none; }
+  .core-page-playing .rain-side .rain-char { font-size: 54px; margin: 0; }
+  .core-page-playing .rain-side .jar { width: 40px; height: 52px; margin: 0; border-width: 3px; border-top-width: 6px; border-radius: 6px 6px 14px 14px; }
+  .core-page-playing .rain-side .jar span { font-size: 15px; }
 }

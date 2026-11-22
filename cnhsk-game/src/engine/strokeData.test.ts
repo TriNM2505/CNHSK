@@ -23,6 +23,7 @@ describe('loadStrokeData', () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
   })
@@ -58,13 +59,28 @@ describe('loadStrokeData', () => {
     expect(console.warn).toHaveBeenCalledTimes(1)
   })
 
-  it('treats network failure as missing data and allows a fresh request', async () => {
+  it('waits out a short connection drop instead of reporting the character as missing', async () => {
+    vi.useFakeTimers()
     fetchMock.mockRejectedValueOnce(new TypeError('offline')).mockResolvedValueOnce(json(example))
 
-    await expect(loadStrokeData('木')).resolves.toBeNull()
+    const pending = loadStrokeData('火')
+    await vi.advanceTimersByTimeAsync(1000)
+    await expect(pending).resolves.toEqual(example)
+    expect(console.warn).not.toHaveBeenCalled()
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('gives up after five failed attempts and allows a fresh request', async () => {
+    vi.useFakeTimers()
+    for (let attempt = 0; attempt < 5; attempt += 1) fetchMock.mockRejectedValueOnce(new TypeError('offline'))
+    fetchMock.mockResolvedValueOnce(json(example))
+
+    const pending = loadStrokeData('木')
+    await vi.advanceTimersByTimeAsync(4000)
+    await expect(pending).resolves.toBeNull()
     expect(console.warn).toHaveBeenCalledTimes(1)
     await expect(loadStrokeData('木')).resolves.toEqual(example)
-    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock).toHaveBeenCalledTimes(6)
   })
 
   it.each(['', '你好', 'a', '../木'])('rejects non-character input %s before fetching', async (input) => {

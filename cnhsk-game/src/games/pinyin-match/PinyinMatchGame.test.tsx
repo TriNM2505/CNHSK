@@ -137,7 +137,7 @@ it('uses the previous submission time for pair 2 through GameShell', async () =>
     .mockResolvedValueOnce(Response.json({ no: 1, correct: true, correctAnswer: 'A', totalPoints: 10 }))
     .mockResolvedValueOnce(Response.json({ no: 2, correct: true, correctAnswer: 'B', totalPoints: 20 }))
   vi.stubGlobal('fetch', fetchMock)
-  render(<MemoryRouter><GameShell code="PINYIN_MATCH" Game={PinyinMatchGame} /></MemoryRouter>)
+  render(<MemoryRouter><GameShell code="PINYIN_MATCH" hskLevel={1} Game={PinyinMatchGame} /></MemoryRouter>)
   await click('Bắt đầu')
   await advance(3900)
   await click('河')

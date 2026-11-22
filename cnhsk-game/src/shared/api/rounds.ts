@@ -51,15 +51,17 @@ type AnswerResult = {
   pointsAwarded: number
   totalPoints: number
   answeredCount: number
+  /** Wrong answers the round still tolerates; null when the game has no lives. */
+  livesLeft: number | null
 }
 
 const base = '/api/community/games'
 const roundPath = (id: number) => base + '/rounds/' + id
 
-export function startRound(code: string, hskLevel?: number, signal?: AbortSignal) {
+export function startRound(code: string, hskLevel: number, signal?: AbortSignal) {
   return apiRequest<RoundStart>(base + '/' + encodeURIComponent(code) + '/rounds', {
     method: 'POST',
-    body: hskLevel === undefined ? undefined : { hskLevel },
+    body: { hskLevel },
     signal,
   })
 }

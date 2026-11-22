@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { normalizePoints, resample } from '../../engine/path'
+import { matchesCharacter } from '../../engine/freeformMatch'
 import type { Point } from '../../engine/path'
 import { loadStrokeData } from '../../engine/strokeData'
 import type { StrokeData } from '../../engine/strokeData'
-import { gradeStroke } from '../../engine/strokeScore'
 import type { ServedItem } from '../../shared/api/rounds'
 import type { GameProps } from '../../shared/ui/GameShell'
-import { StrokeCanvas } from '../char-rain/StrokeCanvas'
 import { ArenaLayout, FallingTarget, MissedTarget } from '../shared/FallingTarget'
 import type { ReadPinyin } from '../shared/FallingTarget'
 import { itemFallDuration, useFallTimer } from '../shared/useFallTimer'
+import { FreeWritingPad } from './FreeWritingPad'
 
 export function BrushStrokeGame({ items, uiConfig, readPinyin, ...controls }: GameProps & { readPinyin?: ReadPinyin }) {
   const [index, setIndex] = useState(0)
@@ -21,13 +20,13 @@ export function BrushStrokeGame({ items, uiConfig, readPinyin, ...controls }: Ga
   }, [])
   const item = items[index]
   return (
-    <section aria-label="Thần Bút" className="min-w-0">
+    <section aria-label="Mưa Chữ" className="min-w-0">
       {item ? (
         <BrushItem key={item.no} {...controls} item={item} duration={itemFallDuration(index, uiConfig)}
           readPinyin={readPinyin} onAdvance={next} hits={hits} />
       ) : (
         <>
-          <p className="core-feedback">Số chữ đã hạ: {hits}</p>
+          <p className="core-feedback">Số chữ đã viết: {hits}</p>
           <p role="status" className="core-feedback">Đã đi qua tất cả các chữ.</p>
         </>
       )}
@@ -44,9 +43,8 @@ function BrushItem({ item, duration, hits, disabled, submitAnswer, onMissed, onI
 }) {
   const text = typeof item.prompt.text === 'string' ? item.prompt.text : ''
   const [data, setData] = useState<StrokeData | null>()
-  const [hint, setHint] = useState<string>()
   const [feedback, setFeedback] = useState<'submitting' | 'hit' | 'miss'>()
-  const [stroke, setStroke] = useState<Point[]>()
+  const [strokes, setStrokes] = useState<Point[][]>([])
   const handled = useRef(false)
   const shown = useRef(false)
   const live = useRef(false)
@@ -82,23 +80,17 @@ function BrushItem({ item, duration, hits, disabled, submitAnswer, onMissed, onI
   function ground() {
     if (handled.current) return
     handled.current = true
-    onMissed(item.no)
     setFeedback('miss')
+    // A wrong answer on record is what costs the life; the shell owns retry and terminal errors.
+    submitAnswer(item.no, 'MISS').catch(() => {})
   }
 
-  async function checkStroke(points: Point[]) {
-    const median = data?.medians[0]
-    if (!median || disabled || handled.current) return
+  async function check(written: Point[][]) {
+    if (!data || disabled || handled.current) return
     if (fall.expired()) { ground(); return }
-    const target = median.map(([x, y]) => ({ x, y: 900 - y }))
-    const grade = gradeStroke(normalizePoints(resample(target, 32)), normalizePoints(resample(points, 32)))
-    if (!grade.ok) {
-      setHint(grade.hint ?? 'Hãy tô lại nét đầu tiên.')
-      return
-    }
+    setStrokes(written)
+    if (!matchesCharacter(written, data.medians)) return
     handled.current = true
-    setHint(undefined)
-    setStroke(points)
     setFeedback('submitting')
     try {
       const answer = await submitAnswer(item.no, 'PASS')
@@ -115,19 +107,20 @@ function BrushItem({ item, duration, hits, disabled, submitAnswer, onMissed, onI
     : <FallingTarget text={text} remaining={fall.remaining} duration={duration} hit={feedback === 'hit'} />
   return (
     <ArenaLayout arena={arena}>
-      <div className="prompt-label">TÔ NÉT ĐẦU CỦA CHỮ ĐANG RƠI</div>
-      <p className="brush-hits">Số chữ đã hạ: {hits}</p>
+      <div className="prompt-label">VIẾT CHỮ ĐANG RƠI</div>
+      <p className="brush-hits">Số chữ đã viết: {hits}</p>
       {feedback !== 'miss' && (
         <div className="board-shell">
-          {data ? <StrokeCanvas data={data} index={0} accepted={stroke ? [stroke] : []}
-            disabled={disabled || Boolean(feedback)} onStroke={(points) => void checkStroke(points)} />
+          {data
+            ? <FreeWritingPad strokes={strokes} disabled={disabled || Boolean(feedback)} onStrokes={(all) => void check(all)} />
             : <p role="status">Đang tải dữ liệu nét…</p>}
           <div className="board-hint">
-            {hint && <p role="status">{hint}</p>}
             {feedback === 'submitting' && <p role="status">Đang chấm…</p>}
             {feedback === 'hit' && <p role="status">Đã hạ chữ {text}</p>}
-            {!hint && !feedback && <p>Tô nét đầu tiên từ điểm tròn để hạ chữ.</p>}
+            {!feedback && <p>Viết cả chữ vào ô, không cần đúng thứ tự nét.</p>}
           </div>
+          <button type="button" className="pad-clear" disabled={disabled || Boolean(feedback) || strokes.length === 0}
+            onClick={() => setStrokes([])}>Xoá, viết lại</button>
         </div>
       )}
     </ArenaLayout>

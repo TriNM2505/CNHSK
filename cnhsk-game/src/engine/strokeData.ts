@@ -22,9 +22,24 @@ function isStrokeData(value: unknown): value is StrokeData {
     ))
 }
 
+const RETRY_MS = 1000
+const ATTEMPTS = 5
+
+/** A dropped connection is retried: without this, one short drop would skip every remaining character. */
+async function fetchWithRetry(url: string): Promise<Response> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await fetch(url)
+    } catch (error) {
+      if (attempt === ATTEMPTS) throw error
+      await new Promise((resolve) => { setTimeout(resolve, RETRY_MS) })
+    }
+  }
+}
+
 async function fetchStrokeData(character: string): Promise<StrokeData | null> {
   try {
-    const response = await fetch(`/stroke-data/${encodeURIComponent(character)}.json`)
+    const response = await fetchWithRetry(`/stroke-data/${encodeURIComponent(character)}.json`)
     const contentType = response.headers.get('content-type')?.split(';', 1)[0]?.trim().toLowerCase()
     if (response.ok && contentType === 'application/json') {
       const data: unknown = await response.json()

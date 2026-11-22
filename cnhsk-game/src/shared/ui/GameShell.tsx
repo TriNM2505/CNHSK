@@ -17,7 +17,12 @@ export type GameProps = {
   onMissed: (no: number) => void
   disabled: boolean
   onItemShown?: (no: number) => void
+  /** Ends the round now and keeps the score so far (the ink jar ran dry, every board is done…). */
+  endRound?: () => void
 }
+
+/** Levels with game content; the server rejects any other level. */
+export const HSK_LEVELS = [1, 2, 3] as const
 
 type Props = { code: string; hskLevel?: number; Game: ComponentType<GameProps> }
 
@@ -37,8 +42,10 @@ type Screen =
       blocked: boolean
       disabled: boolean
       message?: string
+      /** Lives left; undefined when the game has no lives. */
+      lives?: number
     }
-  | { mode: 'result'; result: RoundResult }
+  | { mode: 'result'; result: RoundResult; outOfLives: boolean }
   | { mode: 'finish-error' | 'leave-error'; message: string }
 
 type Pending = { no: number; answer: string; durationMs: number; uncertain: boolean; resolve: (value: GameAnswer) => void; reject: (error: Error) => void }
@@ -62,7 +69,6 @@ function hasCode(error: unknown, code: string) {
 
 function createRoundController(
   code: string,
-  hskLevel: number | undefined,
   publish: (screen: Screen) => void,
 ) {
   const abort = new AbortController()
@@ -84,6 +90,7 @@ function createRoundController(
   let leaveRequested = false
   let confirming = false
   let message: string | undefined
+  let lives: number | undefined
 
   function setScreen(screen: Screen) {
     if (signal.aborted) return
@@ -113,10 +120,11 @@ function createRoundController(
       blocked,
       disabled: closing || confirming || blocked || leaveRequested || finishTimer !== undefined,
       message,
+      lives,
     })
   }
 
-  async function start() {
+  async function start(hskLevel: number) {
     if (mode !== 'ready' && mode !== 'result') return
     setScreen({ mode: 'starting' })
     try {
@@ -126,6 +134,7 @@ function createRoundController(
       syncClock(next)
       lastAnswerAt = countdownUntil()
       points = 0
+      lives = typeof next.uiConfig.maxLives === 'number' ? next.uiConfig.maxLives : undefined
       queue = []
       accepted.clear()
       answered.clear()
@@ -164,7 +173,7 @@ function createRoundController(
     setScreen({ mode: 'finishing' })
     try {
       const result = await finishRound(round.roundId, signal)
-      setScreen({ mode: 'result', result })
+      setScreen({ mode: 'result', result, outOfLives: lives === 0 })
     } catch (error) {
       if (hasCode(error, 'ROUND_ALREADY_SUBMITTED')) setScreen({ mode: 'finished' })
       else if (hasCode(error, 'ROUND_EXPIRED')) setScreen({ mode: 'expired' })
@@ -228,6 +237,12 @@ function createRoundController(
               answered.set(item.no, item)
               missed.delete(item.no)
             }
+            if (lives !== undefined) {
+              // The lost response carried the lives left; the recorded answers say the same.
+              const max = typeof view.uiConfig.maxLives === 'number' ? view.uiConfig.maxLives : lives
+              lives = Math.max(0, max - view.answered.filter((item) => item.correct === false).length)
+              if (lives === 0) closing = true
+            }
           }
           if (!answered.has(next.no)) {
             const response = await answerRound(
@@ -242,6 +257,11 @@ function createRoundController(
             if (signal.aborted) return
             answered.set(next.no, response)
             points = response.totalPoints
+            if (typeof response.livesLeft === 'number') {
+              lives = response.livesLeft
+              // The server refuses answers after the last life, so the round ends here.
+              if (lives === 0) closing = true
+            }
           }
           const feedback = answered.get(next.no)
           if (feedback?.correct != null && feedback.correctAnswer != null) {
@@ -262,7 +282,8 @@ function createRoundController(
             setScreen({ mode: 'finished' })
             return
           }
-          if (hasCode(error, 'ROUND_TIME_OVER')) {
+          if (hasCode(error, 'ROUND_TIME_OVER') || hasCode(error, 'RATE_LIMITED')) {
+            // Retrying cannot succeed; finish with what the server has recorded.
             closing = true
             stopPending()
             break
@@ -280,8 +301,10 @@ function createRoundController(
     }
     if (signal.aborted || mode !== 'round') return
     if (leaveRequested) await abandon()
-    else if (!blocked && closing) await finish()
-    else if (!blocked && answered.size + missed.size >= round.items.length && finishTimer === undefined) {
+    // The answer that cost the last life still shows its feedback before the result.
+    else if (!blocked && closing && lives !== 0) await finish()
+    else if (!blocked && finishTimer === undefined
+      && (lives === 0 || answered.size + missed.size >= round.items.length)) {
       const delay = Math.max(0, Math.min(feedbackMs, deadline() - serverNow()))
       finishTimer = window.setTimeout(() => void finish(), delay)
       renderRound()
@@ -345,6 +368,15 @@ function createRoundController(
     void drain()
   }
 
+  /** A game ends the round itself (out of ink, every board done): pending answers are sent, then it finishes. */
+  function endRound() {
+    if (mode !== 'round' || closing || leaveRequested) return
+    closing = true
+    confirming = false
+    renderRound()
+    void drain()
+  }
+
   function confirmExit(confirmed: boolean) {
     if (mode !== 'round' || closing) return
     if (confirmed) {
@@ -364,6 +396,7 @@ function createRoundController(
     onMissed,
     onItemShown,
     retryAnswers,
+    endRound,
     confirmExit,
     retryFinish,
     abandon,
@@ -376,6 +409,11 @@ function createRoundController(
 
 export function GameShell(props: Props) {
   return <RoundScreen key={JSON.stringify([props.code, props.hskLevel])} {...props} />
+}
+
+function livesMax(screen: Extract<Screen, { mode: 'round' }>): number {
+  const max = screen.round.uiConfig.maxLives
+  return typeof max === 'number' ? max : 0
 }
 
 /** The arcade page frame shared by every game: back link, title and the round panel. */
@@ -397,11 +435,42 @@ export function ArcadePage({ code, playing, children }: { code: string; playing?
   )
 }
 
+const LEVEL_KEY = 'cnhsk-game:hsk-level'
+
+function isGameLevel(value: unknown): value is (typeof HSK_LEVELS)[number] {
+  return HSK_LEVELS.some((level) => level === value)
+}
+
+/** The level asked for in the link, else the one the learner picked last time on this device. */
+function initialLevel(requested: number | undefined): number | undefined {
+  if (isGameLevel(requested)) return requested
+  try {
+    const stored = Number(window.localStorage.getItem(LEVEL_KEY))
+    return isGameLevel(stored) ? stored : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function rememberLevel(level: number) {
+  try {
+    window.localStorage.setItem(LEVEL_KEY, String(level))
+  } catch {
+    // Remembering the level is a convenience; private windows may refuse storage.
+  }
+}
+
 function RoundScreen({ code, hskLevel, Game }: Props) {
   const [screen, setScreen] = useState<Screen>({ mode: 'ready' })
+  const [level, setLevel] = useState(() => initialLevel(hskLevel))
   const controller = useRef<ReturnType<typeof createRoundController>>()
+  function start() {
+    if (level === undefined) return
+    rememberLevel(level)
+    void controller.current?.start(level)
+  }
   useEffect(() => {
-    const instance = createRoundController(code, hskLevel, setScreen)
+    const instance = createRoundController(code, setScreen)
     controller.current = instance
     const timer = window.setInterval(instance.tick, 200)
     window.addEventListener('online', instance.retryAnswers)
@@ -411,7 +480,7 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
       window.clearInterval(timer)
       window.removeEventListener('online', instance.retryAnswers)
     }
-  }, [code, hskLevel])
+  }, [code])
 
   const result = screen.mode === 'result' ? screen.result : null
   const total = screen.mode === 'round' ? screen.round.timeLimitSeconds : 0
@@ -423,11 +492,21 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
             <div className="core-setup-copy">
               <span className="core-kicker">✦ MỘT VÁN NHANH · MỘT KỸ NĂNG MỚI</span>
               <h2>Sẵn sàng?<br /><em>Vào trận thôi.</em></h2>
-              <p>Câu hỏi lấy từ ngân hàng của hệ thống{hskLevel ? ` (HSK ${hskLevel})` : ' theo trình độ bạn đang học'}. Máy chủ chấm từng lượt, điểm được lưu và xếp hạng.</p>
+              <p>Mỗi ván rút ngẫu nhiên câu hỏi đúng cấp bạn chọn. Máy chủ chấm từng lượt; điểm được xếp hạng riêng theo từng cấp HSK.</p>
+              <div className="core-field-label" id="hsk-level-label">CẤP HSK</div>
+              <div className="choice-row" role="group" aria-labelledby="hsk-level-label">
+                {HSK_LEVELS.map((value) => (
+                  <button key={value} type="button" aria-pressed={level === value}
+                    className={level === value ? 'selected' : ''} onClick={() => setLevel(value)}>
+                    HSK {value}
+                  </button>
+                ))}
+              </div>
               {screen.message && <p role="alert">{screen.message}</p>}
-              <button type="button" className="primary-button" onClick={() => void controller.current?.start()}>
+              <button type="button" className="primary-button" disabled={level === undefined} onClick={start}>
                 Bắt đầu <span aria-hidden="true">↗</span>
               </button>
+              {level === undefined && <p className="core-hint">Chọn một cấp HSK để bắt đầu.</p>}
             </div>
             <GameArtwork code={code} />
           </div>
@@ -436,7 +515,15 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
         {screen.mode === 'round' && (
           <div className="core-play">
             <div className="core-stats">
-              <span className="stat-level">{hskLevel ? `HSK ${hskLevel}` : 'HSK của bạn'}</span>
+              <span className="stat-level">HSK {level}</span>
+              {screen.lives !== undefined && (
+                <span className="stat-lives" role="status">
+                  <span className="sr-only">Còn {screen.lives} mạng</span>
+                  <span aria-hidden="true">
+                    {'♥'.repeat(screen.lives)}<span className="lost">{'♥'.repeat(Math.max(0, livesMax(screen) - screen.lives))}</span>
+                  </span>
+                </span>
+              )}
               <span className={screen.seconds <= 10 ? 'stat-time urgent' : 'stat-time'}>
                 Thời gian còn lại: <span className="tabular-nums">{screen.seconds} giây</span>
               </span>
@@ -484,6 +571,7 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
                   submitAnswer={(no, answer) => controller.current!.submitAnswer(no, answer)}
                   onMissed={(no) => controller.current?.onMissed(no)}
                   onItemShown={(no) => controller.current?.onItemShown(no)}
+                  endRound={() => controller.current?.endRound()}
                 />
               )
             )}
@@ -522,7 +610,7 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
         {result && (
           <div className="core-panel core-center core-result">
             <span className="result-star" aria-hidden="true">✦ ✦ ✦</span>
-            <span className="eyebrow">KẾT THÚC VÁN</span>
+            <span className="eyebrow">{screen.mode === 'result' && screen.outOfLives ? 'HẾT MẠNG' : 'KẾT THÚC VÁN'}</span>
             <h1>Kết quả ván chơi</h1>
             {result.newBest && (
               <p role="status" className="round-new-best">
@@ -558,11 +646,11 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
               </div>
             </dl>
             <div className="button-row">
-              <button type="button" className="primary-button" onClick={() => void controller.current?.start()}>
+              <button type="button" className="primary-button" onClick={start}>
                 Chơi lại
               </button>
               {hubLink}
-              <a className="secondary-button" href={webHref('/leaderboards/games?game=' + code)}>
+              <a className="secondary-button" href={webHref(`/leaderboards/games?game=${code}&hskLevel=${level ?? 1}`)}>
                 Xem bảng xếp hạng
               </a>
             </div>
