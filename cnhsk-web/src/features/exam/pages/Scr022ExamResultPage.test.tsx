@@ -57,6 +57,7 @@ describe('SCR-022 exam result FR-026 / AT-27', () => {
     open()
     expect(await screen.findByText('Đang tải điểm yếu…')).toBeVisible()
     expect(screen.getByText('Điểm trọng số: 2/5 (40%)')).toBeVisible()
+    await waitFor(() => expect(getExamWeakPoints).toHaveBeenCalledOnce())
     rejectPoints(new Error('fixture'))
     expect(await screen.findByRole('alert')).toHaveTextContent('Không thể tải điểm yếu.')
     await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))

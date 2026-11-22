@@ -291,12 +291,13 @@ describe('Scr014CharacterWritingPage — thử thách', () => {
 describe('Scr014CharacterWritingPage — ghi lượt luyện viết', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    canvasReadyMock.callback = undefined
     getCharacterMock.mockResolvedValue(detail)
   })
 
   async function submitIncomplete(user: ReturnType<typeof userEvent.setup>) {
     const stopButton = await screen.findByRole('button', { name: 'Dừng' })
-    await screen.findByTestId('hanzi-canvas')
+    await waitFor(() => expect(canvasReadyMock.callback).toBeDefined())
     act(() => canvasReadyMock.callback?.())
     await waitFor(() => expect(stopButton).toBeEnabled())
     await user.click(stopButton)
@@ -364,7 +365,7 @@ describe('Scr014CharacterWritingPage — ghi lượt luyện viết', () => {
   })
 
   async function readyStrokeQuiz() {
-    await screen.findByTestId('hanzi-canvas')
+    await waitFor(() => expect(canvasReadyMock.callback).toBeDefined())
     act(() => canvasReadyMock.callback?.())
     await waitFor(() => expect(canvasReadyMock.quiz).toHaveBeenCalled())
   }
@@ -494,9 +495,10 @@ describe('Scr014CharacterWritingPage — ghi lượt luyện viết', () => {
     })
     renderAt('/learn/characters/writing/11')
     await readyStrokeQuiz()
+    canvasReadyMock.quiz.mockClear()
     await user.click(screen.getByRole('button', { name: /Nghe chép/ }))
-    await waitFor(() => expect(canvasReadyMock.quiz).toHaveBeenCalledTimes(2))
-    await completeQuiz(1)
+    await waitFor(() => expect(canvasReadyMock.quiz).toHaveBeenCalled())
+    await completeQuiz()
 
     expect(await screen.findByText('Chữ đúng: 好')).toBeVisible()
     const listenButton = screen.getByRole('button', { name: 'Nghe từ' })
