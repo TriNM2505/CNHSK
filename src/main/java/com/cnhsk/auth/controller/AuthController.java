@@ -146,10 +146,10 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "ÄÄƒng xuáº¥t phiÃªn hiá»‡n táº¡i")
+    @Operation(summary = "Đăng xuất phiên hiện tại")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "ÄÃ£ Ä‘Äƒng xuáº¥t"),
-            @ApiResponse(responseCode = "401", description = "ChÆ°a xÃ¡c thá»±c")
+            @ApiResponse(responseCode = "204", description = "Đã đăng xuất"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực")
     })
     public ResponseEntity<Void> logout(@AuthenticationPrincipal AuthenticatedUser user,
             @CookieValue(name = "refresh_token", required = false) String refreshCookie,
@@ -169,11 +169,11 @@ public class AuthController {
     }
 
     @PostMapping("/logout-all")
-    @Operation(summary = "ÄÄƒng xuáº¥t má»�i thiáº¿t bá»‹")
+    @Operation(summary = "Đăng xuất mọi thiết bị")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "ÄÃ£ Ä‘Äƒng xuáº¥t"),
-            @ApiResponse(responseCode = "401", description = "ChÆ°a xÃ¡c thá»±c"),
-            @ApiResponse(responseCode = "500", description = "KhÃ´ng thể ghi marker Redis")
+            @ApiResponse(responseCode = "204", description = "Đã đăng xuất"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực"),
+            @ApiResponse(responseCode = "500", description = "Không thể vô hiệu các phiên")
     })
     public ResponseEntity<Void> logoutAll(@AuthenticationPrincipal AuthenticatedUser user) {
         logoutService.logoutAll(user.userId());
