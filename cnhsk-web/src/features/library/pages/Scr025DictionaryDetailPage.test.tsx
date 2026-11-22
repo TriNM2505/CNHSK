@@ -17,6 +17,7 @@ import Scr025DictionaryDetailPage from './Scr025DictionaryDetailPage'
 
 vi.mock('../api/dictionary', () => ({
   getLexeme: vi.fn(),
+  getGuestTrial: vi.fn(async () => undefined),
   searchDictionary: vi.fn(),
   listRadicals: vi.fn(),
   searchByRadical: vi.fn(),

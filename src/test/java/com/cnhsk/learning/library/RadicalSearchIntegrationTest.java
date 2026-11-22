@@ -164,18 +164,18 @@ class RadicalSearchIntegrationTest extends AbstractIntegrationTest {
     @Test
     void FR002_guestQuotaIsSharedByAllFourEndpointsIncludingInvalidRequests() throws Exception {
         long id = lexeme("CHAR", "口", 6, 0);
-        redis.opsForValue().set(key(null), "56", Duration.ofHours(1));
+        redis.opsForValue().set(key(null), "596", Duration.ofHours(1));
         response(request("/search").param("type", "HANZI").param("q", "自造未找到"));
         response(request("/radicals"));
         mvc.perform(request("/by-radical")).andExpect(status().isUnprocessableEntity());
         response(request("/lexemes/" + id));
-        assertThat(redis.opsForValue().get(key(null))).isEqualTo("60");
+        assertThat(redis.opsForValue().get(key(null))).isEqualTo("600");
         for (String path : List.of("/radicals", "/by-radical", "/lexemes/bad")) {
             mvc.perform(request(path).header("X-Forwarded-For", UUID.randomUUID().toString()))
                     .andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.loginSuggested").value(true))
                     .andExpect(jsonPath("$.retryAfterSeconds").isNumber());
         }
-        assertThat(redis.opsForValue().get(key(null))).isEqualTo("63");
+        assertThat(redis.opsForValue().get(key(null))).isEqualTo("603");
     }
 
     @ParameterizedTest

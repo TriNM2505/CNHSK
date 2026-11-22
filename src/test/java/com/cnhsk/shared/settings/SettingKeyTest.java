@@ -28,7 +28,7 @@ class SettingKeyTest {
         "billing.free-monthly-limit,Thanh toán,0,1000,10",
         "assistant.daily-limit,Trợ lý & AI,0,10000,200",
         "ai.monthly-token-budget,Trợ lý & AI,0,100000000,2000000",
-        "library.guest-lookups-per-hour,Thư viện,1,10000,60",
+        "library.guest-lookups-per-hour,Thư viện,1,10000,600",
         "library.authenticated-lookups-per-hour,Thư viện,1,10000,600",
         "library.max-notes,Thư viện,1,10000,1000",
         "library.max-decks,Thư viện,1,500,50",

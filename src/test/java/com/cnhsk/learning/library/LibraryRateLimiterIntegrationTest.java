@@ -35,16 +35,16 @@ class LibraryRateLimiterIntegrationTest extends AbstractIntegrationTest {
     @Autowired private com.cnhsk.shared.settings.SettingsApi settings;
 
     @Test
-    void FR002_AT02_guestAllows60AndBlocks61WhileKeepingTheFirstHitTtl() {
+    void FR002_AT02_guestAllows600AndBlocks601WhileKeepingTheFirstHitTtl() {
         String address = "2001:db8::" + UUID.randomUUID().toString().substring(0, 4);
         var limiter = limiter(counters, "2026-11-04T12:30:00Z");
-        for (int index = 0; index < 60; index++) limiter.check(null, address);
+        for (int index = 0; index < 600; index++) limiter.check(null, address);
         assertThatThrownBy(() -> limiter.check(null, address)).isInstanceOfSatisfying(ApiException.class, error -> {
             assertThat(error.getCode()).isEqualTo(ErrorCode.RATE_LIMITED);
             assertThat(error.getExtra()).containsEntry("loginSuggested", true).containsEntry("retryAfterSeconds", 1800L);
         });
         String key = "library:dictionary:guest:" + address + ":2026110412";
-        assertThat(redis.opsForValue().get(key)).isEqualTo("61");
+        assertThat(redis.opsForValue().get(key)).isEqualTo("601");
         assertThat(redis.getExpire(key, TimeUnit.SECONDS)).isBetween(1790L, 1800L);
         assertThatCode(() -> limiter(counters, "2026-11-04T13:00:00Z").check(null, address))
                 .doesNotThrowAnyException();
@@ -65,7 +65,7 @@ class LibraryRateLimiterIntegrationTest extends AbstractIntegrationTest {
     void FR002_concurrentLookupsShareOneAtomicCounter() throws Exception {
         String address = "2001:db8::" + UUID.randomUUID().toString().substring(0, 4);
         String key = "library:dictionary:guest:" + address + ":2026110412";
-        redis.opsForValue().set(key, "59", Duration.ofMinutes(30));
+        redis.opsForValue().set(key, "599", Duration.ofMinutes(30));
         var limiter = limiter(counters, "2026-11-04T12:30:00Z");
         var pool = Executors.newFixedThreadPool(8);
         CountDownLatch start = new CountDownLatch(1);
@@ -85,7 +85,7 @@ class LibraryRateLimiterIntegrationTest extends AbstractIntegrationTest {
             int accepted = 0;
             for (Future<Boolean> result : results) if (result.get(20, TimeUnit.SECONDS)) accepted++;
             assertThat(accepted).isEqualTo(1);
-            assertThat(redis.opsForValue().get(key)).isEqualTo("67");
+            assertThat(redis.opsForValue().get(key)).isEqualTo("607");
         } finally {
             pool.shutdownNow();
         }

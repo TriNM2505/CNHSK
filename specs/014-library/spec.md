@@ -8,7 +8,7 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.1.0 — phụ lục §16 bộ thẻ công khai, sao chép, báo cáo, menu Thư viện |
+| **Version** | 1.2.0 — khách tra thử 10 lượt mỗi ngày mỗi trình duyệt (FR-002b, AT-02b; leader chốt 2026-11-22); 1.1.0 — phụ lục §16 bộ thẻ công khai, sao chép, báo cáo, menu Thư viện |
 | **Status** | APPROVED — được code theo `tasks.md` |
 | **Approved by** | Leader (RFC đợt cuối R1–R12 đã đồng thuận; phụ lục v1.1 2026-11-14) |
 | **Locked on** | 2026-11-03 |
@@ -47,7 +47,8 @@
 
 | Mục | Giới hạn | Nguồn |
 |---|---|---|
-| Tra cứu `GUEST` | 60 lần/giờ/IP | Q3 |
+| Tra thử của `GUEST` | 10 nội dung mới/ngày/trình duyệt, gộp 4 kiểu tra, làm mới 0 giờ `Asia/Ho_Chi_Minh` | Leader 2026-11-22 |
+| Trần chống lạm dụng `GUEST` | 600 request/giờ/IP (đủ cho một lớp chung mạng) | Leader 2026-11-22, thay Q3 |
 | Tra cứu `LEARNER` | 600 lần/giờ/người | Q3 |
 | Ghi chú | 1 000 ghi chú chưa xoá/người | BR-062-5 |
 | Bộ | 50 bộ chưa xoá/người; 500 thẻ chưa xoá/bộ | BR-063-6 |
@@ -134,6 +135,7 @@ Học viên tạo bộ từ chủ đề "Gia đình", thêm từ vừa tra, bấ
 |---|---|
 | **FR-001** | THE system SHALL cho `/api/public/dictionary/**` mọi người (kể cả chưa đăng nhập); `/api/notes/**`, `/api/flashcard-decks/**`, `/api/flashcards/**`, `POST /api/translate` chỉ `LEARNER`. Không đăng nhập → **401**; sai role → **403** `FORBIDDEN`. Bộ, thẻ, ghi chú không tồn tại hoặc của người khác → **403** `COLLECTION_NOT_OWNED` cùng thông báo (`BUS-01`). Ghi qua cookie cần CSRF |
 | **FR-002** | Mỗi request `/api/public/dictionary/**` SHALL tăng bộ đếm Redis theo người dùng (đã đăng nhập) hoặc IP (chưa đăng nhập); vượt §0.2 → **429** `RATE_LIMITED` + `retryAfterSeconds` (khách kèm `loginSuggested: true`). Redis lỗi → cho qua, log `WARN`. Tra cứu **không** tiêu thụ lượt (BR-056-8) |
+| **FR-002b** | Với khách, mỗi nội dung tra **mới** hợp lệ ở `/search` và `/by-radical` SHALL trừ 1 lượt tra thử trong ngày, đếm ở Redis theo cookie `guest_trial` (ngẫu nhiên 32 byte, `HttpOnly`, `SameSite=Lax`, `Path=/api/public/dictionary`, 365 ngày), chỉ lưu hash nội dung. Không trừ: sang trang, tải lại, tra lại nội dung đã tra trong ngày, tham số sai (422), chuỗi quá dài (`hint`), danh sách bộ thủ, chi tiết mục từ. Hết lượt → **429** `RATE_LIMITED` + `loginSuggested: true`, `guestTrialExhausted: true`, `retryAfterSeconds` tới 0 giờ; nội dung đã tra trong ngày vẫn xem được. Người đã đăng nhập không bị tính. `GET /api/public/dictionary/guest-trial` trả `{limit, remaining}`, không tính lượt; đã đăng nhập hoặc Redis lỗi → **204**. Redis lỗi → cho tra, log `WARN`. Cấu hình `cnhsk.library.guest-trial-lookups-per-day` |
 
 ### Nhóm 1 — Tra cứu (FR-003…FR-007) · SCR-024, SCR-025
 
@@ -390,7 +392,8 @@ Trạng thái mỗi màn: Loading · Empty · Error ("Thử lại").
 | # | FR | G / W / T |
 |---|---|---|
 | AT-01 | FR-001 | Khách gọi `/api/public/dictionary/search` · T 200; khách gọi `POST /api/notes` · T 401; `ADMIN` (không có `LEARNER`) gọi `/api/notes` · T 403; ghi chú/bộ/thẻ của người khác hoặc id không có · T 403 cùng thông báo; ghi qua cookie thiếu CSRF · T 403 |
-| AT-02 | FR-002 | Khách 61 lần/giờ cùng IP · T lần 61 trả 429 `loginSuggested`; `LEARNER` 601 lần · T 429; Redis tắt · T vẫn tra được; tra không đổi `free_usage` |
+| AT-02 | FR-002 | Khách 601 request/giờ cùng IP · T lần 601 trả 429 `loginSuggested`; `LEARNER` 601 lần · T 429; Redis tắt · T vẫn tra được; tra không đổi `free_usage` |
+| AT-02b | FR-002b | Khách tra 10 nội dung khác nhau bằng cả 4 kiểu · T còn 0; nội dung thứ 11 · T 429 `guestTrialExhausted`; nội dung cũ, trang 2, 422 · T không trừ; 16 request song song · T đúng 10 qua; qua 0 giờ Việt Nam · T lại đủ 10; đã đăng nhập · T không trừ; SCR-024 hiện số lượt còn lại, hết lượt khoá ô tra và hiện đăng nhập/đăng ký |
 | AT-03 | FR-003 | 你好 · T từ 你好 đứng đầu; 你们好 (không có từ) · T 3 chữ; `q` 11 chữ · T rỗng + `USE_TRANSLATE`; `q` rỗng · T 422 |
 | AT-04 | FR-004 | `ni hao`, `nǐ hǎo`, `ni3hao3` · T cùng tập; `mā` · T 妈 trước 马; `xian` · T có cả 先 và 西安 |
 | AT-05 | FR-005 | `chao` và `chào` · T cùng nhóm; khớp đúng trước đầu cụm trước một phần; `q="a"` · T 422 |

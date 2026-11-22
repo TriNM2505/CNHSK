@@ -4,7 +4,7 @@ import { useLocation, useSearchParams } from 'react-router-dom'
 import { useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
 
-import { listRadicals, searchByRadical, searchDictionary } from '../api/dictionary'
+import { getGuestTrial, listRadicals, searchByRadical, searchDictionary } from '../api/dictionary'
 import { DictionarySearchView } from '../components/DictionarySearchView'
 import {
   dictionarySearchParams,
@@ -20,6 +20,8 @@ export default function Scr024DictionarySearchPage() {
   const search = readDictionarySearch(params)
   const [draft, setDraft] = useState(search)
   const [formError, setFormError] = useState<string>()
+  const [lookups, setLookups] = useState(0)
+  const guest = auth.status === 'guest'
   const submitted = params.has('q') || params.has('radical') || params.has('strokes')
   const searchError = submitted ? validateDictionarySearch(search) : undefined
   const searched = submitted && !searchError
@@ -29,11 +31,9 @@ export default function Scr024DictionarySearchPage() {
     setFormError(undefined)
   }, [paramsKey])
 
-  const query = useApiQuery(
-    (signal) => {
-      if (!searched) return Promise.resolve({ items: [], total: 0 })
-      if (search.type === 'RADICAL') {
-        return searchByRadical(
+  const runSearch = (signal: AbortSignal) =>
+    search.type === 'RADICAL'
+      ? searchByRadical(
           {
             radical: search.radical || undefined,
             strokes: search.strokes ? Number(search.strokes) : undefined,
@@ -41,8 +41,14 @@ export default function Scr024DictionarySearchPage() {
           },
           signal,
         )
-      }
-      return searchDictionary({ type: search.type, q: search.q, page: search.page }, signal)
+      : searchDictionary({ type: search.type, q: search.q, page: search.page }, signal)
+
+  const query = useApiQuery(
+    (signal) => {
+      if (!searched) return Promise.resolve({ items: [], total: 0 })
+      return runSearch(signal).finally(() => {
+        if (!signal.aborted) setLookups((count) => count + 1)
+      })
     },
     [paramsKey],
     { isEmpty: (data) => data.items.length === 0 },
@@ -51,6 +57,15 @@ export default function Scr024DictionarySearchPage() {
     (signal) => (draft.type === 'RADICAL' ? listRadicals(signal) : Promise.resolve([])),
     [draft.type],
   )
+
+  // The server owns the count: ask again after each finished lookup.
+  const trial = useApiQuery(
+    (signal) => (guest ? getGuestTrial(signal) : Promise.resolve(undefined)),
+    [guest, lookups],
+  )
+  const returnQuery = new URLSearchParams({
+    redirect: `${location.pathname}${location.search}${location.hash}`,
+  })
 
   const submit = () => {
     const error = validateDictionarySearch(draft)
@@ -86,9 +101,11 @@ export default function Scr024DictionarySearchPage() {
       searched={searched}
       page={search.page}
       returnTo={`${location.pathname}${location.search}`}
-      loginTo={`/login?${new URLSearchParams({ redirect: `${location.pathname}${location.search}${location.hash}` })}`}
+      loginTo={`/login?${returnQuery}`}
+      registerTo={`/register?${returnQuery}`}
       canTranslate={auth.status === 'authenticated' && !!auth.user?.roles.includes('LEARNER')}
-      guest={auth.status === 'guest'}
+      guest={guest}
+      guestTrial={trial.data}
     />
   )
 }

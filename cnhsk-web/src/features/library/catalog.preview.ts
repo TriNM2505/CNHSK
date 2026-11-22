@@ -502,8 +502,10 @@ function DictionaryPreview({
     page,
     returnTo: `/dictionary?${dictionarySearchParams({ ...(screen ? submitted : draft), page })}`,
     loginTo: '/login?redirect=%2Fdictionary',
+    registerTo: '/register?redirect=%2Fdictionary',
     canTranslate: learner,
     guest: !learner,
+    guestTrial: { limit: 10, remaining: rateLimited ? 0 : 7 },
   })
 }
 

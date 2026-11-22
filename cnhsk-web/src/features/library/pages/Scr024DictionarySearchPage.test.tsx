@@ -7,11 +7,12 @@ import type { CurrentUser, RoleCode } from '@/features/auth/types'
 import { ApiError } from '@/shared/api'
 import { AuthContext, type AuthContextValue } from '@/shared/auth'
 
-import { listRadicals, searchByRadical, searchDictionary } from '../api/dictionary'
+import { getGuestTrial, listRadicals, searchByRadical, searchDictionary } from '../api/dictionary'
 import type { SearchResult } from '../types'
 import Scr024DictionarySearchPage from './Scr024DictionarySearchPage'
 
 vi.mock('../api/dictionary', () => ({
+  getGuestTrial: vi.fn(async () => undefined),
   searchDictionary: vi.fn(),
   listRadicals: vi.fn(),
   searchByRadical: vi.fn(),
@@ -35,6 +36,7 @@ const result: SearchResult = {
 }
 const dictionaryMock = vi.mocked(searchDictionary)
 const radicalMock = vi.mocked(searchByRadical)
+const trialMock = vi.mocked(getGuestTrial)
 function renderPage(
   path = '/dictionary',
   roles: RoleCode[] | null = null,
@@ -83,6 +85,7 @@ function submit() {
 beforeEach(() => {
   vi.resetAllMocks()
   dictionaryMock.mockResolvedValue(result)
+  trialMock.mockResolvedValue({ limit: 10, remaining: 10 })
   vi.mocked(listRadicals).mockResolvedValue([{ radical: '日', charCount: 2 }])
   radicalMock.mockResolvedValue(result)
 })
@@ -238,6 +241,79 @@ describe('SCR-024 dictionary search (FR-023, AT-23)', () => {
     expect(screen.getByText('Thử lại sau 45 giây.')).toBeVisible()
     expect(screen.getByText('Mã lỗi: dictionary-429')).toBeVisible()
     expect(screen.getByLabelText(/Nội dung cần tra/)).toHaveValue('ri4')
+  })
+
+  it('counts the guest trial down after every finished lookup', async () => {
+    trialMock
+      .mockResolvedValueOnce({ limit: 10, remaining: 10 })
+      .mockResolvedValueOnce({ limit: 10, remaining: 9 })
+      .mockResolvedValueOnce({ limit: 10, remaining: 3 })
+    renderPage()
+    expect(await screen.findByText('10/10')).toBeVisible()
+    enterQuery('日')
+    submit()
+    expect(await screen.findByText('9/10')).toBeVisible()
+    enterQuery('月')
+    submit()
+    expect(await screen.findByText('3/10')).toBeVisible()
+    expect(trialMock).toHaveBeenCalledTimes(3)
+    expect(screen.getByRole('button', { name: 'Tra cứu' })).toBeEnabled()
+  })
+
+  it('locks the form at zero and keeps the last results with a way to sign in and come back', async () => {
+    trialMock.mockResolvedValue({ limit: 10, remaining: 0 })
+    renderPage('/dictionary?type=HANZI&q=日')
+    expect(await screen.findByText('Bạn đã dùng hết 10 lượt tra thử hôm nay')).toBeVisible()
+    expect(await screen.findByText('rì')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Tra cứu' })).toBeDisabled()
+    expect(screen.getByLabelText(/Nội dung cần tra/)).toBeDisabled()
+    expect(screen.getByLabelText('Kiểu tra')).toBeDisabled()
+    for (const [name, path] of [
+      ['Đăng nhập để tra tiếp', '/login'],
+      ['Đăng ký miễn phí', '/register'],
+    ] as const) {
+      const target = new URL(
+        screen.getByRole('link', { name }).getAttribute('href')!,
+        'https://test.invalid',
+      )
+      expect(target.pathname).toBe(path)
+      expect(target.searchParams.get('redirect')).toBe('/dictionary?type=HANZI&q=日')
+    }
+  })
+
+  it('replaces the error with the sign-in prompt when the server rejects a lookup past the trial', async () => {
+    trialMock.mockResolvedValue(undefined)
+    dictionaryMock.mockRejectedValue(
+      new ApiError({
+        status: 429,
+        errorCode: 'RATE_LIMITED',
+        message: 'Hết lượt',
+        extra: { guestTrialExhausted: true, loginSuggested: true, retryAfterSeconds: 60 },
+      }),
+    )
+    renderPage('/dictionary?type=HANZI&q=日')
+    expect(await screen.findByText('Bạn đã dùng hết lượt tra thử hôm nay')).toBeVisible()
+    expect(screen.getAllByRole('link', { name: 'Đăng nhập để tra tiếp' })).toHaveLength(1)
+    expect(screen.queryByRole('heading', { name: 'Chưa thể tra từ điển' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Thử lại sau 60 giây.')).not.toBeInTheDocument()
+  })
+
+  it('shows no trial to a signed-in user and stays usable when the count is unknown', async () => {
+    renderPage('/dictionary?type=HANZI&q=日', ['LEARNER'])
+    await screen.findByText('rì')
+    expect(trialMock).not.toHaveBeenCalled()
+    expect(screen.queryByText(/lượt tra thử/)).not.toBeInTheDocument()
+  })
+
+  it('keeps lookups available to a guest when the trial count cannot be read', async () => {
+    trialMock.mockRejectedValue(
+      new ApiError({ status: 503, errorCode: 'UNAVAILABLE', message: 'Chưa sẵn sàng' }),
+    )
+    renderPage()
+    expect(await screen.findByText('Bạn đang tra cứu với tư cách khách.')).toBeVisible()
+    enterQuery('日')
+    submit()
+    expect(await screen.findByText('rì')).toBeVisible()
   })
 
   it('does not suggest login to an authenticated learner on 429', async () => {

@@ -19,6 +19,7 @@ import { translate } from './api/translation'
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
 vi.mock('./api/dictionary', () => ({
   getLexeme: vi.fn(),
+  getGuestTrial: vi.fn(async () => undefined),
   searchDictionary: vi.fn(),
   listRadicals: vi.fn(),
   searchByRadical: vi.fn(),

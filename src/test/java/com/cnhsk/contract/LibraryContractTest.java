@@ -40,14 +40,14 @@ class LibraryContractTest extends AbstractIntegrationTest {
     @Autowired @Qualifier("requestMappingHandlerMapping") private RequestMappingHandlerMapping handlers;
 
     @Test
-    void AT29_allFifteenPathsTwentyTwoOperationsAndStatusSetsMatchTheLockedContract() throws Exception {
+    void AT29_allSixteenPathsTwentyThreeOperationsAndStatusSetsMatchTheLockedContract() throws Exception {
         JsonNode source = new ObjectMapper(new YAMLFactory()).readTree(Files.readString(CONTRACT));
         JsonNode runtime = mapper.readTree(mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsByteArray());
         Map<String, JsonNode> expected = operations(source);
         Map<String, JsonNode> actual = operations(runtime);
-        assertThat(libraryPaths(source)).as("Locked library paths").hasSize(15);
-        assertThat(expected).as("Locked library operations").hasSize(22);
+        assertThat(libraryPaths(source)).as("Locked library paths").hasSize(16);
+        assertThat(expected).as("Locked library operations").hasSize(23);
 
         List<String> mismatches = new ArrayList<>();
         if (!libraryPaths(runtime).equals(libraryPaths(source))) {

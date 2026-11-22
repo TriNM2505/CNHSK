@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.cnhsk.learning.library.DictionaryService;
 import com.cnhsk.learning.library.DictionaryService.SearchResult;
+import com.cnhsk.learning.library.GuestLookupTrial;
 import com.cnhsk.learning.library.LibraryRateLimiter;
 import com.cnhsk.learning.library.LexemeDetailService;
 import com.cnhsk.learning.library.LexemeDetailService.LexemeDetail;
@@ -17,7 +18,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,13 +37,15 @@ public class DictionaryController {
     private final LibraryRateLimiter limiter;
     private final RadicalService radicals;
     private final LexemeDetailService details;
+    private final GuestLookupTrial trial;
 
     public DictionaryController(DictionaryService dictionary, LibraryRateLimiter limiter,
-                                RadicalService radicals, LexemeDetailService details) {
+                                RadicalService radicals, LexemeDetailService details, GuestLookupTrial trial) {
         this.dictionary = dictionary;
         this.limiter = limiter;
         this.radicals = radicals;
         this.details = details;
+        this.trial = trial;
     }
 
     // MVC counts every dictionary request before resolving/validating endpoint parameters.
@@ -60,8 +66,13 @@ public class DictionaryController {
             @Parameter(required = true) @RequestParam(required = false) String q,
             @Parameter(schema = @Schema(type = "integer", defaultValue = "0", minimum = "0")) @RequestParam(required = false) String page,
             @Parameter(schema = @Schema(type = "integer", defaultValue = "20", minimum = "1", maximum = "50"))
-            @RequestParam(required = false) String size) {
-        return dictionary.search(type, q, integer(page, 0, "page"), integer(size, 20, "size"));
+            @RequestParam(required = false) String size,
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @Parameter(hidden = true) @CookieValue(name = GuestLookupTrial.COOKIE, required = false) String guestId,
+            HttpServletResponse response) {
+        SearchResult result = dictionary.search(type, q, integer(page, 0, "page"), integer(size, 20, "size"));
+        if (user == null && result.hint() == null) useTrial(guestId, response, type, q);
+        return result;
     }
 
     @GetMapping("/radicals")
@@ -86,9 +97,14 @@ public class DictionaryController {
             @Parameter(schema = @Schema(type = "integer", defaultValue = "0", minimum = "0"))
             @RequestParam(required = false) String page,
             @Parameter(schema = @Schema(type = "integer", defaultValue = "20", minimum = "1", maximum = "50"))
-            @RequestParam(required = false) String size) {
-        return radicals.search(radical, strokes == null ? null : integer(strokes, 0, "strokes"),
+            @RequestParam(required = false) String size,
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @Parameter(hidden = true) @CookieValue(name = GuestLookupTrial.COOKIE, required = false) String guestId,
+            HttpServletResponse response) {
+        SearchResult result = radicals.search(radical, strokes == null ? null : integer(strokes, 0, "strokes"),
                 integer(page, 0, "page"), integer(size, 20, "size"));
+        if (user == null) useTrial(guestId, response, "RADICAL", radical, strokes);
+        return result;
     }
 
     @GetMapping("/lexemes/{id}")
@@ -99,6 +115,16 @@ public class DictionaryController {
             @ApiResponse(responseCode = "429", description = "RATE_LIMITED")})
     public LexemeDetail detail(@Parameter(schema = @Schema(type = "integer", format = "int64")) @PathVariable String id) {
         return details.detail(id);
+    }
+
+    /** Runs after the lookup itself, so a rejected parameter never costs the guest anything. */
+    private void useTrial(String guestId, HttpServletResponse response, String type, String... terms) {
+        String id = guestId;
+        if (!GuestLookupTrial.isGuestId(id)) {
+            id = trial.newGuestId();
+            response.addHeader(HttpHeaders.SET_COOKIE, trial.cookie(id).toString());
+        }
+        trial.use(id, type, terms);
     }
 
     private static int integer(String value, int fallback, String field) {

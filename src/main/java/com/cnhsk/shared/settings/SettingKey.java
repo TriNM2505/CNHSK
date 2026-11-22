@@ -4,7 +4,7 @@ public enum SettingKey {
     BILLING_FREE_MONTHLY_LIMIT(1, "billing.free-monthly-limit", "Thanh toán", "Lượt miễn phí mỗi tháng", 0, 1_000),
     ASSISTANT_DAILY_LIMIT(2, "assistant.daily-limit", "Trợ lý & AI", "Lượt trợ lý mỗi ngày", 0, 10_000),
     AI_MONTHLY_TOKEN_BUDGET(3, "ai.monthly-token-budget", "Trợ lý & AI", "Ngân sách token AI mỗi tháng", 0, 100_000_000),
-    LIBRARY_GUEST_LOOKUPS_PER_HOUR(4, "library.guest-lookups-per-hour", "Thư viện", "Lượt tra cứu của khách mỗi giờ", 1, 10_000),
+    LIBRARY_GUEST_LOOKUPS_PER_HOUR(4, "library.guest-lookups-per-hour", "Thư viện", "Lượt gọi từ điển của khách mỗi giờ, mỗi địa chỉ mạng", 1, 10_000),
     LIBRARY_AUTHENTICATED_LOOKUPS_PER_HOUR(5, "library.authenticated-lookups-per-hour", "Thư viện", "Lượt tra cứu của thành viên mỗi giờ", 1, 10_000),
     LIBRARY_MAX_NOTES(6, "library.max-notes", "Thư viện", "Số ghi chú tối đa", 1, 10_000),
     LIBRARY_MAX_DECKS(7, "library.max-decks", "Thư viện", "Số bộ thẻ tối đa", 1, 500),

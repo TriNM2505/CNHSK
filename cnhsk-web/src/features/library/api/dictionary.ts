@@ -4,6 +4,7 @@ import { checkedIdentifiers, identifierPath } from './identifiers'
 
 import type {
   DictionarySearchParams,
+  GuestTrial,
   LexemeDetail,
   RadicalCount,
   RadicalSearchParams,
@@ -20,6 +21,10 @@ export async function searchDictionary(
   return checkedIdentifiers(
     apiRequest<SearchResult>(`${dictionaryPath}/search?${query.toString()}`, { signal }),
   )
+}
+
+export function getGuestTrial(signal?: AbortSignal): Promise<GuestTrial | undefined> {
+  return apiRequest<GuestTrial | undefined>(`${dictionaryPath}/guest-trial`, { signal })
 }
 
 export async function listRadicals(signal?: AbortSignal): Promise<RadicalCount[]> {

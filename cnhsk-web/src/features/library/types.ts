@@ -36,6 +36,12 @@ export type SearchResult = {
   hint?: 'USE_TRANSLATE' | null
 }
 
+/** Daily lookups a guest browser may try before signing in. */
+export type GuestTrial = {
+  limit: number
+  remaining: number
+}
+
 export type RadicalCount = {
   radical: string
   charCount: number

@@ -17,6 +17,10 @@ public class LibraryConfig {
 
     @NotNull
     @Min(1)
+    private Integer guestTrialLookupsPerDay;
+
+    @NotNull
+    @Min(1)
     private Integer authenticatedLookupsPerHour;
 
     @NotNull
@@ -53,6 +57,14 @@ public class LibraryConfig {
 
     public void setMaxNotes(Integer maxNotes) {
         this.maxNotes = maxNotes;
+    }
+
+    public Integer getGuestTrialLookupsPerDay() {
+        return guestTrialLookupsPerDay;
+    }
+
+    public void setGuestTrialLookupsPerDay(Integer guestTrialLookupsPerDay) {
+        this.guestTrialLookupsPerDay = guestTrialLookupsPerDay;
     }
 
     public Integer getGuestLookupsPerHour() {

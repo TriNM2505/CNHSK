@@ -48,7 +48,7 @@ Không có dòng = dùng mặc định (giá trị `application.yaml`). "Về m�
 | `billing.free-monthly-limit` | int | 10 | 0–1 000 | 013 |
 | `assistant.daily-limit` | int | 200 | 0–10 000 | 015 `AssistantDailyLimit` |
 | `ai.monthly-token-budget` | int | 2 000 000 | 0–100 000 000 | 015 |
-| `library.guest-lookups-per-hour` | int | 60 | 1–10 000 | 014 |
+| `library.guest-lookups-per-hour` | int | 600 | 1–10 000 | 014 |
 | `library.authenticated-lookups-per-hour` | int | 600 | 1–10 000 | 014 |
 | `library.max-notes` | int | 1 000 | 1–10 000 | 014 |
 | `library.max-decks` | int | 50 | 1–500 | 014 |

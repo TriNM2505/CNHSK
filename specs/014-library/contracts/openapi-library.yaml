@@ -67,6 +67,12 @@ components:
         meaningVi: { type: string }
         hskLevel: { type: [integer, 'null'] }
         approximate: { type: boolean, description: 'true khi là gợi ý số nét ± 1' }
+    GuestTrial:
+      type: object
+      required: [limit, remaining]
+      properties:
+        limit: { type: integer, minimum: 1 }
+        remaining: { type: integer, minimum: 0 }
     SearchResult:
       type: object
       required: [items, total]
@@ -248,7 +254,7 @@ components:
       description: VALIDATION_FAILED · LIBRARY_LIMIT_REACHED (details.kind NOTES | DECKS | CARDS)
       content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
     RateLimited:
-      description: RATE_LIMITED kèm retryAfterSeconds (khách thêm loginSuggested)
+      description: RATE_LIMITED kèm retryAfterSeconds (khách thêm loginSuggested; hết lượt tra thử trong ngày thêm guestTrialExhausted true)
       content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
     LexemeNotFound:
       description: LEXEME_NOT_FOUND
@@ -275,6 +281,18 @@ paths:
           content: { application/json: { schema: { $ref: '#/components/schemas/SearchResult' } } }
         '422': { $ref: '#/components/responses/ValidationFailed' }
         '429': { $ref: '#/components/responses/RateLimited' }
+
+  /api/public/dictionary/guest-trial:
+    get:
+      tags: [dictionary]
+      operationId: getGuestTrial
+      summary: Số lượt tra thử còn lại của khách hôm nay (FR-002b); không tính là một lượt tra
+      security: []
+      responses:
+        '200':
+          description: Hạn mức và số lượt còn lại
+          content: { application/json: { schema: { $ref: '#/components/schemas/GuestTrial' } } }
+        '204': { description: Đã đăng nhập hoặc chưa đọc được số lượt }
 
   /api/public/dictionary/radicals:
     get:

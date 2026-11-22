@@ -116,7 +116,10 @@ cnhsk:
   assistant:
     daily-limit: 200
   library:
-    guest-lookups-per-hour: 60
+    # Distinct lookups one guest browser may try per Vietnamese day.
+    guest-trial-lookups-per-day: 10
+    # Abuse ceiling per address; high enough for a class sharing one network.
+    guest-lookups-per-hour: 600
     authenticated-lookups-per-hour: 600
     max-notes: 1000
     max-decks: 50

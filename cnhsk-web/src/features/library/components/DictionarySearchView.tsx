@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpenText, Info, Search, Sparkles } from 'lucide-react'
+import { ArrowRight, BookOpenText, Search, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { ApiError } from '@/shared/api'
@@ -22,8 +22,9 @@ import {
 import './LibraryView.css'
 
 import { dictionaryDetailHref, dictionaryModes, type DictionarySearch } from '../dictionarySearch'
-import type { RadicalCount, SearchResult } from '../types'
+import type { GuestTrial, RadicalCount, SearchResult } from '../types'
 import dictionaryPanda from './assets/cnhsk-panda-dictionary.webp'
+import { GuestTrialNotice } from './GuestTrialNotice'
 
 export interface DictionarySearchViewProps {
   draft: DictionarySearch
@@ -42,8 +43,10 @@ export interface DictionarySearchViewProps {
   page: number
   returnTo: string
   loginTo: string
+  registerTo: string
   canTranslate: boolean
   guest: boolean
+  guestTrial?: GuestTrial
 }
 
 export function DictionarySearchView({
@@ -63,10 +66,14 @@ export function DictionarySearchView({
   page,
   returnTo,
   loginTo,
+  registerTo,
   canTranslate,
   guest,
+  guestTrial,
 }: DictionarySearchViewProps) {
   const retryAfter = error?.extra.retryAfterSeconds
+  const trialRejected = guest && error?.extra.guestTrialExhausted === true
+  const trialExhausted = trialRejected || (guest && guestTrial?.remaining === 0)
   return (
     <div className="library-screen mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-24 sm:px-6 lg:px-8">
       <PageBanner
@@ -78,96 +85,98 @@ export function DictionarySearchView({
         <div className="relative z-base grid min-w-0 items-center gap-6 p-5 sm:p-6 lg:grid-cols-3">
           <form
             aria-label="Tra từ điển"
-            className="min-w-0 space-y-5 lg:col-span-2"
+            className="min-w-0 lg:col-span-2"
             noValidate
             onSubmit={(event) => {
               event.preventDefault()
               onSubmit()
             }}
           >
-            <div className="flex items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
-                <Search aria-hidden="true" className="size-5" />
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-h3 text-ink">Khám phá từng từ mới</h2>
-                <p className="text-body-sm text-ink-secondary">Chọn cách tra phù hợp với bạn.</p>
+            <fieldset className="m-0 min-w-0 space-y-5 border-0 p-0" disabled={trialExhausted}>
+              <div className="flex items-center gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
+                  <Search aria-hidden="true" className="size-5" />
+                </span>
+                <div className="min-w-0">
+                  <h2 className="text-h3 text-ink">Khám phá từng từ mới</h2>
+                  <p className="text-body-sm text-ink-secondary">Chọn cách tra phù hợp với bạn.</p>
+                </div>
               </div>
-            </div>
-            <div className="grid min-w-0 gap-x-4 sm:grid-cols-3">
-              <FormField className="sm:col-span-1" htmlFor="dictionary-type" label="Kiểu tra">
-                <Select
-                  value={draft.type}
-                  onChange={(event) =>
-                    onChange({ ...draft, type: event.target.value as DictionarySearch['type'] })
-                  }
-                >
-                  {dictionaryModes.map(({ value, label }) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </Select>
-              </FormField>
-              {draft.type === 'RADICAL' ? (
-                <div className="grid min-w-0 gap-x-4 sm:col-span-2 sm:grid-cols-2">
-                  <FormField htmlFor="dictionary-radical" label="Bộ thủ">
-                    <Select
-                      className="font-hanzi"
-                      value={draft.radical}
-                      onChange={(event) => onChange({ ...draft, radical: event.target.value })}
+              <div className="grid min-w-0 gap-x-4 sm:grid-cols-3">
+                <FormField className="sm:col-span-1" htmlFor="dictionary-type" label="Kiểu tra">
+                  <Select
+                    value={draft.type}
+                    onChange={(event) =>
+                      onChange({ ...draft, type: event.target.value as DictionarySearch['type'] })
+                    }
+                  >
+                    {dictionaryModes.map(({ value, label }) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+                {draft.type === 'RADICAL' ? (
+                  <div className="grid min-w-0 gap-x-4 sm:col-span-2 sm:grid-cols-2">
+                    <FormField htmlFor="dictionary-radical" label="Bộ thủ">
+                      <Select
+                        className="font-hanzi"
+                        value={draft.radical}
+                        onChange={(event) => onChange({ ...draft, radical: event.target.value })}
+                      >
+                        <option value="">Tất cả bộ thủ</option>
+                        {draft.radical &&
+                        !radicals.some(({ radical }) => radical === draft.radical) ? (
+                          <option value={draft.radical}>{draft.radical}</option>
+                        ) : null}
+                        {radicals.map(({ radical, charCount }) => (
+                          <option key={radical} value={radical}>
+                            {radical} ({charCount} chữ)
+                          </option>
+                        ))}
+                      </Select>
+                    </FormField>
+                    <FormField
+                      htmlFor="dictionary-strokes"
+                      label="Số nét"
+                      hint="Từ 1 đến 64; có thể chỉ chọn một trong hai bộ lọc."
                     >
-                      <option value="">Tất cả bộ thủ</option>
-                      {draft.radical &&
-                      !radicals.some(({ radical }) => radical === draft.radical) ? (
-                        <option value={draft.radical}>{draft.radical}</option>
-                      ) : null}
-                      {radicals.map(({ radical, charCount }) => (
-                        <option key={radical} value={radical}>
-                          {radical} ({charCount} chữ)
-                        </option>
-                      ))}
-                    </Select>
-                  </FormField>
+                      <Input
+                        inputMode="numeric"
+                        value={draft.strokes}
+                        onChange={(event) => onChange({ ...draft, strokes: event.target.value })}
+                      />
+                    </FormField>
+                  </div>
+                ) : (
                   <FormField
-                    htmlFor="dictionary-strokes"
-                    label="Số nét"
-                    hint="Từ 1 đến 64; có thể chỉ chọn một trong hai bộ lọc."
+                    className="sm:col-span-2"
+                    htmlFor="dictionary-query"
+                    label="Nội dung cần tra"
+                    error={formError}
+                    required
                   >
                     <Input
-                      inputMode="numeric"
-                      value={draft.strokes}
-                      onChange={(event) => onChange({ ...draft, strokes: event.target.value })}
+                      autoComplete="off"
+                      className={draft.type === 'HANZI' ? 'font-hanzi' : undefined}
+                      value={draft.q}
+                      onChange={(event) => onChange({ ...draft, q: event.target.value })}
                     />
                   </FormField>
-                </div>
-              ) : (
-                <FormField
-                  className="sm:col-span-2"
-                  htmlFor="dictionary-query"
-                  label="Nội dung cần tra"
-                  error={formError}
-                  required
-                >
-                  <Input
-                    autoComplete="off"
-                    className={draft.type === 'HANZI' ? 'font-hanzi' : undefined}
-                    value={draft.q}
-                    onChange={(event) => onChange({ ...draft, q: event.target.value })}
-                  />
-                </FormField>
-              )}
-            </div>
-            {draft.type === 'RADICAL' && formError ? (
-              <p className="mb-3 text-body-sm text-danger" role="alert">
-                {formError}
-              </p>
-            ) : null}
-            <Button className="w-full rounded-pill sm:w-auto sm:min-w-40" type="submit">
-              <Search aria-hidden="true" className="mr-2 inline-block size-4 align-middle" />
-              Tra cứu
-              <ArrowRight aria-hidden="true" className="ml-2 inline-block size-4 align-middle" />
-            </Button>
+                )}
+              </div>
+              {draft.type === 'RADICAL' && formError ? (
+                <p className="mb-3 text-body-sm text-danger" role="alert">
+                  {formError}
+                </p>
+              ) : null}
+              <Button className="w-full rounded-pill sm:w-auto sm:min-w-40" type="submit">
+                <Search aria-hidden="true" className="mr-2 inline-block size-4 align-middle" />
+                Tra cứu
+                <ArrowRight aria-hidden="true" className="ml-2 inline-block size-4 align-middle" />
+              </Button>
+            </fieldset>
           </form>
           <aside
             aria-label="Gợi ý tra cứu"
@@ -195,12 +204,12 @@ export function DictionarySearchView({
       </Card>
 
       {guest ? (
-        <div className="flex items-start gap-3 rounded-md border border-brand-100 bg-brand-50 p-4 text-body-sm text-ink-secondary">
-          <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-600" />
-          <p>
-            Bạn đang tra cứu với tư cách khách. Khi chạm hạn mức, bạn có thể đăng nhập để tra tiếp.
-          </p>
-        </div>
+        <GuestTrialNotice
+          exhausted={trialExhausted}
+          loginTo={loginTo}
+          registerTo={registerTo}
+          trial={guestTrial}
+        />
       ) : null}
 
       {draft.type === 'RADICAL' && radicalsError ? (
@@ -211,7 +220,7 @@ export function DictionarySearchView({
           onRetry={onRadicalsRetry}
         />
       ) : null}
-      {!searched ? (
+      {!searched && !trialExhausted ? (
         <EmptyState
           description="Nhập nội dung rồi bấm Tra cứu để bắt đầu."
           icon={<BookOpenText aria-hidden="true" className="size-5" />}
@@ -224,7 +233,7 @@ export function DictionarySearchView({
           <Skeleton className="h-24" />
         </div>
       ) : null}
-      {searched && state === 'error' ? (
+      {searched && state === 'error' && !trialRejected ? (
         <ErrorState
           title="Chưa thể tra từ điển"
           requestId={error?.requestId}

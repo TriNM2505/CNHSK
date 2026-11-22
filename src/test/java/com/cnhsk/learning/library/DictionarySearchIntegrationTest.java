@@ -83,23 +83,25 @@ class DictionarySearchIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void FR002_AT02_guest61IsBlockedAndForwardedForCannotChangeTheCounter() throws Exception {
-        for (int index = 0; index < 60; index++) response(request("HANZI", "自造不存在")
+    void FR002_AT02_guestAddressCeilingIsBlockedAndForwardedForCannotChangeTheCounter() throws Exception {
+        redis.opsForValue().set(guestKey(), "590", Duration.ofHours(1));
+        for (int index = 0; index < 10; index++) response(request("HANZI", "自造不存在")
                 .header("X-Forwarded-For", "192.0.2." + index));
         mvc.perform(request("HANZI", "自造不存在").header("X-Forwarded-For", "203.0.113.1"))
                 .andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.error_code").value("RATE_LIMITED"))
                 .andExpect(jsonPath("$.request_id").isNotEmpty()).andExpect(jsonPath("$.retryAfterSeconds").isNumber())
                 .andExpect(jsonPath("$.loginSuggested").value(true));
-        assertThat(redis.opsForValue().get(guestKey())).isEqualTo("61");
+        assertThat(redis.opsForValue().get(guestKey())).isEqualTo("601");
     }
 
     @Test
     void FR002_invalidRequestsAreCountedExactlyOnceBeforeParameterValidation() throws Exception {
-        for (int index = 0; index < 60; index++) mvc.perform(request("HANZI", "").param("page", "bad"))
+        redis.opsForValue().set(guestKey(), "590", Duration.ofHours(1));
+        for (int index = 0; index < 10; index++) mvc.perform(request("HANZI", "").param("page", "bad"))
                 .andExpect(status().isUnprocessableEntity()).andExpect(jsonPath("$.error_code").value("VALIDATION_FAILED"));
         mvc.perform(request("HANZI", "").param("page", "bad"))
                 .andExpect(status().isTooManyRequests()).andExpect(jsonPath("$.loginSuggested").value(true));
-        assertThat(redis.opsForValue().get(guestKey())).isEqualTo("61");
+        assertThat(redis.opsForValue().get(guestKey())).isEqualTo("601");
     }
 
     @Test
