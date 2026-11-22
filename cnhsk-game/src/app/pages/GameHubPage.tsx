@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { apiRequest } from '../../shared/api/client'
 import { Scene } from '../../shared/ui/arcade'
 import { gameMeta, webHref } from '../../shared/ui/gameMeta'
+import { GameScene } from '../../shared/ui/GameScene'
 
 type GameInfo = {
   code: string
@@ -31,54 +32,54 @@ const skillLabels: Record<string, string> = {
   PRONUNCIATION: 'Phát âm',
 }
 
-function GameCard({ game, position, total }: { game: GameInfo; position: number; total: number }) {
+function GameCard({ game }: { game: GameInfo }) {
   const meta = gameMeta(game.code)
   const path = '/play/' + encodeURIComponent(meta.slug)
   const stats = game.myStats
-  const pad = (value: number) => String(value).padStart(2, '0')
   return (
     <li className="flex min-w-0">
-      <article className={`game-card game-${position} min-w-0 flex-1`}>
-        <div className="card-number">{pad(position + 1)} / {pad(total)}</div>
-        <div className="card-symbol" aria-hidden="true">{meta.symbol}</div>
-        <span className="eyebrow">{meta.eyebrow}</span>
-        <h3 className="break-words">{game.name}</h3>
-        <p className="break-words">{game.description}</p>
-        <p className="game-card-meta">
-          {skillLabels[game.skill] ?? game.skill} · {game.timeLimitSeconds >= LONG_ROUND_SECONDS ? 'Tối đa 10 phút' : game.timeLimitSeconds + ' giây'}
-        </p>
-        {stats && (
-          <dl className="game-card-stats">
-            <div>
-              <dt>Điểm cao nhất</dt>
-              <dd>{stats.bestPoints}</dd>
-            </div>
-            <div>
-              <dt>Số ván đã chơi</dt>
-              <dd>{stats.roundsPlayed}</dd>
-            </div>
-          </dl>
-        )}
-        <details className="game-card-howto break-words">
-          <summary>Cách chơi</summary>
-          <p>{game.howToPlay}</p>
-        </details>
-        <div className="card-link">
-          {game.playable ? (
-            <Link aria-label={'Chơi ' + game.name} to={path}>
-              Vào chơi <b aria-hidden="true">→</b>
-            </Link>
-          ) : (
-            <span>
-              <button type="button" disabled aria-label={'Chơi ' + game.name} className="game-card-locked">
-                Vào chơi
-              </button>
-              <small>Chưa đủ dữ liệu</small>
-            </span>
-          )}
-          <a aria-label={'Bảng xếp hạng ' + game.name} href={webHref('/leaderboards/games?game=' + game.code)}>
-            Xếp hạng
-          </a>
+      <article className="game-card min-w-0 flex-1">
+        <div className="game-card-art">
+          <GameScene code={game.code} />
+        </div>
+        <div className="game-card-body">
+          <div className="game-card-title">
+            <h3 className="break-words">{game.name}</h3>
+            <p className="game-card-meta">
+              {skillLabels[game.skill] ?? game.skill} · {game.timeLimitSeconds >= LONG_ROUND_SECONDS ? 'Tối đa 10 phút' : game.timeLimitSeconds + ' giây'}
+            </p>
+          </div>
+          <p className="game-card-text break-words">{game.description}</p>
+          <div className="game-card-actions">
+            <details className="game-card-howto">
+              <summary>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" /><path d="M7.8 7.7a2.3 2.3 0 1 1 3.2 2.1c-.7.3-1 .8-1 1.5M10 14.2v.1" /></svg>
+                Cách chơi
+              </summary>
+              <p className="break-words">{game.howToPlay}</p>
+            </details>
+            {stats && (
+              <dl className="game-card-stats">
+                <div><dt>Kỷ lục</dt><dd>{stats.bestPoints}</dd></div>
+                <div><dt>Số ván</dt><dd>{stats.roundsPlayed}</dd></div>
+              </dl>
+            )}
+            <a className="game-card-rank" aria-label={'Bảng xếp hạng ' + game.name} title="Bảng xếp hạng"
+              href={webHref('/leaderboards/games?game=' + game.code)}>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3h8v4a4 4 0 0 1-8 0zM6 4.5H3.5c0 2.5 1 3.7 2.8 3.9M14 4.5h2.5c0 2.5-1 3.7-2.8 3.9M10 11v3M7 17h6M8 14h4v3H8z" /></svg>
+            </a>
+            {game.playable ? (
+              <Link className="game-card-play" aria-label={'Chơi ' + game.name} to={path}>
+                <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4.2v11.6L16 10z" /></svg>
+                Chơi
+              </Link>
+            ) : (
+              <span className="game-card-locked">
+                <small>Chưa đủ dữ liệu</small>
+                <button type="button" disabled aria-label={'Chơi ' + game.name} className="game-card-play">Chơi</button>
+              </span>
+            )}
+          </div>
         </div>
       </article>
     </li>
@@ -108,7 +109,7 @@ export default function GameHubPage() {
         <div className="hero-copy">
           <span className="eyebrow">CHƠI ĐỂ NHỚ · HỌC ĐỂ VUI</span>
           <h1 id="hub-title">
-            Luyện tiếng Trung{' '}<br /><em>qua trò chơi</em>
+            <span>Luyện tiếng Trung</span>{' '}<em>qua trò chơi</em>
           </h1>
           <p>Sáu trò chơi luyện chữ Hán, pinyin, bộ thủ và từ vựng. Điểm của bạn được lưu và xếp hạng cùng mọi người.</p>
           <a href="#games" className="primary-button">Khám phá trò chơi <span aria-hidden="true">↗</span></a>
@@ -120,10 +121,13 @@ export default function GameHubPage() {
       <section id="games" className="games-section" aria-label="Góc luyện tập">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">GÓC LUYỆN TẬP</span>
-            <h2>Chọn cuộc hành trình</h2>
+            <h2>Chọn <em>trò chơi</em> của bạn</h2>
+            <p>Chọn cấp HSK ngay trong từng trò chơi. Điểm được xếp hạng riêng theo cấp.</p>
           </div>
-          <p>Chọn cấp HSK ngay trong từng trò chơi. Điểm được xếp hạng riêng theo cấp.</p>
+          <a className="section-link" href={webHref('/leaderboards/games')}>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3h8v4a4 4 0 0 1-8 0zM6 4.5H3.5c0 2.5 1 3.7 2.8 3.9M14 4.5h2.5c0 2.5-1 3.7-2.8 3.9M10 11v3M7 17h6M8 14h4v3H8z" /></svg>
+            Bảng xếp hạng
+          </a>
         </div>
         {catalog.status === 'loading' && <p role="status">Đang tải trò chơi…</p>}
         {catalog.status === 'error' && (
@@ -144,9 +148,7 @@ export default function GameHubPage() {
         {catalog.status === 'loaded' &&
           (catalog.games.length ? (
             <ul aria-label="Các trò chơi" className="game-grid">
-              {catalog.games.map((game, index) => (
-                <GameCard key={game.code} game={game} position={index} total={catalog.games.length} />
-              ))}
+              {catalog.games.map((game) => <GameCard key={game.code} game={game} />)}
             </ul>
           ) : (
             <p role="status">Chưa có trò chơi.</p>

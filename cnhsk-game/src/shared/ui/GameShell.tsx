@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 import { ApiError } from '../api/client'
 import { abandonRound, answerRound, finishRound, readRound, startRound } from '../api/rounds'
 import type { RoundResult, RoundStart, RoundView, ServedItem } from '../api/rounds'
-import { GameArtwork } from './arcade'
+import { GameScene } from './GameScene'
 import { gameMeta, webHref } from './gameMeta'
 
 export type GameAnswer = { correct: boolean; correctAnswer: string }
@@ -508,7 +508,7 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
               </button>
               {level === undefined && <p className="core-hint">Chọn một cấp HSK để bắt đầu.</p>}
             </div>
-            <GameArtwork code={code} />
+            <GameScene code={code} />
           </div>
         )}
         {screen.mode === 'starting' && <p role="status" className="core-feedback">Đang tạo ván…</p>}
