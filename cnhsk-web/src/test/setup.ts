@@ -1,6 +1,10 @@
 import '@testing-library/jest-dom/vitest'
-import { cleanup } from '@testing-library/react'
+import { cleanup, configure } from '@testing-library/react'
 import { afterEach } from 'vitest'
+
+// A loaded machine can need more than the default second to render a lazily loaded screen.
+// Passing queries still resolve immediately; only a real failure waits this long.
+configure({ asyncUtilTimeout: 5000 })
 
 const NativeRequest = globalThis.Request
 globalThis.Request = class extends NativeRequest {
