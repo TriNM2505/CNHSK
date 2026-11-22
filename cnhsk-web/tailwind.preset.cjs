@@ -87,6 +87,10 @@ module.exports = {
         content: '1280px',
         reading: '720px',
       },
+      // Tailwind's size-* does not read height or width, so the touch target needs its own entry.
+      size: {
+        touch: '44px',
+      },
       height: {
         control: '44px',
         touch: '44px',

@@ -41,7 +41,7 @@ export function AuthInkWashStage({
   return (
     <main
       aria-label={mainLabel}
-      className="auth-inkwash-stage relative flex min-h-[calc(100vh-4rem)] w-full min-w-0 items-center overflow-x-hidden px-4 py-6 sm:px-6 sm:py-8"
+      className="auth-inkwash-stage relative flex min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-6rem)] w-full min-w-0 items-center overflow-x-hidden px-4 py-6 sm:px-6 sm:py-8"
       style={{ backgroundImage: `url(${AUTH_BACKGROUND_MAP[variant]})` }}
     >
       <div

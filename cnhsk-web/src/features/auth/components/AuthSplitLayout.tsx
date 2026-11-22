@@ -64,7 +64,7 @@ export function AuthSplitLayout({
   const badgeText = aside.badge ?? 'Hệ sinh thái CNHSK'
 
   return (
-    <main className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] w-full min-w-0 max-w-content items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+    <main className="relative z-10 mx-auto flex min-h-[calc(100vh-4rem)] lg:min-h-[calc(100vh-6rem)] w-full min-w-0 max-w-content items-center justify-center px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
       <div className="grid w-full min-w-0 max-w-reading items-center gap-6 lg:max-w-content lg:grid-cols-12 lg:gap-8">
         {hideMobileBanner ? null : (
           <div className="flex min-w-0 items-center justify-between gap-4 rounded-lg border border-brand-100 bg-surface-subtle p-4 lg:hidden">

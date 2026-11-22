@@ -13,7 +13,7 @@ type AppShellProps = {
   sidebar?: ReactNode
 }
 
-export function BrandLink({ inverse = false }: { inverse?: boolean }) {
+export function BrandLink({ inverse = false, logoClassName }: { inverse?: boolean; logoClassName?: string }) {
   return (
     <Link
       aria-label="CNHSK - Trang chủ"
@@ -22,7 +22,7 @@ export function BrandLink({ inverse = false }: { inverse?: boolean }) {
       )}
       to="/"
     >
-      <HocBaLogo alt="" inverse={inverse} />
+      <HocBaLogo alt="" className={logoClassName} inverse={inverse} />
     </Link>
   )
 }

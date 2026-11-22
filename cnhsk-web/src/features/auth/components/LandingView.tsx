@@ -140,8 +140,17 @@ const LEARNING_MODES: readonly { description: string; icon: ReactNode; title: st
 function GuestActions() {
   return (
     <div className="flex flex-col gap-3 sm:flex-row">
-      <Button to="/register">Bắt đầu học</Button>
-      <Button to="/login" variant="outline">
+      <Button
+        className="min-h-14 bg-accent-500 px-8 text-body font-bold text-brand-800 hover:bg-surface"
+        to="/register"
+      >
+        Bắt đầu học
+      </Button>
+      <Button
+        className="min-h-14 border-surface bg-transparent px-8 text-body font-semibold text-surface hover:border-surface hover:bg-surface hover:text-brand-700"
+        to="/login"
+        variant="outline"
+      >
         Đăng nhập
       </Button>
     </div>
@@ -163,11 +172,11 @@ function SessionRegion({ areas = [], displayName, onRetry, state }: LandingViewP
       <div className="space-y-3">
         <GuestActions />
         <div
-          className="flex flex-wrap items-center gap-2 text-body-sm text-ink-secondary"
+          className="flex flex-wrap items-center gap-2 text-body-sm text-surface"
           role="status"
         >
           <span>Chưa kiểm tra được phiên đăng nhập.</span>
-          <Button onClick={onRetry} size="sm" variant="ghost">
+          <Button className="text-accent-500" onClick={onRetry} size="sm" variant="ghost">
             Thử lại
           </Button>
         </div>
@@ -254,24 +263,24 @@ export function LandingView(props: LandingViewProps) {
     <main className="min-w-0 bg-canvas">
       {/* Hero */}
       <section
-        className="bg-brand-700 bg-cover bg-center px-4 pb-12 pt-10 text-surface sm:pb-16 lg:pt-16"
+        className="relative overflow-hidden bg-brand-700 bg-cover bg-center text-surface lg:flex lg:min-h-[calc(100dvh-6rem)] lg:items-center"
         style={{ backgroundImage: `url(${heroBackground})` }}
       >
-        <div className="mx-auto grid max-w-content items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="min-w-0">
+        <div className="relative z-10 mx-auto w-full max-w-content px-4 pb-8 pt-10 lg:py-16">
+          <div className="min-w-0 lg:w-1/2 lg:pr-6">
             <p className="inline-flex rounded-pill bg-accent-500 px-4 py-1 text-label text-brand-800">
               Hệ thống giáo dục Hán ngữ trực tuyến
             </p>
-            <h1 className="mt-4 text-balance text-display-sm sm:text-display">
+            <h1 className="mt-5 text-balance text-display-sm sm:text-display xl:text-6xl xl:font-bold xl:leading-tight">
               Chương trình đào tạo toàn diện
             </h1>
             <p className="mt-2 text-h2 text-accent-500">Tiếng Trung chuẩn quốc tế</p>
-            <ol className="mt-6 grid gap-3">
+            <ol className="mt-8 grid gap-4">
               {HERO_PILLARS.map((pillar, index) => (
-                <li className="flex items-center gap-3 text-body" key={pillar}>
+                <li className="flex items-center gap-4 text-body lg:text-lg" key={pillar}>
                   <span
                     aria-hidden="true"
-                    className="flex size-9 shrink-0 items-center justify-center rounded-pill border border-accent-500 text-label text-accent-500"
+                    className="flex size-11 shrink-0 items-center justify-center rounded-pill border border-accent-500 text-label text-accent-500"
                   >
                     {String(index + 1).padStart(2, '0')}
                   </span>
@@ -279,24 +288,30 @@ export function LandingView(props: LandingViewProps) {
                 </li>
               ))}
             </ol>
-            <div className="mt-8 max-w-xl rounded-lg bg-surface p-5 text-ink shadow-overlay sm:p-6">
-              <p className="mb-3 text-label text-brand-700">Tự luyện mỗi ngày trên CNHSK</p>
+            <div
+              className={
+                props.displayName
+                  ? 'mt-8 max-w-xl rounded-lg bg-surface p-5 text-ink shadow-overlay sm:p-6'
+                  : 'mt-8'
+              }
+            >
               <SessionRegion {...props} />
             </div>
           </div>
-          <img
-            alt="Học viên Học Bá học tiếng Trung trực tuyến trên máy tính"
-            className="mx-auto w-full max-w-xl"
-            decoding="async"
-            height={515}
-            src={heroImage}
-            width={925}
-          />
         </div>
+        {/* The light trail in the picture runs off its right side, so it sits against the page edge. */}
+        <img
+          alt="Học viên Học Bá học tiếng Trung trực tuyến trên máy tính"
+          className="relative ml-auto w-full max-w-2xl lg:absolute lg:right-0 lg:top-1/2 lg:w-1/2 lg:max-w-none lg:-translate-y-1/2"
+          decoding="async"
+          height={515}
+          src={heroImage}
+          width={925}
+        />
       </section>
 
       {/* About Hoc Ba */}
-      <section aria-labelledby="about-title" className="px-4 py-12 sm:py-16">
+      <section aria-labelledby="about-title" id="gioi-thieu" className="px-4 lg:scroll-mt-8 py-12 sm:py-16">
         <div className="mx-auto grid max-w-content items-center gap-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
           <div className="min-w-0">
             <p className="text-label uppercase tracking-wide text-brand-600">Giới thiệu</p>
@@ -336,7 +351,7 @@ export function LandingView(props: LandingViewProps) {
       </section>
 
       {/* Courses */}
-      <section aria-labelledby="courses-title" className="bg-surface-subtle px-4 py-12 sm:py-16">
+      <section aria-labelledby="courses-title" id="khoa-hoc" className="bg-surface-subtle px-4 lg:scroll-mt-8 py-12 sm:py-16">
         <div className="mx-auto max-w-content">
           <SectionHeading
             eyebrow="Khoá học"
@@ -374,7 +389,7 @@ export function LandingView(props: LandingViewProps) {
       </section>
 
       {/* Methods */}
-      <section aria-labelledby="methods-title" className="px-4 py-12 sm:py-16">
+      <section aria-labelledby="methods-title" id="phuong-phap" className="px-4 lg:scroll-mt-8 py-12 sm:py-16">
         <div className="mx-auto max-w-content">
           <SectionHeading
             eyebrow="Phương pháp"
@@ -411,7 +426,7 @@ export function LandingView(props: LandingViewProps) {
       </section>
 
       {/* Commitments */}
-      <section aria-labelledby="commitments-title" className="bg-brand-700 px-4 py-12 text-surface sm:py-16">
+      <section aria-labelledby="commitments-title" id="cam-ket" className="lg:scroll-mt-8 bg-brand-700 px-4 py-12 text-surface sm:py-16">
         <div className="mx-auto max-w-content">
           <div className="flex flex-col items-center gap-3 text-center">
             <img alt="" className="size-16" height={124} loading="lazy" src={targetIcon} width={124} />
@@ -435,7 +450,7 @@ export function LandingView(props: LandingViewProps) {
       </section>
 
       {/* Advisor */}
-      <section aria-labelledby="advisor-title" className="px-4 py-12 sm:py-16">
+      <section aria-labelledby="advisor-title" id="co-van" className="px-4 lg:scroll-mt-8 py-12 sm:py-16">
         <div className="mx-auto max-w-content">
           <SectionHeading
             eyebrow="Học Bá hân hạnh giới thiệu"
@@ -481,7 +496,8 @@ export function LandingView(props: LandingViewProps) {
       {/* CNHSK practice platform */}
       <section
         aria-labelledby="learning-modes-title"
-        className="bg-surface-subtle px-4 py-12 sm:py-16"
+        id="luyen-tap"
+        className="lg:scroll-mt-8 bg-surface-subtle px-4 py-12 sm:py-16"
       >
         <div className="mx-auto max-w-content">
           <SectionHeading

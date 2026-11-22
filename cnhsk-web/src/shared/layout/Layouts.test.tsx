@@ -65,35 +65,78 @@ function renderLayout(
   return { ...result, signOut }
 }
 
+function renderGuest() {
+  const value: AuthContextValue = {
+    error: null,
+    reloadCurrentUser: vi.fn().mockResolvedValue(undefined),
+    setAuthenticatedUser: vi.fn(),
+    signOut: vi.fn().mockResolvedValue(undefined),
+    status: 'guest',
+    user: null,
+  }
+
+  render(
+    <AuthContext.Provider value={value}>
+      <MemoryRouter>
+        <PublicLayout>Nội dung công khai</PublicLayout>
+      </MemoryRouter>
+    </AuthContext.Provider>,
+  )
+}
+
 describe('PublicLayout', () => {
   it('shows login and registration actions to guests', () => {
-    const value: AuthContextValue = {
-      error: null,
-      reloadCurrentUser: vi.fn().mockResolvedValue(undefined),
-      setAuthenticatedUser: vi.fn(),
-      signOut: vi.fn().mockResolvedValue(undefined),
-      status: 'guest',
-      user: null,
-    }
-
-    render(
-      <AuthContext.Provider value={value}>
-        <MemoryRouter>
-          <PublicLayout>Nội dung công khai</PublicLayout>
-        </MemoryRouter>
-      </AuthContext.Provider>,
-    )
+    renderGuest()
 
     expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute('href', '/login')
     expect(screen.getByRole('link', { name: 'Đăng ký' })).toHaveAttribute('href', '/register')
-    expect(screen.getByRole('link', { name: 'Tài liệu tham khảo' })).toHaveAttribute(
-      'href',
-      '/references/media',
-    )
-    expect(screen.getByRole('link', { name: 'Bảng xếp hạng' })).toHaveAttribute(
-      'href',
-      '/leaderboards/topics',
-    )
+    expect(screen.getByRole('link', { name: 'Tra từ điển' })).toHaveAttribute('href', '/dictionary')
+  })
+
+  it.each([
+    ['Tra cứu', 'Video và podcast', '/references/media'],
+    ['Tra cứu', 'Tra theo pinyin', '/dictionary?type=PINYIN'],
+    ['Cộng đồng', 'Theo chủ đề', '/leaderboards/topics'],
+    ['Cộng đồng', 'Cuộc thi', '/contests'],
+    ['Giới thiệu', 'Cố vấn chuyên môn', '/#co-van'],
+  ])('opens the %s menu for guests and lists %s', async (menu, label, href) => {
+    renderGuest()
+    expect(screen.queryByRole('link', { name: label })).not.toBeInTheDocument()
+    const button = screen.getByRole('button', { name: menu })
+    await userEvent.click(button)
+    expect(button).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href)
+  })
+
+  it('marks learning features as needing sign-in and closes the menu with Escape or a click outside', async () => {
+    renderGuest()
+    const button = screen.getByRole('button', { name: 'Luyện tập' })
+    await userEvent.click(button)
+    expect(screen.getByText(/Cần đăng nhập/)).toBeVisible()
+    await userEvent.keyboard('{Escape}')
+    expect(button).toHaveAttribute('aria-expanded', 'false')
+    expect(button).toHaveFocus()
+    await userEvent.click(button)
+    await userEvent.click(screen.getByText('Nội dung công khai'))
+    expect(screen.queryByText(/Cần đăng nhập/)).not.toBeInTheDocument()
+  })
+
+  it('closes the menu after a link is followed', async () => {
+    renderGuest()
+    await userEvent.click(screen.getByRole('button', { name: 'Cộng đồng' }))
+    await userEvent.click(screen.getByRole('link', { name: 'Bài viết' }))
+    expect(screen.queryByRole('link', { name: 'Bài viết' })).not.toBeInTheDocument()
+  })
+
+  it('offers the same menus on small screens', async () => {
+    renderGuest()
+    await userEvent.click(screen.getByRole('button', { name: 'Mở menu' }))
+    const mobile = screen.getByRole('navigation', { name: 'Điều hướng trên thiết bị di động' })
+    for (const label of ['Giới thiệu', 'Luyện tập', 'Tra cứu', 'Cộng đồng']) {
+      expect(within(mobile).getByText(label)).toBeVisible()
+    }
+    await userEvent.click(screen.getByRole('button', { name: 'Đóng menu' }))
+    expect(mobile).not.toBeInTheDocument()
   })
 
   it('shows the account menu to authenticated users', () => {

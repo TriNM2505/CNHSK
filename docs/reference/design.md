@@ -4,7 +4,7 @@
 | --- | --- |
 | **Trạng thái** | Khung giao diện đã khoá cho đợt làm lại giao diện; inventory 79 màn FINAL |
 | **Status** | APPROVED |
-| **Version** | 1.7 |
+| **Version** | 1.8 |
 | **Owner** | Nhóm CNHSK |
 | **Approved by** | Leader nhóm |
 | **Locked on** | 2026-11-17 |
@@ -633,6 +633,7 @@ Không còn câu hỏi mở. Các câu bản 0.1 đã chốt:
 | 1.5 | 2026-11-20 | §3, §5.3: sáu actor theo Hiến pháp v1.6.0 — tài chính SCR-073–075 thuộc `ADMIN`, `ACCOUNTANT` là mã dự phòng; `TEACHER` hoặc `CONTENT_EDITOR` duyệt câu hỏi AI | Leader nhóm |
 | 1.6 | 2026-11-20 | §3, §5.3: chỉ `TEACHER` duyệt và sửa câu hỏi AI (SCR-058, nút sửa/duyệt SCR-059) theo Hiến pháp v1.7.0; `CONTENT_EDITOR` chỉ xem, lưu trữ | Leader nhóm |
 | 1.7 | 2026-11-20 | §0, Open Questions: logo Học Bá thay wordmark CNHSK; Landing SCR-001 theo bố cục và nội dung trang chủ Học Bá (công ty Học Bá đã duyệt), không dùng ảnh/nhận xét học viên thật | Leader nhóm |
+| 1.8 | 2026-11-22 | §5.2: thanh điều hướng khách cao 64px (dưới `lg`) / 96px (từ `lg`), menu thả kiểu Học Bá gồm Giới thiệu, Luyện tập (cần đăng nhập), Tra cứu, Cộng đồng, Trò chơi; dưới `lg` là menu ba gạch; Landing bỏ khối «Tự luyện mỗi ngày trên CNHSK», chỉ người đã đăng nhập thấy «Khu vực của bạn»; thêm token `size.touch` | Leader nhóm |
 
 ---
 
