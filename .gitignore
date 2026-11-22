@@ -72,6 +72,8 @@ cnhsk-web/dist/
 *.docx
 !docs/**/*.docx
 data/
+# Ma nguon cua game, khong phai du lieu de thi
+!cnhsk-game/src/data/
 imports/
 de-thi/
 
