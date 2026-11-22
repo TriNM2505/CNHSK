@@ -47,9 +47,13 @@ class MailServiceTest {
         assertEquals("CNHSK <noreply@cnhsk.test>", message.getFrom()[0].toString());
         assertEquals("learner@cnhsk.test", message.getRecipients(MimeMessage.RecipientType.TO)[0].toString());
         assertEquals("Xác thực email CNHSK", message.getSubject());
-        org.junit.jupiter.api.Assertions.assertTrue(message.getContent().toString().contains(
-                "https://cnhsk.test/verify-email?token=verify-token"));
-        org.junit.jupiter.api.Assertions.assertTrue(message.getContent().toString().contains("24 giờ"));
+        message.saveChanges();
+        for (String part : java.util.List.of("text/plain", "text/html")) {
+            org.assertj.core.api.Assertions.assertThat(contentOf(message, part))
+                    .contains("https://cnhsk.test/verify-email?token=verify-token", "24 giờ");
+        }
+        org.assertj.core.api.Assertions.assertThat(contentOf(message, "text/html"))
+                .contains(">Xác thực email</a>", "cid:hoc-ba-logo");
     }
 
     @Test
@@ -60,8 +64,12 @@ class MailServiceTest {
         MimeMessage message = sentMessage();
         assertEquals("learner@cnhsk.test", message.getRecipients(MimeMessage.RecipientType.TO)[0].toString());
         assertEquals("042917 là mã xác minh CNHSK", message.getSubject());
-        org.junit.jupiter.api.Assertions.assertTrue(message.getContent().toString().contains("042917"));
-        org.junit.jupiter.api.Assertions.assertTrue(message.getContent().toString().contains("10 phút"));
+        message.saveChanges();
+        for (String part : java.util.List.of("text/plain", "text/html")) {
+            org.assertj.core.api.Assertions.assertThat(contentOf(message, part)).contains("042917", "10 phút");
+        }
+        org.assertj.core.api.Assertions.assertThat(contentOf(message, "text/html")).doesNotContain("<a ");
+        org.assertj.core.api.Assertions.assertThat(contentOf(message, "image/png")).isNotNull();
     }
 
     @Test
@@ -71,9 +79,11 @@ class MailServiceTest {
 
         MimeMessage message = sentMessage();
         assertEquals("Đặt lại mật khẩu CNHSK", message.getSubject());
-        org.junit.jupiter.api.Assertions.assertTrue(message.getContent().toString().contains(
-                "https://cnhsk.test/reset-password?token=reset-token"));
-        org.junit.jupiter.api.Assertions.assertTrue(message.getContent().toString().contains("1 giờ"));
+        message.saveChanges();
+        for (String part : java.util.List.of("text/plain", "text/html")) {
+            org.assertj.core.api.Assertions.assertThat(contentOf(message, part))
+                    .contains("https://cnhsk.test/reset-password?token=reset-token", "1 giờ");
+        }
     }
 
     @Test

@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.mail.MailException;
 import org.springframework.mail.MailPreparationException;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -48,6 +49,7 @@ public class MailService {
     private static final int SENDER_THREADS = 2;
     private static final int QUEUE_CAPACITY = 200;
     private static final long SHUTDOWN_SECONDS = 30;
+    private static final ClassPathResource LOGO = new ClassPathResource("email/hoc-ba-logo.png");
 
     private final JavaMailSender mailSender;
     private final URI webBaseUrl;
@@ -96,33 +98,31 @@ public class MailService {
     /** Throws when the mail server refuses the code, so the caller can report it. */
     @EventListener
     public void sendRegistrationCode(RegistrationCodeRequestedEvent event) {
-        deliver(event.getRecipient(), event.getCode() + " là mã xác minh CNHSK",
-                "Xin chào,\n\n"
-                        + "Mã xác minh để tạo tài khoản CNHSK của bạn là:\n\n"
-                        + event.getCode() + "\n\n"
-                        + "Mã có hiệu lực trong 10 phút và chỉ dùng một lần. Đừng đưa mã này cho người khác. "
-                        + "Nếu bạn không tạo tài khoản, vui lòng bỏ qua email này.\n\n"
-                        + "CNHSK");
+        deliver(event.getRecipient(), AuthEmail.withCode(event.getCode() + " là mã xác minh CNHSK",
+                "Mã xác minh của bạn",
+                "Nhập mã dưới đây ở trang đăng ký để tạo tài khoản CNHSK.",
+                event.getCode(),
+                "Mã có hiệu lực trong 10 phút và chỉ dùng một lần. Đừng đưa mã này cho người khác. "
+                        + "Nếu bạn không tạo tài khoản, hãy bỏ qua email này."));
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void sendVerificationEmail(EmailVerificationRequestedEvent event) {
-        dispatch(event.getRecipient(), "Xác thực email CNHSK",
-                "Xin chào,\n\n"
-                        + "Vui lòng xác thực địa chỉ email cho tài khoản CNHSK bằng liên kết sau:\n"
-                        + link(VERIFY_PATH, event.getToken()) + "\n\n"
-                        + "Liên kết có hiệu lực trong 24 giờ. Nếu bạn không tạo tài khoản, vui lòng bỏ qua email này.\n\n"
-                        + "CNHSK");
+        dispatch(event.getRecipient(), AuthEmail.withLink("Xác thực email CNHSK",
+                "Xác thực email của bạn",
+                "Mở liên kết dưới đây để xác thực địa chỉ email của tài khoản CNHSK.",
+                "Xác thực email", link(VERIFY_PATH, event.getToken()),
+                "Liên kết có hiệu lực trong 24 giờ. Nếu bạn không tạo tài khoản, hãy bỏ qua email này."));
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void sendPasswordResetEmail(PasswordResetRequestedEvent event) {
-        dispatch(event.getRecipient(), "Đặt lại mật khẩu CNHSK",
-                "Xin chào,\n\n"
-                        + "Chúng tôi nhận được yêu cầu đặt lại mật khẩu tài khoản CNHSK. Mở liên kết sau để tiếp tục:\n"
-                        + link(RESET_PATH, event.getToken()) + "\n\n"
-                        + "Liên kết có hiệu lực trong 1 giờ. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.\n\n"
-                        + "CNHSK");
+        dispatch(event.getRecipient(), AuthEmail.withLink("Đặt lại mật khẩu CNHSK",
+                "Đặt lại mật khẩu",
+                "Có yêu cầu đặt lại mật khẩu cho tài khoản CNHSK của bạn. Mở liên kết dưới đây để chọn mật khẩu mới.",
+                "Chọn mật khẩu mới", link(RESET_PATH, event.getToken()),
+                "Liên kết có hiệu lực trong 1 giờ và chỉ dùng một lần. Nếu bạn không yêu cầu, hãy bỏ qua email này; "
+                        + "mật khẩu hiện tại không thay đổi."));
     }
 
     public void sendStudyReminder(String recipient, String displayName, int dueCount, String token) {
@@ -154,34 +154,35 @@ public class MailService {
         mailSender.send(message);
     }
 
-    private void dispatch(String recipient, String subject, String text) {
+    private void dispatch(String recipient, AuthEmail email) {
         if (senders == null) {
-            send(recipient, subject, text);
+            send(recipient, email);
             return;
         }
         try {
-            senders.execute(() -> send(recipient, subject, text));
+            senders.execute(() -> send(recipient, email));
         } catch (RejectedExecutionException exception) {
             LOGGER.warn("Authentication email queue is full; recipient={}", maskEmail(recipient));
         }
     }
 
-    private void send(String recipient, String subject, String text) {
+    private void send(String recipient, AuthEmail email) {
         try {
-            deliver(recipient, subject, text);
+            deliver(recipient, email);
         } catch (MailException exception) {
             // Failed links are requested again by the user; the failure is already logged.
         }
     }
 
-    private void deliver(String recipient, String subject, String text) {
+    private void deliver(String recipient, AuthEmail email) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
             helper.setFrom(new InternetAddress(fromAddress, "CNHSK", StandardCharsets.UTF_8.name()));
             helper.setTo(recipient);
-            helper.setSubject(subject);
-            helper.setText(text, false);
+            helper.setSubject(email.subject());
+            helper.setText(email.text(), email.html());
+            helper.addInline(AuthEmail.LOGO_CONTENT_ID, LOGO, "image/png");
             mailSender.send(message);
         } catch (MailException exception) {
             logFailure(exception, recipient);
