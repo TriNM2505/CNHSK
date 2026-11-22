@@ -46,7 +46,20 @@
 .match-columns > div { align-content: start; }
 .match-stack { display: grid; gap: 9px; }
 .match-heading { margin: 0 0 4px; color: #eb9b83; font-size: 11px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
-.match-tile.answer-correct { background: #b8f3d1; border-color: #43b578; }
+.core-page .match-tile.answer-correct { background: #b8f3d1; border-color: #43b578; color: #14402a; }
+.core-page .match-tile { min-height: 52px; padding: 6px 15px; }
+/* Waiting tiles stay readable; answered pairs stay where they were. */
+.core-page .match-tile:disabled { opacity: .72; }
+.core-page .match-tile.active:disabled, .core-page .match-tile.answer-correct:disabled { opacity: 1; }
+.core-page .match-tile.settled { justify-content: space-between; opacity: .8; box-shadow: none; }
+.core-page .match-tile.settled-right { background: #1f5a44; border-color: #43b578; color: #d8ffe8; }
+.core-page .match-tile.settled-wrong { background: #5a2b2b; border-color: #ff6b6b; color: #ffdcd6; }
+.match-panel .pair-progress { margin: 12px 0; }
+.core-page-playing .match-panel { padding: 20px 28px; }
+.match-panel .core-panel-heading h2 { margin: 0; font-size: 26px; }
+.match-panel .core-panel-heading p { margin: 2px 0 0; }
+.match-panel .core-feedback { min-height: 26px; margin: 10px auto 0; }
+.match-panel .core-feedback:empty { border-color: transparent; background: none; }
 .catch-progress { height: 6px; margin: 0 auto; max-width: 520px; accent-color: #ff7e57; }
 .catch-prompt h2 { margin: 0; font-size: 22px; }
 
@@ -163,6 +176,11 @@
   .control-card .dart-form label { flex: none; }
   .core-page-playing .core-stats .stat-level { padding: 6px 8px; font-size: 12px; white-space: nowrap; }
   .core-page-playing .control-card { padding: 10px 12px; }
+  .core-page-playing .match-panel { padding: 10px 14px; }
+  .match-panel .core-panel-heading h2 { font-size: 20px; }
+  .match-panel .core-panel-heading p { display: none; }
+  .core-page .match-tile { min-height: 46px; padding: 4px 10px; }
+  .match-stack { gap: 6px; }
   .core-page-playing .control-card .prompt-label, .core-page-playing .input-hint { display: none; }
   .core-page-playing .brush-hits { margin: 0 0 6px; }
   .core-page-playing .board-shell { padding: 6px; }

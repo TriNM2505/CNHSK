@@ -38,10 +38,12 @@ afterEach(() => {
 })
 
 const button = (name: string) => screen.getByRole('button', { name })
+const tiles = () => ['Từ tiếng Trung', 'Pinyin'].flatMap((name) =>
+  within(screen.getByRole('group', { name })).getAllByRole('button'))
 const click = (name: string) => act(async () => { fireEvent.click(button(name)) })
 const advance = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms) })
 
-it('AT-18 selects a word, sends one key, then removes both tiles after the fade', async () => {
+it('AT-18 selects a word, sends one key, then marks the pair and keeps both tiles in place', async () => {
   let resolve!: (value: GameAnswer) => void
   const { submitAnswer } = show()
   submitAnswer.mockReturnValueOnce(new Promise((done) => { resolve = done }))
@@ -57,11 +59,15 @@ it('AT-18 selects a word, sends one key, then removes both tiles after the fade'
   await advance(300)
   expect(screen.getByText('Đã gửi câu trả lời.')).toBeVisible()
   await act(async () => resolve({ correct: true, correctAnswer: 'A' }))
-  expect(button('河')).toHaveClass('opacity-0')
-  expect(button('hé')).toHaveClass('opacity-0')
   await advance(250)
-  expect(screen.queryByRole('button', { name: '河' })).not.toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: 'hé' })).not.toBeInTheDocument()
+  for (const name of ['河', 'hé']) {
+    expect(button(name)).toHaveClass('settled-right')
+    expect(button(name)).toBeDisabled()
+  }
+  await click('林')
+  expect(button('hé')).toBeDisabled()
+  expect(button('lín')).toBeEnabled()
+  expect(tiles()).toHaveLength(12)
 })
 
 it('E6 shows the right pair for 800 ms and keeps the mistakenly chosen card', async () => {
@@ -76,25 +82,28 @@ it('E6 shows the right pair for 800 ms and keeps the mistakenly chosen card', as
   expect(button('hé')).toBeDisabled()
   expect(button('河')).toBeVisible()
   await advance(1)
-  expect(screen.queryByRole('button', { name: 'hé' })).not.toBeInTheDocument()
-  expect(screen.queryByRole('button', { name: '河' })).not.toBeInTheDocument()
+  for (const name of ['河', 'hé']) {
+    expect(button(name)).toHaveClass('settled-wrong')
+    expect(button(name)).toBeDisabled()
+  }
+  expect(tiles()).toHaveLength(12)
   await click('林')
   expect(button('lín')).toBeEnabled()
 })
 
-it('removes only the word after rejection and allows the next pair', async () => {
+it('settles only the word after rejection and allows the next pair', async () => {
   const { submitAnswer } = show()
   submitAnswer.mockRejectedValueOnce(new Error('Feedback unavailable'))
   await click('河')
   await click('hé')
-  expect(screen.queryByRole('button', { name: '河' })).not.toBeInTheDocument()
-  expect(within(screen.getByRole('group', { name: 'Pinyin' })).getAllByRole('button')).toHaveLength(6)
+  expect(button('河')).toBeDisabled()
   await click('林')
+  expect(button('hé')).toBeEnabled()
   await click('lín')
   expect(submitAnswer).toHaveBeenLastCalledWith(2, 'B')
 })
 
-it('follows board numbers, advances after six pairs and presents all six cards again', async () => {
+it('stays on a board until its six pairs are done, then moves to the next one', async () => {
   const onItemShown = vi.fn()
   const { submitAnswer } = show({ items: [...items].reverse(), onItemShown })
   for (const board of boards) {
@@ -103,7 +112,13 @@ it('follows board numbers, advances after six pairs and presents all six cards a
       await click(options[index]!.text)
       expect(submitAnswer).toHaveBeenLastCalledWith(no, options[index]!.key)
       await advance(250)
+      expect(screen.getByRole('heading', { name: `Bảng ${boards.indexOf(board) + 1}/2` })).toBeVisible()
+      expect(tiles()).toHaveLength(12)
     }
+    expect(screen.getByText(board === boards[0] ? 'Xong bảng này, sang bảng tiếp theo…' : 'Đã ghép xong bảng cuối.')).toBeVisible()
+    await advance(899)
+    expect(screen.queryByText('Đã ghép xong các bảng.')).not.toBeInTheDocument()
+    await advance(1)
     if (board === boards[0]) {
       expect(screen.getByRole('heading', { name: 'Bảng 2/2' })).toBeVisible()
       expect(within(screen.getByRole('group', { name: 'Pinyin' })).getAllByRole('button')).toHaveLength(6)

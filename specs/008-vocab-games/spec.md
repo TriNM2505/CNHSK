@@ -109,7 +109,7 @@ AT mới: AT-25 luật/mạng/thời gian 6 game (`GameRulesTest`) · AT-26 âm 
 | E3 | Từ có hai cách đọc (多音字) ở Ghép Pinyin | Chỉ dùng `WORD` (≥ 2 chữ) — ngữ cảnh từ xác định cách đọc (BR-087-13) |
 | E4 | Hai chữ cùng bộ thủ trong Ghép Bộ thủ | Không ảnh hưởng — phương án là **bộ thủ**, phải khác nhau đôi một |
 | E5 | Bắt Chữ dạng âm thanh, audio lỗi | Lượt đó dùng dạng nghĩa thay (server quyết định lúc sinh — chỉ chọn dạng âm thanh khi có `audio_url`); lỗi tải trên client → người chơi bỏ lỡ lượt, không bị trừ |
-| E6 | Ghép Pinyin: chọn sai thẻ | Lượt của từ đó tính sai; hiện cặp đúng 800 ms rồi gỡ cả từ và thẻ đúng khỏi bảng |
+| E6 | Ghép Pinyin: chọn sai thẻ | Lượt của từ đó tính sai; hiện cặp đúng 800 ms rồi đánh dấu cả từ và thẻ đúng là đã sai, giữ nguyên chỗ |
 | E7 | Game tô nét: client không có dữ liệu nét cho chữ server phát | Client gửi lượt đó là bỏ lỡ (không gửi, GM-5) và ghi log cảnh báo; server chỉ phát chữ có `stroke_count` (FR-001, FR-029) |
 | E8 | Phi Đao: gõ thanh cho một số âm tiết, bỏ thanh âm tiết khác (`ni3hao`) | Client báo "Gõ đủ thanh cho mọi âm tiết hoặc bỏ hết thanh", **không gửi**, cho gõ lại trong thời gian rơi còn lại; nếu vẫn gửi (client cũ) → server chấm sai |
 | E9 | Phi Đao: chữ một âm tiết nhiều cách đọc (行 xíng/háng) | Chỉ chấp nhận `pinyin` đã lưu của thẻ; nghĩa hiện kèm để định hướng cách đọc |
@@ -139,8 +139,8 @@ AT mới: AT-25 luật/mạng/thời gian 6 game (`GameRulesTest`) · AT-26 âm 
 | **FR-009** | Mỗi từ là một lượt `PINYIN_PAIR`: `prompt.text` = từ, `options` = **6 thẻ pinyin của bảng** (hiển thị `pinyin` có dấu), cùng bộ khoá `A`–`F` cho cả 6 lượt của bảng (một khoá = một thẻ), thứ tự thẻ trộn một lần cho mỗi bảng; `answer` = khoá thẻ của chính từ đó |
 | **FR-010** | `uiConfig = {boards: [[1,2,3,4,5,6],[7,…,12],[13,…,18]]}` (số thứ tự lượt theo bảng) |
 | **FR-011** | `validateAnswer`: không thêm luật ngoài spec 003 (mỗi từ một lần — E-R5) |
-| **FR-012** | Giao diện SHALL: hai cột (từ | thẻ pinyin) — màn hẹp: hai hàng lưới; chạm từ → chọn (viền), chạm thẻ → gửi `PINYIN_PAIR` cho từ đang chọn với khoá thẻ; đúng → cả hai mờ dần và gỡ; sai → E6; hết 6 từ (đã trả lời) → bảng sau; hết bảng → `GameShell` kết thúc |
-| **FR-013** | Một thẻ đã được gỡ (ghép đúng hoặc là thẻ đúng của từ đã sai) SHALL không chọn được nữa |
+| **FR-012** | Giao diện SHALL: hai cột (từ | thẻ pinyin) — màn hẹp: hai hàng lưới; chạm từ → chọn (viền), chạm thẻ → gửi `PINYIN_PAIR` cho từ đang chọn với khoá thẻ; đúng → đánh dấu cả hai, 12 thẻ giữ nguyên chỗ; sai → E6; chỉ khi đủ 6 từ (đã trả lời) mới báo xong bảng 900 ms rồi sang bảng sau; hết bảng → `GameShell` kết thúc |
+| **FR-013** | Một thẻ đã đánh dấu (ghép đúng hoặc là thẻ đúng của từ đã sai) SHALL không chọn được nữa |
 
 ### Nhóm 3 — Ghép Bộ thủ `RADICAL_MATCH` (FR-014…FR-018)
 
@@ -332,7 +332,7 @@ Không có endpoint mới — [`../007-game-platform/contracts/openapi-games.yam
 | AT-15 | GM-2 | Ván Bắt Chữ đúng 20/20 · T `points=200 = maxPoints` |
 | AT-16 | GM-4 | T trong một ván không thẻ nào làm đề hai lần (cả 6 game) |
 | AT-17 | FR-033, FR-034 (FE) | Vitest: chữ chạm đất → `onMissed`; tô đạt → `PASS`; reduced-motion hiện thanh thời gian |
-| AT-18 | FR-012, FR-013 (FE) | Chọn từ rồi thẻ → gửi đúng khoá; thẻ đã gỡ không chọn được; xong bảng → bảng sau |
+| AT-18 | FR-012, FR-013 (FE) | Chọn từ rồi thẻ → gửi đúng khoá; thẻ đã đánh dấu không chọn được; xong bảng → bảng sau |
 | AT-19 | FR-025, FR-028 (FE) | Hết 4 s → `onMissed`; phản hồi lạc quan rồi theo server |
 | AT-20 | FR-029, FR-031 | Pool 80 chữ · T 60 lượt `TRACE_CHAR`; `fallDurationMs`: lượt 0 = 6000, lượt 20 = 3000, lượt 25 = 3000 |
 | AT-21 | FR-036, SC-003 | T lượt Phi Đao không có `accept` trong response; `xuéxí`, `xue2xi2`, `xuexi` đúng; `xue2xi` và `xuéxì` sai |
