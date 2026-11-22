@@ -3,7 +3,11 @@ import { ApiError, invalidResponseError, networkError, parseApiError } from './e
 const CLIENT_TYPE = 'WEB'
 const CSRF_COOKIE_NAME = 'XSRF-TOKEN'
 const CSRF_HEADER_NAME = 'X-XSRF-TOKEN'
-const AUTH_EXCLUDED_PATHS = new Set(['/api/auth/login', '/api/auth/refresh', '/api/auth/logout'])
+// Logout is not excluded: an expired access token would be rejected before the server could drop the
+// refresh cookie, and the next page load would sign the user straight back in.
+const AUTH_EXCLUDED_PATHS = new Set(['/api/auth/login', '/api/auth/refresh'])
+const REFRESH_LOCK = 'cnhsk:auth-refresh'
+const ROTATION_SETTLE_MS = 400
 const CSRF_EXEMPT_PATHS = new Set([
   '/api/auth/login',
   '/api/auth/register',
@@ -204,15 +208,26 @@ async function fetchCsrfToken(force: boolean): Promise<void> {
 // for a missing access cookie fails quietly, so guests never see a session-expired notice.
 let refreshNotifiesFailure = false
 
+// Tabs of this site share one refresh cookie, so they take turns. The game runs on another origin
+// and cannot take part: when it rotates first, the server says so and its cookies are already ours.
+async function rotateTokens(): Promise<void> {
+  const rotate = () =>
+    requestInternal<void>('/api/auth/refresh', { method: 'POST' }, { auth: true, csrf: false })
+  const locks = (navigator as { locks?: LockManager }).locks
+
+  try {
+    await (locks ? locks.request(REFRESH_LOCK, rotate) : rotate())
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.extra.alreadyRotated !== true) throw error
+    await new Promise((resolve) => window.setTimeout(resolve, ROTATION_SETTLE_MS))
+  }
+}
+
 async function refreshSession(notifyOnFailure: boolean): Promise<void> {
   if (notifyOnFailure) refreshNotifiesFailure = true
   if (refreshPromise) return refreshPromise
 
-  refreshPromise = requestInternal<void>(
-    '/api/auth/refresh',
-    { method: 'POST' },
-    { auth: true, csrf: false },
-  )
+  refreshPromise = rotateTokens()
     .then(() => {
       authGeneration += 1
     })

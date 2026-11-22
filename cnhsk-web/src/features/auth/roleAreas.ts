@@ -17,12 +17,14 @@ const ROLE_AREAS: Readonly<Record<RoleCode, RoleArea>> = {
   TEACHER: {
     label: 'Giáo viên',
     role: 'TEACHER',
-    status: 'under-construction',
+    status: 'available',
+    to: '/teacher/grading',
   },
   MODERATOR: {
     label: 'Kiểm duyệt',
     role: 'MODERATOR',
-    status: 'under-construction',
+    status: 'available',
+    to: '/moderation/posts',
   },
   CONTENT_EDITOR: {
     label: 'Nội dung',

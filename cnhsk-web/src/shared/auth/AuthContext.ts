@@ -9,6 +9,7 @@ export type AuthContextValue = {
   error: ApiError | null
   reloadCurrentUser: () => Promise<void>
   setAuthenticatedUser: (user: CurrentUser) => void
+  /** Rejects, and keeps the user signed in, when the server could not end the session. */
   signOut: () => Promise<void>
   status: AuthStatus
   user: CurrentUser | null

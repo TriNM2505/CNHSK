@@ -113,6 +113,7 @@ class RefreshTokenIntegrationTest extends AbstractIntegrationTest {
         String replayedToken = mobileLogin(user).path("refreshToken").asText();
         String otherActiveToken = mobileLogin(user).path("refreshToken").asText();
         mobileRefresh(replayedToken).andExpect(status().isOk());
+        moveRotationBack(replayedToken, 11);
 
         mockMvc.perform(post("/api/auth/refresh")
                         .header("X-Client-Type", "MOBILE")
@@ -196,7 +197,7 @@ class RefreshTokenIntegrationTest extends AbstractIntegrationTest {
         String otherActive = mobileLogin(user).path("refreshToken").asText();
         mobileRefresh(revokedExpired).andExpect(status().isOk());
         AuthToken token = findToken(revokedExpired);
-        token.setRevokedAt(Instant.now().minusSeconds(2));
+        token.setRevokedAt(Instant.now().minusSeconds(12));
         token.setExpiresAt(Instant.now().minusSeconds(1));
         authTokenRepository.saveAndFlush(token);
 
@@ -211,6 +212,32 @@ class RefreshTokenIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void replayRightAfterRotationIsRejectedWithoutEndingAnySession() throws Exception {
+        User user = createUser();
+        String rotated = mobileLogin(user).path("refreshToken").asText();
+        String otherSession = mobileLogin(user).path("refreshToken").asText();
+        MockHttpServletResponse rotation = mobileRefresh(rotated).andExpect(status().isOk())
+                .andReturn().getResponse();
+        String successor = objectMapper.readTree(rotation.getContentAsString()).path("refreshToken").asText();
+        moveRotationBack(rotated, 5);
+
+        MockHttpServletResponse replay = mobileRefresh(rotated)
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error_code").value("INVALID_REFRESH_TOKEN"))
+                .andExpect(jsonPath("$.alreadyRotated").value(true))
+                .andReturn().getResponse();
+
+        assertThat(replay.getHeaders("Set-Cookie")).isEmpty();
+        assertThat(replay.getContentAsString()).doesNotContain(successor);
+        assertThat(findToken(successor).getRevokedAt()).isNull();
+        assertThat(findToken(otherSession).getRevokedAt()).isNull();
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM shared.audit_logs WHERE actor_id = ? AND action = 'TOKEN_REUSE'",
+                Integer.class, user.getId())).isZero();
+        mobileRefresh(successor).andExpect(status().isOk());
+    }
+
+    @Test
     void revokedLatestTokenWithoutSameSessionSuccessorIsInvalidNotReuse() throws Exception {
         User user = createUser();
         String deliberatelyRevoked = mobileLogin(user).path("refreshToken").asText();
@@ -221,7 +248,8 @@ class RefreshTokenIntegrationTest extends AbstractIntegrationTest {
 
         mobileRefresh(deliberatelyRevoked)
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error_code").value("INVALID_REFRESH_TOKEN"));
+                .andExpect(jsonPath("$.error_code").value("INVALID_REFRESH_TOKEN"))
+                .andExpect(jsonPath("$.alreadyRotated").doesNotExist());
 
         assertThat(findToken(otherSession).getRevokedAt()).isNull();
         assertThat(jdbcTemplate.queryForObject(
@@ -230,7 +258,7 @@ class RefreshTokenIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void concurrentRefreshesCannotLeaveTwoValidRotations() throws Exception {
+    void concurrentRefreshesLeaveExactlyOneValidRotation() throws Exception {
         User user = createUser();
         String sameRawToken = mobileLogin(user).path("refreshToken").asText();
         CountDownLatch start = new CountDownLatch(1);
@@ -250,18 +278,30 @@ class RefreshTokenIntegrationTest extends AbstractIntegrationTest {
                             : secondResponse.getContentAsString());
             String returnedRefresh = successBody.path("refreshToken").asText();
             assertThat(returnedRefresh).isNotBlank();
+            JsonNode rejectedBody = objectMapper.readTree(
+                    firstResponse.getStatus() == 200
+                            ? secondResponse.getContentAsString()
+                            : firstResponse.getContentAsString());
+            assertThat(rejectedBody.path("error_code").asText()).isEqualTo("INVALID_REFRESH_TOKEN");
+            assertThat(rejectedBody.path("alreadyRotated").asBoolean()).isTrue();
             assertThat(jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM auth.auth_tokens WHERE user_id = ? "
                             + "AND token_type = 'REFRESH' AND revoked_at IS NULL",
-                    Integer.class, user.getId())).isZero();
-            assertThat(findToken(returnedRefresh).getRevokedAt()).isNotNull();
+                    Integer.class, user.getId())).isEqualTo(1);
+            assertThat(findToken(returnedRefresh).getRevokedAt()).isNull();
             assertThat(jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM shared.audit_logs WHERE actor_id = ? AND action = 'TOKEN_REUSE'",
-                    Integer.class, user.getId())).isEqualTo(1);
+                    Integer.class, user.getId())).isZero();
         } finally {
             executor.shutdownNow();
             assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
         }
+    }
+
+    private void moveRotationBack(String rawToken, long seconds) {
+        AuthToken token = findToken(rawToken);
+        token.setRevokedAt(Instant.now().minusSeconds(seconds));
+        authTokenRepository.saveAndFlush(token);
     }
 
     private MvcResult concurrentMobileRefresh(CountDownLatch start, String rawToken) throws Exception {

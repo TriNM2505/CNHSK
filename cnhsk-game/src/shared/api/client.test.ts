@@ -145,6 +145,26 @@ describe('AT-19 cookie web', () => {
     window.removeEventListener(GAME_SESSION_EXPIRED_EVENT, onExpired)
   })
 
+  it('replays the request when the web app or another tab has just rotated the session', async () => {
+    const { GAME_SESSION_EXPIRED_EVENT } = await import('./client')
+    const onExpired = vi.fn()
+    window.addEventListener(GAME_SESSION_EXPIRED_EVENT, onExpired)
+    fetchMock
+      .mockResolvedValueOnce(expired())
+      .mockResolvedValueOnce(
+        Response.json(
+          { error_code: 'INVALID_REFRESH_TOKEN', message: 'Fixture', alreadyRotated: true },
+          { status: 401 },
+        ),
+      )
+      .mockResolvedValueOnce(ok())
+    await expect(request('/api/auth/me')).resolves.toEqual({ ok: true })
+
+    expect(calls(refresh)).toHaveLength(1)
+    expect(onExpired).not.toHaveBeenCalled()
+    window.removeEventListener(GAME_SESSION_EXPIRED_EVENT, onExpired)
+  })
+
   it('keeps a guest a guest when the silent refresh is rejected', async () => {
     const { GAME_SESSION_EXPIRED_EVENT } = await import('./client')
     const onExpired = vi.fn()

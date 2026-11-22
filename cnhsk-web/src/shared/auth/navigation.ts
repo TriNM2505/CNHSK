@@ -56,7 +56,9 @@ function getDefaultDestination(user: CurrentUser): AuthDestination {
     case 'ADMIN':
       return { type: 'internal', to: '/admin/users' }
     case 'TEACHER':
+      return { type: 'internal', to: '/teacher/grading' }
     case 'MODERATOR':
+      return { type: 'internal', to: '/moderation/posts' }
     case 'ACCOUNTANT':
       return { type: 'internal', to: '/403' }
     default:

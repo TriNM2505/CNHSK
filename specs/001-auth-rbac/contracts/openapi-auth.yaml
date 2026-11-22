@@ -315,6 +315,7 @@ paths:
     post:
       tags: [auth]
       summary: Làm mới token, xoay vòng (FR-031→033). Miễn CSRF
+      description: "401 INVALID_REFRESH_TOKEN có thêm alreadyRotated (boolean, true) khi token vừa được xoay vòng chưa quá 10 giây (FR-032)"
       security: []
       parameters:
         - $ref: '#/components/parameters/ClientType'

@@ -134,7 +134,81 @@ describe('apiRequest', () => {
     window.removeEventListener(AUTH_EXPIRED_EVENT, listener)
   })
 
-  it.each(['/api/auth/login', '/api/auth/refresh', '/api/auth/logout'])(
+  it('làm mới phiên rồi đăng xuất lại để máy chủ xoá được cookie khi token truy cập đã hết hạn', async () => {
+    document.cookie = 'XSRF-TOKEN=csrf-token; path=/'
+    let refreshed = false
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
+      if (String(input).endsWith('/api/auth/refresh')) {
+        refreshed = true
+        return new Response(null, { status: 204 })
+      }
+      return refreshed
+        ? new Response(null, { status: 204 })
+        : apiErrorResponse(401, 'UNAUTHENTICATED')
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { apiRequest } = await loadClient()
+
+    await apiRequest('/api/auth/logout', { method: 'POST' })
+
+    expect(fetchMock.mock.calls.map(([url]) => new URL(String(url)).pathname)).toEqual([
+      '/api/auth/logout',
+      '/api/auth/refresh',
+      '/api/auth/logout',
+    ])
+  })
+
+  it('gửi lại request khi tab hoặc trang khác vừa làm mới phiên trước', async () => {
+    let rotatedElsewhere = false
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
+      if (String(input).endsWith('/api/auth/refresh')) {
+        rotatedElsewhere = true
+        return apiErrorResponse(401, 'INVALID_REFRESH_TOKEN', { alreadyRotated: true })
+      }
+      return rotatedElsewhere ? jsonResponse({ ok: true }) : apiErrorResponse(401, 'TOKEN_EXPIRED')
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const { apiRequest, AUTH_EXPIRED_EVENT } = await loadClient()
+    const listener = vi.fn()
+    window.addEventListener(AUTH_EXPIRED_EVENT, listener)
+
+    await expect(apiRequest('/api/profile')).resolves.toEqual({ ok: true })
+
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(listener).not.toHaveBeenCalled()
+    window.removeEventListener(AUTH_EXPIRED_EVENT, listener)
+  })
+
+  it('chờ lượt giữa các tab trước khi làm mới phiên', async () => {
+    let refreshed = false
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
+      if (String(input).endsWith('/api/auth/refresh')) {
+        refreshed = true
+        return new Response(null, { status: 204 })
+      }
+      return refreshed ? jsonResponse({ ok: true }) : apiErrorResponse(401, 'TOKEN_EXPIRED')
+    })
+    let release!: () => void
+    const turn = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const lockRequest = vi.fn(async (_name: string, run: () => Promise<void>) => {
+      await turn
+      return run()
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    vi.stubGlobal('navigator', { locks: { request: lockRequest } })
+    const { apiRequest } = await loadClient()
+
+    const result = apiRequest('/api/profile')
+    await vi.waitFor(() => expect(lockRequest).toHaveBeenCalledOnce())
+    expect(refreshed).toBe(false)
+
+    release()
+    await expect(result).resolves.toEqual({ ok: true })
+  })
+
+  it.each(['/api/auth/login', '/api/auth/refresh'])(
     'không tự refresh endpoint %s',
     async (path) => {
       document.cookie = 'XSRF-TOKEN=csrf-token; path=/'

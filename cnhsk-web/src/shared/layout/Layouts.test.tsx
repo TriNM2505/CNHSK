@@ -65,7 +65,7 @@ function renderLayout(
   return { ...result, signOut }
 }
 
-function renderGuest() {
+function renderGuest(initialPath = '/') {
   const value: AuthContextValue = {
     error: null,
     reloadCurrentUser: vi.fn().mockResolvedValue(undefined),
@@ -77,7 +77,7 @@ function renderGuest() {
 
   render(
     <AuthContext.Provider value={value}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialPath]}>
         <PublicLayout>Nội dung công khai</PublicLayout>
       </MemoryRouter>
     </AuthContext.Provider>,
@@ -91,6 +91,20 @@ describe('PublicLayout', () => {
     expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute('href', '/login')
     expect(screen.getByRole('link', { name: 'Đăng ký' })).toHaveAttribute('href', '/register')
     expect(screen.getByRole('link', { name: 'Tra từ điển' })).toHaveAttribute('href', '/dictionary')
+  })
+
+  it.each([
+    ['the page being read', '/dictionary?q=a#x', '?redirect=%2Fdictionary%3Fq%3Da%23x'],
+    ['the target already being carried', '/login?redirect=%2Flearn%2Ftopics', '?redirect=%2Flearn%2Ftopics'],
+    ['nothing from the landing page', '/#khoa-hoc', ''],
+    ['nothing from the email verification page', '/verify-email?token=secret', ''],
+    ['nothing from the password reset page', '/reset-password?token=secret', ''],
+    ['nothing from an unknown page', '/khong-co-trang', ''],
+  ])('keeps %s when a guest signs in or registers from the header', (_name, path, query) => {
+    renderGuest(path)
+
+    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute('href', `/login${query}`)
+    expect(screen.getByRole('link', { name: 'Đăng ký' })).toHaveAttribute('href', `/register${query}`)
   })
 
   it.each([
@@ -305,6 +319,21 @@ describe('LearnerLayout', () => {
     await event.click(screen.getByRole('button', { name: 'Đăng xuất' }))
 
     expect(signOut).toHaveBeenCalledOnce()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('tells the user they are still signed in when sign-out fails, then lets them retry', async () => {
+    const event = userEvent.setup()
+    const { signOut } = renderLayout(<LearnerLayout>Nội dung học tập</LearnerLayout>)
+    signOut.mockRejectedValueOnce(new Error('network unavailable'))
+    const button = screen.getByRole('button', { name: 'Đăng xuất' })
+
+    await event.click(button)
+    expect(await screen.findByRole('alert')).toHaveTextContent('bạn vẫn đang đăng nhập')
+
+    await event.click(button)
+    expect(signOut).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('keeps the desktop sidebar bounded and scrollable for zoom and uses min-h-touch min-w-touch on the More close button', async () => {

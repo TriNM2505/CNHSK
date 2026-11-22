@@ -1,6 +1,7 @@
 package com.cnhsk.auth.service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,8 @@ public class RefreshTokenService {
     private static final String INVALID_TOKEN_MESSAGE = "Refresh token is invalid.";
     private static final String REUSE_MESSAGE = "Refresh token reuse was detected.";
     private static final TokenHasher TOKEN_HASHER = new TokenHasher();
+    /** Tabs sharing one cookie can send the same token twice; a later replay means it was copied. */
+    private static final Duration ROTATION_GRACE = Duration.ofSeconds(10);
 
     private final AuthTokenRepository authTokenRepository;
     private final UserRepository userRepository;
@@ -81,6 +84,10 @@ public class RefreshTokenService {
             throw new ApiException(ErrorCode.TOKEN_REUSE_DETECTED, HttpStatus.UNAUTHORIZED,
                     REUSE_MESSAGE, Map.of());
         }
+        if (outcome.alreadyRotated()) {
+            throw new ApiException(ErrorCode.INVALID_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED,
+                    INVALID_TOKEN_MESSAGE, Map.of("alreadyRotated", true));
+        }
         if (outcome.result() == null) {
             throw invalidToken();
         }
@@ -108,6 +115,9 @@ public class RefreshTokenService {
             if (current.getSessionId() == null || !authTokenRepository.existsNewerRefreshInSession(
                     current.getUserId(), current.getSessionId(), current.getId())) {
                 return RefreshOutcome.invalid();
+            }
+            if (now.isBefore(current.getRevokedAt().plus(ROTATION_GRACE))) {
+                return RefreshOutcome.rotatedMomentsAgo();
             }
             authTokenRepository.revokeAllActiveByUserIdAndTokenType(
                     current.getUserId(), TokenType.REFRESH, now);
@@ -161,17 +171,21 @@ public class RefreshTokenService {
         }
     }
 
-    private record RefreshOutcome(RefreshResult result, boolean reuseDetected) {
+    private record RefreshOutcome(RefreshResult result, boolean reuseDetected, boolean alreadyRotated) {
         private static RefreshOutcome invalid() {
-            return new RefreshOutcome(null, false);
+            return new RefreshOutcome(null, false, false);
+        }
+
+        private static RefreshOutcome rotatedMomentsAgo() {
+            return new RefreshOutcome(null, false, true);
         }
 
         private static RefreshOutcome reuse() {
-            return new RefreshOutcome(null, true);
+            return new RefreshOutcome(null, true, false);
         }
 
         private static RefreshOutcome success(RefreshResult result) {
-            return new RefreshOutcome(result, false);
+            return new RefreshOutcome(result, false, false);
         }
     }
 }

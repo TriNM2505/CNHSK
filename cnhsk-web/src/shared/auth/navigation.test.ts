@@ -31,6 +31,16 @@ describe('getAuthenticatedDestination', () => {
     })
   })
 
+  it.each([
+    ['TEACHER', '/teacher/grading'],
+    ['MODERATOR', '/moderation/posts'],
+  ] as const)('sends a user whose only role is %s to the matching work area', (role, to) => {
+    expect(getAuthenticatedDestination({ ...learner, roles: [role] })).toEqual({
+      type: 'internal',
+      to,
+    })
+  })
+
   it('uses the landing page when a user has several roles', () => {
     expect(getAuthenticatedDestination({ ...learner, roles: ['LEARNER', 'ADMIN'] })).toEqual({
       type: 'internal',

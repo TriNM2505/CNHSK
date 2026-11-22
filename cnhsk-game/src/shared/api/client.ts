@@ -13,6 +13,8 @@ const CSRF_EXEMPT = new Set([
   AUTH_REFRESH,
   '/api/public/reminder/unsubscribe',
 ])
+const REFRESH_LOCK = 'cnhsk:auth-refresh'
+const ROTATION_SETTLE_MS = 400
 const MUTATIONS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 export const GAME_SESSION_EXPIRED_EVENT = 'game:session-expired'
@@ -22,6 +24,8 @@ export class ApiError extends Error {
     readonly status: number,
     readonly errorCode: string | undefined,
     message: string,
+    /** The server saw this refresh token being exchanged a moment ago by another tab or the web app. */
+    readonly alreadyRotated = false,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -61,14 +65,16 @@ async function send<T>(path: string, init: RequestInit): Promise<T> {
 
   let errorCode: string | undefined
   let message = 'Không thể hoàn tất yêu cầu.'
+  let alreadyRotated = false
   try {
     const error = JSON.parse(content)
     if (typeof error?.error_code === 'string') errorCode = error.error_code
     if (typeof error?.message === 'string') message = error.message
+    alreadyRotated = error?.alreadyRotated === true
   } catch {
     // Keep the HTTP status when an intermediary returns a non-JSON response.
   }
-  throw new ApiError(response.status, errorCode, message)
+  throw new ApiError(response.status, errorCode, message, alreadyRotated)
 }
 
 function ensureCsrfCookie(): Promise<void> | undefined {
@@ -101,6 +107,19 @@ function notifyExpired() {
   window.dispatchEvent(new Event(GAME_SESSION_EXPIRED_EVENT))
 }
 
+// Tabs of the game share one refresh cookie, so they take turns. The web app runs on another origin
+// and cannot take part: when it rotates first, the server says so and its cookies are already ours.
+async function rotateTokens(): Promise<void> {
+  const rotate = () => send<void>(AUTH_REFRESH, { method: 'POST', credentials: 'include' })
+  const locks = (navigator as { locks?: LockManager }).locks
+  try {
+    await (locks ? locks.request(REFRESH_LOCK, rotate) : rotate())
+  } catch (error) {
+    if (!(error instanceof ApiError) || !error.alreadyRotated) throw error
+    await new Promise((resolve) => window.setTimeout(resolve, ROTATION_SETTLE_MS))
+  }
+}
+
 // A failed refresh announces an expired session only when a caller knew it had one; a silent probe
 // for a missing access cookie fails quietly, so guests never see a session-expired notice.
 function refreshSession(generation: number, notify: boolean): Promise<void> {
@@ -111,7 +130,7 @@ function refreshSession(generation: number, notify: boolean): Promise<void> {
 
   // Requests sent before this attempt share its result even if their 401 arrives later.
   const attempt = { generation, notify, result: Promise.resolve() }
-  attempt.result = send<void>(AUTH_REFRESH, { method: 'POST', credentials: 'include' })
+  attempt.result = rotateTokens()
     .catch((error: unknown) => {
       if (attempt.notify && error instanceof ApiError && error.status === 401) notifyExpired()
       throw error

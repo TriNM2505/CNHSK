@@ -9,10 +9,11 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.1.1 |
+| **Version** | 1.1.2 |
 | **Status** | DRAFT — chờ cả nhóm duyệt rồi mới `APPROVED` |
 | **Approved by** | — |
 | **Locked on** | — |
+| **Thay đổi 1.1.2** | Khoảng chờ 10 giây sau khi xoay vòng refresh token để nhiều tab không tự đăng xuất nhau (FR-032, AT-35b) · đăng xuất lỗi thì giữ trạng thái đăng nhập và báo rõ (§12.2) · màn mặc định của `TEACHER`, `MODERATOR` đã có (§12.3) |
 | **Thay đổi 1.1.1** | Màn mặc định của `LEARNER` là SCR-010 `/learn` (Bảng học tập) vì SCR-010 đã có · client web và game refresh im lặng khi 401 `UNAUTHENTICATED` (§12.2 `client.ts`) |
 | **Thay đổi so với 1.0** | Đổi tên actor (18/10) · tách gói, lượt free, mã thẻ sang spec gói dịch vụ (credits-plans) · tách hạn mức khách sang spec từ điển · chốt 4 câu hỏi mở · chốt 8 mâu thuẫn tài liệu (Nhóm 14) · thêm §0 nền tảng và §12–§15 |
 
@@ -252,7 +253,7 @@ Nếu vừa bị cấm vừa bị treo, trả ACCOUNT_BANNED.
 | Mã | Yêu cầu |
 |---|---|
 | **FR-031** | WHEN nhận refresh token hợp lệ tại `POST /api/auth/refresh` (cookie `refresh_token` ở web, body `{refreshToken}` ở mobile), THE system SHALL cấp access token mới VÀ refresh token mới, rồi thu hồi refresh token cũ (rotation), trong một transaction; refresh token mới và access token mới giữ nguyên `session_id` của phiên cũ |
-| **FR-032** | WHEN một refresh token đã thu hồi được dùng lại, THE system SHALL kiểm tra trong cùng user và `session_id` có refresh-token row mới hơn hay không. Có row mới hơn cùng phiên → reuse: thu hồi **toàn bộ** refresh token của user đó, ghi `audit_logs` `action='TOKEN_REUSE'`, và trả **401** `TOKEN_REUSE_DETECTED`. Không có row mới hơn (token bị thu hồi có chủ đích, như đổi mật khẩu/đăng xuất) → chỉ trả **401** `INVALID_REFRESH_TOKEN`, không thu hồi các phiên khác và không ghi audit reuse |
+| **FR-032** | WHEN một refresh token đã thu hồi được dùng lại, THE system SHALL kiểm tra trong cùng user và `session_id` có refresh-token row mới hơn hay không. Có row mới hơn cùng phiên và token bị thu hồi **chưa quá 10 giây** → hai tab dùng chung cookie vừa gửi trùng: trả **401** `INVALID_REFRESH_TOKEN` kèm `alreadyRotated: true`, không cấp token mới, không thu hồi phiên nào, không ghi audit. Có row mới hơn cùng phiên và **từ 10 giây trở lên** → reuse: thu hồi **toàn bộ** refresh token của user đó, ghi `audit_logs` `action='TOKEN_REUSE'`, và trả **401** `TOKEN_REUSE_DETECTED`. Không có row mới hơn (token bị thu hồi có chủ đích, như đổi mật khẩu/đăng xuất) → chỉ trả **401** `INVALID_REFRESH_TOKEN`, không thu hồi các phiên khác và không ghi audit reuse |
 | **FR-033** | THE system SHALL so sánh refresh token bằng cách hash SHA-256 token người dùng gửi rồi đối chiếu `auth_tokens.token_hash`, KHÔNG so sánh token thô |
 | **FR-034** | WHEN đăng xuất từ web (`POST /api/auth/logout`), THE system SHALL xoá hai cookie (`Max-Age=0`, cùng `Domain`/`Path`) và thu hồi refresh token của phiên đó |
 | **FR-035** | WHEN đăng xuất từ mobile, THE system SHALL thu hồi refresh token nhận trong body |
@@ -577,8 +578,8 @@ SCR-007 chỉ có 3 field của FR-051/FR-095; nút "Cài đặt nhắc học" d
 
 | Thành phần | Hành vi |
 |---|---|
-| `shared/api/client.ts` | `fetch` với `credentials: 'include'`, header `X-Client-Type: WEB`, `X-XSRF-TOKEN` lấy từ cookie `XSRF-TOKEN` cho request đổi trạng thái. Nhận 401 `TOKEN_EXPIRED`/`SESSION_REVOKED` → gọi `POST /api/auth/refresh` **một lần** (gộp các request song song chờ chung một lần refresh) rồi gửi lại; refresh lỗi → xoá trạng thái, chuyển `/login?redirect=`. Nhận 401 `UNAUTHENTICATED` (cookie access có `Max-Age` bằng vòng đời token nên hết hạn là trình duyệt xoá) → thử refresh **im lặng** một lần rồi gửi lại; refresh lỗi → trả lỗi gốc, không báo hết phiên, khách không thấy khác (v1.1.1; `cnhsk-game/src/shared/api/client.ts` làm giống) |
-| `AuthProvider` | Khởi động gọi `GET /api/auth/me`; giữ `user {id, email, displayName, emailVerified, roles}` trong context; không lưu token ở `localStorage` |
+| `shared/api/client.ts` | `fetch` với `credentials: 'include'`, header `X-Client-Type: WEB`, `X-XSRF-TOKEN` lấy từ cookie `XSRF-TOKEN` cho request đổi trạng thái. Nhận 401 `TOKEN_EXPIRED`/`SESSION_REVOKED` → gọi `POST /api/auth/refresh` **một lần** (gộp các request song song chờ chung một lần refresh) rồi gửi lại; refresh lỗi → xoá trạng thái, chuyển `/login?redirect=`. Nhận 401 `UNAUTHENTICATED` (cookie access có `Max-Age` bằng vòng đời token nên hết hạn là trình duyệt xoá) → thử refresh **im lặng** một lần rồi gửi lại; refresh lỗi → trả lỗi gốc, không báo hết phiên, khách không thấy khác (v1.1.1; `cnhsk-game/src/shared/api/client.ts` làm giống). Các tab cùng origin làm mới lần lượt bằng Web Locks; nhận `alreadyRotated: true` → chờ ngắn rồi gửi lại request gốc **một lần**. `POST /api/auth/logout` cũng được làm mới rồi gửi lại, để máy chủ xoá được cookie khi access token đã hết hạn (v1.1.2) |
+| `AuthProvider` | Khởi động gọi `GET /api/auth/me`; giữ `user {id, email, displayName, emailVerified, roles}` trong context; không lưu token ở `localStorage`. Đăng xuất lỗi mạng hoặc 5xx → giữ trạng thái đăng nhập và báo chưa đăng xuất được; 401 hoặc `ACCOUNT_BANNED` → coi như đã đăng xuất |
 | `RequireRole roles={[...]}` | Chưa đăng nhập → `/login?redirect=`; thiếu role → SCR-079 |
 | Banner chưa xác thực | Mọi trang khu vực người học hiện banner "Xác minh email để dùng đầy đủ" khi `emailVerified=false`, có nút sang SCR-004 |
 | Lỗi | Hiện `message` từ API; 500 → "Có lỗi xảy ra, mã: {request_id}" |
@@ -588,8 +589,8 @@ SCR-007 chỉ có 3 field của FR-051/FR-095; nút "Cài đặt nhắc học" d
 | Role | Khu vực | Màn mặc định |
 |---|---|---|
 | `LEARNER` | Học tập | SCR-010 `/learn` (v1.1.1; trước khi có SCR-010 tạm dùng SCR-011 `/learn/topics`) |
-| `TEACHER` | Giáo viên | SCR-056 (chưa có → SCR-079 với thông báo "đang xây dựng") |
-| `MODERATOR` | Kiểm duyệt | SCR-060 (V2) |
+| `TEACHER` | Giáo viên | SCR-056 `/teacher/grading` |
+| `MODERATOR` | Kiểm duyệt | SCR-060 `/moderation/posts` |
 | `CONTENT_EDITOR` | Nội dung | SCR-068 (spec nhập dữ liệu) |
 | `ACCOUNTANT` | Kế toán | SCR-073 (spec gói dịch vụ) |
 | `ADMIN` | Quản trị | SCR-076 |
@@ -672,7 +673,8 @@ Không có AT: FR-055 (đã chuyển), FR-056 (V2), FR-058c (spec này không c�
 | AT-32 | FR-030 | W gọi endpoint bằng header `Authorization` không cookie · T 200 |
 | AT-33 | FR-031 | W refresh WEB · T cookie mới, token cũ `revoked_at` có giá trị |
 | AT-34 | FR-031 | W refresh MOBILE với body · T body có token mới |
-| AT-35 | FR-032, E3 | G refresh token đã rotate · W dùng lại · T 401 `TOKEN_REUSE_DETECTED`, mọi refresh token của user bị thu hồi, có `audit_logs TOKEN_REUSE` |
+| AT-35 | FR-032, E3 | G refresh token đã rotate hơn 10 giây trước · W dùng lại · T 401 `TOKEN_REUSE_DETECTED`, mọi refresh token của user bị thu hồi, có `audit_logs TOKEN_REUSE` |
+| AT-35b | FR-032 | G refresh token vừa rotate 5 giây trước · W dùng lại · T 401 `INVALID_REFRESH_TOKEN` + `alreadyRotated: true`; token mới và phiên khác vẫn dùng được; không có `TOKEN_REUSE` |
 | AT-36 | FR-033 | T DB không có cột nào chứa token thô (kiểm giá trị cookie ≠ mọi `token_hash`) |
 | AT-37 | FR-034 | W logout WEB · T 2 cookie `Max-Age=0`, refresh token phiên bị thu hồi |
 | AT-38 | FR-035 | W logout MOBILE với `refreshToken` · T token đó bị thu hồi |

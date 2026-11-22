@@ -19,7 +19,7 @@ export const accessDeniedPreviews = {
   },
   underConstruction: {
     ...guestBase,
-    areaLabels: ['Giáo viên'],
+    areaLabels: ['Kế toán'],
     mode: 'under-construction',
   },
   noArea: {

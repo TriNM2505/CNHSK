@@ -1,4 +1,5 @@
 import { act, cleanup, render, screen } from '@testing-library/react'
+import { useState } from 'react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, Outlet, RouterProvider, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -81,6 +82,7 @@ function unauthenticatedError() {
 function Probe() {
   const location = useLocation()
   const { reloadCurrentUser, setAuthenticatedUser, signOut, status, user } = useCurrentUser()
+  const [signOutFailed, setSignOutFailed] = useState(false)
 
   return (
     <main>
@@ -93,9 +95,10 @@ function Probe() {
       <button onClick={() => void reloadCurrentUser()} type="button">
         Tải lại
       </button>
-      <button onClick={() => void signOut()} type="button">
+      <button onClick={() => void signOut().catch(() => setSignOutFailed(true))} type="button">
         Đăng xuất
       </button>
+      {signOutFailed ? <p>Đăng xuất thất bại</p> : null}
     </main>
   )
 }
@@ -158,9 +161,31 @@ describe('AuthProvider context actions', () => {
     expect(getCurrentUserMock).toHaveBeenCalledTimes(2)
   })
 
-  it('clears the client session and returns home even when logout fails', async () => {
+  it.each([
+    ['the network is down', new TypeError('network unavailable')],
+    [
+      'the server fails',
+      new ApiError({ errorCode: 'INTERNAL_ERROR', message: 'Lỗi máy chủ.', status: 500 }),
+    ],
+  ])('stays signed in and reports the failure when %s during logout', async (_name, failure) => {
     getCurrentUserMock.mockResolvedValue(learner)
-    signOutCurrentUserMock.mockRejectedValue(new TypeError('network unavailable'))
+    signOutCurrentUserMock.mockRejectedValue(failure)
+    const router = renderProvider('/private')
+    const user = userEvent.setup()
+    await screen.findByText('Người dùng: Người học')
+    seedPrivateSessionStorage()
+
+    await user.click(screen.getByRole('button', { name: 'Đăng xuất' }))
+
+    expect(await screen.findByText('Đăng xuất thất bại')).toBeVisible()
+    expect(screen.getByText('Người dùng: Người học')).toBeVisible()
+    expect(router.state.location.pathname).toBe('/private')
+    expectPrivateSessionStorageRetained()
+  })
+
+  it('clears the client session and returns home when the session is already gone', async () => {
+    getCurrentUserMock.mockResolvedValue(learner)
+    signOutCurrentUserMock.mockRejectedValue(unauthenticatedError())
     const router = renderProvider('/private')
     const user = userEvent.setup()
     await screen.findByText('Người dùng: Người học')

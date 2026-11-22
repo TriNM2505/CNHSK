@@ -15,7 +15,13 @@ const user: CurrentUser = {
 
 describe('roleAreas', () => {
   it('giữ đường dẫn khu vực đã dựng đồng bộ với getAuthenticatedDestination', () => {
-    const availableRoles: RoleCode[] = ['LEARNER', 'CONTENT_EDITOR', 'ADMIN']
+    const availableRoles: RoleCode[] = [
+      'LEARNER',
+      'TEACHER',
+      'MODERATOR',
+      'CONTENT_EDITOR',
+      'ADMIN',
+    ]
 
     for (const role of availableRoles) {
       const [area] = getRoleAreas([role])
@@ -30,9 +36,7 @@ describe('roleAreas', () => {
   })
 
   it('đánh dấu đúng các khu vực chưa được dựng', () => {
-    expect(getRoleAreas(['TEACHER', 'MODERATOR', 'ACCOUNTANT'])).toEqual([
-      expect.objectContaining({ label: 'Giáo viên', status: 'under-construction' }),
-      expect.objectContaining({ label: 'Kiểm duyệt', status: 'under-construction' }),
+    expect(getRoleAreas(['ACCOUNTANT'])).toEqual([
       expect.objectContaining({ label: 'Kế toán', status: 'under-construction' }),
     ])
   })

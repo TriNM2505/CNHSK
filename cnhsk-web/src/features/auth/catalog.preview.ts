@@ -133,10 +133,10 @@ function authenticatedAuth(user: CurrentUser): AuthContextValue {
   }
 }
 
-const previewTeacher: CurrentUser = {
+const previewAccountant: CurrentUser = {
   ...previewLearner,
-  displayName: 'Giáo viên mẫu',
-  roles: ['TEACHER'],
+  displayName: 'Kế toán mẫu',
+  roles: ['ACCOUNTANT'],
 }
 
 const landingEntries = [
@@ -187,7 +187,7 @@ const accessDeniedEntries = [
     'scr-079-under-construction',
     'Từ chối truy cập — Khu vực đang xây dựng',
     accessDeniedPreviews.underConstruction,
-    authenticatedAuth(previewTeacher),
+    authenticatedAuth(previewAccountant),
   ],
   [
     'scr-079-no-area',

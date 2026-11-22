@@ -216,6 +216,7 @@ class AuthLifecycleIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(post("/api/auth/refresh").cookie(originalRefresh))
                 .andExpect(status().isOk());
+        moveRotationPastGrace(originalRefresh.getValue());
 
         mockMvc.perform(post("/api/auth/refresh").cookie(originalRefresh))
                 .andExpect(status().isUnauthorized())
@@ -233,6 +234,7 @@ class AuthLifecycleIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(json(Map.of("refreshToken", originalRefresh))))
                 .andExpect(status().isOk());
+        moveRotationPastGrace(originalRefresh);
 
         mockMvc.perform(post("/api/auth/refresh")
                         .header("X-Client-Type", "MOBILE")
@@ -241,6 +243,12 @@ class AuthLifecycleIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error_code").value("TOKEN_REUSE_DETECTED"));
         assertNoActiveRefreshTokens(user.getId());
+    }
+
+    private void moveRotationPastGrace(String rawToken) {
+        AuthToken token = findRefresh(rawToken);
+        token.setRevokedAt(java.time.Instant.now().minusSeconds(11));
+        authTokenRepository.saveAndFlush(token);
     }
 
     private MvcResult webLogin(User user) throws Exception {

@@ -126,11 +126,7 @@ describe('question-bank route foundation (FR-001 FE, §12)', () => {
     const router = renderRoute(url)
     await waitFor(() => expect(router.state.location.pathname).toBe('/403'))
     const heading =
-      role === 'MODERATOR'
-        ? 'Khu vực Kiểm duyệt đang được xây dựng'
-        : role === 'ACCOUNTANT'
-          ? 'Khu vực Kế toán đang được xây dựng'
-          : 'Không có quyền truy cập'
+      role === 'ACCOUNTANT' ? 'Khu vực Kế toán đang được xây dựng' : 'Không có quyền truy cập'
     expect(await screen.findByRole('heading', { name: heading })).toBeVisible()
     expect(screen.queryByText(`Màn ${scr} đang dựng`)).not.toBeInTheDocument()
   })

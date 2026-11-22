@@ -45,19 +45,28 @@ describe('Scr079AccessDeniedPage', () => {
   })
 
   it.each([
-    ['TEACHER', 'Giáo viên'],
-    ['MODERATOR', 'Kiểm duyệt'],
-    ['ACCOUNTANT', 'Kế toán'],
-  ] as const)('role %s chưa có khu vực thấy thông báo đang xây dựng', (role, label) => {
+    ['TEACHER', 'Về khu vực giáo viên', '/teacher/grading'],
+    ['MODERATOR', 'Về khu vực kiểm duyệt', '/moderation/posts'],
+  ] as const)('role %s có khu vực riêng được dẫn về đúng khu vực', (role, name, href) => {
     renderPage({ status: 'authenticated', user: { ...user, roles: [role] } })
 
-    expect(
-      screen.getByRole('heading', { name: `Khu vực ${label} đang được xây dựng` }),
-    ).toBeVisible()
-    expect(screen.getAllByRole('link')).toHaveLength(1)
-    expect(screen.getByRole('link', { name: 'Về trang chủ' })).toHaveAttribute('href', '/')
-    expect(screen.queryByText('Không có quyền truy cập')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Không có quyền truy cập' })).toBeVisible()
+    expect(screen.getByRole('link', { name })).toHaveAttribute('href', href)
   })
+
+  it.each([['ACCOUNTANT', 'Kế toán']] as const)(
+    'role %s chưa có khu vực thấy thông báo đang xây dựng',
+    (role, label) => {
+      renderPage({ status: 'authenticated', user: { ...user, roles: [role] } })
+
+      expect(
+        screen.getByRole('heading', { name: `Khu vực ${label} đang được xây dựng` }),
+      ).toBeVisible()
+      expect(screen.getAllByRole('link')).toHaveLength(1)
+      expect(screen.getByRole('link', { name: 'Về trang chủ' })).toHaveAttribute('href', '/')
+      expect(screen.queryByText('Không có quyền truy cập')).not.toBeInTheDocument()
+    },
+  )
 
   it('user có khu vực đã dựng thấy thiếu quyền và có đường về an toàn', () => {
     renderPage({ status: 'authenticated', user: { ...user, roles: ['LEARNER'] } })

@@ -1,4 +1,5 @@
 import { Bell, ChevronDown, KeyRound, LogOut, UserRound, Wallet } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { CurrentUser, RoleCode } from '@/features/auth/types'
@@ -18,6 +19,7 @@ type UserArea = {
 const userAreas: readonly UserArea[] = [
   { label: 'Học tập', role: 'LEARNER', to: '/learn' },
   { label: 'Chấm bài viết', role: 'TEACHER', to: '/teacher/grading' },
+  { label: 'Kiểm duyệt', role: 'MODERATOR', to: '/moderation/posts' },
   { label: 'Nhập dữ liệu', role: 'CONTENT_EDITOR', to: '/content/imports' },
   { label: 'Quản trị người dùng', role: 'ADMIN', to: '/admin/users' },
 ]
@@ -28,8 +30,22 @@ function getUserAreas(user: CurrentUser): readonly UserArea[] {
 
 export function AccountMenu({ inverse = false }: AccountMenuProps) {
   const { signOut, user } = useCurrentUser()
+  const [signingOut, setSigningOut] = useState(false)
+  const [signOutFailed, setSignOutFailed] = useState(false)
 
   if (!user) return null
+
+  async function handleSignOut() {
+    setSigningOut(true)
+    setSignOutFailed(false)
+    try {
+      await signOut()
+    } catch {
+      setSignOutFailed(true)
+    } finally {
+      setSigningOut(false)
+    }
+  }
 
   const areas = getUserAreas(user)
   const hasLearnerArea = user.roles.includes('LEARNER')
@@ -91,10 +107,20 @@ export function AccountMenu({ inverse = false }: AccountMenuProps) {
             <KeyRound aria-hidden="true" className="size-4" />
             Đổi mật khẩu
           </Link>
-          <button className={itemClasses} onClick={() => void signOut()} type="button">
+          <button
+            className={cn(itemClasses, signingOut && 'opacity-60')}
+            disabled={signingOut}
+            onClick={() => void handleSignOut()}
+            type="button"
+          >
             <LogOut aria-hidden="true" className="size-4" />
             Đăng xuất
           </button>
+          {signOutFailed ? (
+            <p className="px-3 py-2 text-caption text-danger" role="alert">
+              Chưa đăng xuất được, bạn vẫn đang đăng nhập. Vui lòng kiểm tra mạng rồi thử lại.
+            </p>
+          ) : null}
         </div>
       </div>
     </details>

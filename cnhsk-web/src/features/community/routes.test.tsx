@@ -202,7 +202,7 @@ describe('community route foundation (§12; FR-001 and AT-01/02 access only)', (
       getCurrentUserMock.mockResolvedValue(user(['MODERATOR']))
       const router = renderRoute(url)
       expect(
-        await screen.findByRole('heading', { name: 'Khu vực Kiểm duyệt đang được xây dựng' }),
+        await screen.findByRole('heading', { name: 'Không có quyền truy cập' }),
       ).toBeVisible()
       expect(router.state.location.pathname).toBe('/403')
       expect(

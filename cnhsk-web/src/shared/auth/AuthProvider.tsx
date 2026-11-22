@@ -106,17 +106,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signOut = useCallback(async () => {
     try {
       await signOutCurrentUser()
-    } catch {
-      // Trạng thái phía client vẫn phải được xoá khi máy chủ không thể phản hồi.
-    } finally {
-      cancelCurrentRequest()
-      clearPrivateSessionStorage()
-      lastAuthenticatedUserIdRef.current = null
-      setUser(null)
-      setStatus('guest')
-      setError(null)
-      if (!accountBannedRef.current) navigate('/', { replace: true })
+    } catch (caughtError) {
+      // Only the server can drop the HttpOnly cookies. Showing a signed-out screen while they are
+      // still there would let the next person on this computer reload into the account.
+      const apiError = toApiError(caughtError)
+      if (apiError.status !== 401 && apiError.errorCode !== 'ACCOUNT_BANNED') throw apiError
     }
+
+    cancelCurrentRequest()
+    clearPrivateSessionStorage()
+    lastAuthenticatedUserIdRef.current = null
+    setUser(null)
+    setStatus('guest')
+    setError(null)
+    if (!accountBannedRef.current) navigate('/', { replace: true })
   }, [cancelCurrentRequest, navigate])
 
   useEffect(() => {

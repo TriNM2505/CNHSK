@@ -1,7 +1,8 @@
 import { ChevronDown, Lock, Menu, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, type Location } from 'react-router-dom'
 
+import { findKnownRoute } from '@/app/routeAccess'
 import { BrandLink } from '@/shared/layout/AppShell'
 import { gameNavigationItem } from '@/shared/layout/navigation'
 import { publicMenus, type PublicMenu } from '@/shared/layout/publicNavigation'
@@ -12,6 +13,16 @@ const linkClass =
   'flex min-h-touch items-center rounded-sm text-body text-ink-secondary no-underline transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus'
 const itemClass =
   'inline-flex min-h-touch items-center gap-2 rounded-sm px-2 text-lg font-semibold text-ink no-underline transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus xl:px-3'
+
+/** Public pages that are not worth returning to after signing in; some carry a one-time token. */
+const noReturnPaths = new Set(['/', '/403', '/reminder/unsubscribe', '/reset-password', '/verify-email'])
+
+function authQuery({ hash, pathname, search }: Location): string {
+  const carried = new URLSearchParams(search).get('redirect')
+  if (carried) return `?redirect=${encodeURIComponent(carried)}`
+  if (noReturnPaths.has(pathname) || findKnownRoute(pathname)?.access !== 'public') return ''
+  return `?redirect=${encodeURIComponent(`${pathname}${search}${hash}`)}`
+}
 
 function MenuColumns({ className, menu }: { className?: string; menu: PublicMenu }) {
   return (
@@ -50,6 +61,7 @@ export function PublicHeader({ gameOrigin = import.meta.env.VITE_GAME_ORIGIN }: 
   const [open, setOpen] = useState<{ id: string; pinned: boolean }>()
   const [mobileOpen, setMobileOpen] = useState(false)
   const menu = publicMenus.find(({ id }) => id === open?.id)
+  const query = authQuery(location)
 
   useEffect(() => {
     setOpen(undefined)
@@ -139,10 +151,10 @@ export function PublicHeader({ gameOrigin = import.meta.env.VITE_GAME_ORIGIN }: 
             <Search aria-hidden="true" className="size-6" />
           </Link>
           <nav aria-label="Tài khoản" className="flex items-center gap-2">
-            <Button className="px-3 lg:text-body lg:font-semibold" to="/login" variant="ghost">
+            <Button className="px-3 lg:text-body lg:font-semibold" to={`/login${query}`} variant="ghost">
               Đăng nhập
             </Button>
-            <Button className="lg:min-h-14 lg:px-6 lg:text-body lg:font-bold" to="/register">
+            <Button className="lg:min-h-14 lg:px-6 lg:text-body lg:font-bold" to={`/register${query}`}>
               Đăng ký
             </Button>
           </nav>
