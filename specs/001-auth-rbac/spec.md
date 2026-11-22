@@ -9,10 +9,11 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.1.3 |
+| **Version** | 1.2.0 |
 | **Status** | DRAFT — chờ cả nhóm duyệt rồi mới `APPROVED` |
 | **Approved by** | — |
 | **Locked on** | — |
+| **Thay đổi 1.2.0** | Phải nhập mã xác minh gửi qua email thì tài khoản mới được tạo (FR-001, FR-006, FR-007, FR-087, AT-01, AT-08, AT-09, AT-71) · endpoint `POST /api/auth/register/code` · FR-009→FR-013 và banner chưa xác thực còn áp dụng cho tài khoản tạo trước v1.2.0 |
 | **Thay đổi 1.1.3** | Đăng ký xong đăng nhập luôn và vào đích FR-090 (FR-087, AT-71) · email xác thực và đặt lại mật khẩu gửi ở luồng nền (FR-006, FR-007) · trang `/terms` (§12.1) |
 | **Thay đổi 1.1.2** | Khoảng chờ 10 giây sau khi xoay vòng refresh token để nhiều tab không tự đăng xuất nhau (FR-032, AT-35b) · đăng xuất lỗi thì giữ trạng thái đăng nhập và báo rõ (§12.2) · màn mặc định của `TEACHER`, `MODERATOR` đã có (§12.3) |
 | **Thay đổi 1.1.1** | Màn mặc định của `LEARNER` là SCR-010 `/learn` (Bảng học tập) vì SCR-010 đã có · client web và game refresh im lặng khi 401 `UNAUTHENTICATED` (§12.2 `client.ts`) |
@@ -102,7 +103,7 @@ Hệ thống có **ba client dùng chung một backend**: web `cnhsk.com`, web g
 |---|---|---|
 | **SC-001** | Cả 3 client đăng nhập thành công bằng cùng một tài khoản | 3/3 |
 | **SC-002** | Người dùng mở `game.cnhsk.com` sau khi đã đăng nhập ở `cnhsk.com` | không phải đăng nhập lại |
-| **SC-003** | Tài khoản chưa xác thực email vẫn học được, nhưng không làm được thao tác đổi điểm | đúng cả hai |
+| **SC-003** | Tài khoản chưa xác thực email (tạo trước v1.2.0) vẫn học được, nhưng không làm được thao tác đổi điểm | đúng cả hai |
 | **SC-004** | Cùng cặp email–IP sai mật khẩu 5 lần trong 15 phút → lần tiếp theo trả **423** `LOGIN_SOURCE_BLOCKED` trong 15 phút | 100% |
 | **SC-005** | Người dùng A không đọc được dữ liệu của B qua đổi id trong URL | 403 ở mọi endpoint |
 | **SC-006** | Bị cấm hoặc bị thu hồi role → request kế tiếp bị từ chối, không chờ token hết hạn | 100% |
@@ -129,8 +130,8 @@ Hệ thống có **ba client dùng chung một backend**: web `cnhsk.com`, web g
 
 **Given** email chưa tồn tại trong hệ thống
 **When** tôi nhập họ tên, email, mật khẩu hợp lệ và đồng ý điều khoản
-**Then** tài khoản được tạo với role `LEARNER`, gói `FREE`, và tôi nhận email xác thực
-**And** tôi đăng nhập được ngay, không cần chờ xác thực email
+**Then** tôi nhận mã 6 số qua email; nhập đúng mã thì tài khoản được tạo với role `LEARNER`, gói `FREE`, email đã xác thực
+**And** tôi vào học luôn, không phải đăng nhập lại
 
 ### US-2 · Người học đăng nhập trên ba client (P1)
 
@@ -195,14 +196,14 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-001** | WHEN khách gửi `POST /api/auth/register` với email chưa tồn tại và dữ liệu hợp lệ, THE system SHALL tạo một dòng `users` với `email_verified_at = NULL`, gán role `LEARNER` vào `user_roles`, đặt `plan_code = 'FREE'`, và trả **201** |
+| **FR-001** | WHEN khách gửi `POST /api/auth/register` với email chưa tồn tại, dữ liệu hợp lệ và `code` đúng (FR-006), THE system SHALL tạo một dòng `users` với `email_verified_at = now()`, gán role `LEARNER` vào `user_roles`, đặt `plan_code = 'FREE'`, và trả **201** |
 | **FR-002** | THE system SHALL thực hiện tạo user + gán role trong **cùng một transaction** (`BUS-02`) |
 | **FR-003** | THE system SHALL hash mật khẩu bằng bcrypt cost 12 trước khi ghi (`HR-01`, `NFR-S01`) |
 | **FR-004** | WHEN email (đã chuẩn hoá, FR-095) đã tồn tại, THE system SHALL trả **409** `EMAIL_ALREADY_EXISTS` |
 | **FR-005** | THE system SHALL validate theo FR-091 (mật khẩu), FR-095 (email), `displayName` 2–100 ký tự sau khi bỏ khoảng trắng hai đầu, `acceptTerms = true`, hai lần nhập mật khẩu khớp. Vi phạm → **422** `VALIDATION_FAILED` kèm `details` từng field |
-| **FR-006** | WHEN tạo user thành công, THE system SHALL sinh token `EMAIL_VERIFY` trong `auth_tokens` hết hạn sau **24 giờ** và gửi email chứa link `{APP_WEB_BASE_URL}/verify-email?token=...` **sau khi transaction commit**, ở luồng nền: response không chờ SMTP và không giữ kết nối DB (`cnhsk.mail.background`) |
-| **FR-007** | WHERE SMTP lỗi hoặc hàng đợi gửi đầy, THE system SHALL **vẫn trả 201** và ghi log lỗi (không ghi email), KHÔNG rollback việc tạo tài khoản (`NFR-A01`) |
-| **FR-008** | THE system SHALL KHÔNG bao giờ ghi mật khẩu thô hoặc token thô vào log (`NFR-S07`) |
+| **FR-006** | WHEN khách gửi `POST /api/auth/register/code` với dữ liệu hợp lệ như FR-005, THE system SHALL sinh mã 6 số (`SecureRandom`), lưu **hash** gắn với email trong Redis **10 phút**, gửi mã qua email ở luồng nền và trả **202**; chưa tạo tài khoản. Mã mới thay mã cũ; mã dùng một lần; sai **5 lần** thì huỷ. Mã sai, hết hạn hoặc đã huỷ → **400** `INVALID_VERIFY_TOKEN` kèm `remainingAttempts`. Mỗi email gửi lại sau **60 giây**, tối đa **5 lần/giờ**; vượt → **429** `TOO_MANY_REQUESTS` kèm `retryAfterSeconds`. Redis lỗi → **500**, không cho đăng ký. `cnhsk.auth.registration-code-required` mặc định `true`; chỉ test tắt để tạo nhanh tài khoản chưa xác thực kèm token `EMAIL_VERIFY` 24 giờ |
+| **FR-007** | WHERE SMTP lỗi hoặc hàng đợi gửi đầy, THE system SHALL **vẫn trả 202** và ghi log lỗi (không ghi email, không ghi mã); khách gửi lại mã sau 60 giây (`NFR-A01`) |
+| **FR-008** | THE system SHALL KHÔNG bao giờ ghi mật khẩu thô, token thô hoặc mã xác minh vào log (`NFR-S07`) |
 
 ### Nhóm 2 — Xác thực email (FR-009…FR-013) · UC-002
 
@@ -324,7 +325,7 @@ Nếu vừa bị cấm vừa bị treo, trả ACCOUNT_BANNED.
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-087** | WHEN đăng ký thành công, THE frontend SHALL đăng nhập ngay bằng email và mật khẩu vừa nhập (`POST /api/auth/login`) rồi chuyển tới đích FR-090; banner §12.2 nhắc xác thực và dẫn sang SCR-004 để **gửi lại** theo FR-012. Đăng nhập tự động lỗi → SCR-002 với thông báo đã tạo tài khoản, giữ `redirect` |
+| **FR-087** | WHEN gửi mã thành công, THE frontend SHALL hiện bước nhập mã ngay trên SCR-003, giữ thông tin đã nhập trong bộ nhớ trang, có đếm ngược gửi lại và nút sửa thông tin. Nhập đúng mã → tạo tài khoản, đăng nhập ngay bằng email và mật khẩu vừa nhập (`POST /api/auth/login`) rồi chuyển tới đích FR-090. Đăng nhập tự động lỗi → SCR-002 với thông báo đã tạo tài khoản, giữ `redirect` |
 | **FR-088** | WHERE người dùng mở `/verify-email?token=`, THE frontend SHALL gọi FR-009 tự động một lần. Màn này **không chặn** việc dùng hệ thống (FR-010) |
 
 ### Nhóm 14 — Chốt mâu thuẫn tài liệu (FR-089…FR-097)
@@ -447,7 +448,7 @@ CREATE INDEX ix_tokens_user ON auth.auth_tokens(user_id) WHERE revoked_at IS NUL
 | `ACCOUNT_BANNED` | 403 | Tài khoản bị cấm; kèm `banReason` | FR-020, FR-092 |
 | `ACCOUNT_SUSPENDED` | 403 | `suspended_until > now()`; kèm `suspendedUntil` | FR-021 |
 | `ACCOUNT_UNVERIFIED` | 403 | Chưa xác thực, thao tác đổi điểm | FR-010 |
-| `INVALID_VERIFY_TOKEN` | 400 | Token xác thực sai/hết hạn/đã thu hồi | FR-011 |
+| `INVALID_VERIFY_TOKEN` | 400 | Token xác thực hoặc mã đăng ký sai/hết hạn/đã thu hồi; mã đăng ký kèm `remainingAttempts` | FR-006, FR-011 |
 | `EMAIL_ALREADY_VERIFIED` | 409 | Xin gửi lại email xác thực khi đã xác thực | FR-012 |
 | `INVALID_RESET_TOKEN` | 400 | Token đặt lại sai/hết hạn/đã dùng | FR-042 |
 | `UNAUTHENTICATED` | 401 | Không có token hợp lệ | FR-027, FR-060 |
@@ -464,7 +465,7 @@ CREATE INDEX ix_tokens_user ON auth.auth_tokens(user_id) WHERE revoked_at IS NUL
 | `REVOKE_LAST_ADMIN` · `BAN_LAST_ADMIN` | 409 | Đụng `ADMIN` cuối cùng còn hoạt động | FR-066, FR-096 |
 | `USER_NOT_FOUND` | 404 | Chỉ ở endpoint `/api/admin/users/{id}` (người gọi là `ADMIN`) | FR-097 |
 | `CSRF_TOKEN_INVALID` | 403 | Request đổi trạng thái bằng cookie thiếu/sai CSRF | §6, `HR-05` |
-| `TOO_MANY_REQUESTS` | 429 | Vượt giới hạn gửi lại email; kèm `retryAfterSeconds` | FR-012 |
+| `TOO_MANY_REQUESTS` | 429 | Vượt giới hạn gửi lại email; kèm `retryAfterSeconds` | FR-006, FR-012 |
 | `INTERNAL_ERROR` | 500 | Lỗi không lường trước — chỉ trả `request_id`, không chi tiết | `HR-09` |
 
 ---
@@ -506,7 +507,7 @@ CREATE INDEX ix_tokens_user ON auth.auth_tokens(user_id) WHERE revoked_at IS NUL
 | `NFR-S06` | Lỗi trả `{error_code, message, request_id}` | |
 | `NFR-S07` | Log KHÔNG chứa mật khẩu, token, email người dùng (log id) | |
 | `NFR-C01` | 50 người dùng đồng thời (demo) | |
-| `NFR-A01` | SMTP lỗi → đăng ký vẫn thành công (FR-007) | |
+| `NFR-A01` | SMTP lỗi → không báo lỗi máy chủ, gửi lại mã được (FR-007) | |
 | `NFR-A02` | Redis không phản hồi → đăng nhập vẫn chạy (bỏ qua đếm sai, ghi log cảnh báo); FR-092 coi như không có mốc | |
 
 ---
@@ -562,7 +563,7 @@ Mockup tham khảo giao diện: `C:\CLHSK\cnhsk-mockup-79\screens\scr-0xx-*.html
 |---|---|---|---|---|---|
 | SCR-001 | Landing (phần tài khoản) | `/` | Không | `GET /api/auth/me` (biết đã đăng nhập) | `screen-fields.md` dòng 118 |
 | SCR-002 | Sign In | `/login?redirect=` | Chỉ khách; đã đăng nhập → FR-090 | `POST /api/auth/login` | dòng 475 |
-| SCR-003 | Register | `/register` | Chỉ khách | `POST /api/auth/register` | dòng 944 |
+| SCR-003 | Register | `/register` | Chỉ khách | `POST /api/auth/register/code`, `POST /api/auth/register` | dòng 944 |
 | — | Điều khoản sử dụng và chính sách dữ liệu | `/terms` | Không | — | — (trang tiện ích, liên kết từ SCR-003 và chân SCR-001) |
 | SCR-004 | Verify Email | `/verify-email?token=` | Không | `POST /api/auth/verify-email`, `POST /api/auth/verify-email/resend` | dòng 1450 |
 | SCR-005 | Forgot Password | `/forgot-password` | Chỉ khách | `POST /api/auth/forgot-password` | dòng 1843 |
@@ -608,7 +609,8 @@ Hợp đồng đầy đủ: [`contracts/openapi-auth.yaml`](contracts/openapi-au
 | Method · Path | Auth | Request | Response thành công | Lỗi chính |
 |---|---|---|---|---|
 | `GET /api/auth/csrf` | Không | — | 204 + cookie `XSRF-TOKEN` | — |
-| `POST /api/auth/register` | Không | `{email, password, confirmPassword, displayName, acceptTerms}` | 201 `{userId, email, emailVerified:false}` | 409, 422 |
+| `POST /api/auth/register/code` | Không | `{email, password, confirmPassword, displayName, acceptTerms}` | 202 `{email, expiresInSeconds, resendAfterSeconds}` | 409, 422, 429 |
+| `POST /api/auth/register` | Không | như trên + `code` | 201 `{userId, email, emailVerified:true}` | 400 `INVALID_VERIFY_TOKEN`, 409, 422 |
 | `POST /api/auth/verify-email` | Không | `{token}` | 200 `{emailVerified:true}` | 400 |
 | `POST /api/auth/verify-email/resend` | Có | — | 202 | 409 `EMAIL_ALREADY_VERIFIED`, 429 |
 | `POST /api/auth/login` | Không | `{email, password}` + `X-Client-Type` | 200 `{user}` (+ cookie ở WEB) · `{user, accessToken, refreshToken, accessTokenExpiresIn}` ở MOBILE | 401, 403, 422, 423 |
@@ -640,15 +642,15 @@ Không có AT: FR-055 (đã chuyển), FR-056 (V2), FR-058c (spec này không c�
 
 | # | FR | G / W / T |
 |---|---|---|
-| AT-01 | FR-001, FR-002, FR-068 | G email mới · W register hợp lệ · T 201; có 1 dòng `users` (`plan_code=FREE`, `email_verified_at` null) + 1 dòng `user_roles` `LEARNER` |
+| AT-01 | FR-001, FR-002, FR-068 | G email mới, mã đúng · W register hợp lệ · T 201; có 1 dòng `users` (`plan_code=FREE`, `email_verified_at` có giá trị) + 1 dòng `user_roles` `LEARNER` |
 | AT-02 | FR-002 | G lỗi ghi `user_roles` (giả lập) · W register · T không còn dòng `users` nào (rollback) |
 | AT-03 | FR-003 | W register · T `password_hash` bắt đầu `$2a$12$` |
 | AT-04 | FR-004, E1 | G email đã có (khác hoa thường, có khoảng trắng) · W register · T 409 `EMAIL_ALREADY_EXISTS` |
 | AT-05 | E1 | W 2 request register cùng email song song · T đúng 1 thành công, 1 nhận 409 |
 | AT-06 | FR-005, FR-091 | W register mật khẩu `abcdefgh` · T 422, `details[0].field = password` |
 | AT-07 | FR-005 | W register `acceptTerms=false`, mật khẩu không khớp, displayName 1 ký tự · T 422 có đủ 3 field trong `details` |
-| AT-08 | FR-006 | W register · T có 1 token `EMAIL_VERIFY` hết hạn sau 24h ± 1 phút; Mailpit nhận 1 email chứa `/verify-email?token=` |
-| AT-09 | FR-007, NFR-A01 | G SMTP không kết nối được · W register · T 201, tài khoản tồn tại |
+| AT-08 | FR-006 | W register/code · T 202, chưa có dòng `users`, Mailpit nhận 1 email chứa mã 6 số, Redis không chứa mã thô; W register thiếu mã hoặc mã của email khác · T 400; sai 5 lần · T mã đúng cũng bị từ chối; gửi lại trước 60 giây hoặc lần thứ 6 trong giờ · T 429 có `retryAfterSeconds`; mã đã dùng · T 400 |
+| AT-09 | FR-007, NFR-A01 | G SMTP không kết nối được · W register/code · T 202, log không chứa email và mã |
 | AT-10 | FR-008 | W register + login + đặt lại mật khẩu · T log không chứa mật khẩu, token thô, email |
 | AT-11 | FR-009 | G token xác thực hợp lệ · W verify · T 200, `email_verified_at` có giá trị, token bị thu hồi |
 | AT-12 | FR-010 | G chưa xác thực · W gọi `AuthApi.requireVerifiedEmail` · T ném `ACCOUNT_UNVERIFIED` 403; W login · T 200 |
@@ -712,7 +714,7 @@ Không có AT: FR-055 (đã chuyển), FR-056 (V2), FR-058c (spec này không c�
 | AT-68 | FR-065, FR-092 | G user B đang có access token chứa `TEACHER` · W admin thu hồi `TEACHER` · T request kế tiếp của B → 401 `SESSION_REVOKED`; B refresh → JWT mới không có `TEACHER` |
 | AT-69 | FR-066 | G chỉ còn 1 `ADMIN` hoạt động · W thu hồi `ADMIN` của người đó (bởi admin khác bị cấm/không có) · T 409 `REVOKE_LAST_ADMIN`; tự thu hồi → 403 `SELF_ROLE_REVOKE` |
 | AT-70 | FR-066 | G `CONTENT_EDITOR` · W gọi gán role · T 403 |
-| AT-71 | FR-087, FR-088 (FE) | W đăng ký trên SCR-003 · T gọi đăng nhập và vào `redirect` hoặc `/learn`, banner nhắc xác thực hiện email; đăng nhập tự động lỗi · T về `/login` báo đã tạo tài khoản; mở `/verify-email?token=` → gọi verify đúng 1 lần |
+| AT-71 | FR-087, FR-088 (FE) | W đăng ký trên SCR-003 · T hiện bước nhập mã, chưa gọi register; nhập đúng mã · T gọi register rồi đăng nhập và vào `redirect` hoặc `/learn`; mã sai · T báo số lần còn lại; đăng nhập tự động lỗi · T về `/login` báo đã tạo tài khoản; mở `/verify-email?token=` → gọi verify đúng 1 lần |
 | AT-72 | FR-090 (FE) | G user chỉ `ADMIN` → SCR-076; user `LEARNER`+`TEACHER` → SCR-001 có "Khu vực của bạn"; có `redirect=/admin/users` nhưng không phải `ADMIN` → bỏ qua redirect; `redirect=http://localhost:5174/play` (origin game) → chuyển đúng URL đó; `redirect=https://evil.com` → bỏ qua |
 | AT-73 | FR-096, E5 | G B có phiên · W admin cấm B lý do "spam" · T request kế tiếp của B 403 `ACCOUNT_BANNED`; refresh của B bị thu hồi; có `audit_logs USER_BAN`; gỡ cấm → B đăng nhập được |
 | AT-74 | FR-096 | W admin tự cấm mình · T 403 `SELF_BAN`; cấm `ADMIN` cuối cùng → 409 `BAN_LAST_ADMIN`; `reason` 3 ký tự → 422 |

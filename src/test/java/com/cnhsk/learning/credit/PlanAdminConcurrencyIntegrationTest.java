@@ -191,7 +191,7 @@ class PlanAdminConcurrencyIntegrationTest extends AbstractIntegrationTest {
                 () -> asActor(admin, Set.of("ADMIN"), () -> plans.updatePlan(PlanCode.FREE, request)),
                 () -> {
                     RegisterResponse result = registration.register(
-                            new RegisterRequest(email, "StrongPass123", "StrongPass123", "New learner", true));
+                            new RegisterRequest(email, "StrongPass123", "StrongPass123", "New learner", true, null));
                     userIds.add(result.userId());
                     return result;
                 });

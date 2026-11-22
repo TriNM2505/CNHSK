@@ -110,7 +110,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> {
                     authorize.requestMatchers(HttpMethod.GET, "/api/auth/csrf").permitAll()
                             .requestMatchers(HttpMethod.POST,
-                                    "/api/auth/register", "/api/auth/verify-email", "/api/auth/login",
+                                    "/api/auth/register", "/api/auth/register/code", "/api/auth/verify-email",
+                                    "/api/auth/login",
                                     "/api/auth/refresh", "/api/auth/forgot-password", "/api/auth/reset-password")
                             .permitAll();
                     if (swaggerEnabled) {
@@ -292,6 +293,7 @@ public class SecurityConfig {
     private static boolean isCsrfExemptPath(String path) {
         return "/api/auth/login".equals(path)
                 || "/api/auth/register".equals(path)
+                || "/api/auth/register/code".equals(path)
                 || "/api/auth/forgot-password".equals(path)
                 || "/api/auth/reset-password".equals(path)
                 || "/api/auth/verify-email".equals(path)

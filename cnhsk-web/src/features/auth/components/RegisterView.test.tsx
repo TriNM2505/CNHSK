@@ -65,7 +65,7 @@ describe('RegisterView', () => {
 
     unmount()
     renderView({ state: 'submitting' })
-    expect(screen.getByRole('button', { name: 'Đang đăng ký' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Đang gửi mã xác minh' })).toBeDisabled()
     expect(screen.getByLabelText(/Tên hiển thị/)).toBeDisabled()
     expect(screen.getByLabelText(/Tôi đồng ý/)).toBeDisabled()
   })

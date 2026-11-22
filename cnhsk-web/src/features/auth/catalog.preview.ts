@@ -13,7 +13,8 @@ import { signInPreviews } from './components/SignInView.preview'
 import { LandingView } from './components/LandingView'
 import { landingPreviews } from './components/LandingView.preview'
 import { RegisterView } from './components/RegisterView'
-import { registerPreviews } from './components/RegisterView.preview'
+import { RegisterCodeView } from './components/RegisterCodeView'
+import { registerCodePreviews, registerPreviews } from './components/RegisterView.preview'
 import { ForgotPasswordView } from './components/ForgotPasswordView'
 import {
   forgotPasswordPreviews,
@@ -40,6 +41,14 @@ const registerEntries = [
   ['scr-003-email-exists', 'Đăng ký — Email đã tồn tại 409', registerPreviews.emailExists],
   ['scr-003-field-errors', 'Đăng ký — Lỗi trường 422', registerPreviews.fieldErrors],
   ['scr-003-generic-error', 'Đăng ký — Lỗi hệ thống', registerPreviews.genericError],
+] as const
+
+const registerCodeEntries = [
+  ['scr-003-code', 'Đăng ký — Nhập mã xác minh', registerCodePreviews.default],
+  ['scr-003-code-wrong', 'Đăng ký — Mã sai 400', registerCodePreviews.wrong],
+  ['scr-003-code-expired', 'Đăng ký — Mã hết hiệu lực 400', registerCodePreviews.expired],
+  ['scr-003-code-resent', 'Đăng ký — Đã gửi lại mã', registerCodePreviews.resent],
+  ['scr-003-code-submitting', 'Đăng ký — Đang tạo tài khoản', registerCodePreviews.submitting],
 ] as const
 
 const verifyEmailEntries = [
@@ -233,6 +242,19 @@ export const previews = [
         AuthContext.Provider,
         { value: guestAuth },
         createElement(PublicLayout, null, createElement(RegisterView, props)),
+      ),
+    scr: 'SCR-003',
+    title,
+  })),
+  ...registerCodeEntries.map(([id, title, props]) => ({
+    fullFrame: true,
+    group: 'screen' as const,
+    id,
+    render: () =>
+      createElement(
+        AuthContext.Provider,
+        { value: guestAuth },
+        createElement(PublicLayout, null, createElement(RegisterCodeView, props)),
       ),
     scr: 'SCR-003',
     title,

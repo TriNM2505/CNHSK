@@ -23,10 +23,12 @@ public record RegisterRequest(
         @Size(min = 2, max = 100, message = "Tên hiển thị cần 2–100 ký tự.")
         String displayName,
         @AssertTrue(message = "Bạn cần chấp nhận điều khoản.")
-        boolean acceptTerms) {
+        boolean acceptTerms,
+        String code) {
 
     public RegisterRequest {
         email = email == null ? null : email.strip().toLowerCase(Locale.ROOT);
         displayName = displayName == null ? null : displayName.strip();
+        code = code == null ? null : code.strip();
     }
 }

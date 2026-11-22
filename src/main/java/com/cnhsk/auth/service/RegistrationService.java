@@ -1,5 +1,6 @@
 package com.cnhsk.auth.service;
 
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -19,6 +20,7 @@ import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import com.cnhsk.shared.security.SecureTokenGenerator;
 import com.cnhsk.shared.security.TokenHasher;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -36,28 +38,37 @@ public class RegistrationService {
     private final AuthTokenRepository authTokenRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final SecureTokenGenerator tokenGenerator;
+    private final RegistrationCodeService registrationCodes;
+    private final boolean codeRequired;
     private final TokenHasher tokenHasher = new TokenHasher();
     private final Clock clock;
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(12);
 
     public RegistrationService(JdbcTemplate jdbcTemplate, UserRoleRepository userRoleRepository,
             AuthTokenRepository authTokenRepository, ApplicationEventPublisher eventPublisher,
-            SecureTokenGenerator tokenGenerator, Clock clock) {
+            SecureTokenGenerator tokenGenerator, RegistrationCodeService registrationCodes,
+            @Value("${cnhsk.auth.registration-code-required:true}") boolean codeRequired, Clock clock) {
         this.jdbcTemplate = Objects.requireNonNull(jdbcTemplate);
         this.userRoleRepository = Objects.requireNonNull(userRoleRepository);
         this.authTokenRepository = Objects.requireNonNull(authTokenRepository);
         this.eventPublisher = Objects.requireNonNull(eventPublisher);
         this.tokenGenerator = Objects.requireNonNull(tokenGenerator);
+        this.registrationCodes = Objects.requireNonNull(registrationCodes);
+        this.codeRequired = codeRequired;
         this.clock = Objects.requireNonNull(clock);
     }
 
     @Transactional
     public RegisterResponse register(RegisterRequest request) {
+        if (codeRequired) {
+            registrationCodes.consume(request.email(), request.code());
+        }
+        Timestamp verifiedAt = codeRequired ? Timestamp.from(clock.instant()) : null;
         Long userId = jdbcTemplate.query(
-                "INSERT INTO auth.users (email, password_hash, display_name) "
-                        + "VALUES (?, ?, ?) ON CONFLICT (email) DO NOTHING RETURNING id",
+                "INSERT INTO auth.users (email, password_hash, display_name, email_verified_at) "
+                        + "VALUES (?, ?, ?, ?) ON CONFLICT (email) DO NOTHING RETURNING id",
                 resultSet -> resultSet.next() ? resultSet.getLong(1) : null,
-                request.email(), passwordEncoder.encode(request.password()), request.displayName());
+                request.email(), passwordEncoder.encode(request.password()), request.displayName(), verifiedAt);
         if (userId == null) {
             throw new ApiException(ErrorCode.EMAIL_ALREADY_EXISTS, HttpStatus.CONFLICT,
                     "Email đã được sử dụng.", Map.of());
@@ -65,12 +76,14 @@ public class RegistrationService {
 
         userRoleRepository.saveAndFlush(new UserRole(userId, RoleCode.LEARNER, null));
 
-        String rawToken = tokenGenerator.generate();
-        Instant expiresAt = clock.instant().plus(VERIFY_TOKEN_TTL);
-        authTokenRepository.saveAndFlush(new AuthToken(
-                userId, TokenType.EMAIL_VERIFY, tokenHasher.hash(rawToken), expiresAt));
-        eventPublisher.publishEvent(new EmailVerificationRequestedEvent(request.email(), rawToken));
+        if (!codeRequired) {
+            String rawToken = tokenGenerator.generate();
+            Instant expiresAt = clock.instant().plus(VERIFY_TOKEN_TTL);
+            authTokenRepository.saveAndFlush(new AuthToken(
+                    userId, TokenType.EMAIL_VERIFY, tokenHasher.hash(rawToken), expiresAt));
+            eventPublisher.publishEvent(new EmailVerificationRequestedEvent(request.email(), rawToken));
+        }
 
-        return new RegisterResponse(userId, request.email(), false);
+        return new RegisterResponse(userId, request.email(), codeRequired);
     }
 }

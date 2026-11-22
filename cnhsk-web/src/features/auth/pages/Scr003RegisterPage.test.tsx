@@ -6,20 +6,39 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/shared/api'
 import { AuthContext, type AuthContextValue } from '@/shared/auth'
 
-import { register } from '../api/register'
+import { register, sendRegisterCode } from '../api/register'
 import { signIn } from '../api/signIn'
 import type { CurrentUser } from '../types'
 import Scr003RegisterPage from './Scr003RegisterPage'
 
-vi.mock('../api/register', () => ({ register: vi.fn() }))
+vi.mock('../api/register', () => ({ register: vi.fn(), sendRegisterCode: vi.fn() }))
 vi.mock('../api/signIn', () => ({ signIn: vi.fn() }))
 
 const learner: CurrentUser = {
   displayName: 'Nguyễn An',
   email: 'learner@example.com',
-  emailVerified: false,
+  emailVerified: true,
   id: 12,
   roles: ['LEARNER'],
+}
+
+const request = {
+  acceptTerms: true,
+  confirmPassword: 'HocTieng1',
+  displayName: 'Nguyễn An',
+  email: 'learner@example.com',
+  password: 'HocTieng1',
+}
+
+const sent = { email: 'learner@example.com', expiresInSeconds: 600, resendAfterSeconds: 60 }
+
+function tooManyRequests(retryAfterSeconds: number) {
+  return new ApiError({
+    errorCode: 'TOO_MANY_REQUESTS',
+    extra: { retryAfterSeconds },
+    message: 'x',
+    status: 429,
+  })
 }
 
 function LocationProbe() {
@@ -62,9 +81,19 @@ async function enterValidRegistration() {
   return user
 }
 
+async function openCodeStep() {
+  const user = await enterValidRegistration()
+  await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
+  await screen.findByLabelText(/Mã xác minh/)
+  return user
+}
+
 describe('Scr003RegisterPage', () => {
   beforeEach(() => {
-    vi.mocked(register).mockReset()
+    vi.mocked(sendRegisterCode).mockReset().mockResolvedValue(sent)
+    vi.mocked(register)
+      .mockReset()
+      .mockResolvedValue({ email: 'learner@example.com', emailVerified: true, userId: 12 })
     vi.mocked(signIn).mockReset().mockResolvedValue({ user: learner })
   })
 
@@ -84,47 +113,111 @@ describe('Scr003RegisterPage', () => {
   it.each([
     ['/register', '/learn null'],
     ['/register?redirect=%2Flearn%2Ftopics', '/learn/topics null'],
-  ])('đăng ký từ %s thì đăng nhập luôn và vào thẳng đích', async (path, destination) => {
-    vi.mocked(register).mockResolvedValue({
-      email: 'learner@example.com',
-      emailVerified: false,
-      userId: 12,
-    })
+  ])('đăng ký từ %s: nhập đúng mã rồi mới tạo tài khoản và vào thẳng đích', async (path, destination) => {
     const auth = renderPage(path)
-    const user = await enterValidRegistration()
+    const user = await openCodeStep()
 
-    await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
+    expect(sendRegisterCode).toHaveBeenCalledWith(request)
+    expect(register).not.toHaveBeenCalled()
+    expect(screen.getByText('Mã 6 số đã được gửi tới learner@example.com.')).toBeVisible()
+    expect(screen.getByLabelText(/Mã xác minh/)).toHaveFocus()
+
+    await user.type(screen.getByLabelText(/Mã xác minh/), '123 456')
+    await user.click(screen.getByRole('button', { name: 'Xác minh và vào học' }))
 
     expect(await screen.findByText(destination)).toBeVisible()
-    expect(register).toHaveBeenCalledWith({
-      acceptTerms: true,
-      confirmPassword: 'HocTieng1',
-      displayName: 'Nguyễn An',
-      email: 'learner@example.com',
-      password: 'HocTieng1',
-    })
+    expect(register).toHaveBeenCalledWith({ ...request, code: '123456' })
     expect(signIn).toHaveBeenCalledWith({ email: 'learner@example.com', password: 'HocTieng1' })
     expect(auth.setAuthenticatedUser).toHaveBeenCalledWith(learner)
   })
 
-  it('khoá nút trong lúc đăng ký và đăng nhập, không gửi hai lần', async () => {
+  it('chưa đủ 6 số thì không gọi máy chủ', async () => {
+    renderPage()
+    const user = await openCodeStep()
+
+    await user.type(screen.getByLabelText(/Mã xác minh/), '12ab')
+    await user.click(screen.getByRole('button', { name: 'Xác minh và vào học' }))
+
+    expect(await screen.findByText('Vui lòng nhập đủ 6 số.')).toBeVisible()
+    expect(register).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [4, 'Mã chưa đúng. Bạn còn 4 lần thử.'],
+    [0, 'Mã đã hết hiệu lực. Vui lòng gửi lại mã mới.'],
+  ])('mã bị từ chối, còn %s lần thử', async (remainingAttempts, message) => {
+    vi.mocked(register).mockRejectedValue(
+      new ApiError({
+        errorCode: 'INVALID_VERIFY_TOKEN',
+        extra: { remainingAttempts },
+        message: 'x',
+        status: 400,
+      }),
+    )
+    renderPage()
+    const user = await openCodeStep()
+
+    await user.type(screen.getByLabelText(/Mã xác minh/), '000000')
+    await user.click(screen.getByRole('button', { name: 'Xác minh và vào học' }))
+
+    expect(await screen.findByText(message)).toBeVisible()
+    expect(signIn).not.toHaveBeenCalled()
+  })
+
+  it('đếm ngược hết mới cho gửi lại mã', async () => {
+    vi.mocked(sendRegisterCode).mockResolvedValue({ ...sent, resendAfterSeconds: 1 })
+    renderPage()
+    const user = await openCodeStep()
+
+    expect(screen.getByRole('button', { name: 'Gửi lại mã sau 1 giây' })).toBeDisabled()
+    await user.click(await screen.findByRole('button', { name: 'Gửi lại mã' }))
+
+    expect(await screen.findByText(/Đã gửi mã mới/)).toBeVisible()
+    expect(sendRegisterCode).toHaveBeenCalledTimes(2)
+  })
+
+  it('sửa thông tin thì giữ nguyên nội dung đã nhập', async () => {
+    renderPage()
+    const user = await openCodeStep()
+
+    await user.click(screen.getByRole('button', { name: 'Sửa thông tin' }))
+
+    expect(screen.getByLabelText(/Email/)).toHaveValue('Learner@Example.COM')
+    expect(screen.getByLabelText(/^Mật khẩu/)).toHaveValue('HocTieng1')
+  })
+
+  it('mã vừa gửi chưa quá một phút thì cho nhập luôn', async () => {
+    vi.mocked(sendRegisterCode).mockRejectedValue(tooManyRequests(42))
+    renderPage()
+    await openCodeStep()
+
+    expect(screen.getByRole('button', { name: /Gửi lại mã sau 4[12] giây/ })).toBeDisabled()
+  })
+
+  it('yêu cầu quá nhiều mã thì báo thời gian chờ ở màn đăng ký', async () => {
+    vi.mocked(sendRegisterCode).mockRejectedValue(tooManyRequests(1800))
+    renderPage()
+    const user = await enterValidRegistration()
+
+    await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
+
+    expect(await screen.findByText(/thử lại sau 30 phút/)).toBeVisible()
+  })
+
+  it('khoá nút trong lúc tạo tài khoản và đăng nhập, không gửi hai lần', async () => {
     let finishSignIn!: () => void
-    vi.mocked(register).mockResolvedValue({
-      email: 'learner@example.com',
-      emailVerified: false,
-      userId: 12,
-    })
     vi.mocked(signIn).mockReturnValue(
       new Promise((resolve) => {
         finishSignIn = () => resolve({ user: learner })
       }),
     )
     renderPage()
-    const user = await enterValidRegistration()
+    const user = await openCodeStep()
 
-    await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
+    await user.type(screen.getByLabelText(/Mã xác minh/), '123456')
+    await user.click(screen.getByRole('button', { name: 'Xác minh và vào học' }))
     await waitFor(() => expect(signIn).toHaveBeenCalledOnce())
-    expect(screen.getByRole('button', { name: /Đang đăng ký/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Đang tạo tài khoản' })).toBeDisabled()
 
     finishSignIn()
     expect(await screen.findByText('/learn null')).toBeVisible()
@@ -132,18 +225,14 @@ describe('Scr003RegisterPage', () => {
   })
 
   it('tài khoản đã tạo nhưng chưa đăng nhập được thì mời đăng nhập, không báo lỗi đăng ký', async () => {
-    vi.mocked(register).mockResolvedValue({
-      email: 'learner@example.com',
-      emailVerified: false,
-      userId: 12,
-    })
     vi.mocked(signIn).mockRejectedValue(
       new ApiError({ errorCode: 'LOGIN_SOURCE_BLOCKED', message: 'x', status: 423 }),
     )
     renderPage('/register?redirect=%2Flearn%2Ftopics')
-    const user = await enterValidRegistration()
+    const user = await openCodeStep()
 
-    await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
+    await user.type(screen.getByLabelText(/Mã xác minh/), '123456')
+    await user.click(screen.getByRole('button', { name: 'Xác minh và vào học' }))
 
     expect(
       await screen.findByText('/login?redirect=%2Flearn%2Ftopics {"registered":true}'),
@@ -158,7 +247,7 @@ describe('Scr003RegisterPage', () => {
   })
 
   it('gắn lỗi 409 vào email và giữ redirect trên link đăng nhập', async () => {
-    vi.mocked(register).mockRejectedValue(
+    vi.mocked(sendRegisterCode).mockRejectedValue(
       new ApiError({
         errorCode: 'EMAIL_ALREADY_EXISTS',
         message: 'technical duplicate details',
@@ -178,7 +267,7 @@ describe('Scr003RegisterPage', () => {
   })
 
   it('hiện lỗi field 422 và bỏ qua field kỹ thuật', async () => {
-    vi.mocked(register).mockRejectedValue(
+    vi.mocked(sendRegisterCode).mockRejectedValue(
       new ApiError({
         details: [
           { field: 'displayName', message: 'Tên hiển thị chưa hợp lệ.' },

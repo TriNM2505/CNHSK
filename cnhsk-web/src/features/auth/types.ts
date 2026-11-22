@@ -53,6 +53,16 @@ export interface RegisterRequest {
   acceptTerms: boolean
 }
 
+export interface RegisterWithCodeRequest extends RegisterRequest {
+  code: string
+}
+
+export interface RegisterCodeResponse {
+  email: string
+  expiresInSeconds: number
+  resendAfterSeconds: number
+}
+
 export interface RegisterResponse {
   userId: number
   email: string

@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.cnhsk.auth.event.EmailVerificationRequestedEvent;
 import com.cnhsk.auth.event.PasswordResetRequestedEvent;
+import com.cnhsk.auth.event.RegistrationCodeRequestedEvent;
 import com.cnhsk.shared.config.CnhskProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +87,18 @@ public class MailService {
                 senders.shutdownNow();
             }
         }
+    }
+
+    /** The code lives in Redis, so it is requested outside a transaction. */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void sendRegistrationCode(RegistrationCodeRequestedEvent event) {
+        dispatch(event.getRecipient(), event.getCode() + " là mã xác minh CNHSK",
+                "Xin chào,\n\n"
+                        + "Mã xác minh để tạo tài khoản CNHSK của bạn là:\n\n"
+                        + event.getCode() + "\n\n"
+                        + "Mã có hiệu lực trong 10 phút và chỉ dùng một lần. Đừng đưa mã này cho người khác. "
+                        + "Nếu bạn không tạo tài khoản, vui lòng bỏ qua email này.\n\n"
+                        + "CNHSK");
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

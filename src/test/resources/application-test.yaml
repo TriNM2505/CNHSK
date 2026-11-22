@@ -38,6 +38,9 @@ springdoc:
     enabled: false
 
 cnhsk:
+  # Fixtures create accounts with one request; the code flow has its own integration test.
+  auth:
+    registration-code-required: false
   # Tests read the mailbox right after the request that caused the email.
   mail:
     background: false

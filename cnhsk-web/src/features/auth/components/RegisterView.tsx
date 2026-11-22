@@ -216,7 +216,7 @@ export function RegisterView({
           </div>
 
           <Button className="w-full" loading={submitting} type="submit">
-            {submitting ? 'Đang đăng ký' : 'Đăng ký'}
+            {submitting ? 'Đang gửi mã xác minh' : 'Đăng ký'}
           </Button>
         </form>
 

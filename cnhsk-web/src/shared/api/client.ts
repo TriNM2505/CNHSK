@@ -11,6 +11,7 @@ const ROTATION_SETTLE_MS = 400
 const CSRF_EXEMPT_PATHS = new Set([
   '/api/auth/login',
   '/api/auth/register',
+  '/api/auth/register/code',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/api/auth/verify-email',

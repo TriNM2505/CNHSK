@@ -12,8 +12,8 @@ const TERMS: readonly Clause[] = [
     body: 'Mỗi email đăng ký một tài khoản. Bạn cung cấp email của chính mình, giữ kín mật khẩu và không cho người khác dùng chung.',
   },
   {
-    title: 'Email chưa xác thực',
-    body: 'Bạn học được ngay sau khi đăng ký. Đăng bài, bình luận, báo cáo vi phạm, đăng ký cuộc thi và nhận nhắc học qua email cần xác thực email trước.',
+    title: 'Xác minh email',
+    body: 'Để tạo tài khoản, bạn nhập mã được gửi tới email của mình. Tài khoản tạo trước đây chưa xác thực email vẫn học được, nhưng cần xác thực trước khi đăng bài, bình luận, báo cáo vi phạm, đăng ký cuộc thi và nhận nhắc học qua email.',
   },
   {
     title: 'Cách cư xử',

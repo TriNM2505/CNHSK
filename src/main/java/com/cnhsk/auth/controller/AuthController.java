@@ -2,6 +2,7 @@ package com.cnhsk.auth.controller;
 
 import com.cnhsk.auth.dto.RegisterRequest;
 import com.cnhsk.auth.dto.RegisterResponse;
+import com.cnhsk.auth.dto.RegistrationCodeResponse;
 import com.cnhsk.auth.dto.LoginRequest;
 import com.cnhsk.auth.dto.LoginResponse;
 import com.cnhsk.auth.dto.CurrentUserResponse;
@@ -13,6 +14,7 @@ import com.cnhsk.auth.service.CurrentUserService;
 import com.cnhsk.auth.service.LoginService;
 import com.cnhsk.auth.service.LogoutService;
 import com.cnhsk.auth.service.RefreshTokenService;
+import com.cnhsk.auth.service.RegistrationCodeService;
 import com.cnhsk.auth.service.RegistrationService;
 import com.cnhsk.auth.service.PasswordResetService;
 import com.cnhsk.shared.security.AuthenticatedUser;
@@ -39,6 +41,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 public class AuthController {
 
     private final RegistrationService registrationService;
+    private final RegistrationCodeService registrationCodeService;
     private final EmailVerificationService emailVerificationService;
     private final LoginService loginService;
     private final CurrentUserService currentUserService;
@@ -47,11 +50,13 @@ public class AuthController {
     private final com.cnhsk.auth.service.CookieFactory cookieFactory;
     private final PasswordResetService passwordResetService;
 
-    public AuthController(RegistrationService registrationService, EmailVerificationService emailVerificationService,
+    public AuthController(RegistrationService registrationService, RegistrationCodeService registrationCodeService,
+            EmailVerificationService emailVerificationService,
             LoginService loginService, CurrentUserService currentUserService,
             RefreshTokenService refreshTokenService, LogoutService logoutService,
             com.cnhsk.auth.service.CookieFactory cookieFactory, PasswordResetService passwordResetService) {
         this.registrationService = registrationService;
+        this.registrationCodeService = registrationCodeService;
         this.emailVerificationService = emailVerificationService;
         this.loginService = loginService;
         this.currentUserService = currentUserService;
@@ -71,12 +76,28 @@ public class AuthController {
         return currentUserService.getCurrentUser(user.userId());
     }
 
+    @PostMapping("/register/code")
+    @Operation(summary = "Gửi mã xác minh email để đăng ký")
+    @ApiResponses({
+            @ApiResponse(responseCode = "202", description = "Mã đã được gửi"),
+            @ApiResponse(responseCode = "409", description = "Email đã được sử dụng"),
+            @ApiResponse(responseCode = "422", description = "Dữ liệu đăng ký không hợp lệ"),
+            @ApiResponse(responseCode = "429", description = "Gửi mã quá nhanh hoặc quá nhiều lần"),
+            @ApiResponse(responseCode = "500", description = "Không thể tạo mã")
+    })
+    public ResponseEntity<RegistrationCodeResponse> sendRegistrationCode(
+            @Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.accepted().body(registrationCodeService.send(request.email()));
+    }
+
     @PostMapping("/register")
-    @Operation(summary = "Đăng ký tài khoản")
+    @Operation(summary = "Đăng ký tài khoản bằng mã xác minh")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Tài khoản đã được tạo"),
+            @ApiResponse(responseCode = "400", description = "Mã xác minh sai hoặc đã hết hiệu lực"),
             @ApiResponse(responseCode = "409", description = "Email đã được sử dụng"),
-            @ApiResponse(responseCode = "422", description = "Dữ liệu đăng ký không hợp lệ")
+            @ApiResponse(responseCode = "422", description = "Dữ liệu đăng ký không hợp lệ"),
+            @ApiResponse(responseCode = "500", description = "Không thể kiểm tra mã")
     })
     public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(registrationService.register(request));

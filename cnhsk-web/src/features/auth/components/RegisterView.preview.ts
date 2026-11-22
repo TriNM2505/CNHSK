@@ -1,3 +1,4 @@
+import type { RegisterCodeViewProps } from './RegisterCodeView'
 import type { RegisterViewProps } from './RegisterView'
 
 const idleCallbacks = {
@@ -91,3 +92,28 @@ export const registerPreviews = {
     values: completedValues,
   },
 } as const satisfies Record<string, RegisterViewProps>
+
+const codeProps = {
+  code: '',
+  email: 'nguyen.an@example.com',
+  onBack: () => undefined,
+  onCodeChange: () => undefined,
+  onResend: () => undefined,
+  onSubmit: () => undefined,
+  resendInSeconds: 48,
+  sending: false,
+  submitting: false,
+} satisfies RegisterCodeViewProps
+
+export const registerCodePreviews = {
+  default: codeProps,
+  wrong: { ...codeProps, code: '123456', error: 'Mã chưa đúng. Bạn còn 4 lần thử.' },
+  expired: {
+    ...codeProps,
+    code: '123456',
+    error: 'Mã đã hết hiệu lực. Vui lòng gửi lại mã mới.',
+    resendInSeconds: 0,
+  },
+  resent: { ...codeProps, notice: { kind: 'resent' } },
+  submitting: { ...codeProps, code: '123456', submitting: true },
+} as const satisfies Record<string, RegisterCodeViewProps>

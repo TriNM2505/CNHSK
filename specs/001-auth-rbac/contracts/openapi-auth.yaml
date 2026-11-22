@@ -69,13 +69,21 @@ components:
         confirmPassword: { type: string }
         displayName: { type: string, minLength: 2, maxLength: 100 }
         acceptTerms: { type: boolean, const: true }
+        code: { type: string, pattern: '^[0-9]{6}$', description: Bắt buộc khi gọi POST /api/auth/register }
+    RegistrationCodeResponse:
+      type: object
+      required: [email, expiresInSeconds, resendAfterSeconds]
+      properties:
+        email: { type: string }
+        expiresInSeconds: { type: integer, example: 600 }
+        resendAfterSeconds: { type: integer, example: 60 }
     RegisterResponse:
       type: object
       required: [userId, email, emailVerified]
       properties:
         userId: { type: integer, format: int64 }
         email: { type: string }
-        emailVerified: { type: boolean, const: false }
+        emailVerified: { type: boolean, const: true }
 
     TokenRequest:
       type: object
@@ -240,10 +248,33 @@ paths:
       responses:
         '204': { description: Set-Cookie XSRF-TOKEN }
 
+  /api/auth/register/code:
+    post:
+      tags: [auth]
+      summary: Gửi mã xác minh 6 số để đăng ký (FR-006, FR-007). Miễn CSRF
+      description: Body như đăng ký, bỏ qua code. 429 kèm retryAfterSeconds (integer)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterRequest' }
+      responses:
+        '202':
+          description: Mã đã được gửi
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RegistrationCodeResponse' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '429': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
+
   /api/auth/register:
     post:
       tags: [auth]
-      summary: Đăng ký (FR-001→008). Miễn CSRF
+      summary: Đăng ký bằng mã xác minh (FR-001→008). Miễn CSRF
+      description: 400 INVALID_VERIFY_TOKEN kèm remainingAttempts (integer, 0 = mã đã huỷ)
       security: []
       requestBody:
         required: true
@@ -256,8 +287,10 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RegisterResponse' }
+        '400': { $ref: '#/components/responses/Error' }
         '409': { $ref: '#/components/responses/Error' }
         '422': { $ref: '#/components/responses/Error' }
+        '500': { $ref: '#/components/responses/Error' }
 
   /api/auth/verify-email:
     post:

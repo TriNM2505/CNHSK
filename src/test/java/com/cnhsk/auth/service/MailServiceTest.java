@@ -15,6 +15,7 @@ import jakarta.mail.internet.MimeMessage;
 import java.util.Properties;
 import com.cnhsk.auth.event.EmailVerificationRequestedEvent;
 import com.cnhsk.auth.event.PasswordResetRequestedEvent;
+import com.cnhsk.auth.event.RegistrationCodeRequestedEvent;
 import com.cnhsk.shared.config.CnhskProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,18 @@ class MailServiceTest {
         org.junit.jupiter.api.Assertions.assertTrue(message.getContent().toString().contains(
                 "https://cnhsk.test/verify-email?token=verify-token"));
         org.junit.jupiter.api.Assertions.assertTrue(message.getContent().toString().contains("24 giờ"));
+    }
+
+    @Test
+    void buildsVietnameseRegistrationCodeEmailWithExpiry() throws Exception {
+        when(mailSender.createMimeMessage()).thenReturn(newMimeMessage());
+        mailService.sendRegistrationCode(new RegistrationCodeRequestedEvent("learner@cnhsk.test", "042917"));
+
+        MimeMessage message = sentMessage();
+        assertEquals("learner@cnhsk.test", message.getRecipients(MimeMessage.RecipientType.TO)[0].toString());
+        assertEquals("042917 là mã xác minh CNHSK", message.getSubject());
+        org.junit.jupiter.api.Assertions.assertTrue(message.getContent().toString().contains("042917"));
+        org.junit.jupiter.api.Assertions.assertTrue(message.getContent().toString().contains("10 phút"));
     }
 
     @Test

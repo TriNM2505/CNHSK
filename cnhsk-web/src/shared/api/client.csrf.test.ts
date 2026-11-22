@@ -4,6 +4,7 @@ const API_ORIGIN = 'http://api.test'
 const CSRF_EXEMPT_PATHS = [
   '/api/auth/login',
   '/api/auth/register',
+  '/api/auth/register/code',
   '/api/auth/forgot-password',
   '/api/auth/reset-password',
   '/api/auth/verify-email',
