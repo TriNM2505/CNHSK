@@ -1,50 +1,67 @@
-/* Responsive layout & scaling for Auth Ink-Wash screens using project tokens and breakpoints. */
-
 .auth-inkwash-stage {
-  @apply bg-canvas;
-  background-repeat: no-repeat;
-  background-size: cover;
+  --auth-height: calc(100vh - 4rem - 1px);
+  --auth-height: calc(100dvh - 4rem - 1px);
+  @apply relative w-full min-w-0 bg-canvas;
+}
+
+.auth-inkwash-painting {
+  @apply sticky bg-cover bg-no-repeat;
+  top: calc(4rem + 1px);
+  height: var(--auth-height);
+  margin-bottom: calc(-1 * var(--auth-height));
   background-position: left top;
 }
 
+.auth-inkwash-content {
+  @apply relative flex items-start justify-center px-4 py-6;
+  min-height: var(--auth-height);
+}
+
 .auth-inkwash-card {
-  @apply rounded-lg border border-line bg-surface shadow-md;
-  width: 100%;
-  max-width: 640px;
+  @apply w-full rounded-md bg-surface p-5 shadow-md;
+  max-width: 480px;
+  text-wrap: pretty;
+}
+
+.auth-seal {
+  @apply mt-1 flex shrink-0 -rotate-3 flex-col bg-brand-600 px-1.5 py-1;
+  border-radius: 3px;
+}
+
+@screen sm {
+  .auth-inkwash-content {
+    @apply items-center;
+  }
+
+  .auth-inkwash-card {
+    @apply px-8 py-7;
+  }
 }
 
 @screen lg {
   .auth-inkwash-stage {
+    --auth-height: calc(100vh - 6rem - 1px);
+    --auth-height: calc(100dvh - 6rem - 1px);
+  }
+
+  .auth-inkwash-painting {
+    top: calc(6rem + 1px);
     background-position: right bottom;
-    padding: 36px 5.47%;
   }
 
-  .auth-inkwash-card {
-    margin-left: 0;
-    margin-right: 0;
-    width: clamp(500px, 50vw, 780px);
-    max-width: none;
-    padding: 24px 36px 26px;
-  }
-
-  .auth-inkwash-card--compact {
-    width: clamp(460px, 43vw, 680px);
-    padding: 18px 30px 20px;
+  .auth-inkwash-content {
+    @apply justify-start py-4;
+    padding-left: clamp(48px, 11vw, 240px);
   }
 }
 
-@screen xl {
-  .auth-inkwash-stage {
-    padding: 48px 5.5%;
+/* Laptop thấp: thu khoảng trống để form đăng ký vẫn nằm trọn một màn hình. */
+@media (min-width: 1024px) and (max-height: 700px) {
+  .auth-inkwash-content {
+    @apply py-2;
   }
 
   .auth-inkwash-card {
-    width: 47vw;
-    max-width: 1180px;
-    padding: 30px 44px 32px;
-  }
-
-  .auth-inkwash-card--compact {
-    padding: 24px 40px 26px;
+    @apply py-4;
   }
 }

@@ -1,5 +1,6 @@
-import { Button, PageHeader, Skeleton, StatusBadge } from '@/shared/ui'
+import { Button, Skeleton } from '@/shared/ui'
 
+import { AuthHeading } from './AuthHeading'
 import { AuthInkWashStage } from './AuthInkWashStage'
 
 export type AccessDeniedViewState = 'loading' | 'empty' | 'error' | 'ready'
@@ -55,56 +56,39 @@ export function AccessDeniedView({
     ? 'Khu vực dành cho vai trò của bạn chưa có trong phiên bản hiện tại.'
     : isGuest
       ? 'Bạn cần đăng nhập bằng tài khoản có quyền phù hợp để mở khu vực này.'
-      : 'Tài khoản hiện tại không có quyền mở khu vực vừa yêu cầu. Không có dữ liệu riêng tư nào được hiển thị.'
+      : 'Tài khoản hiện tại không có quyền mở khu vực này.'
 
   return (
     <AuthInkWashStage variant="079">
-      <div className="space-y-5">
-        <div>
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            {isUnderConstruction ? (
-              <StatusBadge tone="info">Đang phát triển</StatusBadge>
-            ) : isGuest ? (
-              <StatusBadge tone="warning">Yêu cầu đăng nhập</StatusBadge>
-            ) : (
-              <StatusBadge tone="danger">403 · Hạn chế quyền</StatusBadge>
-            )}
-            <span className="text-caption text-brand-700">Kiểm soát truy cập CNHSK</span>
-          </div>
-          <PageHeader className="mb-0" subtitle={description} title={title} />
+      <AuthHeading seal="止步" title={title}>
+        {description}
+      </AuthHeading>
+
+      {state === 'error' ? (
+        <div
+          className="mb-4 flex flex-wrap items-center justify-between gap-3 text-body-sm text-ink-secondary"
+          role="status"
+        >
+          <span>Chưa kiểm tra được phiên đăng nhập.</span>
+          <Button onClick={onRetry} variant="outline">
+            Thử lại
+          </Button>
         </div>
+      ) : null}
 
-        {state === 'error' ? (
-          <div
-            className="flex flex-wrap items-center justify-between gap-3 rounded-sm border border-line bg-surface-subtle p-3 text-body-sm text-ink-secondary"
-            role="status"
-          >
-            <span>Chưa kiểm tra được phiên đăng nhập.</span>
-            <Button onClick={onRetry} size="sm" variant="outline">
-              Thử lại
-            </Button>
-          </div>
-        ) : null}
+      {state === 'empty' ? (
+        <p className="mb-4 text-body-sm text-ink-secondary" role="status">
+          Tài khoản chưa có khu vực riêng. Bạn có thể trở về trang chủ.
+        </p>
+      ) : null}
 
-        {state === 'empty' ? (
-          <p
-            className="rounded-sm border border-line bg-canvas p-3 text-body-sm text-ink-secondary"
-            role="status"
-          >
-            Tài khoản chưa có khu vực riêng. Bạn có thể trở về trang chủ.
-          </p>
-        ) : null}
-
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-4">
-          {isGuest ? (
-            <GuestActions />
-          ) : isUnderConstruction ? (
-            <Button to="/">Về trang chủ</Button>
-          ) : (
-            <Button to={returnTo}>{returnLabel}</Button>
-          )}
-        </div>
-      </div>
+      {isGuest ? (
+        <GuestActions />
+      ) : isUnderConstruction ? (
+        <Button to="/">Về trang chủ</Button>
+      ) : (
+        <Button to={returnTo}>{returnLabel}</Button>
+      )}
     </AuthInkWashStage>
   )
 }

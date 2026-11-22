@@ -1,12 +1,14 @@
-import { CircleAlert, CircleCheck, Clock3, ShieldAlert } from 'lucide-react'
 import type { FormEvent } from 'react'
 
-import { cn } from '@/shared/lib/cn'
-import { Button, FormField, Input, PageHeader, PasswordInput, StatusBadge } from '@/shared/ui'
+import { Button, FormField, Input, PasswordInput } from '@/shared/ui'
 
 import type { SignInFieldErrors, SignInNotice } from '../signInForm'
 import type { LoginRequest } from '../types'
-import { AuthSplitLayout } from './AuthSplitLayout'
+import { useFocusFirstInvalid } from '../useFocusFirstInvalid'
+import { AuthHeading } from './AuthHeading'
+import { AuthInkWashStage } from './AuthInkWashStage'
+import { AuthLink } from './AuthLink'
+import { AuthNotice } from './AuthNotice'
 
 export type SignInViewState = 'ready' | 'submitting' | 'error'
 
@@ -20,15 +22,6 @@ export interface SignInViewProps {
   state: SignInViewState
   submitDisabled?: boolean
   values: LoginRequest
-}
-
-const SIGN_IN_ASIDE = {
-  badge: 'Một tài khoản CNHSK',
-  body: 'Tiếp tục bài học, luyện đề và trò chơi chữ Hán bằng cùng một tài khoản trên web chính và trang game.',
-  hanzi: '学习',
-  meaning: 'Học tập và rèn luyện mỗi ngày',
-  pinyin: 'xuéxí',
-  title: 'Học tiếng Trung trong một không gian thống nhất',
 }
 
 function formatDateTime(value: string): string {
@@ -45,34 +38,21 @@ function NoticeBanner({ notice }: { notice: SignInNotice }) {
   if (notice.kind === 'password-reset' || notice.kind === 'registered') {
     const registered = notice.kind === 'registered'
     return (
-      <div
-        className="mb-5 flex items-start gap-3 rounded-md border border-success bg-success-bg p-4 text-body-sm text-success"
-        role="status"
-      >
-        <CircleCheck aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-        <div className="min-w-0">
-          <p className="font-semibold">
-            {registered ? 'Đã tạo tài khoản' : 'Đã đặt lại mật khẩu'}
-          </p>
-          <p className="mt-1">
-            {registered
-              ? 'Hãy đăng nhập bằng email và mật khẩu vừa đăng ký.'
-              : 'Hãy đăng nhập bằng mật khẩu mới.'}
-          </p>
-        </div>
-      </div>
+      <AuthNotice title={registered ? 'Đã tạo tài khoản' : 'Đã đặt lại mật khẩu'} tone="success">
+        {registered
+          ? 'Hãy đăng nhập bằng email và mật khẩu vừa đăng ký.'
+          : 'Hãy đăng nhập bằng mật khẩu mới.'}
+      </AuthNotice>
     )
   }
 
-  const isBlocked = notice.kind === 'blocked'
-  const isSuspended = notice.kind === 'suspended'
-  const isInformational = isBlocked || isSuspended
-  const Icon = isBlocked ? Clock3 : notice.kind === 'banned' ? ShieldAlert : CircleAlert
-  let title = 'Không đăng nhập được'
+  const informational = notice.kind === 'blocked' || notice.kind === 'suspended'
+  let title: string | undefined = 'Không đăng nhập được'
   let content = 'Vui lòng kiểm tra lại thông tin đã nhập.'
 
   switch (notice.kind) {
     case 'invalid-credentials':
+      title = undefined
       content = 'Email hoặc mật khẩu không đúng'
       break
     case 'blocked':
@@ -100,24 +80,13 @@ function NoticeBanner({ notice }: { notice: SignInNotice }) {
   }
 
   return (
-    <div
-      className={cn(
-        'mb-5 flex items-start gap-3 rounded-md border p-4 text-body-sm',
-        isInformational
-          ? 'border-info bg-info-bg text-info'
-          : 'border-danger bg-danger-bg text-danger',
-      )}
-      role="alert"
+    <AuthNotice
+      requestId={notice.kind === 'generic' ? notice.requestId : undefined}
+      title={title}
+      tone={informational ? 'info' : 'danger'}
     >
-      <Icon aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-      <div className="min-w-0">
-        <p className="font-semibold">{title}</p>
-        <p className="mt-1">{content}</p>
-        {notice.kind === 'generic' && notice.requestId ? (
-          <p className="mt-1 text-caption">Mã lỗi: {notice.requestId}</p>
-        ) : null}
-      </div>
-    </div>
+      {content}
+    </AuthNotice>
   )
 }
 
@@ -133,75 +102,70 @@ export function SignInView({
   values,
 }: SignInViewProps) {
   const submitting = state === 'submitting'
+  const { form, markSubmitted } = useFocusFirstInvalid(fieldErrors, submitting)
+  const hasFieldError = Object.values(fieldErrors).some(Boolean)
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    markSubmitted()
     onSubmit()
   }
 
   return (
-    <AuthSplitLayout aside={SIGN_IN_ASIDE} backgroundVariant="002" hideMobileBanner>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
-          <p className="text-label text-brand-700">Chào mừng trở lại</p>
-          <StatusBadge tone="neutral">Xác thực tài khoản</StatusBadge>
-        </div>
-        <PageHeader
-          subtitle="Dùng chung tài khoản cho web chính và trang game CNHSK."
-          title="Đăng nhập"
-        />
+    <AuthInkWashStage variant="002">
+      <AuthHeading seal="学习" title="Đăng nhập">
+        Chưa có tài khoản? <AuthLink to={registerTo}>Đăng ký</AuthLink>
+      </AuthHeading>
 
-        {notice ? <NoticeBanner notice={notice} /> : null}
+      {notice && !(notice.kind === 'validation' && hasFieldError) ? (
+        <NoticeBanner notice={notice} />
+      ) : null}
 
-        <form className="space-y-4" noValidate onSubmit={handleSubmit}>
-          <div className="rounded-md border border-line bg-canvas p-4">
-            <FormField error={fieldErrors.email} htmlFor="sign-in-email" label="Email" required>
-              <Input
-                autoComplete="username"
-                disabled={submitting}
-                inputMode="email"
-                maxLength={256}
-                name="email"
-                onChange={(event) => onEmailChange(event.target.value)}
-                type="email"
-                value={values.email}
-              />
-            </FormField>
+      <form className="space-y-4" noValidate onSubmit={handleSubmit} ref={form}>
+        <FormField className="mb-0" error={fieldErrors.email} htmlFor="sign-in-email" label="Email">
+          <Input
+            aria-required
+            autoComplete="username"
+            disabled={submitting}
+            inputMode="email"
+            maxLength={256}
+            name="email"
+            onChange={(event) => onEmailChange(event.target.value)}
+            type="email"
+            value={values.email}
+          />
+        </FormField>
 
-            <FormField
-              className="mb-0"
-              error={fieldErrors.password}
-              htmlFor="sign-in-password"
-              label="Mật khẩu"
-              required
+        <div>
+          <FormField
+            className="mb-0"
+            error={fieldErrors.password}
+            htmlFor="sign-in-password"
+            label="Mật khẩu"
+          >
+            <PasswordInput
+              aria-required
+              autoComplete="current-password"
+              disabled={submitting}
+              maxLength={73}
+              name="password"
+              onChange={(event) => onPasswordChange(event.target.value)}
+              value={values.password}
+            />
+          </FormField>
+          <div className="flex justify-end">
+            <AuthLink
+              className="inline-flex min-h-touch items-center text-body-sm"
+              to="/forgot-password"
             >
-              <PasswordInput
-                autoComplete="current-password"
-                disabled={submitting}
-                maxLength={73}
-                name="password"
-                onChange={(event) => onPasswordChange(event.target.value)}
-                value={values.password}
-              />
-            </FormField>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-caption text-ink-muted">Phiên đăng nhập tự động bảo mật</span>
-            <Button className="shrink-0" size="sm" to="/forgot-password" variant="ghost">
               Quên mật khẩu?
-            </Button>
+            </AuthLink>
           </div>
-
-          <Button className="w-full" disabled={submitDisabled} loading={submitting} type="submit">
-            {submitting ? 'Đang đăng nhập' : 'Đăng nhập'}
-          </Button>
-        </form>
-
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-md border border-brand-100 bg-surface-subtle p-4 text-body-sm text-ink-secondary">
-          <span>Chưa có tài khoản học tập?</span>
-          <Button size="sm" to={registerTo} variant="outline">
-            Đăng ký
-          </Button>
         </div>
-      </AuthSplitLayout>
+
+        <Button className="w-full" disabled={submitDisabled} loading={submitting} type="submit">
+          {submitting ? 'Đang đăng nhập' : 'Đăng nhập'}
+        </Button>
+      </form>
+    </AuthInkWashStage>
   )
 }

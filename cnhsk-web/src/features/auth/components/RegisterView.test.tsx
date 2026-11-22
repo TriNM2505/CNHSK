@@ -46,7 +46,8 @@ describe('RegisterView', () => {
       'autocomplete',
       'new-password',
     )
-    expect(screen.getByText('Mật khẩu cần 8–72 ký tự, gồm chữ và số.')).toBeVisible()
+    expect(screen.getByLabelText(/^Mật khẩu/)).toHaveAccessibleDescription(/8–72 ký tự/)
+    expect(screen.getByText('Có số')).toBeVisible()
 
     const [passwordToggle] = screen.getAllByRole('button', { name: 'Hiện mật khẩu' })
     if (!passwordToggle) throw new Error('Thiếu nút hiện mật khẩu')
@@ -85,7 +86,46 @@ describe('RegisterView', () => {
     )
   })
 
-  it('hiện lỗi theo field và thông báo chung bằng chữ', () => {
+  it('đưa con trỏ tới ô lỗi đầu tiên sau khi gửi, không giật khi đang sửa ô khác', async () => {
+    const user = userEvent.setup()
+    const { props, rerender } = renderView()
+    const show = (fieldErrors: RegisterViewProps['fieldErrors']) =>
+      rerender(
+        <MemoryRouter>
+          <RegisterView {...props} fieldErrors={fieldErrors} state="error" />
+        </MemoryRouter>,
+      )
+
+    await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
+    show({ confirmPassword: 'Mật khẩu nhập lại chưa khớp.', email: 'Email chưa đúng.' })
+    expect(screen.getByLabelText(/Email/)).toHaveFocus()
+
+    await user.click(screen.getByLabelText(/Tên hiển thị/))
+    show({ confirmPassword: 'Mật khẩu nhập lại chưa khớp.' })
+    expect(screen.getByLabelText(/Tên hiển thị/)).toHaveFocus()
+  })
+
+  it('mật khẩu chưa đạt thì chỉ rõ điều kiện còn thiếu, không lặp câu lỗi', () => {
+    renderView({
+      fieldErrors: { password: 'Mật khẩu cần 8–72 ký tự, gồm chữ và số.' },
+      notice: { kind: 'validation' },
+      state: 'error',
+      values: {
+        acceptTerms: false,
+        confirmPassword: '',
+        displayName: '',
+        email: '',
+        password: 'abcdefgh',
+      },
+    })
+
+    expect(screen.getByLabelText(/^Mật khẩu/)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByText('Có số').closest('li')).toHaveTextContent('chưa đạt')
+    expect(screen.getByText('Có chữ').closest('li')).not.toHaveTextContent('chưa đạt')
+    expect(screen.queryByText('Mật khẩu cần 8–72 ký tự, gồm chữ và số.')).not.toBeInTheDocument()
+  })
+
+  it('hiện lỗi ngay tại field, không thêm thông báo chung lặp ý', () => {
     renderView({
       fieldErrors: {
         acceptTerms: 'Bạn cần đồng ý với điều khoản để đăng ký.',
@@ -95,9 +135,8 @@ describe('RegisterView', () => {
       state: 'error',
     })
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Vui lòng kiểm tra lại các trường được đánh dấu.',
-    )
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.getByText('Mật khẩu nhập lại chưa khớp.')).toBeVisible()
     expect(screen.getByLabelText(/Nhập lại mật khẩu/)).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText(/Tôi đồng ý/)).toHaveAttribute('aria-invalid', 'true')
   })

@@ -95,7 +95,8 @@ describe('Scr006ResetPasswordPage', () => {
 
     await fillPasswords('abcdefgh', 'khac')
 
-    expect(screen.getAllByText('Mật khẩu cần 8–72 ký tự, gồm chữ và số.').length).toBeGreaterThan(1)
+    expect(screen.getByText('Có số').closest('li')).toHaveTextContent('chưa đạt')
+    expect(screen.getByLabelText(/^Mật khẩu mới/)).toHaveFocus()
     expect(screen.getByText('Mật khẩu nhập lại chưa khớp.')).toBeVisible()
     expect(resetPassword).not.toHaveBeenCalled()
   })

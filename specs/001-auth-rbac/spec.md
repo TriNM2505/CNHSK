@@ -9,10 +9,11 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.2.1 |
+| **Version** | 1.2.2 |
 | **Status** | DRAFT — chờ cả nhóm duyệt rồi mới `APPROVED` |
 | **Approved by** | — |
 | **Locked on** | — |
+| **Thay đổi 1.2.2** | Email mã đăng ký, xác thực và đặt lại mật khẩu có bản HTML (logo, nút hoặc mã nổi bật) kèm bản chữ thường · màn Auth: điều kiện mật khẩu tự đánh dấu khi gõ, gửi lỗi thì con trỏ tới ô lỗi đầu tiên |
 | **Thay đổi 1.2.1** | Không gửi được email chứa mã thì báo `503 EMAIL_NOT_SENT`, không tính lượt gửi, mã cũ còn hiệu lực (FR-006, FR-007, AT-09) |
 | **Thay đổi 1.2.0** | Phải nhập mã xác minh gửi qua email thì tài khoản mới được tạo (FR-001, FR-006, FR-007, FR-087, AT-01, AT-08, AT-09, AT-71) · endpoint `POST /api/auth/register/code` · FR-009→FR-013 và banner chưa xác thực còn áp dụng cho tài khoản tạo trước v1.2.0 |
 | **Thay đổi 1.1.3** | Đăng ký xong đăng nhập luôn và vào đích FR-090 (FR-087, AT-71) · email xác thực và đặt lại mật khẩu gửi ở luồng nền (FR-006, FR-007) · trang `/terms` (§12.1) |

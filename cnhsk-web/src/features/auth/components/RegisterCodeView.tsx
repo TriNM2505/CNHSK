@@ -1,10 +1,11 @@
-import { CircleAlert } from 'lucide-react'
 import { useEffect, useRef, type FormEvent } from 'react'
 
-import { Button, FormField, Input, PageHeader } from '@/shared/ui'
+import { Button, FormField, Input } from '@/shared/ui'
 
 import type { RegisterCodeNotice } from '../registerCode'
-import { AuthSplitLayout } from './AuthSplitLayout'
+import { AuthHeading } from './AuthHeading'
+import { AuthInkWashStage } from './AuthInkWashStage'
+import { AuthNotice } from './AuthNotice'
 
 export interface RegisterCodeViewProps {
   code: string
@@ -18,15 +19,6 @@ export interface RegisterCodeViewProps {
   resendInSeconds: number
   sending: boolean
   submitting: boolean
-}
-
-const CODE_ASIDE = {
-  badge: 'Còn một bước',
-  body: 'Mã xác minh giúp chắc chắn email là của bạn, để lấy lại mật khẩu và nhận nhắc học đúng địa chỉ.',
-  hanzi: '确认',
-  meaning: 'Xác nhận',
-  pinyin: 'quèrèn',
-  title: 'Xác minh email của bạn',
 }
 
 export function RegisterCodeView({
@@ -51,22 +43,13 @@ export function RegisterCodeView({
   }
 
   return (
-    <AuthSplitLayout aside={CODE_ASIDE} backgroundVariant="003" compact hideMobileBanner>
-      <PageHeader subtitle={`Mã 6 số đã được gửi tới ${email}.`} title="Nhập mã xác minh" />
+    <AuthInkWashStage variant="004">
+      <AuthHeading seal="确认" title="Nhập mã xác minh">
+        {`Mã 6 số đã được gửi tới ${email}.`}
+      </AuthHeading>
 
       {notice?.kind === 'error' ? (
-        <div
-          className="mb-5 flex items-start gap-3 rounded-md border border-danger bg-danger-bg p-4 text-body-sm text-danger"
-          role="alert"
-        >
-          <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-          <div className="min-w-0">
-            <p>{notice.message}</p>
-            {notice.requestId ? (
-              <p className="mt-1 text-caption">Mã lỗi: {notice.requestId}</p>
-            ) : null}
-          </div>
-        </div>
+        <AuthNotice requestId={notice.requestId}>{notice.message}</AuthNotice>
       ) : null}
       <p aria-live="polite" className="text-body-sm text-success">
         {notice?.kind === 'resent' ? (
@@ -78,14 +61,14 @@ export function RegisterCodeView({
         <FormField
           className="mb-0"
           error={error}
-          hint="Mã có hiệu lực 10 phút. Chưa thấy thư, hãy xem cả mục thư rác."
+          hint="Mã có hiệu lực 10 phút. Chưa thấy thư? Xem mục thư rác."
           htmlFor="register-code"
           label="Mã xác minh"
-          required
         >
           <Input
+            aria-required
             autoComplete="one-time-code"
-            className="text-h3 tracking-widest"
+            className="h-14 text-center text-h2 tabular-nums tracking-[0.4em]"
             disabled={submitting}
             inputMode="numeric"
             maxLength={12}
@@ -100,19 +83,20 @@ export function RegisterCodeView({
         </Button>
       </form>
 
-      <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button disabled={submitting} onClick={onBack} variant="ghost">
-          Sửa thông tin
-        </Button>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3">
         <Button
+          className="-ml-4"
           disabled={submitting || resendInSeconds > 0}
           loading={sending}
           onClick={onResend}
-          variant="outline"
+          variant="ghost"
         >
           {resendInSeconds > 0 ? `Gửi lại mã sau ${resendInSeconds} giây` : 'Gửi lại mã'}
         </Button>
+        <Button className="-mr-4" disabled={submitting} onClick={onBack} variant="ghost">
+          Sửa thông tin
+        </Button>
       </div>
-    </AuthSplitLayout>
+    </AuthInkWashStage>
   )
 }

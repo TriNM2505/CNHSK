@@ -108,7 +108,8 @@ describe('Scr003RegisterPage', () => {
 
     expect(await screen.findByText('Tên hiển thị cần từ 2–100 ký tự.')).toBeVisible()
     expect(screen.getByText('Vui lòng nhập email.')).toBeVisible()
-    expect(screen.getAllByText('Mật khẩu cần 8–72 ký tự, gồm chữ và số.')).toHaveLength(2)
+    expect(screen.getByLabelText(/^Mật khẩu/)).toHaveAttribute('aria-invalid', 'true')
+    expect(screen.getByLabelText(/Tên hiển thị/)).toHaveFocus()
     expect(screen.getByText('Bạn cần đồng ý với điều khoản để đăng ký.')).toBeVisible()
     expect(register).not.toHaveBeenCalled()
   })

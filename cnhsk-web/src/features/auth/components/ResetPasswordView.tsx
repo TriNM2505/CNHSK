@@ -1,7 +1,6 @@
-import { CircleAlert, Link2Off, ShieldAlert } from 'lucide-react'
 import type { FormEvent } from 'react'
 
-import { Button, FormField, PageHeader, PasswordInput, StatusBadge } from '@/shared/ui'
+import { Button, FormField, PasswordInput } from '@/shared/ui'
 
 import type {
   ResetPasswordFieldErrors,
@@ -9,7 +8,11 @@ import type {
   ResetPasswordValues,
 } from '../passwordResetForm'
 import { NEW_PASSWORD_REQUIREMENT } from '../passwordValidation'
-import { AuthSplitLayout } from './AuthSplitLayout'
+import { useFocusFirstInvalid } from '../useFocusFirstInvalid'
+import { AuthHeading } from './AuthHeading'
+import { AuthInkWashStage } from './AuthInkWashStage'
+import { AuthNotice } from './AuthNotice'
+import { PasswordRules } from './PasswordRules'
 
 export type ResetPasswordViewState = 'ready' | 'submitting' | 'error'
 
@@ -26,14 +29,7 @@ export interface ResetPasswordViewProps {
   values: ResetPasswordValues
 }
 
-const ASIDE = {
-  badge: 'Bảo vệ phiên đăng nhập',
-  body: 'Sau khi đặt lại, mọi phiên đăng nhập cũ trên các thiết bị sẽ bị đăng xuất để bảo vệ tài khoản.',
-  hanzi: '更新',
-  meaning: 'Làm mới bảo mật tài khoản',
-  pinyin: 'gēngxīn',
-  title: 'Đặt mật khẩu mới an toàn',
-}
+const RULES_ID = 'reset-password-rules'
 
 export function ResetPasswordView({
   fieldErrors = {},
@@ -47,113 +43,86 @@ export function ResetPasswordView({
   values,
 }: ResetPasswordViewProps) {
   const submitting = state === 'submitting'
+  const { form, markSubmitted } = useFocusFirstInvalid(fieldErrors, submitting)
+  const hasFieldError = Object.values(fieldErrors).some(Boolean)
+  const rulesBroken = fieldErrors.newPassword === NEW_PASSWORD_REQUIREMENT
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    markSubmitted()
     onSubmit()
   }
 
   if (!linkUsable || notice?.kind === 'invalid-token') {
     return (
-      <AuthSplitLayout aside={ASIDE} backgroundVariant="006" hideMobileBanner>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
-            <p className="text-label text-brand-700">Khôi phục mật khẩu</p>
-            <StatusBadge tone="warning">Liên kết không dùng được</StatusBadge>
-          </div>
-          <PageHeader
-            subtitle="Vui lòng yêu cầu gửi lại hướng dẫn đặt lại mật khẩu."
-            title="Liên kết đặt lại không hợp lệ"
-          />
-          <div
-            className="mb-6 flex items-start gap-3 rounded-md border border-warning bg-warning-bg p-4 text-body-sm text-ink"
-            role="alert"
-          >
-            <Link2Off aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-warning" />
-            <p>
-              Liên kết đặt lại mật khẩu không hợp lệ, đã hết hạn hoặc đã được dùng. Liên kết chỉ có
-              hiệu lực 1 giờ và dùng được một lần.
-            </p>
-          </div>
-          <Button to={forgotTo}>Gửi liên kết mới</Button>
-        </AuthSplitLayout>
+      <AuthInkWashStage variant="006">
+        <AuthHeading seal="更新" title="Liên kết đặt lại không hợp lệ" />
+        <p className="text-body text-ink" role="alert">
+          Liên kết đã hết hạn hoặc đã được dùng. Mỗi liên kết chỉ có hiệu lực 1 giờ và dùng được một
+          lần.
+        </p>
+        <Button className="mt-6 w-full" to={forgotTo}>
+          Gửi liên kết mới
+        </Button>
+      </AuthInkWashStage>
     )
   }
 
   return (
-    <AuthSplitLayout aside={ASIDE} backgroundVariant="006" hideMobileBanner>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
-          <p className="text-label text-brand-700">Thiết lập mật khẩu mới</p>
-          <StatusBadge tone="neutral">Cập nhật mật khẩu</StatusBadge>
-        </div>
-        <PageHeader
-          subtitle="Nhập mật khẩu mới cho tài khoản của bạn. Mọi phiên đăng nhập hiện có sẽ được thu hồi."
-          title="Đặt lại mật khẩu"
-        />
+    <AuthInkWashStage variant="006">
+      <AuthHeading seal="更新" title="Đặt lại mật khẩu">
+        Sau khi đổi, mọi thiết bị đang đăng nhập sẽ phải đăng nhập lại.
+      </AuthHeading>
 
-        {notice ? (
-          <div
-            className="mb-5 flex items-start gap-3 rounded-md border border-danger bg-danger-bg p-4 text-body-sm text-danger"
-            role="alert"
+      {notice?.kind === 'generic' ? (
+        <AuthNotice requestId={notice.requestId}>{notice.message}</AuthNotice>
+      ) : null}
+      {notice?.kind === 'validation' && !hasFieldError ? (
+        <AuthNotice>Vui lòng kiểm tra lại mật khẩu đã nhập.</AuthNotice>
+      ) : null}
+
+      <form className="space-y-4" noValidate onSubmit={handleSubmit} ref={form}>
+        <div className="space-y-2">
+          <FormField
+            className="mb-0"
+            error={rulesBroken ? undefined : fieldErrors.newPassword}
+            htmlFor="reset-new-password"
+            label="Mật khẩu mới"
           >
-            <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-            <div className="min-w-0">
-              <p className="font-semibold">Chưa đặt lại được mật khẩu</p>
-              <p className="mt-1">
-                {notice.kind === 'generic'
-                  ? notice.message
-                  : 'Vui lòng kiểm tra lại các trường được đánh dấu.'}
-              </p>
-              {notice.kind === 'generic' && notice.requestId ? (
-                <p className="mt-1 text-caption">Mã lỗi: {notice.requestId}</p>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
+            <PasswordInput
+              aria-describedby={RULES_ID}
+              aria-invalid={rulesBroken || undefined}
+              aria-required
+              autoComplete="new-password"
+              disabled={submitting}
+              maxLength={73}
+              name="newPassword"
+              onChange={(event) => onNewPasswordChange(event.target.value)}
+              value={values.newPassword}
+            />
+          </FormField>
+          <PasswordRules id={RULES_ID} invalid={rulesBroken} password={values.newPassword} />
+        </div>
+        <FormField
+          className="mb-0"
+          error={fieldErrors.confirmPassword}
+          htmlFor="reset-confirm-password"
+          label="Nhập lại mật khẩu mới"
+        >
+          <PasswordInput
+            aria-required
+            autoComplete="new-password"
+            disabled={submitting}
+            maxLength={73}
+            name="confirmPassword"
+            onChange={(event) => onConfirmPasswordChange(event.target.value)}
+            value={values.confirmPassword}
+          />
+        </FormField>
 
-        <form className="space-y-4" noValidate onSubmit={handleSubmit}>
-          <div className="rounded-md border border-line bg-canvas p-4">
-            <FormField
-              error={fieldErrors.newPassword}
-              hint={NEW_PASSWORD_REQUIREMENT}
-              htmlFor="reset-new-password"
-              label="Mật khẩu mới"
-              required
-            >
-              <PasswordInput
-                autoComplete="new-password"
-                disabled={submitting}
-                maxLength={73}
-                name="newPassword"
-                onChange={(event) => onNewPasswordChange(event.target.value)}
-                value={values.newPassword}
-              />
-            </FormField>
-            <FormField
-              className="mb-0"
-              error={fieldErrors.confirmPassword}
-              htmlFor="reset-confirm-password"
-              label="Nhập lại mật khẩu mới"
-              required
-            >
-              <PasswordInput
-                autoComplete="new-password"
-                disabled={submitting}
-                maxLength={73}
-                name="confirmPassword"
-                onChange={(event) => onConfirmPasswordChange(event.target.value)}
-                value={values.confirmPassword}
-              />
-            </FormField>
-          </div>
-
-          <div className="flex items-center gap-2 rounded-sm bg-surface-subtle px-3 py-2 text-caption text-ink-secondary">
-            <ShieldAlert aria-hidden="true" className="size-4 shrink-0 text-brand-700" />
-            <span>Sau khi hoàn tất, bạn sẽ đăng nhập lại bằng mật khẩu mới.</span>
-          </div>
-
-          <Button className="w-full" loading={submitting} type="submit">
-            {submitting ? 'Đang đặt lại' : 'Đặt lại mật khẩu'}
-          </Button>
-        </form>
-      </AuthSplitLayout>
+        <Button className="w-full" loading={submitting} type="submit">
+          {submitting ? 'Đang đặt lại' : 'Đặt lại mật khẩu'}
+        </Button>
+      </form>
+    </AuthInkWashStage>
   )
 }
