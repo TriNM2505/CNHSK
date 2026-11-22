@@ -15,6 +15,9 @@ public interface GameDefinition {
     String howToPlay();
     int timeLimitSeconds();
     int pointsPerCorrect();
+
+    /** Wrong answers a round tolerates; the answer after the last life ends the round. 0 means no limit. */
+    default int maxLives() { return 0; }
     boolean isAvailable(GameContext context);
     List<PracticeApi.ServedItem> buildRound(GameContext context);
 

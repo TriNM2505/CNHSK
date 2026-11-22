@@ -20,6 +20,7 @@ import com.cnhsk.learning.practice.entity.AttemptItem;
 import com.cnhsk.learning.practice.entity.AttemptItemRepository;
 import com.cnhsk.learning.practice.entity.AttemptRepository;
 import com.cnhsk.learning.practice.grading.PinyinGrader;
+import com.cnhsk.learning.practice.grading.SinoVietGrader;
 import com.cnhsk.learning.practice.event.ItemGradedEvent;
 import com.cnhsk.learning.practice.event.SessionFinishedEvent;
 import com.cnhsk.shared.exception.ApiException;
@@ -169,7 +170,8 @@ public class PracticeService {
             throw failure(ErrorCode.ANSWER_ALREADY_SUBMITTED, HttpStatus.CONFLICT, "Câu hỏi đã được trả lời.");
         }
         validateAnswerRules(source, item, answer);
-        rateLimiter.checkAnswer(userId);
+        // Game rounds are already capped per hour; refusing answers midway would lose the round.
+        if (source != PracticeSource.GAME_ROUND) rateLimiter.checkAnswer(userId);
         var meta = new LinkedHashMap<String, Object>();
         handlers.stream().filter(handler -> handler.source() == source).forEach(handler -> {
             handler.validateAnswerContext(attempt, item, answer);
@@ -196,8 +198,7 @@ public class PracticeService {
         }
         meta.put("replayCount", answer.replayCount());
         boolean counted = !recordOnly && !answer.skipped() && !answer.audioFailed();
-        Boolean correct = counted ? (item.type() == ItemType.PINYIN_INPUT
-                ? PinyinGrader.matches(answer.answer(), item.accept()) : Objects.equals(item.answer(), answer.answer()))
+        Boolean correct = counted ? gradeTyped(item, answer.answer())
                 : null;
         AttemptItem recorded = new AttemptItem(sessionId, item.no(), item.type().name(), item.skill().name());
         recorded.setQuestionId(item.questionId());
@@ -383,8 +384,7 @@ public class PracticeService {
         }
         meta.put("replayCount", answer.replayCount());
         Boolean correct = !item.type().gradable() || answer.audioFailed() ? null
-                : !missing && !answer.skipped() && (item.type() == ItemType.PINYIN_INPUT
-                        ? PinyinGrader.matches(answer.answer(), item.accept()) : Objects.equals(item.answer(), answer.answer()));
+                : !missing && !answer.skipped() && gradeTyped(item, answer.answer());
         AttemptItem recorded = new AttemptItem(attempt.getId(), item.no(), item.type().name(), item.skill().name());
         recorded.setQuestionId(item.questionId());
         recorded.setLexemeId(item.lexemeId());
@@ -650,6 +650,15 @@ public class PracticeService {
             preRecorded = preRecorded == null ? List.of() : List.copyOf(preRecorded);
             sessionMeta = sessionMeta == null ? Map.of() : new LinkedHashMap<>(sessionMeta);
         }
+    }
+
+    /** Typed answers have their own matching rules; every other item compares the chosen key exactly. */
+    private static boolean gradeTyped(ServedItem item, String answer) {
+        return switch (item.type()) {
+            case PINYIN_INPUT -> PinyinGrader.matches(answer, item.accept());
+            case SINO_VIET_INPUT -> SinoVietGrader.matches(answer, item.accept());
+            default -> Objects.equals(item.answer(), answer);
+        };
     }
 
     public record ServedSnapshot(Map<String, Object> meta, List<ServedItem> items) {

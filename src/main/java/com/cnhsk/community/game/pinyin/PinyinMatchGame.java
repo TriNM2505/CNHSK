@@ -19,13 +19,14 @@ import com.cnhsk.learning.api.PracticeApi;
 
 public final class PinyinMatchGame implements GameDefinition {
     private static final int BOARD_SIZE = 6;
-    private static final int MAX_BOARDS = 3;
+    private static final int MAX_BOARDS = 5;
 
     @Override public GameCode code() { return GameCode.PINYIN_MATCH; }
     @Override public String description() { return "Ghép từng từ tiếng Trung với thẻ pinyin của từ đó."; }
     @Override public PracticeApi.Skill skill() { return PracticeApi.Skill.VOCAB; }
-    @Override public String howToPlay() { return "Chọn một từ, rồi chọn thẻ pinyin tương ứng."; }
-    @Override public int timeLimitSeconds() { return 90; }
+    @Override public String howToPlay() { return "Chọn một từ, rồi chọn thẻ pinyin tương ứng. Xong năm bảng càng nhanh càng cao điểm; ghép sai ba lần là dừng."; }
+    @Override public int timeLimitSeconds() { return 600; }
+    @Override public int maxLives() { return 3; }
     @Override public int pointsPerCorrect() { return 10; }
 
     @Override

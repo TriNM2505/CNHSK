@@ -9,8 +9,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.http.HttpStatus;
 
-/** Strict optional request: omitted body is different from an explicit JSON null. */
+/** Strict request: every round is played and ranked at one HSK level that has game content. */
 public record GameRoundStartRequest(Integer hskLevel) {
+    /** Game content (lexemes with strokes, radicals and Sino-Vietnamese readings) exists for HSK 1–3 only. */
+    public static final int MAX_LEVEL = 3;
+
     public static GameCode code(String value) {
         try {
             return GameCode.valueOf(value);
@@ -21,17 +24,16 @@ public record GameRoundStartRequest(Integer hskLevel) {
     }
 
     public static GameRoundStartRequest parse(String body, ObjectMapper mapper) {
-        if (body == null) return new GameRoundStartRequest(null);
+        if (body == null) throw invalid();
         try {
             var parser = mapper.getFactory().createParser(body);
             try (parser) {
                 JsonNode value = mapper.readTree(parser);
                 if (value == null || !value.isObject() || parser.nextToken() != null
-                        || value.size() > 1 || (value.size() == 1 && !value.has("hskLevel"))) throw invalid();
-                if (!value.has("hskLevel")) return new GameRoundStartRequest(null);
+                        || value.size() != 1 || !value.has("hskLevel")) throw invalid();
                 var level = value.get("hskLevel");
                 if (!level.isIntegralNumber() || !level.canConvertToInt()
-                        || level.intValue() < 1 || level.intValue() > 9) throw invalid();
+                        || level.intValue() < 1 || level.intValue() > MAX_LEVEL) throw invalid();
                 return new GameRoundStartRequest(level.intValue());
             }
         } catch (java.io.IOException exception) {

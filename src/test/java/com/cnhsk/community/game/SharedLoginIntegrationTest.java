@@ -52,7 +52,7 @@ class SharedLoginIntegrationTest extends AbstractIntegrationTest {
         List<Long> lexemes = new ArrayList<>();
         try {
             var radicals = List.of("氵", "冫", "木", "日");
-            for (int index = 0; index < 8; index++) {
+            for (int index = 0; index < 16; index++) {
                 lexemes.add(jdbc.queryForObject("INSERT INTO learning.lexemes(kind,text,pinyin,meaning_vi,hsk_level,"
                                 + "stroke_count,radical) VALUES ('CHAR',?,'zì','chữ mẫu',1,4,?) RETURNING id",
                         Long.class, "字" + id + index, radicals.get(index % radicals.size())));
@@ -127,7 +127,7 @@ class SharedLoginIntegrationTest extends AbstractIntegrationTest {
     }
 
     private long startRound(GameCode code, Cookie access, Cookie xsrf) throws Exception {
-        MvcResult result = mvc.perform(gamePost(GAMES + "/" + code.name() + "/rounds", "{}", access, xsrf)
+        MvcResult result = mvc.perform(gamePost(GAMES + "/" + code.name() + "/rounds", "{\"hskLevel\":1}", access, xsrf)
                         .header(XSRF_HEADER, xsrf.getValue()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.roundId").isNumber())

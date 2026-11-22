@@ -42,7 +42,7 @@ public class ContentLookupImpl implements ContentLookup {
                 + "WHERE a.user_id = :userId AND a.ref_type = 'TOPIC_STUDY' AND ai.item_type = 'STUDY_CARD' "
                 + "AND ai.lexeme_id IS NOT NULL) "
                 + "SELECT x.id, x.kind, x.text, x.pinyin, x.meaning_vi, x.meaning_norm, x.radical, x.stroke_count, "
-                + "x.audio_url, x.hsk_level FROM learning.lexemes x "
+                + "x.audio_url, x.hsk_level, x.sino_viet FROM learning.lexemes x "
                 + "LEFT JOIN learned ON learned.lexeme_id = x.id WHERE x.kind IN (:kinds)";
         if (query.hskLevels().isEmpty()) {
             sql += " AND (learned.lexeme_id IS NOT NULL OR x.hsk_level = 1)";
@@ -69,7 +69,7 @@ public class ContentLookupImpl implements ContentLookup {
         return new LexemeCard(row.getLong("id"), row.getString("kind"), row.getString("text"), pinyin,
                 pinyinKey(pinyin), TextNormalizer.normalizeCell("meaning_vi", meaning.split(";", 2)[0]), keys,
                 row.getString("radical"), row.getObject("stroke_count", Integer.class), row.getString("audio_url"),
-                row.getObject("hsk_level", Integer.class));
+                row.getObject("hsk_level", Integer.class), row.getString("sino_viet"));
     }
 
     private static String pinyinKey(String pinyin) {

@@ -8,12 +8,27 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.1.0 |
+| **Version** | 1.2.0 |
 | **Status** | APPROVED — leader duyệt 2026-11-14, được code theo `tasks.md` |
 | **Phụ thuộc** | Spec 007 (`GameDefinition`, `GameShell`, `ContentLookup`) · Spec 002 (dữ liệu `CHAR`/`WORD`, `radical`, `stroke_count`, `audio_url`) · Spec 017 (`learning.api.GameCode`, bảng xếp hạng game) |
 | **Quyết định chung** | Brainstorm 2026-10-19: D-09 · RFC đợt hoàn thiện H11 (6 game như nhau: lưu điểm, xếp hạng) · Leader chốt 2026-11-14 (§9) |
 
 > **Người code đọc:** `AGENTS.md` → spec 007 → file này → `tasks.md`. Không có API mới (dùng hợp đồng spec 007).
+
+### Thay đổi 1.2.0 (leader chốt 2026-11-22) — mục này thay các luật cũ bên dưới khi khác nhau
+
+| Game (mã) | Luật | Xếp hạng (theo từng cấp HSK 1–3) |
+|---|---|---|
+| **Lọ Mực** (`CHAR_RAIN`, tên cũ Mưa chữ) | 60 s, 60 chữ ngẫu nhiên; khung chữ mờ, không chấm/mũi tên/nét gợi ý (`startGuide=false`), đúng thứ tự nét; mỗi nét sai lọ mực vơi 1/3 (`inkLives=3`, đếm ở client), vẫn ở lại chữ đó; hết mực → kết thúc ván | Số chữ xong, rồi thời gian |
+| **Ghép Pinyin** | 5 bảng × 6, `maxLives=3`, trần 600 s | Số cặp đúng, rồi nhanh nhất |
+| **Ghép Bộ Thủ** | 15 câu (cần ≥ 15 chữ), `maxLives=3`, trần 600 s | Số câu đúng, rồi nhanh nhất |
+| **Bắt Chữ** | 60 s, tối đa 100 câu, không đồng hồ từng câu (`uiConfig` không có `perItemMs`) | Số câu đúng |
+| **Mưa Chữ** (`BRUSH_STROKE`, tên cũ Thần Bút) | Ô viết trống, viết cả chữ không cần thứ tự/chiều nét; rơi `max(4000, 10000 − 100·i)` ms; chạm đất → client gửi `MISS` (chấm sai); `maxLives=3`, 100 chữ, trần 600 s. Nhận chữ bằng độ phủ nét mực hai chiều, số nét lệch tối đa 1, không nét nào được thiếu hẳn (`engine/freeformMatch.ts`) | Số chữ, rồi thời gian |
+| **Phi Đao** (`FLYING_DART`) | Gõ âm Hán Việt của một chữ (`SINO_VIET_INPUT`), có dấu hay không dấu đều nhận, chữ đa âm nhận mọi âm; chữ không rơi; `maxLives=3`, 60 s, 60 chữ; kỹ năng `CHARACTER`; chỉ dùng chữ có `sino_viet`, cần ≥ 20 chữ; không gửi nghĩa (nghĩa nhiều chữ trùng âm Hán Việt, lộ đáp án) | Số chữ trúng |
+
+Điểm/lượt vẫn 10. Kho mỗi game mỗi cấp ≥ 100 mục từ, ván rút ngẫu nhiên. Rủi ro chấp nhận thêm: lọ mực đếm ở client (như mô hình `PASS` của GM-8).
+
+AT mới: AT-25 luật/mạng/thời gian 6 game (`GameRulesTest`) · AT-26 âm Hán Việt có dấu, không dấu, hoa thường, chữ đa âm (`SinoVietGraderTest`) · AT-27 viết tự do: đúng chữ mọi thứ tự nét và hai nét viết liền → đạt; thiếu một nét, chữ khác → trượt · AT-28 chạm đất gửi `MISS`, hết mực/hết mạng kết thúc ván.
 
 ### Thay đổi so với 1.0.0
 

@@ -29,12 +29,14 @@ class CharRainGameTest {
 
         assertThat(game.code()).isEqualTo(GameCode.CHAR_RAIN);
         assertThat(game.skill()).isEqualTo(PracticeApi.Skill.WRITING);
-        assertThat(game.timeLimitSeconds()).isEqualTo(180);
+        assertThat(game.timeLimitSeconds()).isEqualTo(60);
         assertThat(game.pointsPerCorrect()).isEqualTo(10);
-        assertThat(game.uiConfig()).isEqualTo(Map.of("requiredStrokes", "ALL", "strokeOrder", true));
-        assertThat(items).hasSize(10);
+        assertThat(game.uiConfig()).isEqualTo(Map.of("requiredStrokes", "ALL", "strokeOrder", true,
+                "startGuide", false, "inkLives", 3));
+        assertThat(items).hasSize(30);
         assertThat(items).extracting(PracticeApi.ServedItem::lexemeId).doesNotHaveDuplicates();
-        assertThat(items).extracting(PracticeApi.ServedItem::no).containsExactly(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        assertThat(items).extracting(PracticeApi.ServedItem::no)
+                .containsExactlyElementsOf(java.util.stream.IntStream.rangeClosed(1, 30).boxed().toList());
         assertThat(items).allSatisfy(item -> {
             int id = item.lexemeId().intValue();
             assertThat(item.type()).isEqualTo(PracticeApi.ItemType.TRACE_CHAR);

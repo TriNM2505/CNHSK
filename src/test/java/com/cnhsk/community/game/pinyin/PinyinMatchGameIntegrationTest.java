@@ -81,7 +81,7 @@ class PinyinMatchGameIntegrationTest extends AbstractIntegrationTest {
 
         var started = read(startRound().andExpect(status().isCreated())
                 .andExpect(jsonPath("$.gameCode").value("PINYIN_MATCH"))
-                .andExpect(jsonPath("$.timeLimitSeconds").value(90))
+                .andExpect(jsonPath("$.timeLimitSeconds").value(600))
                 .andExpect(jsonPath("$.pointsPerCorrect").value(10)));
         var expectedBoards = IntStream.range(0, boardCount)
                 .mapToObj(board -> IntStream.rangeClosed(board * 6 + 1, board * 6 + 6).boxed().toList())

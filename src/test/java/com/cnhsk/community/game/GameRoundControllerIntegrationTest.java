@@ -107,7 +107,8 @@ class GameRoundControllerIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(post(BASE + "CHAR_RAIN/rounds").cookie(access, new Cookie("XSRF-TOKEN", "game-start-csrf"))
                 .header("X-XSRF-TOKEN", "wrong")).andExpect(status().isForbidden());
         mvc.perform(post(BASE + "CHAR_RAIN/rounds").cookie(access, new Cookie("XSRF-TOKEN", "game-start-csrf"))
-                .header("X-XSRF-TOKEN", "game-start-csrf")).andExpect(status().isCreated());
+                .header("X-XSRF-TOKEN", "game-start-csrf").contentType("application/json").content("{\"hskLevel\":1}"))
+                .andExpect(status().isCreated());
     }
 
     @Test void AT04_invalidCodeAndBodyAreRejectedBeforeReadingStatistics() throws Exception {
@@ -123,7 +124,7 @@ class GameRoundControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test void AT08_snapshotHasAnswerKeysButPublic201NeverDoesAndTimesComeFromServer() throws Exception {
-        JsonNode result = created(owner, "CHAR_RAIN", "{\"hskLevel\":9}");
+        JsonNode result = created(owner, "CHAR_RAIN", "{\"hskLevel\":3}");
         long id = result.path("roundId").asLong();
         assertThat(result.path("gameCode").asText()).isEqualTo("CHAR_RAIN");
         assertThat(result.path("serverTime").asText()).isEqualTo(NOW.toString());
@@ -142,13 +143,13 @@ class GameRoundControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(snapshot.path("items").get(0).path("answer").asText()).isEqualTo("A");
         assertThat(snapshot.path("items").get(0).path("explanation").asText()).isEqualTo("Giải thích tự soạn.");
         assertThat(snapshot.path("meta").path("timeLimitSeconds").asInt()).isEqualTo(30);
-        verify(content, times(2)).pool(argThat(query -> query.preferLearnedBy().equals(owner) && query.hskLevels().equals(Set.of(9))));
+        verify(content, times(2)).pool(argThat(query -> query.preferLearnedBy().equals(owner) && query.hskLevels().equals(Set.of(3))));
         verify(stats, times(1)).countRecentGameRounds(owner, NOW.minusSeconds(3600));
     }
 
     @Test void AT06_onlyOwnSameGameActiveRoundIsAbandoned() throws Exception {
         long previous = created(owner, "CHAR_RAIN", null).path("roundId").asLong();
-        long different = created(owner, "PINYIN_MATCH", "{}").path("roundId").asLong();
+        long different = created(owner, "PINYIN_MATCH", "{\"hskLevel\":2}").path("roundId").asLong();
         long foreign = created(other, "CHAR_RAIN", null).path("roundId").asLong();
         long next = created(owner, "CHAR_RAIN", null).path("roundId").asLong();
         assertThat(state(previous)).isEqualTo("ABANDONED");
@@ -511,7 +512,8 @@ class GameRoundControllerIntegrationTest extends AbstractIntegrationTest {
         var request = request(user, code); if (body != null) request.contentType("application/json").content(body);
         return mapper.readTree(mvc.perform(request).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString());
     }
-    private MockHttpServletRequestBuilder request(long user, String code) { return post(BASE + code + "/rounds").header("Authorization", bearer(user, "LEARNER")); }
+    /** Every round is played at a level; tests that probe the body replace this default. */
+    private MockHttpServletRequestBuilder request(long user, String code) { return post(BASE + code + "/rounds").header("Authorization", bearer(user, "LEARNER")).contentType("application/json").content("{\"hskLevel\":1}"); }
     private String token(long user, String role) { return jwt.issueAccessToken(user, List.of(role), false, UUID.randomUUID()); }
     private String bearer(long user, String role) { return "Bearer " + token(user, role); }
     private long user() {

@@ -40,11 +40,12 @@ class PinyinMatchGameTest {
     @Test
     void AT06_oneThousandSeededRoundsHaveDistinctKeysAndWordsInEveryBoard() {
         var pool = IntStream.range(0, 30).mapToObj(index -> word(index, index % 6)).toList();
+        // Six pronunciation groups of five words fill exactly five boards.
         var random = new Random(810603L);
         var context = context(pool);
         for (int round = 0; round < 1_000; round++) {
             var items = game.buildRound(context, random);
-            assertThat(items).hasSize(18);
+            assertThat(items).hasSize(30);
             assertThat(items).extracting(PracticeApi.ServedItem::lexemeId).doesNotHaveDuplicates();
             for (int index = 0; index < items.size(); index += 6) {
                 var board = items.subList(index, index + 6);
@@ -70,11 +71,11 @@ class PinyinMatchGameTest {
     }
 
     @ParameterizedTest
-    @CsvSource({"6,1", "14,2", "18,3"})
+    @CsvSource({"6,1", "14,2", "18,3", "40,5"})
     void AT07_AT08_boardsShareShuffledOptionsAndListExactlyTheServedNumbers(int size, int count) {
         var items = game.buildRound(context(uniqueCards(size)), new Random(115));
         assertThat(game.code()).isEqualTo(GameCode.PINYIN_MATCH);
-        assertThat(game.timeLimitSeconds()).isEqualTo(90);
+        assertThat(game.timeLimitSeconds()).isEqualTo(600);
         assertThat(game.pointsPerCorrect()).isEqualTo(10);
         assertThat(items).hasSize(count * 6);
         var expectedBoards = IntStream.range(0, count)

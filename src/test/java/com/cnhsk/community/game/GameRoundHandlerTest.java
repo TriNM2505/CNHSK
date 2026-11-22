@@ -53,9 +53,26 @@ class GameRoundHandlerTest {
     @Test void AT10_deadlinePlusTwoSecondsIsInclusiveAndTheNextInstantIsRejected() {
         var round = round(1);
         var answer = new PracticeApi.Answer(1, "A", 1000, 0, false, false, Map.of());
-        handler.validateAnswer(round, round.items().get(0), answer, NOW.plusSeconds(35));
-        assertThatThrownBy(() -> handler.validateAnswer(round, round.items().get(0), answer, NOW.plusSeconds(35).plusNanos(1)))
+        handler.validateAnswer(round, totals(0, 0), round.items().get(0), answer, NOW.plusSeconds(35));
+        assertThatThrownBy(() -> handler.validateAnswer(round, totals(0, 0), round.items().get(0), answer, NOW.plusSeconds(35).plusNanos(1)))
                 .isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.getCode()).isEqualTo(ErrorCode.ROUND_TIME_OVER));
+    }
+
+    @Test void theAnswerAfterTheLastLifeIsRefusedWhateverWasAnsweredCorrectly() {
+        var registry = org.mockito.Mockito.mock(GameRegistry.class);
+        var game = org.mockito.Mockito.mock(GameDefinition.class);
+        org.mockito.Mockito.when(registry.find(GameCode.CHAR_RAIN)).thenReturn(java.util.Optional.of(game));
+        org.mockito.Mockito.when(game.maxLives()).thenReturn(3);
+        var limited = new GameRoundHandler(registry);
+        var round = round(20);
+        var answer = new PracticeApi.Answer(1, "A", 1000, 0, false, false, Map.of());
+        limited.validateAnswer(round, totals(9, 11), round.items().get(0), answer, NOW);
+        assertThatThrownBy(() -> limited.validateAnswer(round, totals(9, 12), round.items().get(0), answer, NOW))
+                .isInstanceOfSatisfying(ApiException.class, error -> assertThat(error.getCode()).isEqualTo(ErrorCode.ROUND_TIME_OVER));
+    }
+
+    private static GameRoundHooks.AnswerTotals totals(long correct, long answered) {
+        return new GameRoundHooks.AnswerTotals(correct, answered);
     }
 
     private GameRoundHooks.Finish finish(long score, long max, boolean suspicious, long correct, long wrong, long before) {

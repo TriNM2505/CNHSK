@@ -81,9 +81,9 @@ class CharCatchGameIntegrationTest extends AbstractIntegrationTest {
         seed(20, true);
         var started = read(startRound().andExpect(status().isCreated())
                 .andExpect(jsonPath("$.gameCode").value("CHAR_CATCH"))
-                .andExpect(jsonPath("$.timeLimitSeconds").value(75))
+                .andExpect(jsonPath("$.timeLimitSeconds").value(60))
                 .andExpect(jsonPath("$.pointsPerCorrect").value(10))
-                .andExpect(jsonPath("$.uiConfig.perItemMs").value(4000))
+                .andExpect(jsonPath("$.uiConfig.perItemMs").doesNotExist())
                 .andExpect(jsonPath("$.uiConfig.gridColumns").value(3)));
         long roundId = started.path("roundId").asLong();
         var resumed = read(mvc.perform(get(BASE + "rounds/{id}", roundId)

@@ -8,7 +8,8 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.1.0 |
+| **Version** | 1.2.0 |
+| **Thay đổi 1.2.0** | Ván bắt buộc chọn HSK 1–3 (FR-006), lưu `attempts.hsk_level` (V11); số lượt sai tối đa (`maxLives`) kiểm ở máy chủ (FR-012a); chọn cấp trong game thay cho Hub (FR-028); `LexemeCard` thêm `sinoViet`. Luật từng game: spec 008 v1.2.0 |
 | **Thay đổi 1.1.0** | Giao diện Game Box theo bản arcade của nhóm (nhánh demo 6 game); SCR-035 và kết quả ván có link sang bảng xếp hạng game SCR-047 của spec 017 (đã có) |
 | **Status** | APPROVED — hợp đồng API đã duyệt, được code |
 | **Approved by** | Leader (2026-10-30) |
@@ -33,7 +34,7 @@
 | Thành tích cá nhân: điểm cao nhất, số ván | Mastery từ game (cây tri thức; sự kiện spec 003 §0.9 đã sẵn) |
 
 **Nguồn lượt:** `GAME_ROUND` — `kind=GAME`, `game_code` bắt buộc (`ck_game_code`), `IMMEDIATE`, `allowSkip=false`, `maxScoreFromServed=true`,
-hạn = 3 s đếm ngược + thời gian ván + 15 s. **Không thay đổi DB** (`attempts.game_code` đã có).
+hạn = 3 s đếm ngược + thời gian ván + 15 s. Ván lưu cấp vào `attempts.hsk_level` (V11, v1.2.0); `attempts.game_code` đã có.
 
 ### 0.1 · Vì sao chấm từng lượt ở server (D-09)
 
@@ -108,7 +109,7 @@ game chạm/chuột nhịp vừa.
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-006** | `POST /api/community/games/{code}/rounds` `{hskLevel?}` SHALL yêu cầu `LEARNER`; `code` ngoài enum → **400** `INVALID_GAME_CODE`; `hskLevel` 1–9 nếu có |
+| **FR-006** | `POST /api/community/games/{code}/rounds` `{hskLevel}` SHALL yêu cầu `LEARNER`; `code` ngoài enum → **400** `INVALID_GAME_CODE`; `hskLevel` **bắt buộc**, 1–3 (chỉ các cấp có dữ liệu game), thiếu/khác → **422** `VALIDATION_FAILED`; ghi vào `attempts.hsk_level` (v1.2.0) |
 | **FR-007** | THE system SHALL đếm ván `kind=GAME` của người gọi có `served_at > now() − 60 phút`; ≥ **30** → **429** `ROUND_LIMIT_EXCEEDED`, `retryAfterSeconds` = thời điểm ván cũ nhất trong cửa sổ + 60 phút − `now()` (BR-087-8) |
 | **FR-007b** | WHEN người gọi có ván `IN_PROGRESS` chưa hết giờ **cùng game**, THE system SHALL chuyển ván cũ sang `ABANDONED` trước khi tạo ván mới (một người một ván đang chạy mỗi game) |
 | **FR-008** | THE system SHALL gọi `GameDefinition.buildRound(ctx)` với `ctx = {userId, hskLevel, contentLookup}`; trả rỗng/không đủ → **422** `GAME_UNAVAILABLE` (E10) |
@@ -121,8 +122,9 @@ game chạm/chuột nhịp vừa.
 | Mã | Yêu cầu |
 |---|---|
 | **FR-012** | `POST /api/community/games/rounds/{id}/answers` `{no, answer, durationMs}` SHALL: kiểm lượt tồn tại **và** `ref_type='GAME_ROUND'` (khác → **404** `ROUND_NOT_FOUND`); chủ sở hữu (**403** `ROUND_NOT_OWNED`); `now() ≤ deadline + 2 s` (**422** `ROUND_TIME_OVER`); rồi gọi `PracticeApi.answer` (E-R4…E-R12 spec 003) và `GameDefinition.validateAnswer` |
+| **FR-012a** | WHERE `GameDefinition.maxLives() > 0`, THE system SHALL đưa `maxLives` vào `uiConfig`, trả `livesLeft` sau mỗi lượt (game không giới hạn → `null`) và, **trong giao dịch đang khoá ván**, từ chối lượt tiếp theo khi số lượt sai đã bằng `maxLives` → **422** `ROUND_TIME_OVER`. Client hiện phản hồi của lượt cuối (800 ms) rồi kết thúc ván khi `livesLeft = 0`; câu của ván game không tính vào giới hạn 600 câu/giờ (spec 003 E-R12) (v1.2.0) |
 | **FR-013** | Body có trường ngoài `{no, answer, durationMs}` (vd `score`, `points`, `correct`) → **422** `VALIDATION_FAILED` (`@JsonIgnoreProperties(ignoreUnknown = false)`, E3) |
-| **FR-014** | Response SHALL là `{no, correct, correctAnswer, pointsAwarded, totalPoints, answeredCount}`; `pointsAwarded = correct ? pointsPerCorrect : 0`; `totalPoints` = số câu đúng đến giờ × `pointsPerCorrect` (đếm từ `attempt_items`) |
+| **FR-014** | Response SHALL là `{no, correct, correctAnswer, pointsAwarded, totalPoints, answeredCount, livesLeft}`; `pointsAwarded = correct ? pointsPerCorrect : 0`; `totalPoints` = số câu đúng đến giờ × `pointsPerCorrect` (đếm từ `attempt_items`) |
 | **FR-015** | `POST /api/community/games/rounds/{id}/finish` SHALL gọi `PracticeApi.finish`; ván đã kết thúc → **409** `ROUND_ALREADY_SUBMITTED`; quá hạn → **422** `ROUND_EXPIRED` |
 | **FR-016** | `GameRoundHandler.onFinish` SHALL **khẳng định trần**: `score ≤ max_score` (= số lượt đã phát) — vi phạm là lỗi lập trình → ném `IllegalStateException` (rollback, log `ERROR`). Test cố ý chứng minh không đường nào vượt (SC-002, BR-088-4) |
 | **FR-017** | `extra` SHALL là `{points, maxPoints, correct, wrong, missed, accuracy, durationMs, skill, bestPoints, newBest, suspicious}`; `missed` = lượt đã phát chưa trả lời; `accuracy = floor(correct*100/(correct+wrong))` (null nếu 0); `newBest = points > bestPoints trước ván này` (BR-088-11) |
@@ -134,7 +136,7 @@ game chạm/chuột nhịp vừa.
 | Mã | Yêu cầu |
 |---|---|
 | **FR-020** | THE system SHALL cung cấp `ContentLookup.pool(GameContentQuery q) → List<LexemeCard>` với `q = {kinds, hskLevels, requireAudio, requireRadical, requireStrokeCount, preferLearnedBy (userId), limit (≤ 200)}` (BR-087-10) |
-| **FR-021** | `LexemeCard` SHALL gồm `{id, kind, text, pinyin, pinyinKey, meaningShort, meaningKeys, radical, strokeCount, audioUrl, hskLevel}`; `pinyinKey` = `toNumbered(pinyin)` bỏ khoảng trắng (khoá đồng âm, spec 003 G-3); `meaningKeys` = tập mảnh `meaning_norm` (khoá trùng nghĩa, G-2); `meaningShort` = mảnh đầu `meaning_vi` |
+| **FR-021** | `LexemeCard` SHALL gồm `{id, kind, text, pinyin, pinyinKey, meaningShort, meaningKeys, radical, strokeCount, audioUrl, hskLevel, sinoViet}` (`sinoViet`: các âm Hán Việt, phân tách dấu phẩy, v1.2.0); `pinyinKey` = `toNumbered(pinyin)` bỏ khoảng trắng (khoá đồng âm, spec 003 G-3); `meaningKeys` = tập mảnh `meaning_norm` (khoá trùng nghĩa, G-2); `meaningShort` = mảnh đầu `meaning_vi` |
 | **FR-022** | `preferLearnedBy` SHALL ưu tiên từ người đó đã học (spec 003 FR-015); không đủ → bổ sung từ cấp `hskLevels`; người chưa học gì và không chọn cấp → cấp **1** (BR-087-9, UC-087 A4). Module `community` **chỉ** gọi `learning.api` (UC-087 `CROSS_MODULE_DIRECT_READ`; ArchUnit) |
 
 ### Nhóm 5 — App `cnhsk-game` (FR-023…FR-031)
@@ -146,7 +148,7 @@ game chạm/chuột nhịp vừa.
 | **FR-025** | `shared/auth/useCurrentUser` SHALL gọi `GET /api/auth/me` khi tải; 401 sau khi đã thử refresh → trạng thái khách |
 | **FR-026** | Khách bấm "Đăng nhập để chơi": web → `window.location = {VITE_WEB_ORIGIN}/login?redirect={encodeURIComponent(location.href)}` (spec 001 FR-090 đã cho phép origin game); WebView → `postMessage({type:'AUTH_REQUIRED'})` |
 | **FR-027** | Route: `/` = SCR-035 Game Hub; `/play/:code` = SCR-036 Game Session; khác → trang 404 có nút về Hub |
-| **FR-028** | SCR-035 SHALL hiện 6 thẻ game (tên, mô tả, kỹ năng luyện, thời lượng, "Cách chơi" mở rộng được, thành tích cá nhân khi đăng nhập), nút "Chơi" (khoá khi `playable=false` kèm "Chưa đủ dữ liệu"), bộ chọn cấp HSK tuỳ chọn ("Từ tôi đang học" mặc định). mỗi thẻ có link "Xếp hạng" sang SCR-047 `/leaderboards/games?game={code}` của web (v1.1.0) |
+| **FR-028** | SCR-035 SHALL hiện 6 thẻ game (tên, mô tả, kỹ năng luyện, thời lượng, "Cách chơi" mở rộng được, thành tích cá nhân khi đăng nhập), nút "Chơi" (khoá khi `playable=false` kèm "Chưa đủ dữ liệu"). Cấp HSK 1–3 chọn ở màn bắt đầu của từng game, bắt buộc, nhớ lựa chọn gần nhất trên thiết bị (v1.2.0). mỗi thẻ có link "Xếp hạng" sang SCR-047 `/leaderboards/games?game={code}` của web (v1.1.0) |
 | **FR-029** | `GameShell` (SCR-036 khung) SHALL lo: màn sẵn sàng ("Bắt đầu" → tạo ván), đếm ngược 3 s trước khi hiện lượt đầu (server đã cộng 3 s vào `deadline`, FR-011), đồng hồ theo `deadline`, điểm hiện tại, hàng đợi gửi lượt tuần tự (E6), tự `finish` khi hết giờ hoặc hết lượt, nút "Thoát" (xác nhận trong trang → `abandon`), màn kết quả (FR-017: điểm, đúng/sai/bỏ lỡ, độ chính xác, thời gian, "Kỷ lục mới!", "Chơi lại", "Về danh sách"). Game cụ thể chỉ nhận `items`, `uiConfig`, `submitAnswer(no, answer)` |
 | **FR-030** | Hợp đồng WebView SHALL: đọc `window.__CNHSK_TOKEN__`, `window.__CNHSK_PLATFORM__ === 'mobile'`; gửi qua `window.ReactNativeWebView?.postMessage(JSON)`: `{type:'AUTH_REQUIRED'}`, `{type:'TOKEN_EXPIRED'}`, `{type:'ROUND_FINISHED', gameCode, points}`, `{type:'EXIT'}`; nhận `message` `{type:'TOKEN_REFRESHED', token}`. Có `public/webview-harness.html` mô phỏng app (iframe + tiêm token + log message) để kiểm tay. Token **không bao giờ** qua URL |
 | **FR-031** | Giao diện game SHALL dùng được bằng cảm ứng (vùng chạm ≥ 44 px), màn 360 px trở lên, tôn trọng `prefers-reduced-motion` (giảm chuyển động, game vẫn chơi được) |
@@ -178,7 +180,7 @@ Truy vấn nằm trong `learning` và lộ ra qua `GameStatsApi.gameStats(userId
 | `GAME_UNAVAILABLE` | 422 | Không đủ dữ liệu | FR-008 |
 | `ROUND_NOT_FOUND` | 404 | Không có / không phải ván game | FR-012 |
 | `ROUND_NOT_OWNED` | 403 | Ván người khác (IDOR) | FR-012 |
-| `ROUND_TIME_OVER` | 422 | Trả lời sau `deadline + 2 s` | FR-012 |
+| `ROUND_TIME_OVER` | 422 | Trả lời sau `deadline + 2 s`, hoặc sau khi hết lượt sai | FR-012, FR-012a |
 | `ROUND_ALREADY_SUBMITTED` | 409 | Kết thúc/bỏ lần 2 | FR-015 |
 | `ROUND_EXPIRED` | 422 | Quá hạn lượt | FR-015 |
 | `VALIDATION_FAILED` | 422 | Trường lạ (`score`…), dữ liệu sai | FR-013 |
@@ -297,6 +299,8 @@ Bộ máy trả mã `SESSION_*`; lớp `community.game` **dịch** sang mã `ROU
 | AT-07 | FR-008, E10 | Game giả trả rỗng · T 422 `GAME_UNAVAILABLE` |
 | AT-08 | FR-009, FR-010, SC-003 | T `attempts.kind=GAME`, `game_code` đúng, `served_items` có đáp án; response không có `answer`/`accept` |
 | AT-09 | FR-012 | Ván người khác · T 403 `ROUND_NOT_OWNED`; id của lượt `TOPIC_TEST` · T 404 `ROUND_NOT_FOUND` |
+| AT-10a | FR-012a | Ghép Bộ Thủ: 8 lượt sai gửi đồng thời · T đúng 3 lượt 200, 5 lượt 422, 3 `attempt_items` |
+| AT-06a | FR-006 | Tạo ván thiếu `hskLevel`, 0, 4, 9 · T 422; cấp 3 · T `attempts.hsk_level = 3` |
 | AT-10 | FR-012, E2 | Trả lời sau `deadline + 3 s` (đồng hồ giả) · T 422 `ROUND_TIME_OVER`, không có `attempt_items` mới |
 | AT-11 | FR-013, E3 | Body có `score` · T 422; `POST /finish` body `{score:999999}` · T 422 |
 | AT-12 | FR-014 | 3 lượt đúng · T `totalPoints = 3 × pointsPerCorrect` |

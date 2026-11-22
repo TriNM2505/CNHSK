@@ -65,20 +65,33 @@ public class LeaderboardServiceImpl implements LeaderboardService {
                 (banned, viewer) -> repository.topicRanking(topicId, interval, banned, viewer, TOP_SIZE));
     }
 
-    public Leaderboard gameLeaderboard(String gameCode, String period, Long viewerId) {
+    public Leaderboard gameLeaderboard(String gameCode, String period, String hskLevel, Long viewerId) {
         GameCode game;
         try { game = GameCode.valueOf(gameCode == null ? "" : gameCode); }
         catch (IllegalArgumentException exception) {
             throw new ApiException(ErrorCode.INVALID_GAME_CODE, HttpStatus.UNPROCESSABLE_ENTITY,
                     "Mã trò chơi không hợp lệ.", Map.of());
         }
+        int level = gameLevel(hskLevel);
         Interval interval = interval(period);
-        return leaderboard("game", game.name(), interval, viewerId,
-                (banned, viewer) -> repository.gameRanking(game, interval, banned, viewer, TOP_SIZE));
+        return leaderboard("game", game.name(), game.name() + ":hsk" + level, interval, viewerId,
+                (banned, viewer) -> repository.gameRanking(game, level, interval, banned, viewer, TOP_SIZE));
+    }
+
+    /** Games have content for HSK 1–3; a ranking without a level shows HSK 1. */
+    private static int gameLevel(String value) {
+        if (value == null || value.isEmpty()) return 1;
+        if (!value.matches("[1-3]")) throw invalid("hskLevel", "Cấp HSK phải là 1, 2 hoặc 3.");
+        return Integer.parseInt(value);
     }
 
     private Leaderboard leaderboard(String type, String ref, Interval interval, Long viewerId, Ranking query) {
-        String key = LeaderboardCache.key(type, ref, interval);
+        return leaderboard(type, ref, ref, interval, viewerId, query);
+    }
+
+    private Leaderboard leaderboard(String type, String ref, String cacheRef, Interval interval, Long viewerId,
+            Ranking query) {
+        String key = LeaderboardCache.key(type, cacheRef, interval);
         var lookup = cache.read(key);
         List<Row> top;
         Optional<Row> mine;

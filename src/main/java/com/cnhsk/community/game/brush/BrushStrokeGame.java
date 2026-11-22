@@ -16,13 +16,14 @@ import com.cnhsk.learning.api.PracticeApi;
 
 public final class BrushStrokeGame implements GameDefinition {
     private static final int MIN_ITEMS = 20;
-    private static final int MAX_ITEMS = 60;
+    private static final int MAX_ITEMS = 100;
 
     @Override public GameCode code() { return GameCode.BRUSH_STROKE; }
-    @Override public String description() { return "Tô nét đầu tiên của chữ Hán đang rơi."; }
+    @Override public String description() { return "Viết chữ Hán đang rơi trước khi nó chạm đất."; }
     @Override public PracticeApi.Skill skill() { return PracticeApi.Skill.WRITING; }
-    @Override public String howToPlay() { return "Tô đúng nét đầu tiên trước khi chữ chạm đất."; }
-    @Override public int timeLimitSeconds() { return 60; }
+    @Override public String howToPlay() { return "Viết chữ đang rơi vào ô trống, không cần đúng thứ tự nét. Chữ rơi nhanh dần; để chữ chạm đất ba lần là dừng."; }
+    @Override public int timeLimitSeconds() { return 600; }
+    @Override public int maxLives() { return 3; }
     @Override public int pointsPerCorrect() { return 10; }
 
     @Override
@@ -47,12 +48,14 @@ public final class BrushStrokeGame implements GameDefinition {
 
     @Override
     public void validateAnswer(PracticeApi.ServedItem item, String answer, int elapsedMs) {
-        // The practice engine grades PASS and checks duration from the snapshot.
+        // The practice engine grades PASS; a character that lands is sent as MISS and costs a life.
     }
 
     @Override
     public Map<String, Object> uiConfig() {
-        return Map.of("requiredStrokes", 1, "fallStartMs", 6000, "fallStepMs", 150, "fallMinMs", 3000);
+        // First character falls for 10 s, each next one 0.1 s faster, never under 4 s.
+        return Map.of("requiredStrokes", "ALL", "freeWriting", true,
+                "fallStartMs", 10000, "fallStepMs", 100, "fallMinMs", 4000);
     }
 
     private static List<LexemeCard> pool(GameContext context) {

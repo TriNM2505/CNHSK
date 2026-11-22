@@ -50,18 +50,18 @@ class GameCatalogControllerIntegrationTest extends AbstractIntegrationTest {
     private static final String BASE = "/api/community/games";
     private static final String HASH = new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
     private static final List<ExpectedMetadata> METADATA = List.of(
-            new ExpectedMetadata("Tô từng nét của các chữ Hán lần lượt xuất hiện.", "WRITING",
-                    "Tô mọi nét theo thứ tự. Nếu sai, hãy thử lại nét đó.", 180),
+            new ExpectedMetadata("Viết đúng thứ tự nét để giữ mực trong lọ.", "WRITING",
+                    "Viết từng nét theo đúng thứ tự trên khung chữ mờ. Mỗi lần viết sai, lọ mực vơi một phần ba; sai ba lần là hết mực. Viết được càng nhiều chữ trong 60 giây càng cao điểm.", 60),
             new ExpectedMetadata("Ghép từng từ tiếng Trung với thẻ pinyin của từ đó.", "VOCAB",
-                    "Chọn một từ, rồi chọn thẻ pinyin tương ứng.", 90),
+                    "Chọn một từ, rồi chọn thẻ pinyin tương ứng. Xong năm bảng càng nhanh càng cao điểm; ghép sai ba lần là dừng.", 600),
             new ExpectedMetadata("Nhận diện bộ thủ của từng chữ Hán.", "CHARACTER",
-                    "Nhìn chữ và chọn bộ thủ đúng trong bốn phương án.", 90),
+                    "Nhìn chữ và chọn bộ thủ đúng trong bốn phương án. Xong 15 câu càng nhanh càng cao điểm; sai ba lần là dừng.", 600),
             new ExpectedMetadata("Chọn chữ hoặc từ khớp với nghĩa, pinyin hoặc âm thanh.", "LISTENING",
-                    "Đọc hoặc nghe gợi ý rồi chọn một trong sáu phương án.", 75),
-            new ExpectedMetadata("Tô nét đầu tiên của chữ Hán đang rơi.", "WRITING",
-                    "Tô đúng nét đầu tiên trước khi chữ chạm đất.", 60),
-            new ExpectedMetadata("Gõ pinyin của chữ hoặc từ đang rơi.", "VOCAB",
-                    "Gõ pinyin rồi nhấn Enter trước khi chữ chạm đất.", 60));
+                    "Đọc hoặc nghe gợi ý rồi chọn một trong sáu phương án. Đúng càng nhiều câu trong 60 giây càng cao điểm.", 60),
+            new ExpectedMetadata("Viết chữ Hán đang rơi trước khi nó chạm đất.", "WRITING",
+                    "Viết chữ đang rơi vào ô trống, không cần đúng thứ tự nét. Chữ rơi nhanh dần; để chữ chạm đất ba lần là dừng.", 600),
+            new ExpectedMetadata("Gõ âm Hán Việt để gấu phi dao hạ chữ.", "CHARACTER",
+                    "Gõ âm Hán Việt của chữ rồi nhấn Enter, có dấu hay không dấu đều được. Phi trúng càng nhiều chữ trong 60 giây càng cao điểm; gõ sai ba lần là dừng.", 60));
     @Autowired private MockMvc mvc;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper mapper;
@@ -209,7 +209,7 @@ class GameCatalogControllerIntegrationTest extends AbstractIntegrationTest {
             String kind = index < 24 ? "CHAR" : "WORD";
             return new ContentLookup.LexemeCard(index + 1L, kind, "字組" + index, pinyin,
                     "pinyin-" + index % 24, "nghĩa mẫu " + index, Set.of("nghĩa mẫu " + index),
-                    radicals.get(index % radicals.size()), 4, null, 1);
+                    radicals.get(index % radicals.size()), 4, null, 1, "nhân");
         }).toList();
     }
 

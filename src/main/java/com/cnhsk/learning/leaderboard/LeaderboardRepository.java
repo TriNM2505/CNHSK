@@ -33,7 +33,7 @@ public class LeaderboardRepository {
             WITH eligible AS (
                 SELECT id, user_id, score, duration_ms, submitted_at
                 FROM learning.attempts
-                WHERE kind = 'GAME' AND game_code = :gameCode
+                WHERE kind = 'GAME' AND game_code = :gameCode AND hsk_level = :hskLevel
                   AND status = 'SUBMITTED' AND suspicious = false AND score IS NOT NULL
                   AND user_id <> ALL(:banned)
                   %s
@@ -70,10 +70,12 @@ public class LeaderboardRepository {
         return read(topicSql(interval), parameters, viewerId, topSize);
     }
 
-    public Snapshot gameRanking(GameCode game, Interval interval, Set<Long> bannedUserIds,
+    /** Rounds are ranked per HSK level; rounds played before levels were recorded never qualify. */
+    public Snapshot gameRanking(GameCode game, int hskLevel, Interval interval, Set<Long> bannedUserIds,
             Long viewerId, int topSize) {
-        require(game != null);
-        var parameters = parameters(interval, bannedUserIds, viewerId, topSize).addValue("gameCode", game.name());
+        require(game != null && hskLevel >= 1 && hskLevel <= 9);
+        var parameters = parameters(interval, bannedUserIds, viewerId, topSize).addValue("gameCode", game.name())
+                .addValue("hskLevel", hskLevel);
         return read(gameSql(interval), parameters, viewerId, topSize);
     }
 

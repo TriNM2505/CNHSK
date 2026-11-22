@@ -91,17 +91,32 @@ class LeaderboardServiceImplTest {
     }
 
     @Test void AT14_authHitKeepsTopButReadsNewMyEntryAndNeverLeaksAnotherViewer() {
-        hit("game", "CHAR_RAIN", "week");
+        hit("game", "CHAR_RAIN:hsk1", "week");
         Row mine = new Row(1, 8, 100, 90, NOW);
-        when(repository.gameRanking(GameCode.CHAR_RAIN, periods.resolve("week"), Set.of(99L), 8L, 20))
+        when(repository.gameRanking(GameCode.CHAR_RAIN, 1, periods.resolve("week"), Set.of(99L), 8L, 20))
                 .thenReturn(new Snapshot(List.of(mine), Optional.of(mine), 2));
-        when(repository.gameRanking(GameCode.CHAR_RAIN, periods.resolve("week"), Set.of(99L), 9L, 20))
+        when(repository.gameRanking(GameCode.CHAR_RAIN, 1, periods.resolve("week"), Set.of(99L), 9L, 20))
                 .thenReturn(new Snapshot(List.of(mine), Optional.empty(), 2));
-        var first = service.gameLeaderboard("CHAR_RAIN", "week", 8L);
+        var first = service.gameLeaderboard("CHAR_RAIN", "week", null, 8L);
         assertThat(first.entries().get(0).userId()).isEqualTo(7);
         assertThat(first.myEntry().score()).isEqualTo(100);
-        assertThat(service.gameLeaderboard("CHAR_RAIN", "week", 9L).myEntry()).isNull();
+        assertThat(service.gameLeaderboard("CHAR_RAIN", "week", null, 9L).myEntry()).isNull();
         verify(auth, never()).bannedUserIds();
+    }
+
+    @Test void eachHskLevelHasItsOwnGameRankingAndCacheEntry() {
+        when(cache.read(anyString())).thenReturn(new Lookup(Optional.empty(), true));
+        when(repository.gameRanking(eq(GameCode.PINYIN_MATCH), anyInt(), any(), anySet(), isNull(), eq(20)))
+                .thenReturn(new Snapshot(List.of(), Optional.empty(), 0));
+        service.gameLeaderboard("PINYIN_MATCH", "all", "3", null);
+        verify(repository).gameRanking(eq(GameCode.PINYIN_MATCH), eq(3), any(), anySet(), isNull(), eq(20));
+        verify(cache).write(eq(LeaderboardCache.key("game", "PINYIN_MATCH:hsk3", periods.resolve("all"))), anyList(), anyLong(), anySet());
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"0", "4", "9", "x", " 1"})
+    void levelsWithoutGameContentAreRejected(String level) {
+        assertThatThrownBy(() -> service.gameLeaderboard("CHAR_RAIN", "all", level, null))
+                .isInstanceOfSatisfying(ApiException.class, ex -> assertThat(ex.getCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
     }
 
     @ParameterizedTest @NullAndEmptySource @ValueSource(strings = {"   "})
@@ -115,13 +130,13 @@ class LeaderboardServiceImplTest {
 
     @Test void FR017_failedReadSkipsWriteButDatabaseAndAuthFailuresAreNotSwallowed() {
         when(cache.read(anyString())).thenReturn(new Lookup(Optional.empty(), false));
-        when(repository.gameRanking(any(), any(), anySet(), isNull(), eq(20)))
+        when(repository.gameRanking(any(), anyInt(), any(), anySet(), isNull(), eq(20)))
                 .thenReturn(new Snapshot(List.of(), Optional.empty(), 0));
-        assertThat(service.gameLeaderboard("FLYING_DART", "all", null).entries()).isEmpty();
+        assertThat(service.gameLeaderboard("FLYING_DART", "all", null, null).entries()).isEmpty();
         verify(cache, never()).write(anyString(), anyList(), anyLong(), anySet());
         verify(auth, never()).publicProfiles(anySet());
         when(auth.bannedUserIds()).thenThrow(new IllegalStateException("database"));
-        assertThatIllegalStateException().isThrownBy(() -> service.gameLeaderboard("FLYING_DART", "all", null));
+        assertThatIllegalStateException().isThrownBy(() -> service.gameLeaderboard("FLYING_DART", "all", null, null));
     }
 
     @Test void FR014_catalogAndErrorsFollowContract() {
@@ -134,9 +149,9 @@ class LeaderboardServiceImplTest {
         assertThatThrownBy(() -> service.topicLeaderboard(0, "week", null)).isInstanceOf(ApiException.class);
         assertThatThrownBy(() -> service.topicLeaderboard(9, "2026-W39", null)).isInstanceOfSatisfying(ApiException.class,
                 ex -> assertThat(ex.getCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
-        assertThatThrownBy(() -> service.gameLeaderboard("char_rain", "all", null)).isInstanceOfSatisfying(ApiException.class,
+        assertThatThrownBy(() -> service.gameLeaderboard("char_rain", "all", null, null)).isInstanceOfSatisfying(ApiException.class,
                 ex -> assertThat(ex.getCode()).isEqualTo(ErrorCode.INVALID_GAME_CODE));
-        assertThatThrownBy(() -> service.gameLeaderboard(null, "all", null)).isInstanceOf(ApiException.class);
+        assertThatThrownBy(() -> service.gameLeaderboard(null, "all", null, null)).isInstanceOf(ApiException.class);
         assertThat(service.listGames()).extracting(LeaderboardDtos.GameOption::code)
                 .containsExactly(gameCodes());
     }

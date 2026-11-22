@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CNHSK Game Platform API
-  version: 1.0.0
+  version: 1.1.0
   description: >
     Hợp đồng spec 007. Server chấm từng lượt; KHÔNG endpoint nào nhận điểm từ client.
     Body có trường lạ (score, points…) bị từ chối 422. Gọi từ game.cnhsk.com bằng cookie (credentials: include)
@@ -37,7 +37,7 @@ components:
       required: [code, name, description, skill, howToPlay, timeLimitSeconds, playable]
       properties:
         code: { $ref: '#/components/schemas/GameCode' }
-        name: { type: string, example: Mưa chữ }
+        name: { type: string, example: Lọ Mực }
         description: { type: string }
         skill: { type: string, example: CHARACTER }
         howToPlay: { type: string }
@@ -92,7 +92,7 @@ components:
         durationMs: { type: integer, minimum: 0, maximum: 600000 }
     RoundAnswerResult:
       type: object
-      required: [no, correct, correctAnswer, pointsAwarded, totalPoints, answeredCount]
+      required: [no, correct, correctAnswer, pointsAwarded, totalPoints, answeredCount, livesLeft]
       properties:
         no: { type: integer }
         correct: { type: boolean }
@@ -100,6 +100,7 @@ components:
         pointsAwarded: { type: integer }
         totalPoints: { type: integer, format: int64 }
         answeredCount: { type: integer }
+        livesLeft: { type: [integer, 'null'], description: 'Số lượt sai còn lại; null khi game không giới hạn mạng (v1.1.0)' }
     RoundResult:
       type: object
       required: [roundId, points, maxPoints, correct, wrong, missed, durationMs, skill, bestPoints, newBest, suspicious]
@@ -148,14 +149,15 @@ paths:
           required: true
           schema: { type: string }
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
               type: object
               additionalProperties: false
+              required: [hskLevel]
               properties:
-                hskLevel: { type: integer, minimum: 1, maximum: 9 }
+                hskLevel: { type: integer, minimum: 1, maximum: 3, description: 'Cấp HSK của ván; xếp hạng chia theo cấp (v1.1.0)' }
       responses:
         '201':
           description: Ván mới, không có đáp án

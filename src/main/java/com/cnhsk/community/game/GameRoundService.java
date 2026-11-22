@@ -40,7 +40,7 @@ public class GameRoundService {
     }
 
     @Transactional
-    public RoundStart start(long userId, GameCode code, Integer hskLevel) {
+    public RoundStart start(long userId, GameCode code, int hskLevel) {
         rounds.lockStart(userId);
         var now = clock.instant();
         var recent = stats.countRecentGameRounds(userId, now.minusSeconds(3600));
@@ -57,12 +57,13 @@ public class GameRoundService {
         if (items == null || items.isEmpty()) throw unavailable();
         int duration = definition.timeLimitSeconds();
         int points = definition.pointsPerCorrect();
-        var uiConfig = definition.uiConfig(items);
+        var uiConfig = withLives(definition.uiConfig(items), definition.maxLives());
         rounds.abandonActive(userId, code, clock.instant());
         // Abandon commits independently by design, even if the following start fails.
         var session = practice.start(new PracticeApi.StartPracticeCommand(userId, PracticeApi.PracticeSource.GAME_ROUND,
                 null, code.name(), items, List.of(), Duration.ofSeconds(3L + duration + 15),
                 Map.of("timeLimitSeconds", duration, "pointsPerCorrect", points, "uiConfig", uiConfig)));
+        rounds.recordHskLevel(session.sessionId(), hskLevel);
         return new RoundStart(session.sessionId(), code, clock.instant(), session.servedAt(), duration,
                 session.servedAt().plusSeconds(3L + duration), points, uiConfig, session.items());
     }
@@ -88,6 +89,8 @@ public class GameRoundService {
             throw new ApiException(ErrorCode.ROUND_TIME_OVER, HttpStatus.UNPROCESSABLE_ENTITY,
                     "Ván đã hết thời gian trả lời.", Map.of());
         }
+        // GameRoundHandler refuses answers past the last life, inside the engine's locked transaction.
+        int maxLives = registry.find(round.gameCode()).map(GameDefinition::maxLives).orElse(0);
         try {
             var result = practice.answer(userId, roundId, new PracticeApi.Answer(request.no(), request.answer(),
                     request.durationMs(), 0, false, false, Map.of()));
@@ -95,9 +98,10 @@ public class GameRoundService {
             String correct = result.correctAnswer() != null ? result.correctAnswer()
                     : result.accept() == null || result.accept().isEmpty() ? null : result.accept().get(0);
             if (result.correct() == null || correct == null) throw new IllegalStateException("Game item was not gradable.");
+            Integer livesLeft = maxLives > 0 ? (int) Math.max(0, maxLives - totals.wrong()) : null;
             return new GameViews.RoundAnswerResult(result.no(), result.correct(), correct,
                     result.correct() ? round.pointsPerCorrect() : 0,
-                    Math.multiplyExact(totals.correct(), round.pointsPerCorrect()), totals.answeredCount());
+                    Math.multiplyExact(totals.correct(), round.pointsPerCorrect()), totals.answeredCount(), livesLeft);
         } catch (ApiException exception) { throw translated(exception); }
     }
 
@@ -129,6 +133,14 @@ public class GameRoundService {
         if (round.userId() != userId) throw new ApiException(ErrorCode.ROUND_NOT_OWNED, HttpStatus.FORBIDDEN,
                 "Bạn không có quyền truy cập ván chơi này.", Map.of());
         return round;
+    }
+
+    /** The client draws the lives from the served round, so the limit travels with the UI config. */
+    private static Map<String, Object> withLives(Map<String, Object> uiConfig, int maxLives) {
+        if (maxLives <= 0) return uiConfig;
+        var merged = new java.util.LinkedHashMap<String, Object>(uiConfig);
+        merged.put("maxLives", maxLives);
+        return Map.copyOf(merged);
     }
 
     private static String canonical(PracticeApi.ServedItem item) {

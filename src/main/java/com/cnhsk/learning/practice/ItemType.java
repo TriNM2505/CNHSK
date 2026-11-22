@@ -17,7 +17,8 @@ public enum ItemType {
     TRACE_CHAR(true),
     PINYIN_PAIR(true),
     RADICAL_CHOICE(true),
-    CATCH_CHOICE(true);
+    CATCH_CHOICE(true),
+    SINO_VIET_INPUT(true);
 
     private final boolean gradable;
 

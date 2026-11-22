@@ -186,16 +186,25 @@ class LeaderboardRepositoryIntegrationTest {
         var client = mock(NamedParameterJdbcTemplate.class);
         var isolated = new LeaderboardRepository(client);
         for (int size : new int[] {0, 21}) {
-            assertThatIllegalArgumentException().isThrownBy(() -> isolated.gameRanking(GameCode.CHAR_RAIN, ALL, Set.of(), null, size));
+            assertThatIllegalArgumentException().isThrownBy(() -> isolated.gameRanking(GameCode.CHAR_RAIN, 1, ALL, Set.of(), null, size));
         }
         for (Set<Long> banned : Arrays.asList(null, Set.of(0L), Set.of(-1L), new HashSet<>(Arrays.asList(1L, null)))) {
-            assertThatIllegalArgumentException().isThrownBy(() -> isolated.gameRanking(GameCode.CHAR_RAIN, ALL, banned, null, 20));
+            assertThatIllegalArgumentException().isThrownBy(() -> isolated.gameRanking(GameCode.CHAR_RAIN, 1, ALL, banned, null, 20));
         }
-        assertThatIllegalArgumentException().isThrownBy(() -> isolated.gameRanking(null, ALL, Set.of(), null, 20));
-        assertThatIllegalArgumentException().isThrownBy(() -> isolated.gameRanking(GameCode.CHAR_RAIN, null, Set.of(), null, 20));
-        assertThatIllegalArgumentException().isThrownBy(() -> isolated.gameRanking(GameCode.CHAR_RAIN, ALL, Set.of(), 0L, 20));
+        assertThatIllegalArgumentException().isThrownBy(() -> isolated.gameRanking(null, 1, ALL, Set.of(), null, 20));
+        assertThatIllegalArgumentException().isThrownBy(() -> isolated.gameRanking(GameCode.CHAR_RAIN, 0, ALL, Set.of(), null, 20));
+        assertThatIllegalArgumentException().isThrownBy(() -> isolated.gameRanking(GameCode.CHAR_RAIN, 1, null, Set.of(), null, 20));
+        assertThatIllegalArgumentException().isThrownBy(() -> isolated.gameRanking(GameCode.CHAR_RAIN, 1, ALL, Set.of(), 0L, 20));
         assertThatIllegalArgumentException().isThrownBy(() -> isolated.topicRanking(0, ALL, Set.of(), null, 20));
         verifyNoInteractions(client);
+    }
+
+    @Test
+    void theGameRankingIndexCoversTheLevelOfSubmittedRounds() {
+        assertThat(jdbc.queryForObject("""
+                SELECT indexdef FROM pg_indexes
+                WHERE schemaname = 'learning' AND indexname = 'ix_att_game_hsk_rank'""", String.class))
+                .contains("(game_code, hsk_level, submitted_at)").contains("SUBMITTED");
     }
 
     @Test
@@ -205,10 +214,11 @@ class LeaderboardRepositoryIntegrationTest {
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
             seedExplainAttempts();
             jdbc.execute("SET LOCAL enable_seqscan=off");
-            var parameters = LeaderboardRepository.parameters(ALL, Set.of(), null, 20).addValue("gameCode", "CHAR_RAIN");
+            var parameters = LeaderboardRepository.parameters(ALL, Set.of(), null, 20).addValue("gameCode", "CHAR_RAIN")
+                    .addValue("hskLevel", 1);
             String explain = plan(LeaderboardRepository.gameSql(ALL), parameters, false);
             System.out.println("AT16 game gate: " + explain);
-            assertThat(indexNames(explain)).contains("ix_att_rank");
+            assertThat(indexNames(explain)).containsAnyOf("ix_att_rank", "ix_att_game_hsk_rank");
             status.setRollbackOnly();
         });
         assertThat(jdbc.queryForObject("SHOW enable_seqscan", String.class)).isEqualTo(before);
@@ -296,23 +306,37 @@ class LeaderboardRepositoryIntegrationTest {
         System.out.println("AT16 topic diagnostic: " + plan(LeaderboardRepository.topicSql(interval),
                 LeaderboardRepository.parameters(interval, Set.of(), null, 20).addValue("topicId", topic), true));
         System.out.println("AT16 game diagnostic: " + plan(LeaderboardRepository.gameSql(interval),
-                LeaderboardRepository.parameters(interval, Set.of(), null, 20).addValue("gameCode", "CHAR_RAIN"), true));
+                LeaderboardRepository.parameters(interval, Set.of(), null, 20).addValue("gameCode", "CHAR_RAIN")
+                        .addValue("hskLevel", 1), true));
         System.out.println("AT16 diagnostic elapsed ms=" + (System.nanoTime() - started) / 1_000_000);
     }
 
+    @Test
+    void aGameRankingOnlyCountsRoundsPlayedAtThatLevel() {
+        long levelOne = user();
+        long levelTwo = user();
+        long beforeLevels = user();
+        gameAtLevel(levelOne, 1, 50);
+        gameAtLevel(levelTwo, 2, 90);
+        gameAtLevel(beforeLevels, null, 99);
+        var ranking = repository.gameRanking(GameCode.CHAR_RAIN, 1, ALL, Set.of(), null, 20);
+        assertThat(ranking.entries()).extracting(LeaderboardRepository.Row::userId)
+                .contains(levelOne).doesNotContain(levelTwo, beforeLevels);
+    }
     private long seedExplainAttempts() {
         Long[] users = new Long[200];
         Long[] topics = new Long[20];
         for (int i = 0; i < users.length; i++) users[i] = user();
         for (int i = 0; i < topics.length; i++) topics[i] = topic();
         named.update("""
-                INSERT INTO learning.attempts(user_id, kind, ref_type, ref_id, game_code,
+                INSERT INTO learning.attempts(user_id, kind, ref_type, ref_id, game_code, hsk_level,
                     status, score, duration_ms, submitted_at, suspicious)
                 SELECT (CAST(:users AS bigint[]))[1 + (n - 1) %% 200],
                        CASE WHEN n <= 4000 THEN 'QUIZ' ELSE 'GAME' END,
                        CASE WHEN n <= 4000 THEN 'QUIZ' END,
                        CASE WHEN n <= 4000 THEN (CAST(:topics AS bigint[]))[1 + (n - 1) / 200] END,
                        CASE WHEN n > 4000 THEN (CAST(:games AS varchar[]))[1 + (n - 1) %% 6] END,
+                       CASE WHEN n > 4000 THEN 1 END,
                        'SUBMITTED', n %% 100, n %% 1000, :at, false
                 FROM generate_series(1, 10000) AS n
                 """.replace("%%", "%"), new MapSqlParameterSource()
@@ -325,7 +349,7 @@ class LeaderboardRepositoryIntegrationTest {
     }
 
     private LeaderboardRepository.Snapshot games(Long viewer, Set<Long> banned, Interval interval, int size) {
-        return repository.gameRanking(GameCode.CHAR_RAIN, interval, banned, viewer, size);
+        return repository.gameRanking(GameCode.CHAR_RAIN, 1, interval, banned, viewer, size);
     }
 
     private long user() {
@@ -342,6 +366,12 @@ class LeaderboardRepositoryIntegrationTest {
         attempt(user, "GAME", null, null, "CHAR_RAIN", "SUBMITTED", score, duration, submitted, false);
     }
 
+    private void gameAtLevel(long user, Integer hskLevel, long score) {
+        game(user, score, 1000, NOW);
+        jdbc.update("UPDATE learning.attempts SET hsk_level = ? WHERE id = (SELECT MAX(id) FROM learning.attempts WHERE user_id = ?)",
+                hskLevel, user);
+    }
+
     private void quiz(long user, long topic, Long score, Integer duration, Instant submitted, boolean suspicious) {
         attempt(user, "QUIZ", "QUIZ", topic, null, "SUBMITTED", score, duration, submitted, suspicious);
     }
@@ -349,9 +379,10 @@ class LeaderboardRepositoryIntegrationTest {
     private void attempt(long user, String kind, String refType, Long refId, String game, String status,
             Long score, Integer duration, Instant submitted, boolean suspicious) {
         jdbc.update("""
-                INSERT INTO learning.attempts(user_id, kind, ref_type, ref_id, game_code, status,
-                    score, duration_ms, submitted_at, suspicious) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, user, kind, refType, refId, game, status, score, duration, Timestamp.from(submitted), suspicious);
+                INSERT INTO learning.attempts(user_id, kind, ref_type, ref_id, game_code, hsk_level, status,
+                    score, duration_ms, submitted_at, suspicious) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, user, kind, refType, refId, game, game == null ? null : 1, status, score, duration,
+                Timestamp.from(submitted), suspicious);
     }
 
     private String plan(String sql, MapSqlParameterSource parameters, boolean analyze) {

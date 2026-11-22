@@ -30,7 +30,7 @@ public class GameRoundPracticeHandler implements PracticeSourceHandler {
     @Override
     public void validateAnswerContext(Attempt attempt, ServedItem item, Answer answer) {
         var round = round(attempt.getId());
-        hooks.validateAnswer(round, mapper.convertValue(item, PracticeApi.ServedItem.class),
+        hooks.validateAnswer(round, rounds.totals(attempt.getId()), mapper.convertValue(item, PracticeApi.ServedItem.class),
                 new PracticeApi.Answer(answer.no(), answer.answer(), answer.durationMs(), answer.replayCount(),
                         answer.skipped(), answer.audioFailed(), answer.clientMeta()), clock.instant());
     }

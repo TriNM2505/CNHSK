@@ -6,7 +6,9 @@ import java.util.Map;
 
 /** Server-only extension contract. These records must never be serialized as HTTP responses. */
 public interface GameRoundHooks {
-    void validateAnswer(Round round, PracticeApi.ServedItem item, PracticeApi.Answer answer, Instant now);
+    /** Runs while the round is locked, so {@code totals} cannot change before this answer is recorded. */
+    void validateAnswer(Round round, AnswerTotals totals, PracticeApi.ServedItem item, PracticeApi.Answer answer,
+            Instant now);
 
     Map<String, Object> onFinish(Round round, Finish finish);
 
@@ -24,5 +26,7 @@ public interface GameRoundHooks {
     record Finish(Long score, Long maxScore, boolean suspicious, Instant submittedAt,
                   long correct, long wrong, long bestCorrectBefore) { }
 
-    record AnswerTotals(long correct, long answeredCount) { }
+    record AnswerTotals(long correct, long answeredCount) {
+        public long wrong() { return answeredCount - correct; }
+    }
 }

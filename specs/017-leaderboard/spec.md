@@ -8,7 +8,8 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
+| **Thay đổi 1.1.0** | Bảng game chia theo cấp HSK 1–3 (FR-008a); ván chưa ghi cấp không vào bảng; tên game CHAR_RAIN "Lọ Mực", BRUSH_STROKE "Mưa Chữ" |
 | **Status** | APPROVED — được code theo `tasks.md` |
 | **Approved by** | Leader (rà và duyệt 2026-11-13; quyết định chung H1–H14 plan `261113-1629`) |
 | **Locked on** | 2026-11-13 |
@@ -113,6 +114,7 @@ Là người học đã đăng nhập, tôi thấy hạng và điểm của mìn
 
 ### Nhóm 4 — Bộ chọn (FR-014…FR-015)
 - **FR-014** `GET /api/public/leaderboards/topics?hsk=` trả danh sách chủ đề `{id, name, hskLevel}` sắp `hsk_level, order_index` (API chủ đề có sẵn chỉ cho `LEARNER`).
+- **FR-008a** Bảng game chỉ xét ván có `hsk_level` = cấp đang xem: `GET /api/public/leaderboards/games/{gameCode}?period=&hskLevel=` nhận 1–3, thiếu → 1, khác → 422 `VALIDATION_FAILED`; ván `hsk_level IS NULL` không bao giờ vào bảng; khoá cache có thêm `:hsk{n}` sau mã game. SCR-047 có ô chọn HSK 1–3 (mặc định 1, không có "tất cả"), query `&hskLevel=` (v1.1.0).
 - **FR-015** `GET /api/public/leaderboards/games` trả 6 game `{code, name}` từ `learning.api.GameCode` (tên tiếng Việt trong enum).
 
 ### Nhóm 5 — Cache (FR-016…FR-017)
@@ -226,6 +228,7 @@ Mã mới thêm ngay trước `INTERNAL_ERROR` theo thứ tự merge (H8). Redis
 | AT-04 | Lượt `suspicious=true` điểm cao nhất | Không có trên bảng |
 | AT-05 | Người bị khoá đứng đầu theo điểm | Không xuất hiện; người kế là hạng 1 |
 | AT-06 | Game: một người 3 ván 50/80/70 | Một dòng điểm 80 |
+| AT-06a | Ván HSK 1, HSK 2 và ván chưa ghi cấp cùng một game | Bảng HSK 1 chỉ có ván HSK 1 |
 | AT-07 | Nộp lúc 23:59 Chủ nhật và 00:00 thứ Hai giờ VN, xem `week` vào thứ Hai | Chỉ lượt 00:00 thứ Hai được tính |
 | AT-08 | Xem `month` ngày 1 | Chỉ lượt từ ngày 1 00:00 giờ VN |
 | AT-09 | Người học hạng 128 xem top | `myEntry.rank=128`, có điểm |

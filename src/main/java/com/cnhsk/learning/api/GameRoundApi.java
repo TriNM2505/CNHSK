@@ -57,6 +57,15 @@ public class GameRoundApi {
         }
     }
 
+    /** Rankings are kept per HSK level, so each round stores the level it was played at. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordHskLevel(long roundId, int hskLevel) {
+        int updated = jdbc.update("UPDATE learning.attempts SET hsk_level = :level "
+                        + "WHERE id = :id AND kind = 'GAME' AND ref_type = 'GAME_ROUND'",
+                Map.of("level", hskLevel, "id", roundId));
+        if (updated != 1) throw new IllegalStateException("Game round to record the HSK level on is missing.");
+    }
+
     /** Ownership, status and expiry checks are performed by the existing engine. */
     public void abandon(long userId, long roundId) {
         practice.abandon(userId, roundId);

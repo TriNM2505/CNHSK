@@ -64,7 +64,7 @@ class CharRainGameIntegrationTest extends AbstractIntegrationTest {
         seedCharacters(30);
         var started = read(startRound().andExpect(status().isCreated())
                 .andExpect(jsonPath("$.gameCode").value("CHAR_RAIN"))
-                .andExpect(jsonPath("$.timeLimitSeconds").value(180))
+                .andExpect(jsonPath("$.timeLimitSeconds").value(60))
                 .andExpect(jsonPath("$.pointsPerCorrect").value(10))
                 .andExpect(jsonPath("$.uiConfig.requiredStrokes").value("ALL"))
                 .andExpect(jsonPath("$.uiConfig.strokeOrder").value(true)));
@@ -97,7 +97,8 @@ class CharRainGameIntegrationTest extends AbstractIntegrationTest {
             answer(rapid, no, 100);
         }
         finish(rapid).andExpect(jsonPath("$.points").value(100))
-                .andExpect(jsonPath("$.maxPoints").value(100))
+                // Thirty seeded characters are all served in a sixty-character round.
+                .andExpect(jsonPath("$.maxPoints").value(300))
                 .andExpect(jsonPath("$.correct").value(10))
                 .andExpect(jsonPath("$.suspicious").value(true))
                 .andExpect(jsonPath("$.newBest").value(false))
@@ -136,7 +137,7 @@ class CharRainGameIntegrationTest extends AbstractIntegrationTest {
     }
 
     private void assertPublicItems(JsonNode items) {
-        assertThat(items).hasSize(10);
+        assertThat(items).hasSize(30);
         assertThat(items).allSatisfy(item -> {
             long id = item.path("lexemeId").asLong();
             assertThat(strokesById).containsKey(id);

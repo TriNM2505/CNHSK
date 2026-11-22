@@ -70,10 +70,10 @@ class ContentLookupTest {
     }
 
     @Test
-    void FR021_AC03_cardHasExactlyTheElevenContractFieldsAndNoEntityTypes() {
+    void FR021_AC03_cardHasExactlyTheContractFieldsAndNoEntityTypes() {
         assertThat(LexemeCard.class.getRecordComponents()).extracting(java.lang.reflect.RecordComponent::getName)
                 .containsExactly("id", "kind", "text", "pinyin", "pinyinKey", "meaningShort", "meaningKeys",
-                        "radical", "strokeCount", "audioUrl", "hskLevel");
+                        "radical", "strokeCount", "audioUrl", "hskLevel", "sinoViet");
         assertThat(ContentLookup.class.getDeclaredMethods()).singleElement().satisfies(method -> {
             assertThat(method.getName()).isEqualTo("pool");
             assertThat(method.getGenericReturnType().getTypeName()).doesNotContain(".entity.", "learning.content");

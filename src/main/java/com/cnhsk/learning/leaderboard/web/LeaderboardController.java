@@ -81,8 +81,11 @@ public class LeaderboardController {
             @ApiResponse(responseCode = "429", description = "RATE_LIMITED")})
     public Leaderboard getGameLeaderboard(@PathVariable String gameCode,
             @Parameter(schema = @Schema(allowableValues = {"week", "month", "all"}, defaultValue = "week"))
-            @RequestParam(required = false) String period, @AuthenticationPrincipal AuthenticatedUser user) {
-        return service.gameLeaderboard(gameCode, period, user == null ? null : user.userId());
+            @RequestParam(required = false) String period,
+            @Parameter(schema = @Schema(allowableValues = {"1", "2", "3"}, defaultValue = "1"))
+            @RequestParam(required = false) String hskLevel,
+            @AuthenticationPrincipal AuthenticatedUser user) {
+        return service.gameLeaderboard(gameCode, period, hskLevel, user == null ? null : user.userId());
     }
 
     private static long integer(String value, String field) {

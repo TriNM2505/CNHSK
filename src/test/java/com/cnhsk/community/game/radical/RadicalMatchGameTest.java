@@ -21,14 +21,14 @@ class RadicalMatchGameTest {
     private final RadicalMatchGame game = new RadicalMatchGame();
 
     @ParameterizedTest
-    @CsvSource({"7,0", "8,8", "14,14", "22,15"})
+    @CsvSource({"14,0", "15,15", "22,15"})
     void AT09_roundSizeAndAvailabilityUseTheSameThresholds(int count, int expected) {
         var context = context(cards(count, "氵", "扌", "日", "木"));
         var items = game.buildRound(context, new Random(814));
 
         assertThat(game.isAvailable(context)).isEqualTo(expected > 0);
         assertThat(game.code()).isEqualTo(GameCode.RADICAL_MATCH);
-        assertThat(game.timeLimitSeconds()).isEqualTo(90);
+        assertThat(game.timeLimitSeconds()).isEqualTo(600);
         assertThat(game.pointsPerCorrect()).isEqualTo(10);
         assertThat(game.uiConfig()).isEmpty();
         assertThat(items).hasSize(expected);
@@ -51,9 +51,9 @@ class RadicalMatchGameTest {
     @ParameterizedTest
     @CsvSource({"氵,冫", "扌,才", "亻,彳", "日,曰", "木,禾", "礻,衤", "宀,冖", "艹,竹", "讠,言", "钅,金"})
     void AT10_usesLookalikesInBothDirections(String first, String second) {
-        var pool = cards(8, first, second, "人", "口", "石");
+        var pool = cards(15, first, second, "人", "口", "石");
         var items = game.buildRound(context(pool), new Random(816));
-        assertThat(items).hasSize(8);
+        assertThat(items).hasSize(15);
         for (var item : items) {
             String correct = pool.get(item.lexemeId().intValue()).radical();
             String preferred = correct.equals(first) ? second : first;
@@ -65,8 +65,8 @@ class RadicalMatchGameTest {
 
     @Test
     void AT10_fillsAllDistractorsFromAvailableRadicalsWhenLookalikeIsAbsent() {
-        var items = game.buildRound(context(cards(8, "氵", "扌", "日", "木", "口")), new Random(16));
-        assertThat(items).hasSize(8);
+        var items = game.buildRound(context(cards(15, "氵", "扌", "日", "木", "口")), new Random(16));
+        assertThat(items).hasSize(15);
         assertThat(items).allSatisfy(item -> {
             assertThat(item.options()).hasSize(4);
             assertThat(item.options()).extracting(PracticeApi.Option::text)
@@ -76,13 +76,13 @@ class RadicalMatchGameTest {
 
     @Test
     void AT11_whitespaceVariantsDoNotIncreaseTheNumberOfRadicals() {
-        var pool = new ArrayList<>(cards(10, "氵", "氵", "木", "日"));
+        var pool = new ArrayList<>(cards(15, "氵", "氵", "木", "日"));
         pool.set(1, card(1, "CHAR", " 氵 "));
         pool.set(5, card(5, "CHAR", "　氵 "));
         assertUnavailable(pool);
         pool.set(1, card(1, "CHAR", "冫"));
         var items = game.buildRound(context(pool), new Random(4));
-        assertThat(items).hasSize(10);
+        assertThat(items).hasSize(15);
         assertThat(items).allSatisfy(item -> assertThat(item.options()).extracting(PracticeApi.Option::text)
                 .containsExactlyInAnyOrder("氵", "冫", "木", "日"));
     }

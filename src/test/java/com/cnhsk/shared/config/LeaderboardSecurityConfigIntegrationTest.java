@@ -55,7 +55,7 @@ class LeaderboardSecurityConfigIntegrationTest {
         when(counters.increment(anyString(), any())).thenReturn(1L);
         when(service.listGames()).thenReturn(List.of());
         when(service.listTopics(any())).thenReturn(List.of());
-        when(service.gameLeaderboard(anyString(), any(), any())).thenAnswer(invocation -> result(invocation.getArgument(2)));
+        when(service.gameLeaderboard(anyString(), any(), any(), any())).thenAnswer(invocation -> result(invocation.getArgument(3)));
         when(service.topicLeaderboard(anyLong(), any(), any())).thenAnswer(invocation -> result(invocation.getArgument(2)));
     }
 
@@ -75,7 +75,7 @@ class LeaderboardSecurityConfigIntegrationTest {
         mvc.perform(get(GAME).cookie(new Cookie("access_token", token)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.myEntry.userId").value(42));
         verifyNoInteractions(counters);
-        verify(service, times(2)).gameLeaderboard("CHAR_RAIN", null, 42L);
+        verify(service, times(2)).gameLeaderboard("CHAR_RAIN", null, null, 42L);
     }
 
     @Test void AT15_expiredRevokedAndBannedAreGuestsButProtectedRoutesKeepTheirBehavior() throws Exception {

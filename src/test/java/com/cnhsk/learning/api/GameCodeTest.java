@@ -22,11 +22,11 @@ class GameCodeTest {
 
     @ParameterizedTest
     @CsvSource({
-            "CHAR_RAIN, Mưa Chữ",
+            "CHAR_RAIN, Lọ Mực",
             "PINYIN_MATCH, Ghép Pinyin",
             "RADICAL_MATCH, Ghép Bộ Thủ",
             "CHAR_CATCH, Bắt Chữ",
-            "BRUSH_STROKE, Thần Bút",
+            "BRUSH_STROKE, Mưa Chữ",
             "FLYING_DART, Phi Đao"
     })
     void FR015_approvedCodeResolvesToItsVietnameseDisplayName(String code, String displayName) {

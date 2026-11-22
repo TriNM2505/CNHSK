@@ -32,11 +32,13 @@ class GameRoundPracticeHandlerTest {
         var item = PracticeServiceTest.choice(1);
         var round = round(item);
         when(rounds.find(19)).thenReturn(Optional.of(round));
+        var totals = new GameRoundHooks.AnswerTotals(2, 3);
+        when(rounds.totals(19)).thenReturn(totals);
         var attempt = new Attempt(7L, "GAME", "GAME_ROUND", null, NOW, NOW.plusSeconds(48), mapper.createObjectNode());
         ReflectionTestUtils.setField(attempt, "id", 19L);
         var answer = new PracticeSourceHandler.Answer(1, "A", 1000, 0, false, false, Map.of());
         handler.validateAnswerContext(attempt, item, answer);
-        verify(hooks).validateAnswer(eq(round), eq(mapper.convertValue(item, PracticeApi.ServedItem.class)),
+        verify(hooks).validateAnswer(eq(round), eq(totals), eq(mapper.convertValue(item, PracticeApi.ServedItem.class)),
                 eq(new PracticeApi.Answer(1, "A", 1000, 0, false, false, Map.of())), eq(NOW));
         assertThat(handler.source()).isEqualTo(PracticeSource.GAME_ROUND);
     }

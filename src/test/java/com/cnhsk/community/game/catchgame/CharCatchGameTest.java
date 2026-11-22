@@ -22,15 +22,15 @@ class CharCatchGameTest {
     private final CharCatchGame game = new CharCatchGame();
 
     @ParameterizedTest
-    @CsvSource({"7,0", "8,8", "12,12", "24,20"})
+    @CsvSource({"7,0", "8,8", "12,12", "120,100"})
     void roundsUseSixOptionsAndRespectMinimumAndMaximum(int count, int expected) {
         var context = context(cards(count, true));
         var items = game.buildRound(context, new Random(519));
         assertThat(game.isAvailable(context, new Random(519))).isEqualTo(expected > 0);
         assertThat(game.code()).isEqualTo(GameCode.CHAR_CATCH);
-        assertThat(game.timeLimitSeconds()).isEqualTo(75);
+        assertThat(game.timeLimitSeconds()).isEqualTo(60);
         assertThat(game.pointsPerCorrect()).isEqualTo(10);
-        assertThat(game.uiConfig()).isEqualTo(Map.of("perItemMs", 4000, "gridColumns", 3));
+        assertThat(game.uiConfig()).isEqualTo(Map.of("gridColumns", 3));
         assertThat(items).hasSize(expected);
         assertThat(items).extracting(PracticeApi.ServedItem::lexemeId).doesNotHaveDuplicates();
         for (int index = 0; index < items.size(); index++) {

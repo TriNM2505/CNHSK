@@ -23,10 +23,16 @@ public class GameRoundHandler implements GameRoundHooks {
     public GameRoundHandler(GameRegistry registry) { this.registry = registry; }
 
     @Override
-    public void validateAnswer(Round round, PracticeApi.ServedItem item, PracticeApi.Answer answer, Instant now) {
+    public void validateAnswer(Round round, AnswerTotals totals, PracticeApi.ServedItem item,
+            PracticeApi.Answer answer, Instant now) {
         if (now.isAfter(round.deadline().plusSeconds(2))) {
             throw new ApiException(ErrorCode.ROUND_TIME_OVER, HttpStatus.UNPROCESSABLE_ENTITY,
                     "Ván đã hết thời gian trả lời.", Map.of());
+        }
+        int maxLives = definition(round).maxLives();
+        if (maxLives > 0 && totals.wrong() >= maxLives) {
+            throw new ApiException(ErrorCode.ROUND_TIME_OVER, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Bạn đã hết lượt sai của ván này.", Map.of());
         }
         // Audio-failure evidence remains an engine concern; the public game request cannot supply it.
         if (!answer.audioFailed() && !answer.skipped()) {

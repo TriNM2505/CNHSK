@@ -16,13 +16,13 @@ import com.cnhsk.learning.api.PracticeApi;
 
 public final class CharRainGame implements GameDefinition {
     private static final int MIN_CHARACTERS = 5;
-    private static final int MAX_CHARACTERS = 10;
+    private static final int MAX_CHARACTERS = 60;
 
     @Override public GameCode code() { return GameCode.CHAR_RAIN; }
-    @Override public String description() { return "Tô từng nét của các chữ Hán lần lượt xuất hiện."; }
+    @Override public String description() { return "Viết đúng thứ tự nét để giữ mực trong lọ."; }
     @Override public PracticeApi.Skill skill() { return PracticeApi.Skill.WRITING; }
-    @Override public String howToPlay() { return "Tô mọi nét theo thứ tự. Nếu sai, hãy thử lại nét đó."; }
-    @Override public int timeLimitSeconds() { return 180; }
+    @Override public String howToPlay() { return "Viết từng nét theo đúng thứ tự trên khung chữ mờ. Mỗi lần viết sai, lọ mực vơi một phần ba; sai ba lần là hết mực. Viết được càng nhiều chữ trong 60 giây càng cao điểm."; }
+    @Override public int timeLimitSeconds() { return 60; }
     @Override public int pointsPerCorrect() { return 10; }
 
     @Override
@@ -53,7 +53,8 @@ public final class CharRainGame implements GameDefinition {
 
     @Override
     public Map<String, Object> uiConfig() {
-        return Map.of("requiredStrokes", "ALL", "strokeOrder", true);
+        // Ink is counted on the client: a wrong stroke keeps the learner on the same character.
+        return Map.of("requiredStrokes", "ALL", "strokeOrder", true, "startGuide", false, "inkLives", 3);
     }
 
     private List<LexemeCard> pool(GameContext context) {

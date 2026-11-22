@@ -66,12 +66,12 @@ class GameProductionIntegrationTest {
     private static final String BASE = "/api/community/games/";
     private static final String HASH = new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
     private static final Map<GameCode, RoundSpec> EXPECTED = Map.of(
-            GameCode.CHAR_RAIN, new RoundSpec(180, 10, "WRITING"),
-            GameCode.PINYIN_MATCH, new RoundSpec(90, 18, "VOCAB"),
-            GameCode.RADICAL_MATCH, new RoundSpec(90, 15, "CHARACTER"),
-            GameCode.CHAR_CATCH, new RoundSpec(75, 20, "LISTENING"),
-            GameCode.BRUSH_STROKE, new RoundSpec(60, 60, "WRITING"),
-            GameCode.FLYING_DART, new RoundSpec(60, 60, "VOCAB"));
+            GameCode.CHAR_RAIN, new RoundSpec(60, 60, "WRITING"),
+            GameCode.PINYIN_MATCH, new RoundSpec(600, 30, "VOCAB"),
+            GameCode.RADICAL_MATCH, new RoundSpec(600, 15, "CHARACTER"),
+            GameCode.CHAR_CATCH, new RoundSpec(60, 100, "LISTENING"),
+            GameCode.BRUSH_STROKE, new RoundSpec(600, 80, "WRITING"),
+            GameCode.FLYING_DART, new RoundSpec(60, 60, "CHARACTER"));
 
     @Autowired private MockMvc mvc;
     @Autowired private JdbcTemplate jdbc;
@@ -104,12 +104,12 @@ class GameProductionIntegrationTest {
     }
 
     @Test
-    void AT21_flyingDartHidesAcceptanceKeysAndGradesAllSupportedPinyinForms() throws Exception {
+    void flyingDartHidesAcceptanceKeysAndGradesSinoVietnameseReadings() throws Exception {
         for (int index = 0; index < 20; index++) {
-            addLexeme("WORD", "xuéxí", null, null, index);
+            addLexeme("CHAR", "xué", null, 8, index);
         }
-        for (String input : List.of("xuéxí", "xue2xi2", "xuexi", "xue2xi", "xuéxì")) {
-            boolean correct = List.of("xuéxí", "xue2xi2", "xuexi").contains(input);
+        for (String input : List.of("học", "HOC", "hok", "xué")) {
+            boolean correct = List.of("học", "HOC").contains(input);
             var started = start(GameCode.FLYING_DART);
             long id = started.path("roundId").asLong();
             var resumed = mapper.readTree(mvc.perform(get(BASE + "rounds/{id}", id).header("Authorization", bearer))
@@ -119,7 +119,7 @@ class GameProductionIntegrationTest {
                 assertThat(response.toString()).doesNotContain("\"accept\"", "\"answer\"", "\"correctAnswer\"");
                 assertThat(response.path("items")).allSatisfy(item -> {
                     assertThat(item.path("prompt").has("pinyin")).isFalse();
-                    assertThat(item.path("rules").path("minDurationMs").asInt()).isEqualTo(700);
+                    assertThat(item.path("rules").path("minDurationMs").asInt()).isEqualTo(500);
                 });
             }
             answer(id, input).andExpect(jsonPath("$.correct").value(correct))
@@ -153,7 +153,7 @@ class GameProductionIntegrationTest {
             assertThat(persisted).containsEntry("kind", "GAME").containsEntry("game_code", code.name())
                     .containsEntry("status", "SUBMITTED").containsEntry("suspicious", false);
             assertThat(((Number) persisted.get("score")).longValue()).isEqualTo(1);
-            var rank = repository.gameRanking(code, leaderboardInterval, Set.of(), userId, 20).myEntry().orElseThrow();
+            var rank = repository.gameRanking(code, 3, leaderboardInterval, Set.of(), userId, 20).myEntry().orElseThrow();
             assertThat(rank.userId()).isEqualTo(userId);
             assertThat(rank.score()).isEqualTo(1);
         }
@@ -173,9 +173,9 @@ class GameProductionIntegrationTest {
 
     private void addLexeme(String kind, String pinyin, String radical, Integer strokes, int index) {
         String text = ("WORD".equals(kind) ? "詞組" : "字") + UUID.randomUUID();
-        long id = jdbc.queryForObject("INSERT INTO learning.lexemes(kind,text,pinyin,meaning_vi,hsk_level,radical,stroke_count) "
-                        + "VALUES (?,?,?,?,3,?,?) RETURNING id", Long.class, kind, text, pinyin, "nghĩa tự soạn " + index,
-                radical, strokes);
+        long id = jdbc.queryForObject("INSERT INTO learning.lexemes(kind,text,pinyin,meaning_vi,hsk_level,radical,stroke_count,sino_viet) "
+                        + "VALUES (?,?,?,?,3,?,?,?) RETURNING id", Long.class, kind, text, pinyin, "nghĩa tự soạn " + index,
+                radical, strokes, "CHAR".equals(kind) ? "học" : null);
         lexemes.put(id, new Sample(text, pinyin, radical));
     }
 
@@ -183,7 +183,7 @@ class GameProductionIntegrationTest {
         var sample = lexemes.get(item.path("lexemeId").asLong());
         return switch (code) {
             case CHAR_RAIN, BRUSH_STROKE -> "PASS";
-            case FLYING_DART -> sample.pinyin();
+            case FLYING_DART -> "hoc";
             case PINYIN_MATCH -> optionKey(item, sample.pinyin());
             case RADICAL_MATCH -> optionKey(item, sample.radical());
             case CHAR_CATCH -> optionKey(item, sample.text());

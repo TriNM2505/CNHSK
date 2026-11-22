@@ -47,8 +47,9 @@ public final class GameViews {
     public record Answered(int no, Boolean correct, String correctAnswer) { }
 
     @Schema(name = "RoundAnswerResult")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     public record RoundAnswerResult(int no, boolean correct, String correctAnswer, int pointsAwarded,
-            long totalPoints, long answeredCount) { }
+            long totalPoints, long answeredCount, Integer livesLeft) { }
 
     @Schema(name = "RoundResult")
     @JsonInclude(JsonInclude.Include.ALWAYS)

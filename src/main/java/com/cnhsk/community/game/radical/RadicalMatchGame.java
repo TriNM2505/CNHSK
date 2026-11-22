@@ -17,7 +17,7 @@ import com.cnhsk.learning.api.GameCode;
 import com.cnhsk.learning.api.PracticeApi;
 
 public final class RadicalMatchGame implements GameDefinition {
-    private static final int MIN_CHARACTERS = 8;
+    private static final int MIN_CHARACTERS = 15;
     private static final int MAX_CHARACTERS = 15;
     private static final int DISTRACTOR_COUNT = 3;
     private static final Pattern EDGE_WHITESPACE = Pattern.compile("(?U)^\\s+|\\s+$");
@@ -25,8 +25,9 @@ public final class RadicalMatchGame implements GameDefinition {
     @Override public GameCode code() { return GameCode.RADICAL_MATCH; }
     @Override public String description() { return "Nhận diện bộ thủ của từng chữ Hán."; }
     @Override public PracticeApi.Skill skill() { return PracticeApi.Skill.CHARACTER; }
-    @Override public String howToPlay() { return "Nhìn chữ và chọn bộ thủ đúng trong bốn phương án."; }
-    @Override public int timeLimitSeconds() { return 90; }
+    @Override public String howToPlay() { return "Nhìn chữ và chọn bộ thủ đúng trong bốn phương án. Xong 15 câu càng nhanh càng cao điểm; sai ba lần là dừng."; }
+    @Override public int timeLimitSeconds() { return 600; }
+    @Override public int maxLives() { return 3; }
     @Override public int pointsPerCorrect() { return 10; }
 
     @Override

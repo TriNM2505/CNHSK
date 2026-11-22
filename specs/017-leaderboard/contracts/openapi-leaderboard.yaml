@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: CNHSK Leaderboard API
-  version: 0.1.0
+  version: 0.2.0
   description: >
     Hợp đồng spec 017-leaderboard. Bảng xếp hạng công khai theo chủ đề (lượt quiz đầu tiên) và theo game
     (ván cao nhất mỗi người), kỳ tuần/tháng/toàn thời gian theo giờ Việt Nam. Không cần đăng nhập; có phiên
@@ -125,6 +125,7 @@ paths:
       parameters:
         - { name: gameCode, in: path, required: true, schema: { type: string } }
         - $ref: '#/components/parameters/Period'
+        - { name: hskLevel, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 3, default: 1 } }
       responses:
         '200':
           description: Bảng xếp hạng

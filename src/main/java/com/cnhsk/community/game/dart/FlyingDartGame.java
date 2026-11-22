@@ -1,7 +1,7 @@
 package com.cnhsk.community.game.dart;
 
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,19 +14,24 @@ import com.cnhsk.community.game.common.GameItemBuilders;
 import com.cnhsk.learning.api.ContentLookup.GameContentQuery;
 import com.cnhsk.learning.api.ContentLookup.LexemeCard;
 import com.cnhsk.learning.api.GameCode;
-import com.cnhsk.learning.api.GamePinyin;
 import com.cnhsk.learning.api.PracticeApi;
 
+/** The bear throws a dart at a character when the learner types its Sino-Vietnamese reading. */
 public final class FlyingDartGame implements GameDefinition {
     private static final int MIN_ITEMS = 20;
     private static final int MAX_ITEMS = 60;
+    private static final int MIN_ANSWER_MS = 500;
 
     @Override public GameCode code() { return GameCode.FLYING_DART; }
-    @Override public String description() { return "Gõ pinyin của chữ hoặc từ đang rơi."; }
-    @Override public PracticeApi.Skill skill() { return PracticeApi.Skill.VOCAB; }
-    @Override public String howToPlay() { return "Gõ pinyin rồi nhấn Enter trước khi chữ chạm đất."; }
+    @Override public String description() { return "Gõ âm Hán Việt để gấu phi dao hạ chữ."; }
+    @Override public PracticeApi.Skill skill() { return PracticeApi.Skill.CHARACTER; }
+    @Override public String howToPlay() {
+        return "Gõ âm Hán Việt của chữ rồi nhấn Enter, có dấu hay không dấu đều được. "
+                + "Phi trúng càng nhiều chữ trong 60 giây càng cao điểm; gõ sai ba lần là dừng.";
+    }
     @Override public int timeLimitSeconds() { return 60; }
     @Override public int pointsPerCorrect() { return 10; }
+    @Override public int maxLives() { return 3; }
 
     @Override
     public boolean isAvailable(GameContext context) {
@@ -37,48 +42,48 @@ public final class FlyingDartGame implements GameDefinition {
     public List<PracticeApi.ServedItem> buildRound(GameContext context) {
         var pool = pool(context);
         if (pool.size() < MIN_ITEMS) return List.of();
-        var cards = pool.values().stream().map(Entry::card).toList();
-        var selected = GameItemBuilders.selectQuestions(cards, cards.size(), RandomGenerator.getDefault()).stream()
-                .sorted(Comparator.comparing(card -> !"WORD".equals(card.kind())))
-                .limit(MAX_ITEMS).toList();
+        var selected = GameItemBuilders.selectQuestions(List.copyOf(pool.keySet()), MAX_ITEMS, RandomGenerator.getDefault());
 
         List<PracticeApi.ServedItem> items = new ArrayList<>(selected.size());
         for (LexemeCard card : selected) {
-            var pronunciation = pool.get(card.id()).pronunciation();
-            var prompt = new PracticeApi.Prompt(card.text(), null, null, null, null, null,
-                    card.meaningShort(), null, null);
-            var rules = new PracticeApi.Rules(400 + 150 * pronunciation.syllableCount(), 0, false);
-            items.add(new PracticeApi.ServedItem(items.size() + 1, PracticeApi.ItemType.PINYIN_INPUT,
-                    skill(), card.id(), prompt, null, null, List.of(card.pinyin(), pronunciation.withoutTones()), null,
-                    rules));
+            // No meaning: for many characters it is the Sino-Vietnamese reading itself (学 = "học").
+            var prompt = new PracticeApi.Prompt(card.text(), null, null, null, null, null, null, null, null);
+            items.add(new PracticeApi.ServedItem(items.size() + 1, PracticeApi.ItemType.SINO_VIET_INPUT,
+                    skill(), card.id(), prompt, null, null, pool.get(card), null,
+                    new PracticeApi.Rules(MIN_ANSWER_MS, 0, false)));
         }
         return List.copyOf(items);
     }
 
     @Override
     public void validateAnswer(PracticeApi.ServedItem item, String answer, int elapsedMs) {
-        // The practice engine checks the input against the pinyin saved in the snapshot.
+        // The practice engine matches the input against the readings saved in the snapshot.
     }
 
     @Override
     public Map<String, Object> uiConfig() {
-        return Map.of("fallStartMs", 6000, "fallStepMs", 150, "fallMinMs", 3000, "maxInputLength", 40);
+        return Map.of("maxInputLength", 20);
     }
 
-    private static Map<Long, Entry> pool(GameContext context) {
-        Set<String> kinds = Set.of("WORD", "CHAR");
+    /** Characters with at least one recorded reading, each mapped to its distinct readings. */
+    private static Map<LexemeCard, List<String>> pool(GameContext context) {
         Set<Integer> levels = context.hskLevel() == null ? Set.of() : Set.of(context.hskLevel());
         var cards = context.contentLookup().pool(
-                new GameContentQuery(kinds, levels, false, false, false, context.userId(), 200));
-        Map<Long, Entry> eligible = new LinkedHashMap<>();
+                new GameContentQuery(Set.of("CHAR"), levels, false, false, false, context.userId(), 200));
+        Map<Long, LexemeCard> byId = new LinkedHashMap<>();
+        Map<LexemeCard, List<String>> eligible = new LinkedHashMap<>();
         for (LexemeCard card : cards) {
-            if (kinds.contains(card.kind()) && card.text() != null && !card.text().isBlank()) {
-                GamePinyin.parse(card.pinyin()).ifPresent(pronunciation ->
-                        eligible.putIfAbsent(card.id(), new Entry(card, pronunciation)));
-            }
+            if (!"CHAR".equals(card.kind()) || card.text() == null || card.text().isBlank()) continue;
+            var readings = readings(card.sinoViet());
+            if (readings.isEmpty() || byId.putIfAbsent(card.id(), card) != null) continue;
+            eligible.put(card, readings);
         }
         return eligible;
     }
 
-    private record Entry(LexemeCard card, GamePinyin.Pronunciation pronunciation) { }
+    private static List<String> readings(String value) {
+        if (value == null) return List.of();
+        return Arrays.stream(value.split("[,;/]")).map(String::strip).filter(reading -> !reading.isEmpty())
+                .distinct().toList();
+    }
 }

@@ -18,15 +18,16 @@ import com.cnhsk.learning.api.PracticeApi;
 
 public final class CharCatchGame implements GameDefinition {
     private static final int MIN_ITEMS = 8;
-    private static final int MAX_ITEMS = 20;
+    /** More than a quick learner can answer in 60 seconds, so the round never caps the score. */
+    private static final int MAX_ITEMS = 100;
     private static final int OPTIONS = 6;
     private static final List<Mode> MODES = List.of(Mode.MEANING, Mode.PINYIN, Mode.AUDIO);
 
     @Override public GameCode code() { return GameCode.CHAR_CATCH; }
     @Override public String description() { return "Chọn chữ hoặc từ khớp với nghĩa, pinyin hoặc âm thanh."; }
     @Override public PracticeApi.Skill skill() { return PracticeApi.Skill.LISTENING; }
-    @Override public String howToPlay() { return "Đọc hoặc nghe gợi ý rồi chọn một trong sáu phương án."; }
-    @Override public int timeLimitSeconds() { return 75; }
+    @Override public String howToPlay() { return "Đọc hoặc nghe gợi ý rồi chọn một trong sáu phương án. Đúng càng nhiều câu trong 60 giây càng cao điểm."; }
+    @Override public int timeLimitSeconds() { return 60; }
     @Override public int pointsPerCorrect() { return 10; }
 
     @Override
@@ -94,7 +95,7 @@ public final class CharCatchGame implements GameDefinition {
         // Grading and duration checks use the rules and answer saved in the snapshot.
     }
 
-    @Override public Map<String, Object> uiConfig() { return Map.of("perItemMs", 4000, "gridColumns", 3); }
+    @Override public Map<String, Object> uiConfig() { return Map.of("gridColumns", 3); }
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();

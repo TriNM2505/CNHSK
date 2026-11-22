@@ -60,7 +60,7 @@ class LeaderboardControllerIntegrationTest extends AbstractIntegrationTest {
         topic = jdbc.queryForObject("INSERT INTO learning.topics(code,name,hsk_level,order_index) VALUES (?,?,1,2) RETURNING id",
                 Long.class, "LB_" + UUID.randomUUID().toString().replace("-", ""), "Chủ đề bảng xếp hạng");
         player = user("Dũng");
-        keys.add("lb:game:FLYING_DART:all:all");
+        keys.add("lb:game:FLYING_DART:hsk1:all:all");
         keys.add("lb:topic:" + topic + ":all:all");
         keys.add("lb:topic:" + topic + ":week:" + java.time.LocalDate.parse("2026-11-16").toEpochDay());
         keys.add("lb:rate:guest:" + remote + ":" + NOW.getEpochSecond());
@@ -108,7 +108,7 @@ class LeaderboardControllerIntegrationTest extends AbstractIntegrationTest {
         JsonNode games = read("/api/public/leaderboards/games", null);
         assertThat(games).hasSize(6);
         assertThat(games.get(4).path("code").asText()).isEqualTo("BRUSH_STROKE");
-        assertThat(games.get(4).path("name").asText()).isEqualTo("Thần Bút");
+        assertThat(games.get(4).path("name").asText()).isEqualTo("Mưa Chữ");
         assertThat(games.get(5).path("code").asText()).isEqualTo("FLYING_DART");
         assertThat(games.get(5).path("name").asText()).isEqualTo("Phi Đao");
     }
@@ -124,7 +124,7 @@ class LeaderboardControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(read(GAME + "?period=all", user("Khách khác")).path("myEntry").isNull()).isTrue();
         jdbc.update("UPDATE auth.users SET display_name='Tên mới' WHERE id=?", player);
         assertThat(read(GAME + "?period=all", null).path("entries").get(0).path("displayName").asText()).isEqualTo("Tên mới");
-        String raw = redis.opsForValue().get("lb:game:FLYING_DART:all:all");
+        String raw = redis.opsForValue().get("lb:game:FLYING_DART:hsk1:all:all");
         assertThat(raw).doesNotContain("myEntry", "displayName", "email", "avatarUrl");
     }
 
@@ -137,13 +137,13 @@ class LeaderboardControllerIntegrationTest extends AbstractIntegrationTest {
         jdbc.update("UPDATE auth.users SET banned_at=now(),ban_reason='fixture' WHERE id=?", player);
         assertThat(service.rankOf(player, topic)).isEmpty();
         assertThat(read(GAME + "?period=all", null).path("entries")).hasSize(1); // Approved TTL-only delay.
-        redis.delete("lb:game:FLYING_DART:all:all");
+        redis.delete("lb:game:FLYING_DART:hsk1:all:all");
         assertThat(read(GAME + "?period=all", null).path("entries")).isEmpty();
         jdbc.update("UPDATE auth.users SET banned_at=NULL,ban_reason=NULL WHERE id=?", player);
-        redis.delete("lb:game:FLYING_DART:all:all");
+        redis.delete("lb:game:FLYING_DART:hsk1:all:all");
         assertThat(read(GAME + "?period=all", null).path("entries")).hasSize(1);
         jdbc.update("UPDATE learning.attempts SET suspicious=true WHERE user_id=?", player);
-        redis.delete("lb:game:FLYING_DART:all:all");
+        redis.delete("lb:game:FLYING_DART:hsk1:all:all");
         assertThat(read(GAME + "?period=all", null).path("entries")).isEmpty();
     }
 
@@ -180,8 +180,9 @@ class LeaderboardControllerIntegrationTest extends AbstractIntegrationTest {
 
     private void attempt(long user, String kind, Long topicId, String game, long score, boolean suspicious) {
         jdbc.update("""
-                INSERT INTO learning.attempts(user_id,kind,ref_type,ref_id,game_code,status,score,duration_ms,submitted_at,suspicious)
-                VALUES (?,?,?,?,?,'SUBMITTED',?,100,?,?)
-                """, user, kind, topicId == null ? null : "QUIZ", topicId, game, score, Timestamp.from(NOW), suspicious);
+                INSERT INTO learning.attempts(user_id,kind,ref_type,ref_id,game_code,hsk_level,status,score,duration_ms,submitted_at,suspicious)
+                VALUES (?,?,?,?,?,?,'SUBMITTED',?,100,?,?)
+                """, user, kind, topicId == null ? null : "QUIZ", topicId, game, game == null ? null : 1, score,
+                Timestamp.from(NOW), suspicious);
     }
 }

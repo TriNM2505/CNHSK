@@ -38,7 +38,7 @@ class GameRoundServiceTest {
     @Test void AT05_limitIsCheckedUnderLockBeforeAnyGameOrContentAccessAndRoundsUpRetry() {
         when(stats.countRecentGameRounds(7, NOW.minusSeconds(3600)))
                 .thenReturn(new GameStatsApi.RecentGameRounds(30, NOW.minusSeconds(3598).plusMillis(1)));
-        assertThatThrownBy(() -> service.start(7, GameCode.CHAR_RAIN, null)).isInstanceOfSatisfying(ApiException.class,
+        assertThatThrownBy(() -> service.start(7, GameCode.CHAR_RAIN, 1)).isInstanceOfSatisfying(ApiException.class,
                 error -> { assertThat(error.getCode()).isEqualTo(ErrorCode.ROUND_LIMIT_EXCEEDED);
                     assertThat(error.getExtra()).containsEntry("retryAfterSeconds", 3L); });
         var order = inOrder(rounds, stats);
@@ -51,7 +51,7 @@ class GameRoundServiceTest {
     @Test void AT05_retryNeverFallsBelowOneSecond() {
         when(stats.countRecentGameRounds(7, NOW.minusSeconds(3600)))
                 .thenReturn(new GameStatsApi.RecentGameRounds(30, NOW.minusSeconds(3600)));
-        assertThatThrownBy(() -> service.start(7, GameCode.CHAR_RAIN, null)).isInstanceOfSatisfying(ApiException.class,
+        assertThatThrownBy(() -> service.start(7, GameCode.CHAR_RAIN, 1)).isInstanceOfSatisfying(ApiException.class,
                 error -> assertThat(error.getExtra()).containsEntry("retryAfterSeconds", 1L));
     }
 
@@ -74,7 +74,7 @@ class GameRoundServiceTest {
     }
 
     private void unavailable() {
-        assertThatThrownBy(() -> service.start(7, GameCode.CHAR_RAIN, null))
+        assertThatThrownBy(() -> service.start(7, GameCode.CHAR_RAIN, 1))
                 .isInstanceOfSatisfying(ApiException.class, error -> {
                     assertThat(error.getCode()).isEqualTo(ErrorCode.GAME_UNAVAILABLE);
                     assertThat(error.getStatus().value()).isEqualTo(422);
@@ -94,7 +94,7 @@ class GameRoundServiceTest {
         var publicItem = new PracticeApi.ServedItemView(1, item.type(), item.skill(), item.lexemeId(), item.prompt(), item.options(), item.rules());
         when(practice.start(any())).thenReturn(new PracticeApi.SessionView(99, PracticeApi.PracticeSource.GAME_ROUND,
                 null, PracticeApi.FeedbackMode.IMMEDIATE, "IN_PROGRESS", NOW, NOW.plusSeconds(63), List.of(publicItem), List.of(), Map.of()));
-        var result = service.start(7, GameCode.CHAR_RAIN, 9);
+        var result = service.start(7, GameCode.CHAR_RAIN, 3);
         assertThat(result.roundId()).isEqualTo(99); assertThat(result.gameCode()).isEqualTo(GameCode.CHAR_RAIN);
         assertThat(result.serverTime()).isEqualTo(NOW); assertThat(result.startedAt()).isEqualTo(NOW);
         assertThat(result.deadline()).isEqualTo(NOW.plusSeconds(48)); assertThat(result.items()).containsExactly(publicItem);
@@ -103,8 +103,8 @@ class GameRoundServiceTest {
         var command = ArgumentCaptor.forClass(PracticeApi.StartPracticeCommand.class);
         var order = inOrder(rounds, stats, definition, practice);
         order.verify(rounds).lockStart(7); order.verify(stats).countRecentGameRounds(7, NOW.minusSeconds(3600));
-        order.verify(definition).isAvailable(new GameContext(7L, 9, content));
-        order.verify(definition).buildRound(new GameContext(7L, 9, content));
+        order.verify(definition).isAvailable(new GameContext(7L, 3, content));
+        order.verify(definition).buildRound(new GameContext(7L, 3, content));
         order.verify(rounds).abandonActive(7, GameCode.CHAR_RAIN, NOW); order.verify(practice).start(command.capture());
         var value = command.getValue();
         assertThat(value.userId()).isEqualTo(7); assertThat(value.source()).isEqualTo(PracticeApi.PracticeSource.GAME_ROUND);
@@ -113,5 +113,64 @@ class GameRoundServiceTest {
         assertThat(value.ttlOverride()).isEqualTo(Duration.ofSeconds(63));
         assertThat(value.sessionMeta()).containsExactlyInAnyOrderEntriesOf(Map.of("timeLimitSeconds", 45, "pointsPerCorrect", 2, "uiConfig", Map.of("rows", 3)));
         verify(stats, times(1)).countRecentGameRounds(anyLong(), any());
+    }
+
+    private void startableRound(int maxLives) {
+        var item = new PracticeApi.ServedItem(1, PracticeApi.ItemType.MEANING_CHOICE, PracticeApi.Skill.VOCAB, 10L,
+                new PracticeApi.Prompt("你好", null, null, null, null, null, null, null, null),
+                List.of(new PracticeApi.Option("A", "xin chào")), "A", null, null, new PracticeApi.Rules(300, 0, false));
+        when(definition.buildRound(any())).thenReturn(List.of(item));
+        when(definition.timeLimitSeconds()).thenReturn(60);
+        when(definition.pointsPerCorrect()).thenReturn(1);
+        when(definition.maxLives()).thenReturn(maxLives);
+        when(definition.uiConfig(List.of(item))).thenReturn(Map.of("rows", 3));
+        when(practice.start(any())).thenReturn(new PracticeApi.SessionView(99, PracticeApi.PracticeSource.GAME_ROUND,
+                null, PracticeApi.FeedbackMode.IMMEDIATE, "IN_PROGRESS", NOW, NOW.plusSeconds(78), List.of(), List.of(), Map.of()));
+    }
+
+    @Test void aStartedRoundRecordsItsHskLevelForRanking() {
+        startableRound(0);
+        service.start(7, GameCode.CHAR_RAIN, 2);
+        var order = inOrder(practice, rounds);
+        order.verify(practice).start(any());
+        order.verify(rounds).recordHskLevel(99, 2);
+    }
+
+    @Test void aGameWithLivesTellsTheClientHowManyItHas() {
+        startableRound(3);
+        var result = service.start(7, GameCode.CHAR_RAIN, 1);
+        assertThat(result.uiConfig()).containsEntry("rows", 3).containsEntry("maxLives", 3);
+    }
+
+    @Test void aGameWithoutLivesDoesNotAdvertiseThem() {
+        startableRound(0);
+        assertThat(service.start(7, GameCode.CHAR_RAIN, 1).uiConfig()).doesNotContainKey("maxLives");
+    }
+
+    private GameRoundHooks.Round ownedRound() {
+        var round = new GameRoundHooks.Round(99, 7, GameCode.CHAR_RAIN, "IN_PROGRESS", NOW, NOW.plusSeconds(78),
+                60, 1, 30, Map.of(), List.of());
+        when(rounds.findOwned(7, 99)).thenReturn(java.util.Optional.of(round));
+        return round;
+    }
+
+    @Test void eachAnswerReportsTheLivesLeft() {
+        ownedRound();
+        when(definition.maxLives()).thenReturn(3);
+        when(rounds.totals(99)).thenReturn(new GameRoundHooks.AnswerTotals(2, 4));
+        when(practice.answer(eq(7L), eq(99L), any())).thenReturn(new PracticeApi.AnswerResult(4, false, "B",
+                List.of("B"), null, null, null, null));
+        var result = service.answer(7, 99, new com.cnhsk.community.game.web.GameRoundRequest(4, "A", 900));
+        assertThat(result.correct()).isFalse();
+        assertThat(result.livesLeft()).isEqualTo(1);
+    }
+
+    @Test void aGameWithoutLivesReportsNone() {
+        ownedRound();
+        when(definition.maxLives()).thenReturn(0);
+        when(rounds.totals(99)).thenReturn(new GameRoundHooks.AnswerTotals(9, 20));
+        when(practice.answer(eq(7L), eq(99L), any())).thenReturn(new PracticeApi.AnswerResult(21, true, "A",
+                List.of("A"), null, null, null, null));
+        assertThat(service.answer(7, 99, new com.cnhsk.community.game.web.GameRoundRequest(21, "A", 900)).livesLeft()).isNull();
     }
 }

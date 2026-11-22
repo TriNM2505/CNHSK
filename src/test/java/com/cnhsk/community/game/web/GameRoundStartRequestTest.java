@@ -13,14 +13,22 @@ import static org.assertj.core.api.Assertions.*;
 class GameRoundStartRequestTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
-    @Test void FR006_missingBodyAndEmptyObjectDoNotSelectALevel() {
-        assertThat(GameRoundStartRequest.parse(null, mapper).hskLevel()).isNull();
-        assertThat(GameRoundStartRequest.parse("{}", mapper).hskLevel()).isNull();
+    @ParameterizedTest @ValueSource(ints = {1, 2, 3})
+    void theThreePlayableLevelsAreAccepted(int level) {
+        assertThat(GameRoundStartRequest.parse("{\"hskLevel\":" + level + "}", mapper).hskLevel()).isEqualTo(level);
     }
 
-    @ParameterizedTest @ValueSource(ints = {1, 2, 3, 4, 5, 6, 7, 8, 9})
-    void FR006_allContractLevelsAreAccepted(int level) {
-        assertThat(GameRoundStartRequest.parse("{\"hskLevel\":" + level + "}", mapper).hskLevel()).isEqualTo(level);
+    @Test void aRoundWithoutALevelIsRejected() {
+        for (String body : new String[]{null, "{}"}) {
+            assertThatThrownBy(() -> GameRoundStartRequest.parse(body, mapper)).isInstanceOfSatisfying(ApiException.class,
+                    error -> assertThat(error.getCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
+        }
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"{\"hskLevel\":4}", "{\"hskLevel\":9}"})
+    void levelsWithoutGameContentAreRejected(String body) {
+        assertThatThrownBy(() -> GameRoundStartRequest.parse(body, mapper)).isInstanceOfSatisfying(ApiException.class,
+                error -> assertThat(error.getCode()).isEqualTo(ErrorCode.VALIDATION_FAILED));
     }
 
     @ParameterizedTest @ValueSource(strings = {"null", "[]", "1", "true", "\"text\"", " ", "{", "{} {}",

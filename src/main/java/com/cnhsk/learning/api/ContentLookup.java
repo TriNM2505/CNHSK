@@ -37,10 +37,18 @@ public interface ContentLookup {
         }
     }
 
+    /** {@code sinoViet} holds the Sino-Vietnamese readings, comma separated, or null when none is recorded. */
     record LexemeCard(long id, String kind, String text, String pinyin, String pinyinKey, String meaningShort,
-            Set<String> meaningKeys, String radical, Integer strokeCount, String audioUrl, Integer hskLevel) {
+            Set<String> meaningKeys, String radical, Integer strokeCount, String audioUrl, Integer hskLevel,
+            String sinoViet) {
         public LexemeCard {
             meaningKeys = meaningKeys == null ? Set.of() : Set.copyOf(meaningKeys);
+        }
+
+        /** Cards for games that do not use the Sino-Vietnamese reading. */
+        public LexemeCard(long id, String kind, String text, String pinyin, String pinyinKey, String meaningShort,
+                Set<String> meaningKeys, String radical, Integer strokeCount, String audioUrl, Integer hskLevel) {
+            this(id, kind, text, pinyin, pinyinKey, meaningShort, meaningKeys, radical, strokeCount, audioUrl, hskLevel, null);
         }
     }
 }
