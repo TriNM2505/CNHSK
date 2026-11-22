@@ -189,7 +189,7 @@ export function LeaderboardView({
         ) : (
           <>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="min-w-0 flex-1">
+              <div className="grid min-w-0 flex-1 gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                 <FormField className="mb-0" htmlFor="leaderboard-game" label="Trò chơi">
                   <Select
                     onChange={(event) => {
@@ -205,6 +205,22 @@ export function LeaderboardView({
                     {games.map((game) => (
                       <option key={game.code} value={game.code}>
                         {game.name}
+                      </option>
+                    ))}
+                  </Select>
+                </FormField>
+                {/* Game rankings are kept per level and games only have content for HSK 1–3. */}
+                <FormField className="mb-0" htmlFor="leaderboard-game-hsk" label="Cấp độ HSK">
+                  <Select
+                    onChange={(event) => {
+                      setExpanded(false)
+                      onHskChange?.(event.target.value)
+                    }}
+                    value={String(hsk ?? 1)}
+                  >
+                    {[1, 2, 3].map((level) => (
+                      <option key={level} value={level}>
+                        HSK {level}
                       </option>
                     ))}
                   </Select>

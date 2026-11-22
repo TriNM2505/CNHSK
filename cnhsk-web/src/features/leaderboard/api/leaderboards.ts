@@ -26,11 +26,12 @@ export function listLeaderboardGames(signal?: AbortSignal): Promise<GameOption[]
 export function getGameLeaderboard(
   gameCode: string,
   period: LeaderboardPeriod,
+  hskLevel: number,
   signal?: AbortSignal,
 ): Promise<Leaderboard> {
   if (!/^[A-Z_]{2,30}$/.test(gameCode)) throw new Error('Mã game không hợp lệ.')
   return apiRequest<Leaderboard>(
-    `/api/public/leaderboards/games/${encodeURIComponent(gameCode)}?period=${encodeURIComponent(period)}`,
+    `/api/public/leaderboards/games/${encodeURIComponent(gameCode)}?period=${encodeURIComponent(period)}&hskLevel=${hskLevel}`,
     { signal },
   )
 }

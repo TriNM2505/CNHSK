@@ -6,7 +6,7 @@ import { useCurrentUser } from '@/shared/auth'
 
 import { getGameLeaderboard, listLeaderboardGames } from '../api/leaderboards'
 import { LeaderboardView } from '../components/LeaderboardView'
-import { firstGame, parsePeriod } from '../query'
+import { firstGame, parseGameHsk, parsePeriod } from '../query'
 import type { Leaderboard } from '../types'
 
 export default function Scr047GameLeaderboardPage() {
@@ -14,13 +14,14 @@ export default function Scr047GameLeaderboardPage() {
   const { user } = useCurrentUser()
   const period = parsePeriod(params.get('period'))
   const gameCode = params.get('game') ?? ''
+  const hskLevel = parseGameHsk(params.get('hskLevel'))
   const gamesQuery = useApiQuery((signal) => listLeaderboardGames(signal), [])
   const boardQuery = useApiQuery(
     (signal) =>
       gameCode
-        ? getGameLeaderboard(gameCode, period, signal)
+        ? getGameLeaderboard(gameCode, period, hskLevel, signal)
         : Promise.resolve(undefined as unknown as Leaderboard),
-    [gameCode, period, user?.id],
+    [gameCode, period, hskLevel, user?.id],
   )
 
   useEffect(() => {
@@ -34,9 +35,10 @@ export default function Scr047GameLeaderboardPage() {
     }
   }, [gameCode, gamesQuery.data, gamesQuery.state, params, period, setParams])
 
-  function updateParams(values: { game?: string; period?: string }) {
+  function updateParams(values: { game?: string; period?: string; hskLevel?: string }) {
     const next = new URLSearchParams(params)
     if (values.game !== undefined) next.set('game', values.game)
+    if (values.hskLevel) next.set('hskLevel', values.hskLevel)
     if (values.period) next.set('period', values.period)
     setParams(next)
   }
@@ -60,7 +62,9 @@ export default function Scr047GameLeaderboardPage() {
       error={gamesQuery.state === 'error' ? gamesQuery.error : boardQuery.error}
       games={gamesQuery.data}
       guest={!user}
+      hsk={hskLevel}
       kind="game"
+      onHskChange={(value) => updateParams({ hskLevel: value })}
       onPeriodChange={(value) => updateParams({ period: value })}
       onRetry={() => (gamesQuery.state === 'error' ? gamesQuery.reload() : boardQuery.reload())}
       onSelect={(value) => updateParams({ game: value })}

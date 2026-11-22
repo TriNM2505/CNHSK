@@ -15,6 +15,11 @@ export function parseHsk(value: string | null): number | undefined {
   return Number(value)
 }
 
+/** Game rankings exist for HSK 1–3 only; anything else shows HSK 1. */
+export function parseGameHsk(value: string | null): 1 | 2 | 3 {
+  return value === '2' ? 2 : value === '3' ? 3 : 1
+}
+
 export function parseTopicId(value: string | null): number | undefined {
   if (!value || !/^\d+$/.test(value)) return undefined
   const id = Number(value)

@@ -40,7 +40,7 @@ function Preview({ state, game = false }: { state: PreviewState; game?: boolean 
     kind: game ? 'game' : 'topic',
     title: game ? 'Bảng xếp hạng trò chơi' : 'Bảng xếp hạng chủ đề',
     games: [
-      { code: 'CHAR_RAIN', name: 'Mưa Chữ' },
+      { code: 'CHAR_RAIN', name: 'Lọ Mực' },
       { code: 'FLYING_DART', name: 'Phi Đao' },
     ],
     topics: [{ id: 43, name: 'Chào hỏi', hskLevel: 1 }],
