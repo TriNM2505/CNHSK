@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -62,7 +62,7 @@ describe('Scr007ProfilePage', () => {
     vi.mocked(getProfile).mockResolvedValue(profile)
     renderPage()
 
-    expect(await screen.findByLabelText(/Tên hiển thị/)).toHaveValue('Minh Anh')
+    await waitFor(() => expect(screen.getByLabelText(/Tên hiển thị/)).toHaveValue('Minh Anh'))
     expect(screen.getByLabelText('Cấp HSK mục tiêu')).toHaveValue('3')
     expect(screen.getByText('Đã xác thực email')).toBeVisible()
   })
@@ -72,7 +72,7 @@ describe('Scr007ProfilePage', () => {
     renderPage()
 
     const select = await screen.findByLabelText('Cấp HSK mục tiêu')
-    expect(select).toHaveValue('5')
+    await waitFor(() => expect(select).toHaveValue('5'))
     const values = Array.from((select as HTMLSelectElement).options).map((option) => option.value)
     expect(values).toEqual(['', '1', '2', '3', '5'])
   })
