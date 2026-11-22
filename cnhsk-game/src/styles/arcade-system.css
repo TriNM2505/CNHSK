@@ -30,7 +30,21 @@
 /* Falling target used by Thần Bút and Phi Đao inside the arena. */
 .falling-word strong { font: 900 64px 'Noto Serif SC', serif; color: #fff; text-shadow: 0 6px 0 #0005; }
 .falling-word small { color: #f1cf9f; font-weight: 700; }
-.falling-hit { font-size: 48px; color: #f3ba6f; }
+/* Only transforms and opacity move, so the fall stays smooth while the game re-renders. */
+.fall-lane { position: absolute; z-index: 5; inset: 8% 0 auto; height: 62%; pointer-events: none; will-change: transform; animation: fall-lane linear both; }
+.fall-lane .falling-word { top: 0; transition: none; animation: fall-in .35s ease-out; }
+.fall-burst { animation: fall-burst .35s ease-out both; }
+.fall-ripple { position: absolute; left: 50%; top: 50%; width: 90px; height: 90px; margin: -45px; border: 3px solid #f3ba6f; border-radius: 50%; animation: fall-ripple .35s ease-out both; }
+.rain-streaks { position: absolute; z-index: 2; inset: -240px 0 0; pointer-events: none; opacity: .28; will-change: transform; animation: rain-streaks 1.1s linear infinite; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='230' height='240' stroke='%23cfe6ff'%3E%3Cpath d='M20 10v40M78 120v34M121 50v48M166 168v36M208 84v42'/%3E%3C/svg%3E"); }
+@keyframes fall-lane { to { transform: translateY(100%); } }
+@keyframes fall-in { from { opacity: 0; } }
+@keyframes fall-burst { to { opacity: 0; transform: scale(1.5); } }
+@keyframes fall-ripple { from { opacity: 1; transform: scale(.4); } to { opacity: 0; transform: scale(1.9); } }
+@keyframes rain-streaks { to { transform: translateY(240px); } }
+@media (prefers-reduced-motion: reduce) {
+  .fall-lane { animation: none; top: 34%; }
+  .fall-lane .falling-word, .rain-streaks { animation: none; }
+}
 .arena-missed { position: absolute; z-index: 6; left: 50%; bottom: 18%; transform: translateX(-50%); padding: 10px 18px; border-radius: 12px; background: #14202bd9; color: #fff; font-weight: 700; }
 .control-card input { width: 100%; min-height: 52px; margin: 14px 0 10px; padding: 0 16px; border: 1px solid #e2d4bf; border-radius: 12px; background: #fff; color: #263747; font-size: 20px; }
 .control-card input.input-wrong { border-color: #ec6d47; }

@@ -7,7 +7,7 @@ import ren from 'hanzi-writer-data/人.json'
 import ri from 'hanzi-writer-data/日.json'
 import yi from 'hanzi-writer-data/一.json'
 
-import { matchesCharacter } from './freeformMatch'
+import { readCharacter } from './freeformMatch'
 import type { Medians } from './freeformMatch'
 import type { Point } from './path'
 
@@ -22,28 +22,39 @@ describe('free writing check', () => {
   it.each([['木', mu], ['本', ben], ['口', kou], ['人', ren], ['日', ri], ['一', yi]] as const)(
     'accepts %s in any stroke order and direction', (_, data) => {
       const strokes = drawn(data).reverse().map((stroke, i) => (i % 2 ? stroke : [...stroke].reverse()))
-      expect(matchesCharacter(strokes, medians(data))).toBe(true)
+      expect(readCharacter(strokes, medians(data))).toBe('complete')
     })
 
   it('accepts writing that is smaller, off-centre and a little slanted', () => {
     const small = drawn(mu, (p) => ({ x: p.x * 0.5 + p.y * 0.04 + 300, y: p.y * 0.55 + 120 }))
-    expect(matchesCharacter(small, medians(mu))).toBe(true)
+    expect(readCharacter(small, medians(mu))).toBe('complete')
   })
 
   it('accepts two strokes joined into one', () => {
     const [first = [], second = [], ...rest] = drawn(kou)
-    expect(matchesCharacter([[...first].reverse().concat(second), ...rest], medians(kou))).toBe(true)
+    expect(readCharacter([[...first].reverse().concat(second), ...rest], medians(kou))).toBe('joined')
+  })
+
+  it('skips a slip of the pen and reads past a failed attempt left on the pad', () => {
+    const slip = [{ x: 400, y: 400 }, { x: 404, y: 403 }]
+    expect(readCharacter([slip, ...drawn(mu)], medians(mu))).toBe('complete')
+    expect(readCharacter([...drawn(kou), ...drawn(kou), ...drawn(mu)], medians(mu))).toBe('complete')
+  })
+
+  it('rejects a scribble', () => {
+    const scribble = Array.from({ length: 60 }, (_, i) => ({ x: 500 + 400 * Math.sin(i * 1.7), y: 500 + 400 * Math.cos(i * 2.3) }))
+    for (const data of [mu, ben, kou, ri]) expect(readCharacter([scribble, scribble, scribble, scribble], medians(data))).toBe('none')
   })
 
   it('rejects a character that lacks a whole stroke', () => {
-    expect(matchesCharacter(drawn(mu), medians(ben))).toBe(false)
-    expect(matchesCharacter(drawn(kou), medians(ri))).toBe(false)
+    expect(readCharacter(drawn(mu), medians(ben))).toBe('none')
+    expect(readCharacter(drawn(ren), medians(mu))).toBe('none')
   })
 
   it('rejects two strokes too few, a different character and an empty pad', () => {
-    expect(matchesCharacter(drawn(mu).slice(0, -2), medians(mu))).toBe(false)
-    expect(matchesCharacter(drawn(kou), medians(mu))).toBe(false)
-    expect(matchesCharacter([], medians(mu))).toBe(false)
-    expect(matchesCharacter([[{ x: 1, y: 1 }]], medians(mu))).toBe(false)
+    expect(readCharacter(drawn(mu).slice(0, -2), medians(mu))).toBe('none')
+    expect(readCharacter(drawn(kou), medians(mu))).toBe('none')
+    expect(readCharacter([], medians(mu))).toBe('none')
+    expect(readCharacter([[{ x: 1, y: 1 }]], medians(mu))).toBe('none')
   })
 })

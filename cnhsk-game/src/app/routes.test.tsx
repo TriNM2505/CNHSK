@@ -110,17 +110,13 @@ describe('game application routes (FR-027)', () => {
       if (url.startsWith('/stroke-data/')) {
         return Response.json({ strokes: ['M 20 50 L 300 50'], medians: [[[20, 50], [300, 50]]] })
       }
-      if (url.endsWith('/answers')) {
-        return Response.json({ no: 1, correct: false, correctAnswer: 'PASS', pointsAwarded: 0, totalPoints: 0,
-          answeredCount: 1, livesLeft: 2 })
-      }
       if (url === '/api/community/games/BRUSH_STROKE/rounds') {
         const now = Date.now()
         return Response.json({
           roundId: 5, gameCode: 'BRUSH_STROKE', startedAt: new Date(now - 3000).toISOString(),
           serverTime: new Date(now).toISOString(), deadline: new Date(now + 60000).toISOString(),
           timeLimitSeconds: 60, pointsPerCorrect: 10,
-          uiConfig: { fallStartMs: 500, fallStepMs: 0, fallMinMs: 500, maxLives: 3 },
+          uiConfig: { fallStartMs: 500, fallStepMs: 0, fallMinMs: 500 },
           items: [1, 2].map((no) => ({
             no, type: 'TRACE_CHAR', lexemeId: 11, prompt: { text: '一', hint: 'một' },
             rules: { minDurationMs: 300, maxReplays: 0, hasAudio: false },

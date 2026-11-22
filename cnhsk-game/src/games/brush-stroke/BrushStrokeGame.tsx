@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import { matchesCharacter } from '../../engine/freeformMatch'
+import { readCharacter } from '../../engine/freeformMatch'
 import type { Point } from '../../engine/path'
 import { loadStrokeData } from '../../engine/strokeData'
 import type { StrokeData } from '../../engine/strokeData'
@@ -11,6 +11,13 @@ import type { ReadPinyin } from '../shared/FallingTarget'
 import { itemFallDuration, useFallTimer } from '../shared/useFallTimer'
 import { FreeWritingPad } from './FreeWritingPad'
 
+const hitMs = 350
+const missMs = 600
+/** With fewer strokes than the character has, wait this long for another one before accepting joined writing. */
+const joinedPauseMs = 450
+
+const textOf = (item: ServedItem | undefined) => typeof item?.prompt.text === 'string' ? item.prompt.text : ''
+
 export function BrushStrokeGame({ items, uiConfig, readPinyin, ...controls }: GameProps & { readPinyin?: ReadPinyin }) {
   const [index, setIndex] = useState(0)
   const [hits, setHits] = useState(0)
@@ -19,6 +26,13 @@ export function BrushStrokeGame({ items, uiConfig, readPinyin, ...controls }: Ga
     setIndex((position) => position + 1)
   }, [])
   const item = items[index]
+
+  const upcoming = textOf(items[index + 1])
+  useEffect(() => {
+    // The next character's strokes are ready before it starts to fall.
+    if (upcoming) void loadStrokeData(upcoming)
+  }, [upcoming])
+
   return (
     <section aria-label="Mưa Chữ" className="min-w-0">
       {item ? (
@@ -41,22 +55,22 @@ function BrushItem({ item, duration, hits, disabled, submitAnswer, onMissed, onI
   readPinyin?: ReadPinyin
   onAdvance: (hit: boolean) => void
 }) {
-  const text = typeof item.prompt.text === 'string' ? item.prompt.text : ''
+  const text = textOf(item)
   const [data, setData] = useState<StrokeData | null>()
-  const [feedback, setFeedback] = useState<'submitting' | 'hit' | 'miss'>()
+  const [feedback, setFeedback] = useState<'hit' | 'miss'>()
   const [strokes, setStrokes] = useState<Point[][]>([])
   const handled = useRef(false)
   const shown = useRef(false)
-  const live = useRef(false)
-  const fall = useFallTimer(duration, !!data && !disabled && !feedback, ground)
+  const joined = useRef<number>()
+  const falling = !!data && !disabled && !feedback
+  const fall = useFallTimer(duration, falling, ground)
 
   useEffect(() => {
-    live.current = true
     let current = true
     void loadStrokeData(text).then((result) => {
       if (current) setData(result)
     })
-    return () => { current = false; live.current = false }
+    return () => { current = false }
   }, [text])
 
   useEffect(() => {
@@ -72,57 +86,66 @@ function BrushItem({ item, duration, hits, disabled, submitAnswer, onMissed, onI
   }, [data, disabled, item.no, onAdvance, onItemShown, onMissed])
 
   useEffect(() => {
-    if (feedback !== 'hit' && feedback !== 'miss') return
-    const timeout = window.setTimeout(() => onAdvance(feedback === 'hit'), feedback === 'hit' ? 200 : 600)
+    if (!feedback) return
+    const timeout = window.setTimeout(() => onAdvance(feedback === 'hit'), feedback === 'hit' ? hitMs : missMs)
     return () => window.clearTimeout(timeout)
   }, [feedback, onAdvance])
 
-  function ground() {
-    if (handled.current) return
-    handled.current = true
-    setFeedback('miss')
-    // A wrong answer on record is what costs the life; the shell owns retry and terminal errors.
-    submitAnswer(item.no, 'MISS').catch(() => {})
+  useEffect(() => {
+    // A pause of the round (leave dialog, lost connection) also pauses the wait for another stroke.
+    if (disabled) forgetJoined()
+    return forgetJoined
+  }, [disabled])
+
+  function forgetJoined() {
+    window.clearTimeout(joined.current)
+    joined.current = undefined
   }
 
-  async function check(written: Point[][]) {
+  function hit() {
+    if (handled.current) return
+    handled.current = true
+    forgetJoined()
+    setFeedback('hit')
+    // The character breaks at once; the shell sends the answer in the background and owns retries and errors.
+    submitAnswer(item.no, 'PASS').catch(() => {})
+  }
+
+  function ground() {
+    if (handled.current) return
+    if (joined.current !== undefined) { hit(); return }
+    handled.current = true
+    setFeedback('miss')
+    onMissed(item.no)
+  }
+
+  function check(written: Point[][]) {
     if (!data || disabled || handled.current) return
     if (fall.expired()) { ground(); return }
     setStrokes(written)
-    if (!matchesCharacter(written, data.medians)) return
-    handled.current = true
-    setFeedback('submitting')
-    try {
-      const answer = await submitAnswer(item.no, 'PASS')
-      if (!live.current) return
-      if (answer.correct) setFeedback('hit')
-      else onAdvance(false)
-    } catch {
-      if (live.current) onAdvance(false)
-    }
+    forgetJoined()
+    const reading = readCharacter(written, data.medians)
+    if (reading === 'complete') hit()
+    else if (reading === 'joined') joined.current = window.setTimeout(hit, joinedPauseMs)
   }
 
   const arena = feedback === 'miss'
     ? <MissedTarget text={text} lexemeId={item.lexemeId} readPinyin={readPinyin} />
-    : <FallingTarget text={text} remaining={fall.remaining} duration={duration} hit={feedback === 'hit'} />
+    : <FallingTarget text={text} remaining={fall.remaining} duration={duration} falling={falling} hit={feedback === 'hit'} />
   return (
     <ArenaLayout arena={arena}>
       <div className="prompt-label">VIẾT CHỮ ĐANG RƠI</div>
       <p className="brush-hits">Số chữ đã viết: {hits}</p>
-      {feedback !== 'miss' && (
-        <div className="board-shell">
-          {data
-            ? <FreeWritingPad strokes={strokes} disabled={disabled || Boolean(feedback)} onStrokes={(all) => void check(all)} />
-            : <p role="status">Đang tải dữ liệu nét…</p>}
-          <div className="board-hint">
-            {feedback === 'submitting' && <p role="status">Đang chấm…</p>}
-            {feedback === 'hit' && <p role="status">Đã hạ chữ {text}</p>}
-            {!feedback && <p>Viết cả chữ vào ô, không cần đúng thứ tự nét.</p>}
-          </div>
-          <button type="button" className="pad-clear" disabled={disabled || Boolean(feedback) || strokes.length === 0}
-            onClick={() => setStrokes([])}>Xoá, viết lại</button>
+      <div className="board-shell">
+        <FreeWritingPad strokes={strokes} disabled={disabled || !data || Boolean(feedback)} onPenDown={forgetJoined}
+          onStrokes={check} />
+        <div className="board-hint">
+          {feedback === 'hit' && <p role="status">Đã hạ chữ {text}</p>}
+          {!feedback && <p>Viết cả chữ vào ô, không cần đúng thứ tự nét.</p>}
         </div>
-      )}
+        <button type="button" className="pad-clear" disabled={disabled || Boolean(feedback) || strokes.length === 0}
+          onClick={() => { forgetJoined(); setStrokes([]) }}>Xoá, viết lại</button>
+      </div>
     </ArenaLayout>
   )
 }

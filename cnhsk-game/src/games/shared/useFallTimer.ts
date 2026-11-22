@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 
 import { fallDurationMs } from '../../engine/arcade'
 
+/** The fall itself is a CSS animation; this only refreshes the progress bar shown instead with reduced motion. */
+const refreshMs = 200
+
 export function itemFallDuration(index: number, config: Record<string, unknown>) {
   return fallDurationMs(index, {
     fallStartMs: typeof config.fallStartMs === 'number' ? config.fallStartMs : 6000,
@@ -26,21 +29,16 @@ export function useFallTimer(duration: number, running: boolean, onExpire: () =>
     if (left.current === 0) return
     const end = performance.now() + left.current
     deadline.current = end
-    let frame: number
-    function draw(now: number) {
-      setRemaining(Math.max(0, end - now))
-      if (now < end) frame = window.requestAnimationFrame(draw)
-    }
-    frame = window.requestAnimationFrame(draw)
+    const refresh = window.setInterval(() => setRemaining(Math.max(0, end - performance.now())), refreshMs)
     const timeout = window.setTimeout(() => {
       left.current = 0
       setRemaining(0)
-      window.cancelAnimationFrame(frame)
+      window.clearInterval(refresh)
       expire.current()
     }, left.current)
     return () => {
       window.clearTimeout(timeout)
-      window.cancelAnimationFrame(frame)
+      window.clearInterval(refresh)
       deadline.current = undefined
       left.current = Math.max(0, end - performance.now())
     }

@@ -12,6 +12,9 @@ import { StrokeCanvas } from './StrokeCanvas'
 /** A shorter trace (in the 0..1000 box) is a stray tap or a resting palm, not a stroke. */
 const MIN_STROKE_LENGTH = 30
 
+/** How long the finished character stays before the next one. */
+const doneMs = 200
+
 /** Ink in the jar: each wrong stroke spends one; the server sends how many a round starts with (0 = unlimited). */
 function startingInk(config: GameProps['uiConfig']) {
   return typeof config.inkLives === 'number' && config.inkLives > 0 ? config.inkLives : 0
@@ -90,7 +93,7 @@ function Character({ item, position, total, ink, maxInk, guide, disabled, submit
     }
   }, [data, disabled, item.no, onItemShown, onMissed, onNext])
 
-  async function checkStroke(points: Point[]) {
+  function checkStroke(points: Point[]) {
     const median = data?.medians[accepted.length]
     if (!data || !median || disabled || status.current.done) return
     if (polylineLength(points) < MIN_STROKE_LENGTH) return
@@ -112,12 +115,9 @@ function Character({ item, position, total, ink, maxInk, guide, disabled, submit
     const retries = status.current.retries
     const accuracy = 100 * strokes.length / (strokes.length + retries)
     const stars = accuracy >= 90 && retries <= 2 ? 3 : accuracy >= 70 ? 2 : 1
-    try {
-      await submitAnswer(item.no, 'PASS')
-      if (live.current) onNext(stars)
-    } catch {
-      // The shell handles terminal round errors.
-    }
+    // The shell sends the answer in the background and owns retries and errors.
+    submitAnswer(item.no, 'PASS').catch(() => {})
+    window.setTimeout(() => { if (live.current) onNext(stars) }, doneMs)
   }
 
   const filled = total ? position / total * 100 : 0
@@ -150,12 +150,12 @@ function Character({ item, position, total, ink, maxInk, guide, disabled, submit
               <span aria-hidden="true">✦ Theo thứ tự nét</span>
             </div>
             <StrokeCanvas data={data} index={accepted.length} accepted={accepted} guide={guide}
-              disabled={disabled || pending} onStroke={(points) => void checkStroke(points)} />
+              disabled={disabled || pending} onStroke={checkStroke} />
           </>
         ) : <p role="status">Đang tải dữ liệu nét…</p>}
         <div className="board-hint">
           {hint && <p role="status">{hint}</p>}
-          {pending && <p role="status">Đã tô xong, đang gửi câu trả lời…</p>}
+          {pending && <p role="status">Đã tô xong.</p>}
           {!hint && !pending && (
             <p>{guide ? 'Đi theo nét đậm, bắt đầu từ điểm tròn.' : 'Viết nét tiếp theo trên khung chữ mờ.'}</p>
           )}

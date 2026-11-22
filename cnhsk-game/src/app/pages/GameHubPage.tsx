@@ -18,8 +18,8 @@ type GameInfo = {
 
 type Catalog = { status: 'loading' | 'error' } | { status: 'loaded'; games: GameInfo[] }
 
-/** Rounds that end on lives only carry this long safety cap. */
-const UNTIMED_SECONDS = 600
+/** Games played to the end of their list only carry this long cap. */
+const LONG_ROUND_SECONDS = 600
 
 const skillLabels: Record<string, string> = {
   VOCAB: 'Từ vựng',
@@ -45,7 +45,7 @@ function GameCard({ game, position, total }: { game: GameInfo; position: number;
         <h3 className="break-words">{game.name}</h3>
         <p className="break-words">{game.description}</p>
         <p className="game-card-meta">
-          {skillLabels[game.skill] ?? game.skill} · {game.timeLimitSeconds >= UNTIMED_SECONDS ? 'Không tính giờ' : game.timeLimitSeconds + ' giây'}
+          {skillLabels[game.skill] ?? game.skill} · {game.timeLimitSeconds >= LONG_ROUND_SECONDS ? 'Tối đa 10 phút' : game.timeLimitSeconds + ' giây'}
         </p>
         {stats && (
           <dl className="game-card-stats">

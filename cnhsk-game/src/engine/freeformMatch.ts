@@ -3,122 +3,159 @@ import type { Point } from './path'
 /** Stroke centre lines as hanzi-writer-data stores them: 1024 box, y pointing up from baseline 900. */
 export type Medians = readonly (readonly (readonly [number, number])[])[]
 
-// The limits below were tuned on simulated handwriting of all 655 HSK 1-3 characters: loose enough for untidy
-// writing, tight enough that another character almost never passes.
+/** `joined`: the character is there but with fewer strokes, so the learner may still be adding the last one. */
+export type Reading = 'complete' | 'joined' | 'none'
 
-/** Strokes the learner may join or split; whole strokes still may not be missing (see STROKE_COVERAGE). */
-export const STROKE_COUNT_TOLERANCE = 1
-/** Distance, as a share of the character size, within which ink counts as being in the right place. */
-export const REACH = 0.12
-/** Largest angle between the two strokes at that place; keeps crossing strokes from covering each other. */
-export const MAX_ANGLE = (35 * Math.PI) / 180
-/** Share of all ink that must be covered, in both directions. */
-export const TOTAL_COVERAGE = 0.85
-/** Share of every single stroke that must be covered, in both directions. */
-export const STROKE_COVERAGE = 0.65
+// The limits below were tuned on simulated handwriting, from neat to very untidy, of HSK 1-3 characters: untidy or
+// joined writing passes about 95% of the time, a scribble never, another character about 1 time in 60.
 
-const STEP = 0.035
+/** Dots compared per character. */
+const DOTS = 48
+/** How much a difference in direction counts next to a difference in place. */
+const TURN_WEIGHT = 0.4
+/** Dots further apart than this (in spreads of the character) are simply "wrong". */
+const FARTHEST = 1.5
+/** Largest mean difference over the whole character. */
+const MAX_MEAN = 0.5
+/** Largest mean difference over any one stroke; keeps a character that lacks a stroke from passing. */
+const MAX_STROKE_MEAN = 1.1
+const MAX_STROKE_MEAN_JOINED = 1
+/** A shorter trace, as a share of the writing's size, is a slip of the pen. */
+const SPECK = 0.05
 
-type Ink = { x: number; y: number; angle: number }
+type Dot = { x: number; y: number; angle: number; stroke: number }
 
 /**
- * Whether free handwriting matches the character it was asked to write. It compares where the ink lies, so stroke
- * order, stroke direction and joined strokes do not matter, and writing small or off-centre is fine.
+ * Reads free handwriting against the one character that was asked for. Dots along the ink are paired one to one with
+ * dots along the character, so stroke order and direction, joined or split strokes, and writing small, uneven or
+ * off-centre do not matter. Slips of the pen are skipped, and a failed attempt left on the pad does not spoil a later
+ * good one.
  */
-export function matchesCharacter(drawn: readonly (readonly Point[])[], medians: Medians): boolean {
-  const written = drawn.filter((stroke) => length(stroke) > 0)
-  if (written.length === 0 || medians.length === 0) return false
-  if (Math.abs(written.length - medians.length) > STROKE_COUNT_TOLERANCE) return false
-
-  const target = toUnitBox(medians.map((median) => median.map(([x, y]) => ({ x, y: 900 - y }))))
-  const mine = fitTo(written, target)
-  return covers(mine.map(ink), target.map(ink)) && covers(target.map(ink), mine.map(ink))
-}
-
-/** Whether the ink of `cover` lies along every stroke of `strokes`. */
-function covers(strokes: readonly Ink[][], cover: readonly Ink[][]): boolean {
-  const all = cover.flat()
-  let total = 0
-  let covered = 0
-  for (const stroke of strokes) {
-    const hits = stroke.filter((dot) => all.some((other) => isNear(dot, other))).length
-    if (hits / stroke.length < STROKE_COVERAGE) return false
-    total += stroke.length
-    covered += hits
+export function readCharacter(drawn: readonly (readonly Point[])[], medians: Medians): Reading {
+  const expected = medians.length
+  const target = toDots(medians.map((median) => median.map(([x, y]) => ({ x, y: 900 - y }))))
+  const written = withoutSpecks(drawn)
+  if (!target || written.length < Math.ceil(expected / 2)) return 'none'
+  if (written.length < expected) {
+    return fits(written, target, MAX_STROKE_MEAN_JOINED) ? 'joined' : 'none'
   }
-  return covered / total >= TOTAL_COVERAGE
+
+  const attempts = new Set([expected, Math.min(written.length, expected + 1)])
+  if (written.length <= expected + Math.max(1, Math.floor(expected / 3))) attempts.add(written.length)
+  return [...attempts].some((count) => fits(written.slice(-count), target, MAX_STROKE_MEAN)) ? 'complete' : 'none'
 }
 
-function isNear(a: Ink, b: Ink): boolean {
-  if (Math.hypot(a.x - b.x, a.y - b.y) > REACH) return false
+function fits(written: readonly (readonly Point[])[], target: readonly Dot[], maxStrokeMean: number): boolean {
+  const mine = toDots(written)
+  if (!mine) return false
+  const costs = pairCosts(mine, target)
+  if (costs.reduce((sum, cost) => sum + cost, 0) / DOTS > MAX_MEAN) return false
+  const perStroke = new Map<number, { sum: number; count: number }>()
+  target.forEach(({ stroke }, i) => {
+    const entry = perStroke.get(stroke) ?? { sum: 0, count: 0 }
+    perStroke.set(stroke, { sum: entry.sum + (costs[i] ?? 0), count: entry.count + 1 })
+  })
+  return [...perStroke.values()].every(({ sum, count }) => sum / count <= maxStrokeMean)
+}
+
+function withoutSpecks(drawn: readonly (readonly Point[])[]): (readonly Point[])[] {
+  const strokes = drawn.filter((stroke) => length(stroke) > 0)
+  const points = strokes.flat()
+  const span = (values: number[]) => Math.max(...values) - Math.min(...values)
+  const size = points.length ? Math.max(span(points.map((p) => p.x)), span(points.map((p) => p.y))) : 0
+  return strokes.filter((stroke) => length(stroke) >= SPECK * size)
+}
+
+/** Evenly spaced dots over all the ink, centred and scaled to a spread of 1; null when there is nothing to compare. */
+function toDots(strokes: readonly (readonly Point[])[]): Dot[] | null {
+  const total = strokes.reduce((sum, stroke) => sum + length(stroke), 0)
+  if (total === 0) return null
+  const dots: Dot[] = []
+  let passed = 0
+  strokes.forEach((points, stroke) => {
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1]!
+      const b = points[i]!
+      const step = Math.hypot(b.x - a.x, b.y - a.y)
+      const before = points[Math.max(0, i - 2)]!
+      const after = points[Math.min(points.length - 1, i + 1)]!
+      const angle = Math.atan2(after.y - before.y, after.x - before.x)
+      while (dots.length < DOTS && step > 0 && (dots.length + 0.5) * total / DOTS <= passed + step + 1e-9) {
+        const along = ((dots.length + 0.5) * total / DOTS - passed) / step
+        dots.push({ x: a.x + (b.x - a.x) * along, y: a.y + (b.y - a.y) * along, angle, stroke })
+      }
+      passed += step
+    }
+  })
+  if (dots.length < DOTS) return null
+
+  const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length
+  const centreX = mean(dots.map((dot) => dot.x))
+  const centreY = mean(dots.map((dot) => dot.y))
+  let spreadX = Math.sqrt(mean(dots.map((dot) => (dot.x - centreX) ** 2)))
+  let spreadY = Math.sqrt(mean(dots.map((dot) => (dot.y - centreY) ** 2)))
+  const spread = Math.max(spreadX, spreadY)
+  // Flat characters such as 一 keep their proportions.
+  if (Math.min(spreadX, spreadY) < 0.35 * spread) spreadX = spreadY = spread
+  return dots.map((dot) => ({ ...dot, x: (dot.x - centreX) / spreadX, y: (dot.y - centreY) / spreadY }))
+}
+
+function difference(a: Dot, b: Dot): number {
   // Strokes have no direction here, so angles half a turn apart are the same line.
   const turn = Math.abs(a.angle - b.angle) % Math.PI
-  return Math.min(turn, Math.PI - turn) <= MAX_ANGLE
+  return Math.min(FARTHEST, Math.hypot(a.x - b.x, a.y - b.y)) + TURN_WEIGHT * Math.min(turn, Math.PI - turn)
 }
 
-function bounds(strokes: readonly (readonly Point[])[]) {
-  const points = strokes.flat()
-  const xs = points.map((p) => p.x)
-  const ys = points.map((p) => p.y)
-  const minX = Math.min(...xs)
-  const minY = Math.min(...ys)
-  return { minX, minY, width: Math.max(...xs) - minX, height: Math.max(...ys) - minY }
-}
-
-function toUnitBox(strokes: readonly (readonly Point[])[]): Point[][] {
-  const { minX, minY, width, height } = bounds(strokes)
-  const size = Math.max(width, height, 1)
-  return strokes.map((stroke) => stroke.map((p) => ({ x: (p.x - minX) / size, y: (p.y - minY) / size })))
-}
-
-/** Scales the drawing onto the target's box. Flat characters such as 一 keep their proportions. */
-function fitTo(strokes: readonly (readonly Point[])[], target: readonly (readonly Point[])[]): Point[][] {
-  const from = bounds(strokes)
-  const to = bounds(target)
-  let scaleX = to.width / Math.max(from.width, 1)
-  let scaleY = to.height / Math.max(from.height, 1)
-  if (Math.min(to.width, to.height) < 0.3 || Math.max(scaleX, scaleY) > 2 * Math.min(scaleX, scaleY)) {
-    scaleX = scaleY = Math.max(to.width, to.height) / Math.max(from.width, from.height, 1)
+/** The cheapest one-to-one pairing (Hungarian algorithm); returns what each target dot costs. */
+function pairCosts(mine: readonly Dot[], target: readonly Dot[]): number[] {
+  const cost = mine.map((dot) => target.map((other) => difference(dot, other)))
+  const rowPrice = new Float64Array(DOTS + 1)
+  const columnPrice = new Float64Array(DOTS + 1)
+  const rowOf = new Int32Array(DOTS + 1)
+  const previous = new Int32Array(DOTS + 1)
+  for (let row = 1; row <= DOTS; row++) {
+    const least = new Float64Array(DOTS + 1).fill(Infinity)
+    const used = new Uint8Array(DOTS + 1)
+    rowOf[0] = row
+    let column = 0
+    do {
+      used[column] = 1
+      const current = rowOf[column]!
+      let delta = Infinity
+      let next = 0
+      for (let j = 1; j <= DOTS; j++) {
+        if (used[j]) continue
+        const reduced = cost[current - 1]![j - 1]! - rowPrice[current]! - columnPrice[j]!
+        if (reduced < least[j]!) {
+          least[j] = reduced
+          previous[j] = column
+        }
+        if (least[j]! < delta) {
+          delta = least[j]!
+          next = j
+        }
+      }
+      for (let j = 0; j <= DOTS; j++) {
+        if (used[j]) {
+          rowPrice[rowOf[j]!]! += delta
+          columnPrice[j]! -= delta
+        } else {
+          least[j]! -= delta
+        }
+      }
+      column = next
+    } while (rowOf[column] !== 0)
+    do {
+      const back = previous[column]!
+      rowOf[column] = rowOf[back]!
+      column = back
+    } while (column !== 0)
   }
-  const offsetX = to.minX + (to.width - from.width * scaleX) / 2
-  const offsetY = to.minY + (to.height - from.height * scaleY) / 2
-  return strokes.map((stroke) => stroke.map((p) => ({
-    x: offsetX + (p.x - from.minX) * scaleX,
-    y: offsetY + (p.y - from.minY) * scaleY,
-  })))
-}
-
-/** Evenly spaced dots along a stroke, each with the direction the stroke takes there. */
-function ink(stroke: readonly Point[]): Ink[] {
-  const total = length(stroke)
-  const count = Math.max(2, Math.round(total / STEP))
-  const dots: Point[] = []
-  let segment = 0
-  let passed = 0
-  for (let i = 0; i <= count; i++) {
-    const want = (total * i) / count
-    while (segment < stroke.length - 2 && passed + gap(stroke, segment) < want) passed += gap(stroke, segment++)
-    const a = stroke[segment]!
-    const b = stroke[segment + 1] ?? a
-    const along = gap(stroke, segment) ? Math.min(1, (want - passed) / gap(stroke, segment)) : 0
-    dots.push({ x: a.x + (b.x - a.x) * along, y: a.y + (b.y - a.y) * along })
-  }
-  // Direction over a few dots, so hand tremor does not turn it.
-  return dots.map((dot, i) => {
-    const before = dots[Math.max(0, i - 2)]!
-    const after = dots[Math.min(dots.length - 1, i + 2)]!
-    return { ...dot, angle: Math.atan2(after.y - before.y, after.x - before.x) }
-  })
-}
-
-function gap(stroke: readonly Point[], i: number): number {
-  const a = stroke[i]
-  const b = stroke[i + 1]
-  return a && b ? Math.hypot(b.x - a.x, b.y - a.y) : 0
+  return target.map((_, j) => cost[rowOf[j + 1]! - 1]![j]!)
 }
 
 function length(stroke: readonly Point[]): number {
   let sum = 0
-  for (let i = 0; i < stroke.length - 1; i++) sum += gap(stroke, i)
+  for (let i = 1; i < stroke.length; i++) sum += Math.hypot(stroke[i]!.x - stroke[i - 1]!.x, stroke[i]!.y - stroke[i - 1]!.y)
   return sum
 }

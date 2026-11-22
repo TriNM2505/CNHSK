@@ -59,7 +59,7 @@ class GameCatalogControllerIntegrationTest extends AbstractIntegrationTest {
             new ExpectedMetadata("Chọn chữ hoặc từ khớp với nghĩa, pinyin hoặc âm thanh.", "LISTENING",
                     "Đọc hoặc nghe gợi ý rồi chọn một trong sáu phương án. Đúng càng nhiều câu trong 60 giây càng cao điểm.", 60),
             new ExpectedMetadata("Viết chữ Hán đang rơi trước khi nó chạm đất.", "WRITING",
-                    "Viết chữ đang rơi vào ô trống, không cần đúng thứ tự nét. Chữ rơi nhanh dần; để chữ chạm đất ba lần là dừng.", 600),
+                    "Viết chữ đang rơi vào ô trống, không cần đúng thứ tự nét. Chữ rơi nhanh dần; viết được càng nhiều chữ và càng nhanh thì hạng càng cao.", 600),
             new ExpectedMetadata("Gõ âm Hán Việt để gấu phi dao hạ chữ.", "CHARACTER",
                     "Gõ âm Hán Việt của chữ rồi nhấn Enter, có dấu hay không dấu đều được. Phi trúng càng nhiều chữ trong 60 giây càng cao điểm; gõ sai ba lần là dừng.", 60));
     @Autowired private MockMvc mvc;

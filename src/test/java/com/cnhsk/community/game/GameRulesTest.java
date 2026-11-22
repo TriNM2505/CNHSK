@@ -42,11 +42,11 @@ class GameRulesTest {
         assertThat(game.uiConfig()).doesNotContainKey("perItemMs").containsEntry("gridColumns", 3);
     }
 
-    @Test void characterRainFallsFasterEachCharacterAndEndsOnThreeLives() {
+    @Test void characterRainFallsFasterEachCharacterAndHasNoLives() {
         var game = new BrushStrokeGame();
         assertThat(game.timeLimitSeconds()).isEqualTo(ROUND_CEILING_SECONDS);
-        assertThat(game.maxLives()).isEqualTo(3);
-        assertThat(game.uiConfig()).containsEntry("fallStartMs", 10000).containsEntry("fallStepMs", 100)
+        assertThat(game.maxLives()).isZero();
+        assertThat(game.uiConfig()).containsEntry("fallStartMs", 13000).containsEntry("fallStepMs", 100)
                 .containsEntry("fallMinMs", 4000).containsEntry("freeWriting", true);
     }
 

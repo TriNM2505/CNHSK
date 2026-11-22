@@ -23,11 +23,11 @@ class BrushStrokeGameTest {
         assertThat(items).hasSize(100);
         assertThat(items).extracting(PracticeApi.ServedItem::lexemeId).doesNotHaveDuplicates();
         assertThat(config).containsEntry("requiredStrokes", "ALL").containsEntry("freeWriting", true)
-                .containsEntry("fallStartMs", 10000).containsEntry("fallStepMs", 100)
+                .containsEntry("fallStartMs", 13000).containsEntry("fallStepMs", 100)
                 .containsEntry("fallMinMs", 4000);
-        assertThat(IntStream.of(0, 1, 60, 99).map(index -> Math.max((int) config.get("fallMinMs"),
+        assertThat(IntStream.of(0, 1, 90, 99).map(index -> Math.max((int) config.get("fallMinMs"),
                 (int) config.get("fallStartMs") - index * (int) config.get("fallStepMs"))).boxed().toList())
-                .containsExactly(10000, 9900, 4000, 4000);
+                .containsExactly(13000, 12900, 4000, 4000);
         assertThat(items).allSatisfy(item -> {
             assertThat(item.type()).isEqualTo(PracticeApi.ItemType.TRACE_CHAR);
             assertThat(item.skill()).isEqualTo(PracticeApi.Skill.WRITING);

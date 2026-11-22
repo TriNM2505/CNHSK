@@ -20,7 +20,7 @@ const items: GameProps['items'] = ['二', '一'].map((text, index) => ({
 
 async function show() {
   const props = {
-    items, disabled: false, uiConfig: { fallStartMs: 10000, fallStepMs: 100, fallMinMs: 4000 },
+    items, disabled: false, uiConfig: { fallStartMs: 13000, fallStepMs: 100, fallMinMs: 4000 },
     onMissed: vi.fn(), onItemShown: vi.fn(), readPinyin: vi.fn<ReadPinyin>().mockResolvedValue('èr'),
     submitAnswer: vi.fn<GameProps['submitAnswer']>().mockResolvedValue({ correct: true, correctAnswer: 'PASS' }),
   }
@@ -56,8 +56,9 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-it('accepts the whole character in any stroke order, sends PASS once and keeps 200 ms feedback', async () => {
+it('accepts the whole character in any stroke order, breaks it without waiting for the server and sends PASS once', async () => {
   const { submitAnswer, readPinyin, onItemShown } = await show()
+  submitAnswer.mockReturnValueOnce(new Promise(() => {}))
   expect(onItemShown.mock.calls).toEqual([[1]])
   await longLine()
   expect(submitAnswer).not.toHaveBeenCalled()
@@ -65,7 +66,7 @@ it('accepts the whole character in any stroke order, sends PASS once and keeps 2
   await shortLine()
   expect(submitAnswer.mock.calls).toEqual([[1, 'PASS']])
   expect(screen.getByText('Đã hạ chữ 二')).toBeVisible()
-  await advance(199)
+  await advance(349)
   expect(onItemShown.mock.calls).toEqual([[1]])
   await advance(1)
   expect(onItemShown.mock.calls).toEqual([[1], [2]])
@@ -86,31 +87,56 @@ it('shows no outline, and lets the learner clear the pad and write again', async
   expect(submitAnswer.mock.calls).toEqual([[1, 'PASS']])
 })
 
-it('AT-17 pauses, exposes the reduced-motion timer, and records a landed character as a miss', async () => {
+it('waits for another stroke before accepting joined writing', async () => {
+  // 口 written with its first two strokes joined.
+  vi.mocked(loadStrokeData).mockResolvedValue({
+    strokes: ['M 0 0 L 1 1', 'M 0 0 L 1 1', 'M 0 0 L 1 1'],
+    medians: [[[200, 800], [200, 200]], [[200, 800], [800, 800], [800, 200]], [[200, 200], [800, 200]]],
+  })
+  const { submitAnswer } = await show()
+  const write = (points: [number, number][]) => act(async () => {
+    const pad = screen.getByRole('img', { name: 'Ô viết chữ' })
+    vi.spyOn(pad, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 1000, 1000))
+    points.forEach(([x, y], i) => {
+      const type = i === 0 ? 'pointerdown' : i === points.length - 1 ? 'pointerup' : 'pointermove'
+      const event = new MouseEvent(type, { bubbles: true, button: 0, clientX: x, clientY: y })
+      Object.defineProperty(event, 'pointerId', { value: 1 })
+      fireEvent(pad, event)
+    })
+  })
+  await write([[200, 700], [200, 100], [800, 100], [800, 700]])
+  await advance(1000)
+  expect(submitAnswer).not.toHaveBeenCalled()
+  await write([[200, 700], [800, 700]])
+  await advance(449)
+  expect(submitAnswer).not.toHaveBeenCalled()
+  await advance(1)
+  expect(submitAnswer.mock.calls).toEqual([[1, 'PASS']])
+})
+it('AT-17 pauses, exposes the reduced-motion timer, and misses a landed character without an answer', async () => {
   const { disable, readPinyin, onItemShown, onMissed, submitAnswer } = await show()
   const progress = screen.getByRole('progressbar', { hidden: true })
   expect(progress).toHaveClass('motion-reduce:block')
-  expect(progress).toHaveAttribute('max', '10000')
+  expect(progress).toHaveAttribute('max', '13000')
   await advance(1000)
   disable(true)
   await shortLine()
-  await advance(12000)
+  await advance(15000)
   expect(readPinyin).not.toHaveBeenCalled()
   expect(submitAnswer).not.toHaveBeenCalled()
   disable(false)
-  await advance(8999)
-  expect(submitAnswer).not.toHaveBeenCalled()
-  await advance(1)
-  // The server counts lives by wrong answers, so a landed character is answered, not skipped.
-  expect(submitAnswer.mock.calls).toEqual([[1, 'MISS']])
+  await advance(11999)
   expect(onMissed).not.toHaveBeenCalled()
+  await advance(1)
+  expect(onMissed.mock.calls).toEqual([[1]])
+  expect(submitAnswer).not.toHaveBeenCalled()
   expect(readPinyin).toHaveBeenCalledWith(31, expect.any(AbortSignal))
   expect(screen.getByText('Bỏ lỡ: 二 · èr')).toBeVisible()
   await advance(599)
   expect(onItemShown.mock.calls).toEqual([[1]])
   await advance(1)
   expect(onItemShown.mock.calls).toEqual([[1], [2]])
-  expect(screen.getByRole('progressbar', { hidden: true })).toHaveAttribute('max', '9900')
+  expect(screen.getByRole('progressbar', { hidden: true })).toHaveAttribute('max', '12900')
 })
 
 it('E7 skips characters without stroke data, and a rejected PASS advances rather than locking the round', async () => {
@@ -123,5 +149,6 @@ it('E7 skips characters without stroke data, and a rejected PASS advances rather
   await shortLine()
   await longLine()
   expect(submitAnswer.mock.calls).toEqual([[2, 'PASS']])
+  await advance(350)
   expect(screen.getByText('Đã đi qua tất cả các chữ.')).toBeVisible()
 })

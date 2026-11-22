@@ -4,16 +4,16 @@ import type { PointerEvent } from 'react'
 import type { Point } from '../../engine/path'
 
 /** An empty writing square: no outline, no stroke order. Reports every finished stroke with all strokes so far. */
-export function FreeWritingPad({ strokes, disabled, onStrokes }: {
+export function FreeWritingPad({ strokes, disabled, onPenDown, onStrokes }: {
   strokes: readonly Point[][]
   disabled: boolean
+  onPenDown?: () => void
   onStrokes: (strokes: Point[][]) => void
 }) {
-  const active = useRef<{ id: number; points: Point[] }>()
+  const active = useRef<{ id: number; points: Point[]; bounds: DOMRect }>()
   const [draft, setDraft] = useState<Point[]>([])
 
-  function point(event: PointerEvent<SVGSVGElement>): Point {
-    const bounds = event.currentTarget.getBoundingClientRect()
+  function point(event: { clientX: number; clientY: number }, bounds: DOMRect): Point {
     return {
       x: 1000 * (event.clientX - bounds.left) / (bounds.width || 1),
       y: 1000 * (event.clientY - bounds.top) / (bounds.height || 1),
@@ -28,23 +28,28 @@ export function FreeWritingPad({ strokes, disabled, onStrokes }: {
   function start(event: PointerEvent<SVGSVGElement>) {
     if (disabled || active.current || event.button !== 0) return
     event.currentTarget.setPointerCapture?.(event.pointerId)
-    const points = [point(event)]
-    active.current = { id: event.pointerId, points }
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const points = [point(event, bounds)]
+    active.current = { id: event.pointerId, points, bounds }
     setDraft(points)
+    onPenDown?.()
   }
 
   function move(event: PointerEvent<SVGSVGElement>) {
-    if (disabled || active.current?.id !== event.pointerId) return
-    const points = [...active.current!.points, point(event)]
-    active.current = { id: event.pointerId, points }
-    setDraft(points)
+    const stroke = active.current
+    if (disabled || stroke?.id !== event.pointerId) return
+    // Browsers merge fast pen moves into one event; the merged points keep the line smooth.
+    const merged = event.nativeEvent.getCoalescedEvents?.() ?? []
+    const added = (merged.length ? merged : [event]).map((each) => point(each, stroke.bounds))
+    stroke.points = [...stroke.points, ...added]
+    setDraft(stroke.points)
   }
 
   function end(event: PointerEvent<SVGSVGElement>) {
     const stroke = active.current
     if (!stroke || stroke.id !== event.pointerId) return
     clear()
-    if (!disabled) onStrokes([...strokes, [...stroke.points, point(event)]])
+    if (!disabled) onStrokes([...strokes, [...stroke.points, point(event, stroke.bounds)]])
   }
 
   return (
