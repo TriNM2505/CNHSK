@@ -41,6 +41,9 @@ function tooManyRequests(retryAfterSeconds: number) {
   })
 }
 
+const notSent = new ApiError({ errorCode: 'EMAIL_NOT_SENT', message: 'x', status: 503 })
+const notSentMessage = 'Chưa gửi được mã tới email này. Vui lòng kiểm tra địa chỉ rồi thử lại.'
+
 function LocationProbe() {
   const location = useLocation()
   return (
@@ -174,6 +177,35 @@ describe('Scr003RegisterPage', () => {
 
     expect(await screen.findByText(/Đã gửi mã mới/)).toBeVisible()
     expect(sendRegisterCode).toHaveBeenCalledTimes(2)
+  })
+
+  it('không gửi được mã thì ở lại màn đăng ký và cho thử lại ngay', async () => {
+    vi.mocked(sendRegisterCode).mockRejectedValueOnce(notSent)
+    renderPage()
+    const user = await enterValidRegistration()
+
+    await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
+    expect(await screen.findByText(notSentMessage)).toBeVisible()
+    expect(screen.queryByLabelText(/Mã xác minh/)).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Đăng ký' }))
+    expect(await screen.findByLabelText(/Mã xác minh/)).toBeVisible()
+  })
+
+  it('gửi lại không được thì giữ mã đang nhập và cho gửi lại ngay', async () => {
+    vi.mocked(sendRegisterCode)
+      .mockResolvedValueOnce({ ...sent, resendAfterSeconds: 1 })
+      .mockRejectedValueOnce(notSent)
+    renderPage()
+    const user = await openCodeStep()
+    await user.type(screen.getByLabelText(/Mã xác minh/), '1234')
+
+    await user.click(await screen.findByRole('button', { name: 'Gửi lại mã' }))
+
+    expect(await screen.findByText(notSentMessage)).toBeVisible()
+    expect(screen.queryByText(/Đã gửi mã mới/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/Mã xác minh/)).toHaveValue('1234')
+    expect(screen.getByRole('button', { name: 'Gửi lại mã' })).toBeEnabled()
   })
 
   it('sửa thông tin thì giữ nguyên nội dung đã nhập', async () => {

@@ -3,6 +3,7 @@ package com.cnhsk.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -17,8 +18,10 @@ import java.util.UUID;
 import com.cnhsk.auth.event.RegistrationCodeRequestedEvent;
 import com.cnhsk.auth.repository.UserRepository;
 import com.cnhsk.shared.security.RateLimiter;
+import com.cnhsk.shared.security.TokenHasher;
 import com.cnhsk.support.AbstractIntegrationTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +35,8 @@ import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mail.MailSendException;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -52,6 +57,7 @@ class RegistrationCodeIntegrationTest extends AbstractIntegrationTest {
     @Autowired private StringRedisTemplate redis;
     @Autowired private Mailbox mailbox;
     @MockitoSpyBean private RateLimiter rateLimiter;
+    @MockitoSpyBean private JavaMailSender mailSender;
 
     private final String email = "code-" + UUID.randomUUID() + "@example.test";
 
@@ -179,11 +185,34 @@ class RegistrationCodeIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void unsentCodeIsReportedAndLeavesTheSendLimitAndTheEarlierCodeAlone() throws Exception {
+        breakMailServer();
+        for (int attempt = 0; attempt < 6; attempt++) {
+            sendCode(email).andExpect(status().isServiceUnavailable())
+                    .andExpect(jsonPath("$.error_code").value("EMAIL_NOT_SENT"));
+        }
+        assertThat(redis.hasKey("auth:register-code:" + new TokenHasher().hash(email))).isFalse();
+
+        doCallRealMethod().when(mailSender).send(any(MimeMessage.class));
+        sendCode(email).andExpect(status().isAccepted());
+        String code = mailbox.lastCode(email);
+
+        skipDelay();
+        breakMailServer();
+        sendCode(email).andExpect(status().isServiceUnavailable());
+        register(email, code).andExpect(status().isCreated());
+    }
+
+    @Test
     void codeIsRefusedWhenItsLimitsCannotBeChecked() throws Exception {
         doThrow(new QueryTimeoutException("simulated")).when(rateLimiter).increment(anyString(), any());
 
         sendCode(email).andExpect(status().isInternalServerError());
         assertThat(mailbox.events).isEmpty();
+    }
+
+    private void breakMailServer() {
+        doThrow(new MailSendException("simulated")).when(mailSender).send(any(MimeMessage.class));
     }
 
     private void skipDelay() {

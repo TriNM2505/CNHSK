@@ -77,6 +77,30 @@ class MailServiceTest {
     }
 
     @Test
+    void registrationCodeFailureReachesTheCallerWithoutLoggingTheCodeOrAddress() {
+        String email = "learner.private@cnhsk.test";
+        MailSendException failure = new MailSendException("SMTP unavailable for " + email + " and 042917");
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(MailService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        when(mailSender.createMimeMessage()).thenReturn(newMimeMessage());
+        doThrow(failure).when(mailSender).send(any(MimeMessage.class));
+        try {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> mailService.sendRegistrationCode(
+                    new RegistrationCodeRequestedEvent(email, "042917"))).isSameAs(failure);
+        } finally {
+            logger.detachAppender(appender);
+            appender.stop();
+        }
+        org.assertj.core.api.Assertions.assertThat(appender.list).hasSize(1);
+        org.assertj.core.api.Assertions.assertThat(appender.list.get(0).getThrowableProxy()).isNull();
+        org.assertj.core.api.Assertions.assertThat(appender.list.get(0).getFormattedMessage())
+                .contains("l***@cnhsk.test").doesNotContain(email, "042917");
+    }
+
+    @Test
     void smtpFailureIsSwallowedSoItCannotFailTheCommittedBusinessOperation() {
         String email = "learner.private@cnhsk.test";
         String secret = "secret-token";

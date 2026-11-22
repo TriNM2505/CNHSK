@@ -21,6 +21,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 
 /**
@@ -57,6 +58,13 @@ public class RegistrationCodeService {
                     + "return left",
             Long.class);
 
+    /** Gives back one send, leaving the window of the remaining ones as it was. */
+    private static final DefaultRedisScript<Long> REFUND_SEND = new DefaultRedisScript<>(
+            "redis.call('DEL', KEYS[1]) "
+                    + "if redis.call('EXISTS', KEYS[2]) == 1 then return redis.call('DECR', KEYS[2]) end "
+                    + "return 0",
+            Long.class);
+
     private final JdbcTemplate jdbcTemplate;
     private final StringRedisTemplate redisTemplate;
     private final RateLimiter rateLimiter;
@@ -71,7 +79,7 @@ public class RegistrationCodeService {
         this.eventPublisher = Objects.requireNonNull(eventPublisher);
     }
 
-    /** Emails a new code, replacing any earlier one for the same address. */
+    /** Emails a new code, which replaces any earlier one for the same address once it has been sent. */
     public RegistrationCodeResponse send(String email) {
         Boolean taken = jdbcTemplate.queryForObject(
                 "SELECT EXISTS (SELECT 1 FROM auth.users WHERE email = ?)", Boolean.class, email);
@@ -84,14 +92,18 @@ public class RegistrationCodeService {
         String code = "%06d".formatted(secureRandom.nextInt(1_000_000));
         try {
             enforceSendLimits(emailHash);
+            eventPublisher.publishEvent(new RegistrationCodeRequestedEvent(email, code));
             redisTemplate.execute(STORE, List.of(KEY_PREFIX + emailHash), hash(email, code),
                     Long.toString(CODE_TTL.toSeconds()));
         } catch (ApiException exception) {
             throw exception;
+        } catch (MailException exception) {
+            refundSend(emailHash);
+            throw new ApiException(ErrorCode.EMAIL_NOT_SENT, HttpStatus.SERVICE_UNAVAILABLE,
+                    "Chưa gửi được mã tới email này. Vui lòng thử lại.", Map.of());
         } catch (RuntimeException exception) {
             throw redisUnavailable(exception);
         }
-        eventPublisher.publishEvent(new RegistrationCodeRequestedEvent(email, code));
         return new RegistrationCodeResponse(email, CODE_TTL.toSeconds(), RESEND_DELAY.toSeconds());
     }
 
@@ -120,14 +132,31 @@ public class RegistrationCodeService {
     }
 
     private void enforceSendLimits(String emailHash) {
-        String delayKey = KEY_PREFIX + "delay:" + emailHash;
+        String delayKey = delayKey(emailHash);
         if (!Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(delayKey, "1", RESEND_DELAY))) {
             throw tooManyRequests(delayKey);
         }
-        String countKey = KEY_PREFIX + "count:" + emailHash;
+        String countKey = countKey(emailHash);
         if (rateLimiter.increment(countKey, SEND_WINDOW) > MAX_SENDS_PER_WINDOW) {
             throw tooManyRequests(countKey);
         }
+    }
+
+    private void refundSend(String emailHash) {
+        try {
+            redisTemplate.execute(REFUND_SEND, List.of(delayKey(emailHash), countKey(emailHash)));
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Could not give back a registration code send, cause_type={}",
+                    exception.getClass().getSimpleName());
+        }
+    }
+
+    private static String delayKey(String emailHash) {
+        return KEY_PREFIX + "delay:" + emailHash;
+    }
+
+    private static String countKey(String emailHash) {
+        return KEY_PREFIX + "count:" + emailHash;
     }
 
     private ApiException tooManyRequests(String key) {

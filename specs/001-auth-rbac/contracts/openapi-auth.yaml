@@ -252,7 +252,7 @@ paths:
     post:
       tags: [auth]
       summary: Gửi mã xác minh 6 số để đăng ký (FR-006, FR-007). Miễn CSRF
-      description: Body như đăng ký, bỏ qua code. 429 kèm retryAfterSeconds (integer)
+      description: Body như đăng ký, bỏ qua code. 429 kèm retryAfterSeconds (integer). 503 EMAIL_NOT_SENT khi không gửi được email
       security: []
       requestBody:
         required: true
@@ -269,6 +269,7 @@ paths:
         '422': { $ref: '#/components/responses/Error' }
         '429': { $ref: '#/components/responses/Error' }
         '500': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
 
   /api/auth/register:
     post:

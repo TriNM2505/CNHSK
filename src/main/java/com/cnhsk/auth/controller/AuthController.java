@@ -83,7 +83,8 @@ public class AuthController {
             @ApiResponse(responseCode = "409", description = "Email đã được sử dụng"),
             @ApiResponse(responseCode = "422", description = "Dữ liệu đăng ký không hợp lệ"),
             @ApiResponse(responseCode = "429", description = "Gửi mã quá nhanh hoặc quá nhiều lần"),
-            @ApiResponse(responseCode = "500", description = "Không thể tạo mã")
+            @ApiResponse(responseCode = "500", description = "Không thể tạo mã"),
+            @ApiResponse(responseCode = "503", description = "Chưa gửi được email chứa mã")
     })
     public ResponseEntity<RegistrationCodeResponse> sendRegistrationCode(
             @Valid @RequestBody RegisterRequest request) {

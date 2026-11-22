@@ -99,6 +99,17 @@ export function getRegisterFailure(error: unknown): RegisterFailure {
     }
   }
 
+  if (apiError.errorCode === 'EMAIL_NOT_SENT') {
+    return {
+      fieldErrors: {},
+      notice: {
+        kind: 'generic',
+        message: 'Chưa gửi được mã tới email này. Vui lòng kiểm tra địa chỉ rồi thử lại.',
+        requestId: apiError.requestId,
+      },
+    }
+  }
+
   return {
     fieldErrors: {},
     notice: {

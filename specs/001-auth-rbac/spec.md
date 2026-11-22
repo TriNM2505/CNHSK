@@ -9,10 +9,11 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.2.0 |
+| **Version** | 1.2.1 |
 | **Status** | DRAFT — chờ cả nhóm duyệt rồi mới `APPROVED` |
 | **Approved by** | — |
 | **Locked on** | — |
+| **Thay đổi 1.2.1** | Không gửi được email chứa mã thì báo `503 EMAIL_NOT_SENT`, không tính lượt gửi, mã cũ còn hiệu lực (FR-006, FR-007, AT-09) |
 | **Thay đổi 1.2.0** | Phải nhập mã xác minh gửi qua email thì tài khoản mới được tạo (FR-001, FR-006, FR-007, FR-087, AT-01, AT-08, AT-09, AT-71) · endpoint `POST /api/auth/register/code` · FR-009→FR-013 và banner chưa xác thực còn áp dụng cho tài khoản tạo trước v1.2.0 |
 | **Thay đổi 1.1.3** | Đăng ký xong đăng nhập luôn và vào đích FR-090 (FR-087, AT-71) · email xác thực và đặt lại mật khẩu gửi ở luồng nền (FR-006, FR-007) · trang `/terms` (§12.1) |
 | **Thay đổi 1.1.2** | Khoảng chờ 10 giây sau khi xoay vòng refresh token để nhiều tab không tự đăng xuất nhau (FR-032, AT-35b) · đăng xuất lỗi thì giữ trạng thái đăng nhập và báo rõ (§12.2) · màn mặc định của `TEACHER`, `MODERATOR` đã có (§12.3) |
@@ -175,7 +176,7 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 | # | Tình huống | Hành vi mong đợi |
 |---|---|---|
 | E1 | Hai request đăng ký cùng email đồng thời | Một thành công, một nhận `EMAIL_ALREADY_EXISTS`. `UNIQUE` trên `users.email` chặn |
-| E2 | SMTP lỗi khi gửi email xác thực | Đăng ký **vẫn trả 201**. Ghi log. Người dùng xin gửi lại sau (`NFR-A01`) |
+| E2 | SMTP lỗi khi gửi mã đăng ký | **503** `EMAIL_NOT_SENT`, chưa tạo tài khoản, thử lại được ngay (FR-007, `NFR-A01`) |
 | E3 | Refresh token bị dùng lại sau khi đã rotate | Thu hồi **toàn bộ** token của user đó, buộc đăng nhập lại |
 | E4 | Token hết hạn giữa lúc đang làm bài | Client tự làm mới token (FR-031) rồi gửi lại request một lần; bài đang làm không mất |
 | E5 | Người dùng bị `ADMIN` cấm khi đang có phiên | Request tiếp theo trả 403, không chờ token hết hạn |
@@ -201,8 +202,8 @@ tài khoản, **để** tiến độ của tôi thống nhất ở mọi nơi.
 | **FR-003** | THE system SHALL hash mật khẩu bằng bcrypt cost 12 trước khi ghi (`HR-01`, `NFR-S01`) |
 | **FR-004** | WHEN email (đã chuẩn hoá, FR-095) đã tồn tại, THE system SHALL trả **409** `EMAIL_ALREADY_EXISTS` |
 | **FR-005** | THE system SHALL validate theo FR-091 (mật khẩu), FR-095 (email), `displayName` 2–100 ký tự sau khi bỏ khoảng trắng hai đầu, `acceptTerms = true`, hai lần nhập mật khẩu khớp. Vi phạm → **422** `VALIDATION_FAILED` kèm `details` từng field |
-| **FR-006** | WHEN khách gửi `POST /api/auth/register/code` với dữ liệu hợp lệ như FR-005, THE system SHALL sinh mã 6 số (`SecureRandom`), lưu **hash** gắn với email trong Redis **10 phút**, gửi mã qua email ở luồng nền và trả **202**; chưa tạo tài khoản. Mã mới thay mã cũ; mã dùng một lần; sai **5 lần** thì huỷ. Mã sai, hết hạn hoặc đã huỷ → **400** `INVALID_VERIFY_TOKEN` kèm `remainingAttempts`. Mỗi email gửi lại sau **60 giây**, tối đa **5 lần/giờ**; vượt → **429** `TOO_MANY_REQUESTS` kèm `retryAfterSeconds`. Redis lỗi → **500**, không cho đăng ký. `cnhsk.auth.registration-code-required` mặc định `true`; chỉ test tắt để tạo nhanh tài khoản chưa xác thực kèm token `EMAIL_VERIFY` 24 giờ |
-| **FR-007** | WHERE SMTP lỗi hoặc hàng đợi gửi đầy, THE system SHALL **vẫn trả 202** và ghi log lỗi (không ghi email, không ghi mã); khách gửi lại mã sau 60 giây (`NFR-A01`) |
+| **FR-006** | WHEN khách gửi `POST /api/auth/register/code` với dữ liệu hợp lệ như FR-005, THE system SHALL sinh mã 6 số (`SecureRandom`), lưu **hash** gắn với email trong Redis **10 phút**, gửi mã qua email rồi mới trả **202**; chưa tạo tài khoản. Mã mới thay mã cũ khi đã gửi được; mã dùng một lần; sai **5 lần** thì huỷ. Mã sai, hết hạn hoặc đã huỷ → **400** `INVALID_VERIFY_TOKEN` kèm `remainingAttempts`. Mỗi email gửi lại sau **60 giây**, tối đa **5 lần/giờ**; vượt → **429** `TOO_MANY_REQUESTS` kèm `retryAfterSeconds`. Redis lỗi → **500**, không cho đăng ký. `cnhsk.auth.registration-code-required` mặc định `true`; chỉ test tắt để tạo nhanh tài khoản chưa xác thực kèm token `EMAIL_VERIFY` 24 giờ |
+| **FR-007** | WHERE SMTP lỗi khi gửi mã, THE system SHALL trả **503** `EMAIL_NOT_SENT`, ghi log lỗi (không ghi email, không ghi mã), không tính lượt gửi, không thay mã cũ; khách thử lại ngay (`NFR-A01`) |
 | **FR-008** | THE system SHALL KHÔNG bao giờ ghi mật khẩu thô, token thô hoặc mã xác minh vào log (`NFR-S07`) |
 
 ### Nhóm 2 — Xác thực email (FR-009…FR-013) · UC-002
@@ -465,6 +466,7 @@ CREATE INDEX ix_tokens_user ON auth.auth_tokens(user_id) WHERE revoked_at IS NUL
 | `REVOKE_LAST_ADMIN` · `BAN_LAST_ADMIN` | 409 | Đụng `ADMIN` cuối cùng còn hoạt động | FR-066, FR-096 |
 | `USER_NOT_FOUND` | 404 | Chỉ ở endpoint `/api/admin/users/{id}` (người gọi là `ADMIN`) | FR-097 |
 | `CSRF_TOKEN_INVALID` | 403 | Request đổi trạng thái bằng cookie thiếu/sai CSRF | §6, `HR-05` |
+| `EMAIL_NOT_SENT` | 503 | Không gửi được email chứa mã đăng ký | FR-007 |
 | `TOO_MANY_REQUESTS` | 429 | Vượt giới hạn gửi lại email; kèm `retryAfterSeconds` | FR-006, FR-012 |
 | `INTERNAL_ERROR` | 500 | Lỗi không lường trước — chỉ trả `request_id`, không chi tiết | `HR-09` |
 
@@ -507,7 +509,7 @@ CREATE INDEX ix_tokens_user ON auth.auth_tokens(user_id) WHERE revoked_at IS NUL
 | `NFR-S06` | Lỗi trả `{error_code, message, request_id}` | |
 | `NFR-S07` | Log KHÔNG chứa mật khẩu, token, email người dùng (log id) | |
 | `NFR-C01` | 50 người dùng đồng thời (demo) | |
-| `NFR-A01` | SMTP lỗi → không báo lỗi máy chủ, gửi lại mã được (FR-007) | |
+| `NFR-A01` | SMTP lỗi → báo rõ chưa gửi được mã, gửi lại được ngay (FR-007) | |
 | `NFR-A02` | Redis không phản hồi → đăng nhập vẫn chạy (bỏ qua đếm sai, ghi log cảnh báo); FR-092 coi như không có mốc | |
 
 ---
@@ -609,7 +611,7 @@ Hợp đồng đầy đủ: [`contracts/openapi-auth.yaml`](contracts/openapi-au
 | Method · Path | Auth | Request | Response thành công | Lỗi chính |
 |---|---|---|---|---|
 | `GET /api/auth/csrf` | Không | — | 204 + cookie `XSRF-TOKEN` | — |
-| `POST /api/auth/register/code` | Không | `{email, password, confirmPassword, displayName, acceptTerms}` | 202 `{email, expiresInSeconds, resendAfterSeconds}` | 409, 422, 429 |
+| `POST /api/auth/register/code` | Không | `{email, password, confirmPassword, displayName, acceptTerms}` | 202 `{email, expiresInSeconds, resendAfterSeconds}` | 409, 422, 429, 503 |
 | `POST /api/auth/register` | Không | như trên + `code` | 201 `{userId, email, emailVerified:true}` | 400 `INVALID_VERIFY_TOKEN`, 409, 422 |
 | `POST /api/auth/verify-email` | Không | `{token}` | 200 `{emailVerified:true}` | 400 |
 | `POST /api/auth/verify-email/resend` | Có | — | 202 | 409 `EMAIL_ALREADY_VERIFIED`, 429 |
@@ -650,7 +652,7 @@ Không có AT: FR-055 (đã chuyển), FR-056 (V2), FR-058c (spec này không c�
 | AT-06 | FR-005, FR-091 | W register mật khẩu `abcdefgh` · T 422, `details[0].field = password` |
 | AT-07 | FR-005 | W register `acceptTerms=false`, mật khẩu không khớp, displayName 1 ký tự · T 422 có đủ 3 field trong `details` |
 | AT-08 | FR-006 | W register/code · T 202, chưa có dòng `users`, Mailpit nhận 1 email chứa mã 6 số, Redis không chứa mã thô; W register thiếu mã hoặc mã của email khác · T 400; sai 5 lần · T mã đúng cũng bị từ chối; gửi lại trước 60 giây hoặc lần thứ 6 trong giờ · T 429 có `retryAfterSeconds`; mã đã dùng · T 400 |
-| AT-09 | FR-007, NFR-A01 | G SMTP không kết nối được · W register/code · T 202, log không chứa email và mã |
+| AT-09 | FR-007, NFR-A01 | G SMTP không kết nối được · W register/code 6 lần · T 503 `EMAIL_NOT_SENT` cả 6 lần, log không chứa email và mã, mã cũ còn dùng được; SMTP chạy lại · T 202 ngay |
 | AT-10 | FR-008 | W register + login + đặt lại mật khẩu · T log không chứa mật khẩu, token thô, email |
 | AT-11 | FR-009 | G token xác thực hợp lệ · W verify · T 200, `email_verified_at` có giá trị, token bị thu hồi |
 | AT-12 | FR-010 | G chưa xác thực · W gọi `AuthApi.requireVerifiedEmail` · T ném `ACCOUNT_UNVERIFIED` 403; W login · T 200 |

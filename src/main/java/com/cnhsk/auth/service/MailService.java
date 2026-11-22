@@ -18,7 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
 import org.springframework.mail.MailException;
+import org.springframework.mail.MailPreparationException;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -32,8 +34,10 @@ import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
 /**
- * Sends authentication emails after commit on background threads, so a slow mail server neither delays the
- * response nor holds its database connection. Study reminders stay synchronous for job retries.
+ * Sends authentication links after commit on background threads, so a slow mail server neither delays the
+ * response nor holds its database connection. Registration codes are sent on the calling thread because the
+ * screen asks for the code next and must know when it never left. Study reminders stay synchronous for job
+ * retries.
  */
 @Service
 public class MailService {
@@ -89,10 +93,10 @@ public class MailService {
         }
     }
 
-    /** The code lives in Redis, so it is requested outside a transaction. */
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    /** Throws when the mail server refuses the code, so the caller can report it. */
+    @EventListener
     public void sendRegistrationCode(RegistrationCodeRequestedEvent event) {
-        dispatch(event.getRecipient(), event.getCode() + " là mã xác minh CNHSK",
+        deliver(event.getRecipient(), event.getCode() + " là mã xác minh CNHSK",
                 "Xin chào,\n\n"
                         + "Mã xác minh để tạo tài khoản CNHSK của bạn là:\n\n"
                         + event.getCode() + "\n\n"
@@ -164,6 +168,14 @@ public class MailService {
 
     private void send(String recipient, String subject, String text) {
         try {
+            deliver(recipient, subject, text);
+        } catch (MailException exception) {
+            // Failed links are requested again by the user; the failure is already logged.
+        }
+    }
+
+    private void deliver(String recipient, String subject, String text) {
+        try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, StandardCharsets.UTF_8.name());
             helper.setFrom(new InternetAddress(fromAddress, "CNHSK", StandardCharsets.UTF_8.name()));
@@ -171,11 +183,19 @@ public class MailService {
             helper.setSubject(subject);
             helper.setText(text, false);
             mailSender.send(message);
-        } catch (MessagingException | UnsupportedEncodingException | MailException exception) {
-            // Do not log the exception itself: provider messages can contain recipient or message details.
-            LOGGER.warn("Could not send authentication email; mail error type={}, recipient={}",
-                    exception.getClass().getSimpleName(), maskEmail(recipient));
+        } catch (MailException exception) {
+            logFailure(exception, recipient);
+            throw exception;
+        } catch (MessagingException | UnsupportedEncodingException exception) {
+            logFailure(exception, recipient);
+            throw new MailPreparationException("Could not prepare authentication email.", exception);
         }
+    }
+
+    private static void logFailure(Exception exception, String recipient) {
+        // Do not log the exception itself: provider messages can contain recipient or message details.
+        LOGGER.warn("Could not send authentication email; mail error type={}, recipient={}",
+                exception.getClass().getSimpleName(), maskEmail(recipient));
     }
 
     private static String maskEmail(String email) {
