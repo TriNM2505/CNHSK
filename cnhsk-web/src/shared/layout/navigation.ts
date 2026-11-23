@@ -28,6 +28,8 @@ export type NavigationItem = {
   activePrefixes: readonly string[]
   /** Active only on the listed paths themselves, for a parent path whose children have their own items. */
   activeExact?: boolean
+  /** Paths under a prefix that belong to another item, so this one stays dark there. */
+  activeExcept?: readonly string[]
   icon: ComponentType<SVGProps<SVGSVGElement>>
   label: string
   mobileLabel?: string
@@ -224,6 +226,7 @@ export const adminNavigation: readonly NavigationItem[] = [
     to: '/admin/ledger',
   },
   {
+    activeExcept: ['/moderation/posts/new'],
     activePrefixes: ['/moderation/posts'],
     icon: ShieldCheck,
     label: 'Bài chờ duyệt',
@@ -249,6 +252,7 @@ export const adminNavigation: readonly NavigationItem[] = [
 ]
 
 export function isNavigationItemActive(pathname: string, item: NavigationItem): boolean {
+  if (item.activeExcept?.includes(pathname)) return false
   return item.activePrefixes.some(
     (prefix) => pathname === prefix || (!item.activeExact && pathname.startsWith(`${prefix}/`)),
   )
