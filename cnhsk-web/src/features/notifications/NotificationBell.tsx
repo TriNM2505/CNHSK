@@ -81,7 +81,8 @@ export function NotificationBell({ inverse = false }: { inverse?: boolean }) {
   const pending = tasks.reduce((sum, task) => sum + task.count, 0)
   const badge = (summary?.unread ?? 0) + pending
   return (
-    <div className="relative" ref={root}>
+    // A flex wrapper keeps the button off the text baseline so it centres with the account menu beside it.
+    <div className="relative flex items-center" ref={root}>
       <button
         aria-expanded={open}
         aria-haspopup="dialog"
