@@ -148,8 +148,8 @@ export function PronunciationStageListView({
   return (
     <div className="mx-auto w-full min-w-0 max-w-content space-y-6 pb-16">
       <PageBanner
-        subtitle="Luyện nghe và phân biệt âm theo tám tầng, từ thanh mẫu đến biến điệu."
-        title="Luyện phát âm"
+        subtitle="Nghe và phân biệt âm theo tám tầng, từ thanh mẫu đến biến điệu."
+        title="Nghe phân biệt âm"
       />
 
       {state === 'loading' ? <LoadingStages /> : null}

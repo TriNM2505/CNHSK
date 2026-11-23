@@ -294,7 +294,7 @@ describe('application routes', () => {
     getCurrentUserMock.mockResolvedValue(learner)
     renderRoute('/learn/pronunciation')
 
-    expect(await screen.findByRole('heading', { name: 'Luyện phát âm' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Nghe phân biệt âm' })).toBeVisible()
     expect(screen.queryByRole('heading', { name: 'Màn SCR-016 đang dựng' })).not.toBeInTheDocument()
   })
 
