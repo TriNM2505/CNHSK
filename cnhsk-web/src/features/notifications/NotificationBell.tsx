@@ -93,12 +93,21 @@ export function NotificationBell({ inverse = false }: { inverse?: boolean }) {
         onClick={() => void toggle()}
         type="button"
       >
-        <Bell aria-hidden="true" className="size-6" />
-        {badge > 0 ? (
-          <span className="absolute right-1 top-1 flex min-w-5 items-center justify-center rounded-pill bg-danger px-1 text-caption leading-5 text-surface">
-            {badge > 99 ? '99+' : badge}
-          </span>
-        ) : null}
+        {/* The count sits on the bell's shoulder, outlined so the bell stays readable behind it. */}
+        <span className="relative inline-flex">
+          <Bell aria-hidden="true" className="size-6" />
+          {badge > 0 ? (
+            <span
+              aria-hidden="true"
+              className={cn(
+                'absolute -right-2.5 -top-2 flex h-[18px] min-w-[18px] items-center justify-center rounded-pill bg-danger px-1 text-[11px] font-bold leading-none text-surface ring-2',
+                inverse ? 'ring-brand-800' : 'ring-surface',
+              )}
+            >
+              {badge > 99 ? '99+' : badge}
+            </span>
+          ) : null}
+        </span>
       </button>
 
       {open ? (
