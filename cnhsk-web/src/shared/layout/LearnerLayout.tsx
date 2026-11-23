@@ -5,7 +5,6 @@ import { useLocation } from 'react-router-dom'
 import { AppShell } from '@/shared/layout/AppShell'
 import { NavigationLink } from '@/shared/layout/NavigationLink'
 import {
-  gameNavigationItem,
   isNavigationItemActive,
   learnerNavigation,
   type NavigationItem,
@@ -84,15 +83,6 @@ export function LearnerLayout({
               </NavigationLink>
             )
           })}
-          {gameOrigin ? (
-            <a
-              className="flex min-h-touch items-center justify-center gap-3 rounded-sm px-3 text-ink-secondary no-underline hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:justify-start"
-              href={gameOrigin}
-            >
-              <gameNavigationItem.icon aria-hidden="true" className="size-5 shrink-0" />
-              <span className="sr-only lg:not-sr-only">{gameNavigationItem.label}</span>
-            </a>
-          ) : null}
         </nav>
       </div>
     </aside>
@@ -121,25 +111,6 @@ export function LearnerLayout({
           </div>
           <nav aria-label="Điều hướng bổ sung" className="min-w-0 space-y-1">
             {moreMobile.map(menuLink)}
-            {gameOrigin ? (
-              <a
-                aria-label={gameNavigationItem.label}
-                href={gameOrigin}
-                className="flex min-h-touch items-center gap-3 rounded-sm px-3 text-ink-secondary no-underline focus-visible:ring-2 focus-visible:ring-focus"
-                onClick={() => setMoreOpen(false)}
-              >
-                <gameNavigationItem.icon aria-hidden="true" className="size-5 shrink-0" />
-                <span>{gameNavigationItem.label}</span>
-              </a>
-            ) : (
-              <p
-                aria-disabled="true"
-                className="flex min-h-touch items-center gap-3 px-3 text-ink-muted"
-              >
-                <gameNavigationItem.icon aria-hidden="true" className="size-5 shrink-0" />
-                <span>{gameNavigationItem.label}</span>
-              </p>
-            )}
           </nav>
         </section>
       ) : null}
