@@ -4,6 +4,7 @@ import { Link, useLocation, type Location } from 'react-router-dom'
 
 import { findKnownRoute } from '@/app/routeAccess'
 import { useCurrentUser } from '@/shared/auth'
+import { NotificationBell } from '@/features/notifications/NotificationBell'
 import { AccountMenu } from '@/shared/layout/AccountMenu'
 import { BrandLink } from '@/shared/layout/AppShell'
 import { gameNavigationItem } from '@/shared/layout/navigation'
@@ -168,7 +169,10 @@ export function PublicHeader({ gameOrigin = import.meta.env.VITE_GAME_ORIGIN }: 
             <Search aria-hidden="true" className="size-6" />
           </Link>
           {user ? (
-            <AccountMenu nameFrom="xl" />
+            <>
+              <NotificationBell />
+              <AccountMenu nameFrom="xl" />
+            </>
           ) : (
             <nav aria-label="Tài khoản" className="flex items-center gap-2">
               <Button className="px-3 lg:text-body lg:font-semibold" to={`/login${query}`} variant="ghost">

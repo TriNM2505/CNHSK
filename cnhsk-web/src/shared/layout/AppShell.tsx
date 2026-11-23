@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
+import { NotificationBell } from '@/features/notifications/NotificationBell'
 import { HocBaLogo } from '@/shared/brand'
 import { AccountMenu } from '@/shared/layout/AccountMenu'
 import { cn } from '@/shared/lib/cn'
@@ -46,7 +47,12 @@ export function AppShell({
       >
         <div className="mx-auto flex h-16 max-w-content items-center justify-between gap-3">
           <BrandLink inverse={inverse} />
-          {user ? <AccountMenu inverse={inverse} /> : null}
+          {user ? (
+            <div className="flex items-center gap-1">
+              <NotificationBell inverse={inverse} />
+              <AccountMenu inverse={inverse} />
+            </div>
+          ) : null}
         </div>
       </header>
 
