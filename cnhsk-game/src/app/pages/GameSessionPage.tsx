@@ -48,11 +48,14 @@ export function LegacyGameRedirect({ slug }: { slug: string }) {
 function GameSession({ code, Game }: { code: string; Game: ComponentType<GameProps> }) {
   const location = useLocation()
   const session = useCurrentUser()
-  const level = new URLSearchParams(location.search).get('hskLevel')
+  const search = new URLSearchParams(location.search)
+  const level = search.get('hskLevel')
+  const contest = search.get('contest')
   if (session.status === 'authenticated') {
     return (
       <Suspense fallback={<p role="status">Đang tải trò chơi…</p>}>
-        <GameShell code={code} Game={Game} hskLevel={level && /^[1-3]$/.test(level) ? Number(level) : undefined} />
+        <GameShell code={code} Game={Game} hskLevel={level && /^[1-3]$/.test(level) ? Number(level) : undefined}
+          contestId={contest && /^[1-9]\d{0,17}$/.test(contest) ? Number(contest) : undefined} />
       </Suspense>
     )
   }

@@ -1,12 +1,13 @@
 import { Megaphone, MessageSquareText, Pin, Trophy } from 'lucide-react'
 import type { FormEvent } from 'react'
 
-import type { ContestSummary } from '@/features/contests/types'
+import type { GameOption } from '@/features/leaderboard/types'
 import { cn } from '@/shared/lib/cn'
 import { Button, Card, FormField, Input, PageHeader, Select, Textarea } from '@/shared/ui'
 
 import { POST_CATEGORIES, POST_CATEGORY_LABELS } from '../labels'
 import type { MediaItem, PostCategory } from '../types'
+import { GameSealPicker } from './GameSealPicker'
 import { MediaPicker } from './MediaPicker'
 
 /** What the moderator is publishing; a topic post uses category. */
@@ -17,7 +18,11 @@ export type ModeratorPostValues = {
   category: PostCategory
   /** Comment contests: local date-time when comments close. */
   commentsCloseAt: string
-  contestId: string
+  /** Game contests: the game, the local open and close date-times and how many players win. */
+  gameCode: string
+  startsAt: string
+  endsAt: string
+  prizeCount: string
   title: string
   content: string
   pinned: boolean
@@ -29,7 +34,7 @@ export type ModeratorPostErrors = Partial<Record<keyof ModeratorPostValues, stri
 
 export type ModeratorPostComposerViewProps = {
   busy: boolean
-  contests: readonly ContestSummary[]
+  games: readonly GameOption[]
   errors: ModeratorPostErrors
   formError?: string
   media: readonly MediaItem[]
@@ -49,8 +54,8 @@ const KINDS: readonly { hint: string; icon: typeof Megaphone; kind: ModeratorPos
 /** SCR-080: a moderator writes a post that goes live at once, optionally pinned and tied to a contest. */
 export function ModeratorPostComposerView({
   busy,
-  contests,
   errors,
+  games,
   formError,
   media,
   onMediaChange,
@@ -147,21 +152,58 @@ export function ModeratorPostComposerView({
           ) : null}
 
           {isContest ? (
-            <FormField error={errors.contestId} htmlFor="moderator-post-contest" label="Cuộc thi" required>
-              <Select
-                disabled={busy}
-                id="moderator-post-contest"
-                onChange={(event) => onChange('contestId', event.target.value)}
-                value={values.contestId}
+            <div className="space-y-4 rounded-md border border-line p-4">
+              <FormField error={errors.gameCode} htmlFor="moderator-contest-game" label="Trò chơi" required>
+                <div id="moderator-contest-game">
+                  <GameSealPicker
+                    disabled={busy}
+                    games={games}
+                    label="Trò chơi của cuộc thi"
+                    onChange={(code) => onChange('gameCode', code)}
+                    value={values.gameCode}
+                  />
+                </div>
+              </FormField>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField error={errors.startsAt} htmlFor="moderator-contest-start" label="Mở lúc" required>
+                  <Input
+                    disabled={busy}
+                    id="moderator-contest-start"
+                    onChange={(event) => onChange('startsAt', event.target.value)}
+                    type="datetime-local"
+                    value={values.startsAt}
+                  />
+                </FormField>
+                <FormField error={errors.endsAt} htmlFor="moderator-contest-end" label="Đóng lúc" required>
+                  <Input
+                    disabled={busy}
+                    id="moderator-contest-end"
+                    onChange={(event) => onChange('endsAt', event.target.value)}
+                    type="datetime-local"
+                    value={values.endsAt}
+                  />
+                </FormField>
+              </div>
+              <FormField
+                className="mb-0"
+                error={errors.prizeCount}
+                hint="Câu hỏi trộn HSK 1–3. Mỗi người chơi không giới hạn lượt, lấy lượt điểm cao nhất."
+                htmlFor="moderator-contest-prizes"
+                label="Số người nhận giải"
+                required
               >
-                <option value="">Chọn cuộc thi đã công bố</option>
-                {contests.map((contest) => (
-                  <option key={contest.id} value={String(contest.id)}>
-                    {contest.name} · {contest.state === 'ONGOING' ? 'đang diễn ra' : 'sắp diễn ra'}
-                  </option>
-                ))}
-              </Select>
-            </FormField>
+                <Input
+                  disabled={busy}
+                  id="moderator-contest-prizes"
+                  inputMode="numeric"
+                  max={50}
+                  min={1}
+                  onChange={(event) => onChange('prizeCount', event.target.value)}
+                  type="number"
+                  value={values.prizeCount}
+                />
+              </FormField>
+            </div>
           ) : null}
 
           <FormField error={errors.title} htmlFor="moderator-post-title" label="Tiêu đề" required>
@@ -201,6 +243,7 @@ export function ModeratorPostComposerView({
             <MediaPicker disabled={busy} media={media} onChange={onMediaChange} />
           </div>
 
+          {isContest ? null : (
           <div className="space-y-3 rounded-md bg-canvas p-4">
             <label className="flex items-center gap-3 text-label text-ink">
               <input
@@ -217,7 +260,7 @@ export function ModeratorPostComposerView({
               <FormField
                 className="mb-0"
                 error={errors.pinnedUntil}
-                hint={isContest || isCommentContest ? 'Để trống thì ghim tới khi cuộc thi kết thúc.' : undefined}
+                hint={isCommentContest ? 'Để trống thì ghim tới khi đóng bình luận.' : undefined}
                 htmlFor="moderator-post-pinned-until"
                 label="Ghim đến"
               >
@@ -231,6 +274,7 @@ export function ModeratorPostComposerView({
               </FormField>
             ) : null}
           </div>
+          )}
 
           {formError ? (
             <p className="text-body-sm text-danger" role="alert">

@@ -58,10 +58,13 @@ type AnswerResult = {
 const base = '/api/community/games'
 const roundPath = (id: number) => base + '/rounds/' + id
 
-export function startRound(code: string, hskLevel: number, signal?: AbortSignal) {
+/** A practice round is played at one HSK level; a contest round names the contest and mixes HSK 1–3. */
+export type RoundTarget = { hskLevel: number } | { contestId: number }
+
+export function startRound(code: string, target: RoundTarget, signal?: AbortSignal) {
   return apiRequest<RoundStart>(base + '/' + encodeURIComponent(code) + '/rounds', {
     method: 'POST',
-    body: { hskLevel },
+    body: target,
     signal,
   })
 }

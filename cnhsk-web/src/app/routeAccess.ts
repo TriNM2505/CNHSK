@@ -443,6 +443,20 @@ export const appRouteDefinitions = [
     scr: 'SCR-080',
   },
   {
+    access: 'public',
+    kind: 'screen',
+    layout: 'public',
+    path: '/community/contests/:id',
+    scr: 'SCR-081',
+  },
+  {
+    access: ['MODERATOR'],
+    kind: 'screen',
+    layout: 'admin',
+    path: '/moderation/contests/:id/results',
+    scr: 'SCR-082',
+  },
+  {
     access: ['MODERATOR'],
     kind: 'screen',
     layout: 'admin',

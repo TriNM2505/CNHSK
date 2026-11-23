@@ -3,7 +3,7 @@ import type { ComponentType, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 
 import { ApiError } from '../api/client'
-import { abandonRound, answerRound, finishRound, readRound, startRound } from '../api/rounds'
+import { abandonRound, answerRound, finishRound, readRound, startRound, type RoundTarget } from '../api/rounds'
 import type { RoundResult, RoundStart, RoundView, ServedItem } from '../api/rounds'
 import { GameScene } from './GameScene'
 import { gameMeta, webHref } from './gameMeta'
@@ -24,7 +24,8 @@ export type GameProps = {
 /** Levels with game content; the server rejects any other level. */
 export const HSK_LEVELS = [1, 2, 3] as const
 
-type Props = { code: string; hskLevel?: number; Game: ComponentType<GameProps> }
+/** A contest link (?contest=) plays a contest round instead of a level the learner picks. */
+type Props = { code: string; hskLevel?: number; contestId?: number; Game: ComponentType<GameProps> }
 
 type Screen =
   | {
@@ -124,11 +125,11 @@ function createRoundController(
     })
   }
 
-  async function start(hskLevel: number) {
+  async function start(target: RoundTarget) {
     if (mode !== 'ready' && mode !== 'result') return
     setScreen({ mode: 'starting' })
     try {
-      const next = await startRound(code, hskLevel, signal)
+      const next = await startRound(code, target, signal)
       if (signal.aborted) return
       round = next
       syncClock(next)
@@ -408,7 +409,7 @@ function createRoundController(
 }
 
 export function GameShell(props: Props) {
-  return <RoundScreen key={JSON.stringify([props.code, props.hskLevel])} {...props} />
+  return <RoundScreen key={JSON.stringify([props.code, props.hskLevel, props.contestId])} {...props} />
 }
 
 function livesMax(screen: Extract<Screen, { mode: 'round' }>): number {
@@ -460,15 +461,20 @@ function rememberLevel(level: number) {
   }
 }
 
-function RoundScreen({ code, hskLevel, Game }: Props) {
+function RoundScreen({ code, hskLevel, contestId, Game }: Props) {
   const [screen, setScreen] = useState<Screen>({ mode: 'ready' })
   const [level, setLevel] = useState(() => initialLevel(hskLevel))
   const controller = useRef<ReturnType<typeof createRoundController>>()
   function start() {
+    if (contestId !== undefined) {
+      void controller.current?.start({ contestId })
+      return
+    }
     if (level === undefined) return
     rememberLevel(level)
-    void controller.current?.start(level)
+    void controller.current?.start({ hskLevel: level })
   }
+  const contestHref = contestId === undefined ? undefined : webHref('/community/contests/' + contestId)
   useEffect(() => {
     const instance = createRoundController(code, setScreen)
     controller.current = instance
@@ -492,6 +498,17 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
             <div className="core-setup-copy">
               <span className="core-kicker">✦ MỘT VÁN NHANH · MỘT KỸ NĂNG MỚI</span>
               <h2>Sẵn sàng?<br /><em>Vào trận thôi.</em></h2>
+              {contestId !== undefined ? (
+                <>
+                  <p>Ván thi đấu: câu hỏi trộn HSK 1–3, chơi bao nhiêu lượt cũng được, bảng xếp hạng lấy lượt điểm cao nhất của bạn.</p>
+                  {screen.message && <p role="alert">{screen.message}</p>}
+                  <button type="button" className="primary-button" onClick={start}>
+                    Bắt đầu thi <span aria-hidden="true">↗</span>
+                  </button>
+                  <a className="secondary-button" href={contestHref}>Về trang cuộc thi</a>
+                </>
+              ) : (
+                <>
               <p>Mỗi ván rút ngẫu nhiên câu hỏi đúng cấp bạn chọn. Máy chủ chấm từng lượt; điểm được xếp hạng riêng theo từng cấp HSK.</p>
               <div className="core-field-label" id="hsk-level-label">CẤP HSK</div>
               <div className="choice-row" role="group" aria-labelledby="hsk-level-label">
@@ -507,6 +524,8 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
                 Bắt đầu <span aria-hidden="true">↗</span>
               </button>
               {level === undefined && <p className="core-hint">Chọn một cấp HSK để bắt đầu.</p>}
+                </>
+              )}
             </div>
             <GameScene code={code} />
           </div>
@@ -515,7 +534,7 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
         {screen.mode === 'round' && (
           <div className="core-play">
             <div className="core-stats">
-              <span className="stat-level">HSK {level}</span>
+              <span className="stat-level">{contestId !== undefined ? 'Thi đấu · HSK 1–3' : 'HSK ' + level}</span>
               {screen.lives !== undefined && (
                 <span className="stat-lives" role="status">
                   <span className="sr-only">Còn {screen.lives} mạng</span>
@@ -650,8 +669,8 @@ function RoundScreen({ code, hskLevel, Game }: Props) {
                 Chơi lại
               </button>
               {hubLink}
-              <a className="secondary-button" href={webHref(`/leaderboards/games?game=${code}&hskLevel=${level ?? 1}`)}>
-                Xem bảng xếp hạng
+              <a className="secondary-button" href={contestHref ?? webHref(`/leaderboards/games?game=${code}&hskLevel=${level ?? 1}`)}>
+                {contestHref ? 'Về bảng xếp hạng cuộc thi' : 'Xem bảng xếp hạng'}
               </a>
             </div>
           </div>

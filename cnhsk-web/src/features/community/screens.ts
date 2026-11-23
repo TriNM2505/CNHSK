@@ -11,4 +11,6 @@ export const screens = {
   'SCR-062': lazy(() => import('./pages/Scr062ViolationReportQueuePage')),
   'SCR-063': lazy(() => import('./pages/Scr063ViolationReportDetailPage')),
   'SCR-080': lazy(() => import('./pages/Scr080ModeratorPostComposerPage')),
+  'SCR-081': lazy(() => import('./pages/Scr081GameContestPage')),
+  'SCR-082': lazy(() => import('./pages/Scr082GameContestResultsPage')),
 } satisfies ScreenCatalog

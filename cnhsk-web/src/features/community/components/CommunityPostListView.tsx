@@ -300,13 +300,13 @@ function PinnedCard({ onUnpin, post, viewer }: { onUnpin?: (id: number) => void;
       <footer className="mt-4 flex flex-wrap items-center gap-3">
         {post.contestId ? (
           <>
-            <Button size="sm" to={`/contests/${post.contestId}`}>
+            <Button size="sm" to={`/community/contests/${post.contestId}`}>
               <Trophy aria-hidden="true" className="mr-1.5 inline-block size-4 align-middle" />
-              Vào thi
+              Vào phòng thi và xếp hạng
             </Button>
-            <Button size="sm" to={`/contests/${post.contestId}/results`} variant="outline">
-              Xem xếp hạng
-            </Button>
+            <Link className="text-label text-brand-700 hover:underline" to={`/community/posts/${post.id}`}>
+              Đọc thể lệ
+            </Link>
           </>
         ) : (
           <Link className="text-label text-brand-700 hover:underline" to={`/community/posts/${post.id}`}>
