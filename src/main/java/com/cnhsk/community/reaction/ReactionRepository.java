@@ -38,6 +38,11 @@ public interface ReactionRepository extends JpaRepository<Reaction, ReactionId> 
             """, nativeQuery = true)
     int deletePostLike(@Param("userId") long userId, @Param("postId") long postId);
 
+    @Query("select r.id.targetId from Reaction r where r.id.userId = :userId and r.id.targetId in :postIds "
+            + "and r.id.targetType = com.cnhsk.community.common.TargetType.POST "
+            + "and r.id.kind = com.cnhsk.community.common.ReactionKind.LIKE")
+    List<Long> findLikedPostIds(@Param("userId") long userId, @Param("postIds") Set<Long> postIds);
+
     @Modifying
     @Query(value = """
             INSERT INTO community.reactions(user_id, target_type, target_id, kind)

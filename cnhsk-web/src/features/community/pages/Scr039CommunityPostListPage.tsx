@@ -7,7 +7,7 @@ import { Button } from '@/shared/ui/Button'
 import { ToastProvider } from '@/shared/ui/Toast'
 import { useToast } from '@/shared/ui/useToast'
 
-import { listFollowingPosts, listMyPosts, listPinnedPosts, listPublishedPosts, pinPost } from '../api/posts'
+import { listFollowingPosts, listLikedPostIds, listMyPosts, listPinnedPosts, listPublishedPosts, pinPost } from '../api/posts'
 import { getCommunityRanking, type RankingPeriod } from '../api/rankings'
 import { CommunityPostListView, type FeedMode } from '../components/CommunityPostListView'
 import {
@@ -59,6 +59,16 @@ type FeedProps = {
   status: PostStatus | ''
 }
 
+/** Liked state for the cards on screen, fetched in one request once the feed has loaded. */
+function useLikedIds(ids: readonly number[], enabled: boolean): ReadonlySet<number> {
+  const key = ids.join(',')
+  const query = useApiQuery(
+    (signal) => (enabled && ids.length > 0 ? listLikedPostIds(ids.slice(0, 50), signal) : Promise.resolve([])),
+    [key, enabled],
+  )
+  return useMemo(() => new Set(query.data ?? []), [query.data])
+}
+
 function PublicFeed(props: FeedProps) {
   const { aside, category, currentUserName, hotQuestions, isLearner, onCategoryChange, onPageChange, onStatusChange, onTabChange, onWrite, page, status } = props
   const query = useApiQuery(
@@ -66,7 +76,8 @@ function PublicFeed(props: FeedProps) {
     [category, page],
     { isEmpty: (result) => result.items.length === 0 },
   )
-  return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} onUnpin={props.onUnpin} pinned={props.pinned} categories={FEED_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="public" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
+  const likedIds = useLikedIds([...props.pinned, ...(query.data?.items ?? [])].map((post) => post.id), isLearner)
+  return <CommunityPostListView likedIds={likedIds} aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} onUnpin={props.onUnpin} pinned={props.pinned} categories={FEED_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="public" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
 }
 
 function FollowingFeed(props: FeedProps) {
@@ -76,7 +87,8 @@ function FollowingFeed(props: FeedProps) {
     [page],
     { isEmpty: (result) => result.items.length === 0 },
   )
-  return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} categories={FEED_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="following" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
+  const likedIds = useLikedIds((query.data?.items ?? []).map((post) => post.id), isLearner)
+  return <CommunityPostListView likedIds={likedIds} aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} categories={FEED_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="following" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
 }
 
 function MineFeed(props: FeedProps) {

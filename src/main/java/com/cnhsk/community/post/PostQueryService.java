@@ -116,6 +116,18 @@ public class PostQueryService {
         return new PostSummaryPage(summaries(found), page, size, total);
     }
 
+    /** Which of up to 50 posts the learner has liked, so a feed can draw its like buttons in one request. */
+    public List<Long> likedPostIds(List<Long> postIds) {
+        long userId = learnerId();
+        if (postIds.isEmpty()) return List.of();
+        if (postIds.size() > 50 || postIds.stream().anyMatch(id -> id == null || id <= 0)) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Dữ liệu không hợp lệ.", Map.of("details", List.of(
+                            Map.of("field", "ids", "message", "Tối đa 50 mã bài, mỗi mã là số dương."))));
+        }
+        return reactions.findLikedPostIds(userId, Set.copyOf(postIds)).stream().sorted().toList();
+    }
+
     /** The "Đang theo dõi" feed: approved posts by authors the learner follows. */
     public PostSummaryPage followingList(int page, int size) {
         long userId = learnerId();

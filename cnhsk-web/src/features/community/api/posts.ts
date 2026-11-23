@@ -25,6 +25,11 @@ export function listPublishedPosts(
   return apiRequest<PostSummaryPage>(`/api/public/community/posts?${query.toString()}`, { signal })
 }
 
+/** Which of the given posts the learner has liked; at most 50 ids. */
+export function listLikedPostIds(ids: readonly number[], signal?: AbortSignal): Promise<number[]> {
+  return apiRequest<number[]>(`/api/community/posts/liked?ids=${ids.join(',')}`, { signal })
+}
+
 export function listPinnedPosts(signal?: AbortSignal): Promise<PinnedPost[]> {
   return apiRequest<PinnedPost[]>('/api/public/community/posts/pinned', { signal })
 }

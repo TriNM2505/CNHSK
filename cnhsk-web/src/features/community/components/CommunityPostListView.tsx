@@ -1,12 +1,10 @@
 import {
   Briefcase,
   CircleHelp,
-  Heart,
   Landmark,
   LayoutList,
   Lightbulb,
   Megaphone,
-  MessageCircle,
   Pin,
   Trophy,
   UsersRound,
@@ -31,6 +29,7 @@ import {
 } from '@/shared/ui'
 
 import { POST_CATEGORY_LABELS, POST_STATUS_LABELS } from '../labels'
+import { PostInteractions } from './PostInteractions'
 import type { OwnPost, OwnPostPage, PinnedPost, PostCategory, PostStatus, PostSummary, PostSummaryPage } from '../types'
 
 export type ListState = 'loading' | 'empty' | 'error' | 'ready'
@@ -61,6 +60,8 @@ type Props = {
   page: number
   /** Moderator posts kept above the feed. */
   pinned?: readonly PinnedPost[]
+  /** Posts on screen the viewer has liked. */
+  likedIds?: ReadonlySet<number>
   size: number
   state: ListState
   status: PostStatus | ''
@@ -75,6 +76,11 @@ const CATEGORY_ICONS: Record<PostCategory, LucideIcon> = {
   CONTEST: Trophy,
   ANNOUNCEMENT: Megaphone,
 }
+
+/** What a card needs to know about the person reading it. */
+type Viewer = { canInteract: boolean; likedIds: ReadonlySet<number>; name?: string }
+
+const NO_LIKES: ReadonlySet<number> = new Set()
 
 const EMPTY_TITLES: Record<FeedMode, string> = {
   public: 'Chưa có bài trong chủ đề này',
@@ -231,7 +237,7 @@ function FeedTabs({ isLearner, mode, onTabChange }: Pick<Props, 'isLearner' | 'm
   )
 }
 
-function PostCard({ post }: { post: PostSummary }) {
+function PostCard({ post, viewer }: { post: PostSummary; viewer: Viewer }) {
   const author = post.author.displayName ?? 'Người dùng đã rời'
   return (
     <article className="min-w-0 rounded-lg bg-surface p-5 shadow-sm" role="listitem">
@@ -251,25 +257,20 @@ function PostCard({ post }: { post: PostSummary }) {
         {post.title}
       </Link>
       <p className="mt-2 line-clamp-3 whitespace-pre-wrap break-words text-body text-ink-secondary">{post.excerpt}</p>
-      <footer className="mt-4 flex items-center gap-5 text-body-sm text-ink-secondary">
-        <span className="inline-flex items-center gap-1.5">
-          <Heart aria-hidden="true" className="size-4" />
-          {post.likeCount} lượt thích
-        </span>
-        <Link
-          className="inline-flex items-center gap-1.5 hover:text-brand-700"
-          to={`/community/posts/${post.id}`}
-        >
-          <MessageCircle aria-hidden="true" className="size-4" />
-          {post.commentCount} bình luận
-        </Link>
-      </footer>
+      <PostInteractions
+        canInteract={viewer.canInteract}
+        commentCount={post.commentCount}
+        likeCount={post.likeCount}
+        liked={viewer.likedIds.has(post.id)}
+        postId={post.id}
+        viewerName={viewer.name}
+      />
     </article>
   )
 }
 
 /** Moderator post held above the feed; a contest guide offers the way into the contest and its ranking. */
-function PinnedCard({ onUnpin, post }: { onUnpin?: (id: number) => void; post: PinnedPost }) {
+function PinnedCard({ onUnpin, post, viewer }: { onUnpin?: (id: number) => void; post: PinnedPost; viewer: Viewer }) {
   const author = post.author.displayName ?? 'Ban quản trị'
   return (
     <article className="min-w-0 rounded-lg border-l-4 border-accent-500 bg-surface p-5 shadow-sm" role="listitem">
@@ -312,6 +313,14 @@ function PinnedCard({ onUnpin, post }: { onUnpin?: (id: number) => void; post: P
           </Button>
         ) : null}
       </footer>
+      <PostInteractions
+        canInteract={viewer.canInteract}
+        commentCount={post.commentCount}
+        likeCount={post.likeCount}
+        liked={viewer.likedIds.has(post.id)}
+        postId={post.id}
+        viewerName={viewer.name}
+      />
     </article>
   )
 }
@@ -349,6 +358,11 @@ export function CommunityPostListView(props: Props) {
   // Pinned posts lead the unfiltered feed and are not repeated below it.
   const pinned = mode === 'public' && props.category === '' ? (props.pinned ?? []) : []
   const pinnedIds = new Set(pinned.map((post) => post.id))
+  const viewer: Viewer = {
+    canInteract: props.isLearner,
+    likedIds: props.likedIds ?? NO_LIKES,
+    name: props.currentUserName,
+  }
   const totalElements = data?.totalElements ?? 0
 
   return (
@@ -386,7 +400,7 @@ export function CommunityPostListView(props: Props) {
         {pinned.length > 0 ? (
           <div aria-label="Bài ghim" className="grid gap-4" role="list">
             {pinned.map((post) => (
-              <PinnedCard key={post.id} onUnpin={props.onUnpin} post={post} />
+              <PinnedCard key={post.id} onUnpin={props.onUnpin} post={post} viewer={viewer} />
             ))}
           </div>
         ) : null}
@@ -417,7 +431,7 @@ export function CommunityPostListView(props: Props) {
             {mode !== 'mine' ? (
               <div aria-label={mode === 'following' ? 'Bài của người bạn theo dõi' : 'Danh sách bài công khai'} className="grid gap-4" role="list">
                 {((data as PostSummaryPage | undefined)?.items ?? []).filter((post) => !pinnedIds.has(post.id)).map((post) => (
-                  <PostCard key={post.id} post={post} />
+                  <PostCard key={post.id} post={post} viewer={viewer} />
                 ))}
               </div>
             ) : (

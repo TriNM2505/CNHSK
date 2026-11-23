@@ -57,6 +57,22 @@ public class MyPostController {
         this.likes = likes;
     }
 
+    @GetMapping(value = "/liked", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(operationId = "listLikedPostIds", tags = "posts")
+    @SecurityRequirement(name = "cookieAuth")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Mã các bài trong danh sách mà người xem đã thích"),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "403", description = "Không có quyền",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "422", description = "Dữ liệu không hợp lệ",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+    public List<Long> listLikedPostIds(@RequestParam(name = "ids", defaultValue = "") List<Long> ids) {
+        return queries.likedPostIds(ids);
+    }
+
     @GetMapping(value = "/following", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(operationId = "listFollowingPosts", tags = "posts")
     @SecurityRequirement(name = "cookieAuth")
