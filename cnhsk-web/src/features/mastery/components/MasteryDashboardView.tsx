@@ -1,4 +1,5 @@
 import { ArrowRight } from 'lucide-react'
+import type { ReactNode } from 'react'
 
 import type { ApiQueryState } from '@/shared/api'
 import {
@@ -116,7 +117,8 @@ export function MasteryDashboardView({
   reviewState,
   onRetryRecommendations,
   onRetryReview,
-}: MasteryDashboardViewProps) {
+  skills,
+}: MasteryDashboardViewProps & { skills?: ReactNode }) {
   const shown = recommendations?.slice(0, MAX_RECOMMENDATIONS) ?? []
 
   return (
@@ -128,6 +130,8 @@ export function MasteryDashboardView({
         reviewState={reviewState}
         reviewSummary={reviewSummary}
       />
+
+      {skills}
 
       <section aria-labelledby="today-recommendations-heading" className="space-y-3">
         <h2 className="text-h3 text-ink" id="today-recommendations-heading">
