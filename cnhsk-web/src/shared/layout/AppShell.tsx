@@ -48,7 +48,7 @@ export function AppShell({
         <div className="mx-auto flex h-16 max-w-content items-center justify-between gap-3">
           <BrandLink inverse={inverse} />
           {user ? (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-4">
               <NotificationBell inverse={inverse} />
               <AccountMenu inverse={inverse} />
             </div>

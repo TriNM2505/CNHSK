@@ -162,10 +162,10 @@ export function PublicHeader({ gameOrigin = import.meta.env.VITE_GAME_ORIGIN }: 
         </nav>
         <div className="flex items-center gap-2">
           {user ? (
-            <>
+            <div className="flex items-center gap-4">
               <NotificationBell />
               <AccountMenu nameFrom="xl" />
-            </>
+            </div>
           ) : (
             <nav aria-label="Tài khoản" className="flex items-center gap-2">
               <Button className="px-3 lg:text-body lg:font-semibold" to={`/login${query}`} variant="ghost">
