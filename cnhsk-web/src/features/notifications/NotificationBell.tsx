@@ -1,8 +1,9 @@
 import { Bell, ClipboardList } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { formatRelative } from '@/features/community/relative-time'
+import { LiveSessionContext } from '@/shared/auth/live-session'
 import { cn } from '@/shared/lib/cn'
 
 import {
@@ -27,11 +28,12 @@ export function NotificationBell({ inverse = false }: { inverse?: boolean }) {
   const [open, setOpen] = useState(false)
   const [failed, setFailed] = useState(false)
   const root = useRef<HTMLDivElement>(null)
+  const live = useContext(LiveSessionContext)
 
   const refresh = useCallback(() => {
-    if (document.visibilityState !== 'visible') return
+    if (!live || document.visibilityState !== 'visible') return
     getNotificationSummary().then(setSummary).catch(() => undefined)
-  }, [])
+  }, [live])
 
   useEffect(() => {
     refresh()
@@ -65,6 +67,10 @@ export function NotificationBell({ inverse = false }: { inverse?: boolean }) {
     }
     setOpen(true)
     setFailed(false)
+    if (!live) {
+      setPage({ items: [], tasks: [] })
+      return
+    }
     try {
       const loaded = await listNotifications()
       setPage(loaded)

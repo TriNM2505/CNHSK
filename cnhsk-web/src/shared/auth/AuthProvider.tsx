@@ -8,6 +8,7 @@ import type { CurrentUser } from '@/features/auth/types'
 import { ApiError, AUTH_EXPIRED_EVENT, type AuthExpiredDetail, toApiError } from '@/shared/api'
 
 import { AuthContext, type AuthContextValue, type AuthStatus } from './AuthContext'
+import { LiveSessionContext } from './live-session'
 import { clearPrivateSessionStorage } from './session-private-storage'
 
 type AuthProviderProps = {
@@ -169,5 +170,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     [error, reloadCurrentUser, setAuthenticatedUser, signOut, status, user],
   )
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      <LiveSessionContext.Provider value>{children}</LiveSessionContext.Provider>
+    </AuthContext.Provider>
+  )
 }
