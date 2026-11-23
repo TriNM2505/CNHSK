@@ -31,6 +31,29 @@ export function describeNotification(item: NotificationItem): { text: string; de
       }
     case 'FOLLOW':
       return { text: `${actor} đã bắt đầu theo dõi bạn.`, to: '/community' }
+    // Learning events: total carries the score, points or approved count, postId the service request and
+    // commentId the rejected count.
+    case 'GRADED':
+      return { text: `Bài viết bạn nhờ chấm đã có kết quả: ${item.total}/100 điểm.`, to: `/grading/${item.postId}` }
+    case 'GRADING_EXPIRED':
+      return { text: 'Bài nhờ chấm đã quá hạn mà chưa có giáo viên chấm.', to: `/grading/${item.postId}` }
+    case 'AI_REVIEWED': {
+      const rejected = item.commentId ?? 0
+      return {
+        text: `Giáo viên đã duyệt lô câu hỏi AI #${item.postId}: ${item.total} câu được duyệt${rejected > 0 ? `, ${rejected} câu bị từ chối` : ''}.`,
+        to: '/content/questions',
+      }
+    }
+    case 'IMPORT_DONE':
+      return { text: `Nhập dữ liệu #${item.postId} đã xong.`, to: `/content/imports/${item.postId}` }
+    case 'IMPORT_FAILED':
+      return { detail: item.excerpt ?? undefined, text: `Nhập dữ liệu #${item.postId} bị lỗi.`, to: `/content/imports/${item.postId}` }
+    case 'AI_GENERATE_DONE':
+      return { text: `AI đã tạo xong lô câu hỏi #${item.postId}, đang chờ giáo viên duyệt.`, to: '/content/questions' }
+    case 'AI_GENERATE_FAILED':
+      return { detail: item.excerpt ?? undefined, text: `Tạo câu hỏi bằng AI #${item.postId} bị lỗi.`, to: '/content/questions' }
+    case 'PAYOUT':
+      return { text: `Bạn đã nhận ${item.total} điểm tiền chấm bài.`, to: '/teacher/grading' }
     default:
       return { text: 'Bạn có thông báo mới.', to: '/' }
   }
