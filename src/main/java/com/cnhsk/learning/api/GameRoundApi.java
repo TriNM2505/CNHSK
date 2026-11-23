@@ -66,6 +66,15 @@ public class GameRoundApi {
         if (updated != 1) throw new IllegalStateException("Game round to record the HSK level on is missing.");
     }
 
+    /** A contest round counts only toward its contest, so it carries the contest instead of a level. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordContest(long roundId, long contestId) {
+        int updated = jdbc.update("UPDATE learning.attempts SET ref_id = :contest "
+                        + "WHERE id = :id AND kind = 'GAME' AND ref_type = 'GAME_ROUND'",
+                Map.of("contest", contestId, "id", roundId));
+        if (updated != 1) throw new IllegalStateException("Game round to record the contest on is missing.");
+    }
+
     /** Ownership, status and expiry checks are performed by the existing engine. */
     public void abandon(long userId, long roundId) {
         practice.abandon(userId, roundId);

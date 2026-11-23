@@ -48,7 +48,8 @@ public class ContestService {
         long userId = learnerId();
         // Use the engine's exact transaction lock before reading capacity or starting/resuming.
         contests.lockStart(id);
-        Contest contest = contests.findPublished(id).orElseThrow(ContestService::notFound);
+        Contest contest = contests.findPublished(id).filter(found -> found.getExamId() != null)
+                .orElseThrow(ContestService::notFound);
         auth.requireVerifiedEmail(userId);
         if (contest.getCreatedBy() == userId) throw forbidden();
         Instant now = clock.instant();

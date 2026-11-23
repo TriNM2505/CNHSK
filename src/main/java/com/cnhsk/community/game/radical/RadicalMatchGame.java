@@ -78,7 +78,7 @@ public final class RadicalMatchGame implements GameDefinition {
     }
 
     private static Pool loadPool(GameContext context) {
-        Set<Integer> levels = context.hskLevel() == null ? Set.of() : Set.of(context.hskLevel());
+        Set<Integer> levels = context.levels();
         Set<Long> ids = new HashSet<>();
         var cards = context.contentLookup().pool(new GameContentQuery(Set.of("CHAR"), levels, false, true, false,
                         context.userId(), 200)).stream()

@@ -28,9 +28,11 @@ public class GameRoundService {
     private final ContentLookup content;
     private final PracticeApi practice;
     private final Clock clock;
+    private final GameContestGate contestGate;
 
     public GameRoundService(GameRegistry registry, GameRoundApi rounds, GameStatsApi stats,
-            ContentLookup content, PracticeApi practice, Clock clock) {
+            ContentLookup content, PracticeApi practice, Clock clock, GameContestGate contestGate) {
+        this.contestGate = contestGate;
         this.registry = registry;
         this.rounds = rounds;
         this.stats = stats;
@@ -41,6 +43,17 @@ public class GameRoundService {
 
     @Transactional
     public RoundStart start(long userId, GameCode code, int hskLevel) {
+        return begin(userId, code, hskLevel, null);
+    }
+
+    /** A contest round mixes HSK 1–3 and is only served while the contest window is open. */
+    @Transactional
+    public RoundStart startContest(long userId, GameCode code, long contestId) {
+        contestGate.requireOpen(contestId, code);
+        return begin(userId, code, null, contestId);
+    }
+
+    private RoundStart begin(long userId, GameCode code, Integer hskLevel, Long contestId) {
         rounds.lockStart(userId);
         var now = clock.instant();
         var recent = stats.countRecentGameRounds(userId, now.minusSeconds(3600));
@@ -63,7 +76,8 @@ public class GameRoundService {
         var session = practice.start(new PracticeApi.StartPracticeCommand(userId, PracticeApi.PracticeSource.GAME_ROUND,
                 null, code.name(), items, List.of(), Duration.ofSeconds(3L + duration + 15),
                 Map.of("timeLimitSeconds", duration, "pointsPerCorrect", points, "uiConfig", uiConfig)));
-        rounds.recordHskLevel(session.sessionId(), hskLevel);
+        if (contestId != null) rounds.recordContest(session.sessionId(), contestId);
+        else rounds.recordHskLevel(session.sessionId(), hskLevel);
         return new RoundStart(session.sessionId(), code, clock.instant(), session.servedAt(), duration,
                 session.servedAt().plusSeconds(3L + duration), points, uiConfig, session.items());
     }

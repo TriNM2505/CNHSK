@@ -111,7 +111,7 @@ public final class PinyinMatchGame implements GameDefinition {
     }
 
     private static List<LexemeCard> pool(GameContext context) {
-        Set<Integer> levels = context.hskLevel() == null ? Set.of() : Set.of(context.hskLevel());
+        Set<Integer> levels = context.levels();
         var cards = context.contentLookup().pool(
                 new GameContentQuery(Set.of("WORD"), levels, false, false, false, context.userId(), 200));
         Set<Long> ids = new HashSet<>();

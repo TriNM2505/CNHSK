@@ -50,7 +50,7 @@ public final class CharCatchGame implements GameDefinition {
     }
 
     private List<PracticeApi.ServedItem> assemble(GameContext context, int limit, RandomGenerator random) {
-        Set<Integer> levels = context.hskLevel() == null ? Set.of() : Set.of(context.hskLevel());
+        Set<Integer> levels = context.levels();
         var pool = context.contentLookup().pool(
                 new GameContentQuery(Set.of("CHAR", "WORD"), levels, false, false, false, context.userId(), 200));
         var remaining = new ArrayList<>(GameItemBuilders.selectQuestions(pool, pool.size(), random));

@@ -52,6 +52,7 @@ public class GameController {
             @PathVariable String code, @RequestBody(required = false) String body) {
         var game = GameRoundStartRequest.code(code);
         var request = GameRoundStartRequest.parse(body, mapper);
+        if (request.contestId() != null) return rounds.startContest(user.userId(), game, request.contestId());
         return rounds.start(user.userId(), game, request.hskLevel());
     }
 

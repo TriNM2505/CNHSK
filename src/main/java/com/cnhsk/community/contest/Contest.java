@@ -40,6 +40,13 @@ public class Contest {
     @Column(name = "ends_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
     private Instant endsAt;
 
+    /** Set for a game contest; such a contest has no exam. */
+    @Column(name = "game_code", length = 30)
+    private String gameCode;
+
+    @Column(name = "prize_count", nullable = false)
+    private short prizeCount = 3;
+
     @Column(name = "max_participants")
     private Integer maxParticipants;
 
@@ -82,6 +89,16 @@ public class Contest {
         this.prizes = List.copyOf(prizes);
     }
 
+    /** A moderator's game contest goes live at once; nobody reviews it. */
+    static Contest game(String name, String description, String gameCode, Instant startsAt, Instant endsAt,
+            int prizeCount, long createdBy, Instant createdAt) {
+        Contest contest = new Contest(name, description, null, startsAt, endsAt, null, List.of(), createdBy, createdAt);
+        contest.gameCode = gameCode;
+        contest.prizeCount = (short) prizeCount;
+        contest.status = "PUBLISHED";
+        return contest;
+    }
+
     void publish() { status = "PUBLISHED"; }
     void cancel() { status = "CANCELLED"; }
     void publishRanking(Instant now) { rankingPublishedAt = now; }
@@ -93,6 +110,8 @@ public class Contest {
     public Instant getStartsAt() { return startsAt; }
     public Instant getEndsAt() { return endsAt; }
     public Integer getMaxParticipants() { return maxParticipants; }
+    public String getGameCode() { return gameCode; }
+    public int getPrizeCount() { return prizeCount; }
     public List<Prize> getPrizes() { return List.copyOf(prizes); }
     public String getStatus() { return status; }
     public Instant getRankingPublishedAt() { return rankingPublishedAt; }

@@ -67,7 +67,7 @@ public final class FlyingDartGame implements GameDefinition {
 
     /** Characters with at least one recorded reading, each mapped to its distinct readings. */
     private static Map<LexemeCard, List<String>> pool(GameContext context) {
-        Set<Integer> levels = context.hskLevel() == null ? Set.of() : Set.of(context.hskLevel());
+        Set<Integer> levels = context.levels();
         var cards = context.contentLookup().pool(
                 new GameContentQuery(Set.of("CHAR"), levels, false, false, false, context.userId(), 200));
         Map<Long, LexemeCard> byId = new LinkedHashMap<>();

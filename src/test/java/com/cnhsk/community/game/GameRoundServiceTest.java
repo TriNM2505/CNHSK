@@ -27,7 +27,7 @@ class GameRoundServiceTest {
     private final GameRegistry registry = mock(GameRegistry.class);
     private final GameDefinition definition = mock(GameDefinition.class);
     private final GameRoundService service = new GameRoundService(registry, rounds, stats, content, practice,
-            Clock.fixed(NOW, ZoneOffset.UTC));
+            Clock.fixed(NOW, ZoneOffset.UTC), mock(GameContestGate.class));
 
     @BeforeEach void fixture() {
         when(stats.countRecentGameRounds(7, NOW.minusSeconds(3600))).thenReturn(new GameStatsApi.RecentGameRounds(0, null));

@@ -58,7 +58,7 @@ public final class BrushStrokeGame implements GameDefinition {
     }
 
     private static List<LexemeCard> pool(GameContext context) {
-        Set<Integer> levels = context.hskLevel() == null ? Set.of() : Set.of(context.hskLevel());
+        Set<Integer> levels = context.levels();
         return context.contentLookup().pool(new GameContentQuery(Set.of("CHAR"), levels, false, false, true,
                         context.userId(), 200)).stream()
                 .filter(card -> "CHAR".equals(card.kind()) && card.strokeCount() != null && card.strokeCount() > 0)

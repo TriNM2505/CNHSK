@@ -10,4 +10,9 @@ public record GameContext(Long userId, Integer hskLevel, ContentLookup contentLo
             throw new IllegalArgumentException("Game context is invalid.");
         }
     }
+
+    /** Levels to draw content from; without a level (a contest round) HSK 1–3 are mixed. */
+    public java.util.Set<Integer> levels() {
+        return hskLevel == null ? java.util.Set.of(1, 2, 3) : java.util.Set.of(hskLevel);
+    }
 }
