@@ -1,5 +1,5 @@
 import { createElement, lazy } from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest'
 
@@ -15,7 +15,7 @@ afterEach(() => {
 describe('community catalog foundation (§10, §12)', () => {
   it('FR058_registers SCR-039/SCR-040/SCR-041 and supplies unique preview states', async () => {
     const { previews } = await import('./catalog.preview')
-    expect(Object.keys(screens)).toEqual(['SCR-039', 'SCR-040', 'SCR-041', 'SCR-060', 'SCR-061', 'SCR-062', 'SCR-063'])
+    expect(Object.keys(screens)).toEqual(['SCR-039', 'SCR-040', 'SCR-041', 'SCR-060', 'SCR-061', 'SCR-062', 'SCR-063', 'SCR-080', 'SCR-081', 'SCR-082'])
     expect(previews.map(({ id }) => id)).toEqual(expect.arrayContaining([
       'scr-039-public-ready', 'scr-039-public-empty', 'scr-039-public-loading', 'scr-039-public-error',
       'scr-039-mine-statuses', 'scr-041-create', 'scr-041-edit-approved', 'scr-041-edit-rejected',
@@ -54,6 +54,8 @@ describe('community catalog foundation (§10, §12)', () => {
         expect(view.container.textContent).not.toBe('')
         if (entry.id === 'scr-040-public-placeholders') {
           expect(screen.getByText('[đã bị ẩn]')).toBeVisible()
+          // Replies are folded under their thread until opened.
+          fireEvent.click(screen.getByRole('button', { name: 'Xem 3 phản hồi' }))
           expect(screen.getByText('[đã xoá]')).toBeVisible()
           expect(screen.queryByText('Nội dung ẩn')).not.toBeInTheDocument()
         }

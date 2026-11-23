@@ -138,6 +138,8 @@ describe('SCR-061 and SCR-063 independent comment moderation', () => {
     await waitFor(() => expect(moderation.moderateComment).toHaveBeenCalledTimes(1))
     expect(moderation.moderateComment).toHaveBeenCalledWith(11, { action, reason: 'reason' })
     await act(async () => pending.resolve({ ...parent, status: action === 'RESTORE' ? 'VISIBLE' : action === 'DELETE' ? 'DELETED' : 'HIDDEN' }))
+    // Replies stay folded under the moderated thread; opening it shows the descendant untouched.
+    fireEvent.click(await screen.findByRole('button', { name: 'Xem 1 phản hồi' }))
     expect(await screen.findByText('Descendant stays')).toBeVisible()
     expect(moderation.decideReportCase).not.toHaveBeenCalled()
   })

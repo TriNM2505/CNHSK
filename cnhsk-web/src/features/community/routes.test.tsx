@@ -18,6 +18,15 @@ vi.mock('@/features/community/api/posts', async (importOriginal) => ({
   listPublishedPosts: vi.fn().mockResolvedValue(publishedPage),
 }))
 
+vi.mock('@/features/community/api/game-contests', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/community/api/game-contests')>()),
+  getGameContestLive: vi.fn().mockResolvedValue(gameContest),
+  getGameContestResults: vi.fn().mockResolvedValue({ contest: gameContest, winners: [], excluded: [] }),
+}))
+vi.mock('@/features/leaderboard/api/leaderboards', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/features/leaderboard/api/leaderboards')>()),
+  listLeaderboardGames: vi.fn().mockResolvedValue([]),
+}))
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
 vi.mock('@/features/auth/api/signOutCurrentUser', () => ({ signOutCurrentUser: vi.fn() }))
 vi.mock('@/features/community/api/comments', () => ({ listPostComments: vi.fn().mockResolvedValue([]) }))
@@ -27,6 +36,21 @@ vi.mock('@/features/community/api/moderation', async (importOriginal) => ({
   getModerationPost: vi.fn().mockResolvedValue(moderationPost),
   listPendingReportCases: vi.fn().mockResolvedValue(reportPage),
   getReportCase: vi.fn().mockResolvedValue(reportCase),
+}))
+
+const gameContest = vi.hoisted(() => ({
+  id: 5,
+  title: 'Đua tốc độ tuần này',
+  description: null,
+  gameCode: 'INK_DROP',
+  startsAt: '2026-11-20T12:00:00Z',
+  endsAt: '2026-11-20T13:00:00Z',
+  resultsAt: '2026-11-20T13:00:30Z',
+  prizeCount: 3,
+  serverTime: '2026-11-21T00:00:00Z',
+  phase: 'FINISHED' as const,
+  participants: 0,
+  ranking: [],
 }))
 
 const routes = [
@@ -56,6 +80,27 @@ const routes = [
     path: '/moderation/posts',
     url: '/moderation/posts',
     scr: 'SCR-060',
+    access: ['MODERATOR'],
+    layout: 'admin',
+  },
+  {
+    path: '/moderation/posts/new',
+    url: '/moderation/posts/new',
+    scr: 'SCR-080',
+    access: ['MODERATOR'],
+    layout: 'admin',
+  },
+  {
+    path: '/community/contests/:id',
+    url: '/community/contests/5',
+    scr: 'SCR-081',
+    access: 'public',
+    layout: 'public',
+  },
+  {
+    path: '/moderation/contests/:id/results',
+    url: '/moderation/contests/5/results',
+    scr: 'SCR-082',
     access: ['MODERATOR'],
     layout: 'admin',
   },
@@ -109,7 +154,7 @@ beforeEach(() => {
 })
 
 describe('community route foundation (§12; FR-001 and AT-01/02 access only)', () => {
-  it('FR001_registers exactly eight unique paths with approved SCR, access and layout', () => {
+  it('FR001_registers exactly eleven unique paths with approved SCR, access and layout', () => {
     const actual = appRouteDefinitions.filter(
       ({ path }) =>
         (path.startsWith('/community') && !path.startsWith('/community/quizzes')) ||
@@ -153,6 +198,14 @@ describe('community route foundation (§12; FR-001 and AT-01/02 access only)', (
         expect(await screen.findByRole('heading', { name: 'Bài chờ duyệt' })).toBeVisible()
       } else if (scr === 'SCR-061') {
         expect(await screen.findByRole('heading', { name: moderationPost.title })).toBeVisible()
+      } else if (scr === 'SCR-080') {
+        expect(await screen.findByRole('heading', { name: 'Đăng bài cộng đồng' })).toBeVisible()
+      } else if (scr === 'SCR-081') {
+        expect(await screen.findByRole('heading', { name: gameContest.title })).toBeVisible()
+      } else if (scr === 'SCR-082') {
+        expect(
+          await screen.findByRole('heading', { name: `Kết quả: ${gameContest.title}` }),
+        ).toBeVisible()
       } else if (scr === 'SCR-062') {
         expect(await screen.findByRole('heading', { name: 'Báo cáo vi phạm' })).toBeVisible()
       } else {

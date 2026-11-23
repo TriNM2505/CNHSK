@@ -16,6 +16,16 @@ import Scr041CommunityPostEditorPage from './Scr041CommunityPostEditorPage'
 
 vi.mock('../api/posts', () => ({
   createPost: vi.fn(), getMyPost: vi.fn(), listMyPosts: vi.fn(), listPublishedPosts: vi.fn(), updatePost: vi.fn(),
+  // The list page that follows a save also loads pinned posts and liked state.
+  listPinnedPosts: vi.fn(async () => []), listLikedPostIds: vi.fn(async () => []),
+  listFollowingPosts: vi.fn(), pinPost: vi.fn(), likePost: vi.fn(), unlikePost: vi.fn(),
+}))
+vi.mock('../api/rankings', () => ({
+  getCommunityRanking: vi.fn(async () => ({ period: 'week', entries: [], myEntry: null })),
+}))
+vi.mock('@/features/leaderboard/api/leaderboards', () => ({
+  getGameLeaderboard: vi.fn(),
+  listLeaderboardGames: vi.fn(async () => []),
 }))
 
 const learner: CurrentUser = { id: 7, displayName: 'Learner', email: 'learner@test.invalid', emailVerified: true, roles: ['LEARNER'] }
@@ -283,7 +293,7 @@ describe('SCR-041 create/edit post (FR-007, FR-010, FR-059, AT-49)', () => {
     await user.selectOptions(screen.getByRole('combobox', { name: 'Danh mục' }), 'QUESTION')
     await user.type(screen.getByRole('textbox', { name: 'Nội dung' }), 'Nội dung')
     await user.click(screen.getByRole('button', { name: 'Lưu nháp' }))
-    await waitFor(() => expect(createPost).toHaveBeenCalledWith({ title: 'Bài mới', content: 'Nội dung', category: 'QUESTION', submit: false }))
+    await waitFor(() => expect(createPost).toHaveBeenCalledWith({ title: 'Bài mới', content: 'Nội dung', category: 'QUESTION', media: [], submit: false }))
     expect(getMyPost).not.toHaveBeenCalled()
     expect(await screen.findByText('Đã lưu bản nháp')).toBeVisible()
     expect(screen.getAllByText('Đã lưu bản nháp')).toHaveLength(1)
@@ -300,7 +310,7 @@ describe('SCR-041 create/edit post (FR-007, FR-010, FR-059, AT-49)', () => {
     await user.type(screen.getByRole('textbox', { name: 'Nội dung' }), 'Nội dung có xuống dòng\nthuần văn bản')
     await user.click(screen.getByRole('button', { name: 'Gửi duyệt' }))
     expect(await screen.findByText('Bài đã gửi, chờ duyệt')).toBeVisible()
-    expect(createPost).toHaveBeenCalledWith({ title: 'Bài gửi duyệt', content: 'Nội dung có xuống dòng\nthuần văn bản', category: 'CULTURE', submit: true })
+    expect(createPost).toHaveBeenCalledWith({ title: 'Bài gửi duyệt', content: 'Nội dung có xuống dòng\nthuần văn bản', category: 'CULTURE', media: [], submit: true })
     expect(screen.getAllByText('Bài đã gửi, chờ duyệt')).toHaveLength(1)
     expect(screen.getByLabelText('current location')).toHaveTextContent('/community?tab=mine')
   })
@@ -320,7 +330,7 @@ describe('SCR-041 create/edit post (FR-007, FR-010, FR-059, AT-49)', () => {
     await user.type(screen.getByRole('textbox', { name: 'Tiêu đề' }), 'Sửa tiêu đề')
     await user.click(screen.getByRole('button', { name: 'Gửi duyệt' }))
     expect(await screen.findByText('Bài đã gửi, chờ duyệt')).toBeVisible()
-    expect(updatePost).toHaveBeenCalledWith(42, { title: 'Sửa tiêu đề', content: ownPost.content, category: ownPost.category, submit: true })
+    expect(updatePost).toHaveBeenCalledWith(42, { title: 'Sửa tiêu đề', content: ownPost.content, category: ownPost.category, media: [], submit: true })
   })
 
   it('FR059_initial HIDDEN post is read-only, shows its reason, and offers mine navigation', async () => {
@@ -433,7 +443,7 @@ describe('SCR-041 create/edit post (FR-007, FR-010, FR-059, AT-49)', () => {
 
   it('FR059_reload on mine URL preserves the tab and does not replay a consumed success toast', async () => {
     renderEditor('/community?tab=mine')
-    expect(await screen.findByRole('tab', { name: 'Bài viết của tôi' })).toHaveAttribute('aria-selected', 'true')
+    expect(await screen.findByRole('tab', { name: 'Bài của tôi' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.queryByText('Đã lưu bản nháp')).not.toBeInTheDocument()
     expect(screen.queryByText('Bài đã gửi, chờ duyệt')).not.toBeInTheDocument()
   })

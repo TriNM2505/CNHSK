@@ -5,7 +5,12 @@ import * as comments from './api/comments'
 import * as moderation from './api/moderation'
 import * as posts from './api/posts'
 import { reportContent } from './api/reports'
-import { POST_CATEGORY_LABELS, POST_STATUS_LABELS } from './labels'
+import {
+  FEED_CATEGORIES,
+  POST_CATEGORIES,
+  POST_CATEGORY_LABELS,
+  POST_STATUS_LABELS,
+} from './labels'
 import { screens } from './screens'
 import type * as Community from './types'
 
@@ -154,7 +159,12 @@ describe('community Vietnamese labels (FR-061, AT-49 foundation only)', () => {
       STUDY_BUDDY: 'Tìm bạn học',
       CULTURE: 'Văn hoá',
       JOB: 'Việc làm',
+      // Moderator-only topics for pinned guides and announcements.
+      CONTEST: 'Cuộc thi',
+      ANNOUNCEMENT: 'Thông báo',
     })
+    expect(POST_CATEGORIES).toEqual(['EXPERIENCE', 'QUESTION', 'STUDY_BUDDY', 'CULTURE', 'JOB'])
+    expect(FEED_CATEGORIES).toEqual([...POST_CATEGORIES, 'CONTEST', 'ANNOUNCEMENT'])
     expect(POST_STATUS_LABELS).toEqual({
       DRAFT: 'Bản nháp',
       PENDING: 'Chờ duyệt',
