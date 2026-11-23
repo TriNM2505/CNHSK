@@ -39,6 +39,9 @@ export function describeNotification(item: NotificationItem): { text: string; de
 const TASKS: Record<string, { label: (count: number) => string; to: string }> = {
   PENDING_POSTS: { label: (count) => `${count} bài viết chờ duyệt`, to: '/moderation/posts' },
   PENDING_REPORTS: { label: (count) => `${count} báo cáo vi phạm chờ xử lý`, to: '/moderation/reports' },
+  GRADING_DUE_SOON: { label: (count) => `${count} bài bạn đã nhận sắp hết hạn chấm (dưới 2 giờ)`, to: '/teacher/grading' },
+  GRADING_OPEN: { label: (count) => `${count} bài viết đang chờ giáo viên nhận chấm`, to: '/teacher/grading' },
+  AI_REVIEW: { label: (count) => `${count} câu hỏi AI chờ duyệt`, to: '/content/ai-review' },
 }
 
 export function describeTask(task: NotificationTask): { text: string; to: string } {

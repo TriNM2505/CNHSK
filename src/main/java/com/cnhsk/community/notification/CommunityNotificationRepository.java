@@ -83,8 +83,13 @@ public class CommunityNotificationRepository {
         return jdbc.queryForObject("""
                 SELECT (SELECT COUNT(*) FROM community.posts WHERE status = 'PENDING') AS posts,
                        (SELECT COUNT(*) FROM community.moderation_cases WHERE status = 'PENDING') AS reports
-                """, Map.of(), (row, number) -> Map.of(
-                "PENDING_POSTS", row.getLong("posts"), "PENDING_REPORTS", row.getLong("reports")));
+                """, Map.of(), (row, number) -> {
+            // Ordered so the bell always lists the queues the same way.
+            Map<String, Long> counts = new java.util.LinkedHashMap<>();
+            counts.put("PENDING_POSTS", row.getLong("posts"));
+            counts.put("PENDING_REPORTS", row.getLong("reports"));
+            return counts;
+        });
     }
 
     private static MapSqlParameterSource parameters(long userId, Instant since) {

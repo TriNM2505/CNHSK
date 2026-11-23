@@ -16,6 +16,7 @@ import com.cnhsk.community.notification.web.NotificationViews.Notification;
 import com.cnhsk.community.notification.web.NotificationViews.NotificationPage;
 import com.cnhsk.community.notification.web.NotificationViews.NotificationSummary;
 import com.cnhsk.community.notification.web.NotificationViews.Task;
+import com.cnhsk.learning.api.StaffQueueApi;
 import org.springframework.stereotype.Service;
 
 /**
@@ -29,11 +30,14 @@ public class NotificationService {
     static final int PAGE_SIZE = 50;
 
     private final CommunityNotificationRepository community;
+    private final StaffQueueApi staffQueues;
     private final AuthApi auth;
     private final Clock clock;
 
-    public NotificationService(CommunityNotificationRepository community, AuthApi auth, Clock clock) {
+    public NotificationService(CommunityNotificationRepository community, StaffQueueApi staffQueues, AuthApi auth,
+            Clock clock) {
         this.community = community;
+        this.staffQueues = staffQueues;
         this.auth = auth;
         this.clock = clock;
     }
@@ -71,7 +75,11 @@ public class NotificationService {
                 if (count > 0) tasks.add(new Task(key, count));
             });
         }
-        tasks.sort(java.util.Comparator.comparing(Task::key));
+        if (user.roles().contains(RoleCode.TEACHER)) {
+            staffQueues.teacherQueues(user.userId(), clock.instant()).forEach((key, count) -> {
+                if (count > 0) tasks.add(new Task(key, count));
+            });
+        }
         return List.copyOf(tasks);
     }
 }
