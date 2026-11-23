@@ -19,7 +19,8 @@ public record PostDetail(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) long commentCount,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) long likeCount,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) String content,
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<MediaItem> media) {
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<MediaItem> media,
+        @Schema(types = {"string", "null"}, format = "date-time") Instant commentsCloseAt) {
 
     public PostDetail {
         media = media == null ? List.of() : List.copyOf(media);
@@ -27,6 +28,6 @@ public record PostDetail(
 
     public PostDetail(long id, String title, PostCategory category, String excerpt, UserRef author,
             Instant publishedAt, long commentCount, long likeCount, String content) {
-        this(id, title, category, excerpt, author, publishedAt, commentCount, likeCount, content, List.of());
+        this(id, title, category, excerpt, author, publishedAt, commentCount, likeCount, content, List.of(), null);
     }
 }

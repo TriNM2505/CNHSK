@@ -25,10 +25,15 @@ function validate(values: ModeratorPostValues): ModeratorPostErrors {
   if (!values.title.trim()) errors.title = 'Nhập tiêu đề.'
   else if (values.title.trim().length > 200) errors.title = 'Tiêu đề tối đa 200 ký tự.'
   if (!values.content.trim()) errors.content = 'Nhập nội dung.'
-  if (values.category === 'CONTEST' && !values.contestId) errors.contestId = 'Chọn cuộc thi.'
+  if (values.kind === 'GAME_CONTEST' && !values.contestId) errors.contestId = 'Chọn cuộc thi.'
+  if (values.kind === 'COMMENT_CONTEST') {
+    if (!values.commentsCloseAt) errors.commentsCloseAt = 'Chọn giờ đóng bình luận.'
+    else if (new Date(values.commentsCloseAt).getTime() <= Date.now()) errors.commentsCloseAt = 'Chọn thời điểm trong tương lai.'
+  }
+  const contest = values.kind === 'GAME_CONTEST' || values.kind === 'COMMENT_CONTEST'
   if (values.pinned && values.pinnedUntil) {
     if (new Date(values.pinnedUntil).getTime() <= Date.now()) errors.pinnedUntil = 'Chọn thời điểm trong tương lai.'
-  } else if (values.pinned && values.category !== 'CONTEST') {
+  } else if (values.pinned && !contest) {
     errors.pinnedUntil = 'Chọn thời điểm bỏ ghim.'
   }
   return errors
@@ -38,7 +43,9 @@ export default function Scr080ModeratorPostComposerPage() {
   const navigate = useNavigate()
   const [values, setValues] = useState<ModeratorPostValues>(() => ({
     category: 'ANNOUNCEMENT',
+    commentsCloseAt: '',
     contestId: '',
+    kind: 'ANNOUNCEMENT',
     content: '',
     pinned: true,
     pinnedUntil: toLocalInput(new Date(Date.now() + WEEK_MS)),
@@ -62,6 +69,8 @@ export default function Scr080ModeratorPostComposerPage() {
         const contest = contests.find((item) => String(item.id) === value)
         if (contest) next.pinnedUntil = toLocalInput(new Date(contest.endsAt))
       }
+      // A comment contest is pinned until it closes by default.
+      if (field === 'commentsCloseAt' && typeof value === 'string' && value) next.pinnedUntil = value
       return next
     })
     setErrors((current) => ({ ...current, [field]: undefined }))
@@ -74,11 +83,15 @@ export default function Scr080ModeratorPostComposerPage() {
     setBusy(true)
     setFormError(undefined)
     try {
+      const category =
+        values.kind === 'ANNOUNCEMENT' ? 'ANNOUNCEMENT' : values.kind === 'TOPIC' ? values.category : 'CONTEST'
       await createModeratorPost({
-        category: values.category,
+        category,
+        commentsCloseAt:
+          values.kind === 'COMMENT_CONTEST' && values.commentsCloseAt ? new Date(values.commentsCloseAt).toISOString() : null,
         content: values.content.trim(),
         media,
-        contestId: values.category === 'CONTEST' && values.contestId ? Number(values.contestId) : null,
+        contestId: values.kind === 'GAME_CONTEST' && values.contestId ? Number(values.contestId) : null,
         pinnedUntil: values.pinned && values.pinnedUntil ? new Date(values.pinnedUntil).toISOString() : null,
         title: values.title.trim(),
       })

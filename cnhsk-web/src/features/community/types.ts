@@ -46,6 +46,7 @@ export interface PostSummary {
 
 export interface PostDetail extends PostSummary {
   content: string
+  commentsCloseAt?: string | null
 }
 
 export interface PostSummaryPage {
@@ -255,6 +256,8 @@ export interface MyPostListParams extends PaginationParams {
 export interface PinnedPost extends PostSummary {
   contestId: number | null
   pinnedUntil: string
+  /** Comment contests stop taking comments at this moment. */
+  commentsCloseAt?: string | null
 }
 
 export interface ModeratorPostWrite {
@@ -264,4 +267,5 @@ export interface ModeratorPostWrite {
   contestId: number | null
   pinnedUntil: string | null
   media?: MediaItem[]
+  commentsCloseAt?: string | null
 }

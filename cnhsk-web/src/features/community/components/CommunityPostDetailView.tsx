@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { PageBanner } from '@/shared/ui'
 
 import { POST_CATEGORY_LABELS } from '../labels'
+import { CommentsCountdown } from './CommentsCountdown'
 import { MediaGallery } from './MediaGallery'
 import type { PostDetail } from '../types'
 
@@ -46,6 +47,7 @@ export function CommunityPostDetailView({
         </p>
         {authorAction}
       </div>
+      {post.commentsCloseAt ? <CommentsCountdown className="mt-2" closeAt={post.commentsCloseAt} /> : null}
       <time className="mt-1 block text-caption text-ink-muted" dateTime={post.publishedAt}>
         {new Date(post.publishedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
       </time>

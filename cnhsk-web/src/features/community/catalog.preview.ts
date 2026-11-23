@@ -139,6 +139,8 @@ function editorPreview(post?: OwnPost, overrides: Partial<Parameters<typeof Post
 
 const composerValues: ModeratorPostValues = {
   category: 'CONTEST',
+  commentsCloseAt: '',
+  kind: 'GAME_CONTEST',
   contestId: '3',
   content: 'Thời gian thi 25/11 – 30/11.\nTrò chơi: Mưa Chữ, câu hỏi trộn HSK 1–3.',
   pinned: true,

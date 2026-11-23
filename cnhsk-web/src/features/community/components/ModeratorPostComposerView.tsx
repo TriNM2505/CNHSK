@@ -1,4 +1,4 @@
-import { Megaphone, Pin, Trophy } from 'lucide-react'
+import { Megaphone, MessageSquareText, Pin, Trophy } from 'lucide-react'
 import type { FormEvent } from 'react'
 
 import type { ContestSummary } from '@/features/contests/types'
@@ -9,8 +9,14 @@ import { POST_CATEGORIES, POST_CATEGORY_LABELS } from '../labels'
 import type { MediaItem, PostCategory } from '../types'
 import { MediaPicker } from './MediaPicker'
 
+/** What the moderator is publishing; a topic post uses category. */
+export type ModeratorPostKind = 'ANNOUNCEMENT' | 'COMMENT_CONTEST' | 'GAME_CONTEST' | 'TOPIC'
+
 export type ModeratorPostValues = {
+  kind: ModeratorPostKind
   category: PostCategory
+  /** Comment contests: local date-time when comments close. */
+  commentsCloseAt: string
   contestId: string
   title: string
   content: string
@@ -34,9 +40,10 @@ export type ModeratorPostComposerViewProps = {
   values: ModeratorPostValues
 }
 
-const KINDS: readonly { category: PostCategory; hint: string; icon: typeof Megaphone; label: string }[] = [
-  { category: 'ANNOUNCEMENT', hint: 'Tin chung cho cả cộng đồng', icon: Megaphone, label: 'Thông báo' },
-  { category: 'CONTEST', hint: 'Hướng dẫn kèm nút Vào thi', icon: Trophy, label: 'Cuộc thi' },
+const KINDS: readonly { hint: string; icon: typeof Megaphone; kind: ModeratorPostKind; label: string }[] = [
+  { hint: 'Tin chung cho cả cộng đồng', icon: Megaphone, kind: 'ANNOUNCEMENT', label: 'Thông báo' },
+  { hint: 'Trả lời trong bình luận, đóng theo giờ', icon: MessageSquareText, kind: 'COMMENT_CONTEST', label: 'Cuộc thi bình luận' },
+  { hint: 'Chơi game trong khung giờ, có xếp hạng', icon: Trophy, kind: 'GAME_CONTEST', label: 'Cuộc thi game' },
 ]
 
 /** SCR-080: a moderator writes a post that goes live at once, optionally pinned and tied to a contest. */
@@ -52,7 +59,8 @@ export function ModeratorPostComposerView({
   onSubmit,
   values,
 }: ModeratorPostComposerViewProps) {
-  const isContest = values.category === 'CONTEST'
+  const isContest = values.kind === 'GAME_CONTEST'
+  const isCommentContest = values.kind === 'COMMENT_CONTEST'
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     onSubmit()
@@ -69,9 +77,9 @@ export function ModeratorPostComposerView({
         <form className="space-y-5" noValidate onSubmit={handleSubmit}>
           <fieldset className="space-y-2">
             <legend className="text-label text-ink">Loại bài</legend>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {KINDS.map(({ category, hint, icon: Icon, label }) => {
-                const selected = values.category === category
+            <div className="grid gap-2 sm:grid-cols-3">
+              {KINDS.map(({ hint, icon: Icon, kind, label }) => {
+                const selected = values.kind === kind
                 return (
                   <button
                     aria-pressed={selected}
@@ -80,8 +88,8 @@ export function ModeratorPostComposerView({
                       selected ? 'border-brand-600 bg-brand-50' : 'border-line bg-surface hover:border-brand-600',
                     )}
                     disabled={busy}
-                    key={category}
-                    onClick={() => onChange('category', category)}
+                    key={kind}
+                    onClick={() => onChange('kind', kind)}
                     type="button"
                   >
                     <span
@@ -104,8 +112,11 @@ export function ModeratorPostComposerView({
               <Select
                 disabled={busy}
                 id="moderator-post-category"
-                onChange={(event) => onChange('category', event.target.value as PostCategory)}
-                value={KINDS.some((kind) => kind.category === values.category) ? '' : values.category}
+                onChange={(event) => {
+                  onChange('category', event.target.value as PostCategory)
+                  onChange('kind', 'TOPIC')
+                }}
+                value={values.kind === 'TOPIC' ? values.category : ''}
               >
                 <option value="">—</option>
                 {POST_CATEGORIES.map((category) => (
@@ -116,6 +127,24 @@ export function ModeratorPostComposerView({
               </Select>
             </FormField>
           </fieldset>
+
+          {isCommentContest ? (
+            <FormField
+              error={errors.commentsCloseAt}
+              hint="Tới giờ này hệ thống tự khoá bình luận; bài ghim tới lúc đó."
+              htmlFor="moderator-post-comments-close"
+              label="Đóng bình luận lúc"
+              required
+            >
+              <Input
+                disabled={busy}
+                id="moderator-post-comments-close"
+                onChange={(event) => onChange('commentsCloseAt', event.target.value)}
+                type="datetime-local"
+                value={values.commentsCloseAt}
+              />
+            </FormField>
+          ) : null}
 
           {isContest ? (
             <FormField error={errors.contestId} htmlFor="moderator-post-contest" label="Cuộc thi" required>
@@ -148,7 +177,7 @@ export function ModeratorPostComposerView({
           <FormField
             error={errors.content}
             htmlFor="moderator-post-content"
-            label={isContest ? 'Hướng dẫn cuộc thi' : 'Nội dung'}
+            label={isContest ? 'Hướng dẫn cuộc thi' : isCommentContest ? 'Đề bài và thể lệ' : 'Nội dung'}
             required
           >
             <Textarea
@@ -156,7 +185,11 @@ export function ModeratorPostComposerView({
               id="moderator-post-content"
               onChange={(event) => onChange('content', event.target.value)}
               placeholder={
-                isContest ? 'Thời gian thi, trò chơi, cách tính điểm, giải thưởng…' : 'Nội dung thông báo'
+                isContest
+                  ? 'Thời gian thi, trò chơi, cách tính điểm, giải thưởng…'
+                  : isCommentContest
+                    ? 'Câu hỏi của cuộc thi, cách trả lời trong bình luận, giải thưởng…'
+                    : 'Nội dung thông báo'
               }
               rows={10}
               value={values.content}
@@ -184,7 +217,7 @@ export function ModeratorPostComposerView({
               <FormField
                 className="mb-0"
                 error={errors.pinnedUntil}
-                hint={isContest ? 'Để trống thì ghim tới khi cuộc thi kết thúc.' : undefined}
+                hint={isContest || isCommentContest ? 'Để trống thì ghim tới khi cuộc thi kết thúc.' : undefined}
                 htmlFor="moderator-post-pinned-until"
                 label="Ghim đến"
               >

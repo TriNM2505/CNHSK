@@ -30,6 +30,7 @@ import {
 
 import { POST_CATEGORY_LABELS, POST_STATUS_LABELS } from '../labels'
 import { formatRelative } from '../relative-time'
+import { CommentsCountdown } from './CommentsCountdown'
 import { MediaGallery } from './MediaGallery'
 import { PostInteractions } from './PostInteractions'
 import type { OwnPost, OwnPostPage, PinnedPost, PostCategory, PostStatus, PostSummary, PostSummaryPage } from '../types'
@@ -295,6 +296,7 @@ function PinnedCard({ onUnpin, post, viewer }: { onUnpin?: (id: number) => void;
       </Link>
       <p className="mt-2 line-clamp-3 whitespace-pre-wrap break-words text-body text-ink-secondary">{post.excerpt}</p>
       <MediaGallery className="mt-3" media={post.media} />
+      {post.commentsCloseAt ? <CommentsCountdown className="mt-3" closeAt={post.commentsCloseAt} /> : null}
       <footer className="mt-4 flex flex-wrap items-center gap-3">
         {post.contestId ? (
           <>
@@ -320,6 +322,7 @@ function PinnedCard({ onUnpin, post, viewer }: { onUnpin?: (id: number) => void;
       <PostInteractions
         canInteract={viewer.canInteract}
         commentCount={post.commentCount}
+        commentsCloseAt={post.commentsCloseAt}
         likeCount={post.likeCount}
         liked={viewer.likedIds.has(post.id)}
         postId={post.id}

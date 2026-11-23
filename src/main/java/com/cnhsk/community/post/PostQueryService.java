@@ -157,7 +157,7 @@ public class PostQueryService {
         PostSummary summary = summaries(List.of(post)).get(0);
         return new PostDetail(summary.id(), summary.title(), summary.category(), summary.excerpt(),
                 summary.author(), summary.publishedAt(), summary.commentCount(), summary.likeCount(), post.getContent(),
-                summary.media());
+                summary.media(), post.getCommentsCloseAt());
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
@@ -191,7 +191,7 @@ public class PostQueryService {
             Post post = found.get(index);
             return new PinnedPost(summary.id(), summary.title(), summary.category(), summary.excerpt(),
                     summary.author(), summary.publishedAt(), summary.commentCount(), summary.likeCount(),
-                    post.getContestId(), post.getPinnedUntil(), summary.media());
+                    post.getContestId(), post.getPinnedUntil(), summary.media(), post.getCommentsCloseAt());
         }).toList();
     }
 

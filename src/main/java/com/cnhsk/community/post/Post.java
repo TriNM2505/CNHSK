@@ -72,6 +72,10 @@ public class Post {
     @Column(name = "contest_id")
     private Long contestId;
 
+    /** Comment contests stop taking comments at this moment. */
+    @Column(name = "comments_close_at", columnDefinition = "TIMESTAMPTZ")
+    private Instant commentsCloseAt;
+
     protected Post() {
     }
 
@@ -190,5 +194,13 @@ public class Post {
 
     public void setContestId(Long contestId) {
         this.contestId = contestId;
+    }
+
+    public Instant getCommentsCloseAt() {
+        return commentsCloseAt;
+    }
+
+    public void setCommentsCloseAt(Instant commentsCloseAt) {
+        this.commentsCloseAt = commentsCloseAt;
     }
 }

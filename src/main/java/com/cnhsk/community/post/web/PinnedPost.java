@@ -17,5 +17,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record PinnedPost(long id, String title, PostCategory category, String excerpt, UserRef author,
         Instant publishedAt, long commentCount, long likeCount,
         @Schema(types = {"integer", "null"}, format = "int64") Long contestId, Instant pinnedUntil,
-        List<MediaItem> media) {
+        List<MediaItem> media,
+        @Schema(types = {"string", "null"}, format = "date-time") Instant commentsCloseAt) {
 }

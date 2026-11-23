@@ -55,6 +55,11 @@ public class ModeratorPostService {
                     .orElseThrow(() -> invalid("contestId", "Chỉ gắn được cuộc thi đã công bố."));
             if (pinnedUntil == null) pinnedUntil = contest.getEndsAt();
         }
+        if (request.commentsCloseAt() != null) {
+            requireFuture(request.commentsCloseAt(), now);
+            // A comment contest stays on top until it closes unless another moment was chosen.
+            if (pinnedUntil == null) pinnedUntil = request.commentsCloseAt();
+        }
         requireFuture(pinnedUntil, now);
         List<MediaItem> attached = media.validate(request.media());
 
@@ -63,6 +68,7 @@ public class ModeratorPostService {
         post.setPublishedAt(now);
         post.setContestId(request.contestId());
         post.setPinnedUntil(pinnedUntil);
+        post.setCommentsCloseAt(request.commentsCloseAt());
         Post saved = posts.save(post);
         mediaRows.replace(saved.getId(), attached);
         return PostService.toOwnPost(saved, attached);

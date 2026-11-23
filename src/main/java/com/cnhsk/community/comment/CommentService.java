@@ -143,6 +143,12 @@ public class CommentService {
         if (post.getStatus() != PostStatus.APPROVED) {
             throw notFound(missingCode);
         }
+        // A comment contest closes at a set time; the server is the clock that counts.
+        Instant closeAt = post.getCommentsCloseAt();
+        if (closeAt != null && !limits.snapshot().now().isBefore(closeAt)) {
+            throw new ApiException(ErrorCode.COMMENTS_CLOSED, HttpStatus.CONFLICT,
+                    "Bài viết đã đóng bình luận.", Map.of());
+        }
         return post;
     }
 

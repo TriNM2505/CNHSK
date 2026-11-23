@@ -8,6 +8,7 @@ import { createComment, listPostComments, replyToComment } from '../api/comments
 import { likePost, unlikePost } from '../api/posts'
 import { formatRelative } from '../relative-time'
 import type { Comment } from '../types'
+import { useClosed } from '../use-closed'
 
 const SHOWN_THREADS = 3
 
@@ -15,6 +16,8 @@ export type PostInteractionsProps = {
   commentCount: number
   /** Learners may like and comment; anyone else is sent to sign in. */
   canInteract: boolean
+  /** A comment contest takes no comments after this moment. */
+  commentsCloseAt?: string | null
   likeCount: number
   liked: boolean
   postId: number
@@ -108,6 +111,8 @@ export function PostInteractions(props: PostInteractionsProps) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const replyInput = useRef<HTMLInputElement>(null)
+  const closed = useClosed(props.commentsCloseAt)
+  const canComment = props.canInteract && !closed
   const [expandedThreads, setExpandedThreads] = useState<ReadonlySet<number>>(new Set())
 
   function toggleThread(id: number) {
@@ -251,7 +256,7 @@ export function PostInteractions(props: PostInteractionsProps) {
             const byId = new Map([root, ...replies].map((comment) => [comment.id, comment]))
             return (
               <div className="space-y-2" key={root.id}>
-                <CommentLine comment={root} onReply={() => startReply(root)} />
+                <CommentLine comment={root} onReply={closed ? undefined : () => startReply(root)} />
                 {replies.length > 0 && !expanded ? (
                   <button
                     className="ml-10 flex items-center gap-2 text-caption font-semibold text-ink-secondary hover:text-ink"
@@ -273,7 +278,7 @@ export function PostInteractions(props: PostInteractionsProps) {
                           <CommentLine
                             comment={reply}
                             mention={parent && parent.id !== root.id ? parent.author?.displayName ?? undefined : undefined}
-                            onReply={() => startReply(reply)}
+                            onReply={closed ? undefined : () => startReply(reply)}
                             small
                           />
                         </li>
@@ -328,7 +333,10 @@ export function PostInteractions(props: PostInteractionsProps) {
             )
           })}
 
-          {props.canInteract ? (
+          {closed ? (
+            <p className="text-caption text-ink-muted">Bài đã đóng bình luận.</p>
+          ) : null}
+          {canComment ? (
             <form className="flex items-center gap-2" onSubmit={(event) => void submitComment(event)}>
               <Initial name={props.viewerName ?? 'B'} />
               <label className="sr-only" htmlFor={`comment-${props.postId}`}>

@@ -22,7 +22,9 @@ public record ModeratorPostWrite(
         @NotNull PostCategory category,
         @Schema(types = {"integer", "null"}, format = "int64") Long contestId,
         @Schema(types = {"string", "null"}, format = "date-time") Instant pinnedUntil,
-        List<MediaItem> media) {
+        List<MediaItem> media,
+        @Schema(types = {"string", "null"}, format = "date-time", description = "Cuộc thi bình luận: giờ đóng bình luận")
+        Instant commentsCloseAt) {
 
     public ModeratorPostWrite {
         if (title != null) {
