@@ -141,7 +141,7 @@ class MasteryControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(response.get(0).path("kind").asText()).isEqualTo("NEW");
         assertThat(response.get(0).has("value")).isTrue();
         assertThat(response.get(0).path("value").isNull()).isTrue();
-        assertThat(response.get(0).path("reason").asText()).isEqualTo("Nút mới đã đủ tiên quyết.");
+        assertThat(response.get(0).path("reason").asText()).isEqualTo("Bạn đã đủ nền tảng để học phần này.");
     }
 
     @Test

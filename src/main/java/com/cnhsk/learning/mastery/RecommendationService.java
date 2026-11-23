@@ -125,7 +125,7 @@ public class RecommendationService {
                     if (result.size() < MAX_RECOMMENDATIONS) {
                         KnowledgeNode knowledgeNode = knowledgeByKid.get(node.kid());
                         add(result, includedKids, node, knowledgeNode, "NEW",
-                                "Nút mới đã đủ tiên quyết.");
+                                "Bạn đã đủ nền tảng để học phần này.");
                     }
                 });
 

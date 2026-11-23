@@ -55,7 +55,7 @@ class RecommendationServiceTest {
         assertThat(result.get(0).reason()).isEqualTo("Ôn Tiên quyết trước khi ôn Nút cần ôn.");
         assertThat(result.get(1).reason()).isEqualTo("Cần ôn: 34,1/100.");
         assertThat(result.get(3).reason()).isEqualTo("Đến hạn củng cố Nút củng cố.");
-        assertThat(result.get(4).reason()).isEqualTo("Nút mới đã đủ tiên quyết.");
+        assertThat(result.get(4).reason()).isEqualTo("Bạn đã đủ nền tảng để học phần này.");
         assertThat(result.get(0).value()).isEqualByComparingTo("40.0");
         assertThat(result.get(4).value()).isNull();
     }

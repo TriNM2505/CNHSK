@@ -8,8 +8,8 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.1.1 |
-| **Status** | APPROVED — được code theo `tasks.md` · v1.1.0 leader chốt 2026-11-21: gợi ý nút gốc nhiều bậc bằng PageRank cá nhân hoá (FR-015, AT-15) |
+| **Version** | 1.1.2 |
+| **Status** | APPROVED — được code theo `tasks.md` · v1.1.2 (2026-11-23): lý do `NEW` đổi thành "Bạn đã đủ nền tảng để học phần này." cho người học dễ hiểu · v1.1.0 leader chốt 2026-11-21: gợi ý nút gốc nhiều bậc bằng PageRank cá nhân hoá (FR-015, AT-15) |
 | **Approved by** | Leader (RFC đợt cuối R1–R12 đã đồng thuận) |
 | **Locked on** | 2026-11-03 |
 | **Phụ thuộc** | Spec 001 · Spec 003 §0 (engine, sự kiện §0.9) · **Spec 010** (`KnowledgeTreeService` FR-024/FR-025, V5) · **Spec 012 §0.2** (`questionId` trong engine, 3 nguồn mới) |
@@ -151,7 +151,7 @@ Thiếu khoá hoặc giá trị ngoài miền hợp lệ → ứng dụng **khô
 Người học mở SCR-019, thấy cây năng lực theo miền và cấp, mỗi nút một màu theo trạng thái; bấm nút để xem điểm, độ tin cậy, các minh chứng gần nhất, tiên quyết.
 
 ### US-2 · Biết hôm nay học gì (P1)
-SCR-010 hiện tối đa 5 nút nên luyện kèm lý do ("Cần ôn: 42/100", "Đến hạn củng cố", "Nút mới đã đủ tiên quyết"); bấm "Luyện" sang SCR-023 (012).
+SCR-010 hiện tối đa 5 nút nên luyện kèm lý do ("Cần ôn: 42/100", "Đến hạn củng cố", "Bạn đã đủ nền tảng để học phần này"); bấm "Luyện" sang SCR-023 (012).
 
 ### US-3 · Ôn từ đến hạn (P1)
 SCR-010 hiện "12 mục đến hạn"; SCR-013 cho ôn tối đa 50 mục, mục quá hạn lâu nhất trước, câu chọn nghĩa chấm ngay, thẻ ngữ pháp tự đánh giá; dừng giữa chừng không mất câu đã ôn.

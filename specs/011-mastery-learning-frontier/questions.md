@@ -219,7 +219,7 @@ Các fixture gọi `PracticeService.start()` trong test class `@Transactional`, 
 1. `MasteryQueryRepository` kiểm tra khả dụng câu hỏi theo lô. Một KID có câu dùng được khi có ít nhất một câu `APPROVED` gắn nhãn `PRIMARY`; test đối chiếu kết quả batch với `KnowledgeTreeService.approvedQuestionIds(Set.of(kid), null, 200)` cho từng KID. Nếu lệch, task dừng và báo leader.
 2. Recommendation sắp `REVIEW` theo value tăng dần rồi KID tăng dần; nhiều tiên quyết của cùng nút theo KID tăng dần; `CONSOLIDATE` theo KID tăng dần; `NEW` theo HSK tăng dần rồi KID tăng dần.
 3. Dựng danh sách theo thứ tự nhóm FR-015, chèn tiên quyết ngay trước review, bỏ KID trùng và lấy 5 phần tử đầu. Nếu phần tử thứ 5 là `PREREQ`, vẫn giữ dù `REVIEW` liên quan bị cắt.
-4. Mẫu reason cố định, không gọi AI: `PREREQ` — `Ôn {nameVi tiên quyết} trước khi ôn {nameVi nút cần ôn}.`; `REVIEW` — `Cần ôn: {value}/100.` với một chữ số thập phân và dấu phẩy Việt Nam; `CONSOLIDATE` — `Đến hạn củng cố {nameVi}.`; `NEW` — `Nút mới đã đủ tiên quyết.`
+4. Mẫu reason cố định, không gọi AI: `PREREQ` — `Ôn {nameVi tiên quyết} trước khi ôn {nameVi nút cần ôn}.`; `REVIEW` — `Cần ôn: {value}/100.` với một chữ số thập phân và dấu phẩy Việt Nam; `CONSOLIDATE` — `Đến hạn củng cố {nameVi}.`; `NEW` — `Bạn đã đủ nền tảng để học phần này.`
 5. `value` luôn có mặt trong JSON và được phép null; `notyet` trả null, còn `insufficient`/trạng thái có value trả giá trị đọc lại theo today. Schema sinh OpenAPI 3.1 phải là number/null, không có format.
 6. Mỗi KID chỉ xuất hiện một lần, giữ lần đầu xuất hiện; áp dụng cho cả `PREREQ`, `REVIEW`, `CONSOLIDATE`, `NEW`.
 
