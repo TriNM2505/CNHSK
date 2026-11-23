@@ -126,10 +126,8 @@ public class LeaderboardServiceImpl implements LeaderboardService {
     }
 
     private Interval interval(String period) {
-        // Yearly totals belong to the community ranking only; topic and game boards keep their periods.
-        if ("year".equals(period)) throw invalid("period", "Kỳ phải là week, month hoặc all.");
         try { return periods.resolve(period); }
-        catch (IllegalArgumentException exception) { throw invalid("period", "Kỳ phải là week, month hoặc all."); }
+        catch (IllegalArgumentException exception) { throw invalid("period", "Kỳ phải là week, month, year hoặc all."); }
     }
 
     private static LeaderboardEntry entry(Row row, Map<Long, PublicProfile> profiles) {

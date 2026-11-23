@@ -63,7 +63,7 @@ public class LeaderboardController {
             @ApiResponse(responseCode = "429", description = "RATE_LIMITED")})
     public Leaderboard getTopicLeaderboard(
             @Parameter(schema = @Schema(type = "integer", format = "int64", minimum = "1")) @PathVariable String topicId,
-            @Parameter(schema = @Schema(allowableValues = {"week", "month", "all"}, defaultValue = "week"))
+            @Parameter(schema = @Schema(allowableValues = {"week", "month", "year", "all"}, defaultValue = "week"))
             @RequestParam(required = false) String period, @AuthenticationPrincipal AuthenticatedUser user) {
         return service.topicLeaderboard(integer(topicId, "topicId"), period, user == null ? null : user.userId());
     }
@@ -80,7 +80,7 @@ public class LeaderboardController {
             @ApiResponse(responseCode = "422", description = "INVALID_GAME_CODE · VALIDATION_FAILED"),
             @ApiResponse(responseCode = "429", description = "RATE_LIMITED")})
     public Leaderboard getGameLeaderboard(@PathVariable String gameCode,
-            @Parameter(schema = @Schema(allowableValues = {"week", "month", "all"}, defaultValue = "week"))
+            @Parameter(schema = @Schema(allowableValues = {"week", "month", "year", "all"}, defaultValue = "week"))
             @RequestParam(required = false) String period,
             @Parameter(schema = @Schema(allowableValues = {"1", "2", "3"}, defaultValue = "1"))
             @RequestParam(required = false) String hskLevel,

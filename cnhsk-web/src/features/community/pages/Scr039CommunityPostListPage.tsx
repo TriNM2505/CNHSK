@@ -10,7 +10,12 @@ import { useToast } from '@/shared/ui/useToast'
 import { listMyPosts, listPublishedPosts } from '../api/posts'
 import { getCommunityRanking, type RankingPeriod } from '../api/rankings'
 import { CommunityPostListView } from '../components/CommunityPostListView'
-import { CommunityRankingPanel } from '../components/CommunityRankingPanel'
+import {
+  CommunityRankingPanel,
+  type RankingBoard,
+  type RankingLevel,
+} from '../components/CommunityRankingPanel'
+import { getGameLeaderboard, listLeaderboardGames } from '@/features/leaderboard/api/leaderboards'
 import { POST_CATEGORIES } from '../labels'
 import type { PostCategory, PostStatus, PostSummary } from '../types'
 
@@ -85,10 +90,17 @@ function CommunityPostListContent() {
   const [status, setStatus] = useState<PostStatus | ''>('')
   const [minePage, setMinePage] = useState(0)
   const [rankingPeriod, setRankingPeriod] = useState<RankingPeriod>('week')
+  const [rankingGame, setRankingGame] = useState('')
+  const [rankingLevel, setRankingLevel] = useState<RankingLevel>(1)
   useSuccessFlash()
-  const ranking = useApiQuery(
-    (signal) => getCommunityRanking(rankingPeriod, signal),
-    [rankingPeriod],
+  const games = useApiQuery((signal) => listLeaderboardGames(signal), [])
+  // No game chosen ranks total points; a game ranks each player's best round at one HSK level.
+  const ranking = useApiQuery<RankingBoard>(
+    (signal) =>
+      rankingGame
+        ? getGameLeaderboard(rankingGame, rankingPeriod, rankingLevel, signal)
+        : getCommunityRanking(rankingPeriod, signal),
+    [rankingGame, rankingLevel, rankingPeriod],
     { isEmpty: (result) => result.entries.length === 0 },
   )
   // The newest questions, most discussed first; a light stand-in until the server ranks them.
@@ -132,6 +144,11 @@ function CommunityPostListContent() {
   const feedProps: FeedProps = {
     aside: (
       <CommunityRankingPanel
+        game={rankingGame}
+        games={games.data ?? []}
+        level={rankingLevel}
+        onGameChange={setRankingGame}
+        onLevelChange={setRankingLevel}
         onPeriodChange={setRankingPeriod}
         onRetry={ranking.reload}
         period={rankingPeriod}

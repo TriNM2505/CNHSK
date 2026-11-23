@@ -55,8 +55,15 @@ class LeaderboardPeriodsTest {
         assertThat(interval).isEqualTo(new Interval("all", null, null));
     }
 
+    @Test
+    void yearRunsFromJanuaryFirstToNextJanuaryFirstInVietnamTime() {
+        var interval = periods("2026-11-14T00:00:00Z").resolve("year");
+        assertThat(interval.start()).isEqualTo(OffsetDateTime.parse("2026-01-01T00:00:00+07:00"));
+        assertThat(interval.end()).isEqualTo(OffsetDateTime.parse("2027-01-01T00:00:00+07:00"));
+    }
+
     @ParameterizedTest
-    @ValueSource(strings = {"", "WEEK", "2026-W39", "year", " week "})
+    @ValueSource(strings = {"", "WEEK", "2026-W39", "YEAR", " week "})
     void FR004_rejectsUnsupportedPeriods(String period) {
         assertThatIllegalArgumentException().isThrownBy(() -> periods("2026-11-14T00:00:00Z").resolve(period));
     }
@@ -70,7 +77,8 @@ class LeaderboardPeriodsTest {
         assertThatIllegalArgumentException().isThrownBy(() -> new Interval("week", end, start));
         assertThatIllegalArgumentException().isThrownBy(() -> new Interval("week", start, start));
         assertThatIllegalArgumentException().isThrownBy(() -> new Interval("all", start, end));
-        assertThatIllegalArgumentException().isThrownBy(() -> new Interval("year", start, end));
+        assertThatIllegalArgumentException().isThrownBy(() -> new Interval("year", null, end));
+        assertThatIllegalArgumentException().isThrownBy(() -> new Interval("quarter", start, end));
         assertThatIllegalArgumentException().isThrownBy(() -> new Interval(null, null, null));
     }
 

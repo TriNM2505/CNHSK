@@ -1,4 +1,4 @@
-export type LeaderboardPeriod = 'week' | 'month' | 'all'
+export type LeaderboardPeriod = 'week' | 'month' | 'year' | 'all'
 
 export type LeaderboardEntry = {
   rank: number
@@ -10,7 +10,7 @@ export type LeaderboardEntry = {
 }
 
 export type Leaderboard = {
-  type: 'TOPIC' | 'GAME'
+  type: 'TOPIC' | 'GAME' | 'COMMUNITY'
   ref: string
   period: LeaderboardPeriod
   periodStart: string | null

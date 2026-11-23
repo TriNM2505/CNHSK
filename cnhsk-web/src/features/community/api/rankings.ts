@@ -8,6 +8,8 @@ export type RankingEntry = {
   displayName: string
   avatarUrl: string | null
   score: number
+  /** Completion time of the ranked round; null for point totals. */
+  durationMs?: number | null
 }
 
 export type CommunityRanking = {

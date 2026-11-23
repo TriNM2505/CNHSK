@@ -5,9 +5,8 @@ import { AuthContext, type AuthContextValue } from '@/shared/auth'
 import { AdminLayout, LearnerLayout, PublicLayout } from '@/shared/layout'
 import { previewLearner } from '@/shared/layout/Layout.preview'
 
-import type { CommunityRanking } from './api/rankings'
 import { CommunityPostListView } from './components/CommunityPostListView'
-import { CommunityRankingPanel } from './components/CommunityRankingPanel'
+import { CommunityRankingPanel, type RankingBoard } from './components/CommunityRankingPanel'
 import { PostEditorView } from './components/PostEditorView'
 import { CommunityPostDetailView } from './components/CommunityPostDetailView'
 import { CommentTree } from './components/CommentTree'
@@ -51,8 +50,7 @@ const baseListProps = {
   status: '' as const,
 }
 
-const previewRanking: CommunityRanking = {
-  period: 'week',
+const previewRanking: RankingBoard = {
   entries: [
     ['Lan Anh', 4190], ['Minh Khoa', 2320], ['Thu Hà', 2295], ['Quang Huy', 1250], ['Bảo Ngọc', 990],
     ['Đức Anh', 820], ['Hải Yến', 775], ['Tuấn Kiệt', 770], ['Mai Phương', 640], ['Gia Bảo', 515],
@@ -60,6 +58,7 @@ const previewRanking: CommunityRanking = {
     avatarUrl: null,
     displayName: displayName as string,
     rank: index + 1,
+    durationMs: 48_000 + index * 7_300,
     score: score as number,
     userId: index + 1,
   })),
@@ -78,6 +77,11 @@ function listPreview(mode: 'public' | 'mine', state: 'loading' | 'empty' | 'erro
       createElement(CommunityPostListView, {
         ...baseListProps,
         aside: createElement(CommunityRankingPanel, {
+          game: 'CHAR_RAIN',
+          games: [{ code: 'CHAR_RAIN', name: 'Mưa Chữ' }, { code: 'PINYIN_MATCH', name: 'Ghép pinyin' }],
+          level: 2,
+          onGameChange: () => undefined,
+          onLevelChange: () => undefined,
           onPeriodChange: () => undefined,
           onRetry: () => undefined,
           period: 'week',

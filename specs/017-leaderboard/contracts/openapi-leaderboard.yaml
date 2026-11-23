@@ -24,7 +24,7 @@ components:
       name: period
       in: query
       required: false
-      schema: { type: string, enum: [week, month, all], default: week }
+      schema: { type: string, enum: [week, month, year, all], default: week }
   responses:
     Validation:
       description: VALIDATION_FAILED
@@ -51,7 +51,7 @@ components:
       properties:
         type: { type: string, enum: [TOPIC, GAME] }
         ref: { type: string, description: topicId dạng chuỗi hoặc mã game }
-        period: { type: string, enum: [week, month, all] }
+        period: { type: string, enum: [week, month, year, all] }
         periodStart: { type: [string, 'null'], format: date-time, description: '+07:00; null khi all' }
         periodEnd: { type: [string, 'null'], format: date-time, description: 'Mốc kết thúc (không gồm); null khi all' }
         entries: { type: array, maxItems: 20, items: { $ref: '#/components/schemas/LeaderboardEntry' } }
