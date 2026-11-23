@@ -8,12 +8,9 @@ export function CommentTree({ comments, postId, actions, onRetry }: { comments: 
   try { roots = buildCommentTree(comments, postId) } catch {
     return <section className="rounded-md border border-danger bg-danger-bg p-4 text-body-sm text-danger" role="alert"><p>Dữ liệu bình luận không hợp lệ.</p><Button className="mt-3" type="button" variant="outline" onClick={onRetry}>Thử lại bình luận</Button></section>
   }
-  // Comments are one level: replies written before this change show in time order like any other comment.
-  const flat: (Comment | ModerationComment)[] = []
-  const collect = (nodes: typeof roots) => nodes.forEach(({ value, children }) => { flat.push(value); collect(children) })
-  collect(roots)
-  flat.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id - b.id)
-  return flat.length ? <ul className="space-y-3">{flat.map((value) => <li key={value.id}>
+  const renderNodes = (nodes: typeof roots) => <ul className="space-y-3">{nodes.map(({ value, children }) => <li key={value.id} data-depth={value.depth}>
     <CommentItem comment={value} actions={actions} />
-  </li>)}</ul> : <p className="rounded-md border border-dashed border-line bg-canvas p-4 text-body-sm text-ink-secondary">Chưa có bình luận.</p>
+    {children.length ? <div className="ml-4 border-l-2 border-line pl-3 sm:ml-6 sm:pl-4">{renderNodes(children)}</div> : null}
+  </li>)}</ul>
+  return roots.length ? renderNodes(roots) : <p className="rounded-md border border-dashed border-line bg-canvas p-4 text-body-sm text-ink-secondary">Chưa có bình luận.</p>
 }
