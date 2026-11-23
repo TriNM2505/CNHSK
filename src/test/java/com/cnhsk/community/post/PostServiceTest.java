@@ -50,7 +50,9 @@ class PostServiceTest {
         posts = mock(PostRepository.class);
         limits = mock(CommunityLimits.class);
         jdbc = mock(NamedParameterJdbcTemplate.class);
-        service = new PostService(authApi, posts, limits, jdbc);
+        service = new PostService(authApi, posts, limits, jdbc,
+                org.mockito.Mockito.mock(com.cnhsk.community.media.MediaService.class),
+                org.mockito.Mockito.mock(com.cnhsk.community.media.PostMediaRepository.class));
         snapshot = new CommunityLimits(Clock.fixed(NOW, ZoneOffset.UTC), new CommunityProperties()).snapshot();
         when(authApi.currentUser()).thenReturn(new CurrentUser(AUTHOR_ID, Set.of(RoleCode.LEARNER), true));
         when(limits.snapshot()).thenReturn(snapshot);

@@ -10,7 +10,7 @@ import { PostEditorView } from '../components/PostEditorView'
 import { clearPostEditorDraft, readPostEditorDraft, writePostEditorDraft } from '../post-editor-drafts'
 import type { PostFormErrors, PostFormValues } from '../postForm'
 import { getPostFormChanges, parsePostId, sanitizePostEditorOrigin, toPostWrite, validatePostForm } from '../postForm'
-import type { OwnPost } from '../types'
+import type { MediaItem, OwnPost } from '../types'
 import { useSessionAction } from '../use-session-action'
 
 const EMPTY_FORM: PostFormValues = { title: '', content: '', category: '' }
@@ -32,6 +32,7 @@ function PostEditor({ userId, id, post }: { userId: number; id?: number; post?: 
   const [verificationRequired, setVerificationRequired] = useState(false)
   const [locked, setLocked] = useState(post?.status === 'HIDDEN')
   const [confirmingDiscard, setConfirmingDiscard] = useState(false)
+  const [media, setMedia] = useState<MediaItem[]>(() => post?.media ?? [])
   const action = useSessionAction<OwnPost>()
 
   const preserveDraft = (next: PostFormValues) => {
@@ -50,7 +51,8 @@ function PostEditor({ userId, id, post }: { userId: number; id?: number; post?: 
   const onSubmit = (submit: boolean) => {
     if (action.busy || locked) return
     const validation = validatePostForm(values)
-    const body = toPostWrite(values, submit)
+    const written = toPostWrite(values, submit)
+    const body = written ? { ...written, media } : undefined
     setErrors(validation)
     setFormError(undefined)
     setVerificationRequired(false)
@@ -76,7 +78,7 @@ function PostEditor({ userId, id, post }: { userId: number; id?: number; post?: 
   }
   const editorPath = id === undefined ? '/community/posts/new' : `/community/posts/${id}/edit`
 
-  return <PostEditorView busy={action.busy} confirmingDiscard={confirmingDiscard} draftError={draftError} errors={errors} formError={formError} locked={locked} mode={post ? 'edit' : 'create'} onCancel={onCancel} onChange={onChange} onConfirmDiscard={discard} onKeepEditing={() => setConfirmingDiscard(false)} onSubmit={onSubmit} onVerify={() => preserveDraft(values)} post={post} values={values} verificationRequired={verificationRequired} verificationTo={`/verify-email?redirect=${encodeURIComponent(editorPath)}`} />
+  return <PostEditorView busy={action.busy} confirmingDiscard={confirmingDiscard} draftError={draftError} errors={errors} formError={formError} locked={locked} mode={post ? 'edit' : 'create'} onCancel={onCancel} onChange={onChange} onConfirmDiscard={discard} onKeepEditing={() => setConfirmingDiscard(false)} onSubmit={onSubmit} onVerify={() => preserveDraft(values)} post={post} media={media} onMediaChange={setMedia} values={values} verificationRequired={verificationRequired} verificationTo={`/verify-email?redirect=${encodeURIComponent(editorPath)}`} />
 }
 
 function InvalidPostId() {

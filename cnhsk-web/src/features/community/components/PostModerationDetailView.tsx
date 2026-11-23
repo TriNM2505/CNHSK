@@ -1,6 +1,7 @@
 import { PageBanner } from '@/shared/ui/PageBanner'
 import { Card } from '@/shared/ui/Card'
 import { POST_CATEGORY_LABELS, POST_STATUS_LABELS } from '../labels'
+import { MediaGallery } from './MediaGallery'
 import type { ModerationPost } from '../types'
 
 function Timestamp({ value }: { value: string | null | undefined }) {
@@ -56,6 +57,7 @@ export function PostModerationDetailView({ post }: { post: ModerationPost }) {
         </dl>
         <h2 className="text-h2 text-ink">Nội dung</h2>
         <p className="my-4 whitespace-pre-wrap break-words text-body text-ink">{post.content}</p>
+      <MediaGallery className="mb-4" media={post.media} />
         <section aria-label="Thông tin kiểm duyệt" className="border-t border-line pt-4">
           <h2 className="text-h2 text-ink">Thông tin kiểm duyệt</h2>
           <dl className="mt-3 grid gap-2 text-body-sm sm:grid-cols-3">

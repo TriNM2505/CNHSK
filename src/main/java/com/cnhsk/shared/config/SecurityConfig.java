@@ -134,6 +134,9 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.POST, "/api/community/games/rounds/{id}/answers",
                             "/api/community/games/rounds/{id}/finish", "/api/community/games/rounds/{id}/abandon").hasRole("LEARNER");
                     authorize.requestMatchers("/api/community/moderation/**").hasRole("MODERATOR");
+                    // Moderators attach files to their own posts too, so they sign uploads without LEARNER.
+                    authorize.requestMatchers(HttpMethod.POST, "/api/community/media/signature")
+                            .hasAnyRole("LEARNER", "MODERATOR");
                     authorize.requestMatchers("/api/community/**").hasRole("LEARNER");
                     authorize.requestMatchers("/api/notes", "/api/notes/**").hasRole("LEARNER");
                     authorize.requestMatchers("/api/flashcard-decks", "/api/flashcard-decks/**").hasRole("LEARNER");

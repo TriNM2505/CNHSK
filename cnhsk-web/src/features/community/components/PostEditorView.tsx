@@ -13,7 +13,8 @@ import {
 
 import { POST_CATEGORIES, POST_CATEGORY_LABELS, POST_STATUS_LABELS } from '../labels'
 import type { PostFormErrors, PostFormValues } from '../postForm'
-import type { OwnPost, PostCategory } from '../types'
+import type { MediaItem, OwnPost, PostCategory } from '../types'
+import { MediaPicker } from './MediaPicker'
 
 export type EditorMode = 'create' | 'edit'
 
@@ -35,6 +36,9 @@ type Props = {
   post?: OwnPost
   values: PostFormValues
   verificationTo?: string
+  /** Attachments; the picker shows only when a change handler is given. */
+  media?: readonly MediaItem[]
+  onMediaChange?: (media: MediaItem[]) => void
 }
 
 export function PostEditorView({
@@ -55,6 +59,8 @@ export function PostEditorView({
   values,
   verificationRequired,
   verificationTo = '/verify-email',
+  media = [],
+  onMediaChange,
 }: Props) {
   const handleSubmit = (event: FormEvent<HTMLFormElement>, submit: boolean) => {
     event.preventDefault()
@@ -182,6 +188,13 @@ export function PostEditorView({
                   value={values.content}
                 />
               </FormField>
+
+              {onMediaChange ? (
+                <div className="space-y-2">
+                  <p className="text-label text-ink">Ảnh/video</p>
+                  <MediaPicker disabled={busy || locked} media={media} onChange={onMediaChange} />
+                </div>
+              ) : null}
 
               {locked ? (
                 <div>

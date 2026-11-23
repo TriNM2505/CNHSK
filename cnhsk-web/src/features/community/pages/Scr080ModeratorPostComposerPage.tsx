@@ -5,6 +5,7 @@ import { listContests } from '@/features/contests/api/contests'
 import { useApiQuery } from '@/shared/api'
 
 import { createModeratorPost } from '../api/posts'
+import type { MediaItem } from '../types'
 import {
   ModeratorPostComposerView,
   type ModeratorPostErrors,
@@ -46,6 +47,7 @@ export default function Scr080ModeratorPostComposerPage() {
   const [errors, setErrors] = useState<ModeratorPostErrors>({})
   const [formError, setFormError] = useState<string>()
   const [busy, setBusy] = useState(false)
+  const [media, setMedia] = useState<MediaItem[]>([])
   const contestQuery = useApiQuery((signal) => listContests({ size: 50 }, signal), [])
   const contests = useMemo(
     () => (contestQuery.data?.items ?? []).filter((contest) => contest.state !== 'ENDED'),
@@ -75,6 +77,7 @@ export default function Scr080ModeratorPostComposerPage() {
       await createModeratorPost({
         category: values.category,
         content: values.content.trim(),
+        media,
         contestId: values.category === 'CONTEST' && values.contestId ? Number(values.contestId) : null,
         pinnedUntil: values.pinned && values.pinnedUntil ? new Date(values.pinnedUntil).toISOString() : null,
         title: values.title.trim(),
@@ -92,6 +95,8 @@ export default function Scr080ModeratorPostComposerPage() {
       contests={contests}
       errors={errors}
       formError={formError}
+      media={media}
+      onMediaChange={setMedia}
       onCancel={() => navigate('/moderation/posts')}
       onChange={change}
       onSubmit={() => void submit()}

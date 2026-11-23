@@ -11,6 +11,9 @@ import com.cnhsk.auth.api.RoleCode;
 import com.cnhsk.community.common.PostStatus;
 import com.cnhsk.community.contest.Contest;
 import com.cnhsk.community.contest.ContestRepository;
+import com.cnhsk.community.media.MediaService;
+import com.cnhsk.community.media.PostMediaRepository;
+import com.cnhsk.community.media.web.MediaItem;
 import com.cnhsk.community.post.web.ModeratorPostWrite;
 import com.cnhsk.community.post.web.OwnPost;
 import com.cnhsk.shared.exception.ApiException;
@@ -29,12 +32,17 @@ public class ModeratorPostService {
     private final PostRepository posts;
     private final ContestRepository contests;
     private final Clock clock;
+    private final MediaService media;
+    private final PostMediaRepository mediaRows;
 
-    public ModeratorPostService(AuthApi authApi, PostRepository posts, ContestRepository contests, Clock clock) {
+    public ModeratorPostService(AuthApi authApi, PostRepository posts, ContestRepository contests, Clock clock,
+            MediaService media, PostMediaRepository mediaRows) {
         this.authApi = authApi;
         this.posts = posts;
         this.contests = contests;
         this.clock = clock;
+        this.media = media;
+        this.mediaRows = mediaRows;
     }
 
     @Transactional
@@ -48,13 +56,16 @@ public class ModeratorPostService {
             if (pinnedUntil == null) pinnedUntil = contest.getEndsAt();
         }
         requireFuture(pinnedUntil, now);
+        List<MediaItem> attached = media.validate(request.media());
 
         Post post = new Post(moderatorId, request.category(), request.title(), request.content(), now);
         post.setStatus(PostStatus.APPROVED);
         post.setPublishedAt(now);
         post.setContestId(request.contestId());
         post.setPinnedUntil(pinnedUntil);
-        return PostService.toOwnPost(posts.save(post));
+        Post saved = posts.save(post);
+        mediaRows.replace(saved.getId(), attached);
+        return PostService.toOwnPost(saved, attached);
     }
 
     /** Pins any approved post until a future moment, or unpins it with {@code null}. */

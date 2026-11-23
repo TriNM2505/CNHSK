@@ -25,6 +25,13 @@ export interface UserRef {
   displayName: string | null
 }
 
+/** An image or video attached to a post, stored on Cloudinary. */
+export interface MediaItem {
+  kind: 'IMAGE' | 'VIDEO'
+  url: string
+  publicId: string
+}
+
 export interface PostSummary {
   id: number
   title: string
@@ -34,6 +41,7 @@ export interface PostSummary {
   publishedAt: string
   commentCount: number
   likeCount: number
+  media?: MediaItem[]
 }
 
 export interface PostDetail extends PostSummary {
@@ -52,6 +60,8 @@ export interface PostWrite {
   content: string
   category: PostCategory
   submit: boolean
+  /** Leaving it out when editing keeps the current attachments. */
+  media?: MediaItem[]
 }
 
 export interface OwnPost {
@@ -64,6 +74,7 @@ export interface OwnPost {
   publishedAt?: string | null
   createdAt: string
   updatedAt: string
+  media?: MediaItem[]
 }
 
 export interface OwnPostPage {
@@ -140,6 +151,7 @@ export interface ModerationPost {
   publishedAt?: string | null
   createdAt: string
   updatedAt: string
+  media?: MediaItem[]
 }
 
 export interface RejectWrite {
@@ -251,4 +263,5 @@ export interface ModeratorPostWrite {
   category: PostCategory
   contestId: number | null
   pinnedUntil: string | null
+  media?: MediaItem[]
 }

@@ -1,6 +1,9 @@
 package com.cnhsk.community.post.web;
 
 import java.time.Instant;
+import java.util.List;
+
+import com.cnhsk.community.media.web.MediaItem;
 
 import com.cnhsk.community.common.PostCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,7 +21,8 @@ public record ModeratorPostWrite(
         @NotBlank @Size(min = 1, max = 50_000) String content,
         @NotNull PostCategory category,
         @Schema(types = {"integer", "null"}, format = "int64") Long contestId,
-        @Schema(types = {"string", "null"}, format = "date-time") Instant pinnedUntil) {
+        @Schema(types = {"string", "null"}, format = "date-time") Instant pinnedUntil,
+        List<MediaItem> media) {
 
     public ModeratorPostWrite {
         if (title != null) {

@@ -29,6 +29,7 @@ import {
 } from '@/shared/ui'
 
 import { POST_CATEGORY_LABELS, POST_STATUS_LABELS } from '../labels'
+import { MediaGallery } from './MediaGallery'
 import { PostInteractions } from './PostInteractions'
 import type { OwnPost, OwnPostPage, PinnedPost, PostCategory, PostStatus, PostSummary, PostSummaryPage } from '../types'
 
@@ -257,6 +258,7 @@ function PostCard({ post, viewer }: { post: PostSummary; viewer: Viewer }) {
         {post.title}
       </Link>
       <p className="mt-2 line-clamp-3 whitespace-pre-wrap break-words text-body text-ink-secondary">{post.excerpt}</p>
+      <MediaGallery className="mt-3" media={post.media} />
       <PostInteractions
         canInteract={viewer.canInteract}
         commentCount={post.commentCount}
@@ -291,6 +293,7 @@ function PinnedCard({ onUnpin, post, viewer }: { onUnpin?: (id: number) => void;
         {post.title}
       </Link>
       <p className="mt-2 line-clamp-3 whitespace-pre-wrap break-words text-body text-ink-secondary">{post.excerpt}</p>
+      <MediaGallery className="mt-3" media={post.media} />
       <footer className="mt-4 flex flex-wrap items-center gap-3">
         {post.contestId ? (
           <>

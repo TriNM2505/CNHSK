@@ -76,6 +76,12 @@ app:
   timezone: Asia/Ho_Chi_Minh
 
 cnhsk:
+  # Anh/video bai cong dong luu tren Cloudinary. Thieu bien thi nut dinh kem an di (503 MEDIA_NOT_CONFIGURED).
+  media:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+    api-key: ${CLOUDINARY_API_KEY:}
+    api-secret: ${CLOUDINARY_API_SECRET:}
+    folder: cnhsk/community
   auth:
     registration-code-required: true
   contest:

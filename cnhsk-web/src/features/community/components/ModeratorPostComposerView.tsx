@@ -6,7 +6,8 @@ import { cn } from '@/shared/lib/cn'
 import { Button, Card, FormField, Input, PageHeader, Select, Textarea } from '@/shared/ui'
 
 import { POST_CATEGORIES, POST_CATEGORY_LABELS } from '../labels'
-import type { PostCategory } from '../types'
+import type { MediaItem, PostCategory } from '../types'
+import { MediaPicker } from './MediaPicker'
 
 export type ModeratorPostValues = {
   category: PostCategory
@@ -25,6 +26,8 @@ export type ModeratorPostComposerViewProps = {
   contests: readonly ContestSummary[]
   errors: ModeratorPostErrors
   formError?: string
+  media: readonly MediaItem[]
+  onMediaChange: (media: MediaItem[]) => void
   onCancel: () => void
   onChange: <K extends keyof ModeratorPostValues>(field: K, value: ModeratorPostValues[K]) => void
   onSubmit: () => void
@@ -42,6 +45,8 @@ export function ModeratorPostComposerView({
   contests,
   errors,
   formError,
+  media,
+  onMediaChange,
   onCancel,
   onChange,
   onSubmit,
@@ -157,6 +162,11 @@ export function ModeratorPostComposerView({
               value={values.content}
             />
           </FormField>
+
+          <div className="space-y-2">
+            <p className="text-label text-ink">Ảnh/video</p>
+            <MediaPicker disabled={busy} media={media} onChange={onMediaChange} />
+          </div>
 
           <div className="space-y-3 rounded-md bg-canvas p-4">
             <label className="flex items-center gap-3 text-label text-ink">

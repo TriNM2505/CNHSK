@@ -20,6 +20,8 @@ import com.cnhsk.community.common.PostExcerpt;
 import com.cnhsk.community.common.PostStatus;
 import com.cnhsk.community.common.ReactionKind;
 import com.cnhsk.community.common.UserRef;
+import com.cnhsk.community.media.PostMediaRepository;
+import com.cnhsk.community.media.web.MediaItem;
 import com.cnhsk.community.post.web.PinnedPost;
 import com.cnhsk.community.post.web.PostDetail;
 import com.cnhsk.community.post.web.PostSummary;
@@ -44,14 +46,16 @@ public class PostQueryService {
     private final ReactionRepository reactions;
     private final CommunityAuthors authors;
     private final AuthApi authApi;
+    private final PostMediaRepository mediaRows;
 
     public PostQueryService(PostRepository posts, CommentRepository comments,
-            ReactionRepository reactions, CommunityAuthors authors, AuthApi authApi) {
+            ReactionRepository reactions, CommunityAuthors authors, AuthApi authApi, PostMediaRepository mediaRows) {
         this.posts = posts;
         this.comments = comments;
         this.reactions = reactions;
         this.authors = authors;
         this.authApi = authApi;
+        this.mediaRows = mediaRows;
     }
 
     public OwnPostPage ownList(int page, int size, PostStatus status) {
@@ -66,8 +70,10 @@ public class PostQueryService {
         if (offset >= total) {
             return new OwnPostPage(List.of(), page, size, total);
         }
-        List<OwnPost> items = posts.findOwned(authorId, null, status, PageRequest.of(page, size)).stream()
-                .map(PostService::toOwnPost).toList();
+        List<Post> found = posts.findOwned(authorId, null, status, PageRequest.of(page, size));
+        Map<Long, List<MediaItem>> media = mediaRows.findByPostIds(found.stream().map(Post::getId).toList());
+        List<OwnPost> items = found.stream()
+                .map(post -> PostService.toOwnPost(post, media.getOrDefault(post.getId(), List.of()))).toList();
         return new OwnPostPage(items, page, size, total);
     }
 
@@ -75,7 +81,7 @@ public class PostQueryService {
         long authorId = learnerId();
         Post post = posts.findOwned(authorId, id, null, PageRequest.of(0, 1)).stream().findFirst()
                 .orElseThrow(PostQueryService::forbidden);
-        return PostService.toOwnPost(post);
+        return PostService.toOwnPost(post, mediaRows.findByPostId(post.getId()));
     }
 
     public ViewerState viewerState(long id) {
@@ -150,7 +156,8 @@ public class PostQueryService {
                         "Không tìm thấy bài viết.", Map.of()));
         PostSummary summary = summaries(List.of(post)).get(0);
         return new PostDetail(summary.id(), summary.title(), summary.category(), summary.excerpt(),
-                summary.author(), summary.publishedAt(), summary.commentCount(), summary.likeCount(), post.getContent());
+                summary.author(), summary.publishedAt(), summary.commentCount(), summary.likeCount(), post.getContent(),
+                summary.media());
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
@@ -184,7 +191,7 @@ public class PostQueryService {
             Post post = found.get(index);
             return new PinnedPost(summary.id(), summary.title(), summary.category(), summary.excerpt(),
                     summary.author(), summary.publishedAt(), summary.commentCount(), summary.likeCount(),
-                    post.getContestId(), post.getPinnedUntil());
+                    post.getContestId(), post.getPinnedUntil(), summary.media());
         }).toList();
     }
 
@@ -197,11 +204,12 @@ public class PostQueryService {
         Map<Long, Long> likeCounts = counts(reactions.countLikesByPostIds(ids));
         Set<Long> authorIds = found.stream().map(Post::getAuthorId).collect(Collectors.toSet());
         Map<Long, UserRef> resolved = authors.resolve(authorIds);
+        Map<Long, List<MediaItem>> media = mediaRows.findByPostIds(ids);
         return found.stream().map(post -> new PostSummary(post.getId(), post.getTitle(), post.getCategory(),
                 PostExcerpt.fromContent(post.getContent()),
                 resolved.getOrDefault(post.getAuthorId(), new UserRef(post.getAuthorId(), null)),
                 post.getPublishedAt(), commentCounts.getOrDefault(post.getId(), 0L),
-                likeCounts.getOrDefault(post.getId(), 0L))).toList();
+                likeCounts.getOrDefault(post.getId(), 0L), media.getOrDefault(post.getId(), List.of()))).toList();
     }
 
     private static Map<Long, Long> counts(List<PostCount> rows) {

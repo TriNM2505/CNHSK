@@ -27,7 +27,7 @@ describe('community contract types (compile-time assertions; §13)', () => {
 
   it('FR004_FR006_FR018_FR038_FR047_FR063_preserves writable fields, nullability and target discrimination', () => {
     expectTypeOf<keyof Community.PostWrite>().toEqualTypeOf<
-      'title' | 'content' | 'category' | 'submit'
+      'title' | 'content' | 'category' | 'submit' | 'media'
     >()
     expectTypeOf<Community.PostWrite['submit']>().toEqualTypeOf<boolean>()
     expectTypeOf<keyof Community.CommentWrite>().toEqualTypeOf<'content'>()

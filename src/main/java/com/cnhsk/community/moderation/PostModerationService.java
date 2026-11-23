@@ -39,14 +39,16 @@ public class PostModerationService {
     private final CommunityAuthors authors;
     private final Clock clock;
     private final AuditService audit;
+    private final com.cnhsk.community.media.PostMediaRepository mediaRows;
 
     public PostModerationService(PostRepository posts, AuthApi auth, CommunityAuthors authors,
-            Clock clock, AuditService audit) {
+            Clock clock, AuditService audit, com.cnhsk.community.media.PostMediaRepository mediaRows) {
         this.posts = posts;
         this.auth = auth;
         this.authors = authors;
         this.clock = clock;
         this.audit = audit;
+        this.mediaRows = mediaRows;
     }
 
     @Transactional(readOnly = true)
@@ -117,7 +119,8 @@ public class PostModerationService {
         return new ModerationPost(post.getId(), post.getTitle(), post.getContent(), post.getCategory(),
                 post.getStatus(), userRef(resolved, post.getAuthorId()), post.getReviewReason(),
                 post.getReviewedBy() == null ? null : userRef(resolved, post.getReviewedBy()),
-                post.getReviewedAt(), post.getPublishedAt(), post.getCreatedAt(), post.getUpdatedAt());
+                post.getReviewedAt(), post.getPublishedAt(), post.getCreatedAt(), post.getUpdatedAt(),
+                mediaRows.findByPostId(post.getId()));
     }
 
     private long moderatorId() {

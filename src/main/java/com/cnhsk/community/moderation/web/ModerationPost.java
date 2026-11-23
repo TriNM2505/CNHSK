@@ -1,5 +1,9 @@
 package com.cnhsk.community.moderation.web;
 
+import java.util.List;
+
+import com.cnhsk.community.media.web.MediaItem;
+
 import java.time.Instant;
 import com.cnhsk.community.common.PostCategory;
 import com.cnhsk.community.common.PostStatus;
@@ -20,4 +24,10 @@ public record ModerationPost(
         @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = {"string", "null"}, format = "date-time") Instant reviewedAt,
         @Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = {"string", "null"}, format = "date-time") Instant publishedAt,
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Instant createdAt,
-        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Instant updatedAt) { }
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) Instant updatedAt,
+        @Schema(requiredMode = Schema.RequiredMode.REQUIRED) List<MediaItem> media) {
+
+    public ModerationPost {
+        media = media == null ? List.of() : List.copyOf(media);
+    }
+}

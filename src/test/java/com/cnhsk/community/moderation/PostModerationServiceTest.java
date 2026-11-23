@@ -74,7 +74,8 @@ class PostModerationServiceTest {
         audit = mock(AuditService.class);
         when(auth.currentUser()).thenReturn(new CurrentUser(MODERATOR, Set.of(RoleCode.MODERATOR), false));
         when(clock.instant()).thenReturn(NOW);
-        service = new PostModerationService(posts, auth, authors, clock, audit);
+        service = new PostModerationService(posts, auth, authors, clock, audit,
+                org.mockito.Mockito.mock(com.cnhsk.community.media.PostMediaRepository.class));
     }
 
     @ParameterizedTest

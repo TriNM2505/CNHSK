@@ -58,7 +58,8 @@ class PostQueryServiceTest {
         reactions = mock(ReactionRepository.class);
         authors = mock(CommunityAuthors.class);
         auth = mock(AuthApi.class);
-        service = new PostQueryService(posts, comments, reactions, authors, auth);
+        service = new PostQueryService(posts, comments, reactions, authors, auth,
+                org.mockito.Mockito.mock(com.cnhsk.community.media.PostMediaRepository.class));
     }
 
     @Test

@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { PageBanner } from '@/shared/ui'
 
 import { POST_CATEGORY_LABELS } from '../labels'
+import { MediaGallery } from './MediaGallery'
 import type { PostDetail } from '../types'
 
 export function CommunityPostDetailView({
@@ -51,6 +52,7 @@ export function CommunityPostDetailView({
       <p className="my-5 whitespace-pre-wrap break-words border-t border-line pt-4 text-body text-ink">
         {post.content}
       </p>
+      <MediaGallery className="mb-5" media={post.media} />
       <div className="flex flex-wrap items-center gap-4 border-t border-line pt-3 text-body-sm text-ink-secondary">
         <p aria-label="Số bình luận">{post.commentCount} bình luận</p>
         <p aria-label="Số lượt thích">{likeCount} lượt thích</p>

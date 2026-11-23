@@ -1,5 +1,6 @@
 package com.cnhsk.community.post;
 
+import java.util.List;
 import java.util.Map;
 
 import com.cnhsk.auth.api.AuthApi;
@@ -7,6 +8,9 @@ import com.cnhsk.auth.api.CurrentUser;
 import com.cnhsk.auth.api.RoleCode;
 import com.cnhsk.community.common.CommunityLimits;
 import com.cnhsk.community.common.PostStatus;
+import com.cnhsk.community.media.MediaService;
+import com.cnhsk.community.media.PostMediaRepository;
+import com.cnhsk.community.media.web.MediaItem;
 import com.cnhsk.community.post.web.OwnPost;
 import com.cnhsk.community.post.web.PostWrite;
 import com.cnhsk.shared.exception.ApiException;
@@ -27,13 +31,17 @@ public class PostService {
     private final PostRepository posts;
     private final CommunityLimits limits;
     private final NamedParameterJdbcTemplate jdbc;
+    private final MediaService media;
+    private final PostMediaRepository mediaRows;
 
     public PostService(AuthApi authApi, PostRepository posts, CommunityLimits limits,
-            NamedParameterJdbcTemplate jdbc) {
+            NamedParameterJdbcTemplate jdbc, MediaService media, PostMediaRepository mediaRows) {
         this.authApi = authApi;
         this.posts = posts;
         this.limits = limits;
         this.jdbc = jdbc;
+        this.media = media;
+        this.mediaRows = mediaRows;
     }
 
     @Transactional
@@ -53,8 +61,10 @@ public class PostService {
 
         Post post = new Post(authorId, request.category(), request.title(), request.content(), snapshot.now());
         post.setStatus(request.submit() ? PostStatus.PENDING : PostStatus.DRAFT);
+        List<MediaItem> attached = media.validate(request.media());
         Post saved = posts.save(post);
-        return toOwnPost(saved);
+        mediaRows.replace(saved.getId(), attached);
+        return toOwnPost(saved, attached);
     }
 
     @Transactional
@@ -81,7 +91,10 @@ public class PostService {
         post.setCategory(request.category());
         post.setStatus(request.submit() ? PostStatus.PENDING : PostStatus.DRAFT);
         post.setUpdatedAt(snapshot.now());
-        return toOwnPost(posts.save(post));
+        Post saved = posts.save(post);
+        // Leaving media out keeps the attachments; an empty list removes them.
+        if (request.media() != null) mediaRows.replace(saved.getId(), media.validate(request.media()));
+        return toOwnPost(saved, mediaRows.findByPostId(saved.getId()));
     }
 
     private static ApiException forbidden() {
@@ -105,9 +118,13 @@ public class PostService {
     }
 
     static OwnPost toOwnPost(Post post) {
+        return toOwnPost(post, List.of());
+    }
+
+    static OwnPost toOwnPost(Post post, List<MediaItem> media) {
         String reviewReason = post.getStatus() == PostStatus.REJECTED || post.getStatus() == PostStatus.HIDDEN
                 ? post.getReviewReason() : null;
         return new OwnPost(post.getId(), post.getTitle(), post.getContent(), post.getCategory(), post.getStatus(),
-                reviewReason, post.getPublishedAt(), post.getCreatedAt(), post.getUpdatedAt());
+                reviewReason, post.getPublishedAt(), post.getCreatedAt(), post.getUpdatedAt(), media);
     }
 }
