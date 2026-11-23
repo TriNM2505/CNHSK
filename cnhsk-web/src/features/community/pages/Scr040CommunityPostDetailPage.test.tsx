@@ -344,6 +344,8 @@ describe('SCR-040 learner discussion', () => {
     expect(within(target).getByText(status === 'HIDDEN' ? '[đã bị ẩn]' : '[đã xoá]')).toBeVisible()
     expect(within(target).queryByRole('button', { name: 'Sửa' })).not.toBeInTheDocument()
     expect(within(target).queryByRole('button', { name: 'Báo cáo' })).not.toBeInTheDocument()
+    // Replies stay folded under their thread until opened.
+    await userEvent.click(screen.getByRole('button', { name: 'Xem 1 phản hồi' }))
     expect(card(12)).toBeVisible()
     await userEvent.click(within(target).getByRole('button', { name: 'Trả lời' }))
     await userEvent.type(screen.getByRole('textbox', { name: 'Trả lời bình luận' }), ' Reply text ')
@@ -354,11 +356,15 @@ describe('SCR-040 learner discussion', () => {
     vi.mocked(comments.listPostComments).mockResolvedValue(publicDiscussion)
     vi.mocked(comments.replyToComment).mockResolvedValue({ ...comment, id: 105, parentId: 103, depth: 3 })
     render(shell(learner))
+    await screen.findByRole('article', { name: 'Bình luận 101' })
+    await userEvent.click(screen.getByRole('button', { name: 'Xem 3 phản hồi' }))
     await screen.findByRole('article', { name: 'Bình luận 104' })
     await userEvent.click(within(card(104)).getByRole('button', { name: 'Trả lời' }))
     await userEvent.type(screen.getByRole('textbox', { name: 'Trả lời bình luận' }), 'Sibling')
     vi.mocked(comments.listPostComments).mockResolvedValue([...publicDiscussion, { ...comment, id: 105, parentId: 103, depth: 3, content: 'Sibling' }])
     await userEvent.click(screen.getByRole('button', { name: 'Gửi bình luận' }))
+    // The discussion reloads after a reply and folds its threads again.
+    await userEvent.click(await screen.findByRole('button', { name: 'Xem 4 phản hồi' }))
     expect(await screen.findByText('Sibling')).toBeVisible()
     expect(comments.replyToComment).toHaveBeenCalledWith(104, { content: 'Sibling' })
     const oldLi = card(104).closest('li')!
@@ -529,6 +535,7 @@ describe('SCR-040 learner discussion', () => {
     vi.mocked(comments.listPostComments).mockResolvedValue([{ ...parent, status: 'DELETED', content: null, author: null }, { ...comment, id: 12, parentId: 11, depth: 1 }])
     await userEvent.click(screen.getByRole('button', { name: 'Xác nhận xoá' }))
     expect(await screen.findByText('[đã xoá]')).toBeVisible()
+    await userEvent.click(screen.getByRole('button', { name: 'Xem 1 phản hồi' }))
     expect(card(12)).toBeVisible()
     expect(comments.deleteComment).toHaveBeenCalledTimes(1)
   })

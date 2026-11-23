@@ -76,7 +76,8 @@ export function CommentItem({
           </div>
         ) : null}
         <div className="mt-1 flex flex-wrap items-center gap-x-4">
-          {!visible ? null : actions.guest ? <Link className={actionClass} to="/login">Trả lời</Link> : canWrite ? <button className={actionClass} disabled={actions.disabled} onClick={() => actions.onSelect({ kind: 'reply', comment })} type="button">Trả lời</button> : null}
+          {/* A hidden or deleted comment can still be answered (FR-021); only its own text is withheld. */}
+          {actions.guest ? <Link className={actionClass} to="/login">Trả lời</Link> : canWrite ? <button className={actionClass} disabled={actions.disabled} onClick={() => actions.onSelect({ kind: 'reply', comment })} type="button">Trả lời</button> : null}
           {canWrite && canEditComment(comment, actions.userId, actions.now) && !actions.lockedEdits.has(comment.id) ? <button className={actionClass} disabled={actions.disabled} onClick={() => actions.onSelect({ kind: 'edit', comment })} type="button">Sửa</button> : null}
           {canWrite && visible && own ? <button className={actionClass} disabled={actions.disabled} onClick={() => actions.onSelect({ kind: 'delete', comment })} type="button">Xoá</button> : null}
           {visible && actions.guest ? <Link className={actionClass} to="/login">Báo cáo</Link> : visible && canWrite && !own ? <button className={actionClass} disabled={actions.disabled} onClick={() => actions.onSelect({ kind: 'report', comment })} type="button">Báo cáo</button> : null}
