@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 import { PageBanner } from '@/shared/ui'
@@ -9,10 +10,13 @@ export function CommunityPostDetailView({
   post,
   likeCount,
   canEdit,
+  authorAction,
 }: {
   post: PostDetail
   likeCount: number
   canEdit: boolean
+  /** Shown beside the author's name, for example the follow button. */
+  authorAction?: ReactNode
 }) {
   const location = useLocation()
   return (
@@ -35,9 +39,12 @@ export function CommunityPostDetailView({
         className="mb-4 px-4 pt-4 pb-20 shadow-sm sm:px-5 [&>svg]:inset-y-auto [&>svg]:bottom-0 [&>svg]:block [&>svg]:h-16 [&>svg]:w-80 [&>svg]:max-w-full lg:pb-4 lg:pr-80 lg:[&>svg]:h-full"
         title={<span className="whitespace-pre-wrap break-words">{post.title}</span>}
       />
-      <p className="text-body-sm font-medium text-ink-secondary">
-        {post.author.displayName ?? 'Người dùng đã rời'} · {POST_CATEGORY_LABELS[post.category]}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-body-sm font-medium text-ink-secondary">
+          {post.author.displayName ?? 'Người dùng đã rời'} · {POST_CATEGORY_LABELS[post.category]}
+        </p>
+        {authorAction}
+      </div>
       <time className="mt-1 block text-caption text-ink-muted" dateTime={post.publishedAt}>
         {new Date(post.publishedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
       </time>

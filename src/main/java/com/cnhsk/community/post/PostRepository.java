@@ -35,6 +35,22 @@ public interface PostRepository extends JpaRepository<Post, Long> {
             + "and (:category is null or p.category = :category)")
     long countPublished(@Param("category") PostCategory category);
 
+    /** Approved posts by the people {@code userId} follows, newest first. */
+    @Query("select p from Post p where p.status = com.cnhsk.community.common.PostStatus.APPROVED "
+            + "and p.authorId in (select r.id.targetId from com.cnhsk.community.reaction.Reaction r "
+            + "where r.id.userId = :userId and r.id.targetType = com.cnhsk.community.common.TargetType.USER "
+            + "and r.id.kind = com.cnhsk.community.common.ReactionKind.FOLLOW) "
+            + "order by p.publishedAt desc, p.id desc")
+    List<Post> findPublishedByFollowed(@Param("userId") long userId, Pageable pageable);
+
+    @Query("select count(p) from Post p where p.status = com.cnhsk.community.common.PostStatus.APPROVED "
+            + "and p.authorId in (select r.id.targetId from com.cnhsk.community.reaction.Reaction r "
+            + "where r.id.userId = :userId and r.id.targetType = com.cnhsk.community.common.TargetType.USER "
+            + "and r.id.kind = com.cnhsk.community.common.ReactionKind.FOLLOW)")
+    long countPublishedByFollowed(@Param("userId") long userId);
+
+    long countByAuthorIdAndStatus(long authorId, PostStatus status);
+
     long countByAuthorIdAndCreatedAtGreaterThanEqual(long authorId, Instant createdAt);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

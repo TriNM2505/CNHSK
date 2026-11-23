@@ -32,6 +32,9 @@ import type { OwnPost, OwnPostPage, PostCategory, PostStatus, PostSummary, PostS
 
 export type ListState = 'loading' | 'empty' | 'error' | 'ready'
 
+/** Everyone's posts, posts by people the learner follows, or the learner's own posts. */
+export type FeedMode = 'public' | 'following' | 'mine'
+
 type Props = {
   /** Right column, normally the game-point ranking. */
   aside?: ReactNode
@@ -43,12 +46,12 @@ type Props = {
   /** Most discussed recent questions for the left column. */
   hotQuestions?: readonly PostSummary[]
   isLearner: boolean
-  mode: 'public' | 'mine'
+  mode: FeedMode
   onCategoryChange: (value: PostCategory | '') => void
   onPageChange: (page: number) => void
   onRetry: () => void
   onStatusChange: (value: PostStatus | '') => void
-  onTabChange: (tab: 'public' | 'mine') => void
+  onTabChange: (tab: FeedMode) => void
   onWrite: () => void
   page: number
   size: number
@@ -62,6 +65,18 @@ const CATEGORY_ICONS: Record<PostCategory, LucideIcon> = {
   STUDY_BUDDY: UsersRound,
   CULTURE: Landmark,
   JOB: Briefcase,
+}
+
+const EMPTY_TITLES: Record<FeedMode, string> = {
+  public: 'Chưa có bài trong chủ đề này',
+  following: 'Chưa có bài từ người bạn theo dõi',
+  mine: 'Chưa có bài viết',
+}
+
+const EMPTY_DESCRIPTIONS: Record<FeedMode, string> = {
+  public: 'Hãy chọn chủ đề khác hoặc chia sẻ bài viết mới cùng cộng đồng.',
+  following: 'Mở một bài viết và bấm Theo dõi cạnh tên tác giả để thấy bài của họ ở đây.',
+  mine: 'Bài bạn viết sẽ hiện ở đây kèm trạng thái duyệt.',
 }
 
 const ownStatusTones: Record<PostStatus, StatusTone> = {
@@ -175,9 +190,14 @@ function Composer({ name, onWrite }: { name?: string; onWrite: () => void }) {
 }
 
 function FeedTabs({ isLearner, mode, onTabChange }: Pick<Props, 'isLearner' | 'mode' | 'onTabChange'>) {
-  const tabs: { label: string; value: 'public' | 'mine' }[] = [
+  const tabs: { label: string; value: FeedMode }[] = [
     { label: 'Tất cả', value: 'public' },
-    ...(isLearner ? [{ label: 'Bài của tôi', value: 'mine' as const }] : []),
+    ...(isLearner
+      ? [
+          { label: 'Đang theo dõi', value: 'following' as const },
+          { label: 'Bài của tôi', value: 'mine' as const },
+        ]
+      : []),
   ]
   // A single tab chooses nothing, so guests see the feed straight away.
   if (tabs.length < 2) return null
@@ -276,7 +296,7 @@ export function CommunityPostListView(props: Props) {
       <h1 className="sr-only">Cộng đồng</h1>
 
       <div className="min-w-0 space-y-4 [grid-area:side] xl:sticky xl:top-28 xl:self-start">
-        {mode === 'public' ? (
+        {mode === 'following' ? null : mode === 'public' ? (
           <TopicNav categories={props.categories} category={props.category} onCategoryChange={props.onCategoryChange} />
         ) : (
           <FormField className="mb-0 max-w-sm" htmlFor="community-status" label="Trạng thái">
@@ -313,8 +333,8 @@ export function CommunityPostListView(props: Props) {
                   </Button>
                 ) : undefined
               }
-              description="Hãy chọn chủ đề khác hoặc chia sẻ bài viết mới cùng cộng đồng."
-              title={mode === 'mine' ? 'Chưa có bài viết' : 'Chưa có bài trong chủ đề này'}
+              description={EMPTY_DESCRIPTIONS[mode]}
+              title={EMPTY_TITLES[mode]}
             />
           }
           error={
@@ -326,8 +346,8 @@ export function CommunityPostListView(props: Props) {
           state={state}
         >
           <>
-            {mode === 'public' ? (
-              <div aria-label="Danh sách bài công khai" className="grid gap-4" role="list">
+            {mode !== 'mine' ? (
+              <div aria-label={mode === 'following' ? 'Bài của người bạn theo dõi' : 'Danh sách bài công khai'} className="grid gap-4" role="list">
                 {((data as PostSummaryPage | undefined)?.items ?? []).map((post) => (
                   <PostCard key={post.id} post={post} />
                 ))}

@@ -23,6 +23,14 @@ export function listPublishedPosts(
   return apiRequest<PostSummaryPage>(`/api/public/community/posts?${query.toString()}`, { signal })
 }
 
+/** Approved posts by the people the learner follows. */
+export function listFollowingPosts(
+  { page, size }: { page: number; size: number },
+  signal?: AbortSignal,
+): Promise<PostSummaryPage> {
+  return apiRequest<PostSummaryPage>(`/api/community/posts/following?page=${page}&size=${size}`, { signal })
+}
+
 export function getPublishedPost(id: number, signal?: AbortSignal): Promise<PostDetail> {
   return apiRequest<PostDetail>(`/api/public/community/posts/${id}`, { signal })
 }

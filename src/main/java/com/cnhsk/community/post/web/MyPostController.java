@@ -57,6 +57,27 @@ public class MyPostController {
         this.likes = likes;
     }
 
+    @GetMapping(value = "/following", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(operationId = "listFollowingPosts", tags = "posts")
+    @SecurityRequirement(name = "cookieAuth")
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK",
+                    content = @Content(schema = @Schema(implementation = PostSummaryPage.class))),
+            @ApiResponse(responseCode = "401", description = "Chưa xác thực",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "403", description = "Không có quyền",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
+            @ApiResponse(responseCode = "422", description = "Dữ liệu không hợp lệ",
+                    content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
+    public PostSummaryPage listFollowingPosts(
+            @Parameter(schema = @Schema(type = "integer", minimum = "0", defaultValue = "0"))
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(schema = @Schema(type = "integer", minimum = "1", maximum = "50", defaultValue = "20"))
+            @RequestParam(defaultValue = "20") int size) {
+        return queries.followingList(page, size);
+    }
+
     @GetMapping(value = "/mine", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(operationId = "listMyPosts", tags = "posts")
     @SecurityRequirement(name = "cookieAuth")

@@ -115,6 +115,22 @@ public class PostQueryService {
         return new PostSummaryPage(summaries(found), page, size, total);
     }
 
+    /** The "Đang theo dõi" feed: approved posts by authors the learner follows. */
+    public PostSummaryPage followingList(int page, int size) {
+        long userId = learnerId();
+        if (page < 0 || size < 1 || size > 50) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Phân trang không hợp lệ.", Map.of("details", List.of(
+                            Map.of("field", "page/size", "message", "Trang phải từ 0, kích thước từ 1 đến 50."))));
+        }
+        long total = posts.countPublishedByFollowed(userId);
+        if ((long) page * size >= total) {
+            return new PostSummaryPage(List.of(), page, size, total);
+        }
+        List<Post> found = posts.findPublishedByFollowed(userId, PageRequest.of(page, size));
+        return new PostSummaryPage(summaries(found), page, size, total);
+    }
+
     public PostDetail publishedDetail(long id) {
         Post post = posts.findPublished(id, null, PageRequest.of(0, 1)).stream().findFirst()
                 .orElseThrow(() -> new ApiException(ErrorCode.POST_NOT_FOUND, HttpStatus.NOT_FOUND,

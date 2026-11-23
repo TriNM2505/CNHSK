@@ -38,6 +38,37 @@ public interface ReactionRepository extends JpaRepository<Reaction, ReactionId> 
             """, nativeQuery = true)
     int deletePostLike(@Param("userId") long userId, @Param("postId") long postId);
 
+    @Modifying
+    @Query(value = """
+            INSERT INTO community.reactions(user_id, target_type, target_id, kind)
+            VALUES (:userId, 'USER', :targetId, 'FOLLOW')
+            ON CONFLICT (user_id, target_type, target_id, kind) DO NOTHING
+            """, nativeQuery = true)
+    int insertUserFollow(@Param("userId") long userId, @Param("targetId") long targetId);
+
+    @Modifying
+    @Query(value = """
+            DELETE FROM community.reactions
+            WHERE user_id = :userId AND target_type = 'USER' AND target_id = :targetId AND kind = 'FOLLOW'
+            """, nativeQuery = true)
+    int deleteUserFollow(@Param("userId") long userId, @Param("targetId") long targetId);
+
+    @Query("select count(r) > 0 from Reaction r where r.id.userId = :userId and r.id.targetId = :targetId "
+            + "and r.id.targetType = com.cnhsk.community.common.TargetType.USER "
+            + "and r.id.kind = com.cnhsk.community.common.ReactionKind.FOLLOW")
+    boolean isFollowing(@Param("userId") long userId, @Param("targetId") long targetId);
+
+    /** People following {@code targetId}; {@code excluded} always holds at least one id so the list is never empty. */
+    @Query("select count(r) from Reaction r where r.id.targetId = :targetId "
+            + "and r.id.targetType = com.cnhsk.community.common.TargetType.USER "
+            + "and r.id.kind = com.cnhsk.community.common.ReactionKind.FOLLOW and r.id.userId not in :excluded")
+    long countFollowers(@Param("targetId") long targetId, @Param("excluded") Set<Long> excluded);
+
+    @Query("select count(r) from Reaction r where r.id.userId = :userId "
+            + "and r.id.targetType = com.cnhsk.community.common.TargetType.USER "
+            + "and r.id.kind = com.cnhsk.community.common.ReactionKind.FOLLOW and r.id.targetId not in :excluded")
+    long countFollowing(@Param("userId") long userId, @Param("excluded") Set<Long> excluded);
+
     @Query("select count(r) from Reaction r where r.id.userId = :userId "
             + "and r.id.kind = com.cnhsk.community.common.ReactionKind.REPORT "
             + "and r.createdAt >= :dayStart and r.createdAt < :nextDayStart")

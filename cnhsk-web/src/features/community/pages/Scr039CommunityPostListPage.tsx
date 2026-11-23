@@ -7,9 +7,9 @@ import { Button } from '@/shared/ui/Button'
 import { ToastProvider } from '@/shared/ui/Toast'
 import { useToast } from '@/shared/ui/useToast'
 
-import { listMyPosts, listPublishedPosts } from '../api/posts'
+import { listFollowingPosts, listMyPosts, listPublishedPosts } from '../api/posts'
 import { getCommunityRanking, type RankingPeriod } from '../api/rankings'
-import { CommunityPostListView } from '../components/CommunityPostListView'
+import { CommunityPostListView, type FeedMode } from '../components/CommunityPostListView'
 import {
   CommunityRankingPanel,
   type RankingBoard,
@@ -51,7 +51,7 @@ type FeedProps = {
   onCategoryChange: (value: PostCategory | '') => void
   onPageChange: (page: number) => void
   onStatusChange: (value: PostStatus | '') => void
-  onTabChange: (tab: 'public' | 'mine') => void
+  onTabChange: (tab: FeedMode) => void
   onWrite: () => void
   page: number
   status: PostStatus | ''
@@ -65,6 +65,16 @@ function PublicFeed(props: FeedProps) {
     { isEmpty: (result) => result.items.length === 0 },
   )
   return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} categories={POST_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="public" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
+}
+
+function FollowingFeed(props: FeedProps) {
+  const { aside, category, currentUserName, hotQuestions, isLearner, onCategoryChange, onPageChange, onStatusChange, onTabChange, onWrite, page, status } = props
+  const query = useApiQuery(
+    (signal) => listFollowingPosts({ page, size: PAGE_SIZE }, signal),
+    [page],
+    { isEmpty: (result) => result.items.length === 0 },
+  )
+  return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} categories={POST_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="following" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
 }
 
 function MineFeed(props: FeedProps) {
@@ -83,8 +93,10 @@ function CommunityPostListContent() {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const requestedMine = searchParams.get('tab') === 'mine'
-  const mode = requestedMine && isLearner ? 'mine' : 'public'
+  const requestedTab = searchParams.get('tab')
+  const requestedMine = requestedTab === 'mine' || requestedTab === 'following'
+  const mode: FeedMode = requestedMine && isLearner ? (requestedTab as FeedMode) : 'public'
+  const [followingPage, setFollowingPage] = useState(0)
   const [category, setCategory] = useState<PostCategory | ''>('')
   const [publicPage, setPublicPage] = useState(0)
   const [status, setStatus] = useState<PostStatus | ''>('')
@@ -119,7 +131,7 @@ function CommunityPostListContent() {
   useEffect(() => {
     const tab = searchParams.get('tab')
     if (authStatus !== 'guest' && authStatus !== 'authenticated') return
-    if (tab && (tab !== 'mine' || !isLearner)) {
+    if (tab && ((tab !== 'mine' && tab !== 'following') || !isLearner)) {
       const next = new URLSearchParams(searchParams)
       next.delete('tab')
       setSearchParams(next, { replace: true })
@@ -127,10 +139,10 @@ function CommunityPostListContent() {
   }, [authStatus, isLearner, searchParams, setSearchParams])
 
   const onWrite = () => navigate(isLearner ? '/community/posts/new' : '/login', isLearner ? { state: { communityEditorOrigin: `${location.pathname}${location.search}` } } : undefined)
-  const onTabChange = (tab: 'public' | 'mine') => {
+  const onTabChange = (tab: FeedMode) => {
     const next = new URLSearchParams(searchParams)
-    if (tab === 'mine') next.set('tab', 'mine')
-    else next.delete('tab')
+    if (tab === 'public') next.delete('tab')
+    else next.set('tab', tab)
     setSearchParams(next)
   }
 
@@ -161,11 +173,11 @@ function CommunityPostListContent() {
     category,
     isLearner,
     onCategoryChange: (value) => { setCategory(value); setPublicPage(0) },
-    onPageChange: mode === 'public' ? setPublicPage : setMinePage,
+    onPageChange: mode === 'public' ? setPublicPage : mode === 'following' ? setFollowingPage : setMinePage,
     onStatusChange: (value) => { setStatus(value); setMinePage(0) },
     onTabChange,
     onWrite,
-    page: mode === 'public' ? publicPage : minePage,
+    page: mode === 'public' ? publicPage : mode === 'following' ? followingPage : minePage,
     status,
   }
 
@@ -173,6 +185,8 @@ function CommunityPostListContent() {
     <>
       {mode === 'public' ? (
         <PublicFeed key={`public:${category}:${publicPage}`} {...feedProps} />
+      ) : mode === 'following' ? (
+        <FollowingFeed key={`following:${followingPage}`} {...feedProps} />
       ) : (
         <MineFeed key={`mine:${status}:${minePage}`} {...feedProps} />
       )}

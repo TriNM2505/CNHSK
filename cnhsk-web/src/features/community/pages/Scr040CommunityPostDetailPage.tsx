@@ -16,6 +16,7 @@ import { CommentModerationForm, type ModerationDraft } from '../components/Comme
 import { CommentTree } from '../components/CommentTree'
 import type { DiscussionSelection } from '../components/CommentItem'
 import { CommunityPostDetailView } from '../components/CommunityPostDetailView'
+import { FollowAuthorButton } from '../components/FollowAuthorButton'
 import { InteractionError } from '../components/InteractionError'
 import { ReportForm, type ReportDraft } from '../components/ReportForm'
 import { validateText } from '../interaction-validation'
@@ -183,7 +184,7 @@ function PublishedPost({ id }: { id: number }) {
   const active = Boolean(post)
   return <main className="mx-auto max-w-reading p-4 sm:p-6">
     <Link to="/community">Về cộng đồng</Link>
-    {query.state !== 'error' && !post ? <p role="status">Đang tải bài viết…</p> : query.state === 'error' ? <><InteractionError error={query.error} /><Button type="button" variant="outline" onClick={refreshPost}>Thử lại bài viết</Button></> : post ? <CommunityPostDetailView post={post} likeCount={count?.scope === scope ? count.value : post.likeCount} canEdit={Boolean(user?.roles.includes('LEARNER') && user.id === post.author.id)} /> : null}
+    {query.state !== 'error' && !post ? <p role="status">Đang tải bài viết…</p> : query.state === 'error' ? <><InteractionError error={query.error} /><Button type="button" variant="outline" onClick={refreshPost}>Thử lại bài viết</Button></> : post ? <CommunityPostDetailView post={post} likeCount={count?.scope === scope ? count.value : post.likeCount} canEdit={Boolean(user?.roles.includes('LEARNER') && user.id === post.author.id)} authorAction={user?.roles.includes('LEARNER') && user.id !== post.author.id && post.author.displayName ? <FollowAuthorButton authorId={post.author.id} key={`${scope}:${post.author.id}`} /> : undefined} /> : null}
     {sessionPost ? <div key={scope}>
       {auth.status === 'loading' ? <p role="status">Đang kiểm tra phiên đăng nhập…</p> : auth.status === 'error' ? <><InteractionError error={auth.error} /><Button type="button" variant="outline" onClick={() => void auth.reloadCurrentUser()}>Thử lại phiên đăng nhập</Button></> : <>
         {user?.roles.includes('LEARNER') ? <LearnerInteractions post={sessionPost} user={user} active={active} onCount={(value) => setCount({ scope, value })} refreshPost={refreshPost} /> : !user && active ? <><Link to="/login">Thích</Link> · <Link to="/login">Báo cáo bài viết</Link></> : null}
