@@ -1,7 +1,15 @@
 export type CardType = 'CREDIT' | 'SUBSCRIPTION'
 export type Channel = 'ECOSYSTEM_GIFT' | 'PARTNER_BATCH' | 'DIRECT'
 export type PlanCode = 'FREE' | 'PREMIUM' | 'PREMIUM_PLUS'
-export type PaidFeature = 'AI_GENERATE' | 'TRANSLATE' | 'ASSISTANT' | 'GRADING'
+export type PaidFeature =
+  | 'AI_GENERATE'
+  | 'TRANSLATE'
+  | 'ASSISTANT'
+  | 'GRADING'
+  | 'VOCAB'
+  | 'GRAMMAR'
+  | 'PRONUNCIATION'
+  | 'HANZI'
 export type TransactionType =
   'TOPUP' | 'DEDUCT' | 'REFUND' | 'ADJUSTMENT' | 'TEACHER_PAYOUT' | 'SUBSCRIPTION'
 

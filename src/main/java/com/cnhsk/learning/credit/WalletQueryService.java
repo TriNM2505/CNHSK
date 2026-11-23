@@ -77,8 +77,9 @@ public class WalletQueryService {
         Instant month = now.atZone(ZONE).toLocalDate().withDayOfMonth(1).atStartOfDay(ZONE).toInstant();
         Instant resetAt = now.atZone(ZONE).toLocalDate().withDayOfMonth(1).plusMonths(1).atStartOfDay(ZONE).toInstant();
         int freeLimit = premium ? 0 : settings.getInt(SettingKey.BILLING_FREE_MONTHLY_LIMIT);
+        int learningLimit = premium ? 0 : settings.getInt(SettingKey.LEARNING_FREE_MONTHLY_LIMIT);
         var quota = Arrays.stream(PaidFeature.values()).map(feature -> {
-            int limit = premium ? limit(benefits, feature) : freeLimit;
+            int limit = premium ? limit(benefits, feature) : feature.learning() ? learningLimit : freeLimit;
             int used = state.usageResetAt().isBefore(month) ? 0 : state.freeUsage().getOrDefault(feature.name(), 0);
             if (used < 0 || limit < 0) throw invalidQuota();
             return new QuotaLine(feature, limit, used, Math.max(0, limit - used));

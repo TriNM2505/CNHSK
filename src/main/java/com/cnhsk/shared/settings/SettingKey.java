@@ -24,7 +24,8 @@ public enum SettingKey {
     AI_GENERATE_MIN_WRONG(21, "ai-generate.min-wrong", "AI sinh câu", "Số lượt sai tối thiểu của một điểm tri thức", 1, 1_000),
     AI_GENERATE_MIN_BANK(22, "ai-generate.min-bank", "AI sinh câu", "Chỉ sinh khi số câu đã duyệt của điểm tri thức ít hơn ngưỡng này", 1, 200),
     AI_GENERATE_BATCH_SIZE(23, "ai-generate.batch-size", "AI sinh câu", "Số câu hỏi mỗi lô", 1, 10),
-    AI_GENERATE_MAX_BATCHES_PER_RUN(24, "ai-generate.max-batches-per-run", "AI sinh câu", "Số lô tối đa mỗi lần chạy", 0, 20);
+    AI_GENERATE_MAX_BATCHES_PER_RUN(24, "ai-generate.max-batches-per-run", "AI sinh câu", "Số lô tối đa mỗi lần chạy", 0, 20),
+    LEARNING_FREE_MONTHLY_LIMIT(25, "learning.free-monthly-limit", "Học tập", "Lượt học miễn phí mỗi tháng cho mỗi tính năng", 0, 1_000);
 
     // Audit IDs are permanent identifiers: never reuse an ID, including after removing a key.
     private final long auditId;

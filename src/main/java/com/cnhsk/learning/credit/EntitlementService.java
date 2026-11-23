@@ -67,6 +67,12 @@ public class EntitlementService implements EntitlementApi {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public Consumption consume(long userId, PaidFeature feature, String idempotencyKey) {
+        return consume(userId, feature, idempotencyKey, true);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Consumption consume(long userId, PaidFeature feature, String idempotencyKey, boolean creditFallback) {
         requireWritableTransaction();
         requireValid(userId > 0 && feature != null && validKey(idempotencyKey));
         String key = "billing:idem:" + userId + ":" + idempotencyKey;
@@ -100,6 +106,11 @@ public class EntitlementService implements EntitlementApi {
             auth.updateUsage(userId, usage, reset ? period : state.usageResetAt());
             result = new Consumption(Source.QUOTA, null, feature, idempotencyKey, period);
         } else {
+            if (!creditFallback) {
+                throw new ApiException(ErrorCode.LEARNING_QUOTA_EXCEEDED, HttpStatus.PAYMENT_REQUIRED,
+                        "Bạn đã dùng hết lượt học miễn phí tháng này.",
+                        Map.of("feature", feature.name(), "limit", limit));
+            }
             if (ledger.balance(userId) < 1) {
                 throw new ApiException(ErrorCode.INSUFFICIENT_CREDITS, HttpStatus.PAYMENT_REQUIRED,
                         "Đã hết hạn mức và điểm.", Map.of());
@@ -194,7 +205,8 @@ public class EntitlementService implements EntitlementApi {
     private int quotaLimit(PlanState state, PaidFeature feature, Instant now) {
         if (!"PREMIUM".equals(state.planCode()) || state.planExpiresAt() == null
                 || !state.planExpiresAt().isAfter(now)) {
-            return settings.getInt(SettingKey.BILLING_FREE_MONTHLY_LIMIT);
+            return settings.getInt(feature.learning()
+                    ? SettingKey.LEARNING_FREE_MONTHLY_LIMIT : SettingKey.BILLING_FREE_MONTHLY_LIMIT);
         }
         var benefits = jdbc.queryForList("SELECT benefits::text FROM learning.plans WHERE code = :code",
                 Map.of("code", "PREMIUM"), String.class);

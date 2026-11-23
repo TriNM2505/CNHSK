@@ -42,6 +42,10 @@ const featureNames: Record<PaidFeature, string> = {
   TRANSLATE: 'Dịch văn bản',
   ASSISTANT: 'Trợ lý',
   GRADING: 'Chấm bài',
+  VOCAB: 'Học từ vựng',
+  GRAMMAR: 'Học ngữ pháp',
+  PRONUNCIATION: 'Luyện phát âm',
+  HANZI: 'Học chữ Hán',
 }
 const vietnamTime = new Intl.DateTimeFormat('vi-VN', {
   timeZone: 'Asia/Ho_Chi_Minh',

@@ -2,6 +2,8 @@ package com.cnhsk.learning.practice;
 
 import java.time.Duration;
 
+import com.cnhsk.learning.api.PaidFeature;
+
 public enum PracticeSource {
     TOPIC_STUDY(AttemptKind.PRACTICE, FeedbackMode.RECORD, Duration.ofHours(2), true, false),
     TOPIC_PRACTICE(AttemptKind.PRACTICE, FeedbackMode.IMMEDIATE, Duration.ofHours(2), true, false),
@@ -57,5 +59,16 @@ public enum PracticeSource {
 
     public boolean maxScoreFromServed() {
         return maxScoreFromServed;
+    }
+
+    /** The learning allowance a new session of this source spends, or null when it is not limited. */
+    public PaidFeature quotaFeature() {
+        return switch (this) {
+            case TOPIC_STUDY, TOPIC_PRACTICE, TOPIC_TEST -> PaidFeature.VOCAB;
+            case GRAMMAR_LESSON -> PaidFeature.GRAMMAR;
+            case PRON_STAGE -> PaidFeature.PRONUNCIATION;
+            case CHAR_RECOGNITION, CHAR_WRITING, WRITING_CHALLENGE -> PaidFeature.HANZI;
+            default -> null;
+        };
     }
 }

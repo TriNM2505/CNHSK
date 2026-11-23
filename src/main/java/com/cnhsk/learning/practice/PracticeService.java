@@ -11,7 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.UUID;
 
+import com.cnhsk.learning.api.EntitlementApi;
+import com.cnhsk.learning.api.PaidFeature;
 import com.cnhsk.learning.practice.PracticeSourceHandler.Answer;
 import com.cnhsk.learning.practice.PracticeSourceHandler.FinishContext;
 import com.cnhsk.learning.practice.PracticeSourceHandler.GradedItem;
@@ -52,6 +55,7 @@ public class PracticeService {
     private final List<PracticeSourceHandler> handlers;
     private final ApplicationEventPublisher events;
     private TransactionTemplate answerTransaction;
+    private EntitlementApi entitlement;
 
     public PracticeService(AttemptRepository attempts, AttemptItemRepository attemptItems,
             EntityManager entityManager, ObjectMapper mapper, Clock clock,
@@ -64,6 +68,12 @@ public class PracticeService {
         this.rateLimiter = rateLimiter;
         this.handlers = List.copyOf(handlers);
         this.events = events;
+    }
+
+    /** Optional so unit tests that build the engine by hand keep working without billing. */
+    @Autowired(required = false)
+    void configureEntitlement(EntitlementApi entitlement) {
+        this.entitlement = entitlement;
     }
 
     @Autowired
@@ -102,6 +112,11 @@ public class PracticeService {
         rejectAnswerMetadata(snapshot.path("meta"));
         if (checkStartLimit) {
             rateLimiter.checkStart(command.userId());
+            // Resuming an open session never gets here, so only a new session spends the monthly allowance.
+            PaidFeature feature = command.source().quotaFeature();
+            if (feature != null && entitlement != null) {
+                entitlement.consume(command.userId(), feature, "learn:" + UUID.randomUUID(), false);
+            }
         }
         Instant now = clock.instant();
         Attempt attempt = new Attempt(command.userId(), command.source().kind().name(), command.source().name(),

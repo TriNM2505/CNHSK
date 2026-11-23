@@ -18,5 +18,11 @@ public interface EntitlementApi {
 
     Consumption consume(long userId, PaidFeature feature, String idempotencyKey);
 
+    /**
+     * Same as {@link #consume(long, PaidFeature, String)}, but with {@code creditFallback=false} an exhausted
+     * allowance is refused with {@code LEARNING_QUOTA_EXCEEDED} instead of spending a credit.
+     */
+    Consumption consume(long userId, PaidFeature feature, String idempotencyKey, boolean creditFallback);
+
     void refund(long userId, Consumption consumption);
 }

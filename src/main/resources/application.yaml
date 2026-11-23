@@ -86,6 +86,9 @@ cnhsk:
     registration-code-required: true
   contest:
     submit-grace-seconds: 5
+  learning:
+    # Free accounts: sessions per learning feature (vocabulary, grammar, pronunciation, hanzi) each month.
+    free-monthly-limit: 3
   quiz:
     question-count: 10
     min-seconds-per-question: 2

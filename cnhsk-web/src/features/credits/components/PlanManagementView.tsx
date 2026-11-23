@@ -30,7 +30,16 @@ export interface PlanManagementViewProps {
   onRetry: () => void
 }
 
-const features: readonly PaidFeature[] = ['AI_GENERATE', 'TRANSLATE', 'ASSISTANT', 'GRADING']
+const features: readonly PaidFeature[] = [
+  'AI_GENERATE',
+  'TRANSLATE',
+  'ASSISTANT',
+  'GRADING',
+  'VOCAB',
+  'GRAMMAR',
+  'PRONUNCIATION',
+  'HANZI',
+]
 const planOrder: readonly PlanCode[] = ['FREE', 'PREMIUM', 'PREMIUM_PLUS']
 const planColumns: readonly DataTableColumn<PlanView>[] = [
   {
@@ -69,6 +78,10 @@ const featureNames: Record<PaidFeature, string> = {
   TRANSLATE: 'Dịch',
   ASSISTANT: 'Trợ lý',
   GRADING: 'Chấm bài',
+  VOCAB: 'Từ vựng',
+  GRAMMAR: 'Ngữ pháp',
+  PRONUNCIATION: 'Phát âm',
+  HANZI: 'Chữ Hán',
 }
 type PlanDraft = {
   name: string

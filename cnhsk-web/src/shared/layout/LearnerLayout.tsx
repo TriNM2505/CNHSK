@@ -9,6 +9,7 @@ import {
   learnerNavigation,
   type NavigationItem,
 } from '@/shared/layout/navigation'
+import { LearningQuotaDialog } from '@/shared/layout/LearningQuotaDialog'
 import { PublicHeader } from '@/shared/layout/PublicHeader'
 import { cn } from '@/shared/lib/cn'
 import { useCurrentUser } from '@/shared/auth'
@@ -177,6 +178,7 @@ export function LearnerLayout({
         </aside>
       ) : null}
       <AssistantHost>{children}</AssistantHost>
+      <LearningQuotaDialog />
     </AppShell>
   )
 }

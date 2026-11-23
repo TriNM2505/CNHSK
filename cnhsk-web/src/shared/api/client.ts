@@ -21,6 +21,8 @@ const CSRF_EXEMPT_PATHS = new Set([
 const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 export const AUTH_EXPIRED_EVENT = 'auth:expired'
+/** Fired with `{ feature, limit }` when a free account has used this month's learning allowance. */
+export const LEARNING_QUOTA_EVENT = 'learning:quota-exceeded'
 
 export type AuthExpiredDetail = {
   reason: 'ACCOUNT_BANNED'
@@ -141,6 +143,14 @@ function throwApiError(response: Response, text: string): never {
       : parseApiError(response.status, parseJson(response.status, text))
   if (error.status === 403 && error.errorCode === 'ACCOUNT_BANNED') {
     dispatchAuthExpired({ reason: 'ACCOUNT_BANNED', banReason: error.extra.banReason })
+  }
+  if (error.errorCode === 'LEARNING_QUOTA_EXCEEDED' && typeof window !== 'undefined') {
+    // Every learning screen hits this the same way, so one dialog in the layout explains it.
+    window.dispatchEvent(
+      new CustomEvent(LEARNING_QUOTA_EVENT, {
+        detail: { feature: error.extra.feature, limit: error.extra.limit },
+      }),
+    )
   }
   throw error
 }
