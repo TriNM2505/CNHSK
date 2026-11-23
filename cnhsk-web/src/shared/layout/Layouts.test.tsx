@@ -156,7 +156,9 @@ describe('PublicLayout', () => {
   it('shows the account menu to authenticated users', () => {
     renderLayout(<PublicLayout>Nội dung công khai</PublicLayout>)
 
-    expect(screen.getAllByText('Người học')).toHaveLength(2)
+    // Only the avatar shows in the header; the name is on the card inside the menu.
+    expect(document.querySelector('summary[aria-label="Tài khoản Người học"]')).not.toBeNull()
+    expect(screen.getAllByText('Người học')).toHaveLength(1)
     expect(screen.queryByRole('link', { name: 'Đăng nhập' })).not.toBeInTheDocument()
   })
 

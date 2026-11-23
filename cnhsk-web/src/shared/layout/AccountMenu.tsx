@@ -1,4 +1,4 @@
-import { Bell, BookOpen, ChevronDown, Crown, Database, KeyRound, LogOut, PenLine, ShieldCheck, UsersRound, Wallet } from 'lucide-react'
+import { Bell, BookOpen, Crown, Database, KeyRound, LogOut, PenLine, ShieldCheck, UsersRound, Wallet } from 'lucide-react'
 import type { ComponentType, SVGProps } from 'react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -55,7 +55,7 @@ function getUserAreas(user: CurrentUser): readonly UserArea[] {
   return userAreas.filter(({ role }) => user.roles.includes(role))
 }
 
-export function AccountMenu({ inverse = false, nameFrom = 'sm' }: AccountMenuProps) {
+export function AccountMenu({ inverse = false }: AccountMenuProps) {
   const { signOut, user } = useCurrentUser()
   const [signingOut, setSigningOut] = useState(false)
   const [signOutFailed, setSignOutFailed] = useState(false)
@@ -83,22 +83,17 @@ export function AccountMenu({ inverse = false, nameFrom = 'sm' }: AccountMenuPro
 
   return (
     <details className="group relative">
+      {/* Only the avatar, ringed in gold, opens the menu; the name lives on the card inside. */}
       <summary
-        className={cn(
-          'flex min-h-touch cursor-pointer list-none items-center gap-2 rounded-sm px-3 text-label focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus [&::-webkit-details-marker]:hidden',
-          inverse ? 'text-surface hover:bg-brand-700' : 'text-ink hover:bg-brand-50',
-        )}
+        aria-label={`Tài khoản ${user.displayName}`}
+        className="flex min-h-touch cursor-pointer list-none items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus [&::-webkit-details-marker]:hidden"
       >
-        <Avatar className="size-8 text-label" user={user} />
-
-        <span
-          className={cn('hidden max-w-40 truncate', nameFrom === 'xl' ? 'xl:inline' : 'sm:inline')}
-        >
-          {user.displayName}
-        </span>
-        <ChevronDown
-          aria-hidden="true"
-          className="size-4 transition-transform group-open:rotate-180"
+        <Avatar
+          className={cn(
+            'size-11 text-h3 ring-2 ring-accent-500 ring-offset-2 transition-transform hover:scale-105',
+            inverse ? 'ring-offset-brand-800' : 'ring-offset-surface',
+          )}
+          user={user}
         />
       </summary>
 
