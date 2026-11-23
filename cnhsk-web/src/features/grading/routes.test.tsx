@@ -81,7 +81,7 @@ describe('grading screen registration and learner access', () => {
       expect(getGradingPolicy).not.toHaveBeenCalled()
     },
   )
-  it('adds only Chấm bài to learning navigation and keeps Cuộc thi and Bảng xếp hạng', async () => {
+  it('adds only Chấm bài to learning navigation and leaves contests to the header community menu', async () => {
     page('/grading')
     const navigation = await screen.findByRole('navigation', { name: 'Học tập' })
     const grading = within(navigation).getByRole('link', { name: 'Chấm bài' })
@@ -93,21 +93,16 @@ describe('grading screen registration and learner access', () => {
     expect(
       within(navigation).queryByRole('link', { name: 'Gói dịch vụ và điểm' }),
     ).not.toBeInTheDocument()
-    const community = screen.getByRole('navigation', { name: 'Cộng đồng' })
-    expect(within(community).getByRole('link', { name: 'Cuộc thi' })).toHaveAttribute(
-      'href',
-      '/contests',
-    )
-    expect(within(community).getByRole('link', { name: 'Bảng xếp hạng' })).toHaveAttribute(
-      'href',
-      '/leaderboards/topics',
-    )
+    expect(screen.queryByRole('navigation', { name: 'Cộng đồng' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Cộng đồng' }))
+    expect(
+      within(document.getElementById('public-menu')!).getByRole('link', { name: 'Cuộc thi' }),
+    ).toHaveAttribute('href', '/contests')
     const mobile = screen.getByRole('navigation', { name: 'Học tập trên thiết bị di động' })
     expect(within(mobile).getAllByRole('link')).toHaveLength(4)
     await userEvent.click(within(mobile).getByRole('button', { name: 'Thêm' }))
     const more = screen.getByRole('navigation', { name: 'Điều hướng bổ sung' })
     expect(within(more).getByRole('link', { name: 'Chấm bài' })).toHaveAttribute('href', '/grading')
-    expect(within(more).getByRole('link', { name: 'Cuộc thi' })).toBeInTheDocument()
-    expect(within(more).getByRole('link', { name: 'Bảng xếp hạng' })).toBeInTheDocument()
+    expect(within(more).queryByRole('link', { name: 'Cuộc thi' })).not.toBeInTheDocument()
   })
 })

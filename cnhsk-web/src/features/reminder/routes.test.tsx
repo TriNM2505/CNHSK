@@ -163,13 +163,14 @@ describe('reminder route integration', () => {
     else expect(link).not.toBeInTheDocument()
   })
 
-  it('provides the SCR-007 entry without changing the profile form', async () => {
+  it('keeps the reminder entry in the account menu while SCR-007 shows the profile', async () => {
     const router = renderRoute('/me/profile')
-    expect(await screen.findByRole('link', { name: 'Cài đặt nhắc học' })).toHaveAttribute(
+    expect(await screen.findByRole('heading', { name: 'Người học thử' })).toBeVisible()
+    // The redesigned profile has no settings links; reminders stay one click away in the header menu.
+    expect(screen.getByRole('link', { name: 'Nhắc lịch học', hidden: true })).toHaveAttribute(
       'href',
       '/me/reminders',
     )
-    expect(await screen.findByRole('heading', { name: 'Thông tin cá nhân' })).toBeVisible()
     router.dispose()
   })
 

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { createMemoryRouter, RouterProvider } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -68,7 +68,12 @@ describe('quiz route registration and access', () => {
     render(<RouterProvider router={router} />)
     expect(await screen.findByRole('heading', { name: 'Quiz theo chủ đề', level: 1 })).toBeVisible()
     expect(screen.getByRole('navigation', { name: 'Học tập' })).toBeInTheDocument()
-    expect(screen.getByRole('navigation', { name: 'Cộng đồng' })).toBeInTheDocument()
+    // Community is reached through the site header, not a learner sidebar group.
+    expect(
+      within(screen.getByRole('navigation', { name: 'Điều hướng công khai' })).getByRole('link', {
+        name: 'Cộng đồng',
+      }),
+    ).toHaveAttribute('href', '/community')
   })
   it('opens real SCR-044 by resuming the topic instead of trusting the URL session', async () => {
     const router = createMemoryRouter(appRoutes, {
@@ -87,7 +92,12 @@ describe('quiz route registration and access', () => {
     })
     render(<RouterProvider router={router} />)
     expect(await screen.findByRole('heading', { name: 'Kết quả quiz theo chủ đề' })).toBeVisible()
-    expect(screen.getByRole('navigation', { name: 'Cộng đồng' })).toBeInTheDocument()
+    // Community is reached through the site header, not a learner sidebar group.
+    expect(
+      within(screen.getByRole('navigation', { name: 'Điều hướng công khai' })).getByRole('link', {
+        name: 'Cộng đồng',
+      }),
+    ).toHaveAttribute('href', '/community')
     expect(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' })).toBeVisible()
   })
   it.each(['ADMIN', 'TEACHER', 'MODERATOR', 'CONTENT_EDITOR', 'ACCOUNTANT'] as RoleCode[])(
