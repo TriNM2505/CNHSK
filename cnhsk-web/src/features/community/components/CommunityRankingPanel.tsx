@@ -2,7 +2,7 @@ import { Clock3, Crown, Trophy } from 'lucide-react'
 
 import type { GameOption } from '@/features/leaderboard/types'
 import { cn } from '@/shared/lib/cn'
-import { Button, Card, Select, Skeleton } from '@/shared/ui'
+import { Button, Card, Skeleton } from '@/shared/ui'
 
 import type { RankingEntry, RankingPeriod } from '../api/rankings'
 
@@ -111,6 +111,64 @@ function Segmented<T extends string | number>({
   )
 }
 
+/** One seal character per game, so a tile reads at a glance like a stamp on a scroll. */
+const GAME_SEALS: Record<string, string> = {
+  '': '总',
+  CHAR_RAIN: '墨',
+  PINYIN_MATCH: '拼',
+  RADICAL_MATCH: '部',
+  CHAR_CATCH: '抓',
+  BRUSH_STROKE: '雨',
+  FLYING_DART: '飞',
+}
+
+function GamePicker({
+  games,
+  onChange,
+  value,
+}: {
+  games: readonly GameOption[]
+  onChange: (game: string) => void
+  value: string
+}) {
+  const options = [{ code: '', name: 'Tổng điểm' }, ...games]
+  return (
+    <div aria-label="Trò chơi" className="grid grid-cols-4 gap-1.5" role="radiogroup">
+      {options.map((option) => {
+        const selected = value === option.code
+        return (
+          <button
+            aria-checked={selected}
+            className={cn(
+              'group flex min-w-0 flex-col items-center gap-1 rounded-md px-0.5 pb-1.5 pt-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+              selected ? 'bg-brand-800 text-surface shadow-md' : 'bg-canvas text-ink hover:bg-brand-50',
+            )}
+            key={option.code || 'all'}
+            onClick={() => onChange(option.code)}
+            role="radio"
+            title={option.name}
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                'flex size-9 items-center justify-center rounded-sm border font-hanzi text-h3 leading-none transition-transform group-hover:-rotate-3',
+                selected
+                  ? 'border-accent-500 bg-brand-700 text-accent-500'
+                  : 'border-brand-100 bg-surface text-brand-700',
+              )}
+              lang="zh-CN"
+            >
+              {GAME_SEALS[option.code] ?? option.name.charAt(0)}
+            </span>
+            <span className="line-clamp-2 w-full text-center text-caption leading-tight">{option.name}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 function Podium({ entries, showTime }: { entries: RankingEntry[]; showTime: boolean }) {
   return (
     <ol aria-label="Ba người dẫn đầu" className="grid grid-cols-3 items-end gap-1.5">
@@ -213,27 +271,28 @@ export function CommunityRankingPanel(props: CommunityRankingPanelProps) {
         </div>
       </header>
 
-      <div className="space-y-2">
-        <label className="sr-only" htmlFor="ranking-game">
-          Trò chơi
-        </label>
-        <Select id="ranking-game" onChange={(event) => props.onGameChange(event.target.value)} value={game}>
-          <option value="">Tổng điểm mọi trò chơi</option>
-          {games.map((option) => (
-            <option key={option.code} value={option.code}>
-              {option.name}
-            </option>
-          ))}
-        </Select>
+      <div className="space-y-3">
+        <GamePicker games={games} onChange={props.onGameChange} value={game} />
         {showTime ? (
-          <Segmented<RankingLevel>
-            label="Cấp HSK"
-            onChange={props.onLevelChange}
-            options={LEVELS.map((value) => ({ label: `HSK ${value}`, value }))}
-            value={level}
-          />
+          <div className="flex items-center gap-2">
+            <span className="w-10 shrink-0 text-caption font-semibold uppercase tracking-wide text-ink-muted">Cấp</span>
+            <div className="min-w-0 flex-1">
+              <Segmented<RankingLevel>
+                label="Cấp HSK"
+                onChange={props.onLevelChange}
+                options={LEVELS.map((value) => ({ label: `HSK ${value}`, value }))}
+                plain
+                value={level}
+              />
+            </div>
+          </div>
         ) : null}
-        <Segmented<RankingPeriod> label="Kỳ xếp hạng" onChange={props.onPeriodChange} options={PERIODS} plain value={period} />
+        <div className="flex items-center gap-2">
+          <span className="w-10 shrink-0 text-caption font-semibold uppercase tracking-wide text-ink-muted">Kỳ</span>
+          <div className="min-w-0 flex-1">
+            <Segmented<RankingPeriod> label="Kỳ xếp hạng" onChange={props.onPeriodChange} options={PERIODS} plain value={period} />
+          </div>
+        </div>
       </div>
 
       {state === 'loading' ? <Skeleton variant="card" /> : null}

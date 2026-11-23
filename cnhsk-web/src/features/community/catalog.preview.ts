@@ -78,7 +78,14 @@ function listPreview(mode: 'public' | 'mine', state: 'loading' | 'empty' | 'erro
         ...baseListProps,
         aside: createElement(CommunityRankingPanel, {
           game: 'CHAR_RAIN',
-          games: [{ code: 'CHAR_RAIN', name: 'Mưa Chữ' }, { code: 'PINYIN_MATCH', name: 'Ghép pinyin' }],
+          games: [
+            { code: 'CHAR_RAIN', name: 'Lọ Mực' },
+            { code: 'PINYIN_MATCH', name: 'Ghép Pinyin' },
+            { code: 'RADICAL_MATCH', name: 'Ghép Bộ Thủ' },
+            { code: 'CHAR_CATCH', name: 'Bắt Chữ' },
+            { code: 'BRUSH_STROKE', name: 'Mưa Chữ' },
+            { code: 'FLYING_DART', name: 'Phi Đao' },
+          ],
           level: 2,
           onGameChange: () => undefined,
           onLevelChange: () => undefined,
