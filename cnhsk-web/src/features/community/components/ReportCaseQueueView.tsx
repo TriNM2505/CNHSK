@@ -13,7 +13,6 @@ import { StatusBadge } from '@/shared/ui/StatusBadge'
 import { REPORT_REASON_LABELS } from '../labels'
 import { formatModerationTimestamp, MODERATION_PAGE_SIZE } from '../moderation-list-query'
 import type { ReportCasePage, ReportCaseSummary } from '../types'
-import { ModerationNavigation } from './ModerationNavigation'
 
 export type ReportCaseQueueViewProps = {
   data?: ReportCasePage
@@ -112,7 +111,6 @@ export function ReportCaseQueueView({
 
   return (
     <main className="mx-auto max-w-content space-y-6 p-4 sm:p-6">
-      <ModerationNavigation active="reports" />
       <PageBanner
         className="px-4 pt-4 pb-20 shadow-sm sm:px-5 [&>svg]:inset-y-auto [&>svg]:bottom-0 [&>svg]:block [&>svg]:h-16 [&>svg]:w-80 [&>svg]:max-w-full lg:pb-4 lg:pr-80 lg:[&>svg]:h-full"
         actions={
