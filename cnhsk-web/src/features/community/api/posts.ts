@@ -2,8 +2,10 @@ import { apiRequest } from '@/shared/api'
 
 import type {
   LikeState,
+  ModeratorPostWrite,
   MyPostListParams,
   OwnPost,
+  PinnedPost,
   OwnPostPage,
   PostDetail,
   PostSummaryPage,
@@ -21,6 +23,20 @@ export function listPublishedPosts(
   query.set('page', String(page))
   query.set('size', String(size))
   return apiRequest<PostSummaryPage>(`/api/public/community/posts?${query.toString()}`, { signal })
+}
+
+export function listPinnedPosts(signal?: AbortSignal): Promise<PinnedPost[]> {
+  return apiRequest<PinnedPost[]>('/api/public/community/posts/pinned', { signal })
+}
+
+/** Moderators publish straight away, without review. */
+export function createModeratorPost(body: ModeratorPostWrite): Promise<OwnPost> {
+  return apiRequest<OwnPost>('/api/community/moderation/posts', { body, method: 'POST' })
+}
+
+/** Pin until a future moment, or unpin with null. */
+export function pinPost(id: number, pinnedUntil: string | null): Promise<void> {
+  return apiRequest<void>(`/api/community/moderation/posts/${id}/pin`, { body: { pinnedUntil }, method: 'PUT' })
 }
 
 /** Approved posts by the people the learner follows. */

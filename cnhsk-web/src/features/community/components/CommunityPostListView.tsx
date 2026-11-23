@@ -5,7 +5,10 @@ import {
   Landmark,
   LayoutList,
   Lightbulb,
+  Megaphone,
   MessageCircle,
+  Pin,
+  Trophy,
   UsersRound,
   type LucideIcon,
 } from 'lucide-react'
@@ -28,7 +31,7 @@ import {
 } from '@/shared/ui'
 
 import { POST_CATEGORY_LABELS, POST_STATUS_LABELS } from '../labels'
-import type { OwnPost, OwnPostPage, PostCategory, PostStatus, PostSummary, PostSummaryPage } from '../types'
+import type { OwnPost, OwnPostPage, PinnedPost, PostCategory, PostStatus, PostSummary, PostSummaryPage } from '../types'
 
 export type ListState = 'loading' | 'empty' | 'error' | 'ready'
 
@@ -52,8 +55,12 @@ type Props = {
   onRetry: () => void
   onStatusChange: (value: PostStatus | '') => void
   onTabChange: (tab: FeedMode) => void
+  /** Present for moderators, who may take a post off the top. */
+  onUnpin?: (id: number) => void
   onWrite: () => void
   page: number
+  /** Moderator posts kept above the feed. */
+  pinned?: readonly PinnedPost[]
   size: number
   state: ListState
   status: PostStatus | ''
@@ -65,6 +72,8 @@ const CATEGORY_ICONS: Record<PostCategory, LucideIcon> = {
   STUDY_BUDDY: UsersRound,
   CULTURE: Landmark,
   JOB: Briefcase,
+  CONTEST: Trophy,
+  ANNOUNCEMENT: Megaphone,
 }
 
 const EMPTY_TITLES: Record<FeedMode, string> = {
@@ -259,6 +268,54 @@ function PostCard({ post }: { post: PostSummary }) {
   )
 }
 
+/** Moderator post held above the feed; a contest guide offers the way into the contest and its ranking. */
+function PinnedCard({ onUnpin, post }: { onUnpin?: (id: number) => void; post: PinnedPost }) {
+  const author = post.author.displayName ?? 'Ban quản trị'
+  return (
+    <article className="min-w-0 rounded-lg border-l-4 border-accent-500 bg-surface p-5 shadow-sm" role="listitem">
+      <header className="flex min-w-0 items-start gap-3">
+        <Initial className="size-10 text-body" name={author} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-label text-ink">{author}</p>
+          <p className="text-caption text-ink-muted">
+            {POST_CATEGORY_LABELS[post.category]} · {formatRelative(post.publishedAt)}
+          </p>
+        </div>
+        <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-warning-bg px-3 py-1 text-label text-accent-700">
+          <Pin aria-hidden="true" className="size-4" />
+          Bài ghim
+        </span>
+      </header>
+      <Link className="mt-3 block text-h3 text-ink hover:text-brand-700" to={`/community/posts/${post.id}`}>
+        {post.title}
+      </Link>
+      <p className="mt-2 line-clamp-3 whitespace-pre-wrap break-words text-body text-ink-secondary">{post.excerpt}</p>
+      <footer className="mt-4 flex flex-wrap items-center gap-3">
+        {post.contestId ? (
+          <>
+            <Button size="sm" to={`/contests/${post.contestId}`}>
+              <Trophy aria-hidden="true" className="mr-1.5 inline-block size-4 align-middle" />
+              Vào thi
+            </Button>
+            <Button size="sm" to={`/contests/${post.contestId}/results`} variant="outline">
+              Xem xếp hạng
+            </Button>
+          </>
+        ) : (
+          <Link className="text-label text-brand-700 hover:underline" to={`/community/posts/${post.id}`}>
+            Đọc tiếp
+          </Link>
+        )}
+        {onUnpin ? (
+          <Button className="ml-auto" onClick={() => onUnpin(post.id)} size="sm" variant="ghost">
+            Bỏ ghim
+          </Button>
+        ) : null}
+      </footer>
+    </article>
+  )
+}
+
 function OwnPostCard({ post }: { post: OwnPost }) {
   const location = useLocation()
   const showReason = (post.status === 'REJECTED' || post.status === 'HIDDEN') && post.reviewReason
@@ -289,6 +346,9 @@ function OwnPostCard({ post }: { post: OwnPost }) {
 
 export function CommunityPostListView(props: Props) {
   const { aside, data, error, hotQuestions = [], mode, onPageChange, onRetry, page, size, state } = props
+  // Pinned posts lead the unfiltered feed and are not repeated below it.
+  const pinned = mode === 'public' && props.category === '' ? (props.pinned ?? []) : []
+  const pinnedIds = new Set(pinned.map((post) => post.id))
   const totalElements = data?.totalElements ?? 0
 
   return (
@@ -323,6 +383,14 @@ export function CommunityPostListView(props: Props) {
         </Card>
         <FeedTabs isLearner={props.isLearner} mode={mode} onTabChange={props.onTabChange} />
 
+        {pinned.length > 0 ? (
+          <div aria-label="Bài ghim" className="grid gap-4" role="list">
+            {pinned.map((post) => (
+              <PinnedCard key={post.id} onUnpin={props.onUnpin} post={post} />
+            ))}
+          </div>
+        ) : null}
+
         <PageState
           empty={
             <EmptyState
@@ -348,7 +416,7 @@ export function CommunityPostListView(props: Props) {
           <>
             {mode !== 'mine' ? (
               <div aria-label={mode === 'following' ? 'Bài của người bạn theo dõi' : 'Danh sách bài công khai'} className="grid gap-4" role="list">
-                {((data as PostSummaryPage | undefined)?.items ?? []).map((post) => (
+                {((data as PostSummaryPage | undefined)?.items ?? []).filter((post) => !pinnedIds.has(post.id)).map((post) => (
                   <PostCard key={post.id} post={post} />
                 ))}
               </div>

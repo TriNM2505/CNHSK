@@ -10,6 +10,7 @@ import {
   Gamepad2,
   Languages,
   LayoutDashboard,
+  Megaphone,
   Mic2,
   PenTool,
   ReceiptText,
@@ -228,6 +229,15 @@ export const adminNavigation: readonly NavigationItem[] = [
     label: 'Bài chờ duyệt',
     role: 'MODERATOR',
     to: '/moderation/posts',
+  },
+  {
+    activeExact: true,
+    activePrefixes: ['/moderation/posts/new'],
+    icon: Megaphone,
+    label: 'Đăng bài cộng đồng',
+    mobileLabel: 'Đăng bài',
+    role: 'MODERATOR',
+    to: '/moderation/posts/new',
   },
   {
     activePrefixes: ['/moderation/reports'],

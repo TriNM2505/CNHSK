@@ -65,6 +65,13 @@ public class Post {
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
     private Instant updatedAt;
 
+    /** Moderator posts stay on top of the feed until this moment. */
+    @Column(name = "pinned_until", columnDefinition = "TIMESTAMPTZ")
+    private Instant pinnedUntil;
+
+    @Column(name = "contest_id")
+    private Long contestId;
+
     protected Post() {
     }
 
@@ -167,5 +174,21 @@ public class Post {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Instant getPinnedUntil() {
+        return pinnedUntil;
+    }
+
+    public void setPinnedUntil(Instant pinnedUntil) {
+        this.pinnedUntil = pinnedUntil;
+    }
+
+    public Long getContestId() {
+        return contestId;
+    }
+
+    public void setContestId(Long contestId) {
+        this.contestId = contestId;
     }
 }

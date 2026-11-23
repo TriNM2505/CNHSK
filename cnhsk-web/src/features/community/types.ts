@@ -1,4 +1,11 @@
-export type PostCategory = 'EXPERIENCE' | 'QUESTION' | 'STUDY_BUDDY' | 'CULTURE' | 'JOB'
+export type PostCategory =
+  | 'EXPERIENCE'
+  | 'QUESTION'
+  | 'STUDY_BUDDY'
+  | 'CULTURE'
+  | 'JOB'
+  | 'CONTEST'
+  | 'ANNOUNCEMENT'
 export type PostStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'HIDDEN'
 export type CommentStatus = 'VISIBLE' | 'HIDDEN' | 'DELETED'
 export type ReportTargetType = 'POST' | 'COMMENT'
@@ -230,4 +237,18 @@ export interface PublishedPostListParams extends PaginationParams {
 
 export interface MyPostListParams extends PaginationParams {
   status?: PostStatus
+}
+
+/** A post shown above the feed; a contest guide links its contest. */
+export interface PinnedPost extends PostSummary {
+  contestId: number | null
+  pinnedUntil: string
+}
+
+export interface ModeratorPostWrite {
+  title: string
+  content: string
+  category: PostCategory
+  contestId: number | null
+  pinnedUntil: string | null
 }

@@ -6,6 +6,7 @@ import { AdminLayout, LearnerLayout, PublicLayout } from '@/shared/layout'
 import { previewLearner } from '@/shared/layout/Layout.preview'
 
 import { CommunityPostListView } from './components/CommunityPostListView'
+import { ModeratorPostComposerView, type ModeratorPostValues } from './components/ModeratorPostComposerView'
 import { CommunityRankingPanel, type RankingBoard } from './components/CommunityRankingPanel'
 import { PostEditorView } from './components/PostEditorView'
 import { CommunityPostDetailView } from './components/CommunityPostDetailView'
@@ -99,6 +100,21 @@ function listPreview(mode: 'public' | 'mine', state: 'loading' | 'empty' | 'erro
         data,
         error: state === 'error' ? 'Không thể tải bài viết.' : undefined,
         hotQuestions: publishedPage.items,
+        onUnpin: () => undefined,
+        pinned: [
+          {
+            author: { displayName: 'Ban quản trị Học Bá', id: 7 },
+            commentCount: 12,
+            likeCount: 48,
+            publishedAt: '2026-11-23T09:00:00+07:00',
+            category: 'CONTEST' as const,
+            contestId: 3,
+            excerpt: 'Thời gian thi 25/11 – 30/11. Trò chơi Mưa Chữ, câu hỏi trộn HSK 1–3. Mỗi người chơi không giới hạn lượt, lấy lượt điểm cao nhất.',
+            id: 901,
+            pinnedUntil: '2026-11-30T23:59:00+07:00',
+            title: 'Cuộc thi Mưa Chữ tháng 11 — hướng dẫn tham gia',
+          },
+        ],
         isLearner: isMine,
         mode,
         state,
@@ -120,7 +136,37 @@ function editorPreview(post?: OwnPost, overrides: Partial<Parameters<typeof Post
   )
 }
 
+const composerValues: ModeratorPostValues = {
+  category: 'CONTEST',
+  contestId: '3',
+  content: 'Thời gian thi 25/11 – 30/11.\nTrò chơi: Mưa Chữ, câu hỏi trộn HSK 1–3.',
+  pinned: true,
+  pinnedUntil: '2026-11-30T23:59',
+  title: 'Cuộc thi Mưa Chữ tháng 11 — hướng dẫn tham gia',
+}
+
+function composerPreview() {
+  return createElement(
+    AuthContext.Provider,
+    { value: moderatorPreviewAuth },
+    createElement(
+      AdminLayout,
+      null,
+      createElement(ModeratorPostComposerView, {
+        busy: false,
+        contests: [{ endsAt: '2026-11-30T23:59:00+07:00', id: 3, maxParticipants: null, name: 'Mưa Chữ tháng 11', participantCount: 0, prizes: [], rankingPublished: false, startsAt: '2026-11-25T08:00:00+07:00', state: 'UPCOMING' }],
+        errors: {},
+        onCancel: () => undefined,
+        onChange: () => undefined,
+        onSubmit: () => undefined,
+        values: composerValues,
+      }),
+    ),
+  )
+}
+
 const entries: readonly PreviewEntry[] = [
+  { fullFrame: true, group: 'screen', id: 'scr-080-contest-post', render: () => composerPreview(), scr: 'SCR-080', title: 'Kiểm duyệt viên đăng bài cuộc thi' },
   { fullFrame: true, group: 'screen', id: 'scr-039-public-ready', render: () => listPreview('public', 'ready'), scr: 'SCR-039', title: 'Bài công khai — Có dữ liệu' },
   { fullFrame: true, group: 'screen', id: 'scr-039-public-empty', render: () => listPreview('public', 'empty'), scr: 'SCR-039', title: 'Bài công khai — Trống' },
   { fullFrame: true, group: 'screen', id: 'scr-039-public-loading', render: () => listPreview('public', 'loading'), scr: 'SCR-039', title: 'Bài công khai — Đang tải' },

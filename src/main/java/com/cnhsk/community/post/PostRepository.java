@@ -51,6 +51,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     long countByAuthorIdAndStatus(long authorId, PostStatus status);
 
+    @Query("select p from Post p where p.status = com.cnhsk.community.common.PostStatus.APPROVED "
+            + "and p.pinnedUntil > :now order by p.pinnedUntil desc, p.id desc")
+    List<Post> findPinned(@Param("now") Instant now, Pageable pageable);
+
     long countByAuthorIdAndCreatedAtGreaterThanEqual(long authorId, Instant createdAt);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

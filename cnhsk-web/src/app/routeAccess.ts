@@ -439,6 +439,13 @@ export const appRouteDefinitions = [
     access: ['MODERATOR'],
     kind: 'screen',
     layout: 'admin',
+    path: '/moderation/posts/new',
+    scr: 'SCR-080',
+  },
+  {
+    access: ['MODERATOR'],
+    kind: 'screen',
+    layout: 'admin',
     path: '/moderation/posts/:id',
     scr: 'SCR-061',
   },

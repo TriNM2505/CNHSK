@@ -20,6 +20,7 @@ import com.cnhsk.community.common.PostExcerpt;
 import com.cnhsk.community.common.PostStatus;
 import com.cnhsk.community.common.ReactionKind;
 import com.cnhsk.community.common.UserRef;
+import com.cnhsk.community.post.web.PinnedPost;
 import com.cnhsk.community.post.web.PostDetail;
 import com.cnhsk.community.post.web.PostSummary;
 import com.cnhsk.community.post.web.PostSummaryPage;
@@ -160,6 +161,19 @@ public class PostQueryService {
                 entry.depth(), entry.status(), entry.content(), entry.authorId() == null ? null
                         : resolved.getOrDefault(entry.authorId(), new UserRef(entry.authorId(), null)),
                 entry.createdAt(), entry.editedAt())).toList();
+    }
+
+    /** Approved posts still pinned at {@code now}, latest pin first; at most a handful. */
+    public List<PinnedPost> pinnedList(java.time.Instant now) {
+        List<Post> found = posts.findPinned(now, PageRequest.of(0, 5));
+        List<PostSummary> summaries = summaries(found);
+        return java.util.stream.IntStream.range(0, found.size()).mapToObj(index -> {
+            PostSummary summary = summaries.get(index);
+            Post post = found.get(index);
+            return new PinnedPost(summary.id(), summary.title(), summary.category(), summary.excerpt(),
+                    summary.author(), summary.publishedAt(), summary.commentCount(), summary.likeCount(),
+                    post.getContestId(), post.getPinnedUntil());
+        }).toList();
     }
 
     private List<PostSummary> summaries(List<Post> found) {

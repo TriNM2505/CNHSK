@@ -12,7 +12,7 @@ import type * as Community from './types'
 describe('community contract types (compile-time assertions; §13)', () => {
   it('FR007_FR016_FR018_FR034_FR046_enum domains match the approved YAML', () => {
     expectTypeOf<Community.PostCategory>().toEqualTypeOf<
-      'EXPERIENCE' | 'QUESTION' | 'STUDY_BUDDY' | 'CULTURE' | 'JOB'
+      'EXPERIENCE' | 'QUESTION' | 'STUDY_BUDDY' | 'CULTURE' | 'JOB' | 'CONTEST' | 'ANNOUNCEMENT'
     >()
     expectTypeOf<Community.PostStatus>().toEqualTypeOf<
       'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'HIDDEN'

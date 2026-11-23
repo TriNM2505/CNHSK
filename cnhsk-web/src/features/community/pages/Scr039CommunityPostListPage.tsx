@@ -7,7 +7,7 @@ import { Button } from '@/shared/ui/Button'
 import { ToastProvider } from '@/shared/ui/Toast'
 import { useToast } from '@/shared/ui/useToast'
 
-import { listFollowingPosts, listMyPosts, listPublishedPosts } from '../api/posts'
+import { listFollowingPosts, listMyPosts, listPinnedPosts, listPublishedPosts, pinPost } from '../api/posts'
 import { getCommunityRanking, type RankingPeriod } from '../api/rankings'
 import { CommunityPostListView, type FeedMode } from '../components/CommunityPostListView'
 import {
@@ -16,8 +16,8 @@ import {
   type RankingLevel,
 } from '../components/CommunityRankingPanel'
 import { getGameLeaderboard, listLeaderboardGames } from '@/features/leaderboard/api/leaderboards'
-import { POST_CATEGORIES } from '../labels'
-import type { PostCategory, PostStatus, PostSummary } from '../types'
+import { FEED_CATEGORIES } from '../labels'
+import type { PinnedPost, PostCategory, PostStatus, PostSummary } from '../types'
 
 const HOT_QUESTION_COUNT = 6
 
@@ -44,6 +44,8 @@ function useSuccessFlash() {
 
 type FeedProps = {
   aside: ReactNode
+  onUnpin?: (id: number) => void
+  pinned: readonly PinnedPost[]
   currentUserName?: string
   hotQuestions: readonly PostSummary[]
   category: PostCategory | ''
@@ -64,7 +66,7 @@ function PublicFeed(props: FeedProps) {
     [category, page],
     { isEmpty: (result) => result.items.length === 0 },
   )
-  return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} categories={POST_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="public" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
+  return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} onUnpin={props.onUnpin} pinned={props.pinned} categories={FEED_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="public" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
 }
 
 function FollowingFeed(props: FeedProps) {
@@ -74,7 +76,7 @@ function FollowingFeed(props: FeedProps) {
     [page],
     { isEmpty: (result) => result.items.length === 0 },
   )
-  return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} categories={POST_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="following" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
+  return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} categories={FEED_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="following" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
 }
 
 function MineFeed(props: FeedProps) {
@@ -84,7 +86,7 @@ function MineFeed(props: FeedProps) {
     [status, page],
     { isEmpty: (result) => result.items.length === 0 },
   )
-  return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} categories={POST_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} mode="mine" />
+  return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} categories={FEED_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} mode="mine" />
 }
 
 function CommunityPostListContent() {
@@ -106,6 +108,15 @@ function CommunityPostListContent() {
   const [rankingLevel, setRankingLevel] = useState<RankingLevel>(1)
   useSuccessFlash()
   const games = useApiQuery((signal) => listLeaderboardGames(signal), [])
+  const pinned = useApiQuery((signal) => listPinnedPosts(signal), [])
+  const isModerator = authStatus === 'authenticated' && Boolean(user?.roles.includes('MODERATOR'))
+  const onUnpin = async (id: number) => {
+    try {
+      await pinPost(id, null)
+    } finally {
+      pinned.reload()
+    }
+  }
   // No game chosen ranks total points; a game ranks each player's best round at one HSK level.
   const ranking = useApiQuery<RankingBoard>(
     (signal) =>
@@ -169,6 +180,8 @@ function CommunityPostListContent() {
       />
     ),
     currentUserName: user?.displayName,
+    onUnpin: isModerator ? (id) => void onUnpin(id) : undefined,
+    pinned: pinned.data ?? [],
     hotQuestions,
     category,
     isLearner,

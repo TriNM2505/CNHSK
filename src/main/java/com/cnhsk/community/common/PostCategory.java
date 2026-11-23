@@ -5,5 +5,12 @@ public enum PostCategory {
     QUESTION,
     STUDY_BUDDY,
     CULTURE,
-    JOB
+    JOB,
+    /** Only moderators post under these two: contest guides and announcements. */
+    CONTEST,
+    ANNOUNCEMENT;
+
+    public boolean moderatorOnly() {
+        return this == CONTEST || this == ANNOUNCEMENT;
+    }
 }

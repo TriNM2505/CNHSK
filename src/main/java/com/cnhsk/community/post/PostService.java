@@ -40,6 +40,7 @@ public class PostService {
     public OwnPost create(PostWrite request) {
         CurrentUser user = authApi.currentUser();
         requireLearner(user);
+        rejectModeratorCategory(request);
         long authorId = user.userId();
         authApi.requireVerifiedEmail(authorId);
 
@@ -60,6 +61,7 @@ public class PostService {
     public OwnPost update(long id, PostWrite request) {
         CurrentUser user = authApi.currentUser();
         requireLearner(user);
+        rejectModeratorCategory(request);
         long authorId = user.userId();
         authApi.requireVerifiedEmail(authorId);
 
@@ -85,6 +87,15 @@ public class PostService {
     private static ApiException forbidden() {
         return new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
                 "Bạn không có quyền thực hiện thao tác này.", Map.of());
+    }
+
+    /** Contest guides and announcements come from moderators only. */
+    private static void rejectModeratorCategory(PostWrite request) {
+        if (request.category() != null && request.category().moderatorOnly()) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Dữ liệu không hợp lệ.", Map.of("details", java.util.List.of(Map.of("field", "category",
+                            "message", "Chủ đề này chỉ kiểm duyệt viên được dùng."))));
+        }
     }
 
     private static void requireLearner(CurrentUser user) {

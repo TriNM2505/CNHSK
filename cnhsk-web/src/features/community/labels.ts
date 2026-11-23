@@ -2,12 +2,17 @@ import type { PostCategory, PostStatus, ReportReason } from './types'
 
 export const POST_CATEGORIES = ['EXPERIENCE', 'QUESTION', 'STUDY_BUDDY', 'CULTURE', 'JOB'] as const satisfies readonly PostCategory[]
 
+/** Topics the feed filters by; the last two hold moderator posts only. */
+export const FEED_CATEGORIES = [...POST_CATEGORIES, 'CONTEST', 'ANNOUNCEMENT'] as const satisfies readonly PostCategory[]
+
 export const POST_CATEGORY_LABELS = {
   EXPERIENCE: 'Chia sẻ kinh nghiệm',
   QUESTION: 'Hỏi bài',
   STUDY_BUDDY: 'Tìm bạn học',
   CULTURE: 'Văn hoá',
   JOB: 'Việc làm',
+  CONTEST: 'Cuộc thi',
+  ANNOUNCEMENT: 'Thông báo',
 } satisfies Record<PostCategory, string>
 
 export const POST_STATUS_LABELS = {

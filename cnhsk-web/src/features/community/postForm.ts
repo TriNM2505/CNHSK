@@ -32,6 +32,9 @@ export function parsePostId(raw: string | undefined): number | undefined {
   return Number.isSafeInteger(value) && value > 0 ? value : undefined
 }
 
+/** Learners write under these topics; contest and announcement posts are for moderators. */
+const LEARNER_CATEGORIES: readonly PostCategory[] = POST_CATEGORIES
+
 export function validatePostForm(values: PostFormValues): PostFormErrors {
   const errors: PostFormErrors = {}
   const title = values.title.trim()
@@ -40,7 +43,7 @@ export function validatePostForm(values: PostFormValues): PostFormErrors {
   else if (title.length > 200) errors.title = 'Tiêu đề không được vượt quá 200 ký tự.'
   if (content.length < 1) errors.content = 'Nhập nội dung bài viết.'
   else if (content.length > 50_000) errors.content = 'Nội dung không được vượt quá 50.000 ký tự.'
-  if (!values.category || !POST_CATEGORIES.includes(values.category)) errors.category = 'Chọn danh mục bài viết hợp lệ.'
+  if (!values.category || !LEARNER_CATEGORIES.includes(values.category)) errors.category = 'Chọn danh mục bài viết hợp lệ.'
   return errors
 }
 
@@ -48,7 +51,7 @@ export function toPostWrite(values: PostFormValues, submit: boolean): PostWrite 
   if (
     Object.keys(validatePostForm(values)).length > 0 ||
     !values.category ||
-    !POST_CATEGORIES.includes(values.category)
+    !LEARNER_CATEGORIES.includes(values.category)
   ) return undefined
   return { title: values.title.trim(), content: values.content.trim(), category: values.category, submit }
 }
