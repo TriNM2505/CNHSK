@@ -2,7 +2,7 @@ import { createElement } from 'react'
 
 import type { PreviewEntry } from '@/app/preview/types'
 import { AuthContext, type AuthContextValue } from '@/shared/auth'
-import { LearnerLayout } from '@/shared/layout'
+import { LearnerLayout, PublicLayout } from '@/shared/layout'
 import { previewLearner } from '@/shared/layout/Layout.preview'
 
 import { changePasswordPreviews, profilePreviews } from './components/AccountViews.preview'
@@ -51,7 +51,7 @@ export const previews = [
       createElement(
         AuthContext.Provider,
         { value: learnerAuth },
-        createElement(LearnerLayout, null, createElement(ProfileView, props)),
+        createElement(PublicLayout, null, createElement(ProfileView, props)),
       ),
     scr: 'SCR-007',
     title,

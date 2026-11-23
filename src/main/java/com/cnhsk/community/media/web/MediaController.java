@@ -32,7 +32,8 @@ public class MediaController {
                     content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse"))),
             @ApiResponse(responseCode = "503", description = "MEDIA_NOT_CONFIGURED",
                     content = @Content(schema = @Schema(ref = "#/components/schemas/ErrorResponse")))})
-    public UploadSignature signMediaUpload() {
-        return media.signUpload();
+    public UploadSignature signMediaUpload(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String purpose) {
+        return media.signUpload("avatar".equals(purpose));
     }
 }

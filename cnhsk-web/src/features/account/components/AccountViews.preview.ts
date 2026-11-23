@@ -3,13 +3,23 @@ import type { ProfileViewProps } from './ProfileView'
 
 /** Dữ liệu mẫu chỉ dùng cho /__preview. */
 const profileBase = {
-  email: 'minh.anh@example.com',
-  emailVerified: true,
-  onChange: () => undefined,
+  onAvatarFile: () => undefined,
+  onLevelChange: () => undefined,
+  onRename: async () => true,
   onRetry: () => undefined,
-  onSubmit: () => undefined,
+  profile: {
+    avatarUrl: null,
+    createdAt: '2026-11-02T10:43:00Z',
+    deviceCount: 2,
+    displayName: 'Minh Anh',
+    email: 'minh.anh@example.com',
+    emailVerified: true,
+    hskLevel: 4,
+    id: 27068,
+    planCode: 'PREMIUM',
+    planExpiresAt: '2027-11-02T10:43:00Z',
+  },
   state: 'ready',
-  values: { avatarUrl: '', displayName: 'Minh Anh', hskLevel: '4' },
 } satisfies ProfileViewProps
 
 export const profilePreviews = {
@@ -17,38 +27,22 @@ export const profilePreviews = {
   loading: { ...profileBase, state: 'loading' },
   loadError: {
     ...profileBase,
-    loadError: {
-      message: 'Không tải được hồ sơ. Vui lòng thử lại.',
-      requestId: 'mau-req-0007',
-    },
+    loadError: { message: 'Không tải được hồ sơ. Vui lòng thử lại.', requestId: 'mau-req-0007' },
     state: 'error',
   },
-  unverified: { ...profileBase, emailVerified: false },
-  saving: { ...profileBase, state: 'saving' },
+  unverified: { ...profileBase, profile: { ...profileBase.profile, emailVerified: false, planCode: 'FREE' } },
+  saving: { ...profileBase, busy: 'avatar', uploadProgress: 0.42 },
   saved: {
     ...profileBase,
-    notice: {
-      kind: 'success',
-      message: 'Tên và ảnh đại diện mới sẽ hiện trên toàn bộ trang.',
-      title: 'Đã lưu hồ sơ',
-    },
+    notice: { kind: 'success', message: 'Ảnh đại diện mới đã hiện trên toàn bộ trang.', title: 'Đã lưu hồ sơ' },
   },
   validation: {
     ...profileBase,
-    fieldErrors: {
-      avatarUrl: 'Đường dẫn ảnh phải bắt đầu bằng https:// và không có khoảng trắng.',
-      displayName: 'Tên hiển thị cần từ 2–100 ký tự.',
-    },
-    values: { avatarUrl: 'http://anh.example.com/a.png', displayName: 'A', hskLevel: '' },
+    notice: { kind: 'error', message: 'Tên hiển thị cần 2–100 ký tự.', title: 'Chưa lưu được' },
   },
   saveError: {
     ...profileBase,
-    notice: {
-      kind: 'error',
-      message: 'Chưa lưu được hồ sơ. Vui lòng thử lại.',
-      requestId: 'mau-req-0008',
-      title: 'Chưa lưu được hồ sơ',
-    },
+    notice: { kind: 'error', message: 'Chưa lưu được hồ sơ. Vui lòng thử lại.', requestId: 'mau-req-0008', title: 'Chưa lưu được' },
   },
 } satisfies Record<string, ProfileViewProps>
 

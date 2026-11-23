@@ -1,241 +1,278 @@
-import { Lock, UserRound } from 'lucide-react'
-import { type FormEvent, useEffect, useState } from 'react'
+import { Camera, ChevronRight, Crown, KeyRound, Pencil, Star, Trophy, UserRound } from 'lucide-react'
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 
-import {
-  Button,
-  Card,
-  ErrorState,
-  FormField,
-  type HskLevel,
-  Input,
-  LevelBadge,
-  PageBanner,
-  Select,
-  Skeleton,
-  StatusBadge,
-  SUPPORTED_HSK_LEVELS,
-} from '@/shared/ui'
+import { cn } from '@/shared/lib/cn'
+import { Button, ErrorState, Skeleton, SUPPORTED_HSK_LEVELS } from '@/shared/ui'
 
-import type { ProfileFieldErrors, ProfileFormValues } from '../accountForms'
+import type { Profile } from '../types'
 import { FormNotice, type FormNoticeValue } from './FormNotice'
 
-export type ProfileViewState = 'loading' | 'error' | 'ready' | 'saving'
-
-export interface ProfileViewProps {
-  email?: string
-  emailVerified?: boolean
-  fieldErrors?: ProfileFieldErrors
+export type ProfileViewProps = {
+  profile?: Profile
+  state: 'loading' | 'error' | 'ready'
   loadError?: { message: string; requestId?: string }
-  notice?: FormNoticeValue
-  onChange: (field: keyof ProfileFormValues, value: string) => void
   onRetry: () => void
-  onSubmit: () => void
-  state: ProfileViewState
-  values: ProfileFormValues
+  /** What is being saved right now, so only that control waits. */
+  busy?: 'avatar' | 'name' | 'level'
+  /** Avatar upload progress from 0 to 1. */
+  uploadProgress?: number
+  notice?: FormNoticeValue
+  onAvatarFile: (file: File) => void
+  onRename: (name: string) => Promise<boolean>
+  onLevelChange: (level: number | null) => void
 }
 
-/** Cấp đang chọn ngoài phạm vi hỗ trợ (đã lưu từ trước) vẫn hiện để không mất giá trị khi sửa hồ sơ. */
-function hskLevelOptions(current: string) {
+const DATE_TIME = new Intl.DateTimeFormat('vi-VN', {
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  month: '2-digit',
+  timeZone: 'Asia/Ho_Chi_Minh',
+  year: 'numeric',
+})
+const DATE = new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric' })
+
+/** Supported levels plus a saved level outside them, so the select never silently shows another value. */
+function levelOptions(saved?: number | null): number[] {
   const levels: number[] = [...SUPPORTED_HSK_LEVELS]
-  const saved = Number(current)
-  if (current !== '' && Number.isInteger(saved) && !levels.includes(saved)) levels.push(saved)
-  return levels
+  if (saved && !levels.includes(saved)) levels.push(saved)
+  return levels.sort((a, b) => a - b)
 }
 
-function toHskBadgeLevel(current: string): HskLevel | null {
-  const numeric = Number(current)
-  if (!Number.isInteger(numeric) || numeric < 1 || numeric > 9) return null
-  return numeric as HskLevel
+/** "22.08.2022 | 17:43", the way Hanzii writes the account creation time. */
+function stamp(value?: string): string {
+  if (!value) return '—'
+  const parts = DATE_TIME.formatToParts(new Date(value))
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? ''
+  return `${part('day')}.${part('month')}.${part('year')} | ${part('hour')}:${part('minute')}`
 }
 
-/** Ảnh đại diện từ URL; ảnh hỏng thì hiện chữ cái đầu của tên. */
-function Avatar({ name, url }: { name: string; url: string }) {
-  const [broken, setBroken] = useState(false)
-  useEffect(() => setBroken(false), [url])
-  const initial = name.trim().charAt(0).toUpperCase()
+function isPremium(profile: Profile): boolean {
+  return profile.planCode === 'PREMIUM' && Boolean(profile.planExpiresAt) && new Date(profile.planExpiresAt!).getTime() > Date.now()
+}
 
-  if (url && !broken) {
-    return (
-      <img
-        alt=""
-        className="size-16 shrink-0 rounded-pill border border-line object-cover"
-        onError={() => setBroken(true)}
-        src={url}
-      />
-    )
-  }
+/** Badges need no storage: they follow from the plan and how long the account has existed. */
+function badge(profile: Profile): string {
+  if (isPremium(profile)) return 'Học viên Premium'
+  const age = profile.createdAt ? Date.now() - new Date(profile.createdAt).getTime() : 0
+  return age < 30 * 24 * 60 * 60 * 1000 ? 'Thành viên mới' : 'Thành viên'
+}
+
+function Field({ children, label }: { children: ReactNode; label: string }) {
   return (
-    <span
-      aria-hidden="true"
-      className="flex size-16 shrink-0 items-center justify-center rounded-pill bg-brand-50 text-h3 text-brand-700"
-    >
-      {initial || <UserRound className="size-7" />}
+    <div className="min-w-0 space-y-2">
+      <p className="text-label text-ink">{label}</p>
+      <div className="flex min-h-14 min-w-0 items-center gap-2 overflow-hidden rounded-lg border border-line bg-surface px-4 text-body text-ink-secondary">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function Avatar({ profile }: { profile: Profile }) {
+  const [broken, setBroken] = useState(false)
+  useEffect(() => setBroken(false), [profile.avatarUrl])
+  if (profile.avatarUrl && !broken) {
+    return <img alt="" className="size-full object-cover" onError={() => setBroken(true)} src={profile.avatarUrl} />
+  }
+  const initial = profile.displayName.trim().charAt(0).toLocaleUpperCase('vi')
+  return (
+    <span className="flex size-full items-center justify-center bg-brand-50 text-display-sm text-brand-700">
+      {initial || <UserRound aria-hidden="true" className="size-10" />}
     </span>
   )
 }
 
+/** SCR-007: profile card on the left, read-only account facts on the right. */
 export function ProfileView({
-  email,
-  emailVerified,
-  fieldErrors = {},
+  busy,
   loadError,
   notice,
-  onChange,
+  onAvatarFile,
+  onLevelChange,
+  onRename,
   onRetry,
-  onSubmit,
+  profile,
   state,
-  values,
+  uploadProgress,
 }: ProfileViewProps) {
-  const saving = state === 'saving'
-  const badgeLevel = toHskBadgeLevel(values.hskLevel)
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    onSubmit()
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+
+  if (state === 'loading') return <div className="mx-auto max-w-content px-4 py-6"><Skeleton variant="card" /></div>
+  if (state === 'error' || !profile) {
+    return (
+      <div className="mx-auto max-w-content px-4 py-6">
+        <ErrorState message={loadError?.message ?? 'Không tải được hồ sơ.'} onRetry={onRetry} requestId={loadError?.requestId} />
+      </div>
+    )
   }
 
+  async function commitName() {
+    if (await onRename(draft)) setEditing(false)
+  }
+
+  function nameKeys(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Enter') void commitName()
+    if (event.key === 'Escape') setEditing(false)
+  }
+
+  const premium = isPremium(profile)
   return (
-    <div className="mx-auto w-full min-w-0 max-w-4xl space-y-6 pb-16">
-      <PageBanner
-        subtitle="Cập nhật tên hiển thị, ảnh đại diện và cấp HSK mục tiêu."
-        title="Thông tin cá nhân"
-      />
-
-      {state === 'loading' ? <Skeleton variant="card" /> : null}
-
-      {state === 'error' ? (
-        <ErrorState
-          message={loadError?.message ?? 'Không tải được hồ sơ. Vui lòng thử lại.'}
-          onRetry={onRetry}
-          requestId={loadError?.requestId}
-        />
-      ) : null}
-
-      {state === 'ready' || state === 'saving' ? (
-        <>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Card className="flex min-w-0 flex-wrap items-center justify-between gap-4 border-brand-100 bg-surface-subtle p-5">
-              <div className="flex min-w-0 items-center gap-4">
-                <Avatar name={values.displayName} url={values.avatarUrl.trim()} />
-                <div className="min-w-0 space-y-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="break-words text-h3 text-ink">
-                      {values.displayName || 'Chưa có tên'}
-                    </p>
-                    {badgeLevel ? <LevelBadge exact level={badgeLevel} /> : null}
-                  </div>
-                  <p className="break-all text-body-sm text-ink-secondary">{email}</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {emailVerified ? (
-                  <StatusBadge tone="success">Đã xác thực email</StatusBadge>
-                ) : (
-                  <>
-                    <StatusBadge tone="warning">Chưa xác thực email</StatusBadge>
-                    <Button size="sm" to="/verify-email" variant="outline">
-                      Xác thực ngay
-                    </Button>
-                  </>
-                )}
-              </div>
-            </Card>
-
-            <Card className="flex min-w-0 items-start gap-3.5 border-brand-100 bg-surface-subtle p-5">
-              <span
-                aria-hidden="true"
-                className="flex size-11 shrink-0 items-center justify-center rounded-pill bg-brand-50 text-brand-600"
-              >
-                <Lock className="size-5" />
+    <main className="mx-auto grid w-full min-w-0 max-w-content items-start gap-5 px-4 py-6 pb-16 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <section aria-label="Hồ sơ" className="space-y-4 rounded-lg bg-surface p-5 shadow-sm sm:p-6">
+        {notice ? <FormNotice notice={notice} /> : null}
+        <div className="flex items-center gap-5">
+          <div className="relative shrink-0">
+            {premium ? <Crown aria-hidden="true" className="absolute -left-1 -top-2 z-10 size-6 -rotate-12 fill-accent-500 text-accent-700" /> : null}
+            <span className="block size-24 overflow-hidden rounded-full ring-2 ring-accent-500 ring-offset-2 ring-offset-surface">
+              <Avatar profile={profile} />
+            </span>
+            <button
+              aria-label="Đổi ảnh đại diện"
+              className="absolute -bottom-1 -right-1 flex size-9 items-center justify-center rounded-full border border-line bg-surface text-ink shadow-sm hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+              disabled={busy === 'avatar'}
+              onClick={() => fileInput.current?.click()}
+              type="button"
+            >
+              <Camera aria-hidden="true" className="size-4" />
+            </button>
+            <input
+              accept="image/*"
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                event.target.value = ''
+                if (file) onAvatarFile(file)
+              }}
+              ref={fileInput}
+              tabIndex={-1}
+              type="file"
+            />
+            {busy === 'avatar' ? (
+              <span className="absolute inset-0 flex items-center justify-center rounded-full bg-ink/50 text-label text-surface" role="status">
+                {Math.round((uploadProgress ?? 0) * 100)}%
               </span>
-              <div className="min-w-0 space-y-1">
-                <p className="text-label text-ink">Định danh cố định</p>
-                <p className="text-body-sm text-ink-secondary">
-                  Email đăng nhập là định danh cố định của tài khoản và không thay đổi tại đây.
-                </p>
-              </div>
-            </Card>
+            ) : null}
           </div>
 
-          <Card className="p-5 shadow-sm sm:p-7">
-            <div className="mb-5 flex items-center gap-2.5 border-b border-line pb-4">
-              <UserRound aria-hidden="true" className="size-5 shrink-0 text-brand-600" />
-              <h2 className="text-h3 text-ink">Hồ sơ học tập</h2>
-            </div>
-
-            {notice ? <FormNotice notice={notice} /> : null}
-
-            <form className="space-y-4" noValidate onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <FormField
-                  className="mb-0"
-                  error={fieldErrors.displayName}
-                  htmlFor="profile-display-name"
-                  label="Tên hiển thị"
-                  required
+          <div className="min-w-0 flex-1 space-y-2">
+            {editing ? (
+              <input
+                aria-label="Tên hiển thị"
+                autoFocus
+                className="w-full rounded-md border border-brand-600 px-3 py-1.5 text-h3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                disabled={busy === 'name'}
+                maxLength={100}
+                onBlur={() => void commitName()}
+                onChange={(event) => setDraft(event.target.value)}
+                onKeyDown={nameKeys}
+                value={draft}
+              />
+            ) : (
+              <div className="flex min-w-0 items-center gap-2">
+                <h1 className="truncate text-h2 text-ink">{profile.displayName}</h1>
+                <Star aria-hidden="true" className="size-5 shrink-0 fill-accent-500 text-accent-700" />
+                <button
+                  aria-label="Sửa tên hiển thị"
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-ink hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                  onClick={() => {
+                    setDraft(profile.displayName)
+                    setEditing(true)
+                  }}
+                  type="button"
                 >
-                  <Input
-                    autoComplete="name"
-                    disabled={saving}
-                    maxLength={101}
-                    name="displayName"
-                    onChange={(event) => onChange('displayName', event.target.value)}
-                    value={values.displayName}
-                  />
-                </FormField>
-
-                <FormField
-                  className="mb-0"
-                  error={fieldErrors.hskLevel}
-                  htmlFor="profile-hsk-level"
-                  label="Cấp HSK mục tiêu"
-                >
-                  <Select
-                    disabled={saving}
-                    name="hskLevel"
-                    onChange={(event) => onChange('hskLevel', event.target.value)}
-                    value={values.hskLevel}
-                  >
-                    <option value="">Chưa chọn</option>
-                    {hskLevelOptions(values.hskLevel).map((level) => (
-                      <option key={level} value={String(level)}>
-                        HSK {level}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
+                  <Pencil aria-hidden="true" className="size-4" />
+                </button>
               </div>
+            )}
+            {profile.hskLevel ? (
+              <span className="inline-flex rounded-pill border border-ink px-3 py-0.5 text-label text-ink">HSK {profile.hskLevel}</span>
+            ) : null}
+          </div>
+        </div>
 
-              <FormField
-                className="mb-0"
-                error={fieldErrors.avatarUrl}
-                hint="Dán đường dẫn ảnh bắt đầu bằng https://. Để trống nếu không dùng ảnh."
-                htmlFor="profile-avatar-url"
-                label="Ảnh đại diện (đường dẫn)"
+        {!profile.emailVerified ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-warning-bg px-3 py-2 text-body-sm text-accent-700">
+            Email chưa được xác thực.
+            <Button size="sm" to="/verify-email" variant="outline">Xác thực ngay</Button>
+          </div>
+        ) : null}
+
+        <div className="divide-y divide-line border-t border-line">
+          <div className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <span className="text-body text-ink-secondary">Trình độ</span>
+            <div className="flex items-center gap-2">
+              <Link
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-line px-3 text-body-sm text-ink no-underline hover:bg-canvas"
+                to="/learn/exams"
               >
-                <Input
-                  disabled={saving}
-                  inputMode="url"
-                  maxLength={501}
-                  name="avatarUrl"
-                  onChange={(event) => onChange('avatarUrl', event.target.value)}
-                  placeholder="https://"
-                  type="url"
-                  value={values.avatarUrl}
-                />
-              </FormField>
+                <Trophy aria-hidden="true" className="size-4 fill-accent-500 text-accent-700" />
+                Kiểm tra
+              </Link>
+              <select
+                aria-label="Cấp HSK mục tiêu"
+                className="min-h-10 rounded-md border border-line bg-surface px-3 text-body-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                disabled={busy === 'level'}
+                onChange={(event) => onLevelChange(event.target.value ? Number(event.target.value) : null)}
+                value={profile.hskLevel ?? ''}
+              >
+                <option value="">Chưa chọn</option>
+                {levelOptions(profile.hskLevel).map((level) => (
+                  <option key={level} value={level}>
+                    HSK {level}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-3 py-4">
+            <span className="text-body text-ink-secondary">Mật khẩu</span>
+            <Link
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-md border border-line px-3 text-body-sm text-ink no-underline hover:bg-canvas"
+              to="/me/password"
+            >
+              <KeyRound aria-hidden="true" className="size-4" />
+              Đổi mật khẩu
+            </Link>
+          </div>
+        </div>
+      </section>
 
-              <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-5">
-                <Button loading={saving} type="submit">
-                  {saving ? 'Đang lưu' : 'Lưu hồ sơ'}
-                </Button>
-                <Button to="/me/password" variant="outline">
-                  Đổi mật khẩu
-                </Button>
-              </div>
-            </form>
-          </Card>
-        </>
-      ) : null}
-    </div>
+      <section aria-label="Thông tin tài khoản" className="grid gap-4 rounded-lg bg-surface p-5 shadow-sm sm:grid-cols-2 sm:p-6">
+        <div className="sm:col-span-2">
+          <Field label="Email">
+            <span className="truncate">{profile.email}</span>
+          </Field>
+        </div>
+        <div className="space-y-2 sm:col-span-2">
+          <p className="text-label text-ink">Phiên bản</p>
+          <Link
+            className="flex min-h-14 items-stretch overflow-hidden rounded-lg border border-line text-body no-underline hover:border-brand-600"
+            to="/account/credits"
+          >
+            <span className={cn('flex items-center px-4 font-semibold', premium ? 'bg-warning-bg text-accent-700' : 'bg-canvas text-ink-secondary')}>
+              {premium ? 'VIP' : 'FREE'}
+            </span>
+            <span className="flex flex-1 items-center px-4 text-ink-secondary">
+              {premium ? `Cao cấp đến ${DATE.format(new Date(profile.planExpiresAt!))}` : 'Miễn phí'}
+            </span>
+            <ChevronRight aria-hidden="true" className="mr-3 size-5 self-center text-ink-muted" />
+          </Link>
+        </div>
+        <Field label="ID">{profile.id ?? '—'}</Field>
+        <Field label="Huy hiệu">
+          <Star aria-hidden="true" className="size-5 shrink-0 fill-accent-500 text-accent-700" />
+          {badge(profile)}
+        </Field>
+        <Field label="Đăng nhập với">email</Field>
+        <Field label="Số thiết bị">{profile.deviceCount ?? 1}</Field>
+        <div className="sm:col-span-2">
+          <Field label="Tạo lúc">{stamp(profile.createdAt)}</Field>
+        </div>
+      </section>
+    </main>
   )
 }

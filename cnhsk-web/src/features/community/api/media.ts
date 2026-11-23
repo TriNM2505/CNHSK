@@ -16,8 +16,10 @@ export const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 export const MAX_VIDEO_BYTES = 100 * 1024 * 1024
 export const MAX_MEDIA_ITEMS = 4
 
-export function getUploadSignature(): Promise<UploadSignature> {
-  return apiRequest<UploadSignature>('/api/community/media/signature', { method: 'POST' })
+/** An avatar goes to its own folder so it can never be attached to a post. */
+export function getUploadSignature(purpose?: 'avatar'): Promise<UploadSignature> {
+  const query = purpose ? `?purpose=${purpose}` : ''
+  return apiRequest<UploadSignature>(`/api/community/media/signature${query}`, { method: 'POST' })
 }
 
 /** Why a file cannot be attached, or undefined when it can. */

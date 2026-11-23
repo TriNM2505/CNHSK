@@ -1,69 +1,37 @@
 import { useEffect, useState } from 'react'
 
-import { useApiMutation, useApiQuery } from '@/shared/api'
+import { getUploadSignature, uploadToCloudinary } from '@/features/community/api/media'
+import { useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
-import { Button } from '@/shared/ui'
 
-import {
-  formToProfilePatch,
-  getProfileFailure,
-  type ProfileFieldErrors,
-  type ProfileFormValues,
-  profileToForm,
-  validateProfile,
-} from '../accountForms'
+import { getProfileFailure } from '../accountForms'
 import { getProfile, updateProfile } from '../api/account'
 import type { FormNoticeValue } from '../components/FormNotice'
-import { ProfileView, type ProfileViewState } from '../components/ProfileView'
+import { ProfileView, type ProfileViewProps } from '../components/ProfileView'
+import type { Profile, ProfilePatch } from '../types'
 
-const EMPTY_VALUES: ProfileFormValues = { avatarUrl: '', displayName: '', hskLevel: '' }
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024
 
+/** SCR-007: every change saves on its own — a new photo, a renamed profile or another HSK level. */
 export default function Scr007ProfilePage() {
   const { setAuthenticatedUser, user } = useCurrentUser()
   const query = useApiQuery(getProfile, [])
-  const mutation = useApiMutation(updateProfile)
-  const [values, setValues] = useState<ProfileFormValues>(EMPTY_VALUES)
-  const [fieldErrors, setFieldErrors] = useState<ProfileFieldErrors>({})
+  const [profile, setProfile] = useState<Profile>()
+  const [busy, setBusy] = useState<ProfileViewProps['busy']>()
+  const [progress, setProgress] = useState(0)
   const [notice, setNotice] = useState<FormNoticeValue>()
 
   useEffect(() => {
-    if (query.data) setValues(profileToForm(query.data))
+    if (query.data) setProfile(query.data)
   }, [query.data])
 
-  const state: ProfileViewState =
-    query.state === 'loading' || query.state === 'error'
-      ? query.state
-      : mutation.pending
-        ? 'saving'
-        : 'ready'
-
-  const updateField = (field: keyof ProfileFormValues, value: string) => {
-    setValues((current) => ({ ...current, [field]: value }))
-    setFieldErrors((current) => ({ ...current, [field]: undefined }))
-    setNotice(undefined)
-  }
-
-  const submit = async () => {
-    if (mutation.pending) return
-
-    const validationErrors = validateProfile(values)
-    if (Object.keys(validationErrors).length) {
-      setFieldErrors(validationErrors)
-      setNotice(undefined)
-      return
-    }
-
-    setFieldErrors({})
+  async function save(patch: ProfilePatch, what: NonNullable<ProfileViewProps['busy']>): Promise<boolean> {
+    setBusy(what)
     setNotice(undefined)
     try {
-      const saved = await mutation.run(formToProfilePatch(values))
-      setValues(profileToForm(saved))
-      setNotice({
-        kind: 'success',
-        message: 'Tên và ảnh đại diện mới sẽ hiện trên toàn bộ trang.',
-        title: 'Đã lưu hồ sơ',
-      })
-      // Cập nhật tại chỗ để đầu trang đổi tên/ảnh mà không đưa phiên về trạng thái đang tải.
+      const saved = await updateProfile(patch)
+      setProfile((current) => ({ ...current, ...saved }))
+      // The header shows the new name and photo at once without reloading the session.
       if (user) {
         setAuthenticatedUser({
           ...user,
@@ -72,45 +40,64 @@ export default function Scr007ProfilePage() {
           hskLevel: saved.hskLevel ?? null,
         })
       }
+      return true
     } catch (error) {
       const failure = getProfileFailure(error)
-      setFieldErrors(failure.fieldErrors)
-      if (failure.message) {
-        setNotice({
-          kind: 'error',
-          message: failure.message,
-          requestId: failure.requestId,
-          title: 'Chưa lưu được hồ sơ',
-        })
-      }
+      const field = Object.values(failure.fieldErrors).find(Boolean)
+      setNotice({ kind: 'error', message: field ?? failure.message ?? 'Thử lại sau.', requestId: failure.requestId, title: 'Chưa lưu được' })
+      return false
+    } finally {
+      setBusy(undefined)
     }
   }
 
-  const profile = (
-    <ProfileView
-      email={query.data?.email}
-      emailVerified={query.data?.emailVerified}
-      fieldErrors={fieldErrors}
-      loadError={
-        query.error ? { message: query.error.message, requestId: query.error.requestId } : undefined
-      }
-      notice={notice}
-      onChange={updateField}
-      onRetry={query.reload}
-      onSubmit={() => void submit()}
-      state={state}
-      values={values}
-    />
-  )
+  async function changeAvatar(file: File) {
+    if (!file.type.startsWith('image/')) {
+      setNotice({ kind: 'error', message: 'Chọn một tệp ảnh.', title: 'Chưa đổi được ảnh' })
+      return
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setNotice({ kind: 'error', message: 'Ảnh đại diện tối đa 5 MB.', title: 'Chưa đổi được ảnh' })
+      return
+    }
+    setBusy('avatar')
+    setProgress(0)
+    setNotice(undefined)
+    try {
+      const uploaded = await uploadToCloudinary(file, await getUploadSignature('avatar'), setProgress)
+      await save({ avatarUrl: uploaded.url }, 'avatar')
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        message: error instanceof Error ? error.message : 'Thử lại sau.',
+        title: 'Chưa tải được ảnh lên',
+      })
+      setBusy(undefined)
+    }
+  }
+
+  async function rename(name: string): Promise<boolean> {
+    const trimmed = name.trim()
+    if (trimmed === profile?.displayName) return true
+    if (trimmed.length < 2 || trimmed.length > 100) {
+      setNotice({ kind: 'error', message: 'Tên hiển thị cần 2–100 ký tự.', title: 'Chưa lưu được' })
+      return false
+    }
+    return save({ displayName: trimmed }, 'name')
+  }
 
   return (
-    <>
-      {profile}
-      <div className="mx-auto mt-4 w-full max-w-reading">
-        <Button to="/me/reminders" variant="outline">
-          Cài đặt nhắc học
-        </Button>
-      </div>
-    </>
+    <ProfileView
+      busy={busy}
+      loadError={query.error ? { message: query.error.message, requestId: query.error.requestId } : undefined}
+      notice={notice}
+      onAvatarFile={(file) => void changeAvatar(file)}
+      onLevelChange={(level) => void save({ hskLevel: level }, 'level')}
+      onRename={rename}
+      onRetry={query.reload}
+      profile={profile}
+      state={query.state === 'error' ? 'error' : profile ? 'ready' : 'loading'}
+      uploadProgress={progress}
+    />
   )
 }

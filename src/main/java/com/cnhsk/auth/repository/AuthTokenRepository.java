@@ -14,6 +14,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface AuthTokenRepository extends JpaRepository<AuthToken, Long> {
+    /** Devices the user is signed in on: sessions holding a live refresh token. */
+    @Query(value = "SELECT COUNT(DISTINCT session_id) FROM auth.auth_tokens WHERE user_id = :userId "
+            + "AND token_type = 'REFRESH' AND revoked_at IS NULL AND expires_at > :now", nativeQuery = true)
+    long countActiveSessions(@org.springframework.data.repository.query.Param("userId") long userId,
+            @org.springframework.data.repository.query.Param("now") java.time.Instant now);
+
 
     @Query("select token.userId from AuthToken token where token.tokenHash = :tokenHash "
             + "and token.tokenType = :tokenType")

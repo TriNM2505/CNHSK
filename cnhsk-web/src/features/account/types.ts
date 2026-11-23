@@ -5,6 +5,12 @@ export interface Profile {
   hskLevel?: number | null
   email: string
   emailVerified: boolean
+  /** Read-only account facts shown on the profile page. */
+  id?: number
+  createdAt?: string
+  planCode?: string
+  planExpiresAt?: string | null
+  deviceCount?: number
 }
 
 /** Khớp schema ProfilePatch — chỉ 3 trường được sửa (FR-051, FR-052). */

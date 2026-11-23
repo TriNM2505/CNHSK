@@ -36,6 +36,11 @@ public class MediaService {
     }
 
     public UploadSignature signUpload() {
+        return signUpload(false);
+    }
+
+    /** Avatars go to their own sub-folder so post attachments never point at someone's profile picture. */
+    public UploadSignature signUpload(boolean avatar) {
         var roles = authApi.currentUser().roles();
         if (!roles.contains(RoleCode.LEARNER) && !roles.contains(RoleCode.MODERATOR)) {
             throw new ApiException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN,
@@ -44,8 +49,9 @@ public class MediaService {
         requireConfigured();
         long timestamp = clock.instant().getEpochSecond();
         // Cloudinary signs the alphabetically sorted parameters joined with '&', followed by the secret.
-        String toSign = "folder=" + properties.getFolder() + "&timestamp=" + timestamp;
-        return new UploadSignature(properties.getCloudName(), properties.getApiKey(), properties.getFolder(),
+        String folder = avatar ? properties.getFolder() + "-avatars" : properties.getFolder();
+        String toSign = "folder=" + folder + "&timestamp=" + timestamp;
+        return new UploadSignature(properties.getCloudName(), properties.getApiKey(), folder,
                 timestamp, sha1Hex(toSign + properties.getApiSecret()),
                 "https://api.cloudinary.com/v1_1/" + properties.getCloudName() + "/auto/upload");
     }

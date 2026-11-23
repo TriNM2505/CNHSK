@@ -95,7 +95,7 @@ export const appRouteDefinitions = [
   {
     access: ['LEARNER'],
     kind: 'screen',
-    layout: 'learner',
+    layout: 'public',
     path: '/me/profile',
     scr: 'SCR-007',
   },

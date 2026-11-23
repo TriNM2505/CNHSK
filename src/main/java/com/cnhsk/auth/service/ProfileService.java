@@ -153,9 +153,11 @@ public class ProfileService {
         return userRepository.findById(userId).orElseThrow(ProfileService::unauthenticated);
     }
 
-    private static ProfileResponse toResponse(User user) {
+    private ProfileResponse toResponse(User user) {
         return new ProfileResponse(user.getDisplayName(), user.getAvatarUrl(), user.getHskLevel(),
-                user.getEmail(), user.getEmailVerifiedAt() != null);
+                user.getEmail(), user.getEmailVerifiedAt() != null, user.getId(), user.getCreatedAt(),
+                user.getPlanCode(), user.getPlanExpiresAt(),
+                authTokenRepository.countActiveSessions(user.getId(), clock.instant()));
     }
 
     private static boolean validAvatarUrl(String value) {
