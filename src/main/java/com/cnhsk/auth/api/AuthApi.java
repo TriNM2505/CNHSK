@@ -48,6 +48,12 @@ public interface AuthApi {
 
     ReminderSettings reminderSettings(long userId);
 
+    /** When the user last opened the notification bell; empty if never. */
+    Optional<Instant> notificationsSeenAt(long userId);
+
+    /** Everything up to {@code at} counts as read from now on. */
+    void markNotificationsSeen(long userId, Instant at);
+
     List<ReminderTarget> reminderTargets(LocalTime hour);
 
     ReminderSendResult sendStudyReminder(long userId, int dueCount);

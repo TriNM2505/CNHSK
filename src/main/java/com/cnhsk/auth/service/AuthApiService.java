@@ -302,6 +302,29 @@ public class AuthApiService implements AuthApi {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<Instant> notificationsSeenAt(long userId) {
+        requireValid(userId > 0);
+        return jdbc.query("SELECT notifications_seen_at FROM auth.users WHERE id = :id",
+                        new MapSqlParameterSource("id", userId),
+                        (row, number) -> Optional.ofNullable(row.getTimestamp("notifications_seen_at"))
+                                .map(java.sql.Timestamp::toInstant))
+                .stream().findFirst().flatMap(value -> value);
+    }
+
+    @Override
+    @Transactional
+    public void markNotificationsSeen(long userId, Instant at) {
+        requireValid(userId > 0 && at != null);
+        // Never move the mark backwards when two tabs open the bell at nearly the same time.
+        jdbc.update("""
+                UPDATE auth.users SET notifications_seen_at = :at
+                WHERE id = :id AND (notifications_seen_at IS NULL OR notifications_seen_at < :at)
+                """, new MapSqlParameterSource("id", userId)
+                .addValue("at", at.atOffset(java.time.ZoneOffset.UTC)));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public ReminderSettings reminderSettings(long userId) {
         requireValid(userId > 0);
         return reminderSettings.readSettings(userId);
