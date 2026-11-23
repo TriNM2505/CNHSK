@@ -11,6 +11,8 @@ export type PublicMenu = {
   icon: ComponentType<SVGProps<SVGSVGElement>>
   id: string
   label: string
+  /** Where clicking the menu's own name goes; the columns open on hover or from the arrow. */
+  to: string
   /** Shown under the columns when the links lead to screens behind sign-in. */
   note?: string
 }
@@ -19,6 +21,7 @@ const aboutMenu: PublicMenu = {
   id: 'about',
   icon: LayoutGrid,
   label: 'Giới thiệu',
+  to: '/#gioi-thieu',
   columns: [
     {
       title: 'Về Học Bá',
@@ -83,6 +86,7 @@ const lookupMenu: PublicMenu = {
   id: 'lookup',
   icon: Search,
   label: 'Tra cứu',
+  to: '/dictionary',
   columns: [
     {
       title: 'Từ điển Trung – Việt',
@@ -107,6 +111,7 @@ const communityMenu: PublicMenu = {
   id: 'community',
   icon: UsersRound,
   label: 'Cộng đồng',
+  to: '/community',
   columns: [
     {
       title: 'Cùng học',
@@ -142,7 +147,8 @@ function workMenu(roles: readonly RoleCode[]): PublicMenu | null {
     }))
     .filter(({ links }) => links.length > 0)
 
-  return columns.length > 0 ? { id: 'work', icon: Briefcase, label: 'Công việc', columns } : null
+  const first = columns[0]?.links[0]
+  return first ? { id: 'work', icon: Briefcase, label: 'Công việc', to: first.to, columns } : null
 }
 
 /** What the header offers: guests see what they can open, signed-in users also get their own pages. */
@@ -152,6 +158,7 @@ export function publicMenusFor(user: CurrentUser | null): readonly PublicMenu[] 
     id: 'practice',
     icon: GraduationCap,
     label: 'Luyện tập',
+    to: isLearner ? '/learn' : '/learn/topics',
     columns: isLearner ? [learnerOwnColumn, ...practiceColumns] : practiceColumns,
     note: user ? undefined : 'Cần đăng nhập. Chọn một mục, đăng nhập xong bạn vào thẳng mục đó.',
   }

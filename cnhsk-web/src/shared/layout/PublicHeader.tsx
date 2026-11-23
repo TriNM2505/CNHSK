@@ -124,20 +124,26 @@ export function PublicHeader({ gameOrigin = import.meta.env.VITE_GAME_ORIGIN }: 
         <BrandLink logoClassName="lg:h-14" />
         <nav aria-label="Điều hướng công khai" className="hidden lg:block">
           <ul className="flex items-center xl:gap-1">
-            {publicMenus.map(({ icon: Icon, id, label }) => {
+            {publicMenus.map(({ icon: Icon, id, label, to }) => {
               const expanded = open?.id === id
+              // The name opens the section's page; hovering or the arrow shows its menu.
               return (
-                <li key={id}>
+                <li className="flex items-center" key={id} onPointerEnter={(event) => hover(event, id)}>
+                  <Link className={cn(itemClass, 'pr-1 xl:pr-1', expanded && 'text-brand-600')} to={to}>
+                    <Icon aria-hidden="true" className="hidden size-5 xl:block" />
+                    {label}
+                  </Link>
                   <button
                     aria-controls="public-menu"
                     aria-expanded={expanded}
-                    className={cn(itemClass, expanded && 'text-brand-600')}
+                    aria-label={label}
+                    className={cn(
+                      'flex min-h-touch items-center rounded-sm pr-2 text-ink transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+                      expanded && 'text-brand-600',
+                    )}
                     onClick={() => toggle(id)}
-                    onPointerEnter={(event) => hover(event, id)}
                     type="button"
                   >
-                    <Icon aria-hidden="true" className="hidden size-5 xl:block" />
-                    {label}
                     <ChevronDown aria-hidden="true" className={cn('size-4 transition-transform', expanded && 'rotate-180')} />
                   </button>
                 </li>
@@ -206,7 +212,9 @@ export function PublicHeader({ gameOrigin = import.meta.env.VITE_GAME_ORIGIN }: 
             <details className="group border-b border-line" key={item.id}>
               <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 text-body font-semibold text-ink [&::-webkit-details-marker]:hidden">
                 <item.icon aria-hidden="true" className="size-5 text-brand-600" />
-                {item.label}
+                <Link className="text-ink no-underline" onClick={(event) => event.stopPropagation()} to={item.to}>
+                  {item.label}
+                </Link>
                 <ChevronDown aria-hidden="true" className="ml-auto size-5 transition-transform group-open:rotate-180" />
               </summary>
               <div className="pb-4 pl-8">
