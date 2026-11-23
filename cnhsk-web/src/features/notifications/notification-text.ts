@@ -31,6 +31,24 @@ export function describeNotification(item: NotificationItem): { text: string; de
       }
     case 'FOLLOW':
       return { text: `${actor} đã bắt đầu theo dõi bạn.`, to: '/community' }
+    // Game contests: postId is the contest, total the player's place and commentId the number of prizes.
+    case 'CONTEST_OPEN':
+      return { text: `Cuộc thi ${quote(item.postTitle)} đã mở, vào thi ngay!`, to: `/community/contests/${item.postId}` }
+    case 'CONTEST_RESULTS_READY':
+      return {
+        text: `Cuộc thi ${quote(item.postTitle)} đã có kết quả. Xem người thắng và soạn bài công bố.`,
+        to: `/moderation/contests/${item.postId}/results`,
+      }
+    case 'CONTEST_FINISHED': {
+      const prizes = item.commentId ?? 0
+      return {
+        text:
+          item.total <= prizes
+            ? `Chúc mừng! Bạn đạt hạng ${item.total} cuộc thi ${quote(item.postTitle)} và nằm trong top nhận quà.`
+            : `Cuộc thi ${quote(item.postTitle)} đã kết thúc, bạn đạt hạng ${item.total}.`,
+        to: `/community/contests/${item.postId}`,
+      }
+    }
     // Learning events: total carries the score, points or approved count, postId the service request and
     // commentId the rejected count.
     case 'GRADED':

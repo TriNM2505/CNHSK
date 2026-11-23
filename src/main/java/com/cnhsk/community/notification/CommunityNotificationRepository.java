@@ -53,6 +53,48 @@ public class CommunityNotificationRepository {
                        CAST(NULL AS bigint), CAST(NULL AS text), CAST(NULL AS bigint), CAST(NULL AS text)
                 FROM community.reactions r
                 WHERE r.target_type = 'USER' AND r.kind = 'FOLLOW' AND r.target_id = :me AND r.created_at >= :since
+                UNION ALL
+                -- A game contest opened for a game the user has played lately.
+                SELECT 'contest-open:' || c.id, 'CONTEST_OPEN', c.starts_at, CAST(NULL AS bigint), 1,
+                       c.id, c.name, CAST(NULL AS bigint), CAST(NULL AS text)
+                FROM community.contests c
+                WHERE c.game_code IS NOT NULL AND c.status = 'PUBLISHED' AND c.created_by <> :me
+                  AND c.starts_at >= :since AND c.starts_at <= now()
+                  AND EXISTS (SELECT 1 FROM learning.attempts a
+                              WHERE a.user_id = :me AND a.kind = 'GAME' AND a.game_code = c.game_code
+                                AND a.served_at >= :since)
+                UNION ALL
+                -- The moderator who ran a game contest: results are final a few minutes after the close.
+                SELECT 'contest-results:' || c.id, 'CONTEST_RESULTS_READY', c.ends_at + interval '3 minutes',
+                       CAST(NULL AS bigint), 1, c.id, c.name, CAST(NULL AS bigint), CAST(NULL AS text)
+                FROM community.contests c
+                WHERE c.game_code IS NOT NULL AND c.status = 'PUBLISHED' AND c.created_by = :me
+                  AND c.ends_at >= :since AND c.ends_at + interval '3 minutes' <= now()
+                UNION ALL
+                -- Players: the contest is over, with their final place (total) and the number of prizes.
+                SELECT 'contest-rank:' || c.id, 'CONTEST_FINISHED', c.ends_at + interval '3 minutes',
+                       CAST(NULL AS bigint), CAST(placed.rank AS integer), c.id, c.name,
+                       CAST(c.prize_count AS bigint), CAST(NULL AS text)
+                FROM community.contests c
+                JOIN LATERAL (
+                    SELECT ranked.rank FROM (
+                        SELECT best.user_id,
+                               ROW_NUMBER() OVER (ORDER BY best.score DESC, best.duration_ms ASC NULLS LAST,
+                                                           best.submitted_at ASC, best.user_id ASC) AS rank
+                        FROM (SELECT DISTINCT ON (a.user_id) a.user_id, a.score, a.duration_ms, a.submitted_at
+                              FROM learning.attempts a
+                              WHERE a.kind = 'GAME' AND a.ref_type = 'GAME_ROUND' AND a.ref_id = c.id
+                                AND a.game_code = c.game_code AND a.status = 'SUBMITTED' AND a.suspicious = false
+                                AND a.score IS NOT NULL AND a.served_at >= c.starts_at AND a.served_at < c.ends_at
+                                AND NOT EXISTS (SELECT 1 FROM community.contest_exclusions x
+                                                WHERE x.contest_id = c.id AND x.user_id = a.user_id)
+                              ORDER BY a.user_id, a.score DESC, a.duration_ms ASC NULLS LAST,
+                                       a.submitted_at ASC, a.id ASC) best
+                    ) ranked
+                    WHERE ranked.user_id = :me
+                ) placed ON true
+                WHERE c.game_code IS NOT NULL AND c.status = 'PUBLISHED'
+                  AND c.ends_at >= :since AND c.ends_at + interval '3 minutes' <= now()
             )
             """;
 
