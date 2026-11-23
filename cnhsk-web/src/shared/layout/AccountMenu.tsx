@@ -8,6 +8,8 @@ import { useCurrentUser } from '@/shared/auth'
 
 type AccountMenuProps = {
   inverse?: boolean
+  /** Smallest screen that shows the name beside the avatar; a crowded header waits for `xl`. */
+  nameFrom?: 'sm' | 'xl'
 }
 
 type UserArea = {
@@ -28,7 +30,7 @@ function getUserAreas(user: CurrentUser): readonly UserArea[] {
   return userAreas.filter(({ role }) => user.roles.includes(role))
 }
 
-export function AccountMenu({ inverse = false }: AccountMenuProps) {
+export function AccountMenu({ inverse = false, nameFrom = 'sm' }: AccountMenuProps) {
   const { signOut, user } = useCurrentUser()
   const [signingOut, setSigningOut] = useState(false)
   const [signOutFailed, setSignOutFailed] = useState(false)
@@ -63,7 +65,11 @@ export function AccountMenu({ inverse = false }: AccountMenuProps) {
         <span className="flex size-8 items-center justify-center rounded-full bg-brand-50 text-label text-brand-700">
           {user.displayName.trim().charAt(0).toLocaleUpperCase('vi') || 'C'}
         </span>
-        <span className="hidden max-w-40 truncate sm:inline">{user.displayName}</span>
+        <span
+          className={cn('hidden max-w-40 truncate', nameFrom === 'xl' ? 'xl:inline' : 'sm:inline')}
+        >
+          {user.displayName}
+        </span>
         <ChevronDown
           aria-hidden="true"
           className="size-4 transition-transform group-open:rotate-180"

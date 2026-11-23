@@ -154,19 +154,19 @@ const landingEntries = [
   ['scr-001-error', 'Landing — Lỗi kiểm tra phiên', landingPreviews.error, guestAuth],
   [
     'scr-001-learner',
-    'Landing — Một khu vực',
+    'Landing — Người học',
     landingPreviews.learner,
     authenticatedAuth(previewLearner),
   ],
   [
     'scr-001-multi-area',
-    'Landing — Nhiều khu vực',
+    'Landing — Nhiều vai trò',
     landingPreviews.multiArea,
     authenticatedAuth(previewMultiAreaUser),
   ],
   [
     'scr-001-no-area',
-    'Landing — Chưa có khu vực',
+    'Landing — Chưa có vai trò',
     landingPreviews.noArea,
     authenticatedAuth({ ...previewLearner, roles: [] }),
   ],

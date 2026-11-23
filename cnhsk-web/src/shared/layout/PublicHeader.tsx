@@ -3,16 +3,18 @@ import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { Link, useLocation, type Location } from 'react-router-dom'
 
 import { findKnownRoute } from '@/app/routeAccess'
+import { useCurrentUser } from '@/shared/auth'
+import { AccountMenu } from '@/shared/layout/AccountMenu'
 import { BrandLink } from '@/shared/layout/AppShell'
 import { gameNavigationItem } from '@/shared/layout/navigation'
-import { publicMenus, type PublicMenu } from '@/shared/layout/publicNavigation'
+import { publicMenusFor, type PublicMenu } from '@/shared/layout/publicNavigation'
 import { cn } from '@/shared/lib/cn'
 import { Button, IconButton } from '@/shared/ui'
 
 const linkClass =
   'flex min-h-touch items-center rounded-sm text-body text-ink-secondary no-underline transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus'
 const itemClass =
-  'inline-flex min-h-touch items-center gap-2 rounded-sm px-2 text-lg font-semibold text-ink no-underline transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus xl:px-3'
+  'inline-flex min-h-touch items-center gap-1.5 whitespace-nowrap rounded-sm px-2 text-body font-semibold text-ink no-underline transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus xl:gap-2 xl:px-3 xl:text-lg'
 
 /** Public pages that are not worth returning to after signing in; some carry a one-time token. */
 const noReturnPaths = new Set([
@@ -62,11 +64,13 @@ function MenuColumns({ className, menu }: { className?: string; menu: PublicMenu
 
 export function PublicHeader({ gameOrigin = import.meta.env.VITE_GAME_ORIGIN }: { gameOrigin?: string }) {
   const location = useLocation()
+  const { user } = useCurrentUser()
   const header = useRef<HTMLElement>(null)
   const closing = useRef<number>()
   /** `pinned` menus were opened by click or keyboard and stay until closed on purpose. */
   const [open, setOpen] = useState<{ id: string; pinned: boolean }>()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const publicMenus = publicMenusFor(user)
   const menu = publicMenus.find(({ id }) => id === open?.id)
   const query = authQuery(location)
 
@@ -157,14 +161,18 @@ export function PublicHeader({ gameOrigin = import.meta.env.VITE_GAME_ORIGIN }: 
           >
             <Search aria-hidden="true" className="size-6" />
           </Link>
-          <nav aria-label="Tài khoản" className="flex items-center gap-2">
-            <Button className="px-3 lg:text-body lg:font-semibold" to={`/login${query}`} variant="ghost">
-              Đăng nhập
-            </Button>
-            <Button className="lg:min-h-14 lg:px-6 lg:text-body lg:font-bold" to={`/register${query}`}>
-              Đăng ký
-            </Button>
-          </nav>
+          {user ? (
+            <AccountMenu nameFrom="xl" />
+          ) : (
+            <nav aria-label="Tài khoản" className="flex items-center gap-2">
+              <Button className="px-3 lg:text-body lg:font-semibold" to={`/login${query}`} variant="ghost">
+                Đăng nhập
+              </Button>
+              <Button className="lg:min-h-14 lg:px-6 lg:text-body lg:font-bold" to={`/register${query}`}>
+                Đăng ký
+              </Button>
+            </nav>
+          )}
           <IconButton
             aria-controls="public-mobile-menu"
             aria-expanded={mobileOpen}
@@ -184,7 +192,7 @@ export function PublicHeader({ gameOrigin = import.meta.env.VITE_GAME_ORIGIN }: 
           onPointerEnter={(event) => hover(event)}
         >
           <div className="mx-auto max-w-content px-4 py-8">
-            <MenuColumns className="lg:grid-cols-3" menu={menu} />
+            <MenuColumns className={menu.columns.length > 3 ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} menu={menu} />
           </div>
         </div>
       ) : null}

@@ -22,14 +22,12 @@ import heroImage from '../assets/landing/hero.webp'
 import lmsPreviewImage from '../assets/landing/lms-preview.webp'
 import owlImage from '../assets/landing/owl-contact.webp'
 import targetIcon from '../assets/landing/target-icon.webp'
-import type { RoleArea } from '../roleAreas'
 import { HocBaLogo } from '@/shared/brand'
-import { Button, Card, Skeleton, StatusBadge } from '@/shared/ui'
+import { Button, Card, Skeleton } from '@/shared/ui'
 
-export type LandingViewState = 'loading' | 'empty' | 'error' | 'ready'
+export type LandingViewState = 'loading' | 'error' | 'ready'
 
 export type LandingViewProps = {
-  areas?: readonly RoleArea[]
   displayName?: string
   onRetry: () => void
   state: LandingViewState
@@ -158,7 +156,8 @@ function GuestActions() {
   )
 }
 
-function SessionRegion({ areas = [], displayName, onRetry, state }: LandingViewProps) {
+/** Sign-in actions for guests; signed-in users reach their pages from the header instead. */
+function SessionRegion({ onRetry, state }: LandingViewProps) {
   if (state === 'loading') {
     return (
       <div aria-label="Đang kiểm tra phiên đăng nhập" className="space-y-3">
@@ -185,46 +184,7 @@ function SessionRegion({ areas = [], displayName, onRetry, state }: LandingViewP
     )
   }
 
-  if (!displayName) return <GuestActions />
-
-  return (
-    <section aria-labelledby="your-areas-title">
-      <p className="text-body-sm text-ink-secondary">Xin chào, {displayName}</p>
-      <h2 className="mt-1 text-h2 text-ink" id="your-areas-title">
-        Khu vực của bạn
-      </h2>
-      {state === 'empty' || areas.length === 0 ? (
-        <p className="mt-3 text-body text-ink-secondary">
-          Tài khoản chưa được gán khu vực riêng. Bạn vẫn có thể xem phần giới thiệu bên dưới.
-        </p>
-      ) : (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {areas.map((area) => (
-            <Card
-              className="flex min-h-28 flex-col items-start justify-between gap-3 p-4"
-              key={area.role}
-            >
-              <div>
-                <h3 className="text-h3 text-ink">{area.label}</h3>
-                {area.status === 'under-construction' ? (
-                  <StatusBadge className="mt-2" tone="info">
-                    Đang xây dựng
-                  </StatusBadge>
-                ) : (
-                  <p className="mt-1 text-body-sm text-ink-secondary">Khu vực đã sẵn sàng</p>
-                )}
-              </div>
-              {area.status === 'available' && area.to ? (
-                <Button size="sm" to={area.to} variant="outline">
-                  Mở {area.label.toLocaleLowerCase('vi')}
-                </Button>
-              ) : null}
-            </Card>
-          ))}
-        </div>
-      )}
-    </section>
-  )
+  return <GuestActions />
 }
 
 function SectionHeading({
@@ -289,15 +249,11 @@ export function LandingView(props: LandingViewProps) {
                 </li>
               ))}
             </ol>
-            <div
-              className={
-                props.displayName
-                  ? 'mt-8 max-w-xl rounded-lg bg-surface p-5 text-ink shadow-overlay sm:p-6'
-                  : 'mt-8'
-              }
-            >
-              <SessionRegion {...props} />
-            </div>
+            {props.displayName ? null : (
+              <div className="mt-8">
+                <SessionRegion {...props} />
+              </div>
+            )}
           </div>
         </div>
         {/* The light trail in the picture runs off its right side, so it sits against the page edge. */}

@@ -9,10 +9,11 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.2.2 |
+| **Version** | 1.2.3 |
 | **Status** | DRAFT — chờ cả nhóm duyệt rồi mới `APPROVED` |
 | **Approved by** | — |
 | **Locked on** | — |
+| **Thay đổi 1.2.3** | Người có nhiều khu vực chọn khu vực trên thanh điều hướng của trang công khai: menu «Luyện tập» có trang riêng của người học, menu «Công việc» chia cột theo từng role nhân sự. SCR-001 bỏ khối «Khu vực của bạn» (FR-090, AT-72) |
 | **Thay đổi 1.2.2** | Email mã đăng ký, xác thực và đặt lại mật khẩu có bản HTML (logo, nút hoặc mã nổi bật) kèm bản chữ thường · màn Auth: điều kiện mật khẩu tự đánh dấu khi gõ, gửi lỗi thì con trỏ tới ô lỗi đầu tiên |
 | **Thay đổi 1.2.1** | Không gửi được email chứa mã thì báo `503 EMAIL_NOT_SENT`, không tính lượt gửi, mã cũ còn hiệu lực (FR-006, FR-007, AT-09) |
 | **Thay đổi 1.2.0** | Phải nhập mã xác minh gửi qua email thì tài khoản mới được tạo (FR-001, FR-006, FR-007, FR-087, AT-01, AT-08, AT-09, AT-71) · endpoint `POST /api/auth/register/code` · FR-009→FR-013 và banner chưa xác thực còn áp dụng cho tài khoản tạo trước v1.2.0 |
@@ -337,7 +338,7 @@ Các điểm `screen-fields.md` ghi "open issue". Spec chốt như sau; tài li�
 | Mã | Yêu cầu | Mâu thuẫn đã chốt |
 |---|---|---|
 | **FR-089** | WHERE `/api/auth/login` hoặc `/api/auth/refresh` thiếu `X-Client-Type` hoặc giá trị không thuộc `WEB`/`MOBILE`, THE system SHALL xử lý như `WEB` (chỉ đặt cookie, **không** trả token trong body) | UC-004 trả cả cookie và body — sai với BR04/05 |
-| **FR-090** | WHEN đăng nhập web thành công, THE frontend SHALL chuyển tới: (1) `redirect` nếu là đường dẫn nội bộ người dùng có quyền, **hoặc** URL tuyệt đối có origin đúng bằng `VITE_GAME_ORIGIN` (trang game, spec 007) — mọi URL tuyệt đối khác bị bỏ qua để chống open redirect; (2) nếu chỉ có **một** khu vực được phép → khu vực đó (bảng §12.3); (3) nếu nhiều khu vực → SCR-001 ở trạng thái đã đăng nhập, hiện danh sách "Khu vực của bạn" để người dùng tự chọn. **Không** tự xếp hạng role | Đa role chưa định nghĩa đích đến |
+| **FR-090** | WHEN đăng nhập web thành công, THE frontend SHALL chuyển tới: (1) `redirect` nếu là đường dẫn nội bộ người dùng có quyền, **hoặc** URL tuyệt đối có origin đúng bằng `VITE_GAME_ORIGIN` (trang game, spec 007) — mọi URL tuyệt đối khác bị bỏ qua để chống open redirect; (2) nếu chỉ có **một** khu vực được phép → khu vực đó (bảng §12.3); (3) nếu nhiều khu vực → SCR-001 ở trạng thái đã đăng nhập; người dùng tự chọn khu vực trên thanh điều hướng (menu «Luyện tập» có trang của người học, menu «Công việc» chia cột theo từng role nhân sự được gán). **Không** tự xếp hạng role | Đa role chưa định nghĩa đích đến |
 | **FR-091** | THE system SHALL yêu cầu mật khẩu mới: 8–72 ký tự (giới hạn bcrypt), có ít nhất một chữ cái và một chữ số, không chứa khoảng trắng hai đầu, khác email. Thông báo: "Mật khẩu cần 8–72 ký tự, gồm chữ và số." | Độ mạnh mật khẩu chưa có |
 | **FR-092** | WHEN cấm tài khoản, thu hồi role, đặt lại mật khẩu hoặc đăng xuất mọi thiết bị, THE system SHALL ghi Redis `auth:invalid-before:{userId}` với TTL 15 phút = vòng đời access token. Giá trị là JSON: cấm tài khoản (`FR-096`) → `{"invalidBeforeMs": <epochMillis>, "reason": "BANNED", "banReason": "<lý do>"}`; thu hồi role, đặt lại mật khẩu hoặc đăng xuất mọi thiết bị → `{"invalidBeforeMs": <epochMillis>, "reason": "REVOKED"}`. `JwtAuthenticationFilter` từ chối access token có `iatMs < invalidBeforeMs`: `reason=BANNED` → **403** `ACCOUNT_BANNED` kèm `banReason`; `reason=REVOKED` → **401** `SESSION_REVOKED`. Không có key hoặc `iatMs >= invalidBeforeMs` thì tiếp tục request. JWT thiếu `iatMs` bị từ chối như thiếu `sid` (**401** `UNAUTHENTICATED`). Redis lỗi khi đọc → bỏ qua marker, ghi log cảnh báo, không truy vấn DB trong filter. Một helper dùng chung chịu trách nhiệm serialize/deserialize marker để các luồng cấm/thu hồi/đăng xuất tái sử dụng. Client làm mới token (refresh vẫn hợp lệ ở trường hợp thu hồi role) để nhận role mới | Thu hồi role không có cơ chế vô hiệu token cũ |
 | **FR-093** | THE system SHALL giới hạn quên mật khẩu 10 yêu cầu/giờ mỗi IP (khoá `auth:forgot:ip:{ip}`) và 3/giờ mỗi email (`auth:forgot:email:{sha256}`) | Giới hạn IP chưa có số |
@@ -718,7 +719,7 @@ Không có AT: FR-055 (đã chuyển), FR-056 (V2), FR-058c (spec này không c�
 | AT-69 | FR-066 | G chỉ còn 1 `ADMIN` hoạt động · W thu hồi `ADMIN` của người đó (bởi admin khác bị cấm/không có) · T 409 `REVOKE_LAST_ADMIN`; tự thu hồi → 403 `SELF_ROLE_REVOKE` |
 | AT-70 | FR-066 | G `CONTENT_EDITOR` · W gọi gán role · T 403 |
 | AT-71 | FR-087, FR-088 (FE) | W đăng ký trên SCR-003 · T hiện bước nhập mã, chưa gọi register; nhập đúng mã · T gọi register rồi đăng nhập và vào `redirect` hoặc `/learn`; mã sai · T báo số lần còn lại; đăng nhập tự động lỗi · T về `/login` báo đã tạo tài khoản; mở `/verify-email?token=` → gọi verify đúng 1 lần |
-| AT-72 | FR-090 (FE) | G user chỉ `ADMIN` → SCR-076; user `LEARNER`+`TEACHER` → SCR-001 có "Khu vực của bạn"; có `redirect=/admin/users` nhưng không phải `ADMIN` → bỏ qua redirect; `redirect=http://localhost:5174/play` (origin game) → chuyển đúng URL đó; `redirect=https://evil.com` → bỏ qua |
+| AT-72 | FR-090 (FE) | G user chỉ `ADMIN` → SCR-076; user `LEARNER`+`TEACHER` → SCR-001, thanh điều hướng có «Bảng học tập» trong «Luyện tập» và «Chấm bài viết» trong «Công việc»; có `redirect=/admin/users` nhưng không phải `ADMIN` → bỏ qua redirect; `redirect=http://localhost:5174/play` (origin game) → chuyển đúng URL đó; `redirect=https://evil.com` → bỏ qua |
 | AT-73 | FR-096, E5 | G B có phiên · W admin cấm B lý do "spam" · T request kế tiếp của B 403 `ACCOUNT_BANNED`; refresh của B bị thu hồi; có `audit_logs USER_BAN`; gỡ cấm → B đăng nhập được |
 | AT-74 | FR-096 | W admin tự cấm mình · T 403 `SELF_BAN`; cấm `ADMIN` cuối cùng → 409 `BAN_LAST_ADMIN`; `reason` 3 ký tự → 422 |
 | AT-75 | FR-097 | G 30 tài khoản · W `?q=minh&size=10&page=1` · T đúng trang 2, sắp `createdAt` giảm dần, `totalElements` đúng; `q` 1 ký tự → 422 |

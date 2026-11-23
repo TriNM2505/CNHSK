@@ -159,6 +159,37 @@ describe('PublicLayout', () => {
     expect(screen.getAllByText('Người học')).toHaveLength(2)
     expect(screen.queryByRole('link', { name: 'Đăng nhập' })).not.toBeInTheDocument()
   })
+
+  it('keeps the full menus for a signed-in learner and adds their own pages', async () => {
+    renderLayout(<PublicLayout>Nội dung công khai</PublicLayout>)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Luyện tập' }))
+    expect(screen.getByRole('link', { name: 'Bảng học tập' })).toHaveAttribute('href', '/learn')
+    expect(screen.getByRole('link', { name: 'Tiến độ học tập' })).toHaveAttribute(
+      'href',
+      '/learn/progress',
+    )
+    expect(screen.queryByText(/Cần đăng nhập/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Công việc' })).not.toBeInTheDocument()
+  })
+
+  it('lists each staff role’s pages under Công việc, once each', async () => {
+    renderLayout(<PublicLayout>Nội dung công khai</PublicLayout>, {
+      user: { ...learner, roles: ['TEACHER', 'CONTENT_EDITOR', 'ADMIN'] },
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Công việc' }))
+    const panel = document.getElementById('public-menu')!
+    for (const title of ['Giáo viên', 'Biên tập nội dung', 'Quản trị']) {
+      expect(within(panel).getByText(title)).toBeVisible()
+    }
+    expect(within(panel).getAllByRole('link', { name: 'Kho câu hỏi' })).toHaveLength(1)
+    expect(within(panel).getByRole('link', { name: 'Người dùng' })).toHaveAttribute(
+      'href',
+      '/admin/users',
+    )
+    expect(within(panel).queryByText('Kiểm duyệt')).not.toBeInTheDocument()
+  })
 })
 
 describe('LearnerLayout', () => {

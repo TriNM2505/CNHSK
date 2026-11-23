@@ -75,17 +75,12 @@ describe('Scr001LandingPage', () => {
     expect(auth.reloadCurrentUser).toHaveBeenCalledOnce()
   })
 
-  it('hiện mọi khu vực của người đã đăng nhập và không gắn link cho khu vực đang dựng', () => {
+  it('người đã đăng nhập không thấy khối chọn khu vực trong hero', () => {
     renderPage({ status: 'authenticated', user: multiAreaUser })
 
-    expect(screen.getByRole('heading', { name: 'Khu vực của bạn' })).toBeVisible()
-    expect(screen.getByRole('heading', { name: 'Học tập' })).toBeVisible()
-    expect(screen.getByRole('heading', { name: 'Nội dung' })).toBeVisible()
-    expect(screen.getByRole('heading', { name: 'Quản trị' })).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Mở học tập' })).toHaveAttribute(
-      'href',
-      '/learn',
-    )
+    expect(screen.getByRole('heading', { name: 'Chương trình đào tạo toàn diện' })).toBeVisible()
+    expect(screen.queryByText('Khu vực của bạn')).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Mở học tập' })).not.toBeInTheDocument()
   })
 
   it('các khối giới thiệu không phải liên kết', () => {

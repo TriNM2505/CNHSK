@@ -1,18 +1,13 @@
 import type { ReactNode } from 'react'
 
-import { AppShell } from '@/shared/layout/AppShell'
 import { PublicHeader } from '@/shared/layout/PublicHeader'
-import { useCurrentUser } from '@/shared/auth'
 
 type PublicLayoutProps = {
   children: ReactNode
 }
 
+/** Public pages keep the full header for everyone; signed-in users get their account menu in it. */
 export function PublicLayout({ children }: PublicLayoutProps) {
-  const { user } = useCurrentUser()
-
-  if (user) return <AppShell>{children}</AppShell>
-
   return (
     <div className="flex min-h-screen min-w-0 flex-col bg-canvas">
       <PublicHeader />

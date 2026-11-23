@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ApiError } from '@/shared/api'
 import { AuthContext, type AuthContextValue } from '@/shared/auth'
+import { PublicLayout } from '@/shared/layout'
 
 import { signIn } from '../api/signIn'
 import Scr001LandingPage from './Scr001LandingPage'
@@ -63,7 +64,14 @@ function renderSignInFlow(initialEntry = '/login') {
         <MemoryRouter initialEntries={[initialEntry]}>
           <Routes>
             <Route element={<Scr002SignInPage />} path="/login" />
-            <Route element={<Scr001LandingPage />} path="/" />
+            <Route
+              element={
+                <PublicLayout>
+                  <Scr001LandingPage />
+                </PublicLayout>
+              }
+              path="/"
+            />
             <Route element={<h1>Khu vực quản trị</h1>} path="/admin/users" />
             <Route element={<h1>Bảng học tập</h1>} path="/learn" />
           </Routes>
@@ -143,16 +151,24 @@ describe('Scr002SignInPage', () => {
     expect(await screen.findByRole('heading', { name: 'Khu vực quản trị' })).toBeVisible()
   })
 
-  it('AT-72: đăng nhập nhiều role mở SCR-001 để người dùng tự chọn khu vực', async () => {
+  it('AT-72: đăng nhập nhiều role mở SCR-001, người dùng chọn khu vực trên thanh điều hướng', async () => {
     vi.mocked(signIn).mockResolvedValue({ user: { ...learner, roles: ['LEARNER', 'TEACHER'] } })
     renderSignInFlow()
     const user = await enterCredentials()
 
     await user.click(screen.getByRole('button', { name: 'Đăng nhập' }))
 
-    expect(await screen.findByRole('heading', { name: 'Khu vực của bạn' })).toBeVisible()
-    expect(screen.getByRole('heading', { name: 'Học tập' })).toBeVisible()
-    expect(screen.getByRole('heading', { name: 'Giáo viên' })).toBeVisible()
+    expect(
+      await screen.findByRole('heading', { name: 'Chương trình đào tạo toàn diện' }),
+    ).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Luyện tập' }))
+    expect(screen.getByRole('link', { name: 'Bảng học tập' })).toHaveAttribute('href', '/learn')
+    await user.click(screen.getByRole('button', { name: 'Công việc' }))
+    const panel = document.getElementById('public-menu')!
+    expect(within(panel).getByRole('link', { name: 'Chấm bài viết' })).toHaveAttribute(
+      'href',
+      '/teacher/grading',
+    )
   })
 
   it('AT-72: bỏ redirect nội bộ không được phép và dùng khu vực mặc định', async () => {

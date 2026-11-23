@@ -2,21 +2,13 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 import { LandingView, type LandingViewState } from '../components/LandingView'
-import { getRoleAreas } from '../roleAreas'
 import { useCurrentUser } from '@/shared/auth'
 
 export default function Scr001LandingPage() {
   const { reloadCurrentUser, status, user } = useCurrentUser()
   const { hash, key } = useLocation()
-  const areas = user ? getRoleAreas(user.roles) : []
   const state: LandingViewState =
-    status === 'loading'
-      ? 'loading'
-      : status === 'error'
-        ? 'error'
-        : status === 'authenticated' && areas.length === 0
-          ? 'empty'
-          : 'ready'
+    status === 'loading' ? 'loading' : status === 'error' ? 'error' : 'ready'
 
   useEffect(() => {
     // Menu links point at sections of this page; the router does not scroll to anchors by itself.
@@ -25,7 +17,6 @@ export default function Scr001LandingPage() {
 
   return (
     <LandingView
-      areas={areas}
       displayName={status === 'authenticated' ? user?.displayName : undefined}
       onRetry={() => void reloadCurrentUser()}
       state={state}
