@@ -14,9 +14,16 @@ export type SpeakingItem = {
   hskLevel: number
 }
 
-export function getSpeakingItems(hskLevel: number, kind: SpeakingKind, count = 10): Promise<SpeakingItem[]> {
+/** Visitors read the same material through the public path; only sending a recording needs an account. */
+export function getSpeakingItems(
+  hskLevel: number,
+  kind: SpeakingKind,
+  guest = false,
+  count = 10,
+): Promise<SpeakingItem[]> {
   const query = new URLSearchParams({ count: String(count), hskLevel: String(hskLevel), kind })
-  return apiRequest<{ items: SpeakingItem[] }>(`/api/speaking/items?${query}`).then((page) => page.items)
+  const path = guest ? '/api/public/speaking/items' : '/api/speaking/items'
+  return apiRequest<{ items: SpeakingItem[] }>(`${path}?${query}`).then((page) => page.items)
 }
 
 /** Uploads the recording straight to Cloudinary, then queues it for a teacher. */

@@ -18,8 +18,11 @@ function clock(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
-/** SCR-016 speaking half: hear the model, record the same word or sentence, send it to a teacher. */
-export default function SpeakingPracticePage() {
+/**
+ * SCR-016 speaking half: hear the model, record the same word or sentence, send it to a teacher.
+ * In `guest` mode (trial learning) the visitor records and listens back, but sending needs an account.
+ */
+export default function SpeakingPracticePage({ guest = false }: { guest?: boolean }) {
   const { user } = useCurrentUser()
   const levels: number[] = [...SUPPORTED_HSK_LEVELS]
   const [level, setLevel] = useState<number>(() =>
@@ -40,7 +43,7 @@ export default function SpeakingPracticePage() {
   async function fetchItems() {
     setLoad('loading')
     try {
-      setItems(await getSpeakingItems(level, kind))
+      setItems(await getSpeakingItems(level, kind, guest))
       setIndex(0)
       setLoad('ready')
     } catch (error) {
@@ -81,9 +84,13 @@ export default function SpeakingPracticePage() {
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-content space-y-6 pb-16">
-      <PageBanner subtitle="Nghe mẫu, đọc lại và gửi giáo viên chấm phát âm." title="Phát âm" />
-      <PronunciationTabs />
+    <div className={cn('w-full min-w-0 space-y-6', !guest && 'mx-auto max-w-content pb-16')}>
+      {guest ? null : (
+        <>
+          <PageBanner subtitle="Nghe mẫu, đọc lại và gửi giáo viên chấm phát âm." title="Phát âm" />
+          <PronunciationTabs />
+        </>
+      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <div aria-label="Loại bài" className="inline-flex rounded-pill border border-line bg-surface p-1" role="group">
@@ -121,7 +128,7 @@ export default function SpeakingPracticePage() {
       </div>
 
       <div className="grid min-w-0 items-start gap-6 lg:grid-cols-12">
-        <div className="min-w-0 lg:col-span-8">
+        <div className={cn('min-w-0', guest ? 'lg:col-span-12' : 'lg:col-span-8')}>
           {load === 'loading' ? <Skeleton className="h-96" /> : null}
           {load === 'error' ? (
             <ErrorState message={loadError ?? 'Vui lòng thử lại sau.'} onRetry={() => void fetchItems()} title="Không tải được bài đọc" />
@@ -210,6 +217,19 @@ export default function SpeakingPracticePage() {
                           </Button>
                         </div>
                       </div>
+                    ) : guest ? (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap justify-center gap-3">
+                          <Button onClick={recorder.reset} variant="outline">
+                            <RotateCcw aria-hidden="true" className="size-4" />
+                            Ghi lại
+                          </Button>
+                          <Button to="/register?redirect=%2Flearn%2Fpronunciation%2Fspeaking">
+                            Đăng ký để gửi giáo viên chấm
+                          </Button>
+                        </div>
+                        <p className="text-body-sm text-ink-secondary">Bản ghi học thử chỉ nằm trên máy bạn, không được tải lên.</p>
+                      </div>
                     ) : (
                       <div className="flex flex-wrap justify-center gap-3">
                         <Button disabled={sending} onClick={recorder.reset} variant="outline">
@@ -234,7 +254,7 @@ export default function SpeakingPracticePage() {
           ) : null}
         </div>
 
-        <aside className="min-w-0 space-y-5 lg:col-span-4">
+        <aside className={cn('min-w-0 space-y-5 lg:col-span-4', guest && 'hidden')}>
           <Card className="min-w-0 space-y-3 border-brand-100 bg-brand-50 p-5">
             <h2 className="text-h3 text-ink">Cách luyện</h2>
             <ol className="list-decimal space-y-2 pl-5 text-body-sm text-ink-secondary">

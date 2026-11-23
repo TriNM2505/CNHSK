@@ -42,6 +42,10 @@ function AuthError() {
 
 function getLoginPath(pathname: string, search: string, hash: string): string {
   const redirect = `${pathname}${search}${hash}`
+  // Visitors are invited to try the learning area first; that page offers sign-in and sign-up with the way back.
+  if (pathname === '/learn' || pathname.startsWith('/learn/')) {
+    return `/learn/try?from=${encodeURIComponent(redirect)}`
+  }
   return `/login?redirect=${encodeURIComponent(redirect)}`
 }
 

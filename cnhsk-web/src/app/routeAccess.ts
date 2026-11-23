@@ -463,6 +463,7 @@ export const appRouteDefinitions = [
     path: '/moderation/contests/:id/results',
     scr: 'SCR-082',
   },
+  { access: 'public', kind: 'screen', layout: 'public', path: '/learn/try', scr: 'SCR-083' },
   {
     access: ['MODERATOR'],
     kind: 'screen',

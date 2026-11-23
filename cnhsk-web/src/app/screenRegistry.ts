@@ -26,6 +26,7 @@ import { screens as quizScreens } from '@/features/quiz/screens'
 import { screens as reminderScreens } from '@/features/reminder/screens'
 import { screens as vocabScreens } from '@/features/vocab/screens'
 import { screens as topicAdminScreens } from '@/features/topic-admin/screens'
+import { screens as trialScreens } from '@/features/trial/screens'
 
 export type ScreenId = `SCR-${string}`
 export type ScreenComponent = LazyExoticComponent<ComponentType>
@@ -84,4 +85,5 @@ export const screenRegistry = createScreenRegistry([
   { feature: 'reminder', screens: reminderScreens },
   { feature: 'references', screens: referenceScreens },
   { feature: 'quiz', screens: quizScreens },
+  { feature: 'trial', screens: trialScreens },
 ])

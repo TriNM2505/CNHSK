@@ -177,14 +177,22 @@ describe('application routes', () => {
     expect(screen.getByRole('link', { name: 'Về trang chủ' })).toHaveAttribute('href', '/')
   })
 
-  it('sends a guest from a learner route to login with the full redirect', async () => {
+  it('sends a guest from a learner route to trial learning with the full way back', async () => {
     const { router } = renderRoute('/learn/topics?level=2#dang-hoc')
+
+    expect(await screen.findByRole('heading', { name: 'Thử ngay, không cần tài khoản' })).toBeVisible()
+    expect(router.state.location.pathname).toBe('/learn/try')
+    expect(new URLSearchParams(router.state.location.search).get('from')).toBe(
+      '/learn/topics?level=2#dang-hoc',
+    )
+  })
+
+  it('still sends a guest from another private route to login', async () => {
+    const { router } = renderRoute('/me/profile')
 
     expect(await screen.findByRole('heading', { name: 'Đăng nhập' })).toBeVisible()
     expect(router.state.location.pathname).toBe('/login')
-    expect(new URLSearchParams(router.state.location.search).get('redirect')).toBe(
-      '/learn/topics?level=2#dang-hoc',
-    )
+    expect(new URLSearchParams(router.state.location.search).get('redirect')).toBe('/me/profile')
   })
 
   it('sends a learner without ADMIN role to the access-denied screen', async () => {
@@ -271,12 +279,13 @@ describe('application routes', () => {
         resolveUser = resolve
       }),
     )
-    renderRoute('/me/profile')
+    const { router } = renderRoute('/me/profile')
 
-    expect(screen.queryByRole('heading', { name: 'Màn SCR-002 đang dựng' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Đăng nhập' })).not.toBeInTheDocument()
 
     await act(async () => resolveUser?.(learner))
-    expect(await screen.findByRole('heading', { name: 'Thông tin cá nhân' })).toBeVisible()
+    expect(router.state.location.pathname).toBe('/me/profile')
+    expect(screen.queryByRole('heading', { name: 'Đăng nhập' })).not.toBeInTheDocument()
   })
 
   it.each([

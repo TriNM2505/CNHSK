@@ -124,6 +124,9 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/community/**").permitAll();
                     authorize.requestMatchers(JwtAuthenticationFilter.LEADERBOARD_GETS).permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/dictionary/**").permitAll();
+                    // Trial learning for visitors: read-only samples, nothing is stored.
+                    authorize.requestMatchers(HttpMethod.GET, "/api/public/learning/trial",
+                            "/api/public/speaking/items").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/api/public/reminder/unsubscribe").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/references",
                             "/api/public/references/{id}").permitAll();

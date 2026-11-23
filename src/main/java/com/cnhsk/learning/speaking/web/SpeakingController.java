@@ -31,7 +31,8 @@ public class SpeakingController {
         this.mapper = mapper;
     }
 
-    @GetMapping("/api/speaking/items")
+    /** The public path lets visitors hear models and practise; only sending a recording needs an account. */
+    @GetMapping({"/api/speaking/items", "/api/public/speaking/items"})
     @Operation(operationId = "listSpeakingItems", tags = "speaking")
     @ApiResponses({@ApiResponse(responseCode = "200", description = "Bài đọc to"),
             @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED")})
