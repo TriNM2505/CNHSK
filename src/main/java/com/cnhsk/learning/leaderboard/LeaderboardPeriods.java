@@ -36,6 +36,11 @@ public final class LeaderboardPeriods {
                 yield new Interval(selected, first.atStartOfDay(ZONE).toOffsetDateTime(),
                         first.plusMonths(1).atStartOfDay(ZONE).toOffsetDateTime());
             }
+            case "year" -> {
+                var first = today.withDayOfYear(1);
+                yield new Interval(selected, first.atStartOfDay(ZONE).toOffsetDateTime(),
+                        first.plusYears(1).atStartOfDay(ZONE).toOffsetDateTime());
+            }
             default -> throw new IllegalArgumentException("Tham số kỳ không hợp lệ.");
         };
     }
@@ -43,7 +48,7 @@ public final class LeaderboardPeriods {
     public record Interval(String period, OffsetDateTime start, OffsetDateTime end) {
         public Interval {
             boolean all = "all".equals(period);
-            boolean bounded = "week".equals(period) || "month".equals(period);
+            boolean bounded = "week".equals(period) || "month".equals(period) || "year".equals(period);
             if (!(all && start == null && end == null)
                     && !(bounded && start != null && end != null && start.toInstant().isBefore(end.toInstant()))) {
                 throw new IllegalArgumentException("Khoảng thời gian không hợp lệ.");

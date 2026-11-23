@@ -111,15 +111,8 @@ const communityMenu: PublicMenu = {
     {
       title: 'Cùng học',
       links: [
-        { label: 'Bài viết', to: '/community' },
+        { label: 'Bảng tin và vinh danh', to: '/community' },
         { label: 'Cuộc thi', to: '/contests' },
-      ],
-    },
-    {
-      title: 'Bảng xếp hạng',
-      links: [
-        { label: 'Theo chủ đề', to: '/leaderboards/topics' },
-        { label: 'Theo trò chơi', to: '/leaderboards/games' },
       ],
     },
   ],

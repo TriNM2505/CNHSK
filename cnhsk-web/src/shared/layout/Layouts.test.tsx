@@ -110,7 +110,7 @@ describe('PublicLayout', () => {
   it.each([
     ['Tra cứu', 'Video và podcast', '/references/media'],
     ['Tra cứu', 'Tra theo pinyin', '/dictionary?type=PINYIN'],
-    ['Cộng đồng', 'Theo chủ đề', '/leaderboards/topics'],
+    ['Cộng đồng', 'Bảng tin và vinh danh', '/community'],
     ['Cộng đồng', 'Cuộc thi', '/contests'],
     ['Giới thiệu', 'Cố vấn chuyên môn', '/#co-van'],
   ])('opens the %s menu for guests and lists %s', async (menu, label, href) => {
@@ -138,8 +138,8 @@ describe('PublicLayout', () => {
   it('closes the menu after a link is followed', async () => {
     renderGuest()
     await userEvent.click(screen.getByRole('button', { name: 'Cộng đồng' }))
-    await userEvent.click(screen.getByRole('link', { name: 'Bài viết' }))
-    expect(screen.queryByRole('link', { name: 'Bài viết' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('link', { name: 'Bảng tin và vinh danh' }))
+    expect(screen.queryByRole('link', { name: 'Bảng tin và vinh danh' })).not.toBeInTheDocument()
   })
 
   it('offers the same menus on small screens', async () => {

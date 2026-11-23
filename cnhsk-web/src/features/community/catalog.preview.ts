@@ -5,7 +5,9 @@ import { AuthContext, type AuthContextValue } from '@/shared/auth'
 import { AdminLayout, LearnerLayout, PublicLayout } from '@/shared/layout'
 import { previewLearner } from '@/shared/layout/Layout.preview'
 
+import type { CommunityRanking } from './api/rankings'
 import { CommunityPostListView } from './components/CommunityPostListView'
+import { CommunityRankingPanel } from './components/CommunityRankingPanel'
 import { PostEditorView } from './components/PostEditorView'
 import { CommunityPostDetailView } from './components/CommunityPostDetailView'
 import { CommentTree } from './components/CommentTree'
@@ -49,19 +51,43 @@ const baseListProps = {
   status: '' as const,
 }
 
+const previewRanking: CommunityRanking = {
+  period: 'week',
+  entries: [
+    ['Lan Anh', 4190], ['Minh Khoa', 2320], ['Thu Hà', 2295], ['Quang Huy', 1250], ['Bảo Ngọc', 990],
+    ['Đức Anh', 820], ['Hải Yến', 775], ['Tuấn Kiệt', 770], ['Mai Phương', 640], ['Gia Bảo', 515],
+  ].map(([displayName, score], index) => ({
+    avatarUrl: null,
+    displayName: displayName as string,
+    rank: index + 1,
+    score: score as number,
+    userId: index + 1,
+  })),
+  myEntry: { avatarUrl: null, displayName: previewLearner.displayName, rank: 24, score: 180, userId: 99 },
+}
+
 function listPreview(mode: 'public' | 'mine', state: 'loading' | 'empty' | 'error' | 'ready') {
   const isMine = mode === 'mine'
   const data = state === 'ready' ? (isMine ? ownPageWithStatuses : publishedPage) : undefined
   return createElement(
     AuthContext.Provider,
-    { value: previewAuth },
+    { value: isMine ? learnerPreviewAuth : previewAuth },
     createElement(
       PublicLayout,
       null,
       createElement(CommunityPostListView, {
         ...baseListProps,
+        aside: createElement(CommunityRankingPanel, {
+          onPeriodChange: () => undefined,
+          onRetry: () => undefined,
+          period: 'week',
+          ranking: previewRanking,
+          state: 'ready',
+        }),
+        currentUserName: previewLearner.displayName,
         data,
         error: state === 'error' ? 'Không thể tải bài viết.' : undefined,
+        hotQuestions: publishedPage.items,
         isLearner: isMine,
         mode,
         state,

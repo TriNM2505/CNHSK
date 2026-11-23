@@ -388,6 +388,7 @@ class CommunityContractTest {
             Set<String> paths = new HashSet<>(mapping.getPatternValues());
             paths.removeIf(CommunityContractTest::isGamePath);
             paths.removeIf(CommunityContractTest::isContestPath);
+            paths.removeIf(CommunityContractTest::isRankingPath);
             if (!paths.isEmpty() && (isCommunityPackage(packageName) || paths.stream().anyMatch(CommunityContractTest::isCommunityPath))) {
                 addMappings(operations, mapping.getMethodsCondition().getMethods(), paths, handler.toString());
             }
@@ -401,9 +402,14 @@ class CommunityContractTest {
     }
 
     private static boolean isCommunityPath(String path) {
-        if (isGamePath(path) || isContestPath(path)) return false;
+        if (isGamePath(path) || isContestPath(path) || isRankingPath(path)) return false;
         return path.equals("/api/community") || path.startsWith("/api/community/")
                 || path.equals("/api/public/community") || path.startsWith("/api/public/community/");
+    }
+
+    /** The community ranking reads game rounds and belongs to the leaderboard contract. */
+    private static boolean isRankingPath(String path) {
+        return path.equals("/api/public/community/rankings");
     }
 
     private static boolean isGamePackage(String packageName) {

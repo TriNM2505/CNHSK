@@ -43,6 +43,22 @@ public class LeaderboardRepository {
                 ORDER BY user_id, score DESC, duration_ms ASC NULLS LAST, submitted_at ASC, id ASC
             ),
             """;
+    /** Every submitted game round counts, at any HSK level; a total ties on who reached it first. */
+    private static final String COMMUNITY = """
+            WITH eligible AS (
+                SELECT user_id, score, submitted_at
+                FROM learning.attempts
+                WHERE kind = 'GAME' AND game_code IS NOT NULL
+                  AND status = 'SUBMITTED' AND suspicious = false AND score IS NOT NULL
+                  AND user_id <> ALL(:banned)
+                  %s
+            ), totals AS (
+                SELECT user_id, SUM(score) AS score, CAST(NULL AS integer) AS duration_ms,
+                       MAX(submitted_at) AS submitted_at
+                FROM eligible
+                GROUP BY user_id
+            ),
+            """;
     private static final String RANKING = """
             ranked AS (
                 SELECT user_id, score, duration_ms, submitted_at,
@@ -79,6 +95,11 @@ public class LeaderboardRepository {
         return read(gameSql(interval), parameters, viewerId, topSize);
     }
 
+    public Snapshot communityRanking(Interval interval, Set<Long> bannedUserIds, Long viewerId, int topSize) {
+        require(interval != null && interval.start() != null);
+        return read(communitySql(interval), parameters(interval, bannedUserIds, viewerId, topSize), viewerId, topSize);
+    }
+
     private Snapshot read(String sql, MapSqlParameterSource parameters, Long viewerId, int topSize) {
         var rows = jdbc.query(sql, parameters, (rs, index) -> new RankedRow(
                 new Row(rs.getLong("rank"), rs.getLong("user_id"), rs.getLong("score"),
@@ -97,6 +118,10 @@ public class LeaderboardRepository {
 
     static String gameSql(Interval interval) {
         return GAME.formatted(timeFilter(interval)) + RANKING.formatted("best");
+    }
+
+    static String communitySql(Interval interval) {
+        return COMMUNITY.formatted(timeFilter(interval)) + RANKING.formatted("totals");
     }
 
     static MapSqlParameterSource parameters(Interval interval, Set<Long> bannedUserIds, Long viewerId, int topSize) {

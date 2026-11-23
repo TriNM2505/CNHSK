@@ -78,6 +78,17 @@ public class LeaderboardServiceImpl implements LeaderboardService {
                 (banned, viewer) -> repository.gameRanking(game, level, interval, banned, viewer, TOP_SIZE));
     }
 
+    /** Total game points across every game and level, for the community page; periods week, month or year. */
+    public Leaderboard communityLeaderboard(String period, Long viewerId) {
+        String selected = period == null ? "week" : period;
+        if (!List.of("week", "month", "year").contains(selected)) {
+            throw invalid("period", "Kỳ phải là week, month hoặc year.");
+        }
+        Interval interval = periods.resolve(selected);
+        return leaderboard("community", "games", interval, viewerId,
+                (banned, viewer) -> repository.communityRanking(interval, banned, viewer, TOP_SIZE));
+    }
+
     /** Games have content for HSK 1–3; a ranking without a level shows HSK 1. */
     private static int gameLevel(String value) {
         if (value == null || value.isEmpty()) return 1;
@@ -110,11 +121,13 @@ public class LeaderboardServiceImpl implements LeaderboardService {
         top.forEach(row -> userIds.add(row.userId()));
         mine.ifPresent(row -> userIds.add(row.userId()));
         Map<Long, PublicProfile> profiles = userIds.isEmpty() ? Map.of() : auth.publicProfiles(userIds);
-        return new Leaderboard(type.equals("topic") ? "TOPIC" : "GAME", ref, interval.period(), interval.start(), interval.end(),
+        return new Leaderboard(type.toUpperCase(java.util.Locale.ROOT), ref, interval.period(), interval.start(), interval.end(),
                 top.stream().map(row -> entry(row, profiles)).toList(), mine.map(row -> entry(row, profiles)).orElse(null));
     }
 
     private Interval interval(String period) {
+        // Yearly totals belong to the community ranking only; topic and game boards keep their periods.
+        if ("year".equals(period)) throw invalid("period", "Kỳ phải là week, month hoặc all.");
         try { return periods.resolve(period); }
         catch (IllegalArgumentException exception) { throw invalid("period", "Kỳ phải là week, month hoặc all."); }
     }

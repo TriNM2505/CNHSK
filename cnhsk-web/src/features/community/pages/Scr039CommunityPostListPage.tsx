@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { useApiQuery } from '@/shared/api'
@@ -8,9 +8,13 @@ import { ToastProvider } from '@/shared/ui/Toast'
 import { useToast } from '@/shared/ui/useToast'
 
 import { listMyPosts, listPublishedPosts } from '../api/posts'
+import { getCommunityRanking, type RankingPeriod } from '../api/rankings'
 import { CommunityPostListView } from '../components/CommunityPostListView'
+import { CommunityRankingPanel } from '../components/CommunityRankingPanel'
 import { POST_CATEGORIES } from '../labels'
-import type { PostCategory, PostStatus } from '../types'
+import type { PostCategory, PostStatus, PostSummary } from '../types'
+
+const HOT_QUESTION_COUNT = 6
 
 const PAGE_SIZE = 20
 type SuccessFlash = { communityPostSuccess?: 'draftSaved' | 'submitted' }
@@ -34,6 +38,9 @@ function useSuccessFlash() {
 }
 
 type FeedProps = {
+  aside: ReactNode
+  currentUserName?: string
+  hotQuestions: readonly PostSummary[]
   category: PostCategory | ''
   isLearner: boolean
   onCategoryChange: (value: PostCategory | '') => void
@@ -46,23 +53,23 @@ type FeedProps = {
 }
 
 function PublicFeed(props: FeedProps) {
-  const { category, isLearner, onCategoryChange, onPageChange, onStatusChange, onTabChange, onWrite, page, status } = props
+  const { aside, category, currentUserName, hotQuestions, isLearner, onCategoryChange, onPageChange, onStatusChange, onTabChange, onWrite, page, status } = props
   const query = useApiQuery(
     (signal) => listPublishedPosts({ category: category || undefined, page, size: PAGE_SIZE }, signal),
     [category, page],
     { isEmpty: (result) => result.items.length === 0 },
   )
-  return <CommunityPostListView categories={POST_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="public" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
+  return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} categories={POST_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} mode="public" onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} />
 }
 
 function MineFeed(props: FeedProps) {
-  const { category, isLearner, onCategoryChange, onPageChange, onStatusChange, onTabChange, onWrite, page, status } = props
+  const { aside, category, currentUserName, hotQuestions, isLearner, onCategoryChange, onPageChange, onStatusChange, onTabChange, onWrite, page, status } = props
   const query = useApiQuery(
     (signal) => listMyPosts({ status: status || undefined, page, size: PAGE_SIZE }, signal),
     [status, page],
     { isEmpty: (result) => result.items.length === 0 },
   )
-  return <CommunityPostListView categories={POST_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} mode="mine" />
+  return <CommunityPostListView aside={aside} currentUserName={currentUserName} hotQuestions={hotQuestions} categories={POST_CATEGORIES} category={category} data={query.data} error={query.error?.message} isLearner={isLearner} onCategoryChange={onCategoryChange} onPageChange={onPageChange} onRetry={query.reload} onStatusChange={onStatusChange} onTabChange={onTabChange} onWrite={onWrite} page={page} size={PAGE_SIZE} state={query.state} status={status} mode="mine" />
 }
 
 function CommunityPostListContent() {
@@ -77,7 +84,25 @@ function CommunityPostListContent() {
   const [publicPage, setPublicPage] = useState(0)
   const [status, setStatus] = useState<PostStatus | ''>('')
   const [minePage, setMinePage] = useState(0)
+  const [rankingPeriod, setRankingPeriod] = useState<RankingPeriod>('week')
   useSuccessFlash()
+  const ranking = useApiQuery(
+    (signal) => getCommunityRanking(rankingPeriod, signal),
+    [rankingPeriod],
+    { isEmpty: (result) => result.entries.length === 0 },
+  )
+  // The newest questions, most discussed first; a light stand-in until the server ranks them.
+  const questions = useApiQuery(
+    (signal) => listPublishedPosts({ category: 'QUESTION', page: 0, size: 20 }, signal),
+    [],
+  )
+  const hotQuestions = useMemo(
+    () =>
+      [...(questions.data?.items ?? [])]
+        .sort((a, b) => b.commentCount + b.likeCount - (a.commentCount + a.likeCount))
+        .slice(0, HOT_QUESTION_COUNT),
+    [questions.data],
+  )
 
   useEffect(() => {
     const tab = searchParams.get('tab')
@@ -105,6 +130,17 @@ function CommunityPostListContent() {
   }
 
   const feedProps: FeedProps = {
+    aside: (
+      <CommunityRankingPanel
+        onPeriodChange={setRankingPeriod}
+        onRetry={ranking.reload}
+        period={rankingPeriod}
+        ranking={ranking.data}
+        state={ranking.state}
+      />
+    ),
+    currentUserName: user?.displayName,
+    hotQuestions,
     category,
     isLearner,
     onCategoryChange: (value) => { setCategory(value); setPublicPage(0) },

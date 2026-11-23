@@ -1,4 +1,15 @@
-import communityPanda from '@/features/contests/assets/contest-ongoing-panda.webp'
+import {
+  Briefcase,
+  CircleHelp,
+  Heart,
+  Landmark,
+  LayoutList,
+  Lightbulb,
+  MessageCircle,
+  UsersRound,
+  type LucideIcon,
+} from 'lucide-react'
+import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 import { cn } from '@/shared/lib/cn'
@@ -8,7 +19,6 @@ import {
   EmptyState,
   ErrorState,
   FormField,
-  PageBanner,
   PageState,
   Pagination,
   Select,
@@ -18,15 +28,20 @@ import {
 } from '@/shared/ui'
 
 import { POST_CATEGORY_LABELS, POST_STATUS_LABELS } from '../labels'
-import type { OwnPost, OwnPostPage, PostCategory, PostStatus, PostSummaryPage } from '../types'
+import type { OwnPost, OwnPostPage, PostCategory, PostStatus, PostSummary, PostSummaryPage } from '../types'
 
 export type ListState = 'loading' | 'empty' | 'error' | 'ready'
 
 type Props = {
+  /** Right column, normally the game-point ranking. */
+  aside?: ReactNode
   categories: readonly PostCategory[]
   category: PostCategory | ''
+  currentUserName?: string
   data: PostSummaryPage | OwnPostPage | undefined
   error?: string
+  /** Most discussed recent questions for the left column. */
+  hotQuestions?: readonly PostSummary[]
   isLearner: boolean
   mode: 'public' | 'mine'
   onCategoryChange: (value: PostCategory | '') => void
@@ -41,6 +56,14 @@ type Props = {
   status: PostStatus | ''
 }
 
+const CATEGORY_ICONS: Record<PostCategory, LucideIcon> = {
+  EXPERIENCE: Lightbulb,
+  QUESTION: CircleHelp,
+  STUDY_BUDDY: UsersRound,
+  CULTURE: Landmark,
+  JOB: Briefcase,
+}
+
 const ownStatusTones: Record<PostStatus, StatusTone> = {
   DRAFT: 'neutral',
   PENDING: 'warning',
@@ -49,14 +72,170 @@ const ownStatusTones: Record<PostStatus, StatusTone> = {
   HIDDEN: 'danger',
 }
 
+function Initial({ name, className }: { name: string; className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'flex shrink-0 items-center justify-center rounded-full bg-brand-50 font-semibold text-brand-700',
+        className,
+      )}
+    >
+      {name.trim().charAt(0).toLocaleUpperCase('vi') || '?'}
+    </span>
+  )
+}
+
 function Loading() {
   return (
     <div aria-label="Đang tải bài viết" className="space-y-3" role="status">
       <p className="text-body-sm text-ink-secondary">Đang tải bài viết…</p>
       <Skeleton variant="card" />
       <Skeleton variant="card" />
-      <Skeleton variant="card" />
     </div>
+  )
+}
+
+function TopicNav({
+  categories,
+  category,
+  onCategoryChange,
+}: Pick<Props, 'categories' | 'category' | 'onCategoryChange'>) {
+  const options: { icon: LucideIcon; label: string; value: PostCategory | '' }[] = [
+    { icon: LayoutList, label: 'Tất cả chủ đề', value: '' },
+    ...categories.map((value) => ({ icon: CATEGORY_ICONS[value], label: POST_CATEGORY_LABELS[value], value })),
+  ]
+  return (
+    <nav aria-label="Chủ đề" className="min-w-0 xl:rounded-lg xl:bg-surface xl:p-4 xl:shadow-sm">
+      <h2 className="mb-2 hidden text-h3 text-ink xl:block">Chủ đề</h2>
+      <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] xl:mx-0 xl:flex-col xl:gap-0.5 xl:overflow-visible xl:px-0">
+        {options.map(({ icon: Icon, label, value }) => {
+          const selected = category === value
+          return (
+            <li className="shrink-0" key={value || 'all'}>
+              <button
+                aria-pressed={selected}
+                className={cn(
+                  'flex min-h-touch w-full items-center gap-3 whitespace-nowrap rounded-pill border px-4 text-body-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus xl:rounded-sm xl:border-0 xl:px-3',
+                  selected
+                    ? 'border-brand-600 bg-brand-50 font-semibold text-brand-700'
+                    : 'border-line bg-surface text-ink hover:text-brand-700 xl:bg-transparent',
+                )}
+                onClick={() => onCategoryChange(value)}
+                type="button"
+              >
+                <Icon aria-hidden="true" className="size-5 shrink-0" />
+                {label}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </nav>
+  )
+}
+
+function HotQuestions({ questions }: { questions: readonly PostSummary[] }) {
+  if (questions.length === 0) return null
+  return (
+    <section
+      aria-labelledby="hot-questions-title"
+      className="hidden min-w-0 rounded-lg bg-surface p-4 shadow-sm xl:block"
+    >
+      <h2 className="mb-2 text-h3 text-ink" id="hot-questions-title">
+        Câu hỏi được quan tâm
+      </h2>
+      <ol className="space-y-1">
+        {questions.map((post, index) => (
+          <li className="flex min-w-0 gap-2 text-body-sm" key={post.id}>
+            <span className="w-4 shrink-0 tabular-nums text-ink-muted">{index + 1}.</span>
+            <Link className="line-clamp-2 min-w-0 text-ink hover:text-brand-700" to={`/community/posts/${post.id}`}>
+              {post.title}
+            </Link>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+function Composer({ name, onWrite }: { name?: string; onWrite: () => void }) {
+  return (
+    <div className="flex items-center gap-3">
+      {name ? <Initial className="size-11 text-body" name={name} /> : null}
+      <button
+        className="flex min-h-touch min-w-0 flex-1 items-center rounded-pill border border-line bg-surface px-5 text-left text-body text-ink-muted transition-colors hover:border-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+        onClick={onWrite}
+        type="button"
+      >
+        <span className="truncate">{name ? `${name}, bạn đang thắc mắc điều gì?` : 'Viết bài chia sẻ với cộng đồng'}</span>
+      </button>
+    </div>
+  )
+}
+
+function FeedTabs({ isLearner, mode, onTabChange }: Pick<Props, 'isLearner' | 'mode' | 'onTabChange'>) {
+  const tabs: { label: string; value: 'public' | 'mine' }[] = [
+    { label: 'Tất cả', value: 'public' },
+    ...(isLearner ? [{ label: 'Bài của tôi', value: 'mine' as const }] : []),
+  ]
+  // A single tab chooses nothing, so guests see the feed straight away.
+  if (tabs.length < 2) return null
+  return (
+    <div aria-label="Bài viết cộng đồng" className="flex gap-1 rounded-pill bg-surface p-1 shadow-sm" role="tablist">
+      {tabs.map(({ label, value }) => (
+        <button
+          aria-selected={mode === value}
+          className={cn(
+            'min-h-10 flex-1 rounded-pill px-4 text-label transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+            mode === value ? 'bg-brand-600 text-surface' : 'text-ink-secondary hover:text-ink',
+          )}
+          key={value}
+          onClick={() => onTabChange(value)}
+          role="tab"
+          type="button"
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function PostCard({ post }: { post: PostSummary }) {
+  const author = post.author.displayName ?? 'Người dùng đã rời'
+  return (
+    <article className="min-w-0 rounded-lg bg-surface p-5 shadow-sm" role="listitem">
+      <header className="flex min-w-0 items-center gap-3">
+        <Initial className="size-10 text-body" name={author} />
+        <div className="min-w-0">
+          <p className="truncate text-label text-ink">{author}</p>
+          <p className="text-caption text-ink-muted">
+            {POST_CATEGORY_LABELS[post.category]} · {formatRelative(post.publishedAt)}
+          </p>
+        </div>
+      </header>
+      <Link
+        className="mt-3 block text-h3 text-ink hover:text-brand-700"
+        to={`/community/posts/${post.id}`}
+      >
+        {post.title}
+      </Link>
+      <p className="mt-2 line-clamp-3 whitespace-pre-wrap break-words text-body text-ink-secondary">{post.excerpt}</p>
+      <footer className="mt-4 flex items-center gap-5 text-body-sm text-ink-secondary">
+        <span className="inline-flex items-center gap-1.5">
+          <Heart aria-hidden="true" className="size-4" />
+          {post.likeCount} lượt thích
+        </span>
+        <Link
+          className="inline-flex items-center gap-1.5 hover:text-brand-700"
+          to={`/community/posts/${post.id}`}
+        >
+          <MessageCircle aria-hidden="true" className="size-4" />
+          {post.commentCount} bình luận
+        </Link>
+      </footer>
+    </article>
   )
 }
 
@@ -64,12 +243,10 @@ function OwnPostCard({ post }: { post: OwnPost }) {
   const location = useLocation()
   const showReason = (post.status === 'REJECTED' || post.status === 'HIDDEN') && post.reviewReason
   return (
-    <article className="rounded-md border border-line bg-surface p-5 shadow-sm">
+    <article className="rounded-lg bg-surface p-5 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h2 className="text-h3 text-ink">{post.title}</h2>
-        <StatusBadge tone={ownStatusTones[post.status]}>
-          {POST_STATUS_LABELS[post.status]}
-        </StatusBadge>
+        <StatusBadge tone={ownStatusTones[post.status]}>{POST_STATUS_LABELS[post.status]}</StatusBadge>
       </div>
       <p className="mt-2 text-body-sm text-ink-secondary">{POST_CATEGORY_LABELS[post.category]}</p>
       {showReason ? (
@@ -90,109 +267,23 @@ function OwnPostCard({ post }: { post: OwnPost }) {
   )
 }
 
-export function CommunityPostListView({
-  categories,
-  category,
-  data,
-  error,
-  isLearner,
-  mode,
-  onCategoryChange,
-  onPageChange,
-  onRetry,
-  onStatusChange,
-  onTabChange,
-  onWrite,
-  page,
-  size,
-  state,
-  status,
-}: Props) {
-  const items = data?.items ?? []
+export function CommunityPostListView(props: Props) {
+  const { aside, data, error, hotQuestions = [], mode, onPageChange, onRetry, page, size, state } = props
   const totalElements = data?.totalElements ?? 0
 
   return (
-    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 p-4 pb-16 sm:p-6">
-      <div className="relative">
-        <PageBanner
-          actions={
-            <Button onClick={onWrite} type="button">
-              Viết bài
-            </Button>
-          }
-          className="px-4 pt-4 pb-20 shadow-sm sm:px-5 [&>svg]:inset-y-auto [&>svg]:bottom-0 [&>svg]:block [&>svg]:h-16 [&>svg]:w-80 [&>svg]:max-w-full lg:[&>svg]:h-full lg:[&>svg]:w-3/5"
-          subtitle="Chia sẻ và học hỏi cùng cộng đồng."
-          title="Cộng đồng"
-        />
-        <img
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute bottom-1 left-5 hidden h-20 w-20 object-contain sm:block"
-          src={communityPanda}
-        />
-      </div>
+    <main className="mx-auto grid w-full min-w-0 max-w-content gap-5 px-4 py-6 pb-16 [grid-template-areas:'side'_'main'_'aside'] sm:px-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:[grid-template-areas:'side_side'_'main_aside'] xl:grid-cols-[15rem_minmax(0,1fr)_20rem] xl:[grid-template-areas:'side_main_aside']">
+      <h1 className="sr-only">Cộng đồng</h1>
 
-      <nav
-        aria-label="Bài viết cộng đồng"
-        className="flex gap-4 border-b border-line"
-        role="tablist"
-      >
-        <Button
-          aria-selected={mode === 'public'}
-          className={cn(
-            'rounded-none border-x-0 border-t-0 border-b-2 px-3 py-2 text-label',
-            mode === 'public'
-              ? 'border-brand-600 text-brand-700'
-              : 'border-transparent text-ink-secondary',
-          )}
-          onClick={() => onTabChange('public')}
-          role="tab"
-          type="button"
-          variant="ghost"
-        >
-          Bài công khai
-        </Button>
-        {isLearner ? (
-          <Button
-            aria-selected={mode === 'mine'}
-            className={cn(
-              'rounded-none border-x-0 border-t-0 border-b-2 px-3 py-2 text-label',
-              mode === 'mine'
-                ? 'border-brand-600 text-brand-700'
-                : 'border-transparent text-ink-secondary',
-            )}
-            onClick={() => onTabChange('mine')}
-            role="tab"
-            type="button"
-            variant="ghost"
-          >
-            Bài viết của tôi
-          </Button>
-        ) : null}
-      </nav>
-
-      <Card className="p-4 shadow-sm">
+      <div className="min-w-0 space-y-4 [grid-area:side] xl:sticky xl:top-28 xl:self-start">
         {mode === 'public' ? (
-          <FormField className="mb-0 max-w-sm" htmlFor="community-category" label="Danh mục">
-            <Select
-              id="community-category"
-              onChange={(event) => onCategoryChange(event.target.value as PostCategory | '')}
-              value={category}
-            >
-              <option value="">Tất cả danh mục</option>
-              {categories.map((value) => (
-                <option key={value} value={value}>
-                  {POST_CATEGORY_LABELS[value]}
-                </option>
-              ))}
-            </Select>
-          </FormField>
+          <TopicNav categories={props.categories} category={props.category} onCategoryChange={props.onCategoryChange} />
         ) : (
           <FormField className="mb-0 max-w-sm" htmlFor="community-status" label="Trạng thái">
             <Select
               id="community-status"
-              onChange={(event) => onStatusChange(event.target.value as PostStatus | '')}
-              value={status}
+              onChange={(event) => props.onStatusChange(event.target.value as PostStatus | '')}
+              value={props.status}
             >
               <option value="">Tất cả trạng thái</option>
               {(Object.keys(POST_STATUS_LABELS) as PostStatus[]).map((value) => (
@@ -203,99 +294,82 @@ export function CommunityPostListView({
             </Select>
           </FormField>
         )}
-      </Card>
+        <HotQuestions questions={hotQuestions} />
+      </div>
 
-      <PageState
-        empty={
-          <EmptyState
-            action={
-              page > 0 ? (
-                <Button onClick={() => onPageChange(0)} type="button" variant="outline">
-                  Về trang đầu
-                </Button>
-              ) : undefined
-            }
-            description="Hãy chọn bộ lọc khác hoặc chia sẻ bài viết mới cùng cộng đồng."
-            title={mode === 'mine' ? 'Chưa có bài viết' : 'Chưa có bài công khai'}
-          />
-        }
-        error={
-          <div role="alert">
-            <ErrorState
-              message={error ?? 'Không thể tải bài viết.'}
-              onRetry={onRetry}
-              title="Không thể tải bài viết"
+      <div className="min-w-0 space-y-4 [grid-area:main]">
+        <Card className="p-4">
+          <Composer name={props.isLearner ? props.currentUserName : undefined} onWrite={props.onWrite} />
+        </Card>
+        <FeedTabs isLearner={props.isLearner} mode={mode} onTabChange={props.onTabChange} />
+
+        <PageState
+          empty={
+            <EmptyState
+              action={
+                page > 0 ? (
+                  <Button onClick={() => onPageChange(0)} type="button" variant="outline">
+                    Về trang đầu
+                  </Button>
+                ) : undefined
+              }
+              description="Hãy chọn chủ đề khác hoặc chia sẻ bài viết mới cùng cộng đồng."
+              title={mode === 'mine' ? 'Chưa có bài viết' : 'Chưa có bài trong chủ đề này'}
             />
-          </div>
-        }
-        loading={<Loading />}
-        state={state}
-      >
-        <>
-          {mode === 'public' ? (
-            <div aria-label="Danh sách bài công khai" className="grid gap-4" role="list">
-              {((data as PostSummaryPage | undefined)?.items ?? []).map((post) => (
-                <article
-                  className="rounded-md border border-line bg-surface p-5 shadow-sm transition hover:border-brand-600"
-                  key={post.id}
-                  role="listitem"
-                >
-                  <Link
-                    className="text-h3 text-ink hover:text-brand-700 hover:underline"
-                    to={`/community/posts/${post.id}`}
-                  >
-                    {post.title}
-                  </Link>
-                  <p className="mt-2 text-body-sm font-medium text-ink-secondary">
-                    {POST_CATEGORY_LABELS[post.category]}
-                  </p>
-                  <p className="mt-1 text-body-sm text-ink-secondary">
-                    {post.author.displayName ?? 'Người dùng đã rời'}
-                  </p>
-                  <p className="mt-3 whitespace-pre-wrap break-words text-body-sm text-ink-secondary">
-                    {post.excerpt}
-                  </p>
-                  <p className="mt-4 border-t border-line pt-3 text-caption text-ink-muted">
-                    {formatPublishedAt(post.publishedAt)} · {post.commentCount} bình luận ·{' '}
-                    {post.likeCount} lượt thích
-                  </p>
-                </article>
-              ))}
+          }
+          error={
+            <div role="alert">
+              <ErrorState message={error ?? 'Không thể tải bài viết.'} onRetry={onRetry} title="Không thể tải bài viết" />
             </div>
-          ) : (
-            <div aria-label="Bài viết của tôi" className="grid gap-4">
-              {((data as OwnPostPage | undefined)?.items ?? []).map((post) => (
-                <OwnPostCard key={post.id} post={post} />
-              ))}
-            </div>
-          )}
-          {totalElements > 0 ? (
-            <div className="mt-6">
-              <Pagination
-                label="Phân trang bài viết"
-                onChange={(nextPage) => onPageChange(nextPage - 1)}
-                page={page + 1}
-                size={size}
-                total={totalElements}
-              />
-            </div>
-          ) : null}
-          {items.length === 0 ? (
-            <p className="text-body-sm text-ink-secondary">Không có bài phù hợp với bộ lọc.</p>
-          ) : null}
-        </>
-      </PageState>
+          }
+          loading={<Loading />}
+          state={state}
+        >
+          <>
+            {mode === 'public' ? (
+              <div aria-label="Danh sách bài công khai" className="grid gap-4" role="list">
+                {((data as PostSummaryPage | undefined)?.items ?? []).map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+            ) : (
+              <div aria-label="Bài viết của tôi" className="grid gap-4">
+                {((data as OwnPostPage | undefined)?.items ?? []).map((post) => (
+                  <OwnPostCard key={post.id} post={post} />
+                ))}
+              </div>
+            )}
+            {totalElements > size ? (
+              <div className="mt-6">
+                <Pagination
+                  label="Phân trang bài viết"
+                  onChange={(nextPage) => onPageChange(nextPage - 1)}
+                  page={page + 1}
+                  size={size}
+                  total={totalElements}
+                />
+              </div>
+            ) : null}
+          </>
+        </PageState>
+      </div>
+
+      {aside ? <div className="min-w-0 [grid-area:aside] lg:sticky lg:top-28 lg:self-start">{aside}</div> : null}
     </main>
   )
 }
 
-function formatPublishedAt(value: string): string {
+const RELATIVE = new Intl.RelativeTimeFormat('vi', { numeric: 'auto' })
+
+/** "3 giờ trước" for recent posts, a plain date after a week. */
+function formatRelative(value: string, now = Date.now()): string {
   const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? value
-    : new Intl.DateTimeFormat('vi-VN', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-        timeZone: 'Asia/Ho_Chi_Minh',
-      }).format(date)
+  if (Number.isNaN(date.getTime())) return value
+  const minutes = Math.round((date.getTime() - now) / 60_000)
+  if (Math.abs(minutes) < 60) return RELATIVE.format(Math.min(minutes, 0), 'minute')
+  const hours = Math.round(minutes / 60)
+  if (Math.abs(hours) < 24) return RELATIVE.format(hours, 'hour')
+  const days = Math.round(hours / 24)
+  if (Math.abs(days) < 7) return RELATIVE.format(days, 'day')
+  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeZone: 'Asia/Ho_Chi_Minh' }).format(date)
 }
