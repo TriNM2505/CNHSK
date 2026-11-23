@@ -8,9 +8,9 @@ import {
   gameNavigationItem,
   isNavigationItemActive,
   learnerNavigation,
-  learnerCommunityNavigation,
   type NavigationItem,
 } from '@/shared/layout/navigation'
+import { PublicHeader } from '@/shared/layout/PublicHeader'
 import { cn } from '@/shared/lib/cn'
 import { useCurrentUser } from '@/shared/auth'
 import { Button } from '@/shared/ui'
@@ -67,7 +67,7 @@ export function LearnerLayout({
 
   const sidebar = (
     <aside className="hidden shrink-0 border-r border-line bg-surface sm:block sm:w-16 lg:w-60">
-      <div className="sticky top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto">
+      <div className="sticky top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto lg:top-24 lg:max-h-[calc(100dvh-6rem)]">
         <nav aria-label="Học tập" className="space-y-1 p-2 lg:p-3">
           {learnerNavigation.map((item) => {
             const Icon = item.icon
@@ -93,26 +93,6 @@ export function LearnerLayout({
               <span className="sr-only lg:not-sr-only">{gameNavigationItem.label}</span>
             </a>
           ) : null}
-        </nav>
-        <nav aria-label="Cộng đồng" className="space-y-1 border-t border-line p-2 lg:p-3">
-          <h2 className="sr-only px-3 py-2 text-caption font-semibold text-ink-muted lg:not-sr-only">
-            Cộng đồng
-          </h2>
-          {learnerCommunityNavigation.map((item) => {
-            const Icon = item.icon
-            return (
-              <NavigationLink
-                key={item.to}
-                ariaLabel={item.label}
-                active={isNavigationItemActive(location.pathname, item)}
-                to={item.to}
-                className="flex min-h-touch items-center justify-center gap-3 px-3 lg:justify-start"
-              >
-                <Icon aria-hidden="true" className="size-5 shrink-0" />
-                <span className="sr-only lg:not-sr-only">{item.label}</span>
-              </NavigationLink>
-            )
-          })}
         </nav>
       </div>
     </aside>
@@ -160,10 +140,6 @@ export function LearnerLayout({
                 <span>{gameNavigationItem.label}</span>
               </p>
             )}
-            <h3 className="border-t border-line px-3 pt-3 text-caption font-semibold text-ink-muted">
-              Cộng đồng
-            </h3>
-            {learnerCommunityNavigation.map(menuLink)}
           </nav>
         </section>
       ) : null}
@@ -196,7 +172,7 @@ export function LearnerLayout({
           onClick={() => setMoreOpen((open) => !open)}
           className={cn(
             'flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-sm px-1 text-caption text-ink-secondary focus-visible:ring-2 focus-visible:ring-focus',
-            [...moreMobile, ...learnerCommunityNavigation].some((item) =>
+            moreMobile.some((item) =>
               isNavigationItemActive(location.pathname, item),
             ) && 'border-t-2 border-brand-600 bg-brand-50 text-brand-700',
           )}
@@ -209,7 +185,7 @@ export function LearnerLayout({
   )
 
   return (
-    <AppShell bottomNavigation={bottomNavigation} sidebar={sidebar}>
+    <AppShell bottomNavigation={bottomNavigation} header={<PublicHeader gameOrigin={gameOrigin} />} sidebar={sidebar}>
       {user && !user.emailVerified ? (
         <aside className="border-b border-warning bg-warning-bg px-4 py-3" role="status">
           <div className="mx-auto flex max-w-content flex-wrap items-center justify-center gap-3 sm:justify-between">

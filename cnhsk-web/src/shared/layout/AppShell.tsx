@@ -10,6 +10,8 @@ import { useCurrentUser } from '@/shared/auth'
 type AppShellProps = {
   bottomNavigation?: ReactNode
   children: ReactNode
+  /** Replaces the slim logo bar, e.g. with the full site navigation. */
+  header?: ReactNode
   headerTone?: 'default' | 'brand'
   sidebar?: ReactNode
 }
@@ -31,6 +33,7 @@ export function BrandLink({ inverse = false, logoClassName }: { inverse?: boolea
 export function AppShell({
   bottomNavigation,
   children,
+  header,
   headerTone = 'default',
   sidebar,
 }: AppShellProps) {
@@ -39,7 +42,7 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen min-w-0 flex-col bg-canvas">
-      <header
+      {header ?? <header
         className={cn(
           'sticky top-0 z-20 border-b px-4',
           inverse ? 'border-brand-700 bg-brand-800' : 'border-line bg-surface',
@@ -54,7 +57,7 @@ export function AppShell({
             </div>
           ) : null}
         </div>
-      </header>
+      </header>}
 
       <div className="flex min-w-0 flex-1">
         {sidebar}
