@@ -13,6 +13,7 @@ import {
 
 import { formatPercentage } from '../formatters'
 import type { PronunciationStageSummary } from '../types'
+import { PronunciationTabs } from './PronunciationTabs'
 
 type LoadError = { message: string; requestId?: string }
 
@@ -149,8 +150,9 @@ export function PronunciationStageListView({
     <div className="mx-auto w-full min-w-0 max-w-content space-y-6 pb-16">
       <PageBanner
         subtitle="Nghe và phân biệt âm theo tám tầng, từ thanh mẫu đến biến điệu."
-        title="Nghe phân biệt âm"
+        title="Phát âm"
       />
+      <PronunciationTabs />
 
       {state === 'loading' ? <LoadingStages /> : null}
       {state === 'empty' ? (

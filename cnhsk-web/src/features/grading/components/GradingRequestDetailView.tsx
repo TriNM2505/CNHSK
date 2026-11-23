@@ -13,7 +13,13 @@ import {
   type HskLevel,
   type StatusTone,
 } from '@/shared/ui'
-import { displayTime, statusLabels, type GradingRequest, type RequestStatus } from '../types'
+import {
+  criterionLabelsFor,
+  displayTime,
+  statusLabels,
+  type GradingRequest,
+  type RequestStatus,
+} from '../types'
 
 type Props = {
   state: ApiQueryState
@@ -163,15 +169,18 @@ export function GradingRequestDetailView(props: Props) {
 
               <Card className="min-w-0 space-y-3 p-5 sm:p-6">
                 <div className="flex items-center justify-between gap-2 border-b border-line pb-3">
-                  <h2 className="text-h3 text-ink">Bài viết</h2>
+                  <h2 className="text-h3 text-ink">{row.mode === 'SPEAKING' ? 'Bài nói' : 'Bài viết'}</h2>
                   <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-50 px-3 py-1 text-caption font-semibold text-brand-700">
                     <Sparkles aria-hidden="true" className="size-3.5" />
-                    Nội dung gốc
+                    {row.mode === 'SPEAKING' ? 'Câu đã đọc' : 'Nội dung gốc'}
                   </span>
                 </div>
                 <p className="rounded-md border border-brand-100 bg-brand-50 p-4 whitespace-pre-wrap break-words font-hanzi text-body text-ink [overflow-wrap:anywhere]">
                   {row.essay}
                 </p>
+                {row.mode === 'SPEAKING' && row.audioUrl ? (
+                  <audio aria-label="Bản ghi âm của bạn" className="w-full" controls preload="metadata" src={row.audioUrl} />
+                ) : null}
               </Card>
             </div>
 
@@ -191,14 +200,9 @@ export function GradingRequestDetailView(props: Props) {
                   </div>
 
                   <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {(
-                      [
-                        ['Ngữ pháp', result.criteria.grammar],
-                        ['Từ vựng', result.criteria.vocabulary],
-                        ['Mạch lạc', result.criteria.coherence],
-                        ['Chữ viết', result.criteria.writing],
-                      ] as const
-                    ).map(([label, score]) => (
+                    {(['grammar', 'vocabulary', 'coherence', 'writing'] as const)
+                      .map((key) => [criterionLabelsFor(row.mode)[key], result.criteria[key]] as const)
+                      .map(([label, score]) => (
                       <div
                         className="rounded-md border border-brand-100 bg-brand-50 p-3.5"
                         key={label}

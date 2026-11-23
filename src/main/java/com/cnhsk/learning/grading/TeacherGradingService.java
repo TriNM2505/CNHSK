@@ -50,13 +50,13 @@ public class TeacherGradingService {
         int payout = settings.getInt(SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
         List<QueueItem> items = repository.findQueue(teacherId, now, page, size).stream().map(row ->
                 new QueueItem(row.id(), reference(row.id()), row.hanziCount(), row.hskLevel(), row.createdAt(),
-                        row.deadline(), payout)).toList();
+                        row.deadline(), payout, row.mode())).toList();
         return new QueuePage(items, page, size, total);
     }
 
     public List<AssignedItem> mine(long teacherId) {
         return repository.findAssigned(teacherId).stream().map(row -> new AssignedItem(row.id(), reference(row.id()),
-                row.hanziCount(), row.assignedAt(), row.deadline())).toList();
+                row.hanziCount(), row.assignedAt(), row.deadline(), row.mode())).toList();
     }
 
     @Transactional
@@ -133,7 +133,8 @@ public class TeacherGradingService {
                 payload.path("prompt").isNull() || payload.path("prompt").isMissingNode() ? null : payload.path("prompt").asText(),
                 payload.path("hskLevel").isNull() || payload.path("hskLevel").isMissingNode() ? null : payload.path("hskLevel").intValue(),
                 payload.get("hanziCount").intValue(), row.assignedAt(), row.deadline(),
-                result == null ? settings.getInt(SettingKey.GRADING_TEACHER_PAYOUT_CREDITS) : row.payout(), result);
+                result == null ? settings.getInt(SettingKey.GRADING_TEACHER_PAYOUT_CREDITS) : row.payout(), result,
+                GradingRequestViews.mode(payload), GradingRequestViews.audioUrl(payload));
     }
 
     private String reference(long id) { return String.format(Locale.ROOT, "GR-%06d", id); }

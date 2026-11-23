@@ -230,6 +230,13 @@ export const appRouteDefinitions = [
     access: ['LEARNER'],
     kind: 'screen',
     layout: 'learner',
+    path: '/learn/pronunciation/speaking',
+    scr: 'SCR-016',
+  },
+  {
+    access: ['LEARNER'],
+    kind: 'screen',
+    layout: 'learner',
     path: '/learn/characters/recognition',
     scr: 'SCR-015',
   },

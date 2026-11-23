@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 
 import { codePointLength } from '@/features/grading/essayRules'
-import { displayTime } from '@/features/grading/types'
+import { criterionLabelsFor, displayTime } from '@/features/grading/types'
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
   PageBanner,
@@ -28,7 +28,7 @@ import {
   Textarea,
   type HskLevel,
 } from '@/shared/ui'
-import { criterionLabels, resultErrors, totalScore } from '../gradingRules'
+import { resultErrors, totalScore } from '../gradingRules'
 import type { Criteria, ResultDraft, TeacherGradingDetail } from '../types'
 import { deadlineLabel } from '../useGradingDeadline'
 
@@ -161,15 +161,21 @@ export function TeacherGradingWorkspaceView(props: Props) {
 
             <Card className="min-w-0 space-y-3 p-5 sm:p-6">
               <div className="flex items-center justify-between gap-2 border-b border-line pb-3">
-                <h2 className="text-h3 text-ink">Bài viết</h2>
+                <h2 className="text-h3 text-ink">{detail.mode === 'SPEAKING' ? 'Bài nói' : 'Bài viết'}</h2>
                 <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-50 px-3 py-1 text-caption font-semibold text-brand-700">
                   <Sparkles aria-hidden="true" className="size-3.5" />
                   {detail.hanziCount} chữ Hán
                 </span>
               </div>
+              {detail.mode === 'SPEAKING' ? (
+                <p className="text-body-sm text-ink-secondary">Học viên đọc câu dưới đây. Nghe bản ghi rồi chấm phát âm.</p>
+              ) : null}
               <p className="rounded-md border border-brand-100 bg-brand-50 p-4 whitespace-pre-wrap break-words font-hanzi text-body text-ink [overflow-wrap:anywhere]">
                 {detail.essay}
               </p>
+              {detail.mode === 'SPEAKING' && detail.audioUrl ? (
+                <audio aria-label="Bản ghi âm của học viên" className="w-full" controls preload="metadata" src={detail.audioUrl} />
+              ) : null}
             </Card>
           </div>
 
@@ -189,7 +195,7 @@ export function TeacherGradingWorkspaceView(props: Props) {
                 </div>
 
                 <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {Object.entries(criterionLabels).map(([key, label]) => (
+                  {Object.entries(criterionLabelsFor(detail.mode)).map(([key, label]) => (
                     <div
                       className="rounded-md border border-brand-100 bg-brand-50 p-3.5"
                       key={key}
@@ -262,7 +268,7 @@ export function TeacherGradingWorkspaceView(props: Props) {
                       </div>
 
                       <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
-                        {Object.entries(criterionLabels).map(([key, label]) => (
+                        {Object.entries(criterionLabelsFor(detail.mode)).map(([key, label]) => (
                           <FormField
                             className="mb-0"
                             error={

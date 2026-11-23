@@ -24,6 +24,14 @@ export type GradingRequestWrite = {
   hskLevel?: number | null
 }
 export type Criteria = { grammar: number; vocabulary: number; coherence: number; writing: number }
+export type GradingMode = 'ESSAY' | 'SPEAKING'
+
+/** A speaking request reuses the four 0–25 marks of an essay under pronunciation names. */
+export function criterionLabelsFor(mode?: GradingMode): Readonly<Record<keyof Criteria, string>> {
+  return mode === 'SPEAKING'
+    ? { grammar: 'Thanh điệu', vocabulary: 'Thanh mẫu, vận mẫu', coherence: 'Trôi chảy, ngữ điệu', writing: 'Rõ ràng' }
+    : { grammar: 'Ngữ pháp', vocabulary: 'Từ vựng', coherence: 'Mạch lạc', writing: 'Chữ viết' }
+}
 export type Correction = { original: string; corrected: string; note?: string | null }
 export type GradingResult = {
   score: number
@@ -44,6 +52,9 @@ export type GradingRequest = {
   completedAt: string | null
   result: GradingResult | null
   refunded: boolean
+  mode?: GradingMode
+  /** The learner's recording when `mode` is SPEAKING. */
+  audioUrl?: string | null
 }
 
 export type GradingRequestSummary = {
@@ -55,6 +66,7 @@ export type GradingRequestSummary = {
   deadline: string | null
   completedAt: string | null
   score: number | null
+  mode?: GradingMode
 }
 export type GradingRequestPage = {
   items: GradingRequestSummary[]

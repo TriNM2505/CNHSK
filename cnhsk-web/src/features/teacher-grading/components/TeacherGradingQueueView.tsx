@@ -150,7 +150,10 @@ export function TeacherGradingQueueView(props: Props) {
                         <FileText aria-hidden="true" className="size-4 shrink-0 text-brand-600" />
                         <span>{item.reference}</span>
                       </p>
-                      <StatusBadge tone="info">{item.hanziCount} chữ Hán</StatusBadge>
+                      <StatusBadge tone="info">
+                        {item.mode === 'SPEAKING' ? 'Bài nói · ' : ''}
+                        {item.hanziCount} chữ Hán
+                      </StatusBadge>
                     </div>
                     <p className="text-body-sm text-ink-secondary">
                       Nhận lúc: {displayTime(item.assignedAt)}

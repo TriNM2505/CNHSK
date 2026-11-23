@@ -13,7 +13,8 @@ public final class TeacherGradingViews {
     @Schema(name = "QueueItem")
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record QueueItem(long id, String reference, int hanziCount, Integer hskLevel,
-            Instant sentAt, Instant claimDeadline, int payoutCredits) { }
+            Instant sentAt, Instant claimDeadline, int payoutCredits,
+            @Schema(allowableValues = {"ESSAY", "SPEAKING"}) String mode) { }
 
     @Schema(name = "QueuePage")
     public record QueuePage(List<QueueItem> items, int page, int size, long totalElements) {
@@ -21,12 +22,14 @@ public final class TeacherGradingViews {
     }
 
     @Schema(name = "AssignedItem")
-    public record AssignedItem(long id, String reference, int hanziCount, Instant assignedAt, Instant gradingDeadline) { }
+    public record AssignedItem(long id, String reference, int hanziCount, Instant assignedAt, Instant gradingDeadline,
+            @Schema(allowableValues = {"ESSAY", "SPEAKING"}) String mode) { }
 
     @Schema(name = "TeacherGradingDetail")
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Detail(long id, String reference, String status, String essay, String prompt, Integer hskLevel,
-            int hanziCount, Instant assignedAt, Instant gradingDeadline, int payoutCredits, GradingRequestViews.Result result) {
+            int hanziCount, Instant assignedAt, Instant gradingDeadline, int payoutCredits, GradingRequestViews.Result result,
+            @Schema(allowableValues = {"ESSAY", "SPEAKING"}) String mode, String audioUrl) {
         @Override public String toString() { return "TeacherGradingDetail[id=" + id + ", status=" + status + "]"; }
     }
 }

@@ -1,10 +1,6 @@
 package com.cnhsk.community.media;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +10,7 @@ import com.cnhsk.community.media.web.MediaItem;
 import com.cnhsk.community.media.web.UploadSignature;
 import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
+import com.cnhsk.shared.media.MediaProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -48,12 +45,9 @@ public class MediaService {
         }
         requireConfigured();
         long timestamp = clock.instant().getEpochSecond();
-        // Cloudinary signs the alphabetically sorted parameters joined with '&', followed by the secret.
         String folder = avatar ? properties.getFolder() + "-avatars" : properties.getFolder();
-        String toSign = "folder=" + folder + "&timestamp=" + timestamp;
         return new UploadSignature(properties.getCloudName(), properties.getApiKey(), folder,
-                timestamp, sha1Hex(toSign + properties.getApiSecret()),
-                "https://api.cloudinary.com/v1_1/" + properties.getCloudName() + "/auto/upload");
+                timestamp, properties.signature(folder, timestamp), properties.uploadUrl());
     }
 
     /** Checks attachments before they are stored with a post; {@code null} means none. */
@@ -83,14 +77,5 @@ public class MediaService {
     private static ApiException invalid(String message) {
         return new ApiException(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY, "Dữ liệu không hợp lệ.",
                 Map.of("details", List.of(Map.of("field", "media", "message", message))));
-    }
-
-    static String sha1Hex(String value) {
-        try {
-            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1")
-                    .digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException(exception);
-        }
     }
 }

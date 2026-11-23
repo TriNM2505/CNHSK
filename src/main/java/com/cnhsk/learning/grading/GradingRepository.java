@@ -23,6 +23,8 @@ public class GradingRepository {
     private static final String COLUMNS = "id,user_id,status,payload,result,assignee_id,assigned_at,deadline_at,"
             + "score,feedback,payout,created_at,completed_at,error_message";
     private static final String CLAIM_DEADLINE = "(payload->>'claimDeadline')::timestamptz";
+    /** Requests from before speaking existed have no mode and are essays. */
+    private static final String MODE = "CASE WHEN payload->>'mode' = 'SPEAKING' THEN 'SPEAKING' ELSE 'ESSAY' END";
     private final NamedParameterJdbcTemplate jdbc;
     private final ObjectMapper mapper;
 
@@ -98,26 +100,27 @@ public class GradingRepository {
     @Transactional(readOnly = true)
     public List<QueueRow> findQueue(long teacherId, Instant now, int page, int size) {
         return jdbc.query("SELECT id,(payload->>'hanziCount')::integer AS hanzi_count,"
-                        + "(payload->>'hskLevel')::integer AS hsk_level,created_at,deadline_at "
+                        + "(payload->>'hskLevel')::integer AS hsk_level,created_at,deadline_at," + MODE + " AS mode "
                         + "FROM learning.service_requests WHERE kind='GRADING' AND status='PENDING' "
                         + "AND user_id<>:teacher AND deadline_at>:now ORDER BY deadline_at,id LIMIT :size OFFSET :offset",
                 parameters(0, now).addValue("teacher", teacherId).addValue("size", size)
                         .addValue("offset", Math.multiplyExact((long) page, size)),
                 (row, index) -> new QueueRow(row.getLong("id"), row.getInt("hanzi_count"),
-                        row.getObject("hsk_level", Integer.class), instant(row, "created_at"), instant(row, "deadline_at")));
+                        row.getObject("hsk_level", Integer.class), instant(row, "created_at"), instant(row, "deadline_at"),
+                        row.getString("mode")));
     }
 
     @Transactional(readOnly = true)
     public List<AssignedRow> findAssigned(long teacherId) {
-        return jdbc.query("SELECT id,(payload->>'hanziCount')::integer AS hanzi_count,assigned_at,deadline_at "
+        return jdbc.query("SELECT id,(payload->>'hanziCount')::integer AS hanzi_count,assigned_at,deadline_at," + MODE + " AS mode "
                         + "FROM learning.service_requests WHERE kind='GRADING' AND status='ASSIGNED' AND assignee_id=:teacher "
                         + "ORDER BY deadline_at,id", Map.of("teacher", teacherId),
                 (row, index) -> new AssignedRow(row.getLong("id"), row.getInt("hanzi_count"),
-                        instant(row, "assigned_at"), instant(row, "deadline_at")));
+                        instant(row, "assigned_at"), instant(row, "deadline_at"), row.getString("mode")));
     }
 
-    public record QueueRow(long id, int hanziCount, Integer hskLevel, Instant createdAt, Instant deadline) { }
-    public record AssignedRow(long id, int hanziCount, Instant assignedAt, Instant deadline) { }
+    public record QueueRow(long id, int hanziCount, Integer hskLevel, Instant createdAt, Instant deadline, String mode) { }
+    public record AssignedRow(long id, int hanziCount, Instant assignedAt, Instant deadline, String mode) { }
 
     @Transactional(propagation = Propagation.MANDATORY)
     public boolean claim(long id, long teacherId, Instant now, Instant gradingDeadline) {

@@ -52,7 +52,7 @@ export function describeNotification(item: NotificationItem): { text: string; de
     // Learning events: total carries the score, points or approved count, postId the service request and
     // commentId the rejected count.
     case 'GRADED':
-      return { text: `Bài viết bạn nhờ chấm đã có kết quả: ${item.total}/100 điểm.`, to: `/grading/${item.postId}` }
+      return { text: `Bài bạn nhờ chấm đã có kết quả: ${item.total}/100 điểm.`, to: `/grading/${item.postId}` }
     case 'GRADING_EXPIRED':
       return { text: 'Bài nhờ chấm đã quá hạn mà chưa có giáo viên chấm.', to: `/grading/${item.postId}` }
     case 'AI_REVIEWED': {

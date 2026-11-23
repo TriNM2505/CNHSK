@@ -17,7 +17,8 @@ public final class GradingRequestViews {
     @Schema(name = "GradingRequestSummary")
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Summary(@Schema(type = "integer", format = "int64") long id, String reference,
-            String essayPreview, String status, Instant createdAt, Instant deadline, Instant completedAt, Integer score) { }
+            String essayPreview, String status, Instant createdAt, Instant deadline, Instant completedAt, Integer score,
+            @Schema(allowableValues = {"ESSAY", "SPEAKING"}) String mode) { }
 
     @Schema(name = "GradingRequestPage")
     public record Page(List<Summary> items, int page, int size, long totalElements) {
@@ -28,12 +29,26 @@ public final class GradingRequestViews {
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Detail(@Schema(type = "integer", format = "int64") long id, String reference,
             String status, String essay, String prompt, Integer hskLevel, Instant createdAt,
-            Instant deadline, Instant completedAt, Result result, boolean refunded) {
+            Instant deadline, Instant completedAt, Result result, boolean refunded,
+            @Schema(allowableValues = {"ESSAY", "SPEAKING"}) String mode, String audioUrl) {
         @Override public String toString() { return "GradingRequest[id=" + id + ", status=" + status + "]"; }
     }
 
+    /**
+     * Four 0–25 marks. A speaking request reuses the same slots: grammar = tones, vocabulary = initials and finals,
+     * coherence = fluency and intonation, writing = clarity.
+     */
     @Schema(name = "Criteria")
     public record Criteria(int grammar, int vocabulary, int coherence, int writing) { }
+
+    /** Requests created before speaking existed carry no mode and are essays. */
+    public static String mode(com.fasterxml.jackson.databind.JsonNode payload) {
+        return "SPEAKING".equals(payload.path("mode").asText()) ? "SPEAKING" : "ESSAY";
+    }
+
+    public static String audioUrl(com.fasterxml.jackson.databind.JsonNode payload) {
+        return payload.path("audioUrl").isTextual() ? payload.get("audioUrl").textValue() : null;
+    }
 
     @Schema(name = "Correction")
     @JsonInclude(JsonInclude.Include.ALWAYS)

@@ -13,6 +13,7 @@ import com.cnhsk.learning.api.Consumption;
 import com.cnhsk.learning.api.EntitlementApi;
 import com.cnhsk.learning.api.PaidFeature;
 import com.cnhsk.learning.grading.GradingRepository.RequestRow;
+import com.cnhsk.learning.grading.web.GradingRequestViews;
 import com.cnhsk.learning.grading.web.GradingRequestViews.*;
 import com.cnhsk.learning.grading.web.GradingRequestWrite;
 import com.cnhsk.shared.exception.ApiException;
@@ -82,7 +83,8 @@ public class GradingRequestService {
             String essay = essay(row);
             String preview = essay.substring(0, essay.offsetByCodePoints(0, Math.min(100, essay.codePointCount(0, essay.length()))));
             return new Summary(row.id(), reference(row.id()), preview, row.status(), row.createdAt(),
-                    row.deadline(), row.completedAt(), "COMPLETED".equals(row.status()) ? row.score() : null);
+                    row.deadline(), row.completedAt(), "COMPLETED".equals(row.status()) ? row.score() : null,
+                    GradingRequestViews.mode(row.payload()));
         }).toList();
         return new Page(items, page, size, total);
     }
@@ -127,7 +129,8 @@ public class GradingRequestService {
         return new Detail(row.id(), reference(row.id()), row.status(), essay(row),
                 payload.path("prompt").isNull() || payload.path("prompt").isMissingNode() ? null : payload.path("prompt").asText(),
                 payload.path("hskLevel").isNull() || payload.path("hskLevel").isMissingNode() ? null : payload.path("hskLevel").intValue(),
-                row.createdAt(), row.deadline(), row.completedAt(), result, refunded);
+                row.createdAt(), row.deadline(), row.completedAt(), result, refunded,
+                GradingRequestViews.mode(payload), GradingRequestViews.audioUrl(payload));
     }
 
     private String essay(RequestRow row) {

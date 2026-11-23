@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 
 import { useApiQuery } from '@/shared/api'
 import { Button } from '@/shared/ui'
@@ -9,13 +9,20 @@ import { PronunciationPracticeView } from '../components/PronunciationPracticeVi
 import { PronunciationStageListView } from '../components/PronunciationStageListView'
 import type { PronunciationStageSummary } from '../types'
 import { PronunciationPracticeController } from './PronunciationPracticeController'
+import SpeakingPracticePage from './SpeakingPracticePage'
 
 function parseStageIndex(value: string | undefined) {
   if (!value || !/^[1-8]$/.test(value)) return undefined
   return Number(value)
 }
 
+/** SCR-016 has two halves: listening discrimination (stages) and speaking for a teacher. */
 export default function Scr016PronunciationPage() {
+  const { pathname } = useLocation()
+  return pathname.replace(/\/$/, '').endsWith('/speaking') ? <SpeakingPracticePage /> : <ListeningPage />
+}
+
+function ListeningPage() {
   const params = useParams()
   const onStageRoute = params.stageIndex !== undefined
   const stageIndex = parseStageIndex(params.stageIndex)

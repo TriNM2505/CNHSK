@@ -1,4 +1,10 @@
-import type { Correction, Criteria, GradingResult, RequestStatus } from '@/features/grading/types'
+import type {
+  Correction,
+  Criteria,
+  GradingMode,
+  GradingResult,
+  RequestStatus,
+} from '@/features/grading/types'
 
 export type { Correction, Criteria, GradingResult }
 export type QueueItem = {
@@ -9,6 +15,7 @@ export type QueueItem = {
   sentAt: string
   claimDeadline: string
   payoutCredits: number
+  mode?: GradingMode
 }
 export type QueuePage = { items: QueueItem[]; page: number; size: number; totalElements: number }
 export type AssignedItem = {
@@ -17,6 +24,7 @@ export type AssignedItem = {
   hanziCount: number
   assignedAt: string
   gradingDeadline: string
+  mode?: GradingMode
 }
 export type TeacherGradingDetail = {
   id: number
@@ -30,6 +38,9 @@ export type TeacherGradingDetail = {
   gradingDeadline: string
   payoutCredits: number
   result: GradingResult | null
+  mode?: GradingMode
+  /** The learner's recording when `mode` is SPEAKING. */
+  audioUrl?: string | null
 }
 export type GradingResultWrite = { criteria: Criteria; feedback: string; corrections: Correction[] }
 export type ResultDraft = {
