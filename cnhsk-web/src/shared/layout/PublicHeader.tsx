@@ -1,4 +1,4 @@
-import { ChevronDown, Lock, Menu, Search, X } from 'lucide-react'
+import { ChevronDown, Lock, Menu, X } from 'lucide-react'
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { Link, useLocation, type Location } from 'react-router-dom'
 
@@ -161,13 +161,6 @@ export function PublicHeader({ gameOrigin = import.meta.env.VITE_GAME_ORIGIN }: 
           </ul>
         </nav>
         <div className="flex items-center gap-2">
-          <Link
-            aria-label="Tra từ điển"
-            className="hidden size-touch items-center justify-center rounded-sm text-ink transition-colors hover:text-brand-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus lg:inline-flex"
-            to="/dictionary"
-          >
-            <Search aria-hidden="true" className="size-6" />
-          </Link>
           {user ? (
             <>
               <NotificationBell />

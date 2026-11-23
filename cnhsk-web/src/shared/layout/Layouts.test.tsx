@@ -90,7 +90,7 @@ describe('PublicLayout', () => {
 
     expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute('href', '/login')
     expect(screen.getByRole('link', { name: 'Đăng ký' })).toHaveAttribute('href', '/register')
-    expect(screen.getByRole('link', { name: 'Tra từ điển' })).toHaveAttribute('href', '/dictionary')
+    expect(screen.queryByRole('link', { name: 'Tra từ điển' })).not.toBeInTheDocument()
   })
 
   it.each([
