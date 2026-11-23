@@ -1,4 +1,4 @@
-import { Heart, MessageCircle, SendHorizontal } from 'lucide-react'
+import { CornerDownRight, Heart, MessageCircle, SendHorizontal } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -6,6 +6,7 @@ import { cn } from '@/shared/lib/cn'
 
 import { createComment, listPostComments, replyToComment } from '../api/comments'
 import { likePost, unlikePost } from '../api/posts'
+import { formatRelative } from '../relative-time'
 import type { Comment } from '../types'
 
 const SHOWN_THREADS = 3
@@ -58,19 +59,37 @@ function toThreads(comments: readonly Comment[]): Thread[] {
   return [...threads.values()]
 }
 
-function Bubble({ comment, onReply }: { comment: Comment; onReply?: () => void }) {
+/** One comment: avatar, "Name · 2 giờ", the text, then a small Trả lời action. */
+function CommentLine({
+  comment,
+  mention,
+  onReply,
+  small = false,
+}: {
+  comment: Comment
+  /** Name of the person this reply answers, shown in colour before the text. */
+  mention?: string
+  onReply?: () => void
+  small?: boolean
+}) {
   const name = comment.author?.displayName ?? 'Người dùng đã rời'
   return (
-    <div className="min-w-0">
-      <div className="rounded-md bg-canvas px-3 py-2">
-        <p className="text-label text-ink">{name}</p>
-        <p className="whitespace-pre-wrap break-words text-body-sm text-ink">{comment.content}</p>
+    <div className="flex min-w-0 gap-2">
+      <Initial name={name} small={small} />
+      <div className="min-w-0 flex-1">
+        <p className="text-caption text-ink-muted">
+          <span className="text-label text-ink">{name}</span> · {formatRelative(comment.createdAt)}
+        </p>
+        <p className="whitespace-pre-wrap break-words text-body-sm text-ink">
+          {mention ? <span className="font-semibold text-brand-700">{mention} </span> : null}
+          {comment.content}
+        </p>
+        {onReply ? (
+          <button className="mt-1 text-caption font-semibold text-ink-secondary hover:text-ink" onClick={onReply} type="button">
+            Trả lời
+          </button>
+        ) : null}
       </div>
-      {onReply ? (
-        <button className="ml-3 mt-0.5 text-caption font-semibold text-ink-secondary hover:underline" onClick={onReply} type="button">
-          Phản hồi
-        </button>
-      ) : null}
     </div>
   )
 }
@@ -89,6 +108,16 @@ export function PostInteractions(props: PostInteractionsProps) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
   const replyInput = useRef<HTMLInputElement>(null)
+  const [expandedThreads, setExpandedThreads] = useState<ReadonlySet<number>>(new Set())
+
+  function toggleThread(id: number) {
+    setExpandedThreads((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   useEffect(() => setLiked(props.liked), [props.liked])
 
@@ -218,21 +247,52 @@ export function PostInteractions(props: PostInteractionsProps) {
 
           {shown.map(({ replies, root }) => {
             const replying = replyTo !== undefined && (replyTo.id === root.id || replies.some((reply) => reply.id === replyTo.id))
+            const expanded = replying || expandedThreads.has(root.id)
+            const byId = new Map([root, ...replies].map((comment) => [comment.id, comment]))
             return (
               <div className="space-y-2" key={root.id}>
-                <div className="flex gap-2">
-                  <Initial name={root.author?.displayName ?? '?'} />
-                  <Bubble comment={root} onReply={() => startReply(root)} />
-                </div>
-                {replies.length > 0 || replying ? (
-                  <div className="ml-10 space-y-2 border-l-2 border-line pl-3">
-                    {replies.map((reply) => (
-                      <div className="flex gap-2" key={reply.id}>
-                        <Initial name={reply.author?.displayName ?? '?'} small />
-                        <Bubble comment={reply} onReply={() => startReply(reply)} />
-                      </div>
-                    ))}
+                <CommentLine comment={root} onReply={() => startReply(root)} />
+                {replies.length > 0 && !expanded ? (
+                  <button
+                    className="ml-10 flex items-center gap-2 text-caption font-semibold text-ink-secondary hover:text-ink"
+                    onClick={() => toggleThread(root.id)}
+                    type="button"
+                  >
+                    <CornerDownRight aria-hidden="true" className="size-4" />
+                    Xem {replies.length} phản hồi
+                  </button>
+                ) : null}
+                {expanded ? (
+                  <ul className="relative ml-4 space-y-3 border-l-2 border-line pl-6">
+                    {replies.map((reply) => {
+                      const parent = reply.parentId !== null ? byId.get(reply.parentId) : undefined
+                      return (
+                        <li className="relative" key={reply.id}>
+                          {/* Curved link from the thread line to this reply, as in a social feed. */}
+                          <span aria-hidden="true" className="absolute -left-6 top-0 h-4 w-5 rounded-bl-lg border-b-2 border-line" />
+                          <CommentLine
+                            comment={reply}
+                            mention={parent && parent.id !== root.id ? parent.author?.displayName ?? undefined : undefined}
+                            onReply={() => startReply(reply)}
+                            small
+                          />
+                        </li>
+                      )
+                    })}
+                    {replies.length > 0 && !replying ? (
+                      <li>
+                        <button
+                          className="text-caption font-semibold text-ink-secondary hover:text-ink"
+                          onClick={() => toggleThread(root.id)}
+                          type="button"
+                        >
+                          Ẩn phản hồi
+                        </button>
+                      </li>
+                    ) : null}
                     {replying && replyTo ? (
+                      <li className="relative">
+                      <span aria-hidden="true" className="absolute -left-6 top-0 h-4 w-5 rounded-bl-lg border-b-2 border-line" />
                       <form className="flex items-center gap-2" onSubmit={(event) => void submitReply(event)}>
                         <Initial name={props.viewerName ?? 'B'} small />
                         <label className="sr-only" htmlFor={`reply-${props.postId}-${root.id}`}>
@@ -260,8 +320,9 @@ export function PostInteractions(props: PostInteractionsProps) {
                           <SendHorizontal aria-hidden="true" className="size-5" />
                         </button>
                       </form>
+                      </li>
                     ) : null}
-                  </div>
+                  </ul>
                 ) : null}
               </div>
             )

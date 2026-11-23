@@ -29,6 +29,7 @@ import {
 } from '@/shared/ui'
 
 import { POST_CATEGORY_LABELS, POST_STATUS_LABELS } from '../labels'
+import { formatRelative } from '../relative-time'
 import { MediaGallery } from './MediaGallery'
 import { PostInteractions } from './PostInteractions'
 import type { OwnPost, OwnPostPage, PinnedPost, PostCategory, PostStatus, PostSummary, PostSummaryPage } from '../types'
@@ -462,19 +463,4 @@ export function CommunityPostListView(props: Props) {
       {aside ? <div className="min-w-0 [grid-area:aside] lg:sticky lg:top-28 lg:self-start">{aside}</div> : null}
     </main>
   )
-}
-
-const RELATIVE = new Intl.RelativeTimeFormat('vi', { numeric: 'auto' })
-
-/** "3 giờ trước" for recent posts, a plain date after a week. */
-function formatRelative(value: string, now = Date.now()): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
-  const minutes = Math.round((date.getTime() - now) / 60_000)
-  if (Math.abs(minutes) < 60) return RELATIVE.format(Math.min(minutes, 0), 'minute')
-  const hours = Math.round(minutes / 60)
-  if (Math.abs(hours) < 24) return RELATIVE.format(hours, 'hour')
-  const days = Math.round(hours / 24)
-  if (Math.abs(days) < 7) return RELATIVE.format(days, 'day')
-  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeZone: 'Asia/Ho_Chi_Minh' }).format(date)
 }
