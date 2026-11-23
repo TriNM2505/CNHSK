@@ -171,7 +171,7 @@ const recommendationSamples: Pick<Recommendation, 'kid' | 'kind' | 'reason'>[] =
   { kid: 'NP1-901', kind: 'REVIEW', reason: 'Cần ôn: 34,1/100.' },
   { kid: 'CH1-901', kind: 'REVIEW', reason: 'Cần ôn: 34,1/100.' },
   { kid: 'TV1-902', kind: 'CONSOLIDATE', reason: 'Đến hạn củng cố từ chỉ gia đình.' },
-  { kid: 'TV2-903', kind: 'NEW', reason: 'Nút mới đã đủ tiên quyết.' },
+  { kid: 'TV2-903', kind: 'NEW', reason: 'Bạn đã đủ nền tảng để học phần này.' },
 ]
 
 export const recommendationsPreview: Recommendation[] = recommendationSamples.map(

@@ -130,6 +130,15 @@ beforeEach(() => {
   getMyMasteryNodeMock.mockResolvedValue(testDetail)
 })
 
+/** Tìm ô của một phần năng lực theo mã; ô không hiện mã cho người học. */
+function findNode(container: HTMLElement, kid: string) {
+  return waitFor(() => {
+    const node = container.querySelector<HTMLButtonElement>(`button[data-kid="${kid}"]`)
+    expect(node).not.toBeNull()
+    return node!
+  })
+}
+
 describe('SCR-019 Learning Progress (FR-024, AT-24)', () => {
   it('renders six state colors with text labels, frontier border, domain codes, and HSK 1–3 only', async () => {
     const levelFour: KnowledgeTree = {
@@ -157,7 +166,7 @@ describe('SCR-019 Learning Progress (FR-024, AT-24)', () => {
       expect(nodeButton).toHaveTextContent(label)
       expect(nodeButton).toHaveClass(colorClass)
     }
-    for (const domain of ['NA', 'CH', 'TV', 'NP', 'NL', 'VB']) {
+    for (const domain of ['Ngữ âm', 'Chữ Hán', 'Từ vựng', 'Ngữ pháp', 'Năng lực giao tiếp', 'Văn bản']) {
       expect(screen.getByRole('columnheader', { name: domain })).toBeVisible()
     }
     expect(screen.getByText('Vững ≥ 80')).toBeVisible()
@@ -179,8 +188,8 @@ describe('SCR-019 Learning Progress (FR-024, AT-24)', () => {
     getMyMasteryNodeMock.mockResolvedValue(detail)
     setSuccessfulResponses()
 
-    renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: new RegExp(knowledgeNode.kid) }))
+    const { container } = renderPage()
+    fireEvent.click(await findNode(container, knowledgeNode.kid))
 
     expect(await screen.findByTestId('mastery-detail')).toBeVisible()
     const detailPanel = screen.getByTestId('mastery-detail')
@@ -192,7 +201,7 @@ describe('SCR-019 Learning Progress (FR-024, AT-24)', () => {
     ).toBeVisible()
     expect(detailPanel).toHaveTextContent(String(detail.evidenceCount))
     expect(within(detailPanel).getByText(detail.prereqs[0]!.nameVi)).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Luyện nút này' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Luyện phần này' })).toHaveAttribute(
       'href',
       `/learn/practice/targeted?kid=${encodeURIComponent(detail.kid)}`,
     )
@@ -201,10 +210,10 @@ describe('SCR-019 Learning Progress (FR-024, AT-24)', () => {
       .getByRole('list', { name: 'Danh sách minh chứng' })
       .querySelectorAll('li')
     const labels = [
-      'TOPIC_TEST · Bài kiểm tra · Trắc nghiệm 4 lựa chọn · Chính',
-      'MOCK_EXAM · Bài thi · Trả lời mở · Chính',
-      'GRADED_PRACTICE · Bài có chấm điểm · Trắc nghiệm 3 lựa chọn · Phụ',
-      'PRACTICE · Luyện tập · Đúng/Sai · Lỗi thường gặp',
+      'Kiểm tra chủ đề · Trắc nghiệm 4 lựa chọn',
+      'Thi thử · Trả lời mở',
+      'Bài được chấm · Trắc nghiệm 3 lựa chọn',
+      'Luyện tập · Đúng/Sai',
     ]
     detail.evidence.forEach((item, index) => {
       expect(evidenceRows[index]?.textContent).toContain(
@@ -224,11 +233,11 @@ describe('SCR-019 Learning Progress (FR-024, AT-24)', () => {
     getMyMasteryNodeMock.mockResolvedValue(detail)
     setSuccessfulResponses()
 
-    renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: /TV2-101/ }))
+    const { container } = renderPage()
+    fireEvent.click(await findNode(container, 'TV2-101'))
 
-    expect(await screen.findByRole('button', { name: 'Luyện nút này' })).toBeDisabled()
-    expect(screen.getByText('Chưa có câu luyện cho nút này')).toBeVisible()
+    expect(await screen.findByRole('button', { name: 'Luyện phần này' })).toBeDisabled()
+    expect(screen.getByText('Chưa có câu luyện cho phần này')).toBeVisible()
   })
 
   it('shows the exact new learner notice while retaining the gray grid and exam link', async () => {
@@ -316,10 +325,10 @@ describe('SCR-019 Learning Progress (FR-024, AT-24)', () => {
     )
     setSuccessfulResponses()
 
-    renderPage()
-    fireEvent.click(await screen.findByRole('button', { name: /NA1-101/ }))
+    const { container } = renderPage()
+    fireEvent.click(await findNode(container, 'NA1-101'))
     await waitFor(() => expect(getMyMasteryNodeMock).toHaveBeenCalledTimes(1))
-    fireEvent.click(screen.getByRole('button', { name: /NP2-101/ }))
+    fireEvent.click(await findNode(container, 'NP2-101'))
 
     await waitFor(() => expect(signals[0]?.aborted).toBe(true))
     expect(await screen.findByTestId('mastery-detail')).toBeVisible()
