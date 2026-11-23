@@ -14,6 +14,17 @@ import Scr074PlanManagementPage from './Scr074PlanManagementPage'
 
 vi.mock('../api/plans', () => ({ listPlans: vi.fn(), updatePlan: vi.fn() }))
 
+const quotaLabels = [
+  'Tạo câu AI',
+  'Dịch',
+  'Trợ lý',
+  'Chấm bài',
+  'Từ vựng',
+  'Ngữ pháp',
+  'Phát âm',
+  'Chữ Hán',
+] as const
+
 function element(id: number | null = 7, roles: RoleCode[] = ['ADMIN']) {
   const auth: AuthContextValue = {
     status: id === null ? 'guest' : 'authenticated',
@@ -90,7 +101,7 @@ describe('SCR-074 plan management (FR-027, AT-25)', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('AT25_PREMIUM has all approved fields, four feature limits, list-price note and selling state', async () => {
+  it('AT25_PREMIUM has all approved fields, eight feature limits, list-price note and selling state', async () => {
     renderPage()
     const fields = await form()
     expect(fields.getByRole('textbox', { name: 'Tên gói' })).toHaveValue('PREMIUM mẫu')
@@ -103,6 +114,10 @@ describe('SCR-074 plan management (FR-027, AT-25)', () => {
       ['Dịch', 50],
       ['Trợ lý', 0],
       ['Chấm bài', 10],
+      ['Từ vựng', 0],
+      ['Ngữ pháp', 0],
+      ['Phát âm', 0],
+      ['Chữ Hán', 0],
     ] as const)
       expect(fields.getByRole('spinbutton', { name })).toHaveValue(value)
     expect(fields.getByRole('checkbox', { name: 'Đang bán' })).toBeChecked()
@@ -150,7 +165,7 @@ describe('SCR-074 plan management (FR-027, AT-25)', () => {
     expect(body.benefits).not.toBe(creditsPlans[1]!.benefits)
   })
 
-  it('Q_T04_03_builds all four keys only when a feature value changes', async () => {
+  it('Q_T04_03_builds all eight keys only when a feature value changes', async () => {
     renderPage()
     const fields = await form()
     change(fields.getByRole('spinbutton', { name: 'Tạo câu AI' }), '101')
@@ -158,7 +173,16 @@ describe('SCR-074 plan management (FR-027, AT-25)', () => {
     expect(updatePlan).toHaveBeenCalledWith(
       'PREMIUM',
       expect.objectContaining({
-        benefits: { AI_GENERATE: 101, TRANSLATE: 50, ASSISTANT: 0, GRADING: 10 },
+        benefits: {
+          AI_GENERATE: 101,
+          TRANSLATE: 50,
+          ASSISTANT: 0,
+          GRADING: 10,
+          VOCAB: 0,
+          GRAMMAR: 0,
+          PRONUNCIATION: 0,
+          HANZI: 0,
+        },
       }),
     )
   })
@@ -238,19 +262,19 @@ describe('SCR-074 plan management (FR-027, AT-25)', () => {
     expect(updatePlan).not.toHaveBeenCalled()
   })
 
-  it('FR016_creates missing PREMIUM with explicit values and all four quota keys', async () => {
+  it('FR016_creates missing PREMIUM with explicit values and all eight quota keys', async () => {
     const plans = structuredClone(creditsPlans)
     plans[1] = { code: 'PREMIUM', exists: false, activeUsers: 0 }
     vi.mocked(listPlans).mockResolvedValue(plans)
     renderPage()
     const fields = await form()
     expect(fields.getByRole('textbox', { name: 'Giá niêm yết' })).toHaveValue('')
-    for (const name of ['Tạo câu AI', 'Dịch', 'Trợ lý', 'Chấm bài'])
+    for (const name of quotaLabels)
       expect(fields.getByRole('spinbutton', { name })).toHaveValue(null)
     change(fields.getByRole('textbox', { name: 'Tên gói' }), 'PREMIUM tự soạn')
     change(fields.getByRole('textbox', { name: 'Giá niêm yết' }), '0')
     change(fields.getByRole('spinbutton', { name: 'Số ngày hiệu lực' }), '365')
-    for (const name of ['Tạo câu AI', 'Dịch', 'Trợ lý', 'Chấm bài'])
+    for (const name of quotaLabels)
       change(fields.getByRole('spinbutton', { name }), name === 'Dịch' ? '10000' : '0')
     await userEvent.click(fields.getByRole('checkbox', { name: 'Đang bán' }))
     await save()
@@ -259,7 +283,16 @@ describe('SCR-074 plan management (FR-027, AT-25)', () => {
       description: null,
       price: '0.00',
       durationDays: 365,
-      benefits: { AI_GENERATE: 0, TRANSLATE: 10000, ASSISTANT: 0, GRADING: 0 },
+      benefits: {
+        AI_GENERATE: 0,
+        TRANSLATE: 10000,
+        ASSISTANT: 0,
+        GRADING: 0,
+        VOCAB: 0,
+        GRAMMAR: 0,
+        PRONUNCIATION: 0,
+        HANZI: 0,
+      },
       isActive: true,
     })
   })
@@ -278,7 +311,7 @@ describe('SCR-074 plan management (FR-027, AT-25)', () => {
     change(fields.getByRole('spinbutton', { name: 'Tạo câu AI' }), '101')
     await save()
     expect(await screen.findByRole('alert')).toHaveTextContent('Chưa lưu thay đổi hạn mức')
-    for (const name of ['Tạo câu AI', 'Dịch', 'Trợ lý', 'Chấm bài']) {
+    for (const name of quotaLabels) {
       expect(fields.getByRole('spinbutton', { name })).toHaveAttribute('aria-invalid', 'true')
       expect(fields.getByRole('spinbutton', { name })).toHaveAccessibleDescription(
         /Không thể đổi hạn mức khi còn người đang dùng PREMIUM/,
