@@ -6,6 +6,7 @@ import { AdminLayout, LearnerLayout, PublicLayout } from '@/shared/layout'
 import { previewLearner } from '@/shared/layout/Layout.preview'
 
 import { CommunityPostListView } from './components/CommunityPostListView'
+import { PostComposerDialog } from './components/PostComposerDialog'
 import { ModeratorPostComposerView, type ModeratorPostValues } from './components/ModeratorPostComposerView'
 import { CommunityRankingPanel, type RankingBoard } from './components/CommunityRankingPanel'
 import { PostEditorView } from './components/PostEditorView'
@@ -168,6 +169,7 @@ function composerPreview() {
 }
 
 const entries: readonly PreviewEntry[] = [
+  { fullFrame: true, group: 'screen', id: 'scr-039-composer', render: () => createElement(AuthContext.Provider, { value: learnerPreviewAuth }, createElement(PublicLayout, null, createElement(PostComposerDialog, { authorName: previewLearner.displayName, onClose: () => undefined, onPosted: () => undefined }))), scr: 'SCR-039', title: 'Tạo bài viết ngay trên bảng tin' },
   { fullFrame: true, group: 'screen', id: 'scr-080-contest-post', render: () => composerPreview(), scr: 'SCR-080', title: 'Kiểm duyệt viên đăng bài cuộc thi' },
   { fullFrame: true, group: 'screen', id: 'scr-039-public-ready', render: () => listPreview('public', 'ready'), scr: 'SCR-039', title: 'Bài công khai — Có dữ liệu' },
   { fullFrame: true, group: 'screen', id: 'scr-039-public-empty', render: () => listPreview('public', 'empty'), scr: 'SCR-039', title: 'Bài công khai — Trống' },

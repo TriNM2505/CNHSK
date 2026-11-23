@@ -11,12 +11,15 @@ type HocBaLogoProps = {
   inverse?: boolean
 }
 
-/** Hoc Ba Education logo, used as the product mark with Hoc Ba's permission. */
+/**
+ * Hoc Ba Education logo, used as the product mark with Hoc Ba's permission. It never shrinks, so a crowded header
+ * cannot squeeze its width while the height stays fixed.
+ */
 export function HocBaLogo({ alt = 'Học Bá Education', className, inverse = false }: HocBaLogoProps) {
   return (
     <img
       alt={alt}
-      className={cn('h-10 w-auto', className)}
+      className={cn('h-10 w-auto max-w-none shrink-0 object-contain', className)}
       decoding="async"
       height={inverse ? 53 : 89}
       src={inverse ? hocBaLogoWhite : hocBaLogo}

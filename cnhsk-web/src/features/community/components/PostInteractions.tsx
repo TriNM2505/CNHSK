@@ -49,7 +49,13 @@ export function PostInteractions(props: PostInteractionsProps) {
     if (!open || comments) return
     const controller = new AbortController()
     listPostComments(props.postId, controller.signal)
-      .then((found) => setComments(found.filter((comment) => comment.status === 'VISIBLE' && comment.depth === 0)))
+      .then((found) =>
+        setComments(
+          found
+            .filter((comment) => comment.status === 'VISIBLE')
+            .sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+        ),
+      )
       .catch(() => setError('Không tải được bình luận.'))
     return () => controller.abort()
   }, [comments, open, props.postId])

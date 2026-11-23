@@ -10,6 +10,7 @@ import { useToast } from '@/shared/ui/useToast'
 import { listFollowingPosts, listLikedPostIds, listMyPosts, listPinnedPosts, listPublishedPosts, pinPost } from '../api/posts'
 import { getCommunityRanking, type RankingPeriod } from '../api/rankings'
 import { CommunityPostListView, type FeedMode } from '../components/CommunityPostListView'
+import { PostComposerDialog } from '../components/PostComposerDialog'
 import {
   CommunityRankingPanel,
   type RankingBoard,
@@ -106,7 +107,6 @@ function CommunityPostListContent() {
   const isLearner = authStatus === 'authenticated' && Boolean(user?.roles.includes('LEARNER'))
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const location = useLocation()
   const requestedTab = searchParams.get('tab')
   const requestedMine = requestedTab === 'mine' || requestedTab === 'following'
   const mode: FeedMode = requestedMine && isLearner ? (requestedTab as FeedMode) : 'public'
@@ -115,6 +115,9 @@ function CommunityPostListContent() {
   const [publicPage, setPublicPage] = useState(0)
   const [status, setStatus] = useState<PostStatus | ''>('')
   const [minePage, setMinePage] = useState(0)
+  const [composing, setComposing] = useState(false)
+  const [feedVersion, setFeedVersion] = useState(0)
+  const { showToast } = useToast()
   const [rankingPeriod, setRankingPeriod] = useState<RankingPeriod>('week')
   const [rankingGame, setRankingGame] = useState('')
   const [rankingLevel, setRankingLevel] = useState<RankingLevel>(1)
@@ -161,7 +164,13 @@ function CommunityPostListContent() {
     }
   }, [authStatus, isLearner, searchParams, setSearchParams])
 
-  const onWrite = () => navigate(isLearner ? '/community/posts/new' : '/login', isLearner ? { state: { communityEditorOrigin: `${location.pathname}${location.search}` } } : undefined)
+  // Learners write in a dialog over the feed and stay where they are; guests are sent to sign in.
+  const onWrite = () => (isLearner ? setComposing(true) : navigate('/login?redirect=%2Fcommunity'))
+  const onPosted = (submitted: boolean) => {
+    setComposing(false)
+    showToast({ message: submitted ? 'Bài đã gửi, chờ duyệt' : 'Đã lưu bản nháp', tone: 'success' })
+    setFeedVersion((value) => value + 1)
+  }
   const onTabChange = (tab: FeedMode) => {
     const next = new URLSearchParams(searchParams)
     if (tab === 'public') next.delete('tab')
@@ -209,12 +218,15 @@ function CommunityPostListContent() {
   return (
     <>
       {mode === 'public' ? (
-        <PublicFeed key={`public:${category}:${publicPage}`} {...feedProps} />
+        <PublicFeed key={`public:${category}:${publicPage}:${feedVersion}`} {...feedProps} />
       ) : mode === 'following' ? (
-        <FollowingFeed key={`following:${followingPage}`} {...feedProps} />
+        <FollowingFeed key={`following:${followingPage}:${feedVersion}`} {...feedProps} />
       ) : (
-        <MineFeed key={`mine:${status}:${minePage}`} {...feedProps} />
+        <MineFeed key={`mine:${status}:${minePage}:${feedVersion}`} {...feedProps} />
       )}
+      {composing && user ? (
+        <PostComposerDialog authorName={user.displayName} onClose={() => setComposing(false)} onPosted={onPosted} />
+      ) : null}
     </>
   )
 }

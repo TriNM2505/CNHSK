@@ -18,7 +18,7 @@ export function BrandLink({ inverse = false, logoClassName }: { inverse?: boolea
     <Link
       aria-label="CNHSK - Trang chủ"
       className={cn(
-        'inline-flex min-h-touch items-center rounded-sm no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
+        'inline-flex min-h-touch shrink-0 items-center rounded-sm no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
       )}
       to="/"
     >
