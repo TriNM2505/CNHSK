@@ -24,7 +24,6 @@ public class AssistantPromptBuilder {
 
     // Keep these names aligned with routes that render LearnerLayout.
     private static final Map<String, String> SCREEN_NAMES = Map.ofEntries(
-            Map.entry("SCR-007", "Thông tin cá nhân"),
             Map.entry("SCR-008", "Đổi mật khẩu"),
             Map.entry("SCR-009", "Cài đặt nhắc học"),
             Map.entry("SCR-010", "Trang học tập"),
