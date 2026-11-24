@@ -35,9 +35,16 @@ class ImportTemplateTest {
 
         assertThat(expected).containsExactly("LEXEME", "TOPIC", "TOPIC_ITEM", "GRAMMAR", "GRAMMAR_EXERCISE",
                 "PRON_STAGE", "PRON_UNIT", "KNOWLEDGE_NODE", "KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION");
-        assertThat(ImportDataType.values()).extracting(Enum::name).containsExactlyElementsOf(expected);
+        // The v1.1 appendix keeps the locked v1.0 list as its prefix and only appends the two new types.
+        List<String> appendix = new ArrayList<>();
+        Yaml.mapper().readTree(Files.readString(Path.of("specs", "002-learning-data-import", "contracts",
+                "openapi-import-v1-1.yaml"))).path("components").path("schemas").path("DataType").path("enum")
+                .forEach(value -> appendix.add(value.asText()));
+        assertThat(appendix.subList(0, expected.size())).containsExactlyElementsOf(expected);
+        assertThat(appendix.subList(expected.size(), appendix.size())).containsExactly("ERROR_CODE", "LEARNING_TASK");
+        assertThat(ImportDataType.values()).extracting(Enum::name).containsExactlyElementsOf(appendix);
         assertThat(ImportTemplate.all()).extracting(template -> template.dataType().name())
-                .containsExactlyElementsOf(expected);
+                .containsExactlyElementsOf(appendix);
     }
 
     @ParameterizedTest(name = "FR034 AT041 {0}")
@@ -221,27 +228,30 @@ class ImportTemplateTest {
                         Set.of("stage_index", "name"), Map.of("name", 100, "description", 2000)),
                 new ExpectedTemplate(ImportDataType.PRON_UNIT, "Bài nghe phát âm",
                         List.of("stage_index", "unit_code"), List.of(ImportDataType.PRON_STAGE),
-                        List.of("stage_index", "unit_code", "audio_url", "prompt_vi", "option_a", "option_b",
+                        List.of("stage_index", "unit_code", "audio_url", "speak_text", "prompt_vi", "option_a", "option_b",
                                 "option_c", "option_d", "answer", "explanation_vi"),
-                        Set.of("stage_index", "unit_code", "audio_url", "option_a", "option_b", "answer"),
-                        Map.of("unit_code", 30, "audio_url", 500, "prompt_vi", 200, "option_a", 50, "option_b", 50,
-                                "option_c", 50, "option_d", 50, "explanation_vi", 500)),
+                        Set.of("stage_index", "unit_code", "option_a", "option_b", "answer"),
+                        Map.of("unit_code", 30, "audio_url", 500, "speak_text", 20, "prompt_vi", 200, "option_a", 50,
+                                "option_b", 50, "option_c", 50, "option_d", 50, "explanation_vi", 500)),
                 new ExpectedTemplate(ImportDataType.KNOWLEDGE_NODE, "Nút cây năng lực",
-                        List.of("kid"), List.of(), List.of("kid", "name_vi", "name_zh", "can_do", "skill_type"),
-                        Set.of("kid", "name_vi", "name_zh"), Map.of("name_vi", 200, "name_zh", 200, "can_do", 1000)),
+                        List.of("kid"), List.of(), List.of("kid", "name_vi", "name_zh", "can_do", "skill_type",
+                                "skills", "cluster", "pattern", "examples_ok", "examples_err", "teaching_note", "source"),
+                        Set.of("kid", "name_vi", "name_zh"), Map.of("name_vi", 200, "name_zh", 200, "can_do", 1000,
+                                "cluster", 100, "pattern", 300, "teaching_note", 2000, "source", 300)),
                 new ExpectedTemplate(ImportDataType.KNOWLEDGE_EDGE, "Quan hệ giữa các nút",
                         List.of("from_kid", "to_kid"), List.of(ImportDataType.KNOWLEDGE_NODE),
                         List.of("from_kid", "to_kid", "edge_type"), Set.of("from_kid", "to_kid", "edge_type"), Map.of()),
                 new ExpectedTemplate(ImportDataType.QUESTION, "Câu hỏi", List.of("code"), List.of(ImportDataType.KNOWLEDGE_NODE),
                         List.of("code", "qtype", "hsk_level", "difficulty", "stem", "option_a", "option_b", "option_c",
                                 "option_d", "option_e", "option_f", "correct", "explanation", "audio_url", "image_url",
-                                "kid_primary", "kid_secondary", "distractor_errors"),
+                                "kid_primary", "kid_secondary", "distractor_errors", "skill", "origin"),
                         Set.of("code", "qtype", "hsk_level", "stem", "correct", "explanation", "kid_primary"),
                         Map.ofEntries(entry("code", 50), entry("stem", 2000), entry("option_a", 300), entry("option_b", 300),
                                 entry("option_c", 300), entry("option_d", 300), entry("option_e", 300), entry("option_f", 300),
                                 entry("explanation", 3000), entry("audio_url", 500), entry("image_url", 500))),
                 new ExpectedTemplate(ImportDataType.NODE_LINK, "Gắn nội dung vào nút", List.of("target_type", "target_key"),
-                        List.of(ImportDataType.KNOWLEDGE_NODE, ImportDataType.TOPIC, ImportDataType.LEXEME, ImportDataType.GRAMMAR),
+                        List.of(ImportDataType.KNOWLEDGE_NODE, ImportDataType.TOPIC, ImportDataType.LEXEME, ImportDataType.GRAMMAR,
+                                ImportDataType.PRON_UNIT),
                         List.of("target_type", "target_key", "kid"), Set.of("target_type", "target_key", "kid"), Map.of()),
                 new ExpectedTemplate(ImportDataType.EXAM, "Đề thi", List.of("code"), List.of(),
                         List.of("code", "title", "hsk_level", "sections", "status"),
@@ -249,7 +259,17 @@ class ImportTemplateTest {
                 new ExpectedTemplate(ImportDataType.EXAM_QUESTION, "Câu trong đề thi", List.of("exam_code", "question_code"),
                         List.of(ImportDataType.EXAM, ImportDataType.QUESTION),
                         List.of("exam_code", "question_code", "section_index", "order_index", "points"),
-                        Set.of("exam_code", "question_code", "section_index", "order_index"), Map.of()));
+                        Set.of("exam_code", "question_code", "section_index", "order_index"), Map.of()),
+                new ExpectedTemplate(ImportDataType.ERROR_CODE, "Mã lỗi", List.of("code"), List.of(ImportDataType.KNOWLEDGE_NODE),
+                        List.of("code", "kid", "severity", "name_vi", "example", "fix_hint", "description"),
+                        Set.of("code", "severity", "name_vi"),
+                        Map.of("name_vi", 200, "example", 300, "fix_hint", 300, "description", 1000)),
+                new ExpectedTemplate(ImportDataType.LEARNING_TASK, "Nhiệm vụ nói, viết", List.of("code"),
+                        List.of(ImportDataType.KNOWLEDGE_NODE),
+                        List.of("code", "kind", "hsk_level", "nl_kid", "title_vi", "prompt_vi", "prompt_zh", "targets",
+                                "min_chars", "max_seconds", "is_active"),
+                        Set.of("code", "kind", "hsk_level", "nl_kid", "title_vi", "prompt_vi", "targets"),
+                        Map.of("code", 50, "title_vi", 200, "prompt_vi", 2000, "prompt_zh", 1000)));
     }
 
     private static JsonNode contractSchemas() throws IOException {

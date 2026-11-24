@@ -517,6 +517,40 @@ const templates: ImportTemplate[] = [
       column('points', false, null, 'Điểm từ 1 đến 10, mặc định 1.', '1'),
     ],
   },
+  {
+    dataType: 'ERROR_CODE',
+    label: 'Mã lỗi',
+    naturalKey: ['code'],
+    dependsOn: ['KNOWLEDGE_NODE'],
+    columns: [
+      column('code', true, null, 'Mã lỗi dạng E-<miền>-<2 số>, ví dụ E-NP-07.', 'E-NP-07'),
+      column('kid', false, null, 'KID chính; để trống chỉ với E-NL-*.', 'NP3-004'),
+      column('severity', true, null, 'Mức 1–3.', '2'),
+      column('name_vi', true, 200, 'Tên lỗi ngắn.', 'Câu 把 thiếu thành phần sau động từ'),
+      column('example', false, 300, 'Ví dụ sai.', ''),
+      column('fix_hint', false, 300, 'Cách sửa.', ''),
+      column('description', false, 1000, 'Mô tả, cách nhận biết.', ''),
+    ],
+  },
+  {
+    dataType: 'LEARNING_TASK',
+    label: 'Nhiệm vụ nói, viết',
+    naturalKey: ['code'],
+    dependsOn: ['KNOWLEDGE_NODE'],
+    columns: [
+      column('code', true, 50, 'Mã nhiệm vụ.', 'NOI_NL1_001_A'),
+      column('kind', true, null, 'SPEAKING hoặc WRITING.', 'SPEAKING'),
+      column('hsk_level', true, null, 'Cấp HSK.', '1'),
+      column('nl_kid', true, null, 'Nút năng lực giao tiếp (miền NL).', 'NL1-001'),
+      column('title_vi', true, 200, 'Tên nhiệm vụ.', 'Tự giới thiệu'),
+      column('prompt_vi', true, 2000, 'Đề bài cho học viên.', 'Giới thiệu bản thân.'),
+      column('prompt_zh', false, 1000, 'Đề bài tiếng Trung.', ''),
+      column('targets', true, null, 'KID mục tiêu theo tiêu chí.', 'C2:NA1-006|C3:TV1-001'),
+      column('min_chars', false, null, 'Bài viết: số chữ Hán tối thiểu.', ''),
+      column('max_seconds', false, null, 'Bài nói: số giây tối đa.', '60'),
+      column('is_active', false, null, 'TRUE hoặc FALSE.', 'TRUE'),
+    ],
+  },
 ]
 
 const templatesWithoutExamMetadata = templates.filter(
@@ -953,13 +987,15 @@ describe('Scr068LearningDataImportPage', () => {
     ['NODE_LINK', 'Gắn nội dung vào nút', 'target_type, target_key', 3],
     ['EXAM', 'Đề thi', 'code', 5],
     ['EXAM_QUESTION', 'Câu trong đề thi', 'exam_code, question_code', 5],
+    ['ERROR_CODE', 'Mã lỗi', 'code', 7],
+    ['LEARNING_TASK', 'Nhiệm vụ nói, viết', 'code', 11],
   ] as const)(
-    'FR036_FR028_AT28_guide_%s: chọn đủ mười ba mẫu và hướng dẫn đúng khóa/cột',
+    'FR036_FR028_AT28_guide_%s: chọn đủ mười lăm mẫu và hướng dẫn đúng khóa/cột',
     async (type, label, key, count) => {
       renderPage()
       const user = userEvent.setup()
       const select = await screen.findByLabelText(/Loại dữ liệu/)
-      expect(within(select).getAllByRole('option')).toHaveLength(14)
+      expect(within(select).getAllByRole('option')).toHaveLength(16)
       expect(within(select).getByRole('option', { name: label })).toHaveValue(type)
       await user.selectOptions(select, type)
       expect(screen.getAllByText(key)[0]).toBeVisible()
@@ -972,7 +1008,7 @@ describe('Scr068LearningDataImportPage', () => {
     },
   )
 
-  it('FR028_AT28: giữ đúng nhãn và thứ tự mười ba loại dữ liệu', async () => {
+  it('FR028_AT28: giữ đúng nhãn và thứ tự mười lăm loại dữ liệu', async () => {
     renderPage()
     const select = await screen.findByLabelText(/Loại dữ liệu/)
     expect(
@@ -994,6 +1030,8 @@ describe('Scr068LearningDataImportPage', () => {
       ['NODE_LINK', 'Gắn nội dung vào nút'],
       ['EXAM', 'Đề thi'],
       ['EXAM_QUESTION', 'Câu trong đề thi'],
+      ['ERROR_CODE', 'Mã lỗi'],
+      ['LEARNING_TASK', 'Nhiệm vụ nói, viết'],
     ])
   })
 

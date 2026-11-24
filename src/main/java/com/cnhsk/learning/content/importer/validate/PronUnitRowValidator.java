@@ -45,6 +45,10 @@ public class PronUnitRowValidator implements RowValidator {
             row.lengths();
             row.matching("unit_code", CODE, "mã phải theo mẫu ^[A-Za-z0-9_-]{1,30}$");
             row.url("audio_url");
+            row.containsCjk("speak_text");
+            if (!row.present("audio_url") && !row.present("speak_text")) {
+                row.error("audio_url", "REQUIRED_MISSING", "Cần audio_url hoặc speak_text để học viên nghe được");
+            }
             row.answer();
             canonicalStageIndex(row);
         }

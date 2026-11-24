@@ -84,8 +84,15 @@ public class Question {
     @Column(nullable = false)
     private Short difficulty = (short) 2;
 
+    /** Skill the question measures (LISTENING, SPEAKING, READING, WRITING); null when not tagged yet. */
+    @Column(length = 10)
+    private String skill;
+
     protected Question() {
     }
+
+    public String getSkill() { return skill; }
+    public void setSkill(String skill) { this.skill = skill; }
 
     public Question(String code, QuestionType qtype, short hskLevel, String stem) {
         this.code = code;

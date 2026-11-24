@@ -66,15 +66,15 @@ class RowWritersIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void FR020_allElevenTemplatesHaveWriters() {
-        assertThat(ImportTemplate.all()).hasSize(13);
-        assertThat(writers).containsOnlyKeys(ImportDataType.LEXEME, ImportDataType.TOPIC, ImportDataType.TOPIC_ITEM,
-                ImportDataType.GRAMMAR, ImportDataType.GRAMMAR_EXERCISE, ImportDataType.PRON_STAGE,
-                ImportDataType.PRON_UNIT, ImportDataType.KNOWLEDGE_NODE, ImportDataType.KNOWLEDGE_EDGE, ImportDataType.QUESTION, ImportDataType.NODE_LINK, ImportDataType.EXAM, ImportDataType.EXAM_QUESTION);
+    void FR020_everyTemplateHasAWriter() {
+        assertThat(ImportTemplate.all()).hasSize(ImportDataType.values().length);
+        assertThat(writers).containsOnlyKeys(ImportDataType.values());
     }
 
+    // Templates that reference knowledge nodes have their own round-trip tests (CompetencyTreeV2ImportIntegrationTest and others).
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION",
+            "ERROR_CODE", "LEARNING_TASK"}, mode = EnumSource.Mode.EXCLUDE)
     void FR020_eachTemplatePersistsThenReimportsAndUpdatesTheSameNaturalKey(ImportDataType type) {
         parents(type);
         Map<String, String> values = example(type);
@@ -244,6 +244,8 @@ class RowWritersIntegrationTest extends AbstractIntegrationTest {
         parents(type);
         Map<String, String> values = example(type);
         ImportTemplate.forType(type).columns().stream().filter(c -> !c.required()).forEach(c -> values.remove(c.name()));
+        // A unit needs audio_url or speak_text, so one of the two optional sources stays.
+        if (type == ImportDataType.PRON_UNIT) values.put("audio_url", example(type).get("audio_url"));
         assertThat(writers.get(type).write(validate(type, values))).isEqualTo(RowAction.CREATE);
         reload();
         switch (type) {

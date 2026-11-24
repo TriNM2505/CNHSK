@@ -68,11 +68,20 @@ public class QuestionRowWriter implements RowWriter {
         value.secondaryKids().forEach(kid -> desired.put(ids.get(kid), KnowledgeLabelRole.SECONDARY));
         Map<Long, KnowledgeLabelRole> old = oldLabels.stream().collect(Collectors.toMap(
                 QuestionKnowledgePoint::getKnowledgePointId, QuestionKnowledgePoint::getRole));
-        if (previous != null && old.equals(desired) && QuestionImportSupport.sameQuestion(previous, value)) return RowAction.UNCHANGED;
+        String skill = RowWriteSupport.present(row, "skill") ? row.values().get("skill") : null;
+        boolean skillChanged = skill != null && (previous == null || !skill.equals(previous.getSkill()));
+        if (previous != null && !skillChanged && old.equals(desired) && QuestionImportSupport.sameQuestion(previous, value)) {
+            return RowAction.UNCHANGED;
+        }
         Question question = previous == null ? new Question(row.values().get("code"), value.qtype(), (short) value.hskLevel(), value.stem()) : previous;
         if (previous == null) {
-            question.setSource(QuestionSource.IMPORT); question.setStatus(QuestionStatus.APPROVED); question.setReusable(true);
+            // AI drafts wait in the teacher review queue (/content/ai-review), which lists source AI + PENDING_REVIEW.
+            boolean draft = "AI_DRAFT".equals(row.values().get("origin"));
+            question.setSource(draft ? QuestionSource.AI : QuestionSource.IMPORT);
+            question.setStatus(draft ? QuestionStatus.PENDING_REVIEW : QuestionStatus.APPROVED);
+            question.setReusable(true);
         }
+        if (skill != null) question.setSkill(skill);
         apply(question, value);
         // IDENTITY inserts a new question immediately; existing questions are already managed under the row lock.
         if (previous == null) questions.save(question);

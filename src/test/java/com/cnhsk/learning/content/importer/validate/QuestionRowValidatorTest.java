@@ -160,13 +160,14 @@ public class QuestionRowValidatorTest {
 
     @Test
     void metadataKeepsElevenTemplatesAndTheApprovedQuestionColumnLayout() {
-        assertThat(ImportTemplate.all()).hasSize(13);
+        // v1.1 appendix: ERROR_CODE and LEARNING_TASK join the original 13 templates.
+        assertThat(ImportTemplate.all()).hasSize(15);
         var template = ImportTemplate.forType(ImportDataType.QUESTION);
         assertThat(template.naturalKey()).containsExactly("code");
         assertThat(template.dependsOn()).containsExactly(ImportDataType.KNOWLEDGE_NODE);
         assertThat(template.columns()).extracting(column -> column.name()).containsExactly("code", "qtype", "hsk_level", "difficulty", "stem",
                 "option_a", "option_b", "option_c", "option_d", "option_e", "option_f", "correct", "explanation", "audio_url", "image_url",
-                "kid_primary", "kid_secondary", "distractor_errors");
+                "kid_primary", "kid_secondary", "distractor_errors", "skill", "origin");
         template.columns().stream().filter(column -> column.name().startsWith("option_") || Set.of("kid_secondary", "distractor_errors").contains(column.name()))
                 .forEach(column -> assertThat(column.description()).contains("để trống", "xoá"));
         template.columns().stream().filter(column -> Set.of("difficulty", "audio_url", "image_url").contains(column.name()))

@@ -130,7 +130,14 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
         Set<Long> createdQuestions = questions.findAll().stream().map(value -> value.getId()).filter(id -> !questionBaseline.contains(id)).collect(Collectors.toSet());
         ownedUsers.forEach(id -> jdbc.update("DELETE FROM learning.exam_questions WHERE exam_id IN (SELECT id FROM learning.exams WHERE created_by = ?)", id));
         labels.deleteAllInBatch(labels.findByQuestionIdIn(createdQuestions)); questions.deleteAllByIdInBatch(createdQuestions);
-        points.deleteAllByIdInBatch(points.findAll().stream().map(value -> value.getId()).filter(id -> !pointBaseline.contains(id)).toList());
+        List<Long> createdPoints = points.findAll().stream().map(value -> value.getId()).filter(id -> !pointBaseline.contains(id)).toList();
+        // Error codes and speaking/writing tasks reference nodes, so they are removed before the nodes.
+        createdPoints.forEach(id -> {
+            jdbc.update("DELETE FROM learning.learning_tasks WHERE nl_kid_id = ? OR id IN "
+                    + "(SELECT task_id FROM learning.learning_task_targets WHERE kid_id = ?)", id, id);
+            jdbc.update("DELETE FROM learning.error_codes WHERE kid_id = ?", id);
+        });
+        points.deleteAllByIdInBatch(createdPoints);
         ownedUsers.forEach(id -> jdbc.update("DELETE FROM learning.exams WHERE created_by = ?", id));
         users.deleteAllInBatch(createdUsers);
         createdUsers.clear();
@@ -138,7 +145,7 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
 
     @ParameterizedTest
     @EnumSource(ImportDataType.class)
-    void FR018_FR023_allThirteenSupportedTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
+    void FR018_FR023_allSupportedTemplatesCanBeUploadedAndConfirmed(ImportDataType type) throws Exception {
         switch (type) {
             case EXAM_QUESTION -> {
                 importExample(ImportDataType.KNOWLEDGE_NODE);
@@ -157,6 +164,8 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
             case TOPIC_ITEM -> { importExample(ImportDataType.TOPIC); importExample(ImportDataType.LEXEME); }
             case GRAMMAR_EXERCISE -> importExample(ImportDataType.GRAMMAR);
             case PRON_UNIT -> importExample(ImportDataType.PRON_STAGE);
+            case ERROR_CODE -> nodes("NP3-004");
+            case LEARNING_TASK -> nodes("NL1-001", "NA1-006", "TV1-001", "NP1-001");
             default -> { }
         }
         JsonNode preview = upload(type, exampleCsv(type));
@@ -400,6 +409,13 @@ class ImportConfirmIntegrationTest extends AbstractIntegrationTest {
 
     private void importExample(ImportDataType type) throws Exception {
         confirm(upload(type, exampleCsv(type)).path("runId").asLong(), "{}", user, 200);
+    }
+
+    /** Creates the nodes a template example references, through the importer like any other prerequisite. */
+    private void nodes(String... kids) throws Exception {
+        StringBuilder csv = new StringBuilder("kid,name_vi,name_zh\n");
+        for (String kid : kids) csv.append(kid).append(",Nút tự soạn ").append(kid).append(",示例\n");
+        confirm(upload(ImportDataType.KNOWLEDGE_NODE, csv.toString()).path("runId").asLong(), "{}", user, 200);
     }
 
     @Test

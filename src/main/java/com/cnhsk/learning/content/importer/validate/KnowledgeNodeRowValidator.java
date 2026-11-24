@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.cnhsk.learning.content.importer.CsvReader;
+import com.cnhsk.learning.content.importer.KnowledgeNodeColumns;
 import com.cnhsk.learning.content.importer.template.ImportDataType;
 import com.cnhsk.learning.content.importer.template.ImportTemplate;
 import com.cnhsk.learning.content.importer.validate.RowValidationSupport.Context;
@@ -40,6 +41,27 @@ public class KnowledgeNodeRowValidator implements RowValidator {
                     KnowledgeSkillType.valueOf(row.value("skill_type"));
                 } catch (IllegalArgumentException exception) {
                     row.invalid("skill_type", "chỉ nhận LISTENING, READING, WRITING, VOCAB, GRAMMAR hoặc CHARACTER");
+                }
+            }
+            if (row.eligible("skills")) {
+                try {
+                    row.value("skills", KnowledgeNodeColumns.canonicalSkills(row.value("skills")));
+                } catch (IllegalArgumentException exception) {
+                    row.invalid("skills", "chỉ nhận LISTENING, SPEAKING, READING, WRITING ngăn bằng |, không lặp");
+                }
+            }
+            if (row.eligible("examples_ok")) {
+                try {
+                    row.value("examples_ok", KnowledgeNodeColumns.correctCell(KnowledgeNodeColumns.correct(row.value("examples_ok"))));
+                } catch (IllegalArgumentException exception) {
+                    row.invalid("examples_ok", "mảng JSON 1–10 câu, mỗi câu có cn (chữ Hán) và vi");
+                }
+            }
+            if (row.eligible("examples_err")) {
+                try {
+                    row.value("examples_err", KnowledgeNodeColumns.wrongCell(KnowledgeNodeColumns.wrong(row.value("examples_err"))));
+                } catch (IllegalArgumentException exception) {
+                    row.invalid("examples_err", "mảng JSON 1–10 câu, mỗi câu có cn (chữ Hán), error_code dạng E-NP-01");
                 }
             }
         }

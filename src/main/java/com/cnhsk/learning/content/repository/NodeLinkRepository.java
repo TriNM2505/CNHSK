@@ -53,6 +53,38 @@ public class NodeLinkRepository {
                 """, Map.of("kind", kind.name(), "text", text)).stream().findFirst();
     }
 
+    /** Pronunciation units keyed "stage:code" (e.g. "1:BP_01"); {@code kid} is the NA node already linked, if any. */
+    public List<Target> pronUnits(Collection<String> keys) {
+        if (keys.isEmpty()) return List.of();
+        return select("""
+                SELECT s.id, s.stage_index || ':' || (u->>'code') AS target_key, NULL::bigint AS knowledge_point_id,
+                       u->>'kid' AS kid
+                FROM learning.pron_stages s CROSS JOIN LATERAL jsonb_array_elements(s.units) AS u
+                WHERE s.stage_index || ':' || (u->>'code') IN (:keys)
+                """, Map.of("keys", keys));
+    }
+
+    public Optional<Target> lockPronUnit(String key) {
+        return select("""
+                SELECT s.id, s.stage_index || ':' || (u->>'code') AS target_key, NULL::bigint AS knowledge_point_id,
+                       u->>'kid' AS kid
+                FROM learning.pron_stages s CROSS JOIN LATERAL jsonb_array_elements(s.units) AS u
+                WHERE s.stage_index || ':' || (u->>'code') = :key
+                FOR UPDATE OF s
+                """, Map.of("key", key)).stream().findFirst();
+    }
+
+    /** Sets {@code kid} on one unit and keeps every other unit and the order unchanged. */
+    public void updatePronUnit(long stageId, String unitCode, String kid) {
+        entityManager.createNativeQuery("""
+                UPDATE learning.pron_stages SET updated_at = now(), units = (
+                    SELECT jsonb_agg(CASE WHEN e.u->>'code' = :code THEN jsonb_set(e.u, '{kid}', to_jsonb(CAST(:kid AS text)))
+                                          ELSE e.u END ORDER BY e.ord)
+                    FROM jsonb_array_elements(units) WITH ORDINALITY AS e(u, ord))
+                WHERE id = :id
+                """).setParameter("code", unitCode).setParameter("kid", kid).setParameter("id", stageId).executeUpdate();
+    }
+
     public void updateTopic(long id, long pointId) {
         entityManager.createNativeQuery("UPDATE learning.topics SET knowledge_point_id = :kp WHERE id = :id")
                 .setParameter("kp", pointId).setParameter("id", id).executeUpdate();

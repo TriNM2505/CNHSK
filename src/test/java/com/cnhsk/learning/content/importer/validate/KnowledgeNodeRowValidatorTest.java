@@ -124,6 +124,45 @@ class KnowledgeNodeRowValidatorTest {
         assertThat(result.errors().get(0).value()).hasSize(100);
     }
 
+    @Test
+    void skillsAcceptAPipeSeparatedSetAndNormaliseCaseAndSpaces() {
+        RowValidationResult result = validate(Map.of("skills", " reading | Writing|SPEAKING "));
+        assertThat(result.errors()).isEmpty();
+        assertThat(result.validRows().get(0).values()).containsEntry("skills", "READING|WRITING|SPEAKING");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"NGHE", "READING|READING", "READING||WRITING", "VOCAB"})
+    void skillsRejectUnknownRepeatedOrEmptyEntries(String skills) {
+        assertError(validate(Map.of("skills", skills)), "skills", "INVALID_VALUE");
+    }
+
+    @Test
+    void examplesAreJsonArraysWithChineseSentences() {
+        RowValidationResult result = validate(Map.of(
+                "examples_ok", "[{\"cn\":\"我是学生。\",\"pinyin\":\"Wǒ shì xuéshēng.\",\"vi\":\"Tôi là học sinh.\"}]",
+                "examples_err", "[{\"cn\":\"我是很高兴。\",\"error_code\":\"E-NP-01\",\"note\":\"thừa 是\"}]"));
+        assertThat(result.errors()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = ';', value = {
+            "examples_ok;not json",
+            "examples_ok;{\"cn\":\"我\"}",
+            "examples_ok;[{\"cn\":\"abc\",\"vi\":\"x\"}]",
+            "examples_ok;[{\"pinyin\":\"wo\",\"vi\":\"x\"}]",
+            "examples_err;[{\"cn\":\"我是很高兴。\",\"error_code\":\"NP-01\"}]"})
+    void malformedExamplesAreInvalid(String column, String value) {
+        assertError(validate(Map.of(column, value)), column, "INVALID_VALUE");
+    }
+
+    @ParameterizedTest
+    @CsvSource({"cluster,100", "pattern,300", "source,300", "teaching_note,2000"})
+    void newTextColumnsHaveLengthLimits(String column, int limit) {
+        assertThat(validate(Map.of(column, "文".repeat(limit))).errors()).isEmpty();
+        assertError(validate(Map.of(column, "文".repeat(limit + 1))), column, "TOO_LONG");
+    }
+
     private RowValidationResult validate(Map<String, String> replacements) {
         Map<String, String> values = valid();
         values.putAll(replacements);

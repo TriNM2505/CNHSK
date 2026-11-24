@@ -7,5 +7,6 @@ public enum Skill {
     CHARACTER,
     WRITING,
     GRAMMAR,
-    PRONUNCIATION
+    PRONUNCIATION,
+    SPEAKING
 }

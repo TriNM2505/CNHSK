@@ -34,11 +34,14 @@ public class PronUnitRowWriter implements RowWriter {
         List<PronUnit> units = new ArrayList<>(stage.getUnits());
         String code = row.values().get("unit_code");
         PronUnit existing = units.stream().filter(u -> code.equals(u.code())).findFirst().orElse(null);
-        PronUnit next = new PronUnit(code, row.values().get("audio_url"),
+        PronUnit next = new PronUnit(code, RowWriteSupport.value(row, "audio_url", existing == null ? null : existing.audioUrl()),
                 RowWriteSupport.value(row, "prompt_vi", existing == null ? "Nghe và chọn đáp án đúng" : existing.prompt()),
                 RowWriteSupport.options(row, existing == null ? null : existing.options(), PronUnit.Option::key, PronUnit.Option::new),
                 row.values().get("answer"),
-                RowWriteSupport.value(row, "explanation_vi", existing == null ? null : existing.explanation()));
+                RowWriteSupport.value(row, "explanation_vi", existing == null ? null : existing.explanation()),
+                // Re-importing a unit keeps the node it was linked to through NODE_LINK.
+                existing == null ? null : existing.kid(),
+                RowWriteSupport.value(row, "speak_text", existing == null ? null : existing.speakText()));
         RowWriteSupport.validateAnswer(next.options(), next.answerKey(), PronUnit.Option::key, PronUnit.Option::text);
         if (next.equals(existing)) {
             return RowAction.UNCHANGED;

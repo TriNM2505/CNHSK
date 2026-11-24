@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 public class QuestionRowValidator implements RowValidator {
     private static final int BATCH_SIZE = 500;
     private static final Pattern CODE = Pattern.compile("^[A-Z0-9_-]{3,50}$");
+    private static final Set<String> SKILLS = Set.of("LISTENING", "SPEAKING", "READING", "WRITING");
     private final KnowledgePointRepository points;
     private final QuestionRepository questions;
 
@@ -52,6 +53,15 @@ public class QuestionRowValidator implements RowValidator {
             row.integer("difficulty", 1, 3, false);
             row.canonicalInteger("hsk_level"); row.canonicalInteger("difficulty");
             row.url("audio_url"); row.url("image_url");
+            for (String column : List.of("skill", "origin")) {
+                if (row.eligible(column)) row.value(column, row.value(column).toUpperCase(java.util.Locale.ROOT));
+            }
+            if (row.eligible("skill") && !SKILLS.contains(row.value("skill"))) {
+                row.invalid("skill", "chỉ nhận LISTENING, SPEAKING, READING hoặc WRITING");
+            }
+            if (row.eligible("origin") && !"AI_DRAFT".equals(row.value("origin"))) {
+                row.invalid("origin", "chỉ nhận AI_DRAFT hoặc để trống");
+            }
             Map<String, String> cells = new LinkedHashMap<>();
             template.columns().forEach(column -> { if (row.value(column.name()) != null) cells.put(column.name(), row.value(column.name())); });
             values.add(cells);

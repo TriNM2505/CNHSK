@@ -67,6 +67,27 @@ public class KnowledgePoint {
     @Column(name = "updated_at", nullable = false, columnDefinition = "TIMESTAMPTZ")
     private Instant updatedAt;
 
+    /** Skills this node is used in (LISTENING, SPEAKING, READING, WRITING); see {@link KnowledgeSkill}. */
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "skills", nullable = false, columnDefinition = "VARCHAR(10)[]")
+    private String[] skills = new String[0];
+
+    @Column(length = 100)
+    private String cluster;
+
+    @Column(length = 300)
+    private String pattern;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "examples", nullable = false, columnDefinition = "JSONB")
+    private KnowledgeExamples examples = KnowledgeExamples.empty();
+
+    @Column(name = "teaching_note", columnDefinition = "TEXT")
+    private String teachingNote;
+
+    @Column(length = 300)
+    private String source;
+
     protected KnowledgePoint() {
     }
 
@@ -165,4 +186,17 @@ public class KnowledgePoint {
     public Instant getUpdatedAt() {
         return updatedAt;
     }
+
+    public String[] getSkills() { return skills; }
+    public void setSkills(String[] skills) { this.skills = skills == null ? new String[0] : skills; }
+    public String getCluster() { return cluster; }
+    public void setCluster(String cluster) { this.cluster = cluster; }
+    public String getPattern() { return pattern; }
+    public void setPattern(String pattern) { this.pattern = pattern; }
+    public KnowledgeExamples getExamples() { return examples; }
+    public void setExamples(KnowledgeExamples examples) { this.examples = examples == null ? KnowledgeExamples.empty() : examples; }
+    public String getTeachingNote() { return teachingNote; }
+    public void setTeachingNote(String teachingNote) { this.teachingNote = teachingNote; }
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
 }

@@ -13,7 +13,7 @@ public record ImportTemplate(
 
     private static final List<ImportTemplate> TEMPLATES = List.of(
             lexeme(), topic(), topicItem(), grammar(), grammarExercise(), pronStage(), pronUnit(),
-            knowledgeNode(), knowledgeEdge(), question(), nodeLink(), exam(), examQuestion());
+            knowledgeNode(), knowledgeEdge(), question(), nodeLink(), exam(), examQuestion(), errorCode(), learningTask());
 
     public ImportTemplate {
         naturalKey = List.copyOf(naturalKey);
@@ -163,7 +163,54 @@ public record ImportTemplate(
                         new ColumnSpec("can_do", false, 1000, "Năng lực người học đạt được.",
                                 "Nhận biết và sử dụng đại từ trong câu ngắn."),
                         new ColumnSpec("skill_type", false, null,
-                                "Kỹ năng chính: LISTENING, READING, WRITING, VOCAB, GRAMMAR hoặc CHARACTER.", "VOCAB")));
+                                "Kỹ năng chính: LISTENING, READING, WRITING, VOCAB, GRAMMAR hoặc CHARACTER.", "VOCAB"),
+                        new ColumnSpec("skills", false, null,
+                                "Các kỹ năng của nút ngăn bằng |: LISTENING, SPEAKING, READING, WRITING; để trống giữ giá trị cũ.",
+                                "READING|WRITING"),
+                        new ColumnSpec("cluster", false, 100, "Cụm (nhóm hiển thị, báo cáo).", "Từ vựng cấp 1 · bản thân"),
+                        new ColumnSpec("pattern", false, 300, "Công thức cấu trúc (miền NP).", "A + 是 + B"),
+                        new ColumnSpec("examples_ok", false, null,
+                                "Mảng JSON câu đúng mẫu: [{\"cn\",\"pinyin\",\"vi\"}]; thay nguyên danh sách.",
+                                "[{\"cn\":\"我是学生。\",\"pinyin\":\"Wǒ shì xuéshēng.\",\"vi\":\"Tôi là học sinh.\"}]"),
+                        new ColumnSpec("examples_err", false, null,
+                                "Mảng JSON câu sai điển hình: [{\"cn\",\"error_code\",\"note\"}]; mã lỗi dạng E-NP-01.",
+                                "[{\"cn\":\"我是很高兴。\",\"error_code\":\"E-NP-01\"}]"),
+                        new ColumnSpec("teaching_note", false, 2000, "Gợi ý dạy, lỗi chuyển di tiếng Việt.", ""),
+                        new ColumnSpec("source", false, 300, "Căn cứ: mục đại cương HSK 3.0, giáo trình.",
+                                "Đại cương HSK 3.0, ngữ pháp cấp 1")));
+    }
+
+    private static ImportTemplate errorCode() {
+        return new ImportTemplate(ImportDataType.ERROR_CODE, "Mã lỗi",
+                List.of("code"), List.of(ImportDataType.KNOWLEDGE_NODE), List.of(
+                        new ColumnSpec("code", true, null, "Mã lỗi dạng E-<miền>-<2 số>, ví dụ E-NP-07.", "E-NP-07"),
+                        new ColumnSpec("kid", false, null,
+                                "KID chính mà lỗi này cho thấy chưa vững (có thể khác miền với mã, ví dụ E-TV-01 → NP1-010); "
+                                        + "để trống chỉ với E-NL-*: lỗi đổ về nút NL của nhiệm vụ.", "NP3-004"),
+                        new ColumnSpec("severity", true, null,
+                                "Mức: 1 nhẹ (chỉ phản hồi), 2 trung bình, 3 nghiêm trọng (2 và 3 tính minh chứng).", "2"),
+                        new ColumnSpec("name_vi", true, 200, "Tên lỗi ngắn.", "Câu 把 thiếu thành phần sau động từ"),
+                        new ColumnSpec("example", false, 300, "Ví dụ sai.", "我把作业写。"),
+                        new ColumnSpec("fix_hint", false, 300, "Cách sửa, gợi ý.", "我把作业写完了。"),
+                        new ColumnSpec("description", false, 1000, "Mô tả, cách nhận biết.", "")));
+    }
+
+    private static ImportTemplate learningTask() {
+        return new ImportTemplate(ImportDataType.LEARNING_TASK, "Nhiệm vụ nói, viết",
+                List.of("code"), List.of(ImportDataType.KNOWLEDGE_NODE), List.of(
+                        new ColumnSpec("code", true, 50, "Mã nhiệm vụ theo mẫu ^[A-Z0-9_-]{3,50}$.", "NOI_NL1_001_A"),
+                        new ColumnSpec("kind", true, null, "SPEAKING hoặc WRITING.", "SPEAKING"),
+                        new ColumnSpec("hsk_level", true, null, "Cấp HSK: số nguyên từ 1 đến 9.", "1"),
+                        new ColumnSpec("nl_kid", true, null, "Nút năng lực giao tiếp (miền NL) của nhiệm vụ.", "NL1-001"),
+                        new ColumnSpec("title_vi", true, 200, "Tên nhiệm vụ.", "Tự giới thiệu"),
+                        new ColumnSpec("prompt_vi", true, 2000, "Đề bài cho học viên.", "Giới thiệu tên, tuổi và nghề nghiệp của bạn."),
+                        new ColumnSpec("prompt_zh", false, 1000, "Đề bài tiếng Trung nếu có.", "请介绍一下你自己。"),
+                        new ColumnSpec("targets", true, null,
+                                "KID mục tiêu theo tiêu chí, ngăn bằng |: C2:NA1-006|C3:TV1-001|C4:NP1-001. C1, C5 luôn là nút NL.",
+                                "C2:NA1-006|C3:TV1-001|C4:NP1-001"),
+                        new ColumnSpec("min_chars", false, null, "Bài viết: số chữ Hán tối thiểu.", ""),
+                        new ColumnSpec("max_seconds", false, null, "Bài nói: số giây tối đa (10–300).", "60"),
+                        new ColumnSpec("is_active", false, null, "TRUE hoặc FALSE, mặc định TRUE.", "TRUE")));
     }
 
     private static ImportTemplate knowledgeEdge() {
@@ -202,7 +249,11 @@ public record ImportTemplate(
                                 "Tối đa hai KID phụ ngăn bằng |, không trùng nhau hoặc trùng KID chính; để trống xoá toàn bộ KID phụ cũ.", ""),
                         new ColumnSpec("distractor_errors", false, null,
                                 "Tối đa sáu mục KEY:KID hoặc KEY:KID:ghi chú ngăn bằng |; khoá phải là phương án sai của loại chọn đáp án, ghi chú tối đa 200 ký tự; để trống xoá toàn bộ nhãn lỗi cũ.",
-                                "B:TV1-001:Nhầm nhóm người được nhắc đến")));
+                                "B:TV1-001:Nhầm nhóm người được nhắc đến"),
+                        new ColumnSpec("skill", false, null,
+                                "Kỹ năng câu hỏi đo: LISTENING, SPEAKING, READING hoặc WRITING; để trống giữ giá trị cũ.", "READING"),
+                        new ColumnSpec("origin", false, null,
+                                "AI_DRAFT: câu do AI soạn nháp, vào hàng chờ giáo viên duyệt; để trống: câu đã duyệt.", "")));
     }
 
     private static ImportTemplate exam() {
@@ -227,11 +278,12 @@ public record ImportTemplate(
     private static ImportTemplate nodeLink() {
         return new ImportTemplate(ImportDataType.NODE_LINK, "Gắn nội dung vào nút",
                 List.of("target_type", "target_key"),
-                List.of(ImportDataType.KNOWLEDGE_NODE, ImportDataType.TOPIC, ImportDataType.LEXEME, ImportDataType.GRAMMAR), List.of(
+                List.of(ImportDataType.KNOWLEDGE_NODE, ImportDataType.TOPIC, ImportDataType.LEXEME, ImportDataType.GRAMMAR,
+                        ImportDataType.PRON_UNIT), List.of(
                         new ColumnSpec("target_type", true, null,
-                                "TOPIC hoặc WORD thuộc miền TV; CHAR thuộc CH; GRAMMAR thuộc NP.", "WORD"),
+                                "TOPIC hoặc WORD thuộc miền TV; CHAR thuộc CH; GRAMMAR thuộc NP; PRON_UNIT thuộc NA.", "WORD"),
                         new ColumnSpec("target_key", true, null,
-                                "TOPIC: mã chủ đề; loại khác: nội dung mục từ đúng kind, đã tồn tại.", "我们"),
+                                "TOPIC: mã chủ đề; PRON_UNIT: tầng:mã bài nghe (ví dụ 1:BP_01); loại khác: nội dung mục từ đúng kind, đã tồn tại.", "我们"),
                         new ColumnSpec("kid", true, null, "KID đã tồn tại, khớp miền của nội dung.", "TV1-001")));
     }
 
@@ -242,8 +294,12 @@ public record ImportTemplate(
                                 "Tầng phát âm đã tồn tại; nhập mẫu Tầng phát âm trước.", "1"),
                         new ColumnSpec("unit_code", true, 30,
                                 "Mã bài nghe theo mẫu ^[A-Za-z0-9_-]{1,30}$.", "BP_01"),
-                        new ColumnSpec("audio_url", true, 500,
-                                "URL http:// hoặc https://, không có khoảng trắng.", "https://example.com/ba.mp3"),
+                        new ColumnSpec("audio_url", false, 500,
+                                "URL http:// hoặc https://, không có khoảng trắng; có thể để trống nếu điền speak_text.",
+                                "https://example.com/ba.mp3"),
+                        new ColumnSpec("speak_text", false, 20,
+                                "Chữ Hán cho giọng đọc của trình duyệt khi không có audio (ví dụ 妈 cho mā); cần audio_url hoặc speak_text.",
+                                "八"),
                         new ColumnSpec("prompt_vi", false, 200,
                                 "Yêu cầu bài nghe, mặc định: Nghe và chọn đáp án đúng.", "Nghe và chọn đáp án đúng"),
                         new ColumnSpec("option_a", true, 50,

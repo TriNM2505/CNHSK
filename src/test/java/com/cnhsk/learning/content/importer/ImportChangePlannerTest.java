@@ -62,7 +62,9 @@ class ImportChangePlannerTest {
         points = mock(KnowledgePointRepository.class);
         questions = mock(QuestionRepository.class); questionLabels = mock(KnowledgeTreeQueryRepository.class);
         nodeLinks = mock(NodeLinkRepository.class);
-        planner = new ImportChangePlanner(lexemes, topics, items, stages, points, questions, questionLabels, nodeLinks, exams);
+        planner = new ImportChangePlanner(lexemes, topics, items, stages, points, questions, questionLabels, nodeLinks, exams,
+                org.mockito.Mockito.mock(com.cnhsk.learning.knowledge.repository.ErrorCodeRepository.class),
+                org.mockito.Mockito.mock(com.cnhsk.learning.knowledge.repository.LearningTaskRepository.class));
     }
 
     @Test
@@ -210,7 +212,7 @@ class ImportChangePlannerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION", "ERROR_CODE", "LEARNING_TASK"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_absentNaturalKeyIsCreateForEveryTemplate(ImportDataType type) {
         assertThat(action(type, example(type))).isEqualTo(RowAction.CREATE);
         verify(lexemes, never()).save(any()); verify(topics, never()).save(any());
@@ -218,14 +220,14 @@ class ImportChangePlannerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION", "ERROR_CODE", "LEARNING_TASK"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_existingKeyWithAllEqualValuesIsUnchanged(ImportDataType type) {
         fixtures();
         assertThat(action(type, example(type))).isEqualTo(RowAction.UNCHANGED);
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION", "ERROR_CODE", "LEARNING_TASK"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_anyChangedValueMakesUpdateWithoutMutatingStoredJson(ImportDataType type) {
         fixtures();
         Map<String, String> v = example(type);
@@ -246,7 +248,7 @@ class ImportChangePlannerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION"}, mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = ImportDataType.class, names = {"KNOWLEDGE_EDGE", "QUESTION", "NODE_LINK", "EXAM", "EXAM_QUESTION", "ERROR_CODE", "LEARNING_TASK"}, mode = EnumSource.Mode.EXCLUDE)
     void FR013_FR020_optionalBlankKeepsOldValuesIncludingNestedJson(ImportDataType type) {
         fixtures();
         Map<String, String> v = example(type);
@@ -328,6 +330,11 @@ class ImportChangePlannerTest {
         KnowledgePoint node = new KnowledgePoint(n.get("kid"), n.get("name_vi"), KnowledgeDomain.TV, n.get("name_zh"), (short) 1);
         node.setCanDo(n.get("can_do"));
         node.setSkillType(KnowledgeSkillType.valueOf(n.get("skill_type")));
+        node.setSkills(com.cnhsk.learning.content.importer.KnowledgeNodeColumns.skills(n.get("skills")));
+        node.setCluster(n.get("cluster")); node.setPattern(n.get("pattern")); node.setSource(n.get("source"));
+        node.setExamples(new com.cnhsk.learning.knowledge.entity.KnowledgeExamples(
+                com.cnhsk.learning.content.importer.KnowledgeNodeColumns.correct(n.get("examples_ok")),
+                com.cnhsk.learning.content.importer.KnowledgeNodeColumns.wrong(n.get("examples_err"))));
         when(points.findByCodeIn(any())).thenReturn(List.of(node));
         Map<String, String> v = example(ImportDataType.LEXEME);
         Lexeme word = new Lexeme(LexemeKind.WORD, v.get("text"), v.get("meaning_vi"));
@@ -361,7 +368,8 @@ class ImportChangePlannerTest {
         stage.setTargetSounds(List.of("b", "p"));
         stage.setUnits(List.of(new PronUnit(u.get("unit_code"), u.get("audio_url"), u.get("prompt_vi"),
                 List.of("A", "B", "C", "D").stream().map(k -> new PronUnit.Option(k,
-                        u.get("option_" + k.toLowerCase(java.util.Locale.ROOT)))).toList(), u.get("answer"), u.get("explanation_vi"))));
+                        u.get("option_" + k.toLowerCase(java.util.Locale.ROOT)))).toList(), u.get("answer"), u.get("explanation_vi"),
+                null, u.get("speak_text"))));
         when(stages.findByStageIndexIn(any())).thenReturn(List.of(stage));
     }
 }

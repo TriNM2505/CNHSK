@@ -28,7 +28,9 @@ import com.cnhsk.learning.content.repository.NodeLinkRepository;
 import com.cnhsk.learning.content.repository.PronStageRepository;
 import com.cnhsk.learning.content.repository.TopicItemRepository;
 import com.cnhsk.learning.content.repository.TopicRepository;
+import com.cnhsk.learning.knowledge.repository.ErrorCodeRepository;
 import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
+import com.cnhsk.learning.knowledge.repository.LearningTaskRepository;
 import com.cnhsk.learning.knowledge.repository.KnowledgeTreeQueryRepository;
 import com.cnhsk.learning.knowledge.repository.QuestionRepository;
 import com.cnhsk.learning.knowledge.QuestionRules;
@@ -50,10 +52,15 @@ public class ImportChangePlanner {
     private final KnowledgeTreeQueryRepository questionLabels;
     private final NodeLinkRepository nodeLinks;
     private final ExamImportSupport exams;
+    private final ErrorCodeRepository errorCodes;
+    private final LearningTaskRepository tasks;
 
     public ImportChangePlanner(LexemeRepository lexemes, TopicRepository topics,
             TopicItemRepository topicItems, PronStageRepository stages, KnowledgePointRepository points,
-            QuestionRepository questions, KnowledgeTreeQueryRepository questionLabels, NodeLinkRepository nodeLinks, ExamImportSupport exams) {
+            QuestionRepository questions, KnowledgeTreeQueryRepository questionLabels, NodeLinkRepository nodeLinks,
+            ExamImportSupport exams, ErrorCodeRepository errorCodes, LearningTaskRepository tasks) {
+        this.errorCodes = errorCodes;
+        this.tasks = tasks;
         this.lexemes = lexemes;
         this.topics = topics;
         this.topicItems = topicItems;
@@ -119,6 +126,7 @@ public class ImportChangePlanner {
             var batch = rows.subList(offset, Math.min(rows.size(), offset + BATCH_SIZE));
             Map<List<String>, String> linkedKids = new HashMap<>();
             nodeLinks.topics(linkKeys(batch, "TOPIC")).forEach(target -> linkedKids.put(List.of("TOPIC", target.key()), target.kid()));
+            nodeLinks.pronUnits(linkKeys(batch, "PRON_UNIT")).forEach(target -> linkedKids.put(List.of("PRON_UNIT", target.key()), target.kid()));
             for (LexemeKind kind : LexemeKind.values()) {
                 nodeLinks.lexemes(kind, linkKeys(batch, kind.name()))
                         .forEach(target -> linkedKids.put(List.of(kind.name(), target.key()), target.kid()));
@@ -156,7 +164,9 @@ public class ImportChangePlanner {
                     Set<String> desired = new java.util.HashSet<>();
                     desired.add(KnowledgeLabelRole.PRIMARY.name() + ":" + candidate.primaryKid());
                     candidate.secondaryKids().forEach(kid -> desired.add(KnowledgeLabelRole.SECONDARY.name() + ":" + kid));
-                    action = oldLabels.equals(desired) && QuestionImportSupport.sameQuestion(previous, candidate)
+                    String skill = row.values().get("skill");
+                    boolean sameSkill = skill == null || skill.isBlank() || skill.equals(previous.getSkill());
+                    action = sameSkill && oldLabels.equals(desired) && QuestionImportSupport.sameQuestion(previous, candidate)
                             ? RowAction.UNCHANGED : RowAction.UPDATE;
                 }
                 result.add(new PreviewRow(row.line(), action, row.values()));
@@ -168,6 +178,9 @@ public class ImportChangePlanner {
     private static boolean same(String column, String incoming, String old) {
         if (old == null) {
             return false;
+        }
+        if (column.equals("skills")) {
+            return KnowledgeNodeColumns.sameSkills(KnowledgeNodeColumns.skills(incoming), KnowledgeNodeColumns.skills(old));
         }
         return NUMERIC.contains(column) ? new BigDecimal(incoming).compareTo(new BigDecimal(old)) == 0
                 : incoming.equals(old);
@@ -196,8 +209,22 @@ public class ImportChangePlanner {
                 cell(v, "kid", point.getCode()); cell(v, "name_vi", point.getTitle());
                 cell(v, "name_zh", point.getNameZh()); cell(v, "can_do", point.getCanDo());
                 cell(v, "skill_type", point.getSkillType());
+                cell(v, "skills", KnowledgeNodeColumns.skillsCell(point.getSkills()));
+                cell(v, "cluster", point.getCluster()); cell(v, "pattern", point.getPattern());
+                cell(v, "teaching_note", point.getTeachingNote()); cell(v, "source", point.getSource());
+                cell(v, "examples_ok", KnowledgeNodeColumns.correctCell(point.getExamples().ok()));
+                cell(v, "examples_err", KnowledgeNodeColumns.wrongCell(point.getExamples().err()));
                 put(result, type, v);
             });
+            case ERROR_CODE -> errorCodes.findAllById(values(rows, "code")).forEach(code -> {
+                Map<String, String> v = new LinkedHashMap<>();
+                cell(v, "code", code.getCode()); cell(v, "kid", code.getKid() == null ? null : code.getKid().getCode());
+                cell(v, "severity", code.getSeverity()); cell(v, "name_vi", code.getNameVi());
+                cell(v, "example", code.getExample()); cell(v, "fix_hint", code.getFixHint());
+                cell(v, "description", code.getDescription());
+                put(result, type, v);
+            });
+            case LEARNING_TASK -> tasks.findByCodeIn(values(rows, "code")).forEach(task -> put(result, type, task.toCsv()));
             case LEXEME -> {
                 for (LexemeKind kind : List.of(LexemeKind.CHAR, LexemeKind.WORD)) {
                     List<String> texts = rows.stream().map(ValidatedRow::values)
@@ -246,7 +273,7 @@ public class ImportChangePlanner {
                         for (PronUnit u : s.getUnits()) {
                             Map<String, String> v = new LinkedHashMap<>();
                             cell(v, "stage_index", s.getStageIndex()); cell(v, "unit_code", u.code());
-                            cell(v, "audio_url", u.audioUrl()); cell(v, "prompt_vi", u.prompt());
+                            cell(v, "audio_url", u.audioUrl()); cell(v, "speak_text", u.speakText()); cell(v, "prompt_vi", u.prompt());
                             if (u.options() != null) {
                                 u.options().forEach(o -> cell(v, "option_" + o.key().toLowerCase(java.util.Locale.ROOT), o.text()));
                             }

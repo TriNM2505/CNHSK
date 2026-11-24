@@ -1,0 +1,42 @@
+openapi: 3.0.3
+info:
+  title: CNHSK learning data import — appendix v1.1 (competency tree v2.0 attributes)
+  version: 1.1.0
+  description: >-
+    Appendix to openapi-import.yaml (locked). Adds two data types and new optional columns for the
+    competency tree v2.0: skills as node/question attributes, node detail, error codes, speaking and
+    writing tasks, and linking pronunciation units to phonetics (NA) nodes. Endpoints and response
+    shapes are unchanged; only the DataType enum and template columns grow.
+paths: {}
+components:
+  schemas:
+    DataType:
+      type: string
+      description: Full list in v1.1 — the v1.0 list followed by ERROR_CODE and LEARNING_TASK.
+      enum: [LEXEME, TOPIC, TOPIC_ITEM, GRAMMAR, GRAMMAR_EXERCISE, PRON_STAGE, PRON_UNIT,
+             KNOWLEDGE_NODE, KNOWLEDGE_EDGE, QUESTION, NODE_LINK, EXAM, EXAM_QUESTION,
+             ERROR_CODE, LEARNING_TASK]
+    TemplateColumnsV11:
+      type: object
+      description: Columns added in v1.1 (all optional except in the two new templates).
+      properties:
+        KNOWLEDGE_NODE:
+          type: array
+          items: { type: string }
+          example: [skills, cluster, pattern, examples_ok, examples_err, teaching_note, source]
+        QUESTION:
+          type: array
+          items: { type: string }
+          example: [skill, origin]
+        NODE_LINK:
+          type: string
+          description: target_type also accepts PRON_UNIT (key "stage:unit_code", node domain NA).
+        ERROR_CODE:
+          type: array
+          items: { type: string }
+          example: [code, kid, severity, name_vi, example, fix_hint, description]
+          description: kid is empty only for E-NL-* (the graded task's NL node); severity 1 is feedback only.
+        LEARNING_TASK:
+          type: array
+          items: { type: string }
+          example: [code, kind, hsk_level, nl_kid, title_vi, prompt_vi, prompt_zh, targets, min_chars, max_seconds, is_active]

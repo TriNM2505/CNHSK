@@ -1,6 +1,7 @@
 package com.cnhsk.learning.content.importer.write;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -8,6 +9,7 @@ import com.cnhsk.learning.content.importer.ImportPreview.RowAction;
 import com.cnhsk.learning.content.importer.template.ImportDataType;
 import com.cnhsk.learning.content.importer.validate.RowValidationResult.ValidatedRow;
 import com.cnhsk.learning.knowledge.entity.KnowledgeDomain;
+import com.cnhsk.learning.knowledge.entity.KnowledgeExamples;
 import com.cnhsk.learning.knowledge.entity.KnowledgePoint;
 import com.cnhsk.learning.knowledge.entity.KnowledgeSkillType;
 import com.cnhsk.learning.knowledge.repository.KnowledgePointRepository;
@@ -112,6 +114,52 @@ class KnowledgeNodeRowWriterTest {
         verify(points).saveAndFlush(saved.capture());
         assertThat(saved.getValue().getCanDo()).isNull();
         assertThat(saved.getValue().getSkillType()).isNull();
+    }
+
+    @Test
+    void writesSkillsDetailAndExamplesFromTheNewColumns() {
+        Map<String, String> values = values();
+        values.put("skills", "READING|LISTENING");
+        values.put("cluster", "Từ vựng cấp 2 · đi lại");
+        values.put("pattern", "S + 把 + O + V + kết quả");
+        values.put("teaching_note", "Nhấn mạnh phải có kết quả");
+        values.put("source", "Đại cương HSK 3.0, ngữ pháp cấp 3");
+        values.put("examples_ok", "[{\"cn\":\"我是学生。\",\"pinyin\":\"Wǒ shì xuéshēng.\",\"vi\":\"Tôi là học sinh.\"}]");
+        values.put("examples_err", "[{\"cn\":\"我是很高兴。\",\"error_code\":\"E-NP-01\"}]");
+        writer.write(row(values));
+        ArgumentCaptor<KnowledgePoint> saved = ArgumentCaptor.forClass(KnowledgePoint.class);
+        verify(points).saveAndFlush(saved.capture());
+        KnowledgePoint point = saved.getValue();
+        assertThat(point.getSkills()).containsExactly("READING", "LISTENING");
+        assertThat(point.getCluster()).isEqualTo("Từ vựng cấp 2 · đi lại");
+        assertThat(point.getPattern()).isEqualTo("S + 把 + O + V + kết quả");
+        assertThat(point.getTeachingNote()).isEqualTo("Nhấn mạnh phải có kết quả");
+        assertThat(point.getSource()).isEqualTo("Đại cương HSK 3.0, ngữ pháp cấp 3");
+        assertThat(point.getExamples().ok()).singleElement()
+                .isEqualTo(new KnowledgeExamples.Correct("我是学生。", "Wǒ shì xuéshēng.", "Tôi là học sinh."));
+        assertThat(point.getExamples().err()).singleElement()
+                .isEqualTo(new KnowledgeExamples.Wrong("我是很高兴。", "E-NP-01", null));
+    }
+
+    @Test
+    void omittedNewColumnsKeepExistingSkillsAndExamples() {
+        KnowledgePoint existing = existing();
+        existing.setSkills(new String[]{"READING"});
+        existing.setExamples(new KnowledgeExamples(List.of(new KnowledgeExamples.Correct("我。", null, "Tôi.")), List.of()));
+        when(points.findByCodeForUpdate("TV2-001")).thenReturn(Optional.of(existing));
+        assertThat(writer.write(row(values()))).isEqualTo(RowAction.UNCHANGED);
+        assertThat(existing.getSkills()).containsExactly("READING");
+        assertThat(existing.getExamples().ok()).hasSize(1);
+    }
+
+    @Test
+    void sameSkillsInAnotherOrderAreNotAChange() {
+        KnowledgePoint existing = existing();
+        existing.setSkills(new String[]{"WRITING", "READING"});
+        when(points.findByCodeForUpdate("TV2-001")).thenReturn(Optional.of(existing));
+        Map<String, String> values = values();
+        values.put("skills", "READING|WRITING");
+        assertThat(writer.write(row(values))).isEqualTo(RowAction.UNCHANGED);
     }
 
     @Test

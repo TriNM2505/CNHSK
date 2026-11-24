@@ -114,7 +114,14 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
         Set<Long> createdQuestions = questions.findAll().stream().map(value -> value.getId()).filter(id -> !questionBaseline.contains(id)).collect(Collectors.toSet());
         userIds.forEach(id -> jdbc.update("DELETE FROM learning.exam_questions WHERE exam_id IN (SELECT id FROM learning.exams WHERE created_by = ?)", id));
         labels.deleteAllInBatch(labels.findByQuestionIdIn(createdQuestions)); questions.deleteAllByIdInBatch(createdQuestions);
-        points.deleteAllByIdInBatch(points.findAll().stream().map(value -> value.getId()).filter(id -> !pointBaseline.contains(id)).toList());
+        List<Long> createdPoints = points.findAll().stream().map(value -> value.getId()).filter(id -> !pointBaseline.contains(id)).toList();
+        // Error codes and speaking/writing tasks reference nodes, so they are removed before the nodes.
+        createdPoints.forEach(id -> {
+            jdbc.update("DELETE FROM learning.learning_tasks WHERE nl_kid_id = ? OR id IN "
+                    + "(SELECT task_id FROM learning.learning_task_targets WHERE kid_id = ?)", id, id);
+            jdbc.update("DELETE FROM learning.error_codes WHERE kid_id = ?", id);
+        });
+        points.deleteAllByIdInBatch(createdPoints);
         userIds.forEach(id -> jdbc.update("DELETE FROM learning.exams WHERE created_by = ?", id));
         users.deleteAllInBatch(createdUsers);
         createdUsers.clear();
@@ -330,9 +337,9 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void FR034_FR035_AT41_allThirteenCsvTemplatesMatchMetadataAndSupportedOnesCanBeImported() throws Exception {
+    void FR034_FR035_AT41_allCsvTemplatesMatchMetadataAndSupportedOnesCanBeImported() throws Exception {
         JsonNode templates = json(read("/templates", 200));
-        assertThat(templates).hasSize(13);
+        assertThat(templates).hasSize(ImportDataType.values().length);
         for (JsonNode template : templates) {
             String type = template.path("dataType").asText();
             var csv = read("/templates/" + type + ".csv", 200).getResponse();
@@ -351,6 +358,12 @@ class ImportQueryIntegrationTest extends AbstractIntegrationTest {
             if (type.equals("KNOWLEDGE_EDGE")) {
                 JsonNode parent = upload(ImportDataType.KNOWLEDGE_NODE,
                         "kid,name_vi,name_zh\nTV2-001,Nút đích tự soạn,示例\n".getBytes(StandardCharsets.UTF_8));
+                confirm(parent.path("runId").asLong());
+            }
+            if (type.equals("ERROR_CODE")) {
+                // Error codes and tasks (imported right after) point at nodes beyond the knowledge-node example (TV1-001).
+                JsonNode parent = upload(ImportDataType.KNOWLEDGE_NODE, ("kid,name_vi,name_zh\nNP3-004,Nút tự soạn,示例\n"
+                        + "NL1-001,Nút tự soạn,示例\nNA1-006,Nút tự soạn,示例\nNP1-001,Nút tự soạn,示例\n").getBytes(StandardCharsets.UTF_8));
                 confirm(parent.path("runId").asLong());
             }
             JsonNode preview = upload(ImportDataType.valueOf(type), csv.getContentAsByteArray());

@@ -13,5 +13,7 @@ public enum ImportDataType {
     QUESTION,
     NODE_LINK,
     EXAM,
-    EXAM_QUESTION
+    EXAM_QUESTION,
+    ERROR_CODE,
+    LEARNING_TASK
 }

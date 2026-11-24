@@ -1,6 +1,8 @@
 package com.cnhsk.learning.content.importer.write;
 
 import com.cnhsk.learning.content.importer.ImportPreview.RowAction;
+import com.cnhsk.learning.content.importer.KnowledgeNodeColumns;
+import com.cnhsk.learning.knowledge.entity.KnowledgeExamples;
 import com.cnhsk.learning.content.importer.template.ImportDataType;
 import com.cnhsk.learning.content.importer.validate.RowValidationResult.ValidatedRow;
 import com.cnhsk.learning.knowledge.entity.KnowledgeDomain;
@@ -40,6 +42,20 @@ public class KnowledgeNodeRowWriter implements RowWriter {
         if (RowWriteSupport.present(row, "skill_type")) {
             changes.set(point.getSkillType(), KnowledgeSkillType.valueOf(row.values().get("skill_type")), point::setSkillType);
         }
+        if (RowWriteSupport.present(row, "skills")) {
+            String[] skills = KnowledgeNodeColumns.skills(row.values().get("skills"));
+            if (!KnowledgeNodeColumns.sameSkills(point.getSkills(), skills)) changes.set(null, skills, point::setSkills);
+        }
+        changes.text(row, "cluster", point.getCluster(), point::setCluster);
+        changes.text(row, "pattern", point.getPattern(), point::setPattern);
+        changes.text(row, "teaching_note", point.getTeachingNote(), point::setTeachingNote);
+        changes.text(row, "source", point.getSource(), point::setSource);
+        var examples = point.getExamples();
+        var ok = RowWriteSupport.present(row, "examples_ok")
+                ? KnowledgeNodeColumns.correct(row.values().get("examples_ok")) : examples.ok();
+        var err = RowWriteSupport.present(row, "examples_err")
+                ? KnowledgeNodeColumns.wrong(row.values().get("examples_err")) : examples.err();
+        changes.set(examples, new KnowledgeExamples(ok, err), point::setExamples);
         if (existing == null || changes.changed()) {
             points.saveAndFlush(point);
             return existing == null ? RowAction.CREATE : RowAction.UPDATE;

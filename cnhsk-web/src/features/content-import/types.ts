@@ -12,6 +12,8 @@ export type ImportDataType =
   | 'NODE_LINK'
   | 'EXAM'
   | 'EXAM_QUESTION'
+  | 'ERROR_CODE'
+  | 'LEARNING_TASK'
 
 export type ImportRunStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'EXPIRED'
 export type ImportRowAction = 'CREATE' | 'UPDATE' | 'UNCHANGED'

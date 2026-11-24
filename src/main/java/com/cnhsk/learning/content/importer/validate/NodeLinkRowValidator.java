@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class NodeLinkRowValidator implements RowValidator {
     private static final int BATCH_SIZE = 500;
-    private static final Set<String> TYPES = Set.of("TOPIC", "WORD", "CHAR", "GRAMMAR");
+    private static final Set<String> TYPES = Set.of("TOPIC", "WORD", "CHAR", "GRAMMAR", "PRON_UNIT");
     private final NodeLinkRepository targets;
     private final KnowledgePointRepository points;
 
@@ -40,7 +40,7 @@ public class NodeLinkRowValidator implements RowValidator {
         for (Context row : rows) {
             row.requiredAndBroken(Set.of());
             if (row.eligible("target_type") && !TYPES.contains(row.value("target_type"))) {
-                row.invalid("target_type", "chỉ nhận TOPIC, WORD, CHAR hoặc GRAMMAR");
+                row.invalid("target_type", "chỉ nhận TOPIC, WORD, CHAR, GRAMMAR hoặc PRON_UNIT");
             }
             if (row.eligible("kid")) row.value("kid", row.value("kid").toUpperCase(Locale.ROOT));
         }
@@ -53,6 +53,7 @@ public class NodeLinkRowValidator implements RowValidator {
     private void checkReferences(List<Context> rows) {
         Set<List<String>> existing = new HashSet<>();
         targets.topics(keys(rows, "TOPIC")).forEach(target -> existing.add(List.of("TOPIC", target.key())));
+        targets.pronUnits(keys(rows, "PRON_UNIT")).forEach(target -> existing.add(List.of("PRON_UNIT", target.key())));
         for (LexemeKind kind : LexemeKind.values()) {
             targets.lexemes(kind, keys(rows, kind.name()))
                     .forEach(target -> existing.add(List.of(kind.name(), target.key())));
@@ -71,17 +72,23 @@ public class NodeLinkRowValidator implements RowValidator {
             }
             // Reference errors take precedence: domain is meaningful only after both references resolve.
             if (row.valid()) {
-                String domain = switch (row.value("target_type")) {
-                    case "TOPIC", "WORD" -> "TV";
-                    case "CHAR" -> "CH";
-                    default -> "NP";
-                };
+                String domain = domainOf(row.value("target_type"));
                 if (!nodes.get(row.value("kid")).getDomain().name().equals(domain)) {
                     row.error("kid", "DOMAIN_MISMATCH", "Nội dung loại " + row.value("target_type")
                             + " chỉ gắn được vào nút miền " + domain);
                 }
             }
         }
+    }
+
+    /** Which domain a content type may be linked to. */
+    public static String domainOf(String targetType) {
+        return switch (targetType) {
+            case "TOPIC", "WORD" -> "TV";
+            case "CHAR" -> "CH";
+            case "PRON_UNIT" -> "NA";
+            default -> "NP";
+        };
     }
 
     private static Set<String> keys(List<Context> rows, String type) {
