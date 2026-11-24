@@ -1,0 +1,331 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Community — phụ lục v1.2 (bài của kiểm duyệt viên, ghim, ảnh/video, bảng tin theo dõi, thông báo)
+  version: 1.2.0
+  description: >
+    Hợp đồng phụ lục spec 009 §17. Tách khỏi openapi-community.yaml (24 operation bị CommunityContractTest khoá) và
+    openapi-community-v1-1.yaml. CommunityContractTest so runtime với file gốc ∪ phần đã làm của v1.1 ∪ file này,
+    hai chiều theo path, method, operationId và mã trạng thái. Cuộc thi game nằm ở spec 021
+    (openapi-contests-v1-1.yaml). Lỗi dùng ErrorResponse như file gốc.
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+    PostCategory:
+      type: string
+      enum: [EXPERIENCE, QUESTION, STUDY_BUDDY, CULTURE, JOB, CONTEST, ANNOUNCEMENT]
+      description: CONTEST và ANNOUNCEMENT chỉ kiểm duyệt viên dùng (FR-077)
+    MediaItem:
+      type: object
+      required: [kind, url, publicId]
+      properties:
+        kind: { type: string, enum: [IMAGE, VIDEO] }
+        url: { type: string, format: uri }
+        publicId: { type: string }
+    UserRef:
+      type: object
+      required: [id, displayName]
+      properties:
+        id: { type: integer, format: int64 }
+        displayName: { type: [string, 'null'] }
+    PostSummary:
+      type: object
+      required: [id, title, category, excerpt, author, publishedAt, commentCount, likeCount]
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        category: { $ref: '#/components/schemas/PostCategory' }
+        excerpt: { type: string }
+        author: { $ref: '#/components/schemas/UserRef' }
+        publishedAt: { type: string, format: date-time }
+        commentCount: { type: integer, format: int64 }
+        likeCount: { type: integer, format: int64 }
+        media:
+          type: array
+          items: { $ref: '#/components/schemas/MediaItem' }
+    PostSummaryPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/PostSummary' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    PinnedPost:
+      allOf:
+        - $ref: '#/components/schemas/PostSummary'
+        - type: object
+          required: [contestId, pinnedUntil]
+          properties:
+            contestId: { type: [integer, 'null'], format: int64 }
+            pinnedUntil: { type: string, format: date-time }
+            commentsCloseAt: { type: [string, 'null'], format: date-time }
+    ModeratorPostWrite:
+      type: object
+      required: [title, content, category]
+      additionalProperties: false
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        content: { type: string, minLength: 1, maxLength: 50000 }
+        category: { $ref: '#/components/schemas/PostCategory' }
+        contestId: { type: [integer, 'null'], format: int64, description: Cuộc thi đã công bố (FR-078) }
+        pinnedUntil: { type: [string, 'null'], format: date-time, description: Ở tương lai; null là không ghim }
+        media:
+          type: array
+          maxItems: 4
+          items: { $ref: '#/components/schemas/MediaItem' }
+        commentsCloseAt: { type: [string, 'null'], format: date-time, description: Cuộc thi bình luận (FR-078) }
+    OwnPost:
+      type: object
+      required: [id, title, content, category, status, createdAt, updatedAt]
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        content: { type: string }
+        category: { $ref: '#/components/schemas/PostCategory' }
+        status: { type: string, enum: [DRAFT, PENDING, APPROVED, REJECTED, HIDDEN] }
+        reviewReason: { type: [string, 'null'] }
+        publishedAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        media:
+          type: array
+          items: { $ref: '#/components/schemas/MediaItem' }
+    PinWrite:
+      type: object
+      required: [pinnedUntil]
+      properties:
+        pinnedUntil: { type: [string, 'null'], format: date-time, description: null để bỏ ghim }
+    UploadSignature:
+      type: object
+      required: [cloudName, apiKey, folder, timestamp, signature, uploadUrl]
+      properties:
+        cloudName: { type: string }
+        apiKey: { type: string }
+        folder: { type: string, description: '<folder> cho bài; <folder>-avatars khi purpose=avatar' }
+        timestamp: { type: integer, format: int64 }
+        signature: { type: string }
+        uploadUrl: { type: string, format: uri }
+    NotificationTask:
+      type: object
+      required: [key, count]
+      properties:
+        key: { type: string, description: 'PENDING_POSTS, PENDING_REPORTS, GRADING_DUE_SOON, GRADING_OPEN, AI_REVIEW' }
+        count: { type: integer, format: int64, minimum: 1 }
+    NotificationSummary:
+      type: object
+      required: [unread, tasks]
+      properties:
+        unread: { type: integer, format: int64, minimum: 0 }
+        tasks:
+          type: array
+          items: { $ref: '#/components/schemas/NotificationTask' }
+    Notification:
+      type: object
+      required: [key, type, at, unread, actorId, actorName, total, postId, postTitle, commentId, excerpt]
+      properties:
+        key: { type: string }
+        type:
+          type: string
+          description: >
+            POST_APPROVED, POST_REJECTED, POST_HIDDEN, COMMENT, REPLY, LIKE, FOLLOW, CONTEST_OPEN,
+            CONTEST_RESULTS_READY, CONTEST_FINISHED và các sự kiện học tập (GRADED, GRADING_EXPIRED, AI_REVIEWED,
+            IMPORT_DONE, IMPORT_FAILED, AI_GENERATE_DONE, AI_GENERATE_FAILED, PAYOUT)
+        at: { type: string, format: date-time }
+        unread: { type: boolean }
+        actorId: { type: [integer, 'null'], format: int64 }
+        actorName: { type: [string, 'null'] }
+        total: { type: integer, description: 'Số người thích (LIKE), hạng (CONTEST_FINISHED), điểm/số câu (học tập)' }
+        postId: { type: [integer, 'null'], format: int64 }
+        postTitle: { type: [string, 'null'] }
+        commentId: { type: [integer, 'null'], format: int64 }
+        excerpt: { type: [string, 'null'] }
+    NotificationPage:
+      type: object
+      required: [items, tasks]
+      properties:
+        items:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/Notification' }
+        tasks:
+          type: array
+          items: { $ref: '#/components/schemas/NotificationTask' }
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+paths:
+  /api/community/moderation/posts:
+    post:
+      operationId: createModeratorPost
+      tags: [moderation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ModeratorPostWrite' }
+      responses:
+        '201':
+          description: Đã đăng ngay, APPROVED
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OwnPost' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /api/community/moderation/posts/{id}/pin:
+    put:
+      operationId: pinPost
+      tags: [moderation]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PinWrite' }
+      responses:
+        '204': { description: Đã ghim hoặc bỏ ghim }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /api/public/community/posts/pinned:
+    get:
+      operationId: listPinnedPosts
+      tags: [public-posts]
+      security: []
+      responses:
+        '200':
+          description: Bài đang ghim, mới ghim trước
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PinnedPost' }
+  /api/community/media/signature:
+    post:
+      operationId: signMediaUpload
+      tags: [media]
+      parameters:
+        - name: purpose
+          in: query
+          required: false
+          schema: { type: string, enum: [avatar] }
+      responses:
+        '200':
+          description: Chữ ký tải thẳng lên Cloudinary
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UploadSignature' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /api/community/posts/following:
+    get:
+      operationId: listFollowingPosts
+      tags: [posts]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Bài đã duyệt của người mình theo dõi
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostSummaryPage' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /api/community/posts/liked:
+    get:
+      operationId: listLikedPostIds
+      tags: [posts]
+      parameters:
+        - name: ids
+          in: query
+          required: false
+          schema:
+            type: array
+            maxItems: 50
+            items: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: Mã các bài trong danh sách mà người xem đã thích
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: integer, format: int64 }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /api/me/notifications/summary:
+    get:
+      operationId: getNotificationSummary
+      tags: [notifications]
+      responses:
+        '200':
+          description: Số chưa đọc và việc còn tồn
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationSummary' }
+        '401': { $ref: '#/components/responses/Error' }
+  /api/me/notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      responses:
+        '200':
+          description: 50 mục mới nhất trong 90 ngày
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationPage' }
+        '401': { $ref: '#/components/responses/Error' }
+  /api/me/notifications/seen:
+    post:
+      operationId: markNotificationsSeen
+      tags: [notifications]
+      responses:
+        '204': { description: Đã đánh dấu đã xem; mốc không bao giờ lùi }
+        '401': { $ref: '#/components/responses/Error' }

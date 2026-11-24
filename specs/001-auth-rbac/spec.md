@@ -293,6 +293,7 @@ Nếu vừa bị cấm vừa bị treo, trả ACCOUNT_BANNED.
 | Mã | Yêu cầu |
 |---|---|
 | **FR-051** | THE system SHALL cho người dùng xem (`GET /api/me/profile`) và sửa (`PATCH /api/me/profile`) đúng 3 trường: `displayName`, `avatarUrl`, `hskLevel` (FR-095). Giờ nhắc học thuộc spec nhắc học |
+| **FR-051a** | THE system SHALL trả thêm trong `GET`/`PATCH /api/me/profile` năm trường **chỉ đọc**: `id`, `createdAt`, `planCode`, `planExpiresAt` (null với gói miễn phí), `deviceCount` = số `session_id` khác nhau còn refresh token chưa thu hồi và chưa hết hạn. Không thêm bảng; người dùng không sửa được các trường này (FR-052). Hợp đồng: `contracts/openapi-auth-v1-1.yaml` (file gốc bị `AuthContractTest` khoá) |
 | **FR-052** | THE system SHALL KHÔNG cho người dùng tự sửa: `email`, `plan_code`, `plan_expires_at`, role, trạng thái tài khoản. Body chứa trường không được phép → **422** `VALIDATION_FAILED` |
 | **FR-053** | THE system SHALL lấy `user_id` từ JWT cho mọi endpoint `/api/me/*`, KHÔNG nhận id từ client (`BUS-01`) |
 | **FR-054** | WHEN người dùng không phải `ADMIN` gọi endpoint có id người khác, THE system SHALL trả **403** `FORBIDDEN`, kể cả khi id không tồn tại |
@@ -579,7 +580,7 @@ Mockup tham khảo giao diện: `C:\CLHSK\cnhsk-mockup-79\screens\scr-0xx-*.html
 | SCR-079 | Access Denied | `/403` | Không | — | dòng 39615 |
 
 Field, nhãn, validate, thông báo lấy **đúng** từ `screen-fields.md`. Chỗ `screen-fields.md` ghi "open issue" → dùng quyết định ở Nhóm 14.
-SCR-007 chỉ có 3 field của FR-051/FR-095; nút "Cài đặt nhắc học" dẫn tới SCR-009 (ngoài phạm vi — ẩn ở đợt này).
+SCR-007 (sửa 24/11): mỗi thay đổi lưu riêng, không có nút "Lưu hồ sơ". Thẻ trái: ảnh đại diện tải từ máy lên Cloudinary (chữ ký `POST /api/community/media/signature?purpose=avatar`, ảnh ≤ 5 MB) rồi `PATCH {avatarUrl}`; sửa tên tại chỗ (Enter lưu, Esc huỷ, 2–100 ký tự); chọn cấp HSK (`PATCH {hskLevel}`, giữ cấp đã lưu ngoài HSK 1–3). Thẻ phải chỉ đọc các trường FR-051a: email, gói (FREE/VIP kèm hạn), ID, huy hiệu suy ra từ gói và tuổi tài khoản, cách đăng nhập, số thiết bị, thời điểm tạo. Lối vào cài đặt nhắc học nằm ở menu tài khoản trên header.
 
 ### 12.2 · Hành vi chung frontend
 
@@ -704,6 +705,7 @@ Không có AT: FR-055 (đã chuyển), FR-056 (V2), FR-058c (spec này không c�
 | AT-54 | FR-050 | W 50 lần sai · T không có cột nào trong `users` bị đổi |
 | AT-55 | FR-051, FR-095 | W PATCH `{displayName:"Minh", hskLevel:3}` · T 200, DB đổi đúng 2 trường |
 | AT-56 | FR-052 | W PATCH có `email` hoặc `roles` · T 422 |
+| AT-55a | FR-051a | W `GET /api/me/profile` · T đủ 10 trường, `planCode=FREE`, `planExpiresAt=null`; 2 refresh token cùng phiên + 1 phiên khác + 1 đã thu hồi + 1 hết hạn · T `deviceCount=2` |
 | AT-57 | FR-053 | W PATCH kèm `userId` của người khác trong body · T 422 (trường không cho phép), dữ liệu người khác không đổi |
 | AT-58 | FR-054 | G `LEARNER` · W `GET /api/admin/users/{id bất kỳ}` (có hoặc không tồn tại) · T 403 |
 | AT-59 | FR-057 | W `GET /api/admin/users` · T email dạng `ba•••@gmail.com` |

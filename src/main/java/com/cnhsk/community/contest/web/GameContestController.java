@@ -12,6 +12,10 @@ import com.cnhsk.community.contest.web.GameContestViews.Live;
 import com.cnhsk.community.contest.web.GameContestViews.Results;
 import com.cnhsk.community.contest.web.GameContestViews.Winner;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
@@ -30,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** Moderators run game contests; everyone can watch the live ranking. */
 @RestController
 public class GameContestController {
+    private static final String ERROR = "#/components/schemas/ErrorResponse";
     private static final DateTimeFormatter LOCAL = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
             .withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
 
@@ -43,6 +48,12 @@ public class GameContestController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(operationId = "createGameContest", tags = "moderation")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Đã tạo cuộc thi và bài hướng dẫn",
+                    content = @Content(schema = @Schema(implementation = GameContestCreated.class))),
+            @ApiResponse(responseCode = "401", description = "Chưa đăng nhập", content = @Content(schema = @Schema(ref = ERROR))),
+            @ApiResponse(responseCode = "403", description = "Không phải kiểm duyệt viên", content = @Content(schema = @Schema(ref = ERROR))),
+            @ApiResponse(responseCode = "422", description = "Dữ liệu không hợp lệ", content = @Content(schema = @Schema(ref = ERROR)))})
     @SecurityRequirement(name = "cookieAuth")
     @SecurityRequirement(name = "bearerAuth")
     public GameContestCreated create(@Valid @RequestBody GameContestWrite request) {
@@ -51,6 +62,9 @@ public class GameContestController {
 
     @GetMapping(value = "/api/public/community/contests/{id}/live", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(operationId = "getGameContestLive", tags = "public-contests")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = Live.class))),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy cuộc thi game", content = @Content(schema = @Schema(ref = ERROR)))})
     @SecurityRequirements
     public Live live(@PathVariable long id) {
         return service.live(id);
@@ -58,6 +72,12 @@ public class GameContestController {
 
     @GetMapping(value = "/api/community/moderation/contests/{id}/results", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(operationId = "getGameContestResults", tags = "moderation")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(implementation = Results.class))),
+            @ApiResponse(responseCode = "401", description = "Chưa đăng nhập", content = @Content(schema = @Schema(ref = ERROR))),
+            @ApiResponse(responseCode = "403", description = "Không phải kiểm duyệt viên", content = @Content(schema = @Schema(ref = ERROR))),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy cuộc thi game", content = @Content(schema = @Schema(ref = ERROR))),
+            @ApiResponse(responseCode = "409", description = "Cuộc thi chưa có kết quả", content = @Content(schema = @Schema(ref = ERROR)))})
     @SecurityRequirement(name = "cookieAuth")
     @SecurityRequirement(name = "bearerAuth")
     public Results results(@PathVariable long id) {
@@ -66,6 +86,13 @@ public class GameContestController {
 
     @GetMapping(value = "/api/community/moderation/contests/{id}/results.csv", produces = "text/csv")
     @Operation(operationId = "exportGameContestResults", tags = "moderation")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tệp CSV người đạt giải",
+                    content = @Content(mediaType = "text/csv", schema = @Schema(type = "string", format = "binary"))),
+            @ApiResponse(responseCode = "401", description = "Chưa đăng nhập", content = @Content(schema = @Schema(ref = ERROR))),
+            @ApiResponse(responseCode = "403", description = "Không phải kiểm duyệt viên", content = @Content(schema = @Schema(ref = ERROR))),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy cuộc thi game", content = @Content(schema = @Schema(ref = ERROR))),
+            @ApiResponse(responseCode = "409", description = "Cuộc thi chưa có kết quả", content = @Content(schema = @Schema(ref = ERROR)))})
     @SecurityRequirement(name = "cookieAuth")
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<byte[]> csv(@PathVariable long id) {
@@ -90,6 +117,12 @@ public class GameContestController {
             consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(operationId = "decideGameContestExclusion", tags = "moderation")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Đã lưu quyết định"),
+            @ApiResponse(responseCode = "401", description = "Chưa đăng nhập", content = @Content(schema = @Schema(ref = ERROR))),
+            @ApiResponse(responseCode = "403", description = "Không phải kiểm duyệt viên", content = @Content(schema = @Schema(ref = ERROR))),
+            @ApiResponse(responseCode = "404", description = "Không tìm thấy cuộc thi game", content = @Content(schema = @Schema(ref = ERROR))),
+            @ApiResponse(responseCode = "422", description = "Dữ liệu không hợp lệ", content = @Content(schema = @Schema(ref = ERROR)))})
     @SecurityRequirement(name = "cookieAuth")
     @SecurityRequirement(name = "bearerAuth")
     public void decide(@PathVariable long id, @PathVariable long userId, @Valid @RequestBody Exclusion request) {

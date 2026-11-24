@@ -1,0 +1,62 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Auth API — phụ lục v1.1 (thông tin tài khoản trên hồ sơ)
+  version: 1.1.0
+  description: >
+    Phụ lục spec 001 §FR-051a. Tách khỏi openapi-auth.yaml vì AuthContractTest khoá file gốc. Đường dẫn, phương
+    thức và mã trạng thái của GET/PATCH /api/me/profile giữ nguyên như file gốc; chỉ schema Profile thêm năm trường
+    chỉ đọc. ProfilePatch không đổi: các trường mới gửi lên trong PATCH vẫn bị từ chối 422 (FR-052).
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+    Profile:
+      type: object
+      required: [displayName, email, emailVerified, id, createdAt, planCode, planExpiresAt, deviceCount]
+      properties:
+        displayName: { type: string }
+        avatarUrl: { type: [string, 'null'] }
+        hskLevel: { type: [integer, 'null'], minimum: 1, maximum: 9 }
+        email: { type: string }
+        emailVerified: { type: boolean }
+        id: { type: integer, format: int64, description: Mã tài khoản, chỉ đọc }
+        createdAt: { type: string, format: date-time, description: Thời điểm tạo tài khoản, chỉ đọc }
+        planCode: { type: string, description: 'Gói hiện tại (FREE, PREMIUM…), chỉ đọc' }
+        planExpiresAt: { type: [string, 'null'], format: date-time, description: Hết hạn gói trả phí; null với FREE }
+        deviceCount:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Số phiên khác nhau còn refresh token chưa thu hồi và chưa hết hạn (thiết bị đang đăng nhập)
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+paths:
+  /api/me/profile:
+    get:
+      tags: [me]
+      summary: Xem hồ sơ kèm thông tin tài khoản (FR-051, FR-051a)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Profile' }
+        '401': { $ref: '#/components/responses/Error' }

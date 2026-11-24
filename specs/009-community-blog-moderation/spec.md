@@ -639,3 +639,38 @@ Leader chốt 2026-11-14 (014 Q7): bộ thẻ công khai ngay khi chia sẻ, vi 
 | AT-63 | FR-074, FR-075 | W `MODERATOR` xem hồ sơ · T `target` có ≤ 20 thẻ; `ACTION` · T bộ `is_public=false`, rời danh sách công khai 014, hồ sơ `ACTIONED`, `audit_logs`; `ACTION` kèm `commentAction` · T 422; chủ bộ là `MODERATOR` xử lý · T 403 `SELF_MODERATION` |
 | AT-64 | FR-075 | G `unshare` ném lỗi · W `ACTION` · T rollback cả hồ sơ (vẫn `PENDING`) |
 | AT-65 | FR-076 (FE) | Vitest: hồ sơ bộ thẻ hiện nhãn và thẻ dạng text; không có lựa chọn ẩn/xoá bình luận |
+
+---
+
+## 17 · Phụ lục v1.2 — Bài của kiểm duyệt viên, ghim, ảnh/video, bảng tin theo dõi, thông báo
+
+Đã có trên nhánh làm việc 23–24/11 (thiết kế lại cộng đồng kiểu Hanzii). Hợp đồng: [`contracts/openapi-community-v1-2.yaml`](contracts/openapi-community-v1-2.yaml);
+file gốc 24 operation và phụ lục v1.1 giữ nguyên. Cuộc thi game (tạo, phòng thi, kết quả) thuộc spec 021 §16 vì mã nằm ở `community.contest`.
+Migration: V12 (`posts.pinned_until`, `posts.contest_id`, thêm chủ đề `CONTEST`, `ANNOUNCEMENT`), V14 (`posts.comments_close_at`), V16 (`auth.users.notifications_seen_at`).
+
+### 17.1 · Functional Requirements (FR-077…FR-086)
+
+| Mã | Yêu cầu |
+|---|---|
+| **FR-077** | `POST /api/community/moderation/posts` (role `MODERATOR`) SHALL đăng ngay bài `APPROVED`, không qua hàng chờ (FR-039 không áp dụng): `{title, content, category, contestId?, pinnedUntil?, media?, commentsCloseAt?}`. Chủ đề có thêm `CONTEST` và `ANNOUNCEMENT` — chỉ kiểm duyệt viên dùng; người học vẫn chỉ 5 chủ đề (FR-061). **201** `OwnPost`; không phải `MODERATOR` → 403 |
+| **FR-078** | `contestId` SHALL trỏ cuộc thi đã công bố, ngược lại **422** (`field=contestId`); có cuộc thi mà không gửi `pinnedUntil` → ghim tới giờ đóng cuộc thi. `commentsCloseAt` (cuộc thi bình luận) phải ở tương lai; không gửi `pinnedUntil` → ghim tới lúc đóng bình luận. Sau `commentsCloseAt` máy chủ từ chối bình luận/trả lời mới. Mọi `pinnedUntil` phải ở tương lai → 422 |
+| **FR-079** | `PUT /api/community/moderation/posts/{id}/pin` `{pinnedUntil \| null}` SHALL ghim (tới thời điểm tương lai) hoặc bỏ ghim một bài `APPROVED` bất kỳ; bài không tồn tại hoặc chưa duyệt → **404** `POST_NOT_FOUND`; **204** |
+| **FR-080** | `GET /api/public/community/posts/pinned` (công khai) SHALL trả các bài `APPROVED` còn hạn ghim, mới ghim trước, kèm `contestId`, `pinnedUntil`, `commentsCloseAt`. SCR-039 đặt chúng trên bảng tin khi không lọc chủ đề và không lặp lại ở danh sách dưới |
+| **FR-081** | `POST /api/community/media/signature[?purpose=avatar]` (role `LEARNER` hoặc `MODERATOR`) SHALL trả chữ ký Cloudinary `{cloudName, apiKey, folder, timestamp, signature, uploadUrl}`; trình duyệt tải thẳng lên Cloudinary, máy chủ không nhận byte tệp. `purpose=avatar` dùng thư mục `<folder>-avatars`, để ảnh đại diện không gắn được vào bài. Chưa cấu hình Cloudinary → **503** `MEDIA_NOT_CONFIGURED`. Bài/bình luận chỉ nhận `media` (≤ 4 mục, `IMAGE`/`VIDEO`) có `url` và `publicId` thuộc đúng tài khoản và thư mục bài, ngược lại 422 |
+| **FR-082** | `GET /api/community/posts/following?page&size` (role `LEARNER`) SHALL trả bài `APPROVED` của những người mình theo dõi (§16), mới đăng trước, cùng dạng `PostSummaryPage` với FR-012 |
+| **FR-083** | `GET /api/community/posts/liked?ids=…` (role `LEARNER`) SHALL trả, trong ≤ 50 mã gửi lên, những bài người gọi đã thích — một truy vấn cho cả trang bảng tin |
+| **FR-084** | Thông báo **không lưu bảng**: `GET /api/me/notifications` (mọi role đã đăng nhập) SHALL đọc từ dữ liệu đã có — bài của mình được duyệt/từ chối/ẩn (bởi người khác), bình luận vào bài của mình, trả lời bình luận của mình, lượt thích gộp một dòng mỗi bài (`total`, người thích gần nhất), người mới theo dõi, cuộc thi game mở/kết thúc (spec 021 §16) và sự kiện học tập (chấm bài, AI, nhập dữ liệu). Không báo việc chính mình làm; chỉ trong **90 ngày**; tối đa **50** mục, mới trước |
+| **FR-085** | `GET /api/me/notifications/summary` SHALL trả `{unread, tasks}`: `unread` = số mục sau mốc đã xem (chưa mở lần nào → mọi mục trong 90 ngày); `tasks` = việc còn tồn, đếm trực tiếp — `MODERATOR`: `PENDING_POSTS`, `PENDING_REPORTS`; `TEACHER`: các hàng chấm bài; chỉ liệt kê việc có số > 0 |
+| **FR-086** | `POST /api/me/notifications/seen` SHALL đặt `auth.users.notifications_seen_at` = giờ máy chủ, **không bao giờ lùi** (hai tab mở chuông gần nhau giữ mốc muộn hơn); **204**. FE chỉ gọi khi panel có mục chưa đọc; chuông hỏi `summary` mỗi 30 giây khi tab đang hiện và không gọi API trong trang xem trước (preview) |
+
+### 17.2 · Acceptance Tests (AT-66…AT-72)
+
+| # | FR | G / W / T |
+|---|---|---|
+| AT-66 | FR-077, FR-078 | W `MODERATOR` đăng `ANNOUNCEMENT` · T 201 `APPROVED` ngay; `LEARNER` gọi · T 403; `contestId` chưa công bố · T 422; `pinnedUntil` quá khứ · T 422 |
+| AT-67 | FR-079, FR-080 | W ghim rồi bỏ ghim · T bài vào rồi rời `GET …/posts/pinned`; ghim bài `PENDING` · T 404 |
+| AT-68 | FR-081 | W xin chữ ký `purpose=avatar` · T `folder` có hậu tố `-avatars`; gắn `media` khác thư mục vào bài · T 422 |
+| AT-69 | FR-082, FR-083 | G A theo dõi B · T bảng tin theo dõi của A chỉ có bài `APPROVED` của B; `liked?ids` chỉ trả bài A đã thích |
+| AT-70 | FR-084 | G bài của tôi được duyệt, 1 bình luận, 1 trả lời, 2 lượt thích, 1 người theo dõi · T 5 mục mới trước, thích gộp `total=2`; việc của chính tôi, bình luận bị ẩn, mục > 90 ngày · T không có |
+| AT-71 | FR-085, FR-086 | W đánh dấu đã xem tại T rồi tại T−60 s · T mốc vẫn là T; `unread` chỉ đếm mục sau mốc; `MODERATOR` có bài chờ · T `tasks` có `PENDING_POSTS` |
+| AT-72 | §13 | `CommunityContractTest`: runtime = file gốc ∪ phụ lục v1.1 (đã làm) ∪ phụ lục v1.2, so hai chiều path + method + operationId + status |

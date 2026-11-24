@@ -1,0 +1,229 @@
+openapi: 3.1.0
+info:
+  title: CNHSK Contests API — phụ lục v1.1 (cuộc thi game do kiểm duyệt viên tổ chức)
+  version: 1.1.0
+  description: >
+    Phụ lục spec 021 §16. Tách khỏi openapi-contests.yaml vì ContestContractTest khoá file gốc (16 operation, so
+    hai chiều với /v3/api-docs). ContestContractTest đọc cả hai file. /api/community/moderation/contests/** cần
+    MODERATOR; /api/public/community/contests/{id}/live không cần đăng nhập. Giờ trả ISO-8601.
+    Pha: WAITING trước giờ mở, OPEN trong giờ thi, TALLYING từ giờ đóng tới resultsAt (giờ đóng + thời lượng một
+    ván + 20 giây để ván cuối nộp bài), FINISHED sau đó. Bảng xếp hạng chỉ có ở OPEN và FINISHED; người thắng kèm
+    email chỉ có ở FINISHED và mỗi lần đọc được ghi audit.
+
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema: { type: integer, format: int64, minimum: 1 }
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error_code, message, request_id]
+      properties:
+        error_code: { type: string }
+        message: { type: string }
+        request_id: { type: string }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+    MediaItem:
+      type: object
+      required: [kind, url, publicId]
+      properties:
+        kind: { type: string, enum: [IMAGE, VIDEO] }
+        url: { type: string, format: uri }
+        publicId: { type: string }
+    GameContestWrite:
+      type: object
+      required: [title, content, gameCode, startsAt, endsAt, prizeCount]
+      additionalProperties: false
+      properties:
+        title: { type: string, minLength: 1, maxLength: 200 }
+        content: { type: string, minLength: 1, maxLength: 50000, description: Thể lệ, đăng thành bài ghim CONTEST }
+        gameCode: { type: string, maxLength: 30, description: Một GameCode đang mở }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time, description: Sau startsAt, ở tương lai, dài tối đa 31 ngày }
+        prizeCount: { type: integer, minimum: 1, maximum: 50 }
+        media:
+          type: array
+          maxItems: 4
+          items: { $ref: '#/components/schemas/MediaItem' }
+    GameContestCreated:
+      type: object
+      required: [contestId, postId]
+      properties:
+        contestId: { type: integer, format: int64 }
+        postId: { type: integer, format: int64, description: Bài hướng dẫn, ghim tới một ngày sau giờ đóng }
+    GameContestRankingRow:
+      type: object
+      required: [rank, userId, displayName, points, durationMs, achievedAt]
+      properties:
+        rank: { type: integer, format: int64 }
+        userId: { type: integer, format: int64 }
+        displayName: { type: [string, 'null'] }
+        points: { type: integer, format: int64 }
+        durationMs: { type: [integer, 'null'] }
+        achievedAt: { type: string, format: date-time }
+    GameContestLive:
+      type: object
+      required: [id, title, description, gameCode, startsAt, endsAt, resultsAt, prizeCount, serverTime, phase,
+                 participants, ranking]
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        description: { type: [string, 'null'] }
+        gameCode: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        resultsAt: { type: string, format: date-time }
+        prizeCount: { type: integer }
+        serverTime: { type: string, format: date-time, description: Để client đếm ngược theo giờ máy chủ }
+        phase: { type: string, enum: [WAITING, OPEN, TALLYING, FINISHED] }
+        participants: { type: integer, format: int64, description: 0 khi WAITING hoặc TALLYING }
+        ranking:
+          type: array
+          maxItems: 50
+          description: Rỗng khi WAITING hoặc TALLYING; mỗi người một dòng là ván tốt nhất
+          items: { $ref: '#/components/schemas/GameContestRankingRow' }
+    GameContestWinner:
+      allOf:
+        - $ref: '#/components/schemas/GameContestRankingRow'
+        - type: object
+          required: [email]
+          properties:
+            email: { type: string }
+    GameContestExcluded:
+      type: object
+      required: [userId, displayName, note, decidedAt]
+      properties:
+        userId: { type: integer, format: int64 }
+        displayName: { type: [string, 'null'] }
+        note: { type: string }
+        decidedAt: { type: string, format: date-time }
+    GameContestResults:
+      type: object
+      required: [contest, winners, excluded]
+      properties:
+        contest: { $ref: '#/components/schemas/GameContestLive' }
+        winners:
+          type: array
+          description: Top prizeCount, không gồm người bị cấm hay bị loại
+          items: { $ref: '#/components/schemas/GameContestWinner' }
+        excluded:
+          type: array
+          items: { $ref: '#/components/schemas/GameContestExcluded' }
+    GameContestExclusion:
+      type: object
+      required: [excluded, note]
+      additionalProperties: false
+      properties:
+        excluded: { type: boolean, description: true loại mọi ván của người chơi khỏi xếp hạng; false khôi phục }
+        note: { type: string, minLength: 1, maxLength: 500 }
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+paths:
+  /api/community/moderation/contests:
+    post:
+      operationId: createGameContest
+      tags: [moderation]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GameContestWrite' }
+      responses:
+        '201':
+          description: Đã tạo cuộc thi và bài hướng dẫn
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GameContestCreated' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /api/public/community/contests/{id}/live:
+    get:
+      operationId: getGameContestLive
+      tags: [public-contests]
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Phòng thi và xếp hạng trực tiếp
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GameContestLive' }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/community/moderation/contests/{id}/results:
+    get:
+      operationId: getGameContestResults
+      tags: [moderation]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Người thắng kèm email và người bị loại
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/GameContestResults' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/community/moderation/contests/{id}/results.csv:
+    get:
+      operationId: exportGameContestResults
+      tags: [moderation]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: CSV UTF-8 có BOM; ô bắt đầu bằng = + - @ được thêm dấu nháy đơn
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /api/community/moderation/contests/{id}/exclusions/{userId}:
+    put:
+      operationId: decideGameContestExclusion
+      tags: [moderation]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GameContestExclusion' }
+      responses:
+        '204': { description: Đã lưu quyết định }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }

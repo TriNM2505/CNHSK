@@ -343,3 +343,33 @@ SCR-048…051 dùng layout `by-role`/`learner` → thêm tên vào `AssistantPro
 ## 15 · Gói việc
 
 [`tasks.md`](tasks.md) · [`questions.md`](questions.md)
+
+---
+
+## 16 · Phụ lục v1.1 — Cuộc thi game do kiểm duyệt viên tổ chức (SCR-080, SCR-081, SCR-082)
+
+Đã có trên nhánh làm việc 23–24/11. Hợp đồng: [`contracts/openapi-contests-v1-1.yaml`](contracts/openapi-contests-v1-1.yaml) (file gốc 16 operation bị
+`ContestContractTest` khoá; test đọc cả hai file). Migration V14 (`contests.game_code`, `contests.prize_count` 1–50, ràng buộc cuộc thi đã công bố phải có
+đề thi **hoặc** game), V15 (`community.contest_exclusions`). Ván thi là `learning.attempts` `kind='GAME'`, `ref_type='GAME_ROUND'`, `ref_id` = cuộc thi.
+
+| Mã | Yêu cầu |
+|---|---|
+| **FR-027** | `POST /api/community/moderation/contests` (role `MODERATOR`) `{title, content, gameCode, startsAt, endsAt, prizeCount, media?}` SHALL tạo cuộc thi `PUBLISHED` gắn một game đang mở và một bài `CONTEST` ghim tới **một ngày sau giờ đóng** (spec 009 FR-077); **201** `{contestId, postId}`. Game không hợp lệ/chưa mở, `endsAt ≤ startsAt`, `endsAt` ở quá khứ, dài quá **31 ngày** → **422**; không phải `MODERATOR` → 403. Ghi `audit_logs` `GAME_CONTEST_CREATE` |
+| **FR-028** | Pha theo giờ máy chủ: `WAITING` trước `startsAt`; `OPEN` tới `endsAt`; `TALLYING` tới `resultsAt = endsAt + thời lượng một ván + 20 s` (ván bắt đầu sát giờ đóng còn được nộp); `FINISHED` sau đó |
+| **FR-029** | Ván thi bắt đầu bằng `POST /api/community/games/{code}/rounds` `{contestId}` (thay cho `{hskLevel}`; gửi cả hai hoặc không gửi gì → 422). Chỉ nhận khi cuộc thi `OPEN` và đúng game, ngược lại 422 `CONTEST_NOT_OPEN` / `VALIDATION_FAILED`. Câu hỏi trộn HSK 1–3. Mỗi người không giới hạn lượt |
+| **FR-030** | `GET /api/public/community/contests/{id}/live` (công khai) SHALL trả `GameContestLive` kèm `serverTime` để đếm ngược. Xếp hạng chỉ có khi `OPEN` và `FINISHED` (tối đa 50 dòng); `WAITING`/`TALLYING` trả `ranking=[]`, `participants=0`. Không phải cuộc thi game → 404 `CONTEST_NOT_FOUND` |
+| **FR-031** | Xếp hạng SHALL lấy **ván tốt nhất** của mỗi người: chỉ ván `SUBMITTED`, không `suspicious`, có điểm, `served_at` trong `[startsAt, endsAt)`, đúng game và cuộc thi; bỏ người bị khoá và người bị loại; sắp điểm giảm dần, rồi thời gian ván tăng dần (null sau cùng), rồi nộp trước, rồi `user_id` |
+| **FR-032** | `GET /api/community/moderation/contests/{id}/results` và `…/results.csv` (role `MODERATOR`) SHALL chỉ trả khi `FINISHED`, ngược lại **409** `CONTEST_LOCKED`: top `prizeCount` kèm **email liên hệ** (chỉ của người thắng) và danh sách người bị loại; mỗi lần đọc ghi `audit_logs` `GAME_CONTEST_WINNERS_VIEW`. CSV UTF-8 có BOM, ô bắt đầu bằng `= + - @` được thêm dấu nháy đơn |
+| **FR-033** | `PUT /api/community/moderation/contests/{id}/exclusions/{userId}` `{excluded, note}` (role `MODERATOR`) SHALL loại (upsert, ghi lý do mới nhất) hoặc khôi phục người chơi; mọi ván của người đó rời xếp hạng; **204**; ghi `CONTEST_PARTICIPANT_EXCLUDE`/`INCLUDE` |
+| **FR-034** | Thông báo (spec 009 FR-084): người đã chơi game đó trong 90 ngày nhận `CONTEST_OPEN`; người tổ chức nhận `CONTEST_RESULTS_READY`; người chơi nhận `CONTEST_FINISHED` kèm hạng và số giải |
+| **FR-035** | FE: SCR-080 (`/moderation/posts/new`) loại bài "Cuộc thi game" có chọn game, giờ mở/đóng, số người nhận giải (1–50), không có ô ghim; tạo xong mở SCR-081. SCR-081 (`/community/contests/:id`, công khai) đếm ngược theo giờ máy chủ, hỏi lại mỗi 30 s (`WAITING`), 5 s (`OPEN`), 3 s (`TALLYING`), nút "Vào thi" mở game cho `LEARNER`, khách được mời đăng nhập, `FINISHED` hiện bục vinh danh và bảng chung cuộc; `MODERATOR` có link sang SCR-082. SCR-082 (`/moderation/contests/:id/results`) có bảng người thắng kèm email, tải CSV, loại/khôi phục (bắt buộc lý do), "Soạn bài công bố" mở SCR-080 với bản nháp **không chứa email** |
+
+| # | FR | G / W / T |
+|---|---|---|
+| AT-23 | FR-027 | W `MODERATOR` tạo · T 201, bài `CONTEST` ghim tới `endsAt + 1 ngày`; game không có, cửa sổ sai, > 31 ngày · T 422; `LEARNER`/`ADMIN` · T 403 |
+| AT-24 | FR-028, FR-030 | Trước giờ mở và trong 20 s sau giờ đóng + một ván · T `ranking=[]`; đang mở · T top 50 có tên; `resultsAt` đúng công thức |
+| AT-25 | FR-031 | A 3 ván (900; 1500/70 s; 1500/65 s), B 1500/60 s, C 1500/60 s nộp sau · T B, C, A(65 s); ván ngoài cửa sổ, game khác, chưa nộp, nghi gian lận, người bị khoá, người bị loại · T không có |
+| AT-26 | FR-032, FR-033 | Chưa `FINISHED` · T 409; xong · T email chỉ của người thắng, có audit; loại rồi khôi phục · T dòng `contest_exclusions` cập nhật rồi xoá |
+| AT-27 | FR-029 | `{contestId}` hợp lệ khi `OPEN` · T 201; `{contestId, hskLevel}`, `contestId` ≤ 0 hoặc không phải số nguyên · T 422 |
+| AT-28 | FR-035 (FE) | Vitest SCR-080/081/082: kiểm hợp lệ trước khi gửi, từng pha, link vào thi, bản nháp công bố không có email |
+| AT-29 | §13 | `ContestContractTest` so runtime với `openapi-contests.yaml` ∪ `openapi-contests-v1-1.yaml` hai chiều |

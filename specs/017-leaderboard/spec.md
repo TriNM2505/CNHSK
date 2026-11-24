@@ -244,3 +244,11 @@ Mã mới thêm ngay trước `INTERNAL_ERROR` theo thứ tự merge (H8). Redis
 
 ## 15 · Gói việc
 Xem `tasks.md` — 7 task, ước tính BE 2,5 · FE 1,5 ngày công.
+
+---
+
+## 16 · Ghi chú v1.1 — Cuộc thi game (spec 021 §16)
+
+- Ván thi trong cuộc thi game do kiểm duyệt viên tổ chức vẫn là `attempts` `kind='GAME'`, nhưng `ref_id` = cuộc thi và **không ghi cấp HSK** (câu hỏi trộn HSK 1–3), nên không vào bảng game theo cấp (AT-06a).
+- Xếp hạng của cuộc thi là bảng riêng của 021 (FR-031): cùng luật chọn ván tốt nhất và phá hoà như AT-02/AT-03/AT-06 nhưng chỉ trong cửa sổ cuộc thi và bỏ người bị kiểm duyệt viên loại.
+- Danh mục game công khai khi không chọn cấp kiểm nội dung HSK 1–3 (đúng phạm vi nội dung game), không còn hỏi mọi cấp.
