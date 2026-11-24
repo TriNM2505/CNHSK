@@ -70,13 +70,13 @@ describe('mastery route foundation (FR-001 FE, §12; AT-01 access only)', () => 
   })
 
   it.each(routes)(
-    'redirects a guest at $path to login with the full destination',
+    'sends a guest at $path to trial learning, keeping the full destination',
     async ({ path, scr }) => {
       const destination = `${path}?source=mastery#sample`
       const router = renderRoute(destination)
-      expect(await screen.findByRole('heading', { name: 'Đăng nhập' })).toBeVisible()
-      expect(router.state.location.pathname).toBe('/login')
-      expect(new URLSearchParams(router.state.location.search).get('redirect')).toBe(destination)
+      expect(await screen.findByRole('heading', { name: 'Thử ngay, không cần tài khoản' })).toBeVisible()
+      expect(router.state.location.pathname).toBe('/learn/try')
+      expect(new URLSearchParams(router.state.location.search).get('from')).toBe(destination)
       expect(
         screen.queryByRole('heading', { name: `Màn ${scr} đang dựng` }),
       ).not.toBeInTheDocument()
