@@ -73,7 +73,8 @@ class EntitlementApiCompatibilityTest extends AbstractIntegrationTest {
     @Test
     void exactPublicTypesSupportCompileTimeCallerUse() throws Exception {
         assertThat(PaidFeature.values()).containsExactly(PaidFeature.AI_GENERATE, PaidFeature.TRANSLATE,
-                PaidFeature.ASSISTANT, PaidFeature.GRADING);
+                PaidFeature.ASSISTANT, PaidFeature.GRADING, PaidFeature.VOCAB, PaidFeature.GRAMMAR,
+                PaidFeature.PRONUNCIATION, PaidFeature.HANZI);
         assertThat(Consumption.Source.values()).containsExactly(Consumption.Source.QUOTA, Consumption.Source.CREDIT);
         assertThat(Consumption.class.isRecord()).isTrue();
         assertThat(Consumption.class.getRecordComponents()).extracting(component -> component.getName())
@@ -127,6 +128,12 @@ class EntitlementApiCompatibilityTest extends AbstractIntegrationTest {
             public Consumption consume(long user, PaidFeature feature, String requestKey) {
                 assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
                 return billing.consume(user, feature, requestKey);
+            }
+
+            @Override
+            public Consumption consume(long user, PaidFeature feature, String requestKey, boolean creditFallback) {
+                assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
+                return billing.consume(user, feature, requestKey, creditFallback);
             }
 
             @Override

@@ -120,7 +120,10 @@ class SettingsConsumerIntegrationTest extends AbstractIntegrationTest {
         JsonNode wallet = wallet();
         assertThat(wallet.path("quota").size()).isEqualTo(PaidFeature.values().length);
         for (JsonNode quota : wallet.path("quota")) {
-            assertThat(quota.path("limit").asInt()).isEqualTo(defaultValue(BILLING_FREE_MONTHLY_LIMIT));
+            // Learning features read their own monthly allowance; paid features the billing one.
+            SettingKey limitKey = PaidFeature.valueOf(quota.path("feature").asText()).learning()
+                    ? SettingKey.LEARNING_FREE_MONTHLY_LIMIT : BILLING_FREE_MONTHLY_LIMIT;
+            assertThat(quota.path("limit").asInt()).isEqualTo(defaultValue(limitKey));
             assertThat(quota.path("used").asInt()).isZero();
         }
         try (var reservation = daily.reserve(learner)) { reservation.commit(); }

@@ -437,6 +437,9 @@ class EntitlementServiceTest {
         var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
         org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
                 .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        // Learning features have their own monthly allowance; these tests give it the same configured value.
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.LEARNING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
         return settings;
     }
 }

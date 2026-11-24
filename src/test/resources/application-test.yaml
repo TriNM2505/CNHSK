@@ -51,6 +51,9 @@ cnhsk:
   billing:
     card-code-pepper: test-only-card-code-pepper-not-secret-0001
     downgrade-cron: "-"
+  # Learning flows start many sessions for one fixture user; the monthly allowance has its own tests.
+  learning:
+    free-monthly-limit: 1000
   ai-generate:
     cron: "-"
   import:

@@ -87,6 +87,7 @@ class TopicTestIntegrationTest extends AbstractIntegrationTest {
     @MockitoSpyBean private TopicTestRepository repository;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private PlatformTransactionManager transactionManager;
+    @Autowired private com.cnhsk.shared.settings.SettingsApi settings;
     @MockitoBean private Clock clock;
     @MockitoBean(name = "practiceChoiceRandom") private RandomGenerator random;
     private long owner;
@@ -228,6 +229,9 @@ class TopicTestIntegrationTest extends AbstractIntegrationTest {
     void FR033_otherLearnerCanStartWhileFirstLearnersAdvisoryLockIsHeld() throws Exception {
         Topic topic = learnedTopic(4);
         learn(other, topic, repository.words(topic.getId()), "SUBMITTED");
+        // Starting a test spends a learning allowance; a cold settings cache reads the limit on a second
+        // connection, which the three-connection test pool cannot spare while two starts are in flight.
+        settings.getInt(com.cnhsk.shared.settings.SettingKey.LEARNING_FREE_MONTHLY_LIMIT);
         var pool = Executors.newFixedThreadPool(3);
         var locked = new CountDownLatch(1);
         var release = new CountDownLatch(1);

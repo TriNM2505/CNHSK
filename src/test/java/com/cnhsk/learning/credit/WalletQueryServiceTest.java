@@ -43,7 +43,8 @@ class WalletQueryServiceTest {
         assertThat(wallet.plan().code()).isEqualTo(PlanCode.FREE);
         assertThat(wallet.plan().expiresAt()).isNull();
         assertThat(wallet.plan().active()).isTrue();
-        assertThat(wallet.quota()).hasSize(4).extracting(q -> q.feature()).containsExactly(PaidFeature.values());
+        assertThat(wallet.quota()).hasSize(PaidFeature.values().length).extracting(q -> q.feature())
+                .containsExactly(PaidFeature.values());
         assertThat(wallet.quota().get(0).used()).isEqualTo(3);
         assertThat(wallet.quota().get(0).remaining()).isEqualTo(7);
         assertThat(wallet.quota().get(1).used()).isEqualTo(37);
@@ -158,6 +159,9 @@ class WalletQueryServiceTest {
     private static com.cnhsk.shared.settings.SettingsService settings(BillingConfig config) {
         var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
         org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        // Learning features have their own monthly allowance; these tests give it the same configured value.
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.LEARNING_FREE_MONTHLY_LIMIT))
                 .thenAnswer(invocation -> config.getFreeMonthlyLimit());
         return settings;
     }

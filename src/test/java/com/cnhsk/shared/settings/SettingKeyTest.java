@@ -48,7 +48,8 @@ class SettingKeyTest {
         "ai-generate.min-wrong,AI sinh câu,1,1000,20",
         "ai-generate.min-bank,AI sinh câu,1,200,10",
         "ai-generate.batch-size,AI sinh câu,1,10,5",
-        "ai-generate.max-batches-per-run,AI sinh câu,0,20,3"
+        "ai-generate.max-batches-per-run,AI sinh câu,0,20,3",
+        "learning.free-monthly-limit,Học tập,0,1000,3"
     })
     void catalogMatchesApprovedBusinessSettings(String name, String group, int min, int max, int defaultValue) {
         SettingKey key = Arrays.stream(SettingKey.values()).filter(k -> k.key().equals(name)).findFirst().orElseThrow();
@@ -67,7 +68,7 @@ class SettingKeyTest {
 
     @Test
     void catalogIsFixedUniqueAndContainsNoSensitiveKeys() {
-        assertThat(SettingKey.values()).hasSize(24).extracting(SettingKey::key).doesNotHaveDuplicates();
+        assertThat(SettingKey.values()).hasSize(25).extracting(SettingKey::key).doesNotHaveDuplicates();
         for (SettingKey key : SettingKey.values()) {
             String name = key.key().toLowerCase(Locale.ROOT);
             assertThat(name).doesNotContain("key", "secret", "password", "pepper");

@@ -1,0 +1,15 @@
+openapi: 3.0.3
+info:
+  title: CNHSK credits — appendix v1.1 (monthly free allowance per learning feature)
+  version: 1.1.0
+  description: >-
+    Appendix to openapi-credit.yaml (locked). Paths, statuses and every other schema are unchanged.
+    PaidFeature gains the four learning features. Each one has its own monthly free allowance
+    (setting learning.free-monthly-limit, 3 by default), separate from the paid features' limit
+    (billing.free-monthly-limit). The wallet lists one quota line per feature, in enum order.
+paths: {}
+components:
+  schemas:
+    PaidFeature:
+      type: string
+      enum: [AI_GENERATE, TRANSLATE, ASSISTANT, GRADING, VOCAB, GRAMMAR, PRONUNCIATION, HANZI]

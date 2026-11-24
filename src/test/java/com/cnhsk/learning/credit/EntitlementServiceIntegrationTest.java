@@ -162,7 +162,8 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
             }
         }
         assertThat(state().freeUsage()).containsExactlyInAnyOrderEntriesOf(Map.of(
-                "AI_GENERATE", 2, "TRANSLATE", 2, "ASSISTANT", 2, "GRADING", 2));
+                "AI_GENERATE", 2, "TRANSLATE", 2, "ASSISTANT", 2, "GRADING", 2,
+                "VOCAB", 2, "GRAMMAR", 2, "PRONUNCIATION", 2, "HANZI", 2));
         assertThat(countTransactions()).isZero();
     }
 
@@ -471,6 +472,9 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
     private static com.cnhsk.shared.settings.SettingsService settings(BillingConfig config) {
         var settings = org.mockito.Mockito.mock(com.cnhsk.shared.settings.SettingsService.class);
         org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.BILLING_FREE_MONTHLY_LIMIT))
+                .thenAnswer(invocation -> config.getFreeMonthlyLimit());
+        // Learning features have their own monthly allowance; these tests give it the same configured value.
+        org.mockito.Mockito.when(settings.getInt(com.cnhsk.shared.settings.SettingKey.LEARNING_FREE_MONTHLY_LIMIT))
                 .thenAnswer(invocation -> config.getFreeMonthlyLimit());
         return settings;
     }

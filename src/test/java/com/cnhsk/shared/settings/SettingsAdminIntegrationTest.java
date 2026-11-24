@@ -60,7 +60,7 @@ class SettingsAdminIntegrationTest extends AbstractIntegrationTest {
         String bearer = bearer();
         var listed = json(mvc.perform(get("/api/admin/settings").header("Authorization", bearer)).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsByteArray());
-        assertThat(listed).hasSize(24);
+        assertThat(listed).hasSize(25);
         assertThat(listed.get(0).path("currentValue").asInt()).isEqualTo(10);
         assertThat(listed.get(0).get("updatedBy").isNull()).isTrue();
         assertThat(listed.get(0).get("updatedAt").isNull()).isTrue();

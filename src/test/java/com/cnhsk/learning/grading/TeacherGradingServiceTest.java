@@ -43,22 +43,22 @@ class TeacherGradingServiceTest {
 
     @Test void AT06_queueMapsOnlyMetadataWithTwoRepositoryCalls() {
         when(repository.countQueue(9, NOW)).thenReturn(1L);
-        when(repository.findQueue(9, NOW, 0, 20)).thenReturn(List.of(new GradingRepository.QueueRow(42, 50, null, NOW, NOW.plusSeconds(3600))));
+        when(repository.findQueue(9, NOW, 0, 20)).thenReturn(List.of(new GradingRepository.QueueRow(42, 50, null, NOW, NOW.plusSeconds(3600), "ESSAY")));
         var queue = service.queue(9, 0, 20);
         assertThat(queue.totalElements()).isEqualTo(1); assertThat(queue.items()).hasSize(1);
         var item = queue.items().get(0);
         assertThat(item.reference()).isEqualTo("GR-000042"); assertThat(item.hanziCount()).isEqualTo(50);
-        assertThat(item.hskLevel()).isNull(); assertThat(item.payoutCredits()).isZero();
+        assertThat(item.hskLevel()).isNull(); assertThat(item.payoutCredits()).isZero(); assertThat(item.mode()).isEqualTo("ESSAY");
         assertThatThrownBy(() -> queue.items().clear()).isInstanceOf(UnsupportedOperationException.class);
         verify(repository).countQueue(9, NOW); verify(repository).findQueue(9, NOW, 0, 20);
         verifyNoMoreInteractions(repository); verifyNoInteractions(entitlement);
     }
 
     @Test void FR010_mineMapsTheAlreadyOrderedAssignedProjection() {
-        when(repository.findAssigned(9)).thenReturn(List.of(new GradingRepository.AssignedRow(42, 50, NOW.minusSeconds(10), NOW)));
+        when(repository.findAssigned(9)).thenReturn(List.of(new GradingRepository.AssignedRow(42, 50, NOW.minusSeconds(10), NOW, "SPEAKING")));
         var items = service.mine(9);
         assertThat(items).hasSize(1); assertThat(items.get(0).gradingDeadline()).isEqualTo(NOW);
-        assertThat(items.get(0).assignedAt()).isEqualTo(NOW.minusSeconds(10));
+        assertThat(items.get(0).assignedAt()).isEqualTo(NOW.minusSeconds(10)); assertThat(items.get(0).mode()).isEqualTo("SPEAKING");
         verify(repository).findAssigned(9); verifyNoMoreInteractions(repository); verifyNoInteractions(entitlement);
     }
 

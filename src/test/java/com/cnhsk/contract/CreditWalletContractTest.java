@@ -47,6 +47,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 class CreditWalletContractTest extends AbstractIntegrationTest {
     private static final String PASSWORD_HASH = new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
     private static final Path CONTRACT = Path.of("specs/013-credit-cards/contracts/openapi-credit.yaml");
+    private static final Path APPENDIX = Path.of("specs/013-credit-cards/contracts/openapi-credit-v1-1.yaml");
     private static final Set<String> METHODS = Set.of("get", "post", "put", "patch", "delete", "head", "options", "trace");
     private static final Set<String> SCHEMA_ANNOTATIONS = Set.of("description", "title", "example", "examples", "externalDocs", "$comment");
     private static final Set<String> WALLET_PATHS = Set.of("/api/me/credits", "/api/me/credit-transactions", "/api/credits/redeem");
@@ -77,6 +78,11 @@ class CreditWalletContractTest extends AbstractIntegrationTest {
 
     @Test void walletOperationsRegisteredRoutesStatusesSecurityParametersAndSchemasMatchTheLockedContractBidirectionally() throws Exception {
         JsonNode expected = new ObjectMapper(new YAMLFactory()).readTree(Files.readString(CONTRACT));
+        // The v1.1 appendix replaces the schemas it lists (PaidFeature grew the learning features).
+        JsonNode appendix = new ObjectMapper(new YAMLFactory()).readTree(Files.readString(APPENDIX));
+        appendix.path("components").path("schemas").fields().forEachRemaining(schema ->
+                ((com.fasterxml.jackson.databind.node.ObjectNode) expected.path("components").path("schemas"))
+                        .set(schema.getKey(), schema.getValue()));
         JsonNode actual = mapper.readTree(mvc.perform(get("/v3/api-docs")).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsByteArray());
         Map<String, JsonNode> expectedOperations = operations(expected);
@@ -143,7 +149,7 @@ class CreditWalletContractTest extends AbstractIntegrationTest {
         assertThat(wallet.path("plan").path("expiresAt").isNull()).isTrue();
         assertThat(wallet.path("plan").path("active").isBoolean()).isTrue();
         assertThat(Instant.parse(wallet.path("resetAt").textValue())).isNotNull();
-        assertThat(wallet.path("quota").size()).isEqualTo(4);
+        assertThat(wallet.path("quota").size()).isEqualTo(com.cnhsk.learning.api.PaidFeature.values().length);
         Set<String> features = new LinkedHashSet<>();
         for (JsonNode quota : wallet.path("quota")) {
             assertThat(fields(quota)).isEqualTo(Set.of("feature", "limit", "used", "remaining"));
@@ -153,7 +159,8 @@ class CreditWalletContractTest extends AbstractIntegrationTest {
                 assertThat(quota.path(field).intValue()).isNotNegative();
             }
         }
-        assertThat(features).containsExactlyInAnyOrder("AI_GENERATE", "TRANSLATE", "ASSISTANT", "GRADING");
+        assertThat(features).containsExactlyInAnyOrder("AI_GENERATE", "TRANSLATE", "ASSISTANT", "GRADING",
+                "VOCAB", "GRAMMAR", "PRONUNCIATION", "HANZI");
         JsonNode history = mapper.readTree(mvc.perform(get("/api/me/credit-transactions").header("Authorization", bearer))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray());
         assertThat(fields(history)).isEqualTo(Set.of("items", "page", "size", "total"));

@@ -68,9 +68,10 @@ class SettingsAdminServiceTest {
                 Map.entry("contest.submit-grace-seconds", 18L), Map.entry("ai-generate.system-user-id", 19L),
                 Map.entry("ai-generate.window-days", 20L), Map.entry("ai-generate.min-wrong", 21L),
                 Map.entry("ai-generate.min-bank", 22L), Map.entry("ai-generate.batch-size", 23L),
-                Map.entry("ai-generate.max-batches-per-run", 24L));
+                Map.entry("ai-generate.max-batches-per-run", 24L),
+                Map.entry("learning.free-monthly-limit", 25L));
         assertThat(Arrays.stream(SettingKey.values()).collect(Collectors.toMap(SettingKey::key, SettingKey::auditId))).isEqualTo(expected);
-        assertThat(Arrays.stream(SettingKey.values()).map(SettingKey::auditId).toList()).hasSize(24).doesNotHaveDuplicates()
+        assertThat(Arrays.stream(SettingKey.values()).map(SettingKey::auditId).toList()).hasSize(25).doesNotHaveDuplicates()
                 .allSatisfy(id -> assertThat(id).isPositive());
     }
 
@@ -79,13 +80,13 @@ class SettingsAdminServiceTest {
         rows.put(BILLING_FREE_MONTHLY_LIMIT, new OverrideRow("30", 42, Instant.EPOCH));
         rows.put(ASSISTANT_DAILY_LIMIT, new OverrideRow("5", 42, Instant.EPOCH));
         var items = service.list();
-        assertThat(items).hasSize(24).extracting(SettingItem::key).containsExactlyElementsOf(Arrays.stream(SettingKey.values()).map(SettingKey::key).toList());
+        assertThat(items).hasSize(25).extracting(SettingItem::key).containsExactlyElementsOf(Arrays.stream(SettingKey.values()).map(SettingKey::key).toList());
         assertThat(items.get(0).currentValue()).isEqualTo(30);
         assertThat(items.get(0).updatedBy()).isEqualTo(new UserRef(42, "Quản trị"));
         assertThat(items.get(2).currentValue()).isEqualTo(2_000_000);
         assertThat(items.get(2).updatedBy()).isNull();
         assertThat(items.get(2).updatedAt()).isNull();
-        assertThat(items).extracting(SettingItem::group).contains("Thanh toán", "Trợ lý & AI", "Thư viện", "Quiz", "Chấm bài", "Cuộc thi", "AI sinh câu");
+        assertThat(items).extracting(SettingItem::group).contains("Thanh toán", "Trợ lý & AI", "Thư viện", "Quiz", "Chấm bài", "Cuộc thi", "AI sinh câu", "Học tập");
         verify(actors).displayNames(Set.of(42L));
         verify(settings, never()).getInt(any());
     }
