@@ -142,7 +142,7 @@ class MyPostQueryControllerIntegrationTest extends AbstractIntegrationTest {
             for (JsonNode item : page.path("items")) if (item.path("id").asLong() == id) listItem = item;
             assertThat(detail).isEqualTo(listItem);
             assertThat(fields(detail)).containsExactlyInAnyOrder("id", "title", "content", "category", "status",
-                    "reviewReason", "publishedAt", "createdAt", "updatedAt");
+                    "reviewReason", "publishedAt", "createdAt", "updatedAt", "media");
             assertPrivateFieldsAbsent(detail);
         }
         JsonNode nullReason = ok(get(BASE + "/mine/{id}", hiddenWithoutReason).header("Authorization", token));

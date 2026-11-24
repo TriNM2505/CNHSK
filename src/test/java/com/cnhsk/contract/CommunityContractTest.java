@@ -55,6 +55,28 @@ class CommunityContractTest {
     private static final Set<String> HTTP_METHODS = Set.of(
             "get", "put", "post", "delete", "options", "head", "patch", "trace");
     private static final Map<OperationKey, ContractOperation> EXPECTED = expectedOperations();
+    /** Appendix v1.1 (profiles and follows) and v1.2 (moderator posts, pins, media, following feed, notifications). */
+    private static final Path APPENDIX_V1_1 = Path.of(
+            "specs", "009-community-blog-moderation", "contracts", "openapi-community-v1-1.yaml");
+    private static final Path APPENDIX_V1_2 = Path.of(
+            "specs", "009-community-blog-moderation", "contracts", "openapi-community-v1-2.yaml");
+    /** v1.1 operations that are specified but not built yet; they must stay unregistered until they are. */
+    private static final Set<OperationKey> PLANNED = Set.of(
+            key("GET", "/api/community/users/{id}/followers"), key("GET", "/api/community/users/{id}/following"));
+    private static final Map<OperationKey, ContractOperation> EXTENSIONS = Map.ofEntries(
+            Map.entry(key("GET", "/api/community/users/{id}"), operation("getCommunityProfile", "200", "401", "403", "404")),
+            Map.entry(key("POST", "/api/community/users/{id}/follow"), operation("followUser", "200", "401", "403", "404", "422")),
+            Map.entry(key("DELETE", "/api/community/users/{id}/follow"), operation("unfollowUser", "200", "401", "403")),
+            Map.entry(key("POST", "/api/community/moderation/posts"), operation("createModeratorPost", "201", "401", "403", "422")),
+            Map.entry(key("PUT", "/api/community/moderation/posts/{id}/pin"),
+                    operation("pinPost", "204", "401", "403", "404", "422")),
+            Map.entry(key("GET", "/api/public/community/posts/pinned"), operation("listPinnedPosts", "200")),
+            Map.entry(key("POST", "/api/community/media/signature"), operation("signMediaUpload", "200", "401", "403", "503")),
+            Map.entry(key("GET", "/api/community/posts/following"), operation("listFollowingPosts", "200", "401", "403", "422")),
+            Map.entry(key("GET", "/api/community/posts/liked"), operation("listLikedPostIds", "200", "401", "403", "422")),
+            Map.entry(key("GET", "/api/me/notifications/summary"), operation("getNotificationSummary", "200", "401")),
+            Map.entry(key("GET", "/api/me/notifications"), operation("listNotifications", "200", "401")),
+            Map.entry(key("POST", "/api/me/notifications/seen"), operation("markNotificationsSeen", "204", "401")));
 
     // Documentation needs no bootstrap account or database writes, regardless of local credentials.
     @MockitoBean
@@ -83,13 +105,37 @@ class CommunityContractTest {
     }
 
     @Test
+    void appendicesLockTheLaterOperationsWithoutRepeatingTheOriginalFile() throws IOException {
+        Map<OperationKey, ContractOperation> extensions = readExtensions();
+        assertThat(extensions).containsExactlyInAnyOrderEntriesOf(EXTENSIONS);
+        assertThat(extensions.keySet()).doesNotContainAnyElementsOf(EXPECTED.keySet());
+        assertThat(readOperations(readContract(APPENDIX_V1_1)).keySet()).containsAll(PLANNED);
+    }
+
+    @Test
     void AC01_registeredOperationsAndRuntimeDocumentationMatchTheSource() throws Exception {
         Map<OperationKey, ContractOperation> source = readOperations(readSource());
         Set<OperationKey> registered = registeredOperations();
         JsonNode document = runtimeDocument();
         Map<OperationKey, ContractOperation> documented = readOperations(document);
 
-        assertRuntimeContract(source, registered, documented);
+        // The original 24 operations keep their locked shapes; everything else must be one appendix operation.
+        Set<OperationKey> registeredOriginal = new HashSet<>(registered);
+        registeredOriginal.retainAll(EXPECTED.keySet());
+        Map<OperationKey, ContractOperation> documentedOriginal = new LinkedHashMap<>(documented);
+        documentedOriginal.keySet().retainAll(EXPECTED.keySet());
+        assertRuntimeContract(source, registeredOriginal, documentedOriginal);
+        Map<OperationKey, ContractOperation> all = new LinkedHashMap<>(source);
+        all.putAll(readExtensions());
+        assertThat(registered).as("Registered operations must match the source and its appendices")
+                .containsExactlyInAnyOrderElementsOf(all.keySet()).doesNotContainAnyElementsOf(PLANNED);
+        assertThat(documented.keySet()).as("Documented operations must match the source and its appendices")
+                .containsExactlyInAnyOrderElementsOf(all.keySet());
+        documented.forEach((key, operation) -> {
+            assertThat(operation.operationId()).as("Operation ID for %s", key).isEqualTo(all.get(key).operationId());
+            assertThat(operation.responses()).as("Responses for %s", key)
+                    .containsExactlyInAnyOrderElementsOf(all.get(key).responses());
+        });
         System.out.println(coverageSummary(source, registered, documented));
         missingOperationKeys(source, registered).forEach(key -> System.out.println("missing operation: " + key));
     }
@@ -297,6 +343,9 @@ class CommunityContractTest {
         assertThat(isContestPath("/api/admin/contests")).isTrue();
         assertThat(isContestPath("/api/admin/contests/1/participants")).isTrue();
         assertThat(isContestPath("/api/admin/contests-other")).isFalse();
+        assertThat(isContestPath("/api/community/moderation/contests/1/results")).isTrue();
+        assertThat(isContestPath("/api/community/moderation/contests-other")).isFalse();
+        assertThat(isCommunityPath("/api/community/moderation/posts")).isTrue();
         var document = objectMapper.createObjectNode();
         document.putObject("paths").putObject("/api/admin/contests-other").putObject("get")
                 .put("operationId", "otherAdminContestOperation").putObject("responses").putObject("200");
@@ -315,6 +364,22 @@ class CommunityContractTest {
         assertThat(mappings.keySet()).containsExactlyInAnyOrder(
                 key("GET", "/api/community/posts"), key("POST", "/api/community/posts"),
                 key("GET", "/incorrect-prefix/posts"), key("POST", "/incorrect-prefix/posts"));
+    }
+
+    /** Appendix operations that are built: all of v1.2 and v1.1 without the planned ones. */
+    private Map<OperationKey, ContractOperation> readExtensions() throws IOException {
+        Map<OperationKey, ContractOperation> extensions = new LinkedHashMap<>(readOperations(readContract(APPENDIX_V1_1)));
+        extensions.keySet().removeAll(PLANNED);
+        readOperations(readContract(APPENDIX_V1_2)).forEach((key, operation) ->
+                assertThat(extensions.put(key, operation)).as("Appendices repeat %s", key).isNull());
+        return extensions;
+    }
+
+    private JsonNode readContract(Path file) throws IOException {
+        String yaml = Files.readString(file);
+        JsonNode document = new ObjectMapper(new YAMLFactory()).readTree(yaml);
+        assertValidOpenApi(yaml, document);
+        return document;
     }
 
     private JsonNode readSource() throws IOException {
@@ -427,7 +492,9 @@ class CommunityContractTest {
     private static boolean isContestPath(String path) {
         return path.equals("/api/community/contests") || path.startsWith("/api/community/contests/")
                 || path.equals("/api/public/community/contests") || path.startsWith("/api/public/community/contests/")
-                || path.equals("/api/admin/contests") || path.startsWith("/api/admin/contests/");
+                || path.equals("/api/admin/contests") || path.startsWith("/api/admin/contests/")
+                // Game contests are run by moderators but belong to the contests contract (spec 021 appendix).
+                || path.equals("/api/community/moderation/contests") || path.startsWith("/api/community/moderation/contests/");
     }
 
     private static void addMappings(Map<OperationKey, String> operations, Collection<RequestMethod> methods,

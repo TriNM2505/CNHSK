@@ -121,13 +121,16 @@ class CommunityArchitectureTest {
                     ? Set.of("countByAuthorIdAndCreatedAtGreaterThanEqual", "findByIdForUpdate",
                             "findPublished", "countPublished", "findOwned", "countOwned",
                             "countPending", "findPending", "findModerationAuthorId", "approvePending", "rejectPending",
-                            "hideForReport")
+                            "hideForReport", "countByAuthorIdAndStatus", "findPublishedByFollowed",
+                            "countPublishedByFollowed", "findPinned")
                     : repository == CommentRepository.class ? Set.of("countVisibleByPostIds",
                             "countByAuthorIdAndCreatedAtAfter", "findOldestCreatedAtByAuthorIdAndCreatedAtAfter",
                             "findReplyParentOnPublishedPost", "findTreeByPostId", "findOwnedPostId", "findOwnedForUpdate",
                             "moderateForReport", "findByIdForUpdate", "moderateDirect")
                     : repository == ReactionRepository.class ? Set.of("countLikesByPostIds", "findPostViewerKinds",
-                            "insertPostLike", "deletePostLike", "countReportsInDay", "insertReport")
+                            "insertPostLike", "deletePostLike", "countReportsInDay", "insertReport",
+                            "findLikedPostIds", "insertUserFollow", "deleteUserFollow", "isFollowing", "countFollowers",
+                            "countFollowing")
                     : repository == ModerationCaseRepository.class ? Set.of("upsertPendingReport",
                             "countPending", "findPending", "closePending") : Set.of();
             Set<String> actualMethods = Arrays.stream(repository.getDeclaredMethods())

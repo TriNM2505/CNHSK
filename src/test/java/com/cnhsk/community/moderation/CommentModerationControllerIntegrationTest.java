@@ -445,6 +445,9 @@ class CommentModerationControllerIntegrationTest extends AbstractIntegrationTest
         JsonNode source = new ObjectMapper(new YAMLFactory()).readTree(Files.readString(CONTRACT, StandardCharsets.UTF_8));
         Map<String, OperationShape> expected = operations(source);
         Map<String, OperationShape> actual = operations(document);
+        // Later community operations (appendices v1.1 and v1.2, game contests, rankings) are locked by
+        // CommunityContractTest, ContestContractTest and LeaderboardContractTest; this test keeps the 24 original shapes.
+        actual.keySet().retainAll(expected.keySet());
         assertThat(expected).hasSize(24);
         assertThat(actual).containsExactlyInAnyOrderEntriesOf(expected);
         Map<String, OperationShape> previous = new LinkedHashMap<>(actual);

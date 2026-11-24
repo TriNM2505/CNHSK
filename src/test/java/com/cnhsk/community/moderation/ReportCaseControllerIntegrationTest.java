@@ -652,7 +652,7 @@ class ReportCaseControllerIntegrationTest extends AbstractIntegrationTest {
         schema(schemas.path("UserRef"), List.of("id", "displayName"), List.of("id", "displayName"));
         integer64(schemas.path("UserRef").path("properties").path("id"));
         assertThat(types(schemas.path("UserRef").path("properties").path("displayName"))).containsExactlyInAnyOrder("string", "null");
-        assertThat(fields(schemas.path("ModerationPost").path("properties"))).containsExactlyInAnyOrder("id", "title", "content", "category", "status", "author", "reviewReason", "reviewedBy", "reviewedAt", "publishedAt", "createdAt", "updatedAt");
+        assertThat(fields(schemas.path("ModerationPost").path("properties"))).containsExactlyInAnyOrder("id", "title", "content", "category", "status", "author", "reviewReason", "reviewedBy", "reviewedAt", "publishedAt", "createdAt", "updatedAt", "media");
     }
 
     private JsonNode operation(JsonNode document, String path, String method, String operationId, String response, List<String> statuses) {

@@ -36,6 +36,12 @@ import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideOutsid
 )
 class ModuleBoundaryTest {
 
+    /**
+     * The community module itself. A bare "..community.." also matched learning packages that happen to be named
+     * community (com.cnhsk.learning.leaderboard.community) and treated that learning code as community code.
+     */
+    private static final String COMMUNITY_MODULE = "com.cnhsk.community..";
+
     @ArchTest
     static void AT17_gameClassesAreIncludedInModuleBoundaryChecks(JavaClasses classes) {
         assertThat(classes).extracting(javaClass -> javaClass.getName()).contains(
@@ -50,7 +56,7 @@ class ModuleBoundaryTest {
     // FR012 / AC-03: cover every learning package, including practice/content and future packages.
     @ArchTest
     static final ArchRule FR012_community_chi_duoc_phu_thuoc_learning_api =
-            noClasses().that().resideInAPackage("..community..")
+            noClasses().that().resideInAPackage(COMMUNITY_MODULE)
                     .should().dependOnClassesThat(resideInAPackage("..learning..")
                             .and(resideOutsideOfPackage("..learning.api..")))
                     .because("community chỉ được gọi learning qua hợp đồng trong learning.api")
@@ -61,7 +67,7 @@ class ModuleBoundaryTest {
 
     @ArchTest
     static final ArchRule community_chi_duoc_goi_auth_qua_api =
-            noClasses().that().resideInAPackage("..community..")
+            noClasses().that().resideInAPackage(COMMUNITY_MODULE)
                     .should().dependOnClassesThat()
                     .resideInAnyPackage(
                             "..auth.service..",
@@ -74,7 +80,7 @@ class ModuleBoundaryTest {
 
     @ArchTest
     static final ArchRule community_chi_duoc_goi_learning_qua_api =
-            noClasses().that().resideInAPackage("..community..")
+            noClasses().that().resideInAPackage(COMMUNITY_MODULE)
                     .should().dependOnClassesThat()
                     .resideInAnyPackage(
                             "..learning.payment..",
@@ -105,7 +111,7 @@ class ModuleBoundaryTest {
     @ArchTest
     static final ArchRule learning_khong_duoc_biet_den_community =
             noClasses().that().resideInAPackage("..learning..")
-                    .should().dependOnClassesThat().resideInAPackage("..community..")
+                    .should().dependOnClassesThat().resideInAPackage(COMMUNITY_MODULE)
                     .because("luong du lieu di mot chieu: community goi learning, "
                             + "khong nguoc lai. Diem game cong mastery la community goi "
                             + "MasteryUpdater, khong phai learning goi community")

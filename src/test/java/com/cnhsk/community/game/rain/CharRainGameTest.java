@@ -54,7 +54,7 @@ class CharRainGameTest {
     @CsvSource({"4,0", "5,5", "9,9"})
     void availabilityAndRoundSizeUseTheSameMinimum(int poolSize, int roundSize) {
         var context = new GameContext(null, null, query -> {
-            assertThat(query).isEqualTo(new GameContentQuery(Set.of("CHAR"), Set.of(), false, false, true, null, 200));
+            assertThat(query).isEqualTo(new GameContentQuery(Set.of("CHAR"), Set.of(1, 2, 3), false, false, true, null, 200));
             return cards(poolSize);
         });
 

@@ -98,7 +98,9 @@ class GameCatalogControllerIntegrationTest extends AbstractIntegrationTest {
                     "timeLimitSeconds", "playable", "unavailableReason", "myStats");
         }
         verifyNoInteractions(stats);
-        verify(content, times(6)).pool(argThat(query -> query.preferLearnedBy() == null && query.hskLevels().isEmpty()));
+        verify(content, times(6)).pool(argThat(query -> query.preferLearnedBy() == null
+                // Without a chosen level the catalogue checks the HSK 1-3 content every game draws from.
+                && query.hskLevels().equals(java.util.Set.of(1, 2, 3))));
     }
 
     @Test void AT02_noUsableContentDisablesTheCardsWithoutReturningAnswerData() throws Exception {

@@ -83,7 +83,7 @@ class PublicPostControllerIntegrationTest extends AbstractIntegrationTest {
         assertPrivateFieldsAbsent(guestList);
         assertPrivateFieldsAbsent(guestDetail);
         assertThat(fieldNames(guestDetail)).containsExactlyInAnyOrder("id", "title", "category", "excerpt",
-                "author", "publishedAt", "commentCount", "likeCount", "content");
+                "author", "publishedAt", "commentCount", "likeCount", "content", "media", "commentsCloseAt");
         assertThat(fieldNames(guestDetail.path("author"))).containsExactlyInAnyOrder("id", "displayName");
         for (String role : List.of("LEARNER", "MODERATOR", "TEACHER", "CONTENT_EDITOR", "ACCOUNTANT", "ADMIN")) {
             String token = jwt.issueAccessToken(author.id(), Set.of(role), false, UUID.randomUUID());
@@ -99,7 +99,7 @@ class PublicPostControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void FR012_filtersAllFiveCategoriesAndOrdersPublishedTimeThenDescendingId() throws Exception {
+    void FR012_filtersEveryCategoryAndOrdersPublishedTimeThenDescendingId() throws Exception {
         long author = register().id();
         List<Long> expected = new ArrayList<>();
         for (PostCategory category : PostCategory.values()) {
@@ -118,7 +118,7 @@ class PublicPostControllerIntegrationTest extends AbstractIntegrationTest {
         }
         JsonNode secondPage = ok(get(BASE).param("page", "1").param("size", "2"));
         assertThat(ids(secondPage)).containsExactlyElementsOf(descending.subList(2, 4));
-        assertThat(secondPage.path("totalElements").asLong()).isEqualTo(6);
+        assertThat(secondPage.path("totalElements").asLong()).isEqualTo(PostCategory.values().length + 1);
     }
 
     @Test

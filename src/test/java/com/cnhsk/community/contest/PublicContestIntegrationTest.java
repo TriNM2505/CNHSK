@@ -325,7 +325,15 @@ class PublicContestIntegrationTest extends AbstractIntegrationTest {
         document.path("paths").fieldNames().forEachRemaining(path -> {
             if (path.equals(BASE) || path.startsWith(BASE + "/")) publicPaths.add(path);
         });
-        assertThat(publicPaths).containsExactlyInAnyOrder(BASE, BASE + "/{id}");
+        // The game contest room is the only other public path; it is locked in the v1.1 appendix.
+        assertThat(publicPaths).containsExactlyInAnyOrder(BASE, BASE + "/{id}", BASE + "/{id}/live");
+        JsonNode appendix = new ObjectMapper(new YAMLFactory()).readTree(Files.readString(
+                Path.of("specs", "021-contests", "contracts", "openapi-contests-v1-1.yaml")));
+        JsonNode live = document.path("paths").path(BASE + "/{id}/live");
+        assertThat(fields(live)).containsExactly("get");
+        assertThat(live.path("get").path("operationId"))
+                .isEqualTo(appendix.path("paths").path(BASE + "/{id}/live").path("get").path("operationId"));
+        assertThat(live.path("get").path("security")).isEmpty();
     }
 
     private JsonNode ok(MockHttpServletRequestBuilder request) throws Exception {

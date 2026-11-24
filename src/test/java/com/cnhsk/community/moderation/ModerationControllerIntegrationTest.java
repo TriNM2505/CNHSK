@@ -64,7 +64,7 @@ class ModerationControllerIntegrationTest extends AbstractIntegrationTest {
     private static final List<String> STATES = List.of("DRAFT", "PENDING", "APPROVED", "REJECTED", "HIDDEN");
     private static final List<String> SUMMARY_FIELDS = List.of("id", "title", "category", "excerpt", "author", "createdAt", "updatedAt");
     private static final List<String> DETAIL_FIELDS = List.of("id", "title", "content", "category", "status", "author",
-            "reviewReason", "reviewedBy", "reviewedAt", "publishedAt", "createdAt", "updatedAt");
+            "reviewReason", "reviewedBy", "reviewedAt", "publishedAt", "createdAt", "updatedAt", "media");
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper mapper;
     @Autowired private JdbcTemplate jdbc;
@@ -388,7 +388,7 @@ class ModerationControllerIntegrationTest extends AbstractIntegrationTest {
         assertSchema(schemas.path("ModerationPostPage"), List.of("items", "page", "size", "totalElements"),
                 List.of("items", "page", "size", "totalElements"));
         assertSchema(schemas.path("ModerationPost"), DETAIL_FIELDS,
-                List.of("id", "title", "content", "category", "status", "author", "createdAt", "updatedAt"));
+                List.of("id", "title", "content", "category", "status", "author", "createdAt", "updatedAt", "media"));
         assertSchema(schemas.path("RejectWrite"), List.of("reason"), List.of("reason"));
         JsonNode reason = schemas.path("RejectWrite").path("properties").path("reason");
         assertThat(schemaTypes(reason)).containsExactly("string");

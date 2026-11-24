@@ -51,8 +51,33 @@ class MeProfileIntegrationTest extends AbstractIntegrationTest {
                 .andReturn().getResponse().getContentAsString());
 
         assertThat(body.fieldNames()).toIterable()
-                .containsExactlyInAnyOrder("displayName", "avatarUrl", "hskLevel", "email", "emailVerified");
+                .containsExactlyInAnyOrder("displayName", "avatarUrl", "hskLevel", "email", "emailVerified",
+                        "id", "createdAt", "planCode", "planExpiresAt", "deviceCount");
+        assertThat(body.get("id").asLong()).isEqualTo(user.getId());
+        assertThat(body.get("createdAt").isTextual()).isTrue();
+        assertThat(body.get("planCode").asText()).isEqualTo("FREE");
+        assertThat(body.get("planExpiresAt").isNull()).isTrue();
+        assertThat(body.get("deviceCount").asLong()).isZero();
         assertThat(body.has("passwordHash")).isFalse();
+    }
+
+    @Test
+    void profileCountsDevicesWithALiveRefreshTokenOncePerSession() throws Exception {
+        User user = createUser();
+        UUID phone = UUID.randomUUID();
+        UUID laptop = UUID.randomUUID();
+        String insert = "INSERT INTO auth.auth_tokens (user_id, token_type, token_hash, expires_at, session_id, revoked_at) "
+                + "VALUES (?, 'REFRESH', ?, now() + (? * interval '1 hour'), ?, CASE WHEN ? THEN now() END)";
+        jdbcTemplate.update(insert, user.getId(), UUID.randomUUID().toString(), 24, phone, false);
+        jdbcTemplate.update(insert, user.getId(), UUID.randomUUID().toString(), 24, phone, false);
+        jdbcTemplate.update(insert, user.getId(), UUID.randomUUID().toString(), 24, laptop, false);
+        // Signed out and expired sessions are not devices any more.
+        jdbcTemplate.update(insert, user.getId(), UUID.randomUUID().toString(), 24, UUID.randomUUID(), true);
+        jdbcTemplate.update(insert, user.getId(), UUID.randomUUID().toString(), -1, UUID.randomUUID(), false);
+
+        mockMvc.perform(get("/api/me/profile").header("Authorization", bearer(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deviceCount").value(2));
     }
 
     @Test

@@ -41,6 +41,27 @@ class GameRoundStartRequestTest {
                     assertThat(error.getStatus().value()).isEqualTo(422); });
     }
 
+    @ParameterizedTest @ValueSource(longs = {1, 42, Long.MAX_VALUE})
+    void aContestRoundNamesTheContestInsteadOfALevel(long contestId) {
+        var request = GameRoundStartRequest.parse("{\"contestId\":" + contestId + "}", mapper);
+        assertThat(request.contestId()).isEqualTo(contestId);
+        assertThat(request.hskLevel()).isNull();
+    }
+
+    @Test void aPracticeRoundHasNoContest() {
+        assertThat(GameRoundStartRequest.parse("{\"hskLevel\":2}", mapper).contestId()).isNull();
+    }
+
+    @ParameterizedTest @ValueSource(strings = {"{\"contestId\":1,\"hskLevel\":1}", "{\"hskLevel\":1,\"contestId\":1}",
+            "{\"contestId\":null}", "{\"contestId\":0}", "{\"contestId\":-5}", "{\"contestId\":1.5}",
+            "{\"contestId\":\"7\"}", "{\"contestId\":true}", "{\"contestId\":99999999999999999999}",
+            "{\"contestId\":{}}"})
+    void levelAndContestAreMutuallyExclusiveAndTheContestMustBeAPositiveId(String body) {
+        assertThatThrownBy(() -> GameRoundStartRequest.parse(body, mapper)).isInstanceOfSatisfying(ApiException.class,
+                error -> { assertThat(error.getCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
+                    assertThat(error.getStatus().value()).isEqualTo(422); });
+    }
+
     @Test void AT04_onlyTheSixExactCodesAreAccepted() {
         for (var code : GameCode.values()) assertThat(GameRoundStartRequest.code(code.name())).isEqualTo(code);
         for (var code : new String[]{"SNAKE", "char_rain", " CHAR_RAIN", "", null}) {

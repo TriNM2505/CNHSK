@@ -96,7 +96,7 @@ class CommunitySchemaConstraintsIntegrationTest extends AbstractIntegrationTest 
     }
 
     @Test
-    void AC05_fourTablesHaveExactlyFortyColumnsAndThreeIdentitySequences() {
+    void AC05_fourTablesHaveExactlyFortyThreeColumnsAndThreeIdentitySequences() {
         assertThat(jdbc.queryForList("""
                 SELECT table_name, count(*) AS columns FROM information_schema.columns
                 WHERE table_schema = 'community'
@@ -105,7 +105,8 @@ class CommunitySchemaConstraintsIntegrationTest extends AbstractIntegrationTest 
                 """)).containsExactly(
                 Map.of("table_name", "comments", "columns", 11L),
                 Map.of("table_name", "moderation_cases", "columns", 11L),
-                Map.of("table_name", "posts", "columns", 13L),
+                // posts gained pinned_until and contest_id (V12) and comments_close_at (V14).
+                Map.of("table_name", "posts", "columns", 16L),
                 Map.of("table_name", "reactions", "columns", 5L));
         assertThat(jdbc.queryForList("""
                 SELECT table_name FROM information_schema.columns

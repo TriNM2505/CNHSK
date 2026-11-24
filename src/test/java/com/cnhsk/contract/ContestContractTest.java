@@ -45,11 +45,14 @@ import org.springframework.test.web.servlet.MockMvc;
         "springdoc.packages-to-scan=com.cnhsk.community.contest"})
 class ContestContractTest extends AbstractIntegrationTest {
     private static final Path CONTRACT = Path.of("specs", "021-contests", "contracts", "openapi-contests.yaml");
+    /** Game contests run by moderators; kept apart because the original file is locked to sixteen operations. */
+    private static final Path APPENDIX = Path.of("specs", "021-contests", "contracts", "openapi-contests-v1-1.yaml");
     private static final Path EVIDENCE = Path.of("target", "021-contest-contract");
     private static final String PACKAGE = "com.cnhsk.community.contest";
     private static final String PUBLIC = "/api/public/community/contests";
     private static final String LEARNER = "/api/community/contests";
     private static final String ADMIN = "/api/admin/contests";
+    private static final String MODERATION = "/api/community/moderation/contests";
     private static final String WINNERS = ADMIN + "/{id}/winners";
     private static final Set<String> METHODS = Set.of("get", "post", "put", "patch", "delete", "head", "options", "trace");
     private static final Set<String> OPERATIONS = Set.of(
@@ -60,6 +63,10 @@ class ContestContractTest extends AbstractIntegrationTest {
             "post " + ADMIN + "/{id}/publish", "post " + ADMIN + "/{id}/cancel",
             "get " + ADMIN + "/{id}/participants", "patch " + ADMIN + "/{id}/participants/{userId}",
             "post " + ADMIN + "/{id}/ranking/publish", "get " + WINNERS);
+    private static final Set<String> GAME_OPERATIONS = Set.of(
+            "post " + MODERATION, "get " + PUBLIC + "/{id}/live", "get " + MODERATION + "/{id}/results",
+            "get " + MODERATION + "/{id}/results.csv", "put " + MODERATION + "/{id}/exclusions/{userId}");
+    private static final Set<String> ALL_OPERATIONS = union(OPERATIONS, GAME_OPERATIONS);
 
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper mapper;
@@ -190,7 +197,7 @@ class ContestContractTest extends AbstractIntegrationTest {
     @Test
     void AT22_scopeUsesExactNamespaceAndPackageBoundaries() throws Exception {
         ObjectNode runtime = sourceDocument().deepCopy();
-        for (String root : List.of(PUBLIC, LEARNER, ADMIN)) {
+        for (String root : List.of(PUBLIC, LEARNER, ADMIN, MODERATION)) {
             assertThat(inNamespace(root, root)).isTrue();
             assertThat(inNamespace(root + "/child", root)).isTrue();
             assertThat(inNamespace(root + "-other", root)).isFalse();
@@ -204,8 +211,23 @@ class ContestContractTest extends AbstractIntegrationTest {
         assertThat(inPackage("com.cnhsk.community")).isFalse();
     }
 
+    /** The locked file with the appendix paths added; the two files must not describe the same path. */
     private JsonNode sourceDocument() throws Exception {
-        return new ObjectMapper(new YAMLFactory()).readTree(Files.readString(CONTRACT, StandardCharsets.UTF_8));
+        ObjectMapper yaml = new ObjectMapper(new YAMLFactory());
+        ObjectNode source = (ObjectNode) yaml.readTree(Files.readString(CONTRACT, StandardCharsets.UTF_8));
+        JsonNode appendix = yaml.readTree(Files.readString(APPENDIX, StandardCharsets.UTF_8));
+        ObjectNode paths = (ObjectNode) source.path("paths");
+        appendix.path("paths").fields().forEachRemaining(path -> {
+            assertThat(paths.has(path.getKey())).as("Appendix repeats %s", path.getKey()).isFalse();
+            paths.set(path.getKey(), path.getValue());
+        });
+        return source;
+    }
+
+    private static Set<String> union(Set<String> first, Set<String> second) {
+        Set<String> all = new LinkedHashSet<>(first);
+        all.addAll(second);
+        return Set.copyOf(all);
     }
 
     private Inventory registered() {
@@ -233,7 +255,7 @@ class ContestContractTest extends AbstractIntegrationTest {
         Set<String> paths = new LinkedHashSet<>();
         Map<String, Set<String>> operations = new LinkedHashMap<>();
         document.path("paths").fields().forEachRemaining(path -> {
-            if (scoped && List.of(PUBLIC, LEARNER, ADMIN).stream().noneMatch(root -> inNamespace(path.getKey(), root))) return;
+            if (scoped && List.of(PUBLIC, LEARNER, ADMIN, MODERATION).stream().noneMatch(root -> inNamespace(path.getKey(), root))) return;
             paths.add(path.getKey());
             path.getValue().fields().forEachRemaining(method -> {
                 if (METHODS.contains(method.getKey())) operations.put(method.getKey() + " " + path.getKey(), fields(method.getValue().path("responses")));
@@ -244,9 +266,9 @@ class ContestContractTest extends AbstractIntegrationTest {
 
     private static List<String> mismatches(Inventory source, Inventory documented, Inventory registered) {
         List<String> differences = new ArrayList<>();
-        Set<String> lockedPaths = OPERATIONS.stream().map(operation -> operation.substring(operation.indexOf(' ') + 1)).collect(Collectors.toSet());
+        Set<String> lockedPaths = ALL_OPERATIONS.stream().map(operation -> operation.substring(operation.indexOf(' ') + 1)).collect(Collectors.toSet());
         compare(differences, "Locked YAML paths", lockedPaths, source.paths());
-        compare(differences, "Locked YAML operations", OPERATIONS, source.operations().keySet());
+        compare(differences, "Locked YAML operations", ALL_OPERATIONS, source.operations().keySet());
         compare(differences, "Documented paths", source.paths(), documented.paths());
         compare(differences, "Documented operations", source.operations().keySet(), documented.operations().keySet());
         compare(differences, "Registered paths", source.paths(), registered.paths());
