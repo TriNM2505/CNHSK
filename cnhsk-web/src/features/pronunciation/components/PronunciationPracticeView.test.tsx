@@ -64,7 +64,7 @@ describe('PronunciationPracticeView result', () => {
     expect(screen.getByText('Đã mở tầng 4')).toBeVisible()
     expect(screen.getByRole('link', { name: /Sang tầng 4/ })).toHaveAttribute(
       'href',
-      '/learn/pronunciation/stages/4',
+      '/learn/listening/stages/4',
     )
     expect(screen.getByText('Đã mở tầng 4')).toHaveClass('motion-reduce:animate-none')
     expect(screen.getByTestId('pronunciation-result-icon')).toHaveClass(

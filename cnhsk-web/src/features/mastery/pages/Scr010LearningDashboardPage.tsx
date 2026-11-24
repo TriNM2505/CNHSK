@@ -4,7 +4,7 @@ import { ReminderBanner } from '@/features/reminder/components/ReminderBanner'
 
 import { HskSkillsPanel } from '../components/HskSkillsPanel'
 import { MasteryDashboardView } from '../components/MasteryDashboardView'
-import { getMyRecommendations } from '../api/mastery'
+import { getMyRecommendations, getMySkillMastery } from '../api/mastery'
 import { getReviewSummary } from '../api/reviews'
 
 export default function Scr010LearningDashboardPage() {
@@ -12,6 +12,8 @@ export default function Scr010LearningDashboardPage() {
   const review = useApiQuery(getReviewSummary, [])
   // The skills panel still works without the wallet; it only adds the remaining lessons for free accounts.
   const wallet = useApiQuery(getMyWallet, [])
+  // The dashboard covers the whole HSK 1–3 range the learning area teaches.
+  const skills = useApiQuery((signal) => getMySkillMastery(3, signal), [])
 
   return (
     <>
@@ -23,7 +25,7 @@ export default function Scr010LearningDashboardPage() {
         recommendationsState={recommendations.state}
         reviewState={review.state}
         reviewSummary={review.data}
-        skills={<HskSkillsPanel wallet={wallet.data} />}
+        skills={<HskSkillsPanel mastery={skills.data} wallet={wallet.data} />}
       />
     </>
   )

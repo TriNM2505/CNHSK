@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError, useApiMutation, useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
-import { completeGrading, getAssignedGrading, releaseGrading } from '../api/requests'
+import { rubricForMode } from '@/features/grading/rubrics'
+import { completeGrading, getAssignedGrading, getErrorCodes, releaseGrading } from '../api/requests'
 import { TeacherGradingWorkspaceView } from '../components/TeacherGradingWorkspaceView'
 import { emptyDraft, resultErrors, resultPayload } from '../gradingRules'
 import type { GradingResultWrite, TeacherGradingDetail } from '../types'
@@ -16,6 +17,8 @@ function Workspace({ id }: { id: string }) {
   const [confirmation, setConfirmation] = useState<'complete' | 'release' | null>(null)
   const [completed, setCompleted] = useState<TeacherGradingDetail>()
   const row = completed ?? query.data
+  const rubric = rubricForMode(row?.mode)
+  const errorCodes = useApiQuery((signal) => getErrorCodes(signal), [])
   const seconds = useGradingDeadline(row?.status === 'ASSIGNED' ? row.gradingDeadline : undefined)
   const mutation = useApiMutation((action: Action): Promise<TeacherGradingDetail | void> =>
     action.kind === 'release' ? releaseGrading(id) : completeGrading(id, action.body),
@@ -30,11 +33,11 @@ function Workspace({ id }: { id: string }) {
   }, [])
   function confirm() {
     if (busy.current || !confirmation || row?.status !== 'ASSIGNED') return
-    if (confirmation === 'complete' && Object.keys(resultErrors(draft)).length > 0) return
+    if (confirmation === 'complete' && Object.keys(resultErrors(draft, rubric)).length > 0) return
     const action: Action =
       confirmation === 'release'
         ? { kind: 'release' }
-        : { kind: 'complete', body: resultPayload(draft) }
+        : { kind: 'complete', body: resultPayload(draft, rubric) }
     busy.current = true
     void mutation
       .run(action)
@@ -60,6 +63,7 @@ function Workspace({ id }: { id: string }) {
       error={query.error}
       actionError={mutation.error}
       draft={draft}
+      errorCodes={errorCodes.data ?? []}
       seconds={seconds}
       pending={mutation.pending}
       confirmation={confirmation}

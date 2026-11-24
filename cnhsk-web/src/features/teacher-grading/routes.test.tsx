@@ -14,6 +14,7 @@ import { assigned, mine, queue } from './test-fixtures'
 vi.mock('@/features/auth/api/getCurrentUser', () => ({ getCurrentUser: vi.fn() }))
 vi.mock('./api/requests', () => ({
   getAssignedGrading: vi.fn(),
+  getErrorCodes: vi.fn().mockResolvedValue([]),
   getGradingQueue: vi.fn(),
   getMyAssignedGrading: vi.fn(),
   claimGrading: vi.fn(),
@@ -29,7 +30,7 @@ const teacher: CurrentUser = {
 }
 const routes = [
   ['/teacher/grading', 'SCR-056', 'Hàng đợi chấm bài'],
-  ['/teacher/grading/42', 'SCR-057', 'Chấm bài viết'],
+  ['/teacher/grading/42', 'SCR-057', 'Chấm bài'],
 ] as const
 beforeEach(() => {
   vi.mocked(getCurrentUser).mockReset().mockResolvedValue(teacher)

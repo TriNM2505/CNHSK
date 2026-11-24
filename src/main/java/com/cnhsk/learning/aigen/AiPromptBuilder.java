@@ -42,6 +42,8 @@ public class AiPromptBuilder {
             Chỉ phương án sai mới có errorKid/errorNote; bỏ trường đó khi không phù hợp.
             Không lặp lại hoặc viết lại gần giống câu nào trong samples.
             Các câu trong cùng lô phải khác ngữ cảnh và kiểm tra khía cạnh khác nhau của nút.
+            Nếu dữ liệu có pattern và examples_ok, câu đúng phải dùng đúng mẫu đó (không chép nguyên ví dụ);
+            phương án nhiễu nên phản ánh các lỗi trong error_codes của nút.
             """;
 
     private final WeakKnowledgeQueryRepository repository;
@@ -68,6 +70,7 @@ public class AiPromptBuilder {
                 .put("can_do", node.canDo()).put("hsk_level", node.hskLevel());
         ArrayNode prerequisites = data.putArray("prerequisite_titles");
         node.prerequisiteTitles().forEach(prerequisites::add);
+        treeContext(data, node.tree());
         ArrayNode words = data.putArray("lexemes");
         lexemes.stream().limit(80).forEach(word -> words.addObject().put("text", word.text())
                 .put("pinyin", word.pinyin()).put("meaning_vi", word.meaningVi()));
@@ -105,6 +108,41 @@ public class AiPromptBuilder {
                 List.of(new SystemBlock(INSTRUCTIONS, true), new SystemBlock(data.toString(), true)),
                 List.of(new ChatMessage(Role.USER, "Soạn " + batchSize + " câu trắc nghiệm 4 phương án cho nút "
                         + node.kid() + ", mỗi phương án nhiễu kèm error_kid nếu phù hợp")));
+    }
+
+    /** Skills, the node's pattern, at most two reviewed correct examples and its counting error codes. */
+    private void treeContext(ObjectNode data, WeakKnowledgeQueryRepository.PromptTreeContext tree) {
+        if (!tree.skills().isEmpty()) {
+            ArrayNode skills = data.putArray("skills");
+            tree.skills().forEach(skills::add);
+        }
+        if (tree.pattern() != null && !tree.pattern().isBlank()) data.put("pattern", tree.pattern());
+        if (tree.examplesJson() != null) {
+            try {
+                // Only the correct half: a wrong example must never reach the model as a sentence to imitate.
+                JsonNode examples = mapper.readTree(tree.examplesJson()).path("ok");
+                if (examples.isArray() && !examples.isEmpty()) {
+                    ArrayNode chosen = data.putArray("examples_ok");
+                    for (JsonNode example : examples) {
+                        if (chosen.size() == 2) break;
+                        if (example.isObject() && example.path("cn").isTextual()) {
+                            ObjectNode item = chosen.addObject().put("cn", example.get("cn").textValue());
+                            if (example.path("vi").isTextual()) item.put("vi", example.get("vi").textValue());
+                        }
+                    }
+                }
+            } catch (JsonProcessingException exception) {
+                log.warn("Skipping malformed examples of a knowledge node");
+            }
+        }
+        if (tree.errorCodesJson() != null) {
+            try {
+                JsonNode codes = mapper.readTree(tree.errorCodesJson());
+                if (codes.isArray() && !codes.isEmpty()) data.set("error_codes", codes);
+            } catch (JsonProcessingException exception) {
+                log.warn("Skipping malformed error codes of a knowledge node");
+            }
+        }
     }
 
     private List<QuestionOption> options(PromptQuestion question) {

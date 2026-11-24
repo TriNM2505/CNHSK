@@ -1,0 +1,53 @@
+openapi: 3.0.3
+info:
+  title: CNHSK reading practice — appendix v1.1 (four skills of the competency tree v2.0)
+  version: 1.1.0
+  description: >-
+    Appendix to openapi-exam.yaml (locked); nothing there changes. Reading practice serves up to ten approved,
+    text-only choice questions of one HSK level (1–3) whose skill is READING or not set. Sessions run on the
+    practice engine (source READING_PRACTICE, immediate feedback) through the usual answer and finish endpoints,
+    and every graded answer becomes PRACTICE evidence on the question's knowledge nodes.
+paths:
+  /api/reading-practice/sessions:
+    post:
+      operationId: startReadingPractice
+      tags: [reading-practice]
+      description: LEARNER only. No learning allowance is spent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadingPracticeRequest'
+      responses:
+        '201':
+          description: Session created; same body as any practice session (SessionView of 003).
+        '200':
+          description: The level has no usable reading question yet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadingPracticeNoQuestions'
+        '401':
+          description: Authentication required
+        '403':
+          description: Forbidden
+        '422':
+          description: VALIDATION_FAILED (hskLevel outside 1–3, unknown qtype)
+components:
+  schemas:
+    ReadingPracticeRequest:
+      type: object
+      required: [hskLevel]
+      properties:
+        hskLevel: { type: integer, minimum: 1, maximum: 3 }
+        qtype:
+          type: string
+          enum: [MULTIPLE_CHOICE, TRUE_FALSE]
+          description: Omit to mix both kinds.
+    ReadingPracticeNoQuestions:
+      type: object
+      required: [session, reason]
+      properties:
+        session: { nullable: true }
+        reason: { type: string, enum: [NO_QUESTIONS] }

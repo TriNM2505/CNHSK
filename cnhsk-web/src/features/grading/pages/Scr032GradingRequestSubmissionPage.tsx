@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useApiMutation, useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
 import { createGradingRequest, getGradingPolicy } from '../api/requests'
 import { GradingSubmissionView } from '../components/GradingSubmissionView'
 import { validSubmission } from '../essayRules'
+import WritingPracticePage from './WritingPracticePage'
 
 function Submission() {
   const navigate = useNavigate()
@@ -73,10 +74,17 @@ function Submission() {
   )
 }
 
+/** SCR-032 also serves the Viết menu item, which starts from a writing task instead of a free essay. */
 export default function Scr032GradingRequestSubmissionPage() {
   const auth = useCurrentUser()
+  const { pathname } = useLocation()
+  const writing = pathname.replace(/\/$/, '') === '/learn/writing'
   return auth.status === 'authenticated' && auth.user?.roles.includes('LEARNER') ? (
-    <Submission key={auth.user.id} />
+    writing ? (
+      <WritingPracticePage key={auth.user.id} />
+    ) : (
+      <Submission key={auth.user.id} />
+    )
   ) : (
     <p role="status">Đang kiểm tra quyền truy cập…</p>
   )

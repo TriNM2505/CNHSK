@@ -10,8 +10,10 @@ import {
   Trash2,
 } from 'lucide-react'
 
+import { GradingScoreBreakdown } from '@/features/grading/components/GradingScoreBreakdown'
 import { codePointLength } from '@/features/grading/essayRules'
-import { criterionLabelsFor, displayTime } from '@/features/grading/types'
+import { levelText, rubricForMode } from '@/features/grading/rubrics'
+import { displayTime } from '@/features/grading/types'
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
   PageBanner,
@@ -21,7 +23,6 @@ import {
   EmptyState,
   ErrorState,
   FormField,
-  Input,
   LevelBadge,
   Skeleton,
   StatusBadge,
@@ -29,8 +30,9 @@ import {
   type HskLevel,
 } from '@/shared/ui'
 import { resultErrors, totalScore } from '../gradingRules'
-import type { Criteria, ResultDraft, TeacherGradingDetail } from '../types'
+import type { ErrorCodeOption, ResultDraft, TeacherGradingDetail } from '../types'
 import { deadlineLabel } from '../useGradingDeadline'
+import { ErrorCodePicker } from './ErrorCodePicker'
 
 type Props = {
   state: ApiQueryState
@@ -38,6 +40,8 @@ type Props = {
   error?: ApiError
   actionError?: ApiError
   draft: ResultDraft
+  /** Error codes the teacher can confirm; empty while they load or before any were imported. */
+  errorCodes: readonly ErrorCodeOption[]
   seconds: number | null
   pending: boolean
   confirmation: 'complete' | 'release' | null
@@ -55,15 +59,16 @@ function toHskLevel(level: number | null): HskLevel | null {
 
 export function TeacherGradingWorkspaceView(props: Props) {
   const { detail, draft } = props
-  const errors = resultErrors(draft)
+  const rubric = rubricForMode(detail?.mode)
+  const errors = resultErrors(draft, rubric)
   const completed = detail?.status === 'COMPLETED'
   const badgeLevel = detail ? toHskLevel(detail.hskLevel) : null
 
   return (
     <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 sm:px-6 lg:px-8">
       <PageBanner
-        subtitle="Đọc bài viết, chấm theo bốn tiêu chí và gửi nhận xét chi tiết."
-        title="Chấm bài viết"
+        subtitle="Đọc hoặc nghe bài, chấm theo rubric, gắn mã lỗi và gửi nhận xét chi tiết."
+        title="Chấm bài"
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -161,20 +166,30 @@ export function TeacherGradingWorkspaceView(props: Props) {
 
             <Card className="min-w-0 space-y-3 p-5 sm:p-6">
               <div className="flex items-center justify-between gap-2 border-b border-line pb-3">
-                <h2 className="text-h3 text-ink">{detail.mode === 'SPEAKING' ? 'Bài nói' : 'Bài viết'}</h2>
+                <h2 className="text-h3 text-ink">
+                  {detail.mode === 'SPEAKING' ? 'Bài nói' : 'Bài viết'}
+                </h2>
                 <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-50 px-3 py-1 text-caption font-semibold text-brand-700">
                   <Sparkles aria-hidden="true" className="size-3.5" />
                   {detail.hanziCount} chữ Hán
                 </span>
               </div>
               {detail.mode === 'SPEAKING' ? (
-                <p className="text-body-sm text-ink-secondary">Học viên đọc câu dưới đây. Nghe bản ghi rồi chấm phát âm.</p>
+                <p className="text-body-sm text-ink-secondary">
+                  Học viên đọc câu dưới đây. Nghe bản ghi rồi chấm phát âm.
+                </p>
               ) : null}
               <p className="rounded-md border border-brand-100 bg-brand-50 p-4 whitespace-pre-wrap break-words font-hanzi text-body text-ink [overflow-wrap:anywhere]">
                 {detail.essay}
               </p>
               {detail.mode === 'SPEAKING' && detail.audioUrl ? (
-                <audio aria-label="Bản ghi âm của học viên" className="w-full" controls preload="metadata" src={detail.audioUrl} />
+                <audio
+                  aria-label="Bản ghi âm của học viên"
+                  className="w-full"
+                  controls
+                  preload="metadata"
+                  src={detail.audioUrl}
+                />
               ) : null}
             </Card>
           </div>
@@ -194,19 +209,7 @@ export function TeacherGradingWorkspaceView(props: Props) {
                   </p>
                 </div>
 
-                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {Object.entries(criterionLabelsFor(detail.mode)).map(([key, label]) => (
-                    <div
-                      className="rounded-md border border-brand-100 bg-brand-50 p-3.5"
-                      key={key}
-                    >
-                      <dt className="text-caption text-ink-secondary">{label}</dt>
-                      <dd className="mt-1 text-h3 font-semibold tabular-nums text-ink">
-                        {detail.result!.criteria[key as keyof Criteria]}/25
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
+                <GradingScoreBreakdown mode={detail.mode} result={detail.result} />
 
                 <div className="space-y-2">
                   <h3 className="text-h3 text-ink">Nhận xét đã gửi</h3>
@@ -257,47 +260,75 @@ export function TeacherGradingWorkspaceView(props: Props) {
                       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
                         <div className="flex items-center gap-2.5">
                           <FilePenLine aria-hidden="true" className="size-5 text-brand-600" />
-                          <legend className="text-h3 text-ink">Chấm theo bốn tiêu chí</legend>
+                          <legend className="text-h3 text-ink">Chấm theo {rubric.label}</legend>
                         </div>
                         <p
                           className="rounded-pill border border-brand-100 bg-brand-50 px-4 py-1 text-h3 font-bold tabular-nums text-brand-700"
                           role="status"
                         >
-                          Tổng điểm: {totalScore(draft)}/100
+                          Tổng điểm: {totalScore(draft, rubric)}/100
                         </p>
                       </div>
+                      {rubric.note ? (
+                        <p className="text-body-sm text-ink-secondary">{rubric.note}</p>
+                      ) : null}
 
-                      <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
-                        {Object.entries(criterionLabelsFor(detail.mode)).map(([key, label]) => (
-                          <FormField
-                            className="mb-0"
-                            error={
-                              draft.criteria[key as keyof Criteria] !== ''
-                                ? errors[`criteria.${key}`]
-                                : undefined
-                            }
-                            hint="0–25 điểm"
-                            htmlFor={`teacher-${key}`}
-                            key={key}
-                            label={label}
-                            required
-                          >
-                            <Input
-                              max={25}
-                              min={0}
-                              onChange={(event) =>
-                                props.onDraft({
-                                  ...draft,
-                                  criteria: { ...draft.criteria, [key]: event.target.value },
-                                })
-                              }
-                              step={1}
-                              type="number"
-                              value={draft.criteria[key as keyof Criteria]}
-                            />
-                          </FormField>
-                        ))}
+                      <div className="min-w-0 space-y-3">
+                        {rubric.criteria.map((criterion) => {
+                          const chosen = draft.scores[criterion.code] ?? ''
+                          return (
+                            <div
+                              aria-label={`${criterion.code} ${criterion.label}`}
+                              className="min-w-0 space-y-2 rounded-md border border-line p-3.5"
+                              key={criterion.code}
+                              role="radiogroup"
+                            >
+                              <p className="text-label text-ink">
+                                {criterion.code} · {criterion.label}
+                              </p>
+                              <div className="flex flex-wrap gap-2">
+                                {Array.from({ length: rubric.max + 1 }, (_, value) => (
+                                  <button
+                                    aria-checked={chosen === String(value)}
+                                    className={
+                                      chosen === String(value)
+                                        ? 'min-h-10 min-w-10 rounded-md bg-brand-600 px-3 text-label text-surface'
+                                        : 'min-h-10 min-w-10 rounded-md border border-line bg-surface px-3 text-label text-ink hover:border-brand-600'
+                                    }
+                                    key={value}
+                                    onClick={() =>
+                                      props.onDraft({
+                                        ...draft,
+                                        scores: {
+                                          ...draft.scores,
+                                          [criterion.code]: String(value),
+                                        },
+                                      })
+                                    }
+                                    role="radio"
+                                    type="button"
+                                  >
+                                    {value}
+                                  </button>
+                                ))}
+                              </div>
+                              <p className="text-body-sm text-ink-secondary">
+                                {chosen !== ''
+                                  ? (levelText(criterion, Number(chosen)) ??
+                                    'Mức 0: không làm hoặc lạc đề hoàn toàn.')
+                                  : `Mức cao nhất: ${criterion.levels[rubric.max] ?? ''}`}
+                              </p>
+                            </div>
+                          )
+                        })}
                       </div>
+
+                      <ErrorCodePicker
+                        codes={props.errorCodes}
+                        error={errors.errors}
+                        onChange={(codes) => props.onDraft({ ...draft, errors: codes })}
+                        selected={draft.errors}
+                      />
 
                       <FormField
                         error={draft.feedback ? errors.feedback : undefined}
@@ -347,7 +378,10 @@ export function TeacherGradingWorkspaceView(props: Props) {
                         </div>
 
                         {draft.corrections.map((item, index) => (
-                          <Card className="min-w-0 space-y-3 border-brand-100 bg-surface p-4" key={index}>
+                          <Card
+                            className="min-w-0 space-y-3 border-brand-100 bg-surface p-4"
+                            key={index}
+                          >
                             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
                               <h3 className="text-h3 text-ink">Lỗi {index + 1}</h3>
                               <Button
@@ -439,7 +473,7 @@ export function TeacherGradingWorkspaceView(props: Props) {
                   message={
                     props.confirmation === 'release'
                       ? 'Bài sẽ được trả lại theo trạng thái hiện tại trên máy chủ. Bạn sẽ rời khung chấm.'
-                      : `Nộp kết quả ${totalScore(draft)}/100 cho ${detail.reference}?`
+                      : `Nộp kết quả ${totalScore(draft, rubric)}/100 cho ${detail.reference}?`
                   }
                   onCancel={props.onClose}
                   onConfirm={props.onConfirm}

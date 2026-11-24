@@ -95,6 +95,7 @@ public class SpeakingService {
         payload.put("prompt", prompt(request));
         if (request.hskLevel() == null) payload.putNull("hskLevel");
         else payload.put("hskLevel", request.hskLevel());
+        requests.attachTask(payload, request.taskId(), com.cnhsk.learning.knowledge.entity.LearningTask.Kind.SPEAKING);
         payload.set("consumption", mapper.valueToTree(consumption));
         Instant now = clock.instant();
         long id = grading.createPending(userId, payload, now,

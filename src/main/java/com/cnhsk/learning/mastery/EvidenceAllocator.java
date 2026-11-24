@@ -29,6 +29,7 @@ import org.springframework.stereotype.Component;
 public class EvidenceAllocator {
 
     private static final Logger log = LoggerFactory.getLogger(EvidenceAllocator.class);
+    private static final Set<String> ROLES = Set.of("PRIMARY", "SECONDARY", "ERROR");
 
     private final KnowledgeTreeService tree;
     private final EntityManager entityManager;
@@ -113,7 +114,10 @@ public class EvidenceAllocator {
         for (ItemContext row : contexts) {
             AttemptItem item = row.item();
             String context = contextOf(row.attempt().getRefType());
-            if (context == null || item.getCorrect() == null) {
+            // Only teacher grades recorded by the server carry a score; any client meta elsewhere is ignored.
+            boolean rubric = "RUBRIC_TASK".equals(row.attempt().getRefType());
+            Integer rubricScore = rubric ? rubricScore(item.getMeta()) : null;
+            if (context == null || item.getCorrect() == null && rubricScore == null) {
                 continue;
             }
             if (current && (row.attempt().isSuspicious() || excludedMeta(item.getMeta())
@@ -122,8 +126,13 @@ public class EvidenceAllocator {
                 continue;
             }
             String form = formOf(row.served());
-            int score = item.getCorrect() ? 100 : 0;
-            if (item.getQuestionId() != null) {
+            int score = rubricScore != null ? rubricScore : item.getCorrect() ? 100 : 0;
+            if (row.served().targetKid() != null) {
+                // Items labelled by the server itself: pronunciation units and rubric criteria (appendix E.3).
+                Object role = !rubric || item.getMeta() == null ? null : item.getMeta().get("role");
+                add(result, row.served().targetKid(), item, context, form,
+                        role instanceof String value && ROLES.contains(value) ? value : "PRIMARY", score, settings);
+            } else if (item.getQuestionId() != null) {
                 QuestionKids kids = questionKids.get(item.getQuestionId());
                 if (kids == null) {
                     log.warn("No knowledge label for question {}", item.getQuestionId());
@@ -217,6 +226,14 @@ public class EvidenceAllocator {
                                 && item.getItemType().equals(previous.getItemType())));
     }
 
+    private static Integer rubricScore(Map<String, Object> meta) {
+        if (meta == null || !(meta.get("score") instanceof Number number)) {
+            return null;
+        }
+        int value = number.intValue();
+        return value < 0 || value > 100 ? null : value;
+    }
+
     private static boolean excludedMeta(Map<String, Object> meta) {
         return meta != null && (meta.containsKey("skipped") || meta.containsKey("missing")
                 || meta.containsKey("audioFailed") || meta.containsKey("suspicious"));
@@ -268,8 +285,9 @@ public class EvidenceAllocator {
             case "MOCK_EXAM" -> "EXAM";
             case "PLACEMENT", "TOPIC_TEST" -> "QUIZ";
             case "TOPIC_PRACTICE", "GRAMMAR_LESSON", "CHAR_RECOGNITION", "TARGETED_PRACTICE",
-                    "GAME_ROUND", "DUE_REVIEW" -> "PRACTICE";
-            case "TOPIC_STUDY", "CHAR_WRITING", "WRITING_CHALLENGE", "PRON_STAGE", "QUIZ", "QUIZ_RETRY",
+                    "GAME_ROUND", "DUE_REVIEW", "PRON_STAGE", "READING_PRACTICE" -> "PRACTICE";
+            case "RUBRIC_TASK" -> "GRADED";
+            case "TOPIC_STUDY", "CHAR_WRITING", "WRITING_CHALLENGE", "QUIZ", "QUIZ_RETRY",
                     "CONTEST" -> null;
             default -> {
                 log.warn("No evidence context for practice source {}", source);

@@ -37,7 +37,8 @@ class GradingRequestServiceTest {
         repository = mock(GradingRepository.class); entitlement = mock(EntitlementApi.class);
         GradingConfig config = new GradingConfig(); config.setClaimHours(48); config.setGradingHours(24);
         config.setMinHanzi(50); config.setMaxHanzi(500); config.setMaxChars(3000);
-        service = new GradingRequestService(repository, entitlement, config, settings(config), mapper, Clock.fixed(NOW, ZoneOffset.UTC));
+        service = new GradingRequestService(repository, entitlement, config, settings(config), mapper, Clock.fixed(NOW, ZoneOffset.UTC),
+                org.mockito.Mockito.mock(com.cnhsk.learning.knowledge.repository.LearningTaskRepository.class));
     }
 
     @Test void FR001_policyUsesTheConfigurationAndExactRefundTerms() {

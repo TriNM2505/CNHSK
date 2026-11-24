@@ -203,7 +203,7 @@ public class ReviewListener {
     static boolean supports(PracticeSource source) {
         return switch (source) {
             case TOPIC_STUDY, TOPIC_PRACTICE, TOPIC_TEST, GRAMMAR_LESSON, CHAR_RECOGNITION,
-                    GAME_ROUND, MOCK_EXAM, PLACEMENT, TARGETED_PRACTICE -> true;
+                    GAME_ROUND, MOCK_EXAM, PLACEMENT, TARGETED_PRACTICE, READING_PRACTICE -> true;
             case PRON_STAGE, CHAR_WRITING, WRITING_CHALLENGE -> false;
             default -> false;
         };

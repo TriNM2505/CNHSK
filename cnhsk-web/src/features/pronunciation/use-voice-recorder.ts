@@ -1,13 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { speakChinese } from '@/shared/lib/speech'
+
 export const MAX_RECORDING_SECONDS = 30
 
 export type RecorderState = 'idle' | 'recording' | 'recorded' | 'unsupported' | 'denied'
 
-/** Microphone recording in the browser; the recording stops by itself after {@link MAX_RECORDING_SECONDS}. */
-export function useVoiceRecorder() {
+/**
+ * Microphone recording in the browser; the recording stops by itself after `maxSeconds`
+ * ({@link MAX_RECORDING_SECONDS} for reading aloud, a task's own limit for speaking tasks).
+ */
+export function useVoiceRecorder(maxSeconds = MAX_RECORDING_SECONDS) {
+  const limit = useRef(maxSeconds)
+  limit.current = maxSeconds
   const supported =
-    typeof window !== 'undefined' && typeof MediaRecorder !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia)
+    typeof window !== 'undefined' &&
+    typeof MediaRecorder !== 'undefined' &&
+    Boolean(navigator.mediaDevices?.getUserMedia)
   const [state, setState] = useState<RecorderState>(supported ? 'idle' : 'unsupported')
   const [seconds, setSeconds] = useState(0)
   const [recording, setRecording] = useState<Blob>()
@@ -21,9 +30,12 @@ export function useVoiceRecorder() {
   }, [])
 
   useEffect(() => () => releaseMicrophone(), [releaseMicrophone])
-  useEffect(() => () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl)
-  }, [previewUrl])
+  useEffect(
+    () => () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    },
+    [previewUrl],
+  )
 
   const stop = useCallback(() => {
     if (recorder.current?.state === 'recording') recorder.current.stop()
@@ -60,7 +72,7 @@ export function useVoiceRecorder() {
     timer.current = window.setInterval(() => {
       const elapsed = Math.floor((Date.now() - startedAt) / 1000)
       setSeconds(elapsed)
-      if (elapsed >= MAX_RECORDING_SECONDS) stop()
+      if (elapsed >= limit.current) stop()
     }, 250)
   }, [releaseMicrophone, stop, supported])
 
@@ -77,20 +89,10 @@ export function useVoiceRecorder() {
 
 /** Plays the recorded model when there is one, otherwise a Chinese voice of the browser reads the text. */
 export function playModel(text: string, audioUrl: string | null): void {
+  const speak = () => void speakChinese(text).catch(() => undefined)
   if (audioUrl) {
-    void new Audio(audioUrl).play().catch(() => speak(text))
+    void new Audio(audioUrl).play().catch(speak)
     return
   }
-  speak(text)
-}
-
-function speak(text: string): void {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
-  const utterance = new SpeechSynthesisUtterance(text)
-  utterance.lang = 'zh-CN'
-  utterance.rate = 0.8
-  const voice = window.speechSynthesis.getVoices().find((candidate) => candidate.lang.toLowerCase().startsWith('zh'))
-  if (voice) utterance.voice = voice
-  window.speechSynthesis.cancel()
-  window.speechSynthesis.speak(utterance)
+  speak()
 }

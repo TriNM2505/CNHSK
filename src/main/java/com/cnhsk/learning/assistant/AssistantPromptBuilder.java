@@ -40,6 +40,8 @@ public class AssistantPromptBuilder {
             Map.entry("SCR-021", "Làm bài kiểm tra"),
             Map.entry("SCR-022", "Kết quả bài kiểm tra"),
             Map.entry("SCR-023", "Luyện theo nút"),
+            Map.entry("SCR-024", "Tra cứu từ điển"),
+            Map.entry("SCR-025", "Chi tiết mục từ"),
             Map.entry("SCR-026", "Dịch câu"),
             Map.entry("SCR-027", "Sổ tay cá nhân"),
             Map.entry("SCR-028", "Bộ thẻ của tôi"),
@@ -59,7 +61,8 @@ public class AssistantPromptBuilder {
             Map.entry("SCR-051", "Kết quả cuộc thi"),
             Map.entry("SCR-053", "Tài liệu nghe nhìn"),
             Map.entry("SCR-054", "Danh mục sách tham khảo"),
-            Map.entry("SCR-055", "Chi tiết sách tham khảo"));
+            Map.entry("SCR-055", "Chi tiết sách tham khảo"),
+            Map.entry("SCR-084", "Luyện đọc"));
 
     private final HelpLibrary help;
     private final PiiMasker masker;

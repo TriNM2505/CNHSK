@@ -31,10 +31,19 @@ export async function submitSpeaking(
   item: SpeakingItem,
   recording: Blob,
   onProgress?: (fraction: number) => void,
+  taskId?: number,
 ): Promise<GradingRequest> {
-  const signature = await apiRequest<UploadSignature>('/api/speaking/upload-signature', { method: 'POST' })
-  const extension = recording.type.includes('mp4') ? 'm4a' : recording.type.includes('ogg') ? 'ogg' : 'webm'
-  const file = new File([recording], `speaking.${extension}`, { type: recording.type || 'audio/webm' })
+  const signature = await apiRequest<UploadSignature>('/api/speaking/upload-signature', {
+    method: 'POST',
+  })
+  const extension = recording.type.includes('mp4')
+    ? 'm4a'
+    : recording.type.includes('ogg')
+      ? 'ogg'
+      : 'webm'
+  const file = new File([recording], `speaking.${extension}`, {
+    type: recording.type || 'audio/webm',
+  })
   const uploaded = await uploadToCloudinary(file, signature, onProgress)
   return apiRequest<GradingRequest>('/api/grading-requests/speaking', {
     body: {
@@ -43,6 +52,7 @@ export async function submitSpeaking(
       meaning: item.meaning,
       pinyin: item.pinyin,
       publicId: uploaded.publicId,
+      ...(taskId ? { taskId } : {}),
       text: item.text,
     },
     method: 'POST',

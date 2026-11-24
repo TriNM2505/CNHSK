@@ -1,0 +1,50 @@
+openapi: 3.0.3
+info:
+  title: CNHSK mastery — appendix v1.1 (four skills of the competency tree v2.0)
+  version: 1.1.0
+  description: >-
+    Appendix to openapi-mastery.yaml (locked). Adds the learner's competency by skill and by domain
+    (spec 5.11). Evidence also comes from two more sources: pronunciation stages (PRACTICE, on the
+    phonetics node a unit is linked to) and teacher rubric grades (RUBRIC_TASK, GRADED context).
+paths:
+  /api/mastery/skills:
+    get:
+      operationId: getMySkillMastery
+      tags: [mastery]
+      parameters:
+        - name: hskLevel
+          in: query
+          required: false
+          description: Nodes up to this level are counted. Defaults to 3.
+          schema: { type: integer, minimum: 1, maximum: 9, default: 3 }
+      responses:
+        '200':
+          description: Four skills in order LISTENING, SPEAKING, READING, WRITING, then the domains.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SkillMastery' }
+        '401': { description: UNAUTHENTICATED }
+        '403': { description: FORBIDDEN }
+        '422': { description: VALIDATION_FAILED }
+components:
+  schemas:
+    SkillMastery:
+      type: object
+      required: [hskLevel, skills, domains]
+      properties:
+        hskLevel: { type: integer }
+        skills: { type: array, items: { $ref: '#/components/schemas/MasteryGroup' } }
+        domains: { type: array, items: { $ref: '#/components/schemas/MasteryGroup' } }
+    MasteryGroup:
+      description: >-
+        A node with several skills counts once in each. `good` = consolidate or extend; `missing` = no or
+        insufficient evidence (shown grey, never lowers `percent`); `percent` = average mastery of the nodes
+        with evidence, or null when there is none.
+      type: object
+      required: [code, nodes, good, missing]
+      properties:
+        code: { type: string }
+        nodes: { type: integer }
+        good: { type: integer }
+        missing: { type: integer }
+        percent: { type: integer, nullable: true, minimum: 0, maximum: 100 }

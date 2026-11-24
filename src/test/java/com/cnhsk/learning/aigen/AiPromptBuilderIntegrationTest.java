@@ -63,6 +63,32 @@ class AiPromptBuilderIntegrationTest extends AbstractIntegrationTest {
         sql.assertContentReads(3);
     }
 
+    @Test
+    void addsTheTreeSkillsPatternTwoCorrectExamplesAndCountingErrorCodesButNeverAWrongExample() throws Exception {
+        long node = fixtures.node("Target", "Can do");
+        fixtures.lexeme(node, "WORD", "tree-word", 1);
+        jdbc.update("UPDATE learning.knowledge_points SET skills='{READING,WRITING}', pattern='S + 把 + O + V + 了', "
+                + "examples=?::jsonb WHERE id=?", """
+                {"ok":[{"cn":"我把书看完了。","vi":"Tôi đọc xong sách rồi."},{"cn":"他把门关了。"},{"cn":"third-ok"}],
+                 "err":[{"cn":"wrong-example-text","errorCode":"E-NP-97"}]}""", node);
+        jdbc.update("INSERT INTO learning.error_codes (code, kid_id, severity, name_vi, fix_hint) VALUES "
+                + "('E-NP-97', ?, 2, 'Thiếu bổ ngữ', 'Thêm 完'), ('E-NP-96', ?, 1, 'minor-not-sent', null)", node, node);
+        try {
+            sql.clear();
+            JsonNode context = context(builder.build(node, 5));
+            assertThat(context.path("skills")).extracting(JsonNode::asText).containsExactly("READING", "WRITING");
+            assertThat(context.path("pattern").asText()).isEqualTo("S + 把 + O + V + 了");
+            assertThat(context.path("examples_ok")).hasSize(2);
+            assertThat(context.path("examples_ok").get(0).path("cn").asText()).isEqualTo("我把书看完了。");
+            assertThat(context.path("error_codes")).singleElement()
+                    .satisfies(code -> assertThat(code.path("code").asText()).isEqualTo("E-NP-97"));
+            assertThat(context.toString()).doesNotContain("wrong-example-text", "third-ok", "minor-not-sent");
+            sql.assertContentReads(3);
+        } finally {
+            jdbc.update("DELETE FROM learning.error_codes WHERE code IN ('E-NP-97', 'E-NP-96')");
+        }
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 3, 4})
     void choosesAtMostThreeApprovedPrimarySamplesWithoutLosingAnyRoleErrorPairs(int count) throws Exception {

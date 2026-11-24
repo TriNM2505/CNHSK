@@ -5,8 +5,15 @@ import { AuthContext, type AuthContextValue } from '@/shared/auth'
 import { AdminLayout } from '@/shared/layout'
 import { TeacherGradingQueueView } from './components/TeacherGradingQueueView'
 import { TeacherGradingWorkspaceView } from './components/TeacherGradingWorkspaceView'
+import { WRITING_RUBRIC } from '@/features/grading/rubrics'
 import { emptyDraft, resultPayload, totalScore } from './gradingRules'
-import { assigned, draft as sampleDraft, mine, queue } from './test-fixtures'
+import {
+  assigned,
+  draft as sampleDraft,
+  errorCodes as sampleErrorCodes,
+  mine,
+  queue,
+} from './test-fixtures'
 import type { QueuePage, TeacherGradingDetail } from './types'
 
 const teacherAuth: AuthContextValue = {
@@ -90,6 +97,7 @@ function WorkspacePreview({ state }: { state: PreviewState }) {
     detail: completed ?? assigned,
     error,
     draft,
+    errorCodes: sampleErrorCodes,
     seconds: 86399,
     pending: false,
     confirmation,
@@ -102,7 +110,23 @@ function WorkspacePreview({ state }: { state: PreviewState }) {
         setCompleted({
           ...assigned,
           status: 'COMPLETED',
-          result: { ...resultPayload(draft), score: totalScore(draft) },
+          result: {
+            ...resultPayload(draft, WRITING_RUBRIC),
+            errors: draft.errors.flatMap((code) => {
+              const option = sampleErrorCodes.find((item) => item.code === code)
+              return option
+                ? [
+                    {
+                      code,
+                      nameVi: option.nameVi,
+                      severity: option.severity,
+                      fixHint: option.fixHint,
+                    },
+                  ]
+                : []
+            }),
+            score: totalScore(draft, WRITING_RUBRIC),
+          },
         })
       setConfirmation(null)
     },

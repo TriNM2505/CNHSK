@@ -23,6 +23,9 @@ import com.cnhsk.shared.settings.SettingsApi;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.cnhsk.learning.knowledge.entity.LearningTask;
+import com.cnhsk.learning.knowledge.repository.LearningTaskRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,9 +41,11 @@ public class GradingRequestService {
     private final SettingsApi settings;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final LearningTaskRepository tasks;
 
     public GradingRequestService(GradingRepository repository, EntitlementApi entitlement, GradingConfig config, SettingsApi settings,
-            ObjectMapper mapper, Clock clock) {
+            ObjectMapper mapper, Clock clock, LearningTaskRepository tasks) {
+        this.tasks = tasks;
         this.repository = repository;
         this.entitlement = entitlement;
         this.config = config;
@@ -69,6 +74,7 @@ public class GradingRequestService {
         payload.put("prompt", request.prompt());
         if (request.hskLevel() == null) payload.putNull("hskLevel");
         else payload.put("hskLevel", request.hskLevel());
+        attachTask(payload, request.taskId(), LearningTask.Kind.WRITING);
         payload.set("consumption", mapper.valueToTree(consumption));
         long id = repository.createPending(userId, payload, now, now.plus(settings.getInt(SettingKey.GRADING_CLAIM_HOURS), ChronoUnit.HOURS));
         return detail(owned(userId, id));
@@ -90,6 +96,24 @@ public class GradingRequestService {
     }
 
     public Detail get(long userId, long id) { return detail(owned(userId, id)); }
+
+    /**
+     * Ties a submission to an active task of the competency tree: the teacher sees the task as the prompt and
+     * the rubric grade then feeds the task's nodes. Called before the request is stored.
+     */
+    public void attachTask(ObjectNode payload, Long taskId, LearningTask.Kind kind) {
+        if (taskId == null) return;
+        LearningTask task = tasks.findById(taskId).filter(found -> found.isActive() && found.getKind() == kind)
+                .orElseThrow(() -> error(ErrorCode.VALIDATION_FAILED, HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Nhiệm vụ không tồn tại hoặc không đúng loại bài."));
+        String prompt = task.getTitleVi() + ": " + task.getPromptVi();
+        payload.put("taskId", task.getId());
+        payload.put("prompt", prompt.codePointCount(0, prompt.length()) <= 500 ? prompt
+                : prompt.substring(0, prompt.offsetByCodePoints(0, 500)));
+        if (payload.path("hskLevel").isNull() || payload.path("hskLevel").isMissingNode()) {
+            payload.put("hskLevel", (int) task.getHskLevel());
+        }
+    }
 
     @Transactional
     public Detail cancel(long userId, long id) {
@@ -115,14 +139,10 @@ public class GradingRequestService {
         JsonNode payload = row.payload();
         Result result = null;
         if ("COMPLETED".equals(row.status())) {
-            if (row.score() == null || row.feedback() == null || row.result() == null
-                    || !row.result().path("criteria").isObject() || !row.result().path("corrections").isArray()) throw invalidStoredRequest();
+            if (row.score() == null || row.feedback() == null || row.result() == null) throw invalidStoredRequest();
             try {
-                Criteria criteria = mapper.treeToValue(row.result().get("criteria"), Criteria.class);
-                List<Correction> corrections = mapper.convertValue(row.result().get("corrections"),
-                        mapper.getTypeFactory().constructCollectionType(List.class, Correction.class));
-                result = new Result(row.score(), criteria, row.feedback(), corrections);
-            } catch (JsonProcessingException | IllegalArgumentException exception) { throw invalidStoredRequest(); }
+                result = GradingRequestViews.storedResult(row.score(), row.feedback(), row.result(), mapper);
+            } catch (IllegalArgumentException exception) { throw invalidStoredRequest(); }
         }
         boolean refunded = "EXPIRED".equals(row.status())
                 || ("FAILED".equals(row.status()) && "CANCELLED_BY_LEARNER".equals(row.errorMessage()));

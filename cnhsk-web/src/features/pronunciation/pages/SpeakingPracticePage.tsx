@@ -1,18 +1,49 @@
 import { CheckCircle2, Mic, RotateCcw, Send, Shuffle, Square, Volume2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+import { getLearningTasks, type LearningTask } from '@/features/grading/api/learning-tasks'
 import { useCurrentUser } from '@/shared/auth'
 import { cn } from '@/shared/lib/cn'
-import { Button, Card, EmptyState, ErrorState, PageBanner, Skeleton, SUPPORTED_HSK_LEVELS } from '@/shared/ui'
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  HskLevelPicker,
+  PageBanner,
+  Skeleton,
+  useHskLevel,
+} from '@/shared/ui'
 
-import { getSpeakingItems, submitSpeaking, type SpeakingItem, type SpeakingKind } from '../api/speaking'
-import { PronunciationTabs } from '../components/PronunciationTabs'
+import {
+  getSpeakingItems,
+  submitSpeaking,
+  type SpeakingItem,
+  type SpeakingKind,
+} from '../api/speaking'
 import { MAX_RECORDING_SECONDS, playModel, useVoiceRecorder } from '../use-voice-recorder'
 
-const KINDS: readonly { label: string; value: SpeakingKind }[] = [
+/** READ: hear a model word or sentence and say it back. TASK: a speaking task of the competency tree. */
+type Mode = 'READ' | 'TASK'
+type Kind = SpeakingKind | 'TASK'
+
+const KINDS: readonly { label: string; value: Kind }[] = [
   { label: 'Từ', value: 'WORD' },
   { label: 'Câu', value: 'SENTENCE' },
+  { label: 'Nhiệm vụ nói', value: 'TASK' },
 ]
+
+/** A task becomes one item to record: its Chinese prompt is what the teacher sees as the text read. */
+function taskItem(task: LearningTask): SpeakingItem {
+  return {
+    kind: 'SENTENCE',
+    text: task.promptZh ?? task.titleVi,
+    pinyin: null,
+    meaning: task.titleVi,
+    audioUrl: null,
+    hskLevel: task.hskLevel,
+  }
+}
 
 function clock(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
@@ -24,12 +55,11 @@ function clock(seconds: number): string {
  */
 export default function SpeakingPracticePage({ guest = false }: { guest?: boolean }) {
   const { user } = useCurrentUser()
-  const levels: number[] = [...SUPPORTED_HSK_LEVELS]
-  const [level, setLevel] = useState<number>(() =>
-    user?.hskLevel && levels.includes(user.hskLevel) ? user.hskLevel : (levels[0] ?? 1),
-  )
-  const [kind, setKind] = useState<SpeakingKind>('WORD')
+  const [level, setLevel] = useHskLevel(user?.hskLevel)
+  const [kind, setKind] = useState<Kind>('WORD')
+  const mode: Mode = kind === 'TASK' ? 'TASK' : 'READ'
   const [items, setItems] = useState<SpeakingItem[]>([])
+  const [tasks, setTasks] = useState<LearningTask[]>([])
   const [index, setIndex] = useState(0)
   const [load, setLoad] = useState<'loading' | 'ready' | 'error'>('loading')
   const [loadError, setLoadError] = useState<string>()
@@ -37,13 +67,17 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
   const [progress, setProgress] = useState(0)
   const [sendError, setSendError] = useState<string>()
   const [sent, setSent] = useState<{ id: number; reference: string }>()
-  const recorder = useVoiceRecorder()
-  const item = items[index]
+  const task = mode === 'TASK' ? tasks[index] : undefined
+  const item = task ? taskItem(task) : mode === 'READ' ? items[index] : undefined
+  const recorder = useVoiceRecorder(task?.maxSeconds ?? MAX_RECORDING_SECONDS)
+  const limit = task?.maxSeconds ?? MAX_RECORDING_SECONDS
+  const count = mode === 'TASK' ? tasks.length : items.length
 
   async function fetchItems() {
     setLoad('loading')
     try {
-      setItems(await getSpeakingItems(level, kind, guest))
+      if (kind === 'TASK') setTasks(await getLearningTasks('SPEAKING', level))
+      else setItems(await getSpeakingItems(level, kind, guest))
       setIndex(0)
       setLoad('ready')
     } catch (error) {
@@ -64,7 +98,8 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
     recorder.reset()
     setSent(undefined)
     setSendError(undefined)
-    if (index + 1 < items.length) setIndex(index + 1)
+    if (index + 1 < count) setIndex(index + 1)
+    else if (mode === 'TASK') setIndex(0)
     else void fetchItems()
   }
 
@@ -74,7 +109,7 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
     setProgress(0)
     setSendError(undefined)
     try {
-      const request = await submitSpeaking(item, recorder.recording, setProgress)
+      const request = await submitSpeaking(item, recorder.recording, setProgress, task?.id)
       setSent({ id: request.id, reference: request.reference })
     } catch (error) {
       setSendError(error instanceof Error ? error.message : 'Chưa gửi được, thử lại.')
@@ -87,19 +122,27 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
     <div className={cn('w-full min-w-0 space-y-6', !guest && 'mx-auto max-w-content pb-16')}>
       {guest ? null : (
         <>
-          <PageBanner subtitle="Nghe mẫu, đọc lại và gửi giáo viên chấm phát âm." title="Phát âm" />
-          <PronunciationTabs />
+          <PageBanner
+            subtitle="Đọc theo mẫu hoặc làm nhiệm vụ nói của cấp, rồi gửi giáo viên chấm theo R-NÓI."
+            title="Luyện nói"
+          />
         </>
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <div aria-label="Loại bài" className="inline-flex rounded-pill border border-line bg-surface p-1" role="group">
+        <div
+          aria-label="Loại bài"
+          className="inline-flex rounded-pill border border-line bg-surface p-1"
+          role="group"
+        >
           {KINDS.map((option) => (
             <button
               aria-pressed={kind === option.value}
               className={cn(
                 'min-h-10 rounded-pill px-5 text-body-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
-                kind === option.value ? 'bg-brand-600 text-surface' : 'text-ink-secondary hover:text-ink',
+                kind === option.value
+                  ? 'bg-brand-600 text-surface'
+                  : 'text-ink-secondary hover:text-ink',
               )}
               key={option.value}
               onClick={() => setKind(option.value)}
@@ -109,19 +152,13 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
             </button>
           ))}
         </div>
-        <select
-          aria-label="Cấp HSK"
-          className="min-h-10 rounded-md border border-line bg-surface px-3 text-body-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-          onChange={(event) => setLevel(Number(event.target.value))}
-          value={level}
+        <HskLevelPicker level={level} onChange={setLevel} />
+        <Button
+          disabled={load !== 'ready' || sending}
+          onClick={nextItem}
+          size="sm"
+          variant="outline"
         >
-          {levels.map((value) => (
-            <option key={value} value={value}>
-              HSK {value}
-            </option>
-          ))}
-        </select>
-        <Button disabled={load !== 'ready' || sending} onClick={nextItem} size="sm" variant="outline">
           <Shuffle aria-hidden="true" className="size-4" />
           Bài khác
         </Button>
@@ -131,31 +168,70 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
         <div className={cn('min-w-0', guest ? 'lg:col-span-12' : 'lg:col-span-8')}>
           {load === 'loading' ? <Skeleton className="h-96" /> : null}
           {load === 'error' ? (
-            <ErrorState message={loadError ?? 'Vui lòng thử lại sau.'} onRetry={() => void fetchItems()} title="Không tải được bài đọc" />
+            <ErrorState
+              message={loadError ?? 'Vui lòng thử lại sau.'}
+              onRetry={() => void fetchItems()}
+              title="Không tải được bài đọc"
+            />
           ) : null}
           {load === 'ready' && !item ? (
             <EmptyState
-              description="Cấp này chưa có nội dung để đọc. Hãy chọn cấp hoặc loại bài khác."
+              description={
+                mode === 'TASK'
+                  ? 'Cấp này chưa có nhiệm vụ nói. Hãy chọn cấp khác hoặc đọc theo mẫu.'
+                  : 'Cấp này chưa có nội dung để đọc. Hãy chọn cấp hoặc loại bài khác.'
+              }
               icon={<Mic aria-hidden="true" className="size-5" />}
-              title="Chưa có bài đọc"
+              title={mode === 'TASK' ? 'Chưa có nhiệm vụ' : 'Chưa có bài đọc'}
             />
           ) : null}
           {load === 'ready' && item ? (
             <Card className="min-w-0 space-y-6 p-6 sm:p-8">
-              <div className="space-y-3 text-center">
-                <span className="inline-flex rounded-pill bg-brand-50 px-3 py-1 text-caption font-semibold text-brand-700">
-                  {item.kind === 'WORD' ? 'Đọc từ' : 'Đọc câu'} · HSK {item.hskLevel}
-                </span>
-                <p className={cn('break-words font-hanzi text-ink', item.kind === 'WORD' ? 'text-hanzi-lg' : 'text-hanzi-md')} lang="zh">
-                  {item.text}
-                </p>
-                {item.pinyin ? <p className="text-h3 text-brand-700">{item.pinyin}</p> : null}
-                {item.meaning ? <p className="text-body text-ink-secondary">{item.meaning}</p> : null}
-                <Button onClick={() => playModel(item.text, item.audioUrl)} variant="outline">
-                  <Volume2 aria-hidden="true" className="size-5" />
-                  Nghe mẫu
-                </Button>
-              </div>
+              {task ? (
+                <div className="space-y-3">
+                  <span className="inline-flex rounded-pill bg-brand-50 px-3 py-1 text-caption font-semibold text-brand-700">
+                    Nhiệm vụ nói · HSK {task.hskLevel} · {index + 1}/{tasks.length}
+                  </span>
+                  <h2 className="text-h2 text-ink">{task.titleVi}</h2>
+                  <p className="text-body text-ink-secondary">{task.promptVi}</p>
+                  {task.promptZh ? (
+                    <p className="font-hanzi text-hanzi-md text-ink" lang="zh">
+                      {task.promptZh}
+                    </p>
+                  ) : null}
+                  <Button
+                    onClick={() => playModel(task.promptZh ?? '', null)}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Volume2 aria-hidden="true" className="size-4" />
+                    Nghe câu hỏi
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3 text-center">
+                  <span className="inline-flex rounded-pill bg-brand-50 px-3 py-1 text-caption font-semibold text-brand-700">
+                    {item.kind === 'WORD' ? 'Đọc từ' : 'Đọc câu'} · HSK {item.hskLevel}
+                  </span>
+                  <p
+                    className={cn(
+                      'break-words font-hanzi text-ink',
+                      item.kind === 'WORD' ? 'text-hanzi-lg' : 'text-hanzi-md',
+                    )}
+                    lang="zh"
+                  >
+                    {item.text}
+                  </p>
+                  {item.pinyin ? <p className="text-h3 text-brand-700">{item.pinyin}</p> : null}
+                  {item.meaning ? (
+                    <p className="text-body text-ink-secondary">{item.meaning}</p>
+                  ) : null}
+                  <Button onClick={() => playModel(item.text, item.audioUrl)} variant="outline">
+                    <Volume2 aria-hidden="true" className="size-5" />
+                    Nghe mẫu
+                  </Button>
+                </div>
+              )}
 
               <div className="space-y-4 border-t border-line pt-6 text-center">
                 {recorder.state === 'unsupported' ? (
@@ -165,7 +241,8 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
                 ) : null}
                 {recorder.state === 'denied' ? (
                   <p className="text-body-sm text-danger" role="alert">
-                    Chưa được phép dùng micro. Bấm biểu tượng ổ khoá trên thanh địa chỉ, cho phép micro rồi thử lại.
+                    Chưa được phép dùng micro. Bấm biểu tượng ổ khoá trên thanh địa chỉ, cho phép
+                    micro rồi thử lại.
                   </p>
                 ) : null}
 
@@ -179,7 +256,9 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
                     >
                       <Mic aria-hidden="true" className="size-9" />
                     </button>
-                    <p className="text-body-sm text-ink-secondary">Bấm để ghi âm, tối đa {MAX_RECORDING_SECONDS} giây</p>
+                    <p className="text-body-sm text-ink-secondary">
+                      Bấm để ghi âm, tối đa {limit} giây
+                    </p>
                   </div>
                 ) : null}
 
@@ -194,14 +273,19 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
                       <Square aria-hidden="true" className="size-7 fill-current" />
                     </button>
                     <p className="text-body font-semibold tabular-nums text-danger" role="timer">
-                      Đang ghi {clock(recorder.seconds)} / {clock(MAX_RECORDING_SECONDS)}
+                      Đang ghi {clock(recorder.seconds)} / {clock(limit)}
                     </p>
                   </div>
                 ) : null}
 
                 {recorder.state === 'recorded' && recorder.previewUrl ? (
                   <div className="mx-auto max-w-md space-y-4">
-                    <audio aria-label="Bản ghi của bạn" className="w-full" controls src={recorder.previewUrl} />
+                    <audio
+                      aria-label="Bản ghi của bạn"
+                      className="w-full"
+                      controls
+                      src={recorder.previewUrl}
+                    />
                     {sent ? (
                       <div className="space-y-3 rounded-md bg-success-bg p-4" role="status">
                         <p className="flex items-center justify-center gap-2 text-label text-success">
@@ -224,11 +308,13 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
                             <RotateCcw aria-hidden="true" className="size-4" />
                             Ghi lại
                           </Button>
-                          <Button to="/register?redirect=%2Flearn%2Fpronunciation%2Fspeaking">
+                          <Button to="/register?redirect=%2Flearn%2Fspeaking">
                             Đăng ký để gửi giáo viên chấm
                           </Button>
                         </div>
-                        <p className="text-body-sm text-ink-secondary">Bản ghi học thử chỉ nằm trên máy bạn, không được tải lên.</p>
+                        <p className="text-body-sm text-ink-secondary">
+                          Bản ghi học thử chỉ nằm trên máy bạn, không được tải lên.
+                        </p>
                       </div>
                     ) : (
                       <div className="flex flex-wrap justify-center gap-3">
@@ -238,7 +324,9 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
                         </Button>
                         <Button disabled={sending} loading={sending} onClick={() => void send()}>
                           <Send aria-hidden="true" className="size-4" />
-                          {sending ? `Đang gửi ${Math.round(progress * 100)}%` : 'Gửi giáo viên chấm'}
+                          {sending
+                            ? `Đang gửi ${Math.round(progress * 100)}%`
+                            : 'Gửi giáo viên chấm'}
                         </Button>
                       </div>
                     )}
@@ -260,7 +348,10 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
             <ol className="list-decimal space-y-2 pl-5 text-body-sm text-ink-secondary">
               <li>Bấm Nghe mẫu, nghe kỹ thanh điệu.</li>
               <li>Bấm micro và đọc lại; nghe bản ghi, chưa ưng thì ghi lại.</li>
-              <li>Gửi giáo viên chấm thanh điệu, thanh mẫu, vận mẫu và độ trôi chảy.</li>
+              <li>
+                Gửi giáo viên chấm theo R-NÓI: nhiệm vụ, phát âm, từ vựng, ngữ pháp, trôi chảy.
+              </li>
+              <li>Nhiệm vụ nói được chấm vào các nút kiến thức của cấp trên Bảng học tập.</li>
             </ol>
           </Card>
           <Card className="min-w-0 space-y-2 p-5">

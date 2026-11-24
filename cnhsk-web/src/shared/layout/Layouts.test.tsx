@@ -95,7 +95,11 @@ describe('PublicLayout', () => {
 
   it.each([
     ['the page being read', '/dictionary?q=a#x', '?redirect=%2Fdictionary%3Fq%3Da%23x'],
-    ['the target already being carried', '/login?redirect=%2Flearn%2Ftopics', '?redirect=%2Flearn%2Ftopics'],
+    [
+      'the target already being carried',
+      '/login?redirect=%2Flearn%2Ftopics',
+      '?redirect=%2Flearn%2Ftopics',
+    ],
     ['nothing from the landing page', '/#khoa-hoc', ''],
     ['nothing from the email verification page', '/verify-email?token=secret', ''],
     ['nothing from the password reset page', '/reset-password?token=secret', ''],
@@ -103,8 +107,14 @@ describe('PublicLayout', () => {
   ])('keeps %s when a guest signs in or registers from the header', (_name, path, query) => {
     renderGuest(path)
 
-    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute('href', `/login${query}`)
-    expect(screen.getByRole('link', { name: 'Đăng ký' })).toHaveAttribute('href', `/register${query}`)
+    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toHaveAttribute(
+      'href',
+      `/login${query}`,
+    )
+    expect(screen.getByRole('link', { name: 'Đăng ký' })).toHaveAttribute(
+      'href',
+      `/register${query}`,
+    )
   })
 
   it.each([
@@ -195,23 +205,63 @@ describe('PublicLayout', () => {
 })
 
 describe('LearnerLayout', () => {
-  it('keeps study destinations in the sidebar, the game in the site header, and four links plus More on mobile', async () => {
+  it('groups study items by skill, knowledge, review and tools and keeps four links plus More on mobile', async () => {
     renderLayout(<LearnerLayout gameOrigin="http://localhost:5174">Nội dung học tập</LearnerLayout>)
 
     const desktopNavigation = screen.getByRole('navigation', { name: 'Học tập' })
-    const sidebarLinks = within(desktopNavigation).getAllByRole('link')
-    expect(sidebarLinks.map((link) => link.getAttribute('href'))).toEqual([
-      '/learn',
-      '/learn/topics',
-      '/learn/grammar',
-      '/learn/pronunciation',
-      '/learn/characters/recognition',
-      '/references/media',
-      '/grading',
+    expect(
+      within(desktopNavigation)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('aria-label')),
+    ).toEqual([
+      'Bảng học tập',
+      'Nghe',
+      'Luyện nói',
+      'Đọc',
+      'Viết',
+      'Chủ đề',
+      'Ngữ pháp',
+      'Chữ Hán',
+      'Ôn bài đến hạn',
+      'Thi thử',
+      'Tiến độ',
+      'Tra cứu',
+      'Dịch',
+      'Bộ thẻ',
+      'Sổ tay',
+      'Tài liệu tham khảo',
+      'Chấm bài',
     ])
+    for (const group of ['Kỹ năng', 'Kiến thức', 'Ôn và kiểm tra', 'Công cụ']) {
+      expect(within(desktopNavigation).getByText(group)).toBeInTheDocument()
+    }
+    expect(within(desktopNavigation).getByRole('link', { name: 'Đọc' })).toHaveAttribute(
+      'href',
+      '/learn/reading',
+    )
+    expect(within(desktopNavigation).getByRole('link', { name: 'Tra cứu' })).toHaveAttribute(
+      'href',
+      '/dictionary',
+    )
+    expect(within(desktopNavigation).getByRole('link', { name: 'Bộ thẻ' })).toHaveAttribute(
+      'href',
+      '/library/decks',
+    )
     expect(within(desktopNavigation).getByRole('link', { name: 'Chủ đề' })).toHaveAttribute(
       'aria-current',
       'page',
+    )
+    expect(within(desktopNavigation).getByRole('link', { name: 'Nghe' })).toHaveAttribute(
+      'href',
+      '/learn/listening',
+    )
+    expect(within(desktopNavigation).getByRole('link', { name: 'Luyện nói' })).toHaveAttribute(
+      'href',
+      '/learn/speaking',
+    )
+    expect(within(desktopNavigation).getByRole('link', { name: 'Viết' })).toHaveAttribute(
+      'href',
+      '/learn/writing',
     )
     // The dashboard sits at /learn, the parent of every study route, so it must not light up there.
     const dashboard = within(desktopNavigation).getByRole('link', { name: 'Bảng học tập' })
@@ -225,29 +275,44 @@ describe('LearnerLayout', () => {
     const gameLink = within(header).getByRole('link', { name: 'Trò chơi' })
     expect(gameLink).toHaveAttribute('href', 'http://localhost:5174')
     expect(gameLink).not.toHaveAttribute('target')
-    expect(within(header).getByRole('link', { name: 'Cộng đồng' })).toHaveAttribute('href', '/community')
+    expect(within(header).getByRole('link', { name: 'Cộng đồng' })).toHaveAttribute(
+      'href',
+      '/community',
+    )
 
     const mobileNavigation = screen.getByRole('navigation', {
       name: 'Học tập trên thiết bị di động',
     })
-    expect(within(mobileNavigation).getAllByRole('link')).toHaveLength(4)
+    expect(
+      within(mobileNavigation)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('aria-label')),
+    ).toEqual(['Bảng học tập', 'Nghe', 'Luyện nói', 'Đọc'])
     const more = within(mobileNavigation).getByRole('button', { name: 'Thêm' })
     expect(more).toHaveAttribute('aria-expanded', 'false')
     expect(more).toHaveAttribute('aria-controls', 'learner-more-menu')
     await userEvent.click(more)
     expect(more).toHaveAttribute('aria-expanded', 'true')
     const supplemental = screen.getByRole('navigation', { name: 'Điều hướng bổ sung' })
-    expect(within(supplemental).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-      '/learn/characters/recognition',
-      '/references/media',
-      '/grading',
-    ])
-    expect(within(supplemental).getByRole('link', { name: 'Tài liệu tham khảo' })).toHaveAttribute(
-      'aria-label',
+    expect(
+      within(supplemental)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('aria-label')),
+    ).toEqual([
+      'Viết',
+      'Chủ đề',
+      'Ngữ pháp',
+      'Chữ Hán',
+      'Ôn bài đến hạn',
+      'Thi thử',
+      'Tiến độ',
+      'Tra cứu',
+      'Dịch',
+      'Bộ thẻ',
+      'Sổ tay',
       'Tài liệu tham khảo',
-    )
-    expect(within(supplemental).queryByRole('link', { name: 'Game' })).not.toBeInTheDocument()
-    expect(within(supplemental).queryByRole('link', { name: 'Quiz' })).not.toBeInTheDocument()
+      'Chấm bài',
+    ])
     expect(supplemental.querySelector('span[aria-label]')).toBeNull()
     await userEvent.keyboard('{Escape}')
     expect(more).toHaveAttribute('aria-expanded', 'false')
@@ -292,6 +357,22 @@ describe('LearnerLayout', () => {
       '/contests',
     )
     expect(document.getElementById('public-menu')).toBeNull()
+  })
+
+  it('lights up More for a study item kept there and closes More after navigation', async () => {
+    renderLayout(<LearnerLayout>Nội dung</LearnerLayout>, { initialPath: '/learn/writing' })
+    const more = screen.getByRole('button', { name: 'Thêm' })
+    expect(more.className).toContain('border-brand-600')
+    await userEvent.click(more)
+    const supplemental = screen.getByRole('navigation', { name: 'Điều hướng bổ sung' })
+    const writing = within(supplemental).getByRole('link', { name: 'Viết' })
+    expect(writing).toHaveAttribute('aria-current', 'page')
+    await userEvent.click(within(supplemental).getByRole('link', { name: 'Ngữ pháp' }))
+    expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent(
+      '/learn/grammar',
+    )
+    expect(more).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('navigation', { name: 'Điều hướng bổ sung' })).not.toBeInTheDocument()
   })
 
   it('shows the verification banner only when email is not verified', () => {
@@ -396,12 +477,7 @@ describe('AdminLayout', () => {
       user: { ...learner, roles: ['ADMIN'] },
     })
     const adminNav = screen.getByRole('navigation', { name: 'Quản trị' })
-    expect(adminNav).toHaveClass(
-      'sticky',
-      'top-16',
-      'max-h-[calc(100dvh-4rem)]',
-      'overflow-y-auto',
-    )
+    expect(adminNav).toHaveClass('sticky', 'top-16', 'max-h-[calc(100dvh-4rem)]', 'overflow-y-auto')
   })
   it.each(['CONTENT_EDITOR', 'LEARNER', 'TEACHER', 'MODERATOR', 'ACCOUNTANT'] as const)(
     'hides settings from %s',
@@ -463,6 +539,7 @@ describe('AdminLayout', () => {
     const desktop = screen.getByRole('navigation', { name: 'Quản trị' })
     const mobile = screen.getByRole('navigation', { name: 'Quản trị trên thiết bị di động' })
     for (const navigation of [desktop, mobile]) {
+      // Pending posts, posting a community notice, reports.
       expect(within(navigation).getAllByRole('link')).toHaveLength(3)
       expect(within(navigation).getByRole('link', { name: 'Bài chờ duyệt' })).toHaveAttribute(
         'href',
@@ -472,9 +549,9 @@ describe('AdminLayout', () => {
         'href',
         '/moderation/posts/new',
       )
-      expect(within(navigation).getByRole('link', { name: 'Đăng bài cộng đồng' })).not.toHaveAttribute(
-        'aria-current',
-      )
+      expect(
+        within(navigation).getByRole('link', { name: 'Đăng bài cộng đồng' }),
+      ).not.toHaveAttribute('aria-current')
       expect(within(navigation).getByRole('link', { name: 'Bài chờ duyệt' })).toHaveAttribute(
         'aria-current',
         'page',
@@ -521,7 +598,9 @@ describe('AdminLayout', () => {
       const navigation = screen.getByRole('navigation', { name })
       expect(within(navigation).getAllByRole('link')).toHaveLength(15)
       // AI review belongs to TEACHER only; CONTENT_EDITOR and ADMIN do not get it.
-      expect(within(navigation).queryByRole('link', { name: 'Duyệt câu hỏi AI' })).not.toBeInTheDocument()
+      expect(
+        within(navigation).queryByRole('link', { name: 'Duyệt câu hỏi AI' }),
+      ).not.toBeInTheDocument()
       for (const label of [
         'Lô AI',
         'Kho câu hỏi',
@@ -554,24 +633,23 @@ describe('AdminLayout', () => {
       expect(screen.queryByRole('link', { name: 'Báo cáo vi phạm' })).not.toBeInTheDocument()
     },
   )
-  it.each([
-    ['TEACHER'],
-    ['TEACHER', 'CONTENT_EDITOR'],
-    ['ADMIN', 'TEACHER'],
-  ] as const)('shows one AI review link on each surface for explicit roles %j', (...roles) => {
-    renderLayout(<AdminLayout>Duyệt</AdminLayout>, {
-      initialPath: '/content/ai-review',
-      user: { ...learner, roles: [...roles] },
-    })
-    for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
-      const nav = within(screen.getByRole('navigation', { name }))
-      expect(nav.getAllByRole('link', { name: 'Duyệt câu hỏi AI' })).toHaveLength(1)
-      expect(nav.getByRole('link', { name: 'Duyệt câu hỏi AI' })).toHaveAttribute(
-        'aria-current',
-        'page',
-      )
-    }
-  })
+  it.each([['TEACHER'], ['TEACHER', 'CONTENT_EDITOR'], ['ADMIN', 'TEACHER']] as const)(
+    'shows one AI review link on each surface for explicit roles %j',
+    (...roles) => {
+      renderLayout(<AdminLayout>Duyệt</AdminLayout>, {
+        initialPath: '/content/ai-review',
+        user: { ...learner, roles: [...roles] },
+      })
+      for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
+        const nav = within(screen.getByRole('navigation', { name }))
+        expect(nav.getAllByRole('link', { name: 'Duyệt câu hỏi AI' })).toHaveLength(1)
+        expect(nav.getByRole('link', { name: 'Duyệt câu hỏi AI' })).toHaveAttribute(
+          'aria-current',
+          'page',
+        )
+      }
+    },
+  )
   it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT', 'CONTENT_EDITOR'] as const)(
     'hides AI review from %s alone',
     (role) => {
@@ -750,9 +828,7 @@ describe('AccountMenu area switching', () => {
       '/admin/users',
     )
     await event.click(screen.getByRole('link', { name: 'Học tập' }))
-    expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent(
-      '/learn',
-    )
+    expect(screen.getByRole('status', { name: 'Đường dẫn hiện tại' })).toHaveTextContent('/learn')
   })
 
   it('hides the area group when only one area is available', () => {

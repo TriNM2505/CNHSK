@@ -43,7 +43,7 @@ public class PronStageQueryService {
             StageSummary.State state = completed(stage, current) ? StageSummary.State.COMPLETED
                     : open ? StageSummary.State.AVAILABLE : StageSummary.State.LOCKED;
             int unitCount = (int) stage.getUnits().stream()
-                    .filter(unit -> unit.audioUrl() != null && !unit.audioUrl().isBlank()).count();
+                    .filter(com.cnhsk.learning.content.entity.PronUnit::playable).count();
             var active = practice.findActive(userId, PracticeSource.PRON_STAGE, stage.getId());
             return new StageSummary(stage.getId(), stage.getStageIndex(), stage.getName(), stage.getDescription(),
                     stage.getTargetSounds(), stage.getPassPercent(), unitCount, unitCount > 0, state,

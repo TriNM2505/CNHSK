@@ -20,6 +20,7 @@ import com.cnhsk.shared.settings.SettingKey;
 import com.cnhsk.shared.settings.SettingsApi;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,12 +34,13 @@ public class TeacherGradingService {
     private final LedgerService ledger;
     private final ObjectMapper mapper;
     private final Clock clock;
+    private final RubricGrading rubric;
 
     public TeacherGradingService(GradingRepository repository, SettingsApi settings, EntitlementApi entitlement,
-            LedgerService ledger, ObjectMapper mapper, Clock clock) {
+            LedgerService ledger, ObjectMapper mapper, Clock clock, RubricGrading rubric) {
         this.repository = repository; this.settings = settings; this.entitlement = entitlement;
         this.ledger = ledger;
-        this.mapper = mapper; this.clock = clock;
+        this.mapper = mapper; this.clock = clock; this.rubric = rubric;
     }
 
     public QueuePage queue(long teacherId, int page, int size) {
@@ -83,12 +85,23 @@ public class TeacherGradingService {
         if (now.isAfter(row.deadline())) {
             throw error(ErrorCode.GRADING_DEADLINE_MISSED, HttpStatus.UNPROCESSABLE_ENTITY, "Đã quá hạn chấm bài.");
         }
-        var criteria = submission.criteria();
-        int score = criteria.grammar() + criteria.vocabulary() + criteria.coherence() + criteria.writing();
         int payout = settings.getInt(SettingKey.GRADING_TEACHER_PAYOUT_CREDITS);
-        var result = mapper.createObjectNode();
-        result.set("criteria", mapper.valueToTree(criteria)); result.set("corrections", mapper.valueToTree(submission.corrections()));
+        int score;
+        ObjectNode result;
+        RubricGrading.Graded graded = null;
+        if (submission.rubric() != null) {
+            graded = rubric.grade(row.payload(), submission);
+            score = graded.score100();
+            result = graded.stored();
+        } else {
+            var criteria = submission.criteria();
+            score = criteria.grammar() + criteria.vocabulary() + criteria.coherence() + criteria.writing();
+            result = mapper.createObjectNode();
+            result.set("criteria", mapper.valueToTree(criteria));
+            result.set("corrections", mapper.valueToTree(submission.corrections()));
+        }
         if (!repository.complete(id, teacherId, now, score, submission.feedback(), result, payout)) throw notAssignee();
+        if (graded != null) rubric.recordEvidence(row.userId(), id, graded);
         if (payout > 0) {
             ledger.append(new LedgerService.AppendCommand(teacherId, "TEACHER_PAYOUT", payout, "GRADING",
                     null, id, null, null, null, null));
@@ -120,14 +133,12 @@ public class TeacherGradingService {
         if (!payload.path("essay").isTextual() || !payload.path("hanziCount").canConvertToInt()) throw invalidStoredRequest();
         GradingRequestViews.Result result = null;
         if ("COMPLETED".equals(row.status())) {
-            if (row.score() == null || row.feedback() == null || row.payout() == null || row.result() == null
-                    || !row.result().path("criteria").isObject() || !row.result().path("corrections").isArray()) throw invalidStoredRequest();
+            if (row.score() == null || row.feedback() == null || row.payout() == null || row.result() == null) {
+                throw invalidStoredRequest();
+            }
             try {
-                var criteria = mapper.treeToValue(row.result().get("criteria"), GradingRequestViews.Criteria.class);
-                List<GradingRequestViews.Correction> corrections = mapper.convertValue(row.result().get("corrections"),
-                        mapper.getTypeFactory().constructCollectionType(List.class, GradingRequestViews.Correction.class));
-                result = new GradingRequestViews.Result(row.score(), criteria, row.feedback(), corrections);
-            } catch (JsonProcessingException | IllegalArgumentException exception) { throw invalidStoredRequest(); }
+                result = GradingRequestViews.storedResult(row.score(), row.feedback(), row.result(), mapper);
+            } catch (IllegalArgumentException exception) { throw invalidStoredRequest(); }
         }
         return new Detail(row.id(), reference(row.id()), row.status(), payload.get("essay").textValue(),
                 payload.path("prompt").isNull() || payload.path("prompt").isMissingNode() ? null : payload.path("prompt").asText(),

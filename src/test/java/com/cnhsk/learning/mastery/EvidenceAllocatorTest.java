@@ -51,10 +51,11 @@ class EvidenceAllocatorTest extends AbstractIntegrationTest {
         assertThat(EvidenceAllocator.contextOf("PLACEMENT")).isEqualTo("QUIZ");
         assertThat(EvidenceAllocator.contextOf("TOPIC_TEST")).isEqualTo("QUIZ");
         for (String source : List.of("TOPIC_PRACTICE", "GRAMMAR_LESSON", "CHAR_RECOGNITION",
-                "TARGETED_PRACTICE", "GAME_ROUND", "DUE_REVIEW")) {
+                "TARGETED_PRACTICE", "GAME_ROUND", "DUE_REVIEW", "PRON_STAGE")) {
             assertThat(EvidenceAllocator.contextOf(source)).isEqualTo("PRACTICE");
         }
-        for (String source : List.of("TOPIC_STUDY", "CHAR_WRITING", "WRITING_CHALLENGE", "PRON_STAGE",
+        assertThat(EvidenceAllocator.contextOf("RUBRIC_TASK")).isEqualTo("GRADED");
+        for (String source : List.of("TOPIC_STUDY", "CHAR_WRITING", "WRITING_CHALLENGE",
                 "QUIZ", "QUIZ_RETRY", "CONTEST")) {
             assertThat(EvidenceAllocator.contextOf(source)).isNull();
         }
@@ -174,6 +175,50 @@ class EvidenceAllocatorTest extends AbstractIntegrationTest {
         assertThat(allocate(normal)).isEmpty();
         jdbc.update("UPDATE learning.attempts SET suspicious=true WHERE id=?", session);
         assertThat(allocate(session)).isEmpty();
+    }
+
+    @Test
+    void pronunciationUnitsEvidenceTheirLinkedNodeAndIgnoreClientScores() throws Exception {
+        long user = user();
+        Node tone = node();
+        List<ServedItem> served = List.of(labelled(1, tone.kid(), 4), labelled(2, tone.kid(), 4));
+        long session = attempt(user, "PRON_STAGE", served, List.of(
+                answer(1, null, null, "A", true, "{}", NOW),
+                answer(2, null, null, "B", false, "{\"score\":100,\"role\":\"SECONDARY\"}", NOW.plusSeconds(1))));
+        assertThat(allocate(session)).extracting(AllocatedEvidence::kid, AllocatedEvidence::score,
+                        AllocatedEvidence::role, AllocatedEvidence::context)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(tone.kid(), 100, "PRIMARY", "PRACTICE"),
+                        org.assertj.core.groups.Tuple.tuple(tone.kid(), 0, "PRIMARY", "PRACTICE"));
+    }
+
+    @Test
+    void rubricGradesCarryTheirCriterionScoreAndRoleAsGradedEvidence() throws Exception {
+        long user = user();
+        Node task = node();
+        Node grammar = node();
+        List<ServedItem> served = List.of(labelled(1, task.kid(), 0), labelled(2, grammar.kid(), 0),
+                labelled(3, grammar.kid(), 0));
+        long session = attempt(user, "RUBRIC_TASK", served, List.of(
+                answer(1, null, null, "C1+C5", null, "{\"score\":67,\"role\":\"PRIMARY\"}", NOW),
+                answer(2, null, null, "C4", null, "{\"score\":67,\"role\":\"SECONDARY\"}", NOW),
+                answer(3, null, null, "E-NP-06", null, "{\"score\":0,\"role\":\"ERROR\"}", NOW)));
+        List<AllocatedEvidence> evidence = allocate(session);
+        assertThat(evidence).extracting(AllocatedEvidence::kid, AllocatedEvidence::score, AllocatedEvidence::role)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(task.kid(), 67, "PRIMARY"),
+                        org.assertj.core.groups.Tuple.tuple(grammar.kid(), 67, "SECONDARY"),
+                        org.assertj.core.groups.Tuple.tuple(grammar.kid(), 0, "ERROR"));
+        assertThat(evidence).allSatisfy(value -> assertThat(value.context()).isEqualTo("GRADED"));
+        assertThat(evidence.get(0).staticWeight()).isEqualByComparingTo("0.6");
+        assertThat(evidence.get(1).staticWeight()).isEqualByComparingTo("0.3");
+    }
+
+    private ServedItem labelled(int no, String kid, int optionCount) {
+        List<ServedItem.Option> options = optionCount == 0 ? null : List.of(new ServedItem.Option("A", "A"),
+                new ServedItem.Option("B", "B"), new ServedItem.Option("C", "C"), new ServedItem.Option("D", "D"));
+        return new ServedItem(no, optionCount == 0 ? ItemType.WRITING_RESULT : ItemType.PRON_CHOICE,
+                optionCount == 0 ? Skill.SPEAKING : Skill.PRONUNCIATION, null,
+                new ServedItem.Prompt("Mục giả", null, null, null, null, null, null, null, null),
+                options, optionCount == 0 ? null : "A", null, null, new ServedItem.Rules(0, 0, false), null, kid);
     }
 
     private List<AllocatedEvidence> allocate(long attemptId) {

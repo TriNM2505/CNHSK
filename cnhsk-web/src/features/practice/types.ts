@@ -12,6 +12,7 @@ export type PracticeSource =
   | 'PLACEMENT'
   | 'TARGETED_PRACTICE'
   | 'DUE_REVIEW'
+  | 'READING_PRACTICE'
   | 'QUIZ'
   | 'QUIZ_RETRY'
 
@@ -37,6 +38,8 @@ export interface ServedItemPrompt extends Record<string, unknown> {
   sinoViet?: string | null
   meaning?: string | null
   audioUrl?: string | null
+  /** Chinese text for the browser voice when there is no recorded audio. */
+  speakText?: string | null
   sentence?: string | null
   hint?: string | null
   examples?: ServedItemExample[]

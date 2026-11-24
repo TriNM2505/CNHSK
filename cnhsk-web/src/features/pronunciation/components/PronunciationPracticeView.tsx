@@ -38,14 +38,7 @@ export interface PronunciationPracticeViewProps {
   result?: AnswerResult
   stage?: PronunciationStageSummary
   state:
-    | 'loading'
-    | 'empty'
-    | 'locked'
-    | 'unavailable'
-    | 'error'
-    | 'ready'
-    | 'finished'
-    | 'submitted'
+    'loading' | 'empty' | 'locked' | 'unavailable' | 'error' | 'ready' | 'finished' | 'submitted'
   total?: number
 }
 
@@ -111,11 +104,11 @@ function ResultView({
       ) : null}
 
       <div className="flex flex-wrap justify-center gap-3 pt-1">
-        <Button to="/learn/pronunciation" variant="outline">
+        <Button to="/learn/listening" variant="outline">
           Quay lại danh sách
         </Button>
         {extra.passed && extra.nextStageIndex ? (
-          <Button to={`/learn/pronunciation/stages/${extra.nextStageIndex}`}>
+          <Button to={`/learn/listening/stages/${extra.nextStageIndex}`}>
             Sang tầng {extra.nextStageIndex}
             <ArrowRight aria-hidden="true" className="size-5" />
           </Button>
@@ -155,7 +148,7 @@ export function PronunciationPracticeView({
     return (
       <div className="mx-auto max-w-content px-4 py-6 sm:px-6 lg:px-8">
         <EmptyState
-          action={<Button to="/learn/pronunciation">Quay lại danh sách</Button>}
+          action={<Button to="/learn/listening">Quay lại danh sách</Button>}
           description="Tầng phát âm này không tồn tại hoặc không còn khả dụng."
           icon={<Headphones aria-hidden="true" className="size-5" />}
           title="Không tìm thấy tầng phát âm"
@@ -170,11 +163,11 @@ export function PronunciationPracticeView({
         <EmptyState
           action={
             requiredStageIndex ? (
-              <Button to={`/learn/pronunciation/stages/${requiredStageIndex}`}>
+              <Button to={`/learn/listening/stages/${requiredStageIndex}`}>
                 Học tầng {requiredStageIndex}
               </Button>
             ) : (
-              <Button to="/learn/pronunciation">Quay lại danh sách</Button>
+              <Button to="/learn/listening">Quay lại danh sách</Button>
             )
           }
           description={
@@ -193,7 +186,7 @@ export function PronunciationPracticeView({
     return (
       <div className="mx-auto max-w-content px-4 py-6 sm:px-6 lg:px-8">
         <EmptyState
-          action={<Button to="/learn/pronunciation">Quay lại danh sách</Button>}
+          action={<Button to="/learn/listening">Quay lại danh sách</Button>}
           description="Tầng này chưa có bài nghe để luyện. Vui lòng quay lại sau."
           icon={<Headphones aria-hidden="true" className="size-5" />}
           title="Tầng phát âm đang được cập nhật"
@@ -291,7 +284,7 @@ export function PronunciationPracticeView({
             Bạn có thể quay lại danh sách tầng hoặc bắt đầu lượt luyện khác.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Button to="/learn/pronunciation" variant="outline">
+            <Button to="/learn/listening" variant="outline">
               Quay lại danh sách
             </Button>
             <Button disabled={pending} loading={pending} onClick={onRestart}>
@@ -330,7 +323,7 @@ export function PronunciationPracticeView({
                   ) : null}
                 </div>
               </div>
-              <Button size="sm" to="/learn/pronunciation" variant="outline">
+              <Button size="sm" to="/learn/listening" variant="outline">
                 <ArrowLeft aria-hidden="true" className="mr-1 inline-block size-4 align-middle" />
                 Về danh sách tầng
               </Button>
@@ -348,10 +341,12 @@ export function PronunciationPracticeView({
                 <span className="text-caption text-ink-secondary">Mục #{item.no}</span>
               </div>
 
-              {typeof item.prompt.audioUrl === 'string' ? (
+              {typeof item.prompt.audioUrl === 'string' ||
+              typeof item.prompt.speakText === 'string' ? (
                 <div className="rounded-md border border-brand-100 bg-brand-50 p-4">
                   <AudioButton
-                    audioUrl={item.prompt.audioUrl}
+                    audioUrl={item.prompt.audioUrl ?? ''}
+                    speakText={item.prompt.speakText ?? undefined}
                     disabled={pending || Boolean(result)}
                     key={`pronunciation-audio-${item.no}`}
                     maxReplays={item.rules.maxReplays ?? 3}

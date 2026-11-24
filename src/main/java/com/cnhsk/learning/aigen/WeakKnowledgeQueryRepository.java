@@ -132,7 +132,11 @@ public class WeakKnowledgeQueryRepository {
 
     public Optional<PromptNode> promptNode(long knowledgePointId) {
         List<?> rows = entityManager.createNativeQuery("""
-                SELECT kp.id, kp.code, kp.title, kp.name_zh, kp.can_do, kp.hsk_level, prerequisite.title
+                SELECT kp.id, kp.code, kp.title, kp.name_zh, kp.can_do, kp.hsk_level, prerequisite.title,
+                       array_to_string(kp.skills, ','), kp.pattern, kp.examples::text,
+                       (SELECT json_agg(json_build_object('code', code.code, 'name_vi', code.name_vi,
+                                                          'fix_hint', code.fix_hint) ORDER BY code.code)::text
+                        FROM learning.error_codes code WHERE code.kid_id = kp.id AND code.severity >= 2)
                 FROM learning.knowledge_points kp
                 LEFT JOIN LATERAL unnest(kp.prereq_ids) WITH ORDINALITY link(id, position) ON true
                 LEFT JOIN learning.knowledge_points prerequisite ON prerequisite.id = link.id
@@ -146,8 +150,11 @@ public class WeakKnowledgeQueryRepository {
             String title = (String) ((Object[]) value)[6];
             if (title != null) titles.add(title);
         }
+        String skills = (String) node[7];
         return Optional.of(new PromptNode(number(node[0]), (String) node[1], (String) node[2],
-                (String) node[3], (String) node[4], ((Number) node[5]).intValue(), titles));
+                (String) node[3], (String) node[4], ((Number) node[5]).intValue(), titles,
+                new PromptTreeContext(skills == null || skills.isBlank() ? List.of() : List.of(skills.split(",")),
+                        (String) node[8], (String) node[9], (String) node[10])));
     }
 
     public List<PromptLexeme> promptLexemes(long knowledgePointId) {
@@ -219,10 +226,25 @@ public class WeakKnowledgeQueryRepository {
     }
 
     public record PromptNode(long knowledgePointId, String kid, String title, String nameZh,
-            String canDo, int hskLevel, List<String> prerequisiteTitles) {
-        public PromptNode { prerequisiteTitles = List.copyOf(prerequisiteTitles); }
+            String canDo, int hskLevel, List<String> prerequisiteTitles, PromptTreeContext tree) {
+        public PromptNode(long knowledgePointId, String kid, String title, String nameZh,
+                String canDo, int hskLevel, List<String> prerequisiteTitles) {
+            this(knowledgePointId, kid, title, nameZh, canDo, hskLevel, prerequisiteTitles, PromptTreeContext.NONE);
+        }
+        public PromptNode {
+            prerequisiteTitles = List.copyOf(prerequisiteTitles);
+            tree = tree == null ? PromptTreeContext.NONE : tree;
+        }
     }
     public record PromptLexeme(String text, String pinyin, String meaningVi) { }
+    /**
+     * What the competency tree v2.0 says about a node: its skills, the pattern it teaches, the stored examples
+     * (only their reviewed correct half reaches the model) and, as JSON, the counting error codes of the node.
+     */
+    public record PromptTreeContext(List<String> skills, String pattern, String examplesJson, String errorCodesJson) {
+        public static final PromptTreeContext NONE = new PromptTreeContext(List.of(), null, null, null);
+        public PromptTreeContext { skills = List.copyOf(skills); }
+    }
     public record PromptQuestion(long id, String stem, String optionsJson, String explanation,
             boolean approvedPrimary) { }
     /** {@code optionsJson} is the stored options array as text; it may be empty or legacy-shaped. */

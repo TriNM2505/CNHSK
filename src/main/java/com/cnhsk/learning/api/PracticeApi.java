@@ -103,7 +103,7 @@ public class PracticeApi {
     public enum PracticeSource {
         TOPIC_STUDY, TOPIC_PRACTICE, TOPIC_TEST, GRAMMAR_LESSON, PRON_STAGE,
         CHAR_RECOGNITION, CHAR_WRITING, WRITING_CHALLENGE, GAME_ROUND, MOCK_EXAM, PLACEMENT, TARGETED_PRACTICE,
-        DUE_REVIEW, QUIZ, QUIZ_RETRY, CONTEST
+        DUE_REVIEW, RUBRIC_TASK, READING_PRACTICE, QUIZ, QUIZ_RETRY, CONTEST
     }
 
     public enum FeedbackMode { IMMEDIATE, DEFERRED, RECORD }
@@ -112,7 +112,7 @@ public class PracticeApi {
         CHAR_MEANING_CHOICE, AUDIO_CHAR_CHOICE, WRITING_RESULT, LESSON_READ, GRAMMAR_CHOICE, QUESTION_CHOICE,
         FLASHCARD_RATING, TRACE_CHAR, PINYIN_PAIR, RADICAL_CHOICE, CATCH_CHOICE, SINO_VIET_INPUT }
 
-    public enum Skill { VOCAB, LISTENING, READING, CHARACTER, WRITING, GRAMMAR, PRONUNCIATION }
+    public enum Skill { VOCAB, LISTENING, READING, CHARACTER, WRITING, GRAMMAR, PRONUNCIATION, SPEAKING }
 
     /** Server-only input: the source supplies answer keys, not the learner's client. */
     public record StartPracticeCommand(long userId, PracticeSource source, Long refId, String gameCode,

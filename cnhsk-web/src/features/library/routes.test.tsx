@@ -49,13 +49,13 @@ vi.mock('@/features/vocab/api/topics', () => ({ getTopics: vi.fn() }))
 vi.mock('./api/translation', () => ({ translate: vi.fn() }))
 
 const routes = [
-  { path: '/dictionary', url: '/dictionary', scr: 'SCR-024', access: 'public', layout: 'public' },
+  { path: '/dictionary', url: '/dictionary', scr: 'SCR-024', access: 'public', layout: 'by-role' },
   {
     path: '/dictionary/:id',
     url: '/dictionary/101',
     scr: 'SCR-025',
     access: 'public',
-    layout: 'public',
+    layout: 'by-role',
   },
   { path: '/translate', url: '/translate', scr: 'SCR-026', access: ['LEARNER'], layout: 'learner' },
   {

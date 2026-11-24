@@ -46,8 +46,7 @@ public class PronStageSessionService {
             throw new ApiException(ErrorCode.STAGE_LOCKED, HttpStatus.FORBIDDEN,
                     "Hoàn thành tầng trước để mở tầng này.", Map.of("requiredStageIndex", stageIndex - 1));
         }
-        List<PronUnit> units = new ArrayList<>(stage.getUnits().stream()
-                .filter(unit -> unit.audioUrl() != null && !unit.audioUrl().isBlank()).toList());
+        List<PronUnit> units = new ArrayList<>(stage.getUnits().stream().filter(PronUnit::playable).toList());
         if (units.isEmpty()) {
             throw new ApiException(ErrorCode.STAGE_HAS_NO_UNITS, HttpStatus.UNPROCESSABLE_ENTITY,
                     "Nội dung tầng đang được cập nhật.", Map.of());
@@ -79,10 +78,12 @@ public class PronStageSessionService {
                 answer = key;
             }
         }
+        boolean recorded = unit.audioUrl() != null && !unit.audioUrl().isBlank();
         return new ServedItem(no, ItemType.PRON_CHOICE, Skill.PRONUNCIATION, null,
-                new ServedItem.Prompt(unit.prompt(), null, null, null, unit.audioUrl(), null, null, null, null),
+                new ServedItem.Prompt(unit.prompt(), null, null, null, recorded ? unit.audioUrl() : null,
+                        null, null, null, null, null, recorded ? null : unit.speakText()),
                 options, Objects.requireNonNull(answer, "Imported pronunciation unit must have an answer key."),
-                null, unit.explanation(), new ServedItem.Rules(500, 3, true));
+                null, unit.explanation(), new ServedItem.Rules(500, 3, true), null, unit.kid());
     }
 
     private static ApiException notFound() {

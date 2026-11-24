@@ -15,8 +15,15 @@ import org.springframework.http.HttpStatus;
 public record GradingRequestWrite(
         @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 3000) String essay,
         @Schema(types = {"string", "null"}, maxLength = 500) String prompt,
-        @Schema(type = "integer", types = {"integer", "null"}, minimum = "1", maximum = "9") Integer hskLevel) {
+        @Schema(type = "integer", types = {"integer", "null"}, minimum = "1", maximum = "9") Integer hskLevel,
+        @Schema(type = "integer", format = "int64", types = {"integer", "null"},
+                description = "Bài viết theo một nhiệm vụ của cây năng lực (chấm R-VIET)") Long taskId) {
+    public GradingRequestWrite(String essay, String prompt, Integer hskLevel) {
+        this(essay, prompt, hskLevel, null);
+    }
+
     public GradingRequestWrite {
+        if (taskId != null && taskId < 1) throw invalid();
         if (essay == null || (prompt != null && prompt.codePointCount(0, prompt.length()) > 500)
                 || (hskLevel != null && (hskLevel < 1 || hskLevel > 9))) throw invalid();
     }
@@ -33,8 +40,16 @@ public record GradingRequestWrite(
             if (level != null && !level.isNull() && (!level.isIntegralNumber() || !level.canConvertToInt())) throw invalid();
             return new GradingRequestWrite(root.get("essay").textValue(),
                     prompt == null || prompt.isNull() ? null : prompt.textValue(),
-                    level == null || level.isNull() ? null : level.intValue());
+                    level == null || level.isNull() ? null : level.intValue(), taskId(root, GradingRequestWrite::invalid));
         } catch (JsonProcessingException exception) { throw invalid(); }
+    }
+
+    /** Optional positive task id, shared by essay and speaking submissions. */
+    public static Long taskId(JsonNode root, java.util.function.Supplier<ApiException> invalid) {
+        JsonNode task = root.get("taskId");
+        if (task == null || task.isNull()) return null;
+        if (!task.isIntegralNumber() || !task.canConvertToLong()) throw invalid.get();
+        return task.longValue();
     }
 
     static ApiException invalid() {

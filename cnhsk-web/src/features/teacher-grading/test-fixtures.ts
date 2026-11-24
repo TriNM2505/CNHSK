@@ -1,5 +1,6 @@
 import type {
   AssignedItem,
+  ErrorCodeOption,
   GradingResultWrite,
   QueuePage,
   ResultDraft,
@@ -45,21 +46,57 @@ export const mine: AssignedItem[] = [
     gradingDeadline: assigned.gradingDeadline,
   },
 ]
+export const errorCodes: ErrorCodeOption[] = [
+  {
+    code: 'E-NP-06',
+    kid: 'NP2-013',
+    severity: 2,
+    nameVi: 'Thiếu bổ ngữ kết quả',
+    example: null,
+    fixHint: 'Thêm 完/到/好 sau động từ',
+  },
+  {
+    code: 'E-CH-01',
+    kid: 'CH2-010',
+    severity: 1,
+    nameVi: 'Viết sai nét',
+    example: null,
+    fixHint: null,
+  },
+]
+/** An essay graded with R-VIẾT: 4 + 4 + 4 + 3 of 20 is 75/100. */
 export const result: GradingResultWrite = {
-  criteria: { grammar: 20, vocabulary: 18, coherence: 21, writing: 19 },
+  rubric: 'R_VIET',
+  scores: { C1: 4, C2: 4, C3: 4, C4: 3 },
+  errors: ['E-NP-06'],
   feedback: 'Bài có ý rõ ràng. Bạn có thể thêm một ví dụ để làm rõ cách học của mình.',
   corrections: [
     { original: '自己造句', corrected: '用自己的话造句', note: 'Có thể diễn đạt cụ thể hơn.' },
   ],
 }
 export const draft: ResultDraft = {
-  criteria: { grammar: '20', vocabulary: '18', coherence: '21', writing: '19' },
+  scores: { C1: '4', C2: '4', C3: '4', C4: '3' },
+  errors: ['E-NP-06'],
   feedback: result.feedback,
   corrections: result.corrections.map((item) => ({ ...item, note: item.note ?? '' })),
 }
 export const completed: TeacherGradingDetail = {
   ...assigned,
   status: 'COMPLETED',
-  result: { ...result, score: 78 },
+  result: {
+    score: 75,
+    rubric: 'R_VIET',
+    scores: result.scores,
+    errors: [
+      {
+        code: 'E-NP-06',
+        nameVi: 'Thiếu bổ ngữ kết quả',
+        severity: 2,
+        fixHint: 'Thêm 完/到/好 sau động từ',
+      },
+    ],
+    feedback: result.feedback,
+    corrections: result.corrections,
+  },
   payoutCredits: 2,
 }

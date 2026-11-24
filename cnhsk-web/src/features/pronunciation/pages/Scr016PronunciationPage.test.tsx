@@ -3,7 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { abandonSession, answerItem, findActiveSession, finishSession, getSession } from '@/features/practice/api'
+import {
+  abandonSession,
+  answerItem,
+  findActiveSession,
+  finishSession,
+  getSession,
+} from '@/features/practice/api'
 import type { FinishResult, SessionView } from '@/features/practice'
 import { ApiError } from '@/shared/api'
 
@@ -101,15 +107,12 @@ function finished(overrides: Record<string, unknown> = {}): FinishResult {
   }
 }
 
-function renderPage(path = '/learn/pronunciation/stages/1') {
+function renderPage(path = '/learn/listening/stages/1') {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route element={<Scr016PronunciationPage />} path="/learn/pronunciation" />
-        <Route
-          element={<Scr016PronunciationPage />}
-          path="/learn/pronunciation/stages/:stageIndex"
-        />
+        <Route element={<Scr016PronunciationPage />} path="/learn/listening" />
+        <Route element={<Scr016PronunciationPage />} path="/learn/listening/stages/:stageIndex" />
       </Routes>
     </MemoryRouter>,
   )
@@ -154,7 +157,7 @@ describe('SCR-016 Pronunciation Practice', () => {
         state: index === 0 ? ('AVAILABLE' as const) : ('LOCKED' as const),
       })),
     )
-    renderPage('/learn/pronunciation')
+    renderPage('/learn/listening')
 
     expect(await screen.findAllByText(/^Tầng mẫu \d$/)).toHaveLength(8)
     expect(getStagesMock).toHaveBeenCalledTimes(1)
@@ -162,20 +165,20 @@ describe('SCR-016 Pronunciation Practice', () => {
   })
 
   it('FR006_hiện EmptyState khi stageIndex nằm ngoài 1–8', async () => {
-    renderPage('/learn/pronunciation/stages/9')
+    renderPage('/learn/listening/stages/9')
 
     expect(
       await screen.findByRole('heading', { name: 'Không tìm thấy tầng phát âm' }),
     ).toBeVisible()
     expect(screen.getByRole('link', { name: 'Quay lại danh sách' })).toHaveAttribute(
       'href',
-      '/learn/pronunciation',
+      '/learn/listening',
     )
     expect(startSessionMock).not.toHaveBeenCalled()
   })
 
   it('FR006_coi stageIndex không có trong danh sách như STAGE_NOT_FOUND', async () => {
-    renderPage('/learn/pronunciation/stages/2')
+    renderPage('/learn/listening/stages/2')
 
     expect(
       await screen.findByRole('heading', { name: 'Không tìm thấy tầng phát âm' }),
@@ -194,13 +197,13 @@ describe('SCR-016 Pronunciation Practice', () => {
       }),
     )
     getStagesMock.mockResolvedValue([{ ...stage, id: 702, stageIndex: 2, state: 'LOCKED' }])
-    renderPage('/learn/pronunciation/stages/2')
+    renderPage('/learn/listening/stages/2')
 
     expect(await screen.findByRole('heading', { name: 'Tầng phát âm đang bị khoá' })).toBeVisible()
     expect(screen.getByText('Hoàn thành tầng 1 trước để mở tầng này.')).toBeVisible()
     expect(screen.getByRole('link', { name: 'Học tầng 1' })).toHaveAttribute(
       'href',
-      '/learn/pronunciation/stages/1',
+      '/learn/listening/stages/1',
     )
   })
 
@@ -245,7 +248,7 @@ describe('SCR-016 Pronunciation Practice', () => {
 
     expect(await screen.findByText('Nghe câu 2')).toBeVisible()
     const backLink = screen.getByRole('link', { name: 'Về danh sách tầng' })
-    expect(backLink).toHaveAttribute('href', '/learn/pronunciation')
+    expect(backLink).toHaveAttribute('href', '/learn/listening')
     await user.click(backLink)
 
     expect(await screen.findByText('Thanh mẫu môi')).toBeVisible()
@@ -339,7 +342,7 @@ describe('SCR-016 Pronunciation Practice', () => {
           resolveStages = resolve
         }),
     )
-    renderPage('/learn/pronunciation')
+    renderPage('/learn/listening')
 
     expect(screen.getByLabelText('Đang tải các tầng phát âm')).toBeVisible()
     resolveStages([])
@@ -359,7 +362,7 @@ describe('SCR-016 Pronunciation Practice', () => {
       }),
     )
     const user = userEvent.setup()
-    renderPage('/learn/pronunciation')
+    renderPage('/learn/listening')
 
     expect(await screen.findByText('Mã lỗi: req-stages')).toBeVisible()
     expect(getStagesMock).toHaveBeenCalledTimes(1)
@@ -431,7 +434,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     expect(screen.queryByText(/Đã mở tầng|Còn .*% nữa/)).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Quay lại danh sách' })).toHaveAttribute(
       'href',
-      '/learn/pronunciation',
+      '/learn/listening',
     )
     expect(screen.getByRole('button', { name: 'Luyện lại' })).toBeEnabled()
   })
@@ -602,7 +605,7 @@ describe('SCR-016 Pronunciation Practice', () => {
       .mockResolvedValueOnce(session({ items: [item(1)] }))
       .mockResolvedValue(session({ items: [item(1)], sessionId: 902 }))
     const user = userEvent.setup()
-    renderPage('/learn/pronunciation')
+    renderPage('/learn/listening')
     await user.click(await screen.findByRole('link', { name: 'Luyện lại' }))
     await chooseFirst(user)
     expect(await screen.findByText('Giải thích câu 1')).toBeVisible()
@@ -626,7 +629,7 @@ describe('SCR-016 Pronunciation Practice', () => {
     findActiveSessionMock.mockResolvedValue(restored)
     getSessionMock.mockResolvedValue(restored)
     const user = userEvent.setup()
-    renderPage('/learn/pronunciation')
+    renderPage('/learn/listening')
     await user.click(await screen.findByRole('link', { name: 'Tiếp tục (1/2)' }))
 
     expect(await screen.findByText('Nghe câu 2')).toBeVisible()

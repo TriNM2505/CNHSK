@@ -1,7 +1,16 @@
 import { apiRequest } from '@/shared/api'
-import type { AssignedItem, GradingResultWrite, QueuePage, TeacherGradingDetail } from '../types'
+import type {
+  AssignedItem,
+  ErrorCodeOption,
+  GradingResultWrite,
+  QueuePage,
+  TeacherGradingDetail,
+} from '../types'
 
 const base = '/api/teacher/grading-requests'
+export function getErrorCodes(signal?: AbortSignal): Promise<ErrorCodeOption[]> {
+  return apiRequest<ErrorCodeOption[]>('/api/teacher/error-codes', { signal })
+}
 export function getGradingQueue(page = 0, size = 20, signal?: AbortSignal): Promise<QueuePage> {
   return apiRequest<QueuePage>(
     `/api/teacher/grading-queue?${new URLSearchParams({ page: String(page), size: String(size) })}`,

@@ -1,6 +1,7 @@
 import { CircleAlert, Headphones, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 
+import { speakChinese } from '@/shared/lib/speech'
 import { Button } from '@/shared/ui'
 
 export interface AudioFailurePayload {
@@ -9,7 +10,9 @@ export interface AudioFailurePayload {
 }
 
 export interface AudioButtonProps {
+  /** Recorded file; when empty, `speakText` is read by the browser's Chinese voice instead. */
   audioUrl: string
+  speakText?: string
   maxReplays: number
   disabled?: boolean
   /** Số lần đã nghe trước đó của câu này (vd quay lại câu trong bài kiểm tra). */
@@ -20,6 +23,7 @@ export interface AudioButtonProps {
 
 export function AudioButton({
   audioUrl,
+  speakText,
   maxReplays,
   disabled = false,
   initialReplayCount = 0,
@@ -49,19 +53,24 @@ export function AudioButton({
   }, [audioUrl, maxReplays, startCount])
 
   const play = async () => {
+    const spoken = !audioUrl && Boolean(speakText)
     if (
       disabled ||
       playingRef.current ||
       replayCountRef.current >= safeMaximum ||
-      !audioRef.current
+      (!spoken && !audioRef.current)
     )
       return
     playingRef.current = true
     setPlaying(true)
     setLoadError(false)
     try {
-      audioRef.current.currentTime = 0
-      await audioRef.current.play()
+      if (spoken) {
+        await speakChinese(speakText!)
+      } else {
+        audioRef.current!.currentTime = 0
+        await audioRef.current!.play()
+      }
       const next = Math.min(replayCountRef.current + 1, safeMaximum)
       replayCountRef.current = next
       setReplayCount(next)
@@ -76,7 +85,9 @@ export function AudioButton({
 
   return (
     <div className="space-y-2">
-      <audio onError={() => setLoadError(true)} preload="none" ref={audioRef} src={audioUrl} />
+      {audioUrl ? (
+        <audio onError={() => setLoadError(true)} preload="none" ref={audioRef} src={audioUrl} />
+      ) : null}
       <div className="flex flex-wrap items-center gap-3">
         <Button
           disabled={disabled || exhausted}

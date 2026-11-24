@@ -19,9 +19,17 @@ public record SpeakingSubmissionWrite(
         @Schema(types = {"string", "null"}, maxLength = 300) String meaning,
         @Schema(maxLength = 2000) String audioUrl,
         @Schema(maxLength = 255) String publicId,
-        @Schema(type = "integer", types = {"integer", "null"}, minimum = "1", maximum = "9") Integer hskLevel) {
+        @Schema(type = "integer", types = {"integer", "null"}, minimum = "1", maximum = "9") Integer hskLevel,
+        @Schema(type = "integer", format = "int64", types = {"integer", "null"},
+                description = "Bài nói theo một nhiệm vụ của cây năng lực (chấm R-NOI)") Long taskId) {
+
+    public SpeakingSubmissionWrite(String text, String pinyin, String meaning, String audioUrl, String publicId,
+            Integer hskLevel) {
+        this(text, pinyin, meaning, audioUrl, publicId, hskLevel, null);
+    }
 
     public SpeakingSubmissionWrite {
+        if (taskId != null && taskId < 1) throw invalid();
         if (blank(text) || length(text) > 200 || tooLong(pinyin, 300) || tooLong(meaning, 300)
                 || blank(audioUrl) || audioUrl.length() > 2000 || blank(publicId) || publicId.length() > 255
                 || (hskLevel != null && (hskLevel < 1 || hskLevel > 9))) throw invalid();
@@ -39,7 +47,8 @@ public record SpeakingSubmissionWrite(
             if (level != null && !level.isNull() && (!level.isIntegralNumber() || !level.canConvertToInt())) throw invalid();
             return new SpeakingSubmissionWrite(root.get("text").textValue(), optional(root, "pinyin"),
                     optional(root, "meaning"), root.get("audioUrl").textValue(), root.get("publicId").textValue(),
-                    level == null || level.isNull() ? null : level.intValue());
+                    level == null || level.isNull() ? null : level.intValue(),
+                    com.cnhsk.learning.grading.web.GradingRequestWrite.taskId(root, SpeakingSubmissionWrite::invalid));
         } catch (JsonProcessingException exception) { throw invalid(); }
     }
 

@@ -54,7 +54,7 @@ describe('PronunciationStageListView', () => {
 
     expect(screen.getByRole('link', { name: 'Tiếp tục (4/10)' })).toHaveAttribute(
       'href',
-      '/learn/pronunciation/stages/1',
+      '/learn/listening/stages/1',
     )
   })
 
@@ -95,15 +95,15 @@ describe('PronunciationStageListView', () => {
     expect(within(screen.getByLabelText('Âm luyện tầng 1')).getByText('âm-1')).toBeVisible()
     expect(screen.getByRole('link', { name: 'Bắt đầu' })).toHaveAttribute(
       'href',
-      '/learn/pronunciation/stages/1',
+      '/learn/listening/stages/1',
     )
     expect(screen.getByRole('link', { name: 'Tiếp tục (4/10)' })).toHaveAttribute(
       'href',
-      '/learn/pronunciation/stages/2',
+      '/learn/listening/stages/2',
     )
     expect(screen.getByRole('link', { name: 'Luyện lại' })).toHaveAttribute(
       'href',
-      '/learn/pronunciation/stages/3',
+      '/learn/listening/stages/3',
     )
   })
 })

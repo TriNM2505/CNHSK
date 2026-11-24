@@ -52,8 +52,8 @@ const practiceColumns: PublicMenu['columns'] = [
     links: [
       { label: 'Từ vựng theo chủ đề', to: '/learn/topics' },
       { label: 'Ngữ pháp', to: '/learn/grammar' },
-      { label: 'Phát âm', to: '/learn/pronunciation' },
-      { label: 'Luyện nói (giáo viên chấm)', to: '/learn/pronunciation/speaking' },
+      { label: 'Phát âm', to: '/learn/listening' },
+      { label: 'Luyện nói (giáo viên chấm)', to: '/learn/speaking' },
       { label: 'Chữ Hán', to: '/learn/characters/recognition' },
       { label: 'Học thử không cần tài khoản', to: '/learn/try' },
     ],

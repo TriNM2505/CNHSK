@@ -38,7 +38,8 @@ class TeacherGradingServiceTest {
         repository = mock(GradingRepository.class); entitlement = mock(EntitlementApi.class);
         ledger = mock(LedgerService.class);
         config = new GradingConfig(); config.setMaxActiveClaims(3); config.setGradingHours(24); config.setTeacherPayoutCredits(0);
-        service = new TeacherGradingService(repository, settings(config), entitlement, ledger, mapper, Clock.fixed(NOW, ZoneOffset.UTC));
+        service = new TeacherGradingService(repository, settings(config), entitlement, ledger, mapper, Clock.fixed(NOW, ZoneOffset.UTC),
+                org.mockito.Mockito.mock(RubricGrading.class));
     }
 
     @Test void AT06_queueMapsOnlyMetadataWithTwoRepositoryCalls() {

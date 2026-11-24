@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: CNHSK teacher grading — appendix v1.1 (rubrics of the competency tree v2.0)
+  version: 1.1.0
+  description: >-
+    Appendix to openapi-grading.yaml (locked). Paths and statuses of v1.0 are unchanged. A grade can now
+    use the rubric of the work's kind (R_NOI for speaking, R_VIET for essays) with confirmed error codes;
+    the legacy four 0–25 marks are still accepted and still shown. Submissions may name a speaking or
+    writing task, whose nodes the rubric grade then feeds as knowledge evidence (appendix E.3).
+paths:
+  /api/teacher/error-codes:
+    get:
+      operationId: listErrorCodes
+      tags: [teacher-grading]
+      description: Error codes of appendix D a teacher can confirm. TEACHER only.
+      responses:
+        '200':
+          description: All codes, ordered by code.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ErrorCodeView' }
+        '401': { description: UNAUTHENTICATED }
+        '403': { description: FORBIDDEN }
+  /api/public/learning/tasks:
+    get:
+      operationId: listLearningTasks
+      tags: [speaking]
+      description: Active speaking or writing tasks of one HSK level. Public; sending work needs an account.
+      parameters:
+        - { name: kind, in: query, required: true, schema: { type: string, enum: [SPEAKING, WRITING] } }
+        - { name: hskLevel, in: query, required: true, schema: { type: integer, minimum: 1, maximum: 9 } }
+      responses:
+        '200':
+          description: Tasks ordered by code.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LearningTaskView' }
+        '422': { description: VALIDATION_FAILED }
+components:
+  schemas:
+    GradingResultWrite:
+      description: >-
+        Either `criteria` (legacy) or `rubric` + `scores` (+ `errors`). R_NOI needs C1–C5 in 0–3, R_VIET
+        needs C1–C4 in 0–5; the rubric must match the request's mode. Unknown or repeated error codes,
+        or more than 20, give 422 GRADING_INVALID_RESULT.
+      type: object
+      required: [feedback, corrections]
+      properties:
+        criteria: { $ref: '#/components/schemas/Criteria' }
+        rubric: { type: string, enum: [R_NOI, R_VIET] }
+        scores:
+          type: object
+          additionalProperties: { type: integer, minimum: 0, maximum: 5 }
+        errors:
+          type: array
+          maxItems: 20
+          items: { type: string, pattern: '^E-(NA|CH|TV|NP|NL|VB|DI)-\d{2}$' }
+        feedback: { type: string, minLength: 1, maxLength: 5000 }
+        corrections:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/Correction' }
+    GradingResult:
+      description: >-
+        Legacy grades fill `criteria`; rubric grades fill `rubric`, `scores` and `errors`, and `score` is
+        the rubric total on 0–100.
+      type: object
+      required: [score, feedback, corrections]
+      properties:
+        score: { type: integer }
+        criteria: { $ref: '#/components/schemas/Criteria' }
+        rubric: { type: string, enum: [R_NOI, R_VIET] }
+        scores: { type: object, additionalProperties: { type: integer } }
+        errors: { type: array, items: { $ref: '#/components/schemas/TaggedError' } }
+        feedback: { type: string }
+        corrections: { type: array, items: { $ref: '#/components/schemas/Correction' } }
+    TaggedError:
+      type: object
+      required: [code, nameVi, severity]
+      properties:
+        code: { type: string }
+        nameVi: { type: string }
+        severity: { type: integer, minimum: 1, maximum: 3 }
+        fixHint: { type: string, nullable: true }
+    ErrorCodeView:
+      type: object
+      required: [code, severity, nameVi]
+      properties:
+        code: { type: string }
+        kid: { type: string, nullable: true, description: Null for E-NL-*, which land on the task's NL node. }
+        severity: { type: integer, minimum: 1, maximum: 3 }
+        nameVi: { type: string }
+        example: { type: string, nullable: true }
+        fixHint: { type: string, nullable: true }
+    LearningTaskView:
+      type: object
+      required: [id, code, kind, hskLevel, nlKid, titleVi, promptVi]
+      properties:
+        id: { type: integer, format: int64 }
+        code: { type: string }
+        kind: { type: string, enum: [SPEAKING, WRITING] }
+        hskLevel: { type: integer }
+        nlKid: { type: string }
+        titleVi: { type: string }
+        promptVi: { type: string }
+        promptZh: { type: string, nullable: true }
+        minChars: { type: integer, nullable: true }
+        maxSeconds: { type: integer, nullable: true }
+    SubmissionTask:
+      description: >-
+        Optional `taskId` (int64) on POST /api/grading-requests and POST /api/grading-requests/speaking.
+        It must be an active task of the same kind, else 422 VALIDATION_FAILED; the task becomes the prompt
+        the teacher sees.
+      type: object
+      properties:
+        taskId: { type: integer, format: int64, nullable: true }
+    Criteria:
+      type: object
+      properties:
+        grammar: { type: integer, minimum: 0, maximum: 25 }
+        vocabulary: { type: integer, minimum: 0, maximum: 25 }
+        coherence: { type: integer, minimum: 0, maximum: 25 }
+        writing: { type: integer, minimum: 0, maximum: 25 }
+    Correction:
+      type: object
+      required: [original, corrected]
+      properties:
+        original: { type: string, maxLength: 500 }
+        corrected: { type: string, maxLength: 500 }
+        note: { type: string, nullable: true, maxLength: 500 }

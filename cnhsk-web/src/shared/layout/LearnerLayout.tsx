@@ -1,5 +1,5 @@
 import { CircleAlert, MoreHorizontal, X } from 'lucide-react'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 
 import { AppShell } from '@/shared/layout/AppShell'
@@ -69,19 +69,32 @@ export function LearnerLayout({
     <aside className="hidden shrink-0 border-r border-line bg-surface sm:block sm:w-16 lg:w-60">
       <div className="sticky top-16 max-h-[calc(100dvh-4rem)] overflow-y-auto lg:top-24 lg:max-h-[calc(100dvh-6rem)]">
         <nav aria-label="Học tập" className="space-y-1 p-2 lg:p-3">
-          {learnerNavigation.map((item) => {
+          {learnerNavigation.map((item, index) => {
             const Icon = item.icon
+            const previous = learnerNavigation[index - 1]
+            // A new section starts where the group changes; the icon-only rail shows it as a rule.
+            const startsSection = index > 0 && item.group !== previous?.group
             return (
-              <NavigationLink
-                active={isNavigationItemActive(location.pathname, item)}
-                ariaLabel={item.label}
-                className="flex min-h-touch items-center justify-center gap-3 px-3 lg:justify-start"
-                key={item.to}
-                to={item.to}
-              >
-                <Icon aria-hidden="true" className="size-5 shrink-0" />
-                <span className="sr-only lg:not-sr-only">{item.label}</span>
-              </NavigationLink>
+              <Fragment key={item.to}>
+                {startsSection ? (
+                  item.group ? (
+                    <p className="border-t border-line pt-3 text-caption font-semibold uppercase tracking-wide text-ink-secondary lg:mt-3 lg:px-3">
+                      <span className="sr-only lg:not-sr-only">{item.group}</span>
+                    </p>
+                  ) : (
+                    <hr className="my-2 border-line" />
+                  )
+                ) : null}
+                <NavigationLink
+                  active={isNavigationItemActive(location.pathname, item)}
+                  ariaLabel={item.label}
+                  className="flex min-h-touch items-center justify-center gap-3 px-3 lg:justify-start"
+                  to={item.to}
+                >
+                  <Icon aria-hidden="true" className="size-5 shrink-0" />
+                  <span className="sr-only lg:not-sr-only">{item.label}</span>
+                </NavigationLink>
+              </Fragment>
             )
           })}
         </nav>
@@ -111,7 +124,16 @@ export function LearnerLayout({
             </button>
           </div>
           <nav aria-label="Điều hướng bổ sung" className="min-w-0 space-y-1">
-            {moreMobile.map(menuLink)}
+            {moreMobile.map((item, index) => (
+              <Fragment key={item.to}>
+                {item.group && item.group !== moreMobile[index - 1]?.group ? (
+                  <p className="px-3 pt-3 text-caption font-semibold uppercase tracking-wide text-ink-secondary">
+                    {item.group}
+                  </p>
+                ) : null}
+                {menuLink(item)}
+              </Fragment>
+            ))}
           </nav>
         </section>
       ) : null}
@@ -144,9 +166,8 @@ export function LearnerLayout({
           onClick={() => setMoreOpen((open) => !open)}
           className={cn(
             'flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-sm px-1 text-caption text-ink-secondary focus-visible:ring-2 focus-visible:ring-focus',
-            moreMobile.some((item) =>
-              isNavigationItemActive(location.pathname, item),
-            ) && 'border-t-2 border-brand-600 bg-brand-50 text-brand-700',
+            moreMobile.some((item) => isNavigationItemActive(location.pathname, item)) &&
+              'border-t-2 border-brand-600 bg-brand-50 text-brand-700',
           )}
         >
           <MoreHorizontal aria-hidden="true" className="size-5" />
@@ -157,7 +178,11 @@ export function LearnerLayout({
   )
 
   return (
-    <AppShell bottomNavigation={bottomNavigation} header={<PublicHeader gameOrigin={gameOrigin} />} sidebar={sidebar}>
+    <AppShell
+      bottomNavigation={bottomNavigation}
+      header={<PublicHeader gameOrigin={gameOrigin} />}
+      sidebar={sidebar}
+    >
       {user && !user.emailVerified ? (
         <aside className="border-b border-warning bg-warning-bg px-4 py-3" role="status">
           <div className="mx-auto flex max-w-content flex-wrap items-center justify-center gap-3 sm:justify-between">

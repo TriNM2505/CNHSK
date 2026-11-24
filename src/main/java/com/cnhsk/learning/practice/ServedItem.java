@@ -17,11 +17,18 @@ public record ServedItem(
         List<String> accept,
         String explanation,
         Rules rules,
-        Long questionId) {
+        Long questionId,
+        /** Knowledge node the server labelled this item with; absent from snapshots of unlabelled items. */
+        @JsonInclude(JsonInclude.Include.NON_NULL) String targetKid) {
 
     public ServedItem(int no, ItemType type, Skill skill, Long lexemeId, Prompt prompt,
             List<Option> options, String answer, List<String> accept, String explanation, Rules rules) {
-        this(no, type, skill, lexemeId, prompt, options, answer, accept, explanation, rules, null);
+        this(no, type, skill, lexemeId, prompt, options, answer, accept, explanation, rules, null, null);
+    }
+
+    public ServedItem(int no, ItemType type, Skill skill, Long lexemeId, Prompt prompt,
+            List<Option> options, String answer, List<String> accept, String explanation, Rules rules, Long questionId) {
+        this(no, type, skill, lexemeId, prompt, options, answer, accept, explanation, rules, questionId, null);
     }
 
     public ServedItem {
@@ -44,11 +51,17 @@ public record ServedItem(
             String hint,
             List<Example> examples,
             String kind,
-            Integer strokeCount) {
+            Integer strokeCount,
+            String speakText) {
 
         public Prompt(String text, String pinyin, String sinoViet, String meaning, String audioUrl,
                 String sentence, String hint, List<Example> examples, String kind) {
-            this(text, pinyin, sinoViet, meaning, audioUrl, sentence, hint, examples, kind, null);
+            this(text, pinyin, sinoViet, meaning, audioUrl, sentence, hint, examples, kind, null, null);
+        }
+
+        public Prompt(String text, String pinyin, String sinoViet, String meaning, String audioUrl,
+                String sentence, String hint, List<Example> examples, String kind, Integer strokeCount) {
+            this(text, pinyin, sinoViet, meaning, audioUrl, sentence, hint, examples, kind, strokeCount, null);
         }
 
         public Prompt {

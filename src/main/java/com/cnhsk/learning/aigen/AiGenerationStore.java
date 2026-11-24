@@ -91,6 +91,8 @@ public class AiGenerationStore {
                 Question question = new Question(null, QuestionType.MULTIPLE_CHOICE, (short) node.hskLevel(), draft.stem());
                 question.setSource(QuestionSource.AI);
                 question.setStatus(QuestionStatus.PENDING_REVIEW);
+                // Drafts are written four-option questions read on screen, so they train reading.
+                question.setSkill("READING");
                 question.setOptions(draft.options()); question.setCorrectKey(draft.correctKey());
                 question.setExplanation(draft.explanation()); question.setDifficulty((short) draft.difficulty());
                 question.setReusable(true); question.setCreatedByRequestId(claim.id());

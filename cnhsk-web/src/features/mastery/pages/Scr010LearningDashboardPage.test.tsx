@@ -7,7 +7,10 @@ import { getReviewSummary } from '../api/reviews'
 import type { Recommendation, ReviewSummary } from '../types'
 import Scr010LearningDashboardPage from './Scr010LearningDashboardPage'
 
-vi.mock('../api/mastery', () => ({ getMyRecommendations: vi.fn() }))
+vi.mock('../api/mastery', () => ({
+  getMyRecommendations: vi.fn(),
+  getMySkillMastery: vi.fn().mockResolvedValue({ hskLevel: 3, skills: [], domains: [] }),
+}))
 vi.mock('../api/reviews', () => ({ getReviewSummary: vi.fn() }))
 
 const getMyRecommendationsMock = vi.mocked(getMyRecommendations)

@@ -21,6 +21,7 @@ import { screens as leaderboardScreens } from '@/features/leaderboard/screens'
 import { screens as masteryScreens } from '@/features/mastery/screens'
 import { screens as pronunciationScreens } from '@/features/pronunciation/screens'
 import { screens as questionBankScreens } from '@/features/question-bank/screens'
+import { screens as readingScreens } from '@/features/reading/screens'
 import { screens as referenceScreens } from '@/features/references/screens'
 import { screens as quizScreens } from '@/features/quiz/screens'
 import { screens as reminderScreens } from '@/features/reminder/screens'
@@ -86,4 +87,5 @@ export const screenRegistry = createScreenRegistry([
   { feature: 'references', screens: referenceScreens },
   { feature: 'quiz', screens: quizScreens },
   { feature: 'trial', screens: trialScreens },
+  { feature: 'reading', screens: readingScreens },
 ])

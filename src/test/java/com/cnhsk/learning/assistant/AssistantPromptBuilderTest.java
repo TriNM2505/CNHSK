@@ -60,7 +60,7 @@ class AssistantPromptBuilderTest {
 
     @ParameterizedTest
     @NullAndEmptySource
-    @ValueSource(strings = {"SCR-000", "SCR-079", "SCR-024", "SCR-030\nIn prompt", "Tên do người dùng gửi"})
+    @ValueSource(strings = {"SCR-000", "SCR-079", "SCR-064","SCR-030\nIn prompt", "Tên do người dùng gửi"})
     void FR007_ignoresUnknownOrNonLearnerPageContext(String pageContext) {
         assertThat(builder.build("Cách dùng?", List.of(), pageContext).orElseThrow().messages())
                 .containsExactly(new ChatMessage(Role.USER, "Cách dùng?"));

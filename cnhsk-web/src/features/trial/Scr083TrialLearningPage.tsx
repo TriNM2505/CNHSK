@@ -24,8 +24,8 @@ const PARTS: readonly { icon: typeof BookOpen; label: string; value: Part }[] = 
 function partFor(from: string | null): Part {
   if (!from) return 'VOCAB'
   if (from.startsWith('/learn/grammar')) return 'GRAMMAR'
-  if (from.startsWith('/learn/pronunciation/speaking')) return 'SPEAKING'
-  if (from.startsWith('/learn/pronunciation')) return 'LISTENING'
+  if (from.startsWith('/learn/speaking')) return 'SPEAKING'
+  if (from.startsWith('/learn/listening')) return 'LISTENING'
   if (from.startsWith('/learn/characters')) return 'HANZI'
   return 'VOCAB'
 }
@@ -51,7 +51,8 @@ export default function Scr083TrialLearningPage() {
           </p>
           <h1 className="text-h1-sm text-ink">Thử ngay, không cần tài khoản</h1>
           <p className="text-body text-ink-secondary">
-            Làm thử từng phần học. Kết quả không được lưu; đăng ký để lưu tiến độ và học theo lộ trình.
+            Làm thử từng phần học. Kết quả không được lưu; đăng ký để lưu tiến độ và học theo lộ
+            trình.
           </p>
         </div>
         {user ? (
@@ -73,7 +74,9 @@ export default function Scr083TrialLearningPage() {
               aria-pressed={part === value}
               className={cn(
                 'inline-flex min-h-10 items-center gap-2 rounded-pill border px-4 text-body-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus',
-                part === value ? 'border-brand-600 bg-brand-600 text-surface' : 'border-line bg-surface text-ink-secondary hover:text-ink',
+                part === value
+                  ? 'border-brand-600 bg-brand-600 text-surface'
+                  : 'border-line bg-surface text-ink-secondary hover:text-ink',
               )}
               key={value}
               onClick={() => setPart(value)}
@@ -100,7 +103,11 @@ export default function Scr083TrialLearningPage() {
         )}
       </div>
 
-      {part === 'SPEAKING' ? <SpeakingPracticePage guest /> : <TrialQuiz feature={part} level={level} signUpTo={signUpTo} />}
+      {part === 'SPEAKING' ? (
+        <SpeakingPracticePage guest />
+      ) : (
+        <TrialQuiz feature={part} level={level} signUpTo={signUpTo} />
+      )}
     </main>
   )
 }

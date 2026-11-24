@@ -1,11 +1,11 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/shared/api'
-import { completeGrading, getAssignedGrading, releaseGrading } from '../api/requests'
+import { completeGrading, getAssignedGrading, getErrorCodes, releaseGrading } from '../api/requests'
 import { TeacherGradingWorkspaceView } from '../components/TeacherGradingWorkspaceView'
-import { assigned, completed, draft, result } from '../test-fixtures'
+import { assigned, completed, draft, errorCodes, result } from '../test-fixtures'
 import Scr057TeacherGradingWorkspacePage from './Scr057TeacherGradingWorkspacePage'
 
 const auth = vi.hoisted(() => ({ status: 'authenticated', user: { id: 1, roles: ['TEACHER'] } }))
@@ -13,6 +13,7 @@ vi.mock('@/shared/auth', () => ({ useCurrentUser: () => auth }))
 vi.mock('../api/requests', () => ({
   completeGrading: vi.fn(),
   getAssignedGrading: vi.fn(),
+  getErrorCodes: vi.fn(),
   releaseGrading: vi.fn(),
 }))
 function Location() {
@@ -30,15 +31,16 @@ function content() {
     </MemoryRouter>
   )
 }
+function score(criterion: string, value: string) {
+  return within(screen.getByRole('radiogroup', { name: new RegExp(criterion) })).getByRole(
+    'radio',
+    { name: value },
+  )
+}
 async function fill() {
-  await screen.findByLabelText(/Ngữ pháp/)
-  for (const [label, value] of [
-    ['Ngữ pháp', '20'],
-    ['Từ vựng', '18'],
-    ['Mạch lạc', '21'],
-    ['Chữ viết', '19'],
-  ])
-    fireEvent.change(screen.getByLabelText(new RegExp(label!)), { target: { value } })
+  await screen.findByRole('radiogroup', { name: /C1/ })
+  for (const [criterion, value] of Object.entries(result.scores))
+    fireEvent.click(score(criterion, String(value)))
   fireEvent.change(screen.getByLabelText(/Nhận xét/), { target: { value: result.feedback } })
 }
 async function submit() {
@@ -50,6 +52,7 @@ beforeEach(() => {
   vi.mocked(getAssignedGrading).mockReset().mockResolvedValue(assigned)
   vi.mocked(completeGrading).mockReset().mockResolvedValue(completed)
   vi.mocked(releaseGrading).mockReset().mockResolvedValue(undefined)
+  vi.mocked(getErrorCodes).mockReset().mockResolvedValue(errorCodes)
 })
 afterEach(() => vi.restoreAllMocks())
 describe('teacher grading workspace', () => {
@@ -70,10 +73,16 @@ describe('teacher grading workspace', () => {
   it('sums the rubric, enforces bounds, and confirms before sending only contract fields', async () => {
     render(content())
     await fill()
-    expect(screen.getByText('Tổng điểm: 78/100')).toBeVisible()
-    fireEvent.change(screen.getByLabelText(/Ngữ pháp/), { target: { value: '26' } })
-    expect(screen.getByRole('button', { name: 'Nộp kết quả' })).toBeDisabled()
-    fireEvent.change(screen.getByLabelText(/Ngữ pháp/), { target: { value: '20' } })
+    expect(screen.getByText('Tổng điểm: 75/100')).toBeVisible()
+    expect(
+      within(screen.getByRole('radiogroup', { name: /C2/ })).getAllByRole('radio'),
+    ).toHaveLength(6)
+    fireEvent.change(screen.getByLabelText('Mã lỗi'), { target: { value: 'E-NP-06' } })
+    await userEvent.click(screen.getByRole('button', { name: 'Gắn mã' }))
+    expect(screen.getByRole('button', { name: 'Bỏ mã E-NP-06' })).toBeVisible()
+    expect(
+      within(screen.getByLabelText('Mã lỗi')).queryByRole('option', { name: /E-NP-06/ }),
+    ).toBeNull()
     await userEvent.click(screen.getByRole('button', { name: 'Thêm lỗi' }))
     expect(screen.getByRole('button', { name: 'Nộp kết quả' })).toBeDisabled()
     fireEvent.change(screen.getByLabelText(/Đã viết 1/), { target: { value: '原文' } })
@@ -85,13 +94,16 @@ describe('teacher grading workspace', () => {
     await submit()
     await screen.findByText('Đã nộp kết quả')
     expect(completeGrading).toHaveBeenCalledWith('42', {
-      criteria: result.criteria,
+      rubric: 'R_VIET',
+      scores: result.scores,
+      errors: ['E-NP-06'],
       feedback: result.feedback,
       corrections: [{ original: '原文', corrected: '改文', note: null }],
     })
-    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument()
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Nộp kết quả' })).not.toBeInTheDocument()
-    expect(screen.getByText('78/100')).toBeVisible()
+    expect(screen.getByText('75/100')).toBeVisible()
+    expect(screen.getByText('Thiếu bổ ngữ kết quả')).toBeVisible()
     expect(screen.getByText('Điểm trả cho bài: 2 điểm')).toBeVisible()
   })
   it('adds and removes corrections and caps the list at 50 rows', () => {
@@ -101,6 +113,7 @@ describe('teacher grading workspace', () => {
         <TeacherGradingWorkspaceView
           state="ready"
           detail={assigned}
+          errorCodes={errorCodes}
           draft={{
             ...draft,
             corrections: Array.from({ length: 50 }, () => ({
@@ -136,7 +149,7 @@ describe('teacher grading workspace', () => {
       await submit()
       await screen.findByText('Không nộp được kết quả.')
       expect(screen.getByLabelText(/Nhận xét/)).toHaveValue(result.feedback)
-      expect(screen.getByLabelText(/Ngữ pháp/)).toHaveValue(20)
+      expect(score('C2', '4')).toHaveAttribute('aria-checked', 'true')
       expect(completeGrading).toHaveBeenCalledTimes(1)
       expect(storage).not.toHaveBeenCalled()
     },

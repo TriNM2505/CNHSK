@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useParams } from 'react-router-dom'
+import { Navigate, useLocation, useParams } from 'react-router-dom'
 
 import { useApiQuery } from '@/shared/api'
 import { Button } from '@/shared/ui'
 
 import { getPronunciationStages } from '../api/pronunciation'
+import { currentPronunciationPath } from '../paths'
 import { PronunciationPracticeView } from '../components/PronunciationPracticeView'
 import { PronunciationStageListView } from '../components/PronunciationStageListView'
 import type { PronunciationStageSummary } from '../types'
@@ -16,10 +17,16 @@ function parseStageIndex(value: string | undefined) {
   return Number(value)
 }
 
-/** SCR-016 has two halves: listening discrimination (stages) and speaking for a teacher. */
+/** SCR-016 serves two menu items: Nghe (telling sounds apart) and Luyện nói (speaking for a teacher). */
 export default function Scr016PronunciationPage() {
-  const { pathname } = useLocation()
-  return pathname.replace(/\/$/, '').endsWith('/speaking') ? <SpeakingPracticePage /> : <ListeningPage />
+  const { pathname, search } = useLocation()
+  const moved = currentPronunciationPath(pathname)
+  if (moved) return <Navigate replace to={`${moved}${search}`} />
+  return pathname.replace(/\/$/, '') === '/learn/speaking' ? (
+    <SpeakingPracticePage />
+  ) : (
+    <ListeningPage />
+  )
 }
 
 function ListeningPage() {

@@ -13,13 +13,8 @@ import {
   type HskLevel,
   type StatusTone,
 } from '@/shared/ui'
-import {
-  criterionLabelsFor,
-  displayTime,
-  statusLabels,
-  type GradingRequest,
-  type RequestStatus,
-} from '../types'
+import { GradingScoreBreakdown } from './GradingScoreBreakdown'
+import { displayTime, statusLabels, type GradingRequest, type RequestStatus } from '../types'
 
 type Props = {
   state: ApiQueryState
@@ -169,7 +164,9 @@ export function GradingRequestDetailView(props: Props) {
 
               <Card className="min-w-0 space-y-3 p-5 sm:p-6">
                 <div className="flex items-center justify-between gap-2 border-b border-line pb-3">
-                  <h2 className="text-h3 text-ink">{row.mode === 'SPEAKING' ? 'Bài nói' : 'Bài viết'}</h2>
+                  <h2 className="text-h3 text-ink">
+                    {row.mode === 'SPEAKING' ? 'Bài nói' : 'Bài viết'}
+                  </h2>
                   <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-50 px-3 py-1 text-caption font-semibold text-brand-700">
                     <Sparkles aria-hidden="true" className="size-3.5" />
                     {row.mode === 'SPEAKING' ? 'Câu đã đọc' : 'Nội dung gốc'}
@@ -179,7 +176,13 @@ export function GradingRequestDetailView(props: Props) {
                   {row.essay}
                 </p>
                 {row.mode === 'SPEAKING' && row.audioUrl ? (
-                  <audio aria-label="Bản ghi âm của bạn" className="w-full" controls preload="metadata" src={row.audioUrl} />
+                  <audio
+                    aria-label="Bản ghi âm của bạn"
+                    className="w-full"
+                    controls
+                    preload="metadata"
+                    src={row.audioUrl}
+                  />
                 ) : null}
               </Card>
             </div>
@@ -199,21 +202,7 @@ export function GradingRequestDetailView(props: Props) {
                     </p>
                   </div>
 
-                  <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {(['grammar', 'vocabulary', 'coherence', 'writing'] as const)
-                      .map((key) => [criterionLabelsFor(row.mode)[key], result.criteria[key]] as const)
-                      .map(([label, score]) => (
-                      <div
-                        className="rounded-md border border-brand-100 bg-brand-50 p-3.5"
-                        key={label}
-                      >
-                        <dt className="text-caption text-ink-secondary">{label}</dt>
-                        <dd className="mt-1 text-h3 font-semibold tabular-nums text-ink">
-                          {score}/25
-                        </dd>
-                      </div>
-                    ))}
-                  </dl>
+                  <GradingScoreBreakdown mode={row.mode} result={result} />
 
                   <div className="space-y-2">
                     <h3 className="text-h3 text-ink">Nhận xét</h3>
@@ -272,9 +261,11 @@ export function GradingRequestDetailView(props: Props) {
                   </div>
                   <div className="grid gap-3 border-t border-brand-100 pt-4 sm:grid-cols-2">
                     <div className="rounded-md border border-brand-100 bg-surface p-3.5">
-                      <p className="text-label text-ink">4 tiêu chí đánh giá</p>
+                      <p className="text-label text-ink">Tiêu chí đánh giá</p>
                       <p className="mt-1 text-body-sm text-ink-secondary">
-                        Ngữ pháp · Từ vựng · Mạch lạc · Chữ viết (mỗi mục 25 điểm)
+                        {row.mode === 'SPEAKING'
+                          ? 'R-NÓI: nhiệm vụ · phát âm · từ vựng · ngữ pháp · trôi chảy (0–3)'
+                          : 'R-VIẾT: nhiệm vụ · ngữ pháp · từ vựng · chữ Hán (0–5)'}
                       </p>
                     </div>
                     <div className="rounded-md border border-brand-100 bg-surface p-3.5">

@@ -18,6 +18,10 @@ public enum PracticeSource {
     PLACEMENT(AttemptKind.EXAM, FeedbackMode.DEFERRED, Duration.ofHours(2), true, false),
     TARGETED_PRACTICE(AttemptKind.PRACTICE, FeedbackMode.IMMEDIATE, Duration.ofHours(2), true, false),
     DUE_REVIEW(AttemptKind.PRACTICE, FeedbackMode.IMMEDIATE, Duration.ofHours(2), true, false),
+    /** A teacher's rubric grade, recorded by the server for the learner; never started by a client. */
+    RUBRIC_TASK(AttemptKind.PRACTICE, FeedbackMode.RECORD, Duration.ofMinutes(5), false, false),
+    /** Reading questions for one HSK level, chosen by the server from approved READING items. */
+    READING_PRACTICE(AttemptKind.PRACTICE, FeedbackMode.IMMEDIATE, Duration.ofHours(2), true, false),
     QUIZ(AttemptKind.QUIZ, FeedbackMode.DEFERRED, Duration.ofMinutes(30), true, false),
     QUIZ_RETRY(AttemptKind.PRACTICE, FeedbackMode.DEFERRED, Duration.ofMinutes(30), true, false),
     CONTEST(AttemptKind.CONTEST, FeedbackMode.DEFERRED, null, true, false);

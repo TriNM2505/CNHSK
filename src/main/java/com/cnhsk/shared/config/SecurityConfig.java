@@ -126,7 +126,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/dictionary/**").permitAll();
                     // Trial learning for visitors: read-only samples, nothing is stored.
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/learning/trial",
-                            "/api/public/speaking/items").permitAll();
+                            "/api/public/speaking/items", "/api/public/learning/tasks").permitAll();
                     authorize.requestMatchers(HttpMethod.POST, "/api/public/reminder/unsubscribe").permitAll();
                     authorize.requestMatchers(HttpMethod.GET, "/api/public/references",
                             "/api/public/references/{id}").permitAll();
@@ -156,6 +156,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.GET, "/api/exam-attempts/{id}/result").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/exam-attempts/{id}/weak-points").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.POST, "/api/targeted-practice/sessions").hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.POST, "/api/reading-practice/sessions").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/placement/summary").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.POST, "/api/placement/runs").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.POST, "/api/placement/runs/{runId}/next").hasRole("LEARNER");
@@ -202,7 +203,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.POST, "/api/speaking/upload-signature",
                             "/api/grading-requests/speaking").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/teacher/grading-queue", "/api/teacher/grading-requests/mine",
-                            "/api/teacher/grading-requests/{id}").hasRole("TEACHER");
+                            "/api/teacher/grading-requests/{id}", "/api/teacher/error-codes").hasRole("TEACHER");
                     authorize.requestMatchers(HttpMethod.POST, "/api/teacher/grading-requests/{id}/claim",
                             "/api/teacher/grading-requests/{id}/release").hasRole("TEACHER");
                     authorize.requestMatchers(HttpMethod.POST, "/api/teacher/grading-requests/{id}/complete").hasRole("TEACHER");

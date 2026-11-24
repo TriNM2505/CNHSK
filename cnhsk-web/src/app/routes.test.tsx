@@ -180,7 +180,9 @@ describe('application routes', () => {
   it('sends a guest from a learner route to trial learning with the full way back', async () => {
     const { router } = renderRoute('/learn/topics?level=2#dang-hoc')
 
-    expect(await screen.findByRole('heading', { name: 'Thử ngay, không cần tài khoản' })).toBeVisible()
+    expect(
+      await screen.findByRole('heading', { name: 'Thử ngay, không cần tài khoản' }),
+    ).toBeVisible()
     expect(router.state.location.pathname).toBe('/learn/try')
     expect(new URLSearchParams(router.state.location.search).get('from')).toBe(
       '/learn/topics?level=2#dang-hoc',
@@ -299,12 +301,22 @@ describe('application routes', () => {
     expect(screen.queryByRole('heading', { name: 'Màn SCR-014 đang dựng' })).not.toBeInTheDocument()
   })
 
-  it('maps the pronunciation route to the real SCR-016 screen', async () => {
+  it('maps Nghe and the old pronunciation link to the real SCR-016 listening screen', async () => {
     getCurrentUserMock.mockResolvedValue(learner)
     renderRoute('/learn/pronunciation')
 
-    expect(await screen.findByRole('heading', { name: 'Phát âm' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Nghe' })).toBeVisible()
     expect(screen.queryByRole('heading', { name: 'Màn SCR-016 đang dựng' })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['/learn/speaking', 'Luyện nói'],
+    ['/learn/pronunciation/speaking', 'Luyện nói'],
+  ])('maps %s to the speaking half of SCR-016', async (path, heading) => {
+    getCurrentUserMock.mockResolvedValue(learner)
+    renderRoute(path)
+
+    expect(await screen.findByRole('heading', { name: heading })).toBeVisible()
   })
 
   it.each([
