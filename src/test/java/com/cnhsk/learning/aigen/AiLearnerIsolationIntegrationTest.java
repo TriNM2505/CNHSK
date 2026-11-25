@@ -102,13 +102,21 @@ class AiLearnerIsolationIntegrationTest extends AbstractIntegrationTest {
         assertQuestionSession(before, bank.approved(), bank, false);
         assertThat(before.path("source").asText()).isEqualTo("TARGETED_PRACTICE");
 
-        JsonNode approval = json(mvc.perform(post("/api/admin/ai-questions/{id}/approve", bank.pending().id())
+        // The teacher step only checks the content; learners still do not get the question.
+        JsonNode checked = json(mvc.perform(post("/api/admin/ai-questions/{id}/approve", bank.pending().id())
                         .header("Authorization", bearer(teacher, "TEACHER")))
+                .andExpect(status().isOk()).andReturn());
+        assertThat(checked.path("status").asText()).isEqualTo("TEACHER_APPROVED");
+        assertThat(snapshotIds(targeted(bank.kid()))).doesNotContain(bank.pending().id());
+
+        long editor = user("CONTENT_EDITOR");
+        JsonNode approval = json(mvc.perform(post("/api/admin/ai-questions/{id}/approve", bank.pending().id())
+                        .header("Authorization", bearer(editor, "CONTENT_EDITOR")))
                 .andExpect(status().isOk()).andReturn());
         assertThat(approval.path("id").asLong()).isEqualTo(bank.pending().id());
         assertThat(approval.path("status").asText()).isEqualTo("APPROVED");
         assertThat(jdbc.queryForObject("SELECT reviewed_by FROM learning.questions WHERE id=?",
-                Long.class, bank.pending().id())).isEqualTo(teacher);
+                Long.class, bank.pending().id())).isEqualTo(editor);
 
         List<Question> approved = new ArrayList<>(bank.approved());
         approved.add(bank.pending());

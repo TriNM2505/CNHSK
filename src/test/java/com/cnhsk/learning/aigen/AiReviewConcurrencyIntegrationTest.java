@@ -10,6 +10,7 @@ import com.cnhsk.shared.exception.ErrorCode;
 import com.cnhsk.shared.security.AuthenticatedUser;
 import com.cnhsk.shared.security.JwtService;
 import com.cnhsk.support.AbstractIntegrationTest;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.time.Instant;
@@ -189,6 +190,27 @@ class AiReviewConcurrencyIntegrationTest extends AbstractIntegrationTest {
             assertThat(fixture.audits(id, "AI_QUESTION_TEACHER_APPROVE")).isZero();
             assertThat(jdbc.queryForObject("SELECT reviewed_by FROM learning.questions WHERE id=?", Long.class, id)).isNull();
         }
+    }
+
+    @Test
+    void contentEditorBulkPublishesTeacherCheckedQuestionsWithoutOpeningThem() throws Exception {
+        long checked = pending(); long unchecked = pending();
+        jdbc.update("UPDATE learning.questions SET reviewed_by=?, reviewed_at=now() WHERE id=?", actor, checked);
+        long editor = fixture.user();
+        String editorToken = jwt.issueAccessToken(editor, List.of("CONTENT_EDITOR"), true, UUID.randomUUID());
+        JsonNode results = mapper.readTree(mvc.perform(post(ROOT + "/bulk-approve").header("Authorization", "Bearer " + editorToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(Map.of("ids", List.of(checked, unchecked)))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("results");
+        assertThat(results).extracting(row -> row.path("outcome").asText()).containsExactly("APPROVED", "NOT_VIEWED");
+        assertThat(fixture.status(checked)).isEqualTo("APPROVED");
+        assertThat(jdbc.queryForObject("SELECT reviewed_by FROM learning.questions WHERE id=?", Long.class, checked)).isEqualTo(editor);
+        assertThat(fixture.status(unchecked)).isEqualTo("PENDING_REVIEW");
+        // A teacher still has to open a question before bulk checking it.
+        String teacherToken = jwt.issueAccessToken(actor, List.of("TEACHER"), true, UUID.randomUUID());
+        JsonNode teacher = mapper.readTree(mvc.perform(post(ROOT + "/bulk-approve").header("Authorization", "Bearer " + teacherToken)
+                        .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(Map.of("ids", List.of(unchecked)))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("results");
+        assertThat(teacher.get(0).path("outcome").asText()).isEqualTo("NOT_VIEWED");
     }
 
     private long pending() { return fixture.question("AI", "PENDING_REVIEW", 1, NOW, true); }

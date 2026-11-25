@@ -107,28 +107,6 @@ class AiReviewControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(fixture.audits(id, "AI_QUESTION_APPROVE")).isEqualTo(1);
     }
 
-    @Test
-    void contentEditorBulkPublishesTeacherCheckedQuestionsWithoutOpeningThem() throws Exception {
-        long checked = fixture.question("AI", "PENDING_REVIEW", 1, NOW, true);
-        long unchecked = fixture.question("AI", "PENDING_REVIEW", 1, NOW, true);
-        jdbc.update("UPDATE learning.questions SET reviewed_by=?, reviewed_at=now() WHERE id=?", actor, checked);
-        long editor = fixture.user();
-        String editorBearer = "Bearer " + jwt.issueAccessToken(editor, List.of("CONTENT_EDITOR"), true, UUID.randomUUID());
-        JsonNode results = mapper.readTree(mvc.perform(post(ROOT + "/bulk-approve").header("Authorization", editorBearer)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(java.util.Map.of("ids", List.of(checked, unchecked)))))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("results");
-        assertThat(results).extracting(row -> row.path("outcome").asText()).containsExactly("APPROVED", "NOT_VIEWED");
-        assertThat(fixture.status(checked)).isEqualTo("APPROVED");
-        assertThat(fixture.status(unchecked)).isEqualTo("PENDING_REVIEW");
-        // A teacher still has to open a question before bulk checking it.
-        String teacherResult = mvc.perform(post(ROOT + "/bulk-approve").header("Authorization", bearer("TEACHER"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(mapper.writeValueAsString(java.util.Map.of("ids", List.of(unchecked)))))
-                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        assertThat(mapper.readTree(teacherResult).path("results").get(0).path("outcome").asText()).isEqualTo("NOT_VIEWED");
-    }
-
     @ParameterizedTest
     @ValueSource(strings = {"ADMIN", "LEARNER", "MODERATOR", "ACCOUNTANT"})
     void otherRolesAreForbiddenBeforeInputValidationOnEveryOperation(String role) throws Exception {
