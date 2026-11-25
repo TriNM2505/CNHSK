@@ -237,6 +237,7 @@ paths:
         - { name: hskLevel, in: query, schema: { type: integer, minimum: 1, maximum: 9 } }
         - { name: qtype, in: query, schema: { $ref: '#/components/schemas/QuestionType' } }
         - { name: status, in: query, schema: { $ref: '#/components/schemas/QuestionStatus' } }
+        - { name: source, in: query, schema: { $ref: '#/components/schemas/QuestionSource' } }
         - { name: kid, in: query, schema: { type: string } }
         - { name: q, in: query, schema: { type: string, minLength: 2, maxLength: 100 } }
         - { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }

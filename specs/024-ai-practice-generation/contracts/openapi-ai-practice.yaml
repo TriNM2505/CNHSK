@@ -57,10 +57,11 @@ components:
         role: { type: string, enum: [PRIMARY, SECONDARY] }
     AiQuestionSummary:
       type: object
-      required: [id, stemSummary, hskLevel, labels, generatedAt, runId, viewedByMe]
+      required: [id, stemSummary, qtype, hskLevel, labels, generatedAt, runId, viewedByMe]
       properties:
         id: { type: integer, format: int64 }
         stemSummary: { type: string, maxLength: 80 }
+        qtype: { type: string, enum: [MULTIPLE_CHOICE, TRUE_FALSE] }
         hskLevel: { type: integer }
         labels: { type: array, items: { $ref: '#/components/schemas/Label' } }
         generatedAt: { type: string, format: date-time }
@@ -116,12 +117,13 @@ components:
         droppedCount: { type: integer }
         inputTokens: { type: integer, format: int64 }
         outputTokens: { type: integer, format: int64 }
-        error: { type: [string, 'null'], enum: [INVALID_OUTPUT, BUDGET_EXCEEDED, PROVIDER_ERROR, NO_VALID_QUESTION, STALE, null] }
+        error: { type: [string, 'null'], enum: [INVALID_OUTPUT, BUDGET_EXCEEDED, PROVIDER_ERROR, NO_VALID_QUESTION, STALE, EMBEDDING_UNAVAILABLE, null] }
     RunPage:
       type: object
-      required: [enabled, monthTokens, items, page, size, totalElements]
+      required: [enabled, embeddingReady, monthTokens, items, page, size, totalElements]
       properties:
         enabled: { type: boolean }
+        embeddingReady: { type: boolean }
         monthTokens: { type: integer, format: int64 }
         items: { type: array, items: { $ref: '#/components/schemas/Run' } }
         page: { type: integer }
@@ -152,6 +154,9 @@ paths:
         - name: hsk
           in: query
           schema: { type: integer, minimum: 1, maximum: 9 }
+        - name: qtype
+          in: query
+          schema: { type: string, enum: [MULTIPLE_CHOICE, TRUE_FALSE] }
         - name: from
           in: query
           schema: { type: string, format: date-time }

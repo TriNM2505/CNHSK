@@ -11,7 +11,7 @@ info:
     expiring after 24 hours; marker failure does not fail the detail response.
     Existing 010 PUT stays TEACHER only; CONTENT_EDITOR gets 403 before parsing the
     body, including for AI PENDING_REVIEW. TEACHER keeps all 010 parameters, fields,
-    statuses, validation and audit rules. An edited pending AI multiple-choice question
+    statuses, validation and audit rules. An edited pending AI multiple-choice or true/false question
     stores the sole correct option key so it remains eligible for FR-014 approval.
   x-original-contract: ./openapi-ai-practice.yaml
   x-existing-operations:
@@ -75,10 +75,11 @@ components:
         role: { type: string, enum: [PRIMARY, SECONDARY] }
     AiQuestionSummary:
       type: object
-      required: [id, stemSummary, hskLevel, labels, generatedAt, runId, viewedByMe]
+      required: [id, stemSummary, qtype, hskLevel, labels, generatedAt, runId, viewedByMe]
       properties:
         id: { type: integer, format: int64 }
         stemSummary: { type: string, maxLength: 80 }
+        qtype: { type: string, enum: [MULTIPLE_CHOICE, TRUE_FALSE] }
         hskLevel: { type: integer }
         labels: { type: array, items: { $ref: '#/components/schemas/Label' } }
         generatedAt: { type: string, format: date-time }
@@ -141,6 +142,9 @@ paths:
         - name: hsk
           in: query
           schema: { type: integer, minimum: 1, maximum: 9 }
+        - name: qtype
+          in: query
+          schema: { type: string, enum: [MULTIPLE_CHOICE, TRUE_FALSE] }
         - name: from
           in: query
           schema: { type: string, format: date-time }

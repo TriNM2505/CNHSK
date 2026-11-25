@@ -1,6 +1,6 @@
 # Tasks: AI sinh câu luyện theo điểm yếu + hàng chờ duyệt — Spec #024
 
-> Nguồn: [`spec.md`](spec.md) v1.0.0 · [`contracts/openapi-ai-practice.yaml`](contracts/openapi-ai-practice.yaml)
+> Nguồn: [`spec.md`](spec.md) v1.4.0 (đợt 3) — đợt 1–2 theo v1.0.0…v1.3.0 · [`contracts/openapi-ai-practice.yaml`](contracts/openapi-ai-practice.yaml)
 > ⬜ chưa làm · 🔄 đang làm · ✅ xong · ⏸ hoãn · 🔴 chặn
 
 **Tổng: 11 task**, ≤ 4 giờ/task, một task một nhánh `spec/024-<task>` một PR. Quy ước chung: `specs/001-auth-rbac/tasks.md`.
@@ -28,6 +28,25 @@ Khoá §0.1 đọc qua `SettingsApi` nếu 023/T-01 đã merge (T-01 thêm vào 
 | T-09 | Test hợp đồng `/v3/api-docs` so `openapi-ai-practice.yaml` (hai chiều path + method + status) | `t/contract/AiPracticeContractTest.java` | §13 · AT-19 | ✅ MERGED — PR #260 |
 | T-10 | v1.1 chống gần trùng: chỉ dẫn prompt không lặp `samples`, câu trong lô khác nhau (không gửi thêm nội dung); `NEAR_DUPLICATE_STEM` (bỏ dấu câu/khoảng trắng, cùng đáp án đúng, cùng dãy số, Jaccard bigram ≥ 0,8, ≥ 8 code point); `existingStems` trả kèm `options` dạng text trong cùng một truy vấn, đáp án đúng đọc bằng Java | `…/aigen/AiPromptBuilder.java`, `AiQuestionValidator.java`, `WeakKnowledgeQueryRepository.java` + test | §0.3, FR-007 · AT-09 | ✅ MERGED (#285, 176dda1) — verify 7158 F0/E0/S0 |
 | T-11 | v1.2 chỉ `TEACHER` duyệt/sửa: `SecurityConfig` (`/api/admin/ai-questions/**` và `PUT /api/admin/questions/{id}` → `TEACHER`), `AiReviewService`, `QuestionAdminService.requireEditable`; FE route/menu SCR-058 và nút sửa/duyệt SCR-059 chỉ `TEACHER`; mô tả hợp đồng | `SecurityConfig.java`, `…/aigen/AiReviewService.java`, `…/knowledge/QuestionAdminService.java`, `contracts/*.yaml`, `web/app/routeAccess.ts`, `web/shared/layout/navigation.ts`, `Scr059QuestionEditPage.tsx` + test | FR-011, FR-013, FR-020 · AT-15 | ✅ main — verify 7184 F0/E0/S0 |
+
+## Đợt 3 · v1.4 lịch 2 giờ, trần ngày, SBERT (spec v1.4 leader duyệt 2026-11-25)
+
+| ID | Task | File | Spec · AT | TT |
+|---|---|---|---|---|
+| T-12 | Khoá test hành vi cũ + test mới đỏ (hạn mức, phân bổ, trùng nghĩa, tạm dừng) | `t/learning/aigen/**` | AT-21…AT-24 | ⬜ |
+| T-13 | Cron 2 giờ, mặc định mới, khoá `daily-cap`/`semantic-threshold`, `AiGenerationQuota`, hạn mức trong `runCore` (chạy thử dùng chung), FE 078 thêm khoá | `…/aigen/{AiGenerationQuota,AiGenerationService,AiGenerateConfig,WeakKnowledgeQueryRepository}.java`, `SettingKey.java`, `application.yaml`, `web/features/admin-settings/**` + test | §0.1, FR-003b · AT-21, AT-22 | ⬜ |
+| T-14 | `EmbeddingEngine` ONNX + DJL tokenizer, tải model kiểm SHA-256, migration V19, `QuestionEmbeddingStore` | `…/aigen/embedding/**`, `pom.xml`, `db/migration/V19__question_embeddings.sql` + test | FR-021, §4 · AT-24 | ⬜ |
+| T-15 | `SEMANTIC_DUPLICATE_STEM`, lưu vector khi lưu câu, tính bù, `PAUSED`/`EMBEDDING_UNAVAILABLE`, `embeddingReady` ở FR-018 + hợp đồng | `…/aigen/{AiQuestionValidator,AiGenerationStore,AiGenerationService,AiRunQueryService}.java`, `contracts/openapi-ai-practice.yaml` + test | FR-007a, FR-022, FR-023, FR-018 · AT-23, AT-24 | ⬜ |
+
+Thứ tự đợt 3: T-12 → T-13 ∥ T-14 → T-15.
+
+## Đợt 4 · v1.5 dạng câu theo loại nút, Luyện lỗi của tôi (spec v1.5 leader duyệt 2026-11-25)
+
+| ID | Task | File | Spec · AT | TT |
+|---|---|---|---|---|
+| T-16 | Prompt theo tiền tố KID + cho phép `TRUE_FALSE` (≤ 1/3 lô, `TYPE_QUOTA`), lưu `qtype`, duyệt chấp nhận `TRUE_FALSE` | `…/aigen/{AiPromptBuilder,AiQuestionValidator,AiGenerationStore,AiReviewService}.java` + test | FR-024…FR-026 · AT-25, AT-26 | 🔄 code xong, chờ gate |
+| T-17 | Lọc `qtype` ở hàng chờ duyệt (BE + hợp đồng + SCR-058) | `AiReviewService`, `web/AiReviewController`, `contracts/openapi-ai-practice.yaml`, `web/features/ai-review/**` + test | FR-027 · AT-27 | 🔄 code xong, chờ gate |
+| T-18 | Luyện lỗi của tôi: `GET /api/mistake-practice`, `POST /api/mistake-practice/sessions` (nguồn `TARGETED_PRACTICE`), mục ở SCR-010, chế độ `?mode=mistakes` ở SCR-023 | `…/exam/MistakePracticeService.java`, `…/exam/mistakes/web/MistakePracticeController.java`, `SecurityConfig.java`, `web/features/{exam,mastery}/**` + test | FR-028, FR-029 · AT-28, AT-29 | 🔄 code xong, chờ gate | **V19 leader chạy trên Neon trước khi khởi động BE bản mới.** File model không commit.
 
 ## Thứ tự
 

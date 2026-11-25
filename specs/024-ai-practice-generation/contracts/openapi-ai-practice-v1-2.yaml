@@ -1,0 +1,107 @@
+openapi: 3.1.0
+info:
+  title: CNHSK AI Practice Generation — v1.5 additions
+  version: 1.2.0
+  description: >
+    Additive appendix to openapi-ai-practice.yaml and openapi-ai-practice-v1-1.yaml for spec v1.5.
+    Mistake practice (FR-028) is LEARNER only; it lives on its own paths so the locked 012 exam
+    contract is unchanged. A started session counts as TARGETED_PRACTICE usage, like practice by node.
+    Node gaps list the knowledge nodes the generation job always skips (rule E4: no can-do statement,
+    or no word linked to the node); CONTENT_EDITOR and TEACHER may read it.
+  x-original-contract: ./openapi-ai-practice.yaml
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+
+paths:
+  /api/mistake-practice:
+    get:
+      tags: [mistake-practice]
+      operationId: getMyMistakes
+      summary: Nodes the learner answered wrong in the last 7 days (Vietnam time), most mistakes first, at most 20
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MistakeSummary' }
+        '401': { description: Authentication required }
+        '403': { description: Forbidden }
+  /api/mistake-practice/sessions:
+    post:
+      tags: [mistake-practice]
+      operationId: startMistakePractice
+      summary: Start up to 10 approved multiple-choice or true/false questions spread across those nodes
+      parameters:
+        - name: X-XSRF-TOKEN
+          in: header
+          required: false
+          description: Required when authenticated by cookie.
+          schema: { type: string }
+      responses:
+        '201':
+          description: Created; body is the practice SessionView of the 012 practice contract.
+          content:
+            application/json:
+              schema: { type: object }
+        '200':
+          description: No session was started.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NoMistakePractice' }
+        '401': { description: Authentication required }
+        '403': { description: Forbidden }
+        '422': { description: Request cannot be processed }
+        '429': { description: Rate limit exceeded }
+  /api/admin/ai-node-gaps:
+    get:
+      tags: [ai-node-gaps]
+      operationId: listAiNodeGaps
+      summary: Knowledge nodes the AI job skips because data is missing
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NodeGaps' }
+        '401': { description: Authentication required }
+        '403': { description: CONTENT_EDITOR or TEACHER only }
+
+components:
+  securitySchemes:
+    cookieAuth: { type: apiKey, in: cookie, name: access_token }
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    MistakeNode:
+      type: object
+      required: [kid, nameVi, wrongCount]
+      properties:
+        kid: { type: string }
+        nameVi: { type: string }
+        wrongCount: { type: integer, format: int64, minimum: 1 }
+    MistakeSummary:
+      type: object
+      required: [kids]
+      properties:
+        kids: { type: array, maxItems: 20, items: { $ref: '#/components/schemas/MistakeNode' } }
+    NoMistakePractice:
+      type: object
+      required: [session, reason]
+      properties:
+        session: { type: 'null' }
+        reason: { type: string, enum: [NO_RECENT_MISTAKES, NO_QUESTIONS] }
+    NodeGap:
+      type: object
+      required: [kid, nameVi, hskLevel, missingCanDo, lexemeCount]
+      properties:
+        kid: { type: string }
+        nameVi: { type: string }
+        hskLevel: { type: integer }
+        missingCanDo: { type: boolean }
+        lexemeCount: { type: integer, format: int64, minimum: 0 }
+    NodeGaps:
+      type: object
+      required: [totalNodes, nodes]
+      properties:
+        totalNodes: { type: integer, format: int64 }
+        nodes: { type: array, items: { $ref: '#/components/schemas/NodeGap' } }
