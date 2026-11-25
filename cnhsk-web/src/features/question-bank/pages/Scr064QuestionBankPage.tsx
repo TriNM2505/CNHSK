@@ -5,7 +5,8 @@ import { useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
 
 import { getKnowledgeQuestionCounts, getKnowledgeTree } from '../api/knowledge'
-import { listQuestions } from '../api/questions'
+import { getAiNodeGaps, listQuestions } from '../api/questions'
+import { AiNodeGapsPanel } from '../components/AiNodeGapsPanel'
 import { KnowledgeTreeReviewPanel } from '../components/KnowledgeTreeReviewPanel'
 import { QuestionBankListView, type QuestionBankView } from '../components/QuestionBankListView'
 import {
@@ -40,6 +41,7 @@ export default function Scr064QuestionBankPage() {
           hskLevel: query.hskLevel || undefined,
           qtype: query.qtype || undefined,
           status: query.status || undefined,
+          source: query.source || undefined,
           kid: query.kid || undefined,
           q: query.q || undefined,
           page: query.page,
@@ -47,7 +49,7 @@ export default function Scr064QuestionBankPage() {
         },
         signal,
       ),
-    [query.hskLevel, query.qtype, query.status, query.kid, query.q, query.page],
+    [query.hskLevel, query.qtype, query.status, query.source, query.kid, query.q, query.page],
     { isEmpty: (data) => data.items.length === 0 },
   )
   const tree = useApiQuery((signal) => getKnowledgeTree({}, signal), [])
@@ -61,6 +63,10 @@ export default function Scr064QuestionBankPage() {
   const [view, setView] = useState<QuestionBankView>('list')
   const showTree = isEditor && view === 'tree'
   // Null while the tab is closed, so a stale local result is never mistaken for "every node has 0 questions".
+  const gaps = useApiQuery(
+    (signal) => (showTree ? getAiNodeGaps(signal) : Promise.resolve(undefined)),
+    [showTree],
+  )
   const counts = useApiQuery(
     (signal) => (showTree ? getKnowledgeQuestionCounts(signal) : Promise.resolve(null)),
     [showTree],
@@ -76,7 +82,7 @@ export default function Scr064QuestionBankPage() {
       onClearFilters={() => {
         setSearchDraft('')
         setSearchError(undefined)
-        updateQuery({ hskLevel: '', qtype: '', status: '', kid: '', q: '', page: 0 })
+        updateQuery({ hskLevel: '', qtype: '', status: '', source: '', kid: '', q: '', page: 0 })
       }}
       onFiltersChange={(next) => updateQuery({ ...next, page: 0 })}
       onNodesRetry={tree.reload}
@@ -107,19 +113,32 @@ export default function Scr064QuestionBankPage() {
           ? {
               onViewChange: setView,
               panel: showTree ? (
-                <KnowledgeTreeReviewPanel
-                  counts={counts.state === 'ready' ? (counts.data?.counts ?? undefined) : undefined}
-                  countsError={counts.error}
-                  nodes={tree.data?.nodes ?? []}
-                  nodesError={tree.error}
-                  nodesState={tree.state}
-                  onNodesRetry={tree.reload}
-                  selectedKid={query.kid || undefined}
-                  onSelectKid={(kid) => {
-                    updateQuery({ ...query, kid, page: 0 })
-                    setView('list')
-                  }}
-                />
+                <>
+                  <AiNodeGapsPanel
+                    gaps={gaps.data}
+                    onRetry={gaps.reload}
+                    onSelectKid={(kid) => {
+                      updateQuery({ ...query, kid, page: 0 })
+                      setView('list')
+                    }}
+                    state={gaps.state}
+                  />
+                  <KnowledgeTreeReviewPanel
+                    counts={
+                      counts.state === 'ready' ? (counts.data?.counts ?? undefined) : undefined
+                    }
+                    countsError={counts.error}
+                    nodes={tree.data?.nodes ?? []}
+                    nodesError={tree.error}
+                    nodesState={tree.state}
+                    onNodesRetry={tree.reload}
+                    selectedKid={query.kid || undefined}
+                    onSelectKid={(kid) => {
+                      updateQuery({ ...query, kid, page: 0 })
+                      setView('list')
+                    }}
+                  />
+                </>
               ) : null,
               view,
             }

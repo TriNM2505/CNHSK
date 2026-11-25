@@ -118,7 +118,8 @@ export function MasteryDashboardView({
   onRetryRecommendations,
   onRetryReview,
   skills,
-}: MasteryDashboardViewProps & { skills?: ReactNode }) {
+  mistakes,
+}: MasteryDashboardViewProps & { skills?: ReactNode; mistakes?: ReactNode }) {
   const shown = recommendations?.slice(0, MAX_RECOMMENDATIONS) ?? []
 
   return (
@@ -130,6 +131,8 @@ export function MasteryDashboardView({
         reviewState={reviewState}
         reviewSummary={reviewSummary}
       />
+
+      {mistakes}
 
       {skills}
 

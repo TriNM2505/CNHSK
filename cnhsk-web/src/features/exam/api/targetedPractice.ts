@@ -1,7 +1,22 @@
 import type { SessionView } from '@/features/practice'
 import { apiRequest } from '@/shared/api'
 
-import type { NoQuestions, TargetedPracticeRequest } from '../types'
+import type {
+  MistakeSummary,
+  NoMistakePractice,
+  NoQuestions,
+  TargetedPracticeRequest,
+} from '../types'
+
+export function getMyMistakes(signal?: AbortSignal): Promise<MistakeSummary> {
+  return apiRequest<MistakeSummary>('/api/mistake-practice', { signal })
+}
+
+export function startMistakePractice(): Promise<SessionView | NoMistakePractice> {
+  return apiRequest<SessionView | NoMistakePractice>('/api/mistake-practice/sessions', {
+    method: 'POST',
+  })
+}
 
 export function startTargetedPractice(
   request: TargetedPracticeRequest,

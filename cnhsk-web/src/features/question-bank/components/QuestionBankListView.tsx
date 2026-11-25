@@ -34,6 +34,7 @@ import { limitQuestionInput } from '../questionEditForm'
 import type {
   KnowledgeNode,
   QuestionPage,
+  QuestionSource,
   QuestionStatus,
   QuestionSummary,
   QuestionType,
@@ -209,6 +210,21 @@ export function QuestionBankListView({
                   {(Object.keys(QUESTION_STATUS_LABELS) as QuestionStatus[]).map((status) => (
                     <option key={status} value={status}>
                       {QUESTION_STATUS_LABELS[status]}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
+              <FormField htmlFor="question-source" label="Nguồn">
+                <Select
+                  value={query.source ?? ''}
+                  onChange={(event) =>
+                    onFiltersChange({ ...query, source: event.target.value as QuestionSource | '' })
+                  }
+                >
+                  <option value="">Tất cả nguồn</option>
+                  {(Object.keys(QUESTION_SOURCE_LABELS) as QuestionSource[]).map((source) => (
+                    <option key={source} value={source}>
+                      {QUESTION_SOURCE_LABELS[source]}
                     </option>
                   ))}
                 </Select>

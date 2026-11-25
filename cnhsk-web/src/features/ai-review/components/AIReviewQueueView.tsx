@@ -13,6 +13,7 @@ import {
   Pagination,
   Select,
   Skeleton,
+  StatusBadge,
   SUPPORTED_HSK_LEVELS,
   type PageStateValue,
 } from '@/shared/ui'
@@ -117,8 +118,10 @@ export function AIReviewQueueView(props: AIReviewQueueViewProps) {
           onQueryChange({ ...draft, kid: draft.kid.trim(), page: 0 })
         }}
       >
-        <fieldset className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" disabled={busy}>
-          <legend className="sr-only">Lọc theo năng lực, HSK và ngày tạo tại Việt Nam</legend>
+        <fieldset className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" disabled={busy}>
+          <legend className="sr-only">
+            Lọc theo năng lực, HSK, dạng câu và ngày tạo tại Việt Nam
+          </legend>
           <FormField htmlFor="review-kid" label="Mã năng lực (KID)" error={filterError}>
             <Input value={draft.kid} onChange={(event) => change('kid', event.target.value)} />
           </FormField>
@@ -130,6 +133,16 @@ export function AIReviewQueueView(props: AIReviewQueueViewProps) {
                   HSK {level}
                 </option>
               ))}
+            </Select>
+          </FormField>
+          <FormField htmlFor="review-qtype" label="Dạng câu">
+            <Select
+              value={draft.qtype ?? ''}
+              onChange={(event) => change('qtype', event.target.value)}
+            >
+              <option value="">Tất cả</option>
+              <option value="MULTIPLE_CHOICE">Trắc nghiệm</option>
+              <option value="TRUE_FALSE">Đúng/Sai</option>
             </Select>
           </FormField>
           <FormField htmlFor="review-from" label="Từ ngày (giờ Việt Nam)">
@@ -156,7 +169,7 @@ export function AIReviewQueueView(props: AIReviewQueueViewProps) {
             variant="outline"
             onClick={() => {
               setFilterError(undefined)
-              onQueryChange({ kid: '', hsk: '', from: '', to: '', page: 0, size: 20 })
+              onQueryChange({ kid: '', hsk: '', qtype: '', from: '', to: '', page: 0, size: 20 })
             }}
           >
             Xoá bộ lọc
@@ -237,6 +250,9 @@ export function AIReviewQueueView(props: AIReviewQueueViewProps) {
                 render: (row) => (
                   <div className="space-y-2 break-words">
                     <p className="font-hanzi">{row.stemSummary}</p>
+                    {row.qtype === 'TRUE_FALSE' ? (
+                      <StatusBadge tone="info">Đúng/Sai</StatusBadge>
+                    ) : null}
                     <Button disabled={busy} onClick={() => onOpen(row.id)} variant="ghost">
                       Mở câu #{row.id}
                     </Button>

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { ChoiceQuestion } from '@/features/practice/components/ChoiceQuestion'
+import { NewQuestionBadge } from '@/features/practice/components/NewQuestionBadge'
 import type { ServedItemView } from '@/features/practice/types'
 import { Button, Card, EmptyState, PageBanner, Progress } from '@/shared/ui'
 import { cn } from '@/shared/lib/cn'
@@ -22,6 +23,8 @@ export type QuizAttemptViewProps = {
   topicId: number
   rankingEligible: boolean
   items: ServedItemView[]
+  /** Numbers of newly added bank questions, marked "Câu mới". */
+  newItems?: readonly number[]
   currentNo: number
   choices: Readonly<Record<number, string | null>>
   elapsedMs: number
@@ -107,6 +110,7 @@ export function QuizAttemptView(props: QuizAttemptViewProps) {
                   <Flag aria-hidden="true" className="size-4" />
                   Câu {current.no}
                 </p>
+                {props.newItems?.includes(current.no) ? <NewQuestionBadge /> : null}
                 <p className="text-caption text-ink-secondary">Chọn một đáp án phù hợp</p>
               </div>
               <div key={current.no} className="quiz-question-enter">

@@ -23,7 +23,16 @@ describe('queue query and safe detail context', () => {
           to: 'garbage',
         }),
       ),
-    ).toEqual({ kid: '词'.repeat(20), hsk: '', from: '', to: '', page: 0, size: 20 })
+    ).toEqual({ kid: '词'.repeat(20), hsk: '', qtype: '', from: '', to: '', page: 0, size: 20 })
+  })
+  it('keeps only the two reviewable question types', () => {
+    expect(parseReviewQueueQuery(new URLSearchParams({ qtype: 'TRUE_FALSE' })).qtype).toBe(
+      'TRUE_FALSE',
+    )
+    expect(parseReviewQueueQuery(new URLSearchParams({ qtype: 'ESSAY' })).qtype).toBe('')
+    expect(
+      reviewQueueParams(parseReviewQueueQuery(new URLSearchParams({ qtype: 'TRUE_FALSE' }))).qtype,
+    ).toBe('TRUE_FALSE')
   })
   it.each(['1', '2', '3'])('keeps approved UI level %s', (hsk) => {
     expect(parseReviewQueueQuery(new URLSearchParams({ hsk })).hsk).toBe(hsk)

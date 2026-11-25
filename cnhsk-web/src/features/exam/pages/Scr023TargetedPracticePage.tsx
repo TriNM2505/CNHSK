@@ -2,14 +2,31 @@ import { useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { answerItem, finishSession } from '@/features/practice/api'
+import { isNewItem } from '@/features/practice/new-items'
 import type { SessionView } from '@/features/practice/types'
 import { useApiMutation, useApiQuery } from '@/shared/api'
 
-import { getTargetedNodeName, startTargetedPractice } from '../api/targetedPractice'
+import {
+  getTargetedNodeName,
+  startMistakePractice,
+  startTargetedPractice,
+} from '../api/targetedPractice'
 import { TargetedPracticeView, type TargetedFeedback } from '../components/TargetedPracticeView'
 import type { TargetedPracticeRequest } from '../types'
 
-function Practice({ kid, name, session }: { kid: string; name?: string; session: SessionView }) {
+type Heading = { title: string; subtitle: string }
+
+function Practice({
+  kid,
+  name,
+  session,
+  heading,
+}: {
+  kid: string
+  name?: string
+  session: SessionView
+  heading?: Heading
+}) {
   const [index, setIndex] = useState(0)
   const [feedback, setFeedback] = useState<TargetedFeedback>()
   const [finished, setFinished] = useState(false)
@@ -51,10 +68,12 @@ function Practice({ kid, name, session }: { kid: string; name?: string; session:
     }
   }
 
-  if (finished) return <TargetedPracticeView kid={kid} name={name} state="finished" />
-  if (!item) return <TargetedPracticeView kid={kid} name={name} state="empty" />
+  if (finished)
+    return <TargetedPracticeView heading={heading} kid={kid} name={name} state="finished" />
+  if (!item) return <TargetedPracticeView heading={heading} kid={kid} name={name} state="empty" />
   return (
     <TargetedPracticeView
+      heading={heading}
       kid={kid}
       name={name}
       state="ready"
@@ -62,6 +81,7 @@ function Practice({ kid, name, session }: { kid: string; name?: string; session:
         text: item.prompt.text ?? '',
         options: item.options?.map(({ key, text }) => ({ key, text })) ?? [],
         repeated: Array.isArray(repeatedNos) && repeatedNos.includes(item.no),
+        fresh: isNewItem(session.meta, item.no),
       }}
       position={index + 1}
       total={session.items.length}
@@ -105,8 +125,59 @@ function TargetedPractice({ request }: { request: TargetedPracticeRequest }) {
   return <Practice key={data.sessionId} kid={kid} name={name.data} session={data} />
 }
 
+const MISTAKES_TITLE = 'Luyện lỗi của tôi'
+const MISTAKES_HEADING: Heading = {
+  title: MISTAKES_TITLE,
+  subtitle: 'Luyện lại các phần bạn làm sai trong 7 ngày qua.',
+}
+const EMPTY_MISTAKES = {
+  NO_RECENT_MISTAKES: 'Bạn chưa có lỗi nào trong 7 ngày qua',
+  NO_QUESTIONS: 'Chưa có câu luyện cho các phần bạn làm sai',
+} as const
+
+/** Ten approved questions from the nodes this learner got wrong in the last seven days. */
+function MistakePractice() {
+  const inFlight = useRef<ReturnType<typeof startMistakePractice>>()
+  const session = useApiQuery(() => {
+    // StrictMode replays effects. Share the in-flight POST for this mounted route.
+    inFlight.current ??= startMistakePractice().finally(() => {
+      inFlight.current = undefined
+    })
+    return inFlight.current
+  }, [])
+
+  if (session.state === 'loading')
+    return <TargetedPracticeView heading={MISTAKES_HEADING} kid={MISTAKES_TITLE} state="loading" />
+  if (session.state === 'error') {
+    return (
+      <TargetedPracticeView
+        heading={MISTAKES_HEADING}
+        kid={MISTAKES_TITLE}
+        state="error"
+        error={session.error?.message}
+        onRetry={session.reload}
+      />
+    )
+  }
+  const data = session.data
+  if (!data || 'reason' in data) {
+    return (
+      <TargetedPracticeView
+        heading={MISTAKES_HEADING}
+        kid={MISTAKES_TITLE}
+        state="empty"
+        emptyMessage={EMPTY_MISTAKES[data?.reason ?? 'NO_QUESTIONS']}
+      />
+    )
+  }
+  return (
+    <Practice key={data.sessionId} heading={MISTAKES_HEADING} kid={MISTAKES_TITLE} session={data} />
+  )
+}
+
 export default function Scr023TargetedPracticePage() {
   const [params] = useSearchParams()
+  if (params.get('mode') === 'mistakes') return <MistakePractice />
   const kid = params.get('kid')?.trim()
   if (!kid) return <TargetedPracticeView kid="" state="error" error="Thiếu mã nút năng lực." />
   const qtype = params.get('qtype')

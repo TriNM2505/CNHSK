@@ -1,15 +1,19 @@
 export type ReviewQueueParams = {
   kid?: string
   hsk?: number
+  qtype?: ReviewQuestionType
   from?: string
   to?: string
   page?: number
   size?: number
 }
 
+export type ReviewQuestionType = 'MULTIPLE_CHOICE' | 'TRUE_FALSE'
+
 export type AIQuestionSummary = {
   id: number
   stemSummary: string
+  qtype?: ReviewQuestionType
   hskLevel: number
   labels: { kid: string; role: 'PRIMARY' | 'SECONDARY' }[]
   generatedAt: string

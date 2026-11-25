@@ -12,12 +12,15 @@ import {
   XCircle,
 } from 'lucide-react'
 import type { Option } from '@/features/practice'
+import { NewQuestionBadge } from '@/features/practice/components/NewQuestionBadge'
 import { Button, PageHeader, Progress, Skeleton } from '@/shared/ui'
 
 export type TargetedQuestion = {
   text: string
   options: readonly Option[]
   repeated: boolean
+  /** A newly added bank question (AI draft approved by a teacher). */
+  fresh?: boolean
 }
 
 export type TargetedFeedback = {
@@ -39,6 +42,10 @@ type Props = {
   onAnswer?: (key: string) => void
   onContinue?: () => void
   onRetry?: () => void
+  /** Replaces the per-node empty text, e.g. for the learner's own mistakes. */
+  emptyMessage?: string
+  /** Replaces the per-node page heading, e.g. for the learner's own mistakes. */
+  heading?: { title: string; subtitle: string }
 }
 
 function ChineseLandscapeBannerArt() {
@@ -274,17 +281,19 @@ export function TargetedPracticeView({
   onAnswer,
   onContinue,
   onRetry,
+  emptyMessage,
+  heading,
 }: Props) {
   return (
     <main className="mx-auto w-full min-w-0 max-w-content space-y-5 px-4 py-6 pb-16 sm:px-6 lg:max-w-[960px]">
       <div className="relative overflow-hidden rounded-md border border-brand-100 bg-brand-50 px-5 py-5 sm:px-6">
         <PageHeader
           className="relative z-nav mb-0"
-          subtitle="Luyện tập trọng tâm để củng cố nút kiến thức."
+          subtitle={heading?.subtitle ?? 'Luyện tập trọng tâm để củng cố nút kiến thức.'}
           title={
             <span className="inline-flex items-center gap-3">
               <span aria-hidden="true" className="h-7 w-1.5 rounded-pill bg-brand-600" />
-              <span>Luyện theo nút</span>
+              <span>{heading?.title ?? 'Luyện theo nút'}</span>
             </span>
           }
         />
@@ -328,7 +337,7 @@ export function TargetedPracticeView({
       {state === 'loading' && <Skeleton variant="card" />}
       {state === 'empty' && (
         <p className="rounded-md border border-brand-100 bg-brand-50 p-6 text-center text-ink">
-          Chưa có bài luyện cho nút này
+          {emptyMessage ?? 'Chưa có bài luyện cho nút này'}
         </p>
       )}
       {state === 'finished' && (
@@ -360,6 +369,7 @@ export function TargetedPracticeView({
                   Câu {position}/{total}
                 </span>
               </h2>
+              {question.fresh && <NewQuestionBadge />}
               {question.repeated && (
                 <p className="inline-flex items-center gap-1.5 rounded-pill bg-brand-100 px-3.5 py-1.5 text-caption font-semibold text-brand-700">
                   <AlertCircle aria-hidden="true" className="size-4 text-brand-700" />

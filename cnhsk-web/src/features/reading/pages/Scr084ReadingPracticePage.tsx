@@ -9,6 +9,8 @@ import {
   usePracticeSession,
 } from '@/features/practice'
 import { cn } from '@/shared/lib/cn'
+import { NewQuestionBadge } from '@/features/practice/components/NewQuestionBadge'
+import { isNewItem } from '@/features/practice/new-items'
 import { Button, HskLevelPicker, Skeleton, useHskLevel } from '@/shared/ui'
 
 import { startReadingPractice, type ReadingQuestionType } from '../api'
@@ -193,6 +195,7 @@ export default function Scr084ReadingPracticePage() {
       {!showSetup && practice.state === 'ready' && item ? (
         <section className="space-y-5 rounded-md border border-line bg-surface p-5 sm:p-6">
           <SessionProgress current={position} total={session!.items.length} />
+          {isNewItem(session!.meta, item.no) ? <NewQuestionBadge /> : null}
           <ChoiceQuestion
             feedbackMode={session!.feedback}
             item={item}

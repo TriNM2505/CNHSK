@@ -1,10 +1,14 @@
 import { SUPPORTED_HSK_LEVELS } from '@/shared/ui'
 
-import type { ReviewQueueParams } from './types'
+import type { ReviewQueueParams, ReviewQuestionType } from './types'
+
+const QUESTION_TYPES: ReviewQuestionType[] = ['MULTIPLE_CHOICE', 'TRUE_FALSE']
 
 export type ReviewQueueQuery = {
   kid: string
   hsk: string
+  /** Empty keeps every question type. */
+  qtype?: string
   from: string
   to: string
   page: number
@@ -21,6 +25,7 @@ export function validReviewDate(value: string): boolean {
 
 export function parseReviewQueueQuery(search: URLSearchParams): ReviewQueueQuery {
   const hsk = search.get('hsk') ?? ''
+  const qtype = search.get('qtype') ?? ''
   const from = search.get('from') ?? ''
   const to = search.get('to') ?? ''
   const page = Number(search.get('page') ?? 0)
@@ -30,6 +35,7 @@ export function parseReviewQueueQuery(search: URLSearchParams): ReviewQueueQuery
       .slice(0, 20)
       .join(''),
     hsk: SUPPORTED_HSK_LEVELS.some((level) => String(level) === hsk) ? hsk : '',
+    qtype: QUESTION_TYPES.includes(qtype as ReviewQuestionType) ? qtype : '',
     from: validReviewDate(from) ? from : '',
     to: validReviewDate(to) && (!validReviewDate(from) || to >= from) ? to : '',
     page: Number.isSafeInteger(page) && page >= 0 ? page : 0,
@@ -39,7 +45,8 @@ export function parseReviewQueueQuery(search: URLSearchParams): ReviewQueueQuery
 
 export function reviewQueueSearch(query: ReviewQueueQuery): string {
   const search = new URLSearchParams()
-  for (const [key, value] of Object.entries(query)) if (value !== '') search.set(key, String(value))
+  for (const [key, value] of Object.entries(query))
+    if (value !== '' && value !== undefined) search.set(key, String(value))
   return search.toString()
 }
 
@@ -47,6 +54,7 @@ export function reviewQueueParams(query: ReviewQueueQuery): ReviewQueueParams {
   return {
     kid: query.kid || undefined,
     hsk: query.hsk ? Number(query.hsk) : undefined,
+    qtype: query.qtype ? (query.qtype as ReviewQuestionType) : undefined,
     from: query.from ? new Date(`${query.from}T00:00:00+07:00`).toISOString() : undefined,
     to: query.to ? new Date(`${query.to}T23:59:59.999+07:00`).toISOString() : undefined,
     page: query.page,

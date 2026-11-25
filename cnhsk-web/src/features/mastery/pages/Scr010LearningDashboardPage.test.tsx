@@ -12,6 +12,14 @@ vi.mock('../api/mastery', () => ({
   getMySkillMastery: vi.fn().mockResolvedValue({ hskLevel: 3, skills: [], domains: [] }),
 }))
 vi.mock('../api/reviews', () => ({ getReviewSummary: vi.fn() }))
+vi.mock('@/features/exam/api/targetedPractice', () => ({
+  getMyMistakes: vi.fn().mockResolvedValue({
+    kids: [
+      { kid: 'NP1-004', nameVi: 'Câu chữ 把', wrongCount: 3 },
+      { kid: 'TV1-002', nameVi: 'Gia đình', wrongCount: 1 },
+    ],
+  }),
+}))
 
 const getMyRecommendationsMock = vi.mocked(getMyRecommendations)
 const getReviewSummaryMock = vi.mocked(getReviewSummary)
@@ -156,6 +164,17 @@ describe('SCR-010 Learning Dashboard (FR-025, AT-25)', () => {
     expect(screen.getByRole('link', { name: 'Ôn trước' })).toHaveAttribute(
       'href',
       '/learn/review?ahead=true',
+    )
+  })
+  it('links the learner own recent mistakes to the mistakes practice', async () => {
+    setSuccessfulResponses()
+    renderPage()
+    const panel = await screen.findByRole('region', { name: 'Luyện lỗi của tôi' })
+    expect(await within(panel).findByText('2 phần cần luyện lại')).toBeVisible()
+    expect(within(panel).getByText('Câu chữ 把, Gia đình')).toBeVisible()
+    expect(within(panel).getByRole('link', { name: 'Luyện ngay' })).toHaveAttribute(
+      'href',
+      '/learn/practice/targeted?mode=mistakes',
     )
   })
 })

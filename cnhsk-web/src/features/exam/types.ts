@@ -68,6 +68,11 @@ export type TargetedPracticeRequest = {
 
 export type NoQuestions = { reason: 'NO_QUESTIONS'; session: null }
 
+/** Nodes the learner answered wrongly in the last seven days, most mistakes first. */
+export type MistakeSummary = { kids: { kid: string; nameVi: string; wrongCount: number }[] }
+
+export type NoMistakePractice = { reason: 'NO_RECENT_MISTAKES' | 'NO_QUESTIONS'; session: null }
+
 export type PlacementSummary = {
   active: { runId: number; sessionId: number } | null
   last: {

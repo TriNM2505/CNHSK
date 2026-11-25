@@ -13,7 +13,15 @@ import { questionSearchError } from '../questionListQuery'
 import type { KnowledgeTree, QuestionPage, QuestionSummary } from '../types'
 import Scr064QuestionBankPage from './Scr064QuestionBankPage'
 
-vi.mock('../api/questions', () => ({ listQuestions: vi.fn() }))
+vi.mock('../api/questions', () => ({
+  listQuestions: vi.fn(),
+  getAiNodeGaps: vi.fn(async () => ({
+    totalNodes: 3,
+    nodes: [
+      { kid: 'NP1-009', nameVi: 'Câu chữ 把', hskLevel: 1, missingCanDo: false, lexemeCount: 0 },
+    ],
+  })),
+}))
 vi.mock('../api/knowledge', () => ({
   getKnowledgeQuestionCounts: vi.fn(),
   getKnowledgeTree: vi.fn(),
@@ -591,6 +599,16 @@ describe('SCR-064 question bank (FR-017, FR-018, FR-026 · AT-26)', () => {
   })
 
   describe('tree review tab (content editors only)', () => {
+    it('lists the nodes the AI job skips and filters the list by one of them', async () => {
+      const user = userEvent.setup()
+      renderPage('/content/questions', ['CONTENT_EDITOR'])
+      await table()
+      await user.click(screen.getByRole('tab', { name: 'Sơ đồ cây' }))
+      const panel = await screen.findByRole('region', { name: 'Nút AI chưa sinh được câu' })
+      expect(await within(panel).findByText(/1\/3 nút bị bỏ qua/)).toBeVisible()
+      expect(within(panel).getByText('Từ vựng gắn nút')).toBeVisible()
+    })
+
     it('FR030_AT32_is not offered to teachers, who never request question counts', async () => {
       renderPage('/content/questions', ['TEACHER'])
 

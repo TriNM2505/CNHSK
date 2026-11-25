@@ -1,6 +1,11 @@
 export type RunStatus = 'RUNNING' | 'COMPLETED' | 'FAILED'
 export type RunError =
-  'INVALID_OUTPUT' | 'BUDGET_EXCEEDED' | 'PROVIDER_ERROR' | 'NO_VALID_QUESTION' | 'STALE'
+  | 'INVALID_OUTPUT'
+  | 'BUDGET_EXCEEDED'
+  | 'PROVIDER_ERROR'
+  | 'NO_VALID_QUESTION'
+  | 'STALE'
+  | 'EMBEDDING_UNAVAILABLE'
 export type AiRun = {
   id: number
   kid: string
@@ -15,6 +20,7 @@ export type AiRun = {
 }
 export type RunPage = {
   enabled: boolean
+  embeddingReady: boolean
   monthTokens: number
   items: AiRun[]
   page: number

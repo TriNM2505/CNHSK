@@ -9,6 +9,7 @@ import AiRunsPage from './AiRunsPage'
 vi.mock('../api/ai-runs', () => ({ listAiRuns: vi.fn(), triggerAiRun: vi.fn() }))
 const page: RunPage = {
   enabled: true,
+  embeddingReady: true,
   monthTokens: 1234,
   page: 0,
   size: 20,
@@ -40,6 +41,23 @@ function deferred<T>() {
   return { promise, resolve }
 }
 describe('AI run history', () => {
+  it('warns that new batches pause while the duplicate meaning check is not ready', async () => {
+    vi.mocked(listAiRuns).mockResolvedValue({
+      ...page,
+      embeddingReady: false,
+      items: [{ ...page.items[0]!, error: 'EMBEDDING_UNAVAILABLE' }],
+    })
+    render(<AiRunsPage />)
+    expect(await screen.findByText(/Bộ lọc trùng nghĩa chưa sẵn sàng/)).toBeVisible()
+    expect(screen.getAllByText('Bộ lọc trùng nghĩa không chạy được').length).toBeGreaterThan(0)
+  })
+
+  it('shows no pause warning when the duplicate meaning check is ready', async () => {
+    render(<AiRunsPage />)
+    expect((await screen.findAllByText('KNOWLEDGE-1')).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/Bộ lọc trùng nghĩa chưa sẵn sàng/)).toBeNull()
+  })
+
   it('shows loading, all ten safe fields and neutral failed error, with no detail request', async () => {
     const pending = deferred<RunPage>()
     vi.mocked(listAiRuns).mockReturnValue(pending.promise)

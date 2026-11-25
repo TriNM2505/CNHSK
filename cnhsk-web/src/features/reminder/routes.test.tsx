@@ -34,6 +34,9 @@ vi.mock('@/features/mastery/api/mastery', () => ({
   getMyRecommendations: vi.fn(async () => []),
   getMySkillMastery: vi.fn(async () => ({ hskLevel: 3, skills: [], domains: [] })),
 }))
+vi.mock('@/features/exam/api/targetedPractice', () => ({
+  getMyMistakes: vi.fn(async () => ({ kids: [] })),
+}))
 vi.mock('@/features/mastery/api/reviews', () => ({
   getReviewSummary: vi.fn(async () => ({ dueCount: 1, nextDueAt: null })),
 }))

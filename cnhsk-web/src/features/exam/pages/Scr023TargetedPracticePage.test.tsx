@@ -5,13 +5,18 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { answerItem, finishSession } from '@/features/practice/api'
-import { getTargetedNodeName, startTargetedPractice } from '../api/targetedPractice'
+import {
+  getTargetedNodeName,
+  startMistakePractice,
+  startTargetedPractice,
+} from '../api/targetedPractice'
 import { targetedNodeFixture, targetedSessionFixture } from '../test-fixtures'
 import Scr023TargetedPracticePage from './Scr023TargetedPracticePage'
 
 vi.mock('../api/targetedPractice', () => ({
   getTargetedNodeName: vi.fn(),
   startTargetedPractice: vi.fn(),
+  startMistakePractice: vi.fn(),
 }))
 vi.mock('@/features/practice/api', () => ({ answerItem: vi.fn(), finishSession: vi.fn() }))
 
@@ -26,6 +31,41 @@ function open(query = '?kid=' + kid) {
     </StrictMode>,
   )
 }
+
+describe('SCR-023 mistakes practice', () => {
+  beforeEach(() => vi.resetAllMocks())
+
+  it('starts one mistakes session without a node and shows its questions', async () => {
+    vi.mocked(startMistakePractice).mockResolvedValue(targetedSessionFixture)
+    open('?mode=mistakes')
+    expect(await screen.findByText(targetedSessionFixture.items[0]!.prompt.text!)).toBeVisible()
+    expect(screen.getAllByText(/Luyện lỗi của tôi/).length).toBeGreaterThan(0)
+    expect(screen.getByText('Luyện lại các phần bạn làm sai trong 7 ngày qua.')).toBeVisible()
+    expect(screen.queryByText('Luyện theo nút')).not.toBeInTheDocument()
+    expect(startMistakePractice).toHaveBeenCalledTimes(1)
+    expect(startTargetedPractice).not.toHaveBeenCalled()
+    expect(getTargetedNodeName).not.toHaveBeenCalled()
+  })
+
+  it('marks a newly added bank question with "Câu mới"', async () => {
+    vi.mocked(startMistakePractice).mockResolvedValue({
+      ...targetedSessionFixture,
+      meta: { mode: 'MISTAKES', newItems: [1] },
+    })
+    open('?mode=mistakes')
+    expect(await screen.findByText(targetedSessionFixture.items[0]!.prompt.text!)).toBeVisible()
+    expect(screen.getByText('Câu mới')).toBeVisible()
+  })
+
+  it('explains when there were no mistakes in the last seven days', async () => {
+    vi.mocked(startMistakePractice).mockResolvedValue({
+      reason: 'NO_RECENT_MISTAKES',
+      session: null,
+    })
+    open('?mode=mistakes')
+    expect(await screen.findByText('Bạn chưa có lỗi nào trong 7 ngày qua')).toBeVisible()
+  })
+})
 
 describe('SCR-023 targeted practice', () => {
   beforeEach(() => {

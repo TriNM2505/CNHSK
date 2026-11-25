@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useBlocker, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { usePracticeSession } from '@/features/practice'
+import { newItemNos } from '@/features/practice/new-items'
 import type { AnswerRequest } from '@/features/practice/types'
 import { useCurrentUser } from '@/shared/auth'
 import { Button, EmptyState, ErrorState, Skeleton } from '@/shared/ui'
@@ -188,6 +189,7 @@ function Attempt({ started }: { started: QuizSession }) {
       topicId={started.topicId}
       rankingEligible={session.source === 'QUIZ'}
       items={session.items}
+      newItems={newItemNos(session.meta)}
       currentNo={currentNo}
       choices={choices}
       elapsedMs={Math.max(0, now - Date.parse(session.servedAt))}

@@ -23,6 +23,7 @@ const errors: Record<RunError, string> = {
   PROVIDER_ERROR: 'Lỗi nhà cung cấp',
   NO_VALID_QUESTION: 'Không có câu hỏi hợp lệ',
   STALE: 'Lô quá hạn',
+  EMBEDDING_UNAVAILABLE: 'Bộ lọc trùng nghĩa không chạy được',
 }
 const date = (value: string | null) =>
   value === null
@@ -163,6 +164,12 @@ export function AiRunsView({
             </p>
           </div>
         </section>
+      ) : null}
+      {loaded && data && data.enabled && !data.embeddingReady ? (
+        <p role="status" className="rounded-md border border-warning bg-warning-bg p-4 text-ink">
+          Bộ lọc trùng nghĩa chưa sẵn sàng nên lô mới sẽ tạm dừng. Máy chủ tự tải mô hình ở lần chạy
+          tới; kiểm tra kết nối mạng nếu thông báo này còn sau vài giờ.
+        </p>
       ) : null}
       {loaded && data && !data.enabled ? (
         <p className="text-body-sm text-ink-secondary">

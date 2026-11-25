@@ -62,30 +62,24 @@ beforeEach(() => {
       totalElements: 1,
     })
   vi.mocked(getKnowledgeTree).mockReset().mockResolvedValue({ nodes: [] })
-  vi.mocked(getQuestion)
-    .mockReset()
-    .mockResolvedValue({
-      id: 901,
-      qtype: 'FILL_BLANK',
-      hskLevel: 2,
-      difficulty: 2,
-      stem: '我喝___。',
-      options: [],
-      correctKey: '水',
-      explanation: 'Ví dụ tự soạn.',
-      source: 'AI',
-      status: 'PENDING_REVIEW',
-      labels: [],
-      used: false,
-    })
+  vi.mocked(getQuestion).mockReset().mockResolvedValue({
+    id: 901,
+    qtype: 'FILL_BLANK',
+    hskLevel: 2,
+    difficulty: 2,
+    stem: '我喝___。',
+    options: [],
+    correctKey: '水',
+    explanation: 'Ví dụ tự soạn.',
+    source: 'AI',
+    status: 'PENDING_REVIEW',
+    labels: [],
+    used: false,
+  })
 })
 
 describe('AI review route integration', () => {
-  it.each([
-    ['TEACHER'],
-    ['ADMIN', 'TEACHER'],
-    ['CONTENT_EDITOR', 'TEACHER'],
-  ] as RoleCode[][])(
+  it.each([['TEACHER'], ['ADMIN', 'TEACHER'], ['CONTENT_EDITOR', 'TEACHER']] as RoleCode[][])(
     'allows explicit roles %j with a single link per navigation surface',
     async (...roles) => {
       renderRoute(roles)

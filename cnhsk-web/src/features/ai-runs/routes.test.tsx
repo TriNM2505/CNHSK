@@ -24,16 +24,15 @@ beforeEach(() => {
   vi.mocked(getCurrentUser)
     .mockReset()
     .mockResolvedValue(user(['ADMIN']))
-  vi.mocked(listAiRuns)
-    .mockReset()
-    .mockResolvedValue({
-      enabled: false,
-      monthTokens: 0,
-      items: [],
-      page: 0,
-      size: 20,
-      totalElements: 0,
-    })
+  vi.mocked(listAiRuns).mockReset().mockResolvedValue({
+    enabled: false,
+    embeddingReady: false,
+    monthTokens: 0,
+    items: [],
+    page: 0,
+    size: 20,
+    totalElements: 0,
+  })
   vi.mocked(triggerAiRun).mockReset()
 })
 it.each([['ADMIN'], ['ADMIN', 'CONTENT_EDITOR', 'LEARNER']] as RoleCode[][])(

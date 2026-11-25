@@ -55,6 +55,7 @@ export type QuestionListParams = {
   hskLevel?: number
   qtype?: QuestionType
   status?: QuestionStatus
+  source?: QuestionSource
   kid?: string
   q?: string
   page?: number
@@ -126,4 +127,16 @@ export type QuestionUpdate = {
   imageUrl?: string | null
   primaryKid: string
   secondaryKids: string[]
+}
+
+/** Nodes the AI question job skips; lexemeCount counts words linked directly to the node. */
+export type AiNodeGaps = {
+  totalNodes: number
+  nodes: {
+    kid: string
+    nameVi: string
+    hskLevel: number
+    missingCanDo: boolean
+    lexemeCount: number
+  }[]
 }

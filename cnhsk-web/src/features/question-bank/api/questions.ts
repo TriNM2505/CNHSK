@@ -1,17 +1,28 @@
 import { apiRequest } from '@/shared/api'
 
-import type { QuestionDetail, QuestionListParams, QuestionPage, QuestionUpdate } from '../types'
+import type {
+  AiNodeGaps,
+  QuestionDetail,
+  QuestionListParams,
+  QuestionPage,
+  QuestionUpdate,
+} from '../types'
+
+export function getAiNodeGaps(signal?: AbortSignal): Promise<AiNodeGaps> {
+  return apiRequest<AiNodeGaps>('/api/admin/ai-node-gaps', { signal })
+}
 
 const questionsPath = '/api/admin/questions'
 
 export function listQuestions(
-  { hskLevel, qtype, status, kid, q, page = 0, size = 10 }: QuestionListParams = {},
+  { hskLevel, qtype, status, source, kid, q, page = 0, size = 10 }: QuestionListParams = {},
   signal?: AbortSignal,
 ): Promise<QuestionPage> {
   const query = new URLSearchParams()
   if (hskLevel !== undefined) query.set('hskLevel', String(hskLevel))
   if (qtype !== undefined) query.set('qtype', qtype)
   if (status !== undefined) query.set('status', status)
+  if (source !== undefined) query.set('source', source)
   if (kid !== undefined) query.set('kid', kid)
   if (q !== undefined) query.set('q', q)
   query.set('page', String(page))

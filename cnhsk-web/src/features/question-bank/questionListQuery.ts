@@ -32,6 +32,8 @@ export type QuestionListQuery = {
   hskLevel: HskLevel | ''
   qtype: QuestionType | ''
   status: QuestionStatus | ''
+  /** Origin filter; absent or empty keeps every source. */
+  source?: QuestionSource | ''
   kid: string
   q: string
   page: number
@@ -49,10 +51,12 @@ export function questionListSearchParams(
   current?: URLSearchParams,
 ): URLSearchParams {
   const result = new URLSearchParams(current)
-  for (const key of ['hskLevel', 'qtype', 'status', 'kid', 'q', 'page', 'size']) result.delete(key)
+  for (const key of ['hskLevel', 'qtype', 'status', 'source', 'kid', 'q', 'page', 'size'])
+    result.delete(key)
   if (query.hskLevel) result.set('hskLevel', String(query.hskLevel))
   if (query.qtype) result.set('qtype', query.qtype)
   if (query.status) result.set('status', query.status)
+  if (query.source) result.set('source', query.source)
   if (query.kid) result.set('kid', query.kid)
   if (query.q) result.set('q', query.q)
   result.set('page', String(query.page))
@@ -63,6 +67,7 @@ export function questionListSearchParams(
 export function parseQuestionListSearchParams(params: URLSearchParams) {
   const rawType = params.get('qtype') ?? ''
   const rawStatus = params.get('status') ?? ''
+  const rawSource = params.get('source') ?? ''
   const rawQ = params.get('q')?.trim() ?? ''
   const rawPage = params.get('page') ?? '0'
   const page = /^\d+$/.test(rawPage) ? Number(rawPage) : 0
@@ -73,6 +78,9 @@ export function parseQuestionListSearchParams(params: URLSearchParams) {
       : '',
     status: Object.prototype.hasOwnProperty.call(QUESTION_STATUS_LABELS, rawStatus)
       ? (rawStatus as QuestionStatus)
+      : '',
+    source: Object.prototype.hasOwnProperty.call(QUESTION_SOURCE_LABELS, rawSource)
+      ? (rawSource as QuestionSource)
       : '',
     kid: params.get('kid')?.trim() ?? '',
     q: questionSearchError(rawQ) ? '' : rawQ,

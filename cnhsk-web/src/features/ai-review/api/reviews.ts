@@ -5,11 +5,11 @@ import type { AIQuestionPage, BulkResult, ReviewQueueParams, ReviewResult } from
 const path = '/api/admin/ai-questions'
 
 export function listReviews(
-  { kid, hsk, from, to, page = 0, size = 20 }: ReviewQueueParams = {},
+  { kid, hsk, qtype, from, to, page = 0, size = 20 }: ReviewQueueParams = {},
   signal?: AbortSignal,
 ): Promise<AIQuestionPage> {
   const query = new URLSearchParams()
-  for (const [key, value] of Object.entries({ kid, hsk, from, to })) {
+  for (const [key, value] of Object.entries({ kid, hsk, qtype, from, to })) {
     if (value !== undefined && value !== '') query.set(key, String(value))
   }
   query.set('page', String(page))
