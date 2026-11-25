@@ -86,6 +86,7 @@ class AiGenerationServiceIntegrationTest extends AbstractIntegrationTest {
         doReturn(900).when(config).semanticThreshold();
         // Other test classes leave AI questions in the shared database; the daily cap tests count for real.
         doReturn(0).when(store).savedToday();
+        doReturn(0).when(store).pendingReview();
         when(settings.getInt(SettingKey.AI_MONTHLY_TOKEN_BUDGET)).thenReturn(100000);
         redis.delete(TOKEN_KEY);
         calls = provider.callCount();

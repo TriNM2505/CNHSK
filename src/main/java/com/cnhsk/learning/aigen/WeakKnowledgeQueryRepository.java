@@ -42,8 +42,9 @@ public class WeakKnowledgeQueryRepository {
     /**
      * Wrong answers in the window from every graded section. A bank question counts for its primary node;
      * a word, character or grammar item (vocabulary, characters, grammar, review) counts for the node its
-     * lexeme belongs to and comes back with question id 0, no answer and no options. Items that reach no
-     * node (pronunciation, listening stages) are left out.
+     * lexeme belongs to and comes back with question id 0, no answer and no options. A pronunciation or
+     * listening unit counts for the node the server labelled it with in the session ({@code targetKid}).
+     * Items that reach no node are left out.
      */
     public List<WrongAnswer> wrongAnswers(Instant from, Instant through) {
         List<?> rows = entityManager.createNativeQuery("""
@@ -56,10 +57,18 @@ public class WeakKnowledgeQueryRepository {
                     LEFT JOIN learning.question_knowledge_points label
                       ON label.question_id = ai.question_id AND label.role = 'PRIMARY'
                     LEFT JOIN learning.lexemes lexeme ON ai.question_id IS NULL AND lexeme.id = ai.lexeme_id
+                    LEFT JOIN LATERAL (
+                        SELECT served ->> 'targetKid' AS kid
+                        FROM jsonb_array_elements(CASE WHEN ai.question_id IS NULL AND ai.lexeme_id IS NULL
+                                                       THEN a.served_items -> 'items' ELSE '[]'::jsonb END) served
+                        WHERE (served ->> 'no')::int = ai.order_index
+                        LIMIT 1
+                    ) labelled ON true
+                    LEFT JOIN learning.knowledge_points labelled_kp ON labelled_kp.code = labelled.kid
                     LEFT JOIN learning.knowledge_points kp
-                      ON kp.id = coalesce(label.knowledge_point_id, lexeme.knowledge_point_id)
+                      ON kp.id = coalesce(label.knowledge_point_id, lexeme.knowledge_point_id, labelled_kp.id)
                     WHERE ai.is_correct = false AND ai.answered_at >= :from AND ai.answered_at <= :through
-                      AND (ai.question_id IS NOT NULL OR lexeme.knowledge_point_id IS NOT NULL)
+                      AND (ai.question_id IS NOT NULL OR lexeme.knowledge_point_id IS NOT NULL OR labelled_kp.id IS NOT NULL)
                     GROUP BY 1, 2, 3, 4
                 )
                 SELECT wrong.user_id, coalesce(wrong.question_id, 0), wrong.answer, wrong.primary_kid,

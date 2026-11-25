@@ -47,7 +47,8 @@ public class MistakePracticeService {
     /**
      * Nodes with the learner's wrong answers since the start of the Vietnamese day six days ago, from every
      * graded section: a bank question counts for its primary node, a word, character or grammar item for
-     * the node its lexeme belongs to.
+     * the node its lexeme belongs to, a pronunciation or listening unit for the node the session labelled
+     * it with ({@code targetKid}).
      */
     @Transactional(readOnly = true)
     public List<MistakeNode> recentMistakes(long userId) {
@@ -59,7 +60,16 @@ public class MistakePracticeService {
                 LEFT JOIN learning.question_knowledge_points label
                   ON label.question_id = item.question_id AND label.role = 'PRIMARY'
                 LEFT JOIN learning.lexemes lexeme ON item.question_id IS NULL AND lexeme.id = item.lexeme_id
-                JOIN learning.knowledge_points kp ON kp.id = coalesce(label.knowledge_point_id, lexeme.knowledge_point_id)
+                LEFT JOIN LATERAL (
+                    SELECT served ->> 'targetKid' AS kid
+                    FROM jsonb_array_elements(CASE WHEN item.question_id IS NULL AND item.lexeme_id IS NULL
+                                                   THEN a.served_items -> 'items' ELSE '[]'::jsonb END) served
+                    WHERE (served ->> 'no')::int = item.order_index
+                    LIMIT 1
+                ) labelled ON true
+                LEFT JOIN learning.knowledge_points labelled_kp ON labelled_kp.code = labelled.kid
+                JOIN learning.knowledge_points kp
+                  ON kp.id = coalesce(label.knowledge_point_id, lexeme.knowledge_point_id, labelled_kp.id)
                 WHERE a.user_id = :user AND item.is_correct = false AND item.answered_at >= :from
                 GROUP BY kp.code, kp.title
                 ORDER BY wrong DESC, kp.code

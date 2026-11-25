@@ -12,6 +12,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -71,7 +72,8 @@ public class AiRunQueryService {
                     var completed = rs.getTimestamp("completed_at");
                     return new Run(rs.getLong("id"), payload.path("kid").asText(""), rs.getString("status"),
                             rs.getTimestamp("created_at").toInstant(), completed == null ? null : completed.toInstant(),
-                            count(result, "questionIds"), count(result, "dropped"), tokens(result, "inputTokens"),
+                            count(result, "questionIds"), count(result, "dropped"), reasons(result),
+                            tokens(result, "inputTokens"),
                             tokens(result, "outputTokens"), safeError(rs.getString("error_message")));
                 });
         int systemUserId = config.systemUserId();
@@ -117,6 +119,16 @@ public class AiRunQueryService {
         return value.isArray() ? value.size() : 0;
     }
 
+    /** Dropped drafts per validator reason, in first-seen order; reasons are uppercase codes only. */
+    private static Map<String, Integer> reasons(JsonNode result) {
+        Map<String, Integer> counts = new LinkedHashMap<>();
+        for (JsonNode drop : result.path("dropped")) {
+            String reason = drop.path("reason").asText("");
+            if (reason.matches("[A-Z_]{1,40}")) counts.merge(reason, 1, Integer::sum);
+        }
+        return counts;
+    }
+
     private static long tokens(JsonNode result, String field) {
         JsonNode value = result.path(field);
         return value.isIntegralNumber() && value.canConvertToLong() && value.longValue() >= 0 ? value.longValue() : 0;
@@ -131,9 +143,9 @@ public class AiRunQueryService {
     @Schema(name = "RunPage", requiredProperties = {"enabled", "embeddingReady", "monthTokens", "items", "page", "size", "totalElements"})
     public record RunPage(boolean enabled, boolean embeddingReady, long monthTokens, List<Run> items, int page, int size, long totalElements) { }
     @Schema(name = "Run", requiredProperties = {"id", "kid", "status", "createdAt", "completedAt", "questionCount",
-            "droppedCount", "inputTokens", "outputTokens", "error"})
+            "droppedCount", "droppedReasons", "inputTokens", "outputTokens", "error"})
     public record Run(long id, String kid, @Schema(allowableValues = {"RUNNING", "COMPLETED", "FAILED"}) String status,
             Instant createdAt, @Schema(nullable = true) Instant completedAt, int questionCount, int droppedCount,
-            long inputTokens, long outputTokens,
+            Map<String, Integer> droppedReasons, long inputTokens, long outputTokens,
             @Schema(nullable = true, allowableValues = {"INVALID_OUTPUT", "BUDGET_EXCEEDED", "PROVIDER_ERROR", "NO_VALID_QUESTION", "STALE", "EMBEDDING_UNAVAILABLE"}) String error) { }
 }

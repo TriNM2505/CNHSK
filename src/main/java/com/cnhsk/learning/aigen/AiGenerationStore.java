@@ -93,6 +93,14 @@ public class AiGenerationStore {
         return count == null ? 0 : count.intValue();
     }
 
+    /** AI questions still waiting for a teacher, in their own short transaction like {@link #savedToday()}. */
+    public int pendingReview() {
+        Number count = writes.execute(status -> (Number) entities.createNativeQuery("""
+                SELECT count(*) FROM learning.questions WHERE source = 'AI' AND status = 'PENDING_REVIEW'
+                """).getSingleResult());
+        return count == null ? 0 : count.intValue();
+    }
+
     public Finish finish(Claim claim, AiPromptBuilder.Prompt prompt, Completion completion, SemanticIndex semantic,
             int limit, Lease lease) {
         return writes.execute(status -> {

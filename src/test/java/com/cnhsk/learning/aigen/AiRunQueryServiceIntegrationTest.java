@@ -143,7 +143,8 @@ class AiRunQueryServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(run.error()).isNull();
         var json = mapper.valueToTree(run);
         assertThat(json.properties()).extracting(Map.Entry::getKey).containsExactlyInAnyOrder("id", "kid", "status",
-                "createdAt", "completedAt", "questionCount", "droppedCount", "inputTokens", "outputTokens", "error");
+                "createdAt", "completedAt", "questionCount", "droppedCount", "droppedReasons", "inputTokens", "outputTokens", "error");
+        assertThat(run.droppedReasons()).as("free-text reasons are never echoed").isEmpty();
         assertThat(json.toString()).doesNotContain(privateValue, "payload", "response", "userId", "prompt", "questionIds");
         assertThat(output.getAll()).contains("unsupported error code").doesNotContain(privateValue);
         assertThat(jdbc.queryForObject("SELECT error_message FROM learning.service_requests WHERE id=?", String.class, id))
@@ -164,6 +165,18 @@ class AiRunQueryServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(service.list(null, 0, 20).items().get(0).error()).isNull();
         assertThat(output.getAll()).contains("unsupported error code");
         if (!error.isEmpty()) assertThat(output.getAll()).doesNotContain(error);
+    }
+
+    @Test
+    void droppedDraftsAreCountedByReasonForTheRunsPage() {
+        request(admin, "AI_GENERATE", "COMPLETED", NOW, "{\"questionIds\":[1],\"dropped\":["
+                + "{\"index\":1,\"reason\":\"SEMANTIC_DUPLICATE_STEM\"},{\"index\":2,\"reason\":\"HANZI_ABOVE_LEVEL\"},"
+                + "{\"index\":3,\"reason\":\"SEMANTIC_DUPLICATE_STEM\"}]}", null);
+        assertThat(service.list(null, 0, 20).items()).singleElement().satisfies(run -> {
+            assertThat(run.droppedCount()).isEqualTo(3);
+            assertThat(run.droppedReasons()).containsExactly(java.util.Map.entry("SEMANTIC_DUPLICATE_STEM", 2),
+                    java.util.Map.entry("HANZI_ABOVE_LEVEL", 1));
+        });
     }
 
     @Test

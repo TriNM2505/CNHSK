@@ -106,7 +106,7 @@ components:
               outcome: { type: string, enum: [APPROVED, NOT_VIEWED, NOT_PENDING, MALFORMED] }
     Run:
       type: object
-      required: [id, kid, status, createdAt, completedAt, questionCount, droppedCount, inputTokens, outputTokens, error]
+      required: [id, kid, status, createdAt, completedAt, questionCount, droppedCount, droppedReasons, inputTokens, outputTokens, error]
       properties:
         id: { type: integer, format: int64 }
         kid: { type: string }
@@ -115,6 +115,10 @@ components:
         completedAt: { type: [string, 'null'], format: date-time }
         questionCount: { type: integer }
         droppedCount: { type: integer }
+        droppedReasons:
+          type: object
+          description: (v1.5) Dropped drafts counted by validator reason, e.g. SEMANTIC_DUPLICATE_STEM; empty when none.
+          additionalProperties: { type: integer, format: int32 }
         inputTokens: { type: integer, format: int64 }
         outputTokens: { type: integer, format: int64 }
         error: { type: [string, 'null'], enum: [INVALID_OUTPUT, BUDGET_EXCEEDED, PROVIDER_ERROR, NO_VALID_QUESTION, STALE, EMBEDDING_UNAVAILABLE, null] }

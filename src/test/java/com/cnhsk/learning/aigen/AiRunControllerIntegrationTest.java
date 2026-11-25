@@ -143,7 +143,7 @@ class AiRunControllerIntegrationTest extends AbstractIntegrationTest {
         JsonNode json = response(get(ROOT).param("status", state).param("size", "50"));
         assertThat(fields(json)).containsExactlyInAnyOrder("enabled", "embeddingReady", "monthTokens", "items", "page", "size", "totalElements");
         assertThat(fields(json.path("items").get(0))).containsExactlyInAnyOrder("id", "kid", "status", "createdAt", "completedAt",
-                "questionCount", "droppedCount", "inputTokens", "outputTokens", "error");
+                "questionCount", "droppedCount", "droppedReasons", "inputTokens", "outputTokens", "error");
         assertThat(json.path("items").get(0).path("status").asText()).isEqualTo(state);
         assertThat(json.path("items").get(0).path("completedAt").isNull()).isTrue();
         assertThat(json.path("items").get(0).path("error").isNull()).isTrue();

@@ -103,6 +103,25 @@ class MistakePracticeIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void wrongListeningUnitsCountForTheNodeTheSessionLabelledThemWith() {
+        long learner = learner();
+        long node = fixtures.node();
+        long attempt = fixtures.attempt(learner);
+        jdbc.update("UPDATE learning.attempts SET served_items=?::jsonb WHERE id=?",
+                "{\"meta\":{},\"items\":[{\"no\":1,\"type\":\"PRON_CHOICE\",\"targetKid\":\"" + fixtures.kid(node) + "\"},"
+                        + "{\"no\":2,\"type\":\"PRON_CHOICE\"}]}", attempt);
+        for (int no = 1; no <= 2; no++) {
+            jdbc.update("INSERT INTO learning.attempt_items(attempt_id,item_type,skill,answer,is_correct,order_index,answered_at) "
+                    + "VALUES (?,'PRON_CHOICE','PRONUNCIATION','B',false,?,?)", attempt, no,
+                    java.sql.Timestamp.from(NOW.minus(Duration.ofHours(3))));
+        }
+
+        assertThat(mistakes.recentMistakes(learner)).extracting(MistakePracticeService.MistakeNode::kid,
+                MistakePracticeService.MistakeNode::wrongCount)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(fixtures.kid(node), 1L));
+    }
+
+    @Test
     void approvedAiQuestionsAreListedAsNewItemsSoTheLearnerSeesThemMarked() throws Exception {
         long learner = learner();
         long node = fixtures.node();

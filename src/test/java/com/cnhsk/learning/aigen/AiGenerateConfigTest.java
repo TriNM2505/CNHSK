@@ -39,7 +39,8 @@ class AiGenerateConfigTest {
             new BusinessValue(SettingKey.AI_GENERATE_BATCH_SIZE, 5, AiGenerateConfig::batchSize),
             new BusinessValue(SettingKey.AI_GENERATE_MAX_BATCHES_PER_RUN, 20, AiGenerateConfig::maxBatchesPerRun),
             new BusinessValue(SettingKey.AI_GENERATE_DAILY_CAP, 100, AiGenerateConfig::dailyCap),
-            new BusinessValue(SettingKey.AI_GENERATE_SEMANTIC_THRESHOLD, 800, AiGenerateConfig::semanticThreshold));
+            new BusinessValue(SettingKey.AI_GENERATE_SEMANTIC_THRESHOLD, 800, AiGenerateConfig::semanticThreshold),
+            new BusinessValue(SettingKey.AI_GENERATE_MAX_PENDING, 500, AiGenerateConfig::maxPending));
     private static final List<String> TECHNICAL_PROPERTIES = List.of(
             "cnhsk.ai.generate-model=claude-sonnet-5-5",
             "cnhsk.ai-generate.timeout=60s",

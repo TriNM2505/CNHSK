@@ -51,7 +51,8 @@ class SettingKeyTest {
         "ai-generate.max-batches-per-run,AI sinh câu,0,20,20",
         "learning.free-monthly-limit,Học tập,0,1000,3",
         "ai-generate.daily-cap,AI sinh câu,0,500,100",
-        "ai-generate.semantic-threshold,AI sinh câu,500,1000,800"
+        "ai-generate.semantic-threshold,AI sinh câu,500,1000,800",
+        "ai-generate.max-pending,AI sinh câu,0,10000,500"
     })
     void catalogMatchesApprovedBusinessSettings(String name, String group, int min, int max, int defaultValue) {
         SettingKey key = Arrays.stream(SettingKey.values()).filter(k -> k.key().equals(name)).findFirst().orElseThrow();
@@ -70,7 +71,7 @@ class SettingKeyTest {
 
     @Test
     void catalogIsFixedUniqueAndContainsNoSensitiveKeys() {
-        assertThat(SettingKey.values()).hasSize(27).extracting(SettingKey::key).doesNotHaveDuplicates();
+        assertThat(SettingKey.values()).hasSize(28).extracting(SettingKey::key).doesNotHaveDuplicates();
         for (SettingKey key : SettingKey.values()) {
             String name = key.key().toLowerCase(Locale.ROOT);
             assertThat(name).doesNotContain("key", "secret", "password", "pepper");
@@ -112,7 +113,8 @@ class SettingKeyTest {
         "ai-generate.batch-size,0,11",
         "ai-generate.max-batches-per-run,-1,21",
         "ai-generate.daily-cap,-1,501",
-        "ai-generate.semantic-threshold,499,1001"
+        "ai-generate.semantic-threshold,499,1001",
+        "ai-generate.max-pending,-1,10001"
     })
     void invalidGenerationDefaultsPreventStartupWithoutLeakingValues(String name, String belowMinimum, String aboveMaximum) {
         for (String raw : java.util.List.of("not-an-integer", belowMinimum, aboveMaximum)) {

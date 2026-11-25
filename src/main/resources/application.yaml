@@ -125,6 +125,8 @@ cnhsk:
     daily-cap: 100
     # Cosine x 1000 at or above which two questions with the same answer count as the same question.
     semantic-threshold: 800
+    # AI questions waiting for a teacher at or above which generation holds; 0 means no limit.
+    max-pending: 500
     cron: "0 0 */2 * * *"
     timeout: 60s
   # Sentence model for semantic duplicate checks; downloaded on first use and verified before loading.

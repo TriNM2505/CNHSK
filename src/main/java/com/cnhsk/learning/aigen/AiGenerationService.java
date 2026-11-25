@@ -48,7 +48,7 @@ public class AiGenerationService {
         }
         Settings settings = new Settings(userId, config.getGenerateModel(), config.batchSize(),
                 config.maxBatchesPerRun(), config.minBank(), config.getTimeout(), config.dailyCap(),
-                config.semanticThreshold());
+                config.semanticThreshold(), config.maxPending());
         var acquired = guard.tryAcquire();
         if (acquired.isEmpty()) return empty(Outcome.BUSY);
         RunResult result = empty(Outcome.EXECUTED);
@@ -77,6 +77,13 @@ public class AiGenerationService {
             counts.candidates = candidates.size();
             List<Candidate> picked = candidates.stream().limit(settings.maxBatches()).toList();
             if (!picked.isEmpty()) counts.remaining = Math.max(0, settings.dailyCap() - store.savedToday());
+            // Teachers review every draft; once the queue is full new drafts would only wait, so hold generation.
+            int maxPending = settings.maxPending();
+            if (counts.remaining > 0 && maxPending > 0) {
+                int waiting = store.pendingReview();
+                if (waiting >= maxPending) log.info("Generation held: {} AI questions await review", waiting);
+                counts.remaining = Math.min(counts.remaining, Math.max(0, maxPending - waiting));
+            }
             if (counts.remaining > 0 && !semantic.prepare()) {
                 log.warn("Generation paused: duplicate meaning check unavailable");
                 outcome = Outcome.PAUSED;
@@ -144,8 +151,14 @@ public class AiGenerationService {
     private static RunResult empty(Outcome outcome) { return new RunResult(outcome, 0, 0, 0, 0, 0, 0, 0); }
     /** PAUSED: the duplicate meaning check is unavailable, so no question was generated or saved. */
     public enum Outcome { DISABLED, BUSY, EXECUTED, PAUSED }
+    /** Values read once per run; {@code maxPending} 0 means the review queue has no limit. */
     public record Settings(long userId, String model, int batchSize, int maxBatches, int minBank, Duration timeout,
-            int dailyCap, int semanticThreshold) { }
+            int dailyCap, int semanticThreshold, int maxPending) {
+        public Settings(long userId, String model, int batchSize, int maxBatches, int minBank, Duration timeout,
+                int dailyCap, int semanticThreshold) {
+            this(userId, model, batchSize, maxBatches, minBank, timeout, dailyCap, semanticThreshold, 0);
+        }
+    }
     public record RunResult(Outcome outcome, int candidates, int batches, int completed, int failed,
             int questions, long inputTokens, long outputTokens) { }
     private static class Counters {

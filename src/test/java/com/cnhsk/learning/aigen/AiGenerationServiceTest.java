@@ -184,6 +184,31 @@ class AiGenerationServiceTest {
     }
 
     @Test
+    void fullReviewQueueHoldsGenerationWithoutLoadingTheModelOrClaiming(CapturedOutput output) {
+        when(selector.selectForGeneration()).thenReturn(List.of(candidate(1)));
+        when(config.maxPending()).thenReturn(500);
+        when(store.pendingReview()).thenReturn(500);
+        var result = service.runOnce();
+        assertThat(result.batches()).isZero();
+        verify(semantic, never()).prepare();
+        verify(store, never()).claim(any(), any(), any());
+        assertThat(provider.callCount()).isZero();
+        assertThat(output.getAll()).contains("Generation held: 500 AI questions await review");
+    }
+
+    @Test
+    void reviewQueueRoomLimitsTheBatchLikeTheDailyCap(CapturedOutput output) {
+        when(selector.selectForGeneration()).thenReturn(List.of(candidate(1)));
+        when(config.maxPending()).thenReturn(500);
+        when(store.pendingReview()).thenReturn(498);
+        when(semantic.prepare()).thenReturn(true);
+        when(store.claim(any(), any(), any())).thenReturn(Optional.empty());
+        service.runOnce();
+        verify(store).claim(any(), any(), any());
+        assertThat(output.getAll()).contains("remaining=2 ");
+    }
+
+    @Test
     void reachedDailyCapNeitherLoadsTheModelNorClaims(CapturedOutput output) {
         when(selector.selectForGeneration()).thenReturn(List.of(candidate(1)));
         when(store.savedToday()).thenReturn(100);

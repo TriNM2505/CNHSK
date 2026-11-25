@@ -42,6 +42,7 @@ public class AiGenerateConfig {
     public int maxBatchesPerRun() { return settings.getInt(SettingKey.AI_GENERATE_MAX_BATCHES_PER_RUN); }
     public int dailyCap() { return settings.getInt(SettingKey.AI_GENERATE_DAILY_CAP); }
     public int semanticThreshold() { return settings.getInt(SettingKey.AI_GENERATE_SEMANTIC_THRESHOLD); }
+    public int maxPending() { return settings.getInt(SettingKey.AI_GENERATE_MAX_PENDING); }
 
     public String getGenerateModel() { return generateModel; }
     public String getCron() { return cron; }

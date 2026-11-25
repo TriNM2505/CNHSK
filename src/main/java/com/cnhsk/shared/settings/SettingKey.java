@@ -27,7 +27,8 @@ public enum SettingKey {
     AI_GENERATE_MAX_BATCHES_PER_RUN(24, "ai-generate.max-batches-per-run", "AI sinh câu", "Số lô tối đa mỗi lần chạy", 0, 20),
     LEARNING_FREE_MONTHLY_LIMIT(25, "learning.free-monthly-limit", "Học tập", "Lượt học miễn phí mỗi tháng cho mỗi tính năng", 0, 1_000),
     AI_GENERATE_DAILY_CAP(26, "ai-generate.daily-cap", "AI sinh câu", "Số câu AI tối đa được lưu mỗi ngày, 0 để không sinh", 0, 500),
-    AI_GENERATE_SEMANTIC_THRESHOLD(27, "ai-generate.semantic-threshold", "AI sinh câu", "Ngưỡng giống nghĩa (phần nghìn) để bỏ câu trùng cùng đáp án", 500, 1_000);
+    AI_GENERATE_SEMANTIC_THRESHOLD(27, "ai-generate.semantic-threshold", "AI sinh câu", "Ngưỡng giống nghĩa (phần nghìn) để bỏ câu trùng cùng đáp án", 500, 1_000),
+    AI_GENERATE_MAX_PENDING(28, "ai-generate.max-pending", "AI sinh câu", "Số câu AI chờ duyệt tối đa; đạt ngưỡng thì tạm không sinh, 0 để không giới hạn", 0, 10_000);
 
     // Audit IDs are permanent identifiers: never reuse an ID, including after removing a key.
     private final long auditId;

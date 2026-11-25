@@ -70,9 +70,9 @@ class SettingsAdminServiceTest {
                 Map.entry("ai-generate.min-bank", 22L), Map.entry("ai-generate.batch-size", 23L),
                 Map.entry("ai-generate.max-batches-per-run", 24L),
                 Map.entry("learning.free-monthly-limit", 25L), Map.entry("ai-generate.daily-cap", 26L),
-                Map.entry("ai-generate.semantic-threshold", 27L));
+                Map.entry("ai-generate.semantic-threshold", 27L), Map.entry("ai-generate.max-pending", 28L));
         assertThat(Arrays.stream(SettingKey.values()).collect(Collectors.toMap(SettingKey::key, SettingKey::auditId))).isEqualTo(expected);
-        assertThat(Arrays.stream(SettingKey.values()).map(SettingKey::auditId).toList()).hasSize(27).doesNotHaveDuplicates()
+        assertThat(Arrays.stream(SettingKey.values()).map(SettingKey::auditId).toList()).hasSize(28).doesNotHaveDuplicates()
                 .allSatisfy(id -> assertThat(id).isPositive());
     }
 
@@ -81,7 +81,7 @@ class SettingsAdminServiceTest {
         rows.put(BILLING_FREE_MONTHLY_LIMIT, new OverrideRow("30", 42, Instant.EPOCH));
         rows.put(ASSISTANT_DAILY_LIMIT, new OverrideRow("5", 42, Instant.EPOCH));
         var items = service.list();
-        assertThat(items).hasSize(27).extracting(SettingItem::key).containsExactlyElementsOf(Arrays.stream(SettingKey.values()).map(SettingKey::key).toList());
+        assertThat(items).hasSize(28).extracting(SettingItem::key).containsExactlyElementsOf(Arrays.stream(SettingKey.values()).map(SettingKey::key).toList());
         assertThat(items.get(0).currentValue()).isEqualTo(30);
         assertThat(items.get(0).updatedBy()).isEqualTo(new UserRef(42, "Quản trị"));
         assertThat(items.get(2).currentValue()).isEqualTo(5_000_000);

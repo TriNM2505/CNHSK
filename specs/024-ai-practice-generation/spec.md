@@ -42,6 +42,7 @@
 | `ai-generate.max-batches-per-run` | **20** (v1.3: 3) | 0–20 | Số lô tối đa mỗi lần chạy |
 | `ai-generate.daily-cap` *(v1.4)* | 100 | 0–500 | Số câu AI **đã lưu** tối đa mỗi ngày giờ VN; 0 = không sinh |
 | `ai-generate.semantic-threshold` *(v1.4)* | ~~900~~ → 800 *(2026-11-25, đo trên model thật)* | 500–1 000 | Ngưỡng cosine × 1 000 để coi là trùng nghĩa (FR-007a) |
+| `ai-generate.max-pending` *(2026-11-25)* | 500 | 0–10 000 | Số câu AI `PENDING_REVIEW` tối đa; đạt ngưỡng thì lần chạy không sinh thêm (hạn mức còn lại = min(trần ngày, chỗ trống hàng chờ)); 0 = không giới hạn |
 | `ai.monthly-token-budget` *(015, đổi mặc định v1.4)* | **5 000 000** (cũ 2 000 000) | giữ | Ngân sách chung trợ lý + dịch + sinh câu |
 
 Khoá kỹ thuật ở yaml (không ở 078): `cnhsk.ai-generate.cron` = **`0 0 */2 * * *`** (v1.4, cũ `0 0 2 * * *`; giờ VN); `cnhsk.embedding.*` (v1.4: `cache-dir` mặc định `${user.home}/.cnhsk/models`, `model-url`, `tokenizer-url`, `model-sha256`, `tokenizer-sha256`, `max-tokens` 128); `cnhsk.ai.generate-model` = `deepseek-chat` (2026-11-19, provider DeepSeek theo 015 v1.1; trước là `claude-sonnet-5-5`), `cnhsk.ai-generate.timeout` = `60s`. Nếu 023/T-01 chưa merge, đọc các khoá §0.1 từ yaml `cnhsk.ai-generate.*` với cùng mặc định; 023/T-04 chuyển sau.
@@ -286,6 +287,7 @@ Lỗi gọi Claude chỉ ghi `service_requests.error_message`, không trả cho 
 | Q11 | "Luyện lỗi của tôi" tính lượt như Luyện theo nút (nguồn `TARGETED_PRACTICE`) | ✅ Leader chốt 2026-11-25 |
 | Q12 | Lỗi ở mục Từ vựng, Ngữ pháp, Chữ Hán, Ôn tập cũng kích hoạt AI và "Luyện lỗi của tôi", truy về nút qua cây (`lexemes.knowledge_point_id`); Phát âm/Nghe tạm chưa tính; ngưỡng trùng nghĩa 0,80 | ✅ Leader chốt 2026-11-25 |
 | Q13 | Câu AI đã duyệt hiện nhãn nhỏ **"Câu mới"** cho học viên (Luyện lỗi của tôi, Đọc, Đố vui): phiên luyện ghi `meta.newItems` = số thứ tự các câu `source='AI'`; "Luyện lỗi của tôi" vẫn giữ nút đủ 7 ngày dù học viên đã làm lại đúng; chữ hiển thị cho học viên dùng "phần" thay cho "nút" | ✅ Leader chốt 2026-11-25 |
+| Q14 | Phát âm/Nghe phân biệt cũng tính lỗi theo nút NA mà phiên đã gắn (`served_items.items[].targetKid`, như 011); trần hàng chờ duyệt `max-pending` = 500; FR-018 trả thêm `droppedReasons` (số câu bị loại theo lý do) cho trang Chạy AI; dạng Điền từ/Sắp xếp câu tách spec riêng | ✅ Leader chốt 2026-11-25 |
 | Q12 | Tỉ lệ `TRUE_FALSE` ≤ 1/3 mỗi lô; cửa sổ lỗi cá nhân 7 ngày; 10 câu/phiên | ✅ Leader chốt 2026-11-25 |
 | Q3 | Người duyệt/sửa: chỉ `TEACHER`; `CONTENT_EDITOR`, `ADMIN` không (BR-108-1) | ✅ Leader chốt lại 2026-11-20 (v1.2.0) |
 | Q4 | Duyệt hàng loạt chỉ câu người đó đã mở (dấu Redis 24 giờ) | ✅ Theo BR-108-7 |
