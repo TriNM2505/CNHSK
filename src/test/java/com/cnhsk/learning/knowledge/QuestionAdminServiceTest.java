@@ -112,6 +112,21 @@ class QuestionAdminServiceTest {
         verifyNoInteractions(auth);
     }
 
+    @Test
+    void pendingAiTrueFalseUpdateKeepsACorrectKeySoTheDraftCanStillBeApproved() {
+        Question question = editable();
+        question.setQtype(QuestionType.TRUE_FALSE);
+        question.setOptions(List.of(new QuestionOption("A", "Đúng", true, null, null), new QuestionOption("B", "Sai", false, null, null)));
+        question.setSource(com.cnhsk.learning.knowledge.entity.QuestionSource.AI);
+        question.setStatus(QuestionStatus.PENDING_REVIEW);
+        when(questions.findByIdForUpdate(9)).thenReturn(Optional.of(question));
+        stubPoint();
+        service.updateFrom("9", new CurrentUser(12, Set.of(RoleCode.TEACHER), true), () -> new QuestionUpdate("Câu tự soạn",
+                List.of(new QuestionUpdateOption("A", "Đúng", false, null, null), new QuestionUpdateOption("B", "Sai", true, null, null)),
+                null, "Lời giải mới", 1, 2, null, null, "NP1-901", List.of()));
+        assertThat(question.getCorrectKey()).isEqualTo("B");
+    }
+
     @Mock private QuestionRepository questions;
     @Mock private QuestionAdminQueryRepository queries;
     @Mock private KnowledgePointRepository points;

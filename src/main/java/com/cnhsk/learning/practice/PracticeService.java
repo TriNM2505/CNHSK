@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -108,7 +109,7 @@ public class PracticeService {
     private Attempt createInTransaction(StartPracticeCommand command, boolean checkStartLimit) {
         Duration ttl = lifetime(command);
         validateItems(command);
-        JsonNode snapshot = mapper.valueToTree(new ServedSnapshot(command.sessionMeta(), command.items()));
+        JsonNode snapshot = mapper.valueToTree(new ServedSnapshot(withNewItems(command), command.items()));
         rejectAnswerMetadata(snapshot.path("meta"));
         if (checkStartLimit) {
             rateLimiter.checkStart(command.userId());
@@ -650,6 +651,26 @@ public class PracticeService {
                 attempt.getServedAt(), attempt.getExpiresAt(),
                 snapshot.items().stream().map(ServedItemView::from).toList(),
                 List.copyOf(answered.values()), snapshot.meta());
+    }
+
+    /**
+     * Adds {@code newItems}, the numbers of served items whose bank question was drafted by AI and approved
+     * by a teacher, so the learner screen can mark them "Câu mới". Sessions without such items keep their meta.
+     */
+    private Map<String, Object> withNewItems(StartPracticeCommand command) {
+        List<Long> questionIds = command.items().stream().map(ServedItem::questionId).filter(Objects::nonNull).distinct().toList();
+        if (questionIds.isEmpty()) return command.sessionMeta();
+        Set<Long> drafted = new HashSet<>();
+        for (Object id : entityManager.createNativeQuery(
+                "SELECT id FROM learning.questions WHERE source = 'AI' AND id IN (:ids)")
+                .setParameter("ids", questionIds).getResultList()) {
+            drafted.add(((Number) id).longValue());
+        }
+        if (drafted.isEmpty()) return command.sessionMeta();
+        Map<String, Object> meta = new LinkedHashMap<>(command.sessionMeta());
+        meta.put("newItems", command.items().stream().filter(item -> drafted.contains(item.questionId()))
+                .map(ServedItem::no).sorted().toList());
+        return meta;
     }
 
     private static ApiException notOwned() {

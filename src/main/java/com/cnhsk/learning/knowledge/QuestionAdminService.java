@@ -170,7 +170,8 @@ public class QuestionAdminService {
         var before = snapshot(question, queries.labels(Set.of(id)));
         question.setStem(value.stem()); question.setHskLevel((short) value.hskLevel()); question.setDifficulty((short) value.difficulty());
         question.setExplanation(value.explanation());
-        question.setCorrectKey(pendingAi(question) && question.getQtype() == QuestionType.MULTIPLE_CHOICE
+        question.setCorrectKey(pendingAi(question) && (question.getQtype() == QuestionType.MULTIPLE_CHOICE
+                || question.getQtype() == QuestionType.TRUE_FALSE)
                 ? value.options().stream().filter(QuestionRules.Option::isCorrect).findFirst().orElseThrow().key()
                 : value.correctKey());
         question.setAudioUrl(value.audioUrl()); question.setImageUrl(value.imageUrl());

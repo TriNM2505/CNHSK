@@ -9,6 +9,7 @@ import com.cnhsk.learning.knowledge.entity.KnowledgeLabelRole;
 import com.cnhsk.learning.knowledge.entity.KnowledgePoint;
 import com.cnhsk.learning.knowledge.entity.Question;
 import com.cnhsk.learning.knowledge.entity.QuestionKnowledgePoint;
+import com.cnhsk.learning.knowledge.entity.QuestionSource;
 import com.cnhsk.learning.knowledge.entity.QuestionStatus;
 import com.cnhsk.learning.knowledge.entity.QuestionType;
 import jakarta.persistence.EntityManager;
@@ -67,6 +68,7 @@ public class QuestionAdminQueryRepository {
         if (filters.hskLevel() != null) conditions.add(builder.equal(question.get("hskLevel"), builder.parameter(Short.class, "hskLevel")));
         if (filters.qtype() != null) conditions.add(builder.equal(question.get("qtype"), builder.parameter(QuestionType.class, "qtype")));
         if (filters.status() != null) conditions.add(builder.equal(question.get("status"), builder.parameter(QuestionStatus.class, "status")));
+        if (filters.source() != null) conditions.add(builder.equal(question.get("source"), builder.parameter(QuestionSource.class, "source")));
         if (filters.kid() != null) {
             var labeled = query.subquery(Integer.class);
             Root<QuestionKnowledgePoint> label = labeled.from(QuestionKnowledgePoint.class);
@@ -88,13 +90,20 @@ public class QuestionAdminQueryRepository {
         if (filters.hskLevel() != null) query.setParameter("hskLevel", filters.hskLevel().shortValue());
         if (filters.qtype() != null) query.setParameter("qtype", filters.qtype());
         if (filters.status() != null) query.setParameter("status", filters.status());
+        if (filters.source() != null) query.setParameter("source", filters.source());
         if (filters.kid() != null) query.setParameter("kid", filters.kid().toUpperCase(Locale.ROOT));
         if (filters.q() != null) query.setParameter("pattern", "%" + filters.q().toLowerCase(Locale.ROOT)
                 .replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%");
         return query;
     }
 
-    public record Filters(Integer hskLevel, QuestionType qtype, QuestionStatus status, String kid, String q) { }
+    /** {@code source} null keeps every origin (import, AI, manual). */
+    public record Filters(Integer hskLevel, QuestionType qtype, QuestionStatus status, String kid, String q,
+            QuestionSource source) {
+        public Filters(Integer hskLevel, QuestionType qtype, QuestionStatus status, String kid, String q) {
+            this(hskLevel, qtype, status, kid, q, null);
+        }
+    }
     public record QuestionRows(List<Question> items, long totalElements) { }
     public record LabelRow(long questionId, String kid, String nameVi, KnowledgeLabelRole role) { }
 }

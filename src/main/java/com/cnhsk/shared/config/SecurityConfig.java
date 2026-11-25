@@ -156,6 +156,8 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.GET, "/api/exam-attempts/{id}/result").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/exam-attempts/{id}/weak-points").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.POST, "/api/targeted-practice/sessions").hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.GET, "/api/mistake-practice").hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.POST, "/api/mistake-practice/sessions").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.POST, "/api/reading-practice/sessions").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/placement/summary").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.POST, "/api/placement/runs").hasRole("LEARNER");
@@ -184,6 +186,7 @@ public class SecurityConfig {
                     authorize.requestMatchers(HttpMethod.GET, "/api/reviews/summary").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/reminders/today").hasRole("LEARNER");
                     authorize.requestMatchers(HttpMethod.POST, "/api/reviews/sessions").hasRole("LEARNER");
+                    authorize.requestMatchers(HttpMethod.GET, "/api/admin/ai-node-gaps").hasAnyRole("CONTENT_EDITOR", "TEACHER");
                     authorize.requestMatchers(HttpMethod.GET, "/api/admin/questions", "/api/admin/questions/**")
                             .hasAnyRole("CONTENT_EDITOR", "TEACHER");
                     // Tree review (question counts per node) is for content editors only.

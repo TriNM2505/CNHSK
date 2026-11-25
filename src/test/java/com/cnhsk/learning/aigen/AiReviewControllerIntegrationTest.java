@@ -175,6 +175,58 @@ class AiReviewControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void queueFiltersByQuestionTypeAndTrueFalseDraftsCanBeApproved() throws Exception {
+        long choice = fixture.question("AI", "PENDING_REVIEW", 2, NOW, true);
+        long statement = fixture.question("AI", "PENDING_REVIEW", 2, NOW, true);
+        jdbc.update("UPDATE learning.questions SET qtype='TRUE_FALSE', stem='北京是中国的首都。', options=CAST(? AS jsonb) WHERE id=?",
+                "[{\"key\":\"A\",\"text\":\"Đúng\",\"is_correct\":true},{\"key\":\"B\",\"text\":\"Sai\",\"is_correct\":false}]",
+                statement);
+        JsonNode onlyStatements = list(get(ROOT).param("kid", fixture.kid).param("qtype", "TRUE_FALSE"));
+        assertThat(ids(onlyStatements)).containsExactly(statement);
+        assertThat(onlyStatements.path("items").get(0).path("qtype").asText()).isEqualTo("TRUE_FALSE");
+        assertThat(ids(list(get(ROOT).param("kid", fixture.kid).param("qtype", "MULTIPLE_CHOICE")))).containsExactly(choice);
+        mvc.perform(get(ROOT).param("qtype", "ESSAY").header("Authorization", bearer("TEACHER")))
+                .andExpect(status().isUnprocessableEntity());
+        mvc.perform(post(ROOT + "/" + statement + "/approve").header("Authorization", bearer("TEACHER")))
+                .andExpect(status().isOk());
+        assertThat(fixture.status(statement)).isEqualTo("APPROVED");
+    }
+
+    @Test
+    void contentEditorsSeeNodesTheJobSkipsAndCanListOnlyAiQuestions() throws Exception {
+        long generated = fixture.question("AI", "APPROVED", 1, NOW, true);
+        fixture.question("IMPORT", "APPROVED", 1, NOW, true);
+        long ready = fixture.node("TV");
+        jdbc.update("UPDATE learning.knowledge_points SET can_do='Hiểu từ tự soạn' WHERE id=?", ready);
+        jdbc.update("INSERT INTO learning.lexemes(kind,text,meaning_vi,knowledge_point_id) VALUES ('WORD',?,'nghĩa tự soạn',?)",
+                "gap-" + UUID.randomUUID(), ready);
+        String body = mvc.perform(get("/api/admin/ai-node-gaps").header("Authorization", bearer("CONTENT_EDITOR")))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        JsonNode gaps = mapper.readTree(body);
+        List<String> kids = new ArrayList<>();
+        gaps.path("nodes").forEach(node -> kids.add(node.path("kid").asText()));
+        assertThat(kids).contains(fixture.kid).doesNotContain(fixture.code(ready));
+        gaps.path("nodes").forEach(node -> {
+            if (node.path("kid").asText().equals(fixture.kid)) {
+                assertThat(node.path("missingCanDo").asBoolean()).isTrue();
+                assertThat(node.path("lexemeCount").asLong()).isZero();
+            }
+        });
+        assertThat(gaps.path("totalNodes").asLong()).isGreaterThanOrEqualTo(kids.size());
+        mvc.perform(get("/api/admin/ai-node-gaps").header("Authorization", bearer("TEACHER"))).andExpect(status().isOk());
+        mvc.perform(get("/api/admin/ai-node-gaps").header("Authorization", bearer("LEARNER"))).andExpect(status().isForbidden());
+
+        String page = mvc.perform(get("/api/admin/questions").param("kid", fixture.kid).param("source", "AI")
+                        .header("Authorization", bearer("CONTENT_EDITOR")))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        List<Long> sourced = new ArrayList<>();
+        mapper.readTree(page).path("items").forEach(item -> sourced.add(item.path("id").asLong()));
+        assertThat(sourced).containsExactly(generated);
+        mvc.perform(get("/api/admin/questions").param("source", "ROBOT").header("Authorization", bearer("CONTENT_EDITOR")))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
     void summaryContainsEightyUnicodeCodePointsWithoutSplittingSupplementaryCharacters() throws Exception {
         long id = fixture.question("AI", "PENDING_REVIEW", 1, NOW, true);
         String stem = "𠀀".repeat(85);
@@ -371,7 +423,10 @@ class AiReviewControllerIntegrationTest extends AbstractIntegrationTest {
                 jdbc.update("DELETE FROM learning.question_knowledge_points WHERE question_id=?", question);
                 jdbc.update("DELETE FROM learning.questions WHERE id=?", question);
             }
-            for (long node : nodeIds) jdbc.update("DELETE FROM learning.knowledge_points WHERE id=?", node);
+            for (long node : nodeIds) {
+                jdbc.update("DELETE FROM learning.lexemes WHERE knowledge_point_id=?", node);
+                jdbc.update("DELETE FROM learning.knowledge_points WHERE id=?", node);
+            }
             for (long actor : actorIds) jdbc.update("DELETE FROM auth.users WHERE id=?", actor);
         }
         static String key(long user, long question) { return "ai-review:viewed:" + user + ":" + question; }

@@ -49,11 +49,12 @@ public class AiReviewController {
     public AiQuestionPage list(
             @Parameter(schema = @Schema(maxLength = 20)) @RequestParam(required = false) String kid,
             @Parameter(schema = @Schema(type = "integer", minimum = "1", maximum = "9")) @RequestParam(required = false) String hsk,
+            @Parameter(schema = @Schema(allowableValues = {"MULTIPLE_CHOICE", "TRUE_FALSE"})) @RequestParam(required = false) String qtype,
             @Parameter(schema = @Schema(type = "string", format = "date-time")) @RequestParam(required = false) String from,
             @Parameter(schema = @Schema(type = "string", format = "date-time")) @RequestParam(required = false) String to,
             @Parameter(schema = @Schema(type = "integer", minimum = "0", defaultValue = "0")) @RequestParam(required = false) String page,
             @Parameter(schema = @Schema(type = "integer", minimum = "1", maximum = "50", defaultValue = "20")) @RequestParam(required = false) String size) {
-        return reviews.list(kid, hsk == null ? null : integer(hsk, "hsk"), instant(from, "from"), instant(to, "to"),
+        return reviews.list(kid, hsk == null ? null : integer(hsk, "hsk"), qtype, instant(from, "from"), instant(to, "to"),
                 page == null ? 0 : integer(page, "page"), size == null ? 20 : integer(size, "size"));
     }
 

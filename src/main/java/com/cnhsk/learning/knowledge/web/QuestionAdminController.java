@@ -58,13 +58,15 @@ public class QuestionAdminController {
             @Parameter(schema = @Schema(type = "integer", minimum = "1", maximum = "9")) @RequestParam(required = false) String hskLevel,
             @Parameter(schema = @Schema(implementation = QuestionType.class)) @RequestParam(required = false) String qtype,
             @Parameter(schema = @Schema(implementation = QuestionStatus.class)) @RequestParam(required = false) String status,
+            @Parameter(schema = @Schema(implementation = QuestionSource.class)) @RequestParam(required = false) String source,
             @RequestParam(required = false) String kid,
             @Parameter(schema = @Schema(minLength = 2, maxLength = 100)) @RequestParam(required = false) String q,
             @Parameter(schema = @Schema(type = "integer", minimum = "0", defaultValue = "0")) @RequestParam(required = false) String page,
             @Parameter(schema = @Schema(type = "integer", minimum = "1", maximum = "100", defaultValue = "10")) @RequestParam(required = false) String size) {
         if (q != null && (q.codePointCount(0, q.length()) < 2 || q.codePointCount(0, q.length()) > 100)) throw validation("q");
         Filters filters = new Filters(hskLevel == null ? null : integer(hskLevel, "hskLevel", 1, 9),
-                enumeration(qtype, "qtype", QuestionType.class), enumeration(status, "status", QuestionStatus.class), kid, q);
+                enumeration(qtype, "qtype", QuestionType.class), enumeration(status, "status", QuestionStatus.class), kid, q,
+                enumeration(source, "source", QuestionSource.class));
         var result = questions.list(filters, page == null ? 0 : integer(page, "page", 0, Integer.MAX_VALUE),
                 size == null ? 10 : integer(size, "size", 1, 100));
         return new QuestionPage(result.items().stream().map(QuestionAdminController::summary).toList(),

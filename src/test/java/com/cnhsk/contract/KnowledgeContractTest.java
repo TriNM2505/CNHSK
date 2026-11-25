@@ -115,7 +115,7 @@ class KnowledgeContractTest {
         }
         JsonNode parameters = runtime.path("paths").path("/api/admin/questions").path("get").path("parameters");
         assertThat(parameters).extracting(value -> value.path("name").asText())
-                .containsExactlyInAnyOrder("hskLevel", "qtype", "status", "kid", "q", "page", "size");
+                .containsExactlyInAnyOrder("hskLevel", "qtype", "status", "source", "kid", "q", "page", "size");
         for (JsonNode parameter : parameters) {
             String name = parameter.path("name").asText();
             assertThat(parameter.path("required").asBoolean()).isFalse();
