@@ -39,23 +39,35 @@ public class WeakKnowledgeQueryRepository {
                 .setParameter("cutoff", cutoff).executeUpdate();
     }
 
+    /**
+     * Wrong answers in the window from every graded section. A bank question counts for its primary node;
+     * a word, character or grammar item (vocabulary, characters, grammar, review) counts for the node its
+     * lexeme belongs to and comes back with question id 0, no answer and no options. Items that reach no
+     * node (pronunciation, listening stages) are left out.
+     */
     public List<WrongAnswer> wrongAnswers(Instant from, Instant through) {
         List<?> rows = entityManager.createNativeQuery("""
                 WITH wrong AS (
-                    SELECT a.user_id, ai.question_id, ai.answer, kp.code AS primary_kid, count(*) AS wrong_count
+                    SELECT a.user_id, ai.question_id,
+                           CASE WHEN ai.question_id IS NULL THEN NULL ELSE ai.answer END AS answer,
+                           kp.code AS primary_kid, count(*) AS wrong_count
                     FROM learning.attempt_items ai
                     JOIN learning.attempts a ON a.id = ai.attempt_id
                     LEFT JOIN learning.question_knowledge_points label
                       ON label.question_id = ai.question_id AND label.role = 'PRIMARY'
-                    LEFT JOIN learning.knowledge_points kp ON kp.id = label.knowledge_point_id
+                    LEFT JOIN learning.lexemes lexeme ON ai.question_id IS NULL AND lexeme.id = ai.lexeme_id
+                    LEFT JOIN learning.knowledge_points kp
+                      ON kp.id = coalesce(label.knowledge_point_id, lexeme.knowledge_point_id)
                     WHERE ai.is_correct = false AND ai.answered_at >= :from AND ai.answered_at <= :through
-                    GROUP BY a.user_id, ai.question_id, ai.answer, kp.code
+                      AND (ai.question_id IS NOT NULL OR lexeme.knowledge_point_id IS NOT NULL)
+                    GROUP BY 1, 2, 3, 4
                 )
-                SELECT wrong.user_id, wrong.question_id, wrong.answer, wrong.primary_kid,
-                       q.options::text, wrong.wrong_count
+                SELECT wrong.user_id, coalesce(wrong.question_id, 0), wrong.answer, wrong.primary_kid,
+                       coalesce(q.options::text, '[]'), wrong.wrong_count
                 FROM wrong
-                JOIN learning.questions q ON q.id = wrong.question_id
-                ORDER BY wrong.user_id, wrong.question_id, wrong.answer NULLS FIRST
+                LEFT JOIN learning.questions q ON q.id = wrong.question_id
+                WHERE wrong.question_id IS NULL OR q.id IS NOT NULL
+                ORDER BY wrong.user_id, 2, wrong.primary_kid, wrong.answer NULLS FIRST
                 """).setParameter("from", from).setParameter("through", through).getResultList();
         return rows.stream().map(value -> {
             Object[] row = (Object[]) value;
@@ -209,12 +221,20 @@ public class WeakKnowledgeQueryRepository {
         return strings(rows);
     }
 
-    public Set<String> allowedCharacters(Set<String> characters, int hskLevel) {
+    /**
+     * Characters listed at or below the level, plus the characters of the node's own words: those words are
+     * curated for the node's level even when one of their characters is listed higher (音乐 is an HSK 2 word
+     * while 音 is an HSK 3 character).
+     */
+    public Set<String> allowedCharacters(Set<String> characters, int hskLevel, long knowledgePointId) {
         if (characters.isEmpty()) return Set.of();
         List<?> rows = entityManager.createNativeQuery("""
                 SELECT text FROM learning.lexemes
                 WHERE kind = 'CHAR' AND hsk_level <= :level AND text IN (:characters)
-                """, String.class).setParameter("level", hskLevel)
+                UNION
+                SELECT part FROM learning.lexemes word, regexp_split_to_table(word.text, '') AS part
+                WHERE word.knowledge_point_id = :node AND part IN (:characters)
+                """, String.class).setParameter("level", hskLevel).setParameter("node", knowledgePointId)
                 .setParameter("characters", characters).getResultList();
         return strings(rows);
     }

@@ -9,6 +9,7 @@ import com.cnhsk.auth.api.AuthApi;
 import com.cnhsk.learning.ai.ClaudeClient;
 import com.cnhsk.learning.ai.StubClaudeClient;
 import com.cnhsk.learning.ai.TokenBudget;
+import com.cnhsk.learning.aigen.embedding.EmbeddingUnavailableException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -32,17 +33,23 @@ class AiGenerationServiceTest {
     private final AiGenerationStore store = mock(AiGenerationStore.class);
     private final AiGenerationGuard guard = mock(AiGenerationGuard.class);
     private final AiGenerationGuard.Lease lease = mock(AiGenerationGuard.Lease.class);
+    private final SemanticDeduplicator semantic = mock(SemanticDeduplicator.class);
+    private final SemanticIndex index = SemanticIndex.off();
     private AiGenerationService service;
 
     @BeforeEach
     void prepare() {
-        service = new AiGenerationService(config, auth, selector, builder, budget, provider, store, guard);
+        service = new AiGenerationService(config, auth, selector, builder, budget, provider, store, guard, semantic);
         when(config.systemUserId()).thenReturn(7);
         when(config.getGenerateModel()).thenReturn("fixture-model");
         when(config.batchSize()).thenReturn(5);
         when(config.maxBatchesPerRun()).thenReturn(3);
         when(config.minBank()).thenReturn(10);
         when(config.getTimeout()).thenReturn(Duration.ofSeconds(60));
+        when(config.dailyCap()).thenReturn(100);
+        when(config.semanticThreshold()).thenReturn(900);
+        when(semantic.prepare()).thenReturn(true);
+        when(semantic.index(anyLong(), any(), anyInt())).thenReturn(index);
         when(auth.isActiveAdmin(7)).thenReturn(true);
         when(guard.tryAcquire()).thenReturn(Optional.of(lease));
         when(selector.selectForGeneration()).thenReturn(List.of());
@@ -117,7 +124,7 @@ class AiGenerationServiceTest {
     @Test
     void providerOperationUsesSnapshotAndCountsOnlyCommittedQuestions() {
         var candidate = candidate(1);
-        var settings = new AiGenerationService.Settings(7, "fixture-model", 5, 3, 10, Duration.ofSeconds(60));
+        var settings = new AiGenerationService.Settings(7, "fixture-model", 5, 3, 10, Duration.ofSeconds(60), 100, 900);
         var claim = new AiGenerationStore.Claim(11, candidate, settings);
         var prompt = new AiPromptBuilder.Prompt(1, candidate.kid(), 1, List.of(), List.of());
         var completion = new ClaudeClient.Completion("{\"questions\":[]}", 13, 17);
@@ -129,7 +136,7 @@ class AiGenerationServiceTest {
             return action.get();
         });
         provider.enqueue(completion);
-        when(store.finish(claim, prompt, completion, lease)).thenReturn(new AiGenerationStore.Finish(5, true));
+        when(store.finish(claim, prompt, completion, index, 5, lease)).thenReturn(new AiGenerationStore.Finish(5, true));
 
         var result = service.runOnce();
 
@@ -162,13 +169,105 @@ class AiGenerationServiceTest {
         verify(delegate).runOnce();
     }
 
+    @Test
+    void unavailableMeaningCheckPausesBeforeAnyClaimOrProviderCall(CapturedOutput output) {
+        when(selector.selectForGeneration()).thenReturn(List.of(candidate(1)));
+        when(semantic.prepare()).thenReturn(false);
+        var result = service.runOnce();
+        assertThat(result.outcome()).isEqualTo(AiGenerationService.Outcome.PAUSED);
+        assertThat(result.batches()).isZero();
+        verify(store, never()).claim(any(), any(), any());
+        verify(semantic, never()).backfill(any());
+        assertThat(provider.callCount()).isZero();
+        verify(lease).close();
+        assertThat(output.getAll()).contains("Generation paused");
+    }
+
+    @Test
+    void reachedDailyCapNeitherLoadsTheModelNorClaims(CapturedOutput output) {
+        when(selector.selectForGeneration()).thenReturn(List.of(candidate(1)));
+        when(store.savedToday()).thenReturn(100);
+        var result = service.runOnce();
+        assertThat(result.outcome()).isEqualTo(AiGenerationService.Outcome.EXECUTED);
+        assertThat(result.batches()).isZero();
+        verify(semantic, never()).prepare();
+        verify(store, never()).claim(any(), any(), any());
+        assertThat(provider.callCount()).isZero();
+        assertThat(output.getAll()).contains("remaining=0");
+    }
+
+    @Test
+    void remainingQuestionsAreSplitByWrongAnswersAndBackfillCoversTheChosenNodes() {
+        var heavy = new WeakKnowledgeSelector.Candidate(1, "NP1-001", 30, 0, 0);
+        var light = new WeakKnowledgeSelector.Candidate(2, "NP1-002", 10, 0, 0);
+        when(selector.selectForGeneration()).thenReturn(List.of(heavy, light));
+        when(store.savedToday()).thenReturn(96);
+        when(store.claim(any(), any(), any())).thenReturn(Optional.empty());
+        service.runOnce();
+        verify(semantic).backfill(List.of(1L, 2L));
+        verify(store).claim(eq(heavy), any(), eq(lease));
+        verify(store).claim(eq(light), any(), eq(lease));
+        verifyNoInteractions(builder);
+    }
+
+    @Test
+    void promptAsksForTheAllocatedNumberOfQuestions() {
+        var heavy = new WeakKnowledgeSelector.Candidate(1, "NP1-001", 30, 0, 0);
+        var light = new WeakKnowledgeSelector.Candidate(2, "NP1-002", 10, 0, 0);
+        var settings = new AiGenerationService.Settings(7, "fixture-model", 5, 3, 10, Duration.ofSeconds(60), 100, 900);
+        when(selector.selectForGeneration()).thenReturn(List.of(heavy, light));
+        when(store.savedToday()).thenReturn(96);
+        when(store.claim(any(), any(), any())).thenAnswer(call -> Optional.of(
+                new AiGenerationStore.Claim(call.<WeakKnowledgeSelector.Candidate>getArgument(0).knowledgePointId(),
+                        call.getArgument(0), settings)));
+        when(builder.build(anyLong(), anyInt())).thenThrow(new AiPromptBuilder.PromptContextException("NODE_CHANGED"));
+        service.runOnce();
+        verify(builder).build(1, 3);
+        verify(builder).build(2, 1);
+    }
+
+    @Test
+    void meaningCheckFailureAfterTheProviderCallFailsTheBatchWithoutSavingAndPauses() {
+        var candidate = candidate(1);
+        var settings = new AiGenerationService.Settings(7, "fixture-model", 5, 3, 10, Duration.ofSeconds(60), 100, 900);
+        var claim = new AiGenerationStore.Claim(11, candidate, settings);
+        var prompt = new AiPromptBuilder.Prompt(1, candidate.kid(), 1, List.of(), List.of());
+        when(selector.selectForGeneration()).thenReturn(List.of(candidate, candidate(2)));
+        when(store.claim(any(), any(), any())).thenReturn(Optional.of(claim));
+        when(builder.build(anyLong(), anyInt())).thenReturn(prompt);
+        when(budget.execute(any())).thenAnswer(invocation -> {
+            java.util.function.Supplier<ClaudeClient.Completion> action = invocation.getArgument(0); return action.get();
+        });
+        provider.enqueue(new ClaudeClient.Completion("{\"questions\":[]}", 3, 4));
+        when(semantic.index(anyLong(), any(), anyInt())).thenThrow(new EmbeddingUnavailableException());
+        when(store.fail(claim, "EMBEDDING_UNAVAILABLE", false)).thenReturn(true);
+        var result = service.runOnce();
+        assertThat(result.outcome()).isEqualTo(AiGenerationService.Outcome.PAUSED);
+        assertThat(result.failed()).isEqualTo(1);
+        assertThat(result.batches()).isEqualTo(1);
+        verify(store, never()).finish(any(), any(), any(), any(), anyInt(), any());
+        verify(store).fail(claim, "EMBEDDING_UNAVAILABLE", false);
+        assertThat(provider.callCount()).isEqualTo(1);
+    }
+
+    @Test
+    void backfillFailurePausesTheRun() {
+        when(selector.selectForGeneration()).thenReturn(List.of(candidate(1)));
+        when(semantic.backfill(any())).thenThrow(new EmbeddingUnavailableException());
+        var result = service.runOnce();
+        assertThat(result.outcome()).isEqualTo(AiGenerationService.Outcome.PAUSED);
+        verify(store, never()).claim(any(), any(), any());
+        assertThat(provider.callCount()).isZero();
+        verify(lease).close();
+    }
+
     private static WeakKnowledgeSelector.Candidate candidate(long id) {
         return new WeakKnowledgeSelector.Candidate(id, "NP1-00" + id, 20, 0, 0);
     }
 
     @Test
     void reservedEntryUsesTheAcceptedLeaseAndSnapshotWithoutAcquiringAnother() {
-        var settings = new AiGenerationService.Settings(7, "accepted-model", 2, 1, 4, Duration.ofSeconds(9));
+        var settings = new AiGenerationService.Settings(7, "accepted-model", 2, 1, 4, Duration.ofSeconds(9), 100, 900);
         var result = service.runReserved(lease, settings);
         assertThat(result.outcome()).isEqualTo(AiGenerationService.Outcome.EXECUTED);
         assertThat(result.candidates()).isZero();
@@ -182,7 +281,7 @@ class AiGenerationServiceTest {
     @Test
     void reservedEntryRechecksTheSystemAccountBeforeSelectingAndLeavesLeaseOwnershipWithWorker() {
         when(auth.isActiveAdmin(7)).thenReturn(false);
-        var settings = new AiGenerationService.Settings(7, "accepted-model", 2, 1, 4, Duration.ofSeconds(9));
+        var settings = new AiGenerationService.Settings(7, "accepted-model", 2, 1, 4, Duration.ofSeconds(9), 100, 900);
         assertThat(service.runReserved(lease, settings).outcome()).isEqualTo(AiGenerationService.Outcome.DISABLED);
         verifyNoInteractions(config, guard, selector, store, builder, budget);
         verify(lease, never()).close();
@@ -200,7 +299,7 @@ class AiGenerationServiceTest {
     @Test
     void reservedEntryUsesSnapshotValuesForClaimPromptAndProviderRatherThanCurrentConfig() {
         var selected = candidate(1);
-        var settings = new AiGenerationService.Settings(7, "accepted-model", 2, 1, 4, Duration.ofSeconds(9));
+        var settings = new AiGenerationService.Settings(7, "accepted-model", 2, 1, 4, Duration.ofSeconds(9), 100, 900);
         var claim = new AiGenerationStore.Claim(21, selected, settings);
         var prompt = new AiPromptBuilder.Prompt(1, selected.kid(), 1, List.of(), List.of());
         var completion = new ClaudeClient.Completion("{\"questions\":[]}", 6, 8);
@@ -211,7 +310,7 @@ class AiGenerationServiceTest {
             java.util.function.Supplier<ClaudeClient.Completion> action = invocation.getArgument(0); return action.get();
         });
         provider.enqueue(completion);
-        when(store.finish(claim, prompt, completion, lease)).thenReturn(new AiGenerationStore.Finish(2, true));
+        when(store.finish(claim, prompt, completion, index, 2, lease)).thenReturn(new AiGenerationStore.Finish(2, true));
         var result = service.runReserved(lease, settings);
         assertThat(result.batches()).isEqualTo(1);
         assertThat(result.questions()).isEqualTo(2);

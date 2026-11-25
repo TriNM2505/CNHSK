@@ -38,11 +38,11 @@ class AiGenerateConfigIntegrationTest extends AbstractIntegrationTest {
     private static final String PASSWORD_HASH = new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
     private static final List<BusinessValue> BUSINESS_VALUES = List.of(
             new BusinessValue(SettingKey.AI_GENERATE_SYSTEM_USER_ID, 19, 0, 42, AiGenerateConfig::systemUserId),
-            new BusinessValue(SettingKey.AI_GENERATE_WINDOW_DAYS, 20, 14, 28, AiGenerateConfig::windowDays),
-            new BusinessValue(SettingKey.AI_GENERATE_MIN_WRONG, 21, 20, 37, AiGenerateConfig::minWrong),
-            new BusinessValue(SettingKey.AI_GENERATE_MIN_BANK, 22, 10, 18, AiGenerateConfig::minBank),
+            new BusinessValue(SettingKey.AI_GENERATE_WINDOW_DAYS, 20, 1, 28, AiGenerateConfig::windowDays),
+            new BusinessValue(SettingKey.AI_GENERATE_MIN_WRONG, 21, 3, 37, AiGenerateConfig::minWrong),
+            new BusinessValue(SettingKey.AI_GENERATE_MIN_BANK, 22, 200, 18, AiGenerateConfig::minBank),
             new BusinessValue(SettingKey.AI_GENERATE_BATCH_SIZE, 23, 5, 8, AiGenerateConfig::batchSize),
-            new BusinessValue(SettingKey.AI_GENERATE_MAX_BATCHES_PER_RUN, 24, 3, 0, AiGenerateConfig::maxBatchesPerRun));
+            new BusinessValue(SettingKey.AI_GENERATE_MAX_BATCHES_PER_RUN, 24, 20, 0, AiGenerateConfig::maxBatchesPerRun));
     private static final List<String> KEYS = BUSINESS_VALUES.stream().map(value -> value.key().key()).toList();
 
     @Autowired private AiGenerateConfig config;

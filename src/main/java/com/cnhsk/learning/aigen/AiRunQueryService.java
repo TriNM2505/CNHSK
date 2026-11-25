@@ -30,15 +30,17 @@ public class AiRunQueryService {
     private static final ZoneId VIETNAM = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final Set<String> STATUSES = Set.of("RUNNING", "COMPLETED", "FAILED");
     private static final Set<String> ERRORS = Set.of("INVALID_OUTPUT", "BUDGET_EXCEEDED", "PROVIDER_ERROR",
-            "NO_VALID_QUESTION", "STALE");
+            "NO_VALID_QUESTION", "STALE", "EMBEDDING_UNAVAILABLE");
     private final NamedParameterJdbcTemplate jdbc;
     private final ObjectMapper mapper;
     private final AuthApi auth;
     private final AiGenerateConfig config;
     private final Clock clock;
+    private final SemanticDeduplicator semantic;
 
     public AiRunQueryService(NamedParameterJdbcTemplate jdbc, ObjectMapper mapper, AuthApi auth,
-            AiGenerateConfig config, Clock clock) {
+            AiGenerateConfig config, Clock clock, SemanticDeduplicator semantic) {
+        this.semantic = semantic;
         this.jdbc = jdbc;
         this.mapper = mapper;
         this.auth = auth;
@@ -74,7 +76,7 @@ public class AiRunQueryService {
                 });
         int systemUserId = config.systemUserId();
         boolean enabled = systemUserId > 0 && auth.isActiveAdmin(systemUserId);
-        return new RunPage(enabled, monthTokens(), List.copyOf(items), page, size, total);
+        return new RunPage(enabled, semantic.ready(), monthTokens(), List.copyOf(items), page, size, total);
     }
 
     public void requireAdmin() {
@@ -126,12 +128,12 @@ public class AiRunQueryService {
         return null;
     }
 
-    @Schema(name = "RunPage", requiredProperties = {"enabled", "monthTokens", "items", "page", "size", "totalElements"})
-    public record RunPage(boolean enabled, long monthTokens, List<Run> items, int page, int size, long totalElements) { }
+    @Schema(name = "RunPage", requiredProperties = {"enabled", "embeddingReady", "monthTokens", "items", "page", "size", "totalElements"})
+    public record RunPage(boolean enabled, boolean embeddingReady, long monthTokens, List<Run> items, int page, int size, long totalElements) { }
     @Schema(name = "Run", requiredProperties = {"id", "kid", "status", "createdAt", "completedAt", "questionCount",
             "droppedCount", "inputTokens", "outputTokens", "error"})
     public record Run(long id, String kid, @Schema(allowableValues = {"RUNNING", "COMPLETED", "FAILED"}) String status,
             Instant createdAt, @Schema(nullable = true) Instant completedAt, int questionCount, int droppedCount,
             long inputTokens, long outputTokens,
-            @Schema(nullable = true, allowableValues = {"INVALID_OUTPUT", "BUDGET_EXCEEDED", "PROVIDER_ERROR", "NO_VALID_QUESTION", "STALE"}) String error) { }
+            @Schema(nullable = true, allowableValues = {"INVALID_OUTPUT", "BUDGET_EXCEEDED", "PROVIDER_ERROR", "NO_VALID_QUESTION", "STALE", "EMBEDDING_UNAVAILABLE"}) String error) { }
 }

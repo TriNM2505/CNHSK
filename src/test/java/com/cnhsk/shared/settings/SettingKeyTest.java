@@ -27,7 +27,7 @@ class SettingKeyTest {
     @CsvSource({
         "billing.free-monthly-limit,Thanh toán,0,1000,10",
         "assistant.daily-limit,Trợ lý & AI,0,10000,200",
-        "ai.monthly-token-budget,Trợ lý & AI,0,100000000,2000000",
+        "ai.monthly-token-budget,Trợ lý & AI,0,100000000,5000000",
         "library.guest-lookups-per-hour,Thư viện,1,10000,600",
         "library.authenticated-lookups-per-hour,Thư viện,1,10000,600",
         "library.max-notes,Thư viện,1,10000,1000",
@@ -44,12 +44,14 @@ class SettingKeyTest {
         "grading.max-active-claims,Chấm bài,1,20,3",
         "contest.submit-grace-seconds,Cuộc thi,0,60,5",
         "ai-generate.system-user-id,AI sinh câu,0,2147483647,0",
-        "ai-generate.window-days,AI sinh câu,1,90,14",
-        "ai-generate.min-wrong,AI sinh câu,1,1000,20",
-        "ai-generate.min-bank,AI sinh câu,1,200,10",
+        "ai-generate.window-days,AI sinh câu,1,90,1",
+        "ai-generate.min-wrong,AI sinh câu,1,1000,3",
+        "ai-generate.min-bank,AI sinh câu,1,200,200",
         "ai-generate.batch-size,AI sinh câu,1,10,5",
-        "ai-generate.max-batches-per-run,AI sinh câu,0,20,3",
-        "learning.free-monthly-limit,Học tập,0,1000,3"
+        "ai-generate.max-batches-per-run,AI sinh câu,0,20,20",
+        "learning.free-monthly-limit,Học tập,0,1000,3",
+        "ai-generate.daily-cap,AI sinh câu,0,500,100",
+        "ai-generate.semantic-threshold,AI sinh câu,500,1000,800"
     })
     void catalogMatchesApprovedBusinessSettings(String name, String group, int min, int max, int defaultValue) {
         SettingKey key = Arrays.stream(SettingKey.values()).filter(k -> k.key().equals(name)).findFirst().orElseThrow();
@@ -68,7 +70,7 @@ class SettingKeyTest {
 
     @Test
     void catalogIsFixedUniqueAndContainsNoSensitiveKeys() {
-        assertThat(SettingKey.values()).hasSize(25).extracting(SettingKey::key).doesNotHaveDuplicates();
+        assertThat(SettingKey.values()).hasSize(27).extracting(SettingKey::key).doesNotHaveDuplicates();
         for (SettingKey key : SettingKey.values()) {
             String name = key.key().toLowerCase(Locale.ROOT);
             assertThat(name).doesNotContain("key", "secret", "password", "pepper");
@@ -108,7 +110,9 @@ class SettingKeyTest {
         "ai-generate.min-wrong,0,1001",
         "ai-generate.min-bank,0,201",
         "ai-generate.batch-size,0,11",
-        "ai-generate.max-batches-per-run,-1,21"
+        "ai-generate.max-batches-per-run,-1,21",
+        "ai-generate.daily-cap,-1,501",
+        "ai-generate.semantic-threshold,499,1001"
     })
     void invalidGenerationDefaultsPreventStartupWithoutLeakingValues(String name, String belowMinimum, String aboveMaximum) {
         for (String raw : java.util.List.of("not-an-integer", belowMinimum, aboveMaximum)) {

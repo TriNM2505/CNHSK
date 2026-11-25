@@ -1,7 +1,11 @@
 package com.cnhsk.learning.aigen;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -11,6 +15,7 @@ import com.cnhsk.learning.ai.ClaudeClient.Completion;
 import com.cnhsk.learning.aigen.AiGenerationGuard.Lease;
 import com.cnhsk.learning.aigen.AiGenerationService.Settings;
 import com.cnhsk.learning.aigen.WeakKnowledgeSelector.Candidate;
+import com.cnhsk.learning.aigen.embedding.QuestionEmbeddingStore;
 import com.cnhsk.learning.common.ServiceRequest;
 import com.cnhsk.learning.common.ServiceRequestKind;
 import com.cnhsk.learning.common.ServiceRequestStatus;
@@ -33,16 +38,20 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Persists each claim and final outcome atomically, never spanning the provider call. */
 @Repository
 public class AiGenerationStore {
+    private static final ZoneId VIETNAM = ZoneId.of("Asia/Ho_Chi_Minh");
     private final EntityManager entities;
     private final TransactionTemplate writes;
     private final WeakKnowledgeQueryRepository queries;
     private final AiQuestionValidator validator;
     private final Clock clock;
     private final ObjectMapper mapper;
+    private final QuestionEmbeddingStore vectors;
 
     public AiGenerationStore(EntityManager entities, PlatformTransactionManager transactions,
-            WeakKnowledgeQueryRepository queries, AiQuestionValidator validator, Clock clock, ObjectMapper mapper) {
+            WeakKnowledgeQueryRepository queries, AiQuestionValidator validator, Clock clock, ObjectMapper mapper,
+            QuestionEmbeddingStore vectors) {
         this.entities = entities; this.queries = queries; this.validator = validator; this.clock = clock; this.mapper = mapper;
+        this.vectors = vectors;
         writes = new TransactionTemplate(transactions);
         writes.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         writes.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
@@ -72,7 +81,20 @@ public class AiGenerationStore {
         }
     }
 
-    public Finish finish(Claim claim, AiPromptBuilder.Prompt prompt, Completion completion, Lease lease) {
+    /**
+     * Questions with source AI stored since midnight Vietnam time; dropped drafts were never stored. Runs in its
+     * own short transaction so the connection is returned before the run goes on.
+     */
+    public int savedToday() {
+        Instant start = LocalDate.ofInstant(clock.instant(), VIETNAM).atStartOfDay(VIETNAM).toInstant();
+        Number count = writes.execute(status -> (Number) entities.createNativeQuery("""
+                SELECT count(*) FROM learning.questions WHERE source = 'AI' AND created_at >= :start
+                """).setParameter("start", start).getSingleResult());
+        return count == null ? 0 : count.intValue();
+    }
+
+    public Finish finish(Claim claim, AiPromptBuilder.Prompt prompt, Completion completion, SemanticIndex semantic,
+            int limit, Lease lease) {
         return writes.execute(status -> {
             lease.assertOwned();
             Node node = lockNode(claim.candidate()).orElseThrow(ContextException::new);
@@ -85,13 +107,14 @@ public class AiGenerationStore {
                     || pointId.longValue() != claim.candidate().knowledgePointId()) throw new ContextException();
             if (node.hskLevel() != prompt.hskLevel() || !node.kid().equals(prompt.kid())
                     || !eligible(claim.candidate(), claim.settings(), claim.id())) throw new ContextException();
-            var checked = validator.validate(completion.text(), prompt);
+            var checked = validator.validate(completion.text(), prompt, semantic, limit);
             List<Long> questionIds = new ArrayList<>();
+            Map<Long, float[]> meanings = new LinkedHashMap<>();
             for (var draft : checked.accepted()) {
-                Question question = new Question(null, QuestionType.MULTIPLE_CHOICE, (short) node.hskLevel(), draft.stem());
+                Question question = new Question(null, draft.type(), (short) node.hskLevel(), draft.stem());
                 question.setSource(QuestionSource.AI);
                 question.setStatus(QuestionStatus.PENDING_REVIEW);
-                // Drafts are written four-option questions read on screen, so they train reading.
+                // Drafts are written multiple-choice or true/false questions read on screen, so they train reading.
                 question.setSkill("READING");
                 question.setOptions(draft.options()); question.setCorrectKey(draft.correctKey());
                 question.setExplanation(draft.explanation()); question.setDifficulty((short) draft.difficulty());
@@ -99,7 +122,10 @@ public class AiGenerationStore {
                 entities.persist(question);
                 entities.persist(new QuestionKnowledgePoint(question.getId(), claim.candidate().knowledgePointId(), KnowledgeLabelRole.PRIMARY));
                 questionIds.add(question.getId());
+                if (semantic.enabled()) meanings.put(question.getId(), semantic.vectorOf(draft.stem()));
             }
+            entities.flush();
+            vectors.save(meanings, semantic.model());
             request.setResult(Map.of("questionIds", questionIds,
                     "dropped", checked.dropped().stream().map(drop -> Map.of("index", drop.index(), "reason", drop.reason())).toList(),
                     "inputTokens", completion.inputTokens(), "outputTokens", completion.outputTokens()));
@@ -113,7 +139,8 @@ public class AiGenerationStore {
     }
 
     public boolean fail(Claim claim, String reason, boolean retry) {
-        if (!Set.of("INVALID_OUTPUT", "PROVIDER_ERROR", "BUDGET_EXCEEDED", "DB_ERROR", "CONTEXT_UNAVAILABLE").contains(reason)) {
+        if (!Set.of("INVALID_OUTPUT", "PROVIDER_ERROR", "BUDGET_EXCEEDED", "DB_ERROR", "CONTEXT_UNAVAILABLE",
+                "EMBEDDING_UNAVAILABLE").contains(reason)) {
             throw new IllegalArgumentException("Invalid generation failure reason");
         }
         return Boolean.TRUE.equals(writes.execute(status -> entities.createNativeQuery("""

@@ -3,15 +3,22 @@ package com.cnhsk.learning.aigen;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import com.cnhsk.learning.aigen.embedding.EmbeddingUnavailableException;
+import com.cnhsk.learning.aigen.embedding.QuestionEmbeddingStore;
+import com.cnhsk.learning.aigen.embedding.StubEmbeddingEngine;
+
 import com.cnhsk.learning.knowledge.entity.QuestionOption;
+import com.cnhsk.learning.knowledge.entity.QuestionType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -31,7 +38,7 @@ class AiQuestionValidatorTest {
         validator = new AiQuestionValidator(repository, mapper);
         when(repository.existingStems(17)).thenReturn(List.of());
         when(repository.existingKidCodes(anySet())).thenReturn(Set.of("NP1-002"));
-        when(repository.allowedCharacters(anySet(), anyInt())).thenAnswer(call -> call.getArgument(0));
+        when(repository.allowedCharacters(anySet(), anyInt(), anyLong())).thenAnswer(call -> call.getArgument(0));
     }
 
     @ParameterizedTest
@@ -250,7 +257,7 @@ class AiQuestionValidatorTest {
 
     @Test
     void scansBmpSupplementaryAndCompatibilityHanInStemAndOptionsButNotExplanation() {
-        when(repository.allowedCharacters(anySet(), anyInt())).thenReturn(Set.of("你", "𠀀", "豈"));
+        when(repository.allowedCharacters(anySet(), anyInt(), anyLong())).thenReturn(Set.of("你", "𠀀", "豈"));
         ObjectNode allowed = question("你𠀀豈，😀!"); allowed.put("explanation", "龍 need not be level checked");
         ObjectNode forbiddenStem = question("龍");
         ObjectNode forbiddenOption = question("option Han"); ((ObjectNode) forbiddenOption.withArray("options").get(3)).put("text", "龍");
@@ -258,6 +265,148 @@ class AiQuestionValidatorTest {
         assertThat(result.accepted()).hasSize(1);
         assertThat(result.dropped()).extracting(AiQuestionValidator.Dropped::reason).containsExactly("HANZI_ABOVE_LEVEL", "HANZI_ABOVE_LEVEL");
     }
+
+    @Test
+    void rewordedStemWithTheSameAnswerIsASemanticDuplicateOfAStoredQuestion() {
+        var stored = new QuestionEmbeddingStore.StoredVector("他每天坐公交车上学", options("first"), axis(0));
+        var semantic = index(List.of(stored), Map.of("他每天坐公交车去学校", cosine(0.95, 1)));
+        var result = validator.validate(document(question("他每天坐公交车去学校")), prompt, semantic, 10);
+        assertThat(result.accepted()).isEmpty();
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(0, "SEMANTIC_DUPLICATE_STEM"));
+    }
+
+    @Test
+    void sameMeaningWithAnotherAnswerOrBelowTheThresholdIsKept() {
+        ObjectNode otherAnswer = question("他天天乘巴士上学");
+        ((ObjectNode) otherAnswer.withArray("options").get(0)).put("text", "another answer");
+        var stored = new QuestionEmbeddingStore.StoredVector("他每天坐公交车去学校", options("first"), axis(0));
+        var semantic = index(List.of(stored), Map.of("他天天乘巴士上学", cosine(0.95, 1), "我喜欢喝茶", cosine(0.85, 2)));
+        var result = validator.validate(document(otherAnswer, question("我喜欢喝茶")), prompt, semantic, 10);
+        assertThat(result.accepted()).hasSize(2);
+        assertThat(result.dropped()).isEmpty();
+    }
+
+    @Test
+    void aShortChineseItemMustAlsoMatchSoTheSameDrillOnAnotherCharacterIsKept() {
+        var stored = new QuestionEmbeddingStore.StoredVector("Theo hệ 214 bộ thủ, chữ 件 thuộc bộ nào?", options("first"), axis(0));
+        var semantic = index(List.of(stored), Map.of("Theo hệ 214 bộ thủ, chữ 今 thuộc bộ nào?", cosine(0.95, 1),
+                "Chữ 件 thuộc bộ thủ nào trong hệ 214 bộ?", cosine(0.95, 2)));
+        var result = validator.validate(document(question("Theo hệ 214 bộ thủ, chữ 今 thuộc bộ nào?"),
+                question("Chữ 件 thuộc bộ thủ nào trong hệ 214 bộ?")), prompt, semantic, 10);
+        assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::stem)
+                .containsExactly("Theo hệ 214 bộ thủ, chữ 今 thuộc bộ nào?");
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(1, "SEMANTIC_DUPLICATE_STEM"));
+    }
+
+    @Test
+    void textNearDuplicateAlsoKeepsTheSameDrillOnAnotherCharacter() {
+        when(repository.existingStems(17)).thenReturn(List.of(
+                new WeakKnowledgeQueryRepository.ExistingStem("Theo hệ 214 bộ thủ, chữ 件 thuộc bộ nào?", options("first"))));
+        var result = validator.validate(document(question("Theo hệ 214 bộ thủ, chữ 今 thuộc bộ nào?"),
+                question("Theo hệ 214 bộ thủ chữ 件 thuộc bộ nào")), prompt, SemanticIndex.off(), 10);
+        assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::stem)
+                .containsExactly("Theo hệ 214 bộ thủ, chữ 今 thuộc bộ nào?");
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(1, "NEAR_DUPLICATE_STEM"));
+    }
+
+    @Test
+    void laterRowWithTheSameMeaningAndAnswerAsAnAcceptedRowIsDropped() {
+        var semantic = index(List.of(), Map.of("他每天坐公交车去学校", axis(0), "他天天乘巴士上学", cosine(0.95, 1)));
+        var result = validator.validate(document(question("他每天坐公交车去学校"), question("他天天乘巴士上学")), prompt, semantic, 10);
+        assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::stem).containsExactly("他每天坐公交车去学校");
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(1, "SEMANTIC_DUPLICATE_STEM"));
+    }
+
+    @Test
+    void textRulesRunFirstAndStoredVectorsWithoutAReadableAnswerNeverMatch() {
+        when(repository.existingStems(17)).thenReturn(List.of(
+                new WeakKnowledgeQueryRepository.ExistingStem("我每天七点起床。", options("first"))));
+        var unreadable = new QuestionEmbeddingStore.StoredVector("妈妈周末带我们去公园", "{not json", axis(0));
+        var semantic = index(List.of(unreadable), Map.of("我 每天 七点 起床", axis(0), "妈妈周末带我们去公园", axis(0)));
+        var result = validator.validate(document(question("我 每天 七点 起床"), question("妈妈周末带我们去公园")), prompt, semantic, 10);
+        assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::stem).containsExactly("妈妈周末带我们去公园");
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(0, "NEAR_DUPLICATE_STEM"));
+    }
+
+    @Test
+    void aStemTheIndexNeverEmbeddedStopsTheBatchInsteadOfSkippingTheCheck() {
+        var semantic = index(List.of(), Map.of());
+        assertThatThrownBy(() -> validator.validate(document(question("没有向量的句子")), prompt, semantic, 10))
+                .isInstanceOf(EmbeddingUnavailableException.class);
+    }
+
+    @Test
+    void trueFalseRowsNeedExactlyTheTwoKeysAndKeepTheirType() {
+        ObjectNode threeOptions = trueFalse("三个选项的判断题", true);
+        ((ArrayNode) threeOptions.get("options")).add(option("C", "Không rõ", false));
+        ObjectNode unknownType = question("未知题型"); unknownType.put("type", "ESSAY");
+        var result = validator.validate(document(trueFalse("北京是中国的首都。", true), threeOptions, unknownType,
+                question("row one"), question("row two"), question("row three")), prompt, SemanticIndex.off(), 10);
+        assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::type)
+                .containsExactly(QuestionType.TRUE_FALSE, QuestionType.MULTIPLE_CHOICE, QuestionType.MULTIPLE_CHOICE,
+                        QuestionType.MULTIPLE_CHOICE);
+        assertThat(result.accepted().get(0).correctKey()).isEqualTo("A");
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(1, "INVALID_OPTIONS"),
+                new AiQuestionValidator.Dropped(2, "INVALID_QUESTION_TYPE"));
+    }
+
+    @Test
+    void trueFalseLabelsMustReadDungThenSaiAndAreStoredInCanonicalForm() {
+        ObjectNode swapped = mapper.createObjectNode().put("type", "TRUE_FALSE").put("stem", "上海是中国的首都。")
+                .put("explanation", "Self-authored explanation").put("difficulty", 1);
+        swapped.set("options", mapper.createArrayNode().add(option("A", "Sai", true)).add(option("B", "Đúng", false)));
+        ObjectNode loose = mapper.createObjectNode().put("type", "TRUE_FALSE").put("stem", "北京在中国。")
+                .put("explanation", "Self-authored explanation").put("difficulty", 1);
+        loose.set("options", mapper.createArrayNode().add(option("A", " đúng. ", true)).add(option("B", "SAI", false)));
+        var result = validator.validate(document(swapped, loose, question("row one"), question("row two"),
+                question("row three"), question("row four")), prompt, SemanticIndex.off(), 10);
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(0, "INVALID_OPTIONS"));
+        assertThat(result.accepted().get(0).options()).extracting(QuestionOption::text).containsExactly("Đúng", "Sai");
+        assertThat(result.accepted().get(0).correctKey()).isEqualTo("A");
+    }
+
+    @Test
+    void atMostAThirdOfTheBatchMayBeTrueFalse() {
+        var result = validator.validate(document(trueFalse("第一句判断。", true), trueFalse("第二句判断。", false),
+                question("row one")), prompt, SemanticIndex.off(), 3);
+        assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::stem)
+                .containsExactly("第一句判断。", "row one");
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(1, "TYPE_QUOTA"));
+        var small = validator.validate(document(trueFalse("小批判断。", true), question("row one")),
+                prompt, SemanticIndex.off(), 2);
+        assertThat(small.dropped()).containsExactly(new AiQuestionValidator.Dropped(0, "TYPE_QUOTA"));
+    }
+
+    private ObjectNode trueFalse(String stem, boolean statementIsTrue) {
+        ObjectNode row = mapper.createObjectNode().put("type", "TRUE_FALSE").put("stem", stem)
+                .put("explanation", "Self-authored explanation").put("difficulty", 1);
+        row.set("options", mapper.createArrayNode().add(option("A", "Đúng", statementIsTrue))
+                .add(option("B", "Sai", !statementIsTrue)));
+        return row;
+    }
+
+    @Test
+    void validRowsBeyondTheAllottedNumberAreDroppedAndInvalidRowsDoNotUseTheAllowance() {
+        ObjectNode invalid = question("invalid row"); invalid.remove("explanation");
+        var result = validator.validate(document(invalid, question("row one"), question("row two"), question("row three")),
+                prompt, SemanticIndex.off(), 2);
+        assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::stem).containsExactly("row one", "row two");
+        assertThat(result.dropped()).containsExactly(new AiQuestionValidator.Dropped(0, "INVALID_EXPLANATION"),
+                new AiQuestionValidator.Dropped(3, "OVER_QUOTA"));
+    }
+
+    private SemanticIndex index(List<QuestionEmbeddingStore.StoredVector> stored, Map<String, float[]> stems) {
+        Map<String, float[]> keyed = new java.util.HashMap<>();
+        stems.forEach((stem, vector) -> keyed.put(AiQuestionValidator.fingerprint(stem), vector));
+        return new SemanticIndex(true, 0.9, "stub-embedding", keyed, stored);
+    }
+    private String document(ObjectNode... rows) {
+        ArrayNode array = mapper.createArrayNode();
+        for (ObjectNode row : rows) array.add(row);
+        return mapper.createObjectNode().set("questions", array).toString();
+    }
+    private static float[] axis(int index) { return StubEmbeddingEngine.withCosine(1, index == 0 ? 1 : index); }
+    private static float[] cosine(double value, int otherAxis) { return StubEmbeddingEngine.withCosine(value, otherAxis); }
 
     private void assertDropped(ObjectNode row, String reason) {
         var result = validate(mapper.createArrayNode().add(row));

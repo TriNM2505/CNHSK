@@ -32,6 +32,18 @@ class AiPromptBuilderTest {
     }
 
     @Test
+    void requestNamesTheQuestionStyleOfTheNodeDomainWhileInstructionsAllowTrueFalse() {
+        var grammar = builder.build(17, 3);
+        assertThat(grammar.messages().get(0).text()).contains("___");
+        assertThat(grammar.systemBlocks().get(0).text()).contains("TRUE_FALSE", "một phần ba");
+        assertThat(AiPromptBuilder.styleFor("CH2-010")).contains("chữ Hán");
+        assertThat(AiPromptBuilder.styleFor("TV1-002")).contains("nghĩa tiếng Việt");
+        assertThat(AiPromptBuilder.styleFor("NA1-003")).contains("pinyin");
+        assertThat(AiPromptBuilder.styleFor("NL3-001")).contains("hội thoại");
+        assertThat(AiPromptBuilder.styleFor("VB1-001")).contains("can_do");
+    }
+
+    @Test
     void rendersTwoCachedBlocksAndOneUserRequestWithStableInstructions() throws Exception {
         var first = builder.build(17, 7);
         content(18, "NP1-002", "Other title", "Other can do");

@@ -41,7 +41,7 @@ class AiConfigTest {
             assertThat(config.getAssistantModel()).isEqualTo("deepseek-chat");
             assertThat(config.getTranslateModel()).isEqualTo("deepseek-chat");
             assertThat(config.getTimeout()).isEqualTo(Duration.ofSeconds(15));
-            assertThat(config.getMonthlyTokenBudget()).isEqualTo(2_000_000L);
+            assertThat(config.getMonthlyTokenBudget()).isEqualTo(5_000_000L);
             ClaudeClient client = context.getBean(ClaudeClient.class);
             assertThat(client).isInstanceOf(DeepSeekChatClient.class);
             assertNotConfigured(client, config);

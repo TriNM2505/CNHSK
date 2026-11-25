@@ -49,6 +49,7 @@ class AiRunTriggerTest {
         when(config.getGenerateModel()).thenReturn("accepted-model");
         when(config.batchSize()).thenReturn(2); when(config.maxBatchesPerRun()).thenReturn(3);
         when(config.minBank()).thenReturn(10); when(config.getTimeout()).thenReturn(Duration.ofSeconds(9));
+        when(config.dailyCap()).thenReturn(100); when(config.semanticThreshold()).thenReturn(900);
         when(guard.tryAcquire()).thenReturn(Optional.of(lease));
         trigger = new AiRunTrigger(auth, config, guard, generation, accepted::add);
     }
@@ -96,7 +97,7 @@ class AiRunTriggerTest {
         assertThat(accepted).hasSize(1); verify(lease, never()).close();
         when(config.batchSize()).thenReturn(9); when(config.getGenerateModel()).thenReturn("changed-model");
         accepted.get(0).run();
-        verify(generation).runReserved(lease, new AiGenerationService.Settings(7, "accepted-model", 2, 3, 10, Duration.ofSeconds(9)));
+        verify(generation).runReserved(lease, new AiGenerationService.Settings(7, "accepted-model", 2, 3, 10, Duration.ofSeconds(9), 100, 900));
         verify(guard, times(1)).tryAcquire(); verify(lease, times(1)).close();
     }
 
@@ -184,7 +185,7 @@ class AiRunTriggerTest {
             assertThat(running.incrementAndGet()).isEqualTo(1);
             try {
                 assertThat(invocation.<AiGenerationService.Settings>getArgument(1)).isEqualTo(
-                        new AiGenerationService.Settings(7, "accepted-model", 2, 3, 10, Duration.ofSeconds(9)));
+                        new AiGenerationService.Settings(7, "accepted-model", 2, 3, 10, Duration.ofSeconds(9), 100, 900));
                 if (invocation.getArgument(0) == second) { secondEntered.countDown(); await(secondRelease); }
                 return null;
             } finally { running.decrementAndGet(); }

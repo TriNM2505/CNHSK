@@ -36,8 +36,9 @@ class KnowledgeTreeMigrationIntegrationTest extends AbstractIntegrationTest {
         assertThat(jdbc.queryForObject(
                 "SELECT count(*) FROM information_schema.tables WHERE table_schema='learning' "
                         + "AND table_type='BASE TABLE' AND table_name <> 'flyway_schema_history'",
-                // V18 added error_codes, learning_tasks and learning_task_targets for the competency tree v2.0.
-                Long.class)).isEqualTo(26L);
+                // V18 added error_codes, learning_tasks and learning_task_targets for the competency tree v2.0;
+                // V19 added question_embeddings for the duplicate meaning check of generated questions.
+                Long.class)).isEqualTo(27L);
     }
 
     @Test

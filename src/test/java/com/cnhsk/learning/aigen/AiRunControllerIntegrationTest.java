@@ -141,7 +141,7 @@ class AiRunControllerIntegrationTest extends AbstractIntegrationTest {
     void acceptsOnlyOriginalStatusValuesAndKeepsExactSafeResponseShape(String state) throws Exception {
         request(state, "{\"questionIds\":[1],\"dropped\":[{},{}],\"inputTokens\":3,\"outputTokens\":5}", null);
         JsonNode json = response(get(ROOT).param("status", state).param("size", "50"));
-        assertThat(fields(json)).containsExactlyInAnyOrder("enabled", "monthTokens", "items", "page", "size", "totalElements");
+        assertThat(fields(json)).containsExactlyInAnyOrder("enabled", "embeddingReady", "monthTokens", "items", "page", "size", "totalElements");
         assertThat(fields(json.path("items").get(0))).containsExactlyInAnyOrder("id", "kid", "status", "createdAt", "completedAt",
                 "questionCount", "droppedCount", "inputTokens", "outputTokens", "error");
         assertThat(json.path("items").get(0).path("status").asText()).isEqualTo(state);

@@ -33,11 +33,13 @@ import org.springframework.scheduling.support.CronExpression;
 class AiGenerateConfigTest {
     private static final List<BusinessValue> BUSINESS_VALUES = List.of(
             new BusinessValue(SettingKey.AI_GENERATE_SYSTEM_USER_ID, 0, AiGenerateConfig::systemUserId),
-            new BusinessValue(SettingKey.AI_GENERATE_WINDOW_DAYS, 14, AiGenerateConfig::windowDays),
-            new BusinessValue(SettingKey.AI_GENERATE_MIN_WRONG, 20, AiGenerateConfig::minWrong),
-            new BusinessValue(SettingKey.AI_GENERATE_MIN_BANK, 10, AiGenerateConfig::minBank),
+            new BusinessValue(SettingKey.AI_GENERATE_WINDOW_DAYS, 1, AiGenerateConfig::windowDays),
+            new BusinessValue(SettingKey.AI_GENERATE_MIN_WRONG, 3, AiGenerateConfig::minWrong),
+            new BusinessValue(SettingKey.AI_GENERATE_MIN_BANK, 200, AiGenerateConfig::minBank),
             new BusinessValue(SettingKey.AI_GENERATE_BATCH_SIZE, 5, AiGenerateConfig::batchSize),
-            new BusinessValue(SettingKey.AI_GENERATE_MAX_BATCHES_PER_RUN, 3, AiGenerateConfig::maxBatchesPerRun));
+            new BusinessValue(SettingKey.AI_GENERATE_MAX_BATCHES_PER_RUN, 20, AiGenerateConfig::maxBatchesPerRun),
+            new BusinessValue(SettingKey.AI_GENERATE_DAILY_CAP, 100, AiGenerateConfig::dailyCap),
+            new BusinessValue(SettingKey.AI_GENERATE_SEMANTIC_THRESHOLD, 800, AiGenerateConfig::semanticThreshold));
     private static final List<String> TECHNICAL_PROPERTIES = List.of(
             "cnhsk.ai.generate-model=claude-sonnet-5-5",
             "cnhsk.ai-generate.timeout=60s",
@@ -58,7 +60,7 @@ class AiGenerateConfigTest {
             AiGenerateConfig config = context.getBean(AiGenerateConfig.class);
             assertThat(config.getGenerateModel()).isEqualTo("deepseek-chat");
             assertThat(config.getTimeout()).isEqualTo(Duration.ofSeconds(60));
-            assertThat(config.getCron()).isEqualTo("0 0 2 * * *");
+            assertThat(config.getCron()).isEqualTo("0 0 */2 * * *");
             for (BusinessValue value : BUSINESS_VALUES) {
                 assertThat(context.getEnvironment().getProperty(value.key().defaultProperty(), Integer.class))
                         .isEqualTo(value.defaultValue());

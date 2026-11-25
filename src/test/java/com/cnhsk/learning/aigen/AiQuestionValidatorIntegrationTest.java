@@ -117,6 +117,19 @@ class AiQuestionValidatorIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void charactersOfTheNodeOwnWordsAreAllowedEvenWhenTheCharacterIsListedHigher() {
+        fixtures.lexeme(null, "CHAR", "𠀋", 3);
+        fixtures.lexeme(prompt.knowledgePointId(), "WORD", "𠀋𠀌", 1);
+        long other = fixtures.node("Other word owner", "Can do");
+        fixtures.lexeme(other, "WORD", "𠀍𠀎", 1);
+        sql.clear();
+        var result = validate(mapper.createArrayNode().add(question("node word 𠀋𠀌")).add(question("other node word 𠀍")));
+        assertThat(result.accepted()).extracting(AiQuestionValidator.ValidatedQuestion::stem).containsExactly("node word 𠀋𠀌");
+        assertThat(result.dropped()).extracting(AiQuestionValidator.Dropped::reason).containsExactly("HANZI_ABOVE_LEVEL");
+        sql.assertContentReads(2);
+    }
+
+    @Test
     void nearDuplicateUsesTheStoredCorrectAnswerInTheSameSingleRead() {
         fixtures.question(prompt.knowledgePointId(), "PRIMARY", "APPROVED", "MANUAL", "Weekend library visit planned",
                 AiPromptBuilderIntegrationTest.fixtureOptions(null));

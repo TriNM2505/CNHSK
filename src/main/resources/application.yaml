@@ -114,16 +114,29 @@ cnhsk:
     translate-model: deepseek-chat
     generate-model: deepseek-chat
     timeout: 15s
-    monthly-token-budget: 2000000
+    monthly-token-budget: 5000000
   ai-generate:
     system-user-id: 0
-    window-days: 14
-    min-wrong: 20
-    min-bank: 10
+    window-days: 1
+    min-wrong: 3
+    min-bank: 200
     batch-size: 5
-    max-batches-per-run: 3
-    cron: "0 0 2 * * *"
+    max-batches-per-run: 20
+    daily-cap: 100
+    # Cosine x 1000 at or above which two questions with the same answer count as the same question.
+    semantic-threshold: 800
+    cron: "0 0 */2 * * *"
     timeout: 60s
+  # Sentence model for semantic duplicate checks; downloaded on first use and verified before loading.
+  embedding:
+    model-id: paraphrase-multilingual-MiniLM-L12-v2-int8
+    cache-dir: ${user.home}/.cnhsk/models
+    # Pinned revisions: an upstream re-upload must not break the digest check on every run.
+    model-url: https://huggingface.co/Xenova/paraphrase-multilingual-MiniLM-L12-v2/resolve/7e3d5398ff67a776281d0a27b2d47a964d5bfffb/onnx/model_quantized.onnx
+    model-sha256: 66fc00f5f29afcaff34092e1bdd20008ca3918265a82fb9695a551e510cc4ebc
+    tokenizer-url: https://huggingface.co/Xenova/paraphrase-multilingual-MiniLM-L12-v2/resolve/b9e20f0c6dd7e5f88c72259765011e6a3a9196bc/tokenizer.json
+    tokenizer-sha256: b60b6b43406a48bf3638526314f3d232d97058bc93472ff2de930d43686fa441
+    max-tokens: 128
   assistant:
     daily-limit: 200
   library:

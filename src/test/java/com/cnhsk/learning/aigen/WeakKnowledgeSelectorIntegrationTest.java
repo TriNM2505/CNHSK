@@ -139,16 +139,24 @@ class WeakKnowledgeSelectorIntegrationTest extends AbstractIntegrationTest {
         fixtures.items(user, fixtures.question(same, "IMPORT", "APPROVED", fixtures.kid(same)), "B", false, NOW, 3);
         long missingPrimary = fixtures.question(null, "MANUAL", "APPROVED", fixtures.kid(error));
         fixtures.items(user, missingPrimary, "B", false, NOW, 4);
+        // A wrong vocabulary item counts for the node of its word, the way the tree links words to nodes.
         long lexemeAttempt = fixtures.attempt(user);
         jdbc.update("INSERT INTO learning.attempt_items(attempt_id,lexeme_id,item_type,skill,is_correct,order_index,answered_at) "
-                + "SELECT ?,id,'LEXEME_CHOICE','VOCAB',false,1,? FROM learning.lexemes WHERE knowledge_point_id=?",
+                + "SELECT ?,id,'MEANING_CHOICE','VOCAB',false,1,? FROM learning.lexemes WHERE knowledge_point_id=?",
                 lexemeAttempt, Timestamp.from(NOW), unused);
+        jdbc.update("INSERT INTO learning.attempt_items(attempt_id,lexeme_id,item_type,skill,is_correct,order_index,answered_at) "
+                + "SELECT ?,id,'MEANING_CHOICE','VOCAB',true,2,? FROM learning.lexemes WHERE knowledge_point_id=?",
+                lexemeAttempt, Timestamp.from(NOW), unused);
+        // A word that belongs to no node reaches no candidate.
+        jdbc.update("INSERT INTO learning.attempt_items(attempt_id,lexeme_id,item_type,skill,is_correct,order_index,answered_at) "
+                + "SELECT ?,id,'MEANING_CHOICE','VOCAB',false,3,? FROM learning.lexemes WHERE knowledge_point_id IS NULL LIMIT 1",
+                lexemeAttempt, Timestamp.from(NOW));
 
         var result = selector.select();
 
         assertThat(result).extracting(WeakKnowledgeSelector.Candidate::kid)
-                .containsExactly(fixtures.kid(error), fixtures.kid(primary), fixtures.kid(same));
-        assertThat(result).extracting(WeakKnowledgeSelector.Candidate::wrongCount).containsExactly(12L, 10L, 6L);
+                .containsExactly(fixtures.kid(error), fixtures.kid(primary), fixtures.kid(same), fixtures.kid(unused));
+        assertThat(result).extracting(WeakKnowledgeSelector.Candidate::wrongCount).containsExactly(12L, 10L, 6L, 1L);
         // Raw selection includes these IN_PROGRESS and suspicious attempts.
         assertThat(jdbc.queryForObject("SELECT bool_and(suspicious) FROM learning.attempts WHERE user_id=?", Boolean.class, user)).isTrue();
     }

@@ -55,7 +55,8 @@ public class AiRunTrigger {
             throw failure(ErrorCode.AI_GENERATION_DISABLED, HttpStatus.CONFLICT);
         }
         var settings = new AiGenerationService.Settings(systemUser, config.getGenerateModel(), config.batchSize(),
-                config.maxBatchesPerRun(), config.minBank(), config.getTimeout());
+                config.maxBatchesPerRun(), config.minBank(), config.getTimeout(), config.dailyCap(),
+                config.semanticThreshold());
         AiGenerationGuard.Lease lease;
         try {
             lease = guard.tryAcquire().orElseThrow(() -> failure(ErrorCode.AI_GENERATION_BUSY, HttpStatus.CONFLICT));

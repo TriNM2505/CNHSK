@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mockingDetails;
 import static org.mockito.Mockito.when;
 
@@ -44,7 +45,7 @@ class WeakKnowledgeSelectorPerformanceIntegrationTest extends AbstractIntegratio
     private static final Instant NOW = WeakKnowledgeSelectorIntegrationTest.NOW;
     private static final int EXPECTED_MASTERY_USER_LIMIT = 100;
     @Autowired WeakKnowledgeSelector selector;
-    @Autowired AiGenerateConfig config;
+    @MockitoSpyBean AiGenerateConfig config;
     @Autowired JdbcTemplate jdbc;
     @Autowired ObjectMapper mapper;
     @Autowired StubClaudeClient stub;
@@ -65,10 +66,11 @@ class WeakKnowledgeSelectorPerformanceIntegrationTest extends AbstractIntegratio
         doAnswer(invocation -> captureRows("wrongAnswers", invocation.callRealMethod())).when(repository).wrongAnswers(any(), any());
         doAnswer(invocation -> captureRows("nodes", invocation.callRealMethod())).when(repository).nodes(any());
         doAnswer(invocation -> captureRows("activeRuns", invocation.callRealMethod())).when(repository).activeRuns();
-        assertThat(config.windowDays()).isEqualTo(14);
-        assertThat(config.minWrong()).isEqualTo(20);
-        assertThat(config.minBank()).isEqualTo(10);
-        assertThat(config.maxBatchesPerRun()).isEqualTo(3);
+        // The fixture is sized around these thresholds (top three nodes, a tie at twenty wrong answers).
+        doReturn(14).when(config).windowDays();
+        doReturn(20).when(config).minWrong();
+        doReturn(10).when(config).minBank();
+        doReturn(3).when(config).maxBatchesPerRun();
     }
 
     @AfterEach

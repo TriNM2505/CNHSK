@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 import com.cnhsk.learning.ai.AiUnavailableException;
 import com.cnhsk.learning.ai.ClaudeClient;
 import com.cnhsk.learning.ai.StubClaudeClient;
+import com.cnhsk.learning.aigen.embedding.StubEmbeddingEngine;
 import com.cnhsk.shared.settings.SettingKey;
 import com.cnhsk.shared.settings.SettingsService;
 import com.cnhsk.support.AbstractIntegrationTest;
@@ -59,6 +60,9 @@ class AiGenerationServiceIntegrationTest extends AbstractIntegrationTest {
     @MockitoSpyBean AiGenerationStore store;
     @MockitoBean SettingsService settings;
     @MockitoBean Clock clock;
+    @Autowired StubEmbeddingEngine embeddings;
+    @Autowired jakarta.persistence.EntityManager entityManager;
+    @Autowired SemanticDeduplicator semantic;
     WeakKnowledgeSelectorIntegrationTest.Fixtures fixtures;
     long admin;
     int calls;
@@ -78,6 +82,10 @@ class AiGenerationServiceIntegrationTest extends AbstractIntegrationTest {
         doReturn(20).when(config).minWrong();
         doReturn("fixture-model").when(config).getGenerateModel();
         doReturn(Duration.ofSeconds(60)).when(config).getTimeout();
+        doReturn(100).when(config).dailyCap();
+        doReturn(900).when(config).semanticThreshold();
+        // Other test classes leave AI questions in the shared database; the daily cap tests count for real.
+        doReturn(0).when(store).savedToday();
         when(settings.getInt(SettingKey.AI_MONTHLY_TOKEN_BUDGET)).thenReturn(100000);
         redis.delete(TOKEN_KEY);
         calls = provider.callCount();
@@ -89,6 +97,7 @@ class AiGenerationServiceIntegrationTest extends AbstractIntegrationTest {
 
     @AfterEach
     void cleanupOwnedRows() {
+        embeddings.reset();
         if (fixtures != null) {
             for (long user : fixtures.users) {
                 List<Long> generated = jdbc.queryForList("SELECT q.id FROM learning.questions q "
@@ -363,7 +372,7 @@ class AiGenerationServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(result.questions()).isZero();
         assertThat(provider.callCount() - calls).isEqualTo(1);
         assertFailed("DB_ERROR", 0);
-        verify(store, never()).finish(any(), any(), any(), any());
+        verify(store, never()).finish(any(), any(), any(), any(), anyInt(), any());
         assertThat(jdbc.queryForObject("SELECT 1", Integer.class)).isEqualTo(1);
     }
 
@@ -377,7 +386,129 @@ class AiGenerationServiceIntegrationTest extends AbstractIntegrationTest {
                 }
             });
             return result;
-        }).when(validator).validate(anyString(), any());
+        }).when(validator).validate(anyString(), any(), any(), anyInt());
+    }
+
+    @Test
+    void dailyCapCountsOnlyAiQuestionsStoredSinceVietnamMidnight() {
+        doCallRealMethod().when(store).savedToday();
+        long node = fixtures.node();
+        int before = store.savedToday();
+        long today = fixtures.question(node, "AI", "PENDING_REVIEW", null);
+        long yesterday = fixtures.question(node, "AI", "PENDING_REVIEW", null);
+        long imported = fixtures.question(node, "IMPORT", "APPROVED", null);
+        jdbc.update("UPDATE learning.questions SET created_at=? WHERE id IN (?,?)", Timestamp.from(NOW), today, imported);
+        // 06:00Z is 13:00 in Vietnam, so one day earlier is the previous Vietnamese day.
+        jdbc.update("UPDATE learning.questions SET created_at=? WHERE id=?", Timestamp.from(NOW.minus(Duration.ofDays(1))), yesterday);
+        assertThat(store.savedToday()).isEqualTo(before + 1);
+    }
+
+    @Test
+    void runStoresNoMoreThanTheRemainingDailyQuestionsEvenWhenTheProviderAddsRows() throws Exception {
+        selectOne();
+        doReturn(98).when(store).savedToday();
+        provider.enqueue(new ClaudeClient.Completion(response("capped", 5), 10, 10));
+
+        var result = service.runOnce();
+
+        assertThat(result.questions()).isEqualTo(2);
+        JsonNode stored = mapper.readTree((String) jdbc.queryForObject(
+                "SELECT result::text FROM learning.service_requests WHERE id=?", String.class, onlyRequest().get("id")));
+        assertThat(stored.path("questionIds")).hasSize(2);
+        assertThat(stored.path("dropped").findValuesAsText("reason")).containsExactly("OVER_QUOTA", "OVER_QUOTA", "OVER_QUOTA");
+    }
+
+    @Test
+    void rewordedQuestionWithTheStoredAnswerIsDroppedAndStoredQuestionsGetVectors() throws Exception {
+        long node = selectOne();
+        long existing = fixtures.question(node, "IMPORT", "APPROVED", null);
+        embeddings.pin("Self-authored selector question", StubEmbeddingEngine.withCosine(1, 1));
+        embeddings.pin("Reworded selector question", StubEmbeddingEngine.withCosine(0.95, 2));
+        ObjectNode reworded = question("Reworded selector question");
+        ((ObjectNode) reworded.withArray("options").get(0)).put("text", "Correct");
+        ObjectNode fresh = question("Unrelated practice sentence");
+        ((ObjectNode) fresh.withArray("options").get(0)).put("text", "Correct");
+        ObjectNode root = mapper.createObjectNode();
+        root.putArray("questions").add(reworded).add(fresh);
+        provider.enqueue(new ClaudeClient.Completion(root.toString(), 10, 10));
+
+        var result = service.runOnce();
+
+        assertThat(result.questions()).isEqualTo(1);
+        var request = onlyRequest();
+        JsonNode stored = mapper.readTree((String) jdbc.queryForObject(
+                "SELECT result::text FROM learning.service_requests WHERE id=?", String.class, request.get("id")));
+        assertThat(stored.path("dropped").findValuesAsText("reason")).containsExactly("SEMANTIC_DUPLICATE_STEM");
+        long created = stored.path("questionIds").get(0).asLong();
+        assertThat(jdbc.queryForList("SELECT question_id FROM learning.question_embeddings WHERE model='stub-embedding' "
+                + "AND question_id IN (?,?)", Long.class, existing, created)).containsExactlyInAnyOrder(existing, created);
+    }
+
+    @Test
+    void embeddingFailureAfterTheProviderCallFailsTheBatchWithoutSavingAnyQuestion() {
+        selectOne();
+        embeddings.failOn("explodes 0");
+        provider.enqueue(new ClaudeClient.Completion(response("explodes", 2), 7, 9));
+
+        var result = service.runOnce();
+
+        assertThat(result.outcome()).isEqualTo(AiGenerationService.Outcome.PAUSED);
+        assertThat(provider.callCount() - calls).isEqualTo(1);
+        assertFailed("EMBEDDING_UNAVAILABLE", 0);
+    }
+
+    @Test
+    void storedQuestionWithoutAVectorIsBackfilledBeforeTheBatch() {
+        long node = selectOne();
+        long existing = fixtures.question(node, "IMPORT", "APPROVED", null);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM learning.question_embeddings WHERE question_id=?",
+                Long.class, existing)).isZero();
+        provider.enqueue(new ClaudeClient.Completion(response("after backfill", 1), 1, 1));
+
+        service.runOnce();
+
+        assertThat(jdbc.queryForObject("SELECT model FROM learning.question_embeddings WHERE question_id=?",
+                String.class, existing)).isEqualTo("stub-embedding");
+        assertThat(jdbc.queryForObject("SELECT cardinality(vector) FROM learning.question_embeddings WHERE question_id=?",
+                Integer.class, existing)).isEqualTo(StubEmbeddingEngine.DIMENSIONS);
+    }
+
+    @Test
+    void trueFalseDraftIsStoredWithItsTypeAndServedByTheLearnerEngine() throws Exception {
+        selectOne();
+        ObjectNode statement = mapper.createObjectNode().put("type", "TRUE_FALSE").put("stem", "statement about the node")
+                .put("explanation", "Self-authored explanation").put("difficulty", 1);
+        statement.putArray("options").add(mapper.createObjectNode().put("key", "A").put("text", "Đúng").put("isCorrect", true))
+                .add(mapper.createObjectNode().put("key", "B").put("text", "Sai").put("isCorrect", false));
+        ObjectNode root = mapper.createObjectNode();
+        root.putArray("questions").add(statement).add(question("multiple one")).add(question("multiple two"));
+        provider.enqueue(new ClaudeClient.Completion(root.toString(), 5, 5));
+
+        assertThat(service.runOnce().questions()).isEqualTo(3);
+
+        assertThat(jdbc.queryForList("SELECT qtype FROM learning.questions WHERE created_by_request_id=? ORDER BY id",
+                String.class, onlyRequest().get("id"))).containsExactly("TRUE_FALSE", "MULTIPLE_CHOICE", "MULTIPLE_CHOICE");
+        long stored = jdbc.queryForObject("SELECT id FROM learning.questions WHERE created_by_request_id=? AND qtype='TRUE_FALSE'",
+                Long.class, onlyRequest().get("id"));
+        var entity = new com.cnhsk.learning.exam.QuestionItemFactory();
+        jdbc.update("UPDATE learning.questions SET status='APPROVED', reviewed_by=?, reviewed_at=now() WHERE id=?", admin, stored);
+        var question = new TransactionTemplate(transactions).execute(status ->
+                entityManager.find(com.cnhsk.learning.knowledge.entity.Question.class, stored));
+        assertThat(entity.create(question, 1)).hasValueSatisfying(item ->
+                assertThat(item.options()).extracting(option -> option.text()).containsExactly("Đúng", "Sai"));
+    }
+
+    @Test
+    void unavailableModelPausesTheRunWithoutCallingTheProviderOrClaiming() {
+        selectOne();
+        embeddings.setAvailable(false);
+
+        var result = service.runOnce();
+
+        assertThat(result.outcome()).isEqualTo(AiGenerationService.Outcome.PAUSED);
+        assertThat(provider.callCount() - calls).isZero();
+        assertThat(requests()).isEmpty();
+        assertThat(semantic.ready()).isFalse();
     }
 
     private long selectOne() { return selectNodes(1).get(0); }

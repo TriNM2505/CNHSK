@@ -55,7 +55,8 @@ class AiRunTriggerIntegrationTest extends AbstractIntegrationTest {
     private static final AtomicLong MILLIS = new AtomicLong(NOW.toEpochMilli());
     private static final String TOKEN_KEY = "ai:tokens:202611";
     private static final List<SettingKey> KEYS = List.of(SettingKey.AI_GENERATE_SYSTEM_USER_ID,
-            SettingKey.AI_GENERATE_BATCH_SIZE, SettingKey.AI_GENERATE_MAX_BATCHES_PER_RUN, SettingKey.AI_MONTHLY_TOKEN_BUDGET);
+            SettingKey.AI_GENERATE_BATCH_SIZE, SettingKey.AI_GENERATE_MAX_BATCHES_PER_RUN, SettingKey.AI_MONTHLY_TOKEN_BUDGET,
+            SettingKey.AI_GENERATE_WINDOW_DAYS, SettingKey.AI_GENERATE_MIN_WRONG, SettingKey.AI_GENERATE_DAILY_CAP);
     @Autowired AiGenerationService service;
     @Autowired AiGenerationGuard guard;
     @Autowired AiGenerateConfig config;
@@ -85,6 +86,10 @@ class AiRunTriggerIntegrationTest extends AbstractIntegrationTest {
         setting(SettingKey.AI_GENERATE_BATCH_SIZE, 1);
         setting(SettingKey.AI_GENERATE_MAX_BATCHES_PER_RUN, 1);
         setting(SettingKey.AI_MONTHLY_TOKEN_BUDGET, 100000);
+        // Fixture wrong answers are a day older than this clock; the cap must not see other classes' questions.
+        setting(SettingKey.AI_GENERATE_WINDOW_DAYS, 14);
+        setting(SettingKey.AI_GENERATE_MIN_WRONG, 20);
+        setting(SettingKey.AI_GENERATE_DAILY_CAP, 500);
         advanceClock(); redis.delete(TOKEN_KEY); calls = provider.callCount();
         assertThat(settings).isNotNull();
         assertThat(config.systemUserId()).isEqualTo(admin);
@@ -220,7 +225,8 @@ class AiRunTriggerIntegrationTest extends AbstractIntegrationTest {
         }).when(provider).complete(anyString(), anyList(), anyList(), anyInt(), any());
         try (var lease = guard.tryAcquire().orElseThrow()) {
             var snapshot = new AiGenerationService.Settings(admin, config.getGenerateModel(), config.batchSize(),
-                    config.maxBatchesPerRun(), config.minBank(), config.getTimeout());
+                    config.maxBatchesPerRun(), config.minBank(), config.getTimeout(), config.dailyCap(),
+                    config.semanticThreshold());
             var result = new TransactionTemplate(transactions).execute(status -> {
                 assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
                 var run = service.runReserved(lease, snapshot);

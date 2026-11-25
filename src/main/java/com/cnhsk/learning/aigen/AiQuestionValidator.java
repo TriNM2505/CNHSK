@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.cnhsk.learning.knowledge.entity.QuestionOption;
+import com.cnhsk.learning.knowledge.entity.QuestionType;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -29,9 +30,13 @@ public class AiQuestionValidator {
             Pattern.UNICODE_CHARACTER_CLASS);
     /** Jaccard similarity over character bigrams at or above this value counts as the same stem. */
     static final double NEAR_DUPLICATE_THRESHOLD = 0.8;
+    /** A stem with at most this many Chinese characters names the tested item rather than a sentence. */
+    private static final int SHORT_ITEM_HANZI = 4;
     /** Short stems share bigrams by chance, so only stems this long (code points, after loosening) are compared. */
     static final int NEAR_DUPLICATE_MIN_LENGTH = 8;
     private static final Set<String> KEYS = Set.of("A", "B", "C", "D");
+    /** A is "Đúng" and B is "Sai"; learners always see those two labels. */
+    private static final Set<String> TRUE_FALSE_KEYS = Set.of("A", "B");
     private final WeakKnowledgeQueryRepository repository;
     private final ObjectMapper mapper;
 
@@ -41,8 +46,19 @@ public class AiQuestionValidator {
                 .enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
     }
 
+    /** Text rules only; generation always passes a prepared {@link SemanticIndex}. */
     @Transactional(readOnly = true)
     public ValidationResult validate(String output, AiPromptBuilder.Prompt prompt) {
+        return validate(output, prompt, SemanticIndex.off(), Integer.MAX_VALUE);
+    }
+
+    /**
+     * Applies every rule, then keeps at most {@code limit} questions: rows valid beyond the number the batch
+     * was allotted are dropped as {@code OVER_QUOTA}, so a provider answering with extra rows cannot exceed
+     * the daily cap.
+     */
+    @Transactional(readOnly = true)
+    public ValidationResult validate(String output, AiPromptBuilder.Prompt prompt, SemanticIndex semantic, int limit) {
         if (prompt == null || prompt.knowledgePointId() <= 0 || prompt.hskLevel() < 1 || prompt.hskLevel() > 9) {
             throw new IllegalArgumentException("Valid knowledge point context is required");
         }
@@ -81,8 +97,17 @@ public class AiQuestionValidator {
             looseStems.add(new LooseStem(loose(existing.stem()), loose(storedCorrectText(existing.optionsJson()))));
         });
         Set<String> existingKids = errorKids.isEmpty() ? Set.of() : repository.existingKidCodes(errorKids);
-        Set<String> allowed = characters.isEmpty() ? Set.of() : repository.allowedCharacters(characters, prompt.hskLevel());
+        Set<String> allowed = characters.isEmpty() ? Set.of()
+                : repository.allowedCharacters(characters, prompt.hskLevel(), prompt.knowledgePointId());
+        List<Meaning> meanings = new ArrayList<>();
+        if (semantic.enabled()) {
+            semantic.existing().forEach(stored -> meanings.add(new Meaning(stored.vector(),
+                    loose(storedCorrectText(stored.optionsJson())), hanziOf(stored.stem()))));
+        }
         List<ValidatedQuestion> accepted = new ArrayList<>();
+        // At most a third of a batch may be true/false; the share is counted over the rows the batch may keep.
+        int rows = index;
+        int trueFalse = 0;
         for (IndexedQuestion candidate : candidates) {
             ValidatedQuestion value = candidate.value();
             String reason = null;
@@ -96,9 +121,17 @@ public class AiQuestionValidator {
             hanzi(value.stem(), used);
             value.options().forEach(option -> hanzi(option.text(), used));
             if (reason == null && !allowed.containsAll(used)) reason = "HANZI_ABOVE_LEVEL";
+            Meaning meaning = reason == null && semantic.enabled()
+                    ? new Meaning(semantic.vectorOf(value.stem()), looseStem.answer(), hanziOf(value.stem())) : null;
+            if (meaning != null && sameMeaning(meaning, meanings, semantic.threshold())) reason = "SEMANTIC_DUPLICATE_STEM";
+            if (reason == null && accepted.size() >= limit) reason = "OVER_QUOTA";
+            if (reason == null && value.type() == QuestionType.TRUE_FALSE
+                    && trueFalse >= Math.min(limit, rows) / 3) reason = "TYPE_QUOTA";
             if (reason == null) {
                 stems.add(stem);
                 looseStems.add(looseStem);
+                if (meaning != null) meanings.add(meaning);
+                if (value.type() == QuestionType.TRUE_FALSE) trueFalse++;
                 accepted.add(value);
             } else dropped.add(new Dropped(candidate.index(), reason));
         }
@@ -109,8 +142,12 @@ public class AiQuestionValidator {
     private ValidatedQuestion question(JsonNode question) {
         if (!question.isObject()) throw invalid("INVALID_QUESTION_SHAPE");
         String stem = required(question.get("stem"), 500, "INVALID_STEM");
+        QuestionType type = type(question.get("type"));
+        Set<String> allowedKeys = type == QuestionType.TRUE_FALSE ? TRUE_FALSE_KEYS : KEYS;
         JsonNode rawOptions = question.get("options");
-        if (rawOptions == null || !rawOptions.isArray() || rawOptions.size() != 4) throw invalid("INVALID_OPTIONS");
+        if (rawOptions == null || !rawOptions.isArray() || rawOptions.size() != allowedKeys.size()) {
+            throw invalid("INVALID_OPTIONS");
+        }
         List<QuestionOption> options = new ArrayList<>();
         Set<String> keys = new HashSet<>();
         Set<String> texts = new HashSet<>();
@@ -120,8 +157,17 @@ public class AiQuestionValidator {
             }
             String key = option.get("key").textValue();
             String text = required(option.get("text"), 200, "INVALID_OPTIONS");
-            if (!KEYS.contains(key) || !keys.add(key) || !texts.add(fingerprint(text))) throw invalid("INVALID_OPTIONS");
+            if (!allowedKeys.contains(key) || !keys.add(key) || !texts.add(fingerprint(text))) throw invalid("INVALID_OPTIONS");
             options.add(new QuestionOption(key, text, option.get("isCorrect").booleanValue(), null, null));
+        }
+        if (type == QuestionType.TRUE_FALSE) {
+            // Learners always see A as "Đúng" and B as "Sai", so a swapped or foreign label would grade backwards.
+            for (int i = 0; i < options.size(); i++) {
+                QuestionOption option = options.get(i);
+                String expected = option.key().equals("A") ? TRUE_LABEL : FALSE_LABEL;
+                if (!sameLabel(option.text(), expected)) throw invalid("INVALID_OPTIONS");
+                options.set(i, new QuestionOption(option.key(), expected, option.isCorrect(), null, null));
+            }
         }
         if (options.stream().filter(QuestionOption::isCorrect).count() != 1) throw invalid("INVALID_CORRECT_ANSWER");
         String explanation = required(question.get("explanation"), 1000, "INVALID_EXPLANATION");
@@ -142,7 +188,18 @@ public class AiQuestionValidator {
         }
         checked.sort(Comparator.comparing(QuestionOption::key));
         String correctKey = checked.stream().filter(QuestionOption::isCorrect).findFirst().orElseThrow().key();
-        return new ValidatedQuestion(stem, checked, correctKey, explanation, difficulty.intValue());
+        return new ValidatedQuestion(stem, checked, correctKey, explanation, difficulty.intValue(), type);
+    }
+
+    /** Missing type means a four-option question, as before true/false items were allowed. */
+    private static QuestionType type(JsonNode value) {
+        if (value == null || value.isNull()) return QuestionType.MULTIPLE_CHOICE;
+        if (!value.isTextual()) throw invalid("INVALID_QUESTION_TYPE");
+        return switch (value.textValue()) {
+            case "MULTIPLE_CHOICE" -> QuestionType.MULTIPLE_CHOICE;
+            case "TRUE_FALSE" -> QuestionType.TRUE_FALSE;
+            default -> throw invalid("INVALID_QUESTION_TYPE");
+        };
     }
 
     private static String required(JsonNode value, int maximum, String reason) {
@@ -162,7 +219,7 @@ public class AiQuestionValidator {
     private static String text(String value) {
         return value == null ? "" : EDGE_SPACE.matcher(Normalizer.normalize(value, Normalizer.Form.NFC)).replaceAll("");
     }
-    private static String fingerprint(String value) { return SPACE.matcher(text(value)).replaceAll(" "); }
+    static String fingerprint(String value) { return SPACE.matcher(text(value)).replaceAll(" "); }
     /** Drops punctuation and spaces but keeps letter case, matching the exact-duplicate rule. */
     private static String loose(String value) { return PUNCTUATION_OR_SPACE.matcher(text(value)).replaceAll(""); }
 
@@ -199,6 +256,7 @@ public class AiQuestionValidator {
             if (comparable && candidate.answer().equals(other.answer())
                     && length(other.stem()) >= NEAR_DUPLICATE_MIN_LENGTH
                     && digits(candidate.stem()).equals(digits(other.stem()))
+                    && sameItem(hanziOf(candidate.stem()), hanziOf(other.stem()))
                     && similarity(candidate.stem(), other.stem()) >= NEAR_DUPLICATE_THRESHOLD) return true;
         }
         return false;
@@ -212,6 +270,24 @@ public class AiQuestionValidator {
     }
 
     private record LooseStem(String stem, String answer) { }
+
+    /** Sentence vector of a stem with its loosened correct answer and the Chinese characters of the stem. */
+    private record Meaning(float[] vector, String answer, String hanzi) { }
+
+    /**
+     * Same meaning counts as a duplicate only with the same correct answer: a drill that keeps the sentence
+     * but tests another word is a new question, while a reworded sentence testing the same answer is not.
+     * When the Chinese part of either stem is short it is the tested item itself, so it must also match:
+     * "chữ 件 thuộc bộ nào?" and "chữ 今 thuộc bộ nào?" share their answer and wording but are two questions.
+     */
+    private static boolean sameMeaning(Meaning candidate, List<Meaning> others, double threshold) {
+        if (candidate.answer() == null || candidate.answer().isEmpty()) return false;
+        for (Meaning other : others) {
+            if (candidate.answer().equals(other.answer()) && sameItem(candidate.hanzi(), other.hanzi())
+                    && SemanticIndex.cosine(candidate.vector(), other.vector()) >= threshold) return true;
+        }
+        return false;
+    }
 
     /** Jaccard similarity of the two strings' sets of adjacent code-point pairs. */
     static double similarity(String first, String second) {
@@ -235,14 +311,34 @@ public class AiQuestionValidator {
         text.codePoints().filter(code -> Character.UnicodeScript.of(code) == Character.UnicodeScript.HAN)
                 .forEach(code -> result.add(new String(Character.toChars(code))));
     }
+    private static boolean sameItem(String first, String second) {
+        return first.equals(second) || Math.max(length(first), length(second)) > SHORT_ITEM_HANZI;
+    }
+
+    /** The stem's Chinese characters in reading order; empty when the stem has none. */
+    private static String hanziOf(String text) {
+        StringBuilder result = new StringBuilder();
+        if (text != null) text.codePoints().filter(code -> Character.UnicodeScript.of(code) == Character.UnicodeScript.HAN)
+                .forEach(result::appendCodePoint);
+        return result.toString();
+    }
     private static InvalidQuestion invalid(String reason) { return new InvalidQuestion(reason); }
+
+    private static final String TRUE_LABEL = "Đúng";
+    private static final String FALSE_LABEL = "Sai";
+
+    /** Ignores case, surrounding spaces and a trailing full stop or exclamation mark. */
+    private static boolean sameLabel(String text, String expected) {
+        String label = Normalizer.normalize(text, Normalizer.Form.NFC).strip().replaceAll("[.!。！]+$", "").strip();
+        return label.toLowerCase(Locale.ROOT).equals(expected.toLowerCase(Locale.ROOT));
+    }
     private static class InvalidQuestion extends RuntimeException {
         InvalidQuestion(String reason) { super(reason); }
     }
     private record IndexedQuestion(int index, ValidatedQuestion value) { }
 
     public record ValidatedQuestion(String stem, List<QuestionOption> options, String correctKey,
-            String explanation, int difficulty) {
+            String explanation, int difficulty, QuestionType type) {
         public ValidatedQuestion { options = List.copyOf(options); }
         @Override public String toString() { return "ValidatedQuestion[options=" + options.size() + "]"; }
     }
