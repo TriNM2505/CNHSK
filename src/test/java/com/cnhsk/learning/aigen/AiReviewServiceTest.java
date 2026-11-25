@@ -77,10 +77,51 @@ class AiReviewServiceTest {
     }
 
     @Test
-    void contentEditorCannotReachTheQueueEvenWithAdmin() {
+    void contentEditorListsOnlyQuestionsAnotherTeacherAlreadyChecked() {
         when(auth.currentUser()).thenReturn(new CurrentUser(51, Set.of(RoleCode.CONTENT_EDITOR, RoleCode.ADMIN), true));
-        assertError(() -> service.list(null, null, null, null, 0, 20), ErrorCode.FORBIDDEN);
-        verifyNoInteractions(jdbc, viewed, audit, transactions);
+        when(jdbc.queryForObject(anyString(), any(SqlParameterSource.class), eq(Long.class))).thenReturn(0L);
+        when(jdbc.query(anyString(), any(SqlParameterSource.class), ArgumentMatchers.<RowMapper<Object>>any())).thenReturn(List.of());
+        when(viewed.viewed(51, List.of())).thenReturn(Set.of());
+        service.list(null, null, null, null, 0, 20);
+        verify(jdbc).queryForObject(org.mockito.ArgumentMatchers.contains("q.reviewed_by IS NOT NULL AND q.reviewed_by<>:me"),
+                any(SqlParameterSource.class), eq(Long.class));
+    }
+
+    @Test
+    void contentEditorCannotTakeTheTeacherStep() throws Exception {
+        when(auth.currentUser()).thenReturn(new CurrentUser(51, Set.of(RoleCode.CONTENT_EDITOR), true));
+        reviewRows("AI", "PENDING_REVIEW", true, null);
+        assertError(() -> service.approve(5), ErrorCode.FORBIDDEN);
+        assertError(() -> service.reject(5, "Sai nghĩa"), ErrorCode.FORBIDDEN);
+        verify(jdbc, never()).update(anyString(), any(SqlParameterSource.class));
+        verifyNoInteractions(audit);
+    }
+
+    @Test
+    void contentEditorPublishesAQuestionAnotherTeacherChecked() throws Exception {
+        when(auth.currentUser()).thenReturn(new CurrentUser(51, Set.of(RoleCode.CONTENT_EDITOR), true));
+        reviewRows("AI", "PENDING_REVIEW", true, 40L);
+        assertThat(service.approve(5)).isEqualTo(new AiReviewService.ReviewResult(5, "APPROVED", NOW));
+        ArgumentCaptor<SqlParameterSource> parameters = ArgumentCaptor.forClass(SqlParameterSource.class);
+        verify(jdbc).update(org.mockito.ArgumentMatchers.contains("reviewed_by IS NOT DISTINCT FROM :checkedBy"), parameters.capture());
+        assertThat(parameters.getValue().getValue("status")).isEqualTo("APPROVED");
+        assertThat(parameters.getValue().getValue("checkedBy")).isEqualTo(40L);
+        verify(audit).record(eq(51L), eq("AI_QUESTION_APPROVE"), eq("question:5"), any(), any());
+    }
+
+    @Test
+    void theTeacherWhoCheckedAQuestionCannotAlsoPublishIt() throws Exception {
+        when(auth.currentUser()).thenReturn(new CurrentUser(51, Set.of(RoleCode.CONTENT_EDITOR, RoleCode.TEACHER), true));
+        reviewRows("AI", "PENDING_REVIEW", true, 51L);
+        assertError(() -> service.approve(5), ErrorCode.FORBIDDEN);
+        verifyNoInteractions(audit);
+    }
+
+    @Test
+    void aQuestionAnotherTeacherCheckedIsNoLongerPendingForATeacher() throws Exception {
+        reviewRows("AI", "PENDING_REVIEW", true, 40L);
+        assertError(() -> service.approve(5), ErrorCode.QUESTION_NOT_PENDING);
+        verifyNoInteractions(audit);
     }
 
     @ParameterizedTest
@@ -155,12 +196,13 @@ class AiReviewServiceTest {
         when(viewed.viewed(51, List.of(7L, 2L))).thenReturn(Set.of(2L, 7L));
         when(transactions.getTransaction(any())).thenAnswer(invocation -> new SimpleTransactionStatus());
         var result = service.bulkApprove(List.of(7L, 2L));
-        assertThat(result.results()).extracting(AiReviewService.BulkItem::outcome).containsExactly("APPROVED", "APPROVED");
+        assertThat(result.results()).extracting(AiReviewService.BulkItem::outcome)
+                .containsExactly("TEACHER_APPROVED", "TEACHER_APPROVED");
         ArgumentCaptor<TransactionDefinition> definitions = ArgumentCaptor.forClass(TransactionDefinition.class);
         verify(transactions, times(2)).getTransaction(definitions.capture());
         assertThat(definitions.getAllValues()).allSatisfy(value -> assertThat(value.getPropagationBehavior()).isEqualTo(TransactionDefinition.PROPAGATION_REQUIRES_NEW));
         verify(transactions, times(2)).commit(any());
-        verify(audit, times(2)).record(eq(51L), eq("AI_QUESTION_APPROVE"), anyString(), any(), any());
+        verify(audit, times(2)).record(eq(51L), eq("AI_QUESTION_TEACHER_APPROVE"), anyString(), any(), any());
     }
 
     @Test
@@ -186,12 +228,16 @@ class AiReviewServiceTest {
     void approveLocksThenChecksPrimaryAndWritesTheConditionalTransition() throws Exception {
         reviewRows("AI", "PENDING_REVIEW", true);
         var result = service.approve(5);
-        assertThat(result).isEqualTo(new AiReviewService.ReviewResult(5, "APPROVED", NOW));
+        // The teacher step keeps the row pending and only records who checked it.
+        assertThat(result).isEqualTo(new AiReviewService.ReviewResult(5, "TEACHER_APPROVED", NOW));
         var ordering = org.mockito.Mockito.inOrder(jdbc, audit);
         ordering.verify(jdbc).query(org.mockito.ArgumentMatchers.contains("FOR UPDATE"), any(SqlParameterSource.class), ArgumentMatchers.<RowMapper<Object>>any());
         ordering.verify(jdbc).queryForObject(org.mockito.ArgumentMatchers.contains("role='PRIMARY'"), any(SqlParameterSource.class), eq(Long.class));
-        ordering.verify(jdbc).update(org.mockito.ArgumentMatchers.contains("source='AI' AND status='PENDING_REVIEW'"), any(SqlParameterSource.class));
-        ordering.verify(audit).record(eq(51L), eq("AI_QUESTION_APPROVE"), eq("question:5"), any(), any());
+        ArgumentCaptor<SqlParameterSource> parameters = ArgumentCaptor.forClass(SqlParameterSource.class);
+        ordering.verify(jdbc).update(org.mockito.ArgumentMatchers.contains("source='AI' AND status='PENDING_REVIEW'"), parameters.capture());
+        assertThat(parameters.getValue().getValue("status")).isEqualTo("PENDING_REVIEW");
+        assertThat(parameters.getValue().getValue("actor")).isEqualTo(51L);
+        ordering.verify(audit).record(eq(51L), eq("AI_QUESTION_TEACHER_APPROVE"), eq("question:5"), any(), any());
     }
 
     @Test
@@ -240,6 +286,11 @@ class AiReviewServiceTest {
     }
 
     private void reviewRows(String source, String state, boolean primary) throws Exception {
+        reviewRows(source, state, primary, null);
+    }
+
+    /** {@code checkedBy} is the teacher who already checked the question, or null before the teacher step. */
+    private void reviewRows(String source, String state, boolean primary, Long checkedBy) throws Exception {
         when(jdbc.queryForObject(anyString(), any(SqlParameterSource.class), eq(Long.class))).thenReturn(primary ? 1L : 0L);
         when(jdbc.update(anyString(), any(SqlParameterSource.class))).thenReturn(1);
         when(jdbc.query(anyString(), any(SqlParameterSource.class), ArgumentMatchers.<RowMapper<Object>>any())).thenAnswer(invocation -> {
@@ -251,6 +302,7 @@ class AiReviewServiceTest {
             when(rs.getString("explanation")).thenReturn("Giải thích tự soạn");
             when(rs.getString("options")).thenReturn(AiReviewControllerIntegrationTest.Fixture.OPTIONS);
             when(rs.getString("correct_key")).thenReturn("A");
+            when(rs.getObject("reviewed_by", Long.class)).thenReturn(checkedBy);
             RowMapper<?> mapper = invocation.getArgument(2); return List.of(mapper.mapRow(rs, 0));
         });
     }

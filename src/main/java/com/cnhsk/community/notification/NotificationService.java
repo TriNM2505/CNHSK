@@ -91,6 +91,11 @@ public class NotificationService {
                 if (count > 0) tasks.add(new Task(key, count));
             });
         }
+        if (user.roles().contains(RoleCode.CONTENT_EDITOR)) {
+            staffQueues.contentEditorQueues(user.userId()).forEach((key, count) -> {
+                if (count > 0) tasks.add(new Task(key, count));
+            });
+        }
         return List.copyOf(tasks);
     }
 }

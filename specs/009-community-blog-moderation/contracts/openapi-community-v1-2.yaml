@@ -146,7 +146,7 @@ components:
       type: object
       required: [key, count]
       properties:
-        key: { type: string, description: 'PENDING_POSTS, PENDING_REPORTS, GRADING_DUE_SOON, GRADING_OPEN, AI_REVIEW' }
+        key: { type: string, description: 'PENDING_POSTS, PENDING_REPORTS, GRADING_DUE_SOON, GRADING_OPEN, AI_REVIEW, AI_PUBLISH' }
         count: { type: integer, format: int64, minimum: 1 }
     NotificationSummary:
       type: object

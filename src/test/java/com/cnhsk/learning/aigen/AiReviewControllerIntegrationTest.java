@@ -75,15 +75,62 @@ class AiReviewControllerIntegrationTest extends AbstractIntegrationTest {
         }
         mvc.perform(post(ROOT + "/{id}/approve", id).header("Authorization", bearer(role)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(id))
-                .andExpect(jsonPath("$.status").value("APPROVED"))
+                .andExpect(jsonPath("$.status").value("TEACHER_APPROVED"))
                 .andExpect(jsonPath("$.reviewedAt").value(NOW.toString()));
         assertThat(jdbc.queryForObject("SELECT reviewed_by FROM learning.questions WHERE id=?", Long.class, id)).isEqualTo(actor);
-        assertThat(fixture.audits(id, "AI_QUESTION_APPROVE")).isEqualTo(1);
+        assertThat(fixture.status(id)).isEqualTo("PENDING_REVIEW");
+        assertThat(fixture.audits(id, "AI_QUESTION_TEACHER_APPROVE")).isEqualTo(1);
         assertThat(redis.hasKey(Fixture.key(actor, id))).isFalse();
     }
 
+    @Test
+    void teacherChecksThenAnotherContentEditorPublishesAndEachSeesOnlyTheirStep() throws Exception {
+        long id = fixture.question("AI", "PENDING_REVIEW", 1, NOW, true);
+        long editor = fixture.user();
+        String editorBearer = "Bearer " + jwt.issueAccessToken(editor, List.of("CONTENT_EDITOR"), true, UUID.randomUUID());
+        assertThat(ids(listAs(editorBearer, get(ROOT).param("kid", fixture.kid)))).isEmpty();
+        mvc.perform(post(ROOT + "/{id}/approve", id).header("Authorization", editorBearer))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("FORBIDDEN"));
+        mvc.perform(post(ROOT + "/{id}/approve", id).header("Authorization", bearer("TEACHER")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("TEACHER_APPROVED"));
+        assertThat(ids(list(get(ROOT).param("kid", fixture.kid)))).isEmpty();
+        // The same person cannot publish a question they checked as a teacher.
+        mvc.perform(post(ROOT + "/{id}/approve", id).header("Authorization", bearer("CONTENT_EDITOR")))
+                .andExpect(status().isForbidden());
+        JsonNode queue = listAs(editorBearer, get(ROOT).param("kid", fixture.kid));
+        assertThat(ids(queue)).containsExactly(id);
+        assertThat(queue.path("items").get(0).path("step").asText()).isEqualTo("CONTENT");
+        mvc.perform(post(ROOT + "/{id}/approve", id).header("Authorization", editorBearer))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"));
+        assertThat(fixture.status(id)).isEqualTo("APPROVED");
+        assertThat(jdbc.queryForObject("SELECT reviewed_by FROM learning.questions WHERE id=?", Long.class, id)).isEqualTo(editor);
+        assertThat(fixture.audits(id, "AI_QUESTION_APPROVE")).isEqualTo(1);
+    }
+
+    @Test
+    void contentEditorBulkPublishesTeacherCheckedQuestionsWithoutOpeningThem() throws Exception {
+        long checked = fixture.question("AI", "PENDING_REVIEW", 1, NOW, true);
+        long unchecked = fixture.question("AI", "PENDING_REVIEW", 1, NOW, true);
+        jdbc.update("UPDATE learning.questions SET reviewed_by=?, reviewed_at=now() WHERE id=?", actor, checked);
+        long editor = fixture.user();
+        String editorBearer = "Bearer " + jwt.issueAccessToken(editor, List.of("CONTENT_EDITOR"), true, UUID.randomUUID());
+        JsonNode results = mapper.readTree(mvc.perform(post(ROOT + "/bulk-approve").header("Authorization", editorBearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(java.util.Map.of("ids", List.of(checked, unchecked)))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).path("results");
+        assertThat(results).extracting(row -> row.path("outcome").asText()).containsExactly("APPROVED", "NOT_VIEWED");
+        assertThat(fixture.status(checked)).isEqualTo("APPROVED");
+        assertThat(fixture.status(unchecked)).isEqualTo("PENDING_REVIEW");
+        // A teacher still has to open a question before bulk checking it.
+        String teacherResult = mvc.perform(post(ROOT + "/bulk-approve").header("Authorization", bearer("TEACHER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(java.util.Map.of("ids", List.of(unchecked)))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(mapper.readTree(teacherResult).path("results").get(0).path("outcome").asText()).isEqualTo("NOT_VIEWED");
+    }
+
     @ParameterizedTest
-    @ValueSource(strings = {"ADMIN", "LEARNER", "MODERATOR", "ACCOUNTANT", "CONTENT_EDITOR"})
+    @ValueSource(strings = {"ADMIN", "LEARNER", "MODERATOR", "ACCOUNTANT"})
     void otherRolesAreForbiddenBeforeInputValidationOnEveryOperation(String role) throws Exception {
         mvc.perform(get(ROOT).param("hsk", "bad").header("Authorization", bearer(role)))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("FORBIDDEN"));
@@ -188,8 +235,8 @@ class AiReviewControllerIntegrationTest extends AbstractIntegrationTest {
         mvc.perform(get(ROOT).param("qtype", "ESSAY").header("Authorization", bearer("TEACHER")))
                 .andExpect(status().isUnprocessableEntity());
         mvc.perform(post(ROOT + "/" + statement + "/approve").header("Authorization", bearer("TEACHER")))
-                .andExpect(status().isOk());
-        assertThat(fixture.status(statement)).isEqualTo("APPROVED");
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("TEACHER_APPROVED"));
+        assertThat(fixture.status(statement)).isEqualTo("PENDING_REVIEW");
     }
 
     @Test
@@ -367,7 +414,10 @@ class AiReviewControllerIntegrationTest extends AbstractIntegrationTest {
     private String token(String role) { return jwt.issueAccessToken(actor, List.of(role), true, UUID.randomUUID()); }
     private String bearer(String role) { return "Bearer " + token(role); }
     private JsonNode list(MockHttpServletRequestBuilder request) throws Exception {
-        return mapper.readTree(mvc.perform(request.header("Authorization", bearer("TEACHER"))).andExpect(status().isOk())
+        return listAs(bearer("TEACHER"), request);
+    }
+    private JsonNode listAs(String authorization, MockHttpServletRequestBuilder request) throws Exception {
+        return mapper.readTree(mvc.perform(request.header("Authorization", authorization)).andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString());
     }
     private static List<Long> ids(JsonNode page) {
@@ -419,7 +469,7 @@ class AiReviewControllerIntegrationTest extends AbstractIntegrationTest {
         void cleanup(StringRedisTemplate redis) {
             for (long question : questionIds) {
                 for (long actor : actorIds) redis.delete(key(actor, question));
-                jdbc.update("DELETE FROM shared.audit_logs WHERE target_id=? AND action IN ('AI_QUESTION_APPROVE','AI_QUESTION_REJECT','QUESTION_UPDATE')", question);
+                jdbc.update("DELETE FROM shared.audit_logs WHERE target_id=? AND action IN ('AI_QUESTION_APPROVE','AI_QUESTION_TEACHER_APPROVE','AI_QUESTION_REJECT','QUESTION_UPDATE')", question);
                 jdbc.update("DELETE FROM learning.question_knowledge_points WHERE question_id=?", question);
                 jdbc.update("DELETE FROM learning.questions WHERE id=?", question);
             }

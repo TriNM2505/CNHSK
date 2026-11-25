@@ -4,8 +4,12 @@ info:
   version: 1.1.0
   description: >
     Additive T-05 appendix to openapi-ai-practice.yaml, FR-011 through FR-016.
-    Review routes require TEACHER; CONTENT_EDITOR and ADMIN alone are forbidden (403)
-    since v1.2 (BUS-07). Request mutations authenticated by cookie require X-XSRF-TOKEN.
+    Review has two steps on the same PENDING_REVIEW row (spec 024 v1.6). Step TEACHER:
+    a TEACHER checks the content; approve records reviewed_by and returns TEACHER_APPROVED,
+    the row stays PENDING_REVIEW and learners do not see it. Step CONTENT: a CONTENT_EDITOR
+    other than that teacher approves (APPROVED, learners see it) or rejects. Each caller
+    lists and acts on only the steps its roles allow; the wrong step returns 403, and in
+    bulk approve it is reported as NOT_PENDING. ADMIN alone is forbidden (403). Request mutations authenticated by cookie require X-XSRF-TOKEN.
     Original 010 and 024 contracts remain unchanged. Existing 010 GET detail adds
     an actor-specific Redis viewed marker only for AI PENDING_REVIEW questions,
     expiring after 24 hours; marker failure does not fail the detail response.
@@ -75,7 +79,7 @@ components:
         role: { type: string, enum: [PRIMARY, SECONDARY] }
     AiQuestionSummary:
       type: object
-      required: [id, stemSummary, qtype, hskLevel, labels, generatedAt, runId, viewedByMe]
+      required: [id, stemSummary, qtype, hskLevel, labels, generatedAt, runId, viewedByMe, step]
       properties:
         id: { type: integer, format: int64 }
         stemSummary: { type: string, maxLength: 80 }
@@ -85,6 +89,7 @@ components:
         generatedAt: { type: string, format: date-time }
         runId: { type: [integer, 'null'], format: int64 }
         viewedByMe: { type: boolean }
+        step: { type: string, enum: [TEACHER, CONTENT] }
     AiQuestionPage:
       type: object
       required: [items, page, size, totalElements]
@@ -98,7 +103,7 @@ components:
       required: [id, status, reviewedAt]
       properties:
         id: { type: integer, format: int64 }
-        status: { type: string, enum: [APPROVED, REJECTED] }
+        status: { type: string, enum: [TEACHER_APPROVED, APPROVED, REJECTED] }
         reviewedAt: { type: string, format: date-time }
     RejectBody:
       type: object
@@ -121,7 +126,7 @@ components:
             required: [id, outcome]
             properties:
               id: { type: integer, format: int64 }
-              outcome: { type: string, enum: [APPROVED, NOT_VIEWED, NOT_PENDING, MALFORMED] }
+              outcome: { type: string, enum: [TEACHER_APPROVED, APPROVED, NOT_VIEWED, NOT_PENDING, MALFORMED] }
   responses:
     Error:
       description: Lỗi theo spec 024 §5
@@ -209,7 +214,9 @@ paths:
         IDs must be positive, unique int64 values. Results preserve request order.
         Each eligible ID and its audit record commit in a separate transaction.
         A viewed ID whose question is missing produces NOT_PENDING; an unavailable or missing actor
-        viewed marker produces NOT_VIEWED. Expected outcomes remain the four listed.
+        viewed marker produces NOT_VIEWED, except that a CONTENT_EDITOR needs no marker for a question a
+        teacher already checked; an ID waiting for another role's step produces NOT_PENDING.
+        TEACHER_APPROVED marks a finished teacher step, APPROVED a finished content step.
         An unexpected database or audit failure rolls back that ID and stops the
         request with INTERNAL_ERROR (500), preserving earlier committed IDs.
         Retrying sees those committed IDs as NOT_PENDING. No FAILED outcome is added.

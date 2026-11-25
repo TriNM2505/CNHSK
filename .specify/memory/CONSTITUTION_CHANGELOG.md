@@ -23,6 +23,21 @@ Mỗi lần sửa hiến pháp PHẢI thêm một mục vào đầu file này, g
 
 ---
 
+## v1.8.0 — 2026-11-25
+
+**Loại bump:** MINOR — mở rộng một quy tắc nghiệp vụ (thêm bước duyệt), không bỏ nguyên tắc nào.
+
+**Nguồn:** leader chốt 2026-11-25: câu AI giáo viên đã duyệt phải qua Content Admin mới vào hệ thống, và không thêm bảng DB. Thay bản 1.7.0 (2026-11-20, chỉ `TEACHER` duyệt; CE chỉ xem và lưu trữ).
+
+| Mã | Thay đổi |
+|---|---|
+| **BUS-07** | **SỬA** — "chỉ `TEACHER` duyệt và sửa" → `TEACHER` duyệt chuyên môn (vẫn chỉ `TEACHER` sửa), rồi `CONTENT_EDITOR` khác người đó đưa vào hệ thống. Dùng `reviewed_by` của câu `PENDING_REVIEW` làm dấu bước giáo viên, không đổi DB |
+| §Sáu actor · `CONTENT_EDITOR` | **SỬA** — thêm "bước cuối duyệt câu AI"; vẫn không sửa nội dung câu hỏi |
+
+Số rule: HR 9 → 9 · AC 10 → 10 · BUS 15 → 15 · ES 8 → 8.
+
+---
+
 ## v1.6.0 — 2026-11-20
 
 **Loại bump:** MINOR — đổi cách đếm actor và mở rộng một quy tắc nghiệp vụ cho khớp phần đã code; không bỏ nguyên tắc nào.

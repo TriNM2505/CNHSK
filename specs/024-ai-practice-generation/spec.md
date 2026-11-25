@@ -8,8 +8,8 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.5.0 |
-| **Status** | v1.5.0 APPROVED — leader duyệt 2026-11-25: đợt 2 dạng câu theo loại nút (trắc nghiệm + đúng/sai), lọc dạng câu, Luyện lỗi của tôi (FR-024…FR-029, AT-25…AT-29, Q10…Q12) · v1.4.0 APPROVED — leader duyệt 2026-11-25: chạy 2 giờ/lần trên lỗi 24 giờ, trần câu AI mỗi ngày chia theo tỉ lệ lỗi, ngân sách 5 triệu token, chống trùng ngữ nghĩa bằng SBERT nhúng trong BE; SBERT không sẵn sàng → tạm dừng sinh (§0.1, FR-003, FR-003b, FR-007, FR-007a, FR-018, FR-021…FR-023, AT-21…AT-24, Q2, Q7…Q9) · v1.3.0 APPROVED — leader duyệt 2026-11-14, được code theo `tasks.md` · v1.1.0 leader duyệt 2026-11-19: chống câu gần trùng (§0.3 chỉ dẫn không lặp mẫu, FR-007 `NEAR_DUPLICATE_STEM`, AT-09) · v1.2.0 leader chốt 2026-11-20: chỉ `TEACHER` duyệt và sửa câu hỏi (BUS-07, Hiến pháp v1.7.0); `CONTENT_EDITOR` chỉ xem, lưu trữ (FR-011, FR-013, FR-020, Q3, AT-15) · v1.3.0 leader chốt 2026-11-21: tìm nút gốc bằng PageRank cá nhân hoá ngược cạnh tiên quyết (FR-003a, AT-20) |
+| **Version** | 1.6.0 |
+| **Status** | v1.6.0 APPROVED — leader chốt 2026-11-25: duyệt câu AI hai bước, không đổi DB — `TEACHER` duyệt chuyên môn (giữ `PENDING_REVIEW`, ghi `reviewed_by`), rồi `CONTENT_EDITOR` khác người đó đưa vào hệ thống (`APPROVED`) hoặc từ chối (FR-011, FR-014…FR-016, Q3, AT-15, AT-30; Hiến pháp v1.8.0) · v1.5.0 APPROVED — leader duyệt 2026-11-25: đợt 2 dạng câu theo loại nút (trắc nghiệm + đúng/sai), lọc dạng câu, Luyện lỗi của tôi (FR-024…FR-029, AT-25…AT-29, Q10…Q12) · v1.4.0 APPROVED — leader duyệt 2026-11-25: chạy 2 giờ/lần trên lỗi 24 giờ, trần câu AI mỗi ngày chia theo tỉ lệ lỗi, ngân sách 5 triệu token, chống trùng ngữ nghĩa bằng SBERT nhúng trong BE; SBERT không sẵn sàng → tạm dừng sinh (§0.1, FR-003, FR-003b, FR-007, FR-007a, FR-018, FR-021…FR-023, AT-21…AT-24, Q2, Q7…Q9) · v1.3.0 APPROVED — leader duyệt 2026-11-14, được code theo `tasks.md` · v1.1.0 leader duyệt 2026-11-19: chống câu gần trùng (§0.3 chỉ dẫn không lặp mẫu, FR-007 `NEAR_DUPLICATE_STEM`, AT-09) · v1.2.0 leader chốt 2026-11-20: chỉ `TEACHER` duyệt và sửa câu hỏi (BUS-07, Hiến pháp v1.7.0); `CONTENT_EDITOR` chỉ xem, lưu trữ (FR-011, FR-013, FR-020, Q3, AT-15) · v1.3.0 leader chốt 2026-11-21: tìm nút gốc bằng PageRank cá nhân hoá ngược cạnh tiên quyết (FR-003a, AT-20) |
 | **Phụ thuộc** | 010 (cây KID, `question_knowledge_points`, `/api/admin/questions`, SCR-059) · 011 (`MasteryReader`) · 015 (`ClaudeClient`, `TokenBudget`, `StubClaudeClient`) · 023 (`SettingsApi`, ⚿K7) · 001 (`AuthApi`, `AuditService`) |
 | **Quyết định chung** | Leader validate 2026-11-13: hệ thống tự sinh từ câu sai + dữ liệu cây tri thức, không học viên bấm, không thu phí; phải duyệt và gắn KID trước khi tới học viên · leader chốt 2026-11-14 (§9) |
 | **Người code** | Quốc Huy |
@@ -149,12 +149,12 @@ Câu (questions source='AI'):  PENDING_REVIEW ──approve──► APPROVED �
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-011** | `GET /api/admin/ai-questions?kid&hsk&from&to&page&size` (chỉ `TEACHER`; `CONTENT_EDITOR`, `ADMIN` → 403) SHALL trả câu `source='AI' AND status='PENDING_REVIEW'` sắp `created_at` tăng (`ix_q_review`): `{id, stemSummary (80 ký tự), hskLevel, labels:[{kid, role}], generatedAt, runId, viewedByMe}` |
+| **FR-011** | `GET /api/admin/ai-questions?kid&hsk&from&to&page&size` (`TEACHER` hoặc `CONTENT_EDITOR`; `ADMIN` một mình → 403) SHALL trả câu `source='AI' AND status='PENDING_REVIEW'` sắp `created_at` tăng (`ix_q_review`), **chỉ ở bước của người gọi** (v1.6): `TEACHER` thấy câu `reviewed_by IS NULL` (bước giáo viên); `CONTENT_EDITOR` thấy câu `reviewed_by IS NOT NULL AND reviewed_by <> người gọi` (bước đưa vào hệ thống); có cả hai role thấy cả hai. Mỗi dòng `{id, stemSummary (80 ký tự), hskLevel, labels:[{kid, role}], generatedAt, runId, viewedByMe, step: TEACHER\|CONTENT}` |
 | **FR-012** | Mở chi tiết `GET /api/admin/questions/{id}` (010) cho câu AI chờ duyệt SHALL ghi dấu "đã xem" `ai-review:viewed:{userId}:{questionId}` (Redis, 24 giờ) — phục vụ BR-108-7; Redis lỗi → không ghi, chỉ ảnh hưởng duyệt hàng loạt |
 | **FR-013** | Sửa câu AI chờ duyệt dùng `PUT /api/admin/questions/{id}` (010) — **chỉ** `TEACHER` ở mọi trạng thái (BR-109-1); `CONTENT_EDITOR` bị 403 kể cả câu AI chờ duyệt. Luật kiểm/audit của 010 giữ nguyên |
-| **FR-014** | `POST /api/admin/ai-questions/{id}/approve` SHALL kiểm (BR-108-8): có `stem`, `explanation`, đúng 1 KID `PRIMARY`, `MULTIPLE_CHOICE` có đúng 1 phương án đúng khớp `correct_key` → sai → **422** `MALFORMED_QUESTION` `details`; rồi `UPDATE … SET status='APPROVED', reviewed_by, reviewed_at=now() WHERE id=? AND source='AI' AND status='PENDING_REVIEW'` (0 dòng → **409** `QUESTION_NOT_PENDING`); `audit_logs` `AI_QUESTION_APPROVE`; trả **200** |
-| **FR-015** | `POST /api/admin/ai-questions/{id}/reject` `{reason* (1–1 000)}` SHALL `UPDATE … SET status='REJECTED', review_reason, reviewed_by, reviewed_at WHERE … status='PENDING_REVIEW'` (0 dòng → 409); `AI_QUESTION_REJECT`; **200** |
-| **FR-016** | `POST /api/admin/ai-questions/bulk-approve` `{ids (1–50)}` SHALL xử lý từng id riêng (mỗi id một transaction): chưa có dấu "đã xem" của người gọi → `NOT_VIEWED` (BR-108-7); còn lại như FR-014 → `APPROVED` / `NOT_PENDING` / `MALFORMED`; trả **200** `{results:[{id, outcome}]}` (kết quả trộn, SCR-058) |
+| **FR-014** | `POST /api/admin/ai-questions/{id}/approve` SHALL kiểm (BR-108-8): có `stem`, `explanation`, đúng 1 KID `PRIMARY`, `MULTIPLE_CHOICE` có đúng 1 phương án đúng khớp `correct_key` → sai → **422** `MALFORMED_QUESTION` `details`; rồi theo bước (v1.6, không đổi DB): **bước giáo viên** (`reviewed_by IS NULL`, cần `TEACHER`) `UPDATE … SET reviewed_by, reviewed_at=now()` giữ `status='PENDING_REVIEW'`, audit `AI_QUESTION_TEACHER_APPROVE`, trả `status: TEACHER_APPROVED`; **bước đưa vào hệ thống** (`reviewed_by` đã có, cần `CONTENT_EDITOR` khác người đó) `UPDATE … SET status='APPROVED', reviewed_by, reviewed_at=now()`, audit `AI_QUESTION_APPROVE`, trả `APPROVED`. Cả hai `WHERE id=? AND source='AI' AND status='PENDING_REVIEW' AND reviewed_by IS NOT DISTINCT FROM <giá trị đã khoá>` (0 dòng → **409** `QUESTION_NOT_PENDING`). Sai bước: không có role của bước → **403**; giáo viên gặp câu đã qua bước giáo viên → **409**; người đã duyệt chuyên môn tự đưa vào hệ thống → **403**. Trả **200** |
+| **FR-015** | `POST /api/admin/ai-questions/{id}/reject` `{reason* (1–1 000)}` SHALL theo đúng luật bước của FR-014 (giáo viên từ chối ở bước giáo viên, `CONTENT_EDITOR` ở bước đưa vào hệ thống) rồi `UPDATE … SET status='REJECTED', review_reason, reviewed_by, reviewed_at WHERE … status='PENDING_REVIEW'` (0 dòng → 409); `AI_QUESTION_REJECT`; **200** |
+| **FR-016** | `POST /api/admin/ai-questions/bulk-approve` `{ids (1–50)}` SHALL xử lý từng id riêng (mỗi id một transaction): chưa có dấu "đã xem" của người gọi → `NOT_VIEWED` (BR-108-7) — trừ bước đưa vào hệ thống: `CONTENT_EDITOR` duyệt câu giáo viên đã duyệt chuyên môn không cần mở trước (leader chốt 2026-11-26); còn lại như FR-014 → `TEACHER_APPROVED` / `APPROVED` / `NOT_PENDING` (gồm câu đang ở bước của role khác) / `MALFORMED`; trả **200** `{results:[{id, outcome}]}` (kết quả trộn, SCR-058) |
 | **FR-017** | Câu `PENDING_REVIEW`/`REJECTED` SHALL không được phát ở bất kỳ engine người học nào (BR-108-3): AT kiểm luyện theo nút (012), ôn đến hạn (011), quiz (019), thi thử (012) đều lọc `status='APPROVED'`. Không đổi engine; nếu engine nào chưa lọc → dừng, báo leader |
 
 ### Nhóm 4 — Quản trị lô (FR-018…FR-020)
@@ -289,7 +289,7 @@ Lỗi gọi Claude chỉ ghi `service_requests.error_message`, không trả cho 
 | Q13 | Câu AI đã duyệt hiện nhãn nhỏ **"Câu mới"** cho học viên (Luyện lỗi của tôi, Đọc, Đố vui): phiên luyện ghi `meta.newItems` = số thứ tự các câu `source='AI'`; "Luyện lỗi của tôi" vẫn giữ nút đủ 7 ngày dù học viên đã làm lại đúng; chữ hiển thị cho học viên dùng "phần" thay cho "nút" | ✅ Leader chốt 2026-11-25 |
 | Q14 | Phát âm/Nghe phân biệt cũng tính lỗi theo nút NA mà phiên đã gắn (`served_items.items[].targetKid`, như 011); trần hàng chờ duyệt `max-pending` = 500; FR-018 trả thêm `droppedReasons` (số câu bị loại theo lý do) cho trang Chạy AI; dạng Điền từ/Sắp xếp câu tách spec riêng | ✅ Leader chốt 2026-11-25 |
 | Q12 | Tỉ lệ `TRUE_FALSE` ≤ 1/3 mỗi lô; cửa sổ lỗi cá nhân 7 ngày; 10 câu/phiên | ✅ Leader chốt 2026-11-25 |
-| Q3 | Người duyệt/sửa: chỉ `TEACHER`; `CONTENT_EDITOR`, `ADMIN` không (BR-108-1) | ✅ Leader chốt lại 2026-11-20 (v1.2.0) |
+| Q3 | Duyệt hai bước: `TEACHER` duyệt chuyên môn và là người duy nhất sửa nội dung; `CONTENT_EDITOR` (khác giáo viên đã duyệt) đưa vào hệ thống hoặc từ chối; `ADMIN` một mình không duyệt. Không thêm bảng hay cột, dùng `reviewed_by` của câu `PENDING_REVIEW` làm dấu "giáo viên đã duyệt"; ai duyệt chuyên môn còn trong `audit_logs` | ✅ Leader chốt lại 2026-11-25 (v1.6.0), thay bản 2026-11-20 |
 | Q4 | Duyệt hàng loạt chỉ câu người đó đã mở (dấu Redis 24 giờ) | ✅ Theo BR-108-7 |
 | Q5 | Chỉ sinh trắc nghiệm chữ; không audio/hình | ✅ Chốt |
 | Q6 | Không thu phí, không `EntitlementApi` | ✅ Leader validate 2026-11-13 |
@@ -323,8 +323,8 @@ Lỗi gọi Claude chỉ ghi `service_requests.error_message`, không trả cho 
 
 | SCR | Route | Guard · layout | API |
 |---|---|---|---|
-| SCR-058 | `/content/ai-review` | `['TEACHER']` · `admin` | FR-011, FR-016 |
-| SCR-059 (010) | có sẵn | nút sửa/duyệt chỉ cho `TEACHER`; `CONTENT_EDITOR` chỉ xem, lưu trữ | `/api/admin/questions/{id}`, FR-014, FR-015 |
+| SCR-058 | `/content/ai-review` | `['TEACHER', 'CONTENT_EDITOR']` · `admin` | FR-011, FR-016; mỗi dòng hiện bước "Chờ giáo viên duyệt" / "GV đã duyệt · Chờ đưa vào hệ thống" |
+| SCR-059 (010) | có sẵn | sửa chỉ `TEACHER`; nút duyệt/từ chối theo bước mở từ SCR-058 (`reviewStep`): bước giáo viên cho `TEACHER`, bước đưa vào hệ thống cho `CONTENT_EDITOR`; mở từ kho câu hỏi chỉ có bước giáo viên | `/api/admin/questions/{id}`, FR-014, FR-015 |
 | Lô AI | `/admin/ai-runs` | `['ADMIN']` · `admin` | FR-018, FR-019 |
 
 ---
@@ -362,7 +362,7 @@ Lỗi gọi Claude chỉ ghi `service_requests.error_message`, không trả cho 
 | AT-12 | FR-014, E1 | Câu thiếu KID `PRIMARY` · T 422 `MALFORMED_QUESTION`; hợp lệ · T `APPROVED`, `reviewed_by`; hai người duyệt song song · T 200 + 409 |
 | AT-13 | FR-015 | Từ chối không lý do · T 422; có lý do · T `REJECTED`, `review_reason` |
 | AT-14 | FR-016, FR-012 | 3 câu: 1 đã xem hợp lệ, 1 chưa xem, 1 đã bị người khác duyệt · T `APPROVED`, `NOT_VIEWED`, `NOT_PENDING` |
-| AT-15 | FR-013 | `TEACHER` sửa câu AI chờ duyệt · T 200; `CONTENT_EDITOR` sửa câu AI chờ duyệt hoặc câu `IMPORT` · T 403; `CONTENT_EDITOR` gọi `/api/admin/ai-questions` · T 403 |
+| AT-15 | FR-013 | `TEACHER` sửa câu AI chờ duyệt · T 200; `CONTENT_EDITOR` sửa câu AI chờ duyệt hoặc câu `IMPORT` · T 403; `CONTENT_EDITOR` duyệt câu chưa qua giáo viên · T 403 |
 | AT-16 | FR-017, SC-002 | Kho có câu AI `PENDING_REVIEW`/`REJECTED` cùng KID · T luyện theo nút, ôn, quiz, thi thử không phát câu đó; sau khi duyệt · T luyện theo nút phát được |
 | AT-17 | FR-018, FR-019 | Lịch sử lô đúng thứ tự, có token; trigger khi đang chạy · T 409 `AI_GENERATION_BUSY`; hợp lệ · T 202 |
 | AT-18 | FR-020 (FE) | Vitest: ô chọn chỉ bật cho câu đã xem; kết quả trộn hiện từng câu; từ chối bắt buộc lý do; 409 tải lại |
@@ -371,6 +371,7 @@ Lỗi gọi Claude chỉ ghi `service_requests.error_message`, không trả cho 
 | AT-21 | FR-003b, E8 | `daily-cap=100`, hôm nay đã lưu 98 câu AI · T lần chạy phân bổ tổng 2 câu; đã lưu 100 · T không tạo lô, stub không được gọi; câu tạo hôm qua không tính; chạy thử cũng tôn trọng trần |
 | AT-22 | FR-003b | `remaining=6`, `batch-size=5`, lỗi {A:30, B:10, C:5} · T {A:4, B:1, C:1}; `remaining=20` · T {A:5, B:5, C:5}; `remaining=2` · T {A:1, B:1} |
 | AT-23 | FR-007a | Engine giả: câu mới cosine 0,95 với câu có sẵn cùng KID, cùng đáp án · T `SEMANTIC_DUPLICATE_STEM`; cosine 0,95 khác đáp án · T giữ; cosine 0,85 · T giữ; hai câu trong lô cosine 0,95 cùng đáp án · T câu sau bị bỏ; câu lưu có vector |
+| AT-30 | FR-011, FR-014, Q3 · v1.6 | Câu AI mới · W `CONTENT_EDITOR` xem hàng chờ · T trống; `TEACHER` duyệt · T `TEACHER_APPROVED`, vẫn `PENDING_REVIEW`, học viên chưa thấy, hàng chờ GV trống; cùng người đó với role `CONTENT_EDITOR` duyệt tiếp · T 403; `CONTENT_EDITOR` khác thấy câu với `step=CONTENT`, duyệt · T `APPROVED`, `reviewed_by` = CE, audit `AI_QUESTION_APPROVE`; chuông của CE hiện `AI_PUBLISH` |
 | AT-24 | FR-021, FR-022, E9, E10 | Engine không sẵn sàng · T `PAUSED`, 0 lô, stub không được gọi, `embeddingReady=false`; SHA sai · T file bị xoá, không sẵn sàng, BE vẫn chạy; lỗi giữa lô · T `FAILED EMBEDDING_UNAVAILABLE`, 0 câu; câu import chưa có vector · T được tính bù |
 
 ---

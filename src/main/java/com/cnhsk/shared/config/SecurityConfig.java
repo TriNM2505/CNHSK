@@ -191,9 +191,10 @@ public class SecurityConfig {
                             .hasAnyRole("CONTENT_EDITOR", "TEACHER");
                     // Tree review (question counts per node) is for content editors only.
                     authorize.requestMatchers(HttpMethod.GET, "/api/admin/knowledge-tree/**").hasRole("CONTENT_EDITOR");
-                    // Only teachers review AI questions and edit question content (BUS-07).
+                    // AI questions pass two steps: a teacher checks content, then a content editor publishes it.
+                    // Only teachers edit question content (BUS-07); the service enforces which step each role takes.
                     authorize.requestMatchers("/api/admin/ai-questions", "/api/admin/ai-questions/**")
-                            .hasRole("TEACHER");
+                            .hasAnyRole("TEACHER", "CONTENT_EDITOR");
                     authorize.requestMatchers(HttpMethod.PUT, "/api/admin/questions/{id}").hasRole("TEACHER");
                     authorize.requestMatchers(HttpMethod.PATCH, "/api/admin/questions/{id}/archive").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers("/api/credits/**", "/api/me/credits", "/api/me/credit-transactions")

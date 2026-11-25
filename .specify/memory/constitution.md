@@ -1,8 +1,8 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.6.0 → 1.7.0
-Bump rationale: MINOR — leader chốt 2026-11-20: chỉ TEACHER duyệt và sửa câu hỏi AI/nội dung câu hỏi (BUS-07); CONTENT_EDITOR chỉ xem và lưu trữ câu hỏi. Code (SecurityConfig, AiReviewService, QuestionAdminService, SCR-058/059) sửa theo. 6 actor giữ nguyên từ 1.6.0.
+Version change: 1.7.0 → 1.8.0
+Bump rationale: MINOR — leader chốt 2026-11-25: câu AI duyệt hai bước (BUS-07). TEACHER duyệt chuyên môn và vẫn là người duy nhất sửa nội dung câu hỏi; sau đó CONTENT_EDITOR (khác giáo viên đã duyệt) đưa câu vào hệ thống hoặc từ chối. Không đổi DB. Code (SecurityConfig, AiReviewService, StaffQueueApi, SCR-058/059) sửa theo; spec 024 v1.6.0. 6 actor giữ nguyên.
 Lịch sử đầy đủ: CONSTITUTION_CHANGELOG.md
 
 Nguyên tắc được định nghĩa (5):
@@ -144,7 +144,7 @@ cần thiết vào DB, hoặc chặn mất role thật sự cần.
 |---|---|---|---|---|
 | `LEARNER` | Người học | 79 | ✅ | Học, thi, chơi game, đăng bài (chờ duyệt) |
 | `GUEST` | Khách | 16 | ❌ | Xem trang công khai, tra từ điển, đăng ký |
-| `CONTENT_EDITOR` | Biên tập viên nội dung | 6 | ✅ | Đề thi, kho câu hỏi (xem, lưu trữ), nhập dữ liệu, cuộc thi, tài liệu tham khảo — **không** duyệt hay sửa nội dung câu hỏi |
+| `CONTENT_EDITOR` | Biên tập viên nội dung | 6 | ✅ | Đề thi, kho câu hỏi (xem, lưu trữ), nhập dữ liệu, cuộc thi, tài liệu tham khảo, **bước cuối duyệt câu AI** (đưa câu giáo viên đã duyệt vào hệ thống) — **không** sửa nội dung câu hỏi |
 | `MODERATOR` | Kiểm duyệt viên | 4 | ✅ | Duyệt bài đăng, xử lý báo cáo — Community |
 | `TEACHER` | Giáo viên | 4 | ✅ | **Duy nhất** duyệt câu hỏi AI và sửa nội dung câu hỏi; chấm bài thuê |
 | `ADMIN` | Quản trị viên | 7 | ✅ | Người dùng, gán role, cấu hình · 🔴 **tài chính**: sinh/khoá mã thẻ, gói dịch vụ, sổ cái — **tiền thật** |
@@ -238,7 +238,7 @@ Vi phạm `BUS-*`: xử lý như `AC-*` — báo cáo và xin duyệt, cần RFC
 | **BUS-04** | Lịch ôn tập dùng **FSRS**, không dùng khoảng cố định kiểu Leitner | 41 | `business.md` §4 |
 | **BUS-05** | Ngưỡng hoàn thành chủ đề: **90%**. Đạt thì mở chủ đề tiếp theo | 33 | `business.md` §4, §9 |
 | **BUS-06** | Không lộ PII: email và số điện thoại PHẢI mask ở danh sách và log | 28 | `business.md` §8 |
-| **BUS-07** | Nội dung AI sinh LUÔN vào `PENDING_REVIEW`, chỉ `TEACHER` duyệt và sửa | 27 | `business.md` §6 |
+| **BUS-07** | Nội dung AI sinh LUÔN vào `PENDING_REVIEW`; `TEACHER` duyệt chuyên môn (chỉ `TEACHER` sửa), rồi `CONTENT_EDITOR` khác người đó đưa vào hệ thống | 27 | `business.md` §6 |
 | **BUS-08** | Ngày học, streak, nhắc lịch, reset bảng xếp hạng tính theo **giờ Việt Nam**. Riêng FSRS tính bằng **UTC** | 25 | `business.md` §3 · `AC-08` |
 | **BUS-09** | Chấm điểm PHẢI ở server. Kết quả client gửi lên là dữ liệu chưa đáng tin. Chấm bằng dịch vụ ngoài: xem mục chi tiết dưới | 19 | `HR-06` · Nguyên tắc V |
 | **BUS-10** | Xoá nội dung do người dùng tạo là **soft delete**. Truy vấn đọc PHẢI lọc bản ghi đã xoá | 14 | mới — xem dưới |
@@ -426,4 +426,4 @@ Những mục dưới đây nhóm chưa chốt. Ghi rõ ở đây thay vì giả
   🔴 **Đây là TODO duy nhất còn treo.** Chưa phê chuẩn thì các `HR-*` về hình thức chưa có
   hiệu lực ràng buộc.
 
-**Version**: 1.7.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-20
+**Version**: 1.8.0 | **Ratified**: TODO(RATIFICATION_DATE) | **Last Amended**: 2026-11-25

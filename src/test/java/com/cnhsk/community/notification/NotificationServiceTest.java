@@ -82,6 +82,15 @@ class NotificationServiceTest {
         when(staff.teacherQueues(ME, NOW)).thenReturn(teacher);
 
         assertThat(service.summary().tasks()).containsExactly(new Task("PENDING_POSTS", 2), new Task("GRADING_DUE_SOON", 1));
+        verify(staff, never()).contentEditorQueues(anyLong());
+    }
+
+    @Test
+    void contentEditorsSeeTeacherCheckedAiQuestionsWaitingToBePublished() {
+        when(auth.currentUser()).thenReturn(new CurrentUser(ME, Set.of(RoleCode.CONTENT_EDITOR), true));
+        when(staff.contentEditorQueues(ME)).thenReturn(Map.of("AI_PUBLISH", 3L));
+        assertThat(service.summary().tasks()).containsExactly(new Task("AI_PUBLISH", 3));
+        verify(staff, never()).teacherQueues(anyLong(), any());
     }
 
     @Test

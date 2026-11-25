@@ -134,9 +134,10 @@ Server PHẢI kiểm **ba điều kiện** trước khi lưu điểm:
 
 - Câu hỏi AI sinh vào DB với trạng thái **`PENDING_REVIEW`**
 - **KHÔNG BAO GIỜ** hiện câu `PENDING_REVIEW` cho người học
-- **Chỉ `TEACHER`** được duyệt và sửa nội dung câu hỏi (spec 024 v1.2,
-  hiến pháp v1.7.0). `CONTENT_EDITOR` và `ADMIN` **không** duyệt nội dung — duyệt cần chuyên môn kiến thức; mỗi lần
-  duyệt ghi audit người duyệt nên khi câu sai vẫn rõ ai chịu trách nhiệm
+- Câu AI duyệt **hai bước** (spec 024 v1.6, hiến pháp v1.8.0): **`TEACHER`** duyệt chuyên môn và là người duy nhất
+  sửa nội dung câu hỏi; sau đó **`CONTENT_EDITOR`** khác giáo viên đó đưa câu vào hệ thống hoặc từ chối. `ADMIN` một
+  mình không duyệt. Câu chỉ tới người học sau bước của `CONTENT_EDITOR`. Mỗi bước ghi audit người duyệt nên khi câu sai
+  vẫn rõ ai chịu trách nhiệm
 - AI lỗi hoặc timeout → dùng ngân hàng câu hỏi có sẵn và ghi log, **không** để người học thấy lỗi
 
 > Đây là điều nhóm đã chốt rõ: *"AI TỰ SINH, CÓ KIỂM DUYỆT"*.

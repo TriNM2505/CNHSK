@@ -39,8 +39,8 @@ public class StaffQueueApi {
                        (SELECT COUNT(*) FROM learning.service_requests
                         WHERE kind = 'GRADING' AND status = 'ASSIGNED' AND assignee_id = :teacher
                           AND deadline_at > :now AND deadline_at <= :soon) AS due,
-                       (SELECT COUNT(*) FROM learning.questions WHERE source = 'AI' AND status = 'PENDING_REVIEW')
-                           AS ai
+                       (SELECT COUNT(*) FROM learning.questions
+                        WHERE source = 'AI' AND status = 'PENDING_REVIEW' AND reviewed_by IS NULL) AS ai
                 """, parameters, (row, number) -> {
             Map<String, Long> counts = new LinkedHashMap<>();
             counts.put("GRADING_DUE_SOON", row.getLong("due"));
@@ -48,5 +48,15 @@ public class StaffQueueApi {
             counts.put("AI_REVIEW", row.getLong("ai"));
             return counts;
         });
+    }
+
+    /** AI_PUBLISH: AI questions a teacher already checked, waiting for a content editor other than that teacher. */
+    @Transactional(readOnly = true)
+    public Map<String, Long> contentEditorQueues(long editorId) {
+        Long count = jdbc.queryForObject("""
+                SELECT COUNT(*) FROM learning.questions
+                WHERE source = 'AI' AND status = 'PENDING_REVIEW' AND reviewed_by IS NOT NULL AND reviewed_by <> :me
+                """, new MapSqlParameterSource("me", editorId), Long.class);
+        return Map.of("AI_PUBLISH", count == null ? 0L : count);
     }
 }

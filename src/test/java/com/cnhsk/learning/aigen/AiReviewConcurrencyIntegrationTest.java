@@ -92,8 +92,9 @@ class AiReviewConcurrencyIntegrationTest extends AbstractIntegrationTest {
             List<Object> results = List.of(first.get(25, TimeUnit.SECONDS), second.get(25, TimeUnit.SECONDS));
             assertThat(results).filteredOn(value -> value instanceof AiReviewService.ReviewResult).hasSize(1);
             assertThat(results).filteredOn(value -> value instanceof ErrorCode).containsExactly(ErrorCode.QUESTION_NOT_PENDING);
-            assertThat(fixture.status(id)).isIn("APPROVED", "REJECTED");
-            assertThat(fixture.audits(id, "AI_QUESTION_APPROVE") + fixture.audits(id, "AI_QUESTION_REJECT")).isEqualTo(1);
+            // A teacher approval only checks the question, so it stays PENDING_REVIEW with the teacher recorded.
+            assertThat(fixture.status(id)).isIn("PENDING_REVIEW", "REJECTED");
+            assertThat(fixture.audits(id, "AI_QUESTION_TEACHER_APPROVE") + fixture.audits(id, "AI_QUESTION_REJECT")).isEqualTo(1);
             assertThat(jdbc.queryForObject("SELECT reviewed_by FROM learning.questions WHERE id=?", Long.class, id)).isEqualTo(actor);
         } finally {
             release.countDown(); pool.shutdownNow(); assertThat(pool.awaitTermination(25, TimeUnit.SECONDS)).isTrue();
@@ -133,8 +134,9 @@ class AiReviewConcurrencyIntegrationTest extends AbstractIntegrationTest {
             else assertThat(secondResult).isNotInstanceOf(ErrorCode.class);
             assertThat(jdbc.queryForObject("SELECT explanation FROM learning.questions WHERE id=?", String.class, id)).isEqualTo("Lời giải sau sửa");
             assertThat(fixture.audits(id, "QUESTION_UPDATE")).isEqualTo(1);
-            assertThat(fixture.status(id)).isEqualTo("APPROVED");
-            assertThat(fixture.audits(id, "AI_QUESTION_APPROVE")).isEqualTo(1);
+            assertThat(fixture.status(id)).isEqualTo("PENDING_REVIEW");
+            assertThat(jdbc.queryForObject("SELECT reviewed_by FROM learning.questions WHERE id=?", Long.class, id)).isEqualTo(actor);
+            assertThat(fixture.audits(id, "AI_QUESTION_TEACHER_APPROVE")).isEqualTo(1);
         } finally {
             releaseFirst.countDown(); pool.shutdownNow(); assertThat(pool.awaitTermination(25, TimeUnit.SECONDS)).isTrue();
         }
@@ -160,12 +162,13 @@ class AiReviewConcurrencyIntegrationTest extends AbstractIntegrationTest {
         var result = asEditor(() -> service.bulkApprove(List.of(unseen, approved, malformed, already, missing)));
         assertThat(result.results()).extracting(AiReviewService.BulkItem::id).containsExactly(unseen, approved, malformed, already, missing);
         assertThat(result.results()).extracting(AiReviewService.BulkItem::outcome)
-                .containsExactly("NOT_VIEWED", "APPROVED", "MALFORMED", "NOT_PENDING", "NOT_PENDING");
-        assertThat(fixture.status(approved)).isEqualTo("APPROVED");
+                .containsExactly("NOT_VIEWED", "TEACHER_APPROVED", "MALFORMED", "NOT_PENDING", "NOT_PENDING");
+        assertThat(fixture.status(approved)).isEqualTo("PENDING_REVIEW");
+        assertThat(jdbc.queryForObject("SELECT reviewed_by FROM learning.questions WHERE id=?", Long.class, approved)).isEqualTo(actor);
         assertThat(fixture.status(unseen)).isEqualTo("PENDING_REVIEW");
         assertThat(fixture.status(malformed)).isEqualTo("PENDING_REVIEW");
-        assertThat(fixture.audits(approved, "AI_QUESTION_APPROVE")).isEqualTo(1);
-        assertThat(fixture.audits(malformed, "AI_QUESTION_APPROVE")).isZero();
+        assertThat(fixture.audits(approved, "AI_QUESTION_TEACHER_APPROVE")).isEqualTo(1);
+        assertThat(fixture.audits(malformed, "AI_QUESTION_TEACHER_APPROVE")).isZero();
         redis.delete(Fixture.key(actor, missing));
     }
 
@@ -179,11 +182,11 @@ class AiReviewConcurrencyIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(Map.of("ids", List.of(first, failing, untouched)))))
                 .andExpect(status().isInternalServerError()).andExpect(jsonPath("$.error_code").value("INTERNAL_ERROR"))
                 .andExpect(jsonPath("$.request_id").isNotEmpty()).andExpect(jsonPath("$.stackTrace").doesNotExist());
-        assertThat(fixture.status(first)).isEqualTo("APPROVED");
-        assertThat(fixture.audits(first, "AI_QUESTION_APPROVE")).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT reviewed_by FROM learning.questions WHERE id=?", Long.class, first)).isEqualTo(actor);
+        assertThat(fixture.audits(first, "AI_QUESTION_TEACHER_APPROVE")).isEqualTo(1);
         for (long id : List.of(failing, untouched)) {
             assertThat(fixture.status(id)).isEqualTo("PENDING_REVIEW");
-            assertThat(fixture.audits(id, "AI_QUESTION_APPROVE")).isZero();
+            assertThat(fixture.audits(id, "AI_QUESTION_TEACHER_APPROVE")).isZero();
             assertThat(jdbc.queryForObject("SELECT reviewed_by FROM learning.questions WHERE id=?", Long.class, id)).isNull();
         }
     }

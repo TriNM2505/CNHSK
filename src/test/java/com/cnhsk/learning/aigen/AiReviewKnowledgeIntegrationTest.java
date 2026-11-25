@@ -89,9 +89,9 @@ class AiReviewKnowledgeIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.source").value("AI")).andExpect(jsonPath("$.status").value("PENDING_REVIEW"));
         assertThat(jdbc.queryForObject("SELECT correct_key FROM learning.questions WHERE id=?", String.class, question.getId())).isEqualTo("B");
         mvc.perform(post(REVIEW + "/{id}/approve", question.getId()).header("Authorization", editor.bearer()))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("APPROVED"));
-        assertThat(jdbc.queryForObject("SELECT status FROM learning.questions WHERE id=?", String.class, question.getId())).isEqualTo("APPROVED");
-        assertThat(jdbc.queryForObject("SELECT count(*) FROM shared.audit_logs WHERE target_type='question' AND target_id=? AND actor_id=? AND action IN ('QUESTION_UPDATE','AI_QUESTION_APPROVE')",
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("TEACHER_APPROVED"));
+        assertThat(jdbc.queryForObject("SELECT status FROM learning.questions WHERE id=?", String.class, question.getId())).isEqualTo("PENDING_REVIEW");
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM shared.audit_logs WHERE target_type='question' AND target_id=? AND actor_id=? AND action IN ('QUESTION_UPDATE','AI_QUESTION_TEACHER_APPROVE')",
                 Long.class, question.getId(), editor.id())).isEqualTo(2);
     }
 
