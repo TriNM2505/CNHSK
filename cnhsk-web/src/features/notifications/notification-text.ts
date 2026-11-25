@@ -83,6 +83,10 @@ const TASKS: Record<string, { label: (count: number) => string; to: string }> = 
   GRADING_DUE_SOON: { label: (count) => `${count} bài bạn đã nhận sắp hết hạn chấm (dưới 2 giờ)`, to: '/teacher/grading' },
   GRADING_OPEN: { label: (count) => `${count} bài viết đang chờ giáo viên nhận chấm`, to: '/teacher/grading' },
   AI_REVIEW: { label: (count) => `${count} câu hỏi AI chờ duyệt`, to: '/content/ai-review' },
+  AI_PUBLISH: {
+    label: (count) => `${count} câu hỏi AI giáo viên đã duyệt, chờ đưa vào hệ thống`,
+    to: '/content/ai-review',
+  },
 }
 
 export function describeTask(task: NotificationTask): { text: string; to: string } {

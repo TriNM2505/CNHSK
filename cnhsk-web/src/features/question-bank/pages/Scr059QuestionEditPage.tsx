@@ -4,7 +4,12 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useApiMutation, useApiQuery, type ApiError } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
 import { approveReview, rejectReview } from '@/features/ai-review/api/reviews'
-import { rejectionReasonError, reviewQueueBackTo } from '@/features/ai-review/reviewQueueQuery'
+import {
+  rejectionReasonError,
+  reviewQueueBackTo,
+  reviewStepFrom,
+} from '@/features/ai-review/reviewQueueQuery'
+import type { ReviewStep } from '@/features/ai-review/types'
 
 import { getKnowledgeTree } from '../api/knowledge'
 import { archiveQuestion, getQuestion, updateQuestion } from '../api/questions'
@@ -18,11 +23,13 @@ function QuestionEditor({
   id,
   roles,
   backTo,
+  reviewStep,
   tree,
 }: {
   id: number | undefined
   roles: readonly string[]
   backTo: string
+  reviewStep?: ReviewStep
   tree: {
     data?: KnowledgeTree
     state: 'loading' | 'empty' | 'error' | 'ready'
@@ -63,20 +70,37 @@ function QuestionEditor({
     return data
   })
   const data = accepted ?? query.data
-  // Only teachers review AI questions and edit content; content editors read and archive (BUS-07).
-  const canReview = roles.includes('TEACHER') && data?.source === 'AI' && data.status === 'PENDING_REVIEW'
+  // AI questions pass two steps: a teacher checks content, then a content editor publishes it. Only teachers
+  // edit content (BUS-07). The queue tells which step the question is at; opened from the question bank,
+  // only the teacher step is offered, and the server enforces the step either way.
+  const [teacherChecked, setTeacherChecked] = useState(false)
+  const stepRole = reviewStep === 'CONTENT' ? 'CONTENT_EDITOR' : 'TEACHER'
+  const canReview =
+    !teacherChecked &&
+    roles.includes(stepRole) &&
+    data?.source === 'AI' &&
+    data.status === 'PENDING_REVIEW'
   const reviewMutation = useApiMutation(async (decision: 'approve' | 'reject') => {
     const signal = controllerRef.current.signal
     try {
-      if (decision === 'approve') await approveReview(id!, signal)
-      else await rejectReview(id!, reason.trim(), signal)
+      const result =
+        decision === 'approve'
+          ? await approveReview(id!, signal)
+          : await rejectReview(id!, reason.trim(), signal)
       setReviewLocked(true)
       setReviewAction(undefined)
       const refreshed = await getQuestion(id!, signal)
       if (!signal.aborted) {
         setAccepted(refreshed)
         setReviewLocked(false)
-        setNotice(decision === 'approve' ? 'Đã duyệt câu hỏi.' : 'Đã từ chối câu hỏi.')
+        if (result.status === 'TEACHER_APPROVED') setTeacherChecked(true)
+        setNotice(
+          result.status === 'TEACHER_APPROVED'
+            ? 'Đã duyệt chuyên môn. Câu hỏi chờ Content Admin đưa vào hệ thống.'
+            : decision === 'approve'
+              ? 'Đã đưa câu hỏi vào hệ thống.'
+              : 'Đã từ chối câu hỏi.',
+        )
         if (backTo.startsWith('/content/ai-review')) navigate(backTo)
       }
       return refreshed
@@ -208,6 +232,7 @@ export default function Scr059QuestionEditPage() {
       backTo={reviewQueueBackTo(searchParams) ?? `/content/questions${search ? `?${search}` : ''}`}
       id={parseQuestionId(rawId)}
       key={`${user?.id}:${user?.roles.join(',')}:${rawId}`}
+      reviewStep={reviewStepFrom(searchParams)}
       roles={user?.roles ?? []}
       tree={tree}
     />

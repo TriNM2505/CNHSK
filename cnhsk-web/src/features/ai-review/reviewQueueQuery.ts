@@ -1,6 +1,6 @@
 import { SUPPORTED_HSK_LEVELS } from '@/shared/ui'
 
-import type { ReviewQueueParams, ReviewQuestionType } from './types'
+import type { AIQuestionSummary, ReviewQueueParams, ReviewQuestionType, ReviewStep } from './types'
 
 const QUESTION_TYPES: ReviewQuestionType[] = ['MULTIPLE_CHOICE', 'TRUE_FALSE']
 
@@ -68,8 +68,23 @@ export function reviewQueueBackTo(search: URLSearchParams): string | undefined {
     : undefined
 }
 
-export function reviewDetailTo(id: number, query: ReviewQueueQuery): string {
-  return `/content/questions/${id}?reviewQueue=1&${reviewQueueSearch(query)}`
+export function reviewDetailTo(id: number, query: ReviewQueueQuery, step?: ReviewStep): string {
+  const stepParam = step ? `reviewStep=${step}&` : ''
+  return `/content/questions/${id}?reviewQueue=1&${stepParam}${reviewQueueSearch(query)}`
+}
+
+/**
+ * A row can be ticked for bulk approval once opened; at the content step it can be ticked straight away, since
+ * a teacher already checked it and the content editor only publishes it.
+ */
+export function canBulkSelect(row: Pick<AIQuestionSummary, 'viewedByMe' | 'step'>): boolean {
+  return row.viewedByMe || row.step === 'CONTENT'
+}
+
+/** Review step the detail page was opened for from the queue; absent when opened from the question bank. */
+export function reviewStepFrom(search: URLSearchParams): ReviewStep | undefined {
+  const step = search.get('reviewStep')
+  return step === 'TEACHER' || step === 'CONTENT' ? step : undefined
 }
 
 export function rejectionReasonError(reason: string): string | undefined {

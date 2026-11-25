@@ -79,7 +79,12 @@ beforeEach(() => {
 })
 
 describe('AI review route integration', () => {
-  it.each([['TEACHER'], ['ADMIN', 'TEACHER'], ['CONTENT_EDITOR', 'TEACHER']] as RoleCode[][])(
+  it.each([
+    ['TEACHER'],
+    ['ADMIN', 'TEACHER'],
+    ['CONTENT_EDITOR', 'TEACHER'],
+    ['CONTENT_EDITOR'],
+  ] as RoleCode[][])(
     'allows explicit roles %j with a single link per navigation surface',
     async (...roles) => {
       renderRoute(roles)
@@ -94,7 +99,7 @@ describe('AI review route integration', () => {
       }
     },
   )
-  it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT', 'CONTENT_EDITOR'] as const)(
+  it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT'] as const)(
     'denies %s alone without loading protected queue',
     async (role) => {
       const router = renderRoute([role])

@@ -19,7 +19,11 @@ export type AIQuestionSummary = {
   generatedAt: string
   runId: number | null
   viewedByMe: boolean
+  /** TEACHER: waiting for a teacher to check content; CONTENT: checked, waiting for a content editor to publish. */
+  step?: ReviewStep
 }
+
+export type ReviewStep = 'TEACHER' | 'CONTENT'
 
 export type AIQuestionPage = {
   items: AIQuestionSummary[]
@@ -28,6 +32,11 @@ export type AIQuestionPage = {
   totalElements: number
 }
 
-export type ReviewResult = { id: number; status: 'APPROVED' | 'REJECTED'; reviewedAt: string }
-export type BulkOutcome = 'APPROVED' | 'NOT_VIEWED' | 'NOT_PENDING' | 'MALFORMED'
+export type ReviewResult = {
+  id: number
+  status: 'TEACHER_APPROVED' | 'APPROVED' | 'REJECTED'
+  reviewedAt: string
+}
+export type BulkOutcome =
+  'TEACHER_APPROVED' | 'APPROVED' | 'NOT_VIEWED' | 'NOT_PENDING' | 'MALFORMED'
 export type BulkResult = { results: { id: number; outcome: BulkOutcome }[] }

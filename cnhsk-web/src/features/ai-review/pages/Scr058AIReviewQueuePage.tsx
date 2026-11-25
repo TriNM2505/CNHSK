@@ -7,6 +7,7 @@ import { useCurrentUser } from '@/shared/auth'
 import { bulkApproveReviews, listReviews } from '../api/reviews'
 import { AIReviewQueueView } from '../components/AIReviewQueueView'
 import {
+  canBulkSelect,
   parseReviewQueueQuery,
   reviewDetailTo,
   reviewQueueParams,
@@ -14,7 +15,23 @@ import {
 } from '../reviewQueueQuery'
 import type { BulkResult } from '../types'
 
-function Queue() {
+/** Ticks survive opening a question and coming back, so a teacher can open several and approve them together. */
+function selectionKey(owner: string, searchKey: string) {
+  return `ai-review:selected:${owner}:${searchKey}`
+}
+
+function readSelection(key: string): number[] {
+  try {
+    const stored: unknown = JSON.parse(window.sessionStorage.getItem(key) ?? '[]')
+    return Array.isArray(stored)
+      ? stored.filter((id): id is number => Number.isSafeInteger(id) && id > 0).slice(0, 50)
+      : []
+  } catch {
+    return []
+  }
+}
+
+function Queue({ owner }: { owner: string }) {
   const [search, setSearch] = useSearchParams()
   const navigate = useNavigate()
   const searchKey = search.toString()
@@ -24,7 +41,8 @@ function Queue() {
     [searchKey],
     { isEmpty: (data) => data.items.length === 0 },
   )
-  const [selected, setSelected] = useState<number[]>([])
+  const storageKey = selectionKey(owner, searchKey)
+  const [selected, setSelected] = useState<number[]>(() => readSelection(storageKey))
   const [result, setResult] = useState<BulkResult>()
   const controller = useRef(new AbortController())
   useEffect(() => {
@@ -32,25 +50,33 @@ function Queue() {
     controller.current = current
     return () => current.abort()
   }, [])
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(storageKey, JSON.stringify(selected))
+    } catch {
+      /* Without storage the ticks simply last until the page is left. */
+    }
+  }, [storageKey, selected])
   const reload = query.reload
   useEffect(() => {
-    const refresh = () => {
-      setSelected([])
-      reload()
-    }
-    window.addEventListener('focus', refresh)
-    return () => window.removeEventListener('focus', refresh)
+    // Coming back to the window refreshes the queue; ticks stay and are re-checked against the fresh rows.
+    window.addEventListener('focus', reload)
+    return () => window.removeEventListener('focus', reload)
   }, [reload])
+  const firstSearch = useRef(searchKey)
   useEffect(() => {
-    setSelected([])
-  }, [searchKey])
+    if (firstSearch.current === searchKey) return
+    firstSearch.current = searchKey
+    setSelected(readSelection(selectionKey(owner, searchKey)))
+  }, [owner, searchKey])
   useEffect(() => {
+    if (query.state === 'loading') return
     if (query.state !== 'ready') {
       setSelected([])
       return
     }
     setSelected((ids) =>
-      ids.filter((id) => query.data?.items.some((row) => row.id === id && row.viewedByMe)),
+      ids.filter((id) => query.data?.items.some((row) => row.id === id && canBulkSelect(row))),
     )
   }, [query.data, query.state])
   useEffect(() => {
@@ -87,7 +113,9 @@ function Queue() {
         setSelected([])
         setSearch(reviewQueueSearch(next))
       }}
-      onOpen={(id) => navigate(reviewDetailTo(id, filters))}
+      onOpen={(id) =>
+        navigate(reviewDetailTo(id, filters, query.data?.items.find((row) => row.id === id)?.step))
+      }
       onRetry={() => {
         setSelected([])
         query.reload()
@@ -96,7 +124,7 @@ function Queue() {
         if (
           mutation.pending ||
           query.state !== 'ready' ||
-          !query.data?.items.some((row) => row.id === id && row.viewedByMe)
+          !query.data?.items.some((row) => row.id === id && canBulkSelect(row))
         )
           return
         setSelected((current) =>
@@ -108,7 +136,7 @@ function Queue() {
       onBulkApprove={() => {
         if (mutation.pending || query.state !== 'ready' || selected.length === 0) return
         const eligible = selected.filter((id) =>
-          query.data?.items.some((row) => row.id === id && row.viewedByMe),
+          query.data?.items.some((row) => row.id === id && canBulkSelect(row)),
         )
         if (eligible.length) void mutation.run(eligible).catch(() => undefined)
       }}
@@ -118,5 +146,6 @@ function Queue() {
 
 export default function Scr058AIReviewQueuePage() {
   const { user } = useCurrentUser()
-  return <Queue key={`${user?.id}:${user?.roles.join(',')}`} />
+  const owner = `${user?.id}:${user?.roles.join(',')}`
+  return <Queue key={owner} owner={owner} />
 }

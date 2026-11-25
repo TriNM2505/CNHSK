@@ -222,7 +222,7 @@ export const adminNavigation: readonly NavigationItem[] = [
     icon: ListChecks,
     label: 'Duyệt câu hỏi AI',
     mobileLabel: 'Duyệt AI',
-    role: 'TEACHER',
+    roles: ['TEACHER', 'CONTENT_EDITOR'],
     to: '/content/ai-review',
   },
   {

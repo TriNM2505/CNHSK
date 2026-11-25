@@ -784,7 +784,7 @@ export function QuestionEditView({
                 message={
                   review.action === 'reject'
                     ? review.reason.trim()
-                    : 'Câu hỏi đã lưu sẽ được đưa vào nội dung đã duyệt.'
+                    : 'Giáo viên duyệt chuyên môn trước; câu hỏi chỉ tới học viên sau khi Content Admin đưa vào hệ thống.'
                 }
                 confirmLabel={review.action === 'reject' ? 'Xác nhận từ chối' : 'Xác nhận duyệt'}
                 danger={review.action === 'reject'}

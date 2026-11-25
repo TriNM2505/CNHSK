@@ -232,6 +232,43 @@ describe('AI pending review in the existing editor', () => {
     expect(screen.queryByRole('form', { name: 'Sửa câu hỏi' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Duyệt câu hỏi' })).not.toBeInTheDocument()
   })
+  it('content editor opened from the queue at the content step publishes without editing', async () => {
+    getMock
+      .mockResolvedValueOnce(pendingQuestion())
+      .mockResolvedValueOnce({ ...pendingQuestion(), status: 'APPROVED' })
+    const router = renderPage({
+      roles: ['CONTENT_EDITOR'],
+      entry: '/content/questions/901?reviewQueue=1&reviewStep=CONTENT&page=0',
+    })
+    fireEvent.click(await screen.findByRole('button', { name: 'Duyệt câu hỏi' }))
+    expect(screen.queryByRole('form', { name: 'Sửa câu hỏi' })).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận duyệt' }))
+    expect(await screen.findByRole('heading', { name: 'Hàng đợi đã làm mới khi mở' })).toBeVisible()
+    expect(approveReview).toHaveBeenCalledWith(901, expect.any(AbortSignal))
+    expect(router.state.location.search).not.toContain('reviewStep')
+  })
+  it('teacher does not get review actions for a question already at the content step', async () => {
+    getMock.mockResolvedValue(pendingQuestion())
+    renderPage({ entry: '/content/questions/901?reviewQueue=1&reviewStep=CONTENT' })
+    await form()
+    expect(screen.queryByRole('button', { name: 'Duyệt câu hỏi' })).not.toBeInTheDocument()
+  })
+  it('teacher approval from the question bank says it now waits for the content editor', async () => {
+    getMock.mockResolvedValue(pendingQuestion())
+    vi.mocked(approveReview).mockResolvedValue({
+      id: 901,
+      status: 'TEACHER_APPROVED',
+      reviewedAt: '2026-11-17T00:00:00Z',
+    })
+    renderPage()
+    await form()
+    fireEvent.click(screen.getByRole('button', { name: 'Duyệt câu hỏi' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận duyệt' }))
+    expect(
+      await screen.findByText('Đã duyệt chuyên môn. Câu hỏi chờ Content Admin đưa vào hệ thống.'),
+    ).toBeVisible()
+    expect(screen.queryByRole('button', { name: 'Duyệt câu hỏi' })).not.toBeInTheDocument()
+  })
   it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT'] as const)(
     '%s alone has no AI review actions',
     async (role) => {

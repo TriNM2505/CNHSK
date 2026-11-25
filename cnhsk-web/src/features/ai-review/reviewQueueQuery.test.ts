@@ -7,6 +7,7 @@ import {
   reviewQueueBackTo,
   reviewQueueParams,
   reviewQueueSearch,
+  reviewStepFrom,
   validReviewDate,
 } from './reviewQueueQuery'
 
@@ -72,6 +73,16 @@ describe('queue query and safe detail context', () => {
     )!
     expect(back).toBe('/content/ai-review?hsk=2&page=3&size=20')
     expect(reviewQueueBackTo(new URLSearchParams('returnTo=/content/ai-review'))).toBeUndefined()
+  })
+  it('carries the review step into the detail link and accepts only the two known steps', () => {
+    const query = parseReviewQueueQuery(new URLSearchParams('page=1'))
+    const link = reviewDetailTo(901, query, 'CONTENT')
+    expect(link).toBe(
+      `/content/questions/901?reviewQueue=1&reviewStep=CONTENT&${reviewQueueSearch(query)}`,
+    )
+    expect(reviewStepFrom(new URLSearchParams(link.split('?')[1]))).toBe('CONTENT')
+    expect(reviewStepFrom(new URLSearchParams('reviewStep=ADMIN'))).toBeUndefined()
+    expect(reviewQueueBackTo(new URLSearchParams(link.split('?')[1]))).not.toContain('reviewStep')
   })
   it.each(['', '  \u2003 ', '词'.repeat(1001), '😀'.repeat(1001)])(
     'rejects invalid rejection reason length',

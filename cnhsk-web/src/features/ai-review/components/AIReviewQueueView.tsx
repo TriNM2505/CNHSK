@@ -18,11 +18,12 @@ import {
   type PageStateValue,
 } from '@/shared/ui'
 
-import { validReviewDate, type ReviewQueueQuery } from '../reviewQueueQuery'
+import { canBulkSelect, validReviewDate, type ReviewQueueQuery } from '../reviewQueueQuery'
 import type { AIQuestionPage, BulkOutcome, BulkResult } from '../types'
 
 const bulkOutcomeLabels: Record<BulkOutcome, string> = {
-  APPROVED: 'Đã duyệt',
+  TEACHER_APPROVED: 'Đã duyệt chuyên môn, chờ Content Admin đưa vào hệ thống',
+  APPROVED: 'Đã đưa vào hệ thống',
   NOT_VIEWED: 'Chưa xem hoặc lượt xem đã hết hạn',
   NOT_PENDING: 'Không còn chờ duyệt',
   MALFORMED: 'Nội dung chưa hợp lệ',
@@ -91,7 +92,7 @@ export function AIReviewQueueView(props: AIReviewQueueViewProps) {
     <div className="mx-auto max-w-content space-y-6">
       <PageHeader
         title="Duyệt câu hỏi AI"
-        subtitle="Câu hỏi chờ duyệt, theo thứ tự tạo cũ nhất. Mở chi tiết trước khi chọn duyệt hàng loạt."
+        subtitle="Câu AI qua hai bước: giáo viên duyệt chuyên môn, rồi Content Admin đưa vào hệ thống. Bạn chỉ thấy các câu đang chờ bước của mình, theo thứ tự tạo cũ nhất. Giáo viên mở chi tiết trước khi chọn; câu giáo viên đã duyệt thì Content Admin tích chọn ngay."
       />
       <form
         aria-label="Bộ lọc hàng đợi"
@@ -237,7 +238,7 @@ export function AIReviewQueueView(props: AIReviewQueueViewProps) {
                     checked={selected.includes(row.id)}
                     disabled={
                       busy ||
-                      !row.viewedByMe ||
+                      !canBulkSelect(row) ||
                       (!selected.includes(row.id) && selected.length >= 50)
                     }
                     onChange={(event) => onSelect(row.id, event.target.checked)}
@@ -301,8 +302,14 @@ export function AIReviewQueueView(props: AIReviewQueueViewProps) {
                 header: 'Trạng thái',
                 render: (row) => (
                   <div className="space-y-2">
-                    <p>AI · Chờ duyệt</p>
-                    <p>{row.viewedByMe ? 'Đã xem' : 'Cần mở chi tiết'}</p>
+                    {row.step === 'CONTENT' ? (
+                      <StatusBadge tone="info">GV đã duyệt · Chờ đưa vào hệ thống</StatusBadge>
+                    ) : (
+                      <StatusBadge tone="warning">Chờ giáo viên duyệt</StatusBadge>
+                    )}
+                    {row.step === 'CONTENT' ? null : (
+                      <p>{row.viewedByMe ? 'Đã xem' : 'Cần mở chi tiết'}</p>
+                    )}
                   </div>
                 ),
               },
@@ -360,7 +367,7 @@ export function AIReviewQueueView(props: AIReviewQueueViewProps) {
         open={confirm}
         pending={pending}
         title="Duyệt các câu đã chọn?"
-        message={`Duyệt ${selected.length} câu đã mở chi tiết. Máy chủ sẽ kiểm tra lại từng câu.`}
+        message={`Duyệt ${selected.length} câu đã chọn. Máy chủ sẽ kiểm tra lại từng câu.`}
         confirmLabel="Xác nhận duyệt hàng loạt"
         onCancel={() => setConfirm(false)}
         onConfirm={() => {

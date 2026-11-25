@@ -596,12 +596,10 @@ describe('AdminLayout', () => {
     })
     for (const name of ['Quản trị', 'Quản trị trên thiết bị di động']) {
       const navigation = screen.getByRole('navigation', { name })
-      expect(within(navigation).getAllByRole('link')).toHaveLength(15)
-      // AI review belongs to TEACHER only; CONTENT_EDITOR and ADMIN do not get it.
-      expect(
-        within(navigation).queryByRole('link', { name: 'Duyệt câu hỏi AI' }),
-      ).not.toBeInTheDocument()
+      expect(within(navigation).getAllByRole('link')).toHaveLength(16)
+      // Content editors take the second AI review step, so CONTENT_EDITOR gets AI review too.
       for (const label of [
+        'Duyệt câu hỏi AI',
         'Lô AI',
         'Kho câu hỏi',
         'Quản lý đề thi',
@@ -650,7 +648,7 @@ describe('AdminLayout', () => {
       }
     },
   )
-  it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT', 'CONTENT_EDITOR'] as const)(
+  it.each(['ADMIN', 'LEARNER', 'MODERATOR', 'ACCOUNTANT'] as const)(
     'hides AI review from %s alone',
     (role) => {
       renderLayout(<AdminLayout>Duyệt</AdminLayout>, { user: { ...learner, roles: [role] } })
@@ -661,6 +659,7 @@ describe('AdminLayout', () => {
     [
       ['CONTENT_EDITOR'],
       [
+        'Duyệt câu hỏi AI',
         'Kho câu hỏi',
         'Nhập dữ liệu',
         'Tài nguyên tham khảo',

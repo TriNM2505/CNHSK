@@ -81,11 +81,40 @@ async function submitBulk() {
   fireEvent.click(await screen.findByRole('button', { name: 'Xác nhận duyệt hàng loạt' }))
 }
 beforeEach(() => {
+  window.sessionStorage.clear()
   list.mockReset().mockResolvedValue(page())
   bulk.mockReset().mockResolvedValue({ results: [{ id: 901, outcome: 'APPROVED' }] })
 })
 
 describe('SCR-058 authoritative review queue', () => {
+  it('keeps ticks after opening a question and coming back, and after the window regains focus', async () => {
+    const first = renderPage()
+    fireEvent.click((await loaded())[0]!)
+    first.unmount()
+    renderPage()
+    await waitFor(async () => expect((await loaded())[0]).toBeChecked())
+    act(() => {
+      window.dispatchEvent(new Event('focus'))
+    })
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(3))
+    await waitFor(async () => expect((await loaded())[0]).toBeChecked())
+  })
+  it('lets a content editor tick a teacher-checked question without opening it', async () => {
+    const unopened = page(false)
+    list.mockResolvedValue({
+      ...unopened,
+      items: unopened.items.map((row) =>
+        row.id === 901 ? { ...row, step: 'CONTENT' as const } : row,
+      ),
+    })
+    renderPage()
+    const [box] = await loaded()
+    expect(box).toBeEnabled()
+    expect(screen.getAllByText('GV đã duyệt · Chờ đưa vào hệ thống').length).toBeGreaterThan(0)
+    fireEvent.click(box!)
+    await submitBulk()
+    await waitFor(() => expect(bulk).toHaveBeenCalledWith([901], expect.any(AbortSignal)))
+  })
   it('keeps selected IDs unique and sends no write without a selection', async () => {
     renderPage()
     const choices = await loaded()
@@ -203,7 +232,7 @@ describe('SCR-058 authoritative review queue', () => {
         .getAllByRole('listitem')
         .map((item) => item.textContent),
     ).toEqual([
-      '#901: Đã duyệt',
+      '#901: Đã đưa vào hệ thống',
       '#902: Chưa xem hoặc lượt xem đã hết hạn',
       '#903: Không còn chờ duyệt',
       '#904: Nội dung chưa hợp lệ',
