@@ -52,6 +52,21 @@ describe('AI run history', () => {
     expect(screen.getAllByText('Bộ lọc trùng nghĩa không chạy được').length).toBeGreaterThan(0)
   })
 
+  it('explains why drafts were dropped, reason by reason', async () => {
+    vi.mocked(listAiRuns).mockResolvedValue({
+      ...page,
+      items: [
+        {
+          ...page.items[0]!,
+          droppedCount: 3,
+          droppedReasons: { SEMANTIC_DUPLICATE_STEM: 2, HANZI_ABOVE_LEVEL: 1 },
+        },
+      ],
+    })
+    render(<AiRunsPage />)
+    expect((await screen.findAllByText('2 trùng nghĩa · 1 vượt cấp HSK')).length).toBeGreaterThan(0)
+  })
+
   it('shows no pause warning when the duplicate meaning check is ready', async () => {
     render(<AiRunsPage />)
     expect((await screen.findAllByText('KNOWLEDGE-1')).length).toBeGreaterThan(0)

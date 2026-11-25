@@ -34,6 +34,22 @@ const date = (value: string | null) =>
         timeZone: 'Asia/Ho_Chi_Minh',
       }).format(new Date(value))
 const number = (value: number) => value.toLocaleString('vi-VN')
+/** Why the validator dropped drafts, in words an admin can act on. */
+const dropReasons: Record<string, string> = {
+  SEMANTIC_DUPLICATE_STEM: 'trùng nghĩa',
+  DUPLICATE_STEM: 'trùng y hệt',
+  NEAR_DUPLICATE_STEM: 'gần trùng',
+  HANZI_ABOVE_LEVEL: 'vượt cấp HSK',
+  OVER_QUOTA: 'vượt hạn mức',
+  TYPE_QUOTA: 'quá nhiều câu Đúng/Sai',
+  UNKNOWN_ERROR_KID: 'mã lỗi không tồn tại',
+  INVALID_OPTIONS: 'phương án sai dạng',
+  INVALID_CORRECT_ANSWER: 'đáp án đúng không hợp lệ',
+}
+const reasonText = (reasons: Record<string, number> | undefined) =>
+  Object.entries(reasons ?? {})
+    .map(([code, count]) => `${number(count)} ${dropReasons[code] ?? 'không hợp lệ'}`)
+    .join(' · ')
 const columns: DataTableColumn<AiRun>[] = [
   {
     id: 'id',
@@ -73,6 +89,9 @@ const columns: DataTableColumn<AiRun>[] = [
       <div>
         <p>{number(row.questionCount)} đã tạo</p>
         <p className="text-ink-secondary">{number(row.droppedCount)} loại bỏ</p>
+        {reasonText(row.droppedReasons) ? (
+          <p className="text-caption text-ink-secondary">{reasonText(row.droppedReasons)}</p>
+        ) : null}
       </div>
     ),
   },

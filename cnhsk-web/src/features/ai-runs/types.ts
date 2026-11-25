@@ -14,6 +14,8 @@ export type AiRun = {
   completedAt: string | null
   questionCount: number
   droppedCount: number
+  /** Dropped drafts per validator reason; older servers may omit it. */
+  droppedReasons?: Record<string, number>
   inputTokens: number
   outputTokens: number
   error: RunError | null
