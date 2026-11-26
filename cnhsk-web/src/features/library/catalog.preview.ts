@@ -1,4 +1,4 @@
-import { createElement, useState } from 'react'
+import { createElement, Fragment, useState } from 'react'
 
 import type { PreviewEntry, PreviewState } from '@/app/preview/types'
 import { ApiError } from '@/shared/api'
@@ -6,7 +6,8 @@ import { AuthContext, type AuthContextValue } from '@/shared/auth'
 import { LearnerLayout, PublicLayout } from '@/shared/layout'
 import { previewLearner } from '@/shared/layout/Layout.preview'
 
-import { DictionarySearchView } from './components/DictionarySearchView'
+import { LexemeEntryBody } from './components/LexemeEntryBody'
+import { TranslateWorkspaceView } from './components/TranslateWorkspaceView'
 import { LexemeDetailView } from './components/LexemeDetailView'
 import { LexemeSaveActions, type LexemeSaveActionsProps } from './components/LexemeSaveActions'
 import { NoteEditor } from './components/NoteEditor'
@@ -17,10 +18,12 @@ import { DeckListScreenPreview } from './components/DeckListScreen.preview'
 import { DeckDetailView } from './components/DeckDetailView'
 import { DeckDetailScreenPreview } from './components/DeckDetailScreen.preview'
 import { FlashcardReviewView } from './components/FlashcardReviewView'
-import { TranslationView } from './components/TranslationView'
-import { TranslationLexemePopup } from './components/TranslationLexemePopup'
 import {
-  dictionarySearchParams,
+  SentenceWords,
+  TranslationOutput,
+  type TranslationPanelState,
+} from './components/TranslationResultPanel'
+import {
   validateDictionarySearch,
   type DictionarySearch,
 } from './dictionarySearch'
@@ -327,65 +330,91 @@ function TranslationPreview({
   insufficient?: boolean
   from?: TranslateRequest['from']
 }) {
-  const [draft, setDraft] = useState<TranslateRequest>({
-    text:
-      state === 'empty' ? '' : from === 'VI' ? 'Hôm nay tôi học tiếng Trung.' : '今天我学习中文。',
-    from,
-    to: from === 'VI' ? 'ZH' : 'VI',
+  const type: DictionarySearch['type'] = from === 'VI' ? 'MEANING' : 'HANZI'
+  const [draft, setDraft] = useState<DictionarySearch>({
+    type,
+    q: state === 'empty' ? '' : from === 'VI' ? 'Hôm nay tôi học tiếng Trung.' : '今天我学习中文。',
+    radical: '',
+    strokes: '',
+    page: 0,
   })
-  const [changed, setChanged] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
+  const [done, setDone] = useState(state !== 'empty')
   const [lexemeId, setLexemeId] = useState<number>()
   const entry = libraryLexemeDetails.find(({ id }) => id === lexemeId)
-  const change = (next: TranslateRequest) => {
-    setDraft(next)
-    setChanged(true)
-    setLexemeId(undefined)
-  }
-  return createElement(TranslationView, {
-    draft,
-    pending: state === 'loading',
-    result:
-      (state === 'ready' || (state === 'empty' && submitted)) && !changed
+  const source = draft.type === 'MEANING' ? 'VI' : 'ZH'
+  const panel: TranslationPanelState | undefined = !done
+    ? undefined
+    : state === 'loading'
+      ? { state: 'pending' }
+      : state === 'error'
         ? {
-            ...(cached ? libraryCachedTranslation : libraryTranslation),
-            translated:
-              draft.to === 'ZH' ? libraryTranslation.translated : 'Hôm nay tôi học tiếng Trung.',
+            state: 'error',
+            onRetry: () => undefined,
+            error: new ApiError({
+              status: insufficient ? 402 : 503,
+              errorCode: insufficient ? 'INSUFFICIENT_CREDITS' : 'TRANSLATE_UNAVAILABLE',
+              message: insufficient ? 'Bạn đã hết lượt dịch và không đủ điểm.' : 'Chưa thể dịch.',
+            }),
           }
-        : undefined,
-    error:
-      state === 'error'
-        ? new ApiError({
-            status: insufficient ? 402 : 503,
-            errorCode: insufficient ? 'INSUFFICIENT_CREDITS' : 'TRANSLATE_UNAVAILABLE',
-            message: insufficient ? 'Bạn đã hết lượt dịch và không đủ điểm.' : 'Chưa thể dịch.',
-          })
-        : undefined,
-    onTextChange: (text) => change({ ...draft, text }),
-    onDirectionChange: (from) => change({ ...draft, from, to: from === 'ZH' ? 'VI' : 'ZH' }),
-    onSubmit: () => {
-      setChanged(false)
-      setSubmitted(true)
+        : {
+            state: 'ready',
+            result: {
+              ...(cached ? libraryCachedTranslation : libraryTranslation),
+              translated: source === 'VI' ? libraryTranslation.translated : 'Hôm nay tôi học tiếng Trung.',
+            },
+          }
+  const panelElement = panel
+    ? createElement(TranslationOutput, { panel, to: source === 'ZH' ? 'VI' : 'ZH' })
+    : createElement('p', { className: 'text-h3 text-ink-muted' }, 'Bản dịch')
+  return createElement(TranslateWorkspaceView, {
+    draft,
+    onChange: (next) => {
+      setDraft(next)
+      setDone(false)
+      setLexemeId(undefined)
     },
-    onOpenLexeme: setLexemeId,
-    popup: entry
-      ? createElement(TranslationLexemePopup, {
-          state: 'ready',
-          entry,
-          onClose: () => setLexemeId(undefined),
-          onRetry: () => undefined,
-          saveActions: createElement(LexemeSaveActions, {
-            key: entry.id,
+    onSubmit: () => setDone(true),
+    onSwap: () => setDraft({ ...draft, type: draft.type === 'MEANING' ? 'HANZI' : 'MEANING' }),
+    output: panelElement,
+    details: createElement(
+      Fragment,
+      null,
+      panel?.state === 'ready'
+        ? createElement(SentenceWords, {
+            segments: panel.result.segments,
+            selectedId: lexemeId,
+            onOpen: setLexemeId,
+          })
+        : null,
+      entry
+        ? createElement(LexemeEntryBody, {
             entry,
-            access: 'learner',
-            loginTo: '/login?redirect=%2Ftranslate',
-            onReloadAuth: () => undefined,
-            onCreateNote: async () => undefined,
-            onLoadDecks: async () => libraryDeckSummaries,
-            onAddCard: async () => undefined,
-          }),
-        })
-      : undefined,
+            related: { onOpen: setLexemeId },
+            saveActions: createElement(LexemeSaveActions, {
+              key: entry.id,
+              entry,
+              access: 'learner',
+              loginTo: '/login?redirect=%2Ftranslate',
+              onReloadAuth: () => undefined,
+              onCreateNote: async () => undefined,
+              onLoadDecks: async () => libraryDeckSummaries,
+              onAddCard: async () => undefined,
+            }),
+          })
+        : null,
+    ),
+    listed: false,
+    searched: false,
+    state: 'ready',
+    onRetry: () => undefined,
+    page: 0,
+    onPageChange: () => undefined,
+    onSelect: setLexemeId,
+    radicals: libraryRadicals,
+    onRadicalsRetry: () => undefined,
+    loginTo: '/login?redirect=%2Ftranslate',
+    registerTo: '/register?redirect=%2Ftranslate',
+    guest: false,
   })
 }
 
@@ -471,7 +500,9 @@ function DictionaryPreview({
           items: matches.slice(page * 20, (page + 1) * 20),
           total: matches.length,
         }
-  return createElement(DictionarySearchView, {
+  const [selected, setSelected] = useState<number>()
+  const selectedEntry = libraryLexemeDetails.find(({ id }) => id === selected)
+  return createElement(TranslateWorkspaceView, {
     draft,
     onChange: (next) => {
       setDraft(next)
@@ -485,9 +516,17 @@ function DictionaryPreview({
       setSearched(true)
       setPage(0)
     },
+    onSwap: () => setDraft({ ...draft, type: draft.type === 'MEANING' ? 'HANZI' : 'MEANING' }),
+    output: createElement('p', { className: 'text-h3 text-ink-muted' }, 'Bản dịch'),
+    details: selectedEntry
+      ? createElement(LexemeEntryBody, { entry: selectedEntry, related: { onOpen: setSelected } })
+      : null,
+    listed: true,
     onPageChange: setPage,
     onRetry: () => undefined,
     onRadicalsRetry: () => undefined,
+    onSelect: setSelected,
+    selectedId: selected,
     state,
     result,
     formError,
@@ -500,10 +539,8 @@ function DictionaryPreview({
     radicals: libraryRadicals,
     searched,
     page,
-    returnTo: `/dictionary?${dictionarySearchParams({ ...(screen ? submitted : draft), page })}`,
-    loginTo: '/login?redirect=%2Fdictionary',
-    registerTo: '/register?redirect=%2Fdictionary',
-    canTranslate: learner,
+    loginTo: '/login?redirect=%2Ftranslate',
+    registerTo: '/register?redirect=%2Ftranslate',
     guest: !learner,
     guestTrial: { limit: 10, remaining: rateLimited ? 0 : 7 },
   })
@@ -544,7 +581,7 @@ function DetailPreview({
       errorCode: state === 'empty' ? 'LEXEME_NOT_FOUND' : 'NETWORK_ERROR',
       message: state === 'empty' ? 'Mục từ không tồn tại.' : 'Chưa tải được mục từ.',
     }),
-    backTo: '/dictionary?type=HANZI&q=日&page=0',
+    backTo: '/translate?type=HANZI&q=日&page=0',
     onRetry: () => undefined,
     saveActions: createElement(LexemeSaveActions, {
       key: `${entry.id}:${access}`,
@@ -916,7 +953,7 @@ export const previews = [
     group: 'screen',
     id: 'scr-026-ready',
     scr: 'SCR-026',
-    title: 'Dịch câu — Redesign',
+    title: 'Dịch — Câu, Redesign',
     render: (state) => createElement(TranslationScreenPreview, { state }),
   },
   {
@@ -924,7 +961,7 @@ export const previews = [
     group: 'screen',
     id: 'scr-026-zh-vi',
     scr: 'SCR-026',
-    title: 'Dịch câu — Trung sang Việt',
+    title: 'Dịch — Câu, Trung sang Việt',
     render: (state) => createElement(TranslationScreenPreview, { state, from: 'ZH' }),
   },
   {
@@ -932,7 +969,7 @@ export const previews = [
     group: 'screen',
     id: 'scr-026-cached',
     scr: 'SCR-026',
-    title: 'Dịch câu — Bản dịch từ bộ nhớ đệm',
+    title: 'Dịch — Câu, Bản dịch từ bộ nhớ đệm',
     states: ['ready'],
     render: (state) => createElement(TranslationScreenPreview, { state, cached: true }),
   },
@@ -941,7 +978,7 @@ export const previews = [
     group: 'screen',
     id: 'scr-026-insufficient',
     scr: 'SCR-026',
-    title: 'Dịch câu — Hết lượt và điểm',
+    title: 'Dịch — Câu, Hết lượt và điểm',
     states: ['error'],
     render: (state) => createElement(TranslationScreenPreview, { state, insufficient: true }),
   },
@@ -951,7 +988,7 @@ export const previews = [
     group: 'screen',
     id: 'scr-024-ready',
     scr: 'SCR-024',
-    title: 'Tra từ điển — Redesign, khách',
+    title: 'Dịch — Tra từ, Redesign, khách',
     render: (state) => createElement(DictionaryScreenPreview, { state }),
   },
   {
@@ -959,7 +996,7 @@ export const previews = [
     group: 'screen',
     id: 'scr-024-initial',
     scr: 'SCR-024',
-    title: 'Tra từ điển — Chưa tìm kiếm',
+    title: 'Dịch — Tra từ, Chưa tìm kiếm',
     states: ['ready'],
     render: (state) => createElement(DictionaryScreenPreview, { state, initial: true }),
   },
@@ -968,7 +1005,7 @@ export const previews = [
     group: 'screen',
     id: 'scr-024-learner',
     scr: 'SCR-024',
-    title: 'Tra từ điển — Redesign, học viên',
+    title: 'Dịch — Tra từ, Redesign, học viên',
     render: (state) => createElement(DictionaryScreenPreview, { state, learner: true }),
   },
   {
@@ -976,7 +1013,7 @@ export const previews = [
     group: 'screen',
     id: 'scr-024-radical',
     scr: 'SCR-024',
-    title: 'Tra từ điển — Bộ thủ và số nét',
+    title: 'Dịch — Tra từ, Bộ thủ và số nét',
     render: (state) => createElement(DictionaryScreenPreview, { state, radical: true }),
   },
   {
@@ -984,7 +1021,7 @@ export const previews = [
     group: 'screen',
     id: 'scr-024-rate-limited',
     scr: 'SCR-024',
-    title: 'Tra từ điển — Khách chạm hạn mức',
+    title: 'Dịch — Tra từ, Khách chạm hạn mức',
     states: ['error'],
     render: (state) => createElement(DictionaryScreenPreview, { state, rateLimited: true }),
   },
@@ -993,7 +1030,7 @@ export const previews = [
     group: 'screen',
     id: 'scr-024-learner-rate-limited',
     scr: 'SCR-024',
-    title: 'Tra từ điển — Học viên chạm hạn mức',
+    title: 'Dịch — Tra từ, Học viên chạm hạn mức',
     states: ['error'],
     render: (state) =>
       createElement(DictionaryScreenPreview, { state, rateLimited: true, learner: true }),
@@ -1002,7 +1039,7 @@ export const previews = [
     group: 'screen',
     id: 'library-dictionary-samples',
     scr: 'SCR-024',
-    title: 'Tra từ điển — Khách',
+    title: 'Dịch — Tra từ, Khách',
     render: (state) => createElement(DictionaryPreview, { state }),
   },
   {
@@ -1017,14 +1054,14 @@ export const previews = [
     group: 'screen',
     id: 'library-dictionary-learner',
     scr: 'SCR-024',
-    title: 'Tra từ điển — Học viên',
+    title: 'Dịch — Tra từ, Học viên',
     render: (state) => createElement(DictionaryPreview, { state, learner: true }),
   },
   {
     group: 'screen',
     id: 'library-dictionary-rate-limited',
     scr: 'SCR-024',
-    title: 'Tra từ điển — Khách hết lượt tra',
+    title: 'Dịch — Tra từ, Khách hết lượt tra',
     states: ['error'],
     render: (state) => createElement(DictionaryPreview, { state, rateLimited: true }),
   },
@@ -1048,7 +1085,7 @@ export const previews = [
     group: 'screen',
     id: 'library-translation-samples',
     scr: 'SCR-026',
-    title: 'Dịch câu — Dữ liệu mẫu',
+    title: 'Dịch — Câu, Dữ liệu mẫu',
     states: ['ready', 'loading', 'empty', 'error'],
     render: (state) => createElement(TranslationPreview, { state }),
   },

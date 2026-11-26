@@ -9,6 +9,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
+import com.cnhsk.learning.ai.AiUnavailableException;
 import com.cnhsk.learning.api.Consumption;
 import com.cnhsk.learning.api.EntitlementApi;
 import com.cnhsk.learning.api.PaidFeature;
@@ -67,7 +68,9 @@ public class TranslationService {
             write(cacheKey, translated);
             return response;
         } catch (RuntimeException exception) {
-            log.warn("Translation failed type={}", exception.getClass().getSimpleName());
+            // The reason tells a timeout, a refused gateway call and an unreadable answer apart; no text is logged.
+            log.warn("Translation failed type={} reason={}", exception.getClass().getSimpleName(),
+                    exception instanceof AiUnavailableException unavailable ? unavailable.getReason() : "-");
             try { billing.executeWithoutResult(status -> entitlement.refund(userId, receipt)); }
             catch (RuntimeException refundError) { log.warn("Translation refund failed type={}", refundError.getClass().getSimpleName()); }
             throw new ApiException(ErrorCode.TRANSLATE_UNAVAILABLE, HttpStatus.SERVICE_UNAVAILABLE, UNAVAILABLE_MESSAGE, Map.of());

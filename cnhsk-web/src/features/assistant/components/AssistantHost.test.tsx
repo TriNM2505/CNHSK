@@ -286,8 +286,7 @@ describe('assistant FR015 / AT15 integration', () => {
     mount()
     await user.click(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' }))
     await send('Tôi muốn hỏi về một từ')
-    expect(screen.getByRole('link', { name: 'Tra từ điển' })).toHaveAttribute('href', '/dictionary')
-    expect(screen.getByRole('link', { name: 'Dịch câu' })).toHaveAttribute('href', '/translate')
+    expect(screen.getByRole('link', { name: 'Dịch và tra từ' })).toHaveAttribute('href', '/translate')
     await send('Tôi chọn chủ đề ở đâu?')
     expect(vi.mocked(askAssistant).mock.calls[1]![0].history).toEqual([
       { role: 'user', text: 'Tôi muốn hỏi về một từ' },
@@ -367,7 +366,7 @@ describe('assistant FR015 / AT15 integration', () => {
     await act(async () => resolveOld(knowledgeAnswer))
     expect(screen.getByRole('log')).toHaveTextContent(systemAnswer.answer)
     expect(screen.queryByText(knowledgeAnswer.answer)).not.toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Dịch câu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Dịch và tra từ' })).not.toBeInTheDocument()
     expect(vi.mocked(askAssistant).mock.calls[1]![0].history).toEqual([])
   })
 })

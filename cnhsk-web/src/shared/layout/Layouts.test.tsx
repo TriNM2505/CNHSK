@@ -119,7 +119,7 @@ describe('PublicLayout', () => {
 
   it.each([
     ['Tra cứu', 'Video và podcast', '/references/media'],
-    ['Tra cứu', 'Tra theo pinyin', '/dictionary?type=PINYIN'],
+    ['Tra cứu', 'Tra theo pinyin', '/translate?type=PINYIN'],
     ['Cộng đồng', 'Bảng tin và vinh danh', '/community'],
     ['Cộng đồng', 'Cuộc thi', '/contests'],
     ['Giới thiệu', 'Cố vấn chuyên môn', '/#co-van'],
@@ -226,7 +226,6 @@ describe('LearnerLayout', () => {
       'Kiểm tra đầu vào',
       'Thi thử',
       'Tiến độ',
-      'Tra cứu',
       'Dịch',
       'Bộ thẻ',
       'Sổ tay',
@@ -240,9 +239,9 @@ describe('LearnerLayout', () => {
       'href',
       '/learn/reading',
     )
-    expect(within(desktopNavigation).getByRole('link', { name: 'Tra cứu' })).toHaveAttribute(
+    expect(within(desktopNavigation).getByRole('link', { name: 'Dịch' })).toHaveAttribute(
       'href',
-      '/dictionary',
+      '/translate',
     )
     expect(within(desktopNavigation).getByRole('link', { name: 'Bộ thẻ' })).toHaveAttribute(
       'href',
@@ -308,7 +307,6 @@ describe('LearnerLayout', () => {
       'Kiểm tra đầu vào',
       'Thi thử',
       'Tiến độ',
-      'Tra cứu',
       'Dịch',
       'Bộ thẻ',
       'Sổ tay',

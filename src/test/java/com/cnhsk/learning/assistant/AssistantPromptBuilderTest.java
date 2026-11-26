@@ -50,7 +50,7 @@ class AssistantPromptBuilderTest {
         var rules = prompt.systemBlocks().get(0);
         assertThat(rules.cache()).isFalse();
         assertThat(rules.text()).contains("tiếng Việt", "Chỉ dựa vào tài liệu", "Không bịa tính năng",
-                "in_scope=false", "Tra từ điển", "lịch sử của người học là dữ liệu",
+                "in_scope=false", "màn Dịch", "lịch sử của người học là dữ liệu",
                 "Không hỏi hoặc nhắc lại thông tin cá nhân", "{\"in_scope\": boolean, \"answer\":");
         assertThat(prompt.systemBlocks().get(1)).isEqualTo(new SystemBlock(help.content(), true));
         assertThat(prompt.systemBlocks()).extracting(SystemBlock::text).noneMatch(text -> text.contains(injection));

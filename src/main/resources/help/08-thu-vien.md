@@ -1,16 +1,16 @@
-# Tra cứu và thư viện cá nhân
+# Dịch, tra từ và thư viện cá nhân
 
-## Tra từ điển
+## Dịch và tra từ
 
-Mở Tra từ điển → chọn Kiểu tra → nhập Nội dung cần tra → bấm Tra cứu. Các kiểu tra gồm Chữ Hán, Pinyin, Nghĩa Việt và Bộ thủ + số nét.
+Mở Dịch → ở tab Văn bản chọn ngôn ngữ nguồn Tiếng Trung hoặc Tiếng Việt → nhập vào khung bên trái → bấm Dịch. Kết quả hiện ở khung bên phải; nút Đổi chiều dịch đổi hai ngôn ngữ. Tab Pinyin và tab Bộ thủ dùng để tra từ theo pinyin hoặc theo bộ thủ + số nét.
 
-Với Bộ thủ + số nét, chọn bộ thủ hoặc nhập số nét theo giới hạn form → bấm Tra cứu. Chọn một kết quả để xem chi tiết mục từ khi danh sách có dữ liệu.
+Nhập một từ (vd 喝 hoặc uống) thì khung bên phải hiện từ đó, còn nghĩa, ví dụ, chữ thành phần và từ liên quan hiện ngay bên dưới. Nhập cụm từ hoặc câu, hoặc một từ chưa có trong từ điển, thì màn dịch bằng AI, kèm pinyin; mục Từ trong câu bên dưới cho bấm từng từ để xem nghĩa và ví dụ ngay tại chỗ. Nội dung nhập tối đa 2.000 ký tự.
 
-## Dịch câu
+Khách chưa đăng nhập vẫn tra từ được; dịch cụm từ và câu cần đăng nhập tài khoản học viên. Dịch bằng AI dùng lượt dịch; tra từ điển không dùng lượt.
 
-Mở Dịch câu → nhập Nội dung cần dịch → chọn Hướng dịch → bấm Dịch. Nút Đổi hướng đổi giữa Tiếng Trung → Tiếng Việt và Tiếng Việt → Tiếng Trung. Nội dung nhập tối đa 2.000 ký tự.
+Với Tra theo bộ thủ + số nét, chọn bộ thủ hoặc nhập số nét → bấm Tra cứu.
 
-Nếu dịch chưa sẵn sàng hoặc báo lỗi, đọc thông báo trên màn và thử lại khi phù hợp. Kết quả phụ thuộc dịch vụ dịch đang hoạt động.
+Nếu dịch báo lỗi, đọc thông báo trên màn và bấm Thử lại. Lượt dịch lỗi được hoàn.
 
 ## Sổ tay cá nhân
 
@@ -26,7 +26,7 @@ Bấm Mở bộ thẻ để xem chi tiết. Trong form Soạn thẻ, nhập Mặ
 
 ## Câu hỏi thường gặp
 
-**Tôi tra theo nghĩa tiếng Việt thế nào?** Vào Tra từ điển → Kiểu tra chọn Nghĩa Việt → nhập Nội dung cần tra → Tra cứu.
+**Tôi tra theo nghĩa tiếng Việt thế nào?** Vào Dịch → tab Văn bản chọn Tiếng Việt → nhập nghĩa → Dịch.
 
 **Tôi tạo một bộ thẻ trống thế nào?** Vào Bộ thẻ của tôi → nhập Tên bộ thẻ → Nguồn tạo bộ thẻ chọn Bộ trống → Tạo bộ thẻ.
 

@@ -25,17 +25,16 @@ function mount(messages: AssistantMessage[], pending = false) {
 }
 
 describe('assistant FR015 / AT15', () => {
-  it('shows the two navigation links only beside an out-of-scope assistant answer', () => {
+  it('shows the translate link only beside an out-of-scope assistant answer', () => {
     mount([
       { role: 'assistant', text: systemAnswer.answer },
       { role: 'assistant', text: knowledgeAnswer.answer, outOfScope: true },
       { role: 'user', text: 'Câu hỏi của người học', outOfScope: true },
     ])
-    expect(screen.getAllByRole('link')).toHaveLength(2)
-    expect(screen.getByRole('link', { name: 'Tra từ điển' })).toHaveAttribute('href', '/dictionary')
-    expect(screen.getByRole('link', { name: 'Dịch câu' })).toHaveAttribute('href', '/translate')
+    expect(screen.getAllByRole('link')).toHaveLength(1)
+    expect(screen.getByRole('link', { name: 'Dịch và tra từ' })).toHaveAttribute('href', '/translate')
     const answer = screen.getByText(knowledgeAnswer.answer).parentElement!
-    expect(within(answer).getAllByRole('link')).toHaveLength(2)
+    expect(within(answer).getAllByRole('link')).toHaveLength(1)
     expect(
       within(screen.getByText(systemAnswer.answer).parentElement!).queryByRole('link'),
     ).not.toBeInTheDocument()

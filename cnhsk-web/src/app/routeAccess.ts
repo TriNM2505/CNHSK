@@ -393,13 +393,8 @@ export const appRouteDefinitions = [
   },
   { access: 'public', kind: 'screen', layout: 'by-role', path: '/dictionary', scr: 'SCR-024' },
   { access: 'public', kind: 'screen', layout: 'by-role', path: '/dictionary/:id', scr: 'SCR-025' },
-  {
-    access: ['LEARNER'],
-    kind: 'screen',
-    layout: 'learner',
-    path: '/translate',
-    scr: 'SCR-026',
-  },
+  // Merged "Dịch" screen: guests look words up; translating a phrase asks them to sign in.
+  { access: 'public', kind: 'screen', layout: 'by-role', path: '/translate', scr: 'SCR-026' },
   {
     access: ['LEARNER'],
     kind: 'screen',

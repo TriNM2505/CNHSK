@@ -57,7 +57,7 @@ const routes = [
     access: 'public',
     layout: 'by-role',
   },
-  { path: '/translate', url: '/translate', scr: 'SCR-026', access: ['LEARNER'], layout: 'learner' },
+  { path: '/translate', url: '/translate', scr: 'SCR-026', access: 'public', layout: 'by-role' },
   {
     path: '/library/notes',
     url: '/library/notes',
@@ -158,10 +158,9 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
     'FR001_guest can open $scr at $url',
     async ({ url, scr }) => {
       const router = renderRoute(url)
-      expect(
-        await screen.findByRole('heading', { name: scr === 'SCR-024' ? 'Tra từ điển' : '日' }),
-      ).toBeVisible()
-      expect(router.state.location.pathname).toBe(url)
+      expect(await screen.findByRole('heading', { name: scr === 'SCR-025' ? '日' : 'Dịch' })).toBeVisible()
+      // Old dictionary links land on the merged translate screen.
+      expect(router.state.location.pathname).toBe(url === '/dictionary' ? '/translate' : url)
     },
   )
 
@@ -170,22 +169,20 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
     const router = renderRoute(url)
     await waitFor(() => {
       const title =
-        scr === 'SCR-024'
-          ? 'Tra từ điển'
+        scr === 'SCR-024' || scr === 'SCR-026'
+          ? 'Dịch'
           : scr === 'SCR-025'
             ? '日'
-            : scr === 'SCR-026'
-              ? 'Dịch câu'
-              : scr === 'SCR-027'
-                ? 'Sổ tay cá nhân'
-                : scr === 'SCR-028'
-                  ? 'Bộ thẻ của tôi'
-                  : scr === 'SCR-029'
-                    ? 'Bộ thẻ kiểm thử'
-                    : `Màn ${scr} đang dựng`
+            : scr === 'SCR-027'
+              ? 'Sổ tay cá nhân'
+              : scr === 'SCR-028'
+                ? 'Bộ thẻ của tôi'
+                : scr === 'SCR-029'
+                  ? 'Bộ thẻ kiểm thử'
+                  : `Màn ${scr} đang dựng`
       expect(screen.getByRole('heading', { name: title })).toBeVisible()
     })
-    expect(router.state.location.pathname).toBe(url)
+    expect(router.state.location.pathname).toBe(url === '/dictionary' ? '/translate' : url)
   })
 
   it.each(privateRoutes)(
@@ -250,13 +247,12 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
     'FR025_renders the existing translation preview in %s without API calls',
     async (state) => {
       renderRoute(`/__preview/frame/library-translation-samples/${state}`)
-      expect(await screen.findByRole('heading', { name: 'Dịch câu' })).toBeVisible()
-      if (state === 'loading')
-        expect(screen.getByRole('form', { name: 'Dịch câu' })).toHaveAttribute('aria-busy', 'true')
+      expect(await screen.findByRole('heading', { name: 'Dịch', level: 1 })).toBeVisible()
+      if (state === 'loading') expect(screen.getByText('Đang dịch nội dung…')).toBeVisible()
       if (state === 'empty')
-        expect(screen.getByRole('heading', { name: 'Chưa có bản dịch' })).toBeVisible()
+        expect(screen.getByText('Bản dịch', { selector: 'p' })).toBeVisible()
       if (state === 'error')
-        expect(screen.getByText('Dịch tạm thời lỗi — lượt đã được hoàn')).toBeVisible()
+        expect(screen.getByText('Lượt đã được hoàn. Vui lòng thử lại.')).toBeVisible()
       if (state === 'ready')
         expect(screen.getByRole('region', { name: 'Kết quả dịch' })).toBeVisible()
       expect(translate).not.toHaveBeenCalled()
@@ -267,7 +263,7 @@ describe('library route foundation (FR-001 FE, §12, AT-01 access only)', () => 
 
   it('renders the original dictionary samples without a backend', async () => {
     renderRoute('/__preview/frame/library-dictionary-samples/ready')
-    expect(await screen.findByRole('heading', { name: 'Tra từ điển' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Dịch', level: 1 })).toBeVisible()
     expect(screen.getAllByRole('listitem')).toHaveLength(20)
     expect(getCurrentUserMock).not.toHaveBeenCalled()
     expect(searchDictionary).not.toHaveBeenCalled()

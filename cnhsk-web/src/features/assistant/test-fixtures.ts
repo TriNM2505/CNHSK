@@ -7,7 +7,7 @@ export const systemAnswer: AskResult = {
 
 export const knowledgeAnswer: AskResult = {
   answer:
-    'Mình chỉ hỗ trợ cách dùng CNHSK. Để tra nghĩa từ hãy dùng Tra từ điển, để dịch câu hãy dùng Dịch.',
+    'Mình chỉ hỗ trợ cách dùng CNHSK. Để tra nghĩa từ hoặc dịch câu hãy dùng màn Dịch.',
   outOfScope: true,
 }
 

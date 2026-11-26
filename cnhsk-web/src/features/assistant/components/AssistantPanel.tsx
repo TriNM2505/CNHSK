@@ -67,11 +67,8 @@ export function AssistantPanel({
             <p>{message.text}</p>
             {message.role === 'assistant' && message.outOfScope && (
               <div className="mt-2 flex flex-wrap gap-2">
-                <Button to="/dictionary" size="sm" variant="outline">
-                  Tra từ điển
-                </Button>
                 <Button to="/translate" size="sm" variant="outline">
-                  Dịch câu
+                  Dịch và tra từ
                 </Button>
               </div>
             )}

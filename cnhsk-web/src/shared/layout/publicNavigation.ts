@@ -89,15 +89,15 @@ const lookupMenu: PublicMenu = {
   id: 'lookup',
   icon: Search,
   label: 'Tra cứu',
-  to: '/dictionary',
+  to: '/translate',
   columns: [
     {
-      title: 'Từ điển Trung – Việt',
+      title: 'Dịch và tra từ Trung – Việt',
       links: [
-        { label: 'Tra theo chữ Hán', to: '/dictionary?type=HANZI' },
-        { label: 'Tra theo pinyin', to: '/dictionary?type=PINYIN' },
-        { label: 'Tra theo nghĩa tiếng Việt', to: '/dictionary?type=MEANING' },
-        { label: 'Tra theo bộ thủ, số nét', to: '/dictionary?type=RADICAL' },
+        { label: 'Tiếng Trung → Tiếng Việt', to: '/translate?type=HANZI' },
+        { label: 'Tiếng Việt → Tiếng Trung', to: '/translate?type=MEANING' },
+        { label: 'Tra theo pinyin', to: '/translate?type=PINYIN' },
+        { label: 'Tra theo bộ thủ, số nét', to: '/translate?type=RADICAL' },
       ],
     },
     {

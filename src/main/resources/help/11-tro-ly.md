@@ -2,7 +2,7 @@
 
 Trợ lý hỗ trợ học viên tìm cách dùng CNHSK, tìm chức năng, đọc thông báo và hiểu các bước thao tác đã có hướng dẫn.
 
-Trợ lý không giải thích kiến thức tiếng Trung, dịch câu, giải bài hoặc làm bài hộ. Tra từ điển và Dịch câu là các chức năng riêng cho tra cứu và dịch.
+Trợ lý không giải thích kiến thức tiếng Trung, dịch câu, giải bài hoặc làm bài hộ. Màn Dịch là chức năng riêng cho tra từ và dịch câu.
 
 ## Mở và sử dụng
 

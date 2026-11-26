@@ -13,6 +13,7 @@ import { addCard, listDecks } from '../api/flashcards'
 import { createNote } from '../api/notes'
 import type { LexemeDetail } from '../types'
 import Scr024DictionarySearchPage from './Scr024DictionarySearchPage'
+import Scr026TranslationPage from './Scr026TranslationPage'
 import Scr025DictionaryDetailPage from './Scr025DictionaryDetailPage'
 
 vi.mock('../api/dictionary', () => ({
@@ -104,6 +105,7 @@ function renderPage(
     [
       { path: '/dictionary/:id', element: <Scr025DictionaryDetailPage /> },
       { path: '/dictionary', element: <Scr024DictionarySearchPage /> },
+      { path: '/translate', element: <Scr026TranslationPage /> },
     ],
     { initialEntries: [path] },
   )
@@ -335,7 +337,7 @@ describe('SCR-025 detail and media (FR-024, AT-24)', () => {
     expect(screen.getByText('Mã lỗi: lookup-404')).toBeVisible()
     expect(screen.getByRole('link', { name: 'Về kết quả tra cứu' })).toHaveAttribute(
       'href',
-      '/dictionary',
+      '/translate',
     )
     expect(screen.queryByRole('button', { name: 'Thử lại' })).not.toBeInTheDocument()
   })
@@ -371,18 +373,13 @@ describe('SCR-025 detail and media (FR-024, AT-24)', () => {
     await ready()
     expect(screen.getByRole('link', { name: 'Về kết quả tra cứu' })).toHaveAttribute(
       'href',
-      '/dictionary',
+      '/translate',
     )
   })
 
-  it('returns from an actual detail page to the same radical filters and zero-based page', async () => {
-    const { router } = renderPage('/dictionary?type=RADICAL&radical=%E6%97%A5&strokes=4&page=2')
-    expect(await screen.findByText('Trang 3 / 3')).toBeVisible()
-    await userEvent.click(
-      within(screen.getByRole('region', { name: 'Kết quả tra cứu' })).getByRole('link', {
-        name: /日/,
-      }),
-    )
+  it('returns from a detail page to the same radical filters and zero-based page', async () => {
+    const back = '/translate?type=RADICAL&radical=%E6%97%A5&strokes=4&page=2'
+    const { router } = renderPage(`/dictionary/101?${new URLSearchParams({ from: back })}`)
     await ready()
     await userEvent.click(screen.getByRole('link', { name: 'Về kết quả tra cứu' }))
     expect(await screen.findByText('Trang 3 / 3')).toBeVisible()
