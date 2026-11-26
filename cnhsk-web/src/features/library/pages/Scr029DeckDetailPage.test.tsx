@@ -121,7 +121,7 @@ function failure(status: number, code: string, details?: unknown) {
 }
 async function review() {
   await ready()
-  await userEvent.click(screen.getByRole('button', { name: 'Ôn bộ này' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Học' }))
   await screen.findByRole('button', { name: 'Lật thẻ' })
 }
 
@@ -176,7 +176,7 @@ describe('SCR-029 deck management (FR-028, AT-28)', () => {
       description: summary.description,
     })
     await screen.findByRole('heading', { name: summary.name })
-    expect(screen.getByText(first.front)).toBeVisible()
+    expect(within(screen.getByRole('region', { name: 'Thẻ trong bộ' })).getByText(first.front)).toBeVisible()
   })
 
   it('adds a manual card and preserves raw text in the snapshot request', async () => {
@@ -283,7 +283,7 @@ describe('SCR-029 deck management (FR-028, AT-28)', () => {
     expect(deleteCard).not.toHaveBeenCalled()
     await userEvent.click(trigger)
     await userEvent.click(screen.getByRole('button', { name: 'Xác nhận xoá' }))
-    expect(screen.getByText(first.front)).toBeVisible()
+    expect(within(screen.getByRole('region', { name: 'Thẻ trong bộ' })).getByText(first.front)).toBeVisible()
     expect(getDeck).toHaveBeenCalledTimes(1)
     vi.mocked(getDeck).mockResolvedValue({ ...deck, cards: [second], cardCount: 1 })
     await act(async () => resolve())
@@ -299,7 +299,7 @@ describe('SCR-029 deck management (FR-028, AT-28)', () => {
     await userEvent.click(screen.getAllByRole('button', { name: 'Xoá thẻ' })[0]!)
     await userEvent.click(screen.getByRole('button', { name: 'Xác nhận xoá' }))
     await screen.findByRole('alert')
-    expect(screen.getByText(first.front)).toBeVisible()
+    expect(within(screen.getByRole('region', { name: 'Thẻ trong bộ' })).getByText(first.front)).toBeVisible()
     expect(screen.getByLabelText(/^Mặt trước/)).toHaveValue('Bản nháp')
     await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
     expect(screen.getByRole('dialog')).toBeVisible()
@@ -347,7 +347,7 @@ describe('SCR-029 deck management (FR-028, AT-28)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Xoá thẻ' }))
     await userEvent.click(screen.getByRole('button', { name: 'Xác nhận xoá' }))
     await screen.findByText('Trang 1 / 1')
-    expect(screen.getByText('Thẻ 0')).toBeVisible()
+    expect(within(screen.getByRole('region', { name: 'Thẻ trong bộ' })).getByText('Thẻ 0')).toBeVisible()
   })
 
   it('keeps deck and card drafts when a successful mutation is followed by a failed refresh', async () => {
@@ -364,7 +364,7 @@ describe('SCR-029 deck management (FR-028, AT-28)', () => {
     await screen.findByRole('heading', { name: 'Chưa tải được bộ thẻ' })
     expect(screen.getByLabelText(/^Tên bộ thẻ/)).toHaveValue('Tên chưa lưu')
     await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
-    await screen.findByText(first.front)
+    await within(await screen.findByRole('region', { name: 'Thẻ trong bộ' })).findByText(first.front)
     expect(screen.getByLabelText(/^Tên bộ thẻ/)).toHaveValue('Tên chưa lưu')
   })
 
@@ -385,7 +385,7 @@ describe('SCR-029 deck management (FR-028, AT-28)', () => {
       cards: [{ ...first, front: '<script>mặt trước</script>', back: '<img src=x onerror=bad()>' }],
     })
     const view = renderPage()
-    await screen.findByText('<script>mặt trước</script>')
+    await within(await screen.findByRole('region', { name: 'Thẻ trong bộ' })).findByText('<script>mặt trước</script>')
     expect(view.container.querySelector('script,img')).toBeNull()
   })
 })
@@ -502,7 +502,7 @@ describe('SCR-029 review (FR-028, AT-28)', () => {
     vi.mocked(listDueCards).mockResolvedValueOnce([]).mockResolvedValueOnce([second])
     renderPage()
     await ready()
-    await userEvent.click(screen.getByRole('button', { name: 'Ôn bộ này' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Học' }))
     await screen.findByRole('heading', { name: 'Không có thẻ đến hạn' })
     expect(reviewCard).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: 'Ôn trước' }))
@@ -521,7 +521,7 @@ describe('SCR-029 review (FR-028, AT-28)', () => {
     )
     renderPage()
     await ready()
-    await userEvent.click(screen.getByRole('button', { name: 'Ôn bộ này' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Học' }))
     expect(screen.getByLabelText('Đang tải thẻ ôn')).toBeVisible()
     await act(async () => reject(failure(503, 'UNAVAILABLE')))
     await screen.findByRole('heading', { name: 'Chưa tải được thẻ ôn' })
@@ -542,7 +542,7 @@ describe('SCR-029 review (FR-028, AT-28)', () => {
     renderPage()
     await ready()
     cardDraft('Bản nháp trước ôn', 'Nội dung cần giữ')
-    await userEvent.click(screen.getByRole('button', { name: 'Ôn bộ này' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Học' }))
     const signal = vi.mocked(listDueCards).mock.calls[0]![2]!
     await userEvent.click(screen.getByRole('button', { name: 'Về bộ thẻ' }))
     expect(signal.aborted).toBe(true)

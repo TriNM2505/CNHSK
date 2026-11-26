@@ -1,4 +1,5 @@
-import { ArrowRight, Clock3, Info, Layers3, Plus, Sparkles } from 'lucide-react'
+import { ArrowRight, Info, Layers3, Plus, Sparkles } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
@@ -8,7 +9,6 @@ import {
   FormField,
   HanziText,
   Input,
-  PageBanner,
   Pagination,
   Select,
   Skeleton,
@@ -39,18 +39,6 @@ function DeckText({ text }: { text: string }) {
   )
 }
 
-function DeckStackArt() {
-  return (
-    <div aria-hidden="true" className="relative flex size-14 shrink-0 items-center justify-center">
-      <span className="absolute inset-1 rotate-12 rounded-sm border border-brand-100 bg-brand-100 transition-transform duration-200 motion-safe:group-hover:rotate-6" />
-      <span className="absolute inset-1 -rotate-6 rounded-sm border border-brand-100 bg-brand-50 transition-transform duration-200 motion-safe:group-hover:-rotate-12" />
-      <span className="relative flex size-11 items-center justify-center rounded-sm border border-brand-100 bg-surface text-brand-600 shadow-sm transition-transform duration-200 motion-safe:group-hover:-translate-y-1">
-        <Layers3 className="size-6" />
-      </span>
-    </div>
-  )
-}
-
 export interface DeckListViewProps {
   state: ApiQueryState
   decks: readonly DeckSummary[]
@@ -74,22 +62,24 @@ export function DeckListView(props: DeckListViewProps) {
   const page = clientPage(props.page, props.decks.length)
   return (
     <div className="library-screen deck-library mx-auto w-full min-w-0 max-w-content space-y-4 px-4 py-6 pb-24 sm:px-6 lg:px-8">
-      <PageBanner
-        title="Bộ thẻ của tôi"
-        subtitle="Tạo bộ thẻ riêng và ôn lại những điều muốn nhớ."
-      />
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-brand-100 bg-surface px-4 py-3">
-        <p className="inline-flex items-start gap-2 text-body-sm text-ink-secondary">
-          <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-600" />
-          Giới hạn: 50 bộ thẻ, tối đa 500 thẻ trong mỗi bộ.
-        </p>
+      <header className="flex min-w-0 flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0 space-y-1">
+          <h1 className="inline-flex items-center gap-3 text-h1 text-ink">
+            <span aria-hidden="true" className="h-8 w-1.5 rounded-pill bg-brand-600" />
+            Bộ thẻ của tôi
+          </h1>
+          <p className="inline-flex items-start gap-2 text-body-sm text-ink-secondary">
+            <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-brand-600" />
+            Giới hạn: 50 bộ thẻ, tối đa 500 thẻ trong mỗi bộ.
+          </p>
+        </div>
         {props.state === 'ready' ? (
-          <span className="inline-flex items-center gap-2 text-label text-brand-700">
+          <span className="inline-flex items-center gap-2 rounded-pill bg-surface px-4 py-2 text-label text-brand-700 shadow-sm">
             <Layers3 aria-hidden="true" className="size-4" />
             {props.decks.length} bộ thẻ
           </span>
         ) : null}
-      </div>
+      </header>
       <div className="deck-workspace grid min-w-0 items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
         <section
           aria-label="Danh sách bộ thẻ"
@@ -123,43 +113,33 @@ export function DeckListView(props: DeckListViewProps) {
                   .slice(page * flashcardPageSize, (page + 1) * flashcardPageSize)
                   .map((deck) => (
                     <li
+                      className="group relative isolate flex min-h-40 min-w-0 flex-col gap-3 rounded-lg border-b-4 border-transparent bg-surface p-5 shadow-sm transition duration-200 hover:border-brand-600 focus-within:border-brand-600 motion-safe:hover:-translate-y-0.5"
                       key={deck.id}
-                      className="group relative isolate min-w-0 overflow-hidden rounded-md border border-brand-100 bg-surface p-4 shadow-sm transition duration-200 hover:border-brand-600 hover:shadow-md focus-within:border-brand-600 motion-safe:hover:-translate-y-0.5"
                     >
-                      <div className="relative z-base flex h-full min-w-0 flex-col gap-3">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <DeckStackArt />
-                          <div className="min-w-0 space-y-1">
-                            <span className="text-caption text-brand-700">Bộ thẻ học tập</span>
-                            <h2 className="break-words text-h3 text-ink">
-                              <DeckText text={deck.name} />
-                            </h2>
-                          </div>
-                        </div>
-                        {deck.description ? (
-                          <p className="whitespace-pre-wrap break-words text-body text-ink-secondary">
-                            <DeckText text={deck.description} />
-                          </p>
-                        ) : null}
-                        <p className="text-body-sm text-ink-secondary">
-                          <Clock3
-                            aria-hidden="true"
-                            className="mr-1.5 inline-block size-4 align-middle text-brand-600"
-                          />
+                      <h2 className="break-words text-h3 text-ink">
+                        <DeckText text={deck.name} />
+                      </h2>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 rounded-pill bg-brand-50 px-3 py-1 text-label text-brand-700">
+                          <Layers3 aria-hidden="true" className="size-4" />
                           {deck.cardCount} thẻ · {deck.dueCount} đến hạn
-                        </p>
-                        <Button
-                          className="mt-auto w-full rounded-pill"
-                          to={`/library/decks/${deck.id}`}
-                          variant="outline"
-                        >
-                          Mở bộ thẻ
-                          <ArrowRight
-                            aria-hidden="true"
-                            className="ml-2 inline-block size-4 align-middle transition-transform duration-200 motion-safe:group-hover:translate-x-1"
-                          />
-                        </Button>
+                        </span>
                       </div>
+                      {deck.description ? (
+                        <p className="line-clamp-2 whitespace-pre-wrap break-words text-body-sm text-ink-secondary">
+                          <DeckText text={deck.description} />
+                        </p>
+                      ) : null}
+                      <Link
+                        className="mt-auto inline-flex items-center gap-1 self-end text-label text-brand-700 no-underline after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none"
+                        to={`/library/decks/${deck.id}`}
+                      >
+                        Mở bộ thẻ
+                        <ArrowRight
+                          aria-hidden="true"
+                          className="size-4 transition-transform duration-200 motion-safe:group-hover:translate-x-1"
+                        />
+                      </Link>
                     </li>
                   ))}
               </ul>

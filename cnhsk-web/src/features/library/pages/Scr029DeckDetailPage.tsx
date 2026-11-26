@@ -188,6 +188,13 @@ function DeckDetailContent({ rawId }: { rawId: string }) {
     }
   }
 
+  const closeReview = () => {
+    if (busy.current) return
+    reviewController.current?.abort()
+    setReview(undefined)
+    query.reload()
+  }
+
   const rate = async (rating: ReviewRating) => {
     const card = review?.cards[review.index]
     if (busy.current || !card || !review?.flipped || review.state !== 'ready') return
@@ -259,6 +266,7 @@ function DeckDetailContent({ rawId }: { rawId: string }) {
       onReview={() => {
         void loadReview()
       }}
+      onCloseReview={closeReview}
       review={
         review ? (
           <FlashcardReviewView
@@ -278,12 +286,7 @@ function DeckDetailContent({ rawId }: { rawId: string }) {
             onAhead={() => {
               void loadReview(true)
             }}
-            onClose={() => {
-              if (busy.current) return
-              reviewController.current?.abort()
-              setReview(undefined)
-              query.reload()
-            }}
+            onClose={closeReview}
           />
         ) : undefined
       }
