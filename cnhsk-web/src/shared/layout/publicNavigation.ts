@@ -61,6 +61,7 @@ const practiceColumns: PublicMenu['columns'] = [
   {
     title: 'Luyện thi',
     links: [
+      { label: 'Kiểm tra đầu vào', to: '/learn/placement' },
       { label: 'Thi thử HSK', to: '/learn/exams' },
       { label: 'Quiz theo chủ đề', to: '/community/quizzes' },
     ],

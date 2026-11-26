@@ -28,20 +28,33 @@ public class AiRunTrigger {
     private final AiGenerationService generation;
     private final Executor executor;
     private final ThreadPoolExecutor managed;
+    private final PlacementDraftPlanner planner;
 
     @Autowired
+    public AiRunTrigger(AuthApi auth, AiGenerateConfig config, AiGenerationGuard guard, AiGenerationService generation,
+            PlacementDraftPlanner planner) {
+        this(auth, config, guard, generation, newExecutor(), planner);
+    }
+
+    /** Without a planner placement drafts are unavailable; tests of the scheduled run use this. */
     public AiRunTrigger(AuthApi auth, AiGenerateConfig config, AiGenerationGuard guard, AiGenerationService generation) {
-        this(auth, config, guard, generation, newExecutor());
+        this(auth, config, guard, generation, newExecutor(), null);
     }
 
     /** Allows deterministic admission/rejection testing without another lock or scheduler. */
     AiRunTrigger(AuthApi auth, AiGenerateConfig config, AiGenerationGuard guard, AiGenerationService generation,
             Executor executor) {
+        this(auth, config, guard, generation, executor, null);
+    }
+
+    AiRunTrigger(AuthApi auth, AiGenerateConfig config, AiGenerationGuard guard, AiGenerationService generation,
+            Executor executor, PlacementDraftPlanner planner) {
         this.auth = auth;
         this.config = config;
         this.guard = guard;
         this.generation = generation;
         this.executor = executor;
+        this.planner = planner;
         this.managed = executor instanceof ThreadPoolExecutor pool ? pool : null;
     }
 
@@ -50,13 +63,38 @@ public class AiRunTrigger {
         if (!auth.currentUser().roles().contains(RoleCode.ADMIN)) {
             throw failure(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN);
         }
+        var settings = new AiGenerationService.Settings(systemUser(), config.getGenerateModel(), config.batchSize(),
+                config.maxBatchesPerRun(), config.minBank(), config.getTimeout(), config.dailyCap(),
+                config.semanticThreshold(), config.maxPending());
+        accept(lease -> generation.runReserved(lease, settings));
+    }
+
+    /**
+     * Asks the AI for {@code count} placement-test questions of one HSK level, spread over the level's nodes.
+     * Content editors start it; the drafts go to the usual two-step review with code prefix {@code PLC{level}-}.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public void triggerPlacement(int level, int count) {
+        if (!auth.currentUser().roles().contains(RoleCode.CONTENT_EDITOR)) {
+            throw failure(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN);
+        }
+        var settings = new AiGenerationService.Settings(systemUser(), config.getGenerateModel(), config.batchSize(),
+                config.maxBatchesPerRun(), config.minBank(), config.getTimeout(), config.dailyCap(),
+                config.semanticThreshold(), config.maxPending(), "PLC" + level + "-");
+        var plan = planner.plan(level, count, config.batchSize());
+        if (plan.isEmpty()) throw failure(ErrorCode.PLACEMENT_BANK_INSUFFICIENT, HttpStatus.UNPROCESSABLE_ENTITY);
+        accept(lease -> generation.runPlanned(lease, settings, plan));
+    }
+
+    private long systemUser() {
         long systemUser = config.systemUserId();
         if (systemUser == 0 || !auth.isActiveAdmin(systemUser)) {
             throw failure(ErrorCode.AI_GENERATION_DISABLED, HttpStatus.CONFLICT);
         }
-        var settings = new AiGenerationService.Settings(systemUser, config.getGenerateModel(), config.batchSize(),
-                config.maxBatchesPerRun(), config.minBank(), config.getTimeout(), config.dailyCap(),
-                config.semanticThreshold(), config.maxPending());
+        return systemUser;
+    }
+
+    private void accept(java.util.function.Consumer<AiGenerationGuard.Lease> work) {
         AiGenerationGuard.Lease lease;
         try {
             lease = guard.tryAcquire().orElseThrow(() -> failure(ErrorCode.AI_GENERATION_BUSY, HttpStatus.CONFLICT));
@@ -67,7 +105,7 @@ public class AiRunTrigger {
         try {
             executor.execute(() -> {
                 try (lease) {
-                    generation.runReserved(lease, settings);
+                    work.accept(lease);
                 } catch (RuntimeException exception) {
                     LOG.warn("Accepted generation worker failed");
                 }

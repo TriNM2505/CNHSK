@@ -346,6 +346,13 @@ export const appRouteDefinitions = [
     access: ['LEARNER'],
     kind: 'screen',
     layout: 'learner',
+    path: '/learn/placement',
+    scr: 'SCR-022',
+  },
+  {
+    access: ['LEARNER'],
+    kind: 'screen',
+    layout: 'learner',
     path: '/learn/placement/:runId',
     scr: 'SCR-022',
   },

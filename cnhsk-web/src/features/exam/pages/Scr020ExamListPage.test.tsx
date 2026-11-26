@@ -4,13 +4,11 @@ import { MemoryRouter, useLocation } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getExams, startExamAttempt } from '../api/exams'
-import { getPlacementSummary, startPlacementRun } from '../api/placement'
-import { examListFixture, placementSummaryFixture } from '../test-fixtures'
+import { examListFixture } from '../test-fixtures'
 import type { SessionView } from '@/features/practice'
 import Scr020ExamListPage from './Scr020ExamListPage'
 
 vi.mock('../api/exams', () => ({ getExams: vi.fn(), startExamAttempt: vi.fn() }))
-vi.mock('../api/placement', () => ({ getPlacementSummary: vi.fn(), startPlacementRun: vi.fn() }))
 
 const session: SessionView = {
   sessionId: 9901,
@@ -41,12 +39,7 @@ describe('SCR-020 exam list FR-024 / AT-25', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.mocked(getExams).mockResolvedValue(examListFixture)
-    vi.mocked(getPlacementSummary).mockResolvedValue({ active: null, last: null })
     vi.mocked(startExamAttempt).mockResolvedValue(session)
-    vi.mocked(startPlacementRun).mockResolvedValue({
-      runId: 9901,
-      session: { ...session, source: 'PLACEMENT' },
-    })
   })
 
   it('FR024_AT25_shows cards, zero versus null score and no prices', async () => {
@@ -67,44 +60,10 @@ describe('SCR-020 exam list FR-024 / AT-25', () => {
     expect(getExams).toHaveBeenCalledWith(1, expect.any(AbortSignal))
   })
 
-  it('FR024_AT25_new placement starts a run and navigates', async () => {
-    const user = userEvent.setup()
+  it('keeps the entrance test off the mock exam page', async () => {
     renderPage()
-    const placement = await screen.findByRole('region', { name: 'Kiểm tra trình độ' })
-    await user.click(within(placement).getByRole('button', { name: 'Bắt đầu' }))
-    await waitFor(() =>
-      expect(screen.getByLabelText('Vị trí')).toHaveTextContent('/learn/exams/sessions/9901'),
-    )
-    expect(startPlacementRun).toHaveBeenCalledOnce()
-  })
-
-  it('FR024_AT25_active placement takes priority over last result', async () => {
-    vi.mocked(getPlacementSummary).mockResolvedValue({
-      ...placementSummaryFixture,
-      active: { runId: 8801, sessionId: 8802 },
-    })
-    renderPage()
-    const placement = await screen.findByRole('region', { name: 'Kiểm tra trình độ' })
-    expect(within(placement).getByRole('link', { name: 'Tiếp tục' })).toHaveAttribute(
-      'href',
-      '/learn/exams/sessions/8802',
-    )
-    expect(within(placement).queryByText(/Kết quả gần nhất/)).not.toBeInTheDocument()
-    expect(within(placement).queryByRole('button', { name: 'Làm lại' })).not.toBeInTheDocument()
-  })
-
-  it('FR024_AT25_last result can be viewed and retaken', async () => {
-    vi.mocked(getPlacementSummary).mockResolvedValue(placementSummaryFixture)
-    const user = userEvent.setup()
-    renderPage()
-    const placement = await screen.findByRole('region', { name: 'Kiểm tra trình độ' })
-    expect(within(placement).getByText(/Kết quả gần nhất: HSK 2/)).toBeVisible()
-    expect(within(placement).getByRole('link', { name: 'Xem kết quả' })).toHaveAttribute(
-      'href',
-      '/learn/placement/3301',
-    )
-    await user.click(within(placement).getByRole('button', { name: 'Làm lại' }))
-    await waitFor(() => expect(startPlacementRun).toHaveBeenCalledOnce())
+    await screen.findByRole('article', { name: examListFixture[0]!.title })
+    expect(screen.queryByRole('region', { name: /Kiểm tra/ })).not.toBeInTheDocument()
   })
 
   it('FR024_AT25_only levels one to three, loads the selected level and empty text', async () => {
@@ -121,7 +80,6 @@ describe('SCR-020 exam list FR-024 / AT-25', () => {
     expect(await screen.findByText('Đề HSK 3 đang được cập nhật')).toBeVisible()
     expect(getExams).toHaveBeenLastCalledWith(3, expect.any(AbortSignal))
     expect(screen.queryByText(examListFixture[0]!.title)).not.toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Kiểm tra trình độ' })).toBeVisible()
   })
 
   it('FR024_AT25_starting an exam navigates to returned session', async () => {

@@ -54,6 +54,9 @@ public interface AuthApi {
     /** Everything up to {@code at} counts as read from now on. */
     void markNotificationsSeen(long userId, Instant at);
 
+    /** Stores the HSK level a placement test measured, replacing whatever the user declared (1–9). */
+    void recordPlacedLevel(long userId, int hskLevel);
+
     List<ReminderTarget> reminderTargets(LocalTime hour);
 
     ReminderSendResult sendStudyReminder(long userId, int dueCount);

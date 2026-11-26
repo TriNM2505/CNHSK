@@ -67,8 +67,39 @@ public class AiGenerationService {
         return runCore(lease, settings);
     }
 
+    /**
+     * Drafts placement-test questions for the given nodes, in the batches the caller planned. Unlike the
+     * scheduled run it ignores the daily cap (it is a one-off request from a content editor) but still respects
+     * the review queue limit, the token budget and the duplicate meaning check; questions carry the settings'
+     * code prefix so placement forms can be built from them alone.
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public RunResult runPlanned(AiGenerationGuard.Lease lease, Settings settings, List<AiGenerationQuota.Allocation> plan) {
+        if (settings.userId() == 0 || !auth.isActiveAdmin(settings.userId())) return empty(Outcome.DISABLED);
+        Counters counts = new Counters();
+        Outcome outcome = Outcome.EXECUTED;
+        try {
+            lease.assertOwned();
+            counts.candidates = plan.size();
+            counts.remaining = withinQueue(plan.stream().mapToInt(AiGenerationQuota.Allocation::questions).sum(), settings);
+            outcome = prepareSemantic(counts, plan.stream().map(AiGenerationQuota.Allocation::candidate).toList());
+            List<AiGenerationQuota.Allocation> allowed = new java.util.ArrayList<>();
+            int left = counts.remaining;
+            for (var allocation : plan) {
+                if (outcome == Outcome.PAUSED || left <= 0) break;
+                int take = Math.min(left, allocation.questions());
+                allowed.add(new AiGenerationQuota.Allocation(allocation.candidate(), take));
+                left -= take;
+            }
+            outcome = generate(lease, settings, allowed, counts, outcome);
+        } catch (EmbeddingUnavailableException exception) {
+            log.warn("Generation paused: duplicate meaning check failed while embedding stored questions");
+            outcome = Outcome.PAUSED;
+        } catch (RuntimeException exception) { log.warn("Generation stopped: database or lock unavailable"); }
+        return finish(counts, outcome);
+    }
+
     private RunResult runCore(AiGenerationGuard.Lease lease, Settings settings) {
-        long userId = settings.userId();
         Counters counts = new Counters();
         Outcome outcome = Outcome.EXECUTED;
         try {
@@ -76,23 +107,43 @@ public class AiGenerationService {
             List<Candidate> candidates = selector.selectForGeneration();
             counts.candidates = candidates.size();
             List<Candidate> picked = candidates.stream().limit(settings.maxBatches()).toList();
-            if (!picked.isEmpty()) counts.remaining = Math.max(0, settings.dailyCap() - store.savedToday());
-            // Teachers review every draft; once the queue is full new drafts would only wait, so hold generation.
-            int maxPending = settings.maxPending();
-            if (counts.remaining > 0 && maxPending > 0) {
-                int waiting = store.pendingReview();
-                if (waiting >= maxPending) log.info("Generation held: {} AI questions await review", waiting);
-                counts.remaining = Math.min(counts.remaining, Math.max(0, maxPending - waiting));
-            }
-            if (counts.remaining > 0 && !semantic.prepare()) {
-                log.warn("Generation paused: duplicate meaning check unavailable");
-                outcome = Outcome.PAUSED;
-            } else if (counts.remaining > 0) {
-                semantic.backfill(picked.stream().map(Candidate::knowledgePointId).toList());
-            }
+            if (!picked.isEmpty()) counts.remaining = withinQueue(Math.max(0, settings.dailyCap() - store.savedToday()), settings);
+            outcome = prepareSemantic(counts, picked);
             List<AiGenerationQuota.Allocation> allocations = outcome == Outcome.PAUSED ? List.of()
                     : AiGenerationQuota.allocate(picked, counts.remaining, settings.batchSize());
-            for (AiGenerationQuota.Allocation allocation : allocations) {
+            outcome = generate(lease, settings, allocations, counts, outcome);
+        } catch (EmbeddingUnavailableException exception) {
+            log.warn("Generation paused: duplicate meaning check failed while embedding stored questions");
+            outcome = Outcome.PAUSED;
+        } catch (RuntimeException exception) { log.warn("Generation stopped: database or lock unavailable"); }
+        return finish(counts, outcome);
+    }
+
+    /** Teachers review every draft; once the queue is full new drafts would only wait, so hold generation. */
+    private int withinQueue(int wanted, Settings settings) {
+        int maxPending = settings.maxPending();
+        if (wanted <= 0 || maxPending <= 0) return wanted;
+        int waiting = store.pendingReview();
+        if (waiting >= maxPending) log.info("Generation held: {} AI questions await review", waiting);
+        return Math.min(wanted, Math.max(0, maxPending - waiting));
+    }
+
+    private Outcome prepareSemantic(Counters counts, List<Candidate> candidates) {
+        if (counts.remaining <= 0) return Outcome.EXECUTED;
+        if (!semantic.prepare()) {
+            log.warn("Generation paused: duplicate meaning check unavailable");
+            return Outcome.PAUSED;
+        }
+        semantic.backfill(candidates.stream().map(Candidate::knowledgePointId).distinct().toList());
+        return Outcome.EXECUTED;
+    }
+
+    private Outcome generate(AiGenerationGuard.Lease lease, Settings settings,
+            List<AiGenerationQuota.Allocation> allocations, Counters counts, Outcome start) {
+        long userId = settings.userId();
+        Outcome outcome = start;
+        if (outcome == Outcome.PAUSED) return outcome;
+        for (AiGenerationQuota.Allocation allocation : allocations) {
                 Candidate candidate = allocation.candidate();
                 lease.assertOwned();
                 if (!auth.isActiveAdmin(userId)) break;
@@ -137,10 +188,10 @@ public class AiGenerationService {
                     break;
                 }
             }
-        } catch (EmbeddingUnavailableException exception) {
-            log.warn("Generation paused: duplicate meaning check failed while embedding stored questions");
-            outcome = Outcome.PAUSED;
-        } catch (RuntimeException exception) { log.warn("Generation stopped: database or lock unavailable"); }
+        return outcome;
+    }
+
+    private RunResult finish(Counters counts, Outcome outcome) {
         log.info("Generation run candidates={} remaining={} batches={} completed={} failed={} questions={} inputTokens={} outputTokens={}",
                 counts.candidates, counts.remaining, counts.batches, counts.completed, counts.failed, counts.questions,
                 counts.inputTokens, counts.outputTokens);
@@ -151,12 +202,24 @@ public class AiGenerationService {
     private static RunResult empty(Outcome outcome) { return new RunResult(outcome, 0, 0, 0, 0, 0, 0, 0); }
     /** PAUSED: the duplicate meaning check is unavailable, so no question was generated or saved. */
     public enum Outcome { DISABLED, BUSY, EXECUTED, PAUSED }
-    /** Values read once per run; {@code maxPending} 0 means the review queue has no limit. */
+    /**
+     * Values read once per run; {@code maxPending} 0 means the review queue has no limit. {@code codePrefix} is set
+     * for planned placement drafts: their questions get a code and their nodes skip the weak-node eligibility rules.
+     */
     public record Settings(long userId, String model, int batchSize, int maxBatches, int minBank, Duration timeout,
-            int dailyCap, int semanticThreshold, int maxPending) {
+            int dailyCap, int semanticThreshold, int maxPending, String codePrefix) {
+        public Settings(long userId, String model, int batchSize, int maxBatches, int minBank, Duration timeout,
+                int dailyCap, int semanticThreshold, int maxPending) {
+            this(userId, model, batchSize, maxBatches, minBank, timeout, dailyCap, semanticThreshold, maxPending, null);
+        }
+
         public Settings(long userId, String model, int batchSize, int maxBatches, int minBank, Duration timeout,
                 int dailyCap, int semanticThreshold) {
             this(userId, model, batchSize, maxBatches, minBank, timeout, dailyCap, semanticThreshold, 0);
+        }
+
+        boolean planned() {
+            return codePrefix != null;
         }
     }
     public record RunResult(Outcome outcome, int candidates, int batches, int completed, int failed,

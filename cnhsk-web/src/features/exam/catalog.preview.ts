@@ -15,7 +15,6 @@ import {
   mockAttemptFixture,
   placementAttemptFixture,
   placementReviewFixture,
-  placementSummaryFixture,
   targetedNodeFixture,
   targetedSessionFixture,
 } from './test-fixtures'
@@ -174,19 +173,12 @@ const listPreviews = (['new', 'active', 'result'] as const).map((mode): PreviewE
   render: (state) =>
     createElement(ExamListView, {
       exams: state === 'empty' ? [] : examPreviews.filter((exam) => exam.hskLevel === 1),
-      placement:
-        mode === 'active'
-          ? { ...placementSummaryFixture, active: { runId: 3302, sessionId: 4302 } }
-          : mode === 'result'
-            ? placementSummaryFixture
-            : { active: null, last: null },
       level: 1,
       state: state === 'empty' ? 'ready' : state,
       error: 'Không thể tải đề thi.',
       onLevelChange: () => undefined,
       onRetry: () => undefined,
       onStartExam: () => undefined,
-      onStartPlacement: () => undefined,
     }),
 })) satisfies readonly PreviewEntry[]
 
@@ -220,7 +212,7 @@ function AttemptPreview({ session }: { session: SessionView }) {
   const [confirming, setConfirming] = useState(false)
   const [readOnly, setReadOnly] = useState(false)
   return createElement(ExamAttemptView, {
-    title: placement ? 'Khối 1' : 'Đề thi tự soạn',
+    title: placement ? 'Kiểm tra trình độ' : 'Đề thi tự soạn',
     placement,
     sections: [
       {

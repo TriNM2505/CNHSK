@@ -156,18 +156,15 @@ cnhsk:
     max-rows: 5000
     preview-ttl: 30m
   placement:
-    block-size: 5
-    min-items: 25
-    max-items: 35
-    up-at: 4
-    down-at: 2
-    thresholds:
-      1: 60
-      2: 65
-      3: 75
-    sure-min-items: 10
-    start-level: 2
-    min-bank-per-level: 10
+    # One mixed form of HSK 1-3, scored with a Rasch model that allows for guessing (ability scale: HSK 2 = 0).
+    # Abilities that reach HSK 1, 2, 3 and above HSK 3, set from estimates of typical answer sheets.
+    cuts: [-1.6, 0.1, 1.7]
+    above-ability: 2.6
+    prior-deviation: 2.0
+    max-standard-error: 0.75
+    tentative-unanswered: 5
+    calibration-min-answers: 30
+    form-code-prefix: PLACEMENT-
   mastery:
     seen-item-days: 7
     context-weights:

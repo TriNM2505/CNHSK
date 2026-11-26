@@ -313,6 +313,13 @@ public class AuthApiService implements AuthApi {
 
     @Override
     @Transactional
+    public void recordPlacedLevel(long userId, int hskLevel) {
+        requireValid(userId > 0 && hskLevel >= 1 && hskLevel <= 9);
+        jdbc.update("UPDATE auth.users SET hsk_level = :level WHERE id = :id",
+                new MapSqlParameterSource("id", userId).addValue("level", hskLevel));
+    }
+
+    @Override
     public void markNotificationsSeen(long userId, Instant at) {
         requireValid(userId > 0 && at != null);
         // Never move the mark backwards when two tabs open the bell at nearly the same time.

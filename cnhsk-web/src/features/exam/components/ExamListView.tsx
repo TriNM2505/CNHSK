@@ -1,6 +1,4 @@
 import {
-  Award,
-  BarChart3,
   ClipboardCheck,
   FileText,
   GraduationCap,
@@ -12,19 +10,10 @@ import {
 import { Button, Card, EmptyState, PageHeader, Skeleton } from '@/shared/ui'
 import { SUPPORTED_HSK_LEVELS, type HskLevel } from '@/shared/ui/LevelBadge'
 import { PageState, type PageStateValue } from '@/shared/ui/PageState'
-import type { ExamSummary, PlacementLevel, PlacementSummary } from '../types'
-
-const placementLabels: Record<PlacementLevel, string> = {
-  BELOW_1: 'Chưa tới HSK 1',
-  HSK1: 'HSK 1',
-  HSK2: 'HSK 2',
-  HSK3: 'HSK 3',
-  ABOVE_3: 'HSK 3 trở lên',
-}
+import type { ExamSummary } from '../types'
 
 export type ExamListViewProps = {
   exams: ExamSummary[]
-  placement?: PlacementSummary
   level: HskLevel
   state: PageStateValue
   error?: string
@@ -33,7 +22,6 @@ export type ExamListViewProps = {
   onLevelChange: (level: HskLevel) => void
   onRetry: () => void
   onStartExam: (id: number) => void
-  onStartPlacement: () => void
 }
 
 function ChineseLandscapeBannerArt() {
@@ -274,7 +262,6 @@ function BestScoreTileArt() {
 
 export function ExamListView({
   exams,
-  placement,
   level,
   state,
   error,
@@ -283,7 +270,6 @@ export function ExamListView({
   onLevelChange,
   onRetry,
   onStartExam,
-  onStartPlacement,
 }: ExamListViewProps) {
   const attemptedCount = exams.filter((exam) => exam.myAttempts > 0).length
   const bestPercents = exams
@@ -302,7 +288,7 @@ export function ExamListView({
               <span>Đề thi thử</span>
             </span>
           }
-          subtitle="Chọn một đề để luyện tập, hoặc tìm cấp độ phù hợp với bạn."
+          subtitle="Đề theo format thi HSK thật để luyện tập. Muốn biết mình ở cấp nào, làm bài Kiểm tra đầu vào."
         />
         <ChineseLandscapeBannerArt />
       </div>
@@ -345,86 +331,9 @@ export function ExamListView({
           </section>
         }
       >
-        <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_330px]">
-          {/* Cột phải: Kiểm tra trình độ */}
-          <section
-            aria-label="Kiểm tra trình độ"
-            className="min-w-0 space-y-4 rounded-lg border border-brand-100 bg-brand-50 p-5 sm:p-6 lg:col-start-2 lg:row-start-1"
-          >
-            <div className="flex items-center gap-3">
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-brand-100 text-brand-700">
-                <GraduationCap aria-hidden="true" className="size-6" />
-              </span>
-              <h2 className="text-h3 text-ink">Kiểm tra trình độ</h2>
-            </div>
-            <p className="text-body-sm text-ink-secondary">
-              Tìm cấp độ phù hợp qua bài xếp trình độ.
-            </p>
-            {placement?.active ? (
-              <Button
-                className="w-full !rounded-pill"
-                to={`/learn/exams/sessions/${placement.active.sessionId}`}
-              >
-                Tiếp tục
-              </Button>
-            ) : placement?.last ? (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-brand-100 bg-surface p-4">
-                  <div>
-                    <p className="text-caption text-ink-secondary">Kết quả gần nhất</p>
-                    <p className="mt-0.5 text-h2 font-bold text-brand-700">
-                      {placementLabels[placement.last.level]}
-                    </p>
-                  </div>
-                  {placement.last.confidence === 'TENTATIVE' ? (
-                    <span className="inline-flex items-center gap-1 rounded-pill bg-warning-bg px-3 py-1 text-caption font-semibold text-warning">
-                      <Award aria-hidden="true" className="size-3.5" />
-                      Kết quả tạm
-                    </span>
-                  ) : null}
-                  <span className="sr-only">
-                    Kết quả gần nhất: {placementLabels[placement.last.level]}
-                    {placement.last.confidence === 'TENTATIVE' ? ' — Kết quả tạm' : ''}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant="outline"
-                    className="w-full !rounded-pill"
-                    to={`/learn/placement/${placement.last.runId}`}
-                  >
-                    <BarChart3
-                      aria-hidden="true"
-                      className="mr-1.5 inline-block size-4 align-middle text-brand-600"
-                    />
-                    Xem kết quả
-                  </Button>
-                  <Button
-                    className="w-full !rounded-pill"
-                    disabled={pending}
-                    onClick={onStartPlacement}
-                  >
-                    <RotateCcw
-                      aria-hidden="true"
-                      className="mr-1.5 inline-block size-4 align-middle"
-                    />
-                    Làm lại
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <Button
-                className="w-full !rounded-pill"
-                disabled={pending}
-                onClick={onStartPlacement}
-              >
-                Bắt đầu
-              </Button>
-            )}
-          </section>
-
-          {/* Cột trái: 2 thẻ thống kê thật + Danh sách đề thi dạng hàng ngang */}
-          <div className="min-w-0 space-y-5 lg:col-start-1 lg:row-start-1">
+        <div className="min-w-0">
+          {/* Thẻ thống kê + danh sách đề; bài kiểm tra đầu vào có trang riêng /learn/placement */}
+          <div className="min-w-0 space-y-5">
             <div className="grid min-w-0 gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
               <Card className="flex items-center gap-4 border-brand-100 bg-brand-50 p-5">
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-brand-100 text-brand-700">

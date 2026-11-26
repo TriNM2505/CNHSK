@@ -3,6 +3,7 @@ import { useApiQuery } from '@/shared/api'
 import { ReminderBanner } from '@/features/reminder/components/ReminderBanner'
 
 import { getMyMistakes } from '@/features/exam/api/targetedPractice'
+import { PlacementInviteBanner } from '@/features/exam/components/PlacementInviteBanner'
 
 import { HskSkillsPanel } from '../components/HskSkillsPanel'
 import { MistakePracticePanel } from '../components/MistakePracticePanel'
@@ -22,6 +23,7 @@ export default function Scr010LearningDashboardPage() {
   return (
     <>
       <ReminderBanner />
+      <PlacementInviteBanner />
       <MasteryDashboardView
         onRetryRecommendations={recommendations.reload}
         onRetryReview={review.reload}

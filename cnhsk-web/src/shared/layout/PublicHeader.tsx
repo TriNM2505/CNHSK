@@ -120,7 +120,8 @@ export function PublicHeader({ gameOrigin = import.meta.env.VITE_GAME_ORIGIN }: 
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-line bg-surface" onPointerLeave={leave} ref={header}>
+    // Above page content that lifts itself over decorative art with z-nav, so the menus are never covered.
+    <header className="sticky top-0 z-dropdown border-b border-line bg-surface" onPointerLeave={leave} ref={header}>
       <div className="mx-auto flex h-16 max-w-content items-center justify-between gap-4 px-4 lg:h-24">
         <BrandLink logoClassName="lg:h-14" />
         <nav aria-label="Điều hướng công khai" className="hidden lg:block">

@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom'
 import { DOMAIN_LABELS } from '@/features/knowledge-graph/graphModel'
 import type { KnowledgeDomain } from '@/features/question-bank/types'
 import { Button, Card, PageHeader } from '@/shared/ui'
+import { profileLevel } from '../placementLevel'
 import type { PlacementLevel, PlacementResult } from '../types'
 import { PANDA_SCHOLAR_DATA_URI } from './pandaScholarArtData'
 
@@ -493,6 +494,14 @@ export function PlacementResultView({
         </Card>
       </div>
 
+      <p
+        role="status"
+        className="rounded-md border border-brand-100 bg-surface px-4 py-3 text-body-sm text-ink"
+      >
+        Đã cập nhật trình độ của bạn: <strong>HSK {profileLevel(result.level)}</strong>. Bạn có thể đổi
+        lại trong hồ sơ bất cứ lúc nào.
+      </p>
+
       {error && (
         <p role="alert" className="text-danger">
           {error}
@@ -503,7 +512,10 @@ export function PlacementResultView({
       <div className="grid min-w-0 items-end gap-6 lg:grid-cols-[minmax(0,1fr)_270px]">
         <div className="min-w-0 space-y-4">
           <div className="flex flex-wrap gap-3">
-            <Button className="px-5" disabled={pending} onClick={onRetake}>
+            <Button className="px-5" to="/learn">
+              Bắt đầu học HSK {profileLevel(result.level)}
+            </Button>
+            <Button className="bg-surface px-5" variant="outline" disabled={pending} onClick={onRetake}>
               <BarChart3 aria-hidden="true" className="mr-1.5 inline-block size-4 align-middle" />
               Làm lại
             </Button>

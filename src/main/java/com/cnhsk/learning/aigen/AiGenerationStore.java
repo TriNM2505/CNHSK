@@ -63,8 +63,10 @@ public class AiGenerationStore {
                 lease.assertOwned();
                 Optional<Node> node = lockNode(candidate);
                 if (node.isEmpty() || !eligible(candidate, settings, -1)) return Optional.empty();
-                Map<String, Object> payload = Map.of("kid", candidate.kid(), "knowledgePointId", candidate.knowledgePointId(),
-                        "model", settings.model(), "wrongCount", candidate.wrongCount(), "bankCount", candidate.bankCount());
+                Map<String, Object> payload = new java.util.LinkedHashMap<>(Map.of("kid", candidate.kid(),
+                        "knowledgePointId", candidate.knowledgePointId(), "model", settings.model(),
+                        "wrongCount", candidate.wrongCount(), "bankCount", candidate.bankCount()));
+                if (settings.planned()) payload.put("purpose", "PLACEMENT");
                 long id = ((Number) entities.createNativeQuery("""
                         INSERT INTO learning.service_requests(user_id,kind,status,payload,created_at)
                         VALUES (:userId,'AI_GENERATE','RUNNING',CAST(:payload AS jsonb),:now) RETURNING id
@@ -120,6 +122,8 @@ public class AiGenerationStore {
             Map<Long, float[]> meanings = new LinkedHashMap<>();
             for (var draft : checked.accepted()) {
                 Question question = new Question(null, draft.type(), (short) node.hskLevel(), draft.stem());
+                // Planned placement drafts are coded so placement forms are built from them alone.
+                if (claim.settings().planned()) question.setCode(claim.settings().codePrefix() + claim.id() + "-" + (questionIds.size() + 1));
                 question.setSource(QuestionSource.AI);
                 question.setStatus(QuestionStatus.PENDING_REVIEW);
                 // Drafts are written multiple-choice or true/false questions read on screen, so they train reading.
@@ -173,7 +177,9 @@ public class AiGenerationStore {
         if (nodes.size() != 1) return false;
         var node = nodes.get(0);
         if (node.knowledgePointId() != candidate.knowledgePointId() || node.canDo() == null || node.canDo().isBlank()
-                || !node.hasLexemes() || node.hasPending() || node.bankCount() >= settings.minBank()) return false;
+                || !node.hasLexemes()) return false;
+        // Weak-node runs wait for earlier drafts and stop at a full bank; planned placement drafts do neither.
+        if (!settings.planned() && (node.hasPending() || node.bankCount() >= settings.minBank())) return false;
         for (var run : queries.activeRuns()) {
             if (run.id() == ownRequest) continue;
             try {
