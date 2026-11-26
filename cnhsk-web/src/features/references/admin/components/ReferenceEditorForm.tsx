@@ -11,6 +11,7 @@ import {
   type ReferenceDraft,
 } from '../referenceForm'
 import type { ReferenceInput } from '../types'
+import { CoverUploadField } from './CoverUploadField'
 
 type Props = {
   initial: ReferenceDraft
@@ -49,6 +50,7 @@ export function ReferenceEditorForm({
       | 'description'
       | 'url'
       | 'thumbnailUrl'
+      | 'previewUrl'
       | 'sortOrder'
       | 'author'
       | 'publisher'
@@ -94,16 +96,25 @@ export function ReferenceEditorForm({
               value={draft.kind}
               onChange={(event) => change('kind', event.target.value as ReferenceDraft['kind'])}
             >
-              {Object.entries(kindLabels).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
+              {/* Only books are listed for learners now; an older video or podcast keeps its own kind until moved. */}
+              {Object.entries(kindLabels)
+                .filter(([value]) => value === 'BOOK' || value === initial.kind)
+                .map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
             </Select>
           </FormField>
           {textField('title', 'Tên tài nguyên')}
           {textField('url', 'Liên kết')}
-          {textField('thumbnailUrl', 'Liên kết ảnh (không bắt buộc)')}
+          <CoverUploadField
+            disabled={pending}
+            error={errors.thumbnailUrl}
+            onChange={(url) => change('thumbnailUrl', url)}
+            value={draft.thumbnailUrl}
+          />
+          {textField('previewUrl', 'Link đọc ngay (không bắt buộc)')}
           {(['hskMin', 'hskMax'] as const).map((key) => (
             <FormField
               key={key}

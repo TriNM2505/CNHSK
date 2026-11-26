@@ -20,6 +20,8 @@ public class ReferenceProperties {
 
     private Map<ReferenceItem.Kind, List<String>> allowedDomains = new EnumMap<>(ReferenceItem.Kind.class);
     private List<String> thumbnailDomains = List.of();
+    /** Sites a learner may read on directly (book previews, free official documents); empty turns reading links off. */
+    private List<String> previewDomains = List.of();
 
     public Map<ReferenceItem.Kind, List<String>> getAllowedDomains() {
         return allowedDomains;
@@ -37,9 +39,18 @@ public class ReferenceProperties {
         this.thumbnailDomains = thumbnailDomains;
     }
 
+    public List<String> getPreviewDomains() {
+        return previewDomains;
+    }
+
+    public void setPreviewDomains(List<String> previewDomains) {
+        this.previewDomains = previewDomains;
+    }
+
     @AssertTrue(message = "Reference domains must contain every kind and nonempty domain-only lists")
     public boolean isDomainConfigurationValid() {
-        if (allowedDomains == null || !validDomains(thumbnailDomains)) {
+        if (allowedDomains == null || !validDomains(thumbnailDomains) || previewDomains == null
+                || (!previewDomains.isEmpty() && !validDomains(previewDomains))) {
             return false;
         }
         for (ReferenceItem.Kind kind : ReferenceItem.Kind.values()) {

@@ -102,10 +102,7 @@ const lookupMenu: PublicMenu = {
     },
     {
       title: 'Tài liệu tham khảo',
-      links: [
-        { label: 'Video và podcast', to: '/references/media' },
-        { label: 'Sách', to: '/references/books' },
-      ],
+      links: [{ label: 'Sách HSK', to: '/references/books' }],
     },
   ],
 }

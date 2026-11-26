@@ -22,6 +22,8 @@ vi.mock('../api/references', () => ({
   createReference: vi.fn(),
   updateReference: vi.fn(),
   transitionReference: vi.fn(),
+  uploadReferenceCover: vi.fn(),
+  MAX_COVER_BYTES: 5 * 1024 * 1024,
 }))
 const list = vi.mocked(listAdminReferences)
 function row(title: string) {
@@ -188,12 +190,17 @@ describe('SCR-072 reference management', () => {
     await event.click(screen.getByRole('button', { name: 'Tạo tài nguyên' }))
     await screen.findByRole('form', { name: 'Tạo tài nguyên' })
     await event.type(screen.getByLabelText('Tên tài nguyên'), 'Nguồn tự soạn')
-    await event.type(screen.getByLabelText('Liên kết'), 'https://youtube.com/@demo')
+    await event.type(screen.getByLabelText('Liên kết'), 'https://fahasa.com/demo')
+    expect(
+      within(within(screen.getByRole('form', { name: 'Tạo tài nguyên' })).getByLabelText('Loại'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Sách'])
     await event.click(screen.getByRole('button', { name: 'Lưu' }))
     await waitFor(() => expect(createReference).toHaveBeenCalledOnce())
     expect(createReference).toHaveBeenCalledWith(
       expect.objectContaining({
-        kind: 'YOUTUBE_CHANNEL',
+        kind: 'BOOK',
         title: 'Nguồn tự soạn',
         tags: [],
         sortOrder: 0,

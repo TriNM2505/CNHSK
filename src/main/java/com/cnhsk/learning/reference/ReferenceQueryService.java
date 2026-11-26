@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ReferenceQueryService {
 
-    private static final String COLUMNS = "id, kind, title, description, url, thumbnail_url, hsk_min, hsk_max, "
+    private static final String COLUMNS = "id, kind, title, description, url, thumbnail_url, preview_url, hsk_min, hsk_max, "
             + "tags, author, publisher, published_year, is_affiliate";
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -90,7 +90,7 @@ public class ReferenceQueryService {
                 row.getString("url"), row.getString("thumbnail_url"), row.getObject("hsk_min", Integer.class),
                 row.getObject("hsk_max", Integer.class), values, book ? row.getString("author") : null,
                 book ? row.getString("publisher") : null, book ? row.getObject("published_year", Integer.class) : null,
-                book ? row.getBoolean("is_affiliate") : null);
+                book ? row.getBoolean("is_affiliate") : null, row.getString("preview_url"));
     }
 
     public static ApiException invalid(String field) {
@@ -117,7 +117,8 @@ public class ReferenceQueryService {
             @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(types = {"string", "null"}) String author,
             @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(types = {"string", "null"}) String publisher,
             @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(type = "integer", types = {"integer", "null"}) Integer publishedYear,
-            @JsonInclude(JsonInclude.Include.NON_NULL) @JsonProperty("isAffiliate") @Schema(types = {"boolean"}) Boolean isAffiliate) {
+            @JsonInclude(JsonInclude.Include.NON_NULL) @JsonProperty("isAffiliate") @Schema(types = {"boolean"}) Boolean isAffiliate,
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(types = {"string", "null"}, format = "uri") String previewUrl) {
     }
 
     @Schema(requiredProperties = {"items", "page", "size", "total"})

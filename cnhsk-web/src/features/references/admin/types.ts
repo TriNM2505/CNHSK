@@ -29,6 +29,7 @@ export type ReferenceInput = {
   description: string | null
   url: string
   thumbnailUrl: string | null
+  previewUrl: string | null
   hskMin: number | null
   hskMax: number | null
   tags: string[]

@@ -8,6 +8,7 @@ export type ReferenceDraft = {
   description: string
   url: string
   thumbnailUrl: string
+  previewUrl: string
   hskMin: string
   hskMax: string
   tags: string[]
@@ -43,11 +44,12 @@ export function availableActions(status: ReferenceStatus): ReferenceAction[] {
 }
 export function newDraft(): ReferenceDraft {
   return {
-    kind: 'YOUTUBE_CHANNEL',
+    kind: 'BOOK',
     title: '',
     description: '',
     url: '',
     thumbnailUrl: '',
+    previewUrl: '',
     hskMin: '',
     hskMax: '',
     tags: [],
@@ -65,6 +67,7 @@ export function draftOf(item: AdminReference): ReferenceDraft {
     description: item.description ?? '',
     url: item.url,
     thumbnailUrl: item.thumbnailUrl ?? '',
+    previewUrl: item.previewUrl ?? '',
     hskMin: item.hskMin?.toString() ?? '',
     hskMax: item.hskMax?.toString() ?? '',
     tags: [...item.tags],
@@ -81,8 +84,10 @@ export function inputOf(draft: ReferenceDraft): ReferenceInput {
     kind: draft.kind,
     title: draft.title,
     description: optional(draft.description),
-    url: draft.url,
-    thumbnailUrl: optional(draft.thumbnailUrl),
+    // Links pasted from a table often carry spaces at either end; the server refuses those.
+    url: draft.url.trim(),
+    thumbnailUrl: optional(draft.thumbnailUrl.trim()),
+    previewUrl: optional(draft.previewUrl.trim()),
     hskMin: draft.hskMin === '' ? null : Number(draft.hskMin),
     hskMax: draft.hskMax === '' ? null : Number(draft.hskMax),
     tags: [...draft.tags],
@@ -101,6 +106,7 @@ export function validateDraft(draft: ReferenceDraft): FieldErrors {
     ['description', 2000],
     ['url', 2000],
     ['thumbnailUrl', 2000],
+    ['previewUrl', 2000],
     ...(draft.kind === 'BOOK'
       ? [
           ['author', 200],
@@ -111,7 +117,7 @@ export function validateDraft(draft: ReferenceDraft): FieldErrors {
     if ([...String(draft[field])].length > maximum) errors[field] = `Tối đa ${maximum} ký tự.`
   }
   if (!draft.title.trim()) errors.title = 'Nhập tên tài nguyên.'
-  if (!draft.url) errors.url = 'Nhập liên kết tài nguyên.'
+  if (!draft.url.trim()) errors.url = 'Nhập liên kết tài nguyên.'
   for (const field of ['hskMin', 'hskMax'] as const) {
     if (draft[field] !== '' && !/^[1-9]$/.test(draft[field]))
       errors[field] = 'Cấp HSK không hợp lệ.'

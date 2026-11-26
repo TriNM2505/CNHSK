@@ -36,7 +36,7 @@ class ReferenceItemMigrationIntegrationTest extends AbstractIntegrationTest {
     private static final String PASSWORD_HASH = new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
     private static final Set<String> INSERT_COLUMNS = Set.of("kind", "title", "description", "url", "thumbnail_url",
             "hsk_min", "hsk_max", "tags", "author", "publisher", "published_year", "is_affiliate", "status",
-            "sort_order", "created_by", "published_at", "created_at", "updated_at");
+            "sort_order", "created_by", "published_at", "created_at", "updated_at", "preview_url");
 
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ReferenceItemRepository references;
@@ -69,13 +69,15 @@ class ReferenceItemMigrationIntegrationTest extends AbstractIntegrationTest {
                 + "AND table_name='reference_items' ORDER BY ordinal_position", String.class)).containsExactly(
                 "id", "kind", "title", "description", "url", "thumbnail_url", "hsk_min", "hsk_max", "tags",
                 "author", "publisher", "published_year", "is_affiliate", "status", "sort_order", "created_by",
-                "published_at", "created_at", "updated_at");
+                "published_at", "created_at", "updated_at", "preview_url");
         assertColumn("id", "bigint", "NO", null);
         assertColumn("kind", "character varying", "NO", 20);
         assertColumn("title", "character varying", "NO", 200);
         assertColumn("description", "character varying", "YES", 2000);
         assertColumn("url", "text", "NO", null);
         assertColumn("thumbnail_url", "text", "YES", null);
+        // Added later for reading links; a column added by ALTER TABLE goes last.
+        assertColumn("preview_url", "text", "YES", null);
         assertColumn("hsk_min", "smallint", "YES", null);
         assertColumn("hsk_max", "smallint", "YES", null);
         assertColumn("tags", "ARRAY", "NO", null);

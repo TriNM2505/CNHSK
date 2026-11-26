@@ -100,8 +100,11 @@ cnhsk:
     allowed-domains:
       YOUTUBE_CHANNEL: [youtube.com, youtu.be]
       PODCAST: [open.spotify.com, podcasts.apple.com, soundcloud.com, ximalaya.com, podcasts.google.com]
-      BOOK: [tiki.vn, shopee.vn, fahasa.com, amazon.com, books.google.com, nxbgd.vn]
-    thumbnail-domains: [i.ytimg.com, yt3.ggpht.com, salt.tikicdn.com, m.media-amazon.com]
+      BOOK: [tiki.vn, shopee.vn, fahasa.com, amazon.com, books.google.com, nxbgd.vn, chinesetest.cn, ci.cn]
+    # res.cloudinary.com: bìa sách biên tập viên tải từ máy lên (thư mục cnhsk/reference-covers).
+    thumbnail-domains: [i.ytimg.com, yt3.ggpht.com, salt.tikicdn.com, m.media-amazon.com, res.cloudinary.com]
+    # Link đọc ngay: bản xem thử Google Books và tài liệu HSK miễn phí của cơ quan khảo thí chính thức.
+    preview-domains: [books.google.com, books.google.com.vn, chinesetest.cn, ci.cn]
   billing:
     card-code-pepper: ${CARD_CODE_PEPPER}
     free-monthly-limit: 10

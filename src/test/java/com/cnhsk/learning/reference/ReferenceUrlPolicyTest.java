@@ -98,4 +98,19 @@ class ReferenceUrlPolicyTest {
         assertThat(policy.validate(ReferenceItem.Kind.BOOK, "https://fahasa.com/demo", thumbnail))
                 .contains(new ReferenceUrlPolicy.Violation("thumbnailUrl", ReferenceUrlPolicy.Reason.MALFORMED_URL));
     }
+
+    @Test
+    void readingLinkIsOptionalAndLimitedToReadingSites() {
+        ReferenceProperties properties = properties();
+        properties.setPreviewDomains(List.of("books.google.com"));
+        ReferenceUrlPolicy reading = new ReferenceUrlPolicy(properties);
+        assertThat(reading.validatePreview(null)).isEmpty();
+        assertThat(reading.validatePreview("https://books.google.com/books?id=abc")).isEmpty();
+        assertThat(reading.validatePreview("https://fahasa.com/sach.pdf")).get()
+                .extracting(ReferenceUrlPolicy.Violation::field, ReferenceUrlPolicy.Violation::reason)
+                .containsExactly("previewUrl", ReferenceUrlPolicy.Reason.DOMAIN_NOT_ALLOWED);
+        assertThat(reading.validatePreview("http://books.google.com/x")).get()
+                .extracting(ReferenceUrlPolicy.Violation::reason).isEqualTo(ReferenceUrlPolicy.Reason.NON_HTTPS_LINK);
+        assertThat(policy.validatePreview("https://books.google.com/books?id=abc")).isPresent();
+    }
 }

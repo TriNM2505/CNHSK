@@ -178,7 +178,7 @@ export const learnerNavigation: readonly NavigationItem[] = [
     label: 'Tài liệu tham khảo',
     mobileLabel: 'Tham khảo',
     mobilePlacement: 'more',
-    to: '/references/media',
+    to: '/references/books',
   },
   {
     activePrefixes: ['/grading'],

@@ -41,6 +41,9 @@ public class ReferenceItem {
     @Column(name = "thumbnail_url", columnDefinition = "TEXT")
     private String thumbnailUrl;
 
+    @Column(name = "preview_url", columnDefinition = "TEXT")
+    private String previewUrl;
+
     @Column(name = "hsk_min")
     private Short hskMin;
 
@@ -139,6 +142,14 @@ public class ReferenceItem {
 
     public void setThumbnailUrl(String thumbnailUrl) {
         this.thumbnailUrl = thumbnailUrl;
+    }
+
+    public String getPreviewUrl() {
+        return previewUrl;
+    }
+
+    public void setPreviewUrl(String previewUrl) {
+        this.previewUrl = previewUrl;
     }
 
     public Short getHskMin() {

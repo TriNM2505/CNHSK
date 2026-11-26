@@ -1,38 +1,29 @@
-import type { ReactNode } from 'react'
-import { BookOpen, Compass, Layers } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { ApiError, ApiQueryState } from '@/shared/api'
 import {
   PageBanner,
   Button,
-  Card,
   EmptyState,
   ErrorState,
-  FormField,
   Input,
   PageState,
   Pagination,
-  Select,
   Skeleton,
   SUPPORTED_HSK_LEVELS,
-  Tabs,
 } from '@/shared/ui'
 
-import type { PublicReferencePage, ReferenceKind } from '../types'
+import type { PublicReference, PublicReferencePage } from '../types'
+import { BookCover } from './BookCover'
+import './ReferenceListView.css'
 
 export type ReferenceListViewProps = {
-  kind: ReferenceKind
   state: ApiQueryState
   result?: PublicReferencePage
   error?: ApiError
   hsk: string
   tag: string
-  canReport: boolean
-  reportId?: number
-  report?: ReactNode
-  onReport: (id: number) => void
-  onKindChange: (kind: ReferenceKind) => void
   onHskChange: (hsk: string) => void
   onTagChange: (tag: string) => void
   onApply: () => void
@@ -40,57 +31,128 @@ export type ReferenceListViewProps = {
   onRetry: () => void
 }
 
-export function ReferenceListView(props: ReferenceListViewProps) {
-  const { kind, state, result, error, hsk, tag, canReport, reportId, report } = props
-  const books = kind === 'BOOK'
-  const totalCount = result?.total ?? 0
-  const content = (
-    <>
-      <form
-        aria-label="Lọc tài liệu"
-        className="my-4 grid min-w-0 items-end gap-x-4 rounded-md border border-brand-100 bg-surface p-4 sm:grid-cols-12"
-        onSubmit={(event) => {
-          event.preventDefault()
-          props.onApply()
-        }}
+const levels = [
+  { value: '', label: 'Mọi cấp' },
+  ...SUPPORTED_HSK_LEVELS.map((level) => ({ value: String(level), label: `HSK ${level}` })),
+]
+
+function BookTile({ item, index }: { item: PublicReference; index: number }) {
+  const href = `/references/books/${item.id}`
+  const facts = [item.publisher, item.publishedYear].filter(Boolean).join(' · ')
+  return (
+    <li
+      className="reference-shelf-item group min-w-0"
+      style={{ animationDelay: `${Math.min(index, 10) * 40}ms` }}
+    >
+      <Link
+        aria-hidden="true"
+        className="block transition-transform duration-200 motion-safe:group-hover:-translate-y-1"
+        tabIndex={-1}
+        to={href}
       >
-        <div className="sm:col-span-4">
-          <FormField htmlFor="reference-hsk" label="Cấp HSK">
-            <Select value={hsk} onChange={(event) => props.onHskChange(event.target.value)}>
-              <option value="">Mọi cấp</option>
-              {SUPPORTED_HSK_LEVELS.map((level) => (
-                <option key={level} value={level}>
-                  HSK {level}
-                </option>
-              ))}
-            </Select>
-          </FormField>
-        </div>
-        <div className="sm:col-span-6">
-          <FormField htmlFor="reference-tag" label="Tag">
-            <Input
-              maxLength={30}
-              placeholder="Ví dụ: nghe, hội thoại, đọc..."
-              value={tag}
-              onChange={(event) => props.onTagChange(event.target.value)}
-            />
-          </FormField>
-        </div>
-        <div className="pb-4 sm:col-span-2">
-          <Button type="submit" className="w-full">
-            Áp dụng
-          </Button>
-        </div>
-      </form>
+        <BookCover book={item} />
+      </Link>
+      <div className="mt-3 min-w-0 space-y-1 break-words">
+        <h2 className="line-clamp-2 text-label text-ink">
+          <Link
+            className="rounded-sm hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            to={href}
+          >
+            {item.title}
+          </Link>
+        </h2>
+        {item.author ? (
+          <p className="line-clamp-1 text-body-sm text-ink-secondary">{item.author}</p>
+        ) : null}
+        {facts ? <p className="text-caption text-ink-muted">{facts}</p> : null}
+        {item.previewUrl ? (
+          <p className="inline-flex rounded-pill bg-success-bg px-2 py-0.5 text-caption text-success">
+            Đọc được ngay
+          </p>
+        ) : null}
+      </div>
+    </li>
+  )
+}
+
+/** The HSK book shelf: published, reputable titles only; each opens its own detail page. */
+export function ReferenceListView(props: ReferenceListViewProps) {
+  const { state, result, error, hsk, tag } = props
+  return (
+    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 text-ink sm:px-6 lg:px-8">
+      <PageBanner
+        className="mb-0"
+        title="Danh mục sách tham khảo"
+        subtitle="Sách HSK đã phát hành công khai, chọn lọc từ nhà xuất bản uy tín. Bấm vào sách để xem thông tin và nơi mua."
+      />
+
+      <div className="flex min-w-0 flex-col gap-4 border-b border-line pb-4 lg:flex-row lg:items-end lg:justify-between">
+        <fieldset className="m-0 min-w-0 border-0 p-0">
+          <legend className="mb-2 text-label text-ink-secondary">Cấp HSK</legend>
+          <div className="flex flex-wrap gap-2">
+            {levels.map((option) => {
+              const active = hsk === option.value
+              return (
+                <button
+                  aria-pressed={active}
+                  className={`min-h-touch rounded-pill border px-4 text-label transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                    active
+                      ? 'border-brand-600 bg-brand-600 text-surface'
+                      : 'border-line bg-surface text-ink hover:border-brand-600 hover:text-brand-700'
+                  }`}
+                  key={option.value || 'all'}
+                  onClick={() => props.onHskChange(option.value)}
+                  type="button"
+                >
+                  {option.label}
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
+        <form
+          aria-label="Lọc sách"
+          className="flex min-w-0 items-end gap-2 lg:w-96"
+          onSubmit={(event) => {
+            event.preventDefault()
+            props.onApply()
+          }}
+        >
+          <div className="min-w-0 flex-1">
+            <label className="mb-2 block text-label text-ink-secondary" htmlFor="reference-tag">
+              Tag
+            </label>
+            <div className="relative">
+              <Search
+                aria-hidden="true"
+                className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-muted"
+              />
+              <Input
+                className="pl-9"
+                id="reference-tag"
+                maxLength={30}
+                onChange={(event) => props.onTagChange(event.target.value)}
+                placeholder="giáo trình, luyện đề, ngữ pháp…"
+                value={tag}
+              />
+            </div>
+          </div>
+          <Button type="submit">Áp dụng</Button>
+        </form>
+      </div>
+
       <PageState
         state={state}
         loading={
           <div role="status">
-            <span className="sr-only">Đang tải tài liệu…</span>
-            <div aria-hidden="true" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Skeleton variant="card" />
-              <Skeleton variant="card" />
-              <Skeleton variant="card" />
+            <span className="sr-only">Đang tải sách…</span>
+            <div
+              aria-hidden="true"
+              className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5"
+            >
+              {Array.from({ length: 5 }, (_, index) => (
+                <Skeleton className="aspect-[3/4] w-full" key={index} />
+              ))}
             </div>
           </div>
         }
@@ -98,7 +160,7 @@ export function ReferenceListView(props: ReferenceListViewProps) {
           <div role="alert">
             <ErrorState
               title="Chưa tải được danh mục"
-              message={error?.message ?? 'Không tải được tài liệu.'}
+              message={error?.message ?? 'Không tải được sách.'}
               requestId={error?.requestId}
               onRetry={props.onRetry}
             />
@@ -106,191 +168,34 @@ export function ReferenceListView(props: ReferenceListViewProps) {
         }
         empty={
           <EmptyState
-            title="Chưa có tài liệu phù hợp."
+            title="Chưa có sách phù hợp."
             description="Thử chọn cấp HSK khác hoặc xoá tag để mở rộng danh mục."
           />
         }
       >
-        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {result?.items.map((item) => (
-            <Card
-              key={item.id}
-              className="flex min-w-0 flex-col gap-3 border-brand-100 break-words"
-            >
-              {item.thumbnailUrl ? (
-                <img
-                  alt=""
-                  loading="lazy"
-                  className="aspect-video w-full rounded-sm object-cover"
-                  src={item.thumbnailUrl}
-                />
-              ) : null}
-              <h2 className="text-h3 text-ink">
-                {books ? (
-                  <Link
-                    className="rounded-sm text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-                    to={`/references/books/${item.id}`}
-                  >
-                    {item.title}
-                  </Link>
-                ) : (
-                  item.title
-                )}
-              </h2>
-              {books && item.author ? (
-                <p className="mt-1 text-body-sm text-ink-secondary">{item.author}</p>
-              ) : null}
-              {item.description ? (
-                <p className="my-2 line-clamp-3 whitespace-pre-wrap text-body-sm text-ink-secondary">
-                  {item.description}
-                </p>
-              ) : null}
-              <p className="w-fit rounded-pill bg-brand-50 px-3 py-1 text-label text-brand-800">
-                {item.hskMin === null && item.hskMax === null
-                  ? 'Mọi cấp HSK'
-                  : item.hskMin === null
-                    ? `Đến HSK ${item.hskMax}`
-                    : item.hskMax === null
-                      ? `Từ HSK ${item.hskMin}`
-                      : `HSK ${item.hskMin}–${item.hskMax}`}
-              </p>
-              <ul
-                aria-label="Tag tài liệu"
-                className="mb-2 flex flex-wrap gap-2 text-caption text-ink-secondary"
-              >
-                {item.tags.map((value, index) => (
-                  <li key={`${value}-${index}`} className="rounded-sm bg-canvas px-2 py-1">
-                    {value}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-                {books ? (
-                  <Button to={`/references/books/${item.id}`} size="sm" variant="outline">
-                    Xem chi tiết
-                  </Button>
-                ) : (
-                  <Button href={item.url} target="_blank" rel="noopener noreferrer" size="sm">
-                    Mở
-                  </Button>
-                )}
-                {canReport ? (
-                  <details className="relative">
-                    <summary className="min-h-touch cursor-pointer rounded-sm px-3 py-2 text-caption text-brand-700">
-                      Tuỳ chọn
-                    </summary>
-                    <Button onClick={() => props.onReport(item.id)} size="sm" variant="ghost">
-                      Báo lỗi
-                    </Button>
-                  </details>
-                ) : null}
-              </div>
-              {canReport && reportId === item.id ? report : null}
-            </Card>
-          ))}
+        <div className="space-y-6">
+          <p aria-live="polite" className="text-body-sm text-ink-secondary">
+            <span className="font-semibold tabular-nums text-ink">{result?.total ?? 0}</span> sách
+            {hsk ? ` cho HSK ${hsk}` : ''}
+          </p>
+          <ul
+            aria-label="Kệ sách"
+            className="grid min-w-0 grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5"
+          >
+            {result?.items.map((item, index) => (
+              <BookTile index={index} item={item} key={item.id} />
+            ))}
+          </ul>
         </div>
       </PageState>
       {(state === 'ready' || state === 'empty') && result ? (
-        <div className="mt-6">
-          <Pagination
-            page={result.page + 1}
-            size={result.size}
-            total={result.total}
-            onChange={(page) => props.onPageChange(page - 1)}
-          />
-        </div>
-      ) : null}
-    </>
-  )
-  return (
-    <main className="mx-auto w-full min-w-0 max-w-content space-y-6 px-4 py-6 pb-16 text-ink sm:px-6 lg:px-8">
-      <PageBanner
-        className="mb-0"
-        title={books ? 'Danh mục sách tham khảo' : 'Tài liệu nghe nhìn'}
-        subtitle="Nguồn tham khảo bên ngoài, mở ở tab mới."
-      />
-
-      <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-        <Card className="flex min-w-0 items-start justify-between gap-4 border-brand-100 bg-brand-50 p-5">
-          <div className="flex min-w-0 items-start gap-4">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-md border border-brand-100 bg-surface text-brand-600">
-              <BookOpen aria-hidden="true" className="size-6" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-h1 tabular-nums text-ink">{totalCount}</p>
-              <p className="mt-0.5 text-label text-ink">Nguồn học tập hiện có</p>
-              <p className="mt-0.5 text-body-sm text-ink-secondary">
-                Tổng hợp kênh luyện nghe, hội thoại và sách tham khảo chọn lọc
-              </p>
-            </div>
-          </div>
-          <span className="shrink-0 rounded-pill bg-brand-100 px-3 py-1 text-caption font-semibold text-brand-700">
-            Tuyển chọn
-          </span>
-        </Card>
-
-        <Card className="flex min-w-0 items-start justify-between gap-4 border-brand-100 bg-brand-50 p-5">
-          <div className="flex min-w-0 items-start gap-4">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-md border border-brand-100 bg-surface text-brand-600">
-              <Layers aria-hidden="true" className="size-6" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-h1 tabular-nums text-ink">3 cấp độ</p>
-              <p className="mt-0.5 text-label text-ink">Phân loại theo lộ trình Sơ cấp</p>
-              <p className="mt-0.5 text-body-sm text-ink-secondary">
-                Tra cứu nhanh theo từng bậc năng lực và từ khoá chủ đề
-              </p>
-            </div>
-          </div>
-          <span className="shrink-0 rounded-pill bg-success-bg px-3 py-1 text-caption font-semibold text-success">
-            Chuẩn hoá
-          </span>
-        </Card>
-      </div>
-
-      <Card className="flex flex-wrap items-center justify-between gap-3 border-brand-100 bg-brand-50 p-4 sm:px-5">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-pill bg-brand-100 text-brand-700">
-            <Compass aria-hidden="true" className="size-5" />
-          </div>
-          <div>
-            <p className="text-label text-ink">Chuyên mục tài liệu tham khảo</p>
-            <p className="text-body-sm text-ink-secondary">
-              Chuyển đổi giữa kênh nghe nhìn trực tuyến và danh mục sách in / giáo trình.
-            </p>
-          </div>
-        </div>
-        <nav aria-label="Loại tài liệu" className="flex flex-wrap gap-2 text-body-sm">
-          <Button
-            to="/references/media"
-            variant={books ? 'outline' : 'secondary'}
-            aria-current={books ? undefined : 'page'}
-          >
-            YouTube & Podcast
-          </Button>
-          <Button
-            to="/references/books"
-            variant={books ? 'secondary' : 'outline'}
-            aria-current={books ? 'page' : undefined}
-          >
-            Sách tham khảo
-          </Button>
-        </nav>
-      </Card>
-
-      {books ? (
-        content
-      ) : (
-        <Tabs
-          label="Nguồn nghe nhìn"
-          value={kind}
-          onChange={(value) => props.onKindChange(value as ReferenceKind)}
-          items={[
-            { id: 'YOUTUBE_CHANNEL', label: 'YouTube', panel: content },
-            { id: 'PODCAST', label: 'Podcast', panel: content },
-          ]}
+        <Pagination
+          page={result.page + 1}
+          size={result.size}
+          total={result.total}
+          onChange={(page) => props.onPageChange(page - 1)}
         />
-      )}
+      ) : null}
     </main>
   )
 }

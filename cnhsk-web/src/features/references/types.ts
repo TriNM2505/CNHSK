@@ -7,6 +7,8 @@ export type PublicReference = {
   description: string | null
   url: string
   thumbnailUrl: string | null
+  /** Where a learner can read right away: a publisher preview or a free official document. */
+  previewUrl?: string | null
   hskMin: number | null
   hskMax: number | null
   tags: string[]

@@ -26,10 +26,7 @@ describe('SCR-054 book catalogue', () => {
       '/references/books/503',
     )
     expect(list.mock.lastCall?.[0].kind).toBe('BOOK')
-    expect(screen.getByRole('link', { name: 'Xem chi tiết' })).toHaveAttribute(
-      'href',
-      '/references/books/503',
-    )
+    expect(screen.getByRole('list', { name: 'Kệ sách' })).toBeVisible()
     expect(screen.getByText(bookReference.author!)).toBeVisible()
     expect(screen.queryByRole('tablist')).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Mở' })).not.toBeInTheDocument()
@@ -42,8 +39,9 @@ describe('SCR-054 book catalogue', () => {
         <Scr054BookCataloguePage />
       </MemoryRouter>,
     )
-    await screen.findByText(bookReference.title)
-    await event.selectOptions(screen.getByLabelText('Cấp HSK'), '3')
+    await screen.findByRole('heading', { name: bookReference.title })
+    await event.click(screen.getByRole('button', { name: 'HSK 3' }))
+    expect(screen.getByRole('button', { name: 'HSK 3' })).toHaveAttribute('aria-pressed', 'true')
     await event.type(screen.getByLabelText('Tag'), ' đọc ')
     await event.click(screen.getByRole('button', { name: 'Áp dụng' }))
     await waitFor(() =>
@@ -71,6 +69,6 @@ describe('SCR-054 book catalogue', () => {
         <Scr054BookCataloguePage />
       </MemoryRouter>,
     )
-    expect(await screen.findByText('Chưa có tài liệu phù hợp.')).toBeVisible()
+    expect(await screen.findByText('Chưa có sách phù hợp.')).toBeVisible()
   })
 })

@@ -8,20 +8,23 @@ import { draftReference, publishedReference } from '../test-fixtures'
 import { ReferenceEditorForm } from './ReferenceEditorForm'
 
 describe('ReferenceEditorForm', () => {
-  it('retains book draft across kind changes but emits null/false for a podcast', async () => {
+  it('lets a legacy podcast move to a book and keeps book fields only for books', async () => {
     const event = userEvent.setup()
     const submit = vi.fn()
     render(
       <ReferenceEditorForm
-        initial={draftOf(publishedReference)}
+        initial={{ ...draftOf(publishedReference), kind: 'PODCAST' }}
         editing
         pending={false}
         onSubmit={submit}
         onCancel={vi.fn()}
       />,
     )
-    expect(screen.getByLabelText('Tác giả')).toHaveValue(publishedReference.author)
-    await event.selectOptions(screen.getByLabelText('Loại'), 'PODCAST')
+    expect(
+      within(screen.getByLabelText('Loại'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Podcast', 'Sách'])
     expect(screen.queryByLabelText('Tác giả')).not.toBeInTheDocument()
     await event.click(screen.getByRole('button', { name: 'Lưu' }))
     expect(submit).toHaveBeenLastCalledWith(

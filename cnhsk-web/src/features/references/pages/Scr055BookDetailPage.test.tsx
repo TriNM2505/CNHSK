@@ -55,10 +55,34 @@ describe('SCR-055 book detail', () => {
     )
     expect(screen.queryByRole('button', { name: 'Báo lỗi' })).not.toBeInTheDocument()
   })
+  it('offers a reading link next to the shop link when the book has one', async () => {
+    get.mockResolvedValue({
+      ...bookReference,
+      previewUrl: 'https://books.google.com/books?id=demo',
+    })
+    renderPage()
+    const read = await screen.findByRole('link', { name: 'Đọc ngay' })
+    expect(read).toHaveAttribute('href', 'https://books.google.com/books?id=demo')
+    expect(read).toHaveAttribute('target', '_blank')
+    expect(read).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(screen.getByRole('link', { name: 'Mua / tham khảo' })).toBeVisible()
+  })
+  it('shows only the reading link for a free document whose main link is the same page', async () => {
+    const free = 'https://www.chinesetest.cn/userfiles/file/HSK2.pdf'
+    get.mockResolvedValue({ ...bookReference, url: free, previewUrl: free, isAffiliate: false })
+    renderPage()
+    expect(await screen.findByRole('link', { name: 'Đọc ngay' })).toHaveAttribute('href', free)
+    expect(screen.queryByRole('link', { name: 'Mua / tham khảo' })).not.toBeInTheDocument()
+  })
+  it('shows no reading link for a book without one', async () => {
+    renderPage()
+    await screen.findByRole('heading', { name: bookReference.title })
+    expect(screen.queryByRole('link', { name: 'Đọc ngay' })).not.toBeInTheDocument()
+  })
   it('does not show an affiliate label for a normal book', async () => {
     get.mockResolvedValue({ ...bookReference, isAffiliate: false })
     renderPage()
-    await screen.findByText(bookReference.title)
+    await screen.findByRole('heading', { name: bookReference.title })
     expect(screen.queryByText('Link tiếp thị liên kết')).not.toBeInTheDocument()
   })
   it('does not render another reference kind as a book', async () => {
@@ -92,13 +116,13 @@ describe('SCR-055 book detail', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Lỗi mạng.')
     expect(screen.queryByText('Không tìm thấy sách')).not.toBeInTheDocument()
     await event.click(screen.getByRole('button', { name: 'Thử lại' }))
-    expect(await screen.findByText(bookReference.title)).toBeVisible()
+    expect(await screen.findByRole('heading', { name: bookReference.title })).toBeVisible()
   })
   it('allows learner reporting and shows success', async () => {
     const event = userEvent.setup()
     auth.user = { id: 1, roles: ['LEARNER'] }
     renderPage()
-    await screen.findByText(bookReference.title)
+    await screen.findByRole('heading', { name: bookReference.title })
     await event.click(screen.getByRole('button', { name: 'Báo lỗi' }))
     await event.selectOptions(screen.getByLabelText('Lý do'), 'WRONG_CONTENT')
     await event.click(screen.getByRole('button', { name: 'Gửi báo lỗi' }))

@@ -25,6 +25,12 @@ public class ReferenceUrlPolicy {
         return validateUrl("thumbnailUrl", thumbnailUrl, properties.getThumbnailDomains());
     }
 
+    /** A reading link is optional; when given it must point at a configured reading site. */
+    public Optional<Violation> validatePreview(String previewUrl) {
+        return previewUrl == null ? Optional.empty()
+                : validateUrl("previewUrl", previewUrl, properties.getPreviewDomains());
+    }
+
     private Optional<Violation> validateUrl(String field, String value, List<String> domains) {
         if (value == null || value.isBlank() || !value.equals(value.strip())) {
             return Optional.of(new Violation(field, Reason.MALFORMED_URL));

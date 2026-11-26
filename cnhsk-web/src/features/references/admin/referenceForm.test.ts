@@ -26,6 +26,7 @@ describe('reference form rules', () => {
     const body = inputOf(draftOf(draftReference))
     expect(body).toMatchObject({
       thumbnailUrl: null,
+      previewUrl: null,
       sortOrder: 0,
       author: null,
       publisher: null,
@@ -39,6 +40,7 @@ describe('reference form rules', () => {
         'description',
         'url',
         'thumbnailUrl',
+        'previewUrl',
         'hskMin',
         'hskMax',
         'tags',
@@ -49,6 +51,19 @@ describe('reference form rules', () => {
         'isAffiliate',
       ].sort(),
     )
+  })
+  it('trims spaces pasted around links', () => {
+    const draft = {
+      ...draftOf(draftReference),
+      url: '  https://www.chinesetest.cn/userfiles/file/HSK1.pdf ',
+      thumbnailUrl: ' ',
+      previewUrl: ' https://www.chinesetest.cn/userfiles/file/HSK1.pdf',
+    }
+    expect(inputOf(draft)).toMatchObject({
+      url: 'https://www.chinesetest.cn/userfiles/file/HSK1.pdf',
+      thumbnailUrl: null,
+      previewUrl: 'https://www.chinesetest.cn/userfiles/file/HSK1.pdf',
+    })
   })
   it('clears book fields in non-book payload while retaining their draft', () => {
     const draft = { ...draftOf(publishedReference), kind: 'PODCAST' as const }
@@ -63,7 +78,7 @@ describe('reference form rules', () => {
       isAffiliate: true,
     })
     expect(inputOf({ ...draft, url: ' https://example.test/x ' }).url).toBe(
-      ' https://example.test/x ',
+      'https://example.test/x',
     )
   })
   it('preserves existing HSK 4–9 values and validates numeric limits', () => {

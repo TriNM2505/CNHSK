@@ -118,7 +118,6 @@ describe('PublicLayout', () => {
   })
 
   it.each([
-    ['Tra cứu', 'Video và podcast', '/references/media'],
     ['Tra cứu', 'Tra theo pinyin', '/translate?type=PINYIN'],
     ['Cộng đồng', 'Bảng tin và vinh danh', '/community'],
     ['Cộng đồng', 'Cuộc thi', '/contests'],

@@ -47,9 +47,13 @@ class ReferencePropertiesTest {
                     .containsExactly("open.spotify.com", "podcasts.apple.com", "soundcloud.com", "ximalaya.com",
                             "podcasts.google.com");
             assertThat(properties.getAllowedDomains().get(ReferenceItem.Kind.BOOK))
-                    .containsExactly("tiki.vn", "shopee.vn", "fahasa.com", "amazon.com", "books.google.com", "nxbgd.vn");
+                    .containsExactly("tiki.vn", "shopee.vn", "fahasa.com", "amazon.com", "books.google.com", "nxbgd.vn",
+                            "chinesetest.cn", "ci.cn");
             assertThat(properties.getThumbnailDomains())
-                    .containsExactly("i.ytimg.com", "yt3.ggpht.com", "salt.tikicdn.com", "m.media-amazon.com");
+                    .containsExactly("i.ytimg.com", "yt3.ggpht.com", "salt.tikicdn.com", "m.media-amazon.com",
+                            "res.cloudinary.com");
+            assertThat(properties.getPreviewDomains())
+                    .containsExactly("books.google.com", "books.google.com.vn", "chinesetest.cn", "ci.cn");
         });
     }
 

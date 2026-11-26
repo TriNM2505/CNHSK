@@ -22,6 +22,8 @@ public class MediaProperties {
     private String speakingFolder = "cnhsk/speaking";
     /** Pictures of words, shared by every picture question of the mock exams. */
     private String wordImageFolder = "cnhsk/word-images";
+    /** Book covers that content editors upload for the reference shelf. */
+    private String referenceCoverFolder = "cnhsk/reference-covers";
 
     public boolean configured() {
         return !cloudName.isBlank() && !apiKey.isBlank() && !apiSecret.isBlank();
@@ -60,4 +62,6 @@ public class MediaProperties {
     public void setSpeakingFolder(String speakingFolder) { this.speakingFolder = speakingFolder; }
     public String getWordImageFolder() { return wordImageFolder; }
     public void setWordImageFolder(String wordImageFolder) { this.wordImageFolder = wordImageFolder; }
+    public String getReferenceCoverFolder() { return referenceCoverFolder; }
+    public void setReferenceCoverFolder(String referenceCoverFolder) { this.referenceCoverFolder = referenceCoverFolder; }
 }

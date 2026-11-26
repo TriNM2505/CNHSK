@@ -74,6 +74,7 @@ components:
         description: { type: [string, 'null'], maxLength: 2000, description: Chữ thuần — client render dạng text }
         url: { type: string, format: uri, pattern: '^https://' }
         thumbnailUrl: { type: [string, 'null'], format: uri }
+        previewUrl: { type: [string, 'null'], format: uri, description: Link đọc ngay (bản xem thử hoặc tài liệu miễn phí chính thức); vắng mặt khi không có }
         hskMin: { type: [integer, 'null'], minimum: 1, maximum: 9 }
         hskMax: { type: [integer, 'null'], minimum: 1, maximum: 9 }
         tags: { type: array, items: { type: string, maxLength: 30 } }
@@ -104,6 +105,7 @@ components:
         description: { type: [string, 'null'], maxLength: 2000 }
         url: { type: string, maxLength: 2000 }
         thumbnailUrl: { type: [string, 'null'], maxLength: 2000 }
+        previewUrl: { type: [string, 'null'], maxLength: 2000, description: Chỉ nhận tên miền trong preview-domains }
         hskMin: { type: [integer, 'null'], minimum: 1, maximum: 9 }
         hskMax: { type: [integer, 'null'], minimum: 1, maximum: 9 }
         tags: { type: array, maxItems: 10, items: { type: string, maxLength: 30 } }

@@ -223,6 +223,8 @@ public class SecurityConfig {
                     authorize.requestMatchers("/api/admin/placement/**").hasRole("CONTENT_EDITOR");
                     // Content editors prepare the HSK-format mock exams (word pictures, papers from imported questions).
                     authorize.requestMatchers("/api/admin/mock-prep/**").hasRole("CONTENT_EDITOR");
+                    authorize.requestMatchers(HttpMethod.POST, "/api/admin/reference-covers/signature")
+                            .hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers("/api/admin/settings", "/api/admin/settings/**").hasRole("ADMIN");
                     authorize.requestMatchers("/api/admin/topics", "/api/admin/topics/**").hasRole("CONTENT_EDITOR");
                     authorize.requestMatchers("/api/admin/contests", "/api/admin/contests/**").hasRole("CONTENT_EDITOR");

@@ -1,3 +1,4 @@
+import { uploadToCloudinary, type UploadSignature } from '@/features/community/api/media'
 import { apiRequest } from '@/shared/api'
 
 import type {
@@ -34,4 +35,18 @@ export function updateReference(id: number, body: ReferenceInput): Promise<Admin
 }
 export function transitionReference(id: number, action: ReferenceAction): Promise<AdminReference> {
   return apiRequest<AdminReference>(`${path(id)}/${action}`, { method: 'POST' })
+}
+
+/** Covers are pictures only and stay small on the shelf, so 5 MB is plenty. */
+export const MAX_COVER_BYTES = 5 * 1024 * 1024
+
+/**
+ * Sends a cover picture from the editor's computer straight to Cloudinary with a server-made signature and
+ * returns its delivery link, which is then saved as the reference's thumbnail.
+ */
+export async function uploadReferenceCover(file: File): Promise<string> {
+  const signature = await apiRequest<UploadSignature>('/api/admin/reference-covers/signature', {
+    method: 'POST',
+  })
+  return (await uploadToCloudinary(file, signature)).url
 }

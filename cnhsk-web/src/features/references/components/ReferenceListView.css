@@ -1,0 +1,18 @@
+/* Books settle onto the shelf one after another on load; skipped when motion is reduced. */
+@media (prefers-reduced-motion: no-preference) {
+  .reference-shelf-item {
+    animation: reference-shelve 260ms ease-out both;
+  }
+
+  @keyframes reference-shelve {
+    from {
+      opacity: 0;
+      transform: translateY(theme('spacing.3'));
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

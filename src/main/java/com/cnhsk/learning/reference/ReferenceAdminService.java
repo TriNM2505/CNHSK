@@ -37,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ReferenceAdminService {
 
-    private static final String COLUMNS = "id,kind,title,description,url,thumbnail_url,hsk_min,hsk_max,tags,"
+    private static final String COLUMNS = "id,kind,title,description,url,thumbnail_url,preview_url,hsk_min,hsk_max,tags,"
             + "sort_order,author,publisher,published_year,is_affiliate,status,published_at,updated_at";
     private static final String REPORT_ACTION = "REFERENCE_REPORTED";
     private final AuthApi auth;
@@ -100,9 +100,9 @@ public class ReferenceAdminService {
         Instant now = now();
         MapSqlParameterSource parameters = parameters(input, now).addValue("creator", caller.userId());
         String tags = tags(input, parameters);
-        Row created = jdbc.queryForObject("INSERT INTO learning.reference_items(kind,title,description,url,thumbnail_url,"
+        Row created = jdbc.queryForObject("INSERT INTO learning.reference_items(kind,title,description,url,thumbnail_url,preview_url,"
                 + "hsk_min,hsk_max,tags,sort_order,author,publisher,published_year,is_affiliate,status,created_by,"
-                + "created_at,updated_at) VALUES (:kind,:title,:description,:url,:thumbnailUrl,:hskMin,:hskMax," + tags
+                + "created_at,updated_at) VALUES (:kind,:title,:description,:url,:thumbnailUrl,:previewUrl,:hskMin,:hskMax," + tags
                 + ",:sortOrder,:author,:publisher,:publishedYear,:affiliate,'DRAFT',:creator,:now,:now) RETURNING "
                 + COLUMNS, parameters, this::row);
         record(caller.userId(), "REFERENCE_CREATED", null, created);
@@ -120,7 +120,7 @@ public class ReferenceAdminService {
         MapSqlParameterSource parameters = parameters(input, now()).addValue("id", before.id());
         String tags = tags(input, parameters);
         Row updated = jdbc.queryForObject("UPDATE learning.reference_items SET kind=:kind,title=:title,"
-                + "description=:description,url=:url,thumbnail_url=:thumbnailUrl,hsk_min=:hskMin,hsk_max=:hskMax,"
+                + "description=:description,url=:url,thumbnail_url=:thumbnailUrl,preview_url=:previewUrl,hsk_min=:hskMin,hsk_max=:hskMax,"
                 + "tags=" + tags + ",sort_order=:sortOrder,author=:author,publisher=:publisher,"
                 + "published_year=:publishedYear,is_affiliate=:affiliate,updated_at=:now WHERE id=:id RETURNING "
                 + COLUMNS, parameters, this::row);
@@ -195,6 +195,7 @@ public class ReferenceAdminService {
         length(input.url(), 2000, "url");
         length(input.description(), 2000, "description");
         length(input.thumbnailUrl(), 2000, "thumbnailUrl");
+        length(input.previewUrl(), 2000, "previewUrl");
         level(input.hskMin(), "hskMin");
         level(input.hskMax(), "hskMax");
         if (input.hskMin() != null && input.hskMax() != null && input.hskMin() > input.hskMax()) throw invalid("hskMax");
@@ -225,7 +226,8 @@ public class ReferenceAdminService {
     }
 
     private void validateUrl(ReferenceInput input) {
-        policy.validate(input.kind(), input.url(), input.thumbnailUrl()).ifPresent(violation -> {
+        policy.validate(input.kind(), input.url(), input.thumbnailUrl())
+                .or(() -> policy.validatePreview(input.previewUrl())).ifPresent(violation -> {
             ErrorCode code = switch (violation.reason()) {
                 case MALFORMED_URL -> ErrorCode.MALFORMED_URL;
                 case NON_HTTPS_LINK -> ErrorCode.NON_HTTPS_LINK;
@@ -239,7 +241,7 @@ public class ReferenceAdminService {
     private MapSqlParameterSource parameters(ReferenceInput input, Instant now) {
         return new MapSqlParameterSource("kind", input.kind().name()).addValue("title", input.title())
                 .addValue("description", input.description()).addValue("url", input.url())
-                .addValue("thumbnailUrl", input.thumbnailUrl()).addValue("hskMin", input.hskMin())
+                .addValue("thumbnailUrl", input.thumbnailUrl()).addValue("previewUrl", input.previewUrl()).addValue("hskMin", input.hskMin())
                 .addValue("hskMax", input.hskMax()).addValue("sortOrder", input.sortOrder())
                 .addValue("author", input.author()).addValue("publisher", input.publisher())
                 .addValue("publishedYear", input.publishedYear()).addValue("affiliate", input.isAffiliate())
@@ -264,7 +266,7 @@ public class ReferenceAdminService {
             array.free();
         }
         return new Row(rs.getLong("id"), Kind.valueOf(rs.getString("kind")), rs.getString("title"),
-                rs.getString("description"), rs.getString("url"), rs.getString("thumbnail_url"),
+                rs.getString("description"), rs.getString("url"), rs.getString("thumbnail_url"), rs.getString("preview_url"),
                 rs.getObject("hsk_min", Integer.class), rs.getObject("hsk_max", Integer.class), tags,
                 rs.getInt("sort_order"), rs.getString("author"), rs.getString("publisher"),
                 rs.getObject("published_year", Integer.class), rs.getBoolean("is_affiliate"),
@@ -278,7 +280,7 @@ public class ReferenceAdminService {
         return new AdminReference(row.id(), row.kind(), row.title(), row.description(), row.url(), row.thumbnailUrl(),
                 row.hskMin(), row.hskMax(), row.tags(), book ? row.author() : null, book ? row.publisher() : null,
                 book ? row.publishedYear() : null, book ? row.affiliate() : null, row.status(), row.sortOrder(),
-                stat.count(), stat.lastAt(), row.publishedAt(), row.updatedAt());
+                stat.count(), stat.lastAt(), row.publishedAt(), row.updatedAt(), row.previewUrl());
     }
 
     private Instant now() { return clock.instant().truncatedTo(ChronoUnit.MICROS); }
@@ -324,9 +326,18 @@ public class ReferenceAdminService {
             @Schema(types = {"string", "null"}, maxLength = 200) String author,
             @Schema(types = {"string", "null"}, maxLength = 200) String publisher,
             @Schema(type = "integer", types = {"integer", "null"}, minimum = "1900", maximum = "2100") Integer publishedYear,
-            @JsonProperty("isAffiliate") @Schema(defaultValue = "false") boolean isAffiliate) {
+            @JsonProperty("isAffiliate") @Schema(defaultValue = "false") boolean isAffiliate,
+            @Schema(types = {"string", "null"}, maxLength = 2000) String previewUrl) {
         public ReferenceInput {
             tags = tags == null ? List.of() : java.util.Collections.unmodifiableList(new ArrayList<>(tags));
+        }
+
+        /** An entry without a reading link. */
+        public ReferenceInput(Kind kind, String title, String description, String url, String thumbnailUrl,
+                Integer hskMin, Integer hskMax, List<String> tags, int sortOrder, String author, String publisher,
+                Integer publishedYear, boolean isAffiliate) {
+            this(kind, title, description, url, thumbnailUrl, hskMin, hskMax, tags, sortOrder, author, publisher,
+                    publishedYear, isAffiliate, null);
         }
     }
 
@@ -347,7 +358,8 @@ public class ReferenceAdminService {
             Status status, @Schema(type = "integer", types = {"integer"}) int sortOrder,
             @Schema(type = "integer", types = {"integer"}, minimum = "0") long reportCount,
             @Schema(types = {"string", "null"}, format = "date-time") Instant lastReportedAt,
-            @Schema(types = {"string", "null"}, format = "date-time") Instant publishedAt, Instant updatedAt) {}
+            @Schema(types = {"string", "null"}, format = "date-time") Instant publishedAt, Instant updatedAt,
+            @JsonInclude(JsonInclude.Include.NON_NULL) @Schema(types = {"string", "null"}, format = "uri") String previewUrl) {}
 
     @Schema(requiredProperties = {"items", "page", "size", "total"})
     public record AdminReferencePage(List<AdminReference> items,
@@ -355,11 +367,12 @@ public class ReferenceAdminService {
             @Schema(type = "integer", types = {"integer"}) int size, long total) {}
 
     private record Row(long id, Kind kind, String title, String description, String url, String thumbnailUrl,
+            String previewUrl,
             Integer hskMin, Integer hskMax, List<String> tags, int sortOrder, String author, String publisher,
             Integer publishedYear, boolean affiliate, Status status, Instant publishedAt, Instant updatedAt) {
         ReferenceInput input() {
             return new ReferenceInput(kind, title, description, url, thumbnailUrl, hskMin, hskMax, tags,
-                    sortOrder, author, publisher, publishedYear, affiliate);
+                    sortOrder, author, publisher, publishedYear, affiliate, previewUrl);
         }
     }
 }

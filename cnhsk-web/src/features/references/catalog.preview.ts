@@ -8,14 +8,13 @@ import { previewLearner } from '@/shared/layout/Layout.preview'
 
 import { BookDetailView } from './components/BookDetailView'
 import { ReferenceListView } from './components/ReferenceListView'
-import { ReferenceReportForm } from './components/ReferenceReportForm'
 import { ReferenceAdminView } from './admin/components/ReferenceAdminView'
 import { ReferenceEditorForm } from './admin/components/ReferenceEditorForm'
 import { draftOf, newDraft } from './admin/referenceForm'
 import { adminPage } from './admin/test-fixtures'
 import type { AdminListParams, AdminReference, ReferenceAction } from './admin/types'
-import { bookPage, bookReference, mediaPage, podcastReference } from './test-fixtures'
-import type { PublicReferencePage, ReferenceKind } from './types'
+import { bookPage, bookReference } from './test-fixtures'
+import type { PublicReferencePage } from './types'
 
 const learnerAuth: AuthContextValue = {
   error: null,
@@ -55,46 +54,6 @@ function inEditorLayout(element: ReturnType<typeof createElement>) {
     { value: editorAuth },
     createElement(AdminLayout, null, element),
   )
-}
-
-const previewMediaPage: PublicReferencePage = {
-  ...mediaPage,
-  total: 3,
-  items: [
-    ...mediaPage.items,
-    {
-      id: 511,
-      kind: 'YOUTUBE_CHANNEL',
-      title: 'Bản tin tiếng Trung chậm HSK 1–2',
-      url: 'https://example.com/youtube-slow-chinese',
-      thumbnailUrl: null,
-      author: null,
-      publisher: null,
-      publishedYear: null,
-      description:
-        'Tổng hợp các bản tin ngắn đọc chậm kèm phụ đề chữ Hán và Pinyin cho người mới bắt đầu.',
-      hskMin: 1,
-      hskMax: 2,
-      tags: ['luyện nghe', 'phụ đề'],
-      isAffiliate: false,
-    },
-    {
-      id: 512,
-      kind: 'YOUTUBE_CHANNEL',
-      title: 'Tình huống giao tiếp hàng ngày HSK 2–3',
-      url: 'https://example.com/youtube-daily-hsk',
-      thumbnailUrl: null,
-      author: null,
-      publisher: null,
-      publishedYear: null,
-      description:
-        'Các mẫu câu phản xạ tự nhiên trong đời sống, mua sắm, trường học và công sở.',
-      hskMin: 2,
-      hskMax: 3,
-      tags: ['giao tiếp', 'phản xạ'],
-      isAffiliate: false,
-    },
-  ],
 }
 
 const previewBookPage: PublicReferencePage = {
@@ -143,45 +102,22 @@ const error = new ApiError({
   message: 'Không tải được tài liệu. Vui lòng thử lại.',
 })
 
-function ListPreview({ state, books = false }: { state: PreviewState; books?: boolean }) {
-  const [kind, setKind] = useState<ReferenceKind>(books ? 'BOOK' : 'YOUTUBE_CHANNEL')
+function ListPreview({ state }: { state: PreviewState }) {
   const [hsk, setHsk] = useState('')
   const [tag, setTag] = useState('')
-  const [reportId, setReportId] = useState<number>()
-  const [sent, setSent] = useState(false)
-  const result = books
-    ? previewBookPage
-    : kind === 'PODCAST'
-      ? { ...mediaPage, items: [podcastReference] }
-      : previewMediaPage
   return createElement(ReferenceListView, {
-    kind,
     state,
     hsk,
     tag,
     error,
-    canReport: true,
-    result: state === 'empty' ? { ...result, items: [], total: 0 } : result,
-    reportId,
-    onReport: (id) => {
-      setReportId(id)
-      setSent(false)
-    },
-    onKindChange: setKind,
+    result: state === 'empty' ? { ...previewBookPage, items: [], total: 0 } : previewBookPage,
     onHskChange: setHsk,
     onTagChange: setTag,
     onApply: () => undefined,
     onPageChange: () => undefined,
     onRetry: () => undefined,
-    report: createElement(ReferenceReportForm, {
-      pending: false,
-      sent,
-      onSubmit: () => setSent(true),
-      onCancel: () => setReportId(undefined),
-    }),
   })
 }
-
 export const previews = [
   {
     fullFrame: true,
@@ -195,20 +131,11 @@ export const previews = [
   {
     fullFrame: true,
     group: 'screen',
-    id: 'references-media',
-    scr: 'SCR-053',
-    title: 'Tài liệu nghe nhìn',
-    states: ['loading', 'empty', 'error', 'ready'],
-    render: (state) => inLearnerLayout(createElement(ListPreview, { state })),
-  },
-  {
-    fullFrame: true,
-    group: 'screen',
     id: 'references-books',
     scr: 'SCR-054',
     title: 'Danh mục sách tham khảo',
     states: ['loading', 'empty', 'error', 'ready'],
-    render: (state) => inLearnerLayout(createElement(ListPreview, { state, books: true })),
+    render: (state) => inLearnerLayout(createElement(ListPreview, { state })),
   },
   {
     fullFrame: true,

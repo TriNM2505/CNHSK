@@ -26,10 +26,11 @@ vi.mock('./admin/api/references', () => ({
   createReference: vi.fn(),
   updateReference: vi.fn(),
   transitionReference: vi.fn(),
+  uploadReferenceCover: vi.fn(),
+  MAX_COVER_BYTES: 5 * 1024 * 1024,
 }))
 
 const routes = [
-  ['/references/media', 'SCR-053', 'Tài liệu nghe nhìn'],
   ['/references/books', 'SCR-054', 'Danh mục sách tham khảo'],
   ['/references/books/503', 'SCR-055', 'Chi tiết sách tham khảo'],
 ] as const

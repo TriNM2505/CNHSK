@@ -114,14 +114,16 @@ class ReferenceAdminIntegrationTest extends AbstractIntegrationTest {
     void FR012_AT16_createAndFullReplacementKeepStatusAndCreatorWhileResettingOmittedFields() throws Exception {
         var created = write(service(BASE, named, audit), s -> s.create(new ReferenceInput(Kind.BOOK, "Demo", "Mo ta",
                 "https://fahasa.com/demo", "https://i.ytimg.com/demo.jpg", 1, 3, List.of("demo"), 7,
-                "Tac gia", "NXB", 2026, true)));
+                "Tac gia", "NXB", 2026, true, "https://books.google.com/books?id=demo")));
         assertThat(created.status()).isEqualTo(Status.DRAFT);
+        assertThat(created.previewUrl()).isEqualTo("https://books.google.com/books?id=demo");
         var replacement = new ReferenceInput(Kind.PODCAST, "Podcast", null, "https://open.spotify.com/show/demo",
                 null, null, null, List.of(), 0, null, null, null, false);
         var updated = write(service(BASE.plusSeconds(2), named, audit), s -> s.update(Long.toString(created.id()), replacement));
         assertThat(updated.status()).isEqualTo(Status.DRAFT);
         assertThat(updated.description()).isNull();
         assertThat(updated.tags()).isEmpty();
+        assertThat(updated.previewUrl()).isNull();
         assertThat(updated.sortOrder()).isZero();
         assertThat(jdbc.queryForObject("SELECT created_by FROM learning.reference_items WHERE id=?", Long.class, created.id()))
                 .isEqualTo(editor);

@@ -323,7 +323,7 @@ public class AdminReferenceController {
                 text(body, "url", true), text(body, "thumbnailUrl", false), number(body, "hskMin", true),
                 number(body, "hskMax", true), tags, order == null ? 0 : order, text(body, "author", false),
                 text(body, "publisher", false), number(body, "publishedYear", true),
-                affiliate != null && affiliate.booleanValue());
+                affiliate != null && affiliate.booleanValue(), text(body, "previewUrl", false));
     }
 
     private String text(JsonNode body, String field, boolean required) {
