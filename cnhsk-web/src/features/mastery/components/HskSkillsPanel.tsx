@@ -1,8 +1,6 @@
-import { BookOpen, Headphones, Mic, PenLine, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import type { PaidFeature, Wallet } from '@/features/credits/types'
-import { Card } from '@/shared/ui'
 
 import type { MasteryGroup, SkillMastery } from '../api/mastery'
 
@@ -10,8 +8,9 @@ type Activity = { feature?: PaidFeature; label: string; to: string }
 type Skill = {
   activities: readonly Activity[]
   code: string
+  /** The skill's own character: 听 listen, 说 speak, 读 read, 写 write. */
+  glyph: string
   hint: string
-  icon: LucideIcon
   name: string
 }
 
@@ -30,7 +29,7 @@ const SKILLS: readonly Skill[] = [
     activities: [{ feature: 'PRONUNCIATION', label: 'Nghe phân biệt âm', to: '/learn/listening' }],
     code: 'LISTENING',
     hint: 'Nghe ra thanh mẫu, vận mẫu, thanh điệu',
-    icon: Headphones,
+    glyph: '听',
     name: 'Nghe',
   },
   {
@@ -39,7 +38,7 @@ const SKILLS: readonly Skill[] = [
     ],
     code: 'SPEAKING',
     hint: 'Đọc theo mẫu và nhiệm vụ nói, giáo viên chấm',
-    icon: Mic,
+    glyph: '说',
     name: 'Nói',
   },
   {
@@ -50,7 +49,7 @@ const SKILLS: readonly Skill[] = [
     ],
     code: 'READING',
     hint: 'Hiểu từ, câu và mặt chữ',
-    icon: BookOpen,
+    glyph: '读',
     name: 'Đọc',
   },
   {
@@ -60,7 +59,7 @@ const SKILLS: readonly Skill[] = [
     ],
     code: 'WRITING',
     hint: 'Viết đúng nét, đặt câu thành đoạn',
-    icon: PenLine,
+    glyph: '写',
     name: 'Viết',
   },
 ]
@@ -94,7 +93,7 @@ function SkillProgress({ group }: { group?: MasteryGroup }) {
         aria-valuemax={100}
         aria-valuemin={0}
         aria-valuenow={percent}
-        className="h-1.5 overflow-hidden rounded-pill bg-canvas"
+        className="h-1.5 overflow-hidden rounded-pill bg-brand-50"
         role="progressbar"
       >
         <div className="h-full rounded-pill bg-brand-600" style={{ width: `${percent}%` }} />
@@ -109,7 +108,11 @@ function SkillProgress({ group }: { group?: MasteryGroup }) {
 export function HskSkillsPanel({ mastery, wallet }: { mastery?: SkillMastery; wallet?: Wallet }) {
   const skillGroups = new Map(mastery?.skills.map((group) => [group.code, group]))
   return (
-    <section aria-labelledby="hsk-skills-heading" className="space-y-3">
+    <section
+      aria-labelledby="hsk-skills-heading"
+      className="learn-rise space-y-3"
+      style={{ animationDelay: '80ms' }}
+    >
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h2 className="text-h3 text-ink" id="hsk-skills-heading">
           4 kỹ năng HSK
@@ -118,36 +121,51 @@ export function HskSkillsPanel({ mastery, wallet }: { mastery?: SkillMastery; wa
           Chuẩn HSK 3.0 cấp 1–3 yêu cầu đủ nghe, nói, đọc, viết.
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {SKILLS.map(({ activities, code, hint, icon: Icon, name }) => (
-          <Card className="flex min-w-0 flex-col gap-3 p-5" key={name}>
-            <div className="flex items-center gap-3">
-              <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-700">
-                <Icon aria-hidden="true" className="size-6" />
+      <div className="grid min-w-0 overflow-hidden rounded-lg border border-line bg-surface sm:grid-cols-2 xl:grid-cols-4">
+        {SKILLS.map(({ activities, code, glyph, hint, name }, index) => (
+          <article
+            className={`flex min-w-0 flex-col gap-4 p-5 ${index > 0 ? 'border-t border-line' : ''} ${
+              index % 2 === 1 ? 'sm:border-l' : ''
+            } ${index === 1 ? 'sm:border-t-0' : ''} ${index >= 2 ? 'xl:border-t-0 xl:border-l' : ''}`}
+            key={name}
+          >
+            <div className="flex items-end gap-3">
+              <span aria-hidden="true" className="learn-skill-glyph">
+                {glyph}
               </span>
-              <div className="min-w-0">
+              <div className="min-w-0 pb-0.5">
                 <h3 className="text-h3 text-ink">{name}</h3>
                 <p className="text-caption text-ink-secondary">{hint}</p>
               </div>
             </div>
             <SkillProgress group={skillGroups.get(code)} />
-            <ul className="space-y-1 border-t border-line pt-3">
+            <ul className="mt-auto space-y-0.5 border-t border-dashed border-line pt-3">
               {activities.map((activity) => {
                 const left = remaining(wallet, activity.feature)
                 return (
                   <li key={activity.to}>
                     <Link
-                      className="flex min-h-touch flex-col justify-center rounded-sm px-2 py-1 no-underline hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                      className="group flex min-h-touch items-center justify-between gap-2 rounded-sm px-2 py-1 no-underline hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                       to={activity.to}
                     >
-                      <span className="text-body-sm font-semibold text-ink">{activity.label}</span>
-                      {left ? <span className="text-caption text-ink-muted">{left}</span> : null}
+                      <span className="flex min-w-0 flex-col">
+                        <span className="text-body-sm font-semibold text-ink group-hover:text-brand-700">
+                          {activity.label}
+                        </span>
+                        {left ? <span className="text-caption text-ink-muted">{left}</span> : null}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="text-brand-600 transition-transform motion-safe:group-hover:translate-x-0.5"
+                      >
+                        →
+                      </span>
                     </Link>
                   </li>
                 )
               })}
             </ul>
-          </Card>
+          </article>
         ))}
       </div>
       {mastery && mastery.domains.some((group) => group.nodes > 0) ? (

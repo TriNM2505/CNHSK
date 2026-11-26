@@ -21,25 +21,27 @@ export default function Scr010LearningDashboardPage() {
   const mistakes = useApiQuery(getMyMistakes, [])
 
   return (
-    <>
-      <ReminderBanner />
-      <PlacementInviteBanner />
-      <MasteryDashboardView
-        onRetryRecommendations={recommendations.reload}
-        onRetryReview={review.reload}
-        recommendations={recommendations.data}
-        recommendationsState={recommendations.state}
-        reviewState={review.state}
-        reviewSummary={review.data}
-        skills={<HskSkillsPanel mastery={skills.data} wallet={wallet.data} />}
-        mistakes={
-          <MistakePracticePanel
-            onRetry={mistakes.reload}
-            state={mistakes.state}
-            summary={mistakes.data}
-          />
-        }
-      />
-    </>
+    <MasteryDashboardView
+      notices={
+        <>
+          <ReminderBanner />
+          <PlacementInviteBanner />
+        </>
+      }
+      onRetryRecommendations={recommendations.reload}
+      onRetryReview={review.reload}
+      recommendations={recommendations.data}
+      recommendationsState={recommendations.state}
+      reviewState={review.state}
+      reviewSummary={review.data}
+      skills={<HskSkillsPanel mastery={skills.data} wallet={wallet.data} />}
+      mistakes={
+        <MistakePracticePanel
+          onRetry={mistakes.reload}
+          state={mistakes.state}
+          summary={mistakes.data}
+        />
+      }
+    />
   )
 }

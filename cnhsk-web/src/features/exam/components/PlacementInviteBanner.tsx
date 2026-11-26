@@ -34,7 +34,7 @@ export function PlacementInviteBanner() {
   return (
     <section
       aria-label="Kiểm tra trình độ"
-      className="mb-6 flex flex-wrap items-center gap-4 rounded-md border border-brand-100 bg-brand-50 p-4 sm:p-5"
+      className="flex flex-wrap items-center gap-4 rounded-lg border border-brand-100 bg-brand-50 p-4 sm:p-5"
     >
       <span className="flex size-12 shrink-0 items-center justify-center rounded-md bg-brand-100 text-brand-700">
         <GraduationCap aria-hidden="true" className="size-6" />

@@ -1,0 +1,59 @@
+/* The review block is the desk's centrepiece: a deep red sheet ruled like a 田字格 practice grid. */
+.learn-desk .learn-review::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(theme('colors.surface.DEFAULT / 7%') 1px, transparent 1px),
+    linear-gradient(90deg, theme('colors.surface.DEFAULT / 7%') 1px, transparent 1px),
+    linear-gradient(
+      45deg,
+      transparent calc(50% - 0.5px),
+      theme('colors.surface.DEFAULT / 4%') 50%,
+      transparent calc(50% + 0.5px)
+    );
+  background-size:
+    theme('spacing.16') theme('spacing.16'),
+    theme('spacing.16') theme('spacing.16'),
+    theme('spacing.16') theme('spacing.16');
+  mask-image: linear-gradient(to left, black, transparent 85%);
+}
+
+/* A name seal stamped in the corner: 温故知新, read top-right to bottom-left like a real seal. */
+.learn-desk .learn-seal {
+  @apply grid shrink-0 grid-cols-2 place-items-center rounded-sm border-2 border-accent-500 font-hanzi text-accent-500;
+  direction: rtl;
+  width: theme('spacing.20');
+  height: theme('spacing.20');
+  padding: theme('spacing.1');
+  font-size: theme('fontSize.h3');
+  line-height: 1;
+  transform: rotate(-4deg);
+  opacity: 0.9;
+}
+
+/* Hanzi heading each skill column: 听 说 读 写. */
+.learn-desk .learn-skill-glyph {
+  @apply font-hanzi text-brand-700;
+  font-size: theme('fontSize.hanzi-md');
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .learn-desk .learn-rise {
+    animation: learn-rise 280ms ease-out both;
+  }
+
+  @keyframes learn-rise {
+    from {
+      opacity: 0;
+      transform: translateY(theme('spacing.2'));
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

@@ -58,10 +58,7 @@ export function ReminderBanner() {
   if (query.state !== 'ready' || !query.data?.show || dismissedDay === day) return null
 
   return (
-    <aside
-      aria-label="Nhắc ôn tập"
-      className="mx-auto w-full max-w-screen-xl px-4 pt-6 sm:px-6 lg:px-8"
-    >
+    <aside aria-label="Nhắc ôn tập">
       <Card className="flex flex-col gap-3 border-warning bg-warning-bg sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-center gap-3 text-body font-semibold text-ink">
           <BellRing aria-hidden="true" className="size-5 shrink-0 text-warning" />
