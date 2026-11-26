@@ -65,6 +65,7 @@ public class KnowledgeTreeQueryRepository {
                   AND label.role = com.cnhsk.learning.knowledge.entity.KnowledgeLabelRole.PRIMARY
                   AND kp.code IN :kids
                   AND (:hskLevel IS NULL OR q.hskLevel = :hskLevel)
+                  AND (q.code IS NULL OR q.code NOT LIKE 'MCK%')
                 ORDER BY q.id
                 """, Long.class)
                 .setParameter("kids", kids)
@@ -96,6 +97,7 @@ public class KnowledgeTreeQueryRepository {
                 JOIN QuestionKnowledgePoint label ON label.questionId = q.id
                 WHERE label.knowledgePointId = :nodeId
                   AND q.status = com.cnhsk.learning.knowledge.entity.QuestionStatus.APPROVED
+                  AND (q.code IS NULL OR q.code NOT LIKE 'MCK%')
                 """, Long.class).setParameter("nodeId", nodeId).getSingleResult();
     }
 

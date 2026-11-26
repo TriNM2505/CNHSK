@@ -42,6 +42,7 @@ public class MasteryQueryRepository {
                 WHERE q.status = com.cnhsk.learning.knowledge.entity.QuestionStatus.APPROVED
                   AND label.role = com.cnhsk.learning.knowledge.entity.KnowledgeLabelRole.PRIMARY
                   AND kp.code IN :kids
+                  AND (q.code IS NULL OR q.code NOT LIKE 'MCK%')
                 ORDER BY kp.code
                 """, String.class)
                 .setParameter("kids", kids)

@@ -50,7 +50,9 @@ public class ReadingPracticeService {
         List<Long> ids = new ArrayList<>(entities.createQuery("SELECT q.id FROM Question q "
                 + "WHERE q.status = :approved AND q.hskLevel = :level AND q.qtype IN :types "
                 + "AND (q.skill = 'READING' OR q.skill IS NULL) "
-                + "AND q.audioUrl IS NULL AND q.imageUrl IS NULL ORDER BY q.id", Long.class)
+                + "AND q.audioUrl IS NULL AND q.imageUrl IS NULL "
+                // Mock-paper questions stay in their papers so learners do not meet them before the exam.
+                + "AND (q.code IS NULL OR q.code NOT LIKE 'MCK%') ORDER BY q.id", Long.class)
                 .setParameter("approved", QuestionStatus.APPROVED).setParameter("level", (short) hskLevel)
                 .setParameter("types", types).getResultList());
         if (ids.isEmpty()) return null;

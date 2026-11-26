@@ -12,6 +12,7 @@ import {
   startTargetedPractice,
 } from '../api/targetedPractice'
 import { TargetedPracticeView, type TargetedFeedback } from '../components/TargetedPracticeView'
+import { MISTAKE_SECTIONS, mistakeSectionLabel, type MistakeSection } from '../mistakeSections'
 import type { TargetedPracticeRequest } from '../types'
 
 type Heading = { title: string; subtitle: string }
@@ -136,22 +137,24 @@ const EMPTY_MISTAKES = {
 } as const
 
 /** Ten approved questions from the nodes this learner got wrong in the last seven days. */
-function MistakePractice() {
+function MistakePractice({ section }: { section?: MistakeSection }) {
+  const label = mistakeSectionLabel(section)
+  const heading: Heading = label ? { ...MISTAKES_HEADING, title: MISTAKES_TITLE + ' · ' + label } : MISTAKES_HEADING
   const inFlight = useRef<ReturnType<typeof startMistakePractice>>()
   const session = useApiQuery(() => {
     // StrictMode replays effects. Share the in-flight POST for this mounted route.
-    inFlight.current ??= startMistakePractice().finally(() => {
+    inFlight.current ??= startMistakePractice(section).finally(() => {
       inFlight.current = undefined
     })
     return inFlight.current
-  }, [])
+  }, [section])
 
   if (session.state === 'loading')
-    return <TargetedPracticeView heading={MISTAKES_HEADING} kid={MISTAKES_TITLE} state="loading" />
+    return <TargetedPracticeView heading={heading} kid={MISTAKES_TITLE} state="loading" />
   if (session.state === 'error') {
     return (
       <TargetedPracticeView
-        heading={MISTAKES_HEADING}
+        heading={heading}
         kid={MISTAKES_TITLE}
         state="error"
         error={session.error?.message}
@@ -163,7 +166,7 @@ function MistakePractice() {
   if (!data || 'reason' in data) {
     return (
       <TargetedPracticeView
-        heading={MISTAKES_HEADING}
+        heading={heading}
         kid={MISTAKES_TITLE}
         state="empty"
         emptyMessage={EMPTY_MISTAKES[data?.reason ?? 'NO_QUESTIONS']}
@@ -171,13 +174,16 @@ function MistakePractice() {
     )
   }
   return (
-    <Practice key={data.sessionId} heading={MISTAKES_HEADING} kid={MISTAKES_TITLE} session={data} />
+    <Practice key={data.sessionId} heading={heading} kid={MISTAKES_TITLE} session={data} />
   )
 }
 
 export default function Scr023TargetedPracticePage() {
   const [params] = useSearchParams()
-  if (params.get('mode') === 'mistakes') return <MistakePractice />
+  if (params.get('mode') === 'mistakes') {
+    const section = MISTAKE_SECTIONS.find(({ key }) => key === params.get('section'))?.key
+    return <MistakePractice key={section ?? 'ALL'} section={section} />
+  }
   const kid = params.get('kid')?.trim()
   if (!kid) return <TargetedPracticeView kid="" state="error" error="Thiếu mã nút năng lực." />
   const qtype = params.get('qtype')

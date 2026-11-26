@@ -30,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class MistakePracticeService {
     static final int DAYS = 7;
     static final int MAX_QUESTIONS = 10;
-    private static final int MAX_NODES = 20;
     private static final ZoneId VIETNAM = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final EntityManager entities;
@@ -48,13 +47,33 @@ public class MistakePracticeService {
      * Nodes with the learner's wrong answers since the start of the Vietnamese day six days ago, from every
      * graded section: a bank question counts for its primary node, a word, character or grammar item for
      * the node its lexeme belongs to, a pronunciation or listening unit for the node the session labelled
-     * it with ({@code targetKid}).
+     * it with ({@code targetKid}). Every node still to practise is listed, most recent mistake first.
      */
     @Transactional(readOnly = true)
     public List<MistakeNode> recentMistakes(long userId) {
         Instant from = LocalDate.ofInstant(clock.instant(), VIETNAM).minusDays(DAYS - 1L).atStartOfDay(VIETNAM).toInstant();
+        // Each correct answer on a node after its first mistake in the window settles one mistake, so the count
+        // falls as the learner improves and the node leaves the list once every mistake is settled.
+        // A mistake belongs to the menu section where it was made: the source of its session, or for a mistake
+        // practice session the section it was started from. Correct answers on the node from anywhere settle it.
         List<?> rows = entities.createNativeQuery("""
-                SELECT kp.code, kp.title, count(*) AS wrong
+                WITH answers AS (
+                SELECT kp.code, kp.title, item.is_correct, item.answered_at,
+                       CASE a.ref_type
+                           WHEN 'PRON_STAGE' THEN 'LISTENING'
+                           WHEN 'READING_PRACTICE' THEN 'READING'
+                           WHEN 'RUBRIC_TASK' THEN 'WRITING'
+                           WHEN 'TOPIC_STUDY' THEN 'TOPIC' WHEN 'TOPIC_PRACTICE' THEN 'TOPIC'
+                           WHEN 'TOPIC_TEST' THEN 'TOPIC' WHEN 'QUIZ' THEN 'TOPIC' WHEN 'QUIZ_RETRY' THEN 'TOPIC'
+                           WHEN 'GRAMMAR_LESSON' THEN 'GRAMMAR'
+                           WHEN 'CHAR_RECOGNITION' THEN 'CHARACTER' WHEN 'CHAR_WRITING' THEN 'CHARACTER'
+                           WHEN 'WRITING_CHALLENGE' THEN 'CHARACTER'
+                           WHEN 'DUE_REVIEW' THEN 'REVIEW'
+                           WHEN 'PLACEMENT' THEN 'PLACEMENT'
+                           WHEN 'MOCK_EXAM' THEN 'MOCK_EXAM'
+                           WHEN 'GAME_ROUND' THEN 'GAME' WHEN 'CONTEST' THEN 'GAME'
+                           ELSE coalesce(a.served_items -> 'meta' ->> 'section', 'TARGETED')
+                       END AS section
                 FROM learning.attempt_items item
                 JOIN learning.attempts a ON a.id = item.attempt_id
                 LEFT JOIN learning.question_knowledge_points label
@@ -70,26 +89,37 @@ public class MistakePracticeService {
                 LEFT JOIN learning.knowledge_points labelled_kp ON labelled_kp.code = labelled.kid
                 JOIN learning.knowledge_points kp
                   ON kp.id = coalesce(label.knowledge_point_id, lexeme.knowledge_point_id, labelled_kp.id)
-                WHERE a.user_id = :user AND item.is_correct = false AND item.answered_at >= :from
-                GROUP BY kp.code, kp.title
-                ORDER BY wrong DESC, kp.code
-                LIMIT :limit
-                """).setParameter("user", userId).setParameter("from", from).setParameter("limit", MAX_NODES)
-                .getResultList();
+                WHERE a.user_id = :user AND item.is_correct IS NOT NULL AND item.answered_at >= :from
+                ), wrongs AS (
+                    SELECT section, code, max(title) AS title, count(*) AS wrong,
+                           min(answered_at) AS first_wrong, max(answered_at) AS last_wrong
+                    FROM answers WHERE NOT is_correct GROUP BY section, code
+                ), tally AS (
+                    SELECT wrong.section, wrong.code, wrong.title, wrong.wrong, wrong.last_wrong,
+                           (SELECT count(*) FROM answers fixed WHERE fixed.code = wrong.code AND fixed.is_correct
+                              AND fixed.answered_at > wrong.first_wrong) AS settled
+                    FROM wrongs wrong
+                )
+                SELECT code, title, wrong - settled AS remaining, section
+                FROM tally WHERE wrong > settled
+                ORDER BY last_wrong DESC, remaining DESC, code, section
+                """).setParameter("user", userId).setParameter("from", from).getResultList();
         return rows.stream().map(value -> {
             Object[] row = (Object[]) value;
-            return new MistakeNode((String) row[0], (String) row[1], ((Number) row[2]).longValue());
+            return new MistakeNode((String) row[0], (String) row[1], ((Number) row[2]).longValue(), (String) row[3]);
         }).toList();
     }
 
+    /** A session over every section, or over one section when {@code section} is given. */
     @Transactional
-    public Result start(long userId) {
-        List<MistakeNode> nodes = recentMistakes(userId);
+    public Result start(long userId, String section) {
+        List<MistakeNode> nodes = recentMistakes(userId).stream()
+                .filter(node -> section == null || section.equals(node.section())).toList();
         if (nodes.isEmpty()) return Result.empty("NO_RECENT_MISTAKES");
-        List<String> kids = nodes.stream().map(MistakeNode::kid).toList();
+        List<String> kids = nodes.stream().map(MistakeNode::kid).distinct().toList();
         Map<String, Deque<Question>> byKid = candidates(userId, kids);
         List<Question> chosen = new ArrayList<>();
-        // Round-robin across nodes, most mistaken node first, so one node cannot fill the whole session.
+        // Round-robin across nodes, most recent mistake first, so one node cannot fill the whole session.
         while (chosen.size() < MAX_QUESTIONS && byKid.values().stream().anyMatch(queue -> !queue.isEmpty())) {
             for (String kid : kids) {
                 Deque<Question> queue = byKid.get(kid);
@@ -99,7 +129,8 @@ public class MistakePracticeService {
         if (chosen.isEmpty()) return Result.empty("NO_QUESTIONS");
         List<ServedItem> items = new ArrayList<>();
         for (Question question : chosen) items.add(factory.create(question, items.size() + 1).orElseThrow());
-        Map<String, Object> meta = Map.of("mode", "MISTAKES", "kids", kids, "repeatedNos", List.of());
+        Map<String, Object> meta = new LinkedHashMap<>(Map.of("mode", "MISTAKES", "kids", kids, "repeatedNos", List.of()));
+        if (section != null) meta.put("section", section);
         return new Result(practice.start(new StartPracticeCommand(userId, PracticeSource.TARGETED_PRACTICE,
                 null, null, items, List.of(), null, meta)), null);
     }
@@ -121,6 +152,7 @@ public class MistakePracticeService {
                             JOIN learning.attempts a ON a.id = item.attempt_id
                             WHERE a.user_id = :user AND item.question_id = q.id) AS value) seen
                     WHERE kp.code IN (:kids) AND q.status = 'APPROVED' AND q.qtype IN ('MULTIPLE_CHOICE', 'TRUE_FALSE')
+                      AND (q.code IS NULL OR q.code NOT LIKE 'MCK%')
                 ) ranked
                 WHERE rank <= 20
                 ORDER BY seen, reviewed_at DESC NULLS LAST, id
@@ -144,7 +176,11 @@ public class MistakePracticeService {
         return result;
     }
 
-    public record MistakeNode(String kid, String nameVi, long wrongCount) { }
+    /**
+     * {@code section} is the menu section the mistakes were made in: LISTENING, READING, WRITING, TOPIC, GRAMMAR,
+     * CHARACTER, REVIEW, PLACEMENT, MOCK_EXAM, GAME, or TARGETED for older mistake practice sessions.
+     */
+    public record MistakeNode(String kid, String nameVi, long wrongCount, String section) { }
 
     /** Either a started session or the reason none could start. */
     public record Result(SessionView session, String reason) {

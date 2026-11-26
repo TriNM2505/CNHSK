@@ -1,6 +1,8 @@
 import type { SessionView } from '@/features/practice'
 import { apiRequest } from '@/shared/api'
 
+import type { MistakeSection } from '../mistakeSections'
+
 import type {
   MistakeSummary,
   NoMistakePractice,
@@ -12,8 +14,10 @@ export function getMyMistakes(signal?: AbortSignal): Promise<MistakeSummary> {
   return apiRequest<MistakeSummary>('/api/mistake-practice', { signal })
 }
 
-export function startMistakePractice(): Promise<SessionView | NoMistakePractice> {
-  return apiRequest<SessionView | NoMistakePractice>('/api/mistake-practice/sessions', {
+/** Every section, or only the mistakes made in {@code section}. */
+export function startMistakePractice(section?: MistakeSection): Promise<SessionView | NoMistakePractice> {
+  const query = section ? '?section=' + encodeURIComponent(section) : ''
+  return apiRequest<SessionView | NoMistakePractice>('/api/mistake-practice/sessions' + query, {
     method: 'POST',
   })
 }

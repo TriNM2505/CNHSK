@@ -1,3 +1,4 @@
+import type { MistakeSection } from './mistakeSections'
 import type { SessionView } from '@/features/practice'
 import type { HskLevel } from '@/shared/ui'
 
@@ -31,7 +32,8 @@ export type ResultItem = {
   errorNote: string | null
   explanation: string | null
   no: number
-  options: ResultOption[]
+  /** Absent for typed answers, which have no options. */
+  options: ResultOption[] | null
   primaryKid: string | null
   primaryKidName: string | null
   result: 'CORRECT' | 'WRONG' | 'BLANK'
@@ -69,7 +71,9 @@ export type TargetedPracticeRequest = {
 export type NoQuestions = { reason: 'NO_QUESTIONS'; session: null }
 
 /** Nodes the learner answered wrongly in the last seven days, most mistakes first. */
-export type MistakeSummary = { kids: { kid: string; nameVi: string; wrongCount: number }[] }
+export type MistakeSummary = {
+  kids: { kid: string; nameVi: string; wrongCount: number; section: MistakeSection }[]
+}
 
 export type NoMistakePractice = { reason: 'NO_RECENT_MISTAKES' | 'NO_QUESTIONS'; session: null }
 

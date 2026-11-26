@@ -74,7 +74,7 @@ class MistakePracticeIntegrationTest extends AbstractIntegrationTest {
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(fixtures.kid(nodeA), 3L),
                         org.assertj.core.groups.Tuple.tuple(fixtures.kid(nodeB), 1L));
 
-        var result = mistakes.start(learner);
+        var result = mistakes.start(learner, null);
 
         assertThat(result.reason()).isNull();
         var session = result.session();
@@ -97,7 +97,7 @@ class MistakePracticeIntegrationTest extends AbstractIntegrationTest {
         assertThat(mistakes.recentMistakes(learner)).extracting(MistakePracticeService.MistakeNode::kid,
                 MistakePracticeService.MistakeNode::wrongCount)
                 .containsExactly(org.assertj.core.groups.Tuple.tuple(fixtures.kid(node), 1L));
-        var result = mistakes.start(learner);
+        var result = mistakes.start(learner, null);
         sessions.add(result.session().sessionId());
         assertThat(served(result.session().sessionId())).containsExactly(practice);
     }
@@ -131,7 +131,7 @@ class MistakePracticeIntegrationTest extends AbstractIntegrationTest {
                 fixtures.user(), drafted);
         fixtures.items(learner, wrong, "B", false, NOW.minus(Duration.ofDays(1)), 3);
 
-        var session = mistakes.start(learner).session();
+        var session = mistakes.start(learner, null).session();
         sessions.add(session.sessionId());
 
         List<Long> served = served(session.sessionId());
@@ -141,12 +141,51 @@ class MistakePracticeIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void correctAnswersAfterAMistakeSettleItOneByOne() {
+        long learner = learner();
+        long nodeA = fixtures.node(), nodeB = fixtures.node();
+        long questionA = fixtures.question(nodeA, "IMPORT", "APPROVED", null);
+        long questionB = fixtures.question(nodeB, "IMPORT", "APPROVED", null);
+        // Correct before the first mistake settles nothing; the two after it settle two of the three mistakes.
+        fixtures.items(learner, questionA, "A", true, NOW.minus(Duration.ofDays(3)), 2);
+        fixtures.items(learner, questionA, "B", false, NOW.minus(Duration.ofDays(2)), 3);
+        fixtures.items(learner, questionA, "A", true, NOW.minus(Duration.ofDays(1)), 2);
+        fixtures.items(learner, questionB, "B", false, NOW.minus(Duration.ofDays(2)), 1);
+        fixtures.items(learner, questionB, "A", true, NOW.minus(Duration.ofDays(1)), 1);
+
+        assertThat(mistakes.recentMistakes(learner)).extracting(MistakePracticeService.MistakeNode::kid,
+                MistakePracticeService.MistakeNode::wrongCount)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(fixtures.kid(nodeA), 1L));
+    }
+
+    @Test
+    void mistakesAreFiledUnderTheSectionTheyWereMadeInAndPractisedThere() throws Exception {
+        long learner = learner();
+        long examNode = fixtures.node(), topicNode = fixtures.node();
+        long examQuestion = fixtures.question(examNode, "IMPORT", "APPROVED", null);
+        long topicQuestion = fixtures.question(topicNode, "IMPORT", "APPROVED", null);
+        fixtures.items(learner, examQuestion, "B", false, NOW.minus(Duration.ofHours(2)), 2);
+        jdbc.update("UPDATE learning.attempts SET kind='EXAM', ref_type='MOCK_EXAM' WHERE id=(SELECT max(id) FROM learning.attempts WHERE user_id=?)", learner);
+        fixtures.items(learner, topicQuestion, "B", false, NOW.minus(Duration.ofHours(3)), 1);
+
+        assertThat(mistakes.recentMistakes(learner)).extracting(MistakePracticeService.MistakeNode::kid,
+                MistakePracticeService.MistakeNode::section)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple(fixtures.kid(examNode), "MOCK_EXAM"),
+                        org.assertj.core.groups.Tuple.tuple(fixtures.kid(topicNode), "TOPIC"));
+
+        var session = mistakes.start(learner, "MOCK_EXAM").session();
+        sessions.add(session.sessionId());
+        assertThat(served(session.sessionId())).containsExactly(examQuestion);
+        assertThat(session.meta()).containsEntry("section", "MOCK_EXAM");
+    }
+
+    @Test
     void learnerWithoutMistakesInTheLastSevenDaysGetsNoSession() {
         long learner = learner();
         long node = fixtures.node();
         fixtures.items(learner, fixtures.question(node, "IMPORT", "APPROVED", null), "B", false,
                 NOW.minus(Duration.ofDays(8)), 4);
-        var result = mistakes.start(learner);
+        var result = mistakes.start(learner, null);
         assertThat(result.session()).isNull();
         assertThat(result.reason()).isEqualTo("NO_RECENT_MISTAKES");
     }

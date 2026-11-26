@@ -30,6 +30,7 @@ public class QuizRepository {
                 JOIN learning.question_knowledge_points qk
                   ON qk.knowledge_point_id = t.knowledge_point_id AND qk.role = 'PRIMARY'
                 JOIN learning.questions q ON q.id = qk.question_id AND q.status = 'APPROVED'
+                  AND (q.code IS NULL OR q.code NOT LIKE 'MCK%%')
                 WHERE t.knowledge_point_id IS NOT NULL AND (%s)
                   AND (cast(:hsk AS integer) IS NULL OR t.hsk_level = :hsk)
                 GROUP BY t.id
@@ -117,6 +118,7 @@ public class QuizRepository {
                 JOIN learning.question_knowledge_points qk
                   ON qk.knowledge_point_id=t.knowledge_point_id AND qk.role='PRIMARY'
                 JOIN learning.questions q ON q.id=qk.question_id AND q.status='APPROVED'
+                  AND (q.code IS NULL OR q.code NOT LIKE 'MCK%%')
                 WHERE t.id=:topicId AND (%s) ORDER BY q.id
                 """.formatted(SUPPORTED), Question.class).setParameter("topicId", topicId).getResultList();
         return rows.stream().map(Question.class::cast).toList();

@@ -12,11 +12,19 @@ vi.mock('../api/mastery', () => ({
   getMySkillMastery: vi.fn().mockResolvedValue({ hskLevel: 3, skills: [], domains: [] }),
 }))
 vi.mock('../api/reviews', () => ({ getReviewSummary: vi.fn() }))
+// A finished placement test keeps the invitation banner out of these dashboard checks.
+vi.mock('@/features/exam/api/placement', () => ({
+  getPlacementSummary: vi.fn().mockResolvedValue({
+    active: null,
+    last: { completedAt: '2026-11-20T00:00:00Z', confidence: 'SURE', level: 'HSK2', runId: 1 },
+  }),
+}))
 vi.mock('@/features/exam/api/targetedPractice', () => ({
   getMyMistakes: vi.fn().mockResolvedValue({
     kids: [
-      { kid: 'NP1-004', nameVi: 'Câu chữ 把', wrongCount: 3 },
-      { kid: 'TV1-002', nameVi: 'Gia đình', wrongCount: 1 },
+      { kid: 'NP1-004', nameVi: 'Câu chữ 把', wrongCount: 3, section: 'MOCK_EXAM' },
+      { kid: 'TV1-002', nameVi: 'Gia đình', wrongCount: 1, section: 'MOCK_EXAM' },
+      { kid: 'TV1-002', nameVi: 'Gia đình', wrongCount: 2, section: 'TOPIC' },
     ],
   }),
 }))
@@ -172,7 +180,15 @@ describe('SCR-010 Learning Dashboard (FR-025, AT-25)', () => {
     const panel = await screen.findByRole('region', { name: 'Luyện lỗi của tôi' })
     expect(await within(panel).findByText('2 phần cần luyện lại')).toBeVisible()
     expect(within(panel).getByText('Câu chữ 把, Gia đình')).toBeVisible()
-    expect(within(panel).getByRole('link', { name: 'Luyện ngay' })).toHaveAttribute(
+    expect(within(panel).getByRole('link', { name: 'Luyện lỗi Thi thử' })).toHaveAttribute(
+      'href',
+      '/learn/practice/targeted?mode=mistakes&section=MOCK_EXAM',
+    )
+    expect(within(panel).getByRole('link', { name: 'Luyện lỗi Chủ đề' })).toHaveAttribute(
+      'href',
+      '/learn/practice/targeted?mode=mistakes&section=TOPIC',
+    )
+    expect(within(panel).getByRole('link', { name: 'Luyện tất cả' })).toHaveAttribute(
       'href',
       '/learn/practice/targeted?mode=mistakes',
     )
