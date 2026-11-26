@@ -4,36 +4,29 @@
   line-height: inherit;
 }
 
-.personal-notes [role='tablist'] {
-  @apply flex-wrap gap-2 overflow-visible rounded-md border border-brand-100 bg-brand-50 p-2;
+/* Sidebar tabs read like section switches of a notes app, not like big pills. */
+.personal-notes .notes-sidebar [role='tablist'] {
+  @apply flex gap-1 overflow-visible rounded-md bg-surface p-1;
 }
 
-.personal-notes [role='tab'] {
-  @apply flex-1 rounded-sm border border-line bg-surface text-ink-secondary shadow-sm;
+.personal-notes .notes-sidebar [role='tab'] {
+  @apply min-h-touch flex-1 rounded-sm border-0 bg-transparent text-body-sm text-ink-secondary shadow-none;
 }
 
-.personal-notes [role='tab'][aria-selected='true'] {
-  @apply border-brand-600 bg-brand-600 text-surface;
+.personal-notes .notes-sidebar [role='tab']:hover {
+  @apply bg-brand-50 text-ink;
 }
 
-.personal-notes [role='tab'][aria-selected='true']:hover {
-  @apply bg-brand-700 text-surface;
+.personal-notes .notes-sidebar [role='tab'][aria-selected='true'] {
+  @apply bg-brand-50 text-brand-800;
 }
 
-.personal-notes [role='tabpanel'] {
-  @apply pb-0 pt-4;
-}
-
-.notes-workspace[data-editor-open='true'] .notes-grid {
-  @apply grid-cols-1;
+.personal-notes .notes-sidebar [role='tabpanel'] {
+  @apply pb-0 pt-3;
 }
 
 [data-assistant-open='true'] .notes-workspace {
   @apply grid-cols-1;
-}
-
-[data-assistant-open='true'] .notes-editor-panel {
-  @apply static;
 }
 
 @media (prefers-reduced-motion: no-preference) {
