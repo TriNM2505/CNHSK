@@ -31,6 +31,7 @@ function Practice({
   const [index, setIndex] = useState(0)
   const [feedback, setFeedback] = useState<TargetedFeedback>()
   const [finished, setFinished] = useState(false)
+  const [fastAnswers, setFastAnswers] = useState(false)
   const enteredAt = useRef(performance.now())
   const answer = useApiMutation(({ no, key }: { no: number; key: string }) =>
     answerItem(session.sessionId, {
@@ -62,7 +63,8 @@ function Practice({
       return
     }
     try {
-      await finish.run(undefined)
+      const result = await finish.run(undefined)
+      setFastAnswers(result.suspicious)
       setFinished(true)
     } catch {
       // Keep feedback visible and let the learner retry finishing the session.
@@ -70,7 +72,9 @@ function Practice({
   }
 
   if (finished)
-    return <TargetedPracticeView heading={heading} kid={kid} name={name} state="finished" />
+    return (
+      <TargetedPracticeView fastAnswers={fastAnswers} heading={heading} kid={kid} name={name} state="finished" />
+    )
   if (!item) return <TargetedPracticeView heading={heading} kid={kid} name={name} state="empty" />
   return (
     <TargetedPracticeView

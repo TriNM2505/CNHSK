@@ -4,6 +4,8 @@ import type { ReactNode } from 'react'
 import type { FinishResult } from '@/features/practice/types'
 import { Card, StatTile } from '@/shared/ui'
 
+import { FastAnswersNotice } from './FastAnswersNotice'
+
 export interface SessionSummaryProps {
   actions: ReactNode
   result: FinishResult
@@ -38,6 +40,8 @@ export function SessionSummary({
         <StatTile label="Câu đúng" value={correctCount} />
         <StatTile label="Câu sai" value={wrongItems.length} />
       </div>
+
+      {result.suspicious ? <FastAnswersNotice /> : null}
 
       {wrongItems.length ? (
         <Card>

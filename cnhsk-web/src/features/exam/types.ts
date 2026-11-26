@@ -56,6 +56,8 @@ export type ExamResult = {
   score: number
   sessionId: number
   submittedAt: string
+  /** Some answers came faster than the minimum time and were left out of progress and review. */
+  suspicious: boolean
   totalCount: number
   wrongByKid: KidCount[]
 }

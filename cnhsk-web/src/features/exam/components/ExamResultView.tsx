@@ -18,6 +18,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { FastAnswersNotice } from '@/features/practice/components/FastAnswersNotice'
 import { Button, Card, PageHeader, Progress } from '@/shared/ui'
 import type { ExamResult, ResultItem, WeakPoint } from '../types'
 
@@ -410,6 +411,8 @@ export function ExamResultView({
         />
         <ChineseLandscapeBannerArt />
       </div>
+
+      {result.suspicious ? <FastAnswersNotice /> : null}
 
       <div className="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_310px]">
         <aside

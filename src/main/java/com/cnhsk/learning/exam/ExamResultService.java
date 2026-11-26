@@ -103,7 +103,8 @@ public class ExamResultService {
         long correct = items.stream().filter(item -> item.result() == ItemResult.CORRECT).count();
         return new ExamResult(sessionId, new ExamIdentity(exam.examId(), exam.title(), level),
                 current.getSubmittedAt(), score.score(), score.maxScore(), score.percent(),
-                correct, items.size(), score.bySection(), previous, List.copyOf(items), wrongByKid);
+                correct, items.size(), score.bySection(), previous, List.copyOf(items), wrongByKid,
+                current.isSuspicious());
     }
 
     static Attempt requireSubmittedAttempt(EntityManager entities, long userId, long sessionId) {
@@ -149,5 +150,5 @@ public class ExamResultService {
             String errorKid, String errorNote) {}
     public record ExamResult(long sessionId, ExamIdentity exam, Instant submittedAt, long score, long maxScore,
             int percent, long correctCount, int totalCount, List<SectionScore> bySection, PreviousAttempt previous,
-            List<ResultItem> items, List<KidCount> wrongByKid) {}
+            List<ResultItem> items, List<KidCount> wrongByKid, boolean suspicious) {}
 }

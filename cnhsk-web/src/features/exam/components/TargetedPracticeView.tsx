@@ -12,6 +12,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import type { Option } from '@/features/practice'
+import { FastAnswersNotice } from '@/features/practice/components/FastAnswersNotice'
 import { NewQuestionBadge } from '@/features/practice/components/NewQuestionBadge'
 import { Button, PageHeader, Progress, Skeleton } from '@/shared/ui'
 
@@ -46,6 +47,8 @@ type Props = {
   emptyMessage?: string
   /** Replaces the per-node page heading, e.g. for the learner's own mistakes. */
   heading?: { title: string; subtitle: string }
+  /** The finished session had answers too fast to count toward progress and review. */
+  fastAnswers?: boolean
 }
 
 function ChineseLandscapeBannerArt() {
@@ -283,6 +286,7 @@ export function TargetedPracticeView({
   onRetry,
   emptyMessage,
   heading,
+  fastAnswers,
 }: Props) {
   return (
     <main className="mx-auto w-full min-w-0 max-w-content space-y-5 px-4 py-6 pb-16 sm:px-6 lg:max-w-[960px]">
@@ -348,6 +352,7 @@ export function TargetedPracticeView({
           Đã hoàn thành bài luyện
         </p>
       )}
+      {state === 'finished' && fastAnswers ? <FastAnswersNotice /> : null}
       {error && (
         <p role="alert" className="text-danger">
           {error}

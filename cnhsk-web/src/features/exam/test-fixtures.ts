@@ -29,6 +29,7 @@ export const examReviewFixture: ExamResult = {
   correctCount: 1,
   totalCount: 3,
   submittedAt: '2026-11-04T00:00:00Z',
+  suspicious: false,
   previous: null,
   bySection: [{ index: 1, name: 'Đọc hiểu', score: 2, maxScore: 5 }],
   items: [

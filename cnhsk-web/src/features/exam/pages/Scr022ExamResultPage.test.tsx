@@ -36,6 +36,18 @@ describe('SCR-022 exam result FR-026 / AT-27', () => {
     )
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Điểm yếu cần luyện' })).not.toBeInTheDocument())
   })
+  it('tells the learner when fast answers were left out of progress, and only then', async () => {
+    vi.mocked(getExamResult).mockResolvedValue({ ...examReviewFixture, suspicious: true })
+    const view = open()
+    expect(await screen.findByRole('note')).toHaveTextContent(
+      'Một số câu trả lời quá nhanh nên không được tính vào Tiến độ học tập và lịch ôn.',
+    )
+    view.unmount()
+    vi.mocked(getExamResult).mockResolvedValue(examReviewFixture)
+    open()
+    expect(await screen.findByText('Điểm trọng số: 2/5 (40%)')).toBeVisible()
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
   it('shows typed answers as typed and ordered answers as the sentence they form', async () => {
     const [first] = examReviewFixture.items
     vi.mocked(getExamResult).mockResolvedValue({

@@ -137,7 +137,7 @@ components:
         submittedAt: { type: string, format: date-time }
     ExamResult:
       type: object
-      required: [sessionId, exam, submittedAt, score, maxScore, percent, correctCount, totalCount, bySection, items, wrongByKid]
+      required: [sessionId, exam, submittedAt, score, maxScore, percent, correctCount, totalCount, bySection, items, wrongByKid, suspicious]
       properties:
         sessionId: { type: integer, format: int64 }
         exam:
@@ -160,6 +160,7 @@ components:
             - type: 'null'
         items: { type: array, items: { $ref: '#/components/schemas/ResultItem' } }
         wrongByKid: { type: array, items: { $ref: '#/components/schemas/KidCount' } }
+        suspicious: { type: boolean, description: Có câu trả lời quá nhanh; các câu đó không tính vào tiến độ và lịch ôn }
     WeakPoint:
       type: object
       required: [kid, nameVi, mastery]

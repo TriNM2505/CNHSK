@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.cnhsk.learning.practice.FastAnswers;
 import com.cnhsk.learning.practice.PracticeSource;
 import com.cnhsk.learning.practice.entity.Attempt;
 import com.cnhsk.learning.practice.entity.AttemptItem;
@@ -79,15 +80,16 @@ public class ReviewListener {
         if (attempt.getUserId() != event.userId() || !event.source().name().equals(attempt.getRefType())) {
             throw new IllegalStateException("Finished attempt does not match the event owner or source");
         }
-        if (event.suspicious() || attempt.isSuspicious()) {
-            return;
-        }
         if (!supports(event.source())) {
             log.warn("No FSRS review handling for practice source {}", event.source());
             return;
         }
 
         List<AttemptItem> attemptItems = items.findByAttemptIdOrderByOrderIndexAsc(event.sessionId());
+        // Fast answers are skipped one by one in collectCandidates; only a whole-session flag drops everything.
+        if (FastAnswers.excludesWholeAttempt(event.suspicious() || attempt.isSuspicious(), attemptItems)) {
+            return;
+        }
         Map<Long, Candidate> candidates = collectCandidates(event.source(), attemptItems, approvedQuestionIds(attemptItems));
         if (candidates.isEmpty()) {
             return;

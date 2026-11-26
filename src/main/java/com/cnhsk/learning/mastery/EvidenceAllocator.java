@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 import com.cnhsk.learning.knowledge.KnowledgeTreeService;
 import com.cnhsk.learning.knowledge.KnowledgeTreeService.QuestionKids;
+import com.cnhsk.learning.practice.FastAnswers;
 import com.cnhsk.learning.practice.PracticeService.ServedSnapshot;
 import com.cnhsk.learning.practice.ServedItem;
 import com.cnhsk.learning.practice.entity.Attempt;
@@ -47,7 +48,7 @@ public class EvidenceAllocator {
     public List<AllocatedEvidence> allocateNew(Attempt attempt, List<AttemptItem> items) {
         Objects.requireNonNull(attempt, "attempt");
         Objects.requireNonNull(items, "items");
-        if (attempt.isSuspicious() || contextOf(attempt.getRefType()) == null) {
+        if (FastAnswers.excludesWholeAttempt(attempt.isSuspicious(), items) || contextOf(attempt.getRefType()) == null) {
             return List.of();
         }
         return allocate(contexts(Map.of(attempt.getId(), attempt), items), true, attempt.getUserId());
@@ -120,7 +121,8 @@ public class EvidenceAllocator {
             if (context == null || item.getCorrect() == null && rubricScore == null) {
                 continue;
             }
-            if (current && (row.attempt().isSuspicious() || excludedMeta(item.getMeta())
+            // Fast answers carry the suspicious mark and are dropped here; the rest of a flagged attempt counts.
+            if (current && (excludedMeta(item.getMeta())
                     || item.getQuestionId() != null && !approved.contains(item.getQuestionId())
                     || answeredCorrectlyBefore(item, priorCorrect, settings.seenItemDays()))) {
                 continue;

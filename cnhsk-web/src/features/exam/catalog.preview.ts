@@ -138,6 +138,7 @@ export const examResultPreview = {
   score: 7,
   sessionId: 2201,
   submittedAt: '2026-11-03T16:30:00.000Z',
+  suspicious: false,
   totalCount: 10,
   wrongByKid: [],
 } satisfies ExamResult

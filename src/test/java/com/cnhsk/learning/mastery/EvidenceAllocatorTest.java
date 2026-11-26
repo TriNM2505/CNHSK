@@ -178,6 +178,23 @@ class EvidenceAllocatorTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void anAttemptFlaggedForFastAnswersKeepsItsOtherAnswers() throws Exception {
+        long user = user();
+        Node node = node();
+        long question = question(node, null, null);
+        long fast = attempt(user, "MOCK_EXAM", List.of(choice(1, question, 2), choice(2, question, 2)),
+                List.of(answer(1, question, null, "B", false, "{\"suspicious\":true}", NOW),
+                        answer(2, question, null, "B", false, "{}", NOW.plusSeconds(5))));
+        jdbc.update("UPDATE learning.attempts SET suspicious=true WHERE id=?", fast);
+        assertThat(allocate(fast)).extracting(AllocatedEvidence::kid).containsExactly(node.kid());
+
+        long wholeSession = attempt(user, "TOPIC_TEST", List.of(choice(1, question, 2)),
+                List.of(answer(1, question, null, "B", false, "{}", NOW.plusSeconds(10))));
+        jdbc.update("UPDATE learning.attempts SET suspicious=true WHERE id=?", wholeSession);
+        assertThat(allocate(wholeSession)).isEmpty();
+    }
+
+    @Test
     void pronunciationUnitsEvidenceTheirLinkedNodeAndIgnoreClientScores() throws Exception {
         long user = user();
         Node tone = node();
