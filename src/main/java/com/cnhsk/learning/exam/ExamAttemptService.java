@@ -24,7 +24,7 @@ public class ExamAttemptService {
     private final ExamQueryService exams;
     private final PracticeService practice;
     private final NamedParameterJdbcTemplate jdbc;
-    private final QuestionItemFactory factory = new QuestionItemFactory();
+    private final QuestionItemFactory factory = QuestionItemFactory.fullFormat();
 
     public ExamAttemptService(ExamQueryService exams, PracticeService practice, NamedParameterJdbcTemplate jdbc) {
         this.exams = exams;

@@ -7,7 +7,7 @@ import { useApiMutation } from '@/shared/api'
 import { Button } from '@/shared/ui/Button'
 
 import { nextPlacementBlock } from '../api/placement'
-import { ExamAttemptView, type AttemptSection } from '../components/ExamAttemptView'
+import { ExamAttemptView, type AttemptQuestion, type AttemptSection } from '../components/ExamAttemptView'
 
 type Draft = { pending: Record<number, AnswerRequest>; marks: number[] }
 type Practice = ReturnType<typeof usePracticeSession>
@@ -57,15 +57,23 @@ function Attempt({ session, practice }: { session: SessionView; practice: Practi
   const enteredAt = useRef(performance.now())
   const [saveStates, setSaveStates] = useState<Record<number, 'saving' | 'saved' | 'failed'>>({})
   const exam = object(session.meta?.exam)
-  const block = object(session.meta?.placement)
   const runId = session.refId ?? session.sessionId
   const advance = useApiMutation(() => nextPlacementBlock(runId))
   const busy = practice.pending !== null || advance.pending
   const readOnly = session.status === 'SUBMITTED'
-  const questions = session.items.map(({ no, prompt, options }) => ({
+  const questions: AttemptQuestion[] = session.items.map(({ no, type, prompt, options, rules }) => ({
     no,
     text: prompt.text ?? '',
     options: options ?? [],
+    kind: type === 'QUESTION_ORDER' ? 'order' : type === 'QUESTION_FILL' ? 'fill' : 'choice',
+    imageUrl: prompt.imageUrl ?? null,
+    listening: rules.hasAudio
+      ? {
+          speakText: prompt.speakText ?? null,
+          audioUrl: prompt.audioUrl ?? null,
+          maxPlays: rules.maxReplays ?? 0,
+        }
+      : null,
   }))
   const sectionOf = object(exam.sectionOf)
   const sections: AttemptSection[] =
@@ -157,11 +165,16 @@ function Attempt({ session, practice }: { session: SessionView; practice: Practi
   }
   async function submit() {
     if (busy || readOnly) return
-    const allowed = new Map(questions.map(({ no, options }) => [no, options]))
-    const answers = Object.values(draftRef.current.pending).filter(
-      ({ no, answer, skipped }) =>
-        allowed.has(no) && (skipped || allowed.get(no)?.some(({ key }) => key === answer)),
-    )
+    const allowed = new Map(questions.map((question) => [question.no, question]))
+    // Choice answers must be one of the item's keys; ordering and fill-in answers are checked by the server.
+    const answers = Object.values(draftRef.current.pending).filter(({ no, answer, skipped }) => {
+      const question = allowed.get(no)
+      if (!question) return false
+      if (skipped) return true
+      return (question.kind ?? 'choice') === 'choice'
+        ? question.options.some(({ key }) => key === answer)
+        : typeof answer === 'string' && answer.length > 0
+    })
     const result = await practice.finish(answers)
     if (result?.status !== 'SUBMITTED') return
     if (!placement) {
@@ -177,7 +190,7 @@ function Attempt({ session, practice }: { session: SessionView; practice: Practi
     <ExamAttemptView
       title={
         placement
-          ? 'Khối ' + (typeof block.block === 'number' ? block.block : 1)
+          ? 'Kiểm tra trình độ'
           : typeof exam.title === 'string'
             ? exam.title
             : 'Đề thi thử'

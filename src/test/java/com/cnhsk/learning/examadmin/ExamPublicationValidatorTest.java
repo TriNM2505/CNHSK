@@ -68,12 +68,10 @@ class ExamPublicationValidatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"audio", "image", "options", "type"})
+    @ValueSource(strings = {"options", "type"})
     void factoryLimitationsAreReportedWithoutChangingTheEngine(String kind) throws Exception {
         Question question = question();
         switch (kind) {
-            case "audio" -> question.setAudioUrl("https://example.test/audio.mp3");
-            case "image" -> question.setImageUrl("https://example.test/image.png");
             case "options" -> question.setOptions(List.of());
             case "type" -> question.setQtype(QuestionType.FILL_BLANK);
             default -> throw new AssertionError();
@@ -97,14 +95,23 @@ class ExamPublicationValidatorTest {
     }
 
     @Test
-    void listeningAudioIsRequiredEvenThoughTheCurrentFactoryRejectsMedia() throws Exception {
+    void questionsWithPicturesOrAudioArePublishable() throws Exception {
+        Question question = question();
+        question.setImageUrl("https://example.test/image.png");
+        assertThat(validator.validate(exam(1, "READING"), List.of(data(question, "NP3-901")))).isEmpty();
+    }
+
+    @Test
+    void listeningNeedsAudioOrTextTheBrowserCanSpeak() throws Exception {
         Question question = question();
         question.setAudioUrl(" ");
         assertThat(validator.validate(exam(1, "LISTENING"), List.of(data(question, "NP3-901"))))
                 .extracting(PublicationError::code).containsExactly(LISTENING_AUDIO_MISSING);
         question.setAudioUrl("https://example.test/audio.mp3");
-        assertThat(validator.validate(exam(1, "LISTENING"), List.of(data(question, "NP3-901"))))
-                .extracting(PublicationError::code).containsExactly(QUESTION_UNSUPPORTED);
+        assertThat(validator.validate(exam(1, "LISTENING"), List.of(data(question, "NP3-901")))).isEmpty();
+        question.setAudioUrl(null);
+        question.setSkill("LISTENING");
+        assertThat(validator.validate(exam(1, "LISTENING"), List.of(data(question, "NP3-901")))).isEmpty();
     }
 
     private ExamRow exam(int score, String type) throws Exception {

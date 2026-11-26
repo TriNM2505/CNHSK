@@ -22,7 +22,12 @@ public final class QuestionRules {
 
     private QuestionRules() { }
 
-    public record Option(String key, String text, boolean isCorrect, String errorKid, String errorNote) { }
+    /** An option; picture options carry the picture's URL and a short text describing it for editors. */
+    public record Option(String key, String text, boolean isCorrect, String errorKid, String errorNote, String imageUrl) {
+        public Option(String key, String text, boolean isCorrect, String errorKid, String errorNote) {
+            this(key, text, isCorrect, errorKid, errorNote, null);
+        }
+    }
 
     public record Draft(QuestionType qtype, int hskLevel, int difficulty, String stem, List<Option> options,
             String correctKey, String explanation, String audioUrl, String imageUrl,
@@ -115,8 +120,11 @@ public final class QuestionRules {
                 error(errors, "options", "INVALID_VALUE", "Câu đúng/sai dùng A: Đúng và B: Sai");
             }
         }
-        if (value.qtype() == QuestionType.IMAGE_MATCH && value.imageUrl() == null) {
-            error(errors, "imageUrl", "REQUIRED_MISSING", "Câu ghép hình cần đường dẫn ảnh");
+        // A picture question shows one picture to read, or a picture (uploaded image or emoji) on every option.
+        boolean everyOptionPictured = !options.isEmpty() && options.stream().allMatch(option -> option != null
+                && (option.imageUrl() != null || EmojiText.isEmojiOnly(option.text())));
+        if (value.qtype() == QuestionType.IMAGE_MATCH && value.imageUrl() == null && !everyOptionPictured) {
+            error(errors, "imageUrl", "REQUIRED_MISSING", "Câu ghép hình cần ảnh của câu hoặc ảnh/emoji cho mọi phương án");
         }
         for (int index = 0; index < options.size(); index++) {
             Option option = options.get(index);
@@ -126,6 +134,7 @@ public final class QuestionRules {
             }
             String field = "options[" + index + "]";
             required(errors, field + ".text", option.text(), 300);
+            url(errors, field + ".imageUrl", option.imageUrl());
             if (option.errorKid() != null && (!choice || option.isCorrect() || !existingKids.contains(option.errorKid()))) {
                 error(errors, field + ".errorKid", "INVALID_VALUE", "Chỉ gắn KID lỗi có trong cây cho phương án sai của câu chọn đáp án");
             }
@@ -146,7 +155,8 @@ public final class QuestionRules {
 
     private static Draft normalized(Draft value) {
         List<Option> options = value.options().stream().map(option -> option == null ? null : new Option(
-                text(option.key()), text(option.text()), option.isCorrect(), optionalKid(option.errorKid()), optional(option.errorNote()))).toList();
+                text(option.key()), text(option.text()), option.isCorrect(), optionalKid(option.errorKid()), optional(option.errorNote()),
+                optional(option.imageUrl()))).toList();
         boolean keyed = value.qtype() == QuestionType.FILL_BLANK || value.qtype() == QuestionType.SENTENCE_ORDER;
         return new Draft(value.qtype(), value.hskLevel(), value.difficulty(), text(value.stem()), options,
                 keyed ? optional(value.correctKey()) : null, text(value.explanation()), optional(value.audioUrl()),

@@ -36,6 +36,47 @@ describe('SCR-022 exam result FR-026 / AT-27', () => {
     )
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Điểm yếu cần luyện' })).not.toBeInTheDocument())
   })
+  it('shows typed answers as typed and ordered answers as the sentence they form', async () => {
+    const [first] = examReviewFixture.items
+    vi.mocked(getExamResult).mockResolvedValue({
+      ...examReviewFixture,
+      items: [
+        { ...first!, no: 1, stem: 'Câu điền chữ', result: 'WRONG', options: null, yourAnswer: '在', correctKey: '再' },
+        {
+          ...first!,
+          no: 2,
+          stem: 'Câu sắp xếp',
+          result: 'WRONG',
+          options: [
+            { key: 'A', text: '我' },
+            { key: 'B', text: '喜欢' },
+            { key: 'C', text: '茶' },
+          ],
+          yourAnswer: 'BAC',
+          correctKey: 'ABC',
+        },
+      ],
+    })
+    open()
+    expect(await screen.findByText('Câu trả lời của bạn: 在')).toBeVisible()
+    expect(screen.getByText('Đáp án đúng: 再')).toBeVisible()
+    expect(screen.getByText('Câu trả lời của bạn: 喜欢我茶')).toBeVisible()
+    expect(screen.getByText('Đáp án đúng: 我喜欢茶')).toBeVisible()
+  })
+  it('converts an HSK-format paper to the HSK scale with its pass mark', async () => {
+    vi.mocked(getExamResult).mockResolvedValue({
+      ...examReviewFixture,
+      exam: { ...examReviewFixture.exam, hskLevel: 1 },
+      bySection: [
+        { index: 1, name: 'Nghe', score: 14, maxScore: 20 },
+        { index: 2, name: 'Đọc', score: 10, maxScore: 20 },
+      ],
+    })
+    open()
+    expect(await screen.findByText(/Quy đổi thang HSK/)).toHaveTextContent(
+      'Quy đổi thang HSK: 120/200 · Đạt mức đỗ HSK 1 (từ 120 điểm)',
+    )
+  })
   it('loads weak points after the main result and links each KID to targeted practice', async () => {
     let resolveResult!: (value: typeof examReviewFixture) => void
     vi.mocked(getExamResult).mockReturnValue(new Promise((resolve) => { resolveResult = resolve }))

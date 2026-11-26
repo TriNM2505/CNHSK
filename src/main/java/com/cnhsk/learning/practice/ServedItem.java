@@ -52,16 +52,24 @@ public record ServedItem(
             List<Example> examples,
             String kind,
             Integer strokeCount,
-            String speakText) {
+            String speakText,
+            /** Picture the question is about, shown above the options. */
+            String imageUrl) {
 
         public Prompt(String text, String pinyin, String sinoViet, String meaning, String audioUrl,
                 String sentence, String hint, List<Example> examples, String kind) {
-            this(text, pinyin, sinoViet, meaning, audioUrl, sentence, hint, examples, kind, null, null);
+            this(text, pinyin, sinoViet, meaning, audioUrl, sentence, hint, examples, kind, null, null, null);
         }
 
         public Prompt(String text, String pinyin, String sinoViet, String meaning, String audioUrl,
                 String sentence, String hint, List<Example> examples, String kind, Integer strokeCount) {
-            this(text, pinyin, sinoViet, meaning, audioUrl, sentence, hint, examples, kind, strokeCount, null);
+            this(text, pinyin, sinoViet, meaning, audioUrl, sentence, hint, examples, kind, strokeCount, null, null);
+        }
+
+        public Prompt(String text, String pinyin, String sinoViet, String meaning, String audioUrl,
+                String sentence, String hint, List<Example> examples, String kind, Integer strokeCount,
+                String speakText) {
+            this(text, pinyin, sinoViet, meaning, audioUrl, sentence, hint, examples, kind, strokeCount, speakText, null);
         }
 
         public Prompt {
@@ -73,7 +81,12 @@ public record ServedItem(
     public record Example(String cn, String pinyin, String vi) {
     }
 
-    public record Option(String key, String text) {
+    /** A choice; picture options carry an image and may have no text of their own. */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record Option(String key, String text, String imageUrl) {
+        public Option(String key, String text) {
+            this(key, text, null);
+        }
     }
 
     public record Rules(int minDurationMs, int maxReplays, boolean hasAudio) {

@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ExamPublicationValidator {
-    private final QuestionItemFactory factory = new QuestionItemFactory();
+    private final QuestionItemFactory factory = QuestionItemFactory.fullFormat();
 
     List<PublicationError> validate(ExamRow exam, List<QuestionData> questions) {
         List<PublicationError> errors = new ArrayList<>();
@@ -29,10 +29,18 @@ public class ExamPublicationValidator {
         for (QuestionData item : questions) {
             var question = item.question();
             Link link = item.link();
+            // A listening question is heard either from its audio file or from the text the browser speaks aloud.
+            boolean spoken = false;
             if (question == null || question.getStatus() != QuestionStatus.APPROVED) {
                 errors.add(error(QUESTION_NOT_APPROVED, "Câu hỏi chưa được duyệt.", link));
-            } else if (factory.create(question, link.orderIndex()).isEmpty()) {
-                errors.add(error(QUESTION_UNSUPPORTED, "Câu hỏi chưa được engine hỗ trợ.", link));
+            } else {
+                var served = factory.create(question, link.orderIndex());
+                if (served.isEmpty()) {
+                    errors.add(error(QUESTION_UNSUPPORTED, "Câu hỏi chưa được engine hỗ trợ.", link));
+                } else {
+                    String speakText = served.get().prompt().speakText();
+                    spoken = speakText != null && !speakText.isBlank();
+                }
             }
             if (item.kid() == null || item.kid().isBlank()) {
                 errors.add(error(QUESTION_WITHOUT_KID, "Câu hỏi chưa có KID chính.", link));
@@ -44,7 +52,8 @@ public class ExamPublicationValidator {
                     listening = true;
                 }
             }
-            if (listening && (question == null || question.getAudioUrl() == null || question.getAudioUrl().isBlank())) {
+            if (listening && !spoken
+                    && (question == null || question.getAudioUrl() == null || question.getAudioUrl().isBlank())) {
                 errors.add(error(LISTENING_AUDIO_MISSING, "Câu hỏi phần nghe chưa có audio.", link));
             }
         }

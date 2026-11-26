@@ -26,6 +26,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.EntityManager;
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.function.Supplier;
 import java.util.HashSet;
 import java.util.List;
@@ -160,7 +161,7 @@ public class QuestionAdminService {
         Boolean used = null;
         var previous = new QuestionRules.Draft(question.getQtype(), question.getHskLevel(), question.getDifficulty(),
                 question.getStem(), question.getOptions().stream().map(option -> new QuestionRules.Option(option.key(), option.text(),
-                        option.isCorrect(), option.errorKid(), option.errorNote())).toList(), question.getCorrectKey(),
+                        option.isCorrect(), option.errorKid(), option.errorNote(), option.imageUrl())).toList(), question.getCorrectKey(),
                 question.getExplanation(), question.getAudioUrl(), question.getImageUrl(), "", List.of());
         if (!QuestionRules.gradingSignature(previous).equals(QuestionRules.gradingSignature(value))) {
             used = !questions.usedQuestionIds(Set.of(id)).isEmpty();
@@ -175,8 +176,12 @@ public class QuestionAdminService {
                 ? value.options().stream().filter(QuestionRules.Option::isCorrect).findFirst().orElseThrow().key()
                 : value.correctKey());
         question.setAudioUrl(value.audioUrl()); question.setImageUrl(value.imageUrl());
+        // The editor does not change pictures yet, so each option keeps the picture it had under the same key.
+        Map<String, String> pictures = new HashMap<>();
+        question.getOptions().stream().filter(option -> option.imageUrl() != null)
+                .forEach(option -> pictures.put(option.key(), option.imageUrl()));
         question.setOptions(value.options().stream().map(option -> new QuestionOption(option.key(), option.text(), option.isCorrect(),
-                option.errorKid(), option.errorNote())).toList());
+                option.errorKid(), option.errorNote(), option.imageUrl() != null ? option.imageUrl() : pictures.get(option.key()))).toList());
         var oldLabels = labels.findByQuestionIdIn(Set.of(id));
         if (!oldLabels.isEmpty()) { labels.deleteAll(oldLabels); labels.flush(); }
         entities.persist(new QuestionKnowledgePoint(id, pointIds.get(value.primaryKid()), KnowledgeLabelRole.PRIMARY));

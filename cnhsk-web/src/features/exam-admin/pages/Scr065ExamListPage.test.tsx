@@ -6,6 +6,18 @@ import { archiveExam, cloneExam, listExams } from '../api/exams'
 import { examFixture, pageFixture } from '../test-fixtures'
 import Page from './Scr065ExamListPage'
 vi.mock('../api/exams', () => ({ listExams: vi.fn(), archiveExam: vi.fn(), cloneExam: vi.fn() }))
+vi.mock('../api/mockPrep', () => ({
+  getMockPool: vi.fn().mockResolvedValue({ level: 1, questionsPerPaper: 40, parts: [], papers: [] }),
+  getWordImages: vi.fn().mockResolvedValue([]),
+  buildMockPapers: vi.fn(),
+  uploadWordImage: vi.fn(),
+  removeWordImage: vi.fn(),
+}))
+vi.mock('../api/placement', () => ({
+  getPlacementPool: vi.fn().mockResolvedValue({ levels: [], forms: [] }),
+  draftPlacementQuestions: vi.fn(),
+  buildPlacementForms: vi.fn(),
+}))
 beforeEach(() => {
   vi.mocked(listExams).mockReset().mockResolvedValue(pageFixture)
   vi.mocked(archiveExam)

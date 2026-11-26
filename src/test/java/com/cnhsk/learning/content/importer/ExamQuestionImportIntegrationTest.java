@@ -78,10 +78,10 @@ class ExamQuestionImportIntegrationTest extends AbstractIntegrationTest {
         assertThat(write(row(a, 1, 1, ""))).isEqualTo(RowAction.CREATE);
         assertThat(validate("UNKNOWN," + a + ",1,1,").errors()).extracting(CsvReader.RowError::code)
                 .containsExactly("REFERENCE_NOT_FOUND");
+        // Papers carry listening and pictures, so a question with audio is as usable as any other.
         assertThat(validate(csv("UNKNOWN", 1, 2, ""), csv(b, 3, 2, ""), csv(pending, 1, 2, ""),
-                csv(audio, 1, 2, ""), csv(otherLevel, 1, 2, "")).errors()).extracting(CsvReader.RowError::code)
-                .containsExactly("REFERENCE_NOT_FOUND", "SECTION_NOT_FOUND", "QUESTION_NOT_USABLE",
-                        "QUESTION_NOT_USABLE", "LEVEL_MISMATCH");
+                csv(audio, 1, 2, ""), csv(otherLevel, 1, 3, "")).errors()).extracting(CsvReader.RowError::code)
+                .containsExactly("REFERENCE_NOT_FOUND", "SECTION_NOT_FOUND", "QUESTION_NOT_USABLE", "LEVEL_MISMATCH");
         var moved = validate(csv(a, 1, 2, ""), csv(b, 1, 1, ""));
         assertThat(moved.validRows()).hasSize(1);
         assertThat(moved.errors()).extracting(CsvReader.RowError::code).containsExactly("DUPLICATE_ORDER");

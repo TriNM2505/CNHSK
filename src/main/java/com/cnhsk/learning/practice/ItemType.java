@@ -13,6 +13,10 @@ public enum ItemType {
     LESSON_READ(false),
     GRAMMAR_CHOICE(true),
     QUESTION_CHOICE(true),
+    /** Bank question answered by putting fragments in order; the answer is the keys in that order. */
+    QUESTION_ORDER(true),
+    /** Bank question answered by typing the missing characters. */
+    QUESTION_FILL(true),
     FLASHCARD_RATING(false),
     TRACE_CHAR(true),
     PINYIN_PAIR(true),

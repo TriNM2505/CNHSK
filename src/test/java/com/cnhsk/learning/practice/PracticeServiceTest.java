@@ -255,6 +255,27 @@ class PracticeServiceTest {
     }
 
     @Test
+    void writingQuestionsFromTheBankCarryTheirQuestionId() {
+        EntityManager entityManager = mock(EntityManager.class);
+        Query query = mock(Query.class);
+        when(entityManager.createNativeQuery(anyString())).thenReturn(query);
+        when(query.setParameter(anyString(), any())).thenReturn(query);
+        when(query.getResultList()).thenReturn(List.of());
+        service = new PracticeService(attempts, items, entityManager, mapper, Clock.fixed(NOW, ZoneOffset.UTC), limiter,
+                List.of(), mock(org.springframework.context.ApplicationEventPublisher.class));
+        for (ItemType type : List.of(ItemType.QUESTION_ORDER, ItemType.QUESTION_FILL)) {
+            ServedItem withId = new ServedItem(1, type, Skill.WRITING, null, choice(1).prompt(), null, "A",
+                    null, null, new ServedItem.Rules(800, 0, false), 99L);
+            ServedItem withoutId = new ServedItem(1, type, Skill.WRITING, null, choice(1).prompt(), null, "A",
+                    null, null, new ServedItem.Rules(800, 0, false), null);
+            service.start(command(PracticeSource.TOPIC_PRACTICE, List.of(withId), List.of(), null, Map.of()));
+            assertThat(saved.getServedItems().path("items").get(0).path("questionId").asLong()).isEqualTo(99L);
+            assertThatThrownBy(() -> service.start(command(PracticeSource.TOPIC_PRACTICE, List.of(withoutId),
+                    List.of(), null, Map.of()))).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test
     void FR002_preRecordedRejectsInvalidDurationAnswerAndAudioEvidence() {
         List<Answer> invalid = List.of(
                 new Answer(1, "KNOWN", -1, 0, false, false, null),

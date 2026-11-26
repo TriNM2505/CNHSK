@@ -24,6 +24,8 @@ export type Skill =
 export interface Option {
   key: string
   text: string
+  /** Picture options of exam questions; their text is empty. */
+  imageUrl?: string | null
 }
 
 export interface ServedItemExample {
@@ -40,6 +42,8 @@ export interface ServedItemPrompt extends Record<string, unknown> {
   audioUrl?: string | null
   /** Chinese text for the browser voice when there is no recorded audio. */
   speakText?: string | null
+  /** Picture an exam question is about. */
+  imageUrl?: string | null
   sentence?: string | null
   hint?: string | null
   examples?: ServedItemExample[]

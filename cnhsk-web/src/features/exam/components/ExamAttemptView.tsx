@@ -4,9 +4,7 @@ import {
   Bookmark,
   BookOpen,
   CheckCircle2,
-  Circle,
   CircleAlert,
-  CircleDot,
   ClipboardCheck,
   ClipboardList,
   LogOut,
@@ -15,7 +13,9 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, ConfirmPanel, PageHeader, Progress } from '@/shared/ui'
 
-export type AttemptQuestion = { no: number; text: string; options: { key: string; text: string }[] }
+import { ExamQuestionBody, type AttemptQuestion } from './ExamQuestionBody'
+
+export type { AttemptQuestion } from './ExamQuestionBody'
 export type AttemptSection = { index: number; name: string; questions: AttemptQuestion[] }
 
 type Props = {
@@ -298,6 +298,8 @@ function QuestionFooterMountainArt() {
 export function ExamAttemptView(props: Props) {
   const navigate = useNavigate()
   const [leaving, setLeaving] = useState(false)
+  // Listening plays per question; the server rejects answers that report more than the allowed plays.
+  const [plays, setPlays] = useState<Record<number, number>>({})
   const { sections, currentNo, choices, marks, placement, pending, readOnly } = props
   const questions = sections.flatMap((section) => section.questions)
   const index = questions.findIndex((question) => question.no === currentNo)
@@ -452,7 +454,7 @@ export function ExamAttemptView(props: Props) {
               disabled={pending || !question}
               onClick={props.onSubmit}
             >
-              Nộp khối
+              Nộp bài
             </Button>
           )
         ) : null}
@@ -475,48 +477,14 @@ export function ExamAttemptView(props: Props) {
           <span>Câu {question.no}</span>
         </h2>
 
-        <p
-          className={`${
-            placement ? 'break-words' : '[overflow-wrap:anywhere]'
-          } rounded-md border border-brand-100 bg-brand-50 px-5 py-4 font-hanzi text-h3 text-ink`}
-          lang="zh-CN"
-        >
-          {question.text}
-        </p>
-
-        <div className="grid gap-3" role="group" aria-label="Phương án">
-          {question.options.map(({ key, text }) => {
-            const isSelected = choices[question.no] === key
-            return (
-              <Button
-                key={key}
-                variant="outline"
-                className={`h-auto min-h-touch w-full justify-start whitespace-normal rounded-md p-4 text-left [&>span]:flex [&>span]:w-full [&>span]:min-w-0 [&>span]:items-center [&>span]:justify-between [&>span]:gap-3 ${
-                  isSelected
-                    ? 'border-brand-600 bg-brand-50 text-ink shadow-sm'
-                    : 'border-line bg-surface text-ink hover:border-brand-600'
-                }`}
-                aria-pressed={isSelected}
-                disabled={pending || readOnly}
-                onClick={() => props.onChoose(key)}
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  {isSelected ? (
-                    <CircleDot aria-hidden="true" className="size-5 shrink-0 text-brand-600" />
-                  ) : (
-                    <Circle aria-hidden="true" className="size-5 shrink-0 text-ink-muted" />
-                  )}
-                  <span className="min-w-0 font-semibold [overflow-wrap:anywhere]">
-                    {key}. <span className="font-hanzi">{text}</span>
-                  </span>
-                </span>
-                {isSelected ? (
-                  <CheckCircle2 aria-hidden="true" className="size-5 shrink-0 text-brand-600" />
-                ) : null}
-              </Button>
-            )
-          })}
-        </div>
+        <ExamQuestionBody
+          question={question}
+          answer={choices[question.no] ?? null}
+          plays={plays[question.no] ?? 0}
+          disabled={pending || readOnly}
+          onAnswer={props.onChoose}
+          onPlayed={() => setPlays((current) => ({ ...current, [question.no]: (current[question.no] ?? 0) + 1 }))}
+        />
 
         {!placement && (
           <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
@@ -585,7 +553,7 @@ export function ExamAttemptView(props: Props) {
       disabled={pending || !question}
       onClick={placement ? props.onSubmit : () => props.onConfirmChange(true)}
     >
-      {placement ? 'Nộp khối' : 'Nộp bài'}
+      Nộp bài
     </Button>
   )
 

@@ -69,6 +69,7 @@ public final class QuestionImportSupport {
                         type != QuestionType.SENTENCE_ORDER && answer.equals(Character.toString(key)), null, null));
             }
         }
+        options = withPictures(options, values.get("option_images"), errors);
         Map<String, String[]> distractors = new HashMap<>();
         if (present(values.get("distractor_errors"))) {
             boolean choice = type == QuestionType.MULTIPLE_CHOICE || type == QuestionType.IMAGE_MATCH || type == QuestionType.SENTENCE_MATCH;
@@ -85,7 +86,7 @@ public final class QuestionImportSupport {
         options = options.stream().map(option -> {
             String[] parts = distractors.get(option.key());
             return parts == null ? option : new Option(option.key(), option.text(), option.isCorrect(), kid(parts[1]),
-                    parts.length == 3 ? optional(parts[2]) : null);
+                    parts.length == 3 ? optional(parts[2]) : null, option.imageUrl());
         }).toList();
         String difficulty = values.get("difficulty");
         Draft draft = new Draft(type, integer(values.get("hsk_level"), 0), integer(difficulty,
@@ -97,10 +98,29 @@ public final class QuestionImportSupport {
         return new Parsed(draft, errors);
     }
 
+    /** Reads {@code A:url|B:url}: each key names an existing option, at most once. */
+    static List<Option> withPictures(List<Option> options, String cell, List<Violation> errors) {
+        if (!present(cell)) return options;
+        Map<String, String> pictures = new HashMap<>();
+        for (String item : cell.split("\\|", -1)) {
+            String[] parts = item.split(":", 2);
+            String key = parts.length == 2 ? text(parts[0]) : "";
+            String url = parts.length == 2 ? text(parts[1]) : "";
+            if (url.isEmpty() || options.stream().noneMatch(option -> option.key().equals(key))
+                    || pictures.putIfAbsent(key, url) != null) {
+                errors.add(new Violation("option_images", "INVALID_VALUE",
+                        "Mỗi mục dạng KHOÁ:URL, khoá là phương án có trong dòng, không lặp"));
+                return options;
+            }
+        }
+        return options.stream().map(option -> pictures.containsKey(option.key()) ? new Option(option.key(), option.text(),
+                option.isCorrect(), option.errorKid(), option.errorNote(), pictures.get(option.key())) : option).toList();
+    }
+
     public static Draft stored(Question question, String primary, List<String> secondary) {
         List<Option> options = question.getOptions().stream().map(option -> new Option(option.key(),
                 TextNormalizer.normalizeCell("option_a", option.text()), option.isCorrect(), optionalKid(option.errorKid()),
-                optional(TextNormalizer.normalizeCell("distractor_errors", option.errorNote()))))
+                optional(TextNormalizer.normalizeCell("distractor_errors", option.errorNote())), optional(option.imageUrl())))
                 .sorted(Comparator.comparing(Option::key)).toList();
         return new Draft(question.getQtype(), question.getHskLevel(), question.getDifficulty(),
                 TextNormalizer.normalizeCell("stem", question.getStem()), options, optional(question.getCorrectKey()),

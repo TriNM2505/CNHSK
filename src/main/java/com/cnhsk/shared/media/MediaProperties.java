@@ -20,6 +20,8 @@ public class MediaProperties {
     private String apiSecret = "";
     private String folder = "cnhsk/community";
     private String speakingFolder = "cnhsk/speaking";
+    /** Pictures of words, shared by every picture question of the mock exams. */
+    private String wordImageFolder = "cnhsk/word-images";
 
     public boolean configured() {
         return !cloudName.isBlank() && !apiKey.isBlank() && !apiSecret.isBlank();
@@ -56,4 +58,6 @@ public class MediaProperties {
     public void setFolder(String folder) { this.folder = folder; }
     public String getSpeakingFolder() { return speakingFolder; }
     public void setSpeakingFolder(String speakingFolder) { this.speakingFolder = speakingFolder; }
+    public String getWordImageFolder() { return wordImageFolder; }
+    public void setWordImageFolder(String wordImageFolder) { this.wordImageFolder = wordImageFolder; }
 }

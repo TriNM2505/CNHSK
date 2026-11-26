@@ -23,6 +23,7 @@ import com.cnhsk.learning.practice.entity.Attempt;
 import com.cnhsk.learning.practice.entity.AttemptItem;
 import com.cnhsk.learning.practice.entity.AttemptItemRepository;
 import com.cnhsk.learning.practice.entity.AttemptRepository;
+import com.cnhsk.learning.practice.grading.HanziFillGrader;
 import com.cnhsk.learning.practice.grading.PinyinGrader;
 import com.cnhsk.learning.practice.grading.SinoVietGrader;
 import com.cnhsk.learning.practice.event.ItemGradedEvent;
@@ -497,7 +498,8 @@ public class PracticeService {
         if (answer.replayCount() > item.rules().maxReplays()) {
             throw failure(ErrorCode.TOO_MANY_REPLAYS, HttpStatus.BAD_REQUEST, "Đã vượt số lần nghe cho phép.");
         }
-        if (!answer.skipped() && !answer.audioFailed() && item.options() != null
+        // Ordering items list fragments as options, but the answer is the fragments' keys in order.
+        if (!answer.skipped() && !answer.audioFailed() && item.options() != null && item.type() != ItemType.QUESTION_ORDER
                 && item.options().stream().noneMatch(option -> option.key().equals(answer.answer()))) {
             throw failure(ErrorCode.OPTION_NOT_IN_ITEM, HttpStatus.BAD_REQUEST, "Đáp án không thuộc câu hỏi này.");
         }
@@ -553,8 +555,10 @@ public class PracticeService {
             if (item.no() < 1 || !numbers.add(item.no())) {
                 throw new IllegalArgumentException("Served item numbers must be positive and unique.");
             }
-            if ((item.type() == ItemType.QUESTION_CHOICE) != (item.questionId() != null)) {
-                throw new IllegalArgumentException("QUESTION_CHOICE requires questionId and other item types reject it.");
+            boolean bankQuestion = item.type() == ItemType.QUESTION_CHOICE || item.type() == ItemType.QUESTION_ORDER
+                    || item.type() == ItemType.QUESTION_FILL;
+            if (bankQuestion != (item.questionId() != null)) {
+                throw new IllegalArgumentException("Bank question items require questionId and other item types reject it.");
             }
         }
         var recorded = new HashSet<Integer>();
@@ -693,6 +697,7 @@ public class PracticeService {
         return switch (item.type()) {
             case PINYIN_INPUT -> PinyinGrader.matches(answer, item.accept());
             case SINO_VIET_INPUT -> SinoVietGrader.matches(answer, item.accept());
+            case QUESTION_FILL -> HanziFillGrader.matches(answer, item.accept());
             default -> Objects.equals(item.answer(), answer);
         };
     }

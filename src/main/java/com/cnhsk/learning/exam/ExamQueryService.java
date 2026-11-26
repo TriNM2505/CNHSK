@@ -31,21 +31,27 @@ public class ExamQueryService {
     private final EntityManager entities;
     private final ObjectMapper mapper;
     private final Clock clock;
-    private final QuestionItemFactory factory = new QuestionItemFactory();
+    private final QuestionItemFactory factory = QuestionItemFactory.fullFormat();
+    /** Placement forms are exams too, but learners only reach them through the placement test. */
+    private final String placementPrefix;
 
-    public ExamQueryService(NamedParameterJdbcTemplate jdbc, EntityManager entities, ObjectMapper mapper, Clock clock) {
+    public ExamQueryService(NamedParameterJdbcTemplate jdbc, EntityManager entities, ObjectMapper mapper, Clock clock,
+            PlacementConfig placement) {
         this.jdbc = jdbc;
         this.entities = entities;
         this.mapper = mapper;
         this.clock = clock;
+        this.placementPrefix = placement.getFormCodePrefix();
     }
 
     @Transactional(readOnly = true)
     public List<ExamSummary> list(long userId, Integer hskLevel) {
-        String sql = "SELECT id, code, title, hsk_level, status, sections FROM learning.exams WHERE status = 'PUBLISHED'";
+        String sql = "SELECT id, code, title, hsk_level, status, sections FROM learning.exams"
+                + " WHERE status = 'PUBLISHED' AND code NOT LIKE :placement";
+        Map<String, Object> params = new HashMap<>(Map.of("placement", placementPrefix + "%"));
+        if (hskLevel != null) params.put("level", hskLevel);
         List<Exam> exams = jdbc.query(sql + (hskLevel == null ? "" : " AND hsk_level = :level")
-                        + " ORDER BY hsk_level, code", hskLevel == null ? Map.of() : Map.of("level", hskLevel),
-                (rs, row) -> exam(rs));
+                        + " ORDER BY hsk_level, code", params, (rs, row) -> exam(rs));
         if (exams.isEmpty()) return List.of();
 
         Map<Long, List<ExamQuestion>> questions = questions(exams.stream().map(Exam::id).toList());
@@ -91,8 +97,9 @@ public class ExamQueryService {
     Exam find(long id) {
         return jdbc.query("""
                 SELECT id, code, title, hsk_level, status, sections
-                FROM learning.exams WHERE id = :id
-                """, Map.of("id", id), (rs, row) -> exam(rs)).stream().findFirst().orElse(null);
+                FROM learning.exams WHERE id = :id AND code NOT LIKE :placement
+                """, Map.of("id", id, "placement", placementPrefix + "%"), (rs, row) -> exam(rs)).stream()
+                .findFirst().orElse(null);
     }
 
     private Exam exam(ResultSet rs) throws SQLException {

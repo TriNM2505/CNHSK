@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 public class ExamImportSupport {
     private final NamedParameterJdbcTemplate jdbc;
     private final ObjectMapper mapper;
-    private final QuestionItemFactory factory = new QuestionItemFactory();
+    private final QuestionItemFactory factory = QuestionItemFactory.fullFormat();
 
     public ExamImportSupport(NamedParameterJdbcTemplate jdbc, ObjectMapper mapper) {
         this.jdbc = jdbc;

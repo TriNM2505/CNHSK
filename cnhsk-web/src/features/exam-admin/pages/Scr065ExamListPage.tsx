@@ -4,6 +4,8 @@ import { toApiError, useApiQuery } from '@/shared/api'
 import { Button, ConfirmPanel, FormField, Input } from '@/shared/ui'
 import { archiveExam, cloneExam, listExams } from '../api/exams'
 import { ExamListView } from '../components/ExamListView'
+import { MockPrepPanel } from '../components/MockPrepPanel'
+import { PlacementPrepPanel } from '../components/PlacementPrepPanel'
 import { failureMessage } from '../examForm'
 import type { AdminExam, ExamFilters, ExamStatus } from '../types'
 
@@ -118,6 +120,8 @@ export default function Scr065ExamListPage() {
           )}
         </div>
       )}
+      <PlacementPrepPanel onBuilt={result.reload} />
+      <MockPrepPanel onBuilt={result.reload} />
       <ExamListView
         state={result.state}
         data={result.data}

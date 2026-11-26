@@ -96,7 +96,7 @@ describe('SCR-021 FR-025 / AT-26', () => {
     expect(sessionStorage.getItem(draftKey)).toBeNull()
   })
 
-  it('skips without counting an answer, then opens a fresh placement block', async () => {
+  it('skips without counting an answer, then reopens the form when the server serves it again', async () => {
     const blockTwo = {
       ...placementAttemptFixture,
       sessionId: 5202,
@@ -111,18 +111,19 @@ describe('SCR-021 FR-025 / AT-26', () => {
       .mockResolvedValueOnce({ runId: 5201, session: null, concluded: true })
     const user = userEvent.setup()
     open(5201)
-    expect(await screen.findByRole('heading', { name: 'Khối 1' })).toBeVisible()
+    expect(await screen.findByRole('heading', { name: 'Kiểm tra trình độ' })).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'A. Phương án một' }))
     await user.click(screen.getByRole('button', { name: 'Bỏ qua' }))
     expect(screen.getByText('Đã làm 0/5 câu · Còn lại 5 câu')).toBeVisible()
-    await user.click(screen.getByRole('button', { name: 'Nộp khối' }))
-    expect(await screen.findByRole('heading', { name: 'Khối 2' })).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Nộp bài' }))
+    await waitFor(() => expect(getSession).toHaveBeenCalledTimes(2))
+    expect(await screen.findByRole('heading', { name: 'Kiểm tra trình độ' })).toBeVisible()
     expect(finishSession).toHaveBeenCalledWith(5201, {
       answers: [expect.objectContaining({ no: 1, answer: null, skipped: true })],
     })
     expect(nextPlacementBlock).toHaveBeenCalledWith(5201)
     expect(screen.getByText('Đã làm 0/5 câu · Còn lại 5 câu')).toBeVisible()
-    await user.click(screen.getByRole('button', { name: 'Nộp khối' }))
+    await user.click(screen.getByRole('button', { name: 'Nộp bài' }))
     await waitFor(() =>
       expect(screen.getByLabelText('Vị trí')).toHaveTextContent('/learn/placement/5201'),
     )
@@ -137,7 +138,7 @@ describe('SCR-021 FR-025 / AT-26', () => {
       .mockResolvedValueOnce({ runId: 5201, session: null, concluded: true })
     const user = userEvent.setup()
     open(5201)
-    await user.click(await screen.findByRole('button', { name: 'Nộp khối' }))
+    await user.click(await screen.findByRole('button', { name: 'Nộp bài' }))
     expect(await screen.findByRole('alert')).toBeVisible()
     expect(nextPlacementBlock).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('button', { name: 'A. Phương án một' })).toBeDisabled()

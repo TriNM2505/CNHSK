@@ -40,9 +40,14 @@ type WeakPointsState =
   | { state: 'error'; onRetry: () => void }
   | { state: 'ready'; points: WeakPoint[] }
 
+/** Choice answers show their option; ordered answers (keys such as "BCA") show the sentence; typed answers as typed. */
 function answerText(item: ResultItem, key: string) {
-  const option = item.options.find((entry) => entry.key === key)
-  return option ? key + '. ' + option.text : key
+  const options = item.options ?? []
+  const option = options.find((entry) => entry.key === key)
+  if (option) return key + '. ' + option.text
+  const pieces = [...key].map((part) => options.find((entry) => entry.key === part))
+  if (key.length > 1 && pieces.every(Boolean)) return pieces.map((piece) => piece!.text).join('')
+  return key
 }
 
 function ChineseLandscapeBannerArt() {
@@ -317,6 +322,22 @@ function KidScrollCornerArt() {
   )
 }
 
+/**
+ * HSK 2.0 scores every section out of 100 and passes at 60% of the total (120/200 for HSK 1–2, 180/300 for HSK 3).
+ * Only HSK-format papers of those levels (they have a listening section) are converted; other mock exams show no
+ * pass mark.
+ */
+function hskScale(result: Pick<ExamResult, 'bySection' | 'exam'>) {
+  const level = result.exam.hskLevel
+  const sections = result.bySection.filter((section) => section.maxScore > 0)
+  const hskFormat = sections.some((section) => section.name === 'Nghe')
+  if (level == null || level < 1 || level > 3 || !hskFormat) return null
+  const scaled = sections.reduce((sum, section) => sum + Math.round((section.score / section.maxScore) * 100), 0)
+  const total = sections.length * 100
+  const passMark = total * 0.6
+  return { scaled, total, passMark, passed: scaled >= passMark }
+}
+
 function ScoreRing({ percent }: { percent: number }) {
   const value = Math.min(Math.max(percent, 0), 100)
   return (
@@ -367,6 +388,7 @@ export function ExamResultView({
   const items = result.items.filter((item) => filter === 'ALL' || item.result === filter)
   const wrongCount = result.items.filter((item) => item.result === 'WRONG').length
   const blankCount = result.items.filter((item) => item.result === 'BLANK').length
+  const hsk = hskScale(result)
   const counts: Record<ResultFilter, number> = {
     ALL: result.items.length,
     WRONG: wrongCount,
@@ -446,6 +468,14 @@ export function ExamResultView({
                 <BarChart3 aria-hidden="true" className="size-5 text-brand-700" />
                 <span>Điểm theo phần</span>
               </h2>
+              {hsk ? (
+                <p className="rounded-md border border-brand-100 bg-surface px-4 py-3 text-body-sm text-ink">
+                  Quy đổi thang HSK: <strong className="tabular-nums">{hsk.scaled}/{hsk.total}</strong> ·{' '}
+                  {hsk.passed
+                    ? `Đạt mức đỗ HSK ${result.exam.hskLevel} (từ ${hsk.passMark} điểm)`
+                    : `Chưa đạt mức đỗ HSK ${result.exam.hskLevel} (cần ${hsk.passMark} điểm)`}
+                </p>
+              ) : null}
               <ul className="space-y-4">
                 {result.bySection.map((part) => (
                   <li key={part.index} className="space-y-2 text-body-sm">

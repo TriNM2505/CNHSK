@@ -99,6 +99,6 @@ public class QuestionRowWriter implements RowWriter {
         question.setStem(value.stem()); question.setExplanation(value.explanation());
         question.setCorrectKey(value.correctKey()); question.setAudioUrl(value.audioUrl()); question.setImageUrl(value.imageUrl());
         question.setOptions(value.options().stream().map(option -> new QuestionOption(option.key(), option.text(), option.isCorrect(),
-                option.errorKid(), option.errorNote())).toList());
+                option.errorKid(), option.errorNote(), option.imageUrl())).toList());
     }
 }

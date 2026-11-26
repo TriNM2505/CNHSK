@@ -8,8 +8,8 @@
 
 | Trường | Giá trị |
 |---|---|
-| **Version** | 1.0.0 |
-| **Status** | APPROVED — được code theo `tasks.md` |
+| **Version** | 1.2.0 |
+| **Status** | v1.2.0 — 2026-11-26: đề thi thử đúng format HSK 2.0 (§0.6, Q20–Q24) · v1.1.0 APPROVED — leader chốt 2026-11-26: bài xếp trình độ 5 đề cố định thay thuật toán thích ứng (§0.4, FR-017…FR-021 sửa, FR-028…FR-030 thêm, AT-16…AT-20 sửa, Q14–Q17) · v1.0.0 APPROVED — được code theo `tasks.md` |
 | **Approved by** | Leader (RFC đợt cuối R1–R12 đã đồng thuận) |
 | **Locked on** | 2026-11-03 |
 | **Phụ thuộc** | Spec 001 (đăng nhập, lỗi, CSRF) · Spec 002 (luồng nhập §3, §4) · **Spec 003 §0 (engine luyện tập — 012 thêm giá trị, §0.2)** · **Spec 010** (`Question` entity, `KnowledgeTreeService` FR-024/FR-025, mẫu `QUESTION`) · Spec 011 (chỉ FR-014: đọc mastery) |
@@ -69,20 +69,34 @@ Không đổi luật chấm, điểm, hạn, khoá dòng của engine. `attempt_
 
 Đi qua nguyên luồng spec 002 (kiểm tra → xem trước → xác nhận → ghi từng dòng `REQUIRES_NEW`). **Không commit đề HSK thật** (`HR-08`, DK-13); test dùng đề tự soạn trong `src/test/resources/import/exam/`.
 
-### 0.4 · Bài xếp trình độ — thuật toán (lớp thuần `PlacementAlgorithm`)
+### 0.4 · Bài xếp trình độ — 5 đề cố định (v1.1, thay thuật toán thích ứng)
 
-Tham số cấu hình `cnhsk.placement.*` (mặc định trong `application.yaml`, **không** hard-code; Q9):
+Leader chốt 2026-11-26 (Q14–Q18). Đề = bài thi `PUBLISHED` mã `PLACEMENT-01…05` (ẩn khỏi danh sách thi thử),
+**một bài trộn** 30 câu (10 câu mỗi cấp HSK 1/2/3, không ghi cấp), xếp từ dễ đến khó theo độ khó ban đầu nên các cấp
+đan xen; trắc nghiệm + đúng/sai, đọc–từ–ngữ pháp, không nghe/viết, ~15 phút.
+Câu đề = câu AI soạn riêng mã `PLC{1|2|3}-…`, qua duyệt GV → CE (spec 024 v1.7). Không đổi DB.
 
-| Khoá | Mặc định | Ý nghĩa |
+**Chấm (Q18): mô hình Rasch có hệ số đoán mò** — `P(đúng) = c + (1 − c)·σ(θ − b)`:
+- `b` (độ khó câu), thang HSK 2 = 0, mỗi cấp cách 1: khởi đầu = `(cấp − 2) + (difficulty − 2)·0,6` (`difficulty` 1–3 có sẵn); khi câu có ≥ `calibration-min-answers` lượt làm ở các lượt đã kết luận, thay bằng độ khó quan sát `θ̄ − logit((p − c)/(1 − c))` (tính trực tiếp từ `attempt_items`, không bảng mới) → **đề tự chính xác dần**.
+- `c` (đoán mò): đúng/sai ½, trắc nghiệm 1/số phương án. Bỏ trống = sai.
+- `θ` (năng lực) = mode hậu nghiệm trên lưới [−5, 5] với prior N(0, `prior-deviation`²); sai số chuẩn từ lượng thông tin Fisher.
+- Cấp = ngưỡng `cuts` trên θ; không trả lời câu nào → `BELOW_1` tạm. θ và sai số lưu trong `meta.placement.conclusion`.
+
+| Khoá `cnhsk.placement.*` | Mặc định | Ý nghĩa |
 |---|---|---|
-| `block-size` | 5 | Số câu mỗi khối, cùng một cấp |
-| `min-items` | 25 | Số câu tối thiểu trước khi được dừng |
-| `max-items` | 35 | Dừng cứng |
-| `up-at` / `down-at` | 4 / 2 | Đúng ≥ 4 → lên cấp; đúng ≤ 2 → xuống cấp; đúng 3 → giữ cấp |
-| `thresholds` | `{1: 60, 2: 65, 3: 75}` | % đúng tối thiểu để đạt cấp (tạm theo file md; leader đối chiếu v2.0 — OQ-1) |
-| `sure-min-items` | 10 | Số câu tối thiểu ở cấp kết luận để kết quả "Chắc chắn" |
-| `start-level` | 2 | Cấp khối đầu khi người học không chọn |
-| `min-bank-per-level` | 10 | Số câu dùng được tối thiểu mỗi cấp 1–3 để mở bài |
+| `cuts` | `[-1.6, 0.1, 1.7]` | θ tối thiểu để đạt HSK 1/2/3 — đặt từ θ của các bài điển hình (7-2-2 → HSK 1, 10-7-3 → HSK 2, 10-10-7 → HSK 3) |
+| `above-ability` | 2.6 | θ tối thiểu để "HSK 3 trở lên" (~9/10 câu HSK 3) |
+| `prior-deviation` | 2.0 | Độ rộng prior |
+| `max-standard-error` | 0.75 | Sai số lớn hơn → `TENTATIVE` |
+| `tentative-unanswered` | 5 | Bỏ trống > 5 câu → `TENTATIVE` |
+| `calibration-min-answers` | 30 | Số lượt làm để dùng độ khó quan sát |
+| `form-code-prefix` | `PLACEMENT-` | Mã đề xếp trình độ |
+
+- Lượt = một phiên 30 câu của **một** đề (khác đề lần trước nếu còn đề khác); nộp → `next` kết luận; phiên hết hạn → `next` phát lại cùng đề; đề bị rút → kết luận với những gì đã nộp.
+- Kết luận lưu trong `meta.placement.conclusion` và **ghi đè** `auth.users.hsk_level` (BELOW_1 → 1, ABOVE_3 → 3) qua `AuthApi.recordPlacedLevel`.
+- Làm lại không giới hạn. Lượt của thuật toán cũ vẫn xem được kết quả (chấm lại theo luật mới).
+
+<details><summary>Thuật toán thích ứng v1.0 (đã thay)</summary>
 
 1. **Kết quả khối:** `c` = số câu đúng (bỏ qua/không trả lời = sai). `c ≥ up-at` → `UP`; `c ≤ down-at` → `DOWN`; còn lại `STAY`.
 2. **Cấp khối sau** = `clamp(L + (UP ? 1 : DOWN ? −1 : 0), 1, 3)`.
@@ -91,6 +105,24 @@ Tham số cấu hình `cnhsk.placement.*` (mặc định trong `application.yaml
 5. **Độ tin cậy:** `SURE` khi `n(cấp kết luận) ≥ sure-min-items` (`BELOW_1` xét cấp 1, `ABOVE_3` xét cấp 3) và `bankExhausted = false`; ngược lại `TENTATIVE` ("Kết quả tạm").
 6. **Lượt (run):** khối 1 có `ref_id = NULL`; `runId` = id lượt khối 1; khối 2+ có `ref_id = runId`. Khối `EXPIRED`/`ABANDONED` bị bỏ qua khi tính (chỉ khối `SUBMITTED`). Làm lại **không giới hạn** (Q10); lượt cũ không bị xoá.
 
+</details>
+
+### 0.6 · Đề thi thử đúng format HSK 2.0 (v1.2, Yêu cầu 1b)
+
+Leader chốt 2026-11-26 (Q20–Q24). Bổ sung cho dòng phạm vi "chỉ trắc nghiệm, đúng/sai không audio, không ảnh": đề thi thử
+nay phục vụ đủ dạng câu máy chấm của đề HSK 2.0. Kiểm tra đầu vào, quiz, cuộc thi, luyện đọc **giữ nguyên** chỉ trắc nghiệm chữ.
+
+| Cấp | Nghe | Đọc | Viết | Tổng | Mã đề |
+|---|---|---|---|---|---|
+| HSK 1 | 20 (L1 đúng/sai ảnh, L2–L3 chọn hình, L4 trắc nghiệm) | 20 (R1 đúng/sai ảnh, R2 chọn hình, R3 ghép câu, R4 điền từ) | — | 40 | `MOCK-HSK1-01…03` |
+| HSK 2 | 35 | 25 | — | 60 | `MOCK-HSK2-01…03` |
+| HSK 3 | 40 | 30 | 10 (W1 sắp xếp câu, W2 điền chữ Hán theo pinyin) | 80 | `MOCK-HSK3-01…03` |
+
+1. **Nghe:** câu `skill = LISTENING`; `stem` là lời nói, trình duyệt đọc (giọng `zh-CN`), không hiện chữ; dòng bắt đầu `★` là nhận định in ra cho người học. Bấm nghe, **tối đa 2 lần/câu** (`rules.maxReplays = 2`). Có `audio_url` thì phát file thay giọng trình duyệt.
+2. **Hình:** mặc định là **emoji** người nạp đặt cho từ được vẽ (lưu ngay trong chữ: dòng chỉ có emoji trên đề, hoặc phương án chỉ có emoji; FE vẽ to, máy đọc bỏ qua). Từ nào có ảnh thật trong thư viện ảnh từ vựng (`lexemes.extra.image_url`, thư mục Cloudinary `cnhsk/word-images`, CE tải ảnh miễn phí bản quyền, không bắt buộc) thì dán link ảnh (nút "Chép link") vào `image_url`/`option_images`. **Không** dùng AI vẽ ảnh, **không** lấy đề thật. Ảnh của phương án lưu ở `questions.options[].image_url`; học viên chỉ thấy ảnh, chữ mô tả ảnh chỉ để duyệt. `IMAGE_MATCH` cần ảnh câu, hoặc ảnh/emoji cho mọi phương án. Mẫu nạp câu hỏi thêm cột `option_images` (`A:url|B:url`).
+3. **Chấm:** sắp xếp câu so chuỗi khoá; điền chữ chuẩn hoá NFKC, bỏ khoảng trắng và dấu câu, nhiều đáp án ngăn bằng `|`. Kết quả đề HSK-format quy đổi mỗi phần 100 điểm, đạt khi ≥ 60 % tổng (120/200, 180/300); đề thi thử cũ vẫn không hiện đỗ/trượt (AT-27).
+4. **Nạp câu (tay):** CE nạp từng phần bằng mẫu `QUESTION` với mã `MCK{cấp}-{phần}-…` (vd `MCK1-L2-001`), `qtype` và `skill` theo phần, `kid_primary` bắt buộc (gắn nút cây); mục SCR-065 ghi cách viết từng phần và số câu đã nạp. Đủ câu đã duyệt mỗi phần (×3) thì tạo 3 đề nháp rồi xuất bản như đề thường. API `/api/admin/mock-prep/*` (CONTENT_EDITOR). **Không dùng AI soạn đề** (Q25). Không thêm bảng, không migration.
+5. **Cây tri thức:** như cũ — câu sai ghi `attempt_items.is_correct = false`, vào mastery (EXAM) và nguồn chọn nút của AI sinh câu (spec 024).
 ### 0.5 · File dùng chung bị sửa (báo leader trước khi mở PR)
 
 | File | Thay đổi | Task |
@@ -209,11 +241,11 @@ Biên tập viên nạp đề tự soạn qua SCR-068: file `EXAM` rồi file `E
 
 | Mã | Yêu cầu |
 |---|---|
-| **FR-017** | `learning.exam.PlacementAlgorithm` SHALL là lớp thuần (không Spring, không DB) cài đúng §0.4: `decide(List<BlockResult>, PlacementConfig, boolean bankExhausted) → Next(level) \| Conclusion(level, confidence)` với `BlockResult(level, correct, total)` |
-| **FR-018** | WHEN cần khối cấp `L`, THE system SHALL chọn `block-size` câu dùng được (FR-004) có `hsk_level = L` và KID chính: loại câu đã phát trong lượt này; ưu tiên câu chưa phát ở lượt **hoàn thành** gần nhất của người gọi (E11); xoay vòng theo miền của KID chính (thứ tự miền ngẫu nhiên, ngẫu nhiên trong miền). Không đủ → `bankExhausted = true` (§0.4 bước 4). `sessionMeta.placement = {runId, block, level}` |
+| **FR-017** | v1.1: `learning.exam.PlacementFormScoring` SHALL là lớp thuần cài mô hình §0.4: `decide(List<Item(difficulty, guess, correct, answered)>, PlacementConfig) → Conclusion(level, confidence, ability, standardError)`; `PlacementService` ghi `difficultyOf`/`guessOf` từng câu vào phiên lúc bắt đầu và hiệu chỉnh độ khó từ câu trả lời thật lúc kết luận |
+| **FR-018** | v1.1: Đề dùng được = bài thi `PUBLISHED` mã `PLACEMENT-%` mà mọi câu dùng được (FR-004, `APPROVED`, KID chính, HSK 1–3; câu hỏng bị bỏ + log) và còn câu ở đủ 3 cấp. Lượt mới chọn ngẫu nhiên một đề **khác đề của lượt hoàn thành gần nhất** nếu còn đề khác (E11). `sessionMeta.placement = {block:1, form, title, kidOf, levelOf}` |
 | **FR-019** | `GET /api/placement/summary` SHALL trả `{active:{runId, sessionId}\|null, last:{runId, level, confidence, completedAt}\|null}` của người gọi; `active` = lượt chưa kết luận có khối `IN_PROGRESS` còn hạn |
-| **FR-020** | `POST /api/placement/runs` body `{startLevel?}` (1–3, sai → **422** `VALIDATION_FAILED`) SHALL: có khối `IN_PROGRESS` còn hạn → **200** khối đó; một cấp 1–3 có < `min-bank-per-level` câu dùng được → **422** `PLACEMENT_BANK_INSUFFICIENT` kèm `details[{level, available}]`; ngược lại tạo khối 1 (`refId = NULL`) → **201** `{runId, session}` |
-| **FR-021** | `POST /api/placement/runs/{runId}/next` SHALL (lượt không thuộc người gọi → **403** `ATTEMPT_NOT_OWNED`): có khối `IN_PROGRESS` còn hạn → **200** `{runId, session}`; ngược lại chạy `PlacementAlgorithm` trên các khối `SUBMITTED` → `Next` thì tạo khối mới (`refId = runId`) **201** `{runId, session}`; `Conclusion` thì **200** `{runId, session: null, concluded: true}`. Gọi lại sau khi đã kết luận → cùng kết quả (idempotent) |
+| **FR-020** | `POST /api/placement/runs` body `{startLevel?}` (1–3, sai → **422** `VALIDATION_FAILED`; v1.1 nhận nhưng bỏ qua) SHALL: có phiên `IN_PROGRESS` còn hạn → **200** phiên đó; không có đề dùng được → **422** `PLACEMENT_BANK_INSUFFICIENT` ("đang được chuẩn bị"); ngược lại tạo phiên 30 câu (`refId = NULL`) → **201** `{runId, session}` |
+| **FR-021** | `POST /api/placement/runs/{runId}/next` SHALL (lượt không thuộc người gọi → **403** `ATTEMPT_NOT_OWNED`): có phiên `IN_PROGRESS` còn hạn → **200** `{runId, session}`; đã nộp → kết luận theo FR-017, lưu kết luận, ghi đè `users.hsk_level` → **200** `{runId, session: null, concluded: true}`; phiên hết hạn chưa nộp → phát lại cùng đề (`refId = runId`) **201**; đề đã bị rút → kết luận. Gọi lại sau khi đã kết luận → cùng kết quả (idempotent) |
 | **FR-022** | `GET /api/placement/runs/{runId}/result` SHALL (quyền như FR-021; chưa kết luận → **409** `PLACEMENT_NOT_FINISHED`) trả `{runId, completedAt, level: BELOW_1\|HSK1\|HSK2\|HSK3\|ABOVE_3, confidence: SURE\|TENTATIVE, itemCount, byLevel:[{level, correct, total, percent}], domains:[{domain, correct, total, percent, measured, tentative}], wrongKids:[{kid, nameVi, wrong, total}]}`: `domains` luôn đủ 6 miền `NA CH TV NP NL VB` theo KID chính; miền 0 câu → `measured=false`, `percent=null` ("chưa đo", không đoán); `0 < total < 3` → `tentative=true`; `wrongKids` sắp theo `kid` (ngữ cảnh). Tính lại từ `attempt_items` mỗi lần (không lưu kết quả) |
 | **FR-023** | Mỗi khối là một lượt `PLACEMENT` của engine: câu của khối không lộ đáp án trước khi nộp; `finish` theo E-F1…E-F7 của engine; `PlacementHandler.onFinish` trả `extra = {runId, block}` |
 
@@ -225,6 +257,14 @@ Biên tập viên nạp đề tự soạn qua SCR-068: file `EXAM` rồi file `E
 | **FR-025** | SCR-021 SHALL có hai chế độ theo `session.source`. **`MOCK_EXAM`:** điều hướng phần/câu tự do, số câu đã làm/còn lại, đánh dấu câu (chỉ ở client), trạng thái "Đã lưu"/"Chưa lưu được" theo kết quả `POST answers` (lỗi không chặn làm tiếp, giữ đáp án ở `sessionStorage`), xác nhận nộp trong trang kèm số câu trống, sau nộp chỉ đọc và sang SCR-022; **không** có đồng hồ đếm ngược. **`PLACEMENT`:** "Khối {n}", 5 câu, nút bỏ qua, nộp khối → gọi `next` → khối mới hoặc sang kết quả; không hiện đáp án từng khối. Cả hai: không hiện đáp án/lời giải trước khi nộp |
 | **FR-026** | SCR-022 SHALL có hai chế độ. **Đề thi** (FR-013): điểm trọng số + %, số câu đúng, điểm theo phần, so với lần trước của mình (ẩn khi lần đầu), danh sách câu lọc Tất cả/Sai/Bỏ trống (bỏ trống ghi chữ khác câu sai), đáp án đúng + lời giải ("Lời giải đang được cập nhật" khi trống), câu sai nhóm theo KID với nút "Luyện nút này" → SCR-023 (ẩn khi câu chưa có KID), khối "Điểm yếu cần luyện" (FR-014) bật khi 011 xong. **Không** hiện huy hiệu đỗ/trượt. **Xếp trình độ** (FR-022): cấp ước lượng, "Chắc chắn"/"Kết quả tạm", bảng theo cấp, hồ sơ 6 miền ("Chưa đo" cho miền không có câu), KID có câu sai + "Luyện nút này", nút "Làm lại" |
 | **FR-027** | SCR-023 SHALL hiện KID + tên nút, câu từng cái với phản hồi ngay (engine `IMMEDIATE`), ghi chú "Câu bạn vừa làm sai" cho `repeatedNos`; rỗng: "Chưa có bài luyện cho nút này" (không có nút AI đợt này) |
+
+### Nhóm 7 — Chuẩn bị và mời làm bài xếp trình độ (FR-028…FR-030) · v1.1
+
+| Mã | Yêu cầu |
+|---|---|
+| **FR-028** | `CONTENT_EDITOR`: `GET /api/admin/placement/pool` → số câu `PLC{n}` đã duyệt/đang chờ theo cấp + các đề `PLACEMENT-*`; `POST /api/admin/placement/drafts {level 1–3, count 1–60}` → **202**, AI soạn câu rải đều nút có `can_do` + từ vựng của cấp, theo lượt từng miền (spec 024 v1.7, không tính trần ngày); bận → 409 `AI_GENERATION_BUSY`, tắt → 409 `AI_GENERATION_DISABLED`, cấp không có nút đủ dữ liệu → 422 |
+| **FR-029** | `POST /api/admin/placement/forms` SHALL dựng 5 đề `DRAFT` `PLACEMENT-01…05` (một phần READING "Kiểm tra trình độ" 30 câu = 10 câu mỗi cấp, xếp dễ → khó, 1 điểm/câu) chỉ từ câu `PLC` `APPROVED`, xen kẽ miền, không trùng câu giữa đề; đề đã xuất bản/lưu trữ giữ nguyên; cấp nào < 50 câu → **422** `PLACEMENT_BANK_INSUFFICIENT` `details[{level, available, needed}]`; audit `PLACEMENT_FORMS_BUILT`. CE xuất bản ở SCR-065/066 |
+| **FR-030** | Trang `/learn/placement` (Q19) SHALL có thẻ bắt đầu / tiếp tục / kết quả gần nhất + làm lại; SCR-020 không còn thẻ này. SCR-010 SHALL mời người học chưa từng có lượt xếp trình độ ("Chưa biết mình ở trình độ nào?" → `/learn/placement`), có "Để sau" nhớ trên trình duyệt; SCR-022 xếp trình độ ghi "Đã cập nhật trình độ của bạn: HSK n" + nút "Bắt đầu học HSK n"; SCR-021 placement: tiêu đề "Kiểm tra trình độ", nút "Nộp bài" |
 
 ### Key Entities
 
@@ -362,7 +402,19 @@ Không migration. `exams.sections` sau nhập: `[{"index": 1, "name": "Đọc hi
 | X5 | BR-034-5 (2 lần nghe) ↔ engine E-R9 (3 lần) | Không phát sinh (Q8); chốt khi có câu nghe |
 | X6 | UC trả 404 cho lượt không có ↔ `BUS-01` | Theo `BUS-01` (như 003) |
 | X7 | `database.md` ghi `study_events.event_type='EXAM'` ↔ engine ghi `STUDY` cho mọi nguồn trừ game | Giữ engine (§11) |
-| OQ-1 | Ngưỡng đạt từng cấp theo v2.0 | **Mở** — leader đối chiếu PDF, đổi cấu hình |
+| OQ-1 | Ngưỡng đạt từng cấp theo v2.0 | Đóng bởi Q14 (70 % mỗi cấp, cấu hình được) |
+| Q14 | Bài xếp trình độ = 5 đề cố định × 30 câu (10 câu/cấp HSK 1–3), đạt cấp n khi ≥ 70 % phần cấp n và đạt mọi cấp dưới; ≥ 90 % phần HSK 3 → "HSK 3 trở lên" | Chốt 2026-11-26 |
+| Q15 | Câu đề do AI soạn riêng (mã `PLC`), duyệt GV → CE; không dùng kho cũ (không đảm bảo format, chất lượng) | Chốt 2026-11-26 |
+| Q16 | Kết quả ghi đè trình độ tự khai, báo rõ; "Chưa đạt HSK 1" ghi HSK 1 | Chốt 2026-11-26 |
+| Q17 | Làm lại không giới hạn, mỗi lần đổi đề khác nếu còn | Chốt 2026-11-26 |
+| Q19 | Thi đầu vào **tách khỏi** màn Thi thử: trang riêng `/learn/placement` (chế độ xếp trình độ của SCR-022, không thêm mã màn), mục menu "Kiểm tra đầu vào" nhóm "Ôn và kiểm tra"; SCR-020 chỉ còn đề thi thử. Thi thử (đề format HSK 2.0 nghe–đọc–viết) là phần riêng, làm sau. Thay phần thẻ "Kiểm tra trình độ" của FR-024 | Chốt 2026-11-26 |
+| Q18 | Một bài trộn 3 cấp (không chia phần), chấm bằng mô hình Rasch có hệ số đoán mò, độ khó câu tự hiệu chỉnh từ câu trả lời thật; giữ cả trắc nghiệm và đúng/sai (đúng/sai được trừ đoán mò ½). Thay luật "≥ 70 % mỗi cấp" của Q14 | Chốt 2026-11-26 |
+| Q20 | Thi thử đúng format HSK 2.0 nghe–đọc(–viết HSK 3), 3 đề/cấp HSK 1–3, máy chấm hết; HSK 1–2 không có phần viết | Chốt 2026-11-26 |
+| Q21 | Không lấy đề thật (bản quyền CTI/Hanban); có cột nạp ảnh phương án để nhóm tự nạp tài liệu có quyền dùng | Chốt 2026-11-26 |
+| Q22 | Hình = emoji, ảnh thật khi cần (thư viện ảnh theo từ vựng, CE tải ảnh miễn phí bản quyền); không AI vẽ ảnh (tốn phí, DeepSeek không tạo ảnh) | Chốt 2026-11-26 |
+| Q23 | Nghe bằng giọng trình duyệt, bấm nghe tối đa 2 lần/câu | Chốt 2026-11-26 |
+| Q24 | Đề HSK-format hiện quy đổi thang HSK và mức đỗ; đề cũ giữ AT-27 | Chốt 2026-11-26 |
+| Q25 | Câu đề thi thử nạp tay; AI chỉ dùng sinh câu từ lỗi sai (024) và chatbot | Chốt 2026-11-26 |
 | OQ-2 | Kết quả thử thật 5–10 người (SC-004) | **Mở** — ghi vào `questions.md` trước demo |
 
 ---
@@ -462,20 +514,22 @@ Trạng thái mỗi màn: Loading (skeleton) · Empty (FR-024, FR-027) · Error 
 | AT-13 | FR-014 | Stub `MasteryReader`: 6 KID mastery 70/20/null/90/40/55 · T 5 phần tử thứ tự null(0), 20, 40, 55, 70; đề 2 KID · T 2 phần tử |
 | AT-14 | FR-015 | KID 15 câu (8 MC, 7 TF), `qtype=TRUE_FALSE` · T 10 câu: 7 TF + 3 MC; `excludeQuestionId` · T không có câu đó; KID chỉ 1 câu = câu exclude · T 1 câu, `repeatedNos=[1]`; KID 0 câu · T 200 `NO_QUESTIONS`; KID không có · T 404; câu `PENDING_REVIEW` · T không xuất hiện; chủ đề đang khoá · T vẫn tạo lượt |
 | AT-15 | FR-016 | Trả lời câu · T phản hồi ngay đúng/sai + lời giải; `finish` · T `extra.kid` |
-| AT-16 | FR-017 | Bảng giá trị: khối `[(2,5,5)]` → `Next(3)`; `[(2,2,5)]` → `Next(1)`; `[(2,3,5)]` → `Next(2)`; 5 khối đúng hết từ cấp 2 → `Conclusion(ABOVE_3, SURE)` sau 25 câu; 5 khối sai hết → `Conclusion(BELOW_1, SURE)`; 7 khối dao động → dừng ở 35 câu; `bankExhausted` → `TENTATIVE` |
-| AT-17 | FR-018, E11 | Ngân hàng cấp 2 có 3 miền · T khối có ≥ 2 miền; không lặp câu trong lượt; lượt 2 sau lượt hoàn thành · T câu của lượt 1 chỉ được chọn khi hết câu mới |
-| AT-18 | FR-019 | Chưa làm · T `{active:null, last:null}`; đang làm khối 2 · T `active.sessionId`; đã xong · T `last.level` |
-| AT-19 | FR-020, E8 | Ngân hàng cấp 1 có 9 câu · T 422 `PLACEMENT_BANK_INSUFFICIENT` `details[{level:1, available:9}]`; `startLevel=4` · T 422; bắt đầu · T 201 `refId=null`, `runId = sessionId`; gọi lại · T 200 cùng khối |
-| AT-20 | FR-021, E9 | Nộp khối 1 đúng 5/5 → `next` · T 201 khối cấp 3, `refId=runId`; gọi `next` 2 lần · T cùng khối; khối hết hạn · T `next` phát khối mới cùng cấp; đủ điều kiện dừng · T `concluded=true`, gọi lại vẫn vậy; `runId` của người khác · T 403 |
+| AT-16 | FR-017 · v1.1 | Đúng (HSK1/2/3 trên 10, trắc nghiệm 4 phương án): 0-0-0, 3-1-2, 3-3-3 → BELOW_1; 7-2-2, 10-2-2 → HSK1; 10-7-3, 10-10-2 → HSK2; 10-10-7, 9-9-9 → HSK3; 10-10-10 → ABOVE_3; cùng số câu đúng, đúng/sai cho θ thấp hơn trắc nghiệm; bỏ trống 6 câu hoặc chỉ 3 câu → TENTATIVE; mô phỏng 300 học viên/cấp: xếp đúng ≥ 60 %, lệch ≥ 2 cấp ≤ 2 %; hiệu chỉnh: θ̄ = 0, p = 62,5 %, c = ¼ → b ≈ 0 (`PlacementFormScoringTest`) |
+| AT-17 | FR-018, E11 · v1.1 | 2 đề → làm lại ngay 4 lần · T không lần nào trùng đề liền trước; đề thiếu HSK 3 · T bị bỏ qua |
+| AT-18 | FR-019 | Chưa làm · T `{active:null, last:null}`; đang làm · T `active.sessionId`; đã xong · T `last.level` |
+| AT-19 | FR-020, E8 · v1.1 | Không đề dùng được · T 422 `PLACEMENT_BANK_INSUFFICIENT`; `startLevel=4` · T 422; bắt đầu · T 201 đủ 30 câu, `meta.placement.form`, `levelOf` 30 mục, không lộ đáp án; gọi lại · T 200 cùng lượt |
+| AT-20 | FR-021, E9 · v1.1 | Nộp 8/5/9 · `next` · T `concluded`, HSK1, `hsk_level` 3 → 1 (ghi đè), 8 `attempt_items` sai có `question_id`; gọi lại vẫn vậy; hết hạn chưa nộp · T 201 cùng đề, `refId = runId`; đề bị lưu trữ · T kết luận BELOW_1; lượt thuật toán cũ · T vẫn có kết quả; người khác · T 403 |
 | AT-21 | FR-022 | Lượt 30 câu chỉ có miền TV, NP · T `domains` đủ 6, `NA CH NL VB` `measured=false`; miền 2 câu · T `tentative=true`; chưa kết luận · T 409; người khác · T 403 |
 | AT-22 | FR-023 | Khối trước khi nộp · T không lộ đáp án (như AT-10); `finish` · T `extra.runId`, `extra.block` |
 | AT-23 | §0.1, E2 | Đề chuyển `ARCHIVED` giữa lượt · T `finish` 200, danh sách không còn đề |
-| AT-24 | FR-017, SC-001, SC-002 | Mô phỏng seed cố định, 1 000 lượt cho mỗi trình độ thật T ∈ {dưới 1, 1, 2, 3+}: xác suất đúng 0,85 ở cấp ≤ T, 0,40 ở cấp T+1, 0,30 ở cấp cao hơn · T xếp đúng ≥ 80% mỗi T, lệch > 1 cấp ≤ 2%; người đoán ngẫu nhiên (0,30 mọi cấp) · T không lần nào ra `HSK3`/`ABOVE_3` |
+| AT-24 | FR-017, SC-001, SC-002 | **Bỏ ở v1.1** (thuật toán thích ứng đã thay) — độ đúng của đề cố định kiểm tra thử với học viên đã biết trình độ. Bản cũ: Mô phỏng seed cố định, 1 000 lượt cho mỗi trình độ thật T ∈ {dưới 1, 1, 2, 3+}: xác suất đúng 0,85 ở cấp ≤ T, 0,40 ở cấp T+1, 0,30 ở cấp cao hơn · T xếp đúng ≥ 80% mỗi T, lệch > 1 cấp ≤ 2%; người đoán ngẫu nhiên (0,30 mọi cấp) · T không lần nào ra `HSK3`/`ABOVE_3` |
 | AT-25 | FR-024 (FE) | Vitest: thẻ "Kiểm tra trình độ" 3 trạng thái; chọn cấp chỉ 1–3; rỗng "đang được cập nhật"; "Tiếp tục" khi có `activeSessionId`; không có giá |
 | AT-26 | FR-025 (FE) | Vitest: `MOCK_EXAM` chuyển phần tự do, đếm đã làm/còn lại, lỗi lưu hiện "Chưa lưu được" mà vẫn làm tiếp, xác nhận nộp có số câu trống, không có đồng hồ đếm ngược; `PLACEMENT` nộp khối gọi `next` rồi tải khối mới hoặc sang kết quả |
 | AT-27 | FR-026 (FE) | Vitest: chế độ đề — lọc Sai/Bỏ trống, bỏ trống ghi chữ khác sai, "Lời giải đang được cập nhật", không có nút luyện cho câu không KID, không có huy hiệu đỗ/trượt, ẩn so sánh lần đầu; chế độ xếp trình độ — "Chưa đo", "Kết quả tạm" |
 | AT-28 | FR-027, FR-005 (FE) | Vitest: phản hồi ngay; ghi chú câu vừa sai; rỗng không có nút AI; SCR-068 có 13 lựa chọn đúng nhãn |
 | AT-29 | §13 | Test hợp đồng `/v3/api-docs` so `openapi-exam.yaml` (path + status) |
+| AT-30 | FR-028, FR-029 · v1.1 | Kế hoạch soạn 13 câu/6 nút 3 miền · T lô 5/5/3 xen kẽ miền; 50 câu · T mọi nút được gặp trước khi lặp (`PlacementDraftPlannerTest`); 3 cấp × ≥ 50 câu · T 5 đề × 30 câu, không trùng, mỗi phần 3–4 câu mỗi miền (`PlacementFormBuilderTest`); câu lưu có `code = PLC{n}-{runId}-{k}`; job 2 giờ/lần không đổi hành vi |
+| AT-31 | FR-028…FR-030 (FE) | Vitest: khối "Bài kiểm tra trình độ" ở SCR-065 (soạn câu gửi `count=60`, nút tạo đề tắt khi chưa đủ, xác nhận trong trang, báo AI bận); banner SCR-010 hiện khi chưa làm, ẩn khi đã làm/đang làm, "Để sau" nhớ; SCR-021 "Kiểm tra trình độ"/"Nộp bài" |
 
 ---
 

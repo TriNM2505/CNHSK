@@ -127,7 +127,7 @@ class ExamPublicationIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"legacy", "status", "kid", "media"})
+    @ValueSource(strings = {"legacy", "status", "kid", "essay"})
     void publicationRechecksCurrentQuestionsAndRejectsIncompleteImportedSections(String kind) throws Exception {
         var draft = service.create(fixture.actor, fixture.input(1, 1));
         long question = draft.questions().get(0).questionId();
@@ -140,7 +140,8 @@ class ExamPublicationIntegrationTest extends AbstractIntegrationTest {
             }
             case "status" -> { jdbc.update("UPDATE learning.questions SET status='ARCHIVED' WHERE id=?", question); expected = "QUESTION_NOT_APPROVED"; }
             case "kid" -> { jdbc.update("DELETE FROM learning.question_knowledge_points WHERE question_id=?", question); expected = "QUESTION_WITHOUT_KID"; }
-            case "media" -> { jdbc.update("UPDATE learning.questions SET image_url='https://example.test/image.png' WHERE id=?", question); expected = "QUESTION_UNSUPPORTED"; }
+            // Essays are graded by teachers, so a machine-graded paper cannot serve them.
+            case "essay" -> { jdbc.update("UPDATE learning.questions SET qtype='ESSAY' WHERE id=?", question); expected = "QUESTION_UNSUPPORTED"; }
             default -> throw new AssertionError();
         }
         var current = service.detail(draft.id());
