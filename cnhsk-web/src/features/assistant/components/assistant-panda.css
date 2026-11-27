@@ -1,0 +1,133 @@
+/* Motion of the CNHSK panda and the assistant card. Everything stops for reduced motion. */
+
+.cnhsk-panda-body {
+  animation: cnhsk-panda-bob 3.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.cnhsk-panda-eyes {
+  animation: cnhsk-panda-blink 4.6s infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+.cnhsk-panda-tails {
+  animation: cnhsk-panda-sway 1.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+}
+
+.cnhsk-panda-pupils {
+  transition: transform 300ms ease;
+}
+
+.cnhsk-panda[data-mood='thinking'] .cnhsk-panda-body {
+  animation-duration: 1.1s;
+}
+
+.cnhsk-panda[data-mood='thinking'] .cnhsk-panda-pupils {
+  transform: translate(1.5px, -2.5px);
+}
+
+.cnhsk-panda-launcher:hover .cnhsk-panda-ears,
+.cnhsk-panda-launcher:focus-visible .cnhsk-panda-ears {
+  animation: cnhsk-panda-wiggle 600ms ease-in-out 2;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+.cnhsk-assistant-card {
+  animation: cnhsk-assistant-pop 220ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  transform-origin: 100% 100%;
+}
+
+.cnhsk-assistant-typing span {
+  animation: cnhsk-assistant-dot 1s ease-in-out infinite;
+}
+
+.cnhsk-assistant-typing span:nth-child(2) {
+  animation-delay: 150ms;
+}
+
+.cnhsk-assistant-typing span:nth-child(3) {
+  animation-delay: 300ms;
+}
+
+@keyframes cnhsk-panda-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(-2deg);
+  }
+}
+
+@keyframes cnhsk-panda-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+@keyframes cnhsk-panda-sway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(12deg);
+  }
+}
+
+@keyframes cnhsk-panda-wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  30% {
+    transform: rotate(-6deg);
+  }
+  70% {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes cnhsk-assistant-pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes cnhsk-assistant-dot {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cnhsk-panda-body,
+  .cnhsk-panda-eyes,
+  .cnhsk-panda-tails,
+  .cnhsk-panda-launcher:hover .cnhsk-panda-ears,
+  .cnhsk-assistant-card,
+  .cnhsk-assistant-typing span {
+    animation: none;
+  }
+}

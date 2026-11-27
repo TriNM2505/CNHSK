@@ -6,8 +6,7 @@ import { AssistantPanel, type AssistantMessage } from './components/AssistantPan
 
 const answers = {
   system: 'Bạn có thể mở mục Chủ đề để chọn nội dung muốn học.',
-  outside:
-    'Mình chỉ hỗ trợ cách dùng CNHSK. Để tra nghĩa từ hoặc dịch câu hãy dùng màn Dịch.',
+  outside: 'Mình chỉ hỗ trợ cách dùng CNHSK. Để tra nghĩa từ hoặc dịch câu hãy dùng màn Dịch.',
 }
 
 function PanelPreview({
@@ -73,11 +72,6 @@ export const previews = [
       id: 'assistant-rate-limited',
       title: 'Trợ lý — giới hạn trong ngày',
       message: 'Bạn đã hỏi nhiều trong hôm nay, quay lại ngày mai',
-    },
-    {
-      id: 'assistant-blocked',
-      title: 'Trợ lý — đang làm bài kiểm tra',
-      message: 'Trợ lý tắt trong lúc làm bài',
     },
     {
       id: 'assistant-unavailable',

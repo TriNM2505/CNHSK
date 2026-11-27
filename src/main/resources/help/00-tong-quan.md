@@ -1,25 +1,41 @@
 # Bắt đầu dùng CNHSK
 
-CNHSK giúp học viên học tiếng Trung và luyện HSK. Nội dung của đồ án tập trung vào HSK 1–3.
+CNHSK là nền tảng tự luyện tiếng Trung và luyện thi HSK của Học Bá Education. Nội dung học tập trung vào HSK 1–3 và rèn đủ bốn kỹ năng nghe, nói, đọc, viết.
 
-## Chọn nội dung học
+## Thanh menu trên cùng
 
-Vào khu vực Học tập → chọn Chủ đề, Ngữ pháp, Phát âm hoặc Chữ Hán trên thanh điều hướng. Trên màn hình nhỏ, các mục này nằm ở thanh dưới.
+Thanh menu ở đầu mọi trang gồm:
 
-Bấm biểu tượng CNHSK để về trang chủ. Nếu tài khoản có nhiều khu vực, mở menu tên tài khoản → chọn Học tập để trở lại khu vực học viên.
+- **Giới thiệu**: thông tin về Học Bá, phương pháp đào tạo, cam kết đầu ra và các khoá học.
+- **Luyện tập**: cột Của bạn (Bảng học tập, Ôn tập đến hạn, Tiến độ học tập), cột Học mỗi ngày (Từ vựng theo chủ đề, Ngữ pháp, Phát âm, Luyện nói, Chữ Hán, Học thử không cần tài khoản), cột Luyện thi (Kiểm tra đầu vào, Thi thử HSK, Quiz theo chủ đề) và cột Hỗ trợ (Chấm bài viết, Dịch câu, đoạn văn).
+- **Tra cứu**: dịch và tra từ Trung – Việt theo chữ Hán, nghĩa tiếng Việt, pinyin hoặc bộ thủ + số nét; mục Sách HSK.
+- **Cộng đồng**: Bảng tin và vinh danh, Cuộc thi.
+- **Game**: mở khu trò chơi luyện chữ ở trang riêng.
+- **Công việc**: chỉ hiện với tài khoản giáo viên, biên tập viên, kiểm duyệt viên hoặc quản trị.
 
-Các màn có danh sách thường hiện trạng thái đang tải, chưa có nội dung hoặc lỗi tải dữ liệu. Khi có nút Thử lại, bấm nút để tải lại phần đang lỗi. Nếu lỗi kéo dài, liên hệ quản trị và cung cấp mã lỗi đang hiển thị.
+Bấm tên menu để vào trang chính của menu; rê chuột hoặc bấm mũi tên để mở danh sách mục con. Khách chưa đăng nhập bấm một mục cần tài khoản sẽ được đưa tới đăng nhập, xong thì vào thẳng mục đó.
 
-## Tài khoản và trợ giúp
+## Khu vực học viên
 
-Mở menu tên tài khoản → Hồ sơ để xem Thông tin cá nhân. Trong cùng menu có Đổi mật khẩu và Đăng xuất.
+Sau khi đăng nhập, cột bên trái của khu học viên có: Bảng học tập, Nghe, Luyện nói, Đọc, Viết, Chủ đề, Ngữ pháp, Chữ Hán, Ôn bài đến hạn, Kiểm tra đầu vào, Thi thử, Tiến độ, Dịch, Bộ thẻ, Sổ tay, Tài liệu tham khảo, Chấm bài, Quiz, Cuộc thi, Bảng xếp hạng. Trên điện thoại, các mục chính nằm ở thanh dưới, mục còn lại ở nút Thêm.
 
-Ở màn học có nút tròn mở trợ lý tại góc phải dưới. Trợ lý hỗ trợ cách dùng CNHSK. Trong lúc làm bài kiểm tra chủ đề, đề thi hoặc bài xếp trình độ, trợ lý bị ẩn.
+## Góc phải đầu trang
+
+- **Chuông thông báo**: kết quả học tập, hoạt động cộng đồng (bình luận, lượt thích, trả lời), tin cuộc thi. Số đỏ là số thông báo chưa đọc.
+- **Ảnh đại diện** (viền vàng): bấm để mở thẻ tài khoản gồm Xem hồ sơ, nút Nâng cấp (hoặc Gia hạn nếu đang có PREMIUM), Nhắc lịch học, Gói dịch vụ và điểm, Đổi mật khẩu, Đăng xuất. Tài khoản PREMIUM có vương miện nhỏ trên ảnh đại diện và nhãn "Premium đến ngày…".
+
+## Học thử không cần tài khoản
+
+Vào Luyện tập → Học thử không cần tài khoản (trang Học thử miễn phí). Làm một bộ câu ngắn để xem cách học; kết quả không được lưu. Muốn lưu kết quả thì Đăng ký miễn phí.
+
+## Trạng thái tải và lỗi
+
+Các màn có danh sách thường hiện trạng thái đang tải, chưa có nội dung hoặc lỗi tải. Khi có nút Thử lại, bấm để tải lại phần lỗi. Nếu lỗi kéo dài, liên hệ quản trị và cung cấp mã lỗi đang hiển thị.
 
 ## Câu hỏi thường gặp
 
-**Tôi bắt đầu học từ đâu?** Vào Chủ đề → chọn cấp HSK → mở một chủ đề có sẵn.
+**Tôi mới vào, nên bắt đầu từ đâu?** Làm Kiểm tra đầu vào (30 câu, khoảng 15 phút) để biết mình ở HSK 1, 2 hay 3, rồi theo Gợi ý hôm nay trên Bảng học tập.
 
-**Tôi không thấy nội dung?** Kiểm tra cấp HSK và bộ lọc. Nếu màn báo nội dung đang cập nhật, chọn nội dung khác hoặc liên hệ quản trị.
+**Tôi không thấy nội dung?** Kiểm tra cấp HSK và bộ lọc. Nếu màn báo nội dung đang cập nhật, chọn nội dung khác hoặc quay lại sau.
 
-**Tôi cần hỗ trợ tài khoản hoặc nội dung sai?** Liên hệ quản trị. Khi màn có mã lỗi, cung cấp mã đó để được hỗ trợ.
+**Tôi cần hỗ trợ tài khoản hoặc báo nội dung sai?** Liên hệ quản trị. Khi màn có mã lỗi, cung cấp mã đó.

@@ -36,7 +36,7 @@ describe('assistant API contract', () => {
 
   it.each([
     [401, 'UNAUTHENTICATED'],
-    [403, 'ASSISTANT_BLOCKED_DURING_TEST'],
+    [403, 'FORBIDDEN'],
     [422, 'VALIDATION_FAILED'],
     [429, 'RATE_LIMITED'],
     [503, 'ASSISTANT_UNAVAILABLE'],

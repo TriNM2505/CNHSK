@@ -106,7 +106,6 @@ class QuizSessionIntegrationTest extends QuizIntegrationFixture {
     void normalizedFirstAndRetryScoresKeepFirstUnchangedAndDoNotAffectMastery() {
         Topic topic = topic(10, 0);
         var first = sessions.start(user, topic.id()).session();
-        assertThat(attempts.existsActiveTest(user, NOW)).isTrue();
         advance(20);
         var result = practice.finish(user, first.sessionId(), answers(8));
         assertThat(result.score()).isEqualTo(80);
@@ -118,7 +117,6 @@ class QuizSessionIntegrationTest extends QuizIntegrationFixture {
         var retry = sessions.start(user, topic.id());
         assertThat(retry.created()).isTrue();
         assertThat(retry.session().rankingEligible()).isFalse();
-        assertThat(attempts.existsActiveTest(user, NOW.plusSeconds(20))).isFalse();
         advance(40);
         assertThat(practice.finish(user, retry.session().sessionId(), answers(10)).score()).isEqualTo(100);
         assertThat(jdbc.queryForObject("SELECT score FROM learning.attempts WHERE id=?", Long.class, first.sessionId())).isEqualTo(80);

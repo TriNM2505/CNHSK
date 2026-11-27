@@ -1,21 +1,27 @@
-# Nhận diện và luyện viết chữ Hán
+# Chữ Hán: nhận diện, luyện viết, thử thách
 
 ## Nhận diện chữ Hán
 
-Vào Chữ Hán → màn Nhận diện chữ Hán → chọn Nhìn chữ chọn nghĩa hoặc Nghe chọn chữ → chọn Cấp HSK → bấm Bắt đầu luyện.
+Vào Chữ Hán → Nhận diện chữ Hán → Chọn chế độ Nhìn chữ chọn nghĩa hoặc Nghe chọn chữ → chọn Cấp HSK → bấm Bắt đầu luyện. Trả lời rồi bấm Câu tiếp; xong bấm Kết thúc luyện tập để xem kết quả. Câu không nghe được có thể Bỏ qua, câu đó không tính điểm.
 
-Nhìn chữ chọn nghĩa yêu cầu nhìn chữ rồi chọn nghĩa tiếng Việt. Nghe chọn chữ cần âm thanh của nội dung luyện. Nếu hệ thống báo thiếu dữ liệu, chọn chế độ hoặc cấp khác đang có nội dung.
+## Luyện viết theo nét
 
-## Luyện viết chữ Hán
+Ở màn Luyện viết chữ Hán, dùng ô tìm chữ và Cấp HSK → chọn một chữ trong Danh sách chữ. Chọn Chế độ luyện rồi viết lên khung bằng chuột, bút hoặc ngón tay. Bấm Xem lại nét để xem hoạt hình thứ tự nét, Viết lại để viết lại, Chọn chữ khác để đổi chữ.
 
-Ở màn Luyện viết chữ Hán, dùng Tìm chữ và Cấp HSK → bấm Tìm → chọn một chữ trong danh sách. Màn có các chế độ luyện viết; khả năng dùng từng chế độ phụ thuộc dữ liệu chữ và âm thanh.
+Nếu màn báo Chữ này chưa có dữ liệu nét, chọn chữ khác.
 
-Nếu màn báo Chữ này chưa có dữ liệu nét, chọn chữ khác. Nếu danh sách báo Không tìm thấy chữ, kiểm tra nội dung tìm và cấp HSK.
+## Thử thách viết
+
+Ở Danh sách chữ, bấm Thử thách viết → Bắt đầu thử thách. Viết 10 chữ do hệ thống chọn trong 200 giây, tối đa 3 chữ trượt. Chữ đích và gợi ý được giấu trong lúc trả lời; mỗi chữ nghe tối đa 3 lần. Đồng hồ vẫn chạy khi bạn rời trang. Quên chữ thì bấm Chưa nhớ — về viết theo nét.
+
+## Lượt miễn phí
+
+Tài khoản FREE có số lượt luyện Chữ Hán miễn phí mỗi tháng (mặc định 3 lượt). Hết lượt thì chờ sang tháng hoặc nâng cấp PREMIUM.
 
 ## Câu hỏi thường gặp
 
-**Tôi bắt đầu bài nhìn chữ chọn nghĩa thế nào?** Vào Nhận diện chữ Hán → chọn Nhìn chữ chọn nghĩa → chọn Cấp HSK → Bắt đầu luyện.
+**Bắt đầu nhìn chữ chọn nghĩa thế nào?** Chữ Hán → Nhận diện chữ Hán → Nhìn chữ chọn nghĩa → chọn Cấp HSK → Bắt đầu luyện.
 
-**Tôi tìm một chữ để tập viết ở đâu?** Mở Luyện viết chữ Hán → nhập vào Tìm chữ → bấm Tìm rồi chọn chữ.
+**Tìm một chữ để tập viết ở đâu?** Mở Luyện viết chữ Hán → tìm chữ → chọn chữ trong danh sách.
 
-**Không nghe được thì sao?** Kiểm tra âm lượng thiết bị. Nếu nội dung chưa có âm thanh hoặc màn báo lỗi âm thanh, chọn nội dung khác hoặc liên hệ quản trị.
+**Không nghe được?** Kiểm tra âm lượng. Nếu nội dung chưa có âm thanh, chọn nội dung khác hoặc bấm Không nghe được.

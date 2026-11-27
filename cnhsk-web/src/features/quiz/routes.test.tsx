@@ -83,7 +83,7 @@ describe('quiz route registration and access', () => {
     expect(await screen.findByRole('heading', { name: 'Làm quiz theo chủ đề' })).toBeVisible()
     expect(startQuizAttempt).toHaveBeenCalledWith(43)
     expect(getSession).toHaveBeenCalledWith(101, expect.any(AbortSignal))
-    expect(screen.queryByRole('button', { name: 'Mở trợ lý CNHSK' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' })).toBeVisible()
     expect(listQuizzes).not.toHaveBeenCalled()
   })
   it('opens SCR-045 with learner layout and keeps the assistant available', async () => {

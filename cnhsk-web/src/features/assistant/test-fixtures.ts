@@ -6,8 +6,7 @@ export const systemAnswer: AskResult = {
 }
 
 export const knowledgeAnswer: AskResult = {
-  answer:
-    'Mình chỉ hỗ trợ cách dùng CNHSK. Để tra nghĩa từ hoặc dịch câu hãy dùng màn Dịch.',
+  answer: 'Mình chỉ hỗ trợ cách dùng CNHSK. Để tra nghĩa từ hoặc dịch câu hãy dùng màn Dịch.',
   outOfScope: true,
 }
 
@@ -23,12 +22,6 @@ export const assistantErrors = [
     errorCode: 'RATE_LIMITED',
     message: 'Thông báo giới hạn từ máy chủ',
     expected: 'Bạn đã hỏi nhiều trong hôm nay, quay lại ngày mai',
-  },
-  {
-    status: 403,
-    errorCode: 'ASSISTANT_BLOCKED_DURING_TEST',
-    message: 'Thông báo bài kiểm tra từ máy chủ',
-    expected: 'Trợ lý tắt trong lúc làm bài',
   },
   {
     status: 403,

@@ -48,7 +48,7 @@ public class AssistantController {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Câu trả lời"),
             @ApiResponse(responseCode = "401", description = "UNAUTHENTICATED"),
-            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID · ASSISTANT_BLOCKED_DURING_TEST"),
+            @ApiResponse(responseCode = "403", description = "FORBIDDEN · CSRF_TOKEN_INVALID"),
             @ApiResponse(responseCode = "422", description = "VALIDATION_FAILED"),
             @ApiResponse(responseCode = "429", description = "RATE_LIMITED kèm retryAfterSeconds"),
             @ApiResponse(responseCode = "503", description = "ASSISTANT_UNAVAILABLE")

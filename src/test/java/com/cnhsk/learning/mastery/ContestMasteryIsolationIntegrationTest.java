@@ -18,7 +18,6 @@ import java.util.UUID;
 
 import com.cnhsk.learning.ai.ClaudeClient;
 import com.cnhsk.learning.ai.StubClaudeClient;
-import com.cnhsk.learning.api.ActiveTestApi;
 import com.cnhsk.learning.contest.ContestAttemptIntegrationTest.Fixture;
 import com.cnhsk.learning.contest.ContestAttemptService;
 import com.cnhsk.learning.practice.PracticeService;
@@ -51,7 +50,6 @@ class ContestMasteryIsolationIntegrationTest extends AbstractIntegrationTest {
     @Autowired private EvidenceAllocator allocator;
     @Autowired private AttemptRepository attempts;
     @Autowired private AttemptItemRepository items;
-    @Autowired private ActiveTestApi activeTests;
     @Autowired private StubClaudeClient stub;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private StringRedisTemplate redis;
@@ -92,7 +90,7 @@ class ContestMasteryIsolationIntegrationTest extends AbstractIntegrationTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void AT13_fullContestEngineBlocksAssistantAndPreservesEveryMasteryColumn(boolean existingProgress) throws Exception {
+    void AT13_fullContestEngineKeepsAssistantOpenAndPreservesEveryMasteryColumn(boolean existingProgress) throws Exception {
         if (existingProgress) {
             jdbc.update("""
                     INSERT INTO learning.user_progress(user_id,target_type,target_id,mastery,stability,difficulty,
@@ -104,13 +102,6 @@ class ContestMasteryIsolationIntegrationTest extends AbstractIntegrationTest {
         assertThat(before).hasSize(existingProgress ? 1 : 0);
         int calls = stub.callCount();
         var session = contests.start(user, exam, exam, NOW.plusSeconds(60));
-        assertThat(activeTests.hasActiveTest(user, now)).isTrue();
-        mvc.perform(post("/api/assistant/ask").header("Authorization", bearer())
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"question\":\"Học thế nào?\"}"))
-                .andExpect(status().isForbidden()).andExpect(jsonPath("$.error_code").value("ASSISTANT_BLOCKED_DURING_TEST"));
-        assertThat(stub.callCount()).isEqualTo(calls);
-        assertThat(redis.opsForValue().get(dailyKey())).isNull();
-
         now = NOW.plusSeconds(30);
         practice.answer(user, session.sessionId(), new Answer(1, "A", 3000, 0, false, false, null));
         assertThat(contests.submit(user, exam)).isEqualTo(now);
@@ -126,7 +117,6 @@ class ContestMasteryIsolationIntegrationTest extends AbstractIntegrationTest {
             assertThat(allocator.reallocate(user, Set.copyOf(evidence))).isEmpty();
         });
         assertThat(progressSnapshot()).containsExactlyElementsOf(before);
-        assertThat(activeTests.hasActiveTest(user, now)).isFalse();
         stub.enqueue(new ClaudeClient.Completion("Hướng dẫn học tự soạn", 1, 1));
         mvc.perform(post("/api/assistant/ask").header("Authorization", bearer())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"question\":\"Học thế nào?\"}"))

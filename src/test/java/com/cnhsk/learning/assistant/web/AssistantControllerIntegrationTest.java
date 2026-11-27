@@ -20,7 +20,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.cnhsk.learning.ai.ClaudeClient;
 import com.cnhsk.learning.ai.AiUnavailableException;
-import com.cnhsk.learning.api.ActiveTestApi;
 import com.cnhsk.learning.assistant.AssistantService;
 import com.cnhsk.learning.ai.StubClaudeClient;
 import com.cnhsk.learning.assistant.HelpLibrary;
@@ -37,7 +36,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -53,7 +51,6 @@ class AssistantControllerIntegrationTest extends AbstractIntegrationTest {
     @Autowired private StringRedisTemplate redis;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private Clock clock;
-    @Autowired private ActiveTestApi activeTests;
     @MockitoSpyBean private HelpLibrary helpLibrary;
     @MockitoSpyBean private StubClaudeClient stub;
 
@@ -138,40 +135,24 @@ class AssistantControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(redis.opsForValue().get(dailyKey())).isEqualTo("200");
     }
 
-    @Test
-    void FR003_AT03_onlyActiveTestsOfTheCallerBlockRequestsWithoutTakingDailySlots() throws Exception {
-        long learner = jdbc.queryForObject("""
-                INSERT INTO auth.users(email,password_hash,display_name)
-                VALUES (?,'fixture-unused','Assistant fixture') RETURNING id
-                """, Long.class, UUID.randomUUID() + "@example.test");
-        Instant now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
+    @ParameterizedTest
+    @CsvSource({"MOCK_EXAM", "PLACEMENT", "TOPIC_TEST", "QUIZ", "CONTEST"})
+    void anOpenTestNeverBlocksTheAssistant(String source) throws Exception {
+        long learner = quizLearner();
         int before = stub.callCount();
         try {
-            for (String source : List.of("MOCK_EXAM", "PLACEMENT", "TOPIC_TEST")) {
-                attempt(learner, source, "IN_PROGRESS", now.plusSeconds(600));
-                var response = ask("{\"question\":\"Học thế nào?\"}", learner).getResponse();
-                assertThat(response.getStatus()).as(source).isEqualTo(403);
-                assertThat(response.getContentAsString()).contains("ASSISTANT_BLOCKED_DURING_TEST");
-                jdbc.update("DELETE FROM learning.attempts WHERE user_id=?", learner);
+            if (source.equals("CONTEST")) {
+                contestAttempt(learner, "IN_PROGRESS", clock.instant().plusSeconds(600));
+            } else {
+                attempt(learner, source, "IN_PROGRESS", clock.instant().plusSeconds(600));
             }
-            assertThat(stub.callCount()).isEqualTo(before);
-            assertThat(redis.opsForValue().get(dailyKey(learner))).isNull();
-
-            attempt(learner, "MOCK_EXAM", "IN_PROGRESS", now);
-            attempt(learner, "PLACEMENT", "SUBMITTED", now.plusSeconds(600));
-            attempt(learner, "TOPIC_PRACTICE", "IN_PROGRESS", now.plusSeconds(600));
-            assertThat(activeTests.hasActiveTest(learner, now)).isFalse();
-            assertThat(activeTests.hasActiveTest(learner, now.minusMillis(1))).isTrue();
             stub.enqueue(new ClaudeClient.Completion("Hướng dẫn thử", 1, 1));
-            assertThat(ask("{\"question\":\"Học thế nào?\"}", learner).getResponse().getStatus()).isEqualTo(200);
-
-            attempt(learner, "MOCK_EXAM", "IN_PROGRESS", now.plusSeconds(600));
-            stub.enqueue(new ClaudeClient.Completion("Hướng dẫn thử", 1, 1));
-            assertThat(ask("{\"question\":\"Học thế nào?\"}").getResponse().getStatus()).isEqualTo(200);
+            var response = ask("{\"question\":\"Học thế nào?\"}", learner).getResponse();
+            assertThat(response.getStatus()).as(source).isEqualTo(200);
+            assertThat(stub.callCount()).isEqualTo(before + 1);
+            assertThat(redis.opsForValue().get(dailyKey(learner))).isEqualTo("1");
         } finally {
-            redis.delete(dailyKey(learner));
-            jdbc.update("DELETE FROM learning.attempts WHERE user_id=?", learner);
-            jdbc.update("DELETE FROM auth.users WHERE id=?", learner);
+            cleanupQuizLearner(learner);
         }
     }
 
@@ -186,93 +167,6 @@ class AssistantControllerIntegrationTest extends AbstractIntegrationTest {
         assertThat(ask("{\"question\":\"Học thế nào?\"}").getResponse().getStatus()).isEqualTo(503);
         assertThat(stub.callCount()).isEqualTo(before + 1);
         assertThat(redis.opsForValue().get(dailyKey())).isEqualTo("1");
-    }
-
-    @ParameterizedTest
-    @CsvSource({
-            "QUIZ, IN_PROGRESS, 600, true",
-            "QUIZ_RETRY, IN_PROGRESS, 600, false",
-            "QUIZ, SUBMITTED, 600, false",
-            "QUIZ, ABANDONED, 600, false",
-            "QUIZ, EXPIRED, 600, false",
-            "QUIZ, IN_PROGRESS, 0, false",
-            "QUIZ, IN_PROGRESS, -1, false",
-            "PLACEMENT, IN_PROGRESS, 600, true",
-            "TOPIC_TEST, IN_PROGRESS, 600, true"
-    })
-    void quizGuardPreservesOwnershipStatusExpiryAndExistingTestSources(
-            String source, String status, long remainingSeconds, boolean blocked) throws Exception {
-        long learner = quizLearner();
-        Instant now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
-        Instant expiresAt = now.plusSeconds(remainingSeconds);
-        int before = stub.callCount();
-        try {
-            attempt(learner, source, status, expiresAt);
-            Instant storedExpiry = jdbc.queryForObject("SELECT expires_at FROM learning.attempts WHERE user_id=?",
-                    (row, index) -> row.getTimestamp(1).toInstant(), learner);
-            assertThat(storedExpiry).isEqualTo(expiresAt);
-            assertThat(activeTests.hasActiveTest(learner, now)).isEqualTo(blocked);
-            if (source.equals("QUIZ") && status.equals("IN_PROGRESS") && remainingSeconds == 0) {
-                assertThat(activeTests.hasActiveTest(learner, now.minusMillis(1))).isTrue();
-            }
-            if (!blocked) {
-                stub.enqueue(new ClaudeClient.Completion("Hướng dẫn kiểm thử quiz", 1, 1));
-            }
-            var response = ask("{\"question\":\"Quiz theo chủ đề hoạt động thế nào?\"}", learner).getResponse();
-            assertThat(response.getStatus()).isEqualTo(blocked ? 403 : 200);
-            if (blocked) {
-                assertThat(response.getContentAsString()).contains("ASSISTANT_BLOCKED_DURING_TEST");
-            }
-            assertThat(stub.callCount()).isEqualTo(before + (blocked ? 0 : 1));
-            assertThat(redis.opsForValue().get(dailyKey(learner))).isEqualTo(blocked ? null : "1");
-        } finally {
-            cleanupQuizLearner(learner);
-        }
-    }
-
-    @Test
-    void retryDoesNotBypassAnActiveFirstQuizAndSubmissionUnblocksTheAssistant() throws Exception {
-        long learner = quizLearner();
-        Instant expiresAt = clock.instant().plusSeconds(600);
-        int before = stub.callCount();
-        try {
-            attempt(learner, "QUIZ", "IN_PROGRESS", expiresAt);
-            attempt(learner, "QUIZ_RETRY", "IN_PROGRESS", expiresAt);
-            var blocked = ask("{\"question\":\"Học thế nào?\"}", learner).getResponse();
-            assertThat(blocked.getStatus()).isEqualTo(403);
-            assertThat(blocked.getContentAsString()).contains("ASSISTANT_BLOCKED_DURING_TEST");
-            assertThat(stub.callCount()).isEqualTo(before);
-            assertThat(redis.opsForValue().get(dailyKey(learner))).isNull();
-
-            jdbc.update("UPDATE learning.attempts SET status='SUBMITTED',submitted_at=? "
-                    + "WHERE user_id=? AND ref_type='QUIZ'", Timestamp.from(clock.instant()), learner);
-            stub.enqueue(new ClaudeClient.Completion("Hướng dẫn kiểm thử quiz", 1, 1));
-            assertThat(ask("{\"question\":\"Học thế nào?\"}", learner).getResponse().getStatus()).isEqualTo(200);
-            assertThat(stub.callCount()).isEqualTo(before + 1);
-            assertThat(redis.opsForValue().get(dailyKey(learner))).isEqualTo("1");
-        } finally {
-            cleanupQuizLearner(learner);
-        }
-    }
-
-    @Test
-    void anotherLearnersFirstQuizDoesNotBlockTheCaller() throws Exception {
-        long learner = quizLearner();
-        long other = quizLearner();
-        int before = stub.callCount();
-        try {
-            attempt(other, "QUIZ", "IN_PROGRESS", clock.instant().plusSeconds(600));
-            assertThat(activeTests.hasActiveTest(other, clock.instant())).isTrue();
-            assertThat(activeTests.hasActiveTest(learner, clock.instant())).isFalse();
-            stub.enqueue(new ClaudeClient.Completion("Hướng dẫn kiểm thử quiz", 1, 1));
-            assertThat(ask("{\"question\":\"Học thế nào?\"}", learner).getResponse().getStatus()).isEqualTo(200);
-            assertThat(stub.callCount()).isEqualTo(before + 1);
-            assertThat(redis.opsForValue().get(dailyKey(learner))).isEqualTo("1");
-            assertThat(redis.opsForValue().get(dailyKey(other))).isNull();
-        } finally {
-            cleanupQuizLearner(learner);
-            cleanupQuizLearner(other);
-        }
     }
 
     @Test
@@ -298,70 +192,6 @@ class AssistantControllerIntegrationTest extends AbstractIntegrationTest {
             logger.detachAppender(appender);
             appender.stop();
         }
-    }
-
-    @ParameterizedTest
-    @CsvSource({
-            "IN_PROGRESS, 600, true",
-            "SUBMITTED, 600, false",
-            "ABANDONED, 600, false",
-            "EXPIRED, 600, false",
-            "IN_PROGRESS, 0, false",
-            "IN_PROGRESS, -1, false"
-    })
-    void FR008_AT13_onlyAnActiveContestBlocksTheAssistantWithoutCallingTheStubOrTakingDailySlots(
-            String status, long remainingSeconds, boolean blocked) throws Exception {
-        long learner = contestLearner();
-        Instant now = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MILLIS);
-        int before = stub.callCount();
-        try {
-            contestAttempt(learner, status, now.plusSeconds(remainingSeconds));
-            assertThat(activeTests.hasActiveTest(learner, now)).isEqualTo(blocked);
-            if (status.equals("IN_PROGRESS") && remainingSeconds == 0) {
-                assertThat(activeTests.hasActiveTest(learner, now.minusMillis(1))).isTrue();
-            }
-            if (!blocked) {
-                stub.enqueue(new ClaudeClient.Completion("Hướng dẫn kiểm thử cuộc thi", 1, 1));
-            }
-            var response = ask("{\"question\":\"Cuộc thi hoạt động thế nào?\"}", learner).getResponse();
-            assertThat(response.getStatus()).isEqualTo(blocked ? 403 : 200);
-            if (blocked) {
-                var error = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response.getContentAsByteArray());
-                assertThat(error.path("error_code").textValue()).isEqualTo("ASSISTANT_BLOCKED_DURING_TEST");
-            }
-            assertThat(stub.callCount()).isEqualTo(before + (blocked ? 0 : 1));
-            assertThat(redis.opsForValue().get(dailyKey(learner))).isEqualTo(blocked ? null : "1");
-        } finally {
-            cleanupQuizLearner(learner);
-        }
-    }
-
-    @Test
-    void FR008_AT13_anotherLearnersActiveContestDoesNotBlockTheCaller() throws Exception {
-        long learner = contestLearner();
-        long other = contestLearner();
-        int before = stub.callCount();
-        try {
-            contestAttempt(other, "IN_PROGRESS", clock.instant().plusSeconds(600));
-            assertThat(activeTests.hasActiveTest(other, clock.instant())).isTrue();
-            assertThat(activeTests.hasActiveTest(learner, clock.instant())).isFalse();
-            stub.enqueue(new ClaudeClient.Completion("Hướng dẫn kiểm thử cuộc thi", 1, 1));
-
-            assertThat(ask("{\"question\":\"Học thế nào?\"}", learner).getResponse().getStatus()).isEqualTo(200);
-            assertThat(stub.callCount()).isEqualTo(before + 1);
-            assertThat(redis.opsForValue().get(dailyKey(learner))).isEqualTo("1");
-            assertThat(redis.opsForValue().get(dailyKey(other))).isNull();
-        } finally {
-            cleanupQuizLearner(learner);
-            cleanupQuizLearner(other);
-        }
-    }
-
-    private long contestLearner() {
-        return jdbc.queryForObject("INSERT INTO auth.users(email,password_hash,display_name) "
-                + "VALUES (?,?,'Contest assistant fixture') RETURNING id", Long.class,
-                "contest-assistant-" + UUID.randomUUID() + "@example.test",
-                new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString()));
     }
 
     private void contestAttempt(long userId, String status, Instant expiresAt) {

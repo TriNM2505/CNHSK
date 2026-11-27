@@ -31,7 +31,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class AssistantServiceTest {
-    @Mock private TestInProgressGuard guard;
     @Mock private AssistantDailyLimit limit;
     @Mock private AssistantPromptBuilder promptBuilder;
     @Mock private TokenBudget budget;
@@ -49,7 +48,7 @@ class AssistantServiceTest {
     void setup() {
         config.setAssistantModel("claude-haiku-5-5");
         config.setTimeout(Duration.ofSeconds(15));
-        service = new AssistantService(guard, limit, promptBuilder, budget, client, config, mapper, clock);
+        service = new AssistantService(limit, promptBuilder, budget, client, config, mapper, clock);
         when(limit.reserve(9L)).thenReturn(reservation);
     }
 
@@ -64,7 +63,6 @@ class AssistantServiceTest {
 
         assertThat(service.ask(9L, input)).isEqualTo(new AssistantService.AskResult("help", true));
         verify(reservation).commit();
-        verify(guard).check(eq(9L), any(Instant.class));
     }
 
     @Test

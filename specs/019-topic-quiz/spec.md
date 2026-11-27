@@ -119,7 +119,7 @@ Là người học, tôi làm lại quiz để luyện; giao diện nói rõ l�
 
 ### Nhóm 4 — Tách khỏi học chính (FR-016…FR-017)
 - **FR-016** `EvidenceAllocator.contextOf("QUIZ" | "QUIZ_RETRY") = null` → 011 không ghi minh chứng; không cập nhật `user_progress` (BR-080-2). Test khẳng định mastery không đổi sau quiz (UC-080 T3).
-- **FR-017** `existsActiveTest` tính cả `refType='QUIZ'` → trợ lý trả `ASSISTANT_BLOCKED_DURING_TEST` trong lượt tính hạng; lượt `QUIZ_RETRY` không chặn. FE ẩn panel trợ lý ở SCR-044.
+- **FR-017** `existsActiveTest` tính cả `refType='QUIZ'` → trợ lý trả `ASSISTANT_BLOCKED_DURING_TEST` trong lượt tính hạng; lượt `QUIZ_RETRY` không chặn. FE ẩn panel trợ lý ở SCR-044. — **Bỏ 27/11/2026 (leader):** trợ lý không còn bị chặn hay ẩn khi đang làm bài; mã lỗi giữ trong `ErrorCode` nhưng không phát ra nữa.
 
 ### Nhóm 5 — Cấu hình (FR-018)
 - **FR-018** `quiz.question-count` (10, min 5, max 30), `quiz.min-seconds-per-question` (2, min 0, max 10), `quiz.session-minutes` (30) đọc qua `SettingsApi` (⚿K7 — 023) khi đã merge; trước đó đọc `cnhsk.quiz.*` trong `application.yaml` cùng giá trị mặc định.

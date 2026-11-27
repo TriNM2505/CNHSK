@@ -9,6 +9,7 @@ import type { ScreenId } from '@/app/screenRegistry'
 import { askAssistant } from '../api/ask'
 import { assistantPageContext } from '../pageContext'
 import { AssistantPanel, type AssistantMessage } from './AssistantPanel'
+import { PandaMascot } from './PandaMascot'
 
 function AssistantSession({
   children,
@@ -85,9 +86,6 @@ function AssistantSession({
         case 'RATE_LIMITED':
           setError('Bạn đã hỏi nhiều trong hôm nay, quay lại ngày mai')
           break
-        case 'ASSISTANT_BLOCKED_DURING_TEST':
-          setError('Trợ lý tắt trong lúc làm bài')
-          break
         case 'ASSISTANT_UNAVAILABLE':
           setError('Trợ lý tạm thời chưa trả lời được, bạn thử lại sau')
           break
@@ -103,10 +101,11 @@ function AssistantSession({
   }
 
   return (
-    <div data-assistant-open={open} className={open ? 'min-w-0 lg:flex lg:items-start' : 'min-w-0'}>
+    // The card floats over the page like a chat widget, so opening it never narrows the content.
+    <div data-assistant-open={open} className="min-w-0">
       <div className="min-w-0 flex-1 pb-24">{children}</div>
       {open ? (
-        <aside className="w-full shrink-0 p-4 lg:sticky lg:top-16 lg:w-80 xl:w-96">
+        <aside className="fixed inset-x-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] top-20 z-dropdown sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[min(640px,calc(100dvh-7rem))] sm:w-[400px]">
           <AssistantPanel
             draft={draft}
             messages={messages}
@@ -126,10 +125,14 @@ function AssistantSession({
           type="button"
           aria-label="Mở trợ lý CNHSK"
           aria-expanded={false}
-          className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-20 flex size-12 items-center justify-center rounded-full bg-brand-700 text-surface shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:bottom-6 sm:right-6"
+          className="cnhsk-panda-launcher fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-nav flex size-16 items-center justify-center rounded-pill border-2 border-brand-100 bg-surface shadow-md transition-transform hover:-translate-y-0.5 hover:shadow-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus sm:bottom-6 sm:right-6"
           onClick={() => setOpen(true)}
+          title="Hỏi trợ lý CNHSK"
         >
-          <MessageCircle aria-hidden="true" className="size-6" />
+          <PandaMascot className="size-14" />
+          <span className="absolute -bottom-0.5 -right-0.5 flex size-6 items-center justify-center rounded-pill bg-brand-700 text-surface ring-2 ring-surface">
+            <MessageCircle aria-hidden="true" className="size-3.5" />
+          </span>
         </button>
       )}
     </div>
@@ -139,8 +142,8 @@ function AssistantSession({
 export function AssistantHost({ children }: { children: ReactNode }) {
   const location = useLocation()
   const { user } = useCurrentUser()
-  const { hidden, pageContext } = assistantPageContext(location)
-  if (hidden || !user?.roles.includes('LEARNER')) return <>{children}</>
+  const { pageContext } = assistantPageContext(location)
+  if (!user?.roles.includes('LEARNER')) return <>{children}</>
   return (
     <AssistantSession key={user.id} pageContext={pageContext}>
       {children}

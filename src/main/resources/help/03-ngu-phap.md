@@ -1,19 +1,25 @@
-# Ngữ pháp HSK và bài học ngữ pháp
+# Ngữ pháp HSK
 
 ## Mở bài học
 
-Vào Ngữ pháp → màn Ngữ pháp HSK → chọn thẻ cấp HSK → bấm một điểm ngữ pháp.
+Vào Ngữ pháp → chọn cấp HSK → bấm một điểm ngữ pháp. Màn danh sách có nút Xem tiến độ học tập.
 
-Màn Bài học ngữ pháp hiển thị cấu trúc, giải thích, ví dụ và lỗi thường gặp khi có dữ liệu. Tên điểm ngữ pháp xuất hiện ở đầu bài.
+Bài học gồm Cấu trúc, Giải thích, Ví dụ và Lỗi thường gặp khi có dữ liệu.
 
-Đọc bài → bấm Đã hiểu để chuyển sang hoạt động tiếp theo. Nếu đã có bài tập đang làm, nút hiện Tiếp tục bài tập. Làm theo các nút chọn câu trả lời và chuyển câu đang hiển thị.
+## Luyện tập củng cố
 
-Nhãn Đã học ở danh sách cho biết đã ghi nhận việc học. Điểm cao nhất chỉ xuất hiện khi có kết quả được chấm; 0% vẫn là một kết quả.
+Đọc xong bài → bấm Luyện tập củng cố để làm bài tập ngắn của điểm đó. Có thể Bỏ qua bài tập, hoặc bấm Xem lại nội dung bài học trong lúc làm. Làm xong, bấm Học điểm tiếp theo để chuyển sang điểm kế tiếp, hoặc Quay lại danh sách.
+
+Nếu bài báo Điểm này chưa có bài tập, đọc bài rồi chuyển sang điểm khác.
+
+Nhãn Đã học ở danh sách cho biết đã ghi nhận việc học. Câu trả lời trong bài tập được tính vào tiến độ năng lực.
+
+## Lượt miễn phí
+
+Tài khoản FREE có số lượt học Ngữ pháp miễn phí mỗi tháng (mặc định 3 lượt). Hết lượt thì chờ sang tháng hoặc nâng cấp PREMIUM.
 
 ## Câu hỏi thường gặp
 
-**Tôi đọc bài xong cần bấm gì?** Bấm Đã hiểu ở cuối phần đọc.
+**Đọc bài xong cần bấm gì?** Bấm Luyện tập củng cố, hoặc Học điểm tiếp theo nếu muốn chuyển bài.
 
-**Tôi quay lại bài tập chưa xong thế nào?** Mở lại điểm ngữ pháp → bấm Tiếp tục bài tập nếu nút này xuất hiện.
-
-**Cấp tôi chọn chưa có bài?** Màn hiện Chưa có điểm ngữ pháp cho cấp này. Chọn cấp khác đang có dữ liệu hoặc quay lại sau.
+**Cấp tôi chọn chưa có bài?** Màn hiện Chưa có điểm ngữ pháp cho cấp này. Chọn cấp khác hoặc quay lại sau.

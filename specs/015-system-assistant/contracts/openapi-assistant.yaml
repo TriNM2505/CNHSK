@@ -67,7 +67,7 @@ paths:
           description: UNAUTHENTICATED
           content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
         '403':
-          description: FORBIDDEN · CSRF_TOKEN_INVALID · ASSISTANT_BLOCKED_DURING_TEST
+          description: FORBIDDEN · CSRF_TOKEN_INVALID
           content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
         '422':
           description: VALIDATION_FAILED

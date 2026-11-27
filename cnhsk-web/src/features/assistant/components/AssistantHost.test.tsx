@@ -74,44 +74,27 @@ async function send(text: string) {
 
 describe('assistant FR013 / FR014', () => {
   it.each([
+    '/community/quizzes',
+    '/community/quizzes/attempts/101',
     '/community/quizzes/43/play?sessionId=101',
     '/community/quizzes/43/play/?sessionId=102&retry=true',
-  ])('hides both launcher and panel on quiz play %s', (path) => {
+  ])('keeps launcher on %s', (path) => {
     mount(path)
-    expect(screen.queryByRole('button', { name: 'Mở trợ lý CNHSK' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: 'Trợ lý hỗ trợ CNHSK' })).not.toBeInTheDocument()
-    expect(screen.getByRole('main', { name: 'Nội dung học tập' })).toBeVisible()
-    expect(askAssistant).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' })).toBeVisible()
   })
-  it.each(['/community/quizzes', '/community/quizzes/attempts/101'])(
-    'keeps launcher on %s',
-    (path) => {
-      mount(path)
-      expect(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' })).toBeVisible()
-    },
-  )
   beforeEach(() => {
     vi.mocked(askAssistant).mockReset().mockResolvedValue(systemAnswer)
   })
 
-  it('FR016_AT20_hides the contest assistant and aborts an in-flight conversation on entry', async () => {
-    vi.mocked(askAssistant).mockImplementation(() => new Promise(() => undefined))
+  it('keeps the conversation open while entering a contest attempt', async () => {
     const user = userEvent.setup()
     mount()
     await user.click(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' }))
-    await user.type(
-      screen.getByRole('textbox', { name: 'Câu hỏi về cách dùng CNHSK' }),
-      'Cách dùng?',
-    )
-    await user.click(screen.getByRole('button', { name: 'Gửi' }))
-    const signal = vi.mocked(askAssistant).mock.calls[0]![1]!
+    await send('Cách dùng?')
     await user.click(screen.getByRole('button', { name: 'Vào SCR-050' }))
-    expect(signal.aborted).toBe(true)
-    expect(screen.queryByRole('button', { name: 'Mở trợ lý CNHSK' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: 'Trợ lý hỗ trợ CNHSK' })).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Trợ lý hỗ trợ CNHSK' })).toBeVisible()
+    expect(screen.getByText('Cách dùng?')).toBeVisible()
     expect(screen.getByRole('main', { name: 'Nội dung học tập' })).toBeVisible()
-    await user.click(screen.getByRole('button', { name: 'Màn tín dụng' }))
-    expect(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' })).toBeVisible()
   })
 
   it('AT13_opens and collapses without reducing closed content width or replacing page content', async () => {
@@ -130,7 +113,9 @@ describe('assistant FR013 / FR014', () => {
 
     await user.click(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' }))
     expect(screen.getByRole('region', { name: 'Trợ lý hỗ trợ CNHSK' })).toBeVisible()
-    expect(host).toHaveClass('lg:flex')
+    // The card floats over the page, so the content keeps its width while it is open.
+    expect(host.className).toBe(closedClasses)
+    expect(within(host as HTMLElement).getByRole('complementary')).toHaveClass('fixed')
     await send('Chọn chủ đề thế nào?')
     await user.click(screen.getByRole('button', { name: 'Thu gọn' }))
     expect(host.className).toBe(closedClasses)
@@ -210,15 +195,14 @@ describe('assistant FR013 / FR014', () => {
     '/learn/exams/sessions/12?mode=PLACEMENT',
     '/learn/topics/12/test',
     '/learn/topics/12/test/?from=study',
-  ])('AT14_has no assistant on initial route %s', (path) => {
+  ])('keeps the assistant on test route %s', (path) => {
     mount(path)
-    expect(screen.queryByRole('button', { name: 'Mở trợ lý CNHSK' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('region', { name: 'Trợ lý hỗ trợ CNHSK' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Hành động chính' })).toBeVisible()
   })
 
   it.each(['Vào SCR-021', 'Vào kiểm tra chủ đề'])(
-    'AT14_clears chat and draft when navigating through %s',
+    'keeps chat and draft when navigating through %s',
     async (target) => {
       const user = userEvent.setup()
       mount()
@@ -226,12 +210,9 @@ describe('assistant FR013 / FR014', () => {
       await send('Câu hỏi trước bài kiểm tra')
       await user.type(screen.getByRole('textbox'), 'Bản nháp')
       await user.click(screen.getByRole('button', { name: target }))
-      expect(screen.queryByRole('button', { name: 'Mở trợ lý CNHSK' })).not.toBeInTheDocument()
-      expect(screen.queryByRole('region', { name: 'Trợ lý hỗ trợ CNHSK' })).not.toBeInTheDocument()
-      await user.click(screen.getByRole('button', { name: 'Màn tín dụng' }))
-      await user.click(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' }))
-      expect(screen.getByRole('log')).toBeEmptyDOMElement()
-      expect(screen.getByRole('textbox')).toHaveValue('')
+      expect(screen.getByRole('region', { name: 'Trợ lý hỗ trợ CNHSK' })).toBeVisible()
+      expect(screen.getByText('Câu hỏi trước bài kiểm tra')).toBeVisible()
+      expect(screen.getByRole('textbox')).toHaveValue('Bản nháp')
     },
   )
 
@@ -244,7 +225,7 @@ describe('assistant FR013 / FR014', () => {
     expect(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' })).toBeVisible()
   })
 
-  it.each(['Cuộc trò chuyện mới', 'Đổi tài khoản', 'Kết thúc phiên', 'Vào SCR-021'])(
+  it.each(['Cuộc trò chuyện mới', 'Đổi tài khoản', 'Kết thúc phiên'])(
     'FR013_cancels an in-flight answer on %s',
     async (target) => {
       let resolve: (result: AskResult) => void = () => undefined
@@ -263,8 +244,6 @@ describe('assistant FR013 / FR014', () => {
       const signal = vi.mocked(askAssistant).mock.calls[0]![1]!
       await user.click(screen.getByRole('button', { name: target }))
       expect(signal.aborted).toBe(true)
-      if (target === 'Vào SCR-021')
-        await user.click(screen.getByRole('button', { name: 'Màn tín dụng' }))
       const launcher = screen.queryByRole('button', { name: 'Mở trợ lý CNHSK' })
       if (launcher) await user.click(launcher)
       await act(async () => resolve({ answer: 'Phản hồi của phiên cũ', outOfScope: false }))
@@ -286,7 +265,10 @@ describe('assistant FR015 / AT15 integration', () => {
     mount()
     await user.click(screen.getByRole('button', { name: 'Mở trợ lý CNHSK' }))
     await send('Tôi muốn hỏi về một từ')
-    expect(screen.getByRole('link', { name: 'Dịch và tra từ' })).toHaveAttribute('href', '/translate')
+    expect(screen.getByRole('link', { name: 'Dịch và tra từ' })).toHaveAttribute(
+      'href',
+      '/translate',
+    )
     await send('Tôi chọn chủ đề ở đâu?')
     expect(vi.mocked(askAssistant).mock.calls[1]![0].history).toEqual([
       { role: 'user', text: 'Tôi muốn hỏi về một từ' },

@@ -32,7 +32,6 @@ public class AssistantService {
     private static final String UNAVAILABLE_MESSAGE =
             "Trợ lý tạm thời chưa trả lời được, bạn thử lại sau";
 
-    private final TestInProgressGuard testGuard;
     private final AssistantDailyLimit dailyLimit;
     private final AssistantPromptBuilder promptBuilder;
     private final TokenBudget tokenBudget;
@@ -41,10 +40,9 @@ public class AssistantService {
     private final ObjectReader jsonReader;
     private final Clock clock;
 
-    public AssistantService(TestInProgressGuard testGuard, AssistantDailyLimit dailyLimit,
+    public AssistantService(AssistantDailyLimit dailyLimit,
             AssistantPromptBuilder promptBuilder, TokenBudget tokenBudget, ClaudeClient client,
             AiConfig config, ObjectMapper mapper, Clock clock) {
-        this.testGuard = testGuard;
         this.dailyLimit = dailyLimit;
         this.promptBuilder = promptBuilder;
         this.tokenBudget = tokenBudget;
@@ -56,7 +54,6 @@ public class AssistantService {
 
     public AskResult ask(long userId, AskCommand command) {
         Instant started = clock.instant();
-        testGuard.check(userId, started);
 
         Reservation reservation;
         try {

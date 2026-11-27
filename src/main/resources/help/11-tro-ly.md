@@ -16,9 +16,7 @@ Chat không được lưu để xem lại sau. Tải lại trang, đăng xuất 
 
 ## Trong lúc làm bài
 
-Nút trợ lý không hiện ở màn Làm bài kiểm tra, gồm đề thi và bài xếp trình độ, cũng như trang làm bài kiểm tra chủ đề. Chuyển vào các màn này sẽ đóng panel và xoá chat.
-
-Nếu tài khoản còn lượt kiểm tra đang làm, hệ thống có thể báo Trợ lý tắt trong lúc làm bài dù đang mở một màn khác.
+Trợ lý dùng được ở mọi màn của khu học viên, kể cả khi đang làm đề thi thử, kiểm tra đầu vào, kiểm tra chủ đề, quiz hay bài cuộc thi. Chuyển màn không làm mất chat. Trợ lý chỉ hướng dẫn cách dùng hệ thống, không gợi ý đáp án.
 
 ## Câu hỏi thường gặp
 

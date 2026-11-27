@@ -11,33 +11,21 @@ describe('assistant screen context', () => {
     ['/contests', 'SCR-048'],
     ['/contests/2101', 'SCR-049'],
     ['/contests/2101/results', 'SCR-051'],
-  ])('FR013_reads the registered screen for %s', (pathname, scr) => {
-    expect(assistantPageContext({ pathname })).toEqual({ pageContext: scr, hidden: false })
-  })
-
-  it.each([
-    '/learn/exams/sessions/123',
-    '/learn/exams/sessions/123/',
-    '/learn/topics/12/test',
-    '/learn/topics/12/test/',
-    '/community/quizzes/43/play',
-    '/community/quizzes/43/play/',
-    '/contests/2101/attempt',
-    '/contests/2101/attempt/',
-  ])('FR014_hides the assistant at %s', (pathname) => {
-    expect(assistantPageContext({ pathname }).hidden).toBe(true)
-  })
-
-  it.each([
     ['/community/quizzes', 'SCR-043'],
     ['/community/quizzes/attempts/101', 'SCR-045'],
-  ])('keeps the assistant and trusted screen at %s', (pathname, pageContext) => {
-    expect(assistantPageContext({ pathname })).toEqual({ pageContext, hidden: false })
+  ])('FR013_reads the registered screen for %s', (pathname, scr) => {
+    expect(assistantPageContext({ pathname })).toEqual({ pageContext: scr })
   })
+
+  it.each([
+    ['/learn/exams/sessions/123', 'SCR-021'],
+    ['/community/quizzes/43/play', 'SCR-044'],
+    ['/contests/2101/attempt', 'SCR-050'],
+  ])('keeps the assistant on test screens such as %s', (pathname, scr) => {
+    expect(assistantPageContext({ pathname })).toEqual({ pageContext: scr })
+  })
+
   it('FR013_omits context when no registered screen matches', () => {
-    expect(assistantPageContext({ pathname: '/not-a-screen' })).toEqual({
-      pageContext: undefined,
-      hidden: false,
-    })
+    expect(assistantPageContext({ pathname: '/not-a-screen' })).toEqual({ pageContext: undefined })
   })
 })

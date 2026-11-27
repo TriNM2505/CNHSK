@@ -1,31 +1,35 @@
-# Cây năng lực và ôn tập
+# Bảng học tập, tiến độ và ôn tập
 
-## Xem tiến độ năng lực
+## Bảng học tập
 
-Màn Cây năng lực có tiêu đề Tiến độ học tập. Lưới gồm sáu miền NA, CH, TV, NP, NL, VB và các cấp HSK 1–3. Mỗi nút có tên, mã KID và nhãn trạng thái; màu hỗ trợ nhận biết trạng thái.
+Bảng học tập là trang đầu của khu học viên (menu Luyện tập → Bảng học tập). Trang gồm:
 
-Các nhãn gồm Chưa học, Chưa đủ minh chứng, Cần ôn, Củng cố, Vững và Suy ra vững. Màn ghi Vững ≥ 80. Nút thuộc biên học tập có dấu viền để gợi ý nội dung nên luyện. Gợi ý này không khoá các nội dung khác.
+- **Dải nhắc**: Nhắc ôn tập (nút Ôn ngay) khi có mục đến hạn, và lời mời làm bài kiểm tra trình độ nếu bạn chưa làm (nút Làm bài kiểm tra hoặc Để sau).
+- **Ôn tập**: số mục đến hạn hôm nay. Có mục → bấm Ôn ngay. Chưa có mục nhưng đã có lịch tiếp theo → xem thời gian và dùng Ôn trước nếu muốn ôn sớm. Có nút Xem tiến độ.
+- **Bốn kỹ năng**: dải Nghe, Nói, Đọc, Viết cho biết mức của từng kỹ năng theo chuẩn HSK 3.0.
+- **Luyện lỗi của tôi**: các lỗi trong 7 ngày qua, chia theo phần Nghe, Đọc, Viết, ghi số phần cần luyện lại. Bấm Luyện ở từng phần hoặc Luyện tất cả. Lỗi tự được xoá khi bạn làm đúng lại. Chưa có lỗi thì hiện "Bạn chưa có lỗi nào trong 7 ngày qua".
+- **Gợi ý hôm nay**: các phần kiến thức nên học, xếp theo thứ tự nên học trước, kèm lý do. Bấm Luyện trên một thẻ để mở Luyện theo nút.
 
-Chọn một nút → xem Điểm, Độ tin cậy, Số minh chứng, Minh chứng và Tiên quyết. Bấm Luyện nút này để luyện nếu có câu. Khi nút bị khoá và màn ghi Chưa có câu luyện cho nút này, chọn một nút khác.
+## Tiến độ học tập
 
-Người chưa có minh chứng thấy thông báo Bạn chưa có minh chứng — hãy làm bài kiểm tra trình độ hoặc luyện một chủ đề và nút Làm bài kiểm tra trình độ. Sau khi có kết quả học, quay lại để xem tiến độ cập nhật.
+Vào Tiến độ. Lưới tiến độ năng lực theo sáu mảng (NA, CH, TV, NP, NL, VB) và ba cấp HSK 1–3. Mỗi ô có tên phần kiến thức, mã KID và nhãn trạng thái: Chưa học, Chưa đủ minh chứng, Cần ôn, Củng cố, Vững, Suy ra vững. Vững nghĩa là điểm từ 80 trở lên.
 
-## Gợi ý hôm nay
+Bấm vào một ô để xem Mức thành thạo, Độ tin cậy, Số câu đã làm, Câu làm gần đây và Cần học trước. Bấm Luyện phần này để luyện; nếu màn ghi Chưa có câu luyện cho phần này, chọn phần khác.
 
-Màn Trang học tập có tiêu đề Học tập. Khối Gợi ý hôm nay nêu tên nút và lý do gợi ý. Bấm Luyện trên một thẻ để mở Luyện theo nút.
+Chưa có kết quả nào thì màn mời Làm bài kiểm tra trình độ.
 
-Khối Ôn tập cho biết số mục đến hạn. Có mục đến hạn → bấm Ôn ngay. Chưa có mục đến hạn nhưng đã có lịch tiếp theo → xem thời gian và dùng Ôn trước nếu muốn luyện sớm.
+## Luyện theo nút
 
-## Ôn tập đến hạn
+Màn Luyện theo nút mở từ Gợi ý hôm nay, Tiến độ, kết quả đề thi hoặc Luyện lỗi của tôi. Làm lần lượt các câu; khi xong màn báo Đã hoàn thành bài luyện, có danh sách Câu bạn vừa làm sai. Bấm Về tiến độ để quay lại. Câu có nhãn "Câu mới" là câu luyện mới được bổ sung theo lỗi sai của học viên.
 
-Màn Ôn tập đến hạn có tiêu đề Ôn tập. Màn tự tải lượt ôn. Với câu chọn, chọn câu trả lời theo yêu cầu. Với thẻ, xem mặt trước → bấm Hiện đáp án → tự đánh giá bằng Quên, Khó, Được hoặc Dễ.
+## Ôn bài đến hạn
 
-Theo dõi số mục còn lại. Có thể Tạm dừng rồi quay lại lượt ôn. Khi chưa có mục đến hạn, màn hiện Chưa có mục đến hạn và nút Ôn trước.
+Vào Ôn bài đến hạn (màn Ôn tập). Màn tự tải lượt ôn. Câu chọn: chọn câu trả lời. Thẻ: xem mặt trước → bấm Hiện đáp án → chọn mức nhớ Quên, Khó, Được hoặc Dễ (có thể Bỏ qua). Có thể Tạm dừng rồi quay lại. Hết mục đến hạn thì màn hiện Chưa có mục đến hạn và nút Ôn trước.
 
 ## Câu hỏi thường gặp
 
-**Tôi xem vì sao một nút được gợi ý ở đâu?** Vào Trang học tập → đọc lý do dưới tên nút trong Gợi ý hôm nay.
+**Xem vì sao một phần được gợi ý ở đâu?** Bảng học tập → đọc lý do dưới tên phần trong Gợi ý hôm nay.
 
-**Chưa có mục đến hạn có ôn được không?** Ở màn Ôn tập, bấm Ôn trước.
+**Chưa có mục đến hạn có ôn được không?** Có, bấm Ôn trước.
 
-**Tôi phải chọn mức nào sau khi hiện đáp án?** Chọn Quên, Khó, Được hoặc Dễ theo mức nhớ của mình.
+**Luyện lại các câu đã làm sai ở đâu?** Bảng học tập → Luyện lỗi của tôi → Luyện hoặc Luyện tất cả.

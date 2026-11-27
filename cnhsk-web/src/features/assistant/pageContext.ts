@@ -1,10 +1,11 @@
-import { matchPath, matchRoutes } from 'react-router-dom'
+import { matchRoutes } from 'react-router-dom'
 
 import { appRouteDefinitions } from '@/app/routeAccess'
 import { screenRegistry, type ScreenId } from '@/app/screenRegistry'
 
 const routes = appRouteDefinitions.map((route) => ({ path: route.path, route }))
 
+/** The registered screen the learner is on; the assistant stays available on every screen, tests included. */
 export function assistantPageContext(location: { pathname: string }) {
   const matches = matchRoutes(routes, location)
   const route = matches?.[matches.length - 1]?.route.route
@@ -12,10 +13,5 @@ export function assistantPageContext(location: { pathname: string }) {
     route?.kind === 'screen' && Object.prototype.hasOwnProperty.call(screenRegistry, route.scr)
       ? route.scr
       : undefined
-  const hidden =
-    pageContext === 'SCR-021' ||
-    pageContext === 'SCR-044' ||
-    pageContext === 'SCR-050' ||
-    Boolean(matchPath({ path: '/learn/topics/:id/test', end: true }, location.pathname))
-  return { pageContext, hidden }
+  return { pageContext }
 }
