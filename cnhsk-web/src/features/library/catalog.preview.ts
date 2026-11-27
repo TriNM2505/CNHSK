@@ -353,7 +353,7 @@ function TranslationPreview({
             error: new ApiError({
               status: insufficient ? 402 : 503,
               errorCode: insufficient ? 'INSUFFICIENT_CREDITS' : 'TRANSLATE_UNAVAILABLE',
-              message: insufficient ? 'Bạn đã hết lượt dịch và không đủ điểm.' : 'Chưa thể dịch.',
+              message: insufficient ? 'Bạn đã dùng hết lượt dịch miễn phí tháng này.' : 'Chưa thể dịch.',
             }),
           }
         : {

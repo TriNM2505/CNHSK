@@ -489,8 +489,8 @@ describe('merged translate screen: AI translation (FR-025, AT-25)', () => {
       new ApiError({ status: 402, errorCode: 'INSUFFICIENT_CREDITS', message: 'Hết lượt' }),
     )
     renderPage('/translate?type=HANZI&q=我喜欢喝茶', ['LEARNER'])
-    expect(await screen.findByText('Bạn đã hết lượt dịch và không đủ điểm.')).toBeVisible()
-    expect(screen.getByRole('link', { name: 'Xem gói dịch vụ và điểm' })).toHaveAttribute(
+    expect(await screen.findByText('Bạn đã dùng hết lượt dịch miễn phí tháng này.')).toBeVisible()
+    expect(screen.getByRole('link', { name: 'Nâng cấp PREMIUM' })).toHaveAttribute(
       'href',
       '/account/credits',
     )

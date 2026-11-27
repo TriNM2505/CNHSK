@@ -167,7 +167,7 @@ class SettingsConsumerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void freeQuotaWalletCreditFallbackIdempotencyAndRefundUseTheChangedLimitWithoutResettingUsage() throws Exception {
+    void freeQuotaIdempotencyAndRefundUseTheChangedLimitWithoutSpendingPoints() throws Exception {
         change(BILLING_FREE_MONTHLY_LIMIT, 2);
         Consumption first = consume("first");
         assertThat(first.source()).isEqualTo(Consumption.Source.QUOTA);
@@ -177,8 +177,9 @@ class SettingsConsumerIntegrationTest extends AbstractIntegrationTest {
         assertQuota(0, 1, 0);
         tx().executeWithoutResult(status -> ledger.append(new LedgerService.AppendCommand(
                 learner, "TOPUP", 1, null, null, null, null, null, null, null)));
-        assertThat(consume("credit").source()).isEqualTo(Consumption.Source.CREDIT);
-        assertThat(ledger.balance(learner)).isZero();
+        // Points are never spent any more: with no free use left the learner is asked to upgrade.
+        assertThatThrownBy(() -> consume("credit")).isInstanceOf(com.cnhsk.shared.exception.ApiException.class);
+        assertThat(ledger.balance(learner)).isEqualTo(1);
         assertQuota(0, 1, 0);
         change(BILLING_FREE_MONTHLY_LIMIT, 3);
         assertThat(consume("raised").source()).isEqualTo(Consumption.Source.QUOTA);

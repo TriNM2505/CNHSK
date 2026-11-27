@@ -68,15 +68,17 @@ class WalletQueryServiceTest {
         verify(auth, never()).updateUsage(anyLong(), anyMap(), any());
     }
 
-    @Test void premiumUsesBenefitsWithMissingFeatureZeroAndPreservesGrantWhenCatalogInactive() throws Exception {
+    @Test void premiumShowsNoAllowanceToCountAndPreservesGrantWhenCatalogInactive() throws Exception {
         arrange(new PlanState("PREMIUM", NOW.plusSeconds(1), Map.of("TRANSLATE", 3), MONTH), "{\"AI_GENERATE\":25}");
         var wallet = service(NOW).wallet();
         assertThat(wallet.plan().code()).isEqualTo(PlanCode.PREMIUM);
         assertThat(wallet.plan().expiresAt()).isEqualTo(NOW.plusSeconds(1));
-        assertThat(wallet.quota().get(0).limit()).isEqualTo(25);
-        assertThat(wallet.quota().get(1).limit()).isZero();
-        assertThat(wallet.quota().get(1).used()).isEqualTo(3);
-        assertThat(wallet.quota().get(1).remaining()).isZero();
+        // PREMIUM is unlimited: every line reads 0/0 and the client labels it unlimited.
+        assertThat(wallet.quota()).allSatisfy(line -> {
+            assertThat(line.limit()).isZero();
+            assertThat(line.used()).isZero();
+            assertThat(line.remaining()).isZero();
+        });
     }
 
     @ParameterizedTest @ValueSource(longs = {-1, 0})
@@ -122,13 +124,11 @@ class WalletQueryServiceTest {
         verifyNoInteractions(auth, jdbc, ledger);
     }
 
-    @ParameterizedTest @ValueSource(strings = {"{\"TRANSLATE\":-1}","{\"TRANSLATE\":1.2}","{\"TRANSLATE\":2147483648}","[]","broken"})
-    void corruptPremiumBenefitsFailWithoutEchoingStoredData(String benefits) throws Exception {
+    @ParameterizedTest @ValueSource(strings = {"{\"TRANSLATE\":-1}","[]","broken"})
+    void premiumDoesNotReadStoredBenefitsSoCorruptValuesCannotBreakTheWallet(String benefits) throws Exception {
         arrange(new PlanState("PREMIUM", NOW.plusSeconds(1), Map.of(), MONTH), benefits);
-        assertThatThrownBy(() -> service(NOW).wallet()).isInstanceOf(IllegalStateException.class)
-                .hasMessage("Dữ liệu hạn mức không hợp lệ.");
+        assertThat(service(NOW).wallet().plan().code()).isEqualTo(PlanCode.PREMIUM);
     }
-
     @Test void bothEntryPointsDeclareReadOnlyRepeatableRead() throws Exception {
         for (var method : List.of(WalletQueryService.class.getMethod("wallet"), WalletQueryService.class.getMethod("history", int.class, int.class))) {
             var transaction = method.getAnnotation(Transactional.class);

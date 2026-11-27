@@ -98,13 +98,13 @@ describe('SCR-030 plan and credits (FR-024, AT-22)', () => {
     await ready()
     expect(screen.getByText('Miễn phí')).toBeVisible()
     expect(screen.getByText('Không có ngày hết hạn')).toBeVisible()
-    expect(screen.getByText('0 điểm')).toBeVisible()
   })
 
-  it('FR024_AT22_rendersBalance from the fixture', async () => {
+  it('hides the retired point balance', async () => {
     renderPage()
     await ready()
-    expect(screen.getByText('121 điểm')).toBeVisible()
+    expect(screen.queryByText('Số dư điểm')).not.toBeInTheDocument()
+    expect(screen.queryByText('121 điểm')).not.toBeInTheDocument()
   })
 
   it('FR024_AT22_rendersFourQuotas with separate limits, used and remaining', async () => {
@@ -124,6 +124,20 @@ describe('SCR-030 plan and credits (FR-024, AT-22)', () => {
         .getAllByRole('cell')
         .map((cell) => cell.textContent),
     ).toEqual(['10', '3', '7'])
+  })
+
+  it('shows every quota as unlimited while PREMIUM runs', async () => {
+    vi.mocked(getMyWallet).mockResolvedValue(structuredClone(creditsWallet))
+    renderPage()
+    await ready()
+    const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1)
+    for (const row of rows) {
+      expect(
+        within(row)
+          .getAllByRole('cell')
+          .map((cell) => cell.textContent),
+      ).toEqual(['Không giới hạn', '—', 'Không giới hạn'])
+    }
   })
 
   it('FR024_AT22_formatsResetInVietnamTime across the UTC month boundary', async () => {
@@ -230,7 +244,6 @@ describe('SCR-030 plan and credits (FR-024, AT-22)', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Đã nạp +100 điểm. Số dư: 221 điểm.',
     )
-    expect(await screen.findByText('221 điểm')).toBeVisible()
     expect(screen.getByRole('textbox')).toHaveValue('')
     expect(JSON.stringify({ creditsWallet, creditsRedeemResult })).toBe(original)
   })
@@ -255,7 +268,6 @@ describe('SCR-030 plan and credits (FR-024, AT-22)', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Đã cập nhật gói Gói sau gia hạn.')
     expect(screen.getByText('Gói sau gia hạn')).toBeVisible()
     expect(screen.getByText(/30\/01\/2027/)).toHaveTextContent('09:01')
-    expect(screen.getByText('121 điểm')).toBeVisible()
   })
 
   it.each(['Mã đã dùng', 'Mã hết hạn', 'Lô đã khoá', 'Mã do chính bạn tạo'])(
@@ -274,7 +286,7 @@ describe('SCR-030 plan and credits (FR-024, AT-22)', () => {
       await confirm()
       expect(await screen.findByRole('alert')).toHaveTextContent(invalidMessage)
       expect(screen.queryByText(reason)).not.toBeInTheDocument()
-      expect(screen.getByText('121 điểm')).toBeVisible()
+      expect(screen.getByText('PREMIUM mẫu')).toBeVisible()
     },
   )
 
@@ -287,7 +299,7 @@ describe('SCR-030 plan and credits (FR-024, AT-22)', () => {
     enterCode(creditsCreatedBatch.codes[1]!)
     await confirm()
     expect(await screen.findByRole('alert')).toHaveTextContent(invalidMessage)
-    expect(screen.getByText('121 điểm')).toBeVisible()
+    expect(screen.getByText('PREMIUM mẫu')).toBeVisible()
   })
 
   it('FR024_AT22_countsDownRateLimit using its deadline, blocking both actions without automatic retry', async () => {
@@ -520,7 +532,6 @@ describe('SCR-030 plan and credits (FR-024, AT-22)', () => {
     expect(redeemCard).toHaveBeenCalledTimes(1)
     await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }))
     await ready()
-    expect(screen.getByText('221 điểm')).toBeVisible()
     expect(getMyWallet).toHaveBeenCalledTimes(3)
     expect(redeemCard).toHaveBeenCalledTimes(1)
   })

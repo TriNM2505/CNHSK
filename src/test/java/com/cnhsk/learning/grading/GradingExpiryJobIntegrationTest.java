@@ -331,14 +331,17 @@ class GradingExpiryJobIntegrationTest {
                 Long.class, UUID.randomUUID() + "@example.test", HASH); users.add(id); usage(id, 0); return id;
     }
     private long pending(long owner, boolean credit) {
+        if (credit) usage(owner, 0);
+        long id = requests.submit(owner, new GradingRequestWrite("字".repeat(50) + ++essayNumber, null, 3)).id();
         if (credit) {
-            usage(owner, 10);
             int before = balance(owner);
             jdbc.update("INSERT INTO learning.credit_transactions(user_id,seq,tx_type,amount,balance_before,balance_after) "
                     + "VALUES (?,(SELECT COALESCE(MAX(seq),0)+1 FROM learning.credit_transactions WHERE user_id=?),'TOPUP',1,?,?)",
                     owner, owner, before, before + 1);
+            LegacyCreditPayment.payWithPoint(jdbc, owner, id);
+            usage(owner, 10);
         }
-        return requests.submit(owner, new GradingRequestWrite("字".repeat(50) + ++essayNumber, null, 3)).id();
+        return id;
     }
     private Consumption receipt(long id) throws Exception { return mapper.treeToValue(repository.find(id).orElseThrow().payload().get("consumption"), Consumption.class); }
     private void deadline(long id, Instant value) { jdbc.update("UPDATE learning.service_requests SET deadline_at=? WHERE id=?", Timestamp.from(value), id); }

@@ -1,6 +1,7 @@
 package com.cnhsk.learning.credit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -83,18 +84,14 @@ class EntitlementRedisIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void creditReceiptRoundTripsTransactionIdentifierAndFeature() throws Exception {
+    void exhaustedQuotaPublishesNoReceiptAndSpendsNothing() {
         when(auth.lockPlan(USER)).thenReturn(new PlanState("FREE", null, Map.of("GRADING", 10), PERIOD));
         when(ledger.balance(USER)).thenReturn(5);
-        when(ledger.append(any())).thenReturn(new LedgerService.LedgerEntry(812L, 2, 5, 4));
-        Consumption receipt = transaction().execute(status -> service.consume(USER, PaidFeature.GRADING, key));
-        assertThat(receipt).isEqualTo(new Consumption(Source.CREDIT, 812L, PaidFeature.GRADING, key, PERIOD));
-        assertThat(mapper.readValue(redis.opsForValue().get(idem), Consumption.class)).isEqualTo(receipt);
-        Consumption repeated = transaction().execute(status -> service.consume(USER, PaidFeature.GRADING, key));
-        assertThat(repeated).isEqualTo(receipt);
-        verify(ledger).append(any());
+        assertThatThrownBy(() -> transaction().execute(status -> service.consume(USER, PaidFeature.GRADING, key)))
+                .isInstanceOf(com.cnhsk.shared.exception.ApiException.class);
+        assertThat(redis.hasKey(idem)).isFalse();
+        verify(ledger, never()).append(any());
     }
-
     @Test
     void callerRollbackPublishesNoReceiptAndDoesNotRetainTransactionMemo() {
         Consumption aborted = transaction().execute(status -> {

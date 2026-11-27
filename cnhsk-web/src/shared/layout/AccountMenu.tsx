@@ -1,9 +1,23 @@
-import { Bell, BookOpen, Crown, Database, KeyRound, LogOut, PenLine, ShieldCheck, UsersRound, Wallet } from 'lucide-react'
+import {
+  Bell,
+  BookOpen,
+  Crown,
+  Database,
+  KeyRound,
+  LogOut,
+  PenLine,
+  ShieldCheck,
+  UsersRound,
+  Wallet,
+} from 'lucide-react'
 import type { ComponentType, SVGProps } from 'react'
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import type { CurrentUser, RoleCode } from '@/features/auth/types'
+import { getMyWallet } from '@/features/credits/api/wallet'
+import { useApiQuery } from '@/shared/api'
+import { LiveSessionContext } from '@/shared/auth/live-session'
 import { cn } from '@/shared/lib/cn'
 import { useCurrentUser } from '@/shared/auth'
 
@@ -43,9 +57,18 @@ function roleBadge(user: CurrentUser): string {
 
 function Avatar({ className, user }: { className?: string; user: CurrentUser }) {
   return user.avatarUrl ? (
-    <img alt="" className={cn('shrink-0 rounded-full object-cover', className)} src={user.avatarUrl} />
+    <img
+      alt=""
+      className={cn('shrink-0 rounded-full object-cover', className)}
+      src={user.avatarUrl}
+    />
   ) : (
-    <span className={cn('flex shrink-0 items-center justify-center rounded-full bg-brand-50 font-semibold text-brand-700', className)}>
+    <span
+      className={cn(
+        'flex shrink-0 items-center justify-center rounded-full bg-brand-50 font-semibold text-brand-700',
+        className,
+      )}
+    >
       {user.displayName.trim().charAt(0).toLocaleUpperCase('vi') || 'C'}
     </span>
   )
@@ -55,10 +78,25 @@ function getUserAreas(user: CurrentUser): readonly UserArea[] {
   return userAreas.filter(({ role }) => user.roles.includes(role))
 }
 
+const PREMIUM_UNTIL = new Intl.DateTimeFormat('vi-VN', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+})
+
 export function AccountMenu({ inverse = false }: AccountMenuProps) {
   const { signOut, user } = useCurrentUser()
   const [signingOut, setSigningOut] = useState(false)
   const [signOutFailed, setSignOutFailed] = useState(false)
+  // Only learners in a real session hold a plan; previews and staff never ask for a wallet.
+  const learner = Boolean(useContext(LiveSessionContext) && user?.roles.includes('LEARNER'))
+  const wallet = useApiQuery(
+    (signal) => (learner ? getMyWallet(signal) : Promise.resolve(undefined)),
+    [user?.id, learner],
+  )
+  const plan = wallet.data?.plan
+  const premiumUntil = plan?.code === 'PREMIUM' && plan.expiresAt ? plan.expiresAt : undefined
 
   if (!user) return null
 
@@ -85,8 +123,8 @@ export function AccountMenu({ inverse = false }: AccountMenuProps) {
     <details className="group relative">
       {/* Only the avatar, ringed in gold, opens the menu; the name lives on the card inside. */}
       <summary
-        aria-label={`Tài khoản ${user.displayName}`}
-        className="flex min-h-touch cursor-pointer list-none items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus [&::-webkit-details-marker]:hidden"
+        aria-label={`Tài khoản ${user.displayName}${premiumUntil ? ', Premium' : ''}`}
+        className="relative flex min-h-touch cursor-pointer list-none items-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus [&::-webkit-details-marker]:hidden"
       >
         <Avatar
           className={cn(
@@ -95,6 +133,13 @@ export function AccountMenu({ inverse = false }: AccountMenuProps) {
           )}
           user={user}
         />
+        {premiumUntil ? (
+          <Crown
+            aria-hidden="true"
+            className="absolute -left-1.5 -top-1.5 size-5 -rotate-12 fill-accent-500 text-accent-700 drop-shadow-sm"
+            data-testid="premium-crown"
+          />
+        ) : null}
       </summary>
 
       <div className="absolute right-0 z-30 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-line bg-surface shadow-lg">
@@ -103,6 +148,12 @@ export function AccountMenu({ inverse = false }: AccountMenuProps) {
             <Crown aria-hidden="true" className="size-3.5 fill-accent-500 text-accent-500" />
             {roleBadge(user)}
           </span>
+          {premiumUntil ? (
+            <span className="ml-2 inline-flex items-center gap-1.5 rounded-pill bg-brand-800 px-3 py-1 text-caption font-semibold text-accent-500">
+              <Crown aria-hidden="true" className="size-3.5 fill-accent-500 text-accent-500" />
+              Premium đến {PREMIUM_UNTIL.format(new Date(premiumUntil))}
+            </span>
+          ) : null}
           <div className="flex items-center gap-3">
             <Avatar className="size-12 text-h3" user={user} />
             <div className="min-w-0">
@@ -122,14 +173,16 @@ export function AccountMenu({ inverse = false }: AccountMenuProps) {
                 className="flex min-h-touch items-center justify-center rounded-pill bg-brand-800 px-3 text-label text-surface no-underline hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                 to="/account/credits"
               >
-                Nâng cấp
+                {premiumUntil ? 'Gia hạn' : 'Nâng cấp'}
               </Link>
             </div>
           ) : null}
         </div>
 
         <nav aria-label="Tài khoản" className="p-2">
-          {showAreas ? <p className="px-3 pb-1 pt-1 text-caption text-ink-muted">Khu vực của bạn</p> : null}
+          {showAreas ? (
+            <p className="px-3 pb-1 pt-1 text-caption text-ink-muted">Khu vực của bạn</p>
+          ) : null}
           {showAreas
             ? areas.map((area) => (
                 <Link className={itemClasses} key={area.role} to={area.to}>
@@ -156,7 +209,11 @@ export function AccountMenu({ inverse = false }: AccountMenuProps) {
             Đổi mật khẩu
           </Link>
           <button
-            className={cn(itemClasses, 'text-danger hover:bg-danger-bg', signingOut && 'opacity-60')}
+            className={cn(
+              itemClasses,
+              'text-danger hover:bg-danger-bg',
+              signingOut && 'opacity-60',
+            )}
             disabled={signingOut}
             onClick={() => void handleSignOut()}
             type="button"

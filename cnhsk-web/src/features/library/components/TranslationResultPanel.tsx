@@ -60,9 +60,9 @@ export function TranslationOutput({ to, panel }: { to: TranslationLanguage; pane
     if (error.status === 402 && error.errorCode === 'INSUFFICIENT_CREDITS') {
       return (
         <div className="space-y-3" role="alert">
-          <p className="text-body text-ink">Bạn đã hết lượt dịch và không đủ điểm.</p>
+          <p className="text-body text-ink">Bạn đã dùng hết lượt dịch miễn phí tháng này.</p>
           <Button to="/account/credits" variant="outline">
-            Xem gói dịch vụ và điểm
+            Nâng cấp PREMIUM
           </Button>
         </div>
       )

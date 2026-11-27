@@ -127,7 +127,7 @@ describe('SCR-032 learner submission', () => {
       expect(createGradingRequest).toHaveBeenCalledTimes(1)
       expect(storage).not.toHaveBeenCalled()
       if (status === 402)
-        expect(screen.getByRole('link', { name: 'Mua gói / Nạp điểm' })).toHaveAttribute(
+        expect(screen.getByRole('link', { name: 'Nâng cấp PREMIUM' })).toHaveAttribute(
           'href',
           '/account/credits',
         )

@@ -272,13 +272,11 @@ describe('credits offline catalogs (§12)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Xác nhận khoá lô' }))
     data = within(screen.getByRole('table', { name: 'Lô mã thẻ' }))
     expect(data.queryByRole('button', { name: 'Khoá lô B20261102-DEMO02' })).not.toBeInTheDocument()
-    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Loại thẻ' }), 'CREDIT')
     await userEvent.selectOptions(
       screen.getByRole('combobox', { name: 'Kênh phát hành' }),
       'DIRECT',
     )
     await userEvent.type(screen.getByRole('spinbutton', { name: 'Số lượng mã' }), '1')
-    await userEvent.type(screen.getByRole('spinbutton', { name: 'Giá trị điểm mỗi mã' }), '7')
     await userEvent.click(screen.getByRole('button', { name: 'Phát hành lô mã' }))
     await userEvent.click(screen.getByRole('button', { name: 'Xác nhận phát hành' }))
     const codes = within(await screen.findByRole('list', { name: 'Mã vừa phát hành' }))

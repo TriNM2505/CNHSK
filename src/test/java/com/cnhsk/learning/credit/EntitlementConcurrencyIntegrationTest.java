@@ -78,60 +78,30 @@ class EntitlementConcurrencyIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void lastQuotaAndNextCreditConsumptionSerializeOnTheUserLock() throws Exception {
+    void lastFreeUseAndTheNextRequestSerializeOnTheUserLockWithoutSpendingPoints() throws Exception {
         usage(9);
         topup(1);
-        List<Consumption> receipts = contend(() -> consume("last-quota"), () -> consume("next-credit"), false);
-        assertThat(receipts.get(0).source()).isEqualTo(Source.QUOTA);
-        assertThat(receipts.get(1).source()).isEqualTo(Source.CREDIT);
-        assertThat(used()).isEqualTo(10);
-        assertThat(ledger.balance(userId)).isZero();
-        assertThat(sequences()).containsExactly(1, 2);
-        assertThat(amounts()).containsExactly(1, -1);
-    }
-
-    @Test
-    void twoCreditConsumptionsKeepContinuousSequenceAndBalances() throws Exception {
-        usage(10);
-        topup(2);
-        List<Consumption> receipts = contend(() -> consume("first-credit"), () -> consume("second-credit"), false);
-        assertThat(receipts).allSatisfy(receipt -> assertThat(receipt.source()).isEqualTo(Source.CREDIT));
-        assertThat(receipts.get(0).transactionId()).isNotEqualTo(receipts.get(1).transactionId());
-        assertThat(sequences()).containsExactly(1, 2, 3);
-        assertThat(amounts()).containsExactly(2, -1, -1);
-        assertThat(jdbc.queryForList("""
-                SELECT balance_before FROM learning.credit_transactions WHERE user_id = ? ORDER BY seq
-                """, Integer.class, userId)).containsExactly(0, 2, 1);
-        assertThat(jdbc.queryForList("""
-                SELECT balance_after FROM learning.credit_transactions WHERE user_id = ? ORDER BY seq
-                """, Integer.class, userId)).containsExactly(2, 1, 0);
-        assertThat(ledger.balance(userId)).isZero();
-    }
-
-    @Test
-    void waitingConsumerCannotOverdrawTheLastCredit() throws Exception {
-        usage(10);
-        topup(1);
         List<String> outcomes = contend(() -> {
-            assertThat(consume("only-credit").source()).isEqualTo(Source.CREDIT);
-            return "charged";
+            assertThat(consume("last-quota").source()).isEqualTo(Source.QUOTA);
+            return "free";
         }, () -> {
-            assertThatThrownBy(() -> consume("no-credit-left")).isInstanceOf(ApiException.class).satisfies(error ->
+            assertThatThrownBy(() -> consume("over-quota")).isInstanceOf(ApiException.class).satisfies(error ->
                     assertThat(((ApiException) error).getCode()).isEqualTo(ErrorCode.INSUFFICIENT_CREDITS));
-            return "rejected";
+            return "upgrade";
         }, false);
-        assertThat(outcomes).containsExactly("charged", "rejected");
-        assertThat(amounts()).containsExactly(1, -1);
-        assertThat(sequences()).containsExactly(1, 2);
-        assertThat(ledger.balance(userId)).isZero();
-        assertThat(redis.hasKey(idemKey("no-credit-left"))).isFalse();
+        assertThat(outcomes).containsExactly("free", "upgrade");
+        assertThat(used()).isEqualTo(10);
+        assertThat(ledger.balance(userId)).isEqualTo(1);
+        assertThat(amounts()).containsExactly(1);
+        assertThat(redis.hasKey(idemKey("over-quota"))).isFalse();
     }
-
     @Test
     void concurrentCreditRefundsAppendOnlyOneCompensation() throws Exception {
-        usage(10);
+        // Points are no longer spent, but a debit recorded earlier can still be refunded exactly once.
         topup(1);
-        Consumption receipt = transaction().execute(status -> consume("credit-refund"));
+        long debit = transaction().execute(status -> ledger.append(new AppendCommand(userId, "DEDUCT", -1,
+                "TRANSLATE", null, null, null, null, null, null)).id());
+        Consumption receipt = new Consumption(Source.CREDIT, debit, PaidFeature.TRANSLATE, "credit-refund", MONTH);
         contend(() -> refund(receipt), () -> refund(receipt), false);
         assertThat(amounts()).containsExactly(1, -1, 1);
         assertThat(sequences()).containsExactly(1, 2, 3);
@@ -141,7 +111,6 @@ class EntitlementConcurrencyIntegrationTest extends AbstractIntegrationTest {
                 WHERE user_id = ? AND tx_type = 'REFUND' AND ref_transaction_id = ?
                 """, Integer.class, userId, receipt.transactionId())).isEqualTo(1);
     }
-
     @Test
     void concurrentQuotaRefundsDecrementOnlyOnceWhileOtherUsesRemain() throws Exception {
         Consumption receipt = transaction().execute(status -> consume("quota-refund"));

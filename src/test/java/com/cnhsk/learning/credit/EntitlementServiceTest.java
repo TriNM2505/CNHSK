@@ -145,50 +145,43 @@ class EntitlementServiceTest {
     }
 
     @Test
-    void exhaustedQuotaDeductsOneCreditWithServerSelectedFeature() {
+    void exhaustedQuotaNeverSpendsPointsEvenWithABalance() {
         when(auth.lockPlan(USER)).thenReturn(plan("FREE", null, Map.of("TRANSLATE", 10)));
         when(ledger.balance(USER)).thenReturn(2);
-        when(ledger.append(any())).thenReturn(new LedgerService.LedgerEntry(901L, 2, 2, 1));
-        Consumption result = service.consume(USER, PaidFeature.TRANSLATE, KEY);
-        assertThat(result).isEqualTo(new Consumption(Source.CREDIT, 901L, PaidFeature.TRANSLATE, KEY, PERIOD));
-        verify(ledger).append(argThat(command -> command.userId() == USER && command.amount() == -1
-                && command.txType().equals("DEDUCT") && command.featureCode().equals("TRANSLATE")
-                && command.refTransactionId() == null));
+        assertThatThrownBy(() -> service.consume(USER, PaidFeature.TRANSLATE, KEY))
+                .isInstanceOfSatisfying(ApiException.class,
+                        error -> assertThat(error.getCode()).isEqualTo(ErrorCode.INSUFFICIENT_CREDITS));
+        verify(ledger, never()).append(any());
         verify(auth, never()).updateUsage(anyLong(), anyMap(), any());
     }
-
     @Test
-    void exhaustedQuotaAndZeroCreditsReturnFixed402WithoutMutation() {
+    void exhaustedQuotaReturnsFixed402AskingToUpgradeWithoutMutation() {
         when(auth.lockPlan(USER)).thenReturn(plan("FREE", null, Map.of("TRANSLATE", 10)));
         assertThatThrownBy(() -> service.consume(USER, PaidFeature.TRANSLATE, KEY))
                 .isInstanceOfSatisfying(ApiException.class, error -> {
                     assertThat(error.getStatus().value()).isEqualTo(402);
                     assertThat(error.getCode()).isEqualTo(ErrorCode.INSUFFICIENT_CREDITS);
-                    assertThat(error.getMessage()).isEqualTo("Đã hết hạn mức và điểm.");
+                    assertThat(error.getMessage()).isEqualTo(
+                            "Bạn đã dùng hết lượt miễn phí tháng này. Nâng cấp PREMIUM để dùng không giới hạn.");
                 });
         verify(ledger, never()).append(any());
         verify(auth, never()).updateUsage(anyLong(), anyMap(), any());
     }
-
     @Test
-    void currentPremiumUsesItsBenefitWithoutAddingFreeQuota() {
-        when(auth.lockPlan(USER)).thenReturn(plan("PREMIUM", NOW.plusSeconds(1), Map.of("TRANSLATE", 2)));
-        when(jdbc.queryForList(anyString(), anyMap(), eq(String.class))).thenReturn(List.of("{\"TRANSLATE\":3}"));
-        service.consume(USER, PaidFeature.TRANSLATE, KEY);
-        verify(auth).updateUsage(USER, Map.of("TRANSLATE", 3), PERIOD);
+    void currentPremiumIsUnlimitedAndLeavesTheFreeAllowanceUntouched() {
+        when(auth.lockPlan(USER)).thenReturn(plan("PREMIUM", NOW.plusSeconds(1), Map.of("TRANSLATE", 99)));
+        assertThat(service.consume(USER, PaidFeature.TRANSLATE, KEY).source()).isEqualTo(Source.QUOTA);
+        verify(auth, never()).updateUsage(anyLong(), anyMap(), any());
         verifyNoInteractions(ledger);
     }
 
     @Test
-    void premiumMissingBenefitAndMissingPlanDoNotReceiveFreeQuota() {
+    void premiumIgnoresPlanBenefitsEvenWhenMissing() {
         when(auth.lockPlan(USER)).thenReturn(plan("PREMIUM", NOW.plusSeconds(1), Map.of()));
-        when(jdbc.queryForList(anyString(), anyMap(), eq(String.class))).thenReturn(List.of("{}"));
-        assertThatThrownBy(() -> service.consume(USER, PaidFeature.TRANSLATE, KEY)).isInstanceOf(ApiException.class);
-        finish(false);
-        begin();
         when(jdbc.queryForList(anyString(), anyMap(), eq(String.class))).thenReturn(List.of());
-        assertThatThrownBy(() -> service.consume(USER, PaidFeature.TRANSLATE, KEY)).isInstanceOf(ApiException.class);
+        assertThat(service.consume(USER, PaidFeature.ASSISTANT, KEY).source()).isEqualTo(Source.QUOTA);
         verify(auth, never()).updateUsage(anyLong(), anyMap(), any());
+        verifyNoInteractions(ledger);
     }
 
     @Test

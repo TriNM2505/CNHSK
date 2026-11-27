@@ -19,7 +19,6 @@ import {
   Input,
   Section,
   Skeleton,
-  StatTile,
 } from '@/shared/ui'
 
 import type { PaidFeature, RedeemRequest, RedeemResult, Wallet } from '../types'
@@ -144,6 +143,7 @@ export function PlanCreditsView({
   })
 
   const blocked = pending || remaining > 0
+  const premium = wallet?.plan.code === 'PREMIUM'
   const changeCode = (event: ChangeEvent<HTMLInputElement>) => {
     const value = event.currentTarget.value
     const next = rawCode(value)
@@ -227,12 +227,8 @@ export function PlanCreditsView({
           <div className="grid min-w-0 items-start gap-6 lg:grid-cols-12">
             <div className="min-w-0 lg:col-span-7">
               <Section title="Gói hiện tại">
-                <div className="grid min-w-0 gap-4 sm:grid-cols-2">
-                  <StatTile
-                    className="border-brand-100 bg-brand-50"
-                    label="Số dư điểm"
-                    value={`${wallet.balance} điểm`}
-                  />
+                {/* Points are retired, so the plan card stands alone. */}
+                <div className="grid min-w-0 gap-4">
                   <Card className="border-brand-100 bg-brand-50">
                     <dl>
                       <dt className="text-label text-ink-secondary">Tên gói</dt>
@@ -360,17 +356,21 @@ export function PlanCreditsView({
                 <tbody>
                   {wallet.quota.map((line) => (
                     <tr key={line.feature} className="border-b border-line last:border-b-0">
-                      <th scope="row" className="break-words p-2.5 text-left font-semibold sm:p-3.5">
+                      <th
+                        scope="row"
+                        className="break-words p-2.5 text-left font-semibold sm:p-3.5"
+                      >
                         {featureNames[line.feature]}
                       </th>
+                      {/* PREMIUM has no allowance to count, so each line reads as unlimited. */}
                       <td className="break-words p-2.5 text-right tabular-nums sm:p-3.5">
-                        {line.limit}
+                        {premium ? 'Không giới hạn' : line.limit}
                       </td>
                       <td className="break-words p-2.5 text-right tabular-nums sm:p-3.5">
-                        {line.used}
+                        {premium ? '—' : line.used}
                       </td>
                       <td className="break-words p-2.5 text-right font-semibold tabular-nums sm:p-3.5">
-                        {line.remaining}
+                        {premium ? 'Không giới hạn' : line.remaining}
                       </td>
                     </tr>
                   ))}

@@ -140,8 +140,8 @@ class WalletQueryIntegrationTest extends AbstractIntegrationTest {
         assertThat(result.plan().code().name()).isEqualTo("PREMIUM");
         assertThat(result.plan().expiresAt()).isEqualTo(NOW.plusSeconds(1));
         assertThat(result.plan().active()).isTrue();
-        assertThat(quota(result, PaidFeature.TRANSLATE)).isEqualTo(new QuotaLine(PaidFeature.TRANSLATE, 0, 3, 0));
-        assertThat(quota(result, PaidFeature.GRADING).limit()).isEqualTo(5);
+        assertThat(quota(result, PaidFeature.TRANSLATE)).isEqualTo(new QuotaLine(PaidFeature.TRANSLATE, 0, 0, 0));
+        assertThat(quota(result, PaidFeature.GRADING)).isEqualTo(new QuotaLine(PaidFeature.GRADING, 0, 0, 0));
         assertThat(snapshot()).isEqualTo(before);
     }
 

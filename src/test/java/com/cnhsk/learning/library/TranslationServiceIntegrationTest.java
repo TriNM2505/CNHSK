@@ -161,26 +161,8 @@ class TranslationServiceIntegrationTest extends AbstractIntegrationTest {
         assertThat(redis.hasKey(data.key(request))).isFalse();
     }
 
-    @Test
-    void AT19_creditFailureWritesExactlyOneRefundReferencingTheDebit() {
-        data.usage(user, 10);
-        data.topup(user, 3);
-        var request = data.uniqueRequest();
-        stub.enqueueFailure(AiUnavailableException.Reason.TIMEOUT);
-        assertUnavailable(() -> service.translate(user, request));
-        assertThat(stub.callCount() - calls).isEqualTo(1);
-        assertThat(data.transactions(user, "DEDUCT")).isEqualTo(1);
-        assertThat(data.transactions(user, "REFUND")).isEqualTo(1);
-        assertThat(data.balance(user)).isEqualTo(3);
-        assertThat(jdbc.queryForObject("""
-                SELECT count(*) FROM learning.credit_transactions r JOIN learning.credit_transactions d
-                  ON r.ref_transaction_id=d.id WHERE r.user_id=? AND r.tx_type='REFUND'
-                  AND r.amount=1 AND d.amount=-1 AND d.feature_code='TRANSLATE'
-                """, Integer.class, user)).isEqualTo(1);
-    }
-
     @ParameterizedTest
-    @EnumSource(Source.class)
+    @EnumSource(value = Source.class, names = "QUOTA")
     void accepted013Q1_retryAfterRefundInTheSameMinuteReturnsOldReceiptWithoutAnotherCharge(Source source) {
         if (source == Source.CREDIT) { data.usage(user, 10); data.topup(user, 3); }
         var request = data.uniqueRequest();
@@ -202,7 +184,7 @@ class TranslationServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @EnumSource(Source.class)
+    @EnumSource(value = Source.class, names = "QUOTA")
     void concurrentCacheMissFailuresHaveOnlyOneEffectiveRefund(Source source) throws Exception {
         if (source == Source.CREDIT) { data.usage(user, 10); data.topup(user, 3); }
         var request = data.uniqueRequest();

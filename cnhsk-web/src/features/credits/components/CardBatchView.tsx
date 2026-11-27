@@ -78,11 +78,13 @@ const vietnamTime = new Intl.DateTimeFormat('vi-VN', {
 
 function emptyDraft(): BatchDraft {
   return {
-    cardType: '',
+    // Points are retired: every new batch is a PREMIUM card.
+    cardType: 'SUBSCRIPTION',
     channel: '',
     quantity: '',
     value: '',
-    planDays: '',
+    // A PREMIUM card is one month unless the editor changes it.
+    planDays: '30',
     partnerCode: '',
     issuedTo: '',
     campaign: '',
@@ -150,7 +152,7 @@ function createErrorMessage(error: ApiError) {
   if (error.errorCode === 'PLAN_NOT_AVAILABLE')
     return 'Gói PREMIUM chưa có hoặc đang ngừng phát hành. Vui lòng kiểm tra cấu hình gói.'
   if (error.errorCode === 'VALIDATION_FAILED')
-    return 'Thông tin lô chưa hợp lệ. Kiểm tra các trường và hạn dùng trước khi phát hành lại.'
+    return 'Thông tin lô chưa hợp lệ. Kiểm tra các trường và hạn kích hoạt mã trước khi phát hành lại.'
   if (error.status === 401 || error.status === 403)
     return 'Phiên đăng nhập hoặc quyền quản trị không còn hợp lệ. Vui lòng kiểm tra lại quyền truy cập.'
   return 'Chưa thể phát hành lô mã. Vui lòng kiểm tra thông tin và thử lại.'
@@ -193,7 +195,7 @@ export function CardBatchView({
     setDraft((current) => ({
       ...current,
       [field]: value,
-      ...(field === 'cardType' ? { value: '', planDays: '' } : {}),
+      ...(field === 'cardType' ? { value: '', planDays: '30' } : {}),
       ...(field === 'channel' ? { partnerCode: '', issuedTo: '' } : {}),
     }))
     setValidation({})
@@ -284,7 +286,7 @@ export function CardBatchView({
     },
     {
       id: 'expiry',
-      header: 'Hạn dùng (giờ Việt Nam)',
+      header: 'Hạn kích hoạt mã (giờ Việt Nam)',
       render: (batch) =>
         batch.expiresAt ? (
           <time dateTime={batch.expiresAt}>{vietnamTime.format(new Date(batch.expiresAt))}</time>
@@ -320,7 +322,7 @@ export function CardBatchView({
       <PageBanner
         className="mb-0"
         title="Lô mã thẻ"
-        subtitle="Xem tình trạng các lô và phát hành mã điểm hoặc mã gói."
+        subtitle="Xem tình trạng các lô và phát hành mã gói PREMIUM."
       />
       <Card className="flex flex-wrap items-center justify-between gap-3 border-brand-100 bg-brand-50 p-4 sm:px-5">
         <div className="flex items-center gap-3">
@@ -330,7 +332,8 @@ export function CardBatchView({
           <div>
             <p className="text-label text-ink">Phát hành & Quản lý lô mã thẻ</p>
             <p className="text-body-sm text-ink-secondary">
-              Tạo lô mã điểm hoặc mã gói dịch vụ mới, xuất tệp CSV một lần duy nhất.
+              Tạo lô mã PREMIUM mới (mặc định 1 tháng, tính từ lúc người học nhập mã), xuất tệp CSV
+              một lần duy nhất.
             </p>
           </div>
         </div>
@@ -473,7 +476,7 @@ export function CardBatchView({
 
       <Section
         title="Phát hành lô mã"
-        subtitle="Tối đa 100 mã mỗi lô. Thẻ gói chỉ kích hoạt PREMIUM."
+        subtitle="Tối đa 100 mã mỗi lô. Mỗi mã kích hoạt PREMIUM: dùng mọi dịch vụ không giới hạn."
       >
         <form
           id="batch-issue"
@@ -497,8 +500,6 @@ export function CardBatchView({
                 disabled={disabled}
                 onChange={(event) => change('cardType', event.target.value)}
               >
-                <option value="">Chọn loại thẻ</option>
-                <option value="CREDIT">Điểm (CREDIT)</option>
                 <option value="SUBSCRIPTION">Gói PREMIUM (SUBSCRIPTION)</option>
               </Select>
             </FormField>
@@ -565,7 +566,7 @@ export function CardBatchView({
                 label="Số ngày hiệu lực"
                 required
                 error={validation.planDays}
-                hint="Từ 1 đến 365 ngày, kích hoạt hoặc gia hạn PREMIUM."
+                hint="Mặc định 30 ngày (1 tháng): PREMIUM dùng mọi dịch vụ không giới hạn. Từ 1 đến 365 ngày."
               >
                 <Input
                   name="planDays"
@@ -625,9 +626,9 @@ export function CardBatchView({
             </FormField>
             <FormField
               htmlFor="batch-expiresAt"
-              label="Hạn dùng (giờ Việt Nam)"
+              label="Hạn kích hoạt mã (giờ Việt Nam)"
               error={validation.expiresAt}
-              hint="Để trống nếu không có hạn dùng."
+              hint="Người học phải nhập mã trước thời điểm này; gói PREMIUM tính từ lúc nhập mã. Để trống nếu không giới hạn."
             >
               <Input
                 name="expiresAt"
@@ -686,7 +687,7 @@ export function CardBatchView({
                 </div>
               ) : null}
               <div>
-                <dt>Hạn dùng (giờ Việt Nam)</dt>
+                <dt>Hạn kích hoạt mã (giờ Việt Nam)</dt>
                 <dd>
                   {confirmation.expiresAt
                     ? vietnamTime.format(new Date(confirmation.expiresAt))

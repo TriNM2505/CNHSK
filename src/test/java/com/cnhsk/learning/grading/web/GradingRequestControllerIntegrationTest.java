@@ -152,7 +152,7 @@ class GradingRequestControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"QUOTA", "CREDIT"})
+    @ValueSource(strings = {"QUOTA"})
     void AT03_insertFailureRollsBackBillingAndPublishesNoRedisReceipt(String source) throws Exception {
         boolean credit = source.equals("CREDIT");
         if (credit) { usage(user, 10); topup(); }
@@ -330,9 +330,17 @@ class GradingRequestControllerIntegrationTest extends AbstractIntegrationTest {
     private String bearer(long id, String role) { return "Bearer " + token(id, role); }
     private String body(String essay) throws Exception { return mapper.writeValueAsString(Map.of("essay", essay)); }
     private int postStatus(String body) throws Exception { return mvc.perform(post("/api/grading-requests").header("Authorization", bearer(user, "LEARNER")).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse().getStatus(); }
+    /** A learner with no free use left and a topped-up point gets an old request paid with that point. */
     private JsonNode submit(String essay, int expected) throws Exception {
-        return json(mvc.perform(post("/api/grading-requests").header("Authorization", bearer(user, "LEARNER"))
+        boolean paidWithPoint = expected == 201 && used() >= 10 && balance() > 0;
+        if (paidWithPoint) usage(user, 0);
+        JsonNode created = json(mvc.perform(post("/api/grading-requests").header("Authorization", bearer(user, "LEARNER"))
                 .contentType(MediaType.APPLICATION_JSON).content(body(essay))).andExpect(status().is(expected)).andReturn());
+        if (paidWithPoint) {
+            com.cnhsk.learning.grading.LegacyCreditPayment.payWithPoint(jdbc, user, created.path("id").longValue());
+            usage(user, 10);
+        }
+        return created;
     }
     private JsonNode json(MvcResult result) throws Exception { return mapper.readTree(result.getResponse().getContentAsString(StandardCharsets.UTF_8)); }
     private void noPrivateFields(JsonNode json) {

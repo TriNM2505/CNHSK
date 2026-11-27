@@ -357,7 +357,7 @@ export default function SpeakingPracticePage({ guest = false }: { guest?: boolea
           <Card className="min-w-0 space-y-2 p-5">
             <h2 className="text-label text-ink">Lượt gửi</h2>
             <p className="text-body-sm text-ink-secondary">
-              Mỗi bài gửi dùng 1 lượt Phát âm của tháng. Hết lượt, mỗi bài trừ 1 điểm.
+              Mỗi bài gửi dùng 1 lượt Phát âm của tháng. Hết lượt thì chờ sang tháng hoặc nâng cấp PREMIUM.
             </p>
             <Button size="sm" to="/grading" variant="outline">
               Bài nói đã gửi

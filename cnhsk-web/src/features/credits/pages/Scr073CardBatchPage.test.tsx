@@ -56,7 +56,7 @@ function field(name: string) {
     return screen.getByRole('combobox', { name })
   if (['Số lượng mã', 'Giá trị điểm mỗi mã', 'Số ngày hiệu lực'].includes(name))
     return screen.getByRole('spinbutton', { name })
-  if (name !== 'Hạn dùng (giờ Việt Nam)') return screen.getByRole('textbox', { name })
+  if (name !== 'Hạn kích hoạt mã (giờ Việt Nam)') return screen.getByRole('textbox', { name })
   return screen.getByLabelText(name, { exact: true })
 }
 
@@ -64,11 +64,10 @@ function change(name: string, value: string) {
   fireEvent.change(field(name), { target: { value } })
 }
 
-function fillCredit(channel = 'DIRECT') {
-  change('Loại thẻ', 'CREDIT')
+function fillPremium(channel = 'DIRECT') {
   change('Kênh phát hành', channel)
   change('Số lượng mã', '3')
-  change('Giá trị điểm mỗi mã', '100')
+  change('Số ngày hiệu lực', '30')
 }
 
 async function table() {
@@ -116,10 +115,12 @@ afterEach(() => {
 })
 
 describe('SCR-073 card batches (FR-026, AT-24)', () => {
-  it('AT24_startsWithExplicitEmptyChoices and no generated codes or checkout', async () => {
+  it('AT24_startsWithPremiumAndEmptyChoices and no generated codes or checkout', async () => {
     renderPage()
     await table()
-    expect(field('Loại thẻ')).toHaveValue('')
+    // Points are retired: the only card left is PREMIUM, chosen up front with one month.
+    expect(field('Loại thẻ')).toHaveValue('SUBSCRIPTION')
+    expect(field('Số ngày hiệu lực')).toHaveValue(30)
     expect(field('Kênh phát hành')).toHaveValue('')
     expect(field('Số lượng mã')).toHaveValue(null)
     expect(screen.queryByRole('list', { name: 'Mã vừa phát hành' })).not.toBeInTheDocument()
@@ -129,15 +130,15 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
     ).not.toBeInTheDocument()
     expect(screen.getAllByRole('combobox')).toHaveLength(2)
     await prepare()
-    expect(field('Loại thẻ')).toHaveAttribute('aria-invalid', 'true')
-    expect(field('Loại thẻ')).toHaveFocus()
+    expect(field('Kênh phát hành')).toHaveAttribute('aria-invalid', 'true')
+    expect(field('Kênh phát hành')).toHaveFocus()
     expect(createCardBatch).not.toHaveBeenCalled()
   })
 
   it('AT24_channelFields are conditional, required and discarded when switching channels', async () => {
     renderPage()
     await table()
-    fillCredit('PARTNER_BATCH')
+    fillPremium('PARTNER_BATCH')
     expect(field('Mã đối tác')).toBeVisible()
     expect(
       screen.queryByRole('textbox', { name: 'Thông tin người nhận quà' }),
@@ -155,10 +156,10 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
     change('Mã đối tác', '  PARTNER_DEMO  ')
     await issue()
     expect(createCardBatch).toHaveBeenCalledWith({
-      cardType: 'CREDIT',
+      cardType: 'SUBSCRIPTION',
       channel: 'PARTNER_BATCH',
       quantity: 3,
-      value: 100,
+      planDays: 30,
       partnerCode: 'PARTNER_DEMO',
     })
   })
@@ -166,29 +167,33 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
   it('AT24_giftPayload trims recipient and campaign and omits partner data', async () => {
     renderPage()
     await table()
-    fillCredit('ECOSYSTEM_GIFT')
+    fillPremium('ECOSYSTEM_GIFT')
     change('Thông tin người nhận quà', '  Nhóm học thử mẫu  ')
     change('Chiến dịch', '  tang-thu  ')
     await issue()
     expect(createCardBatch).toHaveBeenCalledWith({
-      cardType: 'CREDIT',
+      cardType: 'SUBSCRIPTION',
       channel: 'ECOSYSTEM_GIFT',
       quantity: 3,
-      value: 100,
+      planDays: 30,
       issuedTo: 'Nhóm học thử mẫu',
       campaign: 'tang-thu',
     })
   })
 
-  it('AT24_cardType switches between credit value and PREMIUM days without stale payload fields', async () => {
+  it('AT24_offers only PREMIUM cards, one month by default, and requires the days', async () => {
     renderPage()
     await table()
-    fillCredit()
-    change('Loại thẻ', 'SUBSCRIPTION')
+    fillPremium()
+    expect(
+      within(field('Loại thẻ'))
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['Gói PREMIUM (SUBSCRIPTION)'])
     expect(
       screen.queryByRole('spinbutton', { name: 'Giá trị điểm mỗi mã' }),
     ).not.toBeInTheDocument()
-    expect(field('Số ngày hiệu lực')).toHaveValue(null)
+    change('Số ngày hiệu lực', '')
     await prepare()
     expect(field('Số ngày hiệu lực')).toHaveAttribute('aria-invalid', 'true')
     change('Số ngày hiệu lực', '30')
@@ -206,7 +211,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
     async (value) => {
       renderPage()
       await table()
-      fillCredit()
+      fillPremium()
       change('Số lượng mã', value)
       await prepare()
       expect(screen.getByText('Số lượng mã phải là số nguyên từ 1 đến 100.')).toBeVisible()
@@ -219,7 +224,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
   it.each(['1', '100'])('AT24_accepts the quantity boundary %s', async (value) => {
     renderPage()
     await table()
-    fillCredit()
+    fillPremium()
     change('Số lượng mã', value)
     await issue()
     expect(createCardBatch).toHaveBeenCalledWith(
@@ -228,16 +233,13 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
   })
 
   it.each([
-    { kind: 'CREDIT', label: 'Giá trị điểm mỗi mã', value: '10001' },
-    { kind: 'CREDIT', label: 'Giá trị điểm mỗi mã', value: '0' },
-    { kind: 'CREDIT', label: 'Giá trị điểm mỗi mã', value: '1.5' },
     { kind: 'SUBSCRIPTION', label: 'Số ngày hiệu lực', value: '366' },
     { kind: 'SUBSCRIPTION', label: 'Số ngày hiệu lực', value: '0' },
     { kind: 'SUBSCRIPTION', label: 'Số ngày hiệu lực', value: '1.5' },
   ])('FR005_rejects $kind $label=$value', async ({ kind, label, value }) => {
     renderPage()
     await table()
-    fillCredit()
+    fillPremium()
     change('Loại thẻ', kind)
     change(label, value)
     await prepare()
@@ -246,14 +248,12 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
   })
 
   it.each([
-    { kind: 'CREDIT', label: 'Giá trị điểm mỗi mã', value: '1', payload: { value: 1 } },
-    { kind: 'CREDIT', label: 'Giá trị điểm mỗi mã', value: '10000', payload: { value: 10000 } },
     { kind: 'SUBSCRIPTION', label: 'Số ngày hiệu lực', value: '1', payload: { planDays: 1 } },
     { kind: 'SUBSCRIPTION', label: 'Số ngày hiệu lực', value: '365', payload: { planDays: 365 } },
   ])('FR005_accepts $kind boundary $value', async ({ kind, label, value, payload }) => {
     renderPage()
     await table()
-    fillCredit()
+    fillPremium()
     change('Loại thẻ', kind)
     change(label, value)
     await issue()
@@ -272,7 +272,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
   ])('FR005_rejects overlong $label without truncating', async ({ channel, label, length }) => {
     renderPage()
     await table()
-    fillCredit(channel)
+    fillPremium(channel)
     change(label, 'x'.repeat(length))
     await prepare()
     expect(field(label)).toHaveValue('x'.repeat(length))
@@ -283,12 +283,12 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
   it('FR005_rejects past expiry and converts Vietnam input to UTC in confirmation and POST', async () => {
     renderPage()
     await table()
-    fillCredit()
-    change('Hạn dùng (giờ Việt Nam)', '2026-11-05T07:00')
+    fillPremium()
+    change('Hạn kích hoạt mã (giờ Việt Nam)', '2026-11-05T07:00')
     await prepare()
-    expect(field('Hạn dùng (giờ Việt Nam)')).toHaveAttribute('aria-invalid', 'true')
+    expect(field('Hạn kích hoạt mã (giờ Việt Nam)')).toHaveAttribute('aria-invalid', 'true')
     expect(createCardBatch).not.toHaveBeenCalled()
-    change('Hạn dùng (giờ Việt Nam)', '2026-12-01T00:00')
+    change('Hạn kích hoạt mã (giờ Việt Nam)', '2026-12-01T00:00')
     await prepare()
     const confirmation = within(screen.getByRole('region', { name: 'Xác nhận phát hành' }))
     expect(confirmation.getByText('00:00 01/12/2026')).toBeVisible()
@@ -302,7 +302,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
   it('AT24_inlineCreateConfirmation shows actual values and cancellation retains the draft', async () => {
     renderPage()
     await table()
-    fillCredit()
+    fillPremium()
     change('Chiến dịch', 'chien-dich-mau')
     const confirmSpy = vi.spyOn(window, 'confirm')
     await prepare()
@@ -314,16 +314,16 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
       screen.getByRole('form', { name: 'Phát hành lô mã' }),
     )
     expect(within(confirmation).getByText('Trực tiếp')).toBeVisible()
-    expect(within(confirmation).getByText('Điểm (CREDIT)')).toBeVisible()
+    expect(within(confirmation).getByText('Gói PREMIUM (SUBSCRIPTION)')).toBeVisible()
     expect(within(confirmation).getByText('3')).toBeVisible()
-    expect(within(confirmation).getByText('100')).toBeVisible()
+    expect(within(confirmation).getByText('30')).toBeVisible()
     expect(within(confirmation).getByText('chien-dich-mau')).toBeVisible()
     expect(within(confirmation).getByText('Không có hạn')).toBeVisible()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(createCardBatch).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole('button', { name: 'Huỷ phát hành' }))
     expect(screen.getByRole('button', { name: 'Phát hành lô mã' })).toHaveFocus()
-    expect(field('Giá trị điểm mỗi mã')).toHaveValue(100)
+    expect(field('Số ngày hiệu lực')).toHaveValue(30)
     expect(field('Chiến dịch')).toHaveValue('chien-dich-mau')
     expect(confirmSpy).not.toHaveBeenCalled()
   })
@@ -333,7 +333,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
     vi.mocked(createCardBatch).mockReturnValueOnce(response.promise)
     renderPage()
     await table()
-    fillCredit()
+    fillPremium()
     await prepare()
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận phát hành' }))
     fireEvent.submit(screen.getByRole('form', { name: 'Phát hành lô mã' }))
@@ -350,7 +350,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
   it('AT24_displays exact one-time codes and exports only batchId/code as UTF-8 CRLF without BOM', async () => {
     renderPage()
     await table()
-    fillCredit('ECOSYSTEM_GIFT')
+    fillPremium('ECOSYSTEM_GIFT')
     change('Thông tin người nhận quà', 'PRIVATE_DEMO_RECIPIENT')
     change('Chiến dịch', 'PRIVATE_DEMO_CAMPAIGN')
     const codes = await issue()
@@ -388,7 +388,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
     })
     renderPage()
     await table()
-    fillCredit()
+    fillPremium()
     await issue()
     await userEvent.click(screen.getByRole('button', { name: 'Tải CSV' }))
     expect(screen.getByRole('alert')).toHaveTextContent('Chưa tải được CSV')
@@ -406,7 +406,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
       .mockReturnValueOnce(response.promise)
     renderPage()
     await table()
-    fillCredit()
+    fillPremium()
     await issue()
     await prepare()
     expect(screen.getByText('Mã lô trước sẽ mất khi phát hành thành công lô mới.')).toBeVisible()
@@ -427,7 +427,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
     vi.stubGlobal('fetch', fetchMock)
     const view = renderPage()
     await table()
-    fillCredit()
+    fillPremium()
     await issue()
     const href = window.location.href
     expect(href).not.toContain(creditsCreatedBatch.codes[0]!)
@@ -541,12 +541,12 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
       )
       renderPage()
       await table()
-      fillCredit()
+      fillPremium()
       await prepare()
       await userEvent.click(screen.getByRole('button', { name: 'Xác nhận phát hành' }))
       expect(await screen.findByRole('alert')).toHaveTextContent(message)
       expect(screen.getByRole('alert')).toHaveTextContent('req-batch')
-      expect(field('Giá trị điểm mỗi mã')).toHaveValue(100)
+      expect(field('Số ngày hiệu lực')).toHaveValue(30)
       expect(screen.queryByText('Internal details')).not.toBeInTheDocument()
       expect(screen.queryByRole('list', { name: 'Mã vừa phát hành' })).not.toBeInTheDocument()
       expect(createCardBatch).toHaveBeenCalledTimes(1)
@@ -559,7 +559,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
       .mockRejectedValueOnce(new Error('Internal network details'))
     renderPage()
     await table()
-    fillCredit()
+    fillPremium()
     await issue()
     const callsBefore = vi.mocked(listCardBatches).mock.calls.length
     await prepare()
@@ -579,7 +579,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
       .mockRejectedValueOnce(new Error('Reload details'))
     renderPage()
     await table()
-    fillCredit()
+    fillPremium()
     await issue()
     expect(await screen.findByRole('heading', { name: 'Chưa tải được danh sách lô' })).toBeVisible()
     expect(screen.getByRole('button', { name: 'Tải CSV' })).toBeEnabled()
@@ -677,7 +677,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
     vi.mocked(createCardBatch).mockReturnValueOnce(response.promise)
     const view = renderPage()
     await table()
-    fillCredit()
+    fillPremium()
     await prepare()
     await userEvent.click(screen.getByRole('button', { name: 'Xác nhận phát hành' }))
     const signal = vi.mocked(listCardBatches).mock.calls[0]![1]!
@@ -729,7 +729,7 @@ describe('SCR-073 card batches (FR-026, AT-24)', () => {
     const data = await table()
     expect(data.getByText('Trực tiếp · <img src=x onerror=bad()>')).toBeVisible()
     expect(screen.getByRole('table').querySelector('img,script')).toBeNull()
-    fillCredit()
+    fillPremium()
     await issue()
     expect(JSON.stringify(creditsBatchPage)).toBe(original)
     expect(creditsCreatedBatch.codes).toEqual([

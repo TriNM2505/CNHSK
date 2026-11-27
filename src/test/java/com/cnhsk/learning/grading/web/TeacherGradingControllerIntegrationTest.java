@@ -621,7 +621,14 @@ class TeacherGradingControllerIntegrationTest extends AbstractIntegrationTest {
                 Long.class, UUID.randomUUID() + "@example.test", HASH);
         users.add(id); usage(id, 0); return id;
     }
-    private long pending(long owner) { return requests.submit(owner, new GradingRequestWrite("字".repeat(50) + ++essayNumber, null, 3)).id(); }
+    /** A learner set up with no free use left and a topped-up point gets an old request paid with that point. */
+    private long pending(long owner) {
+        boolean paidWithPoint = used(owner) >= 10 && balance(owner) > 0;
+        if (paidWithPoint) usage(owner, 0);
+        long id = requests.submit(owner, new GradingRequestWrite("字".repeat(50) + ++essayNumber, null, 3)).id();
+        if (paidWithPoint) { com.cnhsk.learning.grading.LegacyCreditPayment.payWithPoint(jdbc, owner, id); usage(owner, 10); }
+        return id;
+    }
     private void deadline(long id, Instant value) { jdbc.update("UPDATE learning.service_requests SET deadline_at=? WHERE id=?", Timestamp.from(value), id); }
     private void assignedWithPastClaimDeadline(long id, Instant original) {
         new TransactionTemplate(transactions).executeWithoutResult(status -> {

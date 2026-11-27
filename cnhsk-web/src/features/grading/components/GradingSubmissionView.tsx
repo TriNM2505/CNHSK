@@ -216,7 +216,7 @@ export function GradingSubmissionView(props: Props) {
                     ) : null}
                     {error.errorCode === 'INSUFFICIENT_CREDITS' ? (
                       <Button to="/account/credits" variant="outline">
-                        Mua gói / Nạp điểm
+                        Nâng cấp PREMIUM
                       </Button>
                     ) : null}
                   </div>

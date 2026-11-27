@@ -120,7 +120,7 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void freeQuotaThenCreditThenInsufficientCredits() {
+    void freeQuotaThenUpgradePromptWithoutSpendingPoints() {
         append(userId, "TOPUP", 1, null, null);
         for (int use = 1; use <= 10; use++) {
             Consumption receipt = consume("free-" + use);
@@ -128,26 +128,18 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
             assertThat(receipt.transactionId()).isNull();
             assertThat(receipt.periodStart()).isEqualTo(MONTH);
         }
-        Consumption paid = consume("paid");
-        assertThat(paid.source()).isEqualTo(Source.CREDIT);
-        assertThat(jdbc.queryForMap("""
-                SELECT tx_type, amount, feature_code, balance_before, balance_after
-                FROM learning.credit_transactions WHERE id = ?
-                """, paid.transactionId())).containsEntry("tx_type", "DEDUCT").containsEntry("amount", -1)
-                .containsEntry("feature_code", "TRANSLATE").containsEntry("balance_before", 1)
-                .containsEntry("balance_after", 0);
         assertThatThrownBy(() -> consume("exhausted")).isInstanceOf(ApiException.class).satisfies(error -> {
             ApiException api = (ApiException) error;
             assertThat(api.getCode()).isEqualTo(ErrorCode.INSUFFICIENT_CREDITS);
             assertThat(api.getStatus()).isEqualTo(HttpStatus.PAYMENT_REQUIRED);
-            assertThat(api.getMessage()).isEqualTo("Đã hết hạn mức và điểm.");
+            assertThat(api.getMessage()).isEqualTo(
+                    "Bạn đã dùng hết lượt miễn phí tháng này. Nâng cấp PREMIUM để dùng không giới hạn.");
         });
         assertThat(state().freeUsage()).containsExactlyEntriesOf(Map.of("TRANSLATE", 10));
-        assertThat(ledger.balance(userId)).isZero();
-        assertThat(countTransactions()).isEqualTo(2);
+        assertThat(ledger.balance(userId)).isEqualTo(1);
+        assertThat(countTransactions()).isEqualTo(1);
         assertThat(redis.hasKey(idemKey("exhausted"))).isFalse();
     }
-
     @Test
     void configuredFreeLimitAppliesIndependentlyToEveryFeature() {
         BillingConfig config = new BillingConfig();
@@ -168,9 +160,10 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void premiumUsesOnlyGrantedBenefitsIncludingZeroAndMissingFeatures() {
+    void premiumIsUnlimitedForEveryFeatureWithoutSpendingCreditsOrFreeUses() {
         seedPremium();
         append(userId, "TOPUP", 2, null, null);
+        usage(Map.of("TRANSLATE", 4), MONTH);
         transaction().executeWithoutResult(status -> {
             status.setRollbackOnly();
             jdbc.queryForObject("SELECT code FROM learning.plans WHERE code = 'PREMIUM' FOR UPDATE", String.class);
@@ -178,12 +171,15 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
                     "{\"TRANSLATE\":1,\"GRADING\":0}");
             auth.lockPlan(userId);
             auth.updatePlan(userId, "PREMIUM", NOW.plusSeconds(86400));
-            assertThat(service.consume(userId, PaidFeature.TRANSLATE, "premium-quota").source()).isEqualTo(Source.QUOTA);
-            assertThat(service.consume(userId, PaidFeature.TRANSLATE, "premium-credit").source()).isEqualTo(Source.CREDIT);
-            assertThat(service.consume(userId, PaidFeature.GRADING, "premium-zero").source()).isEqualTo(Source.CREDIT);
-            assertThatThrownBy(() -> service.consume(userId, PaidFeature.ASSISTANT, "premium-missing"))
-                    .isInstanceOf(ApiException.class).satisfies(error ->
-                            assertThat(((ApiException) error).getCode()).isEqualTo(ErrorCode.INSUFFICIENT_CREDITS));
+            for (int use = 0; use < 25; use++) {
+                assertThat(service.consume(userId, PaidFeature.TRANSLATE, "premium-" + use).source())
+                        .isEqualTo(Source.QUOTA);
+            }
+            assertThat(service.consume(userId, PaidFeature.GRADING, "premium-zero").source()).isEqualTo(Source.QUOTA);
+            assertThat(service.consume(userId, PaidFeature.ASSISTANT, "premium-missing").source())
+                    .isEqualTo(Source.QUOTA);
+            assertThat(ledger.balance(userId)).isEqualTo(2);
+            assertThat(auth.lockPlan(userId).freeUsage()).containsExactlyEntriesOf(Map.of("TRANSLATE", 4));
         });
         assertThat(state().planCode()).isEqualTo("FREE");
         assertThat(ledger.balance(userId)).isEqualTo(2);
@@ -220,15 +216,13 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
         usage(Map.of("TRANSLATE", 7, "GRADING", 3), MONTH);
         transaction().executeWithoutResult(status -> {
             status.setRollbackOnly();
-            jdbc.queryForObject("SELECT code FROM learning.plans WHERE code = 'PREMIUM' FOR UPDATE", String.class);
-            jdbc.update("UPDATE learning.plans SET benefits = CAST(? AS jsonb) WHERE code = 'PREMIUM'",
-                    "{\"TRANSLATE\":10}");
             auth.lockPlan(userId);
             auth.updatePlan(userId, "PREMIUM", NOW.plusSeconds(86400));
             auth.updatePlan(userId, "PREMIUM", NOW.plusSeconds(172800));
             assertThat(service.consume(userId, PaidFeature.TRANSLATE, "renewed").source()).isEqualTo(Source.QUOTA);
+            // Uses made while PREMIUM runs are not counted, so the free allowance is intact when it ends.
             assertThat(auth.lockPlan(userId).freeUsage())
-                    .containsExactlyInAnyOrderEntriesOf(Map.of("TRANSLATE", 8, "GRADING", 3));
+                    .containsExactlyInAnyOrderEntriesOf(Map.of("TRANSLATE", 7, "GRADING", 3));
         });
         assertThat(state().freeUsage()).containsExactlyInAnyOrderEntriesOf(Map.of("TRANSLATE", 7, "GRADING", 3));
         assertThat(state().usageResetAt()).isEqualTo(MONTH);
@@ -251,24 +245,14 @@ class EntitlementServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void quotaAndCreditConsumptionRollbackRestoresStateWithoutPublishingReceipts() {
+    void quotaConsumptionRollbackRestoresStateWithoutPublishingReceipts() {
         transaction().executeWithoutResult(status -> {
             service.consume(userId, PaidFeature.TRANSLATE, "rollback-quota");
             status.setRollbackOnly();
         });
         assertThat(state().freeUsage()).isEmpty();
         assertThat(redis.hasKey(idemKey("rollback-quota"))).isFalse();
-        usage(Map.of("TRANSLATE", 10), MONTH);
-        append(userId, "TOPUP", 1, null, null);
-        transaction().executeWithoutResult(status -> {
-            service.consume(userId, PaidFeature.TRANSLATE, "rollback-credit");
-            status.setRollbackOnly();
-        });
-        assertThat(ledger.balance(userId)).isEqualTo(1);
-        assertThat(countTransactions()).isEqualTo(1);
-        assertThat(redis.hasKey(idemKey("rollback-credit"))).isFalse();
     }
-
     @Test
     void creditRefundUsesOriginalAmountAndFeatureAndIsRepeatableWithoutAnotherRow() {
         append(userId, "TOPUP", 5, null, null);

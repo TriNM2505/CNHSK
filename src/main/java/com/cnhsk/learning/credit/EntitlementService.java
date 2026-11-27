@@ -21,7 +21,6 @@ import com.cnhsk.shared.exception.ErrorCode;
 import com.cnhsk.shared.settings.SettingKey;
 import com.cnhsk.shared.settings.SettingsApi;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +92,12 @@ public class EntitlementService implements EntitlementApi {
         }
         Instant now = clock.instant();
         Instant period = periodStart(now);
+        if (premiumActive(state, now)) {
+            // PREMIUM is unlimited for its whole term and leaves the free allowance untouched for after it ends.
+            Consumption unlimited = new Consumption(Source.QUOTA, null, feature, idempotencyKey, period);
+            pending.receipts.put(key, unlimited);
+            return unlimited;
+        }
         boolean reset = state.usageResetAt().isBefore(period);
         Map<String, Integer> usage = reset ? new HashMap<>() : new HashMap<>(state.freeUsage());
         int used = usage.getOrDefault(feature.name(), 0);
@@ -106,21 +111,15 @@ public class EntitlementService implements EntitlementApi {
             auth.updateUsage(userId, usage, reset ? period : state.usageResetAt());
             result = new Consumption(Source.QUOTA, null, feature, idempotencyKey, period);
         } else {
+            // Points are retired: a FREE account that used its allowance is asked to upgrade, never charged.
             if (!creditFallback) {
                 throw new ApiException(ErrorCode.LEARNING_QUOTA_EXCEEDED, HttpStatus.PAYMENT_REQUIRED,
                         "Bạn đã dùng hết lượt học miễn phí tháng này.",
                         Map.of("feature", feature.name(), "limit", limit));
             }
-            if (ledger.balance(userId) < 1) {
-                throw new ApiException(ErrorCode.INSUFFICIENT_CREDITS, HttpStatus.PAYMENT_REQUIRED,
-                        "Đã hết hạn mức và điểm.", Map.of());
-            }
-            if (reset) {
-                auth.updateUsage(userId, usage, period);
-            }
-            long id = ledger.append(new AppendCommand(userId, "DEDUCT", -1, feature.name(),
-                    null, null, null, null, null, null)).id();
-            result = new Consumption(Source.CREDIT, id, feature, idempotencyKey, period);
+            throw new ApiException(ErrorCode.INSUFFICIENT_CREDITS, HttpStatus.PAYMENT_REQUIRED,
+                    "Bạn đã dùng hết lượt miễn phí tháng này. Nâng cấp PREMIUM để dùng không giới hạn.",
+                    Map.of());
         }
         pending.receipts.put(key, result);
         return result;
@@ -164,6 +163,9 @@ public class EntitlementService implements EntitlementApi {
 
     private void refundQuota(long userId, Consumption consumption, PlanState state) {
         Instant now = clock.instant();
+        if (premiumActive(state, now)) {
+            return; // nothing was counted while PREMIUM was active
+        }
         Instant period = periodStart(now);
         int used = state.freeUsage().getOrDefault(consumption.feature().name(), 0);
         if (!period.equals(consumption.periodStart()) || state.usageResetAt().isBefore(period) || used <= 0) {
@@ -202,33 +204,15 @@ public class EntitlementService implements EntitlementApi {
         auth.updateUsage(userId, usage, state.usageResetAt());
     }
 
+    /** PREMIUM counts only while its term runs; an expired PREMIUM is treated as FREE. */
+    static boolean premiumActive(PlanState state, Instant now) {
+        return "PREMIUM".equals(state.planCode()) && state.planExpiresAt() != null
+                && state.planExpiresAt().isAfter(now);
+    }
+
     private int quotaLimit(PlanState state, PaidFeature feature, Instant now) {
-        if (!"PREMIUM".equals(state.planCode()) || state.planExpiresAt() == null
-                || !state.planExpiresAt().isAfter(now)) {
-            return settings.getInt(feature.learning()
-                    ? SettingKey.LEARNING_FREE_MONTHLY_LIMIT : SettingKey.BILLING_FREE_MONTHLY_LIMIT);
-        }
-        var benefits = jdbc.queryForList("SELECT benefits::text FROM learning.plans WHERE code = :code",
-                Map.of("code", "PREMIUM"), String.class);
-        if (benefits.isEmpty()) {
-            return 0;
-        }
-        try {
-            JsonNode root = mapper.readTree(benefits.get(0));
-            if (root == null || !root.isObject()) {
-                throw invalidStoredQuota();
-            }
-            JsonNode value = root.get(feature.name());
-            if (value == null) {
-                return 0;
-            }
-            if (!value.isIntegralNumber() || !value.canConvertToInt() || value.intValue() < 0) {
-                throw invalidStoredQuota();
-            }
-            return value.intValue();
-        } catch (JsonProcessingException exception) {
-            throw invalidStoredQuota();
-        }
+        return settings.getInt(feature.learning()
+                ? SettingKey.LEARNING_FREE_MONTHLY_LIMIT : SettingKey.BILLING_FREE_MONTHLY_LIMIT);
     }
 
     private Consumption readReceipt(String redisKey, PaidFeature feature, String idempotencyKey) {

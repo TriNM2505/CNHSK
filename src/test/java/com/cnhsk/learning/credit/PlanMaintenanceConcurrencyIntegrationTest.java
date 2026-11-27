@@ -173,7 +173,8 @@ class PlanMaintenanceConcurrencyIntegrationTest extends PlanMaintenanceIntegrati
     }
 
     @ParameterizedTest
-    @CsvSource({"false,false", "true,false", "false,true", "true,true"})
+    // Points are no longer spent, so only free-allowance uses race the downgrade job.
+    @CsvSource({"false,false", "true,false"})
     void quotaAndCreditConsumptionPreserveUsageAndReceiptsInBothJobOrders(boolean jobFirst, boolean credit)
             throws Exception {
         long learner = user("PREMIUM", NOW.minusSeconds(1));
@@ -200,7 +201,8 @@ class PlanMaintenanceConcurrencyIntegrationTest extends PlanMaintenanceIntegrati
     }
 
     @ParameterizedTest
-    @CsvSource({"false,false", "true,false", "false,true", "true,true"})
+    // Points are no longer spent, so only free-allowance uses race the downgrade job.
+    @CsvSource({"false,false", "true,false"})
     void refundAndDowngradePreserveCompensationAndDuplicateRefundProtection(boolean jobFirst, boolean credit)
             throws Exception {
         long learner = user("PREMIUM", NOW.minusSeconds(1));

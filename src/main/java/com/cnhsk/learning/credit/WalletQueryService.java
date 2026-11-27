@@ -21,8 +21,6 @@ import com.cnhsk.shared.exception.ApiException;
 import com.cnhsk.shared.exception.ErrorCode;
 import com.cnhsk.shared.settings.SettingKey;
 import com.cnhsk.shared.settings.SettingsApi;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -73,14 +71,15 @@ public class WalletQueryService {
         Catalog catalog = jdbc.query("SELECT name, benefits::text FROM learning.plans WHERE code = :code",
                 Map.of("code", code.name()), (rs, row) -> new Catalog(rs.getString("name"), rs.getString("benefits")))
                 .stream().findFirst().orElseThrow(WalletQueryService::invalidQuota);
-        JsonNode benefits = premium ? benefits(catalog.benefits()) : null;
         Instant month = now.atZone(ZONE).toLocalDate().withDayOfMonth(1).atStartOfDay(ZONE).toInstant();
         Instant resetAt = now.atZone(ZONE).toLocalDate().withDayOfMonth(1).plusMonths(1).atStartOfDay(ZONE).toInstant();
         int freeLimit = premium ? 0 : settings.getInt(SettingKey.BILLING_FREE_MONTHLY_LIMIT);
         int learningLimit = premium ? 0 : settings.getInt(SettingKey.LEARNING_FREE_MONTHLY_LIMIT);
+        // PREMIUM has no allowance to count: every line reads 0/0 and the client shows it as unlimited.
         var quota = Arrays.stream(PaidFeature.values()).map(feature -> {
-            int limit = premium ? limit(benefits, feature) : feature.learning() ? learningLimit : freeLimit;
-            int used = state.usageResetAt().isBefore(month) ? 0 : state.freeUsage().getOrDefault(feature.name(), 0);
+            int limit = premium ? 0 : feature.learning() ? learningLimit : freeLimit;
+            int used = premium || state.usageResetAt().isBefore(month) ? 0
+                    : state.freeUsage().getOrDefault(feature.name(), 0);
             if (used < 0 || limit < 0) throw invalidQuota();
             return new QuotaLine(feature, limit, used, Math.max(0, limit - used));
         }).toList();
@@ -109,23 +108,6 @@ public class WalletQueryService {
     private PlanState requirePlan(long userId) {
         return auth.readPlan(userId).orElseThrow(() -> new ApiException(ErrorCode.UNAUTHENTICATED,
                 HttpStatus.UNAUTHORIZED, "Không thể xác thực người dùng hiện tại.", Map.of()));
-    }
-
-    private JsonNode benefits(String value) {
-        try {
-            JsonNode parsed = mapper.readTree(value);
-            if (parsed == null || !parsed.isObject()) throw invalidQuota();
-            return parsed;
-        } catch (JsonProcessingException exception) {
-            throw invalidQuota();
-        }
-    }
-
-    private static int limit(JsonNode benefits, PaidFeature feature) {
-        JsonNode value = benefits.get(feature.name());
-        if (value == null) return 0;
-        if (!value.isIntegralNumber() || !value.canConvertToInt() || value.intValue() < 0) throw invalidQuota();
-        return value.intValue();
     }
 
     private static String safeReason(String reason) {
