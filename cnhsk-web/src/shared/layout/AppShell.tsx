@@ -17,6 +17,16 @@ type AppShellProps = {
 }
 
 export function BrandLink({ inverse = false, logoClassName }: { inverse?: boolean; logoClassName?: string }) {
+  const { user } = useCurrentUser()
+  // Staff stay in their work area: for them the logo is only a mark, not a way back to the landing page.
+  const staffOnly = Boolean(user && user.roles.length > 0 && !user.roles.includes('LEARNER'))
+  if (staffOnly) {
+    return (
+      <span className="inline-flex min-h-touch shrink-0 items-center" data-testid="brand-mark">
+        <HocBaLogo className={logoClassName} inverse={inverse} />
+      </span>
+    )
+  }
   return (
     <Link
       aria-label="CNHSK - Trang chủ"
