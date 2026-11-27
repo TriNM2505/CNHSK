@@ -80,6 +80,9 @@ components:
         maxParticipants: { type: [integer, 'null'] }
         participantCount: { type: integer, format: int64 }
         rankingPublished: { type: boolean }
+        gameCode:
+          type: [string, 'null']
+          description: Game của cuộc thi trò chơi (phụ lục v1.1); null với cuộc thi theo đề
     ContestPage:
       type: object
       required: [items, page, size, totalElements]
@@ -95,7 +98,7 @@ components:
           required: [description, examTitle, durationMinutes, questionCount]
           properties:
             description: { type: [string, 'null'] }
-            examTitle: { type: string }
+            examTitle: { type: [string, 'null'], description: null với cuộc thi trò chơi }
             durationMinutes: { type: integer, description: 0 = chỉ giới hạn theo endsAt }
             questionCount: { type: integer }
     ServedItemView:

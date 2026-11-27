@@ -13,6 +13,8 @@ export type ContestSummary = {
   maxParticipants: number | null
   participantCount: number
   rankingPublished: boolean
+  /** Set for a game contest, which has its own page under /community/contests; null for an exam contest. */
+  gameCode?: string | null
 }
 
 export type ContestPage = {
@@ -24,7 +26,7 @@ export type ContestPage = {
 
 export type ContestDetail = ContestSummary & {
   description: string | null
-  examTitle: string
+  examTitle: string | null
   durationMinutes: number
   questionCount: number
 }

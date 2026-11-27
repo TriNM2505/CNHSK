@@ -33,9 +33,12 @@ public class ContestQueryService {
     private final ContestAttemptApi attempts;
     private final Clock clock;
     private final AuthApi auth;
+    private final GameContestRepository games;
 
-    public ContestQueryService(ContestRepository contests, ContestAttemptApi attempts, Clock clock, AuthApi auth) {
+    public ContestQueryService(ContestRepository contests, ContestAttemptApi attempts, Clock clock, AuthApi auth,
+            GameContestRepository games) {
         this.contests = contests;
+        this.games = games;
         this.attempts = attempts;
         this.clock = clock;
         this.auth = auth;
@@ -57,11 +60,17 @@ public class ContestQueryService {
 
     public ContestDetail detail(long id) {
         Contest contest = contests.findPublished(id).orElseThrow(ContestQueryService::notFound);
-        var exam = attempts.exam(contest.getExamId()).orElseThrow(ContestQueryService::notFound);
         ContestSummary summary = summary(contest, clock.instant());
+        // A game contest has no exam; its own page (live ranking, play button) is reached through gameCode.
+        if (contest.getGameCode() != null) {
+            return new ContestDetail(summary.id(), summary.name(), summary.startsAt(), summary.endsAt(), summary.state(),
+                    summary.prizes(), summary.maxParticipants(), summary.participantCount(), summary.rankingPublished(),
+                    contest.getDescription(), null, 0, 0, contest.getGameCode());
+        }
+        var exam = attempts.exam(contest.getExamId()).orElseThrow(ContestQueryService::notFound);
         return new ContestDetail(summary.id(), summary.name(), summary.startsAt(), summary.endsAt(), summary.state(),
                 summary.prizes(), summary.maxParticipants(), summary.participantCount(), summary.rankingPublished(),
-                contest.getDescription(), exam.title(), exam.durationMinutes(), exam.questionCount());
+                contest.getDescription(), exam.title(), exam.durationMinutes(), exam.questionCount(), null);
     }
 
     public ContestResults results(long id, int page, int size) {
@@ -98,7 +107,14 @@ public class ContestQueryService {
     private ContestSummary summary(Contest contest, Instant now) {
         return new ContestSummary(contest.getId(), contest.getName(), contest.getStartsAt().atZone(VIETNAM).toOffsetDateTime(),
                 contest.getEndsAt().atZone(VIETNAM).toOffsetDateTime(), contest.stateAt(now), contest.getPrizes(),
-                contest.getMaxParticipants(), attempts.countAttempts(contest.getId()), contest.getRankingPublishedAt() != null);
+                contest.getMaxParticipants(), participants(contest), contest.getRankingPublishedAt() != null,
+                contest.getGameCode());
+    }
+
+    /** Exam contests count attempts; game contests count players with a ranked round in the window. */
+    private long participants(Contest contest) {
+        return contest.getGameCode() == null ? attempts.countAttempts(contest.getId())
+                : games.ranking(contest, Set.of(), 1).total();
     }
 
     private static ApiException notFound() {

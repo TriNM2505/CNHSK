@@ -20,6 +20,10 @@ Theo dõi bài của mình trong Bài viết của tôi. Sửa bài của mình 
 
 Mở một bài để đọc, Thích, Bình luận và Trả lời bình luận của người khác; phản hồi dài được gấp lại, bấm để xem hoặc Ẩn phản hồi. Có thể theo dõi tác giả bằng nút theo dõi cạnh tên. Thấy nội dung vi phạm thì bấm Báo cáo (bài hoặc bình luận) → chọn lý do → Gửi báo cáo. Bài đã đóng bình luận sẽ ghi rõ.
 
+## Trang Cuộc thi
+
+Mở trang Cuộc thi bằng menu Cộng đồng ▾ → Cuộc thi, hoặc mục Cuộc thi ở cột trái (nhóm Ôn và kiểm tra). Trang liệt kê mọi cuộc thi theo Đang diễn ra, Sắp diễn ra, Đã kết thúc. Mỗi thẻ có nhãn loại: **Kiến thức** là cuộc thi trắc nghiệm theo đề; **Trò chơi · tên game** là cuộc thi game. Bấm Xem cuộc thi ở thẻ trò chơi sẽ mở thẳng phòng thi và bảng xếp hạng của game đó.
+
 ## Cuộc thi trên cộng đồng
 
 Có hai kiểu cuộc thi do kiểm duyệt viên tổ chức, xuất hiện thành bài ghim:

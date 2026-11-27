@@ -1,7 +1,9 @@
 import {
   ArrowRight,
+  BookOpen,
   CalendarDays,
   CheckCircle2,
+  Gamepad2,
   Gift,
   LayoutGrid,
   PlayCircle,
@@ -21,7 +23,7 @@ import {
 } from '@/shared/ui'
 
 import { formatVietnamDate } from '../countdown'
-import type { ContestPage, ScheduleState } from '../types'
+import type { ContestPage, ContestSummary, ScheduleState } from '../types'
 import { ContestCardArt } from './ContestCardArt'
 import { ContestMascot } from './ContestMascot'
 
@@ -46,8 +48,27 @@ export function ScheduleBadge({ state }: { state: ScheduleState }) {
   )
 }
 
+/** Game contests are run on their own community page; exam contests on the contest pages here. */
+function contestHref(contest: Pick<ContestSummary, 'id' | 'gameCode'>): string {
+  return (contest.gameCode ? '/community/contests/' : '/contests/') + contest.id
+}
+
+function KindBadge({ gameName }: { gameName?: string }) {
+  const Icon = gameName ? Gamepad2 : BookOpen
+  return (
+    <StatusBadge tone="info">
+      <span className="inline-flex items-center gap-1.5">
+        <Icon aria-hidden="true" className="size-3.5 shrink-0" />
+        {gameName ? 'Trò chơi · ' + gameName : 'Kiến thức'}
+      </span>
+    </StatusBadge>
+  )
+}
+
 type Props = {
   state: ApiQueryState
+  /** Game names by code, so a game contest says which game it is played in. */
+  gameNames?: Readonly<Record<string, string>>
   result?: ContestPage
   error?: string
   filter: ScheduleState | ''
@@ -227,7 +248,7 @@ export function ContestListView(props: Props) {
               <span>Cuộc thi</span>
             </span>
           }
-          subtitle="Cùng thử sức, cùng tiến bộ với cộng đồng học tiếng Trung."
+          subtitle="Thi kiến thức theo đề hoặc thi trò chơi: cùng thử sức, cùng tiến bộ với cộng đồng học tiếng Trung."
         />
         <ChineseLandscapeBannerArt />
       </div>
@@ -304,11 +325,20 @@ export function ContestListView(props: Props) {
                           <ContestMascot state={contest.state} />
                         </div>
                         <div className="col-span-3 min-w-0 space-y-1 sm:col-span-6 lg:col-span-7">
-                          <ScheduleBadge state={contest.state} />
+                          <div className="flex flex-wrap gap-2">
+                            <ScheduleBadge state={contest.state} />
+                            <KindBadge
+                              gameName={
+                                contest.gameCode
+                                  ? (props.gameNames?.[contest.gameCode] ?? contest.gameCode)
+                                  : undefined
+                              }
+                            />
+                          </div>
                           <h3 className="min-w-0 text-body font-bold text-ink sm:text-h3">
                             <Link
                               className="-my-2 block min-h-touch max-w-full break-words py-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2"
-                              to={'/contests/' + contest.id}
+                              to={contestHref(contest)}
                             >
                               {contest.name}
                             </Link>
@@ -353,7 +383,7 @@ export function ContestListView(props: Props) {
                         </div>
                         <div className="col-span-4 flex min-w-0 items-center border-t border-brand-100 pt-3 sm:col-span-3 sm:self-center sm:border-l sm:border-t-0 sm:py-2 sm:pl-4 lg:pl-5">
                           <Button
-                            to={'/contests/' + contest.id}
+                            to={contestHref(contest)}
                             className="w-full !rounded-pill bg-gradient-to-b from-brand-600 to-brand-800 shadow-sm"
                           >
                             Xem cuộc thi{' '}

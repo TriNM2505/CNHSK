@@ -17,7 +17,7 @@ Bấm tên menu để vào trang chính của menu; rê chuột hoặc bấm mũ
 
 ## Khu vực học viên
 
-Sau khi đăng nhập, cột bên trái của khu học viên có: Bảng học tập, Nghe, Luyện nói, Đọc, Viết, Chủ đề, Ngữ pháp, Chữ Hán, Ôn bài đến hạn, Kiểm tra đầu vào, Thi thử, Tiến độ, Dịch, Bộ thẻ, Sổ tay, Tài liệu tham khảo, Chấm bài, Quiz, Cuộc thi, Bảng xếp hạng. Trên điện thoại, các mục chính nằm ở thanh dưới, mục còn lại ở nút Thêm.
+Sau khi đăng nhập, cột bên trái của khu học viên có: Bảng học tập, Nghe, Luyện nói, Đọc, Viết, Chủ đề, Ngữ pháp, Chữ Hán, Ôn bài đến hạn, Kiểm tra đầu vào, Thi thử, Cuộc thi, Tiến độ, Dịch, Bộ thẻ, Sổ tay, Tài liệu tham khảo, Chấm bài. Quiz và Bảng xếp hạng mở từ menu trên cùng. Trên điện thoại, các mục chính nằm ở thanh dưới, mục còn lại ở nút Thêm.
 
 ## Góc phải đầu trang
 

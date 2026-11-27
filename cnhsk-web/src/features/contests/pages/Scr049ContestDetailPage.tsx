@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useApiQuery } from '@/shared/api'
 import { useCurrentUser } from '@/shared/auth'
 import { getContest, getContestResults } from '../api/contests'
@@ -40,6 +40,8 @@ function Detail({ id }: { id: number }) {
           : !user.emailVerified
             ? 'unverified'
             : 'learner'
+  // A game contest has no exam to enter: its live ranking and play button live on the community page.
+  if (contest?.gameCode) return <Navigate replace to={'/community/contests/' + id} />
   return (
     <ContestDetailView
       state={detail.state}

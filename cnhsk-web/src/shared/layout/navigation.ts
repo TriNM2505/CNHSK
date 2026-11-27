@@ -140,6 +140,14 @@ export const learnerNavigation: readonly NavigationItem[] = [
     to: '/learn/exams',
   },
   {
+    activePrefixes: ['/contests', '/community/contests'],
+    group: 'Ôn và kiểm tra',
+    icon: Trophy,
+    label: 'Cuộc thi',
+    mobilePlacement: 'more',
+    to: '/contests',
+  },
+  {
     activePrefixes: ['/learn/progress'],
     group: 'Ôn và kiểm tra',
     icon: TrendingUp,

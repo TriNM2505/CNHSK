@@ -204,7 +204,7 @@ describe('PublicLayout', () => {
 })
 
 describe('LearnerLayout', () => {
-  it('groups study items by skill, knowledge, review and tools and keeps four links plus More on mobile', async () => {
+  it('groups study items by skill, knowledge, review (with contests) and tools and keeps four links plus More on mobile', async () => {
     renderLayout(<LearnerLayout gameOrigin="http://localhost:5174">Nội dung học tập</LearnerLayout>)
 
     const desktopNavigation = screen.getByRole('navigation', { name: 'Học tập' })
@@ -224,6 +224,7 @@ describe('LearnerLayout', () => {
       'Ôn bài đến hạn',
       'Kiểm tra đầu vào',
       'Thi thử',
+      'Cuộc thi',
       'Tiến độ',
       'Dịch',
       'Bộ thẻ',
@@ -238,6 +239,7 @@ describe('LearnerLayout', () => {
       'href',
       '/learn/reading',
     )
+    expect(within(desktopNavigation).getByRole('link', { name: 'Cuộc thi' })).toHaveAttribute('href', '/contests')
     expect(within(desktopNavigation).getByRole('link', { name: 'Dịch' })).toHaveAttribute(
       'href',
       '/translate',
@@ -305,6 +307,7 @@ describe('LearnerLayout', () => {
       'Ôn bài đến hạn',
       'Kiểm tra đầu vào',
       'Thi thử',
+      'Cuộc thi',
       'Tiến độ',
       'Dịch',
       'Bộ thẻ',

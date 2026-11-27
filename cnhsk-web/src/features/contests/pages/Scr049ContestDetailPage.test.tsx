@@ -54,6 +54,12 @@ describe('SCR-049 FR015 / AT20', () => {
     vi.useRealTimers()
     vi.restoreAllMocks()
   })
+  it('sends a game contest to its community page instead of an exam detail', async () => {
+    vi.mocked(getContest).mockResolvedValue({ ...contestFixture, gameCode: 'CHAR_RAIN', examTitle: null })
+    vi.mocked(getContestResults).mockResolvedValue(null as never)
+    mount()
+    await waitFor(() => expect(screen.getByLabelText('Vị trí')).toHaveTextContent('/community/contests/2101'))
+  })
   it('allows entry only after the learner confirms the one-attempt warning', async () => {
     const user = userEvent.setup()
     mount()

@@ -60,7 +60,7 @@ class PublicContestIntegrationTest extends AbstractIntegrationTest {
     private static final Instant NOW = Instant.parse("2035-11-14T04:00:00Z");
     private static final String HASH = new BCryptPasswordEncoder(12).encode(UUID.randomUUID().toString());
     private static final List<String> SUMMARY_FIELDS = List.of("id", "name", "startsAt", "endsAt", "state", "prizes",
-            "maxParticipants", "participantCount", "rankingPublished");
+            "maxParticipants", "participantCount", "rankingPublished", "gameCode");
     @Autowired private MockMvc mvc;
     @Autowired private JdbcTemplate jdbc;
     @Autowired private ObjectMapper mapper;
@@ -270,6 +270,31 @@ class PublicContestIntegrationTest extends AbstractIntegrationTest {
         assertThat(detail.toString()).doesNotContain("email", "userId", "score", "answer", "accept", "correct", "createdBy", "examId");
     }
 
+    @Test
+    void gameContestDetailNamesItsGameInsteadOfAnExamAndCountsRankedPlayers() throws Exception {
+        long id = jdbc.queryForObject("INSERT INTO community.contests(name,game_code,starts_at,ends_at,status,created_by) "
+                        + "VALUES ('Cuộc thi game tự soạn','CHAR_RAIN',?,?,'PUBLISHED',?) RETURNING id", Long.class,
+                Timestamp.from(NOW.minusSeconds(600)), Timestamp.from(NOW.plusSeconds(600)), creator);
+        long player = user();
+        for (int score : List.of(5, 9)) gameRound(player, id, score);
+        gameRound(user(), id, 3);
+        JsonNode detail = ok(get(BASE + "/{id}", id));
+        assertThat(detail.path("gameCode").asText()).isEqualTo("CHAR_RAIN");
+        assertThat(detail.path("examTitle").isNull()).isTrue();
+        assertThat(detail.path("questionCount").asInt()).isZero();
+        assertThat(detail.path("participantCount").asLong()).isEqualTo(2);
+        JsonNode summary = ok(get(BASE)).path("items").get(0);
+        assertThat(summary.path("gameCode").asText()).isEqualTo("CHAR_RAIN");
+        assertThat(summary.path("participantCount").asLong()).isEqualTo(2);
+        verify(attempts, never()).exam(anyLong());
+    }
+
+    @Test
+    void examContestsReportNoGame() throws Exception {
+        long id = contest("PUBLISHED", -60, 60);
+        assertThat(ok(get(BASE + "/{id}", id)).path("gameCode").isNull()).isTrue();
+        assertThat(ok(get(BASE)).path("items").get(0).path("gameCode").isNull()).isTrue();
+    }
     @ParameterizedTest
     @CsvSource({"page,-1", "page,abc", "page,2147483648", "size,0", "size,-1", "size,51", "size,abc",
             "state,CLOSED", "state,DRAFT", "state,ongoing", "state,UNKNOWN"})
@@ -388,6 +413,12 @@ class PublicContestIntegrationTest extends AbstractIntegrationTest {
                 "PUBLIC-" + UUID.randomUUID(), "[{\"key\":\"A\",\"text\":\"nước\",\"is_correct\":true},"
                         + "{\"key\":\"B\",\"text\":\"lửa\",\"is_correct\":false}]", status);
         jdbc.update("INSERT INTO learning.exam_questions(exam_id,question_id,order_index) VALUES (?,?,?)", exam, id, order);
+    }
+
+    private void gameRound(long userId, long contest, int score) {
+        jdbc.update("INSERT INTO learning.attempts(user_id,kind,ref_type,ref_id,game_code,status,suspicious,score,served_at,submitted_at) "
+                + "VALUES (?,'GAME','GAME_ROUND',?,'CHAR_RAIN','SUBMITTED',false,?,?,?)", userId, contest, score,
+                Timestamp.from(NOW.minusSeconds(120)), Timestamp.from(NOW.minusSeconds(60)));
     }
 
     private void attempt(long contest, String kind, String status) {

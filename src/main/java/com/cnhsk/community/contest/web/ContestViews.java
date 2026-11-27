@@ -29,7 +29,8 @@ public final class ContestViews {
             @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX", timezone = "Asia/Ho_Chi_Minh") OffsetDateTime endsAt,
             ScheduleState state, List<Prize> prizes,
             @Schema(types = {"integer", "null"}) Integer maxParticipants,
-            long participantCount, boolean rankingPublished) {
+            long participantCount, boolean rankingPublished,
+            @Schema(types = {"string", "null"}, description = "Game của cuộc thi trò chơi; null với cuộc thi theo đề") String gameCode) {
         public ContestSummary { prizes = List.copyOf(prizes); }
     }
 
@@ -49,7 +50,8 @@ public final class ContestViews {
             @Schema(types = {"integer", "null"}) Integer maxParticipants,
             long participantCount, boolean rankingPublished,
             @Schema(types = {"string", "null"}) String description,
-            String examTitle, int durationMinutes, int questionCount) {
+            @Schema(types = {"string", "null"}) String examTitle, int durationMinutes, int questionCount,
+            @Schema(types = {"string", "null"}, description = "Game của cuộc thi trò chơi; null với cuộc thi theo đề") String gameCode) {
         public ContestDetail { prizes = List.copyOf(prizes); }
     }
 

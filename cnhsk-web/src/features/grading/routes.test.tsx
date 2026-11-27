@@ -81,7 +81,7 @@ describe('grading screen registration and learner access', () => {
       expect(getGradingPolicy).not.toHaveBeenCalled()
     },
   )
-  it('adds only Chấm bài to learning navigation and leaves contests to the header community menu', async () => {
+  it('adds Chấm bài last to learning navigation and keeps contests in both the sidebar and the header community menu', async () => {
     page('/grading')
     const navigation = await screen.findByRole('navigation', { name: 'Học tập' })
     const grading = within(navigation).getByRole('link', { name: 'Chấm bài' })
@@ -103,6 +103,6 @@ describe('grading screen registration and learner access', () => {
     await userEvent.click(within(mobile).getByRole('button', { name: 'Thêm' }))
     const more = screen.getByRole('navigation', { name: 'Điều hướng bổ sung' })
     expect(within(more).getByRole('link', { name: 'Chấm bài' })).toHaveAttribute('href', '/grading')
-    expect(within(more).queryByRole('link', { name: 'Cuộc thi' })).not.toBeInTheDocument()
+    expect(within(more).getByRole('link', { name: 'Cuộc thi' })).toHaveAttribute('href', '/contests')
   })
 })
