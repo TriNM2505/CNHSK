@@ -15,7 +15,6 @@ vi.mock('../api/mockPrep', () => ({
 }))
 vi.mock('../api/placement', () => ({
   getPlacementPool: vi.fn().mockResolvedValue({ levels: [], forms: [] }),
-  draftPlacementQuestions: vi.fn(),
   buildPlacementForms: vi.fn(),
 }))
 beforeEach(() => {

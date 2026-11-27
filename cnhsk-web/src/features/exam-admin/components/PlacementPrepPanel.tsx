@@ -3,10 +3,7 @@ import { useRef, useState } from 'react'
 import { toApiError, useApiQuery } from '@/shared/api'
 import { Button, ConfirmPanel, StatusBadge } from '@/shared/ui'
 
-import { buildPlacementForms, draftPlacementQuestions, getPlacementPool } from '../api/placement'
-
-/** Questions asked of the AI per level: enough for five forms of ten, plus room for rejected drafts. */
-const DRAFTS_PER_LEVEL = 60
+import { buildPlacementForms, getPlacementPool } from '../api/placement'
 
 const statusLabels: Record<string, string> = {
   DRAFT: 'Nháp',
@@ -16,9 +13,6 @@ const statusLabels: Record<string, string> = {
 
 function failureText(caught: unknown): string {
   const error = toApiError(caught)
-  if (error.errorCode === 'AI_GENERATION_BUSY')
-    return 'Một lô AI khác đang chạy. Thử lại sau ít phút.'
-  if (error.errorCode === 'AI_GENERATION_DISABLED') return 'Chức năng AI sinh câu đang tắt.'
   if (error.errorCode === 'PLACEMENT_BANK_INSUFFICIENT') {
     const details = Array.isArray(error.details) ? error.details : []
     const missing = details.flatMap((detail: unknown) => {
@@ -32,15 +26,15 @@ function failureText(caught: unknown): string {
     })
     return missing.length
       ? `Chưa đủ câu đã duyệt: ${missing.join('; ')}.`
-      : 'Cấp này chưa có phần kiến thức nào đủ dữ liệu để AI soạn câu.'
+      : 'Chưa đủ câu đã nhập cho bài kiểm tra trình độ.'
   }
   return error.message || 'Chưa thực hiện được. Vui lòng thử lại.'
 }
 
 /**
- * Content editors prepare the placement test here: AI drafts questions per HSK level (reviewed by a teacher, then
- * a content editor), and once each level has enough approved drafts, five forms are built and then published
- * from the exam list like any other exam.
+ * Content editors prepare the placement test here. Questions are imported by hand from CSV with codes PLC1-, PLC2-
+ * and PLC3- (no AI); once each level has enough approved questions, five forms are built and then published from
+ * the exam list like any other exam.
  */
 export function PlacementPrepPanel({ onBuilt }: { onBuilt: () => void }) {
   const pool = useApiQuery((signal) => getPlacementPool(signal), [])
@@ -80,9 +74,9 @@ export function PlacementPrepPanel({ onBuilt }: { onBuilt: () => void }) {
           Bài kiểm tra trình độ (HSK 1–3)
         </h2>
         <p className="text-body-sm text-ink-secondary">
-          AI soạn câu riêng cho từng cấp; câu qua giáo viên duyệt chuyên môn rồi Content Admin đưa
-          vào hệ thống. Khi mỗi cấp đủ 50 câu đã duyệt, tạo 5 đề rồi xuất bản từng đề trong danh
-          sách bên dưới.
+          Nạp câu bằng tệp CSV mẫu &ldquo;Câu hỏi&rdquo;, mã câu bắt đầu bằng <code>PLC1-</code>,{' '}
+          <code>PLC2-</code> hoặc <code>PLC3-</code> theo cấp và để trống cột <code>origin</code>. Khi mỗi
+          cấp đủ 50 câu, tạo 5 đề rồi xuất bản từng đề trong danh sách bên dưới.
         </p>
       </div>
       {pool.state === 'error' ? (
@@ -99,21 +93,8 @@ export function PlacementPrepPanel({ onBuilt }: { onBuilt: () => void }) {
             <li key={level.level} className="space-y-2 rounded-md border border-line p-3">
               <p className="font-semibold">HSK {level.level}</p>
               <p className="text-body-sm">
-                {level.approved}/{level.needed} câu đã duyệt · {level.pending} câu đang chờ duyệt
+                {level.approved}/{level.needed} câu đã duyệt
               </p>
-              <Button
-                variant="outline"
-                disabled={!!pending}
-                loading={pending === `draft-${level.level}`}
-                onClick={() =>
-                  void run(`draft-${level.level}`, async () => {
-                    await draftPlacementQuestions(level.level, DRAFTS_PER_LEVEL)
-                    return `Đã nhờ AI soạn câu HSK ${level.level}. Câu sẽ hiện ở hàng chờ duyệt sau vài phút.`
-                  })
-                }
-              >
-                Soạn câu HSK {level.level}
-              </Button>
             </li>
           ))}
         </ul>
@@ -130,6 +111,9 @@ export function PlacementPrepPanel({ onBuilt }: { onBuilt: () => void }) {
         </ul>
       ) : null}
       <div className="flex flex-wrap items-center gap-3">
+        <Button variant="outline" to="/content/imports">
+          Nạp câu bằng CSV
+        </Button>
         <Button disabled={!!pending || !ready} onClick={() => setConfirming(true)}>
           Tạo 5 đề xếp trình độ
         </Button>
